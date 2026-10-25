@@ -11,8 +11,8 @@
 
 /** A stroke at its true width, but never thinner than `minPx` on screen. */
 export function legibleWidth(physical: number, minPx: number, metresToPx: number): number {
-  const floor = minPx / metresToPx;
-  return physical > floor ? physical : floor;
+    const floor = minPx / metresToPx;
+    return physical > floor ? physical : floor;
 }
 
 /**
@@ -51,9 +51,9 @@ export const BEAM_GLOW_ALPHA = 0.45;
 
 /** Opacity for a beam carrying `power` watts. See the constants above. */
 export function beamAlpha(power: number): number {
-  if (!(power > BEAM_DIM_POWER)) return BEAM_MIN_ALPHA;
-  const t = Math.log(power / BEAM_DIM_POWER) / BEAM_DECADES;
-  return t >= 1 ? 1 : BEAM_MIN_ALPHA + (1 - BEAM_MIN_ALPHA) * t;
+    if (!(power > BEAM_DIM_POWER)) return BEAM_MIN_ALPHA;
+    const t = Math.log(power / BEAM_DIM_POWER) / BEAM_DECADES;
+    return t >= 1 ? 1 : BEAM_MIN_ALPHA + (1 - BEAM_MIN_ALPHA) * t;
 }
 
 /**
@@ -73,9 +73,9 @@ const PLUME_MAX_ALPHA = 0.95;
 const PLUME_DECADES = Math.log(PLUME_BRIGHT_INTENSITY / PLUME_DIM_INTENSITY);
 
 export function plumeAlpha(intensity: number): number {
-  if (!(intensity > PLUME_DIM_INTENSITY)) return PLUME_MIN_ALPHA;
-  const t = Math.log(intensity / PLUME_DIM_INTENSITY) / PLUME_DECADES;
-  return t >= 1 ? PLUME_MAX_ALPHA : PLUME_MIN_ALPHA + (PLUME_MAX_ALPHA - PLUME_MIN_ALPHA) * t;
+    if (!(intensity > PLUME_DIM_INTENSITY)) return PLUME_MIN_ALPHA;
+    const t = Math.log(intensity / PLUME_DIM_INTENSITY) / PLUME_DECADES;
+    return t >= 1 ? PLUME_MAX_ALPHA : PLUME_MIN_ALPHA + (PLUME_MAX_ALPHA - PLUME_MIN_ALPHA) * t;
 }
 
 /**
@@ -93,9 +93,9 @@ const TRACER_FULL_EXPOSURE = 0.15;
 export const TRACER_MIN_ALPHA = 0.4;
 
 export function tracerAlpha(length: number, travel: number): number {
-  if (!(length > 0)) return TRACER_MIN_ALPHA;
-  const share = length / (travel + length) / TRACER_FULL_EXPOSURE;
-  return share >= 1 ? 1 : share > TRACER_MIN_ALPHA ? share : TRACER_MIN_ALPHA;
+    if (!(length > 0)) return TRACER_MIN_ALPHA;
+    const share = length / (travel + length) / TRACER_FULL_EXPOSURE;
+    return share >= 1 ? 1 : share > TRACER_MIN_ALPHA ? share : TRACER_MIN_ALPHA;
 }
 
 /**
@@ -130,8 +130,8 @@ export const BEAM_FADE_FLOOR = 0.22;
  * the dimming that pays for it cannot drift apart.
  */
 export function flooredFade(physical: number, minPx: number, metresToPx: number): number {
-  const truePx = physical * metresToPx;
-  if (truePx >= minPx) return 1;
-  const faded = (truePx / minPx) ** BEAM_WIDTH_FADE;
-  return faded > BEAM_FADE_FLOOR ? faded : BEAM_FADE_FLOOR;
+    const truePx = physical * metresToPx;
+    if (truePx >= minPx) return 1;
+    const faded = (truePx / minPx) ** BEAM_WIDTH_FADE;
+    return faded > BEAM_FADE_FLOOR ? faded : BEAM_FADE_FLOOR;
 }

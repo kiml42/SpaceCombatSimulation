@@ -1,6 +1,6 @@
-import { isInstance, settleIds, type Blueprint, type Placement } from './blueprint.js';
-import { serialiseBlueprint } from './blueprintFile.js';
-import type { Fleet } from './fleet.js';
+import { isInstance, settleIds, type Blueprint, type Placement } from "./blueprint.js";
+import { serialiseBlueprint } from "./blueprintFile.js";
+import type { Fleet } from "./fleet.js";
 
 /**
  * A carrier's fighters in a fleet. In a fleet a pad's fighter is the fleet's
@@ -13,13 +13,13 @@ import type { Fleet } from './fleet.js';
 
 /** The crafts a blueprint's pads and slipways name, in its layout and its assemblies, each once. */
 export function padFighterNames(blueprint: Blueprint): string[] {
-  const names = new Set<string>();
-  const walk = (list: readonly Placement[]): void => {
-    for (const p of list) if (!isInstance(p) && p.craft !== undefined) names.add(p.craft);
-  };
-  walk(blueprint.modules);
-  for (const assembly of Object.values(blueprint.assemblies ?? {})) walk(assembly.modules);
-  return [...names];
+    const names = new Set<string>();
+    const walk = (list: readonly Placement[]): void => {
+        for (const p of list) if (!isInstance(p) && p.craft !== undefined) names.add(p.craft);
+    };
+    walk(blueprint.modules);
+    for (const assembly of Object.values(blueprint.assemblies ?? {})) walk(assembly.modules);
+    return [...names];
 }
 
 /**
@@ -29,42 +29,42 @@ export function padFighterNames(blueprint: Blueprint): string[] {
  * build share one design of each name. Its own name it builds as itself.
  */
 export function withFleetFighters(blueprint: Blueprint, designs: Readonly<Record<string, Blueprint>>): Blueprint {
-  const hangar: Record<string, Blueprint> = { ...blueprint.hangar };
-  let added = false;
-  const queue: Blueprint[] = [blueprint];
-  while (queue.length > 0) {
-    for (const name of padFighterNames(queue.pop()!)) {
-      const design = designs[name];
-      if (name === blueprint.name || design === undefined || hangar[name] === design) continue;
-      hangar[name] = design;
-      added = true;
-      queue.push(design);
+    const hangar: Record<string, Blueprint> = { ...blueprint.hangar };
+    let added = false;
+    const queue: Blueprint[] = [blueprint];
+    while (queue.length > 0) {
+        for (const name of padFighterNames(queue.pop()!)) {
+            const design = designs[name];
+            if (name === blueprint.name || design === undefined || hangar[name] === design) continue;
+            hangar[name] = design;
+            added = true;
+            queue.push(design);
+        }
     }
-  }
-  return added ? { ...blueprint, hangar } : blueprint;
+    return added ? { ...blueprint, hangar } : blueprint;
 }
 
 /** Fleet `fleet`'s design `name`, as it flies there. */
 export function fleetBlueprint(fleet: Fleet, name: string): Blueprint {
-  return withFleetFighters(fleet.designs[name]!, fleet.designs);
+    return withFleetFighters(fleet.designs[name]!, fleet.designs);
 }
 
 /** Whether two blueprints say the same thing, their hangars' fighters in whatever order. */
 export function sameBlueprint(a: Blueprint, b: Blueprint): boolean {
-  return canonical(a) === canonical(b);
+    return canonical(a) === canonical(b);
 }
 
 function canonical(blueprint: Blueprint): string {
-  // Ids settled first: a copy written before placements had them is the same design given them.
-  const raw = serialiseBlueprint(settleIds(blueprint));
-  const hangar = raw['hangar'] as Record<string, unknown> | undefined;
-  if (hangar !== undefined)
-    raw['hangar'] = Object.fromEntries(
-      Object.keys(hangar)
-        .sort()
-        .map((k) => [k, hangar[k]]),
-    );
-  return JSON.stringify(raw);
+    // Ids settled first: a copy written before placements had them is the same design given them.
+    const raw = serialiseBlueprint(settleIds(blueprint));
+    const hangar = raw["hangar"] as Record<string, unknown> | undefined;
+    if (hangar !== undefined)
+        raw["hangar"] = Object.fromEntries(
+            Object.keys(hangar)
+                .sort()
+                .map((k) => [k, hangar[k]]),
+        );
+    return JSON.stringify(raw);
 }
 
 /**
@@ -73,57 +73,58 @@ function canonical(blueprint: Blueprint): string {
  * differently left in the hangar, a clash. Unchanged where nothing changes.
  */
 export function joinHangars(fleet: Fleet): Fleet {
-  let designs: Record<string, Blueprint> | null = null;
-  const all = (): Record<string, Blueprint> => (designs ??= { ...fleet.designs });
-  for (const [name, blueprint] of Object.entries(fleet.designs)) {
-    const hangar = blueprint.hangar;
-    if (hangar === undefined) continue;
-    const kept: Record<string, Blueprint> = {};
-    for (const [fighter, copy] of Object.entries(hangar)) {
-      const theirs = (designs ?? fleet.designs)[fighter];
-      if (theirs === undefined) all()[fighter] = copy;
-      else if (!sameBlueprint(theirs, copy)) kept[fighter] = copy;
+    let designs: Record<string, Blueprint> | null = null;
+    const all = (): Record<string, Blueprint> => (designs ??= { ...fleet.designs });
+    for (const [name, blueprint] of Object.entries(fleet.designs)) {
+        const hangar = blueprint.hangar;
+        if (hangar === undefined) continue;
+        const kept: Record<string, Blueprint> = {};
+        for (const [fighter, copy] of Object.entries(hangar)) {
+            const theirs = (designs ?? fleet.designs)[fighter];
+            if (theirs === undefined) all()[fighter] = copy;
+            else if (!sameBlueprint(theirs, copy)) kept[fighter] = copy;
+        }
+        const { hangar: _, ...rest } = all()[name]!;
+        all()[name] = Object.keys(kept).length > 0 ? { ...rest, hangar: kept } : rest;
     }
-    const { hangar: _, ...rest } = all()[name]!;
-    all()[name] = Object.keys(kept).length > 0 ? { ...rest, hangar: kept } : rest;
-  }
-  return designs === null ? fleet : { ...fleet, designs };
+    return designs === null ? fleet : { ...fleet, designs };
 }
 
 /** Each fighter a design's hangar still holds differently from the fleet's design of that name. */
 export function hangarClashes(fleet: Fleet): string[] {
-  const out: string[] = [];
-  for (const [name, blueprint] of Object.entries(fleet.designs)) {
-    for (const fighter of Object.keys(blueprint.hangar ?? {})) {
-      if (fleet.designs[fighter] !== undefined) out.push(`${name} carries a ${fighter} that is not the fleet's ${fighter}`);
+    const out: string[] = [];
+    for (const [name, blueprint] of Object.entries(fleet.designs)) {
+        for (const fighter of Object.keys(blueprint.hangar ?? {})) {
+            if (fleet.designs[fighter] !== undefined) out.push(`${name} carries a ${fighter} that is not the fleet's ${fighter}`);
+        }
     }
-  }
-  return out;
+    return out;
 }
 
 /** The designs a fleet's pads name, from the designs `from` reach, and those they reach in turn. */
 export function padReached(fleet: Fleet, from: Iterable<string>): Set<string> {
-  const reached = new Set<string>(from);
-  const queue = [...reached];
-  while (queue.length > 0) {
-    const blueprint = fleet.designs[queue.pop()!];
-    if (blueprint === undefined) continue;
-    for (const name of padFighterNames(blueprint)) {
-      if (fleet.designs[name] === undefined || reached.has(name)) continue;
-      reached.add(name);
-      queue.push(name);
+    const reached = new Set<string>(from);
+    const queue = [...reached];
+    while (queue.length > 0) {
+        const blueprint = fleet.designs[queue.pop()!];
+        if (blueprint === undefined) continue;
+        for (const name of padFighterNames(blueprint)) {
+            if (fleet.designs[name] === undefined || reached.has(name)) continue;
+            reached.add(name);
+            queue.push(name);
+        }
     }
-  }
-  return reached;
+    return reached;
 }
 
 /** A blueprint with every pad naming fighter `from` naming `to` instead. Unchanged where none does. */
 export function renamePadFighter(blueprint: Blueprint, from: string, to: string): Blueprint {
-  if (!padFighterNames(blueprint).includes(from)) return blueprint;
-  const swap = (list: readonly Placement[]): Placement[] => list.map((p) => (!isInstance(p) && p.craft === from ? { ...p, craft: to } : p));
-  const assemblies =
-    blueprint.assemblies === undefined
-      ? undefined
-      : Object.fromEntries(Object.entries(blueprint.assemblies).map(([k, a]) => [k, { ...a, modules: swap(a.modules) }]));
-  return { ...blueprint, modules: swap(blueprint.modules), ...(assemblies === undefined ? {} : { assemblies }) };
+    if (!padFighterNames(blueprint).includes(from)) return blueprint;
+    const swap = (list: readonly Placement[]): Placement[] =>
+        list.map((p) => (!isInstance(p) && p.craft === from ? { ...p, craft: to } : p));
+    const assemblies =
+        blueprint.assemblies === undefined
+            ? undefined
+            : Object.fromEntries(Object.entries(blueprint.assemblies).map(([k, a]) => [k, { ...a, modules: swap(a.modules) }]));
+    return { ...blueprint, modules: swap(blueprint.modules), ...(assemblies === undefined ? {} : { assemblies }) };
 }

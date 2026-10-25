@@ -1,37 +1,37 @@
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import {
-  blueprintWarnings,
-  compileBlueprint,
-  fleetHulls,
-  fleetBill,
-  billOf,
-  type Bill,
-  fleetWarnings,
-  parseBlueprint,
-  parseFleet,
-  type Blueprint,
-  type Fleet,
-  MAP_KEYS,
-  mapProblem,
-} from '../sim/index.js';
-import { BLUEPRINTS } from '../scenarios/blueprints.js';
-import { FLEETS } from '../scenarios/fleets.js';
+    blueprintWarnings,
+    compileBlueprint,
+    fleetHulls,
+    fleetBill,
+    billOf,
+    type Bill,
+    fleetWarnings,
+    parseBlueprint,
+    parseFleet,
+    type Blueprint,
+    type Fleet,
+    MAP_KEYS,
+    mapProblem,
+} from "../sim/index.js";
+import { BLUEPRINTS } from "../scenarios/blueprints.js";
+import { FLEETS } from "../scenarios/fleets.js";
 import {
-  finalist,
-  matchCount,
-  Run,
-  DEFAULT_RUN,
-  spreadOf,
-  type GenerationRecord,
-  type RunConfig,
-  type RunRecord,
-} from '../evolution/run.js';
-import { Coevolution, DEFAULT_COEVOLUTION, type CoevolutionConfig } from '../evolution/coevolution.js';
-import type { Entrant } from '../evolution/match.js';
-import { DEFAULT_BUILD_WEIGHTS, DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_KINDS } from '../evolution/mutate.js';
-import { parseRunConfig, runConfigWarnings, serialiseRunConfig } from '../evolution/configFile.js';
-import type { ModuleKind } from '../sim/modules.js';
+    finalist,
+    matchCount,
+    Run,
+    DEFAULT_RUN,
+    spreadOf,
+    type GenerationRecord,
+    type RunConfig,
+    type RunRecord,
+} from "../evolution/run.js";
+import { Coevolution, DEFAULT_COEVOLUTION, type CoevolutionConfig } from "../evolution/coevolution.js";
+import type { Entrant } from "../evolution/match.js";
+import { DEFAULT_BUILD_WEIGHTS, DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_KINDS } from "../evolution/mutate.js";
+import { parseRunConfig, runConfigWarnings, serialiseRunConfig } from "../evolution/configFile.js";
+import type { ModuleKind } from "../sim/modules.js";
 
 /**
  * Run an evolution headlessly and write what happened to a file.
@@ -46,362 +46,362 @@ import type { ModuleKind } from '../sim/modules.js';
  */
 
 interface Options {
-  /** Ship founders, each with the name it is reported by. */
-  readonly from: readonly { name: string; blueprint: Blueprint }[];
-  /** Fleet founders, as `from`. Any makes it a run of fleets. */
-  readonly fleets: readonly { name: string; fleet: Fleet }[];
-  /** Side B of a co-evolution run, or null for a run of one. */
-  readonly versus: Versus | null;
-  readonly out: string;
-  /** Where to write the settings this run was given, or '' for nowhere. */
-  readonly saveConfig: string;
-  /** The settings' name, from a `--config` file, kept when they are saved again. */
-  readonly name: string | undefined;
-  readonly config: Partial<RunConfig>;
-  readonly quiet: boolean;
+    /** Ship founders, each with the name it is reported by. */
+    readonly from: readonly { name: string; blueprint: Blueprint }[];
+    /** Fleet founders, as `from`. Any makes it a run of fleets. */
+    readonly fleets: readonly { name: string; fleet: Fleet }[];
+    /** Side B of a co-evolution run, or null for a run of one. */
+    readonly versus: Versus | null;
+    readonly out: string;
+    /** Where to write the settings this run was given, or '' for nowhere. */
+    readonly saveConfig: string;
+    /** The settings' name, from a `--config` file, kept when they are saved again. */
+    readonly name: string | undefined;
+    readonly config: Partial<RunConfig>;
+    readonly quiet: boolean;
 }
 
 /** Side B's founders, as `Options.from`, and how it is bred against side A. */
 interface Versus {
-  readonly from: readonly { name: string; blueprint: Blueprint }[];
-  readonly fleets: readonly { name: string; fleet: Fleet }[];
-  readonly coevolution: CoevolutionConfig;
+    readonly from: readonly { name: string; blueprint: Blueprint }[];
+    readonly fleets: readonly { name: string; fleet: Fleet }[];
+    readonly coevolution: CoevolutionConfig;
 }
 
 /** Say what a file carried that nothing reads, and carry on: it is not a reason to stop. */
 function warnUnread(file: string, warnings: readonly string[]): void {
-  for (const warning of warnings) process.stderr.write(`warning: ${file}: ${warning}\n`);
+    for (const warning of warnings) process.stderr.write(`warning: ${file}: ${warning}\n`);
 }
 
 /** A ship by stock name or key, or read from a blueprint file, with the name it is reported by. */
 function shipFrom(name: string): { name: string; blueprint: Blueprint } {
-  for (const [key, blueprint] of Object.entries(BLUEPRINTS)) {
-    if (blueprint.name === name || key === name) return { name: blueprint.name, blueprint };
-  }
-  let value: unknown;
-  try {
-    value = JSON.parse(readFileSync(name, 'utf8'));
-  } catch (error) {
-    if ((error as { code?: string }).code !== 'ENOENT') throw error;
-    throw new Error(
-      `no such ship or blueprint file: ${name}. A ship saved in the editor lives in a browser rather ` +
-        `than here — export it from there as a file. The stock ships are ${Object.keys(BLUEPRINTS).join(', ')}`,
-    );
-  }
-  const blueprint = parseBlueprint(value);
-  warnUnread(name, blueprintWarnings(blueprint));
-  return { name, blueprint };
+    for (const [key, blueprint] of Object.entries(BLUEPRINTS)) {
+        if (blueprint.name === name || key === name) return { name: blueprint.name, blueprint };
+    }
+    let value: unknown;
+    try {
+        value = JSON.parse(readFileSync(name, "utf8"));
+    } catch (error) {
+        if ((error as { code?: string }).code !== "ENOENT") throw error;
+        throw new Error(
+            `no such ship or blueprint file: ${name}. A ship saved in the editor lives in a browser rather ` +
+                `than here — export it from there as a file. The stock ships are ${Object.keys(BLUEPRINTS).join(", ")}`,
+        );
+    }
+    const blueprint = parseBlueprint(value);
+    warnUnread(name, blueprintWarnings(blueprint));
+    return { name, blueprint };
 }
 
 /** A fleet by stock name, or read from a fleet file. */
 function fleetFrom(name: string): Fleet {
-  const stock = FLEETS[name];
-  if (stock !== undefined) return stock;
-  try {
-    const fleet = parseFleet(JSON.parse(readFileSync(name, 'utf8')));
-    warnUnread(name, fleetWarnings(fleet));
-    return fleet;
-  } catch (error) {
-    if ((error as { code?: string }).code !== 'ENOENT') throw error;
-    throw new Error(`no such fleet or fleet file: ${name}. The stock fleets are ${Object.keys(FLEETS).join(', ')}`);
-  }
+    const stock = FLEETS[name];
+    if (stock !== undefined) return stock;
+    try {
+        const fleet = parseFleet(JSON.parse(readFileSync(name, "utf8")));
+        warnUnread(name, fleetWarnings(fleet));
+        return fleet;
+    } catch (error) {
+        if ((error as { code?: string }).code !== "ENOENT") throw error;
+        throw new Error(`no such fleet or fleet file: ${name}. The stock fleets are ${Object.keys(FLEETS).join(", ")}`);
+    }
 }
 
 /** Where a run from a settings file is written unless `--out` says: beside it, `x.evo.json` → `x.run.json`. */
 function runBeside(configPath: string): string {
-  return `${configPath.replace(/(\.evo)?\.json$/i, '')}.run.json`;
+    return `${configPath.replace(/(\.evo)?\.json$/i, "")}.run.json`;
 }
 
 function parse(argv: readonly string[]): Options {
-  const from: { name: string; blueprint: Blueprint }[] = [];
-  const fleets: { name: string; fleet: Fleet }[] = [];
-  const versusFrom: { name: string; blueprint: Blueprint }[] = [];
-  const versusFleets: { name: string; fleet: Fleet }[] = [];
-  let coevolution: CoevolutionConfig = DEFAULT_COEVOLUTION;
-  // Whatever a `--config` file said, which every flag then overrides: a saved
-  // experiment with one number changed is the commonest thing to want, and
-  // having to edit the file to get it would mean editing the record of what
-  // was run in order to run something else.
-  let config: Record<string, unknown> = {};
-  const match: Record<string, unknown> = {};
-  const fleet: Record<string, unknown> = {};
-  const kinds: Partial<Record<ModuleKind, number>> = {};
-  const doctrine: Record<string, number> = {};
-  const build: Record<string, number> = {};
-  let structural: number | undefined;
-  let geometry: number | undefined;
-  let thrusters: number | undefined;
-  let name: string | undefined;
-  let out: string | undefined;
-  let configPath: string | undefined;
-  let saveConfig = '';
-  let quiet = false;
-  let budget = 0;
+    const from: { name: string; blueprint: Blueprint }[] = [];
+    const fleets: { name: string; fleet: Fleet }[] = [];
+    const versusFrom: { name: string; blueprint: Blueprint }[] = [];
+    const versusFleets: { name: string; fleet: Fleet }[] = [];
+    let coevolution: CoevolutionConfig = DEFAULT_COEVOLUTION;
+    // Whatever a `--config` file said, which every flag then overrides: a saved
+    // experiment with one number changed is the commonest thing to want, and
+    // having to edit the file to get it would mean editing the record of what
+    // was run in order to run something else.
+    let config: Record<string, unknown> = {};
+    const match: Record<string, unknown> = {};
+    const fleet: Record<string, unknown> = {};
+    const kinds: Partial<Record<ModuleKind, number>> = {};
+    const doctrine: Record<string, number> = {};
+    const build: Record<string, number> = {};
+    let structural: number | undefined;
+    let geometry: number | undefined;
+    let thrusters: number | undefined;
+    let name: string | undefined;
+    let out: string | undefined;
+    let configPath: string | undefined;
+    let saveConfig = "";
+    let quiet = false;
+    let budget = 0;
 
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i]!;
-    const value = (): string => {
-      const next = argv[++i];
-      if (next === undefined) throw new Error(`${arg} wants a value`);
-      return next;
-    };
-    switch (arg) {
-      // Stock ships or blueprint files, comma-separated.
-      case '--from':
-        for (const name of value().split(',')) from.push(shipFrom(name));
-        break;
-      case '--fleet': {
-        const fleet = fleetFrom(value());
-        fleets.push({ name: fleet.name, fleet });
-        break;
-      }
-      // How far from its origin a fleet may spread, and how many ships it may field.
-      case '--deploy':
-        fleet['radius'] = Number(value());
-        break;
-      case '--ships':
-        fleet['maxShips'] = Number(value());
-        break;
-      case '--out':
-        out = value();
-        break;
-      case '--seed':
-        config['seed'] = Number(value());
-        break;
-      case '--generations':
-        config['generations'] = Number(value());
-        break;
-      case '--population':
-        config['population'] = Number(value());
-        break;
-      case '--winners':
-        config['winners'] = Number(value());
-        break;
-      case '--group':
-        config['group'] = Number(value());
-        break;
-      case '--matches':
-        config['minMatches'] = Number(value());
-        break;
-      // A multiple of what the dearest ship it started from costs, in each of
-      // metal, fuel and build time, so the one number means the same thing
-      // whatever a run is started from.
-      case '--budget':
-        budget = Number(value());
-        break;
-      case '--duration':
-        match['duration'] = Number(value());
-        break;
-      case '--radius':
-        match['radius'] = Number(value());
-        break;
-      // Each entrant's starting speed towards the middle, and to its left, m/s.
-      case '--closing':
-        match['closingSpeed'] = Number(value());
-        break;
-      case '--crossing':
-        match['crossingSpeed'] = Number(value());
-        break;
-      // How far either side of those each match's are drawn.
-      case '--radius-spread':
-        match['radiusSpread'] = Number(value());
-        break;
-      case '--closing-spread':
-        match['closingSpread'] = Number(value());
-        break;
-      case '--crossing-spread':
-        match['crossingSpread'] = Number(value());
-        break;
-      // Seconds a side may go without firing or ramming before it loses.
-      case '--quiet-limit':
-        match['quietLimit'] = Number(value());
-        break;
-      // Asteroids every match is fought among, drawn from its seed, as
-      // `majors=2,minors=8,fuel=0.3` — the rest of the map's settings their defaults.
-      case '--map': {
-        const map: Record<string, number> = {};
-        for (const pair of value().split(',')) {
-          const [key, figure] = pair.split('=');
-          if (key === undefined || !(MAP_KEYS as readonly string[]).includes(key)) {
-            throw new Error(`no such map setting: ${key}. Try ${MAP_KEYS.join(', ')}`);
-          }
-          map[key] = Number(figure);
+    for (let i = 0; i < argv.length; i++) {
+        const arg = argv[i]!;
+        const value = (): string => {
+            const next = argv[++i];
+            if (next === undefined) throw new Error(`${arg} wants a value`);
+            return next;
+        };
+        switch (arg) {
+            // Stock ships or blueprint files, comma-separated.
+            case "--from":
+                for (const name of value().split(",")) from.push(shipFrom(name));
+                break;
+            case "--fleet": {
+                const fleet = fleetFrom(value());
+                fleets.push({ name: fleet.name, fleet });
+                break;
+            }
+            // How far from its origin a fleet may spread, and how many ships it may field.
+            case "--deploy":
+                fleet["radius"] = Number(value());
+                break;
+            case "--ships":
+                fleet["maxShips"] = Number(value());
+                break;
+            case "--out":
+                out = value();
+                break;
+            case "--seed":
+                config["seed"] = Number(value());
+                break;
+            case "--generations":
+                config["generations"] = Number(value());
+                break;
+            case "--population":
+                config["population"] = Number(value());
+                break;
+            case "--winners":
+                config["winners"] = Number(value());
+                break;
+            case "--group":
+                config["group"] = Number(value());
+                break;
+            case "--matches":
+                config["minMatches"] = Number(value());
+                break;
+            // A multiple of what the dearest ship it started from costs, in each of
+            // metal, fuel and build time, so the one number means the same thing
+            // whatever a run is started from.
+            case "--budget":
+                budget = Number(value());
+                break;
+            case "--duration":
+                match["duration"] = Number(value());
+                break;
+            case "--radius":
+                match["radius"] = Number(value());
+                break;
+            // Each entrant's starting speed towards the middle, and to its left, m/s.
+            case "--closing":
+                match["closingSpeed"] = Number(value());
+                break;
+            case "--crossing":
+                match["crossingSpeed"] = Number(value());
+                break;
+            // How far either side of those each match's are drawn.
+            case "--radius-spread":
+                match["radiusSpread"] = Number(value());
+                break;
+            case "--closing-spread":
+                match["closingSpread"] = Number(value());
+                break;
+            case "--crossing-spread":
+                match["crossingSpread"] = Number(value());
+                break;
+            // Seconds a side may go without firing or ramming before it loses.
+            case "--quiet-limit":
+                match["quietLimit"] = Number(value());
+                break;
+            // Asteroids every match is fought among, drawn from its seed, as
+            // `majors=2,minors=8,fuel=0.3` — the rest of the map's settings their defaults.
+            case "--map": {
+                const map: Record<string, number> = {};
+                for (const pair of value().split(",")) {
+                    const [key, figure] = pair.split("=");
+                    if (key === undefined || !(MAP_KEYS as readonly string[]).includes(key)) {
+                        throw new Error(`no such map setting: ${key}. Try ${MAP_KEYS.join(", ")}`);
+                    }
+                    map[key] = Number(figure);
+                }
+                const problem = mapProblem(map, "--map");
+                if (problem !== null) throw new Error(problem);
+                match["map"] = map;
+                break;
+            }
+            // A weight per module kind, as `engine=5,turret=0` — only the kinds
+            // named are changed, the rest keeping their defaults.
+            case "--kinds":
+                for (const pair of value().split(",")) {
+                    const [kind, weight] = pair.split("=");
+                    if (kind === undefined || !(kind in DEFAULT_KINDS)) {
+                        throw new Error(`no such module kind: ${kind}. Try ${Object.keys(DEFAULT_KINDS).join(", ")}`);
+                    }
+                    const number = Number(weight);
+                    if (!Number.isFinite(number) || number < 0) {
+                        throw new Error(`${kind} wants a weight of zero or more, not ${weight}`);
+                    }
+                    kinds[kind as ModuleKind] = number;
+                }
+                break;
+            // How far doctrine numbers drift, as `targeting=0,approach=2`.
+            case "--doctrine":
+                for (const pair of value().split(",")) {
+                    const [part, weight] = pair.split("=");
+                    if (part === undefined || !(part in DEFAULT_DOCTRINE_WEIGHTS)) {
+                        throw new Error(`no such doctrine part: ${part}. Try ${Object.keys(DEFAULT_DOCTRINE_WEIGHTS).join(", ")}`);
+                    }
+                    const number = Number(weight);
+                    if (!Number.isFinite(number) || number < 0) throw new Error(`${part} wants a weight of zero or more, not ${weight}`);
+                    doctrine[part] = number;
+                }
+                break;
+            // How far each sort of build number drifts, or how often it flips, as `move=0,tuning=2`.
+            case "--build":
+                for (const pair of value().split(",")) {
+                    const [part, weight] = pair.split("=");
+                    if (part === undefined || !(part in DEFAULT_BUILD_WEIGHTS)) {
+                        throw new Error(`no such build part: ${part}. Try ${Object.keys(DEFAULT_BUILD_WEIGHTS).join(", ")}`);
+                    }
+                    const number = Number(weight);
+                    if (!Number.isFinite(number) || number < 0) throw new Error(`${part} wants a weight of zero or more, not ${weight}`);
+                    build[part] = number;
+                }
+                break;
+            // Chance a generation also adds, removes or regroups modules, 0 to 1.
+            case "--structural": {
+                const raw = value();
+                structural = Number(raw);
+                if (!Number.isFinite(structural) || structural < 0 || structural > 1) {
+                    throw new Error(`--structural wants a chance between 0 and 1, not ${raw}`);
+                }
+                break;
+            }
+            // Chance each module's geometry changes when its design is mutated, 0 to 1.
+            case "--geometry": {
+                const raw = value();
+                geometry = Number(raw);
+                if (!Number.isFinite(geometry) || geometry < 0 || geometry > 1) {
+                    throw new Error(`--geometry wants a chance between 0 and 1, not ${raw}`);
+                }
+                break;
+            }
+            // Chance of a small engine bolted to the hull, rolled again after each, 0 to 1.
+            case "--thrusters": {
+                const raw = value();
+                thrusters = Number(raw);
+                if (!Number.isFinite(thrusters) || thrusters < 0 || thrusters > 1) {
+                    throw new Error(`--thrusters wants a chance between 0 and 1, not ${raw}`);
+                }
+                break;
+            }
+            // Settings written by the evolution page, or by `--save-config`.
+            case "--config": {
+                const path = value();
+                configPath = path;
+                const raw: unknown = JSON.parse(readFileSync(path, "utf8"));
+                const setup = parseRunConfig(raw);
+                name = setup.name;
+                warnUnread(path, runConfigWarnings(raw));
+                for (const blueprint of setup.founders) from.push({ name: blueprint.name, blueprint });
+                for (const fleet of setup.fleets ?? []) fleets.push({ name: fleet.name, fleet });
+                config = { ...setup.config };
+                if (setup.versus != null) {
+                    for (const blueprint of setup.versus.founders) versusFrom.push({ name: blueprint.name, blueprint });
+                    for (const fleet of setup.versus.fleets) versusFleets.push({ name: fleet.name, fleet });
+                    coevolution = setup.versus.coevolution;
+                }
+                break;
+            }
+            case "--save-config":
+                saveConfig = value();
+                break;
+            // Side B of a co-evolution run: stock ships or blueprint files, as `--from` takes.
+            case "--versus":
+                for (const name of value().split(",")) versusFrom.push(shipFrom(name));
+                break;
+            case "--versus-fleet": {
+                const fleet = fleetFrom(value());
+                versusFleets.push({ name: fleet.name, fleet });
+                break;
+            }
+            // Champions each side keeps, one a round: what the other side is bred against.
+            case "--hall":
+                coevolution = { ...coevolution, hall: Number(value()) };
+                break;
+            // The share of its matches a round's best must win for the other side's turn to come, and the most generations a round takes.
+            case "--phase-win":
+                coevolution = { ...coevolution, phaseWin: Number(value()) };
+                break;
+            case "--phase-cap":
+                coevolution = { ...coevolution, phaseCap: Number(value()) };
+                break;
+            // Matches each design fights a generation invincible, and against bare cores.
+            case "--shielded-drills":
+                coevolution = { ...coevolution, shieldedDrills: Number(value()) };
+                break;
+            case "--bare-core-drills":
+                coevolution = { ...coevolution, bareCoreDrills: Number(value()) };
+                break;
+            // Side B as it is, every generation: side A bred against a fixed opponent.
+            case "--versus-fixed":
+                coevolution = { ...coevolution, rivalEvolves: false };
+                break;
+            // Side B's entrants a match, where they differ from side A's `--group`.
+            case "--versus-group":
+                coevolution = { ...coevolution, rival: { ...coevolution.rival, group: Number(value()) } };
+                break;
+            case "--quiet":
+                quiet = true;
+                break;
+            default:
+                throw new Error(`unknown argument ${arg}`);
         }
-        const problem = mapProblem(map, '--map');
-        if (problem !== null) throw new Error(problem);
-        match['map'] = map;
-        break;
-      }
-      // A weight per module kind, as `engine=5,turret=0` — only the kinds
-      // named are changed, the rest keeping their defaults.
-      case '--kinds':
-        for (const pair of value().split(',')) {
-          const [kind, weight] = pair.split('=');
-          if (kind === undefined || !(kind in DEFAULT_KINDS)) {
-            throw new Error(`no such module kind: ${kind}. Try ${Object.keys(DEFAULT_KINDS).join(', ')}`);
-          }
-          const number = Number(weight);
-          if (!Number.isFinite(number) || number < 0) {
-            throw new Error(`${kind} wants a weight of zero or more, not ${weight}`);
-          }
-          kinds[kind as ModuleKind] = number;
-        }
-        break;
-      // How far doctrine numbers drift, as `targeting=0,approach=2`.
-      case '--doctrine':
-        for (const pair of value().split(',')) {
-          const [part, weight] = pair.split('=');
-          if (part === undefined || !(part in DEFAULT_DOCTRINE_WEIGHTS)) {
-            throw new Error(`no such doctrine part: ${part}. Try ${Object.keys(DEFAULT_DOCTRINE_WEIGHTS).join(', ')}`);
-          }
-          const number = Number(weight);
-          if (!Number.isFinite(number) || number < 0) throw new Error(`${part} wants a weight of zero or more, not ${weight}`);
-          doctrine[part] = number;
-        }
-        break;
-      // How far each sort of build number drifts, or how often it flips, as `move=0,tuning=2`.
-      case '--build':
-        for (const pair of value().split(',')) {
-          const [part, weight] = pair.split('=');
-          if (part === undefined || !(part in DEFAULT_BUILD_WEIGHTS)) {
-            throw new Error(`no such build part: ${part}. Try ${Object.keys(DEFAULT_BUILD_WEIGHTS).join(', ')}`);
-          }
-          const number = Number(weight);
-          if (!Number.isFinite(number) || number < 0) throw new Error(`${part} wants a weight of zero or more, not ${weight}`);
-          build[part] = number;
-        }
-        break;
-      // Chance a generation also adds, removes or regroups modules, 0 to 1.
-      case '--structural': {
-        const raw = value();
-        structural = Number(raw);
-        if (!Number.isFinite(structural) || structural < 0 || structural > 1) {
-          throw new Error(`--structural wants a chance between 0 and 1, not ${raw}`);
-        }
-        break;
-      }
-      // Chance each module's geometry changes when its design is mutated, 0 to 1.
-      case '--geometry': {
-        const raw = value();
-        geometry = Number(raw);
-        if (!Number.isFinite(geometry) || geometry < 0 || geometry > 1) {
-          throw new Error(`--geometry wants a chance between 0 and 1, not ${raw}`);
-        }
-        break;
-      }
-      // Chance of a small engine bolted to the hull, rolled again after each, 0 to 1.
-      case '--thrusters': {
-        const raw = value();
-        thrusters = Number(raw);
-        if (!Number.isFinite(thrusters) || thrusters < 0 || thrusters > 1) {
-          throw new Error(`--thrusters wants a chance between 0 and 1, not ${raw}`);
-        }
-        break;
-      }
-      // Settings written by the evolution page, or by `--save-config`.
-      case '--config': {
-        const path = value();
-        configPath = path;
-        const raw: unknown = JSON.parse(readFileSync(path, 'utf8'));
-        const setup = parseRunConfig(raw);
-        name = setup.name;
-        warnUnread(path, runConfigWarnings(raw));
-        for (const blueprint of setup.founders) from.push({ name: blueprint.name, blueprint });
-        for (const fleet of setup.fleets ?? []) fleets.push({ name: fleet.name, fleet });
-        config = { ...setup.config };
-        if (setup.versus != null) {
-          for (const blueprint of setup.versus.founders) versusFrom.push({ name: blueprint.name, blueprint });
-          for (const fleet of setup.versus.fleets) versusFleets.push({ name: fleet.name, fleet });
-          coevolution = setup.versus.coevolution;
-        }
-        break;
-      }
-      case '--save-config':
-        saveConfig = value();
-        break;
-      // Side B of a co-evolution run: stock ships or blueprint files, as `--from` takes.
-      case '--versus':
-        for (const name of value().split(',')) versusFrom.push(shipFrom(name));
-        break;
-      case '--versus-fleet': {
-        const fleet = fleetFrom(value());
-        versusFleets.push({ name: fleet.name, fleet });
-        break;
-      }
-      // Champions each side keeps, one a round: what the other side is bred against.
-      case '--hall':
-        coevolution = { ...coevolution, hall: Number(value()) };
-        break;
-      // The share of its matches a round's best must win for the other side's turn to come, and the most generations a round takes.
-      case '--phase-win':
-        coevolution = { ...coevolution, phaseWin: Number(value()) };
-        break;
-      case '--phase-cap':
-        coevolution = { ...coevolution, phaseCap: Number(value()) };
-        break;
-      // Matches each design fights a generation invincible, and against bare cores.
-      case '--shielded-drills':
-        coevolution = { ...coevolution, shieldedDrills: Number(value()) };
-        break;
-      case '--bare-core-drills':
-        coevolution = { ...coevolution, bareCoreDrills: Number(value()) };
-        break;
-      // Side B as it is, every generation: side A bred against a fixed opponent.
-      case '--versus-fixed':
-        coevolution = { ...coevolution, rivalEvolves: false };
-        break;
-      // Side B's entrants a match, where they differ from side A's `--group`.
-      case '--versus-group':
-        coevolution = { ...coevolution, rival: { ...coevolution.rival, group: Number(value()) } };
-        break;
-      case '--quiet':
-        quiet = true;
-        break;
-      default:
-        throw new Error(`unknown argument ${arg}`);
     }
-  }
 
-  if (from.length === 0 && fleets.length === 0) from.push(shipFrom('corvette'));
-  if (Object.keys(match).length > 0) {
-    config['match'] = { ...(config['match'] as object | undefined), ...match };
-  }
-  if (Object.keys(fleet).length > 0) {
-    config['fleet'] = { ...(config['fleet'] as object | undefined), ...fleet };
-  }
-  if (
-    Object.keys(kinds).length > 0 ||
-    Object.keys(doctrine).length > 0 ||
-    Object.keys(build).length > 0 ||
-    structural !== undefined ||
-    geometry !== undefined ||
-    thrusters !== undefined
-  ) {
-    const held = config['mutation'] as { kinds?: object; doctrine?: object; build?: object } | undefined;
-    config['mutation'] = {
-      ...held,
-      ...(structural === undefined ? {} : { structural }),
-      ...(geometry === undefined ? {} : { geometry }),
-      ...(thrusters === undefined ? {} : { thrusters }),
-      kinds: { ...held?.kinds, ...kinds },
-      doctrine: { ...held?.doctrine, ...doctrine },
-      build: { ...held?.build, ...build },
-    };
-  }
-  if (budget > 0) {
-    // Each of the three is that many times the dearest founder's, of either
-    // side of a co-evolution run, which share the budget unless side B sets its own.
-    const bills: Bill[] = [
-      ...[...from, ...versusFrom].map(({ blueprint }) => billOf(compileBlueprint(blueprint))),
-      ...[...fleets, ...versusFleets].map(({ fleet }) => fleetBill(fleetHulls(fleet))),
-    ];
-    const most = (key: keyof Bill): number => bills.reduce((top, bill) => Math.max(top, bill[key]), 0) * budget;
-    config['budget'] = { metal: most('metal'), fuel: most('fuel'), build: most('build') };
-  }
-  const coevolving = versusFrom.length + versusFleets.length > 0;
-  const versus = coevolving ? { from: versusFrom, fleets: versusFleets, coevolution } : null;
-  out ??= configPath === undefined ? 'runs/run.json' : runBeside(configPath);
-  return { from, fleets, versus, out, saveConfig, name, config, quiet };
+    if (from.length === 0 && fleets.length === 0) from.push(shipFrom("corvette"));
+    if (Object.keys(match).length > 0) {
+        config["match"] = { ...(config["match"] as object | undefined), ...match };
+    }
+    if (Object.keys(fleet).length > 0) {
+        config["fleet"] = { ...(config["fleet"] as object | undefined), ...fleet };
+    }
+    if (
+        Object.keys(kinds).length > 0 ||
+        Object.keys(doctrine).length > 0 ||
+        Object.keys(build).length > 0 ||
+        structural !== undefined ||
+        geometry !== undefined ||
+        thrusters !== undefined
+    ) {
+        const held = config["mutation"] as { kinds?: object; doctrine?: object; build?: object } | undefined;
+        config["mutation"] = {
+            ...held,
+            ...(structural === undefined ? {} : { structural }),
+            ...(geometry === undefined ? {} : { geometry }),
+            ...(thrusters === undefined ? {} : { thrusters }),
+            kinds: { ...held?.kinds, ...kinds },
+            doctrine: { ...held?.doctrine, ...doctrine },
+            build: { ...held?.build, ...build },
+        };
+    }
+    if (budget > 0) {
+        // Each of the three is that many times the dearest founder's, of either
+        // side of a co-evolution run, which share the budget unless side B sets its own.
+        const bills: Bill[] = [
+            ...[...from, ...versusFrom].map(({ blueprint }) => billOf(compileBlueprint(blueprint))),
+            ...[...fleets, ...versusFleets].map(({ fleet }) => fleetBill(fleetHulls(fleet))),
+        ];
+        const most = (key: keyof Bill): number => bills.reduce((top, bill) => Math.max(top, bill[key]), 0) * budget;
+        config["budget"] = { metal: most("metal"), fuel: most("fuel"), build: most("build") };
+    }
+    const coevolving = versusFrom.length + versusFleets.length > 0;
+    const versus = coevolving ? { from: versusFrom, fleets: versusFleets, coevolution } : null;
+    out ??= configPath === undefined ? "runs/run.json" : runBeside(configPath);
+    return { from, fleets, versus, out, saveConfig, name, config, quiet };
 }
 
 const options = parse(process.argv.slice(2));
@@ -409,123 +409,123 @@ const founders: Entrant[] = [...options.from.map(({ blueprint }) => blueprint), 
 const settings: RunConfig = { ...DEFAULT_RUN, ...options.config };
 const versus = options.versus;
 const rivals: Entrant[] =
-  versus === null ? [] : [...versus.from.map(({ blueprint }) => blueprint), ...versus.fleets.map(({ fleet }) => fleet)];
+    versus === null ? [] : [...versus.from.map(({ blueprint }) => blueprint), ...versus.fleets.map(({ fleet }) => fleet)];
 const names = (side: { from: readonly { name: string }[]; fleets: readonly { name: string }[] }): string =>
-  [...side.from, ...side.fleets].map(({ name }) => name).join(', ');
+    [...side.from, ...side.fleets].map(({ name }) => name).join(", ");
 
 if (!options.quiet) {
-  console.log(
-    versus === null
-      ? `${names(options)} — ${settings.generations} generations of ` +
-          `${settings.population}, ${settings.group} to a match, ${settings.minMatches} matches each`
-      : `${names(options)} against ${names(versus)} — ${settings.generations} generations, ` +
-          `${settings.group} against ${versus.coevolution.rival.group ?? settings.group}, ` +
-          `${settings.minMatches} matches each, a hall of ${versus.coevolution.hall}` +
-          (versus.coevolution.rivalEvolves ? '' : ', side B fixed'),
-  );
+    console.log(
+        versus === null
+            ? `${names(options)} — ${settings.generations} generations of ` +
+                  `${settings.population}, ${settings.group} to a match, ${settings.minMatches} matches each`
+            : `${names(options)} against ${names(versus)} — ${settings.generations} generations, ` +
+                  `${settings.group} against ${versus.coevolution.rival.group ?? settings.group}, ` +
+                  `${settings.minMatches} matches each, a hall of ${versus.coevolution.hall}` +
+                  (versus.coevolution.rivalEvolves ? "" : ", side B fixed"),
+    );
 }
 
-if (options.saveConfig !== '') {
-  mkdirSync(dirname(options.saveConfig), { recursive: true });
-  writeFileSync(
-    options.saveConfig,
-    `${JSON.stringify(
-      serialiseRunConfig({
-        ...(options.name === undefined ? {} : { name: options.name }),
-        founders: options.from.map(({ blueprint }) => blueprint),
-        fleets: options.fleets.map(({ fleet }) => fleet),
-        versus:
-          versus === null
-            ? null
-            : {
-                founders: versus.from.map(({ blueprint }) => blueprint),
-                fleets: versus.fleets.map(({ fleet }) => fleet),
-                coevolution: versus.coevolution,
-              },
-        config: settings,
-      }),
-      null,
-      2,
-    )}\n`,
-  );
-  if (!options.quiet) console.log(`settings → ${options.saveConfig}`);
+if (options.saveConfig !== "") {
+    mkdirSync(dirname(options.saveConfig), { recursive: true });
+    writeFileSync(
+        options.saveConfig,
+        `${JSON.stringify(
+            serialiseRunConfig({
+                ...(options.name === undefined ? {} : { name: options.name }),
+                founders: options.from.map(({ blueprint }) => blueprint),
+                fleets: options.fleets.map(({ fleet }) => fleet),
+                versus:
+                    versus === null
+                        ? null
+                        : {
+                              founders: versus.from.map(({ blueprint }) => blueprint),
+                              fleets: versus.fleets.map(({ fleet }) => fleet),
+                              coevolution: versus.coevolution,
+                          },
+                config: settings,
+            }),
+            null,
+            2,
+        )}\n`,
+    );
+    if (!options.quiet) console.log(`settings → ${options.saveConfig}`);
 }
 
 const started = Date.now();
 mkdirSync(dirname(options.out), { recursive: true });
 // Beside it and then over it, so a run stopped mid-write keeps the last whole one.
 const writeRun = (): void => {
-  writeFileSync(`${options.out}.part`, `${JSON.stringify(runner.record(), null, 2)}\n`);
-  renameSync(`${options.out}.part`, options.out);
+    writeFileSync(`${options.out}.part`, `${JSON.stringify(runner.record(), null, 2)}\n`);
+    renameSync(`${options.out}.part`, options.out);
 };
 const spread = (generation: GenerationRecord): string => {
-  const s = spreadOf(generation);
-  return `spread ${(s.upperQuartile - s.lowerQuartile).toFixed(3)} (${s.lowest.toFixed(3)}–${s.highest.toFixed(3)}, ${s.tied} tied)  `;
+    const s = spreadOf(generation);
+    return `spread ${(s.upperQuartile - s.lowerQuartile).toFixed(3)} (${s.lowest.toFixed(3)}–${s.highest.toFixed(3)}, ${s.tied} tied)  `;
 };
-const line = (generation: GenerationRecord, label = 'gen'): string =>
-  `${label} ${String(generation.index).padStart(3)}  ` +
-  `${String(generation.matches.length).padStart(3)} matches  ` +
-  `mean ${generation.meanFitness.toFixed(3)}  best ${generation.bestFitness.toFixed(3)}  ` +
-  spread(generation) +
-  `| hull ${generation.mean.survival.toFixed(2)}  function ${generation.mean.functional.toFixed(2)}  ` +
-  `damage ${generation.mean.damage.toFixed(3)}  disabling ${generation.mean.disabling.toFixed(3)}  ` +
-  `race ${generation.mean.race.toFixed(2)}`;
+const line = (generation: GenerationRecord, label = "gen"): string =>
+    `${label} ${String(generation.index).padStart(3)}  ` +
+    `${String(generation.matches.length).padStart(3)} matches  ` +
+    `mean ${generation.meanFitness.toFixed(3)}  best ${generation.bestFitness.toFixed(3)}  ` +
+    spread(generation) +
+    `| hull ${generation.mean.survival.toFixed(2)}  function ${generation.mean.functional.toFixed(2)}  ` +
+    `damage ${generation.mean.damage.toFixed(3)}  disabling ${generation.mean.disabling.toFixed(3)}  ` +
+    `race ${generation.mean.race.toFixed(2)}`;
 const runner: { record(): RunRecord; finish(): RunRecord } =
-  versus === null
-    ? new Run(founders, options.config, (generation) => {
-        writeRun();
-        if (!options.quiet) console.log(line(generation));
-      })
-    : new Coevolution(founders, rivals, options.config, versus.coevolution, (generation, side) => {
-        writeRun();
-        if (!options.quiet) {
-          const round = generation.round === undefined ? '' : `round ${generation.round + 1} `;
-          console.log(`${round}${line(generation, side === 0 ? 'A' : 'B')}  won ${((generation.won ?? 0) * 100).toFixed(0)}%`);
-        }
-      });
+    versus === null
+        ? new Run(founders, options.config, (generation) => {
+              writeRun();
+              if (!options.quiet) console.log(line(generation));
+          })
+        : new Coevolution(founders, rivals, options.config, versus.coevolution, (generation, side) => {
+              writeRun();
+              if (!options.quiet) {
+                  const round = generation.round === undefined ? "" : `round ${generation.round + 1} `;
+                  console.log(`${round}${line(generation, side === 0 ? "A" : "B")}  won ${((generation.won ?? 0) * 100).toFixed(0)}%`);
+              }
+          });
 const run = runner.finish();
 const spent = (Date.now() - started) / 1000;
 writeRun();
 
 if (!options.quiet) {
-  console.log(`\n${matchesIn(run)} matches in ${spent.toFixed(1)}s → ${options.out}`);
-  const sides: [string, RunRecord][] =
-    run.rival === undefined
-      ? [['', run]]
-      : [
-          ['side A ', run],
-          ['side B ', { config: run.config, generations: run.rival.generations }],
-        ];
-  for (const [label, side] of sides) {
-    const best = finalist(side);
-    if (best === null) continue;
+    console.log(`\n${matchesIn(run)} matches in ${spent.toFixed(1)}s → ${options.out}`);
+    const sides: [string, RunRecord][] =
+        run.rival === undefined
+            ? [["", run]]
+            : [
+                  ["side A ", run],
+                  ["side B ", { config: run.config, generations: run.rival.generations }],
+              ];
+    for (const [label, side] of sides) {
+        const best = finalist(side);
+        if (best === null) continue;
+        console.log(
+            `${label}arrived at: generation ${best.generation}, individual ${best.individual.id}, ` +
+                `fitness ${best.individual.fitness.toFixed(3)} from ${best.individual.matches} matches, ` +
+                `${(best.individual.mass / 1000).toFixed(1)} tonnes`,
+        );
+        console.log(
+            `  hull ${best.individual.survival.toFixed(2)}  function ${(best.individual.functional ?? 0).toFixed(2)}  ` +
+                `disabling ${(best.individual.disabling ?? 0).toFixed(2)}  ` +
+                `damage ${best.individual.damage.toFixed(2)}  race ${best.individual.race.toFixed(2)}`,
+        );
+        for (const edit of best.individual.edits) console.log(`  ${edit}`);
+    }
+    // Said out loud because the number above invites exactly the wrong
+    // reading: a fitness is a score against that generation's opponents, so
+    // it cannot be compared with one from another generation.
     console.log(
-      `${label}arrived at: generation ${best.generation}, individual ${best.individual.id}, ` +
-        `fitness ${best.individual.fitness.toFixed(3)} from ${best.individual.matches} matches, ` +
-        `${(best.individual.mass / 1000).toFixed(1)} tonnes`,
+        `\n  Fitness is scored against the rest of the generation, so these numbers do not\n` +
+            `  compare across generations. For that, run: pnpm yardstick --run ${options.out}`,
     );
-    console.log(
-      `  hull ${best.individual.survival.toFixed(2)}  function ${(best.individual.functional ?? 0).toFixed(2)}  ` +
-        `disabling ${(best.individual.disabling ?? 0).toFixed(2)}  ` +
-        `damage ${best.individual.damage.toFixed(2)}  race ${best.individual.race.toFixed(2)}`,
-    );
-    for (const edit of best.individual.edits) console.log(`  ${edit}`);
-  }
-  // Said out loud because the number above invites exactly the wrong
-  // reading: a fitness is a score against that generation's opponents, so
-  // it cannot be compared with one from another generation.
-  console.log(
-    `\n  Fitness is scored against the rest of the generation, so these numbers do not\n` +
-      `  compare across generations. For that, run: npm run yardstick -- --run ${options.out}`,
-  );
 }
 
 /** Matches fought, each once: a match between the sides is in both sides' records. */
 function matchesIn(record: RunRecord): number {
-  if (record.rival === undefined) return matchCount(record);
-  const seen = new Set<number>();
-  for (const generation of [...record.generations, ...record.rival.generations]) {
-    for (const match of generation.matches) seen.add(match.seed);
-  }
-  return seen.size;
+    if (record.rival === undefined) return matchCount(record);
+    const seen = new Set<number>();
+    for (const generation of [...record.generations, ...record.rival.generations]) {
+        for (const match of generation.matches) seen.add(match.seed);
+    }
+    return seen.size;
 }

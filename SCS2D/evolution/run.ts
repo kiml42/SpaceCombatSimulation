@@ -1,32 +1,32 @@
 import {
-  budgetMass,
-  compileBlueprint,
-  expandFleet,
-  fleetHulls,
-  fleetMass,
-  fleetBill,
-  billOf,
-  NO_BUDGET,
-  type Bill,
-  type Blueprint,
-  type ShipDesign,
-  isWeaponMount,
-  type Budget,
-  parseBlueprint,
-  parseFleet,
-  Rng,
-  serialiseBlueprint,
-  serialiseFleet,
-  shipFleet,
-  DEFAULT_DOCTRINE,
-} from '../sim/index.js';
-import { floor, max, min } from '../sim/math.js';
-import { isFleet, Match, SCORE_PARTS, type Entrant, type MatchConfig, type MatchResult } from './match.js';
-import { type MutationLimits } from './mutate.js';
-import { DEFAULT_FLEET_LIMITS, type FleetMutationLimits } from './fleetMutate.js';
-import { blank, breed, fitness, Generation, offspring, type Individual } from './generation.js';
-import type { CoevolutionConfig } from './coevolution.js';
-import { withFleetFighters } from '../sim/fleetHangar.js';
+    budgetMass,
+    compileBlueprint,
+    expandFleet,
+    fleetHulls,
+    fleetMass,
+    fleetBill,
+    billOf,
+    NO_BUDGET,
+    type Bill,
+    type Blueprint,
+    type ShipDesign,
+    isWeaponMount,
+    type Budget,
+    parseBlueprint,
+    parseFleet,
+    Rng,
+    serialiseBlueprint,
+    serialiseFleet,
+    shipFleet,
+    DEFAULT_DOCTRINE,
+} from "../sim/index.js";
+import { floor, max, min } from "../sim/math.js";
+import { isFleet, Match, SCORE_PARTS, type Entrant, type MatchConfig, type MatchResult } from "./match.js";
+import { type MutationLimits } from "./mutate.js";
+import { DEFAULT_FLEET_LIMITS, type FleetMutationLimits } from "./fleetMutate.js";
+import { blank, breed, fitness, Generation, offspring, type Individual } from "./generation.js";
+import type { CoevolutionConfig } from "./coevolution.js";
+import { withFleetFighters } from "../sim/fleetHangar.js";
 
 /**
  * A run: generations of designs, each fought in groups and bred from what
@@ -41,131 +41,131 @@ import { withFleetFighters } from '../sim/fleetHangar.js';
  */
 
 export interface RunConfig {
-  readonly seed: number;
-  /** Designs under test at once. */
-  readonly population: number;
-  /** How many are bred from at the end of a generation. */
-  readonly winners: number;
-  /** Designs in one match. */
-  readonly group: number;
-  /** Matches every design plays before the generation is called. */
-  readonly minMatches: number;
-  readonly generations: number;
-  /**
-   * What a design may not cost more than, in metal, fuel and build time, each
-   * Infinity for none.
-   *
-   * A budget is what stops a run answering "how do I win a fight" with "be
-   * bigger than the other one" — which is true, uninteresting, and the first
-   * thing an unbounded search finds. Denominated in what a ship is made of
-   * and how long it takes to make (DESIGN.md §2).
-   */
-  readonly budget: Budget;
-  readonly mutation: Partial<MutationLimits>;
-  /** How fleets are bred, in a run started from one. The budget above is the whole fleet's. */
-  readonly fleet: Partial<FleetMutationLimits>;
-  readonly match: Partial<MatchConfig>;
+    readonly seed: number;
+    /** Designs under test at once. */
+    readonly population: number;
+    /** How many are bred from at the end of a generation. */
+    readonly winners: number;
+    /** Designs in one match. */
+    readonly group: number;
+    /** Matches every design plays before the generation is called. */
+    readonly minMatches: number;
+    readonly generations: number;
+    /**
+     * What a design may not cost more than, in metal, fuel and build time, each
+     * Infinity for none.
+     *
+     * A budget is what stops a run answering "how do I win a fight" with "be
+     * bigger than the other one" — which is true, uninteresting, and the first
+     * thing an unbounded search finds. Denominated in what a ship is made of
+     * and how long it takes to make (DESIGN.md §2).
+     */
+    readonly budget: Budget;
+    readonly mutation: Partial<MutationLimits>;
+    /** How fleets are bred, in a run started from one. The budget above is the whole fleet's. */
+    readonly fleet: Partial<FleetMutationLimits>;
+    readonly match: Partial<MatchConfig>;
 }
 
 export const DEFAULT_RUN: RunConfig = {
-  seed: 1,
-  population: 12,
-  winners: 4,
-  group: 4,
-  minMatches: 3,
-  generations: 200,
-  budget: NO_BUDGET,
-  mutation: {},
-  fleet: {},
-  match: {},
+    seed: 1,
+    population: 12,
+    winners: 4,
+    group: 4,
+    minMatches: 3,
+    generations: 200,
+    budget: NO_BUDGET,
+    mutation: {},
+    fleet: {},
+    match: {},
 };
 
 /** What one design was worth, as a run records it. */
 export interface IndividualRecord {
-  readonly id: number;
-  readonly parent: number;
-  readonly edits: readonly string[];
-  readonly matches: number;
-  readonly fitness: number;
-  readonly survival: number;
-  /** Absent from runs recorded before it was scored. */
-  readonly functional?: number;
-  readonly damage: number;
-  readonly disabling?: number;
-  readonly race: number;
-  /** Mass as it sets out, kg. */
-  readonly mass: number;
-  /** What it cost, in metal, fuel and build time; absent from runs written before budgets had three parts. */
-  readonly bill?: Bill;
-  /**
-   * The design itself, so a run can be read without the ships it started
-   * from: a blueprint file in a run of ships, a fleet file in a run of fleets.
-   */
-  readonly blueprint?: Record<string, unknown>;
-  readonly fleet?: Record<string, unknown>;
+    readonly id: number;
+    readonly parent: number;
+    readonly edits: readonly string[];
+    readonly matches: number;
+    readonly fitness: number;
+    readonly survival: number;
+    /** Absent from runs recorded before it was scored. */
+    readonly functional?: number;
+    readonly damage: number;
+    readonly disabling?: number;
+    readonly race: number;
+    /** Mass as it sets out, kg. */
+    readonly mass: number;
+    /** What it cost, in metal, fuel and build time; absent from runs written before budgets had three parts. */
+    readonly bill?: Bill;
+    /**
+     * The design itself, so a run can be read without the ships it started
+     * from: a blueprint file in a run of ships, a fleet file in a run of fleets.
+     */
+    readonly blueprint?: Record<string, unknown>;
+    readonly fleet?: Record<string, unknown>;
 }
 
 /** What a recorded individual was: the ship or fleet it fought as. */
 export function entrantOf(record: IndividualRecord): Entrant {
-  if (record.fleet !== undefined) return parseFleet(record.fleet);
-  if (record.blueprint !== undefined) return parseBlueprint(record.blueprint);
-  throw new Error(`individual ${record.id} records no design`);
+    if (record.fleet !== undefined) return parseFleet(record.fleet);
+    if (record.blueprint !== undefined) return parseBlueprint(record.blueprint);
+    throw new Error(`individual ${record.id} records no design`);
 }
 
 /** How many ships an individual fields: one for a ship, every hull for a fleet. */
 export function shipCount(record: IndividualRecord): number {
-  return record.fleet === undefined ? 1 : expandFleet(parseFleet(record.fleet)).length;
+    return record.fleet === undefined ? 1 : expandFleet(parseFleet(record.fleet)).length;
 }
 
 /** What an individual fields: its ships, and the weapons and engines on all of them. */
 export interface Fittings {
-  readonly ships: number;
-  readonly weapons: number;
-  readonly engines: number;
+    readonly ships: number;
+    readonly weapons: number;
+    readonly engines: number;
 }
 
 export function fittingsOf(record: IndividualRecord): Fittings {
-  const count = (blueprint: Blueprint): { weapons: number; engines: number } => {
-    let weapons = 0;
-    let engines = 0;
-    const add = (design: ShipDesign): void => {
-      for (const module of design.modules) {
-        if (isWeaponMount(module.spec.kind)) weapons++;
-        else if (module.spec.kind === 'engine') engines++;
-      }
-      for (const fighter of design.aboard ?? []) add(fighter.design);
+    const count = (blueprint: Blueprint): { weapons: number; engines: number } => {
+        let weapons = 0;
+        let engines = 0;
+        const add = (design: ShipDesign): void => {
+            for (const module of design.modules) {
+                if (isWeaponMount(module.spec.kind)) weapons++;
+                else if (module.spec.kind === "engine") engines++;
+            }
+            for (const fighter of design.aboard ?? []) add(fighter.design);
+        };
+        // Compiled, so a repeated assembly counts every copy, and the fighters it
+        // sets out with count too.
+        add(compileBlueprint(blueprint));
+        return { weapons, engines };
     };
-    // Compiled, so a repeated assembly counts every copy, and the fighters it
-    // sets out with count too.
-    add(compileBlueprint(blueprint));
-    return { weapons, engines };
-  };
-  // A record that a rule tightened since will not read counts for nothing,
-  // rather than taking the chart with it.
-  try {
-    return fittingsOfRecord(record, count);
-  } catch {
-    return { ships: 1, weapons: 0, engines: 0 };
-  }
+    // A record that a rule tightened since will not read counts for nothing,
+    // rather than taking the chart with it.
+    try {
+        return fittingsOfRecord(record, count);
+    } catch {
+        return { ships: 1, weapons: 0, engines: 0 };
+    }
 }
 
 function fittingsOfRecord(record: IndividualRecord, count: (blueprint: Blueprint) => { weapons: number; engines: number }): Fittings {
-  if (record.fleet !== undefined) {
-    const fleet = parseFleet(record.fleet);
-    const each = new Map(
-      Object.entries(fleet.designs).map(([name, blueprint]) => [name, count(withFleetFighters(blueprint, fleet.designs))]),
-    );
-    const ships = expandFleet(fleet);
-    let weapons = 0;
-    let engines = 0;
-    for (const ship of ships) {
-      weapons += each.get(ship.design)?.weapons ?? 0;
-      engines += each.get(ship.design)?.engines ?? 0;
+    if (record.fleet !== undefined) {
+        const fleet = parseFleet(record.fleet);
+        const each = new Map(
+            Object.entries(fleet.designs).map(([name, blueprint]) => [name, count(withFleetFighters(blueprint, fleet.designs))]),
+        );
+        const ships = expandFleet(fleet);
+        let weapons = 0;
+        let engines = 0;
+        for (const ship of ships) {
+            weapons += each.get(ship.design)?.weapons ?? 0;
+            engines += each.get(ship.design)?.engines ?? 0;
+        }
+        return { ships: ships.length, weapons, engines };
     }
-    return { ships: ships.length, weapons, engines };
-  }
-  if (record.blueprint === undefined) return { ships: 1, weapons: 0, engines: 0 };
-  return { ships: 1, ...count(parseBlueprint(record.blueprint)) };
+    if (record.blueprint === undefined) return { ships: 1, weapons: 0, engines: 0 };
+    return { ships: 1, ...count(parseBlueprint(record.blueprint)) };
 }
 
 /**
@@ -174,15 +174,15 @@ function fittingsOfRecord(record: IndividualRecord, count: (blueprint: Blueprint
  * generation, so it reads the same whatever the population.
  */
 export interface GenerationSize {
-  /** Dry mass of one individual, kg. */
-  readonly meanMass: number;
-  readonly bestMass: number;
-  readonly meanShips: number;
-  readonly bestShips: number;
-  readonly meanWeapons: number;
-  readonly bestWeapons: number;
-  readonly meanEngines: number;
-  readonly bestEngines: number;
+    /** Dry mass of one individual, kg. */
+    readonly meanMass: number;
+    readonly bestMass: number;
+    readonly meanShips: number;
+    readonly bestShips: number;
+    readonly meanWeapons: number;
+    readonly bestWeapons: number;
+    readonly meanEngines: number;
+    readonly bestEngines: number;
 }
 
 /**
@@ -191,145 +191,145 @@ export interface GenerationSize {
  * the one `bestFitness` was read from.
  */
 export function generationSize(record: GenerationRecord): GenerationSize {
-  const individuals = record.individuals;
-  if (individuals.length === 0) {
-    return { meanMass: 0, bestMass: 0, meanShips: 0, bestShips: 0, meanWeapons: 0, bestWeapons: 0, meanEngines: 0, bestEngines: 0 };
-  }
-  let mass = 0;
-  let ships = 0;
-  let weapons = 0;
-  let engines = 0;
-  let best = individuals[0]!;
-  let bestFittings: Fittings = { ships: 0, weapons: 0, engines: 0 };
-  for (const individual of individuals) {
-    const fittings = fittingsOf(individual);
-    mass += individual.mass;
-    ships += fittings.ships;
-    weapons += fittings.weapons;
-    engines += fittings.engines;
-    if (individual.fitness > best.fitness || individual === best) {
-      best = individual;
-      bestFittings = fittings;
+    const individuals = record.individuals;
+    if (individuals.length === 0) {
+        return { meanMass: 0, bestMass: 0, meanShips: 0, bestShips: 0, meanWeapons: 0, bestWeapons: 0, meanEngines: 0, bestEngines: 0 };
     }
-  }
-  const n = individuals.length;
-  return {
-    meanMass: mass / n,
-    bestMass: best.mass,
-    meanShips: ships / n,
-    bestShips: bestFittings.ships,
-    meanWeapons: weapons / n,
-    bestWeapons: bestFittings.weapons,
-    meanEngines: engines / n,
-    bestEngines: bestFittings.engines,
-  };
+    let mass = 0;
+    let ships = 0;
+    let weapons = 0;
+    let engines = 0;
+    let best = individuals[0]!;
+    let bestFittings: Fittings = { ships: 0, weapons: 0, engines: 0 };
+    for (const individual of individuals) {
+        const fittings = fittingsOf(individual);
+        mass += individual.mass;
+        ships += fittings.ships;
+        weapons += fittings.weapons;
+        engines += fittings.engines;
+        if (individual.fitness > best.fitness || individual === best) {
+            best = individual;
+            bestFittings = fittings;
+        }
+    }
+    const n = individuals.length;
+    return {
+        meanMass: mass / n,
+        bestMass: best.mass,
+        meanShips: ships / n,
+        bestShips: bestFittings.ships,
+        meanWeapons: weapons / n,
+        bestWeapons: bestFittings.weapons,
+        meanEngines: engines / n,
+        bestEngines: bestFittings.engines,
+    };
 }
 
 /** Every number a doctrine holds, as `part.field`: what a chart of how doctrine is evolving can show. */
-export const DOCTRINE_NUMBERS: readonly string[] = (['targeting', 'approach'] as const).flatMap((part) =>
-  Object.entries(DEFAULT_DOCTRINE[part])
-    .filter(([, value]) => typeof value === 'number')
-    .map(([field]) => `${part}.${field}`),
+export const DOCTRINE_NUMBERS: readonly string[] = (["targeting", "approach"] as const).flatMap((part) =>
+    Object.entries(DEFAULT_DOCTRINE[part])
+        .filter(([, value]) => typeof value === "number")
+        .map(([field]) => `${part}.${field}`),
 );
 
 /** Each of `DOCTRINE_NUMBERS`, averaged over a generation's individuals and for the fittest, as `generationSize` is. */
 export interface GenerationDoctrine {
-  readonly mean: Readonly<Record<string, number>>;
-  readonly best: Readonly<Record<string, number>>;
+    readonly mean: Readonly<Record<string, number>>;
+    readonly best: Readonly<Record<string, number>>;
 }
 
 export function generationDoctrine(record: GenerationRecord): GenerationDoctrine {
-  const mean: Record<string, number> = {};
-  const best: Record<string, number> = {};
-  let fittest: IndividualRecord | undefined;
-  let counted = 0;
-  for (const individual of record.individuals) {
-    const values = doctrineNumbers(individual);
-    if (values === null) continue;
-    counted++;
-    for (const key of DOCTRINE_NUMBERS) mean[key] = (mean[key] ?? 0) + values[key]!;
-    if (fittest === undefined || individual.fitness > fittest.fitness) {
-      fittest = individual;
-      Object.assign(best, values);
+    const mean: Record<string, number> = {};
+    const best: Record<string, number> = {};
+    let fittest: IndividualRecord | undefined;
+    let counted = 0;
+    for (const individual of record.individuals) {
+        const values = doctrineNumbers(individual);
+        if (values === null) continue;
+        counted++;
+        for (const key of DOCTRINE_NUMBERS) mean[key] = (mean[key] ?? 0) + values[key]!;
+        if (fittest === undefined || individual.fitness > fittest.fitness) {
+            fittest = individual;
+            Object.assign(best, values);
+        }
     }
-  }
-  for (const key of DOCTRINE_NUMBERS) mean[key] = counted > 0 ? mean[key]! / counted : NaN;
-  return { mean, best };
+    for (const key of DOCTRINE_NUMBERS) mean[key] = counted > 0 ? mean[key]! / counted : NaN;
+    return { mean, best };
 }
 
 /** One individual's doctrine numbers, a fleet's averaged over its ships; null for a record that no longer reads. */
 function doctrineNumbers(record: IndividualRecord): Record<string, number> | null {
-  const of = (blueprint: Blueprint): Record<string, number> => {
-    const doctrine = blueprint.doctrine ?? DEFAULT_DOCTRINE;
-    const out: Record<string, number> = {};
-    for (const key of DOCTRINE_NUMBERS) {
-      const [part, field] = key.split('.') as ['targeting' | 'approach', string];
-      const value = (doctrine[part] as unknown as Record<string, unknown>)[field];
-      out[key] = typeof value === 'number' ? value : ((DEFAULT_DOCTRINE[part] as unknown as Record<string, number>)[field] ?? NaN);
+    const of = (blueprint: Blueprint): Record<string, number> => {
+        const doctrine = blueprint.doctrine ?? DEFAULT_DOCTRINE;
+        const out: Record<string, number> = {};
+        for (const key of DOCTRINE_NUMBERS) {
+            const [part, field] = key.split(".") as ["targeting" | "approach", string];
+            const value = (doctrine[part] as unknown as Record<string, unknown>)[field];
+            out[key] = typeof value === "number" ? value : ((DEFAULT_DOCTRINE[part] as unknown as Record<string, number>)[field] ?? NaN);
+        }
+        return out;
+    };
+    try {
+        if (record.fleet !== undefined) {
+            const fleet = parseFleet(record.fleet);
+            const ships = expandFleet(fleet);
+            if (ships.length === 0) return null;
+            const out: Record<string, number> = {};
+            for (const ship of ships) {
+                const values = of(fleet.designs[ship.design]!);
+                for (const key of DOCTRINE_NUMBERS) out[key] = (out[key] ?? 0) + values[key]! / ships.length;
+            }
+            return out;
+        }
+        return record.blueprint === undefined ? null : of(parseBlueprint(record.blueprint));
+    } catch {
+        return null;
     }
-    return out;
-  };
-  try {
-    if (record.fleet !== undefined) {
-      const fleet = parseFleet(record.fleet);
-      const ships = expandFleet(fleet);
-      if (ships.length === 0) return null;
-      const out: Record<string, number> = {};
-      for (const ship of ships) {
-        const values = of(fleet.designs[ship.design]!);
-        for (const key of DOCTRINE_NUMBERS) out[key] = (out[key] ?? 0) + values[key]! / ships.length;
-      }
-      return out;
-    }
-    return record.blueprint === undefined ? null : of(parseBlueprint(record.blueprint));
-  } catch {
-    return null;
-  }
 }
 
 /** One match, and enough to fight it again. */
 export interface MatchRecord {
-  readonly seed: number;
-  readonly competitors: readonly number[];
-  /** Each competitor's side, when the match had sides rather than being a free-for-all. */
-  readonly teams?: readonly number[];
-  readonly ending: MatchResult['ending'];
-  /** Which competitors, by index, won a decided match. */
-  readonly winners?: readonly number[];
-  readonly elapsed: number;
-  readonly scores: MatchResult['scores'];
-  /**
-   * In a co-evolution run, a match that only taught: fought with the bred
-   * side's own ships invincible, or against bare cores, a competitor of id -1.
-   */
-  readonly drill?: 'shielded' | 'bareCore';
-  /** Which competitors, by index, nothing could hurt: the bred side's, in a shielded drill. */
-  readonly invulnerable?: readonly number[];
+    readonly seed: number;
+    readonly competitors: readonly number[];
+    /** Each competitor's side, when the match had sides rather than being a free-for-all. */
+    readonly teams?: readonly number[];
+    readonly ending: MatchResult["ending"];
+    /** Which competitors, by index, won a decided match. */
+    readonly winners?: readonly number[];
+    readonly elapsed: number;
+    readonly scores: MatchResult["scores"];
+    /**
+     * In a co-evolution run, a match that only taught: fought with the bred
+     * side's own ships invincible, or against bare cores, a competitor of id -1.
+     */
+    readonly drill?: "shielded" | "bareCore";
+    /** Which competitors, by index, nothing could hurt: the bred side's, in a shielded drill. */
+    readonly invulnerable?: readonly number[];
 }
 
 export interface GenerationRecord {
-  readonly index: number;
-  readonly individuals: readonly IndividualRecord[];
-  readonly matches: readonly MatchRecord[];
-  /** Mean and best fitness, which is what a run is read by. */
-  readonly meanFitness: number;
-  readonly bestFitness: number;
-  /**
-   * Each part of the score on its own, across the generation.
-   *
-   * Kept apart rather than only as the total they add up to, because they
-   * answer different questions and move at different times. A population
-   * learning to fly reaches the goal long before it learns to shoot, and a
-   * total hides that behind one rising line — where three lines say which of
-   * the three things a run is actually getting better at, and which weight is
-   * doing the work.
-   */
-  readonly mean: ScoreParts;
-  readonly best: ScoreParts;
-  /** In a co-evolution run, the round it was bred in: one side's turn to answer the other. */
-  readonly round?: number;
-  /** In a co-evolution run, the share of its matches against the other side its champion won. */
-  readonly won?: number;
+    readonly index: number;
+    readonly individuals: readonly IndividualRecord[];
+    readonly matches: readonly MatchRecord[];
+    /** Mean and best fitness, which is what a run is read by. */
+    readonly meanFitness: number;
+    readonly bestFitness: number;
+    /**
+     * Each part of the score on its own, across the generation.
+     *
+     * Kept apart rather than only as the total they add up to, because they
+     * answer different questions and move at different times. A population
+     * learning to fly reaches the goal long before it learns to shoot, and a
+     * total hides that behind one rising line — where three lines say which of
+     * the three things a run is actually getting better at, and which weight is
+     * doing the work.
+     */
+    readonly mean: ScoreParts;
+    readonly best: ScoreParts;
+    /** In a co-evolution run, the round it was bred in: one side's turn to answer the other. */
+    readonly round?: number;
+    /** In a co-evolution run, the share of its matches against the other side its champion won. */
+    readonly won?: number;
 }
 
 /**
@@ -338,49 +338,49 @@ export interface GenerationRecord {
  * scores tied, is a generation that could be bred from at random.
  */
 export interface Spread {
-  readonly lowest: number;
-  readonly lowerQuartile: number;
-  readonly median: number;
-  readonly upperQuartile: number;
-  readonly highest: number;
-  /** How many designs scored the same as another. */
-  readonly tied: number;
+    readonly lowest: number;
+    readonly lowerQuartile: number;
+    readonly median: number;
+    readonly upperQuartile: number;
+    readonly highest: number;
+    /** How many designs scored the same as another. */
+    readonly tied: number;
 }
 
 export function spreadOf(record: GenerationRecord): Spread {
-  const scores = record.individuals.map((individual) => individual.fitness).sort((a, b) => a - b);
-  const at = (q: number): number => {
-    if (scores.length === 0) return 0;
-    const i = q * (scores.length - 1);
-    const below = floor(i);
-    const above = min(scores.length - 1, below + 1);
-    return scores[below]! + (scores[above]! - scores[below]!) * (i - below);
-  };
-  let tied = 0;
-  for (let i = 0; i < scores.length; i++) {
-    if ((i > 0 && scores[i] === scores[i - 1]) || (i + 1 < scores.length && scores[i] === scores[i + 1])) tied++;
-  }
-  return { lowest: at(0), lowerQuartile: at(0.25), median: at(0.5), upperQuartile: at(0.75), highest: at(1), tied };
+    const scores = record.individuals.map((individual) => individual.fitness).sort((a, b) => a - b);
+    const at = (q: number): number => {
+        if (scores.length === 0) return 0;
+        const i = q * (scores.length - 1);
+        const below = floor(i);
+        const above = min(scores.length - 1, below + 1);
+        return scores[below]! + (scores[above]! - scores[below]!) * (i - below);
+    };
+    let tied = 0;
+    for (let i = 0; i < scores.length; i++) {
+        if ((i > 0 && scores[i] === scores[i - 1]) || (i + 1 < scores.length && scores[i] === scores[i + 1])) tied++;
+    }
+    return { lowest: at(0), lowerQuartile: at(0.25), median: at(0.5), upperQuartile: at(0.75), highest: at(1), tied };
 }
 
 /** The sources of score, apart. */
 export type ScoreParts = Readonly<Record<(typeof SCORE_PARTS)[number], number>>;
 
 export interface RunRecord {
-  readonly config: RunConfig;
-  readonly generations: readonly GenerationRecord[];
-  /**
-   * The other lineage of a co-evolution run, side B, bred against this one;
-   * absent from a run of one. Side A is `generations`, so whatever reads a
-   * run of one reads side A of a co-evolution run the same way.
-   */
-  readonly rival?: RivalRecord;
+    readonly config: RunConfig;
+    readonly generations: readonly GenerationRecord[];
+    /**
+     * The other lineage of a co-evolution run, side B, bred against this one;
+     * absent from a run of one. Side A is `generations`, so whatever reads a
+     * run of one reads side A of a co-evolution run the same way.
+     */
+    readonly rival?: RivalRecord;
 }
 
 /** Side B of a co-evolution run: what was set for it, and its generations. */
 export interface RivalRecord {
-  readonly config: CoevolutionConfig;
-  readonly generations: readonly GenerationRecord[];
+    readonly config: CoevolutionConfig;
+    readonly generations: readonly GenerationRecord[];
 }
 
 /** Told as each generation finishes, so a caller can show progress. */
@@ -395,22 +395,22 @@ export type OnGeneration = (record: GenerationRecord) => void;
  * already in it.
  */
 export function seedPopulation(founders: readonly Entrant[], rng: Rng, config: RunConfig, firstId = 0): Generation {
-  const fleets = isFleetRun(founders, config);
-  const entrants = fleets ? founders.map((founder) => (isFleet(founder) ? founder : shipFleet(founder))) : founders;
-  const individuals: Individual[] = [];
-  let id = firstId;
-  for (const founder of entrants) {
-    if (individuals.length >= config.population) break;
-    individuals.push(blank(id++, founder, -1, []));
-  }
-  let parent = 0;
-  while (individuals.length < config.population && entrants.length > 0) {
-    const source = individuals[parent % entrants.length]!;
-    parent++;
-    const child = offspring(source.entrant, rng, mutationLimits(config), fleetLimits(config));
-    individuals.push(blank(id++, child.entrant, source.id, child.edits));
-  }
-  return new Generation(0, individuals);
+    const fleets = isFleetRun(founders, config);
+    const entrants = fleets ? founders.map((founder) => (isFleet(founder) ? founder : shipFleet(founder))) : founders;
+    const individuals: Individual[] = [];
+    let id = firstId;
+    for (const founder of entrants) {
+        if (individuals.length >= config.population) break;
+        individuals.push(blank(id++, founder, -1, []));
+    }
+    let parent = 0;
+    while (individuals.length < config.population && entrants.length > 0) {
+        const source = individuals[parent % entrants.length]!;
+        parent++;
+        const child = offspring(source.entrant, rng, mutationLimits(config), fleetLimits(config));
+        individuals.push(blank(id++, child.entrant, source.id, child.edits));
+    }
+    return new Generation(0, individuals);
 }
 
 /**
@@ -418,17 +418,17 @@ export function seedPopulation(founders: readonly Entrant[], rng: Rng, config: R
  * into one. A ship joins as a fleet of one; allowing one ship at most keeps a
  * run of ships breeding ships.
  */
-export function isFleetRun(founders: readonly Entrant[], config: Pick<RunConfig, 'fleet'>): boolean {
-  return founders.some(isFleet) || (config.fleet.maxShips ?? DEFAULT_FLEET_LIMITS.maxShips) > 1;
+export function isFleetRun(founders: readonly Entrant[], config: Pick<RunConfig, "fleet">): boolean {
+    return founders.some(isFleet) || (config.fleet.maxShips ?? DEFAULT_FLEET_LIMITS.maxShips) > 1;
 }
 
 /** How a ship is bred. In a run of fleets the budget is the fleet's, so it is not applied to one ship. */
 export function mutationLimits(config: RunConfig): Partial<MutationLimits> {
-  return { budget: config.budget, ...config.mutation };
+    return { budget: config.budget, ...config.mutation };
 }
 
 export function fleetLimits(config: RunConfig): Partial<FleetMutationLimits> {
-  return { budget: config.budget, ...config.fleet };
+    return { budget: config.budget, ...config.fleet };
 }
 
 /**
@@ -441,185 +441,185 @@ export function fleetLimits(config: RunConfig): Partial<FleetMutationLimits> {
  * is the run that is being recorded rather than a second one alongside it.
  */
 export class Run {
-  readonly config: RunConfig;
-  readonly generations: GenerationRecord[] = [];
-  private readonly onGeneration: OnGeneration | undefined;
-  private readonly rng: Rng;
-  /**
-   * A cap on a loop that is otherwise governed by a draw, so a population
-   * that could never settle still ends its generation.
-   */
-  private readonly limit: number;
-  private generation: Generation;
-  private nextId: number;
-  private matches: MatchRecord[] = [];
-  private match: Match | null = null;
-  private competitors: number[] = [];
-  private seed = 0;
-  private over = false;
+    readonly config: RunConfig;
+    readonly generations: GenerationRecord[] = [];
+    private readonly onGeneration: OnGeneration | undefined;
+    private readonly rng: Rng;
+    /**
+     * A cap on a loop that is otherwise governed by a draw, so a population
+     * that could never settle still ends its generation.
+     */
+    private readonly limit: number;
+    private generation: Generation;
+    private nextId: number;
+    private matches: MatchRecord[] = [];
+    private match: Match | null = null;
+    private competitors: number[] = [];
+    private seed = 0;
+    private over = false;
 
-  constructor(founders: readonly Entrant[], config?: Partial<RunConfig>, onGeneration?: OnGeneration) {
-    const settings: RunConfig = { ...DEFAULT_RUN, ...config };
-    this.config = settings;
-    this.onGeneration = onGeneration;
-    this.rng = new Rng(settings.seed);
-    this.generation = seedPopulation(founders, this.rng, settings);
-    this.nextId = this.generation.individuals.length;
-    this.limit = settings.population * settings.minMatches * 4 + 16;
-    if (settings.generations <= 0) this.over = true;
-  }
-
-  get done(): boolean {
-    return this.over;
-  }
-
-  /** The match being fought, for watching one as it happens. */
-  get current(): Match | null {
-    return this.match;
-  }
-
-  /** Which individuals, by index into the generation, are in that match. */
-  get fighting(): readonly number[] {
-    return this.match === null ? [] : this.competitors;
-  }
-
-  /** The generation under test, finished or not. */
-  get living(): Generation {
-    return this.generation;
-  }
-
-  /** Matches fought in it so far, which its record will hold once it closes. */
-  get played(): readonly MatchRecord[] {
-    return this.matches;
-  }
-
-  /** How far through the whole run, from nothing to one. */
-  get progress(): number {
-    const settings = this.config;
-    if (this.over) return 1;
-    const individuals = this.generation.individuals;
-    let heard = 0;
-    for (const individual of individuals) heard += min(individual.matches, settings.minMatches);
-    const wanted = individuals.length * settings.minMatches;
-    const within = wanted > 0 ? heard / wanted : 1;
-    return (this.generations.length + within) / settings.generations;
-  }
-
-  /**
-   * Fight up to `budget` simulation steps of it.
-   *
-   * Counted in steps rather than matches so that a slice costs about the same
-   * whatever is in it: a match between capitals is many times the work of one
-   * between fighters, and a caller trying to hold a frame rate needs the unit
-   * it is budgeting to mean something.
-   */
-  advance(budget: number): boolean {
-    let left = max(1, budget);
-    while (left > 0 && !this.over) {
-      if (this.match === null) {
-        this.open();
-        continue;
-      }
-      while (left > 0 && !this.match.done) {
-        this.match.advance();
-        left--;
-      }
-      if (this.match.done) this.close();
+    constructor(founders: readonly Entrant[], config?: Partial<RunConfig>, onGeneration?: OnGeneration) {
+        const settings: RunConfig = { ...DEFAULT_RUN, ...config };
+        this.config = settings;
+        this.onGeneration = onGeneration;
+        this.rng = new Rng(settings.seed);
+        this.generation = seedPopulation(founders, this.rng, settings);
+        this.nextId = this.generation.individuals.length;
+        this.limit = settings.population * settings.minMatches * 4 + 16;
+        if (settings.generations <= 0) this.over = true;
     }
-    return !this.over;
-  }
 
-  /** Fight the rest of it, and hand back the record. */
-  finish(): RunRecord {
-    while (!this.over) this.advance(1 << 20);
-    return this.record();
-  }
-
-  record(): RunRecord {
-    return { config: this.config, generations: this.generations };
-  }
-
-  /**
-   * The run's first match, unfought and unmutated: its seed and its number of
-   * entrants, fought by the founders themselves. Each founder once — the ones
-   * the first match drew first — and round again only when a match holds more
-   * entrants than there are founders. Draws the match, so it is for a run that
-   * will not be fought.
-   */
-  unmutatedOpening(): Match | null {
-    if (this.match === null && !this.over) this.open();
-    if (this.match === null) return null;
-    const individuals = this.generation.individuals;
-    const founders = individuals.filter((individual) => individual.parent < 0);
-    const drawn: Individual[] = [];
-    for (const index of this.competitors) {
-      const individual = individuals[index]!;
-      const founder = individual.parent < 0 ? individual : founders.find((f) => f.id === individual.parent);
-      if (founder !== undefined && !drawn.includes(founder)) drawn.push(founder);
+    get done(): boolean {
+        return this.over;
     }
-    for (const founder of founders) if (!drawn.includes(founder)) drawn.push(founder);
-    const entrants = this.competitors.map((_, k) => drawn[k % drawn.length]!.entrant);
-    return new Match(entrants, { ...this.config.match, seed: this.seed });
-  }
 
-  /** Draw the next match, or close the generation if it has had enough. */
-  private open(): void {
-    const settings = this.config;
-    if (this.generation.settled(settings.minMatches) || this.matches.length >= this.limit) {
-      this.roll();
-      return;
+    /** The match being fought, for watching one as it happens. */
+    get current(): Match | null {
+        return this.match;
     }
-    // One is a match too: with the goal to fly for, a ship alone is a test of
-    // its piloting.
-    const competitors = this.generation.pickCompetitors(this.rng, settings.group);
-    if (competitors.length === 0) {
-      this.roll();
-      return;
-    }
-    this.competitors = competitors;
-    this.seed = this.rng.nextUint32();
-    this.match = new Match(
-      competitors.map((c) => this.generation.individuals[c]!.entrant),
-      { ...settings.match, seed: this.seed },
-    );
-  }
 
-  private close(): void {
-    const result = this.match!.result();
-    this.generation.record(this.competitors, result);
-    this.matches.push({
-      seed: this.seed,
-      competitors: this.competitors.map((c) => this.generation.individuals[c]!.id),
-      ending: result.ending,
-      winners: result.winners,
-      elapsed: result.elapsed,
-      scores: result.scores,
-    });
-    this.match = null;
-  }
-
-  private roll(): void {
-    const settings = this.config;
-    const record = describe(this.generation, this.matches);
-    this.generations.push(record);
-    this.onGeneration?.(record);
-    this.matches = [];
-    if (this.generations.length >= settings.generations) {
-      this.over = true;
-      return;
+    /** Which individuals, by index into the generation, are in that match. */
+    get fighting(): readonly number[] {
+        return this.match === null ? [] : this.competitors;
     }
-    this.generation = breed(
-      this.generation,
-      this.rng,
-      {
-        population: settings.population,
-        winners: settings.winners,
-        limits: mutationLimits(settings),
-        fleetLimits: fleetLimits(settings),
-      },
-      () => this.nextId++,
-    );
-  }
+
+    /** The generation under test, finished or not. */
+    get living(): Generation {
+        return this.generation;
+    }
+
+    /** Matches fought in it so far, which its record will hold once it closes. */
+    get played(): readonly MatchRecord[] {
+        return this.matches;
+    }
+
+    /** How far through the whole run, from nothing to one. */
+    get progress(): number {
+        const settings = this.config;
+        if (this.over) return 1;
+        const individuals = this.generation.individuals;
+        let heard = 0;
+        for (const individual of individuals) heard += min(individual.matches, settings.minMatches);
+        const wanted = individuals.length * settings.minMatches;
+        const within = wanted > 0 ? heard / wanted : 1;
+        return (this.generations.length + within) / settings.generations;
+    }
+
+    /**
+     * Fight up to `budget` simulation steps of it.
+     *
+     * Counted in steps rather than matches so that a slice costs about the same
+     * whatever is in it: a match between capitals is many times the work of one
+     * between fighters, and a caller trying to hold a frame rate needs the unit
+     * it is budgeting to mean something.
+     */
+    advance(budget: number): boolean {
+        let left = max(1, budget);
+        while (left > 0 && !this.over) {
+            if (this.match === null) {
+                this.open();
+                continue;
+            }
+            while (left > 0 && !this.match.done) {
+                this.match.advance();
+                left--;
+            }
+            if (this.match.done) this.close();
+        }
+        return !this.over;
+    }
+
+    /** Fight the rest of it, and hand back the record. */
+    finish(): RunRecord {
+        while (!this.over) this.advance(1 << 20);
+        return this.record();
+    }
+
+    record(): RunRecord {
+        return { config: this.config, generations: this.generations };
+    }
+
+    /**
+     * The run's first match, unfought and unmutated: its seed and its number of
+     * entrants, fought by the founders themselves. Each founder once — the ones
+     * the first match drew first — and round again only when a match holds more
+     * entrants than there are founders. Draws the match, so it is for a run that
+     * will not be fought.
+     */
+    unmutatedOpening(): Match | null {
+        if (this.match === null && !this.over) this.open();
+        if (this.match === null) return null;
+        const individuals = this.generation.individuals;
+        const founders = individuals.filter((individual) => individual.parent < 0);
+        const drawn: Individual[] = [];
+        for (const index of this.competitors) {
+            const individual = individuals[index]!;
+            const founder = individual.parent < 0 ? individual : founders.find((f) => f.id === individual.parent);
+            if (founder !== undefined && !drawn.includes(founder)) drawn.push(founder);
+        }
+        for (const founder of founders) if (!drawn.includes(founder)) drawn.push(founder);
+        const entrants = this.competitors.map((_, k) => drawn[k % drawn.length]!.entrant);
+        return new Match(entrants, { ...this.config.match, seed: this.seed });
+    }
+
+    /** Draw the next match, or close the generation if it has had enough. */
+    private open(): void {
+        const settings = this.config;
+        if (this.generation.settled(settings.minMatches) || this.matches.length >= this.limit) {
+            this.roll();
+            return;
+        }
+        // One is a match too: with the goal to fly for, a ship alone is a test of
+        // its piloting.
+        const competitors = this.generation.pickCompetitors(this.rng, settings.group);
+        if (competitors.length === 0) {
+            this.roll();
+            return;
+        }
+        this.competitors = competitors;
+        this.seed = this.rng.nextUint32();
+        this.match = new Match(
+            competitors.map((c) => this.generation.individuals[c]!.entrant),
+            { ...settings.match, seed: this.seed },
+        );
+    }
+
+    private close(): void {
+        const result = this.match!.result();
+        this.generation.record(this.competitors, result);
+        this.matches.push({
+            seed: this.seed,
+            competitors: this.competitors.map((c) => this.generation.individuals[c]!.id),
+            ending: result.ending,
+            winners: result.winners,
+            elapsed: result.elapsed,
+            scores: result.scores,
+        });
+        this.match = null;
+    }
+
+    private roll(): void {
+        const settings = this.config;
+        const record = describe(this.generation, this.matches);
+        this.generations.push(record);
+        this.onGeneration?.(record);
+        this.matches = [];
+        if (this.generations.length >= settings.generations) {
+            this.over = true;
+            return;
+        }
+        this.generation = breed(
+            this.generation,
+            this.rng,
+            {
+                population: settings.population,
+                winners: settings.winners,
+                limits: mutationLimits(settings),
+                fleetLimits: fleetLimits(settings),
+            },
+            () => this.nextId++,
+        );
+    }
 }
 
 /**
@@ -631,72 +631,72 @@ export class Run {
  * group size.
  */
 export function runEvolution(founders: readonly Entrant[], config?: Partial<RunConfig>, onGeneration?: OnGeneration): RunRecord {
-  return new Run(founders, config, onGeneration).finish();
+    return new Run(founders, config, onGeneration).finish();
 }
 
 /** A generation as a run records it, with the matches it was scored by. */
 export function describe(generation: Generation, matches: readonly MatchRecord[]): GenerationRecord {
-  const individuals = generation.individuals.map((individual) => ({
-    id: individual.id,
-    parent: individual.parent,
-    edits: individual.edits,
-    matches: individual.matches,
-    fitness: fitness(individual),
-    ...perMatch(individual),
-    ...(isFleet(individual.entrant)
-      ? {
-          mass: fleetMass(fleetHulls(individual.entrant)),
-          bill: fleetBill(fleetHulls(individual.entrant)),
-          fleet: serialiseFleet(individual.entrant),
-        }
-      : {
-          mass: budgetMass(compileBlueprint(individual.entrant)),
-          bill: billOf(compileBlueprint(individual.entrant)),
-          blueprint: serialiseBlueprint(individual.entrant),
-        }),
-  }));
+    const individuals = generation.individuals.map((individual) => ({
+        id: individual.id,
+        parent: individual.parent,
+        edits: individual.edits,
+        matches: individual.matches,
+        fitness: fitness(individual),
+        ...perMatch(individual),
+        ...(isFleet(individual.entrant)
+            ? {
+                  mass: fleetMass(fleetHulls(individual.entrant)),
+                  bill: fleetBill(fleetHulls(individual.entrant)),
+                  fleet: serialiseFleet(individual.entrant),
+              }
+            : {
+                  mass: budgetMass(compileBlueprint(individual.entrant)),
+                  bill: billOf(compileBlueprint(individual.entrant)),
+                  blueprint: serialiseBlueprint(individual.entrant),
+              }),
+    }));
 
-  let total = 0;
-  let best = -Infinity;
-  const sum = parts(0);
-  const most = parts(-Infinity);
-  for (const individual of individuals) {
-    total += individual.fitness;
-    best = max(best, individual.fitness);
-    for (const part of SCORE_PARTS) {
-      sum[part] += individual[part];
-      most[part] = max(most[part], individual[part]);
+    let total = 0;
+    let best = -Infinity;
+    const sum = parts(0);
+    const most = parts(-Infinity);
+    for (const individual of individuals) {
+        total += individual.fitness;
+        best = max(best, individual.fitness);
+        for (const part of SCORE_PARTS) {
+            sum[part] += individual[part];
+            most[part] = max(most[part], individual[part]);
+        }
     }
-  }
-  const count = individuals.length;
-  const mean = parts(0);
-  const peak = parts(0);
-  if (count > 0) {
-    for (const part of SCORE_PARTS) {
-      mean[part] = sum[part] / count;
-      peak[part] = most[part];
+    const count = individuals.length;
+    const mean = parts(0);
+    const peak = parts(0);
+    if (count > 0) {
+        for (const part of SCORE_PARTS) {
+            mean[part] = sum[part] / count;
+            peak[part] = most[part];
+        }
     }
-  }
-  return {
-    index: generation.index,
-    individuals,
-    matches,
-    meanFitness: count > 0 ? total / count : 0,
-    bestFitness: count > 0 ? best : 0,
-    mean,
-    best: peak,
-  };
+    return {
+        index: generation.index,
+        individuals,
+        matches,
+        meanFitness: count > 0 ? total / count : 0,
+        bestFitness: count > 0 ? best : 0,
+        mean,
+        best: peak,
+    };
 }
 
 function parts(value: number): Record<(typeof SCORE_PARTS)[number], number> {
-  return { survival: value, functional: value, damage: value, disabling: value, race: value };
+    return { survival: value, functional: value, damage: value, disabling: value, race: value };
 }
 
 /** Each part of an individual's score, per match played. */
 function perMatch(individual: Individual): ScoreParts {
-  const out = parts(0);
-  if (individual.matches > 0) for (const part of SCORE_PARTS) out[part] = individual[part] / individual.matches;
-  return out;
+    const out = parts(0);
+    if (individual.matches > 0) for (const part of SCORE_PARTS) out[part] = individual[part] / individual.matches;
+    return out;
 }
 
 /**
@@ -718,21 +718,21 @@ function perMatch(individual: Individual): ScoreParts {
  * answer to a question somebody asked.
  */
 export function finalist(run: RunRecord): { generation: number; individual: IndividualRecord } | null {
-  for (let g = run.generations.length - 1; g >= 0; g--) {
-    const generation = run.generations[g]!;
-    let best: IndividualRecord | null = null;
-    for (const individual of generation.individuals) {
-      if (individual.matches === 0) continue;
-      if (best === null || individual.fitness > best.fitness) best = individual;
+    for (let g = run.generations.length - 1; g >= 0; g--) {
+        const generation = run.generations[g]!;
+        let best: IndividualRecord | null = null;
+        for (const individual of generation.individuals) {
+            if (individual.matches === 0) continue;
+            if (best === null || individual.fitness > best.fitness) best = individual;
+        }
+        if (best !== null) return { generation: generation.index, individual: best };
     }
-    if (best !== null) return { generation: generation.index, individual: best };
-  }
-  return null;
+    return null;
 }
 
 /** How many matches a run fought, for reporting what it cost. */
 export function matchCount(run: RunRecord): number {
-  let total = 0;
-  for (const generation of run.generations) total += generation.matches.length;
-  return min(total, Number.MAX_SAFE_INTEGER);
+    let total = 0;
+    for (const generation of run.generations) total += generation.matches.length;
+    return min(total, Number.MAX_SAFE_INTEGER);
 }

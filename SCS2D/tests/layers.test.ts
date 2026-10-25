@@ -1,31 +1,31 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 import {
-  barrelHalfWidth,
-  canThicken,
-  DECK_HEIGHT,
-  Bodies,
-  compileBlueprint,
-  firingArc,
-  inWeaponsLayer,
-  layoutStats,
-  isThick,
-  masked,
-  moduleStats,
-  moduleThickness,
-  parseBlueprint,
-  blueprintFileProblem,
-  blueprintWarnings,
-  ProjectileHits,
-  Projectiles,
-  serialiseBlueprint,
-  Ships,
-  SpatialGrid,
-  triggerMask,
-  Turrets,
-  World,
-  type Blueprint,
-  type ModuleSpec,
-} from '../sim/index.js';
+    barrelHalfWidth,
+    canThicken,
+    DECK_HEIGHT,
+    Bodies,
+    compileBlueprint,
+    firingArc,
+    inWeaponsLayer,
+    layoutStats,
+    isThick,
+    masked,
+    moduleStats,
+    moduleThickness,
+    parseBlueprint,
+    blueprintFileProblem,
+    blueprintWarnings,
+    ProjectileHits,
+    Projectiles,
+    serialiseBlueprint,
+    Ships,
+    SpatialGrid,
+    triggerMask,
+    Turrets,
+    World,
+    type Blueprint,
+    type ModuleSpec,
+} from "../sim/index.js";
 
 /**
  * The two layers (DESIGN.md §3): the deck and below, and what stands up above
@@ -35,336 +35,336 @@ import {
 
 const PI = Math.PI;
 
-describe('which layer a module is in', () => {
-  it('is the weapons layer for a turret and anything thick', () => {
-    const at = { x: 0, y: 0, length: 4, width: 4 };
-    expect(inWeaponsLayer({ kind: 'turret', ...at })).toBe(true);
-    expect(inWeaponsLayer({ kind: 'beamTurret', ...at })).toBe(true);
-    for (const kind of ['engine', 'core', 'hullGun', 'hullBeam', 'structure'] as const) {
-      expect(inWeaponsLayer({ kind, ...at })).toBe(false);
-      expect(inWeaponsLayer({ kind, ...at, thick: true })).toBe(true);
+describe("which layer a module is in", () => {
+    it("is the weapons layer for a turret and anything thick", () => {
+        const at = { x: 0, y: 0, length: 4, width: 4 };
+        expect(inWeaponsLayer({ kind: "turret", ...at })).toBe(true);
+        expect(inWeaponsLayer({ kind: "beamTurret", ...at })).toBe(true);
+        for (const kind of ["engine", "core", "hullGun", "hullBeam", "structure"] as const) {
+            expect(inWeaponsLayer({ kind, ...at })).toBe(false);
+            expect(inWeaponsLayer({ kind, ...at, thick: true })).toBe(true);
+        }
+    });
+
+    it("leaves a module no more than a deck across in the hull layer, marked or not", () => {
+        // A plate stands as high as what it covers, so on its own — with nothing
+        // to borrow from — being marked changes nothing about a narrow one.
+        const narrow: ModuleSpec = { kind: "structure", x: 0, y: 0, length: 8, width: 3, thick: true };
+        expect(inWeaponsLayer(narrow)).toBe(false);
+        expect(moduleStats(narrow).mass).toBe(moduleStats({ ...narrow, thick: false }).mass);
+
+        // Nothing but structure may be marked at that size at all.
+        const engine: ModuleSpec = { kind: "engine", x: 0, y: 0, length: 8, width: 3, thick: true };
+        expect(isThick(engine)).toBe(false);
+        expect(canThicken(engine)).toBe(false);
+        expect(inWeaponsLayer(engine)).toBe(false);
+    });
+
+    it("is saved where it may be chosen, and unread on a turret", () => {
+        const bp: Blueprint = {
+            name: "Tower",
+            modules: [
+                { kind: "core", x: 0, y: 0, length: 4, width: 4, thick: true },
+                { kind: "structure", x: 4, y: 0, length: 4, width: 4, thick: true },
+            ],
+        };
+        const file = serialiseBlueprint(bp);
+        const back = parseBlueprint(file);
+        expect(back.modules[0]).toMatchObject({ thick: true });
+        expect(back.modules[1]).toMatchObject({ thick: true });
+        const compiled = compileBlueprint(back);
+        expect(compiled.modules[0]!.weaponsLayer).toBe(true);
+        expect(compiled.modules[1]!.weaponsLayer).toBe(true);
+
+        const turret = { ...file, modules: [{ kind: "turret", x: 0, y: 0, length: 4, width: 4, thick: true }] };
+        expect(blueprintFileProblem(turret)).toBeNull();
+        const read = parseBlueprint(turret);
+        expect((read.modules[0] as ModuleSpec).thick).toBeUndefined();
+        expect(blueprintWarnings(read).join("\n")).toMatch(/modules\[0\] has a key[^\n]*thick/);
+    });
+});
+
+describe("how thick a module is", () => {
+    const box = (length: number, width: number, thick = false): ModuleSpec => ({ kind: "structure", x: 0, y: 0, length, width, thick });
+
+    it("is as deep as it is across, up to a deck", () => {
+        expect(moduleThickness(box(1, 2))).toBe(1);
+        expect(moduleThickness(box(60, 20))).toBe(DECK_HEIGHT);
+    });
+
+    it("is not held to a deck when thick", () => {
+        expect(moduleThickness(box(1, 2, true))).toBe(1);
+        expect(moduleThickness(box(60, 20, true))).toBe(20);
+    });
+
+    it("is one nozzle wide for an engine, and the width for a hull weapon", () => {
+        const engine: ModuleSpec = { kind: "engine", x: 0, y: 0, length: 4, width: 12, barrels: 3 };
+        expect(moduleThickness(engine)).toBe(DECK_HEIGHT);
+        expect(moduleThickness({ ...engine, thick: true })).toBe(4);
+        expect(moduleThickness({ kind: "hullGun", x: 0, y: 0, length: 2, width: 8, thick: true })).toBe(8);
+    });
+
+    it("holds a turret to a deck", () => {
+        expect(moduleThickness({ kind: "turret", x: 0, y: 0, length: 20, width: 20 })).toBe(DECK_HEIGHT);
+    });
+
+    it("costs a thick module more wall, and encloses no more floor", () => {
+        const low = box(12, 12);
+        const high = moduleStats({ ...low, thick: true });
+        expect(high.mass).toBeGreaterThan(moduleStats(low).mass * 1.5);
+        expect(high.capacity).toBe(moduleStats(low).capacity);
+    });
+
+    it("gives a thick engine a bigger nozzle", () => {
+        const thin: ModuleSpec = { kind: "engine", x: 0, y: 0, length: 8, width: 6 };
+        const thick = moduleStats({ ...thin, thick: true });
+        // A square bell the whole width across rather than a deck: four times
+        // the exit.
+        expect(thick.fittingMass).toBeCloseTo(4 * moduleStats(thin).fittingMass, 6);
+        // Split into nozzles no deeper than a deck, it has nothing to gain.
+        const split: ModuleSpec = { ...thin, barrels: 2 };
+        expect(moduleStats({ ...split, thick: true }).thrust).toBeCloseTo(moduleStats(split).thrust, 6);
+    });
+
+    it("holds every barrel to the depth of the module it is in", () => {
+        const wide = moduleStats({ kind: "turret", x: 0, y: 0, length: 200, width: 200 }).gun!;
+        expect(2 * wide.calibre).toBeCloseTo(DECK_HEIGHT, 9);
+        const hull: ModuleSpec = { kind: "hullGun", x: 0, y: 0, length: 120, width: 60 };
+        expect(2 * moduleStats(hull).gun!.calibre).toBeCloseTo(DECK_HEIGHT, 9);
+        // Thick, only the opening holds it.
+        const thick = moduleStats({ ...hull, thick: true }).gun!;
+        expect(2 * thick.calibre).toBeGreaterThan(2 * DECK_HEIGHT);
+        expect(thick.muzzleEnergy).toBeGreaterThan(moduleStats(hull).gun!.muzzleEnergy);
+    });
+
+    it("gives a narrow hull weapon nothing to gain by being thick", () => {
+        const small: ModuleSpec = { kind: "hullGun", x: 0, y: 0, length: 12, width: 2 };
+        expect(moduleStats({ ...small, thick: true }).gun!.calibre).toBeCloseTo(moduleStats(small).gun!.calibre, 9);
+    });
+});
+
+describe("thick structure takes its depth from what it is welded to", () => {
+    /** A plate narrower than a deck, which has no depth of its own worth having. */
+    const plate = (y: number, thick = true): ModuleSpec => ({ kind: "structure", x: 0, y, length: 8, width: 2, thick });
+
+    /** What it covers: a citadel eight metres across, standing well clear of the deck. */
+    const citadel: ModuleSpec = { kind: "structure", x: 0, y: 0, length: 8, width: 8, thick: true };
+
+    it("stands as high as the module it covers, and is cover in its own right", () => {
+        const [front, behind] = layoutStats([plate(5), citadel]);
+
+        expect(behind!.thickness).toBe(8);
+        expect(front!.thickness).toBe(8);
+        expect(inWeaponsLayer(plate(5), front!.thickness)).toBe(true);
+        // Paid for at that depth: the same plate held to its own width is a
+        // fraction of the wall.
+        expect(front!.mass).toBeGreaterThan(moduleStats(plate(5, false)).mass * 2.5);
+    });
+
+    it("takes nothing from a module it only passes near", () => {
+        const [alone] = layoutStats([plate(20), citadel]);
+
+        expect(alone!.thickness).toBe(2);
+        expect(inWeaponsLayer(plate(20), alone!.thickness)).toBe(false);
+    });
+
+    it("does not pass depth from plate to plate", () => {
+        // A run of plating off the citadel: the one on it stands with it, and the
+        // one beyond that is only as deep as it is wide.
+        const [outer, inner] = layoutStats([plate(7), plate(5), citadel]);
+
+        expect(inner!.thickness).toBe(8);
+        expect(outer!.thickness).toBe(2);
+    });
+
+    it("leaves a plate nobody marked exactly as it was", () => {
+        const [plain] = layoutStats([plate(5, false), citadel]);
+
+        expect(plain!.thickness).toBe(2);
+        expect(plain!.mass).toBeCloseTo(moduleStats(plate(5, false)).mass, 9);
+    });
+
+    it("is cover on a compiled ship only once it is standing", () => {
+        const core: ModuleSpec = { kind: "core", x: 0, y: 7, length: 2, width: 2 };
+        const low = compileBlueprint({ name: "Low", modules: [core, plate(5)] });
+        expect(low.modules[1]!.weaponsLayer).toBe(false);
+
+        const standing = compileBlueprint({ name: "Standing", modules: [core, plate(5), citadel] });
+        expect(standing.modules[1]!.weaponsLayer).toBe(true);
+    });
+});
+
+describe("a turret", () => {
+    /** A turret at the origin facing +x, with one block dead ahead of it. */
+    function ahead(thick: boolean, x: number): ModuleSpec[] {
+        return [
+            { kind: "turret", x: 0, y: 0, length: 2, width: 2 },
+            { kind: "structure", x, y: 0, length: 4, width: 4, thick },
+        ];
     }
-  });
 
-  it('leaves a module no more than a deck across in the hull layer, marked or not', () => {
-    // A plate stands as high as what it covers, so on its own — with nothing
-    // to borrow from — being marked changes nothing about a narrow one.
-    const narrow: ModuleSpec = { kind: 'structure', x: 0, y: 0, length: 8, width: 3, thick: true };
-    expect(inWeaponsLayer(narrow)).toBe(false);
-    expect(moduleStats(narrow).mass).toBe(moduleStats({ ...narrow, thick: false }).mass);
-
-    // Nothing but structure may be marked at that size at all.
-    const engine: ModuleSpec = { kind: 'engine', x: 0, y: 0, length: 8, width: 3, thick: true };
-    expect(isThick(engine)).toBe(false);
-    expect(canThicken(engine)).toBe(false);
-    expect(inWeaponsLayer(engine)).toBe(false);
-  });
-
-  it('is saved where it may be chosen, and unread on a turret', () => {
-    const bp: Blueprint = {
-      name: 'Tower',
-      modules: [
-        { kind: 'core', x: 0, y: 0, length: 4, width: 4, thick: true },
-        { kind: 'structure', x: 4, y: 0, length: 4, width: 4, thick: true },
-      ],
-    };
-    const file = serialiseBlueprint(bp);
-    const back = parseBlueprint(file);
-    expect(back.modules[0]).toMatchObject({ thick: true });
-    expect(back.modules[1]).toMatchObject({ thick: true });
-    const compiled = compileBlueprint(back);
-    expect(compiled.modules[0]!.weaponsLayer).toBe(true);
-    expect(compiled.modules[1]!.weaponsLayer).toBe(true);
-
-    const turret = { ...file, modules: [{ kind: 'turret', x: 0, y: 0, length: 4, width: 4, thick: true }] };
-    expect(blueprintFileProblem(turret)).toBeNull();
-    const read = parseBlueprint(turret);
-    expect((read.modules[0] as ModuleSpec).thick).toBeUndefined();
-    expect(blueprintWarnings(read).join('\n')).toMatch(/modules\[0\] has a key[^\n]*thick/);
-  });
-});
-
-describe('how thick a module is', () => {
-  const box = (length: number, width: number, thick = false): ModuleSpec => ({ kind: 'structure', x: 0, y: 0, length, width, thick });
-
-  it('is as deep as it is across, up to a deck', () => {
-    expect(moduleThickness(box(1, 2))).toBe(1);
-    expect(moduleThickness(box(60, 20))).toBe(DECK_HEIGHT);
-  });
-
-  it('is not held to a deck when thick', () => {
-    expect(moduleThickness(box(1, 2, true))).toBe(1);
-    expect(moduleThickness(box(60, 20, true))).toBe(20);
-  });
-
-  it('is one nozzle wide for an engine, and the width for a hull weapon', () => {
-    const engine: ModuleSpec = { kind: 'engine', x: 0, y: 0, length: 4, width: 12, barrels: 3 };
-    expect(moduleThickness(engine)).toBe(DECK_HEIGHT);
-    expect(moduleThickness({ ...engine, thick: true })).toBe(4);
-    expect(moduleThickness({ kind: 'hullGun', x: 0, y: 0, length: 2, width: 8, thick: true })).toBe(8);
-  });
-
-  it('holds a turret to a deck', () => {
-    expect(moduleThickness({ kind: 'turret', x: 0, y: 0, length: 20, width: 20 })).toBe(DECK_HEIGHT);
-  });
-
-  it('costs a thick module more wall, and encloses no more floor', () => {
-    const low = box(12, 12);
-    const high = moduleStats({ ...low, thick: true });
-    expect(high.mass).toBeGreaterThan(moduleStats(low).mass * 1.5);
-    expect(high.capacity).toBe(moduleStats(low).capacity);
-  });
-
-  it('gives a thick engine a bigger nozzle', () => {
-    const thin: ModuleSpec = { kind: 'engine', x: 0, y: 0, length: 8, width: 6 };
-    const thick = moduleStats({ ...thin, thick: true });
-    // A square bell the whole width across rather than a deck: four times
-    // the exit.
-    expect(thick.fittingMass).toBeCloseTo(4 * moduleStats(thin).fittingMass, 6);
-    // Split into nozzles no deeper than a deck, it has nothing to gain.
-    const split: ModuleSpec = { ...thin, barrels: 2 };
-    expect(moduleStats({ ...split, thick: true }).thrust).toBeCloseTo(moduleStats(split).thrust, 6);
-  });
-
-  it('holds every barrel to the depth of the module it is in', () => {
-    const wide = moduleStats({ kind: 'turret', x: 0, y: 0, length: 200, width: 200 }).gun!;
-    expect(2 * wide.calibre).toBeCloseTo(DECK_HEIGHT, 9);
-    const hull: ModuleSpec = { kind: 'hullGun', x: 0, y: 0, length: 120, width: 60 };
-    expect(2 * moduleStats(hull).gun!.calibre).toBeCloseTo(DECK_HEIGHT, 9);
-    // Thick, only the opening holds it.
-    const thick = moduleStats({ ...hull, thick: true }).gun!;
-    expect(2 * thick.calibre).toBeGreaterThan(2 * DECK_HEIGHT);
-    expect(thick.muzzleEnergy).toBeGreaterThan(moduleStats(hull).gun!.muzzleEnergy);
-  });
-
-  it('gives a narrow hull weapon nothing to gain by being thick', () => {
-    const small: ModuleSpec = { kind: 'hullGun', x: 0, y: 0, length: 12, width: 2 };
-    expect(moduleStats({ ...small, thick: true }).gun!.calibre).toBeCloseTo(moduleStats(small).gun!.calibre, 9);
-  });
-});
-
-describe('thick structure takes its depth from what it is welded to', () => {
-  /** A plate narrower than a deck, which has no depth of its own worth having. */
-  const plate = (y: number, thick = true): ModuleSpec => ({ kind: 'structure', x: 0, y, length: 8, width: 2, thick });
-
-  /** What it covers: a citadel eight metres across, standing well clear of the deck. */
-  const citadel: ModuleSpec = { kind: 'structure', x: 0, y: 0, length: 8, width: 8, thick: true };
-
-  it('stands as high as the module it covers, and is cover in its own right', () => {
-    const [front, behind] = layoutStats([plate(5), citadel]);
-
-    expect(behind!.thickness).toBe(8);
-    expect(front!.thickness).toBe(8);
-    expect(inWeaponsLayer(plate(5), front!.thickness)).toBe(true);
-    // Paid for at that depth: the same plate held to its own width is a
-    // fraction of the wall.
-    expect(front!.mass).toBeGreaterThan(moduleStats(plate(5, false)).mass * 2.5);
-  });
-
-  it('takes nothing from a module it only passes near', () => {
-    const [alone] = layoutStats([plate(20), citadel]);
-
-    expect(alone!.thickness).toBe(2);
-    expect(inWeaponsLayer(plate(20), alone!.thickness)).toBe(false);
-  });
-
-  it('does not pass depth from plate to plate', () => {
-    // A run of plating off the citadel: the one on it stands with it, and the
-    // one beyond that is only as deep as it is wide.
-    const [outer, inner] = layoutStats([plate(7), plate(5), citadel]);
-
-    expect(inner!.thickness).toBe(8);
-    expect(outer!.thickness).toBe(2);
-  });
-
-  it('leaves a plate nobody marked exactly as it was', () => {
-    const [plain] = layoutStats([plate(5, false), citadel]);
-
-    expect(plain!.thickness).toBe(2);
-    expect(plain!.mass).toBeCloseTo(moduleStats(plate(5, false)).mass, 9);
-  });
-
-  it('is cover on a compiled ship only once it is standing', () => {
-    const core: ModuleSpec = { kind: 'core', x: 0, y: 7, length: 2, width: 2 };
-    const low = compileBlueprint({ name: 'Low', modules: [core, plate(5)] });
-    expect(low.modules[1]!.weaponsLayer).toBe(false);
-
-    const standing = compileBlueprint({ name: 'Standing', modules: [core, plate(5), citadel] });
-    expect(standing.modules[1]!.weaponsLayer).toBe(true);
-  });
-});
-
-describe('a turret', () => {
-  /** A turret at the origin facing +x, with one block dead ahead of it. */
-  function ahead(thick: boolean, x: number): ModuleSpec[] {
-    return [
-      { kind: 'turret', x: 0, y: 0, length: 2, width: 2 },
-      { kind: 'structure', x, y: 0, length: 4, width: 4, thick },
-    ];
-  }
-
-  it('trains over deck and fires over it', () => {
-    const layout = ahead(false, 3);
-    expect(firingArc(layout, 0, 5, inWeaponsLayer)).toEqual({ left: PI, right: PI });
-    expect(triggerMask(layout, 0, inWeaponsLayer)).toEqual([]);
-  });
-
-  it('may train past thick structure beyond its barrel, but not fire at it', () => {
-    const layout = ahead(true, 20);
-    expect(firingArc(layout, 0, 5, inWeaponsLayer)).toEqual({ left: PI, right: PI });
-    const mask = triggerMask(layout, 0, inWeaponsLayer);
-    expect(mask).toHaveLength(2);
-    expect(masked(mask, 0)).toBe(true);
-    expect(masked(mask, 0.2)).toBe(false);
-    expect(masked(mask, PI)).toBe(false);
-  });
-
-  it('cannot train through thick structure within its barrel', () => {
-    const arc = firingArc(ahead(true, 3), 0, 5, inWeaponsLayer);
-    expect(arc.left + arc.right).toBe(0);
-  });
-
-  it('trains no nearer an obstruction than its outer barrel allows', () => {
-    // A block off to port, clear of the barrel's centre line as it swings
-    // round, but not of a row of barrels either side of it.
-    const layout: ModuleSpec[] = [
-      { kind: 'turret', x: 0, y: 0, length: 2, width: 2 },
-      { kind: 'structure', x: -4, y: 5, length: 4, width: 4, thick: true },
-    ];
-    const line = firingArc(layout, 0, 6, inWeaponsLayer);
-    const row = firingArc(layout, 0, 6, inWeaponsLayer, 1.5);
-    expect(row.left).toBeLessThan(line.left - 0.2);
-    expect(row.right).toBeLessThan(line.right);
-    const gun = moduleStats({ kind: 'turret', x: 0, y: 0, length: 6, width: 4, barrels: 4 }).gun!;
-    expect(barrelHalfWidth(gun)).toBeCloseTo(1.5 * gun.barrelSpacing + gun.calibre, 9);
-  });
-
-  it('keeps separate gaps between obstructions', () => {
-    const layout: ModuleSpec[] = [
-      { kind: 'turret', x: 0, y: 0, length: 2, width: 2 },
-      { kind: 'structure', x: 0, y: 20, length: 4, width: 4, thick: true },
-      { kind: 'structure', x: 0, y: -20, length: 4, width: 4, thick: true },
-    ];
-    const mask = triggerMask(layout, 0, inWeaponsLayer);
-    expect(mask).toHaveLength(4);
-    expect(masked(mask, PI / 2)).toBe(true);
-    expect(masked(mask, -PI / 2)).toBe(true);
-    expect(masked(mask, 0)).toBe(false);
-    expect(masked(mask, PI)).toBe(false);
-  });
-
-  it('holds its fire while its barrel points along a masked bearing', () => {
-    const bodies = new Bodies();
-    const body = bodies.indexOf(bodies.create({ x: 0, y: 0, mass: 1000, inertia: 1000, radius: 5 }));
-    const turrets = new Turrets();
-    const t = turrets.add({ owner: body, x: 0, y: 0, maxRate: 5, maxAccel: 50, mask: [-0.1, 0.1] });
-    expect(turrets.firesOn(bodies, t, 0)).toBe(false);
-    expect(turrets.firesOn(bodies, t, 1)).toBe(true);
-    // At rest it points straight down the masked sector.
-    expect(turrets.readyToFire(t)).toBe(false);
-    turrets.commandWorldBearing(bodies, t, 1);
-    for (let i = 0; i < 120; i++) turrets.step(1 / 60, bodies);
-    expect(turrets.readyToFire(t)).toBe(true);
-  });
-
-  it('will not swing a lit beam across its own ship', () => {
-    const bodies = new Bodies();
-    const body = bodies.indexOf(bodies.create({ x: 0, y: 0, mass: 1000, inertia: 1000, radius: 5 }));
-    const turrets = new Turrets();
-    const t = turrets.add({ owner: body, x: 0, y: 0, maxRate: 5, maxAccel: 50, mask: [0.5, 0.7] });
-    turrets.lit[t] = 1;
-    turrets.commandWorldBearing(bodies, t, 1);
-    for (let i = 0; i < 120; i++) turrets.step(1 / 60, bodies);
-    expect(turrets.bearing[t]).toBeLessThan(0.5);
-    turrets.lit[t] = 0;
-    for (let i = 0; i < 120; i++) turrets.step(1 / 60, bodies);
-    expect(turrets.bearing[t]).toBeCloseTo(1, 3);
-  });
-});
-
-describe('a hull weapon', () => {
-  it('is fouled by, and must not fire at, anything', () => {
-    const design = compileBlueprint({
-      name: 'Gun deck',
-      modules: [
-        { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
-        { kind: 'hullGun', x: 4, y: 0, length: 4, width: 2 },
-        { kind: 'structure', x: 0, y: 4, length: 4, width: 4 },
-      ],
+    it("trains over deck and fires over it", () => {
+        const layout = ahead(false, 3);
+        expect(firingArc(layout, 0, 5, inWeaponsLayer)).toEqual({ left: PI, right: PI });
+        expect(triggerMask(layout, 0, inWeaponsLayer)).toEqual([]);
     });
-    const gun = design.turrets[0]!;
-    expect(gun.hullLayer).toBe(true);
-    // Nothing is thick, and yet the mask is not empty.
-    expect(gun.mount.mask!.length).toBeGreaterThan(0);
-  });
+
+    it("may train past thick structure beyond its barrel, but not fire at it", () => {
+        const layout = ahead(true, 20);
+        expect(firingArc(layout, 0, 5, inWeaponsLayer)).toEqual({ left: PI, right: PI });
+        const mask = triggerMask(layout, 0, inWeaponsLayer);
+        expect(mask).toHaveLength(2);
+        expect(masked(mask, 0)).toBe(true);
+        expect(masked(mask, 0.2)).toBe(false);
+        expect(masked(mask, PI)).toBe(false);
+    });
+
+    it("cannot train through thick structure within its barrel", () => {
+        const arc = firingArc(ahead(true, 3), 0, 5, inWeaponsLayer);
+        expect(arc.left + arc.right).toBe(0);
+    });
+
+    it("trains no nearer an obstruction than its outer barrel allows", () => {
+        // A block off to port, clear of the barrel's centre line as it swings
+        // round, but not of a row of barrels either side of it.
+        const layout: ModuleSpec[] = [
+            { kind: "turret", x: 0, y: 0, length: 2, width: 2 },
+            { kind: "structure", x: -4, y: 5, length: 4, width: 4, thick: true },
+        ];
+        const line = firingArc(layout, 0, 6, inWeaponsLayer);
+        const row = firingArc(layout, 0, 6, inWeaponsLayer, 1.5);
+        expect(row.left).toBeLessThan(line.left - 0.2);
+        expect(row.right).toBeLessThan(line.right);
+        const gun = moduleStats({ kind: "turret", x: 0, y: 0, length: 6, width: 4, barrels: 4 }).gun!;
+        expect(barrelHalfWidth(gun)).toBeCloseTo(1.5 * gun.barrelSpacing + gun.calibre, 9);
+    });
+
+    it("keeps separate gaps between obstructions", () => {
+        const layout: ModuleSpec[] = [
+            { kind: "turret", x: 0, y: 0, length: 2, width: 2 },
+            { kind: "structure", x: 0, y: 20, length: 4, width: 4, thick: true },
+            { kind: "structure", x: 0, y: -20, length: 4, width: 4, thick: true },
+        ];
+        const mask = triggerMask(layout, 0, inWeaponsLayer);
+        expect(mask).toHaveLength(4);
+        expect(masked(mask, PI / 2)).toBe(true);
+        expect(masked(mask, -PI / 2)).toBe(true);
+        expect(masked(mask, 0)).toBe(false);
+        expect(masked(mask, PI)).toBe(false);
+    });
+
+    it("holds its fire while its barrel points along a masked bearing", () => {
+        const bodies = new Bodies();
+        const body = bodies.indexOf(bodies.create({ x: 0, y: 0, mass: 1000, inertia: 1000, radius: 5 }));
+        const turrets = new Turrets();
+        const t = turrets.add({ owner: body, x: 0, y: 0, maxRate: 5, maxAccel: 50, mask: [-0.1, 0.1] });
+        expect(turrets.firesOn(bodies, t, 0)).toBe(false);
+        expect(turrets.firesOn(bodies, t, 1)).toBe(true);
+        // At rest it points straight down the masked sector.
+        expect(turrets.readyToFire(t)).toBe(false);
+        turrets.commandWorldBearing(bodies, t, 1);
+        for (let i = 0; i < 120; i++) turrets.step(1 / 60, bodies);
+        expect(turrets.readyToFire(t)).toBe(true);
+    });
+
+    it("will not swing a lit beam across its own ship", () => {
+        const bodies = new Bodies();
+        const body = bodies.indexOf(bodies.create({ x: 0, y: 0, mass: 1000, inertia: 1000, radius: 5 }));
+        const turrets = new Turrets();
+        const t = turrets.add({ owner: body, x: 0, y: 0, maxRate: 5, maxAccel: 50, mask: [0.5, 0.7] });
+        turrets.lit[t] = 1;
+        turrets.commandWorldBearing(bodies, t, 1);
+        for (let i = 0; i < 120; i++) turrets.step(1 / 60, bodies);
+        expect(turrets.bearing[t]).toBeLessThan(0.5);
+        turrets.lit[t] = 0;
+        for (let i = 0; i < 120; i++) turrets.step(1 / 60, bodies);
+        expect(turrets.bearing[t]).toBeCloseTo(1, 3);
+    });
 });
 
-describe('a round', () => {
-  /** A ship of a core with a block to either side, thick or not. */
-  function target(thick: boolean): { world: World; ships: Ships; grid: SpatialGrid } {
-    const design = compileBlueprint({
-      name: 'Target',
-      modules: [
-        { kind: 'structure', x: -4, y: 0, length: 4, width: 4, thick },
-        { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
-        { kind: 'structure', x: 4, y: 0, length: 4, width: 4, thick },
-      ],
+describe("a hull weapon", () => {
+    it("is fouled by, and must not fire at, anything", () => {
+        const design = compileBlueprint({
+            name: "Gun deck",
+            modules: [
+                { kind: "core", x: 0, y: 0, length: 4, width: 4 },
+                { kind: "hullGun", x: 4, y: 0, length: 4, width: 2 },
+                { kind: "structure", x: 0, y: 4, length: 4, width: 4 },
+            ],
+        });
+        const gun = design.turrets[0]!;
+        expect(gun.hullLayer).toBe(true);
+        // Nothing is thick, and yet the mask is not empty.
+        expect(gun.mount.mask!.length).toBeGreaterThan(0);
     });
-    const world = new World({ dt: 1 / 60, seed: 1 });
-    const ships = new Ships();
-    ships.spawn(world, { design, x: 0, y: 0, team: 1 });
-    const grid = new SpatialGrid(64);
-    grid.rebuild(world.bodies);
-    return { world, ships, grid };
-  }
+});
 
-  /** What a round across the ship along +x meets first, or -1. */
-  function firstHit(thick: boolean, weaponsLayer: boolean, y = 0): number {
-    const { world, ships, grid } = target(thick);
-    const projectiles = new Projectiles(4);
-    const hits = new ProjectileHits();
-    projectiles.spawn({ x: -40, y, vx: 1200, vy: 0, width: 0.1, ttl: 1, weaponsLayer });
-    for (let i = 0; i < 10 && hits.count === 0; i++) {
-      projectiles.step(1 / 60, world.bodies, grid, hits, undefined, ships.hulls);
+describe("a round", () => {
+    /** A ship of a core with a block to either side, thick or not. */
+    function target(thick: boolean): { world: World; ships: Ships; grid: SpatialGrid } {
+        const design = compileBlueprint({
+            name: "Target",
+            modules: [
+                { kind: "structure", x: -4, y: 0, length: 4, width: 4, thick },
+                { kind: "core", x: 0, y: 0, length: 4, width: 4 },
+                { kind: "structure", x: 4, y: 0, length: 4, width: 4, thick },
+            ],
+        });
+        const world = new World({ dt: 1 / 60, seed: 1 });
+        const ships = new Ships();
+        ships.spawn(world, { design, x: 0, y: 0, team: 1 });
+        const grid = new SpatialGrid(64);
+        grid.rebuild(world.bodies);
+        return { world, ships, grid };
     }
-    return hits.count === 0 ? -1 : hits.module[0]!;
-  }
 
-  it('in the hull layer meets the first thing in its way', () => {
-    expect(firstHit(false, false)).toBe(0);
-  });
+    /** What a round across the ship along +x meets first, or -1. */
+    function firstHit(thick: boolean, weaponsLayer: boolean, y = 0): number {
+        const { world, ships, grid } = target(thick);
+        const projectiles = new Projectiles(4);
+        const hits = new ProjectileHits();
+        projectiles.spawn({ x: -40, y, vx: 1200, vy: 0, width: 0.1, ttl: 1, weaponsLayer });
+        for (let i = 0; i < 10 && hits.count === 0; i++) {
+            projectiles.step(1 / 60, world.bodies, grid, hits, undefined, ships.hulls);
+        }
+        return hits.count === 0 ? -1 : hits.module[0]!;
+    }
 
-  it('in the weapons layer passes over deck', () => {
-    expect(firstHit(false, true)).toBe(-1);
-  });
-
-  it('in the weapons layer meets what is thick', () => {
-    expect(firstHit(true, true)).toBe(0);
-  });
-
-  it('may come back onto its own ship, but never the mount that fired it', () => {
-    const { world, ships, grid } = target(true);
-    const body = world.bodies.indexOf(ships.body(0));
-    const projectiles = new Projectiles(4);
-    const hits = new ProjectileHits();
-    const design = ships.currentStructure(0);
-    const left = design.modules.findIndex((m) => m.x < -1);
-    const right = design.modules.findIndex((m) => m.x > 1);
-    // Fired from inside the left block, along the ship to the right one.
-    projectiles.spawn({
-      x: design.modules[left]!.x,
-      y: 0,
-      vx: 1200,
-      vy: 0,
-      width: 0.1,
-      ttl: 1,
-      owner: body,
-      fromModule: left,
-      weaponsLayer: true,
+    it("in the hull layer meets the first thing in its way", () => {
+        expect(firstHit(false, false)).toBe(0);
     });
-    projectiles.step(1 / 60, world.bodies, grid, hits, undefined, ships.hulls);
-    expect(hits.count).toBe(1);
-    expect(hits.body[0]).toBe(body);
-    expect(hits.module[0]).toBe(right);
-  });
+
+    it("in the weapons layer passes over deck", () => {
+        expect(firstHit(false, true)).toBe(-1);
+    });
+
+    it("in the weapons layer meets what is thick", () => {
+        expect(firstHit(true, true)).toBe(0);
+    });
+
+    it("may come back onto its own ship, but never the mount that fired it", () => {
+        const { world, ships, grid } = target(true);
+        const body = world.bodies.indexOf(ships.body(0));
+        const projectiles = new Projectiles(4);
+        const hits = new ProjectileHits();
+        const design = ships.currentStructure(0);
+        const left = design.modules.findIndex((m) => m.x < -1);
+        const right = design.modules.findIndex((m) => m.x > 1);
+        // Fired from inside the left block, along the ship to the right one.
+        projectiles.spawn({
+            x: design.modules[left]!.x,
+            y: 0,
+            vx: 1200,
+            vy: 0,
+            width: 0.1,
+            ttl: 1,
+            owner: body,
+            fromModule: left,
+            weaponsLayer: true,
+        });
+        projectiles.step(1 / 60, world.bodies, grid, hits, undefined, ships.hulls);
+        expect(hits.count).toBe(1);
+        expect(hits.body[0]).toBe(body);
+        expect(hits.module[0]).toBe(right);
+    });
 });

@@ -1,7 +1,7 @@
-import { compileBlueprint, math } from '../sim/index.js';
-import type { Battle } from './types.js';
-import { makeBattle } from './battle.js';
-import { CORVETTE, DINKY, GUNSHIP } from './blueprints.js';
+import { compileBlueprint, math } from "../sim/index.js";
+import type { Battle } from "./types.js";
+import { makeBattle } from "./battle.js";
+import { CORVETTE, DINKY, GUNSHIP } from "./blueprints.js";
 
 /**
  * Hulls hitting each other, and nothing else.
@@ -23,24 +23,24 @@ import { CORVETTE, DINKY, GUNSHIP } from './blueprints.js';
  * what this scenario says.
  */
 export function ram(seed = 20260905): Battle {
-  return makeBattle({ seed, pilots: false, projectiles: 64, beams: 64 }, (ships, world) => {
-    const corvette = compileBlueprint(CORVETTE);
-    const gunship = compileBlueprint(GUNSHIP);
-    // Unflagged, as a fighter with no pilot to commit it flies over a hull.
-    const dinky = compileBlueprint({ ...DINKY, fighter: false });
+    return makeBattle({ seed, pilots: false, projectiles: 64, beams: 64 }, (ships, world) => {
+        const corvette = compileBlueprint(CORVETTE);
+        const gunship = compileBlueprint(GUNSHIP);
+        // Unflagged, as a fighter with no pilot to commit it flies over a hull.
+        const dinky = compileBlueprint({ ...DINKY, fighter: false });
 
-    // The anvil: adrift, facing along +x, hit by everything else.
-    ships.spawn(world, { design: gunship, x: 0, y: 0, team: 0 });
+        // The anvil: adrift, facing along +x, hit by everything else.
+        ships.spawn(world, { design: gunship, x: 0, y: 0, team: 0 });
 
-    // Square on the nose, from ahead.
-    ships.spawn(world, { design: corvette, x: 900, y: 0, angle: math.PI, vx: -70, team: 1 });
+        // Square on the nose, from ahead.
+        ships.spawn(world, { design: corvette, x: 900, y: 0, angle: math.PI, vx: -70, team: 1 });
 
-    // A glancing blow across the bow: offset enough to be a lever rather than a
-    // shove, which is what sets both of them spinning.
-    ships.spawn(world, { design: corvette, x: -700, y: 26, angle: 0, vx: 55, vy: -1, team: 1 });
+        // A glancing blow across the bow: offset enough to be a lever rather than a
+        // shove, which is what sets both of them spinning.
+        ships.spawn(world, { design: corvette, x: -700, y: 26, angle: 0, vx: 55, vy: -1, team: 1 });
 
-    // A fighter into the flank at speed, well inside the gunship's length: sixty
-    // times lighter, so what happens to it is not what happens to what it hits.
-    ships.spawn(world, { design: dinky, x: 12, y: -600, angle: math.HALF_PI, vy: 120, team: 1 });
-  });
+        // A fighter into the flank at speed, well inside the gunship's length: sixty
+        // times lighter, so what happens to it is not what happens to what it hits.
+        ships.spawn(world, { design: dinky, x: 12, y: -600, angle: math.HALF_PI, vy: 120, team: 1 });
+    });
 }

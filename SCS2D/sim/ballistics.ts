@@ -1,4 +1,4 @@
-import { abs, atan2, cos, max, min, pow, sin, sqrt } from './math.js';
+import { abs, atan2, cos, max, min, pow, sin, sqrt } from "./math.js";
 
 /**
  * Terminal ballistics: what happens where a round meets a plate.
@@ -78,27 +78,27 @@ const EDGE_ON = 1e-6;
 
 /** What a round did to the plate it met. */
 export enum Terminal {
-  /** Stopped in the plate. Everything it had went into it. */
-  Embed = 0,
-  /** Skidded off. The plate took the part of the energy that was normal to it. */
-  Deflect = 1,
-  /** Got through, with something left. */
-  Perforate = 2,
+    /** Stopped in the plate. Everything it had went into it. */
+    Embed = 0,
+    /** Skidded off. The plate took the part of the energy that was normal to it. */
+    Deflect = 1,
+    /** Got through, with something left. */
+    Perforate = 2,
 }
 
 export interface Strike {
-  outcome: Terminal;
-  /**
-   * Speed the round carries on at, m/s. Zero when it embeds; what is left
-   * after the plate when it perforates; its tangential speed when it skids.
-   */
-  residualSpeed: number;
-  /**
-   * Energy the plate took, joules — the round's kinetic energy less whatever
-   * it left with. This is what the damage model spends, and it is a *loss*
-   * rather than a share, so nothing has to be conserved twice.
-   */
-  energy: number;
+    outcome: Terminal;
+    /**
+     * Speed the round carries on at, m/s. Zero when it embeds; what is left
+     * after the plate when it perforates; its tangential speed when it skids.
+     */
+    residualSpeed: number;
+    /**
+     * Energy the plate took, joules — the round's kinetic energy less whatever
+     * it left with. This is what the damage model spends, and it is a *loss*
+     * rather than a share, so nothing has to be conserved twice.
+     */
+    energy: number;
 }
 
 /**
@@ -111,48 +111,48 @@ export interface Strike {
  * goes next, which is the caller's arithmetic, not the plate's.
  */
 export function strike(mass: number, calibre: number, speed: number, thickness: number, incidence: number): Strike {
-  const energy = 0.5 * mass * speed * speed;
-  // A plate with no thickness stops nothing, which is the ordinary case for a
-  // shot leaving a hole it has already made.
-  if (!(thickness > 0) || !(mass > 0) || !(calibre > 0)) {
-    return { outcome: Terminal.Perforate, residualSpeed: speed, energy: 0 };
-  }
+    const energy = 0.5 * mass * speed * speed;
+    // A plate with no thickness stops nothing, which is the ordinary case for a
+    // shot leaving a hole it has already made.
+    if (!(thickness > 0) || !(mass > 0) || !(calibre > 0)) {
+        return { outcome: Terminal.Perforate, residualSpeed: speed, energy: 0 };
+    }
 
-  const slant = abs(cos(incidence));
-  // Edge-on: the round is travelling along the face and meets no thickness of
-  // it at all. Treated as a skid rather than as infinite armour, which is what
-  // the division would otherwise produce.
-  if (slant < EDGE_ON) {
-    return { outcome: Terminal.Deflect, residualSpeed: speed, energy: 0 };
-  }
+    const slant = abs(cos(incidence));
+    // Edge-on: the round is travelling along the face and meets no thickness of
+    // it at all. Treated as a skid rather than as infinite armour, which is what
+    // the division would otherwise produce.
+    if (slant < EDGE_ON) {
+        return { outcome: Terminal.Deflect, residualSpeed: speed, energy: 0 };
+    }
 
-  const lineOfSight = thickness / slant;
-  const limit = (DE_MARRE_K * pow(lineOfSight, 0.7) * pow(calibre, 0.75)) / sqrt(mass);
+    const lineOfSight = thickness / slant;
+    const limit = (DE_MARRE_K * pow(lineOfSight, 0.7) * pow(calibre, 0.75)) / sqrt(mass);
 
-  if (speed > limit) {
-    // What is left is what the limit did not take, in energy: the round spends
-    // exactly the energy of a round arriving at the limit speed, which is what
-    // makes the limit a limit.
-    const residualSpeed = sqrt(speed * speed - limit * limit);
-    return {
-      outcome: Terminal.Perforate,
-      residualSpeed,
-      energy: 0.5 * mass * limit * limit,
-    };
-  }
+    if (speed > limit) {
+        // What is left is what the limit did not take, in energy: the round spends
+        // exactly the energy of a round arriving at the limit speed, which is what
+        // makes the limit a limit.
+        const residualSpeed = sqrt(speed * speed - limit * limit);
+        return {
+            outcome: Terminal.Perforate,
+            residualSpeed,
+            energy: 0.5 * mass * limit * limit,
+        };
+    }
 
-  if (abs(incidence) > RICOCHET_ANGLE) {
-    // A skid: the plate takes the part of the round's motion that was going
-    // into it, and the round leaves with the part that was going along it.
-    const along = abs(sin(incidence)) * speed;
-    return {
-      outcome: Terminal.Deflect,
-      residualSpeed: along,
-      energy: energy - 0.5 * mass * along * along,
-    };
-  }
+    if (abs(incidence) > RICOCHET_ANGLE) {
+        // A skid: the plate takes the part of the round's motion that was going
+        // into it, and the round leaves with the part that was going along it.
+        const along = abs(sin(incidence)) * speed;
+        return {
+            outcome: Terminal.Deflect,
+            residualSpeed: along,
+            energy: energy - 0.5 * mass * along * along,
+        };
+    }
 
-  return { outcome: Terminal.Embed, residualSpeed: 0, energy };
+    return { outcome: Terminal.Embed, residualSpeed: 0, energy };
 }
 
 /**
@@ -170,12 +170,12 @@ export function strike(mass: number, calibre: number, speed: number, thickness: 
  * the surface it struck. The result is a unit direction.
  */
 export function deflected(dx: number, dy: number, nx: number, ny: number): { x: number; y: number } {
-  const dot = dx * nx + dy * ny;
-  const rx = dx - 2 * dot * nx;
-  const ry = dy - 2 * dot * ny;
-  const length = sqrt(rx * rx + ry * ry);
-  if (!(length > 0)) return { x: dx, y: dy };
-  return { x: rx / length, y: ry / length };
+    const dot = dx * nx + dy * ny;
+    const rx = dx - 2 * dot * nx;
+    const ry = dy - 2 * dot * ny;
+    const length = sqrt(rx * rx + ry * ry);
+    if (!(length > 0)) return { x: dx, y: dy };
+    return { x: rx / length, y: ry / length };
 }
 
 /**
@@ -188,9 +188,9 @@ export function deflected(dx: number, dy: number, nx: number, ny: number): { x: 
  * happened on.
  */
 export function incidenceAngle(dx: number, dy: number, nx: number, ny: number): number {
-  // Capped, since a dot product a shade over one from rounding would make the
-  // arccos a NaN.
-  return acos(min(1, abs(dx * nx + dy * ny)));
+    // Capped, since a dot product a shade over one from rounding would make the
+    // arccos a NaN.
+    return acos(min(1, abs(dx * nx + dy * ny)));
 }
 
 /**
@@ -203,5 +203,5 @@ export function incidenceAngle(dx: number, dy: number, nx: number, ny: number): 
  * arithmetic are both exactly specified.
  */
 function acos(c: number): number {
-  return atan2(sqrt(max(0, 1 - c * c)), c);
+    return atan2(sqrt(max(0, 1 - c * c)), c);
 }

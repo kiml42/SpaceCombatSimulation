@@ -1,4 +1,4 @@
-import { unreadOf, type UnreadKeys } from './unread.js';
+import { unreadOf, type UnreadKeys } from "./unread.js";
 /**
  * What a craft does when nobody is telling it anything.
  *
@@ -28,437 +28,437 @@ import { unreadOf, type UnreadKeys } from './unread.js';
 
 /** What to go after: a set of preferences that argue with each other. */
 export interface Targeting {
-  /** Prefer what is close: score for a target at no range at all. */
-  readonly proximityWeight: number;
-  /**
-   * What size of target to go after, as a multiple of the chooser's own mass.
-   *
-   * One is "something my own size", which needs no knowledge of what else is
-   * in the battle and comes out right on every hull it is put on. It rests on
-   * guns being scaled to the hull that carries them, so a ship's own mass is
-   * a fair guess at what it can actually hurt. Other numbers say other things
-   * without needing another mechanism: fifty is a torpedo boat that only
-   * wants capitals, a twentieth is a mount that exists to swat fighters.
-   */
-  readonly preferredMass: number;
-  /**
-   * What size to go after instead while it would ram — its working main guns
-   * at or below `ramArmed`, with nothing to restock them — as `preferredMass`
-   * is; zero for the same. A disabled fighter is better thrown at a capital
-   * that cannot dodge than at another fighter. With `ramArmed` at one, that is
-   * all the time.
-   */
-  readonly ramMass: number;
-  /** How much going after the right size of thing is worth. */
-  readonly massWeight: number;
-  /** Prefer what is coming at you, per hundred metres per second of closing. */
-  readonly closingWeight: number;
-  /**
-   * Prefer what you are already fighting.
-   *
-   * Not flavour: without it two equally good targets swap places every time
-   * the numbers wobble, and a ship spends the battle turning round rather
-   * than shooting. It is the cheapest fix for the most visible failure a
-   * target picker has.
-   */
-  readonly loyaltyWeight: number;
-  /**
-   * Prefer what can still shoot back — the first thing worth knowing about a
-   * target, since a ship that has lost every gun has stopped being a threat
-   * whatever else is left of it.
-   */
-  readonly armedWeight: number;
-  /**
-   * Prefer what can still get away, which is what stops a fleet finishing a
-   * drifting wreck while a crippled ship limps out of the battle.
-   */
-  readonly mobileWeight: number;
-  /**
-   * Prefer what the ship as a whole is fighting.
-   *
-   * A mount picks its own target, which is what lets a broadside engage on
-   * both sides at once; this is what stops that from becoming every gun
-   * shooting at something different. Large, and a fleet concentrates; zero,
-   * and every mount fights its own battle.
-   */
-  readonly focusWeight: number;
-  /**
-   * Prefer what the chooser is already pointed at: full weight dead ahead,
-   * nothing abeam, against astern. A hull faces along its nose and a mount
-   * along its barrel, so this is the cost of turning to a target, which
-   * proximity cannot see — and on a hull whose guns face forward, of turning
-   * its guns away from everything else.
-   */
-  readonly facingWeight: number;
-  /**
-   * Prefer what nothing else is in the way of — a friend, a neutral, a
-   * wreck or another enemy. For a mount, a shot at something behind a
-   * friend is a shot at the friend; for a hull, it is a fight it would have
-   * to go round something to have.
-   */
-  readonly sightWeight: number;
-  /**
-   * Where on a target to aim, by what the module is for: the core it is flown
-   * from, its engines, its guns, or the structure between them.
-   *
-   * **A core and a gun are worth the same, then engines, and structure is
-   * worth nothing at all.** A ship whose core is out stops fighting
-   * altogether and one that cannot shoot has stopped being a threat; a ship
-   * that cannot move has merely stopped being a problem. Plating is none of
-   * those: cutting it does not stop a ship doing anything, so no weapon aims
-   * at it, and a hull with nothing else left standing is one every weapon
-   * turns away from rather than grinding down.
-   *
-   * The core is not rated above the gun, though it ends a fight outright,
-   * because a weight is not the whole story: a core is small and usually
-   * amidships with the ship in the way, so rating it higher has a gunner
-   * boring the length of a hull to reach one while a turret sits on the skin
-   * in front of it. Tied, the tie-break decides — whatever is nearest the gun
-   * — and what is nearest is what can actually be hit. Measured in `duel`:
-   * rated above, a fifth of all hits land on a core and sixteen pieces come
-   * off; tied, a twentieth do and one does, and the ships spend the fight
-   * stripping each other's mounts and engines instead.
-   *
-   * **All four zero means no opinion**, and a gun with no opinion shoots at
-   * the ship as a whole rather than at a part of it. That is the way out for
-   * a doctrine that would rather not pick a smaller thing to miss.
-   *
-   * **A weight says one of three things, and the sign is which.**
-   *
-   * - *Above zero*: destroy this, and the more the sooner.
-   * - *Zero*: leave it alone. Not a poor ranking but a different statement —
-   *   the mount never aims at such a module, and a ship with nothing else
-   *   standing stops being one of its targets, since there is nothing on it
-   *   worth a shot. It is not being *careful*, though: against a ship that
-   *   does have something worth shooting it fires at anything on the hull.
-   * - *Below zero*: mind not to hit this. Everything zero says, and in
-   *   addition the mount stops firing at a hull and holds until the part it
-   *   chose is under the muzzle, so a stray round does not land on the thing
-   *   it is trying to spare.
-   *
-   * **The last is for wanting a beaten ship rather than a dead one**, which
-   * is a campaign's concern rather than a battle's: sparing a hull leaves
-   * more of it to harvest (§8's salvage), and there are ships a player would
-   * rather disable than cut in half. It costs rate of fire to ask for, since
-   * a mount waiting for one part is a mount not shooting at the rest — which
-   * is why nothing fights this way by default and why it is worth having as
-   * a choice.
-   *
-   * **All four zero still means no opinion**, and a gun with no opinion
-   * shoots at the ship as a whole rather than at a part of it — there is
-   * nothing to be selective about when nothing has been chosen, so this stays
-   * the way out for a doctrine that would rather not pick a smaller thing to
-   * miss.
-   */
-  readonly coreWeight: number;
-  readonly engineWeight: number;
-  readonly gunWeight: number;
-  readonly structureWeight: number;
-  /**
-   * How much a ship would rather be with something it will never shoot at
-   * than at the best fight it can find.
-   *
-   * What a craft escorts is anything not hostile to it — one of its own, or
-   * a neutral — and escorting means station-keeping and nothing else: the
-   * guns go on fighting whatever they can reach, since a consort does not
-   * need covering by a mount that is pointing the wrong way.
-   *
-   * **It is weighed against holding station, not against a target's score.**
-   * A hundred is worth exactly as much as the order a craft is flying, so a
-   * craft with that much splits the difference between closing on its enemy
-   * and staying with its charge, and one with four hundred stays with its
-   * charge and fights from there. It fades to nothing as the gap closes, so a
-   * craft that has caught up is pulled by the fight alone until the fight has
-   * drawn it off again.
-   *
-   * **Zero means escort nobody, and is the default.** A friendly is not
-   * offered to the stack at all below it, which is deliberate rather than
-   * tidy: every preference here can be negative, so a friendly scored by the
-   * ordinary weights would beat a distant enemy on proximity alone and every
-   * fleet in the game would huddle.
-   */
-  readonly escortWeight: number;
-  /**
-   * How far out a weapon fires, as a multiple of how far its shot is worth
-   * taking at what it is aiming at (`reachAgainst`).
-   *
-   * **A decision, not a limit.** Past that distance a round still flies and
-   * may still hit; it is just less likely to. Above one spends shells on long
-   * odds, below one saves them for a sure thing. A mount's own question, so a
-   * ship's says nothing; its reach, and so how close it flies, comes from its
-   * mounts'.
-   */
-  readonly fireRange: number;
+    /** Prefer what is close: score for a target at no range at all. */
+    readonly proximityWeight: number;
+    /**
+     * What size of target to go after, as a multiple of the chooser's own mass.
+     *
+     * One is "something my own size", which needs no knowledge of what else is
+     * in the battle and comes out right on every hull it is put on. It rests on
+     * guns being scaled to the hull that carries them, so a ship's own mass is
+     * a fair guess at what it can actually hurt. Other numbers say other things
+     * without needing another mechanism: fifty is a torpedo boat that only
+     * wants capitals, a twentieth is a mount that exists to swat fighters.
+     */
+    readonly preferredMass: number;
+    /**
+     * What size to go after instead while it would ram — its working main guns
+     * at or below `ramArmed`, with nothing to restock them — as `preferredMass`
+     * is; zero for the same. A disabled fighter is better thrown at a capital
+     * that cannot dodge than at another fighter. With `ramArmed` at one, that is
+     * all the time.
+     */
+    readonly ramMass: number;
+    /** How much going after the right size of thing is worth. */
+    readonly massWeight: number;
+    /** Prefer what is coming at you, per hundred metres per second of closing. */
+    readonly closingWeight: number;
+    /**
+     * Prefer what you are already fighting.
+     *
+     * Not flavour: without it two equally good targets swap places every time
+     * the numbers wobble, and a ship spends the battle turning round rather
+     * than shooting. It is the cheapest fix for the most visible failure a
+     * target picker has.
+     */
+    readonly loyaltyWeight: number;
+    /**
+     * Prefer what can still shoot back — the first thing worth knowing about a
+     * target, since a ship that has lost every gun has stopped being a threat
+     * whatever else is left of it.
+     */
+    readonly armedWeight: number;
+    /**
+     * Prefer what can still get away, which is what stops a fleet finishing a
+     * drifting wreck while a crippled ship limps out of the battle.
+     */
+    readonly mobileWeight: number;
+    /**
+     * Prefer what the ship as a whole is fighting.
+     *
+     * A mount picks its own target, which is what lets a broadside engage on
+     * both sides at once; this is what stops that from becoming every gun
+     * shooting at something different. Large, and a fleet concentrates; zero,
+     * and every mount fights its own battle.
+     */
+    readonly focusWeight: number;
+    /**
+     * Prefer what the chooser is already pointed at: full weight dead ahead,
+     * nothing abeam, against astern. A hull faces along its nose and a mount
+     * along its barrel, so this is the cost of turning to a target, which
+     * proximity cannot see — and on a hull whose guns face forward, of turning
+     * its guns away from everything else.
+     */
+    readonly facingWeight: number;
+    /**
+     * Prefer what nothing else is in the way of — a friend, a neutral, a
+     * wreck or another enemy. For a mount, a shot at something behind a
+     * friend is a shot at the friend; for a hull, it is a fight it would have
+     * to go round something to have.
+     */
+    readonly sightWeight: number;
+    /**
+     * Where on a target to aim, by what the module is for: the core it is flown
+     * from, its engines, its guns, or the structure between them.
+     *
+     * **A core and a gun are worth the same, then engines, and structure is
+     * worth nothing at all.** A ship whose core is out stops fighting
+     * altogether and one that cannot shoot has stopped being a threat; a ship
+     * that cannot move has merely stopped being a problem. Plating is none of
+     * those: cutting it does not stop a ship doing anything, so no weapon aims
+     * at it, and a hull with nothing else left standing is one every weapon
+     * turns away from rather than grinding down.
+     *
+     * The core is not rated above the gun, though it ends a fight outright,
+     * because a weight is not the whole story: a core is small and usually
+     * amidships with the ship in the way, so rating it higher has a gunner
+     * boring the length of a hull to reach one while a turret sits on the skin
+     * in front of it. Tied, the tie-break decides — whatever is nearest the gun
+     * — and what is nearest is what can actually be hit. Measured in `duel`:
+     * rated above, a fifth of all hits land on a core and sixteen pieces come
+     * off; tied, a twentieth do and one does, and the ships spend the fight
+     * stripping each other's mounts and engines instead.
+     *
+     * **All four zero means no opinion**, and a gun with no opinion shoots at
+     * the ship as a whole rather than at a part of it. That is the way out for
+     * a doctrine that would rather not pick a smaller thing to miss.
+     *
+     * **A weight says one of three things, and the sign is which.**
+     *
+     * - *Above zero*: destroy this, and the more the sooner.
+     * - *Zero*: leave it alone. Not a poor ranking but a different statement —
+     *   the mount never aims at such a module, and a ship with nothing else
+     *   standing stops being one of its targets, since there is nothing on it
+     *   worth a shot. It is not being *careful*, though: against a ship that
+     *   does have something worth shooting it fires at anything on the hull.
+     * - *Below zero*: mind not to hit this. Everything zero says, and in
+     *   addition the mount stops firing at a hull and holds until the part it
+     *   chose is under the muzzle, so a stray round does not land on the thing
+     *   it is trying to spare.
+     *
+     * **The last is for wanting a beaten ship rather than a dead one**, which
+     * is a campaign's concern rather than a battle's: sparing a hull leaves
+     * more of it to harvest (§8's salvage), and there are ships a player would
+     * rather disable than cut in half. It costs rate of fire to ask for, since
+     * a mount waiting for one part is a mount not shooting at the rest — which
+     * is why nothing fights this way by default and why it is worth having as
+     * a choice.
+     *
+     * **All four zero still means no opinion**, and a gun with no opinion
+     * shoots at the ship as a whole rather than at a part of it — there is
+     * nothing to be selective about when nothing has been chosen, so this stays
+     * the way out for a doctrine that would rather not pick a smaller thing to
+     * miss.
+     */
+    readonly coreWeight: number;
+    readonly engineWeight: number;
+    readonly gunWeight: number;
+    readonly structureWeight: number;
+    /**
+     * How much a ship would rather be with something it will never shoot at
+     * than at the best fight it can find.
+     *
+     * What a craft escorts is anything not hostile to it — one of its own, or
+     * a neutral — and escorting means station-keeping and nothing else: the
+     * guns go on fighting whatever they can reach, since a consort does not
+     * need covering by a mount that is pointing the wrong way.
+     *
+     * **It is weighed against holding station, not against a target's score.**
+     * A hundred is worth exactly as much as the order a craft is flying, so a
+     * craft with that much splits the difference between closing on its enemy
+     * and staying with its charge, and one with four hundred stays with its
+     * charge and fights from there. It fades to nothing as the gap closes, so a
+     * craft that has caught up is pulled by the fight alone until the fight has
+     * drawn it off again.
+     *
+     * **Zero means escort nobody, and is the default.** A friendly is not
+     * offered to the stack at all below it, which is deliberate rather than
+     * tidy: every preference here can be negative, so a friendly scored by the
+     * ordinary weights would beat a distant enemy on proximity alone and every
+     * fleet in the game would huddle.
+     */
+    readonly escortWeight: number;
+    /**
+     * How far out a weapon fires, as a multiple of how far its shot is worth
+     * taking at what it is aiming at (`reachAgainst`).
+     *
+     * **A decision, not a limit.** Past that distance a round still flies and
+     * may still hit; it is just less likely to. Above one spends shells on long
+     * odds, below one saves them for a sure thing. A mount's own question, so a
+     * ship's says nothing; its reach, and so how close it flies, comes from its
+     * mounts'.
+     */
+    readonly fireRange: number;
 }
 
 /** How to fight it, once it has been chosen. */
 export interface Approach {
-  /**
-   * How close to get, in multiples of the target's own radius.
-   *
-   * **The range that matters is the one the target looks big from.** A gun
-   * misses because its firing solution guessed wrong about where the target
-   * would be, and how much of a guess it can afford depends on how much of
-   * the sky the target fills — so closing on a fighter and closing on a
-   * capital are different distances for the same reason, and a doctrine that
-   * named one distance would be wrong about the other.
-   */
-  readonly standoffRadii: number;
-  /**
-   * The furthest it will hold, as a fraction of its own reach.
-   *
-   * A cap on the above, and the thing that keeps a ship inside the range its
-   * guns are good for however small the target is.
-   */
-  readonly standoff: number;
-  /**
-   * How close to sit to what it is covering, in multiples of *its* radius.
-   *
-   * The escort's own version of `standoffRadii`, and a separate number
-   * because it is answering a different question. A standoff is a gunnery
-   * distance — how much of a guess a firing solution can afford — and an
-   * escort distance is not about shooting at the thing at all. Made to do
-   * both jobs, one number puts a corvette four hundred metres off the consort
-   * it is meant to be covering, because that is where it would sit to shoot
-   * at it.
-   */
-  readonly escortRadii: number;
-  /**
-   * The furthest it will stray from what it is covering, as a fraction of its
-   * own reach.
-   *
-   * A cap on the above, the same way `standoff` caps `standoffRadii` — and
-   * the reason it is measured in the escort's own gun range is that this is
-   * what covering something *means*: a consort inside that fraction of your
-   * reach is a consort your guns can do something about.
-   */
-  readonly escort: number;
-  /**
-   * The smallest friend it will cover, in multiples of its own radius: one,
-   * the default, only what is at least its own size, so a capital does not
-   * trail round after a fighter it happens to be nearest; zero anything. A
-   * neutral objective is gone to whatever its size.
-   */
-  readonly escortMinRadii: number;
-  /**
-   * How much a craft wants to keep out of everybody's way.
-   *
-   * Weighed against holding its station like every other urge, and against
-   * nothing else: what is too close is too close whoever it is, since a
-   * collision hurts both hulls whichever side they are on.
-   */
-  readonly separation: number;
-  /**
-   * How close is too close, in multiples of the gap between two hulls' skins.
-   *
-   * Measured from touching rather than from either centre, so one number
-   * serves a fighter beside a fighter and a capital beside a capital.
-   */
-  readonly separationRadii: number;
-  /**
-   * How far ahead it looks for something it is about to run into, seconds.
-   *
-   * Long enough that the answer is a lean rather than a swerve, and short
-   * enough that it is not steering round a pass the next few seconds of
-   * everybody's manoeuvring will have changed anyway.
-   */
-  readonly avoidHorizon: number;
-  /**
-   * The sideways speed it asks for to get out of the way, m/s. Asked for within
-   * one response time, the default is more than any hull can push sideways, so
-   * a demand for everything it has that way. A want in the blend rather than a
-   * push on top: a craft dodging stops pressing on towards its band, which
-   * keeps a crowd from piling up. A push on top measured six times the
-   * contacts in `superSwarm`.
-   */
-  readonly dodgeSpeed: number;
-  /**
-   * How quickly it tries to correct a velocity error, seconds: the pilot asks
-   * for the error over this long. Larger is gentler, and asks less of its
-   * engines, so it also turns to burn less readily.
-   */
-  readonly responseTime: number;
-  /** How much closer or further than that is close enough, as a fraction. */
-  readonly tolerance: number;
-  /** How briskly to close the difference, metres per second. */
-  readonly approachSpeed: number;
-  /**
-   * How hard to speed up towards the band, as a fraction of the thrust the
-   * layout has that way in the heading it is holding.
-   */
-  readonly accelerate: number;
-  /**
-   * How hard to plan on braking, as the same fraction the other way. The
-   * approach is flown down the curve that stops at the band on this much, so
-   * one means every retro it has and less keeps a margin in hand.
-   */
-  readonly brake: number;
-  /**
-   * How close its target's edge has to be before a ship will ram it, in the
-   * target's radii. Zero never rams. Any ship may; a fighter that rams also
-   * drops into the hull layer (DESIGN.md §3).
-   */
-  readonly ramRadii: number;
-  /**
-   * The share of its own guns still working at or below which it will ram:
-   * zero rams only once it has nothing left to shoot with, one whenever it is
-   * close enough.
-   */
-  readonly ramArmed: number;
-  /**
-   * What a half turn costs in choosing which way round to fight, as a share
-   * of its main battery. A ship weighs each bearing its main guns can bear on
-   * by the share of them that do, less this for every half turn away from
-   * where its target already is; so at 0.5 a half turn has to bring half its
-   * main guns more to bear. Zero turns for any gain.
-   */
-  readonly turnBias: number;
-  /**
-   * How much it would rather turn its main thrust axis along the change of
-   * velocity it wants than hold its guns on target: points for the share of
-   * that change turning makes before holding would, the turn included. So it
-   * never turns when its guns-on thrust gives what it asks for, nor to dodge
-   * what it cannot turn in time for. Zero never turns from its guns.
-   */
-  readonly burnWeight: number;
-  /**
-   * How much it would rather keep its guns on target: all of it inside the
-   * band it holds, and falling away as the band's outer edge over its range
-   * beyond it, so a ship far off turns to its engines more readily than one
-   * already fighting.
-   */
-  readonly rangeHold: number;
-  /**
-   * The share of a full load at or below which a ship with a working claw
-   * breaks off to scavenge from a wreck or a disarmed enemy, and keeps at it
-   * until its claw lets go full: set high, it goes whenever it has room
-   * enough to be worth the trip. Zero never does; one goes whenever it has
-   * room. Being filled by a friend is `refuelBelow`'s.
-   */
-  readonly scavengeFuelBelow: number;
-  /**
-   * The share of a full load of metal at or below which a ship with a working
-   * claw and robots of its own breaks off to take wrecks apart for their
-   * metal, and keeps at it until its holds are full. Zero never does.
-   */
-  readonly scavengeMetalBelow: number;
-  /**
-   * How much fuel it will burn to fetch a kilogram of metal: what a wreck's
-   * metal is worth against the fuel the trip there costs, kg of fuel per kg.
-   */
-  readonly fuelPerMetal: number;
-  /**
-   * How much an armed enemy near a source puts it off: each one within its
-   * own reach of the source divides what the source is worth by one more of
-   * this. Zero or less ignores them.
-   */
-  readonly scavengeDanger: number;
-  /**
-   * What rock is worth against wreckage, kilogram for kilogram, when choosing
-   * where to scavenge: above one it would sooner mine an asteroid, below one
-   * pick over a wreck. Zero never mines.
-   */
-  readonly rockWeight: number;
-  /**
-   * The fastest it closes on what it means to take hold of with a claw, m/s:
-   * slower than it closes on an enemy, since it has to come in jaws first and
-   * steer round rocks on the way with what thrust it has to spare.
-   */
-  readonly clawSpeed: number;
-  /**
-   * What a second spent getting to a source costs against a second spent
-   * taking from it, choosing where to scavenge: above one it would sooner take
-   * a poorer source nearby than a richer one far off. Zero minds only what it
-   * burns getting there.
-   */
-  readonly tripWeight: number;
-  /**
-   * The share of a full load of fuel at or below which it goes to a friend to
-   * be refuelled: a fighter to a pad it fits on, anything else with a port to
-   * a port — a ship with a claw too, which docks only this low and otherwise
-   * scavenges by `scavengeFuelBelow`. It is also the fuel it keeps back for
-   * itself when it fills a friend. Zero never goes, and keeps nothing back.
-   */
-  readonly refuelBelow: number;
-  /**
-   * The same for charge: the share of its batteries at or below which a
-   * fighter goes to a friend's pad to recharge, and what it keeps back for
-   * itself when it charges a friend.
-   */
-  readonly rechargeBelow: number;
-  /**
-   * The share of a full load of fuel above which a ship with a port takes
-   * what it holds over this to a friend with room for it, whether or not the
-   * friend is asking: once it is full, or once it can find nothing left to
-   * scavenge. Zero never delivers.
-   */
-  readonly deliverFuelAbove: number;
-  /**
-   * How much an armed enemy near a friend puts it off docking there, as
-   * `scavengeDanger` does a source; above zero, a dock also will not hold while
-   * one is in reach. Zero or less ignores them.
-   */
-  readonly dockDanger: number;
-  /**
-   * How near the target a fighter has chosen must be, as a multiple of its
-   * reach, before it leaves a pad it has nothing more to take on from. With
-   * no target it stays aboard. An order sends it at once.
-   */
-  readonly sortieRange: number;
-  /**
-   * How far out of an armed enemy's reach a fleeing ship counts itself clear,
-   * as a multiple of that reach: inside it runs, beyond it eases off.
-   */
-  readonly fleeMargin: number;
-  /** How much more an enemy with a gun aimed at it counts, in fleeing or hiding, than one without. */
-  readonly aimedWeight: number;
-  /**
-   * The share of what it fights or works with still working at or below
-   * which it withdraws, to hide or flee: its main guns, its claws while out
-   * scavenging and its ports while delivering. Below zero never; with nothing
-   * to fight or work with at all it withdraws whatever this says.
-   */
-  readonly fleeArmed: number;
-  /** How far off cover can be for a withdrawing ship to hide behind it, in its own radii. Zero never hides. */
-  readonly hideRange: number;
-  /** How big cover must be to hide behind, as a multiple of its own radius. */
-  readonly hideSize: number;
-  /**
-   * The share of a full load of metal at or below which a fighter breaks off to
-   * land on a friend's pad and rearm. Zero waits until it cannot load another
-   * round; below zero never does. This, `refuelBelow` or `rechargeBelow`
-   * sends it, and the pad fills it with everything it has room for.
-   */
-  readonly rearmBelow: number;
-  /**
-   * How whole a fighter is, at or below which it breaks off to land on a
-   * friend's pad and be mended: the lower of its weakest core's integrity and
-   * the share of the mass it set out with that is still sound. The pad lets
-   * it go once it is mended and built back whole. Zero never goes.
-   */
-  readonly repairBelow: number;
-  /**
-   * The share of a full load of fuel a fighter takes on before it leaves a
-   * pad, whatever sends it off but an order: danger or a target in reach. Met
-   * as well once the carrier has no more to spare. 1 fills it.
-   */
-  readonly launchFuel: number;
-  /** The same for metal, rounds and all. */
-  readonly launchMetal: number;
-  /** The same for charge. */
-  readonly launchCharge: number;
-  /**
-   * The sideways speed it wants relative to what it is attacking, m/s, held
-   * between this and `tangentialMax`: zero for both comes to rest at its
-   * band, as a gun platform; above zero it comes in aiming to miss, passing
-   * at the band's inner edge, and circles if its thrust can hold the turn
-   * at that speed or makes passes if it cannot, turning back for another
-   * once it is out past the band. Only an attack: a ram, a dock and an
-   * escort still close to rest.
-   */
-  readonly tangentialMin: number;
-  /** The most sideways speed it keeps on an attack, m/s; see `tangentialMin`. */
-  readonly tangentialMax: number;
+    /**
+     * How close to get, in multiples of the target's own radius.
+     *
+     * **The range that matters is the one the target looks big from.** A gun
+     * misses because its firing solution guessed wrong about where the target
+     * would be, and how much of a guess it can afford depends on how much of
+     * the sky the target fills — so closing on a fighter and closing on a
+     * capital are different distances for the same reason, and a doctrine that
+     * named one distance would be wrong about the other.
+     */
+    readonly standoffRadii: number;
+    /**
+     * The furthest it will hold, as a fraction of its own reach.
+     *
+     * A cap on the above, and the thing that keeps a ship inside the range its
+     * guns are good for however small the target is.
+     */
+    readonly standoff: number;
+    /**
+     * How close to sit to what it is covering, in multiples of *its* radius.
+     *
+     * The escort's own version of `standoffRadii`, and a separate number
+     * because it is answering a different question. A standoff is a gunnery
+     * distance — how much of a guess a firing solution can afford — and an
+     * escort distance is not about shooting at the thing at all. Made to do
+     * both jobs, one number puts a corvette four hundred metres off the consort
+     * it is meant to be covering, because that is where it would sit to shoot
+     * at it.
+     */
+    readonly escortRadii: number;
+    /**
+     * The furthest it will stray from what it is covering, as a fraction of its
+     * own reach.
+     *
+     * A cap on the above, the same way `standoff` caps `standoffRadii` — and
+     * the reason it is measured in the escort's own gun range is that this is
+     * what covering something *means*: a consort inside that fraction of your
+     * reach is a consort your guns can do something about.
+     */
+    readonly escort: number;
+    /**
+     * The smallest friend it will cover, in multiples of its own radius: one,
+     * the default, only what is at least its own size, so a capital does not
+     * trail round after a fighter it happens to be nearest; zero anything. A
+     * neutral objective is gone to whatever its size.
+     */
+    readonly escortMinRadii: number;
+    /**
+     * How much a craft wants to keep out of everybody's way.
+     *
+     * Weighed against holding its station like every other urge, and against
+     * nothing else: what is too close is too close whoever it is, since a
+     * collision hurts both hulls whichever side they are on.
+     */
+    readonly separation: number;
+    /**
+     * How close is too close, in multiples of the gap between two hulls' skins.
+     *
+     * Measured from touching rather than from either centre, so one number
+     * serves a fighter beside a fighter and a capital beside a capital.
+     */
+    readonly separationRadii: number;
+    /**
+     * How far ahead it looks for something it is about to run into, seconds.
+     *
+     * Long enough that the answer is a lean rather than a swerve, and short
+     * enough that it is not steering round a pass the next few seconds of
+     * everybody's manoeuvring will have changed anyway.
+     */
+    readonly avoidHorizon: number;
+    /**
+     * The sideways speed it asks for to get out of the way, m/s. Asked for within
+     * one response time, the default is more than any hull can push sideways, so
+     * a demand for everything it has that way. A want in the blend rather than a
+     * push on top: a craft dodging stops pressing on towards its band, which
+     * keeps a crowd from piling up. A push on top measured six times the
+     * contacts in `superSwarm`.
+     */
+    readonly dodgeSpeed: number;
+    /**
+     * How quickly it tries to correct a velocity error, seconds: the pilot asks
+     * for the error over this long. Larger is gentler, and asks less of its
+     * engines, so it also turns to burn less readily.
+     */
+    readonly responseTime: number;
+    /** How much closer or further than that is close enough, as a fraction. */
+    readonly tolerance: number;
+    /** How briskly to close the difference, metres per second. */
+    readonly approachSpeed: number;
+    /**
+     * How hard to speed up towards the band, as a fraction of the thrust the
+     * layout has that way in the heading it is holding.
+     */
+    readonly accelerate: number;
+    /**
+     * How hard to plan on braking, as the same fraction the other way. The
+     * approach is flown down the curve that stops at the band on this much, so
+     * one means every retro it has and less keeps a margin in hand.
+     */
+    readonly brake: number;
+    /**
+     * How close its target's edge has to be before a ship will ram it, in the
+     * target's radii. Zero never rams. Any ship may; a fighter that rams also
+     * drops into the hull layer (DESIGN.md §3).
+     */
+    readonly ramRadii: number;
+    /**
+     * The share of its own guns still working at or below which it will ram:
+     * zero rams only once it has nothing left to shoot with, one whenever it is
+     * close enough.
+     */
+    readonly ramArmed: number;
+    /**
+     * What a half turn costs in choosing which way round to fight, as a share
+     * of its main battery. A ship weighs each bearing its main guns can bear on
+     * by the share of them that do, less this for every half turn away from
+     * where its target already is; so at 0.5 a half turn has to bring half its
+     * main guns more to bear. Zero turns for any gain.
+     */
+    readonly turnBias: number;
+    /**
+     * How much it would rather turn its main thrust axis along the change of
+     * velocity it wants than hold its guns on target: points for the share of
+     * that change turning makes before holding would, the turn included. So it
+     * never turns when its guns-on thrust gives what it asks for, nor to dodge
+     * what it cannot turn in time for. Zero never turns from its guns.
+     */
+    readonly burnWeight: number;
+    /**
+     * How much it would rather keep its guns on target: all of it inside the
+     * band it holds, and falling away as the band's outer edge over its range
+     * beyond it, so a ship far off turns to its engines more readily than one
+     * already fighting.
+     */
+    readonly rangeHold: number;
+    /**
+     * The share of a full load at or below which a ship with a working claw
+     * breaks off to scavenge from a wreck or a disarmed enemy, and keeps at it
+     * until its claw lets go full: set high, it goes whenever it has room
+     * enough to be worth the trip. Zero never does; one goes whenever it has
+     * room. Being filled by a friend is `refuelBelow`'s.
+     */
+    readonly scavengeFuelBelow: number;
+    /**
+     * The share of a full load of metal at or below which a ship with a working
+     * claw and robots of its own breaks off to take wrecks apart for their
+     * metal, and keeps at it until its holds are full. Zero never does.
+     */
+    readonly scavengeMetalBelow: number;
+    /**
+     * How much fuel it will burn to fetch a kilogram of metal: what a wreck's
+     * metal is worth against the fuel the trip there costs, kg of fuel per kg.
+     */
+    readonly fuelPerMetal: number;
+    /**
+     * How much an armed enemy near a source puts it off: each one within its
+     * own reach of the source divides what the source is worth by one more of
+     * this. Zero or less ignores them.
+     */
+    readonly scavengeDanger: number;
+    /**
+     * What rock is worth against wreckage, kilogram for kilogram, when choosing
+     * where to scavenge: above one it would sooner mine an asteroid, below one
+     * pick over a wreck. Zero never mines.
+     */
+    readonly rockWeight: number;
+    /**
+     * The fastest it closes on what it means to take hold of with a claw, m/s:
+     * slower than it closes on an enemy, since it has to come in jaws first and
+     * steer round rocks on the way with what thrust it has to spare.
+     */
+    readonly clawSpeed: number;
+    /**
+     * What a second spent getting to a source costs against a second spent
+     * taking from it, choosing where to scavenge: above one it would sooner take
+     * a poorer source nearby than a richer one far off. Zero minds only what it
+     * burns getting there.
+     */
+    readonly tripWeight: number;
+    /**
+     * The share of a full load of fuel at or below which it goes to a friend to
+     * be refuelled: a fighter to a pad it fits on, anything else with a port to
+     * a port — a ship with a claw too, which docks only this low and otherwise
+     * scavenges by `scavengeFuelBelow`. It is also the fuel it keeps back for
+     * itself when it fills a friend. Zero never goes, and keeps nothing back.
+     */
+    readonly refuelBelow: number;
+    /**
+     * The same for charge: the share of its batteries at or below which a
+     * fighter goes to a friend's pad to recharge, and what it keeps back for
+     * itself when it charges a friend.
+     */
+    readonly rechargeBelow: number;
+    /**
+     * The share of a full load of fuel above which a ship with a port takes
+     * what it holds over this to a friend with room for it, whether or not the
+     * friend is asking: once it is full, or once it can find nothing left to
+     * scavenge. Zero never delivers.
+     */
+    readonly deliverFuelAbove: number;
+    /**
+     * How much an armed enemy near a friend puts it off docking there, as
+     * `scavengeDanger` does a source; above zero, a dock also will not hold while
+     * one is in reach. Zero or less ignores them.
+     */
+    readonly dockDanger: number;
+    /**
+     * How near the target a fighter has chosen must be, as a multiple of its
+     * reach, before it leaves a pad it has nothing more to take on from. With
+     * no target it stays aboard. An order sends it at once.
+     */
+    readonly sortieRange: number;
+    /**
+     * How far out of an armed enemy's reach a fleeing ship counts itself clear,
+     * as a multiple of that reach: inside it runs, beyond it eases off.
+     */
+    readonly fleeMargin: number;
+    /** How much more an enemy with a gun aimed at it counts, in fleeing or hiding, than one without. */
+    readonly aimedWeight: number;
+    /**
+     * The share of what it fights or works with still working at or below
+     * which it withdraws, to hide or flee: its main guns, its claws while out
+     * scavenging and its ports while delivering. Below zero never; with nothing
+     * to fight or work with at all it withdraws whatever this says.
+     */
+    readonly fleeArmed: number;
+    /** How far off cover can be for a withdrawing ship to hide behind it, in its own radii. Zero never hides. */
+    readonly hideRange: number;
+    /** How big cover must be to hide behind, as a multiple of its own radius. */
+    readonly hideSize: number;
+    /**
+     * The share of a full load of metal at or below which a fighter breaks off to
+     * land on a friend's pad and rearm. Zero waits until it cannot load another
+     * round; below zero never does. This, `refuelBelow` or `rechargeBelow`
+     * sends it, and the pad fills it with everything it has room for.
+     */
+    readonly rearmBelow: number;
+    /**
+     * How whole a fighter is, at or below which it breaks off to land on a
+     * friend's pad and be mended: the lower of its weakest core's integrity and
+     * the share of the mass it set out with that is still sound. The pad lets
+     * it go once it is mended and built back whole. Zero never goes.
+     */
+    readonly repairBelow: number;
+    /**
+     * The share of a full load of fuel a fighter takes on before it leaves a
+     * pad, whatever sends it off but an order: danger or a target in reach. Met
+     * as well once the carrier has no more to spare. 1 fills it.
+     */
+    readonly launchFuel: number;
+    /** The same for metal, rounds and all. */
+    readonly launchMetal: number;
+    /** The same for charge. */
+    readonly launchCharge: number;
+    /**
+     * The sideways speed it wants relative to what it is attacking, m/s, held
+     * between this and `tangentialMax`: zero for both comes to rest at its
+     * band, as a gun platform; above zero it comes in aiming to miss, passing
+     * at the band's inner edge, and circles if its thrust can hold the turn
+     * at that speed or makes passes if it cannot, turning back for another
+     * once it is out past the band. Only an attack: a ram, a dock and an
+     * escort still close to rest.
+     */
+    readonly tangentialMin: number;
+    /** The most sideways speed it keeps on an attack, m/s; see `tangentialMin`. */
+    readonly tangentialMax: number;
 }
 
 /**
@@ -468,18 +468,18 @@ export interface Approach {
  * give or take `tolerance`; or `distance` off its skin, where an order says.
  */
 export function holdBand(approach: Approach, reach: number, targetRadius: number, distance?: number): { min: number; max: number } {
-  const off = approach.standoffRadii * targetRadius;
-  const cap = approach.standoff * reach;
-  const wanted = targetRadius + (distance ?? (off < cap ? off : cap));
-  const min = wanted * (1 - approach.tolerance);
-  const max = wanted * (1 + approach.tolerance);
-  const floor = min > 0 ? min : 0;
-  return { min: floor, max: max > floor ? max : floor };
+    const off = approach.standoffRadii * targetRadius;
+    const cap = approach.standoff * reach;
+    const wanted = targetRadius + (distance ?? (off < cap ? off : cap));
+    const min = wanted * (1 - approach.tolerance);
+    const max = wanted * (1 + approach.tolerance);
+    const floor = min > 0 ? min : 0;
+    return { min: floor, max: max > floor ? max : floor };
 }
 
 export interface Doctrine {
-  readonly targeting: Targeting;
-  readonly approach: Approach;
+    readonly targeting: Targeting;
+    readonly approach: Approach;
 }
 
 /**
@@ -496,70 +496,70 @@ export interface Doctrine {
  * core first, then guns, then engines, then whatever structure is left.
  */
 export const DEFAULT_DOCTRINE: Doctrine = {
-  targeting: {
-    proximityWeight: 100,
-    preferredMass: 1,
-    ramMass: 0,
-    massWeight: 40,
-    closingWeight: 10,
-    loyaltyWeight: 20,
-    armedWeight: 80,
-    mobileWeight: 10,
-    focusWeight: 60,
-    facingWeight: 0,
-    sightWeight: 0,
-    coreWeight: 100,
-    engineWeight: 80,
-    gunWeight: 100,
-    structureWeight: 0,
-    escortWeight: 0,
-    fireRange: 1,
-  },
-  approach: {
-    standoffRadii: 50,
-    standoff: 0.65,
-    escortRadii: 8,
-    escort: 0.15,
-    escortMinRadii: 1,
-    separation: 300,
-    separationRadii: 3,
-    avoidHorizon: 6,
-    dodgeSpeed: 60,
-    responseTime: 2,
-    tolerance: 0.2,
-    approachSpeed: 60,
-    accelerate: 1,
-    brake: 0.8,
-    ramRadii: 0,
-    ramArmed: 0,
-    turnBias: 0.5,
-    burnWeight: 2,
-    rangeHold: 1,
-    scavengeFuelBelow: 0,
-    scavengeMetalBelow: 0,
-    fuelPerMetal: 1,
-    scavengeDanger: 1,
-    rockWeight: 1,
-    clawSpeed: 15,
-    tripWeight: 10,
-    refuelBelow: 0.25,
-    rechargeBelow: 0.25,
-    deliverFuelAbove: 0,
-    dockDanger: 0,
-    sortieRange: 4,
-    fleeMargin: 1.5,
-    aimedWeight: 2,
-    fleeArmed: -1,
-    hideRange: 20,
-    hideSize: 1.5,
-    tangentialMin: 0,
-    tangentialMax: 0,
-    rearmBelow: 0,
-    repairBelow: 0.6,
-    launchFuel: 1,
-    launchMetal: 1,
-    launchCharge: 1,
-  },
+    targeting: {
+        proximityWeight: 100,
+        preferredMass: 1,
+        ramMass: 0,
+        massWeight: 40,
+        closingWeight: 10,
+        loyaltyWeight: 20,
+        armedWeight: 80,
+        mobileWeight: 10,
+        focusWeight: 60,
+        facingWeight: 0,
+        sightWeight: 0,
+        coreWeight: 100,
+        engineWeight: 80,
+        gunWeight: 100,
+        structureWeight: 0,
+        escortWeight: 0,
+        fireRange: 1,
+    },
+    approach: {
+        standoffRadii: 50,
+        standoff: 0.65,
+        escortRadii: 8,
+        escort: 0.15,
+        escortMinRadii: 1,
+        separation: 300,
+        separationRadii: 3,
+        avoidHorizon: 6,
+        dodgeSpeed: 60,
+        responseTime: 2,
+        tolerance: 0.2,
+        approachSpeed: 60,
+        accelerate: 1,
+        brake: 0.8,
+        ramRadii: 0,
+        ramArmed: 0,
+        turnBias: 0.5,
+        burnWeight: 2,
+        rangeHold: 1,
+        scavengeFuelBelow: 0,
+        scavengeMetalBelow: 0,
+        fuelPerMetal: 1,
+        scavengeDanger: 1,
+        rockWeight: 1,
+        clawSpeed: 15,
+        tripWeight: 10,
+        refuelBelow: 0.25,
+        rechargeBelow: 0.25,
+        deliverFuelAbove: 0,
+        dockDanger: 0,
+        sortieRange: 4,
+        fleeMargin: 1.5,
+        aimedWeight: 2,
+        fleeArmed: -1,
+        hideRange: 20,
+        hideSize: 1.5,
+        tangentialMin: 0,
+        tangentialMax: 0,
+        rearmBelow: 0,
+        repairBelow: 0.6,
+        launchFuel: 1,
+        launchMetal: 1,
+        launchCharge: 1,
+    },
 };
 
 /**
@@ -583,73 +583,73 @@ export const DEFAULT_DOCTRINE: Doctrine = {
  * is a heavy piece aimed by the hull.
  */
 const MOUNT_TARGETING: Record<string, Targeting> = {
-  /**
-   * A gun turret trains all the way round and picks its own fight, so what it
-   * differs from a ship in is wanting to be part of the ship's — and being
-   * careful where its rounds land.
-   *
-   * **A shot costs a reload**, which is the whole of why a gun is selective
-   * where a beam is not: a mount that has come round onto a target and is
-   * still loading has one round to spend when it is ready, and spending it on
-   * plating is spending the cycle it waited through. So it holds until what
-   * it chose is under the muzzle, and rates plating below nothing to say so.
-   */
-  turret: { ...DEFAULT_DOCTRINE.targeting, focusWeight: 150 },
-  /**
-   * A beam turret is the fleet's answer to what is small and quick: it hits
-   * instantly, so nothing it shoots at can outrun its shot, and it does too
-   * little at a time to trouble something big. Hence a target a tenth its
-   * ship's mass, weighted hard, and the loosest focus of the four — a mount
-   * that exists to swat fighters is no use held on the capital everyone else
-   * is shooting at.
-   *
-   * **It takes a ship's teeth and legs off**, and does not hold its fire to
-   * do it. Plating is rated zero — not worth aiming at, and not worth staying
-   * on a hull that has nothing else left — but no lower, because a beam that
-   * lights up while it is still training sweeps across everything between
-   * where it started and what it wants. That sweep is free: a beam burns
-   * continuously rather than in shots, so the burn spent getting there costs
-   * nothing that holding fire would have saved.
-   */
-  beamTurret: {
-    ...DEFAULT_DOCTRINE.targeting,
-    proximityWeight: 150,
-    preferredMass: 0.1,
-    massWeight: 120,
-    mobileWeight: 100,
-    focusWeight: 30,
-    gunWeight: 150,
-    engineWeight: 120,
-    coreWeight: 40,
-  },
-  /**
-   * A hull gun is aimed by the hull: a few degrees of training either side,
-   * and a bore that wants something worth the shell. So it goes after the
-   * ship's fight harder than anything else does, and after size rather than
-   * proximity — what is close is already what its arc has decided. It is as
-   * careful with a round as any gun, and more so by disposition: the shell is
-   * bigger and the cycle longer.
-   */
-  hullGun: {
-    ...DEFAULT_DOCTRINE.targeting,
-    massWeight: 80,
-    focusWeight: 300,
-  },
-  /**
-   * The same mount with a beam in it: aimed by the hull, so focused like one,
-   * and lighting up early like any beam.
-   */
-  hullBeam: {
-    ...DEFAULT_DOCTRINE.targeting,
-    proximityWeight: 150,
-    preferredMass: 0.5,
-    massWeight: 80,
-    mobileWeight: 60,
-    focusWeight: 250,
-    gunWeight: 150,
-    engineWeight: 120,
-    coreWeight: 40,
-  },
+    /**
+     * A gun turret trains all the way round and picks its own fight, so what it
+     * differs from a ship in is wanting to be part of the ship's — and being
+     * careful where its rounds land.
+     *
+     * **A shot costs a reload**, which is the whole of why a gun is selective
+     * where a beam is not: a mount that has come round onto a target and is
+     * still loading has one round to spend when it is ready, and spending it on
+     * plating is spending the cycle it waited through. So it holds until what
+     * it chose is under the muzzle, and rates plating below nothing to say so.
+     */
+    turret: { ...DEFAULT_DOCTRINE.targeting, focusWeight: 150 },
+    /**
+     * A beam turret is the fleet's answer to what is small and quick: it hits
+     * instantly, so nothing it shoots at can outrun its shot, and it does too
+     * little at a time to trouble something big. Hence a target a tenth its
+     * ship's mass, weighted hard, and the loosest focus of the four — a mount
+     * that exists to swat fighters is no use held on the capital everyone else
+     * is shooting at.
+     *
+     * **It takes a ship's teeth and legs off**, and does not hold its fire to
+     * do it. Plating is rated zero — not worth aiming at, and not worth staying
+     * on a hull that has nothing else left — but no lower, because a beam that
+     * lights up while it is still training sweeps across everything between
+     * where it started and what it wants. That sweep is free: a beam burns
+     * continuously rather than in shots, so the burn spent getting there costs
+     * nothing that holding fire would have saved.
+     */
+    beamTurret: {
+        ...DEFAULT_DOCTRINE.targeting,
+        proximityWeight: 150,
+        preferredMass: 0.1,
+        massWeight: 120,
+        mobileWeight: 100,
+        focusWeight: 30,
+        gunWeight: 150,
+        engineWeight: 120,
+        coreWeight: 40,
+    },
+    /**
+     * A hull gun is aimed by the hull: a few degrees of training either side,
+     * and a bore that wants something worth the shell. So it goes after the
+     * ship's fight harder than anything else does, and after size rather than
+     * proximity — what is close is already what its arc has decided. It is as
+     * careful with a round as any gun, and more so by disposition: the shell is
+     * bigger and the cycle longer.
+     */
+    hullGun: {
+        ...DEFAULT_DOCTRINE.targeting,
+        massWeight: 80,
+        focusWeight: 300,
+    },
+    /**
+     * The same mount with a beam in it: aimed by the hull, so focused like one,
+     * and lighting up early like any beam.
+     */
+    hullBeam: {
+        ...DEFAULT_DOCTRINE.targeting,
+        proximityWeight: 150,
+        preferredMass: 0.5,
+        massWeight: 80,
+        mobileWeight: 60,
+        focusWeight: 250,
+        gunWeight: 150,
+        engineWeight: 120,
+        coreWeight: 40,
+    },
 };
 
 /**
@@ -660,7 +660,7 @@ const MOUNT_TARGETING: Record<string, Targeting> = {
  * guns on it.
  */
 export function defaultTargeting(kind: string): Targeting {
-  return MOUNT_TARGETING[kind] ?? DEFAULT_DOCTRINE.targeting;
+    return MOUNT_TARGETING[kind] ?? DEFAULT_DOCTRINE.targeting;
 }
 
 /**
@@ -672,23 +672,23 @@ export function defaultTargeting(kind: string): Targeting {
  * cannot.
  */
 export const TARGETING_FIELDS: readonly (keyof Targeting)[] = [
-  'proximityWeight',
-  'preferredMass',
-  'ramMass',
-  'massWeight',
-  'closingWeight',
-  'loyaltyWeight',
-  'armedWeight',
-  'mobileWeight',
-  'focusWeight',
-  'facingWeight',
-  'sightWeight',
-  'coreWeight',
-  'engineWeight',
-  'gunWeight',
-  'structureWeight',
-  'escortWeight',
-  'fireRange',
+    "proximityWeight",
+    "preferredMass",
+    "ramMass",
+    "massWeight",
+    "closingWeight",
+    "loyaltyWeight",
+    "armedWeight",
+    "mobileWeight",
+    "focusWeight",
+    "facingWeight",
+    "sightWeight",
+    "coreWeight",
+    "engineWeight",
+    "gunWeight",
+    "structureWeight",
+    "escortWeight",
+    "fireRange",
 ];
 
 /**
@@ -714,84 +714,84 @@ export const TARGETING_FIELDS: readonly (keyof Targeting)[] = [
  * three to discover.
  */
 export const MOUNT_TARGETING_FIELDS: readonly (keyof Targeting)[] = TARGETING_FIELDS.filter(
-  (field) => field !== 'escortWeight' && field !== 'ramMass',
+    (field) => field !== "escortWeight" && field !== "ramMass",
 );
 
 export const SHIP_TARGETING_FIELDS: readonly (keyof Targeting)[] = TARGETING_FIELDS.filter(
-  (field) =>
-    field !== 'focusWeight' &&
-    field !== 'coreWeight' &&
-    field !== 'engineWeight' &&
-    field !== 'gunWeight' &&
-    field !== 'structureWeight' &&
-    field !== 'fireRange',
+    (field) =>
+        field !== "focusWeight" &&
+        field !== "coreWeight" &&
+        field !== "engineWeight" &&
+        field !== "gunWeight" &&
+        field !== "structureWeight" &&
+        field !== "fireRange",
 );
 
 export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
-  'standoffRadii',
-  'standoff',
-  'escortRadii',
-  'escort',
-  'escortMinRadii',
-  'separation',
-  'separationRadii',
-  'avoidHorizon',
-  'dodgeSpeed',
-  'responseTime',
-  'tolerance',
-  'approachSpeed',
-  'accelerate',
-  'brake',
-  'ramRadii',
-  'ramArmed',
-  'turnBias',
-  'burnWeight',
-  'rangeHold',
-  'scavengeFuelBelow',
-  'scavengeMetalBelow',
-  'fuelPerMetal',
-  'scavengeDanger',
-  'refuelBelow',
-  'rechargeBelow',
-  'deliverFuelAbove',
-  'dockDanger',
-  'sortieRange',
-  'fleeMargin',
-  'aimedWeight',
-  'fleeArmed',
-  'hideRange',
-  'hideSize',
-  'rearmBelow',
-  'repairBelow',
-  'launchFuel',
-  'launchMetal',
-  'launchCharge',
-  'tangentialMin',
-  'tangentialMax',
-  'rockWeight',
-  'clawSpeed',
-  'tripWeight',
+    "standoffRadii",
+    "standoff",
+    "escortRadii",
+    "escort",
+    "escortMinRadii",
+    "separation",
+    "separationRadii",
+    "avoidHorizon",
+    "dodgeSpeed",
+    "responseTime",
+    "tolerance",
+    "approachSpeed",
+    "accelerate",
+    "brake",
+    "ramRadii",
+    "ramArmed",
+    "turnBias",
+    "burnWeight",
+    "rangeHold",
+    "scavengeFuelBelow",
+    "scavengeMetalBelow",
+    "fuelPerMetal",
+    "scavengeDanger",
+    "refuelBelow",
+    "rechargeBelow",
+    "deliverFuelAbove",
+    "dockDanger",
+    "sortieRange",
+    "fleeMargin",
+    "aimedWeight",
+    "fleeArmed",
+    "hideRange",
+    "hideSize",
+    "rearmBelow",
+    "repairBelow",
+    "launchFuel",
+    "launchMetal",
+    "launchCharge",
+    "tangentialMin",
+    "tangentialMax",
+    "rockWeight",
+    "clawSpeed",
+    "tripWeight",
 ];
 
 /** Fields that mean nothing below zero, though zero itself is a setting. */
 export const NON_NEGATIVE_FIELDS: readonly string[] = [
-  'tangentialMin',
-  'tangentialMax',
-  'fuelPerMetal',
-  'rockWeight',
-  'tripWeight',
-  'ramMass',
-  'sortieRange',
-  'aimedWeight',
-  'hideRange',
-  'hideSize',
-  'launchFuel',
-  'launchMetal',
-  'launchCharge',
+    "tangentialMin",
+    "tangentialMax",
+    "fuelPerMetal",
+    "rockWeight",
+    "tripWeight",
+    "ramMass",
+    "sortieRange",
+    "aimedWeight",
+    "hideRange",
+    "hideSize",
+    "launchFuel",
+    "launchMetal",
+    "launchCharge",
 ];
 
 /** Pairs of approach fields that are the two ends of one band, the first no more than the second. */
-export const ORDERED_FIELDS: readonly (readonly [keyof Approach, keyof Approach])[] = [['tangentialMin', 'tangentialMax']];
+export const ORDERED_FIELDS: readonly (readonly [keyof Approach, keyof Approach])[] = [["tangentialMin", "tangentialMax"]];
 
 /**
  * The fields that mean nothing at or below zero: a size, a range, three
@@ -803,48 +803,48 @@ export const ORDERED_FIELDS: readonly (readonly [keyof Approach, keyof Approach]
  * copies of it would disagree the first time a field was added.
  */
 export const POSITIVE_FIELDS: readonly string[] = [
-  'preferredMass',
-  'clawSpeed',
-  'fireRange',
-  'standoffRadii',
-  'escortRadii',
-  'separationRadii',
-  'avoidHorizon',
-  'dodgeSpeed',
-  'responseTime',
-  'accelerate',
-  'brake',
-  'fleeMargin',
+    "preferredMass",
+    "clawSpeed",
+    "fireRange",
+    "standoffRadii",
+    "escortRadii",
+    "separationRadii",
+    "avoidHorizon",
+    "dodgeSpeed",
+    "responseTime",
+    "accelerate",
+    "brake",
+    "fleeMargin",
 ];
 
 /** Every number in a doctrine, named by its path, in a fixed order. */
 export const DOCTRINE_FIELDS: readonly string[] = [
-  ...TARGETING_FIELDS.map((field) => `targeting.${field}`),
-  ...APPROACH_FIELDS.map((field) => `approach.${field}`),
+    ...TARGETING_FIELDS.map((field) => `targeting.${field}`),
+    ...APPROACH_FIELDS.map((field) => `approach.${field}`),
 ];
 
 /** Whatever is wrong with one half of a doctrine block, or null. */
 function halfProblem(value: unknown, where: string, fields: readonly string[], positive: readonly string[]): string | null {
-  if (value === undefined) return null;
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    return `${where} must be an object, got ${JSON.stringify(value)}`;
-  }
-  // A key it does not know is kept and warned about, not refused (`UnreadKeys`).
-  const raw = value as Record<string, unknown>;
-  for (const field of fields) {
-    const held = raw[field];
-    if (held === undefined) continue;
-    if (typeof held !== 'number' || !Number.isFinite(held)) {
-      return `${where}.${field} must be a number, got ${JSON.stringify(held)}`;
+    if (value === undefined) return null;
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+        return `${where} must be an object, got ${JSON.stringify(value)}`;
     }
-    if (positive.includes(field) && !(held > 0)) {
-      return `${where}.${field} must be greater than zero, got ${held}`;
+    // A key it does not know is kept and warned about, not refused (`UnreadKeys`).
+    const raw = value as Record<string, unknown>;
+    for (const field of fields) {
+        const held = raw[field];
+        if (held === undefined) continue;
+        if (typeof held !== "number" || !Number.isFinite(held)) {
+            return `${where}.${field} must be a number, got ${JSON.stringify(held)}`;
+        }
+        if (positive.includes(field) && !(held > 0)) {
+            return `${where}.${field} must be greater than zero, got ${held}`;
+        }
+        if (NON_NEGATIVE_FIELDS.includes(field) && held < 0) {
+            return `${where}.${field} must not be below zero, got ${held}`;
+        }
     }
-    if (NON_NEGATIVE_FIELDS.includes(field) && held < 0) {
-      return `${where}.${field} must not be below zero, got ${held}`;
-    }
-  }
-  return null;
+    return null;
 }
 
 /**
@@ -855,52 +855,52 @@ function halfProblem(value: unknown, where: string, fields: readonly string[], p
  * no opinion about.
  */
 export function targetingProblem(value: unknown, where: string): string | null {
-  return halfProblem(value, where, TARGETING_FIELDS, POSITIVE_FIELDS);
+    return halfProblem(value, where, TARGETING_FIELDS, POSITIVE_FIELDS);
 }
 
 /** A mount's targeting, with whatever it leaves out taken from its ship. */
 export function resolveTargeting(value: unknown, ship: Targeting): Targeting {
-  return toHalf(value, TARGETING_FIELDS, ship);
+    return toHalf(value, TARGETING_FIELDS, ship);
 }
 
 /** Only what a mount says differently from its ship's doctrine, for saving. */
 export function serialiseTargeting(held: Targeting, ship: Targeting): Record<string, number> | undefined {
-  return serialiseHalf(held as unknown as Record<string, number>, ship as unknown as Record<string, number>, TARGETING_FIELDS);
+    return serialiseHalf(held as unknown as Record<string, number>, ship as unknown as Record<string, number>, TARGETING_FIELDS);
 }
 
 /** Whatever is wrong with a doctrine block, or null. */
 export function doctrineProblem(value: unknown): string | null {
-  if (value === undefined) return null;
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    return `doctrine must be an object, got ${JSON.stringify(value)}`;
-  }
-  const raw = value as Record<string, unknown>;
-  const problem =
-    halfProblem(raw['targeting'], 'doctrine.targeting', TARGETING_FIELDS, POSITIVE_FIELDS) ??
-    halfProblem(raw['approach'], 'doctrine.approach', APPROACH_FIELDS, POSITIVE_FIELDS);
-  if (problem !== null) return problem;
-  const approach = toHalf(raw['approach'], APPROACH_FIELDS, DEFAULT_DOCTRINE.approach);
-  for (const [lower, upper] of ORDERED_FIELDS) {
-    if (approach[lower] > approach[upper]) {
-      return `doctrine.approach.${lower} (${approach[lower]}) must be no more than ${upper} (${approach[upper]})`;
+    if (value === undefined) return null;
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+        return `doctrine must be an object, got ${JSON.stringify(value)}`;
     }
-  }
-  return null;
+    const raw = value as Record<string, unknown>;
+    const problem =
+        halfProblem(raw["targeting"], "doctrine.targeting", TARGETING_FIELDS, POSITIVE_FIELDS) ??
+        halfProblem(raw["approach"], "doctrine.approach", APPROACH_FIELDS, POSITIVE_FIELDS);
+    if (problem !== null) return problem;
+    const approach = toHalf(raw["approach"], APPROACH_FIELDS, DEFAULT_DOCTRINE.approach);
+    for (const [lower, upper] of ORDERED_FIELDS) {
+        if (approach[lower] > approach[upper]) {
+            return `doctrine.approach.${lower} (${approach[lower]}) must be no more than ${upper} (${approach[upper]})`;
+        }
+    }
+    return null;
 }
 
 function toHalf<T>(value: unknown, fields: readonly string[], fallback: T): T {
-  const raw = typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {};
-  // A copy of the fallback, every field already in place, with only the
-  // values overwritten. Built up a key at a time from an empty object instead,
-  // a block of this many fields falls out of V8's fast layout, and every read
-  // of it — a pilot reads its doctrine for every other ship, every step —
-  // becomes a dictionary lookup: a tenth more on the whole of `superSwarm`.
-  const built = { ...(fallback as unknown as Record<string, number>) };
-  for (const field of fields) {
-    const given = raw[field];
-    if (typeof given === 'number') built[field] = given;
-  }
-  return built as unknown as T;
+    const raw = typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {};
+    // A copy of the fallback, every field already in place, with only the
+    // values overwritten. Built up a key at a time from an empty object instead,
+    // a block of this many fields falls out of V8's fast layout, and every read
+    // of it — a pilot reads its doctrine for every other ship, every step —
+    // becomes a dictionary lookup: a tenth more on the whole of `superSwarm`.
+    const built = { ...(fallback as unknown as Record<string, number>) };
+    for (const field of fields) {
+        const given = raw[field];
+        if (typeof given === "number") built[field] = given;
+    }
+    return built as unknown as T;
 }
 
 /**
@@ -908,62 +908,62 @@ function toHalf<T>(value: unknown, fields: readonly string[], fallback: T): T {
  * undefined: kept so that saving writes it back (`UnreadKeys`).
  */
 export function doctrineUnread(value: unknown): UnreadKeys | undefined {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined;
-  const raw = value as Record<string, unknown>;
-  const out: Record<string, unknown> = { ...unreadOf(raw, ['targeting', 'approach']) };
-  const half = (key: string, fields: readonly string[]): void => {
-    const held = raw[key];
-    if (typeof held !== 'object' || held === null || Array.isArray(held)) return;
-    const unread = unreadOf(held as Record<string, unknown>, fields);
-    if (unread !== undefined) out[key] = unread;
-  };
-  half('targeting', TARGETING_FIELDS);
-  half('approach', APPROACH_FIELDS);
-  return Object.keys(out).length > 0 ? out : undefined;
+    if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
+    const raw = value as Record<string, unknown>;
+    const out: Record<string, unknown> = { ...unreadOf(raw, ["targeting", "approach"]) };
+    const half = (key: string, fields: readonly string[]): void => {
+        const held = raw[key];
+        if (typeof held !== "object" || held === null || Array.isArray(held)) return;
+        const unread = unreadOf(held as Record<string, unknown>, fields);
+        if (unread !== undefined) out[key] = unread;
+    };
+    half("targeting", TARGETING_FIELDS);
+    half("approach", APPROACH_FIELDS);
+    return Object.keys(out).length > 0 ? out : undefined;
 }
 
 /** A doctrine from a file's block, with anything it leaves out defaulted. */
 export function toDoctrine(value: unknown): Doctrine {
-  if (typeof value !== 'object' || value === null) return DEFAULT_DOCTRINE;
-  const raw = value as Record<string, unknown>;
-  return {
-    targeting: toHalf(raw['targeting'], TARGETING_FIELDS, DEFAULT_DOCTRINE.targeting),
-    approach: toHalf(raw['approach'], APPROACH_FIELDS, DEFAULT_DOCTRINE.approach),
-  };
+    if (typeof value !== "object" || value === null) return DEFAULT_DOCTRINE;
+    const raw = value as Record<string, unknown>;
+    return {
+        targeting: toHalf(raw["targeting"], TARGETING_FIELDS, DEFAULT_DOCTRINE.targeting),
+        approach: toHalf(raw["approach"], APPROACH_FIELDS, DEFAULT_DOCTRINE.approach),
+    };
 }
 
 function serialiseHalf(
-  held: Record<string, number>,
-  fallback: Record<string, number>,
-  fields: readonly string[],
+    held: Record<string, number>,
+    fallback: Record<string, number>,
+    fields: readonly string[],
 ): Record<string, number> | undefined {
-  const raw: Record<string, number> = {};
-  let any = false;
-  for (const field of fields) {
-    if (held[field] === fallback[field]) continue;
-    raw[field] = held[field]!;
-    any = true;
-  }
-  return any ? raw : undefined;
+    const raw: Record<string, number> = {};
+    let any = false;
+    for (const field of fields) {
+        if (held[field] === fallback[field]) continue;
+        raw[field] = held[field]!;
+        any = true;
+    }
+    return any ? raw : undefined;
 }
 
 /** Only what a doctrine says differently from the default, for saving. */
 export function serialiseDoctrine(doctrine: Doctrine): Record<string, unknown> | undefined {
-  const targeting = serialiseHalf(
-    doctrine.targeting as unknown as Record<string, number>,
-    DEFAULT_DOCTRINE.targeting as unknown as Record<string, number>,
-    TARGETING_FIELDS,
-  );
-  const approach = serialiseHalf(
-    doctrine.approach as unknown as Record<string, number>,
-    DEFAULT_DOCTRINE.approach as unknown as Record<string, number>,
-    APPROACH_FIELDS,
-  );
-  if (targeting === undefined && approach === undefined) return undefined;
-  const raw: Record<string, unknown> = {};
-  if (targeting !== undefined) raw['targeting'] = targeting;
-  if (approach !== undefined) raw['approach'] = approach;
-  return raw;
+    const targeting = serialiseHalf(
+        doctrine.targeting as unknown as Record<string, number>,
+        DEFAULT_DOCTRINE.targeting as unknown as Record<string, number>,
+        TARGETING_FIELDS,
+    );
+    const approach = serialiseHalf(
+        doctrine.approach as unknown as Record<string, number>,
+        DEFAULT_DOCTRINE.approach as unknown as Record<string, number>,
+        APPROACH_FIELDS,
+    );
+    if (targeting === undefined && approach === undefined) return undefined;
+    const raw: Record<string, unknown> = {};
+    if (targeting !== undefined) raw["targeting"] = targeting;
+    if (approach !== undefined) raw["approach"] = approach;
+    return raw;
 }
 
 /**
@@ -975,50 +975,50 @@ export function serialiseDoctrine(doctrine: Doctrine): Record<string, unknown> |
  * blueprint's.
  */
 export interface DoctrineOverride {
-  readonly approach?: Readonly<Partial<Approach>>;
-  readonly targeting?: Readonly<Partial<Targeting>>;
-  readonly main?: Readonly<Partial<Targeting>>;
-  readonly secondary?: Readonly<Partial<Targeting>>;
-  readonly placements?: Readonly<Record<string, Readonly<Partial<Targeting>>>>;
+    readonly approach?: Readonly<Partial<Approach>>;
+    readonly targeting?: Readonly<Partial<Targeting>>;
+    readonly main?: Readonly<Partial<Targeting>>;
+    readonly secondary?: Readonly<Partial<Targeting>>;
+    readonly placements?: Readonly<Record<string, Readonly<Partial<Targeting>>>>;
 }
 
 /** Which part of a ship an override is for: the ship, its main or secondary weapons, or one placement's mounts. */
-export type DoctrinePart = 'ship' | 'main' | 'secondary' | `placement:${string}`;
+export type DoctrinePart = "ship" | "main" | "secondary" | `placement:${string}`;
 
 /** Whether `part` names something an override can hold. */
 export function isDoctrinePart(part: unknown): part is DoctrinePart {
-  return part === 'ship' || part === 'main' || part === 'secondary' || (typeof part === 'string' && /^placement:\d+$/.test(part));
+    return part === "ship" || part === "main" || part === "secondary" || (typeof part === "string" && /^placement:\d+$/.test(part));
 }
 
 /** The placement a module was drawn from, by its lasting key (`ShipDesign.keys`): the last id down its path. */
 export function placementOf(key: string | undefined): string | undefined {
-  if (key === undefined) return undefined;
-  const last = key.slice(key.lastIndexOf('/') + 1);
-  const dot = last.indexOf('.');
-  return dot < 0 ? last : last.slice(0, dot);
+    if (key === undefined) return undefined;
+    const last = key.slice(key.lastIndexOf("/") + 1);
+    const dot = last.indexOf(".");
+    return dot < 0 ? last : last.slice(0, dot);
 }
 
 /** A ship's doctrine with what it has been told over it. */
 export function overriddenDoctrine(base: Doctrine, override: DoctrineOverride | undefined): Doctrine {
-  if (override?.approach === undefined && override?.targeting === undefined) return base;
-  return {
-    targeting: { ...base.targeting, ...override.targeting },
-    approach: { ...base.approach, ...override.approach },
-  };
+    if (override?.approach === undefined && override?.targeting === undefined) return base;
+    return {
+        targeting: { ...base.targeting, ...override.targeting },
+        approach: { ...base.approach, ...override.approach },
+    };
 }
 
 /** A mount's doctrine with what it has been told over it: its battery's, then its own placement's. */
 export function overriddenMount(
-  base: Targeting,
-  main: boolean,
-  placement: string | undefined,
-  override: DoctrineOverride | undefined,
+    base: Targeting,
+    main: boolean,
+    placement: string | undefined,
+    override: DoctrineOverride | undefined,
 ): Targeting {
-  if (override === undefined) return base;
-  const battery = main ? override.main : override.secondary;
-  const own = placement === undefined ? undefined : override.placements?.[placement];
-  if (battery === undefined && own === undefined) return base;
-  return { ...base, ...battery, ...own };
+    if (override === undefined) return base;
+    const battery = main ? override.main : override.secondary;
+    const own = placement === undefined ? undefined : override.placements?.[placement];
+    if (battery === undefined && own === undefined) return base;
+    return { ...base, ...battery, ...own };
 }
 
 const APPROACH_SET: ReadonlySet<string> = new Set(APPROACH_FIELDS);
@@ -1026,14 +1026,14 @@ const TARGETING_SET: ReadonlySet<string> = new Set(TARGETING_FIELDS);
 
 /** Whether `field` is one `part` has: a ship has both halves, a mount only targeting. */
 export function partHasField(part: DoctrinePart, field: string): boolean {
-  return TARGETING_SET.has(field) || (part === 'ship' && APPROACH_SET.has(field));
+    return TARGETING_SET.has(field) || (part === "ship" && APPROACH_SET.has(field));
 }
 
 function withField<T>(held: Readonly<Partial<T>> | undefined, field: string, value: number | null): Partial<T> | undefined {
-  const next = { ...held } as Record<string, number>;
-  if (value === null) delete next[field];
-  else next[field] = value;
-  return Object.keys(next).length === 0 ? undefined : (next as Partial<T>);
+    const next = { ...held } as Record<string, number>;
+    if (value === null) delete next[field];
+    else next[field] = value;
+    return Object.keys(next).length === 0 ? undefined : (next as Partial<T>);
 }
 
 /**
@@ -1042,50 +1042,50 @@ function withField<T>(held: Readonly<Partial<T>> | undefined, field: string, val
  * leaves it as it was.
  */
 export function withOverride(
-  override: DoctrineOverride | undefined,
-  part: DoctrinePart,
-  field: string,
-  value: number | null,
+    override: DoctrineOverride | undefined,
+    part: DoctrinePart,
+    field: string,
+    value: number | null,
 ): DoctrineOverride | undefined {
-  if (!partHasField(part, field)) return override;
-  const next: Draft = { ...override };
-  if (part === 'ship') {
-    if (APPROACH_SET.has(field)) next.approach = withField<Approach>(override?.approach, field, value);
-    else next.targeting = withField<Targeting>(override?.targeting, field, value);
-  } else if (part === 'main' || part === 'secondary') {
-    next[part] = withField<Targeting>(override?.[part], field, value);
-  } else {
-    const id = part.slice('placement:'.length);
-    const placements = { ...override?.placements };
-    const held = withField<Targeting>(placements[id], field, value);
-    if (held === undefined) delete placements[id];
-    else placements[id] = held;
-    next.placements = Object.keys(placements).length === 0 ? undefined : placements;
-  }
-  return tidy(next);
+    if (!partHasField(part, field)) return override;
+    const next: Draft = { ...override };
+    if (part === "ship") {
+        if (APPROACH_SET.has(field)) next.approach = withField<Approach>(override?.approach, field, value);
+        else next.targeting = withField<Targeting>(override?.targeting, field, value);
+    } else if (part === "main" || part === "secondary") {
+        next[part] = withField<Targeting>(override?.[part], field, value);
+    } else {
+        const id = part.slice("placement:".length);
+        const placements = { ...override?.placements };
+        const held = withField<Targeting>(placements[id], field, value);
+        if (held === undefined) delete placements[id];
+        else placements[id] = held;
+        next.placements = Object.keys(placements).length === 0 ? undefined : placements;
+    }
+    return tidy(next);
 }
 
 type Draft = { -readonly [K in keyof DoctrineOverride]?: DoctrineOverride[K] | undefined };
 
 /** A draft with nothing it says nothing with; `undefined` for one that says nothing at all. */
 function tidy(next: Draft): DoctrineOverride | undefined {
-  for (const key of Object.keys(next) as (keyof DoctrineOverride)[]) if (next[key] === undefined) delete next[key];
-  return Object.keys(next).length === 0 ? undefined : (next as DoctrineOverride);
+    for (const key of Object.keys(next) as (keyof DoctrineOverride)[]) if (next[key] === undefined) delete next[key];
+    return Object.keys(next).length === 0 ? undefined : (next as DoctrineOverride);
 }
 
 /** An override with all of one part, or with `undefined` all of it, taken back to the blueprint's. */
 export function withoutPart(override: DoctrineOverride | undefined, part: DoctrinePart | undefined): DoctrineOverride | undefined {
-  if (override === undefined || part === undefined) return undefined;
-  const next: Draft = { ...override };
-  if (part === 'ship') {
-    delete next.approach;
-    delete next.targeting;
-  } else if (part === 'main' || part === 'secondary') {
-    delete next[part];
-  } else {
-    const placements = { ...override.placements };
-    delete placements[part.slice('placement:'.length)];
-    next.placements = Object.keys(placements).length === 0 ? undefined : placements;
-  }
-  return tidy(next);
+    if (override === undefined || part === undefined) return undefined;
+    const next: Draft = { ...override };
+    if (part === "ship") {
+        delete next.approach;
+        delete next.targeting;
+    } else if (part === "main" || part === "secondary") {
+        delete next[part];
+    } else {
+        const placements = { ...override.placements };
+        delete placements[part.slice("placement:".length)];
+        next.placements = Object.keys(placements).length === 0 ? undefined : placements;
+    }
+    return tidy(next);
 }

@@ -1,4 +1,4 @@
-import { math, type ShipView, type Snapshot } from '../sim/index.js';
+import { math, type ShipView, type Snapshot } from "../sim/index.js";
 
 const { abs, max, min } = math;
 
@@ -17,21 +17,21 @@ export const TARGET_GRID_PX = 90;
 const SNAPS_PER_SQUARE = 10;
 
 export interface Camera {
-  /** Centre of the view, world coordinates. */
-  x: number;
-  y: number;
-  /** Pixels per metre. */
-  scale: number;
-  /**
-   * How fast following ships would carry the camera, m/s, kept while paused.
-   * Streaks are drawn relative to it. Still when absent.
-   */
-  vx?: number;
-  vy?: number;
+    /** Centre of the view, world coordinates. */
+    x: number;
+    y: number;
+    /** Pixels per metre. */
+    scale: number;
+    /**
+     * How fast following ships would carry the camera, m/s, kept while paused.
+     * Streaks are drawn relative to it. Still when absent.
+     */
+    vx?: number;
+    vy?: number;
 }
 
 /** What framing reads of a picture: the box everything in it fits inside. */
-export type Bounds = Pick<Snapshot, 'minX' | 'minY' | 'maxX' | 'maxY'>;
+export type Bounds = Pick<Snapshot, "minX" | "minY" | "maxX" | "maxY">;
 
 /**
  * Keep the snapshot's bounds in shot, easing rather than snapping — except
@@ -72,19 +72,19 @@ export type Bounds = Pick<Snapshot, 'minX' | 'minY' | 'maxX' | 'maxY'>;
  * because a flash *is* a thing in the world (`render/flashes.ts`).
  */
 export function frame(camera: Camera, snapshot: Bounds, widthPx: number, heightPx: number, ease = 0.08): void {
-  const wantScale = fitScale(snapshot, widthPx, heightPx);
-  const wantX = (snapshot.minX + snapshot.maxX) * 0.5;
-  const wantY = (snapshot.minY + snapshot.maxY) * 0.5;
+    const wantScale = fitScale(snapshot, widthPx, heightPx);
+    const wantX = (snapshot.minX + snapshot.maxX) * 0.5;
+    const wantY = (snapshot.minY + snapshot.maxY) * 0.5;
 
-  camera.x += (wantX - camera.x) * ease;
-  camera.y += (wantY - camera.y) * ease;
-  // Scale eases geometrically when closing in — a fixed fraction of a ratio,
-  // so zooming in from 10 m/px and from 0.1 m/px feel the same — and snaps
-  // when it has to widen, because a frame that has already cropped is worse
-  // than a frame that moved abruptly.
-  camera.scale = wantScale < camera.scale ? wantScale : easeScale(camera.scale, wantScale, ease);
+    camera.x += (wantX - camera.x) * ease;
+    camera.y += (wantY - camera.y) * ease;
+    // Scale eases geometrically when closing in — a fixed fraction of a ratio,
+    // so zooming in from 10 m/px and from 0.1 m/px feel the same — and snaps
+    // when it has to widen, because a frame that has already cropped is worse
+    // than a frame that moved abruptly.
+    camera.scale = wantScale < camera.scale ? wantScale : easeScale(camera.scale, wantScale, ease);
 
-  contain(camera, snapshot, widthPx, heightPx);
+    contain(camera, snapshot, widthPx, heightPx);
 }
 
 /**
@@ -97,9 +97,9 @@ const FIT_MARGIN = 1.25;
 
 /** Pixels per metre at which a snapshot's bounds fill a view, with a margin round them. */
 export function fitScale(snapshot: Bounds, widthPx: number, heightPx: number): number {
-  const spanX = max(snapshot.maxX - snapshot.minX, 1) * FIT_MARGIN;
-  const spanY = max(snapshot.maxY - snapshot.minY, 1) * FIT_MARGIN;
-  return min(widthPx / spanX, heightPx / spanY);
+    const spanX = max(snapshot.maxX - snapshot.minX, 1) * FIT_MARGIN;
+    const spanY = max(snapshot.maxY - snapshot.minY, 1) * FIT_MARGIN;
+    return min(widthPx / spanX, heightPx / spanY);
 }
 
 /**
@@ -108,9 +108,9 @@ export function fitScale(snapshot: Bounds, widthPx: number, heightPx: number): n
  * `target` once within a fraction of a percent, so an easing can finish.
  */
 export function easeScale(current: number, target: number, ease: number): number {
-  if (!(current > 0)) return target;
-  const next = current * (target / current) ** ease;
-  return abs(next / target - 1) < 0.002 ? target : next;
+    if (!(current > 0)) return target;
+    const next = current * (target / current) ** ease;
+    return abs(next / target - 1) < 0.002 ? target : next;
 }
 
 /**
@@ -144,9 +144,9 @@ const EDGE_PACE = 0.5;
 
 /** How much of a ship's speed to take up, for a ship that far out of the middle. */
 function matchedPace(out: number): number {
-  if (out <= FULL_PACE_FRACTION) return 1;
-  const past = (out - FULL_PACE_FRACTION) / (1 - FULL_PACE_FRACTION);
-  return 1 - past * (1 - EDGE_PACE);
+    if (out <= FULL_PACE_FRACTION) return 1;
+    const past = (out - FULL_PACE_FRACTION) / (1 - FULL_PACE_FRACTION);
+    return 1 - past * (1 - EDGE_PACE);
 }
 
 /**
@@ -168,9 +168,9 @@ function matchedPace(out: number): number {
  * Fixed at module scope so a frame allocates nothing.
  */
 const FOLLOW_ORDER: readonly ((ship: ShipView) => boolean)[] = [
-  (ship) => ship.hasControl && !ship.isMissionKilled,
-  (ship) => (!ship.hasControl || ship.isMissionKilled) && !ship.isDerelict,
-  (ship) => ship.isDerelict,
+    (ship) => ship.hasControl && !ship.isMissionKilled,
+    (ship) => (!ship.hasControl || ship.isMissionKilled) && !ship.isDerelict,
+    (ship) => ship.isDerelict,
 ];
 
 /**
@@ -207,27 +207,27 @@ const FOLLOW_ORDER: readonly ((ship: ShipView) => boolean)[] = [
  * picture is drawn as if it were still moving.
  */
 export function moveWithVisibleShips(camera: Camera, snapshot: Snapshot, dt: number, widthPx: number, heightPx: number): void {
-  camera.vx = 0;
-  camera.vy = 0;
-  if (snapshot.shipCount === 0) return;
-  if (!(camera.scale > 0) || !(widthPx > 0) || !(heightPx > 0)) return;
+    camera.vx = 0;
+    camera.vy = 0;
+    if (snapshot.shipCount === 0) return;
+    if (!(camera.scale > 0) || !(widthPx > 0) || !(heightPx > 0)) return;
 
-  // The view in metres, about the camera.
-  const halfWidth = widthPx / (2 * camera.scale);
-  const halfHeight = heightPx / (2 * camera.scale);
+    // The view in metres, about the camera.
+    const halfWidth = widthPx / (2 * camera.scale);
+    const halfHeight = heightPx / (2 * camera.scale);
 
-  // The first kind of thing that has anything in shot is the one followed, and
-  // the rest are not looked at. Nothing in shot at all — panned away, or an
-  // empty field — and the camera holds still rather than drifting after ships
-  // the viewer has deliberately left behind, and rather than dividing by none
-  // of them, which would put the camera at NaN and take the view with it.
-  for (const worthFollowing of FOLLOW_ORDER) {
-    if (keepPaceWith(camera, snapshot, halfWidth, halfHeight, worthFollowing)) break;
-  }
-  if (dt > 0) {
-    camera.x += camera.vx * dt;
-    camera.y += camera.vy * dt;
-  }
+    // The first kind of thing that has anything in shot is the one followed, and
+    // the rest are not looked at. Nothing in shot at all — panned away, or an
+    // empty field — and the camera holds still rather than drifting after ships
+    // the viewer has deliberately left behind, and rather than dividing by none
+    // of them, which would put the camera at NaN and take the view with it.
+    for (const worthFollowing of FOLLOW_ORDER) {
+        if (keepPaceWith(camera, snapshot, halfWidth, halfHeight, worthFollowing)) break;
+    }
+    if (dt > 0) {
+        camera.x += camera.vx * dt;
+        camera.y += camera.vy * dt;
+    }
 }
 
 /**
@@ -236,36 +236,36 @@ export function moveWithVisibleShips(camera: Camera, snapshot: Snapshot, dt: num
  * the camera exactly as it was, so the caller can try the next kind.
  */
 function keepPaceWith(
-  camera: Camera,
-  snapshot: Snapshot,
-  halfWidth: number,
-  halfHeight: number,
-  worthFollowing: (ship: ShipView) => boolean,
+    camera: Camera,
+    snapshot: Snapshot,
+    halfWidth: number,
+    halfHeight: number,
+    worthFollowing: (ship: ShipView) => boolean,
 ): boolean {
-  let vx = 0;
-  let vy = 0;
-  // Unattenuated on purpose: see the note on pace above.
-  let weight = 0;
-  weighInShot(camera, snapshot, halfWidth, halfHeight, worthFollowing, (ship, pace, r) => {
-    vx += ship.vx * r * pace;
-    vy += ship.vy * r * pace;
-    weight += r;
-  });
-  if (!(weight > 0)) return false;
-  camera.vx = vx / weight;
-  camera.vy = vy / weight;
-  return true;
+    let vx = 0;
+    let vy = 0;
+    // Unattenuated on purpose: see the note on pace above.
+    let weight = 0;
+    weighInShot(camera, snapshot, halfWidth, halfHeight, worthFollowing, (ship, pace, r) => {
+        vx += ship.vx * r * pace;
+        vy += ship.vy * r * pace;
+        weight += r;
+    });
+    if (!(weight > 0)) return false;
+    camera.vx = vx / weight;
+    camera.vy = vy / weight;
+    return true;
 }
 
 /** A ship the camera was following when the battle jumped, and how much it counted. */
 export interface JumpAnchor {
-  team: number;
-  serial: number;
-  x: number;
-  y: number;
-  /** Its share of the pace, and its unattenuated weight. */
-  pace: number;
-  weight: number;
+    team: number;
+    serial: number;
+    x: number;
+    y: number;
+    /** Its share of the pace, and its unattenuated weight. */
+    pace: number;
+    weight: number;
 }
 
 /**
@@ -273,17 +273,17 @@ export interface JumpAnchor {
  * step back — as `moveWithVisibleShips` would pick them, taken before it.
  */
 export function jumpAnchors(camera: Camera, snapshot: Snapshot, widthPx: number, heightPx: number): JumpAnchor[] {
-  const anchors: JumpAnchor[] = [];
-  if (!(camera.scale > 0) || !(widthPx > 0) || !(heightPx > 0)) return anchors;
-  const halfWidth = widthPx / (2 * camera.scale);
-  const halfHeight = heightPx / (2 * camera.scale);
-  for (const worthFollowing of FOLLOW_ORDER) {
-    weighInShot(camera, snapshot, halfWidth, halfHeight, worthFollowing, (ship, pace, weight) => {
-      anchors.push({ team: ship.team, serial: ship.serial, x: ship.x, y: ship.y, pace, weight });
-    });
-    if (anchors.length > 0) break;
-  }
-  return anchors;
+    const anchors: JumpAnchor[] = [];
+    if (!(camera.scale > 0) || !(widthPx > 0) || !(heightPx > 0)) return anchors;
+    const halfWidth = widthPx / (2 * camera.scale);
+    const halfHeight = heightPx / (2 * camera.scale);
+    for (const worthFollowing of FOLLOW_ORDER) {
+        weighInShot(camera, snapshot, halfWidth, halfHeight, worthFollowing, (ship, pace, weight) => {
+            anchors.push({ team: ship.team, serial: ship.serial, x: ship.x, y: ship.y, pace, weight });
+        });
+        if (anchors.length > 0) break;
+    }
+    return anchors;
 }
 
 /**
@@ -292,25 +292,25 @@ export function jumpAnchors(camera: Camera, snapshot: Snapshot, widthPx: number,
  * is. A ship gone by the far side of the jump is left out.
  */
 export function moveAcrossJump(camera: Camera, anchors: readonly JumpAnchor[], after: Snapshot): void {
-  const now = new Map<string, ShipView>();
-  for (let i = 0; i < after.shipCount; i++) {
-    const ship = after.ships[i]!;
-    const key = `${ship.team}:${ship.serial}`;
-    if (!now.has(key)) now.set(key, ship);
-  }
-  let dx = 0;
-  let dy = 0;
-  let weight = 0;
-  for (const anchor of anchors) {
-    const ship = now.get(`${anchor.team}:${anchor.serial}`);
-    if (ship === undefined) continue;
-    dx += (ship.x - anchor.x) * anchor.weight * anchor.pace;
-    dy += (ship.y - anchor.y) * anchor.weight * anchor.pace;
-    weight += anchor.weight;
-  }
-  if (!(weight > 0)) return;
-  camera.x += dx / weight;
-  camera.y += dy / weight;
+    const now = new Map<string, ShipView>();
+    for (let i = 0; i < after.shipCount; i++) {
+        const ship = after.ships[i]!;
+        const key = `${ship.team}:${ship.serial}`;
+        if (!now.has(key)) now.set(key, ship);
+    }
+    let dx = 0;
+    let dy = 0;
+    let weight = 0;
+    for (const anchor of anchors) {
+        const ship = now.get(`${anchor.team}:${anchor.serial}`);
+        if (ship === undefined) continue;
+        dx += (ship.x - anchor.x) * anchor.weight * anchor.pace;
+        dy += (ship.y - anchor.y) * anchor.weight * anchor.pace;
+        weight += anchor.weight;
+    }
+    if (!(weight > 0)) return;
+    camera.x += dx / weight;
+    camera.y += dy / weight;
 }
 
 /**
@@ -318,41 +318,41 @@ export function moveAcrossJump(camera: Camera, anchors: readonly JumpAnchor[], a
  * the camera keeps and its weight.
  */
 function weighInShot(
-  camera: Camera,
-  snapshot: Snapshot,
-  halfWidth: number,
-  halfHeight: number,
-  worthFollowing: (ship: ShipView) => boolean,
-  visit: (ship: ShipView, pace: number, weight: number) => void,
+    camera: Camera,
+    snapshot: Snapshot,
+    halfWidth: number,
+    halfHeight: number,
+    worthFollowing: (ship: ShipView) => boolean,
+    visit: (ship: ShipView, pace: number, weight: number) => void,
 ): void {
-  for (let i = 0; i < snapshot.shipCount; i++) {
-    const ship = snapshot.ships[i]!;
-    if (!worthFollowing(ship)) continue;
-    const r = ship.currentStructure.radius;
-    const outX = abs(ship.x - camera.x);
-    if (outX > halfWidth + r) continue;
-    const outY = abs(ship.y - camera.y);
-    if (outY > halfHeight + r) continue;
+    for (let i = 0; i < snapshot.shipCount; i++) {
+        const ship = snapshot.ships[i]!;
+        if (!worthFollowing(ship)) continue;
+        const r = ship.currentStructure.radius;
+        const outX = abs(ship.x - camera.x);
+        if (outX > halfWidth + r) continue;
+        const outY = abs(ship.y - camera.y);
+        if (outY > halfHeight + r) continue;
 
-    // How far out of the middle it sits, by whichever axis has it nearer an
-    // edge — **measured to the nearest part of the hull rather than to the
-    // middle of it**, which is the difference between a small ship and a big
-    // one and not a refinement.
-    //
-    // A ship wider than the view is under the camera wherever the camera is
-    // pointed, so where its centre of mass happens to be says nothing about
-    // whether the viewer is looking at it. Measured centre to centre, zooming
-    // in on a capital's stern puts its middle far outside the frame, reads
-    // that as a ship out on the edge, and keeps only part of its pace — so the
-    // view slides down the hull towards the middle of the ship while the
-    // viewer is trying to watch the engines. Measured to the hull, the same
-    // ship is dead centre and held exactly.
-    //
-    // The bounding radius is generous for a long thin hull, so this errs
-    // towards holding a big ship still, which is the forgiving direction.
-    const out = min(1, max(max(0, outX - r) / halfWidth, max(0, outY - r) / halfHeight));
-    visit(ship, matchedPace(out), r);
-  }
+        // How far out of the middle it sits, by whichever axis has it nearer an
+        // edge — **measured to the nearest part of the hull rather than to the
+        // middle of it**, which is the difference between a small ship and a big
+        // one and not a refinement.
+        //
+        // A ship wider than the view is under the camera wherever the camera is
+        // pointed, so where its centre of mass happens to be says nothing about
+        // whether the viewer is looking at it. Measured centre to centre, zooming
+        // in on a capital's stern puts its middle far outside the frame, reads
+        // that as a ship out on the edge, and keeps only part of its pace — so the
+        // view slides down the hull towards the middle of the ship while the
+        // viewer is trying to watch the engines. Measured to the hull, the same
+        // ship is dead centre and held exactly.
+        //
+        // The bounding radius is generous for a long thin hull, so this errs
+        // towards holding a big ship still, which is the forgiving direction.
+        const out = min(1, max(max(0, outX - r) / halfWidth, max(0, outY - r) / halfHeight));
+        visit(ship, matchedPace(out), r);
+    }
 }
 
 /**
@@ -360,18 +360,18 @@ function weighInShot(
  * camera has caught up, which is most of the time.
  */
 function contain(camera: Camera, snapshot: Bounds, widthPx: number, heightPx: number): void {
-  const halfW = widthPx / 2 / camera.scale;
-  const halfH = heightPx / 2 / camera.scale;
+    const halfW = widthPx / 2 / camera.scale;
+    const halfH = heightPx / 2 / camera.scale;
 
-  const overX = snapshot.maxX - snapshot.minX > halfW * 2;
-  if (overX) camera.x = (snapshot.minX + snapshot.maxX) * 0.5;
-  else if (snapshot.minX < camera.x - halfW) camera.x = snapshot.minX + halfW;
-  else if (snapshot.maxX > camera.x + halfW) camera.x = snapshot.maxX - halfW;
+    const overX = snapshot.maxX - snapshot.minX > halfW * 2;
+    if (overX) camera.x = (snapshot.minX + snapshot.maxX) * 0.5;
+    else if (snapshot.minX < camera.x - halfW) camera.x = snapshot.minX + halfW;
+    else if (snapshot.maxX > camera.x + halfW) camera.x = snapshot.maxX - halfW;
 
-  const overY = snapshot.maxY - snapshot.minY > halfH * 2;
-  if (overY) camera.y = (snapshot.minY + snapshot.maxY) * 0.5;
-  else if (snapshot.minY < camera.y - halfH) camera.y = snapshot.minY + halfH;
-  else if (snapshot.maxY > camera.y + halfH) camera.y = snapshot.maxY - halfH;
+    const overY = snapshot.maxY - snapshot.minY > halfH * 2;
+    if (overY) camera.y = (snapshot.minY + snapshot.maxY) * 0.5;
+    else if (snapshot.minY < camera.y - halfH) camera.y = snapshot.minY + halfH;
+    else if (snapshot.maxY > camera.y + halfH) camera.y = snapshot.maxY - halfH;
 }
 
 /**
@@ -380,7 +380,7 @@ function contain(camera: Camera, snapshot: Bounds, widthPx: number, heightPx: nu
  * it is actually drawing.
  */
 export function gridStep(scale: number): number {
-  return roundStep(TARGET_GRID_PX / scale);
+    return roundStep(TARGET_GRID_PX / scale);
 }
 
 /**
@@ -395,13 +395,13 @@ export function gridStep(scale: number): number {
  * snaps to a square, at every zoom.
  */
 export function snapStep(scale: number): number {
-  return roundStep(TARGET_GRID_PX / scale / SNAPS_PER_SQUARE);
+    return roundStep(TARGET_GRID_PX / scale / SNAPS_PER_SQUARE);
 }
 
 /** The roundest number at or above `raw`: 1, 2, 5 or 10 times a power of ten. */
 function roundStep(raw: number): number {
-  const power = 10 ** Math.floor(Math.log10(raw));
-  return [1, 2, 5, 10].map((m) => m * power).find((s) => s >= raw) ?? power * 10;
+    const power = 10 ** Math.floor(Math.log10(raw));
+    return [1, 2, 5, 10].map((m) => m * power).find((s) => s >= raw) ?? power * 10;
 }
 
 /**
@@ -411,10 +411,10 @@ function roundStep(raw: number): number {
  * two of them.
  */
 export function describeStep(step: number): string {
-  const round3 = (value: number): string => String(Number(value.toPrecision(3)));
-  if (step < 0.01) return `${round3(step * 1000)} mm`;
-  if (step < 1) return `${round3(step * 100)} cm`;
-  return `${round3(step)} m`;
+    const round3 = (value: number): string => String(Number(value.toPrecision(3)));
+    if (step < 0.01) return `${round3(step * 1000)} mm`;
+    if (step < 1) return `${round3(step * 100)} cm`;
+    return `${round3(step)} m`;
 }
 
 /**
@@ -422,11 +422,11 @@ export function describeStep(step: number): string {
  * centre (y down), so whatever is under that point stays under it.
  */
 export function zoomAt(camera: Camera, px: number, py: number, factor: number): void {
-  const x = camera.x + px / camera.scale;
-  const y = camera.y - py / camera.scale;
-  camera.scale *= factor;
-  camera.x = x - px / camera.scale;
-  camera.y = y + py / camera.scale;
+    const x = camera.x + px / camera.scale;
+    const y = camera.y - py / camera.scale;
+    camera.scale *= factor;
+    camera.x = x - px / camera.scale;
+    camera.y = y + py / camera.scale;
 }
 
 /** How near a click must land to a ship drawn too small to hit, CSS pixels. */
@@ -440,16 +440,16 @@ export const TOUCH_PICK_PX = 28;
  * point.
  */
 export function shipAt(snapshot: Snapshot, x: number, y: number, reach: number): number {
-  let best = -1;
-  let nearest = Infinity;
-  for (let i = 0; i < snapshot.shipCount; i++) {
-    const ship = snapshot.ships[i]!;
-    const d = Math.hypot(ship.x - x, ship.y - y);
-    if (d > Math.max(ship.currentStructure.radius, reach) || d >= nearest) continue;
-    nearest = d;
-    best = ship.body;
-  }
-  return best;
+    let best = -1;
+    let nearest = Infinity;
+    for (let i = 0; i < snapshot.shipCount; i++) {
+        const ship = snapshot.ships[i]!;
+        const d = Math.hypot(ship.x - x, ship.y - y);
+        if (d > Math.max(ship.currentStructure.radius, reach) || d >= nearest) continue;
+        nearest = d;
+        best = ship.body;
+    }
+    return best;
 }
 
 /**
@@ -458,26 +458,26 @@ export function shipAt(snapshot: Snapshot, x: number, y: number, reach: number):
  * when nothing is picked out.
  */
 export function selectionBounds(snapshot: Snapshot, body: number): Bounds | null {
-  if (body < 0) return null;
-  const bounds = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
-  let target = -1;
-  let consort = -1;
-  let source = -1;
-  for (let i = 0; i < snapshot.shipCount; i++) {
-    const ship = snapshot.ships[i]!;
-    if (ship.body !== body) continue;
-    target = ship.fighting ?? -1;
-    consort = ship.covering ?? -1;
-    source = ship.doing === 'scavenge' ? (ship.doingTo ?? -1) : -1;
-  }
-  for (let i = 0; i < snapshot.shipCount; i++) {
-    const ship = snapshot.ships[i]!;
-    if (ship.body !== body && ship.body !== target && ship.body !== consort && ship.body !== source) continue;
-    const r = ship.currentStructure.radius;
-    bounds.minX = Math.min(bounds.minX, ship.x - r);
-    bounds.minY = Math.min(bounds.minY, ship.y - r);
-    bounds.maxX = Math.max(bounds.maxX, ship.x + r);
-    bounds.maxY = Math.max(bounds.maxY, ship.y + r);
-  }
-  return Number.isFinite(bounds.minX) ? bounds : null;
+    if (body < 0) return null;
+    const bounds = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
+    let target = -1;
+    let consort = -1;
+    let source = -1;
+    for (let i = 0; i < snapshot.shipCount; i++) {
+        const ship = snapshot.ships[i]!;
+        if (ship.body !== body) continue;
+        target = ship.fighting ?? -1;
+        consort = ship.covering ?? -1;
+        source = ship.doing === "scavenge" ? (ship.doingTo ?? -1) : -1;
+    }
+    for (let i = 0; i < snapshot.shipCount; i++) {
+        const ship = snapshot.ships[i]!;
+        if (ship.body !== body && ship.body !== target && ship.body !== consort && ship.body !== source) continue;
+        const r = ship.currentStructure.radius;
+        bounds.minX = Math.min(bounds.minX, ship.x - r);
+        bounds.minY = Math.min(bounds.minY, ship.y - r);
+        bounds.maxX = Math.max(bounds.maxX, ship.x + r);
+        bounds.maxY = Math.max(bounds.maxY, ship.y + r);
+    }
+    return Number.isFinite(bounds.minX) ? bounds : null;
 }

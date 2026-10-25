@@ -10,10 +10,10 @@
 const marked = new WeakSet<object>();
 
 export function fixed<T extends object>(value: T): T {
-  marked.add(value);
-  return value;
+    marked.add(value);
+    return value;
 }
 
 export function isFixed(value: object): boolean {
-  return marked.has(value);
+    return marked.has(value);
 }

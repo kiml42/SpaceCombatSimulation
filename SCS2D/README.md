@@ -19,10 +19,13 @@ skirmish, for handing to anyone trying it.
 
 Needs Node 22.12 or newer, as vitest does; CI tests on 22, 24 and 26.
 
+And pnpm, at the version `packageManager` in `package.json` names: `corepack enable` sets it up where Node
+still ships corepack, and `npm install -g pnpm` anywhere.
+
 ```
 cd SCS2D
-npm ci
-npm run build
+pnpm install
+pnpm build
 ```
 
 Then open `dist/index.html` in a browser. Each page — the viewer, the ship and fleet editors, the evolution
@@ -34,7 +37,7 @@ Space pauses, full stop single-steps, F re-fits the camera. Scroll to zoom, drag
 ## Tinkering
 
 ```
-npm run dev
+pnpm dev
 ```
 
 Rebuilds on every save. Refresh the page to see the change; there is no live reload.
@@ -55,7 +58,7 @@ Almost everything worth changing is in one of these:
 
 **Expect the golden tests to fail the moment you change anything in `sim/` or `scenarios/`.** That is them
 working: they pin the simulation's behaviour bit-for-bit, and a change in what a battle does is exactly what
-they exist to report. Run `npm run golden` to print the new checksums and paste them into
+they exist to report. Run `pnpm golden` to print the new checksums and paste them into
 `tests/golden.test.ts` — but only once you know what moved and why. Copying a value out of a failure without
 understanding it turns a regression into the new expected behaviour, permanently.
 
@@ -63,19 +66,19 @@ understanding it turns a regression into the new expected behaviour, permanently
 
 | Command | Does |
 | --- | --- |
-| `npm test` | Unit tests, determinism tests and the golden checksums. Runs from a cold checkout. |
-| `npm run typecheck` | All three TS projects — `sim/` has no ambient types, `render/`, `editor/` and `host/` have the DOM |
-| `npm run build` | Bundle each page to `dist/`, one file each |
-| `npm run dev` | The same build, on every save; also keeps the stock fleets' designs in step with `scenarios/blueprints/` |
-| `npm run sync-fleets` | Copy each stock blueprint into the stock fleets that embed it |
-| `npm run golden` | Re-derive the golden checksums after a *deliberate* change |
-| `npm run evolve` | Fight a headless evolution run and write it to `runs/`, to open on the evolution page with Open run; its flags are in CLAUDE.md |
-| `npm run yardstick` | Measure a finished run against a ship that does not evolve |
-| `npm run test:browser` | Drive the built page in Chromium — `npx playwright install chromium` once first |
+| `pnpm test` | Unit tests, determinism tests and the golden checksums. Runs from a cold checkout. |
+| `pnpm typecheck` | All three TS projects — `sim/` has no ambient types, `render/`, `editor/` and `host/` have the DOM |
+| `pnpm build` | Bundle each page to `dist/`, one file each |
+| `pnpm dev` | The same build, on every save; also keeps the stock fleets' designs in step with `scenarios/blueprints/` |
+| `pnpm sync-fleets` | Copy each stock blueprint into the stock fleets that embed it |
+| `pnpm golden` | Re-derive the golden checksums after a *deliberate* change |
+| `pnpm evolve` | Fight a headless evolution run and write it to `runs/`, to open on the evolution page with Open run; its flags are in CLAUDE.md |
+| `pnpm yardstick` | Measure a finished run against a ship that does not evolve |
+| `pnpm test:browser` | Drive the built page in Chromium — `pnpm exec playwright install chromium` once first |
 
 ## One thing that will change
 
 Opening `dist/index.html` straight off disk works because the page is a single file with no worker. When the
 simulation moves into a web worker (DESIGN.md §5), browsers will refuse to start it from `file://` and this
-will need serving over HTTP — `npx serve dist`, or anything equivalent. Not yet, but that is the day the
+will need serving over HTTP — `pnpm dlx serve dist`, or anything equivalent. Not yet, but that is the day the
 instructions above stop being enough.

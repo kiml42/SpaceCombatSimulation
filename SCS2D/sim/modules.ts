@@ -1,21 +1,21 @@
-import type { UnreadKeys } from './unread.js';
-import type { Targeting } from './doctrine.js';
-import { abs, asin, atan2, cos, floor as roundDown, max, min, PI, pow, round, sin, sqrt } from './math.js';
+import type { UnreadKeys } from "./unread.js";
+import type { Targeting } from "./doctrine.js";
+import { abs, asin, atan2, cos, floor as roundDown, max, min, PI, pow, round, sin, sqrt } from "./math.js";
 import {
-  canShape,
-  cornersAllowed,
-  insetTriangle,
-  isConvexAnticlockwise,
-  MAX_CORNERS,
-  normalizeShape,
-  polygonArea,
-  polygonCentroid,
-  polygonMomentOfArea,
-  triangleAcross,
-  triangleBounds,
-  shapeOf,
-  triangleRadius,
-} from './shape.js';
+    canShape,
+    cornersAllowed,
+    insetTriangle,
+    isConvexAnticlockwise,
+    MAX_CORNERS,
+    normalizeShape,
+    polygonArea,
+    polygonCentroid,
+    polygonMomentOfArea,
+    triangleAcross,
+    triangleBounds,
+    shapeOf,
+    triangleRadius,
+} from "./shape.js";
 
 /**
  * Parametric ship modules: a few archetypes with continuous parameters, rather
@@ -223,7 +223,7 @@ export const CORE_GENERATOR_MAX_VOLUME = 2;
 
 /** The volume inside a module's walls and any sealing lining, m³. */
 export function interiorVolume(stats: ModuleStats): number {
-  return stats.interior;
+    return stats.interior;
 }
 
 /**
@@ -247,37 +247,37 @@ export const SEAL_REACH = 10;
 
 /** Whether `sealing` means anything on this kind: what holds fuel. */
 export function readsSealing(kind: ModuleKind): boolean {
-  return kind === 'tank' || kind === 'core';
+    return kind === "tank" || kind === "core";
 }
 
 /** Whether `drainPriority` means anything on this kind: what holds fuel. */
 export function readsDrainPriority(kind: ModuleKind): boolean {
-  return readsSealing(kind);
+    return readsSealing(kind);
 }
 
 /** Whether `craft` and `keep` mean anything on this kind: what builds ships. */
 export function readsCraft(kind: ModuleKind): boolean {
-  return kind === 'pad' || kind === 'slipway';
+    return kind === "pad" || kind === "slipway";
 }
 
 /** Whether `docked` means anything on this kind: a pad, which holds what it sets out with. */
 export function readsDocked(kind: ModuleKind): boolean {
-  return kind === 'pad';
+    return kind === "pad";
 }
 
 /** Whether `craftAngle` means anything on this kind: a slipway, which lays out what it builds. */
 export function readsCraftAngle(kind: ModuleKind): boolean {
-  return kind === 'slipway';
+    return kind === "slipway";
 }
 
 /** Whether `fill` means anything on this kind: what holds fuel, metal or charge. */
 export function readsFill(kind: ModuleKind): boolean {
-  return readsSealing(kind) || kind === 'hold' || kind === 'battery';
+    return readsSealing(kind) || kind === "hold" || kind === "battery";
 }
 
 /** Whether `computing` means anything on this kind. */
 export function readsComputing(kind: ModuleKind): boolean {
-  return kind === 'core';
+    return kind === "core";
 }
 
 /**
@@ -285,22 +285,22 @@ export function readsComputing(kind: ModuleKind): boolean {
  * everything but hull and what only holds or makes something.
  */
 export function needsControl(kind: ModuleKind): boolean {
-  return !(
-    kind === 'structure' ||
-    kind === 'tank' ||
-    kind === 'hold' ||
-    kind === 'core' ||
-    kind === 'battery' ||
-    kind === 'generator' ||
-    kind === 'kernel' ||
-    kind === 'rock'
-  );
+    return !(
+        kind === "structure" ||
+        kind === "tank" ||
+        kind === "hold" ||
+        kind === "core" ||
+        kind === "battery" ||
+        kind === "generator" ||
+        kind === "kernel" ||
+        kind === "rock"
+    );
 }
 
 /** How much of an `interior` m³ core computes, m³. */
 export function coreComputing(spec: ModuleSpec, interior: number): number {
-  if (interior <= CORE_COMPUTING_VOLUME) return interior;
-  return max(CORE_COMPUTING_VOLUME, (spec.computing ?? CORE_COMPUTING_SHARE) * interior);
+    if (interior <= CORE_COMPUTING_VOLUME) return interior;
+    return max(CORE_COMPUTING_VOLUME, (spec.computing ?? CORE_COMPUTING_SHARE) * interior);
 }
 
 /**
@@ -308,17 +308,17 @@ export function coreComputing(spec: ModuleSpec, interior: number): number {
  * metres. Diminishing returns: ten times the computing reaches twice as far.
  */
 export function controlRadius(computing: number): number {
-  return computing > 0 ? CONTROL_REACH * pow(computing, CONTROL_EXPONENT) : 0;
+    return computing > 0 ? CONTROL_REACH * pow(computing, CONTROL_EXPONENT) : 0;
 }
 
 /** How full a module starts, 0 to 1. */
 export function fillOf(spec: ModuleSpec): number {
-  return readsFill(spec.kind) ? (spec.fill ?? 1) : 1;
+    return readsFill(spec.kind) ? (spec.fill ?? 1) : 1;
 }
 
 /** How thick a module's sealing lining is, metres: zero where its kind has none. */
 export function liningOf(spec: ModuleSpec): number {
-  return readsSealing(spec.kind) ? (spec.sealing ?? 0) : 0;
+    return readsSealing(spec.kind) ? (spec.sealing ?? 0) : 0;
 }
 
 /** Standard gravity, m/s², for stating an exhaust velocity as a specific impulse. */
@@ -786,8 +786,8 @@ export const ROBOT_WORK_AREA = 2;
 
 /** How many robots may work on a module at once, by its area (`ROBOT_WORK_AREA`). */
 export function robotsOn(spec: ModuleSpec): number {
-  const fit = roundDown((spec.length * spec.width) / ROBOT_WORK_AREA);
-  return fit > 1 ? fit : 1;
+    const fit = roundDown((spec.length * spec.width) / ROBOT_WORK_AREA);
+    return fit > 1 ? fit : 1;
 }
 
 /** How fast a robot crawls over a module no more than `ROBOT_ROOM` across, as over a ship, carefully, m/s. */
@@ -801,9 +801,9 @@ export const ROBOT_ROOM = 10;
 
 /** How fast a robot crosses a module, m/s: faster the broader it is, from `ROBOT_SPEED` up to `ROBOT_TOP_SPEED`. */
 export function robotSpeedOver(spec: ModuleSpec): number {
-  const across = spec.length < spec.width ? spec.length : spec.width;
-  const speed = (ROBOT_SPEED * across) / ROBOT_ROOM;
-  return speed < ROBOT_SPEED ? ROBOT_SPEED : speed > ROBOT_TOP_SPEED ? ROBOT_TOP_SPEED : speed;
+    const across = spec.length < spec.width ? spec.length : spec.width;
+    const speed = (ROBOT_SPEED * across) / ROBOT_ROOM;
+    return speed < ROBOT_SPEED ? ROBOT_SPEED : speed > ROBOT_TOP_SPEED ? ROBOT_TOP_SPEED : speed;
 }
 
 /** Damage a robot undoes a second, J/s. */
@@ -823,7 +823,7 @@ export const ROBOT_BUILD_TIME = 20;
 
 /** How many berths a robot bay has along its length and across its width. */
 export function berthGrid(spec: ModuleSpec): { across: number; down: number } {
-  return { across: roundDown(spec.length / ROBOT_BERTH_PITCH), down: roundDown(spec.width / ROBOT_BERTH_PITCH) };
+    return { across: roundDown(spec.length / ROBOT_BERTH_PITCH), down: roundDown(spec.width / ROBOT_BERTH_PITCH) };
 }
 
 /**
@@ -831,7 +831,7 @@ export function berthGrid(spec: ModuleSpec): { across: number; down: number } {
  * interior behind each berth over `ROBOT_BERTH_VOLUME`. Nought for no berths.
  */
 export function berthRate(stats: ModuleStats): number {
-  return stats.robots > 0 ? stats.interior / stats.robots / ROBOT_BERTH_VOLUME : 0;
+    return stats.robots > 0 ? stats.interior / stats.robots / ROBOT_BERTH_VOLUME : 0;
 }
 
 /**
@@ -929,36 +929,36 @@ export const TRAVERSE_TORQUE_PER_KG = 2;
 export const TRAVERSE_SPINUP_TIME = 2;
 
 export type ModuleKind =
-  | 'structure'
-  | 'tank'
-  | 'core'
-  | 'engine'
-  | 'turret'
-  | 'beamTurret'
-  | 'hullGun'
-  | 'hullBeam'
-  | 'claw'
-  | 'pad'
-  | 'port'
-  | 'hold'
-  | 'battery'
-  | 'generator'
-  | 'robotBay'
-  | 'slipway'
-  /**
-   * An asteroid's heart: a solid convex polygon, indestructible and on no
-   * side, that carries a well and rides its rail. Not something a ship is
-   * built of, so not among `MODULE_KINDS`.
-   */
-  | 'kernel'
-  /**
-   * An asteroid's body: solid rock, a share of it ore and a share ice and the
-   * rest worth nothing, wedged round a kernel or making up a minor asteroid.
-   */
-  | 'rock';
+    | "structure"
+    | "tank"
+    | "core"
+    | "engine"
+    | "turret"
+    | "beamTurret"
+    | "hullGun"
+    | "hullBeam"
+    | "claw"
+    | "pad"
+    | "port"
+    | "hold"
+    | "battery"
+    | "generator"
+    | "robotBay"
+    | "slipway"
+    /**
+     * An asteroid's heart: a solid convex polygon, indestructible and on no
+     * side, that carries a well and rides its rail. Not something a ship is
+     * built of, so not among `MODULE_KINDS`.
+     */
+    | "kernel"
+    /**
+     * An asteroid's body: solid rock, a share of it ore and a share ice and the
+     * rest worth nothing, wedged round a kernel or making up a minor asteroid.
+     */
+    | "rock";
 
 /** The kinds a ship may be built of: none of an asteroid's. */
-export type ShipModuleKind = Exclude<ModuleKind, 'kernel' | 'rock'>;
+export type ShipModuleKind = Exclude<ModuleKind, "kernel" | "rock">;
 
 /** How deep an asteroid's thick rock and kernel are, metres: past a deck, so they stand in both layers. */
 export const ASTEROID_DEPTH = 10;
@@ -986,22 +986,22 @@ export const ROCK_SEAM_THICKNESS = BASE_WALL_THICKNESS;
  * per caller: the draw walks it, and the flattener sorts by it.
  */
 export const MODULE_KINDS: readonly ShipModuleKind[] = [
-  'structure',
-  'tank',
-  'core',
-  'engine',
-  'turret',
-  'beamTurret',
-  'hullGun',
-  'hullBeam',
-  'claw',
-  'pad',
-  'port',
-  'hold',
-  'battery',
-  'generator',
-  'robotBay',
-  'slipway',
+    "structure",
+    "tank",
+    "core",
+    "engine",
+    "turret",
+    "beamTurret",
+    "hullGun",
+    "hullBeam",
+    "claw",
+    "pad",
+    "port",
+    "hold",
+    "battery",
+    "generator",
+    "robotBay",
+    "slipway",
 ];
 
 /**
@@ -1011,306 +1011,306 @@ export const MODULE_KINDS: readonly ShipModuleKind[] = [
  * compiling a blueprint re-expresses them about the centre of mass.
  */
 export interface ModuleSpec {
-  kind: ModuleKind;
-  /**
-   * Which placement this is, kept through every edit and every mutation, so
-   * one version of a design can be matched module by module to the next — the
-   * refit question (ROADMAP.md §8 step 12). Unique in its blueprint, an
-   * assembly's own included; one missing or repeated is given the next free
-   * one (`settleIds`).
-   */
-  id?: number;
-  /**
-   * Where the module is bolted to the ship, metres — which is its centre for
-   * every kind but an engine.
-   *
-   * An engine is the one module with a side that means something: it is held
-   * on by the face it pushes from and exhausts out of the other, so that face
-   * is the only part of it whose position the rest of the ship cares about.
-   * Its position is therefore the middle of *that* face, and the engine runs
-   * out from there along its own facing, bell last — so an engine made longer grows
-   * out into the exhaust rather than half into the hull it is mounted on, and
-   * lengthening one is one number rather than two. `moduleCentre` is where the
-   * box actually sits, and everything geometric goes through it.
-   */
-  x: number;
-  y: number;
-  /**
-   * Which way it faces, radians, in the blueprint frame. This is the module's
-   * local +x, the way whatever sticks out of it points: the bearing a turret
-   * rests at, a hull weapon's barrel, and an engine's bell — so an engine
-   * pushes the ship the opposite way.
-   */
-  angle?: number;
-  /**
-   * Extent along the facing, metres. For an engine or a hull weapon this is
-   * the machinery block alone: the bell or barrel reaches out beyond it, and
-   * is in the way of other modules all the same (`bodySpec`).
-   */
-  length: number;
-  /** Extent across the facing, metres. */
-  width: number;
-  /**
-   * Three corners, flat `x, y` pairs in the module's own frame, which make it
-   * a **triangle** rather than the box its length and width describe. Hull and
-   * store only (`canShape`), and absent on everything else.
-   *
-   * The corners are what the author places, one at a time, and the whole of
-   * what the module is: its mass, its walls, what a shot crosses, what it is
-   * welded to and what a turret cannot see past all come from them. What they
-   * buy is a hull that can draw a prow — a shape a packing of rectangles can
-   * only step towards — and they cost the two things a rectangle has that a
-   * triangle does not: a face to grow by, and a face for something to stick
-   * out of. That is why only the two archetypes with nothing protruding may
-   * have them.
-   *
-   * **Centred on the triangle's own centroid and wound anticlockwise**
-   * (`normalizeShape`), so `x`/`y` goes on meaning the middle the module's
-   * mass acts at. `length` and `width` stay filled in as the box the corners
-   * fit inside, for the format's sake — a refit, a mutation, the editor's
-   * number boxes — and are derived rather than authored: that box is not
-   * centred on the module's position, so nothing that asks where the matter is
-   * may read them.
-   */
-  vertices?: readonly number[];
-  /** A rock's share of ore and of ice, 0 to 1 each and no more than 1 together; the rest is worthless. */
-  ore?: number;
-  ice?: number;
-  /**
-   * Set on a spec that is already the body it makes (`bodySpec`): an engine's
-   * or hull weapon's `length` then includes its bell or barrel. Never in a
-   * file; what a compiled design holds.
-   */
-  body?: true;
-  /**
-   * Wall thickness multiplier, at least 1. Buying reinforcement buys armour
-   * and structural strength, and pays for it in mass — which is the whole of
-   * the armour trade-off.
-   */
-  reinforcement?: number;
+    kind: ModuleKind;
+    /**
+     * Which placement this is, kept through every edit and every mutation, so
+     * one version of a design can be matched module by module to the next — the
+     * refit question (ROADMAP.md §8 step 12). Unique in its blueprint, an
+     * assembly's own included; one missing or repeated is given the next free
+     * one (`settleIds`).
+     */
+    id?: number;
+    /**
+     * Where the module is bolted to the ship, metres — which is its centre for
+     * every kind but an engine.
+     *
+     * An engine is the one module with a side that means something: it is held
+     * on by the face it pushes from and exhausts out of the other, so that face
+     * is the only part of it whose position the rest of the ship cares about.
+     * Its position is therefore the middle of *that* face, and the engine runs
+     * out from there along its own facing, bell last — so an engine made longer grows
+     * out into the exhaust rather than half into the hull it is mounted on, and
+     * lengthening one is one number rather than two. `moduleCentre` is where the
+     * box actually sits, and everything geometric goes through it.
+     */
+    x: number;
+    y: number;
+    /**
+     * Which way it faces, radians, in the blueprint frame. This is the module's
+     * local +x, the way whatever sticks out of it points: the bearing a turret
+     * rests at, a hull weapon's barrel, and an engine's bell — so an engine
+     * pushes the ship the opposite way.
+     */
+    angle?: number;
+    /**
+     * Extent along the facing, metres. For an engine or a hull weapon this is
+     * the machinery block alone: the bell or barrel reaches out beyond it, and
+     * is in the way of other modules all the same (`bodySpec`).
+     */
+    length: number;
+    /** Extent across the facing, metres. */
+    width: number;
+    /**
+     * Three corners, flat `x, y` pairs in the module's own frame, which make it
+     * a **triangle** rather than the box its length and width describe. Hull and
+     * store only (`canShape`), and absent on everything else.
+     *
+     * The corners are what the author places, one at a time, and the whole of
+     * what the module is: its mass, its walls, what a shot crosses, what it is
+     * welded to and what a turret cannot see past all come from them. What they
+     * buy is a hull that can draw a prow — a shape a packing of rectangles can
+     * only step towards — and they cost the two things a rectangle has that a
+     * triangle does not: a face to grow by, and a face for something to stick
+     * out of. That is why only the two archetypes with nothing protruding may
+     * have them.
+     *
+     * **Centred on the triangle's own centroid and wound anticlockwise**
+     * (`normalizeShape`), so `x`/`y` goes on meaning the middle the module's
+     * mass acts at. `length` and `width` stay filled in as the box the corners
+     * fit inside, for the format's sake — a refit, a mutation, the editor's
+     * number boxes — and are derived rather than authored: that box is not
+     * centred on the module's position, so nothing that asks where the matter is
+     * may read them.
+     */
+    vertices?: readonly number[];
+    /** A rock's share of ore and of ice, 0 to 1 each and no more than 1 together; the rest is worthless. */
+    ore?: number;
+    ice?: number;
+    /**
+     * Set on a spec that is already the body it makes (`bodySpec`): an engine's
+     * or hull weapon's `length` then includes its bell or barrel. Never in a
+     * file; what a compiled design holds.
+     */
+    body?: true;
+    /**
+     * Wall thickness multiplier, at least 1. Buying reinforcement buys armour
+     * and structural strength, and pays for it in mass — which is the whole of
+     * the armour trade-off.
+     */
+    reinforcement?: number;
 
-  /**
-   * How many barrels a turret has, or how many nozzles an engine has — the
-   * editor calls it Nozzles there.
-   *
-   * The same number because it is the same idea: one mount's budget divided
-   * between several outlets. `n` barrels divide a gun's bore and `n` nozzles
-   * divide an engine's exit face, so neither count is free power. What a
-   * cluster of small bells buys an engine is expansion — a narrow nozzle
-   * collimates in less length than a wide one — and a flame combed into `n`
-   * fingers rather than thrown as one sheet.
-   */
-  barrels?: number;
+    /**
+     * How many barrels a turret has, or how many nozzles an engine has — the
+     * editor calls it Nozzles there.
+     *
+     * The same number because it is the same idea: one mount's budget divided
+     * between several outlets. `n` barrels divide a gun's bore and `n` nozzles
+     * divide an engine's exit face, so neither count is free power. What a
+     * cluster of small bells buys an engine is expansion — a narrow nozzle
+     * collimates in less length than a wide one — and a flame combed into `n`
+     * fingers rather than thrown as one sheet.
+     */
+    barrels?: number;
 
-  /**
-   * How long an engine's bell is, in widths of its exit, reaching out beyond
-   * the machinery block `length` measures. `DEFAULT_NOZZLE_WIDTHS` when unsaid.
-   *
-   * In exit widths because that is what decides how well a bell collimates, so
-   * the number means the same efficiency on any size of engine; a longer bell
-   * is more aim, and more length to fit in. See `engineGeometry`.
-   *
-   * Zero is legal and is a rocket whose bell has blown off: gas thrown in
-   * every direction, about half the thrust, and a flame that goes nowhere.
-   */
-  nozzle?: number;
+    /**
+     * How long an engine's bell is, in widths of its exit, reaching out beyond
+     * the machinery block `length` measures. `DEFAULT_NOZZLE_WIDTHS` when unsaid.
+     *
+     * In exit widths because that is what decides how well a bell collimates, so
+     * the number means the same efficiency on any size of engine; a longer bell
+     * is more aim, and more length to fit in. See `engineGeometry`.
+     *
+     * Zero is legal and is a rocket whose bell has blown off: gas thrown in
+     * every direction, about half the thrust, and a flame that goes nowhere.
+     */
+    nozzle?: number;
 
-  /**
-   * How long a gun's barrels are, in calibres of its bore. A turret's run out
-   * from its pivot; a hull gun's take that much of the module's length and
-   * leave the rest as the block that loads them. The function of the same
-   * name gives the default when unsaid.
-   *
-   * Length is muzzle energy, less so past `BARREL_CALIBRES`, and costs steel,
-   * swing and — on a hull gun — rate of fire and traverse. Past that a barrel
-   * needs bracing, so each calibre costs more, and nothing may exceed
-   * `MAX_BARREL_CALIBRES`. Guns only: a laser's housing has one best depth.
-   */
-  barrelCalibres?: number;
+    /**
+     * How long a gun's barrels are, in calibres of its bore. A turret's run out
+     * from its pivot; a hull gun's take that much of the module's length and
+     * leave the rest as the block that loads them. The function of the same
+     * name gives the default when unsaid.
+     *
+     * Length is muzzle energy, less so past `BARREL_CALIBRES`, and costs steel,
+     * swing and — on a hull gun — rate of fire and traverse. Past that a barrel
+     * needs bracing, so each calibre costs more, and nothing may exceed
+     * `MAX_BARREL_CALIBRES`. Guns only: a laser's housing has one best depth.
+     */
+    barrelCalibres?: number;
 
-  /**
-   * How far a weapon may train either way from where it rests, radians. The
-   * archetype's own limit when unsaid: all the way round for a turret, and
-   * whatever its opening leaves for a hull mount.
-   *
-   * **It is a limit and not a capability** — asking for more than the mount
-   * can do changes nothing, and what the ship itself is in the way of still
-   * applies on top. Weapons only.
-   *
-   * What it costs is where the two archetypes differ, and the difference is
-   * the machine rather than the rule. A turret's ring goes all the way round
-   * whatever it is told to do with it, so limiting one is programming and
-   * weighs exactly the same. A hull weapon's bed is built for the arc it
-   * sweeps, so a narrower one is a simpler machine and a lighter one — and a
-   * mount told to train nothing at all is a gun welded to the ship, which is
-   * how a very light hull carries a very large bore.
-   */
-  traverse?: number;
+    /**
+     * How far a weapon may train either way from where it rests, radians. The
+     * archetype's own limit when unsaid: all the way round for a turret, and
+     * whatever its opening leaves for a hull mount.
+     *
+     * **It is a limit and not a capability** — asking for more than the mount
+     * can do changes nothing, and what the ship itself is in the way of still
+     * applies on top. Weapons only.
+     *
+     * What it costs is where the two archetypes differ, and the difference is
+     * the machine rather than the rule. A turret's ring goes all the way round
+     * whatever it is told to do with it, so limiting one is programming and
+     * weighs exactly the same. A hull weapon's bed is built for the arc it
+     * sweeps, so a narrower one is a simpler machine and a lighter one — and a
+     * mount told to train nothing at all is a gun welded to the ship, which is
+     * how a very light hull carries a very large bore.
+     */
+    traverse?: number;
 
-  /**
-   * How long before it would reach its aim point a gun's round bursts,
-   * seconds. `DEFAULT_FUSE` when absent. Zero bursts at the aim point, which
-   * still counts on a miss or on what is behind the target. A shell only
-   * (`firesShells`).
-   */
-  fuse?: number;
-  /**
-   * How many fragments a gun's round bursts into. `DEFAULT_FRAGMENTS` when
-   * absent; one or fewer fires solid shot, all metal and never bursting. A
-   * projectile gun only (`readsFuse`).
-   */
-  fragments?: number;
-  /**
-   * How fast the fragments leave the burst, m/s. `DEFAULT_BURST_SPEED` when
-   * absent. Faster needs more of the shell to be charge, so a lighter shell.
-   * A shell only.
-   */
-  burstSpeed?: number;
+    /**
+     * How long before it would reach its aim point a gun's round bursts,
+     * seconds. `DEFAULT_FUSE` when absent. Zero bursts at the aim point, which
+     * still counts on a miss or on what is behind the target. A shell only
+     * (`firesShells`).
+     */
+    fuse?: number;
+    /**
+     * How many fragments a gun's round bursts into. `DEFAULT_FRAGMENTS` when
+     * absent; one or fewer fires solid shot, all metal and never bursting. A
+     * projectile gun only (`readsFuse`).
+     */
+    fragments?: number;
+    /**
+     * How fast the fragments leave the burst, m/s. `DEFAULT_BURST_SPEED` when
+     * absent. Faster needs more of the shell to be charge, so a lighter shell.
+     * A shell only.
+     */
+    burstSpeed?: number;
 
-  /**
-   * What this mount goes after, where it differs from its archetype's default.
-   *
-   * Only the differences, and the rest comes from the kind rather than from
-   * the hull: a mount answers "which of the things I can train on do I
-   * shoot", which is not the question its ship answers about where to fly,
-   * and `focusWeight` is what ties the two together. This is what makes a
-   * close-in mount a close-in mount — "go for something a twentieth my ship's
-   * mass" on the same hull whose main battery wants something its own size —
-   * rather than a second kind of turret.
-   */
-  targeting?: Partial<Targeting>;
+    /**
+     * What this mount goes after, where it differs from its archetype's default.
+     *
+     * Only the differences, and the rest comes from the kind rather than from
+     * the hull: a mount answers "which of the things I can train on do I
+     * shoot", which is not the question its ship answers about where to fly,
+     * and `focusWeight` is what ties the two together. This is what makes a
+     * close-in mount a close-in mount — "go for something a twentieth my ship's
+     * mass" on the same hull whose main battery wants something its own size —
+     * rather than a second kind of turret.
+     */
+    targeting?: Partial<Targeting>;
 
-  /**
-   * Whether this engine is pointed at things on purpose. Engines only.
-   *
-   * An exhaust burns whatever stands in it whoever meant it to (`exhaust.ts`),
-   * so this changes nothing about what a plume *does* — it changes when the
-   * engine burns. A weapon engine lights up on its own account the moment an
-   * enemy is close enough behind it to take a real share of the flame, whether
-   * or not the pilot wanted thrust just then, and the ship wears the push.
-   *
-   * A flag rather than a kind of module, because an engine used this way is
-   * the same engine: it is still what moves the ship, still costs what an
-   * engine costs, and can still be the only thing holding a heading. What a
-   * designer is choosing is a *role* for a mount already on the hull.
-   */
-  weapon?: boolean;
+    /**
+     * Whether this engine is pointed at things on purpose. Engines only.
+     *
+     * An exhaust burns whatever stands in it whoever meant it to (`exhaust.ts`),
+     * so this changes nothing about what a plume *does* — it changes when the
+     * engine burns. A weapon engine lights up on its own account the moment an
+     * enemy is close enough behind it to take a real share of the flame, whether
+     * or not the pilot wanted thrust just then, and the ship wears the push.
+     *
+     * A flag rather than a kind of module, because an engine used this way is
+     * the same engine: it is still what moves the ship, still costs what an
+     * engine costs, and can still be the only thing holding a heading. What a
+     * designer is choosing is a *role* for a mount already on the hull.
+     */
+    weapon?: boolean;
 
-  /**
-   * Whether this weapon is part of the ship's main battery: a gun, a beam, or
-   * an engine marked as a weapon. Main unless set false, so a designer marks
-   * the secondaries.
-   *
-   * A ship flies to its main guns' reach and is armed while one of them works,
-   * so losing its point defence does not make it think itself harmless. One
-   * with every weapon secondary, a carrier, has no main armament at all.
-   */
-  main?: boolean;
+    /**
+     * Whether this weapon is part of the ship's main battery: a gun, a beam, or
+     * an engine marked as a weapon. Main unless set false, so a designer marks
+     * the secondaries.
+     *
+     * A ship flies to its main guns' reach and is armed while one of them works,
+     * so losing its point defence does not make it think itself harmless. One
+     * with every weapon secondary, a carrier, has no main armament at all.
+     */
+    main?: boolean;
 
-  /**
-   * Whether this module is free of the deck's depth (`moduleThickness`):
-   * as deep as it is across, rather than held to `DECK_HEIGHT`. Nothing to a
-   * module no more than a deck across, which is as deep as it is wide either
-   * way (`canThicken`) — **except structure**, which may always be marked.
-   *
-   * What is thick stands up through the weapons layer as well as the hull
-   * (`inWeaponsLayer`). Thick structure is cover: it stops turret fire at whatever
-   * is behind it. A thick hull weapon or engine gets a wider barrel or
-   * nozzle, and machinery that keeps growing with the square of the width. It
-   * pays in wall, in turrets being able to reach it, and in the arcs of every
-   * turret it stands in front of.
-   *
-   * **Thick structure takes its depth from what it is welded to**, which is
-   * the whole of why a plate narrower than a deck may be marked at all. Held
-   * to its own width, a strip of plating laid along a thick module would stand
-   * a third as high as the thing it was meant to be covering and stop nothing
-   * aimed at it — so a thick plate is as deep as the deepest module it
-   * touches, and no thinner than it would have been on its own. It is paid for
-   * at that depth: a plate standing as high as a citadel has a citadel's area
-   * of wall to carry, so applique armour costs what the steel in it costs.
-   *
-   * A neighbour offers the depth it has *of its own* and never one it
-   * borrowed, so depth does not travel: a run of plating over a hull stands as
-   * high as whatever is under each part of it rather than carrying the best
-   * module's depth along the run.
-   */
-  thick?: boolean;
+    /**
+     * Whether this module is free of the deck's depth (`moduleThickness`):
+     * as deep as it is across, rather than held to `DECK_HEIGHT`. Nothing to a
+     * module no more than a deck across, which is as deep as it is wide either
+     * way (`canThicken`) — **except structure**, which may always be marked.
+     *
+     * What is thick stands up through the weapons layer as well as the hull
+     * (`inWeaponsLayer`). Thick structure is cover: it stops turret fire at whatever
+     * is behind it. A thick hull weapon or engine gets a wider barrel or
+     * nozzle, and machinery that keeps growing with the square of the width. It
+     * pays in wall, in turrets being able to reach it, and in the arcs of every
+     * turret it stands in front of.
+     *
+     * **Thick structure takes its depth from what it is welded to**, which is
+     * the whole of why a plate narrower than a deck may be marked at all. Held
+     * to its own width, a strip of plating laid along a thick module would stand
+     * a third as high as the thing it was meant to be covering and stop nothing
+     * aimed at it — so a thick plate is as deep as the deepest module it
+     * touches, and no thinner than it would have been on its own. It is paid for
+     * at that depth: a plate standing as high as a citadel has a citadel's area
+     * of wall to carry, so applique armour costs what the steel in it costs.
+     *
+     * A neighbour offers the depth it has *of its own* and never one it
+     * borrowed, so depth does not travel: a run of plating over a hull stands as
+     * high as whatever is under each part of it rather than carrying the best
+     * module's depth along the run.
+     */
+    thick?: boolean;
 
-  /**
-   * How thick a self-sealing lining is inside the walls, metres; zero or absent
-   * for none. A tank or a core only. Thicker closes a hole faster and closes a
-   * wider one (`SEAL_SPEED`, `SEAL_REACH`), and weighs more and holds less.
-   */
-  sealing?: number;
+    /**
+     * How thick a self-sealing lining is inside the walls, metres; zero or absent
+     * for none. A tank or a core only. Thicker closes a hole faster and closes a
+     * wider one (`SEAL_SPEED`, `SEAL_REACH`), and weighs more and holds less.
+     */
+    sealing?: number;
 
-  /**
-   * Which tanks an engine draws on first: the highest priority among those it
-   * is connected to, and the next once they are dry. A whole number, zero when
-   * absent. A tank or a core only. So a drop tank outboard can be emptied
-   * before the one buried behind the armour.
-   */
-  drainPriority?: number;
+    /**
+     * Which tanks an engine draws on first: the highest priority among those it
+     * is connected to, and the next once they are dry. A whole number, zero when
+     * absent. A tank or a core only. So a drop tank outboard can be emptied
+     * before the one buried behind the armour.
+     */
+    drainPriority?: number;
 
-  /**
-   * How full it starts, 0 to 1: all of it when absent. A tank or a core
-   * only. A ship sent out part full weighs less, so it costs less of a budget,
-   * and has to find the rest — from a wreck, or a carrier.
-   */
-  fill?: number;
+    /**
+     * How full it starts, 0 to 1: all of it when absent. A tank or a core
+     * only. A ship sent out part full weighs less, so it costs less of a budget,
+     * and has to find the rest — from a wreck, or a carrier.
+     */
+    fill?: number;
 
-  /**
-   * The share of a core's interior that computes, 0 to 1, rather than holding
-   * stores: more reaches further (`controlRadius`). `CORE_COMPUTING_SHARE`
-   * when absent. A core only, and moot on one no bigger than
-   * `CORE_COMPUTING_VOLUME`, which is all computing.
-   */
-  computing?: number;
+    /**
+     * The share of a core's interior that computes, 0 to 1, rather than holding
+     * stores: more reaches further (`controlRadius`). `CORE_COMPUTING_SHARE`
+     * when absent. A core only, and moot on one no bigger than
+     * `CORE_COMPUTING_VOLUME`, which is all computing.
+     */
+    computing?: number;
 
-  /**
-   * What this pad or slipway builds, by name: the ship's own, or one in the
-   * blueprint's `hangar`. For a pad the fighter it sets out with (`docked`)
-   * and builds (`keep`).
-   */
-  craft?: string;
-  /** Whether the pad sets out with its `fighter` docked on it. A pad only. */
-  docked?: boolean;
-  /**
-   * How many of its `fighter` the pad keeps in the fight, building one from a
-   * core whenever it has fewer, counting the one it set out with. A pad only;
-   * none for 0, the default.
-   */
-  keep?: number;
-  /**
-   * Which way the ship a slipway builds lies on it, radians from the
-   * slipway's facing to the ship's: 0, the default, builds it bow first, and
-   * a quarter turn builds it side first, for a ship shorter than it is wide.
-   * A slipway only.
-   */
-  craftAngle?: number;
-  /**
-   * Whether this pad or slipway lays down a new craft only while its ship's
-   * claw holds something, and a slipway works only then, its claw holding on
-   * until what it builds is let go: a miner that builds where it mines, held
-   * still, rather than flying about with half a ship on its stern.
-   */
-  buildAnchored?: boolean;
+    /**
+     * What this pad or slipway builds, by name: the ship's own, or one in the
+     * blueprint's `hangar`. For a pad the fighter it sets out with (`docked`)
+     * and builds (`keep`).
+     */
+    craft?: string;
+    /** Whether the pad sets out with its `fighter` docked on it. A pad only. */
+    docked?: boolean;
+    /**
+     * How many of its `fighter` the pad keeps in the fight, building one from a
+     * core whenever it has fewer, counting the one it set out with. A pad only;
+     * none for 0, the default.
+     */
+    keep?: number;
+    /**
+     * Which way the ship a slipway builds lies on it, radians from the
+     * slipway's facing to the ship's: 0, the default, builds it bow first, and
+     * a quarter turn builds it side first, for a ship shorter than it is wide.
+     * A slipway only.
+     */
+    craftAngle?: number;
+    /**
+     * Whether this pad or slipway lays down a new craft only while its ship's
+     * claw holds something, and a slipway works only then, its claw holding on
+     * until what it builds is let go: a miner that builds where it mines, held
+     * still, rather than flying about with half a ship on its stern.
+     */
+    buildAnchored?: boolean;
 
-  /**
-   * Why this module is here, in the author's own words. Carried through the
-   * file format and the editor, and ignored by every scaling law.
-   *
-   * It exists because the alternative is losing the reasoning: a layout's
-   * numbers say what a ship is and never why it was drawn that way, and a
-   * comment in a source file does not survive being edited by a tool.
-   */
-  notes?: string;
-  /** Keys its file carried that nothing reads, kept to be written back (`UnreadKeys`). */
-  unread?: UnreadKeys;
+    /**
+     * Why this module is here, in the author's own words. Carried through the
+     * file format and the editor, and ignored by every scaling law.
+     *
+     * It exists because the alternative is losing the reasoning: a layout's
+     * numbers say what a ship is and never why it was drawn that way, and a
+     * comment in a source file does not survive being edited by a tool.
+     */
+    notes?: string;
+    /** Keys its file carried that nothing reads, kept to be written back (`UnreadKeys`). */
+    unread?: UnreadKeys;
 }
 
 export enum GunType {
-  Projectile = 0,
-  Beam = 1,
+    Projectile = 0,
+    Beam = 1,
 }
 
 /**
@@ -1320,134 +1320,134 @@ export enum GunType {
  * by `loaded` beside the other things the shell changes about the round.
  */
 export interface BurstStats {
-  /** How many fragments one round bursts into. */
-  fragments: number;
-  /** How wide one fragment is, metres. */
-  fragmentWidth: number;
-  /** How far they have spread by the time the burst reaches the aim point, metres. */
-  radius: number;
+    /** How many fragments one round bursts into. */
+    fragments: number;
+    /** How wide one fragment is, metres. */
+    fragmentWidth: number;
+    /** How far they have spread by the time the burst reaches the aim point, metres. */
+    radius: number;
 }
 
 /** What a gun derived from a turret module's geometry can do. */
 export interface GunStats {
-  /** What type of gun is this, projectile, beam etc. */
-  type: GunType;
-  /** Bore diameter, metres. */
-  calibre: number;
-  /** Muzzle to breech, metres. */
-  barrelLength: number;
-  /**
-   * How much of each barrel is braced, metres, out from its root: what it
-   * runs past `BARREL_CALIBRES`. Zero for a barrel that holds itself up.
-   */
-  braceLength: number;
-  /** Width of each strip of bracing, metres. */
-  braceWidth: number;
-  /** Number of barrels. */
-  barrelCount: number;
-  /** Centre-to-centre distance between adjacent barrels across the mount, metres. */
-  barrelSpacing: number;
-  /** Mass of one round, kg. */
-  roundMass: number;
-  /** Muzzle velocity, m/s. */
-  muzzleSpeed: number;
-  /** Kinetic energy of one round at the muzzle, joules. */
-  muzzleEnergy: number;
-  /** beam power at the muzzle, watts. */
-  beamPower: number;
-  /** Seconds spent reloading between shots: after a beam's burst, not including it. */
-  cycleTime: number;
-  /** Seconds a beam stays on. */
-  beamOnTime: number;
-  /** What its shell bursts into, or null for solid shot and for a beam. */
-  burst: BurstStats | null;
+    /** What type of gun is this, projectile, beam etc. */
+    type: GunType;
+    /** Bore diameter, metres. */
+    calibre: number;
+    /** Muzzle to breech, metres. */
+    barrelLength: number;
+    /**
+     * How much of each barrel is braced, metres, out from its root: what it
+     * runs past `BARREL_CALIBRES`. Zero for a barrel that holds itself up.
+     */
+    braceLength: number;
+    /** Width of each strip of bracing, metres. */
+    braceWidth: number;
+    /** Number of barrels. */
+    barrelCount: number;
+    /** Centre-to-centre distance between adjacent barrels across the mount, metres. */
+    barrelSpacing: number;
+    /** Mass of one round, kg. */
+    roundMass: number;
+    /** Muzzle velocity, m/s. */
+    muzzleSpeed: number;
+    /** Kinetic energy of one round at the muzzle, joules. */
+    muzzleEnergy: number;
+    /** beam power at the muzzle, watts. */
+    beamPower: number;
+    /** Seconds spent reloading between shots: after a beam's burst, not including it. */
+    cycleTime: number;
+    /** Seconds a beam stays on. */
+    beamOnTime: number;
+    /** What its shell bursts into, or null for solid shot and for a beam. */
+    burst: BurstStats | null;
 }
 
 /** Seconds from one shot to the next: a beam's burst, then its reload. */
 export function firingPeriod(gun: GunStats): number {
-  return gun.type === GunType.Beam ? gun.beamOnTime + gun.cycleTime : gun.cycleTime;
+    return gun.type === GunType.Beam ? gun.beamOnTime + gun.cycleTime : gun.cycleTime;
 }
 
 /** Everything the scaling laws derive from a module's geometry. */
 export interface ModuleStats {
-  /**
-   * How deep the module is, metres — `moduleThickness`, measured in the layout
-   * it sits in, so a thick plate's borrowed depth is recorded here rather than
-   * worked out again. What is deeper than `DECK_HEIGHT` stands in the weapons
-   * layer, and a severed chunk keeps the depth it was built with.
-   */
-  thickness: number;
-  /** Wall thickness after reinforcement, metres. Also the armour it presents. */
-  wallThickness: number;
-  /** Volume of structural material in the walls, m³. */
-  wallVolume: number;
-  /** Mass of that structure, kg. */
-  structureMass: number;
-  /** Mass of the archetype's machinery and fittings, kg. */
-  fittingMass: number;
-  /** Structure plus fittings, kg. */
-  mass: number;
-  /** Floor area left inside the walls, m². What a store can hold. */
-  capacity: number;
-  /**
-   * Moment of inertia about the module's own centre, kg·m². The box formula
-   * in the plane for the module itself — the deck height does not enter a
-   * rotation about the vertical axis — plus each barrel as a rod running out
-   * from that centre, which is where a turret's sluggishness comes from.
-   */
-  inertia: number;
-  /**
-   * Damage the module absorbs before it stops working. Its structure mass in
-   * kilograms — matter is what stops a shell, so there is no separate
-   * toughness constant to invent. A destroyed module keeps that matter and
-   * goes on stopping shells (DESIGN.md §4); this is only the threshold at
-   * which it stops *functioning*.
-   */
-  hitPoints: number;
-  /** Thrust at full throttle, newtons. Zero unless the module is an engine. */
-  thrust: number;
-  /**
-   * How fast the exhaust leaves along the axis, m/s: thrust per kilogram of
-   * fuel a second. Zero unless the module is an engine.
-   */
-  exhaustVelocity: number;
-  /** Fuel the module holds when full, kg, counted in `mass`. Zero unless it is a tank. */
-  fuel: number;
-  /** Metal the module holds when full, kg, counted in `mass`. Zero unless it is a hold. */
-  metal: number;
-  /** Self-sealing lining inside the walls, metres; zero for none. */
-  lining: number;
-  /** Volume inside the walls and the lining, m³. */
-  interior: number;
-  /** Gun derived from the mount, or null unless the module is a weapon. */
-  gun: GunStats | null;
-  /**
-   * Mass of the gear that trains this weapon, kg, and zero for everything
-   * else. Part of `fittingMass`, named separately because it is the one part
-   * of a mount that its *arc* decides rather than its bore.
-   */
-  traverseMass: number;
-  /**
-   * Moment the traverse drive has to swing, about the point it swings it,
-   * kg·m². The whole module for anything that turns bodily, and the barrels
-   * alone about their root for a hull mount — which is why a gun let into a
-   * hull trains briskly through the very little arc it has.
-   */
-  swingInertia: number;
-  /** Fuel a claw, a pad or a port pumps across what it holds, kg/s. Zero for anything else. */
-  pumpRate: number;
-  /** Energy the module holds when full, J. Zero unless it is a battery or a core. */
-  charge: number;
-  /** The most it can take in or give out, W. Zero unless it is a battery or a core. */
-  chargeRate: number;
-  /** What it makes, W. Zero unless it is a generator or a core. */
-  generation: number;
-  /** Robots it berths. Zero unless it is a robot bay. */
-  robots: number;
-  /** How intricate it is to make or mend (`complexityOf`), in units of `COMPLEXITY_WORK`. */
-  complexity: number;
-  /** How far a core controls modules from its centre, metres (`controlRadius`); zero for anything else. */
-  controlRadius: number;
+    /**
+     * How deep the module is, metres — `moduleThickness`, measured in the layout
+     * it sits in, so a thick plate's borrowed depth is recorded here rather than
+     * worked out again. What is deeper than `DECK_HEIGHT` stands in the weapons
+     * layer, and a severed chunk keeps the depth it was built with.
+     */
+    thickness: number;
+    /** Wall thickness after reinforcement, metres. Also the armour it presents. */
+    wallThickness: number;
+    /** Volume of structural material in the walls, m³. */
+    wallVolume: number;
+    /** Mass of that structure, kg. */
+    structureMass: number;
+    /** Mass of the archetype's machinery and fittings, kg. */
+    fittingMass: number;
+    /** Structure plus fittings, kg. */
+    mass: number;
+    /** Floor area left inside the walls, m². What a store can hold. */
+    capacity: number;
+    /**
+     * Moment of inertia about the module's own centre, kg·m². The box formula
+     * in the plane for the module itself — the deck height does not enter a
+     * rotation about the vertical axis — plus each barrel as a rod running out
+     * from that centre, which is where a turret's sluggishness comes from.
+     */
+    inertia: number;
+    /**
+     * Damage the module absorbs before it stops working. Its structure mass in
+     * kilograms — matter is what stops a shell, so there is no separate
+     * toughness constant to invent. A destroyed module keeps that matter and
+     * goes on stopping shells (DESIGN.md §4); this is only the threshold at
+     * which it stops *functioning*.
+     */
+    hitPoints: number;
+    /** Thrust at full throttle, newtons. Zero unless the module is an engine. */
+    thrust: number;
+    /**
+     * How fast the exhaust leaves along the axis, m/s: thrust per kilogram of
+     * fuel a second. Zero unless the module is an engine.
+     */
+    exhaustVelocity: number;
+    /** Fuel the module holds when full, kg, counted in `mass`. Zero unless it is a tank. */
+    fuel: number;
+    /** Metal the module holds when full, kg, counted in `mass`. Zero unless it is a hold. */
+    metal: number;
+    /** Self-sealing lining inside the walls, metres; zero for none. */
+    lining: number;
+    /** Volume inside the walls and the lining, m³. */
+    interior: number;
+    /** Gun derived from the mount, or null unless the module is a weapon. */
+    gun: GunStats | null;
+    /**
+     * Mass of the gear that trains this weapon, kg, and zero for everything
+     * else. Part of `fittingMass`, named separately because it is the one part
+     * of a mount that its *arc* decides rather than its bore.
+     */
+    traverseMass: number;
+    /**
+     * Moment the traverse drive has to swing, about the point it swings it,
+     * kg·m². The whole module for anything that turns bodily, and the barrels
+     * alone about their root for a hull mount — which is why a gun let into a
+     * hull trains briskly through the very little arc it has.
+     */
+    swingInertia: number;
+    /** Fuel a claw, a pad or a port pumps across what it holds, kg/s. Zero for anything else. */
+    pumpRate: number;
+    /** Energy the module holds when full, J. Zero unless it is a battery or a core. */
+    charge: number;
+    /** The most it can take in or give out, W. Zero unless it is a battery or a core. */
+    chargeRate: number;
+    /** What it makes, W. Zero unless it is a generator or a core. */
+    generation: number;
+    /** Robots it berths. Zero unless it is a robot bay. */
+    robots: number;
+    /** How intricate it is to make or mend (`complexityOf`), in units of `COMPLEXITY_WORK`. */
+    complexity: number;
+    /** How far a core controls modules from its centre, metres (`controlRadius`); zero for anything else. */
+    controlRadius: number;
 }
 
 /**
@@ -1470,139 +1470,139 @@ const CENTROID_TOLERANCE = 1e-6;
  * than catch an exception, and so the reasons live in one place.
  */
 export function moduleProblem(spec: ModuleSpec): string | null {
-  if (!(spec.length > 0) || !(spec.width > 0)) {
-    return `${spec.kind}: length and width must be positive, got ${spec.length}x${spec.width}`;
-  }
-  if (spec.vertices !== undefined) {
-    // Not dormant the way a bell is: a shape nothing reads is a module drawn
-    // as something other than what it weighs, so the kind has to admit it
-    // rather than carry it until a refit back.
-    if (!canShape(spec.kind)) {
-      return `${spec.kind}: only structure, tanks and holds may be given corners`;
+    if (!(spec.length > 0) || !(spec.width > 0)) {
+        return `${spec.kind}: length and width must be positive, got ${spec.length}x${spec.width}`;
     }
-    const [fewest, most] = cornersAllowed(spec.kind);
-    const corners = spec.vertices.length / 2;
-    if (spec.vertices.length % 2 !== 0 || corners < fewest || corners > most) {
-      const wanted = fewest === most ? `${fewest}` : `${fewest} to ${most}`;
-      return `${spec.kind}: a shaped module takes ${wanted} corners as x,y pairs, got ${corners}`;
+    if (spec.vertices !== undefined) {
+        // Not dormant the way a bell is: a shape nothing reads is a module drawn
+        // as something other than what it weighs, so the kind has to admit it
+        // rather than carry it until a refit back.
+        if (!canShape(spec.kind)) {
+            return `${spec.kind}: only structure, tanks and holds may be given corners`;
+        }
+        const [fewest, most] = cornersAllowed(spec.kind);
+        const corners = spec.vertices.length / 2;
+        if (spec.vertices.length % 2 !== 0 || corners < fewest || corners > most) {
+            const wanted = fewest === most ? `${fewest}` : `${fewest} to ${most}`;
+            return `${spec.kind}: a shaped module takes ${wanted} corners as x,y pairs, got ${corners}`;
+        }
+        for (const value of spec.vertices) {
+            if (!Number.isFinite(value)) return `${spec.kind}: a corner is not a number`;
+        }
+        if (polygonArea(spec.vertices) <= 0) {
+            return `${spec.kind}: corners in a line enclose nothing`;
+        }
+        if ((spec.kind === "kernel" || spec.kind === "rock") && !isConvexAnticlockwise(spec.vertices)) {
+            return `${spec.kind}: corners must make a convex outline, wound anticlockwise`;
+        }
+        // The centroid is the module's position, which is what keeps `x`/`y`
+        // meaning the same thing it means for a box (`normalizeShape`).
+        const centroid = { x: 0, y: 0 };
+        polygonCentroid(spec.vertices, centroid);
+        if (abs(centroid.x) > CENTROID_TOLERANCE || abs(centroid.y) > CENTROID_TOLERANCE) {
+            return `${spec.kind}: corners must be centred on the module's own middle`;
+        }
     }
-    for (const value of spec.vertices) {
-      if (!Number.isFinite(value)) return `${spec.kind}: a corner is not a number`;
+    const ore = spec.ore ?? 0;
+    const ice = spec.ice ?? 0;
+    if (!(ore >= 0) || !(ice >= 0) || !(ore + ice <= 1)) {
+        return `${spec.kind}: ore and ice are shares, at least 0 and together no more than 1, got ${ore} and ${ice}`;
     }
-    if (polygonArea(spec.vertices) <= 0) {
-      return `${spec.kind}: corners in a line enclose nothing`;
+    const reinforcement = spec.reinforcement ?? 1;
+    if (!(reinforcement >= 1)) {
+        return `${spec.kind}: reinforcement must be at least 1, got ${reinforcement}`;
     }
-    if ((spec.kind === 'kernel' || spec.kind === 'rock') && !isConvexAnticlockwise(spec.vertices)) {
-      return `${spec.kind}: corners must make a convex outline, wound anticlockwise`;
+    if (spec.barrels !== undefined) {
+        // Whole barrels only. A fractional count divides the calibre and the cycle
+        // time perfectly happily, so nothing downstream complains — but the firing
+        // order steps through it modulo the count, landing on positions between
+        // barrels, while a renderer counting whole barrels draws a different number
+        // from the one the gun fires out of.
+        if (!(spec.barrels >= 1) || !Number.isInteger(spec.barrels)) {
+            return `${spec.kind}: barrels must be a whole number of at least 1, got ${spec.barrels}`;
+        }
     }
-    // The centroid is the module's position, which is what keeps `x`/`y`
-    // meaning the same thing it means for a box (`normalizeShape`).
-    const centroid = { x: 0, y: 0 };
-    polygonCentroid(spec.vertices, centroid);
-    if (abs(centroid.x) > CENTROID_TOLERANCE || abs(centroid.y) > CENTROID_TOLERANCE) {
-      return `${spec.kind}: corners must be centred on the module's own middle`;
+    if (spec.nozzle !== undefined) {
+        // No bell at all is legal, and a bad engine; a long one is held in check
+        // by what it runs into rather than by a rule of its own.
+        if (!(spec.nozzle >= 0) || !Number.isFinite(spec.nozzle)) {
+            return `${spec.kind}: nozzle must be at least 0 exit widths, got ${spec.nozzle}`;
+        }
+        // On a kind that does not read it the value is dormant — kept against a
+        // refit back rather than refused, see `readsNozzle` — so only the range
+        // applies there.
     }
-  }
-  const ore = spec.ore ?? 0;
-  const ice = spec.ice ?? 0;
-  if (!(ore >= 0) || !(ice >= 0) || !(ore + ice <= 1)) {
-    return `${spec.kind}: ore and ice are shares, at least 0 and together no more than 1, got ${ore} and ${ice}`;
-  }
-  const reinforcement = spec.reinforcement ?? 1;
-  if (!(reinforcement >= 1)) {
-    return `${spec.kind}: reinforcement must be at least 1, got ${reinforcement}`;
-  }
-  if (spec.barrels !== undefined) {
-    // Whole barrels only. A fractional count divides the calibre and the cycle
-    // time perfectly happily, so nothing downstream complains — but the firing
-    // order steps through it modulo the count, landing on positions between
-    // barrels, while a renderer counting whole barrels draws a different number
-    // from the one the gun fires out of.
-    if (!(spec.barrels >= 1) || !Number.isInteger(spec.barrels)) {
-      return `${spec.kind}: barrels must be a whole number of at least 1, got ${spec.barrels}`;
+    if (spec.barrelCalibres !== undefined) {
+        // Dormant on a kind that does not read it, as a bell is: only the range.
+        if (!(spec.barrelCalibres > 0) || !(spec.barrelCalibres <= MAX_BARREL_CALIBRES)) {
+            return `${spec.kind}: barrel must be more than 0 and at most ${MAX_BARREL_CALIBRES} calibres, got ${spec.barrelCalibres}`;
+        }
     }
-  }
-  if (spec.nozzle !== undefined) {
-    // No bell at all is legal, and a bad engine; a long one is held in check
-    // by what it runs into rather than by a rule of its own.
-    if (!(spec.nozzle >= 0) || !Number.isFinite(spec.nozzle)) {
-      return `${spec.kind}: nozzle must be at least 0 exit widths, got ${spec.nozzle}`;
+    if (spec.traverse !== undefined && !(spec.traverse >= 0)) {
+        // Dormant on a kind that does not train, as a bell is on a gun mount: only
+        // the range applies there. See `isWeaponMount`.
+        return `${spec.kind}: traverse must be at least 0, got ${spec.traverse}`;
     }
-    // On a kind that does not read it the value is dormant — kept against a
-    // refit back rather than refused, see `readsNozzle` — so only the range
-    // applies there.
-  }
-  if (spec.barrelCalibres !== undefined) {
-    // Dormant on a kind that does not read it, as a bell is: only the range.
-    if (!(spec.barrelCalibres > 0) || !(spec.barrelCalibres <= MAX_BARREL_CALIBRES)) {
-      return `${spec.kind}: barrel must be more than 0 and at most ${MAX_BARREL_CALIBRES} calibres, got ${spec.barrelCalibres}`;
+    if (spec.fuse !== undefined && !(spec.fuse >= 0)) {
+        return `${spec.kind}: fuse must be at least 0, got ${spec.fuse}`;
     }
-  }
-  if (spec.traverse !== undefined && !(spec.traverse >= 0)) {
-    // Dormant on a kind that does not train, as a bell is on a gun mount: only
-    // the range applies there. See `isWeaponMount`.
-    return `${spec.kind}: traverse must be at least 0, got ${spec.traverse}`;
-  }
-  if (spec.fuse !== undefined && !(spec.fuse >= 0)) {
-    return `${spec.kind}: fuse must be at least 0, got ${spec.fuse}`;
-  }
-  if (spec.fragments !== undefined && !(Number.isInteger(spec.fragments) && spec.fragments >= 0 && spec.fragments <= MAX_FRAGMENTS)) {
-    return `${spec.kind}: fragments must be a whole number from 0 to ${MAX_FRAGMENTS}, got ${spec.fragments}`;
-  }
-  if (spec.sealing !== undefined && !(spec.sealing >= 0)) {
-    return `${spec.kind}: sealing must be at least 0, got ${spec.sealing}`;
-  }
-  if (spec.fill !== undefined && !(spec.fill >= 0 && spec.fill <= 1)) {
-    return `${spec.kind}: fill must be from 0 to 1, got ${spec.fill}`;
-  }
-  if (spec.computing !== undefined && !(spec.computing >= 0 && spec.computing <= 1)) {
-    return `${spec.kind}: computing must be from 0 to 1, got ${spec.computing}`;
-  }
-  if (spec.drainPriority !== undefined && !Number.isInteger(spec.drainPriority)) {
-    return `${spec.kind}: drain priority must be a whole number, got ${spec.drainPriority}`;
-  }
-  if (spec.burstSpeed !== undefined && !(spec.burstSpeed > 0)) {
-    return `${spec.kind}: burst speed must be more than 0, got ${spec.burstSpeed}`;
-  }
-  const thickness = BASE_WALL_THICKNESS * reinforcement;
-  // For an engine it is the machinery block that has to be a box: the bell is
-  // meant to be open at both ends. This is also what makes "all nozzle"
-  // impossible by running out of block rather than by a rule of its own.
-  const boxLength =
-    spec.kind === 'engine'
-      ? engineGeometry(spec).machineryLength
-      : isHullMount(spec.kind)
-        ? hullMountGeometry(spec).blockLength
-        : spec.length;
-  const smallest = boxLength < spec.width ? boxLength : spec.width;
-  const thick = moduleThickness(spec);
-  const limiting = smallest < thick ? smallest : thick;
-  if (2 * thickness >= limiting) {
-    return `${spec.kind}: walls ${thickness.toFixed(3)} m thick leave no interior in a ` + `${boxLength}x${spec.width} m module`;
-  }
-  if (2 * (thickness + liningOf(spec)) >= limiting) {
-    return `${spec.kind}: a ${(liningOf(spec) * 1000).toFixed(0)} mm sealing lining leaves no room inside`;
-  }
-  if (isHullMount(spec.kind)) {
-    const { traverse, outletWidth } = hullMountGeometry(spec);
-    // A mount whose barrel cannot move at all is a gun welded pointing one
-    // way, which is a fixed gun rather than a broken module — but one whose
-    // outlets have no bore left is nothing at all.
-    if (!(outletWidth > 0)) return `${spec.kind}: ${spec.barrels ?? 1} outlets leave no bore`;
-    if (!(traverse >= 0)) return `${spec.kind}: barrel does not fit its own opening`;
-  }
-  if (spec.kind === 'engine') {
-    const { exitWidth, throatWidth } = engineGeometry(spec);
-    const skin = thickness * NOZZLE_SKIN_FRACTION;
-    if (2 * skin >= throatWidth) {
-      return (
-        `${spec.kind}: ${spec.barrels ?? 1} nozzles across ${spec.width} m leave a ` +
-        `${throatWidth.toFixed(3)} m throat, which is all skin`
-      );
+    if (spec.fragments !== undefined && !(Number.isInteger(spec.fragments) && spec.fragments >= 0 && spec.fragments <= MAX_FRAGMENTS)) {
+        return `${spec.kind}: fragments must be a whole number from 0 to ${MAX_FRAGMENTS}, got ${spec.fragments}`;
     }
-    if (exitWidth <= 0) return `${spec.kind}: nozzles leave no exit`;
-  }
-  return null;
+    if (spec.sealing !== undefined && !(spec.sealing >= 0)) {
+        return `${spec.kind}: sealing must be at least 0, got ${spec.sealing}`;
+    }
+    if (spec.fill !== undefined && !(spec.fill >= 0 && spec.fill <= 1)) {
+        return `${spec.kind}: fill must be from 0 to 1, got ${spec.fill}`;
+    }
+    if (spec.computing !== undefined && !(spec.computing >= 0 && spec.computing <= 1)) {
+        return `${spec.kind}: computing must be from 0 to 1, got ${spec.computing}`;
+    }
+    if (spec.drainPriority !== undefined && !Number.isInteger(spec.drainPriority)) {
+        return `${spec.kind}: drain priority must be a whole number, got ${spec.drainPriority}`;
+    }
+    if (spec.burstSpeed !== undefined && !(spec.burstSpeed > 0)) {
+        return `${spec.kind}: burst speed must be more than 0, got ${spec.burstSpeed}`;
+    }
+    const thickness = BASE_WALL_THICKNESS * reinforcement;
+    // For an engine it is the machinery block that has to be a box: the bell is
+    // meant to be open at both ends. This is also what makes "all nozzle"
+    // impossible by running out of block rather than by a rule of its own.
+    const boxLength =
+        spec.kind === "engine"
+            ? engineGeometry(spec).machineryLength
+            : isHullMount(spec.kind)
+              ? hullMountGeometry(spec).blockLength
+              : spec.length;
+    const smallest = boxLength < spec.width ? boxLength : spec.width;
+    const thick = moduleThickness(spec);
+    const limiting = smallest < thick ? smallest : thick;
+    if (2 * thickness >= limiting) {
+        return `${spec.kind}: walls ${thickness.toFixed(3)} m thick leave no interior in a ` + `${boxLength}x${spec.width} m module`;
+    }
+    if (2 * (thickness + liningOf(spec)) >= limiting) {
+        return `${spec.kind}: a ${(liningOf(spec) * 1000).toFixed(0)} mm sealing lining leaves no room inside`;
+    }
+    if (isHullMount(spec.kind)) {
+        const { traverse, outletWidth } = hullMountGeometry(spec);
+        // A mount whose barrel cannot move at all is a gun welded pointing one
+        // way, which is a fixed gun rather than a broken module — but one whose
+        // outlets have no bore left is nothing at all.
+        if (!(outletWidth > 0)) return `${spec.kind}: ${spec.barrels ?? 1} outlets leave no bore`;
+        if (!(traverse >= 0)) return `${spec.kind}: barrel does not fit its own opening`;
+    }
+    if (spec.kind === "engine") {
+        const { exitWidth, throatWidth } = engineGeometry(spec);
+        const skin = thickness * NOZZLE_SKIN_FRACTION;
+        if (2 * skin >= throatWidth) {
+            return (
+                `${spec.kind}: ${spec.barrels ?? 1} nozzles across ${spec.width} m leave a ` +
+                `${throatWidth.toFixed(3)} m throat, which is all skin`
+            );
+        }
+        if (exitWidth <= 0) return `${spec.kind}: nozzles leave no exit`;
+    }
+    return null;
 }
 
 /** The scaling laws, applied. Throws if the module could not exist. */
@@ -1618,23 +1618,23 @@ export function moduleProblem(spec: ModuleSpec): string | null {
  * than one held back over a rounding.
  */
 export function moduleRadius(spec: ModuleSpec): number {
-  spec = bodySpec(spec);
-  const triangle = shapeOf(spec);
-  // A triangle's furthest corner, which is exact rather than conservative:
-  // the box round it is not centred on it, so the box's half-diagonal is
-  // neither a bound nor a useful approximation of one.
-  if (triangle !== null) return triangleRadius(triangle);
-  return sqrt(spec.length * spec.length + spec.width * spec.width) / 2;
+    spec = bodySpec(spec);
+    const triangle = shapeOf(spec);
+    // A triangle's furthest corner, which is exact rather than conservative:
+    // the box round it is not centred on it, so the box's half-diagonal is
+    // neither a bound nor a useful approximation of one.
+    if (triangle !== null) return triangleRadius(triangle);
+    return sqrt(spec.length * spec.length + spec.width * spec.width) / 2;
 }
 
 /** Whether a kind has something reaching out of its block: a bell or a barrel. */
 function protrudes(kind: ModuleKind): boolean {
-  return kind === 'engine' || isHullMount(kind);
+    return kind === "engine" || isHullMount(kind);
 }
 
 /** How long an engine's bell is, metres: so many exit widths. */
 function bellLength(spec: ModuleSpec): number {
-  return (spec.nozzle ?? DEFAULT_NOZZLE_WIDTHS) * moduleThickness(spec);
+    return (spec.nozzle ?? DEFAULT_NOZZLE_WIDTHS) * moduleThickness(spec);
 }
 
 /**
@@ -1653,21 +1653,21 @@ function bellLength(spec: ModuleSpec): number {
  * to any of them. Kinds with nothing protruding are their own body.
  */
 export function bodySpec(spec: ModuleSpec): ModuleSpec {
-  if (spec.body === true || !protrudes(spec.kind)) return spec;
-  if (spec.kind === 'engine') {
-    // The bell goes on the end away from the face it is bolted on by, which is
-    // where the position already is.
-    return { ...spec, length: spec.length + bellLength(spec), body: true };
-  }
-  const barrel = hullBarrelLength(spec);
-  const angle = spec.angle ?? 0;
-  return {
-    ...spec,
-    length: spec.length + barrel,
-    x: spec.x + cos(angle) * barrel * 0.5,
-    y: spec.y + sin(angle) * barrel * 0.5,
-    body: true,
-  };
+    if (spec.body === true || !protrudes(spec.kind)) return spec;
+    if (spec.kind === "engine") {
+        // The bell goes on the end away from the face it is bolted on by, which is
+        // where the position already is.
+        return { ...spec, length: spec.length + bellLength(spec), body: true };
+    }
+    const barrel = hullBarrelLength(spec);
+    const angle = spec.angle ?? 0;
+    return {
+        ...spec,
+        length: spec.length + barrel,
+        x: spec.x + cos(angle) * barrel * 0.5,
+        y: spec.y + sin(angle) * barrel * 0.5,
+        body: true,
+    };
 }
 
 /**
@@ -1676,11 +1676,11 @@ export function bodySpec(spec: ModuleSpec): ModuleSpec {
  * with nothing protruding it is `moduleCentre`.
  */
 export function blockCentre(spec: ModuleSpec): { x: number; y: number } {
-  const block = spec.body === true ? weldBox(spec) : spec;
-  if (block.kind !== 'engine') return { x: block.x, y: block.y };
-  const angle = boxAngle(block);
-  const back = block.length / 2;
-  return { x: block.x - cos(angle) * back, y: block.y - sin(angle) * back };
+    const block = spec.body === true ? weldBox(spec) : spec;
+    if (block.kind !== "engine") return { x: block.x, y: block.y };
+    const angle = boxAngle(block);
+    const back = block.length / 2;
+    return { x: block.x - cos(angle) * back, y: block.y - sin(angle) * back };
 }
 
 /**
@@ -1694,12 +1694,12 @@ export function blockCentre(spec: ModuleSpec): { x: number; y: number } {
  * the middle, which for an engine is half its length out.
  */
 export function moduleCentre(spec: ModuleSpec): { x: number; y: number } {
-  spec = bodySpec(spec);
-  if (spec.kind !== 'engine') return { x: spec.x, y: spec.y };
-  // The box runs from the mounting face against the way it pushes.
-  const angle = boxAngle(spec);
-  const back = spec.length / 2;
-  return { x: spec.x - cos(angle) * back, y: spec.y - sin(angle) * back };
+    spec = bodySpec(spec);
+    if (spec.kind !== "engine") return { x: spec.x, y: spec.y };
+    // The box runs from the mounting face against the way it pushes.
+    const angle = boxAngle(spec);
+    const back = spec.length / 2;
+    return { x: spec.x - cos(angle) * back, y: spec.y - sin(angle) * back };
 }
 
 /**
@@ -1715,10 +1715,10 @@ export function moduleCentre(spec: ModuleSpec): { x: number; y: number } {
  * every geometric question about a module's box asks this, not `angle`.
  */
 export function boxAngle(spec: ModuleSpec): number {
-  const angle = spec.angle ?? 0;
-  if (spec.kind !== 'engine') return angle;
-  const turned = angle + PI;
-  return turned > PI ? turned - 2 * PI : turned;
+    const angle = spec.angle ?? 0;
+    if (spec.kind !== "engine") return angle;
+    const turned = angle + PI;
+    return turned > PI ? turned - 2 * PI : turned;
 }
 
 /**
@@ -1735,25 +1735,25 @@ export function boxAngle(spec: ModuleSpec): number {
  * since a tolerance is never meant to be a size.
  */
 export function grownOutline(spec: ModuleSpec, margin: number, out: number[]): number {
-  spec = bodySpec(spec);
-  const triangle = shapeOf(spec);
-  if (triangle !== null) {
-    const grown = insetTriangle(triangle, -margin);
-    return moduleOutline(grown === null ? spec : { ...spec, vertices: grown }, out);
-  }
-  const grown: ModuleSpec = {
-    ...spec,
-    length: spec.length + 2 * margin,
-    width: spec.width + 2 * margin,
-  };
-  // Grown about the middle it had. An engine's position is its mounting face
-  // and its middle is half its length from there, so lengthening one would
-  // otherwise walk it backwards into its own exhaust by the margin.
-  const was = moduleCentre(spec);
-  const now = moduleCentre(grown);
-  grown.x += was.x - now.x;
-  grown.y += was.y - now.y;
-  return moduleOutline(grown, out);
+    spec = bodySpec(spec);
+    const triangle = shapeOf(spec);
+    if (triangle !== null) {
+        const grown = insetTriangle(triangle, -margin);
+        return moduleOutline(grown === null ? spec : { ...spec, vertices: grown }, out);
+    }
+    const grown: ModuleSpec = {
+        ...spec,
+        length: spec.length + 2 * margin,
+        width: spec.width + 2 * margin,
+    };
+    // Grown about the middle it had. An engine's position is its mounting face
+    // and its middle is half its length from there, so lengthening one would
+    // otherwise walk it backwards into its own exhaust by the margin.
+    const was = moduleCentre(spec);
+    const now = moduleCentre(grown);
+    grown.x += was.x - now.x;
+    grown.y += was.y - now.y;
+    return moduleOutline(grown, out);
 }
 
 /**
@@ -1771,40 +1771,40 @@ export function grownOutline(spec: ModuleSpec, margin: number, out: number[]): n
  * which is how a triangle is squared off again.
  */
 export function shapeModule(spec: ModuleSpec, vertices: readonly number[] | null): ModuleSpec | null {
-  if (vertices === null) {
-    const squared = { ...spec };
-    const triangle = shapeOf(spec);
-    delete squared.vertices;
-    if (triangle === null) return squared;
-    // The box the corners fitted inside, left where that box was. A triangle's
-    // centroid is not the middle of that box, so leaving the position alone
-    // would slide the module as it squared off.
-    const bounds = triangleBounds(triangle);
+    if (vertices === null) {
+        const squared = { ...spec };
+        const triangle = shapeOf(spec);
+        delete squared.vertices;
+        if (triangle === null) return squared;
+        // The box the corners fitted inside, left where that box was. A triangle's
+        // centroid is not the middle of that box, so leaving the position alone
+        // would slide the module as it squared off.
+        const bounds = triangleBounds(triangle);
+        const angle = spec.angle ?? 0;
+        const c = cos(angle);
+        const s = sin(angle);
+        squared.length = bounds.length;
+        squared.width = bounds.width;
+        squared.x = tidy(spec.x + bounds.x * c - bounds.y * s);
+        squared.y = tidy(spec.y + bounds.x * s + bounds.y * c);
+        return squared;
+    }
+    if (!canShape(spec.kind)) return null;
+    const shape = normalizeShape(vertices);
+    if (shape === null) return null;
     const angle = spec.angle ?? 0;
     const c = cos(angle);
     const s = sin(angle);
-    squared.length = bounds.length;
-    squared.width = bounds.width;
-    squared.x = tidy(spec.x + bounds.x * c - bounds.y * s);
-    squared.y = tidy(spec.y + bounds.x * s + bounds.y * c);
-    return squared;
-  }
-  if (!canShape(spec.kind)) return null;
-  const shape = normalizeShape(vertices);
-  if (shape === null) return null;
-  const angle = spec.angle ?? 0;
-  const c = cos(angle);
-  const s = sin(angle);
-  const bounds = triangleBounds(shape.vertices);
-  return {
-    ...spec,
-    // The shift is in the module's own frame; its position is in the layout's.
-    x: tidy(spec.x + shape.dx * c - shape.dy * s),
-    y: tidy(spec.y + shape.dx * s + shape.dy * c),
-    length: bounds.length,
-    width: bounds.width,
-    vertices: shape.vertices,
-  };
+    const bounds = triangleBounds(shape.vertices);
+    return {
+        ...spec,
+        // The shift is in the module's own frame; its position is in the layout's.
+        x: tidy(spec.x + shape.dx * c - shape.dy * s),
+        y: tidy(spec.y + shape.dx * s + shape.dy * c),
+        length: bounds.length,
+        width: bounds.width,
+        vertices: shape.vertices,
+    };
 }
 
 /**
@@ -1828,38 +1828,38 @@ export function shapeModule(spec: ModuleSpec, vertices: readonly number[] | null
  * one array across a loop allocates nothing (non-negotiable 4).
  */
 export function moduleOutline(spec: ModuleSpec, out: number[]): number {
-  spec = bodySpec(spec);
-  const angle = boxAngle(spec);
-  const c = cos(angle);
-  const s = sin(angle);
-  const mid = moduleCentre(spec);
-  const triangle = shapeOf(spec);
+    spec = bodySpec(spec);
+    const angle = boxAngle(spec);
+    const c = cos(angle);
+    const s = sin(angle);
+    const mid = moduleCentre(spec);
+    const triangle = shapeOf(spec);
 
-  if (triangle !== null) {
-    for (let i = 0; i < triangle.length; i += 2) {
-      const x = triangle[i]!;
-      const y = triangle[i + 1]!;
-      out[i] = mid.x + x * c - y * s;
-      out[i + 1] = mid.y + x * s + y * c;
+    if (triangle !== null) {
+        for (let i = 0; i < triangle.length; i += 2) {
+            const x = triangle[i]!;
+            const y = triangle[i + 1]!;
+            out[i] = mid.x + x * c - y * s;
+            out[i + 1] = mid.y + x * s + y * c;
+        }
+        out.length = triangle.length;
+        return triangle.length / 2;
     }
-    out.length = triangle.length;
-    return triangle.length / 2;
-  }
 
-  const hl = spec.length * 0.5;
-  const hw = spec.width * 0.5;
-  // (+l,-w), (+l,+w), (-l,+w), (-l,-w): wound anticlockwise, as a triangle is
-  // stored, so that `outlineAxes` takes outward normals from either — and
-  // starting on the bow face, so a box's two axes come out along its length
-  // and then across it, which is the order the layout rules try them in.
-  for (let i = 0; i < MAX_CORNERS; i++) {
-    const dl = i < 2 ? hl : -hl;
-    const dw = i === 0 || i === 3 ? -hw : hw;
-    out[i * 2] = mid.x + dl * c - dw * s;
-    out[i * 2 + 1] = mid.y + dl * s + dw * c;
-  }
-  out.length = MAX_CORNERS * 2;
-  return MAX_CORNERS;
+    const hl = spec.length * 0.5;
+    const hw = spec.width * 0.5;
+    // (+l,-w), (+l,+w), (-l,+w), (-l,-w): wound anticlockwise, as a triangle is
+    // stored, so that `outlineAxes` takes outward normals from either — and
+    // starting on the bow face, so a box's two axes come out along its length
+    // and then across it, which is the order the layout rules try them in.
+    for (let i = 0; i < MAX_CORNERS; i++) {
+        const dl = i < 2 ? hl : -hl;
+        const dw = i === 0 || i === 3 ? -hw : hw;
+        out[i * 2] = mid.x + dl * c - dw * s;
+        out[i * 2 + 1] = mid.y + dl * s + dw * c;
+    }
+    out.length = MAX_CORNERS * 2;
+    return MAX_CORNERS;
 }
 
 /**
@@ -1875,29 +1875,29 @@ export function moduleOutline(spec: ModuleSpec, out: number[]): number {
  * Fields the new kind does not read are kept, so swapping back restores them.
  */
 export function refitModule(spec: ModuleSpec, to: ModuleKind, turn = 0): ModuleSpec {
-  const centre = blockCentre(spec);
-  const next: ModuleSpec = { ...spec, kind: to };
-  // Corners are the one field a refit cannot keep dormant: a kind with a bell
-  // or a barrel coming out of a face has to have the face. The module becomes
-  // the box its corners fitted inside, which is the same room on the hull.
-  if (next.vertices !== undefined && !canShape(to)) delete next.vertices;
-  if (turn !== 0) {
-    // Folded into (-π, π], so a file says 180 rather than 540 after a few turns.
-    let angle = (spec.angle ?? 0) + turn;
-    while (angle > PI) angle -= 2 * PI;
-    while (angle <= -PI) angle += 2 * PI;
-    next.angle = angle;
-  }
-  const placed = blockCentre({ ...next, x: 0, y: 0 });
-  next.x = tidy(centre.x - placed.x);
-  next.y = tidy(centre.y - placed.y);
-  return next;
+    const centre = blockCentre(spec);
+    const next: ModuleSpec = { ...spec, kind: to };
+    // Corners are the one field a refit cannot keep dormant: a kind with a bell
+    // or a barrel coming out of a face has to have the face. The module becomes
+    // the box its corners fitted inside, which is the same room on the hull.
+    if (next.vertices !== undefined && !canShape(to)) delete next.vertices;
+    if (turn !== 0) {
+        // Folded into (-π, π], so a file says 180 rather than 540 after a few turns.
+        let angle = (spec.angle ?? 0) + turn;
+        while (angle > PI) angle -= 2 * PI;
+        while (angle <= -PI) angle += 2 * PI;
+        next.angle = angle;
+    }
+    const placed = blockCentre({ ...next, x: 0, y: 0 });
+    next.x = tidy(centre.x - placed.x);
+    next.y = tidy(centre.y - placed.y);
+    return next;
 }
 
 /** Rounds away the last-bit noise a turn leaves, so a file does not gain 1e-16s. */
 function tidy(value: number): number {
-  const tidied = round(value * 1e9) / 1e9;
-  return tidied === 0 ? 0 : tidied;
+    const tidied = round(value * 1e9) / 1e9;
+    return tidied === 0 ? 0 : tidied;
 }
 
 /**
@@ -1930,56 +1930,56 @@ function tidy(value: number): number {
  * `engineExhaustVelocity`.
  */
 export interface EngineGeometry {
-  /** Nozzles across the exit face, at least one. */
-  nozzles: number;
-  /** The bell's share of the module's length, 0 to 1. */
-  share: number;
-  /** Length of the machinery block, metres. Always positive. */
-  machineryLength: number;
-  /** Length of the bell, metres. Zero for a throat with nothing on it. */
-  nozzleLength: number;
-  /** The share of the face each nozzle sits in, metres, centre to centre. */
-  pitch: number;
-  /** Exit width of one nozzle, metres: as wide as it is deep, so no wider than its pitch. */
-  exitWidth: number;
-  /** Exit height of every nozzle, metres: the engine's thickness. */
-  exitHeight: number;
-  /** Throat width of one nozzle, metres. */
-  throatWidth: number;
-  /** Bell half-angle, radians. A right angle when there is no bell. */
-  halfAngle: number;
-  /** Momentum kept along the axis, `(1 + cos a) / 2`: 0.5 to 1. */
-  divergence: number;
+    /** Nozzles across the exit face, at least one. */
+    nozzles: number;
+    /** The bell's share of the module's length, 0 to 1. */
+    share: number;
+    /** Length of the machinery block, metres. Always positive. */
+    machineryLength: number;
+    /** Length of the bell, metres. Zero for a throat with nothing on it. */
+    nozzleLength: number;
+    /** The share of the face each nozzle sits in, metres, centre to centre. */
+    pitch: number;
+    /** Exit width of one nozzle, metres: as wide as it is deep, so no wider than its pitch. */
+    exitWidth: number;
+    /** Exit height of every nozzle, metres: the engine's thickness. */
+    exitHeight: number;
+    /** Throat width of one nozzle, metres. */
+    throatWidth: number;
+    /** Bell half-angle, radians. A right angle when there is no bell. */
+    halfAngle: number;
+    /** Momentum kept along the axis, `(1 + cos a) / 2`: 0.5 to 1. */
+    divergence: number;
 }
 
 /** An engine's halves and its bell geometry. Engines only. */
 export function engineGeometry(spec: ModuleSpec): EngineGeometry {
-  spec = bodySpec(spec);
-  const nozzles = spec.barrels ?? 1;
-  const nozzleLength = bellLength(spec);
-  const share = nozzleLength / spec.length;
-  const pitch = spec.width / nozzles;
-  // Square: a thin engine's bell is held to a deck both ways.
-  const exitWidth = moduleThickness(spec);
-  const throatWidth = exitWidth * NOZZLE_THROAT_FRACTION;
-  // How far the wall has to travel sideways over the bell's length.
-  const flare = (exitWidth - throatWidth) * 0.5;
-  const halfAngle = atan2(flare, nozzleLength);
-  // cos of that angle without going back through a trig function, and exactly
-  // zero rather than nearly so when there is no bell at all.
-  const axial = nozzleLength > 0 ? nozzleLength / sqrt(nozzleLength * nozzleLength + flare * flare) : 0;
-  return {
-    nozzles,
-    share,
-    machineryLength: spec.length - nozzleLength,
-    nozzleLength,
-    pitch,
-    exitWidth,
-    exitHeight: exitWidth,
-    throatWidth,
-    halfAngle,
-    divergence: (1 + axial) * 0.5,
-  };
+    spec = bodySpec(spec);
+    const nozzles = spec.barrels ?? 1;
+    const nozzleLength = bellLength(spec);
+    const share = nozzleLength / spec.length;
+    const pitch = spec.width / nozzles;
+    // Square: a thin engine's bell is held to a deck both ways.
+    const exitWidth = moduleThickness(spec);
+    const throatWidth = exitWidth * NOZZLE_THROAT_FRACTION;
+    // How far the wall has to travel sideways over the bell's length.
+    const flare = (exitWidth - throatWidth) * 0.5;
+    const halfAngle = atan2(flare, nozzleLength);
+    // cos of that angle without going back through a trig function, and exactly
+    // zero rather than nearly so when there is no bell at all.
+    const axial = nozzleLength > 0 ? nozzleLength / sqrt(nozzleLength * nozzleLength + flare * flare) : 0;
+    return {
+        nozzles,
+        share,
+        machineryLength: spec.length - nozzleLength,
+        nozzleLength,
+        pitch,
+        exitWidth,
+        exitHeight: exitWidth,
+        throatWidth,
+        halfAngle,
+        divergence: (1 + axial) * 0.5,
+    };
 }
 
 /**
@@ -1991,13 +1991,13 @@ export function engineGeometry(spec: ModuleSpec): EngineGeometry {
  * walls. A long bell on a big throat is the efficient engine.
  */
 export function engineExhaustVelocity(geometry: EngineGeometry): number {
-  const small = SMALL_ENGINE_THROAT / (SMALL_ENGINE_THROAT + geometry.throatWidth);
-  return EXHAUST_VELOCITY * geometry.divergence * (1 - SMALL_ENGINE_LOSS * small);
+    const small = SMALL_ENGINE_THROAT / (SMALL_ENGINE_THROAT + geometry.throatWidth);
+    return EXHAUST_VELOCITY * geometry.divergence * (1 - SMALL_ENGINE_LOSS * small);
 }
 
 /** An exhaust velocity as a specific impulse, seconds. */
 export function specificImpulse(exhaustVelocity: number): number {
-  return exhaustVelocity / STANDARD_GRAVITY;
+    return exhaustVelocity / STANDARD_GRAVITY;
 }
 
 /**
@@ -2009,8 +2009,8 @@ export function specificImpulse(exhaustVelocity: number): number {
  * a change of one field rather than a second geometry.
  */
 export function engineMachinery(spec: ModuleSpec): ModuleSpec {
-  spec = bodySpec(spec);
-  return { ...spec, length: engineGeometry(spec).machineryLength };
+    spec = bodySpec(spec);
+    return { ...spec, length: engineGeometry(spec).machineryLength };
 }
 
 /**
@@ -2020,7 +2020,7 @@ export function engineMachinery(spec: ModuleSpec): ModuleSpec {
  * no deeper than a deck, and sit apart on a thin engine wider than that.
  */
 export function nozzleOffset(geometry: EngineGeometry, index: number): number {
-  return (index - (geometry.nozzles - 1) * 0.5) * geometry.pitch;
+    return (index - (geometry.nozzles - 1) * 0.5) * geometry.pitch;
 }
 
 /**
@@ -2033,13 +2033,13 @@ export function nozzleOffset(geometry: EngineGeometry, index: number): number {
  * length of machinery block does.
  */
 function nozzleSkinVolume(geometry: EngineGeometry, wallThickness: number): number {
-  const { nozzles, nozzleLength, exitWidth, exitHeight, throatWidth } = geometry;
-  if (!(nozzleLength > 0)) return 0;
-  const flare = (exitWidth - throatWidth) * 0.5;
-  const slant = sqrt(nozzleLength * nozzleLength + flare * flare);
-  const meanWidth = (exitWidth + throatWidth) * 0.5;
-  const area = 2 * slant * exitHeight + 2 * meanWidth * nozzleLength;
-  return area * wallThickness * NOZZLE_SKIN_FRACTION * nozzles;
+    const { nozzles, nozzleLength, exitWidth, exitHeight, throatWidth } = geometry;
+    if (!(nozzleLength > 0)) return 0;
+    const flare = (exitWidth - throatWidth) * 0.5;
+    const slant = sqrt(nozzleLength * nozzleLength + flare * flare);
+    const meanWidth = (exitWidth + throatWidth) * 0.5;
+    const area = 2 * slant * exitHeight + 2 * meanWidth * nozzleLength;
+    return area * wallThickness * NOZZLE_SKIN_FRACTION * nozzles;
 }
 
 /**
@@ -2052,21 +2052,21 @@ function nozzleSkinVolume(geometry: EngineGeometry, wallThickness: number): numb
  * face as well, which the single-box formula cannot see at all.
  */
 function engineInertia(spec: ModuleSpec, geometry: EngineGeometry, blockMass: number, skinMass: number): number {
-  const { machineryLength, nozzleLength, nozzles, exitWidth } = geometry;
-  // Both pieces are measured from the middle of the whole engine, which is
-  // half a bell ahead of the block's middle and half a block behind the
-  // bells'.
-  const blockOffset = nozzleLength * 0.5;
-  const bellOffset = machineryLength * 0.5;
-  let inertia = (blockMass * (machineryLength * machineryLength + spec.width * spec.width)) / 12 + blockMass * blockOffset * blockOffset;
+    const { machineryLength, nozzleLength, nozzles, exitWidth } = geometry;
+    // Both pieces are measured from the middle of the whole engine, which is
+    // half a bell ahead of the block's middle and half a block behind the
+    // bells'.
+    const blockOffset = nozzleLength * 0.5;
+    const bellOffset = machineryLength * 0.5;
+    let inertia = (blockMass * (machineryLength * machineryLength + spec.width * spec.width)) / 12 + blockMass * blockOffset * blockOffset;
 
-  const perBell = skinMass / nozzles;
-  for (let i = 0; i < nozzles; i++) {
-    const across = nozzleOffset(geometry, i);
-    inertia +=
-      (perBell * (nozzleLength * nozzleLength + exitWidth * exitWidth)) / 12 + perBell * (bellOffset * bellOffset + across * across);
-  }
-  return inertia;
+    const perBell = skinMass / nozzles;
+    for (let i = 0; i < nozzles; i++) {
+        const across = nozzleOffset(geometry, i);
+        inertia +=
+            (perBell * (nozzleLength * nozzleLength + exitWidth * exitWidth)) / 12 + perBell * (bellOffset * bellOffset + across * across);
+    }
+    return inertia;
 }
 
 /**
@@ -2092,119 +2092,119 @@ function engineInertia(spec: ModuleSpec, geometry: EngineGeometry, blockMass: nu
  * more, and a barrel too fat for its opening does not train at all.
  */
 export interface HullMountGeometry {
-  /** Barrels or lenses across the face, at least one. */
-  outlets: number;
-  /** The barrel's share of the module's length. */
-  share: number;
-  /** Length of the block, metres. Always positive. */
-  blockLength: number;
-  /** Length of the barrel or lens housing, metres. */
-  barrelLength: number;
-  /**
-   * How far it reaches out of the block, metres: a gun's barrel, or a beam's
-   * lenses out on their stalks (`BEAM_STALK_SHARE`).
-   */
-  reach: number;
-  /** Width of one barrel or lens, metres, after `HULL_BARREL_WIDTH_CAP`. */
-  outletWidth: number;
-  /** Centre to centre, metres: the face in `outlets + 1` gaps, as a turret's barrels. Zero for one. */
-  outletSpacing: number;
-  /** Across the whole row, outer edge to outer edge, metres. What swings in the opening. */
-  barrelWidth: number;
-  /** How far ahead of the module's centre the barrels pivot, metres: the block's front face. */
-  pivot: number;
-  /**
-   * How far ahead of the module's centre the mount trains, metres: a gun's
-   * barrel root, where its barrels share one mantlet; for a beam, the middle of
-   * its lenses, each turning about its own centre out on a stalk.
-   */
-  trains: number;
-  /** From where it trains to where a shot leaves, metres. */
-  muzzle: number;
-  /** Half-width of the traverse the opening leaves, radians. */
-  traverse: number;
+    /** Barrels or lenses across the face, at least one. */
+    outlets: number;
+    /** The barrel's share of the module's length. */
+    share: number;
+    /** Length of the block, metres. Always positive. */
+    blockLength: number;
+    /** Length of the barrel or lens housing, metres. */
+    barrelLength: number;
+    /**
+     * How far it reaches out of the block, metres: a gun's barrel, or a beam's
+     * lenses out on their stalks (`BEAM_STALK_SHARE`).
+     */
+    reach: number;
+    /** Width of one barrel or lens, metres, after `HULL_BARREL_WIDTH_CAP`. */
+    outletWidth: number;
+    /** Centre to centre, metres: the face in `outlets + 1` gaps, as a turret's barrels. Zero for one. */
+    outletSpacing: number;
+    /** Across the whole row, outer edge to outer edge, metres. What swings in the opening. */
+    barrelWidth: number;
+    /** How far ahead of the module's centre the barrels pivot, metres: the block's front face. */
+    pivot: number;
+    /**
+     * How far ahead of the module's centre the mount trains, metres: a gun's
+     * barrel root, where its barrels share one mantlet; for a beam, the middle of
+     * its lenses, each turning about its own centre out on a stalk.
+     */
+    trains: number;
+    /** From where it trains to where a shot leaves, metres. */
+    muzzle: number;
+    /** Half-width of the traverse the opening leaves, radians. */
+    traverse: number;
 }
 
 /** A hull mount's outlets and barrel, which its length does not enter into. */
 function hullOutlets(spec: ModuleSpec): {
-  outlets: number;
-  outletWidth: number;
-  outletSpacing: number;
-  barrelWidth: number;
-  barrelLength: number;
-  reach: number;
+    outlets: number;
+    outletWidth: number;
+    outletSpacing: number;
+    barrelWidth: number;
+    barrelLength: number;
+    reach: number;
 } {
-  const outlets = spec.barrels ?? 1;
-  // What a single outlet would be, and each of several split the way a
-  // turret splits it: tubes divide the bore, so each is `1/n` as wide; lenses
-  // divide the optic's area, so each is `1/√n` as wide.
-  const single =
-    spec.kind === 'hullBeam' ? HULL_APERTURE_FRACTION * spec.width : BARREL_OUTER_CALIBRES * HULL_CALIBRE_FRACTION * spec.width;
-  const each = spec.kind === 'hullBeam' ? single / sqrt(outlets) : single / outlets;
-  // Spread across the face as a turret's barrels are, one gap outboard of
-  // each end, so neighbours stand apart rather than touching.
-  const outletSpacing = outlets > 1 ? spec.width / (outlets + 1) : 0;
-  // No wider than the opening leaves room for, nor than the mount is deep:
-  // an outlet is always a cylinder the hull can hold.
-  const opening = HULL_BARREL_WIDTH_CAP * (outlets > 1 ? outletSpacing : spec.width);
-  const depth = moduleThickness(spec);
-  const cap = opening < depth ? opening : depth;
-  const outletWidth = each < cap ? each : cap;
-  const barrelWidth = (outlets - 1) * outletSpacing + outletWidth;
-  // A gun's barrel is as many calibres as it says; a lens housing is as deep
-  // as a turret's, since a shallower one is better in every way.
-  const barrelLength =
-    spec.kind === 'hullBeam' ? outletWidth * BEAM_EMITTER_APERTURES : (barrelCalibres(spec) * outletWidth) / BARREL_OUTER_CALIBRES;
-  const reach = spec.kind === 'hullBeam' ? barrelLength * (1 + BEAM_STALK_SHARE) : barrelLength;
-  return { outlets, outletWidth, outletSpacing, barrelWidth, barrelLength, reach };
+    const outlets = spec.barrels ?? 1;
+    // What a single outlet would be, and each of several split the way a
+    // turret splits it: tubes divide the bore, so each is `1/n` as wide; lenses
+    // divide the optic's area, so each is `1/√n` as wide.
+    const single =
+        spec.kind === "hullBeam" ? HULL_APERTURE_FRACTION * spec.width : BARREL_OUTER_CALIBRES * HULL_CALIBRE_FRACTION * spec.width;
+    const each = spec.kind === "hullBeam" ? single / sqrt(outlets) : single / outlets;
+    // Spread across the face as a turret's barrels are, one gap outboard of
+    // each end, so neighbours stand apart rather than touching.
+    const outletSpacing = outlets > 1 ? spec.width / (outlets + 1) : 0;
+    // No wider than the opening leaves room for, nor than the mount is deep:
+    // an outlet is always a cylinder the hull can hold.
+    const opening = HULL_BARREL_WIDTH_CAP * (outlets > 1 ? outletSpacing : spec.width);
+    const depth = moduleThickness(spec);
+    const cap = opening < depth ? opening : depth;
+    const outletWidth = each < cap ? each : cap;
+    const barrelWidth = (outlets - 1) * outletSpacing + outletWidth;
+    // A gun's barrel is as many calibres as it says; a lens housing is as deep
+    // as a turret's, since a shallower one is better in every way.
+    const barrelLength =
+        spec.kind === "hullBeam" ? outletWidth * BEAM_EMITTER_APERTURES : (barrelCalibres(spec) * outletWidth) / BARREL_OUTER_CALIBRES;
+    const reach = spec.kind === "hullBeam" ? barrelLength * (1 + BEAM_STALK_SHARE) : barrelLength;
+    return { outlets, outletWidth, outletSpacing, barrelWidth, barrelLength, reach };
 }
 
 /** How far a hull mount's barrel or lens housing reaches out of its block, metres. */
 function hullBarrelLength(spec: ModuleSpec): number {
-  return hullOutlets(spec).reach;
+    return hullOutlets(spec).reach;
 }
 
 /** A hull mount's halves, its outlets and the arc its own barrel leaves it. */
 export function hullMountGeometry(spec: ModuleSpec): HullMountGeometry {
-  spec = bodySpec(spec);
-  const { outlets, outletWidth, outletSpacing, barrelWidth, barrelLength, reach: out } = hullOutlets(spec);
-  const share = out / spec.length;
-  const blockLength = spec.length - out;
-  const pivot = spec.length * 0.5 - out;
+    spec = bodySpec(spec);
+    const { outlets, outletWidth, outletSpacing, barrelWidth, barrelLength, reach: out } = hullOutlets(spec);
+    const share = out / spec.length;
+    const blockLength = spec.length - out;
+    const pivot = spec.length * 0.5 - out;
 
-  // The corner of the swung barrel against the edge of the opening.
-  const half = barrelWidth * 0.5;
-  const radius = sqrt(barrelLength * barrelLength + half * half);
-  const corner = atan2(half, barrelLength);
-  const reach = spec.width * 0.5;
-  // A barrel already as wide as its opening has nowhere to go; one small
-  // enough to clear the edges at any angle is held by its mounting instead.
-  const limit = radius > reach ? asin(reach / radius) - corner : HULL_MAX_TRAVERSE;
+    // The corner of the swung barrel against the edge of the opening.
+    const half = barrelWidth * 0.5;
+    const radius = sqrt(barrelLength * barrelLength + half * half);
+    const corner = atan2(half, barrelLength);
+    const reach = spec.width * 0.5;
+    // A barrel already as wide as its opening has nowhere to go; one small
+    // enough to clear the edges at any angle is held by its mounting instead.
+    const limit = radius > reach ? asin(reach / radius) - corner : HULL_MAX_TRAVERSE;
 
-  return {
-    outlets,
-    share,
-    blockLength,
-    barrelLength,
-    reach: out,
-    outletWidth,
-    outletSpacing,
-    barrelWidth,
-    pivot,
-    trains: spec.kind === 'hullBeam' ? pivot + out - barrelLength * 0.5 : pivot,
-    muzzle: spec.kind === 'hullBeam' ? barrelLength * 0.5 : barrelLength,
-    traverse: limit > 0 ? (limit < HULL_MAX_TRAVERSE ? limit : HULL_MAX_TRAVERSE) : 0,
-  };
+    return {
+        outlets,
+        share,
+        blockLength,
+        barrelLength,
+        reach: out,
+        outletWidth,
+        outletSpacing,
+        barrelWidth,
+        pivot,
+        trains: spec.kind === "hullBeam" ? pivot + out - barrelLength * 0.5 : pivot,
+        muzzle: spec.kind === "hullBeam" ? barrelLength * 0.5 : barrelLength,
+        traverse: limit > 0 ? (limit < HULL_MAX_TRAVERSE ? limit : HULL_MAX_TRAVERSE) : 0,
+    };
 }
 
 /** Whether `fuse` means anything on this kind: a gun that fires rounds. */
 export function readsFuse(kind: ModuleKind): boolean {
-  return kind === 'turret' || kind === 'hullGun';
+    return kind === "turret" || kind === "hullGun";
 }
 
 /** Whether this kind trains a weapon, and so carries gear to train it with. */
 export function isWeaponMount(kind: ModuleKind): boolean {
-  return kind === 'turret' || kind === 'beamTurret' || isHullMount(kind);
+    return kind === "turret" || kind === "beamTurret" || isHullMount(kind);
 }
 
 /**
@@ -2216,15 +2216,15 @@ export function isWeaponMount(kind: ModuleKind): boolean {
  * asks it, and this stays a property of the mount alone.
  */
 export function mountTraverse(spec: ModuleSpec): number {
-  const archetype = isHullMount(spec.kind) ? hullMountGeometry(spec).traverse : FULL_TRAVERSE;
-  const asked = spec.traverse;
-  if (asked === undefined) return archetype;
-  return asked < archetype ? asked : archetype;
+    const archetype = isHullMount(spec.kind) ? hullMountGeometry(spec).traverse : FULL_TRAVERSE;
+    const asked = spec.traverse;
+    if (asked === undefined) return archetype;
+    return asked < archetype ? asked : archetype;
 }
 
 /** Whether this kind is a weapon let into the hull rather than a turret on it. */
 export function isHullMount(kind: ModuleKind): boolean {
-  return kind === 'hullGun' || kind === 'hullBeam';
+    return kind === "hullGun" || kind === "hullBeam";
 }
 
 /**
@@ -2243,18 +2243,18 @@ export function isHullMount(kind: ModuleKind): boolean {
  * keeping one is that it is ready to be used.
  */
 export function readsNozzle(kind: ModuleKind): boolean {
-  return kind === 'engine';
+    return kind === "engine";
 }
 
 /** Whether `barrelCalibres` means anything on this kind: a gun with a barrel. */
 export function readsBarrelCalibres(kind: ModuleKind): boolean {
-  return kind === 'turret' || kind === 'hullGun';
+    return kind === "turret" || kind === "hullGun";
 }
 
 /** How many calibres long a gun's barrels are: what it says, or its archetype's default. */
 export function barrelCalibres(spec: ModuleSpec): number {
-  if (spec.barrelCalibres !== undefined) return spec.barrelCalibres;
-  return spec.kind === 'hullGun' ? DEFAULT_HULL_BARREL_CALIBRES : BARREL_CALIBRES;
+    if (spec.barrelCalibres !== undefined) return spec.barrelCalibres;
+    return spec.kind === "hullGun" ? DEFAULT_HULL_BARREL_CALIBRES : BARREL_CALIBRES;
 }
 
 /**
@@ -2263,15 +2263,15 @@ export function barrelCalibres(spec: ModuleSpec): number {
  * the length, which meets the line there without a kink.
  */
 function muzzleEnergyOf(calibre: number, calibres: number): number {
-  const boreArea = PI * 0.25 * calibre * calibre;
-  const x = calibres / BARREL_CALIBRES;
-  const share = x > 1 ? 2 * sqrt(x) - 1 : x;
-  return CHARGE_ENERGY_PER_BORE_VOLUME * boreArea * calibre * BARREL_CALIBRES * share;
+    const boreArea = PI * 0.25 * calibre * calibre;
+    const x = calibres / BARREL_CALIBRES;
+    const share = x > 1 ? 2 * sqrt(x) - 1 : x;
+    return CHARGE_ENERGY_PER_BORE_VOLUME * boreArea * calibre * BARREL_CALIBRES * share;
 }
 
 /** How much of each barrel `calibres` long needs bracing, metres. */
 function braceLengthOf(calibre: number, calibres: number): number {
-  return calibres > BARREL_CALIBRES ? (calibres - BARREL_CALIBRES) * calibre : 0;
+    return calibres > BARREL_CALIBRES ? (calibres - BARREL_CALIBRES) * calibre : 0;
 }
 
 /**
@@ -2280,23 +2280,23 @@ function braceLengthOf(calibre: number, calibres: number): number {
  * them.
  */
 export function braceMass(gun: GunStats): number {
-  const section = gun.braceWidth * BARREL_OUTER_CALIBRES * gun.calibre;
-  return (gun.barrelCount + 1) * section * gun.braceLength * HULL_DENSITY;
+    const section = gun.braceWidth * BARREL_OUTER_CALIBRES * gun.calibre;
+    return (gun.barrelCount + 1) * section * gun.braceLength * HULL_DENSITY;
 }
 
 /** Whether `barrels` means anything on this kind: barrels, outlets or nozzles. */
 export function countsOutlets(kind: ModuleKind): boolean {
-  return kind === 'turret' || kind === 'beamTurret' || kind === 'engine' || isHullMount(kind);
+    return kind === "turret" || kind === "beamTurret" || kind === "engine" || isHullMount(kind);
 }
 
 /** Whether `weapon` means anything on this kind. Only an engine has a plume to point. */
 export function readsWeapon(kind: ModuleKind): boolean {
-  return kind === 'engine';
+    return kind === "engine";
 }
 
 /** Whether `main` means anything on this kind: a weapon mount, or an engine that may be one. */
 export function readsMain(kind: ModuleKind): boolean {
-  return isWeaponMount(kind) || kind === 'engine';
+    return isWeaponMount(kind) || kind === "engine";
 }
 
 /**
@@ -2305,7 +2305,7 @@ export function readsMain(kind: ModuleKind): boolean {
  * port, which mates in the hull layer with another.
  */
 export function readsThick(kind: ModuleKind): boolean {
-  return kind !== 'turret' && kind !== 'beamTurret' && kind !== 'pad' && kind !== 'port';
+    return kind !== "turret" && kind !== "beamTurret" && kind !== "pad" && kind !== "port";
 }
 
 /**
@@ -2318,17 +2318,17 @@ export function readsThick(kind: ModuleKind): boolean {
  * module it is covering, and not before.
  */
 export function inWeaponsLayer(spec: ModuleSpec, touching = 0): boolean {
-  if (spec.kind === 'turret' || spec.kind === 'beamTurret') return true;
-  return moduleThickness(spec, touching) > DECK_HEIGHT;
+    if (spec.kind === "turret" || spec.kind === "beamTurret") return true;
+    return moduleThickness(spec, touching) > DECK_HEIGHT;
 }
 
 /** Whether a module is marked thick, on a kind and a size where that means anything. */
 export function isThick(spec: ModuleSpec): boolean {
-  // An asteroid's kernel always stands in both layers; its rock does unless it
-  // is the thin rubble at its edge.
-  if (spec.kind === 'kernel') return true;
-  if (spec.kind === 'rock') return spec.thick === true;
-  return spec.thick === true && canThicken(spec);
+    // An asteroid's kernel always stands in both layers; its rock does unless it
+    // is the thin rubble at its edge.
+    if (spec.kind === "kernel") return true;
+    if (spec.kind === "rock") return spec.thick === true;
+    return spec.thick === true && canThicken(spec);
 }
 
 /**
@@ -2340,8 +2340,8 @@ export function isThick(spec: ModuleSpec): boolean {
  * be marked. See `ModuleSpec.thick`.
  */
 export function canThicken(spec: ModuleSpec): boolean {
-  if (!readsThick(spec.kind)) return false;
-  return spec.kind === 'structure' || acrossOf(spec) > DECK_HEIGHT;
+    if (!readsThick(spec.kind)) return false;
+    return spec.kind === "structure" || acrossOf(spec) > DECK_HEIGHT;
 }
 
 /**
@@ -2359,21 +2359,21 @@ export function canThicken(spec: ModuleSpec): boolean {
  * is across.
  */
 export function moduleThickness(spec: ModuleSpec, touching = 0): number {
-  const across = acrossOf(spec);
-  if (!isThick(spec)) return across < DECK_HEIGHT ? across : DECK_HEIGHT;
-  // An asteroid is a disc of rock rather than a ball: thick, but no deeper than this.
-  if (spec.kind === 'kernel' || spec.kind === 'rock') return across < ASTEROID_DEPTH ? across : ASTEROID_DEPTH;
-  return across > touching ? across : touching;
+    const across = acrossOf(spec);
+    if (!isThick(spec)) return across < DECK_HEIGHT ? across : DECK_HEIGHT;
+    // An asteroid is a disc of rock rather than a ball: thick, but no deeper than this.
+    if (spec.kind === "kernel" || spec.kind === "rock") return across < ASTEROID_DEPTH ? across : ASTEROID_DEPTH;
+    return across > touching ? across : touching;
 }
 
 function acrossOf(spec: ModuleSpec): number {
-  if (spec.kind === 'engine') return spec.width / (spec.barrels ?? 1);
-  if (isHullMount(spec.kind)) return spec.width;
-  const triangle = shapeOf(spec);
-  // The narrowest way through a triangle, which is what the box's smaller side
-  // is for a box: a long thin wedge is a thin module however far it reaches.
-  if (triangle !== null) return triangleAcross(triangle);
-  return spec.length < spec.width ? spec.length : spec.width;
+    if (spec.kind === "engine") return spec.width / (spec.barrels ?? 1);
+    if (isHullMount(spec.kind)) return spec.width;
+    const triangle = shapeOf(spec);
+    // The narrowest way through a triangle, which is what the box's smaller side
+    // is for a box: a long thin wedge is a thin module however far it reaches.
+    if (triangle !== null) return triangleAcross(triangle);
+    return spec.length < spec.width ? spec.length : spec.width;
 }
 
 /**
@@ -2392,18 +2392,18 @@ function acrossOf(spec: ModuleSpec): number {
  * the ship together.
  */
 export function weldBox(spec: ModuleSpec): ModuleSpec {
-  spec = bodySpec(spec);
-  if (spec.kind === 'engine') return engineMachinery(spec);
-  if (!isHullMount(spec.kind)) return spec;
-  const { blockLength, reach } = hullMountGeometry(spec);
-  const angle = spec.angle ?? 0;
-  const back = reach * 0.5;
-  return {
-    ...spec,
-    length: blockLength,
-    x: spec.x - cos(angle) * back,
-    y: spec.y - sin(angle) * back,
-  };
+    spec = bodySpec(spec);
+    if (spec.kind === "engine") return engineMachinery(spec);
+    if (!isHullMount(spec.kind)) return spec;
+    const { blockLength, reach } = hullMountGeometry(spec);
+    const angle = spec.angle ?? 0;
+    const back = reach * 0.5;
+    return {
+        ...spec,
+        length: blockLength,
+        x: spec.x - cos(angle) * back,
+        y: spec.y - sin(angle) * back,
+    };
 }
 
 /**
@@ -2419,32 +2419,32 @@ export function weldBox(spec: ModuleSpec): ModuleSpec {
  * loads from and the traverse it no longer has.
  */
 export function hullGunStats(spec: ModuleSpec): GunStats {
-  const { outlets, outletWidth, outletSpacing, barrelLength, blockLength } = hullMountGeometry(spec);
-  const calibre = outletWidth / BARREL_OUTER_CALIBRES;
-  const calibres = barrelCalibres(spec);
-  const boreArea = PI * 0.25 * calibre * calibre;
-  const roundMass = boreArea * (calibre * SHELL_CALIBRES) * SHELL_DENSITY;
-  const muzzleEnergy = muzzleEnergyOf(calibre, calibres);
-  const muzzleSpeed = roundMass > 0 ? sqrt((2 * muzzleEnergy) / roundMass) : 0;
+    const { outlets, outletWidth, outletSpacing, barrelLength, blockLength } = hullMountGeometry(spec);
+    const calibre = outletWidth / BARREL_OUTER_CALIBRES;
+    const calibres = barrelCalibres(spec);
+    const boreArea = PI * 0.25 * calibre * calibre;
+    const roundMass = boreArea * (calibre * SHELL_CALIBRES) * SHELL_DENSITY;
+    const muzzleEnergy = muzzleEnergyOf(calibre, calibres);
+    const muzzleSpeed = roundMass > 0 ? sqrt((2 * muzzleEnergy) / roundMass) : 0;
 
-  return {
-    type: GunType.Projectile,
-    calibre,
-    barrelLength,
-    braceLength: braceLengthOf(calibre, calibres),
-    braceWidth: BRACE_CALIBRES * calibre,
-    barrelCount: outlets,
-    barrelSpacing: outletSpacing,
-    roundMass,
-    muzzleSpeed,
-    muzzleEnergy,
-    beamPower: 0,
-    // One block loads every tube, so its depth is measured against the bore
-    // they share rather than each tube's own.
-    cycleTime: hullCycleTime(calibre, blockLength * loadingDecks(spec), outlets) / outlets,
-    beamOnTime: 0,
-    burst: null,
-  };
+    return {
+        type: GunType.Projectile,
+        calibre,
+        barrelLength,
+        braceLength: braceLengthOf(calibre, calibres),
+        braceWidth: BRACE_CALIBRES * calibre,
+        barrelCount: outlets,
+        barrelSpacing: outletSpacing,
+        roundMass,
+        muzzleSpeed,
+        muzzleEnergy,
+        beamPower: 0,
+        // One block loads every tube, so its depth is measured against the bore
+        // they share rather than each tube's own.
+        cycleTime: hullCycleTime(calibre, blockLength * loadingDecks(spec), outlets) / outlets,
+        beamOnTime: 0,
+        burst: null,
+    };
 }
 
 /**
@@ -2452,9 +2452,9 @@ export function hullGunStats(spec: ModuleSpec): GunStats {
  * one when held to a deck, and its depth over the dome's own when thick.
  */
 function turretDecks(spec: ModuleSpec, height: number): number {
-  const dome = spec.length < spec.width ? spec.length : spec.width;
-  const thin = dome < DECK_HEIGHT ? dome : DECK_HEIGHT;
-  return height / thin;
+    const dome = spec.length < spec.width ? spec.length : spec.width;
+    const thin = dome < DECK_HEIGHT ? dome : DECK_HEIGHT;
+    return height / thin;
 }
 
 /**
@@ -2464,8 +2464,8 @@ function turretDecks(spec: ModuleSpec, height: number): number {
  * through more of the ship buys rounds per minute as a longer block does.
  */
 function loadingDecks(spec: ModuleSpec): number {
-  const thin = spec.width < DECK_HEIGHT ? spec.width : DECK_HEIGHT;
-  return moduleThickness(spec) / thin;
+    const thin = spec.width < DECK_HEIGHT ? spec.width : DECK_HEIGHT;
+    return moduleThickness(spec) / thin;
 }
 
 /**
@@ -2486,13 +2486,13 @@ function loadingDecks(spec: ModuleSpec): number {
  * autocannon.
  */
 function hullCycleTime(calibre: number, blockLength: number, outlets: number): number {
-  const base = CYCLE_TIME_PER_CALIBRE * calibre;
-  const depth = blockLength / (LOADING_BLOCK_CALIBRES * calibre * outlets);
-  // A block with no depth at all is a gun with nowhere to load from, and the
-  // arithmetic would say it never fires. It is unreachable — a module needs an
-  // interior to exist — but the law should not depend on that to be finite.
-  if (!(depth > 0)) return base / LOADING_FLOOR;
-  return base * (LOADING_FLOOR + (1 - LOADING_FLOOR) / depth);
+    const base = CYCLE_TIME_PER_CALIBRE * calibre;
+    const depth = blockLength / (LOADING_BLOCK_CALIBRES * calibre * outlets);
+    // A block with no depth at all is a gun with nowhere to load from, and the
+    // arithmetic would say it never fires. It is unreachable — a module needs an
+    // interior to exist — but the law should not depend on that to be finite.
+    if (!(depth > 0)) return base / LOADING_FLOOR;
+    return base * (LOADING_FLOOR + (1 - LOADING_FLOOR) / depth);
 }
 
 /**
@@ -2506,43 +2506,43 @@ function hullCycleTime(calibre: number, blockLength: number, outlets: number): n
  * inventing a second one.
  */
 export function hullBeamStats(spec: ModuleSpec): GunStats {
-  const { outlets, outletWidth, outletSpacing, barrelLength, blockLength } = hullMountGeometry(spec);
-  const aperture = outletWidth;
-  const apertureArea = PI * 0.25 * aperture * aperture;
-  const power = OPTIC_INTENSITY_LIMIT * apertureArea;
-  const stored = BEAM_STORED_ENERGY_PER_VOLUME * blockLength * spec.width * moduleThickness(spec);
-  const beamOnTime = power > 0 ? stored / power : 0;
-  // **The block is the bank and the cooling, so depth buys duty rather than
-  // only burst.** The burn grows with the bank behind it while the recovery
-  // does not, so a mount given more block spends a larger share of its time
-  // firing — where a flat duty cycle would have made a bigger bank buy a
-  // longer shot and an exactly proportionally longer wait, which is no gain at
-  // all on the only figure that matters over a battle.
-  const recharge =
-    beamOnTime > 0 && beamOnTime < BEAM_COOLING_BURN ? (BEAM_RECHARGE_TIME * BEAM_COOLING_BURN) / beamOnTime : BEAM_RECHARGE_TIME;
-  const cycleTime = beamOnTime + recharge;
+    const { outlets, outletWidth, outletSpacing, barrelLength, blockLength } = hullMountGeometry(spec);
+    const aperture = outletWidth;
+    const apertureArea = PI * 0.25 * aperture * aperture;
+    const power = OPTIC_INTENSITY_LIMIT * apertureArea;
+    const stored = BEAM_STORED_ENERGY_PER_VOLUME * blockLength * spec.width * moduleThickness(spec);
+    const beamOnTime = power > 0 ? stored / power : 0;
+    // **The block is the bank and the cooling, so depth buys duty rather than
+    // only burst.** The burn grows with the bank behind it while the recovery
+    // does not, so a mount given more block spends a larger share of its time
+    // firing — where a flat duty cycle would have made a bigger bank buy a
+    // longer shot and an exactly proportionally longer wait, which is no gain at
+    // all on the only figure that matters over a battle.
+    const recharge =
+        beamOnTime > 0 && beamOnTime < BEAM_COOLING_BURN ? (BEAM_RECHARGE_TIME * BEAM_COOLING_BURN) / beamOnTime : BEAM_RECHARGE_TIME;
+    const cycleTime = beamOnTime + recharge;
 
-  return {
-    type: GunType.Beam,
-    calibre: aperture,
-    barrelLength,
-    braceLength: 0,
-    braceWidth: 0,
-    barrelCount: outlets,
-    barrelSpacing: outletSpacing,
-    roundMass: 0,
-    muzzleSpeed: -1,
-    muzzleEnergy: 0,
-    beamPower: power,
-    beamOnTime,
-    cycleTime,
-    burst: null,
-  };
+    return {
+        type: GunType.Beam,
+        calibre: aperture,
+        barrelLength,
+        braceLength: 0,
+        braceWidth: 0,
+        barrelCount: outlets,
+        barrelSpacing: outletSpacing,
+        roundMass: 0,
+        muzzleSpeed: -1,
+        muzzleEnergy: 0,
+        beamPower: power,
+        beamOnTime,
+        cycleTime,
+        burst: null,
+    };
 }
 
 /** Whether a gun fires shells that burst, rather than solid shot: more than one fragment. */
 export function firesShells(spec: ModuleSpec): boolean {
-  return readsFuse(spec.kind) && (spec.fragments ?? DEFAULT_FRAGMENTS) > 1;
+    return readsFuse(spec.kind) && (spec.fragments ?? DEFAULT_FRAGMENTS) > 1;
 }
 
 /**
@@ -2551,21 +2551,21 @@ export function firesShells(spec: ModuleSpec): boolean {
  * supplies, `½ ρs (1−φ) v² = ρe φ Y`.
  */
 export function chargeShare(burstSpeed: number): number {
-  const casing = SHELL_DENSITY * burstSpeed * burstSpeed;
-  return casing / (2 * EXPLOSIVE_DENSITY * EXPLOSIVE_YIELD + casing);
+    const casing = SHELL_DENSITY * burstSpeed * burstSpeed;
+    return casing / (2 * EXPLOSIVE_DENSITY * EXPLOSIVE_YIELD + casing);
 }
 
 /** The mass of a round that is casing rather than charge, kg: all of it, for solid shot. */
 export function casingMass(spec: ModuleSpec, roundMass: number): number {
-  if (!firesShells(spec)) return roundMass;
-  const share = chargeShare(spec.burstSpeed ?? DEFAULT_BURST_SPEED);
-  const casing = (1 - share) * SHELL_DENSITY;
-  return (roundMass * casing) / (casing + share * EXPLOSIVE_DENSITY);
+    if (!firesShells(spec)) return roundMass;
+    const share = chargeShare(spec.burstSpeed ?? DEFAULT_BURST_SPEED);
+    const casing = (1 - share) * SHELL_DENSITY;
+    return (roundMass * casing) / (casing + share * EXPLOSIVE_DENSITY);
 }
 
 /** Inertia about a barrel's root of `mass` of bracing running out from it. */
 function braceInertia(gun: GunStats, mass: number): number {
-  return (mass * gun.braceLength * gun.braceLength) / 3;
+    return (mass * gun.braceLength * gun.braceLength) / 3;
 }
 
 /**
@@ -2577,23 +2577,23 @@ function braceInertia(gun: GunStats, mass: number): number {
  * property of what the mount loads rather than of the barrel it goes down.
  */
 function loaded(gun: GunStats, spec: ModuleSpec): GunStats {
-  if (!firesShells(spec)) return gun;
-  const burstSpeed = spec.burstSpeed ?? DEFAULT_BURST_SPEED;
-  const share = chargeShare(burstSpeed);
-  const roundMass = gun.roundMass * (1 - share + (share * EXPLOSIVE_DENSITY) / SHELL_DENSITY);
-  const muzzleSpeed = roundMass > 0 ? sqrt((2 * gun.muzzleEnergy) / roundMass) : 0;
-  const fragments = spec.fragments ?? DEFAULT_FRAGMENTS;
-  return {
-    ...gun,
-    roundMass,
-    muzzleSpeed,
-    burst: {
-      fragments,
-      // The casing's metal shared out, widths summing in area as `burst` does it.
-      fragmentWidth: gun.calibre * sqrt((1 - share) / fragments),
-      radius: burstSpeed * (spec.fuse ?? DEFAULT_FUSE),
-    },
-  };
+    if (!firesShells(spec)) return gun;
+    const burstSpeed = spec.burstSpeed ?? DEFAULT_BURST_SPEED;
+    const share = chargeShare(burstSpeed);
+    const roundMass = gun.roundMass * (1 - share + (share * EXPLOSIVE_DENSITY) / SHELL_DENSITY);
+    const muzzleSpeed = roundMass > 0 ? sqrt((2 * gun.muzzleEnergy) / roundMass) : 0;
+    const fragments = spec.fragments ?? DEFAULT_FRAGMENTS;
+    return {
+        ...gun,
+        roundMass,
+        muzzleSpeed,
+        burst: {
+            fragments,
+            // The casing's metal shared out, widths summing in area as `burst` does it.
+            fragmentWidth: gun.calibre * sqrt((1 - share) / fragments),
+            radius: burstSpeed * (spec.fuse ?? DEFAULT_FUSE),
+        },
+    };
 }
 
 /**
@@ -2613,25 +2613,25 @@ export const COMPLEXITY_WORK = 4e5;
 
 /** How intricate each kind is, in units of `COMPLEXITY_WORK`: walls and boxes are simple, a core very much not. */
 const KIND_COMPLEXITY: Record<ModuleKind, number> = {
-  structure: 1,
-  tank: 1,
-  hold: 1,
-  battery: 2,
-  claw: 3,
-  pad: 3,
-  port: 3,
-  slipway: 3,
-  // Never mended or built, so never worked at all.
-  kernel: 0,
-  rock: 0,
-  engine: 4,
-  hullGun: 4,
-  hullBeam: 4,
-  turret: 7,
-  beamTurret: 7,
-  generator: 6,
-  robotBay: 6,
-  core: 16,
+    structure: 1,
+    tank: 1,
+    hold: 1,
+    battery: 2,
+    claw: 3,
+    pad: 3,
+    port: 3,
+    slipway: 3,
+    // Never mended or built, so never worked at all.
+    kernel: 0,
+    rock: 0,
+    engine: 4,
+    hullGun: 4,
+    hullBeam: 4,
+    turret: 7,
+    beamTurret: 7,
+    generator: 6,
+    robotBay: 6,
+    core: 16,
 };
 
 /** What a self-sealing lining adds to a tank's complexity. */
@@ -2645,327 +2645,327 @@ const OUTLET_COMPLEXITY = 1;
  * its kind's, plus a self-sealing lining and every outlet past the first.
  */
 export function complexityOf(spec: ModuleSpec): number {
-  let units = KIND_COMPLEXITY[spec.kind];
-  if (liningOf(spec) > 0) units += LINING_COMPLEXITY;
-  if (countsOutlets(spec.kind)) units += ((spec.barrels ?? 1) - 1) * OUTLET_COMPLEXITY;
-  return units;
+    let units = KIND_COMPLEXITY[spec.kind];
+    if (liningOf(spec) > 0) units += LINING_COMPLEXITY;
+    if (countsOutlets(spec.kind)) units += ((spec.barrels ?? 1) - 1) * OUTLET_COMPLEXITY;
+    return units;
 }
 
 export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
-  spec = bodySpec(spec);
-  const problem = moduleProblem(spec);
-  if (problem !== null) throw new Error(`Invalid module — ${problem}`);
+    spec = bodySpec(spec);
+    const problem = moduleProblem(spec);
+    if (problem !== null) throw new Error(`Invalid module — ${problem}`);
 
-  const reinforcement = spec.reinforcement ?? 1;
-  // An asteroid is solid: its walls are as thick as it is, so nothing hollows
-  // it and no round gets through it.
-  const solid = spec.kind === 'kernel' || spec.kind === 'rock';
-  const wallThickness = solid ? acrossOf(spec) : BASE_WALL_THICKNESS * reinforcement;
+    const reinforcement = spec.reinforcement ?? 1;
+    // An asteroid is solid: its walls are as thick as it is, so nothing hollows
+    // it and no round gets through it.
+    const solid = spec.kind === "kernel" || spec.kind === "rock";
+    const wallThickness = solid ? acrossOf(spec) : BASE_WALL_THICKNESS * reinforcement;
 
-  // An engine is a box with a bell on the back of it rather than one box, and
-  // only the box part is walled. Every other archetype is the box it declares.
-  const engine = spec.kind === 'engine' ? engineGeometry(spec) : null;
-  const mount = isHullMount(spec.kind) ? hullMountGeometry(spec) : null;
-  const boxLength = engine !== null ? engine.machineryLength : mount !== null ? mount.blockLength : spec.length;
+    // An engine is a box with a bell on the back of it rather than one box, and
+    // only the box part is walled. Every other archetype is the box it declares.
+    const engine = spec.kind === "engine" ? engineGeometry(spec) : null;
+    const mount = isHullMount(spec.kind) ? hullMountGeometry(spec) : null;
+    const boxLength = engine !== null ? engine.machineryLength : mount !== null ? mount.blockLength : spec.length;
 
-  // The walls are what is left of the box once the interior is hollowed out of
-  // it, on all six faces — so a long thin module carries proportionally more
-  // wall for the space it encloses, which is the pressure that stops layouts
-  // being made of splinters.
-  //
-  // A triangle is the same law over its own outline: the floor it encloses in
-  // place of `length x width`, and the floor left inside walls of the same
-  // thickness in place of the box shrunk by two of them. It applies the same
-  // pressure through the shape rather than through the proportions — the inner
-  // triangle is similar to the outer one, so a sharp corner loses far more
-  // area to its walls than a blunt one, and a sliver of a plate is all wall.
-  const height = moduleThickness(spec, touching);
-  const width = spec.width;
-  const triangle = shapeOf(spec);
-  const floor = triangle !== null ? polygonArea(triangle) : boxLength * width;
-  const hollow = (depth: number): { floor: number; volume: number } => {
-    const lid = height - 2 * depth;
-    if (!(lid > 0)) return { floor: 0, volume: 0 };
-    if (triangle !== null) {
-      const inner = insetTriangle(triangle, depth);
-      const area = inner === null ? 0 : polygonArea(inner);
-      return { floor: area, volume: area * lid };
-    }
-    const along = boxLength - 2 * depth;
-    const across = width - 2 * depth;
-    if (!(along > 0) || !(across > 0)) return { floor: 0, volume: 0 };
-    return { floor: along * across, volume: along * across * lid };
-  };
-  const walled = hollow(wallThickness);
-  const outer = floor * height;
-  const inner = walled.volume;
-  // Bells, which are skins rather than boxes: two flanks along the slant and a
-  // roof and floor over the taper, with nothing enclosed and both ends open.
-  const skinVolume = engine === null ? 0 : nozzleSkinVolume(engine, wallThickness);
-  const wallVolume = outer - inner + skinVolume;
-  const structureMass = wallVolume * (spec.kind === 'rock' ? ROCK_DENSITY : HULL_DENSITY);
-
-  const capacity = walled.floor;
-  // A sealing lining is a second skin inside the first, and what it fills is
-  // room the fuel no longer has.
-  const lining = liningOf(spec);
-  const interior = lining > 0 ? hollow(wallThickness + lining).volume : inner;
-  const liningMass = (inner - interior) * SEALANT_DENSITY;
-
-  let fittingMass = 0;
-  let thrust = 0;
-  let exhaustVelocity = 0;
-  let fuel = 0;
-  let metal = 0;
-  let charge = 0;
-  let chargeRate = 0;
-  let generation = 0;
-  let robots = 0;
-  let computing = 0;
-  let gun: GunStats | null = null;
-  // Mass that hangs off the pivot as a rod rather than filling the box, and
-  // the inertia it accounts for. Barrels, and nothing else so far.
-  let rodMass = 0;
-  let rodInertia = 0;
-  let traverseMass = 0;
-  // What the traverse drive actually has to swing, about the point it swings
-  // it. The same as the module for a turret, which turns bodily; the barrels
-  // alone for a hull mount, whose block is welded to the ship.
-  let swing = 0;
-
-  if (spec.kind === 'core') {
-    // What flies the ship: a compartment of computing rather than a box with
-    // space left in it, so its machinery is priced by the floor it fills. A
-    // core buys no capability beyond being the control centre, so this mass
-    // and the fragility of a small one are the whole of what stops a ship
-    // carrying five of them.
-    fittingMass = max(CORE_MINIMUM_FITTING_MASS, CORE_MASS_PER_AREA * capacity) + liningMass;
-    computing = coreComputing(spec, interior);
-    const spare = max(0, interior - computing);
-    const generator = min(spare * CORE_GENERATOR_SHARE, CORE_GENERATOR_MAX_VOLUME);
-    // What the cap keeps from the generator is fuel, added apart so an uncapped core's is unchanged.
-    fuel =
-      spare * (1 - CORE_METAL_SHARE - CORE_GENERATOR_SHARE - CORE_BATTERY_SHARE) * FUEL_DENSITY +
-      (spare * CORE_GENERATOR_SHARE - generator) * FUEL_DENSITY;
-    metal = spare * CORE_METAL_SHARE * METAL_DENSITY;
-    generation = generator * GENERATOR_POWER_PER_VOLUME;
-    charge = spare * CORE_BATTERY_SHARE * BATTERY_ENERGY_PER_VOLUME;
-    chargeRate = spare > 0 ? CORE_BATTERY_SHARE * BATTERY_POWER_PER_AREA * 2 * (spec.length + spec.width) * height : 0;
-    fittingMass += generator * GENERATOR_MASS_PER_VOLUME + spare * CORE_BATTERY_SHARE * BATTERY_MASS_PER_VOLUME;
-  } else if (spec.kind === 'port') {
-    // A collar on its outward face and a coupling behind it.
-    fittingMass = PORT_MASS_PER_AREA * capacity;
-  } else if (spec.kind === 'pad') {
-    fittingMass = PAD_MASS_PER_AREA * capacity;
-  } else if (spec.kind === 'slipway') {
-    fittingMass = SLIPWAY_MASS_PER_AREA * capacity;
-  } else if (spec.kind === 'claw') {
-    // Jaws on the bow face and a pump behind them, priced by the floor they fill.
-    fittingMass = CLAW_MASS_PER_AREA * capacity;
-  } else if (spec.kind === 'tank') {
-    // A box whose whole interior is fuel. It packs the box as the box formula
-    // assumes, so the inertia below already holds it.
-    fittingMass = liningMass;
-    fuel = interior * FUEL_DENSITY;
-  } else if (spec.kind === 'hold') {
-    // A box whose whole interior is metal, as a tank's is fuel.
-    metal = interior * METAL_DENSITY;
-  } else if (spec.kind === 'battery') {
-    fittingMass = interior * BATTERY_MASS_PER_VOLUME;
-    charge = interior * BATTERY_ENERGY_PER_VOLUME;
-    chargeRate = BATTERY_POWER_PER_AREA * 2 * (spec.length + spec.width) * height;
-  } else if (spec.kind === 'generator') {
-    fittingMass = interior * GENERATOR_MASS_PER_VOLUME;
-    generation = interior * GENERATOR_POWER_PER_VOLUME;
-  } else if (spec.kind === 'robotBay') {
-    const grid = berthGrid(spec);
-    robots = grid.across * grid.down;
-    fittingMass = interior * ROBOT_BAY_MASS_PER_VOLUME + robots * ROBOT_MASS;
-  } else if (engine !== null) {
-    // Thrust comes out of the nozzle, so it scales with the exit area: each
-    // bell square, as wide as it is deep. A thin engine wider than a deck
-    // therefore needs more bells, or to be thick, to use its whole face. An
-    // engine gets stronger by being made *wider*, which is what stops "just
-    // stretch it" being the answer to every propulsion problem.
+    // The walls are what is left of the box once the interior is hollowed out of
+    // it, on all six faces — so a long thin module carries proportionally more
+    // wall for the space it encloses, which is the pressure that stops layouts
+    // being made of splinters.
     //
-    // **How hard that face is fed is the machinery's business**, and the
-    // machinery is the block the bell was cut out of. A shallow bell leaves a
-    // deep chamber with big pumps and drives more mass through the same
-    // throat; a deep bell leaves an engine with nothing behind it. Bounded by
-    // the throat itself, which chokes rather than passing whatever is pushed
-    // at it.
-    const feed = engine.machineryLength / (PUMP_DEPTH_WIDTHS * spec.width);
-    const supply = feed < THROAT_CHOKE ? feed : THROAT_CHOKE;
-    const exitArea = engine.nozzles * engine.exitWidth * engine.exitHeight;
-    const throughput = THRUST_PER_EXIT_AREA * exitArea * supply;
-    // What the bell then keeps pointed the right way. **The two pull opposite
-    // ways**, which is the whole of the knob: length taken off the bell is
-    // flow gained and aim lost, so the best engine is neither all bell nor all
-    // chamber but somewhere inside, and an engine whose nozzle has fallen off
-    // throws its gas sideways however hard it is pumping.
-    thrust = throughput * engine.divergence;
-    exhaustVelocity = engineExhaustVelocity(engine);
-    fittingMass = throughput * ENGINE_MASS_PER_NEWTON;
-  } else if (mount !== null) {
-    gun = spec.kind === 'hullGun' ? loaded(hullGunStats(spec), spec) : hullBeamStats(spec);
-    // The same two masses a turret carries, by the same reasoning — a tube of
-    // steel or an optic out in front, and the machinery that works it behind.
-    let protrudingMass: number;
-    if (spec.kind === 'hullGun') {
-      const outer = BARREL_OUTER_CALIBRES * gun.calibre;
-      const section = PI * 0.25 * (outer * outer - gun.calibre * gun.calibre);
-      protrudingMass = section * gun.barrelLength * HULL_DENSITY;
-      fittingMass = (protrudingMass + MECHANISM_MASS_PER_CALIBRE * gun.calibre) * gun.barrelCount + braceMass(gun);
-    } else {
-      protrudingMass = OPTIC_AREAL_DENSITY * PI * 0.25 * gun.calibre * gun.calibre;
-      fittingMass = (protrudingMass + BEAM_MASS_PER_WATT * gun.beamPower) * gun.barrelCount;
+    // A triangle is the same law over its own outline: the floor it encloses in
+    // place of `length x width`, and the floor left inside walls of the same
+    // thickness in place of the box shrunk by two of them. It applies the same
+    // pressure through the shape rather than through the proportions — the inner
+    // triangle is similar to the outer one, so a sharp corner loses far more
+    // area to its walls than a blunt one, and a sliver of a plate is all wall.
+    const height = moduleThickness(spec, touching);
+    const width = spec.width;
+    const triangle = shapeOf(spec);
+    const floor = triangle !== null ? polygonArea(triangle) : boxLength * width;
+    const hollow = (depth: number): { floor: number; volume: number } => {
+        const lid = height - 2 * depth;
+        if (!(lid > 0)) return { floor: 0, volume: 0 };
+        if (triangle !== null) {
+            const inner = insetTriangle(triangle, depth);
+            const area = inner === null ? 0 : polygonArea(inner);
+            return { floor: area, volume: area * lid };
+        }
+        const along = boxLength - 2 * depth;
+        const across = width - 2 * depth;
+        if (!(along > 0) || !(across > 0)) return { floor: 0, volume: 0 };
+        return { floor: along * across, volume: along * across * lid };
+    };
+    const walled = hollow(wallThickness);
+    const outer = floor * height;
+    const inner = walled.volume;
+    // Bells, which are skins rather than boxes: two flanks along the slant and a
+    // roof and floor over the taper, with nothing enclosed and both ends open.
+    const skinVolume = engine === null ? 0 : nozzleSkinVolume(engine, wallThickness);
+    const wallVolume = outer - inner + skinVolume;
+    const structureMass = wallVolume * (spec.kind === "rock" ? ROCK_DENSITY : HULL_DENSITY);
+
+    const capacity = walled.floor;
+    // A sealing lining is a second skin inside the first, and what it fills is
+    // room the fuel no longer has.
+    const lining = liningOf(spec);
+    const interior = lining > 0 ? hollow(wallThickness + lining).volume : inner;
+    const liningMass = (inner - interior) * SEALANT_DENSITY;
+
+    let fittingMass = 0;
+    let thrust = 0;
+    let exhaustVelocity = 0;
+    let fuel = 0;
+    let metal = 0;
+    let charge = 0;
+    let chargeRate = 0;
+    let generation = 0;
+    let robots = 0;
+    let computing = 0;
+    let gun: GunStats | null = null;
+    // Mass that hangs off the pivot as a rod rather than filling the box, and
+    // the inertia it accounts for. Barrels, and nothing else so far.
+    let rodMass = 0;
+    let rodInertia = 0;
+    let traverseMass = 0;
+    // What the traverse drive actually has to swing, about the point it swings
+    // it. The same as the module for a turret, which turns bodily; the barrels
+    // alone for a hull mount, whose block is welded to the ship.
+    let swing = 0;
+
+    if (spec.kind === "core") {
+        // What flies the ship: a compartment of computing rather than a box with
+        // space left in it, so its machinery is priced by the floor it fills. A
+        // core buys no capability beyond being the control centre, so this mass
+        // and the fragility of a small one are the whole of what stops a ship
+        // carrying five of them.
+        fittingMass = max(CORE_MINIMUM_FITTING_MASS, CORE_MASS_PER_AREA * capacity) + liningMass;
+        computing = coreComputing(spec, interior);
+        const spare = max(0, interior - computing);
+        const generator = min(spare * CORE_GENERATOR_SHARE, CORE_GENERATOR_MAX_VOLUME);
+        // What the cap keeps from the generator is fuel, added apart so an uncapped core's is unchanged.
+        fuel =
+            spare * (1 - CORE_METAL_SHARE - CORE_GENERATOR_SHARE - CORE_BATTERY_SHARE) * FUEL_DENSITY +
+            (spare * CORE_GENERATOR_SHARE - generator) * FUEL_DENSITY;
+        metal = spare * CORE_METAL_SHARE * METAL_DENSITY;
+        generation = generator * GENERATOR_POWER_PER_VOLUME;
+        charge = spare * CORE_BATTERY_SHARE * BATTERY_ENERGY_PER_VOLUME;
+        chargeRate = spare > 0 ? CORE_BATTERY_SHARE * BATTERY_POWER_PER_AREA * 2 * (spec.length + spec.width) * height : 0;
+        fittingMass += generator * GENERATOR_MASS_PER_VOLUME + spare * CORE_BATTERY_SHARE * BATTERY_MASS_PER_VOLUME;
+    } else if (spec.kind === "port") {
+        // A collar on its outward face and a coupling behind it.
+        fittingMass = PORT_MASS_PER_AREA * capacity;
+    } else if (spec.kind === "pad") {
+        fittingMass = PAD_MASS_PER_AREA * capacity;
+    } else if (spec.kind === "slipway") {
+        fittingMass = SLIPWAY_MASS_PER_AREA * capacity;
+    } else if (spec.kind === "claw") {
+        // Jaws on the bow face and a pump behind them, priced by the floor they fill.
+        fittingMass = CLAW_MASS_PER_AREA * capacity;
+    } else if (spec.kind === "tank") {
+        // A box whose whole interior is fuel. It packs the box as the box formula
+        // assumes, so the inertia below already holds it.
+        fittingMass = liningMass;
+        fuel = interior * FUEL_DENSITY;
+    } else if (spec.kind === "hold") {
+        // A box whose whole interior is metal, as a tank's is fuel.
+        metal = interior * METAL_DENSITY;
+    } else if (spec.kind === "battery") {
+        fittingMass = interior * BATTERY_MASS_PER_VOLUME;
+        charge = interior * BATTERY_ENERGY_PER_VOLUME;
+        chargeRate = BATTERY_POWER_PER_AREA * 2 * (spec.length + spec.width) * height;
+    } else if (spec.kind === "generator") {
+        fittingMass = interior * GENERATOR_MASS_PER_VOLUME;
+        generation = interior * GENERATOR_POWER_PER_VOLUME;
+    } else if (spec.kind === "robotBay") {
+        const grid = berthGrid(spec);
+        robots = grid.across * grid.down;
+        fittingMass = interior * ROBOT_BAY_MASS_PER_VOLUME + robots * ROBOT_MASS;
+    } else if (engine !== null) {
+        // Thrust comes out of the nozzle, so it scales with the exit area: each
+        // bell square, as wide as it is deep. A thin engine wider than a deck
+        // therefore needs more bells, or to be thick, to use its whole face. An
+        // engine gets stronger by being made *wider*, which is what stops "just
+        // stretch it" being the answer to every propulsion problem.
+        //
+        // **How hard that face is fed is the machinery's business**, and the
+        // machinery is the block the bell was cut out of. A shallow bell leaves a
+        // deep chamber with big pumps and drives more mass through the same
+        // throat; a deep bell leaves an engine with nothing behind it. Bounded by
+        // the throat itself, which chokes rather than passing whatever is pushed
+        // at it.
+        const feed = engine.machineryLength / (PUMP_DEPTH_WIDTHS * spec.width);
+        const supply = feed < THROAT_CHOKE ? feed : THROAT_CHOKE;
+        const exitArea = engine.nozzles * engine.exitWidth * engine.exitHeight;
+        const throughput = THRUST_PER_EXIT_AREA * exitArea * supply;
+        // What the bell then keeps pointed the right way. **The two pull opposite
+        // ways**, which is the whole of the knob: length taken off the bell is
+        // flow gained and aim lost, so the best engine is neither all bell nor all
+        // chamber but somewhere inside, and an engine whose nozzle has fallen off
+        // throws its gas sideways however hard it is pumping.
+        thrust = throughput * engine.divergence;
+        exhaustVelocity = engineExhaustVelocity(engine);
+        fittingMass = throughput * ENGINE_MASS_PER_NEWTON;
+    } else if (mount !== null) {
+        gun = spec.kind === "hullGun" ? loaded(hullGunStats(spec), spec) : hullBeamStats(spec);
+        // The same two masses a turret carries, by the same reasoning — a tube of
+        // steel or an optic out in front, and the machinery that works it behind.
+        let protrudingMass: number;
+        if (spec.kind === "hullGun") {
+            const outer = BARREL_OUTER_CALIBRES * gun.calibre;
+            const section = PI * 0.25 * (outer * outer - gun.calibre * gun.calibre);
+            protrudingMass = section * gun.barrelLength * HULL_DENSITY;
+            fittingMass = (protrudingMass + MECHANISM_MASS_PER_CALIBRE * gun.calibre) * gun.barrelCount + braceMass(gun);
+        } else {
+            protrudingMass = OPTIC_AREAL_DENSITY * PI * 0.25 * gun.calibre * gun.calibre;
+            fittingMass = (protrudingMass + BEAM_MASS_PER_WATT * gun.beamPower) * gun.barrelCount;
+        }
+
+        // What swings is the barrels alone, about the root they are trunnioned at
+        // rather than about the middle of the module — the block does not move.
+        // Each is a rod running out from that root, so it carries `m L²/3` there,
+        // plus `m d²` for sitting off the centreline.
+        // Bracing swings with the barrels, each barrel taking its share of it.
+        const braced = braceMass(gun) / gun.barrelCount;
+        rodMass = (protrudingMass + braced) * gun.barrelCount;
+        // **The bed is built for the arc it sweeps**, and what has to be built to
+        // move is the whole weapon: the trunnions and the drive, but also a feed
+        // and a recoil path that work at every angle the gun is allowed. So the
+        // gear is a share of the weapon's own machinery, times how much of its
+        // own archetype's arc it asks for — and a mount told to train nothing is
+        // a gun welded to the ship, carrying none of it. That is how a light hull
+        // affords a heavy bore.
+        // A mount whose barrel does not fit its own opening trains nothing and is
+        // refused elsewhere; here it simply carries no gear rather than dividing
+        // by its own zero.
+        const sweep = mount.traverse > 0 ? mountTraverse(spec) / mount.traverse : 0;
+        traverseMass = fittingMass * TRAVERSE_GEAR_FRACTION * sweep;
+        fittingMass += traverseMass;
+        const middle = (protrudingMass * gun.barrelLength * gun.barrelLength) / 12;
+        // A lens turns about its own centre, a barrel about its root.
+        const lens = spec.kind === "hullBeam";
+        const spin = lens ? middle : (protrudingMass * gun.barrelLength * gun.barrelLength) / 3;
+        const braceSpin = braceInertia(gun, braced);
+        const braceMiddle = (braced * gun.braceLength * gun.braceLength) / 12;
+        const ahead = lens ? mount.trains : mount.pivot + gun.barrelLength * 0.5;
+        const braceAhead = mount.pivot + gun.braceLength * 0.5;
+        const each = protrudingMass + braced;
+        for (let barrel = 0; barrel < gun.barrelCount; barrel++) {
+            const offset = (barrel - (gun.barrelCount - 1) * 0.5) * gun.barrelSpacing;
+            swing += spin + braceSpin + each * offset * offset;
+            // The module's own moment wants them about its centre instead, which is
+            // the rod's own moment plus where its centre of mass actually sits.
+            rodInertia += middle + protrudingMass * ahead * ahead + braceMiddle + braced * braceAhead * braceAhead + each * offset * offset;
+        }
+    } else if (spec.kind === "turret" || spec.kind === "beamTurret") {
+        gun =
+            spec.kind === "turret"
+                ? loaded(gunStats(spec.length, spec.width, spec.barrels, barrelCalibres(spec), turretDecks(spec, height)), spec)
+                : beamGunStats(spec.length, spec.width, spec.barrels);
+
+        // What hangs off the front of the mount, per barrel or emitter. The two
+        // archetypes differ in what that is and in almost nothing else: both are a
+        // mass held out ahead of the pivot, and both pay for it in traverse.
+        let protrudingMass: number;
+        if (spec.kind === "turret") {
+            // A barrel is a thick-walled tube, taken as steel filling the annulus
+            // between the bore and an outside diameter of twice the calibre.
+            const outerDiameter = 2 * gun.calibre;
+            const barrelSection = PI * 0.25 * (outerDiameter * outerDiameter - gun.calibre * gun.calibre);
+            protrudingMass = barrelSection * gun.barrelLength * HULL_DENSITY;
+            // Plus the machinery behind each barrel, which every barrel needs its own
+            // of and which does not scale down as steeply as the tube does.
+            const mechanismMass = MECHANISM_MASS_PER_CALIBRE * gun.calibre;
+            fittingMass = (protrudingMass + mechanismMass) * gun.barrelCount + braceMass(gun);
+        } else {
+            // A laser's mass is its optic and the plant that feeds it, and neither
+            // resembles a gun's. There is no tube of steel and no loading machinery,
+            // which is why a beam mount comes out lighter than a gun on the same
+            // footprint — and, having nothing long held out in front, quicker round.
+            protrudingMass = OPTIC_AREAL_DENSITY * PI * 0.25 * gun.calibre * gun.calibre;
+            const headMass = BEAM_MASS_PER_WATT * gun.beamPower;
+            fittingMass = (protrudingMass + headMass) * gun.barrelCount;
+        }
+
+        // What protrudes is the one part of a module that is not shaped like the
+        // box it is declared as: each piece is a rod running outward from the pivot
+        // at the mount's centre, so it contributes `m L²/3` rather than its share
+        // of the box, plus `m d²` for sitting `d` off the centreline. This is what
+        // makes reach cost traverse — the box formula cannot see a barrel at all,
+        // and under it a long gun and a stubby one of the same weight came round
+        // equally fast.
+        const braced = braceMass(gun) / gun.barrelCount;
+        rodMass = (protrudingMass + braced) * gun.barrelCount;
+        // **A turret's ring goes all the way round whatever it is told.** The gear
+        // is sized by the whole mount, since that is what turns, and a limit on
+        // where it may point is programming rather than a simpler machine — so
+        // unlike a hull mount's bed this does not shrink when the arc does.
+        traverseMass = (structureMass + fittingMass) * TRAVERSE_GEAR_FRACTION;
+        fittingMass += traverseMass;
+        const spin = (protrudingMass * gun.barrelLength * gun.barrelLength) / 3 + braceInertia(gun, braced);
+        const each = protrudingMass + braced;
+        for (let barrel = 0; barrel < gun.barrelCount; barrel++) {
+            const offset = (barrel - (gun.barrelCount - 1) * 0.5) * gun.barrelSpacing;
+            rodInertia += spin + each * offset * offset;
+        }
     }
 
-    // What swings is the barrels alone, about the root they are trunnioned at
-    // rather than about the middle of the module — the block does not move.
-    // Each is a rod running out from that root, so it carries `m L²/3` there,
-    // plus `m d²` for sitting off the centreline.
-    // Bracing swings with the barrels, each barrel taking its share of it.
-    const braced = braceMass(gun) / gun.barrelCount;
-    rodMass = (protrudingMass + braced) * gun.barrelCount;
-    // **The bed is built for the arc it sweeps**, and what has to be built to
-    // move is the whole weapon: the trunnions and the drive, but also a feed
-    // and a recoil path that work at every angle the gun is allowed. So the
-    // gear is a share of the weapon's own machinery, times how much of its
-    // own archetype's arc it asks for — and a mount told to train nothing is
-    // a gun welded to the ship, carrying none of it. That is how a light hull
-    // affords a heavy bore.
-    // A mount whose barrel does not fit its own opening trains nothing and is
-    // refused elsewhere; here it simply carries no gear rather than dividing
-    // by its own zero.
-    const sweep = mount.traverse > 0 ? mountTraverse(spec) / mount.traverse : 0;
-    traverseMass = fittingMass * TRAVERSE_GEAR_FRACTION * sweep;
-    fittingMass += traverseMass;
-    const middle = (protrudingMass * gun.barrelLength * gun.barrelLength) / 12;
-    // A lens turns about its own centre, a barrel about its root.
-    const lens = spec.kind === 'hullBeam';
-    const spin = lens ? middle : (protrudingMass * gun.barrelLength * gun.barrelLength) / 3;
-    const braceSpin = braceInertia(gun, braced);
-    const braceMiddle = (braced * gun.braceLength * gun.braceLength) / 12;
-    const ahead = lens ? mount.trains : mount.pivot + gun.barrelLength * 0.5;
-    const braceAhead = mount.pivot + gun.braceLength * 0.5;
-    const each = protrudingMass + braced;
-    for (let barrel = 0; barrel < gun.barrelCount; barrel++) {
-      const offset = (barrel - (gun.barrelCount - 1) * 0.5) * gun.barrelSpacing;
-      swing += spin + braceSpin + each * offset * offset;
-      // The module's own moment wants them about its centre instead, which is
-      // the rod's own moment plus where its centre of mass actually sits.
-      rodInertia += middle + protrudingMass * ahead * ahead + braceMiddle + braced * braceAhead * braceAhead + each * offset * offset;
-    }
-  } else if (spec.kind === 'turret' || spec.kind === 'beamTurret') {
-    gun =
-      spec.kind === 'turret'
-        ? loaded(gunStats(spec.length, spec.width, spec.barrels, barrelCalibres(spec), turretDecks(spec, height)), spec)
-        : beamGunStats(spec.length, spec.width, spec.barrels);
+    const mass = structureMass + fittingMass + fuel + metal;
+    // Everything but the barrels rotates as the box it is: walls, and machinery
+    // packed inside them.
+    const boxMass = mass - rodMass;
+    const inertia =
+        engine !== null
+            ? engineInertia(spec, engine, structureMass - skinVolume * HULL_DENSITY + fittingMass, skinVolume * HULL_DENSITY)
+            : mount !== null
+              ? // The block sits half a barrel aft of the module's middle, and the
+                // barrels have already been measured from there.
+                (boxMass * (mount.blockLength * mount.blockLength + spec.width * spec.width)) / 12 +
+                boxMass * (mount.reach * 0.5) * (mount.reach * 0.5) +
+                rodInertia
+              : triangle !== null
+                ? // The shape's own second moment, per unit of the floor it encloses.
+                  // For a rectangle this is `(l² + w²) / 12` exactly, so the two are
+                  // one law rather than a box's and a special case.
+                  (boxMass * polygonMomentOfArea(triangle)) / floor + rodInertia
+                : (boxMass * (spec.length * spec.length + spec.width * spec.width)) / 12 + rodInertia;
 
-    // What hangs off the front of the mount, per barrel or emitter. The two
-    // archetypes differ in what that is and in almost nothing else: both are a
-    // mass held out ahead of the pivot, and both pay for it in traverse.
-    let protrudingMass: number;
-    if (spec.kind === 'turret') {
-      // A barrel is a thick-walled tube, taken as steel filling the annulus
-      // between the bore and an outside diameter of twice the calibre.
-      const outerDiameter = 2 * gun.calibre;
-      const barrelSection = PI * 0.25 * (outerDiameter * outerDiameter - gun.calibre * gun.calibre);
-      protrudingMass = barrelSection * gun.barrelLength * HULL_DENSITY;
-      // Plus the machinery behind each barrel, which every barrel needs its own
-      // of and which does not scale down as steeply as the tube does.
-      const mechanismMass = MECHANISM_MASS_PER_CALIBRE * gun.calibre;
-      fittingMass = (protrudingMass + mechanismMass) * gun.barrelCount + braceMass(gun);
-    } else {
-      // A laser's mass is its optic and the plant that feeds it, and neither
-      // resembles a gun's. There is no tube of steel and no loading machinery,
-      // which is why a beam mount comes out lighter than a gun on the same
-      // footprint — and, having nothing long held out in front, quicker round.
-      protrudingMass = OPTIC_AREAL_DENSITY * PI * 0.25 * gun.calibre * gun.calibre;
-      const headMass = BEAM_MASS_PER_WATT * gun.beamPower;
-      fittingMass = (protrudingMass + headMass) * gun.barrelCount;
-    }
-
-    // What protrudes is the one part of a module that is not shaped like the
-    // box it is declared as: each piece is a rod running outward from the pivot
-    // at the mount's centre, so it contributes `m L²/3` rather than its share
-    // of the box, plus `m d²` for sitting `d` off the centreline. This is what
-    // makes reach cost traverse — the box formula cannot see a barrel at all,
-    // and under it a long gun and a stubby one of the same weight came round
-    // equally fast.
-    const braced = braceMass(gun) / gun.barrelCount;
-    rodMass = (protrudingMass + braced) * gun.barrelCount;
-    // **A turret's ring goes all the way round whatever it is told.** The gear
-    // is sized by the whole mount, since that is what turns, and a limit on
-    // where it may point is programming rather than a simpler machine — so
-    // unlike a hull mount's bed this does not shrink when the arc does.
-    traverseMass = (structureMass + fittingMass) * TRAVERSE_GEAR_FRACTION;
-    fittingMass += traverseMass;
-    const spin = (protrudingMass * gun.barrelLength * gun.barrelLength) / 3 + braceInertia(gun, braced);
-    const each = protrudingMass + braced;
-    for (let barrel = 0; barrel < gun.barrelCount; barrel++) {
-      const offset = (barrel - (gun.barrelCount - 1) * 0.5) * gun.barrelSpacing;
-      rodInertia += spin + each * offset * offset;
-    }
-  }
-
-  const mass = structureMass + fittingMass + fuel + metal;
-  // Everything but the barrels rotates as the box it is: walls, and machinery
-  // packed inside them.
-  const boxMass = mass - rodMass;
-  const inertia =
-    engine !== null
-      ? engineInertia(spec, engine, structureMass - skinVolume * HULL_DENSITY + fittingMass, skinVolume * HULL_DENSITY)
-      : mount !== null
-        ? // The block sits half a barrel aft of the module's middle, and the
-          // barrels have already been measured from there.
-          (boxMass * (mount.blockLength * mount.blockLength + spec.width * spec.width)) / 12 +
-          boxMass * (mount.reach * 0.5) * (mount.reach * 0.5) +
-          rodInertia
-        : triangle !== null
-          ? // The shape's own second moment, per unit of the floor it encloses.
-            // For a rectangle this is `(l² + w²) / 12` exactly, so the two are
-            // one law rather than a box's and a special case.
-            (boxMass * polygonMomentOfArea(triangle)) / floor + rodInertia
-          : (boxMass * (spec.length * spec.length + spec.width * spec.width)) / 12 + rodInertia;
-
-  return {
-    thickness: height,
-    wallThickness,
-    wallVolume,
-    structureMass,
-    fittingMass,
-    mass,
-    capacity,
-    inertia,
-    hitPoints: structureMass,
-    thrust,
-    exhaustVelocity,
-    fuel,
-    metal,
-    lining,
-    interior,
-    gun,
-    traverseMass,
-    swingInertia: mount === null ? inertia : swing,
-    pumpRate:
-      spec.kind === 'claw'
-        ? CLAW_PUMP_PER_METRE * width
-        : spec.kind === 'pad'
-          ? PAD_PUMP_PER_METRE * width
-          : spec.kind === 'port'
-            ? PORT_PUMP_PER_METRE * width
-            : spec.kind === 'slipway'
-              ? SLIPWAY_PUMP_PER_METRE * width
-              : 0,
-    charge,
-    chargeRate,
-    generation,
-    robots,
-    complexity: complexityOf(spec),
-    controlRadius: controlRadius(computing),
-  };
+    return {
+        thickness: height,
+        wallThickness,
+        wallVolume,
+        structureMass,
+        fittingMass,
+        mass,
+        capacity,
+        inertia,
+        hitPoints: structureMass,
+        thrust,
+        exhaustVelocity,
+        fuel,
+        metal,
+        lining,
+        interior,
+        gun,
+        traverseMass,
+        swingInertia: mount === null ? inertia : swing,
+        pumpRate:
+            spec.kind === "claw"
+                ? CLAW_PUMP_PER_METRE * width
+                : spec.kind === "pad"
+                  ? PAD_PUMP_PER_METRE * width
+                  : spec.kind === "port"
+                    ? PORT_PUMP_PER_METRE * width
+                    : spec.kind === "slipway"
+                      ? SLIPWAY_PUMP_PER_METRE * width
+                      : 0,
+        charge,
+        chargeRate,
+        generation,
+        robots,
+        complexity: complexityOf(spec),
+        controlRadius: controlRadius(computing),
+    };
 }
 
 /**
@@ -3026,42 +3026,42 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
  * the barrels to converge at a chosen range is the natural answer when it does.
  */
 export function gunStats(
-  mountLength: number,
-  mountWidth: number,
-  barrelCount: number = 1,
-  calibres: number = BARREL_CALIBRES,
-  decks: number = 1,
+    mountLength: number,
+    mountWidth: number,
+    barrelCount: number = 1,
+    calibres: number = BARREL_CALIBRES,
+    decks: number = 1,
 ): GunStats {
-  const dome = mountWidth < mountLength ? mountWidth : mountLength;
-  const wide = (dome * CALIBRE_FRACTION) / barrelCount;
-  const calibre = wide < MAX_TURRET_CALIBRE ? wide : MAX_TURRET_CALIBRE;
-  const barrelLength = calibre * calibres;
+    const dome = mountWidth < mountLength ? mountWidth : mountLength;
+    const wide = (dome * CALIBRE_FRACTION) / barrelCount;
+    const calibre = wide < MAX_TURRET_CALIBRE ? wide : MAX_TURRET_CALIBRE;
+    const barrelLength = calibre * calibres;
 
-  const boreArea = PI * 0.25 * calibre * calibre;
-  const roundMass = boreArea * (calibre * SHELL_CALIBRES) * SHELL_DENSITY;
-  const muzzleEnergy = muzzleEnergyOf(calibre, calibres);
-  const muzzleSpeed = sqrt((2 * muzzleEnergy) / roundMass);
-  // One whole gap outboard of each end barrel, so `n` barrels make `n + 1`
-  // gaps. Zero rather than a notional half-face for a single barrel, which has
-  // nothing to be spaced from.
-  const barrelSpacing = barrelCount > 1 ? dome / (barrelCount + 1) : 0;
+    const boreArea = PI * 0.25 * calibre * calibre;
+    const roundMass = boreArea * (calibre * SHELL_CALIBRES) * SHELL_DENSITY;
+    const muzzleEnergy = muzzleEnergyOf(calibre, calibres);
+    const muzzleSpeed = sqrt((2 * muzzleEnergy) / roundMass);
+    // One whole gap outboard of each end barrel, so `n` barrels make `n + 1`
+    // gaps. Zero rather than a notional half-face for a single barrel, which has
+    // nothing to be spaced from.
+    const barrelSpacing = barrelCount > 1 ? dome / (barrelCount + 1) : 0;
 
-  return {
-    type: GunType.Projectile,
-    calibre,
-    barrelLength,
-    braceLength: braceLengthOf(calibre, calibres),
-    braceWidth: BRACE_CALIBRES * calibre,
-    barrelCount,
-    barrelSpacing,
-    roundMass,
-    muzzleSpeed,
-    muzzleEnergy,
-    beamPower: 0,
-    cycleTime: turretCycleTime(calibre, ((mountLength * mountWidth) / (dome * dome)) * decks) / barrelCount,
-    beamOnTime: 0,
-    burst: null,
-  };
+    return {
+        type: GunType.Projectile,
+        calibre,
+        barrelLength,
+        braceLength: braceLengthOf(calibre, calibres),
+        braceWidth: BRACE_CALIBRES * calibre,
+        barrelCount,
+        barrelSpacing,
+        roundMass,
+        muzzleSpeed,
+        muzzleEnergy,
+        beamPower: 0,
+        cycleTime: turretCycleTime(calibre, ((mountLength * mountWidth) / (dome * dome)) * decks) / barrelCount,
+        beamOnTime: 0,
+        burst: null,
+    };
 }
 
 /**
@@ -3071,7 +3071,7 @@ export function gunStats(
  * of that, as a hull gun's deeper block does.
  */
 function turretCycleTime(calibre: number, gear: number): number {
-  return CYCLE_TIME_PER_CALIBRE * calibre * (LOADING_FLOOR + (1 - LOADING_FLOOR) / gear);
+    return CYCLE_TIME_PER_CALIBRE * calibre * (LOADING_FLOOR + (1 - LOADING_FLOOR) / gear);
 }
 
 /**
@@ -3112,46 +3112,46 @@ function turretCycleTime(calibre: number, gear: number): number {
  * settles on a single emitter that is the laws working rather than failing.
  */
 export function beamGunStats(mountLength: number, mountWidth: number, barrelCount: number = 1): GunStats {
-  // One disc, or `n` discs dividing the same area between them.
-  const face = mountWidth < mountLength ? mountWidth : mountLength;
-  const wide = (face * BEAM_APERTURE_FRACTION) / sqrt(barrelCount);
-  const aperture = wide < MAX_TURRET_CALIBRE ? wide : MAX_TURRET_CALIBRE;
-  const apertureArea = PI * 0.25 * aperture * aperture;
+    // One disc, or `n` discs dividing the same area between them.
+    const face = mountWidth < mountLength ? mountWidth : mountLength;
+    const wide = (face * BEAM_APERTURE_FRACTION) / sqrt(barrelCount);
+    const aperture = wide < MAX_TURRET_CALIBRE ? wide : MAX_TURRET_CALIBRE;
+    const apertureArea = PI * 0.25 * aperture * aperture;
 
-  // What the optic can pass without destroying itself, which is the whole of
-  // what limits a beam mount's output.
-  const power = OPTIC_INTENSITY_LIMIT * apertureArea;
+    // What the optic can pass without destroying itself, which is the whole of
+    // what limits a beam mount's output.
+    const power = OPTIC_INTENSITY_LIMIT * apertureArea;
 
-  // The bank fills the mount, and feeds one emitter at a time.
-  const depth = face < DECK_HEIGHT ? face : DECK_HEIGHT;
-  const stored = BEAM_STORED_ENERGY_PER_VOLUME * mountLength * mountWidth * depth;
-  const beamOnTime = stored / power;
+    // The bank fills the mount, and feeds one emitter at a time.
+    const depth = face < DECK_HEIGHT ? face : DECK_HEIGHT;
+    const stored = BEAM_STORED_ENERGY_PER_VOLUME * mountLength * mountWidth * depth;
+    const beamOnTime = stored / power;
 
-  // No barrel: a housing round the optic, as deep as the optic is wide.
-  const barrelLength = aperture * BEAM_EMITTER_APERTURES;
+    // No barrel: a housing round the optic, as deep as the optic is wide.
+    const barrelLength = aperture * BEAM_EMITTER_APERTURES;
 
-  // Emitters spread across the mount face the same way barrels do, for the
-  // same reason — one whole gap outboard of each.
-  const barrelSpacing = barrelCount > 1 ? face / (barrelCount + 1) : 0;
+    // Emitters spread across the mount face the same way barrels do, for the
+    // same reason — one whole gap outboard of each.
+    const barrelSpacing = barrelCount > 1 ? face / (barrelCount + 1) : 0;
 
-  return {
-    type: GunType.Beam,
-    calibre: aperture,
-    barrelLength,
-    braceLength: 0,
-    braceWidth: 0,
-    barrelCount,
-    barrelSpacing,
-    // A beam has no round, so nothing here describes one. Negative muzzle
-    // speed is how a weapon says it arrives the instant it is fired.
-    roundMass: 0,
-    muzzleSpeed: -1,
-    muzzleEnergy: 0,
-    beamPower: power,
-    beamOnTime,
-    cycleTime: beamOnTime / BEAM_DUTY_CYCLE,
-    burst: null,
-  };
+    return {
+        type: GunType.Beam,
+        calibre: aperture,
+        barrelLength,
+        braceLength: 0,
+        braceWidth: 0,
+        barrelCount,
+        barrelSpacing,
+        // A beam has no round, so nothing here describes one. Negative muzzle
+        // speed is how a weapon says it arrives the instant it is fired.
+        roundMass: 0,
+        muzzleSpeed: -1,
+        muzzleEnergy: 0,
+        beamPower: power,
+        beamOnTime,
+        cycleTime: beamOnTime / BEAM_DUTY_CYCLE,
+        burst: null,
+    };
 }
 
 /**
@@ -3164,7 +3164,7 @@ export function beamGunStats(mountLength: number, mountWidth: number, barrelCoun
  * slow at the top end, and a compact mount is quick at both.
  */
 export function traverseRate(accel: number): number {
-  return accel * TRAVERSE_SPINUP_TIME;
+    return accel * TRAVERSE_SPINUP_TIME;
 }
 
 /**
@@ -3175,7 +3175,7 @@ export function traverseRate(accel: number): number {
  * out along a barrel does.
  */
 export function traverseAccel(mass: number, inertia: number): number {
-  return (TRAVERSE_TORQUE_PER_KG * mass) / inertia;
+    return (TRAVERSE_TORQUE_PER_KG * mass) / inertia;
 }
 
 /**
@@ -3188,6 +3188,6 @@ export function traverseAccel(mass: number, inertia: number): number {
  * and no slower.
  */
 export function mountAccel(spec: ModuleSpec, stats: ModuleStats): number {
-  if (isHullMount(spec.kind)) return traverseAccel(stats.fittingMass, stats.swingInertia);
-  return traverseAccel(stats.mass, stats.inertia);
+    if (isHullMount(spec.kind)) return traverseAccel(stats.fittingMass, stats.swingInertia);
+    return traverseAccel(stats.mass, stats.inertia);
 }

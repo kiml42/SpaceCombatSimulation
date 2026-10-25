@@ -1,25 +1,25 @@
 import {
-  aboardPose,
-  AttackArcs,
-  bestAttackBearings,
-  designArcs,
-  engineGeometry,
-  holdBand,
-  HULL_LAYER,
-  landedIndex,
-  landedLength,
-  masked,
-  OWN_LAYERS,
-  ownLanding,
-  plumeLayers,
-  plumeRays,
-  WEAPONS_LAYER,
-  math,
-  Snapshot,
-  weaponPlumeReach,
-  type ShipDesign,
-  type ShipView,
-} from '../sim/index.js';
+    aboardPose,
+    AttackArcs,
+    bestAttackBearings,
+    designArcs,
+    engineGeometry,
+    holdBand,
+    HULL_LAYER,
+    landedIndex,
+    landedLength,
+    masked,
+    OWN_LAYERS,
+    ownLanding,
+    plumeLayers,
+    plumeRays,
+    WEAPONS_LAYER,
+    math,
+    Snapshot,
+    weaponPlumeReach,
+    type ShipDesign,
+    type ShipView,
+} from "../sim/index.js";
 
 /**
  * A blueprint as a `Snapshot` the battle renderer can draw.
@@ -57,109 +57,109 @@ export const NO_TEAM = -1;
  * pointer move does not allocate.
  */
 export function previewSnapshot(design: ShipDesign, out: Snapshot = new Snapshot()): Snapshot {
-  const view = out.ships[0] ?? {
-    currentStructure: design,
-    body: -1,
-    team: NO_TEAM,
-    serial: 0,
-    x: 0,
-    y: 0,
-    angle: 0,
-    vx: 0,
-    vy: 0,
-    turretBearings: [],
-    turretReady: [],
-    throttles: [],
-    landed: [],
-    integrity: [],
-  };
-  out.ships[0] = view;
-  out.shipCount = 1;
+    const view = out.ships[0] ?? {
+        currentStructure: design,
+        body: -1,
+        team: NO_TEAM,
+        serial: 0,
+        x: 0,
+        y: 0,
+        angle: 0,
+        vx: 0,
+        vy: 0,
+        turretBearings: [],
+        turretReady: [],
+        throttles: [],
+        landed: [],
+        integrity: [],
+    };
+    out.ships[0] = view;
+    out.shipCount = 1;
 
-  view.currentStructure = design;
-  view.team = NO_TEAM;
-  // The design expressed its modules about the centre of mass, so putting the
-  // body there puts every module back at the coordinates it was written at.
-  view.x = design.centreOfMassX;
-  view.y = design.centreOfMassY;
-  view.angle = 0;
-  view.vx = 0;
-  view.vy = 0;
+    view.currentStructure = design;
+    view.team = NO_TEAM;
+    // The design expressed its modules about the centre of mass, so putting the
+    // body there puts every module back at the coordinates it was written at.
+    view.x = design.centreOfMassX;
+    view.y = design.centreOfMassY;
+    view.angle = 0;
+    view.vx = 0;
+    view.vy = 0;
 
-  // Engines are cold — a design is not running — except one firing into its
-  // own hull, which is lit so the picture says what it costs.
-  view.throttles.length = design.engines.length;
-  for (let t = 0; t < design.engines.length; t++) view.throttles[t] = 0;
-  lightSelfBurning(view);
-  landOnSelf(view);
-  restingTriggers(view, design);
+    // Engines are cold — a design is not running — except one firing into its
+    // own hull, which is lit so the picture says what it costs.
+    view.throttles.length = design.engines.length;
+    for (let t = 0; t < design.engines.length; t++) view.throttles[t] = 0;
+    lightSelfBurning(view);
+    landOnSelf(view);
+    restingTriggers(view, design);
 
-  // A design has taken nothing: the editor draws the ship as it would be built,
-  // not as one that has been somewhere.
-  view.integrity.length = design.modules.length;
-  for (let m = 0; m < design.modules.length; m++) view.integrity[m] = 1;
+    // A design has taken nothing: the editor draws the ship as it would be built,
+    // not as one that has been somewhere.
+    view.integrity.length = design.modules.length;
+    for (let m = 0; m < design.modules.length; m++) view.integrity[m] = 1;
 
-  out.tick = 0;
-  out.time = 0;
-  out.wells = [];
-  out.projectileCount = 0;
+    out.tick = 0;
+    out.time = 0;
+    out.wells = [];
+    out.projectileCount = 0;
 
-  out.minX = design.centreOfMassX - design.radius;
-  out.minY = design.centreOfMassY - design.radius;
-  out.maxX = design.centreOfMassX + design.radius;
-  out.maxY = design.centreOfMassY + design.radius;
+    out.minX = design.centreOfMassX - design.radius;
+    out.minY = design.centreOfMassY - design.radius;
+    out.maxX = design.centreOfMassX + design.radius;
+    out.maxY = design.centreOfMassY + design.radius;
 
-  // The fighters it sets out with, lying on their pads.
-  for (const aboard of design.aboard ?? []) {
-    const pose = aboardPose(design, aboard);
-    const fighter = aboard.design;
-    const rider = out.ships[out.shipCount] ?? restingView(fighter);
-    out.ships[out.shipCount++] = rider;
-    rider.currentStructure = fighter;
-    rider.team = NO_TEAM;
-    rider.x = design.centreOfMassX + pose.x;
-    rider.y = design.centreOfMassY + pose.y;
-    rider.angle = pose.angle;
-    rider.throttles.length = fighter.engines.length;
-    rider.throttles.fill(0);
-    rider.landed.length = 0;
-    rider.integrity.length = fighter.modules.length;
-    rider.integrity.fill(1);
-    rider.turretDisabled.length = fighter.turrets.length;
-    rider.turretDisabled.fill(false);
-    restingTriggers(rider, fighter);
-  }
+    // The fighters it sets out with, lying on their pads.
+    for (const aboard of design.aboard ?? []) {
+        const pose = aboardPose(design, aboard);
+        const fighter = aboard.design;
+        const rider = out.ships[out.shipCount] ?? restingView(fighter);
+        out.ships[out.shipCount++] = rider;
+        rider.currentStructure = fighter;
+        rider.team = NO_TEAM;
+        rider.x = design.centreOfMassX + pose.x;
+        rider.y = design.centreOfMassY + pose.y;
+        rider.angle = pose.angle;
+        rider.throttles.length = fighter.engines.length;
+        rider.throttles.fill(0);
+        rider.landed.length = 0;
+        rider.integrity.length = fighter.modules.length;
+        rider.integrity.fill(1);
+        rider.turretDisabled.length = fighter.turrets.length;
+        rider.turretDisabled.fill(false);
+        restingTriggers(rider, fighter);
+    }
 
-  return out;
+    return out;
 }
 
 function restingView(design: ShipDesign): ShipView {
-  return {
-    currentStructure: design,
-    body: -1,
-    team: NO_TEAM,
-    serial: 0,
-    x: 0,
-    y: 0,
-    angle: 0,
-    vx: 0,
-    vy: 0,
-    turretBearings: [],
-    turretReady: [],
-    throttles: [],
-    landed: [],
-    integrity: [],
-    hasControl: true,
-    isDerelict: false,
-    isMissionKilled: false,
-    turretDisabled: [],
-  };
+    return {
+        currentStructure: design,
+        body: -1,
+        team: NO_TEAM,
+        serial: 0,
+        x: 0,
+        y: 0,
+        angle: 0,
+        vx: 0,
+        vy: 0,
+        turretBearings: [],
+        turretReady: [],
+        throttles: [],
+        landed: [],
+        integrity: [],
+        hasControl: true,
+        isDerelict: false,
+        isMissionKilled: false,
+        turretDisabled: [],
+    };
 }
 
 /** Light, at full throttle, every engine whose flame meets its own hull. */
 export function lightSelfBurning(view: ShipView): void {
-  const engines = view.currentStructure.engines;
-  for (let t = 0; t < engines.length; t++) if ((engines[t]!.escaping ?? 1) < 1) view.throttles[t] = 1;
+    const engines = view.currentStructure.engines;
+    for (let t = 0; t < engines.length; t++) if ((engines[t]!.escaping ?? 1) < 1) view.throttles[t] = 1;
 }
 
 /**
@@ -168,21 +168,21 @@ export function lightSelfBurning(view: ShipView): void {
  * draws the burn glow from. Call again whenever the throttles shown change.
  */
 export function landOnSelf(view: ShipView): void {
-  const design = view.currentStructure;
-  view.landed.length = landedLength(design);
-  view.landed.fill(0);
-  for (let t = 0; t < design.engines.length; t++) {
-    const force = (view.throttles[t] ?? 0) * design.engines[t]!.maxThrust;
-    if (!(force > 0)) continue;
-    const engine = design.modules[design.engines[t]!.module ?? -1];
-    if (engine === undefined) continue;
-    const layers = plumeLayers(design, t, OWN_LAYERS);
-    const rays = plumeRays(engineGeometry(engine.spec));
-    for (let layer = HULL_LAYER; layer <= WEAPONS_LAYER; layer <<= 1) {
-      if ((layers & layer) === 0) continue;
-      for (let ray = 0; ray < rays; ray++) view.landed[landedIndex(design, t, ray, layer)] = ownLanding(design, t, ray, force);
+    const design = view.currentStructure;
+    view.landed.length = landedLength(design);
+    view.landed.fill(0);
+    for (let t = 0; t < design.engines.length; t++) {
+        const force = (view.throttles[t] ?? 0) * design.engines[t]!.maxThrust;
+        if (!(force > 0)) continue;
+        const engine = design.modules[design.engines[t]!.module ?? -1];
+        if (engine === undefined) continue;
+        const layers = plumeLayers(design, t, OWN_LAYERS);
+        const rays = plumeRays(engineGeometry(engine.spec));
+        for (let layer = HULL_LAYER; layer <= WEAPONS_LAYER; layer <<= 1) {
+            if ((layers & layer) === 0) continue;
+            for (let ray = 0; ray < rays; ray++) view.landed[landedIndex(design, t, ray, layer)] = ownLanding(design, t, ray, force);
+        }
     }
-  }
 }
 
 /**
@@ -196,41 +196,42 @@ export function landOnSelf(view: ShipView): void {
  * that enemy standing in it.
  */
 export function restingTriggers(view: ShipView, design: ShipDesign): void {
-  const band = doctrineBand(design);
-  view.holdMin = band.min;
-  view.holdMax = band.max;
-  view.attackBearings = attackBearings(design).map((r) => r.bearing);
+    const band = doctrineBand(design);
+    view.holdMin = band.min;
+    view.holdMax = band.max;
+    view.attackBearings = attackBearings(design).map((r) => r.bearing);
 
-  view.turretBearings.length = design.turrets.length;
-  view.turretReady.length = design.turrets.length;
-  const aim = (view.turretAim ??= []);
-  const trigger = (view.turretTrigger ??= []);
-  const triggerReach = (view.turretTriggerReach ??= []);
-  const fouled = (view.turretFouled ??= []);
-  aim.length = trigger.length = triggerReach.length = fouled.length = design.turrets.length;
-  for (let t = 0; t < design.turrets.length; t++) {
-    const turret = design.turrets[t]!;
-    const rest = (turret.mount.restBearing ?? 0) + view.angle;
-    view.turretBearings[t] = rest;
-    aim[t] = rest;
-    const reach = turret.reach;
-    const enemy = design.radius * math.sqrt(orOne(turret.targeting.preferredMass));
-    trigger[t] = reach > 0 ? math.atan2(enemy, reach) : 0;
-    triggerReach[t] = reach;
-    const mask = turret.mount.mask;
-    fouled[t] = mask !== undefined && mask.length > 0 && masked(mask, 0);
-    view.turretReady[t] = !fouled[t];
-  }
+    view.turretBearings.length = design.turrets.length;
+    view.turretReady.length = design.turrets.length;
+    const aim = (view.turretAim ??= []);
+    const trigger = (view.turretTrigger ??= []);
+    const triggerReach = (view.turretTriggerReach ??= []);
+    const fouled = (view.turretFouled ??= []);
+    aim.length = trigger.length = triggerReach.length = fouled.length = design.turrets.length;
+    for (let t = 0; t < design.turrets.length; t++) {
+        const turret = design.turrets[t]!;
+        const rest = (turret.mount.restBearing ?? 0) + view.angle;
+        view.turretBearings[t] = rest;
+        aim[t] = rest;
+        const reach = turret.reach;
+        const enemy = design.radius * math.sqrt(orOne(turret.targeting.preferredMass));
+        trigger[t] = reach > 0 ? math.atan2(enemy, reach) : 0;
+        triggerReach[t] = reach;
+        const mask = turret.mount.mask;
+        fouled[t] = mask !== undefined && mask.length > 0 && masked(mask, 0);
+        view.turretReady[t] = !fouled[t];
+    }
 
-  const engineReach = (view.engineTriggerReach ??= []);
-  const engineFiring = (view.engineFiring ??= []);
-  engineReach.length = engineFiring.length = design.engines.length;
-  for (let t = 0; t < design.engines.length; t++) {
-    const engine = design.engines[t]!;
-    const module = design.modules[engine.module ?? -1];
-    engineReach[t] = engine.weapon === true && module !== undefined ? weaponPlumeReach(engineGeometry(module.spec), engine.maxThrust) : 0;
-    engineFiring[t] = true;
-  }
+    const engineReach = (view.engineTriggerReach ??= []);
+    const engineFiring = (view.engineFiring ??= []);
+    engineReach.length = engineFiring.length = design.engines.length;
+    for (let t = 0; t < design.engines.length; t++) {
+        const engine = design.engines[t]!;
+        const module = design.modules[engine.module ?? -1];
+        engineReach[t] =
+            engine.weapon === true && module !== undefined ? weaponPlumeReach(engineGeometry(module.spec), engine.maxThrust) : 0;
+        engineFiring[t] = true;
+    }
 }
 
 /**
@@ -239,17 +240,17 @@ export function restingTriggers(view: ShipView, design: ShipDesign): void {
  * is drawn against what that gun wants.
  */
 export function doctrineBand(design: ShipDesign): { min: number; max: number } {
-  const enemy = design.radius * math.sqrt(orOne(design.doctrine.targeting.preferredMass));
-  return holdBand(design.doctrine.approach, design.reach, enemy);
+    const enemy = design.radius * math.sqrt(orOne(design.doctrine.targeting.preferredMass));
+    return holdBand(design.doctrine.approach, design.reach, enemy);
 }
 
 /** The bearings that bring the most of a design's main guns to bear, with how many of how many. */
 export function attackBearings(design: ShipDesign): { bearing: number; guns: number; total: number }[] {
-  const arcs = designArcs(design, new AttackArcs());
-  return bestAttackBearings(arcs, design.thrustBearing).map((r) => ({ ...r, total: arcs.total }));
+    const arcs = designArcs(design, new AttackArcs());
+    return bestAttackBearings(arcs, design.thrustBearing).map((r) => ({ ...r, total: arcs.total }));
 }
 
 /** A preferred mass, or one where it says none. */
 function orOne(preferredMass: number): number {
-  return preferredMass > 0 ? preferredMass : 1;
+    return preferredMass > 0 ? preferredMass : 1;
 }

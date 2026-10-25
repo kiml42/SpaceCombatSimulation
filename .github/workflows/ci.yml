@@ -38,20 +38,25 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # The version comes from `packageManager` in SCS2D/package.json.
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: SCS2D/package.json
+
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: SCS2D/package-lock.json
+          cache: pnpm
+          cache-dependency-path: SCS2D/pnpm-lock.yaml
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
 
       # Two projects: sim/ (no ambient types, so host globals are errors there)
       # and the root (tests and scripts, which may use Node).
-      - run: npm run typecheck
+      - run: pnpm typecheck
 
-      # TypeScript in Prettier's style; `npm run format` fixes it.
-      - run: npm run format:check
+      # TypeScript in Prettier's style; `pnpm format` fixes it.
+      - run: pnpm format:check
 
   test:
     name: Test (${{ matrix.os }}, Node ${{ matrix.node }})
@@ -100,15 +105,20 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # The version comes from `packageManager` in SCS2D/package.json.
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: SCS2D/package.json
+
       - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
-          cache: npm
-          cache-dependency-path: SCS2D/package-lock.json
+          cache: pnpm
+          cache-dependency-path: SCS2D/pnpm-lock.yaml
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
 
-      - run: npm test
+      - run: pnpm test
 
   viewer:
     name: Viewer (browser)
@@ -120,19 +130,24 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # The version comes from `packageManager` in SCS2D/package.json.
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: SCS2D/package.json
+
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: SCS2D/package-lock.json
+          cache: pnpm
+          cache-dependency-path: SCS2D/pnpm-lock.yaml
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
 
       # Chromium only: the pages are a canvas and a handful of controls, and a
       # second engine would double the install for no coverage worth having.
-      - run: npx playwright install --with-deps chromium
+      - run: pnpm exec playwright install --with-deps chromium
 
-      - run: npm run test:browser
+      - run: pnpm test:browser
 
   pages:
     name: Publish to Pages
@@ -165,13 +180,18 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # The version comes from `packageManager` in SCS2D/package.json.
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: SCS2D/package.json
+
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: SCS2D/package-lock.json
+          cache: pnpm
+          cache-dependency-path: SCS2D/pnpm-lock.yaml
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
 
       # Built here rather than committed. A bundle in the tree conflicts on
       # every branch that touches a source file, and nothing would guarantee it
@@ -181,7 +201,7 @@ jobs:
       # Both pages come out of this one command and the whole of `dist` is
       # uploaded, so a new page needs nothing here beyond an entry in
       # `scripts/build.ts`.
-      - run: npm run build
+      - run: pnpm build
 
       - uses: actions/configure-pages@v6
 

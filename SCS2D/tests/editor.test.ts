@@ -1,88 +1,88 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 import {
-  blueprintProblem,
-  blockCentre,
-  bodySpec,
-  hullMountGeometry,
-  BARREL_OUTER_CALIBRES,
-  engineGeometry,
-  expandBlueprint,
-  holdBand,
-  expandWithOrigins,
-  math,
-  radiansToDegrees as toDegrees,
-  moduleCentre,
-  moduleStats,
-  placementAt,
-  samePlacement,
-  parseBlueprint,
-  serialiseBlueprint,
-  weaponPlumeReach,
-  type AssemblyInstance,
-  type Blueprint,
-  type ModulePath,
-  type ModuleSpec,
-  type Placement,
-  type ShipDesign,
-  settleIds,
-} from '../sim/index.js';
-import { CORVETTE, GUNSHIP, TORCH } from '../scenarios/blueprints.js';
-import { EditorDocument } from '../editor/document.js';
+    blueprintProblem,
+    blockCentre,
+    bodySpec,
+    hullMountGeometry,
+    BARREL_OUTER_CALIBRES,
+    engineGeometry,
+    expandBlueprint,
+    holdBand,
+    expandWithOrigins,
+    math,
+    radiansToDegrees as toDegrees,
+    moduleCentre,
+    moduleStats,
+    placementAt,
+    samePlacement,
+    parseBlueprint,
+    serialiseBlueprint,
+    weaponPlumeReach,
+    type AssemblyInstance,
+    type Blueprint,
+    type ModulePath,
+    type ModuleSpec,
+    type Placement,
+    type ShipDesign,
+    settleIds,
+} from "../sim/index.js";
+import { CORVETTE, GUNSHIP, TORCH } from "../scenarios/blueprints.js";
+import { EditorDocument } from "../editor/document.js";
 import {
-  addModule,
-  addModuleTo,
-  addToAssembly,
-  addToAssemblyProblem,
-  cloneBlueprint,
-  dissolveInstance,
-  duplicateInstance,
-  duplicatePlacement,
-  createAssembly,
-  createAssemblyProblem,
-  instanceHandle,
-  instancePose,
-  instanceOf,
-  setMirror,
-  setRepetition,
-  extentAlong,
-  toPlacementAngle,
-  positionHandle,
-  removeCopy,
-  removeInstance,
-  takeOutCount,
-  takeOutOfAssembly,
-  moduleAt,
-  movePlacement,
-  removePlacement,
-  renameAssembly,
-  renameProblem,
-  resizePlacement,
-  snap,
-  toPlacementFrame,
-  updatePlacement,
-  arrivingModule,
-} from '../editor/edit.js';
-import { emptyBlueprint, Library, nextName, toFileText, unusedName, type KeyValueStore } from '../editor/library.js';
-import { Demonstration, ROUND_LIFETIME } from '../editor/demonstrate.js';
-import { MAX_BEAM_LENGTH } from '../sim/beams.js';
-import { GunType } from '../sim/modules.js';
+    addModule,
+    addModuleTo,
+    addToAssembly,
+    addToAssemblyProblem,
+    cloneBlueprint,
+    dissolveInstance,
+    duplicateInstance,
+    duplicatePlacement,
+    createAssembly,
+    createAssemblyProblem,
+    instanceHandle,
+    instancePose,
+    instanceOf,
+    setMirror,
+    setRepetition,
+    extentAlong,
+    toPlacementAngle,
+    positionHandle,
+    removeCopy,
+    removeInstance,
+    takeOutCount,
+    takeOutOfAssembly,
+    moduleAt,
+    movePlacement,
+    removePlacement,
+    renameAssembly,
+    renameProblem,
+    resizePlacement,
+    snap,
+    toPlacementFrame,
+    updatePlacement,
+    arrivingModule,
+} from "../editor/edit.js";
+import { emptyBlueprint, Library, nextName, toFileText, unusedName, type KeyValueStore } from "../editor/library.js";
+import { Demonstration, ROUND_LIFETIME } from "../editor/demonstrate.js";
+import { MAX_BEAM_LENGTH } from "../sim/beams.js";
+import { GunType } from "../sim/modules.js";
 import {
-  facingTo,
-  handleAt,
-  handlesFor,
-  HANDLE_GRAB_PX,
-  MIN_SIZE,
-  ROTATE_ARM_PX,
-  resizedTo,
-  seamBetween,
-  seamTo,
-  barrelCalibresTo,
-  nozzleTo,
-  tipHandle,
-  type Handle,
-} from '../editor/handles.js';
-import { doctrineBand, previewSnapshot } from '../editor/preview.js';
-import { designStats, envelopes, assemblyMass, headingCost, moduleReadout, roundsAboard } from '../editor/stats.js';
+    facingTo,
+    handleAt,
+    handlesFor,
+    HANDLE_GRAB_PX,
+    MIN_SIZE,
+    ROTATE_ARM_PX,
+    resizedTo,
+    seamBetween,
+    seamTo,
+    barrelCalibresTo,
+    nozzleTo,
+    tipHandle,
+    type Handle,
+} from "../editor/handles.js";
+import { doctrineBand, previewSnapshot } from "../editor/preview.js";
+import { designStats, envelopes, assemblyMass, headingCost, moduleReadout, roundsAboard } from "../editor/stats.js";
 
 /**
  * The editor's half: what an edit does to a layout, and what the page reads
@@ -94,2576 +94,2580 @@ import { designStats, envelopes, assemblyMass, headingCost, moduleReadout, round
  * undo that half-restores, a shared part that one copy diverges from.
  */
 
-const hull: ModuleSpec = { kind: 'structure', x: 0, y: 0, length: 20, width: 6 };
+const hull: ModuleSpec = { kind: "structure", x: 0, y: 0, length: 20, width: 6 };
 
-function ship(blueprint: Omit<Blueprint, 'name'>): Blueprint {
-  return { name: 'Test', ...blueprint };
+function ship(blueprint: Omit<Blueprint, "name">): Blueprint {
+    return { name: "Test", ...blueprint };
 }
 
 /** Where a layout draws its modules, for comparing one edit's result with another's. */
 function positions(blueprint: Blueprint): [number, number][] {
-  return expandWithOrigins(blueprint).modules.map((m) => [m.x, m.y]);
+    return expandWithOrigins(blueprint).modules.map((m) => [m.x, m.y]);
 }
 
-describe('moving a module', () => {
-  it('moves a plain placement by what it was dragged', () => {
-    const bp = ship({ modules: [hull] });
-    const { origins } = expandWithOrigins(bp);
-    const moved = movePlacement(bp, origins[0]!, 3, -2)!;
-    expect(positions(moved)).toEqual([[3, -2]]);
-  });
-
-  it('writes the movement in the frame the placement was written in', () => {
-    // The pod is placed inside an assembly turned a quarter turn, so a drag
-    // towards +x on screen is a drag towards -y in the text of the file.
-    const bp = ship({
-      assemblies: { pod: { modules: [{ kind: 'structure', x: 0, y: 0, length: 2, width: 2 }] } },
-      modules: [hull, { use: 'pod', x: 10, y: 0, angle: math.HALF_PI }],
+describe("moving a module", () => {
+    it("moves a plain placement by what it was dragged", () => {
+        const bp = ship({ modules: [hull] });
+        const { origins } = expandWithOrigins(bp);
+        const moved = movePlacement(bp, origins[0]!, 3, -2)!;
+        expect(positions(moved)).toEqual([[3, -2]]);
     });
-    const { origins } = expandWithOrigins(bp);
-    const moved = movePlacement(bp, origins[1]!, 1, 0)!;
-    // What the file says changed; what the player sees moved by what they dragged.
-    expect(positions(moved)[1]![0]).toBeCloseTo(11, 12);
-    expect(positions(moved)[1]![1]).toBeCloseTo(0, 12);
-  });
 
-  it('undoes mirroring, so a reflected copy follows the pointer', () => {
-    const bp = ship({
-      assemblies: { pod: { modules: [{ kind: 'structure', x: 0, y: 0, length: 2, width: 2 }] } },
-      modules: [hull, { use: 'pod', x: 0, y: 8, mirror: true }],
+    it("writes the movement in the frame the placement was written in", () => {
+        // The pod is placed inside an assembly turned a quarter turn, so a drag
+        // towards +x on screen is a drag towards -y in the text of the file.
+        const bp = ship({
+            assemblies: { pod: { modules: [{ kind: "structure", x: 0, y: 0, length: 2, width: 2 }] } },
+            modules: [hull, { use: "pod", x: 10, y: 0, angle: math.HALF_PI }],
+        });
+        const { origins } = expandWithOrigins(bp);
+        const moved = movePlacement(bp, origins[1]!, 1, 0)!;
+        // What the file says changed; what the player sees moved by what they dragged.
+        expect(positions(moved)[1]![0]).toBeCloseTo(11, 12);
+        expect(positions(moved)[1]![1]).toBeCloseTo(0, 12);
     });
-    const { origins } = expandWithOrigins(bp);
-    const moved = movePlacement(bp, origins[1]!, 0, 3)!;
-    expect(positions(moved)[1]).toEqual([0, 11]);
-  });
 
-  it('moves every copy of a shared part together', () => {
-    // The corvette's four wing boxes are four instances of one assembly, so
-    // the module inside it is written once and moves four times.
-    const { origins, modules } = expandWithOrigins(CORVETTE);
-    const wing = modules.findIndex((m) => m.length === 4 && m.width === 3);
-    const moved = movePlacement(CORVETTE, origins[wing]!, 1, 0)!;
-    const before = positions(CORVETTE);
-    const after = positions(moved);
-    const shifted = after.filter((p, i) => p[0] !== before[i]![0] || p[1] !== before[i]![1]);
-    expect(shifted).toHaveLength(4);
-  });
+    it("undoes mirroring, so a reflected copy follows the pointer", () => {
+        const bp = ship({
+            assemblies: { pod: { modules: [{ kind: "structure", x: 0, y: 0, length: 2, width: 2 }] } },
+            modules: [hull, { use: "pod", x: 0, y: 8, mirror: true }],
+        });
+        const { origins } = expandWithOrigins(bp);
+        const moved = movePlacement(bp, origins[1]!, 0, 3)!;
+        expect(positions(moved)[1]).toEqual([0, 11]);
+    });
 
-  it('leaves the original blueprint alone', () => {
-    const bp = ship({ modules: [hull] });
-    const copy = cloneBlueprint(bp);
-    movePlacement(bp, expandWithOrigins(bp).origins[0]!, 5, 5);
-    expect(bp).toEqual(copy);
-  });
+    it("moves every copy of a shared part together", () => {
+        // The corvette's four wing boxes are four instances of one assembly, so
+        // the module inside it is written once and moves four times.
+        const { origins, modules } = expandWithOrigins(CORVETTE);
+        const wing = modules.findIndex((m) => m.length === 4 && m.width === 3);
+        const moved = movePlacement(CORVETTE, origins[wing]!, 1, 0)!;
+        const before = positions(CORVETTE);
+        const after = positions(moved);
+        const shifted = after.filter((p, i) => p[0] !== before[i]![0] || p[1] !== before[i]![1]);
+        expect(shifted).toHaveLength(4);
+    });
 
-  it('reports a path that no longer leads anywhere', () => {
-    const bp = ship({ modules: [hull] });
-    const origin = expandWithOrigins(bp).origins[0]!;
-    const emptied = removePlacement(bp, origin.path)!;
-    expect(movePlacement(emptied, origin, 1, 1)).toBeNull();
-  });
+    it("leaves the original blueprint alone", () => {
+        const bp = ship({ modules: [hull] });
+        const copy = cloneBlueprint(bp);
+        movePlacement(bp, expandWithOrigins(bp).origins[0]!, 5, 5);
+        expect(bp).toEqual(copy);
+    });
+
+    it("reports a path that no longer leads anywhere", () => {
+        const bp = ship({ modules: [hull] });
+        const origin = expandWithOrigins(bp).origins[0]!;
+        const emptied = removePlacement(bp, origin.path)!;
+        expect(movePlacement(emptied, origin, 1, 1)).toBeNull();
+    });
 });
 
-describe('toPlacementFrame', () => {
-  it('is the identity in an unturned, unreflected frame', () => {
-    expect(toPlacementFrame({ path: [], rotation: 0, mirrored: false, instanceFrame: null }, 2, 3)).toEqual({ dx: 2, dy: 3 });
-  });
+describe("toPlacementFrame", () => {
+    it("is the identity in an unturned, unreflected frame", () => {
+        expect(toPlacementFrame({ path: [], rotation: 0, mirrored: false, instanceFrame: null }, 2, 3)).toEqual({ dx: 2, dy: 3 });
+    });
 
-  it('undoes the rotation before the reflection', () => {
-    const local = toPlacementFrame({ path: [], rotation: math.HALF_PI, mirrored: true, instanceFrame: null }, 0, 1);
-    expect(local.dx).toBeCloseTo(1, 12);
-    expect(local.dy).toBeCloseTo(0, 12);
-  });
+    it("undoes the rotation before the reflection", () => {
+        const local = toPlacementFrame({ path: [], rotation: math.HALF_PI, mirrored: true, instanceFrame: null }, 0, 1);
+        expect(local.dx).toBeCloseTo(1, 12);
+        expect(local.dy).toBeCloseTo(0, 12);
+    });
 });
 
-describe('adding and removing', () => {
-  it('appends, because module order is part of the ship', () => {
-    const bp = ship({ modules: [hull] });
-    const spec: ModuleSpec = { kind: 'turret', x: 8, y: 0, length: 3, width: 3 };
-    const added = addModule(bp, spec);
-    expect(added.blueprint.modules).toHaveLength(2);
-    expect(added.blueprint.modules[1]).toEqual(spec);
-    expect(added.path).toEqual([{ index: 1, copy: 0 }]);
-  });
+describe("adding and removing", () => {
+    it("appends, because module order is part of the ship", () => {
+        const bp = ship({ modules: [hull] });
+        const spec: ModuleSpec = { kind: "turret", x: 8, y: 0, length: 3, width: 3 };
+        const added = addModule(bp, spec);
+        expect(added.blueprint.modules).toHaveLength(2);
+        expect(added.blueprint.modules[1]).toEqual(spec);
+        expect(added.path).toEqual([{ index: 1, copy: 0 }]);
+    });
 
-  it('removes the placement a path names, and every copy with it', () => {
-    const { origins, modules } = expandWithOrigins(CORVETTE);
-    const wing = modules.findIndex((m) => m.length === 4 && m.width === 3);
-    const cut = removePlacement(CORVETTE, origins[wing]!.path)!;
-    expect(expandWithOrigins(cut).modules).toHaveLength(modules.length - 4);
-  });
+    it("removes the placement a path names, and every copy with it", () => {
+        const { origins, modules } = expandWithOrigins(CORVETTE);
+        const wing = modules.findIndex((m) => m.length === 4 && m.width === 3);
+        const cut = removePlacement(CORVETTE, origins[wing]!.path)!;
+        expect(expandWithOrigins(cut).modules).toHaveLength(modules.length - 4);
+    });
 });
 
-describe('updatePlacement', () => {
-  it('edits the text of a shared part once', () => {
-    const { origins, modules } = expandWithOrigins(CORVETTE);
-    const wing = modules.findIndex((m) => m.length === 4 && m.width === 3);
-    const wider = updatePlacement(CORVETTE, origins[wing]!.path, (p) => ({ ...p, width: 4 }) as ModuleSpec)!;
-    const drawn = expandWithOrigins(wider).modules.filter((m) => m.length === 4 && m.width === 4);
-    expect(drawn).toHaveLength(4);
-  });
+describe("updatePlacement", () => {
+    it("edits the text of a shared part once", () => {
+        const { origins, modules } = expandWithOrigins(CORVETTE);
+        const wing = modules.findIndex((m) => m.length === 4 && m.width === 3);
+        const wider = updatePlacement(CORVETTE, origins[wing]!.path, (p) => ({ ...p, width: 4 }) as ModuleSpec)!;
+        const drawn = expandWithOrigins(wider).modules.filter((m) => m.length === 4 && m.width === 4);
+        expect(drawn).toHaveLength(4);
+    });
 });
 
-describe('snapping and picking', () => {
-  it('snaps a displacement rather than a position, so offsets survive', () => {
-    expect(snap(1.2, 0.5)).toBe(1);
-    expect(snap(-1.4, 0.5)).toBe(-1.5);
-    expect(snap(1.2, 0)).toBe(1.2);
-  });
+describe("snapping and picking", () => {
+    it("snaps a displacement rather than a position, so offsets survive", () => {
+        expect(snap(1.2, 0.5)).toBe(1);
+        expect(snap(-1.4, 0.5)).toBe(-1.5);
+        expect(snap(1.2, 0)).toBe(1.2);
+    });
 
-  it('gives back a number somebody could have typed, at any step', () => {
-    // The step follows the zoom, and most of the ladder below a metre has no
-    // exact binary form — so without rounding to the step's own precision,
-    // dragging on a fine grid writes 3.0000000000000004 into the ship's file.
-    for (const step of [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5]) {
-      for (const value of [3, -7.5, 0.37, 128.64]) {
-        const snapped = snap(value, step);
-        expect(String(snapped).replace('-', '')).toMatch(/^\d+(\.\d{1,4})?$/);
-        expect(Math.abs(snapped - value)).toBeLessThanOrEqual(step / 2 + 1e-9);
-      }
+    it("gives back a number somebody could have typed, at any step", () => {
+        // The step follows the zoom, and most of the ladder below a metre has no
+        // exact binary form — so without rounding to the step's own precision,
+        // dragging on a fine grid writes 3.0000000000000004 into the ship's file.
+        for (const step of [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5]) {
+            for (const value of [3, -7.5, 0.37, 128.64]) {
+                const snapped = snap(value, step);
+                expect(String(snapped).replace("-", "")).toMatch(/^\d+(\.\d{1,4})?$/);
+                expect(Math.abs(snapped - value)).toBeLessThanOrEqual(step / 2 + 1e-9);
+            }
+        }
+    });
+
+    it("picks the module under a point", () => {
+        const modules: ModuleSpec[] = [hull, { kind: "turret", x: 8, y: 0, length: 4, width: 4 }];
+        expect(moduleAt(modules, 0, 0)).toBe(0);
+        expect(moduleAt(modules, 8, 1)).toBe(1);
+        expect(moduleAt(modules, 40, 0)).toBe(-1);
+    });
+
+    it("respects a module’s facing", () => {
+        const modules: ModuleSpec[] = [{ kind: "structure", x: 0, y: 0, angle: math.HALF_PI, length: 20, width: 2 }];
+        expect(moduleAt(modules, 0, 8)).toBe(0);
+        expect(moduleAt(modules, 8, 0)).toBe(-1);
+    });
+
+    it("picks the topmost when a layout being worked on has modules overlapping", () => {
+        const modules: ModuleSpec[] = [hull, { kind: "turret", x: 0, y: 0, length: 4, width: 4 }];
+        expect(moduleAt(modules, 0, 0)).toBe(1);
+    });
+});
+
+describe("EditorDocument", () => {
+    it("derives a design, and keeps deriving one while the layout is invalid", () => {
+        const doc = new EditorDocument(CORVETTE);
+        expect(doc.view.problems).toEqual([]);
+        expect(doc.view.design).not.toBeNull();
+
+        const origin = doc.view.origins[1]!;
+        doc.apply(movePlacement(doc.blueprint, origin, -6, 0)!);
+        expect(doc.view.problems.length).toBeGreaterThan(0);
+        // Overlapping is a complaint, not a refusal: the picture and the numbers
+        // have to survive dragging one module through another.
+        expect(doc.view.design).not.toBeNull();
+    });
+
+    it("says which drawn modules the problems are about", () => {
+        const doc = new EditorDocument(CORVETTE);
+        expect(doc.view.faulty).toEqual([]);
+
+        // Dragged clear of the ship: the module is adrift, and the canvas has to
+        // be able to say which one without the player counting down the list.
+        // The corvette's bow gun, which nothing else hangs off.
+        const origin = doc.view.origins[3]!;
+        doc.apply(movePlacement(doc.blueprint, origin, 500, 500)!);
+        expect(doc.view.faulty).toContain(3);
+        expect(doc.view.problems.some((p) => /touches nothing|separate piece/.test(p))).toBe(true);
+
+        doc.undo();
+        expect(doc.view.faulty).toEqual([]);
+    });
+
+    it("flags every copy of a shared part that is at fault", () => {
+        // One placement, several drawn modules: the mistake is made once and shown
+        // everywhere it lands, the same way the selection highlight works.
+        const doc = new EditorDocument(GUNSHIP);
+        expect(doc.view.faulty).toEqual([]);
+        const drawn = doc.view.modules.length;
+        doc.apply({
+            ...doc.blueprint,
+            assemblies: {
+                ...doc.blueprint.assemblies,
+                pod: { modules: [{ kind: "structure", x: 0, y: 0, length: 4, width: 4 }] },
+            },
+            modules: [...doc.blueprint.modules, { use: "pod", x: 400, y: 0 }, { use: "pod", x: 400, y: 80 }],
+        });
+        expect(doc.view.faulty).toEqual([drawn, drawn + 1]);
+    });
+
+    it("has nothing to measure in an empty layout, and says why", () => {
+        const doc = new EditorDocument(emptyBlueprint("Blank"));
+        expect(doc.view.design).toBeNull();
+        expect(doc.view.underivable).toMatch(/at least one module/);
+    });
+
+    it("undoes and redoes", () => {
+        const doc = new EditorDocument(ship({ modules: [hull] }));
+        expect(doc.canUndo).toBe(false);
+        doc.apply(movePlacement(doc.blueprint, doc.view.origins[0]!, 4, 0)!);
+        expect(positions(doc.blueprint)).toEqual([[4, 0]]);
+        expect(doc.undo()).toBe(true);
+        expect(positions(doc.blueprint)).toEqual([[0, 0]]);
+        expect(doc.redo()).toBe(true);
+        expect(positions(doc.blueprint)).toEqual([[4, 0]]);
+        expect(doc.redo()).toBe(false);
+    });
+
+    it("collapses a drag into one undo step", () => {
+        const doc = new EditorDocument(ship({ modules: [hull] }));
+        const from = doc.blueprint;
+        const origin = doc.view.origins[0]!;
+        doc.apply(movePlacement(from, origin, 1, 0)!);
+        for (let i = 2; i <= 20; i++) doc.amend(movePlacement(from, origin, i, 0)!);
+        expect(positions(doc.blueprint)).toEqual([[20, 0]]);
+        doc.undo();
+        expect(positions(doc.blueprint)).toEqual([[0, 0]]);
+    });
+
+    it("drops a redo once a new edit is made", () => {
+        const doc = new EditorDocument(ship({ modules: [hull] }));
+        doc.apply(movePlacement(doc.blueprint, doc.view.origins[0]!, 4, 0)!);
+        doc.undo();
+        doc.apply(movePlacement(doc.blueprint, doc.view.origins[0]!, 0, 4)!);
+        expect(doc.canRedo).toBe(false);
+    });
+
+    it("selects the placement, not the copy", () => {
+        const doc = new EditorDocument(CORVETTE);
+        const wing = doc.view.modules.findIndex((m) => m.length === 4 && m.width === 3);
+        doc.selectModule(wing);
+        expect(doc.selectedModules()).toHaveLength(4);
+        // The copy that was picked is the one an edit is written through.
+        expect(doc.selectedModules()[0]).toBe(wing);
+        expect(doc.selectedOrigin()!.path).toEqual(doc.view.origins[wing]!.path);
+    });
+
+    it("gives the panel what was typed, not what it expanded to", () => {
+        const doc = new EditorDocument(CORVETTE);
+        const wing = doc.view.modules.findIndex((m) => m.length === 4 && m.width === 3);
+        doc.selectModule(wing);
+        // The drawn copy sits out on the wing; the placement is written at the
+        // assembly's own origin.
+        expect(doc.selectedPlacement).toMatchObject({ x: 0, y: 0 });
+    });
+
+    it("lets a selection go when the layout stops drawing it", () => {
+        const doc = new EditorDocument(ship({ modules: [hull, { kind: "turret", x: 8, y: 0, length: 3, width: 3 }] }));
+        doc.selectModule(1);
+        expect(doc.selection).not.toBeNull();
+        doc.apply(removePlacement(doc.blueprint, doc.selection!)!);
+        expect(doc.selection).toBeNull();
+        expect(doc.selectedPlacement).toBeNull();
+    });
+
+    it("restores a selection when the deletion is undone", () => {
+        const doc = new EditorDocument(ship({ modules: [hull, { kind: "turret", x: 8, y: 0, length: 3, width: 3 }] }));
+        doc.selectModule(1);
+        doc.apply(removePlacement(doc.blueprint, doc.selection!)!);
+        doc.undo();
+        doc.selectModule(1);
+        expect(doc.selectedPlacement).toMatchObject({ kind: "turret" });
+    });
+
+    it("does not carry a history from one ship to the next", () => {
+        const doc = new EditorDocument(CORVETTE);
+        doc.apply(movePlacement(doc.blueprint, doc.view.origins[0]!, 1, 0)!);
+        doc.replace(GUNSHIP);
+        expect(doc.canUndo).toBe(false);
+        expect(doc.blueprint.name).toBe(GUNSHIP.name);
+    });
+
+    it("does not hold the blueprint it was given", () => {
+        const bp = ship({ modules: [hull] });
+        const doc = new EditorDocument(bp);
+        doc.apply(movePlacement(doc.blueprint, doc.view.origins[0]!, 9, 9)!);
+        expect(positions(bp)).toEqual([[0, 0]]);
+    });
+});
+
+describe("the handles on a selected module", () => {
+    // A box 8 long and 4 wide at the origin, square to the world: its corners
+    // are at (±4, ±2) and there is no frame conversion in the way of reading
+    // them.
+    const box: ModuleSpec = { kind: "structure", x: 0, y: 0, length: 8, width: 4 };
+
+    it("puts one on each corner and edge, and the knob beyond the bow", () => {
+        const handles = handlesFor(box, 10);
+        expect(handles.filter((handle) => handle.kind === "size")).toHaveLength(8);
+        expect(handles.slice(0, 8).map((h) => [h.x, h.y])).toEqual([
+            [4, 2],
+            [4, -2],
+            [-4, -2],
+            [-4, 2],
+            [4, 0],
+            [0, -2],
+            [-4, 0],
+            [0, 2],
+        ]);
+        // Beyond the +x face, which is the way the module points, and standing off
+        // it by a fixed number of pixels rather than metres.
+        expect(handles[8]).toMatchObject({ kind: "rotate", y: 0 });
+        expect(handles[8]!.x).toBeCloseTo(4 + ROTATE_ARM_PX / 10, 12);
+    });
+
+    it("turns with the module", () => {
+        const turned = handlesFor({ ...box, angle: math.HALF_PI }, 10);
+        // A quarter turn anticlockwise: the bow corner goes to +y.
+        expect(turned[0]!.x).toBeCloseTo(-2, 12);
+        expect(turned[0]!.y).toBeCloseTo(4, 12);
+        expect(turned[8]!.y).toBeCloseTo(4 + ROTATE_ARM_PX / 10, 12);
+    });
+
+    it("is grabbed within a few pixels of it, whatever the zoom", () => {
+        const scale = 10;
+        const handles = handlesFor(box, scale);
+        const near = (HANDLE_GRAB_PX - 1) / scale;
+        expect(handleAt(handles, 4, 2, scale)).toBe(0);
+        expect(handleAt(handles, 4 + near, 2, scale)).toBe(0);
+        expect(handleAt(handles, 4 + (HANDLE_GRAB_PX + 1) / scale, 2, scale)).toBe(-1);
+        // The reach is in pixels, so zooming out shrinks it in metres: the same
+        // point in the world is no longer on the handle.
+        expect(handleAt(handles, 4 + near, 2, scale * 4)).toBe(-1);
+    });
+
+    it("takes the nearest when two are in reach", () => {
+        // A module small enough that its corners are within a grab of each other.
+        const small: ModuleSpec = { kind: "structure", x: 0, y: 0, length: 1, width: 1 };
+        const handles = handlesFor(small, 4);
+        expect(handleAt(handles, 0.5, 0.4, 4)).toBe(0);
+        expect(handleAt(handles, 0.5, -0.4, 4)).toBe(1);
+    });
+});
+
+describe("the tip of what sticks out of a block", () => {
+    // Facing aft: the block runs from the mounting face at x = 0 to -3, and a
+    // bell half its 2 m exit long reaches on to -4.
+    const engine: ModuleSpec = { kind: "engine", x: 0, y: 0, angle: Math.PI, length: 3, width: 2, nozzle: 0.5 };
+    const gun: ModuleSpec = { kind: "hullGun", x: 0, y: 0, angle: 0, length: 4, width: 4 };
+    const calibre = hullMountGeometry(gun).outletWidth / BARREL_OUTER_CALIBRES;
+
+    it("sits at the end of the bell or barrel, across the module", () => {
+        const tip = tipHandle(engine);
+        expect(tip.x).toBeCloseTo(-4, 12);
+        expect(tip.y).toBeCloseTo(0, 12);
+        expect(Math.abs(Math.cos(tip.angle!))).toBeCloseTo(0, 12);
+        // The barrel starts at the block's front face, 2 m out.
+        expect(tipHandle(gun).x).toBeCloseTo(2 + bodySpec(gun).length - gun.length, 12);
+    });
+
+    it("is offered on an engine and a hull gun, and nothing else", () => {
+        expect(handlesFor(engine, 10).some((h) => h.kind === "tip")).toBe(true);
+        expect(handlesFor(gun, 10).some((h) => h.kind === "tip")).toBe(true);
+        expect(handlesFor({ ...gun, kind: "turret" }, 10).some((h) => h.kind === "tip")).toBe(false);
+    });
+
+    it("sets a bell in exit widths from the block to the pointer, on the grid", () => {
+        expect(nozzleTo(engine, -3.9, 0.7, 0.5)).toBe(0.5);
+        expect(nozzleTo(engine, -10, 0, 0.5)).toBe(3.5);
+        // Dragged back into the block, the bell is gone.
+        expect(nozzleTo(engine, -1, 0, 0.5)).toBe(0);
+    });
+
+    it("sets a barrel in calibres, at least one", () => {
+        expect(barrelCalibresTo(gun, 2 + 10.4 * calibre, 0, false)).toBe(10);
+        expect(barrelCalibresTo(gun, 0, 0, false)).toBe(1);
+    });
+
+    it("leaves the block alone", () => {
+        // The corner out along the facing is the block's, short of the bell.
+        const corner = handlesFor(engine, 10)[0]!;
+        expect(corner.x).toBeCloseTo(-3, 12);
+        expect(corner.y).toBeCloseTo(-1, 12);
+    });
+});
+
+describe("sizing a module by a handle", () => {
+    const box: ModuleSpec = { kind: "structure", x: 3, y: -2, length: 8, width: 4 };
+    const face = (along: Handle["along"], across: Handle["across"]) => ({ along, across });
+
+    it("keeps the opposite corner where it was", () => {
+        // The (+l,+w) corner, at (7, 0), dragged two metres out along each axis:
+        // the (-l,-w) corner stays at (-1, -4), so the middle moves half as far.
+        expect(resizedTo(box, face(1, 1), 9, 2, 0.5)).toEqual({ length: 10, width: 6, dx: 1, dy: 1 });
+        expect(resizedTo(box, face(-1, -1), -3, -6, 0.5)).toEqual({
+            length: 10,
+            width: 6,
+            dx: -1,
+            dy: -1,
+        });
+    });
+
+    it("changes one dimension by an edge, keeping the other and its middle", () => {
+        // However far across the pointer strays, the width and the middle across
+        // stay put.
+        expect(resizedTo(box, face(-1, 0), -3, 3, 0.5)).toEqual({
+            length: 10,
+            width: 4,
+            dx: -1,
+            dy: 0,
+        });
+        expect(resizedTo(box, face(0, 1), 12, 1, 0.5)).toEqual({
+            length: 8,
+            width: 5,
+            dx: 0,
+            dy: 0.5,
+        });
+    });
+
+    it("sizes about the middle from centre, moving both faces by whole steps", () => {
+        // The +w edge at y = 0, dragged 1.2 m out: a whole metre on the half-metre
+        // grid, and the -w edge a metre the other way.
+        expect(resizedTo(box, face(0, 1), 12, 1.2, 0.5, true)).toEqual({ length: 8, width: 6, dx: 0, dy: 0 });
+        // A corner does both dimensions alike.
+        expect(resizedTo(box, face(1, 1), 9, 2, 0.5, true)).toEqual({ length: 12, width: 8, dx: 0, dy: 0 });
+        // Dragged past the middle, it stops at one step rather than turning inside out.
+        expect(resizedTo(box, face(0, 1), 3, -9, 0.5, true)).toMatchObject({ width: 0.5, dy: 0 });
+    });
+
+    it("keeps an engine’s middle from centre, moving its mounting face instead", () => {
+        // Facing aft, the block runs from the mounting face at x = 0 back to -4.
+        const engine: ModuleSpec = { kind: "engine", x: 0, y: 0, angle: Math.PI, length: 4, width: 2 };
+        const sized = resizedTo(engine, face(1, 0), -5, 0, 0.5, true);
+        expect(sized).toEqual({ length: 6, width: 2, dx: 1, dy: 0 });
+        expect(blockCentre({ ...engine, x: sized.dx, length: sized.length }).x).toBeCloseTo(-2, 12);
+    });
+
+    it("pushes the neighbours on both sides when it sizes from centre", () => {
+        const bp: Blueprint = {
+            name: "Sandwich",
+            modules: [
+                { kind: "core", x: 0, y: 0, length: 4, width: 4 },
+                { kind: "structure", x: 0, y: 3, length: 4, width: 2 },
+                { kind: "structure", x: 0, y: -3, length: 4, width: 2 },
+            ],
+        };
+        const doc = new EditorDocument(bp);
+        const sized = resizedTo(doc.view.modules[0]!, face(0, 1), 0, 3, 0.5, true);
+        const next = resizePlacement(bp, doc.view.origins[0]!, sized.length, sized.width, sized.dx, sized.dy, true)!;
+        expect(next.modules.map((m) => m.y)).toEqual([0, 4, -4]);
+    });
+
+    it("measures in the module’s own frame", () => {
+        // Along the module's length is now along the world's +y, so the +l edge is
+        // at (3, 2); dragged two metres further, the middle moves one up.
+        const turned = { ...box, angle: math.HALF_PI };
+        expect(resizedTo(turned, face(1, 0), 3, 4, 0.5)).toEqual({
+            length: 10,
+            width: 4,
+            dx: 0,
+            dy: 1,
+        });
+    });
+
+    it("snaps the size to the grid, and Alt escapes it", () => {
+        // The -l edge is at x = -1, so 7.1 is 8.1 from it and 7.6 is 8.6.
+        expect(resizedTo(box, face(1, 0), 7.1, -2, 0.5)).toMatchObject({ length: 8, dx: 0 });
+        expect(resizedTo(box, face(1, 0), 7.6, -2, 0.5)).toMatchObject({ length: 8.5, dx: 0.25 });
+        expect(resizedTo(box, face(1, 0), 7.1, -2, 0).length).toBeCloseTo(8.1, 12);
+    });
+
+    it("will not go below the smallest a module may be, nor turn inside out", () => {
+        // Dragged past the anchored corner with Alt held, the box stops at the minimum against it.
+        expect(resizedTo(box, face(1, 1), -5, -9, 0)).toEqual({
+            length: MIN_SIZE,
+            width: MIN_SIZE,
+            dx: -4 + MIN_SIZE / 2,
+            dy: -2 + MIN_SIZE / 2,
+        });
+    });
+
+    it("will not go below one step of the grid it is snapping to", () => {
+        // Zoomed out far enough that the grid is ten metres, half a metre is not
+        // something the drag could have said — and it would leave the face off the
+        // grid everything around it abuts on.
+        expect(resizedTo(box, face(1, 1), -5, -9, 10)).toMatchObject({ length: 10, width: 10 });
+    });
+
+    it("keeps an engine bolted on when its nozzle end is dragged", () => {
+        // An engine's position is its mounting face, at -l, so dragging the +l end,
+        // the bell, does not move it — and dragging the mounting face moves it with
+        // the face. Facing aft, the bell is at -x.
+        const engine: ModuleSpec = { kind: "engine", x: 0, y: 0, angle: Math.PI, length: 4, width: 4 };
+        expect(resizedTo(engine, face(1, 0), -6, 0, 0.5)).toEqual({
+            length: 6,
+            width: 4,
+            dx: 0,
+            dy: 0,
+        });
+        expect(resizedTo(engine, face(-1, 0), 1, 0, 0.5)).toEqual({
+            length: 5,
+            width: 4,
+            dx: 1,
+            dy: 0,
+        });
+    });
+});
+
+describe("the seam between two modules", () => {
+    // An 8×4 hull, and a 4×2 block against its +x face covering y = 0..2.
+    const a: ModuleSpec = { kind: "structure", x: 0, y: 0, length: 8, width: 4 };
+    const b: ModuleSpec = { kind: "structure", x: 6, y: 1, length: 4, width: 2 };
+
+    it("sits at the middle of the face the two share", () => {
+        const seam = seamBetween(a, b)!;
+        expect([seam.handle.x, seam.handle.y]).toEqual([4, 1]);
+        expect([seam.nx, seam.ny]).toEqual([1, 0]);
+        expect(seam.a).toEqual({ along: 1, across: 0 });
+        expect(seam.b).toEqual({ along: -1, across: 0 });
+    });
+
+    it("grows one module as the other shrinks, their outer faces still", () => {
+        const moved = seamTo(a, b, seamBetween(a, b)!, 5.1, 3, 0.5);
+        expect(moved.a).toEqual({ length: 9, width: 4, dx: 0.5, dy: 0 });
+        expect(moved.b).toEqual({ length: 3, width: 2, dx: 0.5, dy: 0 });
+    });
+
+    it("stops before either module goes below the smallest size", () => {
+        const moved = seamTo(a, b, seamBetween(a, b)!, 20, 1, 0.5);
+        expect(moved.b.length).toBe(MIN_SIZE);
+        expect(moved.a.length).toBe(8 + 4 - MIN_SIZE);
+    });
+
+    it("finds the face of a module turned a quarter", () => {
+        // The same footprint written turned: its +w face is the one against a.
+        const turned = { ...b, angle: math.HALF_PI, length: 2, width: 4 };
+        const seam = seamBetween(a, turned)!;
+        expect(seam.b).toEqual({ along: 0, across: 1 });
+        expect(seamTo(a, turned, seam, 5, 1, 0.5).b).toMatchObject({ length: 2, width: 3 });
+    });
+
+    it("is not offered at an angle, apart, or corner to corner", () => {
+        expect(seamBetween(a, { ...b, angle: math.PI / 6 })).toBeNull();
+        expect(seamBetween(a, { ...b, x: 7 })).toBeNull();
+        expect(seamBetween(a, { ...b, y: 3 })).toBeNull();
+    });
+});
+
+describe("sizing a drawn module through the frame it was written in", () => {
+    /** Resize as the page does. */
+    function drag(bp: Blueprint, drawn: number, handle: Handle, x: number, y: number, push = false): Blueprint {
+        const { modules, origins } = expandWithOrigins(bp);
+        const { length, width, dx, dy } = resizedTo(modules[drawn]!, handle, x, y, 0.5);
+        return resizePlacement(bp, origins[drawn]!, length, width, dx, dy, push)!;
     }
-  });
+    const handlesOf = (bp: Blueprint, drawn: number) => handlesFor(expandWithOrigins(bp).modules[drawn]!, 10);
 
-  it('picks the module under a point', () => {
-    const modules: ModuleSpec[] = [hull, { kind: 'turret', x: 8, y: 0, length: 4, width: 4 }];
-    expect(moduleAt(modules, 0, 0)).toBe(0);
-    expect(moduleAt(modules, 8, 1)).toBe(1);
-    expect(moduleAt(modules, 40, 0)).toBe(-1);
-  });
-
-  it('respects a module’s facing', () => {
-    const modules: ModuleSpec[] = [{ kind: 'structure', x: 0, y: 0, angle: math.HALF_PI, length: 20, width: 2 }];
-    expect(moduleAt(modules, 0, 8)).toBe(0);
-    expect(moduleAt(modules, 8, 0)).toBe(-1);
-  });
-
-  it('picks the topmost when a layout being worked on has modules overlapping', () => {
-    const modules: ModuleSpec[] = [hull, { kind: 'turret', x: 0, y: 0, length: 4, width: 4 }];
-    expect(moduleAt(modules, 0, 0)).toBe(1);
-  });
-});
-
-describe('EditorDocument', () => {
-  it('derives a design, and keeps deriving one while the layout is invalid', () => {
-    const doc = new EditorDocument(CORVETTE);
-    expect(doc.view.problems).toEqual([]);
-    expect(doc.view.design).not.toBeNull();
-
-    const origin = doc.view.origins[1]!;
-    doc.apply(movePlacement(doc.blueprint, origin, -6, 0)!);
-    expect(doc.view.problems.length).toBeGreaterThan(0);
-    // Overlapping is a complaint, not a refusal: the picture and the numbers
-    // have to survive dragging one module through another.
-    expect(doc.view.design).not.toBeNull();
-  });
-
-  it('says which drawn modules the problems are about', () => {
-    const doc = new EditorDocument(CORVETTE);
-    expect(doc.view.faulty).toEqual([]);
-
-    // Dragged clear of the ship: the module is adrift, and the canvas has to
-    // be able to say which one without the player counting down the list.
-    // The corvette's bow gun, which nothing else hangs off.
-    const origin = doc.view.origins[3]!;
-    doc.apply(movePlacement(doc.blueprint, origin, 500, 500)!);
-    expect(doc.view.faulty).toContain(3);
-    expect(doc.view.problems.some((p) => /touches nothing|separate piece/.test(p))).toBe(true);
-
-    doc.undo();
-    expect(doc.view.faulty).toEqual([]);
-  });
-
-  it('flags every copy of a shared part that is at fault', () => {
-    // One placement, several drawn modules: the mistake is made once and shown
-    // everywhere it lands, the same way the selection highlight works.
-    const doc = new EditorDocument(GUNSHIP);
-    expect(doc.view.faulty).toEqual([]);
-    const drawn = doc.view.modules.length;
-    doc.apply({
-      ...doc.blueprint,
-      assemblies: {
-        ...doc.blueprint.assemblies,
-        pod: { modules: [{ kind: 'structure', x: 0, y: 0, length: 4, width: 4 }] },
-      },
-      modules: [...doc.blueprint.modules, { use: 'pod', x: 400, y: 0 }, { use: 'pod', x: 400, y: 80 }],
+    it("keeps the opposite corner still inside a turned, mirrored assembly", () => {
+        const pod = {
+            modules: [
+                { kind: "structure", x: 0, y: 0, length: 4, width: 2 } as const,
+                { kind: "structure", x: 3, y: 0, length: 2, width: 2 } as const,
+            ],
+        };
+        const bp = ship({
+            assemblies: { pod },
+            modules: [hull, { use: "pod", x: 0, y: 8, angle: math.HALF_PI, mirror: true }],
+        });
+        const before = handlesOf(bp, 1);
+        // Turned a quarter, the (+l,+w) corner is up and to the left of the middle,
+        // so out is -x, +y.
+        const grabbed = before[0]!;
+        const after = handlesOf(drag(bp, 1, grabbed, grabbed.x - 2, grabbed.y + 2), 1);
+        expect(after[2]!.x).toBeCloseTo(before[2]!.x, 9);
+        expect(after[2]!.y).toBeCloseTo(before[2]!.y, 9);
+        expect(after[0]!.x).toBeCloseTo(grabbed.x - 2, 9);
+        expect(after[0]!.y).toBeCloseTo(grabbed.y + 2, 9);
     });
-    expect(doc.view.faulty).toEqual([drawn, drawn + 1]);
-  });
 
-  it('has nothing to measure in an empty layout, and says why', () => {
-    const doc = new EditorDocument(emptyBlueprint('Blank'));
-    expect(doc.view.design).toBeNull();
-    expect(doc.view.underivable).toMatch(/at least one module/);
-  });
-
-  it('undoes and redoes', () => {
-    const doc = new EditorDocument(ship({ modules: [hull] }));
-    expect(doc.canUndo).toBe(false);
-    doc.apply(movePlacement(doc.blueprint, doc.view.origins[0]!, 4, 0)!);
-    expect(positions(doc.blueprint)).toEqual([[4, 0]]);
-    expect(doc.undo()).toBe(true);
-    expect(positions(doc.blueprint)).toEqual([[0, 0]]);
-    expect(doc.redo()).toBe(true);
-    expect(positions(doc.blueprint)).toEqual([[4, 0]]);
-    expect(doc.redo()).toBe(false);
-  });
-
-  it('collapses a drag into one undo step', () => {
-    const doc = new EditorDocument(ship({ modules: [hull] }));
-    const from = doc.blueprint;
-    const origin = doc.view.origins[0]!;
-    doc.apply(movePlacement(from, origin, 1, 0)!);
-    for (let i = 2; i <= 20; i++) doc.amend(movePlacement(from, origin, i, 0)!);
-    expect(positions(doc.blueprint)).toEqual([[20, 0]]);
-    doc.undo();
-    expect(positions(doc.blueprint)).toEqual([[0, 0]]);
-  });
-
-  it('drops a redo once a new edit is made', () => {
-    const doc = new EditorDocument(ship({ modules: [hull] }));
-    doc.apply(movePlacement(doc.blueprint, doc.view.origins[0]!, 4, 0)!);
-    doc.undo();
-    doc.apply(movePlacement(doc.blueprint, doc.view.origins[0]!, 0, 4)!);
-    expect(doc.canRedo).toBe(false);
-  });
-
-  it('selects the placement, not the copy', () => {
-    const doc = new EditorDocument(CORVETTE);
-    const wing = doc.view.modules.findIndex((m) => m.length === 4 && m.width === 3);
-    doc.selectModule(wing);
-    expect(doc.selectedModules()).toHaveLength(4);
-    // The copy that was picked is the one an edit is written through.
-    expect(doc.selectedModules()[0]).toBe(wing);
-    expect(doc.selectedOrigin()!.path).toEqual(doc.view.origins[wing]!.path);
-  });
-
-  it('gives the panel what was typed, not what it expanded to', () => {
-    const doc = new EditorDocument(CORVETTE);
-    const wing = doc.view.modules.findIndex((m) => m.length === 4 && m.width === 3);
-    doc.selectModule(wing);
-    // The drawn copy sits out on the wing; the placement is written at the
-    // assembly's own origin.
-    expect(doc.selectedPlacement).toMatchObject({ x: 0, y: 0 });
-  });
-
-  it('lets a selection go when the layout stops drawing it', () => {
-    const doc = new EditorDocument(ship({ modules: [hull, { kind: 'turret', x: 8, y: 0, length: 3, width: 3 }] }));
-    doc.selectModule(1);
-    expect(doc.selection).not.toBeNull();
-    doc.apply(removePlacement(doc.blueprint, doc.selection!)!);
-    expect(doc.selection).toBeNull();
-    expect(doc.selectedPlacement).toBeNull();
-  });
-
-  it('restores a selection when the deletion is undone', () => {
-    const doc = new EditorDocument(ship({ modules: [hull, { kind: 'turret', x: 8, y: 0, length: 3, width: 3 }] }));
-    doc.selectModule(1);
-    doc.apply(removePlacement(doc.blueprint, doc.selection!)!);
-    doc.undo();
-    doc.selectModule(1);
-    expect(doc.selectedPlacement).toMatchObject({ kind: 'turret' });
-  });
-
-  it('does not carry a history from one ship to the next', () => {
-    const doc = new EditorDocument(CORVETTE);
-    doc.apply(movePlacement(doc.blueprint, doc.view.origins[0]!, 1, 0)!);
-    doc.replace(GUNSHIP);
-    expect(doc.canUndo).toBe(false);
-    expect(doc.blueprint.name).toBe(GUNSHIP.name);
-  });
-
-  it('does not hold the blueprint it was given', () => {
-    const bp = ship({ modules: [hull] });
-    const doc = new EditorDocument(bp);
-    doc.apply(movePlacement(doc.blueprint, doc.view.origins[0]!, 9, 9)!);
-    expect(positions(bp)).toEqual([[0, 0]]);
-  });
-});
-
-describe('the handles on a selected module', () => {
-  // A box 8 long and 4 wide at the origin, square to the world: its corners
-  // are at (±4, ±2) and there is no frame conversion in the way of reading
-  // them.
-  const box: ModuleSpec = { kind: 'structure', x: 0, y: 0, length: 8, width: 4 };
-
-  it('puts one on each corner and edge, and the knob beyond the bow', () => {
-    const handles = handlesFor(box, 10);
-    expect(handles.filter((handle) => handle.kind === 'size')).toHaveLength(8);
-    expect(handles.slice(0, 8).map((h) => [h.x, h.y])).toEqual([
-      [4, 2],
-      [4, -2],
-      [-4, -2],
-      [-4, 2],
-      [4, 0],
-      [0, -2],
-      [-4, 0],
-      [0, 2],
-    ]);
-    // Beyond the +x face, which is the way the module points, and standing off
-    // it by a fixed number of pixels rather than metres.
-    expect(handles[8]).toMatchObject({ kind: 'rotate', y: 0 });
-    expect(handles[8]!.x).toBeCloseTo(4 + ROTATE_ARM_PX / 10, 12);
-  });
-
-  it('turns with the module', () => {
-    const turned = handlesFor({ ...box, angle: math.HALF_PI }, 10);
-    // A quarter turn anticlockwise: the bow corner goes to +y.
-    expect(turned[0]!.x).toBeCloseTo(-2, 12);
-    expect(turned[0]!.y).toBeCloseTo(4, 12);
-    expect(turned[8]!.y).toBeCloseTo(4 + ROTATE_ARM_PX / 10, 12);
-  });
-
-  it('is grabbed within a few pixels of it, whatever the zoom', () => {
-    const scale = 10;
-    const handles = handlesFor(box, scale);
-    const near = (HANDLE_GRAB_PX - 1) / scale;
-    expect(handleAt(handles, 4, 2, scale)).toBe(0);
-    expect(handleAt(handles, 4 + near, 2, scale)).toBe(0);
-    expect(handleAt(handles, 4 + (HANDLE_GRAB_PX + 1) / scale, 2, scale)).toBe(-1);
-    // The reach is in pixels, so zooming out shrinks it in metres: the same
-    // point in the world is no longer on the handle.
-    expect(handleAt(handles, 4 + near, 2, scale * 4)).toBe(-1);
-  });
-
-  it('takes the nearest when two are in reach', () => {
-    // A module small enough that its corners are within a grab of each other.
-    const small: ModuleSpec = { kind: 'structure', x: 0, y: 0, length: 1, width: 1 };
-    const handles = handlesFor(small, 4);
-    expect(handleAt(handles, 0.5, 0.4, 4)).toBe(0);
-    expect(handleAt(handles, 0.5, -0.4, 4)).toBe(1);
-  });
-});
-
-describe('the tip of what sticks out of a block', () => {
-  // Facing aft: the block runs from the mounting face at x = 0 to -3, and a
-  // bell half its 2 m exit long reaches on to -4.
-  const engine: ModuleSpec = { kind: 'engine', x: 0, y: 0, angle: Math.PI, length: 3, width: 2, nozzle: 0.5 };
-  const gun: ModuleSpec = { kind: 'hullGun', x: 0, y: 0, angle: 0, length: 4, width: 4 };
-  const calibre = hullMountGeometry(gun).outletWidth / BARREL_OUTER_CALIBRES;
-
-  it('sits at the end of the bell or barrel, across the module', () => {
-    const tip = tipHandle(engine);
-    expect(tip.x).toBeCloseTo(-4, 12);
-    expect(tip.y).toBeCloseTo(0, 12);
-    expect(Math.abs(Math.cos(tip.angle!))).toBeCloseTo(0, 12);
-    // The barrel starts at the block's front face, 2 m out.
-    expect(tipHandle(gun).x).toBeCloseTo(2 + bodySpec(gun).length - gun.length, 12);
-  });
-
-  it('is offered on an engine and a hull gun, and nothing else', () => {
-    expect(handlesFor(engine, 10).some((h) => h.kind === 'tip')).toBe(true);
-    expect(handlesFor(gun, 10).some((h) => h.kind === 'tip')).toBe(true);
-    expect(handlesFor({ ...gun, kind: 'turret' }, 10).some((h) => h.kind === 'tip')).toBe(false);
-  });
-
-  it('sets a bell in exit widths from the block to the pointer, on the grid', () => {
-    expect(nozzleTo(engine, -3.9, 0.7, 0.5)).toBe(0.5);
-    expect(nozzleTo(engine, -10, 0, 0.5)).toBe(3.5);
-    // Dragged back into the block, the bell is gone.
-    expect(nozzleTo(engine, -1, 0, 0.5)).toBe(0);
-  });
-
-  it('sets a barrel in calibres, at least one', () => {
-    expect(barrelCalibresTo(gun, 2 + 10.4 * calibre, 0, false)).toBe(10);
-    expect(barrelCalibresTo(gun, 0, 0, false)).toBe(1);
-  });
-
-  it('leaves the block alone', () => {
-    // The corner out along the facing is the block's, short of the bell.
-    const corner = handlesFor(engine, 10)[0]!;
-    expect(corner.x).toBeCloseTo(-3, 12);
-    expect(corner.y).toBeCloseTo(-1, 12);
-  });
-});
-
-describe('sizing a module by a handle', () => {
-  const box: ModuleSpec = { kind: 'structure', x: 3, y: -2, length: 8, width: 4 };
-  const face = (along: Handle['along'], across: Handle['across']) => ({ along, across });
-
-  it('keeps the opposite corner where it was', () => {
-    // The (+l,+w) corner, at (7, 0), dragged two metres out along each axis:
-    // the (-l,-w) corner stays at (-1, -4), so the middle moves half as far.
-    expect(resizedTo(box, face(1, 1), 9, 2, 0.5)).toEqual({ length: 10, width: 6, dx: 1, dy: 1 });
-    expect(resizedTo(box, face(-1, -1), -3, -6, 0.5)).toEqual({
-      length: 10,
-      width: 6,
-      dx: -1,
-      dy: -1,
+    it("widens a mirrored pair outward on both sides", () => {
+        // The corvette's retro engines are one part placed twice, the second
+        // mirrored. Widening the port one outward must widen the starboard one
+        // outward too, not into the hull.
+        const { modules } = expandWithOrigins(CORVETTE);
+        const retros = modules.map((m, i) => ({ m, i })).filter(({ m }) => m.kind === "engine" && m.angle === 0 && m.length === 1);
+        expect(retros).toHaveLength(2);
+        const port = retros.find(({ m }) => moduleCentre(m).y > 0)!.i;
+        const starboard = retros.find(({ m }) => moduleCentre(m).y < 0)!.i;
+        const faces = (bp: Blueprint, drawn: number) => {
+            const m = expandWithOrigins(bp).modules[drawn]!;
+            const y = moduleCentre(m).y;
+            return { inner: Math.abs(y) - m.width / 2, outer: Math.abs(y) + m.width / 2 };
+        };
+        // The edge whose handle is furthest to port.
+        const edge = handlesOf(CORVETTE, port)
+            .filter((h) => h.kind === "size" && h.along === 0)
+            .reduce((a, b) => (b.y > a.y ? b : a));
+        for (const push of [false, true]) {
+            const after = drag(CORVETTE, port, edge, edge.x, edge.y + 1, push);
+            for (const drawn of [port, starboard]) {
+                expect(faces(after, drawn).inner).toBeCloseTo(faces(CORVETTE, drawn).inner, 9);
+                expect(faces(after, drawn).outer).toBeCloseTo(faces(CORVETTE, drawn).outer + 1, 9);
+            }
+        }
     });
-  });
 
-  it('changes one dimension by an edge, keeping the other and its middle', () => {
-    // However far across the pointer strays, the width and the middle across
-    // stay put.
-    expect(resizedTo(box, face(-1, 0), -3, 3, 0.5)).toEqual({
-      length: 10,
-      width: 4,
-      dx: -1,
-      dy: 0,
+    it("anchors the copy being dragged of a shared part", () => {
+        const single = ship({ modules: [hull] });
+        const bp = duplicatePlacement(single, expandWithOrigins(single).origins[0]!)!.blueprint;
+        const before = handlesOf(bp, 0);
+        const edge = before[4]!; // +l
+        const after = handlesOf(drag(bp, 0, edge, edge.x + 3, edge.y), 0);
+        expect(after[6]!.x).toBeCloseTo(before[6]!.x, 9);
+        expect(after[4]!.x).toBeCloseTo(edge.x + 3, 9);
     });
-    expect(resizedTo(box, face(0, 1), 12, 1, 0.5)).toEqual({
-      length: 8,
-      width: 5,
-      dx: 0,
-      dy: 0.5,
+
+    // The hull's +l edge is at x = 10; a block sits against it.
+    const block = { kind: "structure", x: 12, y: 0, length: 4, width: 4 } as const;
+
+    it("pushes a neighbour along with the face, unless asked not to", () => {
+        const bp = ship({ modules: [hull, block] });
+        const edge = handlesOf(bp, 0)[4]!;
+        expect(positions(drag(bp, 0, edge, 12, 0, true))[1]).toEqual([14, 0]);
+        expect(positions(drag(bp, 0, edge, 12, 0, false))[1]).toEqual([12, 0]);
+        // And pulls it when the face comes back.
+        expect(positions(drag(bp, 0, edge, 8, 0, true))[1]).toEqual([10, 0]);
     });
-  });
 
-  it('sizes about the middle from centre, moving both faces by whole steps', () => {
-    // The +w edge at y = 0, dragged 1.2 m out: a whole metre on the half-metre
-    // grid, and the -w edge a metre the other way.
-    expect(resizedTo(box, face(0, 1), 12, 1.2, 0.5, true)).toEqual({ length: 8, width: 6, dx: 0, dy: 0 });
-    // A corner does both dimensions alike.
-    expect(resizedTo(box, face(1, 1), 9, 2, 0.5, true)).toEqual({ length: 12, width: 8, dx: 0, dy: 0 });
-    // Dragged past the middle, it stops at one step rather than turning inside out.
-    expect(resizedTo(box, face(0, 1), 3, -9, 0.5, true)).toMatchObject({ width: 0.5, dy: 0 });
-  });
-
-  it('keeps an engine’s middle from centre, moving its mounting face instead', () => {
-    // Facing aft, the block runs from the mounting face at x = 0 back to -4.
-    const engine: ModuleSpec = { kind: 'engine', x: 0, y: 0, angle: Math.PI, length: 4, width: 2 };
-    const sized = resizedTo(engine, face(1, 0), -5, 0, 0.5, true);
-    expect(sized).toEqual({ length: 6, width: 2, dx: 1, dy: 0 });
-    expect(blockCentre({ ...engine, x: sized.dx, length: sized.length }).x).toBeCloseTo(-2, 12);
-  });
-
-  it('pushes the neighbours on both sides when it sizes from centre', () => {
-    const bp: Blueprint = {
-      name: 'Sandwich',
-      modules: [
-        { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
-        { kind: 'structure', x: 0, y: 3, length: 4, width: 2 },
-        { kind: 'structure', x: 0, y: -3, length: 4, width: 2 },
-      ],
-    };
-    const doc = new EditorDocument(bp);
-    const sized = resizedTo(doc.view.modules[0]!, face(0, 1), 0, 3, 0.5, true);
-    const next = resizePlacement(bp, doc.view.origins[0]!, sized.length, sized.width, sized.dx, sized.dy, true)!;
-    expect(next.modules.map((m) => m.y)).toEqual([0, 4, -4]);
-  });
-
-  it('measures in the module’s own frame', () => {
-    // Along the module's length is now along the world's +y, so the +l edge is
-    // at (3, 2); dragged two metres further, the middle moves one up.
-    const turned = { ...box, angle: math.HALF_PI };
-    expect(resizedTo(turned, face(1, 0), 3, 4, 0.5)).toEqual({
-      length: 10,
-      width: 4,
-      dx: 0,
-      dy: 1,
+    it("pushes from a copy of a shared part among the copy’s own neighbours", () => {
+        const single = ship({ modules: [hull, block] });
+        const bp = duplicatePlacement(single, expandWithOrigins(single).origins[0]!)!.blueprint;
+        const edge = handlesOf(bp, 0)[4]!;
+        const next = drag(bp, 0, edge, 12, 0, true);
+        expect(positions(next)[1]).toEqual([14, 0]);
     });
-  });
 
-  it('snaps the size to the grid, and Alt escapes it', () => {
-    // The -l edge is at x = -1, so 7.1 is 8.1 from it and 7.6 is 8.6.
-    expect(resizedTo(box, face(1, 0), 7.1, -2, 0.5)).toMatchObject({ length: 8, dx: 0 });
-    expect(resizedTo(box, face(1, 0), 7.6, -2, 0.5)).toMatchObject({ length: 8.5, dx: 0.25 });
-    expect(resizedTo(box, face(1, 0), 7.1, -2, 0).length).toBeCloseTo(8.1, 12);
-  });
-
-  it('will not go below the smallest a module may be, nor turn inside out', () => {
-    // Dragged past the anchored corner with Alt held, the box stops at the minimum against it.
-    expect(resizedTo(box, face(1, 1), -5, -9, 0)).toEqual({
-      length: MIN_SIZE,
-      width: MIN_SIZE,
-      dx: -4 + MIN_SIZE / 2,
-      dy: -2 + MIN_SIZE / 2,
+    it("pushes neighbours inside an assembly in the assembly’s own frame", () => {
+        const pod = {
+            modules: [
+                { ...hull, length: 4, width: 2 },
+                { ...block, x: 3, length: 2, width: 2 },
+            ],
+        };
+        const bp = ship({
+            assemblies: { pod },
+            modules: [hull, { use: "pod", x: 0, y: 8, angle: math.HALF_PI, mirror: true }],
+        });
+        // Drawn turned a quarter, the pod's first module's +l edge is at y = 10
+        // and its neighbour beyond it; dragged two metres, the neighbour follows.
+        const edge = handlesOf(bp, 1)[4]!;
+        const next = drag(bp, 1, edge, edge.x, edge.y + 2, true);
+        expect(positions(next)[2]![0]).toBeCloseTo(positions(bp)[2]![0], 9);
+        expect(positions(next)[2]![1]).toBeCloseTo(positions(bp)[2]![1] + 2, 9);
     });
-  });
+});
 
-  it('will not go below one step of the grid it is snapping to', () => {
-    // Zoomed out far enough that the grid is ten metres, half a metre is not
-    // something the drag could have said — and it would leave the face off the
-    // grid everything around it abuts on.
-    expect(resizedTo(box, face(1, 1), -5, -9, 10)).toMatchObject({ length: 10, width: 10 });
-  });
+describe("pushing through the corvette’s bow", () => {
+    it("keeps the turret against the engine that pushes it, step after step", () => {
+        // The bow structure's front face drawn back two metres, so the gun is
+        // pulled in between the two retro engines with a metre clear of each.
+        const bow = expandWithOrigins(CORVETTE).origins[0]!;
+        const drawnBack = resizePlacement(CORVETTE, bow, 2.5, 6, -1, 0, true)!;
+        const turret = (bp: Blueprint) => placementAt(bp, [{ index: 2, copy: 0 }]) as ModuleSpec;
+        expect(turret(drawnBack).x).toBe(6);
 
-  it('keeps an engine bolted on when its nozzle end is dragged', () => {
-    // An engine's position is its mounting face, at -l, so dragging the +l end,
-    // the bell, does not move it — and dragging the mounting face moves it with
-    // the face. Facing aft, the bell is at -x.
-    const engine: ModuleSpec = { kind: 'engine', x: 0, y: 0, angle: Math.PI, length: 4, width: 4 };
-    expect(resizedTo(engine, face(1, 0), -6, 0, 0.5)).toEqual({
-      length: 6,
-      width: 4,
-      dx: 0,
-      dy: 0,
+        // Then its +y side pulled in, as a drag does: each step applied afresh to
+        // the layout the drag started from. Each retro sits 2.5 m inboard of its
+        // side's origin.
+        for (const by of [0.5, 1, 1.5, 2, 2.5]) {
+            const next = resizePlacement(drawnBack, bow, 2.5, 6 - by, 0, -by / 2, true)!;
+            const upper = next.modules[4] as AssemblyInstance;
+            const lower = next.modules[5] as AssemblyInstance;
+            const retroBottom = upper.y - 2.5 - 1.5;
+            const turretTop = turret(next).y + 2;
+            const turretBottom = turret(next).y - 2;
+            // The retro closes on the turret, then pushes it without a gap opening.
+            expect(retroBottom - turretTop).toBeCloseTo(Math.max(0, 1 - by), 9);
+            // The far side is carried the whole way by the main engine its wing
+            // abuts, so once the turret moves it keeps pace and never catches up.
+            expect(turretBottom - (lower.y + 2.5 + 1.5)).toBeCloseTo(1 + Math.min(1, by), 9);
+        }
     });
-    expect(resizedTo(engine, face(-1, 0), 1, 0, 0.5)).toEqual({
-      length: 5,
-      width: 4,
-      dx: 1,
-      dy: 0,
+});
+
+describe("turning a module by its knob", () => {
+    const box: ModuleSpec = { kind: "structure", x: 2, y: 2, length: 8, width: 4 };
+
+    it("points the module at the pointer, snapped", () => {
+        expect(facingTo(box, 12, 2, 15)).toBeCloseTo(0, 12);
+        expect(facingTo(box, 2, 12, 15)).toBeCloseTo(math.HALF_PI, 12);
+        // 40° from the module, which is nearest to 45.
+        expect(toDegrees(facingTo(box, 2 + 10, 2 + 8.4, 15))).toBeCloseTo(45, 9);
     });
-  });
-});
 
-describe('the seam between two modules', () => {
-  // An 8×4 hull, and a 4×2 block against its +x face covering y = 0..2.
-  const a: ModuleSpec = { kind: 'structure', x: 0, y: 0, length: 8, width: 4 };
-  const b: ModuleSpec = { kind: 'structure', x: 6, y: 1, length: 4, width: 2 };
-
-  it('sits at the middle of the face the two share', () => {
-    const seam = seamBetween(a, b)!;
-    expect([seam.handle.x, seam.handle.y]).toEqual([4, 1]);
-    expect([seam.nx, seam.ny]).toEqual([1, 0]);
-    expect(seam.a).toEqual({ along: 1, across: 0 });
-    expect(seam.b).toEqual({ along: -1, across: 0 });
-  });
-
-  it('grows one module as the other shrinks, their outer faces still', () => {
-    const moved = seamTo(a, b, seamBetween(a, b)!, 5.1, 3, 0.5);
-    expect(moved.a).toEqual({ length: 9, width: 4, dx: 0.5, dy: 0 });
-    expect(moved.b).toEqual({ length: 3, width: 2, dx: 0.5, dy: 0 });
-  });
-
-  it('stops before either module goes below the smallest size', () => {
-    const moved = seamTo(a, b, seamBetween(a, b)!, 20, 1, 0.5);
-    expect(moved.b.length).toBe(MIN_SIZE);
-    expect(moved.a.length).toBe(8 + 4 - MIN_SIZE);
-  });
-
-  it('finds the face of a module turned a quarter', () => {
-    // The same footprint written turned: its +w face is the one against a.
-    const turned = { ...b, angle: math.HALF_PI, length: 2, width: 4 };
-    const seam = seamBetween(a, turned)!;
-    expect(seam.b).toEqual({ along: 0, across: 1 });
-    expect(seamTo(a, turned, seam, 5, 1, 0.5).b).toMatchObject({ length: 2, width: 3 });
-  });
-
-  it('is not offered at an angle, apart, or corner to corner', () => {
-    expect(seamBetween(a, { ...b, angle: math.PI / 6 })).toBeNull();
-    expect(seamBetween(a, { ...b, x: 7 })).toBeNull();
-    expect(seamBetween(a, { ...b, y: 3 })).toBeNull();
-  });
-});
-
-describe('sizing a drawn module through the frame it was written in', () => {
-  /** Resize as the page does. */
-  function drag(bp: Blueprint, drawn: number, handle: Handle, x: number, y: number, push = false): Blueprint {
-    const { modules, origins } = expandWithOrigins(bp);
-    const { length, width, dx, dy } = resizedTo(modules[drawn]!, handle, x, y, 0.5);
-    return resizePlacement(bp, origins[drawn]!, length, width, dx, dy, push)!;
-  }
-  const handlesOf = (bp: Blueprint, drawn: number) => handlesFor(expandWithOrigins(bp).modules[drawn]!, 10);
-
-  it('keeps the opposite corner still inside a turned, mirrored assembly', () => {
-    const pod = {
-      modules: [
-        { kind: 'structure', x: 0, y: 0, length: 4, width: 2 } as const,
-        { kind: 'structure', x: 3, y: 0, length: 2, width: 2 } as const,
-      ],
-    };
-    const bp = ship({
-      assemblies: { pod },
-      modules: [hull, { use: 'pod', x: 0, y: 8, angle: math.HALF_PI, mirror: true }],
+    it("lands on angles somebody could have typed", () => {
+        // Snapped in degrees rather than radians: rounding in radians and
+        // converting back produces -74.99999999999999, which then appears in the
+        // box and in the file.
+        expect(String(toDegrees(facingTo(box, 2 + 1, 2 - 3.6, 15)))).toBe("-75");
     });
-    const before = handlesOf(bp, 1);
-    // Turned a quarter, the (+l,+w) corner is up and to the left of the middle,
-    // so out is -x, +y.
-    const grabbed = before[0]!;
-    const after = handlesOf(drag(bp, 1, grabbed, grabbed.x - 2, grabbed.y + 2), 1);
-    expect(after[2]!.x).toBeCloseTo(before[2]!.x, 9);
-    expect(after[2]!.y).toBeCloseTo(before[2]!.y, 9);
-    expect(after[0]!.x).toBeCloseTo(grabbed.x - 2, 9);
-    expect(after[0]!.y).toBeCloseTo(grabbed.y + 2, 9);
-  });
 
-  it('widens a mirrored pair outward on both sides', () => {
-    // The corvette's retro engines are one part placed twice, the second
-    // mirrored. Widening the port one outward must widen the starboard one
-    // outward too, not into the hull.
-    const { modules } = expandWithOrigins(CORVETTE);
-    const retros = modules.map((m, i) => ({ m, i })).filter(({ m }) => m.kind === 'engine' && m.angle === 0 && m.length === 1);
-    expect(retros).toHaveLength(2);
-    const port = retros.find(({ m }) => moduleCentre(m).y > 0)!.i;
-    const starboard = retros.find(({ m }) => moduleCentre(m).y < 0)!.i;
-    const faces = (bp: Blueprint, drawn: number) => {
-      const m = expandWithOrigins(bp).modules[drawn]!;
-      const y = moduleCentre(m).y;
-      return { inner: Math.abs(y) - m.width / 2, outer: Math.abs(y) + m.width / 2 };
-    };
-    // The edge whose handle is furthest to port.
-    const edge = handlesOf(CORVETTE, port)
-      .filter((h) => h.kind === 'size' && h.along === 0)
-      .reduce((a, b) => (b.y > a.y ? b : a));
-    for (const push of [false, true]) {
-      const after = drag(CORVETTE, port, edge, edge.x, edge.y + 1, push);
-      for (const drawn of [port, starboard]) {
-        expect(faces(after, drawn).inner).toBeCloseTo(faces(CORVETTE, drawn).inner, 9);
-        expect(faces(after, drawn).outer).toBeCloseTo(faces(CORVETTE, drawn).outer + 1, 9);
-      }
-    }
-  });
-
-  it('anchors the copy being dragged of a shared part', () => {
-    const single = ship({ modules: [hull] });
-    const bp = duplicatePlacement(single, expandWithOrigins(single).origins[0]!)!.blueprint;
-    const before = handlesOf(bp, 0);
-    const edge = before[4]!; // +l
-    const after = handlesOf(drag(bp, 0, edge, edge.x + 3, edge.y), 0);
-    expect(after[6]!.x).toBeCloseTo(before[6]!.x, 9);
-    expect(after[4]!.x).toBeCloseTo(edge.x + 3, 9);
-  });
-
-  // The hull's +l edge is at x = 10; a block sits against it.
-  const block = { kind: 'structure', x: 12, y: 0, length: 4, width: 4 } as const;
-
-  it('pushes a neighbour along with the face, unless asked not to', () => {
-    const bp = ship({ modules: [hull, block] });
-    const edge = handlesOf(bp, 0)[4]!;
-    expect(positions(drag(bp, 0, edge, 12, 0, true))[1]).toEqual([14, 0]);
-    expect(positions(drag(bp, 0, edge, 12, 0, false))[1]).toEqual([12, 0]);
-    // And pulls it when the face comes back.
-    expect(positions(drag(bp, 0, edge, 8, 0, true))[1]).toEqual([10, 0]);
-  });
-
-  it('pushes from a copy of a shared part among the copy’s own neighbours', () => {
-    const single = ship({ modules: [hull, block] });
-    const bp = duplicatePlacement(single, expandWithOrigins(single).origins[0]!)!.blueprint;
-    const edge = handlesOf(bp, 0)[4]!;
-    const next = drag(bp, 0, edge, 12, 0, true);
-    expect(positions(next)[1]).toEqual([14, 0]);
-  });
-
-  it('pushes neighbours inside an assembly in the assembly’s own frame', () => {
-    const pod = {
-      modules: [
-        { ...hull, length: 4, width: 2 },
-        { ...block, x: 3, length: 2, width: 2 },
-      ],
-    };
-    const bp = ship({
-      assemblies: { pod },
-      modules: [hull, { use: 'pod', x: 0, y: 8, angle: math.HALF_PI, mirror: true }],
+    it("gives the bearing itself when the snap is escaped", () => {
+        expect(toDegrees(facingTo(box, 2 + 10, 2 + 8.4, 0))).toBeCloseTo(40.03, 1);
     });
-    // Drawn turned a quarter, the pod's first module's +l edge is at y = 10
-    // and its neighbour beyond it; dragged two metres, the neighbour follows.
-    const edge = handlesOf(bp, 1)[4]!;
-    const next = drag(bp, 1, edge, edge.x, edge.y + 2, true);
-    expect(positions(next)[2]![0]).toBeCloseTo(positions(bp)[2]![0], 9);
-    expect(positions(next)[2]![1]).toBeCloseTo(positions(bp)[2]![1] + 2, 9);
-  });
+
+    it("is written in the frame the module was written in", () => {
+        // A module in a mirrored assembly is drawn turned one way and written the
+        // other, so a knob dragged clockwise on screen writes an anticlockwise
+        // facing.
+        const origin = { path: [], rotation: 0, mirrored: true, instanceFrame: null };
+        expect(toPlacementAngle(origin, math.HALF_PI)).toBeCloseTo(-math.HALF_PI, 12);
+        const turned = { path: [], rotation: math.HALF_PI, mirrored: false, instanceFrame: null };
+        expect(toPlacementAngle(turned, math.HALF_PI)).toBeCloseTo(0, 12);
+    });
 });
 
-describe('pushing through the corvette’s bow', () => {
-  it('keeps the turret against the engine that pushes it, step after step', () => {
-    // The bow structure's front face drawn back two metres, so the gun is
-    // pulled in between the two retro engines with a metre clear of each.
-    const bow = expandWithOrigins(CORVETTE).origins[0]!;
-    const drawnBack = resizePlacement(CORVETTE, bow, 2.5, 6, -1, 0, true)!;
-    const turret = (bp: Blueprint) => placementAt(bp, [{ index: 2, copy: 0 }]) as ModuleSpec;
-    expect(turret(drawnBack).x).toBe(6);
+describe("repeating an assembly", () => {
+    const wing = { modules: [{ kind: "structure", x: 0, y: 0, length: 4, width: 4 } as const] };
+    const bp = ship({ assemblies: { wing }, modules: [hull, { use: "wing", x: 12, y: 0 }] });
+    const path = [{ index: 1, copy: 0 }];
 
-    // Then its +y side pulled in, as a drag does: each step applied afresh to
-    // the layout the drag started from. Each retro sits 2.5 m inboard of its
-    // side's origin.
-    for (const by of [0.5, 1, 1.5, 2, 2.5]) {
-      const next = resizePlacement(drawnBack, bow, 2.5, 6 - by, 0, -by / 2, true)!;
-      const upper = next.modules[4] as AssemblyInstance;
-      const lower = next.modules[5] as AssemblyInstance;
-      const retroBottom = upper.y - 2.5 - 1.5;
-      const turretTop = turret(next).y + 2;
-      const turretBottom = turret(next).y - 2;
-      // The retro closes on the turret, then pushes it without a gap opening.
-      expect(retroBottom - turretTop).toBeCloseTo(Math.max(0, 1 - by), 9);
-      // The far side is carried the whole way by the main engine its wing
-      // abuts, so once the turret moves it keeps pace and never catches up.
-      expect(turretBottom - (lower.y + 2.5 + 1.5)).toBeCloseTo(1 + Math.min(1, by), 9);
-    }
-  });
+    it("sets the count and the step together", () => {
+        const next = setRepetition(bp, path, 3, { x: 4, y: 0 })!;
+        expect(positions(next)).toEqual([
+            [0, 0],
+            [12, 0],
+            [16, 0],
+            [20, 0],
+        ]);
+    });
+
+    it("takes the step away again when it drops back to one copy", () => {
+        // A count of one with a step left behind is a layout the parser refuses,
+        // so the two have to leave together.
+        const repeated = setRepetition(bp, path, 3, { x: 4, y: 0 })!;
+        const once = setRepetition(repeated, path, 1, { x: 4, y: 0 })!;
+        expect(once.modules[1]).not.toHaveProperty("repeat");
+        expect(once.modules[1]).not.toHaveProperty("step");
+        expect(positions(once)).toEqual(positions(bp));
+    });
+
+    it("walks the copies round an arc when the step turns", () => {
+        const arc = setRepetition(bp, path, 2, { x: 4, y: 0, angle: math.HALF_PI })!;
+        const drawn = expandWithOrigins(arc).modules;
+        expect(drawn[2]!.angle).toBeCloseTo(math.HALF_PI, 12);
+    });
+
+    it("refuses a placement that is not an assembly", () => {
+        expect(setRepetition(bp, [{ index: 0, copy: 0 }], 3, { x: 4, y: 0 })).toBeNull();
+    });
 });
 
-describe('turning a module by its knob', () => {
-  const box: ModuleSpec = { kind: 'structure', x: 2, y: 2, length: 8, width: 4 };
+describe("how far an assembly reaches", () => {
+    it("measures the whole of what it covers, along a direction", () => {
+        const specs: ModuleSpec[] = [
+            { kind: "structure", x: 0, y: 0, length: 4, width: 2 },
+            { kind: "structure", x: 6, y: 0, length: 4, width: 2 },
+        ];
+        // Two 4 m boxes with their centres 6 m apart: 10 m from end to end.
+        expect(extentAlong(specs, 0)).toBeCloseTo(10, 12);
+        // Across the row, both boxes are only as wide as one.
+        expect(extentAlong(specs, math.HALF_PI)).toBeCloseTo(2, 12);
+    });
 
-  it('points the module at the pointer, snapped', () => {
-    expect(facingTo(box, 12, 2, 15)).toBeCloseTo(0, 12);
-    expect(facingTo(box, 2, 12, 15)).toBeCloseTo(math.HALF_PI, 12);
-    // 40° from the module, which is nearest to 45.
-    expect(toDegrees(facingTo(box, 2 + 10, 2 + 8.4, 15))).toBeCloseTo(45, 9);
-  });
-
-  it('lands on angles somebody could have typed', () => {
-    // Snapped in degrees rather than radians: rounding in radians and
-    // converting back produces -74.99999999999999, which then appears in the
-    // box and in the file.
-    expect(String(toDegrees(facingTo(box, 2 + 1, 2 - 3.6, 15)))).toBe('-75');
-  });
-
-  it('gives the bearing itself when the snap is escaped', () => {
-    expect(toDegrees(facingTo(box, 2 + 10, 2 + 8.4, 0))).toBeCloseTo(40.03, 1);
-  });
-
-  it('is written in the frame the module was written in', () => {
-    // A module in a mirrored assembly is drawn turned one way and written the
-    // other, so a knob dragged clockwise on screen writes an anticlockwise
-    // facing.
-    const origin = { path: [], rotation: 0, mirrored: true, instanceFrame: null };
-    expect(toPlacementAngle(origin, math.HALF_PI)).toBeCloseTo(-math.HALF_PI, 12);
-    const turned = { path: [], rotation: math.HALF_PI, mirrored: false, instanceFrame: null };
-    expect(toPlacementAngle(turned, math.HALF_PI)).toBeCloseTo(0, 12);
-  });
+    it("measures a turned module by what it actually covers", () => {
+        const specs: ModuleSpec[] = [{ kind: "structure", x: 0, y: 0, length: 4, width: 2, angle: math.HALF_PI }];
+        expect(extentAlong(specs, 0)).toBeCloseTo(2, 12);
+    });
 });
 
-describe('repeating an assembly', () => {
-  const wing = { modules: [{ kind: 'structure', x: 0, y: 0, length: 4, width: 4 } as const] };
-  const bp = ship({ assemblies: { wing }, modules: [hull, { use: 'wing', x: 12, y: 0 }] });
-  const path = [{ index: 1, copy: 0 }];
+describe("previewSnapshot", () => {
+    it("puts the blueprint frame at the origin, so an edit does not move the ship", () => {
+        const doc = new EditorDocument(CORVETTE);
+        const snapshot = previewSnapshot(doc.view.design!);
+        const view = snapshot.ships[0]!;
+        // Module positions are stored about the centre of mass, so placing the
+        // body at the centre of mass puts them back where they were written.
+        const drawn = view.currentStructure.modules.map((m) => [m.x + view.x, m.y + view.y]);
+        expect(drawn[0]![0]).toBeCloseTo(doc.view.modules[0]!.x, 9);
+        expect(drawn[0]![1]).toBeCloseTo(doc.view.modules[0]!.y, 9);
+    });
 
-  it('sets the count and the step together', () => {
-    const next = setRepetition(bp, path, 3, { x: 4, y: 0 })!;
-    expect(positions(next)).toEqual([
-      [0, 0],
-      [12, 0],
-      [16, 0],
-      [20, 0],
-    ]);
-  });
+    it("shows a ship at rest, with its guns where they were mounted and where they would fire", () => {
+        const design = new EditorDocument(GUNSHIP).view.design!;
+        const snapshot = previewSnapshot(design);
+        const view = snapshot.ships[0]!;
+        expect(view.throttles.every((t) => t === 0)).toBe(true);
+        expect(view.turretBearings).toEqual(design.turrets.map((t) => t.mount.restBearing ?? 0));
+        // Each gun's firing wedge, against the enemy its doctrine wants: aimed
+        // along its rest bearing, out to its nominal reach, and on target unless
+        // it rests pointing into its own ship.
+        expect(view.turretAim).toEqual(view.turretBearings);
+        expect(view.turretTriggerReach).toEqual(design.turrets.map((t) => t.reach));
+        expect(view.turretTrigger!.every((half) => half > 0)).toBe(true);
+        expect(view.turretReady).toEqual(view.turretFouled!.map((f) => !f));
+        expect(snapshot.projectileCount).toBe(0);
+    });
 
-  it('takes the step away again when it drops back to one copy', () => {
-    // A count of one with a step left behind is a layout the parser refuses,
-    // so the two have to leave together.
-    const repeated = setRepetition(bp, path, 3, { x: 4, y: 0 })!;
-    const once = setRepetition(repeated, path, 1, { x: 4, y: 0 })!;
-    expect(once.modules[1]).not.toHaveProperty('repeat');
-    expect(once.modules[1]).not.toHaveProperty('step');
-    expect(positions(once)).toEqual(positions(bp));
-  });
-
-  it('walks the copies round an arc when the step turns', () => {
-    const arc = setRepetition(bp, path, 2, { x: 4, y: 0, angle: math.HALF_PI })!;
-    const drawn = expandWithOrigins(arc).modules;
-    expect(drawn[2]!.angle).toBeCloseTo(math.HALF_PI, 12);
-  });
-
-  it('refuses a placement that is not an assembly', () => {
-    expect(setRepetition(bp, [{ index: 0, copy: 0 }], 3, { x: 4, y: 0 })).toBeNull();
-  });
+    it("reuses the snapshot it is given", () => {
+        const design = new EditorDocument(CORVETTE).view.design!;
+        const first = previewSnapshot(design);
+        expect(previewSnapshot(design, first)).toBe(first);
+        expect(first.shipCount).toBe(1);
+    });
 });
 
-describe('how far an assembly reaches', () => {
-  it('measures the whole of what it covers, along a direction', () => {
-    const specs: ModuleSpec[] = [
-      { kind: 'structure', x: 0, y: 0, length: 4, width: 2 },
-      { kind: 'structure', x: 6, y: 0, length: 4, width: 2 },
-    ];
-    // Two 4 m boxes with their centres 6 m apart: 10 m from end to end.
-    expect(extentAlong(specs, 0)).toBeCloseTo(10, 12);
-    // Across the row, both boxes are only as wide as one.
-    expect(extentAlong(specs, math.HALF_PI)).toBeCloseTo(2, 12);
-  });
+describe("designStats", () => {
+    it("reads the design rather than working anything out again", () => {
+        const design = new EditorDocument(CORVETTE).view.design!;
+        const stats = designStats(design, envelopes(design));
+        expect(stats.mass).toBe(design.mass);
+        expect(stats.inertia).toBe(design.inertia);
+        expect(stats.moduleCount).toBe(design.modules.length);
+        expect(stats.fullAuthority).toBe(design.engineLayout.hasFullAuthority());
+    });
 
-  it('measures a turned module by what it actually covers', () => {
-    const specs: ModuleSpec[] = [{ kind: 'structure', x: 0, y: 0, length: 4, width: 2, angle: math.HALF_PI }];
-    expect(extentAlong(specs, 0)).toBeCloseTo(2, 12);
-  });
+    it("reports the acceleration a ship can use, not the most it can project", () => {
+        const design = new EditorDocument(CORVETTE).view.design!;
+        const stats = designStats(design, envelopes(design));
+        // Fore and aft the corvette is balanced, so the two agree. Abeam they do
+        // not: trimming out the laterals' torque costs some of their push, and the
+        // panel reports what is left.
+        expect(stats.accelFore).toBeCloseTo(design.engineLayout.maxThrustAlong(1, 0) / design.mass, 2);
+        expect(stats.accelPort).toBeLessThan((design.engineLayout.maxThrustAlong(0, 1) / design.mass) * 0.99);
+        expect(stats.accelPort).toBeCloseTo(envelopes(design, 4).holding[1]!, 9);
+    });
+
+    it("reports a gun in the figures a player compares", () => {
+        const design = new EditorDocument(GUNSHIP).view.design!;
+        const turret = designStats(design, envelopes(design)).turrets[0]!;
+        const gun = design.turrets[0]!.gun;
+        expect(turret.calibre).toBe(gun.calibre);
+        expect(turret.roundsPerMinute).toBeCloseTo(60 / gun.cycleTime, 9);
+        expect(turret.arcLeft).toBeGreaterThan(0);
+    });
+
+    it("counts the rounds a gun can load from the metal it sets out with", () => {
+        const design = new EditorDocument(GUNSHIP).view.design!;
+        const main = design.turrets.filter((t) => t.main && t.gun.roundMass > 0).sort((a, b) => b.gun.roundMass - a.gun.roundMass)[0]!;
+        let metal = 0;
+        for (const m of design.modules) metal += m.stats.metal;
+        const rounds = Math.floor(metal / main.gun.roundMass);
+        expect(rounds).toBeGreaterThan(0);
+        expect(roundsAboard(design, main.module)).toBe(rounds);
+        expect(designStats(design, envelopes(design)).mainRounds).toEqual({ roundMass: main.gun.roundMass, rounds });
+        // Anything that fires no rounds has none.
+        expect(roundsAboard(design, design.cores[0]!)).toBe(0);
+    });
+
+    it("counts only what a ship sets out with, and nothing for a ship without guns", () => {
+        const emptied = { ...GUNSHIP, modules: GUNSHIP.modules!.map((m) => ("kind" in m && m.kind === "core" ? { ...m, fill: 0 } : m)) };
+        const design = new EditorDocument(emptied).view.design!;
+        expect(designStats(design, envelopes(design)).mainRounds?.rounds).toBe(0);
+        const unarmed = new EditorDocument(TORCH).view.design!;
+        expect(designStats(unarmed, envelopes(unarmed)).mainRounds).toBeNull();
+    });
 });
 
-describe('previewSnapshot', () => {
-  it('puts the blueprint frame at the origin, so an edit does not move the ship', () => {
-    const doc = new EditorDocument(CORVETTE);
-    const snapshot = previewSnapshot(doc.view.design!);
-    const view = snapshot.ships[0]!;
-    // Module positions are stored about the centre of mass, so placing the
-    // body at the centre of mass puts them back where they were written.
-    const drawn = view.currentStructure.modules.map((m) => [m.x + view.x, m.y + view.y]);
-    expect(drawn[0]![0]).toBeCloseTo(doc.view.modules[0]!.x, 9);
-    expect(drawn[0]![1]).toBeCloseTo(doc.view.modules[0]!.y, 9);
-  });
+describe("the manoeuvring envelopes", () => {
+    it("samples the unconstrained curve from the bow, anticlockwise", () => {
+        const design = new EditorDocument(CORVETTE).view.design!;
+        const layout = design.engineLayout;
+        const envelope = envelopes(design, 4);
+        expect(envelope.free[0]).toBeCloseTo(layout.maxThrustAlong(1, 0) / design.mass, 9);
+        expect(envelope.free[1]).toBeCloseTo(layout.maxThrustAlong(0, 1) / design.mass, 9);
+        expect(envelope.free[2]).toBeCloseTo(layout.maxThrustAlong(-1, 0) / design.mass, 9);
+        expect(envelope.free[3]).toBeCloseTo(layout.maxThrustAlong(0, -1) / design.mass, 9);
+    });
 
-  it('shows a ship at rest, with its guns where they were mounted and where they would fire', () => {
-    const design = new EditorDocument(GUNSHIP).view.design!;
-    const snapshot = previewSnapshot(design);
-    const view = snapshot.ships[0]!;
-    expect(view.throttles.every((t) => t === 0)).toBe(true);
-    expect(view.turretBearings).toEqual(design.turrets.map((t) => t.mount.restBearing ?? 0));
-    // Each gun's firing wedge, against the enemy its doctrine wants: aimed
-    // along its rest bearing, out to its nominal reach, and on target unless
-    // it rests pointing into its own ship.
-    expect(view.turretAim).toEqual(view.turretBearings);
-    expect(view.turretTriggerReach).toEqual(design.turrets.map((t) => t.reach));
-    expect(view.turretTrigger!.every((half) => half > 0)).toBe(true);
-    expect(view.turretReady).toEqual(view.turretFouled!.map((f) => !f));
-    expect(snapshot.projectileCount).toBe(0);
-  });
+    it("never claims a ship can hold more than it can project", () => {
+        for (const blueprint of [CORVETTE, GUNSHIP]) {
+            const design = new EditorDocument(blueprint).view.design!;
+            const envelope = envelopes(design);
+            for (let i = 0; i < envelope.samples; i++) {
+                expect(envelope.holding[i]!).toBeLessThanOrEqual(envelope.free[i]! + 1e-9);
+            }
+        }
+    });
 
-  it('reuses the snapshot it is given', () => {
-    const design = new EditorDocument(CORVETTE).view.design!;
-    const first = previewSnapshot(design);
-    expect(previewSnapshot(design, first)).toBe(first);
-    expect(first.shipCount).toBe(1);
-  });
-});
+    it("costs the corvette nothing fore and aft, and something abeam and on the diagonal", () => {
+        const design = new EditorDocument(CORVETTE).view.design!;
+        const envelope = envelopes(design, 8);
+        // The lateral engines sit at x = ±4 while the centre of mass is
+        // forward of the middle, pulled there by the long bow gun — so pushing abeam needs
+        // more trim than the retros can give. That is the whole of what the two
+        // curves are drawn to show.
+        expect(envelope.holding[0]).toBeCloseTo(envelope.free[0]!, 6);
+        expect(envelope.holding[4]).toBeCloseTo(envelope.free[4]!, 6);
+        expect(envelope.holding[2]!).toBeLessThan(envelope.free[2]! * 0.99);
+        expect(envelope.holding[1]!).toBeLessThan(envelope.free[1]! * 0.95);
+        expect(headingCost(envelope)).toBeGreaterThan(0.05);
+    });
 
-describe('designStats', () => {
-  it('reads the design rather than working anything out again', () => {
-    const design = new EditorDocument(CORVETTE).view.design!;
-    const stats = designStats(design, envelopes(design));
-    expect(stats.mass).toBe(design.mass);
-    expect(stats.inertia).toBe(design.inertia);
-    expect(stats.moduleCount).toBe(design.modules.length);
-    expect(stats.fullAuthority).toBe(design.engineLayout.hasFullAuthority());
-  });
+    it("is zero for a layout whose thrust is balanced about its centre of mass", () => {
+        // One engine either side of the centre of mass, pushing the same way:
+        // the torques cancel, so nothing is given up to avoid spinning.
+        const design = new EditorDocument(
+            ship({
+                modules: [
+                    { kind: "structure", x: 0, y: 0, length: 20, width: 6 },
+                    { kind: "engine", x: 6, y: -4, angle: -math.HALF_PI, length: 2, width: 3 },
+                    { kind: "engine", x: -6, y: -4, angle: -math.HALF_PI, length: 2, width: 3 },
+                ],
+            }),
+        ).view.design!;
+        // Eight samples, so index 2 is abeam to port — the direction those two
+        // engines push.
+        const envelope = envelopes(design, 8);
+        expect(envelope.free[2]!).toBeGreaterThan(0);
+        expect(envelope.holding[2]).toBeCloseTo(envelope.free[2]!, 6);
+    });
 
-  it('reports the acceleration a ship can use, not the most it can project', () => {
-    const design = new EditorDocument(CORVETTE).view.design!;
-    const stats = designStats(design, envelopes(design));
-    // Fore and aft the corvette is balanced, so the two agree. Abeam they do
-    // not: trimming out the laterals' torque costs some of their push, and the
-    // panel reports what is left.
-    expect(stats.accelFore).toBeCloseTo(design.engineLayout.maxThrustAlong(1, 0) / design.mass, 2);
-    expect(stats.accelPort).toBeLessThan((design.engineLayout.maxThrustAlong(0, 1) / design.mass) * 0.99);
-    expect(stats.accelPort).toBeCloseTo(envelopes(design, 4).holding[1]!, 9);
-  });
-
-  it('reports a gun in the figures a player compares', () => {
-    const design = new EditorDocument(GUNSHIP).view.design!;
-    const turret = designStats(design, envelopes(design)).turrets[0]!;
-    const gun = design.turrets[0]!.gun;
-    expect(turret.calibre).toBe(gun.calibre);
-    expect(turret.roundsPerMinute).toBeCloseTo(60 / gun.cycleTime, 9);
-    expect(turret.arcLeft).toBeGreaterThan(0);
-  });
-
-  it('counts the rounds a gun can load from the metal it sets out with', () => {
-    const design = new EditorDocument(GUNSHIP).view.design!;
-    const main = design.turrets.filter((t) => t.main && t.gun.roundMass > 0).sort((a, b) => b.gun.roundMass - a.gun.roundMass)[0]!;
-    let metal = 0;
-    for (const m of design.modules) metal += m.stats.metal;
-    const rounds = Math.floor(metal / main.gun.roundMass);
-    expect(rounds).toBeGreaterThan(0);
-    expect(roundsAboard(design, main.module)).toBe(rounds);
-    expect(designStats(design, envelopes(design)).mainRounds).toEqual({ roundMass: main.gun.roundMass, rounds });
-    // Anything that fires no rounds has none.
-    expect(roundsAboard(design, design.cores[0]!)).toBe(0);
-  });
-
-  it('counts only what a ship sets out with, and nothing for a ship without guns', () => {
-    const emptied = { ...GUNSHIP, modules: GUNSHIP.modules!.map((m) => ('kind' in m && m.kind === 'core' ? { ...m, fill: 0 } : m)) };
-    const design = new EditorDocument(emptied).view.design!;
-    expect(designStats(design, envelopes(design)).mainRounds?.rounds).toBe(0);
-    const unarmed = new EditorDocument(TORCH).view.design!;
-    expect(designStats(unarmed, envelopes(unarmed)).mainRounds).toBeNull();
-  });
-});
-
-describe('the manoeuvring envelopes', () => {
-  it('samples the unconstrained curve from the bow, anticlockwise', () => {
-    const design = new EditorDocument(CORVETTE).view.design!;
-    const layout = design.engineLayout;
-    const envelope = envelopes(design, 4);
-    expect(envelope.free[0]).toBeCloseTo(layout.maxThrustAlong(1, 0) / design.mass, 9);
-    expect(envelope.free[1]).toBeCloseTo(layout.maxThrustAlong(0, 1) / design.mass, 9);
-    expect(envelope.free[2]).toBeCloseTo(layout.maxThrustAlong(-1, 0) / design.mass, 9);
-    expect(envelope.free[3]).toBeCloseTo(layout.maxThrustAlong(0, -1) / design.mass, 9);
-  });
-
-  it('never claims a ship can hold more than it can project', () => {
-    for (const blueprint of [CORVETTE, GUNSHIP]) {
-      const design = new EditorDocument(blueprint).view.design!;
-      const envelope = envelopes(design);
-      for (let i = 0; i < envelope.samples; i++) {
-        expect(envelope.holding[i]!).toBeLessThanOrEqual(envelope.free[i]! + 1e-9);
-      }
-    }
-  });
-
-  it('costs the corvette nothing fore and aft, and something abeam and on the diagonal', () => {
-    const design = new EditorDocument(CORVETTE).view.design!;
-    const envelope = envelopes(design, 8);
-    // The lateral engines sit at x = ±4 while the centre of mass is
-    // forward of the middle, pulled there by the long bow gun — so pushing abeam needs
-    // more trim than the retros can give. That is the whole of what the two
-    // curves are drawn to show.
-    expect(envelope.holding[0]).toBeCloseTo(envelope.free[0]!, 6);
-    expect(envelope.holding[4]).toBeCloseTo(envelope.free[4]!, 6);
-    expect(envelope.holding[2]!).toBeLessThan(envelope.free[2]! * 0.99);
-    expect(envelope.holding[1]!).toBeLessThan(envelope.free[1]! * 0.95);
-    expect(headingCost(envelope)).toBeGreaterThan(0.05);
-  });
-
-  it('is zero for a layout whose thrust is balanced about its centre of mass', () => {
-    // One engine either side of the centre of mass, pushing the same way:
-    // the torques cancel, so nothing is given up to avoid spinning.
-    const design = new EditorDocument(
-      ship({
-        modules: [
-          { kind: 'structure', x: 0, y: 0, length: 20, width: 6 },
-          { kind: 'engine', x: 6, y: -4, angle: -math.HALF_PI, length: 2, width: 3 },
-          { kind: 'engine', x: -6, y: -4, angle: -math.HALF_PI, length: 2, width: 3 },
-        ],
-      }),
-    ).view.design!;
-    // Eight samples, so index 2 is abeam to port — the direction those two
-    // engines push.
-    const envelope = envelopes(design, 8);
-    expect(envelope.free[2]!).toBeGreaterThan(0);
-    expect(envelope.holding[2]).toBeCloseTo(envelope.free[2]!, 6);
-  });
-
-  it('gives up everything in a direction it can only push by spinning', () => {
-    // One lateral engine, well forward of the centre of mass, with nothing to
-    // cancel the torque it makes.
-    const design = new EditorDocument(
-      ship({
-        modules: [
-          { kind: 'structure', x: 0, y: 0, length: 20, width: 6 },
-          { kind: 'engine', x: 6, y: -4, angle: -math.HALF_PI, length: 2, width: 3 },
-        ],
-      }),
-    ).view.design!;
-    const envelope = envelopes(design, 4);
-    expect(envelope.free[1]).toBeGreaterThan(0);
-    expect(envelope.holding[1]).toBe(0);
-    expect(headingCost(envelope)).toBeCloseTo(1, 6);
-  });
+    it("gives up everything in a direction it can only push by spinning", () => {
+        // One lateral engine, well forward of the centre of mass, with nothing to
+        // cancel the torque it makes.
+        const design = new EditorDocument(
+            ship({
+                modules: [
+                    { kind: "structure", x: 0, y: 0, length: 20, width: 6 },
+                    { kind: "engine", x: 6, y: -4, angle: -math.HALF_PI, length: 2, width: 3 },
+                ],
+            }),
+        ).view.design!;
+        const envelope = envelopes(design, 4);
+        expect(envelope.free[1]).toBeGreaterThan(0);
+        expect(envelope.holding[1]).toBe(0);
+        expect(headingCost(envelope)).toBeCloseTo(1, 6);
+    });
 });
 
 /** A `localStorage` that is a plain object, so the library can be tested in Node. */
 function fakeStore(): KeyValueStore {
-  const data = new Map<string, string>();
-  return {
-    get length() {
-      return data.size;
-    },
-    key: (i) => [...data.keys()][i] ?? null,
-    getItem: (k) => data.get(k) ?? null,
-    setItem: (k, v) => void data.set(k, v),
-    removeItem: (k) => void data.delete(k),
-  };
+    const data = new Map<string, string>();
+    return {
+        get length() {
+            return data.size;
+        },
+        key: (i) => [...data.keys()][i] ?? null,
+        getItem: (k) => data.get(k) ?? null,
+        setItem: (k, v) => void data.set(k, v),
+        removeItem: (k) => void data.delete(k),
+    };
 }
 
-describe('a file with keys the game does not read', () => {
-  // A typo in a hand-edited ship: a turret's `barrel` for `barrels`, and a
-  // key at the top that nothing knows.
-  const raw = (): Record<string, unknown> => {
-    const file = serialiseBlueprint(CORVETTE) as Record<string, unknown>;
-    const modules = (file['modules'] as Record<string, unknown>[]).map((m) => ({ ...m }));
-    modules[0] = { ...modules[0], barrel: 8 };
-    return { ...file, colour: 'red', modules };
-  };
-
-  it('opens in the editor, says so, and keeps them through an edit', () => {
-    const doc = new EditorDocument(parseBlueprint(raw()));
-    expect(doc.view.design).not.toBeNull();
-    expect(doc.view.warnings.join('\n')).toMatch(/the file has a key[^\n]*colour/);
-    expect(doc.view.warnings.join('\n')).toMatch(/modules\[0\] has a key[^\n]*barrel/);
-    doc.apply(movePlacement(doc.blueprint, doc.view.origins[0]!, 1, 0)!);
-    expect(doc.view.warnings).toHaveLength(2);
-    const saved = serialiseBlueprint(doc.blueprint);
-    expect(saved['colour']).toBe('red');
-    expect((saved['modules'] as Record<string, unknown>[])[0]!['barrel']).toBe(8);
-  });
-
-  it('is saved to the library with them, and opens from it with them', () => {
-    const library = new Library(fakeStore());
-    library.save({ ...parseBlueprint(raw()), name: 'Typo' });
-    const back = library.load('Typo')!;
-    expect(serialiseBlueprint(back)['colour']).toBe('red');
-    expect(new EditorDocument(back).view.warnings).toHaveLength(2);
-  });
-});
-
-describe('Library', () => {
-  it('lists the ships that come with the game', () => {
-    const names = new Library(fakeStore()).list().map((e) => e.name);
-    expect(names).toContain(CORVETTE.name);
-    expect(names).toContain(GUNSHIP.name);
-  });
-
-  it('round-trips a saved ship through the file format', () => {
-    const library = new Library(fakeStore());
-    const edited = { ...CORVETTE, name: 'Corvette II' };
-    library.save(edited);
-    expect(library.load('Corvette II')).toEqual(edited);
-  });
-
-  it('shadows a built-in ship rather than replacing it', () => {
-    const library = new Library(fakeStore());
-    const edited = { ...CORVETTE, notes: 'mine now' };
-    library.save(edited);
-    expect(library.load(CORVETTE.name)).toEqual(edited);
-    library.remove(CORVETTE.name);
-    expect(library.load(CORVETTE.name)).toEqual(CORVETTE);
-  });
-
-  it('saves on leaving only what differs from what its name opens', () => {
-    const library = new Library(fakeStore());
-    expect(library.saveIfChanged(CORVETTE)).toBe(false);
-    expect(library.savedNames()).toEqual([]);
-    const edited = { ...CORVETTE, notes: 'mine now' };
-    expect(library.saveIfChanged(edited)).toBe(true);
-    expect(library.saveIfChanged(edited)).toBe(false);
-    expect(library.load(CORVETTE.name)).toEqual(edited);
-  });
-
-  it('lists a shadowed ship twice, so the shipped one stays openable', () => {
-    // The whole point of shadowing rather than replacing: a ship saved over a
-    // shipped name must not make the shipped hull unreachable, since that is
-    // what a new ship is most often started from — and reaching it by
-    // deleting the saved copy is no way to offer it.
-    const library = new Library(fakeStore());
-    library.save({ ...CORVETTE, notes: 'mine now' });
-    const both = library.list().filter((e) => e.name === CORVETTE.name);
-    expect(both.map((e) => e.stock)).toEqual([false, true]);
-    expect(library.loadStock(CORVETTE.name)).toEqual(CORVETTE);
-    expect(library.load(CORVETTE.name)).not.toEqual(CORVETTE);
-  });
-
-  it('lists a ship once while nothing shadows it', () => {
-    const library = new Library(fakeStore());
-    expect(library.list().filter((e) => e.name === CORVETTE.name)).toHaveLength(1);
-    library.save({ ...CORVETTE, name: 'Mine' });
-    expect(library.list().filter((e) => e.name === 'Mine')).toEqual([{ name: 'Mine', stock: false, saved: true }]);
-    expect(library.loadStock('Mine')).toBeNull();
-  });
-
-  it('exports text a parser reads back unchanged', () => {
-    expect(parseBlueprint(JSON.parse(toFileText(GUNSHIP)))).toEqual(GUNSHIP);
-    expect(JSON.parse(toFileText(GUNSHIP))).toEqual(serialiseBlueprint(GUNSHIP));
-  });
-
-  it('starts a new ship blank, with no module chosen for the player', () => {
-    expect(emptyBlueprint('Blank').modules).toEqual([]);
-  });
-
-  it('opens a saved ship that would not fly, and names what is wrong with it', () => {
-    // Storage holds whatever was last written to it, including a layout left
-    // half-finished and one an older version of the format wrote. The editor
-    // is where such a ship is put right, so refusing to open it is the one
-    // answer that makes it unfixable.
-    const library = new Library(fakeStore());
-    const adrift: Blueprint = {
-      name: 'Adrift',
-      modules: [
-        { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
-        { kind: 'engine', x: -20, y: 0, angle: Math.PI, length: 3, width: 3 },
-      ],
+describe("a file with keys the game does not read", () => {
+    // A typo in a hand-edited ship: a turret's `barrel` for `barrels`, and a
+    // key at the top that nothing knows.
+    const raw = (): Record<string, unknown> => {
+        const file = serialiseBlueprint(CORVETTE) as Record<string, unknown>;
+        const modules = (file["modules"] as Record<string, unknown>[]).map((m) => ({ ...m }));
+        modules[0] = { ...modules[0], barrel: 8 };
+        return { ...file, colour: "red", modules };
     };
-    library.save(adrift);
-    // Read back with an id on each placement, as every file is.
-    expect(library.load('Adrift')).toEqual(settleIds(adrift));
-    expect(blueprintProblem(adrift)).toMatch(/touches nothing/);
-  });
 
-  it('still refuses a saved ship it cannot read at all', () => {
-    const store = fakeStore();
-    store.setItem('scs2d.blueprint.Garbled', JSON.stringify({ formatVersion: 99, name: 'Garbled' }));
-    expect(() => new Library(store).load('Garbled')).toThrow(/formatVersion/);
-  });
-});
-
-describe('naming a duplicate', () => {
-  it('counts rather than stacking suffixes', () => {
-    expect(nextName('Corvette')).toBe('Corvette 2');
-    expect(nextName('Corvette 2')).toBe('Corvette 3');
-    expect(nextName('Corvette 9')).toBe('Corvette 10');
-  });
-
-  it('puts up whatever number is on the end, however it is written', () => {
-    expect(nextName('Mk2')).toBe('Mk3');
-    expect(nextName('Gunship-7')).toBe('Gunship-8');
-    // A number in the middle is not the one on the end.
-    expect(nextName('Type 2 escort')).toBe('Type 2 escort 2');
-  });
-
-  it('skips a name already in use rather than overwriting it', () => {
-    expect(unusedName('New ship', [])).toBe('New ship');
-    expect(unusedName('New ship', ['New ship'])).toBe('New ship 2');
-    expect(unusedName('Corvette 2', ['Corvette 2', 'Corvette 3'])).toBe('Corvette 4');
-  });
-});
-
-describe('duplicating a module', () => {
-  it('makes it a shared part and places a second copy', () => {
-    const bp = ship({ modules: [hull, { kind: 'turret', x: 12, y: 0, length: 4, width: 4 }] });
-    const before = expandWithOrigins(bp);
-    const result = duplicatePlacement(bp, before.origins[1]!)!;
-    const after = expandWithOrigins(result.blueprint);
-
-    expect(after.modules).toHaveLength(3);
-    // The ship it was made from is untouched: the first two modules are where
-    // and what they were, so only the copy is new.
-    expect(after.modules[0]).toEqual(before.modules[0]);
-    expect(after.modules[1]).toEqual(before.modules[1]);
-    // And the two turrets are now the same part.
-    expect(samePlacement(after.origins[1]!.path, after.origins[2]!.path)).toBe(true);
-  });
-
-  it('puts the copy somewhere it can be seen and grabbed', () => {
-    const bp = ship({ modules: [hull, { kind: 'turret', x: 12, y: 0, length: 4, width: 4 }] });
-    const result = duplicatePlacement(bp, expandWithOrigins(bp).origins[1]!)!;
-    const copies = expandWithOrigins(result.blueprint).modules.slice(1);
-    expect(copies[0]).toMatchObject({ x: 12, y: 0 });
-    expect(copies[1]).toMatchObject({ x: 12, y: 4 });
-  });
-
-  it('changes both copies when the shared module is edited', () => {
-    const bp = ship({ modules: [hull, { kind: 'turret', x: 12, y: 0, length: 4, width: 4 }] });
-    const doc = new EditorDocument(duplicatePlacement(bp, expandWithOrigins(bp).origins[1]!)!.blueprint);
-    doc.selectModule(1);
-    doc.apply(updatePlacement(doc.blueprint, doc.selection!, (p) => ({ ...p, length: 6 }))!);
-    const turrets = doc.view.modules.filter((m) => m.kind === 'turret');
-    expect(turrets).toHaveLength(2);
-    expect(turrets.every((m) => m.length === 6)).toBe(true);
-  });
-
-  it('places one more copy rather than nesting when pressed again', () => {
-    const bp = ship({ modules: [hull, { kind: 'turret', x: 12, y: 0, length: 4, width: 4 }] });
-    let current = duplicatePlacement(bp, expandWithOrigins(bp).origins[1]!)!.blueprint;
-    for (let i = 0; i < 2; i++) {
-      const origins = expandWithOrigins(current).origins;
-      current = duplicatePlacement(current, origins[origins.length - 1]!)!.blueprint;
-    }
-    // Three presses, three extra turrets — not the eight that wrapping an
-    // assembly inside a copy of itself would have produced.
-    expect(expandWithOrigins(current).modules.filter((m) => m.kind === 'turret')).toHaveLength(4);
-    expect(Object.keys(current.assemblies ?? {})).toHaveLength(1);
-  });
-});
-
-describe('the placement that carries a copy’s position', () => {
-  it('is the module itself when it is not shared', () => {
-    const bp = ship({ modules: [hull] });
-    const origin = expandWithOrigins(bp).origins[0]!;
-    const handle = positionHandle(bp, origin);
-    expect(handle.perCopy).toBe(false);
-    expect(handle.origin.path).toEqual(origin.path);
-  });
-
-  it('is the instance when the module is the whole of its assembly', () => {
-    const origins = expandWithOrigins(GUNSHIP).origins;
-    const engine = expandWithOrigins(GUNSHIP).modules.findIndex((m) => m.length === 4 && m.width === 4.5);
-    const handle = positionHandle(GUNSHIP, origins[engine]!);
-    expect(handle.perCopy).toBe(true);
-    // Each main engine's instance is its own placement, so moving one moves one.
-    const moved = movePlacement(GUNSHIP, handle.origin, 0, 2)!;
-    const before = positions(GUNSHIP);
-    const after = positions(moved);
-    expect(after.filter((p, i) => p[1] !== before[i]![1])).toHaveLength(1);
-  });
-
-  it('stays with the module when the assembly holds more than it', () => {
-    const bp = ship({
-      assemblies: {
-        wing: {
-          modules: [
-            { kind: 'structure', x: 0, y: 0, length: 4, width: 3 },
-            { kind: 'structure', x: 4, y: 0, length: 4, width: 3 },
-          ],
-        },
-      },
-      modules: [hull, { use: 'wing', x: 0, y: 6 }, { use: 'wing', x: 0, y: -6 }],
+    it("opens in the editor, says so, and keeps them through an edit", () => {
+        const doc = new EditorDocument(parseBlueprint(raw()));
+        expect(doc.view.design).not.toBeNull();
+        expect(doc.view.warnings.join("\n")).toMatch(/the file has a key[^\n]*colour/);
+        expect(doc.view.warnings.join("\n")).toMatch(/modules\[0\] has a key[^\n]*barrel/);
+        doc.apply(movePlacement(doc.blueprint, doc.view.origins[0]!, 1, 0)!);
+        expect(doc.view.warnings).toHaveLength(2);
+        const saved = serialiseBlueprint(doc.blueprint);
+        expect(saved["colour"]).toBe("red");
+        expect((saved["modules"] as Record<string, unknown>[])[0]!["barrel"]).toBe(8);
     });
-    const origins = expandWithOrigins(bp).origins;
-    // Dragging one part of an assembly has to move the part, not the whole assembly.
-    expect(positionHandle(bp, origins[1]!).perCopy).toBe(false);
-  });
+
+    it("is saved to the library with them, and opens from it with them", () => {
+        const library = new Library(fakeStore());
+        library.save({ ...parseBlueprint(raw()), name: "Typo" });
+        const back = library.load("Typo")!;
+        expect(serialiseBlueprint(back)["colour"]).toBe("red");
+        expect(new EditorDocument(back).view.warnings).toHaveLength(2);
+    });
 });
 
-describe('taking a module out of its assembly', () => {
-  it('leaves the ship bit-identical when the module was the whole assembly', () => {
-    const before = expandBlueprint(GUNSHIP);
-    const engine = expandWithOrigins(GUNSHIP).modules.findIndex((m) => m.length === 4 && m.width === 4.5);
-    const origins = expandWithOrigins(GUNSHIP).origins;
-    expect(takeOutCount(GUNSHIP, origins[engine]!.path)).toBe(2);
-
-    const taken = takeOutOfAssembly(GUNSHIP, origins[engine]!.path)!.blueprint;
-    // Exact, down to module order — which is part of the ship, since engine
-    // allocation and firing both run over it.
-    expect(expandBlueprint(taken)).toEqual(before);
-    expect(taken.assemblies?.['mainEngine']).toBeUndefined();
-  });
-
-  it('lets the copies be edited apart afterwards', () => {
-    const origins = expandWithOrigins(GUNSHIP).origins;
-    const engine = expandWithOrigins(GUNSHIP).modules.findIndex((m) => m.length === 4 && m.width === 4.5);
-    const doc = new EditorDocument(takeOutOfAssembly(GUNSHIP, origins[engine]!.path)!.blueprint);
-    doc.selectModule(engine);
-    expect(doc.selectedModules()).toHaveLength(1);
-    doc.apply(updatePlacement(doc.blueprint, doc.selection!, (p) => ({ ...p, width: 5 }))!);
-    expect(doc.view.modules.filter((m) => m.length === 4 && m.width === 5)).toHaveLength(1);
-  });
-
-  it('leaves a loose copy beside each copy of an assembly that holds more', () => {
-    const bp = ship({
-      assemblies: {
-        wing: {
-          modules: [
-            { kind: 'structure', x: 0, y: 0, length: 4, width: 3 },
-            { kind: 'structure', x: 4, y: 0, length: 4, width: 3 },
-          ],
-        },
-      },
-      modules: [hull, { use: 'wing', x: 0, y: 6 }, { use: 'wing', x: 0, y: -6, mirror: true }],
+describe("Library", () => {
+    it("lists the ships that come with the game", () => {
+        const names = new Library(fakeStore()).list().map((e) => e.name);
+        expect(names).toContain(CORVETTE.name);
+        expect(names).toContain(GUNSHIP.name);
     });
-    const origins = expandWithOrigins(bp).origins;
-    const taken = takeOutOfAssembly(bp, origins[2]!.path)!.blueprint;
-    expect(taken.assemblies?.['wing']?.modules).toHaveLength(1);
-    // Written straight after each copy, in the ship's own list, so it no longer
-    // moves with the copy and each is separately editable.
-    expect(taken.modules.map((m) => ('use' in m ? m.use : m.kind))).toEqual(['structure', 'wing', 'structure', 'wing', 'structure']);
-    const key = (m: { x: number; y: number }): string => `${m.x.toFixed(9)},${m.y.toFixed(9)}`;
-    expect(expandBlueprint(taken).map(key).sort()).toEqual(expandBlueprint(bp).map(key).sort());
-    const after = expandWithOrigins(taken);
-    expect(samePlacement(after.origins[2]!.path, after.origins[4]!.path)).toBe(false);
-  });
 
-  it("carries a turned, mirrored and repeated copy's frame into the loose copies", () => {
-    const bp = ship({
-      assemblies: {
-        rib: {
-          modules: [
-            { kind: 'structure', x: 0, y: 0, length: 2, width: 2 },
-            { kind: 'engine', x: 2, y: 1, angle: 0.4, length: 2, width: 2 },
-          ],
-        },
-      },
-      modules: [hull, { use: 'rib', x: 5, y: 2, angle: 0.7, mirror: true, repeat: 3, step: { x: 0, y: 3, angle: 0.2 } }],
+    it("round-trips a saved ship through the file format", () => {
+        const library = new Library(fakeStore());
+        const edited = { ...CORVETTE, name: "Corvette II" };
+        library.save(edited);
+        expect(library.load("Corvette II")).toEqual(edited);
     });
-    const engine = expandWithOrigins(bp).modules.findIndex((m) => m.kind === 'engine');
-    const taken = takeOutOfAssembly(bp, expandWithOrigins(bp).origins[engine]!.path)!.blueprint;
-    const pose = (m: { x: number; y: number; angle?: number }): number[] => [m.x, m.y, m.angle ?? 0];
-    const engines = (b: Blueprint): number[][] =>
-      expandBlueprint(b)
-        .filter((m) => m.kind === 'engine')
-        .map(pose);
-    const was = engines(bp);
-    const now = engines(taken);
-    expect(now).toHaveLength(3);
-    for (let k = 0; k < 3; k++) for (let j = 0; j < 3; j++) expect(now[k]![j]).toBeCloseTo(was[k]![j]!, 9);
-  });
 
-  it('takes a nested assembly out whole, still an assembly, beside each copy', () => {
-    const bp = ship({
-      assemblies: {
-        pod: {
-          modules: [
-            { kind: 'structure', x: 0, y: 0, length: 2, width: 2 },
-            { kind: 'structure', x: 2, y: 0, length: 2, width: 2 },
-          ],
-        },
-        wing: {
-          modules: [
-            { kind: 'structure', x: 0, y: 0, length: 4, width: 3 },
-            { use: 'pod', x: 3, y: 2.5, angle: 0.3 },
-          ],
-        },
-      },
-      modules: [hull, { use: 'wing', x: 0, y: 6, angle: 0.5 }, { use: 'wing', x: 0, y: -6, mirror: true }],
+    it("shadows a built-in ship rather than replacing it", () => {
+        const library = new Library(fakeStore());
+        const edited = { ...CORVETTE, notes: "mine now" };
+        library.save(edited);
+        expect(library.load(CORVETTE.name)).toEqual(edited);
+        library.remove(CORVETTE.name);
+        expect(library.load(CORVETTE.name)).toEqual(CORVETTE);
     });
-    // The pod as the second wing draws it: path through that copy, ending at the pod.
-    const podPath: ModulePath = [
-      { index: 2, copy: 0, into: 'assembly', assembly: 'wing' },
-      { index: 1, copy: 0 },
-    ];
-    expect(takeOutCount(bp, podPath)).toBe(2);
-    const taken = takeOutOfAssembly(bp, podPath)!;
-    expect(taken.blueprint.assemblies?.['wing']?.modules).toHaveLength(1);
-    expect(taken.blueprint.modules.map((m) => ('use' in m ? m.use : m.kind))).toEqual(['structure', 'wing', 'pod', 'wing', 'pod']);
-    const key = (m: { x: number; y: number }): string => `${m.x.toFixed(9)},${m.y.toFixed(9)}`;
-    expect(expandBlueprint(taken.blueprint).map(key).sort()).toEqual(expandBlueprint(bp).map(key).sort());
-    // What was picked stays picked: the pod that came out of the second wing.
-    expect(taken.path).toEqual([{ index: 4, copy: 0 }]);
-  });
 
-  it('is offered for any part of an assembly, and not for a loose one', () => {
-    const once = ship({
-      assemblies: { pod: { modules: [{ kind: 'structure', x: 0, y: 0, length: 2, width: 2 }] } },
-      modules: [hull, { use: 'pod', x: 0, y: 5 }],
+    it("saves on leaving only what differs from what its name opens", () => {
+        const library = new Library(fakeStore());
+        expect(library.saveIfChanged(CORVETTE)).toBe(false);
+        expect(library.savedNames()).toEqual([]);
+        const edited = { ...CORVETTE, notes: "mine now" };
+        expect(library.saveIfChanged(edited)).toBe(true);
+        expect(library.saveIfChanged(edited)).toBe(false);
+        expect(library.load(CORVETTE.name)).toEqual(edited);
     });
-    const origins = expandWithOrigins(once).origins;
-    expect(takeOutCount(once, origins[0]!.path)).toBe(0);
-    expect(takeOutCount(once, origins[1]!.path)).toBe(1);
-  });
+
+    it("lists a shadowed ship twice, so the shipped one stays openable", () => {
+        // The whole point of shadowing rather than replacing: a ship saved over a
+        // shipped name must not make the shipped hull unreachable, since that is
+        // what a new ship is most often started from — and reaching it by
+        // deleting the saved copy is no way to offer it.
+        const library = new Library(fakeStore());
+        library.save({ ...CORVETTE, notes: "mine now" });
+        const both = library.list().filter((e) => e.name === CORVETTE.name);
+        expect(both.map((e) => e.stock)).toEqual([false, true]);
+        expect(library.loadStock(CORVETTE.name)).toEqual(CORVETTE);
+        expect(library.load(CORVETTE.name)).not.toEqual(CORVETTE);
+    });
+
+    it("lists a ship once while nothing shadows it", () => {
+        const library = new Library(fakeStore());
+        expect(library.list().filter((e) => e.name === CORVETTE.name)).toHaveLength(1);
+        library.save({ ...CORVETTE, name: "Mine" });
+        expect(library.list().filter((e) => e.name === "Mine")).toEqual([{ name: "Mine", stock: false, saved: true }]);
+        expect(library.loadStock("Mine")).toBeNull();
+    });
+
+    it("exports text a parser reads back unchanged", () => {
+        expect(parseBlueprint(JSON.parse(toFileText(GUNSHIP)))).toEqual(GUNSHIP);
+        expect(JSON.parse(toFileText(GUNSHIP))).toEqual(serialiseBlueprint(GUNSHIP));
+    });
+
+    it("starts a new ship blank, with no module chosen for the player", () => {
+        expect(emptyBlueprint("Blank").modules).toEqual([]);
+    });
+
+    it("opens a saved ship that would not fly, and names what is wrong with it", () => {
+        // Storage holds whatever was last written to it, including a layout left
+        // half-finished and one an older version of the format wrote. The editor
+        // is where such a ship is put right, so refusing to open it is the one
+        // answer that makes it unfixable.
+        const library = new Library(fakeStore());
+        const adrift: Blueprint = {
+            name: "Adrift",
+            modules: [
+                { kind: "core", x: 0, y: 0, length: 4, width: 4 },
+                { kind: "engine", x: -20, y: 0, angle: Math.PI, length: 3, width: 3 },
+            ],
+        };
+        library.save(adrift);
+        // Read back with an id on each placement, as every file is.
+        expect(library.load("Adrift")).toEqual(settleIds(adrift));
+        expect(blueprintProblem(adrift)).toMatch(/touches nothing/);
+    });
+
+    it("still refuses a saved ship it cannot read at all", () => {
+        const store = fakeStore();
+        store.setItem("scs2d.blueprint.Garbled", JSON.stringify({ formatVersion: 99, name: "Garbled" }));
+        expect(() => new Library(store).load("Garbled")).toThrow(/formatVersion/);
+    });
 });
 
-describe('moduleReadout', () => {
-  it('reports the module rather than the ship', () => {
-    const spec: ModuleSpec = { kind: 'turret', x: 0, y: 0, length: 6, width: 4, barrels: 2 };
-    const readout = moduleReadout(spec);
-    const stats = moduleStats(spec);
-    const mass = readout.rows.find(([k]) => k === 'Mass')![1];
-    expect(mass).toBe(`${(stats.mass / 1000).toLocaleString('en-GB', { maximumFractionDigits: 2 })} t`);
-    expect(readout.gun!.barrels).toBe(2);
-    expect(readout.gun!.calibre).toBe(stats.gun!.calibre);
-  });
-
-  it('gives an engine a thrust row and a structure module none', () => {
-    const engine = moduleReadout({ kind: 'engine', angle: Math.PI, x: 0, y: 0, length: 3, width: 3 });
-    expect(engine.rows.some(([k]) => k === 'Thrust')).toBe(true);
-    expect(engine.gun).toBeNull();
-    const structure = moduleReadout({ kind: 'structure', x: 0, y: 0, length: 3, width: 3 });
-    expect(structure.rows.some(([k]) => k === 'Thrust')).toBe(false);
-  });
-});
-
-describe('deleting a copy', () => {
-  it('takes one copy of a shared part, not the part itself', () => {
-    const bp = ship({ modules: [hull, { kind: 'turret', x: 12, y: 0, length: 4, width: 4 }] });
-    const shared = duplicatePlacement(bp, expandWithOrigins(bp).origins[1]!)!.blueprint;
-    expect(expandWithOrigins(shared).modules).toHaveLength(3);
-
-    const origins = expandWithOrigins(shared).origins;
-    const left = removeCopy(shared, origins[2]!)!;
-    // One turret goes, one stays — where deleting the shared module would have
-    // taken both.
-    expect(expandWithOrigins(left).modules.filter((m) => m.kind === 'turret')).toHaveLength(1);
-  });
-
-  it('takes the assembly with the last copy', () => {
-    const bp = ship({ modules: [hull, { kind: 'turret', x: 12, y: 0, length: 4, width: 4 }] });
-    let current = duplicatePlacement(bp, expandWithOrigins(bp).origins[1]!)!.blueprint;
-    expect(Object.keys(current.assemblies ?? {})).toHaveLength(1);
-    for (let i = 0; i < 2; i++) {
-      const origins = expandWithOrigins(current).origins;
-      current = removeCopy(current, origins[origins.length - 1]!)!;
-    }
-    expect(expandWithOrigins(current).modules).toHaveLength(1);
-    // Nothing places it any more, so it does not linger in the file.
-    expect(Object.keys(current.assemblies ?? {})).toHaveLength(0);
-  });
-
-  it('takes a module out of every copy of an assembly it is part of', () => {
-    const bp = ship({
-      assemblies: {
-        wing: {
-          modules: [
-            { kind: 'structure', x: 0, y: 0, length: 4, width: 3 },
-            { kind: 'structure', x: 4, y: 0, length: 4, width: 3 },
-          ],
-        },
-      },
-      modules: [hull, { use: 'wing', x: 0, y: 6 }, { use: 'wing', x: 0, y: -6 }],
+describe("naming a duplicate", () => {
+    it("counts rather than stacking suffixes", () => {
+        expect(nextName("Corvette")).toBe("Corvette 2");
+        expect(nextName("Corvette 2")).toBe("Corvette 3");
+        expect(nextName("Corvette 9")).toBe("Corvette 10");
     });
-    const origins = expandWithOrigins(bp).origins;
-    const cut = removeCopy(bp, origins[1]!)!;
-    // Deleting part of an assembly deletes it from the assembly, which is both wings.
-    expect(expandWithOrigins(cut).modules).toHaveLength(3);
-  });
+
+    it("puts up whatever number is on the end, however it is written", () => {
+        expect(nextName("Mk2")).toBe("Mk3");
+        expect(nextName("Gunship-7")).toBe("Gunship-8");
+        // A number in the middle is not the one on the end.
+        expect(nextName("Type 2 escort")).toBe("Type 2 escort 2");
+    });
+
+    it("skips a name already in use rather than overwriting it", () => {
+        expect(unusedName("New ship", [])).toBe("New ship");
+        expect(unusedName("New ship", ["New ship"])).toBe("New ship 2");
+        expect(unusedName("Corvette 2", ["Corvette 2", "Corvette 3"])).toBe("Corvette 4");
+    });
 });
 
-describe('a turret’s arc on the module panel', () => {
-  it('is read off what is around it', () => {
-    const modules: ModuleSpec[] = [
-      { kind: 'structure', x: 0, y: 0, length: 20, width: 6 },
-      { kind: 'turret', x: 12, y: 0, length: 4, width: 4 },
-    ];
-    const open = moduleReadout(modules[1]!, modules, 1).gun!;
-    // The same mount walled in on one beam must lose sweep that way — by
-    // thick structure, since a turret trains over what is not.
-    const wall: ModuleSpec = { kind: 'structure', x: 12, y: 6, length: 8, width: 6 };
-    const walled: ModuleSpec[] = [...modules, { ...wall, thick: true }];
-    const low = moduleReadout(modules[1]!, [...modules, wall], 1).gun!;
-    const blocked = moduleReadout(walled[1]!, walled, 1).gun!;
-    expect(open.arcLeft).toBeGreaterThan(blocked.arcLeft);
-    expect(low.arcLeft).toBe(open.arcLeft);
-  });
+describe("duplicating a module", () => {
+    it("makes it a shared part and places a second copy", () => {
+        const bp = ship({ modules: [hull, { kind: "turret", x: 12, y: 0, length: 4, width: 4 }] });
+        const before = expandWithOrigins(bp);
+        const result = duplicatePlacement(bp, before.origins[1]!)!;
+        const after = expandWithOrigins(result.blueprint);
 
-  it('is absent without the layout around it', () => {
-    const spec: ModuleSpec = { kind: 'turret', x: 0, y: 0, length: 4, width: 4 };
-    expect(moduleReadout(spec).gun!.arcLeft).toBe(0);
-  });
+        expect(after.modules).toHaveLength(3);
+        // The ship it was made from is untouched: the first two modules are where
+        // and what they were, so only the copy is new.
+        expect(after.modules[0]).toEqual(before.modules[0]);
+        expect(after.modules[1]).toEqual(before.modules[1]);
+        // And the two turrets are now the same part.
+        expect(samePlacement(after.origins[1]!.path, after.origins[2]!.path)).toBe(true);
+    });
+
+    it("puts the copy somewhere it can be seen and grabbed", () => {
+        const bp = ship({ modules: [hull, { kind: "turret", x: 12, y: 0, length: 4, width: 4 }] });
+        const result = duplicatePlacement(bp, expandWithOrigins(bp).origins[1]!)!;
+        const copies = expandWithOrigins(result.blueprint).modules.slice(1);
+        expect(copies[0]).toMatchObject({ x: 12, y: 0 });
+        expect(copies[1]).toMatchObject({ x: 12, y: 4 });
+    });
+
+    it("changes both copies when the shared module is edited", () => {
+        const bp = ship({ modules: [hull, { kind: "turret", x: 12, y: 0, length: 4, width: 4 }] });
+        const doc = new EditorDocument(duplicatePlacement(bp, expandWithOrigins(bp).origins[1]!)!.blueprint);
+        doc.selectModule(1);
+        doc.apply(updatePlacement(doc.blueprint, doc.selection!, (p) => ({ ...p, length: 6 }))!);
+        const turrets = doc.view.modules.filter((m) => m.kind === "turret");
+        expect(turrets).toHaveLength(2);
+        expect(turrets.every((m) => m.length === 6)).toBe(true);
+    });
+
+    it("places one more copy rather than nesting when pressed again", () => {
+        const bp = ship({ modules: [hull, { kind: "turret", x: 12, y: 0, length: 4, width: 4 }] });
+        let current = duplicatePlacement(bp, expandWithOrigins(bp).origins[1]!)!.blueprint;
+        for (let i = 0; i < 2; i++) {
+            const origins = expandWithOrigins(current).origins;
+            current = duplicatePlacement(current, origins[origins.length - 1]!)!.blueprint;
+        }
+        // Three presses, three extra turrets — not the eight that wrapping an
+        // assembly inside a copy of itself would have produced.
+        expect(expandWithOrigins(current).modules.filter((m) => m.kind === "turret")).toHaveLength(4);
+        expect(Object.keys(current.assemblies ?? {})).toHaveLength(1);
+    });
 });
 
-describe('a gun\u2019s trigger range in the editor', () => {
-  it('is as far as its firing wedge is drawn, against what its doctrine wants', () => {
-    const doc = new EditorDocument(GUNSHIP);
+describe("the placement that carries a copy’s position", () => {
+    it("is the module itself when it is not shared", () => {
+        const bp = ship({ modules: [hull] });
+        const origin = expandWithOrigins(bp).origins[0]!;
+        const handle = positionHandle(bp, origin);
+        expect(handle.perCopy).toBe(false);
+        expect(handle.origin.path).toEqual(origin.path);
+    });
+
+    it("is the instance when the module is the whole of its assembly", () => {
+        const origins = expandWithOrigins(GUNSHIP).origins;
+        const engine = expandWithOrigins(GUNSHIP).modules.findIndex((m) => m.length === 4 && m.width === 4.5);
+        const handle = positionHandle(GUNSHIP, origins[engine]!);
+        expect(handle.perCopy).toBe(true);
+        // Each main engine's instance is its own placement, so moving one moves one.
+        const moved = movePlacement(GUNSHIP, handle.origin, 0, 2)!;
+        const before = positions(GUNSHIP);
+        const after = positions(moved);
+        expect(after.filter((p, i) => p[1] !== before[i]![1])).toHaveLength(1);
+    });
+
+    it("stays with the module when the assembly holds more than it", () => {
+        const bp = ship({
+            assemblies: {
+                wing: {
+                    modules: [
+                        { kind: "structure", x: 0, y: 0, length: 4, width: 3 },
+                        { kind: "structure", x: 4, y: 0, length: 4, width: 3 },
+                    ],
+                },
+            },
+            modules: [hull, { use: "wing", x: 0, y: 6 }, { use: "wing", x: 0, y: -6 }],
+        });
+        const origins = expandWithOrigins(bp).origins;
+        // Dragging one part of an assembly has to move the part, not the whole assembly.
+        expect(positionHandle(bp, origins[1]!).perCopy).toBe(false);
+    });
+});
+
+describe("taking a module out of its assembly", () => {
+    it("leaves the ship bit-identical when the module was the whole assembly", () => {
+        const before = expandBlueprint(GUNSHIP);
+        const engine = expandWithOrigins(GUNSHIP).modules.findIndex((m) => m.length === 4 && m.width === 4.5);
+        const origins = expandWithOrigins(GUNSHIP).origins;
+        expect(takeOutCount(GUNSHIP, origins[engine]!.path)).toBe(2);
+
+        const taken = takeOutOfAssembly(GUNSHIP, origins[engine]!.path)!.blueprint;
+        // Exact, down to module order — which is part of the ship, since engine
+        // allocation and firing both run over it.
+        expect(expandBlueprint(taken)).toEqual(before);
+        expect(taken.assemblies?.["mainEngine"]).toBeUndefined();
+    });
+
+    it("lets the copies be edited apart afterwards", () => {
+        const origins = expandWithOrigins(GUNSHIP).origins;
+        const engine = expandWithOrigins(GUNSHIP).modules.findIndex((m) => m.length === 4 && m.width === 4.5);
+        const doc = new EditorDocument(takeOutOfAssembly(GUNSHIP, origins[engine]!.path)!.blueprint);
+        doc.selectModule(engine);
+        expect(doc.selectedModules()).toHaveLength(1);
+        doc.apply(updatePlacement(doc.blueprint, doc.selection!, (p) => ({ ...p, width: 5 }))!);
+        expect(doc.view.modules.filter((m) => m.length === 4 && m.width === 5)).toHaveLength(1);
+    });
+
+    it("leaves a loose copy beside each copy of an assembly that holds more", () => {
+        const bp = ship({
+            assemblies: {
+                wing: {
+                    modules: [
+                        { kind: "structure", x: 0, y: 0, length: 4, width: 3 },
+                        { kind: "structure", x: 4, y: 0, length: 4, width: 3 },
+                    ],
+                },
+            },
+            modules: [hull, { use: "wing", x: 0, y: 6 }, { use: "wing", x: 0, y: -6, mirror: true }],
+        });
+        const origins = expandWithOrigins(bp).origins;
+        const taken = takeOutOfAssembly(bp, origins[2]!.path)!.blueprint;
+        expect(taken.assemblies?.["wing"]?.modules).toHaveLength(1);
+        // Written straight after each copy, in the ship's own list, so it no longer
+        // moves with the copy and each is separately editable.
+        expect(taken.modules.map((m) => ("use" in m ? m.use : m.kind))).toEqual(["structure", "wing", "structure", "wing", "structure"]);
+        const key = (m: { x: number; y: number }): string => `${m.x.toFixed(9)},${m.y.toFixed(9)}`;
+        expect(expandBlueprint(taken).map(key).sort()).toEqual(expandBlueprint(bp).map(key).sort());
+        const after = expandWithOrigins(taken);
+        expect(samePlacement(after.origins[2]!.path, after.origins[4]!.path)).toBe(false);
+    });
+
+    it("carries a turned, mirrored and repeated copy's frame into the loose copies", () => {
+        const bp = ship({
+            assemblies: {
+                rib: {
+                    modules: [
+                        { kind: "structure", x: 0, y: 0, length: 2, width: 2 },
+                        { kind: "engine", x: 2, y: 1, angle: 0.4, length: 2, width: 2 },
+                    ],
+                },
+            },
+            modules: [hull, { use: "rib", x: 5, y: 2, angle: 0.7, mirror: true, repeat: 3, step: { x: 0, y: 3, angle: 0.2 } }],
+        });
+        const engine = expandWithOrigins(bp).modules.findIndex((m) => m.kind === "engine");
+        const taken = takeOutOfAssembly(bp, expandWithOrigins(bp).origins[engine]!.path)!.blueprint;
+        const pose = (m: { x: number; y: number; angle?: number }): number[] => [m.x, m.y, m.angle ?? 0];
+        const engines = (b: Blueprint): number[][] =>
+            expandBlueprint(b)
+                .filter((m) => m.kind === "engine")
+                .map(pose);
+        const was = engines(bp);
+        const now = engines(taken);
+        expect(now).toHaveLength(3);
+        for (let k = 0; k < 3; k++) for (let j = 0; j < 3; j++) expect(now[k]![j]).toBeCloseTo(was[k]![j]!, 9);
+    });
+
+    it("takes a nested assembly out whole, still an assembly, beside each copy", () => {
+        const bp = ship({
+            assemblies: {
+                pod: {
+                    modules: [
+                        { kind: "structure", x: 0, y: 0, length: 2, width: 2 },
+                        { kind: "structure", x: 2, y: 0, length: 2, width: 2 },
+                    ],
+                },
+                wing: {
+                    modules: [
+                        { kind: "structure", x: 0, y: 0, length: 4, width: 3 },
+                        { use: "pod", x: 3, y: 2.5, angle: 0.3 },
+                    ],
+                },
+            },
+            modules: [hull, { use: "wing", x: 0, y: 6, angle: 0.5 }, { use: "wing", x: 0, y: -6, mirror: true }],
+        });
+        // The pod as the second wing draws it: path through that copy, ending at the pod.
+        const podPath: ModulePath = [
+            { index: 2, copy: 0, into: "assembly", assembly: "wing" },
+            { index: 1, copy: 0 },
+        ];
+        expect(takeOutCount(bp, podPath)).toBe(2);
+        const taken = takeOutOfAssembly(bp, podPath)!;
+        expect(taken.blueprint.assemblies?.["wing"]?.modules).toHaveLength(1);
+        expect(taken.blueprint.modules.map((m) => ("use" in m ? m.use : m.kind))).toEqual(["structure", "wing", "pod", "wing", "pod"]);
+        const key = (m: { x: number; y: number }): string => `${m.x.toFixed(9)},${m.y.toFixed(9)}`;
+        expect(expandBlueprint(taken.blueprint).map(key).sort()).toEqual(expandBlueprint(bp).map(key).sort());
+        // What was picked stays picked: the pod that came out of the second wing.
+        expect(taken.path).toEqual([{ index: 4, copy: 0 }]);
+    });
+
+    it("is offered for any part of an assembly, and not for a loose one", () => {
+        const once = ship({
+            assemblies: { pod: { modules: [{ kind: "structure", x: 0, y: 0, length: 2, width: 2 }] } },
+            modules: [hull, { use: "pod", x: 0, y: 5 }],
+        });
+        const origins = expandWithOrigins(once).origins;
+        expect(takeOutCount(once, origins[0]!.path)).toBe(0);
+        expect(takeOutCount(once, origins[1]!.path)).toBe(1);
+    });
+});
+
+describe("moduleReadout", () => {
+    it("reports the module rather than the ship", () => {
+        const spec: ModuleSpec = { kind: "turret", x: 0, y: 0, length: 6, width: 4, barrels: 2 };
+        const readout = moduleReadout(spec);
+        const stats = moduleStats(spec);
+        const mass = readout.rows.find(([k]) => k === "Mass")![1];
+        expect(mass).toBe(`${(stats.mass / 1000).toLocaleString("en-GB", { maximumFractionDigits: 2 })} t`);
+        expect(readout.gun!.barrels).toBe(2);
+        expect(readout.gun!.calibre).toBe(stats.gun!.calibre);
+    });
+
+    it("gives an engine a thrust row and a structure module none", () => {
+        const engine = moduleReadout({ kind: "engine", angle: Math.PI, x: 0, y: 0, length: 3, width: 3 });
+        expect(engine.rows.some(([k]) => k === "Thrust")).toBe(true);
+        expect(engine.gun).toBeNull();
+        const structure = moduleReadout({ kind: "structure", x: 0, y: 0, length: 3, width: 3 });
+        expect(structure.rows.some(([k]) => k === "Thrust")).toBe(false);
+    });
+});
+
+describe("deleting a copy", () => {
+    it("takes one copy of a shared part, not the part itself", () => {
+        const bp = ship({ modules: [hull, { kind: "turret", x: 12, y: 0, length: 4, width: 4 }] });
+        const shared = duplicatePlacement(bp, expandWithOrigins(bp).origins[1]!)!.blueprint;
+        expect(expandWithOrigins(shared).modules).toHaveLength(3);
+
+        const origins = expandWithOrigins(shared).origins;
+        const left = removeCopy(shared, origins[2]!)!;
+        // One turret goes, one stays — where deleting the shared module would have
+        // taken both.
+        expect(expandWithOrigins(left).modules.filter((m) => m.kind === "turret")).toHaveLength(1);
+    });
+
+    it("takes the assembly with the last copy", () => {
+        const bp = ship({ modules: [hull, { kind: "turret", x: 12, y: 0, length: 4, width: 4 }] });
+        let current = duplicatePlacement(bp, expandWithOrigins(bp).origins[1]!)!.blueprint;
+        expect(Object.keys(current.assemblies ?? {})).toHaveLength(1);
+        for (let i = 0; i < 2; i++) {
+            const origins = expandWithOrigins(current).origins;
+            current = removeCopy(current, origins[origins.length - 1]!)!;
+        }
+        expect(expandWithOrigins(current).modules).toHaveLength(1);
+        // Nothing places it any more, so it does not linger in the file.
+        expect(Object.keys(current.assemblies ?? {})).toHaveLength(0);
+    });
+
+    it("takes a module out of every copy of an assembly it is part of", () => {
+        const bp = ship({
+            assemblies: {
+                wing: {
+                    modules: [
+                        { kind: "structure", x: 0, y: 0, length: 4, width: 3 },
+                        { kind: "structure", x: 4, y: 0, length: 4, width: 3 },
+                    ],
+                },
+            },
+            modules: [hull, { use: "wing", x: 0, y: 6 }, { use: "wing", x: 0, y: -6 }],
+        });
+        const origins = expandWithOrigins(bp).origins;
+        const cut = removeCopy(bp, origins[1]!)!;
+        // Deleting part of an assembly deletes it from the assembly, which is both wings.
+        expect(expandWithOrigins(cut).modules).toHaveLength(3);
+    });
+});
+
+describe("a turret’s arc on the module panel", () => {
+    it("is read off what is around it", () => {
+        const modules: ModuleSpec[] = [
+            { kind: "structure", x: 0, y: 0, length: 20, width: 6 },
+            { kind: "turret", x: 12, y: 0, length: 4, width: 4 },
+        ];
+        const open = moduleReadout(modules[1]!, modules, 1).gun!;
+        // The same mount walled in on one beam must lose sweep that way — by
+        // thick structure, since a turret trains over what is not.
+        const wall: ModuleSpec = { kind: "structure", x: 12, y: 6, length: 8, width: 6 };
+        const walled: ModuleSpec[] = [...modules, { ...wall, thick: true }];
+        const low = moduleReadout(modules[1]!, [...modules, wall], 1).gun!;
+        const blocked = moduleReadout(walled[1]!, walled, 1).gun!;
+        expect(open.arcLeft).toBeGreaterThan(blocked.arcLeft);
+        expect(low.arcLeft).toBe(open.arcLeft);
+    });
+
+    it("is absent without the layout around it", () => {
+        const spec: ModuleSpec = { kind: "turret", x: 0, y: 0, length: 4, width: 4 };
+        expect(moduleReadout(spec).gun!.arcLeft).toBe(0);
+    });
+});
+
+describe("a gun\u2019s trigger range in the editor", () => {
+    it("is as far as its firing wedge is drawn, against what its doctrine wants", () => {
+        const doc = new EditorDocument(GUNSHIP);
+        const design = doc.view.design!;
+        const ranges = doc.view.modules
+            .map((m, i) => moduleReadout(m, doc.view.modules, i, design.radius).gun?.triggerRange)
+            .filter((r) => r != null);
+        expect(ranges).toEqual(design.turrets.map((t) => t.reach));
+    });
+
+    it("is not given without the ship to size its enemy from", () => {
+        const spec: ModuleSpec = { kind: "turret", x: 0, y: 0, length: 4, width: 4 };
+        expect(moduleReadout(spec).gun!.triggerRange).toBeNull();
+    });
+});
+
+describe("the band a ship closes to, in the editor", () => {
+    it("is what its doctrine would hold against the enemy it wants, and drawn round it", () => {
+        const design = new EditorDocument(GUNSHIP).view.design!;
+        const band = doctrineBand(design);
+        const enemy = design.radius * Math.sqrt(design.doctrine.targeting.preferredMass);
+        expect(band).toEqual(holdBand(design.doctrine.approach, design.reach, enemy));
+        expect(band.max).toBeGreaterThan(band.min);
+        const view = previewSnapshot(design).ships[0]!;
+        expect([view.holdMin, view.holdMax]).toEqual([band.min, band.max]);
+    });
+
+    it("gives a gun’s trigger range at the distance its doctrine fires out to", () => {
+        const doc = new EditorDocument(GUNSHIP);
+        const index = doc.view.modules.findIndex((m) => m.kind === "turret" || m.kind === "hullGun");
+        const spec = doc.view.modules[index]!;
+        const radius = doc.view.design!.radius;
+        // Both set here, since the gunship's bow gun already sets its own.
+        const firing = (fireRange: number): number =>
+            moduleReadout({ ...spec, targeting: { ...spec.targeting, fireRange } }, doc.view.modules, index, radius).gun!.triggerRange!;
+        const plain = firing(1);
+        const eager = firing(1.5);
+        expect(eager).toBeCloseTo(plain * 1.5, 9);
+    });
+});
+
+describe("a weapon engine in the editor", () => {
+    const doc = new EditorDocument(TORCH);
     const design = doc.view.design!;
-    const ranges = doc.view.modules
-      .map((m, i) => moduleReadout(m, doc.view.modules, i, design.radius).gun?.triggerRange)
-      .filter((r) => r != null);
-    expect(ranges).toEqual(design.turrets.map((t) => t.reach));
-  });
+    const reachOf = (t: number): number => {
+        const engine = design.engines[t]!;
+        return engine.weapon === true ? weaponPlumeReach(engineGeometry(design.modules[engine.module!]!.spec), engine.maxThrust) : 0;
+    };
 
-  it('is not given without the ship to size its enemy from', () => {
-    const spec: ModuleSpec = { kind: 'turret', x: 0, y: 0, length: 4, width: 4 };
-    expect(moduleReadout(spec).gun!.triggerRange).toBeNull();
-  });
-});
-
-describe('the band a ship closes to, in the editor', () => {
-  it('is what its doctrine would hold against the enemy it wants, and drawn round it', () => {
-    const design = new EditorDocument(GUNSHIP).view.design!;
-    const band = doctrineBand(design);
-    const enemy = design.radius * Math.sqrt(design.doctrine.targeting.preferredMass);
-    expect(band).toEqual(holdBand(design.doctrine.approach, design.reach, enemy));
-    expect(band.max).toBeGreaterThan(band.min);
-    const view = previewSnapshot(design).ships[0]!;
-    expect([view.holdMin, view.holdMax]).toEqual([band.min, band.max]);
-  });
-
-  it('gives a gun’s trigger range at the distance its doctrine fires out to', () => {
-    const doc = new EditorDocument(GUNSHIP);
-    const index = doc.view.modules.findIndex((m) => m.kind === 'turret' || m.kind === 'hullGun');
-    const spec = doc.view.modules[index]!;
-    const radius = doc.view.design!.radius;
-    // Both set here, since the gunship's bow gun already sets its own.
-    const firing = (fireRange: number): number =>
-      moduleReadout({ ...spec, targeting: { ...spec.targeting, fireRange } }, doc.view.modules, index, radius).gun!.triggerRange!;
-    const plain = firing(1);
-    const eager = firing(1.5);
-    expect(eager).toBeCloseTo(plain * 1.5, 9);
-  });
-});
-
-describe('a weapon engine in the editor', () => {
-  const doc = new EditorDocument(TORCH);
-  const design = doc.view.design!;
-  const reachOf = (t: number): number => {
-    const engine = design.engines[t]!;
-    return engine.weapon === true ? weaponPlumeReach(engineGeometry(design.modules[engine.module!]!.spec), engine.maxThrust) : 0;
-  };
-
-  it('draws its firing wedge out to where its flame is worth firing, and no other engine has one', () => {
-    const view = previewSnapshot(design).ships[0]!;
-    expect(design.engines.some((e) => e.weapon === true)).toBe(true);
-    expect(view.engineTriggerReach).toEqual(design.engines.map((_, t) => reachOf(t)));
-    expect(view.engineFiring).toEqual(design.engines.map(() => true));
-  });
-
-  it('says how far that is', () => {
-    const rows = doc.view.modules
-      .map((m, i) => moduleReadout(m, doc.view.modules, i, design.radius).rows.find(([k]) => k === 'Fires within'))
-      .filter((r) => r !== undefined);
-    expect(rows.length).toBe(design.weaponEngines.length);
-  });
-});
-
-describe('Demonstration', () => {
-  /** A light mount, whose cycle is short enough to watch several rounds of. */
-  const popgun = (): ShipDesign =>
-    new EditorDocument(
-      ship({
-        modules: [
-          { kind: 'structure', x: 0, y: 0, length: 20, width: 6 },
-          { kind: 'turret', x: 11, y: 0, length: 0.8, width: 0.8, barrels: 2 },
-          { kind: 'engine', x: -11, y: 0, angle: Math.PI, length: 2, width: 6 },
-        ],
-      }),
-    ).view.design!;
-
-  it('does nothing, and asks for no frames, while nothing is selected', () => {
-    const demo = new Demonstration();
-    demo.step(popgun(), [], 1 / 60);
-    expect(demo.running).toBe(false);
-  });
-
-  it('spools a selected engine up and back down', () => {
-    const design = popgun();
-    const demo = new Demonstration();
-    const engine = design.modules.findIndex((m) => m.spec.kind === 'engine');
-    const snapshot = previewSnapshot(design);
-
-    for (let i = 0; i < 120; i++) demo.step(design, [design.modules[engine]!.index], 1 / 60);
-    demo.writeInto(snapshot);
-    expect(Math.max(...snapshot.ships[0]!.throttles)).toBe(1);
-
-    for (let i = 0; i < 120; i++) demo.step(design, [], 1 / 60);
-    demo.writeInto(snapshot);
-    expect(Math.max(...snapshot.ships[0]!.throttles)).toBe(0);
-    expect(demo.running).toBe(false);
-  });
-
-  it('burns only the engine that was selected', () => {
-    const design = new EditorDocument(GUNSHIP).view.design!;
-    const demo = new Demonstration();
-    const engine = design.modules.findIndex((m) => m.spec.kind === 'engine');
-    for (let i = 0; i < 120; i++) demo.step(design, [design.modules[engine]!.index], 1 / 60);
-    const snapshot = previewSnapshot(design);
-    demo.writeInto(snapshot);
-    expect(snapshot.ships[0]!.throttles.filter((t) => t > 0)).toHaveLength(1);
-  });
-
-  it('fires a selected gun at the rate its own figures claim', () => {
-    const design = popgun();
-    const turret = design.turrets[0]!;
-    const cycle = turret.gun.cycleTime;
-    // The assumption the count rests on: a round outlives three cycles, so
-    // none has been forgotten by the time they are counted.
-    expect(cycle * 3.5).toBeLessThan(ROUND_LIFETIME);
-
-    const demo = new Demonstration();
-    const selected = [design.modules[turret.module]!.index];
-    for (let t = 0; t < cycle * 3.5; t += 1 / 240) demo.step(design, selected, 1 / 240);
-
-    const snapshot = previewSnapshot(design);
-    demo.writeInto(snapshot);
-    // One at the start and one per cycle since.
-    expect(snapshot.projectileCount).toBe(4);
-    expect(demo.running).toBe(true);
-  });
-
-  it('sends rounds out at the muzzle speed, and forgets them in the end', () => {
-    const design = popgun();
-    const turret = design.turrets[0]!;
-    const demo = new Demonstration();
-    demo.step(design, [design.modules[turret.module]!.index], 1 / 240);
-
-    const snapshot = previewSnapshot(design);
-    demo.writeInto(snapshot);
-    expect(snapshot.projectileCount).toBe(1);
-    const speed = Math.hypot(snapshot.projectileVx[0]!, snapshot.projectileVy[0]!);
-    expect(speed).toBeCloseTo(turret.gun.muzzleSpeed, 6);
-    expect(snapshot.projectileWidth[0]).toBe(turret.gun.calibre);
-
-    // Nothing stops a round, so it has to be forgotten or it accumulates.
-    for (let t = 0; t < ROUND_LIFETIME + 1; t += 1 / 60) demo.step(design, [], 1 / 60);
-    demo.writeInto(snapshot);
-    expect(snapshot.projectileCount).toBe(0);
-    expect(demo.running).toBe(false);
-  });
-
-  it('shows a selected gun reloading in time with its shots, and an idle one ready', () => {
-    const design = popgun();
-    const turret = design.turrets[0]!;
-    const cycle = turret.gun.cycleTime;
-    const demo = new Demonstration();
-    const snapshot = previewSnapshot(design);
-    const view = snapshot.ships[0]!;
-
-    demo.writeInto(snapshot);
-    expect(view.turretLoad![0]).toBe(1);
-    expect(view.turretReloading![0]).toBe(false);
-
-    const selected = [design.modules[turret.module]!.index];
-    demo.step(design, selected, 1 / 240);
-    for (let t = 0; t < cycle / 2; t += 1 / 240) demo.step(design, selected, 1 / 240);
-    demo.writeInto(snapshot);
-    expect(view.turretReloading![0]).toBe(true);
-    expect(view.turretLoad![0]).toBeCloseTo(0.5, 1);
-  });
-
-  /** A beam mount, to show the other branch of `fire`. */
-  const beamBoat = (): ShipDesign =>
-    new EditorDocument(
-      ship({
-        modules: [
-          { kind: 'structure', x: 0, y: 0, length: 20, width: 6 },
-          { kind: 'beamTurret', x: 11, y: 0, length: 4, width: 3 },
-          { kind: 'engine', x: -11, y: 0, angle: Math.PI, length: 2, width: 6 },
-        ],
-      }),
-    ).view.design!;
-
-  it('lights a selected beam mount, and lets the renderer know it is there', () => {
-    // Every array reaching the snapshot with the count left at zero draws
-    // exactly nothing, which is indistinguishable from a gun that never fired.
-    const design = beamBoat();
-    const turret = design.turrets[0]!;
-    expect(turret.gun.type).toBe(GunType.Beam);
-    const demo = new Demonstration();
-
-    demo.step(design, [design.modules[turret.module]!.index], 1 / 240);
-
-    const snapshot = previewSnapshot(design);
-    demo.writeInto(snapshot);
-    expect(snapshot.beamCount).toBe(1);
-    expect(snapshot.projectileCount).toBe(0);
-    expect(snapshot.beamWidth[0]).toBe(turret.gun.calibre);
-    expect(snapshot.beamPower[0]).toBe(turret.gun.beamPower);
-  });
-
-  it('empties a beam mount’s display while it fires, then fills it to the next shot', () => {
-    const design = beamBoat();
-    const turret = design.turrets[0]!;
-    const { beamOnTime, cycleTime } = turret.gun;
-    const demo = new Demonstration();
-    const snapshot = previewSnapshot(design);
-    const view = snapshot.ships[0]!;
-    const selected = [design.modules[turret.module]!.index];
-
-    demo.step(design, selected, 1 / 240);
-    for (let t = 0; t < beamOnTime / 2; t += 1 / 240) demo.step(design, selected, 1 / 240);
-    demo.writeInto(snapshot);
-    expect(view.turretReloading![0]).toBe(false);
-    expect(view.turretLoad![0]).toBeCloseTo(0.5, 1);
-
-    // The reload is the whole of `cycleTime`, after the burst, as in battle.
-    for (let t = beamOnTime / 2; t < beamOnTime + cycleTime / 2; t += 1 / 240) demo.step(design, selected, 1 / 240);
-    demo.writeInto(snapshot);
-    expect(view.turretReloading![0]).toBe(true);
-    expect(view.turretLoad![0]).toBeCloseTo(0.5, 1);
-  });
-
-  it('counts a beam’s burst as well as its reload in its rate of fire', () => {
-    const design = beamBoat();
-    const gun = design.turrets[0]!.gun;
-    const turret = designStats(design, envelopes(design)).turrets[0]!;
-    expect(gun.beamOnTime).toBeGreaterThan(0);
-    expect(turret.roundsPerMinute).toBeCloseTo(60 / (gun.beamOnTime + gun.cycleTime), 9);
-  });
-
-  it('runs a beam from the muzzle outward, rather than from the origin', () => {
-    // Both ends are positions. Writing the heading into `end` instead draws a
-    // beam from the muzzle to a point measured from the world origin, which
-    // points somewhere else entirely and is the wrong length besides.
-    const design = beamBoat();
-    const turret = design.turrets[0]!;
-    const demo = new Demonstration();
-    demo.step(design, [design.modules[turret.module]!.index], 1 / 240);
-
-    const snapshot = previewSnapshot(design);
-    demo.writeInto(snapshot);
-    const dx = snapshot.beamEndX[0]! - snapshot.beamStartX[0]!;
-    const dy = snapshot.beamEndY[0]! - snapshot.beamStartY[0]!;
-    expect(Math.hypot(dx, dy)).toBeCloseTo(MAX_BEAM_LENGTH, 6);
-    // The mount rests along the hull's +x, so the beam leaves that way.
-    expect(dx).toBeCloseTo(MAX_BEAM_LENGTH, 6);
-    expect(dy).toBeCloseTo(0, 6);
-    // And it starts at the muzzle, out beyond the mount's own centre.
-    expect(snapshot.beamStartX[0]).toBeCloseTo(design.centreOfMassX + turret.mount.x + turret.gun.barrelLength, 6);
-  });
-
-  it('holds a beam for its dwell and then drops it', () => {
-    // A beam is not in flight; it is lit while the mount holds the trigger.
-    // Removing it the frame it appears leaves nothing on screen at all.
-    const design = beamBoat();
-    const turret = design.turrets[0]!;
-    const dwell = turret.gun.beamOnTime;
-    expect(dwell).toBeGreaterThan(0);
-    const demo = new Demonstration();
-    const selected = [design.modules[turret.module]!.index];
-    const snapshot = previewSnapshot(design);
-
-    // Most of the way through the dwell, it is still lit.
-    for (let t = 0; t < dwell * 0.9; t += 1 / 240) demo.step(design, selected, 1 / 240);
-    demo.writeInto(snapshot);
-    expect(snapshot.beamCount).toBe(1);
-
-    // Deselected, it goes out once the dwell runs down rather than persisting.
-    for (let t = 0; t < dwell * 1.2; t += 1 / 240) demo.step(design, [], 1 / 240);
-    demo.writeInto(snapshot);
-    expect(snapshot.beamCount).toBe(0);
-    expect(demo.running).toBe(false);
-  });
-
-  it('alternates between the barrels of a multi-barrel mount', () => {
-    const design = popgun();
-    const turret = design.turrets[0]!;
-    expect(turret.gun.barrelCount).toBe(2);
-    const demo = new Demonstration();
-    const selected = [design.modules[turret.module]!.index];
-    for (let t = 0; t < turret.gun.cycleTime * 1.5; t += 1 / 240) demo.step(design, selected, 1 / 240);
-
-    const snapshot = previewSnapshot(design);
-    demo.writeInto(snapshot);
-    expect(snapshot.projectileCount).toBe(2);
-    // Two rounds from two barrels leave from different places across the mount.
-    expect(snapshot.projectileY[0]).not.toBe(snapshot.projectileY[1]);
-  });
-});
-
-describe('assembling modules into an assembly', () => {
-  /** A wing: a root that joins it to the hull, and two things hanging off it. */
-  const wing = (): Blueprint =>
-    ship({
-      modules: [
-        hull,
-        { kind: 'structure', x: 0, y: 6, length: 4, width: 6 },
-        { kind: 'turret', x: 4, y: 9, length: 4, width: 3, barrels: 1 },
-        { kind: 'engine', x: -4, y: 9, angle: Math.PI, length: 3, width: 3 },
-      ],
+    it("draws its firing wedge out to where its flame is worth firing, and no other engine has one", () => {
+        const view = previewSnapshot(design).ships[0]!;
+        expect(design.engines.some((e) => e.weapon === true)).toBe(true);
+        expect(view.engineTriggerReach).toEqual(design.engines.map((_, t) => reachOf(t)));
+        expect(view.engineFiring).toEqual(design.engines.map(() => true));
     });
 
-  /** Pick the drawn modules at these indices, in this order. */
-  function pick(doc: EditorDocument, ...indices: number[]) {
-    doc.selectModule(indices[0]!);
-    for (const index of indices.slice(1)) doc.toggleModule(index);
-    return doc.selections;
-  }
-
-  it('refuses a selection it cannot make an assembly out of', () => {
-    const doc = new EditorDocument(wing());
-    expect(createAssemblyProblem(doc.blueprint, pick(doc, 1))).toMatch(/two or more/);
-
-    const assembled = createAssembly(doc.blueprint, pick(doc, 1, 2))!;
-    const after = new EditorDocument(assembled.blueprint);
-    // The hull is written in the layout; the wing's modules are now written
-    // inside the assembly, so the two are not in the same list.
-    const across = pick(after, 0, after.view.modules.length - 1);
-    expect(createAssemblyProblem(after.blueprint, across)).toMatch(/same assembly/);
-  });
-
-  it('builds the assembly around the first module picked', () => {
-    // Not the centre of the selection: a wing hangs off one connecting module,
-    // and that module is the one whose position means something.
-    const doc = new EditorDocument(wing());
-    const assembled = createAssembly(doc.blueprint, pick(doc, 1, 2, 3))!;
-    const assemblies = assembled.blueprint.assemblies!;
-    const definition = Object.values(assemblies)[0]!;
-
-    expect(Object.keys(assemblies)).toHaveLength(1);
-    // The root was picked first, so it sits at the assembly's origin and the
-    // instance carries where that origin lands.
-    expect(definition.modules[0]).toMatchObject({ kind: 'structure', x: 0, y: 0 });
-    const instance = assembled.blueprint.modules[assembled.blueprint.modules.length - 1]!;
-    expect(instance).toMatchObject({ x: 0, y: 6 });
-  });
-
-  it('puts the same ship back, in the same places', () => {
-    // The whole safety property: assembling is a change to how a layout is
-    // *written* and not to what it builds, so every module comes out where it
-    // went in. Order is the one thing that moves, and it moves knowingly.
-    const before = wing();
-    const doc = new EditorDocument(before);
-    const assembled = createAssembly(before, pick(doc, 1, 2, 3))!;
-
-    expect(positions(assembled.blueprint).sort()).toEqual(positions(before).sort());
-    expect(expandBlueprint(assembled.blueprint)).toHaveLength(expandBlueprint(before).length);
-  });
-
-  it('keeps the members in the order they were written, not the order picked', () => {
-    // Clicked back to front. Inside the assembly they stay as the file had them,
-    // so the assembly's own internals are as close to the original as they can be.
-    const doc = new EditorDocument(wing());
-    const assembled = createAssembly(doc.blueprint, pick(doc, 3, 2, 1))!;
-    const definition = Object.values(assembled.blueprint.assemblies!)[0]!;
-    expect(definition.modules.map((m) => (m as ModuleSpec).kind)).toEqual(['structure', 'turret', 'engine']);
-    // The engine was picked first, so it is the origin even though it is
-    // written last.
-    expect(definition.modules[2]).toMatchObject({ x: 0, y: 0 });
-  });
-
-  it('appends the instance, which moves the assembly down the firing order', () => {
-    // Stated because it is a real consequence and not a detail: engines are
-    // allocated over the columns in order and turrets fire in order, so a
-    // layout that depended on the old order flies slightly differently.
-    const doc = new EditorDocument(wing());
-    const assembled = createAssembly(doc.blueprint, pick(doc, 1, 2))!;
-    const last = assembled.blueprint.modules[assembled.blueprint.modules.length - 1]!;
-    expect('use' in last).toBe(true);
-    // The hull, untouched, keeps its place at the front.
-    expect(assembled.blueprint.modules[0]).toMatchObject({ length: 20, width: 6 });
-  });
-
-  it('selects the new assembly, so its pose can be edited straight away', () => {
-    const doc = new EditorDocument(wing());
-    const assembled = createAssembly(doc.blueprint, pick(doc, 1, 2))!;
-    doc.apply(assembled.blueprint);
-    doc.select(assembled.path);
-    const placement = doc.selectedPlacement!;
-    expect(placement).not.toBeNull();
-    expect('use' in placement).toBe(true);
-  });
+    it("says how far that is", () => {
+        const rows = doc.view.modules
+            .map((m, i) => moduleReadout(m, doc.view.modules, i, design.radius).rows.find(([k]) => k === "Fires within"))
+            .filter((r) => r !== undefined);
+        expect(rows.length).toBe(design.weaponEngines.length);
+    });
 });
 
-describe('mirroring an assembly', () => {
-  const wing = (): Blueprint =>
-    ship({
-      modules: [
-        hull,
-        { kind: 'structure', x: 0, y: 6, length: 4, width: 6 },
-        { kind: 'turret', x: 4, y: 9, length: 4, width: 3, barrels: 1 },
-      ],
+describe("Demonstration", () => {
+    /** A light mount, whose cycle is short enough to watch several rounds of. */
+    const popgun = (): ShipDesign =>
+        new EditorDocument(
+            ship({
+                modules: [
+                    { kind: "structure", x: 0, y: 0, length: 20, width: 6 },
+                    { kind: "turret", x: 11, y: 0, length: 0.8, width: 0.8, barrels: 2 },
+                    { kind: "engine", x: -11, y: 0, angle: Math.PI, length: 2, width: 6 },
+                ],
+            }),
+        ).view.design!;
+
+    it("does nothing, and asks for no frames, while nothing is selected", () => {
+        const demo = new Demonstration();
+        demo.step(popgun(), [], 1 / 60);
+        expect(demo.running).toBe(false);
     });
 
-  it('reaches the instance from a module inside it', () => {
-    // Clicking a module selects the module; the pose belongs to the instance
-    // above it, and without this there is no way to get there.
-    const doc = new EditorDocument(wing());
-    doc.selectModule(1);
-    doc.toggleModule(2);
-    const assembled = createAssembly(doc.blueprint, doc.selections)!;
-    doc.apply(assembled.blueprint);
+    it("spools a selected engine up and back down", () => {
+        const design = popgun();
+        const demo = new Demonstration();
+        const engine = design.modules.findIndex((m) => m.spec.kind === "engine");
+        const snapshot = previewSnapshot(design);
 
-    const inside = doc.view.origins.findIndex((o) => o.path.length > 1);
-    expect(inside).toBeGreaterThanOrEqual(0);
-    doc.selectModule(inside);
-    const path = instanceOf(doc.selectedOrigin()!)!;
-    expect(path).not.toBeNull();
-    const placement = placementAt(doc.blueprint, path)!;
-    expect('use' in placement).toBe(true);
-  });
+        for (let i = 0; i < 120; i++) demo.step(design, [design.modules[engine]!.index], 1 / 60);
+        demo.writeInto(snapshot);
+        expect(Math.max(...snapshot.ships[0]!.throttles)).toBe(1);
 
-  it('reflects a placed assembly, and stops reflecting it again', () => {
-    const doc = new EditorDocument(wing());
-    doc.selectModule(1);
-    doc.toggleModule(2);
-    const assembled = createAssembly(doc.blueprint, doc.selections)!;
-
-    const mirrored = setMirror(assembled.blueprint, assembled.path, true)!;
-    const turret = expandBlueprint(mirrored).find((m) => m.kind === 'turret')!;
-    const wasAt = expandBlueprint(assembled.blueprint).find((m) => m.kind === 'turret')!;
-    // Reflected across the instance's own x-axis: the turret was 3 m outboard
-    // of the wing root, and is now 3 m the other way.
-    expect(turret.x).toBeCloseTo(wasAt.x, 9);
-    expect(turret.y - 6).toBeCloseTo(-(wasAt.y - 6), 9);
-
-    const back = setMirror(mirrored, assembled.path, false)!;
-    expect(expandBlueprint(back).map((m) => [m.x, m.y])).toEqual(expandBlueprint(assembled.blueprint).map((m) => [m.x, m.y]));
-    // Cleared rather than written false, so a layout that was never mirrored
-    // round-trips through the file unchanged.
-    expect('mirror' in (back.modules[back.modules.length - 1] as object)).toBe(false);
-  });
-
-  it('keeps an assembly selected through an edit to the assembly itself', () => {
-    // An instance draws nothing of its own — its assembly's modules do — so a
-    // "does this still draw anything" test that only asked which placement
-    // wrote each module called every assembly selection dead. The panel would
-    // then close on the first edit made from it, which is the one moment it
-    // must not.
-    const doc = new EditorDocument(wing());
-    doc.selectModule(1);
-    doc.toggleModule(2);
-    const assembled = createAssembly(doc.blueprint, doc.selections)!;
-    doc.apply(assembled.blueprint);
-    doc.select(assembled.path);
-    expect(doc.selectedPlacement).not.toBeNull();
-
-    doc.apply(setMirror(doc.blueprint, doc.selection!, true)!);
-
-    expect(doc.selection).not.toBeNull();
-    const still = doc.selectedPlacement!;
-    expect('use' in still).toBe(true);
-    expect((still as { mirror?: boolean }).mirror).toBe(true);
-    // And it accounts for the modules it placed, which is what the highlight
-    // and the panel's own count both read.
-    expect(doc.accountedFor(doc.selection!)).toBe(2);
-    expect(doc.highlightedModules()).toHaveLength(2);
-  });
-
-  it('forgets an assembly that an edit removed', () => {
-    // The other half of the same rule: still gone when it is genuinely gone.
-    const doc = new EditorDocument(wing());
-    doc.selectModule(1);
-    doc.toggleModule(2);
-    const assembled = createAssembly(doc.blueprint, doc.selections)!;
-    doc.apply(assembled.blueprint);
-    doc.select(assembled.path);
-
-    doc.apply(removePlacement(doc.blueprint, doc.selection!)!);
-
-    expect(doc.selection).toBeNull();
-  });
-
-  it('builds a symmetrical ship out of one side and a reflection', () => {
-    // The workflow this exists for. Draw one wing, assembly it, place the assembly
-    // again reflected, and the two sides cannot drift apart.
-    const doc = new EditorDocument(wing());
-    doc.selectModule(1);
-    doc.toggleModule(2);
-    const assembled = createAssembly(doc.blueprint, doc.selections)!;
-
-    // Place it again, and reflect the copy. Three operations, which is the
-    // whole workflow.
-    const placed = duplicateInstance(assembled.blueprint, assembled.path)!;
-    const ship2 = setMirror(placed.blueprint, placed.path, true)!;
-
-    // One definition serving both sides is the property that makes them unable
-    // to disagree: there is nowhere for a difference to be written.
-    expect(Object.keys(ship2.assemblies!)).toHaveLength(1);
-    const turrets = expandBlueprint(ship2).filter((m) => m.kind === 'turret');
-    expect(turrets).toHaveLength(2);
-    expect(turrets[0]!.x).toBeCloseTo(turrets[1]!.x, 9);
-    expect(turrets[0]!.y).not.toBeCloseTo(turrets[1]!.y, 3);
-
-    // And widening the wing root widens it on both sides at once, which is the
-    // thing a mirrored *mode* could only keep in step by watching for it.
-    const root = expandWithOrigins(ship2).origins.findIndex((o) => o.path.length > 1);
-    const wider = updatePlacement(ship2, expandWithOrigins(ship2).origins[root]!.path, (p) => ({
-      ...(p as ModuleSpec),
-      width: 10,
-    }))!;
-    const widened = expandBlueprint(wider).filter((m) => m.kind === 'structure' && m.width === 10);
-    expect(widened).toHaveLength(2);
-  });
-});
-
-describe('picking several modules', () => {
-  const three = (): Blueprint =>
-    ship({
-      modules: [hull, { kind: 'structure', x: 0, y: 6, length: 4, width: 4 }, { kind: 'structure', x: 0, y: -6, length: 4, width: 4 }],
+        for (let i = 0; i < 120; i++) demo.step(design, [], 1 / 60);
+        demo.writeInto(snapshot);
+        expect(Math.max(...snapshot.ships[0]!.throttles)).toBe(0);
+        expect(demo.running).toBe(false);
     });
 
-  it('adds to the selection, and takes back out again', () => {
-    const doc = new EditorDocument(three());
-    doc.selectModule(0);
-    expect(doc.selections).toHaveLength(1);
-    doc.toggleModule(1);
-    expect(doc.selections).toHaveLength(2);
-    doc.toggleModule(1);
-    expect(doc.selections).toHaveLength(1);
-  });
+    it("burns only the engine that was selected", () => {
+        const design = new EditorDocument(GUNSHIP).view.design!;
+        const demo = new Demonstration();
+        const engine = design.modules.findIndex((m) => m.spec.kind === "engine");
+        for (let i = 0; i < 120; i++) demo.step(design, [design.modules[engine]!.index], 1 / 60);
+        const snapshot = previewSnapshot(design);
+        demo.writeInto(snapshot);
+        expect(snapshot.ships[0]!.throttles.filter((t) => t > 0)).toHaveLength(1);
+    });
 
-  it('keeps the order they were picked in, because the first one is the origin', () => {
-    const doc = new EditorDocument(three());
-    doc.selectModule(2);
-    doc.toggleModule(0);
-    const origins = doc.selectedOrigins();
-    expect(origins).toHaveLength(2);
-    expect(origins[0]!.path[0]!.index).toBe(2);
-    expect(origins[1]!.path[0]!.index).toBe(0);
-  });
+    it("fires a selected gun at the rate its own figures claim", () => {
+        const design = popgun();
+        const turret = design.turrets[0]!;
+        const cycle = turret.gun.cycleTime;
+        // The assumption the count rests on: a round outlives three cycles, so
+        // none has been forgotten by the time they are counted.
+        expect(cycle * 3.5).toBeLessThan(ROUND_LIFETIME);
 
-  it('highlights every copy of everything picked', () => {
-    // A shared part picked once is drawn several times, and all of them are
-    // the selection — the placement is what was picked.
-    const doc = new EditorDocument(GUNSHIP);
-    doc.selectModule(0);
-    const first = doc.highlightedModules().length;
-    const other = doc.view.origins.findIndex((_, i) => !doc.highlightedModules().includes(i));
-    doc.toggleModule(other);
-    expect(doc.highlightedModules().length).toBeGreaterThan(first);
-  });
+        const demo = new Demonstration();
+        const selected = [design.modules[turret.module]!.index];
+        for (let t = 0; t < cycle * 3.5; t += 1 / 240) demo.step(design, selected, 1 / 240);
 
-  it('drops only what an edit removed, keeping the rest picked', () => {
-    const doc = new EditorDocument(three());
-    doc.selectModule(1);
-    doc.toggleModule(2);
-    const removed = removePlacement(doc.blueprint, doc.selections[0]!)!;
-    doc.apply(removed);
-    expect(doc.selections).toHaveLength(1);
-  });
+        const snapshot = previewSnapshot(design);
+        demo.writeInto(snapshot);
+        // One at the start and one per cycle since.
+        expect(snapshot.projectileCount).toBe(4);
+        expect(demo.running).toBe(true);
+    });
 
-  it('replaces the selection on a plain pick', () => {
-    const doc = new EditorDocument(three());
-    doc.selectModule(0);
-    doc.toggleModule(1);
-    doc.selectModule(2);
-    expect(doc.selections).toHaveLength(1);
-  });
+    it("sends rounds out at the muzzle speed, and forgets them in the end", () => {
+        const design = popgun();
+        const turret = design.turrets[0]!;
+        const demo = new Demonstration();
+        demo.step(design, [design.modules[turret.module]!.index], 1 / 240);
+
+        const snapshot = previewSnapshot(design);
+        demo.writeInto(snapshot);
+        expect(snapshot.projectileCount).toBe(1);
+        const speed = Math.hypot(snapshot.projectileVx[0]!, snapshot.projectileVy[0]!);
+        expect(speed).toBeCloseTo(turret.gun.muzzleSpeed, 6);
+        expect(snapshot.projectileWidth[0]).toBe(turret.gun.calibre);
+
+        // Nothing stops a round, so it has to be forgotten or it accumulates.
+        for (let t = 0; t < ROUND_LIFETIME + 1; t += 1 / 60) demo.step(design, [], 1 / 60);
+        demo.writeInto(snapshot);
+        expect(snapshot.projectileCount).toBe(0);
+        expect(demo.running).toBe(false);
+    });
+
+    it("shows a selected gun reloading in time with its shots, and an idle one ready", () => {
+        const design = popgun();
+        const turret = design.turrets[0]!;
+        const cycle = turret.gun.cycleTime;
+        const demo = new Demonstration();
+        const snapshot = previewSnapshot(design);
+        const view = snapshot.ships[0]!;
+
+        demo.writeInto(snapshot);
+        expect(view.turretLoad![0]).toBe(1);
+        expect(view.turretReloading![0]).toBe(false);
+
+        const selected = [design.modules[turret.module]!.index];
+        demo.step(design, selected, 1 / 240);
+        for (let t = 0; t < cycle / 2; t += 1 / 240) demo.step(design, selected, 1 / 240);
+        demo.writeInto(snapshot);
+        expect(view.turretReloading![0]).toBe(true);
+        expect(view.turretLoad![0]).toBeCloseTo(0.5, 1);
+    });
+
+    /** A beam mount, to show the other branch of `fire`. */
+    const beamBoat = (): ShipDesign =>
+        new EditorDocument(
+            ship({
+                modules: [
+                    { kind: "structure", x: 0, y: 0, length: 20, width: 6 },
+                    { kind: "beamTurret", x: 11, y: 0, length: 4, width: 3 },
+                    { kind: "engine", x: -11, y: 0, angle: Math.PI, length: 2, width: 6 },
+                ],
+            }),
+        ).view.design!;
+
+    it("lights a selected beam mount, and lets the renderer know it is there", () => {
+        // Every array reaching the snapshot with the count left at zero draws
+        // exactly nothing, which is indistinguishable from a gun that never fired.
+        const design = beamBoat();
+        const turret = design.turrets[0]!;
+        expect(turret.gun.type).toBe(GunType.Beam);
+        const demo = new Demonstration();
+
+        demo.step(design, [design.modules[turret.module]!.index], 1 / 240);
+
+        const snapshot = previewSnapshot(design);
+        demo.writeInto(snapshot);
+        expect(snapshot.beamCount).toBe(1);
+        expect(snapshot.projectileCount).toBe(0);
+        expect(snapshot.beamWidth[0]).toBe(turret.gun.calibre);
+        expect(snapshot.beamPower[0]).toBe(turret.gun.beamPower);
+    });
+
+    it("empties a beam mount’s display while it fires, then fills it to the next shot", () => {
+        const design = beamBoat();
+        const turret = design.turrets[0]!;
+        const { beamOnTime, cycleTime } = turret.gun;
+        const demo = new Demonstration();
+        const snapshot = previewSnapshot(design);
+        const view = snapshot.ships[0]!;
+        const selected = [design.modules[turret.module]!.index];
+
+        demo.step(design, selected, 1 / 240);
+        for (let t = 0; t < beamOnTime / 2; t += 1 / 240) demo.step(design, selected, 1 / 240);
+        demo.writeInto(snapshot);
+        expect(view.turretReloading![0]).toBe(false);
+        expect(view.turretLoad![0]).toBeCloseTo(0.5, 1);
+
+        // The reload is the whole of `cycleTime`, after the burst, as in battle.
+        for (let t = beamOnTime / 2; t < beamOnTime + cycleTime / 2; t += 1 / 240) demo.step(design, selected, 1 / 240);
+        demo.writeInto(snapshot);
+        expect(view.turretReloading![0]).toBe(true);
+        expect(view.turretLoad![0]).toBeCloseTo(0.5, 1);
+    });
+
+    it("counts a beam’s burst as well as its reload in its rate of fire", () => {
+        const design = beamBoat();
+        const gun = design.turrets[0]!.gun;
+        const turret = designStats(design, envelopes(design)).turrets[0]!;
+        expect(gun.beamOnTime).toBeGreaterThan(0);
+        expect(turret.roundsPerMinute).toBeCloseTo(60 / (gun.beamOnTime + gun.cycleTime), 9);
+    });
+
+    it("runs a beam from the muzzle outward, rather than from the origin", () => {
+        // Both ends are positions. Writing the heading into `end` instead draws a
+        // beam from the muzzle to a point measured from the world origin, which
+        // points somewhere else entirely and is the wrong length besides.
+        const design = beamBoat();
+        const turret = design.turrets[0]!;
+        const demo = new Demonstration();
+        demo.step(design, [design.modules[turret.module]!.index], 1 / 240);
+
+        const snapshot = previewSnapshot(design);
+        demo.writeInto(snapshot);
+        const dx = snapshot.beamEndX[0]! - snapshot.beamStartX[0]!;
+        const dy = snapshot.beamEndY[0]! - snapshot.beamStartY[0]!;
+        expect(Math.hypot(dx, dy)).toBeCloseTo(MAX_BEAM_LENGTH, 6);
+        // The mount rests along the hull's +x, so the beam leaves that way.
+        expect(dx).toBeCloseTo(MAX_BEAM_LENGTH, 6);
+        expect(dy).toBeCloseTo(0, 6);
+        // And it starts at the muzzle, out beyond the mount's own centre.
+        expect(snapshot.beamStartX[0]).toBeCloseTo(design.centreOfMassX + turret.mount.x + turret.gun.barrelLength, 6);
+    });
+
+    it("holds a beam for its dwell and then drops it", () => {
+        // A beam is not in flight; it is lit while the mount holds the trigger.
+        // Removing it the frame it appears leaves nothing on screen at all.
+        const design = beamBoat();
+        const turret = design.turrets[0]!;
+        const dwell = turret.gun.beamOnTime;
+        expect(dwell).toBeGreaterThan(0);
+        const demo = new Demonstration();
+        const selected = [design.modules[turret.module]!.index];
+        const snapshot = previewSnapshot(design);
+
+        // Most of the way through the dwell, it is still lit.
+        for (let t = 0; t < dwell * 0.9; t += 1 / 240) demo.step(design, selected, 1 / 240);
+        demo.writeInto(snapshot);
+        expect(snapshot.beamCount).toBe(1);
+
+        // Deselected, it goes out once the dwell runs down rather than persisting.
+        for (let t = 0; t < dwell * 1.2; t += 1 / 240) demo.step(design, [], 1 / 240);
+        demo.writeInto(snapshot);
+        expect(snapshot.beamCount).toBe(0);
+        expect(demo.running).toBe(false);
+    });
+
+    it("alternates between the barrels of a multi-barrel mount", () => {
+        const design = popgun();
+        const turret = design.turrets[0]!;
+        expect(turret.gun.barrelCount).toBe(2);
+        const demo = new Demonstration();
+        const selected = [design.modules[turret.module]!.index];
+        for (let t = 0; t < turret.gun.cycleTime * 1.5; t += 1 / 240) demo.step(design, selected, 1 / 240);
+
+        const snapshot = previewSnapshot(design);
+        demo.writeInto(snapshot);
+        expect(snapshot.projectileCount).toBe(2);
+        // Two rounds from two barrels leave from different places across the mount.
+        expect(snapshot.projectileY[0]).not.toBe(snapshot.projectileY[1]);
+    });
 });
 
-describe('clicking an assembled module', () => {
-  /** A hull, and a wing of two modules assembled and placed twice. */
-  function twoWings(): { doc: EditorDocument; assembly: ModulePath } {
-    const doc = new EditorDocument(
-      ship({
-        modules: [
-          hull,
-          { kind: 'structure', x: 0, y: 6, length: 4, width: 6 },
-          { kind: 'turret', x: 4, y: 9, length: 4, width: 3, barrels: 1 },
-        ],
-      }),
-    );
-    doc.selectModule(1);
-    doc.toggleModule(2);
-    const assembled = createAssembly(doc.blueprint, doc.selections)!;
-    doc.apply(assembled.blueprint);
-    const placed = duplicateInstance(doc.blueprint, assembled.path)!;
-    doc.apply(setMirror(placed.blueprint, placed.path, true)!);
-    doc.select(null);
-    return { doc, assembly: assembled.path };
-  }
+describe("assembling modules into an assembly", () => {
+    /** A wing: a root that joins it to the hull, and two things hanging off it. */
+    const wing = (): Blueprint =>
+        ship({
+            modules: [
+                hull,
+                { kind: "structure", x: 0, y: 6, length: 4, width: 6 },
+                { kind: "turret", x: 4, y: 9, length: 4, width: 3, barrels: 1 },
+                { kind: "engine", x: -4, y: 9, angle: Math.PI, length: 3, width: 3 },
+            ],
+        });
 
-  /** The first drawn module that came through an assembly. */
-  function inAnAssembly(doc: EditorDocument): number {
-    const at = doc.view.origins.findIndex((o) => o.path.length > 1);
-    expect(at).toBeGreaterThanOrEqual(0);
-    return at;
-  }
-
-  it('selects the assembly, not the module', () => {
-    // An assembled module is part of a thing before it is a module, and the thing
-    // is what you usually want: dragging a wing should move the wing.
-    const { doc } = twoWings();
-    const index = inAnAssembly(doc);
-
-    doc.selectAt(index, doc.resolveClick(index));
-
-    const placement = doc.selectedPlacement!;
-    expect('use' in placement).toBe(true);
-  });
-
-  it('goes in a level when the assembly is already selected', () => {
-    const { doc } = twoWings();
-    const index = inAnAssembly(doc);
-    doc.selectAt(index, doc.resolveClick(index));
-
-    doc.selectAt(index, doc.resolveClick(index));
-
-    const placement = doc.selectedPlacement!;
-    expect('use' in placement).toBe(false);
-    expect((placement as ModuleSpec).kind).toBeDefined();
-  });
-
-  it('reaches a sibling directly once you are inside the assembly', () => {
-    // Otherwise working on a wing means clicking twice for every part of it,
-    // being thrown back out to the wing each time.
-    const { doc } = twoWings();
-    const inside = doc.view.origins.map((o, i) => ({ o, i })).filter(({ o }) => o.path.length > 1);
-    const first = inside[0]!.i;
-    const sibling = inside.find(({ o }) => !samePlacement(o.path, inside[0]!.o.path))!.i;
-
-    doc.selectAt(first, doc.resolveClick(first));
-    doc.selectAt(first, doc.resolveClick(first));
-    doc.selectAt(sibling, doc.resolveClick(sibling));
-
-    const placement = doc.selectedPlacement!;
-    expect('use' in placement).toBe(false);
-  });
-
-  it('selects a loose module directly, having no assembly to stop at', () => {
-    const { doc } = twoWings();
-    const loose = doc.view.origins.findIndex((o) => o.path.length === 1);
-    doc.selectAt(loose, doc.resolveClick(loose));
-    expect('use' in doc.selectedPlacement!).toBe(false);
-  });
-
-  it('tells a selected assembly apart from several picked modules', () => {
-    // What the overlay draws from: an assembly is outlined as an assembly, several
-    // modules separately, and reading it off the selection means the picture
-    // cannot disagree with what an edit would do.
-    const { doc } = twoWings();
-    const index = inAnAssembly(doc);
-    doc.selectAt(index, doc.resolveClick(index));
-
-    const assemblies = doc.selectedAssemblies();
-    expect(assemblies.every((assembly) => assembly.context)).toBe(false);
-    expect(assemblies.find((assembly) => assembly.primary)!.modules).toHaveLength(2);
-    expect(doc.selectedLoose()).toHaveLength(0);
-
-    doc.selectModule(0);
-    doc.toggleModule(1);
-    // Loose modules: any box drawn is the assembly one of them sits in, which is
-    // context rather than the selection.
-    expect(doc.selectedAssemblies().every((assembly) => assembly.context)).toBe(true);
-    expect(doc.selectedLoose().length).toBeGreaterThan(1);
-  });
-
-  it('boxes every copy of the selected assembly, the clicked one as the selection', () => {
-    // An assembly placed twice is two things in two places: one box round both
-    // would enclose most of the ship, and the copies a drag would leave alone
-    // have to look different from the one it would move.
-    const { doc } = twoWings();
-    const index = inAnAssembly(doc);
-    doc.selectAt(index, doc.resolveClick(index));
-
-    const assemblies = doc.selectedAssemblies();
-    expect(assemblies).toHaveLength(2);
-    expect(assemblies.filter((assembly) => assembly.primary)).toHaveLength(1);
-    expect(assemblies.find((assembly) => assembly.primary)!.modules).toContain(index);
-    // No module is boxed twice: each copy holds its own.
-    const all = assemblies.flatMap((assembly) => assembly.modules);
-    expect(new Set(all).size).toBe(all.length);
-  });
-
-  it('keeps the assembly’s box while a module inside it is selected', () => {
-    const { doc } = twoWings();
-    const index = inAnAssembly(doc);
-    doc.selectAt(index, doc.resolveClick(index));
-    doc.selectAt(index, doc.resolveClick(index));
-
-    expect('use' in doc.selectedPlacement!).toBe(false);
-    const assemblies = doc.selectedAssemblies();
-    expect(assemblies.length).toBeGreaterThan(0);
-    // Context, not selection: nothing is drawn as the thing being edited.
-    expect(assemblies.every((assembly) => assembly.context && !assembly.primary)).toBe(true);
-    expect(assemblies.some((assembly) => assembly.modules.includes(index))).toBe(true);
-  });
-
-  it('drags the whole assembly, in the frame the instance was written in', () => {
-    const { doc } = twoWings();
-    const index = inAnAssembly(doc);
-    doc.selectAt(index, doc.resolveClick(index));
-    const assembly = doc.selectedAssemblyPath()!;
-    const handle = instanceHandle(doc.view.origins, assembly)!;
-    expect(handle).not.toBeNull();
-
-    const before = expandBlueprint(doc.blueprint).map((m) => [m.x, m.y]);
-    const moved = movePlacement(doc.blueprint, handle, 3, 0)!;
-    const after = expandBlueprint(moved).map((m) => [m.x, m.y]);
-
-    // Only the modules this copy of the assembly placed have moved, and all of
-    // them have, together and by the same amount.
-    const shifted = after.filter(([x, y], i) => x !== before[i]![0] || y !== before[i]![1]);
-    expect(shifted).toHaveLength(2);
-    for (let i = 0; i < after.length; i++) {
-      const dx = after[i]![0] - before[i]![0];
-      expect(dx === 0 || Math.abs(dx - 3) < 1e-9).toBe(true);
+    /** Pick the drawn modules at these indices, in this order. */
+    function pick(doc: EditorDocument, ...indices: number[]) {
+        doc.selectModule(indices[0]!);
+        for (const index of indices.slice(1)) doc.toggleModule(index);
+        return doc.selections;
     }
-  });
+
+    it("refuses a selection it cannot make an assembly out of", () => {
+        const doc = new EditorDocument(wing());
+        expect(createAssemblyProblem(doc.blueprint, pick(doc, 1))).toMatch(/two or more/);
+
+        const assembled = createAssembly(doc.blueprint, pick(doc, 1, 2))!;
+        const after = new EditorDocument(assembled.blueprint);
+        // The hull is written in the layout; the wing's modules are now written
+        // inside the assembly, so the two are not in the same list.
+        const across = pick(after, 0, after.view.modules.length - 1);
+        expect(createAssemblyProblem(after.blueprint, across)).toMatch(/same assembly/);
+    });
+
+    it("builds the assembly around the first module picked", () => {
+        // Not the centre of the selection: a wing hangs off one connecting module,
+        // and that module is the one whose position means something.
+        const doc = new EditorDocument(wing());
+        const assembled = createAssembly(doc.blueprint, pick(doc, 1, 2, 3))!;
+        const assemblies = assembled.blueprint.assemblies!;
+        const definition = Object.values(assemblies)[0]!;
+
+        expect(Object.keys(assemblies)).toHaveLength(1);
+        // The root was picked first, so it sits at the assembly's origin and the
+        // instance carries where that origin lands.
+        expect(definition.modules[0]).toMatchObject({ kind: "structure", x: 0, y: 0 });
+        const instance = assembled.blueprint.modules[assembled.blueprint.modules.length - 1]!;
+        expect(instance).toMatchObject({ x: 0, y: 6 });
+    });
+
+    it("puts the same ship back, in the same places", () => {
+        // The whole safety property: assembling is a change to how a layout is
+        // *written* and not to what it builds, so every module comes out where it
+        // went in. Order is the one thing that moves, and it moves knowingly.
+        const before = wing();
+        const doc = new EditorDocument(before);
+        const assembled = createAssembly(before, pick(doc, 1, 2, 3))!;
+
+        expect(positions(assembled.blueprint).sort()).toEqual(positions(before).sort());
+        expect(expandBlueprint(assembled.blueprint)).toHaveLength(expandBlueprint(before).length);
+    });
+
+    it("keeps the members in the order they were written, not the order picked", () => {
+        // Clicked back to front. Inside the assembly they stay as the file had them,
+        // so the assembly's own internals are as close to the original as they can be.
+        const doc = new EditorDocument(wing());
+        const assembled = createAssembly(doc.blueprint, pick(doc, 3, 2, 1))!;
+        const definition = Object.values(assembled.blueprint.assemblies!)[0]!;
+        expect(definition.modules.map((m) => (m as ModuleSpec).kind)).toEqual(["structure", "turret", "engine"]);
+        // The engine was picked first, so it is the origin even though it is
+        // written last.
+        expect(definition.modules[2]).toMatchObject({ x: 0, y: 0 });
+    });
+
+    it("appends the instance, which moves the assembly down the firing order", () => {
+        // Stated because it is a real consequence and not a detail: engines are
+        // allocated over the columns in order and turrets fire in order, so a
+        // layout that depended on the old order flies slightly differently.
+        const doc = new EditorDocument(wing());
+        const assembled = createAssembly(doc.blueprint, pick(doc, 1, 2))!;
+        const last = assembled.blueprint.modules[assembled.blueprint.modules.length - 1]!;
+        expect("use" in last).toBe(true);
+        // The hull, untouched, keeps its place at the front.
+        expect(assembled.blueprint.modules[0]).toMatchObject({ length: 20, width: 6 });
+    });
+
+    it("selects the new assembly, so its pose can be edited straight away", () => {
+        const doc = new EditorDocument(wing());
+        const assembled = createAssembly(doc.blueprint, pick(doc, 1, 2))!;
+        doc.apply(assembled.blueprint);
+        doc.select(assembled.path);
+        const placement = doc.selectedPlacement!;
+        expect(placement).not.toBeNull();
+        expect("use" in placement).toBe(true);
+    });
 });
 
-describe('adding modules to an assembly', () => {
-  function wingAndSpare(): { doc: EditorDocument; assembly: ModulePath } {
-    const doc = new EditorDocument(
-      ship({
-        modules: [
-          hull,
-          { kind: 'structure', x: 0, y: 6, length: 4, width: 6 },
-          { kind: 'turret', x: 4, y: 9, length: 4, width: 3, barrels: 1 },
-          // The spare, written alongside and added later.
-          { kind: 'engine', x: -6, y: 6, angle: Math.PI, length: 3, width: 3 },
-        ],
-      }),
-    );
-    doc.selectModule(1);
-    doc.toggleModule(2);
-    const assembled = createAssembly(doc.blueprint, doc.selections)!;
-    doc.apply(assembled.blueprint);
-    return { doc, assembly: assembled.path };
-  }
+describe("mirroring an assembly", () => {
+    const wing = (): Blueprint =>
+        ship({
+            modules: [
+                hull,
+                { kind: "structure", x: 0, y: 6, length: 4, width: 6 },
+                { kind: "turret", x: 4, y: 9, length: 4, width: 3, barrels: 1 },
+            ],
+        });
 
-  it('refuses what it cannot add', () => {
-    const { doc, assembly } = wingAndSpare();
-    expect(addToAssemblyProblem(doc.blueprint, assembly, [])).toMatch(/something to add/);
-    expect(addToAssemblyProblem(doc.blueprint, assembly, [assembly])).toMatch(/itself/);
-  });
+    it("reaches the instance from a module inside it", () => {
+        // Clicking a module selects the module; the pose belongs to the instance
+        // above it, and without this there is no way to get there.
+        const doc = new EditorDocument(wing());
+        doc.selectModule(1);
+        doc.toggleModule(2);
+        const assembled = createAssembly(doc.blueprint, doc.selections)!;
+        doc.apply(assembled.blueprint);
 
-  it('moves the module into the definition, leaving the ship where it was', () => {
-    const { doc, assembly } = wingAndSpare();
-    const spare = doc.view.origins.findIndex((_, i) => doc.view.modules[i]!.kind === 'engine');
-    const before = positions(doc.blueprint).sort();
-
-    const added = addToAssembly(doc.blueprint, assembly, [doc.view.origins[spare]!.path])!;
-    const next = added.blueprint;
-
-    expect(positions(next).sort()).toEqual(before);
-    const definition = Object.values(next.assemblies!)[0]!;
-    expect(definition.modules).toHaveLength(3);
-    // Out of the layout's own list, into the assembly's.
-    expect(next.modules).toHaveLength(2);
-    // The assembly moved up the list as the module left it, so the path handed
-    // back has to be the one that still names it.
-    expect(placementAt(next, added.path)).toHaveProperty('use');
-  });
-
-  it('re-expresses the module through a turned and mirrored assembly', () => {
-    // The whole reason this is not a list operation. A module is written in the
-    // parent's frame and the assembly's are written in the assembly's, so getting the
-    // transform wrong moves the ship — and only on a posed assembly, which is
-    // exactly the kind that gets built once and trusted.
-    const { doc, assembly } = wingAndSpare();
-    const posed = setMirror(
-      updatePlacement(doc.blueprint, assembly, (p) => ({ ...p, angle: Math.PI / 2 }) as Placement)!,
-      assembly,
-      true,
-    )!;
-    const withSpare = new EditorDocument(posed);
-    const spare = withSpare.view.origins.findIndex((_, i) => withSpare.view.modules[i]!.kind === 'engine');
-    const before = positions(posed).sort();
-
-    const next = addToAssembly(posed, assembly, [withSpare.view.origins[spare]!.path])!.blueprint;
-
-    expect(positions(next).sort()).toEqual(before);
-  });
-
-  it('gives every copy of the assembly the new module', () => {
-    // The bargain rather than a surprise: the part joins the assembly, and the
-    // assembly is what is placed twice.
-    const { doc, assembly } = wingAndSpare();
-    const twice = duplicateInstance(doc.blueprint, assembly)!;
-    const withSpare = new EditorDocument(twice.blueprint);
-    const spare = withSpare.view.origins.findIndex((_, i) => withSpare.view.modules[i]!.kind === 'engine');
-    const enginesBefore = expandBlueprint(twice.blueprint).filter((m) => m.kind === 'engine');
-
-    const next = addToAssembly(twice.blueprint, assembly, [withSpare.view.origins[spare]!.path])!.blueprint;
-
-    expect(enginesBefore).toHaveLength(1);
-    expect(expandBlueprint(next).filter((m) => m.kind === 'engine')).toHaveLength(2);
-  });
-
-  it('adds everything else picked to the last assembly picked, whichever order they came in', () => {
-    const { doc, assembly } = wingAndSpare();
-    doc.select(assembly);
-    expect(doc.additionTarget()).toBeNull();
-
-    const spare = doc.view.origins[doc.view.origins.findIndex((_, i) => doc.view.modules[i]!.kind === 'engine')]!.path;
-    doc.togglePath(spare);
-    expect(doc.additionTarget()).toEqual({ assembly, members: [spare] });
-
-    doc.select(spare);
-    doc.togglePath(assembly);
-    expect(doc.additionTarget()).toEqual({ assembly, members: [spare] });
-
-    // Only modules picked: nothing to add them to.
-    doc.select(spare);
-    expect(doc.additionTarget()).toBeNull();
-  });
-
-  it('takes the last of several assemblies as the target, and the others as members', () => {
-    const doc = new EditorDocument({
-      name: 'Three',
-      assemblies: { a: { modules: [{ kind: 'structure', x: 0, y: 0, length: 1, width: 1 }] } },
-      modules: [
-        { kind: 'core', x: 0, y: 0, length: 2, width: 2 },
-        { use: 'a', x: 2, y: 0 },
-        { use: 'a', x: 4, y: 0 },
-        { kind: 'structure', x: -2, y: 0, length: 2, width: 2 },
-      ],
+        const inside = doc.view.origins.findIndex((o) => o.path.length > 1);
+        expect(inside).toBeGreaterThanOrEqual(0);
+        doc.selectModule(inside);
+        const path = instanceOf(doc.selectedOrigin()!)!;
+        expect(path).not.toBeNull();
+        const placement = placementAt(doc.blueprint, path)!;
+        expect("use" in placement).toBe(true);
     });
-    const at = (index: number): ModulePath => [{ index, copy: 0 }];
-    doc.select(at(1));
-    doc.togglePath(at(2));
-    doc.togglePath(at(3));
-    expect(doc.additionTarget()).toEqual({ assembly: at(2), members: [at(1), at(3)] });
-  });
+
+    it("reflects a placed assembly, and stops reflecting it again", () => {
+        const doc = new EditorDocument(wing());
+        doc.selectModule(1);
+        doc.toggleModule(2);
+        const assembled = createAssembly(doc.blueprint, doc.selections)!;
+
+        const mirrored = setMirror(assembled.blueprint, assembled.path, true)!;
+        const turret = expandBlueprint(mirrored).find((m) => m.kind === "turret")!;
+        const wasAt = expandBlueprint(assembled.blueprint).find((m) => m.kind === "turret")!;
+        // Reflected across the instance's own x-axis: the turret was 3 m outboard
+        // of the wing root, and is now 3 m the other way.
+        expect(turret.x).toBeCloseTo(wasAt.x, 9);
+        expect(turret.y - 6).toBeCloseTo(-(wasAt.y - 6), 9);
+
+        const back = setMirror(mirrored, assembled.path, false)!;
+        expect(expandBlueprint(back).map((m) => [m.x, m.y])).toEqual(expandBlueprint(assembled.blueprint).map((m) => [m.x, m.y]));
+        // Cleared rather than written false, so a layout that was never mirrored
+        // round-trips through the file unchanged.
+        expect("mirror" in (back.modules[back.modules.length - 1] as object)).toBe(false);
+    });
+
+    it("keeps an assembly selected through an edit to the assembly itself", () => {
+        // An instance draws nothing of its own — its assembly's modules do — so a
+        // "does this still draw anything" test that only asked which placement
+        // wrote each module called every assembly selection dead. The panel would
+        // then close on the first edit made from it, which is the one moment it
+        // must not.
+        const doc = new EditorDocument(wing());
+        doc.selectModule(1);
+        doc.toggleModule(2);
+        const assembled = createAssembly(doc.blueprint, doc.selections)!;
+        doc.apply(assembled.blueprint);
+        doc.select(assembled.path);
+        expect(doc.selectedPlacement).not.toBeNull();
+
+        doc.apply(setMirror(doc.blueprint, doc.selection!, true)!);
+
+        expect(doc.selection).not.toBeNull();
+        const still = doc.selectedPlacement!;
+        expect("use" in still).toBe(true);
+        expect((still as { mirror?: boolean }).mirror).toBe(true);
+        // And it accounts for the modules it placed, which is what the highlight
+        // and the panel's own count both read.
+        expect(doc.accountedFor(doc.selection!)).toBe(2);
+        expect(doc.highlightedModules()).toHaveLength(2);
+    });
+
+    it("forgets an assembly that an edit removed", () => {
+        // The other half of the same rule: still gone when it is genuinely gone.
+        const doc = new EditorDocument(wing());
+        doc.selectModule(1);
+        doc.toggleModule(2);
+        const assembled = createAssembly(doc.blueprint, doc.selections)!;
+        doc.apply(assembled.blueprint);
+        doc.select(assembled.path);
+
+        doc.apply(removePlacement(doc.blueprint, doc.selection!)!);
+
+        expect(doc.selection).toBeNull();
+    });
+
+    it("builds a symmetrical ship out of one side and a reflection", () => {
+        // The workflow this exists for. Draw one wing, assembly it, place the assembly
+        // again reflected, and the two sides cannot drift apart.
+        const doc = new EditorDocument(wing());
+        doc.selectModule(1);
+        doc.toggleModule(2);
+        const assembled = createAssembly(doc.blueprint, doc.selections)!;
+
+        // Place it again, and reflect the copy. Three operations, which is the
+        // whole workflow.
+        const placed = duplicateInstance(assembled.blueprint, assembled.path)!;
+        const ship2 = setMirror(placed.blueprint, placed.path, true)!;
+
+        // One definition serving both sides is the property that makes them unable
+        // to disagree: there is nowhere for a difference to be written.
+        expect(Object.keys(ship2.assemblies!)).toHaveLength(1);
+        const turrets = expandBlueprint(ship2).filter((m) => m.kind === "turret");
+        expect(turrets).toHaveLength(2);
+        expect(turrets[0]!.x).toBeCloseTo(turrets[1]!.x, 9);
+        expect(turrets[0]!.y).not.toBeCloseTo(turrets[1]!.y, 3);
+
+        // And widening the wing root widens it on both sides at once, which is the
+        // thing a mirrored *mode* could only keep in step by watching for it.
+        const root = expandWithOrigins(ship2).origins.findIndex((o) => o.path.length > 1);
+        const wider = updatePlacement(ship2, expandWithOrigins(ship2).origins[root]!.path, (p) => ({
+            ...(p as ModuleSpec),
+            width: 10,
+        }))!;
+        const widened = expandBlueprint(wider).filter((m) => m.kind === "structure" && m.width === 10);
+        expect(widened).toHaveLength(2);
+    });
+});
+
+describe("picking several modules", () => {
+    const three = (): Blueprint =>
+        ship({
+            modules: [
+                hull,
+                { kind: "structure", x: 0, y: 6, length: 4, width: 4 },
+                { kind: "structure", x: 0, y: -6, length: 4, width: 4 },
+            ],
+        });
+
+    it("adds to the selection, and takes back out again", () => {
+        const doc = new EditorDocument(three());
+        doc.selectModule(0);
+        expect(doc.selections).toHaveLength(1);
+        doc.toggleModule(1);
+        expect(doc.selections).toHaveLength(2);
+        doc.toggleModule(1);
+        expect(doc.selections).toHaveLength(1);
+    });
+
+    it("keeps the order they were picked in, because the first one is the origin", () => {
+        const doc = new EditorDocument(three());
+        doc.selectModule(2);
+        doc.toggleModule(0);
+        const origins = doc.selectedOrigins();
+        expect(origins).toHaveLength(2);
+        expect(origins[0]!.path[0]!.index).toBe(2);
+        expect(origins[1]!.path[0]!.index).toBe(0);
+    });
+
+    it("highlights every copy of everything picked", () => {
+        // A shared part picked once is drawn several times, and all of them are
+        // the selection — the placement is what was picked.
+        const doc = new EditorDocument(GUNSHIP);
+        doc.selectModule(0);
+        const first = doc.highlightedModules().length;
+        const other = doc.view.origins.findIndex((_, i) => !doc.highlightedModules().includes(i));
+        doc.toggleModule(other);
+        expect(doc.highlightedModules().length).toBeGreaterThan(first);
+    });
+
+    it("drops only what an edit removed, keeping the rest picked", () => {
+        const doc = new EditorDocument(three());
+        doc.selectModule(1);
+        doc.toggleModule(2);
+        const removed = removePlacement(doc.blueprint, doc.selections[0]!)!;
+        doc.apply(removed);
+        expect(doc.selections).toHaveLength(1);
+    });
+
+    it("replaces the selection on a plain pick", () => {
+        const doc = new EditorDocument(three());
+        doc.selectModule(0);
+        doc.toggleModule(1);
+        doc.selectModule(2);
+        expect(doc.selections).toHaveLength(1);
+    });
+});
+
+describe("clicking an assembled module", () => {
+    /** A hull, and a wing of two modules assembled and placed twice. */
+    function twoWings(): { doc: EditorDocument; assembly: ModulePath } {
+        const doc = new EditorDocument(
+            ship({
+                modules: [
+                    hull,
+                    { kind: "structure", x: 0, y: 6, length: 4, width: 6 },
+                    { kind: "turret", x: 4, y: 9, length: 4, width: 3, barrels: 1 },
+                ],
+            }),
+        );
+        doc.selectModule(1);
+        doc.toggleModule(2);
+        const assembled = createAssembly(doc.blueprint, doc.selections)!;
+        doc.apply(assembled.blueprint);
+        const placed = duplicateInstance(doc.blueprint, assembled.path)!;
+        doc.apply(setMirror(placed.blueprint, placed.path, true)!);
+        doc.select(null);
+        return { doc, assembly: assembled.path };
+    }
+
+    /** The first drawn module that came through an assembly. */
+    function inAnAssembly(doc: EditorDocument): number {
+        const at = doc.view.origins.findIndex((o) => o.path.length > 1);
+        expect(at).toBeGreaterThanOrEqual(0);
+        return at;
+    }
+
+    it("selects the assembly, not the module", () => {
+        // An assembled module is part of a thing before it is a module, and the thing
+        // is what you usually want: dragging a wing should move the wing.
+        const { doc } = twoWings();
+        const index = inAnAssembly(doc);
+
+        doc.selectAt(index, doc.resolveClick(index));
+
+        const placement = doc.selectedPlacement!;
+        expect("use" in placement).toBe(true);
+    });
+
+    it("goes in a level when the assembly is already selected", () => {
+        const { doc } = twoWings();
+        const index = inAnAssembly(doc);
+        doc.selectAt(index, doc.resolveClick(index));
+
+        doc.selectAt(index, doc.resolveClick(index));
+
+        const placement = doc.selectedPlacement!;
+        expect("use" in placement).toBe(false);
+        expect((placement as ModuleSpec).kind).toBeDefined();
+    });
+
+    it("reaches a sibling directly once you are inside the assembly", () => {
+        // Otherwise working on a wing means clicking twice for every part of it,
+        // being thrown back out to the wing each time.
+        const { doc } = twoWings();
+        const inside = doc.view.origins.map((o, i) => ({ o, i })).filter(({ o }) => o.path.length > 1);
+        const first = inside[0]!.i;
+        const sibling = inside.find(({ o }) => !samePlacement(o.path, inside[0]!.o.path))!.i;
+
+        doc.selectAt(first, doc.resolveClick(first));
+        doc.selectAt(first, doc.resolveClick(first));
+        doc.selectAt(sibling, doc.resolveClick(sibling));
+
+        const placement = doc.selectedPlacement!;
+        expect("use" in placement).toBe(false);
+    });
+
+    it("selects a loose module directly, having no assembly to stop at", () => {
+        const { doc } = twoWings();
+        const loose = doc.view.origins.findIndex((o) => o.path.length === 1);
+        doc.selectAt(loose, doc.resolveClick(loose));
+        expect("use" in doc.selectedPlacement!).toBe(false);
+    });
+
+    it("tells a selected assembly apart from several picked modules", () => {
+        // What the overlay draws from: an assembly is outlined as an assembly, several
+        // modules separately, and reading it off the selection means the picture
+        // cannot disagree with what an edit would do.
+        const { doc } = twoWings();
+        const index = inAnAssembly(doc);
+        doc.selectAt(index, doc.resolveClick(index));
+
+        const assemblies = doc.selectedAssemblies();
+        expect(assemblies.every((assembly) => assembly.context)).toBe(false);
+        expect(assemblies.find((assembly) => assembly.primary)!.modules).toHaveLength(2);
+        expect(doc.selectedLoose()).toHaveLength(0);
+
+        doc.selectModule(0);
+        doc.toggleModule(1);
+        // Loose modules: any box drawn is the assembly one of them sits in, which is
+        // context rather than the selection.
+        expect(doc.selectedAssemblies().every((assembly) => assembly.context)).toBe(true);
+        expect(doc.selectedLoose().length).toBeGreaterThan(1);
+    });
+
+    it("boxes every copy of the selected assembly, the clicked one as the selection", () => {
+        // An assembly placed twice is two things in two places: one box round both
+        // would enclose most of the ship, and the copies a drag would leave alone
+        // have to look different from the one it would move.
+        const { doc } = twoWings();
+        const index = inAnAssembly(doc);
+        doc.selectAt(index, doc.resolveClick(index));
+
+        const assemblies = doc.selectedAssemblies();
+        expect(assemblies).toHaveLength(2);
+        expect(assemblies.filter((assembly) => assembly.primary)).toHaveLength(1);
+        expect(assemblies.find((assembly) => assembly.primary)!.modules).toContain(index);
+        // No module is boxed twice: each copy holds its own.
+        const all = assemblies.flatMap((assembly) => assembly.modules);
+        expect(new Set(all).size).toBe(all.length);
+    });
+
+    it("keeps the assembly’s box while a module inside it is selected", () => {
+        const { doc } = twoWings();
+        const index = inAnAssembly(doc);
+        doc.selectAt(index, doc.resolveClick(index));
+        doc.selectAt(index, doc.resolveClick(index));
+
+        expect("use" in doc.selectedPlacement!).toBe(false);
+        const assemblies = doc.selectedAssemblies();
+        expect(assemblies.length).toBeGreaterThan(0);
+        // Context, not selection: nothing is drawn as the thing being edited.
+        expect(assemblies.every((assembly) => assembly.context && !assembly.primary)).toBe(true);
+        expect(assemblies.some((assembly) => assembly.modules.includes(index))).toBe(true);
+    });
+
+    it("drags the whole assembly, in the frame the instance was written in", () => {
+        const { doc } = twoWings();
+        const index = inAnAssembly(doc);
+        doc.selectAt(index, doc.resolveClick(index));
+        const assembly = doc.selectedAssemblyPath()!;
+        const handle = instanceHandle(doc.view.origins, assembly)!;
+        expect(handle).not.toBeNull();
+
+        const before = expandBlueprint(doc.blueprint).map((m) => [m.x, m.y]);
+        const moved = movePlacement(doc.blueprint, handle, 3, 0)!;
+        const after = expandBlueprint(moved).map((m) => [m.x, m.y]);
+
+        // Only the modules this copy of the assembly placed have moved, and all of
+        // them have, together and by the same amount.
+        const shifted = after.filter(([x, y], i) => x !== before[i]![0] || y !== before[i]![1]);
+        expect(shifted).toHaveLength(2);
+        for (let i = 0; i < after.length; i++) {
+            const dx = after[i]![0] - before[i]![0];
+            expect(dx === 0 || Math.abs(dx - 3) < 1e-9).toBe(true);
+        }
+    });
+});
+
+describe("adding modules to an assembly", () => {
+    function wingAndSpare(): { doc: EditorDocument; assembly: ModulePath } {
+        const doc = new EditorDocument(
+            ship({
+                modules: [
+                    hull,
+                    { kind: "structure", x: 0, y: 6, length: 4, width: 6 },
+                    { kind: "turret", x: 4, y: 9, length: 4, width: 3, barrels: 1 },
+                    // The spare, written alongside and added later.
+                    { kind: "engine", x: -6, y: 6, angle: Math.PI, length: 3, width: 3 },
+                ],
+            }),
+        );
+        doc.selectModule(1);
+        doc.toggleModule(2);
+        const assembled = createAssembly(doc.blueprint, doc.selections)!;
+        doc.apply(assembled.blueprint);
+        return { doc, assembly: assembled.path };
+    }
+
+    it("refuses what it cannot add", () => {
+        const { doc, assembly } = wingAndSpare();
+        expect(addToAssemblyProblem(doc.blueprint, assembly, [])).toMatch(/something to add/);
+        expect(addToAssemblyProblem(doc.blueprint, assembly, [assembly])).toMatch(/itself/);
+    });
+
+    it("moves the module into the definition, leaving the ship where it was", () => {
+        const { doc, assembly } = wingAndSpare();
+        const spare = doc.view.origins.findIndex((_, i) => doc.view.modules[i]!.kind === "engine");
+        const before = positions(doc.blueprint).sort();
+
+        const added = addToAssembly(doc.blueprint, assembly, [doc.view.origins[spare]!.path])!;
+        const next = added.blueprint;
+
+        expect(positions(next).sort()).toEqual(before);
+        const definition = Object.values(next.assemblies!)[0]!;
+        expect(definition.modules).toHaveLength(3);
+        // Out of the layout's own list, into the assembly's.
+        expect(next.modules).toHaveLength(2);
+        // The assembly moved up the list as the module left it, so the path handed
+        // back has to be the one that still names it.
+        expect(placementAt(next, added.path)).toHaveProperty("use");
+    });
+
+    it("re-expresses the module through a turned and mirrored assembly", () => {
+        // The whole reason this is not a list operation. A module is written in the
+        // parent's frame and the assembly's are written in the assembly's, so getting the
+        // transform wrong moves the ship — and only on a posed assembly, which is
+        // exactly the kind that gets built once and trusted.
+        const { doc, assembly } = wingAndSpare();
+        const posed = setMirror(
+            updatePlacement(doc.blueprint, assembly, (p) => ({ ...p, angle: Math.PI / 2 }) as Placement)!,
+            assembly,
+            true,
+        )!;
+        const withSpare = new EditorDocument(posed);
+        const spare = withSpare.view.origins.findIndex((_, i) => withSpare.view.modules[i]!.kind === "engine");
+        const before = positions(posed).sort();
+
+        const next = addToAssembly(posed, assembly, [withSpare.view.origins[spare]!.path])!.blueprint;
+
+        expect(positions(next).sort()).toEqual(before);
+    });
+
+    it("gives every copy of the assembly the new module", () => {
+        // The bargain rather than a surprise: the part joins the assembly, and the
+        // assembly is what is placed twice.
+        const { doc, assembly } = wingAndSpare();
+        const twice = duplicateInstance(doc.blueprint, assembly)!;
+        const withSpare = new EditorDocument(twice.blueprint);
+        const spare = withSpare.view.origins.findIndex((_, i) => withSpare.view.modules[i]!.kind === "engine");
+        const enginesBefore = expandBlueprint(twice.blueprint).filter((m) => m.kind === "engine");
+
+        const next = addToAssembly(twice.blueprint, assembly, [withSpare.view.origins[spare]!.path])!.blueprint;
+
+        expect(enginesBefore).toHaveLength(1);
+        expect(expandBlueprint(next).filter((m) => m.kind === "engine")).toHaveLength(2);
+    });
+
+    it("adds everything else picked to the last assembly picked, whichever order they came in", () => {
+        const { doc, assembly } = wingAndSpare();
+        doc.select(assembly);
+        expect(doc.additionTarget()).toBeNull();
+
+        const spare = doc.view.origins[doc.view.origins.findIndex((_, i) => doc.view.modules[i]!.kind === "engine")]!.path;
+        doc.togglePath(spare);
+        expect(doc.additionTarget()).toEqual({ assembly, members: [spare] });
+
+        doc.select(spare);
+        doc.togglePath(assembly);
+        expect(doc.additionTarget()).toEqual({ assembly, members: [spare] });
+
+        // Only modules picked: nothing to add them to.
+        doc.select(spare);
+        expect(doc.additionTarget()).toBeNull();
+    });
+
+    it("takes the last of several assemblies as the target, and the others as members", () => {
+        const doc = new EditorDocument({
+            name: "Three",
+            assemblies: { a: { modules: [{ kind: "structure", x: 0, y: 0, length: 1, width: 1 }] } },
+            modules: [
+                { kind: "core", x: 0, y: 0, length: 2, width: 2 },
+                { use: "a", x: 2, y: 0 },
+                { use: "a", x: 4, y: 0 },
+                { kind: "structure", x: -2, y: 0, length: 2, width: 2 },
+            ],
+        });
+        const at = (index: number): ModulePath => [{ index, copy: 0 }];
+        doc.select(at(1));
+        doc.togglePath(at(2));
+        doc.togglePath(at(3));
+        expect(doc.additionTarget()).toEqual({ assembly: at(2), members: [at(1), at(3)] });
+    });
 });
 
 /** A ship's modules as a set, rounded, so two layouts can be compared however they are written. */
 function drawn(blueprint: Blueprint): string[] {
-  const r = (v: number) => Math.round(v * 1e6) / 1e6 + 0;
-  return expandBlueprint(blueprint)
-    .map((m) => {
-      const mid = moduleCentre(m);
-      const turn = ((((m.angle ?? 0) % (2 * Math.PI)) + 3 * Math.PI) % (2 * Math.PI)) - Math.PI;
-      return `${m.kind} ${r(mid.x)} ${r(mid.y)} ${r(turn)} ${m.length}x${m.width}`;
-    })
-    .sort();
+    const r = (v: number) => Math.round(v * 1e6) / 1e6 + 0;
+    return expandBlueprint(blueprint)
+        .map((m) => {
+            const mid = moduleCentre(m);
+            const turn = ((((m.angle ?? 0) % (2 * Math.PI)) + 3 * Math.PI) % (2 * Math.PI)) - Math.PI;
+            return `${m.kind} ${r(mid.x)} ${r(mid.y)} ${r(turn)} ${m.length}x${m.width}`;
+        })
+        .sort();
 }
 
-describe('nesting assemblies', () => {
-  const bar: ModuleSpec = { kind: 'structure', x: 0, y: 0, length: 2, width: 1 };
-  /**
-   * A hull, an assembly `pod` placed turned and reflected, and an assembly
-   * `boom` that already places `pod` inside it.
-   */
-  const layout = (): Blueprint => ({
-    name: 'Nest',
-    assemblies: {
-      pod: {
+describe("nesting assemblies", () => {
+    const bar: ModuleSpec = { kind: "structure", x: 0, y: 0, length: 2, width: 1 };
+    /**
+     * A hull, an assembly `pod` placed turned and reflected, and an assembly
+     * `boom` that already places `pod` inside it.
+     */
+    const layout = (): Blueprint => ({
+        name: "Nest",
+        assemblies: {
+            pod: {
+                modules: [
+                    { ...bar, x: 1 },
+                    { kind: "engine", x: 2, y: 0.5, angle: math.HALF_PI, length: 1, width: 1 },
+                ],
+            },
+            boom: {
+                modules: [
+                    { ...bar, x: 0, y: 0 },
+                    { use: "pod", x: 0, y: 2, angle: 0.5 },
+                ],
+            },
+        },
         modules: [
-          { ...bar, x: 1 },
-          { kind: 'engine', x: 2, y: 0.5, angle: math.HALF_PI, length: 1, width: 1 },
+            { kind: "core", x: 0, y: 0, length: 4, width: 4 },
+            { use: "pod", x: 6, y: 1, angle: math.HALF_PI, mirror: true },
+            { use: "boom", x: -6, y: 0, angle: 1, mirror: true, repeat: 2, step: { x: 0, y: 3 } },
+            { ...bar, x: 3, y: -3 },
         ],
-      },
-      boom: {
-        modules: [
-          { ...bar, x: 0, y: 0 },
-          { use: 'pod', x: 0, y: 2, angle: 0.5 },
-        ],
-      },
-    },
-    modules: [
-      { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
-      { use: 'pod', x: 6, y: 1, angle: math.HALF_PI, mirror: true },
-      { use: 'boom', x: -6, y: 0, angle: 1, mirror: true, repeat: 2, step: { x: 0, y: 3 } },
-      { ...bar, x: 3, y: -3 },
-    ],
-  });
-  const at = (index: number): ModulePath => [{ index, copy: 0 }];
+    });
+    const at = (index: number): ModulePath => [{ index, copy: 0 }];
 
-  it('makes an assembly out of assemblies and modules together, leaving the ship where it was', () => {
-    const before = layout();
-    expect(createAssemblyProblem(before, [at(1), at(2), at(3)])).toBeNull();
-    const made = createAssembly(before, [at(1), at(2), at(3)])!;
-    expect(drawn(made.blueprint)).toEqual(drawn(before));
-    const instance = placementAt(made.blueprint, made.path) as AssemblyInstance;
-    const inside = made.blueprint.assemblies![instance.use]!.modules;
-    expect(inside.filter((m) => 'use' in m)).toHaveLength(2);
-  });
+    it("makes an assembly out of assemblies and modules together, leaving the ship where it was", () => {
+        const before = layout();
+        expect(createAssemblyProblem(before, [at(1), at(2), at(3)])).toBeNull();
+        const made = createAssembly(before, [at(1), at(2), at(3)])!;
+        expect(drawn(made.blueprint)).toEqual(drawn(before));
+        const instance = placementAt(made.blueprint, made.path) as AssemblyInstance;
+        const inside = made.blueprint.assemblies![instance.use]!.modules;
+        expect(inside.filter((m) => "use" in m)).toHaveLength(2);
+    });
 
-  it('adds an assembly to another, through a turned and reflected pose, leaving the ship where it was', () => {
-    const before = layout();
-    expect(addToAssemblyProblem(before, at(2), [at(1), at(3)])).toBeNull();
-    const added = addToAssembly(before, at(2), [at(1), at(3)])!;
-    // `boom` is placed twice, so it gains a copy of each in each of them.
-    const once = new Set(drawn(before));
-    const after = drawn(added.blueprint);
-    for (const line of drawn(before)) expect(after).toContain(line);
-    expect(after.length).toBe(once.size + 3);
-    expect(placementAt(added.blueprint, added.path)).toMatchObject({ use: 'boom' });
-  });
+    it("adds an assembly to another, through a turned and reflected pose, leaving the ship where it was", () => {
+        const before = layout();
+        expect(addToAssemblyProblem(before, at(2), [at(1), at(3)])).toBeNull();
+        const added = addToAssembly(before, at(2), [at(1), at(3)])!;
+        // `boom` is placed twice, so it gains a copy of each in each of them.
+        const once = new Set(drawn(before));
+        const after = drawn(added.blueprint);
+        for (const line of drawn(before)) expect(after).toContain(line);
+        expect(after.length).toBe(once.size + 3);
+        expect(placementAt(added.blueprint, added.path)).toMatchObject({ use: "boom" });
+    });
 
-  it('adds an assembly placed once without changing the ship at all', () => {
-    const before = layout();
-    const single = {
-      ...before,
-      modules: before.modules.map((m) => ('use' in m && m.use === 'boom' ? { ...m, repeat: undefined, step: undefined } : m)),
-    } as Blueprint;
-    const added = addToAssembly(single, at(2), [at(1), at(3)])!;
-    expect(drawn(added.blueprint)).toEqual(drawn(single));
-  });
+    it("adds an assembly placed once without changing the ship at all", () => {
+        const before = layout();
+        const single = {
+            ...before,
+            modules: before.modules.map((m) => ("use" in m && m.use === "boom" ? { ...m, repeat: undefined, step: undefined } : m)),
+        } as Blueprint;
+        const added = addToAssembly(single, at(2), [at(1), at(3)])!;
+        expect(drawn(added.blueprint)).toEqual(drawn(single));
+    });
 
-  it('never puts an assembly inside itself, however deep', () => {
-    const before = layout();
-    expect(addToAssemblyProblem(before, at(1), [at(2)])).toMatch(/boom would end up inside itself/);
-    const twice = duplicateInstance(before, at(1))!;
-    expect(addToAssemblyProblem(twice.blueprint, at(1), [twice.path])).toMatch(/inside itself/);
-    expect(addToAssemblyProblem(before, at(1), [at(1)])).toMatch(/itself/);
-  });
+    it("never puts an assembly inside itself, however deep", () => {
+        const before = layout();
+        expect(addToAssemblyProblem(before, at(1), [at(2)])).toMatch(/boom would end up inside itself/);
+        const twice = duplicateInstance(before, at(1))!;
+        expect(addToAssemblyProblem(twice.blueprint, at(1), [twice.path])).toMatch(/inside itself/);
+        expect(addToAssemblyProblem(before, at(1), [at(1)])).toMatch(/itself/);
+    });
 });
 
-describe('dissolving an assembly', () => {
-  const bar: ModuleSpec = { kind: 'structure', x: 0, y: 0, length: 2, width: 1 };
-  const layout = (): Blueprint => ({
-    name: 'Dissolve',
-    assemblies: {
-      pod: {
+describe("dissolving an assembly", () => {
+    const bar: ModuleSpec = { kind: "structure", x: 0, y: 0, length: 2, width: 1 };
+    const layout = (): Blueprint => ({
+        name: "Dissolve",
+        assemblies: {
+            pod: {
+                modules: [
+                    { ...bar, x: 1 },
+                    { kind: "engine", x: 2, y: 0.5, angle: math.HALF_PI, length: 1, width: 1 },
+                ],
+            },
+            boom: { modules: [{ ...bar }, { use: "pod", x: 0, y: 2, angle: 0.5 }] },
+        },
         modules: [
-          { ...bar, x: 1 },
-          { kind: 'engine', x: 2, y: 0.5, angle: math.HALF_PI, length: 1, width: 1 },
+            { kind: "core", x: 0, y: 0, length: 4, width: 4 },
+            { use: "pod", x: 6, y: 1, angle: math.HALF_PI, mirror: true },
+            {
+                use: "boom",
+                x: -6,
+                y: 0,
+                angle: 1,
+                mirror: true,
+                repeat: 2,
+                step: { x: 0, y: 3, angle: 0.25 },
+            },
+            { ...bar, x: 3, y: -3 },
         ],
-      },
-      boom: { modules: [{ ...bar }, { use: 'pod', x: 0, y: 2, angle: 0.5 }] },
-    },
-    modules: [
-      { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
-      { use: 'pod', x: 6, y: 1, angle: math.HALF_PI, mirror: true },
-      {
-        use: 'boom',
-        x: -6,
-        y: 0,
-        angle: 1,
-        mirror: true,
-        repeat: 2,
-        step: { x: 0, y: 3, angle: 0.25 },
-      },
-      { ...bar, x: 3, y: -3 },
-    ],
-  });
-  const at = (index: number): ModulePath => [{ index, copy: 0 }];
+    });
+    const at = (index: number): ModulePath => [{ index, copy: 0 }];
 
-  it('leaves a plain copy compiling to exactly the same ship, in the same order', () => {
-    const before = layout();
-    const dissolved = dissolveInstance(before, at(1))!;
-    expect(expandBlueprint(dissolved.blueprint)).toEqual(expandBlueprint(before));
-    expect(dissolved.paths).toEqual([at(1), at(2)]);
-  });
+    it("leaves a plain copy compiling to exactly the same ship, in the same order", () => {
+        const before = layout();
+        const dissolved = dissolveInstance(before, at(1))!;
+        expect(expandBlueprint(dissolved.blueprint)).toEqual(expandBlueprint(before));
+        expect(dissolved.paths).toEqual([at(1), at(2)]);
+    });
 
-  it('keeps the other copies linked, and the definition while anything places it', () => {
-    const twice = duplicateInstance(layout(), at(1))!.blueprint;
-    const dissolved = dissolveInstance(twice, at(1))!.blueprint;
-    expect(dissolved.assemblies!.pod).toBeDefined();
-    expect(dissolved.modules.filter((m) => 'use' in m && m.use === 'pod')).toHaveLength(1);
-  });
+    it("keeps the other copies linked, and the definition while anything places it", () => {
+        const twice = duplicateInstance(layout(), at(1))!.blueprint;
+        const dissolved = dissolveInstance(twice, at(1))!.blueprint;
+        expect(dissolved.assemblies!.pod).toBeDefined();
+        expect(dissolved.modules.filter((m) => "use" in m && m.use === "pod")).toHaveLength(1);
+    });
 
-  it('drops a definition nothing places any more', () => {
-    const dissolved = dissolveInstance(layout(), at(1))!.blueprint;
-    // `boom` still places `pod`, so it stays.
-    expect(dissolved.assemblies!.pod).toBeDefined();
-    const again = dissolveInstance(dissolved, at(3))!.blueprint;
-    expect(again.assemblies!.boom).toBeUndefined();
-  });
+    it("drops a definition nothing places any more", () => {
+        const dissolved = dissolveInstance(layout(), at(1))!.blueprint;
+        // `boom` still places `pod`, so it stays.
+        expect(dissolved.assemblies!.pod).toBeDefined();
+        const again = dissolveInstance(dissolved, at(3))!.blueprint;
+        expect(again.assemblies!.boom).toBeUndefined();
+    });
 
-  it('takes a repeated, turned, reflected copy apart one level', () => {
-    const before = layout();
-    const dissolved = dissolveInstance(before, at(2))!;
-    expect(drawn(dissolved.blueprint)).toEqual(drawn(before));
-    // Two copies of a bar and a nested pod.
-    expect(dissolved.paths).toHaveLength(4);
-    const pods = dissolved.paths.map((path) => placementAt(dissolved.blueprint, path)!);
-    expect(pods.filter((p) => 'use' in p && p.use === 'pod')).toHaveLength(2);
-  });
+    it("takes a repeated, turned, reflected copy apart one level", () => {
+        const before = layout();
+        const dissolved = dissolveInstance(before, at(2))!;
+        expect(drawn(dissolved.blueprint)).toEqual(drawn(before));
+        // Two copies of a bar and a nested pod.
+        expect(dissolved.paths).toHaveLength(4);
+        const pods = dissolved.paths.map((path) => placementAt(dissolved.blueprint, path)!);
+        expect(pods.filter((p) => "use" in p && p.use === "pod")).toHaveLength(2);
+    });
 
-  it('works on an assembly inside another, changing every copy of the outer one alike', () => {
-    const before = layout();
-    const nested: ModulePath = [
-      { index: 2, copy: 0, into: 'assembly', assembly: 'boom' },
-      { index: 1, copy: 0 },
-    ];
-    const dissolved = dissolveInstance(before, nested)!;
-    expect(drawn(dissolved.blueprint)).toEqual(drawn(before));
-    expect(dissolved.blueprint.assemblies!.boom!.modules).toHaveLength(3);
-  });
+    it("works on an assembly inside another, changing every copy of the outer one alike", () => {
+        const before = layout();
+        const nested: ModulePath = [
+            { index: 2, copy: 0, into: "assembly", assembly: "boom" },
+            { index: 1, copy: 0 },
+        ];
+        const dissolved = dissolveInstance(before, nested)!;
+        expect(drawn(dissolved.blueprint)).toEqual(drawn(before));
+        expect(dissolved.blueprint.assemblies!.boom!.modules).toHaveLength(3);
+    });
 
-  it('refuses a module', () => {
-    expect(dissolveInstance(layout(), at(0))).toBeNull();
-  });
+    it("refuses a module", () => {
+        expect(dissolveInstance(layout(), at(0))).toBeNull();
+    });
 });
 
-describe('adding a module to an assembly', () => {
-  it('puts it in the definition, at the origin, so every copy gains one', () => {
+describe("adding a module to an assembly", () => {
+    it("puts it in the definition, at the origin, so every copy gains one", () => {
+        const bp: Blueprint = {
+            name: "Pods",
+            assemblies: { pod: { modules: [{ kind: "structure", x: 1, y: 0, length: 2, width: 2 }] } },
+            modules: [
+                { kind: "core", x: 0, y: 0, length: 4, width: 4 },
+                { use: "pod", x: 3, y: 0 },
+                { use: "pod", x: -3, y: 0, angle: Math.PI, mirror: true },
+            ],
+        };
+        const spec: ModuleSpec = { kind: "turret", x: 0, y: 0, angle: 0, length: 1, width: 1 };
+        const added = addModuleTo(bp, [{ index: 1, copy: 0 }], spec)!;
+        expect(placementAt(added.blueprint, added.path)).toEqual(spec);
+        expect(added.blueprint.assemblies!["pod"]!.modules).toHaveLength(2);
+        const turrets = expandBlueprint(added.blueprint).filter((m) => m.kind === "turret");
+        expect(turrets.map((m) => [m.x, m.y])).toEqual([
+            [3, 0],
+            [-3, 0],
+        ]);
+        expect(new EditorDocument(added.blueprint).accountedFor(added.path)).toBe(2);
+    });
+
+    it("adds nothing to what is not an assembly", () => {
+        const spec: ModuleSpec = { kind: "structure", x: 0, y: 0, length: 1, width: 1 };
+        expect(addModuleTo(CORVETTE, [{ index: 0, copy: 0 }], spec)).toBeNull();
+    });
+});
+
+describe("where a drawn copy of an assembly sits", () => {
     const bp: Blueprint = {
-      name: 'Pods',
-      assemblies: { pod: { modules: [{ kind: 'structure', x: 1, y: 0, length: 2, width: 2 }] } },
-      modules: [
-        { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
-        { use: 'pod', x: 3, y: 0 },
-        { use: 'pod', x: -3, y: 0, angle: Math.PI, mirror: true },
-      ],
-    };
-    const spec: ModuleSpec = { kind: 'turret', x: 0, y: 0, angle: 0, length: 1, width: 1 };
-    const added = addModuleTo(bp, [{ index: 1, copy: 0 }], spec)!;
-    expect(placementAt(added.blueprint, added.path)).toEqual(spec);
-    expect(added.blueprint.assemblies!['pod']!.modules).toHaveLength(2);
-    const turrets = expandBlueprint(added.blueprint).filter((m) => m.kind === 'turret');
-    expect(turrets.map((m) => [m.x, m.y])).toEqual([
-      [3, 0],
-      [-3, 0],
-    ]);
-    expect(new EditorDocument(added.blueprint).accountedFor(added.path)).toBe(2);
-  });
-
-  it('adds nothing to what is not an assembly', () => {
-    const spec: ModuleSpec = { kind: 'structure', x: 0, y: 0, length: 1, width: 1 };
-    expect(addModuleTo(CORVETTE, [{ index: 0, copy: 0 }], spec)).toBeNull();
-  });
-});
-
-describe('where a drawn copy of an assembly sits', () => {
-  const bp: Blueprint = {
-    name: 'Poses',
-    assemblies: {
-      pod: { modules: [{ kind: 'structure', x: 1, y: 0.5, length: 2, width: 1 }] },
-      boom: { modules: [{ use: 'pod', x: 0, y: 2, angle: math.HALF_PI }] },
-    },
-    modules: [
-      { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
-      { use: 'boom', x: 5, y: 1, mirror: true, repeat: 2, step: { x: 3, y: 0 } },
-    ],
-  };
-
-  it('reads the origin and turn off the expansion, through nesting and reflection', () => {
-    const outer = instancePose(bp, [{ index: 1, copy: 0 }])!;
-    expect(outer).toMatchObject({ x: 5, y: 1, rotation: 0, mirrored: true });
-    const inner: ModulePath = [
-      { index: 1, copy: 0, into: 'assembly', assembly: 'boom' },
-      { index: 0, copy: 0 },
-    ];
-    const pose = instancePose(bp, inner)!;
-    // Reflected, the boom puts the pod at y - 2 and turns it the other way.
-    expect(pose.x).toBeCloseTo(5, 12);
-    expect(pose.y).toBeCloseTo(-1, 12);
-    expect(pose.rotation).toBeCloseTo(-math.HALF_PI, 12);
-    expect(pose.written).toEqual({ rotation: 0, mirrored: true });
-  });
-
-  it('finds the copy asked for among a repeat', () => {
-    const drawn = expandWithOrigins(bp);
-    const second = drawn.origins.findIndex((o) => o.path[0]!.copy === 1);
-    const pose = instancePose(bp, [{ index: 1, copy: 0 }], drawn.origins[second]!.path)!;
-    expect(pose.x).toBeCloseTo(8, 12);
-  });
-
-  it('is nothing for what is not an assembly', () => {
-    expect(instancePose(bp, [{ index: 0, copy: 0 }])).toBeNull();
-  });
-});
-
-describe('deleting an assembly', () => {
-  const bp: Blueprint = {
-    name: 'Pods',
-    assemblies: {
-      pod: { modules: [{ kind: 'structure', x: 0, y: 0, length: 1, width: 1 }] },
-      boom: { modules: [{ use: 'pod', x: 0, y: 0 }] },
-      spare: { modules: [{ kind: 'structure', x: 0, y: 0, length: 1, width: 1 }] },
-    },
-    modules: [
-      { kind: 'core', x: 0, y: 0, length: 2, width: 2 },
-      { use: 'boom', x: 2, y: 0 },
-      { use: 'pod', x: -2, y: 0 },
-    ],
-  };
-  const at = (index: number): ModulePath => [{ index, copy: 0 }];
-
-  it('takes the definition with its last copy, and what only it placed', () => {
-    const once = removeInstance(bp, at(2))!;
-    // The boom still places a pod, so the pod stays.
-    expect(Object.keys(once.assemblies!)).toEqual(['pod', 'boom', 'spare']);
-    const twice = removeInstance(once, at(1))!;
-    expect(twice.modules).toHaveLength(1);
-    // One nobody placed to begin with is not this delete's business.
-    expect(Object.keys(twice.assemblies!)).toEqual(['spare']);
-  });
-
-  it('deletes nothing that is not an assembly', () => {
-    expect(removeInstance(bp, at(0))).toBeNull();
-  });
-});
-
-describe('naming an assembly', () => {
-  /** A layout with two assemblies, so a name can collide with one that exists. */
-  function twoAssemblies(): { doc: EditorDocument; first: ModulePath; second: ModulePath } {
-    const doc = new EditorDocument(
-      ship({
+        name: "Poses",
+        assemblies: {
+            pod: { modules: [{ kind: "structure", x: 1, y: 0.5, length: 2, width: 1 }] },
+            boom: { modules: [{ use: "pod", x: 0, y: 2, angle: math.HALF_PI }] },
+        },
         modules: [
-          hull,
-          { kind: 'structure', x: 0, y: 6, length: 4, width: 6 },
-          { kind: 'turret', x: 4, y: 9, length: 4, width: 3, barrels: 1 },
-          { kind: 'structure', x: 0, y: -6, length: 4, width: 6 },
-          { kind: 'turret', x: 4, y: -9, length: 4, width: 3, barrels: 1 },
+            { kind: "core", x: 0, y: 0, length: 4, width: 4 },
+            { use: "boom", x: 5, y: 1, mirror: true, repeat: 2, step: { x: 3, y: 0 } },
         ],
-      }),
-    );
-    doc.selectModule(1);
-    doc.toggleModule(2);
-    const one = createAssembly(doc.blueprint, doc.selections)!;
-    doc.apply(one.blueprint);
-    // The other side, which the first assembling left where it was.
-    const after = new EditorDocument(doc.blueprint);
-    const lower = after.view.modules
-      .map((module, i) => ({ module, i }))
-      .filter(({ module }) => module.y < -1)
-      .map(({ i }) => i);
-    after.selectModule(lower[0]!);
-    after.toggleModule(lower[1]!);
-    const two = createAssembly(after.blueprint, after.selections)!;
-    after.apply(two.blueprint);
-    // Found afterwards rather than kept: the second assembling took modules out
-    // of the same list the first instance sits in, so the path it was made
-    // with no longer names it.
-    const instances = after.blueprint.modules
-      .map((placement, index) => ({ placement, index }))
-      .filter(({ placement }) => 'use' in placement)
-      .map(({ index }) => [{ index, copy: 0 }] as ModulePath);
-    return { doc: after, first: instances[0]!, second: instances[1]! };
-  }
+    };
 
-  it('renames the definition and every instance that names it', () => {
-    const { doc, first } = twoAssemblies();
-    const before = positions(doc.blueprint).sort();
-    const next = renameAssembly(doc.blueprint, first, 'port wing')!;
+    it("reads the origin and turn off the expansion, through nesting and reflection", () => {
+        const outer = instancePose(bp, [{ index: 1, copy: 0 }])!;
+        expect(outer).toMatchObject({ x: 5, y: 1, rotation: 0, mirrored: true });
+        const inner: ModulePath = [
+            { index: 1, copy: 0, into: "assembly", assembly: "boom" },
+            { index: 0, copy: 0 },
+        ];
+        const pose = instancePose(bp, inner)!;
+        // Reflected, the boom puts the pod at y - 2 and turns it the other way.
+        expect(pose.x).toBeCloseTo(5, 12);
+        expect(pose.y).toBeCloseTo(-1, 12);
+        expect(pose.rotation).toBeCloseTo(-math.HALF_PI, 12);
+        expect(pose.written).toEqual({ rotation: 0, mirrored: true });
+    });
 
-    expect(Object.keys(next.assemblies!)).toContain('port wing');
-    expect(placementAt(next, first)).toHaveProperty('use', 'port wing');
-    // A `use` left pointing at the old name would place nothing, so the ship
-    // itself is the check that both halves of the rename happened.
-    expect(positions(next).sort()).toEqual(before);
-  });
+    it("finds the copy asked for among a repeat", () => {
+        const drawn = expandWithOrigins(bp);
+        const second = drawn.origins.findIndex((o) => o.path[0]!.copy === 1);
+        const pose = instancePose(bp, [{ index: 1, copy: 0 }], drawn.origins[second]!.path)!;
+        expect(pose.x).toBeCloseTo(8, 12);
+    });
 
-  it('refuses a name that is blank or already another assembly’s', () => {
-    const { doc, first, second } = twoAssemblies();
-    const taken = (placementAt(doc.blueprint, second) as { use: string }).use;
-    expect(renameProblem(doc.blueprint, first, '  ')).toMatch(/needs a name/);
-    expect(renameProblem(doc.blueprint, first, taken)).toMatch(/already called/);
-    expect(renameAssembly(doc.blueprint, first, taken)).toBeNull();
-    // Its own name is not a collision with itself.
-    const own = (placementAt(doc.blueprint, first) as { use: string }).use;
-    expect(renameProblem(doc.blueprint, first, own)).toBeNull();
-  });
-
-  it('is offered for an assembly and not for a module', () => {
-    const { doc } = twoAssemblies();
-    const loose = doc.view.origins[0]!.path;
-    expect(renameProblem(doc.blueprint, loose, 'anything')).toMatch(/Only an assembly/);
-  });
-
-  it('keeps the table in order, so a rename is one line of a diff', () => {
-    const { doc, first, second } = twoAssemblies();
-    const order = Object.keys(doc.blueprint.assemblies!);
-    const at = order.indexOf((placementAt(doc.blueprint, first) as { use: string }).use);
-    const next = renameAssembly(doc.blueprint, first, 'nose')!;
-    expect(Object.keys(next.assemblies!)[at]).toBe('nose');
-    expect(Object.keys(next.assemblies!)).toHaveLength(order.length);
-    expect(placementAt(next, second)).toHaveProperty('use', order[1 - at]);
-  });
+    it("is nothing for what is not an assembly", () => {
+        expect(instancePose(bp, [{ index: 0, copy: 0 }])).toBeNull();
+    });
 });
 
-describe('what an assembly weighs', () => {
-  it('sums the same masses the ship totals are summed from', () => {
-    const parts: ModuleSpec[] = [
-      { kind: 'structure', x: 0, y: 6, length: 4, width: 6 },
-      { kind: 'turret', x: 4, y: 9, length: 4, width: 3, barrels: 1 },
-    ];
-    const each = parts.map((spec) => moduleStats(spec).mass);
-    expect(assemblyMass(parts, [0, 1])).toBeCloseTo(each[0]! + each[1]!, 9);
-    expect(assemblyMass(parts, [])).toBe(0);
-  });
+describe("deleting an assembly", () => {
+    const bp: Blueprint = {
+        name: "Pods",
+        assemblies: {
+            pod: { modules: [{ kind: "structure", x: 0, y: 0, length: 1, width: 1 }] },
+            boom: { modules: [{ use: "pod", x: 0, y: 0 }] },
+            spare: { modules: [{ kind: "structure", x: 0, y: 0, length: 1, width: 1 }] },
+        },
+        modules: [
+            { kind: "core", x: 0, y: 0, length: 2, width: 2 },
+            { use: "boom", x: 2, y: 0 },
+            { use: "pod", x: -2, y: 0 },
+        ],
+    };
+    const at = (index: number): ModulePath => [{ index, copy: 0 }];
+
+    it("takes the definition with its last copy, and what only it placed", () => {
+        const once = removeInstance(bp, at(2))!;
+        // The boom still places a pod, so the pod stays.
+        expect(Object.keys(once.assemblies!)).toEqual(["pod", "boom", "spare"]);
+        const twice = removeInstance(once, at(1))!;
+        expect(twice.modules).toHaveLength(1);
+        // One nobody placed to begin with is not this delete's business.
+        expect(Object.keys(twice.assemblies!)).toEqual(["spare"]);
+    });
+
+    it("deletes nothing that is not an assembly", () => {
+        expect(removeInstance(bp, at(0))).toBeNull();
+    });
 });
 
-describe('a module being added', () => {
-  const tank: ModuleSpec = { kind: 'tank', x: 0, y: 0, length: 6, width: 4 };
+describe("naming an assembly", () => {
+    /** A layout with two assemblies, so a name can collide with one that exists. */
+    function twoAssemblies(): { doc: EditorDocument; first: ModulePath; second: ModulePath } {
+        const doc = new EditorDocument(
+            ship({
+                modules: [
+                    hull,
+                    { kind: "structure", x: 0, y: 6, length: 4, width: 6 },
+                    { kind: "turret", x: 4, y: 9, length: 4, width: 3, barrels: 1 },
+                    { kind: "structure", x: 0, y: -6, length: 4, width: 6 },
+                    { kind: "turret", x: 4, y: -9, length: 4, width: 3, barrels: 1 },
+                ],
+            }),
+        );
+        doc.selectModule(1);
+        doc.toggleModule(2);
+        const one = createAssembly(doc.blueprint, doc.selections)!;
+        doc.apply(one.blueprint);
+        // The other side, which the first assembling left where it was.
+        const after = new EditorDocument(doc.blueprint);
+        const lower = after.view.modules
+            .map((module, i) => ({ module, i }))
+            .filter(({ module }) => module.y < -1)
+            .map(({ i }) => i);
+        after.selectModule(lower[0]!);
+        after.toggleModule(lower[1]!);
+        const two = createAssembly(after.blueprint, after.selections)!;
+        after.apply(two.blueprint);
+        // Found afterwards rather than kept: the second assembling took modules out
+        // of the same list the first instance sits in, so the path it was made
+        // with no longer names it.
+        const instances = after.blueprint.modules
+            .map((placement, index) => ({ placement, index }))
+            .filter(({ placement }) => "use" in placement)
+            .map(({ index }) => [{ index, copy: 0 }] as ModulePath);
+        return { doc: after, first: instances[0]!, second: instances[1]! };
+    }
 
-  it('arrives at the origin, at its usual size, while the origin is on screen', () => {
-    expect(arrivingModule(tank, { x: 10, y: -5, width: 100, height: 60 }, 0.5)).toEqual(tank);
-  });
+    it("renames the definition and every instance that names it", () => {
+        const { doc, first } = twoAssemblies();
+        const before = positions(doc.blueprint).sort();
+        const next = renameAssembly(doc.blueprint, first, "port wing")!;
 
-  it('arrives in the middle of the view, on the grid, when the origin is off it', () => {
-    const added = arrivingModule(tank, { x: 412.3, y: -87.6, width: 100, height: 60 }, 0.5);
-    expect([added.x, added.y]).toEqual([412.5, -87.5]);
-    expect([added.length, added.width]).toEqual([6, 4]);
-  });
+        expect(Object.keys(next.assemblies!)).toContain("port wing");
+        expect(placementAt(next, first)).toHaveProperty("use", "port wing");
+        // A `use` left pointing at the old name would place nothing, so the ship
+        // itself is the check that both halves of the rename happened.
+        expect(positions(next).sort()).toEqual(before);
+    });
 
-  it('is sized to the view when its usual size would be a speck or fill it', () => {
-    // Out over a kilometre of hull: an eighth of the view, squared to the grid.
-    const big = arrivingModule(tank, { x: 0, y: 0, width: 2000, height: 1200 }, 10);
-    expect([big.length, big.width]).toEqual([150, 100]);
-    // In on a drone: the same share, and never smaller than a grid step.
-    const small = arrivingModule(tank, { x: 0, y: 0, width: 4, height: 3 }, 0.01);
-    expect([small.length, small.width]).toEqual([0.38, 0.25]);
-  });
+    it("refuses a name that is blank or already another assembly’s", () => {
+        const { doc, first, second } = twoAssemblies();
+        const taken = (placementAt(doc.blueprint, second) as { use: string }).use;
+        expect(renameProblem(doc.blueprint, first, "  ")).toMatch(/needs a name/);
+        expect(renameProblem(doc.blueprint, first, taken)).toMatch(/already called/);
+        expect(renameAssembly(doc.blueprint, first, taken)).toBeNull();
+        // Its own name is not a collision with itself.
+        const own = (placementAt(doc.blueprint, first) as { use: string }).use;
+        expect(renameProblem(doc.blueprint, first, own)).toBeNull();
+    });
+
+    it("is offered for an assembly and not for a module", () => {
+        const { doc } = twoAssemblies();
+        const loose = doc.view.origins[0]!.path;
+        expect(renameProblem(doc.blueprint, loose, "anything")).toMatch(/Only an assembly/);
+    });
+
+    it("keeps the table in order, so a rename is one line of a diff", () => {
+        const { doc, first, second } = twoAssemblies();
+        const order = Object.keys(doc.blueprint.assemblies!);
+        const at = order.indexOf((placementAt(doc.blueprint, first) as { use: string }).use);
+        const next = renameAssembly(doc.blueprint, first, "nose")!;
+        expect(Object.keys(next.assemblies!)[at]).toBe("nose");
+        expect(Object.keys(next.assemblies!)).toHaveLength(order.length);
+        expect(placementAt(next, second)).toHaveProperty("use", order[1 - at]);
+    });
+});
+
+describe("what an assembly weighs", () => {
+    it("sums the same masses the ship totals are summed from", () => {
+        const parts: ModuleSpec[] = [
+            { kind: "structure", x: 0, y: 6, length: 4, width: 6 },
+            { kind: "turret", x: 4, y: 9, length: 4, width: 3, barrels: 1 },
+        ];
+        const each = parts.map((spec) => moduleStats(spec).mass);
+        expect(assemblyMass(parts, [0, 1])).toBeCloseTo(each[0]! + each[1]!, 9);
+        expect(assemblyMass(parts, [])).toBe(0);
+    });
+});
+
+describe("a module being added", () => {
+    const tank: ModuleSpec = { kind: "tank", x: 0, y: 0, length: 6, width: 4 };
+
+    it("arrives at the origin, at its usual size, while the origin is on screen", () => {
+        expect(arrivingModule(tank, { x: 10, y: -5, width: 100, height: 60 }, 0.5)).toEqual(tank);
+    });
+
+    it("arrives in the middle of the view, on the grid, when the origin is off it", () => {
+        const added = arrivingModule(tank, { x: 412.3, y: -87.6, width: 100, height: 60 }, 0.5);
+        expect([added.x, added.y]).toEqual([412.5, -87.5]);
+        expect([added.length, added.width]).toEqual([6, 4]);
+    });
+
+    it("is sized to the view when its usual size would be a speck or fill it", () => {
+        // Out over a kilometre of hull: an eighth of the view, squared to the grid.
+        const big = arrivingModule(tank, { x: 0, y: 0, width: 2000, height: 1200 }, 10);
+        expect([big.length, big.width]).toEqual([150, 100]);
+        // In on a drone: the same share, and never smaller than a grid step.
+        const small = arrivingModule(tank, { x: 0, y: 0, width: 4, height: 3 }, 0.01);
+        expect([small.length, small.width]).toEqual([0.38, 0.25]);
+    });
 });

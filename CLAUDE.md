@@ -37,11 +37,11 @@ On every check-in on an open PR, first bring it up to date with `master`: merge 
 any conflicts, and push, even when nothing conflicts. That way CI is always run against current `master`, and a
 branch never drifts far behind it.
 
-**Never run the full test suite locally; CI runs it.** No `npm test` without a file filter, no `npm run
-test:browser`, and no whole `npm run golden` — not before a push, not after merging `master`, and not to check a
+**Never run the full test suite locally; CI runs it.** No `pnpm test` without a file filter, no `pnpm
+test:browser`, and no whole `pnpm golden` — not before a push, not after merging `master`, and not to check a
 re-recorded golden. The suites take long enough that running them locally costs more than a red CI run does. Run
-only the test files that bear on what changed (`npx vitest run tests/<file>.test.ts`), the typecheck and
-`npm run format:check`; then push, and fix whatever CI finds. A golden that moved is re-derived by running that
+only the test files that bear on what changed (`pnpm exec vitest run tests/<file>.test.ts`), the typecheck and
+`pnpm format:check`; then push, and fix whatever CI finds. A golden that moved is re-derived by running that
 scenario alone.
 
 Don't make comments too verbose, make sure they're short enough that people will actually read them, 

@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
-import { formatChecksum } from '../sim/checksum.js';
-import { SCENARIO_TIMEOUT, SCENARIOS, type ScenarioName } from './fixtures/scenarios.js';
+import { describe, expect, it } from "vitest";
+import { formatChecksum } from "../sim/checksum.js";
+import { SCENARIO_TIMEOUT, SCENARIOS, type ScenarioName } from "./fixtures/scenarios.js";
 
 /**
  * Golden tests: the simulation's behaviour, pinned.
@@ -23,58 +23,58 @@ import { SCENARIO_TIMEOUT, SCENARIOS, type ScenarioName } from './fixtures/scena
  */
 
 const GOLDEN: Record<ScenarioName, string> = {
-  orbit: '0441a895',
-  tumble: '52118178',
-  gunnery: 'b2054d50',
-  duel: 'f5558b88',
-  beamDuel: '49f26cc5',
-  binary: '1bf85068',
-  kernels: '798e4dd3',
-  asteroidField: '9792c6cf',
-  mining: '3459e662',
-  rivalMines: '8fad8258',
-  swarm: 'f39dd5bf',
-  superSwarm: '04411af1',
-  torpedoes: '9561f099',
-  ordering: '40f2221a',
-  split: '7fbdb23e',
-  column: '073a0629',
-  standoff: 'a5f89b8c',
-  torchRun: '50953cc8',
-  hooked: 'd88cd28a',
-  broadside: '61790eb4',
-  salvageRun: '45d6c014',
-  mending: 'f63e907e',
-  refitting: '052760e4',
-  catamaranRefits: 'eb579586',
-  scavenge: 'fde3de85',
-  padRebuild: 'e144c19e',
-  factory: '6fb2fa8d',
-  shipyard: '4b069157',
-  rearm: 'dd016907',
-  tanker: 'b262ee58',
-  beamCarrier: 'cb2a9dbe',
-  passes: '816d4617',
-  circling: '7093734f',
+    orbit: "0441a895",
+    tumble: "52118178",
+    gunnery: "b2054d50",
+    duel: "f5558b88",
+    beamDuel: "49f26cc5",
+    binary: "1bf85068",
+    kernels: "798e4dd3",
+    asteroidField: "9792c6cf",
+    mining: "3459e662",
+    rivalMines: "8fad8258",
+    swarm: "f39dd5bf",
+    superSwarm: "04411af1",
+    torpedoes: "9561f099",
+    ordering: "40f2221a",
+    split: "7fbdb23e",
+    column: "073a0629",
+    standoff: "a5f89b8c",
+    torchRun: "50953cc8",
+    hooked: "d88cd28a",
+    broadside: "61790eb4",
+    salvageRun: "45d6c014",
+    mending: "f63e907e",
+    refitting: "052760e4",
+    catamaranRefits: "eb579586",
+    scavenge: "fde3de85",
+    padRebuild: "e144c19e",
+    factory: "6fb2fa8d",
+    shipyard: "4b069157",
+    rearm: "dd016907",
+    tanker: "b262ee58",
+    beamCarrier: "cb2a9dbe",
+    passes: "816d4617",
+    circling: "7093734f",
 };
 
-describe('golden scenarios', () => {
-  for (const name of Object.keys(GOLDEN) as ScenarioName[]) {
-    const scenario = SCENARIOS[name];
+describe("golden scenarios", () => {
+    for (const name of Object.keys(GOLDEN) as ScenarioName[]) {
+        const scenario = SCENARIOS[name];
 
-    it(
-      `${name} matches its recorded checksum after ${scenario.steps} steps`,
-      () => {
-        const run = scenario.build();
-        for (let i = 0; i < scenario.steps; i++) run.step();
-        expect(formatChecksum(run.checksum())).toBe(GOLDEN[name]);
-      },
-      SCENARIO_TIMEOUT,
-    );
-  }
+        it(
+            `${name} matches its recorded checksum after ${scenario.steps} steps`,
+            () => {
+                const run = scenario.build();
+                for (let i = 0; i < scenario.steps; i++) run.step();
+                expect(formatChecksum(run.checksum())).toBe(GOLDEN[name]);
+            },
+            SCENARIO_TIMEOUT,
+        );
+    }
 
-  it('covers every fixture scenario', () => {
-    // A new scenario without a golden constant would otherwise go unnoticed.
-    expect(Object.keys(GOLDEN).sort()).toEqual(Object.keys(SCENARIOS).sort());
-  });
+    it("covers every fixture scenario", () => {
+        // A new scenario without a golden constant would otherwise go unnoticed.
+        expect(Object.keys(GOLDEN).sort()).toEqual(Object.keys(SCENARIOS).sort());
+    });
 });

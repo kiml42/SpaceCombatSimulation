@@ -1,5 +1,5 @@
-import { parseBattleSetup, serialiseBattleSetup, type BattleSetup } from './customBattle.js';
-import { readLog, writeLog, type Logged } from './commands.js';
+import { parseBattleSetup, serialiseBattleSetup, type BattleSetup } from "./customBattle.js";
+import { readLog, writeLog, type Logged } from "./commands.js";
 
 /**
  * A custom battle carried whole in a link: the battle file, deflated and
@@ -13,38 +13,38 @@ import { readLog, writeLog, type Logged } from './commands.js';
  * the battle plays as it was fought.
  */
 
-const KEY = '#battle=';
+const KEY = "#battle=";
 
 /** The fragment that carries a battle, `#battle=` and all. */
 export async function battleFragment(setup: BattleSetup, orders: readonly Logged[] = []): Promise<string> {
-  const file = serialiseBattleSetup(setup);
-  const text = JSON.stringify(orders.length > 0 ? { ...file, ...writeLog(orders) } : file);
-  const packed = await pipe(new TextEncoder().encode(text), new CompressionStream('deflate-raw'));
-  return KEY + toBase64Url(packed);
+    const file = serialiseBattleSetup(setup);
+    const text = JSON.stringify(orders.length > 0 ? { ...file, ...writeLog(orders) } : file);
+    const packed = await pipe(new TextEncoder().encode(text), new CompressionStream("deflate-raw"));
+    return KEY + toBase64Url(packed);
 }
 
 /** The battle a fragment carries, and its orders, or null if it carries none. Throws on one it carries but cannot read. */
 export async function linkedBattle(hash: string): Promise<{ setup: BattleSetup; orders: Logged[] } | null> {
-  if (!hash.startsWith(KEY)) return null;
-  const unpacked = await pipe(fromBase64Url(hash.slice(KEY.length)), new DecompressionStream('deflate-raw'));
-  const { orders, designs, ...file } = JSON.parse(new TextDecoder().decode(unpacked)) as Record<string, unknown>;
-  return { setup: parseBattleSetup(file), orders: orders === undefined ? [] : readLog(orders, designs) };
+    if (!hash.startsWith(KEY)) return null;
+    const unpacked = await pipe(fromBase64Url(hash.slice(KEY.length)), new DecompressionStream("deflate-raw"));
+    const { orders, designs, ...file } = JSON.parse(new TextDecoder().decode(unpacked)) as Record<string, unknown>;
+    return { setup: parseBattleSetup(file), orders: orders === undefined ? [] : readLog(orders, designs) };
 }
 
 async function pipe(bytes: Uint8Array, through: CompressionStream | DecompressionStream): Promise<Uint8Array> {
-  const stream = new Blob([bytes as BlobPart]).stream().pipeThrough(through);
-  return new Uint8Array(await new Response(stream).arrayBuffer());
+    const stream = new Blob([bytes as BlobPart]).stream().pipeThrough(through);
+    return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
 function toBase64Url(bytes: Uint8Array): string {
-  let binary = '';
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    let binary = "";
+    for (const byte of bytes) binary += String.fromCharCode(byte);
+    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 function fromBase64Url(text: string): Uint8Array {
-  const binary = atob(text.replace(/-/g, '+').replace(/_/g, '/'));
-  const out = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i);
-  return out;
+    const binary = atob(text.replace(/-/g, "+").replace(/_/g, "/"));
+    const out = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i);
+    return out;
 }

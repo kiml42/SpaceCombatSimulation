@@ -1,21 +1,21 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 import {
-  DEFAULT_DOCTRINE,
-  blueprintFileProblem,
-  blueprintWarnings,
-  Ships,
-  SpatialGrid,
-  WEAPON_PLUME_SHARE,
-  World,
-  compileBlueprint,
-  parseBlueprint,
-  serialiseBlueprint,
-  moduleProblem,
-  nozzleReach,
-  engineGeometry,
-  type Blueprint,
-  type ModuleSpec,
-} from '../sim/index.js';
+    DEFAULT_DOCTRINE,
+    blueprintFileProblem,
+    blueprintWarnings,
+    Ships,
+    SpatialGrid,
+    WEAPON_PLUME_SHARE,
+    World,
+    compileBlueprint,
+    parseBlueprint,
+    serialiseBlueprint,
+    moduleProblem,
+    nozzleReach,
+    engineGeometry,
+    type Blueprint,
+    type ModuleSpec,
+} from "../sim/index.js";
 
 /**
  * An engine pointed at things on purpose.
@@ -31,31 +31,31 @@ const DT = 1 / 60;
 
 /** A ship that is one engine on a hull, pointing its exhaust along -x. */
 function tug(weapon: boolean): Blueprint {
-  const engine: ModuleSpec = {
-    kind: 'engine',
-    x: -5,
-    y: 0,
-    angle: Math.PI,
-    length: 2,
-    width: 4,
-  };
-  return {
-    name: weapon ? 'Armed tug' : 'Tug',
-    // Nothing to want. A craft keeps out of its neighbours' way by burning at
-    // them, so a hull parked a metre off another one's stern has a reason to
-    // fire quite apart from the flag — and this is a test about the flag.
-    doctrine: {
-      targeting: { ...DEFAULT_DOCTRINE.targeting },
-      approach: { ...DEFAULT_DOCTRINE.approach, separation: 0 },
-    },
-    modules: [
-      weapon ? { ...engine, weapon: true } : engine,
-      { kind: 'core', x: 0, y: 0, angle: 0, length: 10, width: 6 },
-      // Something to push the other way with, so the hull is not obliged to
-      // fire the weapon engine merely to hold station.
-      { kind: 'engine', x: 5, y: 0, angle: 0, length: 2, width: 4 },
-    ],
-  };
+    const engine: ModuleSpec = {
+        kind: "engine",
+        x: -5,
+        y: 0,
+        angle: Math.PI,
+        length: 2,
+        width: 4,
+    };
+    return {
+        name: weapon ? "Armed tug" : "Tug",
+        // Nothing to want. A craft keeps out of its neighbours' way by burning at
+        // them, so a hull parked a metre off another one's stern has a reason to
+        // fire quite apart from the flag — and this is a test about the flag.
+        doctrine: {
+            targeting: { ...DEFAULT_DOCTRINE.targeting },
+            approach: { ...DEFAULT_DOCTRINE.approach, separation: 0 },
+        },
+        modules: [
+            weapon ? { ...engine, weapon: true } : engine,
+            { kind: "core", x: 0, y: 0, angle: 0, length: 10, width: 6 },
+            // Something to push the other way with, so the hull is not obliged to
+            // fire the weapon engine merely to hold station.
+            { kind: "engine", x: 5, y: 0, angle: 0, length: 2, width: 4 },
+        ],
+    };
 }
 
 /**
@@ -63,45 +63,45 @@ function tug(weapon: boolean): Blueprint {
  * can neither move nor shoot is never worth firing at.
  */
 const TARGET: Blueprint = {
-  name: 'Target',
-  doctrine: {
-    targeting: { ...DEFAULT_DOCTRINE.targeting },
-    approach: { ...DEFAULT_DOCTRINE.approach, separation: 0 },
-  },
-  modules: [
-    { kind: 'core', x: 0, y: 0, angle: 0, length: 6, width: 6 },
-    // Hung off the far face, so it is not itself the thing standing in the
-    // plume — an engine's position is the face it pushes from and its body
-    // runs out from there, bell last, so this one lies beyond the core rather than in
-    // front of it.
-    { kind: 'engine', x: -3, y: 0, angle: Math.PI, length: 2, width: 4 },
-  ],
+    name: "Target",
+    doctrine: {
+        targeting: { ...DEFAULT_DOCTRINE.targeting },
+        approach: { ...DEFAULT_DOCTRINE.approach, separation: 0 },
+    },
+    modules: [
+        { kind: "core", x: 0, y: 0, angle: 0, length: 6, width: 6 },
+        // Hung off the far face, so it is not itself the thing standing in the
+        // plume — an engine's position is the face it pushes from and its body
+        // runs out from there, bell last, so this one lies beyond the core rather than in
+        // front of it.
+        { kind: "engine", x: -3, y: 0, angle: Math.PI, length: 2, width: 4 },
+    ],
 };
 
 /** Where the armed engine's nozzle sits in its ship's own frame, metres. */
 function nozzleX(): number {
-  const design = compileBlueprint(tug(true));
-  const t = design.engines[0]!;
-  return t.x - t.dirX * design.modules[t.module!]!.spec.length * 0.5;
+    const design = compileBlueprint(tug(true));
+    const t = design.engines[0]!;
+    return t.x - t.dirX * design.modules[t.module!]!.spec.length * 0.5;
 }
 
 /** How far the target's near face is from its own centre, metres. */
 function targetNose(): number {
-  const design = compileBlueprint(TARGET);
-  let nose = 0;
-  for (const m of design.modules) nose = Math.min(nose, m.x - m.spec.length / 2);
-  return nose;
+    const design = compileBlueprint(TARGET);
+    let nose = 0;
+    for (const m of design.modules) nose = Math.min(nose, m.x - m.spec.length / 2);
+    return nose;
 }
 
 /** How far behind the nozzle the useful part of the plume ends. */
 function usefulReach(): number {
-  const design = compileBlueprint(tug(true));
-  const t = design.engines[0]!;
-  // Through the same geometry the burn reads, since a bell decides how far a
-  // flame carries: taking it off the module's width alone would measure a
-  // plume this engine does not throw.
-  const geometry = engineGeometry(design.modules[t.module!]!.spec);
-  return nozzleReach(geometry, t.maxThrust) * (1 - WEAPON_PLUME_SHARE);
+    const design = compileBlueprint(tug(true));
+    const t = design.engines[0]!;
+    // Through the same geometry the burn reads, since a bell decides how far a
+    // flame carries: taking it off the module's width alone would measure a
+    // plume this engine does not throw.
+    const geometry = engineGeometry(design.modules[t.module!]!.spec);
+    return nozzleReach(geometry, t.maxThrust) * (1 - WEAPON_PLUME_SHARE);
 }
 
 /**
@@ -114,137 +114,137 @@ function usefulReach(): number {
  * that neither ship's own doctrine has closed the gap the test set.
  */
 function standOff(options: { weapon: boolean; gap: number; team: number; seconds?: number }) {
-  const design = compileBlueprint(tug(options.weapon));
-  const target = compileBlueprint(TARGET);
-  const world = new World({ dt: DT, seed: 4 });
-  const ships = new Ships();
-  world.addForceProvider(ships.forceProvider());
-  const grid = new SpatialGrid(64);
-
-  const mine = ships.spawn(world, { design, x: 0, y: 0, team: 0 });
-  // Placed off the compiled geometry rather than off the blueprint's own
-  // frame, which compiling re-expresses about the centre of mass: the target's
-  // near face ends up exactly `gap` metres aft of the nozzle.
-  const them = ships.spawn(world, {
-    design: target,
-    x: nozzleX() - options.gap - -targetNose(),
-    y: 0,
-    team: options.team,
-  });
-
-  const bodies = world.bodies;
-  const body = bodies.indexOf(ships.body(mine));
-  grid.rebuild(bodies);
-  for (let i = 0; i < Math.round((options.seconds ?? 1) * 60); i++) {
-    ships.command(DT, world, grid);
-    world.step();
-    grid.rebuild(bodies);
-    ships.scorch(world, grid, DT);
-  }
-
-  return {
-    ships,
-    mine,
-    them,
-    /** How much the target's only module has lost. */
-    hurt: 1 - ships.damage.integrity(bodies.indexOf(ships.body(them)), 0),
-    /** Which way the tug has been driven, +x being away from the target. */
-    vx: bodies.vx[body]!,
-  };
-}
-
-describe('an engine marked as a weapon', () => {
-  it('burns an enemy that gets close behind it, with nowhere to be', () => {
-    const fired = standOff({ weapon: true, gap: 1, team: 1 });
-    expect(fired.hurt).toBeGreaterThan(0);
-  });
-
-  it('leaves the same enemy alone when it is not marked', () => {
-    // The identical layout and the identical approach: the flag is the whole
-    // difference, which is what makes it a decision the designer makes.
-    const held = standOff({ weapon: false, gap: 1, team: 1 });
-    expect(held.hurt).toBe(0);
-  });
-
-  it('holds when the target is out past the useful half of the flame', () => {
-    const useful = usefulReach();
-    expect(standOff({ weapon: true, gap: useful * 0.5, team: 1 }).hurt).toBeGreaterThan(0);
-    expect(standOff({ weapon: true, gap: useful * 1.5, team: 1 }).hurt).toBe(0);
-  });
-
-  it('holds for one of its own side', () => {
-    // The same rule a gun follows: what is in the way decides, not what is
-    // being aimed at, and nobody burns a consort that drifts astern.
-    expect(standOff({ weapon: true, gap: 1, team: 0 }).hurt).toBe(0);
-  });
-
-  it('says where its flame is landing, for the glow to be drawn at', () => {
-    // A second of burning has shoved the target some way back, so the core
-    // lands with less than all of its power; unmarked, it does not fire and
-    // so lands nowhere.
-    const fired = standOff({ weapon: true, gap: 1, team: 1 });
-    expect(fired.ships.landedShare(fired.mine, 0, 1)).toBeGreaterThan(0);
-    const held = standOff({ weapon: false, gap: 1, team: 1 });
-    expect([...held.ships.landedRays(held.mine)].every((share) => share === 0)).toBe(true);
-  });
-
-  it('shoves the ship that fires it, which is what it costs', () => {
-    // An engine is an engine. Burning it drives the hull away from what it is
-    // burning, and the rest of the layout spends the step fighting that.
-    const fired = standOff({ weapon: true, gap: 1, team: 1 });
-    const held = standOff({ weapon: false, gap: 1, team: 1 });
-    expect(fired.vx).toBeGreaterThan(held.vx);
-  });
-});
-
-describe('an engine as the only weapon aboard', () => {
-  it('gives a ship a reach, out to where its flame is worth firing', () => {
-    // Doctrine's ranges are fractions of reach, so a gunless ship with a
-    // weapon engine has to have one or it is sent to sit against the hull.
-    expect(compileBlueprint(tug(true)).reach).toBeCloseTo(usefulReach(), 9);
-    expect(compileBlueprint(tug(false)).reach).toBe(0);
-  });
-
-  it('counts as armed, so it picks fights and is picked on', () => {
+    const design = compileBlueprint(tug(options.weapon));
+    const target = compileBlueprint(TARGET);
     const world = new World({ dt: DT, seed: 4 });
     const ships = new Ships();
-    const armed = ships.spawn(world, { design: compileBlueprint(tug(true)), x: 0, y: 0, team: 0 });
-    const unarmed = ships.spawn(world, { design: compileBlueprint(tug(false)), x: 50, y: 0, team: 0 });
-    world.step();
-    expect(ships.isDisarmed(armed)).toBe(false);
-    expect(ships.isDisarmed(unarmed)).toBe(true);
-  });
+    world.addForceProvider(ships.forceProvider());
+    const grid = new SpatialGrid(64);
+
+    const mine = ships.spawn(world, { design, x: 0, y: 0, team: 0 });
+    // Placed off the compiled geometry rather than off the blueprint's own
+    // frame, which compiling re-expresses about the centre of mass: the target's
+    // near face ends up exactly `gap` metres aft of the nozzle.
+    const them = ships.spawn(world, {
+        design: target,
+        x: nozzleX() - options.gap - -targetNose(),
+        y: 0,
+        team: options.team,
+    });
+
+    const bodies = world.bodies;
+    const body = bodies.indexOf(ships.body(mine));
+    grid.rebuild(bodies);
+    for (let i = 0; i < Math.round((options.seconds ?? 1) * 60); i++) {
+        ships.command(DT, world, grid);
+        world.step();
+        grid.rebuild(bodies);
+        ships.scorch(world, grid, DT);
+    }
+
+    return {
+        ships,
+        mine,
+        them,
+        /** How much the target's only module has lost. */
+        hurt: 1 - ships.damage.integrity(bodies.indexOf(ships.body(them)), 0),
+        /** Which way the tug has been driven, +x being away from the target. */
+        vx: bodies.vx[body]!,
+    };
+}
+
+describe("an engine marked as a weapon", () => {
+    it("burns an enemy that gets close behind it, with nowhere to be", () => {
+        const fired = standOff({ weapon: true, gap: 1, team: 1 });
+        expect(fired.hurt).toBeGreaterThan(0);
+    });
+
+    it("leaves the same enemy alone when it is not marked", () => {
+        // The identical layout and the identical approach: the flag is the whole
+        // difference, which is what makes it a decision the designer makes.
+        const held = standOff({ weapon: false, gap: 1, team: 1 });
+        expect(held.hurt).toBe(0);
+    });
+
+    it("holds when the target is out past the useful half of the flame", () => {
+        const useful = usefulReach();
+        expect(standOff({ weapon: true, gap: useful * 0.5, team: 1 }).hurt).toBeGreaterThan(0);
+        expect(standOff({ weapon: true, gap: useful * 1.5, team: 1 }).hurt).toBe(0);
+    });
+
+    it("holds for one of its own side", () => {
+        // The same rule a gun follows: what is in the way decides, not what is
+        // being aimed at, and nobody burns a consort that drifts astern.
+        expect(standOff({ weapon: true, gap: 1, team: 0 }).hurt).toBe(0);
+    });
+
+    it("says where its flame is landing, for the glow to be drawn at", () => {
+        // A second of burning has shoved the target some way back, so the core
+        // lands with less than all of its power; unmarked, it does not fire and
+        // so lands nowhere.
+        const fired = standOff({ weapon: true, gap: 1, team: 1 });
+        expect(fired.ships.landedShare(fired.mine, 0, 1)).toBeGreaterThan(0);
+        const held = standOff({ weapon: false, gap: 1, team: 1 });
+        expect([...held.ships.landedRays(held.mine)].every((share) => share === 0)).toBe(true);
+    });
+
+    it("shoves the ship that fires it, which is what it costs", () => {
+        // An engine is an engine. Burning it drives the hull away from what it is
+        // burning, and the rest of the layout spends the step fighting that.
+        const fired = standOff({ weapon: true, gap: 1, team: 1 });
+        const held = standOff({ weapon: false, gap: 1, team: 1 });
+        expect(fired.vx).toBeGreaterThan(held.vx);
+    });
 });
 
-describe('the flag itself', () => {
-  it('lies dormant on anything but an engine, and never reaches a file', () => {
-    // Only an engine has a plume to point, so on anything else the flag is
-    // read by nothing — kept in memory against a refit back to an engine, and
-    // left out of the file so a saved gun does not claim to be a weapon
-    // engine. A file that carries one anyway is a mistake, read as nothing and
-    // said so.
-    const gun: ModuleSpec = { kind: 'turret', x: 0, y: 0, length: 4, width: 3, weapon: true };
-    expect(moduleProblem(gun)).toBeNull();
-    expect(moduleProblem({ kind: 'engine', angle: Math.PI, x: 0, y: 0, length: 2, width: 2, weapon: true })).toBeNull();
+describe("an engine as the only weapon aboard", () => {
+    it("gives a ship a reach, out to where its flame is worth firing", () => {
+        // Doctrine's ranges are fractions of reach, so a gunless ship with a
+        // weapon engine has to have one or it is sent to sit against the hull.
+        expect(compileBlueprint(tug(true)).reach).toBeCloseTo(usefulReach(), 9);
+        expect(compileBlueprint(tug(false)).reach).toBe(0);
+    });
 
-    const saved = serialiseBlueprint({ name: 'Dormant', modules: [gun] });
-    expect((saved['modules'] as Record<string, unknown>[])[0]!['weapon']).toBeUndefined();
-    const claiming = {
-      formatVersion: 1,
-      name: 'Claiming',
-      modules: [{ kind: 'turret', x: 0, y: 0, length: 4, width: 3, weapon: true }],
-    };
-    expect(blueprintFileProblem(claiming)).toBeNull();
-    const read = parseBlueprint(claiming);
-    expect((read.modules[0] as ModuleSpec).weapon).toBeUndefined();
-    expect(blueprintWarnings(read).join('\n')).toMatch(/weapon/);
-  });
+    it("counts as armed, so it picks fights and is picked on", () => {
+        const world = new World({ dt: DT, seed: 4 });
+        const ships = new Ships();
+        const armed = ships.spawn(world, { design: compileBlueprint(tug(true)), x: 0, y: 0, team: 0 });
+        const unarmed = ships.spawn(world, { design: compileBlueprint(tug(false)), x: 50, y: 0, team: 0 });
+        world.step();
+        expect(ships.isDisarmed(armed)).toBe(false);
+        expect(ships.isDisarmed(unarmed)).toBe(true);
+    });
+});
 
-  it('survives a round trip through a blueprint file', () => {
-    const back = parseBlueprint(JSON.parse(JSON.stringify(serialiseBlueprint(tug(true)))));
-    expect(typeof back).not.toBe('string');
-    const modules = (back as Blueprint).modules as ModuleSpec[];
-    expect(modules[0]!.weapon).toBe(true);
-    expect(modules[2]!.weapon).toBeUndefined();
-  });
+describe("the flag itself", () => {
+    it("lies dormant on anything but an engine, and never reaches a file", () => {
+        // Only an engine has a plume to point, so on anything else the flag is
+        // read by nothing — kept in memory against a refit back to an engine, and
+        // left out of the file so a saved gun does not claim to be a weapon
+        // engine. A file that carries one anyway is a mistake, read as nothing and
+        // said so.
+        const gun: ModuleSpec = { kind: "turret", x: 0, y: 0, length: 4, width: 3, weapon: true };
+        expect(moduleProblem(gun)).toBeNull();
+        expect(moduleProblem({ kind: "engine", angle: Math.PI, x: 0, y: 0, length: 2, width: 2, weapon: true })).toBeNull();
+
+        const saved = serialiseBlueprint({ name: "Dormant", modules: [gun] });
+        expect((saved["modules"] as Record<string, unknown>[])[0]!["weapon"]).toBeUndefined();
+        const claiming = {
+            formatVersion: 1,
+            name: "Claiming",
+            modules: [{ kind: "turret", x: 0, y: 0, length: 4, width: 3, weapon: true }],
+        };
+        expect(blueprintFileProblem(claiming)).toBeNull();
+        const read = parseBlueprint(claiming);
+        expect((read.modules[0] as ModuleSpec).weapon).toBeUndefined();
+        expect(blueprintWarnings(read).join("\n")).toMatch(/weapon/);
+    });
+
+    it("survives a round trip through a blueprint file", () => {
+        const back = parseBlueprint(JSON.parse(JSON.stringify(serialiseBlueprint(tug(true)))));
+        expect(typeof back).not.toBe("string");
+        const modules = (back as Blueprint).modules as ModuleSpec[];
+        expect(modules[0]!.weapon).toBe(true);
+        expect(modules[2]!.weapon).toBeUndefined();
+    });
 });

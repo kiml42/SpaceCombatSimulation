@@ -1,63 +1,63 @@
 import {
-  approachesOf,
-  approachTurn,
-  hullMountGeometry,
-  IMPACT_BEAM,
-  IMPACT_BURST,
-  IMPACT_MUZZLE,
-  isHullMount,
-  math,
-  nozzleOffset,
-  nozzleReach,
-  HULL_LAYER,
-  landedIndex,
-  layerCount,
-  OWN_LAYERS,
-  plumeIntensity,
-  plumeLayers,
-  WEAPONS_LAYER,
-  PLUME_POWER_PER_NEWTON,
-  PLUME_RAYS,
-  SHELL_CALIBRES,
-  engineGeometry,
-  type GunStats,
-  type ModuleSpec,
-  type ShipDesign,
-  type ShipView,
-  type Snapshot,
-  insetTriangle,
-  fillOf,
-  shapeOf,
-  ROBOT_VIEW_STRIDE,
-  ROBOT_BERTH_PITCH,
-  BATTERY_ENERGY_PER_VOLUME,
-  FUEL_DENSITY,
-  GENERATOR_POWER_PER_VOLUME,
-  METAL_DENSITY,
-  type ModuleStats,
-  berthGrid,
-} from '../sim/index.js';
-import { gridStep, type Camera } from './camera.js';
+    approachesOf,
+    approachTurn,
+    hullMountGeometry,
+    IMPACT_BEAM,
+    IMPACT_BURST,
+    IMPACT_MUZZLE,
+    isHullMount,
+    math,
+    nozzleOffset,
+    nozzleReach,
+    HULL_LAYER,
+    landedIndex,
+    layerCount,
+    OWN_LAYERS,
+    plumeIntensity,
+    plumeLayers,
+    WEAPONS_LAYER,
+    PLUME_POWER_PER_NEWTON,
+    PLUME_RAYS,
+    SHELL_CALIBRES,
+    engineGeometry,
+    type GunStats,
+    type ModuleSpec,
+    type ShipDesign,
+    type ShipView,
+    type Snapshot,
+    insetTriangle,
+    fillOf,
+    shapeOf,
+    ROBOT_VIEW_STRIDE,
+    ROBOT_BERTH_PITCH,
+    BATTERY_ENERGY_PER_VOLUME,
+    FUEL_DENSITY,
+    GENERATOR_POWER_PER_VOLUME,
+    METAL_DENSITY,
+    type ModuleStats,
+    berthGrid,
+} from "../sim/index.js";
+import { gridStep, type Camera } from "./camera.js";
 import {
-  describeRange,
-  insetAt,
-  insetsFor,
-  labelAlong,
-  labelBeside,
-  type Inset,
-  type InsetArea,
-  type InsetShip,
-  type LabelAt,
-} from './inset.js';
-import { stripsFor, stripTileAt, stripTileUnder, type StripColumn, type StripShip, type Strips, type StripTile } from './fleetStrip.js';
-import { fighterColours, NEUTRAL, shipColours, teamName } from './teams.js';
+    describeRange,
+    insetAt,
+    insetsFor,
+    labelAlong,
+    labelBeside,
+    type Inset,
+    type InsetArea,
+    type InsetShip,
+    type LabelAt,
+} from "./inset.js";
+import { stripsFor, stripTileAt, stripTileUnder, type StripColumn, type StripShip, type Strips, type StripTile } from "./fleetStrip.js";
+import { fighterColours, NEUTRAL, shipColours, teamName } from "./teams.js";
 
-export { teamColour } from './teams.js';
-import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth, plumeAlpha, tracerAlpha } from './strokes.js';
-import { flashExtent, flashFade, flashPosition, muzzleWedge, type Flashes } from './flashes.js';
-import { clipToStart, exposureEnds, flashSamples, shutterWeight } from './exposure.js';
-import { sprite } from './sprites.js';
-import { iconAlpha, ICON_OUTLINE, ICON_PX } from './icons.js';
+export { teamColour } from "./teams.js";
+import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth, plumeAlpha, tracerAlpha } from "./strokes.js";
+import { flashExtent, flashFade, flashPosition, muzzleWedge, type Flashes } from "./flashes.js";
+import { clipToStart, exposureEnds, flashSamples, shutterWeight } from "./exposure.js";
+import { sprite } from "./sprites.js";
+import { iconAlpha, ICON_OUTLINE, ICON_PX } from "./icons.js";
 
 const { cos, floor, sin, length, max, min, PI, sqrt, TAU } = math;
 
@@ -92,33 +92,33 @@ const { cos, floor, sin, length, max, min, PI, sqrt, TAU } = math;
  * point rather than anything belonging to the ship, and colouring it by team
  * made it read as hull.
  */
-const BACKGROUND = '#0b0f16';
-const GRID = '#161d29';
-const TRACER = '#ffe6a8';
-const TRACER_GLOW = '#ffb2a888';
+const BACKGROUND = "#0b0f16";
+const GRID = "#161d29";
+const TRACER = "#ffe6a8";
+const TRACER_GLOW = "#ffb2a888";
 /**
  * A round passing through a hull, drawn as though seen through it. Null hides
  * that part, leaving only the flashes along its path.
  */
-const TRACER_INSIDE: string | null = '#ffe6a840';
+const TRACER_INSIDE: string | null = "#ffe6a840";
 const TRACER_GLOW_INSIDE: string | null = null;
 
 /**
  * Where a gun or a weapon engine will fire, faintly: on target and about to,
  * not yet, and pointing into its own ship where it will not.
  */
-const TRIGGER_ON = '#ffd76a2e';
-const TRIGGER_OFF = '#9fb6d61a';
-const TRIGGER_FOULED = '#ff5a5a24';
+const TRIGGER_ON = "#ffd76a2e";
+const TRIGGER_OFF = "#9fb6d61a";
+const TRIGGER_FOULED = "#ff5a5a24";
 /** The band of ranges a ship's doctrine closes to, against the enemy it wants. */
-const HOLD_BAND = '#7fd6c214';
-const HOLD_EDGE = '#7fd6c266';
+const HOLD_BAND = "#7fd6c214";
+const HOLD_EDGE = "#7fd6c266";
 /** Where a ship turns its target to, out to the band. */
-const ATTACK_LINE = '#7fd6c2b0';
+const ATTACK_LINE = "#7fd6c2b0";
 const ATTACK_DASH_PX = 6;
 
 /** Where a gun's barrel is pointing now, along its wedge, in battle. */
-const BARREL_LINE = '#e6edf566';
+const BARREL_LINE = "#e6edf566";
 const BARREL_LINE_PX = 1;
 /** The narrowest a firing wedge's sides are drawn, in pixels; a gun's are a calibre wide otherwise. */
 const MIN_TRIGGER_PX = 3;
@@ -128,27 +128,27 @@ const MIN_TRIGGER_PX = 3;
  * where each gun and weapon engine will fire, with the band a ship's doctrine
  * closes to where it is known.
  */
-export type Arcs = 'none' | 'firing' | 'trigger';
+export type Arcs = "none" | "firing" | "trigger";
 
 /** The next of `Arcs`, as the key that cycles them steps through. */
 export function nextArcs(arcs: Arcs): Arcs {
-  return arcs === 'none' ? 'firing' : arcs === 'firing' ? 'trigger' : 'none';
+    return arcs === "none" ? "firing" : arcs === "firing" ? "trigger" : "none";
 }
 
 /** What a button cycling `Arcs` reads. */
-export const ARC_LABELS: Record<Arcs, string> = { none: 'Arcs: off', firing: 'Arcs: firing', trigger: 'Arcs: trigger' };
+export const ARC_LABELS: Record<Arcs, string> = { none: "Arcs: off", firing: "Arcs: firing", trigger: "Arcs: trigger" };
 
 /** The key that cycles `Arcs`: alone in the editors, with Ctrl or Cmd on a battle, where alone it picks a side. */
-export const ARCS_KEY = 'a';
+export const ARCS_KEY = "a";
 
 /** The key that toggles rounds and beams between light and their side's colours. */
-export const TEAM_SHOTS_KEY = 'c';
+export const TEAM_SHOTS_KEY = "c";
 
 /** The key that shows and hides each side's ships down the view's edges. */
-export const STRIPS_KEY = 't';
+export const STRIPS_KEY = "t";
 
-const BEAM = '#3df72c';
-const BEAM_GLOW = '#a8f132';
+const BEAM = "#3df72c";
+const BEAM_GLOW = "#a8f132";
 
 /**
  * Width of the tracer's halo, in calibres, for a round at full opacity
@@ -191,16 +191,16 @@ const MIN_FLASH_PX = 1;
 /** A tank's wall as drawn round the fuel in it, as a share of its smaller side. */
 const TANK_INSET = 0.15;
 /** A store's gauge: its whole capacity in this, and what it holds over it. */
-const FUEL_TRACK = '#1a1d22';
+const FUEL_TRACK = "#1a1d22";
 /**
  * What a store holds, the same on every side so it reads at a glance: fuel
  * teal, metal the grey of a neutral hull. Kept clear of the sides' hues and of
  * a gun's amber and green load colours, which a gauge looks like.
  */
-const FUEL = '#2ec4b6';
+const FUEL = "#2ec4b6";
 const METAL = NEUTRAL.hull;
 /** Charge, the third store: electric violet, the other hue the sides leave free. */
-const CHARGE = '#9b7bff';
+const CHARGE = "#9b7bff";
 /** How much of a generator's smaller side its disc is drawn across. */
 const GENERATOR_DISC = 0.55;
 
@@ -242,9 +242,9 @@ const PAD_MARK_INSET = 0.1;
 const PORT_COLLAR_SHARE = 0.3;
 
 /** A module that has taken everything it can: still there, no longer anything. */
-const WRECKAGE = '#3c4048';
+const WRECKAGE = "#3c4048";
 /** An asteroid's kernel: darker than any rock, so what will be left once the rock is mined is plain. */
-const KERNEL = '#3a3530';
+const KERNEL = "#3a3530";
 
 /** What rock is drawn as by what it holds: white for ice, grey for ore, brown for the worthless rest. */
 const ICE_RGB = [235, 240, 245] as const;
@@ -253,31 +253,31 @@ const WASTE_RGB = [110, 80, 55] as const;
 const rockColours = new Map<string, string>();
 
 function rockColour(ore: number, ice: number): string {
-  // Quantised, so a field of wedges shares a handful of strings.
-  const key = `${Math.round(ore * 20)},${Math.round(ice * 20)}`;
-  let colour = rockColours.get(key);
-  if (colour === undefined) {
-    const o = Math.round(ore * 20) / 20;
-    const i = Math.round(ice * 20) / 20;
-    const w = Math.max(0, 1 - o - i);
-    const mix = (k: 0 | 1 | 2): number => Math.round(ICE_RGB[k] * i + ORE_RGB[k] * o + WASTE_RGB[k] * w);
-    colour = `rgb(${mix(0)}, ${mix(1)}, ${mix(2)})`;
-    rockColours.set(key, colour);
-  }
-  return colour;
+    // Quantised, so a field of wedges shares a handful of strings.
+    const key = `${Math.round(ore * 20)},${Math.round(ice * 20)}`;
+    let colour = rockColours.get(key);
+    if (colour === undefined) {
+        const o = Math.round(ore * 20) / 20;
+        const i = Math.round(ice * 20) / 20;
+        const w = Math.max(0, 1 - o - i);
+        const mix = (k: 0 | 1 | 2): number => Math.round(ICE_RGB[k] * i + ORE_RGB[k] * o + WASTE_RGB[k] * w);
+        colour = `rgb(${mix(0)}, ${mix(1)}, ${mix(2)})`;
+        rockColours.set(key, colour);
+    }
+    return colour;
 }
 /** How faint a module no working core reaches is drawn, so a ship that lost one shows what went dark. */
 const OUT_OF_REACH_ALPHA = 0.35;
 
 /** An impact: the white-hot moment, and the warmer flare around it. */
-const FLASH_CORE = '#fff6e2';
-const FLASH_GLOW = '#ffb257';
+const FLASH_CORE = "#fff6e2";
+const FLASH_GLOW = "#ffb257";
 /** A beam's, which reads as the beam's own colour boiling the hull away. */
-const BEAM_FLASH_CORE = '#eaffd9';
-const BEAM_FLASH_GLOW = '#8ef04a';
+const BEAM_FLASH_CORE = "#eaffd9";
+const BEAM_FLASH_GLOW = "#8ef04a";
 /** A shell bursting: redder than a hit, since it is fire rather than metal. */
-const BURST_FLASH_CORE = '#fff0c8';
-const BURST_FLASH_GLOW = '#ff7a2e';
+const BURST_FLASH_CORE = "#fff0c8";
+const BURST_FLASH_GLOW = "#ff7a2e";
 /** How far a flash's glow reaches, in its core's radii. */
 const FLASH_GLOW_SHARE = 2.2;
 /** A muzzle flash's glow, in its core's widths: tight, so the wedge keeps its shape. */
@@ -287,18 +287,18 @@ const MAX_WEDGE_DISCS = 32;
 /** How much of a blast's width its bright core fills; the glow is the rest. */
 const BLAST_CORE_SHARE = 0.45;
 
-const WELL = '#3a4e7a';
+const WELL = "#3a4e7a";
 
 /** The firing arc: a pale wash with an optional edge to define it (currently disabled). */
-const SWEEP = 'rgba(196, 210, 232, 0.2)';
-const SWEEP_EDGE = 'rgba(196, 210, 232, 0)';
+const SWEEP = "rgba(196, 210, 232, 0.2)";
+const SWEEP_EDGE = "rgba(196, 210, 232, 0)";
 /** The part of a sweep a mount may not fire into. */
-const MASKED = 'rgba(226, 110, 84, 0.28)';
+const MASKED = "rgba(226, 110, 84, 0.28)";
 
 /** A pad's ways in: the arrows on it its fighters come in along. */
-const APPROACH_EDGE = 'rgba(150, 214, 170, 0.8)';
+const APPROACH_EDGE = "rgba(150, 214, 170, 0.8)";
 /** A pad's one longest run, when nothing is clear all the way out. */
-const APPROACH_BLOCKED = 'rgba(232, 176, 72, 0.9)';
+const APPROACH_BLOCKED = "rgba(232, 176, 72, 0.9)";
 
 /**
  * How far the arc indicator reaches, as a multiple of the mount's own face.
@@ -328,22 +328,22 @@ const ARC_MIN_RADIUS = 8;
 const ARC_MAX_RADIUS = 40;
 
 /** A barrel that is not clear to fire. Dark, because it sits on the pale sweep. */
-const BARREL = '#8f6f25';
+const BARREL = "#8f6f25";
 /** Bracing on a barrel too long to hold itself up: the barrel's colour, darker. */
-const BRACE = '#4f3d14';
+const BRACE = "#4f3d14";
 /**
  * A gun's load display: amber while it reloads, green while it is ready or a
  * beam is firing, on a grey track that shows how full it will get.
  */
-const LOAD_TRACK = '#707070';
-const LOAD_RELOADING = '#ffb000';
-const LOAD_READY = '#4cf24c';
+const LOAD_TRACK = "#707070";
+const LOAD_RELOADING = "#ffb000";
+const LOAD_READY = "#4cf24c";
 /** Flame colours, as the RGB a gradient fades to transparent from. */
-const PLUME = '255, 217, 160';
-const PLUME_CORE = '255, 244, 224';
+const PLUME = "255, 217, 160";
+const PLUME_CORE = "255, 244, 224";
 /** A burn on a hull: the flame's colour, hotter at the middle. */
-const BURN = '255, 170, 90';
-const BURN_CORE = '255, 236, 200';
+const BURN = "255, 170, 90";
+const BURN_CORE = "255, 236, 200";
 
 /**
  * Trace a triangle with its corners rounded by up to `radius`. A sharp corner
@@ -351,33 +351,33 @@ const BURN_CORE = '255, 236, 200';
  * and a prow keeps its point.
  */
 function roundedTriangle(ctx: CanvasRenderingContext2D, corners: readonly number[], radius: number): void {
-  ctx.moveTo((corners[4]! + corners[0]!) / 2, (corners[5]! + corners[1]!) / 2);
-  for (let k = 0; k < 3; k++) {
-    const x = corners[2 * k]!;
-    const y = corners[2 * k + 1]!;
-    const nx = corners[(2 * k + 2) % 6]!;
-    const ny = corners[(2 * k + 3) % 6]!;
-    const px = corners[(2 * k + 4) % 6]!;
-    const py = corners[(2 * k + 5) % 6]!;
-    const toNext = length(nx - x, ny - y);
-    const toPrev = length(px - x, py - y);
-    // The tangent of half the corner's angle, from its cosine.
-    const cosine = max(-1, min(1, ((nx - x) * (px - x) + (ny - y) * (py - y)) / (toNext * toPrev)));
-    const halfTan = sqrt((1 - cosine) / (1 + cosine));
-    const r = max(0, min(radius, 0.2 * min(toNext, toPrev) * halfTan));
-    ctx.arcTo(x, y, nx, ny, r);
-  }
-  ctx.closePath();
+    ctx.moveTo((corners[4]! + corners[0]!) / 2, (corners[5]! + corners[1]!) / 2);
+    for (let k = 0; k < 3; k++) {
+        const x = corners[2 * k]!;
+        const y = corners[2 * k + 1]!;
+        const nx = corners[(2 * k + 2) % 6]!;
+        const ny = corners[(2 * k + 3) % 6]!;
+        const px = corners[(2 * k + 4) % 6]!;
+        const py = corners[(2 * k + 5) % 6]!;
+        const toNext = length(nx - x, ny - y);
+        const toPrev = length(px - x, py - y);
+        // The tangent of half the corner's angle, from its cosine.
+        const cosine = max(-1, min(1, ((nx - x) * (px - x) + (ny - y) * (py - y)) / (toNext * toPrev)));
+        const halfTan = sqrt((1 - cosine) / (1 + cosine));
+        const r = max(0, min(radius, 0.2 * min(toNext, toPrev) * halfTan));
+        ctx.arcTo(x, y, nx, ny, r);
+    }
+    ctx.closePath();
 }
 
 /** What a core's room past its computing holds, m³ each: its fuel, metal, battery and generator. */
 function coreRoom(stats: ModuleStats): { fuel: number; metal: number; charge: number; generator: number } {
-  return {
-    fuel: stats.fuel / FUEL_DENSITY,
-    metal: stats.metal / METAL_DENSITY,
-    charge: stats.charge / BATTERY_ENERGY_PER_VOLUME,
-    generator: stats.generation / GENERATOR_POWER_PER_VOLUME,
-  };
+    return {
+        fuel: stats.fuel / FUEL_DENSITY,
+        metal: stats.metal / METAL_DENSITY,
+        charge: stats.charge / BATTERY_ENERGY_PER_VOLUME,
+        generator: stats.generation / GENERATOR_POWER_PER_VOLUME,
+    };
 }
 
 /**
@@ -386,56 +386,56 @@ function coreRoom(stats: ModuleStats): { fuel: number; metal: number; charge: nu
  * the waist back with what it has left — charge on its left, metal on its right.
  */
 function drawRobot(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  heading: number,
-  charge: number,
-  metal: number,
-  size: number,
-  shell: string,
-  head: string,
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    heading: number,
+    charge: number,
+    metal: number,
+    size: number,
+    shell: string,
+    head: string,
 ): void {
-  const half = size / 2;
-  const broad = size * 0.32;
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(heading);
-  // The shell, its back a little behind the middle.
-  const back = -size * 0.08;
-  ctx.fillStyle = shell;
-  ctx.beginPath();
-  ctx.ellipse(back, 0, half * 0.82, broad, 0, 0, TAU);
-  ctx.fill();
-  // The head, ahead of it.
-  ctx.fillStyle = head;
-  ctx.beginPath();
-  ctx.ellipse(half * 0.68, 0, size * 0.16, broad * 0.62, 0, 0, TAU);
-  ctx.fill();
-  // The wing cases: a track round each side of the back, filled from the waist.
-  const inset = broad * 0.72;
-  const along = half * 0.62;
-  ctx.lineWidth = size * 0.11;
-  ctx.lineCap = 'round';
-  const wing = (side: number, share: number, fill: string): void => {
-    const from = (side * PI) / 2;
-    // Stopping short of the tail, so the two cases part down the middle.
-    const to = side * (PI - ROBOT_WING_GAP);
-    const clockwise = side < 0;
-    ctx.strokeStyle = FUEL_TRACK;
+    const half = size / 2;
+    const broad = size * 0.32;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(heading);
+    // The shell, its back a little behind the middle.
+    const back = -size * 0.08;
+    ctx.fillStyle = shell;
     ctx.beginPath();
-    ctx.ellipse(back, 0, along, inset, 0, from, to, clockwise);
-    ctx.stroke();
-    const left = max(0, min(1, share));
-    if (!(left > 0)) return;
-    ctx.strokeStyle = fill;
+    ctx.ellipse(back, 0, half * 0.82, broad, 0, 0, TAU);
+    ctx.fill();
+    // The head, ahead of it.
+    ctx.fillStyle = head;
     ctx.beginPath();
-    ctx.ellipse(back, 0, along, inset, 0, from, from + (to - from) * left, clockwise);
-    ctx.stroke();
-  };
-  wing(-1, charge, CHARGE);
-  wing(1, metal, METAL);
-  ctx.restore();
+    ctx.ellipse(half * 0.68, 0, size * 0.16, broad * 0.62, 0, 0, TAU);
+    ctx.fill();
+    // The wing cases: a track round each side of the back, filled from the waist.
+    const inset = broad * 0.72;
+    const along = half * 0.62;
+    ctx.lineWidth = size * 0.11;
+    ctx.lineCap = "round";
+    const wing = (side: number, share: number, fill: string): void => {
+        const from = (side * PI) / 2;
+        // Stopping short of the tail, so the two cases part down the middle.
+        const to = side * (PI - ROBOT_WING_GAP);
+        const clockwise = side < 0;
+        ctx.strokeStyle = FUEL_TRACK;
+        ctx.beginPath();
+        ctx.ellipse(back, 0, along, inset, 0, from, to, clockwise);
+        ctx.stroke();
+        const left = max(0, min(1, share));
+        if (!(left > 0)) return;
+        ctx.strokeStyle = fill;
+        ctx.beginPath();
+        ctx.ellipse(back, 0, along, inset, 0, from, from + (to - from) * left, clockwise);
+        ctx.stroke();
+    };
+    wing(-1, charge, CHARGE);
+    wing(1, metal, METAL);
+    ctx.restore();
 }
 
 /**
@@ -444,534 +444,536 @@ function drawRobot(
  * as a whole is drawn with whichever of the two it is.
  */
 function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number, arcs: Arcs, fighters: boolean): void {
-  const design = ship.currentStructure;
-  const whole = design.fighter === fighters;
-  if (!whole && (!fighters || design.fighterPieces === undefined)) return;
+    const design = ship.currentStructure;
+    const whole = design.fighter === fighters;
+    if (!whole && (!fighters || design.fighterPieces === undefined)) return;
 
-  ctx.save();
-  ctx.translate(ship.x, ship.y);
-  ctx.rotate(ship.angle);
-
-  // Where its doctrine closes to, centre to centre: under everything, so the
-  // trigger wedges' tips can be read against it.
-  const holdMax = ship.holdMax ?? 0;
-  if (whole && arcs === 'trigger' && holdMax > 0) {
-    drawBand(ctx, 0, 0, ship.holdMin ?? 0, holdMax, metresToPx);
-    ctx.strokeStyle = ATTACK_LINE;
-    ctx.setLineDash([ATTACK_DASH_PX / metresToPx, ATTACK_DASH_PX / metresToPx]);
-    for (const bearing of ship.attackBearings ?? []) {
-      ctx.save();
-      ctx.rotate(bearing);
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(holdMax, 0);
-      ctx.stroke();
-      ctx.restore();
-    }
-    ctx.setLineDash([]);
-  }
-
-  // Module boxes, in the body frame the design already put them in.
-  for (let i = 0; i < design.modules.length; i++) {
-    if (ship.drawn?.[i] === false || isFighterModule(design, i) !== fighters) continue;
-    const m = design.modules[i]!;
-    // A piece hooked on from another ship keeps that ship's colours.
-    const colours = moduleColours(design, i, ship.sides?.[i] ?? ship.team);
-    const spec = m.spec;
     ctx.save();
-    ctx.translate(m.x, m.y);
-    ctx.rotate(m.angle);
-    // Wreckage: still there, still stopping shells, no longer doing its job.
-    // Drawn as what it is rather than removed, which is what §4 means by
-    // conserving matter — and it is the only way to see a ship being killed
-    // module by module rather than simply going quiet.
-    // Optional, because a view can be built by hand: the editor's preview and
-    // the camera's tests both do, and neither has anything to be damaged.
-    const integrity = ship.integrity?.[i] ?? 1;
-    // A core is drawn in the darkest of the team's colours: the compartment
-    // the ship is flown from is worth being able to find at a glance, since
-    // shooting it out is what leaves a hulk.
-    ctx.fillStyle =
-      spec.kind === 'kernel'
-        ? KERNEL
-        : spec.kind === 'rock'
-          ? rockColour(spec.ore ?? 0, spec.ice ?? 0)
-          : integrity <= 0
-            ? WRECKAGE
-            : spec.kind === 'structure' || spec.kind === 'tank' || spec.kind === 'hold' || spec.kind === 'battery'
-              ? // Thick structure is drawn in the colour of the mounts and engines,
-                // since it is what stands with them in the weapons layer. Read from
-                // the compiled flag rather than the spec, since a plate that is
-                // thick by borrowing its neighbour's depth is only as high as what
-                // it covers.
-                m.weaponsLayer
-                ? colours.trim
-                : colours.hull
-              : spec.kind === 'core'
-                ? colours.pivot
-                : spec.kind === 'robotBay'
-                  ? // A deck, as a pad is, for its berth pads to stand out on.
-                    colours.hull
-                  : colours.trim;
-    ctx.globalAlpha = integrity <= 0 ? 1 : (0.45 + 0.55 * integrity) * (ship.outOfReach?.[i] === true ? OUT_OF_REACH_ALPHA : 1);
-    const halfLength = spec.length / 2;
-    const halfWidth = spec.width / 2;
-    if (spec.kind === 'engine') {
-      // An engine is a machinery block with bells on the back of it, and it is
-      // drawn as exactly that: the block a box like any other module, each
-      // bell flaring from its throat to the exit. Local +x is the way it
-      // pushes and the face it is bolted on by, so the bells are at -x and
-      // widen as they go, which is both how a rocket is shaped and the
-      // direction the plume already leaves in.
-      //
-      // This is the one drawing that is not an approximation of the module:
-      // the throat fraction it tapers from is the number the thrust is worked
-      // out from, so what the bell looks like is what it does.
-      const engine = engineGeometry(spec);
-      ctx.fillRect(halfLength - engine.machineryLength, -halfWidth, engine.machineryLength, spec.width);
-      const throat = engine.throatWidth / 2;
-      const exit = engine.exitWidth / 2;
-      const mouth = halfLength - engine.machineryLength;
-      for (let n = 0; n < engine.nozzles; n++) {
-        const across = nozzleOffset(engine, n);
-        ctx.beginPath();
-        ctx.moveTo(mouth, across - throat);
-        ctx.lineTo(mouth, across + throat);
-        ctx.lineTo(-halfLength, across + exit);
-        ctx.lineTo(-halfLength, across - exit);
-        ctx.closePath();
-        ctx.fill();
-      }
-    } else if (isHullMount(spec.kind)) {
-      // Only the block. The barrel is drawn by the turret pass, from the root
-      // it trains about and at the bearing it is actually pointing — which is
-      // the whole reason it is a separate piece rather than part of the box.
-      const mount = hullMountGeometry(spec);
-      ctx.fillRect(-halfLength, -halfWidth, mount.blockLength, spec.width);
-    } else if (spec.kind === 'pad') {
-      // A deck in the hull's colour with a landing square marked on it.
-      const inset = min(spec.length, spec.width) * PAD_MARK_INSET;
-      ctx.fillStyle = integrity <= 0 ? WRECKAGE : colours.hull;
-      ctx.fillRect(-halfLength, -halfWidth, spec.length, spec.width);
-      ctx.strokeStyle = colours.trim;
-      ctx.lineWidth = inset * 0.5;
-      ctx.strokeRect(-halfLength + inset, -halfWidth + inset, spec.length - 2 * inset, spec.width - 2 * inset);
-    } else if (spec.kind === 'port') {
-      // A coupling block with a collar standing proud of its outward face.
-      const collar = spec.length * PORT_COLLAR_SHARE;
-      ctx.fillRect(-halfLength, -halfWidth, spec.length - collar, spec.width);
-      ctx.fillRect(halfLength - collar, -halfWidth * 0.7, collar, spec.width * 0.7);
-    } else if (spec.kind === 'slipway') {
-      // A cradle in the hull's colour, open at the face a ship comes out of,
-      // between rails along its sides and the feed block aft.
-      const rail = spec.width * SLIPWAY_RAIL_SHARE;
-      const feed = spec.length * SLIPWAY_FEED_SHARE;
-      ctx.fillStyle = integrity <= 0 ? WRECKAGE : colours.hull;
-      ctx.fillRect(-halfLength, -halfWidth, spec.length, spec.width);
-      ctx.fillStyle = integrity <= 0 ? WRECKAGE : colours.trim;
-      ctx.fillRect(-halfLength, -halfWidth, feed, spec.width);
-      ctx.fillRect(-halfLength, -halfWidth, spec.length, rail);
-      ctx.fillRect(-halfLength, halfWidth - rail, spec.length, rail);
-    } else if (spec.kind === 'claw') {
-      // The pump aft, and two jaws reaching out of the bow face it grips with.
-      const jaw = spec.width * CLAW_JAW_SHARE;
-      ctx.fillRect(-halfLength, -halfWidth, halfLength, spec.width);
-      ctx.fillRect(0, -halfWidth, halfLength, jaw);
-      ctx.fillRect(0, halfWidth - jaw, halfLength, jaw);
-    } else {
-      const triangle = shapeOf(spec);
-      if (triangle !== null) {
-        // The corners as they are authored, which is what the simulation
-        // weighs, shoots at and welds — the module's own frame is already the
-        // one they are written in.
-        ctx.beginPath();
-        ctx.moveTo(triangle[0]!, triangle[1]!);
-        for (let v = 2; v < triangle.length; v += 2) ctx.lineTo(triangle[v]!, triangle[v + 1]!);
-        ctx.closePath();
-        ctx.fill();
-      } else {
-        ctx.fillRect(-halfLength, -halfWidth, spec.length, spec.width);
-      }
-      if (spec.kind === 'tank' || spec.kind === 'hold' || spec.kind === 'battery') {
-        // A gauge, like a gun's load: the whole capacity as a track inside the
-        // walls, and what is left in it filling along its longer side, so it
-        // moves as far as it can: from the aft end, or the -y one. Drawn at full
-        // strength however torn the store, since a wreck's load is still there
-        // for a claw to take.
-        const inset = min(spec.length, spec.width) * TANK_INSET;
-        const share = (spec.kind === 'tank' ? ship.fuel?.[i] : spec.kind === 'hold' ? ship.metal?.[i] : ship.charge?.[i]) ?? fillOf(spec);
-        const content = spec.kind === 'tank' ? FUEL : spec.kind === 'hold' ? METAL : CHARGE;
-        ctx.globalAlpha = 1;
-        if (triangle !== null) {
-          // The same band of the tank, kept inside the shape rather than drawn
-          // as the box the corners fit in. Measured from the corner furthest
-          // back along it, so a triangular tank empties the way a rectangular one does.
-          const lining = insetTriangle(triangle, inset);
-          if (lining !== null) {
-            let aft = Infinity;
-            let fore = -Infinity;
-            let low = Infinity;
-            let high = -Infinity;
-            for (let v = 0; v < lining.length; v += 2) {
-              aft = min(aft, lining[v]!);
-              fore = max(fore, lining[v]!);
-              low = min(low, lining[v + 1]!);
-              high = max(high, lining[v + 1]!);
-            }
+    ctx.translate(ship.x, ship.y);
+    ctx.rotate(ship.angle);
+
+    // Where its doctrine closes to, centre to centre: under everything, so the
+    // trigger wedges' tips can be read against it.
+    const holdMax = ship.holdMax ?? 0;
+    if (whole && arcs === "trigger" && holdMax > 0) {
+        drawBand(ctx, 0, 0, ship.holdMin ?? 0, holdMax, metresToPx);
+        ctx.strokeStyle = ATTACK_LINE;
+        ctx.setLineDash([ATTACK_DASH_PX / metresToPx, ATTACK_DASH_PX / metresToPx]);
+        for (const bearing of ship.attackBearings ?? []) {
             ctx.save();
+            ctx.rotate(bearing);
             ctx.beginPath();
-            roundedTriangle(ctx, lining, min(spec.length, spec.width) * TANK_ROUNDING - inset);
-            ctx.fillStyle = FUEL_TRACK;
-            ctx.fill();
-            ctx.clip();
-            ctx.fillStyle = content;
-            if (fore - aft >= high - low) ctx.fillRect(aft, -halfWidth, (fore - aft) * share, spec.width);
-            else ctx.fillRect(-halfLength, low, spec.length, (high - low) * share);
+            ctx.moveTo(0, 0);
+            ctx.lineTo(holdMax, 0);
+            ctx.stroke();
             ctx.restore();
-          }
-        } else {
-          // Rounded inside a square hull that meets its neighbours, the fuel kept inside the rounding.
-          const inner = spec.length - 2 * inset;
-          const across = spec.width - 2 * inset;
-          ctx.save();
-          ctx.beginPath();
-          ctx.roundRect(
-            -halfLength + inset,
-            -halfWidth + inset,
-            inner,
-            across,
-            max(0, min(spec.length, spec.width) * TANK_ROUNDING - inset),
-          );
-          ctx.fillStyle = FUEL_TRACK;
-          ctx.fill();
-          ctx.clip();
-          ctx.fillStyle = content;
-          if (inner >= across) ctx.fillRect(-halfLength + inset, -halfWidth + inset, inner * share, across);
-          else ctx.fillRect(-halfLength + inset, -halfWidth + inset, inner, across * share);
-          ctx.restore();
         }
-      }
-      if (spec.kind === 'robotBay') {
-        // A round pad for each berth, all one size, spread evenly over the
-        // bay in the grid its berths make (`berthGrid`), dark once it can no
-        // longer tend its robots; a robot home sits on its pad.
-        ctx.globalAlpha = 1;
-        const { across, down } = berthGrid(spec);
-        const cellLength = spec.length / max(1, across);
-        const cellWidth = spec.width / max(1, down);
-        const pad = ROBOT_BERTH_PITCH * ROBOT_PAD;
-        // The robots home here, each on its own berth.
-        const docked = ship.docked ?? [];
-        const here: number[] = [];
-        for (let r = 0; r + ROBOT_DOCK_STRIDE <= docked.length; r += ROBOT_DOCK_STRIDE) if (docked[r] === i) here[docked[r + 3]!] = r;
-        const home = ship.berthed?.[i] ?? 0;
-        // The pad after every robot it has is the one it is building on.
-        const building = ship.crews?.[i] ?? m.stats.robots;
-        const progress = ship.builds?.[i] ?? 0;
-        ctx.lineWidth = pad * 0.25;
-        for (let k = 0; k < m.stats.robots; k++) {
-          const x = -halfLength + cellLength * ((k % across) + 0.5);
-          const y = -halfWidth + cellWidth * (floor(k / across) + 0.5);
-          if (k === building && progress > 0) {
-            // A loading ring: the pad's circle drawn round as the robot is built.
-            ctx.strokeStyle = FUEL_TRACK;
-            ctx.beginPath();
-            ctx.arc(x, y, pad, 0, TAU);
-            ctx.stroke();
-            ctx.strokeStyle = colours.trim;
-            ctx.beginPath();
-            ctx.arc(x, y, pad, -PI / 2, -PI / 2 + TAU * min(1, progress));
-            ctx.stroke();
-            continue;
-          }
-          ctx.strokeStyle = integrity > 0 ? colours.trim : FUEL_TRACK;
-          ctx.beginPath();
-          ctx.arc(x, y, pad, 0, TAU);
-          ctx.stroke();
-          if (ship.docked === undefined ? k >= home : here[k] === undefined) continue;
-          const r = here[k];
-          const charge = r === undefined ? 1 : docked[r + 1]!;
-          const metal = r === undefined ? 1 : docked[r + 2]!;
-          if (charge < ROBOT_FULL || metal < ROBOT_FULL) {
-            // Being filled: the robot itself, so its bars are seen filling.
-            drawRobot(ctx, x, y, 0, charge, metal, min(ROBOT_LENGTH, pad * 2.2), colours.trim, colours.pivot);
-          } else {
-            ctx.fillStyle = colours.trim;
-            ctx.beginPath();
-            ctx.arc(x, y, pad * 0.55, 0, TAU);
-            ctx.fill();
-          }
-        }
-      }
-      if (spec.kind === 'generator') {
-        // The plant: a disc of charge, dark once it has stopped making any.
-        ctx.globalAlpha = 1;
-        ctx.fillStyle = integrity > 0 ? CHARGE : FUEL_TRACK;
-        ctx.beginPath();
-        ctx.arc(0, 0, (min(spec.length, spec.width) * GENERATOR_DISC) / 2, 0, TAU);
-        ctx.fill();
-      }
-      if (spec.kind === 'core') drawCoreLight(ctx, design, i, spec, ship.coresWorking?.[design.cores.indexOf(i)] ?? integrity > 0);
-      if (spec.kind === 'core' && integrity > 0) {
-        // What the core holds, each in a corner and sized by the square root
-        // of its share of the room, so a small share is still seen: fuel and
-        // metal forward, charge and the generator aft, the middle left for
-        // the ship's name.
-        ctx.globalAlpha = 1;
-        const sideways = spec.width > spec.length;
-        if (sideways) ctx.rotate(PI / 2);
-        const along = sideways ? spec.width : spec.length;
-        const across = sideways ? spec.length : spec.width;
-        const small = min(along, across);
-        const bar = small * CORE_GAUGE;
-        const inset = small * CORE_GAUGE_INSET;
-        const reach = along / 2 - 1.5 * inset;
-        const room = coreRoom(m.stats);
-        const most = max(room.fuel, room.metal, room.charge, room.generator);
-        const size = (volume: number): number => (most > 0 ? reach * sqrt(volume / most) : 0);
-        const gauge = (share: number, x: number, length: number, y: number, fill: string): void => {
-          if (!(length > 0)) return;
-          ctx.save();
-          ctx.beginPath();
-          ctx.roundRect(x, y, length, bar, bar / 2);
-          ctx.fillStyle = FUEL_TRACK;
-          ctx.fill();
-          ctx.clip();
-          ctx.fillStyle = fill;
-          ctx.fillRect(x, y, length * share, bar);
-          ctx.restore();
-        };
-        const top = -across / 2 + inset;
-        const bottom = across / 2 - inset - bar;
-        const fore = along / 2 - inset;
-        const aft = -along / 2 + inset;
-        const fuel = size(room.fuel);
-        const metal = size(room.metal);
-        gauge(ship.fuel?.[i] ?? fillOf(spec), fore - fuel, fuel, top, FUEL);
-        gauge(ship.metal?.[i] ?? fillOf(spec), fore - metal, metal, bottom, METAL);
-        gauge(ship.charge?.[i] ?? fillOf(spec), aft, size(room.charge), top, CHARGE);
-        const disc = min(size(room.generator), bar * CORE_DISC_GAUGES);
-        if (disc > 0) {
-          ctx.fillStyle = CHARGE;
-          ctx.beginPath();
-          ctx.arc(aft + disc / 2, across / 2 - inset - disc / 2, disc / 2, 0, TAU);
-          ctx.fill();
-        }
-      }
+        ctx.setLineDash([]);
     }
+
+    // Module boxes, in the body frame the design already put them in.
+    for (let i = 0; i < design.modules.length; i++) {
+        if (ship.drawn?.[i] === false || isFighterModule(design, i) !== fighters) continue;
+        const m = design.modules[i]!;
+        // A piece hooked on from another ship keeps that ship's colours.
+        const colours = moduleColours(design, i, ship.sides?.[i] ?? ship.team);
+        const spec = m.spec;
+        ctx.save();
+        ctx.translate(m.x, m.y);
+        ctx.rotate(m.angle);
+        // Wreckage: still there, still stopping shells, no longer doing its job.
+        // Drawn as what it is rather than removed, which is what §4 means by
+        // conserving matter — and it is the only way to see a ship being killed
+        // module by module rather than simply going quiet.
+        // Optional, because a view can be built by hand: the editor's preview and
+        // the camera's tests both do, and neither has anything to be damaged.
+        const integrity = ship.integrity?.[i] ?? 1;
+        // A core is drawn in the darkest of the team's colours: the compartment
+        // the ship is flown from is worth being able to find at a glance, since
+        // shooting it out is what leaves a hulk.
+        ctx.fillStyle =
+            spec.kind === "kernel"
+                ? KERNEL
+                : spec.kind === "rock"
+                  ? rockColour(spec.ore ?? 0, spec.ice ?? 0)
+                  : integrity <= 0
+                    ? WRECKAGE
+                    : spec.kind === "structure" || spec.kind === "tank" || spec.kind === "hold" || spec.kind === "battery"
+                      ? // Thick structure is drawn in the colour of the mounts and engines,
+                        // since it is what stands with them in the weapons layer. Read from
+                        // the compiled flag rather than the spec, since a plate that is
+                        // thick by borrowing its neighbour's depth is only as high as what
+                        // it covers.
+                        m.weaponsLayer
+                          ? colours.trim
+                          : colours.hull
+                      : spec.kind === "core"
+                        ? colours.pivot
+                        : spec.kind === "robotBay"
+                          ? // A deck, as a pad is, for its berth pads to stand out on.
+                            colours.hull
+                          : colours.trim;
+        ctx.globalAlpha = integrity <= 0 ? 1 : (0.45 + 0.55 * integrity) * (ship.outOfReach?.[i] === true ? OUT_OF_REACH_ALPHA : 1);
+        const halfLength = spec.length / 2;
+        const halfWidth = spec.width / 2;
+        if (spec.kind === "engine") {
+            // An engine is a machinery block with bells on the back of it, and it is
+            // drawn as exactly that: the block a box like any other module, each
+            // bell flaring from its throat to the exit. Local +x is the way it
+            // pushes and the face it is bolted on by, so the bells are at -x and
+            // widen as they go, which is both how a rocket is shaped and the
+            // direction the plume already leaves in.
+            //
+            // This is the one drawing that is not an approximation of the module:
+            // the throat fraction it tapers from is the number the thrust is worked
+            // out from, so what the bell looks like is what it does.
+            const engine = engineGeometry(spec);
+            ctx.fillRect(halfLength - engine.machineryLength, -halfWidth, engine.machineryLength, spec.width);
+            const throat = engine.throatWidth / 2;
+            const exit = engine.exitWidth / 2;
+            const mouth = halfLength - engine.machineryLength;
+            for (let n = 0; n < engine.nozzles; n++) {
+                const across = nozzleOffset(engine, n);
+                ctx.beginPath();
+                ctx.moveTo(mouth, across - throat);
+                ctx.lineTo(mouth, across + throat);
+                ctx.lineTo(-halfLength, across + exit);
+                ctx.lineTo(-halfLength, across - exit);
+                ctx.closePath();
+                ctx.fill();
+            }
+        } else if (isHullMount(spec.kind)) {
+            // Only the block. The barrel is drawn by the turret pass, from the root
+            // it trains about and at the bearing it is actually pointing — which is
+            // the whole reason it is a separate piece rather than part of the box.
+            const mount = hullMountGeometry(spec);
+            ctx.fillRect(-halfLength, -halfWidth, mount.blockLength, spec.width);
+        } else if (spec.kind === "pad") {
+            // A deck in the hull's colour with a landing square marked on it.
+            const inset = min(spec.length, spec.width) * PAD_MARK_INSET;
+            ctx.fillStyle = integrity <= 0 ? WRECKAGE : colours.hull;
+            ctx.fillRect(-halfLength, -halfWidth, spec.length, spec.width);
+            ctx.strokeStyle = colours.trim;
+            ctx.lineWidth = inset * 0.5;
+            ctx.strokeRect(-halfLength + inset, -halfWidth + inset, spec.length - 2 * inset, spec.width - 2 * inset);
+        } else if (spec.kind === "port") {
+            // A coupling block with a collar standing proud of its outward face.
+            const collar = spec.length * PORT_COLLAR_SHARE;
+            ctx.fillRect(-halfLength, -halfWidth, spec.length - collar, spec.width);
+            ctx.fillRect(halfLength - collar, -halfWidth * 0.7, collar, spec.width * 0.7);
+        } else if (spec.kind === "slipway") {
+            // A cradle in the hull's colour, open at the face a ship comes out of,
+            // between rails along its sides and the feed block aft.
+            const rail = spec.width * SLIPWAY_RAIL_SHARE;
+            const feed = spec.length * SLIPWAY_FEED_SHARE;
+            ctx.fillStyle = integrity <= 0 ? WRECKAGE : colours.hull;
+            ctx.fillRect(-halfLength, -halfWidth, spec.length, spec.width);
+            ctx.fillStyle = integrity <= 0 ? WRECKAGE : colours.trim;
+            ctx.fillRect(-halfLength, -halfWidth, feed, spec.width);
+            ctx.fillRect(-halfLength, -halfWidth, spec.length, rail);
+            ctx.fillRect(-halfLength, halfWidth - rail, spec.length, rail);
+        } else if (spec.kind === "claw") {
+            // The pump aft, and two jaws reaching out of the bow face it grips with.
+            const jaw = spec.width * CLAW_JAW_SHARE;
+            ctx.fillRect(-halfLength, -halfWidth, halfLength, spec.width);
+            ctx.fillRect(0, -halfWidth, halfLength, jaw);
+            ctx.fillRect(0, halfWidth - jaw, halfLength, jaw);
+        } else {
+            const triangle = shapeOf(spec);
+            if (triangle !== null) {
+                // The corners as they are authored, which is what the simulation
+                // weighs, shoots at and welds — the module's own frame is already the
+                // one they are written in.
+                ctx.beginPath();
+                ctx.moveTo(triangle[0]!, triangle[1]!);
+                for (let v = 2; v < triangle.length; v += 2) ctx.lineTo(triangle[v]!, triangle[v + 1]!);
+                ctx.closePath();
+                ctx.fill();
+            } else {
+                ctx.fillRect(-halfLength, -halfWidth, spec.length, spec.width);
+            }
+            if (spec.kind === "tank" || spec.kind === "hold" || spec.kind === "battery") {
+                // A gauge, like a gun's load: the whole capacity as a track inside the
+                // walls, and what is left in it filling along its longer side, so it
+                // moves as far as it can: from the aft end, or the -y one. Drawn at full
+                // strength however torn the store, since a wreck's load is still there
+                // for a claw to take.
+                const inset = min(spec.length, spec.width) * TANK_INSET;
+                const share =
+                    (spec.kind === "tank" ? ship.fuel?.[i] : spec.kind === "hold" ? ship.metal?.[i] : ship.charge?.[i]) ?? fillOf(spec);
+                const content = spec.kind === "tank" ? FUEL : spec.kind === "hold" ? METAL : CHARGE;
+                ctx.globalAlpha = 1;
+                if (triangle !== null) {
+                    // The same band of the tank, kept inside the shape rather than drawn
+                    // as the box the corners fit in. Measured from the corner furthest
+                    // back along it, so a triangular tank empties the way a rectangular one does.
+                    const lining = insetTriangle(triangle, inset);
+                    if (lining !== null) {
+                        let aft = Infinity;
+                        let fore = -Infinity;
+                        let low = Infinity;
+                        let high = -Infinity;
+                        for (let v = 0; v < lining.length; v += 2) {
+                            aft = min(aft, lining[v]!);
+                            fore = max(fore, lining[v]!);
+                            low = min(low, lining[v + 1]!);
+                            high = max(high, lining[v + 1]!);
+                        }
+                        ctx.save();
+                        ctx.beginPath();
+                        roundedTriangle(ctx, lining, min(spec.length, spec.width) * TANK_ROUNDING - inset);
+                        ctx.fillStyle = FUEL_TRACK;
+                        ctx.fill();
+                        ctx.clip();
+                        ctx.fillStyle = content;
+                        if (fore - aft >= high - low) ctx.fillRect(aft, -halfWidth, (fore - aft) * share, spec.width);
+                        else ctx.fillRect(-halfLength, low, spec.length, (high - low) * share);
+                        ctx.restore();
+                    }
+                } else {
+                    // Rounded inside a square hull that meets its neighbours, the fuel kept inside the rounding.
+                    const inner = spec.length - 2 * inset;
+                    const across = spec.width - 2 * inset;
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.roundRect(
+                        -halfLength + inset,
+                        -halfWidth + inset,
+                        inner,
+                        across,
+                        max(0, min(spec.length, spec.width) * TANK_ROUNDING - inset),
+                    );
+                    ctx.fillStyle = FUEL_TRACK;
+                    ctx.fill();
+                    ctx.clip();
+                    ctx.fillStyle = content;
+                    if (inner >= across) ctx.fillRect(-halfLength + inset, -halfWidth + inset, inner * share, across);
+                    else ctx.fillRect(-halfLength + inset, -halfWidth + inset, inner, across * share);
+                    ctx.restore();
+                }
+            }
+            if (spec.kind === "robotBay") {
+                // A round pad for each berth, all one size, spread evenly over the
+                // bay in the grid its berths make (`berthGrid`), dark once it can no
+                // longer tend its robots; a robot home sits on its pad.
+                ctx.globalAlpha = 1;
+                const { across, down } = berthGrid(spec);
+                const cellLength = spec.length / max(1, across);
+                const cellWidth = spec.width / max(1, down);
+                const pad = ROBOT_BERTH_PITCH * ROBOT_PAD;
+                // The robots home here, each on its own berth.
+                const docked = ship.docked ?? [];
+                const here: number[] = [];
+                for (let r = 0; r + ROBOT_DOCK_STRIDE <= docked.length; r += ROBOT_DOCK_STRIDE)
+                    if (docked[r] === i) here[docked[r + 3]!] = r;
+                const home = ship.berthed?.[i] ?? 0;
+                // The pad after every robot it has is the one it is building on.
+                const building = ship.crews?.[i] ?? m.stats.robots;
+                const progress = ship.builds?.[i] ?? 0;
+                ctx.lineWidth = pad * 0.25;
+                for (let k = 0; k < m.stats.robots; k++) {
+                    const x = -halfLength + cellLength * ((k % across) + 0.5);
+                    const y = -halfWidth + cellWidth * (floor(k / across) + 0.5);
+                    if (k === building && progress > 0) {
+                        // A loading ring: the pad's circle drawn round as the robot is built.
+                        ctx.strokeStyle = FUEL_TRACK;
+                        ctx.beginPath();
+                        ctx.arc(x, y, pad, 0, TAU);
+                        ctx.stroke();
+                        ctx.strokeStyle = colours.trim;
+                        ctx.beginPath();
+                        ctx.arc(x, y, pad, -PI / 2, -PI / 2 + TAU * min(1, progress));
+                        ctx.stroke();
+                        continue;
+                    }
+                    ctx.strokeStyle = integrity > 0 ? colours.trim : FUEL_TRACK;
+                    ctx.beginPath();
+                    ctx.arc(x, y, pad, 0, TAU);
+                    ctx.stroke();
+                    if (ship.docked === undefined ? k >= home : here[k] === undefined) continue;
+                    const r = here[k];
+                    const charge = r === undefined ? 1 : docked[r + 1]!;
+                    const metal = r === undefined ? 1 : docked[r + 2]!;
+                    if (charge < ROBOT_FULL || metal < ROBOT_FULL) {
+                        // Being filled: the robot itself, so its bars are seen filling.
+                        drawRobot(ctx, x, y, 0, charge, metal, min(ROBOT_LENGTH, pad * 2.2), colours.trim, colours.pivot);
+                    } else {
+                        ctx.fillStyle = colours.trim;
+                        ctx.beginPath();
+                        ctx.arc(x, y, pad * 0.55, 0, TAU);
+                        ctx.fill();
+                    }
+                }
+            }
+            if (spec.kind === "generator") {
+                // The plant: a disc of charge, dark once it has stopped making any.
+                ctx.globalAlpha = 1;
+                ctx.fillStyle = integrity > 0 ? CHARGE : FUEL_TRACK;
+                ctx.beginPath();
+                ctx.arc(0, 0, (min(spec.length, spec.width) * GENERATOR_DISC) / 2, 0, TAU);
+                ctx.fill();
+            }
+            if (spec.kind === "core") drawCoreLight(ctx, design, i, spec, ship.coresWorking?.[design.cores.indexOf(i)] ?? integrity > 0);
+            if (spec.kind === "core" && integrity > 0) {
+                // What the core holds, each in a corner and sized by the square root
+                // of its share of the room, so a small share is still seen: fuel and
+                // metal forward, charge and the generator aft, the middle left for
+                // the ship's name.
+                ctx.globalAlpha = 1;
+                const sideways = spec.width > spec.length;
+                if (sideways) ctx.rotate(PI / 2);
+                const along = sideways ? spec.width : spec.length;
+                const across = sideways ? spec.length : spec.width;
+                const small = min(along, across);
+                const bar = small * CORE_GAUGE;
+                const inset = small * CORE_GAUGE_INSET;
+                const reach = along / 2 - 1.5 * inset;
+                const room = coreRoom(m.stats);
+                const most = max(room.fuel, room.metal, room.charge, room.generator);
+                const size = (volume: number): number => (most > 0 ? reach * sqrt(volume / most) : 0);
+                const gauge = (share: number, x: number, length: number, y: number, fill: string): void => {
+                    if (!(length > 0)) return;
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.roundRect(x, y, length, bar, bar / 2);
+                    ctx.fillStyle = FUEL_TRACK;
+                    ctx.fill();
+                    ctx.clip();
+                    ctx.fillStyle = fill;
+                    ctx.fillRect(x, y, length * share, bar);
+                    ctx.restore();
+                };
+                const top = -across / 2 + inset;
+                const bottom = across / 2 - inset - bar;
+                const fore = along / 2 - inset;
+                const aft = -along / 2 + inset;
+                const fuel = size(room.fuel);
+                const metal = size(room.metal);
+                gauge(ship.fuel?.[i] ?? fillOf(spec), fore - fuel, fuel, top, FUEL);
+                gauge(ship.metal?.[i] ?? fillOf(spec), fore - metal, metal, bottom, METAL);
+                gauge(ship.charge?.[i] ?? fillOf(spec), aft, size(room.charge), top, CHARGE);
+                const disc = min(size(room.generator), bar * CORE_DISC_GAUGES);
+                if (disc > 0) {
+                    ctx.fillStyle = CHARGE;
+                    ctx.beginPath();
+                    ctx.arc(aft + disc / 2, across / 2 - inset - disc / 2, disc / 2, 0, TAU);
+                    ctx.fill();
+                }
+            }
+        }
+        ctx.restore();
+    }
+    // Over the hull, since fighters come in over it.
+    if (whole && arcs !== "none") drawApproaches(ctx, ship, metresToPx);
     ctx.restore();
-  }
-  // Over the hull, since fighters come in over it.
-  if (whole && arcs !== 'none') drawApproaches(ctx, ship, metresToPx);
-  ctx.restore();
 
-  // Turrets are drawn in world space: a turret's bearing is a world bearing, so
-  // rotating into the hull frame first would apply the hull's angle twice.
-  const lineWidth = max(0.6, 1.5 / metresToPx);
-  const c = cos(ship.angle);
-  const s = sin(ship.angle);
+    // Turrets are drawn in world space: a turret's bearing is a world bearing, so
+    // rotating into the hull frame first would apply the hull's angle twice.
+    const lineWidth = max(0.6, 1.5 / metresToPx);
+    const c = cos(ship.angle);
+    const s = sin(ship.angle);
 
-  for (let t = 0; t < design.turrets.length; t++) {
-    const module = design.turrets[t]!.module;
-    if (ship.drawn?.[module] === false || isFighterModule(design, module) !== fighters) continue;
-    const colours = moduleColours(design, module, ship.sides?.[module] ?? ship.team);
-    const mount = design.turrets[t]!.mount;
-    const mx = ship.x + mount.x * c - mount.y * s;
-    const my = ship.y + mount.x * s + mount.y * c;
-    const reach = mount.muzzleOffset ?? 0;
-    const left = mount.leftArc ?? PI;
-    const right = mount.rightArc ?? PI;
-    const rest = ship.angle + (mount.restBearing ?? 0);
+    for (let t = 0; t < design.turrets.length; t++) {
+        const module = design.turrets[t]!.module;
+        if (ship.drawn?.[module] === false || isFighterModule(design, module) !== fighters) continue;
+        const colours = moduleColours(design, module, ship.sides?.[module] ?? ship.team);
+        const mount = design.turrets[t]!.mount;
+        const mx = ship.x + mount.x * c - mount.y * s;
+        const my = ship.y + mount.x * s + mount.y * c;
+        const reach = mount.muzzleOffset ?? 0;
+        const left = mount.leftArc ?? PI;
+        const right = mount.rightArc ?? PI;
+        const rest = ship.angle + (mount.restBearing ?? 0);
 
-    // Where the gun may shoot: a mount fouled by its own ship shows a narrow
-    // wedge, one with clear sky a full disc. This is the layout's cost made
-    // visible — DESIGN.md §3 has arcs derived from where a gun was put rather
-    // than authored, and this is what that decision bought or cost, per mount.
-    //
-    // Asymmetric, because the model is: an obstruction off one beam costs the
-    // sweep that way alone. The wedge runs from `rest - rightArc` to
-    // `rest + leftArc`, since bearings increase anticlockwise and +y is to
-    // port — so the left arc is the *upper* bound. Drawing it the other way
-    // round looks perfectly plausible on a symmetric ship and mirrors every
-    // gun's arc on an asymmetric one.
-    const spec = design.modules[design.turrets[t]!.module]!.spec;
-    const face = min(spec.length, spec.width);
-    // A wrecked mount shows no arc: the wash says "this gun may shoot here",
-    // which is a promise a gun that cannot shoot is not making. The barrel
-    // stays, because it is still there.
-    if (arcs !== 'none' && ship.turretDisabled?.[t] !== true) {
-      const scaled = face * ARC_RADIUS_SCALE;
-      const span = scaled < ARC_MIN_RADIUS ? ARC_MIN_RADIUS : scaled > ARC_MAX_RADIUS ? ARC_MAX_RADIUS : scaled;
-      ctx.fillStyle = SWEEP;
-      ctx.strokeStyle = SWEEP_EDGE;
-      ctx.lineWidth = lineWidth * 0.8;
-      ctx.beginPath();
-      if (left + right >= 2 * PI) {
-        ctx.arc(mx, my, span, 0, TAU);
-      } else {
-        ctx.moveTo(mx, my);
-        ctx.arc(mx, my, span, rest - right, rest + left);
-        ctx.closePath();
-      }
-      ctx.fill();
-      ctx.stroke();
+        // Where the gun may shoot: a mount fouled by its own ship shows a narrow
+        // wedge, one with clear sky a full disc. This is the layout's cost made
+        // visible — DESIGN.md §3 has arcs derived from where a gun was put rather
+        // than authored, and this is what that decision bought or cost, per mount.
+        //
+        // Asymmetric, because the model is: an obstruction off one beam costs the
+        // sweep that way alone. The wedge runs from `rest - rightArc` to
+        // `rest + leftArc`, since bearings increase anticlockwise and +y is to
+        // port — so the left arc is the *upper* bound. Drawing it the other way
+        // round looks perfectly plausible on a symmetric ship and mirrors every
+        // gun's arc on an asymmetric one.
+        const spec = design.modules[design.turrets[t]!.module]!.spec;
+        const face = min(spec.length, spec.width);
+        // A wrecked mount shows no arc: the wash says "this gun may shoot here",
+        // which is a promise a gun that cannot shoot is not making. The barrel
+        // stays, because it is still there.
+        if (arcs !== "none" && ship.turretDisabled?.[t] !== true) {
+            const scaled = face * ARC_RADIUS_SCALE;
+            const span = scaled < ARC_MIN_RADIUS ? ARC_MIN_RADIUS : scaled > ARC_MAX_RADIUS ? ARC_MAX_RADIUS : scaled;
+            ctx.fillStyle = SWEEP;
+            ctx.strokeStyle = SWEEP_EDGE;
+            ctx.lineWidth = lineWidth * 0.8;
+            ctx.beginPath();
+            if (left + right >= 2 * PI) {
+                ctx.arc(mx, my, span, 0, TAU);
+            } else {
+                ctx.moveTo(mx, my);
+                ctx.arc(mx, my, span, rest - right, rest + left);
+                ctx.closePath();
+            }
+            ctx.fill();
+            ctx.stroke();
 
-      // Where it may point and may not fire, because its own ship is
-      // downrange: the trigger mask, within the sweep.
-      const mask = mount.mask;
-      if (mask !== undefined && mask.length > 0) {
-        const whole = left + right >= 2 * PI;
-        ctx.fillStyle = MASKED;
-        for (let k = 0; k < mask.length; k += 2) {
-          for (let wrap = -1; wrap <= 1; wrap++) {
-            const from = whole ? mask[k]! : max(mask[k]! + wrap * TAU, -right);
-            const to = whole ? mask[k + 1]! : min(mask[k + 1]! + wrap * TAU, left);
-            if (!(to > from)) continue;
+            // Where it may point and may not fire, because its own ship is
+            // downrange: the trigger mask, within the sweep.
+            const mask = mount.mask;
+            if (mask !== undefined && mask.length > 0) {
+                const whole = left + right >= 2 * PI;
+                ctx.fillStyle = MASKED;
+                for (let k = 0; k < mask.length; k += 2) {
+                    for (let wrap = -1; wrap <= 1; wrap++) {
+                        const from = whole ? mask[k]! : max(mask[k]! + wrap * TAU, -right);
+                        const to = whole ? mask[k + 1]! : min(mask[k + 1]! + wrap * TAU, left);
+                        if (!(to > from)) continue;
+                        ctx.beginPath();
+                        ctx.moveTo(mx, my);
+                        ctx.arc(mx, my, span, rest + from, rest + to);
+                        ctx.closePath();
+                        ctx.fill();
+                        if (whole) break;
+                    }
+                }
+            }
+        }
+
+        // Where it will fire: the bearing it is aiming along, as far either side as
+        // it will pull the trigger, out to as far as it is worth shooting at what
+        // it is aiming at. Tinted by whether it would fire now — on target, not
+        // yet, or pointing into its own ship.
+        const triggerReach = ship.turretTriggerReach?.[t] ?? 0;
+        // Its sides are lines a calibre wide, floored on screen, so a gun allowed
+        // only a hair either side still shows which way it will fire.
+        const half = ship.turretTrigger?.[t] ?? 0;
+        if (arcs === "trigger" && triggerReach > 0 && ship.turretDisabled?.[t] !== true) {
+            const aim = ship.turretAim?.[t] ?? rest;
+            const tint = ship.turretFouled?.[t] === true ? TRIGGER_FOULED : ship.turretReady[t] === true ? TRIGGER_ON : TRIGGER_OFF;
+            ctx.fillStyle = tint;
             ctx.beginPath();
             ctx.moveTo(mx, my);
-            ctx.arc(mx, my, span, rest + from, rest + to);
+            ctx.arc(mx, my, triggerReach, aim - half, aim + half);
             ctx.closePath();
             ctx.fill();
-            if (whole) break;
-          }
+            ctx.strokeStyle = tint;
+            ctx.lineWidth = legibleWidth(design.turrets[t]!.gun.calibre, MIN_TRIGGER_PX, metresToPx);
+            ctx.beginPath();
+            ctx.moveTo(mx + cos(aim - half) * triggerReach, my + sin(aim - half) * triggerReach);
+            ctx.lineTo(mx, my);
+            ctx.lineTo(mx + cos(aim + half) * triggerReach, my + sin(aim + half) * triggerReach);
+            ctx.stroke();
+
+            // In battle, where the barrel actually points, so how far it is off its
+            // aim shows. A preview has no body, and its barrel is on its aim anyway.
+            if (ship.body >= 0) {
+                const bearing = ship.turretBearings[t] ?? aim;
+                ctx.strokeStyle = BARREL_LINE;
+                ctx.lineWidth = BARREL_LINE_PX / metresToPx;
+                ctx.beginPath();
+                ctx.moveTo(mx, my);
+                ctx.lineTo(mx + cos(bearing) * triggerReach, my + sin(bearing) * triggerReach);
+                ctx.stroke();
+            }
         }
-      }
-    }
 
-    // Where it will fire: the bearing it is aiming along, as far either side as
-    // it will pull the trigger, out to as far as it is worth shooting at what
-    // it is aiming at. Tinted by whether it would fire now — on target, not
-    // yet, or pointing into its own ship.
-    const triggerReach = ship.turretTriggerReach?.[t] ?? 0;
-    // Its sides are lines a calibre wide, floored on screen, so a gun allowed
-    // only a hair either side still shows which way it will fire.
-    const half = ship.turretTrigger?.[t] ?? 0;
-    if (arcs === 'trigger' && triggerReach > 0 && ship.turretDisabled?.[t] !== true) {
-      const aim = ship.turretAim?.[t] ?? rest;
-      const tint = ship.turretFouled?.[t] === true ? TRIGGER_FOULED : ship.turretReady[t] === true ? TRIGGER_ON : TRIGGER_OFF;
-      ctx.fillStyle = tint;
-      ctx.beginPath();
-      ctx.moveTo(mx, my);
-      ctx.arc(mx, my, triggerReach, aim - half, aim + half);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = tint;
-      ctx.lineWidth = legibleWidth(design.turrets[t]!.gun.calibre, MIN_TRIGGER_PX, metresToPx);
-      ctx.beginPath();
-      ctx.moveTo(mx + cos(aim - half) * triggerReach, my + sin(aim - half) * triggerReach);
-      ctx.lineTo(mx, my);
-      ctx.lineTo(mx + cos(aim + half) * triggerReach, my + sin(aim + half) * triggerReach);
-      ctx.stroke();
+        const bearing = ship.turretBearings[t] ?? 0;
+        const dirX = cos(bearing);
+        const dirY = sin(bearing);
+        const gun = design.turrets[t]!.gun;
+        const count = gun.barrelCount;
+        const spacing = gun.barrelSpacing;
+        const hull = isHullMount(spec.kind) ? hullMountGeometry(spec) : null;
+        const beamLenses = spec.kind === "hullBeam";
 
-      // In battle, where the barrel actually points, so how far it is off its
-      // aim shows. A preview has no body, and its barrel is on its aim anyway.
-      if (ship.body >= 0) {
-        const bearing = ship.turretBearings[t] ?? aim;
-        ctx.strokeStyle = BARREL_LINE;
-        ctx.lineWidth = BARREL_LINE_PX / metresToPx;
+        // The rotating part itself. A turret's is a disc at the mount, sized to the
+        // module it sits in so a heavy mount looks heavy. Each of a hull beam's
+        // lenses has a mount of its own on a stalk out of the face. A hull gun's
+        // mantlet goes on after its barrels, below.
+        ctx.fillStyle = colours.pivot;
+        if (hull === null) {
+            ctx.beginPath();
+            ctx.arc(mx, my, face * 0.5, 0, TAU);
+            ctx.fill();
+        } else if (beamLenses) {
+            // Each lens on a disc of its own that it turns on, as wide as the lens
+            // sweeps, and a stalk back from it to the block's face.
+            const back = hull.trains - hull.pivot;
+            const radius = 0.5 * sqrt(hull.barrelLength * hull.barrelLength + hull.outletWidth * hull.outletWidth);
+            const restX = cos(rest);
+            const restY = sin(rest);
+            for (let k = 0; k < count; k++) {
+                const lat = count > 1 ? (k - (count - 1) * 0.5) * spacing : 0;
+                const cx = mx - restY * lat;
+                const cy = my + restX * lat;
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius, 0, TAU);
+                ctx.fill();
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(rest);
+                ctx.fillRect(-back, -hull.outletWidth * 0.3, back, hull.outletWidth * 0.6);
+                ctx.restore();
+            }
+        }
+
+        ctx.strokeStyle = BARREL;
+        // Twice the calibre: for a gun that is the barrel's outer diameter, the
+        // tube the annulus in `moduleStats` charges steel for rather than the bore.
+        // For a beam mount it is the housing round the optic rather than the optic
+        // itself, which comes to the same drawn width and wants no special case —
+        // and the two read quite differently anyway, a laser's housing being about
+        // as deep as it is wide where a barrel is fifty times.
+        // A hull mount knows its outlets' width outright, and for a lens that is
+        // the lens rather than twice it.
+        const physicalWidth = hull !== null ? hull.outletWidth : 2 * gun.calibre;
+        // Barrels are allowed to overlap once the floor has widened them past their
+        // own gaps, which happens only when the whole ship is a hundred-odd pixels
+        // across. A row that closes into one solid bar still says where the turret
+        // is pointing, where holding each barrel inside its gap would shrink them
+        // back below the floor and say nothing. Overlap is free: the barrel colours
+        // are opaque, so a bar drawn twice looks like a bar.
+        ctx.lineWidth = legibleWidth(physicalWidth, MIN_BARREL_PX, metresToPx);
+        const hidden = hull !== null && !beamLenses;
+        if (hidden) {
+            // Behind the block, so a barrel trained hard over never shows its breech.
+            const placed = design.modules[module]!;
+            blockClip(ctx, ship, placed.x, placed.y, placed.angle, spec.length, spec.width, hull.blockLength, reach + spec.length);
+        }
         ctx.beginPath();
-        ctx.moveTo(mx, my);
-        ctx.lineTo(mx + cos(bearing) * triggerReach, my + sin(bearing) * triggerReach);
+        for (let k = 0; k < count; k++) {
+            const lat = count > 1 ? (k - (count - 1) * 0.5) * spacing : 0;
+            if (beamLenses) {
+                // Each lens about its own centre, the row laid across the mount.
+                const cx = mx - sin(rest) * lat;
+                const cy = my + cos(rest) * lat;
+                ctx.moveTo(cx - dirX * reach, cy - dirY * reach);
+                ctx.lineTo(cx + dirX * reach, cy + dirY * reach);
+                continue;
+            }
+            const bx = mx - dirY * lat;
+            const by = my + dirX * lat;
+            ctx.moveTo(bx, by);
+            ctx.lineTo(bx + dirX * reach, by + dirY * reach);
+        }
         ctx.stroke();
-      }
+        if (gun.braceLength > 0) drawBracing(ctx, gun, physicalWidth, mx, my, dirX, dirY);
+        if (hidden) ctx.restore();
+        if (hull !== null && !beamLenses) {
+            // Over the barrels' roots, standing out of the block's face, so a barrel
+            // trained hard over is seen to come out of it rather than the block.
+            ctx.fillStyle = colours.pivot;
+            const row = ((count - 1) / 2) * spacing + hull.outletWidth;
+            mantlet(ctx, mx, my, min(spec.width * 0.5, row), rest);
+        }
+        drawLoad(ctx, ship, t, mx, my, bearing);
     }
 
-    const bearing = ship.turretBearings[t] ?? 0;
-    const dirX = cos(bearing);
-    const dirY = sin(bearing);
-    const gun = design.turrets[t]!.gun;
-    const count = gun.barrelCount;
-    const spacing = gun.barrelSpacing;
-    const hull = isHullMount(spec.kind) ? hullMountGeometry(spec) : null;
-    const beamLenses = spec.kind === 'hullBeam';
-
-    // The rotating part itself. A turret's is a disc at the mount, sized to the
-    // module it sits in so a heavy mount looks heavy. Each of a hull beam's
-    // lenses has a mount of its own on a stalk out of the face. A hull gun's
-    // mantlet goes on after its barrels, below.
-    ctx.fillStyle = colours.pivot;
-    if (hull === null) {
-      ctx.beginPath();
-      ctx.arc(mx, my, face * 0.5, 0, TAU);
-      ctx.fill();
-    } else if (beamLenses) {
-      // Each lens on a disc of its own that it turns on, as wide as the lens
-      // sweeps, and a stalk back from it to the block's face.
-      const back = hull.trains - hull.pivot;
-      const radius = 0.5 * sqrt(hull.barrelLength * hull.barrelLength + hull.outletWidth * hull.outletWidth);
-      const restX = cos(rest);
-      const restY = sin(rest);
-      for (let k = 0; k < count; k++) {
-        const lat = count > 1 ? (k - (count - 1) * 0.5) * spacing : 0;
-        const cx = mx - restY * lat;
-        const cy = my + restX * lat;
-        ctx.beginPath();
-        ctx.arc(cx, cy, radius, 0, TAU);
-        ctx.fill();
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(rest);
-        ctx.fillRect(-back, -hull.outletWidth * 0.3, back, hull.outletWidth * 0.6);
-        ctx.restore();
-      }
-    }
-
-    ctx.strokeStyle = BARREL;
-    // Twice the calibre: for a gun that is the barrel's outer diameter, the
-    // tube the annulus in `moduleStats` charges steel for rather than the bore.
-    // For a beam mount it is the housing round the optic rather than the optic
-    // itself, which comes to the same drawn width and wants no special case —
-    // and the two read quite differently anyway, a laser's housing being about
-    // as deep as it is wide where a barrel is fifty times.
-    // A hull mount knows its outlets' width outright, and for a lens that is
-    // the lens rather than twice it.
-    const physicalWidth = hull !== null ? hull.outletWidth : 2 * gun.calibre;
-    // Barrels are allowed to overlap once the floor has widened them past their
-    // own gaps, which happens only when the whole ship is a hundred-odd pixels
-    // across. A row that closes into one solid bar still says where the turret
-    // is pointing, where holding each barrel inside its gap would shrink them
-    // back below the floor and say nothing. Overlap is free: the barrel colours
-    // are opaque, so a bar drawn twice looks like a bar.
-    ctx.lineWidth = legibleWidth(physicalWidth, MIN_BARREL_PX, metresToPx);
-    const hidden = hull !== null && !beamLenses;
-    if (hidden) {
-      // Behind the block, so a barrel trained hard over never shows its breech.
-      const placed = design.modules[module]!;
-      blockClip(ctx, ship, placed.x, placed.y, placed.angle, spec.length, spec.width, hull.blockLength, reach + spec.length);
-    }
-    ctx.beginPath();
-    for (let k = 0; k < count; k++) {
-      const lat = count > 1 ? (k - (count - 1) * 0.5) * spacing : 0;
-      if (beamLenses) {
-        // Each lens about its own centre, the row laid across the mount.
-        const cx = mx - sin(rest) * lat;
-        const cy = my + cos(rest) * lat;
-        ctx.moveTo(cx - dirX * reach, cy - dirY * reach);
-        ctx.lineTo(cx + dirX * reach, cy + dirY * reach);
-        continue;
-      }
-      const bx = mx - dirY * lat;
-      const by = my + dirX * lat;
-      ctx.moveTo(bx, by);
-      ctx.lineTo(bx + dirX * reach, by + dirY * reach);
-    }
-    ctx.stroke();
-    if (gun.braceLength > 0) drawBracing(ctx, gun, physicalWidth, mx, my, dirX, dirY);
-    if (hidden) ctx.restore();
-    if (hull !== null && !beamLenses) {
-      // Over the barrels' roots, standing out of the block's face, so a barrel
-      // trained hard over is seen to come out of it rather than the block.
-      ctx.fillStyle = colours.pivot;
-      const row = ((count - 1) / 2) * spacing + hull.outletWidth;
-      mantlet(ctx, mx, my, min(spec.width * 0.5, row), rest);
-    }
-    drawLoad(ctx, ship, t, mx, my, bearing);
-  }
-
-  if (!whole) return;
-  if (arcs === 'trigger') drawEngineTriggers(ctx, ship, metresToPx);
-  drawPlumes(ctx, ship);
-  drawLeaks(ctx, ship);
+    if (!whole) return;
+    if (arcs === "trigger") drawEngineTriggers(ctx, ship, metresToPx);
+    drawPlumes(ctx, ship);
+    drawLeaks(ctx, ship);
 }
 
 /** A ship's robots out on its hull: over every capital hull, under every fighter. */
@@ -981,49 +983,49 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
  * in its ship.
  */
 function blockClip(
-  ctx: CanvasRenderingContext2D,
-  ship: ShipView,
-  x: number,
-  y: number,
-  angle: number,
-  length: number,
-  width: number,
-  block: number,
-  reach: number,
+    ctx: CanvasRenderingContext2D,
+    ship: ShipView,
+    x: number,
+    y: number,
+    angle: number,
+    length: number,
+    width: number,
+    block: number,
+    reach: number,
 ): void {
-  const c = cos(ship.angle);
-  const s = sin(ship.angle);
-  const cx = ship.x + x * c - y * s;
-  const cy = ship.y + x * s + y * c;
-  const a = ship.angle + angle;
-  const ax = cos(a);
-  const ay = sin(a);
-  const back = -length / 2;
-  const half = width / 2;
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(cx - reach, cy - reach, 2 * reach, 2 * reach);
-  for (const [along, across] of [
-    [back, -half],
-    [back + block, -half],
-    [back + block, half],
-    [back, half],
-  ] as const) {
-    const px = cx + ax * along - ay * across;
-    const py = cy + ay * along + ax * across;
-    if (along === back && across === -half) ctx.moveTo(px, py);
-    else ctx.lineTo(px, py);
-  }
-  ctx.closePath();
-  ctx.clip('evenodd');
+    const c = cos(ship.angle);
+    const s = sin(ship.angle);
+    const cx = ship.x + x * c - y * s;
+    const cy = ship.y + x * s + y * c;
+    const a = ship.angle + angle;
+    const ax = cos(a);
+    const ay = sin(a);
+    const back = -length / 2;
+    const half = width / 2;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(cx - reach, cy - reach, 2 * reach, 2 * reach);
+    for (const [along, across] of [
+        [back, -half],
+        [back + block, -half],
+        [back + block, half],
+        [back, half],
+    ] as const) {
+        const px = cx + ax * along - ay * across;
+        const py = cy + ay * along + ax * across;
+        if (along === back && across === -half) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.clip("evenodd");
 }
 
 /** A half disc on a face, its round side out along `facing`. */
 function mantlet(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, facing: number): void {
-  ctx.beginPath();
-  ctx.arc(x, y, radius, facing - PI / 2, facing + PI / 2);
-  ctx.closePath();
-  ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x, y, radius, facing - PI / 2, facing + PI / 2);
+    ctx.closePath();
+    ctx.fill();
 }
 
 /**
@@ -1032,30 +1034,40 @@ function mantlet(ctx: CanvasRenderingContext2D, x: number, y: number, radius: nu
  * hull, so the hull's being out of view says nothing.
  */
 function robotsShown(ship: ShipView, x: number, y: number, halfW: number, halfH: number): boolean {
-  const robots = ship.robots ?? [];
-  let reach = 0;
-  for (let r = 0; r + ROBOT_VIEW_STRIDE <= robots.length; r += ROBOT_VIEW_STRIDE) {
-    reach = max(reach, length(robots[r]!, robots[r + 1]!));
-  }
-  reach += ROBOT_LENGTH;
-  return Math.abs(ship.x - x) - reach <= halfW && Math.abs(ship.y - y) - reach <= halfH;
+    const robots = ship.robots ?? [];
+    let reach = 0;
+    for (let r = 0; r + ROBOT_VIEW_STRIDE <= robots.length; r += ROBOT_VIEW_STRIDE) {
+        reach = max(reach, length(robots[r]!, robots[r + 1]!));
+    }
+    reach += ROBOT_LENGTH;
+    return Math.abs(ship.x - x) - reach <= halfW && Math.abs(ship.y - y) - reach <= halfH;
 }
 
 function drawRobots(ctx: CanvasRenderingContext2D, ship: ShipView): void {
-  const robots = ship.robots ?? [];
-  if (robots.length === 0) return;
-  const colours = shipColours(ship.team);
-  ctx.save();
-  ctx.translate(ship.x, ship.y);
-  ctx.rotate(ship.angle);
-  for (let r = 0; r + ROBOT_VIEW_STRIDE <= robots.length; r += ROBOT_VIEW_STRIDE) {
-    drawRobot(ctx, robots[r]!, robots[r + 1]!, robots[r + 2]!, robots[r + 3]!, robots[r + 4]!, ROBOT_LENGTH, colours.trim, colours.pivot);
-  }
-  ctx.restore();
+    const robots = ship.robots ?? [];
+    if (robots.length === 0) return;
+    const colours = shipColours(ship.team);
+    ctx.save();
+    ctx.translate(ship.x, ship.y);
+    ctx.rotate(ship.angle);
+    for (let r = 0; r + ROBOT_VIEW_STRIDE <= robots.length; r += ROBOT_VIEW_STRIDE) {
+        drawRobot(
+            ctx,
+            robots[r]!,
+            robots[r + 1]!,
+            robots[r + 2]!,
+            robots[r + 3]!,
+            robots[r + 4]!,
+            ROBOT_LENGTH,
+            colours.trim,
+            colours.pivot,
+        );
+    }
+    ctx.restore();
 }
 
 /** What leaking fuel looks like: vapour, white. */
-const LEAK = '235, 242, 250';
+const LEAK = "235, 242, 250";
 /** How long a leak's plume is drawn, metres per √(kg/s) going out of it. */
 const LEAK_PLUME_LENGTH = 1.5;
 /** How far it has spread by its end, as a share of its length either side. */
@@ -1067,31 +1079,31 @@ const LEAK_PLUME_SPREAD = 0.3;
  * pinhole as a wisp.
  */
 function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView): void {
-  const xs = ship.leakX;
-  if (xs === undefined || xs.length === 0) return;
-  ctx.save();
-  ctx.translate(ship.x, ship.y);
-  ctx.rotate(ship.angle);
-  for (let k = 0; k < xs.length; k++) {
-    const rate = ship.leakRate![k]!;
-    const half = ship.leakWidth![k]! / 2;
-    const length = max(half * 8, LEAK_PLUME_LENGTH * sqrt(rate));
-    const spread = half + length * LEAK_PLUME_SPREAD;
+    const xs = ship.leakX;
+    if (xs === undefined || xs.length === 0) return;
     ctx.save();
-    ctx.translate(xs[k]!, ship.leakY![k]!);
-    // `fade` runs towards -x, so turn the plume's way round to face it.
-    ctx.rotate(math.atan2(ship.leakDirY![k]!, ship.leakDirX![k]!) + PI);
-    ctx.fillStyle = fade(ctx, 0, length, LEAK, 0.6);
-    ctx.beginPath();
-    ctx.moveTo(0, -half);
-    ctx.lineTo(0, half);
-    ctx.lineTo(-length, spread);
-    ctx.lineTo(-length, -spread);
-    ctx.closePath();
-    ctx.fill();
+    ctx.translate(ship.x, ship.y);
+    ctx.rotate(ship.angle);
+    for (let k = 0; k < xs.length; k++) {
+        const rate = ship.leakRate![k]!;
+        const half = ship.leakWidth![k]! / 2;
+        const length = max(half * 8, LEAK_PLUME_LENGTH * sqrt(rate));
+        const spread = half + length * LEAK_PLUME_SPREAD;
+        ctx.save();
+        ctx.translate(xs[k]!, ship.leakY![k]!);
+        // `fade` runs towards -x, so turn the plume's way round to face it.
+        ctx.rotate(math.atan2(ship.leakDirY![k]!, ship.leakDirX![k]!) + PI);
+        ctx.fillStyle = fade(ctx, 0, length, LEAK, 0.6);
+        ctx.beginPath();
+        ctx.moveTo(0, -half);
+        ctx.lineTo(0, half);
+        ctx.lineTo(-length, spread);
+        ctx.lineTo(-length, -spread);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+    }
     ctx.restore();
-  }
-  ctx.restore();
 }
 
 /**
@@ -1100,35 +1112,35 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView): void {
  * of the barrels.
  */
 function drawBracing(
-  ctx: CanvasRenderingContext2D,
-  gun: GunStats,
-  barrelWidth: number,
-  mx: number,
-  my: number,
-  dirX: number,
-  dirY: number,
+    ctx: CanvasRenderingContext2D,
+    gun: GunStats,
+    barrelWidth: number,
+    mx: number,
+    my: number,
+    dirX: number,
+    dirY: number,
 ): void {
-  const count = gun.barrelCount;
-  const half = barrelWidth * 0.5;
-  const first = count > 1 ? -(count - 1) * 0.5 * gun.barrelSpacing : 0;
-  const last = -first;
-  const far = gun.braceLength;
-  ctx.fillStyle = BRACE;
-  const block = (from: number, to: number): void => {
-    ctx.beginPath();
-    ctx.moveTo(mx - dirY * from, my + dirX * from);
-    ctx.lineTo(mx + dirX * far - dirY * from, my + dirY * far + dirX * from);
-    ctx.lineTo(mx + dirX * far - dirY * to, my + dirY * far + dirX * to);
-    ctx.lineTo(mx - dirY * to, my + dirX * to);
-    ctx.closePath();
-    ctx.fill();
-  };
-  block(first - half - gun.braceWidth, first - half);
-  block(last + half, last + half + gun.braceWidth);
-  for (let k = 0; k + 1 < count; k++) {
-    const lat = first + k * gun.barrelSpacing;
-    block(lat + half, lat + gun.barrelSpacing - half);
-  }
+    const count = gun.barrelCount;
+    const half = barrelWidth * 0.5;
+    const first = count > 1 ? -(count - 1) * 0.5 * gun.barrelSpacing : 0;
+    const last = -first;
+    const far = gun.braceLength;
+    ctx.fillStyle = BRACE;
+    const block = (from: number, to: number): void => {
+        ctx.beginPath();
+        ctx.moveTo(mx - dirY * from, my + dirX * from);
+        ctx.lineTo(mx + dirX * far - dirY * from, my + dirY * far + dirX * from);
+        ctx.lineTo(mx + dirX * far - dirY * to, my + dirY * far + dirX * to);
+        ctx.lineTo(mx - dirY * to, my + dirX * to);
+        ctx.closePath();
+        ctx.fill();
+    };
+    block(first - half - gun.braceWidth, first - half);
+    block(last + half, last + half + gun.braceWidth);
+    for (let k = 0; k + 1 < count; k++) {
+        const lat = first + k * gun.barrelSpacing;
+        block(lat + half, lat + gun.barrelSpacing - half);
+    }
 }
 
 /**
@@ -1136,49 +1148,49 @@ function drawBracing(
  * turret's ring, or a bar down the starboard side of a hull mount's block.
  */
 function drawLoad(ctx: CanvasRenderingContext2D, ship: ShipView, t: number, mx: number, my: number, bearing: number): void {
-  // A view built by hand says nothing of loading, so its guns are ready. A
-  // disabled gun is empty, so it never shows a ready light.
-  const load = ship.turretDisabled?.[t] === true ? 0 : (ship.turretLoad?.[t] ?? 1);
-  const module = ship.currentStructure.modules[ship.currentStructure.turrets[t]!.module]!;
-  const spec = module.spec;
-  const colour = ship.turretReloading?.[t] === true ? LOAD_RELOADING : LOAD_READY;
-  if (isHullMount(spec.kind)) {
-    const block = hullMountGeometry(spec).blockLength;
-    const thick = min(spec.width * 0.08, block * 0.25);
-    const end = block * 0.12;
-    const from = -spec.length / 2 + end;
-    const span = block - 2 * end;
-    const y = -spec.width / 2 + thick;
-    ctx.save();
-    ctx.translate(ship.x, ship.y);
-    ctx.rotate(ship.angle);
-    ctx.translate(module.x, module.y);
-    ctx.rotate(module.angle);
-    ctx.fillStyle = LOAD_TRACK;
-    ctx.fillRect(from, y, span, thick);
-    ctx.fillStyle = colour;
-    ctx.fillRect(from, y, span * load, thick);
-    ctx.restore();
-    return;
-  }
-  // Inside the ring's back edge, by about its own thickness.
-  const pivot = min(spec.length, spec.width) * 0.5;
-  const thick = pivot * 0.14;
-  const radius = pivot - 2 * thick;
-  const back = bearing + PI;
-  const half = PI * 0.3;
-  ctx.lineWidth = thick;
-  ctx.lineCap = 'butt';
-  ctx.strokeStyle = LOAD_TRACK;
-  ctx.beginPath();
-  ctx.arc(mx, my, radius, back - half, back + half);
-  ctx.stroke();
-  if (load > 0) {
-    ctx.strokeStyle = colour;
+    // A view built by hand says nothing of loading, so its guns are ready. A
+    // disabled gun is empty, so it never shows a ready light.
+    const load = ship.turretDisabled?.[t] === true ? 0 : (ship.turretLoad?.[t] ?? 1);
+    const module = ship.currentStructure.modules[ship.currentStructure.turrets[t]!.module]!;
+    const spec = module.spec;
+    const colour = ship.turretReloading?.[t] === true ? LOAD_RELOADING : LOAD_READY;
+    if (isHullMount(spec.kind)) {
+        const block = hullMountGeometry(spec).blockLength;
+        const thick = min(spec.width * 0.08, block * 0.25);
+        const end = block * 0.12;
+        const from = -spec.length / 2 + end;
+        const span = block - 2 * end;
+        const y = -spec.width / 2 + thick;
+        ctx.save();
+        ctx.translate(ship.x, ship.y);
+        ctx.rotate(ship.angle);
+        ctx.translate(module.x, module.y);
+        ctx.rotate(module.angle);
+        ctx.fillStyle = LOAD_TRACK;
+        ctx.fillRect(from, y, span, thick);
+        ctx.fillStyle = colour;
+        ctx.fillRect(from, y, span * load, thick);
+        ctx.restore();
+        return;
+    }
+    // Inside the ring's back edge, by about its own thickness.
+    const pivot = min(spec.length, spec.width) * 0.5;
+    const thick = pivot * 0.14;
+    const radius = pivot - 2 * thick;
+    const back = bearing + PI;
+    const half = PI * 0.3;
+    ctx.lineWidth = thick;
+    ctx.lineCap = "butt";
+    ctx.strokeStyle = LOAD_TRACK;
     ctx.beginPath();
-    ctx.arc(mx, my, radius, back - half, back - half + 2 * half * load);
+    ctx.arc(mx, my, radius, back - half, back + half);
     ctx.stroke();
-  }
+    if (load > 0) {
+        ctx.strokeStyle = colour;
+        ctx.beginPath();
+        ctx.arc(mx, my, radius, back - half, back - half + 2 * half * load);
+        ctx.stroke();
+    }
 }
 
 /**
@@ -1186,44 +1198,44 @@ function drawLoad(ctx: CanvasRenderingContext2D, ship: ShipView, t: number, mx: 
  * lands enough to fire for, tinted as a gun's wedge is.
  */
 function drawEngineTriggers(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
-  const reaches = ship.engineTriggerReach;
-  if (reaches === undefined) return;
-  const design = ship.currentStructure;
-  ctx.save();
-  ctx.translate(ship.x, ship.y);
-  ctx.rotate(ship.angle);
-  ctx.lineWidth = legibleWidth(0, MIN_TRIGGER_PX, metresToPx);
-  for (let t = 0; t < design.engines.length; t++) {
-    const reach = reaches[t] ?? 0;
-    const engine = design.engines[t]!;
-    const module = design.modules[engine.module ?? -1];
-    if (!(reach > 0) || module === undefined) continue;
-    const tint = (engine.escaping ?? 1) <= 0 ? TRIGGER_FOULED : ship.engineFiring?.[t] === true ? TRIGGER_ON : TRIGGER_OFF;
-    const geometry = engineGeometry(module.spec);
-    const root = -module.spec.length / 2;
-    const half = geometry.exitWidth / 2;
+    const reaches = ship.engineTriggerReach;
+    if (reaches === undefined) return;
+    const design = ship.currentStructure;
     ctx.save();
-    ctx.translate(module.x, module.y);
-    ctx.rotate(module.angle);
-    ctx.fillStyle = tint;
-    ctx.strokeStyle = tint;
-    for (let n = 0; n < geometry.nozzles; n++) {
-      const across = nozzleOffset(geometry, n);
-      ctx.beginPath();
-      ctx.moveTo(root, across - half);
-      ctx.lineTo(root - reach, across);
-      ctx.lineTo(root, across + half);
-      ctx.closePath();
-      ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(root, across - half);
-      ctx.lineTo(root - reach, across);
-      ctx.lineTo(root, across + half);
-      ctx.stroke();
+    ctx.translate(ship.x, ship.y);
+    ctx.rotate(ship.angle);
+    ctx.lineWidth = legibleWidth(0, MIN_TRIGGER_PX, metresToPx);
+    for (let t = 0; t < design.engines.length; t++) {
+        const reach = reaches[t] ?? 0;
+        const engine = design.engines[t]!;
+        const module = design.modules[engine.module ?? -1];
+        if (!(reach > 0) || module === undefined) continue;
+        const tint = (engine.escaping ?? 1) <= 0 ? TRIGGER_FOULED : ship.engineFiring?.[t] === true ? TRIGGER_ON : TRIGGER_OFF;
+        const geometry = engineGeometry(module.spec);
+        const root = -module.spec.length / 2;
+        const half = geometry.exitWidth / 2;
+        ctx.save();
+        ctx.translate(module.x, module.y);
+        ctx.rotate(module.angle);
+        ctx.fillStyle = tint;
+        ctx.strokeStyle = tint;
+        for (let n = 0; n < geometry.nozzles; n++) {
+            const across = nozzleOffset(geometry, n);
+            ctx.beginPath();
+            ctx.moveTo(root, across - half);
+            ctx.lineTo(root - reach, across);
+            ctx.lineTo(root, across + half);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(root, across - half);
+            ctx.lineTo(root - reach, across);
+            ctx.lineTo(root, across + half);
+            ctx.stroke();
+        }
+        ctx.restore();
     }
     ctx.restore();
-  }
-  ctx.restore();
 }
 
 /**
@@ -1234,53 +1246,53 @@ function drawEngineTriggers(ctx: CanvasRenderingContext2D, ship: ShipView, metre
  * turret sweeps, which dimmed a burning engine to the colour of a shadow.
  */
 function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
-  eachNozzle(ctx, ship, (engine, force, reach, across, landed, split) => {
-    // One flame per nozzle, the same triangles the burn samples its rays
-    // across. How hot it burns is its opacity, and it fades to nothing at its
-    // tip the way its share of the power does, so the brightest part of the
-    // picture is the part doing the most damage.
-    const root = -engine.length / 2;
-    const alpha = layerAlpha(plumeAlpha(plumeIntensity(engine.geometry, force)), split);
-    const half = engine.geometry.exitWidth / 2;
+    eachNozzle(ctx, ship, (engine, force, reach, across, landed, split) => {
+        // One flame per nozzle, the same triangles the burn samples its rays
+        // across. How hot it burns is its opacity, and it fades to nothing at its
+        // tip the way its share of the power does, so the brightest part of the
+        // picture is the part doing the most damage.
+        const root = -engine.length / 2;
+        const alpha = layerAlpha(plumeAlpha(plumeIntensity(engine.geometry, force)), split);
+        const half = engine.geometry.exitWidth / 2;
 
-    // Each third cut off where it lands on a hull, inside the glow that marks
-    // it. A side third reaches a third as far as the core.
-    ctx.save();
-    let cutAny = false;
-    for (let k = 0; k < PLUME_RAYS; k++) if (landed[k]! > 0) cutAny = true;
-    if (cutAny) {
-      ctx.beginPath();
-      for (let k = 0; k < PLUME_RAYS; k++) {
-        const third = k === 1 ? reach : reach / 3;
-        const cut = landed[k]! > 0 ? (1 - landed[k]!) * third : reach;
-        ctx.rect(root - cut, across - half + (k * half * 2) / 3, cut, (half * 2) / 3);
-      }
-      ctx.clip();
-    }
-    ctx.fillStyle = fade(ctx, root, reach, PLUME, alpha);
-    ctx.beginPath();
-    ctx.moveTo(root, across - half);
-    ctx.lineTo(root, across + half);
-    ctx.lineTo(root - reach, across);
-    ctx.closePath();
-    ctx.fill();
-    // A brighter core, a third the width, so a hard burn reads as hotter
-    // rather than merely longer.
-    ctx.fillStyle = fade(
-      ctx,
-      root,
-      reach * 0.55,
-      PLUME_CORE,
-      layerAlpha(min(1, plumeAlpha(plumeIntensity(engine.geometry, force)) * 1.4), split),
-    );
-    ctx.beginPath();
-    ctx.moveTo(root, across - half / 3);
-    ctx.lineTo(root, across + half / 3);
-    ctx.lineTo(root - reach * 0.55, across);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-  });
+        // Each third cut off where it lands on a hull, inside the glow that marks
+        // it. A side third reaches a third as far as the core.
+        ctx.save();
+        let cutAny = false;
+        for (let k = 0; k < PLUME_RAYS; k++) if (landed[k]! > 0) cutAny = true;
+        if (cutAny) {
+            ctx.beginPath();
+            for (let k = 0; k < PLUME_RAYS; k++) {
+                const third = k === 1 ? reach : reach / 3;
+                const cut = landed[k]! > 0 ? (1 - landed[k]!) * third : reach;
+                ctx.rect(root - cut, across - half + (k * half * 2) / 3, cut, (half * 2) / 3);
+            }
+            ctx.clip();
+        }
+        ctx.fillStyle = fade(ctx, root, reach, PLUME, alpha);
+        ctx.beginPath();
+        ctx.moveTo(root, across - half);
+        ctx.lineTo(root, across + half);
+        ctx.lineTo(root - reach, across);
+        ctx.closePath();
+        ctx.fill();
+        // A brighter core, a third the width, so a hard burn reads as hotter
+        // rather than merely longer.
+        ctx.fillStyle = fade(
+            ctx,
+            root,
+            reach * 0.55,
+            PLUME_CORE,
+            layerAlpha(min(1, plumeAlpha(plumeIntensity(engine.geometry, force)) * 1.4), split),
+        );
+        ctx.beginPath();
+        ctx.moveTo(root, across - half / 3);
+        ctx.lineTo(root, across + half / 3);
+        ctx.lineTo(root - reach * 0.55, across);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+    });
 }
 
 /**
@@ -1289,7 +1301,7 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
  * single one where neither is blocked, and dimmer where one is.
  */
 function layerAlpha(alpha: number, split: number): number {
-  return split > 1 ? 1 - sqrt(1 - alpha) : alpha;
+    return split > 1 ? 1 - sqrt(1 - alpha) : alpha;
 }
 
 /**
@@ -1303,59 +1315,59 @@ function layerAlpha(alpha: number, split: number): number {
  * covering it.
  */
 function drawBurns(ctx: CanvasRenderingContext2D, snapshot: Snapshot): void {
-  ctx.save();
-  ctx.globalCompositeOperation = 'lighter';
-  for (let i = 0; i < snapshot.shipCount; i++) {
-    eachNozzle(ctx, snapshot.ships[i]!, (engine, force, reach, across, landed, split) => {
-      // What of this nozzle's power is landing, and roughly where: the core's
-      // landing if it has one, otherwise wherever its edges met something.
-      const perRay = (PLUME_POWER_PER_NEWTON * force) / (engine.geometry.nozzles * PLUME_RAYS * split);
-      let power = 0;
-      let at = 0;
-      let off = 0;
-      let count = 0;
-      for (let k = 0; k < PLUME_RAYS; k++) {
-        const share = landed[k]!;
-        if (!(share > 0)) continue;
-        power += perRay * share;
-        // A side ray reaches a third as far, so its landing is a third as deep.
-        const rayReach = k === 1 ? reach : reach / 3;
-        at += (1 - share) * rayReach;
-        off += (k - 1) / 3;
-        count++;
-      }
-      if (count === 0) return;
-      at /= count;
-      off /= count;
-      const root = -engine.length / 2;
-      const exit = engine.geometry.exitWidth;
-      // As wide as the flame is where it lands, and never a speck.
-      const along = max(exit * (1 - at / reach), exit * 0.5) * 1.8;
-      const deep = along * 0.55;
-      const alpha = min(1, plumeAlpha(power / (PI * along * deep)) * 1.3);
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    for (let i = 0; i < snapshot.shipCount; i++) {
+        eachNozzle(ctx, snapshot.ships[i]!, (engine, force, reach, across, landed, split) => {
+            // What of this nozzle's power is landing, and roughly where: the core's
+            // landing if it has one, otherwise wherever its edges met something.
+            const perRay = (PLUME_POWER_PER_NEWTON * force) / (engine.geometry.nozzles * PLUME_RAYS * split);
+            let power = 0;
+            let at = 0;
+            let off = 0;
+            let count = 0;
+            for (let k = 0; k < PLUME_RAYS; k++) {
+                const share = landed[k]!;
+                if (!(share > 0)) continue;
+                power += perRay * share;
+                // A side ray reaches a third as far, so its landing is a third as deep.
+                const rayReach = k === 1 ? reach : reach / 3;
+                at += (1 - share) * rayReach;
+                off += (k - 1) / 3;
+                count++;
+            }
+            if (count === 0) return;
+            at /= count;
+            off /= count;
+            const root = -engine.length / 2;
+            const exit = engine.geometry.exitWidth;
+            // As wide as the flame is where it lands, and never a speck.
+            const along = max(exit * (1 - at / reach), exit * 0.5) * 1.8;
+            const deep = along * 0.55;
+            const alpha = min(1, plumeAlpha(power / (PI * along * deep)) * 1.3);
 
-      ctx.save();
-      ctx.translate(root - at, across + off * exit);
-      ctx.scale(deep, along);
-      const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
-      glow.addColorStop(0, `rgba(${BURN_CORE}, ${alpha})`);
-      glow.addColorStop(0.25, `rgba(${BURN}, ${alpha * 0.7})`);
-      glow.addColorStop(0.6, `rgba(${BURN}, ${alpha * 0.25})`);
-      glow.addColorStop(1, `rgba(${BURN}, 0)`);
-      ctx.fillStyle = glow;
-      ctx.beginPath();
-      ctx.arc(0, 0, 1, 0, TAU);
-      ctx.fill();
-      ctx.restore();
-    });
-  }
-  ctx.restore();
+            ctx.save();
+            ctx.translate(root - at, across + off * exit);
+            ctx.scale(deep, along);
+            const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+            glow.addColorStop(0, `rgba(${BURN_CORE}, ${alpha})`);
+            glow.addColorStop(0.25, `rgba(${BURN}, ${alpha * 0.7})`);
+            glow.addColorStop(0.6, `rgba(${BURN}, ${alpha * 0.25})`);
+            glow.addColorStop(1, `rgba(${BURN}, 0)`);
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(0, 0, 1, 0, TAU);
+            ctx.fill();
+            ctx.restore();
+        });
+    }
+    ctx.restore();
 }
 
 /** An engine as the flame passes need it: its bell geometry and its length. */
 interface Engine {
-  geometry: ReturnType<typeof engineGeometry>;
-  length: number;
+    geometry: ReturnType<typeof engineGeometry>;
+    length: number;
 }
 
 /**
@@ -1365,53 +1377,53 @@ interface Engine {
  * once a layer, each with its share `split` of the flame.
  */
 function eachNozzle(
-  ctx: CanvasRenderingContext2D,
-  ship: ShipView,
-  visit: (engine: Engine, force: number, reach: number, across: number, landed: readonly number[], split: number) => void,
+    ctx: CanvasRenderingContext2D,
+    ship: ShipView,
+    visit: (engine: Engine, force: number, reach: number, across: number, landed: readonly number[], split: number) => void,
 ): void {
-  const design = ship.currentStructure;
-  // Engines are counted as they are met, because a design lists its
-  // engines in the order its modules appear.
-  let engine = 0;
-  const landed = [0, 0, 0];
+    const design = ship.currentStructure;
+    // Engines are counted as they are met, because a design lists its
+    // engines in the order its modules appear.
+    let engine = 0;
+    const landed = [0, 0, 0];
 
-  ctx.save();
-  ctx.translate(ship.x, ship.y);
-  ctx.rotate(ship.angle);
-  for (let i = 0; i < design.modules.length; i++) {
-    const m = design.modules[i]!;
-    const spec = m.spec;
-    if (spec.kind !== 'engine') continue;
-    const t = engine++;
-    const force = (ship.throttles[t] ?? 0) * (design.engines[t]?.maxThrust ?? 0);
-    if (!(force > 0)) continue;
-    const geometry = engineGeometry(spec);
-    const reach = nozzleReach(geometry, force);
     ctx.save();
-    ctx.translate(m.x, m.y);
-    ctx.rotate(m.angle);
-    const layers = ship.plumeLayers?.[t] ?? plumeLayers(design, t, OWN_LAYERS);
-    const split = layerCount(layers);
-    for (let layer = HULL_LAYER; layer <= WEAPONS_LAYER; layer <<= 1) {
-      if ((layers & layer) === 0) continue;
-      for (let n = 0; n < geometry.nozzles; n++) {
-        for (let k = 0; k < PLUME_RAYS; k++) {
-          landed[k] = ship.landed[landedIndex(design, t, n * PLUME_RAYS + k, layer)] ?? 0;
+    ctx.translate(ship.x, ship.y);
+    ctx.rotate(ship.angle);
+    for (let i = 0; i < design.modules.length; i++) {
+        const m = design.modules[i]!;
+        const spec = m.spec;
+        if (spec.kind !== "engine") continue;
+        const t = engine++;
+        const force = (ship.throttles[t] ?? 0) * (design.engines[t]?.maxThrust ?? 0);
+        if (!(force > 0)) continue;
+        const geometry = engineGeometry(spec);
+        const reach = nozzleReach(geometry, force);
+        ctx.save();
+        ctx.translate(m.x, m.y);
+        ctx.rotate(m.angle);
+        const layers = ship.plumeLayers?.[t] ?? plumeLayers(design, t, OWN_LAYERS);
+        const split = layerCount(layers);
+        for (let layer = HULL_LAYER; layer <= WEAPONS_LAYER; layer <<= 1) {
+            if ((layers & layer) === 0) continue;
+            for (let n = 0; n < geometry.nozzles; n++) {
+                for (let k = 0; k < PLUME_RAYS; k++) {
+                    landed[k] = ship.landed[landedIndex(design, t, n * PLUME_RAYS + k, layer)] ?? 0;
+                }
+                visit({ geometry, length: spec.length }, force, reach, nozzleOffset(geometry, n), landed, split);
+            }
         }
-        visit({ geometry, length: spec.length }, force, reach, nozzleOffset(geometry, n), landed, split);
-      }
+        ctx.restore();
     }
     ctx.restore();
-  }
-  ctx.restore();
 }
 
 /** A flame's fill: `alpha` at the nozzle, fading to nothing `length` aft of it. */
 function fade(ctx: CanvasRenderingContext2D, root: number, length: number, rgb: string, alpha: number): CanvasGradient {
-  const gradient = ctx.createLinearGradient(root, 0, root - length, 0);
-  gradient.addColorStop(0, `rgba(${rgb}, ${alpha})`);
-  gradient.addColorStop(1, `rgba(${rgb}, 0)`);
-  return gradient;
+    const gradient = ctx.createLinearGradient(root, 0, root - length, 0);
+    gradient.addColorStop(0, `rgba(${rgb}, ${alpha})`);
+    gradient.addColorStop(1, `rgba(${rgb}, 0)`);
+    return gradient;
 }
 
 /**
@@ -1442,32 +1454,32 @@ function fade(ctx: CanvasRenderingContext2D, root: number, length: number, rgb: 
  * its body's angle: a fighter launched from a pad keeps the carrier's frame.
  */
 function drawIcon(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
-  if (ship.isDerelict || ship.riding === true) return;
-  const alpha = iconAlpha(ship.currentStructure.radius * 2 * metresToPx);
-  if (alpha <= 0) return;
-  const palette = ship.currentStructure.fighter ? fighterColours : shipColours;
-  const colours = palette(ship.hasControl && !ship.isMissionKilled ? ship.team : -1);
-  const size = ICON_PX / metresToPx;
+    if (ship.isDerelict || ship.riding === true) return;
+    const alpha = iconAlpha(ship.currentStructure.radius * 2 * metresToPx);
+    if (alpha <= 0) return;
+    const palette = ship.currentStructure.fighter ? fighterColours : shipColours;
+    const colours = palette(ship.hasControl && !ship.isMissionKilled ? ship.team : -1);
+    const size = ICON_PX / metresToPx;
 
-  ctx.save();
-  ctx.translate(ship.x, ship.y);
-  ctx.rotate(ship.heading ?? ship.angle);
-  ctx.scale(size, size);
-  ctx.globalAlpha = alpha;
-  ctx.beginPath();
-  ctx.moveTo(ICON_OUTLINE[0]![0], ICON_OUTLINE[0]![1]);
-  for (let i = 1; i < ICON_OUTLINE.length; i++) {
-    ctx.lineTo(ICON_OUTLINE[i]![0], ICON_OUTLINE[i]![1]);
-  }
-  ctx.closePath();
-  ctx.fillStyle = colours.hull;
-  ctx.fill();
-  // An outline in the lighter of the same two colours, so the arrowhead holds
-  // its shape against the hull it is sitting on as well as against the field.
-  ctx.strokeStyle = colours.trim;
-  ctx.lineWidth = 1 / ICON_PX;
-  ctx.stroke();
-  ctx.restore();
+    ctx.save();
+    ctx.translate(ship.x, ship.y);
+    ctx.rotate(ship.heading ?? ship.angle);
+    ctx.scale(size, size);
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    ctx.moveTo(ICON_OUTLINE[0]![0], ICON_OUTLINE[0]![1]);
+    for (let i = 1; i < ICON_OUTLINE.length; i++) {
+        ctx.lineTo(ICON_OUTLINE[i]![0], ICON_OUTLINE[i]![1]);
+    }
+    ctx.closePath();
+    ctx.fillStyle = colours.hull;
+    ctx.fill();
+    // An outline in the lighter of the same two colours, so the arrowhead holds
+    // its shape against the hull it is sitting on as well as against the field.
+    ctx.strokeStyle = colours.trim;
+    ctx.lineWidth = 1 / ICON_PX;
+    ctx.stroke();
+    ctx.restore();
 }
 
 /**
@@ -1476,26 +1488,26 @@ function drawIcon(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
  * that lit means doing its job here as there.
  */
 function drawCoreLight(ctx: CanvasRenderingContext2D, design: ShipDesign, i: number, spec: ModuleSpec, working: boolean): void {
-  ctx.save();
-  ctx.globalAlpha = 1;
-  const sideways = spec.width > spec.length;
-  if (sideways) ctx.rotate(PI / 2);
-  const along = sideways ? spec.width : spec.length;
-  const across = sideways ? spec.length : spec.width;
-  const small = min(along, across);
-  const bar = small * CORE_GAUGE;
-  const inset = small * CORE_GAUGE_INSET;
-  const room = coreRoom(design.modules[i]!.stats);
-  const most = max(room.fuel, room.metal, room.charge, room.generator);
-  const reach = along / 2 - 1.5 * inset;
-  const disc = most > 0 ? min(reach * sqrt(room.generator / most), bar * CORE_DISC_GAUGES) : 0;
-  const r = (bar * CORE_LIGHT_GAUGES) / 2;
-  const middle = across / 2 - inset - max(disc, 2 * r) / 2;
-  ctx.fillStyle = working ? LOAD_READY : FUEL_TRACK;
-  ctx.beginPath();
-  ctx.arc(-along / 2 + inset + (disc > 0 ? disc + inset : 0) + r, middle, r, 0, TAU);
-  ctx.fill();
-  ctx.restore();
+    ctx.save();
+    ctx.globalAlpha = 1;
+    const sideways = spec.width > spec.length;
+    if (sideways) ctx.rotate(PI / 2);
+    const along = sideways ? spec.width : spec.length;
+    const across = sideways ? spec.length : spec.width;
+    const small = min(along, across);
+    const bar = small * CORE_GAUGE;
+    const inset = small * CORE_GAUGE_INSET;
+    const room = coreRoom(design.modules[i]!.stats);
+    const most = max(room.fuel, room.metal, room.charge, room.generator);
+    const reach = along / 2 - 1.5 * inset;
+    const disc = most > 0 ? min(reach * sqrt(room.generator / most), bar * CORE_DISC_GAUGES) : 0;
+    const r = (bar * CORE_LIGHT_GAUGES) / 2;
+    const middle = across / 2 - inset - max(disc, 2 * r) / 2;
+    ctx.fillStyle = working ? LOAD_READY : FUEL_TRACK;
+    ctx.beginPath();
+    ctx.arc(-along / 2 + inset + (disc > 0 ? disc + inset : 0) + r, middle, r, 0, TAU);
+    ctx.fill();
+    ctx.restore();
 }
 
 /** Smallest a core is drawn, across, before its ship's name is written on it, pixels. */
@@ -1511,106 +1523,106 @@ const NAME_MIN_PX = 7;
  * battered the core or whoever now flies it.
  */
 function drawName(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
-  if (ship.serial <= 0) return;
-  const cores = ship.currentStructure.cores;
-  for (let k = 0; k < cores.length; k++) {
-    const core = cores[k]!;
-    // Absent for a view built by hand, which is named after itself.
-    const painted = ship.coreNames === undefined ? (ship.name ?? `${ship.serial}`) : ship.coreNames[k];
-    // Null for another ship's on the same hull, which writes its own.
-    const side = ship.sides?.[core] ?? ship.team;
-    if (painted === null || painted === undefined || side < 0) continue;
-    drawLabel(ctx, ship, core, `${teamName(side)} ${painted}`, side, metresToPx);
-  }
+    if (ship.serial <= 0) return;
+    const cores = ship.currentStructure.cores;
+    for (let k = 0; k < cores.length; k++) {
+        const core = cores[k]!;
+        // Absent for a view built by hand, which is named after itself.
+        const painted = ship.coreNames === undefined ? (ship.name ?? `${ship.serial}`) : ship.coreNames[k];
+        // Null for another ship's on the same hull, which writes its own.
+        const side = ship.sides?.[core] ?? ship.team;
+        if (painted === null || painted === undefined || side < 0) continue;
+        drawLabel(ctx, ship, core, `${teamName(side)} ${painted}`, side, metresToPx);
+    }
 }
 
 /** `text` written along module `core` of a ship in `side`'s trim, as on its hull, if the core is big enough on screen. */
 function drawLabel(ctx: CanvasRenderingContext2D, ship: ShipView, core: number, text: string, side: number, metresToPx: number): void {
-  const module = ship.currentStructure.modules[core]!;
-  const across = Math.min(module.spec.length, module.spec.width) * metresToPx;
-  if (across < NAME_MIN_CORE_PX) return;
-  const c = Math.cos(ship.angle);
-  const s = Math.sin(ship.angle);
-  const view = ctx.getTransform();
-  const wx = ship.x + module.x * c - module.y * s;
-  const wy = ship.y + module.x * s + module.y * c;
-  const atX = view.a * wx + view.c * wy + view.e;
-  const atY = view.b * wx + view.d * wy + view.f;
-  const along = Math.max(module.spec.length, module.spec.width) * metresToPx;
-  // Along the long side, and that direction as the screen has it, so a
-  // camera that flips an axis turns the name rather than mirroring it.
-  const own = ship.angle + module.angle + (module.spec.width > module.spec.length ? Math.PI / 2 : 0);
-  const dx = Math.cos(own);
-  const dy = Math.sin(own);
-  const turn = Math.atan2(view.b * dx + view.d * dy, view.a * dx + view.c * dy);
-  ctx.save();
-  ctx.setTransform(1, 0, 0, 1, atX, atY);
-  ctx.rotate(turn);
-  let size = across * 0.4;
-  ctx.font = `${size}px ui-monospace, monospace`;
-  // No wider than the core is long, so it reads as written on the core.
-  const width = ctx.measureText(text).width;
-  if (width > along * 0.9) size *= (along * 0.9) / width;
-  if (size >= NAME_MIN_PX) {
+    const module = ship.currentStructure.modules[core]!;
+    const across = Math.min(module.spec.length, module.spec.width) * metresToPx;
+    if (across < NAME_MIN_CORE_PX) return;
+    const c = Math.cos(ship.angle);
+    const s = Math.sin(ship.angle);
+    const view = ctx.getTransform();
+    const wx = ship.x + module.x * c - module.y * s;
+    const wy = ship.y + module.x * s + module.y * c;
+    const atX = view.a * wx + view.c * wy + view.e;
+    const atY = view.b * wx + view.d * wy + view.f;
+    const along = Math.max(module.spec.length, module.spec.width) * metresToPx;
+    // Along the long side, and that direction as the screen has it, so a
+    // camera that flips an axis turns the name rather than mirroring it.
+    const own = ship.angle + module.angle + (module.spec.width > module.spec.length ? Math.PI / 2 : 0);
+    const dx = Math.cos(own);
+    const dy = Math.sin(own);
+    const turn = Math.atan2(view.b * dx + view.d * dy, view.a * dx + view.c * dy);
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, atX, atY);
+    ctx.rotate(turn);
+    let size = across * 0.4;
     ctx.font = `${size}px ui-monospace, monospace`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = shipColours(side).trim;
-    ctx.fillText(text, 0, 0);
-  }
-  ctx.restore();
+    // No wider than the core is long, so it reads as written on the core.
+    const width = ctx.measureText(text).width;
+    if (width > along * 0.9) size *= (along * 0.9) / width;
+    if (size >= NAME_MIN_PX) {
+        ctx.font = `${size}px ui-monospace, monospace`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = shipColours(side).trim;
+        ctx.fillText(text, 0, 0);
+    }
+    ctx.restore();
 }
 
 /** Draw one snapshot. The canvas is cleared first; nothing persists between frames. */
 export function draw(
-  ctx: CanvasRenderingContext2D,
-  snapshot: Snapshot,
-  camera: Camera,
-  widthPx: number,
-  heightPx: number,
-  flashes?: Flashes,
-  arcs: Arcs = 'none',
-  /** Rounds and beams in the colours of the side that fired them, rather than as light. */
-  teamShots = false,
-  /**
-   * The body of a ship picked out by the viewer, or -1: marked, its target
-   * shown, and drawn with every arc whatever `arcs` says, while no other ship
-   * is drawn with any.
-   */
-  selected = -1,
-  /** Bodies of more ships picked out with it, for orders: ringed, and their orders drawn. */
-  alsoSelected: readonly number[] = [],
-  marked: Marked | null = null,
+    ctx: CanvasRenderingContext2D,
+    snapshot: Snapshot,
+    camera: Camera,
+    widthPx: number,
+    heightPx: number,
+    flashes?: Flashes,
+    arcs: Arcs = "none",
+    /** Rounds and beams in the colours of the side that fired them, rather than as light. */
+    teamShots = false,
+    /**
+     * The body of a ship picked out by the viewer, or -1: marked, its target
+     * shown, and drawn with every arc whatever `arcs` says, while no other ship
+     * is drawn with any.
+     */
+    selected = -1,
+    /** Bodies of more ships picked out with it, for orders: ringed, and their orders drawn. */
+    alsoSelected: readonly number[] = [],
+    marked: Marked | null = null,
 ): void {
-  drawScene(ctx, snapshot, camera, 0, 0, widthPx, heightPx, flashes, arcs, teamShots, selected, alsoSelected, marked);
+    drawScene(ctx, snapshot, camera, 0, 0, widthPx, heightPx, flashes, arcs, teamShots, selected, alsoSelected, marked);
 }
 
 /** Modules of one ship to outline: the mounts a doctrine is being told to. */
 export interface Marked {
-  readonly body: number;
-  readonly modules: readonly number[];
+    readonly body: number;
+    readonly modules: readonly number[];
 }
 
-const MARK_COLOUR = '#e9c05f';
+const MARK_COLOUR = "#e9c05f";
 
 function drawMarked(ctx: CanvasRenderingContext2D, snapshot: Snapshot, marked: Marked, metresToPx: number): void {
-  const ship = shipByBody(snapshot, marked.body);
-  if (ship === null) return;
-  ctx.save();
-  ctx.translate(ship.x, ship.y);
-  ctx.rotate(ship.angle);
-  ctx.strokeStyle = MARK_COLOUR;
-  ctx.lineWidth = 2 / metresToPx;
-  for (const i of marked.modules) {
-    const m = ship.currentStructure.modules[i];
-    if (m === undefined) continue;
+    const ship = shipByBody(snapshot, marked.body);
+    if (ship === null) return;
     ctx.save();
-    ctx.translate(m.x, m.y);
-    ctx.rotate(m.angle);
-    ctx.strokeRect(-m.spec.length / 2, -m.spec.width / 2, m.spec.length, m.spec.width);
+    ctx.translate(ship.x, ship.y);
+    ctx.rotate(ship.angle);
+    ctx.strokeStyle = MARK_COLOUR;
+    ctx.lineWidth = 2 / metresToPx;
+    for (const i of marked.modules) {
+        const m = ship.currentStructure.modules[i];
+        if (m === undefined) continue;
+        ctx.save();
+        ctx.translate(m.x, m.y);
+        ctx.rotate(m.angle);
+        ctx.strokeRect(-m.spec.length / 2, -m.spec.width / 2, m.spec.length, m.spec.width);
+        ctx.restore();
+    }
     ctx.restore();
-  }
-  ctx.restore();
 }
 
 /**
@@ -1619,23 +1631,23 @@ function drawMarked(ctx: CanvasRenderingContext2D, snapshot: Snapshot, marked: M
  * battle it shows.
  */
 export function viewPoint(
-  insets: readonly Inset[],
-  camera: Camera,
-  widthPx: number,
-  heightPx: number,
-  x: number,
-  y: number,
+    insets: readonly Inset[],
+    camera: Camera,
+    widthPx: number,
+    heightPx: number,
+    x: number,
+    y: number,
 ): { x: number; y: number } {
-  const px = widthPx / 2 + (x - camera.x) * camera.scale;
-  const py = heightPx / 2 - (y - camera.y) * camera.scale;
-  const body = insetAt(insets, px, py);
-  const inset = body < 0 ? undefined : [...insets].reverse().find((i) => i.body === body);
-  if (inset === undefined) return { x, y };
-  const half = inset.size / 2;
-  return {
-    x: inset.camera.x + (px - inset.x - half) / inset.camera.scale,
-    y: inset.camera.y - (py - inset.y - half) / inset.camera.scale,
-  };
+    const px = widthPx / 2 + (x - camera.x) * camera.scale;
+    const py = heightPx / 2 - (y - camera.y) * camera.scale;
+    const body = insetAt(insets, px, py);
+    const inset = body < 0 ? undefined : [...insets].reverse().find((i) => i.body === body);
+    if (inset === undefined) return { x, y };
+    const half = inset.size / 2;
+    return {
+        x: inset.camera.x + (px - inset.x - half) / inset.camera.scale,
+        y: inset.camera.y - (py - inset.y - half) / inset.camera.scale,
+    };
 }
 
 /** Pixels round a ship within which it is still drawn when its hull is just out of view: its icon and name. */
@@ -1646,91 +1658,91 @@ const shownBox = { x: 0, y: 0, halfW: Infinity, halfH: Infinity };
 
 /** `draw`, into the `widthPx` by `heightPx` box whose top left is at `left`, `top`. */
 function drawScene(
-  ctx: CanvasRenderingContext2D,
-  snapshot: Snapshot,
-  camera: Camera,
-  left: number,
-  top: number,
-  widthPx: number,
-  heightPx: number,
-  flashes: Flashes | undefined,
-  arcs: Arcs,
-  teamShots: boolean,
-  selected: number,
-  alsoSelected: readonly number[] = [],
-  marked: Marked | null = null,
+    ctx: CanvasRenderingContext2D,
+    snapshot: Snapshot,
+    camera: Camera,
+    left: number,
+    top: number,
+    widthPx: number,
+    heightPx: number,
+    flashes: Flashes | undefined,
+    arcs: Arcs,
+    teamShots: boolean,
+    selected: number,
+    alsoSelected: readonly number[] = [],
+    marked: Marked | null = null,
 ): void {
-  ctx.setTransform(1, 0, 0, 1, left, top);
-  ctx.fillStyle = BACKGROUND;
-  ctx.fillRect(0, 0, widthPx, heightPx);
+    ctx.setTransform(1, 0, 0, 1, left, top);
+    ctx.fillStyle = BACKGROUND;
+    ctx.fillRect(0, 0, widthPx, heightPx);
 
-  // World to screen: metres up, y flipped so +y is up as the maths intends.
-  ctx.translate(widthPx / 2, heightPx / 2);
-  ctx.scale(camera.scale, -camera.scale);
-  ctx.translate(-camera.x, -camera.y);
+    // World to screen: metres up, y flipped so +y is up as the maths intends.
+    ctx.translate(widthPx / 2, heightPx / 2);
+    ctx.scale(camera.scale, -camera.scale);
+    ctx.translate(-camera.x, -camera.y);
 
-  drawGrid(ctx, camera, widthPx, heightPx);
-  drawWells(ctx, snapshot, camera);
+    drawGrid(ctx, camera, widthPx, heightPx);
+    drawWells(ctx, snapshot, camera);
 
-  // A ship nowhere near the view is not drawn: a close-up draws the whole
-  // battle again for one ship. One with its arcs showing is, since they reach.
-  const halfW = (widthPx / 2 + CULL_PAD_PX) / camera.scale;
-  const halfH = (heightPx / 2 + CULL_PAD_PX) / camera.scale;
-  shownBox.x = camera.x;
-  shownBox.y = camera.y;
-  shownBox.halfW = halfW;
-  shownBox.halfH = halfH;
-  const shown = (ship: ShipView): boolean =>
-    arcsFor(ship.body, selected, arcs) !== 'none' ||
-    (Math.abs(ship.x - camera.x) - ship.currentStructure.radius <= halfW &&
-      Math.abs(ship.y - camera.y) - ship.currentStructure.radius <= halfH);
+    // A ship nowhere near the view is not drawn: a close-up draws the whole
+    // battle again for one ship. One with its arcs showing is, since they reach.
+    const halfW = (widthPx / 2 + CULL_PAD_PX) / camera.scale;
+    const halfH = (heightPx / 2 + CULL_PAD_PX) / camera.scale;
+    shownBox.x = camera.x;
+    shownBox.y = camera.y;
+    shownBox.halfW = halfW;
+    shownBox.halfH = halfH;
+    const shown = (ship: ShipView): boolean =>
+        arcsFor(ship.body, selected, arcs) !== "none" ||
+        (Math.abs(ship.x - camera.x) - ship.currentStructure.radius <= halfW &&
+            Math.abs(ship.y - camera.y) - ship.currentStructure.radius <= halfH);
 
-  // Every capital hull, then the robots crawling over them, then every
-  // fighter, aboard a carrier or not: robots work on the deck, and a fighter
-  // sits above it, so neither a capital spawned later nor a robot under a
-  // landed fighter may be painted over what is on top.
-  for (let i = 0; i < snapshot.shipCount; i++) {
-    const ship = snapshot.ships[i]!;
-    if (shown(ship)) drawShip(ctx, ship, camera.scale, arcsFor(ship.body, selected, arcs), false);
-  }
-  for (let i = 0; i < snapshot.shipCount; i++) {
-    const ship = snapshot.ships[i]!;
-    if (robotsShown(ship, camera.x, camera.y, halfW, halfH)) drawRobots(ctx, ship);
-  }
-  for (let i = 0; i < snapshot.shipCount; i++) {
-    const ship = snapshot.ships[i]!;
-    if (shown(ship)) drawShip(ctx, ship, camera.scale, arcsFor(ship.body, selected, arcs), true);
-  }
+    // Every capital hull, then the robots crawling over them, then every
+    // fighter, aboard a carrier or not: robots work on the deck, and a fighter
+    // sits above it, so neither a capital spawned later nor a robot under a
+    // landed fighter may be painted over what is on top.
+    for (let i = 0; i < snapshot.shipCount; i++) {
+        const ship = snapshot.ships[i]!;
+        if (shown(ship)) drawShip(ctx, ship, camera.scale, arcsFor(ship.body, selected, arcs), false);
+    }
+    for (let i = 0; i < snapshot.shipCount; i++) {
+        const ship = snapshot.ships[i]!;
+        if (robotsShown(ship, camera.x, camera.y, halfW, halfH)) drawRobots(ctx, ship);
+    }
+    for (let i = 0; i < snapshot.shipCount; i++) {
+        const ship = snapshot.ships[i]!;
+        if (shown(ship)) drawShip(ctx, ship, camera.scale, arcsFor(ship.body, selected, arcs), true);
+    }
 
-  // Icons in a pass of their own, after every hull: an icon stands for the
-  // ship as a whole, so it belongs over its neighbours rather than under
-  // whichever of them happens to be drawn next.
-  for (let i = 0; i < snapshot.shipCount; i++) {
-    if (!shown(snapshot.ships[i]!)) continue;
-    drawIcon(ctx, snapshot.ships[i]!, camera.scale);
-    drawName(ctx, snapshot.ships[i]!, camera.scale);
-  }
+    // Icons in a pass of their own, after every hull: an icon stands for the
+    // ship as a whole, so it belongs over its neighbours rather than under
+    // whichever of them happens to be drawn next.
+    for (let i = 0; i < snapshot.shipCount; i++) {
+        if (!shown(snapshot.ships[i]!)) continue;
+        drawIcon(ctx, snapshot.ships[i]!, camera.scale);
+        drawName(ctx, snapshot.ships[i]!, camera.scale);
+    }
 
-  for (const body of alsoSelected) if (body !== selected) drawRing(ctx, snapshot, body, camera.scale);
-  if (selected >= 0) drawSelected(ctx, snapshot, selected, camera.scale);
-  if (marked !== null) drawMarked(ctx, snapshot, marked, camera.scale);
-  drawOrders(ctx, snapshot, selected, alsoSelected, camera.scale);
-  drawBurns(ctx, snapshot);
-  drawProjectiles(ctx, snapshot, camera, teamShots);
-  drawBeams(ctx, snapshot, camera, teamShots);
-  if (flashes !== undefined) drawFlashes(ctx, snapshot, flashes, camera);
-  shownBox.halfW = Infinity;
-  shownBox.halfH = Infinity;
+    for (const body of alsoSelected) if (body !== selected) drawRing(ctx, snapshot, body, camera.scale);
+    if (selected >= 0) drawSelected(ctx, snapshot, selected, camera.scale);
+    if (marked !== null) drawMarked(ctx, snapshot, marked, camera.scale);
+    drawOrders(ctx, snapshot, selected, alsoSelected, camera.scale);
+    drawBurns(ctx, snapshot);
+    drawProjectiles(ctx, snapshot, camera, teamShots);
+    drawBeams(ctx, snapshot, camera, teamShots);
+    if (flashes !== undefined) drawFlashes(ctx, snapshot, flashes, camera);
+    shownBox.halfW = Infinity;
+    shownBox.halfH = Infinity;
 }
 
 /** Whether a segment's box reaches the box being drawn. */
 function nearShown(x0: number, y0: number, x1: number, y1: number): boolean {
-  return (
-    Math.max(x0, x1) >= shownBox.x - shownBox.halfW &&
-    Math.min(x0, x1) <= shownBox.x + shownBox.halfW &&
-    Math.max(y0, y1) >= shownBox.y - shownBox.halfH &&
-    Math.min(y0, y1) <= shownBox.y + shownBox.halfH
-  );
+    return (
+        Math.max(x0, x1) >= shownBox.x - shownBox.halfW &&
+        Math.min(x0, x1) <= shownBox.x + shownBox.halfW &&
+        Math.max(y0, y1) >= shownBox.y - shownBox.halfH &&
+        Math.min(y0, y1) <= shownBox.y + shownBox.halfH
+    );
 }
 
 /** CSS pixels a metre in a close-up, where its size is not held to a bound: a Gunship's is about 150 px. */
@@ -1751,34 +1763,34 @@ const CLOSE_UP_POINTER_PX = 9;
  * per CSS pixel.
  */
 export function closeUps(
-  snapshot: Snapshot,
-  camera: Camera,
-  widthPx: number,
-  heightPx: number,
-  selected: number,
-  ratio = 1,
-  strips: Strips | null = null,
+    snapshot: Snapshot,
+    camera: Camera,
+    widthPx: number,
+    heightPx: number,
+    selected: number,
+    ratio = 1,
+    strips: Strips | null = null,
 ): Inset[] {
-  const ship = shipByBody(snapshot, selected);
-  if (ship === null) return [];
-  const ships: InsetShip[] = [ship, shipByBody(snapshot, ship.fighting ?? -1)]
-    .filter((s): s is ShipView => s !== null)
-    .map((s) => ({ body: s.body, x: s.x, y: s.y, vx: s.vx, vy: s.vy, radius: s.currentStructure.radius }));
-  const area: InsetArea = { left: strips?.left.width ?? 0, top: 0, right: widthPx - (strips?.right.width ?? 0), bottom: heightPx };
-  return insetsFor(
-    ships,
-    camera,
-    widthPx,
-    heightPx,
-    {
-      zoom: CLOSE_UP_ZOOM * ratio,
-      least: CLOSE_UP_MIN_PX * ratio,
-      most: CLOSE_UP_MAX_PX * ratio,
-      margin: CLOSE_UP_MARGIN_PX * ratio,
-      smallest: CLOSE_UP_SMALLEST_PX * ratio,
-    },
-    area,
-  );
+    const ship = shipByBody(snapshot, selected);
+    if (ship === null) return [];
+    const ships: InsetShip[] = [ship, shipByBody(snapshot, ship.fighting ?? -1)]
+        .filter((s): s is ShipView => s !== null)
+        .map((s) => ({ body: s.body, x: s.x, y: s.y, vx: s.vx, vy: s.vy, radius: s.currentStructure.radius }));
+    const area: InsetArea = { left: strips?.left.width ?? 0, top: 0, right: widthPx - (strips?.right.width ?? 0), bottom: heightPx };
+    return insetsFor(
+        ships,
+        camera,
+        widthPx,
+        heightPx,
+        {
+            zoom: CLOSE_UP_ZOOM * ratio,
+            least: CLOSE_UP_MIN_PX * ratio,
+            most: CLOSE_UP_MAX_PX * ratio,
+            margin: CLOSE_UP_MARGIN_PX * ratio,
+            smallest: CLOSE_UP_SMALLEST_PX * ratio,
+        },
+        area,
+    );
 }
 
 /**
@@ -1787,35 +1799,35 @@ export function closeUps(
  * drawn over the view, so a tap on one is a tap on it.
  */
 export function overlayAt(
-  strips: Strips | null,
-  insets: readonly Inset[],
-  camera: Camera,
-  widthPx: number,
-  heightPx: number,
-  x: number,
-  y: number,
+    strips: Strips | null,
+    insets: readonly Inset[],
+    camera: Camera,
+    widthPx: number,
+    heightPx: number,
+    x: number,
+    y: number,
 ): number {
-  const px = widthPx / 2 + (x - camera.x) * camera.scale;
-  const py = heightPx / 2 - (y - camera.y) * camera.scale;
-  const inset = insetAt(insets, px, py);
-  if (inset >= 0) return inset;
-  return strips === null ? -1 : stripTileAt(strips, px, py);
+    const px = widthPx / 2 + (x - camera.x) * camera.scale;
+    const py = heightPx / 2 - (y - camera.y) * camera.scale;
+    const inset = insetAt(insets, px, py);
+    if (inset >= 0) return inset;
+    return strips === null ? -1 : stripTileAt(strips, px, py);
 }
 
 /** The tile under a world point the main view was tapped at, unless a close-up is over it; null for none. */
 export function overlayTileAt(
-  strips: Strips | null,
-  insets: readonly Inset[],
-  camera: Camera,
-  widthPx: number,
-  heightPx: number,
-  x: number,
-  y: number,
+    strips: Strips | null,
+    insets: readonly Inset[],
+    camera: Camera,
+    widthPx: number,
+    heightPx: number,
+    x: number,
+    y: number,
 ): StripTile | null {
-  const px = widthPx / 2 + (x - camera.x) * camera.scale;
-  const py = heightPx / 2 - (y - camera.y) * camera.scale;
-  if (strips === null || insetAt(insets, px, py) >= 0) return null;
-  return stripTileUnder(strips, px, py);
+    const px = widthPx / 2 + (x - camera.x) * camera.scale;
+    const py = heightPx / 2 - (y - camera.y) * camera.scale;
+    if (strips === null || insetAt(insets, px, py) >= 0) return null;
+    return stripTileUnder(strips, px, py);
 }
 
 /**
@@ -1824,55 +1836,55 @@ export function overlayTileAt(
  * with a pointer towards its ship when that is off screen.
  */
 export function drawCloseUps(
-  ctx: CanvasRenderingContext2D,
-  snapshot: Snapshot,
-  insets: readonly Inset[],
-  selected: number,
-  ratio = 1,
-  flashes?: Flashes,
-  arcs: Arcs = 'none',
-  teamShots = false,
-  marked: Marked | null = null,
+    ctx: CanvasRenderingContext2D,
+    snapshot: Snapshot,
+    insets: readonly Inset[],
+    selected: number,
+    ratio = 1,
+    flashes?: Flashes,
+    arcs: Arcs = "none",
+    teamShots = false,
+    marked: Marked | null = null,
 ): void {
-  for (const inset of insets) {
-    ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.beginPath();
-    ctx.rect(inset.x, inset.y, inset.size, inset.size);
-    ctx.clip();
-    drawScene(ctx, snapshot, inset.camera, inset.x, inset.y, inset.size, inset.size, flashes, arcs, teamShots, selected, [], marked);
-    ctx.restore();
+    for (const inset of insets) {
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.beginPath();
+        ctx.rect(inset.x, inset.y, inset.size, inset.size);
+        ctx.clip();
+        drawScene(ctx, snapshot, inset.camera, inset.x, inset.y, inset.size, inset.size, flashes, arcs, teamShots, selected, [], marked);
+        ctx.restore();
 
-    const ship = shipByBody(snapshot, inset.body)!;
-    const colour = (ship.hasControl && !ship.isMissionKilled ? shipColours(ship.team) : NEUTRAL).trim;
-    ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.strokeStyle = colour;
-    ctx.lineWidth = (inset.body === selected ? 2 : 1.5) * ratio;
-    if (inset.body !== selected) ctx.setLineDash([5 * ratio, 4 * ratio]);
-    ctx.strokeRect(inset.x, inset.y, inset.size, inset.size);
-    ctx.setLineDash([]);
-    if (inset.toward !== null) {
-      // From the frame's centre along the bearing, out to the frame, a wedge beyond it.
-      const half = inset.size / 2;
-      const cx = inset.x + half;
-      const cy = inset.y + half;
-      const dx = Math.cos(inset.toward);
-      const dy = Math.sin(inset.toward);
-      const reach = half / Math.max(Math.abs(dx), Math.abs(dy));
-      const tip = CLOSE_UP_POINTER_PX * ratio;
-      const bx = cx + dx * reach;
-      const by = cy + dy * reach;
-      ctx.fillStyle = colour;
-      ctx.beginPath();
-      ctx.moveTo(bx + dx * tip, by + dy * tip);
-      ctx.lineTo(bx - dy * tip * 0.6, by + dx * tip * 0.6);
-      ctx.lineTo(bx + dy * tip * 0.6, by - dx * tip * 0.6);
-      ctx.closePath();
-      ctx.fill();
+        const ship = shipByBody(snapshot, inset.body)!;
+        const colour = (ship.hasControl && !ship.isMissionKilled ? shipColours(ship.team) : NEUTRAL).trim;
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.strokeStyle = colour;
+        ctx.lineWidth = (inset.body === selected ? 2 : 1.5) * ratio;
+        if (inset.body !== selected) ctx.setLineDash([5 * ratio, 4 * ratio]);
+        ctx.strokeRect(inset.x, inset.y, inset.size, inset.size);
+        ctx.setLineDash([]);
+        if (inset.toward !== null) {
+            // From the frame's centre along the bearing, out to the frame, a wedge beyond it.
+            const half = inset.size / 2;
+            const cx = inset.x + half;
+            const cy = inset.y + half;
+            const dx = Math.cos(inset.toward);
+            const dy = Math.sin(inset.toward);
+            const reach = half / Math.max(Math.abs(dx), Math.abs(dy));
+            const tip = CLOSE_UP_POINTER_PX * ratio;
+            const bx = cx + dx * reach;
+            const by = cy + dy * reach;
+            ctx.fillStyle = colour;
+            ctx.beginPath();
+            ctx.moveTo(bx + dx * tip, by + dy * tip);
+            ctx.lineTo(bx - dy * tip * 0.6, by + dx * tip * 0.6);
+            ctx.lineTo(bx + dy * tip * 0.6, by - dx * tip * 0.6);
+            ctx.closePath();
+            ctx.fill();
+        }
+        ctx.restore();
     }
-    ctx.restore();
-  }
 }
 
 /** Size of the range to a picked ship's target, CSS pixels, and its clearances. */
@@ -1888,56 +1900,56 @@ const RANGE_GAP_PX = 6;
  * target.
  */
 export function drawTargetRange(
-  ctx: CanvasRenderingContext2D,
-  snapshot: Snapshot,
-  camera: Camera,
-  widthPx: number,
-  heightPx: number,
-  selected: number,
-  insets: readonly Inset[],
-  ratio: number,
+    ctx: CanvasRenderingContext2D,
+    snapshot: Snapshot,
+    camera: Camera,
+    widthPx: number,
+    heightPx: number,
+    selected: number,
+    insets: readonly Inset[],
+    ratio: number,
 ): void {
-  const ship = shipByBody(snapshot, selected);
-  const target = shipByBody(snapshot, ship?.fighting ?? -1);
-  if (ship === null || target === null) return;
-  const text = describeRange(Math.hypot(target.x - ship.x, target.y - ship.y));
-  const colour = (ship.hasControl && !ship.isMissionKilled ? shipColours(ship.team) : NEUTRAL).trim;
-  const size = RANGE_LABEL_PX * ratio;
-  const pad = RANGE_PAD_PX * ratio;
-  ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.font = `${size}px ui-monospace, monospace`;
-  const w = ctx.measureText(text).width + 2 * pad;
-  const h = size + 2 * pad;
-  const screen = (x: number, y: number): LabelAt => ({
-    x: widthPx / 2 + (x - camera.x) * camera.scale,
-    y: heightPx / 2 - (y - camera.y) * camera.scale,
-  });
-  const from = screen(ship.x, ship.y);
-  const to = screen(target.x, target.y);
-  const box = insets.find((inset) => inset.body === selected);
-  let at: LabelAt;
-  if (box !== undefined) {
-    const cx = box.x + box.size / 2;
-    const cy = box.y + box.size / 2;
-    const others = insets.filter((inset) => inset !== box);
-    at = labelBeside(box, Math.atan2(to.y - cy, to.x - cx), w, h, RANGE_GAP_PX * ratio, widthPx, heightPx, others);
-  } else {
-    const length = Math.hypot(to.x - from.x, to.y - from.y);
-    if (!(length > 0)) {
-      ctx.restore();
-      return;
+    const ship = shipByBody(snapshot, selected);
+    const target = shipByBody(snapshot, ship?.fighting ?? -1);
+    if (ship === null || target === null) return;
+    const text = describeRange(Math.hypot(target.x - ship.x, target.y - ship.y));
+    const colour = (ship.hasControl && !ship.isMissionKilled ? shipColours(ship.team) : NEUTRAL).trim;
+    const size = RANGE_LABEL_PX * ratio;
+    const pad = RANGE_PAD_PX * ratio;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.font = `${size}px ui-monospace, monospace`;
+    const w = ctx.measureText(text).width + 2 * pad;
+    const h = size + 2 * pad;
+    const screen = (x: number, y: number): LabelAt => ({
+        x: widthPx / 2 + (x - camera.x) * camera.scale,
+        y: heightPx / 2 - (y - camera.y) * camera.scale,
+    });
+    const from = screen(ship.x, ship.y);
+    const to = screen(target.x, target.y);
+    const box = insets.find((inset) => inset.body === selected);
+    let at: LabelAt;
+    if (box !== undefined) {
+        const cx = box.x + box.size / 2;
+        const cy = box.y + box.size / 2;
+        const others = insets.filter((inset) => inset !== box);
+        at = labelBeside(box, Math.atan2(to.y - cy, to.x - cx), w, h, RANGE_GAP_PX * ratio, widthPx, heightPx, others);
+    } else {
+        const length = Math.hypot(to.x - from.x, to.y - from.y);
+        if (!(length > 0)) {
+            ctx.restore();
+            return;
+        }
+        const ring = (ship.currentStructure.radius + SELECTED_GAP_PX / camera.scale) * camera.scale;
+        at = labelAlong(from.x, from.y, (to.x - from.x) / length, (to.y - from.y) / length, ring, length, w, h, RANGE_GAP_PX * ratio);
     }
-    const ring = (ship.currentStructure.radius + SELECTED_GAP_PX / camera.scale) * camera.scale;
-    at = labelAlong(from.x, from.y, (to.x - from.x) / length, (to.y - from.y) / length, ring, length, w, h, RANGE_GAP_PX * ratio);
-  }
-  ctx.fillStyle = BACKGROUND;
-  ctx.fillRect(at.x - w / 2, at.y - h / 2, w, h);
-  ctx.fillStyle = colour;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(text, at.x, at.y);
-  ctx.restore();
+    ctx.fillStyle = BACKGROUND;
+    ctx.fillRect(at.x - w / 2, at.y - h / 2, w, h);
+    ctx.fillStyle = colour;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, at.x, at.y);
+    ctx.restore();
 }
 
 /** A tile's side as a share of the view's width, and its bounds in CSS pixels. */
@@ -1949,14 +1961,14 @@ const STRIP_GAP_PX = 4;
 
 /** Main guns and weapon engines a ship still has. */
 function weaponsLeft(ship: ShipView): number {
-  const design = ship.currentStructure;
-  let count = 0;
-  for (let t = 0; t < design.turrets.length; t++) if (design.turrets[t]!.main && ship.turretDisabled[t] !== true) count++;
-  for (const t of design.mainWeaponEngines) {
-    const module = design.engines[t]!.module;
-    if (module !== undefined && (ship.integrity[module] ?? 1) > 0) count++;
-  }
-  return count;
+    const design = ship.currentStructure;
+    let count = 0;
+    for (let t = 0; t < design.turrets.length; t++) if (design.turrets[t]!.main && ship.turretDisabled[t] !== true) count++;
+    for (const t of design.mainWeaponEngines) {
+        const module = design.engines[t]!.module;
+        if (module !== undefined && (ship.integrity[module] ?? 1) > 0) count++;
+    }
+    return count;
 }
 
 /**
@@ -1965,35 +1977,43 @@ function weaponsLeft(ship: ShipView): number {
  * go in numbers. `ratio` is canvas pixels per CSS pixel.
  */
 export function fleetStrips(snapshot: Snapshot, widthPx: number, heightPx: number, ratio = 1): Strips {
-  const ships: StripShip[] = [];
-  const fighterDesigns = new Map<string, number>();
-  for (let i = 0; i < snapshot.shipCount; i++) {
-    const ship = snapshot.ships[i]!;
-    if (ship.team < 0 || !ship.hasControl) continue;
-    const at = { body: ship.body, team: ship.team, x: ship.x, y: ship.y, vx: ship.vx, vy: ship.vy, radius: ship.currentStructure.radius };
-    // Grouped by the name of what each is built to, so a fighter knocked about
-    // stays with its kind, and one from each of a carrier's pads, each pad's
-    // copy of the design its own, all go together.
-    const blueprint = ship.blueprint ?? ship.currentStructure;
-    if (!blueprint.fighter) {
-      ships.push(at);
-      continue;
+    const ships: StripShip[] = [];
+    const fighterDesigns = new Map<string, number>();
+    for (let i = 0; i < snapshot.shipCount; i++) {
+        const ship = snapshot.ships[i]!;
+        if (ship.team < 0 || !ship.hasControl) continue;
+        const at = {
+            body: ship.body,
+            team: ship.team,
+            x: ship.x,
+            y: ship.y,
+            vx: ship.vx,
+            vy: ship.vy,
+            radius: ship.currentStructure.radius,
+        };
+        // Grouped by the name of what each is built to, so a fighter knocked about
+        // stays with its kind, and one from each of a carrier's pads, each pad's
+        // copy of the design its own, all go together.
+        const blueprint = ship.blueprint ?? ship.currentStructure;
+        if (!blueprint.fighter) {
+            ships.push(at);
+            continue;
+        }
+        let fighter = fighterDesigns.get(blueprint.name);
+        if (fighter === undefined) fighterDesigns.set(blueprint.name, (fighter = fighterDesigns.size));
+        ships.push({ ...at, fighter, weapons: weaponsLeft(ship) });
     }
-    let fighter = fighterDesigns.get(blueprint.name);
-    if (fighter === undefined) fighterDesigns.set(blueprint.name, (fighter = fighterDesigns.size));
-    ships.push({ ...at, fighter, weapons: weaponsLeft(ship) });
-  }
-  return stripsFor(ships, widthPx, heightPx, {
-    largest: Math.min(STRIP_MAX_PX * ratio, widthPx * STRIP_SHARE),
-    smallest: STRIP_MIN_PX * ratio,
-    margin: STRIP_MARGIN_PX * ratio,
-    gap: STRIP_GAP_PX * ratio,
-  });
+    return stripsFor(ships, widthPx, heightPx, {
+        largest: Math.min(STRIP_MAX_PX * ratio, widthPx * STRIP_SHARE),
+        smallest: STRIP_MIN_PX * ratio,
+        margin: STRIP_MARGIN_PX * ratio,
+        gap: STRIP_GAP_PX * ratio,
+    });
 }
 
 /** How much of the view's width the strips take from each edge, the wider of the two, canvas pixels. */
 export function stripsWidth(strips: Strips | null): number {
-  return strips === null ? 0 : Math.max(strips.left.width, strips.right.width);
+    return strips === null ? 0 : Math.max(strips.left.width, strips.right.width);
 }
 
 /** Draw the strips over a view already drawn: each tile its ship live, framed in its side's colours, the picked one brightest. */
@@ -2009,120 +2029,120 @@ const STRIP_REFRESH_FRAMES = 4;
  * every frame.
  */
 export class StripCache {
-  private canvas: HTMLCanvasElement | OffscreenCanvas | null = null;
-  private context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null = null;
-  private frame = 0;
-  /** The frame each tile, by where it is and what it shows, was last drawn. */
-  private drawn = new Map<string, number>();
+    private canvas: HTMLCanvasElement | OffscreenCanvas | null = null;
+    private context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null = null;
+    private frame = 0;
+    /** The frame each tile, by where it is and what it shows, was last drawn. */
+    private drawn = new Map<string, number>();
 
-  /** Where to draw tiles this frame, sized to `ctx`'s canvas; null where nothing offscreen can be had. */
-  begin(ctx: CanvasRenderingContext2D): CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null {
-    const { width, height } = ctx.canvas;
-    if (this.canvas === null || this.canvas.width !== width || this.canvas.height !== height) {
-      this.canvas = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(width, height) : document.createElement('canvas');
-      this.canvas.width = width;
-      this.canvas.height = height;
-      this.context = this.canvas.getContext('2d') as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
-      this.drawn.clear();
+    /** Where to draw tiles this frame, sized to `ctx`'s canvas; null where nothing offscreen can be had. */
+    begin(ctx: CanvasRenderingContext2D): CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null {
+        const { width, height } = ctx.canvas;
+        if (this.canvas === null || this.canvas.width !== width || this.canvas.height !== height) {
+            this.canvas = typeof OffscreenCanvas !== "undefined" ? new OffscreenCanvas(width, height) : document.createElement("canvas");
+            this.canvas.width = width;
+            this.canvas.height = height;
+            this.context = this.canvas.getContext("2d") as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
+            this.drawn.clear();
+        }
+        this.frame++;
+        return this.context;
     }
-    this.frame++;
-    return this.context;
-  }
 
-  /** Whether `tile`, the `index`th, is due a redraw this frame. */
-  due(tile: StripTile, index: number, selected: number): boolean {
-    const key = `${tile.x},${tile.y},${tile.size},${tile.body}`;
-    const last = this.drawn.get(key);
-    const due = last === undefined || tile.body === selected || (this.frame + index) % STRIP_REFRESH_FRAMES === 0;
-    if (due) this.drawn.set(key, this.frame);
-    return due;
-  }
+    /** Whether `tile`, the `index`th, is due a redraw this frame. */
+    due(tile: StripTile, index: number, selected: number): boolean {
+        const key = `${tile.x},${tile.y},${tile.size},${tile.body}`;
+        const last = this.drawn.get(key);
+        const due = last === undefined || tile.body === selected || (this.frame + index) % STRIP_REFRESH_FRAMES === 0;
+        if (due) this.drawn.set(key, this.frame);
+        return due;
+    }
 
-  /** Copy `tile` from where it was last drawn onto `ctx`. */
-  copy(ctx: CanvasRenderingContext2D, tile: StripTile): void {
-    if (this.canvas === null) return;
-    ctx.drawImage(this.canvas, tile.x, tile.y, tile.size, tile.size, tile.x, tile.y, tile.size, tile.size);
-  }
+    /** Copy `tile` from where it was last drawn onto `ctx`. */
+    copy(ctx: CanvasRenderingContext2D, tile: StripTile): void {
+        if (this.canvas === null) return;
+        ctx.drawImage(this.canvas, tile.x, tile.y, tile.size, tile.size, tile.x, tile.y, tile.size, tile.size);
+    }
 
-  /** Forget tiles no longer shown, so a map of every layout seen does not grow. */
-  prune(): void {
-    for (const [key, at] of this.drawn) if (this.frame - at > STRIP_REFRESH_FRAMES * 2) this.drawn.delete(key);
-  }
+    /** Forget tiles no longer shown, so a map of every layout seen does not grow. */
+    prune(): void {
+        for (const [key, at] of this.drawn) if (this.frame - at > STRIP_REFRESH_FRAMES * 2) this.drawn.delete(key);
+    }
 }
 
 export function drawFleetStrips(
-  ctx: CanvasRenderingContext2D,
-  snapshot: Snapshot,
-  strips: Strips,
-  selected: number,
-  ratio = 1,
-  flashes?: Flashes,
-  arcs: Arcs = 'none',
-  teamShots = false,
-  cache?: StripCache,
+    ctx: CanvasRenderingContext2D,
+    snapshot: Snapshot,
+    strips: Strips,
+    selected: number,
+    ratio = 1,
+    flashes?: Flashes,
+    arcs: Arcs = "none",
+    teamShots = false,
+    cache?: StripCache,
 ): void {
-  const into = cache?.begin(ctx) ?? null;
-  let index = 0;
-  const drawColumn = (column: StripColumn): void => {
-    for (const tile of column.tiles) {
-      const fresh = into === null || cache!.due(tile, index, selected);
-      index++;
-      if (fresh) {
-        const target = (into ?? ctx) as CanvasRenderingContext2D;
-        target.save();
-        target.setTransform(1, 0, 0, 1, 0, 0);
-        target.beginPath();
-        target.rect(tile.x, tile.y, tile.size, tile.size);
-        target.clip();
-        drawScene(target, snapshot, tile.camera, tile.x, tile.y, tile.size, tile.size, flashes, arcs, teamShots, selected);
-        target.restore();
-      }
-      if (into !== null) {
-        ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        cache!.copy(ctx, tile);
-        ctx.restore();
-      }
-      ctx.save();
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      const picked = tile.body === selected;
-      ctx.strokeStyle = shipColours(tile.team).trim;
-      ctx.globalAlpha = picked ? 1 : 0.55;
-      ctx.lineWidth = (picked ? 2 : 1) * ratio;
-      ctx.strokeRect(tile.x, tile.y, tile.size, tile.size);
-      if (tile.count > 1) {
-        ctx.globalAlpha = 1;
-        ctx.fillStyle = ctx.strokeStyle;
-        ctx.font = `${11 * ratio}px ui-monospace, monospace`;
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'bottom';
-        ctx.fillText(`×${tile.count}`, tile.x + tile.size - 3 * ratio, tile.y + tile.size - 2 * ratio);
-      }
-      ctx.restore();
-    }
-    if (column.more !== null) {
-      const box = column.more;
-      ctx.save();
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.fillStyle = BACKGROUND;
-      ctx.fillRect(box.x, box.y, box.size, box.size * 0.5);
-      ctx.fillStyle = shipColours(column.tiles[0]?.team ?? 0).trim;
-      ctx.font = `${11 * ratio}px ui-monospace, monospace`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(`+${column.hidden}`, box.x + box.size / 2, box.y + box.size * 0.25);
-      ctx.restore();
-    }
-  };
-  drawColumn(strips.left);
-  drawColumn(strips.right);
-  cache?.prune();
+    const into = cache?.begin(ctx) ?? null;
+    let index = 0;
+    const drawColumn = (column: StripColumn): void => {
+        for (const tile of column.tiles) {
+            const fresh = into === null || cache!.due(tile, index, selected);
+            index++;
+            if (fresh) {
+                const target = (into ?? ctx) as CanvasRenderingContext2D;
+                target.save();
+                target.setTransform(1, 0, 0, 1, 0, 0);
+                target.beginPath();
+                target.rect(tile.x, tile.y, tile.size, tile.size);
+                target.clip();
+                drawScene(target, snapshot, tile.camera, tile.x, tile.y, tile.size, tile.size, flashes, arcs, teamShots, selected);
+                target.restore();
+            }
+            if (into !== null) {
+                ctx.save();
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                cache!.copy(ctx, tile);
+                ctx.restore();
+            }
+            ctx.save();
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            const picked = tile.body === selected;
+            ctx.strokeStyle = shipColours(tile.team).trim;
+            ctx.globalAlpha = picked ? 1 : 0.55;
+            ctx.lineWidth = (picked ? 2 : 1) * ratio;
+            ctx.strokeRect(tile.x, tile.y, tile.size, tile.size);
+            if (tile.count > 1) {
+                ctx.globalAlpha = 1;
+                ctx.fillStyle = ctx.strokeStyle;
+                ctx.font = `${11 * ratio}px ui-monospace, monospace`;
+                ctx.textAlign = "right";
+                ctx.textBaseline = "bottom";
+                ctx.fillText(`×${tile.count}`, tile.x + tile.size - 3 * ratio, tile.y + tile.size - 2 * ratio);
+            }
+            ctx.restore();
+        }
+        if (column.more !== null) {
+            const box = column.more;
+            ctx.save();
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.fillStyle = BACKGROUND;
+            ctx.fillRect(box.x, box.y, box.size, box.size * 0.5);
+            ctx.fillStyle = shipColours(column.tiles[0]?.team ?? 0).trim;
+            ctx.font = `${11 * ratio}px ui-monospace, monospace`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(`+${column.hidden}`, box.x + box.size / 2, box.y + box.size * 0.25);
+            ctx.restore();
+        }
+    };
+    drawColumn(strips.left);
+    drawColumn(strips.right);
+    cache?.prune();
 }
 
 /** A selected ship shows all its arcs and the rest none; with none selected, every ship shows `arcs`. */
 function arcsFor(body: number, selected: number, arcs: Arcs): Arcs {
-  if (selected < 0) return arcs;
-  return body === selected ? 'trigger' : 'none';
+    if (selected < 0) return arcs;
+    return body === selected ? "trigger" : "none";
 }
 
 /** Pixels between the selected ship's hull circle and the ring drawn round it. */
@@ -2134,87 +2154,87 @@ const SELECTED_GAP_PX = 6;
  * and a broken ring round whatever it is escorting.
  */
 function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: number, metresToPx: number): void {
-  const ship = shipByBody(snapshot, body);
-  if (ship === null) return;
-  const colour = (ship.hasControl && !ship.isMissionKilled ? shipColours(ship.team) : NEUTRAL).trim;
-  const gap = SELECTED_GAP_PX / metresToPx;
-  ctx.save();
-  ctx.strokeStyle = colour;
-  ctx.lineWidth = 1.5 / metresToPx;
-  ctx.beginPath();
-  ctx.arc(ship.x, ship.y, ship.currentStructure.radius + gap, 0, Math.PI * 2);
-  ctx.stroke();
-  // What it is doing, in the colour an order to do it is drawn in, told or not.
-  const target = shipByBody(snapshot, ship.doingTo ?? ship.fighting ?? -1);
-  if (target !== null) {
-    if (ship.doing !== undefined) ctx.strokeStyle = ORDER_COLOURS[ship.doing];
-    const dx = target.x - ship.x;
-    const dy = target.y - ship.y;
-    const length = Math.sqrt(dx * dx + dy * dy);
-    const from = ship.currentStructure.radius + gap;
-    const to = length - target.currentStructure.radius - gap;
-    if (to > from) {
-      ctx.setLineDash([6 / metresToPx, 6 / metresToPx]);
-      ctx.beginPath();
-      ctx.moveTo(ship.x + (dx / length) * from, ship.y + (dy / length) * from);
-      ctx.lineTo(ship.x + (dx / length) * to, ship.y + (dy / length) * to);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
-    // The band it is holding, round what it is holding it against, as the editor draws a ship's own.
-    if (ship.fightingMax !== undefined && target.body === ship.fighting) {
-      ctx.save();
-      drawBand(ctx, target.x, target.y, ship.fightingMin ?? 0, ship.fightingMax, metresToPx);
-      ctx.restore();
-    }
-    ctx.globalAlpha = 0.6;
-    ctx.beginPath();
-    ctx.arc(target.x, target.y, target.currentStructure.radius + gap, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.strokeStyle = colour;
-  }
-  // What it is escorting, ringed in a broken line: a ship it stays with, not one it shoots.
-  const consort = shipByBody(snapshot, ship.covering ?? -1);
-  if (consort !== null && ship.coverBand !== undefined) {
-    // And the band it stays inside, round it.
+    const ship = shipByBody(snapshot, body);
+    if (ship === null) return;
+    const colour = (ship.hasControl && !ship.isMissionKilled ? shipColours(ship.team) : NEUTRAL).trim;
+    const gap = SELECTED_GAP_PX / metresToPx;
     ctx.save();
-    drawBand(ctx, consort.x, consort.y, 0, ship.coverBand, metresToPx);
-    ctx.restore();
-  }
-  if (consort !== null) {
-    ctx.globalAlpha = 0.6;
-    ctx.setLineDash([3 / metresToPx, 4 / metresToPx]);
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = 1.5 / metresToPx;
     ctx.beginPath();
-    ctx.arc(consort.x, consort.y, consort.currentStructure.radius + gap, 0, Math.PI * 2);
+    ctx.arc(ship.x, ship.y, ship.currentStructure.radius + gap, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.setLineDash([]);
-  }
-  ctx.restore();
+    // What it is doing, in the colour an order to do it is drawn in, told or not.
+    const target = shipByBody(snapshot, ship.doingTo ?? ship.fighting ?? -1);
+    if (target !== null) {
+        if (ship.doing !== undefined) ctx.strokeStyle = ORDER_COLOURS[ship.doing];
+        const dx = target.x - ship.x;
+        const dy = target.y - ship.y;
+        const length = Math.sqrt(dx * dx + dy * dy);
+        const from = ship.currentStructure.radius + gap;
+        const to = length - target.currentStructure.radius - gap;
+        if (to > from) {
+            ctx.setLineDash([6 / metresToPx, 6 / metresToPx]);
+            ctx.beginPath();
+            ctx.moveTo(ship.x + (dx / length) * from, ship.y + (dy / length) * from);
+            ctx.lineTo(ship.x + (dx / length) * to, ship.y + (dy / length) * to);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+        // The band it is holding, round what it is holding it against, as the editor draws a ship's own.
+        if (ship.fightingMax !== undefined && target.body === ship.fighting) {
+            ctx.save();
+            drawBand(ctx, target.x, target.y, ship.fightingMin ?? 0, ship.fightingMax, metresToPx);
+            ctx.restore();
+        }
+        ctx.globalAlpha = 0.6;
+        ctx.beginPath();
+        ctx.arc(target.x, target.y, target.currentStructure.radius + gap, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.strokeStyle = colour;
+    }
+    // What it is escorting, ringed in a broken line: a ship it stays with, not one it shoots.
+    const consort = shipByBody(snapshot, ship.covering ?? -1);
+    if (consort !== null && ship.coverBand !== undefined) {
+        // And the band it stays inside, round it.
+        ctx.save();
+        drawBand(ctx, consort.x, consort.y, 0, ship.coverBand, metresToPx);
+        ctx.restore();
+    }
+    if (consort !== null) {
+        ctx.globalAlpha = 0.6;
+        ctx.setLineDash([3 / metresToPx, 4 / metresToPx]);
+        ctx.beginPath();
+        ctx.arc(consort.x, consort.y, consort.currentStructure.radius + gap, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    ctx.restore();
 }
 
 /** A picked-out ship's ring, without the lines to what it is fighting. */
 function drawRing(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: number, metresToPx: number): void {
-  const ship = shipByBody(snapshot, body);
-  if (ship === null) return;
-  ctx.save();
-  ctx.strokeStyle = (ship.hasControl && !ship.isMissionKilled ? shipColours(ship.team) : NEUTRAL).trim;
-  ctx.lineWidth = 1.5 / metresToPx;
-  ctx.beginPath();
-  ctx.arc(ship.x, ship.y, ship.currentStructure.radius + SELECTED_GAP_PX / metresToPx, 0, TAU);
-  ctx.stroke();
-  ctx.restore();
+    const ship = shipByBody(snapshot, body);
+    if (ship === null) return;
+    ctx.save();
+    ctx.strokeStyle = (ship.hasControl && !ship.isMissionKilled ? shipColours(ship.team) : NEUTRAL).trim;
+    ctx.lineWidth = 1.5 / metresToPx;
+    ctx.beginPath();
+    ctx.arc(ship.x, ship.y, ship.currentStructure.radius + SELECTED_GAP_PX / metresToPx, 0, TAU);
+    ctx.stroke();
+    ctx.restore();
 }
 
 /** Each order's colour, by what it says to do. */
 const ORDER_COLOURS = {
-  attack: '#ff7a6b',
-  defend: '#6fb6ff',
-  ram: '#ffb347',
-  dock: '#7ee07a',
-  scavenge: '#d7a6ff',
-  deliver: '#5fd6c8',
-  flee: '#f2e35b',
-  hide: '#b8c4cf',
+    attack: "#ff7a6b",
+    defend: "#6fb6ff",
+    ram: "#ffb347",
+    dock: "#7ee07a",
+    scavenge: "#d7a6ff",
+    deliver: "#5fd6c8",
+    flee: "#f2e35b",
+    hide: "#b8c4cf",
 } as const;
 
 /**
@@ -2223,85 +2243,85 @@ const ORDER_COLOURS = {
  * each target.
  */
 function drawOrders(
-  ctx: CanvasRenderingContext2D,
-  snapshot: Snapshot,
-  selected: number,
-  also: readonly number[],
-  metresToPx: number,
+    ctx: CanvasRenderingContext2D,
+    snapshot: Snapshot,
+    selected: number,
+    also: readonly number[],
+    metresToPx: number,
 ): void {
-  const bodies = also.includes(selected) || selected < 0 ? also : [selected, ...also];
-  ctx.save();
-  ctx.lineWidth = 1.5 / metresToPx;
-  for (const body of bodies) {
-    const ship = shipByBody(snapshot, body);
-    if (ship?.orders === undefined) continue;
-    let fromX = ship.x;
-    let fromY = ship.y;
-    // Places in the queue by target, so two orders against one ship read "1, 2" rather than one over the other.
-    const places = new Map<number, { ship: ShipView; text: string; colour: string }>();
-    ship.orders.forEach((order, n) => {
-      const target = shipByBody(snapshot, order.target);
-      if (target === null) return;
-      ctx.strokeStyle = ORDER_COLOURS[order.kind];
-      ctx.globalAlpha = n === 0 ? 0.9 : 0.5;
-      ctx.beginPath();
-      ctx.moveTo(fromX, fromY);
-      ctx.lineTo(target.x, target.y);
-      ctx.stroke();
-      const place = places.get(target.body);
-      if (place === undefined) places.set(target.body, { ship: target, text: `${n + 1}`, colour: ORDER_COLOURS[order.kind] });
-      else place.text += `, ${n + 1}`;
-      fromX = target.x;
-      fromY = target.y;
-    });
-    for (const place of places.values()) {
-      drawScreenText(ctx, place.text, place.ship.x, place.ship.y + place.ship.currentStructure.radius, place.colour);
+    const bodies = also.includes(selected) || selected < 0 ? also : [selected, ...also];
+    ctx.save();
+    ctx.lineWidth = 1.5 / metresToPx;
+    for (const body of bodies) {
+        const ship = shipByBody(snapshot, body);
+        if (ship?.orders === undefined) continue;
+        let fromX = ship.x;
+        let fromY = ship.y;
+        // Places in the queue by target, so two orders against one ship read "1, 2" rather than one over the other.
+        const places = new Map<number, { ship: ShipView; text: string; colour: string }>();
+        ship.orders.forEach((order, n) => {
+            const target = shipByBody(snapshot, order.target);
+            if (target === null) return;
+            ctx.strokeStyle = ORDER_COLOURS[order.kind];
+            ctx.globalAlpha = n === 0 ? 0.9 : 0.5;
+            ctx.beginPath();
+            ctx.moveTo(fromX, fromY);
+            ctx.lineTo(target.x, target.y);
+            ctx.stroke();
+            const place = places.get(target.body);
+            if (place === undefined) places.set(target.body, { ship: target, text: `${n + 1}`, colour: ORDER_COLOURS[order.kind] });
+            else place.text += `, ${n + 1}`;
+            fromX = target.x;
+            fromY = target.y;
+        });
+        for (const place of places.values()) {
+            drawScreenText(ctx, place.text, place.ship.x, place.ship.y + place.ship.currentStructure.radius, place.colour);
+        }
     }
-  }
-  ctx.restore();
+    ctx.restore();
 }
 
 /** Text at a world point, upright and at a fixed size on screen, just above it. */
 function drawScreenText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, colour: string): void {
-  const view = ctx.getTransform();
-  ctx.save();
-  ctx.setTransform(1, 0, 0, 1, view.a * x + view.c * y + view.e, view.b * x + view.d * y + view.f);
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = colour;
-  ctx.font = '12px ui-monospace, monospace';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'bottom';
-  ctx.fillText(text, 0, -4);
-  ctx.restore();
+    const view = ctx.getTransform();
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, view.a * x + view.c * y + view.e, view.b * x + view.d * y + view.f);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = colour;
+    ctx.font = "12px ui-monospace, monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    ctx.fillText(text, 0, -4);
+    ctx.restore();
 }
 
 /** A band of ranges about a point, filled faintly and edged: where a ship's doctrine closes to. */
 function drawBand(ctx: CanvasRenderingContext2D, x: number, y: number, min: number, max: number, metresToPx: number): void {
-  ctx.fillStyle = HOLD_BAND;
-  ctx.beginPath();
-  ctx.arc(x, y, max, 0, TAU);
-  if (min > 0) ctx.arc(x, y, min, TAU, 0, true);
-  ctx.fill('evenodd');
-  ctx.strokeStyle = HOLD_EDGE;
-  ctx.lineWidth = 1 / metresToPx;
-  ctx.beginPath();
-  ctx.arc(x, y, max, 0, TAU);
-  ctx.stroke();
-  if (min > 0) {
+    ctx.fillStyle = HOLD_BAND;
     ctx.beginPath();
-    ctx.arc(x, y, min, 0, TAU);
+    ctx.arc(x, y, max, 0, TAU);
+    if (min > 0) ctx.arc(x, y, min, TAU, 0, true);
+    ctx.fill("evenodd");
+    ctx.strokeStyle = HOLD_EDGE;
+    ctx.lineWidth = 1 / metresToPx;
+    ctx.beginPath();
+    ctx.arc(x, y, max, 0, TAU);
     ctx.stroke();
-  }
+    if (min > 0) {
+        ctx.beginPath();
+        ctx.arc(x, y, min, 0, TAU);
+        ctx.stroke();
+    }
 }
 
 /** The ship a flash is riding, or null when nothing in the picture is it. */
 function shipByBody(snapshot: Snapshot, body: number): ShipView | null {
-  if (body < 0) return null;
-  for (let i = 0; i < snapshot.shipCount; i++) {
-    const ship = snapshot.ships[i]!;
-    if (ship.body === body) return ship;
-  }
-  return null;
+    if (body < 0) return null;
+    for (let i = 0; i < snapshot.shipCount; i++) {
+        const ship = snapshot.ships[i]!;
+        if (ship.body === body) return ship;
+    }
+    return null;
 }
 
 /**
@@ -2312,103 +2332,103 @@ function shipByBody(snapshot: Snapshot, body: number): ShipView | null {
  * the same place are brighter than one.
  */
 function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes: Flashes, camera: Camera): void {
-  // Exposed for the last step, as a camera would photograph it: drawn at
-  // moments through the step, each at the size and brightness it had then and
-  // where it was then relative to the camera, weighted by how open the shutter
-  // was, and summed.
-  const dt = snapshot.dt;
-  const cvx = camera.vx ?? 0;
-  const cvy = camera.vy ?? 0;
-  const floor = MIN_FLASH_PX / camera.scale;
-  const base = ctx.getTransform();
-  ctx.save();
-  ctx.globalCompositeOperation = 'lighter';
-  for (let i = 0; i < flashes.count; i++) {
-    const kind = flashes.kind[i]!;
-    const glow = sprite('halo', kind === IMPACT_BEAM ? BEAM_FLASH_GLOW : kind === IMPACT_BURST ? BURST_FLASH_GLOW : FLASH_GLOW);
-    // A burst or a muzzle is a blast of gas rather than a spot of hot metal, so
-    // its core is soft: as bright in the middle, fading out to its edge.
-    const core = sprite(
-      kind === IMPACT_BURST || kind === IMPACT_MUZZLE ? 'halo' : 'disc',
-      kind === IMPACT_BEAM ? BEAM_FLASH_CORE : kind === IMPACT_BURST ? BURST_FLASH_CORE : FLASH_CORE,
-    );
-    if (glow === null || core === null) continue;
-    const age = flashes.age[i]!;
-    const lifetime = flashes.lifetime[i]!;
-    // Centred on now, as a round's is, and reaching back half a step past the
-    // flash's birth at full brightness: so a burst's flash is brightest where
-    // its fragments' streaks cross.
-    const opened = age - dt * 0.5;
-    const closed = min(lifetime, age + dt * 0.5);
-    const exposure = closed - opened;
-    // A picture with no step, as the editor's, is an instant rather than an exposure.
-    if (dt > 0 ? !(exposure > 0) : !(age < lifetime)) continue;
-    // On the hull it went off against, wherever that hull has got to since,
-    // and moving with it. A ship that has gone leaves its flashes where they
-    // happened, and a burst drifts on at its shell's velocity.
-    const anchor = shipByBody(snapshot, flashes.body[i]!);
-    const at = anchor === null ? { x: flashes.x[i]!, y: flashes.y[i]! } : flashPosition(flashes.localX[i]!, flashes.localY[i]!, anchor);
-    const rvx = (anchor === null ? flashes.vx[i]! : anchor.vx) - cvx;
-    const rvy = (anchor === null ? flashes.vy[i]! : anchor.vy) - cvy;
-    // The way it points, turned with the hull it rides.
-    let dirX = flashes.dirX[i]!;
-    let dirY = flashes.dirY[i]!;
-    if (anchor !== null) {
-      const c = cos(anchor.angle);
-      const sn = sin(anchor.angle);
-      const lx = dirX;
-      dirX = lx * c - dirY * sn;
-      dirY = lx * sn + dirY * c;
-    }
-    const pointing = dirX !== 0 || dirY !== 0;
+    // Exposed for the last step, as a camera would photograph it: drawn at
+    // moments through the step, each at the size and brightness it had then and
+    // where it was then relative to the camera, weighted by how open the shutter
+    // was, and summed.
+    const dt = snapshot.dt;
+    const cvx = camera.vx ?? 0;
+    const cvy = camera.vy ?? 0;
+    const floor = MIN_FLASH_PX / camera.scale;
+    const base = ctx.getTransform();
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    for (let i = 0; i < flashes.count; i++) {
+        const kind = flashes.kind[i]!;
+        const glow = sprite("halo", kind === IMPACT_BEAM ? BEAM_FLASH_GLOW : kind === IMPACT_BURST ? BURST_FLASH_GLOW : FLASH_GLOW);
+        // A burst or a muzzle is a blast of gas rather than a spot of hot metal, so
+        // its core is soft: as bright in the middle, fading out to its edge.
+        const core = sprite(
+            kind === IMPACT_BURST || kind === IMPACT_MUZZLE ? "halo" : "disc",
+            kind === IMPACT_BEAM ? BEAM_FLASH_CORE : kind === IMPACT_BURST ? BURST_FLASH_CORE : FLASH_CORE,
+        );
+        if (glow === null || core === null) continue;
+        const age = flashes.age[i]!;
+        const lifetime = flashes.lifetime[i]!;
+        // Centred on now, as a round's is, and reaching back half a step past the
+        // flash's birth at full brightness: so a burst's flash is brightest where
+        // its fragments' streaks cross.
+        const opened = age - dt * 0.5;
+        const closed = min(lifetime, age + dt * 0.5);
+        const exposure = closed - opened;
+        // A picture with no step, as the editor's, is an instant rather than an exposure.
+        if (dt > 0 ? !(exposure > 0) : !(age < lifetime)) continue;
+        // On the hull it went off against, wherever that hull has got to since,
+        // and moving with it. A ship that has gone leaves its flashes where they
+        // happened, and a burst drifts on at its shell's velocity.
+        const anchor = shipByBody(snapshot, flashes.body[i]!);
+        const at = anchor === null ? { x: flashes.x[i]!, y: flashes.y[i]! } : flashPosition(flashes.localX[i]!, flashes.localY[i]!, anchor);
+        const rvx = (anchor === null ? flashes.vx[i]! : anchor.vx) - cvx;
+        const rvy = (anchor === null ? flashes.vy[i]! : anchor.vy) - cvy;
+        // The way it points, turned with the hull it rides.
+        let dirX = flashes.dirX[i]!;
+        let dirY = flashes.dirY[i]!;
+        if (anchor !== null) {
+            const c = cos(anchor.angle);
+            const sn = sin(anchor.angle);
+            const lx = dirX;
+            dirX = lx * c - dirY * sn;
+            dirY = lx * sn + dirY * c;
+        }
+        const pointing = dirX !== 0 || dirY !== 0;
 
-    const radius = flashes.radius[i]!;
-    const growth = flashes.growth[i]!;
-    // A blast's glow is its edge, which goes out with its fastest fragments,
-    // and its core sits inside it; a hit's glow is a flare around its core.
-    const blast = growth > 0;
-    const coreShare = blast ? BLAST_CORE_SHARE : 1;
-    const glowShare = blast ? 1 : FLASH_GLOW_SHARE;
-    const start = blast ? radius * FLASH_GLOW_SHARE : radius;
-    const rStart = max(flashExtent(start, growth, opened, lifetime) * coreShare, floor);
-    const rEnd = max(flashExtent(start, growth, closed, lifetime) * coreShare, floor);
-    const travelPx = length(rvx, rvy) * exposure * camera.scale;
-    const widestPx = 2 * max(rStart, rEnd) * camera.scale;
-    const n = flashSamples(travelPx, (rEnd - rStart) * camera.scale, widestPx * 0.5);
+        const radius = flashes.radius[i]!;
+        const growth = flashes.growth[i]!;
+        // A blast's glow is its edge, which goes out with its fastest fragments,
+        // and its core sits inside it; a hit's glow is a flare around its core.
+        const blast = growth > 0;
+        const coreShare = blast ? BLAST_CORE_SHARE : 1;
+        const glowShare = blast ? 1 : FLASH_GLOW_SHARE;
+        const start = blast ? radius * FLASH_GLOW_SHARE : radius;
+        const rStart = max(flashExtent(start, growth, opened, lifetime) * coreShare, floor);
+        const rEnd = max(flashExtent(start, growth, closed, lifetime) * coreShare, floor);
+        const travelPx = length(rvx, rvy) * exposure * camera.scale;
+        const widestPx = 2 * max(rStart, rEnd) * camera.scale;
+        const n = flashSamples(travelPx, (rEnd - rStart) * camera.scale, widestPx * 0.5);
 
-    // Shared between the moments, but only between those that overlap: a
-    // flash streaked out along its path stays as bright at any one point as
-    // it would standing still.
-    let total = 0;
-    for (let k = 0; k < n; k++) total += n === 1 ? 1 : shutterWeight((k + 0.5) / n);
-    const overlapping = travelPx > widestPx ? widestPx / travelPx : 1;
-    for (let k = 0; k < n; k++) {
-      const u = n === 1 ? 0.5 : (k + 0.5) / n;
-      const weight = (n === 1 ? 1 : shutterWeight(u)) / (total * overlapping);
-      const t = opened + u * exposure;
-      const fade = flashFade(t, lifetime);
-      if (fade <= 0 || weight <= 0) continue;
-      const ahead = t - age;
-      const x = at.x + rvx * ahead;
-      const y = at.y + rvy * ahead;
-      if (pointing) {
-        ctx.setTransform(base);
-        drawWedge(ctx, glow, core, x, y, dirX, dirY, flashes.radius[i]!, t, lifetime, fade * weight, floor);
-        continue;
-      }
-      // Floored on screen, so a hit is visible from far enough out to see the
-      // battle it is part of.
-      const extent = flashExtent(start, growth, t, lifetime);
-      const r = max(extent * coreShare, floor);
-      const g = max(extent * glowShare, floor);
-      ctx.setTransform(base);
-      ctx.globalAlpha = 0.5 * fade * weight;
-      ctx.drawImage(glow, x - g, y - g, 2 * g, 2 * g);
-      ctx.globalAlpha = 0.9 * fade * weight;
-      ctx.drawImage(core, x - r, y - r, 2 * r, 2 * r);
+        // Shared between the moments, but only between those that overlap: a
+        // flash streaked out along its path stays as bright at any one point as
+        // it would standing still.
+        let total = 0;
+        for (let k = 0; k < n; k++) total += n === 1 ? 1 : shutterWeight((k + 0.5) / n);
+        const overlapping = travelPx > widestPx ? widestPx / travelPx : 1;
+        for (let k = 0; k < n; k++) {
+            const u = n === 1 ? 0.5 : (k + 0.5) / n;
+            const weight = (n === 1 ? 1 : shutterWeight(u)) / (total * overlapping);
+            const t = opened + u * exposure;
+            const fade = flashFade(t, lifetime);
+            if (fade <= 0 || weight <= 0) continue;
+            const ahead = t - age;
+            const x = at.x + rvx * ahead;
+            const y = at.y + rvy * ahead;
+            if (pointing) {
+                ctx.setTransform(base);
+                drawWedge(ctx, glow, core, x, y, dirX, dirY, flashes.radius[i]!, t, lifetime, fade * weight, floor);
+                continue;
+            }
+            // Floored on screen, so a hit is visible from far enough out to see the
+            // battle it is part of.
+            const extent = flashExtent(start, growth, t, lifetime);
+            const r = max(extent * coreShare, floor);
+            const g = max(extent * glowShare, floor);
+            ctx.setTransform(base);
+            ctx.globalAlpha = 0.5 * fade * weight;
+            ctx.drawImage(glow, x - g, y - g, 2 * g, 2 * g);
+            ctx.globalAlpha = 0.9 * fade * weight;
+            ctx.drawImage(core, x - r, y - r, 2 * r, 2 * r);
+        }
     }
-  }
-  ctx.restore();
+    ctx.restore();
 }
 
 /**
@@ -2416,37 +2436,37 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
  * barrel's line, brightest at the muzzle end.
  */
 function drawWedge(
-  ctx: CanvasRenderingContext2D,
-  glow: CanvasImageSource,
-  core: CanvasImageSource,
-  x: number,
-  y: number,
-  dirX: number,
-  dirY: number,
-  radius: number,
-  age: number,
-  lifetime: number,
-  brightness: number,
-  floor: number,
+    ctx: CanvasRenderingContext2D,
+    glow: CanvasImageSource,
+    core: CanvasImageSource,
+    x: number,
+    y: number,
+    dirX: number,
+    dirY: number,
+    radius: number,
+    age: number,
+    lifetime: number,
+    brightness: number,
+    floor: number,
 ): void {
-  const wedge = muzzleWedge(radius, age, lifetime);
-  const span = wedge.front - wedge.back;
-  const n = min(MAX_WEDGE_DISCS, max(2, Math.ceil(span / max(wedge.backWidth * 0.5, floor)) + 1));
-  const spacing = span / (n - 1);
-  for (let k = 0; k < n; k++) {
-    const u = k / (n - 1);
-    const along = wedge.back + u * span;
-    const r = max(wedge.backWidth + u * (wedge.frontWidth - wedge.backWidth), floor);
-    const g = r * MUZZLE_GLOW_SHARE;
-    // Shared between the discs that overlap, so a long wedge is no brighter than a short one.
-    const share = min(1, (2.5 * spacing) / r) * (1 - 0.5 * u);
-    const cx = x + dirX * along;
-    const cy = y + dirY * along;
-    ctx.globalAlpha = 0.5 * brightness * share;
-    ctx.drawImage(glow, cx - g, cy - g, 2 * g, 2 * g);
-    ctx.globalAlpha = 0.9 * brightness * share;
-    ctx.drawImage(core, cx - r, cy - r, 2 * r, 2 * r);
-  }
+    const wedge = muzzleWedge(radius, age, lifetime);
+    const span = wedge.front - wedge.back;
+    const n = min(MAX_WEDGE_DISCS, max(2, Math.ceil(span / max(wedge.backWidth * 0.5, floor)) + 1));
+    const spacing = span / (n - 1);
+    for (let k = 0; k < n; k++) {
+        const u = k / (n - 1);
+        const along = wedge.back + u * span;
+        const r = max(wedge.backWidth + u * (wedge.frontWidth - wedge.backWidth), floor);
+        const g = r * MUZZLE_GLOW_SHARE;
+        // Shared between the discs that overlap, so a long wedge is no brighter than a short one.
+        const share = min(1, (2.5 * spacing) / r) * (1 - 0.5 * u);
+        const cx = x + dirX * along;
+        const cy = y + dirY * along;
+        ctx.globalAlpha = 0.5 * brightness * share;
+        ctx.drawImage(glow, cx - g, cy - g, 2 * g, 2 * g);
+        ctx.globalAlpha = 0.9 * brightness * share;
+        ctx.drawImage(core, cx - r, cy - r, 2 * r, 2 * r);
+    }
 }
 
 /**
@@ -2455,43 +2475,43 @@ function drawWedge(
  * end for the round's own size.
  */
 function drawStreak(
-  ctx: CanvasRenderingContext2D,
-  base: DOMMatrix,
-  image: CanvasImageSource,
-  x0: number,
-  y0: number,
-  x1: number,
-  y1: number,
-  width: number,
-  fallbackX: number,
-  fallbackY: number,
+    ctx: CanvasRenderingContext2D,
+    base: DOMMatrix,
+    image: CanvasImageSource,
+    x0: number,
+    y0: number,
+    x1: number,
+    y1: number,
+    width: number,
+    fallbackX: number,
+    fallbackY: number,
 ): void {
-  const dx = x1 - x0;
-  const dy = y1 - y0;
-  const travel = length(dx, dy);
-  // Still relative to the camera: the round's own heading, so it is not a
-  // disc turned whichever way.
-  const fallback = length(fallbackX, fallbackY);
-  const ux = travel > 0 ? dx / travel : fallback > 0 ? fallbackX / fallback : 1;
-  const uy = travel > 0 ? dy / travel : fallback > 0 ? fallbackY / fallback : 0;
-  const along = travel + width;
-  // The streak's own frame, composed onto the world's by hand: one call
-  // rather than a reset and a multiply for every round.
-  const a = ux * along;
-  const b = uy * along;
-  const c = -uy * width;
-  const d = ux * width;
-  const e = x0 - ux * width * 0.5;
-  const f = y0 - uy * width * 0.5;
-  ctx.setTransform(
-    base.a * a + base.c * b,
-    base.b * a + base.d * b,
-    base.a * c + base.c * d,
-    base.b * c + base.d * d,
-    base.a * e + base.c * f + base.e,
-    base.b * e + base.d * f + base.f,
-  );
-  ctx.drawImage(image, 0, -0.5, 1, 1);
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+    const travel = length(dx, dy);
+    // Still relative to the camera: the round's own heading, so it is not a
+    // disc turned whichever way.
+    const fallback = length(fallbackX, fallbackY);
+    const ux = travel > 0 ? dx / travel : fallback > 0 ? fallbackX / fallback : 1;
+    const uy = travel > 0 ? dy / travel : fallback > 0 ? fallbackY / fallback : 0;
+    const along = travel + width;
+    // The streak's own frame, composed onto the world's by hand: one call
+    // rather than a reset and a multiply for every round.
+    const a = ux * along;
+    const b = uy * along;
+    const c = -uy * width;
+    const d = ux * width;
+    const e = x0 - ux * width * 0.5;
+    const f = y0 - uy * width * 0.5;
+    ctx.setTransform(
+        base.a * a + base.c * b,
+        base.b * a + base.d * b,
+        base.a * c + base.c * d,
+        base.b * c + base.d * d,
+        base.a * e + base.c * f + base.e,
+        base.b * e + base.d * f + base.f,
+    );
+    ctx.drawImage(image, 0, -0.5, 1, 1);
 }
 
 /**
@@ -2501,154 +2521,154 @@ function drawStreak(
  * clear all the way out.
  */
 function drawApproaches(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
-  const design = ship.currentStructure;
-  for (let m = 0; m < design.modules.length; m++) {
-    const module = design.modules[m]!;
-    if (module.spec.kind !== 'pad' || ship.drawn?.[m] === false) continue;
-    const turn = approachTurn(design, m);
-    const halfLength = module.spec.length / 2;
-    const halfWidth = module.spec.width / 2;
-    const size = 0.6 * min(halfLength, halfWidth);
-    ctx.save();
-    ctx.translate(module.x, module.y);
-    ctx.rotate(module.angle);
-    ctx.lineWidth = 2 / metresToPx;
-    for (const approach of approachesOf(design, m)) {
-      // In the pad's frame: the way out, and the side or corner it leaves by.
-      const way = approach.angle + turn - module.angle;
-      const ux = cos(way);
-      const uy = sin(way);
-      const x = Math.abs(ux) < 0.1 ? 0 : Math.sign(ux) * halfLength;
-      const y = Math.abs(uy) < 0.1 ? 0 : Math.sign(uy) * halfWidth;
-      const tipX = x - ux * size;
-      const tipY = y - uy * size;
-      ctx.strokeStyle = approach.through ? APPROACH_EDGE : APPROACH_BLOCKED;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(tipX, tipY);
-      ctx.moveTo(tipX + (ux - uy) * size * 0.4, tipY + (uy + ux) * size * 0.4);
-      ctx.lineTo(tipX, tipY);
-      ctx.lineTo(tipX + (ux + uy) * size * 0.4, tipY + (uy - ux) * size * 0.4);
-      ctx.stroke();
+    const design = ship.currentStructure;
+    for (let m = 0; m < design.modules.length; m++) {
+        const module = design.modules[m]!;
+        if (module.spec.kind !== "pad" || ship.drawn?.[m] === false) continue;
+        const turn = approachTurn(design, m);
+        const halfLength = module.spec.length / 2;
+        const halfWidth = module.spec.width / 2;
+        const size = 0.6 * min(halfLength, halfWidth);
+        ctx.save();
+        ctx.translate(module.x, module.y);
+        ctx.rotate(module.angle);
+        ctx.lineWidth = 2 / metresToPx;
+        for (const approach of approachesOf(design, m)) {
+            // In the pad's frame: the way out, and the side or corner it leaves by.
+            const way = approach.angle + turn - module.angle;
+            const ux = cos(way);
+            const uy = sin(way);
+            const x = Math.abs(ux) < 0.1 ? 0 : Math.sign(ux) * halfLength;
+            const y = Math.abs(uy) < 0.1 ? 0 : Math.sign(uy) * halfWidth;
+            const tipX = x - ux * size;
+            const tipY = y - uy * size;
+            ctx.strokeStyle = approach.through ? APPROACH_EDGE : APPROACH_BLOCKED;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(tipX, tipY);
+            ctx.moveTo(tipX + (ux - uy) * size * 0.4, tipY + (uy + ux) * size * 0.4);
+            ctx.lineTo(tipX, tipY);
+            ctx.lineTo(tipX + (ux + uy) * size * 0.4, tipY + (uy - ux) * size * 0.4);
+            ctx.stroke();
+        }
+        ctx.restore();
     }
-    ctx.restore();
-  }
 }
 
 /** Module `m`'s colours: a fighter's, aboard a carrier or not, a shade darker than its side's ships. */
 function moduleColours(design: ShipDesign, m: number, team: number): ReturnType<typeof shipColours> {
-  return isFighterModule(design, m) ? fighterColours(team) : shipColours(team);
+    return isFighterModule(design, m) ? fighterColours(team) : shipColours(team);
 }
 
 /** Whether module `m` is a fighter's, flying or aboard a carrier. */
 function isFighterModule(design: ShipDesign, m: number): boolean {
-  if (design.fighter) return true;
-  const fighters = design.fighterPieces;
-  return fighters !== undefined && fighters.includes(design.pieces?.[m] ?? 0);
+    if (design.fighter) return true;
+    const fighters = design.fighterPieces;
+    return fighters !== undefined && fighters.includes(design.pieces?.[m] ?? 0);
 }
 
 /** A round's colours: as light, or in its side's trim with a glow of its hull colour. */
 function tracerColour(team: number, teamShots: boolean, glow: boolean, inside: boolean): string | null {
-  if (!teamShots || team < 0) {
-    return glow ? (inside ? TRACER_GLOW_INSIDE : TRACER_GLOW) : inside ? TRACER_INSIDE : TRACER;
-  }
-  const { hull, trim } = shipColours(team);
-  if (glow) return inside ? TRACER_GLOW_INSIDE : `${hull}88`;
-  return inside ? `${trim}40` : trim;
+    if (!teamShots || team < 0) {
+        return glow ? (inside ? TRACER_GLOW_INSIDE : TRACER_GLOW) : inside ? TRACER_INSIDE : TRACER;
+    }
+    const { hull, trim } = shipColours(team);
+    if (glow) return inside ? TRACER_GLOW_INSIDE : `${hull}88`;
+    return inside ? `${trim}40` : trim;
 }
 
 function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Camera, teamShots: boolean) {
-  // Tracers, in two passes so that every glow sits under every streak. Each
-  // is exposed for the last step, as a camera would photograph it: drawn over
-  // the line it crossed relative to the camera, fading in and out towards
-  // either end as the shutter opens and closes. The round has hard sides; its
-  // glow fades out from the line as well. Both are sized from the calibre and
-  // floored on screen, so a round is true to size close up and legible from
-  // far out. A round that covers each point of its streak for longer, by being
-  // longer or slower, is more opaque; its glow is wider instead, which is what
-  // a brighter soft glow looks like.
-  const dt = snapshot.dt;
-  const cvx = camera.vx ?? 0;
-  const cvy = camera.vy ?? 0;
-  const base = ctx.getTransform();
-  ctx.save();
-  for (let pass = 0; pass < 2; pass++) {
-    const glowPass = pass === 0;
-    for (let i = 0; i < snapshot.projectileCount; i++) {
-      const inside = snapshot.projectileInside[i] === 1;
-      const colour = tracerColour(snapshot.projectileTeam[i]!, teamShots, glowPass, inside);
-      if (colour === null) continue;
-      const image = sprite(glowPass ? 'glowStreak' : 'streak', colour);
-      if (image === null) continue;
-      const calibre = snapshot.projectileWidth[i]!;
-      const x = snapshot.projectileX[i]!;
-      const y = snapshot.projectileY[i]!;
-      const vx = snapshot.projectileVx[i]!;
-      const vy = snapshot.projectileVy[i]!;
-      // Its streak is the last step's travel relative to the camera, so no further than that from it.
-      if (!nearShown(x - 2 * (vx - cvx) * dt, y - 2 * (vy - cvy) * dt, x + 2 * (vx - cvx) * dt, y + 2 * (vy - cvy) * dt)) continue;
-      const sx = snapshot.projectileStartX[i];
-      const sy = snapshot.projectileStartY[i];
-      const open = exposureEnds(x, y, vx, vy, cvx, cvy, dt);
-      // The editor's demonstration fills only the rounds' own figures.
-      const ends = sx === undefined || sy === undefined ? open : clipToStart(open, sx, sy, vx, vy);
-      const exposure = tracerAlpha(SHELL_CALIBRES * calibre, length(ends.x1 - ends.x0, ends.y1 - ends.y0));
-      const width = glowPass
-        ? legibleWidth(GLOW_CALIBRES * calibre, MIN_GLOW_PX, camera.scale) * exposure
-        : legibleWidth(calibre, MIN_TRACER_PX, camera.scale);
-      ctx.globalAlpha = glowPass ? 1 : exposure;
-      drawStreak(ctx, base, image, ends.x0, ends.y0, ends.x1, ends.y1, width, vx, vy);
+    // Tracers, in two passes so that every glow sits under every streak. Each
+    // is exposed for the last step, as a camera would photograph it: drawn over
+    // the line it crossed relative to the camera, fading in and out towards
+    // either end as the shutter opens and closes. The round has hard sides; its
+    // glow fades out from the line as well. Both are sized from the calibre and
+    // floored on screen, so a round is true to size close up and legible from
+    // far out. A round that covers each point of its streak for longer, by being
+    // longer or slower, is more opaque; its glow is wider instead, which is what
+    // a brighter soft glow looks like.
+    const dt = snapshot.dt;
+    const cvx = camera.vx ?? 0;
+    const cvy = camera.vy ?? 0;
+    const base = ctx.getTransform();
+    ctx.save();
+    for (let pass = 0; pass < 2; pass++) {
+        const glowPass = pass === 0;
+        for (let i = 0; i < snapshot.projectileCount; i++) {
+            const inside = snapshot.projectileInside[i] === 1;
+            const colour = tracerColour(snapshot.projectileTeam[i]!, teamShots, glowPass, inside);
+            if (colour === null) continue;
+            const image = sprite(glowPass ? "glowStreak" : "streak", colour);
+            if (image === null) continue;
+            const calibre = snapshot.projectileWidth[i]!;
+            const x = snapshot.projectileX[i]!;
+            const y = snapshot.projectileY[i]!;
+            const vx = snapshot.projectileVx[i]!;
+            const vy = snapshot.projectileVy[i]!;
+            // Its streak is the last step's travel relative to the camera, so no further than that from it.
+            if (!nearShown(x - 2 * (vx - cvx) * dt, y - 2 * (vy - cvy) * dt, x + 2 * (vx - cvx) * dt, y + 2 * (vy - cvy) * dt)) continue;
+            const sx = snapshot.projectileStartX[i];
+            const sy = snapshot.projectileStartY[i];
+            const open = exposureEnds(x, y, vx, vy, cvx, cvy, dt);
+            // The editor's demonstration fills only the rounds' own figures.
+            const ends = sx === undefined || sy === undefined ? open : clipToStart(open, sx, sy, vx, vy);
+            const exposure = tracerAlpha(SHELL_CALIBRES * calibre, length(ends.x1 - ends.x0, ends.y1 - ends.y0));
+            const width = glowPass
+                ? legibleWidth(GLOW_CALIBRES * calibre, MIN_GLOW_PX, camera.scale) * exposure
+                : legibleWidth(calibre, MIN_TRACER_PX, camera.scale);
+            ctx.globalAlpha = glowPass ? 1 : exposure;
+            drawStreak(ctx, base, image, ends.x0, ends.y0, ends.x1, ends.y1, width, vx, vy);
+        }
     }
-  }
-  ctx.restore();
+    ctx.restore();
 }
 
 function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Camera, teamShots: boolean) {
-  // Beams, in two passes so that every glow sits under every streak. Both
-  // are sized from the beam's width and floored on screen, so a beam is
-  // true to size close up and legible from far out.
-  //
-  // A stroke per beam rather than one path for all of them, which the glow's
-  // translucency notices: two beams whose glows cross now brighten where they
-  // meet, where a single stroke over one path would have composited once.
-  // Worth it for a halo that is the round's own size, and rare enough not to
-  // read as anything but two tracers crossing.
-  ctx.lineCap = 'butt';
-  const team = (i: number): number => (teamShots ? snapshot.beamTeam[i]! : -1);
-  for (let i = 0; i < snapshot.beamCount; i++) {
-    if (!nearShown(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!, snapshot.beamEndX[i]!, snapshot.beamEndY[i]!)) continue;
-    ctx.strokeStyle = team(i) < 0 ? BEAM_GLOW : shipColours(team(i)).hull;
-    const calibre = snapshot.beamWidth[i]!;
-    const halo = BEAM_GLOW_WIDTHS * calibre;
-    ctx.globalAlpha = beamAlpha(snapshot.beamPower[i]!) * BEAM_GLOW_ALPHA * flooredFade(halo, MIN_BEAM_GLOW_PX, camera.scale);
-    ctx.lineWidth = legibleWidth(halo, MIN_BEAM_GLOW_PX, camera.scale);
-    ctx.beginPath();
-    ctx.moveTo(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!);
-    ctx.lineTo(snapshot.beamEndX[i]!, snapshot.beamEndY[i]!);
-    ctx.stroke();
-  }
+    // Beams, in two passes so that every glow sits under every streak. Both
+    // are sized from the beam's width and floored on screen, so a beam is
+    // true to size close up and legible from far out.
+    //
+    // A stroke per beam rather than one path for all of them, which the glow's
+    // translucency notices: two beams whose glows cross now brighten where they
+    // meet, where a single stroke over one path would have composited once.
+    // Worth it for a halo that is the round's own size, and rare enough not to
+    // read as anything but two tracers crossing.
+    ctx.lineCap = "butt";
+    const team = (i: number): number => (teamShots ? snapshot.beamTeam[i]! : -1);
+    for (let i = 0; i < snapshot.beamCount; i++) {
+        if (!nearShown(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!, snapshot.beamEndX[i]!, snapshot.beamEndY[i]!)) continue;
+        ctx.strokeStyle = team(i) < 0 ? BEAM_GLOW : shipColours(team(i)).hull;
+        const calibre = snapshot.beamWidth[i]!;
+        const halo = BEAM_GLOW_WIDTHS * calibre;
+        ctx.globalAlpha = beamAlpha(snapshot.beamPower[i]!) * BEAM_GLOW_ALPHA * flooredFade(halo, MIN_BEAM_GLOW_PX, camera.scale);
+        ctx.lineWidth = legibleWidth(halo, MIN_BEAM_GLOW_PX, camera.scale);
+        ctx.beginPath();
+        ctx.moveTo(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!);
+        ctx.lineTo(snapshot.beamEndX[i]!, snapshot.beamEndY[i]!);
+        ctx.stroke();
+    }
 
-  // A pass per beam, because each carries its own width and its own opacity.
-  // Cheap at the beam counts a battle reaches; if that ever stops being true,
-  // bucket by width rather than reaching for a single average.
-  for (let i = 0; i < snapshot.beamCount; i++) {
-    if (!nearShown(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!, snapshot.beamEndX[i]!, snapshot.beamEndY[i]!)) continue;
-    ctx.strokeStyle = team(i) < 0 ? BEAM : shipColours(team(i)).trim;
-    const calibre = snapshot.beamWidth[i]!;
-    ctx.globalAlpha = beamAlpha(snapshot.beamPower[i]!) * flooredFade(calibre, MIN_TRACER_PX, camera.scale);
-    // The beam *is* its calibre wide. Twice the calibre is the barrel's outer
-    // diameter — right for the tube, wrong for what comes out of it.
-    ctx.lineWidth = legibleWidth(calibre, MIN_TRACER_PX, camera.scale);
-    ctx.beginPath();
-    ctx.moveTo(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!);
-    ctx.lineTo(snapshot.beamEndX[i]!, snapshot.beamEndY[i]!);
-    ctx.stroke();
-  }
+    // A pass per beam, because each carries its own width and its own opacity.
+    // Cheap at the beam counts a battle reaches; if that ever stops being true,
+    // bucket by width rather than reaching for a single average.
+    for (let i = 0; i < snapshot.beamCount; i++) {
+        if (!nearShown(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!, snapshot.beamEndX[i]!, snapshot.beamEndY[i]!)) continue;
+        ctx.strokeStyle = team(i) < 0 ? BEAM : shipColours(team(i)).trim;
+        const calibre = snapshot.beamWidth[i]!;
+        ctx.globalAlpha = beamAlpha(snapshot.beamPower[i]!) * flooredFade(calibre, MIN_TRACER_PX, camera.scale);
+        // The beam *is* its calibre wide. Twice the calibre is the barrel's outer
+        // diameter — right for the tube, wrong for what comes out of it.
+        ctx.lineWidth = legibleWidth(calibre, MIN_TRACER_PX, camera.scale);
+        ctx.beginPath();
+        ctx.moveTo(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!);
+        ctx.lineTo(snapshot.beamEndX[i]!, snapshot.beamEndY[i]!);
+        ctx.stroke();
+    }
 
-  // Beams are drawn last, and nothing restores the context between frames:
-  // leaving the final beam's opacity set would tint the next frame's grid and
-  // wells before anything else had a chance to set it.
-  ctx.globalAlpha = 1;
+    // Beams are drawn last, and nothing restores the context between frames:
+    // leaving the final beam's opacity set would tint the next frame's grid and
+    // wells before anything else had a chance to set it.
+    ctx.globalAlpha = 1;
 }
 
 /**
@@ -2660,26 +2680,26 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
  * bug in the physics rather than the physics working.
  */
 function drawWells(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Camera): void {
-  ctx.strokeStyle = WELL;
-  ctx.lineWidth = 1 / camera.scale;
-  for (let i = 0; i < snapshot.wells.length; i++) {
-    const well = snapshot.wells[i]!;
-    for (const pull of [1, 0.1]) {
-      // r where gm/r² is `pull`.
-      const r = sqrt(well.gm / pull);
-      ctx.beginPath();
-      ctx.arc(well.x, well.y, r, 0, TAU);
-      ctx.stroke();
+    ctx.strokeStyle = WELL;
+    ctx.lineWidth = 1 / camera.scale;
+    for (let i = 0; i < snapshot.wells.length; i++) {
+        const well = snapshot.wells[i]!;
+        for (const pull of [1, 0.1]) {
+            // r where gm/r² is `pull`.
+            const r = sqrt(well.gm / pull);
+            ctx.beginPath();
+            ctx.arc(well.x, well.y, r, 0, TAU);
+            ctx.stroke();
+        }
+        // A cross at the centre, sized in pixels so it stays visible at any zoom.
+        const arm = 8 / camera.scale;
+        ctx.beginPath();
+        ctx.moveTo(well.x - arm, well.y);
+        ctx.lineTo(well.x + arm, well.y);
+        ctx.moveTo(well.x, well.y - arm);
+        ctx.lineTo(well.x, well.y + arm);
+        ctx.stroke();
     }
-    // A cross at the centre, sized in pixels so it stays visible at any zoom.
-    const arm = 8 / camera.scale;
-    ctx.beginPath();
-    ctx.moveTo(well.x - arm, well.y);
-    ctx.lineTo(well.x + arm, well.y);
-    ctx.moveTo(well.x, well.y - arm);
-    ctx.lineTo(well.x, well.y + arm);
-    ctx.stroke();
-  }
 }
 
 /**
@@ -2689,25 +2709,25 @@ function drawWells(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
  * field look like two ships sitting still.
  */
 function drawGrid(ctx: CanvasRenderingContext2D, camera: Camera, widthPx: number, heightPx: number): void {
-  const step = gridStep(camera.scale);
+    const step = gridStep(camera.scale);
 
-  const halfW = widthPx / 2 / camera.scale;
-  const halfH = heightPx / 2 / camera.scale;
-  const x0 = Math.floor((camera.x - halfW) / step) * step;
-  const x1 = camera.x + halfW;
-  const y0 = Math.floor((camera.y - halfH) / step) * step;
-  const y1 = camera.y + halfH;
+    const halfW = widthPx / 2 / camera.scale;
+    const halfH = heightPx / 2 / camera.scale;
+    const x0 = Math.floor((camera.x - halfW) / step) * step;
+    const x1 = camera.x + halfW;
+    const y0 = Math.floor((camera.y - halfH) / step) * step;
+    const y1 = camera.y + halfH;
 
-  ctx.strokeStyle = GRID;
-  ctx.lineWidth = 1 / camera.scale;
-  ctx.beginPath();
-  for (let x = x0; x <= x1; x += step) {
-    ctx.moveTo(x, y0);
-    ctx.lineTo(x, y1);
-  }
-  for (let y = y0; y <= y1; y += step) {
-    ctx.moveTo(x0, y);
-    ctx.lineTo(x1, y);
-  }
-  ctx.stroke();
+    ctx.strokeStyle = GRID;
+    ctx.lineWidth = 1 / camera.scale;
+    ctx.beginPath();
+    for (let x = x0; x <= x1; x += step) {
+        ctx.moveTo(x, y0);
+        ctx.lineTo(x, y1);
+    }
+    for (let y = y0; y <= y1; y += step) {
+        ctx.moveTo(x0, y);
+        ctx.lineTo(x1, y);
+    }
+    ctx.stroke();
 }

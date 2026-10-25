@@ -1,6 +1,6 @@
 {
   // Tests and scripts may use Node APIs. The simulation itself may not —
-  // see sim/tsconfig.json. `npm run typecheck` checks both projects.
+  // see sim/tsconfig.json. `pnpm typecheck` checks both projects.
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "lib": ["ES2022"],

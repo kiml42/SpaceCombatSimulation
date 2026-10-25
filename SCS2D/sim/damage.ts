@@ -1,16 +1,16 @@
-import type { Bodies } from './bodies.js';
-import type { ShipDesign } from './blueprint.js';
-import { Terminal, deflected, incidenceAngle, strike } from './ballistics.js';
-import { BOTH_LAYERS, HullPath, modulesAlong, OWN_LAYERS, type HullDesigns, type Hulls } from './hull.js';
-import type { SpatialGrid } from './spatialGrid.js';
-import { jointBetween, joints } from './connectivity.js';
-import { fixed } from './fixed.js';
-import { NOT_INSIDE, type ProjectileHits, type Projectiles } from './projectiles.js';
-import type { BeamHits, Beams } from './beams.js';
-import type { Rng } from './rng.js';
-import { RESTITUTION, type Contacts } from './collision.js';
-import { cos, exp, max, min, PI, sin, sqrt } from './math.js';
-import { COMPLEXITY_WORK, EXPLOSIVE_YIELD, FUEL_DENSITY, FUEL_DRAG_COEFFICIENT, type ModuleSpec, type ModuleStats } from './modules.js';
+import type { Bodies } from "./bodies.js";
+import type { ShipDesign } from "./blueprint.js";
+import { Terminal, deflected, incidenceAngle, strike } from "./ballistics.js";
+import { BOTH_LAYERS, HullPath, modulesAlong, OWN_LAYERS, type HullDesigns, type Hulls } from "./hull.js";
+import type { SpatialGrid } from "./spatialGrid.js";
+import { jointBetween, joints } from "./connectivity.js";
+import { fixed } from "./fixed.js";
+import { NOT_INSIDE, type ProjectileHits, type Projectiles } from "./projectiles.js";
+import type { BeamHits, Beams } from "./beams.js";
+import type { Rng } from "./rng.js";
+import { RESTITUTION, type Contacts } from "./collision.js";
+import { cos, exp, max, min, PI, sin, sqrt } from "./math.js";
+import { COMPLEXITY_WORK, EXPLOSIVE_YIELD, FUEL_DENSITY, FUEL_DRAG_COEFFICIENT, type ModuleSpec, type ModuleStats } from "./modules.js";
 
 /**
  * What a hit does to the ship it landed on.
@@ -77,14 +77,14 @@ export const REPAIR_ENERGY_PER_JOULE = 10;
  * of the module's complexity, spread over the damage that breaks it.
  */
 export function repairWork(stats: ModuleStats): number {
-  const capacity = stats.hitPoints * DAMAGE_ENERGY_PER_KG;
-  return capacity > 0 ? 1 + (stats.complexity * COMPLEXITY_WORK) / capacity : 1;
+    const capacity = stats.hitPoints * DAMAGE_ENERGY_PER_KG;
+    return capacity > 0 ? 1 + (stats.complexity * COMPLEXITY_WORK) / capacity : 1;
 }
 
 /** The share of its dry mass a module has shed, having absorbed `absorbed` of the `capacity` that breaks it. */
 export function shedShare(absorbed: number, capacity: number): number {
-  if (!(capacity > 0) || !(absorbed > 0)) return 0;
-  return min(SHED_FLOOR, (SHED_AT_BREAK * absorbed) / capacity);
+    if (!(capacity > 0) || !(absorbed > 0)) return 0;
+    return min(SHED_FLOOR, (SHED_AT_BREAK * absorbed) / capacity);
 }
 
 /**
@@ -112,22 +112,22 @@ export const SEAM_CUT_ENERGY_PER_AREA = 6.0e7;
 
 /** What damage takes away from a module, beyond eventually stopping it. */
 export enum DamageEffect {
-  /** An engine's push. */
-  Thrust = 0,
-  /** How often a gun can fire. */
-  FireRate = 1,
-  /** Whether a core can still fly the ship and lay its guns. */
-  Control = 2,
-  /** Whether a claw, a pad or a port can still hold and pump. */
-  Grip = 3,
-  /** What a generator makes. */
-  Generation = 4,
-  /** How much a battery can hold. Charge past what is left is lost. */
-  Storage = 5,
-  /** How fast a battery can take charge in or give it out. */
-  Discharge = 6,
-  /** How well a robot bay refills its robots and sends them out. */
-  Tending = 7,
+    /** An engine's push. */
+    Thrust = 0,
+    /** How often a gun can fire. */
+    FireRate = 1,
+    /** Whether a core can still fly the ship and lay its guns. */
+    Control = 2,
+    /** Whether a claw, a pad or a port can still hold and pump. */
+    Grip = 3,
+    /** What a generator makes. */
+    Generation = 4,
+    /** How much a battery can hold. Charge past what is left is lost. */
+    Storage = 5,
+    /** How fast a battery can take charge in or give it out. */
+    Discharge = 6,
+    /** How well a robot bay refills its robots and sends them out. */
+    Tending = 7,
 }
 
 /**
@@ -140,9 +140,9 @@ export enum DamageEffect {
  * without the code that applies damage learning about any of them.
  */
 export interface DamageResponse {
-  readonly effect: DamageEffect;
-  /** What fraction of the capability is left, given integrity 0 to 1. */
-  readonly remaining: (integrity: number) => number;
+    readonly effect: DamageEffect;
+    /** What fraction of the capability is left, given integrity 0 to 1. */
+    readonly remaining: (integrity: number) => number;
 }
 
 /**
@@ -154,7 +154,7 @@ export interface DamageResponse {
  * zero integrity, and the module goes on absorbing damage below that.
  */
 function fadesOutAt(cutout: number): (integrity: number) => number {
-  return (integrity) => (integrity <= cutout ? 0 : (integrity - cutout) / (1 - cutout));
+    return (integrity) => (integrity <= cutout ? 0 : (integrity - cutout) / (1 - cutout));
 }
 
 /** Integrity at which an engine quits, with a third of itself left. */
@@ -180,65 +180,65 @@ const CONTROL_CUTOUT = 0.4;
  */
 export const RAGGED_INTEGRITY = 0.25;
 
-export const DAMAGE_RESPONSES: Readonly<Record<ModuleSpec['kind'], readonly DamageResponse[]>> = {
-  structure: [],
-  // Takes no damage at all (`Damage.absorb`).
-  kernel: [],
-  rock: [],
-  // Holds its fuel however badly it is hit, until leaks are built (ROADMAP.md §8 step 8).
-  tank: [],
-  // Its plant and cells go as a generator's and a battery's do.
-  core: [
-    { effect: DamageEffect.Control, remaining: fadesOutAt(CONTROL_CUTOUT) },
-    { effect: DamageEffect.Generation, remaining: fadesOutAt(THRUST_CUTOUT) },
-    { effect: DamageEffect.Storage, remaining: (integrity) => (integrity > 0 ? integrity : 0) },
-    { effect: DamageEffect.Discharge, remaining: fadesOutAt(THRUST_CUTOUT) },
-  ],
-  engine: [{ effect: DamageEffect.Thrust, remaining: fadesOutAt(THRUST_CUTOUT) }],
-  turret: [{ effect: DamageEffect.FireRate, remaining: fadesOutAt(FIRE_RATE_CUTOUT) }],
-  beamTurret: [{ effect: DamageEffect.FireRate, remaining: fadesOutAt(FIRE_RATE_CUTOUT) }],
-  // A hull mount is a gun by another route, so it stops shooting the same way.
-  hullGun: [{ effect: DamageEffect.FireRate, remaining: fadesOutAt(FIRE_RATE_CUTOUT) }],
-  hullBeam: [{ effect: DamageEffect.FireRate, remaining: fadesOutAt(FIRE_RATE_CUTOUT) }],
-  // Jaws and a pump are plumbing and machinery, and give out as an engine's do.
-  claw: [{ effect: DamageEffect.Grip, remaining: fadesOutAt(THRUST_CUTOUT) }],
-  // A pad's clamps and fuel line, the same.
-  pad: [{ effect: DamageEffect.Grip, remaining: fadesOutAt(THRUST_CUTOUT) }],
-  port: [{ effect: DamageEffect.Grip, remaining: fadesOutAt(THRUST_CUTOUT) }],
-  // A slipway's cradle and feed lines, the same.
-  slipway: [{ effect: DamageEffect.Grip, remaining: fadesOutAt(THRUST_CUTOUT) }],
-  hold: [],
-  // Racks and chargers are machinery too.
-  robotBay: [{ effect: DamageEffect.Tending, remaining: fadesOutAt(THRUST_CUTOUT) }],
-  // A plant gives out as an engine does.
-  generator: [{ effect: DamageEffect.Generation, remaining: fadesOutAt(THRUST_CUTOUT) }],
-  // Every cell broken is charge it no longer holds, and the wiring goes as the
-  // plumbing does.
-  battery: [
-    { effect: DamageEffect.Storage, remaining: (integrity) => (integrity > 0 ? integrity : 0) },
-    { effect: DamageEffect.Discharge, remaining: fadesOutAt(THRUST_CUTOUT) },
-  ],
+export const DAMAGE_RESPONSES: Readonly<Record<ModuleSpec["kind"], readonly DamageResponse[]>> = {
+    structure: [],
+    // Takes no damage at all (`Damage.absorb`).
+    kernel: [],
+    rock: [],
+    // Holds its fuel however badly it is hit, until leaks are built (ROADMAP.md §8 step 8).
+    tank: [],
+    // Its plant and cells go as a generator's and a battery's do.
+    core: [
+        { effect: DamageEffect.Control, remaining: fadesOutAt(CONTROL_CUTOUT) },
+        { effect: DamageEffect.Generation, remaining: fadesOutAt(THRUST_CUTOUT) },
+        { effect: DamageEffect.Storage, remaining: (integrity) => (integrity > 0 ? integrity : 0) },
+        { effect: DamageEffect.Discharge, remaining: fadesOutAt(THRUST_CUTOUT) },
+    ],
+    engine: [{ effect: DamageEffect.Thrust, remaining: fadesOutAt(THRUST_CUTOUT) }],
+    turret: [{ effect: DamageEffect.FireRate, remaining: fadesOutAt(FIRE_RATE_CUTOUT) }],
+    beamTurret: [{ effect: DamageEffect.FireRate, remaining: fadesOutAt(FIRE_RATE_CUTOUT) }],
+    // A hull mount is a gun by another route, so it stops shooting the same way.
+    hullGun: [{ effect: DamageEffect.FireRate, remaining: fadesOutAt(FIRE_RATE_CUTOUT) }],
+    hullBeam: [{ effect: DamageEffect.FireRate, remaining: fadesOutAt(FIRE_RATE_CUTOUT) }],
+    // Jaws and a pump are plumbing and machinery, and give out as an engine's do.
+    claw: [{ effect: DamageEffect.Grip, remaining: fadesOutAt(THRUST_CUTOUT) }],
+    // A pad's clamps and fuel line, the same.
+    pad: [{ effect: DamageEffect.Grip, remaining: fadesOutAt(THRUST_CUTOUT) }],
+    port: [{ effect: DamageEffect.Grip, remaining: fadesOutAt(THRUST_CUTOUT) }],
+    // A slipway's cradle and feed lines, the same.
+    slipway: [{ effect: DamageEffect.Grip, remaining: fadesOutAt(THRUST_CUTOUT) }],
+    hold: [],
+    // Racks and chargers are machinery too.
+    robotBay: [{ effect: DamageEffect.Tending, remaining: fadesOutAt(THRUST_CUTOUT) }],
+    // A plant gives out as an engine does.
+    generator: [{ effect: DamageEffect.Generation, remaining: fadesOutAt(THRUST_CUTOUT) }],
+    // Every cell broken is charge it no longer holds, and the wiring goes as the
+    // plumbing does.
+    battery: [
+        { effect: DamageEffect.Storage, remaining: (integrity) => (integrity > 0 ? integrity : 0) },
+        { effect: DamageEffect.Discharge, remaining: fadesOutAt(THRUST_CUTOUT) },
+    ],
 };
 
 /** Each module's neighbours by built weld, seams left out, kept per design. */
 const linkCache = new WeakMap<ShipDesign, readonly (readonly number[])[]>();
 
 function commandLinks(design: ShipDesign): readonly (readonly number[])[] {
-  const known = linkCache.get(design);
-  if (known !== undefined) return known;
-  const links: number[][] = design.modules.map(() => []);
-  for (const joint of joints(design)) {
-    if (joint.seam === true) continue;
-    links[joint.a]!.push(joint.b);
-    links[joint.b]!.push(joint.a);
-  }
-  linkCache.set(design, links);
-  return links;
+    const known = linkCache.get(design);
+    if (known !== undefined) return known;
+    const links: number[][] = design.modules.map(() => []);
+    for (const joint of joints(design)) {
+        if (joint.seam === true) continue;
+        links[joint.a]!.push(joint.b);
+        links[joint.b]!.push(joint.a);
+    }
+    linkCache.set(design, links);
+    return links;
 }
 
 /** What settles a hull's shed mass. An object, not a callback, so a copied battle's calls reach its own copy. */
 export interface ShedVisitor {
-  settleShedOf(bodyIndex: number, kg: number): void;
+    settleShedOf(bodyIndex: number, kg: number): void;
 }
 
 /**
@@ -252,462 +252,462 @@ export interface ShedVisitor {
  * left alone when it has not, without a callback or a dirty flag per consumer.
  */
 export class Damage {
-  private readonly absorbed: (Float64Array | null)[] = [];
-  /**
-   * Metres of weld cut away, by body and joint — what a round took out of a
-   * weld by passing through it.
-   *
-   * Separate from what its modules have absorbed because it is a different
-   * injury: damage to the metal at a weld's ends *weakens* it, and a hole
-   * punched through the weld itself *removes* it.
-   */
-  private readonly cut: (Float64Array | null)[] = [];
-  private readonly cutVersions: number[] = [];
-  /** Joules each module can take before it stops working. */
-  private readonly capacity: (Float64Array | null)[] = [];
-  private readonly kinds: (ModuleSpec['kind'][] | null)[] = [];
-  private readonly versions: number[] = [];
-  /** Each body's design, for working out what its cores still command. */
-  private readonly designs: (ShipDesign | null)[] = [];
-  /** Which modules a working core reaches, and the damage version that was worked out at. */
-  private readonly commanded: (Uint8Array | null)[] = [];
-  private readonly commandedAt: number[] = [];
-  private readonly frontier: number[] = [];
-  /** Bodies nothing can hurt, by body index. */
-  private readonly protectedBody: boolean[] = [];
-  /** Each module's structure and fittings, kg: what damage sheds a share of. */
-  private readonly dry: (Float64Array | null)[] = [];
-  /** Moment about the centre of mass per kilogram of each module, m². */
-  private readonly spin: (Float64Array | null)[] = [];
-  /** What damage has shed from each body, kg, and its moment of inertia, kg·m². */
-  private readonly shed: number[] = [];
-  private readonly shedSpin: number[] = [];
-  /** Fittings each rebuilt module still lacks, kg (`Ships.tend`), and each body's total and its moment. */
-  private readonly unbuilt: (Float64Array | null)[] = [];
-  private readonly unbuiltTotal: number[] = [];
-  private readonly unbuiltSpin: number[] = [];
-  /** Shed since the body's mass was last settled, kg, and the bodies with any. */
-  private readonly unsettled: number[] = [];
-  private readonly unsettledBodies: number[] = [];
+    private readonly absorbed: (Float64Array | null)[] = [];
+    /**
+     * Metres of weld cut away, by body and joint — what a round took out of a
+     * weld by passing through it.
+     *
+     * Separate from what its modules have absorbed because it is a different
+     * injury: damage to the metal at a weld's ends *weakens* it, and a hole
+     * punched through the weld itself *removes* it.
+     */
+    private readonly cut: (Float64Array | null)[] = [];
+    private readonly cutVersions: number[] = [];
+    /** Joules each module can take before it stops working. */
+    private readonly capacity: (Float64Array | null)[] = [];
+    private readonly kinds: (ModuleSpec["kind"][] | null)[] = [];
+    private readonly versions: number[] = [];
+    /** Each body's design, for working out what its cores still command. */
+    private readonly designs: (ShipDesign | null)[] = [];
+    /** Which modules a working core reaches, and the damage version that was worked out at. */
+    private readonly commanded: (Uint8Array | null)[] = [];
+    private readonly commandedAt: number[] = [];
+    private readonly frontier: number[] = [];
+    /** Bodies nothing can hurt, by body index. */
+    private readonly protectedBody: boolean[] = [];
+    /** Each module's structure and fittings, kg: what damage sheds a share of. */
+    private readonly dry: (Float64Array | null)[] = [];
+    /** Moment about the centre of mass per kilogram of each module, m². */
+    private readonly spin: (Float64Array | null)[] = [];
+    /** What damage has shed from each body, kg, and its moment of inertia, kg·m². */
+    private readonly shed: number[] = [];
+    private readonly shedSpin: number[] = [];
+    /** Fittings each rebuilt module still lacks, kg (`Ships.tend`), and each body's total and its moment. */
+    private readonly unbuilt: (Float64Array | null)[] = [];
+    private readonly unbuiltTotal: number[] = [];
+    private readonly unbuiltSpin: number[] = [];
+    /** Shed since the body's mass was last settled, kg, and the bodies with any. */
+    private readonly unsettled: number[] = [];
+    private readonly unsettledBodies: number[] = [];
 
-  /**
-   * Give a body a damage record, sized from its design.
-   *
-   * `carried` is what each module has already taken, which is how a hull that
-   * has come apart keeps its scars: a severed chunk is a new body with a
-   * design of its own, and the modules on it are the same battered modules
-   * they were a moment earlier.
-   */
-  register(
-    bodyIndex: number,
-    design: ShipDesign,
-    carried?: readonly number[],
-    welds?: readonly number[],
-    unfitted?: readonly number[],
-  ): void {
-    const n = design.modules.length;
-    const capacity = new Float64Array(n);
-    const dry = new Float64Array(n);
-    const spin = new Float64Array(n);
-    const kinds: ModuleSpec['kind'][] = [];
-    for (let i = 0; i < n; i++) {
-      const module = design.modules[i]!;
-      capacity[i] = module.stats.hitPoints * DAMAGE_ENERGY_PER_KG;
-      dry[i] = module.stats.structureMass + module.stats.fittingMass;
-      const { length, width } = module.spec;
-      spin[i] = (length * length + width * width) / 12 + module.x * module.x + module.y * module.y;
-      kinds.push(module.spec.kind);
+    /**
+     * Give a body a damage record, sized from its design.
+     *
+     * `carried` is what each module has already taken, which is how a hull that
+     * has come apart keeps its scars: a severed chunk is a new body with a
+     * design of its own, and the modules on it are the same battered modules
+     * they were a moment earlier.
+     */
+    register(
+        bodyIndex: number,
+        design: ShipDesign,
+        carried?: readonly number[],
+        welds?: readonly number[],
+        unfitted?: readonly number[],
+    ): void {
+        const n = design.modules.length;
+        const capacity = new Float64Array(n);
+        const dry = new Float64Array(n);
+        const spin = new Float64Array(n);
+        const kinds: ModuleSpec["kind"][] = [];
+        for (let i = 0; i < n; i++) {
+            const module = design.modules[i]!;
+            capacity[i] = module.stats.hitPoints * DAMAGE_ENERGY_PER_KG;
+            dry[i] = module.stats.structureMass + module.stats.fittingMass;
+            const { length, width } = module.spec;
+            spin[i] = (length * length + width * width) / 12 + module.x * module.x + module.y * module.y;
+            kinds.push(module.spec.kind);
+        }
+        const absorbed = new Float64Array(n);
+        if (carried !== undefined) {
+            for (let i = 0; i < n; i++) absorbed[i] = carried[i] ?? 0;
+        }
+        // What its scars had already shed was counted when they were made.
+        let shed = 0;
+        let shedSpin = 0;
+        for (let i = 0; i < n; i++) {
+            const kg = shedShare(absorbed[i]!, capacity[i]!) * dry[i]!;
+            shed += kg;
+            shedSpin += kg * spin[i]!;
+        }
+        const unbuilt = new Float64Array(n);
+        let unbuiltTotal = 0;
+        let unbuiltSpin = 0;
+        if (unfitted !== undefined) {
+            for (let i = 0; i < n; i++) {
+                unbuilt[i] = unfitted[i] ?? 0;
+                unbuiltTotal += unbuilt[i]!;
+                unbuiltSpin += unbuilt[i]! * spin[i]!;
+            }
+        }
+        this.unbuilt[bodyIndex] = unbuilt;
+        this.unbuiltTotal[bodyIndex] = unbuiltTotal;
+        this.unbuiltSpin[bodyIndex] = unbuiltSpin;
+        this.dry[bodyIndex] = fixed(dry);
+        this.spin[bodyIndex] = fixed(spin);
+        this.shed[bodyIndex] = shed;
+        this.shedSpin[bodyIndex] = shedSpin;
+        this.unsettled[bodyIndex] = 0;
+        this.absorbed[bodyIndex] = absorbed;
+        const cut = new Float64Array(joints(design).length);
+        if (welds !== undefined) {
+            for (let i = 0; i < cut.length; i++) cut[i] = welds[i] ?? 0;
+        }
+        this.cut[bodyIndex] = cut;
+        this.cutVersions[bodyIndex] = (this.cutVersions[bodyIndex] ?? 0) + 1;
+        this.capacity[bodyIndex] = fixed(capacity);
+        this.kinds[bodyIndex] = kinds;
+        this.versions[bodyIndex] = (this.versions[bodyIndex] ?? 0) + 1;
+        this.designs[bodyIndex] = design;
+        this.commanded[bodyIndex] = null;
     }
-    const absorbed = new Float64Array(n);
-    if (carried !== undefined) {
-      for (let i = 0; i < n; i++) absorbed[i] = carried[i] ?? 0;
+
+    /** Put energy into a module. Energy past what it can take is simply gone. */
+    /**
+     * Make a body one that nothing can hurt: no damage, and no weld cut.
+     *
+     * What it is for is an object a battle is *about* rather than one fighting
+     * in it — a waypoint a race is run round, a station a mission is to defend.
+     * The alternative, giving it enough armour to be impractical to destroy, is
+     * the same thing said less honestly and with a number that will one day be
+     * beaten.
+     */
+    protect(bodyIndex: number): void {
+        this.protectedBody[bodyIndex] = true;
     }
-    // What its scars had already shed was counted when they were made.
-    let shed = 0;
-    let shedSpin = 0;
-    for (let i = 0; i < n; i++) {
-      const kg = shedShare(absorbed[i]!, capacity[i]!) * dry[i]!;
-      shed += kg;
-      shedSpin += kg * spin[i]!;
+
+    /** The kind of a body's module, or null if it has no such module. */
+    kindAt(bodyIndex: number, module: number): ModuleSpec["kind"] | null {
+        return this.kinds[bodyIndex]?.[module] ?? null;
     }
-    const unbuilt = new Float64Array(n);
-    let unbuiltTotal = 0;
-    let unbuiltSpin = 0;
-    if (unfitted !== undefined) {
-      for (let i = 0; i < n; i++) {
-        unbuilt[i] = unfitted[i] ?? 0;
-        unbuiltTotal += unbuilt[i]!;
-        unbuiltSpin += unbuilt[i]! * spin[i]!;
-      }
+
+    isProtected(bodyIndex: number): boolean {
+        return this.protectedBody[bodyIndex] === true;
     }
-    this.unbuilt[bodyIndex] = unbuilt;
-    this.unbuiltTotal[bodyIndex] = unbuiltTotal;
-    this.unbuiltSpin[bodyIndex] = unbuiltSpin;
-    this.dry[bodyIndex] = fixed(dry);
-    this.spin[bodyIndex] = fixed(spin);
-    this.shed[bodyIndex] = shed;
-    this.shedSpin[bodyIndex] = shedSpin;
-    this.unsettled[bodyIndex] = 0;
-    this.absorbed[bodyIndex] = absorbed;
-    const cut = new Float64Array(joints(design).length);
-    if (welds !== undefined) {
-      for (let i = 0; i < cut.length; i++) cut[i] = welds[i] ?? 0;
+
+    absorb(bodyIndex: number, module: number, joules: number): void {
+        if (this.protectedBody[bodyIndex] === true) return;
+        // An asteroid's kernel outlasts everything thrown at it.
+        if (this.kinds[bodyIndex]?.[module] === "kernel") return;
+        const absorbed = this.absorbed[bodyIndex];
+        if (absorbed === null || absorbed === undefined) return;
+        if (module < 0 || module >= absorbed.length) return;
+        if (!(joules > 0)) return;
+        const capacity = this.capacity[bodyIndex]![module]!;
+        const before = shedShare(absorbed[module]!, capacity);
+        absorbed[module] += joules;
+        this.versions[bodyIndex] = (this.versions[bodyIndex] ?? 0) + 1;
+        const kg = (shedShare(absorbed[module]!, capacity) - before) * this.dry[bodyIndex]![module]!;
+        if (!(kg > 0)) return;
+        this.shed[bodyIndex] = this.shed[bodyIndex]! + kg;
+        this.shedSpin[bodyIndex] = this.shedSpin[bodyIndex]! + kg * this.spin[bodyIndex]![module]!;
+        if (!(this.unsettled[bodyIndex]! > 0)) this.unsettledBodies.push(bodyIndex);
+        this.unsettled[bodyIndex] = this.unsettled[bodyIndex]! + kg;
     }
-    this.cut[bodyIndex] = cut;
-    this.cutVersions[bodyIndex] = (this.cutVersions[bodyIndex] ?? 0) + 1;
-    this.capacity[bodyIndex] = fixed(capacity);
-    this.kinds[bodyIndex] = kinds;
-    this.versions[bodyIndex] = (this.versions[bodyIndex] ?? 0) + 1;
-    this.designs[bodyIndex] = design;
-    this.commanded[bodyIndex] = null;
-  }
 
-  /** Put energy into a module. Energy past what it can take is simply gone. */
-  /**
-   * Make a body one that nothing can hurt: no damage, and no weld cut.
-   *
-   * What it is for is an object a battle is *about* rather than one fighting
-   * in it — a waypoint a race is run round, a station a mission is to defend.
-   * The alternative, giving it enough armour to be impractical to destroy, is
-   * the same thing said less honestly and with a number that will one day be
-   * beaten.
-   */
-  protect(bodyIndex: number): void {
-    this.protectedBody[bodyIndex] = true;
-  }
-
-  /** The kind of a body's module, or null if it has no such module. */
-  kindAt(bodyIndex: number, module: number): ModuleSpec['kind'] | null {
-    return this.kinds[bodyIndex]?.[module] ?? null;
-  }
-
-  isProtected(bodyIndex: number): boolean {
-    return this.protectedBody[bodyIndex] === true;
-  }
-
-  absorb(bodyIndex: number, module: number, joules: number): void {
-    if (this.protectedBody[bodyIndex] === true) return;
-    // An asteroid's kernel outlasts everything thrown at it.
-    if (this.kinds[bodyIndex]?.[module] === 'kernel') return;
-    const absorbed = this.absorbed[bodyIndex];
-    if (absorbed === null || absorbed === undefined) return;
-    if (module < 0 || module >= absorbed.length) return;
-    if (!(joules > 0)) return;
-    const capacity = this.capacity[bodyIndex]![module]!;
-    const before = shedShare(absorbed[module]!, capacity);
-    absorbed[module] += joules;
-    this.versions[bodyIndex] = (this.versions[bodyIndex] ?? 0) + 1;
-    const kg = (shedShare(absorbed[module]!, capacity) - before) * this.dry[bodyIndex]![module]!;
-    if (!(kg > 0)) return;
-    this.shed[bodyIndex] = this.shed[bodyIndex]! + kg;
-    this.shedSpin[bodyIndex] = this.shedSpin[bodyIndex]! + kg * this.spin[bodyIndex]![module]!;
-    if (!(this.unsettled[bodyIndex]! > 0)) this.unsettledBodies.push(bodyIndex);
-    this.unsettled[bodyIndex] = this.unsettled[bodyIndex]! + kg;
-  }
-
-  /** What damage has shed from a body, kg. */
-  shedMass(bodyIndex: number): number {
-    return this.shed[bodyIndex] ?? 0;
-  }
-
-  /** What that took off the body's moment of inertia, kg·m². */
-  shedInertia(bodyIndex: number): number {
-    return this.shedSpin[bodyIndex] ?? 0;
-  }
-
-  /**
-   * The metal undoing `joules` of module `module`'s damage puts back, kg,
-   * before waste: none for damage beyond what took it to its floor.
-   */
-  repairMetal(bodyIndex: number, module: number, joules: number): number {
-    const absorbed = this.absorbed[bodyIndex];
-    const capacity = this.capacity[bodyIndex];
-    const dry = this.dry[bodyIndex];
-    if (!absorbed || !capacity || !dry || !(joules > 0)) return 0;
-    const a = absorbed[module] ?? 0;
-    const cap = capacity[module] ?? 0;
-    return (shedShare(a, cap) - shedShare(max(0, a - joules), cap)) * (dry[module] ?? 0);
-  }
-
-  /**
-   * Undo up to `joules` of a module's damage, and say how much: what it had
-   * shed comes back with it. Settling the hull's mass is the caller's, having
-   * settled what was shed before.
-   */
-  repair(bodyIndex: number, module: number, joules: number): number {
-    const absorbed = this.absorbed[bodyIndex];
-    if (!absorbed || !(joules > 0)) return 0;
-    const a = absorbed[module] ?? 0;
-    const undone = joules < a ? joules : a;
-    if (!(undone > 0)) return 0;
-    const kg = this.repairMetal(bodyIndex, module, undone);
-    absorbed[module] = a - undone;
-    this.versions[bodyIndex] = (this.versions[bodyIndex] ?? 0) + 1;
-    this.shed[bodyIndex] = this.shed[bodyIndex]! - kg;
-    this.shedSpin[bodyIndex] = this.shedSpin[bodyIndex]! - kg * this.spin[bodyIndex]![module]!;
-    return undone;
-  }
-
-  /** Fittings a rebuilt module still lacks, kg: until they are in, it does nothing. */
-  unbuiltAt(bodyIndex: number, module: number): number {
-    return this.unbuilt[bodyIndex]?.[module] ?? 0;
-  }
-
-  /** What every module of a body still lacks, kg, and its moment of inertia, kg·m². */
-  unbuiltMass(bodyIndex: number): number {
-    return this.unbuiltTotal[bodyIndex] ?? 0;
-  }
-
-  unbuiltInertia(bodyIndex: number): number {
-    return this.unbuiltSpin[bodyIndex] ?? 0;
-  }
-
-  /** Take `kg` out of a module: fittings not yet put in, or what robots are taking apart. */
-  unfit(bodyIndex: number, module: number, kg: number): void {
-    const unbuilt = this.unbuilt[bodyIndex];
-    if (!unbuilt || !(kg > 0)) return;
-    // Out of work now, if it was working: a change to what the hull can do.
-    if (unbuilt[module] === 0) this.versions[bodyIndex] = (this.versions[bodyIndex] ?? 0) + 1;
-    unbuilt[module] = unbuilt[module]! + kg;
-    this.unbuiltTotal[bodyIndex] = this.unbuiltTotal[bodyIndex]! + kg;
-    this.unbuiltSpin[bodyIndex] = this.unbuiltSpin[bodyIndex]! + kg * this.spin[bodyIndex]![module]!;
-  }
-
-  /** Put up to `kg` of a module's fittings in, and say how much went. Settling the hull's mass is the caller's. */
-  fit(bodyIndex: number, module: number, kg: number): number {
-    const unbuilt = this.unbuilt[bodyIndex];
-    if (!unbuilt || !(kg > 0)) return 0;
-    const left = unbuilt[module] ?? 0;
-    const put = kg < left ? kg : left;
-    if (!(put > 0)) return 0;
-    // To the last gram, so a module is finished rather than a rounding error short.
-    unbuilt[module] = put < left ? left - put : 0;
-    this.unbuiltTotal[bodyIndex] = this.unbuiltTotal[bodyIndex]! - put;
-    this.unbuiltSpin[bodyIndex] = this.unbuiltSpin[bodyIndex]! - put * this.spin[bodyIndex]![module]!;
-    // Working now, which is a change to what the hull can do.
-    if (unbuilt[module] === 0) this.versions[bodyIndex] = (this.versions[bodyIndex] ?? 0) + 1;
-    return put;
-  }
-
-  /** What damage has shed from one module, kg: the metal repairing it has to put back. */
-  shedAt(bodyIndex: number, module: number): number {
-    const absorbed = this.absorbed[bodyIndex];
-    const capacity = this.capacity[bodyIndex];
-    const dry = this.dry[bodyIndex];
-    if (!absorbed || !capacity || !dry) return 0;
-    return shedShare(absorbed[module] ?? 0, capacity[module] ?? 0) * (dry[module] ?? 0);
-  }
-
-  /** The same for one body alone, if it has shed anything since. */
-  takeUnsettledAt(bodyIndex: number, visit: ShedVisitor): void {
-    const kg = this.unsettled[bodyIndex] ?? 0;
-    if (!(kg > 0)) return;
-    this.unsettled[bodyIndex] = 0;
-    visit.settleShedOf(bodyIndex, kg);
-  }
-
-  /**
-   * Every body that has shed mass since this was last asked, with how much,
-   * for its mass to be settled and what it lost counted; each is then settled.
-   */
-  takeUnsettled(visit: ShedVisitor): void {
-    const bodies = this.unsettledBodies;
-    for (let k = 0; k < bodies.length; k++) {
-      const b = bodies[k]!;
-      const kg = this.unsettled[b]!;
-      this.unsettled[b] = 0;
-      if (kg > 0) visit.settleShedOf(b, kg);
+    /** What damage has shed from a body, kg. */
+    shedMass(bodyIndex: number): number {
+        return this.shed[bodyIndex] ?? 0;
     }
-    bodies.length = 0;
-  }
 
-  /** How much of a module is left, 1 untouched and 0 spent. */
-  integrity(bodyIndex: number, module: number): number {
-    const absorbed = this.absorbed[bodyIndex];
-    const capacity = this.capacity[bodyIndex];
-    if (!absorbed || !capacity) return 1;
-    const limit = capacity[module];
-    if (limit === undefined || !(limit > 0)) return 1;
-    return max(0, 1 - absorbed[module]! / limit);
-  }
-
-  /**
-   * Take a strip out of a weld: what a round removes by going through it.
-   *
-   * A weld with nothing left is not a weld, so this is how a gun can cut a
-   * piece off a ship rather than merely loosening it — and it is deliberately
-   * geometry rather than energy, because what matters is how much of the
-   * section is still there.
-   */
-  cutWeld(bodyIndex: number, joint: number, metres: number): void {
-    if (this.protectedBody[bodyIndex] === true) return;
-    const cut = this.cut[bodyIndex];
-    if (!cut) return;
-    if (joint < 0 || joint >= cut.length) return;
-    if (!(metres > 0)) return;
-    cut[joint] += metres;
-    this.cutVersions[bodyIndex] = (this.cutVersions[bodyIndex] ?? 0) + 1;
-  }
-
-  /** How much of a weld's section is still there, 1 whole and 0 cut through. */
-  weldIntegrity(bodyIndex: number, joint: number, width: number): number {
-    const cut = this.cut[bodyIndex];
-    if (!cut || !(width > 0)) return 1;
-    const gone = cut[joint];
-    if (gone === undefined) return 1;
-    return max(0, 1 - gone / width);
-  }
-
-  /** Metres already cut out of a weld, for carrying scars across a sever. */
-  cutAt(bodyIndex: number, joint: number): number {
-    return this.cut[bodyIndex]?.[joint] ?? 0;
-  }
-
-  /** How many times this body's welds have been cut into. */
-  cutVersion(bodyIndex: number): number {
-    return this.cutVersions[bodyIndex] ?? 0;
-  }
-
-  /** Joules one module has taken, which is what a weld holding it is up against. */
-  absorbedAt(bodyIndex: number, module: number): number {
-    const absorbed = this.absorbed[bodyIndex];
-    if (!absorbed) return 0;
-    return absorbed[module] ?? 0;
-  }
-
-  /** How much more a module can absorb before it is spent, joules. */
-  capacityLeft(bodyIndex: number, module: number): number {
-    const absorbed = this.absorbed[bodyIndex];
-    const capacity = this.capacity[bodyIndex];
-    if (!absorbed || !capacity) return 0;
-    const limit = capacity[module];
-    if (limit === undefined) return 0;
-    return max(0, limit - absorbed[module]!);
-  }
-
-  /**
-   * How much of a beam or a plume a module lets through, 0 to
-   * `FLOOR_TRANSPARENCY`: none until it breaks, then more the more it has
-   * shed, as it is holed.
-   */
-  transparency(bodyIndex: number, module: number): number {
-    const absorbed = this.absorbed[bodyIndex];
-    const capacity = this.capacity[bodyIndex];
-    if (!absorbed || !capacity) return 0;
-    const limit = capacity[module];
-    if (limit === undefined || !(limit > 0)) return 0;
-    const past = absorbed[module]! / limit - 1;
-    if (!(past > 0)) return 0;
-    // Shedding goes on past breaking at the same rate, until the floor.
-    const toFloor = SHED_FLOOR / SHED_AT_BREAK - 1;
-    return FLOOR_TRANSPARENCY * min(1, past / toFloor);
-  }
-
-  /** Whether a module has taken everything it can. */
-  spent(bodyIndex: number, module: number): boolean {
-    return this.integrity(bodyIndex, module) <= 0;
-  }
-
-  /**
-   * How much of one capability a module still has, from its own responses.
-   *
-   * A module with no response for an effect keeps all of it: structure has
-   * nothing to lose this way, and neither has a kind that has not been given a
-   * failure mode yet.
-   */
-  remaining(bodyIndex: number, module: number, effect: DamageEffect): number {
-    const kinds = this.kinds[bodyIndex];
-    if (!kinds) return 1;
-    const kind = kinds[module];
-    if (kind === undefined) return 1;
-    if (this.unbuilt[bodyIndex]![module]! > 0) return 0;
-    const integrity = this.integrity(bodyIndex, module);
-    let left = 1;
-    for (const response of DAMAGE_RESPONSES[kind]) {
-      if (response.effect === effect) left = min(left, response.remaining(integrity));
+    /** What that took off the body's moment of inertia, kg·m². */
+    shedInertia(bodyIndex: number): number {
+        return this.shedSpin[bodyIndex] ?? 0;
     }
-    // A core is where command comes from, so it answers for itself.
-    if (left > 0 && effect !== DamageEffect.Control && this.commandOf(bodyIndex)?.[module] === 0) return 0;
-    return left;
-  }
 
-  /** Whether a module is torn open enough to hook, and to stop carrying command. */
-  ragged(bodyIndex: number, module: number): boolean {
-    return this.integrity(bodyIndex, module) <= RAGGED_INTEGRITY;
-  }
-
-  /**
-   * Which modules a working core commands: those it reaches through built
-   * welds without passing through a ragged module. Never across a seam.
-   * Worked out again only when the body's damage has changed.
-   */
-  private commandOf(bodyIndex: number): Uint8Array | null {
-    const version = this.versions[bodyIndex] ?? 0;
-    const known = this.commanded[bodyIndex];
-    if (known && this.commandedAt[bodyIndex] === version) return known;
-    const design = this.designs[bodyIndex];
-    if (!design) return null;
-    const n = design.modules.length;
-    const mask = known && known.length === n ? known.fill(0) : new Uint8Array(n);
-    const frontier = this.frontier;
-    frontier.length = 0;
-    for (const core of design.cores) {
-      if (this.integrity(bodyIndex, core) <= CONTROL_CUTOUT) continue;
-      mask[core] = 1;
-      frontier.push(core);
+    /**
+     * The metal undoing `joules` of module `module`'s damage puts back, kg,
+     * before waste: none for damage beyond what took it to its floor.
+     */
+    repairMetal(bodyIndex: number, module: number, joules: number): number {
+        const absorbed = this.absorbed[bodyIndex];
+        const capacity = this.capacity[bodyIndex];
+        const dry = this.dry[bodyIndex];
+        if (!absorbed || !capacity || !dry || !(joules > 0)) return 0;
+        const a = absorbed[module] ?? 0;
+        const cap = capacity[module] ?? 0;
+        return (shedShare(a, cap) - shedShare(max(0, a - joules), cap)) * (dry[module] ?? 0);
     }
-    const links = commandLinks(design);
-    while (frontier.length > 0) {
-      const at = frontier.pop()!;
-      if (design.modules[at]!.spec.kind !== 'core' && this.ragged(bodyIndex, at)) continue;
-      for (const next of links[at]!) {
-        if (mask[next] === 1) continue;
-        mask[next] = 1;
-        frontier.push(next);
-      }
+
+    /**
+     * Undo up to `joules` of a module's damage, and say how much: what it had
+     * shed comes back with it. Settling the hull's mass is the caller's, having
+     * settled what was shed before.
+     */
+    repair(bodyIndex: number, module: number, joules: number): number {
+        const absorbed = this.absorbed[bodyIndex];
+        if (!absorbed || !(joules > 0)) return 0;
+        const a = absorbed[module] ?? 0;
+        const undone = joules < a ? joules : a;
+        if (!(undone > 0)) return 0;
+        const kg = this.repairMetal(bodyIndex, module, undone);
+        absorbed[module] = a - undone;
+        this.versions[bodyIndex] = (this.versions[bodyIndex] ?? 0) + 1;
+        this.shed[bodyIndex] = this.shed[bodyIndex]! - kg;
+        this.shedSpin[bodyIndex] = this.shedSpin[bodyIndex]! - kg * this.spin[bodyIndex]![module]!;
+        return undone;
     }
-    this.commanded[bodyIndex] = mask;
-    this.commandedAt[bodyIndex] = version;
-    return mask;
-  }
 
-  /** How many times this body's damage has changed. */
-  version(bodyIndex: number): number {
-    return this.versions[bodyIndex] ?? 0;
-  }
+    /** Fittings a rebuilt module still lacks, kg: until they are in, it does nothing. */
+    unbuiltAt(bodyIndex: number, module: number): number {
+        return this.unbuilt[bodyIndex]?.[module] ?? 0;
+    }
 
-  /** What a body's modules have absorbed, for a checksum. Null if it has none. */
-  absorbedOf(bodyIndex: number): Float64Array | null {
-    return this.absorbed[bodyIndex] ?? null;
-  }
+    /** What every module of a body still lacks, kg, and its moment of inertia, kg·m². */
+    unbuiltMass(bodyIndex: number): number {
+        return this.unbuiltTotal[bodyIndex] ?? 0;
+    }
 
-  /** How many bodies have ever had a record, so a checksum knows where to stop. */
-  get highWater(): number {
-    return this.absorbed.length;
-  }
+    unbuiltInertia(bodyIndex: number): number {
+        return this.unbuiltSpin[bodyIndex] ?? 0;
+    }
 
-  /** Whether a body has a damage record at all. */
-  knows(bodyIndex: number): boolean {
-    return this.absorbed[bodyIndex] !== undefined && this.absorbed[bodyIndex] !== null;
-  }
+    /** Take `kg` out of a module: fittings not yet put in, or what robots are taking apart. */
+    unfit(bodyIndex: number, module: number, kg: number): void {
+        const unbuilt = this.unbuilt[bodyIndex];
+        if (!unbuilt || !(kg > 0)) return;
+        // Out of work now, if it was working: a change to what the hull can do.
+        if (unbuilt[module] === 0) this.versions[bodyIndex] = (this.versions[bodyIndex] ?? 0) + 1;
+        unbuilt[module] = unbuilt[module]! + kg;
+        this.unbuiltTotal[bodyIndex] = this.unbuiltTotal[bodyIndex]! + kg;
+        this.unbuiltSpin[bodyIndex] = this.unbuiltSpin[bodyIndex]! + kg * this.spin[bodyIndex]![module]!;
+    }
 
-  forget(bodyIndex: number): void {
-    this.designs[bodyIndex] = null;
-    this.commanded[bodyIndex] = null;
-    this.protectedBody[bodyIndex] = false;
-    this.cut[bodyIndex] = null;
-    this.absorbed[bodyIndex] = null;
-    this.capacity[bodyIndex] = null;
-    this.kinds[bodyIndex] = null;
-    this.dry[bodyIndex] = null;
-    this.spin[bodyIndex] = null;
-    this.shed[bodyIndex] = 0;
-    this.shedSpin[bodyIndex] = 0;
-    this.unsettled[bodyIndex] = 0;
-    this.unbuilt[bodyIndex] = null;
-    this.unbuiltTotal[bodyIndex] = 0;
-    this.unbuiltSpin[bodyIndex] = 0;
-  }
+    /** Put up to `kg` of a module's fittings in, and say how much went. Settling the hull's mass is the caller's. */
+    fit(bodyIndex: number, module: number, kg: number): number {
+        const unbuilt = this.unbuilt[bodyIndex];
+        if (!unbuilt || !(kg > 0)) return 0;
+        const left = unbuilt[module] ?? 0;
+        const put = kg < left ? kg : left;
+        if (!(put > 0)) return 0;
+        // To the last gram, so a module is finished rather than a rounding error short.
+        unbuilt[module] = put < left ? left - put : 0;
+        this.unbuiltTotal[bodyIndex] = this.unbuiltTotal[bodyIndex]! - put;
+        this.unbuiltSpin[bodyIndex] = this.unbuiltSpin[bodyIndex]! - put * this.spin[bodyIndex]![module]!;
+        // Working now, which is a change to what the hull can do.
+        if (unbuilt[module] === 0) this.versions[bodyIndex] = (this.versions[bodyIndex] ?? 0) + 1;
+        return put;
+    }
+
+    /** What damage has shed from one module, kg: the metal repairing it has to put back. */
+    shedAt(bodyIndex: number, module: number): number {
+        const absorbed = this.absorbed[bodyIndex];
+        const capacity = this.capacity[bodyIndex];
+        const dry = this.dry[bodyIndex];
+        if (!absorbed || !capacity || !dry) return 0;
+        return shedShare(absorbed[module] ?? 0, capacity[module] ?? 0) * (dry[module] ?? 0);
+    }
+
+    /** The same for one body alone, if it has shed anything since. */
+    takeUnsettledAt(bodyIndex: number, visit: ShedVisitor): void {
+        const kg = this.unsettled[bodyIndex] ?? 0;
+        if (!(kg > 0)) return;
+        this.unsettled[bodyIndex] = 0;
+        visit.settleShedOf(bodyIndex, kg);
+    }
+
+    /**
+     * Every body that has shed mass since this was last asked, with how much,
+     * for its mass to be settled and what it lost counted; each is then settled.
+     */
+    takeUnsettled(visit: ShedVisitor): void {
+        const bodies = this.unsettledBodies;
+        for (let k = 0; k < bodies.length; k++) {
+            const b = bodies[k]!;
+            const kg = this.unsettled[b]!;
+            this.unsettled[b] = 0;
+            if (kg > 0) visit.settleShedOf(b, kg);
+        }
+        bodies.length = 0;
+    }
+
+    /** How much of a module is left, 1 untouched and 0 spent. */
+    integrity(bodyIndex: number, module: number): number {
+        const absorbed = this.absorbed[bodyIndex];
+        const capacity = this.capacity[bodyIndex];
+        if (!absorbed || !capacity) return 1;
+        const limit = capacity[module];
+        if (limit === undefined || !(limit > 0)) return 1;
+        return max(0, 1 - absorbed[module]! / limit);
+    }
+
+    /**
+     * Take a strip out of a weld: what a round removes by going through it.
+     *
+     * A weld with nothing left is not a weld, so this is how a gun can cut a
+     * piece off a ship rather than merely loosening it — and it is deliberately
+     * geometry rather than energy, because what matters is how much of the
+     * section is still there.
+     */
+    cutWeld(bodyIndex: number, joint: number, metres: number): void {
+        if (this.protectedBody[bodyIndex] === true) return;
+        const cut = this.cut[bodyIndex];
+        if (!cut) return;
+        if (joint < 0 || joint >= cut.length) return;
+        if (!(metres > 0)) return;
+        cut[joint] += metres;
+        this.cutVersions[bodyIndex] = (this.cutVersions[bodyIndex] ?? 0) + 1;
+    }
+
+    /** How much of a weld's section is still there, 1 whole and 0 cut through. */
+    weldIntegrity(bodyIndex: number, joint: number, width: number): number {
+        const cut = this.cut[bodyIndex];
+        if (!cut || !(width > 0)) return 1;
+        const gone = cut[joint];
+        if (gone === undefined) return 1;
+        return max(0, 1 - gone / width);
+    }
+
+    /** Metres already cut out of a weld, for carrying scars across a sever. */
+    cutAt(bodyIndex: number, joint: number): number {
+        return this.cut[bodyIndex]?.[joint] ?? 0;
+    }
+
+    /** How many times this body's welds have been cut into. */
+    cutVersion(bodyIndex: number): number {
+        return this.cutVersions[bodyIndex] ?? 0;
+    }
+
+    /** Joules one module has taken, which is what a weld holding it is up against. */
+    absorbedAt(bodyIndex: number, module: number): number {
+        const absorbed = this.absorbed[bodyIndex];
+        if (!absorbed) return 0;
+        return absorbed[module] ?? 0;
+    }
+
+    /** How much more a module can absorb before it is spent, joules. */
+    capacityLeft(bodyIndex: number, module: number): number {
+        const absorbed = this.absorbed[bodyIndex];
+        const capacity = this.capacity[bodyIndex];
+        if (!absorbed || !capacity) return 0;
+        const limit = capacity[module];
+        if (limit === undefined) return 0;
+        return max(0, limit - absorbed[module]!);
+    }
+
+    /**
+     * How much of a beam or a plume a module lets through, 0 to
+     * `FLOOR_TRANSPARENCY`: none until it breaks, then more the more it has
+     * shed, as it is holed.
+     */
+    transparency(bodyIndex: number, module: number): number {
+        const absorbed = this.absorbed[bodyIndex];
+        const capacity = this.capacity[bodyIndex];
+        if (!absorbed || !capacity) return 0;
+        const limit = capacity[module];
+        if (limit === undefined || !(limit > 0)) return 0;
+        const past = absorbed[module]! / limit - 1;
+        if (!(past > 0)) return 0;
+        // Shedding goes on past breaking at the same rate, until the floor.
+        const toFloor = SHED_FLOOR / SHED_AT_BREAK - 1;
+        return FLOOR_TRANSPARENCY * min(1, past / toFloor);
+    }
+
+    /** Whether a module has taken everything it can. */
+    spent(bodyIndex: number, module: number): boolean {
+        return this.integrity(bodyIndex, module) <= 0;
+    }
+
+    /**
+     * How much of one capability a module still has, from its own responses.
+     *
+     * A module with no response for an effect keeps all of it: structure has
+     * nothing to lose this way, and neither has a kind that has not been given a
+     * failure mode yet.
+     */
+    remaining(bodyIndex: number, module: number, effect: DamageEffect): number {
+        const kinds = this.kinds[bodyIndex];
+        if (!kinds) return 1;
+        const kind = kinds[module];
+        if (kind === undefined) return 1;
+        if (this.unbuilt[bodyIndex]![module]! > 0) return 0;
+        const integrity = this.integrity(bodyIndex, module);
+        let left = 1;
+        for (const response of DAMAGE_RESPONSES[kind]) {
+            if (response.effect === effect) left = min(left, response.remaining(integrity));
+        }
+        // A core is where command comes from, so it answers for itself.
+        if (left > 0 && effect !== DamageEffect.Control && this.commandOf(bodyIndex)?.[module] === 0) return 0;
+        return left;
+    }
+
+    /** Whether a module is torn open enough to hook, and to stop carrying command. */
+    ragged(bodyIndex: number, module: number): boolean {
+        return this.integrity(bodyIndex, module) <= RAGGED_INTEGRITY;
+    }
+
+    /**
+     * Which modules a working core commands: those it reaches through built
+     * welds without passing through a ragged module. Never across a seam.
+     * Worked out again only when the body's damage has changed.
+     */
+    private commandOf(bodyIndex: number): Uint8Array | null {
+        const version = this.versions[bodyIndex] ?? 0;
+        const known = this.commanded[bodyIndex];
+        if (known && this.commandedAt[bodyIndex] === version) return known;
+        const design = this.designs[bodyIndex];
+        if (!design) return null;
+        const n = design.modules.length;
+        const mask = known && known.length === n ? known.fill(0) : new Uint8Array(n);
+        const frontier = this.frontier;
+        frontier.length = 0;
+        for (const core of design.cores) {
+            if (this.integrity(bodyIndex, core) <= CONTROL_CUTOUT) continue;
+            mask[core] = 1;
+            frontier.push(core);
+        }
+        const links = commandLinks(design);
+        while (frontier.length > 0) {
+            const at = frontier.pop()!;
+            if (design.modules[at]!.spec.kind !== "core" && this.ragged(bodyIndex, at)) continue;
+            for (const next of links[at]!) {
+                if (mask[next] === 1) continue;
+                mask[next] = 1;
+                frontier.push(next);
+            }
+        }
+        this.commanded[bodyIndex] = mask;
+        this.commandedAt[bodyIndex] = version;
+        return mask;
+    }
+
+    /** How many times this body's damage has changed. */
+    version(bodyIndex: number): number {
+        return this.versions[bodyIndex] ?? 0;
+    }
+
+    /** What a body's modules have absorbed, for a checksum. Null if it has none. */
+    absorbedOf(bodyIndex: number): Float64Array | null {
+        return this.absorbed[bodyIndex] ?? null;
+    }
+
+    /** How many bodies have ever had a record, so a checksum knows where to stop. */
+    get highWater(): number {
+        return this.absorbed.length;
+    }
+
+    /** Whether a body has a damage record at all. */
+    knows(bodyIndex: number): boolean {
+        return this.absorbed[bodyIndex] !== undefined && this.absorbed[bodyIndex] !== null;
+    }
+
+    forget(bodyIndex: number): void {
+        this.designs[bodyIndex] = null;
+        this.commanded[bodyIndex] = null;
+        this.protectedBody[bodyIndex] = false;
+        this.cut[bodyIndex] = null;
+        this.absorbed[bodyIndex] = null;
+        this.capacity[bodyIndex] = null;
+        this.kinds[bodyIndex] = null;
+        this.dry[bodyIndex] = null;
+        this.spin[bodyIndex] = null;
+        this.shed[bodyIndex] = 0;
+        this.shedSpin[bodyIndex] = 0;
+        this.unsettled[bodyIndex] = 0;
+        this.unbuilt[bodyIndex] = null;
+        this.unbuiltTotal[bodyIndex] = 0;
+        this.unbuiltSpin[bodyIndex] = 0;
+    }
 }
 
 /**
@@ -719,20 +719,20 @@ export class Damage {
  * the hull does about the shock is the hull's business.
  */
 export interface Shocked {
-  blow(bodyIndex: number, module: number, jx: number, jy: number, px: number, py: number): void;
+    blow(bodyIndex: number, module: number, jx: number, jy: number, px: number, py: number): void;
 }
 
 /** Put an impulse through a body at a world-frame point. */
 function shove(bodies: Bodies, body: number, jx: number, jy: number, px: number, py: number): void {
-  const mass = bodies.mass[body]!;
-  if (!(mass > 0)) return;
-  bodies.vx[body] = bodies.vx[body]! + jx / mass;
-  bodies.vy[body] = bodies.vy[body]! + jy / mass;
-  const inertia = bodies.inertia[body]!;
-  if (!(inertia > 0)) return;
-  const rx = px - bodies.x[body]!;
-  const ry = py - bodies.y[body]!;
-  bodies.angularVel[body] = bodies.angularVel[body]! + (rx * jy - ry * jx) / inertia;
+    const mass = bodies.mass[body]!;
+    if (!(mass > 0)) return;
+    bodies.vx[body] = bodies.vx[body]! + jx / mass;
+    bodies.vy[body] = bodies.vy[body]! + jy / mass;
+    const inertia = bodies.inertia[body]!;
+    if (!(inertia > 0)) return;
+    const rx = px - bodies.x[body]!;
+    const ry = py - bodies.y[body]!;
+    bodies.angularVel[body] = bodies.angularVel[body]! + (rx * jy - ry * jx) / inertia;
 }
 
 /**
@@ -755,50 +755,50 @@ function shove(bodies: Bodies, body: number, jx: number, jy: number, px: number,
  * `(nx, ny)` points **into** the hull being crushed, world frame.
  */
 export function resolveCollision(
-  design: ShipDesign,
-  damage: Damage,
-  bodies: Bodies,
-  bodyIndex: number,
-  path: HullPath,
-  x: number,
-  y: number,
-  nx: number,
-  ny: number,
-  energy: number,
+    design: ShipDesign,
+    damage: Damage,
+    bodies: Bodies,
+    bodyIndex: number,
+    path: HullPath,
+    x: number,
+    y: number,
+    nx: number,
+    ny: number,
+    energy: number,
 ): number {
-  if (!(energy > 0)) return 0;
+    if (!(energy > 0)) return 0;
 
-  const angle = bodies.angle[bodyIndex]!;
-  const c = cos(angle);
-  const s = sin(angle);
-  const rx = x - bodies.x[bodyIndex]!;
-  const ry = y - bodies.y[bodyIndex]!;
-  // The contact and the direction it drives in, in the ship's own frame.
-  const px = rx * c + ry * s;
-  const py = -rx * s + ry * c;
-  const ux = nx * c + ny * s;
-  const uy = -nx * s + ny * c;
+    const angle = bodies.angle[bodyIndex]!;
+    const c = cos(angle);
+    const s = sin(angle);
+    const rx = x - bodies.x[bodyIndex]!;
+    const ry = y - bodies.y[bodyIndex]!;
+    // The contact and the direction it drives in, in the ship's own frame.
+    const px = rx * c + ry * s;
+    const py = -rx * s + ry * c;
+    const ux = nx * c + ny * s;
+    const uy = -nx * s + ny * c;
 
-  // From outside the hull, through the contact, and out the far side, so that
-  // a module is entered by a face rather than from nowhere.
-  const reach = design.radius * 2 + 1;
-  modulesAlong(design, px - ux * reach, py - uy * reach, px + ux * reach, py + uy * reach, path);
+    // From outside the hull, through the contact, and out the far side, so that
+    // a module is entered by a face rather than from nowhere.
+    const reach = design.radius * 2 + 1;
+    modulesAlong(design, px - ux * reach, py - uy * reach, px + ux * reach, py + uy * reach, path);
 
-  let left = energy;
-  let spent = 0;
-  for (let k = 0; k < path.count && left > 0; k++) {
-    // Only what lies at or beyond the contact: the crush goes inward, and the
-    // metal the cast crossed on its way in is on the other side of the ship.
-    if (path.exit[k]! <= reach) continue;
-    const module = path.module[k]!;
-    const capacity = damage.capacityLeft(bodyIndex, module);
-    if (!(capacity > 0)) continue;
-    const take = min(capacity, left);
-    damage.absorb(bodyIndex, module, take);
-    left -= take;
-    spent += take;
-  }
-  return spent;
+    let left = energy;
+    let spent = 0;
+    for (let k = 0; k < path.count && left > 0; k++) {
+        // Only what lies at or beyond the contact: the crush goes inward, and the
+        // metal the cast crossed on its way in is on the other side of the ship.
+        if (path.exit[k]! <= reach) continue;
+        const module = path.module[k]!;
+        const capacity = damage.capacityLeft(bodyIndex, module);
+        if (!(capacity > 0)) continue;
+        const take = min(capacity, left);
+        damage.absorb(bodyIndex, module, take);
+        left -= take;
+        spent += take;
+    }
+    return spent;
 }
 
 /**
@@ -809,54 +809,54 @@ export function resolveCollision(
  * off.
  */
 export interface RoundOutcome {
-  /** What the last plate it met did to it. */
-  outcome: Terminal;
-  /** The line it is now on: where it starts, and which way it runs. */
-  ox: number;
-  oy: number;
-  ux: number;
-  uy: number;
-  /** Whether it skidded off a plate, and so is on a line of its own. */
-  skidded: boolean;
-  /** How far along the line it has got, metres. */
-  along: number;
-  /** The next crossing on the line it has yet to strike. */
-  crossing: number;
-  /** Speed it carries on at: zero when it embeds, its residual otherwise. */
-  speed: number;
-  /** Total energy the ship absorbed, which is what the walk was worth. */
-  energy: number;
-  /** How many modules it struck, the one it stopped in included. */
-  crossed: number;
-  /** The first module it struck, and where, or -1 for none. */
-  first: number;
-  firstX: number;
-  firstY: number;
-  /** Still inside the hull, having run out of time to get further. */
-  inside: boolean;
-  /** Seconds left over after it came out of the far side. */
-  time: number;
+    /** What the last plate it met did to it. */
+    outcome: Terminal;
+    /** The line it is now on: where it starts, and which way it runs. */
+    ox: number;
+    oy: number;
+    ux: number;
+    uy: number;
+    /** Whether it skidded off a plate, and so is on a line of its own. */
+    skidded: boolean;
+    /** How far along the line it has got, metres. */
+    along: number;
+    /** The next crossing on the line it has yet to strike. */
+    crossing: number;
+    /** Speed it carries on at: zero when it embeds, its residual otherwise. */
+    speed: number;
+    /** Total energy the ship absorbed, which is what the walk was worth. */
+    energy: number;
+    /** How many modules it struck, the one it stopped in included. */
+    crossed: number;
+    /** The first module it struck, and where, or -1 for none. */
+    first: number;
+    firstX: number;
+    firstY: number;
+    /** Still inside the hull, having run out of time to get further. */
+    inside: boolean;
+    /** Seconds left over after it came out of the far side. */
+    time: number;
 }
 
 export function roundOutcome(): RoundOutcome {
-  return {
-    outcome: Terminal.Perforate,
-    ox: 0,
-    oy: 0,
-    ux: 0,
-    uy: 0,
-    skidded: false,
-    along: 0,
-    crossing: -1,
-    speed: 0,
-    energy: 0,
-    crossed: 0,
-    first: -1,
-    firstX: 0,
-    firstY: 0,
-    inside: false,
-    time: 0,
-  };
+    return {
+        outcome: Terminal.Perforate,
+        ox: 0,
+        oy: 0,
+        ux: 0,
+        uy: 0,
+        skidded: false,
+        along: 0,
+        crossing: -1,
+        speed: 0,
+        energy: 0,
+        crossed: 0,
+        first: -1,
+        firstX: 0,
+        firstY: 0,
+        inside: false,
+        time: 0,
+    };
 }
 
 /**
@@ -896,145 +896,145 @@ const MAX_HULLS_PER_STEP = 4;
  * which is the honest answer and the reason a shell has a fuse.
  */
 function walkRound(
-  design: ShipDesign,
-  damage: Damage,
-  bodyIndex: number,
-  path: HullPath,
-  ox: number,
-  oy: number,
-  ux: number,
-  uy: number,
-  along: number,
-  crossing: number,
-  mass: number,
-  calibre: number,
-  speed: number,
-  time: number,
-  out: RoundOutcome,
-  layers = BOTH_LAYERS,
-  skip = -1,
-  bodyLayers = OWN_LAYERS,
-  fuel?: HullDesigns,
-  rng?: Rng,
+    design: ShipDesign,
+    damage: Damage,
+    bodyIndex: number,
+    path: HullPath,
+    ox: number,
+    oy: number,
+    ux: number,
+    uy: number,
+    along: number,
+    crossing: number,
+    mass: number,
+    calibre: number,
+    speed: number,
+    time: number,
+    out: RoundOutcome,
+    layers = BOTH_LAYERS,
+    skip = -1,
+    bodyLayers = OWN_LAYERS,
+    fuel?: HullDesigns,
+    rng?: Rng,
 ): RoundOutcome {
-  out.outcome = Terminal.Perforate;
-  out.skidded = false;
-  out.energy = 0;
-  out.crossed = 0;
-  out.first = -1;
-  out.inside = false;
-  out.time = 0;
+    out.outcome = Terminal.Perforate;
+    out.skidded = false;
+    out.energy = 0;
+    out.crossed = 0;
+    out.first = -1;
+    out.inside = false;
+    out.time = 0;
 
-  const reach = design.radius * 2 + 1;
-  let at = along;
-  let carried = speed;
-  let left = time;
-  // The module a skid left the round inside, which the new line starts on a
-  // face of and must not strike again.
-  let within = -1;
-  for (let skid = 0; ; skid++) {
-    out.ox = ox;
-    out.oy = oy;
-    out.ux = ux;
-    out.uy = uy;
-    out.speed = carried;
-    modulesAlong(design, ox - ux * reach, oy - uy * reach, ox + ux * reach, oy + uy * reach, path, layers, skip, bodyLayers);
+    const reach = design.radius * 2 + 1;
+    let at = along;
+    let carried = speed;
+    let left = time;
+    // The module a skid left the round inside, which the new line starts on a
+    // face of and must not strike again.
+    let within = -1;
+    for (let skid = 0; ; skid++) {
+        out.ox = ox;
+        out.oy = oy;
+        out.ux = ux;
+        out.uy = uy;
+        out.speed = carried;
+        modulesAlong(design, ox - ux * reach, oy - uy * reach, ox + ux * reach, oy + uy * reach, path, layers, skip, bodyLayers);
 
-    let k = crossing;
-    if (k < 0) {
-      k = 0;
-      while (k < path.count && (path.entry[k]! - reach < -ARRIVAL_SLACK || path.module[k] === within)) {
-        k++;
-      }
-    }
-    let far = 0;
-    for (let j = 0; j < path.count; j++) far = max(far, path.exit[j]! - reach);
-
-    let skidded = false;
-    for (; k < path.count; k++) {
-      const entry = path.entry[k]! - reach;
-      const gap = max(0, entry - at);
-      if (gap > carried * left) {
-        out.along = at + carried * left;
-        out.crossing = k;
-        out.inside = true;
-        return out;
-      }
-      left -= gap / carried;
-      at = max(at, entry);
-
-      const module = path.module[k]!;
-      const nx = path.nx[k]!;
-      const ny = path.ny[k]!;
-      const incidence = nx === 0 && ny === 0 ? 0 : incidenceAngle(ux, uy, nx, ny);
-      const before = rng === undefined ? 1 : damage.integrity(bodyIndex, module);
-      const hit = strike(mass, calibre, carried, design.modules[module]!.stats.wallThickness, incidence);
-
-      damage.absorb(bodyIndex, module, hit.energy);
-      // A round that goes on from one module into the next has gone *through*
-      // the weld between them, and taken its own width out of it. Enough
-      // rounds along the same seam cut the piece free — a gun shearing a wing
-      // off at the root rather than knocking it off.
-      if (k > 0) {
-        damage.cutWeld(bodyIndex, jointBetween(design, path.module[k - 1]!, module), calibre * HOLE_CALIBRES);
-      }
-      if (out.first < 0) {
-        out.first = module;
-        out.firstX = ox + ux * at;
-        out.firstY = oy + uy * at;
-      }
-      out.energy += hit.energy;
-      out.crossed++;
-      out.outcome = hit.outcome;
-      carried = hit.residualSpeed;
-      // Through a face open to space: nothing already crossed ends where it begins.
-      if (hit.outcome === Terminal.Perforate && rng !== undefined && fuel?.holed !== undefined) {
-        let behind = -Infinity;
-        for (let j = 0; j < k; j++) behind = max(behind, path.exit[j]!);
-        if (behind < path.entry[k]! - ARRIVAL_SLACK) {
-          fuel.holed(bodyIndex, module, before, ox + ux * at, oy + uy * at, nx, ny, calibre, rng);
+        let k = crossing;
+        if (k < 0) {
+            k = 0;
+            while (k < path.count && (path.entry[k]! - reach < -ARRIVAL_SLACK || path.module[k] === within)) {
+                k++;
+            }
         }
-      }
-      if (hit.outcome === Terminal.Perforate)
-        carried = throughFuel(fuel, damage, bodyIndex, module, path.exit[k]! - path.entry[k]!, mass, calibre, carried, out);
-      out.speed = carried;
+        let far = 0;
+        for (let j = 0; j < path.count; j++) far = max(far, path.exit[j]! - reach);
 
-      if (hit.outcome === Terminal.Embed) {
-        out.along = at;
-        out.speed = 0;
+        let skidded = false;
+        for (; k < path.count; k++) {
+            const entry = path.entry[k]! - reach;
+            const gap = max(0, entry - at);
+            if (gap > carried * left) {
+                out.along = at + carried * left;
+                out.crossing = k;
+                out.inside = true;
+                return out;
+            }
+            left -= gap / carried;
+            at = max(at, entry);
+
+            const module = path.module[k]!;
+            const nx = path.nx[k]!;
+            const ny = path.ny[k]!;
+            const incidence = nx === 0 && ny === 0 ? 0 : incidenceAngle(ux, uy, nx, ny);
+            const before = rng === undefined ? 1 : damage.integrity(bodyIndex, module);
+            const hit = strike(mass, calibre, carried, design.modules[module]!.stats.wallThickness, incidence);
+
+            damage.absorb(bodyIndex, module, hit.energy);
+            // A round that goes on from one module into the next has gone *through*
+            // the weld between them, and taken its own width out of it. Enough
+            // rounds along the same seam cut the piece free — a gun shearing a wing
+            // off at the root rather than knocking it off.
+            if (k > 0) {
+                damage.cutWeld(bodyIndex, jointBetween(design, path.module[k - 1]!, module), calibre * HOLE_CALIBRES);
+            }
+            if (out.first < 0) {
+                out.first = module;
+                out.firstX = ox + ux * at;
+                out.firstY = oy + uy * at;
+            }
+            out.energy += hit.energy;
+            out.crossed++;
+            out.outcome = hit.outcome;
+            carried = hit.residualSpeed;
+            // Through a face open to space: nothing already crossed ends where it begins.
+            if (hit.outcome === Terminal.Perforate && rng !== undefined && fuel?.holed !== undefined) {
+                let behind = -Infinity;
+                for (let j = 0; j < k; j++) behind = max(behind, path.exit[j]!);
+                if (behind < path.entry[k]! - ARRIVAL_SLACK) {
+                    fuel.holed(bodyIndex, module, before, ox + ux * at, oy + uy * at, nx, ny, calibre, rng);
+                }
+            }
+            if (hit.outcome === Terminal.Perforate)
+                carried = throughFuel(fuel, damage, bodyIndex, module, path.exit[k]! - path.entry[k]!, mass, calibre, carried, out);
+            out.speed = carried;
+
+            if (hit.outcome === Terminal.Embed) {
+                out.along = at;
+                out.speed = 0;
+                return out;
+            }
+            if (hit.outcome === Terminal.Deflect) {
+                out.along = at;
+                if (skid === MAX_SKIDS) return out;
+                // On along a new line from the face, the way the skid sent it.
+                within = k > 0 && path.exit[k - 1]! - reach >= at - ARRIVAL_SLACK ? path.module[k - 1]! : -1;
+                const away = deflected(ux, uy, nx, ny);
+                ox += ux * at;
+                oy += uy * at;
+                ux = away.x;
+                uy = away.y;
+                at = 0;
+                crossing = -1;
+                out.skidded = true;
+                skidded = true;
+                break;
+            }
+        }
+        if (skidded) continue;
+
+        // Through whatever is left of the last module and out the far side.
+        out.crossing = path.count;
+        const gap = far - at;
+        if (gap > carried * left) {
+            out.along = at + carried * left;
+            out.inside = true;
+            return out;
+        }
+        out.along = max(at, far);
+        out.time = gap > 0 ? left - gap / carried : left;
         return out;
-      }
-      if (hit.outcome === Terminal.Deflect) {
-        out.along = at;
-        if (skid === MAX_SKIDS) return out;
-        // On along a new line from the face, the way the skid sent it.
-        within = k > 0 && path.exit[k - 1]! - reach >= at - ARRIVAL_SLACK ? path.module[k - 1]! : -1;
-        const away = deflected(ux, uy, nx, ny);
-        ox += ux * at;
-        oy += uy * at;
-        ux = away.x;
-        uy = away.y;
-        at = 0;
-        crossing = -1;
-        out.skidded = true;
-        skidded = true;
-        break;
-      }
     }
-    if (skidded) continue;
-
-    // Through whatever is left of the last module and out the far side.
-    out.crossing = path.count;
-    const gap = far - at;
-    if (gap > carried * left) {
-      out.along = at + carried * left;
-      out.inside = true;
-      return out;
-    }
-    out.along = max(at, far);
-    out.time = gap > 0 ? left - gap / carried : left;
-    return out;
-  }
 }
 
 /**
@@ -1047,24 +1047,24 @@ function walkRound(
  * hammer a round in a full tank strikes it with.
  */
 function throughFuel(
-  fuel: HullDesigns | undefined,
-  damage: Damage,
-  bodyIndex: number,
-  module: number,
-  length: number,
-  mass: number,
-  calibre: number,
-  speed: number,
-  out: RoundOutcome,
+    fuel: HullDesigns | undefined,
+    damage: Damage,
+    bodyIndex: number,
+    module: number,
+    length: number,
+    mass: number,
+    calibre: number,
+    speed: number,
+    out: RoundOutcome,
 ): number {
-  const depth = fuel?.fuelDepth?.(bodyIndex, module) ?? 0;
-  if (!(depth > 0) || !(speed > 0) || !(mass > 0)) return speed;
-  const k = (FUEL_DENSITY * FUEL_DRAG_COEFFICIENT * PI * 0.25 * calibre * calibre) / (2 * mass);
-  const left = speed * exp(-k * length * depth);
-  const lost = 0.5 * mass * (speed * speed - left * left);
-  damage.absorb(bodyIndex, module, lost);
-  out.energy += lost;
-  return left;
+    const depth = fuel?.fuelDepth?.(bodyIndex, module) ?? 0;
+    if (!(depth > 0) || !(speed > 0) || !(mass > 0)) return speed;
+    const k = (FUEL_DENSITY * FUEL_DRAG_COEFFICIENT * PI * 0.25 * calibre * calibre) / (2 * mass);
+    const left = speed * exp(-k * length * depth);
+    const lost = 0.5 * mass * (speed * speed - left * left);
+    damage.absorb(bodyIndex, module, lost);
+    out.energy += lost;
+    return left;
 }
 
 /**
@@ -1077,49 +1077,49 @@ function throughFuel(
  * at once, for asking what a round does to a hull.
  */
 export function resolveRound(
-  design: ShipDesign,
-  damage: Damage,
-  bodies: Bodies,
-  bodyIndex: number,
-  path: HullPath,
-  x: number,
-  y: number,
-  dirX: number,
-  dirY: number,
-  mass: number,
-  calibre: number,
-  speed: number,
-  out: RoundOutcome = roundOutcome(),
-  fuel?: HullDesigns,
-  rng?: Rng,
+    design: ShipDesign,
+    damage: Damage,
+    bodies: Bodies,
+    bodyIndex: number,
+    path: HullPath,
+    x: number,
+    y: number,
+    dirX: number,
+    dirY: number,
+    mass: number,
+    calibre: number,
+    speed: number,
+    out: RoundOutcome = roundOutcome(),
+    fuel?: HullDesigns,
+    rng?: Rng,
 ): RoundOutcome {
-  const angle = bodies.angle[bodyIndex]!;
-  const c = cos(angle);
-  const s = sin(angle);
-  const rx = x - bodies.x[bodyIndex]!;
-  const ry = y - bodies.y[bodyIndex]!;
-  return walkRound(
-    design,
-    damage,
-    bodyIndex,
-    path,
-    rx * c + ry * s,
-    -rx * s + ry * c,
-    dirX * c + dirY * s,
-    -dirX * s + dirY * c,
-    0,
-    -1,
-    mass,
-    calibre,
-    speed,
-    Infinity,
-    out,
-    BOTH_LAYERS,
-    -1,
-    OWN_LAYERS,
-    fuel,
-    rng,
-  );
+    const angle = bodies.angle[bodyIndex]!;
+    const c = cos(angle);
+    const s = sin(angle);
+    const rx = x - bodies.x[bodyIndex]!;
+    const ry = y - bodies.y[bodyIndex]!;
+    return walkRound(
+        design,
+        damage,
+        bodyIndex,
+        path,
+        rx * c + ry * s,
+        -rx * s + ry * c,
+        dirX * c + dirY * s,
+        -dirX * s + dirY * c,
+        0,
+        -1,
+        mass,
+        calibre,
+        speed,
+        Infinity,
+        out,
+        BOTH_LAYERS,
+        -1,
+        OWN_LAYERS,
+        fuel,
+        rng,
+    );
 }
 
 /**
@@ -1146,163 +1146,163 @@ export function resolveRound(
  * reads it after each step and keeps its own totals.
  */
 export class Credit {
-  /** Body that fired. */
-  attacker = new Int32Array(64);
-  /** Body that absorbed it. */
-  victim = new Int32Array(64);
-  /** Joules the victim took, as delivered — a module already spent takes it too. */
-  energy = new Float64Array(64);
-  /** The victim's module it landed on first, or -1. */
-  module = new Int32Array(64);
-  /** The attacker's module that did it, or -1: known for a collision, not for fire. */
-  attackerModule = new Int32Array(64);
-  count = 0;
+    /** Body that fired. */
+    attacker = new Int32Array(64);
+    /** Body that absorbed it. */
+    victim = new Int32Array(64);
+    /** Joules the victim took, as delivered — a module already spent takes it too. */
+    energy = new Float64Array(64);
+    /** The victim's module it landed on first, or -1. */
+    module = new Int32Array(64);
+    /** The attacker's module that did it, or -1: known for a collision, not for fire. */
+    attackerModule = new Int32Array(64);
+    count = 0;
 
-  push(attacker: number, victim: number, energy: number, module = -1, attackerModule = -1): void {
-    if (attacker < 0 || !(energy > 0)) return;
-    if (this.count === this.attacker.length) this.grow();
-    const i = this.count++;
-    this.attacker[i] = attacker;
-    this.victim[i] = victim;
-    this.energy[i] = energy;
-    this.module[i] = module;
-    this.attackerModule[i] = attackerModule;
-  }
+    push(attacker: number, victim: number, energy: number, module = -1, attackerModule = -1): void {
+        if (attacker < 0 || !(energy > 0)) return;
+        if (this.count === this.attacker.length) this.grow();
+        const i = this.count++;
+        this.attacker[i] = attacker;
+        this.victim[i] = victim;
+        this.energy[i] = energy;
+        this.module[i] = module;
+        this.attackerModule[i] = attackerModule;
+    }
 
-  clear(): void {
-    this.count = 0;
-  }
+    clear(): void {
+        this.count = 0;
+    }
 
-  private grow(): void {
-    const size = this.attacker.length * 2;
-    const attacker = new Int32Array(size);
-    attacker.set(this.attacker);
-    this.attacker = attacker;
-    const victim = new Int32Array(size);
-    victim.set(this.victim);
-    this.victim = victim;
-    const energy = new Float64Array(size);
-    energy.set(this.energy);
-    this.energy = energy;
-    const module = new Int32Array(size);
-    module.set(this.module);
-    this.module = module;
-    const attackerModule = new Int32Array(size);
-    attackerModule.set(this.attackerModule);
-    this.attackerModule = attackerModule;
-  }
+    private grow(): void {
+        const size = this.attacker.length * 2;
+        const attacker = new Int32Array(size);
+        attacker.set(this.attacker);
+        this.attacker = attacker;
+        const victim = new Int32Array(size);
+        victim.set(this.victim);
+        this.victim = victim;
+        const energy = new Float64Array(size);
+        energy.set(this.energy);
+        this.energy = energy;
+        const module = new Int32Array(size);
+        module.set(this.module);
+        this.module = module;
+        const attackerModule = new Int32Array(size);
+        attackerModule.set(this.attackerModule);
+        this.attackerModule = attackerModule;
+    }
 }
 
 export class ImpactLog {
-  /**
-   * Whether something drains this, as a viewer's `capture` does. Until then
-   * nothing will, and a battle empties it every step rather than let a
-   * headless run hold every hit it ever saw.
-   */
-  watched = false;
-  x = new Float64Array(64);
-  y = new Float64Array(64);
-  /** Body struck, or -1 for a hit on nothing in particular. */
-  body = new Int32Array(64);
-  /** The same point in that body's frame, so the flash rides it. */
-  localX = new Float64Array(64);
-  localY = new Float64Array(64);
-  /** Energy the ship absorbed, joules. What decides how bright it reads. */
-  energy = new Float64Array(64);
-  /** One of the `IMPACT_` kinds. */
-  kind = new Uint8Array(64);
-  /** How fast it moves, m/s, for one that rides nothing: a burst goes on at its shell's velocity. */
-  vx = new Float64Array(64);
-  vy = new Float64Array(64);
-  /** How fast it spreads, m/s: a burst's, as fast as its fastest fragment leaves. */
-  growth = new Float64Array(64);
-  /** The way it points, a unit vector in the struck body's frame, or zero for no way: a muzzle's. */
-  dirX = new Float64Array(64);
-  dirY = new Float64Array(64);
-  count = 0;
+    /**
+     * Whether something drains this, as a viewer's `capture` does. Until then
+     * nothing will, and a battle empties it every step rather than let a
+     * headless run hold every hit it ever saw.
+     */
+    watched = false;
+    x = new Float64Array(64);
+    y = new Float64Array(64);
+    /** Body struck, or -1 for a hit on nothing in particular. */
+    body = new Int32Array(64);
+    /** The same point in that body's frame, so the flash rides it. */
+    localX = new Float64Array(64);
+    localY = new Float64Array(64);
+    /** Energy the ship absorbed, joules. What decides how bright it reads. */
+    energy = new Float64Array(64);
+    /** One of the `IMPACT_` kinds. */
+    kind = new Uint8Array(64);
+    /** How fast it moves, m/s, for one that rides nothing: a burst goes on at its shell's velocity. */
+    vx = new Float64Array(64);
+    vy = new Float64Array(64);
+    /** How fast it spreads, m/s: a burst's, as fast as its fastest fragment leaves. */
+    growth = new Float64Array(64);
+    /** The way it points, a unit vector in the struck body's frame, or zero for no way: a muzzle's. */
+    dirX = new Float64Array(64);
+    dirY = new Float64Array(64);
+    count = 0;
 
-  push(
-    x: number,
-    y: number,
-    energy: number,
-    kind: number,
-    bodies?: Bodies,
-    body = -1,
-    vx = 0,
-    vy = 0,
-    growth = 0,
-    dirX = 0,
-    dirY = 0,
-  ): void {
-    if (this.count === this.x.length) this.grow();
-    const i = this.count++;
-    this.growth[i] = growth;
-    this.dirX[i] = dirX;
-    this.dirY[i] = dirY;
-    this.x[i] = x;
-    this.y[i] = y;
-    this.vx[i] = vx;
-    this.vy[i] = vy;
-    this.energy[i] = energy;
-    this.kind[i] = kind;
-    this.body[i] = body;
-    this.localX[i] = 0;
-    this.localY[i] = 0;
-    if (bodies === undefined || body < 0) return;
-    const angle = bodies.angle[body]!;
-    const c = cos(angle);
-    const sn = sin(angle);
-    const dx = x - bodies.x[body]!;
-    const dy = y - bodies.y[body]!;
-    this.localX[i] = dx * c + dy * sn;
-    this.localY[i] = -dx * sn + dy * c;
-    this.dirX[i] = dirX * c + dirY * sn;
-    this.dirY[i] = -dirX * sn + dirY * c;
-  }
+    push(
+        x: number,
+        y: number,
+        energy: number,
+        kind: number,
+        bodies?: Bodies,
+        body = -1,
+        vx = 0,
+        vy = 0,
+        growth = 0,
+        dirX = 0,
+        dirY = 0,
+    ): void {
+        if (this.count === this.x.length) this.grow();
+        const i = this.count++;
+        this.growth[i] = growth;
+        this.dirX[i] = dirX;
+        this.dirY[i] = dirY;
+        this.x[i] = x;
+        this.y[i] = y;
+        this.vx[i] = vx;
+        this.vy[i] = vy;
+        this.energy[i] = energy;
+        this.kind[i] = kind;
+        this.body[i] = body;
+        this.localX[i] = 0;
+        this.localY[i] = 0;
+        if (bodies === undefined || body < 0) return;
+        const angle = bodies.angle[body]!;
+        const c = cos(angle);
+        const sn = sin(angle);
+        const dx = x - bodies.x[body]!;
+        const dy = y - bodies.y[body]!;
+        this.localX[i] = dx * c + dy * sn;
+        this.localY[i] = -dx * sn + dy * c;
+        this.dirX[i] = dirX * c + dirY * sn;
+        this.dirY[i] = -dirX * sn + dirY * c;
+    }
 
-  clear(): void {
-    this.count = 0;
-  }
+    clear(): void {
+        this.count = 0;
+    }
 
-  private grow(): void {
-    const size = this.x.length * 2;
-    const vx = new Float64Array(size);
-    const vy = new Float64Array(size);
-    vx.set(this.vx);
-    vy.set(this.vy);
-    this.vx = vx;
-    this.vy = vy;
-    const growth = new Float64Array(size);
-    growth.set(this.growth);
-    this.growth = growth;
-    const dirX = new Float64Array(size);
-    const dirY = new Float64Array(size);
-    dirX.set(this.dirX);
-    dirY.set(this.dirY);
-    this.dirX = dirX;
-    this.dirY = dirY;
-    const x = new Float64Array(size);
-    const y = new Float64Array(size);
-    const energy = new Float64Array(size);
-    const kind = new Uint8Array(size);
-    x.set(this.x);
-    y.set(this.y);
-    energy.set(this.energy);
-    kind.set(this.kind);
-    const body = new Int32Array(size);
-    const localX = new Float64Array(size);
-    const localY = new Float64Array(size);
-    body.set(this.body);
-    localX.set(this.localX);
-    localY.set(this.localY);
-    this.x = x;
-    this.y = y;
-    this.energy = energy;
-    this.kind = kind;
-    this.body = body;
-    this.localX = localX;
-    this.localY = localY;
-  }
+    private grow(): void {
+        const size = this.x.length * 2;
+        const vx = new Float64Array(size);
+        const vy = new Float64Array(size);
+        vx.set(this.vx);
+        vy.set(this.vy);
+        this.vx = vx;
+        this.vy = vy;
+        const growth = new Float64Array(size);
+        growth.set(this.growth);
+        this.growth = growth;
+        const dirX = new Float64Array(size);
+        const dirY = new Float64Array(size);
+        dirX.set(this.dirX);
+        dirY.set(this.dirY);
+        this.dirX = dirX;
+        this.dirY = dirY;
+        const x = new Float64Array(size);
+        const y = new Float64Array(size);
+        const energy = new Float64Array(size);
+        const kind = new Uint8Array(size);
+        x.set(this.x);
+        y.set(this.y);
+        energy.set(this.energy);
+        kind.set(this.kind);
+        const body = new Int32Array(size);
+        const localX = new Float64Array(size);
+        const localY = new Float64Array(size);
+        body.set(this.body);
+        localX.set(this.localX);
+        localY.set(this.localY);
+        this.x = x;
+        this.y = y;
+        this.energy = energy;
+        this.kind = kind;
+        this.body = body;
+        this.localX = localX;
+        this.localY = localY;
+    }
 }
 
 /** Kinds of impact, as the log records them. */
@@ -1330,372 +1330,372 @@ export const IMPACT_MUZZLE = 4;
  * can be driven — and tested — without one.
  */
 export class Impacts {
-  private readonly path = new HullPath();
-  private readonly outcome = roundOutcome();
-  /** The design each round inside a hull is walking, by round. */
-  private readonly walking: (ShipDesign | null)[] = [];
-  /** What `rounds` was given to fly a round on with, for the step in hand. */
-  private designs: HullDesigns | undefined;
-  private readonly flight: {
-    dt: number;
-    grid: SpatialGrid | undefined;
-    hulls: Hulls | undefined;
-    hits: ProjectileHits | undefined;
-  } = { dt: Infinity, grid: undefined, hulls: undefined, hits: undefined };
-  /** What decides whether a round leaves a hole in a tank, for the step in hand. */
-  private rng: Rng | undefined;
-  /** Hulls each round has met this step, stamped by step. */
-  private chainStamp = new Int32Array(0);
-  private chains = new Uint8Array(0);
-  private stamp = 0;
-  /** Impacts since the last time something drained this. Presentation only. */
-  readonly log = new ImpactLog();
+    private readonly path = new HullPath();
+    private readonly outcome = roundOutcome();
+    /** The design each round inside a hull is walking, by round. */
+    private readonly walking: (ShipDesign | null)[] = [];
+    /** What `rounds` was given to fly a round on with, for the step in hand. */
+    private designs: HullDesigns | undefined;
+    private readonly flight: {
+        dt: number;
+        grid: SpatialGrid | undefined;
+        hulls: Hulls | undefined;
+        hits: ProjectileHits | undefined;
+    } = { dt: Infinity, grid: undefined, hulls: undefined, hits: undefined };
+    /** What decides whether a round leaves a hole in a tank, for the step in hand. */
+    private rng: Rng | undefined;
+    /** Hulls each round has met this step, stamped by step. */
+    private chainStamp = new Int32Array(0);
+    private chains = new Uint8Array(0);
+    private stamp = 0;
+    /** Impacts since the last time something drained this. Presentation only. */
+    readonly log = new ImpactLog();
 
-  /**
-   * Spend every round that hit something this step, and carry on every round
-   * already passing through a hull.
-   *
-   * **A round takes time to get through a hull.** It goes in at the speed it
-   * arrived at, loses speed at each plate, and crosses a module in the time
-   * that takes — so a round down the length of a capital ship is seen to go
-   * down it, and the far end is hurt after the near end rather than at the
-   * same instant. It is walked in the hull's frame, so it rides the hull while
-   * it is inside, and comes out still flying the way it went in.
-   *
-   * A round is killed where it stops and put back into flight where it does
-   * not: out the far side at what is left of its speed, and off a plate along
-   * the direction the skid gave it.
-   *
-   * `dt` is the step, and a round that hit this step has only the part of it
-   * after the hit to spend. Leave it out to walk every round the whole way at
-   * once. Given `grid`, a round out of the far side flies on for the rest of
-   * the step, and what it meets is added to `hits` and spent in turn — so a
-   * hull moving the way it is going cannot catch it again, and a piece of
-   * ship just behind the one it came out of is hit rather than skipped.
-   */
-  rounds(
-    designs: HullDesigns,
-    damage: Damage,
-    bodies: Bodies,
-    projectiles: Projectiles,
-    hits: ProjectileHits,
-    shocks?: Shocked,
-    credit?: Credit,
-    dt = Infinity,
-    grid?: SpatialGrid,
-    hulls?: Hulls,
-    rng?: Rng,
-  ): void {
-    this.designs = designs;
-    this.rng = rng;
-    this.flight.dt = dt;
-    this.flight.grid = grid;
-    this.flight.hulls = hulls;
-    this.flight.hits = hits;
-    this.stamp++;
-    if (this.chainStamp.length < projectiles.capacity) {
-      this.chainStamp = new Int32Array(projectiles.capacity);
-      this.chains = new Uint8Array(projectiles.capacity);
-    }
-    // Before this step's arrivals, which have only the rest of the step.
-    if (projectiles.insideCount > 0) {
-      for (let round = 0; round < projectiles.highWater; round++) {
-        if (projectiles.alive[round] === 0 || projectiles.inside[round] === NOT_INSIDE) continue;
-        const design = designs.designOf(projectiles.inside[round]!);
-        // Cut down or gone since the last step. The line was in a frame that
-        // no longer exists, so the round goes back into flight from where it
-        // got to, and the cast finds whatever is left in its way — without
-        // striking again the module it was already in.
-        if (design === null || design !== this.walking[round]) {
-          projectiles.leave(round);
-          this.walking[round] = null;
-          continue;
+    /**
+     * Spend every round that hit something this step, and carry on every round
+     * already passing through a hull.
+     *
+     * **A round takes time to get through a hull.** It goes in at the speed it
+     * arrived at, loses speed at each plate, and crosses a module in the time
+     * that takes — so a round down the length of a capital ship is seen to go
+     * down it, and the far end is hurt after the near end rather than at the
+     * same instant. It is walked in the hull's frame, so it rides the hull while
+     * it is inside, and comes out still flying the way it went in.
+     *
+     * A round is killed where it stops and put back into flight where it does
+     * not: out the far side at what is left of its speed, and off a plate along
+     * the direction the skid gave it.
+     *
+     * `dt` is the step, and a round that hit this step has only the part of it
+     * after the hit to spend. Leave it out to walk every round the whole way at
+     * once. Given `grid`, a round out of the far side flies on for the rest of
+     * the step, and what it meets is added to `hits` and spent in turn — so a
+     * hull moving the way it is going cannot catch it again, and a piece of
+     * ship just behind the one it came out of is hit rather than skipped.
+     */
+    rounds(
+        designs: HullDesigns,
+        damage: Damage,
+        bodies: Bodies,
+        projectiles: Projectiles,
+        hits: ProjectileHits,
+        shocks?: Shocked,
+        credit?: Credit,
+        dt = Infinity,
+        grid?: SpatialGrid,
+        hulls?: Hulls,
+        rng?: Rng,
+    ): void {
+        this.designs = designs;
+        this.rng = rng;
+        this.flight.dt = dt;
+        this.flight.grid = grid;
+        this.flight.hulls = hulls;
+        this.flight.hits = hits;
+        this.stamp++;
+        if (this.chainStamp.length < projectiles.capacity) {
+            this.chainStamp = new Int32Array(projectiles.capacity);
+            this.chains = new Uint8Array(projectiles.capacity);
         }
-        this.walk(design, damage, bodies, projectiles, round, dt, shocks, credit);
-      }
-    }
-
-    for (let i = 0; i < hits.count; i++) {
-      const round = hits.projectile[i]!;
-      const body = hits.body[i]!;
-      const x = hits.x[i]!;
-      const y = hits.y[i]!;
-      const design = designs.designOf(body);
-
-      const vx = projectiles.vx[round]!;
-      const vy = projectiles.vy[round]!;
-      const speed = sqrt(vx * vx + vy * vy);
-      // A round with no design to walk, or no speed left to walk it with, is
-      // absorbed where it stopped: there is nothing else to spend it on.
-      if (design === null || !(speed > 0)) {
-        this.log.push(x, y, 0.5 * projectiles.mass[round]! * speed * speed, IMPACT_ROUND, bodies, body);
-        projectiles.kill(round);
-        continue;
-      }
-
-      const angle = bodies.angle[body]!;
-      const c = cos(angle);
-      const s = sin(angle);
-      const rx = x - bodies.x[body]!;
-      const ry = y - bodies.y[body]!;
-      const ux = vx / speed;
-      const uy = vy / speed;
-      projectiles.enter(round, body, rx * c + ry * s, -rx * s + ry * c, ux * c + uy * s, -ux * s + uy * c);
-      this.walking[round] = design;
-      const time = dt === Infinity ? dt : (1 - hits.t[i]!) * dt;
-      this.walk(design, damage, bodies, projectiles, round, time, shocks, credit);
-    }
-  }
-
-  /** Walk one round inside a hull on through it for `time` seconds. */
-  private walk(
-    design: ShipDesign,
-    damage: Damage,
-    bodies: Bodies,
-    projectiles: Projectiles,
-    round: number,
-    time: number,
-    shocks?: Shocked,
-    credit?: Credit,
-  ): void {
-    const body = projectiles.inside[round]!;
-    const mass = projectiles.mass[round]!;
-    const vx = projectiles.vx[round]!;
-    const vy = projectiles.vy[round]!;
-    const speed = sqrt(vx * vx + vy * vy);
-    const out = walkRound(
-      design,
-      damage,
-      body,
-      this.path,
-      projectiles.lineX[round]!,
-      projectiles.lineY[round]!,
-      projectiles.lineUx[round]!,
-      projectiles.lineUy[round]!,
-      projectiles.along[round]!,
-      projectiles.crossing[round]!,
-      mass,
-      projectiles.width[round]!,
-      speed,
-      time,
-      this.outcome,
-      projectiles.layers[round]!,
-      body === projectiles.owner[round] ? projectiles.fromModule[round]! : -1,
-      this.designs?.layersOf?.(body) ?? OWN_LAYERS,
-      this.designs,
-      this.rng,
-    );
-
-    const angle = bodies.angle[body]!;
-    const c = cos(angle);
-    const s = sin(angle);
-    const bx = bodies.x[body]!;
-    const by = bodies.y[body]!;
-    // Where it has got to, back in the world.
-    const lx = out.ox + out.ux * out.along;
-    const ly = out.oy + out.uy * out.along;
-    projectiles.x[round] = bx + lx * c - ly * s;
-    projectiles.y[round] = by + lx * s + ly * c;
-
-    if (out.first >= 0) {
-      // It keeps flying the way it was in the world, unless it skidded.
-      const dirX = out.skidded ? out.ux * c - out.uy * s : vx / speed;
-      const dirY = out.skidded ? out.ux * s + out.uy * c : vy / speed;
-      projectiles.vx[round] = dirX * out.speed;
-      projectiles.vy[round] = dirY * out.speed;
-
-      const px = bx + out.firstX * c - out.firstY * s;
-      const py = by + out.firstX * s + out.firstY * c;
-      this.log.push(px, py, out.energy, IMPACT_ROUND, bodies, body);
-      credit?.push(projectiles.owner[round]!, body, out.energy, out.first);
-      // The momentum the round lost is the momentum the ship gained, which is
-      // a shove and — where it lands — a blow the hull has to hold together
-      // under.
-      const jx = mass * (vx - projectiles.vx[round]!);
-      const jy = mass * (vy - projectiles.vy[round]!);
-      shove(bodies, body, jx, jy, px, py);
-      shocks?.blow(body, out.first, jx, jy, px, py);
-    }
-
-    if (out.inside) {
-      if (out.skidded) projectiles.enter(round, body, out.ox, out.oy, out.ux, out.uy);
-      projectiles.along[round] = out.along;
-      projectiles.crossing[round] = out.crossing;
-      return;
-    }
-    this.walking[round] = null;
-    if (out.speed <= 0) {
-      projectiles.kill(round);
-      return;
-    }
-    projectiles.leave(round);
-    this.flyOn(bodies, projectiles, round, body, out.time);
-  }
-
-  /** Cast a round that came out of a hull on for the `time` left in the step. */
-  private flyOn(bodies: Bodies, projectiles: Projectiles, round: number, left: number, time: number): void {
-    const { dt, grid, hulls, hits } = this.flight;
-    if (grid === undefined || hits === undefined || !(time > 0) || !(dt < Infinity)) return;
-    // A bound on hulls met in one step, for a corner where two pieces of ship
-    // could hand a round back and forth.
-    if (this.chainStamp[round] !== this.stamp) {
-      this.chainStamp[round] = this.stamp;
-      this.chains[round] = 0;
-    }
-    if (this.chains[round]! >= MAX_HULLS_PER_STEP) return;
-    this.chains[round]!++;
-    projectiles.flyOn(round, left, max(0, 1 - time / dt), dt, bodies, grid, hits, hulls);
-  }
-
-  /**
-   * Pour every beam's power, the share `BEAM_ABSORBED_SHARE` of it that is not
-   * reflected or radiated away, into what it is burning through.
-   *
-   * A beam is not a round: there is no perforation law for it, and no residual
-   * to carry deeper. It deposits `power · dt` into the module it reached —
-   * which, because a spent module no longer stops a beam, walks inward through
-   * a hull as it destroys it.
-   */
-  beams(damage: Damage, beams: Beams, hits: BeamHits, dt: number, bodies?: Bodies, designs?: HullDesigns, credit?: Credit): void {
-    for (let i = 0; i < hits.count; i++) {
-      const energy = beams.power[hits.beam[i]!]! * hits.share[i]! * BEAM_ABSORBED_SHARE * dt;
-      damage.absorb(hits.body[i]!, hits.module[i]!, energy);
-      this.log.push(hits.x[i]!, hits.y[i]!, energy, IMPACT_BEAM, bodies, hits.body[i]!);
-      credit?.push(beams.owner[hits.beam[i]!]!, hits.body[i]!, energy, hits.module[i]!);
-      if (bodies !== undefined && designs !== undefined) {
-        this.burnSeams(damage, designs, bodies, beams, hits, i, energy);
-      }
-    }
-  }
-
-  /**
-   * Burn along every weld the beam is shining through.
-   *
-   * A beam bores inward: it is stopped only by matter it can still boil away,
-   * so everything between where it entered the hull and where it is working
-   * now is a tunnel it has already made. Every weld that tunnel crosses is a
-   * seam the beam is passing through, and it goes on cutting all of them for
-   * as long as the beam is held there — which is what lets a beam cut a ship
-   * in half rather than merely hollow it out.
-   *
-   * This is the whole of how a beam can take a piece off a ship. It carries no
-   * momentum, so nothing it does can *tear* anything (`Ships.sever`); what it
-   * can do is leave nothing there to tear.
-   */
-  /**
-   * Spend what every collision this step lost on the hulls that lost it.
-   *
-   * A bounce gives back only part of the closing speed (`RESTITUTION`); the
-   * rest of the energy went into folding metal, and this is where it lands.
-   * **Half to each hull**, which needs no rule about which is the harder: a
-   * module's capacity already goes with its mass, so the same energy that
-   * merely dents a capital ship destroys the fighter that flew into it.
-   *
-   * Call it with the contacts from this step's collision pass, before
-   * severing: what a ram breaks off should be broken off a hull that has
-   * already taken the ram's damage.
-   */
-  /** Log this step's shell bursts, each as bright as its charge's energy. */
-  bursts(projectiles: Projectiles): void {
-    for (let k = 0; k < projectiles.burstCount; k++) {
-      const energy = projectiles.burstCharge[k]! * EXPLOSIVE_YIELD;
-      const vx = projectiles.burstVx[k]!;
-      const vy = projectiles.burstVy[k]!;
-      const growth = projectiles.burstSpread[k]!;
-      this.log.push(projectiles.burstX[k]!, projectiles.burstY[k]!, energy, IMPACT_BURST, undefined, -1, vx, vy, growth);
-    }
-  }
-
-  /**
-   * Given `credit`, each hull is credited with what it did to the other, so a
-   * ram pays for what it breaks as well as costing what it takes.
-   */
-  collisions(designs: HullDesigns, damage: Damage, bodies: Bodies, contacts: Contacts, credit?: Credit): void {
-    for (let k = 0; k < contacts.count; k++) {
-      const impulse = contacts.impulse[k]!;
-      if (!(impulse > 0)) continue;
-      // The energy a collision loses, from what the solver already worked out:
-      // the impulse is `(1 + e)` times the closing momentum, and what does not
-      // come back out is `(1 - e)` of it.
-      const energy = 0.5 * (1 - RESTITUTION) * contacts.closing[k]! * impulse;
-      if (!(energy > 0)) continue;
-      const half = energy * 0.5;
-      const x = contacts.x[k]!;
-      const y = contacts.y[k]!;
-      const nx = contacts.nx[k]!;
-      const ny = contacts.ny[k]!;
-
-      // The normal runs from `a` towards `b`, so it points into `b` and the
-      // other way into `a`.
-      const a = contacts.a[k]!;
-      const b = contacts.b[k]!;
-      const ma = contacts.moduleA[k]!;
-      const mb = contacts.moduleB[k]!;
-      if (this.crush(designs, damage, bodies, a, x, y, -nx, -ny, half)) credit?.push(b, a, half, ma, mb);
-      if (this.crush(designs, damage, bodies, b, x, y, nx, ny, half)) credit?.push(a, b, half, mb, ma);
-      this.log.push(x, y, energy, IMPACT_COLLISION, bodies, contacts.a[k]!);
-    }
-  }
-
-  private crush(
-    designs: HullDesigns,
-    damage: Damage,
-    bodies: Bodies,
-    body: number,
-    x: number,
-    y: number,
-    nx: number,
-    ny: number,
-    energy: number,
-  ): boolean {
-    const design = designs.designOf(body);
-    if (design === null) return false;
-    resolveCollision(design, damage, bodies, body, this.path, x, y, nx, ny, energy);
-    return true;
-  }
-
-  private burnSeams(damage: Damage, designs: HullDesigns, bodies: Bodies, beams: Beams, hits: BeamHits, i: number, energy: number): void {
-    const body = hits.body[i]!;
-    const design = designs.designOf(body);
-    if (design === null) return;
-    const stopped = hits.module[i]!;
-    if (stopped < 0) return;
-
-    // The beam's line, in the hull's frame, where its modules live.
-    const angle = bodies.angle[body]!;
-    const c = cos(angle);
-    const s = sin(angle);
-    const beam = hits.beam[i]!;
-    const sx = beams.startX[beam]! - bodies.x[body]!;
-    const sy = beams.startY[beam]! - bodies.y[body]!;
-    const ex = hits.x[i]! - bodies.x[body]!;
-    const ey = hits.y[i]! - bodies.y[body]!;
-    modulesAlong(
-      design,
-      sx * c + sy * s,
-      -sx * s + sy * c,
-      ex * c + ey * s,
-      -ex * s + ey * c,
-      this.path,
-      beams.layers[beam]!,
-      body === beams.owner[beam] ? beams.fromModule[beam]! : -1,
-      designs.layersOf?.(body) ?? OWN_LAYERS,
-    );
-
-    for (let k = 1; k < this.path.count; k++) {
-      const from = this.path.module[k - 1]!;
-      const into = this.path.module[k]!;
-      const joint = jointBetween(design, from, into);
-      if (joint >= 0) {
-        // The seam's own thickness is what has to be boiled through, and it is
-        // the thinner of the two walls meeting there — the same section the
-        // weld is rated by.
-        const thickness = min(design.modules[from]!.stats.wallThickness, design.modules[into]!.stats.wallThickness);
-        if (thickness > 0) {
-          damage.cutWeld(body, joint, energy / (thickness * SEAM_CUT_ENERGY_PER_AREA));
+        // Before this step's arrivals, which have only the rest of the step.
+        if (projectiles.insideCount > 0) {
+            for (let round = 0; round < projectiles.highWater; round++) {
+                if (projectiles.alive[round] === 0 || projectiles.inside[round] === NOT_INSIDE) continue;
+                const design = designs.designOf(projectiles.inside[round]!);
+                // Cut down or gone since the last step. The line was in a frame that
+                // no longer exists, so the round goes back into flight from where it
+                // got to, and the cast finds whatever is left in its way — without
+                // striking again the module it was already in.
+                if (design === null || design !== this.walking[round]) {
+                    projectiles.leave(round);
+                    this.walking[round] = null;
+                    continue;
+                }
+                this.walk(design, damage, bodies, projectiles, round, dt, shocks, credit);
+            }
         }
-      }
-      if (into === stopped) break;
+
+        for (let i = 0; i < hits.count; i++) {
+            const round = hits.projectile[i]!;
+            const body = hits.body[i]!;
+            const x = hits.x[i]!;
+            const y = hits.y[i]!;
+            const design = designs.designOf(body);
+
+            const vx = projectiles.vx[round]!;
+            const vy = projectiles.vy[round]!;
+            const speed = sqrt(vx * vx + vy * vy);
+            // A round with no design to walk, or no speed left to walk it with, is
+            // absorbed where it stopped: there is nothing else to spend it on.
+            if (design === null || !(speed > 0)) {
+                this.log.push(x, y, 0.5 * projectiles.mass[round]! * speed * speed, IMPACT_ROUND, bodies, body);
+                projectiles.kill(round);
+                continue;
+            }
+
+            const angle = bodies.angle[body]!;
+            const c = cos(angle);
+            const s = sin(angle);
+            const rx = x - bodies.x[body]!;
+            const ry = y - bodies.y[body]!;
+            const ux = vx / speed;
+            const uy = vy / speed;
+            projectiles.enter(round, body, rx * c + ry * s, -rx * s + ry * c, ux * c + uy * s, -ux * s + uy * c);
+            this.walking[round] = design;
+            const time = dt === Infinity ? dt : (1 - hits.t[i]!) * dt;
+            this.walk(design, damage, bodies, projectiles, round, time, shocks, credit);
+        }
     }
-  }
+
+    /** Walk one round inside a hull on through it for `time` seconds. */
+    private walk(
+        design: ShipDesign,
+        damage: Damage,
+        bodies: Bodies,
+        projectiles: Projectiles,
+        round: number,
+        time: number,
+        shocks?: Shocked,
+        credit?: Credit,
+    ): void {
+        const body = projectiles.inside[round]!;
+        const mass = projectiles.mass[round]!;
+        const vx = projectiles.vx[round]!;
+        const vy = projectiles.vy[round]!;
+        const speed = sqrt(vx * vx + vy * vy);
+        const out = walkRound(
+            design,
+            damage,
+            body,
+            this.path,
+            projectiles.lineX[round]!,
+            projectiles.lineY[round]!,
+            projectiles.lineUx[round]!,
+            projectiles.lineUy[round]!,
+            projectiles.along[round]!,
+            projectiles.crossing[round]!,
+            mass,
+            projectiles.width[round]!,
+            speed,
+            time,
+            this.outcome,
+            projectiles.layers[round]!,
+            body === projectiles.owner[round] ? projectiles.fromModule[round]! : -1,
+            this.designs?.layersOf?.(body) ?? OWN_LAYERS,
+            this.designs,
+            this.rng,
+        );
+
+        const angle = bodies.angle[body]!;
+        const c = cos(angle);
+        const s = sin(angle);
+        const bx = bodies.x[body]!;
+        const by = bodies.y[body]!;
+        // Where it has got to, back in the world.
+        const lx = out.ox + out.ux * out.along;
+        const ly = out.oy + out.uy * out.along;
+        projectiles.x[round] = bx + lx * c - ly * s;
+        projectiles.y[round] = by + lx * s + ly * c;
+
+        if (out.first >= 0) {
+            // It keeps flying the way it was in the world, unless it skidded.
+            const dirX = out.skidded ? out.ux * c - out.uy * s : vx / speed;
+            const dirY = out.skidded ? out.ux * s + out.uy * c : vy / speed;
+            projectiles.vx[round] = dirX * out.speed;
+            projectiles.vy[round] = dirY * out.speed;
+
+            const px = bx + out.firstX * c - out.firstY * s;
+            const py = by + out.firstX * s + out.firstY * c;
+            this.log.push(px, py, out.energy, IMPACT_ROUND, bodies, body);
+            credit?.push(projectiles.owner[round]!, body, out.energy, out.first);
+            // The momentum the round lost is the momentum the ship gained, which is
+            // a shove and — where it lands — a blow the hull has to hold together
+            // under.
+            const jx = mass * (vx - projectiles.vx[round]!);
+            const jy = mass * (vy - projectiles.vy[round]!);
+            shove(bodies, body, jx, jy, px, py);
+            shocks?.blow(body, out.first, jx, jy, px, py);
+        }
+
+        if (out.inside) {
+            if (out.skidded) projectiles.enter(round, body, out.ox, out.oy, out.ux, out.uy);
+            projectiles.along[round] = out.along;
+            projectiles.crossing[round] = out.crossing;
+            return;
+        }
+        this.walking[round] = null;
+        if (out.speed <= 0) {
+            projectiles.kill(round);
+            return;
+        }
+        projectiles.leave(round);
+        this.flyOn(bodies, projectiles, round, body, out.time);
+    }
+
+    /** Cast a round that came out of a hull on for the `time` left in the step. */
+    private flyOn(bodies: Bodies, projectiles: Projectiles, round: number, left: number, time: number): void {
+        const { dt, grid, hulls, hits } = this.flight;
+        if (grid === undefined || hits === undefined || !(time > 0) || !(dt < Infinity)) return;
+        // A bound on hulls met in one step, for a corner where two pieces of ship
+        // could hand a round back and forth.
+        if (this.chainStamp[round] !== this.stamp) {
+            this.chainStamp[round] = this.stamp;
+            this.chains[round] = 0;
+        }
+        if (this.chains[round]! >= MAX_HULLS_PER_STEP) return;
+        this.chains[round]!++;
+        projectiles.flyOn(round, left, max(0, 1 - time / dt), dt, bodies, grid, hits, hulls);
+    }
+
+    /**
+     * Pour every beam's power, the share `BEAM_ABSORBED_SHARE` of it that is not
+     * reflected or radiated away, into what it is burning through.
+     *
+     * A beam is not a round: there is no perforation law for it, and no residual
+     * to carry deeper. It deposits `power · dt` into the module it reached —
+     * which, because a spent module no longer stops a beam, walks inward through
+     * a hull as it destroys it.
+     */
+    beams(damage: Damage, beams: Beams, hits: BeamHits, dt: number, bodies?: Bodies, designs?: HullDesigns, credit?: Credit): void {
+        for (let i = 0; i < hits.count; i++) {
+            const energy = beams.power[hits.beam[i]!]! * hits.share[i]! * BEAM_ABSORBED_SHARE * dt;
+            damage.absorb(hits.body[i]!, hits.module[i]!, energy);
+            this.log.push(hits.x[i]!, hits.y[i]!, energy, IMPACT_BEAM, bodies, hits.body[i]!);
+            credit?.push(beams.owner[hits.beam[i]!]!, hits.body[i]!, energy, hits.module[i]!);
+            if (bodies !== undefined && designs !== undefined) {
+                this.burnSeams(damage, designs, bodies, beams, hits, i, energy);
+            }
+        }
+    }
+
+    /**
+     * Burn along every weld the beam is shining through.
+     *
+     * A beam bores inward: it is stopped only by matter it can still boil away,
+     * so everything between where it entered the hull and where it is working
+     * now is a tunnel it has already made. Every weld that tunnel crosses is a
+     * seam the beam is passing through, and it goes on cutting all of them for
+     * as long as the beam is held there — which is what lets a beam cut a ship
+     * in half rather than merely hollow it out.
+     *
+     * This is the whole of how a beam can take a piece off a ship. It carries no
+     * momentum, so nothing it does can *tear* anything (`Ships.sever`); what it
+     * can do is leave nothing there to tear.
+     */
+    /**
+     * Spend what every collision this step lost on the hulls that lost it.
+     *
+     * A bounce gives back only part of the closing speed (`RESTITUTION`); the
+     * rest of the energy went into folding metal, and this is where it lands.
+     * **Half to each hull**, which needs no rule about which is the harder: a
+     * module's capacity already goes with its mass, so the same energy that
+     * merely dents a capital ship destroys the fighter that flew into it.
+     *
+     * Call it with the contacts from this step's collision pass, before
+     * severing: what a ram breaks off should be broken off a hull that has
+     * already taken the ram's damage.
+     */
+    /** Log this step's shell bursts, each as bright as its charge's energy. */
+    bursts(projectiles: Projectiles): void {
+        for (let k = 0; k < projectiles.burstCount; k++) {
+            const energy = projectiles.burstCharge[k]! * EXPLOSIVE_YIELD;
+            const vx = projectiles.burstVx[k]!;
+            const vy = projectiles.burstVy[k]!;
+            const growth = projectiles.burstSpread[k]!;
+            this.log.push(projectiles.burstX[k]!, projectiles.burstY[k]!, energy, IMPACT_BURST, undefined, -1, vx, vy, growth);
+        }
+    }
+
+    /**
+     * Given `credit`, each hull is credited with what it did to the other, so a
+     * ram pays for what it breaks as well as costing what it takes.
+     */
+    collisions(designs: HullDesigns, damage: Damage, bodies: Bodies, contacts: Contacts, credit?: Credit): void {
+        for (let k = 0; k < contacts.count; k++) {
+            const impulse = contacts.impulse[k]!;
+            if (!(impulse > 0)) continue;
+            // The energy a collision loses, from what the solver already worked out:
+            // the impulse is `(1 + e)` times the closing momentum, and what does not
+            // come back out is `(1 - e)` of it.
+            const energy = 0.5 * (1 - RESTITUTION) * contacts.closing[k]! * impulse;
+            if (!(energy > 0)) continue;
+            const half = energy * 0.5;
+            const x = contacts.x[k]!;
+            const y = contacts.y[k]!;
+            const nx = contacts.nx[k]!;
+            const ny = contacts.ny[k]!;
+
+            // The normal runs from `a` towards `b`, so it points into `b` and the
+            // other way into `a`.
+            const a = contacts.a[k]!;
+            const b = contacts.b[k]!;
+            const ma = contacts.moduleA[k]!;
+            const mb = contacts.moduleB[k]!;
+            if (this.crush(designs, damage, bodies, a, x, y, -nx, -ny, half)) credit?.push(b, a, half, ma, mb);
+            if (this.crush(designs, damage, bodies, b, x, y, nx, ny, half)) credit?.push(a, b, half, mb, ma);
+            this.log.push(x, y, energy, IMPACT_COLLISION, bodies, contacts.a[k]!);
+        }
+    }
+
+    private crush(
+        designs: HullDesigns,
+        damage: Damage,
+        bodies: Bodies,
+        body: number,
+        x: number,
+        y: number,
+        nx: number,
+        ny: number,
+        energy: number,
+    ): boolean {
+        const design = designs.designOf(body);
+        if (design === null) return false;
+        resolveCollision(design, damage, bodies, body, this.path, x, y, nx, ny, energy);
+        return true;
+    }
+
+    private burnSeams(damage: Damage, designs: HullDesigns, bodies: Bodies, beams: Beams, hits: BeamHits, i: number, energy: number): void {
+        const body = hits.body[i]!;
+        const design = designs.designOf(body);
+        if (design === null) return;
+        const stopped = hits.module[i]!;
+        if (stopped < 0) return;
+
+        // The beam's line, in the hull's frame, where its modules live.
+        const angle = bodies.angle[body]!;
+        const c = cos(angle);
+        const s = sin(angle);
+        const beam = hits.beam[i]!;
+        const sx = beams.startX[beam]! - bodies.x[body]!;
+        const sy = beams.startY[beam]! - bodies.y[body]!;
+        const ex = hits.x[i]! - bodies.x[body]!;
+        const ey = hits.y[i]! - bodies.y[body]!;
+        modulesAlong(
+            design,
+            sx * c + sy * s,
+            -sx * s + sy * c,
+            ex * c + ey * s,
+            -ex * s + ey * c,
+            this.path,
+            beams.layers[beam]!,
+            body === beams.owner[beam] ? beams.fromModule[beam]! : -1,
+            designs.layersOf?.(body) ?? OWN_LAYERS,
+        );
+
+        for (let k = 1; k < this.path.count; k++) {
+            const from = this.path.module[k - 1]!;
+            const into = this.path.module[k]!;
+            const joint = jointBetween(design, from, into);
+            if (joint >= 0) {
+                // The seam's own thickness is what has to be boiled through, and it is
+                // the thinner of the two walls meeting there — the same section the
+                // weld is rated by.
+                const thickness = min(design.modules[from]!.stats.wallThickness, design.modules[into]!.stats.wallThickness);
+                if (thickness > 0) {
+                    damage.cutWeld(body, joint, energy / (thickness * SEAM_CUT_ENERGY_PER_AREA));
+                }
+            }
+            if (into === stopped) break;
+        }
+    }
 }

@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest';
-import { compileBlueprint, joints, math, NEUTRAL_TEAM, type Blueprint, type Doctrine } from '../sim/index.js';
-import { makeBattle } from '../scenarios/battle.js';
-import { CATAMARAN, CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
+import { describe, expect, it } from "vitest";
+import { compileBlueprint, joints, math, NEUTRAL_TEAM, type Blueprint, type Doctrine } from "../sim/index.js";
+import { makeBattle } from "../scenarios/battle.js";
+import { CATAMARAN, CORVETTE, GUNSHIP } from "../scenarios/blueprints.js";
 
 /**
  * Something to fly at that is not something to shoot at.
@@ -15,8 +15,8 @@ import { CATAMARAN, CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
  */
 
 const MARKER: Blueprint = {
-  name: 'Marker',
-  modules: [{ kind: 'core', x: 0, y: 0, length: 12, width: 12 }],
+    name: "Marker",
+    modules: [{ kind: "core", x: 0, y: 0, length: 12, width: 12 }],
 };
 
 /**
@@ -25,11 +25,11 @@ const MARKER: Blueprint = {
  * to stand in the line of a gunship's side turrets.
  */
 const RAISED_MARKER: Blueprint = {
-  name: 'Thick marker',
-  modules: [
-    { kind: 'structure', x: 0, y: 0, length: 12, width: 30, thick: true },
-    { kind: 'core', x: 7, y: 0, length: 2, width: 2 },
-  ],
+    name: "Thick marker",
+    modules: [
+        { kind: "structure", x: 0, y: 0, length: 12, width: 30, thick: true },
+        { kind: "core", x: 7, y: 0, length: 2, width: 2 },
+    ],
 };
 
 /**
@@ -39,373 +39,373 @@ const RAISED_MARKER: Blueprint = {
  * on. It carries no gun, so it still never fires.
  */
 const MOBILE_MARKER: Blueprint = {
-  name: 'Mobile marker',
-  modules: [
-    { kind: 'core', x: 0, y: 0, length: 12, width: 12 },
-    { kind: 'engine', x: -6, y: 0, angle: Math.PI, length: 4, width: 6 },
-  ],
+    name: "Mobile marker",
+    modules: [
+        { kind: "core", x: 0, y: 0, length: 12, width: 12 },
+        { kind: "engine", x: -6, y: 0, angle: Math.PI, length: 4, width: 6 },
+    ],
 };
 
 function escorting(blueprint: Blueprint, escortWeight: number): Blueprint {
-  const doctrine = blueprint.doctrine!;
-  const held: Doctrine = {
-    targeting: { ...doctrine.targeting, escortWeight },
-    approach: { ...doctrine.approach },
-  };
-  return { ...blueprint, doctrine: held };
+    const doctrine = blueprint.doctrine!;
+    const held: Doctrine = {
+        targeting: { ...doctrine.targeting, escortWeight },
+        approach: { ...doctrine.approach },
+    };
+    return { ...blueprint, doctrine: held };
 }
 
-describe('escort and neutrals', () => {
-  it('aims at nothing on the neutral side', () => {
-    // Off to one side of the battle, so a hit on it could only be a hit
-    // somebody meant. Deliberately *not* protected: what is being tested is
-    // that nobody aims at it, and a hull nothing can hurt would pass this
-    // test while being fired on constantly.
-    const marker = compileBlueprint(MARKER);
-    const gunship = compileBlueprint(GUNSHIP);
-    const battle = makeBattle({ seed: 3, projectiles: 512 }, (ships, world) => {
-      ships.spawn(world, { design: gunship, x: -700, y: 0, angle: 0, team: 0 });
-      ships.spawn(world, { design: gunship, x: 700, y: 0, angle: math.PI, team: 1 });
-      const neutral = ships.spawn(world, { design: marker, x: 0, y: 2500, team: NEUTRAL_TEAM });
-      return { neutral };
+describe("escort and neutrals", () => {
+    it("aims at nothing on the neutral side", () => {
+        // Off to one side of the battle, so a hit on it could only be a hit
+        // somebody meant. Deliberately *not* protected: what is being tested is
+        // that nobody aims at it, and a hull nothing can hurt would pass this
+        // test while being fired on constantly.
+        const marker = compileBlueprint(MARKER);
+        const gunship = compileBlueprint(GUNSHIP);
+        const battle = makeBattle({ seed: 3, projectiles: 512 }, (ships, world) => {
+            ships.spawn(world, { design: gunship, x: -700, y: 0, angle: 0, team: 0 });
+            ships.spawn(world, { design: gunship, x: 700, y: 0, angle: math.PI, team: 1 });
+            const neutral = ships.spawn(world, { design: marker, x: 0, y: 2500, team: NEUTRAL_TEAM });
+            return { neutral };
+        });
+
+        const body = battle.world.bodies.indexOf(battle.ships.body(battle.neutral));
+        let struck = 0;
+        for (let step = 0; step < 1800; step++) {
+            battle.step();
+            for (let h = 0; h < battle.credit.count; h++) {
+                if (battle.credit.victim[h] === body) struck++;
+            }
+        }
+        expect(struck).toEqual(0);
+        expect(battle.ships.damage.integrity(body, 0)).toEqual(1);
     });
 
-    const body = battle.world.bodies.indexOf(battle.ships.body(battle.neutral));
-    let struck = 0;
-    for (let step = 0; step < 1800; step++) {
-      battle.step();
-      for (let h = 0; h < battle.credit.count; h++) {
-        if (battle.credit.victim[h] === body) struck++;
-      }
-    }
-    expect(struck).toEqual(0);
-    expect(battle.ships.damage.integrity(body, 0)).toEqual(1);
-  });
+    it("is solid, whoever is not shooting at it", () => {
+        // The same marker put between the two fleets rather than beside them,
+        // and now it is hit constantly — by rounds meant for what is behind it.
+        // That is the whole difference between an objective that is an object and
+        // one that is a coordinate: this one can be sheltered behind, run into,
+        // and shoved out of somebody's way.
+        const marker = compileBlueprint(RAISED_MARKER);
+        const gunship = compileBlueprint(GUNSHIP);
+        const battle = makeBattle({ seed: 3, projectiles: 512 }, (ships, world) => {
+            ships.spawn(world, { design: gunship, x: -700, y: 0, angle: 0, team: 0 });
+            ships.spawn(world, { design: gunship, x: 700, y: 0, angle: math.PI, team: 1 });
+            const neutral = ships.spawn(world, { design: marker, x: 0, y: 0, team: NEUTRAL_TEAM });
+            return { neutral };
+        });
 
-  it('is solid, whoever is not shooting at it', () => {
-    // The same marker put between the two fleets rather than beside them,
-    // and now it is hit constantly — by rounds meant for what is behind it.
-    // That is the whole difference between an objective that is an object and
-    // one that is a coordinate: this one can be sheltered behind, run into,
-    // and shoved out of somebody's way.
-    const marker = compileBlueprint(RAISED_MARKER);
-    const gunship = compileBlueprint(GUNSHIP);
-    const battle = makeBattle({ seed: 3, projectiles: 512 }, (ships, world) => {
-      ships.spawn(world, { design: gunship, x: -700, y: 0, angle: 0, team: 0 });
-      ships.spawn(world, { design: gunship, x: 700, y: 0, angle: math.PI, team: 1 });
-      const neutral = ships.spawn(world, { design: marker, x: 0, y: 0, team: NEUTRAL_TEAM });
-      return { neutral };
+        const body = battle.world.bodies.indexOf(battle.ships.body(battle.neutral));
+        let struck = 0;
+        // Read while it is whole: a gunship's ram can tear the structure off later,
+        // leaving module 0 the untouched core.
+        let worn = 1;
+        for (let step = 0; step < 1800; step++) {
+            battle.step();
+            for (let h = 0; h < battle.credit.count; h++) {
+                if (battle.credit.victim[h] === body) struck++;
+            }
+            if (battle.ships.currentStructure(battle.neutral).modules.length === marker.modules.length) {
+                worn = Math.min(worn, battle.ships.damage.integrity(body, 0));
+            }
+        }
+        expect(struck).toBeGreaterThan(0);
+        // Unprotected, so what it is hit by tells: an objective left like this
+        // would be worn away by a battle fought over it.
+        expect(worn).toBeLessThan(1);
     });
 
-    const body = battle.world.bodies.indexOf(battle.ships.body(battle.neutral));
-    let struck = 0;
-    // Read while it is whole: a gunship's ram can tear the structure off later,
-    // leaving module 0 the untouched core.
-    let worn = 1;
-    for (let step = 0; step < 1800; step++) {
-      battle.step();
-      for (let h = 0; h < battle.credit.count; h++) {
-        if (battle.credit.victim[h] === body) struck++;
-      }
-      if (battle.ships.currentStructure(battle.neutral).modules.length === marker.modules.length) {
-        worn = Math.min(worn, battle.ships.damage.integrity(body, 0));
-      }
-    }
-    expect(struck).toBeGreaterThan(0);
-    // Unprotected, so what it is hit by tells: an objective left like this
-    // would be worn away by a battle fought over it.
-    expect(worn).toBeLessThan(1);
-  });
+    it("leaves a protected hull unmarked by what does hit it", () => {
+        // The other half: on a side everyone is shooting at, so it is hit — and
+        // nothing comes of it.
+        const marker = compileBlueprint(MOBILE_MARKER);
+        const gunship = compileBlueprint(GUNSHIP);
+        const battle = makeBattle({ seed: 3, projectiles: 512 }, (ships, world) => {
+            ships.spawn(world, { design: gunship, x: -700, y: 0, angle: 0, team: 0 });
+            const target = ships.spawn(world, {
+                design: marker,
+                x: 300,
+                y: 0,
+                team: 1,
+                invulnerable: true,
+            });
+            return { target };
+        });
 
-  it('leaves a protected hull unmarked by what does hit it', () => {
-    // The other half: on a side everyone is shooting at, so it is hit — and
-    // nothing comes of it.
-    const marker = compileBlueprint(MOBILE_MARKER);
-    const gunship = compileBlueprint(GUNSHIP);
-    const battle = makeBattle({ seed: 3, projectiles: 512 }, (ships, world) => {
-      ships.spawn(world, { design: gunship, x: -700, y: 0, angle: 0, team: 0 });
-      const target = ships.spawn(world, {
-        design: marker,
-        x: 300,
-        y: 0,
-        team: 1,
-        invulnerable: true,
-      });
-      return { target };
+        const body = battle.world.bodies.indexOf(battle.ships.body(battle.target));
+        let struck = 0;
+        for (let step = 0; step < 1800; step++) {
+            battle.step();
+            for (let h = 0; h < battle.credit.count; h++) {
+                if (battle.credit.victim[h] === body) struck++;
+            }
+        }
+        expect(struck).toBeGreaterThan(0);
+        expect(battle.ships.damage.integrity(body, 0)).toEqual(1);
+        expect(battle.ships.isAlive(battle.target)).toBe(true);
+        expect(battle.totalSevered).toEqual(0);
     });
 
-    const body = battle.world.bodies.indexOf(battle.ships.body(battle.target));
-    let struck = 0;
-    for (let step = 0; step < 1800; step++) {
-      battle.step();
-      for (let h = 0; h < battle.credit.count; h++) {
-        if (battle.credit.victim[h] === body) struck++;
-      }
-    }
-    expect(struck).toBeGreaterThan(0);
-    expect(battle.ships.damage.integrity(body, 0)).toEqual(1);
-    expect(battle.ships.isAlive(battle.target)).toBe(true);
-    expect(battle.totalSevered).toEqual(0);
-  });
+    it("covers a consort rather than going to the fight", () => {
+        // The same battle twice, differing in one number. With nothing to escort
+        // the ship closes on the enemy; with a consort worth covering it stays
+        // with it — and this is a preference rather than a mode, so what decides
+        // it is one weight against the rest of the doctrine.
+        function fly(escortWeight: number): number {
+            const consort = compileBlueprint(MARKER);
+            const escort = compileBlueprint(escorting(CORVETTE, escortWeight));
+            const enemy = compileBlueprint(GUNSHIP);
+            const battle = makeBattle({ seed: 5, projectiles: 512 }, (ships, world) => {
+                const covering = ships.spawn(world, { design: escort, x: 0, y: 0, angle: 0, team: 0 });
+                const charge = ships.spawn(world, { design: consort, x: 0, y: 300, team: NEUTRAL_TEAM });
+                ships.spawn(world, { design: enemy, x: 2500, y: 0, angle: math.PI, team: 1 });
+                return { covering, charge };
+            });
+            for (let step = 0; step < 1800; step++) battle.step();
+            const bodies = battle.world.bodies;
+            const a = bodies.indexOf(battle.ships.body(battle.covering));
+            const b = bodies.indexOf(battle.ships.body(battle.charge));
+            return math.length(bodies.x[a]! - bodies.x[b]!, bodies.y[a]! - bodies.y[b]!);
+        }
 
-  it('covers a consort rather than going to the fight', () => {
-    // The same battle twice, differing in one number. With nothing to escort
-    // the ship closes on the enemy; with a consort worth covering it stays
-    // with it — and this is a preference rather than a mode, so what decides
-    // it is one weight against the rest of the doctrine.
-    function fly(escortWeight: number): number {
-      const consort = compileBlueprint(MARKER);
-      const escort = compileBlueprint(escorting(CORVETTE, escortWeight));
-      const enemy = compileBlueprint(GUNSHIP);
-      const battle = makeBattle({ seed: 5, projectiles: 512 }, (ships, world) => {
-        const covering = ships.spawn(world, { design: escort, x: 0, y: 0, angle: 0, team: 0 });
-        const charge = ships.spawn(world, { design: consort, x: 0, y: 300, team: NEUTRAL_TEAM });
-        ships.spawn(world, { design: enemy, x: 2500, y: 0, angle: math.PI, team: 1 });
-        return { covering, charge };
-      });
-      for (let step = 0; step < 1800; step++) battle.step();
-      const bodies = battle.world.bodies;
-      const a = bodies.indexOf(battle.ships.body(battle.covering));
-      const b = bodies.indexOf(battle.ships.body(battle.charge));
-      return math.length(bodies.x[a]! - bodies.x[b]!, bodies.y[a]! - bodies.y[b]!);
-    }
-
-    const alone = fly(0);
-    const covering = fly(400);
-    // Not by as much as it might: the enemy breaks the escort in two early,
-    // and it will not turn into its own wreckage while that lies alongside.
-    expect(covering).toBeLessThan(alone * 0.6);
-  });
-
-  it('covers no friend smaller than it will bother with', () => {
-    // The same escort, told to cover only what is at least its own size: a
-    // friendly marker is a fraction of a corvette's radius, so it goes to the
-    // fight as though there were nothing to cover. Told to cover anything, it
-    // stays with it.
-    function fly(escortMinRadii: number): number {
-      const consort = compileBlueprint(MARKER);
-      const base = escorting(CORVETTE, 400);
-      const escort = compileBlueprint({
-        ...base,
-        doctrine: { ...base.doctrine!, approach: { ...base.doctrine!.approach, escortMinRadii } },
-      });
-      expect(consort.radius).toBeLessThan(escort.radius);
-      const enemy = compileBlueprint(GUNSHIP);
-      const battle = makeBattle({ seed: 5, projectiles: 512 }, (ships, world) => {
-        const covering = ships.spawn(world, { design: escort, x: 0, y: 0, angle: 0, team: 0 });
-        const charge = ships.spawn(world, { design: consort, x: 0, y: 300, team: 0 });
-        ships.spawn(world, { design: enemy, x: 2500, y: 0, angle: math.PI, team: 1 });
-        return { covering, charge };
-      });
-      // Before the gunship arrives and takes the escort apart.
-      for (let step = 0; step < 1200; step++) battle.step();
-      const bodies = battle.world.bodies;
-      const a = bodies.indexOf(battle.ships.body(battle.covering));
-      const b = bodies.indexOf(battle.ships.body(battle.charge));
-      return math.length(bodies.x[a]! - bodies.x[b]!, bodies.y[a]! - bodies.y[b]!);
-    }
-
-    expect(fly(1)).toBeGreaterThan(fly(0) * 2);
-  });
-
-  it('covers no friend with its core shot out', () => {
-    // A friend nothing controls is nothing to cover: the escort goes to the fight as
-    // though there were nothing there, as it does for a hulk it might shoot.
-    function fly(hulk: boolean): number {
-      const consort = compileBlueprint(MARKER);
-      const base = escorting(CORVETTE, 400);
-      const escort = compileBlueprint({
-        ...base,
-        doctrine: { ...base.doctrine!, approach: { ...base.doctrine!.approach, escortMinRadii: 0 } },
-      });
-      const enemy = compileBlueprint(GUNSHIP);
-      const battle = makeBattle({ seed: 5, projectiles: 512 }, (ships, world) => {
-        const covering = ships.spawn(world, { design: escort, x: 0, y: 0, angle: 0, team: 0 });
-        const charge = ships.spawn(world, { design: consort, x: 0, y: 300, team: 0 });
-        ships.spawn(world, { design: enemy, x: 2500, y: 0, angle: math.PI, team: 1 });
-        return { covering, charge };
-      });
-      const bodies = battle.world.bodies;
-      if (hulk) {
-        // Only until it stops flying, so the hull is still there to cover.
-        const b = bodies.indexOf(battle.ships.body(battle.charge));
-        const blow = consort.modules[0]!.stats.hitPoints * 0.01;
-        while (battle.ships.hasControl(battle.charge)) battle.ships.damage.absorb(b, 0, blow);
-        expect(battle.ships.damage.spent(b, 0)).toBe(false);
-      }
-      // Before the gunship arrives and takes the escort apart.
-      for (let step = 0; step < 1200; step++) battle.step();
-      const a = bodies.indexOf(battle.ships.body(battle.covering));
-      const b = bodies.indexOf(battle.ships.body(battle.charge));
-      return math.length(bodies.x[a]! - bodies.x[b]!, bodies.y[a]! - bodies.y[b]!);
-    }
-
-    expect(fly(true)).toBeGreaterThan(fly(false) * 2);
-  });
-
-  it('keeps a craft with its consort while it goes to the fight', () => {
-    // What the tether controls is the gap to the charge, so that is what is
-    // measured — averaged over the battle rather than read off at the end of
-    // it, since where four ships have got to after a minute of fighting is as
-    // much about how the fighting went as about how they steer.
-    //
-    // Both halves matter. Covering is worthless if the craft never arrives,
-    // and a craft that stays home is not escorting, it is hiding.
-    function fly(escortWeight: number): { consort: number; enemy: number } {
-      const design = compileBlueprint(escorting(CORVETTE, escortWeight));
-      const enemy = compileBlueprint(GUNSHIP);
-      const battle = makeBattle({ seed: 9, projectiles: 512 }, (ships, world) => {
-        const covering = ships.spawn(world, { design, x: -2000, y: -400, angle: 0, team: 0 });
-        const charge = ships.spawn(world, { design, x: -2000, y: 400, angle: 0, team: 0 });
-        const foe = ships.spawn(world, { design: enemy, x: 2500, y: 0, angle: math.PI, team: 1 });
-        return { covering, charge, foe };
-      });
-
-      const bodies = battle.world.bodies;
-      const gap = (a: number, b: number): number => {
-        const p = bodies.indexOf(battle.ships.body(a));
-        const q = bodies.indexOf(battle.ships.body(b));
-        return math.length(bodies.x[p]! - bodies.x[q]!, bodies.y[p]! - bodies.y[q]!);
-      };
-
-      let consort = 0;
-      let foe = 0;
-      const steps = 1800;
-      for (let step = 0; step < steps; step++) {
-        battle.step();
-        consort += gap(battle.covering, battle.charge);
-        foe += gap(battle.covering, battle.foe);
-      }
-      return { consort: consort / steps, enemy: foe / steps };
-    }
-
-    const alone = fly(0);
-    const covering = fly(100);
-    const harder = fly(400);
-    // Tighter the more it is asked for, and no cliff between: a blend of urges
-    // gives a knob that means something all the way along, which is what
-    // deciding between two targets could not.
-    expect(covering.consort).toBeLessThan(alone.consort * 0.75);
-    expect(harder.consort).toBeLessThan(covering.consort);
-    // And it costs almost nothing in getting there — which is the whole point
-    // of wanting two things at once rather than choosing between them.
-    expect(covering.enemy).toBeLessThan(alone.enemy * 1.1);
-    expect(harder.enemy).toBeLessThan(alone.enemy * 1.1);
-  });
-
-  it('goes on fighting while it covers', () => {
-    // An escort stations on its charge and its guns fight whatever they can
-    // reach: covering is where the hull goes, not what the mounts do. If the
-    // station were taken for what the ship is fighting, every mount would be
-    // concentrating on something no mount may shoot at.
-    const consort = compileBlueprint(MARKER);
-    const escort = compileBlueprint(escorting(CORVETTE, 400));
-    const enemy = compileBlueprint(CORVETTE);
-    const battle = makeBattle({ seed: 7, projectiles: 512 }, (ships, world) => {
-      const covering = ships.spawn(world, { design: escort, x: 0, y: 0, angle: 0, team: 0 });
-      ships.spawn(world, { design: consort, x: 0, y: 200, team: NEUTRAL_TEAM });
-      ships.spawn(world, { design: enemy, x: 900, y: 0, angle: math.PI, team: 1 });
-      return { covering };
+        const alone = fly(0);
+        const covering = fly(400);
+        // Not by as much as it might: the enemy breaks the escort in two early,
+        // and it will not turn into its own wreckage while that lies alongside.
+        expect(covering).toBeLessThan(alone * 0.6);
     });
 
-    const from = battle.world.bodies.indexOf(battle.ships.body(battle.covering));
-    let dealt = 0;
-    for (let step = 0; step < 1800; step++) {
-      battle.step();
-      for (let h = 0; h < battle.credit.count; h++) {
-        if (battle.credit.attacker[h] === from) dealt += battle.credit.energy[h]!;
-      }
-    }
-    expect(dealt).toBeGreaterThan(0);
-  });
+    it("covers no friend smaller than it will bother with", () => {
+        // The same escort, told to cover only what is at least its own size: a
+        // friendly marker is a fraction of a corvette's radius, so it goes to the
+        // fight as though there were nothing to cover. Told to cover anything, it
+        // stays with it.
+        function fly(escortMinRadii: number): number {
+            const consort = compileBlueprint(MARKER);
+            const base = escorting(CORVETTE, 400);
+            const escort = compileBlueprint({
+                ...base,
+                doctrine: { ...base.doctrine!, approach: { ...base.doctrine!.approach, escortMinRadii } },
+            });
+            expect(consort.radius).toBeLessThan(escort.radius);
+            const enemy = compileBlueprint(GUNSHIP);
+            const battle = makeBattle({ seed: 5, projectiles: 512 }, (ships, world) => {
+                const covering = ships.spawn(world, { design: escort, x: 0, y: 0, angle: 0, team: 0 });
+                const charge = ships.spawn(world, { design: consort, x: 0, y: 300, team: 0 });
+                ships.spawn(world, { design: enemy, x: 2500, y: 0, angle: math.PI, team: 1 });
+                return { covering, charge };
+            });
+            // Before the gunship arrives and takes the escort apart.
+            for (let step = 0; step < 1200; step++) battle.step();
+            const bodies = battle.world.bodies;
+            const a = bodies.indexOf(battle.ships.body(battle.covering));
+            const b = bodies.indexOf(battle.ships.body(battle.charge));
+            return math.length(bodies.x[a]! - bodies.x[b]!, bodies.y[a]! - bodies.y[b]!);
+        }
+
+        expect(fly(1)).toBeGreaterThan(fly(0) * 2);
+    });
+
+    it("covers no friend with its core shot out", () => {
+        // A friend nothing controls is nothing to cover: the escort goes to the fight as
+        // though there were nothing there, as it does for a hulk it might shoot.
+        function fly(hulk: boolean): number {
+            const consort = compileBlueprint(MARKER);
+            const base = escorting(CORVETTE, 400);
+            const escort = compileBlueprint({
+                ...base,
+                doctrine: { ...base.doctrine!, approach: { ...base.doctrine!.approach, escortMinRadii: 0 } },
+            });
+            const enemy = compileBlueprint(GUNSHIP);
+            const battle = makeBattle({ seed: 5, projectiles: 512 }, (ships, world) => {
+                const covering = ships.spawn(world, { design: escort, x: 0, y: 0, angle: 0, team: 0 });
+                const charge = ships.spawn(world, { design: consort, x: 0, y: 300, team: 0 });
+                ships.spawn(world, { design: enemy, x: 2500, y: 0, angle: math.PI, team: 1 });
+                return { covering, charge };
+            });
+            const bodies = battle.world.bodies;
+            if (hulk) {
+                // Only until it stops flying, so the hull is still there to cover.
+                const b = bodies.indexOf(battle.ships.body(battle.charge));
+                const blow = consort.modules[0]!.stats.hitPoints * 0.01;
+                while (battle.ships.hasControl(battle.charge)) battle.ships.damage.absorb(b, 0, blow);
+                expect(battle.ships.damage.spent(b, 0)).toBe(false);
+            }
+            // Before the gunship arrives and takes the escort apart.
+            for (let step = 0; step < 1200; step++) battle.step();
+            const a = bodies.indexOf(battle.ships.body(battle.covering));
+            const b = bodies.indexOf(battle.ships.body(battle.charge));
+            return math.length(bodies.x[a]! - bodies.x[b]!, bodies.y[a]! - bodies.y[b]!);
+        }
+
+        expect(fly(true)).toBeGreaterThan(fly(false) * 2);
+    });
+
+    it("keeps a craft with its consort while it goes to the fight", () => {
+        // What the tether controls is the gap to the charge, so that is what is
+        // measured — averaged over the battle rather than read off at the end of
+        // it, since where four ships have got to after a minute of fighting is as
+        // much about how the fighting went as about how they steer.
+        //
+        // Both halves matter. Covering is worthless if the craft never arrives,
+        // and a craft that stays home is not escorting, it is hiding.
+        function fly(escortWeight: number): { consort: number; enemy: number } {
+            const design = compileBlueprint(escorting(CORVETTE, escortWeight));
+            const enemy = compileBlueprint(GUNSHIP);
+            const battle = makeBattle({ seed: 9, projectiles: 512 }, (ships, world) => {
+                const covering = ships.spawn(world, { design, x: -2000, y: -400, angle: 0, team: 0 });
+                const charge = ships.spawn(world, { design, x: -2000, y: 400, angle: 0, team: 0 });
+                const foe = ships.spawn(world, { design: enemy, x: 2500, y: 0, angle: math.PI, team: 1 });
+                return { covering, charge, foe };
+            });
+
+            const bodies = battle.world.bodies;
+            const gap = (a: number, b: number): number => {
+                const p = bodies.indexOf(battle.ships.body(a));
+                const q = bodies.indexOf(battle.ships.body(b));
+                return math.length(bodies.x[p]! - bodies.x[q]!, bodies.y[p]! - bodies.y[q]!);
+            };
+
+            let consort = 0;
+            let foe = 0;
+            const steps = 1800;
+            for (let step = 0; step < steps; step++) {
+                battle.step();
+                consort += gap(battle.covering, battle.charge);
+                foe += gap(battle.covering, battle.foe);
+            }
+            return { consort: consort / steps, enemy: foe / steps };
+        }
+
+        const alone = fly(0);
+        const covering = fly(100);
+        const harder = fly(400);
+        // Tighter the more it is asked for, and no cliff between: a blend of urges
+        // gives a knob that means something all the way along, which is what
+        // deciding between two targets could not.
+        expect(covering.consort).toBeLessThan(alone.consort * 0.75);
+        expect(harder.consort).toBeLessThan(covering.consort);
+        // And it costs almost nothing in getting there — which is the whole point
+        // of wanting two things at once rather than choosing between them.
+        expect(covering.enemy).toBeLessThan(alone.enemy * 1.1);
+        expect(harder.enemy).toBeLessThan(alone.enemy * 1.1);
+    });
+
+    it("goes on fighting while it covers", () => {
+        // An escort stations on its charge and its guns fight whatever they can
+        // reach: covering is where the hull goes, not what the mounts do. If the
+        // station were taken for what the ship is fighting, every mount would be
+        // concentrating on something no mount may shoot at.
+        const consort = compileBlueprint(MARKER);
+        const escort = compileBlueprint(escorting(CORVETTE, 400));
+        const enemy = compileBlueprint(CORVETTE);
+        const battle = makeBattle({ seed: 7, projectiles: 512 }, (ships, world) => {
+            const covering = ships.spawn(world, { design: escort, x: 0, y: 0, angle: 0, team: 0 });
+            ships.spawn(world, { design: consort, x: 0, y: 200, team: NEUTRAL_TEAM });
+            ships.spawn(world, { design: enemy, x: 900, y: 0, angle: math.PI, team: 1 });
+            return { covering };
+        });
+
+        const from = battle.world.bodies.indexOf(battle.ships.body(battle.covering));
+        let dealt = 0;
+        for (let step = 0; step < 1800; step++) {
+            battle.step();
+            for (let h = 0; h < battle.credit.count; h++) {
+                if (battle.credit.attacker[h] === from) dealt += battle.credit.energy[h]!;
+            }
+        }
+        expect(dealt).toBeGreaterThan(0);
+    });
 });
 
-describe('an escort and a friend that has lost control', () => {
-  const WRECKED: Blueprint = {
-    name: 'Wrecked',
-    modules: [
-      { kind: 'core', x: 0, y: 0, length: 6, width: 6 },
-      { kind: 'hold', x: 0, y: 4.5, length: 6, width: 3 },
-    ],
-  };
-  const MENDING: Blueprint = {
-    name: 'Wrecked with robots',
-    modules: [...WRECKED.modules, { kind: 'robotBay', x: 0, y: -5, length: 6, width: 4 }],
-  };
+describe("an escort and a friend that has lost control", () => {
+    const WRECKED: Blueprint = {
+        name: "Wrecked",
+        modules: [
+            { kind: "core", x: 0, y: 0, length: 6, width: 6 },
+            { kind: "hold", x: 0, y: 4.5, length: 6, width: 3 },
+        ],
+    };
+    const MENDING: Blueprint = {
+        name: "Wrecked with robots",
+        modules: [...WRECKED.modules, { kind: "robotBay", x: 0, y: -5, length: 6, width: 4 }],
+    };
 
-  /** How far an escort ends up from a friend whose core is shot out. */
-  function after(friend: Blueprint): number {
-    const corvette = compileBlueprint(escorting(CORVETTE, 400));
-    const escort = compileBlueprint({
-      ...escorting(CORVETTE, 400),
-      doctrine: { ...corvette.doctrine, approach: { ...corvette.doctrine.approach, escortMinRadii: 0 } },
-    });
-    const hulk = compileBlueprint(friend);
-    const run = makeBattle({ seed: 1 }, (ships, world) => {
-      const e = ships.spawn(world, { design: escort, x: 0, y: 0, team: 0 });
-      const h = ships.spawn(world, { design: hulk, x: 800, y: 0, team: 0 });
-      const b = world.bodies.indexOf(ships.body(h));
-      ships.damage.absorb(b, hulk.cores[0]!, hulk.modules[hulk.cores[0]!]!.stats.hitPoints * 1000 * 5);
-      return { e, h };
-    });
-    for (let s = 0; s < 120 * 60; s++) run.step();
-    const a = run.world.bodies.indexOf(run.ships.body(run.e));
-    const b = run.world.bodies.indexOf(run.ships.body(run.h));
-    return Math.hypot(run.world.bodies.x[a]! - run.world.bodies.x[b]!, run.world.bodies.y[a]! - run.world.bodies.y[b]!);
-  }
+    /** How far an escort ends up from a friend whose core is shot out. */
+    function after(friend: Blueprint): number {
+        const corvette = compileBlueprint(escorting(CORVETTE, 400));
+        const escort = compileBlueprint({
+            ...escorting(CORVETTE, 400),
+            doctrine: { ...corvette.doctrine, approach: { ...corvette.doctrine.approach, escortMinRadii: 0 } },
+        });
+        const hulk = compileBlueprint(friend);
+        const run = makeBattle({ seed: 1 }, (ships, world) => {
+            const e = ships.spawn(world, { design: escort, x: 0, y: 0, team: 0 });
+            const h = ships.spawn(world, { design: hulk, x: 800, y: 0, team: 0 });
+            const b = world.bodies.indexOf(ships.body(h));
+            ships.damage.absorb(b, hulk.cores[0]!, hulk.modules[hulk.cores[0]!]!.stats.hitPoints * 1000 * 5);
+            return { e, h };
+        });
+        for (let s = 0; s < 120 * 60; s++) run.step();
+        const a = run.world.bodies.indexOf(run.ships.body(run.e));
+        const b = run.world.bodies.indexOf(run.ships.body(run.h));
+        return Math.hypot(run.world.bodies.x[a]! - run.world.bodies.x[b]!, run.world.bodies.y[a]! - run.world.bodies.y[b]!);
+    }
 
-  it('stays with it while it has robots aboard that may mend it, and not otherwise', () => {
-    expect(after(MENDING)).toBeLessThan(300);
-    expect(after(WRECKED)).toBeGreaterThan(700);
-  });
+    it("stays with it while it has robots aboard that may mend it, and not otherwise", () => {
+        expect(after(MENDING)).toBeLessThan(300);
+        expect(after(WRECKED)).toBeGreaterThan(700);
+    });
 });
 
-describe('two ships the same size covering each other', () => {
-  it('keep further apart than either can reach turning, and never touch', () => {
-    // Wide for their guns' reach, so a station off the other's skin alone
-    // would be inside the circle the pair sweep as they turn.
-    const pair = compileBlueprint(CATAMARAN);
-    const run = makeBattle({ seed: 1 }, (ships, world) => ({
-      a: ships.spawn(world, { design: pair, x: 0, y: 0, angle: 0, angularVel: 0.5 }),
-      b: ships.spawn(world, { design: pair, x: pair.radius * 3, y: 0, angle: 1, angularVel: -0.5 }),
-    }));
-    let contacts = 0;
-    for (let s = 0; s < 90 * 60; s++) {
-      run.step();
-      contacts += run.collisions.contacts.count;
-    }
-    const a = run.world.bodies.indexOf(run.ships.body(run.a));
-    const b = run.world.bodies.indexOf(run.ships.body(run.b));
-    const gap = Math.hypot(run.world.bodies.x[a]! - run.world.bodies.x[b]!, run.world.bodies.y[a]! - run.world.bodies.y[b]!);
-    expect(contacts).toBe(0);
-    expect(gap).toBeGreaterThan(pair.radius * 2);
-  });
+describe("two ships the same size covering each other", () => {
+    it("keep further apart than either can reach turning, and never touch", () => {
+        // Wide for their guns' reach, so a station off the other's skin alone
+        // would be inside the circle the pair sweep as they turn.
+        const pair = compileBlueprint(CATAMARAN);
+        const run = makeBattle({ seed: 1 }, (ships, world) => ({
+            a: ships.spawn(world, { design: pair, x: 0, y: 0, angle: 0, angularVel: 0.5 }),
+            b: ships.spawn(world, { design: pair, x: pair.radius * 3, y: 0, angle: 1, angularVel: -0.5 }),
+        }));
+        let contacts = 0;
+        for (let s = 0; s < 90 * 60; s++) {
+            run.step();
+            contacts += run.collisions.contacts.count;
+        }
+        const a = run.world.bodies.indexOf(run.ships.body(run.a));
+        const b = run.world.bodies.indexOf(run.ships.body(run.b));
+        const gap = Math.hypot(run.world.bodies.x[a]! - run.world.bodies.x[b]!, run.world.bodies.y[a]! - run.world.bodies.y[b]!);
+        expect(contacts).toBe(0);
+        expect(gap).toBeGreaterThan(pair.radius * 2);
+    });
 });
 
-describe('the halves of a cut Catamaran covering each other', () => {
-  it('hold station without spinning, and keep most of their fuel', { timeout: 60_000 }, () => {
-    // Each half is lopsided: its engines turn it far harder one way than the
-    // other, and pushing it at all turns it.
-    const catamaran = compileBlueprint(CATAMARAN);
-    const run = makeBattle({ seed: 1 }, (ships, world) => ({ a: ships.spawn(world, { design: catamaran, x: 0, y: 0, angle: 0 }) }));
-    const all = joints(catamaran);
-    const mid = all.findIndex((j) => Math.abs(catamaran.modules[j.a]!.spec.y) < 3 && Math.abs(catamaran.modules[j.b]!.spec.y) < 3);
-    const at = (i: number): number => run.world.bodies.indexOf(run.ships.body(i));
-    run.ships.damage.cutWeld(at(0), mid, all[mid]!.width * 2);
-    run.step();
-    expect(run.ships.count).toBe(2);
-    run.world.bodies.y[at(1)] = run.world.bodies.y[at(1)]! - 200;
-    const full = [run.ships.fuel.left(at(0)), run.ships.fuel.left(at(1))];
-    let contacts = 0;
-    for (let s = 0; s < 600 * 60; s++) {
-      run.step();
-      contacts += run.collisions.contacts.count;
-    }
-    expect(run.ships.count).toBe(2);
-    expect(contacts).toBe(0);
-    for (const i of [0, 1]) {
-      expect(run.ships.fuel.left(at(i))).toBeGreaterThan(0.9 * full[i]!);
-      expect(Math.abs(run.world.bodies.angularVel[at(i)]!)).toBeLessThan(0.01);
-    }
-  });
+describe("the halves of a cut Catamaran covering each other", () => {
+    it("hold station without spinning, and keep most of their fuel", { timeout: 60_000 }, () => {
+        // Each half is lopsided: its engines turn it far harder one way than the
+        // other, and pushing it at all turns it.
+        const catamaran = compileBlueprint(CATAMARAN);
+        const run = makeBattle({ seed: 1 }, (ships, world) => ({ a: ships.spawn(world, { design: catamaran, x: 0, y: 0, angle: 0 }) }));
+        const all = joints(catamaran);
+        const mid = all.findIndex((j) => Math.abs(catamaran.modules[j.a]!.spec.y) < 3 && Math.abs(catamaran.modules[j.b]!.spec.y) < 3);
+        const at = (i: number): number => run.world.bodies.indexOf(run.ships.body(i));
+        run.ships.damage.cutWeld(at(0), mid, all[mid]!.width * 2);
+        run.step();
+        expect(run.ships.count).toBe(2);
+        run.world.bodies.y[at(1)] = run.world.bodies.y[at(1)]! - 200;
+        const full = [run.ships.fuel.left(at(0)), run.ships.fuel.left(at(1))];
+        let contacts = 0;
+        for (let s = 0; s < 600 * 60; s++) {
+            run.step();
+            contacts += run.collisions.contacts.count;
+        }
+        expect(run.ships.count).toBe(2);
+        expect(contacts).toBe(0);
+        for (const i of [0, 1]) {
+            expect(run.ships.fuel.left(at(i))).toBeGreaterThan(0.9 * full[i]!);
+            expect(Math.abs(run.world.bodies.angularVel[at(i)]!)).toBeLessThan(0.01);
+        }
+    });
 });

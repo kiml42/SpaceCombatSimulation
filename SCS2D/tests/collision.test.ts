@@ -1,10 +1,10 @@
-import { describe, expect, it } from 'vitest';
-import { Bodies } from '../sim/bodies.js';
-import { Collisions, Contacts, RESTITUTION, ROCK_DAMPING, Stab, findContacts, resolveContacts } from '../sim/collision.js';
-import { compileBlueprint, rockModule, type ShipDesign } from '../sim/index.js';
-import type { HullDesigns } from '../sim/hull.js';
-import { CORVETTE, DINKY, SALVAGER } from '../scenarios/blueprints.js';
-import { ram } from '../scenarios/ram.js';
+import { describe, expect, it } from "vitest";
+import { Bodies } from "../sim/bodies.js";
+import { Collisions, Contacts, RESTITUTION, ROCK_DAMPING, Stab, findContacts, resolveContacts } from "../sim/collision.js";
+import { compileBlueprint, rockModule, type ShipDesign } from "../sim/index.js";
+import type { HullDesigns } from "../sim/hull.js";
+import { CORVETTE, DINKY, SALVAGER } from "../scenarios/blueprints.js";
+import { ram } from "../scenarios/ram.js";
 
 /**
  * Hulls meeting each other.
@@ -27,316 +27,316 @@ const dinky: ShipDesign = compileBlueprint(DINKY);
 const NOSE_TO_TAIL = 31.5;
 
 interface Ship {
-  design: ShipDesign;
-  x: number;
-  y: number;
-  angle?: number;
-  vx?: number;
-  vy?: number;
-  spin?: number;
-  /** Immovable, like a test fixture's battery. */
-  fixed?: boolean;
+    design: ShipDesign;
+    x: number;
+    y: number;
+    angle?: number;
+    vx?: number;
+    vy?: number;
+    spin?: number;
+    /** Immovable, like a test fixture's battery. */
+    fixed?: boolean;
 }
 
 function world(...ships: Ship[]): { bodies: Bodies; hulls: HullDesigns; contacts: Contacts } {
-  const bodies = new Bodies();
-  const designs: ShipDesign[] = [];
-  for (const ship of ships) {
-    bodies.create({
-      x: ship.x,
-      y: ship.y,
-      angle: ship.angle ?? 0,
-      vx: ship.vx ?? 0,
-      vy: ship.vy ?? 0,
-      angularVel: ship.spin ?? 0,
-      mass: ship.fixed === true ? 0 : ship.design.mass,
-      inertia: ship.fixed === true ? 0 : ship.design.inertia,
-      radius: ship.design.radius,
-    });
-    designs.push(ship.design);
-  }
-  const hulls: HullDesigns = { designOf: (body) => designs[body] ?? null };
-  return { bodies, hulls, contacts: new Contacts() };
+    const bodies = new Bodies();
+    const designs: ShipDesign[] = [];
+    for (const ship of ships) {
+        bodies.create({
+            x: ship.x,
+            y: ship.y,
+            angle: ship.angle ?? 0,
+            vx: ship.vx ?? 0,
+            vy: ship.vy ?? 0,
+            angularVel: ship.spin ?? 0,
+            mass: ship.fixed === true ? 0 : ship.design.mass,
+            inertia: ship.fixed === true ? 0 : ship.design.inertia,
+            radius: ship.design.radius,
+        });
+        designs.push(ship.design);
+    }
+    const hulls: HullDesigns = { designOf: (body) => designs[body] ?? null };
+    return { bodies, hulls, contacts: new Contacts() };
 }
 
 /** Total linear momentum, which an impulse between two bodies cannot change. */
 function momentum(bodies: Bodies): { x: number; y: number } {
-  let x = 0;
-  let y = 0;
-  for (let i = 0; i < bodies.highWater; i++) {
-    if (bodies.alive[i] === 0) continue;
-    x += bodies.mass[i]! * bodies.vx[i]!;
-    y += bodies.mass[i]! * bodies.vy[i]!;
-  }
-  return { x, y };
+    let x = 0;
+    let y = 0;
+    for (let i = 0; i < bodies.highWater; i++) {
+        if (bodies.alive[i] === 0) continue;
+        x += bodies.mass[i]! * bodies.vx[i]!;
+        y += bodies.mass[i]! * bodies.vy[i]!;
+    }
+    return { x, y };
 }
 
 /** Total angular momentum about the origin, spin included. */
 function angularMomentum(bodies: Bodies): number {
-  let total = 0;
-  for (let i = 0; i < bodies.highWater; i++) {
-    if (bodies.alive[i] === 0) continue;
-    total += bodies.mass[i]! * (bodies.x[i]! * bodies.vy[i]! - bodies.y[i]! * bodies.vx[i]!);
-    total += bodies.inertia[i]! * bodies.angularVel[i]!;
-  }
-  return total;
+    let total = 0;
+    for (let i = 0; i < bodies.highWater; i++) {
+        if (bodies.alive[i] === 0) continue;
+        total += bodies.mass[i]! * (bodies.x[i]! * bodies.vy[i]! - bodies.y[i]! * bodies.vx[i]!);
+        total += bodies.inertia[i]! * bodies.angularVel[i]!;
+    }
+    return total;
 }
 
-describe('finding contacts', () => {
-  it('finds nothing between hulls that are clear of each other', () => {
-    const w = world({ design: corvette, x: 0, y: 0 }, { design: corvette, x: 400, y: 0 });
-    findContacts(w.bodies, w.hulls, w.contacts);
-    expect(w.contacts.count).toBe(0);
-  });
+describe("finding contacts", () => {
+    it("finds nothing between hulls that are clear of each other", () => {
+        const w = world({ design: corvette, x: 0, y: 0 }, { design: corvette, x: 400, y: 0 });
+        findContacts(w.bodies, w.hulls, w.contacts);
+        expect(w.contacts.count).toBe(0);
+    });
 
-  it('finds nothing when only the bounding circles meet', () => {
-    // The point of testing the hull rather than the circle. A corvette's circle
-    // reaches its bow, so two of them abeam overlap as circles while their
-    // hulls are four metres of vacuum apart.
-    const abeam = 20;
-    expect(abeam).toBeLessThan(corvette.radius * 2);
-    const w = world({ design: corvette, x: 0, y: 0 }, { design: corvette, x: 0, y: abeam });
+    it("finds nothing when only the bounding circles meet", () => {
+        // The point of testing the hull rather than the circle. A corvette's circle
+        // reaches its bow, so two of them abeam overlap as circles while their
+        // hulls are four metres of vacuum apart.
+        const abeam = 20;
+        expect(abeam).toBeLessThan(corvette.radius * 2);
+        const w = world({ design: corvette, x: 0, y: 0 }, { design: corvette, x: 0, y: abeam });
 
-    findContacts(w.bodies, w.hulls, w.contacts);
-    expect(w.contacts.count).toBe(0);
-  });
+        findContacts(w.bodies, w.hulls, w.contacts);
+        expect(w.contacts.count).toBe(0);
+    });
 
-  it('finds one contact where two hulls really do overlap', () => {
-    // Half a metre of overlap, nose to tail: the shallow meeting a real
-    // collision is, rather than one hull buried in another.
-    const w = world({ design: corvette, x: 0, y: 0 }, { design: corvette, x: NOSE_TO_TAIL - 0.5, y: 0 });
-    findContacts(w.bodies, w.hulls, w.contacts);
+    it("finds one contact where two hulls really do overlap", () => {
+        // Half a metre of overlap, nose to tail: the shallow meeting a real
+        // collision is, rather than one hull buried in another.
+        const w = world({ design: corvette, x: 0, y: 0 }, { design: corvette, x: NOSE_TO_TAIL - 0.5, y: 0 });
+        findContacts(w.bodies, w.hulls, w.contacts);
 
-    expect(w.contacts.count).toBe(1);
-    expect(w.contacts.a[0]).toBe(0);
-    expect(w.contacts.b[0]).toBe(1);
-    expect(w.contacts.depth[0]).toBeGreaterThan(0);
-    // Pushed apart along the line they are overlapping on, from a towards b.
-    expect(w.contacts.nx[0]).toBeCloseTo(1, 9);
-    expect(w.contacts.ny[0]).toBeCloseTo(0, 9);
-    // And it names what met, for a damage model to spend the hit on.
-    expect(w.contacts.moduleA[0]).toBeGreaterThanOrEqual(0);
-    expect(w.contacts.moduleB[0]).toBeGreaterThanOrEqual(0);
-  });
+        expect(w.contacts.count).toBe(1);
+        expect(w.contacts.a[0]).toBe(0);
+        expect(w.contacts.b[0]).toBe(1);
+        expect(w.contacts.depth[0]).toBeGreaterThan(0);
+        // Pushed apart along the line they are overlapping on, from a towards b.
+        expect(w.contacts.nx[0]).toBeCloseTo(1, 9);
+        expect(w.contacts.ny[0]).toBeCloseTo(0, 9);
+        // And it names what met, for a damage model to spend the hit on.
+        expect(w.contacts.moduleA[0]).toBeGreaterThanOrEqual(0);
+        expect(w.contacts.moduleB[0]).toBeGreaterThanOrEqual(0);
+    });
 
-  it('ignores a body with no hull, which is a mass rather than a shape', () => {
-    const bodies = new Bodies();
-    bodies.create({ x: 0, y: 0, mass: 1, inertia: 1, radius: 50 });
-    bodies.create({ x: 1, y: 0, mass: 1, inertia: 1, radius: 50 });
-    const contacts = new Contacts();
-    findContacts(bodies, { designOf: () => null }, contacts);
-    expect(contacts.count).toBe(0);
-  });
+    it("ignores a body with no hull, which is a mass rather than a shape", () => {
+        const bodies = new Bodies();
+        bodies.create({ x: 0, y: 0, mass: 1, inertia: 1, radius: 50 });
+        bodies.create({ x: 1, y: 0, mass: 1, inertia: 1, radius: 50 });
+        const contacts = new Contacts();
+        findContacts(bodies, { designOf: () => null }, contacts);
+        expect(contacts.count).toBe(0);
+    });
 
-  it('keeps the pairs in body order, so resolution is reproducible', () => {
-    const w = world(
-      { design: corvette, x: 0, y: 0 },
-      { design: corvette, x: NOSE_TO_TAIL - 0.5, y: 0 },
-      { design: corvette, x: (NOSE_TO_TAIL - 0.5) * 2, y: 0 },
-    );
-    findContacts(w.bodies, w.hulls, w.contacts);
-    expect(w.contacts.count).toBeGreaterThan(1);
-    for (let k = 0; k < w.contacts.count; k++) {
-      expect(w.contacts.a[k]!).toBeLessThan(w.contacts.b[k]!);
-      if (k > 0) {
-        const previous = w.contacts.a[k - 1]! * 1e6 + w.contacts.b[k - 1]!;
-        expect(previous).toBeLessThan(w.contacts.a[k]! * 1e6 + w.contacts.b[k]!);
-      }
-    }
-  });
+    it("keeps the pairs in body order, so resolution is reproducible", () => {
+        const w = world(
+            { design: corvette, x: 0, y: 0 },
+            { design: corvette, x: NOSE_TO_TAIL - 0.5, y: 0 },
+            { design: corvette, x: (NOSE_TO_TAIL - 0.5) * 2, y: 0 },
+        );
+        findContacts(w.bodies, w.hulls, w.contacts);
+        expect(w.contacts.count).toBeGreaterThan(1);
+        for (let k = 0; k < w.contacts.count; k++) {
+            expect(w.contacts.a[k]!).toBeLessThan(w.contacts.b[k]!);
+            if (k > 0) {
+                const previous = w.contacts.a[k - 1]! * 1e6 + w.contacts.b[k - 1]!;
+                expect(previous).toBeLessThan(w.contacts.a[k]! * 1e6 + w.contacts.b[k]!);
+            }
+        }
+    });
 });
 
-describe('resolving a collision', () => {
-  it('conserves momentum and angular momentum', () => {
-    // The invariant that catches a sign error in the arms or the spin terms:
-    // the two impulses are equal and opposite at one point, so neither total
-    // can move.
-    // A fighter crashing into a corvette's flank, both already turning.
-    const w = world({ design: corvette, x: 0, y: 0, vx: 120, spin: 0.2 }, { design: dinky, x: 7.3, y: 4.5, vx: -40, spin: -0.1 });
-    const p = momentum(w.bodies);
-    const l = angularMomentum(w.bodies);
+describe("resolving a collision", () => {
+    it("conserves momentum and angular momentum", () => {
+        // The invariant that catches a sign error in the arms or the spin terms:
+        // the two impulses are equal and opposite at one point, so neither total
+        // can move.
+        // A fighter crashing into a corvette's flank, both already turning.
+        const w = world({ design: corvette, x: 0, y: 0, vx: 120, spin: 0.2 }, { design: dinky, x: 7.3, y: 4.5, vx: -40, spin: -0.1 });
+        const p = momentum(w.bodies);
+        const l = angularMomentum(w.bodies);
 
-    findContacts(w.bodies, w.hulls, w.contacts);
-    expect(w.contacts.count).toBe(1);
-    resolveContacts(w.bodies, w.contacts);
+        findContacts(w.bodies, w.hulls, w.contacts);
+        expect(w.contacts.count).toBe(1);
+        resolveContacts(w.bodies, w.contacts);
 
-    const after = momentum(w.bodies);
-    expect(after.x).toBeCloseTo(p.x, 6);
-    expect(after.y).toBeCloseTo(p.y, 6);
-    expect(angularMomentum(w.bodies)).toBeCloseTo(l, 6);
-  });
+        const after = momentum(w.bodies);
+        expect(after.x).toBeCloseTo(p.x, 6);
+        expect(after.y).toBeCloseTo(p.y, 6);
+        expect(angularMomentum(w.bodies)).toBeCloseTo(l, 6);
+    });
 
-  it('leaves two hulls coming apart rather than closing', () => {
-    const w = world({ design: corvette, x: 0, y: 0, vx: 200 }, { design: corvette, x: NOSE_TO_TAIL - 0.5, y: 0, vx: -200 });
-    findContacts(w.bodies, w.hulls, w.contacts);
-    resolveContacts(w.bodies, w.contacts);
+    it("leaves two hulls coming apart rather than closing", () => {
+        const w = world({ design: corvette, x: 0, y: 0, vx: 200 }, { design: corvette, x: NOSE_TO_TAIL - 0.5, y: 0, vx: -200 });
+        findContacts(w.bodies, w.hulls, w.contacts);
+        resolveContacts(w.bodies, w.contacts);
 
-    // Both reversed, and the closing speed is now an opening one.
-    expect(w.bodies.vx[0]!).toBeLessThan(0);
-    expect(w.bodies.vx[1]!).toBeGreaterThan(0);
-  });
+        // Both reversed, and the closing speed is now an opening one.
+        expect(w.bodies.vx[0]!).toBeLessThan(0);
+        expect(w.bodies.vx[1]!).toBeGreaterThan(0);
+    });
 
-  it('gives back only what it is told to, so a ram is not a bounce', () => {
-    const w = world({ design: corvette, x: 0, y: 0, vx: 100 }, { design: corvette, x: NOSE_TO_TAIL - 0.5, y: 0, vx: -100 });
-    findContacts(w.bodies, w.hulls, w.contacts);
-    resolveContacts(w.bodies, w.contacts);
+    it("gives back only what it is told to, so a ram is not a bounce", () => {
+        const w = world({ design: corvette, x: 0, y: 0, vx: 100 }, { design: corvette, x: NOSE_TO_TAIL - 0.5, y: 0, vx: -100 });
+        findContacts(w.bodies, w.hulls, w.contacts);
+        resolveContacts(w.bodies, w.contacts);
 
-    const opening = w.bodies.vx[1]! - w.bodies.vx[0]!;
-    // Equal masses meeting head on: the separation speed is the closing speed
-    // times the restitution, and most of the energy is gone.
-    expect(opening).toBeCloseTo(200 * RESTITUTION, 6);
-  });
+        const opening = w.bodies.vx[1]! - w.bodies.vx[0]!;
+        // Equal masses meeting head on: the separation speed is the closing speed
+        // times the restitution, and most of the energy is gone.
+        expect(opening).toBeCloseTo(200 * RESTITUTION, 6);
+    });
 
-  it('turns an off-centre hit into a spin', () => {
-    // Struck well off the centre line: the arm from the centre of mass is what
-    // makes a glancing blow tumble a ship rather than only shove it.
-    const w = world({ design: corvette, x: 0, y: 0, vx: 150 }, { design: dinky, x: 7.3, y: 4.5, vx: -150 });
-    findContacts(w.bodies, w.hulls, w.contacts);
-    expect(w.contacts.count).toBe(1);
-    resolveContacts(w.bodies, w.contacts);
+    it("turns an off-centre hit into a spin", () => {
+        // Struck well off the centre line: the arm from the centre of mass is what
+        // makes a glancing blow tumble a ship rather than only shove it.
+        const w = world({ design: corvette, x: 0, y: 0, vx: 150 }, { design: dinky, x: 7.3, y: 4.5, vx: -150 });
+        findContacts(w.bodies, w.hulls, w.contacts);
+        expect(w.contacts.count).toBe(1);
+        resolveContacts(w.bodies, w.contacts);
 
-    expect(w.bodies.angularVel[0]).not.toBe(0);
-    expect(w.bodies.angularVel[1]).not.toBe(0);
-  });
+        expect(w.bodies.angularVel[0]).not.toBe(0);
+        expect(w.bodies.angularVel[1]).not.toBe(0);
+    });
 
-  it('bounces off something immovable without moving it', () => {
-    const w = world({ design: corvette, x: 0, y: 0, vx: 150 }, { design: corvette, x: NOSE_TO_TAIL - 0.5, y: 0, fixed: true });
-    findContacts(w.bodies, w.hulls, w.contacts);
-    resolveContacts(w.bodies, w.contacts);
+    it("bounces off something immovable without moving it", () => {
+        const w = world({ design: corvette, x: 0, y: 0, vx: 150 }, { design: corvette, x: NOSE_TO_TAIL - 0.5, y: 0, fixed: true });
+        findContacts(w.bodies, w.hulls, w.contacts);
+        resolveContacts(w.bodies, w.contacts);
 
-    expect(w.bodies.vx[0]!).toBeLessThan(0);
-    expect(w.bodies.vx[1]!).toBe(0);
-    expect(w.bodies.x[1]!).toBe(NOSE_TO_TAIL - 0.5);
-  });
+        expect(w.bodies.vx[0]!).toBeLessThan(0);
+        expect(w.bodies.vx[1]!).toBe(0);
+        expect(w.bodies.x[1]!).toBe(NOSE_TO_TAIL - 0.5);
+    });
 
-  it('pushes two hulls out of each other', () => {
-    const gap = NOSE_TO_TAIL - 1;
-    const w = world({ design: corvette, x: 0, y: 0 }, { design: corvette, x: gap, y: 0 });
-    findContacts(w.bodies, w.hulls, w.contacts);
-    expect(w.contacts.depth[0]!).toBeGreaterThan(0);
+    it("pushes two hulls out of each other", () => {
+        const gap = NOSE_TO_TAIL - 1;
+        const w = world({ design: corvette, x: 0, y: 0 }, { design: corvette, x: gap, y: 0 });
+        findContacts(w.bodies, w.hulls, w.contacts);
+        expect(w.contacts.depth[0]!).toBeGreaterThan(0);
 
-    // Closing, so the contact is live rather than one they are leaving.
-    w.bodies.vx[0] = 10;
-    w.bodies.vx[1] = -10;
-    resolveContacts(w.bodies, w.contacts);
-    expect(w.bodies.x[1]! - w.bodies.x[0]!).toBeGreaterThan(gap);
-  });
+        // Closing, so the contact is live rather than one they are leaving.
+        w.bodies.vx[0] = 10;
+        w.bodies.vx[1] = -10;
+        resolveContacts(w.bodies, w.contacts);
+        expect(w.bodies.x[1]! - w.bodies.x[0]!).toBeGreaterThan(gap);
+    });
 
-  it('leaves alone two hulls that are already separating', () => {
-    // They met last step and are on their way out: hitting them again would
-    // add energy the collision never had.
-    const w = world({ design: corvette, x: 0, y: 0, vx: -50 }, { design: corvette, x: NOSE_TO_TAIL - 0.5, y: 0, vx: 50 });
-    const collisions = new Collisions();
-    collisions.step(w.bodies, w.hulls);
-    expect(collisions.contacts.count).toBe(1);
-    expect(w.bodies.vx[0]).toBe(-50);
-    expect(w.bodies.vx[1]).toBe(50);
-  });
+    it("leaves alone two hulls that are already separating", () => {
+        // They met last step and are on their way out: hitting them again would
+        // add energy the collision never had.
+        const w = world({ design: corvette, x: 0, y: 0, vx: -50 }, { design: corvette, x: NOSE_TO_TAIL - 0.5, y: 0, vx: 50 });
+        const collisions = new Collisions();
+        collisions.step(w.bodies, w.hulls);
+        expect(collisions.contacts.count).toBe(1);
+        expect(w.bodies.vx[0]).toBe(-50);
+        expect(w.bodies.vx[1]).toBe(50);
+    });
 });
 
-describe('what gives', () => {
-  const DT = 1 / 60;
-  // A wedge of rock 20 m square, its near face at x = -10.
-  const rock = compileBlueprint({ name: 'Rock', modules: [rockModule([-10, -10, 10, -10, 10, 10, -10, 10], 0.3, 0.3)] });
+describe("what gives", () => {
+    const DT = 1 / 60;
+    // A wedge of rock 20 m square, its near face at x = -10.
+    const rock = compileBlueprint({ name: "Rock", modules: [rockModule([-10, -10, 10, -10, 10, 10, -10, 10], 0.3, 0.3)] });
 
-  it('lets rock give: a slow hull sinks into it, pushed back only as hard as it is closing', () => {
-    // The corvette's nose 5 cm into the rock's face, closing at 2 m/s.
-    const w = world({ design: corvette, x: -27.05, y: 0, vx: 2 }, { design: rock, x: 0, y: 0, fixed: true });
-    findContacts(w.bodies, w.hulls, w.contacts);
-    expect(w.contacts.count).toBeGreaterThan(0);
-    const x = w.bodies.x[0]!;
-    resolveContacts(w.bodies, w.contacts, w.hulls, DT);
-    // Still closing, slowed by the damper's push over a step, and left in.
-    expect(w.bodies.vx[0]!).toBeGreaterThan(0);
-    expect(w.bodies.vx[0]!).toBeCloseTo(2 - (ROCK_DAMPING * 2 * DT) / corvette.mass, 6);
-    expect(w.bodies.x[0]!).toBe(x);
-  });
+    it("lets rock give: a slow hull sinks into it, pushed back only as hard as it is closing", () => {
+        // The corvette's nose 5 cm into the rock's face, closing at 2 m/s.
+        const w = world({ design: corvette, x: -27.05, y: 0, vx: 2 }, { design: rock, x: 0, y: 0, fixed: true });
+        findContacts(w.bodies, w.hulls, w.contacts);
+        expect(w.contacts.count).toBeGreaterThan(0);
+        const x = w.bodies.x[0]!;
+        resolveContacts(w.bodies, w.contacts, w.hulls, DT);
+        // Still closing, slowed by the damper's push over a step, and left in.
+        expect(w.bodies.vx[0]!).toBeGreaterThan(0);
+        expect(w.bodies.vx[0]!).toBeCloseTo(2 - (ROCK_DAMPING * 2 * DT) / corvette.mass, 6);
+        expect(w.bodies.x[0]!).toBe(x);
+    });
 
-  it('lets a claw stab in: square on, it slows the ship over its depth and stops it sliding across', () => {
-    const salvager = compileBlueprint(SALVAGER);
-    const jaws = salvager.modules.find((m) => m.spec.kind === 'claw')!;
-    const tip = jaws.x + jaws.spec.length / 2;
-    // Its jaws 5 cm into the rock's face, closing at 2 m/s and sliding across at 0.5.
-    const w = world({ design: salvager, x: 0, y: 0, vx: 2, vy: 0.5 }, { design: rock, x: tip + 10 - 0.05, y: 0, fixed: true });
-    findContacts(w.bodies, w.hulls, w.contacts);
-    const k = [...Array(w.contacts.count).keys()].find((n) => salvager.modules[w.contacts.moduleA[n]!]?.spec.kind === 'claw');
-    expect(k).toBeDefined();
-    resolveContacts(w.bodies, w.contacts, w.hulls, DT);
-    expect(w.contacts.stab[k!]).toBe(Stab.A);
-    // Far gentler than meeting it hard, which would turn it round in the step.
-    expect(w.contacts.impulse[k!]!).toBeLessThan(0.1 * (1 + RESTITUTION) * 2 * salvager.mass);
-    expect(w.bodies.vx[0]!).toBeGreaterThan(0);
-    // Across, the jaws are held: what was sliding there is stopped, the ship turning about them.
-    const across = w.bodies.vy[0]! + w.bodies.angularVel[0]! * (w.contacts.x[k!]! - w.bodies.x[0]!);
-    expect(Math.abs(across)).toBeLessThan(1e-9);
-  });
+    it("lets a claw stab in: square on, it slows the ship over its depth and stops it sliding across", () => {
+        const salvager = compileBlueprint(SALVAGER);
+        const jaws = salvager.modules.find((m) => m.spec.kind === "claw")!;
+        const tip = jaws.x + jaws.spec.length / 2;
+        // Its jaws 5 cm into the rock's face, closing at 2 m/s and sliding across at 0.5.
+        const w = world({ design: salvager, x: 0, y: 0, vx: 2, vy: 0.5 }, { design: rock, x: tip + 10 - 0.05, y: 0, fixed: true });
+        findContacts(w.bodies, w.hulls, w.contacts);
+        const k = [...Array(w.contacts.count).keys()].find((n) => salvager.modules[w.contacts.moduleA[n]!]?.spec.kind === "claw");
+        expect(k).toBeDefined();
+        resolveContacts(w.bodies, w.contacts, w.hulls, DT);
+        expect(w.contacts.stab[k!]).toBe(Stab.A);
+        // Far gentler than meeting it hard, which would turn it round in the step.
+        expect(w.contacts.impulse[k!]!).toBeLessThan(0.1 * (1 + RESTITUTION) * 2 * salvager.mass);
+        expect(w.bodies.vx[0]!).toBeGreaterThan(0);
+        // Across, the jaws are held: what was sliding there is stopped, the ship turning about them.
+        const across = w.bodies.vy[0]! + w.bodies.angularVel[0]! * (w.contacts.x[k!]! - w.bodies.x[0]!);
+        expect(Math.abs(across)).toBeLessThan(1e-9);
+    });
 });
 
-describe('a battle of nothing but collisions', () => {
-  it('trades momentum between hulls without creating any', () => {
-    // The `ram` scenario has no wells and no pilot, so nothing but the contact
-    // solver can change a velocity. Whatever it does to four ships over three
-    // thousand steps, the total has to come out where it went in.
-    const run = ram();
-    const before = momentum(run.world.bodies);
+describe("a battle of nothing but collisions", () => {
+    it("trades momentum between hulls without creating any", () => {
+        // The `ram` scenario has no wells and no pilot, so nothing but the contact
+        // solver can change a velocity. Whatever it does to four ships over three
+        // thousand steps, the total has to come out where it went in.
+        const run = ram();
+        const before = momentum(run.world.bodies);
 
-    for (let i = 0; i < 3000; i++) run.step();
+        for (let i = 0; i < 3000; i++) run.step();
 
-    // Plus what the world stopped tracking: scrap too small to be worth
-    // keeping is not created, and it takes its momentum with it, so the books
-    // balance only when that is counted back in.
-    const after = momentum(run.world.bodies);
-    expect(run.totalContacts).toBeGreaterThan(0);
-    expect(after.x + run.ships.discardedPx).toBeCloseTo(before.x, 6);
-    expect(after.y + run.ships.discardedPy).toBeCloseTo(before.y, 6);
-  });
+        // Plus what the world stopped tracking: scrap too small to be worth
+        // keeping is not created, and it takes its momentum with it, so the books
+        // balance only when that is counted back in.
+        const after = momentum(run.world.bodies);
+        expect(run.totalContacts).toBeGreaterThan(0);
+        expect(after.x + run.ships.discardedPx).toBeCloseTo(before.x, 6);
+        expect(after.y + run.ships.discardedPy).toBeCloseTo(before.y, 6);
+    });
 
-  it('connects every attacker', () => {
-    const run = ram();
-    const met = new Set<number>();
-    for (let i = 0; i < 3000; i++) {
-      run.step();
-      const contacts = run.collisions.contacts;
-      for (let k = 0; k < contacts.count; k++) {
-        met.add(contacts.a[k]!);
-        met.add(contacts.b[k]!);
-      }
-    }
-    // Bodies 1 to 3 are the three attackers, all aimed at the anvil. What
-    // each of them ends up meeting is no longer only the anvil: the first
-    // strike breaks pieces off it, and they are in the way of the next.
-    expect(met.has(1)).toBe(true);
-    expect(met.has(2)).toBe(true);
-    expect(met.has(3)).toBe(true);
-  });
+    it("connects every attacker", () => {
+        const run = ram();
+        const met = new Set<number>();
+        for (let i = 0; i < 3000; i++) {
+            run.step();
+            const contacts = run.collisions.contacts;
+            for (let k = 0; k < contacts.count; k++) {
+                met.add(contacts.a[k]!);
+                met.add(contacts.b[k]!);
+            }
+        }
+        // Bodies 1 to 3 are the three attackers, all aimed at the anvil. What
+        // each of them ends up meeting is no longer only the anvil: the first
+        // strike breaks pieces off it, and they are in the way of the next.
+        expect(met.has(1)).toBe(true);
+        expect(met.has(2)).toBe(true);
+        expect(met.has(3)).toBe(true);
+    });
 
-  it('leaves the hulls tumbling rather than shaking', () => {
-    // A contact solver that fights itself shows up as spin that keeps
-    // growing, so what this pins is that the spin *settles*: the whole scene
-    // is ballistic once the last hulls have met, and a second run of the same
-    // length after that must not have found any more of it anywhere.
-    //
-    // The bound alongside it is loose on purpose. It is on what a fragment
-    // carries away rather than on what a hull does, and the smallest pieces
-    // the ram breaks off are a third of a metre across with almost no inertia
-    // at all — a knock that barely moves a hull sends one of those round
-    // several times a second, and that is the solver being right.
-    const run = ram();
-    const worst = (): number => {
-      const bodies = run.world.bodies;
-      let spin = 0;
-      for (let i = 0; i < bodies.highWater; i++) {
-        if (bodies.alive[i] === 0) continue;
-        expect(Number.isFinite(bodies.x[i]!)).toBe(true);
-        expect(Math.abs(bodies.angularVel[i]!)).toBeLessThan(100);
-        expect(Math.hypot(bodies.vx[i]!, bodies.vy[i]!)).toBeLessThan(200);
-        spin = Math.max(spin, Math.abs(bodies.angularVel[i]!));
-      }
-      return spin;
-    };
-    for (let i = 0; i < 3000; i++) run.step();
-    const settled = worst();
-    for (let i = 0; i < 3000; i++) run.step();
-    expect(worst()).toBeLessThanOrEqual(settled);
-  });
+    it("leaves the hulls tumbling rather than shaking", () => {
+        // A contact solver that fights itself shows up as spin that keeps
+        // growing, so what this pins is that the spin *settles*: the whole scene
+        // is ballistic once the last hulls have met, and a second run of the same
+        // length after that must not have found any more of it anywhere.
+        //
+        // The bound alongside it is loose on purpose. It is on what a fragment
+        // carries away rather than on what a hull does, and the smallest pieces
+        // the ram breaks off are a third of a metre across with almost no inertia
+        // at all — a knock that barely moves a hull sends one of those round
+        // several times a second, and that is the solver being right.
+        const run = ram();
+        const worst = (): number => {
+            const bodies = run.world.bodies;
+            let spin = 0;
+            for (let i = 0; i < bodies.highWater; i++) {
+                if (bodies.alive[i] === 0) continue;
+                expect(Number.isFinite(bodies.x[i]!)).toBe(true);
+                expect(Math.abs(bodies.angularVel[i]!)).toBeLessThan(100);
+                expect(Math.hypot(bodies.vx[i]!, bodies.vy[i]!)).toBeLessThan(200);
+                spin = Math.max(spin, Math.abs(bodies.angularVel[i]!));
+            }
+            return spin;
+        };
+        for (let i = 0; i < 3000; i++) run.step();
+        const settled = worst();
+        for (let i = 0; i < 3000; i++) run.step();
+        expect(worst()).toBeLessThanOrEqual(settled);
+    });
 });
