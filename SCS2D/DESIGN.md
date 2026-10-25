@@ -1100,7 +1100,8 @@ inside any one file is not contiguous.
   `rechargeBelow` goes to a pad for charge alone. A battery's room is what damage leaves it, so a pad never
   holds a fighter to fill cells that are broken. Evolution draws batteries and generators at a weight of
   one each, and a mutation does not turn either, since neither has a facing that matters.
-- **Next:** repair, construction and salvage, one mechanism, is built in all six stages:
+- **Next:** §8 steps 16–18 in order — the React UI, then the WebGL viewer, then the campaign (ROADMAP.md §8
+  has why). Every step before them is built. Repair, construction and salvage, one mechanism, is built in all six stages:
   damage shedding mass, pads mending landed fighters, robots mending their own hull, lost and built anew,
   lost modules rebuilt by robots and by pads, and robots taking wreckage apart into metal, with doctrine that
   sends a fighter in to be mended and a ship out to wrecks for their metal, flown by the stock Salvager.
@@ -1203,7 +1204,7 @@ inside any one file is not contiguous.
   and hits scored are identical too. Measured by `scenarios/ordering.ts`, which
   flies three gunships of one geometry both stacked in one battle and one to a
   battle each.
-- **Last updated:** 2026-10-21
+- **Last updated:** 2026-10-25
 
 ---
 
@@ -1215,7 +1216,8 @@ kept as a *mode*, not as the point.
 
 **A second goal, and a real one: this should stay useful for work.** The stack was picked partly to
 learn TypeScript, React and WebGL — the day job is moving that way and this project gets there first
-(see §5). So where a technical choice is otherwise balanced, the one that teaches something
+(see §5). React in particular is set up as the Wordwall Frontend uses it, so what is learned here carries
+straight over. So where a technical choice is otherwise balanced, the one that teaches something
 transferable wins, and running *ahead* of the work toolchain is a feature rather than a risk.
 
 **Non-goals:** empire-scale RTS, base building, resource-management-as-main-verb, real-time
@@ -1878,6 +1880,10 @@ SCS2D/
 - **`SharedArrayBuffer` requires cross-origin isolation** (`COOP: same-origin`,
   `COEP: require-corp`). **GitHub Pages cannot set those headers**; Netlify, Cloudflare Pages and
   Vercel can. Otherwise use `postMessage` with transferable `ArrayBuffer`s, which works anywhere.
+- **React is set up as closely to the Wordwall Frontend as possible** — its tooling, structure and
+  component conventions, with components developed in Storybook — since learning React in the form work
+  uses is a main reason for it (§1). Until §8 step 16, every page drives the DOM by hand from `host/`
+  and `editor/`.
 - **React holds UI state only** — which panel is open, which ship is selected, editor values.
   Never per-frame sim state: a 60 Hz re-render over hundreds of entities is a performance
   catastrophe. The battle view is a `<canvas>` React mounts and then ignores. Sample selected-ship
@@ -1886,8 +1892,11 @@ SCS2D/
 - **Rendering:** procedural 2D vector art generated from each module's shape data, colour and
   metadata. **Triangulate a blueprint once, instance per ship** — the same precompute pattern as the
   engine matrix. WebGL, because ~4,000 filled paths per frame is beyond Canvas2D.
-  - **Exception:** the Slice 0 debug viewer uses Canvas2D. At twenty bodies it's fine and it's a
-    tenth of the code. Keep the renderer behind an interface so the swap is contained.
+  - **Exception, for now:** every view draws with Canvas2D (`render/canvas2d.ts`). At tens of bodies
+    it's fine and it's a tenth of the code. It is not yet behind an interface — pages fetch a 2D context
+    and call `draw` themselves — so the React UI (§8 step 16) builds that interface as the canvas
+    component, and the WebGL viewer (step 17) goes in behind it, with Canvas2D kept as a setting until
+    WebGL is ready.
   - Procedural art means **adding a module type costs zero art**, and module variety *is* the
     content. It also guarantees the picture matches the simulation, which matters when the picture
     is the instrument you read design failures from.
@@ -2104,10 +2113,10 @@ Recorded so they aren't reopened without new information.
 | MonoGame / Silk.NET + Dear ImGui | ImGui is excellent for tools and will make a game you want to show people look like a debug build. |
 | Raster sprites | Rotating ships carry baked highlights around under a directional star; fixing it means normal maps, which is 3D work in disguise. |
 | 3D meshes | Art cost per module gates content, and module variety *is* the content. There were only ever 3 mesh files in the old project; there is nothing to preserve. |
-| Canvas2D for the real renderer | ~4,000 filled paths per frame is past where Canvas2D falls over. (Kept for the Slice 0 debug viewer.) |
+| Canvas2D for the real renderer | ~4,000 filled paths per frame is past where Canvas2D falls over. (Kept until the WebGL viewer, §8 step 17, replaces it.) |
 | Hand-modelled hero ships alongside procedural ones | Looks inconsistent, not aspirational. Polish is *better procedural*. |
 | Evolution in a loading screen | Procedural art means there is nothing to load; a fabricated progress bar is worse than free. Run it in workers during the current battle. |
 | Free-form evolution for the campaign enemy | Produces illegible weirdness. Kept for the sandbox. |
 | Real-time PvP | Incompatible with pause-to-think. |
 | A backend server | Hosting, auth and sync are ongoing work and cost for a project that goes quiet; a static site never rots. |
-| Campaign first | Mostly authoring — scripted missions, pacing, narrative — in the least-proven discipline. Skirmish is a complete loop and a better environment for the adaptive enemy anyway (hundreds of battles, not fifteen). |
+| Campaign first | Needs progression and campaign-only mechanisms as well as authoring — scripted missions, pacing, narrative — the least-proven discipline. Skirmish is a complete loop and a better environment for the adaptive enemy anyway (hundreds of battles, not fifteen). |
