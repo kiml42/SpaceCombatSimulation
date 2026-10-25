@@ -57,9 +57,9 @@ an entry is either still open or it is gone.
 | 13 | Harvesting wrecks | Built |
 | 14 | Orders | Built |
 | 15 | Mining | Built |
-| 16 | Campaign | Not started |
-| 17 | React UI | Not started |
-| 18 | WebGL viewer | Not started |
+| 16 | React UI | Not started |
+| 17 | WebGL viewer | Not started |
+| 18 | Campaign | Not started |
 
 
 ### Partly built — what is left
@@ -68,16 +68,32 @@ None.
 
 ### Not started — in order
 
-16. **Campaign** — Homeworld-shaped, with the adaptive enemy. Last, because it's mostly *authoring* (scripted
-    missions, pacing, narrative), which is the largest volume of work in the least-proven discipline.
-17. **React UI** — Port all the plain HTML and DOM processing to React and componentise it with Storybook (mirroring the new Wordwall Frontend work). This is both:
-  - Improve how the UI looks and behaves
-  - Allow component reuse
-  - Help Kiml42 learn to work with React
-18. **Web GL Viewer** — Use WebGL instead of Canvas for more capable visuals for the project. The clear divide between sim and visuals should make this a clean addition, with the Canvas version being able to be kept until the WebGL one is ready. What we hope to get out of this:
-  - Learn the capabilities of WebGL and how to work with it
-  - More capable rendering with improved effects
-  - More efficient rendering
+16. **React UI** — Port all the plain HTML and DOM processing to React, componentised with Storybook. **Set
+    it up as closely to the Wordwall Frontend as possible** — its tooling, structure and component
+    conventions — because a large part of the point is for Kiml42 to learn React in a form that carries
+    straight over to work. What we hope to get out of this:
+    - Kiml42 learns to work with React, the way the Wordwall Frontend uses it
+    - Improve how the UI looks and behaves
+    - Allow component reuse
+
+    First, because it is the larger and riskier change, and it rewrites the code that mounts the canvas
+    anyway. The battle view becomes a component React mounts and then ignores (non-negotiable 5), and that
+    component is the renderer interface §5 asks for and does not yet have: five pages call `draw` with a
+    2D context they fetched themselves, and the editor overlays draw on that same context. Building the
+    seam in the plain-DOM pages for WebGL's sake would mean building it twice.
+17. **WebGL viewer** — Use WebGL instead of Canvas for more capable visuals, behind the canvas component, with
+    the Canvas2D renderer kept as a setting until the WebGL one is ready. What we hope to get out of this:
+    - Learn the capabilities of WebGL and how to work with it
+    - More capable rendering with improved effects
+    - More efficient rendering
+
+    After React, so it swaps what is inside one component rather than five pages, and so a break can be
+    told apart from the UI port. The editor's handles and guides can stay Canvas2D on a canvas stacked
+    over the WebGL one, and the evolution charts (`render/chart.ts`) are not WebGL's concern.
+18. **Campaign** — Homeworld-shaped, with the adaptive enemy. As much new mechanism as authoring: progression
+    between missions and functionality only a campaign needs, as well as the scripted missions, pacing and
+    narrative. Last, because its screens — briefings, progression, fleet carried between missions — would
+    otherwise be built in plain DOM and then rewritten in React.
 
 **Scenario packs** are the cheapest way to make it a game with goals rather than a sandbox, and they teach the
 mechanics. Each scenario is a data file, not code.
