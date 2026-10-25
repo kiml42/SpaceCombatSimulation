@@ -845,9 +845,15 @@ inside any one file is not contiguous.
   ship's modules and faster over broader ones in proportion past `ROBOT_ROOM` across, up to `ROBOT_TOP_SPEED` over an
   asteroid's rock (`robotSpeedOver`, the narrower of the two it crosses between), and is drawn there as
   a beetle facing the way it crawls, its two wing cases bars that empty as it spends its charge and its
-  metal, over every capital hull and its mounts and under every fighter, flying or landed. It sets out with `ROBOT_LOAD` of metal and `ROBOT_CHARGE` it may spend, goes to
+  metal, at its own spot on each module, inside its outline, from which it crawls to its spot on the next by
+  where the two meet (`doorBetween`), so it arrives where it works, stays on the matter, and a body's robots stand spread over a module rather than in a heap. Its spot in its own bay
+  is its berth, so it walks home onto its pad; on a moored ship's claw, and on the rock the claw grips, it is
+  where the claw grips, so it steps from hull to rock without moving. Over a broad module it
+  keeps its own pace, up to `ROBOT_PACE_SPREAD` of the speed the module allows beyond `ROBOT_SPEED` slower, so a
+  crowd out on rock spreads out rather than marching in step. It is drawn over every capital hull and its mounts and under every fighter, flying or landed. It sets out with `ROBOT_LOAD` of metal and `ROBOT_CHARGE` it may spend, goes to
   the damaged module of its ship's that matters most — cores and robot bays, then engines and weapons, then the rest, the
-  one fewest robots are after, the nearest of those — and mends it at `ROBOT_REPAIR_RATE`, at a pad's costs:
+  one fewest robots are after, the nearest of those, and never one already with as many robots as its area
+  has room for (`robotsOn`, one to `ROBOT_WORK_AREA`) — and mends it at `ROBOT_REPAIR_RATE`, at a pad's costs:
   `REPAIR_ENERGY_PER_JOULE` of what it carries, and the metal the module shed and `REPAIR_WASTE` more, drawn
   from its piece of hull. It goes straight on to the next job, and home once it is short of either; its bay
   refills it over `ROBOT_REFILL_TIME`, slower as the bay is damaged, charging it as fast from its piece,
