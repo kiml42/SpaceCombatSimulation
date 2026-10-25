@@ -1,0 +1,5 @@
+# Commits that only reformat. GitHub skips them in blame; locally,
+# git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# Prettier: four-space indents and double quotes
+575ca31062f48f23c4bcc6109a578440225991e8
