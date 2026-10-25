@@ -69,16 +69,18 @@ None.
 ### Not started — in order
 
 16. **React UI** — Port all the plain HTML and DOM processing to React, componentised with Storybook. **Set
-    it up as closely to the Wordwall Frontend as possible** — its tooling, structure and component
-    conventions — because a large part of the point is for Kiml42 to learn React in a form that carries
+    it up as it is used professionally** — the tooling, structure and component conventions in the target
+    state below — because a large part of the point is for Kiml42 to learn React in a form that carries
     straight over to work. What we hope to get out of this:
-    - Kiml42 learns to work with React, the way the Wordwall Frontend uses it
+    - Kiml42 learns to work with React, set up the way it is used professionally
     - Improve how the UI looks and behaves
     - Allow component reuse
 
     The target state:
     - **Build and tooling.** React with TypeScript, built by Vite in place of `scripts/build.ts`, still one
-      self-contained file per page; a static site, so no router framework or server rendering. pnpm as the
+      self-contained file that opens from disk. One page, an SPA, routed by React Router's hash router
+      (`createHashRouter`): the history API does not work from `file://`, and this is a static site, so no
+      router framework or server rendering. Vite's dev server for local work. pnpm as the
       package manager. ESLint alongside Prettier, with Prettier set to four-space indents and double quotes.
       TypeScript stays a major ahead (DESIGN.md §5).
     - **Components.** Base UI where it has the component, Font Awesome for icons. Styles in Linaria
@@ -96,7 +98,46 @@ None.
       props and imports nothing above it — enforced by ESLint `no-restricted-imports`, as the `sim/`
       boundary is by tsconfig. No barrel `index.ts` files; cross-folder imports through a `~/` alias.
 
-    First, because it is the larger and riskier change, and it rewrites the code that mounts the canvas
+    **In stages, new beside old.** The SPA is a bundle of its own beside the five pages, and pages move into
+    it one at a time; an old page goes only once its route does everything it did. Links between the two
+    use the URL handoff that already works (`editor/handoff.ts`), and an old page's links point at a page's
+    route once it has moved. No old page is wrapped inside the SPA to get there sooner: none was written to
+    be torn down — window listeners, animation loops, workers — and making five of them clean up after
+    themselves is work on code that exists to be deleted. The stages:
+
+    1. **Foundation, with no page in it.** pnpm, Vite, React, ESLint, Linaria, Storybook and the two Vitest
+       projects, building an empty SPA as one file that opens from disk. Prettier's new style lands first
+       as a commit of its own, listed in `.git-blame-ignore-revs`, since it rewrites every line and would
+       otherwise bury every later diff. First because each risk here is tooling and could change the
+       plan: Vite emits module scripts, which a browser will not load from `file://`, so the script and the
+       answer worker must be inlined; typescript-eslint must work with TypeScript 7's rewritten compiler;
+       Linaria's build step must work under Vite.
+    2. **The shell: hash routes, and one library and one set of view settings** as React context over
+       `localStorage`. Before any page, because the library is what every page shares and sharing it is
+       the point of the SPA; its shape is got right once, not retrofitted at the second page to use it.
+    3. **Battle viewer.** The biggest risk first: the canvas component React mounts and ignores, with the
+       clock outside React and telemetry sampled at ~10 Hz, is the pattern most likely to go wrong, and is
+       better learned on a mid-sized page than found broken in evolution. It is also the renderer interface
+       step 17 needs, and the page every other one hands off to. Its panels — custom battle, doctrine, order
+       bar, settings — are where the buttons and fields every later page needs are built, each promoted to
+       `ui/` when a second page wants it rather than built ahead as a library.
+    4. **Fleet editor.** Mostly forms and tables, reusing the library and the canvas component. With it,
+       ships and fleets saved in the SPA are one library on Firefox, which opened as files gives every page
+       storage of its own — the first real payoff.
+    5. **Ship editor.** The hardest interaction — drag handles, snapping, undo, overlays on the canvas — so
+       after the canvas component has matured and the fleet editor's round trip to a design exists. Its
+       edit model is already DOM-free and tested (`edit.ts`, `document.ts`, `stats.ts`), so `page.ts` is
+       mostly wiring.
+    6. **Skirmish.** Reuses the battle view, the fleet editor and the settings fields. Its answer worker is
+       the first the SPA owns, and **it keeps evolving while the player edits their fleet**, which separate
+       pages never could: the answer starts sooner. It is bred against the fleet as it stood before the
+       edit, which is fine for anything generally better and wasted only on specifics the edit changed.
+    7. **Evolution.** The largest page, so last, reusing the most: the mutation and settings fields it
+       shares with skirmish, and the timeline. Its charts stay Canvas2D or become SVG.
+    8. **The old build goes:** `scripts/build.ts`, the page shells and the URL handoff between pages (kept
+       for links that are shared), and the SPA becomes `index.html`.
+
+    Before WebGL, because it is the larger and riskier change, and it rewrites the code that mounts the canvas
     anyway. The battle view becomes a component React mounts and then ignores (non-negotiable 5), and that
     component is the renderer interface §5 asks for and does not yet have: five pages call `draw` with a
     2D context they fetched themselves, and the editor overlays draw on that same context. Building the
