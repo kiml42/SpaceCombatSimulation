@@ -8,6 +8,7 @@ import {
   HullPath,
   modulesAlong,
   insetTriangle,
+  WELD_SHARE,
   modulesOverlap,
   moduleOutline,
   moduleProblem,
@@ -172,6 +173,30 @@ describe('what a triangle is to the rest of the simulation', () => {
     expect(contactWidth(shaped, astern)).toBeCloseTo(4, 6);
     // Meeting the stern corner at a point: a corner touch is not a joint.
     expect(contactWidth(shaped, plate({ x: 7.75, y: 2.25, length: 0.5, width: 0.5 }))).toBe(0);
+  });
+
+  it('is not welded by a corner on a face, however far along the face it reaches', () => {
+    // A long plate's top face along y = 0, and a sliver of a triangle whose
+    // one corner rests on it and whose length runs along it, rising away.
+    const deck = plate({ x: 5, y: -1, length: 10, width: 2 });
+    const leaning = shapeModule(plate(), [2, 0, 10, 3, 2, 1])!;
+    expect(contactWidth(deck, leaning)).toBe(0);
+    // Laid flat on it, it is welded by its whole face.
+    const flat = shapeModule(plate(), [2, 0, 10, 0, 2, 1])!;
+    expect(contactWidth(deck, flat)).toBeCloseTo(8, 6);
+  });
+
+  it(`is not welded by less than ${WELD_SHARE * 100}% of the shorter face, at any size`, () => {
+    // Side by side, 2 m faces, sharing 0.15 m and then 0.25 m of them.
+    expect(contactWidth(plate(), plate({ x: 2, y: 1.85 }))).toBe(0);
+    expect(contactWidth(plate(), plate({ x: 2, y: 1.75 }))).toBeCloseTo(0.25, 6);
+    // The same at a fighter's scale and at a capital's: a share, not a length.
+    const small = (y: number) => contactWidth(plate({ length: 0.2, width: 0.2 }), plate({ x: 0.2, y, length: 0.2, width: 0.2 }));
+    expect(small(0.19)).toBe(0);
+    expect(small(0.17)).toBeCloseTo(0.03, 6);
+    const big = (y: number) => contactWidth(plate({ length: 200, width: 200 }), plate({ x: 200, y, length: 200, width: 200 }));
+    expect(big(190)).toBe(0);
+    expect(big(170)).toBeCloseTo(30, 6);
   });
 
   it('is crossed by a shot where the corners are, and not where they are not', () => {

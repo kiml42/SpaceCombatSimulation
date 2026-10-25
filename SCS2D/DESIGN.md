@@ -1410,7 +1410,9 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
 **One planar rigid body per ship. Modules are data, not physics bodies.**
 
 - **Connectivity graph** per hull, and it is built (`sim/connectivity.ts`). Two modules are welded
-  where their faces touch, and the weld is worth its section — the contact by the thinner wall meeting
+  where their faces touch — a face of one along a face of the other, for at least `WELD_SHARE` (a tenth)
+  of the shorter of the two, never at a corner, however a triangle or a rock's wedge is turned — and the
+  weld is worth its section — the contact by the thinner wall meeting
   there — rated as an impulse. **Damage weakens a weld; a blow parts it**, and the load through a weld
   is the impulse that has to cross it: the far side's mass by the velocity change there. A weld cut
   through its section by rounds passing along it parts with no blow at all, since a cut weld is not a

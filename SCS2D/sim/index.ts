@@ -280,6 +280,7 @@ export { Collisions, Contacts, RESTITUTION, findContacts, resolveContacts } from
 export {
   ATTACHMENT_TOLERANCE,
   contactWidth,
+  WELD_SHARE,
   assemblyProblem,
   blueprintFaults,
   blueprintProblem,
