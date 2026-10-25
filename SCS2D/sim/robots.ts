@@ -1,7 +1,7 @@
 import type { ShipDesign } from './blueprint.js';
 import { joints } from './connectivity.js';
-import { imul, length } from './math.js';
-import { ROBOT_CHARGE, ROBOT_LOAD, ROBOT_MASS, ROBOT_REFILL_TIME, ROBOT_SPEED, robotSpeedOver } from './modules.js';
+import { abs, imul, length } from './math.js';
+import { moduleOutline, ROBOT_CHARGE, ROBOT_LOAD, ROBOT_MASS, ROBOT_REFILL_TIME, ROBOT_SPEED, robotSpeedOver } from './modules.js';
 
 /**
  * Robots that crawl a hull mending it (ROADMAP.md §8, repair stage 3).
@@ -284,6 +284,69 @@ export function walkTime(design: ShipDesign, prev: Int32Array, to: number, tag: 
     time += length(a.x - b.x, a.y - b.y) / stepSpeed(design, prev[m]!, m, tag);
   }
   return time;
+}
+
+/** How near two faces must lie to be the one weld, m: well past `ATTACHMENT_TOLERANCE`, for rounding. */
+const DOOR_TOLERANCE = 0.05;
+
+const doors = new WeakMap<ShipDesign, Map<number, readonly [number, number] | null>>();
+const outlineA: number[] = [];
+const outlineB: number[] = [];
+
+/**
+ * The middle of where modules `a` and `b` of a design meet, in its frame: the
+ * longest stretch of a face of one lying along a face of the other, or the
+ * corner they touch at, the way a robot crosses from one to the other. Null
+ * where no face of one lies along one of the other, as a seam's may not.
+ */
+export function doorBetween(design: ShipDesign, a: number, b: number): readonly [number, number] | null {
+  let byPair = doors.get(design);
+  if (byPair === undefined) {
+    byPair = new Map();
+    doors.set(design, byPair);
+  }
+  const lo = a < b ? a : b;
+  const hi = a < b ? b : a;
+  const key = lo * design.modules.length + hi;
+  const known = byPair.get(key);
+  if (known !== undefined) return known;
+  const ma = design.modules[lo]!;
+  const mb = design.modules[hi]!;
+  const na = moduleOutline(ma.spec, outlineA);
+  const nb = moduleOutline(mb.spec, outlineB);
+  // A corner they only touch at is a stretch of nought, still a way across.
+  let best = -DOOR_TOLERANCE;
+  let door: readonly [number, number] | null = null;
+  for (let i = 0; i < na; i++) {
+    const px = outlineA[2 * i]!;
+    const py = outlineA[2 * i + 1]!;
+    const ex = outlineA[2 * ((i + 1) % na)]! - px;
+    const ey = outlineA[2 * ((i + 1) % na) + 1]! - py;
+    const span = length(ex, ey);
+    if (!(span > 0)) continue;
+    const ux = ex / span;
+    const uy = ey / span;
+    for (let j = 0; j < nb; j++) {
+      const qx = outlineB[2 * j]! - px;
+      const qy = outlineB[2 * j + 1]! - py;
+      const fx = outlineB[2 * ((j + 1) % nb)]! - px;
+      const fy = outlineB[2 * ((j + 1) % nb) + 1]! - py;
+      // Facing it, and on the same line: what touches, wound the other way.
+      const along = (fx - qx) * ux + (fy - qy) * uy;
+      if (!(along < 0) || abs(qx * uy - qy * ux) > DOOR_TOLERANCE || abs(fx * uy - fy * ux) > DOOR_TOLERANCE) continue;
+      const s0 = qx * ux + qy * uy;
+      const s1 = fx * ux + fy * uy;
+      const from = (s0 < s1 ? s0 : s1) > 0 ? (s0 < s1 ? s0 : s1) : 0;
+      const to = (s0 < s1 ? s1 : s0) < span ? (s0 < s1 ? s1 : s0) : span;
+      if (!(to - from > best)) continue;
+      best = to - from;
+      // From the blueprint's frame, which outlines are in, to the design's.
+      const mid = 0.5 * (from + to);
+      door = [px + ux * mid - (ma.spec.x - ma.x), py + uy * mid - (ma.spec.y - ma.y)];
+    }
+  }
+  byPair.set(key, door);
+  return door;
 }
 
 /** Every body's robots, by body index, and what each body's bays are building. */

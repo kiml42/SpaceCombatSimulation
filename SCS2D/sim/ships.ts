@@ -62,7 +62,20 @@ import { abs, atan2, angleDelta, PI, brakingRate, clamp, cos, exp, floor, length
 import { Projectiles } from './projectiles.js';
 import { padApproaches, type PadApproach } from './padApproach.js';
 import type { Store } from './store.js';
-import { crawl, legLength, neighbourOf, pathTo, robotShare, RobotMode, Robots, staysWhole, walk, walkTime, type Robot } from './robots.js';
+import {
+  crawl,
+  doorBetween,
+  legLength,
+  neighbourOf,
+  pathTo,
+  robotShare,
+  RobotMode,
+  Robots,
+  staysWhole,
+  walk,
+  walkTime,
+  type Robot,
+} from './robots.js';
 import { Allocation, EngineLayout } from './engines.js';
 import { addFlame, addTurret, attackBearing, AttackArcs, AttackRegion } from './attack.js';
 import { FiringSolution, interceptTime, Turrets, TurretState } from './turrets.js';
@@ -509,6 +522,16 @@ const HULL_ORBIT_STEP = 0.5;
  * dead astern does not swing between the two corners either side.
  */
 const WAY_STICK = 0.3;
+
+/**
+ * How full a robot's bar is drawn, 0 to 1: what it is carrying home while it
+ * fetches, whether taking wreckage apart or bound for or out on rock, or else
+ * what it still has to spend mending.
+ */
+function robotLoad(robot: Robot): number {
+  const fetching = robot.strip || robot.bound >= 0 || robot.away >= 0 || robot.cargo + robot.cargoFuel > 0;
+  return (fetching ? robot.cargo + robot.cargoFuel : robot.metal) / ROBOT_LOAD;
+}
 
 /** How much of a module's half-length and half-breadth the robots on it stand within, so all are seen on it. */
 const ROBOT_SPOT_SHARE = 0.6;
@@ -7518,7 +7541,7 @@ export class Ships {
       const here = design.modules[robot.at]!;
       const charge = robot.charge / ROBOT_CHARGE;
       // Taking wreckage apart, it fills with what it carries home.
-      const metal = (robot.strip || robot.cargo + robot.cargoFuel > 0 ? robot.cargo + robot.cargoFuel : robot.metal) / ROBOT_LOAD;
+      const metal = robotLoad(robot);
       const heading = this.robotPlace(design, robots, r);
       out.push(here.x + this.robotDx, here.y + this.robotDy, heading, charge, metal);
     }
@@ -7553,12 +7576,26 @@ export class Ships {
       this.spotFor(design, next, robots, r);
       const leg = legLength(design, path, robot.leg);
       const t = leg > 0 ? min(1, robot.along / leg) : 0;
-      const wayX = there.x + this.spotX - here.x - fromX;
-      const wayY = there.y + this.spotY - here.y - fromY;
-      this.robotDx = fromX + wayX * t;
-      this.robotDy = fromY + wayY * t;
-      // Facing the way it crawls.
-      return atan2(wayY, wayX);
+      const toX = there.x + this.spotX - here.x;
+      const toY = there.y + this.spotY - here.y;
+      // By where the two meet, so it never crosses a gap between their corners.
+      const door = doorBetween(design, robot.at, next);
+      const doorX = door === null ? fromX : door[0] - here.x;
+      const doorY = door === null ? fromY : door[1] - here.y;
+      const first = length(doorX - fromX, doorY - fromY);
+      const second = length(toX - doorX, toY - doorY);
+      const gone = t * (first + second);
+      if (gone < first) {
+        const share = first > 0 ? gone / first : 0;
+        this.robotDx = fromX + (doorX - fromX) * share;
+        this.robotDy = fromY + (doorY - fromY) * share;
+        // Facing the way it crawls.
+        return atan2(doorY - fromY, doorX - fromX);
+      }
+      const share = second > 0 ? (gone - first) / second : 1;
+      this.robotDx = doorX + (toX - doorX) * share;
+      this.robotDy = doorY + (toY - doorY) * share;
+      return atan2(toY - doorY, toX - doorX);
     }
     this.robotDx = fromX;
     this.robotDy = fromY;
@@ -7651,6 +7688,23 @@ export class Ships {
     // A low-discrepancy sequence by tag, so robots numbered together stand apart.
     const u = (tag * 0.7548776662 + robotShare(m, 1)) % 1;
     const v = (tag * 0.5698402911 + robotShare(m, 2)) % 1;
+    const corners = spec.vertices;
+    if (corners !== undefined) {
+      // A shaped module's box is not centred on it: one triangle of the fan
+      // from its middle, and a point within it, so the spot is on the matter.
+      const n = corners.length / 2;
+      const k = floor(u * n);
+      const f = u * n - k;
+      const reach = ROBOT_SPOT_SHARE * sqrt(v);
+      const j = (k + 1) % n;
+      const x = reach * ((1 - f) * corners[2 * k]! + f * corners[2 * j]!);
+      const y = reach * ((1 - f) * corners[2 * k + 1]! + f * corners[2 * j + 1]!);
+      const c = cos(spec.angle ?? 0);
+      const s = sin(spec.angle ?? 0);
+      this.spotX = x * c - y * s;
+      this.spotY = x * s + y * c;
+      return;
+    }
     const along = (2 * u - 1) * ROBOT_SPOT_SHARE * 0.5 * spec.length;
     const across = (2 * v - 1) * ROBOT_SPOT_SHARE * 0.5 * spec.width;
     const angle = spec.angle ?? 0;
@@ -7680,7 +7734,7 @@ export class Ships {
     const turn = bodies.angle[cb]! - bodies.angle[b]!;
     const c = cos(-bodies.angle[b]!);
     const s = sin(-bodies.angle[b]!);
-    const metal = (robot.strip || robot.cargo + robot.cargoFuel > 0 ? robot.cargo + robot.cargoFuel : robot.metal) / ROBOT_LOAD;
+    const metal = robotLoad(robot);
     out.push(wx * c - wy * s, wx * s + wy * c, heading + turn, robot.charge / ROBOT_CHARGE, metal);
   }
 

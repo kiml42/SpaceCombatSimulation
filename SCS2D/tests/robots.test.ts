@@ -17,6 +17,7 @@ import {
   ROBOT_SPEED,
   ROBOT_TOP_SPEED,
   ROBOT_VIEW_STRIDE,
+  doorBetween,
   robotSpeedOver,
   robotsOn,
   ROBOT_WORK_AREA,
@@ -102,9 +103,9 @@ describe('robots', () => {
     const views: number[] = [];
     run.ships.robotViews(run.a, views);
     expect(views.length).toBe(line.modules[BAY]!.stats.robots * ROBOT_VIEW_STRIDE);
-    // Crawling forward, towards the core, full of both.
+    // Crawling forward, towards the core, from its berth to where the bay meets the hull ahead, full of both.
     const heading = views[2]!;
-    expect(Math.cos(heading)).toBeLessThan(-0.9);
+    expect(Math.cos(heading)).toBeLessThan(-0.5);
     expect(views[3]).toBeCloseTo(1, 6);
     expect(views[4]).toBeCloseTo(1, 6);
   });
@@ -197,6 +198,15 @@ describe('robots', () => {
     for (let r = 0; r < docked.length; r += 4) berths.add(`${docked[r]}:${docked[r + 3]}`);
     expect(berths.size).toBe(docked.length / 4);
     expect(berths.size).toBe(line.modules[BAY]!.stats.robots);
+  });
+
+  it('cross from one module to the next where they meet, not straight across between their middles', () => {
+    // The core's bow face, 3 m across, meets the first block of structure at its middle.
+    const core = line.modules[CORE]!;
+    const door = doorBetween(line, CORE, of('structure'))!;
+    expect(door[0]).toBeCloseTo(core.x + core.spec.length / 2, 6);
+    expect(door[1]).toBeCloseTo(core.y, 6);
+    expect(doorBetween(line, CORE, BAY)).toBeNull();
   });
 
   it('stay in their bay while nothing needs mending', () => {

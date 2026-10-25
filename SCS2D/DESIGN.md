@@ -845,8 +845,8 @@ inside any one file is not contiguous.
   ship's modules and faster over broader ones in proportion past `ROBOT_ROOM` across, up to `ROBOT_TOP_SPEED` over an
   asteroid's rock (`robotSpeedOver`, the narrower of the two it crosses between), and is drawn there as
   a beetle facing the way it crawls, its two wing cases bars that empty as it spends its charge and its
-  metal, at its own spot on each module, from which it crawls straight to its spot on the next, so it arrives
-  where it works and a body's robots stand spread over a module rather than in a heap. Its spot in its own bay
+  metal, at its own spot on each module, inside its outline, from which it crawls to its spot on the next by
+  where the two meet (`doorBetween`), so it arrives where it works, stays on the matter, and a body's robots stand spread over a module rather than in a heap. Its spot in its own bay
   is its berth, so it walks home onto its pad; on a moored ship's claw, and on the rock the claw grips, it is
   where the claw grips, so it steps from hull to rock without moving. Over a broad module it
   keeps its own pace, up to `ROBOT_PACE_SPREAD` of the speed the module allows beyond `ROBOT_SPEED` slower, so a
