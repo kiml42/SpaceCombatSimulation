@@ -367,7 +367,7 @@ What is left of the step should follow the shape already there:
 
 - **Mutants that fail `blueprintProblem` are refused, not repaired** — a repair rule is a second opinion about
   what a ship is. Edit distance per generation is bounded (§7), so a descendant is recognisably one.
-- **One evolution core, importing nothing from the host**, driven headlessly by `npm run evolve` and by its
+- **One evolution core, importing nothing from the host**, driven headlessly by `pnpm evolve` and by its
   page. A run is a JSON file; §5's SharedWorker, React and wa-sqlite stack is not built and nothing so far has
   needed it. It is wanted when a campaign needs to *query* runs.
 - **One match scores survival, damage and ground gained together**, so a design has to make the trade
@@ -930,7 +930,7 @@ Deliberately unresolved; decide when they block something.
 - **Whether the remaining authored data lives in files rather than in code.** Blueprints do: they are JSON,
   parsed by `sim/blueprintFile.ts`, and the shipped ships go through exactly the validation a stranger's file
   does. What has not moved is `tests/fixtures/scenarios.ts`, and §9's promise of
-  `npm run battle -- scenarios/duel.json` — a *scenario* is more than a list of modules, since it also carries
+  `pnpm battle scenarios/duel.json` — a *scenario* is more than a list of modules, since it also carries
   spawn poses, teams, wells and a seed, so it needs a format of its own rather than a reuse of this one.
   The battle file (`scenarios/customBattle.ts`) is the start of one — fleets, a range, speeds and a seed —
   but has no wells and no orders, so the scripted scenarios cannot be written in it yet.

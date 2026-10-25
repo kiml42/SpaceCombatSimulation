@@ -79,34 +79,34 @@ disagree about the same ship, which is the worst thing the tool can do.
 
 Keep these working — they are the cold-start re-entry path:
 
-- `npm test` — unit tests, determinism tests and the golden scenario checksums
-- `npm run typecheck` — all three TS projects (`sim/` has no ambient types; `render/`, `editor/` and
+- `pnpm test` — unit tests, determinism tests and the golden scenario checksums
+- `pnpm typecheck` — all three TS projects (`sim/` has no ambient types; `render/`, `editor/` and
   `host/` have the DOM)
-- `npm run format` — format the TypeScript with Prettier (`.prettierrc.json`); CI fails on anything
-  `npm run format:check` finds, so run it before pushing
-- `npm run golden` — re-derive golden checksums after a *deliberate* behaviour change
-- `npm run evolve` — fight a headless evolution run and write it to `runs/`, rewritten after every generation; `--from <stock ships or blueprint files>`, `--fleet <stock fleet
+- `pnpm format` — format the TypeScript with Prettier (`.prettierrc.json`); CI fails on anything
+  `pnpm format:check` finds, so run it before pushing
+- `pnpm golden` — re-derive golden checksums after a *deliberate* behaviour change
+- `pnpm evolve` — fight a headless evolution run and write it to `runs/`, rewritten after every generation; `--from <stock ships or blueprint files>`, `--fleet <stock fleet
   or fleet file>`, `--deploy <radius>`, `--ships <most>` (ship founders grow into fleets unless it is 1), `--generations`,
   `--population`, `--group`, `--matches`, `--budget`, `--duration`, `--radius`, `--closing`, `--crossing` (each with a `-spread` either side, drawn per match), `--quiet-limit` (seconds every side must go without fighting or closing in before a match ends; 30 unless set), `--map` (asteroids each match is fought among, drawn from its seed, as `majors=2,minors=8,fuel=0.3`), `--seed`, `--kinds`, `--doctrine`, `--build`, `--structural`, `--geometry`, `--thrusters`,
   `--versus <stock ships or blueprint files>` and `--versus-fleet` for co-evolution, with `--hall`, `--phase-win`,
   `--phase-cap`, `--shielded-drills`, `--bare-core-drills`, `--versus-group` (side B's entrants a match, where not `--group`) and `--versus-fixed` (side B does not evolve),
   `--out` (beside the `--config` file if there is one, `x.evo.json` → `x.run.json`, else `runs/run.json`), and `--config` / `--save-config` for the settings file the evolution page reads and writes, which carries its founders whole
-- `npm run yardstick` — measure a finished run against a ship that does not evolve; `--run`, and
+- `pnpm yardstick` — measure a finished run against a ship that does not evolve; `--run`, and
   `--against latest | founder | <stock ship> | <blueprint or fleet file>`; a co-evolution run is measured as
   a grid of each side's round champions against the other's, `--samples` a side and `--seeds` matches a cell
-- `npm run build` — bundle each page to `dist/index.html`, `dist/editor.html`, `dist/fleet.html`,
+- `pnpm build` — bundle each page to `dist/index.html`, `dist/editor.html`, `dist/fleet.html`,
   `dist/evolution.html` and `dist/skirmish.html`, one file each with nothing external
-- `npm run dev` — the same build on every save, for tinkering; refresh the page to see it. Also runs `sync-fleets`
+- `pnpm dev` — the same build on every save, for tinkering; refresh the page to see it. Also runs `sync-fleets`
   on start and whenever a blueprint is saved
-- `npm run sync-fleets` — copy each stock blueprint into the stock fleets that embed a design of the same name
-- `npm run test:browser` — drive those bundles in Chromium; needs `npx playwright install chromium` first
+- `pnpm sync-fleets` — copy each stock blueprint into the stock fleets that embed a design of the same name
+- `pnpm test:browser` — drive those bundles in Chromium; needs `pnpm exec playwright install chromium` first
 
 ## Testing
 
 **Don't run either suite whole locally: CI does** (the root [CLAUDE.md](../CLAUDE.md), "How changes land").
 Run the test files that bear on the change, the typecheck and the format check, and push.
 
-**Two suites, deliberately.** `npm test` must run from a cold checkout with nothing but `npm ci`, so it
+**Two suites, deliberately.** `pnpm test` must run from a cold checkout with nothing but `pnpm install`, so it
 never needs a browser; the browser tests live in `tests/browser/` and run separately. They check what types
 and unit tests cannot — that the page loads without throwing, that the renderer puts pixels on the canvas,
 and that the controls do what they say — and deliberately *not* that the simulation is right, which the

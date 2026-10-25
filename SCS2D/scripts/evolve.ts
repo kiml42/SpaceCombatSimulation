@@ -516,7 +516,7 @@ if (!options.quiet) {
   // it cannot be compared with one from another generation.
   console.log(
     `\n  Fitness is scored against the rest of the generation, so these numbers do not\n` +
-      `  compare across generations. For that, run: npm run yardstick -- --run ${options.out}`,
+      `  compare across generations. For that, run: pnpm yardstick --run ${options.out}`,
   );
 }
 

@@ -15,7 +15,7 @@ const SETTINGS: Partial<RunConfig> = {
   match: { duration: 8, goal: null },
 };
 
-/** As the file `npm run evolve` writes, read back. */
+/** As the file `pnpm evolve` writes, read back. */
 const throughFile = (record: RunRecord): RunRecord => parseRunRecord(JSON.parse(JSON.stringify(record)));
 
 describe('a run read back from its file', { timeout: 60_000 }, () => {

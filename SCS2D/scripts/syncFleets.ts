@@ -9,7 +9,7 @@ import { parseBlueprint, serialiseBlueprint } from '../sim/index.js';
  * in the fleets too. Designs are matched by name; a fleet design with no
  * blueprint of its name is left alone. Both sides are compared as parsed, so a
  * legacy spelling or key order alone is not a change, and what is written is
- * the canonical form the fleet editor would save. `npm run dev` runs this on
+ * the canonical form the fleet editor would save. `pnpm dev` runs this on
  * start and whenever a blueprint is saved.
  */
 

@@ -4,7 +4,7 @@ import type { Entrant } from './match.js';
 import { DEFAULT_RUN, entrantOf, type GenerationRecord, type MatchRecord, type RunRecord } from './run.js';
 
 /**
- * A run read back from the file `npm run evolve` writes, shown as a finished
+ * A run read back from the file `pnpm evolve` writes, shown as a finished
  * run: the same surface a page reads from a `Run` or a `Coevolution`, with
  * nothing left to fight.
  */
@@ -87,7 +87,7 @@ function foundersOf(generations: readonly GenerationRecord[], most: number): Hal
 export function parseRunRecord(value: unknown): RunRecord {
   const record = value as Partial<RunRecord> | null;
   if (record === null || typeof record !== 'object' || !Array.isArray(record.generations) || typeof record.config !== 'object') {
-    throw new Error('not a run file: it has no generations. A run file is what `npm run evolve` writes, as x.run.json');
+    throw new Error('not a run file: it has no generations. A run file is what `pnpm evolve` writes, as x.run.json');
   }
   const sides = [record.generations, ...(record.rival === undefined ? [] : [record.rival.generations])];
   for (const generations of sides) {

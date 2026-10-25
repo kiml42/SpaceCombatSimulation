@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.28.0",
   "description": "Planar, physics-driven fleet-tactics game. See DESIGN.md.",
   "engines": {
     "node": ">=22.12"
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
+    "esbuild": "^0.28.2",
     "playwright": "^1.64.1",
     "prettier": "3.9.10",
     "tsx": "^4.23.15",

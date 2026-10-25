@@ -27,7 +27,7 @@ import { tmpdir } from 'node:os';
  * test — the run loop and the replay are wiring, and wiring typechecks
  * perfectly while being connected to nothing.
  *
- * Not part of `npm test`: it needs a browser. `npm run test:browser`.
+ * Not part of `pnpm test`: it needs a browser. `pnpm test:browser`.
  */
 
 const here = dirname(fileURLToPath(import.meta.url));

@@ -29,8 +29,8 @@ import { REFITTED } from '../../scenarios/mending.js';
  * `scenarios/duel.ts` exists — so re-verifying the physics through a browser
  * would be slow and would prove nothing the checksum does not.
  *
- * Not part of `npm test`: they need a browser, and the unit suite has to stay
- * runnable from a cold checkout on any machine. `npm run test:browser`.
+ * Not part of `pnpm test`: they need a browser, and the unit suite has to stay
+ * runnable from a cold checkout on any machine. `pnpm test:browser`.
  */
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -115,7 +115,7 @@ async function distinctColours(p: Page): Promise<number> {
 }
 
 beforeAll(async () => {
-  // Build first, so these test what `npm run build` actually produces rather
+  // Build first, so these test what `pnpm build` actually produces rather
   // than a stale artefact someone forgot to regenerate.
   if (process.platform === 'win32') {
     await promisify(execFile)('cmd.exe', ['/c', 'npx', 'tsx', join(root, 'scripts', 'build.ts')], { cwd: root });

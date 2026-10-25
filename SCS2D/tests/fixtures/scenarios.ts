@@ -44,7 +44,7 @@ import { torpedoes } from '../../scenarios/torpedoes.js';
  *
  * These must stay byte-stable. Changing one changes its golden checksum, which
  * is the point — but do it deliberately, and re-derive the constant with
- * `npm run golden` rather than pasting whatever the failure reports.
+ * `pnpm golden` rather than pasting whatever the failure reports.
  *
  * A scenario is a `step`/`checksum` pair rather than a bare `World`, because
  * some of them drive more than a world: `gunnery` also owns a spatial index and
@@ -76,7 +76,7 @@ export const SCENARIO_TIMEOUT = 300_000;
 export interface ScenarioRun {
   step(): void;
   checksum(): number;
-  /** For the report in `npm run golden`. */
+  /** For the report in `pnpm golden`. */
   describe(): string;
 }
 

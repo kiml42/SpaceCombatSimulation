@@ -23,7 +23,7 @@ export async function launchChromium(): Promise<Browser> {
     const found = findInstalledChromium();
     if (found === null) {
       throw new Error(
-        `no Chromium available — run \`npx playwright install chromium\`.\n` +
+        `no Chromium available — run \`pnpm exec playwright install chromium\`.\n` +
           `Playwright's own launch failed with: ${(bundled as Error).message}`,
       );
     }

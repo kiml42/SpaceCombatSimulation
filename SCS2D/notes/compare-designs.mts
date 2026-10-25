@@ -8,7 +8,7 @@
 // out the same.
 //
 // To use it: `git worktree add /tmp/before <ref>`, point the two import pairs
-// below at this checkout and that one, then `npx tsx notes/compare-designs.mts`.
+// below at this checkout and that one, then `pnpm exec tsx notes/compare-designs.mts`.
 // The paths are absolute because the two trees are the point — it cannot be
 // written with relative imports.
 

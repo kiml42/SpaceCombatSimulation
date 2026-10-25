@@ -2452,7 +2452,7 @@ export function startEvolution(): void {
   };
 
   /**
-   * Open a run fought by `npm run evolve` from the file it wrote, and show it
+   * Open a run fought by `pnpm evolve` from the file it wrote, and show it
    * as a finished run: its charts, its generations and its matches, any of
    * which can be fought again from the seed it records.
    */

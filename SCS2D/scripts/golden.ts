@@ -6,7 +6,7 @@
  * out of a test failure without first understanding what moved — that is how a
  * regression gets blessed.
  *
- *   npm run golden
+ *   pnpm golden
  */
 
 import { formatChecksum } from '../sim/checksum.js';
