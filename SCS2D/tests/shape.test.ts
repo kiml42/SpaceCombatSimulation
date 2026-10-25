@@ -8,7 +8,7 @@ import {
   HullPath,
   modulesAlong,
   insetTriangle,
-  MIN_WELD_WIDTH,
+  WELD_SHARE,
   modulesOverlap,
   moduleOutline,
   moduleProblem,
@@ -186,11 +186,17 @@ describe('what a triangle is to the rest of the simulation', () => {
     expect(contactWidth(deck, flat)).toBeCloseTo(8, 6);
   });
 
-  it(`is not welded by less face than ${MIN_WELD_WIDTH} m, box or triangle`, () => {
-    const a = plate();
-    // Side by side, sharing 0.05 m and then 0.2 m of face.
-    expect(contactWidth(a, plate({ x: 2, y: 1.95 }))).toBe(0);
-    expect(contactWidth(a, plate({ x: 2, y: 1.8 }))).toBeCloseTo(0.2, 6);
+  it(`is not welded by less than ${WELD_SHARE * 100}% of the shorter face, at any size`, () => {
+    // Side by side, 2 m faces, sharing 0.15 m and then 0.25 m of them.
+    expect(contactWidth(plate(), plate({ x: 2, y: 1.85 }))).toBe(0);
+    expect(contactWidth(plate(), plate({ x: 2, y: 1.75 }))).toBeCloseTo(0.25, 6);
+    // The same at a fighter's scale and at a capital's: a share, not a length.
+    const small = (y: number) => contactWidth(plate({ length: 0.2, width: 0.2 }), plate({ x: 0.2, y, length: 0.2, width: 0.2 }));
+    expect(small(0.19)).toBe(0);
+    expect(small(0.17)).toBeCloseTo(0.03, 6);
+    const big = (y: number) => contactWidth(plate({ length: 200, width: 200 }), plate({ x: 200, y, length: 200, width: 200 }));
+    expect(big(190)).toBe(0);
+    expect(big(170)).toBeCloseTo(30, 6);
   });
 
   it('is crossed by a shot where the corners are, and not where they are not', () => {
