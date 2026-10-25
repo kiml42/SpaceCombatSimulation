@@ -4,9 +4,8 @@ import storybook from "eslint-plugin-storybook";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
-/** The React app and what it is built from. The pages `scripts/build.ts` bundles are not linted. */
+/** The React app and what it is built from, which are held to its import boundaries as well. */
 const REACT = ["app/**/*.{ts,tsx}", "ui/**/*.{ts,tsx}", "features/**/*.{ts,tsx}", ".storybook/**/*.ts"];
-const CONFIGS = ["*.config.ts"];
 
 const acrossFolders = { group: ["../../*"], message: "Import across folders through ~/." };
 
@@ -16,26 +15,29 @@ function boundaries(...patterns) {
 }
 
 export default tseslint.config(
-    { ignores: ["**/*", "!app/**", "!ui/**", "!features/**", "!.storybook/**", "!*.config.ts"] },
+    { ignores: ["dist/**", "runs/**", "notes/**", "test-results/**", "storybook-static/**"] },
+    js.configs.recommended,
+    tseslint.configs.recommended,
     {
-        files: [...REACT, ...CONFIGS],
-        extends: [js.configs.recommended, ...tseslint.configs.recommendedTypeChecked],
-        languageOptions: {
-            parserOptions: { project: ["./tsconfig.json", "./tsconfig.app.json"], tsconfigRootDir: import.meta.dirname },
-        },
         rules: {
+            // A name starting with _ is a deliberate discard, as when destructuring a field away.
+            "@typescript-eslint/no-unused-vars": [
+                "error",
+                { argsIgnorePattern: "^_", varsIgnorePattern: "^_", destructuredArrayIgnorePattern: "^_" },
+            ],
+        },
+    },
+    { files: ["**/*.js"], languageOptions: { globals: globals.node } },
+    {
+        files: REACT,
+        extends: [reactHooks.configs.flat["recommended-latest"]],
+        rules: {
+            ...boundaries(),
             "no-restricted-syntax": [
                 "error",
                 { selector: "ExportAllDeclaration", message: "No barrel files: import from the module itself." },
             ],
         },
-    },
-    { files: CONFIGS, languageOptions: { globals: globals.node } },
-    {
-        files: REACT,
-        extends: [reactHooks.configs.flat["recommended-latest"]],
-        languageOptions: { globals: globals.browser },
-        rules: boundaries(),
     },
     { files: ["features/**"], rules: boundaries({ group: ["~/app/*"], message: "A feature does not import the app." }) },
     {

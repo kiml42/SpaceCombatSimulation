@@ -533,8 +533,8 @@ describe("beam gunnery", () => {
         const fired = r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits);
         expect(fired.beamsFired).toBe(3);
 
-        let px = bodies.mass[b]! * bodies.vx[b]!;
-        let py = bodies.mass[b]! * bodies.vy[b]!;
+        const px = bodies.mass[b]! * bodies.vx[b]!;
+        const py = bodies.mass[b]! * bodies.vy[b]!;
 
         expect(px).toBe(0);
         expect(py).toBe(0);
@@ -579,7 +579,7 @@ describe("beam gunnery", () => {
 
         // Advance cooldown until next shot can fire
         let timeSpentReloading = 0;
-        let mostRecentFiredCount = -1;
+        let mostRecentFiredCount: number;
         do {
             advanceTime();
             // beam count should be 0 until the beam is turned on by the fire step.
@@ -657,7 +657,7 @@ describe("beam gunnery", () => {
         const steps = waitDuration / DT;
 
         // make sure it doesn't shoot again as there's nothing to shoot at now.
-        for (var i = 0; i < steps; i++) {
+        for (let i = 0; i < steps; i++) {
             advanceTime();
             // beam count should be 0
             expect(r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).beamsFired).toBe(0);

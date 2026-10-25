@@ -124,9 +124,7 @@ export function shellOf(spec: ModuleSpec, stats: ModuleStats, face: number, shar
         vertices = [ax, ay, bx, by, px, py, qx, qy];
     }
     const area = polygonArea(vertices);
-    let moment = 0;
-    if (count === 3) moment = polygonMomentOfArea(vertices);
-    else moment = (area * (shell.length * shell.length + shell.width * shell.width)) / 12;
+    const moment = count === 3 ? polygonMomentOfArea(vertices) : (area * (shell.length * shell.length + shell.width * shell.width)) / 12;
     const mass = stats.structureMass * share;
     return {
         spec: shell,

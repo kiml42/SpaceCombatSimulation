@@ -89,10 +89,11 @@ Keep these working — they are the cold-start re-entry path:
   6, for the tools that need a compiler API TypeScript 7 does not have (typescript-eslint, Storybook)
 - `pnpm format` — format the TypeScript, CSS and config files with Prettier (`.prettierrc.json`); CI fails
   on anything `pnpm format:check` finds, so run it before pushing
-- `pnpm lint` — ESLint and Stylelint over the React app, `features/`, `ui/` and the config files. Imports
-  flow one way, app → features → ui, and `ui/` imports nothing above it; a boundary error means the file
-  is in the wrong layer, so move it rather than disable the rule. Import across folders through `~/`, and
-  no barrel `index.ts` files. The pages not yet in `app/` are not linted
+- `pnpm lint` — ESLint over everything, with typescript-eslint's `recommended` rules, and Stylelint over the
+  React app's CSS. A name starting with `_` is a deliberate discard and may go unused. In `app/`, `features/`
+  and `ui/`, imports flow one way, app → features → ui, and `ui/` imports nothing above it; a boundary error
+  means the file is in the wrong layer, so move it rather than disable the rule. There, import across folders
+  through `~/`, and no barrel `index.ts` files
 - `pnpm golden` — re-derive golden checksums after a *deliberate* behaviour change
 - `pnpm evolve` — fight a headless evolution run and write it to `runs/`, rewritten after every generation; `--from <stock ships or blueprint files>`, `--fleet <stock fleet
   or fleet file>`, `--deploy <radius>`, `--ships <most>` (ship founders grow into fleets unless it is 1), `--generations`,

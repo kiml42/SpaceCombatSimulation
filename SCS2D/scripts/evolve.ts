@@ -86,6 +86,7 @@ function shipFrom(name: string): { name: string; blueprint: Blueprint } {
         throw new Error(
             `no such ship or blueprint file: ${name}. A ship saved in the editor lives in a browser rather ` +
                 `than here — export it from there as a file. The stock ships are ${Object.keys(BLUEPRINTS).join(", ")}`,
+            { cause: error },
         );
     }
     const blueprint = parseBlueprint(value);
@@ -103,7 +104,9 @@ function fleetFrom(name: string): Fleet {
         return fleet;
     } catch (error) {
         if ((error as { code?: string }).code !== "ENOENT") throw error;
-        throw new Error(`no such fleet or fleet file: ${name}. The stock fleets are ${Object.keys(FLEETS).join(", ")}`);
+        throw new Error(`no such fleet or fleet file: ${name}. The stock fleets are ${Object.keys(FLEETS).join(", ")}`, {
+            cause: error,
+        });
     }
 }
 

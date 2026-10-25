@@ -32,8 +32,7 @@ function rating(stats: ModuleStats, effect: DamageEffect): number {
         case DamageEffect.Generation:
         case DamageEffect.Storage:
         case DamageEffect.Discharge:
-        // Mending is no part of it either, today: what it gives back is counted when it has.
-        case DamageEffect.Tending:
+        case DamageEffect.Tending: // Mending is no part of it either, today: what it gives back is counted when it has.
             return 0;
     }
 }

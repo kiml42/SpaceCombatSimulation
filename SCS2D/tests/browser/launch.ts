@@ -25,6 +25,7 @@ export async function launchChromium(): Promise<Browser> {
             throw new Error(
                 `no Chromium available — run \`pnpm exec playwright install chromium\`.\n` +
                     `Playwright's own launch failed with: ${(bundled as Error).message}`,
+                { cause: bundled },
             );
         }
         return await chromium.launch({ executablePath: found });

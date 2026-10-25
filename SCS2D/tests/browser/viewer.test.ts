@@ -140,7 +140,7 @@ beforeAll(async () => {
         // nothing — which is worse than a red test, because it sends you looking
         // in the wrong place.
         if (problems.length > 0) {
-            throw new Error(`the page did not start:\n${problems.join("\n")}`);
+            throw new Error(`the page did not start:\n${problems.join("\n")}`, { cause: timeout });
         }
         throw timeout;
     }
