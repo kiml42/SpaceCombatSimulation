@@ -76,6 +76,26 @@ None.
     - Improve how the UI looks and behaves
     - Allow component reuse
 
+    The target state:
+    - **Build and tooling.** React with TypeScript, built by Vite in place of `scripts/build.ts`, still one
+      self-contained file per page; a static site, so no router framework or server rendering. pnpm as the
+      package manager. ESLint alongside Prettier, with Prettier set to four-space indents and double quotes.
+      TypeScript stays a major ahead (DESIGN.md §5).
+    - **Components.** Base UI where it has the component, Font Awesome for icons. Styles in Linaria
+      (`styled`, extracted at build time, no runtime), with colours and sizes as CSS custom properties in
+      one tokens folder, linted by Stylelint.
+    - **Storybook.** Every component has a story beside it (`Thing.tsx`, `Thing.stories.tsx`) with
+      autodocs, and `play` functions asserting what it should do. Addons: vitest, a11y, docs,
+      pseudo-states and design tokens.
+    - **Tests.** Two Vitest projects: `unit`, the existing tests plus components in `happy-dom`, and
+      `storybook`, every story in headless Chromium with an accessibility check on each. The second joins
+      the browser suite, so the cold-checkout suite still needs no browser.
+    - **Layout.** Feature-first and colocated: a component starts next to the one page using it, moves to
+      a shared feature folder when a second page needs it, and to `ui/` when it is a presentational
+      design-system piece. Imports flow one way, pages → features → `ui/` → `lib/`, and `ui/` takes plain
+      props and imports nothing above it — enforced by ESLint `no-restricted-imports`, as the `sim/`
+      boundary is by tsconfig. No barrel `index.ts` files; cross-folder imports through a `~/` alias.
+
     First, because it is the larger and riskier change, and it rewrites the code that mounts the canvas
     anyway. The battle view becomes a component React mounts and then ignores (non-negotiable 5), and that
     component is the renderer interface §5 asks for and does not yet have: five pages call `draw` with a
