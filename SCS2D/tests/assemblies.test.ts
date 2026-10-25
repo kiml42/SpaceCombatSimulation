@@ -1,15 +1,15 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 import {
-  assemblyProblem,
-  blueprintProblem,
-  compileBlueprint,
-  expandBlueprint,
-  math,
-  MAX_EXPANDED_MODULES,
-  MAX_REPEAT,
-  type Blueprint,
-} from '../sim/index.js';
-import { CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
+    assemblyProblem,
+    blueprintProblem,
+    compileBlueprint,
+    expandBlueprint,
+    math,
+    MAX_EXPANDED_MODULES,
+    MAX_REPEAT,
+    type Blueprint,
+} from "../sim/index.js";
+import { CORVETTE, GUNSHIP } from "../scenarios/blueprints.js";
 
 /**
  * Assemblies: groups of modules placed by reference, so that copies of a part
@@ -24,306 +24,307 @@ import { CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
  */
 
 // The core, so that a fixture built round it is a ship and not merely a hull.
-const hull = { kind: 'core', x: 0, y: 0, length: 20, width: 6 } as const;
+const hull = { kind: "core", x: 0, y: 0, length: 20, width: 6 } as const;
 
-function ship(blueprint: Omit<Blueprint, 'name'>): Blueprint {
-  return { name: 'Test', ...blueprint };
+function ship(blueprint: Omit<Blueprint, "name">): Blueprint {
+    return { name: "Test", ...blueprint };
 }
 
-describe('placing an assembly', () => {
-  it('puts a copy where the instance says, in the instance frame', () => {
-    const bp = ship({
-      assemblies: { pod: { modules: [{ kind: 'structure', x: 1, y: 2, length: 2, width: 2 }] } },
-      modules: [hull, { use: 'pod', x: 10, y: 20 }],
+describe("placing an assembly", () => {
+    it("puts a copy where the instance says, in the instance frame", () => {
+        const bp = ship({
+            assemblies: { pod: { modules: [{ kind: "structure", x: 1, y: 2, length: 2, width: 2 }] } },
+            modules: [hull, { use: "pod", x: 10, y: 20 }],
+        });
+        const [, pod] = expandBlueprint(bp);
+        expect(pod).toMatchObject({ x: 11, y: 22 });
     });
-    const [, pod] = expandBlueprint(bp);
-    expect(pod).toMatchObject({ x: 11, y: 22 });
-  });
 
-  it('turns a copy, composing the instance angle with the module’s own', () => {
-    const bp = ship({
-      assemblies: { pod: { modules: [{ kind: 'structure', x: 2, y: 0, angle: math.HALF_PI, length: 2, width: 2 }] } },
-      modules: [hull, { use: 'pod', x: 0, y: 0, angle: math.HALF_PI }],
+    it("turns a copy, composing the instance angle with the module’s own", () => {
+        const bp = ship({
+            assemblies: { pod: { modules: [{ kind: "structure", x: 2, y: 0, angle: math.HALF_PI, length: 2, width: 2 }] } },
+            modules: [hull, { use: "pod", x: 0, y: 0, angle: math.HALF_PI }],
+        });
+        const [, pod] = expandBlueprint(bp);
+        // Rotated a quarter turn about the instance origin: (2, 0) becomes (0, 2).
+        expect(pod!.x).toBeCloseTo(0, 12);
+        expect(pod!.y).toBeCloseTo(2, 12);
+        expect(pod!.angle).toBeCloseTo(math.PI, 12);
     });
-    const [, pod] = expandBlueprint(bp);
-    // Rotated a quarter turn about the instance origin: (2, 0) becomes (0, 2).
-    expect(pod!.x).toBeCloseTo(0, 12);
-    expect(pod!.y).toBeCloseTo(2, 12);
-    expect(pod!.angle).toBeCloseTo(math.PI, 12);
-  });
 
-  it('reflects a mirrored copy across the instance frame’s own axis', () => {
-    const bp = ship({
-      assemblies: { pod: { modules: [{ kind: 'engine', x: 3, y: 4, angle: math.HALF_PI, length: 2, width: 2 }] } },
-      modules: [hull, { use: 'pod', x: 0, y: 0, mirror: true }],
+    it("reflects a mirrored copy across the instance frame’s own axis", () => {
+        const bp = ship({
+            assemblies: { pod: { modules: [{ kind: "engine", x: 3, y: 4, angle: math.HALF_PI, length: 2, width: 2 }] } },
+            modules: [hull, { use: "pod", x: 0, y: 0, mirror: true }],
+        });
+        const [, pod] = expandBlueprint(bp);
+        // Across the x-axis: y and the facing both negate, x is untouched.
+        expect(pod).toMatchObject({ x: 3, y: -4, angle: -math.HALF_PI });
     });
-    const [, pod] = expandBlueprint(bp);
-    // Across the x-axis: y and the facing both negate, x is untouched.
-    expect(pod).toMatchObject({ x: 3, y: -4, angle: -math.HALF_PI });
-  });
 
-  it('carries the module’s own values into every copy', () => {
-    const bp = ship({
-      assemblies: {
-        gun: { modules: [{ kind: 'turret', x: 0, y: 4, length: 8, width: 6, barrels: 4, notes: 'why' }] },
-      },
-      modules: [hull, { use: 'gun', x: 0, y: 3 }, { use: 'gun', x: 0, y: -3, mirror: true }],
+    it("carries the module’s own values into every copy", () => {
+        const bp = ship({
+            assemblies: {
+                gun: { modules: [{ kind: "turret", x: 0, y: 4, length: 8, width: 6, barrels: 4, notes: "why" }] },
+            },
+            modules: [hull, { use: "gun", x: 0, y: 3 }, { use: "gun", x: 0, y: -3, mirror: true }],
+        });
+        const copies = expandBlueprint(bp).filter((m) => m.kind === "turret");
+        expect(copies).toHaveLength(2);
+        for (const copy of copies) {
+            expect(copy.barrels).toBe(4);
+            expect(copy.notes).toBe("why");
+        }
     });
-    const copies = expandBlueprint(bp).filter((m) => m.kind === 'turret');
-    expect(copies).toHaveLength(2);
-    for (const copy of copies) {
-      expect(copy.barrels).toBe(4);
-      expect(copy.notes).toBe('why');
-    }
-  });
 });
 
-describe('mirroring, and the two ways floating point spoils it', () => {
-  // Both of these were found by the golden checksums rather than by reasoning,
-  // and both would have been invisible in any test written with `toBeCloseTo`.
+describe("mirroring, and the two ways floating point spoils it", () => {
+    // Both of these were found by the golden checksums rather than by reasoning,
+    // and both would have been invisible in any test written with `toBeCloseTo`.
 
-  it('reflects a module facing aft onto exactly the same angle, not its negative', () => {
-    // PI and -PI are the same direction and different numbers: `sin(-PI)` is
-    // -1.2e-16 where `sin(PI)` is +1.2e-16. Left alone, a reflected aft
-    // engine would compile a hair differently from its unreflected twin.
-    const bp = ship({
-      assemblies: { aft: { modules: [{ kind: 'engine', x: 0, y: 0, angle: math.PI, length: 2, width: 2 }] } },
-      modules: [hull, { use: 'aft', x: 11, y: 2 }, { use: 'aft', x: 11, y: -2, mirror: true }],
+    it("reflects a module facing aft onto exactly the same angle, not its negative", () => {
+        // PI and -PI are the same direction and different numbers: `sin(-PI)` is
+        // -1.2e-16 where `sin(PI)` is +1.2e-16. Left alone, a reflected aft
+        // engine would compile a hair differently from its unreflected twin.
+        const bp = ship({
+            assemblies: { aft: { modules: [{ kind: "engine", x: 0, y: 0, angle: math.PI, length: 2, width: 2 }] } },
+            modules: [hull, { use: "aft", x: 11, y: 2 }, { use: "aft", x: 11, y: -2, mirror: true }],
+        });
+        const [, port, starboard] = expandBlueprint(bp);
+        expect(starboard!.angle).toBe(math.PI);
+        expect(starboard!.angle).toBe(port!.angle);
     });
-    const [, port, starboard] = expandBlueprint(bp);
-    expect(starboard!.angle).toBe(math.PI);
-    expect(starboard!.angle).toBe(port!.angle);
-  });
 
-  it('reflects a module facing forward onto positive zero, not negative zero', () => {
-    // `-0 === 0` is true and their bits differ, which nothing notices except a
-    // checksum taken over raw doubles — so it would surface as a golden test
-    // failing for no reason anybody could see in the ship.
-    const bp = ship({
-      assemblies: { fwd: { modules: [{ kind: 'engine', x: 0, y: 0, angle: 0, length: 2, width: 2 }] } },
-      modules: [hull, { use: 'fwd', x: -11, y: 2 }, { use: 'fwd', x: -11, y: -2, mirror: true }],
+    it("reflects a module facing forward onto positive zero, not negative zero", () => {
+        // `-0 === 0` is true and their bits differ, which nothing notices except a
+        // checksum taken over raw doubles — so it would surface as a golden test
+        // failing for no reason anybody could see in the ship.
+        const bp = ship({
+            assemblies: { fwd: { modules: [{ kind: "engine", x: 0, y: 0, angle: 0, length: 2, width: 2 }] } },
+            modules: [hull, { use: "fwd", x: -11, y: 2 }, { use: "fwd", x: -11, y: -2, mirror: true }],
+        });
+        const [, , starboard] = expandBlueprint(bp);
+        expect(Object.is(starboard!.angle, -0)).toBe(false);
+        expect(Object.is(starboard!.y, -0)).toBe(false);
     });
-    const [, , starboard] = expandBlueprint(bp);
-    expect(Object.is(starboard!.angle, -0)).toBe(false);
-    expect(Object.is(starboard!.y, -0)).toBe(false);
-  });
 });
 
-describe('nesting', () => {
-  it('places an assembly that contains another one', () => {
-    const bp = ship({
-      assemblies: {
-        boss: { modules: [{ kind: 'structure', x: 1, y: 0, length: 2, width: 2 }] },
-        wing: {
-          modules: [
-            { use: 'boss', x: 0, y: 1 },
-            { kind: 'structure', x: 0, y: 3, length: 2, width: 2 },
-          ],
-        },
-      },
-      modules: [hull, { use: 'wing', x: 10, y: 10 }],
+describe("nesting", () => {
+    it("places an assembly that contains another one", () => {
+        const bp = ship({
+            assemblies: {
+                boss: { modules: [{ kind: "structure", x: 1, y: 0, length: 2, width: 2 }] },
+                wing: {
+                    modules: [
+                        { use: "boss", x: 0, y: 1 },
+                        { kind: "structure", x: 0, y: 3, length: 2, width: 2 },
+                    ],
+                },
+            },
+            modules: [hull, { use: "wing", x: 10, y: 10 }],
+        });
+        const [, boss, tip] = expandBlueprint(bp);
+        expect(boss).toMatchObject({ x: 11, y: 11 });
+        expect(tip).toMatchObject({ x: 10, y: 13 });
     });
-    const [, boss, tip] = expandBlueprint(bp);
-    expect(boss).toMatchObject({ x: 11, y: 11 });
-    expect(tip).toMatchObject({ x: 10, y: 13 });
-  });
 
-  it('carries a mirror down through the nesting', () => {
-    // What makes a whole mirrored side expressible: reflecting the outer
-    // instance has to reflect everything inside it, including the placement of
-    // an inner assembly and the facings within that.
-    const bp = ship({
-      assemblies: {
-        boss: { modules: [{ kind: 'engine', x: 0, y: 1, angle: math.HALF_PI, length: 2, width: 2 }] },
-        wing: { modules: [{ use: 'boss', x: 0, y: 4 }] },
-      },
-      modules: [hull, { use: 'wing', x: 0, y: 0 }, { use: 'wing', x: 0, y: 0, mirror: true }],
+    it("carries a mirror down through the nesting", () => {
+        // What makes a whole mirrored side expressible: reflecting the outer
+        // instance has to reflect everything inside it, including the placement of
+        // an inner assembly and the facings within that.
+        const bp = ship({
+            assemblies: {
+                boss: { modules: [{ kind: "engine", x: 0, y: 1, angle: math.HALF_PI, length: 2, width: 2 }] },
+                wing: { modules: [{ use: "boss", x: 0, y: 4 }] },
+            },
+            modules: [hull, { use: "wing", x: 0, y: 0 }, { use: "wing", x: 0, y: 0, mirror: true }],
+        });
+        const [, port, starboard] = expandBlueprint(bp);
+        expect(port).toMatchObject({ y: 5, angle: math.HALF_PI });
+        expect(starboard).toMatchObject({ y: -5, angle: -math.HALF_PI });
     });
-    const [, port, starboard] = expandBlueprint(bp);
-    expect(port).toMatchObject({ y: 5, angle: math.HALF_PI });
-    expect(starboard).toMatchObject({ y: -5, angle: -math.HALF_PI });
-  });
 
-  it('mirroring twice is not mirroring at all', () => {
-    const bp = ship({
-      assemblies: {
-        boss: { modules: [{ kind: 'engine', x: 0, y: 1, angle: math.HALF_PI, length: 2, width: 2 }] },
-        wing: { modules: [{ use: 'boss', x: 0, y: 4, mirror: true }] },
-      },
-      modules: [hull, { use: 'wing', x: 0, y: 0, mirror: true }],
+    it("mirroring twice is not mirroring at all", () => {
+        const bp = ship({
+            assemblies: {
+                boss: { modules: [{ kind: "engine", x: 0, y: 1, angle: math.HALF_PI, length: 2, width: 2 }] },
+                wing: { modules: [{ use: "boss", x: 0, y: 4, mirror: true }] },
+            },
+            modules: [hull, { use: "wing", x: 0, y: 0, mirror: true }],
+        });
+        const [, only] = expandBlueprint(bp);
+        expect(only).toMatchObject({ y: -3, angle: math.HALF_PI });
     });
-    const [, only] = expandBlueprint(bp);
-    expect(only).toMatchObject({ y: -3, angle: math.HALF_PI });
-  });
 });
 
-describe('repeating an instance', () => {
-  // What a long repeated structure is written as. It stands in for the thing
-  // that would otherwise be reached for — an assembly containing itself,
-  // stopped by a depth limit — and says the same thing without being able to
-  // make a cycle or hide how big a ship is.
+describe("repeating an instance", () => {
+    // What a long repeated structure is written as. It stands in for the thing
+    // that would otherwise be reached for — an assembly containing itself,
+    // stopped by a depth limit — and says the same thing without being able to
+    // make a cycle or hide how big a ship is.
 
-  const seg = { modules: [{ kind: 'structure', x: 0, y: 0, length: 4, width: 4 } as const] };
+    const seg = { modules: [{ kind: "structure", x: 0, y: 0, length: 4, width: 4 } as const] };
 
-  it('places a row, each copy one step on from the last', () => {
-    const bp = ship({
-      assemblies: { seg },
-      modules: [hull, { use: 'seg', x: 0, y: 5, repeat: 4, step: { x: 0, y: 4 } }],
+    it("places a row, each copy one step on from the last", () => {
+        const bp = ship({
+            assemblies: { seg },
+            modules: [hull, { use: "seg", x: 0, y: 5, repeat: 4, step: { x: 0, y: 4 } }],
+        });
+        const ys = expandBlueprint(bp)
+            .slice(1)
+            .map((m) => m.y);
+        expect(ys).toEqual([5, 9, 13, 17]);
     });
-    const ys = expandBlueprint(bp)
-      .slice(1)
-      .map((m) => m.y);
-    expect(ys).toEqual([5, 9, 13, 17]);
-  });
 
-  it('steps in each copy’s own frame, so a step angle walks an arc', () => {
-    // Not the instance's frame: the rotation compounds, which is what makes a
-    // ring of mounts cost the same as a row of them.
-    const bp = ship({
-      assemblies: { seg },
-      modules: [hull, { use: 'seg', x: 20, y: 0, repeat: 4, step: { x: 5, y: 0, angle: math.HALF_PI } }],
+    it("steps in each copy’s own frame, so a step angle walks an arc", () => {
+        // Not the instance's frame: the rotation compounds, which is what makes a
+        // ring of mounts cost the same as a row of them.
+        const bp = ship({
+            assemblies: { seg },
+            modules: [hull, { use: "seg", x: 20, y: 0, repeat: 4, step: { x: 5, y: 0, angle: math.HALF_PI } }],
+        });
+        const angles = expandBlueprint(bp)
+            .slice(1)
+            .map((m) => m.angle ?? 0);
+        expect(angles).toEqual([0, math.HALF_PI, math.PI, -math.HALF_PI]);
     });
-    const angles = expandBlueprint(bp)
-      .slice(1)
-      .map((m) => m.angle ?? 0);
-    expect(angles).toEqual([0, math.HALF_PI, math.PI, -math.HALF_PI]);
-  });
 
-  it('runs a reflected row the other way, so the far wing is the same wing', () => {
-    const bp = ship({
-      assemblies: { seg },
-      modules: [
-        hull,
-        { use: 'seg', x: 0, y: 5, repeat: 3, step: { x: 1, y: 4 } },
-        { use: 'seg', x: 0, y: -5, mirror: true, repeat: 3, step: { x: 1, y: 4 } },
-      ],
+    it("runs a reflected row the other way, so the far wing is the same wing", () => {
+        const bp = ship({
+            assemblies: { seg },
+            modules: [
+                hull,
+                { use: "seg", x: 0, y: 5, repeat: 3, step: { x: 1, y: 4 } },
+                { use: "seg", x: 0, y: -5, mirror: true, repeat: 3, step: { x: 1, y: 4 } },
+            ],
+        });
+        const placed = expandBlueprint(bp).slice(1);
+        expect(placed.map((m) => m.y)).toEqual([5, 9, 13, -5, -9, -13]);
+        // The x offsets are shared, not reflected, since the step's x runs along
+        // the mirror axis rather than across it.
+        expect(placed.map((m) => m.x)).toEqual([0, 1, 2, 0, 1, 2]);
     });
-    const placed = expandBlueprint(bp).slice(1);
-    expect(placed.map((m) => m.y)).toEqual([5, 9, 13, -5, -9, -13]);
-    // The x offsets are shared, not reflected, since the step's x runs along
-    // the mirror axis rather than across it.
-    expect(placed.map((m) => m.x)).toEqual([0, 1, 2, 0, 1, 2]);
-  });
 
-  it('treats a repeat of one as no repeat at all', () => {
-    const bp = ship({ assemblies: { seg }, modules: [hull, { use: 'seg', x: 0, y: 5, repeat: 1 }] });
-    expect(blueprintProblem(bp)).toBeNull();
-    expect(expandBlueprint(bp)).toHaveLength(2);
-  });
-
-  it('insists on repeat and step together', () => {
-    // A count with no step piles the copies on one spot, which the overlap
-    // rule would reject with a complaint about geometry rather than about the
-    // mistake actually made. A step with no count does nothing whatever.
-    const noStep = ship({ assemblies: { seg }, modules: [hull, { use: 'seg', x: 0, y: 5, repeat: 3 }] });
-    expect(assemblyProblem(noStep)).toMatch(/repeat above 1 and step together/);
-
-    const noCount = ship({
-      assemblies: { seg },
-      modules: [hull, { use: 'seg', x: 0, y: 5, step: { x: 0, y: 4 } }],
+    it("treats a repeat of one as no repeat at all", () => {
+        const bp = ship({ assemblies: { seg }, modules: [hull, { use: "seg", x: 0, y: 5, repeat: 1 }] });
+        expect(blueprintProblem(bp)).toBeNull();
+        expect(expandBlueprint(bp)).toHaveLength(2);
     });
-    expect(assemblyProblem(noCount)).toMatch(/repeat above 1 and step together/);
-  });
 
-  it('refuses a count that is not a whole number of copies', () => {
-    const bp = (repeat: number) => ship({ assemblies: { seg }, modules: [hull, { use: 'seg', x: 0, y: 5, repeat, step: { x: 0, y: 4 } }] });
-    expect(assemblyProblem(bp(0))).toMatch(/whole number of at least 1/);
-    expect(assemblyProblem(bp(2.5))).toMatch(/whole number of at least 1/);
-    expect(assemblyProblem(bp(-3))).toMatch(/whole number of at least 1/);
-  });
+    it("insists on repeat and step together", () => {
+        // A count with no step piles the copies on one spot, which the overlap
+        // rule would reject with a complaint about geometry rather than about the
+        // mistake actually made. A step with no count does nothing whatever.
+        const noStep = ship({ assemblies: { seg }, modules: [hull, { use: "seg", x: 0, y: 5, repeat: 3 }] });
+        expect(assemblyProblem(noStep)).toMatch(/repeat above 1 and step together/);
 
-  it('caps how many copies one instance may ask for', () => {
-    const bp = ship({
-      assemblies: { seg },
-      modules: [hull, { use: 'seg', x: 0, y: 5, repeat: MAX_REPEAT + 1, step: { x: 0, y: 4 } }],
+        const noCount = ship({
+            assemblies: { seg },
+            modules: [hull, { use: "seg", x: 0, y: 5, step: { x: 0, y: 4 } }],
+        });
+        expect(assemblyProblem(noCount)).toMatch(/repeat above 1 and step together/);
     });
-    expect(assemblyProblem(bp)).toMatch(new RegExp(`at most ${MAX_REPEAT}`));
-  });
 
-  it('caps the whole expansion, because nesting multiplies', () => {
-    // The cap that actually matters: every instance here is well inside
-    // MAX_REPEAT, and four levels of it still ask for far more modules than a
-    // ship could have. A per-instance limit cannot see what its ancestors
-    // already asked for.
-    const bp = ship({
-      assemblies: {
-        a: { modules: [{ kind: 'structure', x: 0, y: 0, length: 1, width: 1 }] },
-        b: { modules: [{ use: 'a', x: 0, y: 0, repeat: 8, step: { x: 2, y: 0 } }] },
-        c: { modules: [{ use: 'b', x: 0, y: 0, repeat: 8, step: { x: 0, y: 2 } }] },
-        d: { modules: [{ use: 'c', x: 0, y: 0, repeat: 8, step: { x: 40, y: 0 } }] },
-      },
-      modules: [{ use: 'd', x: 0, y: 0, repeat: 8, step: { x: 0, y: 40 } }],
+    it("refuses a count that is not a whole number of copies", () => {
+        const bp = (repeat: number) =>
+            ship({ assemblies: { seg }, modules: [hull, { use: "seg", x: 0, y: 5, repeat, step: { x: 0, y: 4 } }] });
+        expect(assemblyProblem(bp(0))).toMatch(/whole number of at least 1/);
+        expect(assemblyProblem(bp(2.5))).toMatch(/whole number of at least 1/);
+        expect(assemblyProblem(bp(-3))).toMatch(/whole number of at least 1/);
     });
-    // 8^4 = 4096 modules asked for, and it refuses rather than building them.
-    expect(() => expandBlueprint(bp)).toThrow(new RegExp(`more than ${MAX_EXPANDED_MODULES} modules`));
-  });
+
+    it("caps how many copies one instance may ask for", () => {
+        const bp = ship({
+            assemblies: { seg },
+            modules: [hull, { use: "seg", x: 0, y: 5, repeat: MAX_REPEAT + 1, step: { x: 0, y: 4 } }],
+        });
+        expect(assemblyProblem(bp)).toMatch(new RegExp(`at most ${MAX_REPEAT}`));
+    });
+
+    it("caps the whole expansion, because nesting multiplies", () => {
+        // The cap that actually matters: every instance here is well inside
+        // MAX_REPEAT, and four levels of it still ask for far more modules than a
+        // ship could have. A per-instance limit cannot see what its ancestors
+        // already asked for.
+        const bp = ship({
+            assemblies: {
+                a: { modules: [{ kind: "structure", x: 0, y: 0, length: 1, width: 1 }] },
+                b: { modules: [{ use: "a", x: 0, y: 0, repeat: 8, step: { x: 2, y: 0 } }] },
+                c: { modules: [{ use: "b", x: 0, y: 0, repeat: 8, step: { x: 0, y: 2 } }] },
+                d: { modules: [{ use: "c", x: 0, y: 0, repeat: 8, step: { x: 40, y: 0 } }] },
+            },
+            modules: [{ use: "d", x: 0, y: 0, repeat: 8, step: { x: 0, y: 40 } }],
+        });
+        // 8^4 = 4096 modules asked for, and it refuses rather than building them.
+        expect(() => expandBlueprint(bp)).toThrow(new RegExp(`more than ${MAX_EXPANDED_MODULES} modules`));
+    });
 });
 
-describe('rejecting a layout that cannot be resolved', () => {
-  it('names an assembly that is referred to and not defined', () => {
-    const bp = ship({ modules: [hull, { use: 'ghost', x: 0, y: 0 }] });
-    expect(assemblyProblem(bp)).toMatch(/no assembly named ghost/);
-    expect(blueprintProblem(bp)).toMatch(/no assembly named ghost/);
-  });
-
-  it('catches an assembly that contains itself', () => {
-    const bp = ship({
-      assemblies: { loop: { modules: [{ use: 'loop', x: 1, y: 0 }] } },
-      modules: [hull, { use: 'loop', x: 0, y: 0 }],
+describe("rejecting a layout that cannot be resolved", () => {
+    it("names an assembly that is referred to and not defined", () => {
+        const bp = ship({ modules: [hull, { use: "ghost", x: 0, y: 0 }] });
+        expect(assemblyProblem(bp)).toMatch(/no assembly named ghost/);
+        expect(blueprintProblem(bp)).toMatch(/no assembly named ghost/);
     });
-    expect(assemblyProblem(bp)).toMatch(/contains itself/);
-    // Reported rather than hung on or overflowed, which is the whole point of
-    // checking before expanding.
-    expect(() => compileBlueprint(bp)).toThrow(/contains itself/);
-  });
 
-  it('catches a longer cycle and names the path round it', () => {
-    const bp = ship({
-      assemblies: {
-        a: { modules: [{ use: 'b', x: 1, y: 0 }] },
-        b: { modules: [{ use: 'a', x: 1, y: 0 }] },
-      },
-      modules: [hull, { use: 'a', x: 0, y: 0 }],
+    it("catches an assembly that contains itself", () => {
+        const bp = ship({
+            assemblies: { loop: { modules: [{ use: "loop", x: 1, y: 0 }] } },
+            modules: [hull, { use: "loop", x: 0, y: 0 }],
+        });
+        expect(assemblyProblem(bp)).toMatch(/contains itself/);
+        // Reported rather than hung on or overflowed, which is the whole point of
+        // checking before expanding.
+        expect(() => compileBlueprint(bp)).toThrow(/contains itself/);
     });
-    expect(assemblyProblem(bp)).toMatch(/a -> b -> a/);
-  });
 
-  it('rejects an assembly with nothing in it', () => {
-    const bp = ship({ assemblies: { hollow: { modules: [] } }, modules: [hull] });
-    expect(assemblyProblem(bp)).toMatch(/assembly hollow is empty/);
-  });
-
-  it('holds expanded modules to every rule an inline one has to meet', () => {
-    // Expansion happens before validation, so a copy overlapping another copy
-    // is caught exactly as two hand-placed modules would be — the rules are
-    // stated once, about the ship that gets built.
-    const bp = ship({
-      assemblies: { box: { modules: [{ kind: 'structure', x: 0, y: 0, length: 4, width: 4 }] } },
-      modules: [
-        { use: 'box', x: 0, y: 0 },
-        { use: 'box', x: 1, y: 0 },
-      ],
+    it("catches a longer cycle and names the path round it", () => {
+        const bp = ship({
+            assemblies: {
+                a: { modules: [{ use: "b", x: 1, y: 0 }] },
+                b: { modules: [{ use: "a", x: 1, y: 0 }] },
+            },
+            modules: [hull, { use: "a", x: 0, y: 0 }],
+        });
+        expect(assemblyProblem(bp)).toMatch(/a -> b -> a/);
     });
-    expect(blueprintProblem(bp)).toMatch(/overlap/);
-  });
+
+    it("rejects an assembly with nothing in it", () => {
+        const bp = ship({ assemblies: { hollow: { modules: [] } }, modules: [hull] });
+        expect(assemblyProblem(bp)).toMatch(/assembly hollow is empty/);
+    });
+
+    it("holds expanded modules to every rule an inline one has to meet", () => {
+        // Expansion happens before validation, so a copy overlapping another copy
+        // is caught exactly as two hand-placed modules would be — the rules are
+        // stated once, about the ship that gets built.
+        const bp = ship({
+            assemblies: { box: { modules: [{ kind: "structure", x: 0, y: 0, length: 4, width: 4 }] } },
+            modules: [
+                { use: "box", x: 0, y: 0 },
+                { use: "box", x: 1, y: 0 },
+            ],
+        });
+        expect(blueprintProblem(bp)).toMatch(/overlap/);
+    });
 });
 
-describe('the ships that ship with the game', () => {
-  it('build their symmetric parts from shared assemblies', () => {
-    // The motivating case: eight lateral engines described once, so making
-    // them all bigger is one edit and there is no state in which seven are.
-    expect(Object.keys(GUNSHIP.assemblies ?? {})).toContain('lateral');
-    expect(Object.keys(CORVETTE.assemblies ?? {})).toContain('wingBox');
-    expect(expandBlueprint(GUNSHIP)).toHaveLength(22);
-    expect(expandBlueprint(CORVETTE)).toHaveLength(14);
-  });
+describe("the ships that ship with the game", () => {
+    it("build their symmetric parts from shared assemblies", () => {
+        // The motivating case: eight lateral engines described once, so making
+        // them all bigger is one edit and there is no state in which seven are.
+        expect(Object.keys(GUNSHIP.assemblies ?? {})).toContain("lateral");
+        expect(Object.keys(CORVETTE.assemblies ?? {})).toContain("wingBox");
+        expect(expandBlueprint(GUNSHIP)).toHaveLength(22);
+        expect(expandBlueprint(CORVETTE)).toHaveLength(14);
+    });
 
-  it('still compile to a ship, with every mirrored copy accounted for', () => {
-    const design = compileBlueprint(GUNSHIP);
-    expect(design.engines).toHaveLength(10);
-    expect(design.turrets).toHaveLength(3);
-    // Symmetric about the spine, so the centre of mass sits on it. This is
-    // what would break first if a reflection were subtly wrong.
-    expect(design.centreOfMassY).toBeCloseTo(0);
-  });
+    it("still compile to a ship, with every mirrored copy accounted for", () => {
+        const design = compileBlueprint(GUNSHIP);
+        expect(design.engines).toHaveLength(10);
+        expect(design.turrets).toHaveLength(3);
+        // Symmetric about the spine, so the centre of mass sits on it. This is
+        // what would break first if a reflection were subtly wrong.
+        expect(design.centreOfMassY).toBeCloseTo(0);
+    });
 });

@@ -52,10 +52,10 @@ export const ICON_FADE_FULL_PX = 8;
  * Zero while the hull speaks for itself, so nothing is drawn at all close up.
  */
 export function iconAlpha(shipPx: number): number {
-  if (!(shipPx < ICON_FADE_START_PX)) return 0;
-  if (shipPx <= ICON_FADE_FULL_PX) return ICON_MAX_ALPHA;
-  const t = (ICON_FADE_START_PX - shipPx) / (ICON_FADE_START_PX - ICON_FADE_FULL_PX);
-  return ICON_MAX_ALPHA * t;
+    if (!(shipPx < ICON_FADE_START_PX)) return 0;
+    if (shipPx <= ICON_FADE_FULL_PX) return ICON_MAX_ALPHA;
+    const t = (ICON_FADE_START_PX - shipPx) / (ICON_FADE_START_PX - ICON_FADE_FULL_PX);
+    return ICON_MAX_ALPHA * t;
 }
 
 /**
@@ -69,8 +69,8 @@ export function iconAlpha(shipPx: number): number {
  * thing is actually pointed.
  */
 export const ICON_OUTLINE: readonly (readonly [number, number])[] = [
-  [0.5, 0],
-  [-0.5, 0.42],
-  [-0.24, 0],
-  [-0.5, -0.42],
+    [0.5, 0],
+    [-0.5, 0.42],
+    [-0.24, 0],
+    [-0.5, -0.42],
 ];

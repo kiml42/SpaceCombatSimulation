@@ -1,42 +1,42 @@
 import {
-  Beams,
-  checksumBeams,
-  checksumDamage,
-  checksumProjectiles,
-  checksumWorld,
-  gravityWell,
-  ProjectileHits,
-  Projectiles,
-  SpatialGrid,
-  World,
-  type WellSpec,
-} from '../../sim/index.js';
-import { duel } from '../../scenarios/duel.js';
-import { binary } from '../../scenarios/binary.js';
-import { kernels } from '../../scenarios/kernels.js';
-import { asteroidField } from '../../scenarios/asteroidField.js';
-import { mining } from '../../scenarios/mining.js';
-import { rivalMines } from '../../scenarios/rivalMines.js';
-import type { Battle } from '../../scenarios/types.js';
-import { beamDuel } from '../../scenarios/beamDuel.js';
-import { soloOrdering } from '../../scenarios/ordering.js';
-import { hooked } from '../../scenarios/hooked.js';
-import { salvageRun } from '../../scenarios/salvage.js';
-import { catamaranRefits, mending, refitting } from '../../scenarios/mending.js';
-import { scavenge } from '../../scenarios/scavenge.js';
-import { factory, padRebuild } from '../../scenarios/carrier.js';
-import { shipyard } from '../../scenarios/shipyard.js';
-import { rearm } from '../../scenarios/rearm.js';
-import { beamCarrier } from '../../scenarios/beamCarrier.js';
-import { circling, passes } from '../../scenarios/passes.js';
-import { tanker } from '../../scenarios/tanker.js';
-import { standoff } from '../../scenarios/standoff.js';
-import { torchRun } from '../../scenarios/torchRun.js';
-import { broadside } from '../../scenarios/broadside.js';
-import { column } from '../../scenarios/column.js';
-import { split } from '../../scenarios/split.js';
-import { swarm } from '../../scenarios/swarm.js';
-import { torpedoes } from '../../scenarios/torpedoes.js';
+    Beams,
+    checksumBeams,
+    checksumDamage,
+    checksumProjectiles,
+    checksumWorld,
+    gravityWell,
+    ProjectileHits,
+    Projectiles,
+    SpatialGrid,
+    World,
+    type WellSpec,
+} from "../../sim/index.js";
+import { duel } from "../../scenarios/duel.js";
+import { binary } from "../../scenarios/binary.js";
+import { kernels } from "../../scenarios/kernels.js";
+import { asteroidField } from "../../scenarios/asteroidField.js";
+import { mining } from "../../scenarios/mining.js";
+import { rivalMines } from "../../scenarios/rivalMines.js";
+import type { Battle } from "../../scenarios/types.js";
+import { beamDuel } from "../../scenarios/beamDuel.js";
+import { soloOrdering } from "../../scenarios/ordering.js";
+import { hooked } from "../../scenarios/hooked.js";
+import { salvageRun } from "../../scenarios/salvage.js";
+import { catamaranRefits, mending, refitting } from "../../scenarios/mending.js";
+import { scavenge } from "../../scenarios/scavenge.js";
+import { factory, padRebuild } from "../../scenarios/carrier.js";
+import { shipyard } from "../../scenarios/shipyard.js";
+import { rearm } from "../../scenarios/rearm.js";
+import { beamCarrier } from "../../scenarios/beamCarrier.js";
+import { circling, passes } from "../../scenarios/passes.js";
+import { tanker } from "../../scenarios/tanker.js";
+import { standoff } from "../../scenarios/standoff.js";
+import { torchRun } from "../../scenarios/torchRun.js";
+import { broadside } from "../../scenarios/broadside.js";
+import { column } from "../../scenarios/column.js";
+import { split } from "../../scenarios/split.js";
+import { swarm } from "../../scenarios/swarm.js";
+import { torpedoes } from "../../scenarios/torpedoes.js";
 
 /**
  * Scenarios shared by the determinism tests, the integrator tests and the
@@ -74,15 +74,15 @@ import { torpedoes } from '../../scenarios/torpedoes.js';
 export const SCENARIO_TIMEOUT = 300_000;
 
 export interface ScenarioRun {
-  step(): void;
-  checksum(): number;
-  /** For the report in `pnpm golden`. */
-  describe(): string;
+    step(): void;
+    checksum(): number;
+    /** For the report in `pnpm golden`. */
+    describe(): string;
 }
 
 export interface Scenario {
-  readonly steps: number;
-  build(): ScenarioRun;
+    readonly steps: number;
+    build(): ScenarioRun;
 }
 
 // ---- orbit ----
@@ -92,7 +92,7 @@ export const ORBIT_RADIUS = 1000;
 export const ORBIT_DT = 0.1;
 
 export function orbitWell(): WellSpec {
-  return { x: 0, y: 0, gm: ORBIT_GM };
+    return { x: 0, y: 0, gm: ORBIT_GM };
 }
 
 /**
@@ -101,19 +101,19 @@ export function orbitWell(): WellSpec {
  * steps.
  */
 export function orbitScenario(seed = 1): World {
-  const world = new World({ dt: ORBIT_DT, seed });
-  const speed = Math.sqrt(ORBIT_GM / ORBIT_RADIUS);
-  world.spawn({
-    x: ORBIT_RADIUS,
-    y: 0,
-    vx: 0,
-    vy: speed,
-    mass: 1,
-    inertia: 1,
-    radius: 5,
-  });
-  world.addForceProvider(gravityWell(orbitWell()));
-  return world;
+    const world = new World({ dt: ORBIT_DT, seed });
+    const speed = Math.sqrt(ORBIT_GM / ORBIT_RADIUS);
+    world.spawn({
+        x: ORBIT_RADIUS,
+        y: 0,
+        vx: 0,
+        vy: speed,
+        mass: 1,
+        inertia: 1,
+        radius: 5,
+    });
+    world.addForceProvider(gravityWell(orbitWell()));
+    return world;
 }
 
 // ---- tumble ----
@@ -125,55 +125,55 @@ export function orbitScenario(seed = 1): World {
  * any of them changes.
  */
 export function tumbleScenario(seed = 12345): World {
-  const world = new World({ dt: 1 / 60, seed });
+    const world = new World({ dt: 1 / 60, seed });
 
-  const count = 8;
-  const ids: number[] = [];
-  for (let i = 0; i < count; i++) {
-    ids.push(
-      world.spawn({
-        x: world.rng.nextRange(-500, 500),
-        y: world.rng.nextRange(-500, 500),
-        vx: world.rng.nextRange(-10, 10),
-        vy: world.rng.nextRange(-10, 10),
-        angle: world.rng.nextRange(-3, 3),
-        angularVel: world.rng.nextRange(-0.5, 0.5),
-        mass: world.rng.nextRange(50, 200),
-        inertia: world.rng.nextRange(500, 2000),
-        radius: 10,
-      }),
-    );
-  }
-
-  // A fixed engine layout per body, decided once from the seeded stream so
-  // that the forces are reproducible without consuming randomness per step.
-  const thrust = ids.map(() => ({
-    fx: world.rng.nextRange(-2000, 2000),
-    fy: world.rng.nextRange(-500, 500),
-    px: world.rng.nextRange(-8, 8),
-    py: world.rng.nextRange(-8, 8),
-  }));
-
-  world.addForceProvider((w) => {
-    for (let i = 0; i < ids.length; i++) {
-      const t = thrust[i]!;
-      w.bodies.applyLocalForceAtLocalPoint(ids[i]!, t.fx, t.fy, t.px, t.py);
+    const count = 8;
+    const ids: number[] = [];
+    for (let i = 0; i < count; i++) {
+        ids.push(
+            world.spawn({
+                x: world.rng.nextRange(-500, 500),
+                y: world.rng.nextRange(-500, 500),
+                vx: world.rng.nextRange(-10, 10),
+                vy: world.rng.nextRange(-10, 10),
+                angle: world.rng.nextRange(-3, 3),
+                angularVel: world.rng.nextRange(-0.5, 0.5),
+                mass: world.rng.nextRange(50, 200),
+                inertia: world.rng.nextRange(500, 2000),
+                radius: 10,
+            }),
+        );
     }
-  });
-  world.addForceProvider(gravityWell({ x: 0, y: 0, gm: 5e5, softening: 50 }));
 
-  return world;
+    // A fixed engine layout per body, decided once from the seeded stream so
+    // that the forces are reproducible without consuming randomness per step.
+    const thrust = ids.map(() => ({
+        fx: world.rng.nextRange(-2000, 2000),
+        fy: world.rng.nextRange(-500, 500),
+        px: world.rng.nextRange(-8, 8),
+        py: world.rng.nextRange(-8, 8),
+    }));
+
+    world.addForceProvider((w) => {
+        for (let i = 0; i < ids.length; i++) {
+            const t = thrust[i]!;
+            w.bodies.applyLocalForceAtLocalPoint(ids[i]!, t.fx, t.fy, t.px, t.py);
+        }
+    });
+    world.addForceProvider(gravityWell({ x: 0, y: 0, gm: 5e5, softening: 50 }));
+
+    return world;
 }
 
 // ---- gunnery ----
 
 export interface GunneryRun extends ScenarioRun {
-  readonly world: World;
-  readonly projectiles: Projectiles;
-  readonly beams: Beams;
-  readonly hits: ProjectileHits;
-  /** Cumulative impacts, so a scenario that stops hitting is detectable. */
-  totalHits: number;
+    readonly world: World;
+    readonly projectiles: Projectiles;
+    readonly beams: Beams;
+    readonly hits: ProjectileHits;
+    /** Cumulative impacts, so a scenario that stops hitting is detectable. */
+    totalHits: number;
 }
 
 /**
@@ -185,109 +185,109 @@ export interface GunneryRun extends ScenarioRun {
  * what is being pinned here is gunnery, not engine response.
  */
 export function gunneryScenario(seed = 777): GunneryRun {
-  const dt = 1 / 60;
-  const world = new World({ dt, seed });
-  const wells: WellSpec[] = [{ x: 0, y: 0, gm: 2e6, softening: 100 }];
-  world.addForceProvider(gravityWell(wells[0]!));
+    const dt = 1 / 60;
+    const world = new World({ dt, seed });
+    const wells: WellSpec[] = [{ x: 0, y: 0, gm: 2e6, softening: 100 }];
+    world.addForceProvider(gravityWell(wells[0]!));
 
-  // Drifting targets.
-  const targets: number[] = [];
-  for (let i = 0; i < 6; i++) {
-    targets.push(
-      world.spawn({
-        x: world.rng.nextRange(400, 900),
-        y: world.rng.nextRange(-600, 600),
-        vx: world.rng.nextRange(-20, 20),
-        vy: world.rng.nextRange(-20, 20),
-        mass: world.rng.nextRange(100, 400),
-        inertia: 1000,
-        radius: world.rng.nextRange(15, 45),
-      }),
-    );
-  }
+    // Drifting targets.
+    const targets: number[] = [];
+    for (let i = 0; i < 6; i++) {
+        targets.push(
+            world.spawn({
+                x: world.rng.nextRange(400, 900),
+                y: world.rng.nextRange(-600, 600),
+                vx: world.rng.nextRange(-20, 20),
+                vy: world.rng.nextRange(-20, 20),
+                mass: world.rng.nextRange(100, 400),
+                inertia: 1000,
+                radius: world.rng.nextRange(15, 45),
+            }),
+        );
+    }
 
-  // Immovable batteries.
-  const batteries: number[] = [];
-  for (let i = 0; i < 3; i++) {
-    batteries.push(
-      world.spawn({
-        x: -800,
-        y: -400 + i * 400,
-        mass: 0,
-        inertia: 0,
-        radius: 30,
-      }),
-    );
-  }
+    // Immovable batteries.
+    const batteries: number[] = [];
+    for (let i = 0; i < 3; i++) {
+        batteries.push(
+            world.spawn({
+                x: -800,
+                y: -400 + i * 400,
+                mass: 0,
+                inertia: 0,
+                radius: 30,
+            }),
+        );
+    }
 
-  const grid = new SpatialGrid(64);
-  const projectiles = new Projectiles(512);
-  const beams = new Beams(512);
-  const hits = new ProjectileHits();
+    const grid = new SpatialGrid(64);
+    const projectiles = new Projectiles(512);
+    const beams = new Beams(512);
+    const hits = new ProjectileHits();
 
-  const run: GunneryRun = {
-    world,
-    projectiles,
-    beams,
-    hits,
-    totalHits: 0,
+    const run: GunneryRun = {
+        world,
+        projectiles,
+        beams,
+        hits,
+        totalHits: 0,
 
-    step(): void {
-      world.step();
-      grid.rebuild(world.bodies);
+        step(): void {
+            world.step();
+            grid.rebuild(world.bodies);
 
-      // Every battery fires every fourth step, aimed at where a target is now
-      // — deliberately without lead, so some rounds miss and expire.
-      if (world.tick % 4 === 0) {
-        for (let b = 0; b < batteries.length; b++) {
-          const bi = world.bodies.indexOf(batteries[b]!);
-          const ti = world.bodies.indexOf(targets[(world.tick + b) % targets.length]!);
-          if (bi < 0 || ti < 0) continue;
-          const dx = world.bodies.x[ti] - world.bodies.x[bi];
-          const dy = world.bodies.y[ti] - world.bodies.y[bi];
-          const len = Math.sqrt(dx * dx + dy * dy);
-          const speed = 900;
-          projectiles.fireFrom(
-            world.bodies,
-            bi,
-            world.bodies.x[bi] + (dx / len) * 35,
-            world.bodies.y[bi] + (dy / len) * 35,
-            (dx / len) * speed,
-            (dy / len) * speed,
-            0.5,
-            3,
-            5,
-            10,
-            2,
-            1,
-          );
-        }
-      }
+            // Every battery fires every fourth step, aimed at where a target is now
+            // — deliberately without lead, so some rounds miss and expire.
+            if (world.tick % 4 === 0) {
+                for (let b = 0; b < batteries.length; b++) {
+                    const bi = world.bodies.indexOf(batteries[b]!);
+                    const ti = world.bodies.indexOf(targets[(world.tick + b) % targets.length]!);
+                    if (bi < 0 || ti < 0) continue;
+                    const dx = world.bodies.x[ti] - world.bodies.x[bi];
+                    const dy = world.bodies.y[ti] - world.bodies.y[bi];
+                    const len = Math.sqrt(dx * dx + dy * dy);
+                    const speed = 900;
+                    projectiles.fireFrom(
+                        world.bodies,
+                        bi,
+                        world.bodies.x[bi] + (dx / len) * 35,
+                        world.bodies.y[bi] + (dy / len) * 35,
+                        (dx / len) * speed,
+                        (dy / len) * speed,
+                        0.5,
+                        3,
+                        5,
+                        10,
+                        2,
+                        1,
+                    );
+                }
+            }
 
-      // No hulls: these bodies are bare masses with a radius and no design, so
-      // the bounding circle *is* the shape, and casting against it is exact.
-      projectiles.step(dt, world.bodies, grid, hits, wells);
-      run.totalHits += hits.count;
+            // No hulls: these bodies are bare masses with a radius and no design, so
+            // the bounding circle *is* the shape, and casting against it is exact.
+            projectiles.step(dt, world.bodies, grid, hits, wells);
+            run.totalHits += hits.count;
 
-      // Stands in for terminal ballistics: every round penetrates and is
-      // absorbed. Impacts have to be resolved or the rounds stay parked at the
-      // point of contact indefinitely, which is part of what this scenario pins.
-      for (let i = 0; i < hits.count; i++) projectiles.kill(hits.projectile[i]!);
-    },
+            // Stands in for terminal ballistics: every round penetrates and is
+            // absorbed. Impacts have to be resolved or the rounds stay parked at the
+            // point of contact indefinitely, which is part of what this scenario pins.
+            for (let i = 0; i < hits.count; i++) projectiles.kill(hits.projectile[i]!);
+        },
 
-    checksum(): number {
-      return checksumBeams(beams, checksumProjectiles(projectiles, checksumWorld(world)));
-    },
+        checksum(): number {
+            return checksumBeams(beams, checksumProjectiles(projectiles, checksumWorld(world)));
+        },
 
-    describe(): string {
-      return (
-        `bodies=${world.bodies.count} inFlight=${projectiles.count} ` +
-        `projectilesPending=${projectiles.pendingCount} projectileHits=${run.totalHits}`
-      );
-    },
-  };
+        describe(): string {
+            return (
+                `bodies=${world.bodies.count} inFlight=${projectiles.count} ` +
+                `projectilesPending=${projectiles.pendingCount} projectileHits=${run.totalHits}`
+            );
+        },
+    };
 
-  return run;
+    return run;
 }
 
 // ---- duel ----
@@ -313,363 +313,363 @@ export function gunneryScenario(seed = 777): GunneryRun {
  * resting on a hull, so a beam that dwells for a second reports sixty.
  */
 function describeBattle(run: Battle): string {
-  return (
-    `ships=${run.ships.count} inFlight=${run.projectiles.count} ` +
-    `p.fired=${run.totalProjectilesFired} p.hits=${run.totalProjectileHits} ` +
-    `b.fired=${run.totalBeamsFired} b.hits=${run.totalBeamHits} ` +
-    `contacts=${run.totalContacts} severed=${run.totalSevered} culled=${run.totalCulled} ` +
-    `scrap=${(run.ships.discarded / 1000).toFixed(1)}t`
-  );
+    return (
+        `ships=${run.ships.count} inFlight=${run.projectiles.count} ` +
+        `p.fired=${run.totalProjectilesFired} p.hits=${run.totalProjectileHits} ` +
+        `b.fired=${run.totalBeamsFired} b.hits=${run.totalBeamHits} ` +
+        `contacts=${run.totalContacts} severed=${run.totalSevered} culled=${run.totalCulled} ` +
+        `scrap=${(run.ships.discarded / 1000).toFixed(1)}t`
+    );
 }
 
 export function duelScenario(seed = 20260905): ScenarioRun {
-  const run = duel(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
-    describe: () => describeBattle(run),
-  };
+    const run = duel(seed);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
 }
 
 /** The duel's ships between two wells on rails: what pins wells that move. */
 export function binaryScenario(seed = 20260905): ScenarioRun {
-  const run = binary(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
-    describe: () => describeBattle(run),
-  };
+    const run = binary(seed);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
 }
 
 /** The same between two bare kernels riding those wells: what pins a hull on rails. */
 export function kernelsScenario(seed = 20260905): ScenarioRun {
-  const run = kernels(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
-    describe: () => describeBattle(run),
-  };
+    const run = kernels(seed);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
 }
 
 /** The same in a field of asteroids drawn from the seed: what pins the map generator and rock. */
 export function asteroidFieldScenario(seed = 20260905): ScenarioRun {
-  const run = asteroidField(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
-    describe: () => describeBattle(run),
-  };
+    const run = asteroidField(seed);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
 }
 
 /** Two salvagers mining the asteroids round a major: what pins robots mining rock. */
 export function miningScenario(seed = 20260905): ScenarioRun {
-  const run = mining(seed);
-  return {
-    step: () => run.step(),
-    checksum: () => checksumDamage(run.ships.damage, checksumWorld(run.world)),
-    describe: () => describeBattle(run),
-  };
+    const run = mining(seed);
+    return {
+        step: () => run.step(),
+        checksum: () => checksumDamage(run.ships.damage, checksumWorld(run.world)),
+        describe: () => describeBattle(run),
+    };
 }
 
 /** Two Replicators mining rival majors and building copies of themselves anchored: what pins the whole of mining at once. */
 export function rivalMinesScenario(seed = 20260905): ScenarioRun {
-  const run = rivalMines(seed);
-  return {
-    step: () => run.step(),
-    checksum: () => checksumDamage(run.ships.damage, checksumWorld(run.world)),
-    describe: () => describeBattle(run),
-  };
+    const run = rivalMines(seed);
+    return {
+        step: () => run.step(),
+        checksum: () => checksumDamage(run.ships.damage, checksumWorld(run.world)),
+        describe: () => describeBattle(run),
+    };
 }
 
 export function beamDuelScenario(seed = 20260905): ScenarioRun {
-  const run = beamDuel(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
-    describe: () => describeBattle(run),
-  };
+    const run = beamDuel(seed);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
 }
 
 export function torpedoesScenario(seed = 20260905): ScenarioRun {
-  const run = torpedoes(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
-    describe: () => describeBattle(run),
-  };
+    const run = torpedoes(seed);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
 }
 
 export function swarmScenario(seed = 20260905, corvetteCount = 20): ScenarioRun {
-  const run = swarm(seed, corvetteCount);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
-    describe: () => describeBattle(run),
-  };
+    const run = swarm(seed, corvetteCount);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
 }
 
 export function standoffScenario(seed = 20260905): ScenarioRun {
-  const run = standoff(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
-    describe: () => describeBattle(run),
-  };
+    const run = standoff(seed);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
 }
 
 export function torchRunScenario(seed = 20260905): ScenarioRun {
-  const run = torchRun(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
-    describe: () => describeBattle(run),
-  };
+    const run = torchRun(seed);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
 }
 
 export function broadsideScenario(seed = 20260905): ScenarioRun {
-  const run = broadside(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
-    describe: () => describeBattle(run),
-  };
+    const run = broadside(seed);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
 }
 
 export function splitScenario(seed = 20260905): ScenarioRun {
-  const run = split(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
-    describe: () => describeBattle(run),
-  };
+    const run = split(seed);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
 }
 
 export function columnScenario(seed = 20260905): ScenarioRun {
-  const run = column(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
-    describe: () => describeBattle(run),
-  };
+    const run = column(seed);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
 }
 
 export function hookedScenario(seed = 20260929): ScenarioRun {
-  const run = hooked(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
-    describe: () => describeBattle(run),
-  };
+    const run = hooked(seed);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
 }
 
 export function mendingScenario(seed = 20261013): ScenarioRun {
-  const run = mending(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
-    describe: () => describeBattle(run),
-  };
+    const run = mending(seed);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
 }
 
 export function refittingScenario(seed = 20261018): ScenarioRun {
-  const run = refitting(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
-    describe: () => describeBattle(run),
-  };
+    const run = refitting(seed);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
 }
 
 export function catamaranRefitsScenario(seed = 20261021): ScenarioRun {
-  const run = catamaranRefits(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
-    describe: () => describeBattle(run),
-  };
+    const run = catamaranRefits(seed);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
 }
 
 export function salvageRunScenario(seed = 20261019): ScenarioRun {
-  const run = salvageRun(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
-    describe: () => describeBattle(run),
-  };
+    const run = salvageRun(seed);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
 }
 
 export function scavengeScenario(seed = 20261008): ScenarioRun {
-  const run = scavenge(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
-    describe: () => describeBattle(run),
-  };
+    const run = scavenge(seed);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
 }
 
 export function padRebuildScenario(seed = 20261013): ScenarioRun {
-  const run = padRebuild(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
-    describe: () => describeBattle(run),
-  };
+    const run = padRebuild(seed);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
 }
 
 function onTheMoveScenario(run: ReturnType<typeof passes>): ScenarioRun {
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
-    describe: () => describeBattle(run),
-  };
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
 }
 
 export const passesScenario = (seed = 20261012): ScenarioRun => onTheMoveScenario(passes(seed));
 export const circlingScenario = (seed = 20261012): ScenarioRun => onTheMoveScenario(circling(seed));
 
 export function beamCarrierScenario(seed = 20261011): ScenarioRun {
-  const run = beamCarrier(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
-    describe: () => describeBattle(run),
-  };
+    const run = beamCarrier(seed);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
 }
 
 export function factoryScenario(seed = 20261017): ScenarioRun {
-  const run = factory(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
-    describe: () => describeBattle(run),
-  };
+    const run = factory(seed);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
 }
 
 export function shipyardScenario(seed = 20261018): ScenarioRun {
-  const run = shipyard(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
-    describe: () => describeBattle(run),
-  };
+    const run = shipyard(seed);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
 }
 
 export function rearmScenario(seed = 20261010): ScenarioRun {
-  const run = rearm(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
-    describe: () => describeBattle(run),
-  };
+    const run = rearm(seed);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
 }
 
 export function tankerScenario(seed = 20261009): ScenarioRun {
-  const run = tanker(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
-    describe: () => describeBattle(run),
-  };
+    const run = tanker(seed);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
 }
 
 export function orderingScenario(seed = 20260905): ScenarioRun {
-  const run = soloOrdering(0, seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
-    describe: () => describeBattle(run),
-  };
+    const run = soloOrdering(0, seed);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
 }
 
 // ---- registry ----
 
 function worldScenario(build: () => World, steps: number): Scenario {
-  return {
-    steps,
-    build: () => {
-      const world = build();
-      return {
-        step: () => world.step(),
-        checksum: () => checksumWorld(world),
-        describe: () => `bodies=${world.bodies.count}`,
-      };
-    },
-  };
+    return {
+        steps,
+        build: () => {
+            const world = build();
+            return {
+                step: () => world.step(),
+                checksum: () => checksumWorld(world),
+                describe: () => `bodies=${world.bodies.count}`,
+            };
+        },
+    };
 }
 
 export const SCENARIOS = {
-  orbit: worldScenario(() => orbitScenario(), 20_000),
-  tumble: worldScenario(() => tumbleScenario(), 5_000),
-  gunnery: { steps: 3_000, build: () => gunneryScenario() },
-  duel: { steps: 3_000, build: () => duelScenario() },
-  beamDuel: { steps: 3_000, build: () => beamDuelScenario() },
-  binary: { steps: 3_000, build: () => binaryScenario() },
-  kernels: { steps: 6_000, build: () => kernelsScenario() },
-  asteroidField: { steps: 6_000, build: () => asteroidFieldScenario() },
-  // Long enough for both salvagers to grip a minor and their robots to bring ore home.
-  mining: { steps: 18_000, build: () => miningScenario() },
-  // Long enough for both outposts to anchor and build a Dinky each, and for the first to reach the other side.
-  rivalMines: { steps: 30_000, build: () => rivalMinesScenario() },
-  swarm: { steps: 3_000, build: () => swarmScenario() },
-  superSwarm: { steps: 3_000, build: () => swarmScenario(undefined, 300) },
-  torpedoes: { steps: 3_000, build: () => torpedoesScenario() },
-  ordering: { steps: 3_000, build: () => orderingScenario() },
-  standoff: { steps: 3_000, build: () => standoffScenario() },
-  column: { steps: 3_000, build: () => columnScenario() },
-  split: { steps: 3_000, build: () => splitScenario() },
-  torchRun: { steps: 3_000, build: () => torchRunScenario() },
-  hooked: { steps: 3_000, build: () => hookedScenario() },
-  broadside: { steps: 3_000, build: () => broadsideScenario() },
-  // Long enough for the Salvager to fly out, grip the corvette, drink and start taking it apart.
-  salvageRun: { steps: 14_400, build: () => salvageRunScenario() },
-  // Long enough for the robots to mend everything and come home.
-  mending: { steps: 15_600, build: () => mendingScenario() },
-  // Long enough for the new fin to go up, the engine to come down, and the old fin to be refitted as the tank.
-  refitting: { steps: 21_600, build: () => refittingScenario() },
-  // Long enough for both Catamarans to finish, their turrets refitted in place.
-  catamaranRefits: { steps: 30_000, build: () => catamaranRefitsScenario() },
-  // Long enough for both scavengers to drink their fill, one from three wrecks.
-  scavenge: { steps: 18_000, build: () => scavengeScenario() },
-  padRebuild: { steps: 4_800, build: () => padRebuildScenario() },
-  // Long enough for the first fighter to be laid down, built, filled and let go.
-  factory: { steps: 6_000, build: () => factoryScenario() },
-  // Long enough for the Scavenger to be built, fitted out, filled and let go.
-  shipyard: { steps: 18_000, build: () => shipyardScenario() },
-  // Long enough for all three fighters to fire themselves dry and rearm.
-  rearm: { steps: 3_000, build: () => rearmScenario() },
-  // Long enough for both pickets to dock, fill and part.
-  tanker: { steps: 6_600, build: () => tankerScenario() },
-  // Long enough for the tender to cast off and grip a wreck, and the first fighters to come back to recharge.
-  beamCarrier: { steps: 7_200, build: () => beamCarrierScenario() },
-  // Long enough for the Dinky to make three passes, and the Y-wing to settle into its circle.
-  passes: { steps: 6_000, build: () => passesScenario() },
-  circling: { steps: 6_000, build: () => circlingScenario() },
+    orbit: worldScenario(() => orbitScenario(), 20_000),
+    tumble: worldScenario(() => tumbleScenario(), 5_000),
+    gunnery: { steps: 3_000, build: () => gunneryScenario() },
+    duel: { steps: 3_000, build: () => duelScenario() },
+    beamDuel: { steps: 3_000, build: () => beamDuelScenario() },
+    binary: { steps: 3_000, build: () => binaryScenario() },
+    kernels: { steps: 6_000, build: () => kernelsScenario() },
+    asteroidField: { steps: 6_000, build: () => asteroidFieldScenario() },
+    // Long enough for both salvagers to grip a minor and their robots to bring ore home.
+    mining: { steps: 18_000, build: () => miningScenario() },
+    // Long enough for both outposts to anchor and build a Dinky each, and for the first to reach the other side.
+    rivalMines: { steps: 30_000, build: () => rivalMinesScenario() },
+    swarm: { steps: 3_000, build: () => swarmScenario() },
+    superSwarm: { steps: 3_000, build: () => swarmScenario(undefined, 300) },
+    torpedoes: { steps: 3_000, build: () => torpedoesScenario() },
+    ordering: { steps: 3_000, build: () => orderingScenario() },
+    standoff: { steps: 3_000, build: () => standoffScenario() },
+    column: { steps: 3_000, build: () => columnScenario() },
+    split: { steps: 3_000, build: () => splitScenario() },
+    torchRun: { steps: 3_000, build: () => torchRunScenario() },
+    hooked: { steps: 3_000, build: () => hookedScenario() },
+    broadside: { steps: 3_000, build: () => broadsideScenario() },
+    // Long enough for the Salvager to fly out, grip the corvette, drink and start taking it apart.
+    salvageRun: { steps: 14_400, build: () => salvageRunScenario() },
+    // Long enough for the robots to mend everything and come home.
+    mending: { steps: 15_600, build: () => mendingScenario() },
+    // Long enough for the new fin to go up, the engine to come down, and the old fin to be refitted as the tank.
+    refitting: { steps: 21_600, build: () => refittingScenario() },
+    // Long enough for both Catamarans to finish, their turrets refitted in place.
+    catamaranRefits: { steps: 30_000, build: () => catamaranRefitsScenario() },
+    // Long enough for both scavengers to drink their fill, one from three wrecks.
+    scavenge: { steps: 18_000, build: () => scavengeScenario() },
+    padRebuild: { steps: 4_800, build: () => padRebuildScenario() },
+    // Long enough for the first fighter to be laid down, built, filled and let go.
+    factory: { steps: 6_000, build: () => factoryScenario() },
+    // Long enough for the Scavenger to be built, fitted out, filled and let go.
+    shipyard: { steps: 18_000, build: () => shipyardScenario() },
+    // Long enough for all three fighters to fire themselves dry and rearm.
+    rearm: { steps: 3_000, build: () => rearmScenario() },
+    // Long enough for both pickets to dock, fill and part.
+    tanker: { steps: 6_600, build: () => tankerScenario() },
+    // Long enough for the tender to cast off and grip a wreck, and the first fighters to come back to recharge.
+    beamCarrier: { steps: 7_200, build: () => beamCarrierScenario() },
+    // Long enough for the Dinky to make three passes, and the Y-wing to settle into its circle.
+    passes: { steps: 6_000, build: () => passesScenario() },
+    circling: { steps: 6_000, build: () => circlingScenario() },
 } satisfies Record<string, Scenario>;
 
 export type ScenarioName = keyof typeof SCENARIOS;

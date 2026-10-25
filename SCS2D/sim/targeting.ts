@@ -1,6 +1,6 @@
-import type { Bodies } from './bodies.js';
-import type { Targeting } from './doctrine.js';
-import { abs, cos, length, log, sin } from './math.js';
+import type { Bodies } from "./bodies.js";
+import type { Targeting } from "./doctrine.js";
+import { abs, cos, length, log, sin } from "./math.js";
 
 /**
  * Choosing what to shoot at.
@@ -20,29 +20,29 @@ import { abs, cos, length, log, sin } from './math.js';
 
 /** What is known about a candidate, so a picker need not go and look. */
 export interface Candidate {
-  /** Which ship it is, as the ships store indexes them. */
-  readonly ship: number;
-  /** Metres from the chooser. */
-  readonly range: number;
-  /** Metres per second it is closing at. Negative while it is opening. */
-  readonly closing: number;
-  /** Kilograms, which stands in for how much killing it is worth. */
-  readonly mass: number;
-  /** Whether any of its guns still work. */
-  readonly armed: boolean;
-  /** Whether it can still push itself about. */
-  readonly mobile: boolean;
-  /**
-   * The cosine of how far off the chooser's facing it lies: one dead ahead,
-   * zero abeam, minus one astern. A hull faces along its nose, a mount along
-   * its barrel.
-   */
-  readonly facing: number;
-  /**
-   * Whether the line to it passes clear of every other solid body. Only
-   * looked for when a doctrine weighs it, and true otherwise.
-   */
-  readonly clear: boolean;
+    /** Which ship it is, as the ships store indexes them. */
+    readonly ship: number;
+    /** Metres from the chooser. */
+    readonly range: number;
+    /** Metres per second it is closing at. Negative while it is opening. */
+    readonly closing: number;
+    /** Kilograms, which stands in for how much killing it is worth. */
+    readonly mass: number;
+    /** Whether any of its guns still work. */
+    readonly armed: boolean;
+    /** Whether it can still push itself about. */
+    readonly mobile: boolean;
+    /**
+     * The cosine of how far off the chooser's facing it lies: one dead ahead,
+     * zero abeam, minus one astern. A hull faces along its nose, a mount along
+     * its barrel.
+     */
+    readonly facing: number;
+    /**
+     * Whether the line to it passes clear of every other solid body. Only
+     * looked for when a doctrine weighs it, and true otherwise.
+     */
+    readonly clear: boolean;
 }
 
 /** A hundred metres a second, so `closingWeight` is per ramming speed. */
@@ -79,26 +79,26 @@ const CLOSING_SCALE = 100;
  * untouchable by everyone, for as long as it likes.
  */
 export function score(
-  doctrine: Targeting,
-  candidate: Candidate,
-  reach: number,
-  own: number,
-  loyalTo: number,
-  focusOn = -1,
-  /** The size wanted, as a multiple of `own`; `preferredMass` unless the chooser would ram. */
-  wanted = doctrine.preferredMass,
+    doctrine: Targeting,
+    candidate: Candidate,
+    reach: number,
+    own: number,
+    loyalTo: number,
+    focusOn = -1,
+    /** The size wanted, as a multiple of `own`; `preferredMass` unless the chooser would ram. */
+    wanted = doctrine.preferredMass,
 ): number {
-  let total = 0;
-  if (reach > 0) total += doctrine.proximityWeight * (1 - candidate.range / reach);
-  total += doctrine.massWeight * (1 - sizeMiss(wanted, candidate.mass, own));
-  total += doctrine.closingWeight * (candidate.closing / CLOSING_SCALE);
-  if (candidate.ship === loyalTo) total += doctrine.loyaltyWeight;
-  if (candidate.ship === focusOn) total += doctrine.focusWeight;
-  if (candidate.armed) total += doctrine.armedWeight;
-  if (candidate.mobile) total += doctrine.mobileWeight;
-  total += doctrine.facingWeight * candidate.facing;
-  if (candidate.clear) total += doctrine.sightWeight;
-  return total;
+    let total = 0;
+    if (reach > 0) total += doctrine.proximityWeight * (1 - candidate.range / reach);
+    total += doctrine.massWeight * (1 - sizeMiss(wanted, candidate.mass, own));
+    total += doctrine.closingWeight * (candidate.closing / CLOSING_SCALE);
+    if (candidate.ship === loyalTo) total += doctrine.loyaltyWeight;
+    if (candidate.ship === focusOn) total += doctrine.focusWeight;
+    if (candidate.armed) total += doctrine.armedWeight;
+    if (candidate.mobile) total += doctrine.mobileWeight;
+    total += doctrine.facingWeight * candidate.facing;
+    if (candidate.clear) total += doctrine.sightWeight;
+    return total;
 }
 
 /**
@@ -124,14 +124,14 @@ export function score(
  * strength at twice the station distance, nothing at all once it is there.
  */
 export function cohesionUrge(doctrine: Targeting, gap: number, station: number): number {
-  return slack(gap, station) * doctrine.escortWeight;
+    return slack(gap, station) * doctrine.escortWeight;
 }
 
 /** One at twice the station distance or further, nothing once on station. */
 function slack(range: number, station: number): number {
-  if (!(station > 0)) return 1;
-  const over = (range - station) / station;
-  return over <= 0 ? 0 : over >= 1 ? 1 : over;
+    if (!(station > 0)) return 1;
+    const over = (range - station) / station;
+    return over <= 0 ? 0 : over >= 1 ? 1 : over;
 }
 
 /**
@@ -149,8 +149,8 @@ function slack(range: number, station: number): number {
  * rather than refusing to fight.
  */
 function sizeMiss(wanted: number, mass: number, own: number): number {
-  if (!(mass > 0) || !(own > 0) || !(wanted > 0)) return 0;
-  return abs(log(mass / (own * wanted)));
+    if (!(mass > 0) || !(own > 0) || !(wanted > 0)) return 0;
+    return abs(log(mass / (own * wanted)));
 }
 
 /**
@@ -161,26 +161,26 @@ function sizeMiss(wanted: number, mass: number, own: number): number {
  * the same fight.
  */
 export class Choice {
-  ship = -1;
-  best = 0;
-  private started = false;
+    ship = -1;
+    best = 0;
+    private started = false;
 
-  begin(): void {
-    this.ship = -1;
-    this.best = 0;
-    this.started = false;
-  }
+    begin(): void {
+        this.ship = -1;
+        this.best = 0;
+        this.started = false;
+    }
 
-  offer(candidate: Candidate, value: number): void {
-    // Ranking rather than a threshold: a score is only ever worth comparing
-    // with another score. A fleet with nothing appealing left to shoot at
-    // still finishes the job, and a craft that would rather fight its own
-    // weight class still takes on a capital when that is all there is.
-    if (this.started && value <= this.best) return;
-    this.started = true;
-    this.best = value;
-    this.ship = candidate.ship;
-  }
+    offer(candidate: Candidate, value: number): void {
+        // Ranking rather than a threshold: a score is only ever worth comparing
+        // with another score. A fleet with nothing appealing left to shoot at
+        // still finishes the job, and a craft that would rather fight its own
+        // weight class still takes on a capital when that is all there is.
+        if (this.started && value <= this.best) return;
+        this.started = true;
+        this.best = value;
+        this.ship = candidate.ship;
+    }
 }
 
 /**
@@ -194,41 +194,41 @@ export class Choice {
  * way of anything.
  */
 export function inSight(bodies: Bodies, fromX: number, fromY: number, from: number, to: number): boolean {
-  const dx = bodies.x[to]! - fromX;
-  const dy = bodies.y[to]! - fromY;
-  const lengthSq = dx * dx + dy * dy;
-  if (!(lengthSq > 0)) return true;
-  for (let k = 0; k < bodies.count; k++) {
-    if (k === from || k === to || bodies.ghost[k] === 1) continue;
-    const ox = bodies.x[k]! - fromX;
-    const oy = bodies.y[k]! - fromY;
-    const along = (ox * dx + oy * dy) / lengthSq;
-    if (along <= 0 || along >= 1) continue;
-    const px = ox - along * dx;
-    const py = oy - along * dy;
-    const r = bodies.radius[k]!;
-    if (px * px + py * py < r * r) return false;
-  }
-  return true;
+    const dx = bodies.x[to]! - fromX;
+    const dy = bodies.y[to]! - fromY;
+    const lengthSq = dx * dx + dy * dy;
+    if (!(lengthSq > 0)) return true;
+    for (let k = 0; k < bodies.count; k++) {
+        if (k === from || k === to || bodies.ghost[k] === 1) continue;
+        const ox = bodies.x[k]! - fromX;
+        const oy = bodies.y[k]! - fromY;
+        const along = (ox * dx + oy * dy) / lengthSq;
+        if (along <= 0 || along >= 1) continue;
+        const px = ox - along * dx;
+        const py = oy - along * dy;
+        const r = bodies.radius[k]!;
+        if (px * px + py * py < r * r) return false;
+    }
+    return true;
 }
 
 /** Fill in what the pickers need to know about a target, from the bodies. */
 export function look(bodies: Bodies, from: number, to: number, ship: number, mass: number, armed: boolean, mobile: boolean): Candidate {
-  const angle = bodies.angle[from]!;
-  return lookFrom(
-    bodies,
-    bodies.x[from]!,
-    bodies.y[from]!,
-    bodies.vx[from]!,
-    bodies.vy[from]!,
-    cos(angle),
-    sin(angle),
-    to,
-    ship,
-    mass,
-    armed,
-    mobile,
-  );
+    const angle = bodies.angle[from]!;
+    return lookFrom(
+        bodies,
+        bodies.x[from]!,
+        bodies.y[from]!,
+        bodies.vx[from]!,
+        bodies.vy[from]!,
+        cos(angle),
+        sin(angle),
+        to,
+        ship,
+        mass,
+        armed,
+        mobile,
+    );
 }
 
 /**
@@ -241,31 +241,31 @@ export function look(bodies: Bodies, from: number, to: number, ship: number, mas
  * the range a gun has to shoot is the range from the gun.
  */
 export function lookFrom(
-  bodies: Bodies,
-  fromX: number,
-  fromY: number,
-  fromVx: number,
-  fromVy: number,
-  faceX: number,
-  faceY: number,
-  to: number,
-  ship: number,
-  mass: number,
-  armed: boolean,
-  mobile: boolean,
+    bodies: Bodies,
+    fromX: number,
+    fromY: number,
+    fromVx: number,
+    fromVy: number,
+    faceX: number,
+    faceY: number,
+    to: number,
+    ship: number,
+    mass: number,
+    armed: boolean,
+    mobile: boolean,
 ): Candidate {
-  const dx = bodies.x[to]! - fromX;
-  const dy = bodies.y[to]! - fromY;
-  const range = length(dx, dy);
-  let closing = 0;
-  let facing = 1;
-  if (range > 0) {
-    facing = (faceX * dx + faceY * dy) / range;
-    // Along the line between them: how fast the gap is shutting, which is
-    // what "coming at you" means and is not the same as how fast it is going.
-    const dvx = bodies.vx[to]! - fromVx;
-    const dvy = bodies.vy[to]! - fromVy;
-    closing = -(dvx * dx + dvy * dy) / range;
-  }
-  return { ship, range, closing, mass, armed, mobile, facing, clear: true };
+    const dx = bodies.x[to]! - fromX;
+    const dy = bodies.y[to]! - fromY;
+    const range = length(dx, dy);
+    let closing = 0;
+    let facing = 1;
+    if (range > 0) {
+        facing = (faceX * dx + faceY * dy) / range;
+        // Along the line between them: how fast the gap is shutting, which is
+        // what "coming at you" means and is not the same as how fast it is going.
+        const dvx = bodies.vx[to]! - fromVx;
+        const dvy = bodies.vy[to]! - fromVy;
+        closing = -(dvx * dx + dvy * dy) / range;
+    }
+    return { ship, range, closing, mass, armed, mobile, facing, clear: true };
 }

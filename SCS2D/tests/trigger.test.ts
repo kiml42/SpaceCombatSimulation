@@ -1,26 +1,26 @@
-import { describe, expect, it } from 'vitest';
-import { Bodies } from '../sim/bodies.js';
+import { describe, expect, it } from "vitest";
+import { Bodies } from "../sim/bodies.js";
 import {
-  compileBlueprint,
-  defaultTargeting,
-  isWeaponMount,
-  refitModule,
-  castableBeamLength,
-  math,
-  MAX_BEAM_LENGTH,
-  moduleRadius,
-  NO_TARGET,
-  Ships,
-  Turrets,
-  World,
-  type Blueprint,
-  type Placement,
-  type ShipDesign,
-  type Targeting,
-} from '../sim/index.js';
-import { MAX_CELLS_PER_RAY } from '../sim/spatialGrid.js';
-import { reachAgainst } from '../sim/blueprint.js';
-import { BARE_CORE, CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
+    compileBlueprint,
+    defaultTargeting,
+    isWeaponMount,
+    refitModule,
+    castableBeamLength,
+    math,
+    MAX_BEAM_LENGTH,
+    moduleRadius,
+    NO_TARGET,
+    Ships,
+    Turrets,
+    World,
+    type Blueprint,
+    type Placement,
+    type ShipDesign,
+    type Targeting,
+} from "../sim/index.js";
+import { MAX_CELLS_PER_RAY } from "../sim/spatialGrid.js";
+import { reachAgainst } from "../sim/blueprint.js";
+import { BARE_CORE, CORVETTE, GUNSHIP } from "../scenarios/blueprints.js";
 
 /**
  * When a weapon pulls the trigger.
@@ -44,9 +44,9 @@ const DEGREE = math.PI / 180;
 
 /** A hull for a bare mount to sit on. */
 function mount(): { bodies: Bodies; index: number } {
-  const bodies = new Bodies();
-  const id = bodies.create({ x: 0, y: 0, angle: 0, mass: 1000, inertia: 50_000, radius: 20 });
-  return { bodies, index: bodies.indexOf(id) };
+    const bodies = new Bodies();
+    const id = bodies.create({ x: 0, y: 0, angle: 0, mass: 1000, inertia: 50_000, radius: 20 });
+    return { bodies, index: bodies.indexOf(id) };
 }
 
 /**
@@ -54,24 +54,25 @@ function mount(): { bodies: Bodies; index: number } {
  * written — a mount inside an assembly is still a mount. `hull` lets its
  * guns into the hull, so they can reach a hull-layer mark.
  */
-function armed(targeting: Partial<Targeting>, hull: boolean | 'turret' = false, extra: Partial<Placement> = {}): ShipDesign {
-  const rewrite = (placements: readonly Placement[]): Placement[] =>
-    placements.map((placement) => {
-      if (!('kind' in placement)) return placement;
-      if (!isWeaponMount(placement.kind)) return placement;
-      const gun = hull === true ? refitModule(placement, 'hullGun') : hull === 'turret' ? refitModule(placement, 'turret') : placement;
-      return { ...placement, ...gun, targeting, ...extra } as Placement;
-    });
-  const assemblies: Record<string, { modules: Placement[] }> = {};
-  for (const [name, assembly] of Object.entries(CORVETTE.assemblies ?? {})) {
-    assemblies[name] = { ...assembly, modules: rewrite(assembly.modules) };
-  }
-  const blueprint: Blueprint = {
-    ...CORVETTE,
-    modules: rewrite(CORVETTE.modules),
-    assemblies,
-  };
-  return compileBlueprint(blueprint);
+function armed(targeting: Partial<Targeting>, hull: boolean | "turret" = false, extra: Partial<Placement> = {}): ShipDesign {
+    const rewrite = (placements: readonly Placement[]): Placement[] =>
+        placements.map((placement) => {
+            if (!("kind" in placement)) return placement;
+            if (!isWeaponMount(placement.kind)) return placement;
+            const gun =
+                hull === true ? refitModule(placement, "hullGun") : hull === "turret" ? refitModule(placement, "turret") : placement;
+            return { ...placement, ...gun, targeting, ...extra } as Placement;
+        });
+    const assemblies: Record<string, { modules: Placement[] }> = {};
+    for (const [name, assembly] of Object.entries(CORVETTE.assemblies ?? {})) {
+        assemblies[name] = { ...assembly, modules: rewrite(assembly.modules) };
+    }
+    const blueprint: Blueprint = {
+        ...CORVETTE,
+        modules: rewrite(CORVETTE.modules),
+        assemblies,
+    };
+    return compileBlueprint(blueprint);
 }
 
 /**
@@ -83,344 +84,346 @@ function armed(targeting: Partial<Targeting>, hull: boolean | 'turret' = false, 
  * only shows up in what it *lets through*, so that is what to measure.
  */
 function slackAgainst(shooter: ShipDesign, range: number): number {
-  const world = new World({ dt: DT, seed: 11 });
-  const ships = new Ships();
-  world.addForceProvider(ships.forceProvider());
-  const mine = ships.spawn(world, { design: shooter, x: 0, y: 0, team: 0 });
-  ships.spawn(world, {
-    design: compileBlueprint(GUNSHIP),
-    x: range,
-    y: 0,
-    angle: math.HALF_PI,
-    team: 1,
-  });
-  ships.command(DT, world);
-  return ships.turrets.fireSlack[ships.turretIndexOf(mine, 0)]!;
-}
-
-describe('how much of a target counts as on target', () => {
-  it('is the target’s own angular size rather than a constant', () => {
-    // The mechanism, on the store itself: a mount fires within the slack it
-    // was given, and without one is held to pointing where it was told.
-    const { bodies, index } = mount();
-    const turrets = new Turrets();
-    const t = turrets.add({ owner: index, x: 0, y: 0, maxRate: 0, maxAccel: 0 });
-
-    // Commanded a degree away with a mount that cannot slew, so whether it
-    // may fire is entirely a question of what it is allowed to be off by.
-    turrets.commandWorldBearing(bodies, t, DEGREE);
-    turrets.step(DT, bodies);
-    expect(turrets.readyToFire(t)).toBe(false);
-    turrets.allowSlack(t, 2 * DEGREE);
-    expect(turrets.readyToFire(t)).toBe(true);
-    turrets.allowSlack(t, 0.5 * DEGREE);
-    expect(turrets.readyToFire(t)).toBe(false);
-  });
-
-  it('gives up the slack when it gives up the target', () => {
-    // Or a mount would go on firing at the sky it was left pointing at.
-    const { index } = mount();
-    const turrets = new Turrets();
-    const t = turrets.add({ owner: index, x: 0, y: 0, maxRate: 1, maxAccel: 1 });
-    turrets.allowSlack(t, 1);
-    turrets.returnToRest(t);
-    expect(turrets.fireSlack[t]).toBe(0);
-  });
-});
-
-describe('what a doctrine will accept hitting', () => {
-  it('is the whole ship for a mount that refuses nothing, and the part for one that does', () => {
-    // The same ship twice, differing only in whether it has written something
-    // off. A capital at 700 m is several degrees wide and the mount one aims
-    // at is a fraction of that, so the two answers are far apart — and no
-    // number said so: the refusal did.
-    const range = 700;
-    const selective = slackAgainst(armed({ structureWeight: -1 }), range);
-    const indiscriminate = slackAgainst(armed({ structureWeight: 20 }), range);
-    expect(selective).toBeGreaterThan(0);
-    expect(indiscriminate).toBeGreaterThan(selective * 2);
-    // And both are far looser than the twentieth of a degree a mount used to
-    // be held to, which is the point of the change.
-    expect(selective).toBeGreaterThan(0.001);
-  });
-
-  it('gives a distant target less slack than a near one', () => {
-    // Angular size, so the same ship twice as far away is half as forgiving.
-    const near = slackAgainst(armed({ structureWeight: 20 }), 500);
-    const far = slackAgainst(armed({ structureWeight: 20 }), 1000);
-    expect(far).toBeLessThan(near);
-    expect(far).toBeGreaterThan(near / 3);
-  });
-});
-
-describe('what a mount that refuses nothing fires on', () => {
-  /** One command step of the corvette's first mount against the gunship, side on at `range`. */
-  function cone(
-    targeting: Partial<Targeting>,
-    range: number,
-    hull: boolean | 'turret' = false,
-    extra: Partial<Placement> = {},
-  ): { slack: number; offset: number } {
     const world = new World({ dt: DT, seed: 11 });
     const ships = new Ships();
     world.addForceProvider(ships.forceProvider());
-    const mine = ships.spawn(world, { design: armed(targeting, hull, extra), x: 0, y: 0, team: 0 });
-    ships.spawn(world, { design: compileBlueprint(GUNSHIP), x: range, y: 0, angle: math.HALF_PI, team: 1 });
+    const mine = ships.spawn(world, { design: shooter, x: 0, y: 0, team: 0 });
+    ships.spawn(world, {
+        design: compileBlueprint(GUNSHIP),
+        x: range,
+        y: 0,
+        angle: math.HALF_PI,
+        team: 1,
+    });
     ships.command(DT, world);
-    const ti = ships.turretIndexOf(mine, 0);
-    return { slack: ships.turrets.fireSlack[ti]!, offset: ships.turrets.fireOffset[ti]! };
-  }
+    return ships.turrets.fireSlack[ships.turretIndexOf(mine, 0)]!;
+}
 
-  it('is the whole ship, about its middle, even aiming at one of its parts', () => {
-    // Close in, a mount after guns aims at one, off the gunship's middle; the
-    // cone it will fire in is still the whole ship's, centred on the ship.
-    const radius = compileBlueprint(GUNSHIP).radius;
-    const range = 250;
-    const { slack, offset } = cone({ gunWeight: 5 }, range);
-    expect(offset).not.toBe(0);
-    expect(slack).toBeGreaterThan(Math.atan2(radius, range + radius));
-    expect(slack).toBeLessThan(Math.atan2(radius, range - radius));
-  });
+describe("how much of a target counts as on target", () => {
+    it("is the target’s own angular size rather than a constant", () => {
+        // The mechanism, on the store itself: a mount fires within the slack it
+        // was given, and without one is held to pointing where it was told.
+        const { bodies, index } = mount();
+        const turrets = new Turrets();
+        const t = turrets.add({ owner: index, x: 0, y: 0, maxRate: 0, maxAccel: 0 });
 
-  it('aims at the middle of the ship from further than the part is worth shooting at', () => {
-    // Out there a part is too small to hit and the ship is not, so a hull gun
-    // aims at the ship and the cone is centred on the aim.
-    expect(cone({ gunWeight: 5 }, 250, true).offset).not.toBe(0);
-    expect(cone({ gunWeight: 5 }, 1000, true).offset).toBe(0);
-    // A turret firing solid shot would put it over the deck amidships, so it
-    // takes the part nearest the middle: closer to it, sideways, than the gun
-    // it aims at near.
-    const solid = { fragments: 1 };
-    const near = cone({ gunWeight: 5 }, 250, 'turret', solid).offset * 250;
-    const far = cone({ gunWeight: 5 }, 1000, 'turret', solid).offset * 1000;
-    expect(near).not.toBe(0);
-    expect(far).not.toBe(0);
-    expect(Math.abs(far)).toBeLessThan(Math.abs(near));
-  });
+        // Commanded a degree away with a mount that cannot slew, so whether it
+        // may fire is entirely a question of what it is allowed to be off by.
+        turrets.commandWorldBearing(bodies, t, DEGREE);
+        turrets.step(DT, bodies);
+        expect(turrets.readyToFire(t)).toBe(false);
+        turrets.allowSlack(t, 2 * DEGREE);
+        expect(turrets.readyToFire(t)).toBe(true);
+        turrets.allowSlack(t, 0.5 * DEGREE);
+        expect(turrets.readyToFire(t)).toBe(false);
+    });
 
-  it('aims a shell turret at the middle only when too far out for a part', () => {
-    // Its fragments reach the hull, so out there it can aim at the middle.
-    // Closer in it goes for a part as it always did, with a preference or
-    // without one.
-    expect(cone({ gunWeight: 5 }, 250, 'turret').offset).not.toBe(0);
-    expect(cone({}, 250, 'turret').offset).not.toBe(0);
-    expect(cone({ gunWeight: 5 }, 1000, 'turret').offset).toBe(0);
-  });
+    it("gives up the slack when it gives up the target", () => {
+        // Or a mount would go on firing at the sky it was left pointing at.
+        const { index } = mount();
+        const turrets = new Turrets();
+        const t = turrets.add({ owner: index, x: 0, y: 0, maxRate: 1, maxAccel: 1 });
+        turrets.allowSlack(t, 1);
+        turrets.returnToRest(t);
+        expect(turrets.fireSlack[t]).toBe(0);
+    });
 });
 
-describe('how far out a mount fires', () => {
-  it('is its doctrine’s to say, as a multiple of how far its shot is worth taking', () => {
-    const plain = armed({});
-    const eager = armed({ fireRange: 2 });
-    expect(eager.turrets[0]!.reach).toBeCloseTo(plain.turrets[0]!.reach * 2, 9);
-    // And the ship, which flies to where its guns will fire, reaches as far.
-    expect(eager.reach).toBeCloseTo(plain.reach * 2, 9);
+describe("what a doctrine will accept hitting", () => {
+    it("is the whole ship for a mount that refuses nothing, and the part for one that does", () => {
+        // The same ship twice, differing only in whether it has written something
+        // off. A capital at 700 m is several degrees wide and the mount one aims
+        // at is a fraction of that, so the two answers are far apart — and no
+        // number said so: the refusal did.
+        const range = 700;
+        const selective = slackAgainst(armed({ structureWeight: -1 }), range);
+        const indiscriminate = slackAgainst(armed({ structureWeight: 20 }), range);
+        expect(selective).toBeGreaterThan(0);
+        expect(indiscriminate).toBeGreaterThan(selective * 2);
+        // And both are far looser than the twentieth of a degree a mount used to
+        // be held to, which is the point of the change.
+        expect(selective).toBeGreaterThan(0.001);
+    });
 
-    // A gunship half as far again as a mount is worth shooting at it: held
-    // fire by default, fired on by a mount that will take the long odds.
-    const inReach = (design: ShipDesign): number => {
-      const world = new World({ dt: DT, seed: 11 });
-      const ships = new Ships();
-      world.addForceProvider(ships.forceProvider());
-      const mine = ships.spawn(world, { design, x: 0, y: 0, team: 0 });
-      const gunship = compileBlueprint(GUNSHIP);
-      const range = 1.5 * reachAgainst(design.turrets[0]!.gun, gunship.radius);
-      ships.spawn(world, { design: gunship, x: range, y: 0, angle: math.HALF_PI, team: 1 });
-      ships.command(DT, world);
-      return ships.turrets.inReach[ships.turretIndexOf(mine, 0)]!;
-    };
-    expect(inReach(plain)).toBe(0);
-    expect(inReach(eager)).toBe(1);
-  });
+    it("gives a distant target less slack than a near one", () => {
+        // Angular size, so the same ship twice as far away is half as forgiving.
+        const near = slackAgainst(armed({ structureWeight: 20 }), 500);
+        const far = slackAgainst(armed({ structureWeight: 20 }), 1000);
+        expect(far).toBeLessThan(near);
+        expect(far).toBeGreaterThan(near / 3);
+    });
 });
 
-describe('a target a hull mount cannot point at', () => {
-  it('is still tracked, so the mount is ready when it comes round, and not fired on', () => {
-    // Dead astern of a corvette whose hull guns face forward.
-    const world = new World({ dt: DT, seed: 3 });
-    const ships = new Ships();
-    world.addForceProvider(ships.forceProvider());
-    const mine = ships.spawn(world, { design: armed({}, true), x: 0, y: 0, team: 0 });
-    const behind = ships.spawn(world, { design: compileBlueprint(GUNSHIP), x: -400, y: 0, team: 1 });
-    const ti = ships.turretIndexOf(mine, 0);
-    expect(ships.turrets.bearsOn(world.bodies, ti, math.PI)).toBe(false);
-    ships.command(DT, world);
-    expect(ships.targetOfTurret(world.bodies, mine, 0)).toBe(behind);
-    expect(ships.turrets.blocked[ti]).toBe(1);
-    expect(ships.turrets.readyToFire(ti)).toBe(false);
-    expect(ships.triggerReach(mine, 0)).toBeGreaterThan(0);
-  });
-});
-
-describe('a beam’s default', () => {
-  it('goes for guns and engines, and lights up while it is still training', () => {
-    for (const kind of ['beamTurret', 'hullBeam'] as const) {
-      const beam = defaultTargeting(kind);
-      expect(beam.gunWeight).toBeGreaterThan(beam.coreWeight);
-      expect(beam.engineWeight).toBeGreaterThan(beam.coreWeight);
-      expect(beam.structureWeight).toBe(0);
+describe("what a mount that refuses nothing fires on", () => {
+    /** One command step of the corvette's first mount against the gunship, side on at `range`. */
+    function cone(
+        targeting: Partial<Targeting>,
+        range: number,
+        hull: boolean | "turret" = false,
+        extra: Partial<Placement> = {},
+    ): { slack: number; offset: number } {
+        const world = new World({ dt: DT, seed: 11 });
+        const ships = new Ships();
+        world.addForceProvider(ships.forceProvider());
+        const mine = ships.spawn(world, { design: armed(targeting, hull, extra), x: 0, y: 0, team: 0 });
+        ships.spawn(world, { design: compileBlueprint(GUNSHIP), x: range, y: 0, angle: math.HALF_PI, team: 1 });
+        ships.command(DT, world);
+        const ti = ships.turretIndexOf(mine, 0);
+        return { slack: ships.turrets.fireSlack[ti]!, offset: ships.turrets.fireOffset[ti]! };
     }
-    // Zero rather than below it, on every archetype there is. Plating is not
-    // worth aiming at and not worth staying on a stripped hull for, but
-    // nothing holds its fire to spare it: a beam that waited for a gun to
-    // come under the emitter would throw away the sweep it makes on the way
-    // there, which costs it nothing since a beam burns continuously rather
-    // than in shots — and a gun that waited would be buying a precision it
-    // cannot have, since its round has to fly while the target moves.
-    for (const kind of ['turret', 'beamTurret', 'hullGun', 'hullBeam'] as const) {
-      expect(defaultTargeting(kind).structureWeight).toBe(0);
-    }
-    // Which is to say a beam refuses nothing, and so is no more selective at
-    // the trigger than a gun: both fire at anything on the hull they are
-    // pointed at. Stated over every weight rather than the one, since it is
-    // the absence of *any* refusal that leaves the trigger loose.
-    for (const kind of ['beamTurret', 'hullBeam'] as const) {
-      const beam = defaultTargeting(kind);
-      for (const weight of [beam.coreWeight, beam.engineWeight, beam.gunWeight, beam.structureWeight]) {
-        expect(weight).toBeGreaterThanOrEqual(0);
-      }
-    }
-  });
+
+    it("is the whole ship, about its middle, even aiming at one of its parts", () => {
+        // Close in, a mount after guns aims at one, off the gunship's middle; the
+        // cone it will fire in is still the whole ship's, centred on the ship.
+        const radius = compileBlueprint(GUNSHIP).radius;
+        const range = 250;
+        const { slack, offset } = cone({ gunWeight: 5 }, range);
+        expect(offset).not.toBe(0);
+        expect(slack).toBeGreaterThan(Math.atan2(radius, range + radius));
+        expect(slack).toBeLessThan(Math.atan2(radius, range - radius));
+    });
+
+    it("aims at the middle of the ship from further than the part is worth shooting at", () => {
+        // Out there a part is too small to hit and the ship is not, so a hull gun
+        // aims at the ship and the cone is centred on the aim.
+        expect(cone({ gunWeight: 5 }, 250, true).offset).not.toBe(0);
+        expect(cone({ gunWeight: 5 }, 1000, true).offset).toBe(0);
+        // A turret firing solid shot would put it over the deck amidships, so it
+        // takes the part nearest the middle: closer to it, sideways, than the gun
+        // it aims at near.
+        const solid = { fragments: 1 };
+        const near = cone({ gunWeight: 5 }, 250, "turret", solid).offset * 250;
+        const far = cone({ gunWeight: 5 }, 1000, "turret", solid).offset * 1000;
+        expect(near).not.toBe(0);
+        expect(far).not.toBe(0);
+        expect(Math.abs(far)).toBeLessThan(Math.abs(near));
+    });
+
+    it("aims a shell turret at the middle only when too far out for a part", () => {
+        // Its fragments reach the hull, so out there it can aim at the middle.
+        // Closer in it goes for a part as it always did, with a preference or
+        // without one.
+        expect(cone({ gunWeight: 5 }, 250, "turret").offset).not.toBe(0);
+        expect(cone({}, 250, "turret").offset).not.toBe(0);
+        expect(cone({ gunWeight: 5 }, 1000, "turret").offset).toBe(0);
+    });
 });
 
-describe('what a mount will not reach', () => {
-  it('is tracked so the gun is ready for it, and never fired on', () => {
-    // A mount used to rank a distant target low and then shoot at it anyway
-    // for want of anything nearer, which is how a capital came to fire on
-    // fighters kilometres past what its guns could touch. Now it points at it
-    // and holds its fire until it is in reach.
+describe("how far out a mount fires", () => {
+    it("is its doctrine’s to say, as a multiple of how far its shot is worth taking", () => {
+        const plain = armed({});
+        const eager = armed({ fireRange: 2 });
+        expect(eager.turrets[0]!.reach).toBeCloseTo(plain.turrets[0]!.reach * 2, 9);
+        // And the ship, which flies to where its guns will fire, reaches as far.
+        expect(eager.reach).toBeCloseTo(plain.reach * 2, 9);
+
+        // A gunship half as far again as a mount is worth shooting at it: held
+        // fire by default, fired on by a mount that will take the long odds.
+        const inReach = (design: ShipDesign): number => {
+            const world = new World({ dt: DT, seed: 11 });
+            const ships = new Ships();
+            world.addForceProvider(ships.forceProvider());
+            const mine = ships.spawn(world, { design, x: 0, y: 0, team: 0 });
+            const gunship = compileBlueprint(GUNSHIP);
+            const range = 1.5 * reachAgainst(design.turrets[0]!.gun, gunship.radius);
+            ships.spawn(world, { design: gunship, x: range, y: 0, angle: math.HALF_PI, team: 1 });
+            ships.command(DT, world);
+            return ships.turrets.inReach[ships.turretIndexOf(mine, 0)]!;
+        };
+        expect(inReach(plain)).toBe(0);
+        expect(inReach(eager)).toBe(1);
+    });
+});
+
+describe("a target a hull mount cannot point at", () => {
+    it("is still tracked, so the mount is ready when it comes round, and not fired on", () => {
+        // Dead astern of a corvette whose hull guns face forward.
+        const world = new World({ dt: DT, seed: 3 });
+        const ships = new Ships();
+        world.addForceProvider(ships.forceProvider());
+        const mine = ships.spawn(world, { design: armed({}, true), x: 0, y: 0, team: 0 });
+        const behind = ships.spawn(world, { design: compileBlueprint(GUNSHIP), x: -400, y: 0, team: 1 });
+        const ti = ships.turretIndexOf(mine, 0);
+        expect(ships.turrets.bearsOn(world.bodies, ti, math.PI)).toBe(false);
+        ships.command(DT, world);
+        expect(ships.targetOfTurret(world.bodies, mine, 0)).toBe(behind);
+        expect(ships.turrets.blocked[ti]).toBe(1);
+        expect(ships.turrets.readyToFire(ti)).toBe(false);
+        expect(ships.triggerReach(mine, 0)).toBeGreaterThan(0);
+    });
+});
+
+describe("a beam’s default", () => {
+    it("goes for guns and engines, and lights up while it is still training", () => {
+        for (const kind of ["beamTurret", "hullBeam"] as const) {
+            const beam = defaultTargeting(kind);
+            expect(beam.gunWeight).toBeGreaterThan(beam.coreWeight);
+            expect(beam.engineWeight).toBeGreaterThan(beam.coreWeight);
+            expect(beam.structureWeight).toBe(0);
+        }
+        // Zero rather than below it, on every archetype there is. Plating is not
+        // worth aiming at and not worth staying on a stripped hull for, but
+        // nothing holds its fire to spare it: a beam that waited for a gun to
+        // come under the emitter would throw away the sweep it makes on the way
+        // there, which costs it nothing since a beam burns continuously rather
+        // than in shots — and a gun that waited would be buying a precision it
+        // cannot have, since its round has to fly while the target moves.
+        for (const kind of ["turret", "beamTurret", "hullGun", "hullBeam"] as const) {
+            expect(defaultTargeting(kind).structureWeight).toBe(0);
+        }
+        // Which is to say a beam refuses nothing, and so is no more selective at
+        // the trigger than a gun: both fire at anything on the hull they are
+        // pointed at. Stated over every weight rather than the one, since it is
+        // the absence of *any* refusal that leaves the trigger loose.
+        for (const kind of ["beamTurret", "hullBeam"] as const) {
+            const beam = defaultTargeting(kind);
+            for (const weight of [beam.coreWeight, beam.engineWeight, beam.gunWeight, beam.structureWeight]) {
+                expect(weight).toBeGreaterThanOrEqual(0);
+            }
+        }
+    });
+});
+
+describe("what a mount will not reach", () => {
+    it("is tracked so the gun is ready for it, and never fired on", () => {
+        // A mount used to rank a distant target low and then shoot at it anyway
+        // for want of anything nearer, which is how a capital came to fire on
+        // fighters kilometres past what its guns could touch. Now it points at it
+        // and holds its fire until it is in reach.
+        const gunship = compileBlueprint(GUNSHIP);
+        const reach = gunship.turrets[0]!.reach;
+        expect(reach).toBeGreaterThan(0);
+
+        const inRange = slackAgainst(armed({}), reach * 0.5);
+        expect(inRange).toBeGreaterThan(0);
+
+        const world = new World({ dt: DT, seed: 5 });
+        const ships = new Ships();
+        world.addForceProvider(ships.forceProvider());
+        const mine = ships.spawn(world, { design: armed({}), x: 0, y: 0, team: 0 });
+        const far = ships.spawn(world, { design: gunship, x: reach * 3, y: 0, team: 1 });
+        const ti = ships.turretIndexOf(mine, 0);
+        for (let i = 0; i < 240; i++) {
+            ships.command(DT, world);
+            world.step();
+            expect(ships.turrets.readyToFire(ti)).toBe(false);
+        }
+        expect(ships.targetOfTurret(world.bodies, mine, 0)).toBe(far);
+        expect(ships.turrets.inReach[ti]).toBe(0);
+    });
+
+    it("bounds how far a beam is drawn, and the index can cast that far", () => {
+        // A beam past what the index will walk is cut short without a word, which
+        // is a weapon that quietly stops working at range. The margin is smaller
+        // than length over cell size suggests: a cast at 45° crosses √2 times as
+        // many cells as one along an axis.
+        expect(castableBeamLength(64)).toBeLessThan(MAX_CELLS_PER_RAY * 64);
+        expect(MAX_BEAM_LENGTH).toBeLessThan(castableBeamLength(64));
+        // And far enough that a shell is always the shorter-ranged of the two: a
+        // round lives 30 s, so at the ~1 km/s these guns reach it is gone by 30 km.
+        expect(MAX_BEAM_LENGTH).toBeGreaterThan(30_000);
+    });
+});
+
+describe("a part a doctrine refuses", () => {
+    /**
+     * A mount with one instruction, against one mark, and what it does about it.
+     *
+     * Returns which ship the mount settled on and whether it is pointing at its
+     * own rest bearing — which is what standing down looks like from outside.
+     *
+     * The marks are put close in because a bare core is barely two metres
+     * across, and a gun's reach is measured against what it is shooting at: the
+     * corvette's hull gun reaches 133 m against one of those. Further off and
+     * every case here would read the same way for the wrong reason.
+     *
+     * With a hull gun, since a core is in the hull layer and a turret's rounds
+     * pass over it.
+     */
+    function facing(
+        targeting: Partial<Targeting>,
+        marks: readonly { design: ShipDesign; x: number; y: number }[],
+    ): { target: number; resting: boolean } {
+        const world = new World({ dt: DT, seed: 7 });
+        const ships = new Ships();
+        world.addForceProvider(ships.forceProvider());
+        const mine = ships.spawn(world, { design: armed(targeting, true), x: 0, y: 0, team: 0 });
+        for (const mark of marks) {
+            ships.spawn(world, { design: mark.design, x: mark.x, y: mark.y, angle: math.HALF_PI, team: 1 });
+        }
+        // Long enough for the mount to have chosen and trained.
+        for (let i = 0; i < 240; i++) {
+            ships.command(DT, world);
+            world.step();
+        }
+        const ti = ships.turretIndexOf(mine, 0);
+        return {
+            target: ships.targetOfTurret(world.bodies, mine, 0),
+            resting: ships.turrets.fireSlack[ti] === 0,
+        };
+    }
+
+    const bareCore = compileBlueprint(BARE_CORE);
     const gunship = compileBlueprint(GUNSHIP);
-    const reach = gunship.turrets[0]!.reach;
-    expect(reach).toBeGreaterThan(0);
 
-    const inRange = slackAgainst(armed({}), reach * 0.5);
-    expect(inRange).toBeGreaterThan(0);
+    it("is not a target, rather than a target shot at anyway", () => {
+        // A doctrine that will shoot at nothing but engines, against a ship that
+        // has none. Shooting at the hull instead would be shooting at exactly the
+        // modules it just refused, so there is nothing here for it.
+        const refused = facing({ coreWeight: -1, gunWeight: -1, structureWeight: -1, engineWeight: 100 }, [
+            { design: bareCore, x: 100, y: 0 },
+        ]);
+        expect(refused.target).toBe(NO_TARGET);
+        expect(refused.resting).toBe(true);
 
-    const world = new World({ dt: DT, seed: 5 });
-    const ships = new Ships();
-    world.addForceProvider(ships.forceProvider());
-    const mine = ships.spawn(world, { design: armed({}), x: 0, y: 0, team: 0 });
-    const far = ships.spawn(world, { design: gunship, x: reach * 3, y: 0, team: 1 });
-    const ti = ships.turretIndexOf(mine, 0);
-    for (let i = 0; i < 240; i++) {
-      ships.command(DT, world);
-      world.step();
-      expect(ships.turrets.readyToFire(ti)).toBe(false);
-    }
-    expect(ships.targetOfTurret(world.bodies, mine, 0)).toBe(far);
-    expect(ships.turrets.inReach[ti]).toBe(0);
-  });
+        // The same mount against the same ship, minus the refusal: it engages.
+        const willing = facing({ engineWeight: 100 }, [{ design: bareCore, x: 100, y: 0 }]);
+        expect(willing.target).not.toBe(NO_TARGET);
+    });
 
-  it('bounds how far a beam is drawn, and the index can cast that far', () => {
-    // A beam past what the index will walk is cut short without a word, which
-    // is a weapon that quietly stops working at range. The margin is smaller
-    // than length over cell size suggests: a cast at 45° crosses √2 times as
-    // many cells as one along an axis.
-    expect(castableBeamLength(64)).toBeLessThan(MAX_CELLS_PER_RAY * 64);
-    expect(MAX_BEAM_LENGTH).toBeLessThan(castableBeamLength(64));
-    // And far enough that a shell is always the shorter-ranged of the two: a
-    // round lives 30 s, so at the ~1 km/s these guns reach it is gone by 30 km.
-    expect(MAX_BEAM_LENGTH).toBeGreaterThan(30_000);
-  });
+    it("tells zero from below zero: leave it alone, against mind not to hit it", () => {
+        // Three meanings, and the middle one is the point. Zero is *not worth a
+        // shot*: the mount will not aim at such a module and a ship with nothing
+        // else left stops being a target, but it is not being careful — it goes
+        // on firing at anything on a hull that does have something worth
+        // shooting. Below zero is the careful one.
+        const onlyCore = [{ design: bareCore, x: 100, y: 0 }];
+        expect(facing({ coreWeight: 100 }, onlyCore).target).not.toBe(NO_TARGET);
+        expect(facing({ coreWeight: 0, gunWeight: 100 }, onlyCore).target).toBe(NO_TARGET);
+        expect(facing({ coreWeight: -1, gunWeight: 100 }, onlyCore).target).toBe(NO_TARGET);
+
+        // And the difference between the two of them is at the trigger, against a
+        // ship there *is* something to shoot at: the one that only declines to
+        // aim fires at anything on the hull, the one that minds fires at its
+        // part.
+        const range = 700;
+        const declines = slackAgainst(armed({ structureWeight: 0 }), range);
+        const minds = slackAgainst(armed({ structureWeight: -1 }), range);
+        expect(declines).toBeGreaterThan(minds * 2);
+    });
+
+    it("sends the mount to something it will shoot at instead", () => {
+        // Two marks, the nearer one nothing but a core it has refused. Proximity
+        // would take the near one on every other measure, so this is the refusal
+        // deciding rather than the ranking.
+        const near = facing({ coreWeight: -1, gunWeight: 100, engineWeight: 100 }, [
+            { design: bareCore, x: 100, y: 0 },
+            { design: gunship, x: 500, y: 0 },
+        ]);
+        expect(near.target).not.toBe(NO_TARGET);
+        // The second spawn is the bare core, the third the gunship.
+        expect(near.target).toBe(2);
+    });
 });
 
-describe('a part a doctrine refuses', () => {
-  /**
-   * A mount with one instruction, against one mark, and what it does about it.
-   *
-   * Returns which ship the mount settled on and whether it is pointing at its
-   * own rest bearing — which is what standing down looks like from outside.
-   *
-   * The marks are put close in because a bare core is barely two metres
-   * across, and a gun's reach is measured against what it is shooting at: the
-   * corvette's hull gun reaches 133 m against one of those. Further off and
-   * every case here would read the same way for the wrong reason.
-   *
-   * With a hull gun, since a core is in the hull layer and a turret's rounds
-   * pass over it.
-   */
-  function facing(
-    targeting: Partial<Targeting>,
-    marks: readonly { design: ShipDesign; x: number; y: number }[],
-  ): { target: number; resting: boolean } {
-    const world = new World({ dt: DT, seed: 7 });
-    const ships = new Ships();
-    world.addForceProvider(ships.forceProvider());
-    const mine = ships.spawn(world, { design: armed(targeting, true), x: 0, y: 0, team: 0 });
-    for (const mark of marks) {
-      ships.spawn(world, { design: mark.design, x: mark.x, y: mark.y, angle: math.HALF_PI, team: 1 });
-    }
-    // Long enough for the mount to have chosen and trained.
-    for (let i = 0; i < 240; i++) {
-      ships.command(DT, world);
-      world.step();
-    }
-    const ti = ships.turretIndexOf(mine, 0);
-    return {
-      target: ships.targetOfTurret(world.bodies, mine, 0),
-      resting: ships.turrets.fireSlack[ti] === 0,
-    };
-  }
-
-  const bareCore = compileBlueprint(BARE_CORE);
-  const gunship = compileBlueprint(GUNSHIP);
-
-  it('is not a target, rather than a target shot at anyway', () => {
-    // A doctrine that will shoot at nothing but engines, against a ship that
-    // has none. Shooting at the hull instead would be shooting at exactly the
-    // modules it just refused, so there is nothing here for it.
-    const refused = facing({ coreWeight: -1, gunWeight: -1, structureWeight: -1, engineWeight: 100 }, [{ design: bareCore, x: 100, y: 0 }]);
-    expect(refused.target).toBe(NO_TARGET);
-    expect(refused.resting).toBe(true);
-
-    // The same mount against the same ship, minus the refusal: it engages.
-    const willing = facing({ engineWeight: 100 }, [{ design: bareCore, x: 100, y: 0 }]);
-    expect(willing.target).not.toBe(NO_TARGET);
-  });
-
-  it('tells zero from below zero: leave it alone, against mind not to hit it', () => {
-    // Three meanings, and the middle one is the point. Zero is *not worth a
-    // shot*: the mount will not aim at such a module and a ship with nothing
-    // else left stops being a target, but it is not being careful — it goes
-    // on firing at anything on a hull that does have something worth
-    // shooting. Below zero is the careful one.
-    const onlyCore = [{ design: bareCore, x: 100, y: 0 }];
-    expect(facing({ coreWeight: 100 }, onlyCore).target).not.toBe(NO_TARGET);
-    expect(facing({ coreWeight: 0, gunWeight: 100 }, onlyCore).target).toBe(NO_TARGET);
-    expect(facing({ coreWeight: -1, gunWeight: 100 }, onlyCore).target).toBe(NO_TARGET);
-
-    // And the difference between the two of them is at the trigger, against a
-    // ship there *is* something to shoot at: the one that only declines to
-    // aim fires at anything on the hull, the one that minds fires at its
-    // part.
-    const range = 700;
-    const declines = slackAgainst(armed({ structureWeight: 0 }), range);
-    const minds = slackAgainst(armed({ structureWeight: -1 }), range);
-    expect(declines).toBeGreaterThan(minds * 2);
-  });
-
-  it('sends the mount to something it will shoot at instead', () => {
-    // Two marks, the nearer one nothing but a core it has refused. Proximity
-    // would take the near one on every other measure, so this is the refusal
-    // deciding rather than the ranking.
-    const near = facing({ coreWeight: -1, gunWeight: 100, engineWeight: 100 }, [
-      { design: bareCore, x: 100, y: 0 },
-      { design: gunship, x: 500, y: 0 },
-    ]);
-    expect(near.target).not.toBe(NO_TARGET);
-    // The second spawn is the bare core, the third the gunship.
-    expect(near.target).toBe(2);
-  });
-});
-
-describe('how big a module looks', () => {
-  it('is its bounding circle, which is the box’s worst case', () => {
-    const square = moduleRadius({ kind: 'structure', x: 0, y: 0, length: 6, width: 6 });
-    expect(square).toBeCloseTo(Math.sqrt(72) / 2, 9);
-    // Longer is bigger, whichever way the module is turned — which is the
-    // property a gun needs, since it does not know the target's heading when
-    // it asks.
-    const long = moduleRadius({ kind: 'structure', x: 0, y: 0, length: 12, width: 6 });
-    expect(long).toBeGreaterThan(square);
-  });
+describe("how big a module looks", () => {
+    it("is its bounding circle, which is the box’s worst case", () => {
+        const square = moduleRadius({ kind: "structure", x: 0, y: 0, length: 6, width: 6 });
+        expect(square).toBeCloseTo(Math.sqrt(72) / 2, 9);
+        // Longer is bigger, whichever way the module is turned — which is the
+        // property a gun needs, since it does not know the target's heading when
+        // it asks.
+        const long = moduleRadius({ kind: "structure", x: 0, y: 0, length: 12, width: 6 });
+        expect(long).toBeGreaterThan(square);
+    });
 });

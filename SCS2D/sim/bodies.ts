@@ -1,4 +1,4 @@
-import { cos, min, sin } from './math.js';
+import { cos, min, sin } from "./math.js";
 
 /**
  * Planar rigid-body storage.
@@ -30,277 +30,277 @@ export type BodyId = number;
 export const NO_BODY: BodyId = -1;
 
 export function bodyIndex(id: BodyId): number {
-  return id % INDEX_LIMIT;
+    return id % INDEX_LIMIT;
 }
 
 export function bodyGeneration(id: BodyId): number {
-  return (id - (id % INDEX_LIMIT)) / INDEX_LIMIT;
+    return (id - (id % INDEX_LIMIT)) / INDEX_LIMIT;
 }
 
 export interface BodySpec {
-  x?: number;
-  y?: number;
-  vx?: number;
-  vy?: number;
-  angle?: number;
-  angularVel?: number;
-  /** Zero or omitted means immovable (infinite mass). */
-  mass?: number;
-  /** Zero or omitted means non-rotating (infinite moment of inertia). */
-  inertia?: number;
-  /** Bounding-circle radius, used by the broadphase. */
-  radius?: number;
-  /**
-   * Takes part in nothing: never indexed for a shot or a query to find, and
-   * never collided with. Give it no mass as well and nothing moves it.
-   */
-  ghost?: boolean;
-  /**
-   * Immovable whatever mass it is later given, though it still turns: a body
-   * something else places every step, as a rail does an asteroid's kernel.
-   */
-  pinned?: boolean;
+    x?: number;
+    y?: number;
+    vx?: number;
+    vy?: number;
+    angle?: number;
+    angularVel?: number;
+    /** Zero or omitted means immovable (infinite mass). */
+    mass?: number;
+    /** Zero or omitted means non-rotating (infinite moment of inertia). */
+    inertia?: number;
+    /** Bounding-circle radius, used by the broadphase. */
+    radius?: number;
+    /**
+     * Takes part in nothing: never indexed for a shot or a query to find, and
+     * never collided with. Give it no mass as well and nothing moves it.
+     */
+    ghost?: boolean;
+    /**
+     * Immovable whatever mass it is later given, though it still turns: a body
+     * something else places every step, as a rail does an asteroid's kernel.
+     */
+    pinned?: boolean;
 }
 
 export class Bodies {
-  /**
-   * WARNING: these array references are replaced when the store grows. Never
-   * cache them across a call that might create a body — re-read them from the
-   * store instead.
-   */
-  x!: Float64Array;
-  y!: Float64Array;
-  vx!: Float64Array;
-  vy!: Float64Array;
-  /** Acceleration, retained between steps for the leapfrog integrator. */
-  ax!: Float64Array;
-  ay!: Float64Array;
+    /**
+     * WARNING: these array references are replaced when the store grows. Never
+     * cache them across a call that might create a body — re-read them from the
+     * store instead.
+     */
+    x!: Float64Array;
+    y!: Float64Array;
+    vx!: Float64Array;
+    vy!: Float64Array;
+    /** Acceleration, retained between steps for the leapfrog integrator. */
+    ax!: Float64Array;
+    ay!: Float64Array;
 
-  angle!: Float64Array;
-  angularVel!: Float64Array;
-  angularAcc!: Float64Array;
+    angle!: Float64Array;
+    angularVel!: Float64Array;
+    angularAcc!: Float64Array;
 
-  mass!: Float64Array;
-  invMass!: Float64Array;
-  inertia!: Float64Array;
-  invInertia!: Float64Array;
+    mass!: Float64Array;
+    invMass!: Float64Array;
+    inertia!: Float64Array;
+    invInertia!: Float64Array;
 
-  /** Force and torque accumulators. Cleared at the start of each evaluation. */
-  fx!: Float64Array;
-  fy!: Float64Array;
-  torque!: Float64Array;
+    /** Force and torque accumulators. Cleared at the start of each evaluation. */
+    fx!: Float64Array;
+    fy!: Float64Array;
+    torque!: Float64Array;
 
-  radius!: Float64Array;
+    radius!: Float64Array;
 
-  alive!: Uint8Array;
-  /** 1 for a body nothing can meet; see `BodySpec.ghost`. */
-  ghost!: Uint8Array;
-  /** 1 for a body that keeps no mass; see `BodySpec.pinned`. */
-  pinned!: Uint8Array;
-  generation!: Uint32Array;
+    alive!: Uint8Array;
+    /** 1 for a body nothing can meet; see `BodySpec.ghost`. */
+    ghost!: Uint8Array;
+    /** 1 for a body that keeps no mass; see `BodySpec.pinned`. */
+    pinned!: Uint8Array;
+    generation!: Uint32Array;
 
-  capacity = 0;
-  /** Number of live bodies. */
-  count = 0;
-  /** One past the highest index ever used; loops may stop here. */
-  highWater = 0;
+    capacity = 0;
+    /** Number of live bodies. */
+    count = 0;
+    /** One past the highest index ever used; loops may stop here. */
+    highWater = 0;
 
-  private free: number[] = [];
+    private free: number[] = [];
 
-  constructor(initialCapacity = 256) {
-    this.grow(initialCapacity);
-  }
-
-  private grow(capacity: number): void {
-    const previous = this.capacity;
-    const f = (old: Float64Array | undefined): Float64Array => {
-      const next = new Float64Array(capacity);
-      if (old) next.set(old);
-      return next;
-    };
-    this.x = f(this.x);
-    this.y = f(this.y);
-    this.vx = f(this.vx);
-    this.vy = f(this.vy);
-    this.ax = f(this.ax);
-    this.ay = f(this.ay);
-    this.angle = f(this.angle);
-    this.angularVel = f(this.angularVel);
-    this.angularAcc = f(this.angularAcc);
-    this.mass = f(this.mass);
-    this.invMass = f(this.invMass);
-    this.inertia = f(this.inertia);
-    this.invInertia = f(this.invInertia);
-    this.fx = f(this.fx);
-    this.fy = f(this.fy);
-    this.torque = f(this.torque);
-    this.radius = f(this.radius);
-
-    const alive = new Uint8Array(capacity);
-    if (this.alive) alive.set(this.alive);
-    this.alive = alive;
-
-    const ghost = new Uint8Array(capacity);
-    if (this.ghost) ghost.set(this.ghost);
-    this.ghost = ghost;
-    const pinned = new Uint8Array(capacity);
-    if (this.pinned) pinned.set(this.pinned);
-    this.pinned = pinned;
-
-    const generation = new Uint32Array(capacity);
-    if (this.generation) generation.set(this.generation);
-    // Generations start at 1, so that a valid handle is always >= INDEX_LIMIT
-    // and therefore always truthy. Handle 0 is never valid.
-    generation.fill(1, previous, capacity);
-    this.generation = generation;
-
-    this.capacity = capacity;
-  }
-
-  create(spec: BodySpec = {}): BodyId {
-    let i: number;
-    const reused = this.free.pop();
-    if (reused !== undefined) {
-      i = reused;
-    } else {
-      if (this.highWater >= INDEX_LIMIT) {
-        throw new Error(`Bodies: exceeded INDEX_LIMIT (${INDEX_LIMIT})`);
-      }
-      if (this.highWater >= this.capacity) {
-        this.grow(min(this.capacity * 2, INDEX_LIMIT));
-      }
-      i = this.highWater++;
+    constructor(initialCapacity = 256) {
+        this.grow(initialCapacity);
     }
 
-    const mass = spec.pinned === true ? 0 : (spec.mass ?? 0);
-    const inertia = spec.inertia ?? 0;
+    private grow(capacity: number): void {
+        const previous = this.capacity;
+        const f = (old: Float64Array | undefined): Float64Array => {
+            const next = new Float64Array(capacity);
+            if (old) next.set(old);
+            return next;
+        };
+        this.x = f(this.x);
+        this.y = f(this.y);
+        this.vx = f(this.vx);
+        this.vy = f(this.vy);
+        this.ax = f(this.ax);
+        this.ay = f(this.ay);
+        this.angle = f(this.angle);
+        this.angularVel = f(this.angularVel);
+        this.angularAcc = f(this.angularAcc);
+        this.mass = f(this.mass);
+        this.invMass = f(this.invMass);
+        this.inertia = f(this.inertia);
+        this.invInertia = f(this.invInertia);
+        this.fx = f(this.fx);
+        this.fy = f(this.fy);
+        this.torque = f(this.torque);
+        this.radius = f(this.radius);
 
-    this.x[i] = spec.x ?? 0;
-    this.y[i] = spec.y ?? 0;
-    this.vx[i] = spec.vx ?? 0;
-    this.vy[i] = spec.vy ?? 0;
-    this.ax[i] = 0;
-    this.ay[i] = 0;
-    this.angle[i] = spec.angle ?? 0;
-    this.angularVel[i] = spec.angularVel ?? 0;
-    this.angularAcc[i] = 0;
-    this.mass[i] = mass;
-    this.invMass[i] = mass > 0 ? 1 / mass : 0;
-    this.inertia[i] = inertia;
-    this.invInertia[i] = inertia > 0 ? 1 / inertia : 0;
-    this.fx[i] = 0;
-    this.fy[i] = 0;
-    this.torque[i] = 0;
-    this.radius[i] = spec.radius ?? 0;
-    this.ghost[i] = spec.ghost === true ? 1 : 0;
-    this.pinned[i] = spec.pinned === true ? 1 : 0;
-    this.alive[i] = 1;
-    this.count++;
+        const alive = new Uint8Array(capacity);
+        if (this.alive) alive.set(this.alive);
+        this.alive = alive;
 
-    return i + this.generation[i] * INDEX_LIMIT;
-  }
+        const ghost = new Uint8Array(capacity);
+        if (this.ghost) ghost.set(this.ghost);
+        this.ghost = ghost;
+        const pinned = new Uint8Array(capacity);
+        if (this.pinned) pinned.set(this.pinned);
+        this.pinned = pinned;
 
-  destroy(id: BodyId): void {
-    const i = this.indexOf(id);
-    if (i < 0) return;
-    this.alive[i] = 0;
-    // Bump the generation so existing handles to this slot become stale.
-    this.generation[i] = (this.generation[i] + 1) >>> 0;
-    this.free.push(i);
-    this.count--;
-  }
+        const generation = new Uint32Array(capacity);
+        if (this.generation) generation.set(this.generation);
+        // Generations start at 1, so that a valid handle is always >= INDEX_LIMIT
+        // and therefore always truthy. Handle 0 is never valid.
+        generation.fill(1, previous, capacity);
+        this.generation = generation;
 
-  /** The array index for a handle, or -1 if the handle is stale. */
-  indexOf(id: BodyId): number {
-    if (id < 0) return -1;
-    const i = id % INDEX_LIMIT;
-    if (i >= this.highWater) return -1;
-    if (this.alive[i] === 0) return -1;
-    const gen = (id - i) / INDEX_LIMIT;
-    return this.generation[i] === gen ? i : -1;
-  }
+        this.capacity = capacity;
+    }
 
-  isAlive(id: BodyId): boolean {
-    return this.indexOf(id) >= 0;
-  }
+    create(spec: BodySpec = {}): BodyId {
+        let i: number;
+        const reused = this.free.pop();
+        if (reused !== undefined) {
+            i = reused;
+        } else {
+            if (this.highWater >= INDEX_LIMIT) {
+                throw new Error(`Bodies: exceeded INDEX_LIMIT (${INDEX_LIMIT})`);
+            }
+            if (this.highWater >= this.capacity) {
+                this.grow(min(this.capacity * 2, INDEX_LIMIT));
+            }
+            i = this.highWater++;
+        }
 
-  setMass(id: BodyId, mass: number): void {
-    const i = this.indexOf(id);
-    if (i < 0) return;
-    if (this.pinned[i] === 1) mass = 0;
-    this.mass[i] = mass;
-    this.invMass[i] = mass > 0 ? 1 / mass : 0;
-  }
+        const mass = spec.pinned === true ? 0 : (spec.mass ?? 0);
+        const inertia = spec.inertia ?? 0;
 
-  setInertia(id: BodyId, inertia: number): void {
-    const i = this.indexOf(id);
-    if (i < 0) return;
-    this.inertia[i] = inertia;
-    this.invInertia[i] = inertia > 0 ? 1 / inertia : 0;
-  }
+        this.x[i] = spec.x ?? 0;
+        this.y[i] = spec.y ?? 0;
+        this.vx[i] = spec.vx ?? 0;
+        this.vy[i] = spec.vy ?? 0;
+        this.ax[i] = 0;
+        this.ay[i] = 0;
+        this.angle[i] = spec.angle ?? 0;
+        this.angularVel[i] = spec.angularVel ?? 0;
+        this.angularAcc[i] = 0;
+        this.mass[i] = mass;
+        this.invMass[i] = mass > 0 ? 1 / mass : 0;
+        this.inertia[i] = inertia;
+        this.invInertia[i] = inertia > 0 ? 1 / inertia : 0;
+        this.fx[i] = 0;
+        this.fy[i] = 0;
+        this.torque[i] = 0;
+        this.radius[i] = spec.radius ?? 0;
+        this.ghost[i] = spec.ghost === true ? 1 : 0;
+        this.pinned[i] = spec.pinned === true ? 1 : 0;
+        this.alive[i] = 1;
+        this.count++;
 
-  // --- Force application ---------------------------------------------------
+        return i + this.generation[i] * INDEX_LIMIT;
+    }
 
-  /** A world-frame force through the centre of mass. Produces no torque. */
-  applyForce(id: BodyId, fx: number, fy: number): void {
-    const i = this.indexOf(id);
-    if (i < 0) return;
-    this.fx[i] += fx;
-    this.fy[i] += fy;
-  }
+    destroy(id: BodyId): void {
+        const i = this.indexOf(id);
+        if (i < 0) return;
+        this.alive[i] = 0;
+        // Bump the generation so existing handles to this slot become stale.
+        this.generation[i] = (this.generation[i] + 1) >>> 0;
+        this.free.push(i);
+        this.count--;
+    }
 
-  /** A world-frame force applied at a world-frame point. */
-  applyForceAtPoint(id: BodyId, fx: number, fy: number, px: number, py: number): void {
-    const i = this.indexOf(id);
-    if (i < 0) return;
-    this.fx[i] += fx;
-    this.fy[i] += fy;
-    this.torque[i] += (px - this.x[i]) * fy - (py - this.y[i]) * fx;
-  }
+    /** The array index for a handle, or -1 if the handle is stale. */
+    indexOf(id: BodyId): number {
+        if (id < 0) return -1;
+        const i = id % INDEX_LIMIT;
+        if (i >= this.highWater) return -1;
+        if (this.alive[i] === 0) return -1;
+        const gen = (id - i) / INDEX_LIMIT;
+        return this.generation[i] === gen ? i : -1;
+    }
 
-  /**
-   * A body-frame force applied at a body-frame point — the engine case, and
-   * the reason it exists as one call: doing it from outside would need either
-   * an allocated vector or two rotations of the same angle.
-   */
-  applyLocalForceAtLocalPoint(id: BodyId, localFx: number, localFy: number, localPx: number, localPy: number): void {
-    const i = this.indexOf(id);
-    if (i < 0) return;
-    const c = cos(this.angle[i]);
-    const s = sin(this.angle[i]);
-    const wfx = localFx * c - localFy * s;
-    const wfy = localFx * s + localFy * c;
-    this.fx[i] += wfx;
-    this.fy[i] += wfy;
-    // Torque is frame-independent, so use the body-frame lever and force.
-    this.torque[i] += localPx * localFy - localPy * localFx;
-  }
+    isAlive(id: BodyId): boolean {
+        return this.indexOf(id) >= 0;
+    }
 
-  /**
-   * A body-frame force through the centre of mass plus a torque, applied
-   * together — the output of engine allocation, which has already summed the
-   * whole layout. Doing it as one call takes a single sine and cosine for the
-   * ship instead of one per engine.
-   */
-  applyLocalWrench(id: BodyId, localFx: number, localFy: number, torque: number): void {
-    const i = this.indexOf(id);
-    if (i < 0) return;
-    const c = cos(this.angle[i]);
-    const s = sin(this.angle[i]);
-    this.fx[i] += localFx * c - localFy * s;
-    this.fy[i] += localFx * s + localFy * c;
-    this.torque[i] += torque;
-  }
+    setMass(id: BodyId, mass: number): void {
+        const i = this.indexOf(id);
+        if (i < 0) return;
+        if (this.pinned[i] === 1) mass = 0;
+        this.mass[i] = mass;
+        this.invMass[i] = mass > 0 ? 1 / mass : 0;
+    }
 
-  applyTorque(id: BodyId, t: number): void {
-    const i = this.indexOf(id);
-    if (i < 0) return;
-    this.torque[i] += t;
-  }
+    setInertia(id: BodyId, inertia: number): void {
+        const i = this.indexOf(id);
+        if (i < 0) return;
+        this.inertia[i] = inertia;
+        this.invInertia[i] = inertia > 0 ? 1 / inertia : 0;
+    }
 
-  clearForces(): void {
-    this.fx.fill(0, 0, this.highWater);
-    this.fy.fill(0, 0, this.highWater);
-    this.torque.fill(0, 0, this.highWater);
-  }
+    // --- Force application ---------------------------------------------------
+
+    /** A world-frame force through the centre of mass. Produces no torque. */
+    applyForce(id: BodyId, fx: number, fy: number): void {
+        const i = this.indexOf(id);
+        if (i < 0) return;
+        this.fx[i] += fx;
+        this.fy[i] += fy;
+    }
+
+    /** A world-frame force applied at a world-frame point. */
+    applyForceAtPoint(id: BodyId, fx: number, fy: number, px: number, py: number): void {
+        const i = this.indexOf(id);
+        if (i < 0) return;
+        this.fx[i] += fx;
+        this.fy[i] += fy;
+        this.torque[i] += (px - this.x[i]) * fy - (py - this.y[i]) * fx;
+    }
+
+    /**
+     * A body-frame force applied at a body-frame point — the engine case, and
+     * the reason it exists as one call: doing it from outside would need either
+     * an allocated vector or two rotations of the same angle.
+     */
+    applyLocalForceAtLocalPoint(id: BodyId, localFx: number, localFy: number, localPx: number, localPy: number): void {
+        const i = this.indexOf(id);
+        if (i < 0) return;
+        const c = cos(this.angle[i]);
+        const s = sin(this.angle[i]);
+        const wfx = localFx * c - localFy * s;
+        const wfy = localFx * s + localFy * c;
+        this.fx[i] += wfx;
+        this.fy[i] += wfy;
+        // Torque is frame-independent, so use the body-frame lever and force.
+        this.torque[i] += localPx * localFy - localPy * localFx;
+    }
+
+    /**
+     * A body-frame force through the centre of mass plus a torque, applied
+     * together — the output of engine allocation, which has already summed the
+     * whole layout. Doing it as one call takes a single sine and cosine for the
+     * ship instead of one per engine.
+     */
+    applyLocalWrench(id: BodyId, localFx: number, localFy: number, torque: number): void {
+        const i = this.indexOf(id);
+        if (i < 0) return;
+        const c = cos(this.angle[i]);
+        const s = sin(this.angle[i]);
+        this.fx[i] += localFx * c - localFy * s;
+        this.fy[i] += localFx * s + localFy * c;
+        this.torque[i] += torque;
+    }
+
+    applyTorque(id: BodyId, t: number): void {
+        const i = this.indexOf(id);
+        if (i < 0) return;
+        this.torque[i] += t;
+    }
+
+    clearForces(): void {
+        this.fx.fill(0, 0, this.highWater);
+        this.fy.fill(0, 0, this.highWater);
+        this.torque.fill(0, 0, this.highWater);
+    }
 }

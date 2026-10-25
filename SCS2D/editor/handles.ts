@@ -1,25 +1,25 @@
 import {
-  degreesToRadians,
-  sharedFace,
-  shiftSeam,
-  type SharedFace,
-  math,
-  BARREL_OUTER_CALIBRES,
-  blockCentre,
-  bodySpec,
-  engineGeometry,
-  hullMountGeometry,
-  MAX_BARREL_CALIBRES,
-  moduleCentre,
-  normalizeShape,
-  readsNozzle,
-  shapeOf,
-  moduleRadius,
-  radiansToDegrees,
-  type ModuleSpec,
-} from '../sim/index.js';
-import { snap } from './edit.js';
-import { snapBearing } from './snapping.js';
+    degreesToRadians,
+    sharedFace,
+    shiftSeam,
+    type SharedFace,
+    math,
+    BARREL_OUTER_CALIBRES,
+    blockCentre,
+    bodySpec,
+    engineGeometry,
+    hullMountGeometry,
+    MAX_BARREL_CALIBRES,
+    moduleCentre,
+    normalizeShape,
+    readsNozzle,
+    shapeOf,
+    moduleRadius,
+    radiansToDegrees,
+    type ModuleSpec,
+} from "../sim/index.js";
+import { snap } from "./edit.js";
+import { snapBearing } from "./snapping.js";
 
 const { atan2, cos, sin, max, round, sqrt, HALF_PI } = math;
 
@@ -42,29 +42,29 @@ const { atan2, cos, sin, max, round, sqrt, HALF_PI } = math;
 
 /** Where a handle sits, in the blueprint's own frame. */
 export interface Handle {
-  /**
-   * A corner or edge, which sizes the module; one of a shaped module's own
-   * corners, which moves that corner alone; the knob beyond the bow, which
-   * turns it; the seam between two selected modules, which moves the face
-   * they share; or the end of an engine's bell or a hull gun's barrel, which
-   * sets how far it reaches.
-   */
-  kind: 'size' | 'vertex' | 'rotate' | 'seam' | 'tip';
-  x: number;
-  y: number;
-  /**
-   * Which face a size handle is on along the module's length and across it:
-   * ±1 for a face, 0 for the middle. A corner has both, an edge one.
-   */
-  along: -1 | 0 | 1;
-  across: -1 | 0 | 1;
-  /** Which corner a vertex handle moves, as an index into `ModuleSpec.vertices`. */
-  vertex?: number;
-  /** Which way a seam runs, radians, so it can be drawn along it. */
-  angle?: number;
-  /** Where a knob's arm starts, when that is not the selected module's middle. */
-  fromX?: number;
-  fromY?: number;
+    /**
+     * A corner or edge, which sizes the module; one of a shaped module's own
+     * corners, which moves that corner alone; the knob beyond the bow, which
+     * turns it; the seam between two selected modules, which moves the face
+     * they share; or the end of an engine's bell or a hull gun's barrel, which
+     * sets how far it reaches.
+     */
+    kind: "size" | "vertex" | "rotate" | "seam" | "tip";
+    x: number;
+    y: number;
+    /**
+     * Which face a size handle is on along the module's length and across it:
+     * ±1 for a face, 0 for the middle. A corner has both, an edge one.
+     */
+    along: -1 | 0 | 1;
+    across: -1 | 0 | 1;
+    /** Which corner a vertex handle moves, as an index into `ModuleSpec.vertices`. */
+    vertex?: number;
+    /** Which way a seam runs, radians, so it can be drawn along it. */
+    angle?: number;
+    /** Where a knob's arm starts, when that is not the selected module's middle. */
+    fromX?: number;
+    fromY?: number;
 }
 
 /**
@@ -73,23 +73,23 @@ export interface Handle {
  * about, which is the module it was built around.
  */
 export function assemblyKnob(pose: { x: number; y: number; rotation: number }, modules: readonly ModuleSpec[], scale: number): Handle {
-  let reach = 0;
-  for (const spec of modules) {
-    const mid = moduleCentre(spec);
-    const dx = mid.x - pose.x;
-    const dy = mid.y - pose.y;
-    reach = max(reach, sqrt(dx * dx + dy * dy) + moduleRadius(spec));
-  }
-  const arm = reach + ROTATE_ARM_PX / scale;
-  return {
-    kind: 'rotate',
-    x: pose.x + arm * cos(pose.rotation),
-    y: pose.y + arm * sin(pose.rotation),
-    along: 0,
-    across: 0,
-    fromX: pose.x,
-    fromY: pose.y,
-  };
+    let reach = 0;
+    for (const spec of modules) {
+        const mid = moduleCentre(spec);
+        const dx = mid.x - pose.x;
+        const dy = mid.y - pose.y;
+        reach = max(reach, sqrt(dx * dx + dy * dy) + moduleRadius(spec));
+    }
+    const arm = reach + ROTATE_ARM_PX / scale;
+    return {
+        kind: "rotate",
+        x: pose.x + arm * cos(pose.rotation),
+        y: pose.y + arm * sin(pose.rotation),
+        along: 0,
+        across: 0,
+        fromX: pose.x,
+        fromY: pose.y,
+    };
 }
 
 /** How big a handle is drawn, pixels. */
@@ -127,73 +127,73 @@ export const MIN_SIZE = 0.01;
  * is zoomed in.
  */
 export function handlesFor(spec: ModuleSpec, scale: number): Handle[] {
-  const angle = spec.angle ?? 0;
-  const c = cos(angle);
-  const s = sin(angle);
-  const hl = spec.length / 2;
-  const hw = spec.width / 2;
-  // The block, which is what the length and width measure.
-  const mid = blockCentre(spec);
-  const triangle = shapeOf(spec);
-  if (triangle !== null) {
-    // A shaped module has no faces to size it by: each corner is grabbed on
-    // its own, and the other two stay exactly where they are. The knob is
-    // still beyond the bow, since a triangle faces a way like anything else.
-    const corners: Handle[] = [];
-    for (let i = 0; i < triangle.length; i += 2) {
-      corners.push({
-        kind: 'vertex',
-        x: mid.x + triangle[i]! * c - triangle[i + 1]! * s,
-        y: mid.y + triangle[i]! * s + triangle[i + 1]! * c,
-        along: 0,
-        across: 0,
-        vertex: i / 2,
-      });
+    const angle = spec.angle ?? 0;
+    const c = cos(angle);
+    const s = sin(angle);
+    const hl = spec.length / 2;
+    const hw = spec.width / 2;
+    // The block, which is what the length and width measure.
+    const mid = blockCentre(spec);
+    const triangle = shapeOf(spec);
+    if (triangle !== null) {
+        // A shaped module has no faces to size it by: each corner is grabbed on
+        // its own, and the other two stay exactly where they are. The knob is
+        // still beyond the bow, since a triangle faces a way like anything else.
+        const corners: Handle[] = [];
+        for (let i = 0; i < triangle.length; i += 2) {
+            corners.push({
+                kind: "vertex",
+                x: mid.x + triangle[i]! * c - triangle[i + 1]! * s,
+                y: mid.y + triangle[i]! * s + triangle[i + 1]! * c,
+                along: 0,
+                across: 0,
+                vertex: i / 2,
+            });
+        }
+        const reach = moduleRadius(spec) + ROTATE_ARM_PX / scale;
+        corners.push({ kind: "rotate", x: mid.x + reach * c, y: mid.y + reach * s, along: 0, across: 0 });
+        return corners;
     }
-    const reach = moduleRadius(spec) + ROTATE_ARM_PX / scale;
-    corners.push({ kind: 'rotate', x: mid.x + reach * c, y: mid.y + reach * s, along: 0, across: 0 });
-    return corners;
-  }
-  const size = (along: Handle['along'], across: Handle['across']): Handle => ({
-    kind: 'size',
-    x: mid.x + along * hl * c - across * hw * s,
-    y: mid.y + along * hl * s + across * hw * c,
-    along,
-    across,
-  });
-  // Clear of the bell or barrel, which is on the side the module faces.
-  const arm = hl + protrusion(spec) + ROTATE_ARM_PX / scale;
-  const tip = readsNozzle(spec.kind) || spec.kind === 'hullGun' ? [tipHandle(spec)] : [];
-  return [
-    size(1, 1),
-    size(1, -1),
-    size(-1, -1),
-    size(-1, 1),
-    size(1, 0),
-    size(0, -1),
-    size(-1, 0),
-    size(0, 1),
-    {
-      kind: 'rotate',
-      x: mid.x + arm * c,
-      y: mid.y + arm * s,
-      along: 0,
-      across: 0,
-    },
-    ...tip,
-  ];
+    const size = (along: Handle["along"], across: Handle["across"]): Handle => ({
+        kind: "size",
+        x: mid.x + along * hl * c - across * hw * s,
+        y: mid.y + along * hl * s + across * hw * c,
+        along,
+        across,
+    });
+    // Clear of the bell or barrel, which is on the side the module faces.
+    const arm = hl + protrusion(spec) + ROTATE_ARM_PX / scale;
+    const tip = readsNozzle(spec.kind) || spec.kind === "hullGun" ? [tipHandle(spec)] : [];
+    return [
+        size(1, 1),
+        size(1, -1),
+        size(-1, -1),
+        size(-1, 1),
+        size(1, 0),
+        size(0, -1),
+        size(-1, 0),
+        size(0, 1),
+        {
+            kind: "rotate",
+            x: mid.x + arm * c,
+            y: mid.y + arm * s,
+            along: 0,
+            across: 0,
+        },
+        ...tip,
+    ];
 }
 
 /** How far an engine's bell or a hull weapon's barrel reaches past its block. */
 function protrusion(spec: ModuleSpec): number {
-  return bodySpec(spec).length - spec.length;
+    return bodySpec(spec).length - spec.length;
 }
 
 /** How far a point is beyond the face the bell or barrel comes out of. */
 function beyondBlock(spec: ModuleSpec, x: number, y: number): number {
-  const angle = spec.angle ?? 0;
-  const mid = blockCentre(spec);
-  return (x - mid.x) * cos(angle) + (y - mid.y) * sin(angle) - spec.length / 2;
+    const angle = spec.angle ?? 0;
+    const mid = blockCentre(spec);
+    return (x - mid.x) * cos(angle) + (y - mid.y) * sin(angle) - spec.length / 2;
 }
 
 /**
@@ -202,17 +202,17 @@ function beyondBlock(spec: ModuleSpec, x: number, y: number): number {
  * block stays as it is.
  */
 export function tipHandle(spec: ModuleSpec): Handle {
-  const angle = spec.angle ?? 0;
-  const mid = blockCentre(spec);
-  const along = spec.length / 2 + protrusion(spec);
-  return {
-    kind: 'tip',
-    x: mid.x + along * cos(angle),
-    y: mid.y + along * sin(angle),
-    along: 0,
-    across: 0,
-    angle: angle + HALF_PI,
-  };
+    const angle = spec.angle ?? 0;
+    const mid = blockCentre(spec);
+    const along = spec.length / 2 + protrusion(spec);
+    return {
+        kind: "tip",
+        x: mid.x + along * cos(angle),
+        y: mid.y + along * sin(angle),
+        along: 0,
+        across: 0,
+        angle: angle + HALF_PI,
+    };
 }
 
 /**
@@ -221,9 +221,9 @@ export function tipHandle(spec: ModuleSpec): Handle {
  * is allowed.
  */
 export function nozzleTo(spec: ModuleSpec, x: number, y: number, step: number): number {
-  const out = snap(beyondBlock(spec, x, y), step);
-  const exit = engineGeometry(spec).exitWidth;
-  return out > 0 && exit > 0 ? round((out / exit) * 1000) / 1000 : 0;
+    const out = snap(beyondBlock(spec, x, y), step);
+    const exit = engineGeometry(spec).exitWidth;
+    return out > 0 && exit > 0 ? round((out / exit) * 1000) / 1000 : 0;
 }
 
 /**
@@ -231,26 +231,26 @@ export function nozzleTo(spec: ModuleSpec, x: number, y: number, step: number): 
  * calibres unless `exact`, and at least one.
  */
 export function barrelCalibresTo(spec: ModuleSpec, x: number, y: number, exact: boolean): number {
-  const calibre = hullMountGeometry(spec).outletWidth / BARREL_OUTER_CALIBRES;
-  const wanted = beyondBlock(spec, x, y) / calibre;
-  const held = wanted < 1 ? 1 : wanted > MAX_BARREL_CALIBRES ? MAX_BARREL_CALIBRES : wanted;
-  return exact ? round(held * 1000) / 1000 : max(1, Math.floor(held));
+    const calibre = hullMountGeometry(spec).outletWidth / BARREL_OUTER_CALIBRES;
+    const wanted = beyondBlock(spec, x, y) / calibre;
+    const held = wanted < 1 ? 1 : wanted > MAX_BARREL_CALIBRES ? MAX_BARREL_CALIBRES : wanted;
+    return exact ? round(held * 1000) / 1000 : max(1, Math.floor(held));
 }
 
 /** Which handle a point is within reach of — the nearest of them — or -1. */
 export function handleAt(handles: readonly Handle[], x: number, y: number, scale: number): number {
-  let found = -1;
-  let nearest = HANDLE_GRAB_PX / scale;
-  for (let i = 0; i < handles.length; i++) {
-    const handle = handles[i]!;
-    const dx = handle.x - x;
-    const dy = handle.y - y;
-    const distance = sqrt(dx * dx + dy * dy);
-    if (distance > nearest) continue;
-    found = i;
-    nearest = distance;
-  }
-  return found;
+    let found = -1;
+    let nearest = HANDLE_GRAB_PX / scale;
+    for (let i = 0; i < handles.length; i++) {
+        const handle = handles[i]!;
+        const dx = handle.x - x;
+        const dy = handle.y - y;
+        const distance = sqrt(dx * dx + dy * dy);
+        if (distance > nearest) continue;
+        found = i;
+        nearest = distance;
+    }
+    return found;
 }
 
 /**
@@ -271,54 +271,54 @@ export function handleAt(handles: readonly Handle[], x: number, y: number, scale
  * the same way within its own frame and a mirrored pair stays mirrored.
  */
 export function resizedTo(
-  spec: ModuleSpec,
-  handle: Pick<Handle, 'along' | 'across'>,
-  x: number,
-  y: number,
-  step: number,
-  fromCentre = false,
+    spec: ModuleSpec,
+    handle: Pick<Handle, "along" | "across">,
+    x: number,
+    y: number,
+    step: number,
+    fromCentre = false,
 ): { length: number; width: number; dx: number; dy: number } {
-  const angle = spec.angle ?? 0;
-  const c = cos(angle);
-  const s = sin(angle);
-  const mid = blockCentre(spec);
-  // The pointer in the module's own frame, from its middle.
-  const px = (x - mid.x) * c + (y - mid.y) * s;
-  const py = -(x - mid.x) * s + (y - mid.y) * c;
+    const angle = spec.angle ?? 0;
+    const c = cos(angle);
+    const s = sin(angle);
+    const mid = blockCentre(spec);
+    // The pointer in the module's own frame, from its middle.
+    const px = (x - mid.x) * c + (y - mid.y) * s;
+    const py = -(x - mid.x) * s + (y - mid.y) * c;
 
-  // Never below one step of the grid either: at a zoom where the grid is ten
-  // metres, half a metre is not something the drag could have said, and it
-  // would put the face off the grid its neighbours abut on.
-  const side = (face: number, half: number, pointer: number, held: number) => {
-    if (face === 0) return { size: held, middle: 0 };
-    if (fromCentre) {
-      const size = max(MIN_SIZE, step, held + 2 * snap(face * pointer - half, step));
-      return { size, middle: 0 };
-    }
-    const anchor = -face * half;
-    const size = max(MIN_SIZE, step, snap(face * (pointer - anchor), step));
-    return { size, middle: anchor + (face * size) / 2 };
-  };
-  const along = side(handle.along, spec.length / 2, px, spec.length);
-  const across = side(handle.across, spec.width / 2, py, spec.width);
+    // Never below one step of the grid either: at a zoom where the grid is ten
+    // metres, half a metre is not something the drag could have said, and it
+    // would put the face off the grid its neighbours abut on.
+    const side = (face: number, half: number, pointer: number, held: number) => {
+        if (face === 0) return { size: held, middle: 0 };
+        if (fromCentre) {
+            const size = max(MIN_SIZE, step, held + 2 * snap(face * pointer - half, step));
+            return { size, middle: 0 };
+        }
+        const anchor = -face * half;
+        const size = max(MIN_SIZE, step, snap(face * (pointer - anchor), step));
+        return { size, middle: anchor + (face * size) / 2 };
+    };
+    const along = side(handle.along, spec.length / 2, px, spec.length);
+    const across = side(handle.across, spec.width / 2, py, spec.width);
 
-  // Where the new box's middle is, then where the position must be to put it
-  // there — an engine's position is its mounting face rather than its middle.
-  const centreX = mid.x + along.middle * c - across.middle * s;
-  const centreY = mid.y + along.middle * s + across.middle * c;
-  const offset = blockCentre({
-    ...spec,
-    x: 0,
-    y: 0,
-    length: along.size,
-    width: across.size,
-  });
-  return {
-    length: tidy(along.size),
-    width: tidy(across.size),
-    dx: tidy(centreX - offset.x - spec.x),
-    dy: tidy(centreY - offset.y - spec.y),
-  };
+    // Where the new box's middle is, then where the position must be to put it
+    // there — an engine's position is its mounting face rather than its middle.
+    const centreX = mid.x + along.middle * c - across.middle * s;
+    const centreY = mid.y + along.middle * s + across.middle * c;
+    const offset = blockCentre({
+        ...spec,
+        x: 0,
+        y: 0,
+        length: along.size,
+        width: across.size,
+    });
+    return {
+        length: tidy(along.size),
+        width: tidy(across.size),
+        dx: tidy(centreX - offset.x - spec.x),
+        dy: tidy(centreY - offset.y - spec.y),
+    };
 }
 
 /**
@@ -336,37 +336,37 @@ export function resizedTo(
  * module at all, and the drag simply stops there.
  */
 export function vertexTo(
-  spec: ModuleSpec,
-  index: number,
-  x: number,
-  y: number,
-  step: number,
+    spec: ModuleSpec,
+    index: number,
+    x: number,
+    y: number,
+    step: number,
 ): { vertices: number[]; dx: number; dy: number } | null {
-  const triangle = shapeOf(spec);
-  if (triangle === null || index < 0 || index * 2 >= triangle.length) return null;
-  const angle = spec.angle ?? 0;
-  const c = cos(angle);
-  const s = sin(angle);
-  const mid = moduleCentre(spec);
-  const px = snap(x, step) - mid.x;
-  const py = snap(y, step) - mid.y;
-  const moved = triangle.slice();
-  moved[index * 2] = px * c + py * s;
-  moved[index * 2 + 1] = -px * s + py * c;
+    const triangle = shapeOf(spec);
+    if (triangle === null || index < 0 || index * 2 >= triangle.length) return null;
+    const angle = spec.angle ?? 0;
+    const c = cos(angle);
+    const s = sin(angle);
+    const mid = moduleCentre(spec);
+    const px = snap(x, step) - mid.x;
+    const py = snap(y, step) - mid.y;
+    const moved = triangle.slice();
+    moved[index * 2] = px * c + py * s;
+    moved[index * 2 + 1] = -px * s + py * c;
 
-  const shape = normalizeShape(moved);
-  if (shape === null) return null;
-  // The re-centring is in the module's own frame; a move is in the layout's.
-  return {
-    vertices: shape.vertices,
-    dx: tidy(shape.dx * c - shape.dy * s),
-    dy: tidy(shape.dx * s + shape.dy * c),
-  };
+    const shape = normalizeShape(moved);
+    if (shape === null) return null;
+    // The re-centring is in the module's own frame; a move is in the layout's.
+    return {
+        vertices: shape.vertices,
+        dx: tidy(shape.dx * c - shape.dy * s),
+        dy: tidy(shape.dx * s + shape.dy * c),
+    };
 }
 
 /** A seam as the editor draws and drags it: `sim`'s seam with a handle on it. */
 export interface Seam extends SharedFace {
-  handle: Handle;
+    handle: Handle;
 }
 
 /**
@@ -374,12 +374,12 @@ export interface Seam extends SharedFace {
  * and joined along a face. The handle is at the middle of the part they share.
  */
 export function seamBetween(a: ModuleSpec, b: ModuleSpec): Seam | null {
-  const seam = sharedFace(a, b);
-  if (seam === null) return null;
-  return {
-    ...seam,
-    handle: { kind: 'seam', x: seam.x, y: seam.y, along: 0, across: 0, angle: seam.angle },
-  };
+    const seam = sharedFace(a, b);
+    if (seam === null) return null;
+    return {
+        ...seam,
+        handle: { kind: "seam", x: seam.x, y: seam.y, along: 0, across: 0, angle: seam.angle },
+    };
 }
 
 /**
@@ -388,29 +388,29 @@ export function seamBetween(a: ModuleSpec, b: ModuleSpec): Seam | null {
  * as the other shrinks, and neither going below `MIN_SIZE`.
  */
 export function seamTo(
-  a: ModuleSpec,
-  b: ModuleSpec,
-  seam: Seam,
-  x: number,
-  y: number,
-  step: number,
+    a: ModuleSpec,
+    b: ModuleSpec,
+    seam: Seam,
+    x: number,
+    y: number,
+    step: number,
 ): { a: ReturnType<typeof resizedTo>; b: ReturnType<typeof resizedTo> } {
-  const wanted = snap((x - seam.x) * seam.nx + (y - seam.y) * seam.ny, step);
-  const moved = shiftSeam(a, b, seam, wanted, MIN_SIZE);
-  const change = (was: ModuleSpec, now: ModuleSpec) => ({
-    length: now.length,
-    width: now.width,
-    dx: tidy(now.x - was.x),
-    dy: tidy(now.y - was.y),
-  });
-  return { a: change(a, moved.a), b: change(b, moved.b) };
+    const wanted = snap((x - seam.x) * seam.nx + (y - seam.y) * seam.ny, step);
+    const moved = shiftSeam(a, b, seam, wanted, MIN_SIZE);
+    const change = (was: ModuleSpec, now: ModuleSpec) => ({
+        length: now.length,
+        width: now.width,
+        dx: tidy(now.x - was.x),
+        dy: tidy(now.y - was.y),
+    });
+    return { a: change(a, moved.a), b: change(b, moved.b) };
 }
 
 /** Rounds away the last-bit noise a turned frame leaves, so a file does not gain 1e-16s. */
 function tidy(value: number): number {
-  const tidied = round(value * 1e9) / 1e9;
-  // A negative zero is a frame turned half round, not a direction.
-  return tidied === 0 ? 0 : tidied;
+    const tidied = round(value * 1e9) / 1e9;
+    // A negative zero is a frame turned half round, not a direction.
+    return tidied === 0 ? 0 : tidied;
 }
 
 /**
@@ -433,6 +433,6 @@ function tidy(value: number): number {
  * has a diagonal that nothing on a 15° grid can be laid along.
  */
 export function facingTo(spec: ModuleSpec, x: number, y: number, stepDegrees: number, drawn: readonly number[] = []): number {
-  const bearing = radiansToDegrees(atan2(y - spec.y, x - spec.x));
-  return degreesToRadians(snapBearing(bearing, stepDegrees, drawn));
+    const bearing = radiansToDegrees(atan2(y - spec.y, x - spec.x));
+    return degreesToRadians(snapBearing(bearing, stepDegrees, drawn));
 }

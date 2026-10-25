@@ -4,11 +4,11 @@
  * pages cannot drift apart. `orderBar` and `doctrinePanel` then work them.
  */
 export function battleControls(stage: HTMLElement): void {
-  if (document.getElementById('orderBar') !== null) return;
-  const style = document.createElement('style');
-  style.textContent = STYLE;
-  document.head.append(style);
-  stage.insertAdjacentHTML('beforeend', MARKUP);
+    if (document.getElementById("orderBar") !== null) return;
+    const style = document.createElement("style");
+    style.textContent = STYLE;
+    document.head.append(style);
+    stage.insertAdjacentHTML("beforeend", MARKUP);
 }
 
 const STYLE = `

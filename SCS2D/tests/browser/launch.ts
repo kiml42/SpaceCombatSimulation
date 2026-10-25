@@ -1,6 +1,6 @@
-import { existsSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
-import { chromium, type Browser } from 'playwright';
+import { existsSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { chromium, type Browser } from "playwright";
 
 /**
  * Launch Chromium, preferring the one Playwright installed for itself.
@@ -17,28 +17,28 @@ import { chromium, type Browser } from 'playwright';
  * stops running.
  */
 export async function launchChromium(): Promise<Browser> {
-  try {
-    return await chromium.launch();
-  } catch (bundled) {
-    const found = findInstalledChromium();
-    if (found === null) {
-      throw new Error(
-        `no Chromium available — run \`pnpm exec playwright install chromium\`.\n` +
-          `Playwright's own launch failed with: ${(bundled as Error).message}`,
-      );
+    try {
+        return await chromium.launch();
+    } catch (bundled) {
+        const found = findInstalledChromium();
+        if (found === null) {
+            throw new Error(
+                `no Chromium available — run \`pnpm exec playwright install chromium\`.\n` +
+                    `Playwright's own launch failed with: ${(bundled as Error).message}`,
+            );
+        }
+        return await chromium.launch({ executablePath: found });
     }
-    return await chromium.launch({ executablePath: found });
-  }
 }
 
 function findInstalledChromium(): string | null {
-  const root = process.env['PLAYWRIGHT_BROWSERS_PATH'];
-  if (root === undefined || !existsSync(root)) return null;
+    const root = process.env["PLAYWRIGHT_BROWSERS_PATH"];
+    if (root === undefined || !existsSync(root)) return null;
 
-  for (const entry of readdirSync(root)) {
-    if (!entry.startsWith('chromium-')) continue;
-    const candidate = join(root, entry, 'chrome-linux', 'chrome');
-    if (existsSync(candidate)) return candidate;
-  }
-  return null;
+    for (const entry of readdirSync(root)) {
+        if (!entry.startsWith("chromium-")) continue;
+        const candidate = join(root, entry, "chrome-linux", "chrome");
+        if (existsSync(candidate)) return candidate;
+    }
+    return null;
 }

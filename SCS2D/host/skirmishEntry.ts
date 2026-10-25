@@ -1,4 +1,4 @@
-import { startSkirmish } from './skirmish.js';
+import { startSkirmish } from "./skirmish.js";
 
 /** Browser entry point for the skirmish. */
 startSkirmish();

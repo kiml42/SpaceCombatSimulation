@@ -9,25 +9,25 @@
  *   pnpm golden
  */
 
-import { formatChecksum } from '../sim/checksum.js';
-import { SCENARIOS } from '../tests/fixtures/scenarios.js';
+import { formatChecksum } from "../sim/checksum.js";
+import { SCENARIOS } from "../tests/fixtures/scenarios.js";
 
 for (const [name, scenario] of Object.entries(SCENARIOS)) {
-  const run = scenario.build();
-  const started = process.hrtime.bigint();
-  for (let i = 0; i < scenario.steps; i++) run.step();
-  const elapsedMs = Number(process.hrtime.bigint() - started) / 1e6;
+    const run = scenario.build();
+    const started = process.hrtime.bigint();
+    for (let i = 0; i < scenario.steps; i++) run.step();
+    const elapsedMs = Number(process.hrtime.bigint() - started) / 1e6;
 
-  const checksum = formatChecksum(run.checksum());
-  const perStepUs = (elapsedMs * 1000) / scenario.steps;
+    const checksum = formatChecksum(run.checksum());
+    const perStepUs = (elapsedMs * 1000) / scenario.steps;
 
-  console.log(
-    `${name.padEnd(8)} steps=${String(scenario.steps).padStart(6)} ` +
-      // Bare hex, exactly as `golden.test.ts` stores it: a `0x` prefix has to
-      // be trimmed off again after pasting, and joined to the digits it stops
-      // a double-click selecting them.
-      `checksum= ${checksum} ` +
-      `${elapsedMs.toFixed(1)}ms (${perStepUs.toFixed(2)}us/step)  ` +
-      run.describe(),
-  );
+    console.log(
+        `${name.padEnd(8)} steps=${String(scenario.steps).padStart(6)} ` +
+            // Bare hex, exactly as `golden.test.ts` stores it: a `0x` prefix has to
+            // be trimmed off again after pasting, and joined to the digits it stops
+            // a double-click selecting them.
+            `checksum= ${checksum} ` +
+            `${elapsedMs.toFixed(1)}ms (${perStepUs.toFixed(2)}us/step)  ` +
+            run.describe(),
+    );
 }

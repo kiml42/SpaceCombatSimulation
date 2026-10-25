@@ -1,8 +1,8 @@
-import { blockCentre, bodySpec, math, moduleCentre, shapeOf, type ModuleSpec, type ShipDesign } from '../sim/index.js';
-import { describeStep, snapStep, type Camera } from '../render/camera.js';
-import { headingCost, type Envelopes } from './stats.js';
-import type { AssemblyOutline } from './document.js';
-import { HANDLE_RADIUS_PX, type Handle } from './handles.js';
+import { blockCentre, bodySpec, math, moduleCentre, shapeOf, type ModuleSpec, type ShipDesign } from "../sim/index.js";
+import { describeStep, snapStep, type Camera } from "../render/camera.js";
+import { headingCost, type Envelopes } from "./stats.js";
+import type { AssemblyOutline } from "./document.js";
+import { HANDLE_RADIUS_PX, type Handle } from "./handles.js";
 
 const { cos, sin, max, TAU } = math;
 
@@ -26,13 +26,13 @@ const { cos, sin, max, TAU } = math;
  * metres is which module a mark is *on*, and that comes from the layout.
  */
 
-const SELECTION = '#e9c05f';
+const SELECTION = "#e9c05f";
 /** How far a core reaches, and what is beyond every core's reach. */
-const CONTROL_REACH_LINE = '#5fb3e9aa';
+const CONTROL_REACH_LINE = "#5fb3e9aa";
 const CONTROL_DASH_PX = 6;
-const OUT_OF_REACH = '#b48cff';
-const OUT_OF_REACH_FILL = '#b48cff40';
-const SELECTION_LINKED = '#e9c05fcc';
+const OUT_OF_REACH = "#b48cff";
+const OUT_OF_REACH_FILL = "#b48cff40";
+const SELECTION_LINKED = "#e9c05fcc";
 /**
  * An assembly is outlined in a different colour from a module, and once around
  * everything it holds rather than separately around each part.
@@ -44,11 +44,11 @@ const SELECTION_LINKED = '#e9c05fcc';
  * otherwise look identical about: five outlines either way, and a drag that
  * behaves quite differently.
  */
-const GROUP_SELECTION = '#7fd4ff';
+const GROUP_SELECTION = "#7fd4ff";
 /** The assembly's other copies, which a drag of the selected one leaves where they are. */
-const GROUP_LINKED = '#7fd4ffcc';
+const GROUP_LINKED = "#7fd4ffcc";
 /** The assembly a selected module sits in: context rather than selection, so it is faint. */
-const GROUP_CONTEXT = '#7fd4ff66';
+const GROUP_CONTEXT = "#7fd4ff66";
 /** How far the assembly's box stands off what it contains, pixels. */
 const GROUP_BOX_MARGIN_PX = 7;
 /**
@@ -66,31 +66,31 @@ const GROUP_BOX_MARGIN_PX = 7;
  * outside the module to survive, at a standoff that was itself a distance in
  * metres and so wrong at every zoom but one.
  */
-const FAULT_FILL = 'rgba(255, 107, 94, 0.32)';
+const FAULT_FILL = "rgba(255, 107, 94, 0.32)";
 /**
  * A refit from the design as it was opened (`refitPlan`): what would be built
  * tinted green over its own shape, and what would be taken down drawn where
  * it stood, a dashed outline with no module of the new design under it.
  */
-const REFIT_BUILT_FILL = 'rgba(127, 214, 160, 0.28)';
-const REFIT_DOWN = '#e9915f';
-const REFIT_DOWN_FILL = 'rgba(233, 145, 95, 0.14)';
+const REFIT_BUILT_FILL = "rgba(127, 214, 160, 0.28)";
+const REFIT_DOWN = "#e9915f";
+const REFIT_DOWN_FILL = "rgba(233, 145, 95, 0.14)";
 /** Dash and gap of the outline of a module a refit takes down, pixels. */
 const REFIT_DASH_PX = 5;
 /** The grab points on the selected module, in the selection's own colour. */
-const HANDLE_FILL = '#e9c05f';
-const HANDLE_EDGE = '#1b1f27';
-const CENTRE_OF_MASS = '#7fd6a0';
+const HANDLE_FILL = "#e9c05f";
+const HANDLE_EDGE = "#1b1f27";
+const CENTRE_OF_MASS = "#7fd6a0";
 /** How thick the editor's own lines are drawn, pixels. */
 const SELECTION_WIDTH_PX = 1.5;
 const HANDLE_EDGE_WIDTH_PX = 1;
 /** Radius of the centre-of-mass ring, pixels; its arms reach 1.6 times that. */
 const CENTRE_OF_MASS_RADIUS_PX = 6;
-const ENVELOPE = '#5b8dd6';
-const ENVELOPE_FILL = 'rgba(91, 141, 214, 0.22)';
+const ENVELOPE = "#5b8dd6";
+const ENVELOPE_FILL = "rgba(91, 141, 214, 0.22)";
 /** The outer curve is a reference rather than a capability, so it is drawn as one. */
-const ENVELOPE_FREE = 'rgba(91, 141, 214, 0.55)';
-const ENVELOPE_LABEL = '#7f93aa';
+const ENVELOPE_FREE = "rgba(91, 141, 214, 0.55)";
+const ENVELOPE_LABEL = "#7f93aa";
 
 /** Radius of the envelope rosette on screen, pixels, and while the pointer is over it. */
 const ENVELOPE_RADIUS_PX = 54;
@@ -100,63 +100,63 @@ const ENVELOPE_MARGIN_PX = 16;
 const ENVELOPE_CAPTION_PX = 32;
 
 export interface OverlayView {
-  design: ShipDesign | null;
-  modules: readonly ModuleSpec[];
-  /**
-   * Indices of the drawn modules picked individually; the first is the one
-   * grabbed. Assemblies are not among them — they come through `assemblies`.
-   */
-  selected: readonly number[];
-  /** One box per drawn copy of a selected assembly, and of the assembly a selected module is in. */
-  assemblies: readonly AssemblyOutline[];
-  /** Indices of the drawn modules a problem names: overlapping, adrift, or unbuildable. */
-  faulty: readonly number[];
-  /** Indices of the drawn modules a refit from the design as opened would build. */
-  refitBuilt?: readonly number[];
-  /** The modules of the design as opened a refit would take down, where they stood. */
-  refitDown?: readonly ModuleSpec[];
-  /**
-   * The grab points on the selected module — corners that size it and a knob
-   * that turns it — or empty when the selection is not one module.
-   *
-   * Worked out by the caller rather than here, because the pointer has to hit
-   * exactly what is drawn: one set of handles, used twice.
-   */
-  handles: readonly Handle[];
-  /**
-   * The manoeuvring envelopes, or null when there is no design to have any.
-   *
-   * Passed in rather than derived here, because the holding curve costs
-   * thousands of allocations and depends only on the layout. Panning and
-   * zooming redraw; they do not re-measure the ship.
-   */
-  envelope: Envelopes | null;
-  /** A bearing on the envelope being pointed at, radians from the bow, or null. */
-  envelopeBearing?: number | null;
-  /** Whether the pointer is over the rosette, which is drawn larger while it is. */
-  envelopeExpanded?: boolean;
+    design: ShipDesign | null;
+    modules: readonly ModuleSpec[];
+    /**
+     * Indices of the drawn modules picked individually; the first is the one
+     * grabbed. Assemblies are not among them — they come through `assemblies`.
+     */
+    selected: readonly number[];
+    /** One box per drawn copy of a selected assembly, and of the assembly a selected module is in. */
+    assemblies: readonly AssemblyOutline[];
+    /** Indices of the drawn modules a problem names: overlapping, adrift, or unbuildable. */
+    faulty: readonly number[];
+    /** Indices of the drawn modules a refit from the design as opened would build. */
+    refitBuilt?: readonly number[];
+    /** The modules of the design as opened a refit would take down, where they stood. */
+    refitDown?: readonly ModuleSpec[];
+    /**
+     * The grab points on the selected module — corners that size it and a knob
+     * that turns it — or empty when the selection is not one module.
+     *
+     * Worked out by the caller rather than here, because the pointer has to hit
+     * exactly what is drawn: one set of handles, used twice.
+     */
+    handles: readonly Handle[];
+    /**
+     * The manoeuvring envelopes, or null when there is no design to have any.
+     *
+     * Passed in rather than derived here, because the holding curve costs
+     * thousands of allocations and depends only on the layout. Panning and
+     * zooming redraw; they do not re-measure the ship.
+     */
+    envelope: Envelopes | null;
+    /** A bearing on the envelope being pointed at, radians from the bow, or null. */
+    envelopeBearing?: number | null;
+    /** Whether the pointer is over the rosette, which is drawn larger while it is. */
+    envelopeExpanded?: boolean;
 }
 
 /** The rosette's radius, device pixels: larger while pointed at, though never past the canvas. */
 function envelopeRadius(widthPx: number, heightPx: number, expanded: boolean): number {
-  if (!expanded) return ENVELOPE_RADIUS_PX;
-  const room = Math.min(widthPx - 2 * ENVELOPE_MARGIN_PX, heightPx - 2 * ENVELOPE_MARGIN_PX - ENVELOPE_CAPTION_PX) / 2;
-  return Math.max(ENVELOPE_RADIUS_PX, Math.min(ENVELOPE_EXPANDED_PX, room));
+    if (!expanded) return ENVELOPE_RADIUS_PX;
+    const room = Math.min(widthPx - 2 * ENVELOPE_MARGIN_PX, heightPx - 2 * ENVELOPE_MARGIN_PX - ENVELOPE_CAPTION_PX) / 2;
+    return Math.max(ENVELOPE_RADIUS_PX, Math.min(ENVELOPE_EXPANDED_PX, room));
 }
 
 /** Where the envelope rosette's centre is drawn, device pixels: its corner stays put as it grows. */
 function envelopeCentre(widthPx: number, heightPx: number, radius: number): { x: number; y: number } {
-  return {
-    x: widthPx - radius - ENVELOPE_MARGIN_PX,
-    y: heightPx - radius - ENVELOPE_MARGIN_PX - ENVELOPE_CAPTION_PX,
-  };
+    return {
+        x: widthPx - radius - ENVELOPE_MARGIN_PX,
+        y: heightPx - radius - ENVELOPE_MARGIN_PX - ENVELOPE_CAPTION_PX,
+    };
 }
 
 /** Whether a point is on the rosette, as drawn at that size. */
 export function overEnvelope(widthPx: number, heightPx: number, x: number, y: number, expanded = false): boolean {
-  const radius = envelopeRadius(widthPx, heightPx, expanded);
-  const centre = envelopeCentre(widthPx, heightPx, radius);
-  return Math.sqrt((x - centre.x) ** 2 + (centre.y - y) ** 2) <= radius;
+    const radius = envelopeRadius(widthPx, heightPx, expanded);
+    const centre = envelopeCentre(widthPx, heightPx, radius);
+    return Math.sqrt((x - centre.x) ** 2 + (centre.y - y) ** 2) <= radius;
 }
 
 /**
@@ -164,13 +164,13 @@ export function overEnvelope(widthPx: number, heightPx: number, x: number, y: nu
  * anticlockwise in the ship's frame, or null when the point is off it.
  */
 export function envelopeBearingAt(widthPx: number, heightPx: number, x: number, y: number, expanded = false): number | null {
-  const radius = envelopeRadius(widthPx, heightPx, expanded);
-  const centre = envelopeCentre(widthPx, heightPx, radius);
-  const dx = x - centre.x;
-  const dy = centre.y - y;
-  const r = Math.sqrt(dx * dx + dy * dy);
-  if (r > radius || r < 2) return null;
-  return Math.atan2(dy, dx);
+    const radius = envelopeRadius(widthPx, heightPx, expanded);
+    const centre = envelopeCentre(widthPx, heightPx, radius);
+    const dx = x - centre.x;
+    const dy = centre.y - y;
+    const r = Math.sqrt(dx * dx + dy * dy);
+    if (r > radius || r < 2) return null;
+    return Math.atan2(dy, dx);
 }
 
 /**
@@ -178,21 +178,21 @@ export function envelopeBearingAt(widthPx: number, heightPx: number, x: number, 
  * world-to-screen transform in place.
  */
 export function drawOverlay(ctx: CanvasRenderingContext2D, view: OverlayView, camera: Camera, widthPx: number, heightPx: number): void {
-  drawRefit(ctx, view, camera);
-  drawFaults(ctx, view);
-  if (view.design !== null) drawControl(ctx, view.design, camera);
-  drawSelection(ctx, view, camera);
-  drawHandles(ctx, view, camera);
-  if (view.design !== null) drawCentreOfMass(ctx, view.design, camera);
+    drawRefit(ctx, view, camera);
+    drawFaults(ctx, view);
+    if (view.design !== null) drawControl(ctx, view.design, camera);
+    drawSelection(ctx, view, camera);
+    drawHandles(ctx, view, camera);
+    if (view.design !== null) drawCentreOfMass(ctx, view.design, camera);
 
-  // The rosette is a screen-space widget, so the world transform has to go
-  // before it is drawn — and with it the y flip, which would otherwise draw
-  // every label upside down.
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  drawGridCaption(ctx, camera, heightPx);
-  if (view.envelope !== null) {
-    drawEnvelope(ctx, view.envelope, widthPx, heightPx, view.envelopeBearing ?? null, view.envelopeExpanded === true);
-  }
+    // The rosette is a screen-space widget, so the world transform has to go
+    // before it is drawn — and with it the y flip, which would otherwise draw
+    // every label upside down.
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    drawGridCaption(ctx, camera, heightPx);
+    if (view.envelope !== null) {
+        drawEnvelope(ctx, view.envelope, widthPx, heightPx, view.envelopeBearing ?? null, view.envelopeExpanded === true);
+    }
 }
 
 /**
@@ -205,64 +205,64 @@ export function drawOverlay(ctx: CanvasRenderingContext2D, view: OverlayView, ca
  * the canvas under the ship.
  */
 function drawGridCaption(ctx: CanvasRenderingContext2D, camera: Camera, heightPx: number): void {
-  ctx.fillStyle = ENVELOPE_LABEL;
-  ctx.font = '11px ui-monospace, monospace';
-  ctx.textAlign = 'left';
-  ctx.fillText(`snaps to ${describeStep(snapStep(camera.scale))}`, ENVELOPE_MARGIN_PX, heightPx - ENVELOPE_MARGIN_PX);
+    ctx.fillStyle = ENVELOPE_LABEL;
+    ctx.font = "11px ui-monospace, monospace";
+    ctx.textAlign = "left";
+    ctx.fillText(`snaps to ${describeStep(snapStep(camera.scale))}`, ENVELOPE_MARGIN_PX, heightPx - ENVELOPE_MARGIN_PX);
 }
 
 /** What a refit from the design as opened would build, tinted, and what it would take down, outlined. */
 function drawRefit(ctx: CanvasRenderingContext2D, view: OverlayView, camera: Camera): void {
-  const shape = (placed: ModuleSpec, paint: () => void): void => {
-    const spec = bodySpec(placed);
-    if (!(spec.length > 0) || !(spec.width > 0)) return;
-    const mid = moduleCentre(spec);
-    ctx.save();
-    ctx.translate(mid.x, mid.y);
-    ctx.rotate(spec.angle ?? 0);
-    outline(ctx, spec);
-    paint();
-    ctx.restore();
-  };
-  for (const index of view.refitBuilt ?? []) {
-    const placed = view.modules[index];
-    if (placed === undefined) continue;
-    shape(placed, () => {
-      ctx.fillStyle = REFIT_BUILT_FILL;
-      ctx.fill();
-    });
-  }
-  for (const placed of view.refitDown ?? []) {
-    shape(placed, () => {
-      ctx.fillStyle = REFIT_DOWN_FILL;
-      ctx.fill();
-      ctx.strokeStyle = REFIT_DOWN;
-      ctx.lineWidth = SELECTION_WIDTH_PX / camera.scale;
-      ctx.setLineDash([REFIT_DASH_PX / camera.scale, REFIT_DASH_PX / camera.scale]);
-      ctx.stroke();
-    });
-  }
+    const shape = (placed: ModuleSpec, paint: () => void): void => {
+        const spec = bodySpec(placed);
+        if (!(spec.length > 0) || !(spec.width > 0)) return;
+        const mid = moduleCentre(spec);
+        ctx.save();
+        ctx.translate(mid.x, mid.y);
+        ctx.rotate(spec.angle ?? 0);
+        outline(ctx, spec);
+        paint();
+        ctx.restore();
+    };
+    for (const index of view.refitBuilt ?? []) {
+        const placed = view.modules[index];
+        if (placed === undefined) continue;
+        shape(placed, () => {
+            ctx.fillStyle = REFIT_BUILT_FILL;
+            ctx.fill();
+        });
+    }
+    for (const placed of view.refitDown ?? []) {
+        shape(placed, () => {
+            ctx.fillStyle = REFIT_DOWN_FILL;
+            ctx.fill();
+            ctx.strokeStyle = REFIT_DOWN;
+            ctx.lineWidth = SELECTION_WIDTH_PX / camera.scale;
+            ctx.setLineDash([REFIT_DASH_PX / camera.scale, REFIT_DASH_PX / camera.scale]);
+            ctx.stroke();
+        });
+    }
 }
 
 /** Tint every module a problem names, over the module's own shape. */
 function drawFaults(ctx: CanvasRenderingContext2D, view: OverlayView): void {
-  for (const index of view.faulty) {
-    const placed = view.modules[index];
-    if (placed === undefined) continue;
-    // The whole body, barrel and bell included, as it is in the way.
-    const spec = bodySpec(placed);
-    // A module with no interior is one of the things complained about, and it
-    // has no box to tint. It is named in the list instead.
-    if (!(spec.length > 0) || !(spec.width > 0)) continue;
-    const mid = moduleCentre(spec);
-    ctx.save();
-    ctx.translate(mid.x, mid.y);
-    ctx.rotate(spec.angle ?? 0);
-    ctx.fillStyle = FAULT_FILL;
-    outline(ctx, spec);
-    ctx.fill();
-    ctx.restore();
-  }
+    for (const index of view.faulty) {
+        const placed = view.modules[index];
+        if (placed === undefined) continue;
+        // The whole body, barrel and bell included, as it is in the way.
+        const spec = bodySpec(placed);
+        // A module with no interior is one of the things complained about, and it
+        // has no box to tint. It is named in the list instead.
+        if (!(spec.length > 0) || !(spec.width > 0)) continue;
+        const mid = moduleCentre(spec);
+        ctx.save();
+        ctx.translate(mid.x, mid.y);
+        ctx.rotate(spec.angle ?? 0);
+        ctx.fillStyle = FAULT_FILL;
+        outline(ctx, spec);
+        ctx.fill();
+        ctx.restore();
+    }
 }
 
 /**
@@ -271,34 +271,34 @@ function drawFaults(ctx: CanvasRenderingContext2D, view: OverlayView): void {
  * work in a battle (`ShipDesign.coveredBy`).
  */
 function drawControl(ctx: CanvasRenderingContext2D, design: ShipDesign, camera: Camera): void {
-  const lineWidth = SELECTION_WIDTH_PX / camera.scale;
-  ctx.save();
-  ctx.strokeStyle = CONTROL_REACH_LINE;
-  ctx.lineWidth = lineWidth;
-  ctx.setLineDash([CONTROL_DASH_PX / camera.scale, CONTROL_DASH_PX / camera.scale]);
-  for (const core of design.cores) {
-    const module = design.modules[core]!;
-    const at = blockCentre(module.spec);
-    ctx.beginPath();
-    ctx.arc(at.x, at.y, module.stats.controlRadius, 0, TAU);
-    ctx.stroke();
-  }
-  ctx.restore();
-  design.coveredBy?.forEach((cores, m) => {
-    if (cores === null || cores.length > 0) return;
-    const spec = design.modules[m]!.spec;
-    const mid = moduleCentre(spec);
+    const lineWidth = SELECTION_WIDTH_PX / camera.scale;
     ctx.save();
-    ctx.translate(mid.x, mid.y);
-    ctx.rotate(spec.angle ?? 0);
-    outline(ctx, spec);
-    ctx.fillStyle = OUT_OF_REACH_FILL;
-    ctx.fill();
-    ctx.strokeStyle = OUT_OF_REACH;
+    ctx.strokeStyle = CONTROL_REACH_LINE;
     ctx.lineWidth = lineWidth;
-    ctx.stroke();
+    ctx.setLineDash([CONTROL_DASH_PX / camera.scale, CONTROL_DASH_PX / camera.scale]);
+    for (const core of design.cores) {
+        const module = design.modules[core]!;
+        const at = blockCentre(module.spec);
+        ctx.beginPath();
+        ctx.arc(at.x, at.y, module.stats.controlRadius, 0, TAU);
+        ctx.stroke();
+    }
     ctx.restore();
-  });
+    design.coveredBy?.forEach((cores, m) => {
+        if (cores === null || cores.length > 0) return;
+        const spec = design.modules[m]!.spec;
+        const mid = moduleCentre(spec);
+        ctx.save();
+        ctx.translate(mid.x, mid.y);
+        ctx.rotate(spec.angle ?? 0);
+        outline(ctx, spec);
+        ctx.fillStyle = OUT_OF_REACH_FILL;
+        ctx.fill();
+        ctx.strokeStyle = OUT_OF_REACH;
+        ctx.lineWidth = lineWidth;
+        ctx.stroke();
+        ctx.restore();
+    });
 }
 
 /**
@@ -310,25 +310,25 @@ function drawControl(ctx: CanvasRenderingContext2D, design: ShipDesign, camera: 
  * at all.
  */
 function drawSelection(ctx: CanvasRenderingContext2D, view: OverlayView, camera: Camera): void {
-  const lineWidth = SELECTION_WIDTH_PX / camera.scale;
-  for (let i = 0; i < view.selected.length; i++) {
-    const placed = view.modules[view.selected[i]!];
-    if (placed === undefined) continue;
-    const spec = bodySpec(placed);
-    const mid = moduleCentre(spec);
-    ctx.save();
-    ctx.translate(mid.x, mid.y);
-    ctx.rotate(spec.angle ?? 0);
-    ctx.strokeStyle = i === 0 ? SELECTION : SELECTION_LINKED;
-    ctx.lineWidth = lineWidth;
-    if (i > 0) ctx.setLineDash([lineWidth * 4, lineWidth * 3]);
-    outline(ctx, spec);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.restore();
-  }
+    const lineWidth = SELECTION_WIDTH_PX / camera.scale;
+    for (let i = 0; i < view.selected.length; i++) {
+        const placed = view.modules[view.selected[i]!];
+        if (placed === undefined) continue;
+        const spec = bodySpec(placed);
+        const mid = moduleCentre(spec);
+        ctx.save();
+        ctx.translate(mid.x, mid.y);
+        ctx.rotate(spec.angle ?? 0);
+        ctx.strokeStyle = i === 0 ? SELECTION : SELECTION_LINKED;
+        ctx.lineWidth = lineWidth;
+        if (i > 0) ctx.setLineDash([lineWidth * 4, lineWidth * 3]);
+        outline(ctx, spec);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+    }
 
-  drawAssemblies(ctx, view, lineWidth, GROUP_BOX_MARGIN_PX / camera.scale);
+    drawAssemblies(ctx, view, lineWidth, GROUP_BOX_MARGIN_PX / camera.scale);
 }
 
 /**
@@ -336,15 +336,15 @@ function drawSelection(ctx: CanvasRenderingContext2D, view: OverlayView, camera:
  * corners it is drawn by. Left on the context to be filled or stroked.
  */
 export function outline(ctx: CanvasRenderingContext2D, spec: ModuleSpec): void {
-  const triangle = shapeOf(spec);
-  ctx.beginPath();
-  if (triangle === null) {
-    ctx.rect(-spec.length / 2, -spec.width / 2, spec.length, spec.width);
-    return;
-  }
-  ctx.moveTo(triangle[0]!, triangle[1]!);
-  for (let i = 2; i < triangle.length; i += 2) ctx.lineTo(triangle[i]!, triangle[i + 1]!);
-  ctx.closePath();
+    const triangle = shapeOf(spec);
+    ctx.beginPath();
+    if (triangle === null) {
+        ctx.rect(-spec.length / 2, -spec.width / 2, spec.length, spec.width);
+        return;
+    }
+    ctx.moveTo(triangle[0]!, triangle[1]!);
+    for (let i = 2; i < triangle.length; i += 2) ctx.lineTo(triangle[i]!, triangle[i + 1]!);
+    ctx.closePath();
 }
 
 /**
@@ -357,55 +357,55 @@ export function outline(ctx: CanvasRenderingContext2D, spec: ModuleSpec): void {
  * the facing it is about to change — it points the way the module points.
  */
 function drawHandles(ctx: CanvasRenderingContext2D, view: OverlayView, camera: Camera): void {
-  if (view.handles.length === 0) return;
-  const radius = HANDLE_RADIUS_PX / camera.scale;
-  const lineWidth = HANDLE_EDGE_WIDTH_PX / camera.scale;
-  const spec = view.modules[view.selected[0] ?? -1];
+    if (view.handles.length === 0) return;
+    const radius = HANDLE_RADIUS_PX / camera.scale;
+    const lineWidth = HANDLE_EDGE_WIDTH_PX / camera.scale;
+    const spec = view.modules[view.selected[0] ?? -1];
 
-  const knob = view.handles.find((handle) => handle.kind === 'rotate');
-  const from =
-    knob?.fromX !== undefined && knob.fromY !== undefined
-      ? { x: knob.fromX, y: knob.fromY }
-      : spec === undefined
-        ? null
-        : blockCentre(spec);
-  if (knob !== undefined && from !== null) {
-    ctx.save();
-    ctx.strokeStyle = SELECTION;
-    ctx.lineWidth = lineWidth;
-    ctx.beginPath();
-    ctx.moveTo(from.x, from.y);
-    ctx.lineTo(knob.x, knob.y);
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  for (const handle of view.handles) {
-    ctx.save();
-    ctx.beginPath();
-    // A seam is a bar along the face it moves; an edge changes one dimension,
-    // so it is a square rather than a corner's dot.
-    if (handle.kind === 'seam' || handle.kind === 'tip') {
-      ctx.translate(handle.x, handle.y);
-      ctx.rotate(handle.angle ?? 0);
-      ctx.rect(-radius * 2, -radius * 0.7, radius * 4, radius * 1.4);
-    } else if (handle.kind === 'size' && (handle.along === 0 || handle.across === 0)) {
-      const half = radius * 0.8;
-      ctx.translate(handle.x, handle.y);
-      ctx.rotate(spec?.angle ?? 0);
-      ctx.rect(-half, -half, half * 2, half * 2);
-    } else {
-      ctx.arc(handle.x, handle.y, radius, 0, TAU);
+    const knob = view.handles.find((handle) => handle.kind === "rotate");
+    const from =
+        knob?.fromX !== undefined && knob.fromY !== undefined
+            ? { x: knob.fromX, y: knob.fromY }
+            : spec === undefined
+              ? null
+              : blockCentre(spec);
+    if (knob !== undefined && from !== null) {
+        ctx.save();
+        ctx.strokeStyle = SELECTION;
+        ctx.lineWidth = lineWidth;
+        ctx.beginPath();
+        ctx.moveTo(from.x, from.y);
+        ctx.lineTo(knob.x, knob.y);
+        ctx.stroke();
+        ctx.restore();
     }
-    ctx.fillStyle = HANDLE_FILL;
-    ctx.fill();
-    // Outlined in the background's own colour so a handle stays visible over
-    // the hull it sits on, which is the same value as the selection outline.
-    ctx.strokeStyle = HANDLE_EDGE;
-    ctx.lineWidth = lineWidth;
-    ctx.stroke();
-    ctx.restore();
-  }
+
+    for (const handle of view.handles) {
+        ctx.save();
+        ctx.beginPath();
+        // A seam is a bar along the face it moves; an edge changes one dimension,
+        // so it is a square rather than a corner's dot.
+        if (handle.kind === "seam" || handle.kind === "tip") {
+            ctx.translate(handle.x, handle.y);
+            ctx.rotate(handle.angle ?? 0);
+            ctx.rect(-radius * 2, -radius * 0.7, radius * 4, radius * 1.4);
+        } else if (handle.kind === "size" && (handle.along === 0 || handle.across === 0)) {
+            const half = radius * 0.8;
+            ctx.translate(handle.x, handle.y);
+            ctx.rotate(spec?.angle ?? 0);
+            ctx.rect(-half, -half, half * 2, half * 2);
+        } else {
+            ctx.arc(handle.x, handle.y, radius, 0, TAU);
+        }
+        ctx.fillStyle = HANDLE_FILL;
+        ctx.fill();
+        // Outlined in the background's own colour so a handle stays visible over
+        // the hull it sits on, which is the same value as the selection outline.
+        ctx.strokeStyle = HANDLE_EDGE;
+        ctx.lineWidth = lineWidth;
+        ctx.stroke();
+        ctx.restore();
+    }
 }
 
 /**
@@ -417,49 +417,49 @@ function drawHandles(ctx: CanvasRenderingContext2D, view: OverlayView, camera: C
  * rather than by a rectangle its contents stick out of.
  */
 function drawAssemblies(ctx: CanvasRenderingContext2D, view: OverlayView, lineWidth: number, margin: number): void {
-  for (const assembly of view.assemblies) {
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-    for (const index of assembly.modules) {
-      const placed = view.modules[index];
-      if (placed === undefined) continue;
-      const spec = bodySpec(placed);
-      const angle = spec.angle ?? 0;
-      const c = Math.cos(angle);
-      const s = Math.sin(angle);
-      const halfL = spec.length / 2;
-      const halfW = spec.width / 2;
-      const triangle = shapeOf(spec);
-      const mid = moduleCentre(spec);
-      const points: (readonly [number, number])[] = [];
-      if (triangle === null) {
-        points.push([halfL, halfW], [halfL, -halfW], [-halfL, halfW], [-halfL, -halfW]);
-      } else {
-        for (let v = 0; v < triangle.length; v += 2) points.push([triangle[v]!, triangle[v + 1]!]);
-      }
-      for (const [ox, oy] of points) {
-        const x = mid.x + ox * c - oy * s;
-        const y = mid.y + ox * s + oy * c;
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
-      }
-    }
-    if (!(maxX > minX) && !(maxY > minY)) continue;
+    for (const assembly of view.assemblies) {
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+        for (const index of assembly.modules) {
+            const placed = view.modules[index];
+            if (placed === undefined) continue;
+            const spec = bodySpec(placed);
+            const angle = spec.angle ?? 0;
+            const c = Math.cos(angle);
+            const s = Math.sin(angle);
+            const halfL = spec.length / 2;
+            const halfW = spec.width / 2;
+            const triangle = shapeOf(spec);
+            const mid = moduleCentre(spec);
+            const points: (readonly [number, number])[] = [];
+            if (triangle === null) {
+                points.push([halfL, halfW], [halfL, -halfW], [-halfL, halfW], [-halfL, -halfW]);
+            } else {
+                for (let v = 0; v < triangle.length; v += 2) points.push([triangle[v]!, triangle[v + 1]!]);
+            }
+            for (const [ox, oy] of points) {
+                const x = mid.x + ox * c - oy * s;
+                const y = mid.y + ox * s + oy * c;
+                if (x < minX) minX = x;
+                if (x > maxX) maxX = x;
+                if (y < minY) minY = y;
+                if (y > maxY) maxY = y;
+            }
+        }
+        if (!(maxX > minX) && !(maxY > minY)) continue;
 
-    ctx.save();
-    ctx.strokeStyle = assembly.context ? GROUP_CONTEXT : assembly.primary ? GROUP_SELECTION : GROUP_LINKED;
-    ctx.lineWidth = lineWidth;
-    // Dashed for everything that is not the copy being edited, so the one a
-    // drag would move reads as solid the way a grabbed module does.
-    if (!assembly.primary) ctx.setLineDash([lineWidth * 4, lineWidth * 3]);
-    ctx.strokeRect(minX - margin, minY - margin, maxX - minX + margin * 2, maxY - minY + margin * 2);
-    ctx.setLineDash([]);
-    ctx.restore();
-  }
+        ctx.save();
+        ctx.strokeStyle = assembly.context ? GROUP_CONTEXT : assembly.primary ? GROUP_SELECTION : GROUP_LINKED;
+        ctx.lineWidth = lineWidth;
+        // Dashed for everything that is not the copy being edited, so the one a
+        // drag would move reads as solid the way a grabbed module does.
+        if (!assembly.primary) ctx.setLineDash([lineWidth * 4, lineWidth * 3]);
+        ctx.strokeRect(minX - margin, minY - margin, maxX - minX + margin * 2, maxY - minY + margin * 2);
+        ctx.setLineDash([]);
+        ctx.restore();
+    }
 }
 
 /**
@@ -473,15 +473,15 @@ function drawAssemblies(ctx: CanvasRenderingContext2D, view: OverlayView, lineWi
  * through the renderer's y flip as it does in screen space.
  */
 function crosshair(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, lineWidth: number): void {
-  ctx.strokeStyle = CENTRE_OF_MASS;
-  ctx.lineWidth = lineWidth;
-  ctx.beginPath();
-  ctx.arc(x, y, r, 0, TAU);
-  ctx.moveTo(x - r * 1.6, y);
-  ctx.lineTo(x + r * 1.6, y);
-  ctx.moveTo(x, y - r * 1.6);
-  ctx.lineTo(x, y + r * 1.6);
-  ctx.stroke();
+    ctx.strokeStyle = CENTRE_OF_MASS;
+    ctx.lineWidth = lineWidth;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, TAU);
+    ctx.moveTo(x - r * 1.6, y);
+    ctx.lineTo(x + r * 1.6, y);
+    ctx.moveTo(x, y - r * 1.6);
+    ctx.lineTo(x, y + r * 1.6);
+    ctx.stroke();
 }
 
 /**
@@ -493,7 +493,7 @@ function crosshair(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
  * engines, and nothing else on the canvas says where it is.
  */
 function drawCentreOfMass(ctx: CanvasRenderingContext2D, design: ShipDesign, camera: Camera): void {
-  crosshair(ctx, design.centreOfMassX, design.centreOfMassY, CENTRE_OF_MASS_RADIUS_PX / camera.scale, SELECTION_WIDTH_PX / camera.scale);
+    crosshair(ctx, design.centreOfMassX, design.centreOfMassY, CENTRE_OF_MASS_RADIUS_PX / camera.scale, SELECTION_WIDTH_PX / camera.scale);
 }
 
 /**
@@ -531,90 +531,90 @@ function drawCentreOfMass(ctx: CanvasRenderingContext2D, design: ShipDesign, cam
  * inventing an efficiency the simulation does not have.
  */
 function drawEnvelope(
-  ctx: CanvasRenderingContext2D,
-  envelope: Envelopes,
-  widthPx: number,
-  heightPx: number,
-  bearing: number | null,
-  expanded: boolean,
+    ctx: CanvasRenderingContext2D,
+    envelope: Envelopes,
+    widthPx: number,
+    heightPx: number,
+    bearing: number | null,
+    expanded: boolean,
 ): void {
-  let peak = 0;
-  let held = 0;
-  for (let i = 0; i < envelope.samples; i++) {
-    peak = max(peak, envelope.free[i]!);
-    held = max(held, envelope.holding[i]!);
-  }
-  if (!(peak > 0)) return;
-
-  const radius = envelopeRadius(widthPx, heightPx, expanded);
-  const { x: cx, y: cy } = envelopeCentre(widthPx, heightPx, radius);
-
-  /** Trace one curve, scaled against the larger of the two so the gap is to scale. */
-  const trace = (values: Float64Array): void => {
-    ctx.beginPath();
+    let peak = 0;
+    let held = 0;
     for (let i = 0; i < envelope.samples; i++) {
-      // Samples run anticlockwise from the bow in the ship's frame. Screen y
-      // grows downward where the world's grows up, so only y is negated —
-      // which is the same flip `draw` applies to the deck plan.
-      const angle = (TAU * i) / envelope.samples;
-      const r = (values[i]! / peak) * radius;
-      const x = cx + cos(angle) * r;
-      const y = cy - sin(angle) * r;
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
+        peak = max(peak, envelope.free[i]!);
+        held = max(held, envelope.holding[i]!);
     }
-    ctx.closePath();
-  };
+    if (!(peak > 0)) return;
 
-  // The unconstrained curve first and dashed, so the filled one sits inside it
-  // and reads as the real figure rather than as a shortfall from it.
-  trace(envelope.free);
-  ctx.strokeStyle = ENVELOPE_FREE;
-  ctx.lineWidth = 1;
-  ctx.setLineDash([3, 3]);
-  ctx.stroke();
-  ctx.setLineDash([]);
+    const radius = envelopeRadius(widthPx, heightPx, expanded);
+    const { x: cx, y: cy } = envelopeCentre(widthPx, heightPx, radius);
 
-  trace(envelope.holding);
-  ctx.fillStyle = ENVELOPE_FILL;
-  ctx.fill();
-  ctx.strokeStyle = ENVELOPE;
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
+    /** Trace one curve, scaled against the larger of the two so the gap is to scale. */
+    const trace = (values: Float64Array): void => {
+        ctx.beginPath();
+        for (let i = 0; i < envelope.samples; i++) {
+            // Samples run anticlockwise from the bow in the ship's frame. Screen y
+            // grows downward where the world's grows up, so only y is negated —
+            // which is the same flip `draw` applies to the deck plan.
+            const angle = (TAU * i) / envelope.samples;
+            const r = (values[i]! / peak) * radius;
+            const x = cx + cos(angle) * r;
+            const y = cy - sin(angle) * r;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+    };
 
-  // The origin, marked as what it is: the ship's centre of mass, with every
-  // radius an acceleration of it. Without it the curve has no zero, and a
-  // lobed shape with no centre cannot be read as a magnitude at all.
-  crosshair(ctx, cx, cy, 3.5, 1.5);
-
-  // The direction being pointed at, out to the edge of the widget, while the
-  // ship above burns its engines the way it would to push that way.
-  if (bearing !== null) {
-    ctx.strokeStyle = ENVELOPE;
+    // The unconstrained curve first and dashed, so the filled one sits inside it
+    // and reads as the real figure rather than as a shortfall from it.
+    trace(envelope.free);
+    ctx.strokeStyle = ENVELOPE_FREE;
     ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.lineTo(cx + cos(bearing) * radius, cy - sin(bearing) * radius);
+    ctx.setLineDash([3, 3]);
     ctx.stroke();
-  }
+    ctx.setLineDash([]);
 
-  // Right-aligned to the widget's own edge rather than centred under it, so a
-  // caption naming both curves has somewhere to go.
-  //
-  // The second line is the *worst* gap between the curves and not the gap
-  // between their peaks, which would be a different and much less useful
-  // number: a ship's best direction is usually its best under both curves, so
-  // comparing peaks reports a layout as balanced however badly it is trimmed
-  // abeam. The fractal is the case — 10.0 against 10.1 at the bow, and 72% of
-  // its beam thrust spent on not spinning.
-  ctx.fillStyle = ENVELOPE_LABEL;
-  ctx.font = '11px ui-monospace, monospace';
-  ctx.textAlign = 'right';
-  const right = widthPx - ENVELOPE_MARGIN_PX;
-  ctx.fillText(`${held.toFixed(1)} m/s² holding heading`, right, cy + radius + 14);
-  const cost = headingCost(envelope);
-  if (cost >= 0.005) {
-    ctx.fillText(`heading cost up to ${(cost * 100).toFixed(0)}%`, right, cy + radius + 28);
-  }
-  ctx.textAlign = 'left';
+    trace(envelope.holding);
+    ctx.fillStyle = ENVELOPE_FILL;
+    ctx.fill();
+    ctx.strokeStyle = ENVELOPE;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // The origin, marked as what it is: the ship's centre of mass, with every
+    // radius an acceleration of it. Without it the curve has no zero, and a
+    // lobed shape with no centre cannot be read as a magnitude at all.
+    crosshair(ctx, cx, cy, 3.5, 1.5);
+
+    // The direction being pointed at, out to the edge of the widget, while the
+    // ship above burns its engines the way it would to push that way.
+    if (bearing !== null) {
+        ctx.strokeStyle = ENVELOPE;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + cos(bearing) * radius, cy - sin(bearing) * radius);
+        ctx.stroke();
+    }
+
+    // Right-aligned to the widget's own edge rather than centred under it, so a
+    // caption naming both curves has somewhere to go.
+    //
+    // The second line is the *worst* gap between the curves and not the gap
+    // between their peaks, which would be a different and much less useful
+    // number: a ship's best direction is usually its best under both curves, so
+    // comparing peaks reports a layout as balanced however badly it is trimmed
+    // abeam. The fractal is the case — 10.0 against 10.1 at the bow, and 72% of
+    // its beam thrust spent on not spinning.
+    ctx.fillStyle = ENVELOPE_LABEL;
+    ctx.font = "11px ui-monospace, monospace";
+    ctx.textAlign = "right";
+    const right = widthPx - ENVELOPE_MARGIN_PX;
+    ctx.fillText(`${held.toFixed(1)} m/s² holding heading`, right, cy + radius + 14);
+    const cost = headingCost(envelope);
+    if (cost >= 0.005) {
+        ctx.fillText(`heading cost up to ${(cost * 100).toFixed(0)}%`, right, cy + radius + 28);
+    }
+    ctx.textAlign = "left";
 }
