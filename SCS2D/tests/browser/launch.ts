@@ -31,14 +31,17 @@ export async function launchChromium(): Promise<Browser> {
     }
 }
 
-function findInstalledChromium(): string | null {
+/** A Chromium under `PLAYWRIGHT_BROWSERS_PATH` that Playwright did not install for itself, or null. */
+export function findInstalledChromium(): string | null {
     const root = process.env["PLAYWRIGHT_BROWSERS_PATH"];
     if (root === undefined || !existsSync(root)) return null;
 
     for (const entry of readdirSync(root)) {
         if (!entry.startsWith("chromium-")) continue;
-        const candidate = join(root, entry, "chrome-linux", "chrome");
-        if (existsSync(candidate)) return candidate;
+        for (const folder of ["chrome-linux64", "chrome-linux"]) {
+            const candidate = join(root, entry, folder, "chrome");
+            if (existsSync(candidate)) return candidate;
+        }
     }
     return null;
 }

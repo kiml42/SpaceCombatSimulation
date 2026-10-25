@@ -1,0 +1,12 @@
+{
+    // The React app and its components. DOM and JSX here, and Vite's ambient
+    // types for its asset imports; never in sim/, which tsconfig.json keeps pure.
+    "extends": "./tsconfig.base.json",
+    "compilerOptions": {
+        "lib": ["ES2022", "DOM", "DOM.Iterable"],
+        "jsx": "react-jsx",
+        "types": ["vite/client"],
+        "paths": { "~/*": ["./*"] }
+    },
+    "include": ["app", "ui", "features", ".storybook/preview.ts", ".storybook/vitest.setup.ts", "tests/components.setup.ts"]
+}
