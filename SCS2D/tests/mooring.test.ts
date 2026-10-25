@@ -60,6 +60,28 @@ describe('a ship moored to an asteroid', () => {
     expect(Math.max(...robots().map((r) => r.cargoFuel))).toBeLessThan(1);
   });
 
+  it('shows a robot home with ore emptying its load into the holds, not filling up', () => {
+    const { run, miner } = moored();
+    const b = () => run.world.bodies.indexOf(run.ships.body(miner));
+    const robots = () =>
+      (run.ships as unknown as { robots: { on(b: number): { mode: number; refill: number; brought: number }[] } }).robots.on(b());
+    // The first robot berthed with something it brought home, still unloading.
+    const unloading = (): number => robots().findIndex((r) => r.mode === 0 && r.refill > 0 && r.brought > 0);
+    for (let t = 0; t < 240 * 60 && unloading() < 0; t++) run.step();
+    const r = unloading();
+    expect(r).toBeGreaterThanOrEqual(0);
+    // Its bar, among the robots home, before and after a step.
+    const bar = (): number => {
+      const docked: number[] = [];
+      run.ships.robotsDocked(miner, docked);
+      const home = robots().filter((x) => x.mode === 0);
+      return docked[home.indexOf(robots()[r]!) * 4 + 2]!;
+    };
+    const before = bar();
+    run.step();
+    expect(bar()).toBeLessThan(before);
+  });
+
   it('lets go once given an order, its robots called in off the rock first', () => {
     const { run, miner } = moored();
     const b = run.world.bodies;

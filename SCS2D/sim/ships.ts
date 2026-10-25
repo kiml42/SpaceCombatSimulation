@@ -6098,6 +6098,7 @@ export class Ships {
       const working = this.left(owner, b, robot.bay, DamageEffect.Tending) * berthRate(design.modules[robot.bay]!.stats);
       // What it brought home goes into the holds, as far as they have room.
       let unloaded = false;
+      if (robot.cargo + robot.cargoFuel > 0) robot.brought = (robot.cargo + robot.cargoFuel) / ROBOT_LOAD;
       if (robot.cargoFuel > 0) {
         const put = this.fuel.add(b, robot.bay, robot.cargoFuel);
         robot.cargoFuel = put < robot.cargoFuel ? robot.cargoFuel - put : 0;
@@ -6124,6 +6125,7 @@ export class Ships {
           if (!(robot.refill > 0)) {
             robot.refill = 0;
             robot.metal = ROBOT_LOAD;
+            robot.brought = 0;
           }
         }
         // Charged as it is filled, as fast as there is charge to give.
@@ -7462,7 +7464,8 @@ export class Ships {
   /**
    * Each robot home on ship `i`'s hull, four numbers apiece into `out`: its
    * bay, the share of its charge and of its metal it has, its metal counted
-   * up over its refill so that is seen happening, and its berth there. Nothing unless `i`
+   * up over its refill, or what it brought home counted down as it unloads,
+   * so that is seen happening, and its berth there. Nothing unless `i`
    * is the ship that flies the body.
    */
   robotsDocked(i: number, out: number[]): void {
@@ -7473,7 +7476,9 @@ export class Ships {
     for (let r = 0; r < robots.length; r++) {
       const robot = robots[r]!;
       if (robot.mode !== RobotMode.Berthed) continue;
-      const metal = robot.refill > 0 ? 1 - robot.refill / ROBOT_REFILL_TIME : robot.metal / ROBOT_LOAD;
+      // Unloading what it fetched, its bar empties; topping up what it mends with, it fills.
+      const left = robot.refill / ROBOT_REFILL_TIME;
+      const metal = robot.refill > 0 ? (robot.brought > 0 ? robot.brought * left : 1 - left) : robot.metal / ROBOT_LOAD;
       out.push(robot.bay, robot.charge / ROBOT_CHARGE, metal, this.berthOf(robots, r));
     }
   }

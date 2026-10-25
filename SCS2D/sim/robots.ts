@@ -77,6 +77,8 @@ export interface Robot {
   bound: number;
   /** Which of its body's robots it is, for the pace it keeps and where on a module it stands (`robotShare`). */
   tag: number;
+  /** What it last brought home, as a share of a full load: drawn emptying out of it while it is refilled, nought once it is. */
+  brought: number;
 }
 
 /** Where to go next across a design's welds, and its seams: each module's neighbours, and the distances to them. */
@@ -550,6 +552,7 @@ function stocked(bay: number, tag: number): Robot {
     awayDesign: null,
     bound: -1,
     tag,
+    brought: 0,
   };
 }
 
