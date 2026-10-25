@@ -462,7 +462,7 @@ export class EngineLayout {
             //           k x k `Aᵀ A` form. Using the 3x3 form here was a real bug —
             //           it is singular with fewer than three columns, so the ridge
             //           took over and returned something numerically arbitrary.
-            let violated = false;
+            let violated: boolean;
 
             if (k < 3) {
                 violated = this.solveOverdetermined(k, rx, ry, rt, throttles);

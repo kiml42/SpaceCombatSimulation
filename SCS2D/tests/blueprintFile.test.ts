@@ -323,7 +323,7 @@ describe("rejecting a file that arrived from somewhere else", () => {
         expect(blueprintFileProblem(file({ modules: [{ kind: "structure", x: 0, y: 0, length: null, width: 4 }] }))).toMatch(
             /length must be a finite number/,
         );
-        expect(blueprintFileProblem(file({ modules: [{ kind: "structure", x: 0, y: 0, length: 1e400, width: 4 }] }))).toMatch(
+        expect(blueprintFileProblem(file({ modules: [{ kind: "structure", x: 0, y: 0, length: Infinity, width: 4 }] }))).toMatch(
             /length must be a finite number/,
         );
     });

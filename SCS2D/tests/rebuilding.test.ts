@@ -125,7 +125,6 @@ describe("robots rebuilding", () => {
         expect(find(run, FIN)).toBe(-1);
         const before = matter(run);
         const discarded = run.ships.discarded;
-        let steps = -1;
         let shareSeen = 0;
         const seconds = runUntil(
             run,
@@ -136,7 +135,6 @@ describe("robots rebuilding", () => {
                     // A step at a time, never shrinking.
                     expect(shell.share).toBeGreaterThanOrEqual(shareSeen);
                     shareSeen = shell.share;
-                    steps++;
                 }
                 return at >= 0 && shell === undefined;
             },

@@ -66,9 +66,6 @@ an entry is either still open or it is gone.
 
 16. **React UI** — stage 1, the foundation, is built; stages 2–8 are left, from the shell with its shared
     library and view settings onwards (below). Two things found in stage 1 bear on them:
-    - **The pages not yet in `app/` are not linted.** Type-aware rules over them found 5,214 problems, 5,085
-      of them `!` after an array read that `noUncheckedIndexedAccess` being off makes redundant; whether to
-      lint `sim/` and the rest, and drop those, is open. Pages moving into `app/` are linted as they move.
     - **axe does not fail a story on colour contrast**, only on what it is sure of: contrast it marks for
       review, so a token change wants looking at in Storybook's accessibility panel.
 

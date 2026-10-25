@@ -3864,7 +3864,7 @@ export class Ships {
                     this.firedAt[i] = world.tick;
                     if (state == TurretState.Idle) {
                         // was idle before, now committed on for beamOnTime
-                        state = turretStates[t] = TurretState.CommittedOn;
+                        turretStates[t] = TurretState.CommittedOn;
                         timers[t] = gun.beamOnTime;
                         this.turrets.lit[ti] = 1;
 
@@ -6261,7 +6261,7 @@ export class Ships {
         let short = kg < step;
         const spare = this.metal.pieceHeld(b, m);
         let more: boolean;
-        let put = 0;
+        let put: number;
         if (rebuild === null) {
             if (kg * waste > spare) {
                 kg = spare > 0 ? spare / waste : 0;
@@ -7786,7 +7786,7 @@ export class Ships {
 
     /** Whether the ship a dock is filling minds danger and has an armed enemy in reach of the pair. */
     private threatenedAt(bodies: Bodies, b: number, seam: Seam): boolean {
-        let receiver = -1;
+        let receiver: number;
         if (seam.dock === "claw") receiver = this.pilotAt(b, seam.a);
         else {
             const oa = this.pilotAt(b, seam.a);

@@ -1353,7 +1353,7 @@ export function startEditor(): void {
         }
         for (const entry of library.list()) {
             if (choices.has(entry.name)) continue;
-            let blueprint: Blueprint | null = null;
+            let blueprint: Blueprint | null;
             try {
                 blueprint = library.load(entry.name);
             } catch {

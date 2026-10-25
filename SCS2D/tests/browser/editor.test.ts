@@ -199,7 +199,7 @@ beforeAll(async () => {
     try {
         await page.waitForFunction(() => (document.getElementById("stats")?.textContent ?? "").includes("Endurance"));
     } catch (timeout) {
-        if (problems.length > 0) throw new Error(`the page did not start:\n${problems.join("\n")}`);
+        if (problems.length > 0) throw new Error(`the page did not start:\n${problems.join("\n")}`, { cause: timeout });
         throw timeout;
     }
 }, 120_000);
