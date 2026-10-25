@@ -8,6 +8,7 @@ import {
   HullPath,
   modulesAlong,
   insetTriangle,
+  MIN_WELD_WIDTH,
   modulesOverlap,
   moduleOutline,
   moduleProblem,
@@ -172,6 +173,24 @@ describe('what a triangle is to the rest of the simulation', () => {
     expect(contactWidth(shaped, astern)).toBeCloseTo(4, 6);
     // Meeting the stern corner at a point: a corner touch is not a joint.
     expect(contactWidth(shaped, plate({ x: 7.75, y: 2.25, length: 0.5, width: 0.5 }))).toBe(0);
+  });
+
+  it('is not welded by a corner on a face, however far along the face it reaches', () => {
+    // A long plate's top face along y = 0, and a sliver of a triangle whose
+    // one corner rests on it and whose length runs along it, rising away.
+    const deck = plate({ x: 5, y: -1, length: 10, width: 2 });
+    const leaning = shapeModule(plate(), [2, 0, 10, 3, 2, 1])!;
+    expect(contactWidth(deck, leaning)).toBe(0);
+    // Laid flat on it, it is welded by its whole face.
+    const flat = shapeModule(plate(), [2, 0, 10, 0, 2, 1])!;
+    expect(contactWidth(deck, flat)).toBeCloseTo(8, 6);
+  });
+
+  it(`is not welded by less face than ${MIN_WELD_WIDTH} m, box or triangle`, () => {
+    const a = plate();
+    // Side by side, sharing 0.05 m and then 0.2 m of face.
+    expect(contactWidth(a, plate({ x: 2, y: 1.95 }))).toBe(0);
+    expect(contactWidth(a, plate({ x: 2, y: 1.8 }))).toBeCloseTo(0.2, 6);
   });
 
   it('is crossed by a shot where the corners are, and not where they are not', () => {
