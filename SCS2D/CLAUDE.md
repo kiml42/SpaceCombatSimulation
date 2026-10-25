@@ -60,10 +60,14 @@ render/     the view; consumes snapshots, knows no game rules
 editor/     the blueprint and fleet editors; only page.ts, overlay.ts,
             fleetPage.ts and fleetOverlay.ts touch the DOM, so the edit
             models, the stats and the library are unit-tested
-ui/         React, UI state only (non-negotiable 5); not created until a
-            page uses React, as every page drives the DOM from host/ and editor/
+app/        the React app, one page with a route per screen (ROADMAP.md
+            §8 step 16): the pages below move into it one at a time
+features/   React components and hooks more than one route uses
+ui/         presentational React components, plain props only, and the
+            design tokens (ui/tokens/); React holds UI state only
+            (non-negotiable 5)
 host/       window lifecycle, the wall clock, and the controls — one entry
-            point and one page shell per page; the evolution page lives here
+            point and one page shell per page not yet in app/; the evolution page lives here
             too, since driving a run is a clock and a set of controls
 scenarios/  the battles, and the blueprints they fly, under blueprints/
             (battle.ts holds the assembly and the step order they share)
@@ -80,10 +84,15 @@ disagree about the same ship, which is the worst thing the tool can do.
 Keep these working — they are the cold-start re-entry path:
 
 - `pnpm test` — unit tests, determinism tests and the golden scenario checksums
-- `pnpm typecheck` — all three TS projects (`sim/` has no ambient types; `render/`, `editor/` and
-  `host/` have the DOM)
-- `pnpm format` — format the TypeScript with Prettier (`.prettierrc.json`); CI fails on anything
-  `pnpm format:check` finds, so run it before pushing
+- `pnpm typecheck` — all four TS projects on TypeScript 7 (`sim/` has no ambient types; `render/`,
+  `editor/` and `host/` have the DOM; `tsconfig.app.json` is the React app). The `typescript` package is
+  6, for the tools that need a compiler API TypeScript 7 does not have (typescript-eslint, Storybook)
+- `pnpm format` — format the TypeScript, CSS and config files with Prettier (`.prettierrc.json`); CI fails
+  on anything `pnpm format:check` finds, so run it before pushing
+- `pnpm lint` — ESLint and Stylelint over the React app, `features/`, `ui/` and the config files. Imports
+  flow one way, app → features → ui, and `ui/` imports nothing above it; a boundary error means the file
+  is in the wrong layer, so move it rather than disable the rule. Import across folders through `~/`, and
+  no barrel `index.ts` files. The pages not yet in `app/` are not linted
 - `pnpm golden` — re-derive golden checksums after a *deliberate* behaviour change
 - `pnpm evolve` — fight a headless evolution run and write it to `runs/`, rewritten after every generation; `--from <stock ships or blueprint files>`, `--fleet <stock fleet
   or fleet file>`, `--deploy <radius>`, `--ships <most>` (ship founders grow into fleets unless it is 1), `--generations`,
@@ -95,11 +104,15 @@ Keep these working — they are the cold-start re-entry path:
   `--against latest | founder | <stock ship> | <blueprint or fleet file>`; a co-evolution run is measured as
   a grid of each side's round champions against the other's, `--samples` a side and `--seeds` matches a cell
 - `pnpm build` — bundle each page to `dist/index.html`, `dist/editor.html`, `dist/fleet.html`,
-  `dist/evolution.html` and `dist/skirmish.html`, one file each with nothing external
-- `pnpm dev` — the same build on every save, for tinkering; refresh the page to see it. Also runs `sync-fleets`
-  on start and whenever a blueprint is saved
+  `dist/evolution.html` and `dist/skirmish.html`, and the React app to `dist/app.html`, one file each with
+  nothing external
+- `pnpm dev` — Vite's dev server for the React app, with the other pages rebuilt on every save and served
+  beside it, so they share its storage; refresh an old page to see a change. Also runs `sync-fleets` on start
+  and whenever a blueprint is saved
+- `pnpm storybook` — every component's stories, at `localhost:6006`; `pnpm build-storybook` builds it
 - `pnpm sync-fleets` — copy each stock blueprint into the stock fleets that embed a design of the same name
-- `pnpm test:browser` — drive those bundles in Chromium; needs `pnpm exec playwright install chromium` first
+- `pnpm test:browser` — drive those bundles in Chromium, and run every story there with its `play`
+  function and an accessibility check; needs `pnpm exec playwright install chromium` first
 
 ## Testing
 
@@ -111,6 +124,12 @@ never needs a browser; the browser tests live in `tests/browser/` and run separa
 and unit tests cannot — that the page loads without throwing, that the renderer puts pixels on the canvas,
 and that the controls do what they say — and deliberately *not* that the simulation is right, which the
 golden checksums already cover through the same `scenarios/duel.ts` the viewer runs.
+
+**Each suite is two Vitest projects.** `pnpm test` runs `unit`, the tests under `tests/`, and `components`,
+React component tests (`*.test.tsx` beside the component) in `happy-dom`. `pnpm test:browser` runs `pages`,
+the built pages driven from Node, and `storybook`, every story rendered in Chromium. A component gets a story
+with a `play` function asserting what it should do; a unit test is for logic a story cannot reach. Scope a run
+with `--project`, as `pnpm exec vitest run --project components`.
 
 **Golden battle tests are load-bearing.** Fixed scenarios with bit-exact pinned outcomes are the only thing
 that tells you the simulation is intact after time away. Add one whenever simulation behaviour changes

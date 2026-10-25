@@ -1107,7 +1107,10 @@ inside any one file is not contiguous.
   holds a fighter to fill cells that are broken. Evolution draws batteries and generators at a weight of
   one each, and a mutation does not turn either, since neither has a facing that matters.
 - **Next:** §8 steps 16–18 in order — the React UI, then the WebGL viewer, then the campaign (ROADMAP.md §8
-  has why). Every step before them is built. Repair, construction and salvage, one mechanism, is built in all six stages:
+  has why). Every step before them is built. Step 16's first stage is: the React app (`app/`) builds with
+  Vite to `dist/app.html`, one file that opens from disk, beside the five pages it will replace, and so far
+  only links to them; Linaria, Storybook with a story and accessibility check per component, ESLint with the
+  import boundaries, and Vite's dev server, which serves the old pages beside it so they share storage. Repair, construction and salvage, one mechanism, is built in all six stages:
   damage shedding mass, pads mending landed fighters, robots mending their own hull, lost and built anew,
   lost modules rebuilt by robots and by pads, and robots taking wreckage apart into metal, with doctrine that
   sends a fighter in to be mended and a ship out to wrecks for their metal, flown by the stock Salvager.

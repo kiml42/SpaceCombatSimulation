@@ -29,7 +29,7 @@ pnpm build
 ```
 
 Then open `dist/index.html` in a browser. Each page — the viewer, the ship and fleet editors, the evolution
-page and the skirmish — is one self-contained file, so there is no server to run and nothing external to
+page, the skirmish, and `app.html`, the React app they are moving into — is one self-contained file, so there is no server to run and nothing external to
 fetch: double-clicking it works.
 
 Space pauses, full stop single-steps, F re-fits the camera. Scroll to zoom, drag to pan.
@@ -40,7 +40,15 @@ Space pauses, full stop single-steps, F re-fits the camera. Scroll to zoom, drag
 pnpm dev
 ```
 
-Rebuilds on every save. Refresh the page to see the change; there is no live reload.
+Starts Vite's dev server and opens the React app, which reloads itself on save. The other pages are rebuilt on
+every save and served beside it; refresh one to see a change. Served from one address, they share storage —
+saved ships and fleets — which pages opened as files on Firefox do not.
+
+```
+pnpm storybook
+```
+
+Every component of the React app on its own, at `localhost:6006`.
 
 Almost everything worth changing is in one of these:
 
@@ -67,14 +75,16 @@ understanding it turns a regression into the new expected behaviour, permanently
 | Command | Does |
 | --- | --- |
 | `pnpm test` | Unit tests, determinism tests and the golden checksums. Runs from a cold checkout. |
-| `pnpm typecheck` | All three TS projects — `sim/` has no ambient types, `render/`, `editor/` and `host/` have the DOM |
+| `pnpm typecheck` | All four TS projects — `sim/` has no ambient types, `render/`, `editor/` and `host/` have the DOM, and the React app |
+| `pnpm lint` | ESLint and Stylelint over the React app |
 | `pnpm build` | Bundle each page to `dist/`, one file each |
-| `pnpm dev` | The same build, on every save; also keeps the stock fleets' designs in step with `scenarios/blueprints/` |
+| `pnpm dev` | Vite's dev server, with the other pages rebuilt on save beside it; also keeps the stock fleets' designs in step with `scenarios/blueprints/` |
+| `pnpm storybook` | The React app's components on their own |
 | `pnpm sync-fleets` | Copy each stock blueprint into the stock fleets that embed it |
 | `pnpm golden` | Re-derive the golden checksums after a *deliberate* change |
 | `pnpm evolve` | Fight a headless evolution run and write it to `runs/`, to open on the evolution page with Open run; its flags are in CLAUDE.md |
 | `pnpm yardstick` | Measure a finished run against a ship that does not evolve |
-| `pnpm test:browser` | Drive the built page in Chromium — `pnpm exec playwright install chromium` once first |
+| `pnpm test:browser` | Drive the built pages, and every story, in Chromium — `pnpm exec playwright install chromium` once first |
 
 ## One thing that will change
 

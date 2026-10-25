@@ -58,6 +58,9 @@ jobs:
       # TypeScript in Prettier's style; `pnpm format` fixes it.
       - run: pnpm format:check
 
+      # The React app: ESLint, including the import boundaries, and Stylelint.
+      - run: pnpm lint
+
   test:
     name: Test (${{ matrix.os }}, Node ${{ matrix.node }})
     runs-on: ${{ matrix.os }}
