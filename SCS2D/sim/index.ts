@@ -15,7 +15,7 @@ export * as math from './math.js';
 export { Fuel } from './fuel.js';
 export { Metal } from './metal.js';
 export { Charge } from './charge.js';
-export { ROBOT_VIEW_STRIDE } from './robots.js';
+export { doorBetween, ROBOT_VIEW_STRIDE } from './robots.js';
 export { Store } from './store.js';
 export { Rng, type RngState } from './rng.js';
 export { Bodies, NO_BODY, bodyIndex, bodyGeneration, type BodyId, type BodySpec } from './bodies.js';
@@ -177,6 +177,8 @@ export {
   ROBOT_TOP_SPEED,
   ROBOT_ROOM,
   robotSpeedOver,
+  robotsOn,
+  ROBOT_WORK_AREA,
   PORT_MASS_PER_AREA,
   PORT_PUMP_PER_METRE,
   BATTERY_ENERGY_PER_VOLUME,

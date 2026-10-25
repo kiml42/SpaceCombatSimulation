@@ -781,6 +781,15 @@ export const ROBOT_MASS = 300;
 /** A robot bay's racks and charging gear per cubic metre of its interior, kg/m³. */
 export const ROBOT_BAY_MASS_PER_VOLUME = 50;
 
+/** The deck a robot needs to work on a module, m²: so many share one module, at least one, and the rest go elsewhere. */
+export const ROBOT_WORK_AREA = 2;
+
+/** How many robots may work on a module at once, by its area (`ROBOT_WORK_AREA`). */
+export function robotsOn(spec: ModuleSpec): number {
+  const fit = roundDown((spec.length * spec.width) / ROBOT_WORK_AREA);
+  return fit > 1 ? fit : 1;
+}
+
 /** How fast a robot crawls over a module no more than `ROBOT_ROOM` across, as over a ship, carefully, m/s. */
 export const ROBOT_SPEED = 2;
 
