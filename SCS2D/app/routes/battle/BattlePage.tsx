@@ -18,7 +18,7 @@ import { CustomPanel } from "./custom/CustomPanel";
 import { DEFAULT_FIELDS, fieldsOf, setupOf, slotsOf, type SetupFields, type Slot } from "./custom/customSetup";
 import { KeyHelp } from "~/ui/dialogs/KeyHelp";
 import { AddShip } from "./orders/AddShip";
-import { AsteroidCard } from "~/features/orders/AsteroidCard";
+import { AsteroidCard } from "~/features/battle/AsteroidCard";
 import { DOCTRINE_KEY, DoctrinePanel } from "~/features/orders/DoctrinePanel";
 import { OrderBar } from "~/features/orders/OrderBar";
 import { useOrderState } from "~/features/orders/orderState";
