@@ -1106,31 +1106,20 @@ inside any one file is not contiguous.
   `rechargeBelow` goes to a pad for charge alone. A battery's room is what damage leaves it, so a pad never
   holds a fighter to fill cells that are broken. Evolution draws batteries and generators at a weight of
   one each, and a mutation does not turn either, since neither has a facing that matters.
-- **Next:** §8 steps 16–18 in order — the React UI, then the WebGL viewer, then the campaign (ROADMAP.md §8
-  has why). Every step before them is built. Step 16's first two stages are: the React app (`app/`) builds with
-  Vite to `dist/index.html`, one file that opens from disk; Linaria,
-  Storybook with a story and accessibility check per component, ESLint with the import boundaries, and Vite's
-  dev server. Its routes go by the hash (`#/library`)
-  inside a shell that links them, and read one shared library and view settings (`features/storage/`) under
-  the keys the old pages use, re-rendering on any save, another tab's included. Stage 3, the battle viewer,
-  is built, and the old viewer page is gone: the Battle route runs any scene on the wall clock, with pause, step, reset, fit, the scrub bar and
-  the speed, through `BattleCanvas`, a canvas React mounts and leaves to `battleView`, with figures read off it
-  at 10 Hz, and a custom battle set up beside it — sides from the library or files, the setup and its
-  asteroids, import and export — paused at its start until Fight, with each side's tally; and orders given
-  from an order bar over the battle, the picked ships' doctrine told from a panel beside them, ships added
-  mid-battle and the keys behind a Keys button. The editors' Battle links and shared battle links open it,
-  old links included. Stage 4, the fleet editor, is built, and its old page is gone: the Fleet route draws
-  the fleet through `fleetCanvas`, the canvas half of the old page lifted out as `battleView` was, with the
-  panel round it in React; the skirmish and the ship editor hand a fleet to it in the address. Stage 5, the
-  ship editor, is built the same way, and its old page is gone: the Ship route draws through `shipCanvas`,
-  with every panel the page had in React under the same ids, and a fleet hands it a design in the address.
-  Stage 6, the skirmish, is built, and its old page is gone: the Skirmish route fights its rounds on
-  `BattleCanvas` with the order controls, now in `features/`, while the skirmish, its history and the
-  enemy's search live in a provider above the routes, so the search goes on while the player is elsewhere.
-  Stage 7, evolution, is built, and with its old page went the last of the old build: the Evolution route
-  steps its run on the page's clock as before, replays matches on `BattleCanvas`, and keeps the old page's
-  settings, under the same ids and storage key; `pnpm build` is Vite alone. Stage 8, clearing out what only
-  the old pages used, is left.
+- **Next:** §8 steps 17–18 in order — the WebGL viewer, then the campaign (ROADMAP.md §8 has why). Every
+  step before them is built, step 16, the React UI, last: every screen is a route of one React app, built by
+  Vite to `dist/index.html`, one file that opens from disk, with Linaria, Storybook with a story and
+  accessibility check per component, and ESLint with the import boundaries. Its routes go by the hash
+  (`#/library`) inside a shell that links them, and read one shared library and view settings
+  (`features/storage/`), re-rendering on any save, another tab's included. The Battle route runs any scene on
+  the wall clock through `BattleCanvas`, a canvas React mounts and leaves to `battleView`, with figures read
+  off it at 10 Hz: pause, step, reset, fit, the scrub bar and the speed, a custom battle set up beside it, and
+  orders, doctrine and ships added from controls over it; old shared battle links open it. The Fleet and Ship
+  routes draw through `fleetCanvas` and `shipCanvas`, engines of the same kind, with their panels in React,
+  and hand designs and fleets to each other in the address. The Skirmish route fights its rounds on
+  `BattleCanvas`, while the skirmish, its history and the enemy's search live in a provider above the routes,
+  so the search goes on while the player is elsewhere. The Evolution route steps its run on the page's clock,
+  replays its matches on `BattleCanvas`, and kept the old page's settings. Nothing of the old pages is left.
   Repair, construction and salvage, one mechanism, is built in all six stages:
   damage shedding mass, pads mending landed fighters, robots mending their own hull, lost and built anew,
   lost modules rebuilt by robots and by pads, and robots taking wreckage apart into metal, with doctrine that

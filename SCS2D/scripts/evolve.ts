@@ -301,7 +301,7 @@ function parse(argv: readonly string[]): Options {
                 }
                 break;
             }
-            // Settings written by the evolution page, or by `--save-config`.
+            // Settings written by the Evolution route, or by `--save-config`.
             case "--config": {
                 const path = value();
                 configPath = path;

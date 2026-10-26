@@ -9,8 +9,8 @@ export interface Libraries {
 }
 
 /**
- * The saved ships and fleets, shared by every route and by the old pages, which
- * keep them under the same keys. A component using it re-renders on any save.
+ * The saved ships and fleets, shared by every route. A component using it
+ * re-renders on any save.
  */
 export function useLibrary(): Libraries {
     const storage = useStorage();

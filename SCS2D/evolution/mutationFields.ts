@@ -13,8 +13,8 @@ import {
 /**
  * The mutation settings a page offers, written once: what each is called and
  * what it means, its default, and how the numbers make a breeding's limits.
- * The evolution page draws its mutation cards from these, for each side, and
- * the skirmish page the same cards for the enemy's search.
+ * The Evolution route draws its mutation cards from these, for each side, and
+ * the Skirmish route the same cards for the enemy's search.
  */
 
 /** Which card a field is in: the build, the kinds a module may become, the fleet's changes, or the doctrine. */

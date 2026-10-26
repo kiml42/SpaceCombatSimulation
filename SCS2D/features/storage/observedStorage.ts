@@ -3,8 +3,7 @@ import type { KeyValueStore } from "~/editor/library";
 /**
  * Browser storage that says when it has changed, so React can re-render on a
  * save: from this page, through `setItem` and `removeItem`, or from another
- * tab, through the `storage` event, as when an old page saves a ship beside
- * the app under the dev server.
+ * tab, through the `storage` event.
  */
 export class ObservedStorage implements KeyValueStore {
     private readonly listeners = new Set<() => void>();

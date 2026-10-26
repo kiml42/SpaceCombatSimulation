@@ -1,10 +1,7 @@
-import { DEFAULT_MAP, MAP_KEYS, writeMap, type MapKey, type MapSettings } from "../sim/index.js";
+import { DEFAULT_MAP, MAP_KEYS, type MapKey } from "../sim/index.js";
 import type { SettingField } from "./settingsFields.js";
 
-/**
- * A battle's map settings as rows of the settings cards: what every page that
- * fights a battle shows, under a `[data-fields=map]` slot.
- */
+/** A battle's map settings as rows of the settings cards, in the group `map`. */
 
 const LABELS: Record<MapKey, { label: string; title: string; step: number; max?: number }> = {
     majors: { label: "majors", title: "Major asteroids: each a kernel carrying a well, on an orbit with the others", step: 1 },
@@ -62,42 +59,4 @@ export function rangedMapFields(prefix = "map", rangePrefix = "mapRange"): Setti
         });
     }
     return out;
-}
-
-/** What the map's inputs say, only what differs from none, or undefined for no asteroids. */
-export function readMapInputs(root: ParentNode, prefix = "map"): MapSettings | undefined {
-    const out: Partial<Record<MapKey, number>> = {};
-    for (const key of MAP_KEYS) {
-        const input = root.querySelector<HTMLInputElement>(`#${prefix}${key}`);
-        const value = input === null || input.value === "" ? NaN : Number(input.value);
-        out[key] = Number.isFinite(value) && value >= 0 ? value : DEFAULT_MAP[key];
-    }
-    return writeMap(out);
-}
-
-/** What a ranged map's ± boxes say: only those above zero. */
-export function readMapRanges(root: ParentNode, rangePrefix = "mapRange"): MapSettings {
-    const out: Partial<Record<MapKey, number>> = {};
-    for (const key of MAP_KEYS) {
-        const input = root.querySelector<HTMLInputElement>(`#${rangePrefix}${key}`);
-        const value = input === null ? 0 : Number(input.value);
-        if (Number.isFinite(value) && value > 0) out[key] = value;
-    }
-    return out;
-}
-
-/** Put a ranged map's ± in its boxes, zero where it says nothing. */
-export function fillMapRanges(root: ParentNode, spread: MapSettings, rangePrefix = "mapRange"): void {
-    for (const key of MAP_KEYS) {
-        const input = root.querySelector<HTMLInputElement>(`#${rangePrefix}${key}`);
-        if (input !== null) input.value = String(spread[key] ?? 0);
-    }
-}
-
-/** Put a map's settings in its inputs, its defaults where it says nothing. */
-export function fillMapInputs(root: ParentNode, settings: MapSettings | undefined, prefix = "map"): void {
-    for (const key of MAP_KEYS) {
-        const input = root.querySelector<HTMLInputElement>(`#${prefix}${key}`);
-        if (input !== null) input.value = String(settings?.[key] ?? DEFAULT_MAP[key]);
-    }
 }

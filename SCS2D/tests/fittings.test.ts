@@ -4,7 +4,7 @@ import { fittingsOf, generationSize, type GenerationRecord, type IndividualRecor
 import { BEAM_CARRIER, CORVETTE, DINKY } from "../scenarios/blueprints.js";
 import { LINE_OF_BATTLE } from "../scenarios/fleets.js";
 
-/** What the evolution page's size chart reads off a generation when asked for weapons and engines. */
+/** What the Evolution route's size chart reads off a generation when asked for weapons and engines. */
 
 function counted(name: keyof typeof LINE_OF_BATTLE.designs | string, blueprint = LINE_OF_BATTLE.designs[name]!): [number, number] {
     const tally = (design: ShipDesign): [number, number] =>

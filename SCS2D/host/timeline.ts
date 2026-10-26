@@ -6,7 +6,7 @@ import { drawCentred, formationSnapshot, kindSnapshot, pictureOf, type Picture }
 
 /**
  * The skirmish's timeline: every match, newest first, each side drawn as the
- * evolution page draws a combatant, the player's side stamped with how it
+ * Evolution route draws a combatant, the player's side stamped with how it
  * did. A run of matches the same side lost folds away to one line, but for
  * the run still being fought.
  */

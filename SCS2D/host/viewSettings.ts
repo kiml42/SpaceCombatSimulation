@@ -52,21 +52,7 @@ export function saveView(page: string, settings: ViewSettings): void {
     }
 }
 
-/**
- * A speed list showing the kept speed, if it is one of its own, and saving
- * whatever is picked. Returns the speed it shows.
- */
-export function keepSpeed(select: HTMLSelectElement, page: string, settings: ViewSettings): number {
-    const wanted = String(settings.speed);
-    if ([...select.options].some((option) => option.value === wanted)) select.value = wanted;
-    select.addEventListener("change", () => {
-        settings.speed = Number(select.value);
-        saveView(page, settings);
-    });
-    return Number(select.value);
-}
-
-/** Where a page's settings are kept, by the old pages and the app alike. */
+/** Where a page's settings are kept, under the name of the page that first kept them. */
 export function viewKey(page: string): string {
     return `scs2d.view.${page}`;
 }

@@ -10,7 +10,7 @@ import type { Browser } from "playwright";
 import { launchChromium } from "./launch.js";
 import { serialiseBlueprint } from "../../sim/index.js";
 import { DEFAULT_SETUP, serialiseBattleSetup } from "../../scenarios/customBattle.js";
-import { battleHref, shipFleet } from "../../editor/handoff.js";
+import { battleRoute, shipFleet } from "../../editor/handoff.js";
 import { CORVETTE } from "../../scenarios/blueprints.js";
 
 /**
@@ -58,7 +58,7 @@ it("renders from a file, with its styles, and links to every screen", async () =
 });
 
 it("opens an editor's fleet on the Battle route, from its link or an old one, paused", async () => {
-    const href = battleHref(shipFleet(CORVETTE));
+    const href = `index.html#${battleRoute(shipFleet(CORVETTE))}`;
     const old = `index.html${href.slice(href.indexOf("?fleet=")).replace("?", "#")}`;
     for (const link of [href, old]) {
         const page = await browser.newPage();
