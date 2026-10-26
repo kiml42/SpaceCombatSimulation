@@ -32,6 +32,8 @@ import { fleetBlueprint, hangarClashes } from "../sim/fleetHangar.js";
 export const SKIRMISH_FORMAT_VERSION = 1;
 
 export interface Skirmish {
+    /** What the player calls it, which its exported files are named for. */
+    name?: string;
     enemy: Fleet;
     player: Fleet;
     /** What the player's fleet may cost. */
@@ -153,8 +155,16 @@ export function billOfFleet(fleet: Fleet): Bill {
 }
 
 /** A skirmish against `enemy`, the player's budget what it cost unless given. */
-export function newSkirmish(enemy: Fleet, player: Fleet, seed: number, settings?: SkirmishSettings, budget?: Budget): Skirmish {
+export function newSkirmish(
+    enemy: Fleet,
+    player: Fleet,
+    seed: number,
+    settings?: SkirmishSettings,
+    budget?: Budget,
+    name?: string,
+): Skirmish {
     return {
+        ...(name === undefined || name.trim() === "" ? {} : { name: name.trim() }),
         enemy,
         player,
         budget: budget === undefined ? billOfFleet(enemy) : { ...budget },
@@ -305,6 +315,7 @@ export function nextRound(skirmish: Skirmish, enemy: Fleet): Skirmish {
 export function serialiseSkirmish(skirmish: Skirmish): Record<string, unknown> {
     return {
         formatVersion: SKIRMISH_FORMAT_VERSION,
+        ...(skirmish.name === undefined ? {} : { name: skirmish.name }),
         round: skirmish.round,
         tries: skirmish.tries,
         seed: skirmish.seed,
@@ -392,7 +403,10 @@ export function parseSkirmish(value: unknown): Skirmish {
     if (multiplier !== undefined && (typeof multiplier !== "number" || !(multiplier > 0) || !Number.isFinite(multiplier))) {
         fail("multiplier must be a number above zero");
     }
+    const name = file["name"];
+    if (name !== undefined && typeof name !== "string") fail("name must be text");
     return {
+        ...(typeof name === "string" && name.trim() !== "" ? { name: name.trim() } : {}),
         ...(wonSeed === undefined ? {} : { won: wonSeed }),
         ...(multiplier === undefined ? {} : { multiplier: multiplier as number }),
         round: whole("round", 1),
@@ -412,6 +426,12 @@ export function parseSkirmish(value: unknown): Skirmish {
             return fail(`settings: ${(error as Error).message}`);
         }
     }
+}
+
+/** What a skirmish's exported file is called: its name, or "skirmish", and the round it is on. */
+export function skirmishFileName(skirmish: Skirmish | null): string {
+    const name = (skirmish?.name ?? "skirmish").replace(/[^\w.-]+/g, "-").replace(/^-+|-+$/g, "") || "skirmish";
+    return `${skirmish === null ? name : `${name}-round-${skirmish.round}`}.skirmish.json`;
 }
 
 /** Where a page keeps the skirmish in progress, so it can be picked up again. */

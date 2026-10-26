@@ -105,7 +105,13 @@ export interface SetupScreenProps {
     /** What the enemy costs, exactly, behind boxes showing it rounded; null where it would not fly. */
     readonly enemyCost: Budget | null;
     readonly read: (value: string) => Fleet | null;
-    readonly onStart: (enemyValue: string, playerValue: string, settings: SkirmishSettings, budget: (cost: Budget) => Budget) => void;
+    readonly onStart: (
+        enemyValue: string,
+        playerValue: string,
+        settings: SkirmishSettings,
+        budget: (cost: Budget) => Budget,
+        name: string,
+    ) => void;
 }
 
 /** Choose an enemy, a budget, the settings and a fleet to start from, and start a skirmish. */
@@ -116,6 +122,7 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart }: SetupScreenPr
     const firstEnemy = `fleet:${fleets.list()[0]?.name ?? ""}`;
     const [enemy, setEnemy] = useState(firstEnemy);
     const [player, setPlayer] = useState(EMPTY);
+    const [name, setName] = useState("");
     // Each box's text, and what was put in it from the enemy's cost: a box still showing that follows the enemy.
     const [budget, setBudget] = useState<Record<keyof Budget, string>>({ metal: "", fuel: "", build: "" });
     const [followed, setFollowed] = useState<Record<keyof Budget, string>>({ metal: "", fuel: "", build: "" });
@@ -188,6 +195,16 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart }: SetupScreenPr
                         <h2>New skirmish</h2>
                     </summary>
                     <p>Pick an enemy and a budget, then build a fleet within it that beats it.</p>
+                    <Budget title="What the skirmish is called, which its exported files are named for">
+                        name
+                        <input
+                            id="skirmishNameNew"
+                            type="text"
+                            placeholder="skirmish"
+                            value={name}
+                            onChange={(event) => setName(event.target.value)}
+                        />
+                    </Budget>
                     <h2>Enemy</h2>
                     <FleetChoices
                         id="enemy"
@@ -254,7 +271,7 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart }: SetupScreenPr
                         empty
                     />
                     <Buttons>
-                        <Button id="start" variant="primary" onClick={() => onStart(enemy, player, readSettings(texts), readBudget)}>
+                        <Button id="start" variant="primary" onClick={() => onStart(enemy, player, readSettings(texts), readBudget, name)}>
                             Start
                         </Button>
                         <Button

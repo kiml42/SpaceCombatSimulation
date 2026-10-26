@@ -298,6 +298,13 @@ describe("the skirmish in a browser", () => {
         expect(file.history.rows.length).toBeGreaterThan(0);
         expect(Object.keys(file.setup).length).toBeGreaterThan(0);
 
+        // Named, it names its file.
+        await page.fill("#skirmishName", "Bare core test");
+        await page.press("#skirmishName", "Enter");
+        const savingNamed = page.waitForEvent("download");
+        await page.click("#exportSkirmish");
+        expect((await savingNamed).suggestedFilename()).toBe("Bare-core-test-round-1.skirmish.json");
+
         // And read back after giving the skirmish up, it is the same round with the same history.
         await page.click("#abandon");
         await page.waitForSelector("#round", { state: "hidden" });
