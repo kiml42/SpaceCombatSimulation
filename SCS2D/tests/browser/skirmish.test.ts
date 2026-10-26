@@ -199,13 +199,15 @@ describe("the skirmish in a browser", () => {
     it("opens a ship of the fleet in the ship editor, and takes it back renamed", async () => {
         await page.click("#editFleet");
         await page.waitForURL(/index\.html#\/fleet\?skirmish=/);
-        await page.waitForSelector("#stats");
+        // The fleet route's own box: the address changes before the route on it is drawn.
+        await page.waitForSelector("#fleetName");
         // The lone gunship stands at the fleet's origin, in the middle of the view.
         const box = (await page.locator("#view").boundingBox())!;
         await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
         expect(await page.textContent("#selectionTitle")).toBe("Ship: Gunship");
         await page.click("#editDesign");
         await page.waitForURL(/#\/ship\?design=/);
+        await page.waitForSelector("#shipName");
         expect(await page.isVisible("#backToFleet")).toBe(true);
         expect(await page.isVisible("#battleLink")).toBe(false);
         expect(await page.textContent("#inFleetTitle")).toBe("Skirmish — round 1");
@@ -213,7 +215,7 @@ describe("the skirmish in a browser", () => {
         await page.fill("#shipName", "Gunship Mk II");
         await page.click("#backToFleet");
         await page.waitForURL(/index\.html#\/fleet\?skirmish=/);
-        await page.waitForSelector("#stats");
+        await page.waitForSelector("#fleetName");
         await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
         expect(await page.textContent("#selectionTitle")).toBe("Ship: Gunship Mk II");
         expect(await page.isVisible("#skirmish")).toBe(true);
