@@ -29,8 +29,8 @@ pnpm build
 ```
 
 Then open `dist/index.html` in a browser: the React app, with the battle viewer, the ship and fleet
-editors and the skirmish. The evolution page, not yet moved into it, sits beside it. Each is one
-self-contained file, so there is no server to run and nothing external to fetch: double-clicking it works.
+editors, the skirmish and evolution. It is one self-contained file, so there is no server to run and nothing
+external to fetch: double-clicking it works.
 
 Space pauses, full stop single-steps, F re-fits the camera. Scroll to zoom, drag to pan.
 
@@ -40,9 +40,7 @@ Space pauses, full stop single-steps, F re-fits the camera. Scroll to zoom, drag
 pnpm dev
 ```
 
-Starts Vite's dev server and opens the React app, which reloads itself on save. The other pages are rebuilt on
-every save and served beside it; refresh one to see a change. Served from one address, they share storage —
-saved ships and fleets — which pages opened as files on Firefox do not.
+Starts Vite's dev server and opens the React app, which reloads itself on save.
 
 ```
 pnpm storybook
@@ -77,14 +75,14 @@ understanding it turns a regression into the new expected behaviour, permanently
 | `pnpm test` | Unit tests, determinism tests and the golden checksums. Runs from a cold checkout. |
 | `pnpm typecheck` | All four TS projects — `sim/` has no ambient types, `render/`, `editor/` and `host/` have the DOM, and the React app |
 | `pnpm lint` | ESLint and Stylelint over the React app |
-| `pnpm build` | Bundle each page to `dist/`, one file each |
-| `pnpm dev` | Vite's dev server, with the other pages rebuilt on save beside it; also keeps the stock fleets' designs in step with `scenarios/blueprints/` |
+| `pnpm build` | Bundle the app to `dist/index.html`, one file |
+| `pnpm dev` | Vite's dev server; also keeps the stock fleets' designs in step with `scenarios/blueprints/` |
 | `pnpm storybook` | The React app's components on their own |
 | `pnpm sync-fleets` | Copy each stock blueprint into the stock fleets that embed it |
 | `pnpm golden` | Re-derive the golden checksums after a *deliberate* change |
-| `pnpm evolve` | Fight a headless evolution run and write it to `runs/`, to open on the evolution page with Open run; its flags are in CLAUDE.md |
+| `pnpm evolve` | Fight a headless evolution run and write it to `runs/`, to open on the Evolution route with Open run; its flags are in CLAUDE.md |
 | `pnpm yardstick` | Measure a finished run against a ship that does not evolve |
-| `pnpm test:browser` | Drive the built pages, and every story, in Chromium — `pnpm exec playwright install chromium` once first |
+| `pnpm test:browser` | Drive the built app, and every story, in Chromium — `pnpm exec playwright install chromium` once first |
 
 ## One thing that will change
 

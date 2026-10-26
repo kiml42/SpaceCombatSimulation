@@ -201,9 +201,8 @@ jobs:
       # matched the source it claims to come from — so it goes stale silently
       # and someone eventually demonstrates a build from last month.
       #
-      # Both pages come out of this one command and the whole of `dist` is
-      # uploaded, so a new page needs nothing here beyond an entry in
-      # `scripts/build.ts`.
+      # The app comes out of this one command as `dist/index.html`, and the
+      # whole of `dist` is uploaded.
       - run: pnpm build
 
       - uses: actions/configure-pages@v6

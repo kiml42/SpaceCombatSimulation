@@ -19,7 +19,7 @@
     "golden": "tsx scripts/golden.ts",
     "evolve": "tsx scripts/evolve.ts",
     "yardstick": "tsx scripts/yardstick.ts",
-    "build": "tsx scripts/build.ts && vite build",
+    "build": "vite build",
     "dev": "tsx scripts/dev.ts",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",

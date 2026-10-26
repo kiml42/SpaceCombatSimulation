@@ -44,7 +44,8 @@ export function Shell() {
                 </NavLink>
                 <nav aria-label="Main">
                     <NavLink to="/battle">Battle</NavLink> <NavLink to="/fleet">Fleet</NavLink> <NavLink to="/ship">Ship</NavLink>{" "}
-                    <NavLink to="/skirmish">Skirmish</NavLink> <NavLink to="/library">Library</NavLink>
+                    <NavLink to="/skirmish">Skirmish</NavLink> <NavLink to="/evolution">Evolution</NavLink>{" "}
+                    <NavLink to="/library">Library</NavLink>
                 </nav>
             </Header>
             <Outlet />

@@ -6,8 +6,15 @@ export interface PageLink {
     readonly purpose: string;
 }
 
-/** The pages bundled by `scripts/build.ts`, each until its route here replaces it. */
-export const OLD_PAGES: readonly PageLink[] = [{ href: "evolution.html", name: "Evolution", purpose: "Breed ships and fleets" }];
+/** Every screen, by its hash route. */
+export const SCREENS: readonly PageLink[] = [
+    { href: "#/battle", name: "Battle", purpose: "Fight a battle, or set one up" },
+    { href: "#/fleet", name: "Fleet", purpose: "Lay a fleet out" },
+    { href: "#/ship", name: "Ship", purpose: "Design a ship" },
+    { href: "#/skirmish", name: "Skirmish", purpose: "Build a fleet to beat an enemy that answers back" },
+    { href: "#/evolution", name: "Evolution", purpose: "Breed ships and fleets" },
+    { href: "#/library", name: "Library", purpose: "The ships and fleets you have saved" },
+];
 
 const Main = styled.main`
     max-width: 40rem;
@@ -34,7 +41,7 @@ const Purpose = styled.span`
     color: var(--colour-muted);
 `;
 
-export function Home({ pages = OLD_PAGES }: { readonly pages?: readonly PageLink[] }) {
+export function Home({ pages = SCREENS }: { readonly pages?: readonly PageLink[] }) {
     return (
         <Main>
             <Title>Space Combat Simulation</Title>

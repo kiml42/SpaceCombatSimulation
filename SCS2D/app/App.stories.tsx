@@ -31,9 +31,10 @@ type Story = StoryObj<typeof meta>;
 export const Start: Story = {
     args: { path: "/" },
     play: async ({ canvas }) => {
-        await userEvent.click(canvas.getByRole("link", { name: "Library" }));
+        const nav = canvas.getByRole("navigation", { name: "Main" });
+        await userEvent.click(within(nav).getByRole("link", { name: "Library" }));
         await expect(await canvas.findByRole("heading", { name: "Ships" })).toBeVisible();
-        await expect(canvas.getByRole("link", { name: "Library" })).toHaveClass("active");
+        await expect(within(nav).getByRole("link", { name: "Library" })).toHaveClass("active");
     },
 };
 
@@ -119,5 +120,16 @@ export const Skirmish: Story = {
         await userEvent.selectOptions(canvas.getByRole("combobox", { name: "Your fleet" }), "ship:Gunship");
         await userEvent.click(canvas.getByRole("button", { name: "Start" }));
         await expect(canvas.getByRole("heading", { name: "Round 1" })).toBeVisible();
+    },
+};
+
+export const Evolution: Story = {
+    args: { path: "/evolution" },
+    play: async ({ canvas }) => {
+        await expect(canvas.getByRole("listbox", { name: /ships and fleets the run starts from/ })).toBeVisible();
+        await userEvent.click(canvas.getByRole("button", { name: "Start" }));
+        await expect(canvas.getByRole("button", { name: "Run" })).toHaveAttribute("aria-pressed", "true");
+        await waitFor(() => expect(canvas.getByText("running")).toBeVisible());
+        await userEvent.click(canvas.getByRole("button", { name: "Stop" }));
     },
 };

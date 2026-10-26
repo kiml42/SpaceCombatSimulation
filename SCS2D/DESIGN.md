@@ -1108,9 +1108,9 @@ inside any one file is not contiguous.
   one each, and a mutation does not turn either, since neither has a facing that matters.
 - **Next:** §8 steps 16–18 in order — the React UI, then the WebGL viewer, then the campaign (ROADMAP.md §8
   has why). Every step before them is built. Step 16's first two stages are: the React app (`app/`) builds with
-  Vite to `dist/index.html`, one file that opens from disk, beside the one page it will replace; Linaria,
+  Vite to `dist/index.html`, one file that opens from disk; Linaria,
   Storybook with a story and accessibility check per component, ESLint with the import boundaries, and Vite's
-  dev server, which serves the old pages beside it so they share storage. Its routes go by the hash (`#/library`)
+  dev server. Its routes go by the hash (`#/library`)
   inside a shell that links them, and read one shared library and view settings (`features/storage/`) under
   the keys the old pages use, re-rendering on any save, another tab's included. Stage 3, the battle viewer,
   is built, and the old viewer page is gone: the Battle route runs any scene on the wall clock, with pause, step, reset, fit, the scrub bar and
@@ -1127,6 +1127,10 @@ inside any one file is not contiguous.
   Stage 6, the skirmish, is built, and its old page is gone: the Skirmish route fights its rounds on
   `BattleCanvas` with the order controls, now in `features/`, while the skirmish, its history and the
   enemy's search live in a provider above the routes, so the search goes on while the player is elsewhere.
+  Stage 7, evolution, is built, and with its old page went the last of the old build: the Evolution route
+  steps its run on the page's clock as before, replays matches on `BattleCanvas`, and keeps the old page's
+  settings, under the same ids and storage key; `pnpm build` is Vite alone. Stage 8, clearing out what only
+  the old pages used, is left.
   Repair, construction and salvage, one mechanism, is built in all six stages:
   damage shedding mass, pads mending landed fighters, robots mending their own hull, lost and built anew,
   lost modules rebuilt by robots and by pads, and robots taking wreckage apart into metal, with doctrine that

@@ -61,15 +61,14 @@ editor/     the blueprint and fleet editors' models and canvases; only shipCanva
             overlay.ts, fleetCanvas.ts and fleetOverlay.ts touch the DOM, so the edit
             models, the stats and the library are unit-tested
 app/        the React app, one page with a hash route per screen under
-            app/routes/ (ROADMAP.md §8 step 16): the pages below move
-            into it one at a time
+            app/routes/ (ROADMAP.md §8 step 16)
 features/   React components and hooks more than one route uses
 ui/         presentational React components, plain props only, and the
             design tokens (ui/tokens/); React holds UI state only
             (non-negotiable 5)
-host/       window lifecycle, the wall clock, and the controls — one entry
-            point and one page shell per page not yet in app/; the evolution page lives here
-            too, since driving a run is a clock and a set of controls
+host/       the DOM engines the routes mount and leave alone — the battle view
+            on the wall clock, the timeline, the fleet pictures — and the
+            answer worker
 scenarios/  the battles, and the blueprints they fly, under blueprints/
             (battle.ts holds the assembly and the step order they share)
 evolution/  breeding and running a generation; imports sim/, never the host,
@@ -101,18 +100,16 @@ Keep these working — they are the cold-start re-entry path:
   `--population`, `--group`, `--matches`, `--budget`, `--duration`, `--radius`, `--closing`, `--crossing` (each with a `-spread` either side, drawn per match), `--quiet-limit` (seconds every side must go without fighting or closing in before a match ends; 30 unless set), `--map` (asteroids each match is fought among, drawn from its seed, as `majors=2,minors=8,fuel=0.3`), `--seed`, `--kinds`, `--doctrine`, `--build`, `--structural`, `--geometry`, `--thrusters`,
   `--versus <stock ships or blueprint files>` and `--versus-fleet` for co-evolution, with `--hall`, `--phase-win`,
   `--phase-cap`, `--shielded-drills`, `--bare-core-drills`, `--versus-group` (side B's entrants a match, where not `--group`) and `--versus-fixed` (side B does not evolve),
-  `--out` (beside the `--config` file if there is one, `x.evo.json` → `x.run.json`, else `runs/run.json`), and `--config` / `--save-config` for the settings file the evolution page reads and writes, which carries its founders whole
+  `--out` (beside the `--config` file if there is one, `x.evo.json` → `x.run.json`, else `runs/run.json`), and `--config` / `--save-config` for the settings file the Evolution route reads and writes, which carries its founders whole
 - `pnpm yardstick` — measure a finished run against a ship that does not evolve; `--run`, and
   `--against latest | founder | <stock ship> | <blueprint or fleet file>`; a co-evolution run is measured as
   a grid of each side's round champions against the other's, `--samples` a side and `--seeds` matches a cell
-- `pnpm build` — bundle the React app to `dist/index.html`, and the evolution page, not yet in it, to
-  `dist/evolution.html`, one file each with nothing external
-- `pnpm dev` — Vite's dev server for the React app, with the other pages rebuilt on every save and served
-  beside it, so they share its storage; refresh an old page to see a change. Also runs `sync-fleets` on start
+- `pnpm build` — bundle the React app to `dist/index.html`, one file with nothing external
+- `pnpm dev` — Vite's dev server for the React app. Also runs `sync-fleets` on start
   and whenever a blueprint is saved
 - `pnpm storybook` — every component's stories, at `localhost:6006`; `pnpm build-storybook` builds it
 - `pnpm sync-fleets` — copy each stock blueprint into the stock fleets that embed a design of the same name
-- `pnpm test:browser` — drive those bundles in Chromium, and run every story there with its `play`
+- `pnpm test:browser` — drive that bundle in Chromium, and run every story there with its `play`
   function and an accessibility check; needs `pnpm exec playwright install chromium` first
 
 ## Testing

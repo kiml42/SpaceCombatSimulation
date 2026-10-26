@@ -1,18 +1,18 @@
 import { spawn } from "node:child_process";
+import { watch } from "node:fs";
+import { BLUEPRINT_DIR, syncFleetsAndLog } from "./syncFleets.js";
 
 /**
- * Both builds on every save: the pages `build.ts` bundles, and the React app
- * from Vite's dev server, which serves those pages beside it. Served from one
- * origin, they share storage, as the files opened from disk do not on Firefox.
+ * Vite's dev server for the app, with the stock fleets kept in step with the
+ * blueprints they embed: synced on start, and again whenever a blueprint is
+ * saved. Editors fire several events a save, hence the debounce.
  */
-const children = [
-    spawn("tsx", ["scripts/build.ts", "--watch"], { stdio: "inherit", shell: true }),
-    spawn("vite", [], { stdio: "inherit", shell: true }),
-];
+await syncFleetsAndLog();
+let syncTimer: ReturnType<typeof setTimeout> | undefined;
+watch(BLUEPRINT_DIR, () => {
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(() => void syncFleetsAndLog(), 100);
+});
 
-for (const child of children) {
-    child.on("exit", (code) => {
-        for (const other of children) other.kill();
-        process.exitCode = code ?? 1;
-    });
-}
+const vite = spawn("vite", [], { stdio: "inherit", shell: true });
+vite.on("exit", (code) => process.exit(code ?? 1));

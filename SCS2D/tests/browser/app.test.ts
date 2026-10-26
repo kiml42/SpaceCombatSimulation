@@ -39,7 +39,7 @@ afterAll(async () => {
     await browser?.close();
 });
 
-it("renders from a file, with its styles, and links to the old pages", async () => {
+it("renders from a file, with its styles, and links to every screen", async () => {
     const page = await browser.newPage();
     const problems: string[] = [];
     page.on("pageerror", (error) => problems.push(error.message));
@@ -53,7 +53,7 @@ it("renders from a file, with its styles, and links to the old pages", async () 
     // Styled by the tokens and by Linaria, so neither was dropped from the one file.
     expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe("rgb(11, 15, 22)");
     expect(await heading.evaluate((element) => getComputedStyle(element).fontWeight)).toBe("600");
-    expect(await page.getByRole("link", { name: "Evolution" }).getAttribute("href")).toBe("evolution.html");
+    expect(await page.getByRole("main").getByRole("link", { name: "Evolution" }).getAttribute("href")).toBe("#/evolution");
     expect(problems).toEqual([]);
 });
 
@@ -83,7 +83,7 @@ it("routes by the hash from a file, and lists what browser storage holds", async
     const probe = JSON.stringify(serialiseBlueprint({ ...CORVETTE, name: "Probe" }));
     await page.evaluate((text) => localStorage.setItem("scs2d.blueprint.Probe", text), probe);
 
-    await page.getByRole("link", { name: "Library" }).click();
+    await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Library" }).click();
     expect(new URL(page.url()).hash).toBe("#/library");
     const ships = page.getByRole("region", { name: "Ships" });
     await expect.poll(() => ships.textContent()).toContain("Probesaved");
@@ -138,7 +138,7 @@ it("runs a battle on its route, and lets go of it on leaving", async () => {
     await page.getByRole("combobox", { name: "speed" }).selectOption("4");
     expect(JSON.parse((await page.evaluate(() => localStorage.getItem("scs2d.view.viewer")))!)).toMatchObject({ speed: 4 });
 
-    await page.getByRole("link", { name: "Library" }).click();
+    await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Library" }).click();
     await page.getByRole("region", { name: "Ships" }).waitFor();
     const before = (await page.evaluate(() => Reflect.get(window, "framesAsked"))) as number;
     await page.waitForTimeout(400);
