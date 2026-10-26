@@ -2,6 +2,7 @@ import { styled } from "@linaria/react";
 import { kg } from "~/editor/budget";
 import type { FleetView } from "~/editor/fleetDocument";
 import { buildTime } from "~/editor/stats";
+import { Button } from "~/ui/buttons/Button";
 
 const Table = styled.table`
     width: 100%;
@@ -157,9 +158,9 @@ export function FleetProblems({ view, onUpdate }: { readonly view: FleetView; re
             {view.problems.length > 0 &&
                 view.stale.map((name) => (
                     <p key={name}>
-                        <button data-refresh={name} title="Replace this fleet's copy with the library's" onClick={() => onUpdate(name)}>
+                        <Button data-refresh={name} title="Replace this fleet's copy with the library's" onClick={() => onUpdate(name)}>
                             {`Update ${name}`}
-                        </button>
+                        </Button>
                     </p>
                 ))}
         </div>

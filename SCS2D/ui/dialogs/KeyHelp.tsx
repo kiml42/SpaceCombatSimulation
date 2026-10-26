@@ -1,5 +1,6 @@
 import { styled } from "@linaria/react";
 import { useEffect, useRef } from "react";
+import { Button } from "~/ui/buttons/Button";
 
 const Dialog = styled.dialog`
     max-width: min(42rem, 92vw);
@@ -44,7 +45,7 @@ const Dialog = styled.dialog`
     }
 `;
 
-const Close = styled.button`
+const Close = styled(Button)`
     float: right;
 `;
 
@@ -79,9 +80,9 @@ export function KeyHelp({ rows, notes = [] }: KeyHelpProps) {
 
     return (
         <>
-            <button title="What each key and mouse action does (?)" onClick={() => dialog.current?.showModal()}>
+            <Button title="What each key and mouse action does (?)" onClick={() => dialog.current?.showModal()}>
                 Keys
-            </button>
+            </Button>
             <Dialog
                 ref={dialog}
                 aria-label="Keys and mouse"

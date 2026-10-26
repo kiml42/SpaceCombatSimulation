@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import type { RosterLine } from "~/editor/fleetDocument";
 import type { LibraryEntry } from "~/editor/library";
 import { CARRIED, optionValue } from "./fleetOptions";
+import { Button } from "~/ui/buttons/Button";
 
 const Adding = styled.div`
     position: relative;
@@ -83,7 +84,7 @@ export function AddShipMenu({ open, onOpen, roster, library, onAdd, onAddFile }:
             <>
                 <h3>{title}</h3>
                 {items.map(([value, label]) => (
-                    <button
+                    <Button
                         key={value}
                         role="menuitem"
                         onClick={() => {
@@ -92,7 +93,7 @@ export function AddShipMenu({ open, onOpen, roster, library, onAdd, onAddFile }:
                         }}
                     >
                         {label}
-                    </button>
+                    </Button>
                 ))}
             </>
         );
@@ -100,7 +101,7 @@ export function AddShipMenu({ open, onOpen, roster, library, onAdd, onAddFile }:
     return (
         <Adding id="adding">
             <Pair>
-                <button
+                <Button
                     id="addShip"
                     aria-haspopup="menu"
                     aria-expanded={open}
@@ -108,10 +109,10 @@ export function AddShipMenu({ open, onOpen, roster, library, onAdd, onAddFile }:
                     onClick={() => onOpen(!open)}
                 >
                     Add ship ▾
-                </button>
-                <button id="addFromFile" title="Add a ship from a blueprint file" onClick={() => file.current?.click()}>
+                </Button>
+                <Button id="addFromFile" title="Add a ship from a blueprint file" onClick={() => file.current?.click()}>
                     Add from file…
-                </button>
+                </Button>
             </Pair>
             {open && (
                 <Menu ref={menu} id="addMenu" role="menu" aria-label="Add ship">

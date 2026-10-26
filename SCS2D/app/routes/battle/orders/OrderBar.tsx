@@ -7,6 +7,7 @@ import { viewOf } from "~/render/picking";
 import type { Snapshot } from "~/sim/index";
 import { OrderCancelCondition } from "~/sim/ships";
 import type { OrderState } from "./orderState";
+import { Button, ToggleButton } from "~/ui/buttons/Button";
 
 // Over the battle rather than beside it, so picking a ship out never resizes the view under the pointer.
 const Bar = styled.div`
@@ -21,11 +22,6 @@ const Bar = styled.div`
     padding: 0.4rem 0.9rem;
     border-top: 1px solid var(--colour-border);
     background: #0b0f16d9;
-
-    button[aria-pressed="true"] {
-        border-color: var(--colour-link);
-        background: var(--colour-surface-hover);
-    }
 
     select {
         max-width: 12rem;
@@ -54,10 +50,6 @@ const Queue = styled.ol`
     margin: 0;
     padding: 0;
     list-style-position: inside;
-
-    button {
-        padding: 0 0.3rem;
-    }
 `;
 
 const VERBS: readonly { readonly verb: Verb; readonly label: string; readonly title: string }[] = [
@@ -124,9 +116,13 @@ export function OrderBar({ view, state, shown, doctrineOpen, onDoctrine }: Order
         <Bar id="orderBar" role="toolbar" aria-label="Orders">
             {VERBS.map(({ verb, label, title }) => (
                 <span key={verb}>
-                    <button title={title} aria-pressed={armed === verb} onClick={() => view.arm(armed === verb ? null : verb, finish)}>
+                    <ToggleButton
+                        title={title}
+                        pressed={armed === verb}
+                        onPressedChange={(pressed) => view.arm(pressed ? verb : null, finish)}
+                    >
                         {label}
-                    </button>
+                    </ToggleButton>
                     {verb === "attack" && (
                         <>
                             {" "}
@@ -181,45 +177,46 @@ export function OrderBar({ view, state, shown, doctrineOpen, onDoctrine }: Order
                 />
                 m/s
             </label>
-            <button
+            <Button
                 id="stop"
                 title="Clear their orders, back to doctrine (S)"
                 onClick={() => state.picked.length > 0 && view.issue({ kind: "stop", ships: [...state.picked] })}
             >
                 Stop
-            </button>
-            <button
+            </Button>
+            <ToggleButton
                 id="doctrine"
                 title="How they fight, over what their blueprints say (P)"
-                aria-pressed={doctrineOpen}
-                onClick={onDoctrine}
+                pressed={doctrineOpen}
+                onPressedChange={onDoctrine}
             >
                 Doctrine
-            </button>
+            </ToggleButton>
             {/* Put back to what they are whenever the picking changes. */}
             <RemodelPicker key={JSON.stringify([state.picked, state.designs, state.crewed])} view={view} state={state} shown={shown} />
             {armed !== null && <Warn>{`click a ship to ${armed} · Ctrl to queue · Esc${optional ? " · or" : ""}`}</Warn>}
             {optional && (
-                <button
+                <Button
                     id="nearest"
                     title="Without a target: wherever its doctrine would choose (Enter); Ctrl to queue"
                     onClick={(event) => view.nearest(event.ctrlKey || event.metaKey || event.shiftKey)}
                 >
                     Nearest (Enter)
-                </button>
+                </Button>
             )}
             {state.queue !== null && state.queue.orders.length > 0 && (
                 <Queue id="queue" aria-label="Its orders">
                     {state.queue.orders.map((text, index) => (
                         <li key={`${index}:${text}`}>
                             {text}{" "}
-                            <button
+                            <Button
+                                variant="icon"
                                 title="Take this order back"
                                 aria-label={`Take back ${text}`}
                                 onClick={() => view.issue({ kind: "drop", ship: state.queue!.ship, index })}
                             >
                                 ✕
-                            </button>
+                            </Button>
                         </li>
                     ))}
                 </Queue>
@@ -272,7 +269,7 @@ function RemodelPicker({
                 ))}
             </select>
             {state.crewed && (
-                <button
+                <Button
                     id="remodel"
                     title="Refit them to the design chosen"
                     disabled={fit === undefined}
@@ -281,7 +278,7 @@ function RemodelPicker({
                     }
                 >
                     Remodel
-                </button>
+                </Button>
             )}
             {fit !== undefined && !fit.bay && (
                 <Warn>⚠ It has no robot bay: the old bays stay until the end, so the remodel can never be finished.</Warn>

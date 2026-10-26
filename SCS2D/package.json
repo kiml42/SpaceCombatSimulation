@@ -26,6 +26,7 @@
     "sync-fleets": "tsx scripts/syncFleets.ts"
   },
   "dependencies": {
+    "@base-ui/react": "1.9.0",
     "@linaria/core": "^8.2.0",
     "@linaria/react": "^8.2.0",
     "react": "^19.3.1",

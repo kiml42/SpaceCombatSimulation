@@ -18,6 +18,9 @@
     --colour-warning: #e9c05f;
     --colour-ok: #7fd6a0;
     --colour-danger: #e8796b;
+    --colour-primary: #2f5f9e;
+    --colour-primary-hover: #3a70b6;
+    --colour-primary-border: #4f7cc0;
 
     /**
      * @tokens Font
@@ -61,6 +64,7 @@ textarea {
     font: inherit;
 }
 
+/* Buttons here are those a canvas engine draws for itself; React's are ui/buttons/Button. */
 button,
 select {
     padding: 0.25rem 0.7rem;

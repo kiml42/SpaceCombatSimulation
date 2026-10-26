@@ -85,6 +85,9 @@ an entry is either still open or it is gone.
       its field when left or on Enter, re-keyed by its value so it shows what the ships go by after.
     - **A setting is a `NumberField`** (`ui/fields/`), with its ± where it has one, holding its box's text as
       typed; the page turns the text into numbers, defaults for what does not read, as `customSetup.ts` does.
+    - **A button is `ui/buttons/Button`**, or `ToggleButton` for one that stays pressed, both Base UI's
+      underneath: `variant` says whether it is plain, the one thing to do next (`primary`) or a small one
+      holding a symbol (`icon`). Never a bare `<button>` in React.
     - **An editor's canvas is an engine of its own** (`editor/fleetCanvas.ts`), as `battleView` is: the
       pointer, the keys and the drawing, over a document it shares with the page. The route holds the
       document, which is changed in place with its undo, and re-renders the panel by a counter the engine

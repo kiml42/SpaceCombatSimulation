@@ -23,6 +23,7 @@ import { DOCTRINE_KEY, DoctrinePanel } from "./orders/DoctrinePanel";
 import { OrderBar } from "./orders/OrderBar";
 import { useOrderState } from "./orders/orderState";
 import { Scrub } from "./Scrub";
+import { Button } from "~/ui/buttons/Button";
 
 /** The old viewer's own, so a speed kept there is kept here. */
 const PAGE = "viewer";
@@ -184,15 +185,15 @@ export function BattlePage() {
     return (
         <Main>
             <Controls>
-                <button id="play" onClick={() => view?.setRunning(!running)}>
+                <Button id="play" onClick={() => view?.setRunning(!running)}>
                     {running ? "Pause" : "Play"}
-                </button>
-                <button id="step" onClick={() => view?.step()}>
+                </Button>
+                <Button id="step" onClick={() => view?.step()}>
                     Step
-                </button>
-                <button id="reset" onClick={() => show(view, scene, scene !== CUSTOM && running)}>
+                </Button>
+                <Button id="reset" onClick={() => show(view, scene, scene !== CUSTOM && running)}>
                     Reset
-                </button>
+                </Button>
                 <select
                     id="scene"
                     aria-label="Scenario"
@@ -211,12 +212,12 @@ export function BattlePage() {
                     ))}
                     <option value={CUSTOM}>Custom battle</option>
                 </select>
-                <button id="customBattle" title="Set up a battle between fleets" onClick={openCustom}>
+                <Button id="customBattle" title="Set up a battle between fleets" onClick={openCustom}>
                     Custom
-                </button>
-                <button id="fit" onClick={() => view?.fit()}>
+                </Button>
+                <Button id="fit" onClick={() => view?.fit()}>
                     Fit
-                </button>
+                </Button>
                 <AddShip view={view} />
                 <Scrub view={view} />
                 <label>

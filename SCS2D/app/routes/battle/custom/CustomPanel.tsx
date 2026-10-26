@@ -9,6 +9,7 @@ import { NumberField } from "~/ui/fields/NumberField";
 import { fieldsOf, setupOf, slotsOf, type SetupFields, type Slot } from "./customSetup";
 import { FleetSlots } from "./FleetSlots";
 import { Sides } from "./Sides";
+import { Button } from "~/ui/buttons/Button";
 
 const Panel = styled.aside`
     width: 22rem;
@@ -176,23 +177,24 @@ export function CustomPanel({ slots, fields, onChange, onFight, current, orders 
             })}
 
             <Buttons>
-                <button
+                <Button
                     id="fight"
+                    variant="primary"
                     disabled={slots.length < 1}
                     title={slots.length < 1 ? "Choose a fleet first" : "Start the battle"}
                     onClick={onFight}
                 >
                     Fight
-                </button>
-                <button id="exportBattle" title="Save this setup as a battle file" onClick={exportSetup}>
+                </Button>
+                <Button id="exportBattle" title="Save this setup as a battle file" onClick={exportSetup}>
                     Export
-                </button>
-                <button id="importBattle" title="Load a battle file" onClick={() => battleFile.current?.click()}>
+                </Button>
+                <Button id="importBattle" title="Load a battle file" onClick={() => battleFile.current?.click()}>
                     Import
-                </button>
-                <button id="linkBattle" title="Copy a link that opens this battle, seed and all" onClick={() => void copyLink()}>
+                </Button>
+                <Button id="linkBattle" title="Copy a link that opens this battle, seed and all" onClick={() => void copyLink()}>
                     {linked ? "Copied" : "Link"}
-                </button>
+                </Button>
             </Buttons>
             <input
                 ref={battleFile}
