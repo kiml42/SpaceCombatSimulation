@@ -13,7 +13,6 @@ import {
     firesShells,
     DEFAULT_NOZZLE_WIDTHS,
     degreesToRadians,
-    isInstance,
     isHullMount,
     isWeaponMount,
     readsThick,
@@ -47,20 +46,17 @@ import {
     radiansToDegrees,
     refitModule,
     samePlacement,
-    Snapshot,
     withFleetFighters,
     type AssemblyInstance,
     type Blueprint,
     type ModuleKind,
-    type ModuleOrigin,
     type ModulePath,
     type ModuleSpec,
     type ShipDesign,
     type Placement,
     type ShipModuleKind,
 } from "../sim/index.js";
-import { ARC_LABELS, ARCS_KEY, draw, nextArcs, type Arcs } from "../render/canvas2d.js";
-import { easeScale, fitScale, frame, snapStep, type Camera } from "../render/camera.js";
+import { ARC_LABELS } from "../render/canvas2d.js";
 import { EditorDocument } from "./document.js";
 import {
     addModule,
@@ -74,21 +70,14 @@ import {
     countInstances,
     createAssembly,
     createAssemblyProblem,
-    instanceHandle,
-    instancePose,
-    type InstancePose,
     instanceOf,
-    moduleAt,
     reshapePlacement,
-    resizePlacement,
     renameAssembly,
     renameProblem,
     setMirror,
     setRepetition,
     extentAlong,
-    movePlacement,
     toPlacementAngle,
-    positionHandle,
     removeCopy,
     removeInstance,
     snap,
@@ -103,34 +92,7 @@ import { battleHref, designHref, fleetHref, handedDesign, shipFleet, type Design
 import { replaceDesign, replacedName } from "./fleetEdit.js";
 import { budgetRows } from "./budget.js";
 import { billOfFleet, canFight, fleetFault, overLimit } from "../scenarios/skirmish.js";
-import { Demonstration } from "./demonstrate.js";
-import { drawOverlay, envelopeBearingAt, overEnvelope } from "./overlay.js";
-import {
-    assemblyKnob,
-    facingTo,
-    nozzleTo,
-    barrelCalibresTo,
-    handleAt,
-    handlesFor,
-    resizedTo,
-    vertexTo,
-    seamBetween,
-    seamTo,
-    type Handle,
-    type Seam,
-} from "./handles.js";
-import {
-    alignment,
-    cornersOf,
-    drawnAngles,
-    landing,
-    landOrGrid,
-    offsetBy,
-    snapField,
-    SNAP_WITHIN_PIXELS,
-    tidyMetres,
-    type SnapField,
-} from "./snapping.js";
+import { ANGLE_SNAP_DEGREES, selectedPosition, shipCanvas } from "./shipCanvas.js";
 import {
     kindName,
     mountDefault,
@@ -147,19 +109,8 @@ import {
     type DoctrineSection,
     type DoctrineValues,
 } from "./doctrine.js";
-import { attackBearings, doctrineBand, landOnSelf, lightSelfBurning, previewSnapshot } from "./preview.js";
-import {
-    buildTime,
-    designStats,
-    envelopes,
-    assemblyMass,
-    holdingThrottles,
-    moduleReadout,
-    roundsAboard,
-    megawatts,
-    megajoules,
-    type Envelopes,
-} from "./stats.js";
+import { attackBearings, doctrineBand } from "./preview.js";
+import { buildTime, designStats, assemblyMass, moduleReadout, roundsAboard, megawatts, megajoules } from "./stats.js";
 
 /**
  * The blueprint editor's page: the canvas, the panels and the pointer.
@@ -187,17 +138,6 @@ const CRAFT_ANGLES: readonly { degrees: number; label: string }[] = [
     { degrees: -90, label: "side first, bow turned −90°" },
     { degrees: 180, label: "stern first" },
 ];
-
-/** How much of the way a refit to another ship closes on its scale each frame. */
-const FIT_EASE = 0.15;
-
-/**
- * Rotation snap, degrees.
- *
- * Fixed where the position grid is not, because a right angle is a right angle
- * on any size of ship: an angle has no scale for the zoom to tell us about.
- */
-const ANGLE_SNAP_DEGREES = 15;
 
 /** What a freshly added module of each kind starts as, metres. */
 const DEFAULTS: Record<ShipModuleKind, Omit<ModuleSpec, "x" | "y">> = {
@@ -287,8 +227,6 @@ function barrelReadout(spec: ModuleSpec): string {
 
 export function startEditor(): void {
     const canvas = el<HTMLCanvasElement>("view");
-    const ctx = canvas.getContext("2d");
-    if (ctx === null) throw new Error("no 2d context");
 
     const library = new Library(window.localStorage);
     /**
@@ -321,49 +259,21 @@ export function startEditor(): void {
             read("Corvette") ??
             emptyBlueprint("New ship"),
     );
-    const camera: Camera = { x: 0, y: 0, scale: 8 };
-    /**
-     * The grid an edit snaps to, metres: a tenth of the grid on screen, so it
-     * always suits the ship being looked at rather than the ship the constant
-     * was picked for. Alt passes 0 instead, which is no snapping at all.
-     */
-    const snapMetres = (): number => snapStep(camera.scale);
-    /**
-     * How far from a corner, an edge or a drawn angle a drag lands on it, in
-     * metres: a fixed distance on screen, so it is a reach of the hand rather
-     * than a distance on the ship, whatever the zoom. Alt passes 0, which is no
-     * snapping at all.
-     */
-    const snapWithin = (event: { altKey: boolean }): number => (event.altKey ? 0 : SNAP_WITHIN_PIXELS / camera.scale);
-    /**
-     * What the drag may land on: everything the selection is not carrying.
-     *
-     * Rebuilt per move rather than held for the drag, since an edit mid-drag —
-     * a resize pushing its neighbours along — moves the targets as it goes.
-     */
-    const fieldNow = (): SnapField => snapField(doc.view.modules, (i) => doc.covers(i));
-    /** The angles the rest of the design is drawn at, which a facing may land on. */
-    const anglesNow = (): number[] => drawnAngles(doc.view.modules, (i) => doc.covers(i));
-    const snapshot = new Snapshot();
-    const demonstration = new Demonstration();
-    let fitPending = true;
-    // The editor is where a mount's arcs are being decided, so it shows them all.
-    let arcs: Arcs = "trigger";
-    let showRefit = true;
+    const shipView = shipCanvas(canvas, doc, {
+        changed: () => refreshPanels(),
+        gestureEnded: () => {
+            gesture = false;
+        },
+        deleteSelected: () => deleteSelected(),
+        zoomed: () => matchBoxesToGrid(),
+        viewChanged: () => {
+            arcsButton.textContent = ARC_LABELS[shipView.arcs];
+        },
+    });
+    const camera = shipView.camera;
+    const snapMetres = (): number => shipView.snapMetres();
     const refitButton = el<HTMLButtonElement>("showRefit");
     const arcsButton = el<HTMLButtonElement>("cycleArcs");
-    /**
-     * Refit to a different ship by easing the scale from the one before, so
-     * switching between two ships shows which is bigger. The first fit, and F,
-     * snap.
-     */
-    let easeFit = false;
-    /** Wall time of the last animated frame, or 0 when nothing is animating. */
-    let lastFrame = 0;
-    let frameRequested = false;
-    // Measured when the layout changes, not when the view moves. The holding
-    // curve costs thousands of allocations; panning must not pay for them.
-    let envelope: Envelopes | null = null;
 
     // ---- the controls -------------------------------------------------------
 
@@ -453,79 +363,6 @@ export function startEditor(): void {
 
     // ---- redraw and repaint -------------------------------------------------
 
-    const resize = (): void => {
-        const ratio = window.devicePixelRatio || 1;
-        const rect = canvas.getBoundingClientRect();
-        canvas.width = max(1, Math.round(rect.width * ratio));
-        canvas.height = max(1, Math.round(rect.height * ratio));
-    };
-
-    /**
-     * Two selected modules that share a face, and the seam between them — or
-     * null. Each is the exact copy picked, and two copies of one shared part are
-     * not offered, since sizing one sizes the other.
-     */
-    const seamPair = (): {
-        a: { spec: ModuleSpec; origin: ModuleOrigin };
-        b: { spec: ModuleSpec; origin: ModuleOrigin };
-        seam: Seam;
-    } | null => {
-        if (doc.selections.length !== 2) return null;
-        const [first, second] = doc.selections as [ModulePath, ModulePath];
-        if (samePlacement(first, second)) return null;
-        const picked = (path: ModulePath) => {
-            const placement = placementAt(doc.blueprint, path);
-            if (placement === null || isInstance(placement)) return null;
-            const key = JSON.stringify(path);
-            const drawn = doc.view.origins.findIndex((o) => JSON.stringify(o.path) === key);
-            if (drawn < 0) return null;
-            return { spec: doc.view.modules[drawn]!, origin: doc.view.origins[drawn]! };
-        };
-        const a = picked(first);
-        const b = picked(second);
-        if (a === null || b === null) return null;
-        const seam = seamBetween(a.spec, b.spec);
-        return seam === null ? null : { a, b, seam };
-    };
-
-    /**
-     * The grab points on the selection, or none.
-     *
-     * Only for a single module: an assembly has no size, and several modules picked
-     * at once have no one box to size or turn. The copy they sit on is the one
-     * under the pointer, which is the copy the highlight draws brightest and the
-     * one a drag would move.
-     */
-    /** The selected assembly's pose, in the copy that was picked, and the modules it draws there. */
-    const selectedAssemblyPose = (): { path: ModulePath; pose: InstancePose; modules: ModuleSpec[] } | null => {
-        const path = doc.selectedAssemblyPath();
-        if (path === null) return null;
-        // The outlines are of every placement of the assembly; the ones that are
-        // this instance's are those whose modules it accounts for.
-        const under = (drawn: number) => {
-            const at = doc.view.origins[drawn]?.path;
-            return at !== undefined && path.every((step, k) => step.index === at[k]?.index && step.copy === at[k]?.copy);
-        };
-        const own = doc.selectedAssemblies().filter((each) => !each.context && under(each.modules[0]!));
-        const outline = own.find((each) => each.primary) ?? own[0];
-        const near = outline === undefined ? null : doc.view.origins[outline.modules[0]!]!.path;
-        const pose = instancePose(doc.blueprint, path, near);
-        if (pose === null) return null;
-        return { path, pose, modules: (outline?.modules ?? []).map((i) => doc.view.modules[i]!) };
-    };
-
-    const currentHandles = (): Handle[] => {
-        const seam = seamPair();
-        if (seam !== null) return [seam.seam.handle];
-        if (doc.selections.length !== 1) return [];
-        const assembly = selectedAssemblyPose();
-        if (assembly !== null) return [assemblyKnob(assembly.pose, assembly.modules, camera.scale)];
-        const drawn = doc.selectedLoose()[0];
-        if (drawn === undefined) return [];
-        const spec = doc.view.modules[drawn];
-        return spec === undefined ? [] : handlesFor(spec, camera.scale);
-    };
-
     /**
      * Put the spatial number boxes on the same grid the canvas snaps to.
      *
@@ -545,109 +382,6 @@ export function startEditor(): void {
         }
     };
 
-    /** The bearing on the envelope the pointer is over, radians from the bow, or null. */
-    let thrustBearing: number | null = null;
-    /** Whether the pointer is over the thrust rosette, which is drawn larger while it is. */
-    let thrustExpanded = false;
-    canvas.addEventListener("pointerleave", () => {
-        if (thrustBearing === null && !thrustExpanded) return;
-        thrustBearing = null;
-        thrustExpanded = false;
-        render();
-    });
-
-    const render = (): void => {
-        matchBoxesToGrid();
-        const view = doc.view;
-        if (view.design !== null) {
-            previewSnapshot(view.design, snapshot);
-            if (fitPending) {
-                // Snap rather than ease: a layout being fitted has no motion to follow.
-                frame(camera, snapshot, canvas.width, canvas.height, 1);
-                fitPending = false;
-                easeFit = false;
-            } else if (easeFit) {
-                const want = fitScale(snapshot, canvas.width, canvas.height);
-                camera.x = (snapshot.minX + snapshot.maxX) / 2;
-                camera.y = (snapshot.minY + snapshot.maxY) / 2;
-                camera.scale = easeScale(camera.scale, want, FIT_EASE);
-                easeFit = camera.scale !== want;
-                if (easeFit) requestFrame();
-            }
-        } else {
-            snapshot.shipCount = 0;
-        }
-        if (view.design !== null) demonstration.writeInto(snapshot);
-        if (view.design !== null && snapshot.ships[0] !== undefined) lightSelfBurning(snapshot.ships[0]);
-        // Pointing at the envelope burns the engines the way the ship would to
-        // push that way without turning, on top of whatever is selected.
-        const shown = snapshot.ships[0];
-        if (thrustBearing !== null && view.design !== null && shown !== undefined) {
-            const burning = holdingThrottles(view.design, thrustBearing);
-            for (let t = 0; t < shown.throttles.length; t++) {
-                shown.throttles[t] = Math.max(shown.throttles[t] ?? 0, burning[t] ?? 0);
-            }
-        }
-        if (shown !== undefined && view.design !== null) landOnSelf(shown);
-        draw(ctx, snapshot, camera, canvas.width, canvas.height, demonstration.flashes, arcs);
-        drawOverlay(
-            ctx,
-            {
-                design: view.design,
-                modules: view.modules,
-                selected: doc.selectedLoose(),
-                assemblies: doc.selectedAssemblies(),
-                faulty: view.faulty,
-                refitBuilt: showRefit ? (doc.refit?.built ?? []) : [],
-                refitDown: showRefit ? (doc.refit?.takenDown ?? []) : [],
-                handles: currentHandles(),
-                envelope,
-                envelopeBearing: thrustBearing,
-                envelopeExpanded: thrustExpanded,
-            },
-            camera,
-            canvas.width,
-            canvas.height,
-        );
-    };
-
-    /**
-     * A number at `places` decimals, widened until it shows at least two
-     * significant figures.
-     *
-     * Without the floor, a small gun's shell reads as "0 kg" — a figure that is
-     * not merely imprecise but wrong, since it says the round has no mass. The
-     * decimals are a floor rather than a fixed count so a heavy shell still
-     * reads 89.8 rather than being rounded to 90.
-     */
-    /**
-     * Animate for as long as there is something to animate.
-     *
-     * Frames are asked for only while an engine is spooling or a round is in the
-     * air, so a still picture costs nothing. There is no fixed step and nothing
-     * to reproduce: this is a picture of a module, not a state of the world.
-     */
-    const animate = (now: number): void => {
-        frameRequested = false;
-        const design = doc.view.design;
-        if (design === null) {
-            lastFrame = 0;
-            return;
-        }
-        const dt = lastFrame === 0 ? 0 : Math.min((now - lastFrame) / 1000, 0.1);
-        lastFrame = now;
-        demonstration.step(design, doc.selectedModules(), dt);
-        render();
-        if (demonstration.running) requestFrame();
-        else lastFrame = 0;
-    };
-
-    function requestFrame(): void {
-        if (frameRequested) return;
-        frameRequested = true;
-        window.requestAnimationFrame(animate);
-    }
-
     const numbers = (value: number, places = 1, significant = 2): string => {
         let decimals = places;
         if (value !== 0 && Number.isFinite(value)) {
@@ -659,6 +393,7 @@ export function startEditor(): void {
 
     const renderStats = (): void => {
         const design = doc.view.design;
+        const envelope = shipView.envelope();
         if (design === null || envelope === null) {
             statsPanel.innerHTML = `<p class="none">${doc.view.underivable ?? "Nothing to measure yet."}</p>`;
             return;
@@ -743,19 +478,6 @@ export function startEditor(): void {
                       ? ""
                       : '<p class="warn">It has no robot bay, so a refit to it could never be finished.</p>');
         }
-    };
-
-    /** Where the selected copy's position is written, and in what frame. */
-    const selectedPosition = (): ReturnType<typeof positionHandle> | null => {
-        // A selected assembly is dragged as one thing, which is the point of having
-        // selected the assembly rather than a part of it.
-        const assembly = doc.selectedAssemblyPath();
-        if (assembly !== null) {
-            const handle = instanceHandle(doc.view.origins, assembly);
-            return handle === null ? null : { origin: handle, perCopy: true };
-        }
-        const origin = doc.selectedOrigin();
-        return origin === null ? null : positionHandle(doc.blueprint, origin);
     };
 
     /**
@@ -908,7 +630,7 @@ export function startEditor(): void {
         }
         properties.hidden = false;
         const spec = placement as ModuleSpec;
-        const handle = selectedPosition();
+        const handle = selectedPosition(doc);
         const positioned = handle === null ? null : placementAt(doc.blueprint, handle.origin.path);
         // Whether the panel is still describing the module it was describing last
         // time. Compared by placement rather than by identity, because a path
@@ -1077,6 +799,7 @@ export function startEditor(): void {
     /** What the panel says relative numbers in terms of: the ship being edited. */
     const doctrineContext = (fireRange: number | null = null): DoctrineContext | null => {
         const design = doc.view.design;
+        const envelope = shipView.envelope();
         if (design === null || envelope === null) return null;
         const stats = designStats(inReachDesign(design), envelope);
         return {
@@ -1290,12 +1013,12 @@ export function startEditor(): void {
         });
     }
 
-    const refresh = (): void => {
+    const refreshPanels = (): void => {
+        matchBoxesToGrid();
         renderInFleet();
         const broken = doc.view.problems.length > 0;
         for (const link of exits) link.classList.toggle("blocked", broken);
         const design = doc.view.design;
-        envelope = design === null ? null : envelopes(inReachDesign(design));
         if (document.activeElement !== shipName) shipName.value = doc.blueprint.name;
         renderFighter(design);
         if (document.activeElement !== shipNotes) shipNotes.value = doc.blueprint.notes ?? "";
@@ -1305,11 +1028,10 @@ export function startEditor(): void {
         renderProperties();
         renderStats();
         renderProblems();
-        render();
-        // A newly selected engine or gun has something to show, and a deselected
-        // one has a plume to wind down, so either way a change of selection is a
-        // reason to start asking for frames again.
-        requestFrame();
+    };
+    const refresh = (): void => {
+        refreshPanels();
+        shipView.changed();
     };
 
     // ---- editing ------------------------------------------------------------
@@ -1513,7 +1235,7 @@ export function startEditor(): void {
             if (key === "x" || key === "y") {
                 // Position is written wherever this copy's position lives, which is
                 // its instance when the module is a shared part.
-                const handle = selectedPosition();
+                const handle = selectedPosition(doc);
                 if (handle === null) return;
                 change(
                     updatePlacement(doc.blueprint, handle.origin.path, (p) => ({ ...p, [key]: value })),
@@ -2019,8 +1741,7 @@ export function startEditor(): void {
         const blueprint = stock ? library.loadStock(name) : read(name);
         if (blueprint === null) return;
         doc.replace(blueprint);
-        demonstration.reset();
-        easeFit = true;
+        shipView.easeToNext();
         gesture = false;
         refresh();
     };
@@ -2029,7 +1750,7 @@ export function startEditor(): void {
     const taken = (): string[] => library.list().map((entry) => entry.name);
     el<HTMLButtonElement>("newShip").addEventListener("click", () => {
         doc.replace(emptyBlueprint(unusedName("New ship", taken())));
-        easeFit = true;
+        shipView.easeToNext();
         gesture = false;
         refresh();
     });
@@ -2070,7 +1791,7 @@ export function startEditor(): void {
         library.remove(name);
         doc.apply(emptyBlueprint(unusedName("New ship", taken())));
         gesture = false;
-        easeFit = true;
+        shipView.easeToNext();
         refresh();
     });
     exportButton.addEventListener("click", () => {
@@ -2109,419 +1830,21 @@ export function startEditor(): void {
                 blueprint = { ...blueprint, name: answer.trim() || blueprint.name };
             }
             doc.replace(blueprint);
-            easeFit = true;
+            shipView.easeToNext();
             gesture = false;
             refresh();
         });
         importInput.value = "";
     });
 
-    // ---- the pointer --------------------------------------------------------
-
-    const worldAt = (event: PointerEvent | WheelEvent): { x: number; y: number } => {
-        const rect = canvas.getBoundingClientRect();
-        const px = ((event.clientX - rect.left) * canvas.width) / rect.width - canvas.width / 2;
-        const py = ((event.clientY - rect.top) * canvas.height) / rect.height - canvas.height / 2;
-        return { x: camera.x + px / camera.scale, y: camera.y - py / camera.scale };
-    };
-
-    type Drag =
-        | {
-              kind: "pan";
-              x: number;
-              y: number;
-              /** Whether releasing without having panned clears the selection. */
-              deselect: boolean;
-          }
-        | {
-              kind: "module";
-              from: Blueprint;
-              startX: number;
-              startY: number;
-              /**
-               * The corners of everything the drag is carrying, where they were when
-               * it took hold. Read once rather than per move: the layout under the
-               * pointer is the moved one, so corners taken from it and offset again
-               * would count the drag twice.
-               */
-              corners: readonly number[];
-              moved: boolean;
-              /** The module pressed on, and whether releasing without a drag goes in a level. */
-              hit: number;
-              drill: boolean;
-          }
-        | {
-              /** The knob on a selected assembly, dragged to turn it about its origin. */
-              kind: "turn";
-              from: Blueprint;
-              path: ModulePath;
-              pose: InstancePose;
-              moved: boolean;
-          }
-        | {
-              /** The face two selected modules share, moved to size both. */
-              kind: "seam";
-              from: Blueprint;
-              pair: NonNullable<ReturnType<typeof seamPair>>;
-              moved: boolean;
-          }
-        | {
-              /**
-               * A corner or edge is dragged to size the module, one of a shaped
-               * module's own corners to move that corner alone, the knob to turn it,
-               * the split to share its length between block and bell or barrel.
-               */
-              kind: "size" | "vertex" | "rotate" | "tip";
-              from: Blueprint;
-              /** The handle grabbed, which says which faces, or which corner, move. */
-              handle: Handle;
-              /**
-               * The module as it was drawn when the handle was grabbed.
-               *
-               * Held rather than re-read, because it is the frame every position the
-               * pointer reaches is measured in — and re-reading it mid-drag would
-               * measure against a module the drag itself has just changed.
-               */
-              spec: ModuleSpec;
-              moved: boolean;
-          };
-    let drag: Drag | null = null;
-
-    /**
-     * Size or turn the selected module to wherever the pointer is.
-     *
-     * Written through the same `updatePlacement` the panel's boxes use, so a
-     * module sized by dragging and one sized by typing are the same edit — and a
-     * shared part's size and facing change every copy, exactly as the panel says
-     * they do. A resize also moves the module within its assembly so the
-     * opposite face stays put, so every copy moves the same way — mirrored where
-     * the copy is.
-     * The facing has to be converted on the way in: what the pointer names is a
-     * direction on screen, and a module inside a turned or mirrored assembly is
-     * written in another frame.
-     */
-    const dragHandle = (event: PointerEvent): void => {
-        if (drag === null || drag.kind === "pan" || drag.kind === "module") return;
-        if (drag.kind === "turn") {
-            const world = worldAt(event);
-            const { pose } = drag;
-            // The bearing the assembly's +x should take on screen, then the angle
-            // that gives it written in the frame the instance is placed in.
-            const bearing = facingTo(
-                { kind: "structure", x: pose.x, y: pose.y, length: 0, width: 0 },
-                world.x,
-                world.y,
-                event.altKey ? 0 : ANGLE_SNAP_DEGREES,
-                anglesNow(),
-            );
-            const origin: ModuleOrigin = { path: drag.path, ...pose.written, instanceFrame: null };
-            const angle = toPlacementAngle(origin, bearing);
-            const next = updatePlacement(drag.from, drag.path, (p) => {
-                const turned = { ...p } as AssemblyInstance;
-                if (angle === 0) delete turned.angle;
-                else turned.angle = angle;
-                return turned;
-            });
-            if (next === null) return;
-            if (drag.moved) doc.amend(next);
-            else doc.apply(next);
-            drag = { ...drag, moved: true };
-            refresh();
-            return;
-        }
-        if (drag.kind === "seam") {
-            const { a, b, seam } = drag.pair;
-            const world = worldAt(event);
-            const moved = seamTo(a.spec, b.spec, seam, world.x, world.y, event.altKey ? 0 : snapMetres());
-            const one = resizePlacement(drag.from, a.origin, ...sizes(moved.a), false);
-            const both = one === null ? null : resizePlacement(one, b.origin, ...sizes(moved.b), false);
-            if (both === null) return;
-            if (drag.moved) doc.amend(both);
-            else doc.apply(both);
-            drag = { ...drag, moved: true };
-            refresh();
-            return;
-        }
-        const path = doc.selection;
-        const origin = doc.selectedOrigin();
-        if (path === null || origin === null) return;
-        const world = worldAt(event);
-        let next: Blueprint | null;
-        if (drag.kind === "tip") {
-            if (drag.spec.kind === "hullGun") {
-                const barrelCalibres = barrelCalibresTo(drag.spec, world.x, world.y, event.altKey);
-                next = updatePlacement(drag.from, path, (p) => ({ ...p, barrelCalibres }));
-            } else {
-                const nozzle = nozzleTo(drag.spec, world.x, world.y, event.altKey ? 0 : snapMetres());
-                next = updatePlacement(drag.from, path, (p) => ({ ...p, nozzle }));
-            }
-        } else if (drag.kind === "vertex") {
-            // One corner to wherever the pointer is, the other two left alone. No
-            // neighbour is pushed: a corner moves two edges at once and neither of
-            // them squarely, so there is no face to carry one by.
-            const point = landOrGrid(fieldNow(), world.x, world.y, snapWithin(event), event.altKey ? 0 : snapMetres());
-            const moved = vertexTo(drag.spec, drag.handle.vertex ?? -1, point.x, point.y, 0);
-            // A corner dragged onto the line between the other two is no module at
-            // all, so the drag simply stops there rather than refusing the shape.
-            if (moved === null) return;
-            next = reshapePlacement(drag.from, origin, moved.vertices, moved.dx, moved.dy);
-        } else if (drag.kind === "size") {
-            const step = event.altKey ? 0 : snapMetres();
-            // A face landed against a neighbour is sized by where that neighbour is,
-            // so it keeps the grid only while it is near nothing.
-            const landed = landing(fieldNow(), world.x, world.y, snapWithin(event));
-            const point = landed ?? world;
-            // Shift sizes about the middle, keeping it where it was.
-            const { length, width, dx, dy } = resizedTo(
-                drag.spec,
-                drag.handle,
-                point.x,
-                point.y,
-                landed === null ? step : 0,
-                event.shiftKey,
-            );
-            // Neighbours move with the face unless Ctrl (⌘) asks for this module alone.
-            const push = !(event.ctrlKey || event.metaKey);
-            next = resizePlacement(drag.from, origin, length, width, dx, dy, push);
-        } else {
-            const angle = toPlacementAngle(
-                origin,
-                facingTo(drag.spec, world.x, world.y, event.altKey ? 0 : ANGLE_SNAP_DEGREES, anglesNow()),
-            );
-            next = updatePlacement(drag.from, path, (p) => ({ ...p, angle }));
-        }
-        if (next === null) return;
-        if (drag.moved) doc.amend(next);
-        else doc.apply(next);
-        drag = { ...drag, moved: true };
-        refresh();
-    };
-
-    const sizes = (r: ReturnType<typeof resizedTo>): [number, number, number, number] => [r.length, r.width, r.dx, r.dy];
-
-    canvas.addEventListener("pointerdown", (event) => {
-        // A canvas is not focusable, so clicking it does not move focus off a
-        // properties box on its own. Leaving focus there would keep that box out
-        // of every refresh, and would swallow Delete, Escape and F, which are all
-        // held back while something is being typed into.
-        if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
-        const world = worldAt(event);
-        canvas.setPointerCapture(event.pointerId);
-        // The selection's own handles are tested before the layout under them: a
-        // corner handle sits on the module's corner, and often over the neighbour
-        // it abuts, so whichever is on top would otherwise decide whether a
-        // resize or a drag of something else began.
-        const handles = currentHandles();
-        const grabbed = event.button === 1 ? -1 : handleAt(handles, world.x, world.y, camera.scale);
-        const pair = seamPair();
-        if (grabbed >= 0 && pair !== null) {
-            gesture = false;
-            drag = { kind: "seam", from: doc.blueprint, pair, moved: false };
-            return;
-        }
-        const assembly = grabbed >= 0 ? selectedAssemblyPose() : null;
-        if (assembly !== null) {
-            gesture = false;
-            drag = { kind: "turn", from: doc.blueprint, path: assembly.path, pose: assembly.pose, moved: false };
-            return;
-        }
-        const spec = doc.view.modules[doc.selectedLoose()[0] ?? -1];
-        if (grabbed >= 0 && spec !== undefined) {
-            gesture = false;
-            drag = {
-                kind:
-                    handles[grabbed]!.kind === "rotate"
-                        ? "rotate"
-                        : handles[grabbed]!.kind === "tip"
-                          ? "tip"
-                          : handles[grabbed]!.kind === "vertex"
-                            ? "vertex"
-                            : "size",
-                from: doc.blueprint,
-                handle: handles[grabbed]!,
-                spec,
-                moved: false,
-            };
-            return;
-        }
-        const hit = moduleAt(doc.view.modules, world.x, world.y);
-        // Shift over a module adds it to the selection; shift over empty space
-        // still pans, as does the middle button and a plain drag on empty space.
-        // The one gesture this costs is panning by shift-dragging *from* a module,
-        // which the other two cover.
-        if (hit >= 0 && event.shiftKey && event.button !== 1) {
-            doc.togglePath(doc.resolveClick(hit));
-            refresh();
-            return;
-        }
-        // Panning leaves the selection alone; only a plain click on empty space
-        // clears it, and that is decided on release.
-        if (hit < 0 || event.button === 1 || event.shiftKey) {
-            drag = {
-                kind: "pan",
-                x: event.clientX,
-                y: event.clientY,
-                deselect: hit < 0 && event.button === 0 && !event.shiftKey,
-            };
-            return;
-        }
-        // Pressing on something the selection already covers leaves the selection
-        // alone, so that an assembly can be dragged as an assembly. Going *in* a level is
-        // what a click does, and a click is a press that did not become a drag —
-        // otherwise selecting a wing and then dragging it would quietly drag one
-        // part of it instead, which is the difference between the two operations.
-        const drill = doc.covers(hit);
-        if (!drill) doc.selectAt(hit, doc.resolveClick(hit));
-        gesture = false;
-        drag = {
-            kind: "module",
-            from: doc.blueprint,
-            startX: world.x,
-            startY: world.y,
-            corners: cornersOf(doc.view.modules.filter((_, i) => doc.covers(i))),
-            moved: false,
-            hit,
-            drill,
-        };
-        refresh();
+    arcsButton.addEventListener("click", () => {
+        shipView.cycleArcs();
+        arcsButton.textContent = ARC_LABELS[shipView.arcs];
     });
-
-    canvas.addEventListener("pointermove", (event) => {
-        if (drag === null) {
-            const rect = canvas.getBoundingClientRect();
-            const ratio = canvas.width / rect.width;
-            const x = (event.clientX - rect.left) * ratio;
-            const y = (event.clientY - rect.top) * ratio;
-            // Grown while pointed at, and so kept until the pointer leaves it at the larger size.
-            const expanded = envelope !== null && overEnvelope(canvas.width, canvas.height, x, y, thrustExpanded);
-            const bearing = expanded ? envelopeBearingAt(canvas.width, canvas.height, x, y, true) : null;
-            if (bearing !== thrustBearing || expanded !== thrustExpanded) {
-                thrustBearing = bearing;
-                thrustExpanded = expanded;
-                render();
-            }
-            return;
-        }
-        if (drag.kind === "pan") {
-            if (event.clientX === drag.x && event.clientY === drag.y) return;
-            const ratio = canvas.width / canvas.getBoundingClientRect().width;
-            camera.x -= ((event.clientX - drag.x) * ratio) / camera.scale;
-            camera.y += ((event.clientY - drag.y) * ratio) / camera.scale;
-            drag = { kind: "pan", x: event.clientX, y: event.clientY, deselect: false };
-            easeFit = false;
-            render();
-            return;
-        }
-        if (drag.kind !== "module") {
-            dragHandle(event);
-            return;
-        }
-        const moving = drag;
-        const handle = selectedPosition();
-        if (handle === null) return;
-        const world = worldAt(event);
-        // The *displacement* snaps, not the position. A layout drawn on half-metre
-        // offsets — which the authored ships are, since modules abut exactly —
-        // would be dragged onto whole metres by an absolute grid and every abutting
-        // face would part company. Snapping the movement keeps whatever offsets a
-        // ship was designed with, and Alt escapes it entirely.
-        const step = event.altKey ? 0 : snapMetres();
-        let dx = snap(world.x - moving.startX, step);
-        let dy = snap(world.y - moving.startY, step);
-        // What should land on a neighbour is one of the moving modules' own
-        // corners, wherever within them the drag was taken hold of, so the field
-        // is tried against those rather than against the pointer.
-        const pull = alignment(fieldNow(), offsetBy(moving.corners, dx, dy), snapWithin(event));
-        dx = tidyMetres(dx + pull.dx);
-        dy = tidyMetres(dy + pull.dy);
-        if (dx === 0 && dy === 0 && !moving.moved) return;
-        const next = movePlacement(moving.from, handle.origin, dx, dy);
-        if (next === null) return;
-        if (moving.moved) doc.amend(next);
-        else doc.apply(next);
-        drag = { ...moving, moved: true };
-        refresh();
-    });
-
-    const endDrag = (): void => {
-        // A press that never became a drag is a click, and a click on something
-        // already selected goes in a level: assembly, then part of the assembly, then
-        // nothing further.
-        if (drag !== null && drag.kind === "module" && drag.drill && !drag.moved) {
-            doc.selectAt(drag.hit, doc.resolveClick(drag.hit));
-            refresh();
-        }
-        if (drag !== null && drag.kind === "pan" && drag.deselect) {
-            doc.select(null);
-            refresh();
-        }
-        drag = null;
-        gesture = false;
-    };
-    canvas.addEventListener("pointerup", endDrag);
-    canvas.addEventListener("pointercancel", endDrag);
-
-    canvas.addEventListener(
-        "wheel",
-        (event) => {
-            event.preventDefault();
-            easeFit = false;
-            const before = worldAt(event);
-            camera.scale *= Math.exp(-event.deltaY * 0.0015);
-            const after = worldAt(event);
-            camera.x += before.x - after.x;
-            camera.y += before.y - after.y;
-            render();
-        },
-        { passive: false },
-    );
-
-    window.addEventListener("keydown", (event) => {
-        const typing =
-            document.activeElement instanceof HTMLInputElement ||
-            document.activeElement instanceof HTMLTextAreaElement ||
-            document.activeElement instanceof HTMLSelectElement;
-        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
-            event.preventDefault();
-            if (event.shiftKey) doc.redo();
-            else doc.undo();
-            gesture = false;
-            refresh();
-            return;
-        }
-        if (typing) return;
-        if (event.key === "f" || event.key === "F") {
-            fitPending = true;
-            refresh();
-        } else if (event.key.toLowerCase() === ARCS_KEY && !event.ctrlKey && !event.metaKey) {
-            cycleArcs();
-        } else if (event.key === "Delete" || event.key === "Backspace") {
-            if (doc.selection === null) return;
-            event.preventDefault();
-            deleteSelected();
-        } else if (event.key === "Escape") {
-            doc.select(null);
-            refresh();
-        }
-    });
-
-    const cycleArcs = (): void => {
-        arcs = nextArcs(arcs);
-        arcsButton.textContent = ARC_LABELS[arcs];
-        refresh();
-    };
-    arcsButton.addEventListener("click", cycleArcs);
     refitButton.addEventListener("click", () => {
-        showRefit = !showRefit;
-        refitButton.setAttribute("aria-pressed", String(showRefit));
-        refresh();
+        shipView.toggleRefit();
+        refitButton.setAttribute("aria-pressed", String(shipView.showRefit));
     });
-
-    // The canvas, not the window: the header rewrapping resizes it too.
-    new ResizeObserver(() => {
-        resize();
-        render();
-    }).observe(canvas);
 
     // The ship as it stands, as a fleet of one, goes with the link.
     el<HTMLAnchorElement>("battleLink").addEventListener("click", (event) => {
@@ -2550,7 +1873,6 @@ export function startEditor(): void {
         { keys: "Ctrl+Z, Ctrl+Shift+Z", does: "Undo, redo" },
     ]);
 
-    resize();
     refresh();
 }
 

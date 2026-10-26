@@ -65,7 +65,8 @@ an entry is either still open or it is gone.
 ### Partly built — what is left
 
 16. **React UI** — stages 1–4, the foundation, the shell, the battle viewer and the fleet editor, are
-    built; stages 5–8 are left (below). The app is `dist/index.html`, so the published page is the app, and an old viewer link
+    built, and stage 5, the ship editor, is begun: its canvas is an engine of its own (`editor/shipCanvas.ts`),
+    which the old page drives until the Ship route replaces it. Stages 5–8 are left (below). The app is `dist/index.html`, so the published page is the app, and an old viewer link
     (`#battle=`, `#fleet=`) is rewritten to the Battle route as it opens.
     What is built settled, for the work left:
     - **A route is `app/routes/<name>/`**, listed in `app/routes.tsx` and shown inside `app/Shell.tsx`, which
