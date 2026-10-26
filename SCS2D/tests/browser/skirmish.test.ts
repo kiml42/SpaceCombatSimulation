@@ -299,6 +299,13 @@ describe("the skirmish in a browser", () => {
         expect(file.history.rows.length).toBeGreaterThan(0);
         expect(Object.keys(file.setup).length).toBeGreaterThan(0);
 
+        // Named, it names its file.
+        await page.fill("#skirmishName", "Bare core test");
+        await page.press("#skirmishName", "Enter");
+        const savingNamed = page.waitForEvent("download");
+        await page.click("#exportSkirmish");
+        expect((await savingNamed).suggestedFilename()).toBe("Bare-core-test-round-1.skirmish.json");
+
         // And read back after giving the skirmish up, it is the same round with the same history.
         await page.click("#abandon");
         await page.waitForSelector("#round", { state: "hidden" });
@@ -318,6 +325,8 @@ describe("the skirmish in a browser", () => {
         const skirmish = won(newSkirmish(shipFleet(CORVETTE), shipFleet(CORVETTE), 25));
         await page.goto(skirmishPage(skirmish));
         await page.waitForSelector("#answering");
+        // Opened on the round being answered, not the one already won.
+        expect(await page.textContent("#outcome")).toBe("The enemy as it stands against your fleet, evolving an answer.");
         expect(await page.isVisible("#editFleet")).toBe(false);
         expect(await page.isVisible("#fight")).toBe(false);
         // Spinning while it searches, and only then.

@@ -21,6 +21,7 @@ import type { BattleView, Watcher } from "~/host/battleView";
 import { BATTLE_KEYS, ORDER_KEYS } from "~/host/keyHelp";
 import type { ViewSettings } from "~/host/viewSettings";
 import { teamColour } from "~/render/canvas2d";
+import { CommitText } from "~/ui/fields/CommitText";
 import { readLog, writeLog, type Logged } from "~/scenarios/commands";
 import { customBattle, DEFAULT_SETUP, tally, type CustomBattle } from "~/scenarios/customBattle";
 import { Activity, type Decision } from "~/scenarios/decision";
@@ -40,6 +41,7 @@ import {
     roundBattle,
     roundSetup,
     serialiseSkirmish,
+    skirmishFileName,
     settingsOf,
     won,
     type Skirmish,
@@ -382,6 +384,25 @@ export function SkirmishPage() {
         }
     };
 
+    /**
+     * A skirmish as it opens: its round, or once that is won, the enemy as it
+     * stands fighting your fleet on the round it is answering — not the round
+     * already won, which the search has left behind.
+     */
+    const showOpened = (current: Skirmish, on: BattleView): void => {
+        if (current.won === undefined) return showRound(current, on);
+        mode.current = "watching";
+        resume.current = null;
+        setReplaying(false);
+        undecided();
+        activity.current = newActivity();
+        battle.current = customBattle(roundBattle(current.player, current.enemy, current.won, settingsOf(current)));
+        setOutcome({ text: "The enemy as it stands against your fleet, evolving an answer.", kind: "" });
+        setEnemyLine(`Against ${current.enemy.name}, evolving.`);
+        setFightable(true);
+        showOn(on, battle.current, watching);
+    };
+
     /** Show the best enemy so far fighting the round, if the player is watching. */
     const watch = (now: AnswerProgress, current: Skirmish | null = skirmishes.skirmish): void => {
         if (current === null || current.won === undefined || !watching || view === null) return;
@@ -417,7 +438,10 @@ export function SkirmishPage() {
                     ? () => showRound()
                     : was === "answer"
                       ? () => skirmishes.skirmish !== null && showAnswer(skirmishes.skirmish.enemy)
-                      : () => answering.latest !== null && watch(answering.latest);
+                      : () =>
+                            answering.latest !== null
+                                ? watch(answering.latest)
+                                : skirmishes.skirmish !== null && showOpened(skirmishes.skirmish, view);
         }
         mode.current = "replay";
         setRoundOver(true);
@@ -526,7 +550,7 @@ export function SkirmishPage() {
         skirmishes.setSkirmish(handed);
         if (handed.won !== undefined) skirmishes.answer();
         else skirmishes.stopAnswer();
-        showRound(handed, on);
+        showOpened(handed, on);
         return true;
     };
 
@@ -552,7 +576,7 @@ export function SkirmishPage() {
             if (previewed.current !== null) showOn(next, enemyAlone(previewed.current), false);
             return;
         }
-        showRound(current, next);
+        showOpened(current, next);
         // Back while the enemy is answering: its answer, or the best so far, as it was left.
         const found = answering.latest?.found ?? null;
         if (current.won !== undefined && found !== null) showAnswer(found, current);
@@ -587,7 +611,13 @@ export function SkirmishPage() {
         );
     });
 
-    const start = (enemyValue: string, playerValue: string, chosen: SkirmishSettings, budgetOf: (cost: Budget) => Budget): void => {
+    const start = (
+        enemyValue: string,
+        playerValue: string,
+        chosen: SkirmishSettings,
+        budgetOf: (cost: Budget) => Budget,
+        name: string,
+    ): void => {
         const enemy = read(enemyValue);
         if (enemy === null) return;
         const enemyFault = fleetFault(enemy);
@@ -595,7 +625,7 @@ export function SkirmishPage() {
         const player = playerValue === EMPTY ? { name: "My fleet", designs: {}, ships: [] } : read(playerValue);
         if (player === null) return;
         // The page's own randomness, not the battle's: it only picks which battle.
-        const begun = newSkirmish(enemy, player, Math.floor(Math.random() * 2 ** 32), chosen, budgetOf(billOfFleet(enemy)));
+        const begun = newSkirmish(enemy, player, Math.floor(Math.random() * 2 ** 32), chosen, budgetOf(billOfFleet(enemy)), name);
         skirmishes.setSkirmish(begun);
         // Nothing to fight with yet: straight to the editor to build it.
         if (player.ships.length === 0) void navigate(fleetRoute(begun.player, begun));
@@ -630,10 +660,7 @@ export function SkirmishPage() {
             skirmish: skirmish === null ? null : serialiseSkirmish(skirmish),
             history,
         };
-        download(
-            `${skirmish === null ? "skirmish" : `skirmish-round-${skirmish.round}`}.skirmish.json`,
-            `${JSON.stringify(file, null, 2)}\n`,
-        );
+        download(skirmishFileName(skirmish), `${JSON.stringify(file, null, 2)}\n`);
     };
     // An exported skirmish read back: its settings into the setup screen, and the skirmish and history it
     // holds in place of these. Checked whole first, so a bad file changes nothing.
@@ -665,7 +692,7 @@ export function SkirmishPage() {
         skirmishes.setHistory(nextHistory);
         skirmishes.setSkirmish(next);
         if (next === null) return;
-        showRound(next);
+        if (view !== null) showOpened(next, view);
         if (next.won !== undefined) skirmishes.answer();
     };
 
@@ -782,6 +809,20 @@ export function SkirmishPage() {
                 {skirmish !== null && (
                     <Panel>
                         <section id="round">
+                            <CommitText
+                                id="skirmishName"
+                                aria-label="Skirmish name"
+                                title="What this skirmish is called, which its exported files are named for"
+                                placeholder="Name this skirmish"
+                                value={skirmish.name ?? ""}
+                                onCommit={(typed) => {
+                                    const current = skirmishes.skirmish;
+                                    if (current === null) return;
+                                    const { name: _old, ...rest } = current;
+                                    const name = typed.trim();
+                                    skirmishes.setSkirmish(name === "" ? rest : { ...rest, name });
+                                }}
+                            />
                             <h2 id="roundTitle">
                                 {`Round ${skirmish.round}` + (skirmish.tries > 0 ? ` · try ${skirmish.tries + 1}` : "")}
                             </h2>
