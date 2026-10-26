@@ -26,6 +26,11 @@ export interface DesignInFleet {
     skirmish?: Skirmish;
 }
 
+/** The ship route, opening a ship from the library by its entry: its name, or `stock:` and its name for the stock copy. */
+export function openShipRoute(entry: string): string {
+    return `/ship?open=${encodeURIComponent(entry)}`;
+}
+
 /** The ship route, opening a design of this fleet. */
 export function designRoute(handed: DesignInFleet): string {
     const value = {
@@ -51,6 +56,11 @@ export function handedDesign(search: URLSearchParams): DesignInFleet | null {
         design,
         ...(value["skirmish"] === undefined ? {} : { skirmish: parseSkirmish(value["skirmish"]) }),
     };
+}
+
+/** The fleet route, opening a fleet from the library by its entry, as `openShipRoute` does a ship. */
+export function openFleetRoute(entry: string): string {
+    return `/fleet?open=${encodeURIComponent(entry)}`;
 }
 
 /** The fleet route, opening this fleet: as the skirmish's, if it is in one. */
