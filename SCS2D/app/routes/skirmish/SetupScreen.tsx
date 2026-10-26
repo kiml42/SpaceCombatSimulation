@@ -70,7 +70,7 @@ const Buttons = styled.div`
     }
 `;
 
-const Budget = styled.label`
+const Field = styled.label`
     display: grid;
     grid-template-columns: 7.5rem 1fr;
     gap: 0.3rem;
@@ -195,7 +195,7 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart }: SetupScreenPr
                         <h2>New skirmish</h2>
                     </summary>
                     <p>Pick an enemy and a budget, then build a fleet within it that beats it.</p>
-                    <Budget title="What the skirmish is called, which its exported files are named for">
+                    <Field title="What the skirmish is called, which its exported files are named for">
                         name
                         <input
                             id="skirmishNameNew"
@@ -204,7 +204,7 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart }: SetupScreenPr
                             value={name}
                             onChange={(event) => setName(event.target.value)}
                         />
-                    </Budget>
+                    </Field>
                     <h2>Enemy</h2>
                     <FleetChoices
                         id="enemy"
@@ -237,7 +237,7 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart }: SetupScreenPr
                     </Figures>
                     <h2>Your budget</h2>
                     {BUDGET_ROWS.map(({ key, label, title }) => (
-                        <Budget key={key} title={title}>
+                        <Field key={key} title={title}>
                             {label}
                             <input
                                 id={`${key}Budget`}
@@ -247,7 +247,7 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart }: SetupScreenPr
                                 value={budget[key]}
                                 onChange={(event) => setBudget({ ...budget, [key]: event.target.value })}
                             />
-                        </Budget>
+                        </Field>
                     ))}
                     <Buttons>
                         <Button id="matchEnemy" title="Set the budget to what the enemy cost" onClick={matchEnemy}>
