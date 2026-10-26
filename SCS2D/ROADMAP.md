@@ -64,9 +64,8 @@ an entry is either still open or it is gone.
 
 ### Partly built — what is left
 
-16. **React UI** — stages 1–4, the foundation, the shell, the battle viewer and the fleet editor, are
-    built, and stage 5, the ship editor, is begun: its canvas is an engine of its own (`editor/shipCanvas.ts`),
-    which the old page drives until the Ship route replaces it. Stages 5–8 are left (below). The app is `dist/index.html`, so the published page is the app, and an old viewer link
+16. **React UI** — stages 1–5, the foundation, the shell, the battle viewer and the fleet and ship
+    editors, are built; stages 6–8 are left (below). The app is `dist/index.html`, so the published page is the app, and an old viewer link
     (`#battle=`, `#fleet=`) is rewritten to the Battle route as it opens.
     What is built settled, for the work left:
     - **A route is `app/routes/<name>/`**, listed in `app/routes.tsx` and shown inside `app/Shell.tsx`, which
@@ -85,6 +84,9 @@ an entry is either still open or it is gone.
       its field when left or on Enter, re-keyed by its value so it shows what the ships go by after.
     - **A setting is a `NumberField`** (`ui/fields/`), with its ± where it has one, holding its box's text as
       typed; the page turns the text into numbers, defaults for what does not read, as `customSetup.ts` does.
+    - **A box that edits as it is typed is a `LiveText` or `LiveNumber`** (`ui/fields/`): the page applies
+      every key it can read, and the box keeps what was typed until it is left. A gesture is one undo step:
+      the first edit applies, the rest amend it, until the box is left.
     - **A button is `ui/buttons/Button`**, or `ToggleButton` for one that stays pressed, both Base UI's
       underneath: `variant` says whether it is plain, the one thing to do next (`primary`) or a small one
       holding a symbol (`icon`). Never a bare `<button>` in React.

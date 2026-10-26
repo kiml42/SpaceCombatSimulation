@@ -2,6 +2,7 @@ import type { RouteObject } from "react-router";
 import { Shell } from "./Shell";
 import { BattlePage } from "./routes/battle/BattlePage";
 import { FleetPage } from "./routes/fleet/FleetPage";
+import { ShipPage } from "./routes/ship/ShipPage";
 import { Home } from "./routes/home/Home";
 import { LibraryPage } from "./routes/library/LibraryPage";
 import { NotFound } from "./routes/NotFound";
@@ -18,6 +19,7 @@ export const ROUTES: RouteObject[] = [
             { index: true, element: <Home /> },
             { path: "battle", element: <BattlePage /> },
             { path: "fleet", element: <FleetPage /> },
+            { path: "ship", element: <ShipPage /> },
             { path: "library", element: <LibraryPage /> },
             { path: "*", element: <NotFound /> },
         ],

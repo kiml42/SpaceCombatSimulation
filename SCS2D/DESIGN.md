@@ -1108,7 +1108,7 @@ inside any one file is not contiguous.
   one each, and a mutation does not turn either, since neither has a facing that matters.
 - **Next:** §8 steps 16–18 in order — the React UI, then the WebGL viewer, then the campaign (ROADMAP.md §8
   has why). Every step before them is built. Step 16's first two stages are: the React app (`app/`) builds with
-  Vite to `dist/index.html`, one file that opens from disk, beside the three pages it will replace; Linaria,
+  Vite to `dist/index.html`, one file that opens from disk, beside the two pages it will replace; Linaria,
   Storybook with a story and accessibility check per component, ESLint with the import boundaries, and Vite's
   dev server, which serves the old pages beside it so they share storage. Its routes go by the hash (`#/library`)
   inside a shell that links them, and read one shared library and view settings (`features/storage/`) under
@@ -1121,7 +1121,10 @@ inside any one file is not contiguous.
   mid-battle and the keys behind a Keys button. The editors' Battle links and shared battle links open it,
   old links included. Stage 4, the fleet editor, is built, and its old page is gone: the Fleet route draws
   the fleet through `fleetCanvas`, the canvas half of the old page lifted out as `battleView` was, with the
-  panel round it in React; the skirmish and the ship editor hand a fleet to it in the address. Repair, construction and salvage, one mechanism, is built in all six stages:
+  panel round it in React; the skirmish and the ship editor hand a fleet to it in the address. Stage 5, the
+  ship editor, is built the same way, and its old page is gone: the Ship route draws through `shipCanvas`,
+  with every panel the page had in React under the same ids, and a fleet hands it a design in the address.
+  Repair, construction and salvage, one mechanism, is built in all six stages:
   damage shedding mass, pads mending landed fighters, robots mending their own hull, lost and built anew,
   lost modules rebuilt by robots and by pads, and robots taking wreckage apart into metal, with doctrine that
   sends a fighter in to be mended and a ship out to wrecks for their metal, flown by the stock Salvager.

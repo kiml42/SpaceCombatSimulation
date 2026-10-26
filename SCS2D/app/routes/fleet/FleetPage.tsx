@@ -7,7 +7,7 @@ import type { FleetCanvas as Engine } from "~/editor/fleetCanvas";
 import { ANGLE_SNAP_DEGREES } from "~/editor/fleetCanvas";
 import { FleetDocument } from "~/editor/fleetDocument";
 import { addShip, distinctDesign, emptyFleet, refreshDesign } from "~/editor/fleetEdit";
-import { battleRoute, designHref, handedToFleet } from "~/editor/handoff";
+import { battleRoute, designRoute, handedToFleet } from "~/editor/handoff";
 import { Library, nextName, SHIPS, unusedName } from "~/editor/library";
 import { snap } from "~/editor/edit";
 import type { KeyRow } from "~/host/keyHelp";
@@ -229,7 +229,7 @@ export function FleetPage() {
     }, [skirmish, fleet]);
 
     const toDesign = (design: string): string =>
-        designHref({ fleet: doc.fleet, design, ...(skirmish === null ? {} : { skirmish: { ...skirmish, player: doc.fleet } }) });
+        `#${designRoute({ fleet: doc.fleet, design, ...(skirmish === null ? {} : { skirmish: { ...skirmish, player: doc.fleet } }) })}`;
 
     const place = (blueprint: Blueprint): void => {
         const camera = engine?.camera ?? { x: 0, y: 0, scale: 1 };

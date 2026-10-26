@@ -1,5 +1,5 @@
 import { styled } from "@linaria/react";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import type { FleetDocument } from "~/editor/fleetDocument";
 import {
     dissolveGroup,
@@ -24,6 +24,7 @@ import {
     type FleetStep,
 } from "~/sim/index";
 import { CommitText } from "~/ui/fields/CommitText";
+import { LiveNumber } from "~/ui/fields/LiveText";
 import { CARRIED, designOf, optionLabel, optionValue } from "./fleetOptions";
 import { Button } from "~/ui/buttons/Button";
 
@@ -78,54 +79,6 @@ function round(value: number): number {
     return Math.round(value * 1000) / 1000;
 }
 
-/**
- * A number edited as it is typed: the fleet follows every key, and the box
- * shows what the fleet holds whenever it is not being typed in.
- */
-function LiveNumber({
-    id,
-    value,
-    step,
-    min,
-    onEdit,
-    onDone,
-}: {
-    readonly id: string;
-    readonly value: number;
-    readonly step: number;
-    readonly min?: number;
-    readonly onEdit: (value: number) => void;
-    readonly onDone: () => void;
-}) {
-    const [typed, setTyped] = useState<string | null>(null);
-    return (
-        <input
-            id={id}
-            type="number"
-            step={step}
-            min={min}
-            value={typed ?? String(round(value))}
-            onFocus={() => {
-                setTyped(String(round(value)));
-                onDone();
-            }}
-            onChange={(event) => {
-                const text = event.target.value;
-                setTyped(text);
-                const number = Number(text);
-                if (text.trim() !== "" && Number.isFinite(number)) onEdit(number);
-            }}
-            onBlur={() => {
-                setTyped(null);
-                onDone();
-            }}
-            onKeyDown={(event) => {
-                if (event.key === "Enter") onDone();
-            }}
-        />
-    );
-}
-
 /** The selected ship or group: its design, where it stands, how it repeats, and what can be done to it. */
 export function SelectionPanel({ doc, scale, ships, library, designHref, onLeave, onChanged }: SelectionPanelProps) {
     // Typing in a box is one edit, not one per key: the first change is an undo step and the rest amend it.
@@ -158,10 +111,11 @@ export function SelectionPanel({ doc, scale, ships, library, designHref, onLeave
     const live = (id: string, value: number, change: (value: number, entry: FleetEntry) => FleetEntry, boxStep = step, min?: number) => (
         <LiveNumber
             id={id}
-            value={value}
+            value={round(value)}
             step={boxStep}
             {...(min === undefined ? {} : { min })}
             onEdit={(typed) => editSelected((e) => change(typed, e))}
+            onStart={() => (gesture.current = false)}
             onDone={() => (gesture.current = false)}
         />
     );

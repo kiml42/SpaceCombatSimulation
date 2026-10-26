@@ -32,7 +32,6 @@ const root = join(here, "..");
  * smaller half of the trade.
  */
 const PAGES = [
-    { entry: "editorEntry.ts", shell: "editor.html", out: "editor.html" },
     { entry: "evolutionEntry.ts", shell: "evolution.html", out: "evolution.html" },
     { entry: "skirmishEntry.ts", shell: "skirmish.html", out: "skirmish.html" },
 ] as const;

@@ -2,15 +2,21 @@ import { parseFleet, serialiseFleet, shipFleet, type Fleet } from "../sim/index.
 import { parseSkirmish, serialiseSkirmish, type Skirmish } from "../scenarios/skirmish.js";
 
 /**
- * Handing what an editor holds to the battle page, to try it out.
+ * Handing what one screen holds to another: a ship or fleet to a battle, a
+ * fleet's design to the ship editor and back, a skirmish's fleet to the fleet
+ * editor.
  *
- * Carried in the link rather than in browser storage, which some browsers do
- * not share between pages opened as files.
+ * Carried in the address rather than in browser storage, which some browsers
+ * do not share between pages opened as files. Each is a route of the app
+ * (`…Route`, for a link within it) and that route's address from a page
+ * beside it (`…Href`).
  */
+
+const param = (value: unknown): string => encodeURIComponent(JSON.stringify(value));
 
 /** The app's battle route, carrying this fleet as its first side. */
 export function battleRoute(fleet: Fleet): string {
-    return `/battle?fleet=${encodeURIComponent(JSON.stringify(serialiseFleet(fleet)))}`;
+    return `/battle?fleet=${param(serialiseFleet(fleet))}`;
 }
 
 /** `battleRoute`, from a page beside the app. */
@@ -29,22 +35,26 @@ export interface DesignInFleet {
     skirmish?: Skirmish;
 }
 
-const DESIGN_KEY = "#design=";
-
-/** The ship editor's address, opening a design of this fleet. */
-export function designHref(handed: DesignInFleet): string {
+/** The ship route, opening a design of this fleet. */
+export function designRoute(handed: DesignInFleet): string {
     const value = {
         fleet: serialiseFleet(handed.fleet),
         design: handed.design,
         ...(handed.skirmish === undefined ? {} : { skirmish: serialiseSkirmish(handed.skirmish) }),
     };
-    return `editor.html${DESIGN_KEY}${encodeURIComponent(JSON.stringify(value))}`;
+    return `/ship?design=${param(value)}`;
 }
 
-/** The fleet design an editor address carries, or null. Throws on one that is there but unreadable. */
-export function handedDesign(hash: string): DesignInFleet | null {
-    if (!hash.startsWith(DESIGN_KEY)) return null;
-    const value = JSON.parse(decodeURIComponent(hash.slice(DESIGN_KEY.length))) as Record<string, unknown>;
+/** `designRoute`, from a page beside the app. */
+export function designHref(handed: DesignInFleet): string {
+    return `index.html#${designRoute(handed)}`;
+}
+
+/** The fleet design the ship route's address carries, or null. Throws on one that is there but unreadable. */
+export function handedDesign(search: URLSearchParams): DesignInFleet | null {
+    const text = search.get("design");
+    if (text === null) return null;
+    const value = JSON.parse(text) as Record<string, unknown>;
     const fleet = parseFleet(value["fleet"]);
     const design = value["design"];
     if (typeof design !== "string" || fleet.designs[design] === undefined) {
@@ -57,13 +67,16 @@ export function handedDesign(hash: string): DesignInFleet | null {
     };
 }
 
-/** The app's fleet route, opening this fleet: as the skirmish's, if it is in one. */
+/** The fleet route, opening this fleet: as the skirmish's, if it is in one. */
+export function fleetRoute(fleet: Fleet, skirmish?: Skirmish): string {
+    return skirmish === undefined
+        ? `/fleet?fleet=${param(serialiseFleet(fleet))}`
+        : `/fleet?skirmish=${param(serialiseSkirmish({ ...skirmish, player: fleet }))}`;
+}
+
+/** `fleetRoute`, from a page beside the app. */
 export function fleetHref(fleet: Fleet, skirmish?: Skirmish): string {
-    const handed =
-        skirmish === undefined
-            ? `fleet=${encodeURIComponent(JSON.stringify(serialiseFleet(fleet)))}`
-            : `skirmish=${encodeURIComponent(JSON.stringify(serialiseSkirmish({ ...skirmish, player: fleet })))}`;
-    return `index.html#/fleet?${handed}`;
+    return `index.html#${fleetRoute(fleet, skirmish)}`;
 }
 
 /** What the fleet route's address hands it: a fleet, alone or as a skirmish's. Throws on one it cannot read. */

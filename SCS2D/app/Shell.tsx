@@ -43,7 +43,8 @@ export function Shell() {
                     Space Combat Simulation
                 </NavLink>
                 <nav aria-label="Main">
-                    <NavLink to="/battle">Battle</NavLink> <NavLink to="/fleet">Fleet</NavLink> <NavLink to="/library">Library</NavLink>
+                    <NavLink to="/battle">Battle</NavLink> <NavLink to="/fleet">Fleet</NavLink> <NavLink to="/ship">Ship</NavLink>{" "}
+                    <NavLink to="/library">Library</NavLink>
                 </nav>
             </Header>
             <Outlet />

@@ -15,7 +15,7 @@ import { EditorDocument } from "../../editor/document.js";
 import { previewSnapshot } from "../../editor/preview.js";
 import { frame, type Camera } from "../../render/camera.js";
 import { CORVETTE } from "../../scenarios/blueprints.js";
-import { parseBlueprint, type Blueprint } from "../../sim/index.js";
+import { MODULE_KINDS, parseBlueprint, type Blueprint } from "../../sim/index.js";
 
 /**
  * The blueprint editor, driven in a real browser.
@@ -29,7 +29,8 @@ import { parseBlueprint, type Blueprint } from "../../sim/index.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..", "..");
-const editorPage = join(root, "dist", "editor.html");
+const appPage = join(root, "dist", "index.html");
+const shipRoute = (): string => `${pathToFileURL(appPage).href}#/ship`;
 
 let browser: Browser;
 let page: Page;
@@ -58,10 +59,11 @@ async function redPixels(p: Page): Promise<number> {
         if (ctx === null) return 0;
         const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
         let red = 0;
-        // Strongly red and not much else: the page is otherwise greys, a gold
-        // selection and a blue-green set of overlay marks.
+        // The fault's tint over a grey module: redder than it is green or blue, and those two
+        // alike. Not the gold selection, nor a gun's orange flash, where green outweighs blue.
         for (let i = 0; i < data.length; i += 4) {
-            if (data[i]! > 170 && data[i + 1]! < 120 && data[i + 2]! < 120) red++;
+            const [r, g, b] = [data[i]!, data[i + 1]!, data[i + 2]!];
+            if (r > g + 40 && r > b + 40 && Math.abs(g - b) < 20) red++;
         }
         return red;
     });
@@ -182,13 +184,12 @@ const corvetteGun = (p: Page) => onCorvette(p, 13, 0);
 beforeAll(async () => {
     // Build first, so these test what `pnpm build` actually produces rather
     // than a stale artefact someone forgot to regenerate.
-    // The ship editor, and the app beside it that its Battle link opens.
-    const run = (...command: string[]) =>
-        process.platform === "win32"
-            ? promisify(execFile)("cmd.exe", ["/c", "npx", ...command], { cwd: root })
-            : promisify(execFile)("npx", command, { cwd: root });
-    await Promise.all([run("tsx", join(root, "scripts", "build.ts")), run("vite", "build")]);
-    expect(existsSync(editorPage)).toBe(true);
+    if (process.platform === "win32") {
+        await promisify(execFile)("cmd.exe", ["/c", "npx", "vite", "build"], { cwd: root });
+    } else {
+        await promisify(execFile)("npx", ["vite", "build"], { cwd: root });
+    }
+    expect(existsSync(appPage)).toBe(true);
 
     browser = await launchChromium();
     page = await browser.newPage({ viewport: { width: 1200, height: 700 } });
@@ -196,7 +197,7 @@ beforeAll(async () => {
     page.on("console", (message) => {
         if (message.type() === "error") problems.push(`console: ${message.text()}`);
     });
-    await page.goto(pathToFileURL(editorPage).href);
+    await page.goto(shipRoute());
     try {
         await page.waitForFunction(() => (document.getElementById("stats")?.textContent ?? "").includes("Endurance"));
     } catch (timeout) {
@@ -412,7 +413,7 @@ describe("the editor in a browser", () => {
 
     it("offers a button for every kind of module, each adding one of that kind", async () => {
         await page.click("#newShip");
-        const kinds = await page.$$eval("#propKind option", (options) => options.map((o) => (o as HTMLOptionElement).value));
+        const kinds = [...MODULE_KINDS];
         const buttons = await page.$$eval("[data-add]", (found) => found.map((b) => (b as HTMLElement).dataset["add"]));
         expect([...buttons].sort()).toEqual([...kinds].sort());
         for (const kind of ["claw", "pad", "port"]) {
@@ -881,7 +882,10 @@ describe("the editor in a browser", () => {
         await page.mouse.move(centre.x + 168, centre.y - 220, { steps: 8 });
         await page.mouse.up();
         expect(await page.textContent("#problems")).toMatch(/touches nothing/);
+        // The refit's marks would show where the gun was taken from, in orange.
+        await page.click("#showRefit");
         expect(await redPixels(page)).toBeGreaterThan(0);
+        await page.click("#showRefit");
 
         await page.click("#undo");
         expect(await page.textContent("#problems")).toMatch(/No problems/);
