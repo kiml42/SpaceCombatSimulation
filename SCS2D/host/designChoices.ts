@@ -11,8 +11,7 @@ export interface Choice {
 }
 
 /** The blueprint library, stock and saved, each compiled once; one that does not compile is left out. */
-export function choices(): Choice[] {
-    const library = new Library(window.localStorage);
+export function choices(library: Library<Blueprint> = new Library(window.localStorage)): Choice[] {
     const out: Choice[] = [];
     for (const entry of library.list()) {
         try {

@@ -1,9 +1,10 @@
 import { styled } from "@linaria/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BattleCanvas } from "~/features/battle/BattleCanvas";
 import { useSampled } from "~/features/battle/useSampled";
 import { useViewSettings } from "~/features/storage/useViewSettings";
 import type { BattleView } from "~/host/battleView";
+import { BATTLE_KEYS, ORDER_KEYS } from "~/host/keyHelp";
 import type { ViewSettings } from "~/host/viewSettings";
 import { gridStep } from "~/render/camera";
 import { customBattle, type BattleSetup, type CustomBattle } from "~/scenarios/customBattle";
@@ -12,6 +13,12 @@ import type { Battle } from "~/scenarios/types";
 import type { Snapshot } from "~/sim/index";
 import { CustomPanel } from "./custom/CustomPanel";
 import { DEFAULT_FIELDS, setupOf, type SetupFields, type Slot } from "./custom/customSetup";
+import { KeyHelp } from "~/ui/dialogs/KeyHelp";
+import { AddShip } from "./orders/AddShip";
+import { AsteroidCard } from "./orders/AsteroidCard";
+import { DOCTRINE_KEY, DoctrinePanel } from "./orders/DoctrinePanel";
+import { OrderBar } from "./orders/OrderBar";
+import { useOrderState } from "./orders/orderState";
 import { Scrub } from "./Scrub";
 
 /** The old viewer's own, so a speed kept there is kept here. */
@@ -48,6 +55,16 @@ const Body = styled.div`
     min-height: 0;
 `;
 
+const Footer = styled.footer`
+    padding: 0.4rem 0.9rem;
+    border-top: 1px solid var(--colour-border);
+`;
+
+const NOTES = [
+    "Blue, red, green and magenta are the sides; grey is a side beyond the fourth, or a hulk.",
+    "The ring marks where the gravity well pulls at 1 m/s².",
+];
+
 const Readout = styled.output`
     margin-left: auto;
     color: var(--colour-muted);
@@ -64,6 +81,20 @@ export function BattlePage() {
     // Blank: the fleets are the first thing chosen.
     const [slots, setSlots] = useState<readonly Slot[]>([]);
     const [fields, setFields] = useState<SetupFields>(DEFAULT_FIELDS);
+    const orders = useOrderState(view, () => shown.current);
+    const [doctrineOpen, setDoctrineOpen] = useState(false);
+
+    // P opens or closes the picked ships' doctrine, as the button does.
+    useEffect(() => {
+        const toggle = (event: KeyboardEvent): void => {
+            const focus = document.activeElement;
+            if (focus instanceof HTMLInputElement || focus instanceof HTMLTextAreaElement || event.ctrlKey || event.metaKey || event.altKey)
+                return;
+            if (event.key.toLowerCase() === DOCTRINE_KEY && view !== null && view.picked.length > 0) setDoctrineOpen((open) => !open);
+        };
+        window.addEventListener("keydown", toggle);
+        return () => window.removeEventListener("keydown", toggle);
+    }, [view]);
 
     /** The scene built afresh, running or held as the battle before it was. */
     const show = (next: BattleView | null, index = scene, run = running, setup?: BattleSetup): void => {
@@ -83,8 +114,11 @@ export function BattlePage() {
     };
     const onView = (next: BattleView | null): void => {
         setView(next);
+        // For the browser tests and anyone inspecting the page, as the old viewer has it.
+        Reflect.set(window, "viewer", next ?? undefined);
         if (next === null) return;
         next.keepView(PAGE);
+        next.allowOrders();
         next.setSpeed(settings.speed);
         show(next, scene, true);
     };
@@ -122,6 +156,7 @@ export function BattlePage() {
                     Custom
                 </button>
                 <button onClick={() => view?.fit()}>Fit</button>
+                <AddShip view={view} />
                 <Scrub view={view} />
                 <label>
                     speed
@@ -148,7 +183,21 @@ export function BattlePage() {
                     onDrawn={(at) => (shown.current = at)}
                     onRunningChanged={setRunning}
                     onRewound={(rewound) => (battle.current = rewound)}
-                />
+                >
+                    <AsteroidCard contents={orders.asteroid} />
+                    {view !== null && doctrineOpen && orders.side !== null && (
+                        <DoctrinePanel view={view} state={orders} shown={() => shown.current} />
+                    )}
+                    {view !== null && (
+                        <OrderBar
+                            view={view}
+                            state={orders}
+                            shown={() => shown.current}
+                            doctrineOpen={doctrineOpen}
+                            onDoctrine={() => setDoctrineOpen((open) => !open)}
+                        />
+                    )}
+                </BattleCanvas>
                 {scene === CUSTOM && (
                     <CustomPanel
                         slots={slots}
@@ -160,6 +209,9 @@ export function BattlePage() {
                     />
                 )}
             </Body>
+            <Footer>
+                <KeyHelp rows={[...BATTLE_KEYS, ...ORDER_KEYS]} notes={NOTES} />
+            </Footer>
         </Main>
     );
 }

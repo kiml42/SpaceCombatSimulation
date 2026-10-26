@@ -1,16 +1,5 @@
-import {
-    overriddenMount,
-    padHolds,
-    placementOf,
-    slipwayHolds,
-    slotKey,
-    type ModuleSpec,
-    type DoctrineOverride,
-    type DoctrinePart,
-    type ShipDesign,
-    type ShipView,
-    type Snapshot,
-} from "../sim/index.js";
+import { padHolds, placementOf, slipwayHolds, type DoctrinePart, type ShipView, type Snapshot } from "../sim/index.js";
+import { keyOf, mountsOf, shared, slotsOf, told, valuesOf } from "../editor/doctrineParts.js";
 import { MOUNT_SECTIONS, SHIP_SECTIONS, type DoctrineEntry } from "../editor/doctrine.js";
 import { choices, type Choice } from "./designChoices.js";
 import { mountAt, viewOf } from "../render/picking.js";
@@ -31,102 +20,6 @@ function heading(level: "h3" | "h4", text: string): HTMLElement {
     return out;
 }
 const PART_KEY = "p";
-
-/** One box's value across the picked ships, or undefined where they differ; null where none has it. */
-type Shared = number | undefined | null;
-
-function shared(values: readonly number[]): Shared {
-    if (values.length === 0) return null;
-    return values.every((v) => v === values[0]) ? values[0]! : undefined;
-}
-
-/** The mounts of `ship` that `part` covers, by turret index. */
-function mountsOf(design: ShipDesign, part: DoctrinePart): number[] {
-    const out: number[] = [];
-    design.turrets.forEach((mount, t) => {
-        if (
-            part === "main"
-                ? mount.main
-                : part === "secondary"
-                  ? !mount.main
-                  : `placement:${placementOf(keyOf(design, mount.module))}` === part
-        ) {
-            out.push(t);
-        }
-    });
-    return out;
-}
-
-function keyOf(design: ShipDesign, module: number): string | undefined {
-    return design.keys?.[design.modules[module]?.index ?? -1];
-}
-
-/** What `ship` goes by for `field` of `part`: each covered mount's, or the ship's. */
-function valuesOf(ship: ShipView, part: DoctrinePart, row: DoctrineEntry): number[] {
-    const design = ship.currentStructure;
-    if (part === "ship") {
-        const half = row.half === "approach" ? ship.doctrine?.approach : ship.doctrine?.targeting;
-        const value = (half as unknown as Record<string, number> | undefined)?.[row.field];
-        return value === undefined ? [] : [value];
-    }
-    return mountsOf(design, part).map((t) => {
-        const mount = design.turrets[t]!;
-        const resolved = overriddenMount(mount.targeting, mount.main, placementOf(keyOf(design, mount.module)), ship.override);
-        return (resolved as unknown as Record<string, number>)[row.field]!;
-    });
-}
-
-/** Whether `override` tells `field` of `part`. */
-function told(override: DoctrineOverride | undefined, part: DoctrinePart, row: DoctrineEntry): boolean {
-    if (override === undefined) return false;
-    const held =
-        part === "ship"
-            ? row.half === "approach"
-                ? override.approach
-                : override.targeting
-            : part === "main" || part === "secondary"
-              ? override[part]
-              : override.placements?.[part.slice("placement:".length)];
-    return (held as Record<string, number> | undefined)?.[row.field] !== undefined;
-}
-
-/** A pad or slipway of a picked ship, by its lasting key. */
-interface Slot {
-    readonly key: string;
-    readonly label: string;
-    readonly keep: number | undefined;
-    readonly pad: boolean;
-    readonly spec: ModuleSpec;
-    /** The name of what it is told to build, or of what it builds by design; undefined where they differ. */
-    readonly craft: string | undefined;
-}
-
-function slotsOf(ships: readonly ShipView[]): Slot[] {
-    const found = new Map<string, { pad: boolean; spec: ModuleSpec; keeps: number[]; crafts: string[] }>();
-    for (const ship of ships) {
-        const design = ship.blueprint ?? ship.currentStructure;
-        const add = (module: number, pad: boolean, craft: ShipDesign, keep: number): void => {
-            const key = slotKey(design, module);
-            const slot = found.get(key) ?? { pad, spec: design.modules[module]!.spec, keeps: [], crafts: [] };
-            slot.keeps.push(ship.keeps?.[key] ?? keep);
-            slot.crafts.push((ship.crafts?.[key] ?? craft).name);
-            found.set(key, slot);
-        };
-        for (const order of design.builds ?? []) add(order.pad, true, order.design, order.keep);
-        for (const order of design.yards ?? []) add(order.slipway, false, order.design, order.keep);
-    }
-    return [...found].map(([key, slot]) => {
-        const craft = slot.crafts.every((c) => c === slot.crafts[0]) ? slot.crafts[0] : undefined;
-        return {
-            key,
-            label: slot.pad ? "Pad" : "Slipway",
-            keep: shared(slot.keeps) ?? undefined,
-            pad: slot.pad,
-            spec: slot.spec,
-            craft,
-        };
-    });
-}
 
 export function doctrinePanel(view: BattleView): { update(shown: Snapshot): void } {
     const panel = el<HTMLElement>("doctrinePanel");

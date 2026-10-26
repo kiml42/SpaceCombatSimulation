@@ -68,6 +68,21 @@ select {
     cursor: pointer;
 }
 
+input[type="number"] {
+    padding: 0.15rem 0.3rem;
+    border: 1px solid var(--colour-control-border);
+    border-radius: 3px;
+    background: var(--colour-background);
+    color: var(--colour-text);
+}
+
+button:disabled,
+input:disabled,
+select:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
 button:hover {
     background: var(--colour-surface-hover);
 }
