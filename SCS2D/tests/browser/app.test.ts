@@ -9,6 +9,8 @@ import { promisify } from "node:util";
 import type { Browser } from "playwright";
 import { launchChromium } from "./launch.js";
 import { serialiseBlueprint } from "../../sim/index.js";
+import { DEFAULT_SETUP, serialiseBattleSetup } from "../../scenarios/customBattle.js";
+import { shipFleet } from "../../editor/handoff.js";
 import { CORVETTE } from "../../scenarios/blueprints.js";
 
 /**
@@ -129,5 +131,42 @@ it("runs a battle on its route, and lets go of it on leaving", async () => {
     await page.getByRole("link", { name: "Battle" }).click();
     expect(await page.getByRole("combobox", { name: "speed" }).inputValue()).toBe("4");
     await page.evaluate(() => localStorage.removeItem("scs2d.view.viewer"));
+    expect(problems).toEqual([]);
+});
+
+it("sets up a custom battle, from the library and from a battle file, and fights it", async () => {
+    const page = await browser.newPage();
+    const problems: string[] = [];
+    page.on("pageerror", (error) => problems.push(error.message));
+    page.on("console", (message) => {
+        if (message.type() === "error" || message.type() === "warning") problems.push(message.text());
+    });
+    await page.goto(`${pathToFileURL(appPage).href}#/battle`);
+    const readout = page.getByLabel("Battle time");
+    const step = async (): Promise<number> => Number(/step (\d+)/.exec((await readout.textContent()) ?? "")?.[1] ?? -1);
+
+    await page.getByRole("button", { name: "Custom", exact: true }).click();
+    const panel = page.getByRole("complementary", { name: "Custom battle" });
+    await expect.poll(() => panel.getByRole("button", { name: "Fight" }).isDisabled()).toBe(true);
+    await panel.getByRole("button", { name: "Add fleet" }).click();
+    await panel.getByRole("button", { name: "Add fleet" }).click();
+    await panel.getByRole("combobox", { name: "Side 2" }).selectOption("ship:Corvette");
+
+    // Set up, it waits at its first step to be looked over.
+    await expect.poll(step).toBe(0);
+    await expect.poll(() => page.getByRole("button", { name: "Play" }).count()).toBe(1);
+    await panel.getByRole("button", { name: "Fight" }).click();
+    await expect.poll(step).toBeGreaterThan(20);
+    await expect.poll(() => panel.getByRole("region", { name: "Sides" }).textContent()).toContain("Corvette1/1 ships");
+
+    const file = JSON.stringify(
+        serialiseBattleSetup({ ...DEFAULT_SETUP, fleets: [shipFleet(CORVETTE), shipFleet(CORVETTE)], range: 3500 }),
+    );
+    await panel
+        .locator('input[type="file"]:not([multiple])')
+        .setInputFiles({ name: "two.battle.json", mimeType: "application/json", buffer: Buffer.from(file) });
+    await expect.poll(() => panel.getByLabel("range m", { exact: true }).inputValue()).toBe("3500");
+    expect(await panel.getByRole("combobox", { name: "Side 1" }).locator("option:checked").textContent()).toBe(`${CORVETTE.name} (file)`);
+    await expect.poll(step).toBe(0);
     expect(problems).toEqual([]);
 });

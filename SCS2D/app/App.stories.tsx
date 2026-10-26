@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { createMemoryRouter, RouterProvider } from "react-router";
-import { expect, userEvent, waitFor } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { ObservedStorage, memoryStore } from "~/features/storage/observedStorage";
 import { StorageProvider } from "~/features/storage/StorageProvider";
 import { BLUEPRINTS } from "~/scenarios/blueprints";
@@ -65,5 +65,17 @@ export const Battle: Story = {
         await expect(canvas.getByRole("button", { name: "Play" })).toBeVisible();
         await userEvent.selectOptions(canvas.getByRole("combobox", { name: "Scenario" }), "Swarm");
         await expect(canvas.getByRole("combobox", { name: "Scenario" })).toHaveDisplayValue("Swarm");
+    },
+};
+
+export const CustomBattle: Story = {
+    args: { path: "/battle" },
+    play: async ({ canvas }) => {
+        await userEvent.click(canvas.getByRole("button", { name: "Custom" }));
+        const panel = canvas.getByRole("complementary", { name: "Custom battle" });
+        await expect(within(panel).getByRole("button", { name: "Fight" })).toBeDisabled();
+        await userEvent.click(within(panel).getByRole("button", { name: "Add fleet" }));
+        await expect(within(panel).getByRole("button", { name: "Fight" })).toBeEnabled();
+        await expect(within(panel).getByRole("combobox", { name: "Side 1" })).toBeVisible();
     },
 };
