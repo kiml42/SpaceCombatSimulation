@@ -105,8 +105,8 @@ Keep these working — they are the cold-start re-entry path:
 - `pnpm yardstick` — measure a finished run against a ship that does not evolve; `--run`, and
   `--against latest | founder | <stock ship> | <blueprint or fleet file>`; a co-evolution run is measured as
   a grid of each side's round champions against the other's, `--samples` a side and `--seeds` matches a cell
-- `pnpm build` — bundle the React app to `dist/index.html`, and each page not yet in it to
-  `dist/evolution.html` and `dist/skirmish.html`, one file each with nothing external
+- `pnpm build` — bundle the React app to `dist/index.html`, and the evolution page, not yet in it, to
+  `dist/evolution.html`, one file each with nothing external
 - `pnpm dev` — Vite's dev server for the React app, with the other pages rebuilt on every save and served
   beside it, so they share its storage; refresh an old page to see a change. Also runs `sync-fleets` on start
   and whenever a blueprint is saved

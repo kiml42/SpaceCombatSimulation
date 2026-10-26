@@ -89,3 +89,14 @@ export function handedToFleet(search: URLSearchParams): { fleet: Fleet; skirmish
     const fleet = search.get("fleet");
     return fleet === null ? null : { fleet: parseFleet(JSON.parse(fleet)), skirmish: null };
 }
+
+/** The skirmish route, carrying a skirmish to take up: one handed back by an editor, or a test's. */
+export function skirmishRoute(skirmish: Skirmish): string {
+    return `/skirmish?skirmish=${param(serialiseSkirmish(skirmish))}`;
+}
+
+/** The skirmish the skirmish route's address carries, or null. Throws on one it cannot read. */
+export function handedSkirmish(search: URLSearchParams): Skirmish | null {
+    const text = search.get("skirmish");
+    return text === null ? null : parseSkirmish(JSON.parse(text));
+}

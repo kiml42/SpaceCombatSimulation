@@ -7,10 +7,7 @@ export interface PageLink {
 }
 
 /** The pages bundled by `scripts/build.ts`, each until its route here replaces it. */
-export const OLD_PAGES: readonly PageLink[] = [
-    { href: "skirmish.html", name: "Skirmish", purpose: "Hold off an enemy that evolves to beat you" },
-    { href: "evolution.html", name: "Evolution", purpose: "Breed ships and fleets" },
-];
+export const OLD_PAGES: readonly PageLink[] = [{ href: "evolution.html", name: "Evolution", purpose: "Breed ships and fleets" }];
 
 const Main = styled.main`
     max-width: 40rem;

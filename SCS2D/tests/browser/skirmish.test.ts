@@ -11,9 +11,9 @@ import type { Browser, Page } from "playwright";
 import { launchChromium } from "./launch.js";
 import { shipFleet, type Blueprint } from "../../sim/index.js";
 import { BARE_CORE, CORVETTE, GUNSHIP } from "../../scenarios/blueprints.js";
-import { DEFAULT_SKIRMISH_SETTINGS, newSkirmish, skirmishFragment, won } from "../../scenarios/skirmish.js";
+import { DEFAULT_SKIRMISH_SETTINGS, newSkirmish, won, type Skirmish } from "../../scenarios/skirmish.js";
 import { DEFAULT_KINDS } from "../../evolution/mutate.js";
-import { designHref, fleetHref } from "../../editor/handoff.js";
+import { designHref, fleetHref, skirmishRoute } from "../../editor/handoff.js";
 
 /**
  * The skirmish loop in a real browser: choosing an enemy and a fleet, fighting,
@@ -23,20 +23,22 @@ import { designHref, fleetHref } from "../../editor/handoff.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..", "..");
-const skirmishPage = join(root, "dist", "skirmish.html");
+const appPage = join(root, "dist", "index.html");
+/** The skirmish route, carrying a skirmish to take up if given one. */
+const skirmishPage = (skirmish?: Skirmish): string =>
+    `${pathToFileURL(appPage).href}#${skirmish === undefined ? "/skirmish" : skirmishRoute(skirmish)}`;
 
 let browser: Browser;
 let page: Page;
 const problems: string[] = [];
 
 beforeAll(async () => {
-    // The skirmish page, and the app beside it whose fleet editor it hands the player's fleet to.
-    const run = (...command: string[]) =>
-        process.platform === "win32"
-            ? promisify(execFile)("cmd.exe", ["/c", "npx", ...command], { cwd: root })
-            : promisify(execFile)("npx", command, { cwd: root });
-    await Promise.all([run("tsx", join(root, "scripts", "build.ts")), run("vite", "build")]);
-    expect(existsSync(skirmishPage)).toBe(true);
+    if (process.platform === "win32") {
+        await promisify(execFile)("cmd.exe", ["/c", "npx", "vite", "build"], { cwd: root });
+    } else {
+        await promisify(execFile)("npx", ["vite", "build"], { cwd: root });
+    }
+    expect(existsSync(appPage)).toBe(true);
 
     browser = await launchChromium();
     page = await browser.newPage({ viewport: { width: 1200, height: 700 } });
@@ -45,7 +47,7 @@ beforeAll(async () => {
         if (message.type() === "error") problems.push(`console: ${message.text()}`);
     });
     page.on("dialog", (dialog) => void dialog.accept());
-    await page.goto(pathToFileURL(skirmishPage).href);
+    await page.goto(skirmishPage());
 }, 120_000);
 
 afterAll(async () => {
@@ -67,7 +69,7 @@ describe("the skirmish in a browser", () => {
         expect(await page.isVisible("#round")).toBe(true);
         expect(await page.isDisabled("#play")).toBe(true);
         expect(await page.isDisabled("#fight")).toBe(true);
-        expect(await page.getAttribute("#editFleet", "class")).toContain("primary");
+        expect(await page.getAttribute("#editFleet", "data-variant")).toBe("primary");
         expect(await page.textContent("#fleetNote")).toContain("over budget");
         expect(await page.locator("#budget tr.over").count()).toBeGreaterThan(0);
         await page.click("#abandon");
@@ -137,8 +139,8 @@ describe("the skirmish in a browser", () => {
         await page.click("#start");
         expect(await page.isDisabled("#play")).toBe(false);
         expect(await page.textContent("#roundTitle")).toBe("Round 1");
-        expect(await page.getAttribute("#fight", "class")).toContain("primary");
-        expect(await page.getAttribute("#editFleet", "class")).not.toContain("primary");
+        expect(await page.getAttribute("#fight", "data-variant")).toBe("primary");
+        expect(await page.getAttribute("#editFleet", "data-variant")).not.toBe("primary");
         await page.click("#fight");
         // It waits on the battle; pausing is the header's.
         expect(await page.textContent("#fight")).toBe("Fighting…");
@@ -188,8 +190,8 @@ describe("the skirmish in a browser", () => {
         expect(await page.inputValue("#fleetName")).toBe("Gunship");
         expect(await page.isVisible("#battleLink")).toBe(false);
         await page.click("#backToSkirmish");
-        await page.waitForURL(/skirmish\.html/);
-        await page.waitForSelector("#round:not([hidden])");
+        await page.waitForURL(/#\/skirmish/);
+        await page.waitForSelector("#round");
         expect(await page.textContent("#playerName")).toBe("Gunship");
         // Leaving the editor by a link saved the fleet.
         expect(await page.evaluate(() => window.localStorage.getItem("scs2d.fleet.Gunship") !== null)).toBe(true);
@@ -266,8 +268,8 @@ describe("the skirmish in a browser", () => {
     it("makes editing the fleet the thing to do next once a round is lost", async () => {
         // A bare core cannot fire back, so it is out once the quiet time has passed.
         const skirmish = newSkirmish(shipFleet(GUNSHIP), shipFleet(BARE_CORE), 7, undefined, { metal: 1e9, fuel: 1e9, build: 1e9 });
-        await page.goto(pathToFileURL(skirmishPage).href + skirmishFragment(skirmish));
-        await page.waitForSelector("#round:not([hidden])");
+        await page.goto(skirmishPage(skirmish));
+        await page.waitForSelector("#round");
         await page.selectOption("#speed", "16");
         await page.click("#fight");
         await page.waitForSelector("#outcome.lost", { timeout: 60_000 });
@@ -275,7 +277,7 @@ describe("the skirmish in a browser", () => {
         expect(await page.isVisible("#decided.lost")).toBe(true);
         expect(await page.textContent("#decidedTitle")).toMatch(/^Defeat at \d+ s$/);
         expect(await page.textContent("#decidedReason")).toBe("Your fleet has nothing left to fight with.");
-        expect(await page.getAttribute("#editFleet", "class")).toContain("primary");
+        expect(await page.getAttribute("#editFleet", "data-variant")).toBe("primary");
         expect(await page.isVisible("#fight")).toBe(false);
 
         // Exported, the skirmish carries what it would take to ask why the round went as it did.
@@ -298,7 +300,7 @@ describe("the skirmish in a browser", () => {
         await page.click("#abandon");
         await page.waitForSelector("#round", { state: "hidden" });
         await page.setInputFiles("#importSkirmishFile", await download.path());
-        await page.waitForSelector("#round:not([hidden])");
+        await page.waitForSelector("#round");
         // The try the lost round counted comes back with it.
         expect(await page.textContent("#roundTitle")).toBe("Round 1 · try 2");
         const back = JSON.parse((await page.evaluate(() => localStorage.getItem("scs2d.skirmish.history")))!) as { rows: unknown[] };
@@ -311,24 +313,32 @@ describe("the skirmish in a browser", () => {
     it("watches the enemy evolve an answer to a round won, and goes on to the next round", async () => {
         // The player's Corvette beats the same Corvette on seed 25, and a mirror is answered in a generation or two.
         const skirmish = won(newSkirmish(shipFleet(CORVETTE), shipFleet(CORVETTE), 25));
-        await page.goto(pathToFileURL(skirmishPage).href + skirmishFragment(skirmish));
-        await page.waitForSelector("#answering:not([hidden])");
+        await page.goto(skirmishPage(skirmish));
+        await page.waitForSelector("#answering");
         expect(await page.isVisible("#editFleet")).toBe(false);
         expect(await page.isVisible("#fight")).toBe(false);
         // Spinning while it searches, and only then.
         expect(
-            await page.evaluate(() => document.getElementById("answerSpinner")!.hidden === !document.getElementById("answered")!.hidden),
+            await page.evaluate(
+                () => (document.getElementById("answerSpinner") !== null) === (document.getElementById("answered") === null),
+            ),
         ).toBe(true);
-        await page.waitForSelector("#answered:not([hidden])", { timeout: 90_000 });
+        // The search goes on while the player looks at another route, and is there to come back to.
+        await page.getByRole("link", { name: "Library" }).click();
+        await page.waitForTimeout(1500);
+        await page.getByRole("link", { name: "Skirmish", exact: true }).click();
+        await page.waitForSelector("#answering");
+        expect(await page.textContent("#answerProgress")).not.toMatch(/fighting the first generation/);
+        await page.waitForSelector("#answered", { timeout: 90_000 });
         expect(await page.isVisible("#answerSpinner")).toBe(false);
         expect(await page.textContent("#answerProgress")).toMatch(/^Found in generation \d+/);
         // The answer heads the timeline, the enemy's losses before it folded away.
         const first = page.locator("#timeline > .match").first();
-        expect(await first.locator(".matchHead span").textContent()).toBe("Round 1 · the enemy's answer");
+        expect(await first.locator(".match-head span").textContent()).toBe("Round 1 · the enemy's answer");
         // Only the player's side is stamped.
         expect(await first.locator(".stamp").allTextContents()).toEqual(["DEFEAT"]);
         expect(await page.locator("#timeline canvas").count()).toBeGreaterThan(0);
-        await first.locator(".matchHead button").click();
+        await first.locator(".match-head button").click();
         expect(await page.isVisible("#replaying")).toBe(true);
         await page.click("#backToRound");
         expect(await page.isVisible("#replaying")).toBe(false);
@@ -337,7 +347,7 @@ describe("the skirmish in a browser", () => {
         expect(await page.textContent("#multiplier")).toMatch(/^Playing against a [\d.]+× enemy/);
         expect(await page.isVisible("#answering")).toBe(false);
         expect(await page.isVisible("#editFleet")).toBe(true);
-        expect(await page.getAttribute("#fight", "class")).toContain("primary");
+        expect(await page.getAttribute("#fight", "data-variant")).toBe("primary");
         expect(problems).toEqual([]);
     }, 120_000);
 });

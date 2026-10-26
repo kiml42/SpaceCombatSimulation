@@ -9,7 +9,6 @@ import {
     canFight,
     DEFAULT_SKIRMISH_SETTINGS,
     fleetFault,
-    handedSkirmish,
     lost,
     newSkirmish,
     multiplierOf,
@@ -21,10 +20,17 @@ import {
     parseSkirmish,
     roundSetup,
     serialiseSkirmish,
+    type Skirmish,
     settingsOf,
-    skirmishFragment,
     won,
 } from "../scenarios/skirmish.js";
+import { handedSkirmish, skirmishRoute } from "../editor/handoff.js";
+
+/** A skirmish carried in the skirmish route's address, and read back. */
+const viaLink = (skirmish: Skirmish) => {
+    const route = skirmishRoute(skirmish);
+    return handedSkirmish(new URLSearchParams(route.slice(route.indexOf("?"))));
+};
 
 const lone = (name: string, design: typeof GUNSHIP): Fleet => ({
     name,
@@ -279,17 +285,17 @@ describe("the skirmish", () => {
         expect(next.seed).toBe(skirmish.won);
     });
 
-    it("round-trips, an empty fleet and all, through a link fragment", () => {
+    it("round-trips, an empty fleet and all, through a link", () => {
         const skirmish = newSkirmish(LINE_OF_BATTLE, empty, 9);
-        const back = handedSkirmish(skirmishFragment(skirmish));
+        const back = viaLink(skirmish);
         expect(back && serialiseSkirmish(back)).toEqual(serialiseSkirmish(skirmish));
-        expect(handedSkirmish("#fleet=x")).toBeNull();
+        expect(handedSkirmish(new URLSearchParams("fleet=x"))).toBeNull();
     });
 
     it("keeps the settings it is played under, and reads one saved without them as the defaults", () => {
         const settings = { ...DEFAULT_SKIRMISH_SETTINGS, quietTime: 45, gap: 4000, closingSpeed: -10, breeding: { kindTank: 7 } };
         const skirmish = newSkirmish(gunship, gunship, 5, settings);
-        const back = handedSkirmish(skirmishFragment(skirmish))!;
+        const back = viaLink(skirmish)!;
         expect(settingsOf(back)).toEqual(settings);
         expect(settingsOf(newSkirmish(gunship, gunship, 5))).toEqual(DEFAULT_SKIRMISH_SETTINGS);
         // Settings saved before answers had a margin keep none.
@@ -343,7 +349,7 @@ describe("the skirmish", () => {
         const skirmish = newSkirmish(gunship, gunship, 5);
         expect(multiplierOf(skirmish)).toBe(1);
         const grown = { ...skirmish, multiplier: 2.25 };
-        expect(multiplierOf(handedSkirmish(skirmishFragment(grown))!)).toBe(2.25);
+        expect(multiplierOf(viaLink(grown)!)).toBe(2.25);
         // It carries on into the next round.
         expect(multiplierOf(nextRound(grown, gunship))).toBe(2.25);
         expect(() => parseSkirmish({ ...serialiseSkirmish(skirmish), multiplier: 0 })).toThrow(/multiplier/);

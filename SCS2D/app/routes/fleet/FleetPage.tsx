@@ -2,6 +2,7 @@ import { styled } from "@linaria/react";
 import { useEffect, useEffectEvent, useReducer, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useLibrary } from "~/features/storage/useLibrary";
+import { useSkirmish } from "~/features/skirmish/SkirmishProvider";
 import { useStorage } from "~/features/storage/StorageContext";
 import type { FleetCanvas as Engine } from "~/editor/fleetCanvas";
 import { ANGLE_SNAP_DEGREES } from "~/editor/fleetCanvas";
@@ -12,7 +13,7 @@ import { Library, nextName, SHIPS, unusedName } from "~/editor/library";
 import { snap } from "~/editor/edit";
 import type { KeyRow } from "~/host/keyHelp";
 import { snapStep } from "~/render/camera";
-import { serialiseSkirmish, skirmishFragment, SKIRMISH_STORAGE_KEY, type Skirmish } from "~/scenarios/skirmish";
+import { serialiseSkirmish, type Skirmish } from "~/scenarios/skirmish";
 import { parseBlueprint, parseFleet, serialiseFleet, type Blueprint, type Fleet } from "~/sim/index";
 import { KeyHelp } from "~/ui/dialogs/KeyHelp";
 import { CommitText } from "~/ui/fields/CommitText";
@@ -148,6 +149,7 @@ function handed(search: URLSearchParams): { fleet: Fleet; skirmish: Skirmish | n
  */
 export function FleetPage() {
     const storage = useStorage();
+    const skirmishes = useSkirmish();
     const { ships, fleets } = useLibrary();
     const [search, setSearch] = useSearchParams();
     const navigate = useNavigate();
@@ -210,16 +212,11 @@ export function FleetPage() {
     const now: Skirmish | null = skirmish === null ? null : { ...skirmish, player: doc.fleet };
     const view = doc.view;
     const flies = view.faults.length === 0;
-    // Kept as it is edited, in the address and in storage, so a reload or the skirmish picks up where this left off.
+    // Kept as it is edited, in the address and as the skirmish under way, so a reload or the skirmish picks up where this left off.
     const remember = useEffectEvent(() => {
         if (now === null) return;
-        const text = JSON.stringify(serialiseSkirmish(now));
-        setSearch({ skirmish: text }, { replace: true });
-        try {
-            storage.setItem(SKIRMISH_STORAGE_KEY, text);
-        } catch {
-            // Storage full or refused: the address still has it.
-        }
+        setSearch({ skirmish: JSON.stringify(serialiseSkirmish(now)) }, { replace: true });
+        skirmishes.setSkirmish(now);
     });
     const fleet = doc.fleet;
     useEffect(() => {
@@ -401,7 +398,7 @@ export function FleetPage() {
                 ) : (
                     <Back
                         id="backToSkirmish"
-                        href={`skirmish.html${skirmishFragment(now)}`}
+                        href="#/skirmish"
                         title="Fight the skirmish round with this fleet"
                         aria-disabled={skirmishBlock(now, flies) !== null}
                         onClick={(event) => {
@@ -411,7 +408,9 @@ export function FleetPage() {
                                 window.alert(flies ? block : `Fix the fleet first: ${view.faults[0]}`);
                                 return;
                             }
-                            keep();
+                            event.preventDefault();
+                            skirmishes.setSkirmish(now);
+                            void navigate("/skirmish");
                         }}
                     >
                         Back to battle
