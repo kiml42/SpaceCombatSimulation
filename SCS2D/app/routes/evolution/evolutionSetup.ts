@@ -139,7 +139,7 @@ export function rivalTexts(form: SetupForm): Texts {
     return form.rivalOwn ? form.rival : sideOf(form.texts);
 }
 
-/** The form as it is kept, in the shape the evolution page has always kept it. */
+/** The form as it is kept, in the shape the old evolution page kept it, so its settings carry over. */
 export function heldOf(form: SetupForm): Record<string, string> {
     const held: Record<string, string> = { ...form.texts, goal: form.goal };
     const rival = rivalTexts(form);

@@ -4,12 +4,8 @@ import { parseSkirmish, serialiseSkirmish, type Skirmish } from "../scenarios/sk
 /**
  * Handing what one screen holds to another: a ship or fleet to a battle, a
  * fleet's design to the ship editor and back, a skirmish's fleet to the fleet
- * editor.
- *
- * Carried in the address rather than in browser storage, which some browsers
- * do not share between pages opened as files. Each is a route of the app
- * (`…Route`, for a link within it) and that route's address from a page
- * beside it (`…Href`).
+ * editor. Each is a route of the app, carrying what it hands over in its
+ * search, so a reload or a link opens the same thing.
  */
 
 const param = (value: unknown): string => encodeURIComponent(JSON.stringify(value));
@@ -17,11 +13,6 @@ const param = (value: unknown): string => encodeURIComponent(JSON.stringify(valu
 /** The app's battle route, carrying this fleet as its first side. */
 export function battleRoute(fleet: Fleet): string {
     return `/battle?fleet=${param(serialiseFleet(fleet))}`;
-}
-
-/** `battleRoute`, from a page beside the app. */
-export function battleHref(fleet: Fleet): string {
-    return `index.html#${battleRoute(fleet)}`;
 }
 
 export { shipFleet };
@@ -43,11 +34,6 @@ export function designRoute(handed: DesignInFleet): string {
         ...(handed.skirmish === undefined ? {} : { skirmish: serialiseSkirmish(handed.skirmish) }),
     };
     return `/ship?design=${param(value)}`;
-}
-
-/** `designRoute`, from a page beside the app. */
-export function designHref(handed: DesignInFleet): string {
-    return `index.html#${designRoute(handed)}`;
 }
 
 /** The fleet design the ship route's address carries, or null. Throws on one that is there but unreadable. */
@@ -72,11 +58,6 @@ export function fleetRoute(fleet: Fleet, skirmish?: Skirmish): string {
     return skirmish === undefined
         ? `/fleet?fleet=${param(serialiseFleet(fleet))}`
         : `/fleet?skirmish=${param(serialiseSkirmish({ ...skirmish, player: fleet }))}`;
-}
-
-/** `fleetRoute`, from a page beside the app. */
-export function fleetHref(fleet: Fleet, skirmish?: Skirmish): string {
-    return `index.html#${fleetRoute(fleet, skirmish)}`;
 }
 
 /** What the fleet route's address hands it: a fleet, alone or as a skirmish's. Throws on one it cannot read. */

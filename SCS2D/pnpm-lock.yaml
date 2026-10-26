@@ -66,9 +66,6 @@ importers:
       '@wyw-in-js/vite':
         specifier: ^2.7.0
         version: 2.7.0(typescript@6.0.3)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(terser@5.51.2)(tsx@4.23.15))
-      esbuild:
-        specifier: ^0.28.2
-        version: 0.28.2
       eslint:
         specifier: ^10.13.0
         version: 10.13.0

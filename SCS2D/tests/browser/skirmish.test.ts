@@ -13,7 +13,7 @@ import { shipFleet, type Blueprint } from "../../sim/index.js";
 import { BARE_CORE, CORVETTE, GUNSHIP } from "../../scenarios/blueprints.js";
 import { DEFAULT_SKIRMISH_SETTINGS, newSkirmish, won, type Skirmish } from "../../scenarios/skirmish.js";
 import { DEFAULT_KINDS } from "../../evolution/mutate.js";
-import { designHref, fleetHref, skirmishRoute } from "../../editor/handoff.js";
+import { designRoute, fleetRoute, skirmishRoute } from "../../editor/handoff.js";
 
 /**
  * The skirmish loop in a real browser: choosing an enemy and a fleet, fighting,
@@ -231,12 +231,12 @@ describe("the skirmish in a browser", () => {
             name: "Adrift",
             modules: [...GUNSHIP.modules, { kind: "engine", x: 0, y: 200, length: 3, width: 3 }],
         };
-        const href = designHref({
+        const route = designRoute({
             fleet: shipFleet(adrift),
             design: "Adrift",
             skirmish: newSkirmish(shipFleet(GUNSHIP), shipFleet(GUNSHIP), 3),
         });
-        await page.goto(pathToFileURL(join(root, "dist", "index.html")).href + href.slice("index.html".length));
+        await page.goto(`${pathToFileURL(join(root, "dist", "index.html")).href}#${route}`);
         await page.waitForSelector("#backToFleet");
         expect(await page.textContent("#inFleetNote")).toBe("Priced once the fleet would fly.");
         expect(await page.textContent("#inFleetBudget")).toBe("");
@@ -257,8 +257,7 @@ describe("the skirmish in a browser", () => {
             ],
         };
         const skirmish = { ...newSkirmish(stacked, stacked, 3), player: stacked };
-        const href = fleetHref(skirmish.player, skirmish);
-        await page.goto(pathToFileURL(join(root, "dist", "index.html")).href + href.slice("index.html".length));
+        await page.goto(`${pathToFileURL(join(root, "dist", "index.html")).href}#${fleetRoute(skirmish.player, skirmish)}`);
         await page.waitForSelector("#backToSkirmish");
         expect(await page.textContent("#skirmishNote")).toBe("Fix the problems listed to fight.");
         expect(await page.getAttribute("#backToSkirmish", "aria-disabled")).toBe("true");

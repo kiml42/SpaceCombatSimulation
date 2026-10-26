@@ -12,7 +12,7 @@ const config: StorybookConfig = {
     framework: "@storybook/react-vite",
     core: { disableTelemetry: true },
     viteFinal(config) {
-        // The app's one-file build and its view of the old pages mean nothing here.
+        // The app's one-file build means nothing here.
         return {
             ...config,
             publicDir: false,

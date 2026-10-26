@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { BLUEPRINTS } from "~/scenarios/blueprints";
-import { battleHref, shipFleet } from "~/editor/handoff";
+import { battleRoute, shipFleet } from "~/editor/handoff";
 import { serialiseFleet } from "~/sim/index";
 import { routeOfLegacyHash } from "./legacyLinks";
 
@@ -18,8 +18,8 @@ test("an old handed fleet opens the battle route, and reads back as the fleet", 
 
 test("an editor's Battle link opens the battle route directly", () => {
     const fleet = shipFleet(Object.values(BLUEPRINTS)[0]!);
-    const href = battleHref(fleet);
-    expect(href.startsWith("index.html#/battle?fleet=")).toBe(true);
+    const href = battleRoute(fleet);
+    expect(href.startsWith("/battle?fleet=")).toBe(true);
     expect(JSON.parse(new URLSearchParams(href.slice(href.indexOf("?"))).get("fleet")!)).toEqual(serialiseFleet(fleet));
 });
 

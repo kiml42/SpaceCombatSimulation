@@ -3,7 +3,7 @@ import { expandFleet, serialiseFleet } from "../sim/index.js";
 import { LINE_OF_BATTLE } from "../scenarios/fleets.js";
 import { newSkirmish } from "../scenarios/skirmish.js";
 import { replaceDesign, replacedName } from "../editor/fleetEdit.js";
-import { designHref, fleetHref, handedDesign, handedToFleet } from "../editor/handoff.js";
+import { designRoute, fleetRoute, handedDesign, handedToFleet } from "../editor/handoff.js";
 
 describe("a fleet design edited in the ship editor", () => {
     it("goes back to every ship of it, in groups too", () => {
@@ -40,8 +40,8 @@ const search = (href: string): URLSearchParams => new URLSearchParams(href.slice
 describe("handing a fleet design over and back", () => {
     it("round-trips the fleet, the design and the skirmish", () => {
         const skirmish = newSkirmish(LINE_OF_BATTLE, LINE_OF_BATTLE, 4);
-        const href = designHref({ fleet: LINE_OF_BATTLE, design: "Corvette", skirmish });
-        expect(href).toMatch(/^index\.html#\/ship\?design=/);
+        const href = designRoute({ fleet: LINE_OF_BATTLE, design: "Corvette", skirmish });
+        expect(href).toMatch(/^\/ship\?design=/);
         const back = handedDesign(search(href))!;
         expect(back.design).toBe("Corvette");
         expect(serialiseFleet(back.fleet)).toEqual(serialiseFleet(LINE_OF_BATTLE));
@@ -55,11 +55,11 @@ describe("handing a fleet design over and back", () => {
     });
 
     it("goes back to the fleet editor as the fleet, or as the skirmish it is in", () => {
-        const plain = fleetHref(LINE_OF_BATTLE);
-        expect(plain).toMatch(/^index\.html#\/fleet\?fleet=/);
+        const plain = fleetRoute(LINE_OF_BATTLE);
+        expect(plain).toMatch(/^\/fleet\?fleet=/);
         expect(handedToFleet(search(plain))).toMatchObject({ fleet: { name: LINE_OF_BATTLE.name }, skirmish: null });
-        const inSkirmish = fleetHref(LINE_OF_BATTLE, newSkirmish(LINE_OF_BATTLE, LINE_OF_BATTLE, 1));
-        expect(inSkirmish).toMatch(/^index\.html#\/fleet\?skirmish=/);
+        const inSkirmish = fleetRoute(LINE_OF_BATTLE, newSkirmish(LINE_OF_BATTLE, LINE_OF_BATTLE, 1));
+        expect(inSkirmish).toMatch(/^\/fleet\?skirmish=/);
         expect(handedToFleet(search(inSkirmish))?.skirmish?.seed).toBe(1);
         expect(handedToFleet(new URLSearchParams())).toBeNull();
     });

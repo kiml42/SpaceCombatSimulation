@@ -38,7 +38,7 @@ import type { Command, Held, Logged, Order } from "../scenarios/commands.js";
 import type { Battle } from "../scenarios/types.js";
 import { Rewind } from "../scenarios/rewind.js";
 import { viewGestures } from "./viewGestures.js";
-import { keepSpeed, loadView, saveView, type ViewSettings } from "./viewSettings.js";
+import { loadView, saveView, type ViewSettings } from "./viewSettings.js";
 
 /**
  * A battle drawn on a canvas and run on the wall clock: the camera, the
@@ -121,11 +121,6 @@ export interface BattleView {
     setSpeed(speed: number): void;
     /** Frame the picked ships and what they are about, or everything if none are, and keep it framed. */
     fit(): void;
-    /**
-     * Remember this page's arcs, shot colours and speed between visits, taking
-     * the speed from and to this list.
-     */
-    keep(page: string, speed: HTMLSelectElement): void;
     /** Remember this page's arcs and shot colours between visits, leaving the speed to the page; `defaults` for a page with none kept. */
     keepView(page: string, defaults?: ViewSettings): void;
     /** Stop the clock and let go of the window, for a page that takes the view away. */
@@ -804,10 +799,6 @@ export function battleView(
         fit() {
             autoFrame = true;
             framePicked = true;
-        },
-        keep(page, select) {
-            this.keepView(page);
-            speed = keepSpeed(select, page, kept!.settings);
         },
         keepView(page, defaults) {
             const settings = loadView(page, defaults ?? { arcs, teamShots, strips, speed });

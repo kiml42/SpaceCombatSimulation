@@ -7,7 +7,7 @@ import type { FleetView } from "../editor/fleetDocument.js";
 import { fleetBlueprint } from "../sim/fleetHangar.js";
 
 /**
- * A fleet drawn small, two ways, as the evolution page and the skirmish's
+ * A fleet drawn small, two ways, as the Evolution route and the skirmish's
  * timeline both show one: each kind of ship once, with how many there are,
  * and the whole fleet as it is arranged.
  */

@@ -153,7 +153,7 @@ afterAll(async () => {
     await browser?.close();
 });
 
-describe("the evolution page in a browser", () => {
+describe("the evolution route in a browser", () => {
     // The run's screen whenever there is a run, as there is after Start; a test
     // that changes the settings goes to them through `set`, `choose` and `press`.
     beforeEach(async () => {

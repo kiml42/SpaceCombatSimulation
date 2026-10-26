@@ -57,132 +57,17 @@ an entry is either still open or it is gone.
 | 13 | Harvesting wrecks | Built |
 | 14 | Orders | Built |
 | 15 | Mining | Built |
-| 16 | React UI | Partly built |
+| 16 | React UI | Built |
 | 17 | WebGL viewer | Not started |
 | 18 | Campaign | Not started |
 
 
 ### Partly built — what is left
 
-16. **React UI** — stages 1–7, the foundation, the shell, the battle viewer, the fleet and ship
-    editors, the skirmish and evolution, are built, and with the last old page went the build that bundled
-    them; stage 8, clearing `host/` of what only the old pages used, is left (below). The app is `dist/index.html`, so the published page is the app, and an old viewer link
-    (`#battle=`, `#fleet=`) is rewritten to the Battle route as it opens.
-    What is built settled, for the work left:
-    - **A route is `app/routes/<name>/`**, listed in `app/routes.tsx` and shown inside `app/Shell.tsx`, which
-      holds the links between them. `app/App.stories.tsx` renders the whole app at a path, on a memory router
-      with storage of its own, which is how a route gets its story.
-    - **Storage goes through `useLibrary` and `useViewSettings`** (`features/storage/`), never `localStorage`,
-      so a save anywhere re-renders whatever shows it. View settings are keyed by the old page's name, so a
-      route that replaces a page keeps its settings.
-    - **A battle is shown through `BattleCanvas`** (`features/battle/`), which creates a `battleView` on mount
-      and disposes of it on unmount; the clock, camera and input stay the engine's. A figure read off the
-      battle goes through `useSampled`, 10 times a second, and every-frame callbacks write to a ref, never to
-      state (non-negotiable 5). The scenes are `scenarios/scenes.ts`.
-    - **What the order controls show is sampled as one piece of text** (`features/orders/orderState.ts`): the side,
-      the picked ships, the armed verb, one ship's orders, an asteroid's contents. They re-render only when it
-      changes, and read anything heavier off the last snapshot then. A doctrine box is uncontrolled and tells
-      its field when left or on Enter, re-keyed by its value so it shows what the ships go by after.
-    - **A setting is a `NumberField`** (`ui/fields/`), with its ± where it has one, holding its box's text as
-      typed; the page turns the text into numbers, defaults for what does not read, as `customSetup.ts` does.
-    - **Work that outlives a route lives in a provider above the router**, as the skirmish's does
-      (`features/skirmish/`): the skirmish, its history and the enemy's search, which runs in a worker the
-      app inlines (`?worker&inline`) and goes on while the player is elsewhere. The route subscribes to
-      what it hears and shows it; a route never owns a worker.
-    - **Settings cards are `SettingFields`** (`features/settings/`): a group of `SettingField`s as
-      `NumberField` rows, each box's text kept as typed and read by `settingValue`.
-    - **A box that edits as it is typed is a `LiveText` or `LiveNumber`** (`ui/fields/`): the page applies
-      every key it can read, and the box keeps what was typed until it is left. A gesture is one undo step:
-      the first edit applies, the rest amend it, until the box is left.
-    - **A button is `ui/buttons/Button`**, or `ToggleButton` for one that stays pressed, both Base UI's
-      underneath: `variant` says whether it is plain, the one thing to do next (`primary`) or a small one
-      holding a symbol (`icon`). Never a bare `<button>` in React.
-    - **An editor's canvas is an engine of its own** (`editor/fleetCanvas.ts`), as `battleView` is: the
-      pointer, the keys and the drawing, over a document it shares with the page. The route holds the
-      document, which is changed in place with its undo, and re-renders the panel by a counter the engine
-      and the panel bump on every change. A name or note is a `CommitText` (`ui/fields/`), one undo step
-      when finished rather than one a key.
-    - **axe does not fail a story on colour contrast**, only on what it is sure of: contrast it marks for
-      review, so a token change wants looking at in Storybook's accessibility panel.
+Nothing: every step started is built.
 
 ### Not started — in order
 
-16. **React UI** — Port all the plain HTML and DOM processing to React, componentised with Storybook. **Set
-    it up as it is used professionally** — the tooling, structure and component conventions in the target
-    state below — because a large part of the point is for Kiml42 to learn React in a form that carries
-    straight over to work. What we hope to get out of this:
-    - Kiml42 learns to work with React, set up the way it is used professionally
-    - Improve how the UI looks and behaves
-    - Allow component reuse
-
-    The target state:
-    - **Build and tooling.** React with TypeScript, built by Vite in place of `scripts/build.ts`, still one
-      self-contained file that opens from disk. One page, an SPA, routed by React Router's hash router
-      (`createHashRouter`): the history API does not work from `file://`, and this is a static site, so no
-      router framework or server rendering. Vite's dev server for local work. pnpm as the
-      package manager. ESLint alongside Prettier, with Prettier set to four-space indents and double quotes.
-      TypeScript stays a major ahead (DESIGN.md §5).
-    - **Components.** Base UI where it has the component, Font Awesome for icons. Styles in Linaria
-      (`styled`, extracted at build time, no runtime), with colours and sizes as CSS custom properties in
-      one tokens folder, linted by Stylelint.
-    - **Storybook.** Every component has a story beside it (`Thing.tsx`, `Thing.stories.tsx`) with
-      autodocs, and `play` functions asserting what it should do. Addons: vitest, a11y, docs,
-      pseudo-states and design tokens.
-    - **Tests.** Two Vitest projects: `unit`, the existing tests plus components in `happy-dom`, and
-      `storybook`, every story in headless Chromium with an accessibility check on each. The second joins
-      the browser suite, so the cold-checkout suite still needs no browser.
-    - **Layout.** Feature-first and colocated: a component starts next to the one page using it, moves to
-      a shared feature folder when a second page needs it, and to `ui/` when it is a presentational
-      design-system piece. Imports flow one way, pages → features → `ui/` → `lib/`, and `ui/` takes plain
-      props and imports nothing above it — enforced by ESLint `no-restricted-imports`, as the `sim/`
-      boundary is by tsconfig. No barrel `index.ts` files; cross-folder imports through a `~/` alias.
-
-    **In stages, new beside old.** The SPA is a bundle of its own beside the five pages, and pages move into
-    it one at a time; an old page goes only once its route does everything it did. Links between the two
-    use the URL handoff that already works (`editor/handoff.ts`), and an old page's links point at a page's
-    route once it has moved. No old page is wrapped inside the SPA to get there sooner: none was written to
-    be torn down — window listeners, animation loops, workers — and making five of them clean up after
-    themselves is work on code that exists to be deleted. The stages:
-
-    1. **Foundation, with no page in it.** pnpm, Vite, React, ESLint, Linaria, Storybook and the two Vitest
-       projects, building an empty SPA as one file that opens from disk. Prettier's new style lands first
-       as a commit of its own, listed in `.git-blame-ignore-revs`, since it rewrites every line and would
-       otherwise bury every later diff. First because each risk here is tooling and could change the
-       plan: Vite emits module scripts, which a browser will not load from `file://`, so the script and the
-       answer worker must be inlined; typescript-eslint must work with TypeScript 7's rewritten compiler;
-       Linaria's build step must work under Vite.
-    2. **The shell: hash routes, and one library and one set of view settings** as React context over
-       `localStorage`. Before any page, because the library is what every page shares and sharing it is
-       the point of the SPA; its shape is got right once, not retrofitted at the second page to use it.
-    3. **Battle viewer.** The biggest risk first: the canvas component React mounts and ignores, with the
-       clock outside React and telemetry sampled at ~10 Hz, is the pattern most likely to go wrong, and is
-       better learned on a mid-sized page than found broken in evolution. It is also the renderer interface
-       step 17 needs, and the page every other one hands off to. Its panels — custom battle, doctrine, order
-       bar, settings — are where the buttons and fields every later page needs are built, each promoted to
-       `ui/` when a second page wants it rather than built ahead as a library.
-    4. **Fleet editor.** Mostly forms and tables, reusing the library and the canvas component. With it,
-       ships and fleets saved in the SPA are one library on Firefox, which opened as files gives every page
-       storage of its own — the first real payoff.
-    5. **Ship editor.** The hardest interaction — drag handles, snapping, undo, overlays on the canvas — so
-       after the canvas component has matured and the fleet editor's round trip to a design exists. Its
-       edit model is already DOM-free and tested (`edit.ts`, `document.ts`, `stats.ts`), so `page.ts` is
-       mostly wiring.
-    6. **Skirmish.** Reuses the battle view, the fleet editor and the settings fields. Its answer worker is
-       the first the SPA owns, and **it keeps evolving while the player edits their fleet**, which separate
-       pages never could: the answer starts sooner. It is bred against the fleet as it stood before the
-       edit, which is fine for anything generally better and wasted only on specifics the edit changed.
-    7. **Evolution.** The largest page, so last, reusing the most: the mutation and settings fields it
-       shares with skirmish, and the timeline. Its charts stay Canvas2D or become SVG.
-    8. **The old build goes:** `scripts/build.ts` and the page shells went with the evolution page; left is
-       what in `host/` only they used (`dom.ts`, the DOM halves of `settingsFields.ts`, `mapFields.ts` and
-       `keyHelp.ts`, `keepSpeed` and `battleView.keep`), the `esbuild` dependency, and the old pages' names
-       in `handoff.ts`'s addresses, keeping the routes that links share.
-
-    Before WebGL, because it is the larger and riskier change, and it rewrites the code that mounts the canvas
-    anyway. The battle view becomes a component React mounts and then ignores (non-negotiable 5), and that
-    component is the renderer interface §5 asks for and does not yet have: five pages call `draw` with a
-    2D context they fetched themselves, and the editor overlays draw on that same context. Building the
-    seam in the plain-DOM pages for WebGL's sake would mean building it twice.
 17. **WebGL viewer** — Use WebGL instead of Canvas for more capable visuals, behind the canvas component, with
     the Canvas2D renderer kept as a setting until the WebGL one is ready. What we hope to get out of this:
     - Learn the capabilities of WebGL and how to work with it
@@ -220,6 +105,49 @@ DECISIONS.md.
 Newtonian combat feel good? do the scaling laws hold?) rather than the known ones, kept the sim boundary pure
 by construction, and put something on screen within days. The same test still picks the next step: the one
 that answers the question most likely to change the design.
+
+#### React UI (step 16)
+
+**The app is one page, `dist/index.html`, routed by the hash**, every screen a route; an old viewer link
+(`#battle=`, `#fleet=`) is rewritten to the Battle route as it opens. **The battle view is `BattleCanvas`,
+the seam step 17 puts WebGL behind**: a canvas React mounts and leaves to an engine, which owns the clock, the
+camera and the input; the editors' canvases are engines of the same kind. What else is settled:
+
+- **A route is `app/routes/<name>/`**, listed in `app/routes.tsx` and shown inside `app/Shell.tsx`, which
+  holds the links between them. `app/App.stories.tsx` renders the whole app at a path, on a memory router
+  with storage of its own, which is how a route gets its story.
+- **Storage goes through `useLibrary` and `useViewSettings`** (`features/storage/`), never `localStorage`,
+  so a save anywhere re-renders whatever shows it. View settings are keyed by the old page's name, so a
+  route that replaces a page keeps its settings.
+- **A battle is shown through `BattleCanvas`** (`features/battle/`), which creates a `battleView` on mount
+  and disposes of it on unmount; the clock, camera and input stay the engine's. A figure read off the
+  battle goes through `useSampled`, 10 times a second, and every-frame callbacks write to a ref, never to
+  state (non-negotiable 5). The scenes are `scenarios/scenes.ts`.
+- **What the order controls show is sampled as one piece of text** (`features/orders/orderState.ts`): the side,
+  the picked ships, the armed verb, one ship's orders, an asteroid's contents. They re-render only when it
+  changes, and read anything heavier off the last snapshot then. A doctrine box is uncontrolled and tells
+  its field when left or on Enter, re-keyed by its value so it shows what the ships go by after.
+- **A setting is a `NumberField`** (`ui/fields/`), with its ± where it has one, holding its box's text as
+  typed; the page turns the text into numbers, defaults for what does not read, as `customSetup.ts` does.
+- **Work that outlives a route lives in a provider above the router**, as the skirmish's does
+  (`features/skirmish/`): the skirmish, its history and the enemy's search, which runs in a worker the
+  app inlines (`?worker&inline`) and goes on while the player is elsewhere. The route subscribes to
+  what it hears and shows it; a route never owns a worker.
+- **Settings cards are `SettingFields`** (`features/settings/`): a group of `SettingField`s as
+  `NumberField` rows, each box's text kept as typed and read by `settingValue`.
+- **A box that edits as it is typed is a `LiveText` or `LiveNumber`** (`ui/fields/`): the page applies
+  every key it can read, and the box keeps what was typed until it is left. A gesture is one undo step:
+  the first edit applies, the rest amend it, until the box is left.
+- **A button is `ui/buttons/Button`**, or `ToggleButton` for one that stays pressed, both Base UI's
+  underneath: `variant` says whether it is plain, the one thing to do next (`primary`) or a small one
+  holding a symbol (`icon`). Never a bare `<button>` in React.
+- **An editor's canvas is an engine of its own** (`editor/fleetCanvas.ts`), as `battleView` is: the
+  pointer, the keys and the drawing, over a document it shares with the page. The route holds the
+  document, which is changed in place with its undo, and re-renders the panel by a counter the engine
+  and the panel bump on every change. A name or note is a `CommitText` (`ui/fields/`), one undo step
+  when finished rather than one a key.
+- **axe does not fail a story on colour contrast**, only on what it is sure of: contrast it marks for
+  review, so a token change wants looking at in Storybook's accessibility panel.
 
 #### Mining (step 15)
 

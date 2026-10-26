@@ -3,9 +3,9 @@ import { parseView, viewKey, type ViewSettings } from "~/host/viewSettings";
 import { useStorage } from "./StorageContext";
 
 /**
- * How a page shows a battle, kept between visits under the same key the old
- * page of that name uses. Anything missing or unreadable comes from `defaults`,
- * which should be a constant.
+ * How a route shows a battle, kept between visits under the key of the page it
+ * replaced, so settings kept before carry over. Anything missing or unreadable
+ * comes from `defaults`, which should be a constant.
  */
 export function useViewSettings(page: string, defaults: ViewSettings): [ViewSettings, (change: Partial<ViewSettings>) => void] {
     const storage = useStorage();
