@@ -20,6 +20,7 @@ import {
     parseSkirmish,
     roundSetup,
     serialiseSkirmish,
+    skirmishFileName,
     type Skirmish,
     settingsOf,
     won,
@@ -290,6 +291,19 @@ describe("the skirmish", () => {
         const back = viaLink(skirmish);
         expect(back && serialiseSkirmish(back)).toEqual(serialiseSkirmish(skirmish));
         expect(handedSkirmish(new URLSearchParams("fleet=x"))).toBeNull();
+    });
+
+    it("keeps its name, and names its file for it", () => {
+        const named = newSkirmish(gunship, gunship, 5, undefined, undefined, "  Sam's rematch ");
+        expect(named.name).toBe("Sam's rematch");
+        expect(parseSkirmish(JSON.parse(JSON.stringify(serialiseSkirmish(named)))).name).toBe("Sam's rematch");
+        expect(skirmishFileName({ ...named, round: 3 })).toBe("Sam-s-rematch-round-3.skirmish.json");
+        const unnamed = newSkirmish(gunship, gunship, 5, undefined, undefined, " ");
+        expect(unnamed.name).toBeUndefined();
+        expect("name" in serialiseSkirmish(unnamed)).toBe(false);
+        expect(skirmishFileName(unnamed)).toBe("skirmish-round-1.skirmish.json");
+        expect(skirmishFileName(null)).toBe("skirmish.skirmish.json");
+        expect(() => parseSkirmish({ ...serialiseSkirmish(unnamed), name: 4 })).toThrow(/name/);
     });
 
     it("keeps the settings it is played under, and reads one saved without them as the defaults", () => {
