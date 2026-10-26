@@ -373,7 +373,7 @@ inside any one file is not contiguous.
   mutant is a ship is the layout rules themselves, which refuse an edit rather than repair it, since a
   repair rule would be a second opinion about what a ship is — **edit by edit**, as someone moving things in
   the editor presses undo whenever it goes red and carries on with the next part, so one bad edit costs
-  itself rather than the child. **Every number drifts every generation**, drawn from a bell a few percent
+  itself rather than the child. **Every number drifts every generation**, drawn from a bell about a tenth
   wide with a dead zone around nothing and a rare tail five times as wide; **each part's geometry changes
   with a chance of its own**, so a ship with more parts has more of them change; and **switches** — a
   kind, a flag, a count of barrels — flip rarely. Geometry is measured against the ship: a face, seam or
@@ -418,7 +418,7 @@ inside any one file is not contiguous.
   about the ship at all: what they change is what the next generation can do, and there is no single
   mutation that both invents a grouping and pays off at once. Every operator has its inverse, because one
   that can only add structure is a ratchet a lineage has no way down from. A whole ship can be scaled in one
-  draw — every size, position, corner and assembly placement by one factor, up to a tenth either way at the
+  draw — every size, position, corner and assembly placement by one factor, up to a fifth either way at the
   default magnitude — under `resize`'s weight, so a hull in proportion at one size is tried at another without
   breaking on the way; the scaling laws do not scale with it, which is the question asked. A child's name
   drifts a letter from its parent's one time in ten, from a generator of its own so the drift never moves a
@@ -656,11 +656,11 @@ inside any one file is not contiguous.
   ship taken out leaves its design behind, and a ship added is built to any design the fleet carries or to a bare
   core, so it can grow by one small ship rather than only by a copy of one it has, and it goes in any direction from
   the ship it is beside, clear of it by one and a quarter to two and a quarter times their two radii. **Each child
-  mutates each design with a chance of its own** (`design`, 0.9), so a fleet of four designs breeds each as often as
+  mutates each design with a chance of its own** (`design`, 1), so a fleet of four designs breeds each as often as
   a fleet of one does; **moves every one of its entries** by a drift with no dead zone of a quarter of its largest
   ship's radius and 15°, times `move` (1), leaning away from its nearest neighbour the more the closer it is, so a row
   of fighters moves as far as a fighter and a fleet spreads; and **now and then changes what it is made of**
-  (`change`, 0.3: a ship added or removed, a design forked or merged, a ship swapped or a pad repointed, by their
+  (`change`, 0.6: a ship added or removed, a design forked or merged, a ship swapped or a pad repointed, by their
   weights). Each design's mutation, the change and each entry's move is undone alone if it leaves the fleet unfit. A design nothing
   flies is not mutated, since nothing selects it — unless a pad of a design it flies keeps it, when it is bred as
   a flown one is. A pad is pointed now and then at another fighter, and a slipway at another ship (`pad`, 0.5,
