@@ -18,11 +18,11 @@ import { CustomPanel } from "./custom/CustomPanel";
 import { DEFAULT_FIELDS, fieldsOf, setupOf, slotsOf, type SetupFields, type Slot } from "./custom/customSetup";
 import { KeyHelp } from "~/ui/dialogs/KeyHelp";
 import { AddShip } from "./orders/AddShip";
-import { AsteroidCard } from "./orders/AsteroidCard";
-import { DOCTRINE_KEY, DoctrinePanel } from "./orders/DoctrinePanel";
-import { OrderBar } from "./orders/OrderBar";
-import { useOrderState } from "./orders/orderState";
-import { Scrub } from "./Scrub";
+import { AsteroidCard } from "~/features/orders/AsteroidCard";
+import { DOCTRINE_KEY, DoctrinePanel } from "~/features/orders/DoctrinePanel";
+import { OrderBar } from "~/features/orders/OrderBar";
+import { useOrderState } from "~/features/orders/orderState";
+import { Scrub } from "~/features/battle/Scrub";
 import { Button } from "~/ui/buttons/Button";
 
 /** The old viewer's own, so a speed kept there is kept here. */

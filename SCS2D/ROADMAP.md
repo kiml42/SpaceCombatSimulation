@@ -78,7 +78,7 @@ an entry is either still open or it is gone.
       and disposes of it on unmount; the clock, camera and input stay the engine's. A figure read off the
       battle goes through `useSampled`, 10 times a second, and every-frame callbacks write to a ref, never to
       state (non-negotiable 5). The scenes are `scenarios/scenes.ts`.
-    - **What the order controls show is sampled as one piece of text** (`orders/orderState.ts`): the side,
+    - **What the order controls show is sampled as one piece of text** (`features/orders/orderState.ts`): the side,
       the picked ships, the armed verb, one ship's orders, an asteroid's contents. They re-render only when it
       changes, and read anything heavier off the last snapshot then. A doctrine box is uncontrolled and tells
       its field when left or on Enter, re-keyed by its value so it shows what the ships go by after.
