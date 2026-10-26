@@ -105,6 +105,8 @@ export interface ShipCanvas {
     snapMetres(): number;
     /** The ship's thrust envelope, measured once per layout rather than per frame. */
     envelope(): Envelopes | null;
+    /** The part of the ship's frame in view, metres. */
+    visible(): { x: number; y: number; width: number; height: number };
     /** The ship or the selection changed outside: draw it, and show what is selected working. */
     changed(): void;
     /** Frame the ship at once, at the next draw. */
@@ -760,6 +762,7 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
         },
         snapMetres,
         envelope,
+        visible: () => ({ x: camera.x, y: camera.y, width: canvas.width / camera.scale, height: canvas.height / camera.scale }),
         changed: redraw,
         fit: () => {
             fitPending = true;

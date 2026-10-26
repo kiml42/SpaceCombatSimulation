@@ -53,7 +53,7 @@ it("renders from a file, with its styles, and links to the old pages", async () 
     // Styled by the tokens and by Linaria, so neither was dropped from the one file.
     expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe("rgb(11, 15, 22)");
     expect(await heading.evaluate((element) => getComputedStyle(element).fontWeight)).toBe("600");
-    expect(await page.getByRole("link", { name: "Ship editor" }).getAttribute("href")).toBe("editor.html");
+    expect(await page.getByRole("link", { name: "Skirmish" }).getAttribute("href")).toBe("skirmish.html");
     expect(problems).toEqual([]);
 });
 

@@ -246,7 +246,7 @@ describe("the fleet editor in a browser", () => {
         await page.mouse.click(centre.x, centre.y);
         expect(await page.textContent("#selectionTitle")).toBe("Ship: Gunship");
         await page.click("#editDesign");
-        await page.waitForURL(/editor\.html#design=/);
+        await page.waitForURL(/#\/ship\?design=/);
         expect(await page.textContent("#inFleetTitle")).toBe("In Line of Battle");
         expect(await page.inputValue("#shipName")).toBe("Gunship");
         await page.click("#backToFleet");
@@ -257,7 +257,7 @@ describe("the fleet editor in a browser", () => {
 
     it("opens any design the fleet carries from its list of designs", async () => {
         await page.click('#designList a[data-design="Corvette"]');
-        await page.waitForURL(/editor\.html#design=/);
+        await page.waitForURL(/#\/ship\?design=/);
         expect(await page.textContent("#inFleetTitle")).toBe("In Line of Battle");
         expect(await page.inputValue("#shipName")).toBe("Corvette");
         await page.click("#backToFleet");

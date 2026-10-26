@@ -35,25 +35,26 @@ describe("a fleet design edited in the ship editor", () => {
     });
 });
 
+const search = (href: string): URLSearchParams => new URLSearchParams(href.slice(href.indexOf("?")));
+
 describe("handing a fleet design over and back", () => {
     it("round-trips the fleet, the design and the skirmish", () => {
         const skirmish = newSkirmish(LINE_OF_BATTLE, LINE_OF_BATTLE, 4);
         const href = designHref({ fleet: LINE_OF_BATTLE, design: "Corvette", skirmish });
-        expect(href.startsWith("editor.html#design=")).toBe(true);
-        const back = handedDesign(href.slice("editor.html".length))!;
+        expect(href).toMatch(/^index\.html#\/ship\?design=/);
+        const back = handedDesign(search(href))!;
         expect(back.design).toBe("Corvette");
         expect(serialiseFleet(back.fleet)).toEqual(serialiseFleet(LINE_OF_BATTLE));
         expect(back.skirmish?.seed).toBe(4);
-        expect(handedDesign("#fleet=x")).toBeNull();
+        expect(handedDesign(new URLSearchParams("fleet=x"))).toBeNull();
     });
 
     it("refuses a design the fleet does not have", () => {
-        const hash = "#design=" + encodeURIComponent(JSON.stringify({ fleet: serialiseFleet(LINE_OF_BATTLE), design: "Nothing" }));
-        expect(() => handedDesign(hash)).toThrow(/no design/);
+        const handed = new URLSearchParams({ design: JSON.stringify({ fleet: serialiseFleet(LINE_OF_BATTLE), design: "Nothing" }) });
+        expect(() => handedDesign(handed)).toThrow(/no design/);
     });
 
     it("goes back to the fleet editor as the fleet, or as the skirmish it is in", () => {
-        const search = (href: string): URLSearchParams => new URLSearchParams(href.slice(href.indexOf("?")));
         const plain = fleetHref(LINE_OF_BATTLE);
         expect(plain).toMatch(/^index\.html#\/fleet\?fleet=/);
         expect(handedToFleet(search(plain))).toMatchObject({ fleet: { name: LINE_OF_BATTLE.name }, skirmish: null });

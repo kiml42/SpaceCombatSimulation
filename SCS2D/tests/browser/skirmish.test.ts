@@ -199,13 +199,15 @@ describe("the skirmish in a browser", () => {
     it("opens a ship of the fleet in the ship editor, and takes it back renamed", async () => {
         await page.click("#editFleet");
         await page.waitForURL(/index\.html#\/fleet\?skirmish=/);
-        await page.waitForSelector("#stats");
+        // The fleet route's own box: the address changes before the route on it is drawn.
+        await page.waitForSelector("#fleetName");
         // The lone gunship stands at the fleet's origin, in the middle of the view.
         const box = (await page.locator("#view").boundingBox())!;
         await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
         expect(await page.textContent("#selectionTitle")).toBe("Ship: Gunship");
         await page.click("#editDesign");
-        await page.waitForURL(/editor\.html#design=/);
+        await page.waitForURL(/#\/ship\?design=/);
+        await page.waitForSelector("#shipName");
         expect(await page.isVisible("#backToFleet")).toBe(true);
         expect(await page.isVisible("#battleLink")).toBe(false);
         expect(await page.textContent("#inFleetTitle")).toBe("Skirmish — round 1");
@@ -213,7 +215,7 @@ describe("the skirmish in a browser", () => {
         await page.fill("#shipName", "Gunship Mk II");
         await page.click("#backToFleet");
         await page.waitForURL(/index\.html#\/fleet\?skirmish=/);
-        await page.waitForSelector("#stats");
+        await page.waitForSelector("#fleetName");
         await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
         expect(await page.textContent("#selectionTitle")).toBe("Ship: Gunship Mk II");
         expect(await page.isVisible("#skirmish")).toBe(true);
@@ -231,14 +233,15 @@ describe("the skirmish in a browser", () => {
             design: "Adrift",
             skirmish: newSkirmish(shipFleet(GUNSHIP), shipFleet(GUNSHIP), 3),
         });
-        await page.goto(pathToFileURL(join(root, "dist", "editor.html")).href + href.slice("editor.html".length));
-        await page.waitForSelector("#backToFleet:not([hidden])");
+        await page.goto(pathToFileURL(join(root, "dist", "index.html")).href + href.slice("index.html".length));
+        await page.waitForSelector("#backToFleet");
         expect(await page.textContent("#inFleetNote")).toBe("Priced once the fleet would fly.");
         expect(await page.textContent("#inFleetBudget")).toBe("");
         // It cannot go back to the fleet, or into a battle, until it would fly.
-        expect(await page.getAttribute("#backToFleet", "class")).toContain("blocked");
-        await page.click("#backToFleet");
-        expect(page.url()).toContain("editor.html#design=");
+        expect(await page.getAttribute("#backToFleet", "aria-disabled")).toBe("true");
+        // Pressed anyway, it says why and stays.
+        await page.click("#backToFleet", { force: true });
+        expect(page.url()).toContain("#/ship?design=");
         expect(problems).toEqual([]);
     });
 
