@@ -16,6 +16,8 @@
     --colour-faint: #5d6f85;
     --colour-link: #7fa8e0;
     --colour-warning: #e9c05f;
+    --colour-ok: #7fd6a0;
+    --colour-danger: #e8796b;
 
     /**
      * @tokens Font
@@ -54,7 +56,8 @@ a {
 
 button,
 select,
-input {
+input,
+textarea {
     font: inherit;
 }
 
@@ -68,7 +71,9 @@ select {
     cursor: pointer;
 }
 
-input[type="number"] {
+input[type="number"],
+input[type="text"],
+textarea {
     padding: 0.15rem 0.3rem;
     border: 1px solid var(--colour-control-border);
     border-radius: 3px;

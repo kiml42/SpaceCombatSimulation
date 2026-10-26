@@ -58,7 +58,7 @@ sim/        pure TS simulation (see non-negotiables 1–4)
 render/     the view; consumes snapshots, knows no game rules
             (camera.ts is DOM-free arithmetic, so it is unit-tested)
 editor/     the blueprint and fleet editors; only page.ts, overlay.ts,
-            fleetPage.ts and fleetOverlay.ts touch the DOM, so the edit
+            fleetCanvas.ts and fleetOverlay.ts touch the DOM, so the edit
             models, the stats and the library are unit-tested
 app/        the React app, one page with a hash route per screen under
             app/routes/ (ROADMAP.md §8 step 16): the pages below move
@@ -106,7 +106,7 @@ Keep these working — they are the cold-start re-entry path:
   `--against latest | founder | <stock ship> | <blueprint or fleet file>`; a co-evolution run is measured as
   a grid of each side's round champions against the other's, `--samples` a side and `--seeds` matches a cell
 - `pnpm build` — bundle the React app to `dist/index.html`, and each page not yet in it to `dist/editor.html`,
-  `dist/fleet.html`, `dist/evolution.html` and `dist/skirmish.html`, one file each with nothing external
+  `dist/evolution.html` and `dist/skirmish.html`, one file each with nothing external
 - `pnpm dev` — Vite's dev server for the React app, with the other pages rebuilt on every save and served
   beside it, so they share its storage; refresh an old page to see a change. Also runs `sync-fleets` on start
   and whenever a blueprint is saved

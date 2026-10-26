@@ -625,7 +625,7 @@ inside any one file is not contiguous.
   named groups of ships — reflected, turned, nested and repeated in rows and arcs as a ship's assemblies
   are — flattened to a plain list on load, so nothing past the parser knows groups exist. A battle is built from fleets round a ring, one team each, with no orders;
   the `standoff` scenario is one fleet file flown by both sides, and its checksum did not move.
-  **A fleet editor on a page of its own** places ships from the ship library — each design embedded once —
+  **A fleet editor** places ships from the ship library — each design embedded once —
   and drags, turns, duplicates and repeats them in rows and arcs on the same snapping grid and through the
   same renderer as the ship editor, with undo throughout, a carrier drawn with the fighters it sets out with
   on their pads. A group is clicked as one thing and clicked again
@@ -1108,7 +1108,7 @@ inside any one file is not contiguous.
   one each, and a mutation does not turn either, since neither has a facing that matters.
 - **Next:** §8 steps 16–18 in order — the React UI, then the WebGL viewer, then the campaign (ROADMAP.md §8
   has why). Every step before them is built. Step 16's first two stages are: the React app (`app/`) builds with
-  Vite to `dist/index.html`, one file that opens from disk, beside the four pages it will replace; Linaria,
+  Vite to `dist/index.html`, one file that opens from disk, beside the three pages it will replace; Linaria,
   Storybook with a story and accessibility check per component, ESLint with the import boundaries, and Vite's
   dev server, which serves the old pages beside it so they share storage. Its routes go by the hash (`#/library`)
   inside a shell that links them, and read one shared library and view settings (`features/storage/`) under
@@ -1119,7 +1119,9 @@ inside any one file is not contiguous.
   asteroids, import and export — paused at its start until Fight, with each side's tally; and orders given
   from an order bar over the battle, the picked ships' doctrine told from a panel beside them, ships added
   mid-battle and the keys behind a Keys button. The editors' Battle links and shared battle links open it,
-  old links included. Repair, construction and salvage, one mechanism, is built in all six stages:
+  old links included. Stage 4, the fleet editor, is built, and its old page is gone: the Fleet route draws
+  the fleet through `fleetCanvas`, the canvas half of the old page lifted out as `battleView` was, with the
+  panel round it in React; the skirmish and the ship editor hand a fleet to it in the address. Repair, construction and salvage, one mechanism, is built in all six stages:
   damage shedding mass, pads mending landed fighters, robots mending their own hull, lost and built anew,
   lost modules rebuilt by robots and by pads, and robots taking wreckage apart into metal, with doctrine that
   sends a fighter in to be mended and a ship out to wrecks for their metal, flown by the stock Salvager.

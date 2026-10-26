@@ -14,13 +14,15 @@ import { fleetSnapshot } from "../../editor/fleetPreview.js";
 import { LINE_OF_BATTLE } from "../../scenarios/fleets.js";
 
 /**
- * The fleet editor, driven in a real browser: the wiring between the page and
- * `FleetDocument`, whose arithmetic `tests/fleetEditor.test.ts` checks.
+ * The fleet editor, driven in a real browser: the wiring between the app's
+ * Fleet route and `FleetDocument`, whose arithmetic `tests/fleetEditor.test.ts`
+ * checks.
  */
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..", "..");
-const fleetPage = join(root, "dist", "fleet.html");
+const appPage = join(root, "dist", "index.html");
+const fleetRoute = (): string => `${pathToFileURL(appPage).href}#/fleet`;
 
 let browser: Browser;
 let page: Page;
@@ -55,13 +57,13 @@ async function onScreen(p: Page, x: number, y: number): Promise<{ x: number; y: 
 const shipCount = async (p: Page): Promise<string> => (await p.locator("#stats tr").first().textContent()) ?? "";
 
 beforeAll(async () => {
-    // The fleet editor, and the app beside it that its Battle link opens.
+    // The app, and the ship editor beside it that a design is handed to.
     const run = (...command: string[]) =>
         process.platform === "win32"
             ? promisify(execFile)("cmd.exe", ["/c", "npx", ...command], { cwd: root })
             : promisify(execFile)("npx", command, { cwd: root });
     await Promise.all([run("tsx", join(root, "scripts", "build.ts")), run("vite", "build")]);
-    expect(existsSync(fleetPage)).toBe(true);
+    expect(existsSync(appPage)).toBe(true);
 
     browser = await launchChromium();
     page = await browser.newPage({ viewport: { width: 1200, height: 700 } });
@@ -69,7 +71,7 @@ beforeAll(async () => {
     page.on("console", (message) => {
         if (message.type() === "error") problems.push(`console: ${message.text()}`);
     });
-    await page.goto(pathToFileURL(fleetPage).href);
+    await page.goto(fleetRoute());
     await page.waitForFunction(() => (document.getElementById("stats")?.textContent ?? "").includes("mass at launch"));
 }, 120_000);
 
@@ -124,7 +126,7 @@ describe("the fleet editor in a browser", () => {
         if ((await page.textContent("#selectionTitle"))?.startsWith("Ship")) await page.click("#upLevel");
         expect(await page.textContent("#selectionTitle")).toBe("Group: Fighter Pair");
         await page.fill("#groupName", "Escort");
-        await page.dispatchEvent("#groupName", "change");
+        await page.press("#groupName", "Enter");
         expect(await page.textContent("#selectionTitle")).toBe("Group: Escort");
         // Dissolved, its two ships are selected where they stood, and none is lost.
         await page.click("#dissolveGroup");
@@ -206,7 +208,8 @@ describe("the fleet editor in a browser", () => {
                 JSON.stringify({ formatVersion: 1, name: "Dinky", modules: [{ kind: "core", x: 0, y: 0, length: 2, width: 2 }] }),
             );
         });
-        await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+        // Written behind the page's back, as another tab would, which the browser tells it of.
+        await page.evaluate(() => window.dispatchEvent(new StorageEvent("storage", { key: "scs2d.blueprint.Dinky" })));
         expect(await page.textContent("#problems")).toMatch(/Dinky differs from the library's Dinky/);
         await page.click('button[data-refresh="Dinky"]');
         expect(await page.textContent("#problems")).not.toMatch(/differs/);
@@ -217,7 +220,7 @@ describe("the fleet editor in a browser", () => {
 
     it("saves a fleet to browser storage as a fleet file", async () => {
         await page.fill("#fleetName", "Saved Fleet");
-        await page.dispatchEvent("#fleetName", "change");
+        await page.press("#fleetName", "Enter");
         await page.click("#saveFleet");
         const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("scs2d.fleet.Saved Fleet") ?? "null"));
         expect(saved?.formatVersion).toBe(1);
@@ -237,7 +240,7 @@ describe("the fleet editor in a browser", () => {
     });
 
     it("opens a ship of the fleet in the ship editor and brings the design back", async () => {
-        await page.goto(pathToFileURL(fleetPage).href);
+        await page.goto(fleetRoute());
         await page.waitForFunction(() => (document.getElementById("stats")?.textContent ?? "").includes("mass at launch"));
         const centre = await canvasCentre(page);
         await page.mouse.click(centre.x, centre.y);
@@ -247,7 +250,7 @@ describe("the fleet editor in a browser", () => {
         expect(await page.textContent("#inFleetTitle")).toBe("In Line of Battle");
         expect(await page.inputValue("#shipName")).toBe("Gunship");
         await page.click("#backToFleet");
-        await page.waitForURL(/fleet\.html#fleet=/);
+        await page.waitForURL(/index\.html#\/fleet\?fleet=/);
         expect(await page.inputValue("#fleetName")).toBe("Line of Battle");
         expect(problems).toEqual([]);
     });
@@ -258,7 +261,7 @@ describe("the fleet editor in a browser", () => {
         expect(await page.textContent("#inFleetTitle")).toBe("In Line of Battle");
         expect(await page.inputValue("#shipName")).toBe("Corvette");
         await page.click("#backToFleet");
-        await page.waitForURL(/fleet\.html#fleet=/);
+        await page.waitForURL(/index\.html#\/fleet\?fleet=/);
         expect(problems).toEqual([]);
     });
 });

@@ -79,3 +79,18 @@ export const CustomBattle: Story = {
         await expect(within(panel).getByRole("combobox", { name: "Side 1" })).toBeVisible();
     },
 };
+
+export const Fleet: Story = {
+    args: { path: "/fleet" },
+    play: async ({ canvas }) => {
+        await expect(canvas.getByRole("combobox", { name: "Fleet" })).toHaveDisplayValue("Line of Battle");
+        await expect(canvas.getByRole("row", { name: /^ships/ })).toHaveTextContent("ships5");
+        await userEvent.click(canvas.getByRole("button", { name: "Add ship ▾" }));
+        // The fleet's own copy first, then the library's.
+        await userEvent.click(canvas.getAllByRole("menuitem", { name: "Corvette" })[0]!);
+        await expect(canvas.getByRole("heading", { name: "Ship: Corvette" })).toBeVisible();
+        await expect(canvas.getByRole("row", { name: /^ships/ })).toHaveTextContent("ships6");
+        await userEvent.click(canvas.getByRole("button", { name: "Undo" }));
+        await expect(canvas.getByRole("row", { name: /^ships/ })).toHaveTextContent("ships5");
+    },
+};
