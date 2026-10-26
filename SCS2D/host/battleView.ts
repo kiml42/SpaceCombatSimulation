@@ -148,6 +148,8 @@ export interface BattleView {
     arm(verb: Verb | null, cancelOn?: OrderCancelCondition): void;
     /** How far off and how fast every attack, defence and ram given holds, however given; empty for doctrine's. */
     held: Held;
+    /** The same as setting `held`, for a caller that may not assign to the view, as a React prop. */
+    hold(next: Held): void;
     /** Give the armed verb, if its target is optional, with none: for doctrine to choose where. */
     nearest(append: boolean): void;
     /** Give a command to the battle now, logged. */
@@ -747,6 +749,9 @@ export function battleView(
             return held;
         },
         set held(next) {
+            held = next;
+        },
+        hold(next) {
             held = next;
         },
         nearest,

@@ -170,3 +170,77 @@ it("sets up a custom battle, from the library and from a battle file, and fights
     await expect.poll(step).toBe(0);
     expect(problems).toEqual([]);
 });
+
+it("gives orders, tells doctrine and adds ships on the Battle route", async () => {
+    const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
+    const problems: string[] = [];
+    page.on("pageerror", (error) => problems.push(error.message));
+    page.on("console", (message) => {
+        if (message.type() === "error" || message.type() === "warning") problems.push(message.text());
+    });
+    await page.goto(`${pathToFileURL(appPage).href}#/battle`);
+    type Viewer = {
+        screenOf(i: number): { x: number; y: number };
+        orders: { command: { kind: string } }[];
+        battle: { ships: { count: number } };
+        placing: boolean;
+    };
+    const viewer = <T>(read: (v: Viewer) => T): Promise<T> => page.evaluate(`(${read.toString()})(window.viewer)`) as Promise<T>;
+    await expect.poll(() => viewer((v) => v.screenOf(0) !== null)).toBe(true);
+    // Far enough in that each ship has picked a fight, then held still to be clicked on.
+    await page.waitForTimeout(1000);
+    await page.getByRole("button", { name: "Pause" }).click();
+    const canvas = (await page.getByLabel("Battle", { exact: true }).boundingBox())!;
+    const click = async (ship: number, options: { right?: boolean } = {}): Promise<void> => {
+        const p = await page.evaluate((i) => (window as unknown as { viewer: Viewer }).viewer.screenOf(i), ship);
+        await page.mouse.click(canvas.x + p.x, canvas.y + p.y, { button: options.right ? "right" : "left" });
+        // Past the double-click interval, and long enough for the camera to settle.
+        await page.waitForTimeout(800);
+    };
+
+    const bar = page.getByRole("toolbar", { name: "Orders" });
+    expect(await bar.count()).toBe(0);
+    await click(0);
+    await bar.waitFor();
+    // In the duel, ships 0 and 1 are a side and ship 2 the other.
+    await click(2, { right: true });
+    await expect.poll(() => viewer((v) => v.orders.length)).toBe(1);
+    expect(JSON.stringify(await viewer((v) => v.orders[0]!.command))).toContain('"attack"');
+    const queue = bar.getByRole("list", { name: "Its orders" });
+    await expect.poll(() => queue.textContent()).toContain("attack");
+    await queue.getByRole("button").first().click();
+    await expect.poll(() => viewer((v) => v.orders.at(-1)!.command.kind)).toBe("drop");
+    await bar.getByRole("button", { name: "Stop" }).click();
+    await expect.poll(() => viewer((v) => v.orders.at(-1)!.command.kind)).toBe("stop");
+
+    // A doctrine box is told when it is left, not on every keystroke.
+    await bar.getByRole("button", { name: "Doctrine" }).click();
+    const panel = page.getByRole("complementary", { name: "Doctrine" });
+    const box = panel.locator("input").first();
+    const label = (await box.getAttribute("aria-label"))!;
+    await box.fill(String(Number((await box.inputValue()) || 0) + 1));
+    expect(await viewer((v) => v.orders.at(-1)!.command.kind)).toBe("stop");
+    await box.press("Enter");
+    await expect.poll(() => viewer((v) => v.orders.at(-1)!.command.kind)).toBe("doctrine");
+    await panel.getByRole("button", { name: `${label} back to its design` }).waitFor();
+    await page.keyboard.press("p");
+    await expect.poll(() => panel.count()).toBe(0);
+
+    // A ship added where it is pressed, for the side chosen by then.
+    const before = await viewer((v) => v.battle.ships.count);
+    await page.getByLabel("Add ship").selectOption({ label: "Corvette" });
+    expect(await viewer((v) => v.placing)).toBe(true);
+    await page.getByLabel("Side it joins").selectOption("1");
+    await page.mouse.move(canvas.x + canvas.width * 0.3, canvas.y + canvas.height * 0.4);
+    await page.mouse.down();
+    await page.mouse.move(canvas.x + canvas.width * 0.4, canvas.y + canvas.height * 0.4, { steps: 4 });
+    await page.mouse.up();
+    await expect.poll(() => viewer((v) => v.battle.ships.count)).toBe(before + 1);
+    expect(await page.getByLabel("Add ship").inputValue()).toBe("");
+    expect(await viewer((v) => v.orders.at(-1)!.command)).toMatchObject({ kind: "spawn", team: 1 });
+
+    await page.keyboard.press("?");
+    await expect.poll(() => page.getByRole("dialog", { name: "Keys and mouse" }).isVisible()).toBe(true);
+    await page.keyboard.press("Escape");
+    expect(problems).toEqual([]);
+}, 90_000);

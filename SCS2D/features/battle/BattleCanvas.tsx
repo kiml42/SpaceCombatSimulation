@@ -1,5 +1,5 @@
 import { styled } from "@linaria/react";
-import { useEffect, useEffectEvent, useRef } from "react";
+import { useEffect, useEffectEvent, useRef, type ReactNode } from "react";
 import { battleView, type BattleView } from "~/host/battleView";
 import type { Battle } from "~/scenarios/types";
 import type { Snapshot } from "~/sim/index";
@@ -30,13 +30,15 @@ export interface BattleCanvasProps {
     readonly onDrawn?: (shown: Snapshot) => void;
     readonly onRunningChanged?: (running: boolean) => void;
     readonly onRewound?: (battle: Battle) => void;
+    /** Drawn over the battle, placed absolutely within it. */
+    readonly children?: ReactNode;
 }
 
 /**
  * A battle drawn and run on the wall clock: a canvas React mounts and then
  * leaves to `battleView`, which owns the clock, the camera and the input.
  */
-export function BattleCanvas({ onView, onDrawn, onRunningChanged, onRewound }: BattleCanvasProps) {
+export function BattleCanvas({ onView, onDrawn, onRunningChanged, onRewound, children }: BattleCanvasProps) {
     const canvas = useRef<HTMLCanvasElement>(null);
     const created = useEffectEvent((view: BattleView | null) => onView(view));
     const drawn = useEffectEvent((shown: Snapshot) => onDrawn?.(shown));
@@ -55,6 +57,7 @@ export function BattleCanvas({ onView, onDrawn, onRunningChanged, onRewound }: B
     return (
         <Stage>
             <Canvas ref={canvas} aria-label="Battle" />
+            {children}
         </Stage>
     );
 }
