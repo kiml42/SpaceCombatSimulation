@@ -327,7 +327,10 @@ describe("the skirmish in a browser", () => {
         ).toBe(true);
         // The search goes on while the player looks at another route, and is there to come back to.
         await page.getByRole("link", { name: "Library" }).click();
-        await page.waitForTimeout(1500);
+        // A generation recorded while away, however long one takes.
+        await page.waitForFunction(() => /"kind":"(search|answer)"/.test(localStorage.getItem("scs2d.skirmish.history") ?? ""), undefined, {
+            timeout: 60_000,
+        });
         await page.getByRole("link", { name: "Skirmish", exact: true }).click();
         await page.waitForSelector("#answering");
         expect(await page.textContent("#answerProgress")).not.toMatch(/fighting the first generation/);
