@@ -26,44 +26,53 @@ const Screen = styled.section`
     border-right: 1px solid var(--colour-border);
 `;
 
+/**
+ * A setting a row, its boxes in two columns either side of a ±, so every row's
+ * boxes line up: one box alone spans both, a spread puts its ± between them,
+ * and in a co-evolution run side A's box takes the first and side B's the second.
+ */
 const Row = styled.div`
-    display: flex;
-    gap: 0.4rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 3.8rem 0.7rem 3.8rem;
+    gap: 0.3rem;
     align-items: center;
     margin-bottom: 0.25rem;
 
     label,
-    > span {
-        flex: 1;
+    > span:first-child {
         color: #7f93aa;
     }
 
     input,
     select {
-        flex: 0 0 5.5rem;
-        width: 5.5rem;
+        width: 100%;
         min-width: 0;
     }
 
+    input:only-of-type,
+    select {
+        grid-column: 2 / -1;
+    }
+
     input[type="checkbox"] {
-        flex: 0 0 auto;
+        justify-self: end;
         width: auto;
     }
 
-    &.spread input {
-        flex: 0 0 3.6rem;
-        width: 3.6rem;
-    }
-
-    &.spread > span {
-        flex: none;
+    > span:not(:first-child) {
+        color: var(--colour-faint);
+        text-align: center;
     }
 
     > b {
-        flex: 0 0 5.5rem;
         color: #9fb0c4;
         font-size: 11px;
         font-weight: 600;
+    }
+
+    .rival,
+    > b:last-child {
+        grid-column: 4;
     }
 `;
 
@@ -134,7 +143,7 @@ function Field({ id, label, title, step, min = 0, max, placeholder, text = false
     const set = (name: string, value: string): void => onForm({ ...form, texts: { ...form.texts, [name]: value } });
     const co = coRun(form);
     return (
-        <Row className={spread === undefined ? undefined : "spread"} title={title}>
+        <Row title={title}>
             <label htmlFor={id}>{label}</label>
             <input
                 id={id}
