@@ -80,9 +80,16 @@ const Details = styled.details`
     }
 `;
 
+/* Under its box rather than beside it, as a long one would squeeze the box to nothing. */
 const Absolute = styled.span`
-    flex: 0 0 auto;
+    flex-basis: 100%;
+    margin: -0.15rem 0 0.15rem 6.9rem;
     color: var(--colour-faint);
+    font-size: var(--font-size-small);
+`;
+
+const DoctrineField = styled(Field)`
+    flex-wrap: wrap;
 `;
 
 export interface DoctrineOpen {
@@ -126,8 +133,9 @@ function DoctrineBoxes({
                             const id = `doctrine-${row.half}-${row.field}`;
                             const value = held(row);
                             const shown = value === undefined || value === fallback(row) ? "" : String(value);
+                            const absolute = context === null ? "" : (row.absolute?.(values, context) ?? "");
                             return (
-                                <Field key={row.field} title={row.hint}>
+                                <DoctrineField key={row.field} title={row.hint}>
                                     <label htmlFor={id}>{row.label}</label>
                                     <LiveText
                                         id={id}
@@ -140,8 +148,8 @@ function DoctrineBoxes({
                                         onStart={onStart}
                                         onType={(typed) => onType(row, typed)}
                                     />
-                                    <Absolute>{context === null ? "" : (row.absolute?.(values, context) ?? "")}</Absolute>
-                                </Field>
+                                    {absolute !== "" && <Absolute>{absolute}</Absolute>}
+                                </DoctrineField>
                             );
                         })}
                 </div>
