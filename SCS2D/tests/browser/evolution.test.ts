@@ -18,7 +18,7 @@ import { DINKY, GUNSHIP } from "../../scenarios/blueprints.js";
 import { tmpdir } from "node:os";
 
 /**
- * The evolution page, driven in a real browser.
+ * The evolution route, driven in a real browser.
  *
  * What is being checked is that a run actually runs *on a page*: that the
  * work is sliced finely enough for the frame loop to keep going, that the
@@ -32,7 +32,7 @@ import { tmpdir } from "node:os";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..", "..");
-const evolutionPage = join(root, "dist", "evolution.html");
+const appPage = join(root, "dist", "index.html");
 
 let browser: Browser;
 let page: Page;
@@ -120,11 +120,11 @@ async function press(p: Page, selector: string): Promise<void> {
 
 beforeAll(async () => {
     if (process.platform === "win32") {
-        await promisify(execFile)("cmd.exe", ["/c", "npx", "tsx", join(root, "scripts", "build.ts")], { cwd: root });
+        await promisify(execFile)("cmd.exe", ["/c", "npx", "vite", "build"], { cwd: root });
     } else {
-        await promisify(execFile)("npx", ["tsx", join(root, "scripts", "build.ts")], { cwd: root });
+        await promisify(execFile)("npx", ["vite", "build"], { cwd: root });
     }
-    expect(existsSync(evolutionPage)).toBe(true);
+    expect(existsSync(appPage)).toBe(true);
 
     browser = await launchChromium();
     page = await browser.newPage({ viewport: { width: 1280, height: 760 } });
@@ -132,7 +132,7 @@ beforeAll(async () => {
     page.on("console", (message) => {
         if (message.type() === "error") problems.push(`console: ${message.text()}`);
     });
-    await page.goto(pathToFileURL(evolutionPage).href);
+    await page.goto(`${pathToFileURL(appPage).href}#/evolution`);
     await page.waitForSelector("#start");
 
     // A run small enough to finish inside a test: two short matches' worth of
@@ -317,9 +317,13 @@ describe("the evolution page in a browser", () => {
             await page.evaluate(() => [...(document.getElementById("founders") as HTMLSelectElement).selectedOptions].map((o) => o.value)),
         ).toEqual(["ship:Dinky 2"]);
         // Read again, it is the copy already saved rather than another.
-        await page.evaluate(() => (document.getElementById("readout")!.textContent = ""));
+        await choose(page, "#founders", ["Corvette"]);
         await page.setInputFiles("#importConfigFile", elsewhere);
-        await page.waitForFunction(() => document.getElementById("readout")?.textContent?.includes("read from a file") === true);
+        await page.waitForFunction(
+            () =>
+                [...(document.getElementById("founders") as HTMLSelectElement).selectedOptions].map((o) => o.value).join() ===
+                "ship:Dinky 2",
+        );
         expect(await page.$$eval("#founders option", (options) => options.filter((o) => o.textContent?.startsWith("Dinky")).length)).toBe(
             2,
         );
@@ -957,12 +961,16 @@ describe("the evolution page in a browser", () => {
     }, 180_000);
 
     it("puts every setting back to its default, for both sides, keeping what was picked", async () => {
+        // Side B's boxes are there while there is a side B.
+        await choose(page, "#versus", ["Dinky"]);
         await set(page, "kindTank", "7");
+        await set(page, "b_kindTank", "5");
         await set(page, "generations", "3");
         const founders = await page.$$eval("#founders option:checked", (options) => options.map((o) => (o as HTMLOptionElement).value));
         await press(page, "#resetConfig");
         expect(await page.inputValue("#kindTank")).toBe(String(DEFAULT_KINDS.tank));
         expect(await page.inputValue("#b_kindTank")).toBe(String(DEFAULT_KINDS.tank));
+        await press(page, "#clearVersus");
         expect(await page.inputValue("#generations")).toBe(String(DEFAULT_RUN.generations));
         expect(await page.$$eval("#founders option:checked", (options) => options.map((o) => (o as HTMLOptionElement).value))).toEqual(
             founders,

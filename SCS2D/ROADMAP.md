@@ -64,8 +64,9 @@ an entry is either still open or it is gone.
 
 ### Partly built — what is left
 
-16. **React UI** — stages 1–6, the foundation, the shell, the battle viewer, the fleet and ship
-    editors and the skirmish, are built; stages 7 and 8 are left (below). The app is `dist/index.html`, so the published page is the app, and an old viewer link
+16. **React UI** — stages 1–7, the foundation, the shell, the battle viewer, the fleet and ship
+    editors, the skirmish and evolution, are built, and with the last old page went the build that bundled
+    them; stage 8, clearing `host/` of what only the old pages used, is left (below). The app is `dist/index.html`, so the published page is the app, and an old viewer link
     (`#battle=`, `#fleet=`) is rewritten to the Battle route as it opens.
     What is built settled, for the work left:
     - **A route is `app/routes/<name>/`**, listed in `app/routes.tsx` and shown inside `app/Shell.tsx`, which
@@ -172,8 +173,10 @@ an entry is either still open or it is gone.
        edit, which is fine for anything generally better and wasted only on specifics the edit changed.
     7. **Evolution.** The largest page, so last, reusing the most: the mutation and settings fields it
        shares with skirmish, and the timeline. Its charts stay Canvas2D or become SVG.
-    8. **The old build goes:** `scripts/build.ts`, the page shells and the URL handoff between pages (kept
-       for links that are shared), and the SPA becomes `index.html`.
+    8. **The old build goes:** `scripts/build.ts` and the page shells went with the evolution page; left is
+       what in `host/` only they used (`dom.ts`, the DOM halves of `settingsFields.ts`, `mapFields.ts` and
+       `keyHelp.ts`, `keepSpeed` and `battleView.keep`), the `esbuild` dependency, and the old pages' names
+       in `handoff.ts`'s addresses, keeping the routes that links share.
 
     Before WebGL, because it is the larger and riskier change, and it rewrites the code that mounts the canvas
     anyway. The battle view becomes a component React mounts and then ignores (non-negotiable 5), and that

@@ -102,9 +102,11 @@ function pickedBounds(view: Snapshot, picked: readonly number[]): Bounds | null 
 export interface BattleView {
     /**
      * Show this battle from its start, running or held, and if `rewindable`,
-     * able to be wound back and given `orders`, as a link carries them.
+     * able to be wound back and given `orders`, as a link carries them. A
+     * step is `advance` where something else steps the battle, as a match
+     * scoring it does.
      */
-    show(battle: Battle, running: boolean, rewindable?: boolean, orders?: readonly Logged[]): void;
+    show(battle: Battle, running: boolean, rewindable?: boolean, orders?: readonly Logged[], advance?: () => void): void;
     /** The battle on show, which winding back replaces. */
     readonly battle: Battle | null;
     /** Steps taken, and the furthest reached. */
@@ -124,8 +126,8 @@ export interface BattleView {
      * the speed from and to this list.
      */
     keep(page: string, speed: HTMLSelectElement): void;
-    /** Remember this page's arcs and shot colours between visits, leaving the speed to the page. */
-    keepView(page: string): void;
+    /** Remember this page's arcs and shot colours between visits, leaving the speed to the page; `defaults` for a page with none kept. */
+    keepView(page: string, defaults?: ViewSettings): void;
     /** Stop the clock and let go of the window, for a page that takes the view away. */
     dispose(): void;
     readonly camera: Readonly<Camera>;
@@ -229,6 +231,7 @@ export function battleView(
     if (ctx === null) throw new Error("no 2d context");
 
     let battle: Battle | null = null;
+    let advance: (() => void) | null = null;
     let rewind: Rewind<Kept> | null = null;
     let watcher: Watcher | null = null;
     /** The one side that takes orders, or null for any. */
@@ -328,7 +331,8 @@ export function battleView(
     };
     const step = (): void => {
         if (battle === null) return;
-        if (rewind === null) battle.step();
+        if (advance !== null) advance();
+        else if (rewind === null) battle.step();
         else rewind.step();
         watcher?.observe(battle);
         stepped(battle);
@@ -698,8 +702,9 @@ export function battleView(
     frameRequest = window.requestAnimationFrame(tick);
 
     return {
-        show(next, run, rewindable = false, orders = []) {
+        show(next, run, rewindable = false, orders = [], stepper) {
             battle = next;
+            advance = stepper ?? null;
             picked = [];
             armed = null;
             // Cleared first, so the first checkpoint keeps none of the last battle's.
@@ -804,8 +809,8 @@ export function battleView(
             this.keepView(page);
             speed = keepSpeed(select, page, kept!.settings);
         },
-        keepView(page) {
-            const settings = loadView(page, { arcs, teamShots, strips, speed });
+        keepView(page, defaults) {
+            const settings = loadView(page, defaults ?? { arcs, teamShots, strips, speed });
             kept = { page, settings };
             arcs = settings.arcs;
             teamShots = settings.teamShots;
