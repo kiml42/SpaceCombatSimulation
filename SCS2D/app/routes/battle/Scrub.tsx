@@ -30,6 +30,7 @@ export function Scrub({ view }: { readonly view: BattleView | null }) {
 
     return (
         <Range
+            id="scrub"
             type="range"
             aria-label="Wind the battle back or on"
             min={0}

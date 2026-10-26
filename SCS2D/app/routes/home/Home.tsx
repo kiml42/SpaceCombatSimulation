@@ -8,7 +8,6 @@ export interface PageLink {
 
 /** The pages bundled by `scripts/build.ts`, each until its route here replaces it. */
 export const OLD_PAGES: readonly PageLink[] = [
-    { href: "index.html", name: "Battle", purpose: "Watch a battle, or set one up" },
     { href: "editor.html", name: "Ship editor", purpose: "Draw a ship" },
     { href: "fleet.html", name: "Fleet editor", purpose: "Put ships together into a fleet" },
     { href: "skirmish.html", name: "Skirmish", purpose: "Hold off an enemy that evolves to beat you" },

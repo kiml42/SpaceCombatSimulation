@@ -1108,17 +1108,18 @@ inside any one file is not contiguous.
   one each, and a mutation does not turn either, since neither has a facing that matters.
 - **Next:** §8 steps 16–18 in order — the React UI, then the WebGL viewer, then the campaign (ROADMAP.md §8
   has why). Every step before them is built. Step 16's first two stages are: the React app (`app/`) builds with
-  Vite to `dist/app.html`, one file that opens from disk, beside the five pages it will replace; Linaria,
+  Vite to `dist/index.html`, one file that opens from disk, beside the four pages it will replace; Linaria,
   Storybook with a story and accessibility check per component, ESLint with the import boundaries, and Vite's
   dev server, which serves the old pages beside it so they share storage. Its routes go by the hash (`#/library`)
   inside a shell that links them, and read one shared library and view settings (`features/storage/`) under
   the keys the old pages use, re-rendering on any save, another tab's included. Stage 3, the battle viewer,
-  is begun: the Battle route runs any scene on the wall clock, with pause, step, reset, fit, the scrub bar and
+  is built, and the old viewer page is gone: the Battle route runs any scene on the wall clock, with pause, step, reset, fit, the scrub bar and
   the speed, through `BattleCanvas`, a canvas React mounts and leaves to `battleView`, with figures read off it
   at 10 Hz, and a custom battle set up beside it — sides from the library or files, the setup and its
   asteroids, import and export — paused at its start until Fight, with each side's tally; and orders given
   from an order bar over the battle, the picked ships' doctrine told from a panel beside them, ships added
-  mid-battle and the keys behind a Keys button. Its links are still the old viewer's. Repair, construction and salvage, one mechanism, is built in all six stages:
+  mid-battle and the keys behind a Keys button. The editors' Battle links and shared battle links open it,
+  old links included. Repair, construction and salvage, one mechanism, is built in all six stages:
   damage shedding mass, pads mending landed fighters, robots mending their own hull, lost and built anew,
   lost modules rebuilt by robots and by pads, and robots taking wreckage apart into metal, with doctrine that
   sends a fighter in to be mended and a ship out to wrecks for their metal, flown by the stock Salvager.

@@ -64,10 +64,9 @@ an entry is either still open or it is gone.
 
 ### Partly built — what is left
 
-16. **React UI** — stages 1 and 2, the foundation and the shell, are built, and stage 3, the battle viewer,
-    is begun; the rest of stage 3 and stages 4–8 are left (below). Stage 3 goes in four slices: the Battle
-    route running the scenes, the custom battle panel, and orders, doctrine, adding ships and the key help (all
-    built), and last the editors' Battle links and shared battle links, after which the old viewer page goes. Until then the panel's Link opens the battle on the old viewer page.
+16. **React UI** — stages 1–3, the foundation, the shell and the battle viewer, are built; stages 4–8 are
+    left (below). The app is `dist/index.html`, so the published page is the app, and an old viewer link
+    (`#battle=`, `#fleet=`) is rewritten to the Battle route as it opens.
     What is built settled, for the work left:
     - **A route is `app/routes/<name>/`**, listed in `app/routes.tsx` and shown inside `app/Shell.tsx`, which
       holds the links between them. `app/App.stories.tsx` renders the whole app at a path, on a memory router
@@ -78,7 +77,7 @@ an entry is either still open or it is gone.
     - **A battle is shown through `BattleCanvas`** (`features/battle/`), which creates a `battleView` on mount
       and disposes of it on unmount; the clock, camera and input stay the engine's. A figure read off the
       battle goes through `useSampled`, 10 times a second, and every-frame callbacks write to a ref, never to
-      state (non-negotiable 5). The scenes are `scenarios/scenes.ts`, shared with the old viewer.
+      state (non-negotiable 5). The scenes are `scenarios/scenes.ts`.
     - **What the order controls show is sampled as one piece of text** (`orders/orderState.ts`): the side,
       the picked ships, the armed verb, one ship's orders, an asteroid's contents. They re-render only when it
       changes, and read anything heavier off the last snapshot then. A doctrine box is uncontrolled and tells

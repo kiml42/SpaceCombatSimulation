@@ -10,7 +10,7 @@ import type { Browser } from "playwright";
 import { launchChromium } from "./launch.js";
 import { serialiseBlueprint } from "../../sim/index.js";
 import { DEFAULT_SETUP, serialiseBattleSetup } from "../../scenarios/customBattle.js";
-import { shipFleet } from "../../editor/handoff.js";
+import { battleHref, shipFleet } from "../../editor/handoff.js";
 import { CORVETTE } from "../../scenarios/blueprints.js";
 
 /**
@@ -21,7 +21,7 @@ import { CORVETTE } from "../../scenarios/blueprints.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..", "..");
-const appPage = join(root, "dist", "app.html");
+const appPage = join(root, "dist", "index.html");
 
 let browser: Browser;
 
@@ -55,6 +55,23 @@ it("renders from a file, with its styles, and links to the old pages", async () 
     expect(await heading.evaluate((element) => getComputedStyle(element).fontWeight)).toBe("600");
     expect(await page.getByRole("link", { name: "Ship editor" }).getAttribute("href")).toBe("editor.html");
     expect(problems).toEqual([]);
+});
+
+it("opens an editor's fleet on the Battle route, from its link or an old one, paused", async () => {
+    const href = battleHref(shipFleet(CORVETTE));
+    const old = `index.html${href.slice(href.indexOf("?fleet=")).replace("?", "#")}`;
+    for (const link of [href, old]) {
+        const page = await browser.newPage();
+        const problems: string[] = [];
+        page.on("pageerror", (error) => problems.push(error.message));
+        await page.goto(new URL(link, pathToFileURL(appPage)).href);
+        await page.waitForFunction(() => document.querySelectorAll("#fleetSlots .slot").length === 1, null, { timeout: 10_000 });
+        expect(await page.locator("#fleetSlots option:checked").textContent()).toMatch(/\(from the editor\)$/);
+        expect(await page.textContent("#play")).toBe("Play");
+        expect(new URL(page.url()).hash).toBe("#/battle");
+        expect(problems).toEqual([]);
+        await page.close();
+    }
 });
 
 it("routes by the hash from a file, and lists what browser storage holds", async () => {

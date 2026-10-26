@@ -78,9 +78,10 @@ export function CustomPanel({ slots, fields, onChange, onFight, current, orders 
         URL.revokeObjectURL(url);
     };
 
-    // A stop-gap until the viewer's own links come to the app: the link opens the battle on the old viewer page.
+    // The whole battle in the address, for whoever it is sent to.
     const copyLink = async (): Promise<void> => {
-        const href = new URL(`index.html${await battleFragment(setupOf(slots, fields), orders())}`, window.location.href).href;
+        const fragment = await battleFragment(setupOf(slots, fields), orders());
+        const href = new URL(`index.html#/battle?battle=${fragment.slice("#battle=".length)}`, window.location.href).href;
         try {
             await navigator.clipboard.writeText(href);
             setLinked(true);
@@ -92,49 +93,54 @@ export function CustomPanel({ slots, fields, onChange, onFight, current, orders 
     };
 
     return (
-        <Panel aria-label="Custom battle">
+        <Panel id="custom" aria-label="Custom battle">
             <h2>Fleets</h2>
             <FleetSlots slots={slots} onChange={(next) => onChange(next, fields)} onProblem={setProblem} />
             {problem !== null && <Problem role="alert">{problem}</Problem>}
 
             <h2>Setup</h2>
             <NumberField
+                id="battleRange"
                 label="range m"
                 title="Across the ring the fleets start on"
                 value={fields.range}
                 onChange={field("range")}
                 step={100}
                 min={1}
-                spread={{ value: fields.rangeSpread, onChange: field("rangeSpread"), title: DRAWN }}
+                spread={{ id: "battleRangeSpread", value: fields.rangeSpread, onChange: field("rangeSpread"), title: DRAWN }}
             />
             <NumberField
+                id="battleClosing"
                 label="closing m/s"
                 title="Each fleet's own speed towards the centre"
                 value={fields.closing}
                 onChange={field("closing")}
                 step={5}
                 min={null}
-                spread={{ value: fields.closingSpread, onChange: field("closingSpread"), title: DRAWN }}
+                spread={{ id: "battleClosingSpread", value: fields.closingSpread, onChange: field("closingSpread"), title: DRAWN }}
             />
             <NumberField
+                id="battleCrossing"
                 label="crossing m/s"
                 title="Each fleet's own speed to its left"
                 value={fields.crossing}
                 onChange={field("crossing")}
                 step={5}
                 min={null}
-                spread={{ value: fields.crossingSpread, onChange: field("crossingSpread"), title: DRAWN }}
+                spread={{ id: "battleCrossingSpread", value: fields.crossingSpread, onChange: field("crossingSpread"), title: DRAWN }}
             />
             <NumberField
+                id="battleRotation"
                 label="rotation °"
                 title="How far each fleet is turned from facing the centre, anticlockwise"
                 value={fields.rotation}
                 onChange={field("rotation")}
                 step={15}
                 min={null}
-                spread={{ value: fields.rotationSpread, onChange: field("rotationSpread"), title: DRAWN }}
+                spread={{ id: "battleRotationSpread", value: fields.rotationSpread, onChange: field("rotationSpread"), title: DRAWN }}
             />
             <NumberField
+                id="battleSeed"
                 label="seed"
                 title="Which of the battles this setup describes"
                 value={fields.seed}
@@ -171,24 +177,26 @@ export function CustomPanel({ slots, fields, onChange, onFight, current, orders 
 
             <Buttons>
                 <button
+                    id="fight"
                     disabled={slots.length < 1}
                     title={slots.length < 1 ? "Choose a fleet first" : "Start the battle"}
                     onClick={onFight}
                 >
                     Fight
                 </button>
-                <button title="Save this setup as a battle file" onClick={exportSetup}>
+                <button id="exportBattle" title="Save this setup as a battle file" onClick={exportSetup}>
                     Export
                 </button>
-                <button title="Load a battle file" onClick={() => battleFile.current?.click()}>
+                <button id="importBattle" title="Load a battle file" onClick={() => battleFile.current?.click()}>
                     Import
                 </button>
-                <button title="Copy a link that opens this battle, seed and all" onClick={() => void copyLink()}>
+                <button id="linkBattle" title="Copy a link that opens this battle, seed and all" onClick={() => void copyLink()}>
                     {linked ? "Copied" : "Link"}
                 </button>
             </Buttons>
             <input
                 ref={battleFile}
+                id="battleFile"
                 type="file"
                 accept="application/json,.json"
                 hidden

@@ -10,9 +10,9 @@ import { parseSkirmish, serialiseSkirmish, skirmishFragment, type Skirmish } fro
 
 const KEY = "#fleet=";
 
-/** The battle page's address, carrying this fleet as its first side. */
+/** The app's battle route, carrying this fleet as its first side. */
 export function battleHref(fleet: Fleet): string {
-    return `index.html${KEY}${encodeURIComponent(JSON.stringify(serialiseFleet(fleet)))}`;
+    return `index.html#/battle?fleet=${encodeURIComponent(JSON.stringify(serialiseFleet(fleet)))}`;
 }
 
 export { shipFleet };

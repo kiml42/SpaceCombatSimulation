@@ -24,6 +24,7 @@ const Canvas = styled.canvas`
 `;
 
 export interface BattleCanvasProps {
+    readonly id?: string;
     /** The view once it exists, and null once it is gone. */
     readonly onView: (view: BattleView | null) => void;
     /** Every frame: keep what it says in a ref, never in state (DESIGN.md non-negotiable 5). */
@@ -38,7 +39,7 @@ export interface BattleCanvasProps {
  * A battle drawn and run on the wall clock: a canvas React mounts and then
  * leaves to `battleView`, which owns the clock, the camera and the input.
  */
-export function BattleCanvas({ onView, onDrawn, onRunningChanged, onRewound, children }: BattleCanvasProps) {
+export function BattleCanvas({ id, onView, onDrawn, onRunningChanged, onRewound, children }: BattleCanvasProps) {
     const canvas = useRef<HTMLCanvasElement>(null);
     const created = useEffectEvent((view: BattleView | null) => onView(view));
     const drawn = useEffectEvent((shown: Snapshot) => onDrawn?.(shown));
@@ -56,7 +57,7 @@ export function BattleCanvas({ onView, onDrawn, onRunningChanged, onRewound, chi
 
     return (
         <Stage>
-            <Canvas ref={canvas} aria-label="Battle" />
+            <Canvas ref={canvas} id={id} aria-label="Battle" />
             {children}
         </Stage>
     );

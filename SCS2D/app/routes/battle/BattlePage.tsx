@@ -1,5 +1,6 @@
 import { styled } from "@linaria/react";
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router";
 import { BattleCanvas } from "~/features/battle/BattleCanvas";
 import { useSampled } from "~/features/battle/useSampled";
 import { useViewSettings } from "~/features/storage/useViewSettings";
@@ -7,12 +8,14 @@ import type { BattleView } from "~/host/battleView";
 import { BATTLE_KEYS, ORDER_KEYS } from "~/host/keyHelp";
 import type { ViewSettings } from "~/host/viewSettings";
 import { gridStep } from "~/render/camera";
+import { linkedBattle } from "~/scenarios/battleLink";
+import type { Logged } from "~/scenarios/commands";
 import { customBattle, type BattleSetup, type CustomBattle } from "~/scenarios/customBattle";
 import { SCENES } from "~/scenarios/scenes";
 import type { Battle } from "~/scenarios/types";
-import type { Snapshot } from "~/sim/index";
+import { math, parseFleet, type Snapshot } from "~/sim/index";
 import { CustomPanel } from "./custom/CustomPanel";
-import { DEFAULT_FIELDS, setupOf, type SetupFields, type Slot } from "./custom/customSetup";
+import { DEFAULT_FIELDS, fieldsOf, setupOf, slotsOf, type SetupFields, type Slot } from "./custom/customSetup";
 import { KeyHelp } from "~/ui/dialogs/KeyHelp";
 import { AddShip } from "./orders/AddShip";
 import { AsteroidCard } from "./orders/AsteroidCard";
@@ -83,6 +86,7 @@ export function BattlePage() {
     const [fields, setFields] = useState<SetupFields>(DEFAULT_FIELDS);
     const orders = useOrderState(view, () => shown.current);
     const [doctrineOpen, setDoctrineOpen] = useState(false);
+    const [search, setSearch] = useSearchParams();
 
     // P opens or closes the picked ships' doctrine, as the button does.
     useEffect(() => {
@@ -96,11 +100,44 @@ export function BattlePage() {
         return () => window.removeEventListener("keydown", toggle);
     }, [view]);
 
-    /** The scene built afresh, running or held as the battle before it was. */
-    const show = (next: BattleView | null, index = scene, run = running, setup?: BattleSetup): void => {
+    /** The scene built afresh, running or held as the battle before it was; a custom battle's logged orders replayed in it. */
+    const show = (next: BattleView | null, index = scene, run = running, setup?: BattleSetup, logged: readonly Logged[] = []): void => {
         if (next === null) return;
         battle.current = index === CUSTOM ? customBattle(setup ?? setupOf(slots, fields)) : SCENES[index]!.create();
-        next.show(battle.current, run, true);
+        next.show(battle.current, run, true, logged);
+    };
+    /** A custom battle handed over whole, by an editor or a link, held at its start. */
+    const openWith = (next: BattleView, nextSlots: readonly Slot[], nextFields: SetupFields, logged: readonly Logged[] = []): void => {
+        setScene(CUSTOM);
+        setSlots(nextSlots);
+        setFields(nextFields);
+        show(next, CUSTOM, false, setupOf(nextSlots, nextFields), logged);
+    };
+    /**
+     * What the address hands over: an editor's fleet (`?fleet=`) or a whole battle (`?battle=`). The
+     * address is tidied after, so a reload is the battle route and not the hand-over again.
+     */
+    const takeHandOver = (next: BattleView): boolean => {
+        const fleetText = search.get("fleet");
+        const battleText = search.get("battle");
+        if (fleetText === null && battleText === null) return false;
+        setSearch({}, { replace: true });
+        if (fleetText !== null) {
+            try {
+                const fleet = parseFleet(JSON.parse(fleetText));
+                openWith(next, [{ fleet, source: { kind: "other", label: `${fleet.name} (from the editor)` } }], fields);
+                return true;
+            } catch (error) {
+                window.alert(`Could not read the fleet handed over.\n\n${error instanceof Error ? error.message : String(error)}`);
+                return false;
+            }
+        }
+        linkedBattle(`#battle=${battleText}`)
+            .then((linked) => linked !== null && openWith(next, slotsOf(linked.setup, "link"), fieldsOf(linked.setup), linked.orders))
+            .catch((error: unknown) =>
+                window.alert(`Could not read the battle in the link.\n\n${error instanceof Error ? error.message : String(error)}`),
+            );
+        return false;
     };
     // Set up paused at its first step, so the opening positions can be seen as they are chosen, and started with Fight.
     const openCustom = (): void => {
@@ -120,7 +157,7 @@ export function BattlePage() {
         next.keepView(PAGE);
         next.allowOrders();
         next.setSpeed(settings.speed);
-        show(next, scene, true);
+        if (!takeHandOver(next)) show(next, scene, true);
     };
 
     const readout = useSampled(() => {
@@ -128,14 +165,36 @@ export function BattlePage() {
         if (at === null || view === null) return "";
         return `t ${at.time.toFixed(1)} s · step ${at.tick} · grid ${gridStep(view.camera.scale)} m`;
     });
+    // Not shown: kept for the browser tests and anyone inspecting the page, as the old viewer had it.
+    const metrics = useSampled(() => {
+        const at = shown.current;
+        const now = battle.current;
+        if (at === null || now === null) return "";
+        // Between the first two ships, whatever the scene holds, but only if there are two.
+        const [first, second] = at.ships;
+        const range = first !== undefined && second !== undefined ? math.distance(first.x, first.y, second.x, second.y) : 0;
+        return (
+            `range ${range.toFixed(range < 10 ? 3 : 0)} m · in flight ${at.projectileCount} · ` +
+            `p.fired ${now.totalProjectilesFired} · p.hits ${now.totalProjectileHits} · ` +
+            `b.fired ${now.totalBeamsFired} · b.hits ${now.totalBeamHits} · ` +
+            `severed ${now.totalSevered} · scrap ${(now.ships.discarded / 1000).toFixed(1)} t`
+        );
+    });
 
     return (
         <Main>
             <Controls>
-                <button onClick={() => view?.setRunning(!running)}>{running ? "Pause" : "Play"}</button>
-                <button onClick={() => view?.step()}>Step</button>
-                <button onClick={() => show(view, scene, scene !== CUSTOM && running)}>Reset</button>
+                <button id="play" onClick={() => view?.setRunning(!running)}>
+                    {running ? "Pause" : "Play"}
+                </button>
+                <button id="step" onClick={() => view?.step()}>
+                    Step
+                </button>
+                <button id="reset" onClick={() => show(view, scene, scene !== CUSTOM && running)}>
+                    Reset
+                </button>
                 <select
+                    id="scene"
                     aria-label="Scenario"
                     value={scene}
                     onChange={(event) => {
@@ -152,15 +211,18 @@ export function BattlePage() {
                     ))}
                     <option value={CUSTOM}>Custom battle</option>
                 </select>
-                <button title="Set up a battle between fleets" onClick={openCustom}>
+                <button id="customBattle" title="Set up a battle between fleets" onClick={openCustom}>
                     Custom
                 </button>
-                <button onClick={() => view?.fit()}>Fit</button>
+                <button id="fit" onClick={() => view?.fit()}>
+                    Fit
+                </button>
                 <AddShip view={view} />
                 <Scrub view={view} />
                 <label>
                     speed
                     <select
+                        id="speed"
                         value={settings.speed}
                         onChange={(event) => {
                             const speed = Number(event.target.value);
@@ -175,10 +237,16 @@ export function BattlePage() {
                         ))}
                     </select>
                 </label>
-                <Readout aria-label="Battle time">{readout}</Readout>
+                <Readout id="readout" aria-label="Battle time">
+                    {readout}
+                </Readout>
+                <output id="metrics" hidden>
+                    {metrics}
+                </output>
             </Controls>
             <Body>
                 <BattleCanvas
+                    id="view"
                     onView={onView}
                     onDrawn={(at) => (shown.current = at)}
                     onRunningChanged={setRunning}

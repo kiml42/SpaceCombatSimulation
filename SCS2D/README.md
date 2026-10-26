@@ -28,9 +28,9 @@ pnpm install
 pnpm build
 ```
 
-Then open `dist/index.html` in a browser. Each page — the viewer, the ship and fleet editors, the evolution
-page, the skirmish, and `app.html`, the React app they are moving into — is one self-contained file, so there is no server to run and nothing external to
-fetch: double-clicking it works.
+Then open `dist/index.html` in a browser: the React app, with the battle viewer. The pages not yet moved into
+it — the ship and fleet editors, the evolution page and the skirmish — sit beside it. Each is one
+self-contained file, so there is no server to run and nothing external to fetch: double-clicking it works.
 
 Space pauses, full stop single-steps, F re-fits the camera. Scroll to zoom, drag to pan.
 
@@ -62,7 +62,7 @@ Almost everything worth changing is in one of these:
 | Colours, plumes, firing arcs | `render/canvas2d.ts` |
 | How the camera follows | `render/camera.ts` |
 | The clock, the camera and the keys | `host/battleView.ts` |
-| The viewer's controls | `host/main.ts` |
+| The viewer's controls | `app/routes/battle/` |
 
 **Expect the golden tests to fail the moment you change anything in `sim/` or `scenarios/`.** That is them
 working: they pin the simulation's behaviour bit-for-bit, and a change in what a battle does is exactly what
