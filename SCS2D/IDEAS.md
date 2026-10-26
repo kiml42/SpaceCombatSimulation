@@ -6,6 +6,7 @@ Things that are obviously wrong.
 - When setting up a co-evolution run between two very large fleets, the UI hangs for about 8 s (the Imperial Fleet against the Rebel Fleet; it was 30 s before the layout checks were sped up) after each change to a setting the opening match reads, and on loading the page with such a setup saved: the preview breeds a whole first generation to draw it. A burst of changes now builds it once, and a setting it does not read (generations, matches, winners) does not rebuild it. Fixing it needs the build off the main thread, or a preview that does not breed, at the cost of its seed no longer being the run's.
 - A miner anchored to an asteroid reads no robots in its bays (`ShipView.crews`), though its robots are out mining and loads come home.
 - A hull gun's barrel collides as the rectangle its module would be, not where the barrel is drawn. Nothing welds to a barrel (`onWeldablePart`), as a stop-gap until it collides where it is.
+- Scrub bar doesn't work in skirmish
 
 -----------------------------------------------------------------------
 
