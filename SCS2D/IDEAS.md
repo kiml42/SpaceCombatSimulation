@@ -134,6 +134,8 @@ flying round asteroids in its way rather than relying on keeping clear, which lo
   being taken from it.
 
 ## Skirmish
+- Skirmishes need to have names, so the files can be named.
+  - At some point the game should be able to track multiple saved games internally.
 - When the enemy are evolving, make the history fill the battle area.
   - In this mode the player's fleet should be put on the left, and the enemy on the right.
 - Enforces minors being a whole number, making 5 to 10 be impossible because that's 7.5 +- 2.5, should allow partials and round on pick (same for everything with a =-)
