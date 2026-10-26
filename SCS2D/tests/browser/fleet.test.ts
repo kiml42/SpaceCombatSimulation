@@ -231,7 +231,7 @@ describe("the fleet editor in a browser", () => {
         expect(await page.textContent("#play")).toBe("Play");
         expect(await page.isDisabled("#fight")).toBe(false);
         // The address is tidied, so a reload does not hand it over again.
-        expect(page.url()).not.toContain("#");
+        expect(new URL(page.url()).hash).toBe("#/battle");
         expect(problems).toEqual([]);
     });
 
