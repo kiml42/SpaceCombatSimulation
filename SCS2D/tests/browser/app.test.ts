@@ -91,6 +91,11 @@ it("routes by the hash from a file, and lists what browser storage holds", async
     // The route survives a reload: it is in the address, not in memory.
     await page.reload();
     await page.getByRole("region", { name: "Ships" }).waitFor();
+
+    // A fleet's Edit opens it in the fleet editor.
+    await page.getByRole("button", { name: "Edit Line of Battle" }).click();
+    await page.waitForSelector("#fleetName");
+    expect(await page.inputValue("#fleetName")).toBe("Line of Battle");
     await page.evaluate(() => localStorage.removeItem("scs2d.blueprint.Probe"));
     expect(problems).toEqual([]);
 });
