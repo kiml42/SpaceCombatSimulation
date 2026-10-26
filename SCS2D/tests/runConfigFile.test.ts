@@ -34,6 +34,7 @@ const SETUP = {
         generations: 25,
         budget: { metal: 12_000, fuel: 3_000, build: Infinity },
         mutation: {
+            magnitude: 0.3,
             structural: 0,
             build: { move: 0, resize: 0, refit: 0, fittings: 0, tuning: 2, fighter: 0.5, shape: 1 },
             kinds: { ...DEFAULT_KINDS, turret: 0 },
@@ -55,6 +56,7 @@ describe("the run config file", () => {
         expect(back.name).toEqual("Star Wars tuning");
         expect(back.founders.map(serialiseBlueprint)).toEqual(SETUP.founders.map(serialiseBlueprint));
         expect(back.config.mutation.structural).toEqual(0);
+        expect(back.config.mutation.magnitude).toEqual(0.3);
         expect(back.config.mutation.build).toEqual({ move: 0, resize: 0, refit: 0, fittings: 0, tuning: 2, fighter: 0.5, shape: 1 });
         expect(back.config.seed).toEqual(42);
         expect(back.config.generations).toEqual(25);
@@ -128,6 +130,7 @@ describe("the run config file", () => {
             [{ build: { move: -1 } }, /build.move must be zero or more/],
             [{ doctrine: { escort: "x" } }, /doctrine.escort/],
             [{ structural: 2 }, /between 0 and 1/],
+            [{ magnitude: -0.1 }, /magnitude must be zero or more/],
             [{ name: 3 }, /name must be text/],
             [{ match: { duration: 0 } }, /more than nothing/],
             [{ match: { quietLimit: -1 } }, /quietLimit must not be negative/],

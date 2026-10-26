@@ -7,6 +7,7 @@ describe("the mutation settings a page offers", () => {
     it("make the default limits when nothing is set", () => {
         const made = breeding(() => undefined);
         expect(made.ship).toEqual({
+            magnitude: DEFAULT_LIMITS.magnitude,
             structural: DEFAULT_LIMITS.structural,
             geometry: DEFAULT_LIMITS.geometry,
             thrusters: DEFAULT_LIMITS.thrusters,
@@ -20,10 +21,10 @@ describe("the mutation settings a page offers", () => {
     it("cover every number the defaults have, each once", () => {
         const names = MUTATION_FIELDS.map((f) => f.name);
         expect(new Set(names).size).toBe(names.length);
-        // The structural, geometry and thruster chances, the fleet's design chance,
-        // ship moves and change chance, and the weights.
+        // The number drift, the structural, geometry and thruster chances, the
+        // fleet's design chance, ship moves and change chance, and the weights.
         const count =
-            6 +
+            7 +
             [DEFAULT_BUILD_WEIGHTS, DEFAULT_KINDS, DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_FLEET_LIMITS.operators]
                 .map((o) => Object.keys(o).length)
                 .reduce((a, b) => a + b, 0);

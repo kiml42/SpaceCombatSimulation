@@ -317,6 +317,7 @@ function sideTexts(config: RunConfig): Texts {
         fleetDesign: String(config.fleet.design ?? DEFAULT_FLEET_LIMITS.design),
         fleetMove: String(config.fleet.move ?? DEFAULT_FLEET_LIMITS.move),
         fleetChange: String(config.fleet.change ?? DEFAULT_FLEET_LIMITS.change),
+        magnitude: String(config.mutation.magnitude ?? DEFAULT_LIMITS.magnitude),
         structural: String(config.mutation.structural ?? DEFAULT_LIMITS.structural),
         geometry: String(config.mutation.geometry ?? DEFAULT_LIMITS.geometry),
         thrusters: String(config.mutation.thrusters ?? DEFAULT_LIMITS.thrusters),
