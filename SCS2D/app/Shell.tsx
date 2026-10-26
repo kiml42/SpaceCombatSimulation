@@ -1,6 +1,17 @@
 import { styled } from "@linaria/react";
 import { NavLink, Outlet } from "react-router";
 
+const Layout = styled.div`
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+
+    > main {
+        flex: 1;
+        min-height: 0;
+    }
+`;
+
 const Header = styled.header`
     display: flex;
     gap: 1.2rem;
@@ -26,16 +37,16 @@ const Header = styled.header`
 /** What every route is shown inside: the way between them, and the route itself. */
 export function Shell() {
     return (
-        <>
+        <Layout>
             <Header>
                 <NavLink to="/" end>
                     Space Combat Simulation
                 </NavLink>
                 <nav aria-label="Main">
-                    <NavLink to="/library">Library</NavLink>
+                    <NavLink to="/battle">Battle</NavLink> <NavLink to="/library">Library</NavLink>
                 </nav>
             </Header>
             <Outlet />
-        </>
+        </Layout>
     );
 }

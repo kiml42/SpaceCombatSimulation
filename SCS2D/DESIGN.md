@@ -1112,8 +1112,10 @@ inside any one file is not contiguous.
   Storybook with a story and accessibility check per component, ESLint with the import boundaries, and Vite's
   dev server, which serves the old pages beside it so they share storage. Its routes go by the hash (`#/library`)
   inside a shell that links them, and read one shared library and view settings (`features/storage/`) under
-  the keys the old pages use, re-rendering on any save, another tab's included. So far it links to the old
-  pages and lists the library. Repair, construction and salvage, one mechanism, is built in all six stages:
+  the keys the old pages use, re-rendering on any save, another tab's included. Stage 3, the battle viewer,
+  is begun: the Battle route runs any scene on the wall clock, with pause, step, reset, fit, the scrub bar and
+  the speed, through `BattleCanvas`, a canvas React mounts and leaves to `battleView`, with figures read off it
+  at 10 Hz. Its custom battle, orders, doctrine and links are still the old viewer's. Repair, construction and salvage, one mechanism, is built in all six stages:
   damage shedding mass, pads mending landed fighters, robots mending their own hull, lost and built anew,
   lost modules rebuilt by robots and by pads, and robots taking wreckage apart into metal, with doctrine that
   sends a fighter in to be mended and a ship out to wrecks for their metal, flown by the stock Salvager.

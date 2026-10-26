@@ -64,14 +64,21 @@ an entry is either still open or it is gone.
 
 ### Partly built — what is left
 
-16. **React UI** — stages 1 and 2, the foundation and the shell, are built; stages 3–8 are left, from the
-    battle viewer onwards (below). What they settled that later stages build on:
+16. **React UI** — stages 1 and 2, the foundation and the shell, are built, and stage 3, the battle viewer,
+    is begun; the rest of stage 3 and stages 4–8 are left (below). Stage 3 goes in four slices: the Battle
+    route running the scenes (built), then the custom battle panel, then orders, doctrine, adding ships and the
+    key help, and last the editors' Battle links and shared battle links, after which the old viewer page goes.
+    What is built settled, for the work left:
     - **A route is `app/routes/<name>/`**, listed in `app/routes.tsx` and shown inside `app/Shell.tsx`, which
       holds the links between them. `app/App.stories.tsx` renders the whole app at a path, on a memory router
       with storage of its own, which is how a route gets its story.
     - **Storage goes through `useLibrary` and `useViewSettings`** (`features/storage/`), never `localStorage`,
       so a save anywhere re-renders whatever shows it. View settings are keyed by the old page's name, so a
       route that replaces a page keeps its settings.
+    - **A battle is shown through `BattleCanvas`** (`features/battle/`), which creates a `battleView` on mount
+      and disposes of it on unmount; the clock, camera and input stay the engine's. A figure read off the
+      battle goes through `useSampled`, 10 times a second, and every-frame callbacks write to a ref, never to
+      state (non-negotiable 5). The scenes are `scenarios/scenes.ts`, shared with the old viewer.
     - **axe does not fail a story on colour contrast**, only on what it is sure of: contrast it marks for
       review, so a token change wants looking at in Storybook's accessibility panel.
 

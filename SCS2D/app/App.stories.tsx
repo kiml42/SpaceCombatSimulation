@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { createMemoryRouter, RouterProvider } from "react-router";
-import { expect, userEvent } from "storybook/test";
+import { expect, userEvent, waitFor } from "storybook/test";
 import { ObservedStorage, memoryStore } from "~/features/storage/observedStorage";
 import { StorageProvider } from "~/features/storage/StorageProvider";
 import { BLUEPRINTS } from "~/scenarios/blueprints";
@@ -53,5 +53,17 @@ export const NotFound: Story = {
     args: { path: "/nowhere" },
     play: async ({ canvas }) => {
         await expect(canvas.getByText("There is no page here.")).toBeVisible();
+    },
+};
+
+export const Battle: Story = {
+    args: { path: "/battle" },
+    play: async ({ canvas }) => {
+        const readout = canvas.getByLabelText("Battle time");
+        await waitFor(() => expect(readout).toHaveTextContent(/step [1-9]/));
+        await userEvent.click(canvas.getByRole("button", { name: "Pause" }));
+        await expect(canvas.getByRole("button", { name: "Play" })).toBeVisible();
+        await userEvent.selectOptions(canvas.getByRole("combobox", { name: "Scenario" }), "Swarm");
+        await expect(canvas.getByRole("combobox", { name: "Scenario" })).toHaveDisplayValue("Swarm");
     },
 };

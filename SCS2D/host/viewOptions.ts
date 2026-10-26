@@ -14,6 +14,7 @@ export interface ViewOption {
 export interface ViewOptions {
     /** Read every setting again, after a key has changed one. */
     refresh(): void;
+    remove(): void;
 }
 
 export function viewOptions(over: HTMLElement, options: readonly ViewOption[]): ViewOptions {
@@ -51,5 +52,5 @@ export function viewOptions(over: HTMLElement, options: readonly ViewOption[]): 
     };
     refresh();
     over.append(bar);
-    return { refresh };
+    return { refresh, remove: () => bar.remove() };
 }

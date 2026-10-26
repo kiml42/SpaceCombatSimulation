@@ -1,31 +1,7 @@
 import { BATTLE_KEYS, keyHelp, ORDER_KEYS } from "./keyHelp.js";
 import { math } from "../sim/index.js";
-import { duel } from "../scenarios/duel.js";
-import { beamDuel } from "../scenarios/beamDuel.js";
 import type { Battle } from "../scenarios/types.js";
-import { swarm } from "../scenarios/swarm.js";
-import { torpedoes } from "../scenarios/torpedoes.js";
-import { starWars } from "../scenarios/starWars.js";
-import { standoff } from "../scenarios/standoff.js";
-import { column } from "../scenarios/column.js";
-import { split } from "../scenarios/split.js";
-import { torchRun } from "../scenarios/torchRun.js";
-import { binary } from "../scenarios/binary.js";
-import { kernels } from "../scenarios/kernels.js";
-import { asteroidField } from "../scenarios/asteroidField.js";
-import { mining } from "../scenarios/mining.js";
-import { rivalMines } from "../scenarios/rivalMines.js";
-import { broadside } from "../scenarios/broadside.js";
-import { hooked } from "../scenarios/hooked.js";
-import { salvageRun } from "../scenarios/salvage.js";
-import { catamaranRefits, mending, refitting } from "../scenarios/mending.js";
-import { scavenge } from "../scenarios/scavenge.js";
-import { factory, padRebuild } from "../scenarios/carrier.js";
-import { shipyard } from "../scenarios/shipyard.js";
-import { beamCarrier } from "../scenarios/beamCarrier.js";
-import { circling, passes } from "../scenarios/passes.js";
-import { rearm } from "../scenarios/rearm.js";
-import { tanker } from "../scenarios/tanker.js";
+import { SCENES } from "../scenarios/scenes.js";
 import { customBattle, type CustomBattle } from "../scenarios/customBattle.js";
 import { customPanel } from "./customPanel.js";
 import { linkedBattle } from "../scenarios/battleLink.js";
@@ -44,8 +20,6 @@ import { teamName } from "../render/teams.js";
  * The scenarios page: a battle picked from the list, or set up as a custom
  * battle, run on the wall clock by `battleView`.
  */
-
-const SEED = 20260905;
 
 export function start(): void {
     keyHelp(
@@ -66,36 +40,7 @@ export function start(): void {
     const fitButton = el<HTMLButtonElement>("fit");
     const scrub = el<HTMLInputElement>("scrub");
     const scenes = [
-        { name: "Duel", create: () => duel(SEED) },
-        { name: "Beam Duel", create: () => beamDuel(SEED) },
-        { name: "Star Wars", create: () => starWars(SEED) },
-        { name: "Swarm", create: () => swarm(SEED) },
-        { name: "Super Swarm", create: () => swarm(SEED, 300) },
-        { name: "Torpedoes", create: () => torpedoes(SEED) },
-        { name: "Standoff", create: () => standoff(SEED) },
-        { name: "Line Ahead", create: () => column(SEED) },
-        { name: "Split", create: () => split(SEED) },
-        { name: "Torch Run", create: () => torchRun(SEED) },
-        { name: "Binary", create: () => binary(SEED) },
-        { name: "Kernels", create: () => kernels(SEED) },
-        { name: "Asteroid Field", create: () => asteroidField(SEED) },
-        { name: "Mining", create: () => mining(SEED) },
-        { name: "Rival Mines", create: () => rivalMines(SEED) },
-        { name: "Hooked", create: () => hooked(SEED) },
-        { name: "Broadside", create: () => broadside(SEED) },
-        { name: "Salvage Run", create: () => salvageRun(SEED) },
-        { name: "Mending", create: () => mending(SEED) },
-        { name: "Refitting", create: () => refitting(SEED) },
-        { name: "Catamaran Refits", create: () => catamaranRefits(SEED) },
-        { name: "Scavenge", create: () => scavenge(SEED) },
-        { name: "Pad Rebuild", create: () => padRebuild(SEED) },
-        { name: "Factory", create: () => factory(SEED) },
-        { name: "Shipyard", create: () => shipyard(SEED) },
-        { name: "Rearm", create: () => rearm(SEED) },
-        { name: "Tanker", create: () => tanker(SEED) },
-        { name: "Beam Carrier", create: () => beamCarrier(SEED) },
-        { name: "Passes", create: () => passes(SEED) },
-        { name: "Circling", create: () => circling(SEED) },
+        ...SCENES,
         // Last, and built from the panel's setup rather than from code.
         { name: "Custom battle", create: (): Battle => customBattle(panel.setup()) },
     ];
