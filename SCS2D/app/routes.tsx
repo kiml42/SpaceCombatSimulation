@@ -3,6 +3,7 @@ import { Shell } from "./Shell";
 import { BattlePage } from "./routes/battle/BattlePage";
 import { FleetPage } from "./routes/fleet/FleetPage";
 import { ShipPage } from "./routes/ship/ShipPage";
+import { SkirmishRoute } from "./routes/skirmish/SkirmishPage";
 import { Home } from "./routes/home/Home";
 import { LibraryPage } from "./routes/library/LibraryPage";
 import { NotFound } from "./routes/NotFound";
@@ -20,6 +21,7 @@ export const ROUTES: RouteObject[] = [
             { path: "battle", element: <BattlePage /> },
             { path: "fleet", element: <FleetPage /> },
             { path: "ship", element: <ShipPage /> },
+            { path: "skirmish", element: <SkirmishRoute /> },
             { path: "library", element: <LibraryPage /> },
             { path: "*", element: <NotFound /> },
         ],

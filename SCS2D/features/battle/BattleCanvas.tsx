@@ -27,6 +27,8 @@ export interface BattleCanvasProps {
     readonly id?: string;
     /** The view once it exists, and null once it is gone. */
     readonly onView: (view: BattleView | null) => void;
+    /** Every step of the battle: for rules that watch it, never for state. */
+    readonly onStepped?: (battle: Battle) => void;
     /** Every frame: keep what it says in a ref, never in state (DESIGN.md non-negotiable 5). */
     readonly onDrawn?: (shown: Snapshot) => void;
     readonly onRunningChanged?: (running: boolean) => void;
@@ -39,15 +41,16 @@ export interface BattleCanvasProps {
  * A battle drawn and run on the wall clock: a canvas React mounts and then
  * leaves to `battleView`, which owns the clock, the camera and the input.
  */
-export function BattleCanvas({ id, onView, onDrawn, onRunningChanged, onRewound, children }: BattleCanvasProps) {
+export function BattleCanvas({ id, onView, onStepped, onDrawn, onRunningChanged, onRewound, children }: BattleCanvasProps) {
     const canvas = useRef<HTMLCanvasElement>(null);
     const created = useEffectEvent((view: BattleView | null) => onView(view));
+    const stepped = useEffectEvent((battle: Battle) => onStepped?.(battle));
     const drawn = useEffectEvent((shown: Snapshot) => onDrawn?.(shown));
     const runningChanged = useEffectEvent((running: boolean) => onRunningChanged?.(running));
     const rewound = useEffectEvent((battle: Battle) => onRewound?.(battle));
 
     useEffect(() => {
-        const view = battleView(canvas.current!, () => {}, drawn, runningChanged, rewound);
+        const view = battleView(canvas.current!, stepped, drawn, runningChanged, rewound);
         created(view);
         return () => {
             view.dispose();

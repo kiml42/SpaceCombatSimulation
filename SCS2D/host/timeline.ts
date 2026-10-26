@@ -119,7 +119,7 @@ export function timeline(box: HTMLElement, actions: TimelineActions): Timeline {
             pictures.append(tile);
         }
         const buttons = document.createElement("span");
-        buttons.className = "rowButtons";
+        buttons.className = "row-buttons";
         const saveButton = document.createElement("button");
         saveButton.textContent = "Save";
         saveButton.title = "Save this fleet to your library";
@@ -142,9 +142,9 @@ export function timeline(box: HTMLElement, actions: TimelineActions): Timeline {
 
     const matchRow = (row: MatchRow, scales: { kind: number; formation: number }): HTMLElement => {
         const out = document.createElement("div");
-        out.className = row === leadingRow ? "match leading" : `match ${row.winner === 0 ? "playerWon" : "enemyWon"}`;
+        out.className = row === leadingRow ? "match leading" : `match ${row.winner === 0 ? "player-won" : "enemy-won"}`;
         const head = document.createElement("div");
-        head.className = "matchHead";
+        head.className = "match-head";
         const label = document.createElement("span");
         label.textContent = what(row);
         if (row.kind === "search") label.title = "Fought under evolution's rules: up to 180 s, the side ahead then taken to win.";
@@ -189,7 +189,7 @@ export function timeline(box: HTMLElement, actions: TimelineActions): Timeline {
         const summary = document.createElement("summary");
         const count = chain.end - chain.start;
         summary.textContent = `${chain.loser === 0 ? "You" : "The enemy"} lost ${count} in a row`;
-        summary.className = chain.loser === 0 ? "playerLost" : "enemyLost";
+        summary.className = chain.loser === 0 ? "player-lost" : "enemy-lost";
         details.append(summary);
         // Drawn only once opened: a long run is a lot of hulls nobody may look at.
         const fill = (): void => {

@@ -7,9 +7,6 @@ import type { SkirmishSettings } from "../scenarios/skirmish.js";
  * one, at full speed, and otherwise in slices on the page's own clock.
  */
 
-/** The worker's bundle, put in at build time by `scripts/build.ts`. */
-declare const __ANSWER_WORKER__: string;
-
 export interface AnswerInput {
     player: Fleet;
     enemy: Fleet;
@@ -60,9 +57,11 @@ const LEAD_AFTER = 5000;
 /**
  * Run a search, telling `progress` after every generation, whenever a new
  * enemy leads one that has run long, and once more when it is found. Returns
- * a way to stop it.
+ * a way to stop it. `worker` starts `answerWorker.ts`, however the page
+ * bundles it; without one, or if it will not start, the search runs on the
+ * page's own clock.
  */
-export function startAnswer(input: AnswerInput, progress: (now: AnswerProgress) => void): () => void {
+export function startAnswer(input: AnswerInput, progress: (now: AnswerProgress) => void, worker?: () => Worker): () => void {
     const received = (wire: Wire): void =>
         progress({
             generation: wire.generation,
@@ -84,12 +83,11 @@ export function startAnswer(input: AnswerInput, progress: (now: AnswerProgress) 
         multiplier: input.multiplier,
     };
     try {
-        const url = URL.createObjectURL(new Blob([__ANSWER_WORKER__], { type: "text/javascript" }));
-        const worker = new Worker(url);
-        URL.revokeObjectURL(url);
-        worker.onmessage = (event: MessageEvent<Wire>) => received(event.data);
-        worker.postMessage(message);
-        return () => worker.terminate();
+        if (worker === undefined) throw new Error("no worker");
+        const started = worker();
+        started.onmessage = (event: MessageEvent<Wire>) => received(event.data);
+        started.postMessage(message);
+        return () => started.terminate();
     } catch {
         // No worker to be had: the same search, a slice between frames.
         let stopped = false;

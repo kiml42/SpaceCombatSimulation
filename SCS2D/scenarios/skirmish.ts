@@ -416,20 +416,3 @@ export function parseSkirmish(value: unknown): Skirmish {
 
 /** Where a page keeps the skirmish in progress, so it can be picked up again. */
 export const SKIRMISH_STORAGE_KEY = "scs2d.skirmish";
-
-const FRAGMENT = "#skirmish=";
-
-/**
- * The fragment that carries a skirmish between its page and the fleet editor.
- * In the link rather than only in storage, which some browsers do not share
- * between pages opened as files.
- */
-export function skirmishFragment(skirmish: Skirmish): string {
-    return FRAGMENT + encodeURIComponent(JSON.stringify(serialiseSkirmish(skirmish)));
-}
-
-/** The skirmish a fragment carries, or null. Throws on one it carries but cannot read. */
-export function handedSkirmish(hash: string): Skirmish | null {
-    if (!hash.startsWith(FRAGMENT)) return null;
-    return parseSkirmish(JSON.parse(decodeURIComponent(hash.slice(FRAGMENT.length))));
-}

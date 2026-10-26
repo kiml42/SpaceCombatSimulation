@@ -64,8 +64,8 @@ an entry is either still open or it is gone.
 
 ### Partly built — what is left
 
-16. **React UI** — stages 1–5, the foundation, the shell, the battle viewer and the fleet and ship
-    editors, are built; stages 6–8 are left (below). The app is `dist/index.html`, so the published page is the app, and an old viewer link
+16. **React UI** — stages 1–6, the foundation, the shell, the battle viewer, the fleet and ship
+    editors and the skirmish, are built; stages 7 and 8 are left (below). The app is `dist/index.html`, so the published page is the app, and an old viewer link
     (`#battle=`, `#fleet=`) is rewritten to the Battle route as it opens.
     What is built settled, for the work left:
     - **A route is `app/routes/<name>/`**, listed in `app/routes.tsx` and shown inside `app/Shell.tsx`, which
@@ -84,6 +84,12 @@ an entry is either still open or it is gone.
       its field when left or on Enter, re-keyed by its value so it shows what the ships go by after.
     - **A setting is a `NumberField`** (`ui/fields/`), with its ± where it has one, holding its box's text as
       typed; the page turns the text into numbers, defaults for what does not read, as `customSetup.ts` does.
+    - **Work that outlives a route lives in a provider above the router**, as the skirmish's does
+      (`features/skirmish/`): the skirmish, its history and the enemy's search, which runs in a worker the
+      app inlines (`?worker&inline`) and goes on while the player is elsewhere. The route subscribes to
+      what it hears and shows it; a route never owns a worker.
+    - **Settings cards are `SettingFields`** (`features/settings/`): a group of `SettingField`s as
+      `NumberField` rows, each box's text kept as typed and read by `settingValue`.
     - **A box that edits as it is typed is a `LiveText` or `LiveNumber`** (`ui/fields/`): the page applies
       every key it can read, and the box keeps what was typed until it is left. A gesture is one undo step:
       the first edit applies, the rest amend it, until the box is left.

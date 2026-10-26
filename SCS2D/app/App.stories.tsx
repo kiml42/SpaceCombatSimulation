@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { ObservedStorage, memoryStore } from "~/features/storage/observedStorage";
+import { SkirmishProvider } from "~/features/skirmish/SkirmishProvider";
 import { StorageProvider } from "~/features/storage/StorageProvider";
 import { BLUEPRINTS } from "~/scenarios/blueprints";
 import { serialiseBlueprint } from "~/sim/index";
@@ -12,7 +13,9 @@ function App({ path, saved = {} }: { readonly path: string; readonly saved?: Rec
     const router = createMemoryRouter(ROUTES, { initialEntries: [path] });
     return (
         <StorageProvider storage={new ObservedStorage(memoryStore(saved))}>
-            <RouterProvider router={router} />
+            <SkirmishProvider>
+                <RouterProvider router={router} />
+            </SkirmishProvider>
         </StorageProvider>
     );
 }
@@ -105,5 +108,16 @@ export const Ship: Story = {
         await expect(canvas.getByRole("combobox", { name: "kind" })).toHaveDisplayValue("tank");
         await userEvent.click(canvas.getByRole("button", { name: "Undo" }));
         await expect(canvas.queryByRole("heading", { name: "Selected module" })).toBeNull();
+    },
+};
+
+export const Skirmish: Story = {
+    args: { path: "/skirmish" },
+    play: async ({ canvas }) => {
+        await expect(canvas.getByRole("combobox", { name: "Enemy" })).toBeVisible();
+        await waitFor(() => expect(canvas.getByRole("row", { name: /^metal/ })).toBeVisible());
+        await userEvent.selectOptions(canvas.getByRole("combobox", { name: "Your fleet" }), "ship:Gunship");
+        await userEvent.click(canvas.getByRole("button", { name: "Start" }));
+        await expect(canvas.getByRole("heading", { name: "Round 1" })).toBeVisible();
     },
 };
