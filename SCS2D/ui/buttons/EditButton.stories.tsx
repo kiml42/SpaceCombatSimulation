@@ -24,3 +24,14 @@ export const Link: Story = {
         await expect(canvas.getByRole("link", { name: "Edit Gunship" })).toHaveAttribute("href", "#/ship");
     },
 };
+
+export const Worded: Story = {
+    render: () => (
+        <EditLink href="#/fleet" variant="primary">
+            Edit fleet
+        </EditLink>
+    ),
+    play: async ({ canvas }) => {
+        await expect(canvas.getByRole("link", { name: "Edit fleet" })).toHaveAttribute("data-variant", "primary");
+    },
+};

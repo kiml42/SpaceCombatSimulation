@@ -48,7 +48,7 @@ import {
 import type { Battle } from "~/scenarios/types";
 import { serialiseFleet, type Budget, type Fleet, type Snapshot } from "~/sim/index";
 import { Button } from "~/ui/buttons/Button";
-import { PencilIcon } from "~/ui/icons/PencilIcon";
+import { EditLink } from "~/ui/buttons/EditButton";
 import { KeyHelp } from "~/ui/dialogs/KeyHelp";
 import { Figures } from "../ship/ShipReport";
 import { EMPTY } from "./FleetChoices";
@@ -207,26 +207,6 @@ const Buttons = styled.div`
     > * {
         flex: 1;
         text-align: center;
-    }
-`;
-
-const Edit = styled.a`
-    display: inline-flex;
-    gap: 0.35rem;
-    align-items: center;
-    justify-content: center;
-    padding: 0.25rem 0.7rem;
-    border: 1px solid var(--colour-control-border);
-    border-radius: 4px;
-    background: var(--colour-surface);
-    color: var(--colour-text);
-    text-decoration: none;
-
-    &[data-variant="primary"] {
-        border-color: var(--colour-primary-border);
-        background: var(--colour-primary);
-        color: #fff;
-        font-weight: 600;
     }
 `;
 
@@ -852,18 +832,18 @@ export function SkirmishPage() {
                                             {fightLabel}
                                         </Button>
                                     )}
-                                    <Edit
+                                    <EditLink
                                         id="editFleet"
                                         href="#/fleet"
-                                        data-variant={next === "edit" ? "primary" : "plain"}
+                                        variant={next === "edit" ? "primary" : "plain"}
                                         title="Change your fleet in the fleet editor"
                                         onClick={(event) => {
                                             event.preventDefault();
                                             void navigate(fleetRoute(skirmish.player, skirmish));
                                         }}
                                     >
-                                        <PencilIcon /> Edit fleet
-                                    </Edit>
+                                        Edit fleet
+                                    </EditLink>
                                     <Button
                                         id="retry"
                                         title="Fight this round again from the start"
