@@ -141,6 +141,8 @@ camera and the input; the editors' canvases are engines of the same kind. What e
 - **A button is `ui/buttons/Button`**, or `ToggleButton` for one that stays pressed, both Base UI's
   underneath: `variant` says whether it is plain, the one thing to do next (`primary`) or a small one
   holding a symbol (`icon`). Never a bare `<button>` in React.
+- **Edit is a pencil**: `EditButton`, or `EditLink` where it goes to an address, named for what it opens
+  ("Edit Corvette"). One pencil for a ship and a fleet alike; the row it is on says which.
 - **An editor's canvas is an engine of its own** (`editor/fleetCanvas.ts`), as `battleView` is: the
   pointer, the keys and the drawing, over a document it shares with the page. The route holds the
   document, which is changed in place with its undo, and re-renders the panel by a counter the engine

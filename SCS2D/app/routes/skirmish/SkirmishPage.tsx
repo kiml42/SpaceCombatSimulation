@@ -48,6 +48,7 @@ import {
 import type { Battle } from "~/scenarios/types";
 import { serialiseFleet, type Budget, type Fleet, type Snapshot } from "~/sim/index";
 import { Button } from "~/ui/buttons/Button";
+import { PencilIcon } from "~/ui/icons/PencilIcon";
 import { KeyHelp } from "~/ui/dialogs/KeyHelp";
 import { Figures } from "../ship/ShipReport";
 import { EMPTY } from "./FleetChoices";
@@ -210,6 +211,10 @@ const Buttons = styled.div`
 `;
 
 const Edit = styled.a`
+    display: inline-flex;
+    gap: 0.35rem;
+    align-items: center;
+    justify-content: center;
     padding: 0.25rem 0.7rem;
     border: 1px solid var(--colour-control-border);
     border-radius: 4px;
@@ -857,7 +862,7 @@ export function SkirmishPage() {
                                             void navigate(fleetRoute(skirmish.player, skirmish));
                                         }}
                                     >
-                                        Edit fleet
+                                        <PencilIcon /> Edit fleet
                                     </Edit>
                                     <Button
                                         id="retry"

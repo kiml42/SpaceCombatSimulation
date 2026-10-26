@@ -6,6 +6,7 @@ import { teamColour } from "~/render/teams";
 import { fleetWarnings, parseBlueprint, parseFleet, type Fleet } from "~/sim/index";
 import type { Slot } from "./customSetup";
 import { Button } from "~/ui/buttons/Button";
+import { EditButton } from "~/ui/buttons/EditButton";
 
 const Row = styled.div`
     display: flex;
@@ -117,13 +118,11 @@ export function FleetSlots({ slots, onChange, onEdit, onProblem }: FleetSlotsPro
                             ))}
                         </optgroup>
                     </select>
-                    <Button
-                        aria-label={`Edit side ${i + 1}`}
+                    <EditButton
+                        label={`Edit side ${i + 1}`}
                         title={`Open it in the ${slot.source.kind === "ship" ? "ship" : "fleet"} editor; its Battle link brings it back here, with the rest of this setup`}
                         onClick={() => onEdit(i)}
-                    >
-                        Edit
-                    </Button>
+                    />
                     <Button
                         variant="icon"
                         aria-label={`Take side ${i + 1} out`}

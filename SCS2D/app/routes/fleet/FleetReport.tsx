@@ -3,6 +3,7 @@ import { kg } from "~/editor/budget";
 import type { FleetView } from "~/editor/fleetDocument";
 import { buildTime } from "~/editor/stats";
 import { Button } from "~/ui/buttons/Button";
+import { EditLink } from "~/ui/buttons/EditButton";
 
 const Table = styled.table`
     width: 100%;
@@ -85,14 +86,13 @@ export function DesignList({
                                 {`${line.start} at start${line.builds > 0 ? `, builds ${line.builds}` : ""}`}
                             </td>
                             <td>
-                                <a
+                                <EditLink
                                     href={designHref(line.name)}
                                     data-design={line.name}
+                                    label={`Edit ${line.name}`}
                                     title="Open this design in the ship editor, and come back to the fleet with it changed"
                                     onClick={onLeave}
-                                >
-                                    Edit
-                                </a>
+                                />
                             </td>
                         </tr>
                     ))
