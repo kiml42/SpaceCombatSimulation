@@ -9,6 +9,7 @@ import { choices, type Choice } from "~/host/designChoices";
 import { mountAt, viewOf } from "~/render/picking";
 import { padHolds, placementOf, slipwayHolds, type DoctrinePart, type ShipView, type Snapshot } from "~/sim/index";
 import type { OrderState } from "./orderState";
+import { Button, ToggleButton } from "~/ui/buttons/Button";
 
 const Panel = styled.aside`
     position: absolute;
@@ -38,11 +39,6 @@ const Panel = styled.aside`
     p {
         margin: 0.4rem 0 0;
         color: var(--colour-faint);
-    }
-
-    button[aria-pressed="true"] {
-        border-color: var(--colour-link);
-        background: var(--colour-surface-hover);
     }
 `;
 
@@ -170,9 +166,9 @@ export function DoctrinePanel({ view, state, shown }: DoctrinePanelProps) {
         <Panel id="doctrinePanel" aria-label="Doctrine">
             <Tabs>
                 {parts.map(([p, name]) => (
-                    <button key={p} aria-pressed={p === showing} onClick={() => setPart(p)}>
+                    <ToggleButton key={p} pressed={p === showing} onPressedChange={() => setPart(p)}>
                         {name}
-                    </button>
+                    </ToggleButton>
                 ))}
             </Tabs>
             {sections.map(({ section, groups }) => (
@@ -198,12 +194,12 @@ export function DoctrinePanel({ view, state, shown }: DoctrinePanelProps) {
                     ))}
                 </>
             )}
-            <button
+            <Button
                 title="Take all of this back to what the blueprint says"
                 onClick={() => view.issue({ kind: "resetDoctrine", ships: [...state.picked], part: showing })}
             >
                 ↺ Revert all
-            </button>
+            </Button>
             {one !== null && <p>Click a mount to tell it, and every copy of it, alone.</p>}
         </Panel>
     );
@@ -265,9 +261,14 @@ function DoctrineBox({
             <span>{row.label}</span>
             {/* Left of the box, so the box stays put as it comes and goes. */}
             {says && (
-                <button title="Back to its design" aria-label={`${row.label} back to its design`} onClick={() => onIssue(row.field, null)}>
+                <Button
+                    variant="icon"
+                    title="Back to its design"
+                    aria-label={`${row.label} back to its design`}
+                    onClick={() => onIssue(row.field, null)}
+                >
                     ↺
-                </button>
+                </Button>
             )}
             <CommitBox
                 label={row.label}
@@ -303,12 +304,13 @@ function BuildBox({
         <Row title="What it builds, and how many of them it keeps in the fight">
             <span>{slot.label}</span>
             {ships.some((ship) => ship.crafts?.[slot.key] !== undefined) && (
-                <button
+                <Button
+                    variant="icon"
                     title="Back to what its design builds"
                     onClick={() => view.issue({ kind: "craft", ships: [...picked], slot: slot.key, blueprint: null })}
                 >
                     ↺
-                </button>
+                </Button>
             )}
             <select
                 aria-label={`${slot.label} builds`}

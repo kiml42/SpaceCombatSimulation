@@ -25,6 +25,7 @@ import {
 } from "~/sim/index";
 import { CommitText } from "~/ui/fields/CommitText";
 import { CARRIED, designOf, optionLabel, optionValue } from "./fleetOptions";
+import { Button } from "~/ui/buttons/Button";
 
 const Field = styled.div`
     display: flex;
@@ -227,7 +228,7 @@ export function SelectionPanel({ doc, scale, ships, library, designHref, onLeave
                             >
                                 Edit
                             </a>
-                            <button
+                            <Button
                                 id="forkDesign"
                                 title="Fly a copy of this design under a new name, to change this ship without changing the others of its design"
                                 onClick={() => {
@@ -238,7 +239,7 @@ export function SelectionPanel({ doc, scale, ships, library, designHref, onLeave
                                 }}
                             >
                                 Fork
-                            </button>
+                            </Button>
                         </Field>
                     )}
                     <Field>
@@ -338,7 +339,7 @@ export function SelectionPanel({ doc, scale, ships, library, designHref, onLeave
             )}
             <Buttons>
                 {one && path.length > 1 && (
-                    <button
+                    <Button
                         id="upLevel"
                         title="Select the group this is in"
                         onClick={() => {
@@ -347,9 +348,9 @@ export function SelectionPanel({ doc, scale, ships, library, designHref, onLeave
                         }}
                     >
                         Select group
-                    </button>
+                    </Button>
                 )}
-                <button
+                <Button
                     id="makeGroup"
                     title="Make a group of what is selected, where it stands"
                     disabled={makeGroup(doc.fleet, picked) === null}
@@ -362,9 +363,9 @@ export function SelectionPanel({ doc, scale, ships, library, designHref, onLeave
                     }}
                 >
                     Make group
-                </button>
+                </Button>
                 {one && group && (
-                    <button
+                    <Button
                         id="dissolveGroup"
                         title="Put this group's ships back where they stand, and drop the group if nothing else uses it"
                         onClick={() => {
@@ -376,9 +377,9 @@ export function SelectionPanel({ doc, scale, ships, library, designHref, onLeave
                         }}
                     >
                         Dissolve
-                    </button>
+                    </Button>
                 )}
-                <button
+                <Button
                     id="duplicateEntry"
                     onClick={() => {
                         const result = duplicateEntries(doc.fleet, picked, 0, -snapStep(scale) * 20);
@@ -388,8 +389,8 @@ export function SelectionPanel({ doc, scale, ships, library, designHref, onLeave
                     }}
                 >
                     Duplicate
-                </button>
-                <button
+                </Button>
+                <Button
                     id="deleteEntry"
                     onClick={() => {
                         doc.apply(deleteEntries(doc.fleet, picked));
@@ -398,7 +399,7 @@ export function SelectionPanel({ doc, scale, ships, library, designHref, onLeave
                     }}
                 >
                     Delete
-                </button>
+                </Button>
             </Buttons>
         </section>
     );

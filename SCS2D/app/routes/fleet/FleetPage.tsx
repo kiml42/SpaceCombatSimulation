@@ -22,6 +22,7 @@ import { designOf, fromLibrary, optionLabel, optionValue } from "./fleetOptions"
 import { DesignList, FleetProblems, FleetStats } from "./FleetReport";
 import { SelectionPanel } from "./SelectionPanel";
 import { SkirmishCard, skirmishBlock } from "./SkirmishCard";
+import { Button } from "~/ui/buttons/Button";
 
 const KEYS: readonly KeyRow[] = [
     { keys: "Add ship", does: "Add a ship to the fleet" },
@@ -69,9 +70,9 @@ const Grow = styled.span`
 
 const Back = styled.a`
     padding: 0.25rem 0.9rem;
-    border: 1px solid #4f7cc0;
+    border: 1px solid var(--colour-primary-border);
     border-radius: 4px;
-    background: #2f5f9e;
+    background: var(--colour-primary);
     color: #fff;
     font-weight: 600;
     text-decoration: none;
@@ -287,10 +288,10 @@ export function FleetPage() {
                         apply({ ...doc.fleet, name: next });
                     }}
                 />
-                <button id="newFleet" onClick={() => open(emptyFleet(unusedName("New fleet", taken())))}>
+                <Button id="newFleet" onClick={() => open(emptyFleet(unusedName("New fleet", taken())))}>
                     New
-                </button>
-                <button
+                </Button>
+                <Button
                     id="duplicateFleet"
                     title="Start a copy of this fleet under a new name"
                     onClick={() => {
@@ -299,11 +300,11 @@ export function FleetPage() {
                     }}
                 >
                     Copy
-                </button>
-                <button id="saveFleet" onClick={() => fleets.save(doc.fleet)}>
+                </Button>
+                <Button id="saveFleet" onClick={() => fleets.save(doc.fleet)}>
                     Save
-                </button>
-                <button
+                </Button>
+                <Button
                     id="deleteFleet"
                     disabled={!fleets.savedNames().includes(name)}
                     onClick={() => {
@@ -320,8 +321,8 @@ export function FleetPage() {
                     }}
                 >
                     Delete
-                </button>
-                <button
+                </Button>
+                <Button
                     id="exportFleet"
                     onClick={() => {
                         const text = `${JSON.stringify(serialiseFleet(doc.fleet), null, 2)}\n`;
@@ -334,10 +335,10 @@ export function FleetPage() {
                     }}
                 >
                     Export
-                </button>
-                <button id="importTrigger" onClick={() => document.getElementById("importFleet")?.click()}>
+                </Button>
+                <Button id="importTrigger" onClick={() => document.getElementById("importFleet")?.click()}>
                     Import
-                </button>
+                </Button>
                 <input
                     id="importFleet"
                     type="file"
@@ -363,7 +364,7 @@ export function FleetPage() {
                     }}
                 />
                 <Grow />
-                <button
+                <Button
                     id="undo"
                     disabled={!doc.canUndo}
                     onClick={() => {
@@ -372,8 +373,8 @@ export function FleetPage() {
                     }}
                 >
                     Undo
-                </button>
-                <button
+                </Button>
+                <Button
                     id="redo"
                     disabled={!doc.canRedo}
                     onClick={() => {
@@ -382,7 +383,7 @@ export function FleetPage() {
                     }}
                 >
                     Redo
-                </button>
+                </Button>
                 {now === null ? (
                     <a
                         id="battleLink"

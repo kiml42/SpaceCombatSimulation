@@ -5,6 +5,7 @@ import { useLibrary } from "~/features/storage/useLibrary";
 import { teamColour } from "~/render/teams";
 import { fleetWarnings, parseBlueprint, parseFleet, type Fleet } from "~/sim/index";
 import type { Slot } from "./customSetup";
+import { Button } from "~/ui/buttons/Button";
 
 const Row = styled.div`
     display: flex;
@@ -114,25 +115,26 @@ export function FleetSlots({ slots, onChange, onProblem }: FleetSlotsProps) {
                             ))}
                         </optgroup>
                     </select>
-                    <button
+                    <Button
+                        variant="icon"
                         aria-label={`Take side ${i + 1} out`}
                         title="Take this side out"
                         onClick={() => onChange(slots.filter((_, k) => k !== i))}
                     >
                         ×
-                    </button>
+                    </Button>
                 </Row>
             ))}
-            <button id="addFleet" title="Another side: a fleet or a single ship, chosen from its list" onClick={add}>
+            <Button id="addFleet" title="Another side: a fleet or a single ship, chosen from its list" onClick={add}>
                 Add fleet
-            </button>{" "}
-            <button
+            </Button>{" "}
+            <Button
                 id="fleetFromFile"
                 title="Another side from a fleet file, or a ship from a blueprint file"
                 onClick={() => files.current?.click()}
             >
                 From file…
-            </button>
+            </Button>
             <input
                 ref={files}
                 id="fleetFile"
