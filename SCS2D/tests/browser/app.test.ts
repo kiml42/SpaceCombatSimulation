@@ -8,6 +8,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import type { Browser } from "playwright";
 import { launchChromium } from "./launch.js";
+import { serialiseBlueprint } from "../../sim/index.js";
+import { CORVETTE } from "../../scenarios/blueprints.js";
 
 /**
  * The React app as built, opened from disk: browsers will not load a module
@@ -50,5 +52,26 @@ it("renders from a file, with its styles, and links to the old pages", async () 
     expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe("rgb(11, 15, 22)");
     expect(await heading.evaluate((element) => getComputedStyle(element).fontWeight)).toBe("600");
     expect(await page.getByRole("link", { name: "Ship editor" }).getAttribute("href")).toBe("editor.html");
+    expect(problems).toEqual([]);
+});
+
+it("routes by the hash from a file, and lists what browser storage holds", async () => {
+    const page = await browser.newPage();
+    const problems: string[] = [];
+    page.on("pageerror", (error) => problems.push(error.message));
+    await page.goto(pathToFileURL(appPage).href);
+
+    const probe = JSON.stringify(serialiseBlueprint({ ...CORVETTE, name: "Probe" }));
+    await page.evaluate((text) => localStorage.setItem("scs2d.blueprint.Probe", text), probe);
+
+    await page.getByRole("link", { name: "Library" }).click();
+    expect(new URL(page.url()).hash).toBe("#/library");
+    const ships = page.getByRole("region", { name: "Ships" });
+    await expect.poll(() => ships.textContent()).toContain("Probesaved");
+
+    // The route survives a reload: it is in the address, not in memory.
+    await page.reload();
+    await page.getByRole("region", { name: "Ships" }).waitFor();
+    await page.evaluate(() => localStorage.removeItem("scs2d.blueprint.Probe"));
     expect(problems).toEqual([]);
 });

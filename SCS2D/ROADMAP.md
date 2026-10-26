@@ -64,8 +64,14 @@ an entry is either still open or it is gone.
 
 ### Partly built — what is left
 
-16. **React UI** — stage 1, the foundation, is built; stages 2–8 are left, from the shell with its shared
-    library and view settings onwards (below). Two things found in stage 1 bear on them:
+16. **React UI** — stages 1 and 2, the foundation and the shell, are built; stages 3–8 are left, from the
+    battle viewer onwards (below). What they settled that later stages build on:
+    - **A route is `app/routes/<name>/`**, listed in `app/routes.tsx` and shown inside `app/Shell.tsx`, which
+      holds the links between them. `app/App.stories.tsx` renders the whole app at a path, on a memory router
+      with storage of its own, which is how a route gets its story.
+    - **Storage goes through `useLibrary` and `useViewSettings`** (`features/storage/`), never `localStorage`,
+      so a save anywhere re-renders whatever shows it. View settings are keyed by the old page's name, so a
+      route that replaces a page keeps its settings.
     - **axe does not fail a story on colour contrast**, only on what it is sure of: contrast it marks for
       review, so a token change wants looking at in Storybook's accessibility panel.
 
