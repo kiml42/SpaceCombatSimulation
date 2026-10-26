@@ -205,7 +205,8 @@ export function ShipPage() {
     const navigate = useNavigate();
     const [inFleet] = useState(() => handed(search));
     const [doc] = useState(() => {
-        const read = (): Blueprint | null => fromLibrary(library, "Corvette");
+        const named = search.get("open");
+        const read = (): Blueprint | null => (named === null ? null : fromLibrary(library, named)) ?? fromLibrary(library, "Corvette");
         // As it flies in its fleet, carrying the fleet's fighters for its pads.
         const opened = inFleet === null ? null : withFleetFighters(inFleet.fleet.designs[inFleet.design]!, inFleet.fleet.designs);
         return new EditorDocument(opened ?? read() ?? emptyBlueprint("New ship"));
