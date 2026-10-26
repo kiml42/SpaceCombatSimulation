@@ -184,6 +184,7 @@ describe("the skirmish in a browser", () => {
     it("goes to the fleet editor with the budget, and back to the round", async () => {
         await page.click("#editFleet");
         await page.waitForURL(/index\.html#\/fleet\?skirmish=/);
+        await page.waitForSelector("#fleetName");
         expect(await page.isVisible("#skirmish")).toBe(true);
         expect(await page.textContent("#skirmishTitle")).toBe("Skirmish — round 1");
         expect(await page.textContent("#skirmishBudget")).toContain("metal");
