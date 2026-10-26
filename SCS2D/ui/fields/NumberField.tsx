@@ -22,6 +22,11 @@ const Row = styled.div`
         color: var(--colour-text);
     }
 
+    /* Alone, it takes the whole width the box and its ± share on a row that has one, so the two line up. */
+    input:only-of-type {
+        grid-column: 2 / -1;
+    }
+
     span {
         color: var(--colour-faint);
     }

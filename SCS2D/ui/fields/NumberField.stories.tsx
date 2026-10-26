@@ -49,3 +49,35 @@ export const WithSpread: Story = {
         await expect(canvas.getByLabelText("range m")).toHaveValue(2000);
     },
 };
+
+/** A plain setting above one with a ±, as a settings card has them. */
+function Card() {
+    const [range, setRange] = useState("2000");
+    const [spread, setSpread] = useState("0");
+    const [seed, setSeed] = useState("1");
+    return (
+        <div style={{ width: "20rem" }}>
+            <NumberField label="seed" title="Which battle" value={seed} onChange={setSeed} step={1} />
+            <NumberField
+                label="range m"
+                title="How far apart"
+                value={range}
+                onChange={setRange}
+                step={100}
+                spread={{ value: spread, onChange: setSpread, title: "Either side" }}
+            />
+        </div>
+    );
+}
+
+export const AlignedOnACard: StoryObj<typeof Card> = {
+    render: () => <Card />,
+    play: async ({ canvas }) => {
+        const plain = canvas.getByLabelText("seed").getBoundingClientRect();
+        const main = canvas.getByLabelText("range m").getBoundingClientRect();
+        const spread = canvas.getByLabelText("range m either side").getBoundingClientRect();
+        // A plain box spans what a box and its ± share, so both edges line up.
+        await expect(plain.left).toBeCloseTo(main.left, 0);
+        await expect(plain.right).toBeCloseTo(spread.right, 0);
+    },
+};
