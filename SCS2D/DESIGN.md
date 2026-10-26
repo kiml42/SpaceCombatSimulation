@@ -1115,7 +1115,9 @@ inside any one file is not contiguous.
   the keys the old pages use, re-rendering on any save, another tab's included. Stage 3, the battle viewer,
   is begun: the Battle route runs any scene on the wall clock, with pause, step, reset, fit, the scrub bar and
   the speed, through `BattleCanvas`, a canvas React mounts and leaves to `battleView`, with figures read off it
-  at 10 Hz. Its custom battle, orders, doctrine and links are still the old viewer's. Repair, construction and salvage, one mechanism, is built in all six stages:
+  at 10 Hz, and a custom battle set up beside it — sides from the library or files, the setup and its
+  asteroids, import and export — paused at its start until Fight, with each side's tally. Its orders,
+  doctrine, adding ships and links are still the old viewer's. Repair, construction and salvage, one mechanism, is built in all six stages:
   damage shedding mass, pads mending landed fighters, robots mending their own hull, lost and built anew,
   lost modules rebuilt by robots and by pads, and robots taking wreckage apart into metal, with doctrine that
   sends a fighter in to be mended and a ship out to wrecks for their metal, flown by the stock Salvager.

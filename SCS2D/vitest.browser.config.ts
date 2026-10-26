@@ -1,5 +1,6 @@
 import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
 import { playwright } from "@vitest/browser-playwright";
+import wyw from "@wyw-in-js/vite";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
@@ -33,7 +34,8 @@ export default defineConfig({
             },
             {
                 resolve: { alias: { "~": root } },
-                plugins: [storybookTest({ configDir: ".storybook" })],
+                // Linaria too, so a story is styled under test as it is in Storybook, and a play function can measure it.
+                plugins: [wyw({ include: ["**/*.{ts,tsx}"] }), storybookTest({ configDir: ".storybook" })],
                 test: {
                     name: "storybook",
                     setupFiles: [".storybook/vitest.setup.ts"],
