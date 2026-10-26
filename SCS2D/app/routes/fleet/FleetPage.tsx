@@ -157,7 +157,8 @@ export function FleetPage() {
     const skirmish = start?.skirmish ?? null;
     const [doc] = useState(() => {
         const first = fleets.list()[0];
-        let opened: Fleet | null = start?.fleet ?? null;
+        const named = search.get("open");
+        let opened: Fleet | null = start?.fleet ?? (named === null ? null : fromLibrary(fleets, named));
         if (opened === null && first !== undefined) {
             opened = fromLibrary(fleets, first.stock && first.saved ? `stock:${first.name}` : first.name);
         }

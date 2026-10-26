@@ -53,6 +53,22 @@ export const Library: Story = {
     },
 };
 
+export const LibraryEdit: Story = {
+    args: Library.args,
+    play: async ({ canvas }) => {
+        await userEvent.click(canvas.getByRole("button", { name: "Edit Probe" }));
+        await expect(await canvas.findByRole("combobox", { name: "Ship" })).toHaveDisplayValue("Probe •");
+    },
+};
+
+export const LibraryTest: Story = {
+    args: Library.args,
+    play: async ({ canvas, canvasElement }) => {
+        await userEvent.click(canvas.getByRole("button", { name: "Test Probe" }));
+        await waitFor(() => expect(canvasElement.querySelector("#fleetSlots option:checked")?.textContent).toMatch(/^Probe/));
+    },
+};
+
 export const NotFound: Story = {
     args: { path: "/nowhere" },
     play: async ({ canvas }) => {
