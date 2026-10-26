@@ -75,3 +75,59 @@ it("routes by the hash from a file, and lists what browser storage holds", async
     await page.evaluate(() => localStorage.removeItem("scs2d.blueprint.Probe"));
     expect(problems).toEqual([]);
 });
+
+it("runs a battle on its route, and lets go of it on leaving", async () => {
+    const page = await browser.newPage();
+    const problems: string[] = [];
+    page.on("pageerror", (error) => problems.push(error.message));
+    page.on("console", (message) => {
+        if (message.type() === "error" || message.type() === "warning") problems.push(message.text());
+    });
+    // Counted, to see the battle's clock stop when the route is left.
+    await page.addInitScript(() => {
+        const request = window.requestAnimationFrame.bind(window);
+        Reflect.set(window, "framesAsked", 0);
+        window.requestAnimationFrame = (callback) => {
+            Reflect.set(window, "framesAsked", (Reflect.get(window, "framesAsked") as number) + 1);
+            return request(callback);
+        };
+    });
+    await page.goto(`${pathToFileURL(appPage).href}#/battle`);
+
+    const readout = page.getByLabel("Battle time");
+    const step = async (): Promise<number> => Number(/step (\d+)/.exec((await readout.textContent()) ?? "")?.[1] ?? -1);
+    await expect.poll(step).toBeGreaterThan(30);
+    const lit = await page.evaluate(() => {
+        const canvas = document.querySelector("canvas")!;
+        const pixels = canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height).data;
+        let count = 0;
+        for (let i = 0; i < pixels.length; i += 4) if (pixels[i]! + pixels[i + 1]! + pixels[i + 2]! > 120) count++;
+        return count;
+    });
+    expect(lit).toBeGreaterThan(500);
+
+    await page.getByRole("button", { name: "Pause" }).click();
+    // The readout is sampled, so it settles a sample after the battle stops.
+    await page.waitForTimeout(300);
+    const held = await step();
+    await page.waitForTimeout(400);
+    expect(await step()).toBe(held);
+    await page.getByRole("button", { name: "Step" }).click();
+    await expect.poll(step).toBe(held + 1);
+
+    // Kept under the old viewer's own key.
+    await page.getByRole("combobox", { name: "speed" }).selectOption("4");
+    expect(JSON.parse((await page.evaluate(() => localStorage.getItem("scs2d.view.viewer")))!)).toMatchObject({ speed: 4 });
+
+    await page.getByRole("link", { name: "Library" }).click();
+    await page.getByRole("region", { name: "Ships" }).waitFor();
+    const before = (await page.evaluate(() => Reflect.get(window, "framesAsked"))) as number;
+    await page.waitForTimeout(400);
+    expect(await page.evaluate(() => Reflect.get(window, "framesAsked"))).toBe(before);
+    expect(await page.getByRole("toolbar").count()).toBe(0);
+
+    await page.getByRole("link", { name: "Battle" }).click();
+    expect(await page.getByRole("combobox", { name: "speed" }).inputValue()).toBe("4");
+    await page.evaluate(() => localStorage.removeItem("scs2d.view.viewer"));
+    expect(problems).toEqual([]);
+});

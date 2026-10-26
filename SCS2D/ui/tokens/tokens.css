@@ -34,6 +34,12 @@
     box-sizing: border-box;
 }
 
+html,
+body,
+#root {
+    height: 100%;
+}
+
 body {
     margin: 0;
     background: var(--colour-background);
@@ -43,4 +49,24 @@ body {
 
 a {
     color: var(--colour-link);
+}
+
+button,
+select,
+input {
+    font: inherit;
+}
+
+button,
+select {
+    padding: 0.25rem 0.7rem;
+    border: 1px solid var(--colour-control-border);
+    border-radius: 4px;
+    background: var(--colour-surface);
+    color: var(--colour-text);
+    cursor: pointer;
+}
+
+button:hover {
+    background: var(--colour-surface-hover);
 }

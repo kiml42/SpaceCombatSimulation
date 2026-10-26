@@ -1,5 +1,6 @@
 import type { RouteObject } from "react-router";
 import { Shell } from "./Shell";
+import { BattlePage } from "./routes/battle/BattlePage";
 import { Home } from "./routes/home/Home";
 import { LibraryPage } from "./routes/library/LibraryPage";
 import { NotFound } from "./routes/NotFound";
@@ -14,6 +15,7 @@ export const ROUTES: RouteObject[] = [
         element: <Shell />,
         children: [
             { index: true, element: <Home /> },
+            { path: "battle", element: <BattlePage /> },
             { path: "library", element: <LibraryPage /> },
             { path: "*", element: <NotFound /> },
         ],

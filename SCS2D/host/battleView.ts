@@ -124,6 +124,10 @@ export interface BattleView {
      * the speed from and to this list.
      */
     keep(page: string, speed: HTMLSelectElement): void;
+    /** Remember this page's arcs and shot colours between visits, leaving the speed to the page. */
+    keepView(page: string): void;
+    /** Stop the clock and let go of the window, for a page that takes the view away. */
+    dispose(): void;
     readonly camera: Readonly<Camera>;
     /**
      * Let the viewer give orders: right-click, a verb armed from the keys or
@@ -296,9 +300,8 @@ export function battleView(
     const remember = (): void => {
         options.refresh();
         if (kept === null) return;
-        kept.settings.arcs = arcs;
-        kept.settings.teamShots = teamShots;
-        kept.settings.strips = strips;
+        // Over what is kept now, whose speed the page may have changed since.
+        kept.settings = { ...loadView(kept.page, kept.settings), arcs, teamShots, strips };
         saveView(kept.page, kept.settings);
     };
 
@@ -311,7 +314,8 @@ export function battleView(
         if (canvas.width !== width) canvas.width = width;
         if (canvas.height !== height) canvas.height = height;
     };
-    new ResizeObserver(resize).observe(canvas);
+    const resizing = new ResizeObserver(resize);
+    resizing.observe(canvas);
     resize();
 
     const setRunning = (next: boolean): void => {
@@ -491,7 +495,7 @@ export function battleView(
         battle = rewind.battle;
     };
 
-    window.addEventListener("keydown", (event) => {
+    const onKey = (event: KeyboardEvent): void => {
         // Typing in a field is not a command; a list or a slider still answers to Space.
         const focus = document.activeElement;
         if ((focus instanceof HTMLInputElement && focus.type !== "range") || focus instanceof HTMLTextAreaElement) return;
@@ -543,7 +547,8 @@ export function battleView(
             strips = !strips;
             remember();
         }
-    });
+    };
+    window.addEventListener("keydown", onKey);
 
     /** What a step hit, into the flashes, as `capture` hands it over. */
     const drain = (log: ImpactLog): void => {
@@ -562,8 +567,9 @@ export function battleView(
     /** What a checkpoint keeps of the view's: its flashes, and what is watching the battle, before it sees the step. */
     const keepNow = (on: Battle): Kept => ({ flashes: flashesNow(on), watched: watcher?.save() });
 
+    let frameRequest = 0;
     const tick = (now: number): void => {
-        window.requestAnimationFrame(tick);
+        frameRequest = window.requestAnimationFrame(tick);
         if (last === 0) last = now;
         const elapsed = Math.min((now - last) / 1000, 0.25);
         last = now;
@@ -687,7 +693,7 @@ export function battleView(
         }
         drawn(view);
     };
-    window.requestAnimationFrame(tick);
+    frameRequest = window.requestAnimationFrame(tick);
 
     return {
         show(next, run, rewindable = false, orders = []) {
@@ -790,13 +796,24 @@ export function battleView(
             framePicked = true;
         },
         keep(page, select) {
+            this.keepView(page);
+            speed = keepSpeed(select, page, kept!.settings);
+        },
+        keepView(page) {
             const settings = loadView(page, { arcs, teamShots, strips, speed });
             kept = { page, settings };
             arcs = settings.arcs;
             teamShots = settings.teamShots;
             strips = settings.strips;
-            speed = keepSpeed(select, page, settings);
             options.refresh();
+        },
+        dispose() {
+            window.cancelAnimationFrame(frameRequest);
+            resizing.disconnect();
+            window.removeEventListener("keydown", onKey);
+            options.remove();
+            battle = null;
+            rewind = null;
         },
         camera,
     };
