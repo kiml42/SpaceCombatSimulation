@@ -182,11 +182,12 @@ const corvetteGun = (p: Page) => onCorvette(p, 13, 0);
 beforeAll(async () => {
     // Build first, so these test what `pnpm build` actually produces rather
     // than a stale artefact someone forgot to regenerate.
-    if (process.platform === "win32") {
-        await promisify(execFile)("cmd.exe", ["/c", "npx", "tsx", join(root, "scripts", "build.ts")], { cwd: root });
-    } else {
-        await promisify(execFile)("npx", ["tsx", join(root, "scripts", "build.ts")], { cwd: root });
-    }
+    // The ship editor, and the app beside it that its Battle link opens.
+    const run = (...command: string[]) =>
+        process.platform === "win32"
+            ? promisify(execFile)("cmd.exe", ["/c", "npx", ...command], { cwd: root })
+            : promisify(execFile)("npx", command, { cwd: root });
+    await Promise.all([run("tsx", join(root, "scripts", "build.ts")), run("vite", "build")]);
     expect(existsSync(editorPage)).toBe(true);
 
     browser = await launchChromium();
