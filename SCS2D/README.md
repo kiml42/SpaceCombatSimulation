@@ -28,8 +28,8 @@ pnpm install
 pnpm build
 ```
 
-Then open `dist/index.html` in a browser: the React app, with the battle viewer. The pages not yet moved into
-it — the ship and fleet editors, the evolution page and the skirmish — sit beside it. Each is one
+Then open `dist/index.html` in a browser: the React app, with the battle viewer and the fleet editor. The
+pages not yet moved into it — the ship editor, the evolution page and the skirmish — sit beside it. Each is one
 self-contained file, so there is no server to run and nothing external to fetch: double-clicking it works.
 
 Space pauses, full stop single-steps, F re-fits the camera. Scroll to zoom, drag to pan.

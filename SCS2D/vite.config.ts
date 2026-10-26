@@ -8,7 +8,7 @@ import { viteSingleFile } from "vite-plugin-singlefile";
 const root = fileURLToPath(new URL(".", import.meta.url));
 
 /** The pages `scripts/build.ts` bundles into `dist/`, until each has moved into the app. */
-const OLD_PAGES = ["/editor.html", "/fleet.html", "/evolution.html", "/skirmish.html"];
+const OLD_PAGES = ["/editor.html", "/evolution.html", "/skirmish.html"];
 
 /**
  * The React app, built to `dist/index.html` as one file with nothing external,

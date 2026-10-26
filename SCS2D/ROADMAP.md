@@ -64,8 +64,8 @@ an entry is either still open or it is gone.
 
 ### Partly built — what is left
 
-16. **React UI** — stages 1–3, the foundation, the shell and the battle viewer, are built; stages 4–8 are
-    left (below). The app is `dist/index.html`, so the published page is the app, and an old viewer link
+16. **React UI** — stages 1–4, the foundation, the shell, the battle viewer and the fleet editor, are
+    built; stages 5–8 are left (below). The app is `dist/index.html`, so the published page is the app, and an old viewer link
     (`#battle=`, `#fleet=`) is rewritten to the Battle route as it opens.
     What is built settled, for the work left:
     - **A route is `app/routes/<name>/`**, listed in `app/routes.tsx` and shown inside `app/Shell.tsx`, which
@@ -84,6 +84,11 @@ an entry is either still open or it is gone.
       its field when left or on Enter, re-keyed by its value so it shows what the ships go by after.
     - **A setting is a `NumberField`** (`ui/fields/`), with its ± where it has one, holding its box's text as
       typed; the page turns the text into numbers, defaults for what does not read, as `customSetup.ts` does.
+    - **An editor's canvas is an engine of its own** (`editor/fleetCanvas.ts`), as `battleView` is: the
+      pointer, the keys and the drawing, over a document it shares with the page. The route holds the
+      document, which is changed in place with its undo, and re-renders the panel by a counter the engine
+      and the panel bump on every change. A name or note is a `CommitText` (`ui/fields/`), one undo step
+      when finished rather than one a key.
     - **axe does not fail a story on colour contrast**, only on what it is sure of: contrast it marks for
       review, so a token change wants looking at in Storybook's accessibility panel.
 

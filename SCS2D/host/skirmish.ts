@@ -2,7 +2,7 @@ import { BATTLE_KEYS, keyHelp, ORDER_KEYS } from "./keyHelp.js";
 import { serialiseFleet, type Budget, type Fleet } from "../sim/index.js";
 import { teamColour } from "../render/canvas2d.js";
 import { FLEET_FILES, Library, unusedName } from "../editor/library.js";
-import { shipFleet } from "../editor/handoff.js";
+import { fleetHref, shipFleet } from "../editor/handoff.js";
 import { billRows, budgetRows } from "../editor/budget.js";
 import { customBattle, DEFAULT_SETUP, tally, type CustomBattle } from "../scenarios/customBattle.js";
 import { Activity, type Decision } from "../scenarios/decision.js";
@@ -22,7 +22,6 @@ import {
     roundSetup,
     serialiseSkirmish,
     settingsOf,
-    skirmishFragment,
     SKIRMISH_STORAGE_KEY,
     DEFAULT_SKIRMISH_SETTINGS,
     won,
@@ -609,7 +608,7 @@ export function startSkirmish(): void {
         skirmish = newSkirmish(enemy, player, Math.floor(Math.random() * 2 ** 32), readSettings(), readBudget(billOfFleet(enemy)));
         save();
         // Nothing to fight with yet: straight to the editor to build it.
-        if (player.ships.length === 0) window.location.href = `fleet.html${skirmishFragment(skirmish)}`;
+        if (player.ships.length === 0) window.location.href = fleetHref(skirmish.player, skirmish);
         else showRound();
     });
 
@@ -704,7 +703,7 @@ export function startSkirmish(): void {
         view.setRunning(true);
     });
     editFleet.addEventListener("click", () => {
-        if (skirmish !== null) editFleet.href = `fleet.html${skirmishFragment(skirmish)}`;
+        if (skirmish !== null) editFleet.href = fleetHref(skirmish.player, skirmish);
     });
     // ---- the enemy's answer ---------------------------------------------------
 

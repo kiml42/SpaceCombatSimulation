@@ -13,7 +13,7 @@ import { shipFleet, type Blueprint } from "../../sim/index.js";
 import { BARE_CORE, CORVETTE, GUNSHIP } from "../../scenarios/blueprints.js";
 import { DEFAULT_SKIRMISH_SETTINGS, newSkirmish, skirmishFragment, won } from "../../scenarios/skirmish.js";
 import { DEFAULT_KINDS } from "../../evolution/mutate.js";
-import { designHref } from "../../editor/handoff.js";
+import { designHref, fleetHref } from "../../editor/handoff.js";
 
 /**
  * The skirmish loop in a real browser: choosing an enemy and a fleet, fighting,
@@ -30,11 +30,12 @@ let page: Page;
 const problems: string[] = [];
 
 beforeAll(async () => {
-    if (process.platform === "win32") {
-        await promisify(execFile)("cmd.exe", ["/c", "npx", "tsx", join(root, "scripts", "build.ts")], { cwd: root });
-    } else {
-        await promisify(execFile)("npx", ["tsx", join(root, "scripts", "build.ts")], { cwd: root });
-    }
+    // The skirmish page, and the app beside it whose fleet editor it hands the player's fleet to.
+    const run = (...command: string[]) =>
+        process.platform === "win32"
+            ? promisify(execFile)("cmd.exe", ["/c", "npx", ...command], { cwd: root })
+            : promisify(execFile)("npx", command, { cwd: root });
+    await Promise.all([run("tsx", join(root, "scripts", "build.ts")), run("vite", "build")]);
     expect(existsSync(skirmishPage)).toBe(true);
 
     browser = await launchChromium();
@@ -180,7 +181,7 @@ describe("the skirmish in a browser", () => {
 
     it("goes to the fleet editor with the budget, and back to the round", async () => {
         await page.click("#editFleet");
-        await page.waitForURL(/fleet\.html#skirmish=/);
+        await page.waitForURL(/index\.html#\/fleet\?skirmish=/);
         expect(await page.isVisible("#skirmish")).toBe(true);
         expect(await page.textContent("#skirmishTitle")).toBe("Skirmish — round 1");
         expect(await page.textContent("#skirmishBudget")).toContain("metal");
@@ -197,7 +198,8 @@ describe("the skirmish in a browser", () => {
 
     it("opens a ship of the fleet in the ship editor, and takes it back renamed", async () => {
         await page.click("#editFleet");
-        await page.waitForURL(/fleet\.html#skirmish=/);
+        await page.waitForURL(/index\.html#\/fleet\?skirmish=/);
+        await page.waitForSelector("#stats");
         // The lone gunship stands at the fleet's origin, in the middle of the view.
         const box = (await page.locator("#view").boundingBox())!;
         await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
@@ -210,7 +212,8 @@ describe("the skirmish in a browser", () => {
         expect(await page.textContent("#inFleetBudget")).toContain("metal");
         await page.fill("#shipName", "Gunship Mk II");
         await page.click("#backToFleet");
-        await page.waitForURL(/fleet\.html#skirmish=/);
+        await page.waitForURL(/index\.html#\/fleet\?skirmish=/);
+        await page.waitForSelector("#stats");
         await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
         expect(await page.textContent("#selectionTitle")).toBe("Ship: Gunship Mk II");
         expect(await page.isVisible("#skirmish")).toBe(true);
@@ -248,12 +251,14 @@ describe("the skirmish in a browser", () => {
             ],
         };
         const skirmish = { ...newSkirmish(stacked, stacked, 3), player: stacked };
-        await page.goto(pathToFileURL(join(root, "dist", "fleet.html")).href + skirmishFragment(skirmish));
-        await page.waitForSelector("#backToSkirmish:not([hidden])");
+        const href = fleetHref(skirmish.player, skirmish);
+        await page.goto(pathToFileURL(join(root, "dist", "index.html")).href + href.slice("index.html".length));
+        await page.waitForSelector("#backToSkirmish");
         expect(await page.textContent("#skirmishNote")).toBe("Fix the problems listed to fight.");
-        expect(await page.getAttribute("#backToSkirmish", "class")).toContain("blocked");
-        await page.click("#backToSkirmish");
-        expect(page.url()).toContain("fleet.html#skirmish=");
+        expect(await page.getAttribute("#backToSkirmish", "aria-disabled")).toBe("true");
+        // Pressed anyway, it says why and stays.
+        await page.click("#backToSkirmish", { force: true });
+        expect(page.url()).toContain("#/fleet?skirmish=");
         expect(problems).toEqual([]);
     });
 
