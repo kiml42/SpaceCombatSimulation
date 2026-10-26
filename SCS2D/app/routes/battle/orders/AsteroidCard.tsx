@@ -14,7 +14,7 @@ const Card = styled.div`
 export function AsteroidCard({ contents }: { readonly contents: string | null }) {
     if (contents === null) return null;
     return (
-        <Card role="status" aria-label="Asteroid">
+        <Card id="asteroidCard" role="status" aria-label="Asteroid">
             Asteroid {contents}
         </Card>
     );

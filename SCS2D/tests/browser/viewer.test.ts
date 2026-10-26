@@ -17,7 +17,7 @@ import { DINKY } from "../../scenarios/blueprints.js";
 import { REFITTED } from "../../scenarios/mending.js";
 
 /**
- * The viewer, driven in a real browser.
+ * The battle viewer — the app's battle route — driven in a real browser.
  *
  * These check the things types and unit tests cannot: that the page runs
  * without throwing, that the renderer actually puts pixels on the canvas, and
@@ -35,25 +35,24 @@ import { REFITTED } from "../../scenarios/mending.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..", "..");
-const page404 = join(root, "dist", "index.html");
+const appPage = join(root, "dist", "index.html");
+/** The battle route of the app as built. */
+const battlePage = (): string => `${pathToFileURL(appPage).href}#/battle`;
 
 let browser: Browser;
 let page: Page;
 const problems: string[] = [];
 
 /**
- * Wait for the page to paint.
- *
- * The readout is written inside the animation frame, so a control's effect is
- * visible on the *next* frame rather than on the click. That is correct — a
- * user sees the change when the page next draws — so the test waits for a
- * frame rather than the page reporting eagerly.
+ * Wait for the page to paint, and for the readouts to catch up: React samples
+ * them at 10 Hz, so a control's effect shows within a tenth of a second of the
+ * frame that drew it.
  */
 async function painted(p: Page): Promise<void> {
     await p.evaluate(
         () =>
             new Promise<void>((resolve) => {
-                requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+                requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 150)));
             }),
     );
 }
@@ -118,11 +117,11 @@ beforeAll(async () => {
     // Build first, so these test what `pnpm build` actually produces rather
     // than a stale artefact someone forgot to regenerate.
     if (process.platform === "win32") {
-        await promisify(execFile)("cmd.exe", ["/c", "npx", "tsx", join(root, "scripts", "build.ts")], { cwd: root });
+        await promisify(execFile)("cmd.exe", ["/c", "npx", "vite", "build"], { cwd: root });
     } else {
-        await promisify(execFile)("npx", ["tsx", join(root, "scripts", "build.ts")], { cwd: root });
+        await promisify(execFile)("npx", ["vite", "build"], { cwd: root });
     }
-    expect(existsSync(page404)).toBe(true);
+    expect(existsSync(appPage)).toBe(true);
 
     browser = await launchChromium();
     page = await browser.newPage({ viewport: { width: 1000, height: 620 } });
@@ -130,7 +129,7 @@ beforeAll(async () => {
     page.on("console", (message) => {
         if (message.type() === "error") problems.push(`console: ${message.text()}`);
     });
-    await page.goto(pathToFileURL(page404).href);
+    await page.goto(battlePage());
     try {
         await page.waitForFunction(() => /step \d+/.test(document.getElementById("readout")?.textContent ?? ""));
     } catch (timeout) {
@@ -215,8 +214,9 @@ describe("the viewer in a browser", () => {
             await page.$eval(
                 "#scrub",
                 (input, v) => {
-                    (input as HTMLInputElement).value = String(v);
-                    input.dispatchEvent(new Event("input"));
+                    // Through the input's own setter, which React does not watch, so the event reads as a change.
+                    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, String(v));
+                    input.dispatchEvent(new Event("input", { bubbles: true }));
                 },
                 value,
             );
@@ -369,7 +369,7 @@ describe("the viewer in a browser", () => {
         await page.click("#linkBattle");
         await page.waitForFunction(() => typeof (window as unknown as { copied?: string }).copied === "string");
         const href = await page.evaluate(() => (window as unknown as { copied: string }).copied);
-        expect(href).toMatch(/index\.html#battle=[\w-]+$/);
+        expect(href).toMatch(/index\.html#\/battle\?battle=[\w-]+$/);
 
         const opened = await browser.newPage({ viewport: { width: 1000, height: 620 } });
         const errors: string[] = [];
@@ -381,15 +381,15 @@ describe("the viewer in a browser", () => {
         expect(await opened.inputValue("#battleSeed")).toBe("4321");
         expect(await opened.inputValue("#battleRange")).toBe("1000");
         expect(await opened.textContent("#play")).toBe("Play");
-        // The address is tidied, so a reload is the viewer and not the battle again.
-        expect(new URL(opened.url()).hash).toBe("");
+        // The address is tidied, so a reload is the battle route and not the battle again.
+        expect(new URL(opened.url()).hash).toBe("#/battle");
         expect(errors).toEqual([]);
         await opened.close();
     });
 
     it("zooms in under a pinch on a touch screen, and pans with it", async () => {
         const touch = await browser.newPage({ viewport: { width: 400, height: 800 }, hasTouch: true, isMobile: true });
-        await touch.goto(pathToFileURL(page404).href);
+        await touch.goto(battlePage());
         await touch.waitForFunction(() => /step \d+/.test(document.getElementById("readout")?.textContent ?? ""));
         await touch.click("#play");
         const grid = async (): Promise<number> => Number(/grid ([\d.]+)/.exec((await touch.textContent("#readout")) ?? "")![1]);
@@ -557,10 +557,13 @@ describe("the viewer in a browser", () => {
 
     it("lists its keys in a table behind a button, which keeps them from the battle while open", async () => {
         await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-        expect(await page.textContent("footer")).toBe("Keys");
-        await page.click("#keysButton");
-        expect(await page.isVisible("#keyHelp")).toBe(true);
-        const rows = await page.$$eval("#keyHelp tr", (trs) => trs.map((tr) => [...tr.querySelectorAll("td")].map((td) => td.textContent)));
+        expect(await page.getByRole("dialog", { name: "Keys and mouse" }).isVisible()).toBe(false);
+        const help = page.getByRole("dialog", { name: "Keys and mouse" });
+        await page.getByRole("button", { name: "Keys" }).click();
+        expect(await help.isVisible()).toBe(true);
+        const rows = await help
+            .locator("tr")
+            .evaluateAll((trs) => trs.map((tr) => [...tr.querySelectorAll("td")].map((td) => td.textContent)));
         expect(rows).toEqual(
             expect.arrayContaining([
                 ["Space", "Pause, or play"],
@@ -572,10 +575,10 @@ describe("the viewer in a browser", () => {
         await page.keyboard.press("Space");
         expect(await page.textContent("#play")).toBe(playing);
         await page.keyboard.press("Escape");
-        expect(await page.isVisible("#keyHelp")).toBe(false);
+        expect(await help.isVisible()).toBe(false);
         // And ? opens it again.
         await page.keyboard.press("?");
-        expect(await page.isVisible("#keyHelp")).toBe(true);
+        expect(await help.isVisible()).toBe(true);
         await page.keyboard.press("Escape");
     });
 
@@ -771,10 +774,10 @@ describe("the viewer in a browser", () => {
         expect(await last()).toContain('"kind":"doctrine"');
         expect(await last()).toContain('"value":7');
         // Shown as told at once, with nothing else moving.
-        expect(await page.locator("#doctrinePanel label.told").count()).toBe(1);
-        await page.locator("#doctrinePanel .tabs button", { hasText: "Main weapons" }).click();
+        expect(await page.locator('#doctrinePanel [data-told="true"]').count()).toBe(1);
+        await page.locator("#doctrinePanel button[aria-pressed]", { hasText: "Main weapons" }).click();
         await painted(page);
-        expect(await page.textContent("#doctrinePanel .tabs button.armed")).toBe("Main weapons");
+        expect(await page.textContent('#doctrinePanel button[aria-pressed="true"]')).toBe("Main weapons");
         expect(await page.locator("#doctrinePanel input").count()).toBeGreaterThan(0);
         expect(await page.isVisible('#doctrinePanel button:has-text("Revert all")')).toBe(true);
         await page.keyboard.press("p");

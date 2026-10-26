@@ -121,7 +121,7 @@ export function OrderBar({ view, state, shown, doctrineOpen, onDoctrine }: Order
     const optional = armed !== null && ANYWHERE.has(armed);
 
     return (
-        <Bar role="toolbar" aria-label="Orders">
+        <Bar id="orderBar" role="toolbar" aria-label="Orders">
             {VERBS.map(({ verb, label, title }) => (
                 <span key={verb}>
                     <button title={title} aria-pressed={armed === verb} onClick={() => view.arm(armed === verb ? null : verb, finish)}>
@@ -131,6 +131,7 @@ export function OrderBar({ view, state, shown, doctrineOpen, onDoctrine }: Order
                         <>
                             {" "}
                             <select
+                                id="cancelOn"
                                 aria-label="What finishes an attack"
                                 title="What finishes an attack given with the button"
                                 value={finish}
@@ -149,6 +150,7 @@ export function OrderBar({ view, state, shown, doctrineOpen, onDoctrine }: Order
             <label title="How far off every attack or defence given holds its target, metres from its skin; empty for doctrine's, as it changes">
                 hold
                 <input
+                    id="holdDistance"
                     type="number"
                     min={0}
                     step={10}
@@ -165,6 +167,7 @@ export function OrderBar({ view, state, shown, doctrineOpen, onDoctrine }: Order
             <label title="How fast every attack, defence or ram given closes, metres a second; empty for doctrine's, as it changes">
                 at
                 <input
+                    id="holdSpeed"
                     type="number"
                     min={0}
                     step={5}
@@ -179,12 +182,18 @@ export function OrderBar({ view, state, shown, doctrineOpen, onDoctrine }: Order
                 m/s
             </label>
             <button
+                id="stop"
                 title="Clear their orders, back to doctrine (S)"
                 onClick={() => state.picked.length > 0 && view.issue({ kind: "stop", ships: [...state.picked] })}
             >
                 Stop
             </button>
-            <button title="How they fight, over what their blueprints say (P)" aria-pressed={doctrineOpen} onClick={onDoctrine}>
+            <button
+                id="doctrine"
+                title="How they fight, over what their blueprints say (P)"
+                aria-pressed={doctrineOpen}
+                onClick={onDoctrine}
+            >
                 Doctrine
             </button>
             {/* Put back to what they are whenever the picking changes. */}
@@ -192,6 +201,7 @@ export function OrderBar({ view, state, shown, doctrineOpen, onDoctrine }: Order
             {armed !== null && <Warn>{`click a ship to ${armed} · Ctrl to queue · Esc${optional ? " · or" : ""}`}</Warn>}
             {optional && (
                 <button
+                    id="nearest"
                     title="Without a target: wherever its doctrine would choose (Enter); Ctrl to queue"
                     onClick={(event) => view.nearest(event.ctrlKey || event.metaKey || event.shiftKey)}
                 >
@@ -199,7 +209,7 @@ export function OrderBar({ view, state, shown, doctrineOpen, onDoctrine }: Order
                 </button>
             )}
             {state.queue !== null && state.queue.orders.length > 0 && (
-                <Queue aria-label="Its orders">
+                <Queue id="queue" aria-label="Its orders">
                     {state.queue.orders.map((text, index) => (
                         <li key={`${index}:${text}`}>
                             {text}{" "}
@@ -247,6 +257,7 @@ function RemodelPicker({
     return (
         <>
             <select
+                id="remodelTo"
                 aria-label="Remodel to"
                 title="What they are built to; choose another and Remodel to refit them, their robots building it as they fight on"
                 value={chosen}
@@ -262,6 +273,7 @@ function RemodelPicker({
             </select>
             {state.crewed && (
                 <button
+                    id="remodel"
                     title="Refit them to the design chosen"
                     disabled={fit === undefined}
                     onClick={() =>

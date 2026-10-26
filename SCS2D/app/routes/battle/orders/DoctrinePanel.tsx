@@ -167,7 +167,7 @@ export function DoctrinePanel({ view, state, shown }: DoctrinePanelProps) {
     const slots = showing === "ship" ? slotsOf(ships) : [];
 
     return (
-        <Panel aria-label="Doctrine">
+        <Panel id="doctrinePanel" aria-label="Doctrine">
             <Tabs>
                 {parts.map(([p, name]) => (
                     <button key={p} aria-pressed={p === showing} onClick={() => setPart(p)}>
@@ -216,12 +216,15 @@ function CommitBox({
     min,
     onCommit,
     label,
+    field,
 }: {
     readonly value: number | undefined;
     readonly step: number;
     readonly min?: number;
     readonly onCommit: (typed: string) => void;
     readonly label: string;
+    /** The doctrine field it tells, where it tells one. */
+    readonly field?: string;
 }) {
     const shown = value === undefined ? "" : String(value);
     const commit = (input: HTMLInputElement): void => {
@@ -233,6 +236,7 @@ function CommitBox({
             key={shown}
             type="number"
             aria-label={label}
+            data-field={field}
             step={step}
             min={min}
             defaultValue={shown}
@@ -267,6 +271,7 @@ function DoctrineBox({
             )}
             <CommitBox
                 label={row.label}
+                field={row.field}
                 value={value}
                 step={row.step}
                 onCommit={(typed) => onIssue(row.field, typed === "" ? null : Number(typed))}

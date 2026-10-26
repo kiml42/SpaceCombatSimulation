@@ -93,9 +93,9 @@ export function FleetSlots({ slots, onChange, onProblem }: FleetSlotsProps) {
     const fleetNames = names(fleets.list());
     const shipNames = names(ships.list());
     return (
-        <section aria-label="Fleets">
+        <section id="fleetSlots" aria-label="Fleets">
             {slots.map((slot, i) => (
-                <Row key={i}>
+                <Row key={i} className="slot">
                     <Swatch style={{ background: teamColour(i) }} />
                     <select aria-label={`Side ${i + 1}`} value={valueOf(slot.source)} onChange={(event) => choose(i, event.target.value)}>
                         {slot.source.kind === "other" && <option value="other:">{slot.source.label}</option>}
@@ -123,14 +123,19 @@ export function FleetSlots({ slots, onChange, onProblem }: FleetSlotsProps) {
                     </button>
                 </Row>
             ))}
-            <button title="Another side: a fleet or a single ship, chosen from its list" onClick={add}>
+            <button id="addFleet" title="Another side: a fleet or a single ship, chosen from its list" onClick={add}>
                 Add fleet
             </button>{" "}
-            <button title="Another side from a fleet file, or a ship from a blueprint file" onClick={() => files.current?.click()}>
+            <button
+                id="fleetFromFile"
+                title="Another side from a fleet file, or a ship from a blueprint file"
+                onClick={() => files.current?.click()}
+            >
                 From file…
             </button>
             <input
                 ref={files}
+                id="fleetFile"
                 type="file"
                 accept="application/json,.json"
                 multiple

@@ -25,6 +25,7 @@ export function AddShip({ view }: { readonly view: BattleView | null }) {
     return (
         <>
             <Designs
+                id="addShip"
                 aria-label="Add ship"
                 title="Add a ship to the battle: choose it, then press where it goes and drag for how fast (Esc gives it up)"
                 value={placing}
@@ -48,6 +49,7 @@ export function AddShip({ view }: { readonly view: BattleView | null }) {
                 ))}
             </Designs>
             <select
+                id="addSide"
                 aria-label="Side it joins"
                 title="The side a ship added joins"
                 defaultValue={0}

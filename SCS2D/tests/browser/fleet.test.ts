@@ -55,11 +55,12 @@ async function onScreen(p: Page, x: number, y: number): Promise<{ x: number; y: 
 const shipCount = async (p: Page): Promise<string> => (await p.locator("#stats tr").first().textContent()) ?? "";
 
 beforeAll(async () => {
-    if (process.platform === "win32") {
-        await promisify(execFile)("cmd.exe", ["/c", "npx", "tsx", join(root, "scripts", "build.ts")], { cwd: root });
-    } else {
-        await promisify(execFile)("npx", ["tsx", join(root, "scripts", "build.ts")], { cwd: root });
-    }
+    // The fleet editor, and the app beside it that its Battle link opens.
+    const run = (...command: string[]) =>
+        process.platform === "win32"
+            ? promisify(execFile)("cmd.exe", ["/c", "npx", ...command], { cwd: root })
+            : promisify(execFile)("npx", command, { cwd: root });
+    await Promise.all([run("tsx", join(root, "scripts", "build.ts")), run("vite", "build")]);
     expect(existsSync(fleetPage)).toBe(true);
 
     browser = await launchChromium();
@@ -231,7 +232,7 @@ describe("the fleet editor in a browser", () => {
         expect(await page.textContent("#play")).toBe("Play");
         expect(await page.isDisabled("#fight")).toBe(false);
         // The address is tidied, so a reload does not hand it over again.
-        expect(page.url()).not.toContain("#");
+        expect(new URL(page.url()).hash).toBe("#/battle");
         expect(problems).toEqual([]);
     });
 

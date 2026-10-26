@@ -44,13 +44,15 @@ export function Sides({ current }: { readonly current: () => CustomBattle | null
     const won = battle === null || battle.start.length < 2 ? null : winner(now);
     if (battle !== null && won !== null && result?.of !== battle) {
         const time = (battle.world.tick * battle.world.dt).toFixed(1);
-        const who = won < 0 ? "No side can fight on" : `${battle.setup.fleets[won]?.name ?? ""} (${teamName(won)}) wins`;
+        // The sides' colours by name, as the footer calls them; grey beyond the fourth.
+        const colour = won < 4 ? teamName(won).toLowerCase() : "grey";
+        const who = won < 0 ? "No side can fight on" : `${battle.setup.fleets[won]?.name ?? ""} (${colour}) wins`;
         setResult({ of: battle, text: `${who} at ${time} s.` });
     }
 
-    if (battle === null || battle.start.length === 0) return <None>No fleets yet.</None>;
+    if (battle === null || battle.start.length === 0) return <None id="sides">No fleets yet.</None>;
     return (
-        <section aria-label="Sides">
+        <section id="sides" aria-label="Sides">
             {battle.start.map((start, i) => {
                 const side = now[i]!;
                 const lost = start.mass > 0 ? (1 - side.mass / start.mass) * 100 : 0;
@@ -66,7 +68,11 @@ export function Sides({ current }: { readonly current: () => CustomBattle | null
                     </div>
                 );
             })}
-            {result?.of === battle && <Outcome role="status">{result.text}</Outcome>}
+            {result?.of === battle && (
+                <Outcome id="outcome" role="status">
+                    {result.text}
+                </Outcome>
+            )}
         </section>
     );
 }

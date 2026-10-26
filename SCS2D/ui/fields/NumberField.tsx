@@ -33,12 +33,16 @@ const Row = styled.div`
 `;
 
 export interface Spread {
+    /** The ± box's own id, where a page needs to name it. */
+    readonly id?: string;
     readonly value: string;
     readonly onChange: (value: string) => void;
     readonly title: string;
 }
 
 export interface NumberFieldProps {
+    /** The box's id, where a page needs to name it; one of its own otherwise. */
+    readonly id?: string;
     readonly label: string;
     /** What the setting means, shown on hover. */
     readonly title: string;
@@ -54,8 +58,9 @@ export interface NumberFieldProps {
 }
 
 /** One setting on a settings card: its name, its box, and the ± of it where it has one. */
-export function NumberField({ label, title, value, onChange, step, min = 0, max, spread }: NumberFieldProps) {
-    const id = useId();
+export function NumberField({ id: given, label, title, value, onChange, step, min = 0, max, spread }: NumberFieldProps) {
+    const own = useId();
+    const id = given ?? own;
     return (
         <Row title={title}>
             <label htmlFor={id}>{label}</label>
@@ -72,6 +77,7 @@ export function NumberField({ label, title, value, onChange, step, min = 0, max,
                 <>
                     <span aria-hidden="true">±</span>
                     <input
+                        id={spread.id}
                         type="number"
                         aria-label={`${label} either side`}
                         title={spread.title}
