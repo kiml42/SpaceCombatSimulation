@@ -4,7 +4,7 @@ import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { BattleCanvas } from "~/features/battle/BattleCanvas";
 import { Scrub } from "~/features/battle/Scrub";
 import { useSampled } from "~/features/battle/useSampled";
-import { AsteroidCard } from "~/features/orders/AsteroidCard";
+import { AsteroidCard } from "~/features/battle/AsteroidCard";
 import { DOCTRINE_KEY, DoctrinePanel } from "~/features/orders/DoctrinePanel";
 import { OrderBar } from "~/features/orders/OrderBar";
 import { useOrderState } from "~/features/orders/orderState";
