@@ -57,12 +57,11 @@ async function onScreen(p: Page, x: number, y: number): Promise<{ x: number; y: 
 const shipCount = async (p: Page): Promise<string> => (await p.locator("#stats tr").first().textContent()) ?? "";
 
 beforeAll(async () => {
-    // The app, and the ship editor beside it that a design is handed to.
-    const run = (...command: string[]) =>
-        process.platform === "win32"
-            ? promisify(execFile)("cmd.exe", ["/c", "npx", ...command], { cwd: root })
-            : promisify(execFile)("npx", command, { cwd: root });
-    await Promise.all([run("tsx", join(root, "scripts", "build.ts")), run("vite", "build")]);
+    if (process.platform === "win32") {
+        await promisify(execFile)("cmd.exe", ["/c", "npx", "vite", "build"], { cwd: root });
+    } else {
+        await promisify(execFile)("npx", ["vite", "build"], { cwd: root });
+    }
     expect(existsSync(appPage)).toBe(true);
 
     browser = await launchChromium();
