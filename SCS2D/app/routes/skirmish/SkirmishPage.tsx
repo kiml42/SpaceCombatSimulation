@@ -399,6 +399,25 @@ export function SkirmishPage() {
         }
     };
 
+    /**
+     * A skirmish as it opens: its round, or once that is won, the enemy as it
+     * stands fighting your fleet on the round it is answering — not the round
+     * already won, which the search has left behind.
+     */
+    const showOpened = (current: Skirmish, on: BattleView): void => {
+        if (current.won === undefined) return showRound(current, on);
+        mode.current = "watching";
+        resume.current = null;
+        setReplaying(false);
+        undecided();
+        activity.current = newActivity();
+        battle.current = customBattle(roundBattle(current.player, current.enemy, current.won, settingsOf(current)));
+        setOutcome({ text: "The enemy as it stands against your fleet, evolving an answer.", kind: "" });
+        setEnemyLine(`Against ${current.enemy.name}, evolving.`);
+        setFightable(true);
+        showOn(on, battle.current, watching);
+    };
+
     /** Show the best enemy so far fighting the round, if the player is watching. */
     const watch = (now: AnswerProgress, current: Skirmish | null = skirmishes.skirmish): void => {
         if (current === null || current.won === undefined || !watching || view === null) return;
@@ -434,7 +453,10 @@ export function SkirmishPage() {
                     ? () => showRound()
                     : was === "answer"
                       ? () => skirmishes.skirmish !== null && showAnswer(skirmishes.skirmish.enemy)
-                      : () => answering.latest !== null && watch(answering.latest);
+                      : () =>
+                            answering.latest !== null
+                                ? watch(answering.latest)
+                                : skirmishes.skirmish !== null && showOpened(skirmishes.skirmish, view);
         }
         mode.current = "replay";
         setRoundOver(true);
@@ -543,7 +565,7 @@ export function SkirmishPage() {
         skirmishes.setSkirmish(handed);
         if (handed.won !== undefined) skirmishes.answer();
         else skirmishes.stopAnswer();
-        showRound(handed, on);
+        showOpened(handed, on);
         return true;
     };
 
@@ -569,7 +591,7 @@ export function SkirmishPage() {
             if (previewed.current !== null) showOn(next, enemyAlone(previewed.current), false);
             return;
         }
-        showRound(current, next);
+        showOpened(current, next);
         // Back while the enemy is answering: its answer, or the best so far, as it was left.
         const found = answering.latest?.found ?? null;
         if (current.won !== undefined && found !== null) showAnswer(found, current);
@@ -685,7 +707,7 @@ export function SkirmishPage() {
         skirmishes.setHistory(nextHistory);
         skirmishes.setSkirmish(next);
         if (next === null) return;
-        showRound(next);
+        if (view !== null) showOpened(next, view);
         if (next.won !== undefined) skirmishes.answer();
     };
 
