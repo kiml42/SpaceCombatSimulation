@@ -237,7 +237,7 @@ describe("a fuse under evolution", () => {
     // seed to seed, so the seed is one that finds both early rather than any.
     // Up to fifteen hundred generations: most seeds want a few hundred.
     it("is retimed, and swapped for solid shot and back", { timeout: 30_000 }, () => {
-        const rng = new Rng(7);
+        const rng = new Rng(6);
         const seen = { retimed: false, solid: false };
         let parent: Blueprint = TURRET_CORVETTE;
         for (let i = 0; i < 1500 && !(seen.retimed && seen.solid); i++) {

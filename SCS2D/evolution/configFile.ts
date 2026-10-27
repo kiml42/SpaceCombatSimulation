@@ -102,6 +102,7 @@ const FILE_KEYS: readonly string[] = [
     "minMatches",
     "budget",
     "massBudget",
+    "magnitude",
     "structural",
     "geometry",
     "thrusters",
@@ -128,6 +129,7 @@ const VERSUS_KEYS: readonly string[] = [
     "budget",
     "massBudget",
     "fleet",
+    "magnitude",
     "structural",
     "geometry",
     "thrusters",
@@ -175,6 +177,7 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
         group: config.group,
         minMatches: config.minMatches,
         budget: serialiseBudget(config.budget),
+        magnitude: config.mutation.magnitude ?? DEFAULT_LIMITS.magnitude,
         structural: config.mutation.structural ?? DEFAULT_LIMITS.structural,
         geometry: config.mutation.geometry ?? DEFAULT_LIMITS.geometry,
         thrusters: config.mutation.thrusters ?? DEFAULT_LIMITS.thrusters,
@@ -225,6 +228,7 @@ function serialiseVersus(versus: VersusSetup): Record<string, unknown> {
         ...(rival.group === undefined ? {} : { group: rival.group }),
         ...(rival.budget === undefined ? {} : { budget: serialiseBudget(rival.budget) }),
         ...(rival.fleet === undefined ? {} : { fleet: { ...rival.fleet } }),
+        ...(rival.mutation?.magnitude === undefined ? {} : { magnitude: rival.mutation.magnitude }),
         ...(rival.mutation?.structural === undefined ? {} : { structural: rival.mutation.structural }),
         ...(rival.mutation?.geometry === undefined ? {} : { geometry: rival.mutation.geometry }),
         ...(rival.mutation?.thrusters === undefined ? {} : { thrusters: rival.mutation.thrusters }),
@@ -266,6 +270,7 @@ export function runConfigFileProblem(value: unknown, warnings: string[] = []): s
         numberProblem(value["seed"], "seed") ??
         budgetProblem(value["budget"], "budget", warnings) ??
         limitProblem(value["massBudget"], "massBudget") ??
+        weightProblem(value["magnitude"], "magnitude") ??
         chanceProblem(value["structural"], "structural") ??
         chanceProblem(value["geometry"], "geometry") ??
         chanceProblem(value["thrusters"], "thrusters") ??
@@ -351,6 +356,7 @@ function versusProblem(versus: unknown, warnings: string[]): string | null {
         budgetProblem(versus["budget"], "versus.budget", warnings) ??
         limitProblem(versus["massBudget"], "versus.massBudget") ??
         fleetProblem(versus["fleet"], "versus.fleet", warnings) ??
+        weightProblem(versus["magnitude"], "versus.magnitude") ??
         chanceProblem(versus["structural"], "versus.structural") ??
         chanceProblem(versus["geometry"], "versus.geometry") ??
         chanceProblem(versus["thrusters"], "versus.thrusters") ??
@@ -406,6 +412,7 @@ export function parseRunConfig(value: unknown): RunSetup {
             minMatches: read(file["minMatches"], DEFAULT_RUN.minMatches),
             budget: readBudget(file["budget"], file["massBudget"]) ?? NO_BUDGET,
             mutation: {
+                magnitude: read(file["magnitude"], DEFAULT_LIMITS.magnitude),
                 structural: read(file["structural"], DEFAULT_LIMITS.structural),
                 geometry: read(file["geometry"], DEFAULT_LIMITS.geometry),
                 thrusters: read(file["thrusters"], DEFAULT_LIMITS.thrusters),
@@ -457,6 +464,7 @@ function parseVersus(versus: Record<string, unknown>): VersusSetup {
     if (isRecord(versus["fleet"])) rival.fleet = { ...(versus["fleet"] as SideSettings["fleet"]) };
     // Only what side B sets: the rest is side A's (`rivalSettings`).
     const mutation: { -readonly [K in keyof SideSettings["mutation"]]?: SideSettings["mutation"][K] } = {};
+    if (typeof versus["magnitude"] === "number") mutation.magnitude = versus["magnitude"];
     if (typeof versus["structural"] === "number") mutation.structural = versus["structural"];
     if (typeof versus["geometry"] === "number") mutation.geometry = versus["geometry"];
     if (typeof versus["thrusters"] === "number") mutation.thrusters = versus["thrusters"];
@@ -582,6 +590,13 @@ function chanceProblem(value: unknown, what: string): string | null {
     if (value !== undefined && ((value as number) < 0 || (value as number) > 1)) {
         return `${what} must be between 0 and 1, got ${JSON.stringify(value)}`;
     }
+    return null;
+}
+
+function weightProblem(value: unknown, what: string): string | null {
+    const problem = numberProblem(value, what);
+    if (problem !== null) return problem;
+    if (value !== undefined && (value as number) < 0) return `${what} must be zero or more`;
     return null;
 }
 

@@ -33,6 +33,14 @@ export interface MutationField {
 
 export const MUTATION_FIELDS: readonly MutationField[] = [
     {
+        name: "magnitude",
+        group: "build",
+        label: "number drift",
+        step: 0.05,
+        value: DEFAULT_LIMITS.magnitude,
+        title: "How far every number drifts each generation, as a share of its own size: the spread of the nudge each is given. The move, resize, fittings, tuning and doctrine weights are multiples of it. 0 leaves every number as it is.",
+    },
+    {
         name: "structural",
         group: "build",
         label: "structural chance",
@@ -323,7 +331,7 @@ export const MUTATION_FIELDS: readonly MutationField[] = [
         label: "targeting",
         step: 0.5,
         value: DEFAULT_DOCTRINE_WEIGHTS.targeting,
-        title: "How far the ship's own targeting numbers drift each generation — what it goes after: how big, how near, how armed or how fast a target it prefers. At 1, a few percent; 0 leaves them as they are.",
+        title: "How far the ship's own targeting numbers drift each generation — what it goes after: how big, how near, how armed or how fast a target it prefers. At 1, about a tenth; 0 leaves them as they are.",
     },
     {
         name: "doctrineApproach",
@@ -331,7 +339,7 @@ export const MUTATION_FIELDS: readonly MutationField[] = [
         label: "approach",
         step: 0.5,
         value: DEFAULT_DOCTRINE_WEIGHTS.approach,
-        title: "How far the ship's approach numbers drift each generation — how it flies to a fight: the range it holds off at, how hard it accelerates and brakes, and when it rams. At 1, a few percent; 0 leaves them as they are.",
+        title: "How far the ship's approach numbers drift each generation — how it flies to a fight: the range it holds off at, how hard it accelerates and brakes, and when it rams. At 1, about a tenth; 0 leaves them as they are.",
     },
     {
         name: "doctrineEscort",
@@ -355,7 +363,7 @@ export const MUTATION_FIELDS: readonly MutationField[] = [
         label: "weapon gunnery",
         step: 0.5,
         value: DEFAULT_DOCTRINE_WEIGHTS.gunnery,
-        title: "How far a weapon's own target preferences drift each generation, so one mount can learn to pick targets differently from the rest of the ship. At 1, a few percent; 0 leaves them as they are.",
+        title: "How far a weapon's own target preferences drift each generation, so one mount can learn to pick targets differently from the rest of the ship. At 1, about a tenth; 0 leaves them as they are.",
     },
 ];
 
@@ -364,7 +372,7 @@ export const MUTATION_DEFAULTS: Readonly<Record<string, number>> = Object.fromEn
 
 /** What the numbers make: how a ship is mutated, and the odds of each change to a fleet. */
 export interface Breeding {
-    readonly ship: Pick<MutationLimits, "structural" | "geometry" | "thrusters" | "build" | "kinds" | "doctrine">;
+    readonly ship: Pick<MutationLimits, "magnitude" | "structural" | "geometry" | "thrusters" | "build" | "kinds" | "doctrine">;
     readonly operators: Readonly<Record<FleetOperator, number>>;
     readonly fleet: Pick<FleetMutationLimits, "design" | "move" | "change">;
 }
@@ -384,6 +392,7 @@ export function breeding(value: (name: string) => number | undefined): Breeding 
     const kinds: Record<string, number> = {};
     const operators: Record<string, number> = {};
     const doctrine: Record<string, number> = {};
+    let magnitude = DEFAULT_LIMITS.magnitude;
     let structural = DEFAULT_LIMITS.structural;
     let geometry = DEFAULT_LIMITS.geometry;
     let thrusters = DEFAULT_LIMITS.thrusters;
@@ -391,6 +400,10 @@ export function breeding(value: (name: string) => number | undefined): Breeding 
     for (const field of MUTATION_FIELDS) {
         if (field.name === "fleetDesign" || field.name === "fleetMove" || field.name === "fleetChange") {
             fleet[field.name === "fleetDesign" ? "design" : field.name === "fleetMove" ? "move" : "change"] = read(field);
+            continue;
+        }
+        if (field.name === "magnitude") {
+            magnitude = read(field);
             continue;
         }
         if (field.name === "structural") {
@@ -412,6 +425,7 @@ export function breeding(value: (name: string) => number | undefined): Breeding 
     }
     return {
         ship: {
+            magnitude,
             structural,
             geometry,
             thrusters,

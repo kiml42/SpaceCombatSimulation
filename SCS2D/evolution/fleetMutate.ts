@@ -92,7 +92,7 @@ export interface FleetMutationLimits {
 
 export type FleetOperator = "add" | "remove" | "fork" | "merge" | "swap" | "pad";
 
-/** Nearly every design and every ship each child; what the fleet is made of less often. */
+/** Every design and every ship each child; what the fleet is made of more often than not. */
 export const DEFAULT_FLEET_LIMITS: FleetMutationLimits = {
     ship: {},
     budget: NO_BUDGET,
@@ -101,8 +101,8 @@ export const DEFAULT_FLEET_LIMITS: FleetMutationLimits = {
     size: 0.25,
     turn: PI / 12,
     move: 1,
-    design: 0.9,
-    change: 0.3,
+    design: 1,
+    change: 0.6,
     attempts: 24,
     operators: { add: 1, remove: 1, fork: 0.5, merge: 0.5, swap: 0.5, pad: 0.5 },
 };

@@ -278,14 +278,14 @@ export const DEFAULT_KINDS: KindWeights = {
  * the nudges are small, and the tail is what gets it out of a local optimum.
  */
 export const DEFAULT_LIMITS: MutationLimits = {
-    magnitude: 0.05,
+    magnitude: 0.1,
     deadZone: 0.5,
-    tail: 0.05,
-    geometry: 0.25,
-    switches: 0.02,
+    tail: 0.1,
+    geometry: 0.4,
+    switches: 0.05,
     size: 0.5,
     turn: PI / 12,
-    structural: 0.3,
+    structural: 0.6,
     thrusters: 0.5,
     rename: 0.1,
     budget: NO_BUDGET,
