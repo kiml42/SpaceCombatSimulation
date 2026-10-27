@@ -130,6 +130,12 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
         step: 0.5,
     },
     { field: "avoidHorizon", label: "looks ahead", hint: "How far ahead it looks for something it is about to run into, seconds", step: 1 },
+    {
+        field: "rockMargin",
+        label: "rock margin",
+        hint: "How much sooner than it must it starts getting out of an asteroid’s way, seconds",
+        step: 1,
+    },
     { field: "dodgeSpeed", label: "dodges at", hint: "The sideways speed it asks for to get out of the way, metres per second", step: 10 },
     {
         field: "responseTime",
@@ -678,6 +684,7 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                             `${metres(2 * ship.radius * v.approach.separationRadii)} between centres, beside its own size`,
                     }),
                     entry("approach", "avoidHorizon", { shown: (v) => v.approach.separation > 0 }),
+                    entry("approach", "rockMargin", { shown: (v) => v.approach.separation > 0 }),
                     entry("approach", "dodgeSpeed", { shown: (v) => v.approach.separation > 0 }),
                 ],
             },

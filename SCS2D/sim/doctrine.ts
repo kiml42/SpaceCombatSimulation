@@ -264,6 +264,12 @@ export interface Approach {
      */
     readonly avoidHorizon: number;
     /**
+     * How much sooner than it must, seconds, it starts getting out of an
+     * asteroid's way: on top of the time turning and pushing aside on its mains
+     * would take, so a slow hull looks further ahead than a nimble one.
+     */
+    readonly rockMargin: number;
+    /**
      * The sideways speed it asks for to get out of the way, m/s. Asked for within
      * one response time, the default is more than any hull can push sideways, so
      * a demand for everything it has that way. A want in the blend rather than a
@@ -524,6 +530,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
         separation: 300,
         separationRadii: 3,
         avoidHorizon: 6,
+        rockMargin: 10,
         dodgeSpeed: 60,
         responseTime: 2,
         tolerance: 0.2,
@@ -771,6 +778,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
     "rockWeight",
     "clawSpeed",
     "tripWeight",
+    "rockMargin",
 ];
 
 /** Fields that mean nothing below zero, though zero itself is a setting. */
@@ -810,6 +818,7 @@ export const POSITIVE_FIELDS: readonly string[] = [
     "escortRadii",
     "separationRadii",
     "avoidHorizon",
+    "rockMargin",
     "dodgeSpeed",
     "responseTime",
     "accelerate",
