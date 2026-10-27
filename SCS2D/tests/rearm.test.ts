@@ -7,7 +7,7 @@ import { ANY_RANGE, QUARRY } from "./fixtures/quarry.js";
 /** Fighters landing on a friend's pad to take on metal for their guns, and fuel with it. */
 
 /** A core, a big tank, and a pad on its bow big enough for a Dinky. The core carries the metal. */
-function carrierOf(rearmBelow = 0): ShipDesign {
+function carrierOf(metalReserve = 0): ShipDesign {
     const blueprint: Blueprint = {
         name: "Carrier",
         modules: [
@@ -17,7 +17,7 @@ function carrierOf(rearmBelow = 0): ShipDesign {
         ],
     };
     const design = compileBlueprint(blueprint);
-    return compileBlueprint({ ...blueprint, doctrine: { ...design.doctrine, approach: { ...design.doctrine.approach, rearmBelow } } });
+    return compileBlueprint({ ...blueprint, doctrine: { ...design.doctrine, approach: { ...design.doctrine.approach, metalReserve } } });
 }
 const CORE = 0;
 

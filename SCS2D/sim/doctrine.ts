@@ -278,6 +278,15 @@ export interface Approach {
      */
     readonly orbitWeight: number;
     /**
+     * The shares of a full load of fuel, metal and charge it keeps for its own
+     * engines and weapons: nothing else of its, robots or slipways or pads,
+     * takes them below this, and it gives none of it to a friend. Zero keeps
+     * nothing back.
+     */
+    readonly fuelReserve: number;
+    readonly metalReserve: number;
+    readonly chargeReserve: number;
+    /**
      * The sideways speed it asks for to get out of the way, m/s. Asked for within
      * one response time, the default is more than any hull can push sideways, so
      * a demand for everything it has that way. A want in the blend rather than a
@@ -390,14 +399,12 @@ export interface Approach {
      * The share of a full load of fuel at or below which it goes to a friend to
      * be refuelled: a fighter to a pad it fits on, anything else with a port to
      * a port — a ship with a claw too, which docks only this low and otherwise
-     * scavenges by `scavengeFuelBelow`. It is also the fuel it keeps back for
-     * itself when it fills a friend. Zero never goes, and keeps nothing back.
+     * scavenges by `scavengeFuelBelow`. Zero never goes.
      */
     readonly refuelBelow: number;
     /**
      * The same for charge: the share of its batteries at or below which a
-     * fighter goes to a friend's pad to recharge, and what it keeps back for
-     * itself when it charges a friend.
+     * fighter goes to a friend's pad to recharge.
      */
     readonly rechargeBelow: number;
     /**
@@ -540,6 +547,9 @@ export const DEFAULT_DOCTRINE: Doctrine = {
         avoidHorizon: 6,
         rockMargin: 10,
         orbitWeight: 1,
+        fuelReserve: 0.25,
+        metalReserve: 0,
+        chargeReserve: 0.25,
         dodgeSpeed: 60,
         responseTime: 2,
         tolerance: 0.2,
@@ -789,10 +799,16 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
     "tripWeight",
     "rockMargin",
     "orbitWeight",
+    "fuelReserve",
+    "metalReserve",
+    "chargeReserve",
 ];
 
 /** Fields that mean nothing below zero, though zero itself is a setting. */
 export const NON_NEGATIVE_FIELDS: readonly string[] = [
+    "fuelReserve",
+    "metalReserve",
+    "chargeReserve",
     "orbitWeight",
     "tangentialMin",
     "tangentialMax",

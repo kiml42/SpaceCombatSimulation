@@ -6066,8 +6066,9 @@ export class Ships {
      * One being built is built, and held until it is whole whatever else is
      * going on. Anything else is filled with fuel, metal and charge, each from
      * what the carrier can spare, and mended, and let go once it holds what its
-     * doctrine leaves with (`launchFuel` and its kind) and is mended, or at once
-     * once given an order. Danger lets it go once loaded, mended or not. A pad
+     * doctrine leaves with (`launchFuel` and its kind), or all the carrier can
+     * spare if that is less and the carrier is not anchored, and is mended; or
+     * at once once given an order. Danger lets it go once loaded, mended or not. A pad
      * gone, or one that can no longer grip, lets go of anything.
      */
     private tendParked(world: World, f: number): boolean {
@@ -6109,12 +6110,17 @@ export class Ships {
         if (!repairLeft) repairLeft = this.padBuild(bodies, fb, f, cb, pad, work);
         if (this.commanded(f)) return false;
         // Loaded once it holds what its doctrine leaves with of each, or the
-        // carrier has no more of it to spare.
+        // carrier has no more of it to spare and is not getting any: an anchored
+        // carrier is mining or scavenging, so what it is short of is coming, and
+        // it waits for it.
         const approach = this.doctrines[f]!.approach;
-        const fuelLeft = short(this.fuel, fb, into, approach.launchFuel) && this.fuel.pieceHeld(cb, pad) > this.reserve(cb, pad);
-        const metalLeft = short(this.metal, fb, into, approach.launchMetal) && this.metal.pieceHeld(cb, pad) > this.metalReserve(cb, pad);
+        const coming = this.isMoored(c);
+        const fuelLeft =
+            short(this.fuel, fb, into, approach.launchFuel) && (coming || this.fuel.pieceHeld(cb, pad) > this.reserve(cb, pad));
+        const metalLeft =
+            short(this.metal, fb, into, approach.launchMetal) && (coming || this.metal.pieceHeld(cb, pad) > this.metalReserve(cb, pad));
         const chargeLeft =
-            short(this.power, fb, into, approach.launchCharge) && this.power.pieceHeld(cb, pad) > this.chargeReserve(cb, pad);
+            short(this.power, fb, into, approach.launchCharge) && (coming || this.power.pieceHeld(cb, pad) > this.chargeReserve(cb, pad));
         const loaded = !fuelLeft && !metalLeft && !chargeLeft;
         // A ship that minds danger lets go once loaded if an armed enemy is in reach, mended or not.
         if (loaded && !this.sentTo(f) && this.threatened(bodies, f, cb, true)) return false;
@@ -6381,8 +6387,7 @@ export class Ships {
      * `ROBOT_BUILD_ENERGY` of charge from the piece as it goes, so metal sets how
      * many it builds at once and charge how fast. Short of charge, the most
      * nearly finished are built first. Only from what is over what its doctrine
-     * keeps back for its fighters (`rearmBelow`, `rechargeBelow`): forty robots
-     * started at once would otherwise leave its pads nothing to fill them with. Short by `robotsKept`,
+     * keeps for its own engines and weapons (`metalReserve`, `chargeReserve`). Short by `robotsKept`,
      * counting those out on a rock. Says whether one was started or finished.
      */
     private buildRobots(b: number, design: ShipDesign, robots: Robot[], dt: number): boolean {
@@ -6471,9 +6476,10 @@ export class Ships {
                         robot.brought = 0;
                     }
                 }
-                // Charged as it is filled, as fast as there is charge to give.
+                // Charged as it is filled, as fast as there is charge to give over
+                // what the ship keeps for its engines and weapons.
                 const want = min(ROBOT_CHARGE - robot.charge, (ROBOT_CHARGE / ROBOT_REFILL_TIME) * dt * working);
-                const spare = this.power.pieceHeld(b, robot.bay);
+                const spare = this.power.pieceHeld(b, robot.bay) - this.chargeReserve(b, robot.bay);
                 if (want > 0 && spare > 0) robot.charge += this.power.drain(b, robot.bay, want < spare ? want : spare);
                 // Waits to be full while its piece of hull has the charge to fill it.
                 if (robot.refill > 0 || (robot.charge < ROBOT_CHARGE - 1 && spare > want)) return unloaded;
@@ -8210,28 +8216,28 @@ export class Ships {
     }
 
     /**
-     * What the ship working module `m` of body `b` keeps back for itself from
-     * that module's piece of hull, kg: its doctrine's `refuelBelow` of a full
-     * load, below which it would go to a friend for fuel itself.
+     * The fuel the ship working module `m` of body `b` keeps back from that
+     * module's piece of hull for its own engines and weapons, kg: its
+     * doctrine's `fuelReserve` of a full load.
      */
     private reserve(b: number, m: number): number {
         const owner = this.pilotAt(b, m);
-        const below = owner < 0 ? 0 : this.doctrines[owner]!.approach.refuelBelow;
-        return below > 0 ? below * (this.fuel.pieceHeld(b, m) + this.fuel.pieceRoom(b, m)) : 0;
+        const kept = owner < 0 ? 0 : this.doctrines[owner]!.approach.fuelReserve;
+        return kept > 0 ? kept * (this.fuel.pieceHeld(b, m) + this.fuel.pieceRoom(b, m)) : 0;
     }
 
-    /** The same for charge, kept back by its doctrine's `rechargeBelow`. */
+    /** The same for charge, its doctrine's `chargeReserve`. */
     private chargeReserve(b: number, m: number): number {
         const owner = this.pilotAt(b, m);
-        const below = owner < 0 ? 0 : this.doctrines[owner]!.approach.rechargeBelow;
-        return below > 0 ? below * (this.power.pieceHeld(b, m) + this.power.pieceRoom(b, m)) : 0;
+        const kept = owner < 0 ? 0 : this.doctrines[owner]!.approach.chargeReserve;
+        return kept > 0 ? kept * (this.power.pieceHeld(b, m) + this.power.pieceRoom(b, m)) : 0;
     }
 
-    /** The same for metal: its doctrine's `rearmBelow` of a full load. */
+    /** The same for metal, its doctrine's `metalReserve`. */
     private metalReserve(b: number, m: number): number {
         const owner = this.pilotAt(b, m);
-        const below = owner < 0 ? 0 : this.doctrines[owner]!.approach.rearmBelow;
-        return below > 0 ? below * (this.metal.pieceHeld(b, m) + this.metal.pieceRoom(b, m)) : 0;
+        const kept = owner < 0 ? 0 : this.doctrines[owner]!.approach.metalReserve;
+        return kept > 0 ? kept * (this.metal.pieceHeld(b, m) + this.metal.pieceRoom(b, m)) : 0;
     }
 
     /**
