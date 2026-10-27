@@ -62,6 +62,7 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Bullet spread (inaccuracy. Could get worse as a gun gets damaged.)
 - Shell fragments should be placed in a random layer when the shell detonates, instead of being considered to hit anything in either. Possibly there could be a bias towards keeping fragments in the turrets layer, to keep fragments good at hitting fighters. (probably dependent on the charge size)
 - The default doctrine for a ship with a single hull beam put its attack band well within the range of its weapon, making it ineffective by default as long range is the main advantage of a beam.
+- Multi-barrelled beams could fire at the same time, making duration les than half (double power, but more heating) with double the power. It could actually be useful to sniping.
 
 ## Manoeuvring
 - Ships need to have a max allowed rotational speed, or some other mechanism to stop them spinning up faster and faster when they have damaged engines.
