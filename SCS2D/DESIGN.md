@@ -1052,7 +1052,8 @@ inside any one file is not contiguous.
   each module of the ship there that is not whole, cores first, at the same rate and price (`tendAtFace`),
   so a module comes away from the face whole and none is left to fit at the end but the stern's. With its
   walls all up and its stern whole it fills it from what the builder can spare as a pad does, and lets it
-  go, pushing the two apart at `SLIPWAY_PUSH` (2 m/s) as a stage separates; the ship it built keeps its
+  go once it holds its own doctrine's `launchFuel`, `launchMetal` and `launchCharge`, or the builder has no
+  more to spare and is not anchored to get more, pushing the two apart at `SLIPWAY_PUSH` (2 m/s) as a stage separates; the ship it built keeps its
   engines off while any of their flames would play on its builder, for up to `SLIPWAY_CLEAR_TIME`, unless
   it is drifting back into it, as a well under a builder anchored to its rock pulls it. Until then it is held doing nothing, its engines off, its guns silent and its own pads and slipways idle; let go, it builds what its design does. A builder that could still
   build an armed ship is armed, and a slipway building is busy, for a battle's decision, as a pad is.

@@ -14,7 +14,8 @@
       "fuelReserve": 0.2,
       "metalReserve": 0,
       "chargeReserve": 0,
-      "padsShare": 3
+      "padsShare": 3,
+      "launchMetal": 0.3
     }
   },
   "hangar": {

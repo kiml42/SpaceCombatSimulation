@@ -5980,11 +5980,19 @@ export class Ships {
                         if (this.dockPump(Resource.Fuel, this.fuel, b, seam.a, seam.b, rate, Claim.Slipway) > 0) moved = true;
                         if (this.dockPump(Resource.Metal, this.metal, b, seam.a, seam.b, rate, Claim.Slipway) > 0) moved = true;
                         this.dockPump(Resource.Charge, this.power, b, seam.a, seam.b, cable, Claim.Slipway);
-                        const fuelLeft = this.fuel.pieceRoom(b, seam.b) > 0 && this.fuel.pieceHeld(b, seam.a) > this.reserve(b, seam.a);
+                        // Held, as a pad holds a fighter, until it has what its doctrine leaves
+                        // with, or its builder has no more to spare and is not anchored to get more.
+                        const launch = this.doctrines[built]!.approach;
+                        const coming = this.isMoored(this.pilotAt(b, seam.a));
+                        const fuelLeft =
+                            short(this.fuel, b, seam.b, launch.launchFuel) &&
+                            (coming || this.fuel.pieceHeld(b, seam.a) > this.reserve(b, seam.a));
                         const metalLeft =
-                            this.metal.pieceRoom(b, seam.b) > 0 && this.metal.pieceHeld(b, seam.a) > this.metalReserve(b, seam.a);
+                            short(this.metal, b, seam.b, launch.launchMetal) &&
+                            (coming || this.metal.pieceHeld(b, seam.a) > this.metalReserve(b, seam.a));
                         const chargeLeft =
-                            this.power.pieceRoom(b, seam.b) > 0 && this.power.pieceHeld(b, seam.a) > this.chargeReserve(b, seam.a);
+                            short(this.power, b, seam.b, launch.launchCharge) &&
+                            (coming || this.power.pieceHeld(b, seam.a) > this.chargeReserve(b, seam.a));
                         if (fuelLeft || metalLeft || chargeLeft) continue;
                     }
                 }
