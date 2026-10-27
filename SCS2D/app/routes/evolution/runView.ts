@@ -1,13 +1,11 @@
-import { Coevolution, type CoevolutionConfig } from "~/evolution/coevolution";
-import { fitness, type Generation } from "~/evolution/generation";
+import type { CoevolutionConfig } from "~/evolution/coevolution";
 import type { Entrant } from "~/evolution/match";
-import { RecordedRun } from "~/evolution/recorded";
+import type { RecordedRun } from "~/evolution/recorded";
 import {
     entrantOf,
     finalist,
     generationDoctrine,
     generationSize,
-    Run,
     spreadOf,
     type GenerationDoctrine,
     type GenerationRecord,
@@ -18,15 +16,15 @@ import type { YardstickPoint } from "~/evolution/yardstick";
 import { teamColour } from "~/render/canvas2d";
 import type { Series } from "~/render/chart";
 import { shipColours } from "~/render/teams";
+import { LiveRun, type LiveIndividual } from "~/host/evolutionRun";
 import { BARE_CORE } from "~/scenarios/blueprints";
 
-/** A run on show: fought here, or read from a file. */
-export type AnyRun = Run | Coevolution | RecordedRun;
-type TwoSided = Coevolution | (RecordedRun & { coevolution: CoevolutionConfig });
+/** A run on show: being fought, or read from a file. */
+export type AnyRun = LiveRun | RecordedRun;
+type TwoSided = AnyRun & { coevolution: CoevolutionConfig };
 
 /** Whether a run has two sides: a co-evolution run, live or read from a file. */
-export const twoSided = (run: AnyRun | null): run is TwoSided =>
-    run instanceof Coevolution || (run instanceof RecordedRun && run.coevolution !== null);
+export const twoSided = (run: AnyRun | null): run is TwoSided => run !== null && run.coevolution !== null;
 
 /** Whether the run is a co-evolution run whose sides take turns, so it goes in rounds. */
 export const inRounds = (run: AnyRun | null): boolean => twoSided(run) && run.alternates;
@@ -86,15 +84,15 @@ export function unfought(id: number, entrant: Entrant, mass: number, side?: 0 | 
 }
 
 /** A generation being fought, as rows; `side` for a lineage of a co-evolution run. */
-export function liveRows(generation: Generation, massOf: MassOf, side?: 0 | 1): Row[] {
-    return generation.individuals.map((individual) => {
+export function liveRows(individuals: readonly LiveIndividual[], massOf: MassOf, side?: 0 | 1): Row[] {
+    return individuals.map((individual) => {
         const per = (total: number): number => (individual.matches > 0 ? total / individual.matches : 0);
         return {
             id: individual.id,
             ...(side === undefined ? {} : { side }),
             parent: individual.parent,
             matches: individual.matches,
-            fitness: fitness(individual),
+            fitness: per(individual.score),
             survival: per(individual.survival),
             functional: per(individual.functional),
             damage: per(individual.damage),
@@ -192,7 +190,7 @@ export function showing(run: AnyRun | null, wanted: number, massOf: MassOf): Sho
             return run.hall(k).map((champion) => unfought(champion.id, champion.entrant, massOf(champion.id, champion.entrant), k));
         };
         // A run read from a file is over, so it has nothing being bred.
-        if (index >= closed && run instanceof Coevolution) {
+        if (index >= closed && run instanceof LiveRun) {
             // The side being bred live, the other as it last was.
             const turn = run.turn;
             const last = points[closed - 1];
@@ -206,7 +204,7 @@ export function showing(run: AnyRun | null, wanted: number, massOf: MassOf): Sho
         const bred = point.side === 0 ? run.generations[point.a]! : run.rivalGenerations[point.b]!;
         return { index, rows: [...sideRows(0, point.a), ...sideRows(1, point.b)], matches: bred.matches };
     }
-    if (index >= closed && run instanceof Run) return { index, rows: liveRows(run.living, massOf), matches: run.played };
+    if (index >= closed && run instanceof LiveRun) return { index, rows: liveRows(run.living, massOf), matches: run.played };
     const record = run.generations[index]!;
     return { index, rows: recordRows(record), matches: record.matches };
 }
