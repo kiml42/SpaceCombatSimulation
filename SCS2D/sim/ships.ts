@@ -5599,7 +5599,8 @@ export class Ships {
      * welds holding the ship together, answered by `sever`.
      */
     blow(bodyIndex: number, module: number, jx: number, jy: number, px: number, py: number): void {
-        if (module < 0) return;
+        // Nothing breaks a hull that nothing can hurt.
+        if (module < 0 || this.damage.isProtected(bodyIndex)) return;
         if (!(jx !== 0 || jy !== 0)) return;
         const i = this.blows++;
         this.blowBody[i] = bodyIndex;
