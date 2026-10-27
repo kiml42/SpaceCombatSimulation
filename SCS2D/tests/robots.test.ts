@@ -282,6 +282,22 @@ describe("robots", () => {
         expect(absorbed(run, NEAR)).toBeGreaterThan(0);
     });
 
+    it("never walk out to what they have no metal to mend, however often the hull is hit, and go once metal comes aboard", () => {
+        const run = scene((absorb) => absorb(NEAR, 0.5));
+        const b = body(run);
+        run.ships.metal.drain(b, NEAR, run.ships.metal.pieceHeld(b, NEAR));
+        for (let s = 0; s < 60 * 60; s++) {
+            // A scratch now and then, which sends idle robots to look again.
+            if (s % 120 === 0) run.ships.damage.absorb(b, NEAR, capacity(NEAR) * 0.001);
+            run.step();
+            expect(out(run)).toBe(0);
+        }
+        expect(run.ships.metal.add(b, NEAR, 1000)).toBeGreaterThan(0);
+        let steps = 0;
+        while (out(run) === 0 && steps++ < 30 * 60) run.step();
+        expect(out(run)).toBeGreaterThan(0);
+    });
+
     it("mend their own bay before structure, since it makes every other job quicker", { timeout: 60_000 }, () => {
         const run = scene((absorb) => {
             absorb(BAY, 0.3);
