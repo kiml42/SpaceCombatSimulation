@@ -6066,8 +6066,9 @@ export class Ships {
      * One being built is built, and held until it is whole whatever else is
      * going on. Anything else is filled with fuel, metal and charge, each from
      * what the carrier can spare, and mended, and let go once it holds what its
-     * doctrine leaves with (`launchFuel` and its kind) and is mended, or at once
-     * once given an order. Danger lets it go once loaded, mended or not. A pad
+     * doctrine leaves with (`launchFuel` and its kind), or all the carrier can
+     * spare if that is less and the carrier is not anchored, and is mended; or
+     * at once once given an order. Danger lets it go once loaded, mended or not. A pad
      * gone, or one that can no longer grip, lets go of anything.
      */
     private tendParked(world: World, f: number): boolean {
@@ -6109,12 +6110,17 @@ export class Ships {
         if (!repairLeft) repairLeft = this.padBuild(bodies, fb, f, cb, pad, work);
         if (this.commanded(f)) return false;
         // Loaded once it holds what its doctrine leaves with of each, or the
-        // carrier has no more of it to spare.
+        // carrier has no more of it to spare and is not getting any: an anchored
+        // carrier is mining or scavenging, so what it is short of is coming, and
+        // it waits for it.
         const approach = this.doctrines[f]!.approach;
-        const fuelLeft = short(this.fuel, fb, into, approach.launchFuel) && this.fuel.pieceHeld(cb, pad) > this.reserve(cb, pad);
-        const metalLeft = short(this.metal, fb, into, approach.launchMetal) && this.metal.pieceHeld(cb, pad) > this.metalReserve(cb, pad);
+        const coming = this.isMoored(c);
+        const fuelLeft =
+            short(this.fuel, fb, into, approach.launchFuel) && (coming || this.fuel.pieceHeld(cb, pad) > this.reserve(cb, pad));
+        const metalLeft =
+            short(this.metal, fb, into, approach.launchMetal) && (coming || this.metal.pieceHeld(cb, pad) > this.metalReserve(cb, pad));
         const chargeLeft =
-            short(this.power, fb, into, approach.launchCharge) && this.power.pieceHeld(cb, pad) > this.chargeReserve(cb, pad);
+            short(this.power, fb, into, approach.launchCharge) && (coming || this.power.pieceHeld(cb, pad) > this.chargeReserve(cb, pad));
         const loaded = !fuelLeft && !metalLeft && !chargeLeft;
         // A ship that minds danger lets go once loaded if an armed enemy is in reach, mended or not.
         if (loaded && !this.sentTo(f) && this.threatened(bodies, f, cb, true)) return false;
