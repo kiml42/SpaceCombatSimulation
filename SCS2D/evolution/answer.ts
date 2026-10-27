@@ -259,7 +259,14 @@ export class EnemySearch {
     private begin(): void {
         const parent = this.best.enemy;
         this.standings = [{ enemy: parent, wins: 0, onRound: false, margin: 0 }];
-        const limits = { ...this.limits, ...this.bred.fleet, radius: this.radius, ship: this.bred.ship, operators: this.bred.operators };
+        const limits = {
+            ...this.limits,
+            ...this.bred.fleet,
+            radius: this.radius,
+            ship: this.bred.ship,
+            operators: this.bred.operators,
+            rivals: [this.player],
+        };
         for (let i = 0; i < this.settings.mutants; i++) {
             const child = mutateFleet(parent, this.rng, limits).fleet;
             this.standings.push({ enemy: child, wins: 0, onRound: false, margin: 0 });
