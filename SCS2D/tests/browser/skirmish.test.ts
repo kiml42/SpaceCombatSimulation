@@ -325,7 +325,8 @@ describe("the skirmish in a browser", () => {
         const skirmish = won(newSkirmish(shipFleet(CORVETTE), shipFleet(CORVETTE), 25));
         await page.goto(skirmishPage(skirmish));
         await page.waitForSelector("#answering");
-        // Opened on the round being answered, not the one already won.
+        // Opened on the round being answered, not the one already won: said once the view is up, which can be after.
+        await page.waitForFunction(() => document.getElementById("outcome")?.textContent !== "");
         expect(await page.textContent("#outcome")).toBe("The enemy as it stands against your fleet, evolving an answer.");
         expect(await page.isVisible("#editFleet")).toBe(false);
         expect(await page.isVisible("#fight")).toBe(false);
