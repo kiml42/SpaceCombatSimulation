@@ -6578,10 +6578,10 @@ export class Ships {
             }
             // It goes on what it carries, whether its bay can still refill it or not.
             if (!(robot.metal > ROBOT_SPENT) || !(robot.charge >= ROBOT_REPAIR_RATE * REPAIR_ENERGY_PER_JOULE * dt)) return unloaded;
-            // Nothing has been hit since it last looked and found nothing to do.
-            if (robot.idleAt !== this.damage.version(b)) {
+            // Nothing has been hit, nor metal come aboard, since it last looked and found nothing to do.
+            if (robot.idleAt !== this.idleKey(b, robot.bay)) {
                 this.sendOut(b, design, robots, robot, owner);
-                if (robot.target < 0) robot.idleAt = this.damage.version(b);
+                if (robot.target < 0) robot.idleAt = this.idleKey(b, robot.bay);
             }
             // Nothing on its own hull: over to the rock its ship is moored to, if it has room for any.
             if (robot.target < 0) this.sendAcross(b, design, robot, owner);
@@ -6696,8 +6696,8 @@ export class Ships {
         } else {
             const wall = whole.structureMass / SHELL_STEPS;
             // Waiting on a step that is in the way of something: mending comes first, if any has come up since.
-            if (rebuild.work[l]! >= wall && robot.idleAt !== this.damage.version(b)) {
-                robot.idleAt = this.damage.version(b);
+            if (rebuild.work[l]! >= wall && robot.idleAt !== this.idleKey(b, robot.bay)) {
+                robot.idleAt = this.idleKey(b, robot.bay);
                 this.sendOut(b, design, robots, robot, owner);
                 return false;
             }
@@ -6730,7 +6730,16 @@ export class Ships {
     private sendHome(b: number, design: ShipDesign, robot: Robot, owner: number, m: number): void {
         this.route(b, design, robot, owner, robot.bay);
         robot.mode = RobotMode.Home;
-        if (!(this.metal.pieceHeld(b, m) > ROBOT_SPENT)) robot.idleAt = this.damage.version(b);
+        if (!(this.metal.pieceHeld(b, m) > ROBOT_SPENT)) robot.idleAt = this.idleKey(b, robot.bay);
+    }
+
+    /**
+     * What a robot of body `b`, its bay module `bay`, last looked for work at:
+     * the hull's damage as it was, and whether there was metal to mend with.
+     * Either changing sends it to look again.
+     */
+    private idleKey(b: number, bay: number): number {
+        return this.damage.version(b) * 2 + (this.metal.pieceHeld(b, bay) > ROBOT_SPENT ? 1 : 0);
     }
 
     /**
@@ -7172,6 +7181,8 @@ export class Ships {
         };
         for (let m = 0; m < design.modules.length; m++) {
             if (!Number.isFinite(dist[m]!) || !this.ownsAt(owner, b, m) || this.wreckage(owner, b, m)) continue;
+            // Building takes metal: none there, nothing to build with.
+            if (!(this.metal.pieceHeld(b, m) > ROBOT_SPENT)) continue;
             if (design.modules[m]!.shell !== undefined || this.damage.unbuiltAt(b, m) > 0) consider(m, -1, originTier(approach, design, m));
         }
         if (rebuild.frame >= 0) {
@@ -7184,7 +7195,7 @@ export class Ships {
                 ] as const) {
                     const m = rebuild.at[against]!;
                     if (rebuild.at[l]! >= 0 || m < 0 || !Number.isFinite(dist[m]!) || !this.ownsAt(owner, b, m)) continue;
-                    if (this.wreckage(owner, b, m)) continue;
+                    if (this.wreckage(owner, b, m) || !(this.metal.pieceHeld(b, m) > ROBOT_SPENT)) continue;
                     if (design.modules[m]!.shell !== undefined || originOf(design, m).design !== compiled) continue;
                     // Refitted, what is in the way comes down before this goes up.
                     if (this.refitting[owner] === 1 && this.inTheWay(design, rebuild, launch, l)) continue;
@@ -7369,6 +7380,8 @@ export class Ships {
         for (let m = 0; m < n; m++) {
             if (!Number.isFinite(dist[m]!) || !(this.damage.absorbedAt(b, m) > 0) || !this.ownsAt(owner, b, m)) continue;
             if (this.wreckage(owner, b, m)) continue;
+            // Nothing to mend it with: no sense walking there.
+            if (!(this.metal.pieceHeld(b, m) > ROBOT_SPENT) && this.damage.repairMetal(b, m, this.damage.absorbedAt(b, m)) > 0) continue;
             const tier = repairTier(approach, design, m);
             let crowd = 0;
             for (let k = 0; k < robots.length; k++) if (robots[k] !== robot && robots[k]!.target === m) crowd++;
