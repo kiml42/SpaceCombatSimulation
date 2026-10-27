@@ -810,6 +810,20 @@ inside any one file is not contiguous.
   engines and weapons. Nothing it gives a friend through a pad, port or slipway, and nothing its robots are
   built or refilled with, takes it below them; mending, on a pad or by robots, may. They are not the
   `refuelBelow`, `rechargeBelow` and `rearmBelow` that send a ship to a friend for more.
+  **What a ship spends on first** (`sim/supply.ts`): everything that draws on a piece of hull's fuel, metal and
+  charge does so as one of sixteen claims, each with a priority and a share in doctrine
+  (`<claim>Priority`, a whole number, and `<claim>Share`): its engines (`thrust`) and weapons (`fire`); its
+  pads, ports, robots (building them and charging them) and slipways; and mending and rebuilding its cores,
+  robot bays, engines, main weapons, secondary weapons, stores, generators, hangars (pads, slipways, ports),
+  claws and structure (`mendCore` … `mendStructure`). A higher priority gets all it wants before a lower one
+  gets any; claims of one priority split what is left by share, none past what it wants. What a claim wants is
+  what it wants in all — the room a fighter on a pad has, the metal for the robots a bay is short of, the
+  metal to mend a module whole — so a lower priority waits until a higher one is done. Each step a piece's
+  stores are shared out at the first ask, by what each claim asked for the step before; one asking for the
+  first time has what nobody else wanted until the next. By default engines, weapons and mending cores and
+  robot bays come first (3), mending engines and weapons next (2), pads, ports, robots and the rest of mending
+  next (1) and slipways last (0), all of share 1. Robots and pads mend and rebuild in the order these give.
+  Only engines, weapons and mending may draw below the reserves.
   **A pad** (`pad`) is a deck a friendly fighter lands on: never thick and never in the weapons layer, with a
   pump of `PAD_PUMP_PER_METRE` for every metre of its width. A fighter with no claw whose fuel is down to its
   doctrine's `refuelBelow` of a full load, or its charge to its `rechargeBelow` (a quarter each, by default),

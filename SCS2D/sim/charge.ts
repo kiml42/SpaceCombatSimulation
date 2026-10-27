@@ -120,6 +120,13 @@ export class Charge extends Store {
         return direct + taken;
     }
 
+    /** What its batteries hold, and what its generators have made this step that nothing has used. */
+    override offered(bodyIndex: number, module: number): number {
+        const supply = this.supply[bodyIndex];
+        const piece = this.pieceOf[bodyIndex]?.[module] ?? -1;
+        return this.pieceHeld(bodyIndex, module) + (supply === null || supply === undefined || piece < 0 ? 0 : supply[piece]!);
+    }
+
     /** What the generators on module `m`'s piece of hull make as damage leaves them, W. */
     pieceGeneration(bodyIndex: number, m: number, damage: Damage): number {
         const makes = this.makes[bodyIndex];
