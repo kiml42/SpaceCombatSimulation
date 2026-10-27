@@ -1396,6 +1396,8 @@ export class Ships {
     private readonly rockShips: number[] = [];
     private readonly rockFlag: number[] = [];
     private rocksAt = -1;
+    /** How deep the line `blockingRock` last looked along cuts the rock it named, nothing to one. */
+    private blockDepth = 0;
 
     /** Turret reaction torque per body index, filled by `Turrets.step`. */
     private reaction = new Float64Array(64);
@@ -3300,10 +3302,20 @@ export class Ships {
      * inside, which says nothing about which way is blocked.
      */
     private rockBetween(bodies: Bodies, fromX: number, fromY: number, toX: number, toY: number, own: number, to: number): boolean {
+        return this.blockingRock(bodies, fromX, fromY, toX, toY, own, to) >= 0;
+    }
+
+    /**
+     * `rockBetween`, naming the rock whose circle the line cuts deepest, or -1,
+     * and leaving how deep in `blockDepth`: one through its middle, nothing at a graze.
+     */
+    private blockingRock(bodies: Bodies, fromX: number, fromY: number, toX: number, toY: number, own: number, to: number): number {
+        this.blockDepth = 0;
         const dx = toX - fromX;
         const dy = toY - fromY;
         const lengthSq = dx * dx + dy * dy;
-        if (!(lengthSq > 0)) return false;
+        if (!(lengthSq > 0)) return -1;
+        let deepest = -1;
         for (let k = 0; k < this.rockShips.length; k++) {
             const rock = this.rockShips[k]!;
             if (this.alive[rock] === 0) continue;
@@ -3317,9 +3329,13 @@ export class Ships {
             if (along <= 0 || along >= 1) continue;
             const px = ox - along * dx;
             const py = oy - along * dy;
-            if (px * px + py * py < r * r) return true;
+            const depth = 1 - sqrt(px * px + py * py) / r;
+            if (depth > this.blockDepth) {
+                this.blockDepth = depth;
+                deepest = rock;
+            }
         }
-        return false;
+        return deepest;
     }
 
     /** Note which ships are asteroids, once a step: there are few, and every pilot and gun asks. */
@@ -4286,7 +4302,10 @@ export class Ships {
                     holdOut = order.maxRange;
                 }
                 if (order.ram) this.charge(bodies, b, at, order.approachSpeed);
-                else this.hold(bodies, i, b, at, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE, wantAngle);
+                else {
+                    this.hold(bodies, i, b, at, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE, wantAngle);
+                    this.orbit(bodies, i, b, at, tb);
+                }
             }
         }
 
@@ -4755,6 +4774,43 @@ export class Ships {
      * Close on `other` at `speed`, with nothing across the line between them,
      * and no braking to arrive: a ram is meant to hit.
      */
+    /**
+     * Go round an asteroid hiding `at`, on body `tb`, from ship `i`: orbit it
+     * the short way round to where `at` is, at the distance it is now, or clear
+     * of it if that is too close. As fast as holds that distance in the rock's
+     * pull, so it coasts round on a free orbit; a rock with no pull keeps it
+     * going round at the speed it has. As loud as the rock is deep in the way.
+     */
+    private orbit(bodies: Bodies, i: number, b: number, at: Spot, tb: number): void {
+        const approach = this.doctrines[i]!.approach;
+        if (!(approach.orbitWeight > 0)) return;
+        const x = bodies.x[b]!;
+        const y = bodies.y[b]!;
+        const rock = this.blockingRock(bodies, x, y, at.x, at.y, b, tb);
+        if (rock < 0) return;
+        const rb = bodies.indexOf(this.bodyIds[rock]!);
+        const ox = x - bodies.x[rb]!;
+        const oy = y - bodies.y[rb]!;
+        const r = length(ox, oy);
+        if (!(r > 0)) return;
+        const ux = ox / r;
+        const uy = oy / r;
+        // The way round that is shorter to where the target is.
+        const sense = ux * (at.y - bodies.y[rb]!) - uy * (at.x - bodies.x[rb]!) >= 0 ? 1 : -1;
+        const rvx = bodies.vx[b]! - bodies.vx[rb]!;
+        const rvy = bodies.vy[b]! - bodies.vy[rb]!;
+        this.wellPullOn(bodies, b, rb);
+        const free = sqrt(length(this.partAt.x, this.partAt.y) * r);
+        const speed = free > 0 ? free : min(length(rvx, rvy), approach.approachSpeed);
+        const clear = bodies.radius[rb]! + this.designs[i]!.radius * (1 + approach.separationRadii);
+        const out = r < clear ? (clear - r) / approach.responseTime : 0;
+        this.urge(
+            approach.orbitWeight * URGE_REFERENCE * this.blockDepth,
+            bodies.vx[rb]! - sense * uy * speed + ux * out,
+            bodies.vy[rb]! + sense * ux * speed + uy * out,
+        );
+    }
+
     private charge(bodies: Bodies, b: number, at: Spot, speed: number): void {
         const dx = at.x - bodies.x[b]!;
         const dy = at.y - bodies.y[b]!;

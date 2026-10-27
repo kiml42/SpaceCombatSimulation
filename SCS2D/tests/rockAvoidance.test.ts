@@ -66,3 +66,27 @@ it("goes for an enemy in sight over a nearer one behind a rock", () => {
     for (let t = 0; t < 60; t++) run.step();
     expect(run.ships.fightingOf(run.hunter)).toBe(run.open);
 });
+
+it("orbits a rock hiding its target, getting round sooner and on less fuel than flying at it", () => {
+    const meet = (orbitWeight: number): { first: number; fuel: number } => {
+        const plain = compileBlueprint(GUNSHIP);
+        const design = { ...plain, doctrine: { ...plain.doctrine, approach: { ...plain.doctrine.approach, orbitWeight } } };
+        const run = makeBattle({ seed: 1, wells: [RIVAL_WELLS[0]!] }, (ships, world, wells) => {
+            const major = asteroidBlueprint("A", { radius: 250, kernel: true, ore: 0.35, ice: 0.25 }, new Rng(5));
+            ships.spawn(world, { design: compileBlueprint(major), rides: wells[0]!, team: NEUTRAL_TEAM });
+            ships.spawn(world, { design, x: -900, y: 0, angle: 0, team: 0 });
+            return { ship: ships.spawn(world, { design, x: 900, y: 0, angle: math.PI, team: 1 }) };
+        });
+        const fuel = (): number => run.ships.fuel.left(run.world.bodies.indexOf(run.ships.body(run.ship)));
+        const start = fuel();
+        for (let t = 0; t < 180 * 60; t++) {
+            run.step();
+            if (run.totalProjectilesFired > 0) return { first: t / 60, fuel: start - fuel() };
+        }
+        return { first: Infinity, fuel: start - fuel() };
+    };
+    const straight = meet(0);
+    const orbiting = meet(1);
+    expect(orbiting.first).toBeLessThan(straight.first / 2);
+    expect(orbiting.fuel).toBeLessThan(straight.fuel);
+});

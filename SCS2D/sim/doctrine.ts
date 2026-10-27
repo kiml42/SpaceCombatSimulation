@@ -270,6 +270,14 @@ export interface Approach {
      */
     readonly rockMargin: number;
     /**
+     * How much it wants to orbit an asteroid hiding what it is fighting, against
+     * doing what it was told: one is as much as that. Round the rock the short
+     * way, at the speed that holds its distance in the rock's pull, so it coasts
+     * round rather than burning to hold off; fading as the line clears, so the
+     * approach takes over once it is round. Zero flies straight at it.
+     */
+    readonly orbitWeight: number;
+    /**
      * The sideways speed it asks for to get out of the way, m/s. Asked for within
      * one response time, the default is more than any hull can push sideways, so
      * a demand for everything it has that way. A want in the blend rather than a
@@ -531,6 +539,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
         separationRadii: 3,
         avoidHorizon: 6,
         rockMargin: 10,
+        orbitWeight: 1,
         dodgeSpeed: 60,
         responseTime: 2,
         tolerance: 0.2,
@@ -779,10 +788,12 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
     "clawSpeed",
     "tripWeight",
     "rockMargin",
+    "orbitWeight",
 ];
 
 /** Fields that mean nothing below zero, though zero itself is a setting. */
 export const NON_NEGATIVE_FIELDS: readonly string[] = [
+    "orbitWeight",
     "tangentialMin",
     "tangentialMax",
     "fuelPerMetal",
