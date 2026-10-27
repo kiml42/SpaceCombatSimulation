@@ -394,6 +394,11 @@ Deliberately unresolved; decide when they block something.
     radius, or one module losing control, as a damage effect with a chance of happening is the step after.
   - **Targeting.** Doctrine wants a way to weight a core by how many modules it reaches, and to prefer
     bigger modules generally, so fire goes where it disables most.
+- **Supply priorities per placement.** Doctrine sets a priority and share for each kind of claim on a
+  ship's stores (DESIGN.md, "What a ship spends on first"). Letting a placement override its own, as a mount's
+  targeting can, would put one pad before another or steering engines' mending before the mains'. The
+  supply books would key by claim and placement rather than claim alone. Also open: whether robots should
+  choose between mending and mining by the same priorities, which they do not yet, mending always first.
 - **Whether a claw should drain an enemy's batteries.** It drinks fuel from what it grips; draining charge is
   the natural extension, and a way to disarm a beam ship without shooting it.
 

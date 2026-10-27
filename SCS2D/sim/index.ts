@@ -15,6 +15,7 @@ export * as math from "./math.js";
 export { Fuel } from "./fuel.js";
 export { Metal } from "./metal.js";
 export { Charge } from "./charge.js";
+export { CLAIMS, Claim, mendClaim, priorityOf, Resource, shareOf, Supply, type ClaimName } from "./supply.js";
 export { doorBetween, ROBOT_VIEW_STRIDE } from "./robots.js";
 export { Store } from "./store.js";
 export { Rng, type RngState } from "./rng.js";

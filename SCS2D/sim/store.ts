@@ -188,6 +188,21 @@ export class Store {
         return held;
     }
 
+    /** What a draw on the piece of hull a module is on could have now: what it holds. */
+    offered(bodyIndex: number, module: number): number {
+        return this.pieceHeld(bodyIndex, module);
+    }
+
+    /** How many pieces of hull a body's stores are on. */
+    piecesOf(bodyIndex: number): number {
+        return this.stores[bodyIndex]?.length ?? 0;
+    }
+
+    /** Something that is the same object until the body's stores are laid out afresh; null with no record. */
+    layoutOf(bodyIndex: number): object | null {
+        return this.stores[bodyIndex] ?? null;
+    }
+
     /** Space left on the piece of hull a module is on, kg. */
     pieceRoom(bodyIndex: number, module: number): number {
         const pieceOf = this.pieceOf[bodyIndex];

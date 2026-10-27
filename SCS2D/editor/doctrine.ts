@@ -1,10 +1,12 @@
 import {
     APPROACH_FIELDS,
+    CLAIMS,
     DEFAULT_DOCTRINE,
     defaultTargeting,
     holdBand,
     TARGETING_FIELDS,
     type Approach,
+    type ClaimName,
     type Doctrine,
     type ModuleKind,
     type Targeting,
@@ -357,7 +359,58 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
     },
 ];
 
-const ROW_OF = new Map<string, DoctrineRow>([...TARGETING_ROWS, ...APPROACH_ROWS].map((row) => [row.field, row]));
+/** What each claim on a ship's stores is, as the panel names it, and what it draws for. */
+const CLAIM_NAMES: Readonly<Record<ClaimName, readonly [string, string]>> = {
+    thrust: ["engines", "its engines' fuel"],
+    fire: ["weapons", "its guns' rounds and its beams' charge"],
+    pads: ["pads", "filling, mending and building fighters on its pads"],
+    ports: ["ports", "what it passes a friend through a port"],
+    robots: ["robots", "building its robots and charging them"],
+    slipway: ["slipways", "building and filling what is on its slipways"],
+    mendCore: ["mending cores", "mending and rebuilding its cores"],
+    mendBays: ["mending robot bays", "mending and rebuilding its robot bays"],
+    mendEngines: ["mending engines", "mending and rebuilding its engines"],
+    mendMain: ["mending main weapons", "mending and rebuilding its main weapons"],
+    mendSecondary: ["mending secondary weapons", "mending and rebuilding its secondary weapons"],
+    mendStores: ["mending stores", "mending and rebuilding its tanks, holds and batteries"],
+    mendGenerators: ["mending generators", "mending and rebuilding its generators"],
+    mendHangar: ["mending hangars", "mending and rebuilding its pads, slipways and ports"],
+    mendClaws: ["mending claws", "mending and rebuilding its claws"],
+    mendStructure: ["mending structure", "mending and rebuilding its structure"],
+};
+
+const SUPPLY_ROWS: readonly DoctrineRow[] = CLAIMS.flatMap((claim) => {
+    const [label, what] = CLAIM_NAMES[claim];
+    return [
+        {
+            field: `${claim}Priority`,
+            label: `${label} first`,
+            hint: `How soon ${what} gets fuel, metal and charge when there is not enough to go round: a higher number gets all it wants before a lower one gets any`,
+            step: 1,
+        },
+        {
+            field: `${claim}Share`,
+            label: `${label} share`,
+            hint: `How much of what is left at its priority ${what} gets, against the others of that priority`,
+            step: 0.5,
+        },
+    ];
+});
+
+const ROW_OF = new Map<string, DoctrineRow>([...TARGETING_ROWS, ...APPROACH_ROWS, ...SUPPLY_ROWS].map((row) => [row.field, row]));
+
+/** A claim's priority and share, the share shown only where another claim has its priority. */
+function supplyEntries(claims: readonly ClaimName[]): DoctrineEntry[] {
+    return claims.flatMap((claim) => [
+        entry("approach", `${claim}Priority`),
+        entry("approach", `${claim}Share`, {
+            shown: (v) =>
+                CLAIMS.some(
+                    (other) => other !== claim && Math.round(v.approach[`${other}Priority`]) === Math.round(v.approach[`${claim}Priority`]),
+                ),
+        }),
+    ]);
+}
 
 /**
  * The doctrine a panel is showing, with every field resolved: what is stated,
@@ -695,6 +748,17 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                             ship.reach > 0 ? `leaves a pad for a target within ${metres(v.approach.sortieRange * ship.reach)}` : null,
                     }),
                 ],
+            },
+        ],
+    },
+    {
+        title: "What it spends on first",
+        groups: [
+            { title: "Its own engines and weapons", entries: supplyEntries(["thrust", "fire"]) },
+            { title: "Its pads, ports, robots and slipways", entries: supplyEntries(["pads", "ports", "robots", "slipway"]) },
+            {
+                title: "Mending",
+                entries: supplyEntries(CLAIMS.filter((claim) => claim.startsWith("mend"))),
             },
         ],
     },
