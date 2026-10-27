@@ -39,7 +39,8 @@ describe("rival mines", () => {
             run.step();
             if (t < 200 * 60) continue;
             for (let i = 0; i < run.ships.count; i++) {
-                if (run.ships.isAlive(i) && run.ships.designs[i]!.fighter && run.miners.includes(run.ships.parkedCarrier(i))) back.add(i);
+                if (run.ships.isAlive(i) && run.ships.currentStructure(i).fighter && run.miners.includes(run.ships.parkedCarrier(i)))
+                    back.add(i);
             }
         }
         expect(back.size).toBeGreaterThan(0);
