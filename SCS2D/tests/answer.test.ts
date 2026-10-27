@@ -5,7 +5,7 @@ import { CORVETTE, GUNSHIP } from "../scenarios/blueprints.js";
 import { customBattle, tally } from "../scenarios/customBattle.js";
 import { Activity, type Decision } from "../scenarios/decision.js";
 import { DEFAULT_SKIRMISH_SETTINGS, roundBattle } from "../scenarios/skirmish.js";
-import { damageDealt, damageScale, drillBattle, EnemySearch } from "../evolution/answer.js";
+import { damageDealt, damageScale, drillBattle, EnemySearch, share } from "../evolution/answer.js";
 
 const gunship = shipFleet(GUNSHIP);
 const corvette = shipFleet(CORVETTE);
@@ -257,5 +257,14 @@ describe("the damage an enemy does", () => {
             dealt += damageDealt(battle);
         }
         expect(dealt).toBeGreaterThan(0);
+    });
+});
+
+describe("how much of a side is left", () => {
+    it("is never more than all of it, however much it mined or built", () => {
+        expect(share(50, 100)).toBe(0.5);
+        expect(share(100, 100)).toBe(1);
+        expect(share(1_000, 100)).toBe(1);
+        expect(share(10, 0)).toBe(0);
     });
 });

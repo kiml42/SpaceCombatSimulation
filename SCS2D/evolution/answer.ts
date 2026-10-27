@@ -503,6 +503,11 @@ export function drillBattle(drill: Drill, player: Fleet, enemy: Fleet, settings:
     return battle;
 }
 
-function share(now: number, start: number): number {
-    return start > 0 ? now / start : 0;
+/**
+ * How much of what a side started with it still has, never more than all of
+ * it: a side that mines, or builds ships of its own, can end a match heavier
+ * than it began, and that is not more of itself left to fight with.
+ */
+export function share(now: number, start: number): number {
+    return start > 0 ? math.min(1, now / start) : 0;
 }
