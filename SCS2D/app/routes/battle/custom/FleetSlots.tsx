@@ -6,6 +6,7 @@ import { teamColour } from "~/render/teams";
 import { fleetWarnings, parseBlueprint, parseFleet, type Fleet } from "~/sim/index";
 import type { Slot } from "./customSetup";
 import { Button } from "~/ui/buttons/Button";
+import { EditButton } from "~/ui/buttons/EditButton";
 
 const Row = styled.div`
     display: flex;
@@ -33,12 +34,14 @@ const names = (entries: readonly { name: string }[]): string[] => [...new Set(en
 export interface FleetSlotsProps {
     readonly slots: readonly Slot[];
     readonly onChange: (slots: Slot[]) => void;
+    /** Take a side to its editor: a single ship to the ship editor, anything else to the fleet editor. */
+    readonly onEdit: (index: number) => void;
     /** Something to tell the player: a file or a saved design that could not be read, or what in one is ignored. */
     readonly onProblem: (text: string) => void;
 }
 
 /** The sides of a custom battle, each a fleet or a single ship from the library or a file, in its side's colour. */
-export function FleetSlots({ slots, onChange, onProblem }: FleetSlotsProps) {
+export function FleetSlots({ slots, onChange, onEdit, onProblem }: FleetSlotsProps) {
     const { ships, fleets } = useLibrary();
     const files = useRef<HTMLInputElement>(null);
 
@@ -115,6 +118,11 @@ export function FleetSlots({ slots, onChange, onProblem }: FleetSlotsProps) {
                             ))}
                         </optgroup>
                     </select>
+                    <EditButton
+                        label={`Edit side ${i + 1}`}
+                        title={`Open it in the ${slot.source.kind === "ship" ? "ship" : "fleet"} editor; its Battle link brings it back here, with the rest of this setup`}
+                        onClick={() => onEdit(i)}
+                    />
                     <Button
                         variant="icon"
                         aria-label={`Take side ${i + 1} out`}

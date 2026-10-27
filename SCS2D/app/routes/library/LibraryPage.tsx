@@ -5,6 +5,7 @@ import type { Library, LibraryEntry } from "~/editor/library";
 import { useLibrary } from "~/features/storage/useLibrary";
 import { shipFleet, type Blueprint, type Fleet } from "~/sim/index";
 import { Button } from "~/ui/buttons/Button";
+import { EditButton } from "~/ui/buttons/EditButton";
 import { fromLibrary, optionValue } from "../fleet/fleetOptions";
 
 const Main = styled.main`
@@ -68,9 +69,7 @@ function Entries({ title, entries, edit, fleet }: EntriesProps) {
                         <Item key={`${entry.name}/${entry.stock ? "stock" : "saved"}`}>
                             <span>{entry.name}</span>
                             <Kind>{entry.stock ? "stock" : "saved"}</Kind>
-                            <Button aria-label={`Edit ${named}`} title="Open it in its editor" onClick={() => void navigate(edit(value))}>
-                                Edit
-                            </Button>
+                            <EditButton label={`Edit ${named}`} title="Open it in its editor" onClick={() => void navigate(edit(value))} />
                             <Button
                                 aria-label={`Test ${named}`}
                                 title="Fight it in a custom battle, as the first side"

@@ -319,8 +319,16 @@ describe("the viewer in a browser", () => {
         });
         await page.waitForFunction(() => document.querySelectorAll("#fleetSlots .slot").length === 3);
         expect(await page.locator("#fleetSlots select").nth(2).locator("option:checked").textContent()).toBe("Dinky (file)");
-        await page.locator("#fleetSlots .slot").nth(2).locator("button").click();
-        await page.locator("#fleetSlots .slot").nth(1).locator("button").click();
+        await page
+            .locator("#fleetSlots .slot")
+            .nth(2)
+            .getByRole("button", { name: /^Take side/ })
+            .click();
+        await page
+            .locator("#fleetSlots .slot")
+            .nth(1)
+            .getByRole("button", { name: /^Take side/ })
+            .click();
         // A lone fighter from a file against the stock line: decided in seconds.
         const lone = {
             formatVersion: 1,
