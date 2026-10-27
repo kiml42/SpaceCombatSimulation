@@ -12,6 +12,7 @@ import { parseRunRecord, RecordedRun, winsIn } from "~/evolution/recorded";
 import { Run, type MatchRecord } from "~/evolution/run";
 import { latest, yardstickMatch } from "~/evolution/yardstick";
 import type { BattleView } from "~/host/battleView";
+import { designOf, LiveRun, type RunControl } from "~/host/evolutionRun";
 import { BATTLE_KEYS } from "~/host/keyHelp";
 import type { ViewSettings } from "~/host/viewSettings";
 import { teamColour } from "~/render/canvas2d";
@@ -38,6 +39,7 @@ import {
 import { OWN_FINAL, Results } from "./Results";
 import { RunCharts } from "./RunCharts";
 import { RunDriver } from "./runDriver";
+import { startEvolution } from "./runWorker";
 import {
     champions,
     doctrineMoved,
@@ -319,6 +321,8 @@ export function EvolutionPage() {
     };
 
     const [driver] = useState(() => new RunDriver());
+    // The run is fought until the route goes, as it was when it was fought on the page.
+    useEffect(() => () => driver.end(), [driver]);
     const run: AnyRun | null = driver.run;
     const [serial, setSerial] = useState(0);
     const [screen, setScreen] = useState<"setup" | "run">("setup");
@@ -507,8 +511,8 @@ export function EvolutionPage() {
         viewing.setView(next);
     };
 
-    const begin = (next: AnyRun): void => {
-        driver.begin(next);
+    const begin = (next: AnyRun, control: RunControl | null = null): void => {
+        driver.begin(next, control);
         viewing.setPreview("", null);
         viewing.stop();
         setNotice({ text: "", warn: false });
@@ -527,7 +531,12 @@ export function EvolutionPage() {
             return;
         }
         const config = configOf(form);
-        begin(rivals.length > 0 ? new Coevolution(founders, rivals, config, coevolutionOf(form)) : new Run(founders, config));
+        const coevolution = rivals.length > 0 ? coevolutionOf(form) : null;
+        const live = new LiveRun(config, coevolution);
+        const control = startEvolution({ founders: founders.map(designOf), rivals: rivals.map(designOf), config, coevolution }, (wire) =>
+            live.apply(wire),
+        );
+        begin(live, control);
         setCanRun(true);
         setScreen("run");
     };

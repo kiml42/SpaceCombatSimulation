@@ -1,12 +1,12 @@
 import type { Entrant } from "~/evolution/match";
 import { GridMeasure, Yardstick, type ChampionGrid, type YardstickReport } from "~/evolution/yardstick";
+import type { RunControl } from "~/host/evolutionRun";
 import type { AnyRun } from "./runView";
 
 /**
- * A run and its measurements, stepped on the page's clock in slices a few
- * milliseconds long between frames, rather than on a thread of their own: the
- * point of the page is to see what a run is doing while it does it, so what
- * is drawn is the match the run is actually fighting.
+ * A run on show and its measurements. The run is fought elsewhere — in a
+ * worker, so it goes on while the tab is hidden — and `run` is its copy here;
+ * the measurements are stepped on the page's clock in slices between frames.
  *
  * Mutable, and read by the page at each sample rather than held in React
  * state (DESIGN.md non-negotiable 5).
@@ -14,6 +14,7 @@ import type { AnyRun } from "./runView";
 export class RunDriver {
     run: AnyRun | null = null;
     paused = false;
+    private control: RunControl | null = null;
     yardstick: Yardstick | null = null;
     measured: YardstickReport | null = null;
     /**
@@ -27,8 +28,10 @@ export class RunDriver {
     grid: GridMeasure | null = null;
     gridResult: ChampionGrid | null = null;
 
-    /** Put a run on show from its start, forgetting everything about the last. */
-    begin(run: AnyRun): void {
+    /** Put a run on show from its start, forgetting everything about the last, which stops being fought. */
+    begin(run: AnyRun, control: RunControl | null = null): void {
+        this.control?.stop();
+        this.control = control;
         this.run = run;
         this.paused = false;
         this.yardstick = null;
@@ -40,6 +43,13 @@ export class RunDriver {
 
     setPaused(paused: boolean): void {
         this.paused = paused;
+        this.control?.setPaused(paused);
+    }
+
+    /** Stop fighting the run, as the page goes. */
+    end(): void {
+        this.control?.stop();
+        this.control = null;
     }
 
     /** Whether there is a measurement being fought. */
@@ -71,18 +81,9 @@ export class RunDriver {
         this.gridResult = null;
     }
 
-    /** Spend up to `budget` ms on each of the run and whatever is being measured. */
+    /** Spend up to `budget` ms on each of whatever is being measured. */
     work(budget: number): void {
-        const run = this.run;
-        if (run !== null && !run.done && !this.paused) {
-            const until = performance.now() + budget;
-            // In slices, so a single long match cannot hold the frame.
-            while (performance.now() < until && run.advance(240)) {
-                // Fighting.
-            }
-        }
         if (this.yardstick !== null) {
-            // Its own slice rather than a share of the run's, so measuring slows the frame rather than the run.
             const until = performance.now() + budget;
             while (performance.now() < until && this.yardstick.advance(240)) {
                 // Measuring.
