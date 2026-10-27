@@ -897,7 +897,9 @@ inside any one file is not contiguous.
   ship's modules, but on what they carry: a ship with no control, or a bay broken or cut off from command by
   a spine torn ragged, stops none of them — only a bay that cannot refill them once they are spent, which is
   how robots mend the very spine that cut their bay off. Spent, with no bay to refill them or no metal left
-  on their piece of hull, they go home and stay there until something on the hull changes. A weld or a cut
+  on their piece of hull, they go home and stay there until something on the hull changes. They never set out
+  to mend or build what needs metal their piece of hull does not have, and look again when metal comes aboard
+  as well as when the hull is hit. A weld or a cut
   remakes the hull and every robot that stays with it carries on where it was and about what it was about.
   One whose module, or whose bay, goes with another
   piece of hull is lost, and so is one on a module destroyed under it — a bay destroyed takes the robots
