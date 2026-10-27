@@ -858,7 +858,12 @@ inside any one file is not contiguous.
   **A robot bay** (`robotBay`) berths as many robots as squares of `ROBOT_BERTH_PITCH` fit along its length
   and across its width (`berthGrid`), priced by their weight (`ROBOT_MASS`) and its racks, and builds and
   refills them faster the more of its interior there is behind each berth, at the rate in `ROBOT_BUILD_TIME`
-  and `ROBOT_REFILL_TIME` for `ROBOT_BERTH_VOLUME` (`berthRate`). **While its ship is moored to a rock it keeps
+  and `ROBOT_REFILL_TIME` for `ROBOT_BERTH_VOLUME` (`berthRate`). **It builds in every free berth at once,
+  metal to start and charge to finish:** a robot's metal is taken when it is started, and is aboard from then
+  as the robot, so the metal it has decides how many it starts; each then draws `ROBOT_BUILD_ENERGY` of charge
+  over its `ROBOT_BUILD_TIME`, so charge decides how fast, the most nearly finished first when there is not
+  enough. Only from what is over what its doctrine keeps back for its fighters. A robot taken aboard off a rock
+  takes the place of the least finished one it is building, whose metal goes back. **While its ship is moored to a rock it keeps
   `robotsPerBerth` robots to a berth** (one by default, any number from one up, whole robots only;
   `robotsKept`), building the extra only into a free berth: the extra work the rock, and a robot coming home to
   a bay whose berths are all taken waits at the claw for one, so there are never more aboard than berths. Those

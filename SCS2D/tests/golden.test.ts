@@ -32,7 +32,7 @@ const GOLDEN: Record<ScenarioName, string> = {
     kernels: "81e39626",
     asteroidField: "f6f91086",
     mining: "ab3363b4",
-    rivalMines: "044a52fa",
+    rivalMines: "ebc67181",
     swarm: "f39dd5bf",
     superSwarm: "04411af1",
     torpedoes: "9561f099",

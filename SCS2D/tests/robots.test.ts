@@ -406,11 +406,36 @@ describe("robots", () => {
             expect(count(run)).toBe(berths - caught);
             expect(mass - run.world.bodies.mass[body(run)]!).toBeGreaterThanOrEqual(caught * ROBOT_MASS - 1e-6);
             expect(run.ships.discarded - discarded).toBeGreaterThanOrEqual(caught * ROBOT_MASS - 1e-6);
-            // Built again, one at a time, no sooner than a bay can.
+            // Built again, side by side as its metal allows: no sooner than one takes,
+            // and sooner than one at a time.
             steps = 0;
             while (count(run) < berths && steps++ < 600 * 60) run.step();
             expect(count(run)).toBe(berths);
-            expect(steps / 60).toBeGreaterThanOrEqual((caught * ROBOT_BUILD_TIME) / berthRate(line.modules[BAY]!.stats) - 1);
+            const one = ROBOT_BUILD_TIME / berthRate(line.modules[BAY]!.stats);
+            expect(steps / 60).toBeGreaterThanOrEqual(one - 1);
+            if (caught > 1) expect(steps / 60).toBeLessThan(caught * one);
+        });
+
+        it("start as many as the metal aboard pays for, the metal counted as the robots from the start", () => {
+            const run = scene(() => {});
+            run.step();
+            const b = body(run);
+            const cost = ROBOT_MASS * (1 + REPAIR_WASTE);
+            for (let k = 0; k < 3; k++) run.ships.robots.lose(b, 0);
+            // Metal for two of the three, and no more.
+            run.ships.metal.drain(b, BAY, run.ships.metal.pieceHeld(b, BAY) - 2.5 * cost);
+            const missing = run.ships.robots.missingMass(b);
+            run.step();
+            expect(run.ships.robots.buildingOn(b)![BAY]!.length).toBe(2);
+            expect(run.ships.metal.pieceHeld(b, BAY)).toBeCloseTo(0.5 * cost, 3);
+            // What went from the hold is aboard as the two robots, but for the waste.
+            expect(missing - run.ships.robots.missingMass(b)).toBeCloseTo(2 * ROBOT_MASS, 3);
+            // Both finish together, a robot's build time on.
+            const one = ROBOT_BUILD_TIME / berthRate(line.modules[BAY]!.stats);
+            for (let s = 0; s < (one - 1) * 60; s++) run.step();
+            expect(count(run)).toBe(line.modules[BAY]!.stats.robots - 3);
+            for (let s = 0; s < 2 * 60; s++) run.step();
+            expect(count(run)).toBe(line.modules[BAY]!.stats.robots - 1);
         });
 
         it("are not lost going to mend a module already destroyed", () => {

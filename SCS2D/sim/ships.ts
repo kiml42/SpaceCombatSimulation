@@ -105,6 +105,7 @@ import {
     SLIPWAY_BUILD_PER_METRE,
     SLIPWAY_CLEAR_TIME,
     SLIPWAY_PUSH,
+    ROBOT_BUILD_ENERGY,
     ROBOT_BUILD_TIME,
     berthRate,
     robotsKept,
@@ -231,6 +232,14 @@ interface Spot {
 function spot(): Spot {
     return { x: 0, y: 0, vx: 0, vy: 0, radius: 0 };
 }
+
+/** Robots a bay is building, the most nearly finished first. */
+function mostDone(a: number, b: number): number {
+    return b - a;
+}
+
+/** Seconds of a robot's work short of `ROBOT_BUILD_TIME` that still counts as done, for what rounding leaves. */
+const BUILD_SLACK = 1e-9;
 
 /**
  * The fastest a craft can be closing and still stop within `gap` metres
@@ -6362,47 +6371,66 @@ export class Ships {
     }
 
     /**
-     * Each of a body's working bays that is short of robots builds one, over
-     * `ROBOT_BUILD_TIME` and slower as the bay is damaged, from a robot's mass
-     * of metal and `REPAIR_WASTE` more off its piece of hull, reserves and all.
-     * Short by `robotsKept`, counting those out on a rock, and only into a free
-     * berth. A bay with the time put in but not the metal waits.
-     * Says whether one was built.
+     * Each of a body's working bays that is short of robots builds them.
+     *
+     * **Metal to start one, charge to finish it.** A bay starts a robot in each
+     * free berth it is short of one for, so long as its piece of hull holds a
+     * robot's mass of metal and `REPAIR_WASTE` more to pay for it then: the
+     * metal is aboard from the start, as the robot it will be. Each then takes
+     * `ROBOT_BUILD_TIME` of a berth's work, slower as the bay is damaged, and
+     * `ROBOT_BUILD_ENERGY` of charge from the piece as it goes, so metal sets how
+     * many it builds at once and charge how fast. Short of charge, the most
+     * nearly finished are built first. Only from what is over what its doctrine
+     * keeps back for its fighters (`rearmBelow`, `rechargeBelow`): forty robots
+     * started at once would otherwise leave its pads nothing to fill them with. Short by `robotsKept`,
+     * counting those out on a rock. Says whether one was started or finished.
      */
     private buildRobots(b: number, design: ShipDesign, robots: Robot[], dt: number): boolean {
-        const builds = this.robots.buildsOn(b);
-        if (builds === null) return false;
-        let built = false;
+        const building = this.robots.buildingOn(b);
+        if (building === null) return false;
+        let changed = false;
+        const cost = ROBOT_MASS * (1 + REPAIR_WASTE);
+        const perSecond = ROBOT_BUILD_ENERGY / ROBOT_BUILD_TIME;
         for (let m = 0; m < design.modules.length; m++) {
             const berths = design.modules[m]!.stats.robots;
             const owner = this.pilotAt(b, m);
             if (!(berths > 0) || owner < 0) continue;
             // One a refit is taking down builds no more.
             if (this.refitting[owner] === 1 && this.wreckage(owner, b, m)) continue;
-            let crew = 0;
-            let aboard = 0;
+            const working = this.left(owner, b, m, DamageEffect.Tending);
+            if (!(working > 0)) continue;
+            const making = building[m]!;
+            let crew = making.length;
+            let aboard = making.length;
             for (let r = 0; r < robots.length; r++) {
                 if (robots[r]!.bay !== m) continue;
                 crew++;
                 if (robots[r]!.away < 0) aboard++;
             }
-            if (crew >= robotsKept(design.modules[m]!.spec, design.modules[m]!.stats, this.isMoored(owner))) {
-                builds[m] = 0;
-                continue;
+            const kept = robotsKept(design.modules[m]!.spec, design.modules[m]!.stats, this.isMoored(owner));
+            while (crew < kept && aboard < berths && this.metal.pieceHeld(b, m) - this.metalReserve(b, m) >= cost) {
+                this.metal.drain(b, m, cost);
+                this.robots.start(b, m);
+                crew++;
+                aboard++;
+                changed = true;
             }
-            if (aboard >= berths) continue;
-            const working = this.left(owner, b, m, DamageEffect.Tending);
-            if (!(working > 0)) continue;
-            builds[m] = min(ROBOT_BUILD_TIME, builds[m]! + dt * working * berthRate(design.modules[m]!.stats));
-            if (builds[m]! < ROBOT_BUILD_TIME) continue;
-            const cost = ROBOT_MASS * (1 + REPAIR_WASTE);
-            if (this.metal.pieceHeld(b, m) < cost) continue;
-            this.metal.drain(b, m, cost);
-            this.robots.build(b, m);
-            builds[m] = 0;
-            built = true;
+            if (making.length === 0) continue;
+            making.sort(mostDone);
+            const step = dt * working * berthRate(design.modules[m]!.stats);
+            for (let k = 0; k < making.length; k++) {
+                const want = min(step, ROBOT_BUILD_TIME - making[k]!) * perSecond;
+                const spare = this.power.pieceHeld(b, m) - this.chargeReserve(b, m);
+                if (!(spare > 0)) break;
+                making[k] = making[k]! + this.power.drain(b, m, want < spare ? want : spare) / perSecond;
+            }
+            for (let k = making.length - 1; k >= 0; k--) {
+                if (making[k]! < ROBOT_BUILD_TIME - BUILD_SLACK) continue;
+                this.robots.finish(b, m, k);
+                changed = true;
+            }
         }
-        return built;
+        return changed;
     }
 
     /** One robot's step. Says whether it mended anything. */
@@ -6847,7 +6875,24 @@ export class Ships {
             robot.bay = bay;
             robot.away = this.parkedOn[taker]!;
             this.robots.adopt(fb, robot);
+            this.makeRoomFor(fb, taker, bay);
             this.homeOnRock(cb, robot, taker);
+        }
+    }
+
+    /**
+     * Bay `bay` of ship `f`, on body `fb`, having taken a robot aboard: if that
+     * and those it is building are more than it keeps, it stops building the
+     * least finished, and the metal goes back into its piece of hull.
+     */
+    private makeRoomFor(fb: number, f: number, bay: number): void {
+        const design = this.hullDesign[fb];
+        const robots = this.robots.on(fb);
+        if (design === null || design === undefined || robots === null) return;
+        let crew = this.robots.buildingOn(fb)?.[bay]?.length ?? 0;
+        for (let r = 0; r < robots.length; r++) if (robots[r]!.bay === bay) crew++;
+        if (crew > robotsKept(design.modules[bay]!.spec, design.modules[bay]!.stats, this.isMoored(f)) && this.robots.cancel(fb, bay)) {
+            this.metal.add(fb, bay, ROBOT_MASS);
         }
     }
 
@@ -6860,6 +6905,7 @@ export class Ships {
         for (let m = 0; m < design.modules.length; m++) {
             const berths = design.modules[m]!.stats.robots;
             if (!(berths > 0) || this.pilotAt(fb, m) !== f) continue;
+            // Not counting those it is building: one it takes aboard takes the place of one of them.
             let crew = 0;
             for (let r = 0; r < robots.length; r++) if (robots[r]!.bay === m) crew++;
             if (crew < robotsKept(design.modules[m]!.spec, design.modules[m]!.stats, this.isMoored(f))) return m;
@@ -7821,19 +7867,25 @@ export class Ships {
 
     /**
      * For each module of ship `i`'s hull, how many robots it is the bay of,
-     * home or out, into `crews`, and how far it is through building the next,
-     * 0 to 1, into `builds`. All nought unless `i` is the ship that flies the body.
+     * home or out, into `crews`, and how many of those are aboard, holding a
+     * berth, into `aboard`; and each robot a bay is building, as its bay and how
+     * far it is through, 0 to 1, into `builds`, two numbers apiece, the most
+     * nearly finished of a bay first. Nothing unless `i` is the ship that flies the body.
      */
-    robotCrews(i: number, crews: number[], builds: number[]): void {
+    robotCrews(i: number, crews: number[], aboard: number[], builds: number[]): void {
         const b = this.bodyStore === null ? -1 : this.bodyStore.indexOf(this.bodyIds[i]!);
         const design = b >= 0 ? this.hullDesign[b] : null;
-        crews.length = builds.length = design?.modules.length ?? 0;
+        crews.length = aboard.length = design?.modules.length ?? 0;
+        builds.length = 0;
         crews.fill(0);
-        builds.fill(0);
+        aboard.fill(0);
         if (b < 0 || this.shipByBody[b] !== i) return;
-        for (const robot of this.robots.on(b) ?? []) crews[robot.bay] = (crews[robot.bay] ?? 0) + 1;
-        const made = this.robots.buildsOn(b);
-        if (made !== null) for (let m = 0; m < builds.length; m++) builds[m] = (made[m] ?? 0) / ROBOT_BUILD_TIME;
+        for (const robot of this.robots.on(b) ?? []) {
+            crews[robot.bay] = (crews[robot.bay] ?? 0) + 1;
+            if (robot.away < 0) aboard[robot.bay] = (aboard[robot.bay] ?? 0) + 1;
+        }
+        const making = this.robots.buildingOn(b);
+        if (making !== null) for (let m = 0; m < making.length; m++) for (const done of making[m]!) builds.push(m, done / ROBOT_BUILD_TIME);
     }
 
     /**
@@ -8019,10 +8071,10 @@ export class Ships {
         return slot;
     }
 
-    /** How many of body `b`'s robots of bay `bay` are aboard, not out on a rock. */
+    /** How many berths of body `b`'s bay `bay` are taken: its robots aboard, not out on a rock, and those it is building. */
     private aboardIn(b: number, bay: number): number {
         const robots = this.robots.on(b);
-        let aboard = 0;
+        let aboard = this.robots.buildingOn(b)?.[bay]?.length ?? 0;
         if (robots !== null) for (let r = 0; r < robots.length; r++) if (robots[r]!.bay === bay && robots[r]!.away < 0) aboard++;
         return aboard;
     }
@@ -8974,12 +9026,12 @@ export class Ships {
         );
         const kept = new Int32Array(design.modules.length).fill(-1);
         for (let k = 0; k < keep.length; k++) kept[keep[k]!] = k;
-        const madeBefore = this.robots.buildsOn(b);
+        const madeBefore = this.robots.buildingOn(b);
         this.robots.register(
             chunkBody,
             chunk,
             this.robots.take(b, (m) => kept[m] ?? -1),
-            (m) => madeBefore?.[keep[m]!] ?? 0,
+            (m) => madeBefore?.[keep[m]!] ?? [],
         );
         this.settleMass(bodies, chunkBody);
         this.shipByBody[chunkBody] = j;
@@ -9156,10 +9208,10 @@ export class Ships {
         this.metal.register(b, design, metal);
         this.power.register(b, design, charge);
         // Grown in place, every robot is where it was and about what it was about.
-        // What each bay had put into its next robot, wherever the bay came from.
-        const made = (m: number): number => {
+        // The robots each bay was building, wherever the bay came from.
+        const made = (m: number): readonly number[] => {
             const was = moduleOf(m);
-            return was < 0 ? 0 : (this.robots.buildsOn(bodyOf(shipOf(m)))?.[was] ?? 0);
+            return was < 0 ? [] : (this.robots.buildingOn(bodyOf(shipOf(m)))?.[was] ?? []);
         };
         this.robots.register(
             b,
