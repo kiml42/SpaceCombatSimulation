@@ -823,8 +823,15 @@ export const ROBOT_CHARGE = 5e7;
 /** How long a bay takes to refill a robot, s. */
 export const ROBOT_REFILL_TIME = 5;
 
-/** How long a bay takes to build a robot to replace one lost, s. */
+/** How long a berth takes to build a robot, s, given the charge (`ROBOT_BUILD_ENERGY`). */
 export const ROBOT_BUILD_TIME = 20;
+
+/**
+ * The charge building a robot takes, J, drawn from its bay's piece of hull as
+ * the work goes on: what putting its weight of hull back takes a robot mending
+ * one, `DAMAGE_ENERGY_PER_KG` over `ROBOT_MASS` at `REPAIR_ENERGY_PER_JOULE`.
+ */
+export const ROBOT_BUILD_ENERGY = 3e6;
 
 /**
  * How many robots a bay keeps: one to a berth, or while its ship is moored to

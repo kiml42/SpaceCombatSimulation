@@ -355,18 +355,21 @@ export function doorBetween(design: ShipDesign, a: number, b: number): readonly 
 export class Robots {
     private readonly of: (Robot[] | null)[] = [];
     private readonly designs: (ShipDesign | null)[] = [];
-    /** Seconds each bay has put into the robot it is building, by module. */
-    private readonly builds: (Float64Array | null)[] = [];
+    /**
+     * The robots each bay is building, by module: seconds of a berth's work each
+     * has had, out of `ROBOT_BUILD_TIME`. Its metal is paid and aboard from the start.
+     */
+    private readonly building: (number[][] | null)[] = [];
     /** The mass of the robots each body's bays are short of, kg, and its moment of inertia, kg·m². */
     private readonly missing: number[] = [];
     private readonly missingSpin: number[] = [];
 
     /**
      * A hull's robots: those `carried` over to it, or for a fresh one every bay
-     * full, every robot berthed and ready; and how far each bay was through
-     * building one (`built`, by module), which a remade hull keeps.
+     * full, every robot berthed and ready; and the robots each bay was building
+     * (`built`, by module), which a remade hull keeps.
      */
-    register(bodyIndex: number, design: ShipDesign, carried?: Robot[], built?: (module: number) => number): void {
+    register(bodyIndex: number, design: ShipDesign, carried?: Robot[], built?: (module: number) => readonly number[]): void {
         let robots: Robot[];
         if (carried !== undefined) {
             robots = carried;
@@ -380,11 +383,13 @@ export class Robots {
         let berths = 0;
         let missing = 0;
         let missingSpin = 0;
+        const building: number[][] = [];
         for (let m = 0; m < design.modules.length; m++) {
             const count = design.modules[m]!.stats.robots;
+            building.push(count > 0 && built !== undefined ? [...built(m)] : []);
             if (!(count > 0)) continue;
             berths += count;
-            let home = 0;
+            let home = building[m]!.length;
             for (const robot of robots) if (robot.bay === m) home++;
             missing += (count - home) * ROBOT_MASS;
             missingSpin += (count - home) * ROBOT_MASS * spinOf(design, m);
@@ -392,9 +397,7 @@ export class Robots {
         // A hull with bays keeps a list, empty or not, so a bay that has lost every robot still builds.
         this.of[bodyIndex] = berths > 0 || robots.length > 0 ? robots : null;
         this.designs[bodyIndex] = design;
-        const builds = berths > 0 ? new Float64Array(design.modules.length) : null;
-        if (builds !== null && built !== undefined) for (let m = 0; m < builds.length; m++) builds[m] = built(m);
-        this.builds[bodyIndex] = builds;
+        this.building[bodyIndex] = berths > 0 ? building : null;
         this.missing[bodyIndex] = missing;
         this.missingSpin[bodyIndex] = missingSpin;
     }
@@ -404,9 +407,9 @@ export class Robots {
         return this.of[bodyIndex] ?? null;
     }
 
-    /** Seconds each of a body's bays has put into the robot it is building, by module, or null for none. */
-    buildsOn(bodyIndex: number): Float64Array | null {
-        return this.builds[bodyIndex] ?? null;
+    /** The robots each of a body's bays is building, by module, or null for a body with no bays. */
+    buildingOn(bodyIndex: number): number[][] | null {
+        return this.building[bodyIndex] ?? null;
     }
 
     /** What the robots a body's bays are short of weigh, kg. */
@@ -447,16 +450,42 @@ export class Robots {
         this.missingSpin[bodyIndex] = (this.missingSpin[bodyIndex] ?? 0) - ROBOT_MASS * spinOf(design, robot.bay);
     }
 
-    /** A new robot in bay `bay` of a body, empty until the bay has filled it. */
-    build(bodyIndex: number, bay: number): void {
-        const robots = this.of[bodyIndex];
+    /** Start a robot in bay `bay` of a body, its metal paid and aboard from now. */
+    start(bodyIndex: number, bay: number): void {
+        const building = this.building[bodyIndex];
         const design = this.designs[bodyIndex];
-        if (!robots || !design) return;
+        if (!building || !design) return;
+        building[bay]!.push(0);
+        this.missing[bodyIndex] = (this.missing[bodyIndex] ?? 0) - ROBOT_MASS;
+        this.missingSpin[bodyIndex] = (this.missingSpin[bodyIndex] ?? 0) - ROBOT_MASS * spinOf(design, bay);
+    }
+
+    /**
+     * Stop the least finished of the robots bay `bay` of a body is building,
+     * its metal no longer aboard as a robot: the caller puts it back. Says
+     * whether there was one.
+     */
+    cancel(bodyIndex: number, bay: number): boolean {
+        const making = this.building[bodyIndex]?.[bay];
+        const design = this.designs[bodyIndex];
+        if (!making || making.length === 0 || !design) return false;
+        let least = 0;
+        for (let k = 1; k < making.length; k++) if (making[k]! < making[least]!) least = k;
+        making.splice(least, 1);
+        this.missing[bodyIndex] = (this.missing[bodyIndex] ?? 0) + ROBOT_MASS;
+        this.missingSpin[bodyIndex] = (this.missingSpin[bodyIndex] ?? 0) + ROBOT_MASS * spinOf(design, bay);
+        return true;
+    }
+
+    /** Finish robot `k` of those bay `bay` of a body is building: a new robot in the bay, empty until the bay has filled it. */
+    finish(bodyIndex: number, bay: number, k: number): void {
+        const robots = this.of[bodyIndex];
+        const building = this.building[bodyIndex];
+        if (!robots || !building) return;
+        building[bay]!.splice(k, 1);
         let tag = 0;
         for (const robot of robots) if (robot.tag >= tag) tag = robot.tag + 1;
         robots.push(empty(bay, tag));
-        this.missing[bodyIndex] = (this.missing[bodyIndex] ?? 0) - ROBOT_MASS;
-        this.missingSpin[bodyIndex] = (this.missingSpin[bodyIndex] ?? 0) - ROBOT_MASS * spinOf(design, bay);
     }
 
     /**
@@ -515,7 +544,7 @@ export class Robots {
     forget(bodyIndex: number): void {
         this.of[bodyIndex] = null;
         this.designs[bodyIndex] = null;
-        this.builds[bodyIndex] = null;
+        this.building[bodyIndex] = null;
         this.missing[bodyIndex] = 0;
         this.missingSpin[bodyIndex] = 0;
     }

@@ -667,14 +667,23 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
                 for (let r = 0; r + ROBOT_DOCK_STRIDE <= docked.length; r += ROBOT_DOCK_STRIDE)
                     if (docked[r] === i) here[docked[r + 3]!] = r;
                 const home = ship.berthed?.[i] ?? 0;
-                // The pad after every robot it has is the one it is building on.
-                const building = ship.crews?.[i] ?? m.stats.robots;
-                const progress = ship.builds?.[i] ?? 0;
+                // The pads after every robot aboard are the ones it is building on, in turn.
+                const first = ship.aboard?.[i] ?? m.stats.robots;
+                const builds = ship.builds ?? [];
+                let made = 0;
                 ctx.lineWidth = pad * 0.25;
                 for (let k = 0; k < m.stats.robots; k++) {
                     const x = -halfLength + cellLength * ((k % across) + 0.5);
                     const y = -halfWidth + cellWidth * (floor(k / across) + 0.5);
-                    if (k === building && progress > 0) {
+                    let progress = -1;
+                    if (k >= first) {
+                        while (made < builds.length && builds[made] !== i) made += 2;
+                        if (made < builds.length) {
+                            progress = builds[made + 1]!;
+                            made += 2;
+                        }
+                    }
+                    if (progress >= 0) {
                         // A loading ring: the pad's circle drawn round as the robot is built.
                         ctx.strokeStyle = FUEL_TRACK;
                         ctx.beginPath();
