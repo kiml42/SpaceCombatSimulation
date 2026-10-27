@@ -31,4 +31,17 @@ describe("rival mines", () => {
         const b = run.world.bodies;
         for (let k = 0; k < b.highWater; k++) expect(Number.isFinite(b.vx[k]!)).toBe(true);
     });
+
+    it("lands its fighters to refill while a copy is on its slipway, rather than shying from it", () => {
+        const run = rivalMines();
+        const back = new Set<number>();
+        for (let t = 0; t < 330 * 60; t++) {
+            run.step();
+            if (t < 200 * 60) continue;
+            for (let i = 0; i < run.ships.count; i++) {
+                if (run.ships.isAlive(i) && run.ships.designs[i]!.fighter && run.miners.includes(run.ships.parkedCarrier(i))) back.add(i);
+            }
+        }
+        expect(back.size).toBeGreaterThan(0);
+    }, 300_000);
 });
