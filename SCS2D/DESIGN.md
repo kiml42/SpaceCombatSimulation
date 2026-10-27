@@ -1178,7 +1178,8 @@ inside any one file is not contiguous.
   home and torn off. One that cannot turn both ways closes on the middle as before. A miss alongside
   its source no longer counts against that source the speed the bounce left it at, so it comes round
   again rather than going off after another. The Rival Mines scene has a Replicator on each of two
-  majors, which mine them and build copies of themselves anchored.
+  majors, which mine them and build copies of themselves anchored. Their pads build Dinky Raiders, which
+  set out at ten times their reach and do not escort, so the two sides fight within the golden's run.
   Mining is built; what is left of it is in ROADMAP.md §12, for later.
   Alongside it, §8 step 5's skirmish: an endless loop against an enemy fleet that evolves to beat the
   player's, planned in ROADMAP.md §8. Evolution keeps the skirmish's sense of quiet, though it plays a match on until every side is quiet before naming a winner. Its loop is built without the evolving enemy (`dist/skirmish.html`,

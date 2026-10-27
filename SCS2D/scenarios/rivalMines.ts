@@ -6,6 +6,7 @@ import {
     math,
     NEUTRAL_TEAM,
     type Blueprint,
+    type Placement,
     type Rails,
     type ShipDesign,
     type WellSpec,
@@ -34,6 +35,42 @@ export const PROSPECTOR: Blueprint = {
         { kind: "pad", x: -10.75, y: 0, length: 4.5, width: 4, craft: DINKY.name, keep: 2 },
     ],
     hangar: { [DINKY.name]: DINKY },
+};
+
+/**
+ * A Dinky that sets out from its pad for what it is fighting at ten times its
+ * reach rather than four. The outposts are some 2,600 m apart when their first
+ * fighters are built, and a Dinky would sit on its pad until the majors had
+ * closed to 1,350 m, eight minutes on.
+ */
+export const DINKY_RAIDER: Blueprint = {
+    ...DINKY,
+    name: "Dinky Raider",
+    notes: "A Dinky that leaves its pad for an enemy ten times its reach away, rather than waiting for it to come within four.",
+    doctrine: {
+        targeting: { ...DINKY.doctrine!.targeting, escortWeight: 0 },
+        approach: { ...DINKY.doctrine!.approach, sortieRange: 10 },
+    },
+};
+
+/** A pad that builds Dinkies, building Dinky Raiders instead. */
+function raiding(placement: Placement): Placement {
+    return "kind" in placement && placement.kind === "pad" && placement.craft === DINKY.name
+        ? { ...placement, craft: DINKY_RAIDER.name }
+        : placement;
+}
+
+/** A Replicator whose pad builds Dinky Raiders; its slipway builds copies of this, by its name. */
+export const RAIDING_REPLICATOR: Blueprint = {
+    ...REPLICATOR,
+    modules: REPLICATOR.modules.map(raiding),
+    assemblies: Object.fromEntries(
+        Object.entries(REPLICATOR.assemblies ?? {}).map(([name, assembly]) => [
+            name,
+            { ...assembly, modules: assembly.modules.map(raiding) },
+        ]),
+    ),
+    hangar: { [DINKY_RAIDER.name]: DINKY_RAIDER },
 };
 
 /** Each major's radius, metres, and its pull at the surface, m/s². */
@@ -67,7 +104,7 @@ export function rivalMines(seed = 20260905): Battle & { readonly miners: readonl
         const rng = new Rng(20261022);
         const asteroids: number[] = [];
         const miners: number[] = [];
-        const replicator = compileBlueprint(REPLICATOR);
+        const replicator = compileBlueprint(RAIDING_REPLICATOR);
         /** Something spawned on a circular orbit `d` out round major `k`, at `bearing`, anticlockwise. */
         const orbiting = (k: number, d: number, bearing: number) => {
             const well = wells[k]!;
