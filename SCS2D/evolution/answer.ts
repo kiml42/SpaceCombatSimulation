@@ -19,8 +19,9 @@ import { mutateFleet } from "./fleetMutate.js";
  *
  * A generation is the best enemy so far and a handful of its mutants, each
  * fought on the next round's seed and on a few random ones. A match is
- * fought under evolution's rules — over once one side alone is armed, or at a
- * time limit, an enemy ahead then being taken to win in the end — and the
+ * fought under the round's own rule — over once one side alone is armed, or
+ * one has gone quiet while the other fights — or to a time limit, an enemy
+ * ahead then being taken to win in the end; and the
  * best of the generation, by all its matches, breeds the next. An enemy that
  * wins on the next round's seed is checked by fighting that round to the
  * skirmish's decision: the first that wins that, by `answerMargin`, is the
@@ -374,6 +375,9 @@ export class JobRunner {
         if (job.kind === "match") {
             // On the round's map whatever the seed, so the enemy is bred for the place it answers in.
             this.battle = customBattle(roundBattle(player, job.enemy, job.seed, settings, wonSeed));
+            // Under the round's own rule for a side gone quiet, or the search breeds enemies that
+            // hang back, lose a little less than the player, and are put out of every round they answer.
+            this.activity = new Activity(2, settings.timeCap, settings.quietTime);
         } else if (job.kind === "drill") {
             this.battle = drillBattle(job.drill, player, job.enemy, settings, wonSeed);
         } else {
@@ -394,10 +398,11 @@ export class JobRunner {
             taken++;
             this.dealt += damageDealt(battle);
             const tick = battle.world.tick;
-            if (tick % CHECK_EVERY !== 0 && tick < limit) continue;
+            const ruled = this.activity?.observe(battle) ?? null;
+            if (ruled === null && tick % CHECK_EVERY !== 0 && tick < limit) continue;
             if (this.job.kind === "match") {
                 const now = tally(battle, 2);
-                const decided = winner(now);
+                const decided = ruled?.winner ?? winner(now);
                 if (decided === null && tick < limit) continue;
                 // How much more of itself the enemy has left than the player, as a share
                 // of each: a loss that hurt the player more is a better loss.

@@ -5,7 +5,7 @@ import { CORVETTE, GUNSHIP } from "../scenarios/blueprints.js";
 import { customBattle, tally } from "../scenarios/customBattle.js";
 import { Activity, type Decision } from "../scenarios/decision.js";
 import { DEFAULT_SKIRMISH_SETTINGS, roundBattle } from "../scenarios/skirmish.js";
-import { damageDealt, damageScale, drillBattle, EnemySearch, share } from "../evolution/answer.js";
+import { damageDealt, damageScale, drillBattle, EnemySearch, JobRunner, share } from "../evolution/answer.js";
 
 const gunship = shipFleet(GUNSHIP);
 const corvette = shipFleet(CORVETTE);
@@ -266,5 +266,26 @@ describe("how much of a side is left", () => {
         expect(share(100, 100)).toBe(1);
         expect(share(1_000, 100)).toBe(1);
         expect(share(10, 0)).toBe(0);
+    });
+});
+
+describe("a match of the search", () => {
+    it("is won and lost as the round's own rule decides it, a side gone quiet included", { timeout: 300_000 }, () => {
+        let agreed = 0;
+        for (const seed of [3, 7, 11, 19, 25]) {
+            const battle = customBattle(roundBattle(gunship, corvette, seed));
+            const activity = new Activity(2, DEFAULT_SKIRMISH_SETTINGS.timeCap, DEFAULT_SKIRMISH_SETTINGS.quietTime);
+            let decision: Decision | null = null;
+            while (decision === null) {
+                battle.step();
+                decision = activity.observe(battle);
+            }
+            // Only a battle the rule decides inside a search match's length can be compared.
+            if (decision.time >= DEFAULT_SKIRMISH_SETTINGS.duration) continue;
+            const match = new JobRunner({ kind: "match", enemy: corvette, seed }, gunship, DEFAULT_SKIRMISH_SETTINGS, seed).finish();
+            expect("win" in match && match.win, `seed ${seed}`).toBe(decision.winner === 1);
+            agreed++;
+        }
+        expect(agreed).toBeGreaterThan(0);
     });
 });
