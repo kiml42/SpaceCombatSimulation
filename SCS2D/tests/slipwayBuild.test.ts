@@ -155,6 +155,28 @@ describe("a slipway", () => {
         expect(built(run)).toEqual([s]);
     });
 
+    it("lets a ship go once it holds what its doctrine leaves with, as a pad lets a fighter go", () => {
+        const doctrine = compileBlueprint(SCAVENGER).doctrine;
+        const thrifty: Blueprint = {
+            ...SCAVENGER,
+            doctrine: { ...doctrine, approach: { ...doctrine.approach, launchFuel: 0.3, launchMetal: 0, launchCharge: 0 } },
+        };
+        const shares = (craft: Blueprint): number => {
+            const run = battle(yardOf(1, craft));
+            runFor(run, 30, () => built(run).length > 0);
+            const [s] = built(run);
+            runFor(run, 600, () => run.ships.body(s!) !== run.ships.body(run.y));
+            expect(run.ships.body(s!)).not.toEqual(run.ships.body(run.y));
+            const b = run.world.bodies.indexOf(run.ships.body(s!));
+            const core = run.ships.currentStructure(s!).cores[0]!;
+            const held = run.ships.fuel.pieceHeld(b, core);
+            return held / (held + run.ships.fuel.pieceRoom(b, core));
+        };
+        const early = shares(thrifty);
+        expect(early).toBeGreaterThanOrEqual(0.3);
+        expect(early).toBeLessThan(shares(SCAVENGER));
+    }, 120_000);
+
     it("pushes a ship it lets go off, and the ship lights its engines only once they would miss its builder", () => {
         const run = battle(yardOf());
         let s = -1;

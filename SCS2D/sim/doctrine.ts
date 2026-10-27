@@ -507,7 +507,8 @@ export interface Approach extends SupplyPriorities, SupplyShares {
     /**
      * The share of a full load of fuel a fighter takes on before it leaves a
      * pad, whatever sends it off but an order: danger or a target in reach. Met
-     * as well once the carrier has no more to spare. 1 fills it.
+     * as well once the carrier has no more to spare and is not anchored to get
+     * more. A ship built on a slipway is let go by the same rule. 1 fills it.
      */
     readonly launchFuel: number;
     /** The same for metal, rounds and all. */
