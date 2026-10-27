@@ -1340,6 +1340,7 @@ function place(
         if (placement.drainPriority !== undefined) spec.drainPriority = placement.drainPriority;
         if (placement.fill !== undefined) spec.fill = placement.fill;
         if (placement.computing !== undefined) spec.computing = placement.computing;
+        if (placement.robotsPerBerth !== undefined) spec.robotsPerBerth = placement.robotsPerBerth;
         if (placement.craft !== undefined) spec.craft = placement.craft;
         if (placement.docked !== undefined) spec.docked = placement.docked;
         if (placement.keep !== undefined) spec.keep = placement.keep;

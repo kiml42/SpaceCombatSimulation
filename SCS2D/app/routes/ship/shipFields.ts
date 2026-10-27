@@ -75,6 +75,7 @@ export type ModuleNumberField =
     | "drainPriority"
     | "fill"
     | "computing"
+    | "robotsPerBerth"
     | "keep";
 
 /** A module's own value for a field, with the default the parser would have applied. */
@@ -95,6 +96,7 @@ export function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
     // Per cent on the panel, a share in the layout.
     if (key === "fill") return (spec.fill ?? 1) * 100;
     if (key === "computing") return (spec.computing ?? CORE_COMPUTING_SHARE) * 100;
+    if (key === "robotsPerBerth") return spec.robotsPerBerth ?? 1;
     if (key === "keep") return spec.keep ?? 0;
     return spec.barrels ?? 1;
 }

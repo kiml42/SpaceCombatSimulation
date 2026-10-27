@@ -238,7 +238,8 @@
           "x": -3.75,
           "y": 7.5,
           "length": 4.5,
-          "width": 12
+          "width": 12,
+          "robotsPerBerth": 3
         },
         {
           "id": 19,

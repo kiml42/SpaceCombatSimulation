@@ -98,7 +98,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Scavenging wrecks and mining asteroids. Two of the causes of wrecked Salvagers are being fixed as ROADMAP.md
 step 15, item 5: arriving with its jaws held on all the way, braking astern, rather than turning round late; and
 flying round asteroids in its way rather than relying on keeping clear, which looks only seconds ahead.
-- Consider being able to create more robots than can be held to mine quicker, even though they will need to be abandoned when the ship leaves. (possibly could be a general setting, letting a ship have some robots that have to be out at all times because it has fewer pads)
  
 
 ### Getting hold safely
@@ -125,8 +124,17 @@ flying round asteroids in its way rather than relying on keeping clear, which lo
 - Deliver to a base: miners carry their hold to a friend with a port (a refinery or outpost ship) and go back,
   rather than stopping when the hold is full. What the rival-outposts demo needs to be a contest of income.
 - A drill on the claw: like heating ice, a claw grinds ore slowly on its own, so a miner with no robots still earns.
-- Larger mining robots, or a mining bay, for a faster rate where it is worth the mass: an anchored miner takes about
-  two minutes to bring its first load home.
+- Miner robots: a robot bay setting for the kind of robot it builds. Set to miners, its berths are twice as long
+  and twice as wide, and each miner carries eight times a robot's load (its volume) and mines four times as fast
+  (its area), with eight times the charge to dig a full load, but cannot mend its ship. Walking is most of a
+  trip, so a bigger load spreads it over more ore: on Rival Mines' Replicator, a trip is about 115 s of walking
+  and 23 s of work for about 700 kg. A miner, in four berths' deck, would bring about 5.6 t in about 160 s (the
+  walk, and twice the digging), some 35 kg/s against four robots' 20. Rather than "heavy" robots that are better at everything, which would leave
+  ordinary ones worth building only in bays too small for a heavy one.
+- Shorter walks: robots spend about four fifths of their time walking on the rock (Rival Mines' Replicator:
+  40% going out, 41% coming home, 16% working, 3% in the bay), and their walks lengthen as the rock nearest the
+  claw is mined out. A moored ship could let go and grip again nearer what is left, or robots could run faster
+  over rock than `ROBOT_TOP_SPEED`.
 - Tailings: what mining leaves (the waste share) drifts off as loose rubble, a hazard round a worked rock.
 - An outpost built on an asteroid: robots raise a slipway or pad on an anchored major, so a mine becomes a place.
 

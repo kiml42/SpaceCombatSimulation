@@ -128,6 +128,8 @@ export {
     readsDrainPriority,
     readsFill,
     readsComputing,
+    readsRobotsPerBerth,
+    robotsKept,
     needsControl,
     controlRadius,
     coreComputing,
