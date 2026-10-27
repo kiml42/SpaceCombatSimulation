@@ -14,16 +14,16 @@
     }
   },
   "hangar": {
-    "Dinky": {
+    "Dinky Raider": {
       "formatVersion": 2,
-      "name": "Dinky",
-      "notes": "A fighter. It cannot hope to destroy anything much larger than itself, so it puts engines above the guns everything else shoots at first: a capital it strands is a capital out of the battle, which is the most a craft this size can do to one.",
+      "name": "Dinky Raider",
+      "notes": "A Dinky that leaves its pad for an enemy ten times its reach away rather than four, and goes after it rather than staying by its carrier: a Replicator is moored to a rock and goes nowhere, so its fighters have to go to the fight.",
       "fighter": true,
       "doctrine": {
         "targeting": {
           "facingWeight": 100,
           "sightWeight": 50,
-          "escortWeight": 100
+          "escortWeight": 0
         },
         "approach": {
           "standoffRadii": 60,
@@ -35,7 +35,8 @@
           "ramArmed": 0.5,
           "refuelBelow": 0.5,
           "tangentialMin": 20,
-          "tangentialMax": 60
+          "tangentialMax": 60,
+          "sortieRange": 10
         }
       },
       "assemblies": {
@@ -197,7 +198,7 @@
           "angle": -180,
           "length": 8.674634452,
           "width": 7,
-          "craft": "Dinky",
+          "craft": "Dinky Raider",
           "keep": 1
         },
         {
