@@ -27,6 +27,7 @@ import { CommitText } from "~/ui/fields/CommitText";
 import { LiveNumber } from "~/ui/fields/LiveText";
 import { CARRIED, designOf, optionLabel, optionValue } from "./fleetOptions";
 import { Button } from "~/ui/buttons/Button";
+import { EditLink } from "~/ui/buttons/EditButton";
 
 const Field = styled.div`
     display: flex;
@@ -174,14 +175,13 @@ export function SelectionPanel({ doc, scale, ships, library, designHref, onLeave
                                         ))}
                                 </optgroup>
                             </select>
-                            <a
+                            <EditLink
                                 id="editDesign"
                                 href={designHref(entry.design)}
+                                label={`Edit ${entry.design}`}
                                 title="Open this design in the ship editor, and come back to the fleet with it changed"
                                 onClick={onLeave}
-                            >
-                                Edit
-                            </a>
+                            />
                             <Button
                                 id="forkDesign"
                                 title="Fly a copy of this design under a new name, to change this ship without changing the others of its design"

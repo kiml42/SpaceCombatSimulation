@@ -52,6 +52,8 @@ export interface CustomPanelProps {
     readonly slots: readonly Slot[];
     readonly fields: SetupFields;
     readonly onChange: (slots: readonly Slot[], fields: SetupFields) => void;
+    /** Take a side to its editor. */
+    readonly onEdit: (index: number) => void;
     readonly onFight: () => void;
     /** The battle being fought from this setup, for the sides table, or null. */
     readonly current: () => CustomBattle | null;
@@ -60,7 +62,7 @@ export interface CustomPanelProps {
 }
 
 /** A custom battle's setup — which fleets, how far apart, how fast, what among — and how each side is doing. */
-export function CustomPanel({ slots, fields, onChange, onFight, current, orders }: CustomPanelProps) {
+export function CustomPanel({ slots, fields, onChange, onEdit, onFight, current, orders }: CustomPanelProps) {
     const [problem, setProblem] = useState<string | null>(null);
     const [linked, setLinked] = useState(false);
     const battleFile = useRef<HTMLInputElement>(null);
@@ -96,7 +98,7 @@ export function CustomPanel({ slots, fields, onChange, onFight, current, orders 
     return (
         <Panel id="custom" aria-label="Custom battle">
             <h2>Fleets</h2>
-            <FleetSlots slots={slots} onChange={(next) => onChange(next, fields)} onProblem={setProblem} />
+            <FleetSlots slots={slots} onChange={(next) => onChange(next, fields)} onEdit={onEdit} onProblem={setProblem} />
             {problem !== null && <Problem role="alert">{problem}</Problem>}
 
             <h2>Setup</h2>

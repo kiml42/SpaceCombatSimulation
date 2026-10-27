@@ -1,9 +1,12 @@
 import { styled } from "@linaria/react";
 import { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { BattleCanvas } from "~/features/battle/BattleCanvas";
 import { useSampled } from "~/features/battle/useSampled";
+import { useStorage } from "~/features/storage/StorageContext";
+import { useLibrary } from "~/features/storage/useLibrary";
 import { useViewSettings } from "~/features/storage/useViewSettings";
+import { fleetRoute, openFleetRoute, openShipRoute } from "~/editor/handoff";
 import type { BattleView } from "~/host/battleView";
 import { BATTLE_KEYS, ORDER_KEYS } from "~/host/keyHelp";
 import type { ViewSettings } from "~/host/viewSettings";
@@ -15,6 +18,7 @@ import { SCENES } from "~/scenarios/scenes";
 import type { Battle } from "~/scenarios/types";
 import { math, parseFleet, type Snapshot } from "~/sim/index";
 import { CustomPanel } from "./custom/CustomPanel";
+import { keepSetup, keptSetup, withReturned } from "./custom/keptSetup";
 import { DEFAULT_FIELDS, fieldsOf, setupOf, slotsOf, type SetupFields, type Slot } from "./custom/customSetup";
 import { KeyHelp } from "~/ui/dialogs/KeyHelp";
 import { AddShip } from "./orders/AddShip";
@@ -82,9 +86,14 @@ export function BattlePage() {
     const [settings, keep] = useViewSettings(PAGE, DEFAULTS);
     const shown = useRef<Snapshot | null>(null);
     const battle = useRef<Battle | null>(null);
-    // Blank: the fleets are the first thing chosen.
-    const [slots, setSlots] = useState<readonly Slot[]>([]);
-    const [fields, setFields] = useState<SetupFields>(DEFAULT_FIELDS);
+    const storage = useStorage();
+    const { ships, fleets } = useLibrary();
+    const navigate = useNavigate();
+    // The custom setup as it was left, so a side can go to an editor and come back to the rest of it.
+    const [kept] = useState(() => keptSetup(storage));
+    const [slots, setSlots] = useState<readonly Slot[]>(kept?.slots ?? []);
+    const [fields, setFields] = useState<SetupFields>(kept?.fields ?? DEFAULT_FIELDS);
+    useEffect(() => keepSetup(storage, slots, fields), [storage, slots, fields]);
     const orders = useOrderState(view, () => shown.current);
     const [doctrineOpen, setDoctrineOpen] = useState(false);
     const [search, setSearch] = useSearchParams();
@@ -126,7 +135,12 @@ export function BattlePage() {
         if (fleetText !== null) {
             try {
                 const fleet = parseFleet(JSON.parse(fleetText));
-                openWith(next, [{ fleet, source: { kind: "other", label: `${fleet.name} (from the editor)` } }], fields);
+                // Back from editing a side: in that side's place, the rest of the setup as it was.
+                if (kept !== null && kept.editing !== null) {
+                    const saved = (kind: "fleet" | "ship", name: string): boolean =>
+                        (kind === "fleet" ? fleets : ships).list().some((entry) => entry.name === name);
+                    openWith(next, withReturned({ ...kept, editing: kept.editing }, fleet, saved), kept.fields);
+                } else openWith(next, [{ fleet, source: { kind: "other", label: `${fleet.name} (from the editor)` } }], fields);
                 return true;
             } catch (error) {
                 window.alert(`Could not read the fleet handed over.\n\n${error instanceof Error ? error.message : String(error)}`);
@@ -149,6 +163,20 @@ export function BattlePage() {
         setSlots(nextSlots);
         setFields(nextFields);
         show(view, CUSTOM, false, setupOf(nextSlots, nextFields));
+    };
+    /** Take a side to its editor, keeping the setup to come back to: the editor's Battle link brings it back in its place. */
+    const editSide = (index: number): void => {
+        const slot = slots[index];
+        if (slot === undefined) return;
+        keepSetup(storage, slots, fields, index);
+        const source = slot.source;
+        void navigate(
+            source.kind === "ship"
+                ? openShipRoute(source.name)
+                : source.kind === "fleet"
+                  ? openFleetRoute(source.name)
+                  : fleetRoute(slot.fleet),
+        );
     };
     const onView = (next: BattleView | null): void => {
         setView(next);
@@ -272,6 +300,7 @@ export function BattlePage() {
                         slots={slots}
                         fields={fields}
                         onChange={changeSetup}
+                        onEdit={editSide}
                         onFight={() => show(view, CUSTOM, true)}
                         current={() => (scene === CUSTOM ? (battle.current as CustomBattle | null) : null)}
                         orders={() => view?.orders ?? []}

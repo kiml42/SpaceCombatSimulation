@@ -1123,7 +1123,7 @@ inside any one file is not contiguous.
   (`#/library`) inside a shell that links them, and read one shared library and view settings
   (`features/storage/`), re-rendering on any save, another tab's included. The Library route lists every ship and fleet, each with Edit, which opens it in its editor, and Test, which fights it in a custom battle. The Battle route runs any scene on
   the wall clock through `BattleCanvas`, a canvas React mounts and leaves to `battleView`, with figures read
-  off it at 10 Hz: pause, step, reset, fit, the scrub bar and the speed, a custom battle set up beside it, and
+  off it at 10 Hz: pause, step, reset, fit, the scrub bar and the speed, a custom battle set up beside it, kept between visits, each side a step from its editor and back,
   orders, doctrine and ships added from controls over it; old shared battle links open it. The Fleet and Ship
   routes draw through `fleetCanvas` and `shipCanvas`, engines of the same kind, with their panels in React,
   and hand designs and fleets to each other in the address. The Skirmish route fights its rounds on

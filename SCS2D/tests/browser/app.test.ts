@@ -193,6 +193,42 @@ it("sets up a custom battle, from the library and from a battle file, and fights
     expect(problems).toEqual([]);
 });
 
+it("takes a side of a custom battle to its editor and back, keeping the rest of the setup", async () => {
+    const page = await browser.newPage();
+    const problems: string[] = [];
+    page.on("pageerror", (error) => problems.push(error.message));
+    await page.goto(`${pathToFileURL(appPage).href}#/battle`);
+    const panel = page.getByRole("complementary", { name: "Custom battle" });
+    const side = (n: number) => panel.getByRole("combobox", { name: `Side ${n}` });
+
+    await page.getByRole("button", { name: "Custom", exact: true }).click();
+    await panel.getByRole("button", { name: "Add fleet" }).click();
+    await panel.getByRole("button", { name: "Add fleet" }).click();
+    await side(2).selectOption("ship:Corvette");
+    await panel.getByLabel("range m", { exact: true }).fill("2500");
+    const first = await side(1).inputValue();
+
+    // A single ship goes to the ship editor, and comes back under the name it was given there.
+    await panel.getByRole("button", { name: "Edit side 2" }).click();
+    await page.waitForSelector("#shipName");
+    expect(await page.inputValue("#shipName")).toBe("Corvette");
+    await page.fill("#shipName", "Corvette Mk II");
+    await page.click("#battleLink");
+    await expect.poll(() => side(2).inputValue()).toBe("ship:Corvette Mk II");
+    expect(await side(1).inputValue()).toBe(first);
+    expect(await panel.getByLabel("range m", { exact: true }).inputValue()).toBe("2500");
+
+    // A fleet goes to the fleet editor, and the side edited before stays as it came back.
+    await panel.getByRole("button", { name: "Edit side 1" }).click();
+    await page.waitForSelector("#fleetName");
+    expect(`fleet:${await page.inputValue("#fleetName")}`).toBe(first);
+    await page.click("#battleLink");
+    await expect.poll(() => side(1).inputValue()).toBe(first);
+    expect(await side(2).inputValue()).toBe("ship:Corvette Mk II");
+    expect(await panel.getByLabel("range m", { exact: true }).inputValue()).toBe("2500");
+    expect(problems).toEqual([]);
+});
+
 it("gives orders, tells doctrine and adds ships on the Battle route", async () => {
     const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
     const problems: string[] = [];
