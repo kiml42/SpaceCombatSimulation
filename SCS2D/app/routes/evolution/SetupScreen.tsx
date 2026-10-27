@@ -344,7 +344,10 @@ export function SetupScreen({ hidden, form, onForm, ships, fleets, onExport, onI
                     {field({ id: "minMatches", label: "matches each", min: 1 })}
                     {field({ id: "seed", label: "seed", min: null })}
                     {field({ id: "effort", label: "ms per frame", min: 1, max: 200 })}
-                    <Note>How long each frame is spent fighting. Higher is faster and less responsive.</Note>
+                    <Note>
+                        How long each frame is spent measuring a run against a yardstick. The run itself is fought in a worker, at full
+                        speed, hidden tab or not.
+                    </Note>
                 </Fold>
                 <Fold k="thematch" title="The match">
                     {field({ id: "duration", label: "seconds", min: 1, step: 5 })}
