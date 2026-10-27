@@ -3168,6 +3168,12 @@ export class Ships {
         return given !== undefined && given.errand === undefined;
     }
 
+    /** Whether moored ship `i` has been told to go: an order, or an errand to anything but the rock it is moored to. */
+    private sentAway(i: number): boolean {
+        const given = this.getCurrentOrder(i);
+        return given !== undefined && (given.errand === undefined || given.target !== this.parkedOn[i]);
+    }
+
     /** Whether ship `i` was told where to go on its errand, so armed enemies near it are not to put it off. */
     private sentTo(i: number): boolean {
         const given = this.getCurrentOrder(i);
@@ -6320,6 +6326,11 @@ export class Ships {
                 if (robot.away >= 0) {
                     const owner = this.pilotAt(b, robot.bay);
                     const kept = this.tendAway(bodies, b, design, robot, owner, dt);
+                    if (kept === -2) {
+                        this.robots.lose(b, r--);
+                        mended = true;
+                        continue;
+                    }
                     // Its ship gone from the rock: left there, for whichever friend comes for it.
                     if (kept < 0) {
                         this.strand(bodies, robot, owner >= 0 ? owner : this.shipByBody[b]!);
@@ -6745,8 +6756,8 @@ export class Ships {
     /**
      * One step of a robot of ship `owner` out on the rock it is moored to, its
      * bay on body `b`: walking, mining, and back across to its claw. Says 1 if
-     * it mined, -1 if it was lost, with its ship no longer moored there, and 0
-     * otherwise.
+     * it mined, -1 if it was lost, with its ship no longer moored there, -2 if
+     * it was taken apart, with no berth to come home to, and 0 otherwise.
      */
     private tendAway(bodies: Bodies, b: number, design: ShipDesign, robot: Robot, owner: number, dt: number): number {
         const rock = robot.away;
@@ -6789,8 +6800,14 @@ export class Ships {
                 return 0;
             }
             // Back where its claw grips: across onto its own hull and home, once
-            // its bay has a berth for it; the extra a moored bay keeps wait here.
-            if (this.aboardIn(b, robot.bay) >= design.modules[robot.bay]!.stats.robots) return 0;
+            // its bay has a berth for it; the extra a moored bay keeps wait here,
+            // and are taken apart into the holds once their ship is sent away.
+            if (this.aboardIn(b, robot.bay) >= design.modules[robot.bay]!.stats.robots) {
+                if (!this.sentAway(owner)) return 0;
+                this.metal.add(b, robot.bay, ROBOT_MASS + robot.cargo);
+                if (robot.cargoFuel > 0) this.fuel.add(b, robot.bay, robot.cargoFuel);
+                return -2;
+            }
             robot.away = -1;
             robot.awayDesign = null;
             robot.at = this.mooredClaw[owner]!;
@@ -10344,7 +10361,7 @@ export class Ships {
         if (this.damage.isProtected(cb)) return true;
         if (!this.sentTo(f) && this.threatened(bodies, f, cb, false)) return false;
         // Given an order, it calls its robots in and goes as soon as they are back.
-        const ordered = this.commanded(f);
+        const ordered = this.sentAway(f);
         if (!ordered && this.canStrip(fb, f, claw, world.dt) && this.strippableAcross(f, fb, claw, cb)) return true;
         if (!ordered && this.heatAcross(bodies, fb, claw, cb, held, working * world.dt)) return true;
         // Anchored while it builds, it holds on until what it builds is let go.

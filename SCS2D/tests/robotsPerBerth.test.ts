@@ -3,6 +3,8 @@ import { compileBlueprint, type Blueprint, type Placement } from "../sim/index.j
 import { makeBattle } from "../scenarios/battle.js";
 import { SALVAGER } from "../scenarios/blueprints.js";
 import { MINE } from "../scenarios/mining.js";
+import { give } from "../scenarios/commands.js";
+import { NO_TARGET } from "../sim/ships.js";
 import type { Battle } from "../scenarios/types.js";
 
 /** A Salvager whose robot bays keep three robots to a berth while moored. */
@@ -64,6 +66,29 @@ describe("a robot bay keeping more robots than it has berths", () => {
         expect(crew(run, miner).all).toBeLessThanOrEqual(BERTHS);
         expect(run.ships.strandedOn(rock)).toBe(before.away);
     });
+
+    it("takes the extra apart into its holds when told to go, rather than waiting on them", () => {
+        const run = field();
+        const miner = run.miner;
+        for (let t = 0; t < 240 * 60; t++) run.step();
+        expect(crew(run, miner).all).toBeGreaterThan(BERTHS);
+        give(run, { kind: "order", ships: [miner], order: { kind: "flee", target: NO_TARGET }, append: false });
+        for (let t = 0; t < 180 * 60 && run.ships.isMoored(miner); t++) run.step();
+        expect(run.ships.isMoored(miner)).toBe(false);
+        expect(crew(run, miner).all).toBeLessThanOrEqual(BERTHS);
+    }, 120_000);
+
+    it("goes when sent to scavenge something other than its rock", () => {
+        const run = field();
+        const miner = run.miner;
+        for (let t = 0; t < 240 * 60; t++) run.step();
+        const rock = run.ships.parkedCarrier(miner);
+        let other = -1;
+        for (let i = 0; i < run.ships.count; i++) if (i !== rock && i !== miner && run.ships.isAlive(i)) other = i;
+        give(run, { kind: "order", ships: [miner], order: { kind: "scavenge", target: other }, append: false });
+        for (let t = 0; t < 180 * 60 && run.ships.isMoored(miner); t++) run.step();
+        expect(run.ships.isMoored(miner)).toBe(false);
+    }, 120_000);
 
     it("keeps one to a berth when not moored", () => {
         const run = makeBattle({ seed: 1 }, (ships, world) => ({

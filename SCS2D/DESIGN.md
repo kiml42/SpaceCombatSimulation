@@ -872,8 +872,10 @@ inside any one file is not contiguous.
   takes the place of the least finished one it is building, whose metal goes back. **While its ship is moored to a rock it keeps
   `robotsPerBerth` robots to a berth** (one by default, any number from one up, whole robots only;
   `robotsKept`), building the extra only into a free berth: the extra work the rock, and a robot coming home to
-  a bay whose berths are all taken waits at the claw for one, so there are never more aboard than berths. Those
-  out on the rock when the ship casts off are stranded there, as any robot left on a rock is. It is drawn as a deck with a round pad, all
+  a bay whose berths are all taken waits at the claw for one, so there are never more aboard than berths. Told
+  to go (any order, or an errand to anything but its rock), the ship calls its robots in and goes once they are
+  back; one with no berth to come home to is taken apart into its holds, metal, cargo and all. Those out on the
+  rock when the ship is parted from it otherwise are stranded there, as any robot left on a rock is. It is drawn as a deck with a round pad, all
   of one size, for each berth, spread evenly over it in the berths' grid, a robot
   home sitting on its pad as a disc once it is full and as itself while it is being filled, and the pad of
   one being built filling round as a ring. A robot is not a body but a place on its hull: it crawls module
