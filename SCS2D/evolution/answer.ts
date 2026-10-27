@@ -77,6 +77,27 @@ export interface Progress {
     readonly multiplier: number;
 }
 
+/**
+ * One piece of a generation's work, which needs nothing but itself, the
+ * player's fleet and the search's settings: a match an enemy fights on a seed,
+ * a drill, or the round fought to its decision by an enemy that won it. So
+ * pieces can be fought anywhere, in any order, and give the same results.
+ */
+export type AnswerJob =
+    | { readonly kind: "match"; readonly enemy: Fleet; readonly seed: number }
+    | { readonly kind: "drill"; readonly enemy: Fleet; readonly drill: Drill }
+    | { readonly kind: "check"; readonly enemy: Fleet };
+
+/** What a match or drill adds to its enemy's standing; whether a check answered the round. */
+export type JobResult = { readonly margin: number; readonly win: boolean } | { readonly answered: boolean };
+
+/** A job handed out, and which generation and piece of it it is, so a late result is known for one. */
+export interface Ticket {
+    readonly epoch: number;
+    readonly index: number;
+    readonly job: AnswerJob;
+}
+
 export class EnemySearch {
     private readonly rng: Rng;
     private readonly settings: AnswerSettings;
@@ -91,19 +112,20 @@ export class EnemySearch {
     private best: Standing;
     private found: Fleet | null = null;
 
-    // The generation being fought.
+    // The generation being fought, and what has come back of it.
     private standings: Standing[] = [];
     private seeds: number[] = [];
     private drills: Drill[] = [];
-    private next = 0;
-    private battle: CustomBattle | null = null;
-    // The weighted damage the enemy has done in the match being fought, J.
-    private dealt = 0;
-    // The round being fought to its decision, by the enemy that won every match.
-    private checking: { standing: Standing; battle: CustomBattle; activity: Activity } | null = null;
-    private readonly unchecked: Standing[] = [];
-    // Every match of the generation fought, its winners on the round being checked before it counts as done.
-    private finishing = false;
+    // Bumped whenever the pieces handed out change, so a result for an earlier set is dropped.
+    private epoch = 0;
+    private phase: "fight" | "check" = "fight";
+    private handed = 0;
+    private results: (JobResult | undefined)[] = [];
+    private complete: boolean[] = [];
+    // The enemies that won on the round, the better first, each checked to the decision.
+    private candidates: Standing[] = [];
+    // The piece being fought by `advance`.
+    private running: { ticket: Ticket; runner: JobRunner } | null = null;
 
     constructor(
         private readonly player: Fleet,
@@ -147,9 +169,9 @@ export class EnemySearch {
      * shows while it is fought.
      */
     get leader(): Standing | null {
-        const done = math.floor(this.next / (this.seeds.length + this.drills.length));
         let leader: Standing | null = null;
-        for (let i = 0; i < done && i < this.standings.length; i++) {
+        for (let i = 0; i < this.standings.length; i++) {
+            if (!this.complete[i]) continue;
             const standing = this.standings[i]!;
             if (leader === null || better(standing, leader)) leader = standing;
         }
@@ -174,17 +196,64 @@ export class EnemySearch {
         };
     }
 
-    /** Do up to `steps` battle steps of work. Whether there is an answer. */
+    /** What every piece of work is fought against: the player's fleet, the round's seed and the settings. */
+    get setup(): { readonly player: Fleet; readonly wonSeed: number; readonly settings: AnswerSettings } {
+        return { player: this.player, wonSeed: this.wonSeed, settings: this.settings };
+    }
+
+    /**
+     * Fight up to `steps` battle steps of the search here, a piece at a time.
+     * Whether there is an answer.
+     */
     advance(steps: number): boolean {
         let left = steps;
         while (left > 0 && this.found === null) {
-            if (this.checking !== null) left -= this.check(left);
-            else if (this.unchecked.length > 0) this.startCheck(this.unchecked.shift()!);
-            else if (this.finishing) this.nextGeneration();
-            else if (this.next < this.standings.length * (this.seeds.length + this.drills.length)) left -= this.fight(left);
-            else this.finishGeneration();
+            if (this.running === null) {
+                const ticket = this.take();
+                if (ticket === null) break;
+                this.running = { ticket, runner: new JobRunner(ticket.job, this.player, this.settings, this.wonSeed) };
+            }
+            left -= this.running.runner.advance(left);
+            const { ticket, runner } = this.running;
+            if (runner.result === null) continue;
+            this.running = null;
+            this.give(ticket, runner.result);
         }
         return this.found !== null;
+    }
+
+    /**
+     * The next piece of work to fight, or null while every piece of this stage
+     * is out and the next waits on them, or once there is an answer. Pieces
+     * may be handed out several at a time and fought anywhere; the search
+     * comes out the same whatever order their results come back in.
+     */
+    take(): Ticket | null {
+        if (this.found !== null) return null;
+        const index = this.handed;
+        if (this.phase === "fight") {
+            const each = this.seeds.length + this.drills.length;
+            if (index >= this.standings.length * each) return null;
+            this.handed++;
+            const enemy = this.standings[math.floor(index / each)]!.enemy;
+            const match = index % each;
+            const job: AnswerJob =
+                match < this.seeds.length
+                    ? { kind: "match", enemy, seed: this.seeds[match]! }
+                    : { kind: "drill", enemy, drill: this.drills[match - this.seeds.length]! };
+            return { epoch: this.epoch, index, job };
+        }
+        if (index >= this.candidates.length) return null;
+        this.handed++;
+        return { epoch: this.epoch, index, job: { kind: "check", enemy: this.candidates[index]!.enemy } };
+    }
+
+    /** Take back what a piece of work came to. One handed out before the stage it was for ended is dropped. */
+    give(ticket: Ticket, result: JobResult): void {
+        if (ticket.epoch !== this.epoch || this.found !== null || this.results[ticket.index] !== undefined) return;
+        this.results[ticket.index] = result;
+        if (this.phase === "fight") this.tally(ticket.index);
+        else this.settle();
     }
 
     private begin(): void {
@@ -200,91 +269,36 @@ export class EnemySearch {
         this.drills = [];
         for (let i = 0; i < this.settings.bareCoreDrills; i++) this.drills.push({ kind: "bareCore", seed: this.rng.nextUint32() });
         for (let i = 0; i < this.settings.shieldedDrills; i++) this.drills.push({ kind: "shielded", seed: this.rng.nextUint32() });
-        this.next = 0;
-        this.battle = null;
+        this.stage("fight");
+        this.complete = this.standings.map(() => false);
     }
 
-    /** Fight the current match for up to `steps`; how many it took. */
-    private fight(steps: number): number {
-        const seedCount = this.seeds.length;
-        const each = seedCount + this.drills.length;
-        const standing = this.standings[math.floor(this.next / each)]!;
-        const match = this.next % each;
-        if (match >= seedCount) return this.drill(steps, standing, this.drills[match - seedCount]!);
-        // On the round's map whatever the seed, so the enemy is bred for the place it answers in.
-        const battle = (this.battle ??= customBattle(
-            roundBattle(this.player, standing.enemy, this.seeds[match]!, this.settings, this.wonSeed),
-        ));
-        let taken = 0;
-        const limit = math.round(this.settings.duration / battle.dt);
-        while (taken < steps) {
-            battle.step();
-            taken++;
-            this.dealt += damageDealt(battle);
-            const tick = battle.world.tick;
-            if (tick % CHECK_EVERY !== 0 && tick < limit) continue;
-            const now = tally(battle, 2);
-            const decided = winner(now);
-            if (decided === null && tick < limit) continue;
-            // How much more of itself the enemy has left than the player, as a share
-            // of each: a loss that hurt the player more is a better loss.
-            const ahead = share(now[1]!.mass, battle.start[1]!.mass) - share(now[0]!.mass, battle.start[0]!.mass);
-            // A loss is worth more the longer it was held off, which is what lets a
-            // search that loses every match still tell its enemies apart.
-            const held = math.min(1, tick / limit);
-            standing.margin += ahead + (decided === 1 ? 1 : decided !== null ? held - 1 : 0) + this.damageScore(battle);
-            // Ahead when time runs out is taken as a win to come.
-            const win = decided === 1 || (decided === null && ahead > 0);
-            if (win) standing.wins++;
+    private stage(phase: "fight" | "check"): void {
+        this.phase = phase;
+        this.epoch++;
+        this.handed = 0;
+        this.results = [];
+    }
+
+    /**
+     * An enemy whose every match is back is scored, its matches added up in the
+     * order they were drawn, so the sums are the same however the results came.
+     * Once every enemy is, the generation is.
+     */
+    private tally(index: number): void {
+        const each = this.seeds.length + this.drills.length;
+        const at = math.floor(index / each);
+        for (let k = 0; k < each; k++) if (this.results[at * each + k] === undefined) return;
+        const standing = this.standings[at]!;
+        for (let k = 0; k < each; k++) {
+            const result = this.results[at * each + k]! as { margin: number; win: boolean };
+            standing.margin += result.margin;
+            if (result.win) standing.wins++;
             // The round's own seed is always the first an enemy fights.
-            if (match === 0) standing.onRound = win;
-            this.next++;
-            this.battle = null;
-            break;
+            if (k === 0) standing.onRound = result.win;
         }
-        return taken;
-    }
-
-    /**
-     * Fight a drill for up to `steps`; how many it took. It adds to the enemy's
-     * score: the share of the other side it destroyed, and one more for
-     * finishing the job, less the share of the match that took.
-     */
-    private drill(steps: number, standing: Standing, drill: Drill): number {
-        const battle = (this.battle ??= drillBattle(drill, this.player, standing.enemy, this.settings, this.wonSeed));
-        let taken = 0;
-        const limit = math.round(this.settings.duration / battle.dt);
-        while (taken < steps) {
-            battle.step();
-            taken++;
-            this.dealt += damageDealt(battle);
-            const tick = battle.world.tick;
-            if (tick % CHECK_EVERY !== 0 && tick < limit) continue;
-            const target = tally(battle, 2)[0]!;
-            // A bare core is done with once it is gone; a fleet once it has nothing left to fire.
-            const done = drill.kind === "bareCore" ? target.ships === 0 : target.armed === 0;
-            if (!done && tick < limit) continue;
-            const destroyed = 1 - share(target.mass, battle.start[0]!.mass);
-            standing.margin += destroyed + (done ? 1 - math.min(1, tick / limit) : 0) + this.damageScore(battle);
-            this.next++;
-            this.battle = null;
-            break;
-        }
-        return taken;
-    }
-
-    /**
-     * The damage the enemy did in the match just ended, from 0 to 1: its share
-     * of what would wreck the player's side to its last kilogram were every hit
-     * on what makes it work, on a log scale, so the first few hits of an enemy
-     * that can barely hit count for something and each tenfold more for as much
-     * again. Clears it for the next match.
-     */
-    private damageScore(battle: CustomBattle): number {
-        const whole = FUNCTIONAL_WEIGHT * DAMAGE_ENERGY_PER_KG * battle.start[0]!.mass;
-        const share = whole > 0 ? math.min(1, this.dealt / whole) : 0;
-        this.dealt = 0;
-        return damageScale(share);
+        this.complete[at] = true;
+        if (this.complete.every((done) => done)) this.finishGeneration();
     }
 
     /** Every match fought: pick the best, and check each that won on the round, the better first. */
@@ -294,13 +308,35 @@ export class EnemySearch {
         this.best = best;
         const onRound = this.standings.filter((standing) => standing.onRound);
         onRound.sort((a, b) => (better(a, b) ? -1 : better(b, a) ? 1 : 0));
-        this.unchecked.push(...onRound);
-        this.finishing = true;
+        this.candidates = onRound;
+        this.stage("check");
+        this.settle();
+    }
+
+    /**
+     * Go through the checks in order as far as they have come back: the first
+     * that answered the round is the answer, whatever came back after it, and
+     * one that did not is not counted as having won on it. All failed, the
+     * generation is done.
+     */
+    private settle(): void {
+        for (let i = 0; i < this.candidates.length; i++) {
+            const result = this.results[i] as { answered: boolean } | undefined;
+            if (result === undefined) return;
+            const standing = this.candidates[i]!;
+            standing.onRound = result.answered;
+            if (result.answered) {
+                this.found = standing.enemy;
+                this.best = standing;
+                this.generationCount++;
+                return;
+            }
+        }
+        this.nextGeneration();
     }
 
     /** The generation done and its winners checked: count it, and breed the next. */
     private nextGeneration(): void {
-        this.finishing = false;
         this.generationCount++;
         // Long without an answer: a bigger budget, for good.
         if (this.generationCount % this.settings.stretchAfter === 0) {
@@ -308,39 +344,112 @@ export class EnemySearch {
         }
         this.begin();
     }
+}
 
-    private startCheck(standing: Standing): void {
-        this.checking = {
-            standing,
-            battle: customBattle(roundBattle(this.player, standing.enemy, this.wonSeed, this.settings)),
-            activity: new Activity(2, this.settings.timeCap, this.settings.quietTime),
-        };
+/**
+ * One piece of work fought a slice at a time: a match, scored by how far ahead
+ * the enemy finished, whether it won, and the damage it did; a drill, scored
+ * by what it destroyed and how soon; or the round, to the skirmish's decision.
+ */
+export class JobRunner {
+    result: JobResult | null = null;
+    private readonly battle: CustomBattle;
+    private readonly activity: Activity | null = null;
+    // The weighted damage the enemy has done, J.
+    private dealt = 0;
+
+    constructor(
+        private readonly job: AnswerJob,
+        player: Fleet,
+        private readonly settings: AnswerSettings,
+        wonSeed: number,
+    ) {
+        if (job.kind === "match") {
+            // On the round's map whatever the seed, so the enemy is bred for the place it answers in.
+            this.battle = customBattle(roundBattle(player, job.enemy, job.seed, settings, wonSeed));
+        } else if (job.kind === "drill") {
+            this.battle = drillBattle(job.drill, player, job.enemy, settings, wonSeed);
+        } else {
+            this.battle = customBattle(roundBattle(player, job.enemy, wonSeed, settings));
+            this.activity = new Activity(2, settings.timeCap, settings.quietTime);
+        }
+    }
+
+    /** Fight up to `steps` of it; how many it took. Its result is set once it is over. */
+    advance(steps: number): number {
+        if (this.result !== null) return 0;
+        if (this.job.kind === "check") return this.check(steps);
+        const battle = this.battle;
+        const limit = math.round(this.settings.duration / battle.dt);
+        let taken = 0;
+        while (taken < steps) {
+            battle.step();
+            taken++;
+            this.dealt += damageDealt(battle);
+            const tick = battle.world.tick;
+            if (tick % CHECK_EVERY !== 0 && tick < limit) continue;
+            if (this.job.kind === "match") {
+                const now = tally(battle, 2);
+                const decided = winner(now);
+                if (decided === null && tick < limit) continue;
+                // How much more of itself the enemy has left than the player, as a share
+                // of each: a loss that hurt the player more is a better loss.
+                const ahead = share(now[1]!.mass, battle.start[1]!.mass) - share(now[0]!.mass, battle.start[0]!.mass);
+                // A loss is worth more the longer it was held off, which is what lets a
+                // search that loses every match still tell its enemies apart.
+                const held = math.min(1, tick / limit);
+                // Ahead when time runs out is taken as a win to come.
+                this.result = {
+                    margin: ahead + (decided === 1 ? 1 : decided !== null ? held - 1 : 0) + this.damageScore(),
+                    win: decided === 1 || (decided === null && ahead > 0),
+                };
+                break;
+            }
+            // A drill adds to the enemy's score: the share of the other side it destroyed,
+            // and one more for finishing the job, less the share of the match that took.
+            const target = tally(battle, 2)[0]!;
+            // A bare core is done with once it is gone; a fleet once it has nothing left to fire.
+            const done = this.job.drill.kind === "bareCore" ? target.ships === 0 : target.armed === 0;
+            if (!done && tick < limit) continue;
+            const destroyed = 1 - share(target.mass, battle.start[0]!.mass);
+            this.result = { margin: destroyed + (done ? 1 - math.min(1, tick / limit) : 0) + this.damageScore(), win: false };
+            break;
+        }
+        return taken;
+    }
+
+    /** Fight it to the end, as a worker that does nothing else does. */
+    finish(): JobResult {
+        while (this.result === null) this.advance(1 << 20);
+        return this.result;
+    }
+
+    /**
+     * The damage the enemy did, from 0 to 1: its share of what would wreck the
+     * player's side to its last kilogram were every hit on what makes it work,
+     * on a log scale, so the first few hits of an enemy that can barely hit
+     * count for something and each tenfold more for as much again.
+     */
+    private damageScore(): number {
+        const whole = FUNCTIONAL_WEIGHT * DAMAGE_ENERGY_PER_KG * this.battle.start[0]!.mass;
+        return damageScale(whole > 0 ? math.min(1, this.dealt / whole) : 0);
     }
 
     /** Fight the round to its decision for up to `steps`; how many it took. */
     private check(steps: number): number {
-        const checking = this.checking!;
+        const battle = this.battle;
         let taken = 0;
         let decision: Decision | null = null;
         while (taken < steps && decision === null) {
-            checking.battle.step();
+            battle.step();
             taken++;
-            decision = checking.activity.observe(checking.battle);
+            decision = this.activity!.observe(battle);
         }
         if (decision !== null) {
-            this.checking = null;
             // Its win on the round is the decision's, not the time limit's, and by the margin asked.
-            const battle = checking.battle;
             const now = tally(battle, 2);
             const ahead = share(now[1]!.mass, battle.start[1]!.mass) - share(now[0]!.mass, battle.start[0]!.mass);
-            const answered = decision.winner === 1 && ahead >= this.settings.answerMargin;
-            checking.standing.onRound = answered;
-            if (answered) {
-                this.found = checking.standing.enemy;
-                this.best = checking.standing;
-                this.unchecked.length = 0;
-                this.generationCount++;
-            }
+            this.result = { answered: decision.winner === 1 && ahead >= this.settings.answerMargin };
         }
         return taken;
     }
