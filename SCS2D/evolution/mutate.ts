@@ -47,6 +47,7 @@ import {
     readsDrainPriority,
     readsFill,
     readsComputing,
+    readsRobotsPerBerth,
     CORE_COMPUTING_SHARE,
     readsCraft,
     readsCraftAngle,
@@ -754,6 +755,7 @@ type NumberKnob =
               | "sealing"
               | "fill"
               | "computing"
+              | "robotsPerBerth"
               | "keep";
           readonly site: ModuleSite;
       };
@@ -984,6 +986,7 @@ function numbers(draft: Draft): NumberKnob[] {
         // Batteries set out full: charge is not in the budget.
         if (readsFill(spec.kind) && spec.kind !== "battery") out.push({ at: "fill", site });
         if (readsComputing(spec.kind)) out.push({ at: "computing", site });
+        if (readsRobotsPerBerth(spec.kind)) out.push({ at: "robotsPerBerth", site });
         // How many of its craft a pad or slipway keeps: nothing to count without one.
         if (readsCraft(spec.kind) && spec.craft !== undefined) out.push({ at: "keep", site });
         if (isWeaponMount(spec.kind)) {
@@ -1088,6 +1091,8 @@ function renumberModule(knob: Exclude<NumberKnob, { at: "doctrine" }>, jitter: J
             return refill(knob.site, jitter);
         case "computing":
             return recompute(knob.site, jitter);
+        case "robotsPerBerth":
+            return rerobot(knob.site, jitter);
         case "keep":
             return rekeep(knob.site, jitter);
     }
@@ -1410,6 +1415,19 @@ function recompute(site: ModuleSite, jitter: Jitter): string | null {
     if (now !== CORE_COMPUTING_SHARE) site.spec.computing = now;
     else delete site.spec.computing;
     return `${site.where} core: ${round(was * 100)}% computing → ${round(now * 100)}%`;
+}
+
+/**
+ * Change how many robots a bay keeps to a berth while moored, by a share of
+ * itself, never below one, which is left unsaid.
+ */
+function rerobot(site: ModuleSite, jitter: Jitter): string | null {
+    const was = site.spec.robotsPerBerth ?? 1;
+    const now = max(1, tidy(was + jitter(was), 2));
+    if (now === was) return null;
+    if (now > 1) site.spec.robotsPerBerth = now;
+    else delete site.spec.robotsPerBerth;
+    return `${site.where} robot bay: ${was} robots to a berth while moored → ${now}`;
 }
 
 /**

@@ -858,7 +858,11 @@ inside any one file is not contiguous.
   **A robot bay** (`robotBay`) berths as many robots as squares of `ROBOT_BERTH_PITCH` fit along its length
   and across its width (`berthGrid`), priced by their weight (`ROBOT_MASS`) and its racks, and builds and
   refills them faster the more of its interior there is behind each berth, at the rate in `ROBOT_BUILD_TIME`
-  and `ROBOT_REFILL_TIME` for `ROBOT_BERTH_VOLUME` (`berthRate`). It is drawn as a deck with a round pad, all
+  and `ROBOT_REFILL_TIME` for `ROBOT_BERTH_VOLUME` (`berthRate`). **While its ship is moored to a rock it keeps
+  `robotsPerBerth` robots to a berth** (one by default, any number from one up, whole robots only;
+  `robotsKept`), building the extra only into a free berth: the extra work the rock, and a robot coming home to
+  a bay whose berths are all taken waits at the claw for one, so there are never more aboard than berths. Those
+  out on the rock when the ship casts off are stranded there, as any robot left on a rock is. It is drawn as a deck with a round pad, all
   of one size, for each berth, spread evenly over it in the berths' grid, a robot
   home sitting on its pad as a disc once it is full and as itself while it is being filled, and the pad of
   one being built filling round as a ring. A robot is not a body but a place on its hull: it crawls module

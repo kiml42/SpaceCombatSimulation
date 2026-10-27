@@ -2,6 +2,7 @@ import {
     Allocation,
     specificImpulse,
     readsSealing,
+    robotsKept,
     fillOf,
     SEAL_REACH,
     SEAL_SPEED,
@@ -434,7 +435,11 @@ export function moduleReadout(spec: ModuleSpec, layout: readonly ModuleSpec[] = 
         ]);
     }
     if (stats.generation > 0) rows.push(["Generates", megawatts(stats.generation)]);
-    if (spec.kind === "robotBay") rows.push(["Robots", stats.robots === 1 ? "1 berthed" : `${stats.robots} berthed`]);
+    if (spec.kind === "robotBay") {
+        const berthed = stats.robots === 1 ? "1 berthed" : `${stats.robots} berthed`;
+        const moored = robotsKept(spec, stats, true);
+        rows.push(["Robots", moored > stats.robots ? `${berthed}, ${moored} while moored to a rock` : berthed]);
+    }
     if (readsSealing(spec.kind)) {
         rows.push([
             "Sealing",

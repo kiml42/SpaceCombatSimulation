@@ -22,6 +22,7 @@ import {
     readsDrainPriority,
     readsFill,
     readsComputing,
+    readsRobotsPerBerth,
     readsCraft,
     readsDocked,
     readsCraftAngle,
@@ -114,6 +115,7 @@ const MODULE_KEYS: readonly string[] = [
     "drainPriority",
     "fill",
     "computing",
+    "robotsPerBerth",
     "craft",
     "fighter",
     "docked",
@@ -273,6 +275,7 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
         optionalNumberProblem(value["drainPriority"], `${where}: drainPriority`) ??
         optionalNumberProblem(value["fill"], `${where}: fill`) ??
         optionalNumberProblem(value["computing"], `${where}: computing`) ??
+        optionalNumberProblem(value["robotsPerBerth"], `${where}: robotsPerBerth`) ??
         optionalStringProblem(value["craft"], `${where}: craft`) ??
         // The older forms: `fighter` for `craft`, and a string the fighter's name, set out docked.
         optionalStringProblem(value["fighter"], `${where}: fighter`) ??
@@ -308,6 +311,7 @@ function moduleReads(kind: ModuleKind): readonly string[] {
         if (key === "drainPriority") return readsDrainPriority(kind);
         if (key === "fill") return readsFill(kind);
         if (key === "computing") return readsComputing(kind);
+        if (key === "robotsPerBerth") return readsRobotsPerBerth(kind);
         if (key === "craft" || key === "fighter" || key === "keep" || key === "buildAnchored") return readsCraft(kind);
         if (key === "docked") return readsDocked(kind);
         if (key === "craftAngle") return readsCraftAngle(kind);
@@ -563,6 +567,7 @@ function toPlacements(raws: unknown[], whole: boolean): Placement[] {
         if (read("drainPriority")) spec.drainPriority = raw["drainPriority"] as number;
         if (read("fill")) spec.fill = raw["fill"] as number;
         if (read("computing")) spec.computing = raw["computing"] as number;
+        if (read("robotsPerBerth")) spec.robotsPerBerth = raw["robotsPerBerth"] as number;
         if (read("fighter")) spec.craft = raw["fighter"] as string;
         if (read("craft")) spec.craft = raw["craft"] as string;
         if (read("docked")) {
@@ -772,6 +777,7 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
     }
     if (placement.fill !== undefined && readsFill(placement.kind)) raw["fill"] = placement.fill;
     if (placement.computing !== undefined && readsComputing(placement.kind)) raw["computing"] = placement.computing;
+    if (placement.robotsPerBerth !== undefined && readsRobotsPerBerth(placement.kind)) raw["robotsPerBerth"] = placement.robotsPerBerth;
     if (readsCraft(placement.kind)) {
         if (placement.craft !== undefined) raw["craft"] = placement.craft;
         if (placement.docked !== undefined && readsDocked(placement.kind)) raw["docked"] = placement.docked;

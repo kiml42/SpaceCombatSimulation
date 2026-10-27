@@ -107,6 +107,7 @@ import {
     SLIPWAY_PUSH,
     ROBOT_BUILD_TIME,
     berthRate,
+    robotsKept,
     ROBOT_CHARGE,
     ROBOT_LOAD,
     ROBOT_MASS,
@@ -6364,7 +6365,8 @@ export class Ships {
      * Each of a body's working bays that is short of robots builds one, over
      * `ROBOT_BUILD_TIME` and slower as the bay is damaged, from a robot's mass
      * of metal and `REPAIR_WASTE` more off its piece of hull, reserves and all.
-     * A bay with the time put in but not the metal waits.
+     * Short by `robotsKept`, counting those out on a rock, and only into a free
+     * berth. A bay with the time put in but not the metal waits.
      * Says whether one was built.
      */
     private buildRobots(b: number, design: ShipDesign, robots: Robot[], dt: number): boolean {
@@ -6377,12 +6379,18 @@ export class Ships {
             if (!(berths > 0) || owner < 0) continue;
             // One a refit is taking down builds no more.
             if (this.refitting[owner] === 1 && this.wreckage(owner, b, m)) continue;
-            let home = 0;
-            for (let r = 0; r < robots.length; r++) if (robots[r]!.bay === m) home++;
-            if (home >= berths) {
+            let crew = 0;
+            let aboard = 0;
+            for (let r = 0; r < robots.length; r++) {
+                if (robots[r]!.bay !== m) continue;
+                crew++;
+                if (robots[r]!.away < 0) aboard++;
+            }
+            if (crew >= robotsKept(design.modules[m]!.spec, design.modules[m]!.stats, this.isMoored(owner))) {
                 builds[m] = 0;
                 continue;
             }
+            if (aboard >= berths) continue;
             const working = this.left(owner, b, m, DamageEffect.Tending);
             if (!(working > 0)) continue;
             builds[m] = min(ROBOT_BUILD_TIME, builds[m]! + dt * working * berthRate(design.modules[m]!.stats));
@@ -6745,7 +6753,9 @@ export class Ships {
                 robot.mode = RobotMode.Working;
                 return 0;
             }
-            // Back where its claw grips: across onto its own hull and home.
+            // Back where its claw grips: across onto its own hull and home, once
+            // its bay has a berth for it; the extra a moored bay keeps wait here.
+            if (this.aboardIn(b, robot.bay) >= design.modules[robot.bay]!.stats.robots) return 0;
             robot.away = -1;
             robot.awayDesign = null;
             robot.at = this.mooredClaw[owner]!;
@@ -6841,7 +6851,7 @@ export class Ships {
         }
     }
 
-    /** A robot bay of ship `f`'s with a berth no robot of its holds, or -1. */
+    /** A robot bay of ship `f`'s short of the robots it keeps (`robotsKept`), or -1. */
     private freeBerth(bodies: Bodies, f: number): number {
         const fb = bodies.indexOf(this.bodyIds[f]!);
         const design = fb < 0 ? null : this.hullDesign[fb];
@@ -6852,7 +6862,7 @@ export class Ships {
             if (!(berths > 0) || this.pilotAt(fb, m) !== f) continue;
             let crew = 0;
             for (let r = 0; r < robots.length; r++) if (robots[r]!.bay === m) crew++;
-            if (crew < berths) return m;
+            if (crew < robotsKept(design.modules[m]!.spec, design.modules[m]!.stats, this.isMoored(f))) return m;
         }
         return -1;
     }
@@ -8002,11 +8012,19 @@ export class Ships {
         this.spotY = along * s + side * c;
     }
 
-    /** Which of its bay's berths robot `r` has: its place among the robots of that bay. */
+    /** Which of its bay's berths robot `r` has: its place among the robots of that bay aboard. */
     private berthOf(robots: Robot[], r: number): number {
         let slot = 0;
-        for (let k = 0; k < r; k++) if (robots[k]!.bay === robots[r]!.bay) slot++;
+        for (let k = 0; k < r; k++) if (robots[k]!.bay === robots[r]!.bay && robots[k]!.away < 0) slot++;
         return slot;
+    }
+
+    /** How many of body `b`'s robots of bay `bay` are aboard, not out on a rock. */
+    private aboardIn(b: number, bay: number): number {
+        const robots = this.robots.on(b);
+        let aboard = 0;
+        if (robots !== null) for (let r = 0; r < robots.length; r++) if (robots[r]!.bay === bay && robots[r]!.away < 0) aboard++;
+        return aboard;
     }
 
     /**

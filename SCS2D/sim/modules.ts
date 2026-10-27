@@ -275,6 +275,11 @@ export function readsFill(kind: ModuleKind): boolean {
     return readsSealing(kind) || kind === "hold" || kind === "battery";
 }
 
+/** Whether `robotsPerBerth` means anything on this kind. */
+export function readsRobotsPerBerth(kind: ModuleKind): boolean {
+    return kind === "robotBay";
+}
+
 /** Whether `computing` means anything on this kind. */
 export function readsComputing(kind: ModuleKind): boolean {
     return kind === "core";
@@ -821,6 +826,18 @@ export const ROBOT_REFILL_TIME = 5;
 /** How long a bay takes to build a robot to replace one lost, s. */
 export const ROBOT_BUILD_TIME = 20;
 
+/**
+ * How many robots a bay keeps: one to a berth, or while its ship is moored to
+ * a rock its `robotsPerBerth` to a berth, whole robots only. The extra work
+ * the rock and wait there for a berth to come home to, so they are left on it
+ * when the ship casts off.
+ */
+export function robotsKept(spec: ModuleSpec, stats: ModuleStats, moored: boolean): number {
+    if (!moored) return stats.robots;
+    const kept = roundDown(stats.robots * (spec.robotsPerBerth ?? 1));
+    return kept > stats.robots ? kept : stats.robots;
+}
+
 /** How many berths a robot bay has along its length and across its width. */
 export function berthGrid(spec: ModuleSpec): { across: number; down: number } {
     return { across: roundDown(spec.length / ROBOT_BERTH_PITCH), down: roundDown(spec.width / ROBOT_BERTH_PITCH) };
@@ -1265,6 +1282,12 @@ export interface ModuleSpec {
      * `CORE_COMPUTING_VOLUME`, which is all computing.
      */
     computing?: number;
+    /**
+     * How many robots a robot bay keeps for each of its berths while its ship
+     * is moored to a rock, at least one, and one when absent (`robotsKept`).
+     * A robot bay only.
+     */
+    robotsPerBerth?: number;
 
     /**
      * What this pad or slipway builds, by name: the ship's own, or one in the
@@ -1557,6 +1580,9 @@ export function moduleProblem(spec: ModuleSpec): string | null {
     }
     if (spec.computing !== undefined && !(spec.computing >= 0 && spec.computing <= 1)) {
         return `${spec.kind}: computing must be from 0 to 1, got ${spec.computing}`;
+    }
+    if (spec.robotsPerBerth !== undefined && !(spec.robotsPerBerth >= 1 && Number.isFinite(spec.robotsPerBerth))) {
+        return `${spec.kind}: robots per berth must be at least 1, got ${spec.robotsPerBerth}`;
     }
     if (spec.drainPriority !== undefined && !Number.isInteger(spec.drainPriority)) {
         return `${spec.kind}: drain priority must be a whole number, got ${spec.drainPriority}`;

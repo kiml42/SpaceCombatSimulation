@@ -22,6 +22,7 @@ import {
     radiansToDegrees,
     readsBarrelCalibres,
     readsComputing,
+    readsRobotsPerBerth,
     readsCraft,
     readsCraftAngle,
     readsDocked,
@@ -463,6 +464,26 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                             title: "How much of the core computes rather than holding fuel, metal and charge, per cent. More reaches modules further away; the circle it reaches is drawn round it. A core of 1 m³ or less is all computing. 10 by default.",
                         },
                         (percent) => share("computing", percent, CORE_COMPUTING_SHARE),
+                    )}
+                </Field>
+            )}
+            {readsRobotsPerBerth(spec.kind) && (
+                <Field id="robotsPerBerthRow">
+                    <label htmlFor="propRobotsPerBerth">robots per berth</label>
+                    {box(
+                        "robotsPerBerth",
+                        {
+                            step: 0.5,
+                            min: 1,
+                            title: "How many robots it keeps for each berth while its ship is moored to a rock. The extra work the rock and wait there for a berth to come home to, and are left on it when the ship casts off, for this ship or a friend to take aboard later. 1 by default.",
+                        },
+                        (value) =>
+                            update((placement) => {
+                                const { robotsPerBerth: _, ...rest } = placement as ModuleSpec;
+                                const per = Math.max(1, value);
+                                // One to a berth is what a bay keeps when nothing says otherwise, so it is left unsaid.
+                                return (per > 1 ? { ...rest, robotsPerBerth: per } : rest) as Placement;
+                            }, true),
                     )}
                 </Field>
             )}
