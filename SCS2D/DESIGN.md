@@ -231,6 +231,12 @@ inside any one file is not contiguous.
   tracked but not preferred, and a mount does not fire while a rock lies across its shot short of the target.
   Checked against each rock's bounding circle rather than by a cast: there are few rocks, and a round spent
   on one is wasted however far down the line it is.
+  So, for the ship, is an enemy behind a rock: it goes for one in sight first.
+  **A ship sharing a body is where its own modules are.** Hooked to a friend or welded to a rock, its body's
+  middle is somebody else's: it is flown at, ranged on and judged by the size of the modules it works, and a
+  mount aims at one of those rather than at the middle of the whole. The check for a friend in the line of
+  fire asks whose module the shot meets rather than whose body, out to the target itself when the target
+  shares one, since a friend hooked to it is no passer-by.
   **A gun's reach is a property of the target as much as of the gun.** Against something that does not
   manoeuvre a shot is accurate at any range: the solution is exact and the round merely takes a while. What
   spoils it is the target changing velocity after the trigger, and the spread of where it might then be
