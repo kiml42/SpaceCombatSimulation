@@ -1,6 +1,6 @@
 import { DAMAGE_ENERGY_PER_KG, fleetBill, fleetHulls, fleetReach, math, Rng, shipFleet, type Budget, type Fleet } from "../sim/index.js";
 import { BARE_CORE } from "../scenarios/blueprints.js";
-import { customBattle, tally, winner, type CustomBattle } from "../scenarios/customBattle.js";
+import { customBattle, tally, type CustomBattle } from "../scenarios/customBattle.js";
 import { Activity, type Decision } from "../scenarios/decision.js";
 import {
     DEFAULT_SKIRMISH_SETTINGS,
@@ -398,12 +398,13 @@ export class JobRunner {
             taken++;
             this.dealt += damageDealt(battle);
             const tick = battle.world.tick;
-            const ruled = this.activity?.observe(battle) ?? null;
-            if (ruled === null && tick % CHECK_EVERY !== 0 && tick < limit) continue;
             if (this.job.kind === "match") {
+                // The round's rule alone decides it: `winner`, one side having nothing armed, would
+                // miss a carrier that can still build an armed fighter, which the rule counts as armed.
+                const ruled = this.activity!.observe(battle);
+                if (ruled === null && tick < limit) continue;
                 const now = tally(battle, 2);
-                const decided = ruled?.winner ?? winner(now);
-                if (decided === null && tick < limit) continue;
+                const decided = ruled?.winner ?? null;
                 // How much more of itself the enemy has left than the player, as a share
                 // of each: a loss that hurt the player more is a better loss.
                 const ahead = share(now[1]!.mass, battle.start[1]!.mass) - share(now[0]!.mass, battle.start[0]!.mass);
@@ -417,6 +418,7 @@ export class JobRunner {
                 };
                 break;
             }
+            if (tick % CHECK_EVERY !== 0 && tick < limit) continue;
             // A drill adds to the enemy's score: the share of the other side it destroyed,
             // and one more for finishing the job, less the share of the match that took.
             const target = tally(battle, 2)[0]!;
