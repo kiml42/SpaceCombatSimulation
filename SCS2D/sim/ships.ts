@@ -218,6 +218,19 @@ const TURN_CLEARANCE_RADII = 0.1;
  */
 const URGE_REFERENCE = 100;
 
+/** Where a ship is, how it moves and how big it is, as whatever flies or aims at it sees it (`Ships.locate`). */
+interface Spot {
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    radius: number;
+}
+
+function spot(): Spot {
+    return { x: 0, y: 0, vx: 0, vy: 0, radius: 0 };
+}
+
 /**
  * The fastest a craft can be closing and still stop within `gap` metres
  * braking at `brake` m/s², once `delay` seconds have gone by at that speed.
@@ -1372,6 +1385,11 @@ export class Ships {
     private readonly gunPoint = { x: 0, y: 0, vx: 0, vy: 0 };
     /** Where a part of a target is, for a mount choosing between them. */
     private readonly partAt = { x: 0, y: 0 };
+    /** What the pilot is fighting, what it is covering, and what it is weighing up. Reused, never shared. */
+    private readonly fightAt = spot();
+    private readonly coverAt = spot();
+    private readonly lookAt = spot();
+    private readonly sizeAt = spot();
     /** Where a shot would land, for the friendly check. Reused, never shared. */
     private readonly lineOfFire = new RayHit();
     /** The ships that are asteroids, and a flag by ship, as of step `rocksAt`. */
@@ -2118,6 +2136,7 @@ export class Ships {
                 }
             }
             this.choice.begin();
+            this.maskedChoice.begin();
             for (let t = 0; t < this.alive.length; t++) {
                 if (t === i || this.alive[t] === 0) continue;
                 if (attackers && this.focusOf(t) !== defending) continue;
@@ -2135,12 +2154,20 @@ export class Ships {
                 if (this.derelict[t] === 1 || !this.hostile(i, t) || !this.hasControl(t)) continue;
                 const tb = bodies.indexOf(this.bodyIds[t]!);
                 if (tb < 0 || tb === b) continue;
-                const seen = look(bodies, b, tb, t, this.designs[t]!.mass, !this.isDisarmed(t), !this.hasNoEngines(t));
+                let seen = look(bodies, b, tb, t, this.designs[t]!.mass, !this.isDisarmed(t), !this.hasNoEngines(t));
+                // Sharing a body, it is as far off as its own modules are.
+                const at = this.locate(bodies, t, tb, this.lookAt);
+                if (this.sharesBody(t, tb)) seen = { ...seen, range: length(at.x - bodies.x[b]!, at.y - bodies.y[b]!) };
+                // Behind an asteroid, it is gone for only when nothing in sight is there to fight.
+                const hidden = this.rockBetween(bodies, bodies.x[b]!, bodies.y[b]!, at.x, at.y, b, tb);
                 const candidate =
                     doctrine.sightWeight !== 0 && !inSight(bodies, bodies.x[b]!, bodies.y[b]!, b, tb) ? { ...seen, clear: false } : seen;
-                this.choice.offer(candidate, score(doctrine, candidate, reach, design.mass, loyalTo, -1, wanted));
+                (hidden ? this.maskedChoice : this.choice).offer(
+                    candidate,
+                    score(doctrine, candidate, reach, design.mass, loyalTo, -1, wanted),
+                );
             }
-            fighting = this.choice.ship;
+            fighting = this.choice.ship !== NO_TARGET ? this.choice.ship : this.maskedChoice.ship;
         }
         // What it would rather be with. Offered at all only when the doctrine
         // says escorting is worth something, since every weight here may be
@@ -2197,7 +2224,7 @@ export class Ships {
      */
     private escortBand(i: number, design: ShipDesign, target: number): number {
         const approach = this.doctrines[i]!.approach;
-        const theirs = this.designs[target]!.radius;
+        const theirs = this.sizeOf(target);
         const told = this.getCurrentOrder(i);
         if (told?.defend === true && told.target === target && told.distance !== undefined) return theirs + design.radius + told.distance;
         const wanted = approach.escortRadii * theirs;
@@ -2298,18 +2325,21 @@ export class Ships {
                 // nothing about where it is: it is where the part this mount would
                 // shoot at is.
                 const hooked = tb === b;
+                // So does one sharing a body with others, a friend or a rock.
+                const shared = !hooked && this.sharesBody(e, tb);
                 let tx = bodies.x[tb]!;
                 let ty = bodies.y[tb]!;
-                if (hooked) {
-                    const part = this.aimModule(bodies, i, mount, layers, e, gunX, gunY, true);
+                if (!hooked && !this.canAimAt(i, mount, hurts, e, tb)) {
+                    // A ship with nothing left this mount will shoot at is not a target
+                    // for it, however good it looks by every other measure.
+                    continue;
+                }
+                if (hooked || shared) {
+                    const part = this.aimModule(bodies, i, mount, layers, e, gunX, gunY, hooked);
                     if (part < 0) continue;
                     this.partPoint(bodies, tb, this.designs[e]!, part);
                     tx = this.partAt.x;
                     ty = this.partAt.y;
-                } else if (!this.canAimAt(i, mount, hurts, e, tb)) {
-                    // A ship with nothing left this mount will shoot at is not a target
-                    // for it, however good it looks by every other measure.
-                    continue;
                 }
                 // What it cannot point at or fire at yet is still worth tracking: the
                 // gun is on it the moment the target, or the ship, moves round.
@@ -2329,15 +2359,16 @@ export class Ships {
                     !this.isDisarmed(e),
                     !this.hasNoEngines(e),
                 );
-                const hookedRange = hooked ? length(tx - gunX, ty - gunY) : 0;
-                const candidate = hooked
-                    ? {
-                          ...seen,
-                          range: hookedRange,
-                          closing: 0,
-                          facing: hookedRange > 0 ? (faceX * (tx - gunX) + faceY * (ty - gunY)) / hookedRange : 1,
-                      }
-                    : seen;
+                const partRange = hooked || shared ? length(tx - gunX, ty - gunY) : 0;
+                const candidate =
+                    hooked || shared
+                        ? {
+                              ...seen,
+                              range: partRange,
+                              closing: hooked ? 0 : seen.closing,
+                              facing: partRange > 0 ? (faceX * (tx - gunX) + faceY * (ty - gunY)) / partRange : 1,
+                          }
+                        : seen;
                 // Out of reach is tracked but never preferred to anything in reach,
                 // and never fired on: proximity alone would let a mount shoot at
                 // something far outside what its gun is good for all battle.
@@ -2404,7 +2435,7 @@ export class Ships {
         const tb = bodies.indexOf(this.bodyIds[target]!);
         const hooked = tb === b;
         const part = this.aimFor(bodies, i, mount, layers, target, gunX, gunY, hooked);
-        if (part < 0 || hooked || refusesAnything(this.aimDoctrine(i, mount))) return part;
+        if (part < 0 || hooked || this.sharesBody(target, tb) || refusesAnything(this.aimDoctrine(i, mount))) return part;
         const design = this.designs[target]!;
         this.partPoint(bodies, tb, design, part);
         const range = length(this.partAt.x - gunX, this.partAt.y - gunY);
@@ -2432,7 +2463,7 @@ export class Ships {
     private reachOn(i: number, mount: DesignTurret, target: number, part: number): number {
         const design = this.designs[target]!;
         const selective = refusesAnything(this.aimDoctrine(i, mount)) && part >= 0 && part < design.modules.length;
-        return this.reachFor(i, mount, selective ? moduleRadius(design.modules[part]!.spec) : design.radius);
+        return this.reachFor(i, mount, selective ? moduleRadius(design.modules[part]!.spec) : this.sizeOf(target));
     }
 
     /** How far a mount will fire at something of this radius, metres. */
@@ -2482,9 +2513,10 @@ export class Ships {
         // its rounds pass over, so it always picks something in the weapons layer. Nor can one
         // hooked to its target, whose hull's middle may be its own.
         const anyPart = !picksParts(doctrine);
-        if (anyPart && this.meetsWhole(layers, target) && !hooked) return WHOLE_SHIP;
         const tb = bodies.indexOf(this.bodyIds[target]!);
         if (tb < 0) return WHOLE_SHIP;
+        // Nor one sharing its body with others, whose middle may be theirs.
+        if (anyPart && this.meetsWhole(layers, target) && !hooked && !this.sharesBody(target, tb)) return WHOLE_SHIP;
         const design = this.designs[target]!;
         const angle = bodies.angle[tb]!;
         const c = cos(angle);
@@ -2533,6 +2565,68 @@ export class Ships {
         const part = this.aimModule(bodies, i, mount, layers, target, fromX, fromY, hooked);
         if (part !== NOTHING_AIMABLE || !this.firesShellsFrom(i, mount)) return part;
         return this.aimModule(bodies, i, mount, BOTH_LAYERS, target, fromX, fromY, hooked);
+    }
+
+    /**
+     * Where ship `t`, on body `tb`, is to anything flying or aiming at it, into
+     * `out`. Its body's middle and motion and its own radius, unless it shares the
+     * body with other ships or rock it has hooked on to: then the middle of the
+     * modules it works, moving as that point of the body does, and as big as
+     * they reach. Flown at by the body's middle, a ship stuck to an asteroid or
+     * a capital is the asteroid or the capital, to be shot at all over.
+     */
+    private locate(bodies: Bodies, t: number, tb: number, out: Spot): Spot {
+        const design = this.designs[t]!;
+        out.x = bodies.x[tb]!;
+        out.y = bodies.y[tb]!;
+        out.vx = bodies.vx[tb]!;
+        out.vy = bodies.vy[tb]!;
+        out.radius = design.radius;
+        const pilots = this.pilots[tb];
+        if (pilots === null || pilots === undefined) return out;
+        let sx = 0;
+        let sy = 0;
+        let n = 0;
+        for (let k = 0; k < design.modules.length; k++) {
+            if (pilots[k] !== t || this.damage.spent(tb, k)) continue;
+            sx += design.modules[k]!.x;
+            sy += design.modules[k]!.y;
+            n++;
+        }
+        if (n === 0) return out;
+        const cx = sx / n;
+        const cy = sy / n;
+        let radius = 0;
+        for (let k = 0; k < design.modules.length; k++) {
+            if (pilots[k] !== t || this.damage.spent(tb, k)) continue;
+            const m = design.modules[k]!;
+            radius = max(radius, length(m.x - cx, m.y - cy) + moduleRadius(m.spec));
+        }
+        const angle = bodies.angle[tb]!;
+        const rx = cx * cos(angle) - cy * sin(angle);
+        const ry = cx * sin(angle) + cy * cos(angle);
+        const spin = bodies.angularVel[tb]!;
+        out.x += rx;
+        out.y += ry;
+        out.vx -= spin * ry;
+        out.vy += spin * rx;
+        out.radius = radius;
+        return out;
+    }
+
+    /** How big ship `t` is to anything aiming at it: its own radius, or what `locate` makes of it. */
+    private sizeOf(t: number): number {
+        const bodies = this.bodyStore;
+        const tb = bodies === null ? -1 : bodies.indexOf(this.bodyIds[t]!);
+        return tb < 0 || !this.sharesBody(t, tb) ? this.designs[t]!.radius : this.locate(bodies!, t, tb, this.sizeAt).radius;
+    }
+
+    /** Whether ship `t` shares body `tb` with another ship or with rock it hooked on to. */
+    private sharesBody(t: number, tb: number): boolean {
+        const pilots = this.pilots[tb];
+        if (pilots === null || pilots === undefined) return false;
+        for (let k = 0; k < pilots.length; k++) if (pilots[k] !== t) return true;
+        return false;
     }
 
     /** Where module `part` of a body is in the world, into `partAt`. */
@@ -3152,26 +3246,35 @@ export class Ships {
         // is willing to shoot at is not in the way of anything, and a cast that
         // looked past it would hold fire for a ship in no danger — as well as
         // walking grid cells to learn nothing.
-        const lookahead = gun.type === GunType.Beam ? MAX_BEAM_LENGTH : gun.muzzleSpeed * FRIENDLY_LOOKAHEAD;
+        // Out to the target, though, when a friend may be hooked to it: then it is no passer-by.
+        const tb = target === NO_TARGET ? -1 : bodies.indexOf(this.bodyIds[target]!);
+        const shared = tb >= 0 && this.sharesBody(target, tb);
+        const lookahead = gun.type === GunType.Beam ? MAX_BEAM_LENGTH : shared ? reach : gun.muzzleSpeed * FRIENDLY_LOOKAHEAD;
         const range = lookahead < reach ? lookahead : reach;
         if (!(range > 0)) return false;
         const hit = this.lineOfFire;
         // A friend is only in the way of what it would stop.
         this.hulls.castFrom(layers, -1, -1);
+        const dx = this.solution.dirX * range;
+        const dy = this.solution.dirY * range;
         const found = grid.raycast(
             bodies,
             this.solution.x,
             this.solution.y,
-            this.solution.x + this.solution.dirX * range,
-            this.solution.y + this.solution.dirY * range,
+            this.solution.x + dx,
+            this.solution.y + dy,
             hit,
             bodyIdx,
             this.hulls,
         );
+        // Whose module it meets, not whose body: a friend hooked to the target is still in the way, and the target is not.
+        const module =
+            found && this.hulls.describe(bodies, hit.bodyIndex, this.solution.x, this.solution.y, dx, dy) ? this.hulls.module : -1;
         this.hulls.reset();
         if (!found) return false;
-        const other = this.shipAt(bodies, hit.bodyIndex);
-        if (other < 0 || other === i || other === target) return false;
+        const pilots = this.pilots[hit.bodyIndex];
+        const other = module >= 0 && pilots !== null && pilots !== undefined ? pilots[module]! : this.shipAt(bodies, hit.bodyIndex);
+        if (other < 0 || other === i || other === target || this.alive[other] !== 1) return false;
         return this.derelict[other] === 0 && !this.hostile(i, other);
     }
 
@@ -3322,7 +3425,7 @@ export class Ships {
         // 1,073: the station it is holding is a third of the way inside the ship,
         // so it flies into it, and no amount of keeping clear can save a craft
         // whose orders are to be there.
-        const band = holdBand(approach, design.reach, this.designs[target]!.radius);
+        const band = holdBand(approach, design.reach, this.sizeOf(target));
         standing.minRange = band.min;
         standing.maxRange = band.max;
         if (this.ramming[i] !== target && this.rams(i, target)) this.ramming[i] = target;
@@ -4175,14 +4278,15 @@ export class Ships {
                 }
             } else if (tb >= 0 && tb !== b) {
                 // Not hooked on to it, which would leave nowhere to steer for.
-                wantAngle = atan2(bodies.y[tb]! - bodies.y[b]!, bodies.x[tb]! - bodies.x[b]!);
+                const at = this.locate(bodies, target, tb, this.fightAt);
+                wantAngle = atan2(at.y - bodies.y[b]!, at.x - bodies.x[b]!);
                 if (!order.ram) {
-                    wantAngle = this.attackHeading(i, b, tb, bodies, wantAngle);
+                    wantAngle = this.attackHeading(i, b, at, bodies, wantAngle);
                     fighting = tb;
                     holdOut = order.maxRange;
                 }
-                if (order.ram) this.charge(bodies, b, tb, order.approachSpeed);
-                else this.hold(bodies, i, b, tb, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE, wantAngle);
+                if (order.ram) this.charge(bodies, b, at, order.approachSpeed);
+                else this.hold(bodies, i, b, at, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE, wantAngle);
             }
         }
 
@@ -4204,7 +4308,8 @@ export class Ships {
                 if (cb >= 0 && ab >= 0 && ab !== b) {
                     const gap = length(bodies.x[cb]! - bodies.x[b]!, bodies.y[cb]! - bodies.y[b]!);
                     if (gap <= this.escortBand(i, this.designs[i]!, covering)) {
-                        wantAngle = this.attackHeading(i, b, ab, bodies, atan2(bodies.y[ab]! - bodies.y[b]!, bodies.x[ab]! - bodies.x[b]!));
+                        const at = this.locate(bodies, attacker, ab, this.lookAt);
+                        wantAngle = this.attackHeading(i, b, at, bodies, atan2(at.y - bodies.y[b]!, at.x - bodies.x[b]!));
                     }
                 }
             }
@@ -4221,7 +4326,7 @@ export class Ships {
         const leadAy = this.urgeWeight > 0 ? this.urgeAy / this.urgeWeight : 0;
 
         if (fighting < 0) this.brakingOnMains[i] = 0;
-        if (fighting >= 0) wantAngle = this.burnOrFight(i, b, fighting, bodies, wantAngle, wantVx, wantVy, holdOut);
+        if (fighting >= 0) wantAngle = this.burnOrFight(i, b, this.fightAt, bodies, wantAngle, wantVx, wantVy, holdOut);
         else this.burning[i] = 0;
 
         // A ram is a race to the target, so it points its main thrust along the
@@ -4350,7 +4455,7 @@ export class Ships {
      * flight, so a battery that cannot train far is pointed where its shot will
      * meet the target rather than where the target is.
      */
-    private attackHeading(i: number, b: number, tb: number, bodies: Bodies, towards: number): number {
+    private attackHeading(i: number, b: number, at: Spot, bodies: Bodies, towards: number): number {
         const design = this.designs[i]!;
         const arcs = this.attackArcs;
         arcs.clear();
@@ -4364,10 +4469,10 @@ export class Ships {
         const current = angleDelta(bodies.angle[b]!, towards);
         const region = attackBearing(arcs, current, this.doctrines[i]!.approach.turnBias, design.thrustBearing, this.attackRegion);
         if (region.speed > 0) {
-            const dx = bodies.x[tb]! - bodies.x[b]!;
-            const dy = bodies.y[tb]! - bodies.y[b]!;
-            const dvx = bodies.vx[tb]! - bodies.vx[b]!;
-            const dvy = bodies.vy[tb]! - bodies.vy[b]!;
+            const dx = at.x - bodies.x[b]!;
+            const dy = at.y - bodies.y[b]!;
+            const dvx = at.vx - bodies.vx[b]!;
+            const dvy = at.vy - bodies.vy[b]!;
             const t = interceptTime(dx, dy, dvx, dvy, region.speed);
             if (t > 0) towards = atan2(dy + dvy * t, dx + dvx * t);
         }
@@ -4388,7 +4493,7 @@ export class Ships {
     private burnOrFight(
         i: number,
         b: number,
-        tb: number,
+        at: Spot,
         bodies: Bodies,
         attack: number,
         wantVx: number,
@@ -4431,7 +4536,7 @@ export class Ships {
         const by = dodging ? min(turned, this.dodgeWhen) : turned;
         const gain = max(0, min(dv, turnedRate * max(0, by - turn)) - min(dv, heldRate * by)) / dv;
 
-        const range = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!);
+        const range = length(at.x - bodies.x[b]!, at.y - bodies.y[b]!);
         // On the run out of a pass or back in, its guns wait for its mains.
         const near = this.running[i] === 1 ? 0 : range > maxRange && maxRange > 0 ? maxRange / range : 1;
         const burn = approach.burnWeight * gain;
@@ -4440,7 +4545,7 @@ export class Ships {
         // whatever the score, since its approach was planned on them.
         if (this.brakingOnMains[i] === 1) {
             this.burning[i] = 1;
-            return atan2(bodies.y[b]! - bodies.y[tb]!, bodies.x[b]! - bodies.x[tb]!) - design.thrustBearing;
+            return atan2(bodies.y[b]! - at.y, bodies.x[b]! - at.x) - design.thrustBearing;
         }
         const now = this.burning[i] === 1 ? burn * (1 + BURN_MARGIN) > hold : burn > hold * (1 + BURN_MARGIN);
         this.burning[i] = now ? 1 : 0;
@@ -4650,19 +4755,19 @@ export class Ships {
      * Close on `other` at `speed`, with nothing across the line between them,
      * and no braking to arrive: a ram is meant to hit.
      */
-    private charge(bodies: Bodies, b: number, other: number, speed: number): void {
-        const dx = bodies.x[other]! - bodies.x[b]!;
-        const dy = bodies.y[other]! - bodies.y[b]!;
+    private charge(bodies: Bodies, b: number, at: Spot, speed: number): void {
+        const dx = at.x - bodies.x[b]!;
+        const dy = at.y - bodies.y[b]!;
         const range = length(dx, dy);
         const close = range > 0 ? speed / range : 0;
-        this.urge(URGE_REFERENCE, bodies.vx[other]! + dx * close, bodies.vy[other]! + dy * close);
+        this.urge(URGE_REFERENCE, at.vx + dx * close, at.vy + dy * close);
     }
 
     private hold(
         bodies: Bodies,
         i: number,
         b: number,
-        other: number,
+        at: Spot,
         minRange: number,
         maxRange: number,
         approachSpeed: number,
@@ -4677,15 +4782,15 @@ export class Ships {
             this.running[i] = 0;
         }
         if (!(weight > 0)) return;
-        const dx = bodies.x[other]! - bodies.x[b]!;
-        const dy = bodies.y[other]! - bodies.y[b]!;
+        const dx = at.x - bodies.x[b]!;
+        const dy = at.y - bodies.y[b]!;
         const range = length(dx, dy);
         if (fighting && range > 0 && this.doctrines[i]!.approach.tangentialMax > 0) {
-            this.pass(bodies, i, b, other, dx / range, dy / range, range, minRange, maxRange, approachSpeed, fightingAt, weight);
+            this.pass(bodies, i, b, at, dx / range, dy / range, range, minRange, maxRange, approachSpeed, fightingAt, weight);
             return;
         }
-        let vx = bodies.vx[other]!;
-        let vy = bodies.vy[other]!;
+        let vx = at.vx;
+        let vy = at.vy;
         if (range > 0) {
             // How far outside the band, signed: positive means too far away.
             const outside = range > maxRange ? range - maxRange : range < minRange ? range - minRange : 0;
@@ -4766,7 +4871,7 @@ export class Ships {
         bodies: Bodies,
         i: number,
         b: number,
-        other: number,
+        at: Spot,
         ux: number,
         uy: number,
         range: number,
@@ -4779,8 +4884,8 @@ export class Ships {
         const approach = this.doctrines[i]!.approach;
         const lo = approach.tangentialMin;
         const hi = approach.tangentialMax;
-        const rvx = bodies.vx[b]! - bodies.vx[other]!;
-        const rvy = bodies.vy[b]! - bodies.vy[other]!;
+        const rvx = bodies.vx[b]! - at.vx;
+        const rvy = bodies.vy[b]! - at.vy;
         const across = ux * rvy - uy * rvx;
         // Kept until it is plainly going round the other way, so a craft with
         // next to no sideways speed does not flip from side to side.
@@ -4816,7 +4921,7 @@ export class Ships {
             wantX = ux * radial + tx * speed;
             wantY = uy * radial + ty * speed;
         }
-        this.urge(weight, bodies.vx[other]! + wantX, bodies.vy[other]! + wantY);
+        this.urge(weight, at.vx + wantX, at.vy + wantY);
     }
 
     /**
@@ -4875,7 +4980,16 @@ export class Ships {
         const weight = this.defendingOf(i) === consort ? URGE_REFERENCE : cohesionUrge(this.doctrines[i]!.targeting, gap, station);
         const told = this.getCurrentOrder(i);
         const speed = told?.defend === true && told.target === consort ? told.speed : undefined;
-        this.hold(bodies, i, b, cb, 0, station, speed ?? this.doctrines[i]!.approach.approachSpeed, weight);
+        this.hold(
+            bodies,
+            i,
+            b,
+            this.locate(bodies, consort, cb, this.coverAt),
+            0,
+            station,
+            speed ?? this.doctrines[i]!.approach.approachSpeed,
+            weight,
+        );
         return consort;
     }
 
@@ -5386,7 +5500,8 @@ export class Ships {
         // weapons layer amidships is deck its rounds pass over.
         const hooked = targetBody === bodies.indexOf(this.bodyIds[i]!);
         const layers = this.mountLayers(i, mount);
-        if (!refusesAnything(doctrine) && this.meetsWhole(layers, target) && !hooked) return WHOLE_SHIP;
+        if (!refusesAnything(doctrine) && this.meetsWhole(layers, target) && !hooked && !this.sharesBody(target, targetBody))
+            return WHOLE_SHIP;
 
         // One that *has* refused something cannot: a ship's centre is whatever is
         // amidships, which on most hulls is the plating a beam has just turned

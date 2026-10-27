@@ -54,3 +54,15 @@ it("holds fire on a target behind a rock, however far past the muzzle the rock i
     expect(duel(false)).toBeGreaterThan(0);
     expect(duel(true)).toBe(0);
 });
+
+it("goes for an enemy in sight over a nearer one behind a rock", () => {
+    const run = makeBattle({ seed: 1 }, (ships, world) => {
+        ships.spawn(world, { design: rock(), x: 0, y: 0, team: NEUTRAL_TEAM });
+        const hunter = ships.spawn(world, { design: compileBlueprint(GUNSHIP), x: -700, y: 0, team: 0 });
+        ships.spawn(world, { design: compileBlueprint(GUNSHIP), x: 700, y: 0, angle: math.PI, team: 1 });
+        const open = ships.spawn(world, { design: compileBlueprint(GUNSHIP), x: -700, y: 1600, angle: -math.HALF_PI, team: 1 });
+        return { hunter, open };
+    });
+    for (let t = 0; t < 60; t++) run.step();
+    expect(run.ships.fightingOf(run.hunter)).toBe(run.open);
+});
