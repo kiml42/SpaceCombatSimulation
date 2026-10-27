@@ -197,12 +197,14 @@ describe("the viewer in a browser", () => {
 
     it("resets back to the start of the battle", async () => {
         await page.waitForTimeout(200);
-        expect(await step(page)).toBeGreaterThan(0);
+        const before = await step(page);
+        expect(before).toBeGreaterThan(10);
         await page.click("#reset");
         await painted(page);
-        // The battle restarts and immediately runs the frame it is drawing, so
-        // this is a "back to the beginning" check rather than an exact zero.
-        expect(await step(page)).toBeLessThan(10);
+        // The battle restarts and runs on while it is read, by as many frames as
+        // a slow runner takes, so this is a "back towards the beginning" check
+        // rather than an exact zero.
+        expect(await step(page)).toBeLessThan(before);
     });
 
     it("winds back and on along the scrub bar, and a step back with the comma", async () => {

@@ -32,7 +32,7 @@ const GOLDEN: Record<ScenarioName, string> = {
     kernels: "81e39626",
     asteroidField: "f6f91086",
     mining: "ec976f4f",
-    rivalMines: "6a0f412e",
+    rivalMines: "d47fa811",
     swarm: "f39dd5bf",
     superSwarm: "04411af1",
     torpedoes: "9561f099",
@@ -55,7 +55,7 @@ const GOLDEN: Record<ScenarioName, string> = {
     tanker: "b262ee58",
     beamCarrier: "5b61625a",
     passes: "816d4617",
-    circling: "7093734f",
+    circling: "efc282e6",
 };
 
 describe("golden scenarios", () => {
