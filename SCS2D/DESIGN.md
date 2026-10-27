@@ -227,6 +227,10 @@ inside any one file is not contiguous.
   reach. Reach is against what it will fire on: the whole ship, or the part it picked if its doctrine minds
   what it hits. The same distance bounds the check for a consort in the line of fire, since a friend beyond
   where the shot goes is in the way of nothing.
+  **A rock is in the way at any range.** A target behind an asteroid ranks with one out of the mount's arc,
+  tracked but not preferred, and a mount does not fire while a rock lies across its shot short of the target.
+  Checked against each rock's bounding circle rather than by a cast: there are few rocks, and a round spent
+  on one is wasted however far down the line it is.
   **A gun's reach is a property of the target as much as of the gun.** Against something that does not
   manoeuvre a shot is accurate at any range: the solution is exact and the round merely takes a while. What
   spoils it is the target changing velocity after the trigger, and the spread of where it might then be
@@ -512,6 +516,12 @@ inside any one file is not contiguous.
   quarter of the contacts in the Star Wars scene and a third of those between a fighter and a capital, half
   in the swarm and two thirds in the column; what it does not do is stop fighters flying through each other,
   whose bubbles are as small as they are.
+  **An asteroid is looked for as far ahead as missing it takes.** A pass that would bring a craft within its
+  own clearance of a rock grows urgent from `rockMargin` seconds before the time turning its mains aside and
+  pushing clear on them would take, and once that is most of what it wants it turns its mains to it, as a
+  ram does, rather than keep its guns on target. So a slow capital looks further ahead than a fighter. Not
+  while closing to grip or land, when it is among rocks on purpose. Across sixty seeds of the asteroid field,
+  ships ran into rocks 6 times where they had 51.
   **Generations are bred and run.** A population is seeded from the ships a run is started with and mutants
   of them; matches are drawn until every design has had its hearing — fewest meetings with whoever is
   already in the match, then fewest matches played, then the draw, since a design that has only ever met one

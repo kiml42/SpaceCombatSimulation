@@ -1324,6 +1324,8 @@ export class Ships {
     /** The heaviest dodge in the blend: how much it is wanted, and seconds until the near miss. */
     private dodgeWeight = 0;
     private dodgeWhen = 0;
+    /** Whether that dodge is from a rock. */
+    private dodgeRock = false;
     /** Where the threats a fleeing craft weighs lie, as a weighted sum of directions to them (`threats`). */
     private threatX = 0;
     private threatY = 0;
@@ -1372,6 +1374,10 @@ export class Ships {
     private readonly partAt = { x: 0, y: 0 };
     /** Where a shot would land, for the friendly check. Reused, never shared. */
     private readonly lineOfFire = new RayHit();
+    /** The ships that are asteroids, and a flag by ship, as of step `rocksAt`. */
+    private readonly rockShips: number[] = [];
+    private readonly rockFlag: number[] = [];
+    private rocksAt = -1;
 
     /** Turret reaction torque per body index, filled by `Turrets.step`. */
     private reaction = new Float64Array(64);
@@ -2351,7 +2357,9 @@ export class Ships {
                     !hooked && doctrine.sightWeight !== 0 && !inSight(bodies, gunX, gunY, b, tb)
                         ? { ...candidate, clear: false }
                         : candidate;
-                (candidate.range > against ? this.farChoice : clear ? this.choice : this.maskedChoice).offer(
+                // Behind an asteroid is as good as out of its arc: tracked, for when it comes out.
+                const open = clear && (hooked || !this.rockBetween(bodies, gunX, gunY, tx, ty, b, tb));
+                (candidate.range > against ? this.farChoice : open ? this.choice : this.maskedChoice).offer(
                     judged,
                     score(doctrine, candidate, against, design.mass, targets[t]!, mount.main ? focus : ownFocus),
                 );
@@ -3167,6 +3175,62 @@ export class Ships {
         return this.derelict[other] === 0 && !this.hostile(i, other);
     }
 
+    /**
+     * Whether an asteroid is across this shot, short of `target`: the line the
+     * round leaves on, out to the target's range. Checked against every rock's
+     * bounding circle rather than by a cast, because there are few of them and
+     * a shot is wasted on one however far down the line it is.
+     */
+    private rockInTheWay(bodies: Bodies, bodyIdx: number, target: number): boolean {
+        const tb = bodies.indexOf(this.bodyIds[target]!);
+        if (tb < 0) return false;
+        const x = this.solution.x;
+        const y = this.solution.y;
+        const range = length(bodies.x[tb]! - x, bodies.y[tb]! - y);
+        return this.rockBetween(bodies, x, y, x + this.solution.dirX * range, y + this.solution.dirY * range, bodyIdx, tb);
+    }
+
+    /**
+     * Whether an asteroid's bounding circle crosses the line from (`fromX`,
+     * `fromY`) to (`toX`, `toY`). Never body `own` or `to`, which a ship moored
+     * to a rock or a target clinging to one share, nor a rock the line starts
+     * inside, which says nothing about which way is blocked.
+     */
+    private rockBetween(bodies: Bodies, fromX: number, fromY: number, toX: number, toY: number, own: number, to: number): boolean {
+        const dx = toX - fromX;
+        const dy = toY - fromY;
+        const lengthSq = dx * dx + dy * dy;
+        if (!(lengthSq > 0)) return false;
+        for (let k = 0; k < this.rockShips.length; k++) {
+            const rock = this.rockShips[k]!;
+            if (this.alive[rock] === 0) continue;
+            const rb = bodies.indexOf(this.bodyIds[rock]!);
+            if (rb < 0 || rb === own || rb === to || bodies.ghost[rb] === 1) continue;
+            const ox = bodies.x[rb]! - fromX;
+            const oy = bodies.y[rb]! - fromY;
+            const r = bodies.radius[rb]!;
+            if (ox * ox + oy * oy < r * r) continue;
+            const along = (ox * dx + oy * dy) / lengthSq;
+            if (along <= 0 || along >= 1) continue;
+            const px = ox - along * dx;
+            const py = oy - along * dy;
+            if (px * px + py * py < r * r) return true;
+        }
+        return false;
+    }
+
+    /** Note which ships are asteroids, once a step: there are few, and every pilot and gun asks. */
+    private noteRocks(tick: number): void {
+        if (this.rocksAt === tick) return;
+        this.rocksAt = tick;
+        this.rockShips.length = 0;
+        for (let t = 0; t < this.alive.length; t++) {
+            const rock = this.alive[t] !== 0 && this.isAsteroid(t);
+            this.rockFlag[t] = rock ? 1 : 0;
+            if (rock) this.rockShips.push(t);
+        }
+    }
+
     /** How long this mount waits before reconsidering, in steps. */
     private turretRethinkTicks(world: World, t: number, design: ShipDesign): number {
         const mount = design.turrets[t]!;
@@ -3594,6 +3658,7 @@ export class Ships {
         const bodies = world.bodies;
         this.bodyStore = bodies;
         this.now = world.tick;
+        this.noteRocks(world.tick);
 
         // What every body's generators make this step, for what draws on it below.
         for (let i = 0; i < this.alive.length; i++) {
@@ -3673,6 +3738,7 @@ export class Ships {
     fire(world: World, projectiles: Projectiles, beams: Beams, grid: SpatialGrid, beamHits: BeamHits, log?: ImpactLog): FireReport {
         const bodies = world.bodies;
         this.bodyStore = bodies;
+        this.noteRocks(world.tick);
         let projectilesFired = 0;
         let beamsFired = 0;
 
@@ -3752,17 +3818,18 @@ export class Ships {
                 // A burst already committed is seen through: the emitter is lit and
                 // there is nothing to hold. Discipline is about pulling the trigger.
                 if (
-                    state != TurretState.CommittedOn &&
-                    this.friendlyInTheWay(
-                        bodies,
-                        grid,
-                        i,
-                        bodyIdx,
-                        gun,
-                        target === NO_TARGET ? design.turrets[t]!.reach : this.turrets.fireReach[ti]!,
-                        target,
-                        this.mountLayers(i, design.turrets[t]!),
-                    )
+                    (state != TurretState.CommittedOn &&
+                        this.friendlyInTheWay(
+                            bodies,
+                            grid,
+                            i,
+                            bodyIdx,
+                            gun,
+                            target === NO_TARGET ? design.turrets[t]!.reach : this.turrets.fireReach[ti]!,
+                            target,
+                            this.mountLayers(i, design.turrets[t]!),
+                        )) ||
+                    (target !== NO_TARGET && this.rockInTheWay(bodies, bodyIdx, target))
                 ) {
                     continue;
                 }
@@ -4016,6 +4083,7 @@ export class Ships {
         this.urgeAy = 0;
         this.urgeWeight = 0;
         this.dodgeWeight = 0;
+        this.dodgeRock = false;
         let wantAngle = bodies.angle[b]!;
         // What it is fighting, if anything: the body, and how far out it holds it.
         let fighting = -1;
@@ -4162,6 +4230,12 @@ export class Ships {
             const dvx = wantVx - bodies.vx[b]!;
             const dvy = wantVy - bodies.vy[b]!;
             if (dvx * dvx + dvy * dvy > RAM_AIM_SPEED * RAM_AIM_SPEED) wantAngle = atan2(dvy, dvx);
+        } else if (this.dodgeRock && 2 * this.dodgeWeight >= this.urgeWeight) {
+            // So is getting out of a rock's way, once that is most of what it wants:
+            // held on target, a heavy hull's thrusters push it aside too slowly to miss.
+            const dvx = wantVx - bodies.vx[b]!;
+            const dvy = wantVy - bodies.vy[b]!;
+            if (dvx * dvx + dvy * dvy > RAM_AIM_SPEED * RAM_AIM_SPEED) wantAngle = atan2(dvy, dvx) - this.designs[i]!.thrustBearing;
         }
 
         const mass = bodies.mass[b]!;
@@ -5016,7 +5090,9 @@ export class Ships {
             const ob = bodies.indexOf(this.bodyIds[t]!);
             // Nothing to keep clear of in something that cannot be hit.
             if (ob < 0 || ob === b || bodies.ghost[ob] === 1 || !this.meets(b, ob)) continue;
-            if (ramming && ob === flyingBody) continue;
+            // Coming in to grip or land, it is among rocks on purpose, and keeps clear of them as of anything.
+            const rock = this.rockFlag[t] === 1 && !hulksOnly && !landing;
+            if ((ramming || rock) && ob === flyingBody) continue;
             if (ob === under) continue;
 
             const touching = mine + this.designs[t]!.radius;
@@ -5047,7 +5123,11 @@ export class Ships {
             // Soon is when they touch, if they will: the closest the middles come is
             // far later than that for anything large.
             const when = miss < touching && speedSq > 0 ? max(0, closest - sqrt((touching * touching - miss * miss) / speedSq)) : closest;
-            if (when > approach.avoidHorizon) continue;
+            // A pass that would come within its own clearance of a rock is looked for
+            // however far ahead it is: a rock is big, and does not get out of the way.
+            const clearance = mine * approach.separationRadii;
+            const need = rock ? touching + clearance - miss : 0;
+            if (when > approach.avoidHorizon && !(need > 0)) continue;
             // Nor a friend coming to land on it or dock with it: shying away from
             // that is refusing it.
             if (this.salvaging[t] === i && (this.landingPad[t]! >= 0 || this.dockPort[t]! >= 0)) continue;
@@ -5069,15 +5149,49 @@ export class Ships {
                 continue;
             }
 
-            const crowding = 1 - miss / (touching + room);
-            const soon = 1 - when / approach.avoidHorizon;
-            const weight = approach.separation * crowding * soon;
+            let weight =
+                when < approach.avoidHorizon
+                    ? approach.separation * (1 - miss / (touching + room)) * (1 - when / approach.avoidHorizon)
+                    : 0;
+            if (need > 0) weight = max(weight, approach.separation * this.rockUrgency(bodies, i, b, need, clearance, when, awayX, awayY));
             if (weight > this.dodgeWeight) {
                 this.dodgeWeight = weight;
                 this.dodgeWhen = when;
+                this.dodgeRock = rock;
             }
             this.urge(weight, vx + awayX * approach.dodgeSpeed, vy + awayY * approach.dodgeSpeed);
         }
+    }
+
+    /**
+     * How loudly ship `i` should keep clear of a rock it will pass `need` metres
+     * too close to in `when` seconds, from nothing to one.
+     *
+     * Against how long a sidestep takes it: turning its mains to (`awayX`,
+     * `awayY`), and then pushing `need` metres aside on them. Loudest from when it
+     * must start to make it, rising from nothing `rockMargin` seconds before
+     * that, so a heavy hull that turns slowly looks further ahead than a fighter.
+     * A dodge that only grew with nearness had a ship keep its guns on target
+     * until a rock was too close to miss. Scaled by `need` against `clearance`
+     * too, so it fades out at the edge of the clearance rather than stopping dead.
+     */
+    private rockUrgency(
+        bodies: Bodies,
+        i: number,
+        b: number,
+        need: number,
+        clearance: number,
+        when: number,
+        awayX: number,
+        awayY: number,
+    ): number {
+        const design = this.designs[i]!;
+        const approach = this.doctrines[i]!.approach;
+        const push = this.layoutOf(i).maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / bodies.mass[b]!;
+        const turn = this.turnTime(bodies, i, b, angleDelta(bodies.angle[b]!, atan2(awayY, awayX) - design.thrustBearing));
+        const takes = turn + approach.responseTime + (push > 0 ? sqrt((2 * need) / push) : Infinity);
+        const soon = clamp((takes + approach.rockMargin - when) / approach.rockMargin, 0, 1);
+        return (clearance > 0 ? min(1, need / clearance) : 1) * soon;
     }
 
     /** Train each of this ship's turrets on what it is fighting, leading it. */
