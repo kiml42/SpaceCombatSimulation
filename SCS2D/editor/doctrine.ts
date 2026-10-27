@@ -262,13 +262,31 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
     {
         field: "refuelBelow",
         label: "refuels below",
-        hint: "The share of a full load of fuel at or below which it goes to a friend to be refuelled: a fighter to a pad it fits on, anything else with a port to a port, a ship with a claw too, which docks only this low and otherwise scavenges. Also the fuel it keeps back when it fills a friend. 0 never goes, and keeps nothing back",
+        hint: "The share of a full load of fuel at or below which it goes to a friend to be refuelled: a fighter to a pad it fits on, anything else with a port to a port, a ship with a claw too, which docks only this low and otherwise scavenges. 0 never goes",
         step: 0.05,
     },
     {
         field: "rechargeBelow",
         label: "recharges below",
-        hint: "The share of its batteries at or below which a fighter goes to a friend’s pad to recharge, and the charge it keeps back when it charges a friend. 0 never goes",
+        hint: "The share of its batteries at or below which a fighter goes to a friend’s pad to recharge. 0 never goes",
+        step: 0.05,
+    },
+    {
+        field: "fuelReserve",
+        label: "keeps fuel",
+        hint: "The share of a full load of fuel it keeps for its own engines and weapons: its robots, slipways and pads take it no lower, and it gives none of it to a friend",
+        step: 0.05,
+    },
+    {
+        field: "metalReserve",
+        label: "keeps metal",
+        hint: "The share of a full load of metal it keeps for its own guns: its robots, slipways and pads take it no lower, and it gives none of it to a friend",
+        step: 0.05,
+    },
+    {
+        field: "chargeReserve",
+        label: "keeps charge",
+        hint: "The share of its batteries it keeps for its own engines and weapons: its robots, slipways and pads take it no lower, and it gives none of it to a friend",
         step: 0.05,
     },
     {
@@ -656,6 +674,9 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                                 ? `below ${Math.round(v.approach.rechargeBelow * 100)}% charged, on a pad`
                                 : "never",
                     }),
+                    entry("approach", "fuelReserve"),
+                    entry("approach", "metalReserve"),
+                    entry("approach", "chargeReserve"),
                     entry("approach", "deliverFuelAbove", {
                         absolute: (v) =>
                             v.approach.deliverFuelAbove > 0

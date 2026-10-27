@@ -116,7 +116,7 @@ function makeBattleOf() {
 describe("a ship told to deliver", () => {
     /** A Picket keeping back a third of its fuel, which never delivers of its own accord. */
     const giver = (): ShipDesign =>
-        compileBlueprint({ ...PICKET, doctrine: { ...PICKET.doctrine!, approach: { ...PICKET.doctrine!.approach, refuelBelow: 0.3 } } });
+        compileBlueprint({ ...PICKET, doctrine: { ...PICKET.doctrine!, approach: { ...PICKET.doctrine!.approach, fuelReserve: 0.3 } } });
 
     function scene() {
         return makeBattle({ seed: 3 }, (ships, world) => {

@@ -10,7 +10,10 @@
       "refuelBelow": 0.4,
       "rearmBelow": 0.5,
       "rockWeight": 20,
-      "tripWeight": 400
+      "tripWeight": 400,
+      "fuelReserve": 0.2,
+      "metalReserve": 0,
+      "chargeReserve": 0
     }
   },
   "hangar": {
