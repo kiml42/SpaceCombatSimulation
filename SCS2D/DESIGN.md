@@ -232,6 +232,11 @@ inside any one file is not contiguous.
   Checked against each rock's bounding circle rather than by a cast: there are few rocks, and a round spent
   on one is wasted however far down the line it is.
   So, for the ship, is an enemy behind a rock: it goes for one in sight first.
+  **A ship whose target is behind an asteroid orbits it** (`orbitWeight`): round the short way towards the
+  target, at its present distance, at the speed that holds that distance in the rock's pull, so it coasts round
+  on a free orbit rather than burning to hold off; round a rock with no pull, at the speed it has. Blended with
+  the approach rather than replacing it, and as loud as the rock is deep in the line, so it gives way to the
+  approach as the line clears.
   **A ship sharing a body is where its own modules are.** Hooked to a friend or welded to a rock, its body's
   middle is somebody else's: it is flown at, ranged on and judged by the size of the modules it works, and a
   mount aims at one of those rather than at the middle of the whole. The check for a friend in the line of

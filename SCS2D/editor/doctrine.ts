@@ -136,6 +136,12 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
         hint: "How much sooner than it must it starts getting out of an asteroid’s way, seconds",
         step: 1,
     },
+    {
+        field: "orbitWeight",
+        label: "orbits rocks",
+        hint: "How much it wants to orbit an asteroid hiding what it is fighting, against doing what it was told",
+        step: 0.25,
+    },
     { field: "dodgeSpeed", label: "dodges at", hint: "The sideways speed it asks for to get out of the way, metres per second", step: 10 },
     {
         field: "responseTime",
@@ -685,6 +691,7 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                     }),
                     entry("approach", "avoidHorizon", { shown: (v) => v.approach.separation > 0 }),
                     entry("approach", "rockMargin", { shown: (v) => v.approach.separation > 0 }),
+                    entry("approach", "orbitWeight"),
                     entry("approach", "dodgeSpeed", { shown: (v) => v.approach.separation > 0 }),
                 ],
             },
