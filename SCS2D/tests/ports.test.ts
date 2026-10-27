@@ -17,10 +17,10 @@ function picketOf(refuelBelow = 0.5, tank = 4): ShipDesign {
     return compileBlueprint({ ...blueprint, doctrine: { ...PICKET.doctrine!, approach: { ...PICKET.doctrine!.approach, refuelBelow } } });
 }
 
-function tankerOf(refuelBelow = 0.25, engines = true): ShipDesign {
+function tankerOf(fuelReserve = 0.25, engines = true): ShipDesign {
     const doctrine = compileBlueprint(TANKER).doctrine;
     const modules = TANKER.modules!.filter((m) => engines || (m as { kind: string }).kind !== "engine");
-    return compileBlueprint({ ...TANKER, modules, doctrine: { ...doctrine, approach: { ...doctrine.approach, refuelBelow } } });
+    return compileBlueprint({ ...TANKER, modules, doctrine: { ...doctrine, approach: { ...doctrine.approach, fuelReserve } } });
 }
 
 interface Setup {

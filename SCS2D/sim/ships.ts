@@ -6387,8 +6387,7 @@ export class Ships {
      * `ROBOT_BUILD_ENERGY` of charge from the piece as it goes, so metal sets how
      * many it builds at once and charge how fast. Short of charge, the most
      * nearly finished are built first. Only from what is over what its doctrine
-     * keeps back for its fighters (`rearmBelow`, `rechargeBelow`): forty robots
-     * started at once would otherwise leave its pads nothing to fill them with. Short by `robotsKept`,
+     * keeps for its own engines and weapons (`metalReserve`, `chargeReserve`). Short by `robotsKept`,
      * counting those out on a rock. Says whether one was started or finished.
      */
     private buildRobots(b: number, design: ShipDesign, robots: Robot[], dt: number): boolean {
@@ -6477,9 +6476,10 @@ export class Ships {
                         robot.brought = 0;
                     }
                 }
-                // Charged as it is filled, as fast as there is charge to give.
+                // Charged as it is filled, as fast as there is charge to give over
+                // what the ship keeps for its engines and weapons.
                 const want = min(ROBOT_CHARGE - robot.charge, (ROBOT_CHARGE / ROBOT_REFILL_TIME) * dt * working);
-                const spare = this.power.pieceHeld(b, robot.bay);
+                const spare = this.power.pieceHeld(b, robot.bay) - this.chargeReserve(b, robot.bay);
                 if (want > 0 && spare > 0) robot.charge += this.power.drain(b, robot.bay, want < spare ? want : spare);
                 // Waits to be full while its piece of hull has the charge to fill it.
                 if (robot.refill > 0 || (robot.charge < ROBOT_CHARGE - 1 && spare > want)) return unloaded;
@@ -8216,28 +8216,28 @@ export class Ships {
     }
 
     /**
-     * What the ship working module `m` of body `b` keeps back for itself from
-     * that module's piece of hull, kg: its doctrine's `refuelBelow` of a full
-     * load, below which it would go to a friend for fuel itself.
+     * The fuel the ship working module `m` of body `b` keeps back from that
+     * module's piece of hull for its own engines and weapons, kg: its
+     * doctrine's `fuelReserve` of a full load.
      */
     private reserve(b: number, m: number): number {
         const owner = this.pilotAt(b, m);
-        const below = owner < 0 ? 0 : this.doctrines[owner]!.approach.refuelBelow;
-        return below > 0 ? below * (this.fuel.pieceHeld(b, m) + this.fuel.pieceRoom(b, m)) : 0;
+        const kept = owner < 0 ? 0 : this.doctrines[owner]!.approach.fuelReserve;
+        return kept > 0 ? kept * (this.fuel.pieceHeld(b, m) + this.fuel.pieceRoom(b, m)) : 0;
     }
 
-    /** The same for charge, kept back by its doctrine's `rechargeBelow`. */
+    /** The same for charge, its doctrine's `chargeReserve`. */
     private chargeReserve(b: number, m: number): number {
         const owner = this.pilotAt(b, m);
-        const below = owner < 0 ? 0 : this.doctrines[owner]!.approach.rechargeBelow;
-        return below > 0 ? below * (this.power.pieceHeld(b, m) + this.power.pieceRoom(b, m)) : 0;
+        const kept = owner < 0 ? 0 : this.doctrines[owner]!.approach.chargeReserve;
+        return kept > 0 ? kept * (this.power.pieceHeld(b, m) + this.power.pieceRoom(b, m)) : 0;
     }
 
-    /** The same for metal: its doctrine's `rearmBelow` of a full load. */
+    /** The same for metal, its doctrine's `metalReserve`. */
     private metalReserve(b: number, m: number): number {
         const owner = this.pilotAt(b, m);
-        const below = owner < 0 ? 0 : this.doctrines[owner]!.approach.rearmBelow;
-        return below > 0 ? below * (this.metal.pieceHeld(b, m) + this.metal.pieceRoom(b, m)) : 0;
+        const kept = owner < 0 ? 0 : this.doctrines[owner]!.approach.metalReserve;
+        return kept > 0 ? kept * (this.metal.pieceHeld(b, m) + this.metal.pieceRoom(b, m)) : 0;
     }
 
     /**

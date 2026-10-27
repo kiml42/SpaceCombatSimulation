@@ -805,6 +805,11 @@ inside any one file is not contiguous.
   Holding, it idles. An order outranks it, and a fighter closing on a source
   commits as it does to ram. The stock **Scavenger** is built for it, its tank starting a fifth full, and `scavenge` has two of them drain
   three wrecks; evolution draws claws at a weight of one.
+  **What a ship keeps for itself**: its doctrine's `fuelReserve`, `metalReserve` and `chargeReserve` (a
+  quarter of its fuel and of its charge, and no metal, by default) are shares of a full load kept for its own
+  engines and weapons. Nothing it gives a friend through a pad, port or slipway, and nothing its robots are
+  built or refilled with, takes it below them; mending, on a pad or by robots, may. They are not the
+  `refuelBelow`, `rechargeBelow` and `rearmBelow` that send a ship to a friend for more.
   **A pad** (`pad`) is a deck a friendly fighter lands on: never thick and never in the weapons layer, with a
   pump of `PAD_PUMP_PER_METRE` for every metre of its width. A fighter with no claw whose fuel is down to its
   doctrine's `refuelBelow` of a full load, or its charge to its `rechargeBelow` (a quarter each, by default),
@@ -838,7 +843,7 @@ inside any one file is not contiguous.
   their own carrier's. The two move off together with
   the momentum they had between them, and it lifts off moving as the pad was. Nothing it has is made part
   of the carrier's hull, so filling, mending and building it remake only the fighter. It idles while the pad fills it from what the
-  carrier can spare above the carrier's own `refuelBelow`, and **mends it**: `PAD_REPAIR_PER_METRE` of
+  carrier can spare above the carrier's own reserves, and **mends it**: `PAD_REPAIR_PER_METRE` of
   damage a second for every metre of the pad's width, cores first, then engines and weapons, then the rest,
   each joule taking `REPAIR_ENERGY_PER_JOULE` of the carrier's charge and the metal the module had shed and
   `REPAIR_WASTE` more, the waste counted as discarded — reserves and all, since repairing and rebuilding
@@ -846,7 +851,8 @@ inside any one file is not contiguous.
   nothing is left to mend, **it builds back what the fighter has lost**, as robots do and at the same work
   for its rate: fittings first, then a shell's walls, then a module lost, against what is left of the
   fighter, cores first, paid for in the carrier's metal and charge. The pad lets it go when it is full,
-  mended and whole, when there is no more to spare, or at once when it is given an order — unless the
+  mended and whole, when there is no more to spare and the carrier is not anchored (an anchored carrier is
+  mining or scavenging, so more is coming, and the fighter waits for it), or at once when it is given an order — unless the
   fighter has nothing to fight, or its target is further off than its `sortieRange` times its reach (4 by
   default), when it stays aboard. A fighter that cannot fight never waits. The `padRebuild`
   scenario has two Dinkies, each short of an outrigger engine, land on a Workshop, a Tender with a hold, and
@@ -862,7 +868,7 @@ inside any one file is not contiguous.
   metal to start and charge to finish:** a robot's metal is taken when it is started, and is aboard from then
   as the robot, so the metal it has decides how many it starts; each then draws `ROBOT_BUILD_ENERGY` of charge
   over its `ROBOT_BUILD_TIME`, so charge decides how fast, the most nearly finished first when there is not
-  enough. Only from what is over what its doctrine keeps back for its fighters. A robot taken aboard off a rock
+  enough. Only from what is over its reserves. A robot taken aboard off a rock
   takes the place of the least finished one it is building, whose metal goes back. **While its ship is moored to a rock it keeps
   `robotsPerBerth` robots to a berth** (one by default, any number from one up, whole robots only;
   `robotsKept`), building the extra only into a free berth: the extra work the rock, and a robot coming home to
@@ -1050,7 +1056,7 @@ inside any one file is not contiguous.
   the last stretch at half a metre a second. Two ports mate when they meet within 30° of face to face at no
   more than `PORT_SPEED` and one of the two ships was making for exactly that pair; fuel then passes, through
   the narrower coupling, into whichever is refuelling from what the other can spare above its own
-  `refuelBelow`, and they part when it is full, nothing more can be spared, or either is given an order. A
+  reserve, and they part when it is full, nothing more can be spared, or either is given an order. A
   ship with a claw as well docks only once it is that low, and is filled until full; above it, it scavenges
   by its `scavengeFuelBelow` instead, so a tender with `scavengeFuelBelow` set high scavenges whenever it has room worth
   the trip and takes fuel from its carrier only when it is nearly dry. Which ship a port fills is the one
@@ -1077,7 +1083,7 @@ inside any one file is not contiguous.
   launch onto whichever part carries them. The stock **Beam Carrier** is built this way: eight pads, each
   with a battery beside it, a Dinky Beam on every pad, and a tender with a claw docked amidships. It is
   reinforced and armed only with two light turrets, so its fighters do the fighting. In the
-  `beamCarrier` scenario its tender, above the carrier's `refuelBelow` of a tenth, casts off at once to scavenge
+  `beamCarrier` scenario its tender, above the carrier's fuel reserve of a tenth, casts off at once to scavenge
   from two wrecks, and once full brings what it holds over three fifths back to the carrier; its fighters fight
   a wave of eight Dinkies on their batteries and come back to the pads, leaving with every store full.
   **Metal.** A `hold` archetype whose interior is metal (`METAL_DENSITY`, steel racked about half solid), and
@@ -1132,7 +1138,7 @@ inside any one file is not contiguous.
   firing flat out beside what it generates. Severed chunks take their own power: charge goes with its
   module, as fuel and metal do. **Docks pass charge**: a pad fills what has landed on it, and a port the ship that is
   refuelling, at `DOCK_POWER_PER_METRE` of the part's width, from what the giver can spare above its
-  `rechargeBelow`; a dock holds until charge is full too, and a fighter whose batteries are down to its
+  reserve; a dock holds until charge is full too, and a fighter whose batteries are down to its
   `rechargeBelow` goes to a pad for charge alone. A battery's room is what damage leaves it, so a pad never
   holds a fighter to fill cells that are broken. Evolution draws batteries and generators at a weight of
   one each, and a mutation does not turn either, since neither has a facing that matters.
