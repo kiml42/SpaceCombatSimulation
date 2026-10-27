@@ -5278,7 +5278,8 @@ export class Ships {
             if (ob < 0 || ob === b || bodies.ghost[ob] === 1 || !this.meets(b, ob)) continue;
             // Coming in to grip or land, it is among rocks on purpose, and keeps clear of them as of anything.
             const rock = this.rockFlag[t] === 1 && !hulksOnly && !landing;
-            if ((ramming || rock) && ob === flyingBody) continue;
+            // Landing, nothing riding the hull it lands on: a copy on its carrier's slipway is that hull.
+            if ((ramming || rock || landing) && ob === flyingBody) continue;
             if (ob === under) continue;
 
             const touching = mine + this.designs[t]!.radius;
