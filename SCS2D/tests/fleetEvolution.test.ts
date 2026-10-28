@@ -27,7 +27,7 @@ const SHORT = { duration: 20 };
 
 /** Limits that make only the one change: a design, every ship's move, or one change to what the fleet is made of. */
 function only(change: FleetOperator | "design" | "move"): Partial<FleetMutationLimits> {
-    const operators = { add: 0, remove: 0, fork: 0, merge: 0, swap: 0, pad: 0 };
+    const operators = { add: 0, remove: 0, fork: 0, merge: 0, swap: 0, pad: 0, steal: 0 };
     if (change === "design") return { design: 1, move: 0, change: 0, operators };
     if (change === "move") return { design: 0, move: 1, change: 0, operators };
     operators[change] = 1;
@@ -144,7 +144,7 @@ describe("breeding a fleet", () => {
     });
 
     it("makes a change with every operator, each within the limits", () => {
-        const limits = { radius: 500, maxShips: 24, budget: NO_BUDGET };
+        const limits = { radius: 500, maxShips: 24, budget: NO_BUDGET, rivals: [carrierFleet()] };
         const parents: Record<FleetOperator | "design" | "move", Fleet> = {
             design: LINE_OF_BATTLE,
             move: LINE_OF_BATTLE,
@@ -154,12 +154,33 @@ describe("breeding a fleet", () => {
             merge: LINE_OF_BATTLE,
             swap: LINE_OF_BATTLE,
             pad: carrierFleet(),
+            steal: pair(),
         };
         for (const [operator, parent] of Object.entries(parents) as [FleetOperator | "design" | "move", Fleet][]) {
             const child = mutateFleet(parent, new Rng(11), { ...limits, ...only(operator) });
             expect(child.edits.length, operator).toBeGreaterThan(0);
             expect(fleetFits(child.fleet, limits), operator).toBe(true);
         }
+    });
+
+    it("steals a rival's design with the craft it builds, under names of its own", () => {
+        const child = mutateFleet(pair(), new Rng(3), { ...only("steal"), rivals: [carrierFleet()] });
+        expect(child.edits).toHaveLength(1);
+        const fleet = child.fleet;
+        expect(fleet.ships).toHaveLength(3);
+        const added = fleet.ships[2]!;
+        expect("design" in added && fleet.designs[added.design]).toBeTruthy();
+        // Its own Dinky is left alone; the copy's pad builds the copied one, renamed.
+        expect(JSON.stringify(fleet.designs["Dinky"])).toBe(JSON.stringify(DINKY));
+        const crafts = (fleet.designs["Dinky 2"] === undefined ? [] : ["Dinky 2"]).concat(
+            Object.values(fleet.designs).flatMap((design) =>
+                design.modules.flatMap((p) => ("craft" in p && p.craft !== undefined ? [p.craft] : [])),
+            ),
+        );
+        expect(crafts.every((name) => fleet.designs[name] !== undefined)).toBe(true);
+        expect(fleetFits(fleet, { radius: 500, maxShips: 24, budget: NO_BUDGET })).toBe(true);
+        // Nothing to copy from, nothing copied.
+        expect(mutateFleet(pair(), new Rng(3), only("steal")).edits).toEqual([]);
     });
 
     it("swaps a ship onto another of its fleet's designs, keeping the count", () => {
@@ -355,7 +376,7 @@ describe("designs a fleet carries but does not fly", () => {
         const rng = new Rng(9);
         for (let i = 0; i < 30; i++) {
             child = mutateFleet(child, rng, {
-                operators: { add: 0, remove: 0, fork: 1, merge: 1, swap: 1, pad: 0 },
+                operators: { add: 0, remove: 0, fork: 1, merge: 1, swap: 1, pad: 0, steal: 0 },
                 design: 1,
                 change: 1,
             }).fleet;

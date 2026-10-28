@@ -1,7 +1,7 @@
 import { Rng } from "../sim/index.js";
 import { max, min } from "../sim/math.js";
 import { BARE_CORE } from "../scenarios/blueprints.js";
-import { DEFAULT_MATCH, Match, type Entrant, type Score } from "./match.js";
+import { DEFAULT_MATCH, isFleet, Match, type Entrant, type Score } from "./match.js";
 import { breed, fitness, type Generation, type Individual } from "./generation.js";
 import {
     DEFAULT_RUN,
@@ -495,6 +495,9 @@ export class Coevolution {
     }
 
     private bred(s: Side): Generation {
+        // The other side's champions are what this one is bred against, and what it may copy a ship of.
+        const other = this.sides[s === this.sides[0] ? 1 : 0];
+        const rivals = other.hall.map((champion) => champion.entrant).filter(isFleet);
         return breed(
             s.generation,
             this.rng,
@@ -502,7 +505,7 @@ export class Coevolution {
                 population: s.config.population,
                 winners: s.config.winners,
                 limits: mutationLimits(s.config),
-                fleetLimits: fleetLimits(s.config),
+                fleetLimits: { ...fleetLimits(s.config), rivals },
             },
             () => this.nextId++,
         );

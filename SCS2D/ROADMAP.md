@@ -430,6 +430,10 @@ Deliberately unresolved; decide when they block something.
   so an enemy making passes at it does not count for it. Any change of velocity would be more general
   still, but would make running away a way to stay in. Raised by the author with the drills (DECISIONS.md
   2026-10-16), not built.
+- **Letting the skirmish enemy steal the player's designs in play.** The `steal` operator is off by default, as
+  copying could feel like cheating. Suggested by the author: the game might say the enemy is trying to
+  steal the player's designs, and let the player allow it, for a quicker answer, or refuse it. Wanted, not
+  settled: when it is offered, and whether a skirmish's odds can change once it has started.
 - **Whether the skirmish enemy should prefer the cheapest fleet that wins.** It stops at the first winner,
   so it grows only as it must, but it never shrinks, and drifts larger round by round. A preference for
   efficiency would let it get leaner as well as stronger.

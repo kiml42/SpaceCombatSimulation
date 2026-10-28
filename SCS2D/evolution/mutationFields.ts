@@ -326,6 +326,14 @@ export const MUTATION_FIELDS: readonly MutationField[] = [
         title: "Odds of pointing a pad at another fighter, or a slipway at another ship: one the fleet already has, a copy of its own to change separately, or a new bare core. Only in a fleet with a pad or slipway.",
     },
     {
+        name: "opSteal",
+        group: "fleet",
+        label: "opponent's design stolen",
+        step: 0.5,
+        value: DEFAULT_FLEET_LIMITS.operators.steal,
+        title: "Odds of stealing one of the opponent's designs, and whatever it builds, and adding a ship of it beside one of the fleet's own, to be bred apart from there: the player's fleet in a skirmish, the other side's champions in a co-evolution run of fleets. Never in a run with no opponent.",
+    },
+    {
         name: "doctrineTargeting",
         group: "doctrine",
         label: "targeting",
