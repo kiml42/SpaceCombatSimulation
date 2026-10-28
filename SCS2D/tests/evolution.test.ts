@@ -125,9 +125,9 @@ describe("a generation", () => {
     });
 });
 
-// Every test here fights whole generations: a couple of seconds each, and past
-// vitest's 5 s default on a loaded Windows runner. Headroom, not a budget.
-describe("a run", { timeout: 30_000 }, () => {
+// Every test here fights whole generations, some twice: up to about 14 s each on a desktop,
+// and over 30 s on a loaded Windows runner. Headroom, not a budget.
+describe("a run", { timeout: 120_000 }, () => {
     const settings = {
         seed: 3,
         population: 6,
