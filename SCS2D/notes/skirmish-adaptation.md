@@ -20,8 +20,8 @@ generations, and records per generation the best enemy's wins, its fleet's mass,
 found.
 
 Three seeds is a small sample. Read a difference between two columns as real only where it shows on more than
-one seed. The scripts were scratch tools, not committed; they drove `searchPool` from `host/answer.ts` with
-Node `worker_threads`.
+one seed. The tool is [`benchmarks/answerSearch.ts`](../benchmarks/README.md), committed afterwards from the
+scratch scripts these runs used. Variants were compared as separate checkouts, or with its `--settings`.
 
 ## What was wrong, and what changed
 

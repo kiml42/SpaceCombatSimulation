@@ -73,6 +73,10 @@ scenarios/  the battles, and the blueprints they fly, under blueprints/
             (battle.ts holds the assembly and the step order they share)
 evolution/  breeding and running a generation; imports sim/, never the host,
             and is bound by the same determinism rules
+benchmarks/ measuring tools, not part of the game: nothing imports from here
+            (benchmarks/README.md)
+notes/      write-ups of investigations, with their measurements, linked from
+            ROADMAP.md §12
 ```
 
 **The editor is independent of the running simulation and tightly coupled to the simulation's laws.** It

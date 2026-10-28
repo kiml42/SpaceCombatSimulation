@@ -7,4 +7,6 @@ dist/
 
 # Evolution run records: large, reproducible from their config and seed.
 runs/
+# Benchmark output: reproducible from the skirmish file and the options.
+benchmarks/results/
 storybook-static/
