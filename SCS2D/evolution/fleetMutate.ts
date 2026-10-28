@@ -606,8 +606,17 @@ function chimera(fleet: Fleet, rng: Rng): string[] {
     const design: Blueprint = { name, modules: joined };
     if (first.doctrine !== undefined) design.doctrine = first.doctrine;
     if (first.fighter === true && second.fighter === true) design.fighter = true;
+    // Only ever a bigger ship than the one rebuilt: a chimera is a way to grow, and
+    // cut down to less it is a smaller ship found the long way round.
+    const was = ship.design;
+    const before = entryMass(fleet, ship);
     fleet.designs[name] = design;
     ship.design = name;
+    if (blueprintProblem(withFleetFighters(design, fleet.designs)) !== null || !(entryMass(fleet, ship) > before)) {
+        delete fleet.designs[name];
+        ship.design = was;
+        return [];
+    }
     const of = first.name === second.name ? `two ${first.name}s` : `a ${first.name} and a ${second.name}`;
     return [`${name}, of ${of}, in place of a ${first.name}`];
 }

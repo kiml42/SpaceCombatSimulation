@@ -686,7 +686,7 @@ inside any one file is not contiguous.
   fleet spread out or drawn in about its middle by up to two fifths (`spread`, 0.5), a design made a tenth bigger
   or smaller whole (`scale`, 0.5), a chimera made (`chimera`, 0.5: two of its designs, or one twice, each cut
   at a face of a module with nothing sticking out of it, everything beyond the face dropped, and the halves joined
-  face to face into a new design one ship is rebuilt to), by their
+  face to face into a new design one ship is rebuilt to, if it is heavier than that ship), by their
   weights, or, where there is an opponent, one of its designs stolen — `steal`, 0 unless set: the player's fleet to a
   skirmish enemy, the other side's champions in a co-evolution run of fleets — the heavier the likelier, and a ship
   built to it with
