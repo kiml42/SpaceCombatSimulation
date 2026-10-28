@@ -1184,7 +1184,7 @@ inside any one file is not contiguous.
   and hand designs and fleets to each other in the address. The Skirmish route fights its rounds on
   `BattleCanvas`, while the skirmish, its history and the enemy's search live in a provider above the routes,
   so the search goes on while the player is elsewhere. The Evolution route fights its run in a worker, so it goes
-  on while the tab is hidden, holds a copy built from what the worker sends, replays its matches on
+  on while the tab is hidden, breeds the opening it previews in another so the page never hangs on it, holds a copy built from what the worker sends, replays its matches on
   `BattleCanvas` from that record, and kept the old page's settings. Nothing of the old pages is left.
   Repair, construction and salvage, one mechanism, is built in all six stages:
   damage shedding mass, pads mending landed fighters, robots mending their own hull, lost and built anew,
