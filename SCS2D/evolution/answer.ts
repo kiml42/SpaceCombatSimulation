@@ -230,12 +230,15 @@ export class EnemySearch {
      */
     take(): Ticket | null {
         if (this.found !== null) return null;
-        const index = this.handed;
         const each = this.each;
-        if (index >= this.standings.length * each) return null;
+        const enemies = this.standings.length;
+        if (this.handed >= enemies * each) return null;
+        // Every enemy's round first, the longest pieces, so no worker is left fighting one alone at the end.
+        const match = math.floor(this.handed / enemies);
+        const at = this.handed % enemies;
         this.handed++;
-        const enemy = this.standings[math.floor(index / each)]!.enemy;
-        const match = index % each;
+        const index = at * each + match;
+        const enemy = this.standings[at]!.enemy;
         const job: AnswerJob =
             match === 0
                 ? { kind: "round", enemy }
