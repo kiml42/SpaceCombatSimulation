@@ -5,7 +5,6 @@ Things that are obviously wrong.
 - Fuel tanks should stop supplying fuel when they are too damaged.
 - A miner anchored to an asteroid reads no robots in its bays (`ShipView.crews`), though its robots are out mining and loads come home.
 - A hull gun's barrel collides as the rectangle its module would be, not where the barrel is drawn. Nothing welds to a barrel (`onWeldablePart`), as a stop-gap until it collides where it is.
-- Scrub bar doesn't work in skirmish
 
 -----------------------------------------------------------------------
 
@@ -28,7 +27,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Range bands should be fuzzy (steer clear, escort and attack) with how much the ship wants to be in the band ramping up or down at the edges. This would stop sudden switching abruptly from getting closer to escort, and moving further to steer clear at the boundary (put 2 catamarans in a scene to see this behaviour). It would also let ships naturally settle into the range at which they burn their engines a bit continually when circling instead of pulsing when they get out of range.
 - Robots don't need to spread out on a module they're just passing over, they should travel a somewhat efficient route, and only spread out a bit if they would get in each other's way.
 - Ships often shoot at an asteroid that has one of their enemies crashed onto it.
-- Ships often try to shoot through an asteroid.
 
 ## Editor
 - (maybe) Allow dragging copies (when a module or assembly is set to be repeated) to set the offset (might get complicated with more than 2, so might need to restrict to the second one)
@@ -146,4 +144,3 @@ flying round asteroids in its way rather than relying on keeping clear, which lo
 - The game should be able to track multiple saved skirmishes internally, by name.
 - When the enemy are evolving, make the history fill the battle area.
   - In this mode the player's fleet should be put on the left, and the enemy on the right.
-- Enforces minors being a whole number, making 5 to 10 be impossible because that's 7.5 +- 2.5, should allow partials and round on pick (same for everything with a =-)
