@@ -13,7 +13,7 @@ const LIMITS = { radius: 500, maxShips: 24, budget: NO_BUDGET };
 
 /** Limits that make only the one change: a design, every ship's move, or one change to what the fleet is made of. */
 function only(change: FleetOperator | "design" | "move"): Partial<FleetMutationLimits> {
-    const operators = { add: 0, remove: 0, fork: 0, merge: 0, swap: 0, pad: 0, copy: 0 };
+    const operators = { add: 0, remove: 0, fork: 0, merge: 0, swap: 0, pad: 0, steal: 0 };
     if (change === "design") return { design: 1, move: 0, change: 0, operators };
     if (change === "move") return { design: 0, move: 1, change: 0, operators };
     operators[change] = 1;
@@ -81,7 +81,7 @@ describe("a fleet bred with a carrier in it", () => {
         const fleet: Fleet = { name: "F", designs: { Dinky: DINKY }, ships: [{ design: "Dinky", x: 0, y: 0 }] };
         const plain = mutateFleet(fleet, new Rng(3));
         const without = mutateFleet(fleet, new Rng(3), {
-            operators: { add: 1, remove: 1, fork: 0.5, merge: 0.5, swap: 0.5, pad: 0, copy: 0 },
+            operators: { add: 1, remove: 1, fork: 0.5, merge: 0.5, swap: 0.5, pad: 0, steal: 0 },
         });
         expect(JSON.stringify(plain)).toEqual(JSON.stringify(without));
     });
