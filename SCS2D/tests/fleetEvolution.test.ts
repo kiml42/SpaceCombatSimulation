@@ -220,21 +220,21 @@ describe("breeding a fleet", () => {
         expect([...ratios].sort()).toEqual(["in", "out"]);
     });
 
-    it("scales one design a tenth up or down, whole", () => {
+    it("scales one design up or down, whole, by about a tenth", () => {
         const fleet = pair();
         // Every module's size, as the geometry is scaled exactly; what it compiles to follows the scaling laws.
         const lengths = (design: Blueprint): number => expandBlueprint(design).reduce((sum, m) => sum + m.length, 0);
         const seen = new Set<string>();
-        for (let seed = 0; seed < 20; seed++) {
+        for (let seed = 0; seed < 40; seed++) {
             const child = mutateFleet(fleet, new Rng(seed), { ...only("scale"), move: 0 });
             if (child.edits.length === 0) continue;
-            expect(child.edits[0]).toMatch(/^Dinky scaled (up|down) by a tenth$/);
-            const ratio = lengths(child.fleet.designs["Dinky"]!) / lengths(DINKY);
-            expect([1.1, 1 / 1.1].some((factor) => Math.abs(ratio - factor) < 0.01)).toBe(true);
+            const factor = Number(/^Dinky scaled by ([\d.]+)$/.exec(child.edits[0]!)![1]);
+            expect(lengths(child.fleet.designs["Dinky"]!) / lengths(DINKY)).toBeCloseTo(factor, 2);
             expect(fleetFits(child.fleet, { radius: 500, maxShips: 24, budget: NO_BUDGET })).toBe(true);
-            seen.add(ratio > 1 ? "up" : "down");
+            seen.add(factor > 1 ? "up" : "down");
+            if (Math.abs(factor - 1) < 0.1) seen.add("near");
         }
-        expect([...seen].sort()).toEqual(["down", "up"]);
+        expect([...seen].sort()).toEqual(["down", "near", "up"]);
     });
 
     it("joins two designs' halves into a chimera one ship is rebuilt to", () => {
