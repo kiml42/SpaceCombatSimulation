@@ -107,8 +107,10 @@ describe("the skirmish enemy's answer", () => {
                 led = leader ?? led;
             }
             expect(led).not.toBeNull();
-            // The leader at the generation's end was its best.
-            expect(led!.enemy).toBe(running.progress.best.enemy);
+            // The generation's best was the leader, or the last enemy to finish, overtaking it, unless it answered.
+            const best = running.progress.best;
+            if (best.enemy !== led!.enemy && running.progress.found === null)
+                expect(best.wins * 1e9 + best.margin).toBeGreaterThan(led!.wins * 1e9 + led!.margin);
             // A new generation has fought nothing yet.
             if (running.progress.found === null) expect(running.leader).toBeNull();
         },
