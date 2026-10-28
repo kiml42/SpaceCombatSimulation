@@ -364,6 +364,21 @@ function ringRadius(
 }
 
 /**
+ * What a match is made from, as plain data: what a worker that bred a run's
+ * opening hands back, for the page to build the match itself.
+ */
+export interface MatchPlan {
+    readonly entrants: readonly Entrant[];
+    readonly config: Partial<MatchConfig>;
+    readonly teams?: readonly number[];
+}
+
+/** The match a plan describes. */
+export function planned(plan: MatchPlan): Match {
+    return new Match(plan.entrants, plan.config, plan.teams);
+}
+
+/**
  * A match in progress: the battle it is, and the tally being kept of it.
  *
  * **Built rather than run, so that the same match can be watched.** A headless
