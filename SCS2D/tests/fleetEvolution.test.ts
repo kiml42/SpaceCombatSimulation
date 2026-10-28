@@ -530,6 +530,8 @@ describe("a run-config file with fleets", () => {
                     design: 0.8,
                     move: 1.5,
                     change: 0.2,
+                    scaleSize: 0.3,
+                    spreadSize: 0.1,
                     operators: { ...DEFAULT_FLEET_LIMITS.operators, add: 3 },
                 },
             },

@@ -139,7 +139,7 @@ const VERSUS_KEYS: readonly string[] = [
     "evolves",
 ];
 
-const FLEET_KEYS: readonly string[] = ["radius", "maxShips", "design", "move", "change", "operators"];
+const FLEET_KEYS: readonly string[] = ["radius", "maxShips", "design", "move", "change", "scaleSize", "spreadSize", "operators"];
 const BUDGET_KEYS = ["metal", "fuel", "build"] as const;
 const OPERATOR_KEYS = Object.keys(DEFAULT_FLEET_LIMITS.operators) as FleetOperator[];
 
@@ -191,6 +191,8 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
             design: config.fleet.design ?? DEFAULT_FLEET_LIMITS.design,
             move: config.fleet.move ?? DEFAULT_FLEET_LIMITS.move,
             change: config.fleet.change ?? DEFAULT_FLEET_LIMITS.change,
+            scaleSize: config.fleet.scaleSize ?? DEFAULT_FLEET_LIMITS.scaleSize,
+            spreadSize: config.fleet.spreadSize ?? DEFAULT_FLEET_LIMITS.spreadSize,
             operators: { ...DEFAULT_FLEET_LIMITS.operators, ...config.fleet.operators },
         },
         match: {
@@ -290,10 +292,14 @@ function fleetProblem(fleet: unknown, where: string, warnings: string[]): string
         countProblem(fleet["maxShips"], `${where}.maxShips`) ??
         chanceProblem(fleet["design"], `${where}.design`) ??
         chanceProblem(fleet["change"], `${where}.change`) ??
-        numberProblem(fleet["move"], `${where}.move`);
+        numberProblem(fleet["move"], `${where}.move`) ??
+        numberProblem(fleet["scaleSize"], `${where}.scaleSize`) ??
+        numberProblem(fleet["spreadSize"], `${where}.spreadSize`);
     if (problem !== null) return problem;
     if (fleet["radius"] !== undefined && (fleet["radius"] as number) <= 0) return `${where}.radius must be more than nothing`;
-    if (fleet["move"] !== undefined && (fleet["move"] as number) < 0) return `${where}.move must be zero or more`;
+    for (const key of ["move", "scaleSize", "spreadSize"]) {
+        if (fleet[key] !== undefined && (fleet[key] as number) < 0) return `${where}.${key} must be zero or more`;
+    }
     const operators = fleet["operators"];
     if (operators !== undefined) {
         if (!isRecord(operators)) return `${where}.operators must be an object of weights, one per change`;
@@ -426,6 +432,8 @@ export function parseRunConfig(value: unknown): RunSetup {
                 design: read(fleet["design"], DEFAULT_FLEET_LIMITS.design),
                 move: read(fleet["move"], DEFAULT_FLEET_LIMITS.move),
                 change: read(fleet["change"], DEFAULT_FLEET_LIMITS.change),
+                scaleSize: read(fleet["scaleSize"], DEFAULT_FLEET_LIMITS.scaleSize),
+                spreadSize: read(fleet["spreadSize"], DEFAULT_FLEET_LIMITS.spreadSize),
                 operators: {
                     ...DEFAULT_FLEET_LIMITS.operators,
                     ...(isRecord(fleet["operators"]) ? (fleet["operators"] as Partial<Record<FleetOperator, number>>) : {}),

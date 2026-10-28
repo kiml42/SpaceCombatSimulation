@@ -342,12 +342,28 @@ export const MUTATION_FIELDS: readonly MutationField[] = [
         title: "Odds of moving every ship out from the fleet's middle, or in towards it, by one factor: the formation opened out or closed up in one step.",
     },
     {
+        name: "fleetSpreadSize",
+        group: "fleet",
+        label: "spread size",
+        step: 0.05,
+        value: DEFAULT_FLEET_LIMITS.spreadSize,
+        title: "How far a fleet spread or drawn in moves its ships, as a drift of the factor: at 0.25, a quarter out or in most often, now and then much further.",
+    },
+    {
         name: "opScale",
         group: "fleet",
         label: "design scaled",
         step: 0.5,
         value: DEFAULT_FLEET_LIMITS.operators.scale,
         title: "Odds of making one of the fleet's designs a tenth bigger or smaller, whole, and every ship of it with it.",
+    },
+    {
+        name: "fleetScaleSize",
+        group: "fleet",
+        label: "design scale size",
+        step: 0.05,
+        value: DEFAULT_FLEET_LIMITS.scaleSize,
+        title: "How much bigger or smaller a design scaled is made, as a drift of the factor: at 0.2, a fifth either way most often, now and then much more.",
     },
     {
         name: "opChimera",
@@ -399,6 +415,15 @@ export const MUTATION_FIELDS: readonly MutationField[] = [
     },
 ];
 
+/** The fleet fields that are not a change's odds, by name, and what each sets. */
+const FLEET_FIELDS: Readonly<Record<string, "design" | "move" | "change" | "scaleSize" | "spreadSize">> = {
+    fleetDesign: "design",
+    fleetMove: "move",
+    fleetChange: "change",
+    fleetScaleSize: "scaleSize",
+    fleetSpreadSize: "spreadSize",
+};
+
 /** Each field's default, by name. */
 export const MUTATION_DEFAULTS: Readonly<Record<string, number>> = Object.fromEntries(MUTATION_FIELDS.map((f) => [f.name, f.value]));
 
@@ -406,7 +431,7 @@ export const MUTATION_DEFAULTS: Readonly<Record<string, number>> = Object.fromEn
 export interface Breeding {
     readonly ship: Pick<MutationLimits, "magnitude" | "structural" | "geometry" | "thrusters" | "build" | "kinds" | "doctrine">;
     readonly operators: Readonly<Record<FleetOperator, number>>;
-    readonly fleet: Pick<FleetMutationLimits, "design" | "move" | "change">;
+    readonly fleet: Pick<FleetMutationLimits, "design" | "move" | "change" | "scaleSize" | "spreadSize">;
 }
 
 /**
@@ -428,10 +453,17 @@ export function breeding(value: (name: string) => number | undefined): Breeding 
     let structural = DEFAULT_LIMITS.structural;
     let geometry = DEFAULT_LIMITS.geometry;
     let thrusters = DEFAULT_LIMITS.thrusters;
-    const fleet = { design: DEFAULT_FLEET_LIMITS.design, move: DEFAULT_FLEET_LIMITS.move, change: DEFAULT_FLEET_LIMITS.change };
+    const fleet = {
+        design: DEFAULT_FLEET_LIMITS.design,
+        move: DEFAULT_FLEET_LIMITS.move,
+        change: DEFAULT_FLEET_LIMITS.change,
+        scaleSize: DEFAULT_FLEET_LIMITS.scaleSize,
+        spreadSize: DEFAULT_FLEET_LIMITS.spreadSize,
+    };
     for (const field of MUTATION_FIELDS) {
-        if (field.name === "fleetDesign" || field.name === "fleetMove" || field.name === "fleetChange") {
-            fleet[field.name === "fleetDesign" ? "design" : field.name === "fleetMove" ? "move" : "change"] = read(field);
+        const fleetKey = FLEET_FIELDS[field.name];
+        if (fleetKey !== undefined) {
+            fleet[fleetKey] = read(field);
             continue;
         }
         if (field.name === "magnitude") {
