@@ -196,7 +196,7 @@ mine in. What is left of it is in §12, for later.
   one shows the metal, fuel and worthless rock left, and Fit frames it; with Scavenge armed a click gives
   the order. The kernel is drawn distinctly.
 - **Fit frames a picked ship with what it is about**: what it is fighting, escorting, and the asteroid
-  or hulk it is scavenging. Picking a ship never moves the camera; Fit (F) does.
+  or hulk it is scavenging. Picking a ship moves the camera only while it is fitted; once moved by hand, only Fit (F) does.
 
 #### Orders (step 14)
 
