@@ -363,6 +363,8 @@ describe("the skirmish in a browser", () => {
         expect(await page.isVisible("#replaying")).toBe(true);
         // A match played again winds back, though no orders were given in it.
         await page.waitForFunction(() => Number((document.getElementById("scrub") as HTMLInputElement).max) > 120);
+        // Paused, since at the speed an earlier test left it the match would run back past where it was sent.
+        if ((await page.textContent("#play")) === "Pause") await page.click("#play");
         await page.$eval("#scrub", (input) => {
             // Through the input's own setter, which React does not watch, so the event reads as a change.
             Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, "0");
