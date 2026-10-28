@@ -5,7 +5,7 @@ import { CORVETTE, GUNSHIP } from "../scenarios/blueprints.js";
 import { customBattle, tally } from "../scenarios/customBattle.js";
 import { Activity, type Decision } from "../scenarios/decision.js";
 import { DEFAULT_SKIRMISH_SETTINGS, roundBattle } from "../scenarios/skirmish.js";
-import { damageDealt, damageScale, drillBattle, EnemySearch, JobRunner, share } from "../evolution/answer.js";
+import { better, damageDealt, damageScale, drillBattle, EnemySearch, JobRunner, share } from "../evolution/answer.js";
 
 const gunship = shipFleet(GUNSHIP);
 const corvette = shipFleet(CORVETTE);
@@ -71,9 +71,8 @@ describe("the skirmish enemy's answer", () => {
         expect(b.best.margin).toBe(a.best.margin);
     });
 
-    it("answers with the first enemy that truly wins the round, and counts no other as winning it", { timeout: 120_000 }, () => {
-        // Every enemy ahead on the round when its match ran out is checked to the decision before the
-        // generation is reported, so one reported as winning the round is the answer.
+    it("answers with an enemy that truly wins the round, and counts no other as winning it", { timeout: 120_000 }, () => {
+        // The round is fought to its decision, so one reported as winning it is the answer.
         const running = new EnemySearch(gunship, corvette, WON, 5);
         let seen = 0;
         for (let slice = 0; slice < 100 && !running.advance(2000); slice++) {
@@ -102,15 +101,13 @@ describe("the skirmish enemy's answer", () => {
                 const leader = running.leader;
                 // Never one part-way through its matches: who leads only changes for a better one.
                 if (led !== null) expect(leader).not.toBeNull();
-                if (led !== null && leader !== led)
-                    expect(leader!.wins * 1e9 + leader!.margin).toBeGreaterThan(led.wins * 1e9 + led.margin);
+                if (led !== null && leader !== led) expect(better(leader!, led)).toBe(true);
                 led = leader ?? led;
             }
             expect(led).not.toBeNull();
-            // The generation's best was the leader, or the last enemy to finish, overtaking it, unless it answered.
+            // The generation's best was the leader, or the last enemy to finish, overtaking it.
             const best = running.progress.best;
-            if (best.enemy !== led!.enemy && running.progress.found === null)
-                expect(best.wins * 1e9 + best.margin).toBeGreaterThan(led!.wins * 1e9 + led!.margin);
+            if (best.enemy !== led!.enemy) expect(better(best, led!)).toBe(true);
             // A new generation has fought nothing yet.
             if (running.progress.found === null) expect(running.leader).toBeNull();
         },

@@ -1232,16 +1232,16 @@ inside any one file is not contiguous.
   editor from the fleet editor's *Edit* and goes back to the fleet, skirmish and all. A round won, the
   enemy evolves an answer in a worker (`evolution/answer.ts`), which deals each generation's matches out to a
   job worker a spare core, coming out the same as fought in one, watched as each generation's best fights the
-  round, and the answer — the first mutant to beat the player's fleet on a new seed, picked as the round
-  is won, to the round's own decision — is the next round's enemy, fought on that seed, so the fleet that
+  round, and the answer — the best of the first generation with a mutant that beats the player's fleet on a
+  new seed, picked as the round is won, to the round's own decision — is the next round's enemy, fought on that seed, so the fleet that
   lost must change to win it. Beside its real matches each enemy fights drills that only add to its score:
   against a bare core, and against the player's fleet with itself made invincible (`Damage.protect`),
   scored on how much it destroys and how soon, so an enemy that cannot yet hurt the player's fleet before
   being stripped by it still has something to climb. Every match, real or drill, also scores the damage
   the enemy does, hits on anything but bare structure three times as much, on a log scale so the first few
   hits of an enemy that can barely hit count. Its matches are decided by the round's own rule, a side gone
-  quiet for the quiet time while the other fights being out, up to a time limit where the side ahead is taken
-  to win. How far ahead a side finishes is the share of its starting
+  quiet for the quiet time while the other fights being out: the round itself to its decision, by the margin
+  asked, and those on other seeds up to the match length, where the side ahead is taken to win. How far ahead a side finishes is the share of its starting
   mass it still has, less the other's, each never more than all of it, so a side that mines or builds is
   not counted as more than whole. A timeline
   lists every match, newest first, each side drawn as the evolution page draws a combatant, the player's

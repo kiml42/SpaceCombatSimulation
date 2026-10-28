@@ -183,9 +183,9 @@ export type JobMessage =
     | { readonly setup: { readonly player: unknown; readonly wonSeed: number; readonly settings: SkirmishSettings } }
     | { readonly job: WireJob };
 type WireJob =
+    | { readonly kind: "round"; readonly enemy: unknown }
     | { readonly kind: "match"; readonly enemy: unknown; readonly seed: number }
-    | { readonly kind: "drill"; readonly enemy: unknown; readonly drill: Drill }
-    | { readonly kind: "check"; readonly enemy: unknown };
+    | { readonly kind: "drill"; readonly enemy: unknown; readonly drill: Drill };
 
 /** Something to send a job worker messages and hear its results: a `MessagePort`, or a stand-in. */
 export interface JobPort {
