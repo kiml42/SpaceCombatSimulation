@@ -21,7 +21,7 @@ import {
     DEFAULT_DOCTRINE,
 } from "../sim/index.js";
 import { floor, max, min } from "../sim/math.js";
-import { isFleet, Match, SCORE_PARTS, type Entrant, type MatchConfig, type MatchResult } from "./match.js";
+import { isFleet, Match, planned, SCORE_PARTS, type Entrant, type MatchConfig, type MatchPlan, type MatchResult } from "./match.js";
 import { type MutationLimits } from "./mutate.js";
 import { DEFAULT_FLEET_LIMITS, type FleetMutationLimits } from "./fleetMutate.js";
 import { blank, breed, fitness, Generation, offspring, type Individual } from "./generation.js";
@@ -547,6 +547,12 @@ export class Run {
      * will not be fought.
      */
     unmutatedOpening(): Match | null {
+        const plan = this.unmutatedOpeningPlan();
+        return plan === null ? null : planned(plan);
+    }
+
+    /** `unmutatedOpening` as data, for a worker to hand back. */
+    unmutatedOpeningPlan(): MatchPlan | null {
         if (this.match === null && !this.over) this.open();
         if (this.match === null) return null;
         const individuals = this.generation.individuals;
@@ -559,7 +565,7 @@ export class Run {
         }
         for (const founder of founders) if (!drawn.includes(founder)) drawn.push(founder);
         const entrants = this.competitors.map((_, k) => drawn[k % drawn.length]!.entrant);
-        return new Match(entrants, { ...this.config.match, seed: this.seed });
+        return { entrants, config: { ...this.config.match, seed: this.seed } };
     }
 
     /** Draw the next match, or close the generation if it has had enough. */

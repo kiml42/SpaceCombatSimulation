@@ -253,7 +253,7 @@ export function battleView(
     /** A box being dragged out, canvas pixels. */
     let box: { x0: number; y0: number; x1: number; y1: number } | null = null;
     let autoFrame = true;
-    /** Whether auto-framing takes in the picked ships, as Fit asks, rather than everything; picking alone never does. */
+    /** Whether auto-framing takes in the picked ships, as Fit asks, rather than everything; so does picking, while fitted. */
     let framePicked = false;
     let framed = false;
     let running = false;
@@ -630,6 +630,8 @@ export function battleView(
         moveWithVisibleShips(camera, view, simDt, canvas.width, canvas.height);
         if (anchors !== null) moveAcrossJump(camera, anchors, view);
         if (autoFrame) {
+            // A camera still fitted fits to what is picked; one moved by hand is left where it is.
+            if (picked.length > 0) framePicked = true;
             if (!framed) {
                 frame(camera, view, framedWidth, canvas.height, 1);
                 framed = true;

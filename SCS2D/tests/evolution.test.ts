@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { blueprintProblem, Rng, type Blueprint } from "../sim/index.js";
 import { blank, breed, Generation, fitness } from "../evolution/generation.js";
-import { runMatch } from "../evolution/match.js";
+import { planned, runMatch } from "../evolution/match.js";
+import { openingPlan } from "../host/opening.js";
 import { entrantOf, finalist, Run, runEvolution, seedPopulation, DEFAULT_RUN } from "../evolution/run.js";
 import { CORVETTE, DINKY } from "../scenarios/blueprints.js";
 
@@ -154,6 +155,15 @@ describe("a run", { timeout: 30_000 }, () => {
         const first = new Run([CORVETTE, DINKY], { ...settings, generations: 1 }).finish().generations[0]!.matches[0]!;
         expect(opening.battle.slots).toHaveLength(first.competitors.length);
         expect(opening.result().seed).toEqual(first.seed);
+    });
+
+    it("previews the same match from a plan bred elsewhere and sent over as data", () => {
+        const plan = openingPlan({ founders: [CORVETTE, DINKY], rivals: [], config: settings, coevolution: null })!;
+        const opening = planned(structuredClone(plan));
+        const here = new Run([CORVETTE, DINKY], settings).unmutatedOpening()!;
+        expect(opening.result().seed).toEqual(here.result().seed);
+        expect(opening.battle.slots.length).toEqual(here.battle.slots.length);
+        expect(openingPlan({ founders: [], rivals: [], config: settings, coevolution: null })).toBeNull();
     });
 
     it("seeds a population from what it was given", () => {

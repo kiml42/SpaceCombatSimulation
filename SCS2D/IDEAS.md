@@ -3,7 +3,6 @@ Things that are obviously wrong.
 
 - When a dinky gets welded to a gunship the other gunship will fire at the combined ship even though most of it is actually its ally.
 - Fuel tanks should stop supplying fuel when they are too damaged.
-- When setting up a co-evolution run between two very large fleets, the UI hangs for about 8 s (the Imperial Fleet against the Rebel Fleet; it was 30 s before the layout checks were sped up) after each change to a setting the opening match reads, and on loading the page with such a setup saved: the preview breeds a whole first generation to draw it. A burst of changes now builds it once, and a setting it does not read (generations, matches, winners) does not rebuild it. Fixing it needs the build off the main thread, or a preview that does not breed, at the cost of its seed no longer being the run's.
 - A miner anchored to an asteroid reads no robots in its bays (`ShipView.crews`), though its robots are out mining and loads come home.
 - A hull gun's barrel collides as the rectangle its module would be, not where the barrel is drawn. Nothing welds to a barrel (`onWeldablePart`), as a stop-gap until it collides where it is.
 
@@ -73,8 +72,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 ## Evolution
 - Make damage and function taken start at 0 and go negative, so the graph scales nicely at the beginning when they're all useless, highlighting even minor improvements.
 - We need a mechanism to let ships know what the goal is. This could be something like a "go close to that" order being given to all ships when the race goal is present. (At the moment we lean on the escort doctrine, but that just makes evolving a second ship mean they bunch up with each other instead of going for the goal)
-- Whole ship scale mutation
-- Assembly scale mutation - scales everything in all copies of the assembly up or down.
 - Duplicated parts or assemblies can be placed anywhere on the surface of the ship, not just close to the module they're a duplicate of (possibly with a higher chance of appearing nearby)
 - Ships often lose manoeuvrability, even starting with a good configuration of engines, they will often lose some.
 - Evolution finds it very hard to make ships bigger
@@ -90,7 +87,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Fleet status tiles could turn with their ship, so it always points the same way in its tile.
 - Cap projectile rendering at the point they hit, so a streak does not overlap the target it struck. (The muzzle end is capped.)
 - A selected ship's framing takes in and rings what it is escorting; it could do the same for what it is keeping clear of, possibly with a symbol to show what sort of attention the selected ship is paying to each
-- Selecting a ship should only fit to it if the camera was already fitted.
 
 ## Harvesting
 - Scavenging wrecks and mining asteroids. Two of the causes of wrecked Salvagers are being fixed as ROADMAP.md
