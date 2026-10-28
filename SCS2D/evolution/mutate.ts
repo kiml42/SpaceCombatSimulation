@@ -769,7 +769,8 @@ type SwitchKnob =
               "kind" | "barrels" | "weapon" | "main" | "thick" | "drainPriority" | "shape" | "solid" | "craftAngle" | "buildAnchored";
           readonly site: ModuleSite;
       }
-    | { readonly at: "mirror"; readonly site: InstanceSite };
+    | { readonly at: "mirror"; readonly site: InstanceSite }
+    | { readonly at: "assemblyScale"; readonly list: PlacementList };
 
 /** One way a placement's geometry can change. */
 type Reshape = "face" | "seam" | "slide" | "quarter" | "angle" | "vertex";
@@ -884,6 +885,10 @@ function reshape(part: Part, draft: Draft, rng: Rng, bounds: MutationLimits, sca
 function switches(draft: Draft): SwitchKnob[] {
     // Even while the layout rules it out: the flag is ignored until it does not.
     const out: SwitchKnob[] = [{ at: "fighter" }, { at: "scale" }];
+    // An assembly placing others is left whole, since those may be placed elsewhere too.
+    for (const list of draft.lists) {
+        if (list.label !== "layout" && !list.placements.some(isInstance)) out.push({ at: "assemblyScale", list });
+    }
     for (const part of parts(draft)) {
         if ("instance" in part) {
             out.push({ at: "mirror", site: part.instance });
@@ -921,6 +926,7 @@ function switchWeight(knob: SwitchKnob, { build }: MutationLimits): number {
         case "fighter":
             return build.fighter;
         case "scale":
+        case "assemblyScale":
             return build.resize;
         case "kind":
             return build.refit;
@@ -969,6 +975,8 @@ function flip(knob: SwitchKnob, draft: Draft, rng: Rng, bounds: MutationLimits):
             return anchor(knob.site);
         case "mirror":
             return reflect(knob.site);
+        case "assemblyScale":
+            return rescaleAssembly(draft, knob.list, rng, bounds);
     }
 }
 
@@ -1187,6 +1195,27 @@ function rescale(draft: Draft, rng: Rng, bounds: MutationLimits): string | null 
     return scaleDraft(draft, factor) ? `whole ship scaled by ${factor}` : null;
 }
 
+/**
+ * Make one assembly bigger or smaller, in every copy of it: its modules about
+ * its own origin, and the step between the copies of a row, so a row of
+ * segments that touched still does. What `rescale` does for the whole ship,
+ * for a wing or a turret pod alone; where it is welded on, it holds only if
+ * that is at its origin, which selection is left to find out.
+ */
+function rescaleAssembly(draft: Draft, list: PlacementList, rng: Rng, bounds: MutationLimits): string | null {
+    const factor = tidy(1 + drift(rng, { ...bounds, deadZone: 0 }, bounds.magnitude * SCALE_SHARE), 3);
+    if (factor === 1 || !(factor > 0)) return null;
+    if (!scaleList(list, factor)) return null;
+    for (const each of draft.lists) {
+        for (const placement of each.placements) {
+            if (isInstance(placement) && placement.use === list.label && placement.step !== undefined) {
+                placement.step = { ...placement.step, x: tidy(placement.step.x * factor, 4), y: tidy(placement.step.y * factor, 4) };
+            }
+        }
+    }
+    return `assembly ${list.label} scaled by ${factor}`;
+}
+
 /** A blueprint scaled whole by `factor`, as `rescale` scales one, or null if a shaped module cannot take it. */
 export function scaledBlueprint(blueprint: Blueprint, factor: number): Blueprint | null {
     const draft = cloneBlueprint(settleIds(blueprint));
@@ -1194,30 +1223,34 @@ export function scaledBlueprint(blueprint: Blueprint, factor: number): Blueprint
 }
 
 function scaleDraft(draft: Draft, factor: number): boolean {
+    for (const list of draft.lists) if (!scaleList(list, factor)) return false;
+    return true;
+}
+
+/** Every placement in one list by `factor` about its origin, or false if a shaped module cannot take it. */
+function scaleList(list: PlacementList, factor: number): boolean {
     const by = (value: number): number => tidy(value * factor, 4);
-    for (const list of draft.lists) {
-        for (const placement of list.placements) {
-            placement.x = by(placement.x);
-            placement.y = by(placement.y);
-            if (isInstance(placement)) {
-                if (placement.step !== undefined) placement.step = { ...placement.step, x: by(placement.step.x), y: by(placement.step.y) };
-                continue;
-            }
-            if (placement.vertices !== undefined) {
-                // A triangle's box is derived from its corners, and its corners kept
-                // centred on it, so it goes back through the shaping rather than being
-                // scaled field by field.
-                const shaped = shapeModule(
-                    placement,
-                    placement.vertices.map((v) => v * factor),
-                );
-                if (shaped === null) return false;
-                Object.assign(placement, shaped);
-                continue;
-            }
-            placement.length = by(placement.length);
-            placement.width = by(placement.width);
+    for (const placement of list.placements) {
+        placement.x = by(placement.x);
+        placement.y = by(placement.y);
+        if (isInstance(placement)) {
+            if (placement.step !== undefined) placement.step = { ...placement.step, x: by(placement.step.x), y: by(placement.step.y) };
+            continue;
         }
+        if (placement.vertices !== undefined) {
+            // A triangle's box is derived from its corners, and its corners kept
+            // centred on it, so it goes back through the shaping rather than being
+            // scaled field by field.
+            const shaped = shapeModule(
+                placement,
+                placement.vertices.map((v) => v * factor),
+            );
+            if (shaped === null) return false;
+            Object.assign(placement, shaped);
+            continue;
+        }
+        placement.length = by(placement.length);
+        placement.width = by(placement.width);
     }
     return true;
 }
