@@ -1076,6 +1076,18 @@ describe("the editor in a browser", () => {
         expect(await page.inputValue("#propY")).toBe("0");
         await page.click("#undo");
 
+        // With Ctrl, the +y edge moves alone and the -y edge stays where it was.
+        const side = { x: centre.x, y: centre.y - (width / 2) * scale };
+        await page.mouse.move(side.x, side.y);
+        await page.keyboard.down("Control");
+        await page.mouse.down();
+        await page.mouse.move(side.x, side.y - 1 * scale, { steps: 6 });
+        await page.mouse.up();
+        await page.keyboard.up("Control");
+        expect(Number(await page.inputValue("#propWidth"))).toBe(width + 1);
+        expect(await page.inputValue("#propY")).toBe("0.5");
+        await page.click("#undo");
+
         // The -x edge, dragged three metres out and wandering across as it goes:
         // only the length changes, and the +x edge stays where it was.
         const edge = { x: centre.x - (length / 2) * scale, y: centre.y };

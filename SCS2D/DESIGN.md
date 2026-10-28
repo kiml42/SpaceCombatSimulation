@@ -78,7 +78,7 @@ inside any one file is not contiguous.
   so the step follows the zoom, from tens of metres on a Star Destroyer down to centimetres on a
   drone — sized by dragging a corner
   or an edge with the opposite one held still, or with Shift held about its middle; a module whose middle
-  is on the centre line, square to it, is sized about the line across it without Shift, so it stays on it — carrying whatever sits against the moving face along with it,
+  is on the centre line, square to it, is sized about the line across it without Shift, so it stays on it, unless Ctrl holds the opposite side still — carrying whatever sits against the moving face along with it,
   unless Ctrl is held — and turned by dragging a knob beyond the bow, while two touching modules selected
   together get a bar on their shared face that grows one as it shrinks the other, and an engine or hull gun
   gets the same bar across the end of its bell or barrel, which sets how far that reaches without touching the

@@ -53,7 +53,7 @@ const KEYS: readonly KeyRow[] = [
     { keys: "Drag a module", does: "Move it" },
     {
         keys: "Drag a corner or edge",
-        does: "Size it, pushing its neighbours; with Ctrl, alone; with Shift, about its middle. One on the centre line stays on it",
+        does: "Size it, pushing its neighbours; with Ctrl, alone; with Shift, about its middle. One on the centre line stays on it, unless Ctrl holds its other side still",
     },
     { keys: "Drag the knob", does: "Turn it" },
     { keys: "Two touching selected", does: "Drag the face between them" },
