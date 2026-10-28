@@ -1223,7 +1223,7 @@ inside any one file is not contiguous.
   set out at ten times their reach and do not escort, so the two sides fight within the golden's run.
   Mining is built; what is left of it is in ROADMAP.md §12, for later.
   Alongside it, §8 step 5's skirmish: an endless loop against an enemy fleet that evolves to beat the
-  player's, planned in ROADMAP.md §8. Evolution keeps the skirmish's sense of quiet, though it plays a match on until every side is quiet before naming a winner. Its loop is built without the evolving enemy (`dist/skirmish.html`,
+  player's, planned in ROADMAP.md §8. Evolution keeps the skirmish's sense of quiet, though it plays a match on until every side is quiet before naming a winner. Its loop is built without the evolving enemy (the Skirmish route,
   `scenarios/skirmish.ts`): pick a stock enemy, whose bill is the budget unless the player sets their own, under a limit on ships and spread (20 and 500 m unless set, or what the enemy fields if more), each round's gap and starting speeds drawn from optional ± spreads on its seed; fight a fixed round, decided by
   `scenarios/decision.ts` once one side has fired or rammed in the last 30 s and the other has not, which
   counts only once both have fired, so slow ships closing from far off are not out before they are in range;
