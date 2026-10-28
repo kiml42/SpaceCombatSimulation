@@ -81,7 +81,7 @@ describe("a fleet bred with a carrier in it", () => {
         const fleet: Fleet = { name: "F", designs: { Dinky: DINKY }, ships: [{ design: "Dinky", x: 0, y: 0 }] };
         const plain = mutateFleet(fleet, new Rng(3));
         const without = mutateFleet(fleet, new Rng(3), {
-            operators: { add: 1, remove: 1, fork: 0.5, merge: 0.5, swap: 0.5, pad: 0, copy: 0.5 },
+            operators: { add: 1, remove: 1, fork: 0.5, merge: 0.5, swap: 0.5, pad: 0, copy: 0 },
         });
         expect(JSON.stringify(plain)).toEqual(JSON.stringify(without));
     });
