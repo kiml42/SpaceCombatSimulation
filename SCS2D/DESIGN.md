@@ -676,12 +676,14 @@ inside any one file is not contiguous.
   founders are ships and fleets alike; a ship grows into a fleet unless the most ships allowed is one. A fleet carries designs it does not fly: a
   ship taken out leaves its design behind, and a ship added is built to any design the fleet carries or to a bare
   core, the heavier the likelier, so it can grow by one small ship rather than only by a copy of one it has, and it goes in any direction from
-  the ship it is beside, clear of it by one and a quarter to two and a quarter times their two radii. **Each child
+  the ship it is beside, clear of it by two and a half to five times their two radii, so neither flies through the
+  other's plume. **Each child
   mutates each design with a chance of its own** (`design`, 1), so a fleet of four designs breeds each as often as
   a fleet of one does; **moves every one of its entries** by a drift with no dead zone of a quarter of its largest
   ship's radius and 15°, times `move` (1), leaning away from its nearest neighbour the more the closer it is, so a row
   of fighters moves as far as a fighter and a fleet spreads; and **now and then changes what it is made of**
-  (`change`, 0.6: a ship added or removed, a design forked or merged, a ship swapped or a pad repointed, by their
+  (`change`, 0.6: a ship added or removed, a design forked or merged, a ship swapped or a pad repointed, the whole
+  fleet spread out or drawn in about its middle by up to two fifths (`spread`, 0.5), by their
   weights, or, where there is an opponent, one of its designs stolen — `steal`, 0 unless set: the player's fleet to a
   skirmish enemy, the other side's champions in a co-evolution run of fleets — the heavier the likelier, and a ship
   built to it with
