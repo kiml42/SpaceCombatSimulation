@@ -27,7 +27,7 @@ const SHORT = { duration: 20 };
 
 /** Limits that make only the one change: a design, every ship's move, or one change to what the fleet is made of. */
 function only(change: FleetOperator | "design" | "move"): Partial<FleetMutationLimits> {
-    const operators = { add: 0, remove: 0, fork: 0, merge: 0, swap: 0, pad: 0, copy: 0 };
+    const operators = { add: 0, remove: 0, fork: 0, merge: 0, swap: 0, pad: 0, steal: 0 };
     if (change === "design") return { design: 1, move: 0, change: 0, operators };
     if (change === "move") return { design: 0, move: 1, change: 0, operators };
     operators[change] = 1;
@@ -154,7 +154,7 @@ describe("breeding a fleet", () => {
             merge: LINE_OF_BATTLE,
             swap: LINE_OF_BATTLE,
             pad: carrierFleet(),
-            copy: pair(),
+            steal: pair(),
         };
         for (const [operator, parent] of Object.entries(parents) as [FleetOperator | "design" | "move", Fleet][]) {
             const child = mutateFleet(parent, new Rng(11), { ...limits, ...only(operator) });
@@ -163,8 +163,8 @@ describe("breeding a fleet", () => {
         }
     });
 
-    it("copies in a rival's ship with the craft it builds, under names of its own", () => {
-        const child = mutateFleet(pair(), new Rng(3), { ...only("copy"), rivals: [carrierFleet()] });
+    it("steals a rival's design with the craft it builds, under names of its own", () => {
+        const child = mutateFleet(pair(), new Rng(3), { ...only("steal"), rivals: [carrierFleet()] });
         expect(child.edits).toHaveLength(1);
         const fleet = child.fleet;
         expect(fleet.ships).toHaveLength(3);
@@ -180,14 +180,14 @@ describe("breeding a fleet", () => {
         expect(crafts.every((name) => fleet.designs[name] !== undefined)).toBe(true);
         expect(fleetFits(fleet, { radius: 500, maxShips: 24, budget: NO_BUDGET })).toBe(true);
         // Nothing to copy from, nothing copied.
-        expect(mutateFleet(pair(), new Rng(3), only("copy")).edits).toEqual([]);
+        expect(mutateFleet(pair(), new Rng(3), only("steal")).edits).toEqual([]);
     });
 
-    it("copies a rival's heavier ship more often than its lighter one", () => {
+    it("steals a rival's heavier design more often than its lighter one", () => {
         const rival = addShip(addShip(emptyFleet("Rival"), BARE_CORE, 0, 0), GUNSHIP, 80, 0);
         const copied = (name: string): number =>
             [...Array(40).keys()].filter((seed) =>
-                mutateFleet(pair(), new Rng(seed), { ...only("copy"), rivals: [rival] }).edits[0]?.includes(`Rival's ${name} `),
+                mutateFleet(pair(), new Rng(seed), { ...only("steal"), rivals: [rival] }).edits[0]?.includes(`Rival's ${name} stolen`),
             ).length;
         expect(copied(GUNSHIP.name)).toBeGreaterThan(3 * copied(BARE_CORE.name));
     });
@@ -388,7 +388,7 @@ describe("designs a fleet carries but does not fly", () => {
         const rng = new Rng(9);
         for (let i = 0; i < 30; i++) {
             child = mutateFleet(child, rng, {
-                operators: { add: 0, remove: 0, fork: 1, merge: 1, swap: 1, pad: 0, copy: 0 },
+                operators: { add: 0, remove: 0, fork: 1, merge: 1, swap: 1, pad: 0, steal: 0 },
                 design: 1,
                 change: 1,
             }).fleet;
