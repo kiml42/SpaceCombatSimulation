@@ -69,8 +69,12 @@ export const DEFAULT_MAP: Required<MapSettings> = {
     fuel: 0.1,
 };
 
-/** What is wrong with a map's settings as read from a file, or null. */
-export function mapProblem(value: unknown, where = "map"): string | null {
+/**
+ * What is wrong with a map's settings as read from a file, or null. Counts
+ * are whole unless `wholeCounts` is false, for settings a map is drawn from,
+ * whose counts `drawnMap` rounds.
+ */
+export function mapProblem(value: unknown, where = "map", wholeCounts = true): string | null {
     if (typeof value !== "object" || value === null || Array.isArray(value)) return `${where} must be an object`;
     const record = value as Record<string, unknown>;
     const unknown = Object.keys(record).filter((key) => !(MAP_KEYS as readonly string[]).includes(key));
@@ -79,7 +83,7 @@ export function mapProblem(value: unknown, where = "map"): string | null {
         const v = record[key];
         if (v === undefined) continue;
         if (typeof v !== "number" || !Number.isFinite(v) || v < 0) return `${where}.${key} must be a number, not negative`;
-        if (COUNTS.includes(key) && !Number.isInteger(v)) return `${where}.${key} must be a whole number`;
+        if (wholeCounts && COUNTS.includes(key) && !Number.isInteger(v)) return `${where}.${key} must be a whole number`;
         if (SHARES.includes(key) && v > 1) return `${where}.${key} must be no more than 1`;
     }
     if (((record["metal"] as number | undefined) ?? 0) + ((record["fuel"] as number | undefined) ?? 0) > 1) {
