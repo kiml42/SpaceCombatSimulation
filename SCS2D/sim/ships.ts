@@ -7906,7 +7906,7 @@ export class Ships {
             true,
         );
         for (const r of riders) if (r !== p) this.board(r, p);
-        this.renumber(bodies, b, riders, m);
+        this.renumber(bodies, b, riders, m, p);
         // A ship riding here with none of its hull left is gone, and the body
         // passes to one that has some, if it was this one's.
         const left = this.pilots[b];
@@ -7930,10 +7930,19 @@ export class Ships {
         bodies.vy[b] = bodies.vy[b]! + (beforeY - this.momentumY) / movable(bodies.mass[b]!);
     }
 
-    /** Module `m` of body `b` gone: every ship's note of a module past it there moves down one. */
-    private renumber(bodies: Bodies, b: number, riders: readonly number[], m: number): void {
+    /**
+     * Module `m` of body `b` gone: every ship's note of a module past it there moves down one. The claw
+     * of `adopted`, which `adopt` has already moved with its hull, is not moved again.
+     */
+    private renumber(bodies: Bodies, b: number, riders: readonly number[], m: number, adopted: number): void {
         const down = (k: number): number => (k > m ? k - 1 : k === m ? -1 : k);
         for (const r of riders) if (this.ownPort[r]! >= 0) this.ownPort[r] = down(this.ownPort[r]!);
+        for (const r of riders) {
+            if (r === adopted || this.mooredClaw[r]! < 0) continue;
+            const claw = down(this.mooredClaw[r]!);
+            if (claw >= 0) this.mooredClaw[r] = claw;
+            else this.unpark(bodies, r, this.now);
+        }
         for (let s = 0; s < this.alive.length; s++) {
             if (this.alive[s] === 0) continue;
             const t = this.salvaging[s]!;
@@ -9242,6 +9251,13 @@ export class Ships {
     ): void {
         const bodies = this.bodyStore!;
         const bodyOf = (ship: number): number => bodies.indexOf(this.bodyIds[ship]!);
+        // The claw it is moored by, where it went in the new layout: -1 if it went with a piece cut away.
+        let claw = this.mooredClaw[i]!;
+        if (claw >= 0) {
+            let at = -1;
+            for (let m = 0; m < design.modules.length && at < 0; m++) if (shipOf(m) === i && moduleOf(m) === claw) at = m;
+            claw = at;
+        }
         // A module new to the hull (`moduleOf` -1) is its builder's, empty and unhurt.
         const sides = this.sidesOf(
             (m) => (moduleOf(m) < 0 ? this.team[i]! : this.sideAt(bodyOf(shipOf(m)), moduleOf(m))),
@@ -9367,6 +9383,10 @@ export class Ships {
         );
         this.settleMass(bodies, b);
         this.cutSeen[i] = this.damage.cutVersion(b);
+        if (this.mooredClaw[i]! >= 0) {
+            if (claw >= 0) this.mooredClaw[i] = claw;
+            else this.unpark(bodies, i, this.now);
+        }
     }
 
     /**
