@@ -306,18 +306,12 @@ export class EnemySearch {
 
     /** Every piece fought: the best that won the round is the answer, or else the best breeds the next. */
     private finishGeneration(): void {
-        let best: Standing | null = null;
-        for (const standing of this.standings) if (standing.onRound && (best === null || better(standing, best))) best = standing;
-        if (best !== null) {
-            this.found = best.enemy;
-            this.best = best;
-            this.generationCount++;
-            return;
-        }
-        best = this.standings[0]!;
+        let best = this.standings[0]!;
         for (const standing of this.standings) if (better(standing, best)) best = standing;
         this.best = best;
-        this.nextGeneration();
+        if (!best.onRound) return this.nextGeneration();
+        this.found = best.enemy;
+        this.generationCount++;
     }
 
     /** The generation done without an answer: count it, and breed the next. */
@@ -427,8 +421,9 @@ export class JobRunner {
     }
 }
 
-/** Whether one enemy did better than another: more wins, then the wider margin. */
-function better(a: Standing, b: Standing): boolean {
+/** Whether one enemy did better than another: the round won, then more wins, then the wider margin. */
+export function better(a: Standing, b: Standing): boolean {
+    if (a.onRound !== b.onRound) return a.onRound;
     return a.wins > b.wins || (a.wins === b.wins && a.margin > b.margin);
 }
 
