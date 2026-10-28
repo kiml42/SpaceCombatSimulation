@@ -86,7 +86,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Fleet status tiles could turn with their ship, so it always points the same way in its tile.
 - Cap projectile rendering at the point they hit, so a streak does not overlap the target it struck. (The muzzle end is capped.)
 - A selected ship's framing takes in and rings what it is escorting; it could do the same for what it is keeping clear of, possibly with a symbol to show what sort of attention the selected ship is paying to each
-- Selecting a ship should only fit to it if the camera was already fitted.
 
 ## Harvesting
 - Scavenging wrecks and mining asteroids. Two of the causes of wrecked Salvagers are being fixed as ROADMAP.md
