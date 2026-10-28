@@ -63,7 +63,7 @@ export function settled(angle: number): number {
  * them — unless a pad of one it flies keeps them, when they are bred as a
  * ship it flies is. A pad can be pointed at another of the fleet's fighters,
  * at a copy of its own to breed apart, or at a new bare core of a fighter,
- * and back. Where there is an opponent, a ship of its can be copied in: what
+ * and back. Where there is an opponent and `copy` is weighted, a ship of its can be copied in: what
  * the opponent fields is often the quickest answer to it, and the copy is
  * bred apart from there.
  */
@@ -109,7 +109,7 @@ export const DEFAULT_FLEET_LIMITS: FleetMutationLimits = {
     design: 1,
     change: 0.6,
     attempts: 24,
-    operators: { add: 1, remove: 1, fork: 0.5, merge: 0.5, swap: 0.5, pad: 0.5, copy: 0.5 },
+    operators: { add: 1, remove: 1, fork: 0.5, merge: 0.5, swap: 0.5, pad: 0.5, copy: 0 },
     rivals: [],
 };
 
