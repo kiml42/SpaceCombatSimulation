@@ -89,6 +89,10 @@ export interface FleetMutationLimits {
     readonly design: number;
     /** Chance a child also has one change to what the fleet is made of, drawn by `operators`. */
     readonly change: number;
+    /** The spread of `scale`'s factor about one, as a drift is drawn: how much bigger or smaller a design is made. */
+    readonly scaleSize: number;
+    /** The spread of `spread`'s factor about one: how far out or in the formation is moved. */
+    readonly spreadSize: number;
     /** Candidates drawn for that change before going without it. */
     readonly attempts: number;
     /** Relative chance of each change to what the fleet is made of. */
@@ -110,6 +114,8 @@ export const DEFAULT_FLEET_LIMITS: FleetMutationLimits = {
     move: 1,
     design: 1,
     change: 0.6,
+    scaleSize: 0.2,
+    spreadSize: 0.25,
     attempts: 24,
     operators: { add: 1, remove: 1, fork: 0.5, merge: 0.5, swap: 0.5, pad: 0.5, steal: 0, spread: 0.5, scale: 0.5, chimera: 0.5 },
     rivals: [],
@@ -210,7 +216,7 @@ function apply(operator: FleetOperator, fleet: Fleet, rng: Rng, bounds: FleetMut
         case "steal":
             return stealDesign(fleet, bounds.rivals, rng, new Layout());
         case "spread":
-            return spread(fleet, rng);
+            return spread(fleet, rng, bounds);
         case "scale":
             return scale(fleet, rng, bounds);
         case "chimera":
@@ -509,15 +515,12 @@ function offset(rng: Rng): number {
 /** The least `offset`: how many of their two sizes apart an added ship and its neighbour stand at the closest. */
 const ADD_GAP = 2.5;
 
-/** The most a spread moves the fleet's ships out or in, as a share of where they stand. */
-const SPREAD_SHARE = 0.4;
-
 /**
  * Every ship moved out from the fleet's middle, or in towards it, by one
  * factor, so a fleet can open out or close up in one step rather than a ship
  * at a time. Turns are kept: it is the formation that changes, not the ships.
  */
-function spread(fleet: Fleet, rng: Rng): string[] {
+function spread(fleet: Fleet, rng: Rng, bounds: FleetMutationLimits): string[] {
     if (fleet.ships.length < 2) return [];
     let cx = 0;
     let cy = 0;
@@ -527,8 +530,8 @@ function spread(fleet: Fleet, rng: Rng): string[] {
     }
     cx /= fleet.ships.length;
     cy /= fleet.ships.length;
-    const by = 1 + SPREAD_SHARE * (0.25 + 0.75 * rng.nextFloat());
-    const factor = rng.chance(0.5) ? by : 1 / by;
+    const factor = drawnFactor(rng, bounds, bounds.spreadSize);
+    if (factor === null) return [];
     for (const entry of fleet.ships) {
         entry.x = round((cx + (entry.x - cx) * factor) * 10) / 10;
         entry.y = round((cy + (entry.y - cy) * factor) * 10) / 10;
@@ -536,13 +539,20 @@ function spread(fleet: Fleet, rng: Rng): string[] {
     return [`fleet ${factor > 1 ? "spread out" : "drawn in"} by ${round(factor * 100) / 100}`];
 }
 
-/** The spread of `scale`'s factor about one: a tenth, as the ship's drift is drawn. */
-const SCALE_SPREAD = 0.1;
+/**
+ * A factor about one drifting by `size`, as any number is drawn but with no
+ * dead zone, since a factor of one is no change at all; null for one, or for
+ * a draw from the tail so far down it would turn the thing inside out.
+ */
+function drawnFactor(rng: Rng, bounds: FleetMutationLimits, size: number): number | null {
+    const factor = round((1 + drift(rng, { ...DEFAULT_LIMITS, ...bounds.ship, deadZone: 0 }, size)) * 1000) / 1000;
+    return factor === 1 || !(factor > 0) ? null : factor;
+}
 
 /**
  * One of the fleet's designs made bigger or smaller, whole: every module and
- * where it sits, as a ship's own `rescale` does in smaller steps. By a tenth
- * or so, now and then much more, as any number drifts: a step a ship can take
+ * where it sits, as a ship's own `rescale` does in smaller steps. By a drift
+ * of `scaleSize`, now and then much more from the tail: a step a ship can take
  * without flying much differently, which its scaling laws make a little more
  * or less of, so a fleet of small ships can grow its ships rather than only
  * its numbers. Every ship of the design is rebuilt to it.
@@ -551,8 +561,8 @@ function scale(fleet: Fleet, rng: Rng, bounds: FleetMutationLimits): string[] {
     const designs = bredDesigns(fleet);
     if (designs.length === 0) return [];
     const name = designs[rng.nextInt(designs.length)]!;
-    const factor = round((1 + drift(rng, { ...DEFAULT_LIMITS, ...bounds.ship, deadZone: 0 }, SCALE_SPREAD)) * 1000) / 1000;
-    if (factor === 1 || !(factor > 0)) return [];
+    const factor = drawnFactor(rng, bounds, bounds.scaleSize);
+    if (factor === null) return [];
     const scaled = scaledBlueprint(fleet.designs[name]!, factor);
     if (scaled === null) return [];
     fleet.designs[name] = scaled;

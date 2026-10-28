@@ -22,9 +22,9 @@ describe("the mutation settings a page offers", () => {
         const names = MUTATION_FIELDS.map((f) => f.name);
         expect(new Set(names).size).toBe(names.length);
         // The number drift, the structural, geometry and thruster chances, the
-        // fleet's design chance, ship moves and change chance, and the weights.
+        // fleet's design chance, ship moves, change chance, scale and spread sizes, and the weights.
         const count =
-            7 +
+            9 +
             [DEFAULT_BUILD_WEIGHTS, DEFAULT_KINDS, DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_FLEET_LIMITS.operators]
                 .map((o) => Object.keys(o).length)
                 .reduce((a, b) => a + b, 0);
