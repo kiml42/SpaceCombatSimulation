@@ -38,7 +38,8 @@ import type { Command, Held, Logged, Order } from "../scenarios/commands.js";
 import type { Battle } from "../scenarios/types.js";
 import { Rewind } from "../scenarios/rewind.js";
 import { viewGestures } from "./viewGestures.js";
-import { loadView, saveView, type ViewSettings } from "./viewSettings.js";
+import { webglLayer, type WebglLayer } from "../render/webgl.js";
+import { loadRenderer, loadView, saveRenderer, saveView, type Renderer, type ViewSettings } from "./viewSettings.js";
 
 /**
  * A battle drawn on a canvas and run on the wall clock: the camera, the
@@ -271,6 +272,10 @@ export function battleView(
     let shownInsets: Inset[] = [];
     /** Where the view's settings are kept, once a page has asked for them to be. */
     let kept: { page: string; settings: ViewSettings } | null = null;
+    let renderer: Renderer = loadRenderer();
+    /** The canvas under this one that WebGL draws on, while it is the renderer. */
+    let under: HTMLCanvasElement | null = null;
+    let layer: WebglLayer | null = null;
     const options = viewOptions(canvas.parentElement ?? document.body, [
         {
             label: () => ARC_LABELS[arcs],
@@ -296,6 +301,15 @@ export function battleView(
                 remember();
             },
         },
+        {
+            label: () => (renderer === "canvas2d" ? "Draw: 2D" : layer !== null ? "Draw: WebGL" : "Draw: no WebGL"),
+            title: "Draw the battle's backdrop with Canvas2D or WebGL",
+            press: () => {
+                renderer = renderer === "canvas2d" ? "webgl" : "canvas2d";
+                saveRenderer(renderer);
+                useRenderer();
+            },
+        },
     ]);
     const remember = (): void => {
         options.refresh();
@@ -305,18 +319,42 @@ export function battleView(
         saveView(kept.page, kept.settings);
     };
 
+    const useRenderer = (): void => {
+        layer?.dispose();
+        layer = null;
+        under?.remove();
+        under = null;
+        if (renderer === "webgl") {
+            under = document.createElement("canvas");
+            under.setAttribute("aria-hidden", "true");
+            Object.assign(under.style, { position: "absolute", inset: "0", width: "100%", height: "100%", pointerEvents: "none" });
+            // Positioned too, so that the order they are in decides which is on top.
+            canvas.style.position = "relative";
+            canvas.before(under);
+            layer = webglLayer(under);
+            if (layer === null) {
+                under.remove();
+                under = null;
+            }
+        }
+        resize();
+        options.refresh();
+    };
+
     const resize = (): void => {
         const ratio = window.devicePixelRatio || 1;
         const rect = canvas.getBoundingClientRect();
         const width = Math.round(rect.width * ratio);
         const height = Math.round(rect.height * ratio);
         // Setting either clears the canvas, even to the size it already is.
-        if (canvas.width !== width) canvas.width = width;
-        if (canvas.height !== height) canvas.height = height;
+        for (const each of under === null ? [canvas] : [canvas, under]) {
+            if (each.width !== width) each.width = width;
+            if (each.height !== height) each.height = height;
+        }
     };
     const resizing = new ResizeObserver(resize);
     resizing.observe(canvas);
-    resize();
+    useRenderer();
 
     const setRunning = (next: boolean): void => {
         running = next;
@@ -662,7 +700,9 @@ export function battleView(
         const also = picked.slice(1).map((i) => viewOf(view, i)?.body ?? -1);
         const markedBody = markedModules === null ? -1 : (viewOf(view, markedModules.ship)?.body ?? -1);
         const marked = markedBody < 0 ? null : { body: markedBody, modules: markedModules!.modules };
-        draw(ctx, view, camera, canvas.width, canvas.height, flashes, arcs, teamShots, selected, also, marked);
+        const underneath = layer?.ready === true;
+        if (underneath) layer!.draw(view, camera, canvas.width, canvas.height);
+        draw(ctx, view, camera, canvas.width, canvas.height, flashes, arcs, teamShots, selected, also, marked, !underneath);
         if (tiles !== null) drawFleetStrips(ctx, view, tiles, selected, ratio, flashes, arcs, teamShots, stripCache);
         const insets = closeUps(view, camera, canvas.width, canvas.height, selected, ratio, tiles);
         drawCloseUps(ctx, view, insets, selected, ratio, flashes, arcs, teamShots, marked);
@@ -813,6 +853,8 @@ export function battleView(
             resizing.disconnect();
             window.removeEventListener("keydown", onKey);
             options.remove();
+            layer?.dispose();
+            under?.remove();
             battle = null;
             rewind = null;
         },

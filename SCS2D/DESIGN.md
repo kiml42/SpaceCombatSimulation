@@ -1165,8 +1165,10 @@ inside any one file is not contiguous.
   `rechargeBelow` goes to a pad for charge alone. A battery's room is what damage leaves it, so a pad never
   holds a fighter to fill cells that are broken. Evolution draws batteries and generators at a weight of
   one each, and a mutation does not turn either, since neither has a facing that matters.
-- **Next:** §8 steps 17–18 in order — the WebGL viewer, then the campaign (ROADMAP.md §8 has why). Every
-  step before them is built, step 16, the React UI, last: every screen is a route of one React app, built by
+- **Next:** §8 steps 17–18 in order — the WebGL viewer, then the campaign (ROADMAP.md §8 has why). Of the
+  WebGL viewer, the battle's backdrop — field, grid and wells — is built: drawn with WebGL 2 on a canvas
+  under the Canvas2D one when the battle view's **Draw** setting asks for it, kept for every page alike, and
+  Canvas2D's otherwise. Every step before them is built, step 16, the React UI, last: every screen is a route of one React app, built by
   Vite to `dist/index.html`, one file that opens from disk, with Linaria, Storybook with a story and
   accessibility check per component, and ESLint with the import boundaries. Its routes go by the hash
   (`#/library`) inside a shell that links them, and read one shared library and view settings
@@ -1980,11 +1982,10 @@ SCS2D/
 - **Rendering:** procedural 2D vector art generated from each module's shape data, colour and
   metadata. **Triangulate a blueprint once, instance per ship** — the same precompute pattern as the
   engine matrix. WebGL, because ~4,000 filled paths per frame is beyond Canvas2D.
-  - **Exception, for now:** every view draws with Canvas2D (`render/canvas2d.ts`). At tens of bodies
-    it's fine and it's a tenth of the code. It is not yet behind an interface — pages fetch a 2D context
-    and call `draw` themselves — so the React UI (§8 step 16) builds that interface as the canvas
-    component, and the WebGL viewer (step 17) goes in behind it, with Canvas2D kept as a setting until
-    WebGL is ready.
+  - **Exception, for now:** views draw with Canvas2D (`render/canvas2d.ts`). At tens of bodies
+    it's fine and it's a tenth of the code. The WebGL viewer (step 17) goes in behind `BattleCanvas`, the
+    React UI's canvas component, a layer at a time from the bottom up: a WebGL canvas under the Canvas2D
+    one draws what has moved (`render/webgl.ts`), and Canvas2D stays the default until WebGL draws it all.
   - Procedural art means **adding a module type costs zero art**, and module variety *is* the
     content. It also guarantees the picture matches the simulation, which matters when the picture
     is the instrument you read design failures from.

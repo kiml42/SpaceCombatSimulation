@@ -58,25 +58,26 @@ an entry is either still open or it is gone.
 | 14 | Orders | Built |
 | 15 | Mining | Built |
 | 16 | React UI | Built |
-| 17 | WebGL viewer | Not started |
+| 17 | WebGL viewer | Partly built |
 | 18 | Campaign | Not started |
 
 
 ### Partly built — what is left
 
-Nothing: every step started is built.
+17. **WebGL viewer.** The backdrop — field, grid and wells — is drawn by WebGL 2 on a canvas under the
+    Canvas2D one, behind the battle view's **Draw** setting; everything else is still Canvas2D's. Left, each
+    a stage of its own, in this order:
+    1. **Hulls**: each blueprint's module boxes triangulated once and instanced per ship (DESIGN.md §5), drawn
+       under the Canvas2D layer with the robots, icons, names, arcs and orders left over them. Fighters are
+       drawn over robots today, which a layer split this way cannot do; settle that here.
+    2. **Rounds, beams and plumes**: many short strokes, the case Canvas2D is slowest at. They are drawn over
+       hulls, so they need a WebGL canvas over the Canvas2D one, or the overlays moved into WebGL first.
+    3. **Flashes**, whose glows want additive blending.
+    4. **Close-ups and the fleet strips**, which draw the scene again in boxes over the main view.
+    5. WebGL the default, then Canvas2D's battle drawing deleted; the editors' canvases stay Canvas2D.
 
 ### Not started — in order
 
-17. **WebGL viewer** — Use WebGL instead of Canvas for more capable visuals, behind the canvas component, with
-    the Canvas2D renderer kept as a setting until the WebGL one is ready. What we hope to get out of this:
-    - Learn the capabilities of WebGL and how to work with it
-    - More capable rendering with improved effects
-    - More efficient rendering
-
-    After React, so it swaps what is inside one component rather than five pages, and so a break can be
-    told apart from the UI port. The editor's handles and guides can stay Canvas2D on a canvas stacked
-    over the WebGL one, and the evolution charts (`render/chart.ts`) are not WebGL's concern.
 18. **Campaign** — Homeworld-shaped, with the adaptive enemy. As much new mechanism as authoring: progression
     between missions and functionality only a campaign needs, as well as the scripted missions, pacing and
     narrative. Last, because its screens — briefings, progression, fleet carried between missions — would
