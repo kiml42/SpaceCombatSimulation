@@ -155,7 +155,7 @@ export function mutateFleet(parent: Fleet, rng: Rng, limits?: Partial<FleetMutat
         for (let attempt = 1; attempt <= bounds.attempts; attempt++) {
             attempts = attempt;
             const candidate = clone(draft);
-            const changed = apply(pick(rng, operators), candidate, rng, bounds.rivals);
+            const changed = apply(pick(rng, operators), candidate, rng, bounds);
             if (changed.length === 0 || !fleetFits(candidate, bounds)) continue;
             draft.designs = candidate.designs;
             draft.ships = candidate.ships;
@@ -191,7 +191,7 @@ export function fleetFits(fleet: Fleet, limits: Pick<FleetMutationLimits, "budge
     return firstOverlap(hulls) === null;
 }
 
-function apply(operator: FleetOperator, fleet: Fleet, rng: Rng, rivals: readonly Fleet[]): string[] {
+function apply(operator: FleetOperator, fleet: Fleet, rng: Rng, bounds: FleetMutationLimits): string[] {
     switch (operator) {
         case "add":
             return add(fleet, rng, new Layout());
@@ -206,11 +206,11 @@ function apply(operator: FleetOperator, fleet: Fleet, rng: Rng, rivals: readonly
         case "pad":
             return repad(fleet, rng);
         case "steal":
-            return stealDesign(fleet, rivals, rng, new Layout());
+            return stealDesign(fleet, bounds.rivals, rng, new Layout());
         case "spread":
             return spread(fleet, rng);
         case "scale":
-            return scale(fleet, rng);
+            return scale(fleet, rng, bounds);
     }
 }
 
@@ -532,25 +532,27 @@ function spread(fleet: Fleet, rng: Rng): string[] {
     return [`fleet ${factor > 1 ? "spread out" : "drawn in"} by ${round(factor * 100) / 100}`];
 }
 
-/** How much `scale` grows or shrinks a design by. */
-const SCALE_STEP = 1.1;
+/** The spread of `scale`'s factor about one: a tenth, as the ship's drift is drawn. */
+const SCALE_SPREAD = 0.1;
 
 /**
- * One of the fleet's designs made a tenth bigger, or smaller, whole: every
- * module and where it sits, as a ship's own `rescale` does in smaller steps.
- * A step a ship can take without flying much differently, which its scaling
- * laws make a little more or less of, so a fleet of small ships can grow its
- * ships rather than only its numbers. Every ship of the design is rebuilt to it.
+ * One of the fleet's designs made bigger or smaller, whole: every module and
+ * where it sits, as a ship's own `rescale` does in smaller steps. By a tenth
+ * or so, now and then much more, as any number drifts: a step a ship can take
+ * without flying much differently, which its scaling laws make a little more
+ * or less of, so a fleet of small ships can grow its ships rather than only
+ * its numbers. Every ship of the design is rebuilt to it.
  */
-function scale(fleet: Fleet, rng: Rng): string[] {
+function scale(fleet: Fleet, rng: Rng, bounds: FleetMutationLimits): string[] {
     const designs = bredDesigns(fleet);
     if (designs.length === 0) return [];
     const name = designs[rng.nextInt(designs.length)]!;
-    const factor = rng.chance(0.5) ? SCALE_STEP : 1 / SCALE_STEP;
+    const factor = round((1 + drift(rng, { ...DEFAULT_LIMITS, ...bounds.ship, deadZone: 0 }, SCALE_SPREAD)) * 1000) / 1000;
+    if (factor === 1 || !(factor > 0)) return [];
     const scaled = scaledBlueprint(fleet.designs[name]!, factor);
     if (scaled === null) return [];
     fleet.designs[name] = scaled;
-    return [`${name} ${factor > 1 ? "scaled up" : "scaled down"} by a tenth`];
+    return [`${name} scaled by ${factor}`];
 }
 
 /**
