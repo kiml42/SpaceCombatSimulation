@@ -74,7 +74,7 @@ understanding it turns a regression into the new expected behaviour, permanently
 | --- | --- |
 | `pnpm test` | Unit tests, determinism tests and the golden checksums. Runs from a cold checkout. |
 | `pnpm typecheck` | All four TS projects — `sim/` has no ambient types, `render/`, `editor/` and `host/` have the DOM, and the React app |
-| `pnpm lint` | ESLint and Stylelint over the React app |
+| `pnpm lint` | ESLint over everything, and Stylelint over the React app's CSS |
 | `pnpm build` | Bundle the app to `dist/index.html`, one file |
 | `pnpm dev` | Vite's dev server; also keeps the stock fleets' designs in step with `scenarios/blueprints/` |
 | `pnpm storybook` | The React app's components on their own |
@@ -84,9 +84,9 @@ understanding it turns a regression into the new expected behaviour, permanently
 | `pnpm yardstick` | Measure a finished run against a ship that does not evolve |
 | `pnpm test:browser` | Drive the built app, and every story, in Chromium — `pnpm exec playwright install chromium` once first |
 
-## One thing that will change
+## Opening it from disk
 
-Opening `dist/index.html` straight off disk works because the page is a single file with no worker. When the
-simulation moves into a web worker (DESIGN.md §5), browsers will refuse to start it from `file://` and this
-will need serving over HTTP — `pnpm dlx serve dist`, or anything equivalent. Not yet, but that is the day the
-instructions above stop being enough.
+`dist/index.html` opens straight off disk because it is a single file: the workers it starts — the skirmish's
+search and the evolution run — are inlined into it (`?worker&inline`) rather than loaded from beside it, which
+`file://` would refuse. Firefox has not been checked. Anything that moves to a worker should be inlined the
+same way, or the page will need serving over HTTP (`pnpm dlx serve dist`).
