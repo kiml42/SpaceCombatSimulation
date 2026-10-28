@@ -874,6 +874,36 @@ describe("scaling a whole ship", () => {
     });
 });
 
+describe("scaling one assembly", () => {
+    it("scales its modules in every copy, and leaves where its copies are placed", { timeout: 30_000 }, () => {
+        const off = Object.fromEntries(Object.keys(DEFAULT_BUILD_WEIGHTS).map((key) => [key, 0]));
+        const rng = new Rng(5);
+        let seen = 0;
+        for (let i = 0; i < 300 && seen < 3; i++) {
+            const child = mutate(CATAMARAN, rng, {
+                structural: 0,
+                geometry: 0,
+                switches: 0.5,
+                build: { ...off, resize: 1 } as typeof DEFAULT_BUILD_WEIGHTS,
+                doctrine: { targeting: 0, approach: 0, escort: 0, avoidance: 0, gunnery: 0 },
+            });
+            // Alone, so nothing else scaled what is compared.
+            const edit = child.edits.length === 1 ? child.edits[0]! : "";
+            if (!/^assembly .+ scaled by/.test(edit)) continue;
+            seen++;
+            const [, name, by] = /^assembly (.+) scaled by ([\d.]+)/.exec(edit)!;
+            const factor = Number(by);
+            expect(blueprintProblem(child.blueprint)).toBeNull();
+            const before = CATAMARAN.assemblies![name!]!.modules[0] as ModuleSpec;
+            const after = child.blueprint.assemblies![name!]!.modules[0] as ModuleSpec;
+            expect(after.length).toBeCloseTo(before.length * factor, 3);
+            expect(after.x).toBeCloseTo(before.x * factor, 3);
+            expect(child.blueprint.modules.map((p) => [p.x, p.y])).toEqual(CATAMARAN.modules.map((p) => [p.x, p.y]));
+        }
+        expect(seen).toBeGreaterThan(0);
+    });
+});
+
 describe("thrusters", () => {
     const only = { structural: 0, geometry: 0, switches: 0, build: FROZEN, doctrine: STILL };
     const engines = (blueprint: Blueprint): ModuleSpec[] => expandBlueprint(blueprint).filter((m) => m.kind === "engine");
