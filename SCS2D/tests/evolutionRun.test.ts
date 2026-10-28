@@ -38,10 +38,10 @@ describe("a run fought off the page", { timeout: 60_000 }, () => {
         expect(live.done).toBe(true);
         expect(live.progress).toBe(1);
         expect(JSON.stringify(live.record())).toBe(JSON.stringify(runEvolution([DINKY], SETTINGS)));
-        // Sent as it goes, the first time before anything is fought.
+        // Sent the first time before anything is fought. How often after that depends on the
+        // machine's speed, so is not asserted: the record above is what has to come out right.
         expect(sends[0]!.generations).toEqual([]);
         expect(sends[0]!.living).toHaveLength(4);
-        expect(sends.some((wire) => wire.played.length > 0 && !wire.done)).toBe(true);
     });
 
     it("copies a co-evolution run, both sides and their halls", () => {
