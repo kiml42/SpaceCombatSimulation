@@ -1184,6 +1184,16 @@ const SCALE_SHARE = 0.4;
 function rescale(draft: Draft, rng: Rng, bounds: MutationLimits): string | null {
     const factor = tidy(1 + drift(rng, { ...bounds, deadZone: 0 }, bounds.magnitude * SCALE_SHARE), 3);
     if (factor === 1 || !(factor > 0)) return null;
+    return scaleDraft(draft, factor) ? `whole ship scaled by ${factor}` : null;
+}
+
+/** A blueprint scaled whole by `factor`, as `rescale` scales one, or null if a shaped module cannot take it. */
+export function scaledBlueprint(blueprint: Blueprint, factor: number): Blueprint | null {
+    const draft = cloneBlueprint(settleIds(blueprint));
+    return scaleDraft(draft, factor) ? draft.blueprint : null;
+}
+
+function scaleDraft(draft: Draft, factor: number): boolean {
     const by = (value: number): number => tidy(value * factor, 4);
     for (const list of draft.lists) {
         for (const placement of list.placements) {
@@ -1201,7 +1211,7 @@ function rescale(draft: Draft, rng: Rng, bounds: MutationLimits): string | null 
                     placement,
                     placement.vertices.map((v) => v * factor),
                 );
-                if (shaped === null) return null;
+                if (shaped === null) return false;
                 Object.assign(placement, shaped);
                 continue;
             }
@@ -1209,7 +1219,7 @@ function rescale(draft: Draft, rng: Rng, bounds: MutationLimits): string | null 
             placement.width = by(placement.width);
         }
     }
-    return `whole ship scaled by ${factor}`;
+    return true;
 }
 
 /** Make a ship a fighter, or an ordinary ship again. A flip, as `rearm` is. */
