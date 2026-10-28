@@ -1067,11 +1067,24 @@ describe("the editor in a browser", () => {
         await page.mouse.down();
         await page.mouse.move(corner.x + 2 * scale, corner.y - 1 * scale, { steps: 6 });
         await page.mouse.up();
-        // The opposite corner stays put, so the middle moves half as far as the
-        // corner did.
+        // Along the ship, the opposite end stays put, so the middle moves half as
+        // far as the corner did; across it, the module is on the centre line, so
+        // it widens both ways and stays there.
         expect(Number(await page.inputValue("#propLength"))).toBe(length + 2);
-        expect(Number(await page.inputValue("#propWidth"))).toBe(width + 1);
+        expect(Number(await page.inputValue("#propWidth"))).toBe(width + 2);
         expect(await page.inputValue("#propX")).toBe("1");
+        expect(await page.inputValue("#propY")).toBe("0");
+        await page.click("#undo");
+
+        // With Ctrl, the +y edge moves alone and the -y edge stays where it was.
+        const side = { x: centre.x, y: centre.y - (width / 2) * scale };
+        await page.mouse.move(side.x, side.y);
+        await page.keyboard.down("Control");
+        await page.mouse.down();
+        await page.mouse.move(side.x, side.y - 1 * scale, { steps: 6 });
+        await page.mouse.up();
+        await page.keyboard.up("Control");
+        expect(Number(await page.inputValue("#propWidth"))).toBe(width + 1);
         expect(await page.inputValue("#propY")).toBe("0.5");
         await page.click("#undo");
 

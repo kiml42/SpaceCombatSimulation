@@ -74,6 +74,7 @@ import {
     MIN_SIZE,
     ROTATE_ARM_PX,
     resizedTo,
+    centreLineAxes,
     seamBetween,
     seamTo,
     barrelCalibresTo,
@@ -517,6 +518,17 @@ describe("sizing a module by a handle", () => {
         expect(resizedTo(box, face(1, 1), 9, 2, 0.5, true)).toEqual({ length: 12, width: 8, dx: 0, dy: 0 });
         // Dragged past the middle, it stops at one step rather than turning inside out.
         expect(resizedTo(box, face(0, 1), 3, -9, 0.5, true)).toMatchObject({ width: 0.5, dy: 0 });
+    });
+
+    it("sizes a module on the centre line about it, across the line only", () => {
+        const keel: ModuleSpec = { kind: "structure", x: 3, y: 0, length: 8, width: 4 };
+        expect(centreLineAxes(keel)).toEqual({ along: false, across: true });
+        expect(centreLineAxes({ ...keel, angle: Math.PI / 2 })).toEqual({ along: true, across: false });
+        expect(centreLineAxes({ ...keel, angle: Math.PI / 4 })).toEqual({ along: false, across: false });
+        expect(centreLineAxes(box)).toEqual({ along: false, across: false });
+        // The +w edge a metre out takes the -w edge a metre the other way; the aft end stays where it was.
+        expect(resizedTo(keel, face(0, 1), 3, 3, 0.5, centreLineAxes(keel))).toEqual({ length: 8, width: 6, dx: 0, dy: 0 });
+        expect(resizedTo(keel, face(1, 1), 9, 3, 0.5, centreLineAxes(keel))).toEqual({ length: 10, width: 6, dx: 1, dy: 0 });
     });
 
     it("keeps an engine’s middle from centre, moving its mounting face instead", () => {
