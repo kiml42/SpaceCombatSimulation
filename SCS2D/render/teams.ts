@@ -43,7 +43,7 @@ export const NEUTRAL = {
     pivot: "#4a4a4a",
 };
 
-type Palette = (typeof TEAM_COLOURS)[number];
+export type Palette = (typeof TEAM_COLOURS)[number];
 
 /**
  * How far a fighter's hull and trim are drawn towards its side's dark pivot
