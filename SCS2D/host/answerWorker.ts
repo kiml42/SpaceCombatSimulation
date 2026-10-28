@@ -1,15 +1,25 @@
-import { searchLoop } from "./answer.js";
+import { searchLoop, searchPool, type JobPort, type SearchInput } from "./answer.js";
 
-/** The worker the skirmish enemy's search runs in: started by one message, and stopped by being ended. */
+/**
+ * The worker the skirmish enemy's search runs in: started by one message, and
+ * stopped by being ended. Handed channels to job workers, it deals the search
+ * out to them; otherwise it fights it itself.
+ */
 
 const scope = self as unknown as {
-    onmessage: ((event: MessageEvent) => void) | null;
+    onmessage: ((event: MessageEvent<SearchInput & { ports?: MessagePort[] }>) => void) | null;
     postMessage(message: unknown): void;
 };
 
-scope.onmessage = (event: MessageEvent) => {
+scope.onmessage = (event) => {
     scope.onmessage = null;
-    const run = searchLoop(event.data, (wire) => scope.postMessage(wire));
+    const { ports = [], ...input } = event.data;
+    const post = (wire: unknown): void => scope.postMessage(wire);
+    if (ports.length > 0) {
+        searchPool(input, post, ports as unknown as JobPort[]);
+        return;
+    }
+    const run = searchLoop(input, post);
     // A tight loop would do, as nothing comes in once it starts; a timeout a
     // slice keeps the worker answering to being ended.
     const tick = (): void => {

@@ -325,6 +325,8 @@ describe("the skirmish in a browser", () => {
         const skirmish = won(newSkirmish(shipFleet(CORVETTE), shipFleet(CORVETTE), 25));
         await page.goto(skirmishPage(skirmish));
         await page.waitForSelector("#answering");
+        // With cores to spare, the search deals its matches out to job workers beside its own.
+        if ((await page.evaluate(() => navigator.hardwareConcurrency)) >= 3) expect(page.workers().length).toBeGreaterThan(2);
         // Opened on the round being answered, not the one already won: said once the view is up, which can be after.
         await page.waitForFunction(() => document.getElementById("outcome")?.textContent !== "");
         expect(await page.textContent("#outcome")).toBe("The enemy as it stands against your fleet, evolving an answer.");
