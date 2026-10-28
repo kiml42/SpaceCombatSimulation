@@ -40,7 +40,7 @@ import { BARE_CORE, CATAMARAN, CORVETTE, DINKY, GUNSHIP } from "../scenarios/blu
  * here reads as a generation that changed nothing, which is a test that
  * quietly stops checking what it was written for.
  */
-const STRUCTURAL = /removed|added|copied|taken into|instance placed|instance dropped/;
+const STRUCTURAL = /removed|added|copied|split in two|taken into|instance placed|instance dropped/;
 
 /** Every build and doctrine weight zero, for a test about one operator. */
 const FROZEN = { move: 0, resize: 0, refit: 0, fittings: 0, tuning: 0, fighter: 0, shape: 0 };
@@ -205,7 +205,7 @@ describe("mutation", () => {
                 held = child.blueprint;
                 for (const edit of child.edits) {
                     if (/removed/.test(edit)) removed++;
-                    else if (/added|copied/.test(edit)) added++;
+                    else if (/added|copied|split in two/.test(edit)) added++;
                 }
             }
         }
@@ -239,7 +239,7 @@ describe("mutation", () => {
                 const child = mutate(held, rng, { structural: 1, thrusters: 0, budget: { ...NO_BUDGET, metal: budget } });
                 held = child.blueprint;
                 generations++;
-                if (child.edits.some((edit) => /removed|added|copied/.test(edit))) structural++;
+                if (child.edits.some((edit) => /removed|added|copied|split in two/.test(edit))) structural++;
             }
         }
         expect(structural).toBeGreaterThan(generations / 2);
@@ -869,6 +869,36 @@ describe("scaling a whole ship", () => {
             expect(after.length).toBeCloseTo(before.length * factor, 3);
             expect(after.x).toBeCloseTo(before.x * factor, 3);
             expect(child.blueprint.modules![0]!.y).toBeCloseTo(CATAMARAN.modules![0]!.y * factor, 3);
+        }
+        expect(seen).toBeGreaterThan(0);
+    });
+});
+
+describe("splitting a module", () => {
+    it("cuts one in two of its kind, filling the space it filled", { timeout: 30_000 }, () => {
+        const off = Object.fromEntries(Object.keys(DEFAULT_BUILD_WEIGHTS).map((key) => [key, 0]));
+        const rng = new Rng(11);
+        let seen = 0;
+        for (let i = 0; i < 400 && seen < 3; i++) {
+            // The structure alone, so nothing else changes a size.
+            const child = mutate(GUNSHIP, rng, {
+                structural: 1,
+                geometry: 0,
+                switches: 0,
+                thrusters: 0,
+                build: off as typeof DEFAULT_BUILD_WEIGHTS,
+                doctrine: { targeting: 0, approach: 0, escort: 0, avoidance: 0, gunnery: 0 },
+            });
+            const edit = child.edits.find((e) => /split in two/.test(e));
+            if (edit === undefined) continue;
+            seen++;
+            expect(blueprintProblem(child.blueprint)).toBeNull();
+            const before = expandBlueprint(GUNSHIP);
+            const after = expandBlueprint(child.blueprint);
+            // One more in every copy of the list it is in.
+            expect(after.length).toBeGreaterThan(before.length);
+            const area = (modules: readonly ModuleSpec[]): number => modules.reduce((sum, m) => sum + m.length * m.width, 0);
+            expect(area(after)).toBeCloseTo(area(before), 2);
         }
         expect(seen).toBeGreaterThan(0);
     });

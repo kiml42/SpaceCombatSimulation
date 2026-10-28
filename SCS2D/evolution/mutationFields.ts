@@ -350,6 +350,14 @@ export const MUTATION_FIELDS: readonly MutationField[] = [
         title: "Odds of making one of the fleet's designs a tenth bigger or smaller, whole, and every ship of it with it.",
     },
     {
+        name: "opChimera",
+        group: "fleet",
+        label: "chimera made",
+        step: 0.5,
+        value: DEFAULT_FLEET_LIMITS.operators.chimera,
+        title: "Odds of cutting two of the fleet's designs, or one twice, at a face of one of their modules, dropping everything beyond each face, and joining the two halves face to face into a new design one of the fleet's ships is rebuilt to.",
+    },
+    {
         name: "doctrineTargeting",
         group: "doctrine",
         label: "targeting",

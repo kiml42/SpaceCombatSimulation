@@ -76,7 +76,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Ships often lose manoeuvrability, even starting with a good configuration of engines, they will often lose some.
 - Evolution finds it very hard to make ships bigger
   - e.g. a corvette can make its outer modules bigger, and even stretch some of its inner modules, but there's no mechanism to add a module somewhere in the middle to extend it, or make it wider.
-    - Could add a mutation that splits a module in two, allowing each half to mutate separately. This may have little advantage in one step, but if each half could mutate after, it could change the type of one, which could greatly increase its capability. This combined with being able to stretch a module would let a ship get longer with more modules in the middle, while it maintains the important structure at the ends.
 
 
 ## Fleet Editor

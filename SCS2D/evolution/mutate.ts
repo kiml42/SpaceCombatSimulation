@@ -2420,6 +2420,8 @@ function restructure(draft: Draft, rng: Rng, bounds: MutationLimits, scale: Scal
 
     const draw = rng.nextInt(4);
     if (draw < 2) return removePlacement(draft, rng);
+    // A copy of a module, or one module made two, each half the time.
+    if (draw === 2 && rng.nextInt(2) === 0) return splitModule(draft, rng, scale) ?? addModule(draft, rng, bounds, scale, true);
     return addModule(draft, rng, bounds, scale, draw === 2);
 }
 
@@ -2449,6 +2451,61 @@ function removePlacement(draft: Draft, rng: Rng): string | null {
     const chosen = sites[rng.nextInt(sites.length)]!;
     chosen.list.placements.splice(chosen.index, 1);
     return `${chosen.list.label}[${chosen.index}] ${chosen.spec.kind}: removed`;
+}
+
+/**
+ * Cut one module in two of the same kind, each half of it, filling the space
+ * it filled.
+ *
+ * What lets a lineage grow in the middle rather than only at its edges: a
+ * hull's important ends stay where they are, and each half can then be
+ * stretched, refitted or moved on its own. A module with a facing is cut down
+ * its length, so both halves still face out the way it did — two guns or
+ * engines side by side — and anything else across its longer side.
+ *
+ * A core is never cut, since two halves of one would be two cores, nor a
+ * slipway, a claw, or rock.
+ */
+function splitModule(draft: Draft, rng: Rng, scale: Scale): string | null {
+    const sites: { list: PlacementList; index: number; spec: ModuleSpec }[] = [];
+    for (const list of draft.lists) {
+        for (let i = 0; i < list.placements.length; i++) {
+            const placement = list.placements[i]!;
+            if (isInstance(placement) || isShaped(placement) || !splits(placement.kind)) continue;
+            sites.push({ list, index: i, spec: placement });
+        }
+    }
+    if (sites.length === 0) return null;
+    const { list, index, spec } = sites[rng.nextInt(sites.length)]!;
+    // Down its length (halving the width) or across it (halving the length).
+    const downLength = hasFacing(spec.kind) || spec.width > spec.length;
+    const length = downLength ? spec.length : spec.length / 2;
+    const width = downLength ? spec.width / 2 : spec.width;
+    if (min(length, width) < scale.quantum) return null;
+
+    const angle = spec.angle ?? 0;
+    const c = cos(angle);
+    const s = sin(angle);
+    const centre = blockCentre(spec);
+    // Each half's middle a quarter of the cut side either way, in the module's frame.
+    const offset = downLength ? { x: 0, y: spec.width / 4 } : { x: spec.length / 4, y: 0 };
+    const toPosition = blockCentre({ ...spec, x: 0, y: 0, length, width });
+    const half = (sign: number): ModuleSpec => {
+        const cx = centre.x + sign * (offset.x * c - offset.y * s);
+        const cy = centre.y + sign * (offset.x * s + offset.y * c);
+        return { ...spec, length: tidy(length, 4), width: tidy(width, 4), x: tidy(cx - toPosition.x, 4), y: tidy(cy - toPosition.y, 4) };
+    };
+    const first = half(-1);
+    const second = half(1);
+    delete second.id;
+    // In place, since sites drawn for later edits hold the placement by reference.
+    Object.assign(spec, first);
+    list.placements.push(second);
+    return `${list.label}[${index}] ${spec.kind}: split in two`;
+}
+
+function splits(kind: ModuleKind): boolean {
+    return kind !== "core" && kind !== "kernel" && kind !== "rock" && kind !== "slipway" && kind !== "claw";
 }
 
 /**
