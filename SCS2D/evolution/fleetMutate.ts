@@ -24,9 +24,11 @@ import {
     degreesToRadians,
     radiansToDegrees,
     readsCraft,
+    moduleOutline,
+    type ModuleKind,
     budgetMass,
 } from "../sim/index.js";
-import { cos, max, min, PI, round, sin, sqrt } from "../sim/math.js";
+import { atan2, cos, max, min, PI, round, sin, sqrt } from "../sim/math.js";
 import { byContent } from "../sim/byContent.js";
 import { BARE_CORE } from "../scenarios/blueprints.js";
 import { DEFAULT_LIMITS, drift, mutate, scaledBlueprint, type MutationLimits } from "./mutate.js";
@@ -95,7 +97,7 @@ export interface FleetMutationLimits {
     readonly rivals: readonly Fleet[];
 }
 
-export type FleetOperator = "add" | "remove" | "fork" | "merge" | "swap" | "pad" | "steal" | "spread" | "scale";
+export type FleetOperator = "add" | "remove" | "fork" | "merge" | "swap" | "pad" | "steal" | "spread" | "scale" | "chimera";
 
 /** Every design and every ship each child; what the fleet is made of more often than not. */
 export const DEFAULT_FLEET_LIMITS: FleetMutationLimits = {
@@ -109,7 +111,7 @@ export const DEFAULT_FLEET_LIMITS: FleetMutationLimits = {
     design: 1,
     change: 0.6,
     attempts: 24,
-    operators: { add: 1, remove: 1, fork: 0.5, merge: 0.5, swap: 0.5, pad: 0.5, steal: 0, spread: 0.5, scale: 0.5 },
+    operators: { add: 1, remove: 1, fork: 0.5, merge: 0.5, swap: 0.5, pad: 0.5, steal: 0, spread: 0.5, scale: 0.5, chimera: 0.5 },
     rivals: [],
 };
 
@@ -211,6 +213,8 @@ function apply(operator: FleetOperator, fleet: Fleet, rng: Rng, rivals: readonly
             return spread(fleet, rng);
         case "scale":
             return scale(fleet, rng);
+        case "chimera":
+            return chimera(fleet, rng);
     }
 }
 
@@ -552,6 +556,96 @@ function scale(fleet: Fleet, rng: Rng): string[] {
     fleet.designs[name] = scaled;
     return [`${name} ${factor > 1 ? "scaled up" : "scaled down"} by a tenth`];
 }
+
+/** What a chimera may be cut at: a module with nothing sticking out of any face. */
+const CUT_KINDS: ReadonlySet<ModuleKind> = new Set(["structure", "tank", "core", "hold", "battery", "generator"]);
+
+/** One design cut at a face of one of its modules, and everything beyond that face dropped. */
+interface Half {
+    readonly modules: ModuleSpec[];
+    /** The face's middle, and its outward normal. */
+    readonly x: number;
+    readonly y: number;
+    readonly nx: number;
+    readonly ny: number;
+}
+
+/**
+ * A ship of two designs' halves, or of one design's two halves: each cut at a
+ * face of one of its modules, everything beyond the face dropped, and the two
+ * stuck together face to face. A ship nearly as big as both, with more
+ * modules rather than bigger ones, which one ship flying the first design is
+ * rebuilt to. Everything kept of one half lies behind its face, so the two
+ * cannot overlap; a cut that leaves a half in pieces, or without a core, is
+ * refused as any unfit ship is.
+ */
+function chimera(fleet: Fleet, rng: Rng): string[] {
+    const flown = fleet.ships.filter((entry): entry is FleetEntry & { design: string } => !isGroupUse(entry));
+    const designs = usedDesigns(fleet);
+    if (flown.length === 0 || designs.length === 0) return [];
+    const ship = flown[rng.nextInt(flown.length)]!;
+    const other = designs[rng.nextInt(designs.length)]!;
+    const a = cut(expandBlueprint(fleetBlueprint(fleet, ship.design)), rng);
+    const b = cut(expandBlueprint(fleetBlueprint(fleet, other)), rng);
+    if (a === null || b === null) return [];
+    // B turned so its face looks back into A's, and moved so the two faces' middles meet.
+    const turn = atan2(-a.ny, -a.nx) - atan2(b.ny, b.nx);
+    const c = cos(turn);
+    const s = sin(turn);
+    const joined = [
+        ...a.modules,
+        ...b.modules.map((spec) => {
+            const dx = spec.x - b.x;
+            const dy = spec.y - b.y;
+            return { ...spec, x: a.x + dx * c - dy * s, y: a.y + dx * s + dy * c, angle: (spec.angle ?? 0) + turn };
+        }),
+    ].map(({ id: _id, ...spec }) => spec);
+    const first = fleet.designs[ship.design]!;
+    const second = fleet.designs[other]!;
+    const name = fleet.designs[CHIMERA] === undefined ? CHIMERA : freeName(fleet, CHIMERA);
+    const design: Blueprint = { name, modules: joined };
+    if (first.doctrine !== undefined) design.doctrine = first.doctrine;
+    if (first.fighter === true && second.fighter === true) design.fighter = true;
+    fleet.designs[name] = design;
+    ship.design = name;
+    const of = first.name === second.name ? `two ${first.name}s` : `a ${first.name} and a ${second.name}`;
+    return [`${name}, of ${of}, in place of a ${first.name}`];
+}
+
+/** A design cut at a face of one of its modules that could be welded to, or null if it has none. */
+function cut(modules: ModuleSpec[], rng: Rng): Half | null {
+    const sites = modules.filter((spec) => CUT_KINDS.has(spec.kind));
+    if (sites.length === 0) return null;
+    const at = sites[rng.nextInt(sites.length)]!;
+    const corners: number[] = [];
+    const count = moduleOutline(at, corners);
+    const edge = rng.nextInt(count);
+    const x0 = corners[edge * 2]!;
+    const y0 = corners[edge * 2 + 1]!;
+    const x1 = corners[((edge + 1) % count) * 2]!;
+    const y1 = corners[((edge + 1) % count) * 2 + 1]!;
+    const length = sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0));
+    if (!(length > 0)) return null;
+    // Wound anticlockwise, so outward is the edge turned a quarter clockwise.
+    const nx = (y1 - y0) / length;
+    const ny = -(x1 - x0) / length;
+    const x = (x0 + x1) / 2;
+    const y = (y0 + y1) / 2;
+    const kept = modules.filter((spec) => {
+        if (spec === at) return true;
+        const outline: number[] = [];
+        const n = moduleOutline(spec, outline);
+        for (let i = 0; i < n; i++) if ((outline[i * 2]! - x) * nx + (outline[i * 2 + 1]! - y) * ny > CUT_TOLERANCE) return false;
+        return true;
+    });
+    return { modules: kept.map((spec) => JSON.parse(JSON.stringify(spec)) as ModuleSpec), x, y, nx, ny };
+}
+
+/** What a chimera is called, numbered after the first. */
+const CHIMERA = "Chimera";
+
+/** How far past a cut a kept module may reach, metres: corners on the face itself, and rounding. */
+const CUT_TOLERANCE = 1e-6;
 
 /**
  * How big the ships an entry places are: its largest hull's radius. Not how

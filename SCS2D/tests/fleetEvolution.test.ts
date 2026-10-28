@@ -29,7 +29,7 @@ const SHORT = { duration: 20 };
 
 /** Limits that make only the one change: a design, every ship's move, or one change to what the fleet is made of. */
 function only(change: FleetOperator | "design" | "move"): Partial<FleetMutationLimits> {
-    const operators = { add: 0, remove: 0, fork: 0, merge: 0, swap: 0, pad: 0, steal: 0, spread: 0, scale: 0 };
+    const operators = { add: 0, remove: 0, fork: 0, merge: 0, swap: 0, pad: 0, steal: 0, spread: 0, scale: 0, chimera: 0 };
     if (change === "design") return { design: 1, move: 0, change: 0, operators };
     if (change === "move") return { design: 0, move: 1, change: 0, operators };
     operators[change] = 1;
@@ -159,6 +159,7 @@ describe("breeding a fleet", () => {
             steal: pair(),
             spread: LINE_OF_BATTLE,
             scale: LINE_OF_BATTLE,
+            chimera: LINE_OF_BATTLE,
         };
         for (const [operator, parent] of Object.entries(parents) as [FleetOperator | "design" | "move", Fleet][]) {
             const child = mutateFleet(parent, new Rng(11), { ...limits, ...only(operator) });
@@ -233,6 +234,20 @@ describe("breeding a fleet", () => {
             seen.add(ratio > 1 ? "up" : "down");
         }
         expect([...seen].sort()).toEqual(["down", "up"]);
+    });
+
+    it("joins two designs' halves into a chimera one ship is rebuilt to", () => {
+        const made = new Set<string>();
+        for (let seed = 0; seed < 20; seed++) {
+            const child = mutateFleet(LINE_OF_BATTLE, new Rng(seed), { ...only("chimera"), move: 0 });
+            if (child.edits.length === 0) continue;
+            expect(child.edits[0]).toMatch(/^Chimera, of (two .+s|a .+ and a .+), in place of a .+$/);
+            expect(child.fleet.ships.filter((entry) => "design" in entry && entry.design === "Chimera")).toHaveLength(1);
+            expect(fleetFits(child.fleet, { radius: 500, maxShips: 24, budget: NO_BUDGET })).toBe(true);
+            made.add(child.edits[0]!.split(",")[1]!);
+        }
+        // Of more than one pairing, so both halves are drawn.
+        expect(made.size).toBeGreaterThan(2);
     });
 
     it("swaps a ship onto another of its fleet's designs, keeping the count", () => {
@@ -431,7 +446,7 @@ describe("designs a fleet carries but does not fly", () => {
         const rng = new Rng(9);
         for (let i = 0; i < 30; i++) {
             child = mutateFleet(child, rng, {
-                operators: { add: 0, remove: 0, fork: 1, merge: 1, swap: 1, pad: 0, steal: 0, spread: 0, scale: 0 },
+                operators: { add: 0, remove: 0, fork: 1, merge: 1, swap: 1, pad: 0, steal: 0, spread: 0, scale: 0, chimera: 0 },
                 design: 1,
                 change: 1,
             }).fleet;
