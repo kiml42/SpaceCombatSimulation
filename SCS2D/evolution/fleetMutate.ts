@@ -62,8 +62,8 @@ export function settled(angle: number): number {
  * them — unless a pad of one it flies keeps them, when they are bred as a
  * ship it flies is. A pad can be pointed at another of the fleet's fighters,
  * at a copy of its own to breed apart, or at a new bare core of a fighter,
- * and back. Where there is an opponent and `copy` is weighted, a ship of its can be copied in: what
- * the opponent fields is often the quickest answer to it, and the copy is
+ * and back. Where there is an opponent and `steal` is weighted, one of its designs can be stolen: what
+ * the opponent fields is often the quickest answer to it, and the stolen design is
  * bred apart from there.
  */
 
@@ -90,11 +90,11 @@ export interface FleetMutationLimits {
     readonly attempts: number;
     /** Relative chance of each change to what the fleet is made of. */
     readonly operators: Readonly<Record<FleetOperator, number>>;
-    /** The fleets it is bred against, whose ships `copy` takes: a skirmish's player, a co-evolution run's other side. */
+    /** The fleets it is bred against, whose designs `steal` takes: a skirmish's player, a co-evolution run's other side. */
     readonly rivals: readonly Fleet[];
 }
 
-export type FleetOperator = "add" | "remove" | "fork" | "merge" | "swap" | "pad" | "copy";
+export type FleetOperator = "add" | "remove" | "fork" | "merge" | "swap" | "pad" | "steal";
 
 /** Every design and every ship each child; what the fleet is made of more often than not. */
 export const DEFAULT_FLEET_LIMITS: FleetMutationLimits = {
@@ -108,7 +108,7 @@ export const DEFAULT_FLEET_LIMITS: FleetMutationLimits = {
     design: 1,
     change: 0.6,
     attempts: 24,
-    operators: { add: 1, remove: 1, fork: 0.5, merge: 0.5, swap: 0.5, pad: 0.5, copy: 0 },
+    operators: { add: 1, remove: 1, fork: 0.5, merge: 0.5, swap: 0.5, pad: 0.5, steal: 0 },
     rivals: [],
 };
 
@@ -148,7 +148,7 @@ export function mutateFleet(parent: Fleet, rng: Rng, limits?: Partial<FleetMutat
     const operators = {
         ...bounds.operators,
         ...(hasPad(draft) ? {} : { pad: 0 }),
-        ...(bounds.rivals.some((rival) => rival.ships.length > 0) ? {} : { copy: 0 }),
+        ...(bounds.rivals.some((rival) => rival.ships.length > 0) ? {} : { steal: 0 }),
     };
     if (rng.chance(bounds.change)) {
         for (let attempt = 1; attempt <= bounds.attempts; attempt++) {
@@ -204,8 +204,8 @@ function apply(operator: FleetOperator, fleet: Fleet, rng: Rng, rivals: readonly
             return swap(fleet, rng);
         case "pad":
             return repad(fleet, rng);
-        case "copy":
-            return copyRival(fleet, rivals, rng, new Layout());
+        case "steal":
+            return stealDesign(fleet, rivals, rng, new Layout());
     }
 }
 
@@ -305,7 +305,7 @@ function add(fleet: Fleet, rng: Rng, layout: Layout): string[] {
  * as `add` places one: the design, and every craft its pads and slipways
  * build, copied in under names the fleet has free.
  */
-function copyRival(fleet: Fleet, rivals: readonly Fleet[], rng: Rng, layout: Layout): string[] {
+function stealDesign(fleet: Fleet, rivals: readonly Fleet[], rng: Rng, layout: Layout): string[] {
     const fielded = rivals.filter((rival) => rival.ships.length > 0);
     if (fielded.length === 0 || fleet.ships.length === 0) return [];
     const rival = fielded[rng.nextInt(fielded.length)]!;
@@ -329,7 +329,7 @@ function copyRival(fleet: Fleet, rivals: readonly Fleet[], rng: Rng, layout: Lay
     entry.x = round(anchor.x + cos(heading) * distance);
     entry.y = round(anchor.y + sin(heading) * distance);
     fleet.ships.push(entry);
-    return [`a copy of ${rival.name}'s ${from} added as ${entry.design}, ${distance} m off`];
+    return [`${rival.name}'s ${from} stolen, added as ${entry.design}, ${distance} m off`];
 }
 
 /** A copy of a design with each pad's and slipway's craft renamed by `names`, all at once. */
