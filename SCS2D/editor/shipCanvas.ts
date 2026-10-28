@@ -32,6 +32,7 @@ import { drawOverlay, envelopeBearingAt, overEnvelope } from "./overlay.js";
 import {
     assemblyKnob,
     barrelCalibresTo,
+    centreLineAxes,
     facingTo,
     handleAt,
     handlesFor,
@@ -509,14 +510,15 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
             // so it keeps the grid only while it is near nothing.
             const landed = landing(fieldNow(), world.x, world.y, snapWithin(event));
             const point = landed ?? world;
-            // Shift sizes about the middle, keeping it where it was.
+            // Shift sizes about the middle, keeping it where it was; a module on the
+            // centre line is sized about it across the line regardless, to stay on it.
             const { length, width, dx, dy } = resizedTo(
                 drag.spec,
                 drag.handle,
                 point.x,
                 point.y,
                 landed === null ? step : 0,
-                event.shiftKey,
+                event.shiftKey || centreLineAxes(drag.spec),
             );
             // Neighbours move with the face unless Ctrl (⌘) asks for this module alone.
             const push = !(event.ctrlKey || event.metaKey);

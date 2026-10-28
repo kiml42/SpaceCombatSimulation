@@ -44,7 +44,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - When refitting a ship, add a button to animate the refit (not using robots, just show the old things being disassembled and the new parts being assembled)
   - Similar button for assembling from a pad or slipway.
 - Allow mounting on the front of engines and hull weapons in the space beside the nozzle/barrel if there is any
-- If a module is on the centreline, scale it symmetrically
 - Doctrine needs a major overhaul
   - it's far too hidden for something you will often need. 
   - The sections aren't clear enough

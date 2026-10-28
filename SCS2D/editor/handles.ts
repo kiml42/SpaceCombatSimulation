@@ -21,7 +21,7 @@ import {
 import { snap } from "./edit.js";
 import { snapBearing } from "./snapping.js";
 
-const { atan2, cos, sin, max, round, sqrt, HALF_PI } = math;
+const { abs, atan2, cos, sin, max, round, sqrt, HALF_PI } = math;
 
 /**
  * The grab points on a selected module: a corner or an edge to size it by, and
@@ -264,7 +264,8 @@ export function handleAt(handles: readonly Handle[], x: number, y: number, scale
  * With `fromCentre` the opposite face moves as far the other way instead, so
  * the middle stays put: what a module on a ship's centre line needs to stay
  * on it. The dragged face's movement snaps then, so both faces move by whole
- * grid steps.
+ * grid steps. It may be given for each of the module's dimensions apart, as
+ * `centreLineAxes` gives it.
  *
  * `dx`/`dy` are in the blueprint's frame, for `movePlacement` on the module
  * itself rather than its copy's instance, so every copy of a shared part moves
@@ -276,8 +277,9 @@ export function resizedTo(
     x: number,
     y: number,
     step: number,
-    fromCentre = false,
+    fromCentre: boolean | Axes = false,
 ): { length: number; width: number; dx: number; dy: number } {
+    const centred: Axes = typeof fromCentre === "boolean" ? { along: fromCentre, across: fromCentre } : fromCentre;
     const angle = spec.angle ?? 0;
     const c = cos(angle);
     const s = sin(angle);
@@ -289,9 +291,9 @@ export function resizedTo(
     // Never below one step of the grid either: at a zoom where the grid is ten
     // metres, half a metre is not something the drag could have said, and it
     // would put the face off the grid its neighbours abut on.
-    const side = (face: number, half: number, pointer: number, held: number) => {
+    const side = (face: number, half: number, pointer: number, held: number, aboutMiddle: boolean) => {
         if (face === 0) return { size: held, middle: 0 };
-        if (fromCentre) {
+        if (aboutMiddle) {
             const size = max(MIN_SIZE, step, held + 2 * snap(face * pointer - half, step));
             return { size, middle: 0 };
         }
@@ -299,8 +301,8 @@ export function resizedTo(
         const size = max(MIN_SIZE, step, snap(face * (pointer - anchor), step));
         return { size, middle: anchor + (face * size) / 2 };
     };
-    const along = side(handle.along, spec.length / 2, px, spec.length);
-    const across = side(handle.across, spec.width / 2, py, spec.width);
+    const along = side(handle.along, spec.length / 2, px, spec.length, centred.along);
+    const across = side(handle.across, spec.width / 2, py, spec.width, centred.across);
 
     // Where the new box's middle is, then where the position must be to put it
     // there — an engine's position is its mounting face rather than its middle.
@@ -320,6 +322,32 @@ export function resizedTo(
         dy: tidy(centreY - offset.y - spec.y),
     };
 }
+
+/** One flag for each of a module's dimensions: its length, and its width. */
+export interface Axes {
+    readonly along: boolean;
+    readonly across: boolean;
+}
+
+/**
+ * Which of a module's dimensions lie across the ship's centre line, for a
+ * module whose middle is on it and that is squarely along or across it: sized
+ * about the middle, so that it stays on the line.
+ */
+export function centreLineAxes(spec: ModuleSpec): Axes {
+    const mid = blockCentre(spec);
+    if (abs(mid.y) > CENTRE_LINE_TOLERANCE) return NEITHER;
+    const angle = spec.angle ?? 0;
+    // |sin| is how far the length turns across the line.
+    const across = abs(sin(angle));
+    if (across < CENTRE_LINE_TOLERANCE) return { along: false, across: true };
+    if (abs(across - 1) < CENTRE_LINE_TOLERANCE) return { along: true, across: false };
+    return NEITHER;
+}
+
+const NEITHER: Axes = { along: false, across: false };
+/** Metres, and sines, within which a module is taken as on the centre line and square to it. */
+const CENTRE_LINE_TOLERANCE = 1e-6;
 
 /**
  * The corners a shaped module takes when one of them is dragged to a point,

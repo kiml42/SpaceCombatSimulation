@@ -51,7 +51,10 @@ import { Figures, ShipProblems, ShipRefit, ShipStats } from "./ShipReport";
 const KEYS: readonly KeyRow[] = [
     { keys: "Click a module", does: "Select it" },
     { keys: "Drag a module", does: "Move it" },
-    { keys: "Drag a corner or edge", does: "Size it, pushing its neighbours; with Ctrl, alone; with Shift, about its middle" },
+    {
+        keys: "Drag a corner or edge",
+        does: "Size it, pushing its neighbours; with Ctrl, alone; with Shift, about its middle. One on the centre line stays on it",
+    },
     { keys: "Drag the knob", does: "Turn it" },
     { keys: "Two touching selected", does: "Drag the face between them" },
     { keys: "Shift-click", does: "Pick several, to Create assembly or Add them to the last assembly picked" },
