@@ -358,17 +358,20 @@ describe("designs a fleet carries but does not fly", () => {
         }
     });
 
-    it("adds a ship of a design it does not fly, or a bare core", () => {
+    it("adds a ship of a design it does not fly, or a bare core, the heavier the likelier", () => {
         const fleet: Fleet = { ...pair(), designs: { Dinky: DINKY, Gunship: GUNSHIP } };
-        const built = new Set<string>();
-        for (let seed = 0; seed < 40; seed++) {
+        const built = new Map<string, number>();
+        for (let seed = 0; seed < 200; seed++) {
             const child = mutateFleet(fleet, new Rng(seed), { ...only("add") }).fleet;
             expect(child.ships).toHaveLength(3);
             const added = child.ships[2]!;
-            built.add("design" in added ? added.design : "");
+            const name = "design" in added ? added.design : "";
+            built.set(name, (built.get(name) ?? 0) + 1);
             if (child.designs["Bare Core"] !== undefined) expect(child.designs["Bare Core"].modules).toEqual(BARE_CORE.modules);
         }
-        expect([...built].sort()).toEqual(["Bare Core", "Dinky", "Gunship"]);
+        expect([...built.keys()].sort()).toEqual(["Bare Core", "Dinky", "Gunship"]);
+        expect(built.get("Gunship")!).toBeGreaterThan(built.get("Dinky")!);
+        expect(built.get("Dinky")!).toBeGreaterThan(built.get("Bare Core")!);
     });
 
     it("adds a bare core it already carries without a second copy of the design", () => {

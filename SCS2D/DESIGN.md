@@ -675,7 +675,7 @@ inside any one file is not contiguous.
   radius and a ship count — headless with `pnpm evolve --fleet`, and on the evolution page, whose
   founders are ships and fleets alike; a ship grows into a fleet unless the most ships allowed is one. A fleet carries designs it does not fly: a
   ship taken out leaves its design behind, and a ship added is built to any design the fleet carries or to a bare
-  core, so it can grow by one small ship rather than only by a copy of one it has, and it goes in any direction from
+  core, the heavier the likelier, so it can grow by one small ship rather than only by a copy of one it has, and it goes in any direction from
   the ship it is beside, clear of it by one and a quarter to two and a quarter times their two radii. **Each child
   mutates each design with a chance of its own** (`design`, 1), so a fleet of four designs breeds each as often as
   a fleet of one does; **moves every one of its entries** by a drift with no dead zone of a quarter of its largest

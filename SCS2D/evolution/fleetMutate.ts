@@ -277,11 +277,19 @@ function add(fleet: Fleet, rng: Rng, layout: Layout): string[] {
     const groups = [...new Set(fleet.ships.filter(isGroupUse).map((entry) => entry.group))];
     const designs = Object.keys(fleet.designs);
     const core = designs.find((name) => sameAsCore(fleet.designs[name]!)) ?? null;
-    const choices = designs.length + groups.length + (core === null ? 1 : 0);
-    const choice = rng.nextInt(choices);
+    const choices: (FleetEntry | null)[] = [
+        ...designs.map((design) => ({ design, x: 0, y: 0 })),
+        ...groups.map((group) => ({ group, x: 0, y: 0 })),
+        ...(core === null ? [null] : []),
+    ];
+    // By what each weighs, taking a bigger ship to be a stronger one, so what is added is more often what counts.
+    const picked = weighted(
+        rng,
+        choices.map((choice) => (choice === null ? budgetMass(compileBlueprint(BARE_CORE)) : entryMass(fleet, choice))),
+        choices,
+    );
     let entry: FleetEntry;
-    if (choice < designs.length) entry = { design: designs[choice]!, x: 0, y: 0 };
-    else if (choice < designs.length + groups.length) entry = { group: groups[choice - designs.length]!, x: 0, y: 0 };
+    if (picked !== null) entry = picked;
     else {
         const name = fleet.designs[BARE_CORE.name] === undefined ? BARE_CORE.name : freeName(fleet, BARE_CORE.name);
         fleet.designs[name] = { name, modules: JSON.parse(JSON.stringify(BARE_CORE.modules)) as Blueprint["modules"] };
@@ -299,6 +307,13 @@ function add(fleet: Fleet, rng: Rng, layout: Layout): string[] {
     entry.y = round(anchor.y + sin(heading) * distance);
     fleet.ships.push(entry);
     return [`${describe(entry)} added, ${distance} m off`];
+}
+
+/** What an entry weighs as it sets out, every ship of a group's together. */
+function entryMass(fleet: Fleet, entry: FleetEntry): number {
+    let mass = 0;
+    for (const hull of fleetHulls({ ...fleet, ships: [entry] })) mass += budgetMass(hull.design);
+    return mass;
 }
 
 /**
