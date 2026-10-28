@@ -232,7 +232,8 @@ describe("growing a part that is placed more than once", () => {
             let added = 0;
             let absorbed = 0;
             for (const edit of children(parent, 101, 600)) {
-                const arrival = /^(\S+?)\[\d+\] \S+: a \w+ added to/.exec(edit);
+                // A module split in two arrives where the old one was, so it fits as one added does.
+                const arrival = /^(\S+?)\[\d+\] \S+: (a \w+ added to|split in two)/.exec(edit);
                 if (arrival !== null && shared.has(arrival[1]!)) added++;
                 const taken = /taken into (\S+)/.exec(edit);
                 if (taken !== null && shared.has(taken[1]!)) absorbed++;
