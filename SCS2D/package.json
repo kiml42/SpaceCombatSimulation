@@ -67,5 +67,10 @@
     "vite": "^8.3.5",
     "vite-plugin-singlefile": "^2.3.4",
     "vitest": "^5.0.5"
+  },
+  "pnpm": {
+    "overrides": {
+      "@wyw-in-js/transform>happy-dom": "^21.0.4"
+    }
   }
 }

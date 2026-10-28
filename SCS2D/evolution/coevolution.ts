@@ -1,7 +1,7 @@
 import { Rng } from "../sim/index.js";
 import { max, min } from "../sim/math.js";
 import { BARE_CORE } from "../scenarios/blueprints.js";
-import { DEFAULT_MATCH, isFleet, Match, type Entrant, type Score } from "./match.js";
+import { DEFAULT_MATCH, isFleet, Match, planned, type Entrant, type MatchPlan, type Score } from "./match.js";
 import { breed, fitness, type Generation, type Individual } from "./generation.js";
 import {
     DEFAULT_RUN,
@@ -252,6 +252,12 @@ export class Coevolution {
      * from. Draws the match, so it is for a run that will not be fought.
      */
     unmutatedOpening(): Match | null {
+        const plan = this.unmutatedOpeningPlan();
+        return plan === null ? null : planned(plan);
+    }
+
+    /** `unmutatedOpening` as data, for a worker to hand back. */
+    unmutatedOpeningPlan(): MatchPlan | null {
         if (this.match === null && !this.over) this.open();
         const pairing = this.pairing;
         if (this.match === null || pairing === null) return null;
@@ -262,7 +268,7 @@ export class Coevolution {
             return individuals.find((each) => each.id === individual.parent)?.entrant ?? individual.entrant;
         };
         const { entrants, teams } = this.lineUp(pairing, founderOf);
-        return new Match(entrants, this.matchConfig(), teams);
+        return { entrants, config: this.matchConfig(), teams };
     }
 
     /** How far through the whole run, from nothing to one. */
