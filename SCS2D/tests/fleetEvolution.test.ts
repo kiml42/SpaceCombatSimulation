@@ -245,10 +245,10 @@ describe("breeding a fleet", () => {
             expect(child.edits[0]).toMatch(/^Chimera, of (two .+s|a .+ and a .+), in place of a .+$/);
             expect(child.fleet.ships.filter((entry) => "design" in entry && entry.design === "Chimera")).toHaveLength(1);
             expect(fleetFits(child.fleet, { radius: 500, maxShips: 24, budget: NO_BUDGET })).toBe(true);
-            // Never lighter than the ship it replaces.
+            // Each half is cut on the far side of its centre of mass, so keeps most of its ship.
             const replaced = child.edits[0]!.split(" in place of a ")[1]!;
             const weight = (design: Blueprint): number => budgetMass(compileBlueprint(design));
-            expect(weight(child.fleet.designs["Chimera"]!)).toBeGreaterThan(weight(LINE_OF_BATTLE.designs[replaced]!));
+            expect(weight(child.fleet.designs["Chimera"]!)).toBeGreaterThan(0.5 * weight(LINE_OF_BATTLE.designs[replaced]!));
             made.add(child.edits[0]!.split(",")[1]!);
         }
         // Of more than one pairing, so both halves are drawn.

@@ -587,8 +587,8 @@ function chimera(fleet: Fleet, rng: Rng): string[] {
     if (flown.length === 0 || designs.length === 0) return [];
     const ship = flown[rng.nextInt(flown.length)]!;
     const other = designs[rng.nextInt(designs.length)]!;
-    const a = cut(expandBlueprint(fleetBlueprint(fleet, ship.design)), rng);
-    const b = cut(expandBlueprint(fleetBlueprint(fleet, other)), rng);
+    const a = cut(fleetBlueprint(fleet, ship.design), rng);
+    const b = cut(fleetBlueprint(fleet, other), rng);
     if (a === null || b === null) return [];
     // B turned so its face looks back into A's, and moved so the two faces' middles meet.
     const turn = atan2(-a.ny, -a.nx) - atan2(b.ny, b.nx);
@@ -608,36 +608,38 @@ function chimera(fleet: Fleet, rng: Rng): string[] {
     const design: Blueprint = { name, modules: joined };
     if (first.doctrine !== undefined) design.doctrine = first.doctrine;
     if (first.fighter === true && second.fighter === true) design.fighter = true;
-    // Only ever a bigger ship than the one rebuilt: a chimera is a way to grow, and
-    // cut down to less it is a smaller ship found the long way round.
-    const was = ship.design;
-    const before = entryMass(fleet, ship);
     fleet.designs[name] = design;
     ship.design = name;
-    if (blueprintProblem(withFleetFighters(design, fleet.designs)) !== null || !(entryMass(fleet, ship) > before)) {
-        delete fleet.designs[name];
-        ship.design = was;
-        return [];
-    }
     const of = first.name === second.name ? `two ${first.name}s` : `a ${first.name} and a ${second.name}`;
     return [`${name}, of ${of}, in place of a ${first.name}`];
 }
 
-/** A design cut at a face of one of its modules that could be welded to, or null if it has none. */
-function cut(modules: ModuleSpec[], rng: Rng): Half | null {
-    const sites = modules.filter((spec) => CUT_KINDS.has(spec.kind));
-    if (sites.length === 0) return null;
-    const at = sites[rng.nextInt(sites.length)]!;
-    const corners: number[] = [];
-    const count = moduleOutline(at, corners);
-    const edge = rng.nextInt(count);
-    const x0 = corners[edge * 2]!;
-    const y0 = corners[edge * 2 + 1]!;
-    const x1 = corners[((edge + 1) % count) * 2]!;
-    const y1 = corners[((edge + 1) % count) * 2 + 1]!;
+/**
+ * A design cut at a face of one of its modules that could be welded to, and
+ * that looks away from its centre of mass, so what is kept is the side the
+ * mass is on: at least half the ship, near enough. Null if it has no such face.
+ */
+function cut(blueprint: Blueprint, rng: Rng): Half | null {
+    const modules = expandBlueprint(blueprint);
+    const { centreOfMassX: cx, centreOfMassY: cy } = compileBlueprint(blueprint);
+    const faces: { at: ModuleSpec; x0: number; y0: number; x1: number; y1: number }[] = [];
+    for (const at of modules) {
+        if (!CUT_KINDS.has(at.kind)) continue;
+        const corners: number[] = [];
+        const count = moduleOutline(at, corners);
+        for (let edge = 0; edge < count; edge++) {
+            const x0 = corners[edge * 2]!;
+            const y0 = corners[edge * 2 + 1]!;
+            const x1 = corners[((edge + 1) % count) * 2]!;
+            const y1 = corners[((edge + 1) % count) * 2 + 1]!;
+            // Wound anticlockwise, so outward is the edge turned a quarter clockwise.
+            if ((y1 - y0) * ((x0 + x1) / 2 - cx) - (x1 - x0) * ((y0 + y1) / 2 - cy) > 0) faces.push({ at, x0, y0, x1, y1 });
+        }
+    }
+    if (faces.length === 0) return null;
+    const { at, x0, y0, x1, y1 } = faces[rng.nextInt(faces.length)]!;
     const length = sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0));
     if (!(length > 0)) return null;
-    // Wound anticlockwise, so outward is the edge turned a quarter clockwise.
     const nx = (y1 - y0) / length;
     const ny = -(x1 - x0) / length;
     const x = (x0 + x1) / 2;
