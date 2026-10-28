@@ -183,6 +183,15 @@ describe("breeding a fleet", () => {
         expect(mutateFleet(pair(), new Rng(3), only("steal")).edits).toEqual([]);
     });
 
+    it("steals a rival's heavier design more often than its lighter one", () => {
+        const rival = addShip(addShip(emptyFleet("Rival"), BARE_CORE, 0, 0), GUNSHIP, 80, 0);
+        const copied = (name: string): number =>
+            [...Array(40).keys()].filter((seed) =>
+                mutateFleet(pair(), new Rng(seed), { ...only("steal"), rivals: [rival] }).edits[0]?.includes(`Rival's ${name} stolen`),
+            ).length;
+        expect(copied(GUNSHIP.name)).toBeGreaterThan(3 * copied(BARE_CORE.name));
+    });
+
     it("swaps a ship onto another of its fleet's designs, keeping the count", () => {
         const designs = (fleet: Fleet): string[] => fleet.ships.map((entry) => ("design" in entry ? entry.design : `group ${entry.group}`));
         const before = designs(LINE_OF_BATTLE);
