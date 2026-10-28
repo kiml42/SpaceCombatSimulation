@@ -29,7 +29,7 @@ import {
 import { cos, max, min, PI, round, sin, sqrt } from "../sim/math.js";
 import { byContent } from "../sim/byContent.js";
 import { BARE_CORE } from "../scenarios/blueprints.js";
-import { DEFAULT_LIMITS, drift, mutate, type MutationLimits } from "./mutate.js";
+import { DEFAULT_LIMITS, drift, mutate, scaledBlueprint, type MutationLimits } from "./mutate.js";
 import { fleetBlueprint, hangarClashes, padReached, renamePadFighter, withFleetFighters } from "../sim/fleetHangar.js";
 
 /**
@@ -95,7 +95,7 @@ export interface FleetMutationLimits {
     readonly rivals: readonly Fleet[];
 }
 
-export type FleetOperator = "add" | "remove" | "fork" | "merge" | "swap" | "pad" | "steal" | "spread";
+export type FleetOperator = "add" | "remove" | "fork" | "merge" | "swap" | "pad" | "steal" | "spread" | "scale";
 
 /** Every design and every ship each child; what the fleet is made of more often than not. */
 export const DEFAULT_FLEET_LIMITS: FleetMutationLimits = {
@@ -109,7 +109,7 @@ export const DEFAULT_FLEET_LIMITS: FleetMutationLimits = {
     design: 1,
     change: 0.6,
     attempts: 24,
-    operators: { add: 1, remove: 1, fork: 0.5, merge: 0.5, swap: 0.5, pad: 0.5, steal: 0, spread: 0.5 },
+    operators: { add: 1, remove: 1, fork: 0.5, merge: 0.5, swap: 0.5, pad: 0.5, steal: 0, spread: 0.5, scale: 0.5 },
     rivals: [],
 };
 
@@ -209,6 +209,8 @@ function apply(operator: FleetOperator, fleet: Fleet, rng: Rng, rivals: readonly
             return stealDesign(fleet, rivals, rng, new Layout());
         case "spread":
             return spread(fleet, rng);
+        case "scale":
+            return scale(fleet, rng);
     }
 }
 
@@ -528,6 +530,27 @@ function spread(fleet: Fleet, rng: Rng): string[] {
         entry.y = round((cy + (entry.y - cy) * factor) * 10) / 10;
     }
     return [`fleet ${factor > 1 ? "spread out" : "drawn in"} by ${round(factor * 100) / 100}`];
+}
+
+/** How much `scale` grows or shrinks a design by. */
+const SCALE_STEP = 1.1;
+
+/**
+ * One of the fleet's designs made a tenth bigger, or smaller, whole: every
+ * module and where it sits, as a ship's own `rescale` does in smaller steps.
+ * A step a ship can take without flying much differently, which its scaling
+ * laws make a little more or less of, so a fleet of small ships can grow its
+ * ships rather than only its numbers. Every ship of the design is rebuilt to it.
+ */
+function scale(fleet: Fleet, rng: Rng): string[] {
+    const designs = bredDesigns(fleet);
+    if (designs.length === 0) return [];
+    const name = designs[rng.nextInt(designs.length)]!;
+    const factor = rng.chance(0.5) ? SCALE_STEP : 1 / SCALE_STEP;
+    const scaled = scaledBlueprint(fleet.designs[name]!, factor);
+    if (scaled === null) return [];
+    fleet.designs[name] = scaled;
+    return [`${name} ${factor > 1 ? "scaled up" : "scaled down"} by a tenth`];
 }
 
 /**

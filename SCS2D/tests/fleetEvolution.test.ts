@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
     compileBlueprint,
+    expandBlueprint,
     fleetBill,
     fleetHulls,
     fleetMass,
@@ -9,6 +10,7 @@ import {
     Rng,
     serialiseFleet,
     shipFleet,
+    type Blueprint,
     type Fleet,
 } from "../sim/index.js";
 import { isFleet, Match, runMatch } from "../evolution/match.js";
@@ -27,7 +29,7 @@ const SHORT = { duration: 20 };
 
 /** Limits that make only the one change: a design, every ship's move, or one change to what the fleet is made of. */
 function only(change: FleetOperator | "design" | "move"): Partial<FleetMutationLimits> {
-    const operators = { add: 0, remove: 0, fork: 0, merge: 0, swap: 0, pad: 0, steal: 0, spread: 0 };
+    const operators = { add: 0, remove: 0, fork: 0, merge: 0, swap: 0, pad: 0, steal: 0, spread: 0, scale: 0 };
     if (change === "design") return { design: 1, move: 0, change: 0, operators };
     if (change === "move") return { design: 0, move: 1, change: 0, operators };
     operators[change] = 1;
@@ -156,6 +158,7 @@ describe("breeding a fleet", () => {
             pad: carrierFleet(),
             steal: pair(),
             spread: LINE_OF_BATTLE,
+            scale: LINE_OF_BATTLE,
         };
         for (const [operator, parent] of Object.entries(parents) as [FleetOperator | "design" | "move", Fleet][]) {
             const child = mutateFleet(parent, new Rng(11), { ...limits, ...only(operator) });
@@ -213,6 +216,23 @@ describe("breeding a fleet", () => {
             ratios.add(factors[0]! > 1 ? "out" : "in");
         }
         expect([...ratios].sort()).toEqual(["in", "out"]);
+    });
+
+    it("scales one design a tenth up or down, whole", () => {
+        const fleet = pair();
+        // Every module's size, as the geometry is scaled exactly; what it compiles to follows the scaling laws.
+        const lengths = (design: Blueprint): number => expandBlueprint(design).reduce((sum, m) => sum + m.length, 0);
+        const seen = new Set<string>();
+        for (let seed = 0; seed < 20; seed++) {
+            const child = mutateFleet(fleet, new Rng(seed), { ...only("scale"), move: 0 });
+            if (child.edits.length === 0) continue;
+            expect(child.edits[0]).toMatch(/^Dinky scaled (up|down) by a tenth$/);
+            const ratio = lengths(child.fleet.designs["Dinky"]!) / lengths(DINKY);
+            expect([1.1, 1 / 1.1].some((factor) => Math.abs(ratio - factor) < 0.01)).toBe(true);
+            expect(fleetFits(child.fleet, { radius: 500, maxShips: 24, budget: NO_BUDGET })).toBe(true);
+            seen.add(ratio > 1 ? "up" : "down");
+        }
+        expect([...seen].sort()).toEqual(["down", "up"]);
     });
 
     it("swaps a ship onto another of its fleet's designs, keeping the count", () => {
@@ -411,7 +431,7 @@ describe("designs a fleet carries but does not fly", () => {
         const rng = new Rng(9);
         for (let i = 0; i < 30; i++) {
             child = mutateFleet(child, rng, {
-                operators: { add: 0, remove: 0, fork: 1, merge: 1, swap: 1, pad: 0, steal: 0, spread: 0 },
+                operators: { add: 0, remove: 0, fork: 1, merge: 1, swap: 1, pad: 0, steal: 0, spread: 0, scale: 0 },
                 design: 1,
                 change: 1,
             }).fleet;
