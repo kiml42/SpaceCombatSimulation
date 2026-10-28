@@ -58,7 +58,7 @@ an entry is either still open or it is gone.
 | 14 | Orders | Built |
 | 15 | Mining | Built |
 | 16 | React UI | Built |
-| 17 | WebGL viewer | Not started |
+| 17 | WebGL viewer (PixiJS) | Not started |
 | 18 | Campaign | Not started |
 
 
@@ -68,15 +68,49 @@ Nothing: every step started is built.
 
 ### Not started — in order
 
-17. **WebGL viewer** — Use WebGL instead of Canvas for more capable visuals, behind the canvas component, with
-    the Canvas2D renderer kept as a setting until the WebGL one is ready. What we hope to get out of this:
-    - Learn the capabilities of WebGL and how to work with it
-    - More capable rendering with improved effects
-    - More efficient rendering
+17. **WebGL viewer (PixiJS)** — Draw the battle with PixiJS v8 (WebGL) instead of Canvas2D, behind
+    `BattleCanvas`, with Canvas2D kept as a setting until Pixi matches it. Wanted, roughly in order:
+    - **Performance.** Large fleets are slow to draw even when paused, because Canvas2D fills every module as
+      its own path every frame.
+    - **Better hulls.** Decals and colour patterns on designs.
+    - **Lighting**, mainly so the step up from the weapons layer to the fighter layer reads on a ship.
+    - **Effects** (particles, glows), lower priority: Canvas2D's already look good.
 
-    After React, so it swaps what is inside one component rather than five pages, and so a break can be
-    told apart from the UI port. The editor's handles and guides can stay Canvas2D on a canvas stacked
-    over the WebGL one, and the evolution charts (`render/chart.ts`) are not WebGL's concern.
+    Pixi rather than raw WebGL, WebGPU or three.js — DECISIONS.md 2026-10-28 has why. The plan:
+    - **One Pixi scene, drawn in true order**, not a WebGL canvas stacked under the Canvas2D one. Stacking can't
+      draw fighters over robots over decks, which is why #522/#531 were closed. Canvas2D stays only as an
+      overlay where it is simpler: the editors' handles and guides. Evolution charts and fleet thumbnails are
+      not this step's concern.
+    - **The scene is synced from snapshots**: display objects are created, updated and destroyed by entity id
+      each frame, since the renderer otherwise redraws from scratch.
+    - **A blueprint's geometry is built once and shared** by every ship of it (a `GraphicsContext` per
+      blueprint, or a mesh), which is DESIGN §5's "triangulate once, instance per ship".
+      `render/moduleFills.ts` from #531 is the start: one source for what a module is filled as, read by
+      both renderers so they can't disagree.
+    - **Positions go to Pixi relative to the camera**, worked out in doubles, so float32 on the GPU stays
+      steady far from the origin (as #522's backdrop did).
+    - **Input and picking stay as they are** (`render/picking.ts`, the engine's handlers); Pixi's event
+      system is off on the battle canvas.
+
+    Stages, each behind the setting: (1) Pixi set up in `battleView`, with context loss handled and the
+    backdrop drawn; (2) hulls from shared blueprint geometry; (3) everything else in draw order — details,
+    robots, fighters, rounds, beams, plumes, flashes, icons, orders, and the insets in the same scene;
+    (4) switch the default and delete the Canvas2D battle drawing; (5) the wants above: lighting, decals and
+    patterns, effects.
+
+    Settled for the Pixi version:
+    - **No seams between modules.** Canvas2D's faint line between touching modules is an antialiasing
+      artefact, and losing it is fine: plates of one colour merge. Edges come back with more detailed part art,
+      such as rounded engine blocks, not with outlines drawn to imitate the seam.
+    - **Text on a hull is in the Pixi scene**, in the ship's frame, so it is drawn on and turns and scales with
+      the ship (a ship's name on its core today). `BitmapText` with a distance-field font, so it stays sharp at
+      any zoom rather than blurring as a rasterised `Text` would.
+    - **Overlay text** (range labels, labels over points, tile counts) is Pixi `Text` in a screen-space layer at
+      the top of the same scene: one canvas, and fixed-size text never needs re-rasterising for zoom.
+
+    Open: **lighting.** Bevel normals per module plus a shadow cast by the layer above is the first idea. It
+    is a custom filter or shader either way, as Pixi has no lighting.
+
 18. **Campaign** — Homeworld-shaped, with the adaptive enemy. As much new mechanism as authoring: progression
     between missions and functionality only a campaign needs, as well as the scripted missions, pacing and
     narrative. Last, because its screens — briefings, progression, fleet carried between missions — would
@@ -110,7 +144,7 @@ that answers the question most likely to change the design.
 
 **The app is one page, `dist/index.html`, routed by the hash**, every screen a route; an old viewer link
 (`#battle=`, `#fleet=`) is rewritten to the Battle route as it opens. **The battle view is `BattleCanvas`,
-the seam step 17 puts WebGL behind**: a canvas React mounts and leaves to an engine, which owns the clock, the
+the seam step 17 puts Pixi behind**: a canvas React mounts and leaves to an engine, which owns the clock, the
 camera and the input; the editors' canvases are engines of the same kind. What else is settled:
 
 - **A route is `app/routes/<name>/`**, listed in `app/routes.tsx` and shown inside `app/Shell.tsx`, which
