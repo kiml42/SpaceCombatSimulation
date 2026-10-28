@@ -5,11 +5,11 @@ import { useStorage } from "~/features/storage/StorageContext";
 import { useLibrary } from "~/features/storage/useLibrary";
 import { useViewSettings } from "~/features/storage/useViewSettings";
 import { nextName, toFileText, type Library } from "~/editor/library";
-import { Coevolution } from "~/evolution/coevolution";
 import { parseRunConfig, runConfigWarnings, serialiseRunConfig, type RunSetup } from "~/evolution/configFile";
-import { isFleet, Match, type Entrant } from "~/evolution/match";
+import { isFleet, Match, planned, type Entrant } from "~/evolution/match";
 import { parseRunRecord, RecordedRun, winsIn } from "~/evolution/recorded";
-import { Run, type MatchRecord } from "~/evolution/run";
+import type { MatchRecord } from "~/evolution/run";
+import { breedOpening } from "./openingWorker";
 import { latest, yardstickMatch } from "~/evolution/yardstick";
 import type { BattleView } from "~/host/battleView";
 import { designOf, LiveRun, type RunControl } from "~/host/evolutionRun";
@@ -369,22 +369,24 @@ export function EvolutionPage() {
         const opening = { ...config, generations: config.generations > 0, minMatches: 0, winners: 0 };
         const key = JSON.stringify([founders, rivals, opening, coSettings]);
         if (key === viewing.preview.key) return;
+        // Bred in a worker, which takes seconds for two large fleets; the match is built here, to be shown.
+        let breeding: { cancel(): void } | null = null;
         const timer = setTimeout(() => {
-            let match: Match | null = null;
-            try {
-                match =
-                    founders.length === 0
-                        ? null
-                        : co
-                          ? new Coevolution(founders, rivals, config, coSettings!).unmutatedOpening()
-                          : new Run(founders, config).unmutatedOpening();
-            } catch {
-                // A founder that will not compile has nothing to show.
-            }
-            viewing.setPreview(key, match);
-            sample();
+            breeding = breedOpening({ founders, rivals, config, coevolution: coSettings }, (plan) => {
+                let match: Match | null = null;
+                try {
+                    match = plan === null ? null : planned(plan);
+                } catch {
+                    // A founder that will not compile has nothing to show.
+                }
+                viewing.setPreview(key, match);
+                sample();
+            });
         }, PREVIEW_DELAY_MS);
-        return () => clearTimeout(timer);
+        return () => {
+            clearTimeout(timer);
+            breeding?.cancel();
+        };
     }, [run, form, founders, rivals, viewing]);
 
     const setMode = (next: "fleet" | "battle"): void => {

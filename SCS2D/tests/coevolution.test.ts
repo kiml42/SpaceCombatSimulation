@@ -92,7 +92,9 @@ describe("a co-evolution run", { timeout: 60_000 }, () => {
         );
         const drills = drilled.generations[0]!.matches.filter((match) => match.drill === "bareCore");
         expect(drills.length).toBeGreaterThan(0);
-        for (const drill of drills) expect(drill.scores[drill.teams!.indexOf(0)]!.damage).toBeGreaterThan(0);
+        // The founder's, whose guns are known to reach; a mutant's may not, in a minute.
+        const founder = drills.find((drill) => drill.competitors[drill.teams!.indexOf(0)] === 0)!;
+        expect(founder.scores[founder.teams!.indexOf(0)]!.damage).toBeGreaterThan(0);
     });
 
     it("fights the other side's hall, its founders until it has champions, and drills, with nothing to race to", () => {
