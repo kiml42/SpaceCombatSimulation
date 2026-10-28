@@ -6,5 +6,5 @@
     "lib": ["ES2022"],
     "types": ["node"]
   },
-  "include": ["evolution", "scenarios", "scripts", "tests", "*.config.ts", ".storybook/main.ts"]
+  "include": ["evolution", "scenarios", "scripts", "benchmarks", "tests", "*.config.ts", ".storybook/main.ts"]
 }

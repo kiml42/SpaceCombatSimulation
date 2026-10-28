@@ -430,6 +430,12 @@ Deliberately unresolved; decide when they block something.
   so an enemy making passes at it does not count for it. Any change of velocity would be more general
   still, but would make running away a way to stay in. Raised by the author with the drills (DECISIONS.md
   2026-10-16), not built.
+- **Whether the skirmish enemy adapts fast enough to a player who steps up.** Measured and worked on in
+  October 2026 — the search now fights by the round's rules, in parallel, and the enemy can scale, spread, splice
+  and steal — and left to be seen in play. With stealing off, the default, no benchmarked seed was answered within
+  15 generations under today's defaults, against all three within 10 with it on; the measurements, the PRs and
+  what to try next are in
+  [notes/skirmish-adaptation.md](notes/skirmish-adaptation.md).
 - **Letting the skirmish enemy steal the player's designs in play.** The `steal` operator is off by default, as
   copying could feel like cheating. Suggested by the author: the game might say the enemy is trying to
   steal the player's designs, and let the player allow it, for a quicker answer, or refuse it. Wanted, not
