@@ -435,7 +435,10 @@ inside any one file is not contiguous.
   that can only add structure is a ratchet a lineage has no way down from. A whole ship can be scaled in one
   draw — every size, position, corner and assembly placement by one factor, up to a fifth either way at the
   default magnitude — under `resize`'s weight, so a hull in proportion at one size is tried at another without
-  breaking on the way; the scaling laws do not scale with it, which is the question asked. A child's name
+  breaking on the way; the scaling laws do not scale with it, which is the question asked. One assembly can be
+  scaled the same way, alone, in every copy of it: its modules about its own origin and the step between the
+  copies of a row, under the same weight; one placing other assemblies is left whole, since those may be placed
+  elsewhere too. A child's name
   drifts a letter from its parent's one time in ten, from a generator of its own so the drift never moves a
   draw the design depends on, and lines bred from one founder come to read as relatives rather than as the
   founder with a number on. A doctrine number is perturbed by a fraction of its *default* rather than of what is held, so nothing that has reached zero
