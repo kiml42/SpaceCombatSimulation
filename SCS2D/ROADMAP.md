@@ -98,12 +98,18 @@ Nothing: every step started is built.
     (4) switch the default and delete the Canvas2D battle drawing; (5) the wants above: lighting, decals and
     patterns, effects.
 
-    Open, to settle at the stage that needs it:
-    - **Module edges.** Canvas2D leaves a faint seam between touching modules, an antialiasing artefact that
-      reads as the module edge; the GPU leaves none. Draw edges on purpose, or let plates merge?
-    - **Text** in the battle view (icons' labels, orders): Pixi `Text`/`BitmapText`, or a Canvas2D overlay?
-    - **Lighting**: bevel normals per module plus a shadow cast by the layer above is the first idea. It is a
-      custom filter or shader either way, as Pixi has no lighting.
+    Settled for the Pixi version:
+    - **No seams between modules.** Canvas2D's faint line between touching modules is an antialiasing
+      artefact, and losing it is fine: plates of one colour merge. Edges come back with more detailed part art,
+      such as rounded engine blocks, not with outlines drawn to imitate the seam.
+    - **Text on a hull is in the Pixi scene**, in the ship's frame, so it is drawn on and turns and scales with
+      the ship (a ship's name on its core today). `BitmapText` with a distance-field font, so it stays sharp at
+      any zoom rather than blurring as a rasterised `Text` would.
+    - **Overlay text** (range labels, labels over points, tile counts) is Pixi `Text` in a screen-space layer at
+      the top of the same scene: one canvas, and fixed-size text never needs re-rasterising for zoom.
+
+    Open: **lighting.** Bevel normals per module plus a shadow cast by the layer above is the first idea. It
+    is a custom filter or shader either way, as Pixi has no lighting.
 
 18. **Campaign** — Homeworld-shaped, with the adaptive enemy. As much new mechanism as authoring: progression
     between missions and functionality only a campaign needs, as well as the scripted missions, pacing and
