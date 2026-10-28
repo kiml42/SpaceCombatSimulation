@@ -355,10 +355,10 @@ export function SkirmishPage() {
         decision.current = null;
         setDecided(null);
     };
-    /** Show a battle that takes no orders: given the orders it was played with, if any, to play again. */
-    const showOn = (on: BattleView, shownBattle: Battle, run: boolean, given?: readonly Logged[]): void => {
+    /** Show a battle that takes no orders, and can be wound back: given the orders it was played with, if any, to play again. */
+    const showOn = (on: BattleView, shownBattle: Battle, run: boolean, given: readonly Logged[] = []): void => {
         on.allowOrders(false);
-        on.show(shownBattle, run, given !== undefined && given.length > 0, given ?? []);
+        on.show(shownBattle, run, true, given);
     };
 
     const showRound = (current: Skirmish | null = skirmishes.skirmish, on: BattleView | null = view): void => {

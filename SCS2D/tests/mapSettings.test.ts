@@ -3,7 +3,7 @@ import { drawnMap, mapProblem, shipFleet, writeMap } from "../sim/index.js";
 import { Rng } from "../sim/rng.js";
 import { CORVETTE, GUNSHIP } from "../scenarios/blueprints.js";
 import { customBattle, parseBattleSetup, serialiseBattleSetup, type BattleSetup } from "../scenarios/customBattle.js";
-import { DEFAULT_SKIRMISH_SETTINGS, parseSkirmishSettings, roundBattle } from "../scenarios/skirmish.js";
+import { DEFAULT_SKIRMISH_SETTINGS, parseSkirmishSettings, roundBattle, roundMap } from "../scenarios/skirmish.js";
 import { parseRunConfig, runConfigFileProblem, serialiseRunConfig } from "../evolution/configFile.js";
 import { DEFAULT_RUN } from "../evolution/run.js";
 import { Match } from "../evolution/match.js";
@@ -120,6 +120,13 @@ describe("a skirmish", () => {
         const back = parseSkirmishSettings(JSON.parse(JSON.stringify(settings)));
         expect(back.map).toEqual(FIELD);
         expect(back.mapSpread).toEqual({ minors: 3 });
-        expect(() => parseSkirmishSettings({ map: { majors: 0.5 } })).toThrow(/whole/);
+        expect(() => parseSkirmishSettings({ map: { majors: -1 } })).toThrow(/negative/);
+    });
+
+    it("takes a partial count, drawn as whole numbers across its range", () => {
+        const partial = parseSkirmishSettings({ map: { minors: 7.5 }, mapSpread: { minors: 2.5 } });
+        const drawn = new Set<number>();
+        for (let seed = 1; seed <= 200; seed++) drawn.add(roundMap(seed, partial).minors!);
+        expect([...drawn].sort((a, b) => a - b)).toEqual([5, 6, 7, 8, 9, 10]);
     });
 });

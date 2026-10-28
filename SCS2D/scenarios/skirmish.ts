@@ -358,7 +358,8 @@ export function parseSkirmishSettings(value: unknown): SkirmishSettings {
     const map: Record<string, MapSettings> = {};
     for (const key of ["map", "mapSpread"] as const) {
         if (file[key] === undefined) continue;
-        const problem = mapProblem(file[key], key);
+        // Drawn from for each round, so a count may be partial: 7.5 ± 2.5 minors is 5 to 10.
+        const problem = mapProblem(file[key], key, false);
         if (problem !== null) fail(problem);
         map[key] = { ...(file[key] as MapSettings) };
     }
