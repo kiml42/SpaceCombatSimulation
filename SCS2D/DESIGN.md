@@ -683,7 +683,8 @@ inside any one file is not contiguous.
   ship's radius and 15°, times `move` (1), leaning away from its nearest neighbour the more the closer it is, so a row
   of fighters moves as far as a fighter and a fleet spreads; and **now and then changes what it is made of**
   (`change`, 0.6: a ship added or removed, a design forked or merged, a ship swapped or a pad repointed, the whole
-  fleet spread out or drawn in about its middle by up to two fifths (`spread`, 0.5), by their
+  fleet spread out or drawn in about its middle by up to two fifths (`spread`, 0.5), a design made bigger
+  or smaller whole, by a drift of a tenth (`scale`, 0.5), by their
   weights, or, where there is an opponent, one of its designs stolen — `steal`, 0 unless set: the player's fleet to a
   skirmish enemy, the other side's champions in a co-evolution run of fleets — the heavier the likelier, and a ship
   built to it with

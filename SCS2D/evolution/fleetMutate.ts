@@ -29,7 +29,7 @@ import {
 import { cos, max, min, PI, round, sin, sqrt } from "../sim/math.js";
 import { byContent } from "../sim/byContent.js";
 import { BARE_CORE } from "../scenarios/blueprints.js";
-import { DEFAULT_LIMITS, drift, mutate, type MutationLimits } from "./mutate.js";
+import { DEFAULT_LIMITS, drift, mutate, scaledBlueprint, type MutationLimits } from "./mutate.js";
 import { fleetBlueprint, hangarClashes, padReached, renamePadFighter, withFleetFighters } from "../sim/fleetHangar.js";
 
 /**
@@ -95,7 +95,7 @@ export interface FleetMutationLimits {
     readonly rivals: readonly Fleet[];
 }
 
-export type FleetOperator = "add" | "remove" | "fork" | "merge" | "swap" | "pad" | "steal" | "spread";
+export type FleetOperator = "add" | "remove" | "fork" | "merge" | "swap" | "pad" | "steal" | "spread" | "scale";
 
 /** Every design and every ship each child; what the fleet is made of more often than not. */
 export const DEFAULT_FLEET_LIMITS: FleetMutationLimits = {
@@ -109,7 +109,7 @@ export const DEFAULT_FLEET_LIMITS: FleetMutationLimits = {
     design: 1,
     change: 0.6,
     attempts: 24,
-    operators: { add: 1, remove: 1, fork: 0.5, merge: 0.5, swap: 0.5, pad: 0.5, steal: 0, spread: 0.5 },
+    operators: { add: 1, remove: 1, fork: 0.5, merge: 0.5, swap: 0.5, pad: 0.5, steal: 0, spread: 0.5, scale: 0.5 },
     rivals: [],
 };
 
@@ -155,7 +155,7 @@ export function mutateFleet(parent: Fleet, rng: Rng, limits?: Partial<FleetMutat
         for (let attempt = 1; attempt <= bounds.attempts; attempt++) {
             attempts = attempt;
             const candidate = clone(draft);
-            const changed = apply(pick(rng, operators), candidate, rng, bounds.rivals);
+            const changed = apply(pick(rng, operators), candidate, rng, bounds);
             if (changed.length === 0 || !fleetFits(candidate, bounds)) continue;
             draft.designs = candidate.designs;
             draft.ships = candidate.ships;
@@ -191,7 +191,7 @@ export function fleetFits(fleet: Fleet, limits: Pick<FleetMutationLimits, "budge
     return firstOverlap(hulls) === null;
 }
 
-function apply(operator: FleetOperator, fleet: Fleet, rng: Rng, rivals: readonly Fleet[]): string[] {
+function apply(operator: FleetOperator, fleet: Fleet, rng: Rng, bounds: FleetMutationLimits): string[] {
     switch (operator) {
         case "add":
             return add(fleet, rng, new Layout());
@@ -206,9 +206,11 @@ function apply(operator: FleetOperator, fleet: Fleet, rng: Rng, rivals: readonly
         case "pad":
             return repad(fleet, rng);
         case "steal":
-            return stealDesign(fleet, rivals, rng, new Layout());
+            return stealDesign(fleet, bounds.rivals, rng, new Layout());
         case "spread":
             return spread(fleet, rng);
+        case "scale":
+            return scale(fleet, rng, bounds);
     }
 }
 
@@ -528,6 +530,29 @@ function spread(fleet: Fleet, rng: Rng): string[] {
         entry.y = round((cy + (entry.y - cy) * factor) * 10) / 10;
     }
     return [`fleet ${factor > 1 ? "spread out" : "drawn in"} by ${round(factor * 100) / 100}`];
+}
+
+/** The spread of `scale`'s factor about one: a tenth, as the ship's drift is drawn. */
+const SCALE_SPREAD = 0.1;
+
+/**
+ * One of the fleet's designs made bigger or smaller, whole: every module and
+ * where it sits, as a ship's own `rescale` does in smaller steps. By a tenth
+ * or so, now and then much more, as any number drifts: a step a ship can take
+ * without flying much differently, which its scaling laws make a little more
+ * or less of, so a fleet of small ships can grow its ships rather than only
+ * its numbers. Every ship of the design is rebuilt to it.
+ */
+function scale(fleet: Fleet, rng: Rng, bounds: FleetMutationLimits): string[] {
+    const designs = bredDesigns(fleet);
+    if (designs.length === 0) return [];
+    const name = designs[rng.nextInt(designs.length)]!;
+    const factor = round((1 + drift(rng, { ...DEFAULT_LIMITS, ...bounds.ship, deadZone: 0 }, SCALE_SPREAD)) * 1000) / 1000;
+    if (factor === 1 || !(factor > 0)) return [];
+    const scaled = scaledBlueprint(fleet.designs[name]!, factor);
+    if (scaled === null) return [];
+    fleet.designs[name] = scaled;
+    return [`${name} scaled by ${factor}`];
 }
 
 /**
