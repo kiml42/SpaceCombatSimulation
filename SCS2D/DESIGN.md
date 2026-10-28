@@ -1169,8 +1169,8 @@ inside any one file is not contiguous.
   holds a fighter to fill cells that are broken. Evolution draws batteries and generators at a weight of
   one each, and a mutation does not turn either, since neither has a facing that matters.
 - **Next:** §8 steps 17–18 in order — the WebGL viewer, then the campaign (ROADMAP.md §8 has why). Of the
-  WebGL viewer, the battle's backdrop — field, grid and wells — is built: drawn with WebGL 2 on a canvas
-  under the Canvas2D one when the battle view's **Draw** setting asks for it, kept for every page alike, and
+  WebGL viewer, the battle's backdrop — field, grid and wells — and the capital ships' module fills are built:
+  drawn with WebGL 2 on a canvas under the Canvas2D one when the battle view's **Draw** setting asks for it, kept for every page alike, and
   Canvas2D's otherwise. Every step before them is built, step 16, the React UI, last: every screen is a route of one React app, built by
   Vite to `dist/index.html`, one file that opens from disk, with Linaria, Storybook with a story and
   accessibility check per component, and ESLint with the import boundaries. Its routes go by the hash

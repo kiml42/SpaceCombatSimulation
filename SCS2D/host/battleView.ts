@@ -303,7 +303,7 @@ export function battleView(
         },
         {
             label: () => (renderer === "canvas2d" ? "Draw: 2D" : layer !== null ? "Draw: WebGL" : "Draw: no WebGL"),
-            title: "Draw the battle's backdrop with Canvas2D or WebGL",
+            title: "Draw the battle's backdrop and hulls with Canvas2D or WebGL",
             press: () => {
                 renderer = renderer === "canvas2d" ? "webgl" : "canvas2d";
                 saveRenderer(renderer);
@@ -702,7 +702,7 @@ export function battleView(
         const marked = markedBody < 0 ? null : { body: markedBody, modules: markedModules!.modules };
         const underneath = layer?.ready === true;
         if (underneath) layer!.draw(view, camera, canvas.width, canvas.height);
-        draw(ctx, view, camera, canvas.width, canvas.height, flashes, arcs, teamShots, selected, also, marked, !underneath);
+        draw(ctx, view, camera, canvas.width, canvas.height, flashes, arcs, teamShots, selected, also, marked, underneath);
         if (tiles !== null) drawFleetStrips(ctx, view, tiles, selected, ratio, flashes, arcs, teamShots, stripCache);
         const insets = closeUps(view, camera, canvas.width, canvas.height, selected, ratio, tiles);
         drawCloseUps(ctx, view, insets, selected, ratio, flashes, arcs, teamShots, marked);

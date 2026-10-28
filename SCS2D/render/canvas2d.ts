@@ -39,6 +39,7 @@ import {
 } from "../sim/index.js";
 import { BACKGROUND, GRID, WELL, WELL_ARM_PX, WELL_PULLS } from "./backdrop.js";
 import { gridStep, type Camera } from "./camera.js";
+import { fillAlpha, fillColour, isFighterModule, moduleFills, type Fill } from "./moduleFills.js";
 import {
     describeRange,
     insetAt,
@@ -227,46 +228,11 @@ const CORE_GAUGE_INSET = 0.08;
 /** A core's status light, beside its generator disc or in that corner: lit while it flies anything, dark once it does not. */
 const CORE_LIGHT_GAUGES = 0.7;
 
-/** How much of a claw's width each of its two jaws is drawn across. */
-const CLAW_JAW_SHARE = 0.3;
-
-/** How much of a slipway's width each side rail takes, and of its length the feed block aft. */
-const SLIPWAY_RAIL_SHARE = 0.12;
-const SLIPWAY_FEED_SHARE = 0.25;
+/** Scratch for a module's fills. */
+const fills: Fill[] = [];
 
 /** How far in from a pad's edge its landing square is drawn, as a share of its smaller side. */
 const PAD_MARK_INSET = 0.1;
-
-/** How much of a port's length its collar is drawn as. */
-const PORT_COLLAR_SHARE = 0.3;
-
-/** A module that has taken everything it can: still there, no longer anything. */
-const WRECKAGE = "#3c4048";
-/** An asteroid's kernel: darker than any rock, so what will be left once the rock is mined is plain. */
-const KERNEL = "#3a3530";
-
-/** What rock is drawn as by what it holds: white for ice, grey for ore, brown for the worthless rest. */
-const ICE_RGB = [235, 240, 245] as const;
-const ORE_RGB = [130, 132, 138] as const;
-const WASTE_RGB = [110, 80, 55] as const;
-const rockColours = new Map<string, string>();
-
-function rockColour(ore: number, ice: number): string {
-    // Quantised, so a field of wedges shares a handful of strings.
-    const key = `${Math.round(ore * 20)},${Math.round(ice * 20)}`;
-    let colour = rockColours.get(key);
-    if (colour === undefined) {
-        const o = Math.round(ore * 20) / 20;
-        const i = Math.round(ice * 20) / 20;
-        const w = Math.max(0, 1 - o - i);
-        const mix = (k: 0 | 1 | 2): number => Math.round(ICE_RGB[k] * i + ORE_RGB[k] * o + WASTE_RGB[k] * w);
-        colour = `rgb(${mix(0)}, ${mix(1)}, ${mix(2)})`;
-        rockColours.set(key, colour);
-    }
-    return colour;
-}
-/** How faint a module no working core reaches is drawn, so a ship that lost one shows what went dark. */
-const OUT_OF_REACH_ALPHA = 0.35;
 
 /** An impact: the white-hot moment, and the warmer flare around it. */
 const FLASH_CORE = "#fff6e2";
@@ -440,7 +406,15 @@ function drawRobot(
  * of fighters, whether it is one or carries them. What belongs to the ship
  * as a whole is drawn with whichever of the two it is.
  */
-function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number, arcs: Arcs, fighters: boolean): void {
+function drawShip(
+    ctx: CanvasRenderingContext2D,
+    ship: ShipView,
+    metresToPx: number,
+    arcs: Arcs,
+    fighters: boolean,
+    /** Whether the modules' fills are drawn already, underneath. */
+    filled = false,
+): void {
     const design = ship.currentStructure;
     const whole = design.fighter === fighters;
     if (!whole && (!fighters || design.fighterPieces === undefined)) return;
@@ -485,110 +459,36 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
         // Optional, because a view can be built by hand: the editor's preview and
         // the camera's tests both do, and neither has anything to be damaged.
         const integrity = ship.integrity?.[i] ?? 1;
-        // A core is drawn in the darkest of the team's colours: the compartment
-        // the ship is flown from is worth being able to find at a glance, since
-        // shooting it out is what leaves a hulk.
-        ctx.fillStyle =
-            spec.kind === "kernel"
-                ? KERNEL
-                : spec.kind === "rock"
-                  ? rockColour(spec.ore ?? 0, spec.ice ?? 0)
-                  : integrity <= 0
-                    ? WRECKAGE
-                    : spec.kind === "structure" || spec.kind === "tank" || spec.kind === "hold" || spec.kind === "battery"
-                      ? // Thick structure is drawn in the colour of the mounts and engines,
-                        // since it is what stands with them in the weapons layer. Read from
-                        // the compiled flag rather than the spec, since a plate that is
-                        // thick by borrowing its neighbour's depth is only as high as what
-                        // it covers.
-                        m.weaponsLayer
-                          ? colours.trim
-                          : colours.hull
-                      : spec.kind === "core"
-                        ? colours.pivot
-                        : spec.kind === "robotBay"
-                          ? // A deck, as a pad is, for its berth pads to stand out on.
-                            colours.hull
-                          : colours.trim;
-        ctx.globalAlpha = integrity <= 0 ? 1 : (0.45 + 0.55 * integrity) * (ship.outOfReach?.[i] === true ? OUT_OF_REACH_ALPHA : 1);
+        ctx.globalAlpha = fillAlpha(ship, i);
         const halfLength = spec.length / 2;
         const halfWidth = spec.width / 2;
-        if (spec.kind === "engine") {
-            // An engine is a machinery block with bells on the back of it, and it is
-            // drawn as exactly that: the block a box like any other module, each
-            // bell flaring from its throat to the exit. Local +x is the way it
-            // pushes and the face it is bolted on by, so the bells are at -x and
-            // widen as they go, which is both how a rocket is shaped and the
-            // direction the plume already leaves in.
-            //
-            // This is the one drawing that is not an approximation of the module:
-            // the throat fraction it tapers from is the number the thrust is worked
-            // out from, so what the bell looks like is what it does.
-            const engine = engineGeometry(spec);
-            ctx.fillRect(halfLength - engine.machineryLength, -halfWidth, engine.machineryLength, spec.width);
-            const throat = engine.throatWidth / 2;
-            const exit = engine.exitWidth / 2;
-            const mouth = halfLength - engine.machineryLength;
-            for (let n = 0; n < engine.nozzles; n++) {
-                const across = nozzleOffset(engine, n);
+        // Unless a layer underneath has filled it already (render/webgl.ts).
+        if (!filled) {
+            moduleFills(spec, fillColour(spec, integrity, m.weaponsLayer, colours), colours, integrity, fills);
+            for (const fill of fills) {
+                const points = fill.points;
+                ctx.fillStyle = fill.colour;
                 ctx.beginPath();
-                ctx.moveTo(mouth, across - throat);
-                ctx.lineTo(mouth, across + throat);
-                ctx.lineTo(-halfLength, across + exit);
-                ctx.lineTo(-halfLength, across - exit);
+                ctx.moveTo(points[0]!, points[1]!);
+                for (let v = 2; v < points.length; v += 2) ctx.lineTo(points[v]!, points[v + 1]!);
                 ctx.closePath();
                 ctx.fill();
             }
-        } else if (isHullMount(spec.kind)) {
-            // Only the block. The barrel is drawn by the turret pass, from the root
-            // it trains about and at the bearing it is actually pointing — which is
-            // the whole reason it is a separate piece rather than part of the box.
-            const mount = hullMountGeometry(spec);
-            ctx.fillRect(-halfLength, -halfWidth, mount.blockLength, spec.width);
-        } else if (spec.kind === "pad") {
+        }
+        if (spec.kind === "pad") {
             // A deck in the hull's colour with a landing square marked on it.
             const inset = min(spec.length, spec.width) * PAD_MARK_INSET;
-            ctx.fillStyle = integrity <= 0 ? WRECKAGE : colours.hull;
-            ctx.fillRect(-halfLength, -halfWidth, spec.length, spec.width);
             ctx.strokeStyle = colours.trim;
             ctx.lineWidth = inset * 0.5;
             ctx.strokeRect(-halfLength + inset, -halfWidth + inset, spec.length - 2 * inset, spec.width - 2 * inset);
-        } else if (spec.kind === "port") {
-            // A coupling block with a collar standing proud of its outward face.
-            const collar = spec.length * PORT_COLLAR_SHARE;
-            ctx.fillRect(-halfLength, -halfWidth, spec.length - collar, spec.width);
-            ctx.fillRect(halfLength - collar, -halfWidth * 0.7, collar, spec.width * 0.7);
-        } else if (spec.kind === "slipway") {
-            // A cradle in the hull's colour, open at the face a ship comes out of,
-            // between rails along its sides and the feed block aft.
-            const rail = spec.width * SLIPWAY_RAIL_SHARE;
-            const feed = spec.length * SLIPWAY_FEED_SHARE;
-            ctx.fillStyle = integrity <= 0 ? WRECKAGE : colours.hull;
-            ctx.fillRect(-halfLength, -halfWidth, spec.length, spec.width);
-            ctx.fillStyle = integrity <= 0 ? WRECKAGE : colours.trim;
-            ctx.fillRect(-halfLength, -halfWidth, feed, spec.width);
-            ctx.fillRect(-halfLength, -halfWidth, spec.length, rail);
-            ctx.fillRect(-halfLength, halfWidth - rail, spec.length, rail);
-        } else if (spec.kind === "claw") {
-            // The pump aft, and two jaws reaching out of the bow face it grips with.
-            const jaw = spec.width * CLAW_JAW_SHARE;
-            ctx.fillRect(-halfLength, -halfWidth, halfLength, spec.width);
-            ctx.fillRect(0, -halfWidth, halfLength, jaw);
-            ctx.fillRect(0, halfWidth - jaw, halfLength, jaw);
-        } else {
+        } else if (
+            spec.kind !== "engine" &&
+            !isHullMount(spec.kind) &&
+            spec.kind !== "port" &&
+            spec.kind !== "slipway" &&
+            spec.kind !== "claw"
+        ) {
             const triangle = shapeOf(spec);
-            if (triangle !== null) {
-                // The corners as they are authored, which is what the simulation
-                // weighs, shoots at and welds — the module's own frame is already the
-                // one they are written in.
-                ctx.beginPath();
-                ctx.moveTo(triangle[0]!, triangle[1]!);
-                for (let v = 2; v < triangle.length; v += 2) ctx.lineTo(triangle[v]!, triangle[v + 1]!);
-                ctx.closePath();
-                ctx.fill();
-            } else {
-                ctx.fillRect(-halfLength, -halfWidth, spec.length, spec.width);
-            }
             if (spec.kind === "tank" || spec.kind === "hold" || spec.kind === "battery") {
                 // A gauge, like a gun's load: the whole capacity as a track inside the
                 // walls, and what is left in it filling along its longer side, so it
@@ -1599,10 +1499,13 @@ export function draw(
     /** Bodies of more ships picked out with it, for orders: ringed, and their orders drawn. */
     alsoSelected: readonly number[] = [],
     marked: Marked | null = null,
-    /** Whether to draw the field, grid and wells, or leave them clear for a layer underneath (render/webgl.ts). */
-    backdrop = true,
+    /**
+     * Whether a layer underneath (render/webgl.ts) has drawn the field, grid and
+     * wells and filled the capital ships' modules, which are then left clear.
+     */
+    underneath = false,
 ): void {
-    drawScene(ctx, snapshot, camera, 0, 0, widthPx, heightPx, flashes, arcs, teamShots, selected, alsoSelected, marked, backdrop);
+    drawScene(ctx, snapshot, camera, 0, 0, widthPx, heightPx, flashes, arcs, teamShots, selected, alsoSelected, marked, underneath);
 }
 
 /** Modules of one ship to outline: the mounts a doctrine is being told to. */
@@ -1679,10 +1582,10 @@ function drawScene(
     selected: number,
     alsoSelected: readonly number[] = [],
     marked: Marked | null = null,
-    backdrop = true,
+    underneath = false,
 ): void {
     ctx.setTransform(1, 0, 0, 1, left, top);
-    if (backdrop) {
+    if (!underneath) {
         ctx.fillStyle = BACKGROUND;
         ctx.fillRect(0, 0, widthPx, heightPx);
     } else {
@@ -1694,7 +1597,7 @@ function drawScene(
     ctx.scale(camera.scale, -camera.scale);
     ctx.translate(-camera.x, -camera.y);
 
-    if (backdrop) {
+    if (!underneath) {
         drawGrid(ctx, camera, widthPx, heightPx);
         drawWells(ctx, snapshot, camera);
     }
@@ -1718,7 +1621,7 @@ function drawScene(
     // landed fighter may be painted over what is on top.
     for (let i = 0; i < snapshot.shipCount; i++) {
         const ship = snapshot.ships[i]!;
-        if (shown(ship)) drawShip(ctx, ship, camera.scale, arcsFor(ship.body, selected, arcs), false);
+        if (shown(ship)) drawShip(ctx, ship, camera.scale, arcsFor(ship.body, selected, arcs), false, underneath);
     }
     for (let i = 0; i < snapshot.shipCount; i++) {
         const ship = snapshot.ships[i]!;
@@ -2573,13 +2476,6 @@ function drawApproaches(ctx: CanvasRenderingContext2D, ship: ShipView, metresToP
 /** Module `m`'s colours: a fighter's, aboard a carrier or not, a shade darker than its side's ships. */
 function moduleColours(design: ShipDesign, m: number, team: number): ReturnType<typeof shipColours> {
     return isFighterModule(design, m) ? fighterColours(team) : shipColours(team);
-}
-
-/** Whether module `m` is a fighter's, flying or aboard a carrier. */
-function isFighterModule(design: ShipDesign, m: number): boolean {
-    if (design.fighter) return true;
-    const fighters = design.fighterPieces;
-    return fighters !== undefined && fighters.includes(design.pieces?.[m] ?? 0);
 }
 
 /** A round's colours: as light, or in its side's trim with a glow of its hull colour. */

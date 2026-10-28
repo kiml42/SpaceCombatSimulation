@@ -64,12 +64,15 @@ an entry is either still open or it is gone.
 
 ### Partly built — what is left
 
-17. **WebGL viewer.** The backdrop — field, grid and wells — is drawn by WebGL 2 on a canvas under the
-    Canvas2D one, behind the battle view's **Draw** setting; everything else is still Canvas2D's. Left, each
-    a stage of its own, in this order:
-    1. **Hulls**: each blueprint's module boxes triangulated once and instanced per ship (DESIGN.md §5), drawn
-       under the Canvas2D layer with the robots, icons, names, arcs and orders left over them. Fighters are
-       drawn over robots today, which a layer split this way cannot do; settle that here.
+17. **WebGL viewer.** The backdrop — field, grid and wells — and the capital ships' module fills are drawn by
+    WebGL 2 on a canvas under the Canvas2D one, behind the battle view's **Draw** setting; everything drawn
+    over a fill — gauges, berths, turrets, robots, fighters, icons, arcs and orders — is still Canvas2D's.
+    Left, each a stage of its own, in this order:
+    1. **The rest of the hulls**: fills are triangulated every frame (`render/hullMesh.ts`) rather than once a
+       blueprint and instanced per ship (DESIGN.md §5), and fighters are not moved at all, since they are drawn
+       over robots and the decks they sit on, which a layer underneath cannot be. Settle that here. WebGL also
+       leaves no seam between two modules of a colour, where Canvas2D's antialiasing draws a faint one that
+       reads as the module's edge: keep it so, or draw edges on purpose.
     2. **Rounds, beams and plumes**: many short strokes, the case Canvas2D is slowest at. They are drawn over
        hulls, so they need a WebGL canvas over the Canvas2D one, or the overlays moved into WebGL first.
     3. **Flashes**, whose glows want additive blending.
