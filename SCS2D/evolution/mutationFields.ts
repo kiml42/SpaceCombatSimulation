@@ -334,6 +334,22 @@ export const MUTATION_FIELDS: readonly MutationField[] = [
         title: "Odds of stealing one of the opponent's designs, and whatever it builds, and adding a ship of it beside one of the fleet's own, to be bred apart from there: the player's fleet in a skirmish, the other side's champions in a co-evolution run of fleets. Never in a run with no opponent.",
     },
     {
+        name: "opSpread",
+        group: "fleet",
+        label: "fleet spread or drawn in",
+        step: 0.5,
+        value: DEFAULT_FLEET_LIMITS.operators.spread,
+        title: "Odds of moving every ship out from the fleet's middle, or in towards it, by one factor: the formation opened out or closed up in one step.",
+    },
+    {
+        name: "opScale",
+        group: "fleet",
+        label: "design scaled",
+        step: 0.5,
+        value: DEFAULT_FLEET_LIMITS.operators.scale,
+        title: "Odds of making one of the fleet's designs a tenth bigger or smaller, whole, and every ship of it with it.",
+    },
+    {
         name: "doctrineTargeting",
         group: "doctrine",
         label: "targeting",
