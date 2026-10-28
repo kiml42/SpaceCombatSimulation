@@ -683,7 +683,8 @@ inside any one file is not contiguous.
   of fighters moves as far as a fighter and a fleet spreads; and **now and then changes what it is made of**
   (`change`, 0.6: a ship added or removed, a design forked or merged, a ship swapped or a pad repointed, by their
   weights, or, where there is an opponent, a ship of its copied in — `copy`, 0.5: the player's fleet to a
-  skirmish enemy, the other side's champions in a co-evolution run of fleets — built to its design and with
+  skirmish enemy, the other side's champions in a co-evolution run of fleets — built to one of its designs, the
+  heavier the likelier, and with
   whatever its pads and slipways build, under names of the fleet's own, beside one of its ships as an added
   one is). Each design's mutation, the change and each entry's move is undone alone if it leaves the fleet unfit. A design nothing
   flies is not mutated, since nothing selects it — unless a pad of a design it flies keeps it, when it is bred as

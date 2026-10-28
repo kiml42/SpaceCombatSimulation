@@ -24,6 +24,7 @@ import {
     degreesToRadians,
     radiansToDegrees,
     readsCraft,
+    budgetMass,
 } from "../sim/index.js";
 import { cos, max, min, PI, round, sin, sqrt } from "../sim/math.js";
 import { byContent } from "../sim/byContent.js";
@@ -311,7 +312,12 @@ function copyRival(fleet: Fleet, rivals: readonly Fleet[], rng: Rng, layout: Lay
     const rival = fielded[rng.nextInt(fielded.length)]!;
     const flown = usedDesigns(rival);
     if (flown.length === 0) return [];
-    const from = flown[rng.nextInt(flown.length)]!;
+    // By what each costs, so a rival's step up in strength is what is most often taken.
+    const from = weighted(
+        rng,
+        flown.map((name) => budgetMass(compileBlueprint(fleetBlueprint(rival, name)))),
+        flown,
+    );
     const names = new Map<string, string>();
     const taken = (name: string): boolean => fleet.designs[name] !== undefined || [...names.values()].includes(name);
     for (const name of padReached(rival, [from])) {
@@ -551,16 +557,24 @@ function freeName(fleet: Fleet, name: string): string {
     }
 }
 
+function weighted<T>(rng: Rng, weights: readonly number[], of: readonly T[]): T {
+    let total = 0;
+    for (const weight of weights) total += max(0, weight);
+    let draw = rng.nextFloat() * total;
+    for (let i = 0; i < of.length; i++) {
+        draw -= max(0, weights[i]!);
+        if (draw < 0) return of[i]!;
+    }
+    return of[of.length - 1]!;
+}
+
 function pick(rng: Rng, weights: Readonly<Record<FleetOperator, number>>): FleetOperator {
     const entries = Object.entries(weights) as [FleetOperator, number][];
-    let total = 0;
-    for (const [, weight] of entries) total += max(0, weight);
-    let draw = rng.nextFloat() * total;
-    for (const [operator, weight] of entries) {
-        draw -= max(0, weight);
-        if (draw < 0) return operator;
-    }
-    return entries[entries.length - 1]![0];
+    return weighted(
+        rng,
+        entries.map(([, weight]) => weight),
+        entries.map(([operator]) => operator),
+    );
 }
 
 function clone(fleet: Fleet): Fleet {
