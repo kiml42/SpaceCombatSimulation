@@ -1176,7 +1176,7 @@ inside any one file is not contiguous.
   `rechargeBelow` goes to a pad for charge alone. A battery's room is what damage leaves it, so a pad never
   holds a fighter to fill cells that are broken. Evolution draws batteries and generators at a weight of
   one each, and a mutation does not turn either, since neither has a facing that matters.
-- **Next:** §8 steps 17–18 in order — the WebGL viewer, then the campaign (ROADMAP.md §8 has why). Every
+- **Next:** §8 steps 17–18 in order — the WebGL viewer (PixiJS), then the campaign (ROADMAP.md §8 has why). Every
   step before them is built, step 16, the React UI, last: every screen is a route of one React app, built by
   Vite to `dist/index.html`, one file that opens from disk, with Linaria, Storybook with a story and
   accessibility check per component, and ESLint with the import boundaries. Its routes go by the hash
@@ -1964,7 +1964,7 @@ SCS2D/
   sim/      pure TS. No DOM, no renderer, no timers, no engine types.
             Typed arrays, allocation-free hot loops, deterministic.
             Runs unchanged in the browser and in Node.
-  render/   WebGL. Consumes state snapshots. Knows nothing about game rules.
+  render/   PixiJS (WebGL). Consumes state snapshots. Knows nothing about game rules.
   ui/       React. UI state only. Sends commands, samples telemetry.
   host/     Window and worker lifecycle, tab/window management.
   scenarios/  Data files.
@@ -1990,12 +1990,13 @@ SCS2D/
   start two simulations at least once.)
 - **Rendering:** procedural 2D vector art generated from each module's shape data, colour and
   metadata. **Triangulate a blueprint once, instance per ship** — the same precompute pattern as the
-  engine matrix. WebGL, because ~4,000 filled paths per frame is beyond Canvas2D.
+  engine matrix. WebGL through PixiJS, because ~4,000 filled paths per frame is beyond Canvas2D.
+  Pixi rather than raw WebGL because it is what work is likely to adopt (DECISIONS.md 2026-10-28).
   - **Exception, for now:** every view draws with Canvas2D (`render/canvas2d.ts`). At tens of bodies
     it's fine and it's a tenth of the code. It is not yet behind an interface — pages fetch a 2D context
     and call `draw` themselves — so the React UI (§8 step 16) builds that interface as the canvas
-    component, and the WebGL viewer (step 17) goes in behind it, with Canvas2D kept as a setting until
-    WebGL is ready.
+    component, and the Pixi viewer (step 17) goes in behind it, with Canvas2D kept as a setting until
+    Pixi is ready.
   - Procedural art means **adding a module type costs zero art**, and module variety *is* the
     content. It also guarantees the picture matches the simulation, which matters when the picture
     is the instrument you read design failures from.
@@ -2212,7 +2213,10 @@ Recorded so they aren't reopened without new information.
 | MonoGame / Silk.NET + Dear ImGui | ImGui is excellent for tools and will make a game you want to show people look like a debug build. |
 | Raster sprites | Rotating ships carry baked highlights around under a directional star; fixing it means normal maps, which is 3D work in disguise. |
 | 3D meshes | Art cost per module gates content, and module variety *is* the content. There were only ever 3 mesh files in the old project; there is nothing to preserve. |
-| Canvas2D for the real renderer | ~4,000 filled paths per frame is past where Canvas2D falls over. (Kept until the WebGL viewer, §8 step 17, replaces it.) |
+| Canvas2D for the real renderer | ~4,000 filled paths per frame is past where Canvas2D falls over. (Kept until the Pixi viewer, §8 step 17, replaces it.) |
+| Raw WebGL2 for the renderer | Batching, text, masks and filters all written by hand for the same result, and work is likely to adopt a library rather than raw WebGL. Pixi is still WebGL underneath. |
+| WebGPU | No gain for sprites and filled hulls, and Firefox had not shipped it on Linux or Android by late 2026. Pixi has a WebGPU backend, so it stays a switch away. |
+| three.js | A 3D engine for a 2D game. Its lighting is the draw, but text and pointer handling are weak, and work's games are 2D sprites. |
 | Hand-modelled hero ships alongside procedural ones | Looks inconsistent, not aspirational. Polish is *better procedural*. |
 | Evolution in a loading screen | Procedural art means there is nothing to load; a fabricated progress bar is worse than free. Run it in workers during the current battle. |
 | Free-form evolution for the campaign enemy | Produces illegible weirdness. Kept for the sandbox. |
