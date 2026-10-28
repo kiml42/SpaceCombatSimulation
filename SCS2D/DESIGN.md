@@ -1235,7 +1235,9 @@ inside any one file is not contiguous.
   scored on how much it destroys and how soon, so an enemy that cannot yet hurt the player's fleet before
   being stripped by it still has something to climb. Every match, real or drill, also scores the damage
   the enemy does, hits on anything but bare structure three times as much, on a log scale so the first few
-  hits of an enemy that can barely hit count. A timeline
+  hits of an enemy that can barely hit count. How far ahead a side finishes is the share of its starting
+  mass it still has, less the other's, each never more than all of it, so a side that mines or builds is
+  not counted as more than whole. A timeline
   lists every match, newest first, each side drawn as the evolution page draws a combatant, the player's
   side stamped victory, defeat or draw, runs one side lost folded away, and any match can be watched again or either fleet saved
   or exported. **Its numbers are the player's to set**, on a setup screen like the evolution page's before
