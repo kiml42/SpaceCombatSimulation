@@ -2,11 +2,12 @@ import { autoDetectRenderer, Container, Graphics, type Renderer } from "pixi.js"
 import type { Snapshot } from "../sim/index.js";
 import { BACKGROUND, GRID, gridSegments, Segments, WELL, wellSegments } from "./backdrop.js";
 import type { Camera } from "./camera.js";
+import { HullLayer } from "./hullLayer.js";
 
 /**
  * The battle drawn with PixiJS on its own canvas, under the Canvas2D one. A
  * stop-gap split while step 17 (ROADMAP.md §8) moves drawing over: this draws
- * the backdrop, and Canvas2D the rest, until Pixi draws the whole battle.
+ * the backdrop and the capital ships' fills, and Canvas2D the rest, until Pixi draws the whole battle.
  */
 export interface PixiView {
     /** Whether the renderer has started. Until it has, Canvas2D still draws everything. */
@@ -26,7 +27,8 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
     // it holds is placed relative to the camera, so float32 stays steady far out.
     const world = new Container();
     const backdrop = new Graphics();
-    world.addChild(backdrop);
+    const hulls = new HullLayer();
+    world.addChild(backdrop, hulls.container);
     stage.addChild(world);
     const segments = new Segments();
 
@@ -78,6 +80,7 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
             segments.clear();
             wellSegments(segments, snapshot, camera);
             stroke(WELL);
+            hulls.update(snapshot, camera, widthPx, heightPx);
             renderer.render(stage);
         },
         dispose() {

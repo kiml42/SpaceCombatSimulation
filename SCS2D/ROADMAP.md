@@ -79,10 +79,10 @@ an entry is either still open or it is gone.
       not this step's concern.
     - **The scene is synced from snapshots**: display objects are created, updated and destroyed by entity id
       each frame, since the renderer otherwise redraws from scratch.
-    - **A blueprint's geometry is built once and shared** by every ship of it (a `GraphicsContext` per
-      blueprint, or a mesh), which is DESIGN §5's "triangulate once, instance per ship".
-      `render/moduleFills.ts` from #531 is the start: one source for what a module is filled as, read by
-      both renderers so they can't disagree.
+    - **Geometry is built once and shared**, which is DESIGN §5's "triangulate once, instance per ship":
+      a `GraphicsContext` per module spec and colours, shared by every module drawn with them, so a ship
+      that is severed or loses a module needs nothing rebuilt. `render/moduleFills.ts` is the one source
+      for what a module is filled as, read by both renderers so they can't disagree.
     - **Positions go to Pixi relative to the camera**, worked out in doubles, so float32 on the GPU stays
       steady far from the origin (as #522's backdrop did).
     - **Input and picking stay as they are** (`render/picking.ts`, the engine's handlers); Pixi's event
@@ -90,7 +90,10 @@ an entry is either still open or it is gone.
 
     Stages, each behind the setting: (1) **built** — **Draw: WebGL** in the battle's view options (kept for
     every page, Canvas2D by default) puts a Pixi canvas under the Canvas2D one, drawing the field, grid and
-    wells (`render/pixiView.ts`, from `render/backdrop.ts`) while Canvas2D leaves its field clear; (2) hulls from shared blueprint geometry; (3) everything else in draw order — details,
+    wells (`render/pixiView.ts`, from `render/backdrop.ts`) while Canvas2D leaves its field clear; (2) **built** — capital ships' module fills
+    (`render/hullLayer.ts`), which Canvas2D then leaves unfilled while drawing what goes over them; fighters
+    stay Canvas2D, as they are drawn over robots and decks. Until stage 3, a ship's trigger band (arcs:
+    trigger) draws over its fills rather than under them; (3) everything else in draw order — details,
     robots, fighters, rounds, beams, plumes, flashes, icons, orders, and the insets in the same scene;
     (4) switch the default and delete the Canvas2D battle drawing; (5) the wants above: lighting, decals and
     patterns, effects.

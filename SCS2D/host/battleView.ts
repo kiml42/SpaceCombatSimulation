@@ -700,7 +700,7 @@ export function battleView(
         const marked = markedBody < 0 ? null : { body: markedBody, modules: markedModules!.modules };
         const underneath = layer?.ready === true;
         if (underneath) layer!.draw(view, camera, canvas.width, canvas.height);
-        draw(ctx, view, camera, canvas.width, canvas.height, flashes, arcs, teamShots, selected, also, marked, !underneath);
+        draw(ctx, view, camera, canvas.width, canvas.height, flashes, arcs, teamShots, selected, also, marked, underneath);
         if (tiles !== null) drawFleetStrips(ctx, view, tiles, selected, ratio, flashes, arcs, teamShots, stripCache);
         const insets = closeUps(view, camera, canvas.width, canvas.height, selected, ratio, tiles);
         drawCloseUps(ctx, view, insets, selected, ratio, flashes, arcs, teamShots, marked);
