@@ -1992,11 +1992,11 @@ SCS2D/
   metadata. **Triangulate a blueprint once, instance per ship** — the same precompute pattern as the
   engine matrix. WebGL through PixiJS, because ~4,000 filled paths per frame is beyond Canvas2D.
   Pixi rather than raw WebGL because it is what work is likely to adopt (DECISIONS.md 2026-10-28).
-  - **Exception, for now:** every view draws with Canvas2D (`render/canvas2d.ts`). At tens of bodies
-    it's fine and it's a tenth of the code. It is not yet behind an interface — pages fetch a 2D context
-    and call `draw` themselves — so the React UI (§8 step 16) builds that interface as the canvas
-    component, and the Pixi viewer (step 17) goes in behind it, with Canvas2D kept as a setting until
-    Pixi is ready.
+  - **How it is drawn now:** the battle view draws with Pixi by default, behind `BattleCanvas`: the
+    backdrop and capital hull fills as Pixi's own shared geometry, and everything else as
+    `render/canvas2d.ts` drawing through a Canvas-shaped adapter (`render/pixiCanvas.ts`), so canvas2d.ts
+    stays the one description of what things look like. Canvas2D draws it where WebGL is unavailable or
+    picked, and the editors and fleet pictures still draw with it directly (ROADMAP.md §8 step 17).
   - Procedural art means **adding a module type costs zero art**, and module variety *is* the
     content. It also guarantees the picture matches the simulation, which matters when the picture
     is the instrument you read design failures from.

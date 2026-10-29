@@ -7,7 +7,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import type { Browser } from "playwright";
-import { launchChromium } from "./launch.js";
+import { drawIn2D, launchChromium } from "./launch.js";
 import { serialiseBlueprint } from "../../sim/index.js";
 import { DEFAULT_SETUP, serialiseBattleSetup } from "../../scenarios/customBattle.js";
 import { battleRoute, shipFleet } from "../../editor/handoff.js";
@@ -41,6 +41,7 @@ afterAll(async () => {
 
 it("renders from a file, with its styles, and links to every screen", async () => {
     const page = await browser.newPage();
+    await drawIn2D(page);
     const problems: string[] = [];
     page.on("pageerror", (error) => problems.push(error.message));
     page.on("console", (message) => {
@@ -62,6 +63,7 @@ it("opens an editor's fleet on the Battle route, from its link or an old one, pa
     const old = `index.html${href.slice(href.indexOf("?fleet=")).replace("?", "#")}`;
     for (const link of [href, old]) {
         const page = await browser.newPage();
+        await drawIn2D(page);
         const problems: string[] = [];
         page.on("pageerror", (error) => problems.push(error.message));
         await page.goto(new URL(link, pathToFileURL(appPage)).href);
@@ -76,6 +78,7 @@ it("opens an editor's fleet on the Battle route, from its link or an old one, pa
 
 it("routes by the hash from a file, and lists what browser storage holds", async () => {
     const page = await browser.newPage();
+    await drawIn2D(page);
     const problems: string[] = [];
     page.on("pageerror", (error) => problems.push(error.message));
     await page.goto(pathToFileURL(appPage).href);
@@ -102,6 +105,7 @@ it("routes by the hash from a file, and lists what browser storage holds", async
 
 it("runs a battle on its route, and lets go of it on leaving", async () => {
     const page = await browser.newPage();
+    await drawIn2D(page);
     const problems: string[] = [];
     page.on("pageerror", (error) => problems.push(error.message));
     page.on("console", (message) => {
@@ -156,8 +160,56 @@ it("runs a battle on its route, and lets go of it on leaving", async () => {
     expect(problems).toEqual([]);
 });
 
+it("draws a battle with WebGL unless Canvas2D is picked, leaving the 2D view clear", async () => {
+    const page = await browser.newPage();
+    const problems: string[] = [];
+    page.on("pageerror", (error) => problems.push(error.message));
+    page.on("console", (message) => {
+        // Not the GPU driver's own notes, such as the stall reading the screenshot back causes.
+        if ((message.type() === "error" || message.type() === "warning") && !message.text().includes("GL Driver Message")) {
+            problems.push(message.text());
+        }
+    });
+    await page.goto(`${pathToFileURL(appPage).href}#/battle`);
+    const readout = page.getByLabel("Battle time");
+    // Slower to start than Canvas2D in a browser without a GPU, which draws WebGL in software.
+    await expect
+        .poll(async () => Number(/step (\d+)/.exec((await readout.textContent()) ?? "")?.[1] ?? -1), { timeout: 15_000 })
+        .toBeGreaterThan(30);
+    expect(await page.getByRole("button", { name: /^Draw:/ }).textContent()).toBe("Draw: WebGL");
+    // Pixi's canvas, under the 2D one, which holds nothing but what is dragged or placed.
+    expect(await page.locator("canvas[aria-hidden]").count()).toBe(1);
+    const painted2D = await page.evaluate(() => {
+        const canvas = document.getElementById("view") as HTMLCanvasElement;
+        const { data } = canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height);
+        let count = 0;
+        for (let i = 3; i < data.length; i += 4) if (data[i] !== 0) count++;
+        return count;
+    });
+    expect(painted2D).toBe(0);
+    // What shows is WebGL's: the grid, in GRID's colour (render/backdrop.ts).
+    const shot = (await page.locator("#view").screenshot()).toString("base64");
+    const grid = await page.evaluate(async (png) => {
+        const image = await createImageBitmap(await (await fetch(`data:image/png;base64,${png}`)).blob());
+        const canvas = new OffscreenCanvas(image.width, image.height);
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(image, 0, 0);
+        const { data } = ctx.getImageData(0, 0, image.width, image.height);
+        let count = 0;
+        for (let i = 0; i < data.length; i += 4) {
+            if (Math.abs(data[i]! - 0x16) + Math.abs(data[i + 1]! - 0x1d) + Math.abs(data[i + 2]! - 0x29) <= 3) count++;
+        }
+        return count;
+    }, shot);
+    // A few lines' worth: with the 2D view empty, any at all are Pixi's.
+    expect(grid).toBeGreaterThan(20);
+    expect(problems).toEqual([]);
+    await page.close();
+});
+
 it("sets up a custom battle, from the library and from a battle file, and fights it", async () => {
     const page = await browser.newPage();
+    await drawIn2D(page);
     const problems: string[] = [];
     page.on("pageerror", (error) => problems.push(error.message));
     page.on("console", (message) => {
@@ -195,6 +247,7 @@ it("sets up a custom battle, from the library and from a battle file, and fights
 
 it("takes a side of a custom battle to its editor and back, keeping the rest of the setup", async () => {
     const page = await browser.newPage();
+    await drawIn2D(page);
     const problems: string[] = [];
     page.on("pageerror", (error) => problems.push(error.message));
     await page.goto(`${pathToFileURL(appPage).href}#/battle`);
@@ -231,6 +284,7 @@ it("takes a side of a custom battle to its editor and back, keeping the rest of 
 
 it("gives orders, tells doctrine and adds ships on the Battle route", async () => {
     const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
+    await drawIn2D(page);
     const problems: string[] = [];
     page.on("pageerror", (error) => problems.push(error.message));
     page.on("console", (message) => {

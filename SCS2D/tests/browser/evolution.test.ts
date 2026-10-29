@@ -10,7 +10,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import type { Browser, Page } from "playwright";
-import { launchChromium } from "./launch.js";
+import { drawIn2D, launchChromium } from "./launch.js";
 import { DEFAULT_KINDS } from "../../evolution/mutate.js";
 import { DEFAULT_RUN, runEvolution } from "../../evolution/run.js";
 import { runCoevolution } from "../../evolution/coevolution.js";
@@ -128,6 +128,7 @@ beforeAll(async () => {
 
     browser = await launchChromium();
     page = await browser.newPage({ viewport: { width: 1280, height: 760 } });
+    await drawIn2D(page);
     page.on("pageerror", (error) => problems.push(`pageerror: ${error.message}`));
     page.on("console", (message) => {
         if (message.type() === "error") problems.push(`console: ${message.text()}`);

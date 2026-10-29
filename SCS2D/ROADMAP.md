@@ -101,7 +101,11 @@ an entry is either still open or it is gone.
     approximations: gradients are filled in bands, a fill is not cut to the outside of a shape (only a
     stroke is), and the strips are drawn afresh each frame rather than from their cache. The trigger band
     still draws over capital fills;
-    (4) switch the default and delete the Canvas2D battle drawing; (5) the wants above: lighting, decals and
+    (4) **built** — WebGL is the default (`scs2d.draw` in storage). Canvas2D stays as **Draw: 2D**
+    and as the fallback where WebGL is unavailable: it is the same drawing code, canvas2d.ts, so there was
+    none to delete, and the button is useful for comparing the two until the stop-gaps below are done. The
+    browser tests draw in 2D (`drawIn2D`) but for the ones about WebGL, since without a GPU it is drawn in
+    software and is slow to start; (5) the wants above: lighting, decals and
     patterns, effects; (6) a pass over the stop-gaps, done properly alongside a refresh of how those things
     look rather than fixed in place: gradients filled in bands (plumes fade in steps, burn glows are rings;
     the fix is one cached gradient per colour, drawn in the shape's own frame), strips drawn afresh each
