@@ -209,6 +209,46 @@ it("draws a battle with WebGL unless Canvas2D is picked, leaving the 2D view cle
     await page.close();
 });
 
+it("draws fleet pictures with the shared WebGL renderer, lit, unless Canvas2D is picked", async () => {
+    const open = async (in2D: boolean) => {
+        const page = await browser.newPage();
+        if (in2D) await drawIn2D(page);
+        const problems: string[] = [];
+        page.on("pageerror", (error) => problems.push(error.message));
+        await page.goto(`${pathToFileURL(appPage).href}#/evolution`);
+        const pixels = (): Promise<string> =>
+            page.evaluate(() => {
+                const canvas = document.querySelector(".kind canvas") as HTMLCanvasElement | null;
+                const data = canvas?.getContext("2d")?.getImageData(0, 0, canvas.width, canvas.height).data;
+                return data === undefined || new Set(data).size < 3 ? "" : Array.from(data).join(",");
+            });
+        return { page, problems, pixels };
+    };
+    const flat = await open(true);
+    await expect.poll(async () => (await flat.pixels()).length).toBeGreaterThan(0);
+    // Settled, once the tile's scale has eased in.
+    await flat.page.waitForTimeout(1000);
+    const drawn2D = await flat.pixels();
+    expect(flat.problems).toEqual([]);
+    await flat.page.close();
+
+    const lit = await open(false);
+    // Drawn in 2D while WebGL starts, slowly in software, then again lit.
+    await expect
+        .poll(
+            async () => {
+                const now = await lit.pixels();
+                return now.length > 0 && now !== drawn2D;
+            },
+            { timeout: 20_000 },
+        )
+        .toBe(true);
+    // One renderer for all of them, off the page.
+    expect(await lit.page.locator("canvas[aria-hidden]").count()).toBe(0);
+    expect(lit.problems).toEqual([]);
+    await lit.page.close();
+}, 60_000);
+
 it("sets up a custom battle, from the library and from a battle file, and fights it", async () => {
     const page = await browser.newPage();
     await drawIn2D(page);

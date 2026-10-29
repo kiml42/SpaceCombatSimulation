@@ -1,6 +1,8 @@
-import { compileBlueprint, expandFleet, shipFleet, type Blueprint, type Fleet, type ShipDesign, type Snapshot } from "../sim/index.js";
+import { compileBlueprint, expandFleet, shipFleet, Snapshot, type Blueprint, type Fleet, type ShipDesign } from "../sim/index.js";
 import { draw } from "../render/canvas2d.js";
 import type { Camera } from "../render/camera.js";
+import { pixiView, type PixiView } from "../render/pixiView.js";
+import { loadRenderer } from "./viewSettings.js";
 import { NO_TEAM } from "../editor/preview.js";
 import { fleetSnapshot } from "../editor/fleetPreview.js";
 import type { FleetView } from "../editor/fleetDocument.js";
@@ -75,10 +77,68 @@ export function formationSnapshot(picture: Picture, into: Snapshot, turned = fal
     return fleetSnapshot({ ...picture.view, ships }, into, NO_TEAM);
 }
 
-/** Draw a snapshot centred on a canvas at a scale, pixels a metre. */
-export function drawCentred(canvas: HTMLCanvasElement, shot: Snapshot, scale: number): void {
+/**
+ * Draw a snapshot centred on a canvas at a scale, pixels a metre: what `make`
+ * fills a snapshot with, so it can be made again once Pixi has started.
+ */
+export function drawCentred(canvas: HTMLCanvasElement, make: (into: Snapshot) => Snapshot, scale: number): void {
+    const shot = make(scratch);
+    const view = sharedView();
+    if (view?.ready === true && drawnWith(view, canvas, shot, scale)) {
+        waiting.delete(canvas);
+        return;
+    }
+    drawIn2D(canvas, shot, scale);
+    if (view === null) return;
+    if (waiting.size === 0) {
+        void view.started.then((started) => {
+            const all = [...waiting];
+            waiting.clear();
+            if (!started) return;
+            for (const [each, drawing] of all) if (each.isConnected) drawnWith(view, each, drawing.make(scratch), drawing.scale);
+        });
+    }
+    waiting.set(canvas, { make, scale });
+}
+
+const scratch = new Snapshot();
+
+/**
+ * One renderer for every picture, drawn on a canvas of its own and copied out,
+ * since a page may hold only about sixteen WebGL contexts.
+ */
+let shared: PixiView | null = null;
+/** Pictures drawn in 2D while it starts, to draw again once it has. */
+const waiting = new Map<HTMLCanvasElement, { make: (into: Snapshot) => Snapshot; scale: number }>();
+
+function sharedView(): PixiView | null {
+    if (loadRenderer() === "canvas2d") return null;
+    shared ??= pixiView(document.createElement("canvas"));
+    return shared.failed ? null : shared;
+}
+
+function eyeOn(shot: Snapshot, scale: number): Camera {
+    return { x: (shot.minX + shot.maxX) / 2, y: (shot.minY + shot.maxY) / 2, scale };
+}
+
+function drawIn2D(canvas: HTMLCanvasElement, shot: Snapshot, scale: number): void {
     const ctx = canvas.getContext("2d");
     if (ctx === null) return;
-    const eye: Camera = { x: (shot.minX + shot.maxX) / 2, y: (shot.minY + shot.maxY) / 2, scale };
-    draw(ctx, shot, eye, canvas.width, canvas.height);
+    draw(ctx, shot, eyeOn(shot, scale), canvas.width, canvas.height);
+}
+
+function drawnWith(view: PixiView, canvas: HTMLCanvasElement, shot: Snapshot, scale: number): boolean {
+    const ctx = canvas.getContext("2d");
+    if (ctx === null) return true;
+    const { width, height } = canvas;
+    const eye = eyeOn(shot, scale);
+    const pixi = view.begin(shot, eye, width, height);
+    if (pixi === null) return false;
+    draw(pixi as unknown as CanvasRenderingContext2D, shot, eye, width, height, undefined, "none", false, -1, [], null, true);
+    view.end();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+    // Copied straight after rendering, while the drawing buffer still holds the frame.
+    ctx.drawImage(view.canvas, 0, 0);
+    return true;
 }

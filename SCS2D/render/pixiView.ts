@@ -16,6 +16,10 @@ export interface PixiView {
     readonly ready: boolean;
     /** Whether it could not start, as where WebGL is unavailable. */
     readonly failed: boolean;
+    /** What it draws on. */
+    readonly canvas: HTMLCanvasElement;
+    /** Settles once it has started, true, or could not, false. */
+    readonly started: Promise<boolean>;
     /**
      * Draw the backdrop and the capital ships' fills, and hand back the context
      * the rest of the frame is drawn into, until `end`.
@@ -41,7 +45,7 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
     stage.addChild(world, context.root);
     const segments = new Segments();
 
-    autoDetectRenderer({
+    const started = autoDetectRenderer({
         canvas,
         // Not Pixi's own Canvas2D fallback: without WebGL, ours draws everything.
         preference: ["webgl"],
@@ -52,12 +56,14 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
         resolution: 1,
         autoDensity: false,
     }).then(
-        (started) => {
-            if (disposed) started.destroy();
-            else renderer = started;
+        (made) => {
+            if (disposed) made.destroy();
+            else renderer = made;
+            return !disposed;
         },
         () => {
             failed = true;
+            return false;
         },
     );
 
@@ -77,6 +83,8 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
         get failed() {
             return failed;
         },
+        canvas,
+        started,
         begin(snapshot, camera, widthPx, heightPx, light) {
             if (renderer === null) return null;
             if (renderer.width !== widthPx || renderer.height !== heightPx) renderer.resize(widthPx, heightPx);

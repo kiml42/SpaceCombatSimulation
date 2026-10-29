@@ -101,14 +101,14 @@ export function timeline(box: HTMLElement, actions: TimelineActions): Timeline {
         whole.title = "how it is arranged";
         // The enemy as it sets out in the battle, facing the player's fleet.
         const turned = which === 1;
-        drawCentred(whole, formationSnapshot(drawn, scratch, turned), scales.formation);
+        drawCentred(whole, (into) => formationSnapshot(drawn, into, turned), scales.formation);
         pictures.append(whole);
         for (const kind of drawn.kinds) {
             const tile = document.createElement("span");
             tile.className = "kind";
             const hull = canvas(KIND_WIDTH, KIND_HEIGHT);
             hull.title = kind.name;
-            drawCentred(hull, kindSnapshot(kind, scratch, turned), scales.kind);
+            drawCentred(hull, (into) => kindSnapshot(kind, into, turned), scales.kind);
             tile.append(hull);
             if (kind.count > 1) {
                 const count = document.createElement("span");
