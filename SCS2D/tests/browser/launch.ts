@@ -55,8 +55,12 @@ export function findInstalledChromium(): string | null {
  */
 export async function drawIn2D(page: Page): Promise<void> {
     await page.addInitScript(() => {
-        // Run in every document the page opens, some of which may not use storage.
+        // Run in every document the page opens, so once per tab: touching
+        // localStorage as a reload starts can read it before the last page's
+        // writes have landed, and lose them. Some documents refuse storage.
         try {
+            if (window.sessionStorage.getItem("scs2d.drawIn2D") !== null) return;
+            window.sessionStorage.setItem("scs2d.drawIn2D", "1");
             window.localStorage.setItem("scs2d.draw", "canvas2d");
         } catch {
             // Nothing drawn there to pin.

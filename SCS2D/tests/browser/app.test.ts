@@ -125,6 +125,8 @@ it("runs a battle on its route, and lets go of it on leaving", async () => {
     const readout = page.getByLabel("Battle time");
     const step = async (): Promise<number> => Number(/step (\d+)/.exec((await readout.textContent()) ?? "")?.[1] ?? -1);
     await expect.poll(step).toBeGreaterThan(30);
+    // The frame rate, beside the battle's time, so how fast it draws can be read off.
+    await expect.poll(async () => (await page.getByLabel("Frame rate").textContent()) ?? "").toMatch(/^\d+ fps$/);
     const lit = await page.evaluate(() => {
         const canvas = document.querySelector("canvas")!;
         const pixels = canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height).data;
