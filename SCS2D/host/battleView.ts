@@ -698,7 +698,7 @@ export function battleView(
         const also = picked.slice(1).map((i) => viewOf(view, i)?.body ?? -1);
         const markedBody = markedModules === null ? -1 : (viewOf(view, markedModules.ship)?.body ?? -1);
         const marked = markedBody < 0 ? null : { body: markedBody, modules: markedModules!.modules };
-        const pixi = layer?.ready === true ? layer.begin(view, camera, canvas.width, canvas.height) : null;
+        const pixi = layer?.ready === true ? layer.begin(view, camera, canvas.width, canvas.height, battle.light) : null;
         if (pixi !== null) {
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.clearRect(0, 0, canvas.width, canvas.height);

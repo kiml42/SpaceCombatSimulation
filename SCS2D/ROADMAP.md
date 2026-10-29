@@ -164,7 +164,13 @@ an entry is either still open or it is gone.
 
     **The order of stage (5)**, each its own pull request or several:
 
-    1. **Lighting, pass 1**, with fighter shadows.
+    1. **Lighting, pass 1**, with fighter shadows — **built**. `render/light.ts` holds a battle's `Light`
+       (`Battle.light`, the default where a battle sets none) and the two shadow lengths, 1.5 m for a
+       thick module and 4 m for a fighter, judged by eye on ships of tens of metres; on a ship a kilometre
+       across they barely show, the price of a fixed length. `render/hullLayer.ts` draws thin fills, thick
+       modules' shadows masked to thin hull, thick fills, then fighters' shadows masked to any hull, each
+       shadow layer darkened through one filter so overlaps are no darker. Scenarios setting their own
+       light, and the skirmish drawing one each round, are still to come.
     2. **The editors and fleet pictures in Pixi**, then **Canvas2D retired**.
        - The ship should look in the editor as it does in battle: its colours, bevels and so on, under a
          builder's light — white, from nearly straight on — rather than a battle's. One day the editor may

@@ -1,56 +1,113 @@
 import { describe, expect, it } from "vitest";
-import type { Graphics } from "pixi.js";
+import type { AlphaFilter, Graphics } from "pixi.js";
 import { capture, Snapshot } from "../sim/index.js";
 import { duel } from "../scenarios/duel.js";
+import { starWars } from "../scenarios/starWars.js";
 import { HullLayer } from "../render/hullLayer.js";
+import { DEFAULT_LIGHT, FIGHTER_SHADOW_M, THICK_SHADOW_M, type Light } from "../render/light.js";
+import { isFighterModule } from "../render/moduleFills.js";
+
+/** A layer whose shadows are darkened through a stand-in, as Node cannot build a filter's shader. */
+const layerOf = (): HullLayer => new HullLayer(() => ({ alpha: 1 }) as AlphaFilter);
 
 describe("the Pixi hull layer", () => {
-    const battle = duel();
+    // Capital ships with thick modules, and fighters.
+    const battle = starWars();
     const view = capture(new Snapshot(), battle.world, battle.ships, battle.projectiles, battle.beams);
+    const ships = view.ships.slice(0, view.shipCount);
     // Far enough out to see every ship.
-    const camera = { x: 500, y: -200, scale: 0.001 };
-    const shown = (layer: HullLayer): Graphics[] => (layer.container.children as Graphics[]).filter((g) => g.visible);
-
-    it("places a fill for every capital module drawn, each within its ship and relative to the camera", () => {
-        const layer = new HullLayer();
-        layer.update(view, camera, 1000, 1000);
-        let modules = 0;
-        for (const ship of view.ships.slice(0, view.shipCount)) {
-            if (!ship.currentStructure.fighter) modules += ship.currentStructure.modules.length;
+    const camera = { x: 0, y: 0, scale: 0.0001 };
+    const count = (which: (fighter: boolean, thick: boolean) => boolean): number => {
+        let n = 0;
+        for (const ship of ships) {
+            const design = ship.currentStructure;
+            for (let i = 0; i < design.modules.length; i++) {
+                if (ship.drawn?.[i] !== false && which(isFighterModule(design, i), design.modules[i]!.weaponsLayer)) n++;
+            }
         }
-        const fills = shown(layer);
-        expect(fills.length).toBe(modules);
-        for (const g of fills) {
-            const x = g.position.x + camera.x;
-            const y = g.position.y + camera.y;
-            const near = view.ships
-                .slice(0, view.shipCount)
-                .some((ship) => Math.hypot(x - ship.x, y - ship.y) <= ship.currentStructure.radius + 1e-3);
+        return n;
+    };
+    const drawn = (layer: HullLayer, light: Light = DEFAULT_LIGHT): HullLayer => {
+        layer.update(view, camera, 1000, 1000, light);
+        return layer;
+    };
+
+    it("fills every capital module, thin or thick by its layer, each within its ship and relative to the camera", () => {
+        const layer = drawn(layerOf());
+        expect(count((fighter, thick) => !fighter && thick)).toBeGreaterThan(0);
+        expect(layer.thick.shown().length).toBe(count((fighter, thick) => !fighter && thick));
+        expect(layer.thin.shown().length).toBe(count((fighter, thick) => !fighter && !thick));
+        for (const g of [...layer.thin.shown(), ...layer.thick.shown()]) {
+            const near = ships.some(
+                (ship) =>
+                    Math.hypot(g.position.x + camera.x - ship.x, g.position.y + camera.y - ship.y) <= ship.currentStructure.radius + 1e-3,
+            );
             expect(near).toBe(true);
             expect(g.alpha).toBeGreaterThan(0);
             expect(g.alpha).toBeLessThanOrEqual(1);
         }
     });
 
-    it("shares one context between modules of the same spec and side", () => {
-        const layer = new HullLayer();
-        layer.update(view, camera, 1000, 1000);
-        const fills = shown(layer);
-        const contexts = new Set(fills.map((g) => g.context));
-        expect(contexts.size).toBeLessThan(fills.length);
-        // And keeps them from frame to frame.
+    it("casts each thick module's shadow away from the light onto thin hull, and each fighter's further, onto any", () => {
+        const light: Light = { from: Math.PI / 3, colour: "#ffd0a0", ambient: 0.4 };
+        const layer = drawn(layerOf(), light);
+        const away = (distance: number): [number, number] => [-Math.cos(light.from) * distance, -Math.sin(light.from) * distance];
+        const [tx, ty] = away(THICK_SHADOW_M);
+        const thick = layer.thick.shown();
+        const shadows = layer.thickShadows.shown();
+        expect(shadows.length).toBe(thick.length);
+        for (let k = 0; k < thick.length; k++) {
+            expect(shadows[k]!.position.x - thick[k]!.position.x).toBeCloseTo(tx, 9);
+            expect(shadows[k]!.position.y - thick[k]!.position.y).toBeCloseTo(ty, 9);
+            expect(shadows[k]!.rotation).toBe(thick[k]!.rotation);
+        }
+        expect(count((fighter) => fighter)).toBeGreaterThan(0);
+        expect(layer.fighterShadows.shown().length).toBe(count((fighter) => fighter));
+        // Each fighter's shadow falls further from it, in the order the fighters' modules come.
+        const [fx, fy] = away(FIGHTER_SHADOW_M);
+        const fighterShadows = layer.fighterShadows.shown();
+        let k = 0;
+        for (const ship of ships) {
+            const design = ship.currentStructure;
+            const [c, s] = [Math.cos(ship.angle), Math.sin(ship.angle)];
+            for (let i = 0; i < design.modules.length; i++) {
+                if (ship.drawn?.[i] === false || !isFighterModule(design, i)) continue;
+                const m = design.modules[i]!;
+                const shadow = fighterShadows[k++]!;
+                expect(shadow.position.x).toBeCloseTo(ship.x - camera.x + m.x * c - m.y * s + fx, 6);
+                expect(shadow.position.y).toBeCloseTo(ship.y - camera.y + m.x * s + m.y * c + fy, 6);
+            }
+        }
+        // Where they may fall: thick shadows on the thin hull, a fighter's on any.
+        expect(layer.thinHull.shown().length).toBe(layer.thin.shown().length);
+        expect(layer.hull.shown().length).toBe(layer.thin.shown().length + thick.length);
+        expect(layer.thickShadows.container.mask).toBe(layer.thinHull.container);
+        expect(layer.fighterShadows.container.mask).toBe(layer.hull.container);
+        // What is in shadow keeps only the ambient share; what is lit takes the light's colour.
+        expect((layer.thickShadows.container.filters as AlphaFilter[])[0]!.alpha).toBeCloseTo(0.6);
+        expect(layer.thin.container.tint).toBe(0xffd0a0);
+    });
+
+    it("shares one context between modules of the same spec and side, and keeps them from frame to frame", () => {
+        // Two corvettes of one design.
+        const pair = duel();
+        const seen = capture(new Snapshot(), pair.world, pair.ships, pair.projectiles, pair.beams);
+        const layer = layerOf();
+        layer.update(seen, { x: 500, y: -200, scale: 0.001 }, 1000, 1000);
+        const fills: Graphics[] = layer.thin.shown();
+        expect(new Set(fills.map((g) => g.context)).size).toBeLessThan(fills.length);
         const before = fills.map((g) => g.context);
-        layer.update(view, camera, 1000, 1000);
-        expect(shown(layer).map((g) => g.context)).toEqual(before);
+        layer.update(seen, { x: 500, y: -200, scale: 0.001 }, 1000, 1000);
+        expect(layer.thin.shown().map((g) => g.context)).toEqual(before);
     });
 
     it("hides what is off screen, and reuses its fills when it comes back", () => {
-        const layer = new HullLayer();
-        layer.update(view, camera, 1000, 1000);
-        const count = layer.container.children.length;
+        const layer = drawn(layerOf());
+        const held = layer.thin.container.children.length;
         layer.update(view, { x: 1e9, y: 1e9, scale: 1 }, 1000, 1000);
-        expect(shown(layer).length).toBe(0);
-        layer.update(view, camera, 1000, 1000);
-        expect(layer.container.children.length).toBe(count);
+        expect(layer.thin.shown().length).toBe(0);
+        expect(layer.thin.container.children.every((g) => !g.visible)).toBe(true);
+        drawn(layer);
+        expect(layer.thin.container.children.length).toBe(held);
     });
 });
