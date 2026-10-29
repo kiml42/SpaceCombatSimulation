@@ -119,8 +119,40 @@ an entry is either still open or it is gone.
     - **Overlay text** (range labels, labels over points, tile counts) is Pixi `Text` in a screen-space layer at
       the top of the same scene: one canvas, and fixed-size text never needs re-rasterising for zoom.
 
-    Open: **lighting.** Bevel normals per module plus a shadow cast by the layer above is the first idea. It
-    is a custom filter or shader either way, as Pixi has no lighting.
+    **Lighting**, part of stage (5), in passes, the first of them alone to start with:
+
+    - **Where the light comes from.** A battle carries its own light: a direction and a tint, with an
+      ambient level, so each level or scenario can feel like somewhere different. A default for battles
+      that set none. The camera never turns, so a direction fixed in the world is fixed on screen too.
+    - **Two depths.** The scaling laws treat modules as many thicknesses; lighting treats them as two —
+      thin (the hull layer) and thick (the weapons layer, the compiled `weaponsLayer` flag) — so the step is
+      easy to read and simple to draw. Fighters are a third, higher depth.
+    - **What is never lit:** gauges, icons, names, selection, orders and arcs are information, not surface,
+      and a side's colours stay readable however deep the shadow. Emissive parts (engine bells, core
+      lights) stay bright in it.
+    - **Pass 1: environmental light and thick-module shadows.** The hull layer splits into thin and thick,
+      still sharing each spec's geometry. Between them, a shadow layer draws the thick modules again in
+      shadow, offset away from the light by a **fixed distance in metres** (so it scales with zoom like
+      the hull), with **hard edges** — softened with one blur over the layer only if they look wrong. One
+      mask made of every thin module keeps shadows off empty space, and lets a ship docked or hooked over
+      another shade it. The details canvas2d.ts draws over thin modules (gauges, berth pads) are drawn
+      after, so stay unshadowed, which suits them being information.
+    - **Later passes**, roughly in order:
+      - **Contact shading** where thin meets thick: a narrow darkening along the step, the job the old
+        Canvas2D seams did by accident.
+      - **Fighter shadows** on the hull below, the same as pass 1 with a longer offset, once fighters move
+        from the adapter into shared geometry.
+      - **Bevels and curves.** Edges lit by how they face the light, and curved modules (bells, turret
+        discs) shaded across. Done properly, it is a normal for each module from its shape and a lighting
+        filter over the hull; edges tinted per frame is the cheap version.
+      - **Dynamic lights.** Engines, explosions and beam impacts as soft glows drawn into a light buffer,
+        which the lit layers are multiplied by on top of the ambient. Beams and plumes light as **line
+        sources**: a glow stretched along the beam or flame, bright along its length and falling off to
+        the sides, a plume fading towards its tip as the flame does.
+      - **Shadows from dynamic lights**, last and limited: only the brightest lights (explosions, perhaps
+        beams) cast them, over a short range, since every light's shadow costs that light times what is
+        near it. A line source's shadow is the hardest of these and may never be worth it.
+    - **Canvas2D** stays unlit, or at most gets the pass 1 shadow as a plain offset copy, as the fallback.
 
 ### Not started — in order
 
