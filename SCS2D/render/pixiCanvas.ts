@@ -655,16 +655,33 @@ export function screenRect(points: number[]): Rectangle | null {
     return new Rectangle(Math.min(xa!, xb!), Math.min(ya!, yb!), Math.abs(xb! - xa!), Math.abs(yb! - ya!));
 }
 
-/** A convex polygon's corners, wound anticlockwise on screen (y down), so its inside is on the left of each edge. */
+/** Canvas pixels within which two corners of a clip are one, so no edge is left too short to have a direction. */
+const SAME_CORNER_PX = 1e-3;
+
+/**
+ * A convex polygon's corners, wound anticlockwise on screen (y down), so its
+ * inside is on the left of each edge, and with corners that rounding has left
+ * a hair apart merged: an edge that short points anywhere, and cutting along
+ * it slices a wedge off at a random angle.
+ */
 export function convexHullOrder(points: number[]): number[] {
-    let area = 0;
+    const kept: number[] = [];
     for (let k = 0; k < points.length; k += 2) {
-        const j = (k + 2) % points.length;
-        area += points[k]! * points[j + 1]! - points[j]! * points[k + 1]!;
+        const n = kept.length;
+        if (n >= 2 && Math.hypot(points[k]! - kept[n - 2]!, points[k + 1]! - kept[n - 1]!) < SAME_CORNER_PX) continue;
+        kept.push(points[k]!, points[k + 1]!);
     }
-    if (area >= 0) return points;
+    while (kept.length >= 4 && Math.hypot(kept[0]! - kept[kept.length - 2]!, kept[1]! - kept[kept.length - 1]!) < SAME_CORNER_PX) {
+        kept.length -= 2;
+    }
+    let area = 0;
+    for (let k = 0; k < kept.length; k += 2) {
+        const j = (k + 2) % kept.length;
+        area += kept[k]! * kept[j + 1]! - kept[j]! * kept[k + 1]!;
+    }
+    if (area >= 0) return kept;
     const out: number[] = [];
-    for (let k = points.length - 2; k >= 0; k -= 2) out.push(points[k]!, points[k + 1]!);
+    for (let k = kept.length - 2; k >= 0; k -= 2) out.push(kept[k]!, kept[k + 1]!);
     return out;
 }
 
