@@ -3,6 +3,7 @@ import type { Snapshot } from "../sim/index.js";
 import { BACKGROUND, GRID, gridSegments, Segments, WELL, wellSegments } from "./backdrop.js";
 import type { Camera } from "./camera.js";
 import { HullLayer } from "./hullLayer.js";
+import type { Light } from "./light.js";
 import { PixiCanvas } from "./pixiCanvas.js";
 
 /**
@@ -19,7 +20,7 @@ export interface PixiView {
      * Draw the backdrop and the capital ships' fills, and hand back the context
      * the rest of the frame is drawn into, until `end`.
      */
-    begin(snapshot: Snapshot, camera: Camera, widthPx: number, heightPx: number): PixiCanvas | null;
+    begin(snapshot: Snapshot, camera: Camera, widthPx: number, heightPx: number, light?: Light): PixiCanvas | null;
     /** Put the frame on screen. */
     end(): void;
     dispose(): void;
@@ -76,7 +77,7 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
         get failed() {
             return failed;
         },
-        begin(snapshot, camera, widthPx, heightPx) {
+        begin(snapshot, camera, widthPx, heightPx, light) {
             if (renderer === null) return null;
             if (renderer.width !== widthPx || renderer.height !== heightPx) renderer.resize(widthPx, heightPx);
             world.position.set(widthPx / 2, heightPx / 2);
@@ -88,7 +89,7 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
             segments.clear();
             wellSegments(segments, snapshot, camera);
             stroke(WELL);
-            hulls.update(snapshot, camera, widthPx, heightPx);
+            hulls.update(snapshot, camera, widthPx, heightPx, light);
             context.begin();
             return context;
         },

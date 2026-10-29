@@ -1,3 +1,4 @@
+import type { Light } from "../render/light.js";
 import type {
     World,
     WellSpec,
@@ -38,6 +39,8 @@ export interface Battle {
     readonly world: World;
     /** Wells acting on the battle. Rounds curve through them as the ships do. */
     readonly wells: readonly WellSpec[];
+    /** The light it is seen in, where not the default (render/light.ts). Only drawn. */
+    readonly light?: Light;
     readonly ships: Ships;
     readonly projectiles: Projectiles;
     readonly beams: Beams;
