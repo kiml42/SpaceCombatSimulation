@@ -879,6 +879,43 @@ describe("the viewer in a browser", () => {
         expect(await page.inputValue("#addShip")).toBe("");
     });
 
+    it("draws the grid with WebGL when asked, under a clear Canvas2D view", async () => {
+        const toggle = page.getByRole("button", { name: /^Draw:/ });
+        await toggle.click();
+        await painted(page);
+        expect(await toggle.textContent()).toBe("Draw: WebGL");
+        expect(await page.locator("canvas[aria-hidden]").count()).toBe(1);
+        // The Canvas2D view leaves its field clear, so what shows of the grid is WebGL's.
+        const clear = await page.evaluate(() => {
+            const canvas = document.getElementById("view") as HTMLCanvasElement;
+            const { data } = canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height);
+            let transparent = 0;
+            for (let i = 3; i < data.length; i += 4) if (data[i] === 0) transparent++;
+            return transparent / (data.length / 4);
+        });
+        expect(clear).toBeGreaterThan(0.5);
+        const shot = (await page.locator("#view").screenshot()).toString("base64");
+        const gridPixels = await page.evaluate(async (png) => {
+            const image = await createImageBitmap(await (await fetch(`data:image/png;base64,${png}`)).blob());
+            const canvas = new OffscreenCanvas(image.width, image.height);
+            const ctx = canvas.getContext("2d")!;
+            ctx.drawImage(image, 0, 0);
+            const { data } = ctx.getImageData(0, 0, image.width, image.height);
+            let count = 0;
+            // GRID in render/backdrop.ts.
+            for (let i = 0; i < data.length; i += 4) {
+                if (Math.abs(data[i]! - 0x16) + Math.abs(data[i + 1]! - 0x1d) + Math.abs(data[i + 2]! - 0x29) <= 3) count++;
+            }
+            return count;
+        }, shot);
+        expect(gridPixels).toBeGreaterThan(200);
+
+        await toggle.click();
+        await painted(page);
+        expect(await toggle.textContent()).toBe("Draw: 2D");
+        expect(await page.locator("canvas[aria-hidden]").count()).toBe(0);
+    });
+
     it("reports no errors after all of that", () => {
         expect(problems).toEqual([]);
     });

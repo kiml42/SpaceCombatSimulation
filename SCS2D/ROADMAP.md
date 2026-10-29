@@ -58,15 +58,11 @@ an entry is either still open or it is gone.
 | 14 | Orders | Built |
 | 15 | Mining | Built |
 | 16 | React UI | Built |
-| 17 | WebGL viewer (PixiJS) | Not started |
+| 17 | WebGL viewer (PixiJS) | Partly built |
 | 18 | Campaign | Not started |
 
 
 ### Partly built — what is left
-
-Nothing: every step started is built.
-
-### Not started — in order
 
 17. **WebGL viewer (PixiJS)** — Draw the battle with PixiJS v8 (WebGL) instead of Canvas2D, behind
     `BattleCanvas`, with Canvas2D kept as a setting until Pixi matches it. Wanted, roughly in order:
@@ -92,8 +88,9 @@ Nothing: every step started is built.
     - **Input and picking stay as they are** (`render/picking.ts`, the engine's handlers); Pixi's event
       system is off on the battle canvas.
 
-    Stages, each behind the setting: (1) Pixi set up in `battleView`, with context loss handled and the
-    backdrop drawn; (2) hulls from shared blueprint geometry; (3) everything else in draw order — details,
+    Stages, each behind the setting: (1) **built** — **Draw: WebGL** in the battle's view options (kept for
+    every page, Canvas2D by default) puts a Pixi canvas under the Canvas2D one, drawing the field, grid and
+    wells (`render/pixiView.ts`, from `render/backdrop.ts`) while Canvas2D leaves its field clear; (2) hulls from shared blueprint geometry; (3) everything else in draw order — details,
     robots, fighters, rounds, beams, plumes, flashes, icons, orders, and the insets in the same scene;
     (4) switch the default and delete the Canvas2D battle drawing; (5) the wants above: lighting, decals and
     patterns, effects.
@@ -110,6 +107,8 @@ Nothing: every step started is built.
 
     Open: **lighting.** Bevel normals per module plus a shadow cast by the layer above is the first idea. It
     is a custom filter or shader either way, as Pixi has no lighting.
+
+### Not started — in order
 
 18. **Campaign** — Homeworld-shaped, with the adaptive enemy. As much new mechanism as authoring: progression
     between missions and functionality only a campaign needs, as well as the scripted missions, pacing and

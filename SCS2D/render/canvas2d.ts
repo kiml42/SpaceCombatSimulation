@@ -37,6 +37,7 @@ import {
     type ModuleStats,
     berthGrid,
 } from "../sim/index.js";
+import { BACKGROUND, GRID, WELL, WELL_ARM_PX, WELL_PULLS } from "./backdrop.js";
 import { gridStep, type Camera } from "./camera.js";
 import {
     describeRange,
@@ -92,8 +93,6 @@ const { cos, floor, sin, length, max, min, PI, sqrt, TAU } = math;
  * point rather than anything belonging to the ship, and colouring it by team
  * made it read as hull.
  */
-const BACKGROUND = "#0b0f16";
-const GRID = "#161d29";
 const TRACER = "#ffe6a8";
 const TRACER_GLOW = "#ffb2a888";
 /**
@@ -286,8 +285,6 @@ const MUZZLE_GLOW_SHARE = 1.5;
 const MAX_WEDGE_DISCS = 32;
 /** How much of a blast's width its bright core fills; the glow is the rest. */
 const BLAST_CORE_SHARE = 0.45;
-
-const WELL = "#3a4e7a";
 
 /** The firing arc: a pale wash with an optional edge to define it (currently disabled). */
 const SWEEP = "rgba(196, 210, 232, 0.2)";
@@ -1602,8 +1599,10 @@ export function draw(
     /** Bodies of more ships picked out with it, for orders: ringed, and their orders drawn. */
     alsoSelected: readonly number[] = [],
     marked: Marked | null = null,
+    /** Whether to draw the field, grid and wells, or leave them clear for Pixi underneath (render/pixiView.ts). */
+    backdrop = true,
 ): void {
-    drawScene(ctx, snapshot, camera, 0, 0, widthPx, heightPx, flashes, arcs, teamShots, selected, alsoSelected, marked);
+    drawScene(ctx, snapshot, camera, 0, 0, widthPx, heightPx, flashes, arcs, teamShots, selected, alsoSelected, marked, backdrop);
 }
 
 /** Modules of one ship to outline: the mounts a doctrine is being told to. */
@@ -1680,18 +1679,25 @@ function drawScene(
     selected: number,
     alsoSelected: readonly number[] = [],
     marked: Marked | null = null,
+    backdrop = true,
 ): void {
     ctx.setTransform(1, 0, 0, 1, left, top);
-    ctx.fillStyle = BACKGROUND;
-    ctx.fillRect(0, 0, widthPx, heightPx);
+    if (backdrop) {
+        ctx.fillStyle = BACKGROUND;
+        ctx.fillRect(0, 0, widthPx, heightPx);
+    } else {
+        ctx.clearRect(0, 0, widthPx, heightPx);
+    }
 
     // World to screen: metres up, y flipped so +y is up as the maths intends.
     ctx.translate(widthPx / 2, heightPx / 2);
     ctx.scale(camera.scale, -camera.scale);
     ctx.translate(-camera.x, -camera.y);
 
-    drawGrid(ctx, camera, widthPx, heightPx);
-    drawWells(ctx, snapshot, camera);
+    if (backdrop) {
+        drawGrid(ctx, camera, widthPx, heightPx);
+        drawWells(ctx, snapshot, camera);
+    }
 
     // A ship nowhere near the view is not drawn: a close-up draws the whole
     // battle again for one ship. One with its arcs showing is, since they reach.
@@ -2693,7 +2699,7 @@ function drawWells(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
     ctx.lineWidth = 1 / camera.scale;
     for (let i = 0; i < snapshot.wells.length; i++) {
         const well = snapshot.wells[i]!;
-        for (const pull of [1, 0.1]) {
+        for (const pull of WELL_PULLS) {
             // r where gm/r² is `pull`.
             const r = sqrt(well.gm / pull);
             ctx.beginPath();
@@ -2701,7 +2707,7 @@ function drawWells(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
             ctx.stroke();
         }
         // A cross at the centre, sized in pixels so it stays visible at any zoom.
-        const arm = 8 / camera.scale;
+        const arm = WELL_ARM_PX / camera.scale;
         ctx.beginPath();
         ctx.moveTo(well.x - arm, well.y);
         ctx.lineTo(well.x + arm, well.y);
