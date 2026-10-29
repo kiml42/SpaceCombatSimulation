@@ -698,13 +698,21 @@ export function battleView(
         const also = picked.slice(1).map((i) => viewOf(view, i)?.body ?? -1);
         const markedBody = markedModules === null ? -1 : (viewOf(view, markedModules.ship)?.body ?? -1);
         const marked = markedBody < 0 ? null : { body: markedBody, modules: markedModules!.modules };
-        const underneath = layer?.ready === true;
-        if (underneath) layer!.draw(view, camera, canvas.width, canvas.height);
-        draw(ctx, view, camera, canvas.width, canvas.height, flashes, arcs, teamShots, selected, also, marked, underneath);
-        if (tiles !== null) drawFleetStrips(ctx, view, tiles, selected, ratio, flashes, arcs, teamShots, stripCache);
+        const pixi = layer?.ready === true ? layer.begin(view, camera, canvas.width, canvas.height) : null;
+        if (pixi !== null) {
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        // Pixi's context draws as a canvas does (render/pixiCanvas.ts), so the same code paints either.
+        const into = pixi === null ? ctx : (pixi as unknown as CanvasRenderingContext2D);
+        draw(into, view, camera, canvas.width, canvas.height, flashes, arcs, teamShots, selected, also, marked, pixi !== null);
+        // The strips' cache is a canvas of its own, so Pixi draws them fresh each frame.
+        if (tiles !== null)
+            drawFleetStrips(into, view, tiles, selected, ratio, flashes, arcs, teamShots, pixi === null ? stripCache : undefined);
         const insets = closeUps(view, camera, canvas.width, canvas.height, selected, ratio, tiles);
-        drawCloseUps(ctx, view, insets, selected, ratio, flashes, arcs, teamShots, marked);
-        drawTargetRange(ctx, view, camera, canvas.width, canvas.height, selected, insets, ratio);
+        drawCloseUps(into, view, insets, selected, ratio, flashes, arcs, teamShots, marked);
+        drawTargetRange(into, view, camera, canvas.width, canvas.height, selected, insets, ratio);
+        if (pixi !== null) layer!.end();
         shownStrips = tiles;
         shownInsets = insets;
         if (box !== null) {

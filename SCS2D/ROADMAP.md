@@ -77,8 +77,10 @@ an entry is either still open or it is gone.
       draw fighters over robots over decks, which is why #522/#531 were closed. Canvas2D stays only as an
       overlay where it is simpler: the editors' handles and guides. Evolution charts and fleet thumbnails are
       not this step's concern.
-    - **The scene is synced from snapshots**: display objects are created, updated and destroyed by entity id
-      each frame, since the renderer otherwise redraws from scratch.
+    - **Most of it is canvas2d.ts drawing through an adapter** (`render/pixiCanvas.ts`), a Canvas-shaped
+      facade over Pixi `Graphics`, so canvas2d.ts stays the one source for what everything looks like and
+      runs in its true order; its paths are rebuilt each frame. What is hot moves to shared geometry
+      instead, one thing at a time, as the hull fills have (DECISIONS.md 2026-10-29).
     - **Geometry is built once and shared**, which is DESIGN §5's "triangulate once, instance per ship":
       a `GraphicsContext` per module spec and colours, shared by every module drawn with them, so a ship
       that is severed or loses a module needs nothing rebuilt. `render/moduleFills.ts` is the one source
@@ -93,10 +95,19 @@ an entry is either still open or it is gone.
     wells (`render/pixiView.ts`, from `render/backdrop.ts`) while Canvas2D leaves its field clear; (2) **built** — capital ships' module fills
     (`render/hullLayer.ts`), which Canvas2D then leaves unfilled while drawing what goes over them; fighters
     stay Canvas2D, as they are drawn over robots and decks. Until stage 3, a ship's trigger band (arcs:
-    trigger) draws over its fills rather than under them; (3) everything else in draw order — details,
-    robots, fighters, rounds, beams, plumes, flashes, icons, orders, and the insets in the same scene;
+    trigger) draws over its fills rather than under them; (3) **built** — everything else, in draw order, through
+    `render/pixiCanvas.ts`: details, robots, fighters, rounds, beams, plumes, flashes, icons, names, orders,
+    strips and close-ups, with Canvas2D's canvas left clear for the selection box and placing ring. Its
+    approximations: gradients are filled in bands, a fill is not cut to the outside of a shape (only a
+    stroke is), and the strips are drawn afresh each frame rather than from their cache. The trigger band
+    still draws over capital fills;
     (4) switch the default and delete the Canvas2D battle drawing; (5) the wants above: lighting, decals and
-    patterns, effects.
+    patterns, effects; (6) a pass over the stop-gaps, done properly alongside a refresh of how those things
+    look rather than fixed in place: gradients filled in bands (plumes fade in steps, burn glows are rings;
+    the fix is one cached gradient per colour, drawn in the shape's own frame), strips drawn afresh each
+    frame without their cache, fills not cut by an outside clip, lines thinner than a pixel drawn a pixel
+    wide and fainter, and whatever else is still drawn through `render/pixiCanvas.ts` that would be better
+    as shared geometry.
 
     Settled for the Pixi version:
     - **No seams between modules.** Canvas2D's faint line between touching modules is an antialiasing
