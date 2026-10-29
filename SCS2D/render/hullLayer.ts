@@ -1,8 +1,8 @@
 import { AlphaFilter, Container, Graphics, GraphicsContext } from "pixi.js";
 import type { ModuleSpec, Snapshot } from "../sim/index.js";
 import type { Camera } from "./camera.js";
-import { DEFAULT_LIGHT, FIGHTER_SHADOW_M, THICK_SHADOW_M, type Light } from "./light.js";
-import { fillAlpha, fillColour, isFighterModule, moduleFills, type Fill } from "./moduleFills.js";
+import { DEFAULT_LIGHT, FIGHTER_SHADOW_M, KERNEL_SHADOW_M, LANDED_SHADOW_M, ROCK_SHADOW_M, THICK_SHADOW_M, type Light } from "./light.js";
+import { fillAlpha, fillColour, isFighterModule, moduleFills, padMark, type Fill } from "./moduleFills.js";
 import { shipColours } from "./teams.js";
 
 /**
@@ -23,17 +23,25 @@ export class HullLayer {
     readonly container = new Container();
     readonly thin = new Pool();
     readonly thick = new Pool();
-    /** The thick modules' shadows, made afresh each frame: each falls a different way across its module as its ship turns. */
-    readonly thickShadows = new Graphics();
-    /** What `thickShadows` drew in the last frame, each shadow's corners in metres from the camera. */
-    readonly thickShadowShapes: number[][] = [];
-    readonly thickShadowLayer = new Container();
+    /** An asteroid's rock, standing higher than any ship. */
+    readonly rock = new Pool();
+    /** An asteroid's kernel, higher still. */
+    readonly kernel = new Pool();
+    /** Thick modules' shadows, on thin hull. */
+    readonly thickShadows: BlockShadows;
+    /** Rock's shadows, on ships' hulls. */
+    readonly rockShadows: BlockShadows;
+    /** Kernels' shadows, on rock. */
+    readonly kernelShadows: BlockShadows;
     readonly fighterShadows = new Pool();
     /** Where a thick module's shadow may fall: the thin hull. */
     readonly thinHull = new Pool();
-    /** Where a fighter's shadow may fall: any hull. */
+    /** Where a fighter's shadow may fall: any ship's hull. */
     readonly hull = new Pool();
-    private readonly thickShade: AlphaFilter;
+    /** Where rock's shadow may fall: any ship's hull. */
+    readonly hullUnderRock = new Pool();
+    /** Where a kernel's shadow may fall: rock. */
+    readonly rockUnderKernel = new Pool();
     private readonly fighterShade: AlphaFilter;
     private light: Light | null = null;
 
@@ -43,20 +51,26 @@ export class HullLayer {
      * build one in, passes a stand-in.
      */
     constructor(shade: () => AlphaFilter = () => new AlphaFilter()) {
-        this.thickShade = shade();
+        this.thickShadows = new BlockShadows(shade(), this.thinHull.container);
+        this.rockShadows = new BlockShadows(shade(), this.hullUnderRock.container);
+        this.kernelShadows = new BlockShadows(shade(), this.rockUnderKernel.container);
         this.fighterShade = shade();
-        this.thickShadowLayer.addChild(this.thickShadows);
-        this.thickShadowLayer.mask = this.thinHull.container;
-        this.thickShadowLayer.filters = [this.thickShade];
         this.fighterShadows.container.mask = this.hull.container;
         this.fighterShadows.container.filters = [this.fighterShade];
+        // Lowest first: each depth's shadows fall on what is drawn before them.
         this.container.addChild(
             this.thin.container,
-            this.thickShadowLayer,
+            this.thickShadows.layer,
             this.thick.container,
             this.fighterShadows.container,
+            this.rockShadows.layer,
+            this.rock.container,
+            this.kernelShadows.layer,
+            this.kernel.container,
             this.thinHull.container,
             this.hull.container,
+            this.hullUnderRock.container,
+            this.rockUnderKernel.container,
         );
     }
 
@@ -68,14 +82,13 @@ export class HullLayer {
         const awayX = -Math.cos(light.from);
         const awayY = -Math.sin(light.from);
         for (const pool of this.pools()) pool.begin();
-        this.thickShadows.clear();
-        this.thickShadowShapes.length = 0;
+        for (const shadows of [this.thickShadows, this.rockShadows, this.kernelShadows]) shadows.clear();
         for (let s = 0; s < snapshot.shipCount; s++) {
             const ship = snapshot.ships[s]!;
             const design = ship.currentStructure;
             const dx = ship.x - camera.x;
             const dy = ship.y - camera.y;
-            const reach = design.radius + FIGHTER_SHADOW_M;
+            const reach = design.radius + ROCK_SHADOW_M;
             if (Math.abs(dx) - reach > halfW || Math.abs(dy) - reach > halfH) continue;
             const sc = Math.cos(ship.angle);
             const ss = Math.sin(ship.angle);
@@ -87,31 +100,37 @@ export class HullLayer {
                 const angle = ship.angle + m.angle;
                 const outline = outlineFor(m.spec);
                 if (isFighterModule(design, i)) {
-                    place(this.fighterShadows.next(outline), x + awayX * FIGHTER_SHADOW_M, y + awayY * FIGHTER_SHADOW_M, angle);
+                    // A fighter of its own is flying; one that is part of its carrier is on a pad.
+                    const height = design.fighter ? FIGHTER_SHADOW_M : LANDED_SHADOW_M;
+                    place(this.fighterShadows.next(outline), x + awayX * height, y + awayY * height, angle);
                     continue;
                 }
                 // A piece hooked on from another ship keeps that ship's colours.
                 const fill = contextFor(m.spec, ship.sides?.[i] ?? ship.team, ship.integrity?.[i] ?? 1, m.weaponsLayer);
-                place((m.weaponsLayer ? this.thick : this.thin).next(fill), x, y, angle).alpha = fillAlpha(ship, i);
-                place(this.hull.next(outline), x, y, angle);
-                if (!m.weaponsLayer) {
-                    place(this.thinHull.next(outline), x, y, angle);
-                    continue;
+                const kind = m.spec.kind;
+                const depth = kind === "kernel" ? this.kernel : kind === "rock" ? this.rock : m.weaponsLayer ? this.thick : this.thin;
+                place(depth.next(fill), x, y, angle).alpha = fillAlpha(ship, i);
+                if (depth === this.thin) place(this.thinHull.next(outline), x, y, angle);
+                if (depth === this.thin || depth === this.thick) {
+                    place(this.hull.next(outline), x, y, angle);
+                    place(this.hullUnderRock.next(outline), x, y, angle);
                 }
-                // A thick module is a block standing on the hull, so its shadow runs
-                // from its foot out to where its top's shadow falls: for each of its
-                // shapes, the hull round the shape and the shape moved away.
-                const c = Math.cos(angle);
-                const sn = Math.sin(angle);
-                for (const corners of shapesOf(m.spec)) {
-                    const placed: number[] = [];
-                    for (let k = 0; k < corners.length; k += 2) {
-                        placed.push(x + corners[k]! * c - corners[k + 1]! * sn, y + corners[k]! * sn + corners[k + 1]! * c);
-                    }
-                    const shadow = blockShadow(placed, awayX * THICK_SHADOW_M, awayY * THICK_SHADOW_M);
-                    this.thickShadows.poly(shadow, true).fill(0x000000);
-                    this.thickShadowShapes.push(shadow);
-                }
+                if (depth === this.rock) place(this.rockUnderKernel.next(outline), x, y, angle);
+                // A module standing above what is below it is a block, so its shadow
+                // runs from its foot out to where its top's shadow falls.
+                const shadows =
+                    depth === this.thick
+                        ? this.thickShadows
+                        : depth === this.rock
+                          ? this.rockShadows
+                          : depth === this.kernel
+                            ? this.kernelShadows
+                            : null;
+                if (shadows === null) continue;
+                // As far as it stands above what its shadow falls on.
+                const length =
+                    depth === this.rock ? ROCK_SHADOW_M : depth === this.kernel ? KERNEL_SHADOW_M - ROCK_SHADOW_M : THICK_SHADOW_M;
+                shadows.cast(m.spec, x, y, angle, awayX * length, awayY * length);
             }
         }
         for (const pool of this.pools()) pool.end();
@@ -121,14 +140,64 @@ export class HullLayer {
     private see(light: Light): void {
         if (this.light === light) return;
         this.light = light;
-        this.thin.container.tint = light.colour;
-        this.thick.container.tint = light.colour;
-        this.thickShade.alpha = 1 - light.ambient;
+        for (const lit of [this.thin, this.thick, this.rock, this.kernel]) lit.container.tint = light.colour;
+        for (const shadows of [this.thickShadows, this.rockShadows, this.kernelShadows]) shadows.shade.alpha = 1 - light.ambient;
         this.fighterShade.alpha = 1 - light.ambient;
     }
 
     private pools(): Pool[] {
-        return [this.thin, this.thick, this.fighterShadows, this.thinHull, this.hull];
+        return [
+            this.thin,
+            this.thick,
+            this.rock,
+            this.kernel,
+            this.fighterShadows,
+            this.thinHull,
+            this.hull,
+            this.hullUnderRock,
+            this.rockUnderKernel,
+        ];
+    }
+}
+
+/**
+ * The shadows of blocks standing above what they fall on, made afresh each
+ * frame, since each falls a different way across its block as its ship turns:
+ * for each of a block's shapes, the hull round it and it moved away from the
+ * light. Masked to what is low enough to take them, and darkened all at once.
+ */
+export class BlockShadows {
+    readonly layer = new Container();
+    private readonly graphics = new Graphics();
+    /** What was drawn in the last frame, each shadow's corners in metres from the camera. */
+    readonly shapes: number[][] = [];
+
+    constructor(
+        readonly shade: AlphaFilter,
+        under: Container,
+    ) {
+        this.layer.addChild(this.graphics);
+        this.layer.mask = under;
+        this.layer.filters = [shade];
+    }
+
+    clear(): void {
+        this.graphics.clear();
+        this.shapes.length = 0;
+    }
+
+    cast(spec: ModuleSpec, x: number, y: number, angle: number, dx: number, dy: number): void {
+        const c = Math.cos(angle);
+        const s = Math.sin(angle);
+        for (const corners of shapesOf(spec)) {
+            const placed: number[] = [];
+            for (let k = 0; k < corners.length; k += 2) {
+                placed.push(x + corners[k]! * c - corners[k + 1]! * s, y + corners[k]! * s + corners[k + 1]! * c);
+            }
+            const shadow = blockShadow(placed, dx, dy);
+            this.graphics.poly(shadow, true).fill(0x000000);
+            this.shapes.push(shadow);
+        }
     }
 }
 
@@ -192,6 +261,10 @@ function contextFor(spec: ModuleSpec, side: number, integrity: number, weaponsLa
         context = new GraphicsContext();
         moduleFills(spec, colour, colours, integrity, fills);
         for (const fill of fills) context.poly(fill.points).fill(fill.colour);
+        if (spec.kind === "pad") {
+            const mark = padMark(spec);
+            context.rect(mark.x, mark.y, mark.width, mark.height).stroke({ width: mark.line, color: colours.trim });
+        }
         bySpec.set(key, context);
     }
     return context;

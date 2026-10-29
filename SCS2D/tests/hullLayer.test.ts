@@ -2,9 +2,18 @@ import { describe, expect, it } from "vitest";
 import type { AlphaFilter, Graphics } from "pixi.js";
 import { capture, Snapshot } from "../sim/index.js";
 import { duel } from "../scenarios/duel.js";
+import { asteroidField } from "../scenarios/asteroidField.js";
 import { starWars } from "../scenarios/starWars.js";
 import { blockShadow, HullLayer } from "../render/hullLayer.js";
-import { DEFAULT_LIGHT, FIGHTER_SHADOW_M, THICK_SHADOW_M, type Light } from "../render/light.js";
+import {
+    DEFAULT_LIGHT,
+    FIGHTER_SHADOW_M,
+    KERNEL_SHADOW_M,
+    LANDED_SHADOW_M,
+    ROCK_SHADOW_M,
+    THICK_SHADOW_M,
+    type Light,
+} from "../render/light.js";
 import { isFighterModule } from "../render/moduleFills.js";
 
 /** A layer whose shadows are darkened through a stand-in, as Node cannot build a filter's shader. */
@@ -55,7 +64,7 @@ describe("the Pixi hull layer", () => {
         const [tx, ty] = away(THICK_SHADOW_M);
         // Each thick module's shadow joins it: every corner it has, and every corner moved away, is within its shadow.
         const thick = layer.thick.shown();
-        expect(layer.thickShadowShapes.length).toBeGreaterThanOrEqual(thick.length);
+        expect(layer.thickShadows.shapes.length).toBeGreaterThanOrEqual(thick.length);
         const inside = (shape: number[], x: number, y: number): boolean => {
             for (let k = 0; k < shape.length; k += 2) {
                 const j = (k + 2) % shape.length;
@@ -64,19 +73,22 @@ describe("the Pixi hull layer", () => {
             return true;
         };
         for (const g of thick) {
-            const reached = layer.thickShadowShapes.some(
+            const reached = layer.thickShadows.shapes.some(
                 (shape) => inside(shape, g.position.x, g.position.y) && inside(shape, g.position.x + tx, g.position.y + ty),
             );
             expect(reached).toBe(true);
         }
         expect(count((fighter) => fighter)).toBeGreaterThan(0);
         expect(layer.fighterShadows.shown().length).toBe(count((fighter) => fighter));
-        // Each fighter's shadow falls further from it, in the order the fighters' modules come.
-        const [fx, fy] = away(FIGHTER_SHADOW_M);
+        // Each fighter's shadow falls further from it, in the order the fighters' modules come: a
+        // flying fighter's further than a thick module's, one aboard its carrier's nearer.
+        expect(LANDED_SHADOW_M).toBeLessThan(THICK_SHADOW_M);
+        expect(FIGHTER_SHADOW_M).toBeGreaterThan(THICK_SHADOW_M);
         const fighterShadows = layer.fighterShadows.shown();
         let k = 0;
         for (const ship of ships) {
             const design = ship.currentStructure;
+            const [fx, fy] = away(design.fighter ? FIGHTER_SHADOW_M : LANDED_SHADOW_M);
             const [c, s] = [Math.cos(ship.angle), Math.sin(ship.angle)];
             for (let i = 0; i < design.modules.length; i++) {
                 if (ship.drawn?.[i] === false || !isFighterModule(design, i)) continue;
@@ -89,10 +101,10 @@ describe("the Pixi hull layer", () => {
         // Where they may fall: thick shadows on the thin hull, a fighter's on any.
         expect(layer.thinHull.shown().length).toBe(layer.thin.shown().length);
         expect(layer.hull.shown().length).toBe(layer.thin.shown().length + thick.length);
-        expect(layer.thickShadowLayer.mask).toBe(layer.thinHull.container);
+        expect(layer.thickShadows.layer.mask).toBe(layer.thinHull.container);
         expect(layer.fighterShadows.container.mask).toBe(layer.hull.container);
         // What is in shadow keeps only the ambient share; what is lit takes the light's colour.
-        expect((layer.thickShadowLayer.filters as AlphaFilter[])[0]!.alpha).toBeCloseTo(0.6);
+        expect((layer.thickShadows.layer.filters as AlphaFilter[])[0]!.alpha).toBeCloseTo(0.6);
         expect(layer.thin.container.tint).toBe(0xffd0a0);
     });
 
@@ -106,6 +118,35 @@ describe("the Pixi hull layer", () => {
         // The square, and a parallelogram along each of the two sides it is swept across.
         expect(area / 2).toBeCloseTo(3);
         expect(shadow.length / 2).toBe(6);
+    });
+
+    it("stands an asteroid's rock above any ship, and its kernel above the rock, each shadowing what is below", () => {
+        const field = asteroidField();
+        const seen = capture(new Snapshot(), field.world, field.ships, field.projectiles, field.beams);
+        const layer = layerOf();
+        layer.update(seen, camera, 1000, 1000);
+        let rock = 0;
+        let kernel = 0;
+        for (const ship of seen.ships.slice(0, seen.shipCount)) {
+            for (let i = 0; i < ship.currentStructure.modules.length; i++) {
+                if (ship.drawn?.[i] === false) continue;
+                const kind = ship.currentStructure.modules[i]!.spec.kind;
+                if (kind === "rock") rock++;
+                if (kind === "kernel") kernel++;
+            }
+        }
+        expect(rock).toBeGreaterThan(0);
+        expect(kernel).toBeGreaterThan(0);
+        expect(layer.rock.shown().length).toBe(rock);
+        expect(layer.kernel.shown().length).toBe(kernel);
+        expect(layer.rockShadows.shapes.length).toBeGreaterThanOrEqual(rock);
+        expect(layer.kernelShadows.shapes.length).toBeGreaterThanOrEqual(kernel);
+        // Rock shades ships' hulls; a kernel, the rock round it.
+        expect(layer.rockShadows.layer.mask).toBe(layer.hullUnderRock.container);
+        expect(layer.kernelShadows.layer.mask).toBe(layer.rockUnderKernel.container);
+        expect(layer.rockUnderKernel.shown().length).toBe(rock);
+        expect(ROCK_SHADOW_M).toBeCloseTo(2 * THICK_SHADOW_M);
+        expect(KERNEL_SHADOW_M).toBeGreaterThan(ROCK_SHADOW_M);
     });
 
     it("shares one context between modules of the same spec and side, and keeps them from frame to frame", () => {

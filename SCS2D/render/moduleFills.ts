@@ -152,6 +152,21 @@ export function moduleFills(spec: ModuleSpec, colour: string, colours: Palette, 
     }
 }
 
+/** How far in from a pad's edge its landing square is drawn, as a share of its smaller side. */
+const PAD_MARK_INSET = 0.1;
+
+/** A pad's landing square, in its own frame: the rectangle to stroke, and how wide. */
+export function padMark(spec: ModuleSpec): { x: number; y: number; width: number; height: number; line: number } {
+    const inset = Math.min(spec.length, spec.width) * PAD_MARK_INSET;
+    return {
+        x: -spec.length / 2 + inset,
+        y: -spec.width / 2 + inset,
+        width: spec.length - 2 * inset,
+        height: spec.width - 2 * inset,
+        line: inset * 0.5,
+    };
+}
+
 /** Whether module `m` is a fighter's, flying or aboard a carrier. */
 export function isFighterModule(design: ShipDesign, m: number): boolean {
     if (design.fighter) return true;
