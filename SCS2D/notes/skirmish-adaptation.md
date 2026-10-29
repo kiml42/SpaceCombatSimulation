@@ -77,6 +77,8 @@ The enemy's fleets stayed at a few small ships. Its budget was not the limit: ab
   smaller, whole. The ship's own `rescale` was one knob among every module's, in steps of a few percent.
 - [#520](https://github.com/kiml42/SpaceCombatSimulation/pull/520): `chimera` joins two designs' halves, cut
   only at faces that look away from each design's centre of mass.
+- `graft` joins part of an opponent's design to part of one of the enemy's own, as a chimera does, as a
+  less cheaty steal; on by default.
 - [#535](https://github.com/kiml42/SpaceCombatSimulation/pull/535): scale's and spread's sizes are settings
   (`fleetScaleSize`, 0.2; `fleetSpreadSize`, 0.25), and both are drawn from `drift`.
 
