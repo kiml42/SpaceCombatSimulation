@@ -8,7 +8,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import type { Browser, Page } from "playwright";
-import { launchChromium } from "./launch.js";
+import { drawIn2D, launchChromium } from "./launch.js";
 import { shipFleet, type Blueprint } from "../../sim/index.js";
 import { BARE_CORE, CORVETTE, GUNSHIP } from "../../scenarios/blueprints.js";
 import { HISTORY_STORAGE_KEY } from "../../scenarios/history.js";
@@ -43,6 +43,7 @@ beforeAll(async () => {
 
     browser = await launchChromium();
     page = await browser.newPage({ viewport: { width: 1200, height: 700 } });
+    await drawIn2D(page);
     page.on("pageerror", (error) => problems.push(`pageerror: ${error.message}`));
     page.on("console", (message) => {
         if (message.type() === "error") problems.push(`console: ${message.text()}`);

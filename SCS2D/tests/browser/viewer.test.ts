@@ -11,7 +11,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import type { Browser, Page } from "playwright";
-import { launchChromium } from "./launch.js";
+import { drawIn2D, launchChromium } from "./launch.js";
 import { serialiseBlueprint } from "../../sim/index.js";
 import { DINKY } from "../../scenarios/blueprints.js";
 import { REFITTED } from "../../scenarios/mending.js";
@@ -125,6 +125,7 @@ beforeAll(async () => {
 
     browser = await launchChromium();
     page = await browser.newPage({ viewport: { width: 1000, height: 620 } });
+    await drawIn2D(page);
     page.on("pageerror", (error) => problems.push(`pageerror: ${error.message}`));
     page.on("console", (message) => {
         if (message.type() === "error") problems.push(`console: ${message.text()}`);
@@ -382,6 +383,7 @@ describe("the viewer in a browser", () => {
         expect(href).toMatch(/index\.html#\/battle\?battle=[\w-]+$/);
 
         const opened = await browser.newPage({ viewport: { width: 1000, height: 620 } });
+        await drawIn2D(opened);
         const errors: string[] = [];
         opened.on("pageerror", (error) => errors.push(error.message));
         await opened.goto(href);
@@ -399,6 +401,7 @@ describe("the viewer in a browser", () => {
 
     it("zooms in under a pinch on a touch screen, and pans with it", async () => {
         const touch = await browser.newPage({ viewport: { width: 400, height: 800 }, hasTouch: true, isMobile: true });
+        await drawIn2D(touch);
         await touch.goto(battlePage());
         await touch.waitForFunction(() => /step \d+/.test(document.getElementById("readout")?.textContent ?? ""));
         await touch.click("#play");
