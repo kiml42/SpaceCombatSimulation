@@ -141,11 +141,13 @@ an entry is either still open or it is gone.
       mask made of every thin module keeps shadows off empty space, and lets a ship docked or hooked over
       another shade it. The details canvas2d.ts draws over thin modules (gauges, berth pads) are drawn
       after, so stay unshadowed, which suits them being information.
+      **Fighters cast shadows in the same pass**: the shadow layer takes their modules' shared geometry
+      too, offset further for their greater depth and masked to every capital module, thin or thick. A
+      shadow needs only the outline, so the fighters themselves stay drawn where they are, over robots and
+      decks; the longer offset is what leaves the shadow apart from the fighter, so it reads as flying.
     - **Later passes**, roughly in order:
       - **Contact shading** where thin meets thick: a narrow darkening along the step, the job the old
         Canvas2D seams did by accident.
-      - **Fighter shadows** on the hull below, the same as pass 1 with a longer offset, once fighters move
-        from the adapter into shared geometry.
       - **Bevels and curves.** Edges lit by how they face the light, and curved modules (bells, turret
         discs) shaded across. Done properly, it is a normal for each module from its shape and a lighting
         filter over the hull; edges tinted per frame is the cheap version.
