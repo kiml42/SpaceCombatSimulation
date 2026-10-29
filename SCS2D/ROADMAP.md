@@ -102,7 +102,12 @@ an entry is either still open or it is gone.
     stroke is), and the strips are drawn afresh each frame rather than from their cache. The trigger band
     still draws over capital fills;
     (4) switch the default and delete the Canvas2D battle drawing; (5) the wants above: lighting, decals and
-    patterns, effects.
+    patterns, effects; (6) a pass over the stop-gaps, done properly alongside a refresh of how those things
+    look rather than fixed in place: gradients filled in bands (plumes fade in steps, burn glows are rings;
+    the fix is one cached gradient per colour, drawn in the shape's own frame), strips drawn afresh each
+    frame without their cache, fills not cut by an outside clip, lines thinner than a pixel drawn a pixel
+    wide and fainter, and whatever else is still drawn through `render/pixiCanvas.ts` that would be better
+    as shared geometry.
 
     Settled for the Pixi version:
     - **No seams between modules.** Canvas2D's faint line between touching modules is an antialiasing
