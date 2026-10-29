@@ -172,7 +172,12 @@ an entry is either still open or it is gone.
        shadow layer darkened through one filter so overlaps are no darker. A thick module is a block, so
        its shadow is each of its shapes swept away from the light (the hull round the shape and the shape
        moved), joined to its foot and made afresh each frame; a fighter's is its outline moved, apart from
-       it, as it flies. Scenarios setting their own
+       it, as it flies — 2.5 m, or 0.75 m for one aboard its carrier on a pad (a step, until a fighter's
+       height is drawn as it lands and lifts). Asteroids stand higher than any ship: rock twice a thick
+       module's height, shading ships' hulls beside it, and a kernel higher again, shading its rock; each
+       shadow is as long as the caster stands above what it falls on. A pad's landing square is part of the
+       pad's fill, so shadows fall on it. Still to do: rock shading a fighter flying close by, which needs
+       a shadow layer over the fighters, above everything the adapter draws. Scenarios setting their own
        light, and the skirmish drawing one each round, are still to come.
     2. **The editors and fleet pictures in Pixi**, then **Canvas2D retired**.
        - The ship should look in the editor as it does in battle: its colours, bevels and so on, under a

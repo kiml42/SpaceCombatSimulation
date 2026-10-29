@@ -39,7 +39,7 @@ import {
 } from "../sim/index.js";
 import { BACKGROUND, GRID, WELL, WELL_ARM_PX, WELL_PULLS } from "./backdrop.js";
 import { gridStep, type Camera } from "./camera.js";
-import { fillAlpha, fillColour, isFighterModule, moduleFills, type Fill } from "./moduleFills.js";
+import { fillAlpha, fillColour, isFighterModule, moduleFills, padMark, type Fill } from "./moduleFills.js";
 import {
     describeRange,
     insetAt,
@@ -230,9 +230,6 @@ const CORE_LIGHT_GAUGES = 0.7;
 
 /** Scratch for a module's fills. */
 const fills: Fill[] = [];
-
-/** How far in from a pad's edge its landing square is drawn, as a share of its smaller side. */
-const PAD_MARK_INSET = 0.1;
 
 /** An impact: the white-hot moment, and the warmer flare around it. */
 const FLASH_CORE = "#fff6e2";
@@ -476,11 +473,14 @@ function drawShip(
             }
         }
         if (spec.kind === "pad") {
-            // A deck in the hull's colour with a landing square marked on it.
-            const inset = min(spec.length, spec.width) * PAD_MARK_INSET;
-            ctx.strokeStyle = colours.trim;
-            ctx.lineWidth = inset * 0.5;
-            ctx.strokeRect(-halfLength + inset, -halfWidth + inset, spec.length - 2 * inset, spec.width - 2 * inset);
+            // A deck in the hull's colour with a landing square marked on it, part
+            // of the deck's fill, so where Pixi fills it the square is shadowed too.
+            if (!filled) {
+                const mark = padMark(spec);
+                ctx.strokeStyle = colours.trim;
+                ctx.lineWidth = mark.line;
+                ctx.strokeRect(mark.x, mark.y, mark.width, mark.height);
+            }
         } else if (
             spec.kind !== "engine" &&
             !isHullMount(spec.kind) &&
