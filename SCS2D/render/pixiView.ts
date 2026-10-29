@@ -3,18 +3,25 @@ import type { Snapshot } from "../sim/index.js";
 import { BACKGROUND, GRID, gridSegments, Segments, WELL, wellSegments } from "./backdrop.js";
 import type { Camera } from "./camera.js";
 import { HullLayer } from "./hullLayer.js";
+import { PixiCanvas } from "./pixiCanvas.js";
 
 /**
- * The battle drawn with PixiJS on its own canvas, under the Canvas2D one. A
- * stop-gap split while step 17 (ROADMAP.md §8) moves drawing over: this draws
- * the backdrop and the capital ships' fills, and Canvas2D the rest, until Pixi draws the whole battle.
+ * The battle drawn with PixiJS, on a canvas under the Canvas2D one, which is
+ * left clear. The backdrop and the capital ships' fills are Pixi's own; the
+ * rest is canvas2d.ts drawing into `PixiCanvas`, in its true order over them.
  */
 export interface PixiView {
     /** Whether the renderer has started. Until it has, Canvas2D still draws everything. */
     readonly ready: boolean;
     /** Whether it could not start, as where WebGL is unavailable. */
     readonly failed: boolean;
-    draw(snapshot: Snapshot, camera: Camera, widthPx: number, heightPx: number): void;
+    /**
+     * Draw the backdrop and the capital ships' fills, and hand back the context
+     * the rest of the frame is drawn into, until `end`.
+     */
+    begin(snapshot: Snapshot, camera: Camera, widthPx: number, heightPx: number): PixiCanvas | null;
+    /** Put the frame on screen. */
+    end(): void;
     dispose(): void;
 }
 
@@ -29,7 +36,8 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
     const backdrop = new Graphics();
     const hulls = new HullLayer();
     world.addChild(backdrop, hulls.container);
-    stage.addChild(world);
+    const context = new PixiCanvas();
+    stage.addChild(world, context.root);
     const segments = new Segments();
 
     autoDetectRenderer({
@@ -68,8 +76,8 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
         get failed() {
             return failed;
         },
-        draw(snapshot, camera, widthPx, heightPx) {
-            if (renderer === null) return;
+        begin(snapshot, camera, widthPx, heightPx) {
+            if (renderer === null) return null;
             if (renderer.width !== widthPx || renderer.height !== heightPx) renderer.resize(widthPx, heightPx);
             world.position.set(widthPx / 2, heightPx / 2);
             world.scale.set(camera.scale, -camera.scale);
@@ -81,7 +89,12 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
             wellSegments(segments, snapshot, camera);
             stroke(WELL);
             hulls.update(snapshot, camera, widthPx, heightPx);
-            renderer.render(stage);
+            context.begin();
+            return context;
+        },
+        end() {
+            context.end();
+            renderer?.render(stage);
         },
         dispose() {
             disposed = true;
