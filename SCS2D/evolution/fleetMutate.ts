@@ -101,7 +101,7 @@ export interface FleetMutationLimits {
     readonly rivals: readonly Fleet[];
 }
 
-export type FleetOperator = "add" | "remove" | "fork" | "merge" | "swap" | "pad" | "steal" | "spread" | "scale" | "chimera";
+export type FleetOperator = "add" | "remove" | "fork" | "merge" | "swap" | "pad" | "steal" | "spread" | "scale" | "chimera" | "graft";
 
 /** Every design and every ship each child; what the fleet is made of more often than not. */
 export const DEFAULT_FLEET_LIMITS: FleetMutationLimits = {
@@ -117,7 +117,19 @@ export const DEFAULT_FLEET_LIMITS: FleetMutationLimits = {
     scaleSize: 0.2,
     spreadSize: 0.25,
     attempts: 24,
-    operators: { add: 1, remove: 1, fork: 0.5, merge: 0.5, swap: 0.5, pad: 0.5, steal: 0, spread: 0.5, scale: 0.5, chimera: 0.5 },
+    operators: {
+        add: 1,
+        remove: 1,
+        fork: 0.5,
+        merge: 0.5,
+        swap: 0.5,
+        pad: 0.5,
+        steal: 0,
+        spread: 0.5,
+        scale: 0.5,
+        chimera: 0.5,
+        graft: 0.5,
+    },
     rivals: [],
 };
 
@@ -157,7 +169,7 @@ export function mutateFleet(parent: Fleet, rng: Rng, limits?: Partial<FleetMutat
     const operators = {
         ...bounds.operators,
         ...(hasPad(draft) ? {} : { pad: 0 }),
-        ...(bounds.rivals.some((rival) => rival.ships.length > 0) ? {} : { steal: 0 }),
+        ...(bounds.rivals.some((rival) => rival.ships.length > 0) ? {} : { steal: 0, graft: 0 }),
     };
     if (rng.chance(bounds.change) && Object.values(operators).some((weight) => weight > 0)) {
         for (let attempt = 1; attempt <= bounds.attempts; attempt++) {
@@ -221,6 +233,8 @@ function apply(operator: FleetOperator, fleet: Fleet, rng: Rng, bounds: FleetMut
             return scale(fleet, rng, bounds);
         case "chimera":
             return chimera(fleet, rng);
+        case "graft":
+            return graft(fleet, bounds.rivals, rng);
     }
 }
 
@@ -339,22 +353,9 @@ function stealDesign(fleet: Fleet, rivals: readonly Fleet[], rng: Rng, layout: L
     const fielded = rivals.filter((rival) => rival.ships.length > 0);
     if (fielded.length === 0 || fleet.ships.length === 0) return [];
     const rival = fielded[rng.nextInt(fielded.length)]!;
-    const flown = usedDesigns(rival);
-    if (flown.length === 0) return [];
-    // By what each costs, so a rival's step up in strength is what is most often taken.
-    const from = weighted(
-        rng,
-        flown.map((name) => budgetMass(compileBlueprint(fleetBlueprint(rival, name)))),
-        flown,
-    );
-    const names = new Map<string, string>();
-    const taken = (name: string): boolean => fleet.designs[name] !== undefined || [...names.values()].includes(name);
-    for (const name of padReached(rival, [from])) {
-        let free = name;
-        for (let n = 2; taken(free); n++) free = `${name.replace(/ \d+$/, "")} ${n}`;
-        names.set(name, free);
-    }
-    for (const [name, as] of names) fleet.designs[as] = { ...recraft(rival.designs[name]!, names), name: as };
+    const from = heaviest(rival, rng);
+    if (from === null) return [];
+    const names = takeDesigns(fleet, rival, padReached(rival, [from]));
     const anchor = fleet.ships[rng.nextInt(fleet.ships.length)]!;
     const entry: FleetEntry = { design: names.get(from)!, x: 0, y: 0 };
     if (anchor.angle !== undefined) entry.angle = anchor.angle;
@@ -365,6 +366,33 @@ function stealDesign(fleet: Fleet, rivals: readonly Fleet[], rng: Rng, layout: L
     entry.y = round(anchor.y + sin(heading) * distance);
     fleet.ships.push(entry);
     return [`${rival.name}'s ${from} stolen, added as ${entry.design}, ${distance} m off`];
+}
+
+/** One of a rival's flown designs, the heavier the likelier, so a rival's step up in strength is what is most often taken. */
+function heaviest(rival: Fleet, rng: Rng): string | null {
+    const flown = usedDesigns(rival);
+    if (flown.length === 0) return null;
+    return weighted(
+        rng,
+        flown.map((name) => budgetMass(compileBlueprint(fleetBlueprint(rival, name)))),
+        flown,
+    );
+}
+
+/**
+ * Some of a rival's designs copied into the fleet under names it has free, each
+ * pad's and slipway's craft renamed to match, all at once; what each was renamed to.
+ */
+function takeDesigns(fleet: Fleet, rival: Fleet, taking: Iterable<string>): Map<string, string> {
+    const names = new Map<string, string>();
+    const taken = (name: string): boolean => fleet.designs[name] !== undefined || [...names.values()].includes(name);
+    for (const name of taking) {
+        let free = name;
+        for (let n = 2; taken(free); n++) free = `${name.replace(/ \d+$/, "")} ${n}`;
+        names.set(name, free);
+    }
+    for (const [name, as] of names) fleet.designs[as] = { ...recraft(rival.designs[name]!, names), name: as };
+    return names;
 }
 
 /** A copy of a design with each pad's and slipway's craft renamed by `names`, all at once. */
@@ -592,7 +620,7 @@ interface Half {
  * refused as any unfit ship is.
  */
 function chimera(fleet: Fleet, rng: Rng): string[] {
-    const flown = fleet.ships.filter((entry): entry is FleetEntry & { design: string } => !isGroupUse(entry));
+    const flown = flownShips(fleet);
     const designs = usedDesigns(fleet);
     if (flown.length === 0 || designs.length === 0) return [];
     const ship = flown[rng.nextInt(flown.length)]!;
@@ -600,11 +628,55 @@ function chimera(fleet: Fleet, rng: Rng): string[] {
     const a = cut(fleetBlueprint(fleet, ship.design), rng);
     const b = cut(fleetBlueprint(fleet, other), rng);
     if (a === null || b === null) return [];
-    // B turned so its face looks back into A's, and moved so the two faces' middles meet.
+    const first = fleet.designs[ship.design]!;
+    const second = fleet.designs[other]!;
+    const name = rebuild(fleet, ship, joined(a, b), CHIMERA, first.fighter === true && second.fighter === true);
+    const of = first.name === second.name ? `two ${first.name}s` : `a ${first.name} and a ${second.name}`;
+    return [`${name}, of ${of}, in place of a ${first.name}`];
+}
+
+/**
+ * Half of one of the fleet's ships and half of one of a rival's designs, cut and
+ * joined as a chimera's are, the rival's the heavier the likelier: the rival's
+ * work put to use without fielding its ship, its half still recognisably its
+ * own, and whatever its pads and slipways build copied in with it. One ship
+ * flying the fleet's design is rebuilt to it, under its doctrine.
+ */
+function graft(fleet: Fleet, rivals: readonly Fleet[], rng: Rng): string[] {
+    const flown = flownShips(fleet);
+    const fielded = rivals.filter((rival) => rival.ships.length > 0);
+    if (flown.length === 0 || fielded.length === 0) return [];
+    const ship = flown[rng.nextInt(flown.length)]!;
+    const rival = fielded[rng.nextInt(fielded.length)]!;
+    const from = heaviest(rival, rng);
+    if (from === null) return [];
+    const a = cut(fleetBlueprint(fleet, ship.design), rng);
+    const b = cut(fleetBlueprint(rival, from), rng);
+    if (a === null || b === null) return [];
+    // What the rival's half builds comes with it, under the fleet's names.
+    const crafts = new Set(b.modules.flatMap((spec) => (spec.craft === undefined ? [] : [spec.craft])));
+    const builds = [...padReached(rival, [...crafts])];
+    const names = takeDesigns(fleet, rival, builds);
+    const half = {
+        ...b,
+        modules: b.modules.map((spec) => (spec.craft === undefined ? spec : { ...spec, craft: names.get(spec.craft) ?? spec.craft })),
+    };
+    const first = fleet.designs[ship.design]!;
+    const name = rebuild(fleet, ship, joined(a, half), GRAFT, first.fighter === true && rival.designs[from]!.fighter === true);
+    return [`${name}, of a ${first.name} and ${rival.name}'s ${from}, in place of a ${first.name}`];
+}
+
+/** The fleet's entries that fly one design, rather than place a group. */
+function flownShips(fleet: Fleet): (FleetEntry & { design: string })[] {
+    return fleet.ships.filter((entry): entry is FleetEntry & { design: string } => !isGroupUse(entry));
+}
+
+/** Two halves stuck together: B turned so its face looks back into A's, and moved so the two faces' middles meet. */
+function joined(a: Half, b: Half): ModuleSpec[] {
     const turn = atan2(-a.ny, -a.nx) - atan2(b.ny, b.nx);
     const c = cos(turn);
     const s = sin(turn);
-    const joined = [
+    return [
         ...a.modules,
         ...b.modules.map((spec) => {
             const dx = spec.x - b.x;
@@ -612,16 +684,18 @@ function chimera(fleet: Fleet, rng: Rng): string[] {
             return { ...spec, x: a.x + dx * c - dy * s, y: a.y + dx * s + dy * c, angle: (spec.angle ?? 0) + turn };
         }),
     ].map(({ id: _id, ...spec }) => spec);
-    const first = fleet.designs[ship.design]!;
-    const second = fleet.designs[other]!;
-    const name = fleet.designs[CHIMERA] === undefined ? CHIMERA : freeName(fleet, CHIMERA);
-    const design: Blueprint = { name, modules: joined };
-    if (first.doctrine !== undefined) design.doctrine = first.doctrine;
-    if (first.fighter === true && second.fighter === true) design.fighter = true;
+}
+
+/** One ship rebuilt to a new design of `modules`, named from `base`, with the doctrine of the design it flew; the new design's name. */
+function rebuild(fleet: Fleet, ship: FleetEntry & { design: string }, modules: ModuleSpec[], base: string, fighter: boolean): string {
+    const was = fleet.designs[ship.design]!;
+    const name = fleet.designs[base] === undefined ? base : freeName(fleet, base);
+    const design: Blueprint = { name, modules };
+    if (was.doctrine !== undefined) design.doctrine = was.doctrine;
+    if (fighter) design.fighter = true;
     fleet.designs[name] = design;
     ship.design = name;
-    const of = first.name === second.name ? `two ${first.name}s` : `a ${first.name} and a ${second.name}`;
-    return [`${name}, of ${of}, in place of a ${first.name}`];
+    return name;
 }
 
 /**
@@ -666,6 +740,9 @@ function cut(blueprint: Blueprint, rng: Rng): Half | null {
 
 /** What a chimera is called, numbered after the first. */
 const CHIMERA = "Chimera";
+
+/** What a graft is called, numbered after the first. */
+const GRAFT = "Graft";
 
 /** How far past a cut a kept module may reach, metres: corners on the face itself, and rounding. */
 const CUT_TOLERANCE = 1e-6;

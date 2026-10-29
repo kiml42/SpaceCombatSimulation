@@ -693,7 +693,9 @@ inside any one file is not contiguous.
   or smaller whole, by a factor drifting `scaleSize` (0.2) either way (`scale`, 0.5), a chimera made (`chimera`, 0.5: two of its designs, or one twice, each cut
   at a face of a module with nothing sticking out of it that looks away from the design's centre of mass, everything
   beyond the face dropped, and the halves joined face to face into a new design one ship is rebuilt to), by their
-  weights, or, where there is an opponent, one of its designs stolen — `steal`, 0 unless set: the player's fleet to a
+  weights, or, where there is an opponent, a graft (`graft`, 0.5: a chimera of one of the fleet's designs and one of
+  the opponent's, the heavier the likelier, under the fleet's own `Graft` name, with whatever the opponent's half
+  builds), or where there is an opponent, one of its designs stolen — `steal`, 0 unless set: the player's fleet to a
   skirmish enemy, the other side's champions in a co-evolution run of fleets — the heavier the likelier, and a ship
   built to it with
   whatever its pads and slipways build, under names of the fleet's own, beside one of its ships as an added
