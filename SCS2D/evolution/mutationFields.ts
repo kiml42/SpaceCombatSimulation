@@ -374,6 +374,14 @@ export const MUTATION_FIELDS: readonly MutationField[] = [
         title: "Odds of cutting two of the fleet's designs, or one twice, at a face of one of their modules, dropping everything beyond each face, and joining the two halves face to face into a new design one of the fleet's ships is rebuilt to.",
     },
     {
+        name: "opGraft",
+        group: "fleet",
+        label: "opponent's part grafted",
+        step: 0.5,
+        value: DEFAULT_FLEET_LIMITS.operators.graft,
+        title: "Odds of cutting one of the opponent's designs, the heavier the likelier, and one of the fleet's own as a chimera's are, and joining the halves into a new design one of the fleet's ships is rebuilt to, with whatever the opponent's half builds. Never in a run with no opponent.",
+    },
+    {
         name: "doctrineTargeting",
         group: "doctrine",
         label: "targeting",
