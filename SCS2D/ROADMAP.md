@@ -593,8 +593,8 @@ Deliberately unresolved; decide when they block something.
   2026-10-16), not built.
 - **Whether the skirmish enemy adapts fast enough to a player who steps up.** Measured and worked on in
   October 2026 — the search now fights by the round's rules, in parallel, and the enemy can scale, spread, splice
-  and steal — and left to be seen in play. With stealing off, the default, no benchmarked seed was answered within
-  15 generations under today's defaults, against all three within 10 with it on; the measurements, the PRs and
+  and steal — and left to be seen in play. With stealing off, the default, one benchmarked seed of three was
+  answered within 15 generations, by a graft, against all three within 10 with it on; the measurements, the PRs and
   what to try next are in
   [notes/skirmish-adaptation.md](notes/skirmish-adaptation.md).
 - **Letting the skirmish enemy steal the player's designs in play.** The `steal` operator is off by default, as
