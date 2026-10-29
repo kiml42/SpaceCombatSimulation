@@ -186,28 +186,38 @@ an entry is either still open or it is gone.
          own, as a band round an engine block.
        - Drawn by a shader from each fragment's place in the design, so a module's geometry stays shared
          however the pattern falls on it.
-       - **Telling sides apart:** two fleets may choose near the same colours, so the game keeps sides
-         distinct (an enemy's livery moved away from yours if too close). Icons, strips and orders show a
-         side by its base colour.
-       - A fleet without a livery — a single ship, an evolved fleet, the skirmish's enemy — is given one.
-         Fighters, rock and wreckage need theirs worked out too.
-    4. **Part art, first pass:** a bevel round the edge of the **whole hull**, and round the thick parts,
-       lit by the battle's light — not round each module, so module edges stay unseen — and engine bells
-       and barrels shaded as rounded. The hull's outline changes as it is damaged and severed, so rather
-       than union the modules' shapes, a filter finds the edge from the drawn silhouette and shades a band
-       along it; the same silhouette gives lighting its edges. Richer procedural parts come later.
+       - **The default livery is the side colours of now**, for a single ship or any fleet that sets none.
+         Icons, strips and orders show a side by its base colour.
+       - **An enemy's livery evolves**, by drift from one generation to the next, the drift leaning away
+         from the player's colours so the two sides stay told apart.
+       - **Fighters** keep a darkened version of their fleet's colours, perhaps darkened less once edges are
+         drawn on purpose and hulls look smoother. Rock and wreckage keep colours of their own.
+    4. **Part art, first pass:** bevels on the hull's outside edges, and on the thick parts' edges, lit by
+       the battle's light, and engine bells and barrels shaded as rounded. Richer procedural parts come
+       later.
+       - **Each edge of a module is bevelled or not**, settled once for the design as built: an edge on its
+         outline is, an edge it shares with a neighbour is not, so module edges inside the hull stay unseen.
+         A little simpler than bevelling the outline itself, and it should look as good.
+       - **Severing keeps them**: the pieces, and the rest of the ship, keep the edges they were built
+         with, so nothing looks bevelled just because something broke off it.
+       - Open: whether a split edge should look rough.
     5. **Marks for damage**, in place of fading to grey.
        - A module is marked as it is hurt, and mended marks fade one at a time. Marks follow from a
          module's id and how hurt it is, not from the hits' history, so rewinding shows the same marks and
          mending takes them off in reverse.
        - With no grey, a ship looks the same for longer, so more of it is shared, and marks go on top.
-       - A wrecked module, and one out of its cores' reach, still need a look of their own that reads at a
-         glance; and marks are too small to read zoomed out, where the icon has to say it.
+       - Nothing much leans on the grey: most modules already show whether they work (a core's light, a
+         gun's load), and a ship that has lost control should still read as such. Zoomed out, how hurt a
+         ship is was never readable and need not be: picking it shows it larger, and its icon can still
+         turn grey once it is out of the fight.
     6. **Particles and glows.** Glows for explosions and beams; particles for explosions and impacts;
        bits of metal for collision damage in place of its flashes, and from a leaking tank alongside or in
-       place of its wedge; small bits of metal, too small to harvest and looking it, that linger a while
-       (least important). Particles are only drawn, never simulated: on the battle's clock as the flashes
+       place of its wedge. Particles are only drawn, never simulated: on the battle's clock as the flashes
        are, held when paused, and capped in number.
+       - **Debris** is always well smaller than anything that can be harvested — no larger than the size
+         below which a module is not kept — and looks like twisted metal, so it is never taken for a small
+         module. Most is small and short-lived; a few bits linger a while, never for good (least
+         important).
     7. **The later lighting passes**, above.
 
     Open: **decals**, placed in the editor on particular designs. Some way off.
