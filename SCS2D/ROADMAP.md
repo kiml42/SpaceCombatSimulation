@@ -105,8 +105,8 @@ an entry is either still open or it is gone.
     and as the fallback where WebGL is unavailable: it is the same drawing code, canvas2d.ts, so there was
     none to delete, and the button is useful for comparing the two until the stop-gaps below are done. The
     browser tests draw in 2D (`drawIn2D`) but for the ones about WebGL, since without a GPU it is drawn in
-    software and is slow to start; (5) the wants above: lighting, decals and
-    patterns, effects; (6) a pass over the stop-gaps, done properly alongside a refresh of how those things
+    software and is slow to start; (5) how it looks — lighting, the editors in Pixi, liveries, part art, marks
+    and effects, in the order and form set out below; (6) a pass over the stop-gaps, done properly alongside a refresh of how those things
     look rather than fixed in place: gradients filled in bands (plumes fade in steps, burn glows are rings;
     the fix is one cached gradient per colour, drawn in the shape's own frame), strips drawn afresh each
     frame without their cache, fills not cut by an outside clip, lines thinner than a pixel drawn a pixel
@@ -123,8 +123,104 @@ an entry is either still open or it is gone.
     - **Overlay text** (range labels, labels over points, tile counts) is Pixi `Text` in a screen-space layer at
       the top of the same scene: one canvas, and fixed-size text never needs re-rasterising for zoom.
 
-    Open: **lighting.** Bevel normals per module plus a shadow cast by the layer above is the first idea. It
-    is a custom filter or shader either way, as Pixi has no lighting.
+    **Lighting**, part of stage (5), in passes, the first of them alone to start with:
+
+    - **Where the light comes from.** A battle carries its own light: a direction and a tint, with an
+      ambient level, so each level or scenario can feel like somewhere different. A default for battles
+      that set none. The camera never turns, so a direction fixed in the world is fixed on screen too.
+    - **Two depths.** The scaling laws treat modules as many thicknesses; lighting treats them as two —
+      thin (the hull layer) and thick (the weapons layer, the compiled `weaponsLayer` flag) — so the step is
+      easy to read and simple to draw. Fighters are a third, higher depth.
+    - **What is never lit:** gauges, icons, names, selection, orders and arcs are information, not surface,
+      and a side's colours stay readable however deep the shadow. Emissive parts (engine bells, core
+      lights) stay bright in it.
+    - **Pass 1: environmental light and thick-module shadows.** The hull layer splits into thin and thick,
+      still sharing each spec's geometry. Between them, a shadow layer draws the thick modules again in
+      shadow, offset away from the light by a **fixed distance in metres** (so it scales with zoom like
+      the hull), with **hard edges** — softened with one blur over the layer only if they look wrong. One
+      mask made of every thin module keeps shadows off empty space, and lets a ship docked or hooked over
+      another shade it. The details canvas2d.ts draws over thin modules (gauges, berth pads) are drawn
+      after, so stay unshadowed, which suits them being information.
+      **Fighters cast shadows in the same pass**: the shadow layer takes their modules' shared geometry
+      too, offset further for their greater depth and masked to every capital module, thin or thick. A
+      shadow needs only the outline, so the fighters themselves stay drawn where they are, over robots and
+      decks; the longer offset is what leaves the shadow apart from the fighter, so it reads as flying.
+    - **Later passes**, roughly in order:
+      - **Contact shading** where thin meets thick: a narrow darkening along the step, the job the old
+        Canvas2D seams did by accident.
+      - **Bevels and curves.** Edges lit by how they face the light, and curved modules (bells, turret
+        discs) shaded across. Done properly, it is a normal for each module from its shape and a lighting
+        filter over the hull; edges tinted per frame is the cheap version.
+      - **Dynamic lights.** Engines, explosions and beam impacts as soft glows drawn into a light buffer,
+        which the lit layers are multiplied by on top of the ambient. Beams and plumes light as **line
+        sources**: a glow stretched along the beam or flame, bright along its length and falling off to
+        the sides, a plume fading towards its tip as the flame does.
+      - **Shadows from dynamic lights**, last and limited: only the brightest lights (explosions, perhaps
+        beams) cast them, over a short range, since every light's shadow costs that light times what is
+        near it. A line source's shadow is the hardest of these and may never be worth it.
+    - **Lighting is the battle's**, render-only, so it never changes a result, but kept with a battle so a
+      replay or export looks as it did. Scenarios set it; the skirmish draws a new one each round, so each
+      round is somewhere new; evolution may draw one per match, which matters little.
+
+    **The order of stage (5)**, each its own pull request or several:
+
+    1. **Lighting, pass 1**, with fighter shadows.
+    2. **The editors and fleet pictures in Pixi**, then **Canvas2D retired**.
+       - The ship should look in the editor as it does in battle: its colours, bevels and so on, under a
+         builder's light — white, from nearly straight on — rather than a battle's. One day the editor may
+         be the battle itself, the camera turning to frame the ship; not yet.
+       - The fleet pictures (the library's, evolution's kinds, the editors' thumbnails) share **one**
+         renderer drawing to images, since a page may hold only about sixteen WebGL contexts.
+       - The editors' handles and guides move into Pixi with the rest; evolution's charts
+         (`render/chart.ts`) are not ships and stay as they are.
+       - Then **Draw: 2D** goes, and every drawing path that takes a 2D context for ships. canvas2d.ts stays
+         for now as what the adapter draws, until what it describes moves to shared geometry. Where WebGL is
+         missing, Pixi's own Canvas2D renderer is the fallback, and does without everything done with
+         filters (lighting, bevels, patterns); it is not expected to be used.
+       - The browser tests then read pixels from screenshots rather than a 2D context, and draw WebGL in
+         software, so CI slows; `drawIn2D` goes.
+    3. **Liveries.** A fleet sets a base colour, a highlight colour and a pattern, applied to every ship in
+       it, replacing the side colours.
+       - The first patterns are simple: stripes or spots of the highlight. A pattern is laid over the whole
+         hull in the design's frame, so it runs on across modules; some parts take the highlight on their
+         own, as a band round an engine block.
+       - Drawn by a shader from each fragment's place in the design, so a module's geometry stays shared
+         however the pattern falls on it.
+       - **The default livery is the side colours of now**, for a single ship or any fleet that sets none.
+         Icons, strips and orders show a side by its base colour.
+       - **An enemy's livery evolves**, by drift from one generation to the next, the drift leaning away
+         from the player's colours so the two sides stay told apart.
+       - **Fighters** keep a darkened version of their fleet's colours, perhaps darkened less once edges are
+         drawn on purpose and hulls look smoother. Rock and wreckage keep colours of their own.
+    4. **Part art, first pass:** bevels on the hull's outside edges, and on the thick parts' edges, lit by
+       the battle's light, and engine bells and barrels shaded as rounded. Richer procedural parts come
+       later.
+       - **Each edge of a module is bevelled or not**, settled once for the design as built: an edge on its
+         outline is, an edge it shares with a neighbour is not, so module edges inside the hull stay unseen.
+         A little simpler than bevelling the outline itself, and it should look as good.
+       - **Severing keeps them**: the pieces, and the rest of the ship, keep the edges they were built
+         with, so nothing looks bevelled just because something broke off it.
+       - Open: whether a split edge should look rough.
+    5. **Marks for damage**, in place of fading to grey.
+       - A module is marked as it is hurt, and mended marks fade one at a time. Marks follow from a
+         module's id and how hurt it is, not from the hits' history, so rewinding shows the same marks and
+         mending takes them off in reverse.
+       - With no grey, a ship looks the same for longer, so more of it is shared, and marks go on top.
+       - Nothing much leans on the grey: most modules already show whether they work (a core's light, a
+         gun's load), and a ship that has lost control should still read as such. Zoomed out, how hurt a
+         ship is was never readable and need not be: picking it shows it larger, and its icon can still
+         turn grey once it is out of the fight.
+    6. **Particles and glows.** Glows for explosions and beams; particles for explosions and impacts;
+       bits of metal for collision damage in place of its flashes, and from a leaking tank alongside or in
+       place of its wedge. Particles are only drawn, never simulated: on the battle's clock as the flashes
+       are, held when paused, and capped in number.
+       - **Debris** is always well smaller than anything that can be harvested — no larger than the size
+         below which a module is not kept — and looks like twisted metal, so it is never taken for a small
+         module. Most is small and short-lived; a few bits linger a while, never for good (least
+         important).
+    7. **The later lighting passes**, above.
+
+    Open: **decals**, placed in the editor on particular designs. Some way off.
 
 ### Not started — in order
 
