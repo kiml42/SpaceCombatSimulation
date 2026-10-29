@@ -78,6 +78,11 @@ const Readout = styled.output`
     color: var(--colour-muted);
 `;
 
+const FrameRate = styled.output`
+    margin-left: 1.5em;
+    color: var(--colour-muted);
+`;
+
 /** A battle chosen from the scenes, run on the wall clock, with the controls to pause, step, wind and speed it. */
 export function BattlePage() {
     const [view, setView] = useState<BattleView | null>(null);
@@ -189,6 +194,7 @@ export function BattlePage() {
         if (!takeHandOver(next)) show(next, scene, true);
     };
 
+    const fps = useSampled(() => (view === null || view.fps === 0 ? "" : `${Math.round(view.fps)} fps`));
     const readout = useSampled(() => {
         const at = shown.current;
         if (at === null || view === null) return "";
@@ -269,6 +275,7 @@ export function BattlePage() {
                 <Readout id="readout" aria-label="Battle time">
                     {readout}
                 </Readout>
+                <FrameRate aria-label="Frame rate">{fps}</FrameRate>
                 <output id="metrics" hidden>
                     {metrics}
                 </output>
