@@ -79,8 +79,9 @@ export class HullLayer {
         const halfW = widthPx / 2 / camera.scale;
         const halfH = heightPx / 2 / camera.scale;
         // Away from the light, so a shadow falls on the side it is not lit from.
-        const awayX = -Math.cos(light.from);
-        const awayY = -Math.sin(light.from);
+        const slant = light.slant ?? 1;
+        const awayX = -Math.cos(light.from) * slant;
+        const awayY = -Math.sin(light.from) * slant;
         for (const pool of this.pools()) pool.begin();
         for (const shadows of [this.thickShadows, this.rockShadows, this.kernelShadows]) shadows.clear();
         for (let s = 0; s < snapshot.shipCount; s++) {

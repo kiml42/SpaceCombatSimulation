@@ -1,6 +1,7 @@
 import { compileBlueprint, expandFleet, shipFleet, Snapshot, type Blueprint, type Fleet, type ShipDesign } from "../sim/index.js";
 import { draw } from "../render/canvas2d.js";
 import type { Camera } from "../render/camera.js";
+import { BUILDER_LIGHT } from "../render/light.js";
 import { pixiView, type PixiView } from "../render/pixiView.js";
 import { loadRenderer } from "./viewSettings.js";
 import { NO_TEAM } from "../editor/preview.js";
@@ -132,7 +133,7 @@ function drawnWith(view: PixiView, canvas: HTMLCanvasElement, shot: Snapshot, sc
     if (ctx === null) return true;
     const { width, height } = canvas;
     const eye = eyeOn(shot, scale);
-    const pixi = view.begin(shot, eye, width, height);
+    const pixi = view.begin(shot, eye, width, height, BUILDER_LIGHT);
     if (pixi === null) return false;
     draw(pixi as unknown as CanvasRenderingContext2D, shot, eye, width, height, undefined, "none", false, -1, [], null, true);
     view.end();
