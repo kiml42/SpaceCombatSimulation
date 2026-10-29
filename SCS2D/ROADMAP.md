@@ -183,6 +183,10 @@ an entry is either still open or it is gone.
        - The ship should look in the editor as it does in battle: its colours, bevels and so on, under a
          builder's light — white, from nearly straight on — rather than a battle's. One day the editor may
          be the battle itself, the camera turning to frame the ship; not yet.
+         **Built**: the ship and fleet editors draw through a Pixi layer under their canvas
+         (`pixiUnder`, as the battle does), handles and guides through the adapter, under `BUILDER_LIGHT`:
+         white, from the default's bearing but nearly overhead, its `slant` shortening every shadow to a
+         third. The fleet pictures share it.
        - The fleet pictures (evolution's kinds, the skirmish timeline) share **one**
          renderer drawing to images, since a page may hold only about sixteen WebGL contexts. **Built**
          (`host/fleetPicture.ts`): one `pixiView` on a canvas off the page, each picture copied out after it renders; drawn in 2D while it starts, then again.

@@ -6,6 +6,7 @@ import { asteroidField } from "../scenarios/asteroidField.js";
 import { starWars } from "../scenarios/starWars.js";
 import { blockShadow, HullLayer } from "../render/hullLayer.js";
 import {
+    BUILDER_LIGHT,
     DEFAULT_LIGHT,
     FIGHTER_SHADOW_M,
     KERNEL_SHADOW_M,
@@ -106,6 +107,19 @@ describe("the Pixi hull layer", () => {
         // What is in shadow keeps only the ambient share; what is lit takes the light's colour.
         expect((layer.thickShadows.layer.filters as AlphaFilter[])[0]!.alpha).toBeCloseTo(0.6);
         expect(layer.thin.container.tint).toBe(0xffd0a0);
+    });
+
+    it("shortens every shadow by the light's slant, as a light nearer overhead does", () => {
+        const offsets = (light: Light): number[] =>
+            drawn(layerOf(), light)
+                .fighterShadows.shown()
+                .map((g) => g.position.x);
+        const low = offsets(DEFAULT_LIGHT);
+        const high = offsets(BUILDER_LIGHT);
+        const flat = offsets({ ...BUILDER_LIGHT, slant: 0 });
+        expect(BUILDER_LIGHT.slant).toBeLessThan(1);
+        // Measured from where it would fall with the light straight overhead.
+        low.forEach((x, i) => expect(high[i]! - flat[i]!).toBeCloseTo((x - flat[i]!) * BUILDER_LIGHT.slant!, 6));
     });
 
     it("casts a block's shadow as its footprint swept away from the light", () => {

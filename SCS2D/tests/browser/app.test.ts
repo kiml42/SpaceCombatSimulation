@@ -249,28 +249,32 @@ it("draws fleet pictures with the shared WebGL renderer, lit, unless Canvas2D is
     await lit.page.close();
 }, 60_000);
 
-it("draws the ship editor with WebGL, handles and all, leaving its 2D canvas clear", async () => {
-    const page = await browser.newPage();
-    const problems: string[] = [];
-    page.on("pageerror", (error) => problems.push(error.message));
-    await page.goto(`${pathToFileURL(appPage).href}#/ship`);
-    const view = page.locator("canvas:not([aria-hidden])").first();
-    const box = (await view.boundingBox())!;
-    // A module picked, so its handles are drawn too.
-    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-    expect(await page.locator("canvas[aria-hidden]").count()).toBe(1);
-    const painted2D = (): Promise<number> =>
-        view.evaluate((canvas: HTMLCanvasElement) => {
-            const { data } = canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height);
-            let count = 0;
-            for (let i = 3; i < data.length; i += 4) if (data[i] !== 0) count++;
-            return count;
-        });
-    // Drawn in 2D while WebGL starts, slowly in software, and cleared once it has.
-    await expect.poll(painted2D, { timeout: 15_000 }).toBe(0);
-    expect(problems).toEqual([]);
-    await page.close();
-}, 30_000);
+it.each(["ship", "fleet"])(
+    "draws the %s editor with WebGL, handles and all, leaving its 2D canvas clear",
+    async (route) => {
+        const page = await browser.newPage();
+        const problems: string[] = [];
+        page.on("pageerror", (error) => problems.push(error.message));
+        await page.goto(`${pathToFileURL(appPage).href}#/${route}`);
+        const view = page.locator("canvas:not([aria-hidden])").first();
+        const box = (await view.boundingBox())!;
+        // Something picked, so its handles are drawn too.
+        await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+        expect(await page.locator("canvas[aria-hidden]").count()).toBe(1);
+        const painted2D = (): Promise<number> =>
+            view.evaluate((canvas: HTMLCanvasElement) => {
+                const { data } = canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height);
+                let count = 0;
+                for (let i = 3; i < data.length; i += 4) if (data[i] !== 0) count++;
+                return count;
+            });
+        // Drawn in 2D while WebGL starts, slowly in software, and cleared once it has.
+        await expect.poll(painted2D, { timeout: 15_000 }).toBe(0);
+        expect(problems).toEqual([]);
+        await page.close();
+    },
+    30_000,
+);
 
 it("sets up a custom battle, from the library and from a battle file, and fights it", async () => {
     const page = await browser.newPage();
