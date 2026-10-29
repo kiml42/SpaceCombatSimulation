@@ -68,6 +68,36 @@ describe("PixiCanvas geometry", () => {
         expect(screenRect(square(1, 2, 11, 22))).toMatchObject({ x: 1, y: 2, width: 10, height: 20 });
         expect(screenRect([0, 0, 10, 1, 10, 10, 0, 10])).toBeNull();
     });
+
+    it("cuts a gauge's fill to its rounded track whole, however rounding leaves the track's ends", () => {
+        // A track rounded by half its height meets itself at each end, two corners
+        // a hair apart once transformed; cutting along that hair once sliced a
+        // wedge off the fill at a random angle.
+        let seed = 1;
+        const random = (): number => (seed = (seed * 16807) % 2147483647) / 2147483647;
+        const area = (p: number[]): number => {
+            let a = 0;
+            for (let k = 0; k < p.length; k += 2) a += p[k]! * p[(k + 3) % p.length]! - p[(k + 2) % p.length]! * p[k + 1]!;
+            return Math.abs(a) / 2;
+        };
+        const context = new PixiCanvas();
+        const path = (): number[] => (context as unknown as { path: { points: number[] }[] }).path[0]!.points;
+        for (let n = 0; n < 5000; n++) {
+            context.begin();
+            context.setTransform(1, 0, 0, 1, 300 * random(), 200 * random());
+            context.scale(3 + random() * 50, -(3 + random() * 50));
+            context.rotate(random() * 7);
+            const [x, y, length, bar] = [random() * 3 - 1.5, random() * 3 - 1.5, 0.5 + random() * 2, 0.05 + random() * 0.5];
+            context.beginPath();
+            context.roundRect(x, y, length, bar, bar / 2);
+            const track = convexHullOrder(path());
+            context.beginPath();
+            context.rect(x, y, length, bar);
+            const fill = clipToConvex(path(), track);
+            expect(fill).not.toBeNull();
+            expect(area(fill!) / area(track)).toBeCloseTo(1, 6);
+        }
+    });
 });
 
 describe("canvas2d.ts drawn through PixiCanvas", () => {
