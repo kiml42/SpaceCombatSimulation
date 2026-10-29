@@ -40,7 +40,8 @@ Space pauses, full stop single-steps, F re-fits the camera. Scroll to zoom, drag
 pnpm dev
 ```
 
-Starts Vite's dev server and opens the React app, which reloads itself on save.
+Starts Vite's dev server for the React app at http://localhost:5173/, which reloads itself on save. It does not
+open a tab, and always uses that port: if it is taken, it stops rather than moving to another.
 
 ```
 pnpm storybook
