@@ -1,6 +1,6 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { chromium, type Browser } from "playwright";
+import { chromium, type Browser, type Page } from "playwright";
 
 /**
  * Launch Chromium, preferring the one Playwright installed for itself.
@@ -45,4 +45,14 @@ export function findInstalledChromium(): string | null {
         }
     }
     return null;
+}
+
+/**
+ * Draw battles with Canvas2D rather than WebGL, for a page whose tests read
+ * the battle's pixels or text off the view's 2D context, or are about the UI
+ * rather than the drawing: without a GPU, WebGL is drawn in software and is
+ * slow to start. The tests for WebGL itself leave it out.
+ */
+export async function drawIn2D(page: Page): Promise<void> {
+    await page.addInitScript(() => window.localStorage.setItem("scs2d.draw", "canvas2d"));
 }
