@@ -23,7 +23,11 @@ export class HullLayer {
     readonly container = new Container();
     readonly thin = new Pool();
     readonly thick = new Pool();
-    readonly thickShadows = new Pool();
+    /** The thick modules' shadows, made afresh each frame: each falls a different way across its module as its ship turns. */
+    readonly thickShadows = new Graphics();
+    /** What `thickShadows` drew in the last frame, each shadow's corners in metres from the camera. */
+    readonly thickShadowShapes: number[][] = [];
+    readonly thickShadowLayer = new Container();
     readonly fighterShadows = new Pool();
     /** Where a thick module's shadow may fall: the thin hull. */
     readonly thinHull = new Pool();
@@ -41,13 +45,14 @@ export class HullLayer {
     constructor(shade: () => AlphaFilter = () => new AlphaFilter()) {
         this.thickShade = shade();
         this.fighterShade = shade();
-        this.thickShadows.container.mask = this.thinHull.container;
-        this.thickShadows.container.filters = [this.thickShade];
+        this.thickShadowLayer.addChild(this.thickShadows);
+        this.thickShadowLayer.mask = this.thinHull.container;
+        this.thickShadowLayer.filters = [this.thickShade];
         this.fighterShadows.container.mask = this.hull.container;
         this.fighterShadows.container.filters = [this.fighterShade];
         this.container.addChild(
             this.thin.container,
-            this.thickShadows.container,
+            this.thickShadowLayer,
             this.thick.container,
             this.fighterShadows.container,
             this.thinHull.container,
@@ -63,6 +68,8 @@ export class HullLayer {
         const awayX = -Math.cos(light.from);
         const awayY = -Math.sin(light.from);
         for (const pool of this.pools()) pool.begin();
+        this.thickShadows.clear();
+        this.thickShadowShapes.length = 0;
         for (let s = 0; s < snapshot.shipCount; s++) {
             const ship = snapshot.ships[s]!;
             const design = ship.currentStructure;
@@ -87,8 +94,24 @@ export class HullLayer {
                 const fill = contextFor(m.spec, ship.sides?.[i] ?? ship.team, ship.integrity?.[i] ?? 1, m.weaponsLayer);
                 place((m.weaponsLayer ? this.thick : this.thin).next(fill), x, y, angle).alpha = fillAlpha(ship, i);
                 place(this.hull.next(outline), x, y, angle);
-                if (m.weaponsLayer) place(this.thickShadows.next(outline), x + awayX * THICK_SHADOW_M, y + awayY * THICK_SHADOW_M, angle);
-                else place(this.thinHull.next(outline), x, y, angle);
+                if (!m.weaponsLayer) {
+                    place(this.thinHull.next(outline), x, y, angle);
+                    continue;
+                }
+                // A thick module is a block standing on the hull, so its shadow runs
+                // from its foot out to where its top's shadow falls: for each of its
+                // shapes, the hull round the shape and the shape moved away.
+                const c = Math.cos(angle);
+                const sn = Math.sin(angle);
+                for (const corners of shapesOf(m.spec)) {
+                    const placed: number[] = [];
+                    for (let k = 0; k < corners.length; k += 2) {
+                        placed.push(x + corners[k]! * c - corners[k + 1]! * sn, y + corners[k]! * sn + corners[k + 1]! * c);
+                    }
+                    const shadow = blockShadow(placed, awayX * THICK_SHADOW_M, awayY * THICK_SHADOW_M);
+                    this.thickShadows.poly(shadow, true).fill(0x000000);
+                    this.thickShadowShapes.push(shadow);
+                }
             }
         }
         for (const pool of this.pools()) pool.end();
@@ -105,7 +128,7 @@ export class HullLayer {
     }
 
     private pools(): Pool[] {
-        return [this.thin, this.thick, this.thickShadows, this.fighterShadows, this.thinHull, this.hull];
+        return [this.thin, this.thick, this.fighterShadows, this.thinHull, this.hull];
     }
 }
 
@@ -184,4 +207,42 @@ function outlineFor(spec: ModuleSpec): GraphicsContext {
         outlines.set(spec, context);
     }
     return context;
+}
+
+const shapes = new WeakMap<ModuleSpec, number[][]>();
+
+/** `spec`'s fills as polygons in its own frame, each convex. */
+function shapesOf(spec: ModuleSpec): number[][] {
+    let out = shapes.get(spec);
+    if (out === undefined) {
+        moduleFills(spec, "#000000", shipColours(0), 1, fills);
+        out = fills.map((fill) => [...fill.points]);
+        shapes.set(spec, out);
+    }
+    return out;
+}
+
+/**
+ * The shadow a convex block casts on the surface it stands on: the convex hull
+ * of its footprint `points` and the footprint moved by `dx`, `dy`.
+ */
+export function blockShadow(points: readonly number[], dx: number, dy: number): number[] {
+    const all: [number, number][] = [];
+    for (let k = 0; k + 1 < points.length; k += 2) {
+        all.push([points[k]!, points[k + 1]!], [points[k]! + dx, points[k + 1]! + dy]);
+    }
+    all.sort((p, q) => p[0] - q[0] || p[1] - q[1]);
+    const cross = (o: [number, number], a: [number, number], b: [number, number]): number =>
+        (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+    // Andrew's monotone chain: the lower hull, then the upper, each without its last point.
+    const half = (ordered: readonly [number, number][]): [number, number][] => {
+        const out: [number, number][] = [];
+        for (const p of ordered) {
+            while (out.length >= 2 && cross(out[out.length - 2]!, out[out.length - 1]!, p) <= 0) out.pop();
+            out.push(p);
+        }
+        out.pop();
+        return out;
+    };
+    return [...half(all), ...half([...all].reverse())].flat();
 }

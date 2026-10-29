@@ -3,7 +3,7 @@ import type { AlphaFilter, Graphics } from "pixi.js";
 import { capture, Snapshot } from "../sim/index.js";
 import { duel } from "../scenarios/duel.js";
 import { starWars } from "../scenarios/starWars.js";
-import { HullLayer } from "../render/hullLayer.js";
+import { blockShadow, HullLayer } from "../render/hullLayer.js";
 import { DEFAULT_LIGHT, FIGHTER_SHADOW_M, THICK_SHADOW_M, type Light } from "../render/light.js";
 import { isFighterModule } from "../render/moduleFills.js";
 
@@ -53,13 +53,21 @@ describe("the Pixi hull layer", () => {
         const layer = drawn(layerOf(), light);
         const away = (distance: number): [number, number] => [-Math.cos(light.from) * distance, -Math.sin(light.from) * distance];
         const [tx, ty] = away(THICK_SHADOW_M);
+        // Each thick module's shadow joins it: every corner it has, and every corner moved away, is within its shadow.
         const thick = layer.thick.shown();
-        const shadows = layer.thickShadows.shown();
-        expect(shadows.length).toBe(thick.length);
-        for (let k = 0; k < thick.length; k++) {
-            expect(shadows[k]!.position.x - thick[k]!.position.x).toBeCloseTo(tx, 9);
-            expect(shadows[k]!.position.y - thick[k]!.position.y).toBeCloseTo(ty, 9);
-            expect(shadows[k]!.rotation).toBe(thick[k]!.rotation);
+        expect(layer.thickShadowShapes.length).toBeGreaterThanOrEqual(thick.length);
+        const inside = (shape: number[], x: number, y: number): boolean => {
+            for (let k = 0; k < shape.length; k += 2) {
+                const j = (k + 2) % shape.length;
+                if ((shape[j]! - shape[k]!) * (y - shape[k + 1]!) - (shape[j + 1]! - shape[k + 1]!) * (x - shape[k]!) < -1e-6) return false;
+            }
+            return true;
+        };
+        for (const g of thick) {
+            const reached = layer.thickShadowShapes.some(
+                (shape) => inside(shape, g.position.x, g.position.y) && inside(shape, g.position.x + tx, g.position.y + ty),
+            );
+            expect(reached).toBe(true);
         }
         expect(count((fighter) => fighter)).toBeGreaterThan(0);
         expect(layer.fighterShadows.shown().length).toBe(count((fighter) => fighter));
@@ -81,11 +89,23 @@ describe("the Pixi hull layer", () => {
         // Where they may fall: thick shadows on the thin hull, a fighter's on any.
         expect(layer.thinHull.shown().length).toBe(layer.thin.shown().length);
         expect(layer.hull.shown().length).toBe(layer.thin.shown().length + thick.length);
-        expect(layer.thickShadows.container.mask).toBe(layer.thinHull.container);
+        expect(layer.thickShadowLayer.mask).toBe(layer.thinHull.container);
         expect(layer.fighterShadows.container.mask).toBe(layer.hull.container);
         // What is in shadow keeps only the ambient share; what is lit takes the light's colour.
-        expect((layer.thickShadows.container.filters as AlphaFilter[])[0]!.alpha).toBeCloseTo(0.6);
+        expect((layer.thickShadowLayer.filters as AlphaFilter[])[0]!.alpha).toBeCloseTo(0.6);
         expect(layer.thin.container.tint).toBe(0xffd0a0);
+    });
+
+    it("casts a block's shadow as its footprint swept away from the light", () => {
+        const shadow = blockShadow([0, 0, 1, 0, 1, 1, 0, 1], 1, -1);
+        let area = 0;
+        for (let k = 0; k < shadow.length; k += 2) {
+            const j = (k + 2) % shadow.length;
+            area += shadow[k]! * shadow[j + 1]! - shadow[j]! * shadow[k + 1]!;
+        }
+        // The square, and a parallelogram along each of the two sides it is swept across.
+        expect(area / 2).toBeCloseTo(3);
+        expect(shadow.length / 2).toBe(6);
     });
 
     it("shares one context between modules of the same spec and side, and keeps them from frame to frame", () => {

@@ -169,7 +169,10 @@ an entry is either still open or it is gone.
        thick module and 4 m for a fighter, judged by eye on ships of tens of metres; on a ship a kilometre
        across they barely show, the price of a fixed length. `render/hullLayer.ts` draws thin fills, thick
        modules' shadows masked to thin hull, thick fills, then fighters' shadows masked to any hull, each
-       shadow layer darkened through one filter so overlaps are no darker. Scenarios setting their own
+       shadow layer darkened through one filter so overlaps are no darker. A thick module is a block, so
+       its shadow is each of its shapes swept away from the light (the hull round the shape and the shape
+       moved), joined to its foot and made afresh each frame; a fighter's is its outline moved, apart from
+       it, as it flies. Scenarios setting their own
        light, and the skirmish drawing one each round, are still to come.
     2. **The editors and fleet pictures in Pixi**, then **Canvas2D retired**.
        - The ship should look in the editor as it does in battle: its colours, bevels and so on, under a
