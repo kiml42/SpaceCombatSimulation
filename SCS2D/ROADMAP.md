@@ -184,9 +184,8 @@ an entry is either still open or it is gone.
          builder's light — white, from nearly straight on — rather than a battle's. One day the editor may
          be the battle itself, the camera turning to frame the ship; not yet.
        - The fleet pictures (evolution's kinds, the skirmish timeline) share **one**
-         renderer drawing to images, since a page may hold only about sixteen WebGL contexts. **Built for
-         evolution's and the skirmish timeline's** (`host/fleetPicture.ts`): one `pixiView` on a canvas off
-         the page, each picture copied out after it renders; drawn in 2D while it starts, then again.
+         renderer drawing to images, since a page may hold only about sixteen WebGL contexts. **Built**
+         (`host/fleetPicture.ts`): one `pixiView` on a canvas off the page, each picture copied out after it renders; drawn in 2D while it starts, then again.
        - The editors' handles and guides move into Pixi with the rest; evolution's charts
          (`render/chart.ts`) are not ships and stay as they are.
        - Then **Draw: 2D** goes, and every drawing path that takes a 2D context for ships. canvas2d.ts stays
