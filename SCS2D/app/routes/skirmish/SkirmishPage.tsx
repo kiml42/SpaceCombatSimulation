@@ -92,6 +92,11 @@ const Readout = styled.output`
     color: var(--colour-muted);
 `;
 
+const FrameRate = styled.output`
+    margin-left: 1.5em;
+    color: var(--colour-muted);
+`;
+
 const Body = styled.div`
     display: flex;
     flex: 1;
@@ -594,6 +599,7 @@ export function SkirmishPage() {
         return () => window.removeEventListener("keydown", toggle);
     }, [view]);
 
+    const fps = useSampled(() => (view === null || view.fps === 0 ? "" : `${Math.round(view.fps)} fps`));
     const readout = useSampled(() => {
         const at = shown.current;
         return skirmish === null || at === null ? "" : `round ${skirmish.round} · t ${at.time.toFixed(1)} s`;
@@ -765,6 +771,7 @@ export function SkirmishPage() {
                 <Readout id="readout" aria-label="Battle time">
                     {readout}
                 </Readout>
+                <FrameRate aria-label="Frame rate">{fps}</FrameRate>
             </Controls>
             <Body>
                 {skirmish === null && (

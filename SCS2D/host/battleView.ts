@@ -100,6 +100,9 @@ function pickedBounds(view: Snapshot, picked: readonly number[]): Bounds | null 
     return out;
 }
 
+/** How long the frame rate is counted over before it is read again. */
+const FPS_WINDOW_MS = 500;
+
 export interface BattleView {
     /**
      * Show this battle from its start, running or held, and if `rewindable`,
@@ -127,6 +130,8 @@ export interface BattleView {
     /** Stop the clock and let go of the window, for a page that takes the view away. */
     dispose(): void;
     readonly camera: Readonly<Camera>;
+    /** Frames drawn a second, over about the last half second. */
+    readonly fps: number;
     /**
      * Let the viewer give orders: right-click, a verb armed from the keys or
      * `arm`, Shift to add to the queue, Stop. Only on a battle that can be
@@ -603,8 +608,17 @@ export function battleView(
     const keepNow = (on: Battle): Kept => ({ flashes: flashesNow(on), watched: watcher?.save() });
 
     let frameRequest = 0;
+    let fps = 0;
+    let framesCounted = 0;
+    let countedSince = 0;
     const tick = (now: number): void => {
         frameRequest = window.requestAnimationFrame(tick);
+        framesCounted++;
+        if (now - countedSince >= FPS_WINDOW_MS) {
+            if (countedSince > 0) fps = (framesCounted * 1000) / (now - countedSince);
+            framesCounted = 0;
+            countedSince = now;
+        }
         if (last === 0) last = now;
         const elapsed = Math.min((now - last) / 1000, 0.25);
         last = now;
@@ -865,6 +879,9 @@ export function battleView(
             rewind = null;
         },
         camera,
+        get fps() {
+            return fps;
+        },
     };
 }
 

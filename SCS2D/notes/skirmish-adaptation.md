@@ -77,8 +77,8 @@ The enemy's fleets stayed at a few small ships. Its budget was not the limit: ab
   smaller, whole. The ship's own `rescale` was one knob among every module's, in steps of a few percent.
 - [#520](https://github.com/kiml42/SpaceCombatSimulation/pull/520): `chimera` joins two designs' halves, cut
   only at faces that look away from each design's centre of mass.
-- `graft` joins part of an opponent's design to part of one of the enemy's own, as a chimera does, as a
-  less cheaty steal; on by default.
+- [#546](https://github.com/kiml42/SpaceCombatSimulation/pull/546): `graft` joins part of an opponent's
+  design to part of one of the enemy's own, as a chimera does, as a less cheaty steal; on by default.
 - [#535](https://github.com/kiml42/SpaceCombatSimulation/pull/535): scale's and spread's sizes are settings
   (`fleetScaleSize`, 0.2; `fleetSpreadSize`, 0.25), and both are drawn from `drift`.
 
@@ -116,6 +116,7 @@ Not every combination was run, so some cells are blank. Each row includes the ro
 | scale drawn by drift, width 0.1, + spread | 0 wins, 48 t | 0–1 wins, 11 t | 0 wins, 86 t |
 | the same + #520 chimera, as merged | 0 wins, 53 t | 2 wins, 51 t | 0 wins, 27 t |
 | #535: drift width 0.2, + spread, chimera off | 0 wins, 78 t | 0 wins, 52 t | 1–2 wins, 68–100 t |
+| + #546 graft, as merged | **answer at gen 10**, 1,399 t | 0 wins, 30 t | 0 wins, 36 t |
 
 What this says, as far as three seeds can:
 
@@ -130,6 +131,9 @@ What this says, as far as three seeds can:
 - **The chimera, as first written, shrank the enemy**, since a cut could keep little more than a core. With
   the centre-of-mass rule it weighs 1.1–1.9 times the ship it replaces, as a median, and comes out level or
   better on two seeds and worse on one. The author kept it on.
+- **A graft answers when it takes most of the player's big ship, and that is rare.** On seed 1 the enemy sat
+  near 45 t to generation 8, then jumped to 1,407 t in one generation, about the Hive's weight, and answered
+  the next. On the other two it shrank, as the first chimera did: most cuts keep a small part of either half.
 
 ## A note on `drift` and its dead zone
 
@@ -142,12 +146,14 @@ about 38% of draws are zero at any width. Widening scales every other step, the 
 
 These are the things not yet tried, most promising first:
 
-1. **Draw scale's step from a band**, say 5–15% either way, every time. That keeps it random without the
+1. **Make a graft keep more of the opponent's half**, by preferring cuts of its design that leave more of
+   its mass, so the large grafts that answered seed 1 come up more often.
+2. **Draw scale's step from a band**, say 5–15% either way, every time. That keeps it random without the
    near-zero steps or the huge tail. Benchmark it against the fixed ×1.1 rows above.
-2. **More seeds, and other rounds**, before trusting any of the smaller differences above.
-3. **Bias towards growth when outweighed:** grow designs more often, or in bigger steps, when the enemy
+3. **More seeds, and other rounds**, before trusting any of the smaller differences above.
+4. **Bias towards growth when outweighed:** grow designs more often, or in bigger steps, when the enemy
    weighs a fraction of the player.
-4. **Credit each design for what it did in a match**, so `add` (and `steal`) can prefer what worked rather
+5. **Credit each design for what it did in a match**, so `add` (and `steal`) can prefer what worked rather
    than what is heavy.
-5. **Score using the budget:** a small reward for an enemy that spends more of what it is allowed.
-6. **Offer stealing in play**, as in §12: "the enemy is trying to steal your designs".
+6. **Score using the budget:** a small reward for an enemy that spends more of what it is allowed.
+7. **Offer stealing in play**, as in §12: "the enemy is trying to steal your designs".

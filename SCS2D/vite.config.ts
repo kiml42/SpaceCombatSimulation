@@ -21,5 +21,6 @@ export default defineConfig({
         rolldownOptions: { input: fileURLToPath(new URL("app/index.html", import.meta.url)) },
     },
     // `root` is app/, but the app imports from across the project, and Storybook and Vitest serve their own files from it.
-    server: { open: "/", fs: { allow: [root] } },
+    // A fixed port, so a tab left open keeps working across restarts; a busy port is an error, not a new port.
+    server: { port: 5173, strictPort: true, fs: { allow: [root] } },
 });
