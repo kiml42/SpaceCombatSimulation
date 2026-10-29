@@ -54,5 +54,12 @@ export function findInstalledChromium(): string | null {
  * slow to start. The tests for WebGL itself leave it out.
  */
 export async function drawIn2D(page: Page): Promise<void> {
-    await page.addInitScript(() => window.localStorage.setItem("scs2d.draw", "canvas2d"));
+    await page.addInitScript(() => {
+        // Run in every document the page opens, some of which may not use storage.
+        try {
+            window.localStorage.setItem("scs2d.draw", "canvas2d");
+        } catch {
+            // Nothing drawn there to pin.
+        }
+    });
 }
