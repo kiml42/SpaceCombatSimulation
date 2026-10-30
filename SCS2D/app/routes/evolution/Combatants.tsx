@@ -294,13 +294,13 @@ class Tiles {
         if (this.formationTarget > 0) this.formation = easeScale(this.formation, this.formationTarget, EASE);
         for (const held of this.held.values()) {
             if (held.formation !== null && held.formationDrawnAt !== this.formation) {
-                drawCentred(held.formation, formationSnapshot(held.picture, this.shot), this.formation);
+                drawCentred(held.formation, (into) => formationSnapshot(held.picture, into), this.formation);
                 held.formationDrawnAt = this.formation;
             }
             if (held.drawnAt === this.fleet) continue;
             held.picture.kinds.forEach((kind, i) => {
                 const canvas = held.kinds[i];
-                if (canvas) drawCentred(canvas, kindSnapshot(kind, this.shot), this.fleet);
+                if (canvas) drawCentred(canvas, (into) => kindSnapshot(kind, into), this.fleet);
             });
             held.drawnAt = this.fleet;
         }
