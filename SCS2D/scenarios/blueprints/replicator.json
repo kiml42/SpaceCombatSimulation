@@ -9,13 +9,12 @@
       "scavengeMetalBelow": 1,
       "refuelBelow": 0.4,
       "rearmBelow": 0.5,
+      "launchMetal": 0.3,
       "rockWeight": 20,
       "tripWeight": 400,
       "fuelReserve": 0.2,
-      "metalReserve": 0,
       "chargeReserve": 0,
-      "padsShare": 3,
-      "launchMetal": 0.3
+      "padsShare": 3
     }
   },
   "hangar": {
@@ -27,8 +26,7 @@
       "doctrine": {
         "targeting": {
           "facingWeight": 100,
-          "sightWeight": 50,
-          "escortWeight": 0
+          "sightWeight": 50
         },
         "approach": {
           "standoffRadii": 60,
@@ -39,9 +37,9 @@
           "ramRadii": 1000,
           "ramArmed": 0.5,
           "refuelBelow": 0.5,
+          "sortieRange": 10,
           "tangentialMin": 20,
-          "tangentialMax": 60,
-          "sortieRange": 10
+          "tangentialMax": 60
         }
       },
       "assemblies": {
@@ -165,14 +163,14 @@
         {
           "id": 13,
           "use": "Landing Engine",
-          "x": 2.322698052,
+          "x": 3.322698052,
           "y": 6.614550033,
           "angle": 32.660912722
         },
         {
           "id": 5,
           "kind": "tank",
-          "x": 2.333333333,
+          "x": 3.333333333,
           "y": 5.297958994,
           "length": 2.5,
           "width": 3.9,
@@ -188,7 +186,7 @@
         {
           "id": 3,
           "kind": "claw",
-          "x": 6.75,
+          "x": 7.75,
           "y": 2.5,
           "angle": 0,
           "length": 2.5,
@@ -198,7 +196,7 @@
         {
           "id": 9,
           "kind": "pad",
-          "x": -2.537317226,
+          "x": -1.5373172259999999,
           "y": 17,
           "angle": -180,
           "length": 8.674634452,
@@ -209,77 +207,97 @@
         {
           "id": 11,
           "use": "engine",
-          "x": -6.8746344520000005,
+          "x": -5.8746344520000005,
           "y": 19
         },
         {
           "id": 12,
           "use": "engine",
-          "x": -4.574634452000001,
+          "x": -3.5746344520000006,
           "y": 20.5,
           "angle": -90
         },
         {
           "id": 14,
           "use": "Landing Engine",
-          "x": 1.7999999999999998,
+          "x": 2.8,
           "y": 15.196097097
         },
         {
           "id": 15,
           "use": "Landing Engine",
-          "x": 1.7999999999999998,
+          "x": 2.8,
           "y": 18.996097097
         },
         {
           "id": 16,
           "use": "engine",
-          "x": -6.8746344520000005,
+          "x": -5.8746344520000005,
           "y": 15
         },
         {
           "id": 17,
-          "kind": "robotBay",
+          "kind": "hold",
           "x": -3.75,
-          "y": 7.5,
+          "y": 12,
           "length": 4.5,
-          "width": 12,
-          "robotsPerBerth": 3
+          "width": 3
         },
         {
           "id": 19,
           "use": "engine",
-          "x": 1.7999999999999994,
+          "x": 2.7999999999999994,
           "y": 20.5,
           "angle": -90
         },
         {
           "id": 21,
           "kind": "tank",
-          "x": 9.999999717180685e-10,
+          "x": 0.5000000000000001,
           "y": 10.75,
-          "length": 3,
+          "length": 4.000000001,
           "width": 5.5
         },
         {
           "id": 22,
           "use": "Landing Engine",
-          "x": 1.5000000009999999,
+          "x": 2.500000001,
           "y": 11.696097096999999
         },
         {
           "id": 23,
           "use": "engine",
-          "x": -1.3746344520000005,
+          "x": -0.37463445200000045,
           "y": 20.5,
           "angle": -90
         },
         {
           "id": 24,
           "use": "engine",
-          "x": -7.774634452000001,
+          "x": -6.774634452000001,
           "y": 20.5,
           "angle": -90
+        },
+        {
+          "id": 26,
+          "kind": "generator",
+          "x": -3.75,
+          "y": 7.25,
+          "length": 4.5,
+          "width": 6.5,
+          "thick": true
+        },
+        {
+          "id": 27,
+          "kind": "turret",
+          "x": -7.1,
+          "y": 10.983231524999999,
+          "angle": -180,
+          "length": 2.2,
+          "width": 2,
+          "barrels": 4,
+          "traverse": 170,
+          "main": false
         }
       ]
     },
@@ -305,9 +323,27 @@
           "x": 0,
           "y": 0,
           "angle": 0,
-          "length": 1.5,
+          "length": 2,
           "width": 3,
-          "nozzle": 0.333
+          "nozzle": 0.5
+        }
+      ]
+    },
+    "slipway": {
+      "modules": [
+        {
+          "id": 8,
+          "kind": "slipway",
+          "x": -1,
+          "y": 0,
+          "angle": -180,
+          "length": 3.5,
+          "width": 19.96646305,
+          "thick": true,
+          "craft": "Replicator",
+          "keep": 1,
+          "buildAnchored": true,
+          "craftAngle": 90
         }
       ]
     }
@@ -315,21 +351,23 @@
   "modules": [
     {
       "id": 1,
-      "kind": "core",
-      "x": 0,
+      "kind": "robotBay",
+      "x": 0.5,
       "y": 0,
-      "length": 3,
+      "length": 4,
       "width": 16,
-      "reinforcement": 2
+      "reinforcement": 2,
+      "robotsPerBerth": 5
     },
     {
       "id": 2,
-      "kind": "hold",
-      "x": 3.5,
+      "kind": "robotBay",
+      "x": 4.5,
       "y": 0,
       "length": 4,
       "width": 8,
-      "reinforcement": 2
+      "reinforcement": 2,
+      "robotsPerBerth": 5
     },
     {
       "id": 6,
@@ -345,25 +383,20 @@
       "mirror": true
     },
     {
-      "id": 8,
-      "kind": "slipway",
+      "id": 25,
+      "use": "slipway",
       "x": -6.75,
-      "y": 0,
-      "angle": -180,
-      "length": 1.5,
-      "width": 27,
-      "craft": "Replicator",
-      "keep": 1,
-      "buildAnchored": true,
-      "craftAngle": 90
+      "y": 0
     },
     {
       "id": 18,
-      "kind": "generator",
+      "kind": "core",
       "x": -3.75,
       "y": 0,
       "length": 4.5,
-      "width": 3
+      "width": 8,
+      "thick": true,
+      "computing": 0.03
     }
   ]
 }
