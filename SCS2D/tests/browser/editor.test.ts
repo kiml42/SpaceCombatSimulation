@@ -9,7 +9,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import type { Browser, Page } from "playwright";
-import { launchChromium } from "./launch.js";
+import { drawIn2D, launchChromium } from "./launch.js";
 import { ROTATE_ARM_PX } from "../../editor/handles.js";
 import { EditorDocument } from "../../editor/document.js";
 import { previewSnapshot } from "../../editor/preview.js";
@@ -193,6 +193,8 @@ beforeAll(async () => {
 
     browser = await launchChromium();
     page = await browser.newPage({ viewport: { width: 1200, height: 700 } });
+    // Read off its 2D canvas.
+    await drawIn2D(page);
     page.on("pageerror", (error) => problems.push(`pageerror: ${error.message}`));
     page.on("console", (message) => {
         if (message.type() === "error") problems.push(`console: ${message.text()}`);

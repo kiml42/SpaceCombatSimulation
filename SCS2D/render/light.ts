@@ -9,10 +9,21 @@ export interface Light {
     readonly colour: string;
     /** How much of it reaches a surface in shadow, from 0 to 1. */
     readonly ambient: number;
+    /**
+     * How far shadows fall, as a share of their full length: 1, or left out, for
+     * a light low in the sky; nearer 0 as it comes from overhead.
+     */
+    readonly slant?: number;
 }
 
 /** White, from the top left, with shadows a little under half dark. */
 export const DEFAULT_LIGHT: Light = { from: (3 * Math.PI) / 4, colour: "#ffffff", ambient: 0.55 };
+
+/**
+ * The light a ship is seen in as it is built, in the editors and fleet
+ * pictures: white, from nearly overhead, so its shadows are short.
+ */
+export const BUILDER_LIGHT: Light = { from: (3 * Math.PI) / 4, colour: "#ffffff", ambient: 0.6, slant: 0.35 };
 
 /** How far a thick module's shadow falls across the thin hull beside it, metres. */
 export const THICK_SHADOW_M = 1.5;
