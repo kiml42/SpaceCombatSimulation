@@ -166,7 +166,7 @@ an entry is either still open or it is gone.
 
     1. **Lighting, pass 1**, with fighter shadows — **built**. `render/light.ts` holds a battle's `Light`
        (`Battle.light`, the default where a battle sets none) and the two shadow lengths, 1.5 m for a
-       thick module and 4 m for a fighter, judged by eye on ships of tens of metres; on a ship a kilometre
+       thick module and 2.5 m for a fighter, judged by eye on ships of tens of metres; on a ship a kilometre
        across they barely show, the price of a fixed length. `render/hullLayer.ts` draws thin fills, thick
        modules' shadows masked to thin hull, thick fills, then fighters' shadows masked to any hull, each
        shadow layer darkened through one filter so overlaps are no darker. A thick module is a block, so
@@ -177,8 +177,13 @@ an entry is either still open or it is gone.
        module's height, shading ships' hulls beside it, and a kernel higher again, shading its rock; each
        shadow is as long as the caster stands above what it falls on. A pad's landing square is part of the
        pad's fill, so shadows fall on it. Still to do: rock shading a fighter flying close by, which needs
-       a shadow layer over the fighters, above everything the adapter draws. Scenarios setting their own
-       light, and the skirmish drawing one each round, are still to come.
+       a shadow layer over the fighters, above everything the adapter draws.
+       **Each scene sets its own light**, from a palette in `scenarios/lights.ts` spanning the directions,
+       pale tints and harsh to soft ambients, and **each skirmish round draws one from its seed**
+       (`roundLight`), so a replayed round looks as it did. Tints stay pale so a side's colours still read.
+       Only the hull layer is tinted: fighters, strips and close-ups, drawn through the adapter, are not,
+       until they move to shared geometry with the rest of stage (2). The evolution page and custom battles
+       keep the default.
     2. **The editors and fleet pictures in Pixi**, then **Canvas2D retired**.
        - The ship should look in the editor as it does in battle: its colours, bevels and so on, under a
          builder's light — white, from nearly straight on — rather than a battle's. One day the editor may
