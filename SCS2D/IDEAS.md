@@ -88,6 +88,7 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Cap projectile rendering at the point they hit, so a streak does not overlap the target it struck. (The muzzle end is capped.)
 - A selected ship's framing takes in and rings what it is escorting; it could do the same for what it is keeping clear of, possibly with a symbol to show what sort of attention the selected ship is paying to each
 - Reloading should return to the scenario you were watching
+- Double click a ship to select and focus it.
 
 ## Harvesting
 - Scavenging wrecks and mining asteroids. Two of the causes of wrecked Salvagers are being fixed as ROADMAP.md
