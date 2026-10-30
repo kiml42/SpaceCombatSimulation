@@ -12,6 +12,9 @@ import {
     type ModuleSpec,
 } from "../sim/index.js";
 import { ARCS_KEY, draw, nextArcs, type Arcs } from "../render/canvas2d.js";
+import { BUILDER_LIGHT } from "../render/light.js";
+import { pixiUnder } from "../render/pixiView.js";
+import { loadRenderer } from "../host/viewSettings.js";
 import { easeScale, fitScale, frame, snapStep, type Camera } from "../render/camera.js";
 import type { EditorDocument } from "./document.js";
 import {
@@ -202,6 +205,8 @@ type Drag =
 export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks: ShipCanvasHooks): ShipCanvas {
     const ctx = canvas.getContext("2d");
     if (ctx === null) throw new Error("no 2d context");
+    // Drawn with Pixi underneath unless Canvas2D is picked, as the battle is.
+    const stacked = loadRenderer() === "webgl" ? pixiUnder(canvas) : null;
     const camera: Camera = { x: 0, y: 0, scale: 8 };
     const snapMetres = (): number => snapStep(camera.scale);
     /**
@@ -246,8 +251,13 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
     const resize = (): void => {
         const ratio = window.devicePixelRatio || 1;
         const rect = canvas.getBoundingClientRect();
-        canvas.width = max(1, Math.round(rect.width * ratio));
-        canvas.height = max(1, Math.round(rect.height * ratio));
+        const width = max(1, Math.round(rect.width * ratio));
+        const height = max(1, Math.round(rect.height * ratio));
+        // Setting either clears the canvas, even to the size it already is.
+        for (const each of stacked === null ? [canvas] : [canvas, stacked.canvas]) {
+            if (each.width !== width) each.width = width;
+            if (each.height !== height) each.height = height;
+        }
     };
 
     /**
@@ -353,9 +363,16 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
             }
         }
         if (shown !== undefined && view.design !== null) landOnSelf(shown);
-        draw(ctx, snapshot, camera, canvas.width, canvas.height, demonstration.flashes, arcs);
+        const pixi = stacked?.view.ready === true ? stacked.view.begin(snapshot, camera, canvas.width, canvas.height, BUILDER_LIGHT) : null;
+        if (pixi !== null) {
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        // Pixi's context draws as a canvas does (render/pixiCanvas.ts), so the same code paints either.
+        const into = pixi === null ? ctx : (pixi as unknown as CanvasRenderingContext2D);
+        draw(into, snapshot, camera, canvas.width, canvas.height, demonstration.flashes, arcs, false, -1, [], null, pixi !== null);
         drawOverlay(
-            ctx,
+            into,
             {
                 design: view.design,
                 modules: view.modules,
@@ -373,6 +390,7 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
             canvas.width,
             canvas.height,
         );
+        if (pixi !== null) stacked!.view.end();
         if (camera.scale !== scale) hooks.zoomed?.();
     };
 
@@ -755,6 +773,8 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
         render();
     });
     resized.observe(canvas);
+    // Drawn in 2D until Pixi has started, and then again.
+    void stacked?.view.started.then((started) => started && render());
 
     return {
         camera,
@@ -791,6 +811,7 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
             canvas.removeEventListener("wheel", wheel);
             window.removeEventListener("keydown", keyDown);
             resized.disconnect();
+            stacked?.remove();
         },
     };
 }

@@ -38,7 +38,7 @@ import type { Command, Held, Logged, Order } from "../scenarios/commands.js";
 import type { Battle } from "../scenarios/types.js";
 import { Rewind } from "../scenarios/rewind.js";
 import { viewGestures } from "./viewGestures.js";
-import { pixiView, type PixiView } from "../render/pixiView.js";
+import { pixiUnder, type PixiView } from "../render/pixiView.js";
 import { loadRenderer, loadView, saveRenderer, saveView, type Renderer, type ViewSettings } from "./viewSettings.js";
 
 /**
@@ -281,6 +281,7 @@ export function battleView(
     /** The canvas under this one that Pixi draws on, while it is the renderer. */
     let under: HTMLCanvasElement | null = null;
     let layer: PixiView | null = null;
+    let stacked: ReturnType<typeof pixiUnder> | null = null;
     const options = viewOptions(canvas.parentElement ?? document.body, [
         {
             label: () => ARC_LABELS[arcs],
@@ -325,19 +326,11 @@ export function battleView(
     };
 
     const useRenderer = (): void => {
-        layer?.dispose();
-        layer = null;
-        under?.remove();
-        under = null;
-        if (renderer === "webgl") {
-            under = document.createElement("canvas");
-            under.setAttribute("aria-hidden", "true");
-            Object.assign(under.style, { position: "absolute", inset: "0", width: "100%", height: "100%", pointerEvents: "none" });
-            // Positioned too, so that the order they are in decides which is on top.
-            canvas.style.position = "relative";
-            canvas.before(under);
-            layer = pixiView(under);
-        }
+        stacked?.remove();
+        stacked = null;
+        if (renderer === "webgl") stacked = pixiUnder(canvas);
+        under = stacked?.canvas ?? null;
+        layer = stacked?.view ?? null;
         resize();
         options.refresh();
     };
@@ -873,8 +866,7 @@ export function battleView(
             resizing.disconnect();
             window.removeEventListener("keydown", onKey);
             options.remove();
-            layer?.dispose();
-            under?.remove();
+            stacked?.remove();
             battle = null;
             rewind = null;
         },

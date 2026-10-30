@@ -113,3 +113,25 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
         },
     };
 }
+
+/**
+ * A view on a canvas of its own, put under `over`, which stays the one taking
+ * input and holds whatever is still drawn in 2D over it.
+ */
+export function pixiUnder(over: HTMLCanvasElement): { readonly view: PixiView; readonly canvas: HTMLCanvasElement; remove(): void } {
+    const canvas = document.createElement("canvas");
+    canvas.setAttribute("aria-hidden", "true");
+    Object.assign(canvas.style, { position: "absolute", inset: "0", width: "100%", height: "100%", pointerEvents: "none" });
+    // Positioned too, so that the order they are in decides which is on top.
+    over.style.position = "relative";
+    over.before(canvas);
+    const view = pixiView(canvas);
+    return {
+        view,
+        canvas,
+        remove() {
+            view.dispose();
+            canvas.remove();
+        },
+    };
+}

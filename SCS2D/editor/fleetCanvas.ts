@@ -2,6 +2,9 @@ import { degreesToRadians, isGroupUse, math, radiansToDegrees, Snapshot, type Fl
 import { ARC_LABELS, ARCS_KEY, draw, nextArcs, type Arcs } from "../render/canvas2d.js";
 import { frame, snapStep, type Camera } from "../render/camera.js";
 import { viewOptions } from "../host/viewOptions.js";
+import { loadRenderer } from "../host/viewSettings.js";
+import { BUILDER_LIGHT } from "../render/light.js";
+import { pixiUnder } from "../render/pixiView.js";
 import { snap } from "./edit.js";
 import { deleteEntries, entryAt, moveEntries, samePath, updateEntry, type EntryPath } from "./fleetEdit.js";
 import { centreOf, toFrame, toFrameAngle, type EntryFrame, type FleetDocument } from "./fleetDocument.js";
@@ -54,6 +57,8 @@ type Drag =
 export function fleetCanvas(canvas: HTMLCanvasElement, doc: FleetDocument, hooks: FleetCanvasHooks): FleetCanvas {
     const ctx = canvas.getContext("2d");
     if (ctx === null) throw new Error("no 2d context");
+    // Drawn with Pixi underneath unless Canvas2D is picked, as the battle is.
+    const stacked = loadRenderer() === "webgl" ? pixiUnder(canvas) : null;
     const camera: Camera = { x: 0, y: 0, scale: 1 };
     const snapshot = new Snapshot();
     let fitPending = true;
@@ -72,8 +77,13 @@ export function fleetCanvas(canvas: HTMLCanvasElement, doc: FleetDocument, hooks
     const resize = (): void => {
         const ratio = window.devicePixelRatio || 1;
         const rect = canvas.getBoundingClientRect();
-        canvas.width = max(1, Math.round(rect.width * ratio));
-        canvas.height = max(1, Math.round(rect.height * ratio));
+        const width = max(1, Math.round(rect.width * ratio));
+        const height = max(1, Math.round(rect.height * ratio));
+        // Setting either clears the canvas, even to the size it already is.
+        for (const each of stacked === null ? [canvas] : [canvas, stacked.canvas]) {
+            if (each.width !== width) each.width = width;
+            if (each.height !== height) each.height = height;
+        }
     };
 
     const currentKnob = (): { x: number; y: number; fromX: number; fromY: number } | null => {
@@ -114,9 +124,16 @@ export function fleetCanvas(canvas: HTMLCanvasElement, doc: FleetDocument, hooks
             frame(camera, snapshot, canvas.width, canvas.height, 1);
             fitPending = false;
         }
-        draw(ctx, snapshot, camera, canvas.width, canvas.height, undefined, arcs);
+        const pixi = stacked?.view.ready === true ? stacked.view.begin(snapshot, camera, canvas.width, canvas.height, BUILDER_LIGHT) : null;
+        if (pixi !== null) {
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        // Pixi's context draws as a canvas does (render/pixiCanvas.ts), so the same code paints either.
+        const into = pixi === null ? ctx : (pixi as unknown as CanvasRenderingContext2D);
+        draw(into, snapshot, camera, canvas.width, canvas.height, undefined, arcs, false, -1, [], null, pixi !== null);
         drawFleetOverlay(
-            ctx,
+            into,
             {
                 hulls: doc.view.hulls,
                 circles: doc.view.ships.map((ship, i) => {
@@ -130,6 +147,7 @@ export function fleetCanvas(canvas: HTMLCanvasElement, doc: FleetDocument, hooks
             camera,
             canvas.height,
         );
+        if (pixi !== null) stacked!.view.end();
     };
     const changed = (): void => {
         hooks.changed();
@@ -293,6 +311,8 @@ export function fleetCanvas(canvas: HTMLCanvasElement, doc: FleetDocument, hooks
         render();
     });
     resized.observe(canvas);
+    // Drawn in 2D until Pixi has started, and then again.
+    void stacked?.view.started.then((started) => started && render());
 
     return {
         camera,
@@ -308,6 +328,7 @@ export function fleetCanvas(canvas: HTMLCanvasElement, doc: FleetDocument, hooks
             canvas.removeEventListener("pointercancel", endDrag);
             canvas.removeEventListener("wheel", wheel);
             resized.disconnect();
+            stacked?.remove();
             window.removeEventListener("keydown", keyDown);
             viewBar.remove();
         },
