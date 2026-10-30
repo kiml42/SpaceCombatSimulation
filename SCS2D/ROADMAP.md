@@ -4,23 +4,23 @@ What is not built yet, and what is not settled yet. The design these serve is in
 [DESIGN.md](DESIGN.md); the record of decisions already taken is in [DECISIONS.md](DECISIONS.md).
 
 **Status — what exists today — lives in [DESIGN.md](DESIGN.md) and is the single source of truth for it.**
-This file says what is *left*, and only mentions what exists where the work left depends on it.
+This file says what is _left_, and only mentions what exists where the work left depends on it.
 
 **Three documents, split by why you would read them.** Section numbers are global and stable across all
 three, so a reference such as "§12" means the same section wherever it is written — which is why the numbering
 inside any one file is not contiguous.
 
-| File | Holds | Read it when |
-| --- | --- | --- |
-| **[DESIGN.md](DESIGN.md)** | Status, §§1–7 and 9–11 — what the game is, how it works, and why | Deciding how something should behave |
-| **[ROADMAP.md](ROADMAP.md)** | §8 build order, §12 open questions | Picking up work, or deferring a decision |
-| **[DECISIONS.md](DECISIONS.md)** | The Decision Log | Asking why something ended up the way it is |
+| File                             | Holds                                                            | Read it when                                |
+| -------------------------------- | ---------------------------------------------------------------- | ------------------------------------------- |
+| **[DESIGN.md](DESIGN.md)**       | Status, §§1–7 and 9–11 — what the game is, how it works, and why | Deciding how something should behave        |
+| **[ROADMAP.md](ROADMAP.md)**     | §8 build order, §12 open questions                               | Picking up work, or deferring a decision    |
+| **[DECISIONS.md](DECISIONS.md)** | The Decision Log                                                 | Asking why something ended up the way it is |
 
 ## How this document is maintained
 
 **§8 is kept in three parts, so that what to build next is the first thing you read.**
 
-- **Partly built** lists only what is *left* of a step that has started. When a piece lands, delete it from
+- **Partly built** lists only what is _left_ of a step that has started. When a piece lands, delete it from
   here and describe it in Status; when nothing is left, the step moves to the table as built.
 - **Not started** is the plan proper: the steps to come, in order, each with the reason it comes where it
   does.
@@ -39,28 +39,27 @@ an entry is either still open or it is gone.
 
 ## 8. Build order
 
-| Step | What | State |
-| --- | --- | --- |
-| Slice 0 | Two ships fight, deterministically | Built |
-| 1 | Blueprint editor | Built |
-| 2 | Terminal ballistics and the damage model | Built |
-| 3 | Doctrine and orders | Built |
-| 4 | Headless evolution and analysis | Built |
-| 5 | v1: skirmish | Built |
-| 6 | Editor restructuring | Built |
-| 7 | Two layers | Built |
-| 8 | Fuel | Built |
-| 9 | Docking, fuel transfer and fuel harvesting | Built |
-| 10 | Raw material | Built |
-| 11 | Power | Built |
-| 12 | In-battle construction | Built |
-| 13 | Harvesting wrecks | Built |
-| 14 | Orders | Built |
-| 15 | Mining | Built |
-| 16 | React UI | Built |
-| 17 | WebGL viewer (PixiJS) | Partly built |
-| 18 | Campaign | Not started |
-
+| Step    | What                                       | State        |
+| ------- | ------------------------------------------ | ------------ |
+| Slice 0 | Two ships fight, deterministically         | Built        |
+| 1       | Blueprint editor                           | Built        |
+| 2       | Terminal ballistics and the damage model   | Built        |
+| 3       | Doctrine and orders                        | Built        |
+| 4       | Headless evolution and analysis            | Built        |
+| 5       | v1: skirmish                               | Built        |
+| 6       | Editor restructuring                       | Built        |
+| 7       | Two layers                                 | Built        |
+| 8       | Fuel                                       | Built        |
+| 9       | Docking, fuel transfer and fuel harvesting | Built        |
+| 10      | Raw material                               | Built        |
+| 11      | Power                                      | Built        |
+| 12      | In-battle construction                     | Built        |
+| 13      | Harvesting wrecks                          | Built        |
+| 14      | Orders                                     | Built        |
+| 15      | Mining                                     | Built        |
+| 16      | React UI                                   | Built        |
+| 17      | WebGL viewer (PixiJS)                      | Partly built |
+| 18      | Campaign                                   | Not started  |
 
 ### Partly built — what is left
 
@@ -146,18 +145,18 @@ an entry is either still open or it is gone.
       shadow needs only the outline, so the fighters themselves stay drawn where they are, over robots and
       decks; the longer offset is what leaves the shadow apart from the fighter, so it reads as flying.
     - **Later passes**, roughly in order:
-      - **Contact shading** where thin meets thick: a narrow darkening along the step, the job the old
-        Canvas2D seams did by accident.
-      - **Bevels and curves.** Edges lit by how they face the light, and curved modules (bells, turret
-        discs) shaded across. Done properly, it is a normal for each module from its shape and a lighting
-        filter over the hull; edges tinted per frame is the cheap version.
-      - **Dynamic lights.** Engines, explosions and beam impacts as soft glows drawn into a light buffer,
-        which the lit layers are multiplied by on top of the ambient. Beams and plumes light as **line
-        sources**: a glow stretched along the beam or flame, bright along its length and falling off to
-        the sides, a plume fading towards its tip as the flame does.
-      - **Shadows from dynamic lights**, last and limited: only the brightest lights (explosions, perhaps
-        beams) cast them, over a short range, since every light's shadow costs that light times what is
-        near it. A line source's shadow is the hardest of these and may never be worth it.
+        - **Contact shading** where thin meets thick: a narrow darkening along the step, the job the old
+          Canvas2D seams did by accident.
+        - **Bevels and curves.** Edges lit by how they face the light, and curved modules (bells, turret
+          discs) shaded across. Done properly, it is a normal for each module from its shape and a lighting
+          filter over the hull; edges tinted per frame is the cheap version.
+        - **Dynamic lights.** Engines, explosions and beam impacts as soft glows drawn into a light buffer,
+          which the lit layers are multiplied by on top of the ambient. Beams and plumes light as **line
+          sources**: a glow stretched along the beam or flame, bright along its length and falling off to
+          the sides, a plume fading towards its tip as the flame does.
+        - **Shadows from dynamic lights**, last and limited: only the brightest lights (explosions, perhaps
+          beams) cast them, over a short range, since every light's shadow costs that light times what is
+          near it. A line source's shadow is the hardest of these and may never be worth it.
     - **Lighting is the battle's**, render-only, so it never changes a result, but kept with a battle so a
       replay or export looks as it did. Scenarios set it; the skirmish draws a new one each round, so each
       round is somewhere new; evolution may draw one per match, which matters little.
@@ -172,10 +171,12 @@ an entry is either still open or it is gone.
        shadow layer darkened through one filter so overlaps are no darker. A thick module is a block, so
        its shadow is each of its shapes swept away from the light (the hull round the shape and the shape
        moved), joined to its foot and made afresh each frame; a fighter's is its outline moved, apart from
-       it, as it flies — 2.5 m, or 0.75 m for one aboard its carrier on a pad (a step, until a fighter's
-       height is drawn as it lands and lifts). Asteroids stand higher than any ship: rock twice a thick
-       module's height, shading ships' hulls beside it, and a kernel higher again, shading its rock; each
-       shadow is as long as the caster stands above what it falls on. A pad's landing square is part of the
+       it, as it flies — 2.5 m, or 0.75 m for one on its carrier's pad, whether part of it or parked there (a step, until a fighter's
+       height is drawn as it lands and lifts). Asteroids stand higher than any ship: thin rock twice a thick
+       module's height, or 8% of the asteroid's radius on a large one, so the steps show on rock hundreds of
+       metres across, shading ships' hulls beside it; thick rock twice as high, shading the thin; and a
+       kernel a step higher again, shading its rock (on thin rock a little short, to spare a layer).
+       Each shadow is as long as the caster stands above what it falls on. A pad's landing square is part of the
        pad's fill, so shadows fall on it. Still to do: rock shading a fighter flying close by, which needs
        a shadow layer over the fighters, above everything the adapter draws.
        **Each scene sets its own light**, from a palette in `scenarios/lights.ts` spanning the directions,
@@ -185,63 +186,63 @@ an entry is either still open or it is gone.
        until they move to shared geometry with the rest of stage (2). The evolution page and custom battles
        keep the default.
     2. **The editors and fleet pictures in Pixi**, then **Canvas2D retired**.
-       - The ship should look in the editor as it does in battle: its colours, bevels and so on, under a
-         builder's light — white, from nearly straight on — rather than a battle's. One day the editor may
-         be the battle itself, the camera turning to frame the ship; not yet.
-         **Built**: the ship and fleet editors draw through a Pixi layer under their canvas
-         (`pixiUnder`, as the battle does), handles and guides through the adapter, under `BUILDER_LIGHT`:
-         white, from the default's bearing but nearly overhead, its `slant` shortening every shadow to a
-         third. The fleet pictures share it.
-       - The fleet pictures (evolution's kinds, the skirmish timeline) share **one**
-         renderer drawing to images, since a page may hold only about sixteen WebGL contexts. **Built**
-         (`host/fleetPicture.ts`): one `pixiView` on a canvas off the page, each picture copied out after it renders; drawn in 2D while it starts, then again.
-       - The editors' handles and guides move into Pixi with the rest; evolution's charts
-         (`render/chart.ts`) are not ships and stay as they are.
-       - Then **Draw: 2D** goes, and every drawing path that takes a 2D context for ships. canvas2d.ts stays
-         for now as what the adapter draws, until what it describes moves to shared geometry. Where WebGL is
-         missing, Pixi's own Canvas2D renderer is the fallback, and does without everything done with
-         filters (lighting, bevels, patterns); it is not expected to be used.
-       - The browser tests then read pixels from screenshots rather than a 2D context, and draw WebGL in
-         software, so CI slows; `drawIn2D` goes.
+        - The ship should look in the editor as it does in battle: its colours, bevels and so on, under a
+          builder's light — white, from nearly straight on — rather than a battle's. One day the editor may
+          be the battle itself, the camera turning to frame the ship; not yet.
+          **Built**: the ship and fleet editors draw through a Pixi layer under their canvas
+          (`pixiUnder`, as the battle does), handles and guides through the adapter, under `BUILDER_LIGHT`:
+          white, from the default's bearing but nearly overhead, its `slant` shortening every shadow to a
+          third. The fleet pictures share it.
+        - The fleet pictures (evolution's kinds, the skirmish timeline) share **one**
+          renderer drawing to images, since a page may hold only about sixteen WebGL contexts. **Built**
+          (`host/fleetPicture.ts`): one `pixiView` on a canvas off the page, each picture copied out after it renders; drawn in 2D while it starts, then again.
+        - The editors' handles and guides move into Pixi with the rest; evolution's charts
+          (`render/chart.ts`) are not ships and stay as they are.
+        - Then **Draw: 2D** goes, and every drawing path that takes a 2D context for ships. canvas2d.ts stays
+          for now as what the adapter draws, until what it describes moves to shared geometry. Where WebGL is
+          missing, Pixi's own Canvas2D renderer is the fallback, and does without everything done with
+          filters (lighting, bevels, patterns); it is not expected to be used.
+        - The browser tests then read pixels from screenshots rather than a 2D context, and draw WebGL in
+          software, so CI slows; `drawIn2D` goes.
     3. **Liveries.** A fleet sets a base colour, a highlight colour and a pattern, applied to every ship in
        it, replacing the side colours.
-       - The first patterns are simple: stripes or spots of the highlight. A pattern is laid over the whole
-         hull in the design's frame, so it runs on across modules; some parts take the highlight on their
-         own, as a band round an engine block.
-       - Drawn by a shader from each fragment's place in the design, so a module's geometry stays shared
-         however the pattern falls on it.
-       - **The default livery is the side colours of now**, for a single ship or any fleet that sets none.
-         Icons, strips and orders show a side by its base colour.
-       - **An enemy's livery evolves**, by drift from one generation to the next, the drift leaning away
-         from the player's colours so the two sides stay told apart.
-       - **Fighters** keep a darkened version of their fleet's colours, perhaps darkened less once edges are
-         drawn on purpose and hulls look smoother. Rock and wreckage keep colours of their own.
+        - The first patterns are simple: stripes or spots of the highlight. A pattern is laid over the whole
+          hull in the design's frame, so it runs on across modules; some parts take the highlight on their
+          own, as a band round an engine block.
+        - Drawn by a shader from each fragment's place in the design, so a module's geometry stays shared
+          however the pattern falls on it.
+        - **The default livery is the side colours of now**, for a single ship or any fleet that sets none.
+          Icons, strips and orders show a side by its base colour.
+        - **An enemy's livery evolves**, by drift from one generation to the next, the drift leaning away
+          from the player's colours so the two sides stay told apart.
+        - **Fighters** keep a darkened version of their fleet's colours, perhaps darkened less once edges are
+          drawn on purpose and hulls look smoother. Rock and wreckage keep colours of their own.
     4. **Part art, first pass:** bevels on the hull's outside edges, and on the thick parts' edges, lit by
        the battle's light, and engine bells and barrels shaded as rounded. Richer procedural parts come
        later.
-       - **Each edge of a module is bevelled or not**, settled once for the design as built: an edge on its
-         outline is, an edge it shares with a neighbour is not, so module edges inside the hull stay unseen.
-         A little simpler than bevelling the outline itself, and it should look as good.
-       - **Severing keeps them**: the pieces, and the rest of the ship, keep the edges they were built
-         with, so nothing looks bevelled just because something broke off it.
-       - Open: whether a split edge should look rough.
+        - **Each edge of a module is bevelled or not**, settled once for the design as built: an edge on its
+          outline is, an edge it shares with a neighbour is not, so module edges inside the hull stay unseen.
+          A little simpler than bevelling the outline itself, and it should look as good.
+        - **Severing keeps them**: the pieces, and the rest of the ship, keep the edges they were built
+          with, so nothing looks bevelled just because something broke off it.
+        - Open: whether a split edge should look rough.
     5. **Marks for damage**, in place of fading to grey.
-       - A module is marked as it is hurt, and mended marks fade one at a time. Marks follow from a
-         module's id and how hurt it is, not from the hits' history, so rewinding shows the same marks and
-         mending takes them off in reverse.
-       - With no grey, a ship looks the same for longer, so more of it is shared, and marks go on top.
-       - Nothing much leans on the grey: most modules already show whether they work (a core's light, a
-         gun's load), and a ship that has lost control should still read as such. Zoomed out, how hurt a
-         ship is was never readable and need not be: picking it shows it larger, and its icon can still
-         turn grey once it is out of the fight.
+        - A module is marked as it is hurt, and mended marks fade one at a time. Marks follow from a
+          module's id and how hurt it is, not from the hits' history, so rewinding shows the same marks and
+          mending takes them off in reverse.
+        - With no grey, a ship looks the same for longer, so more of it is shared, and marks go on top.
+        - Nothing much leans on the grey: most modules already show whether they work (a core's light, a
+          gun's load), and a ship that has lost control should still read as such. Zoomed out, how hurt a
+          ship is was never readable and need not be: picking it shows it larger, and its icon can still
+          turn grey once it is out of the fight.
     6. **Particles and glows.** Glows for explosions and beams; particles for explosions and impacts;
        bits of metal for collision damage in place of its flashes, and from a leaking tank alongside or in
        place of its wedge. Particles are only drawn, never simulated: on the battle's clock as the flashes
        are, held when paused, and capped in number.
-       - **Debris** is always well smaller than anything that can be harvested — no larger than the size
-         below which a module is not kept — and looks like twisted metal, so it is never taken for a small
-         module. Most is small and short-lived; a few bits linger a while, never for good (least
-         important).
+        - **Debris** is always well smaller than anything that can be harvested — no larger than the size
+          below which a module is not kept — and looks like twisted metal, so it is never taken for a small
+          module. Most is small and short-lived; a few bits linger a while, never for good (least
+          important).
     7. **The later lighting passes**, above.
 
     Open: **decals**, placed in the editor on particular designs. Some way off.
@@ -257,12 +258,12 @@ an entry is either still open or it is gone.
 mechanics. Each scenario is a data file, not code.
 
 **Multiplayer** is not a step, and nothing is being built for it — but nothing forecloses it either: the pure
-sim, fixed timestep, explicit seeding and commands-in/snapshots-out contract *are* the lockstep architecture.
+sim, fixed timestep, explicit seeding and commands-in/snapshots-out contract _are_ the lockstep architecture.
 
 - **Async fleet-vs-fleet is nearly free** and stays open: a fleet file (blueprints + doctrine + build
   priorities) plus a seed, run deterministically, produces a replay both sides can watch. No server, no
-  netcode, no rollback. The variant where the budget arrives as *starting resources on a mothership with
-  build priorities* is better than a pre-built fleet, because build doctrine becomes part of what's being
+  netcode, no rollback. The variant where the budget arrives as _starting resources on a mothership with
+  build priorities_ is better than a pre-built fleet, because build doctrine becomes part of what's being
   competed on. Requires portable determinism — hence own transcendentals.
 - **Real-time PvP is ruled out**: it is incompatible with pause-to-think, which is core.
 - **Co-op** is the only sensible real-time shape, and it's also the easiest — everyone pauses together.
@@ -459,18 +460,18 @@ mine in. What is left of it is in §12, for later.
 - **Copies of an assembly do not differ.** An instance places its assembly and nothing else, so "linked"
   means identical. To make copies differ, a part is **taken out of the assembly**: it leaves the
   definition, and every copy gets a loose one of its own, written just after it in the list it sits in, in
-  the same place — the geometry is unchanged, the part moves down the expansion order a little, and a *new*
+  the same place — the geometry is unchanged, the part moves down the expansion order a little, and a _new_
   copy will not have it. A loose part does not move with the copy it came out of; wrapping the two in a new
   assembly is how to have that. Dissolving one copy is the other way out, and changes neither geometry nor
   order: its contents are written where it was, one level at a time.
 - **Module order is part of the ship, so restructuring is not bit-free.** Engine allocation and firing both
   run in list order, so a reordered layout does not check-sum the same — though `scenarios/ordering.ts`
   measures the behavioural difference as round-off (8.2e-13 m over 3,000 steps, identical shots and hits),
-  too small to be worth warning about when an edit reorders a layout. Adding a module appends, which leaves even the bits alone; the authored ships place symmetric *pairs* adjacently for
+  too small to be worth warning about when an edit reorders a layout. Adding a module appends, which leaves even the bits alone; the authored ships place symmetric _pairs_ adjacently for
   the same reason.
 - **The editor's animation is not a start on test flight.** A selected engine burns and a selected gun fires
   at its own rate, but nothing integrates or collides, so it cannot grow into a test flight by accident.
-- **No cost line, now or ever.** Dry mass is not standing in for a cost; it *is* the materials a ship is made
+- **No cost line, now or ever.** Dry mass is not standing in for a cost; it _is_ the materials a ship is made
   of, one of the three real costs (§2), and fuel and build time are the other two: evolution's budget and
   the editors' Cost readouts are all three (`sim/bill.ts`). Running cost needs a fuel model.
 - **Firing arcs are measured as sweeps**, how far a mount turns to reach each edge, not as signed bearings: an
@@ -490,13 +491,13 @@ mine in. What is left of it is in §12, for later.
 What is left of the step should follow the shape already there:
 
 - **Doctrine is a block in the blueprint file**, shared by reference and copied only when overridden — the
-  same copy-on-write split the engine layout uses. A mount's own block holds only its *differences* from
+  same copy-on-write split the engine layout uses. A mount's own block holds only its _differences_ from
   its ship's.
 - **Targets are chosen by a stack of preferences**, each discarding a candidate or adjusting its score, with a
   discard hiding a target from everything above it. A new picker is a new weight, not a new mechanism.
   Hysteresis (preferring what it is already fighting) is a picker, not flavour.
 - **The ship picks a manoeuvre target and each mount picks its own firing target**, through the same stack,
-  measured from the gun rather than the hull. Re-picking runs on an interval *derived* from the hull or mount
+  measured from the gun rather than the hull. Re-picking runs on an interval _derived_ from the hull or mount
   rather than configured.
 - **An order outranks doctrine for every mount that takes it** — the main battery — doctrine being strictly a fallback: when doctrine landed, only the
   scenarios that give no orders moved.
@@ -511,7 +512,7 @@ What is left of the step should follow the shape already there:
   what a ship is. Edit distance per generation is bounded (§7), so a descendant is recognisably one.
 - **One evolution core, importing nothing from the host**, driven headlessly by `pnpm evolve` and by its
   page. A run is a JSON file; §5's SharedWorker, React and wa-sqlite stack is not built and nothing so far has
-  needed it. It is wanted when a campaign needs to *query* runs.
+  needed it. It is wanted when a campaign needs to _query_ runs.
 - **One match scores survival, damage and ground gained together**, so a design has to make the trade
   between fighting and running for the goal. Small free-for-all groups, drawn fewest-meetings-first.
 - **The budget is three real costs** (§2): metal, fuel and build time, each limited on its own
@@ -528,7 +529,7 @@ What is left of the step should follow the shape already there:
   way round the mount has to turn.
 - **Barrel length buys no reach past an obstruction.** A long barrel pointing past something occupies the
   space a short barrel's round would have flown through. Length matters only the other way: an obstruction
-  *beyond* barrel reach stops the round while leaving the barrel free.
+  _beyond_ barrel reach stops the round while leaving the barrel free.
 - **The mask is bearing-only rather than a ray cast per shot.** It compiles once, and it is the
   conservative model: a mount should not fire along a bearing with its own hull downrange, since misses
   and penetrations both come home. Each sector is widened by the mount's barrel spread and half its bore,
@@ -558,13 +559,13 @@ Deliberately unresolved; decide when they block something.
   ships that run a beam on their core short (the Beam Corvette and the X-Wing among them), to be given a
   generator or a battery of their own.
 - **A control radius for cores: what is left.** Built (DESIGN.md §4, DECISIONS.md); still open:
-  - **The curve.** `CONTROL_REACH` (15 m at 1 m³ of computing), `CONTROL_EXPONENT` (0.3) and the 10%
-    default share are still being tuned by feel. A circle from the core's centre means a long thin core
-    spends most of its reach on itself; measuring from its edge instead is the alternative.
-  - **Damage.** A core covers nothing once past its `Control` cutout and everything until then. A shrunken
-    radius, or one module losing control, as a damage effect with a chance of happening is the step after.
-  - **Targeting.** Doctrine wants a way to weight a core by how many modules it reaches, and to prefer
-    bigger modules generally, so fire goes where it disables most.
+    - **The curve.** `CONTROL_REACH` (15 m at 1 m³ of computing), `CONTROL_EXPONENT` (0.3) and the 10%
+      default share are still being tuned by feel. A circle from the core's centre means a long thin core
+      spends most of its reach on itself; measuring from its edge instead is the alternative.
+    - **Damage.** A core covers nothing once past its `Control` cutout and everything until then. A shrunken
+      radius, or one module losing control, as a damage effect with a chance of happening is the step after.
+    - **Targeting.** Doctrine wants a way to weight a core by how many modules it reaches, and to prefer
+      bigger modules generally, so fire goes where it disables most.
 - **Supply priorities per placement.** Doctrine sets a priority and share for each kind of claim on a
   ship's stores (DESIGN.md, "What a ship spends on first"). Letting a placement override its own, as a mount's
   targeting can, would put one pad before another or steering engines' mending before the mains'. The
@@ -624,28 +625,28 @@ Deliberately unresolved; decide when they block something.
   ring goes round all of it, and the side's tile shows the bigger thing. A fighter on a pad and a miner on
   an asteroid no longer are: each keeps its own body, parked or moored (step 15, slice 6).
 - **Mining, left for later (step 15).** Put off by the author until mining is picked up again:
-  - **A major's pull keeps mains-only ships off it.** Jaws first, a ship with no thrust astern of its jaws
-    cannot hold off a gravitating asteroid and lands by falling, so scavenging passes over a major whose
-    surface pull its ship cannot beat (`holdsOff`). The stock Salvager has much the same thrust every way.
-  - **Matching an orbit before turning the jaws on** is asteroids' alone; whether every claw approach
-    should do it, wrecks drifting too, is open, and would move the claw goldens.
-  - **Replicators prey on each other once copies are out.** A claw ship counts an enemy that cannot shoot
-    back as a source, and drinking one is far quicker than mining rock, so after the first copies are let
-    go, at about nine and a half minutes, they go for the other side's rather than for rock. Left as
-    measured; a doctrine weight for live enemies as sources would stop it.
-  - **Two claw ships going for each other run away**: each asks to match the other's motion and close on
-    it, so between them they speed up without end, past 900 m/s over half an hour.
-  - **A fighter landing on a moored carrier does not steer round its rock**: one whose way to the pad goes
-    round the rock never gets there. The Prospector's pad is astern for that reason.
-  - **A Prospector knocked off its rock hides** from armed enemies rather than going back to mine. A
-    Dinky's ram, once its gun is shot off (`ramArmed`), is what knocks an outpost off.
-  - **Grabbing still costs ships** crossing the field fast — wrecks, which do not give, among it — and
-    running into another ship anchored to the same rock.
-  - **A claw on a wreck still merges**, and so tows it. Mooring to wrecks too was the author's first wish,
-    put off: stripping a wreck spills stores, takes loose metal and refits, which rock never does, and a
-    pinned mooring would end towing.
-  - **A blow that knocks a ship off usually breaks it too**: a claw's seam is about as strong as the hull's
-    own welds, so what parts the grip tends to tear a piece off as well, bays and their robots with it.
+    - **A major's pull keeps mains-only ships off it.** Jaws first, a ship with no thrust astern of its jaws
+      cannot hold off a gravitating asteroid and lands by falling, so scavenging passes over a major whose
+      surface pull its ship cannot beat (`holdsOff`). The stock Salvager has much the same thrust every way.
+    - **Matching an orbit before turning the jaws on** is asteroids' alone; whether every claw approach
+      should do it, wrecks drifting too, is open, and would move the claw goldens.
+    - **Replicators prey on each other once copies are out.** A claw ship counts an enemy that cannot shoot
+      back as a source, and drinking one is far quicker than mining rock, so after the first copies are let
+      go, at about nine and a half minutes, they go for the other side's rather than for rock. Left as
+      measured; a doctrine weight for live enemies as sources would stop it.
+    - **Two claw ships going for each other run away**: each asks to match the other's motion and close on
+      it, so between them they speed up without end, past 900 m/s over half an hour.
+    - **A fighter landing on a moored carrier does not steer round its rock**: one whose way to the pad goes
+      round the rock never gets there. The Prospector's pad is astern for that reason.
+    - **A Prospector knocked off its rock hides** from armed enemies rather than going back to mine. A
+      Dinky's ram, once its gun is shot off (`ramArmed`), is what knocks an outpost off.
+    - **Grabbing still costs ships** crossing the field fast — wrecks, which do not give, among it — and
+      running into another ship anchored to the same rock.
+    - **A claw on a wreck still merges**, and so tows it. Mooring to wrecks too was the author's first wish,
+      put off: stripping a wreck spills stores, takes loose metal and refits, which rock never does, and a
+      pinned mooring would end towing.
+    - **A blow that knocks a ship off usually breaks it too**: a claw's seam is about as strong as the hull's
+      own welds, so what parts the grip tends to tear a piece off as well, bays and their robots with it.
 - **Mining's numbers.** All first guesses: surface gravity (0.5 m/s² by default), rock seam strength (a hull
   plate's), `MINING_POWER` (3× the charge of stripping scrap), a claw's heating at 1 kg of fuel a second
   for 5 MJ a kilogram, and how fast asteroids spin (majors 0.002 rad/s at most, minors 0.01, slow
@@ -666,7 +667,7 @@ Deliberately unresolved; decide when they block something.
   deciding once the round trip is what slows design down. Whatever it is, it must not grow out of the
   editor's animation (§8's notes on the editor).
 
-- **Which of its main guns a ship should fly to the range of.** A ship flies to the *best* reach among its
+- **Which of its main guns a ship should fly to the range of.** A ship flies to the _best_ reach among its
   main guns, so marking point defence secondary answers the case of point defence
   out-ranging it. What is left is a battery of guns with different
   reaches: the best, the shortest, or weighted by mass of gun or damage per second. Each changes every
@@ -697,18 +698,18 @@ Deliberately unresolved; decide when they block something.
   targeting, and a beam turret's is the one where the obvious default was left untaken. The argument for
   taking it is good: picking a part costs accuracy, a beam turret is the mount that answers what is small
   and quick, and a fighter is already a small thing to miss — so all four aim weights at zero, meaning
-  *shoot at the ship*, reads as the honest default for the archetype. Measured, it is not a small change:
+  _shoot at the ship_, reads as the honest default for the archetype. Measured, it is not a small change:
   `beamVGun` goes from 123 rounds and 204 hits to 262 and 451, because a beam that stops stripping mounts
   starts boiling through seams and cutting hulls into pieces, and there are then more things to shoot at.
-  That is a balance decision about what beams are *for*, and it wants the fleet in front of it rather than
+  That is a balance decision about what beams are _for_, and it wants the fleet in front of it rather than
   a place in a change about where a mount's defaults come from. The same question hangs over `hullBeam`,
   which has the same physics and a hull's aiming.
 - **Which part a hull points at.** The attack bearing points the battery at the target's centre, led by its
   shot's time of flight. **The Dinky is the worked example**: its gun trains five degrees, so what it
-  actually shoots is whatever the *hull* is pointed at. **Which part a hull points at is a setting on the
+  actually shoots is whatever the _hull_ is pointed at. **Which part a hull points at is a setting on the
   ship**, decided by the author against the alternative of deriving it from what the ship's weapons want: a
   hull with several limited-traverse guns has no single answer to derive from. So a hull gets an aim
-  preference of its own — the thing this codebase deliberately does *not* have today, a ship choosing a part
+  preference of its own — the thing this codebase deliberately does _not_ have today, a ship choosing a part
   of another ship rather than a ship — and a gun that cannot train far follows it on `focusWeight` alone,
   which is what that weight already does. Until it lands, such a preference belongs on the gun, since on a
   hull it would be a number nothing reads.
@@ -726,12 +727,12 @@ Deliberately unresolved; decide when they block something.
   sound cores then flies by, and whether that is worth a rule.
 
 - **How hard armour is: `DE_MARRE_K`.** De Marre's exponents are the physics and are not ours to choose;
-  its constant is the *material*, and it is the one number in terminal ballistics that is a decision. It
+  its constant is the _material_, and it is the one number in terminal ballistics that is a decision. It
   stands at 91,460, calibrated so that a 16-inch rifle — a 1,225 kg shell of 0.406 m calibre at 700 m/s —
   gets through 0.40 m of belt, which is the Iowa class against its own protection at battle range.
   Everything else follows: the corvette's 160 mm main gun beats 12 cm, so against the 20 mm walls modules
   carry today every round perforates, and the reinforcement dial spans "paper to that gun" at 1 and
-  "immune" at about 6. Whether that is the *game* anyone wants is the open part, and the honest test needs
+  "immune" at about 6. Whether that is the _game_ anyone wants is the open part, and the honest test needs
   the damage model behind it and the GA shooting at it. Move the constant, not the exponents.
 - **Two refinements terminal ballistics leaves out on purpose.** The critical angle is one constant at 65°,
   where the literature makes it depend on the plate's thickness relative to the round's calibre — a thin
@@ -743,7 +744,7 @@ Deliberately unresolved; decide when they block something.
 - **Exact scaling laws for parametric modules.** A first cut exists in `sim/modules.ts`, with each
   constant calibrated against real hardware — an RS-25's thrust per unit of exit area, a 16"/50's
   muzzle energy per unit of bore volume — so the figures a ship compiles to can be argued with rather
-  than merely preferred. What is *not* settled is whether they make a good game. Two are known soft
+  than merely preferred. What is _not_ settled is whether they make a good game. Two are known soft
   spots: rate of fire, which one constant cannot make plausible for both a battleship rifle and a
   light mount, and the counter-pressures against scale. Enclosed area grows faster than the wall that
   encloses it, so bigger is cheaper per cubic metre, and at present the only pushback is that
@@ -756,7 +757,7 @@ Deliberately unresolved; decide when they block something.
   times a turret's rate. A turret's mount holds exactly the same gear, and its reload is calibre-only
   — a long turret loads no faster than a stubby one of the same width, and its length is presently
   worth nothing but the barrel the calibre asks for. The asymmetry is deliberate for now rather than
-  overlooked: a turret's barrel is *derived* rather than authored, so the same law would arrive as a
+  overlooked: a turret's barrel is _derived_ rather than authored, so the same law would arrive as a
   side effect of mount size rather than as a knob anybody chose, and every shipped ship's rate of fire
   would move with it. The same holds for a beam turret, which still runs on the flat
   `BEAM_DUTY_CYCLE` where a hull beam's recovery is a fixed time and so pays for depth. What settles
@@ -783,28 +784,29 @@ Deliberately unresolved; decide when they block something.
   `λ` spreads at `1.22 λ / D`, so its spot at range `R` is `D + 2.44 λ R / D` and the intensity that actually
   burns is `P` over that area.
 
-  Three things follow, none of them yet built. **Aperture is a two-sided choice**: a small optic concentrates
-  far harder at short range and spreads sooner, a large one never concentrates but holds its spot to any range.
-  For a 100 MW beam at 1.06 µm, a 0.1 m aperture delivers about 5500 MW/m² at 2 km against a 1 m aperture's 126,
-  and the two cross over at roughly 40 km — so the choice is a range band rather than a quality. **Wavelength
-  moves the same curve**, halving the spread for half the wavelength, and pays for it in the efficiency of
-  generating it, which is waste heat. It is deliberately *not* a parameter yet: with focus unmodelled and no reflective
-  armour, its only live consequence would be the cost, so every design would pick the longest wavelength going
-  and the knob would be dead. It arrives with the optics, and it brings a beam's colour with it. **Reflective
-  armour is the counter**, wavelength-dependent and weak to kinetics, which is why `BeamHits` already reports a
-  surface normal: incidence angle is half of what decides whether a beam couples in or skids off.
+    Three things follow, none of them yet built. **Aperture is a two-sided choice**: a small optic concentrates
+    far harder at short range and spreads sooner, a large one never concentrates but holds its spot to any range.
+    For a 100 MW beam at 1.06 µm, a 0.1 m aperture delivers about 5500 MW/m² at 2 km against a 1 m aperture's 126,
+    and the two cross over at roughly 40 km — so the choice is a range band rather than a quality. **Wavelength
+    moves the same curve**, halving the spread for half the wavelength, and pays for it in the efficiency of
+    generating it, which is waste heat. It is deliberately _not_ a parameter yet: with focus unmodelled and no reflective
+    armour, its only live consequence would be the cost, so every design would pick the longest wavelength going
+    and the knob would be dead. It arrives with the optics, and it brings a beam's colour with it. **Reflective
+    armour is the counter**, wavelength-dependent and weak to kinetics, which is why `BeamHits` already reports a
+    surface normal: incidence angle is half of what decides whether a beam couples in or skids off.
 
-  Until then `BEAM_APERTURE_FRACTION` is the constant carrying all of this. It is calibrated so that the spread
-  range `D²/2.44λ` lands between about 9 km and 190 km across the shipped mounts, which puts the interesting
-  part of the curve inside the engagement ranges this game means to reach. It is the number to revisit first
-  when intensity acquires a consumer.
+    Until then `BEAM_APERTURE_FRACTION` is the constant carrying all of this. It is calibrated so that the spread
+    range `D²/2.44λ` lands between about 9 km and 190 km across the shipped mounts, which puts the interesting
+    part of the curve inside the engagement ranges this game means to reach. It is the number to revisit first
+    when intensity acquires a consumer.
+
 - **What a beam turret's duty cycle should be.** `BEAM_DUTY_CYCLE` is a flat fraction standing in for a
   system that does not exist. (Hull beams have moved off it to a fixed recovery time, `BEAM_RECHARGE_TIME`,
   longer for a block whose bank burns for less than `BEAM_COOLING_BURN`; the turret entry above says why
   turrets have not.) How much of a beam a hull takes in, `BEAM_ABSORBED_SHARE` (a fifth), is the same heat
   question from the other side. Power is built: both are now the fastest the mount's own
   gear refills its bank, and a ship short of power refills slower. What is left is heat: the mount can keep firing until its heat sinks are full, which is a heat model and is properly a
-  *cumulative* limit across an engagement rather than a per-shot one — a beam mount should warm up over minutes
+  _cumulative_ limit across an engagement rather than a per-shot one — a beam mount should warm up over minutes
   and eventually have to stop, not reload. Worth knowing how large that problem is: radiating 300 MW of waste
   heat at 500 K needs something like 88,000 m² of radiator, which is why a laser warship is a hard ship to
   build and why the heat model will have real consequences for hull layout rather than merely for rate of fire.
@@ -824,7 +826,7 @@ Deliberately unresolved; decide when they block something.
 - **How a blueprint is versioned, once there is a campaign.** Editing a design must not silently re-equip
   ships already built to it: §2's Production rule is that a fleet transitions gradually, so existing ships
   keep flying the layout they were built to and only new production uses the revision. That makes a ship in
-  the world reference an immutable *revision* rather than a mutable library entry, and the editor's Save
+  the world reference an immutable _revision_ rather than a mutable library entry, and the editor's Save
   becomes "publish a revision" rather than "overwrite". The file format leaves room for it — the schema
   field is `formatVersion` precisely so `revision` stays free. A refit is distinct from building new and
   traces modules by stable id (step 12); nothing else is decided: whether revisions are a linear history or
@@ -837,7 +839,7 @@ Deliberately unresolved; decide when they block something.
   that is the right pressure is not settled and is not really settleable by argument: too hard and a
   population converges on the first thing that works, too soft and it drifts. Three seeds of a bare-core
   run put ranked and score-weighted selection inside each other's noise — 0.167 against 0.197 on a spread
-  of 0.11 to 0.31 — so nothing about *run outcome* chose between them, and what did was the failure modes
+  of 0.11 to 0.31 — so nothing about _run outcome_ chose between them, and what did was the failure modes
   one of them has and the other has not. The same will be true of the floor: it wants a benchmark that can
   tell two runs apart before it is tuned, which is the entry below.
 - **How much of a design's score is the draw rather than the design.** A design plays a handful of matches
@@ -847,11 +849,11 @@ Deliberately unresolved; decide when they block something.
   What would sharpen it is the trick the yardstick already uses: hold constant whatever can be held
   constant, so two designs are compared under the same conditions rather than under two draws. The match
   geometry is already fair — one ring, everyone equidistant, and one heading for the whole match rather than
-  one each — and the remaining variation is the opponents, which is the part a free-for-all is *for*. More
+  one each — and the remaining variation is the opponents, which is the part a free-for-all is _for_. More
   matches each is the blunt answer and costs time linearly; a stratified draw, where every design meets the
   same spread of opponents rather than a random sample of them, is the sharp one. Worth doing before
   anything is concluded from a small difference between two runs.
-- **How clever a pilot should be.** A bare core bred against the goal and nothing else *does* learn to move,
+- **How clever a pilot should be.** A bare core bred against the goal and nothing else _does_ learn to move,
   given three hundred generations and a heading it did not choose — so the question is no longer whether a
   run can start from nothing. What is still true is that a hull with one engine can only use it if it
   happens to point the right way: the allocator fires an engine when the force being asked for has a
@@ -865,15 +867,16 @@ Deliberately unresolved; decide when they block something.
   else it is for. The choice is between that and accepting that propulsion is assembled rather than
   invented.
 
-  Two suggestions, neither a decision, for making the spin-and-pulse trick *expensive* rather than
-  impossible — so a clever pilot could still find it, but only where it genuinely pays. Both are the
-  author's, recorded here rather than acted on. A **throttle rate limit** on engines, and possibly a
-  **dead band between off and the minimum throttle**, the way a real engine has one: together they would
-  leave the trick working only at lower spin rates and with smaller engines, which throttle deeper and
-  quicker than large ones. And allowing parts to be **damaged or severed by the G force of spinning**,
-  which prices the spin itself rather than the pulsing. Both would also bear on ships that never try the
-  trick, which is the part to think about before building either — a rate limit is a change to every
-  manoeuvre, and a spin load is a change to every hull.
+    Two suggestions, neither a decision, for making the spin-and-pulse trick _expensive_ rather than
+    impossible — so a clever pilot could still find it, but only where it genuinely pays. Both are the
+    author's, recorded here rather than acted on. A **throttle rate limit** on engines, and possibly a
+    **dead band between off and the minimum throttle**, the way a real engine has one: together they would
+    leave the trick working only at lower spin rates and with smaller engines, which throttle deeper and
+    quicker than large ones. And allowing parts to be **damaged or severed by the G force of spinning**,
+    which prices the spin itself rather than the pulsing. Both would also bear on ships that never try the
+    trick, which is the part to think about before building either — a rate limit is a change to every
+    manoeuvre, and a spin load is a change to every hull.
+
 - **Whether every effect should count alike in the functional scores.** Thrust, firepower and control are
   each a third, so losing a small gun battery costs what losing every engine does. A design with no guns
   averages over two effects and has none to lose, which it pays for only in damage it cannot do.
@@ -887,11 +890,11 @@ Deliberately unresolved; decide when they block something.
   than being a constant that will be wrong for the first fleet of capitals anybody evolves.
 - **What keeping clear cannot do as it stands.** Steering by time to closest approach takes a quarter of the
   contacts out of the Star Wars scene and two thirds out of the column, and leaves two things undone. It is
-  one want among several and is *averaged* with the rest, so a craft whose orders say to be where it is
+  one want among several and is _averaged_ with the rest, so a craft whose orders say to be where it is
   cannot be shouted down by it however urgent it gets — which is right for a lean and wrong for the last
   half-second. And the room it asks for is a multiple of the two hulls' radii, so two fighters ask for
   forty-five metres of clearance while closing at two hundred metres a second, and fighter-on-fighter
-  contacts do not improve at all. Both point the same way: clearance wants to be measured in *time* rather
+  contacts do not improve at all. Both point the same way: clearance wants to be measured in _time_ rather
   than in hull radii, and the urge wants a way to dominate rather than merely to vote. Neither is a large
   change; both want a scene to tune against, and the crowded ones are the Star Wars fleet action and the
   super-swarm.
@@ -933,22 +936,22 @@ Deliberately unresolved; decide when they block something.
   them. Spreading one over frames would mean holding the battle still while it is copied, so the way on is
   a cheaper copy still: fewer, larger arrays in the sim, or copying only what changed.
 - **More to tell ships**, left out of step 14's slices:
-  - **Stay docked**, so doctrine cannot take a ship off a dock the player wants it on.
-  - **Scrap**, given to the ship to be taken apart: scrappers may then come and strip it, while it follows
-    its doctrine and fights on until they do. Scavenging a friend takes only fuel until then.
-  - **A build queue**, in place of or on top of each pad's and slipway's standing count.
-  - **Doctrine presets**: a whole doctrine chosen by name, as a shortcut on the panel.
-  - **Editing a ship's blueprint from the battle**: opening the editor on it and bringing the result back
-    as a remodel, a round trip between pages that are separate.
-  - **The keys**, rethought once the set is fuller.
-  - **Left from slice 1:** a drop-down naming one side as yours on the viewer, as the skirmish names it,
-    and touch.
-  - **Editing an order already given**, its distance and speed, in the queue rather than by giving it again.
-  - **Remodelling to a design only in the battle**, such as an evolved fleet's: the picker offers the
-    blueprint library alone.
-  - **Hiding behind an unarmed enemy**, which would make sense but would be hard to make clear in the UI.
-  - **Cover sized by mass as well as radius**, since fire can go through cover, and more massive cover
-    stops more of it.
+    - **Stay docked**, so doctrine cannot take a ship off a dock the player wants it on.
+    - **Scrap**, given to the ship to be taken apart: scrappers may then come and strip it, while it follows
+      its doctrine and fights on until they do. Scavenging a friend takes only fuel until then.
+    - **A build queue**, in place of or on top of each pad's and slipway's standing count.
+    - **Doctrine presets**: a whole doctrine chosen by name, as a shortcut on the panel.
+    - **Editing a ship's blueprint from the battle**: opening the editor on it and bringing the result back
+      as a remodel, a round trip between pages that are separate.
+    - **The keys**, rethought once the set is fuller.
+    - **Left from slice 1:** a drop-down naming one side as yours on the viewer, as the skirmish names it,
+      and touch.
+    - **Editing an order already given**, its distance and speed, in the queue rather than by giving it again.
+    - **Remodelling to a design only in the battle**, such as an evolved fleet's: the picker offers the
+      blueprint library alone.
+    - **Hiding behind an unarmed enemy**, which would make sense but would be hard to make clear in the UI.
+    - **Cover sized by mass as well as radius**, since fire can go through cover, and more massive cover
+      stops more of it.
 - **The numbers for repair.** How much each step wastes (repair wastes a tenth, a first guess), and whether
   disassembly and building waste alike; time and power for a joule of damage undone (a pad mends 20 kJ/s a
   metre of its width, at 10 J of charge a joule, both first guesses); a robot's speed over a hull (2 m/s), the
@@ -958,7 +961,7 @@ Deliberately unresolved; decide when they block something.
 - **What scrap and salvage reach are worth: `SCRAP_MASS` and `SALVAGE_REACH`.** They encode an economic
   judgement — what is too smashed to harvest, and how far is too far to go for — against an economy that
   does not exist yet, so they will want revisiting when it does. Worth knowing before tuning them: the
-  shipped fleet's *capital* modules weigh five to nine tonnes apiece, and the only modules under a tonne
+  shipped fleet's _capital_ modules weigh five to nine tonnes apiece, and the only modules under a tonne
   anywhere are a fighter's, so the scrap floor reaches fighter debris and nothing else. Culling capital
   wreckage at all is entirely `SALVAGE_REACH`'s doing. `LOOSE_MASS`, `LOOSE_AGE`, `LOOSE_HORIZON` and
   `LOOSE_CLEARANCE`, which let small debris go inside the fight once it is in nobody's way, are first
@@ -967,15 +970,15 @@ Deliberately unresolved; decide when they block something.
   written: thrust fades and cuts out, rate of fire stretches. What the shape is for, and what is not built,
   is the interesting half — a turret whose traverse jams, leaving it stuck or cut down to part of its arc; a
   barrel broken outright; a magazine that cooks off; dispersion widening with damage, once there is
-  dispersion to widen. Those want a *likelihood* per response rather than a curve, rolled on the damage an
+  dispersion to widen. Those want a _likelihood_ per response rather than a curve, rolled on the damage an
   event delivers as well as the total, which needs the world's seeded RNG threaded into the damage pass and
   the rolls taken in a fixed order — determinism is the whole constraint on how that arrives.
 - **How much a module can take: `DAMAGE_ENERGY_PER_KG`.** A module stops working when it has absorbed about
   a kilojoule per kilogram of its structure — the energy of its own mass at 45 m/s. It is the sibling of
-  `DE_MARRE_K`: that one decides how much energy gets *in*, this one how much a module can swallow, and both
+  `DE_MARRE_K`: that one decides how much energy gets _in_, this one how much a module can swallow, and both
   are dials rather than derivations. What makes them hard to set separately is that armour thickness decides
   the split: against today's 20 mm walls a heavy round overpenetrates and leaves most of its energy on the
-  far side, so the figure that matters is what a hit *deposits*, not what it arrived with.
+  far side, so the figure that matters is what a hit _deposits_, not what it arrived with.
 - **A beam bores a tunnel and then shines through it.** A module burnt past breaking lets more of a beam
   through as it sheds, up to half at its floor (`FLOOR_TRANSPARENCY`), which is what lets a beam ship
   kill anything; the consequence is that a beam holding on one spot shines on out of the hull with what gets
@@ -985,31 +988,31 @@ Deliberately unresolved; decide when they block something.
   **heat model**, where the beam heats the wreck it is burning and the heat conducts into what is still
   alive, and **sublimation**, where a module being burned loses mass until it is gone from the layout
   entirely — which is also how matter finally leaves a ship without being severed.
-- **A beam aimed at a seam.** A beam cuts the welds its tunnel crosses, but nothing *aims* it at one: the
+- **A beam aimed at a seam.** A beam cuts the welds its tunnel crosses, but nothing _aims_ it at one: the
   gunnery points a mount at a body and the cutting is whatever the line happens to pass through. Deliberately
   choosing a seam — cutting a named piece off a named ship — is a targeting question rather than a damage one,
-  and the shape exists: doctrine already weights which *kind* of module to aim at, and a seam would be one more
+  and the shape exists: doctrine already weights which _kind_ of module to aim at, and a seam would be one more
   aim point beside those. It is the point at which a beam ship stops being
   a gun that burns and starts being a surgeon.
-- **Gimballed engines** fit, with one change of variable. A gimbal makes the thrust *direction* an
+- **Gimballed engines** fit, with one change of variable. A gimbal makes the thrust _direction_ an
   unknown, and the wrench then depends on sin and cos — nonlinear, and fatal to fixed columns and normal
   equations. The fix is to solve for the thrust **vector** `(Fx, Fy)` rather than a scalar throttle: the
   force is that vector and the torque is `px·Fy − py·Fx`, both linear again. The nonlinearity moves out of
   the objective and into the constraint set, where `u ∈ [0,1]` becomes `F ∈ sector` — a circular wedge,
   convex for any real gimbal arc. The active-set structure survives: clamping a scalar to an interval
   becomes projecting a vector onto a sector, which is "clamp the angle to the arc, clamp the magnitude".
-  - **Slew rate makes this easier, not harder.** A gimbal angle is a *state* that slews toward a target,
-    like a turret bearing, so the sector reachable in one step is a degree or two wide and linearising
-    about the current angle (`d(θ+Δ) ≈ d(θ) + Δ·d⊥(θ)`) is very accurate. The unknowns become `(u, Δ)`
-    with box bounds, which the existing solver already handles.
-  - **Cost:** gimballed columns move, so they cannot be precomputed per blueprint. Keep the fixed
-    engines precomputed and treat gimbals as a small dynamic addendum — ships have a few gimbals and
-    many fixed engines, not the reverse.
-  - **The envelope survives exactly.** The achievable set stops being a zonotope, but support functions
-    add under Minkowski sum whatever the summands are, and a sector's support function is trivial. So
-    `support`, `maxThrustAlong` and `hasFullAuthority` keep working unchanged.
-  - It is a good design axis too: one large gimballed engine against many small fixed engines trades
-    mass and module count for slower response and a torque coupling that cannot be switched off.
+    - **Slew rate makes this easier, not harder.** A gimbal angle is a _state_ that slews toward a target,
+      like a turret bearing, so the sector reachable in one step is a degree or two wide and linearising
+      about the current angle (`d(θ+Δ) ≈ d(θ) + Δ·d⊥(θ)`) is very accurate. The unknowns become `(u, Δ)`
+      with box bounds, which the existing solver already handles.
+    - **Cost:** gimballed columns move, so they cannot be precomputed per blueprint. Keep the fixed
+      engines precomputed and treat gimbals as a small dynamic addendum — ships have a few gimbals and
+      many fixed engines, not the reverse.
+    - **The envelope survives exactly.** The achievable set stops being a zonotope, but support functions
+      add under Minkowski sum whatever the summands are, and a sector's support function is trivial. So
+      `support`, `maxThrustAlong` and `hasFullAuthority` keep working unchanged.
+    - It is a good design axis too: one large gimballed engine against many small fixed engines trades
+      mass and module count for slower response and a torque coupling that cannot be switched off.
 - **Throttle response is currently instantaneous**, which suits small RCS engines and badly misrepresents
   a large main engine. Rate limits belong **inside** the solve as per-engine bounds —
   `uᵢ ∈ [uᵢ⁻ − rᵢ·dt, uᵢ⁻ + rᵢ·dt]` intersected with `[0,1]` — not as a post-processing step. Limiting
@@ -1017,16 +1020,16 @@ Deliberately unresolved; decide when they block something.
   leaving a net torque nobody asked for. As bounds it stays a box constraint, so the active set is
   structurally unchanged; generalising means shifting by the lower bound (`u = lo + v`) and subtracting
   `A·lo` from the demand up front, after which the solver is identical.
-  - **This constrains one thing now:** the `throttles` array is *per ship*, not per blueprint, and must
-    persist between steps for any of this to be possible. `EngineLayout` is shared between every ship of
-    a blueprint, so throttle state cannot live there. Do not turn `throttles` into a shared scratch buffer.
-- **Binary (on/off) engines** should be handled *after* allocation, not inside it. As a constraint they
+    - **This constrains one thing now:** the `throttles` array is _per ship_, not per blueprint, and must
+      persist between steps for any of this to be possible. `EngineLayout` is shared between every ship of
+      a blueprint, so throttle state cannot live there. Do not turn `throttles` into a shared scratch buffer.
+- **Binary (on/off) engines** should be handled _after_ allocation, not inside it. As a constraint they
   would make the problem mixed-integer — 2ⁿ combinations, non-convex, inexpressible in least squares — which
   is far harder than the continuous version rather than simpler. Instead allocate continuously and let each
   binary engine interpret its throttle as a **duty cycle**, ideally with delta-sigma modulation so the
   rounding error accumulates and is corrected on the following step; that tracks the demanded average much
   more closely than plain pulse-width modulation and stays deterministic. The allocator needs no change, and
-  the envelope stays valid as a statement about *average* capability, which is the honest thing to show a
+  the envelope stays valid as a statement about _average_ capability, which is the honest thing to show a
   player anyway.
 - **Whether engine allocation needs to be exact.** It currently minimises Σuᵢ² by clamped least squares
   with redistribution, which is smooth and fast but neither propellant-optimal nor exact: measured mean
@@ -1034,10 +1037,10 @@ Deliberately unresolved; decide when they block something.
   available if either ever matters. Propellant-optimal allocation is a linear program, but its solutions sit
   on vertices, so it burns fewer engines harder and switches abruptly as the demand rotates — cheaper in
   fuel, worse to fly. Exactness means bounded-variable least squares, releasing pinned engines when the
-  gradient says they would help *with a line search to guarantee progress*; releasing without the line
+  gradient says they would help _with a line search to guarantee progress_; releasing without the line
   search was tried and made the worst case far worse, because the active set oscillates. Neither is worth
   doing until a ship visibly misbehaves or propellant accounting proves too generous.
-  One way it *did* visibly misbehave has been closed in the answer rather than in the search: a pair of
+  One way it _did_ visibly misbehave has been closed in the answer rather than in the search: a pair of
   engines that exactly undo each other could both come out alight, because pinning one at full and never
   reconsidering it left the other free to claw back what it was overproducing. That is taken off afterwards,
   where it is exact and cheap. What remains open is the general shape of the same fault — three or more
@@ -1048,7 +1051,7 @@ Deliberately unresolved; decide when they block something.
   imagines, and fire in the hull layer, so they are the only guns that can reach a core below deck. What is open is
   whether that earns them a place. Deck turrets are **area**-limited: many of them, arcs unconstrained, but they
   can only strip mounts. Edge-mounted hull-layer guns would be **perimeter**-limited: few, narrow arcs, but
-  able to hole a hull directly. Big ships would then have to *specialise* rather than simply scale, and the
+  able to hole a hull directly. Big ships would then have to _specialise_ rather than simply scale, and the
   "guns mission-kill, ordnance destroys" line in §3 would become "deck turrets mission-kill; edge guns and
   ordnance destroy", with edge guns paying for it in coverage.
 - **Whether a pilot hooked to an enemy should fly as though it were one.** Its mounts shoot at the other
@@ -1063,68 +1066,70 @@ Deliberately unresolved; decide when they block something.
   is worth anything to a ship that cannot hurt it — screening, say — so it wants a fleet scenario where it
   happens before it is decided.
 - **Engines split by layer, into two archetypes.** A single `engine` kind cannot express the choice the
-  weapons layer creates, so it becomes two — a new *archetype* rather than a new coefficient, which is the
+  weapons layer creates, so it becomes two — a new _archetype_ rather than a new coefficient, which is the
   distinction the materials question above already draws.
-  - A **thick main engine**: high thrust, efficient, heavy. In the weapons layer, so turrets can strip it.
-  - A **thin engine**: small, and therefore low absolute thrust. Turrets cannot reach it.
+    - A **thick main engine**: high thrust, efficient, heavy. In the weapons layer, so turrets can strip it.
+    - A **thin engine**: small, and therefore low absolute thrust. Turrets cannot reach it.
 
-  **Settled in direction: the hull-layer one is lighter in absolute terms and *worse* per unit of thrust.**
-  Lighter because it is smaller; worse because a bank of them must outweigh one main engine of the same
-  total thrust. That sign is the whole point, and getting it the other way round would be the exploit
-  `modules.ts` warns about in its own words: a hull-layer engine cheaper per newton, with nothing bounding
-  how many fit, means every evolved ship is a raft of RCS units and the main engine is never built. The
-  reason to fit them is not that they are cheap. It is that gunfire cannot reach them.
+    **Settled in direction: the hull-layer one is lighter in absolute terms and _worse_ per unit of thrust.**
+    Lighter because it is smaller; worse because a bank of them must outweigh one main engine of the same
+    total thrust. That sign is the whole point, and getting it the other way round would be the exploit
+    `modules.ts` warns about in its own words: a hull-layer engine cheaper per newton, with nothing bounding
+    how many fit, means every evolved ship is a raft of RCS units and the main engine is never built. The
+    reason to fit them is not that they are cheap. It is that gunfire cannot reach them.
 
-  Low thrust need not be stipulated — thrust is already exit area times a constant, and exit area is width
-  times depth, so a thin engine gets less exit and less thrust out of the geometry than a thick one. A small throat
-  also loses efficiency to its walls (`SMALL_ENGINE_LOSS`), so the thin one pays in fuel as well.
+    Low thrust need not be stipulated — thrust is already exit area times a constant, and exit area is width
+    times depth, so a thin engine gets less exit and less thrust out of the geometry than a thick one. A small throat
+    also loses efficiency to its walls (`SMALL_ENGINE_LOSS`), so the thin one pays in fuel as well.
 
-  What the split buys is a better mission kill than "disabled". A ship stripped of its main engines still
-  has manoeuvring engines on long moment arms, so it can still *rotate* well while barely translating: a
-  fixed battery that can bring guns to bear but cannot close, break off, or dictate range. That is a state
-  worth fighting rather than a formality, and it is the drifting hulk §3 wants and the salvage of §8 steps 9 and 13
-  feeds on. Worth knowing that `hasFullAuthority()` is called by the editor's stats and tests and never by
-  the sim, so a damaged ship failing it costs nothing — it looks like it would matter and does not.
+    What the split buys is a better mission kill than "disabled". A ship stripped of its main engines still
+    has manoeuvring engines on long moment arms, so it can still _rotate_ well while barely translating: a
+    fixed battery that can bring guns to bear but cannot close, break off, or dictate range. That is a state
+    worth fighting rather than a formality, and it is the drifting hulk §3 wants and the salvage of §8 steps 9 and 13
+    feeds on. Worth knowing that `hasFullAuthority()` is called by the editor's stats and tests and never by
+    the sim, so a damaged ship failing it costs nothing — it looks like it would matter and does not.
+
 - **Whether the remaining authored data lives in files rather than in code.** Blueprints do: they are JSON,
   parsed by `sim/blueprintFile.ts`, and the shipped ships go through exactly the validation a stranger's file
   does. What has not moved is `tests/fixtures/scenarios.ts`, and §9's promise of
-  `pnpm battle scenarios/duel.json` — a *scenario* is more than a list of modules, since it also carries
+  `pnpm battle scenarios/duel.json` — a _scenario_ is more than a list of modules, since it also carries
   spawn poses, teams, wells and a seed, so it needs a format of its own rather than a reuse of this one.
   The battle file (`scenarios/customBattle.ts`) is the start of one — fleets, a range, speeds and a seed —
   but has no wells and no orders, so the scripted scenarios cannot be written in it yet.
   No hurry: a fixture that is a compile error when malformed is not costing anything.
 - **Whether a module's properties come from its material rather than from a universal constant.** `modules.ts`
-  currently fixes both halves of every scaling law: the *form* (structure mass is wall volume times density) and
-  the *coefficient* (`HULL_DENSITY = 7800`, which is steel; `CHARGE_ENERGY_PER_BORE_VOLUME = 1.4e8`, which is a
+  currently fixes both halves of every scaling law: the _form_ (structure mass is wall volume times density) and
+  the _coefficient_ (`HULL_DENSITY = 7800`, which is steel; `CHARGE_ENERGY_PER_BORE_VOLUME = 1.4e8`, which is a
   chemical propellant). Only the form is a law. Freezing the coefficients quietly forecloses better technology
   and materials — a composite hull, a denser shell, an alloy that trades hardness for toughness — which is a
   whole axis of ship design and the natural spine of a campaign's progression. Three tiers, and the test for
-  which one a change belongs in is whether the *formula* survives it:
-  - **The functional form stays code.** Mass scales with wall volume; cycle time scales with calibre. This is
-    what an archetype *is*.
-  - **The coefficients become a material**, referenced per module (`{ kind: 'structure', material: 'steel' }`)
-    with the properties themselves in a data file. Same archetype, different numbers.
-  - **A new technology is a new archetype, not a new material.** A railgun is not a chemical gun with better
-    coefficients: its muzzle energy comes from stored electrical energy and rail length, and it drags a power
-    supply into the mass budget. Different formula, so new code, with its own material-shaped data beside it.
+  which one a change belongs in is whether the _formula_ survives it:
+    - **The functional form stays code.** Mass scales with wall volume; cycle time scales with calibre. This is
+      what an archetype _is_.
+    - **The coefficients become a material**, referenced per module (`{ kind: 'structure', material: 'steel' }`)
+      with the properties themselves in a data file. Same archetype, different numbers.
+    - **A new technology is a new archetype, not a new material.** A railgun is not a chemical gun with better
+      coefficients: its muzzle energy comes from stored electrical energy and rail length, and it drags a power
+      supply into the mass budget. Different formula, so new code, with its own material-shaped data beside it.
 
-  Two consequences to settle before building it. Materials must be **priced, not merely better**, or §7's
-  evolution picks the best one every time and material choice stops being a decision — the same failure mode as
-  the mispriced exponent `modules.ts` warns about, arriving through a different door. Priced in the three real
-  currencies, though, not given a points value: a better material is scarcer, or slower to work, or heavier.
-  There is no abstract cost number anywhere in this game. And a material file is an
-  **input to the golden checksums** exactly as a scenario is, so editing one moves pinned results and needs the
-  discipline §9 asks for.
-  The damage model already decides penetration from hardness, density and thickness, so per-material
-  properties would decide outcomes the moment they exist; §8 step 5's budget of materials is the latest it
-  can wait until.
+    Two consequences to settle before building it. Materials must be **priced, not merely better**, or §7's
+    evolution picks the best one every time and material choice stops being a decision — the same failure mode as
+    the mispriced exponent `modules.ts` warns about, arriving through a different door. Priced in the three real
+    currencies, though, not given a points value: a better material is scarcer, or slower to work, or heavier.
+    There is no abstract cost number anywhere in this game. And a material file is an
+    **input to the golden checksums** exactly as a scenario is, so editing one moves pinned results and needs the
+    discipline §9 asks for.
+    The damage model already decides penetration from hardness, density and thickness, so per-material
+    properties would decide outcomes the moment they exist; §8 step 5's budget of materials is the latest it
+    can wait until.
+
 - **What a weld is worth: `JOINT_IMPULSE_PER_AREA`, and the three constants around it.** A weld's section
   is the faces in contact by the thinner wall meeting there, rated as an impulse; `WRECK_STRENGTH` is how
   much of it survives the metal at its ends being wrecked; `SHOCK_REACH` is how far a blow carries before
   it has half spent itself; `HOLE_CALIBRES` is how much wider than itself a round's hole is, which decides
   how many rounds along a seam cut it. Set so that an undamaged hull shrugs off the bumps of a crowded
   battle, a ram takes pieces off, and a gun that keeps putting rounds through one seam cuts it. Dials, with
-  `RESTITUTION`, `DE_MARRE_K` and `DAMAGE_ENERGY_PER_KG`, and the ones that decide how the game *looks*
+  `RESTITUTION`, `DE_MARRE_K` and `DAMAGE_ENERGY_PER_KG`, and the ones that decide how the game _looks_
   most directly.
   **The thing they cannot reach** is a shell tearing a sound part off by momentum alone: a 90 kg round at
   900 m/s carries 81 kN·s and a 177-tonne corvette merely drifting at 3 m/s carries 530, so any weld weak
@@ -1151,7 +1156,7 @@ Deliberately unresolved; decide when they block something.
   something worth burning is already behind it, and nothing turns the ship to put it there — so it is a
   weapon for what gets behind you rather than one you attack with. Aiming it is a genuinely different
   problem from aiming a gun and is the reason this was left out rather than forgotten: a turret is a small
-  mass that trains independently of where its ship is going, while pointing an *exhaust* means choosing a
+  mass that trains independently of where its ship is going, while pointing an _exhaust_ means choosing a
   heading, which is the same quantity the pilot is already using to keep its guns on target and its range
   band. So the two wants have to be blended rather than one of them winning, and the shape that blend
   wants is probably the same weighted-average of urges §4's pilot already uses for position — a heading
@@ -1160,7 +1165,7 @@ Deliberately unresolved; decide when they block something.
   §3 already says a torpedo is a fighter that crashes into things.
 - **Whether the editor should flag a weapon engine that fires into its own hull.** Where an engine's
   exhaust runs into its own ship is worked out when the design is compiled, so the answer is in hand; what
-  is missing is that the problem list works on a layout's *specs* rather than on the compiled design. It
+  is missing is that the problem list works on a layout's _specs_ rather than on the compiled design. It
   is a real mistake to make — an engine marked as a weapon and buried in the hull is a mount that can only
   ever eat its own ship — and it is the kind of thing the editor exists to catch, since nothing about the
   picture says it.
@@ -1168,10 +1173,10 @@ Deliberately unresolved; decide when they block something.
   engines continually, correcting an alignment error of almost nothing. Today that is only cosmetic — the
   ships have no fuel to waste — but it is the same behaviour that will empty a propellant tank while
   station-keeping, and §2 makes scarcity one of the things that gives manoeuvre doctrine its teeth. The fix
-  is a dead zone taken over *both* orientation error and angular rate, since either alone lets a ship drift
+  is a dead zone taken over _both_ orientation error and angular rate, since either alone lets a ship drift
   slowly off and then correct hard, which costs more than holding.
   Worth flagging the tension it creates, because the two look contradictory read side by side. §4 records
-  that the *turret* slew law deliberately has **no** dead band, and that the obvious way of adding one leaves
+  that the _turret_ slew law deliberately has **no** dead band, and that the obvious way of adding one leaves
   a brisk mount parked short of where it was asked to point. That reasoning still stands: a turret is a small
   mass on a mount and pays nothing to hold a bearing, so it should hold it exactly. A hull burns propellant
   to do the same thing, so it should not. The rule is that a dead zone belongs wherever holding position
@@ -1180,7 +1185,7 @@ Deliberately unresolved; decide when they block something.
   raining on a capital is evocative; it may also be an irritation. Cheap either way, so leave it until
   there is something to watch.
 - **Whether a crush should spread sideways as well as inward.** A collision spends its energy along the
-  contact normal, module by module, which folds a nose in convincingly and leaves the metal *beside* the
+  contact normal, module by module, which folds a nose in convincingly and leaves the metal _beside_ the
   impact untouched. A real crush spreads: the plating either side of a rammed bow buckles too. Doing it
   needs a rule for how much reaches a neighbour and a way to walk the connectivity graph outward from the
   contact, neither hard, and neither worth guessing at before there is something to watch it on.
