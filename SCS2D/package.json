@@ -17,6 +17,7 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,css}\"",
     "lint": "eslint . && stylelint \"{app,ui,features}/**/*.{css,ts,tsx}\"",
     "golden": "tsx scripts/golden.ts",
+    "bench:render": "tsx benchmarks/render.ts",
     "evolve": "tsx scripts/evolve.ts",
     "yardstick": "tsx scripts/yardstick.ts",
     "build": "vite build",
