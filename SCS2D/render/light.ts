@@ -28,17 +28,19 @@ export const BUILDER_LIGHT: Light = { from: (3 * Math.PI) / 4, colour: "#ffffff"
 /** How far a thick module's shadow falls across the thin hull beside it, metres. */
 export const THICK_SHADOW_M = 1.5;
 /**
- * How high a small asteroid's rock stands, as the length of its shadow on a
- * ship beside it, metres: twice a thick module's. A larger asteroid stands
- * higher, `ROCK_RISE` of its radius, so its step still shows.
+ * How high a small asteroid's thin rock stands, as the length of its shadow
+ * on a ship beside it, metres: twice a thick module's. A larger asteroid
+ * stands higher, `ROCK_RISE` of its radius, so its steps still show.
  */
 export const ROCK_SHADOW_M = 2 * THICK_SHADOW_M;
-/** How high an asteroid's rock stands, as a share of its radius, where that is more than `ROCK_SHADOW_M`. */
+/** How high an asteroid's thin rock stands, as a share of its radius, where that is more than `ROCK_SHADOW_M`. */
 export const ROCK_RISE = 0.08;
-/** How high an asteroid's kernel stands, as a multiple of its rock's height; on its own rock, the difference. */
-export const KERNEL_OVER_ROCK = 2;
+/** How high an asteroid's thick rock stands, as a multiple of its thin rock's height; on thin rock, the difference. */
+export const THICK_ROCK_RISE = 2;
+/** How high an asteroid's kernel stands, as a multiple of its thin rock's height; on its rock, above the thick. */
+export const KERNEL_RISE = 3;
 
-/** How high an asteroid's rock stands, metres, as the length of the shadow it casts on a ship's hull. */
+/** How high an asteroid's thin rock stands, metres, as the length of the shadow it casts on a ship's hull. */
 export function rockHeight(radius: number): number {
     return Math.max(ROCK_SHADOW_M, radius * ROCK_RISE);
 }

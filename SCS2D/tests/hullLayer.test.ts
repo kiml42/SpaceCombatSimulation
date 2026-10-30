@@ -9,10 +9,11 @@ import {
     BUILDER_LIGHT,
     DEFAULT_LIGHT,
     FIGHTER_SHADOW_M,
-    KERNEL_OVER_ROCK,
+    KERNEL_RISE,
     LANDED_SHADOW_M,
     rockHeight,
     ROCK_SHADOW_M,
+    THICK_ROCK_RISE,
     THICK_SHADOW_M,
     type Light,
 } from "../render/light.js";
@@ -160,33 +161,41 @@ describe("the Pixi hull layer", () => {
         expect(shadow.length / 2).toBe(6);
     });
 
-    it("stands an asteroid's rock above any ship, and its kernel above the rock, each shadowing what is below", () => {
+    it("stands an asteroid's thin rock above any ship, its thick rock and kernel each a step higher, each shadowing what is below", () => {
         const field = asteroidField();
         const seen = capture(new Snapshot(), field.world, field.ships, field.projectiles, field.beams);
         const layer = layerOf();
         layer.update(seen, camera, 1000, 1000);
-        let rock = 0;
+        let thin = 0;
+        let thick = 0;
         let kernel = 0;
         for (const ship of seen.ships.slice(0, seen.shipCount)) {
             for (let i = 0; i < ship.currentStructure.modules.length; i++) {
                 if (ship.drawn?.[i] === false) continue;
-                const kind = ship.currentStructure.modules[i]!.spec.kind;
-                if (kind === "rock") rock++;
-                if (kind === "kernel") kernel++;
+                const m = ship.currentStructure.modules[i]!;
+                if (m.spec.kind === "rock" && m.weaponsLayer) thick++;
+                else if (m.spec.kind === "rock") thin++;
+                if (m.spec.kind === "kernel") kernel++;
             }
         }
-        expect(rock).toBeGreaterThan(0);
+        expect(thin).toBeGreaterThan(0);
+        expect(thick).toBeGreaterThan(0);
         expect(kernel).toBeGreaterThan(0);
-        expect(layer.rock.shown().length).toBe(rock);
+        expect(layer.rock.shown().length).toBe(thin);
+        expect(layer.thickRock.shown().length).toBe(thick);
         expect(layer.kernel.shown().length).toBe(kernel);
-        expect(layer.rockShadows.shapes.length).toBeGreaterThanOrEqual(rock);
+        expect(layer.rockShadows.shapes.length).toBeGreaterThanOrEqual(thin + thick);
+        expect(layer.thickRockShadows.shapes.length).toBeGreaterThanOrEqual(thick);
         expect(layer.kernelShadows.shapes.length).toBeGreaterThanOrEqual(kernel);
-        // Rock shades ships' hulls; a kernel, the rock round it.
+        // Rock shades ships' hulls; thick rock, the thin; a kernel, the rock round it.
         expect(layer.rockShadows.layer.mask).toBe(layer.hullUnderRock.container);
+        expect(layer.thickRockShadows.layer.mask).toBe(layer.thinRock.container);
         expect(layer.kernelShadows.layer.mask).toBe(layer.rockUnderKernel.container);
-        expect(layer.rockUnderKernel.shown().length).toBe(rock);
+        expect(layer.thinRock.shown().length).toBe(thin);
+        expect(layer.rockUnderKernel.shown().length).toBe(thin + thick);
         expect(ROCK_SHADOW_M).toBeCloseTo(2 * THICK_SHADOW_M);
-        expect(KERNEL_OVER_ROCK).toBeGreaterThan(1);
+        expect(THICK_ROCK_RISE).toBeGreaterThan(1);
+        expect(KERNEL_RISE).toBeGreaterThan(THICK_ROCK_RISE);
         // A small asteroid's rock stands at the least height, a large one's higher, so its step still shows.
         expect(rockHeight(10)).toBe(ROCK_SHADOW_M);
         expect(rockHeight(1000)).toBeGreaterThan(10 * ROCK_SHADOW_M);

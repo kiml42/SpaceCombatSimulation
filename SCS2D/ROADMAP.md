@@ -172,9 +172,10 @@ an entry is either still open or it is gone.
        its shadow is each of its shapes swept away from the light (the hull round the shape and the shape
        moved), joined to its foot and made afresh each frame; a fighter's is its outline moved, apart from
        it, as it flies — 2.5 m, or 0.75 m for one on its carrier's pad, whether part of it or parked there (a step, until a fighter's
-       height is drawn as it lands and lifts). Asteroids stand higher than any ship: rock twice a thick
-       module's height, or 8% of the asteroid's radius on a large one, so the step shows on rock hundreds of
-       metres across, shading ships' hulls beside it; and a kernel twice as high again, shading its rock.
+       height is drawn as it lands and lifts). Asteroids stand higher than any ship: thin rock twice a thick
+       module's height, or 8% of the asteroid's radius on a large one, so the steps show on rock hundreds of
+       metres across, shading ships' hulls beside it; thick rock twice as high, shading the thin; and a
+       kernel a step higher again, shading its rock (on thin rock a little short, to spare a layer).
        Each shadow is as long as the caster stands above what it falls on. A pad's landing square is part of the
        pad's fill, so shadows fall on it. Still to do: rock shading a fighter flying close by, which needs
        a shadow layer over the fighters, above everything the adapter draws.

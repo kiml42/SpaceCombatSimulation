@@ -1,7 +1,16 @@
 import { AlphaFilter, Container, Graphics, GraphicsContext } from "pixi.js";
 import type { ModuleSpec, Snapshot } from "../sim/index.js";
 import type { Camera } from "./camera.js";
-import { DEFAULT_LIGHT, FIGHTER_SHADOW_M, KERNEL_OVER_ROCK, LANDED_SHADOW_M, rockHeight, THICK_SHADOW_M, type Light } from "./light.js";
+import {
+    DEFAULT_LIGHT,
+    FIGHTER_SHADOW_M,
+    KERNEL_RISE,
+    LANDED_SHADOW_M,
+    rockHeight,
+    THICK_ROCK_RISE,
+    THICK_SHADOW_M,
+    type Light,
+} from "./light.js";
 import { fillAlpha, fillColour, isFighterModule, moduleFills, padMark, type Fill } from "./moduleFills.js";
 import { shipColours } from "./teams.js";
 
@@ -14,7 +23,8 @@ import { shipColours } from "./teams.js";
  * Lighting takes a module as one of two depths, thin (the hull) or thick
  * (the weapons layer), and a fighter as higher still. In order: the thin
  * fills; the thick modules' shadows, on thin hull only; the thick fills; and
- * the fighters' shadows, on any hull. Fighters themselves stay with
+ * the fighters' shadows, on any hull. Asteroids stand higher than any ship,
+ * thin rock, thick rock and kernel each a step above the last. Fighters themselves stay with
  * Canvas2D, drawn above robots and the details of the decks they sit on,
  * which a layer underneath cannot be; a shadow needs only their outline.
  */
@@ -23,14 +33,18 @@ export class HullLayer {
     readonly container = new Container();
     readonly thin = new Pool();
     readonly thick = new Pool();
-    /** An asteroid's rock, standing higher than any ship. */
+    /** An asteroid's thin rock, standing higher than any ship. */
     readonly rock = new Pool();
+    /** An asteroid's thick rock, a step higher. */
+    readonly thickRock = new Pool();
     /** An asteroid's kernel, higher still. */
     readonly kernel = new Pool();
     /** Thick modules' shadows, on thin hull. */
     readonly thickShadows: BlockShadows;
     /** Rock's shadows, on ships' hulls. */
     readonly rockShadows: BlockShadows;
+    /** Thick rock's shadows, on thin rock. */
+    readonly thickRockShadows: BlockShadows;
     /** Kernels' shadows, on rock. */
     readonly kernelShadows: BlockShadows;
     readonly fighterShadows = new Pool();
@@ -40,6 +54,8 @@ export class HullLayer {
     readonly hull = new Pool();
     /** Where rock's shadow may fall: any ship's hull. */
     readonly hullUnderRock = new Pool();
+    /** Where thick rock's shadow may fall: thin rock. */
+    readonly thinRock = new Pool();
     /** Where a kernel's shadow may fall: rock. */
     readonly rockUnderKernel = new Pool();
     private readonly fighterShade: AlphaFilter;
@@ -53,6 +69,7 @@ export class HullLayer {
     constructor(shade: () => AlphaFilter = () => new AlphaFilter()) {
         this.thickShadows = new BlockShadows(shade(), this.thinHull.container);
         this.rockShadows = new BlockShadows(shade(), this.hullUnderRock.container);
+        this.thickRockShadows = new BlockShadows(shade(), this.thinRock.container);
         this.kernelShadows = new BlockShadows(shade(), this.rockUnderKernel.container);
         this.fighterShade = shade();
         this.fighterShadows.container.mask = this.hull.container;
@@ -65,11 +82,14 @@ export class HullLayer {
             this.fighterShadows.container,
             this.rockShadows.layer,
             this.rock.container,
+            this.thickRockShadows.layer,
+            this.thickRock.container,
             this.kernelShadows.layer,
             this.kernel.container,
             this.thinHull.container,
             this.hull.container,
             this.hullUnderRock.container,
+            this.thinRock.container,
             this.rockUnderKernel.container,
         );
     }
@@ -83,14 +103,14 @@ export class HullLayer {
         const awayX = -Math.cos(light.from) * slant;
         const awayY = -Math.sin(light.from) * slant;
         for (const pool of this.pools()) pool.begin();
-        for (const shadows of [this.thickShadows, this.rockShadows, this.kernelShadows]) shadows.clear();
+        for (const shadows of this.blockShadows()) shadows.clear();
         for (let s = 0; s < snapshot.shipCount; s++) {
             const ship = snapshot.ships[s]!;
             const design = ship.currentStructure;
             const dx = ship.x - camera.x;
             const dy = ship.y - camera.y;
             const rock = rockHeight(design.radius);
-            const reach = design.radius + rock * KERNEL_OVER_ROCK;
+            const reach = design.radius + rock * KERNEL_RISE;
             if (Math.abs(dx) - reach > halfW || Math.abs(dy) - reach > halfH) continue;
             const sc = Math.cos(ship.angle);
             const ss = Math.sin(ship.angle);
@@ -110,28 +130,36 @@ export class HullLayer {
                 // A piece hooked on from another ship keeps that ship's colours.
                 const fill = contextFor(m.spec, ship.sides?.[i] ?? ship.team, ship.integrity?.[i] ?? 1, m.weaponsLayer);
                 const kind = m.spec.kind;
-                const depth = kind === "kernel" ? this.kernel : kind === "rock" ? this.rock : m.weaponsLayer ? this.thick : this.thin;
+                const depth =
+                    kind === "kernel"
+                        ? this.kernel
+                        : kind === "rock"
+                          ? m.weaponsLayer
+                              ? this.thickRock
+                              : this.rock
+                          : m.weaponsLayer
+                            ? this.thick
+                            : this.thin;
                 place(depth.next(fill), x, y, angle).alpha = fillAlpha(ship, i);
                 if (depth === this.thin) place(this.thinHull.next(outline), x, y, angle);
                 if (depth === this.thin || depth === this.thick) {
                     place(this.hull.next(outline), x, y, angle);
                     place(this.hullUnderRock.next(outline), x, y, angle);
                 }
-                if (depth === this.rock) place(this.rockUnderKernel.next(outline), x, y, angle);
+                if (depth === this.rock) place(this.thinRock.next(outline), x, y, angle);
+                if (depth === this.rock || depth === this.thickRock) place(this.rockUnderKernel.next(outline), x, y, angle);
                 // A module standing above what is below it is a block, so its shadow
-                // runs from its foot out to where its top's shadow falls.
-                const shadows =
-                    depth === this.thick
-                        ? this.thickShadows
-                        : depth === this.rock
-                          ? this.rockShadows
-                          : depth === this.kernel
-                            ? this.kernelShadows
-                            : null;
-                if (shadows === null) continue;
-                // As far as it stands above what its shadow falls on.
-                const length = depth === this.rock ? rock : depth === this.kernel ? rock * (KERNEL_OVER_ROCK - 1) : THICK_SHADOW_M;
-                shadows.cast(m.spec, x, y, angle, awayX * length, awayY * length);
+                // runs from its foot out to where its top's shadow falls, as long as
+                // it stands above what the shadow falls on.
+                const cast = (on: BlockShadows, length: number): void => on.cast(m.spec, x, y, angle, awayX * length, awayY * length);
+                if (depth === this.thick) cast(this.thickShadows, THICK_SHADOW_M);
+                else if (depth === this.rock) cast(this.rockShadows, rock);
+                else if (depth === this.thickRock) {
+                    cast(this.rockShadows, rock * THICK_ROCK_RISE);
+                    cast(this.thickRockShadows, rock * (THICK_ROCK_RISE - 1));
+                }
+                // On thick rock; thin rock under a kernel takes the same, a little short.
+                else if (depth === this.kernel) cast(this.kernelShadows, rock * (KERNEL_RISE - THICK_ROCK_RISE));
             }
         }
         for (const pool of this.pools()) pool.end();
@@ -141,9 +169,13 @@ export class HullLayer {
     private see(light: Light): void {
         if (this.light === light) return;
         this.light = light;
-        for (const lit of [this.thin, this.thick, this.rock, this.kernel]) lit.container.tint = light.colour;
-        for (const shadows of [this.thickShadows, this.rockShadows, this.kernelShadows]) shadows.shade.alpha = 1 - light.ambient;
+        for (const lit of [this.thin, this.thick, this.rock, this.thickRock, this.kernel]) lit.container.tint = light.colour;
+        for (const shadows of this.blockShadows()) shadows.shade.alpha = 1 - light.ambient;
         this.fighterShade.alpha = 1 - light.ambient;
+    }
+
+    private blockShadows(): BlockShadows[] {
+        return [this.thickShadows, this.rockShadows, this.thickRockShadows, this.kernelShadows];
     }
 
     private pools(): Pool[] {
@@ -151,11 +183,13 @@ export class HullLayer {
             this.thin,
             this.thick,
             this.rock,
+            this.thickRock,
             this.kernel,
             this.fighterShadows,
             this.thinHull,
             this.hull,
             this.hullUnderRock,
+            this.thinRock,
             this.rockUnderKernel,
         ];
     }
