@@ -9,8 +9,9 @@ import {
     BUILDER_LIGHT,
     DEFAULT_LIGHT,
     FIGHTER_SHADOW_M,
-    KERNEL_SHADOW_M,
+    KERNEL_OVER_ROCK,
     LANDED_SHADOW_M,
+    rockHeight,
     ROCK_SHADOW_M,
     THICK_SHADOW_M,
     type Light,
@@ -89,7 +90,7 @@ describe("the Pixi hull layer", () => {
         let k = 0;
         for (const ship of ships) {
             const design = ship.currentStructure;
-            const [fx, fy] = away(design.fighter ? FIGHTER_SHADOW_M : LANDED_SHADOW_M);
+            const [fx, fy] = away(design.fighter && ship.riding !== true ? FIGHTER_SHADOW_M : LANDED_SHADOW_M);
             const [c, s] = [Math.cos(ship.angle), Math.sin(ship.angle)];
             for (let i = 0; i < design.modules.length; i++) {
                 if (ship.drawn?.[i] === false || !isFighterModule(design, i)) continue;
@@ -107,6 +108,31 @@ describe("the Pixi hull layer", () => {
         // What is in shadow keeps only the ambient share; what is lit takes the light's colour.
         expect((layer.thickShadows.layer.filters as AlphaFilter[])[0]!.alpha).toBeCloseTo(0.6);
         expect(layer.thin.container.tint).toBe(0xffd0a0);
+    });
+
+    it("brings a fighter's shadow in to the landed offset while it is parked on its carrier's pad", () => {
+        const fighter = ships.find((ship) => ship.currentStructure.fighter)!;
+        const firstShadow = (): number => {
+            const layer = drawn(layerOf());
+            // Shadows come in the order the ships do: this fighter's is after every fighter module before it.
+            let before = 0;
+            for (const ship of ships) {
+                if (ship === fighter) break;
+                const design = ship.currentStructure;
+                for (let i = 0; i < design.modules.length; i++) if (ship.drawn?.[i] !== false && isFighterModule(design, i)) before++;
+            }
+            return layer.fighterShadows.shown()[before]!.position.x;
+        };
+        const flying = firstShadow();
+        fighter.riding = true;
+        try {
+            const parked = firstShadow();
+            // Away from the light: along -cos(from) by the height.
+            const along = -Math.cos(DEFAULT_LIGHT.from);
+            expect(parked - flying).toBeCloseTo(along * (LANDED_SHADOW_M - FIGHTER_SHADOW_M), 6);
+        } finally {
+            fighter.riding = false;
+        }
     });
 
     it("shortens every shadow by the light's slant, as a light nearer overhead does", () => {
@@ -160,7 +186,10 @@ describe("the Pixi hull layer", () => {
         expect(layer.kernelShadows.layer.mask).toBe(layer.rockUnderKernel.container);
         expect(layer.rockUnderKernel.shown().length).toBe(rock);
         expect(ROCK_SHADOW_M).toBeCloseTo(2 * THICK_SHADOW_M);
-        expect(KERNEL_SHADOW_M).toBeGreaterThan(ROCK_SHADOW_M);
+        expect(KERNEL_OVER_ROCK).toBeGreaterThan(1);
+        // A small asteroid's rock stands at the least height, a large one's higher, so its step still shows.
+        expect(rockHeight(10)).toBe(ROCK_SHADOW_M);
+        expect(rockHeight(1000)).toBeGreaterThan(10 * ROCK_SHADOW_M);
     });
 
     it("shares one context between modules of the same spec and side, and keeps them from frame to frame", () => {

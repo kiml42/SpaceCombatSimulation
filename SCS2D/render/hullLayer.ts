@@ -1,7 +1,7 @@
 import { AlphaFilter, Container, Graphics, GraphicsContext } from "pixi.js";
 import type { ModuleSpec, Snapshot } from "../sim/index.js";
 import type { Camera } from "./camera.js";
-import { DEFAULT_LIGHT, FIGHTER_SHADOW_M, KERNEL_SHADOW_M, LANDED_SHADOW_M, ROCK_SHADOW_M, THICK_SHADOW_M, type Light } from "./light.js";
+import { DEFAULT_LIGHT, FIGHTER_SHADOW_M, KERNEL_OVER_ROCK, LANDED_SHADOW_M, rockHeight, THICK_SHADOW_M, type Light } from "./light.js";
 import { fillAlpha, fillColour, isFighterModule, moduleFills, padMark, type Fill } from "./moduleFills.js";
 import { shipColours } from "./teams.js";
 
@@ -89,7 +89,8 @@ export class HullLayer {
             const design = ship.currentStructure;
             const dx = ship.x - camera.x;
             const dy = ship.y - camera.y;
-            const reach = design.radius + ROCK_SHADOW_M;
+            const rock = rockHeight(design.radius);
+            const reach = design.radius + rock * KERNEL_OVER_ROCK;
             if (Math.abs(dx) - reach > halfW || Math.abs(dy) - reach > halfH) continue;
             const sc = Math.cos(ship.angle);
             const ss = Math.sin(ship.angle);
@@ -101,8 +102,8 @@ export class HullLayer {
                 const angle = ship.angle + m.angle;
                 const outline = outlineFor(m.spec);
                 if (isFighterModule(design, i)) {
-                    // A fighter of its own is flying; one that is part of its carrier is on a pad.
-                    const height = design.fighter ? FIGHTER_SHADOW_M : LANDED_SHADOW_M;
+                    // A fighter of its own is flying, unless parked on a pad; one that is part of its carrier is on one.
+                    const height = design.fighter && ship.riding !== true ? FIGHTER_SHADOW_M : LANDED_SHADOW_M;
                     place(this.fighterShadows.next(outline), x + awayX * height, y + awayY * height, angle);
                     continue;
                 }
@@ -129,8 +130,7 @@ export class HullLayer {
                             : null;
                 if (shadows === null) continue;
                 // As far as it stands above what its shadow falls on.
-                const length =
-                    depth === this.rock ? ROCK_SHADOW_M : depth === this.kernel ? KERNEL_SHADOW_M - ROCK_SHADOW_M : THICK_SHADOW_M;
+                const length = depth === this.rock ? rock : depth === this.kernel ? rock * (KERNEL_OVER_ROCK - 1) : THICK_SHADOW_M;
                 shadows.cast(m.spec, x, y, angle, awayX * length, awayY * length);
             }
         }

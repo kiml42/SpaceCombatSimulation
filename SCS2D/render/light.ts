@@ -27,15 +27,26 @@ export const BUILDER_LIGHT: Light = { from: (3 * Math.PI) / 4, colour: "#ffffff"
 
 /** How far a thick module's shadow falls across the thin hull beside it, metres. */
 export const THICK_SHADOW_M = 1.5;
-/** How far an asteroid's rock's shadow falls on a ship beside it, metres: twice a thick module's, as rock stands taller. */
+/**
+ * How high a small asteroid's rock stands, as the length of its shadow on a
+ * ship beside it, metres: twice a thick module's. A larger asteroid stands
+ * higher, `ROCK_RISE` of its radius, so its step still shows.
+ */
 export const ROCK_SHADOW_M = 2 * THICK_SHADOW_M;
-/** How high an asteroid's kernel stands, as a shadow's length on the hull below, metres: taller again; on its own rock, the difference. */
-export const KERNEL_SHADOW_M = 3 * THICK_SHADOW_M;
+/** How high an asteroid's rock stands, as a share of its radius, where that is more than `ROCK_SHADOW_M`. */
+export const ROCK_RISE = 0.08;
+/** How high an asteroid's kernel stands, as a multiple of its rock's height; on its own rock, the difference. */
+export const KERNEL_OVER_ROCK = 2;
+
+/** How high an asteroid's rock stands, metres, as the length of the shadow it casts on a ship's hull. */
+export function rockHeight(radius: number): number {
+    return Math.max(ROCK_SHADOW_M, radius * ROCK_RISE);
+}
 /** How far a flying fighter's shadow falls on the hull below it, metres: further, as it is higher. */
 export const FIGHTER_SHADOW_M = 2.5;
 /**
- * How far the shadow falls of a fighter aboard a carrier, on a pad being
- * built, mended or filled, metres: nearer, as it sits on the deck. A stop-gap
+ * How far the shadow falls of a fighter on its carrier's pad, being built,
+ * mended or filled, metres: nearer, as it sits on the deck. A stop-gap
  * step from one to the other until a fighter's height is drawn as it lands
  * and lifts off.
  */
