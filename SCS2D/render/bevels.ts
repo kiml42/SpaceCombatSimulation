@@ -53,8 +53,6 @@ const MITRE_MOST = 3;
 const SAMPLE_M = 0.5;
 /** How far out from an edge it is asked, metres: past the edge, short of anything not touching it. */
 const OUTSIDE_M = 0.05;
-/** How near two bevelled edges' ends must be to meet, metres. */
-const MEET_M = 0.2;
 
 const built = new WeakMap<ShipDesign, Bevels[]>();
 
@@ -72,7 +70,7 @@ export function bevelsOf(design: ShipDesign, m: number): Bevels {
 
 /** Whether a module's edges are bevelled at all: not an asteroid's, nor anything round. */
 export function isBevelled(spec: ModuleSpec): boolean {
-    return spec.kind !== "rock" && spec.kind !== "kernel";
+    return spec.kind !== "rock" && spec.kind !== "kernel" && spec.kind !== "port";
 }
 
 /**
@@ -201,23 +199,30 @@ function mitre(design: ShipDesign, all: number[][]): void {
             });
         }
     }
-    const meet = MEET_M * MEET_M;
-    for (const e of ends) {
-        // Anticlockwise all round, so an edge's end is where the next one starts.
+    // Ends meet within a bevel's width of each other: where one stops is where the next starts, to within how it was found.
+    const reach = Math.max(OUTSIDE_M, BEVEL_OF_RADIUS * design.radius);
+    const meet = reach * reach;
+    /** The one of `ends` other than `e` whose start, or with `back` end, is nearest `x`, `y`. */
+    const nearest = (e: (typeof ends)[number], x: number, y: number, back: boolean): (typeof ends)[number] | null => {
         let best = meet;
-        let next: (typeof ends)[number] | null = null;
+        let found: (typeof ends)[number] | null = null;
         for (const f of ends) {
             if (f === e || f.h !== e.h) continue;
-            const d = (f.ax - e.bx) ** 2 + (f.ay - e.by) ** 2;
+            const d = ((back ? f.bx : f.ax) - x) ** 2 + ((back ? f.by : f.ay) - y) ** 2;
             if (d < best) {
                 best = d;
-                next = f;
+                found = f;
             }
         }
-        if (next === null) continue;
-        // Each told of the other in its own module's frame: e at its end, next at its start.
-        link(design, all, e.m, e.k + 10, next.nx, next.ny, all[next.m]![next.k + 6]!);
-        link(design, all, next.m, next.k + 7, e.nx, e.ny, all[e.m]![e.k + 6]!);
+        return found;
+    };
+    // Anticlockwise all round, so an edge's end is where the next one starts. Each
+    // end and start takes the nearest, told of it in its own module's frame.
+    for (const e of ends) {
+        const next = nearest(e, e.bx, e.by, false);
+        if (next !== null) link(design, all, e.m, e.k + 10, next.nx, next.ny, all[next.m]![next.k + 6]!);
+        const last = nearest(e, e.ax, e.ay, true);
+        if (last !== null) link(design, all, e.m, e.k + 7, last.nx, last.ny, all[last.m]![last.k + 6]!);
     }
 }
 

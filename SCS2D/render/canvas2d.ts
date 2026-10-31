@@ -778,6 +778,26 @@ function drawHull(
         ctx.setLineDash([]);
     }
 
+    // Lit, every fill first and then every bevel over them, since a bevel
+    // mitred into an inside corner reaches into the module beside it.
+    if (!filled && light !== undefined) {
+        for (const bevelled of [false, true]) {
+            for (let i = 0; i < design.modules.length; i++) {
+                if (ship.drawn?.[i] === false || isFighterModule(design, i) !== fighters) continue;
+                const m = design.modules[i]!;
+                if (bevelled && !isBevelled(m.spec)) continue;
+                ctx.save();
+                ctx.translate(m.x, m.y);
+                ctx.rotate(m.angle);
+                ctx.globalAlpha = fillAlpha(ship, i);
+                if (bevelled) bevel(ctx, design, i, ship.angle + m.angle, metresToPx, light);
+                else fillModule(ctx, ship, i);
+                ctx.restore();
+            }
+        }
+        filled = true;
+    }
+
     // Module boxes, in the body frame the design already put them in.
     for (let i = 0; i < design.modules.length; i++) {
         if (ship.drawn?.[i] === false || isFighterModule(design, i) !== fighters) continue;
@@ -799,30 +819,11 @@ function drawHull(
         const halfLength = spec.length / 2;
         const halfWidth = spec.width / 2;
         // Unless Pixi underneath has filled it already (render/pixiView.ts).
-        if (!filled) {
-            moduleFills(spec, fillColour(spec, integrity, m.weaponsLayer, colours), colours, integrity, fills);
-            for (const fill of fills) {
-                const points = fill.points;
-                ctx.fillStyle = fill.colour;
-                ctx.beginPath();
-                ctx.moveTo(points[0]!, points[1]!);
-                for (let v = 2; v < points.length; v += 2) ctx.lineTo(points[v]!, points[v + 1]!);
-                ctx.closePath();
-                ctx.fill();
-            }
-        }
-        if (!filled && light !== undefined && isBevelled(spec)) bevel(ctx, design, i, ship.angle + m.angle, metresToPx, light);
+        if (!filled) fillModule(ctx, ship, i);
         if (spec.kind === "engine" && light !== undefined) shadeBells(ctx, spec, ship.angle + m.angle, light);
         if (spec.kind === "port" && light !== undefined) shadePort(ctx, spec, ship.angle + m.angle, light);
         if (spec.kind === "pad") {
-            // A deck in the hull's colour with a landing square marked on it, part
-            // of the deck's fill, so where Pixi fills it the square is shadowed too.
-            if (!filled) {
-                const mark = padMark(spec);
-                ctx.strokeStyle = colours.trim;
-                ctx.lineWidth = mark.line;
-                ctx.strokeRect(mark.x, mark.y, mark.width, mark.height);
-            }
+            // Its landing square is drawn with its fill (`fillModule`).
         } else if (
             spec.kind !== "engine" &&
             !isHullMount(spec.kind) &&
@@ -1383,6 +1384,34 @@ function shadePort(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: numbe
     const collar = spec.length * PORT_COLLAR_SHARE;
     ctx.drawImage(image, -l, -w, spec.length - collar, 2 * w);
     ctx.drawImage(image, l - collar, -w * PORT_COLLAR_WIDTH, collar, 2 * w * PORT_COLLAR_WIDTH);
+}
+
+/**
+ * Module `i`'s fill, in its own frame: a pad's with its landing square marked
+ * on it, so where Pixi fills it the square is shadowed too.
+ */
+function fillModule(ctx: CanvasRenderingContext2D, ship: ShipView, i: number): void {
+    const design = ship.currentStructure;
+    const m = design.modules[i]!;
+    const spec = m.spec;
+    const colours = moduleColours(design, i, ship.sides?.[i] ?? ship.team);
+    const integrity = ship.integrity?.[i] ?? 1;
+    moduleFills(spec, fillColour(spec, integrity, m.weaponsLayer, colours), colours, integrity, fills);
+    for (const fill of fills) {
+        const points = fill.points;
+        ctx.fillStyle = fill.colour;
+        ctx.beginPath();
+        ctx.moveTo(points[0]!, points[1]!);
+        for (let v = 2; v < points.length; v += 2) ctx.lineTo(points[v]!, points[v + 1]!);
+        ctx.closePath();
+        ctx.fill();
+    }
+    if (spec.kind === "pad") {
+        const mark = padMark(spec);
+        ctx.strokeStyle = colours.trim;
+        ctx.lineWidth = mark.line;
+        ctx.strokeRect(mark.x, mark.y, mark.width, mark.height);
+    }
 }
 
 /**

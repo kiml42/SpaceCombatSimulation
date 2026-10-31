@@ -238,7 +238,7 @@ an entry is either still open or it is gone.
          and darker as it faces away; skipped under a pixel wide, so a battle seen whole pays nothing. An edge
          is bevelled where nothing beside it stands as high (asked every half metre along it), so a thick
          module's edge over thin hull is, and the thin hull's edge against it is not; an engine's and a hull
-         mount's block only, and no asteroid's. Worked out once per compiled design and found through a
+         mount's block only, and no asteroid's nor docking port's, which are round. Worked out once per compiled design and found through a
          module's `originOf`, which is how a piece keeps the edges it was built with. Where two bevels turn a corner,
          on one module or two, they are mitred rather than overlapping; a gap narrower than a bevel between
          modules is a seam; no bevel is deeper than its edge is long. Fighters' are drawn the same way by

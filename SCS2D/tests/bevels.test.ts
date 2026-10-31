@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { compileBlueprint, originOf, subDesign, type Blueprint } from "../sim/index.js";
+import { compileBlueprint, originOf, subDesign, type Blueprint, type ShipDesign } from "../sim/index.js";
+import { DINKY, TANKER } from "../scenarios/blueprints.js";
 import { BEVEL_STRIDE, bevelQuad, bevelsOf } from "../render/bevels.js";
 
 /** Three boxes in a row along x, each 4 by 4. */
@@ -138,5 +139,53 @@ describe("bevels", () => {
         expect(below[0]![1]).toBeCloseTo(1.5, 3);
         expect(above[0]![0] + dx).toBeCloseTo(-0.5, 3);
         expect(above[0]![1] + dy).toBeCloseTo(1.5, 3);
+    });
+
+    it("leaves a docking port unbevelled, being round", () => {
+        const tanker = compileBlueprint(TANKER);
+        const ports = tanker.modules.flatMap((m, i) => (m.spec.kind === "port" ? [i] : []));
+        expect(ports.length).toBeGreaterThan(0);
+        for (const m of ports) expect(bevelsOf(tanker, m)).toEqual([]);
+    });
+
+    it("joins each bevel to the one it meets, and that one back to it", () => {
+        // On a ship as small as a Dinky, ends lie close enough together to be taken for each other's.
+        const dinky = compileBlueprint(DINKY);
+        /** Edge `k` of module `m` in the design's frame: its start, end, normal, and the normals it meets. */
+        const edge = (design: ShipDesign, m: number, k: number) => {
+            const module = design.modules[m]!;
+            const e = bevelsOf(design, m);
+            const c = Math.cos(module.angle);
+            const s = Math.sin(module.angle);
+            const at = (x: number, y: number): [number, number] => [module.x + x * c - y * s, module.y + x * s + y * c];
+            const way = (x: number, y: number): [number, number] => [x * c - y * s, x * s + y * c];
+            return {
+                a: at(e[k]!, e[k + 1]!),
+                b: at(e[k + 2]!, e[k + 3]!),
+                n: way(e[k + 4]!, e[k + 5]!),
+                before: way(e[k + 7]!, e[k + 8]!),
+                after: way(e[k + 10]!, e[k + 11]!),
+                met: [e[k + 9]!, e[k + 12]!],
+            };
+        };
+        const all = dinky.modules.flatMap((_, m) =>
+            Array.from({ length: bevelsOf(dinky, m).length / BEVEL_STRIDE }, (_, i) => edge(dinky, m, i * BEVEL_STRIDE)),
+        );
+        let joined = 0;
+        for (const e of all) {
+            if (e.met[1] === 0) continue;
+            // What it meets at its end starts there, and meets it back.
+            const next = all.find(
+                (f) =>
+                    Math.abs(f.n[0] - e.after[0]) < 1e-9 &&
+                    Math.abs(f.n[1] - e.after[1]) < 1e-9 &&
+                    Math.hypot(f.a[0] - e.b[0], f.a[1] - e.b[1]) < 0.05,
+            );
+            expect(next).toBeDefined();
+            expect(next!.before[0]).toBeCloseTo(e.n[0], 9);
+            expect(next!.before[1]).toBeCloseTo(e.n[1], 9);
+            joined++;
+        }
+        expect(joined).toBeGreaterThan(10);
     });
 });
