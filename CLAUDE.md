@@ -44,12 +44,15 @@ On every check-in on an open PR, first bring it up to date with `master`: merge 
 any conflicts, and push, even when nothing conflicts. That way CI is always run against current `master`, and a
 branch never drifts far behind it.
 
-**Never run the full test suite locally; CI runs it.** No `pnpm test` without a file filter, no `pnpm
-test:browser`, and no whole `pnpm golden` — not before a push, not after merging `master`, and not to check a
-re-recorded golden. The suites take long enough that running them locally costs more than a red CI run does. Run
-only the test files that bear on what changed (`pnpm exec vitest run tests/<file>.test.ts`), the typecheck and
-`pnpm format:check`; then push, and fix whatever CI finds. A golden that moved is re-derived by running that
-scenario alone.
+**Never run the full test suite locally; CI runs it.** No `pnpm test` without a file filter and no `pnpm
+test:browser` — not before a push and not after merging `master`. The suites take long enough that running them
+locally costs more than a red CI run does. Run only the test files that bear on what changed (`pnpm exec vitest
+run tests/<file>.test.ts`), the typecheck and `pnpm format:check`; then push, and fix whatever CI finds.
+
+**`pnpm golden` is the exception.** After a change to simulation behaviour, run it whole rather than waiting for
+CI to say which goldens moved: besides every scenario's checksum, it prints how each battle came out and its time
+per step, which shows what the change did to the battles and to performance, and that is worth reading before the
+new checksums go in.
 
 Don't make comments too verbose, make sure they're short enough that people will actually read them, 
 or leave them out entirely if the name is sufficient, or the code easy to read.

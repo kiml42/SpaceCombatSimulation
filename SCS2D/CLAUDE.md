@@ -122,7 +122,8 @@ Keep these working — they are the cold-start re-entry path:
 ## Testing
 
 **Don't run either suite whole locally: CI does** (the root [CLAUDE.md](../CLAUDE.md), "How changes land").
-Run the test files that bear on the change, the typecheck and the format check, and push.
+Run the test files that bear on the change, the typecheck and the format check, and push. `pnpm golden` is the
+exception, run whole after a behaviour change for the outcomes and timings it prints beside the checksums.
 
 **Two suites, deliberately.** `pnpm test` must run from a cold checkout with nothing but `pnpm install`, so it
 never needs a browser; the browser tests live in `tests/browser/` and run separately. They check what types
