@@ -2026,64 +2026,60 @@ export function stripsWidth(strips: Strips | null): number {
     return strips === null ? 0 : Math.max(strips.left.width, strips.right.width);
 }
 
-/** Draw the strips over a view already drawn: each tile its ship live, framed in its side's colours, the picked one brightest. */
 /** Frames between redrawing a fleet strip tile that is not the selected ship's, staggered across the tiles. */
 const STRIP_REFRESH_FRAMES = 4;
 
 /**
- * The fleet strips' tiles as last drawn, so each is redrawn only every
- * `STRIP_REFRESH_FRAMES` frames, a few each frame, and copied in between: a
- * tile draws the battle again through a camera of its own, and a side of
- * fighters round a capital hull draws that hull again for each of them. The
- * selected ship's tile, and one that has moved or changed hands, is drawn
- * every frame.
+ * The fleet strips on a canvas of their own over the view, which is not
+ * cleared between frames, so each tile is redrawn only every
+ * `STRIP_REFRESH_FRAMES` frames, a few each frame, and left as it is in
+ * between: a tile draws the battle again through a camera of its own, and a
+ * side of fighters round a capital hull draws that hull again for each of
+ * them. The selected ship's tile is drawn every frame, and one picked or let go
+ * at once. When the tiles move, or the canvas changes size, it all starts again.
  */
 export class StripCache {
-    private canvas: HTMLCanvasElement | OffscreenCanvas | null = null;
-    private context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null = null;
     private frame = 0;
-    /** The frame each tile, by where it is and what it shows, was last drawn. */
-    private drawn = new Map<string, number>();
+    /** Each tile's frame and whether it was picked, when last drawn, by its place in the layout. */
+    private drawn: { frame: number; picked: boolean }[] = [];
+    /** Where every tile and "more" box was, and what each showed, as last laid out. */
+    private layout = "";
+    private width = 0;
+    private height = 0;
 
-    /** What the tiles are drawn on, for a context that must be told when it has changed (render/pixiCanvas.ts). */
-    get image(): HTMLCanvasElement | OffscreenCanvas | null {
-        return this.canvas;
-    }
-
-    /** Where to draw tiles this frame, sized to the view; null where nothing offscreen can be had. */
-    begin(width: number, height: number): CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null {
-        if (this.canvas === null || this.canvas.width !== width || this.canvas.height !== height) {
-            this.canvas = typeof OffscreenCanvas !== "undefined" ? new OffscreenCanvas(width, height) : document.createElement("canvas");
-            this.canvas.width = width;
-            this.canvas.height = height;
-            this.context = this.canvas.getContext("2d") as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
-            this.drawn.clear();
-        }
+    /** Start a frame of `strips`, or of none: if they are not where they were, the canvas is cleared. */
+    begin(ctx: CanvasRenderingContext2D, strips: Strips | null): void {
         this.frame++;
-        return this.context;
+        const layout = strips === null ? "" : layoutOf(strips);
+        const { width, height } = ctx.canvas;
+        if (layout === this.layout && width === this.width && height === this.height) return;
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, width, height);
+        ctx.restore();
+        this.drawn.length = 0;
+        this.layout = layout;
+        this.width = width;
+        this.height = height;
     }
 
-    /** Whether `tile`, the `index`th, is due a redraw this frame. */
-    due(tile: StripTile, index: number, selected: number): boolean {
-        const key = `${tile.x},${tile.y},${tile.size},${tile.body}`;
-        const last = this.drawn.get(key);
-        const due = last === undefined || tile.body === selected || (this.frame + index) % STRIP_REFRESH_FRAMES === 0;
-        if (due) this.drawn.set(key, this.frame);
+    /** Whether the `index`th tile is due a redraw this frame. */
+    due(index: number, picked: boolean): boolean {
+        const last = this.drawn[index];
+        const due = last === undefined || picked || last.picked !== picked || (this.frame + index) % STRIP_REFRESH_FRAMES === 0;
+        if (due) this.drawn[index] = { frame: this.frame, picked };
         return due;
-    }
-
-    /** Copy `tile` from where it was last drawn onto `ctx`. */
-    copy(ctx: CanvasRenderingContext2D, tile: StripTile): void {
-        if (this.canvas === null) return;
-        ctx.drawImage(this.canvas, tile.x, tile.y, tile.size, tile.size, tile.x, tile.y, tile.size, tile.size);
-    }
-
-    /** Forget tiles no longer shown, so a map of every layout seen does not grow. */
-    prune(): void {
-        for (const [key, at] of this.drawn) if (this.frame - at > STRIP_REFRESH_FRAMES * 2) this.drawn.delete(key);
     }
 }
 
+function layoutOf(strips: Strips): string {
+    const column = (c: StripColumn): string =>
+        c.tiles.map((t) => `${t.x},${t.y},${t.size},${t.body},${t.team},${t.count}`).join(";") +
+        (c.more === null ? "" : `+${c.more.x},${c.more.y},${c.hidden}`);
+    return `${column(strips.left)}|${column(strips.right)}`;
+}
+
+/** Draw the strips: each tile its ship live, framed in its side's colours, the picked one brightest. */
 export function drawFleetStrips(
     ctx: CanvasRenderingContext2D,
     snapshot: Snapshot,
@@ -2094,34 +2090,24 @@ export function drawFleetStrips(
     arcs: Arcs = "none",
     teamShots = false,
     cache?: StripCache,
-    widthPx = ctx.canvas.width,
-    heightPx = ctx.canvas.height,
 ): void {
-    const into = cache?.begin(widthPx, heightPx) ?? null;
+    cache?.begin(ctx, strips);
     let index = 0;
     const drawColumn = (column: StripColumn): void => {
         for (const tile of column.tiles) {
-            const fresh = into === null || cache!.due(tile, index, selected);
+            const picked = tile.body === selected;
+            const fresh = cache === undefined || cache.due(index, picked);
             index++;
-            if (fresh) {
-                const target = (into ?? ctx) as CanvasRenderingContext2D;
-                target.save();
-                target.setTransform(1, 0, 0, 1, 0, 0);
-                target.beginPath();
-                target.rect(tile.x, tile.y, tile.size, tile.size);
-                target.clip();
-                drawScene(target, snapshot, tile.camera, tile.x, tile.y, tile.size, tile.size, flashes, arcs, teamShots, selected);
-                target.restore();
-            }
-            if (into !== null) {
-                ctx.save();
-                ctx.setTransform(1, 0, 0, 1, 0, 0);
-                cache!.copy(ctx, tile);
-                ctx.restore();
-            }
+            if (!fresh) continue;
             ctx.save();
             ctx.setTransform(1, 0, 0, 1, 0, 0);
-            const picked = tile.body === selected;
+            ctx.beginPath();
+            ctx.rect(tile.x, tile.y, tile.size, tile.size);
+            ctx.clip();
+            drawScene(ctx, snapshot, tile.camera, tile.x, tile.y, tile.size, tile.size, flashes, arcs, teamShots, selected);
+            ctx.restore();
+            ctx.save();
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.strokeStyle = shipColours(tile.team).trim;
             ctx.globalAlpha = picked ? 1 : 0.55;
             ctx.lineWidth = (picked ? 2 : 1) * ratio;
@@ -2152,7 +2138,6 @@ export function drawFleetStrips(
     };
     drawColumn(strips.left);
     drawColumn(strips.right);
-    cache?.prune();
 }
 
 /** A selected ship shows all its arcs and the rest none; with none selected, every ship shows `arcs`. */
