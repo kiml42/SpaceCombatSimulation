@@ -298,6 +298,17 @@ describe("robots", () => {
         expect(out(run)).toBeGreaterThan(0);
     });
 
+    it("stay home rather than walk out with only scraps of metal to mend with", () => {
+        const run = scene((absorb) => absorb(NEAR, 0.5));
+        const b = body(run);
+        // A few kilograms: far short of what one trip's mending takes.
+        run.ships.metal.drain(b, NEAR, run.ships.metal.pieceHeld(b, NEAR) - 5);
+        for (let s = 0; s < 60 * 60; s++) {
+            run.step();
+            expect(out(run)).toBe(0);
+        }
+    });
+
     it("mend their own bay before structure, since it makes every other job quicker", { timeout: 60_000 }, () => {
         const run = scene((absorb) => {
             absorb(BAY, 0.3);

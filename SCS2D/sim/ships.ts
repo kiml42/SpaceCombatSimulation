@@ -116,7 +116,6 @@ import {
     ROBOT_LOAD,
     ROBOT_MASS,
     ROBOT_REFILL_TIME,
-    ROBOT_SORTIE_CHARGE,
     ROBOT_REPAIR_RATE,
     GunType,
     interiorVolume,
@@ -6848,22 +6847,6 @@ export class Ships {
         robot.path = path !== null && path.length > 1 ? path : null;
     }
 
-    /** Put what robot `robot` of body `b` carries into the holds and tanks of its bay's piece, and say whether any went. */
-    private handOver(b: number, robot: Robot): boolean {
-        let put = 0;
-        if (robot.cargo > 0) {
-            const went = this.metal.add(b, robot.bay, robot.cargo);
-            robot.cargo -= went;
-            put += went;
-        }
-        if (robot.cargoFuel > 0) {
-            const went = this.fuel.add(b, robot.bay, robot.cargoFuel);
-            robot.cargoFuel -= went;
-            put += went;
-        }
-        return put > 0;
-    }
-
     /**
      * One step of a robot of ship `owner` out on the rock it is moored to, its
      * bay on body `b`: walking, mining, and back across to its claw. Says 1 if
@@ -6911,16 +6894,10 @@ export class Ships {
                 return 0;
             }
             // Back where its claw grips: across onto its own hull and home, once
-            // its bay has a berth for it; the extra a moored bay keeps hand what
-            // they carry over here and go back for more while they have the
-            // charge, wait here to be recharged, and are taken apart into the
-            // holds once their ship is sent away.
+            // its bay has a berth for it; the extra a moored bay keeps wait here,
+            // and are taken apart into the holds once their ship is sent away.
             if (this.aboardIn(b, robot.bay) >= design.modules[robot.bay]!.stats.robots) {
-                if (!this.sentAway(owner)) {
-                    const handed = this.handOver(b, robot);
-                    if (robot.charge >= ROBOT_CHARGE * ROBOT_SORTIE_CHARGE) this.sendOnRock(b, cb, this.robots.on(b)!, robot, owner);
-                    return handed ? 1 : 0;
-                }
+                if (!this.sentAway(owner)) return 0;
                 this.metal.add(b, robot.bay, ROBOT_MASS + robot.cargo);
                 if (robot.cargoFuel > 0) this.fuel.add(b, robot.bay, robot.cargoFuel);
                 return -2;
@@ -7205,8 +7182,8 @@ export class Ships {
         };
         for (let m = 0; m < design.modules.length; m++) {
             if (!Number.isFinite(dist[m]!) || !this.ownsAt(owner, b, m) || this.wreckage(owner, b, m)) continue;
-            // Building takes metal: none there, nothing to build with.
-            if (!(this.metal.pieceHeld(b, m) > ROBOT_SPENT)) continue;
+            // Building takes metal: a trip's worth not to be had, nothing to build with.
+            if (!this.affords(b, m, design, m, robot)) continue;
             if (design.modules[m]!.shell !== undefined || this.damage.unbuiltAt(b, m) > 0) consider(m, -1, originTier(approach, design, m));
         }
         if (rebuild.frame >= 0) {
@@ -7219,7 +7196,7 @@ export class Ships {
                 ] as const) {
                     const m = rebuild.at[against]!;
                     if (rebuild.at[l]! >= 0 || m < 0 || !Number.isFinite(dist[m]!) || !this.ownsAt(owner, b, m)) continue;
-                    if (this.wreckage(owner, b, m) || !(this.metal.pieceHeld(b, m) > ROBOT_SPENT)) continue;
+                    if (this.wreckage(owner, b, m) || !this.affords(b, m, launch, l, robot)) continue;
                     if (design.modules[m]!.shell !== undefined || originOf(design, m).design !== compiled) continue;
                     // Refitted, what is in the way comes down before this goes up.
                     if (this.refitting[owner] === 1 && this.inTheWay(design, rebuild, launch, l)) continue;
@@ -7387,6 +7364,18 @@ export class Ships {
     }
 
     /**
+     * Whether module `m` of body `b`'s piece of hull can give robot `robot` the
+     * metal for a trip's work on part `part` of `of`: what that work's claim may
+     * take there (`allowed`), against what the robot can spend, or `needs` if
+     * the work wants less. A robot short of it goes mining instead.
+     */
+    private affords(b: number, m: number, of: ShipDesign, part: number, robot: Robot, needs = Infinity): boolean {
+        const trip = min(robot.metal, needs);
+        if (!(trip > ROBOT_SPENT)) return true;
+        return this.allowed(Resource.Metal, b, m, mendClaim(of, part), 0) >= trip;
+    }
+
+    /**
      * Give a robot the next module to mend, from where it is: the first tier
      * with anything in it, and of that the module fewest robots are already
      * after, the nearest of those. With nothing to mend, something to rebuild
@@ -7405,7 +7394,8 @@ export class Ships {
             if (!Number.isFinite(dist[m]!) || !(this.damage.absorbedAt(b, m) > 0) || !this.ownsAt(owner, b, m)) continue;
             if (this.wreckage(owner, b, m)) continue;
             // Nothing to mend it with: no sense walking there.
-            if (!(this.metal.pieceHeld(b, m) > ROBOT_SPENT) && this.damage.repairMetal(b, m, this.damage.absorbedAt(b, m)) > 0) continue;
+            const mendMetal = this.damage.repairMetal(b, m, this.damage.absorbedAt(b, m)) * (1 + REPAIR_WASTE);
+            if (mendMetal > ROBOT_SPENT && !this.affords(b, m, design, m, robot, mendMetal)) continue;
             const tier = repairTier(approach, design, m);
             let crowd = 0;
             for (let k = 0; k < robots.length; k++) if (robots[k] !== robot && robots[k]!.target === m) crowd++;

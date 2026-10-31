@@ -903,9 +903,8 @@ inside any one file is not contiguous.
   takes the place of the least finished one it is building, whose metal goes back. **While its ship is moored to a rock it keeps
   `robotsPerBerth` robots to a berth** (one by default, any number from one up, whole robots only;
   `robotsKept`), building the extra only into a free berth: the extra work the rock, and a robot coming home to
-  a bay whose berths are all taken hands what it carries over to the holds from the claw, goes back out while
-  it has half its charge (`ROBOT_SORTIE_CHARGE`), and otherwise waits there for a berth, so there are never
-  more aboard than berths. Told
+  a bay whose berths are all taken waits at the claw for one, so there are never more aboard than berths; it
+  unloads only in a berth. Told
   to go (any order, or an errand to anything but its rock), the ship calls its robots in and goes once they are
   back; one with no berth to come home to is taken apart into its holds, metal, cargo and all. Those out on the
   rock when the ship is parted from it otherwise are stranded there, as any robot left on a rock is. It is drawn as a deck with a round pad, all
@@ -933,7 +932,8 @@ inside any one file is not contiguous.
   a spine torn ragged, stops none of them — only a bay that cannot refill them once they are spent, which is
   how robots mend the very spine that cut their bay off. Spent, with no bay to refill them or no metal left
   on their piece of hull, they go home and stay there until something on the hull changes. They never set out
-  to mend or build what needs metal their piece of hull does not have, and look again when metal comes aboard
+  to mend or build what needs more metal than their piece of hull can give that work for a trip (`affords`,
+  by its claim's allowance), and a moored ship's go mining instead, and look again when metal comes aboard
   as well as when the hull is hit. A weld or a cut
   remakes the hull and every robot that stays with it carries on where it was and about what it was about.
   One whose module, or whose bay, goes with another
