@@ -5375,8 +5375,9 @@ export class Ships {
             let when = miss < touching && speedSq > 0 ? max(0, closest - sqrt((touching * touching - miss * miss) / speedSq)) : closest;
             // Its charge, which covering pulls it towards, is kept clear of with a
             // soft edge, so the two settle where they balance; anything else is
-            // dodged flat out, since nothing pulls it back.
-            const soft = t === covering;
+            // dodged flat out, since nothing pulls it back, and so is a rock, which
+            // will not move.
+            const soft = t === covering && !rock;
             // Its charge already too close, and drawing closer too slowly to matter
             // within the look-ahead: answered as it stands now, or a pair drifting
             // together at a crawl, or at rest, would never be kept apart at all.

@@ -307,7 +307,10 @@ try {
                         );
                         if (values.screenshots)
                             await page.screenshot({
-                                path: join(values.out, `render-${values.label}-${renderer}-${scene.replaceAll(" ", "")}.png`),
+                                path: join(
+                                    values.out,
+                                    `render-${values.label}-${apps.length > 1 ? `${app.name}-` : ""}${renderer}-${scene.replaceAll(" ", "")}.png`,
+                                ),
                             });
                         if (values.profile && inFirefox) {
                             const from = Date.now();
