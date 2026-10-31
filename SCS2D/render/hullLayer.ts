@@ -1,6 +1,6 @@
 import { AlphaFilter, Container, Graphics, GraphicsContext } from "pixi.js";
 import { domeRadius, isDomed, originOf, type ModuleSpec, type Snapshot } from "../sim/index.js";
-import { BEVEL_DARK, BEVEL_LIGHT, BEVEL_OF_RADIUS, BEVEL_STRIDE, bevelQuad, bevelsOf, MIN_BEVEL_LIT, MIN_BEVEL_PX } from "./bevels.js";
+import { BEVEL_DARK, BEVEL_LIGHT, BEVEL_OF_RADIUS, BEVEL_STRIDE, bevelQuad, drawnBevels, MIN_BEVEL_LIT, MIN_BEVEL_PX } from "./bevels.js";
 import { lightSlope } from "./shading.js";
 import type { Camera } from "./camera.js";
 import {
@@ -169,7 +169,7 @@ export class HullLayer {
                     if (bevel * camera.scale >= MIN_BEVEL_PX) {
                         this.bevel(
                             depth === this.thin ? this.thinBevels : this.thickBevels,
-                            bevelsOf(origin.design, origin.module),
+                            drawnBevels(design, i),
                             x,
                             y,
                             angle,
