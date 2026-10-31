@@ -135,7 +135,21 @@ function drawnWith(view: PixiView, canvas: HTMLCanvasElement, shot: Snapshot, sc
     const eye = eyeOn(shot, scale);
     const pixi = view.begin(shot, eye, width, height, BUILDER_LIGHT);
     if (pixi === null) return false;
-    draw(pixi as unknown as CanvasRenderingContext2D, shot, eye, width, height, undefined, "none", false, -1, [], null, true);
+    draw(
+        pixi as unknown as CanvasRenderingContext2D,
+        shot,
+        eye,
+        width,
+        height,
+        undefined,
+        "none",
+        false,
+        -1,
+        [],
+        null,
+        true,
+        BUILDER_LIGHT,
+    );
     view.end();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, width, height);
