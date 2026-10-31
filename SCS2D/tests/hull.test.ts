@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { compileBlueprint, compileDraft, type Blueprint } from "../sim/blueprint.js";
-import { HullPath, modulesAlong } from "../sim/hull.js";
+import { BOTH_LAYERS, HULL_LAYER, HullPath, modulesAlong, WEAPONS_LAYER, type Boxes } from "../sim/hull.js";
 import { HALF_PI, QUARTER_PI } from "../sim/math.js";
 import { CORVETTE } from "../scenarios/blueprints.js";
 
@@ -215,5 +215,26 @@ describe("the modules a shot crosses", () => {
             [1, 8, 12],
             [2, 12, 16],
         ]);
+    });
+});
+
+describe("a turret's dome", () => {
+    const path = new HullPath();
+    // One turret, 4 by 4, standing alone: a block in the hull layer, a dome 2 m round above it.
+    const turret = {
+        modules: [{ x: 0, y: 0, angle: 0, spec: { kind: "turret", length: 4, width: 4 }, weaponsLayer: true }],
+    } as unknown as Boxes;
+
+    it("is all of a turret a shot above the deck meets, so one past its block's corner misses", () => {
+        // Along x + y = 3.6: across the block's corner, 2.55 m from its middle.
+        modulesAlong(turret, -1, 4.6, 4.6, -1, path, BOTH_LAYERS);
+        expect(path.count).toBe(1);
+        modulesAlong(turret, -1, 4.6, 4.6, -1, path, HULL_LAYER);
+        expect(path.count).toBe(1);
+        modulesAlong(turret, -1, 4.6, 4.6, -1, path, WEAPONS_LAYER);
+        expect(path.count).toBe(0);
+        // Through the middle, the dome is met as the block is.
+        modulesAlong(turret, -10, 0, 10, 0, path, WEAPONS_LAYER);
+        expect(rows(path)).toEqual([[0, 8, 12]]);
     });
 });

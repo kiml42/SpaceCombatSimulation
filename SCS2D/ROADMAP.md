@@ -177,8 +177,8 @@ an entry is either still open or it is gone.
        metres across, shading ships' hulls beside it; thick rock twice as high, shading the thin; and a
        kernel a step higher again, shading its rock (on thin rock a little short, to spare a layer).
        Each shadow is as long as the caster stands above what it falls on. A pad's landing square is part of the
-       pad's fill, so shadows fall on it. A capital ship's barrels stand on their mounts as high as a thick
-       module, their shadows (lines from `render/barrels.ts`, which the barrels are drawn from too) on the
+       pad's fill, so shadows fall on it. A capital ship's turrets' barrels stand on their domes as high as a
+       thick module (a hull mount's are at the deck and cast nothing), their shadows (lines from `render/barrels.ts`, which the barrels are drawn from too) on the
        thin hull with the thick modules'. Still to do: rock shading a fighter flying close by, which needs
        a shadow layer over the fighters, above everything the adapter draws.
        **Each scene sets its own light**, from a palette in `scenarios/lights.ts` spanning the directions,
@@ -220,8 +220,12 @@ an entry is either still open or it is gone.
         - **Fighters** keep a darkened version of their fleet's colours, perhaps darkened less once edges are
           drawn on purpose and hulls look smoother. Rock and wreckage keep colours of their own.
     4. **Part art, first pass:** bevels on the hull's outside edges, and on the thick parts' edges, lit by
-       the battle's light, and engine bells and barrels shaded as rounded. Richer procedural parts come
-       later.
+       the battle's light, and engine bells, barrels and turret domes shaded as rounded. Richer procedural
+       parts come later.
+       - **A turret's dome** is a slightly flattened hemisphere on a short cylinder, standing on its block in
+         the hull layer. Its shadow is cast as the cylinder's for now (the dome's circle swept away from the
+         light, as high as a thick module); the rounded top, shading across it and the softer edge to its
+         shadow come with this pass.
         - **Each edge of a module is bevelled or not**, settled once for the design as built: an edge on its
           outline is, an edge it shares with a neighbour is not, so module edges inside the hull stay unseen.
           A little simpler than bevelling the outline itself, and it should look as good.

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { Bodies } from "../sim/bodies.js";
 import { Collisions, Contacts, RESTITUTION, ROCK_DAMPING, Stab, findContacts, resolveContacts } from "../sim/collision.js";
 import { compileBlueprint, rockModule, type ShipDesign } from "../sim/index.js";
-import type { HullDesigns } from "../sim/hull.js";
+import { OWN_LAYERS, WEAPONS_LAYER, type HullDesigns } from "../sim/hull.js";
 import { CORVETTE, DINKY, SALVAGER } from "../scenarios/blueprints.js";
 import { ram } from "../scenarios/ram.js";
 
@@ -338,5 +338,38 @@ describe("a battle of nothing but collisions", () => {
         const settled = worst();
         for (let i = 0; i < 3000; i++) run.step();
         expect(worst()).toBeLessThanOrEqual(settled);
+    });
+});
+
+describe("a turret's dome", () => {
+    /** One module alone, its body's whole design, standing at the body's origin. */
+    const lone = (kind: string, length: number, width: number): ShipDesign =>
+        ({
+            modules: [{ x: 0, y: 0, angle: 0, spec: { kind, length, width }, weaponsLayer: kind === "turret" }],
+            radius: Math.hypot(length, width) / 2,
+        }) as unknown as ShipDesign;
+    const turret = lone("turret", 4, 4);
+    const plate = lone("structure", 1, 1);
+    /** The turret at the origin, and a plate at `x`, `y`, flying above the deck if `aloft`. */
+    const meet = (x: number, y: number, aloft: boolean): Contacts => {
+        const w = world({ design: turret, x: 0, y: 0 }, { design: plate, x, y });
+        findContacts(w.bodies, { ...w.hulls, layersOf: (body) => (body === 1 && aloft ? WEAPONS_LAYER : OWN_LAYERS) }, w.contacts);
+        return w.contacts;
+    };
+
+    it("is a circle above the deck, so what flies past its block's corner misses it", () => {
+        // Over the corner: the block reaches it, the dome 2 m round does not.
+        expect(meet(2.2, 2.2, false).count).toBe(1);
+        expect(meet(2.2, 2.2, true).count).toBe(0);
+    });
+
+    it("meets what reaches into its circle, pushing it straight out from the middle", () => {
+        const contacts = meet(2.3, 0, true);
+        expect(contacts.count).toBe(1);
+        expect(contacts.depth[0]).toBeCloseTo(0.2, 9);
+        expect(contacts.nx[0]).toBeCloseTo(1, 9);
+        expect(contacts.ny[0]).toBeCloseTo(0, 9);
+        // On the plate's near face, where the dome meets it.
+        expect(contacts.x[0]).toBeCloseTo(1.8, 9);
     });
 });

@@ -42,6 +42,21 @@ export const KERNEL_MAX_CORNERS = 12;
 export const MOST_CORNERS = KERNEL_MAX_CORNERS;
 
 /**
+ * A turret's dome: the part of it that turns, standing above the deck on a
+ * block that does not. The block is the module's box, in the hull layer; the
+ * dome is all of it in the weapons layer, a circle as wide as the module's
+ * narrower side.
+ */
+export function isDomed(kind: ModuleKind): boolean {
+    return kind === "turret" || kind === "beamTurret";
+}
+
+/** How far a turret's dome reaches from its module's centre, metres. */
+export function domeRadius(spec: ModuleSpec): number {
+    return min(spec.length, spec.width) * 0.5;
+}
+
+/**
  * The smallest triangle that is a module, m².
  *
  * Three corners in a line enclose nothing: no interior, no mass, and an edge

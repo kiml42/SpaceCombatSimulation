@@ -1,8 +1,8 @@
 import type { Bodies } from "./bodies.js";
 import type { ShipDesign } from "./blueprint.js";
-import { BOTH_LAYERS, moduleLayers, OWN_LAYERS, type HullDesigns } from "./hull.js";
+import { BOTH_LAYERS, HULL_LAYER, moduleLayers, OWN_LAYERS, type HullDesigns } from "./hull.js";
 import { abs, cos, max, min, sin, sqrt } from "./math.js";
-import { MOST_CORNERS, shapeOf } from "./shape.js";
+import { domeRadius, isDomed, MOST_CORNERS, shapeOf } from "./shape.js";
 import type { ModuleSpec } from "./modules.js";
 
 /**
@@ -201,11 +201,15 @@ interface Box {
     corners: Float64Array;
     /** How many of them there are, and zero for a box. */
     count: number;
+    /** A circle of `radius` round its centre, as a turret's dome is: no corners and no extents. */
+    round: boolean;
 }
 
 /** Fill `out` with a module's outline in the world, given its body's pose. */
 function boxOf(design: ShipDesign, module: number, bx: number, by: number, angle: number, out: Box): void {
     const m = design.modules[module]!;
+    const triangle = shapeOf(m.spec);
+    out.round = false;
     const c = cos(angle);
     const s = sin(angle);
     out.x = bx + m.x * c - m.y * s;
@@ -213,7 +217,6 @@ function boxOf(design: ShipDesign, module: number, bx: number, by: number, angle
     const own = angle + m.angle;
     out.ux = cos(own);
     out.uy = sin(own);
-    const triangle = shapeOf(m.spec);
     if (triangle === null) {
         out.count = 0;
         out.halfLength = m.spec.length * 0.5;
@@ -257,6 +260,7 @@ function boxesOf(design: ShipDesign, bx: number, by: number, angle: number, out:
                 radius: 0,
                 corners: new Float64Array(MOST_CORNERS * 2),
                 count: 0,
+                round: false,
             });
         }
         boxOf(design, m, bx, by, angle, out[m]!);
@@ -351,6 +355,21 @@ function contactPoint(a: Box, b: Box, nx: number, ny: number): void {
 /** Scratch, so finding contacts allocates nothing after the first few steps. */
 const boxesA: Box[] = [];
 const boxesB: Box[] = [];
+const blankBox = (): Box => ({
+    x: 0,
+    y: 0,
+    ux: 1,
+    uy: 0,
+    halfLength: 0,
+    halfWidth: 0,
+    radius: 0,
+    corners: new Float64Array(MOST_CORNERS * 2),
+    count: 0,
+    round: false,
+});
+/** A turret's dome on either hull of a pair, where they meet above the deck alone. */
+const domeA = blankBox();
+const domeB = blankBox();
 /** The bodies that have hulls this step, and what they are built from. */
 const solid: number[] = [];
 const solidDesigns: ShipDesign[] = [];
@@ -386,6 +405,7 @@ const spanB = { lo: 0, hi: 0 };
  * written into `axes[0..1]` pointing from A towards B.
  */
 function overlap(a: Box, b: Box): number {
+    if (a.round || b.round) return roundOverlap(a, b);
     const used = axesOf(a, axes, 0) * 2;
     const count = used + axesOf(b, axes, used) * 2;
 
@@ -423,6 +443,143 @@ function overlap(a: Box, b: Box): number {
     axes[0] = bestX;
     axes[1] = bestY;
     return best;
+}
+
+/** A module's dome, into `out`: a circle at the centre of the box it stands on. */
+function domeOf(block: Box, spec: ModuleSpec, out: Box): Box {
+    out.x = block.x;
+    out.y = block.y;
+    out.radius = domeRadius(spec);
+    out.round = true;
+    out.count = 0;
+    out.halfLength = 0;
+    out.halfWidth = 0;
+    return out;
+}
+
+/**
+ * `overlap` where either is a circle, the contact point into `point`: the
+ * nearest point of the other's outline to the circle's centre, or of the face
+ * it is nearest leaving by, where its centre is inside.
+ */
+function roundOverlap(a: Box, b: Box): number {
+    if (a.round && b.round) {
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const d = sqrt(dx * dx + dy * dy);
+        const gap = a.radius + b.radius - d;
+        if (!(gap > 0)) return 0;
+        const nx = d > 0 ? dx / d : 1;
+        const ny = d > 0 ? dy / d : 0;
+        axes[0] = nx;
+        axes[1] = ny;
+        point.x = a.x + nx * (a.radius - gap * 0.5);
+        point.y = a.y + ny * (a.radius - gap * 0.5);
+        return gap;
+    }
+    const flip = b.round;
+    const gap = flip ? circleAgainst(b, a) : circleAgainst(a, b);
+    // Always from A towards B, and the circle's test gives it from the circle.
+    if (flip) {
+        axes[0] = -axes[0]!;
+        axes[1] = -axes[1]!;
+    }
+    return gap;
+}
+
+/** How deep circle `c` is into outline `o`, the normal from the circle into `axes[0..1]` and the contact into `point`. */
+function circleAgainst(c: Box, o: Box): number {
+    const r = c.radius;
+    if (o.count === 0) {
+        // In the box's own frame, where it is axis-aligned.
+        const rx = c.x - o.x;
+        const ry = c.y - o.y;
+        const lx = rx * o.ux + ry * o.uy;
+        const ly = -rx * o.uy + ry * o.ux;
+        const hl = o.halfLength;
+        const hw = o.halfWidth;
+        let qx = lx < -hl ? -hl : lx > hl ? hl : lx;
+        let qy = ly < -hw ? -hw : ly > hw ? hw : ly;
+        let gap: number;
+        let nx: number;
+        let ny: number;
+        if (qx !== lx || qy !== ly) {
+            const dx = qx - lx;
+            const dy = qy - ly;
+            const d = sqrt(dx * dx + dy * dy);
+            gap = r - d;
+            if (!(gap > 0)) return 0;
+            nx = dx / d;
+            ny = dy / d;
+        } else if (hl - abs(lx) < hw - abs(ly)) {
+            // Inside: out by the nearer face, the box pushed the other way.
+            const side = lx < 0 ? -1 : 1;
+            gap = r + hl - abs(lx);
+            nx = -side;
+            ny = 0;
+            qx = side * hl;
+        } else {
+            const side = ly < 0 ? -1 : 1;
+            gap = r + hw - abs(ly);
+            nx = 0;
+            ny = -side;
+            qy = side * hw;
+        }
+        axes[0] = nx * o.ux - ny * o.uy;
+        axes[1] = nx * o.uy + ny * o.ux;
+        point.x = o.x + qx * o.ux - qy * o.uy;
+        point.y = o.y + qx * o.uy + qy * o.ux;
+        return gap;
+    }
+    // A convex polygon, wound anticlockwise: outside, its nearest point; inside,
+    // out by the edge it is nearest.
+    let inside = true;
+    let shallowest = -Infinity;
+    let best = Infinity;
+    let bestX = 0;
+    let bestY = 0;
+    let faceX = 0;
+    let faceY = 0;
+    for (let i = 0; i < o.count; i++) {
+        const ax = o.corners[i * 2]!;
+        const ay = o.corners[i * 2 + 1]!;
+        const k = ((i + 1) % o.count) * 2;
+        const ex = o.corners[k]! - ax;
+        const ey = o.corners[k + 1]! - ay;
+        const span = sqrt(ex * ex + ey * ey);
+        if (!(span > 0)) continue;
+        const outside = ((c.x - ax) * ey - (c.y - ay) * ex) / span;
+        if (outside > 0) inside = false;
+        if (outside > shallowest) {
+            shallowest = outside;
+            faceX = ey / span;
+            faceY = -ex / span;
+        }
+        const t = max(0, min(1, ((c.x - ax) * ex + (c.y - ay) * ey) / (span * span)));
+        const qx = ax + ex * t;
+        const qy = ay + ey * t;
+        const d2 = (qx - c.x) * (qx - c.x) + (qy - c.y) * (qy - c.y);
+        if (d2 < best) {
+            best = d2;
+            bestX = qx;
+            bestY = qy;
+        }
+    }
+    if (inside) {
+        axes[0] = -faceX;
+        axes[1] = -faceY;
+        point.x = c.x - faceX * shallowest;
+        point.y = c.y - faceY * shallowest;
+        return r - shallowest;
+    }
+    const d = sqrt(best);
+    const gap = r - d;
+    if (!(gap > 0)) return 0;
+    axes[0] = (bestX - c.x) / d;
+    axes[1] = (bestY - c.y) / d;
+    point.x = bestX;
+    point.y = bestY;
+    return gap;
 }
 
 /**
@@ -502,11 +659,19 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts):
         let moduleB = -1;
 
         for (let ma = 0; ma < designA.modules.length; ma++) {
-            const boxA = boxesA[ma]!;
             const inA = moduleLayers(designA.modules[ma]!, layersA);
             for (let mb = 0; mb < designB.modules.length; mb++) {
-                if ((inA & moduleLayers(designB.modules[mb]!, layersB)) === 0) continue;
-                const boxB = boxesB[mb]!;
+                const shared = inA & moduleLayers(designB.modules[mb]!, layersB);
+                if (shared === 0) continue;
+                let boxA = boxesA[ma]!;
+                let boxB = boxesB[mb]!;
+                // Met above the deck alone, a turret is its dome rather than its block.
+                if ((shared & HULL_LAYER) === 0) {
+                    const specA = designA.modules[ma]!.spec;
+                    const specB = designB.modules[mb]!.spec;
+                    if (isDomed(specA.kind)) boxA = domeOf(boxA, specA, domeA);
+                    if (isDomed(specB.kind)) boxB = domeOf(boxB, specB, domeB);
+                }
                 // Corner circles first: most module pairs on two hulls that are
                 // touching somewhere are nowhere near each other.
                 const mx = boxB.x - boxA.x;
@@ -519,7 +684,8 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts):
 
                 const nx = axes[0]!;
                 const ny = axes[1]!;
-                contactPoint(boxA, boxB, nx, ny);
+                // A circle's contact is found with its overlap.
+                if (!boxA.round && !boxB.round) contactPoint(boxA, boxB, nx, ny);
                 deepest = depth;
                 deepestNx = nx;
                 deepestNy = ny;
@@ -623,6 +789,7 @@ export function moduleOverlapsHull(
             radius: 0,
             corners: new Float64Array(MOST_CORNERS * 2),
             count: 0,
+            round: false,
         });
     }
     boxOf(design, m, bx, by, angle, lone[0]!);
