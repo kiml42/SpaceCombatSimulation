@@ -16,13 +16,11 @@ Things that are obviously wrong.
 Ideas that aren't planned to be implemented yet, they may or may not be good ideas.
 
 ## General
-- Hysteresis on decision to use attack or thrust orientation, to avoid flip-flopping.
 - Fighters should be able to dip into the hull layer (like they do for ramming) so they can fire beams and non-fragmenting projectiles at the hulls of ships. The balancing cost of this is that they can be hit by anything.
 - Ships shouldn't fire engines that make them spin faster while trying to cancel out a spin. The pilot trying to hold orientation should generally win.
 - Pads should hold the fighter that docks with them and move it to be centred and aligned (in any orthogonal direction in which it fits). This should be treated like each pad has a robot arm that can move the fighter into position (we might draw this arm later). This should let us realistically increase the speed at which a fighter can be captured, and it can be captured with very poor alignment because the (for now imaginary) arm will fix it.
   - Actually draw the robot arm in if it's not too hard, it would look cool, but that does require an actual IK chain for it, instead of just applying forces.
 - Robot arms on Slipways to make them hold the ship they're creating (just cosmetic to explain how it's staying put)
-- Range bands should be fuzzy (steer clear, escort and attack) with how much the ship wants to be in the band ramping up or down at the edges. This would stop sudden switching abruptly from getting closer to escort, and moving further to steer clear at the boundary (put 2 catamarans in a scene to see this behaviour). It would also let ships naturally settle into the range at which they burn their engines a bit continually when circling instead of pulsing when they get out of range.
 - Robots don't need to spread out on a module they're just passing over, they should travel a somewhat efficient route, and only spread out a bit if they would get in each other's way.
 - Ships often shoot at an asteroid that has one of their enemies crashed onto it.
 
