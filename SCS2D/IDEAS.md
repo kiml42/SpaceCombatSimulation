@@ -48,6 +48,8 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
   - Could add a "Mirror" button to a module off the centre line that creates a side group, puts that module in it, and duplicates the group mirrored. The group's origin should be 0,0 to make reflection easy, and all modules can be offset within it. Using the button when there is already a side group it should add it to that group.
   - Could make a "duplicate mirrored" button for an assembly that puts it in the right place and mirrors it in one action, instead of having to duplicate it, which offsets it, then needing to mirror it, and offset it to the negative position of where the original was.
 - Default the refit mode to off except where it's useful
+- Reloading the page should load the ship you were editing
+- Auto-save
 
 
 ## Weapons
@@ -85,6 +87,7 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Fleet status tiles could turn with their ship, so it always points the same way in its tile.
 - Cap projectile rendering at the point they hit, so a streak does not overlap the target it struck. (The muzzle end is capped.)
 - A selected ship's framing takes in and rings what it is escorting; it could do the same for what it is keeping clear of, possibly with a symbol to show what sort of attention the selected ship is paying to each
+- Reloading should return to the scenario you were watching
 
 ## Harvesting
 - Scavenging wrecks and mining asteroids. Two of the causes of wrecked Salvagers are being fixed as ROADMAP.md

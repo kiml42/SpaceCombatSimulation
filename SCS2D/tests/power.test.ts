@@ -99,8 +99,22 @@ describe("a generator", () => {
         const mass = r.world.bodies.mass[r.body]!;
         expect(r.ships.power.held(r.body, BATTERY)).toBe(0);
         r.step(1);
-        expect(r.ships.power.held(r.body, BATTERY)).toBeCloseTo(made * 1, -3);
+        // A step's making is banked as the next begins, so the last is still on offer, not yet in the battery.
+        expect(r.ships.power.offered(r.body, BATTERY)).toBeCloseTo(made * 1, -3);
         expect(r.world.bodies.mass[r.body]!).toBe(mass);
+    });
+
+    it("feeds what draws after the ship is flown as well as before, past what its battery can take in", () => {
+        // A generator far bigger than the battery's wiring, as on a ship that builds and mines.
+        const r = run(plant(12, 1));
+        const design = compileBlueprint(plant(12, 1));
+        const made = design.modules[GENERATOR]!.stats.generation * DT;
+        r.step(10);
+        const held = r.ships.power.held(r.body, BATTERY);
+        // Robots, pads and slipways draw between one step's flying and the next.
+        const got = r.ships.power.drain(r.body, GENERATOR, held + made);
+        expect(got).toBeCloseTo(held + made, -3);
+        expect(made).toBeGreaterThan(10 * design.modules[BATTERY]!.stats.chargeRate * DT);
     });
 
     it("fills no faster than the battery can take it, and no fuller than full", () => {
