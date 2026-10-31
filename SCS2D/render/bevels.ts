@@ -4,6 +4,7 @@ import {
     insideOutline,
     isDomed,
     isHullMount,
+    originOf,
     shapeOf,
     type ModuleSpec,
     type ShipDesign,
@@ -66,6 +67,17 @@ export function bevelsOf(design: ShipDesign, m: number): Bevels {
         built.set(design, all);
     }
     return all[m] ?? [];
+}
+
+/**
+ * The bevelled edges module `m` of `design` is drawn with: those it was built
+ * with, or a shell's own, since a shell is only the part of it that is up and
+ * the edges of the whole would stand out past it.
+ */
+export function drawnBevels(design: ShipDesign, m: number): Bevels {
+    if (design.modules[m]?.shell !== undefined) return bevelsOf(design, m);
+    const origin = originOf(design, m);
+    return bevelsOf(origin.design, origin.module);
 }
 
 /** Whether a module's edges are bevelled at all: not an asteroid's, nor anything round. */
