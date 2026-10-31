@@ -42,7 +42,16 @@ import { barrelLines, MIN_BARREL_PX } from "./barrels.js";
 import type { Light } from "./light.js";
 import { cylinderShade, domeShade, lightSlope } from "./shading.js";
 import { gridStep, type Camera } from "./camera.js";
-import { fillAlpha, fillColour, isFighterModule, moduleFills, padMark, type Fill } from "./moduleFills.js";
+import {
+    fillAlpha,
+    fillColour,
+    isFighterModule,
+    moduleFills,
+    padMark,
+    PORT_COLLAR_SHARE,
+    PORT_COLLAR_WIDTH,
+    type Fill,
+} from "./moduleFills.js";
 import {
     describeRange,
     insetAt,
@@ -311,6 +320,8 @@ const PLUME_CORE_BOOST = 1.8;
 const NOZZLE_GLOW = "#ffd9a0";
 const NOZZLE_GLOW_REACH = 1.8;
 const NOZZLE_GLOW_SHARE = 0.35;
+/** How long a flame is, in exit widths, when its glow is at full strength. */
+const NOZZLE_GLOW_GROWN = 4;
 /** A burn on a hull: the flame's colour, hotter at the middle. */
 const BURN = "255, 170, 90";
 const BURN_CORE = "255, 236, 200";
@@ -485,6 +496,7 @@ function drawShip(
             }
         }
         if (spec.kind === "engine" && light !== undefined) shadeBells(ctx, spec, ship.angle + m.angle, light);
+        if (spec.kind === "port" && light !== undefined) shadePort(ctx, spec, ship.angle + m.angle, light);
         if (spec.kind === "pad") {
             // A deck in the hull's colour with a landing square marked on it, part
             // of the deck's fill, so where Pixi fills it the square is shadowed too.
@@ -1179,9 +1191,11 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
         const brightness = layerAlpha(min(1, plumeAlpha(plumeIntensity(engine.geometry, force)) * PLUME_CORE_BOOST), split);
         // Round the exit, past the bell's sides and back over its mouth: light,
         // so it brightens whatever it is over.
-        const g = half * NOZZLE_GLOW_REACH;
+        // Fading in with the flame, so a short one has no glow larger than itself.
+        const grown = min(1, reach / (NOZZLE_GLOW_GROWN * 2 * half));
+        const g = half * NOZZLE_GLOW_REACH * (0.5 + 0.5 * grown);
         ctx.globalCompositeOperation = "lighter";
-        ctx.globalAlpha = outer * brightness * NOZZLE_GLOW_SHARE;
+        ctx.globalAlpha = outer * brightness * NOZZLE_GLOW_SHARE * grown;
         ctx.drawImage(glow, root - g, across - g, 2 * g, 2 * g);
         ctx.globalCompositeOperation = blend;
         // The sprite's core is its brightest, its edge a little dimmer.
@@ -1231,6 +1245,18 @@ function shadeBells(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: numb
     for (let n = 0; n < engine.nozzles; n++) {
         ctx.drawImage(image, -l, nozzleOffset(engine, n) - exit, mouth + l, 2 * exit);
     }
+}
+
+/** A docking port's block and collar shaded as rounded across, in its module's frame, the module turned `angle`. */
+function shadePort(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: number, light: Light): void {
+    const { across, up } = lightSlope(light);
+    const image = cylinderShade(across * sin(light.from - angle), up);
+    if (image === null) return;
+    const l = spec.length / 2;
+    const w = spec.width / 2;
+    const collar = spec.length * PORT_COLLAR_SHARE;
+    ctx.drawImage(image, -l, -w, spec.length - collar, 2 * w);
+    ctx.drawImage(image, l - collar, -w * PORT_COLLAR_WIDTH, collar, 2 * w * PORT_COLLAR_WIDTH);
 }
 
 /** A turret's dome shaded as rounded, at `x`, `y` in the world. */

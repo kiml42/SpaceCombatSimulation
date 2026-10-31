@@ -228,7 +228,8 @@ an entry is either still open or it is gone.
          clear where it faces up as the deck does, so it shades whatever colour the part is. Made once per
          angle of the light across the part, rounded to a twelfth, and kept. Drawn in WebGL only, as the
          shadows are; a hull mount's barrels are not shaded, as they run back into a block under a clip the
-         adapter does not apply to images. The dome's shadow is still the cylinder's; a softer edge to it
+         adapter does not apply to images; they wait for a later pass, shaded from the block's face out.
+         Docking ports are shaded as rounded across, block and collar. The dome's shadow is still the cylinder's; a softer edge to it
          waits on soft shadows.
         - **Each edge of a module is bevelled or not**, settled once for the design as built: an edge on its
           outline is, an edge it shares with a neighbour is not, so module edges inside the hull stay unseen.
