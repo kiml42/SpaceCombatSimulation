@@ -465,11 +465,6 @@ export class PixiCanvas {
         g.resetTransform();
     }
 
-    /** Upload `image` again before the frame is shown, as one drawn into since it was last drawn here. */
-    changed(image: object): void {
-        this.textures.get(image)?.source.update();
-    }
-
     measureText(text: string): { width: number } {
         if (this.measurer === undefined) {
             this.measurer = typeof OffscreenCanvas !== "undefined" ? new OffscreenCanvas(1, 1).getContext("2d") : null;

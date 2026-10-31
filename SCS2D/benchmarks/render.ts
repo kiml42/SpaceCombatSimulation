@@ -19,7 +19,7 @@
  */
 import { execFile } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs, promisify } from "node:util";
 import { chromium, firefox, type Browser, type Page } from "playwright";
@@ -48,8 +48,17 @@ const { values } = parseArgs({
         strips: { type: "string", default: "shown" },
         label: { type: "string", default: "run" },
         out: { type: "string", default: join(here, "results") },
+        app: { type: "string" },
+        repeat: { type: "string", default: "1" },
     },
 });
+
+/** The built pages measured, taken in turn each round, so two builds are measured side by side rather than minutes apart. */
+const apps = (values.app?.split(",") ?? [appPage]).map((path) => ({
+    path: path.trim(),
+    name: basename(dirname(path.trim())) === "dist" ? "dist" : basename(path.trim(), ".html"),
+}));
+const repeat = Number(values.repeat);
 
 const scenes = values.scenes
     .split(",")
@@ -64,6 +73,7 @@ const at = Number(values.at);
 if (values.strips !== "shown" && values.strips !== "hidden") throw new Error(`--strips is shown or hidden, not "${values.strips}"`);
 
 interface Result {
+    app: string;
     renderer: string;
     scene: string;
     frames: number;
@@ -164,7 +174,7 @@ async function setPlaying(page: Page, play: boolean): Promise<void> {
 
 const percentile = (sorted: number[], p: number): number => sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))] ?? NaN;
 
-async function measure(page: Page): Promise<Omit<Result, "renderer" | "scene" | "battleAt" | "simSpeed">> {
+async function measure(page: Page): Promise<Omit<Result, "app" | "renderer" | "scene" | "battleAt" | "simSpeed">> {
     await page.evaluate(() => {
         const bench = (window as unknown as { __bench: { on: boolean; gaps: number[]; busy: Map<number, number>; last: number } }).__bench;
         bench.gaps = [];
@@ -240,80 +250,83 @@ let gpu = "unknown";
 const geckoEach = inFirefox && values.profile;
 const shared = geckoEach ? null : await launch();
 try {
-    for (const renderer of renderers)
-        for (const group of geckoEach ? scenes.map((s) => [s]) : [scenes]) {
-            const geckoTo = geckoEach
-                ? join(values.out, `render-${values.label}-${renderer}-${group[0]!.replaceAll(" ", "")}.gecko.json`)
-                : undefined;
-            const browser = shared ?? (await launch(geckoTo));
-            geckoSpans.length = 0;
-            const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: Number(values.dpr) });
-            await context.addInitScript((r) => {
-                try {
-                    window.localStorage.setItem("scs2d.draw", r);
-                } catch {
-                    // Firefox runs this in about:blank too, whose storage is refused; the app's page is the one that matters.
-                }
-            }, renderer);
-            await context.addInitScript({ content: INSTRUMENT });
-            const page = await context.newPage();
-            page.on("pageerror", (error) => console.error(`page error: ${error.message}`));
-            await page.goto(`${pathToFileURL(appPage).href}#/battle`);
-            gpu = await page.evaluate(() => {
-                const gl = document.createElement("canvas").getContext("webgl");
-                const info = gl?.getExtension("WEBGL_debug_renderer_info");
-                return gl === null || gl === undefined
-                    ? "no WebGL"
-                    : String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER));
-            });
-            const draw = page.getByRole("button", { name: /^Draw:/ });
-            // WebGL starts a moment after the page does.
-            await page.waitForTimeout(1000);
-            const drawing = (await draw.textContent()) ?? "";
-            const expected = renderer === "webgl" ? "Draw: WebGL" : "Draw: 2D";
-            if (drawing !== expected) console.warn(`asked for ${renderer}, but the view says "${drawing}"`);
-            const fleets = page.getByRole("button", { name: /^Fleets:/ });
-            if ((await fleets.textContent()) !== `Fleets: ${values.strips}`) await fleets.click();
-            for (const scene of group) {
-                // Whether a new scene plays depends on the last; each is played to the same moment, so every run shows the same frame.
-                await page.selectOption("#scene", { label: scene });
-                // The readout is sampled, so it shows the last scene's time for a moment.
-                await page.waitForFunction(() => battleTime() < 1, null, { polling: 50 });
-                await setPlaying(page, true);
-                await page.waitForFunction((t) => battleTime() >= t, at, { polling: 50, timeout: 300_000 });
-                if (values.paused) await setPlaying(page, false);
-                await page.waitForTimeout(warmup * 1000);
-                const from = await page.evaluate(() => battleTime());
-                const measured = await measure(page);
-                const to = await page.evaluate(() => battleTime());
-                const result = { renderer, scene, ...measured, battleAt: from, simSpeed: (to - from) / seconds };
-                results.push(result);
-                console.log(
-                    `${renderer.padEnd(8)} ${scene.padEnd(16)} ${result.fps.toFixed(1).padStart(6)} fps  ` +
-                        `frame ${result.frameP50.toFixed(1)} / ${result.frameP95.toFixed(1)} ms  js ${result.jsP50.toFixed(1)} / ${result.jsP95.toFixed(1)} ms`,
-                );
-                if (values.screenshots)
-                    await page.screenshot({
-                        path: join(values.out, `render-${values.label}-${renderer}-${scene.replaceAll(" ", "")}.png`),
+    for (let round = 0; round < repeat; round++)
+        for (const app of apps)
+            for (const renderer of renderers)
+                for (const group of geckoEach ? scenes.map((s) => [s]) : [scenes]) {
+                    const geckoTo = geckoEach
+                        ? join(values.out, `render-${values.label}-${renderer}-${group[0]!.replaceAll(" ", "")}.gecko.json`)
+                        : undefined;
+                    const browser = shared ?? (await launch(geckoTo));
+                    geckoSpans.length = 0;
+                    const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: Number(values.dpr) });
+                    await context.addInitScript((r) => {
+                        try {
+                            window.localStorage.setItem("scs2d.draw", r);
+                        } catch {
+                            // Firefox runs this in about:blank too, whose storage is refused; the app's page is the one that matters.
+                        }
+                    }, renderer);
+                    await context.addInitScript({ content: INSTRUMENT });
+                    const page = await context.newPage();
+                    page.on("pageerror", (error) => console.error(`page error: ${error.message}`));
+                    await page.goto(`${pathToFileURL(app.path).href}#/battle`);
+                    gpu = await page.evaluate(() => {
+                        const gl = document.createElement("canvas").getContext("webgl");
+                        const info = gl?.getExtension("WEBGL_debug_renderer_info");
+                        return gl === null || gl === undefined
+                            ? "no WebGL"
+                            : String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER));
                     });
-                if (values.profile && inFirefox) {
-                    const from = Date.now();
-                    await page.waitForTimeout(seconds * 1000);
-                    geckoSpans.push({ name: `${renderer} ${scene}`, from, to: Date.now() });
-                } else if (values.profile) {
-                    const { file, top } = await profile(page, `${renderer}-${scene.replaceAll(" ", "")}`);
-                    for (const { fn, ms, share } of top)
-                        console.log(`    ${(share * 100).toFixed(1).padStart(5)}% ${ms.toFixed(0).padStart(6)} ms  ${fn}`);
-                    console.log(`    profile: ${file}`);
+                    const draw = page.getByRole("button", { name: /^Draw:/ });
+                    // WebGL starts a moment after the page does.
+                    await page.waitForTimeout(1000);
+                    const drawing = (await draw.textContent()) ?? "";
+                    const expected = renderer === "webgl" ? "Draw: WebGL" : "Draw: 2D";
+                    if (drawing !== expected) console.warn(`asked for ${renderer}, but the view says "${drawing}"`);
+                    const fleets = page.getByRole("button", { name: /^Fleets:/ });
+                    if ((await fleets.textContent()) !== `Fleets: ${values.strips}`) await fleets.click();
+                    for (const scene of group) {
+                        // Whether a new scene plays depends on the last; each is played to the same moment, so every run shows the same frame.
+                        await page.selectOption("#scene", { label: scene });
+                        // The readout is sampled, so it shows the last scene's time for a moment.
+                        await page.waitForFunction(() => battleTime() < 1, null, { polling: 50 });
+                        await setPlaying(page, true);
+                        await page.waitForFunction((t) => battleTime() >= t, at, { polling: 50, timeout: 300_000 });
+                        if (values.paused) await setPlaying(page, false);
+                        await page.waitForTimeout(warmup * 1000);
+                        const from = await page.evaluate(() => battleTime());
+                        const measured = await measure(page);
+                        const to = await page.evaluate(() => battleTime());
+                        const result = { app: app.name, renderer, scene, ...measured, battleAt: from, simSpeed: (to - from) / seconds };
+                        results.push(result);
+                        console.log(
+                            `${apps.length > 1 ? `${app.name.padEnd(10)} ` : ""}${renderer.padEnd(8)} ${scene.padEnd(16)}` +
+                                ` ${result.fps.toFixed(1).padStart(6)} fps  ` +
+                                `frame ${result.frameP50.toFixed(1)} / ${result.frameP95.toFixed(1)} ms  js ${result.jsP50.toFixed(1)} / ${result.jsP95.toFixed(1)} ms`,
+                        );
+                        if (values.screenshots)
+                            await page.screenshot({
+                                path: join(values.out, `render-${values.label}-${renderer}-${scene.replaceAll(" ", "")}.png`),
+                            });
+                        if (values.profile && inFirefox) {
+                            const from = Date.now();
+                            await page.waitForTimeout(seconds * 1000);
+                            geckoSpans.push({ name: `${renderer} ${scene}`, from, to: Date.now() });
+                        } else if (values.profile) {
+                            const { file, top } = await profile(page, `${renderer}-${scene.replaceAll(" ", "")}`);
+                            for (const { fn, ms, share } of top)
+                                console.log(`    ${(share * 100).toFixed(1).padStart(5)}% ${ms.toFixed(0).padStart(6)} ms  ${fn}`);
+                            console.log(`    profile: ${file}`);
+                        }
+                    }
+                    if (geckoTo === undefined) await context.close();
+                    else {
+                        // Closed whole, page and all, so the page's process is still there to be profiled as it shuts down.
+                        await browser.close();
+                        summariseGecko(geckoTo);
+                    }
                 }
-            }
-            if (geckoTo === undefined) await context.close();
-            else {
-                // Closed whole, page and all, so the page's process is still there to be profiled as it shuts down.
-                await browser.close();
-                summariseGecko(geckoTo);
-            }
-        }
 } finally {
     await shared?.close();
 }
@@ -354,7 +367,7 @@ function summariseGecko(geckoProfile: string): void {
     };
     walk(root);
     // As "drawScene (file:///…/index.html#/battle:59138:19)[55]".
-    const app = /^(.*) \(file:.*\/index\.html[^:]*:(\d+):\d+\)(\[\d+\])?$/;
+    const app = /^(.*) \(file:.*\/[^/]*\.html[^:]*:(\d+):\d+\)(\[\d+\])?$/;
     for (const span of geckoSpans) {
         let best: Map<string, number> | null = null;
         let bestTotal = 0;
@@ -413,11 +426,37 @@ console.log(`\nGPU: ${gpu}`);
 console.log(
     `${width}x${height} at ${values.dpr}x, ${values.paused ? "paused" : "running"} from ${at} s, ${values.vsync ? "vsync" : "uncapped"}, strips ${values.strips}`,
 );
-console.log(`\n${"renderer".padEnd(9)}${"scene".padEnd(17)}${"fps".padStart(7)}  frame p50    p95  worst   js p50    p95   from    sim`);
+// With repeats, each figure is the median of its rounds, and the fps range shows how far they spread.
+const median = (xs: number[]): number => {
+    const sorted = [...xs].sort((a, b) => a - b);
+    const mid = sorted.length / 2;
+    return sorted.length % 2 === 1 ? sorted[Math.floor(mid)]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
+};
+const groups = new Map<string, Result[]>();
 for (const r of results) {
+    const key = `${r.app}|${r.renderer}|${r.scene}`;
+    groups.set(key, [...(groups.get(key) ?? []), r]);
+}
+const appColumn = apps.length > 1 ? 11 : 0;
+console.log(
+    `\n${apps.length > 1 ? "app".padEnd(appColumn) : ""}${"renderer".padEnd(9)}${"scene".padEnd(17)}${"fps".padStart(7)}` +
+        `  frame p50    p95  worst   js p50    p95   from    sim${repeat > 1 ? "  fps range" : ""}`,
+);
+for (const rs of groups.values()) {
+    const r = rs[0]!;
+    const m = (f: (r: Result) => number): number => median(rs.map(f));
+    const fpsAll = rs.map((x) => x.fps);
     console.log(
-        `${r.renderer.padEnd(9)}${r.scene.padEnd(17)}${r.fps.toFixed(1).padStart(7)}  ${ms(r.frameP50)}${ms(r.frameP95)}${ms(r.frameWorst)}  ${ms(r.jsP50)}${ms(r.jsP95)}` +
-            `${r.battleAt.toFixed(1).padStart(6)}s${r.simSpeed.toFixed(2).padStart(6)}x`,
+        `${apps.length > 1 ? r.app.padEnd(appColumn) : ""}${r.renderer.padEnd(9)}${r.scene.padEnd(17)}${m((x) => x.fps)
+            .toFixed(1)
+            .padStart(7)}` +
+            `  ${ms(m((x) => x.frameP50))}${ms(m((x) => x.frameP95))}${ms(Math.max(...rs.map((x) => x.frameWorst)))}` +
+            `  ${ms(m((x) => x.jsP50))}${ms(m((x) => x.jsP95))}${m((x) => x.battleAt)
+                .toFixed(1)
+                .padStart(6)}s${m((x) => x.simSpeed)
+                .toFixed(2)
+                .padStart(6)}x` +
+            (repeat > 1 ? `  ${Math.min(...fpsAll).toFixed(1)}–${Math.max(...fpsAll).toFixed(1)}` : ""),
     );
 }
 
@@ -436,6 +475,7 @@ writeFileSync(
             strips: values.strips,
             at,
             seconds,
+            repeat,
             results,
         },
         null,

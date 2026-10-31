@@ -530,11 +530,11 @@ describe("the viewer in a browser", () => {
         await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
         if ((await page.textContent("#play")) !== "Play") await page.keyboard.press("Space");
         await painted(page);
-        /** How bright a box of the view is, CSS pixels from its top left. */
+        /** How bright a box of the strips' canvas over the view is, CSS pixels from its top left. */
         const brightness = (x: number, y: number, w: number, h: number): Promise<number> =>
             page.evaluate(
                 ([x, y, w, h]) => {
-                    const canvas = document.getElementById("view") as HTMLCanvasElement;
+                    const canvas = document.getElementById("strips") as HTMLCanvasElement;
                     const ratio = canvas.width / canvas.getBoundingClientRect().width;
                     const { data } = canvas
                         .getContext("2d")!
@@ -887,7 +887,7 @@ describe("the viewer in a browser", () => {
         await toggle.click();
         await painted(page);
         expect(await toggle.textContent()).toBe("Draw: WebGL");
-        expect(await page.locator("canvas[aria-hidden]").count()).toBe(1);
+        expect(await page.locator("canvas[aria-hidden]:not(#strips)").count()).toBe(1);
         // The Canvas2D view leaves its field clear, so what shows of the grid is WebGL's.
         const clear = await page.evaluate(() => {
             const canvas = document.getElementById("view") as HTMLCanvasElement;
@@ -916,7 +916,7 @@ describe("the viewer in a browser", () => {
         await toggle.click();
         await painted(page);
         expect(await toggle.textContent()).toBe("Draw: 2D");
-        expect(await page.locator("canvas[aria-hidden]").count()).toBe(0);
+        expect(await page.locator("canvas[aria-hidden]:not(#strips)").count()).toBe(0);
     });
 
     it("reports no errors after all of that", () => {
