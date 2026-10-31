@@ -16,8 +16,6 @@ Things that are obviously wrong.
 Ideas that aren't planned to be implemented yet, they may or may not be good ideas.
 
 ## General
-- Only the dome of turrets should be in the turret layer, the box should be wholly in the hull layer.
-- Control radius for cores: built (DESIGN.md §4); what is left is in ROADMAP.md §12, "A control radius for cores: what is left".
 - Hysteresis on decision to use attack or thrust orientation, to avoid flip-flopping.
 - Fighters should be able to dip into the hull layer (like they do for ramming) so they can fire beams and non-fragmenting projectiles at the hulls of ships. The balancing cost of this is that they can be hit by anything.
 - Ships shouldn't fire engines that make them spin faster while trying to cancel out a spin. The pilot trying to hold orientation should generally win.
@@ -96,16 +94,11 @@ flying round asteroids in its way rather than relying on keeping clear, which lo
  
 
 ### Getting hold safely
-- Two-stage approach: stop and match motion a few lengths off the surface, then creep in at the claw's lowest
-  speed. Slower to grip, but the fast part of the trip never ends at a rock.
 - Abort and go round again: if the approach is out of tolerance close in (too fast, too far across, still turning),
   back off along the stand-off path and try again, rather than pressing on into a bad contact.
-- Aim at a point on the surface, not the centre: the wedge facing it, or the richest wedge of the vein in reach.
-  An asteroid's middle is not where the claw meets it, and a spinning one's surface is moving.
+- Grip the richest wedge of the vein in reach, not just the nearest face wide enough for the jaws.
 - Rubble that gives: rock is loosely bound, so a slow knock could crumble the wedge it hits (damage spent on the
   rock) rather than crush the ship's engine. Makes grabbing forgiving without making ships tougher.
-- A claw approach speed of its own in doctrine, separate from the combat `approachSpeed`, so it can evolve: the
-  Salvager closes on rock at the speed it would close on an enemy.
 
 ### Sharing rocks
 - Claims: a ship scavenging an asteroid or hulk is a claim friends respect, unless the rock is big enough for

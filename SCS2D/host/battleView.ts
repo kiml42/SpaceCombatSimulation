@@ -247,6 +247,16 @@ export function battleView(
     const snapshot = new Snapshot();
     const flashes = new Flashes();
     const stripCache = new StripCache();
+    // The fleet strips, on a canvas of their own over the view: left as drawn between frames, so a tile not due
+    // a redraw costs nothing. It takes no input; the view under it does.
+    const stripCanvas = document.createElement("canvas");
+    stripCanvas.id = "strips";
+    stripCanvas.setAttribute("aria-hidden", "true");
+    Object.assign(stripCanvas.style, { position: "absolute", inset: "0", width: "100%", height: "100%", pointerEvents: "none" });
+    canvas.style.position = "relative";
+    canvas.after(stripCanvas);
+    const stripCtx = stripCanvas.getContext("2d");
+    if (stripCtx === null) throw new Error("no 2d context");
     const camera: Camera = { x: 0, y: 0, scale: 0.1 };
     /** The leading picked ship's body, as the renderer marks it, worked out each frame. */
     let selected = -1;
@@ -342,7 +352,7 @@ export function battleView(
         const width = Math.round(rect.width * ratio);
         const height = Math.round(rect.height * ratio);
         // Setting either clears the canvas, even to the size it already is.
-        for (const each of under === null ? [canvas] : [canvas, under]) {
+        for (const each of under === null ? [canvas, stripCanvas] : [canvas, stripCanvas, under]) {
             if (each.width !== width) each.width = width;
             if (each.height !== height) each.height = height;
         }
@@ -729,11 +739,8 @@ export function battleView(
             // Lit only where it is lit at all, in WebGL.
             pixi === null ? undefined : (battle.light ?? DEFAULT_LIGHT),
         );
-        if (tiles !== null) {
-            drawFleetStrips(into, view, tiles, selected, ratio, flashes, arcs, teamShots, stripCache, canvas.width, canvas.height);
-            // Its tiles are drawn in 2D, and Pixi shows them as a texture, which has to be told it has changed.
-            if (pixi !== null && stripCache.image !== null) pixi.changed(stripCache.image);
-        }
+        if (tiles !== null) drawFleetStrips(stripCtx, view, tiles, selected, ratio, flashes, arcs, teamShots, stripCache);
+        else stripCache.begin(stripCtx, null);
         const insets = closeUps(view, camera, canvas.width, canvas.height, selected, ratio, tiles);
         drawCloseUps(into, view, insets, selected, ratio, flashes, arcs, teamShots, marked);
         drawTargetRange(into, view, camera, canvas.width, canvas.height, selected, insets, ratio);
@@ -885,6 +892,7 @@ export function battleView(
             window.removeEventListener("keydown", onKey);
             options.remove();
             stacked?.remove();
+            stripCanvas.remove();
             battle = null;
             rewind = null;
         },

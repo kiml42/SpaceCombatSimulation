@@ -58,7 +58,7 @@ measured. Leave the window alone while it runs: covering or minimising it slows 
 
 | Option | Default | What it does |
 | --- | --- | --- |
-| `--scenes` | `Duel,Star Wars,Super Swarm,Asteroid Field,Factory` | Scenes by their names in the Battle route's list. |
+| `--scenes` | `Duel,Star Wars,Super Swarm,Asteroid Field,Factory` | Scenes by their names in the Battle route's list; [scenarios/README.md](../scenarios/README.md) says which suit what. |
 | `--renderers` | `webgl,canvas2d` | Which to measure, each in a fresh page. |
 | `--seconds` | `8` | How long each scene is measured. |
 | `--at` | `5` | Battle seconds each scene is played to first, so every run measures the same moment of it. |
@@ -74,6 +74,8 @@ measured. Leave the window alone while it runs: covering or minimising it slows 
 | `--executable` | | A browser by its path, in place of `--browser`. |
 | `--headless` | off | No window. Headless Chromium usually draws WebGL in software, so this measures little; it is for trying the tool. |
 | `--label` | `run` | Names the output file. |
+| `--app` | `dist/index.html` | Built pages to measure, comma-separated, each in turn every round: copy `dist/index.html` aside after building each version, and compare them in one run. |
+| `--repeat` | `1` | Rounds. The table shows each figure's median, and the spread of fps. |
 
 It prints a line a scene as it goes, then a table, and writes `benchmarks/results/render-<label>.json`. The
 first line of the summary names the GPU the browser used: if it says SwiftShader or llvmpipe, WebGL was drawn
@@ -91,6 +93,9 @@ Reading the table: **fps** and **frame** p50/p95/worst (ms between frames) are w
 the GPU or the display; js close to the frame time means the CPU is the limit, in stepping the battle unless
 `--paused` says otherwise. **from** is the battle time measuring began, and **sim** the battle seconds a
 second while measured: under 1 means the battle fell behind.
+
+On a laptop the same build can measure half as fast again from one run to the next, as it heats or changes
+power state, so compare two versions side by side with `--app` and `--repeat 3`, not in runs minutes apart.
 
 Running, a slow frame steps the battle further to catch up, which makes the next frame slower still, so a
 scene near the edge swings widely from run to run. To compare drawing, use `--paused`.
