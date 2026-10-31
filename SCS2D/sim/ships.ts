@@ -4343,7 +4343,7 @@ export class Ships {
                     fighting = tb;
                     holdOut = order.maxRange;
                 }
-                if (order.ram) this.charge(bodies, b, at, order.approachSpeed);
+                if (order.ram) this.charge(bodies, i, b, at, order.approachSpeed);
                 else {
                     this.hold(bodies, i, b, at, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE, wantAngle);
                     this.orbit(bodies, i, b, at, tb);
@@ -4859,12 +4859,30 @@ export class Ships {
         );
     }
 
-    private charge(bodies: Bodies, b: number, at: Spot, speed: number): void {
+    /**
+     * Close on `at` at `speed`, cancelling any sideways drift on the way: far
+     * out, speeding up matters as much as drift does; within `ramSettle` seconds
+     * of impact only the drift does, easing over as long again before that, so
+     * a ram coming in fast spends its last seconds lining up rather than
+     * speeding up past a miss.
+     */
+    private charge(bodies: Bodies, i: number, b: number, at: Spot, speed: number): void {
         const dx = at.x - bodies.x[b]!;
         const dy = at.y - bodies.y[b]!;
         const range = length(dx, dy);
-        const close = range > 0 ? speed / range : 0;
-        this.urge(URGE_REFERENCE, at.vx + dx * close, at.vy + dy * close);
+        if (!(range > 0)) {
+            this.urge(URGE_REFERENCE, at.vx, at.vy);
+            return;
+        }
+        const ux = dx / range;
+        const uy = dy / range;
+        const closing = (bodies.vx[b]! - at.vx) * ux + (bodies.vy[b]! - at.vy) * uy;
+        const settle = this.doctrines[i]!.approach.ramSettle;
+        const toGo = closing > 0 ? range / closing : Infinity;
+        const share = settle > 0 ? clamp((toGo - settle) / settle, 0, 1) : 1;
+        // Never kept faster than it was told to hit at.
+        const want = min(speed, closing + (speed - closing) * share);
+        this.urge(URGE_REFERENCE, at.vx + ux * want, at.vy + uy * want);
     }
 
     private hold(

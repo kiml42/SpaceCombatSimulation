@@ -67,7 +67,7 @@ describe("which numbers the panel offers", () => {
             "escortRadii",
             "escort",
         ]);
-        expect(sectionEntries([section("Ramming")]).map((e) => e.field)).toEqual(["ramRadii", "ramArmed", "ramMass"]);
+        expect(sectionEntries([section("Ramming")]).map((e) => e.field)).toEqual(["ramRadii", "ramArmed", "ramSettle", "ramMass"]);
     });
 
     it("gives every offered number a label and a step", () => {

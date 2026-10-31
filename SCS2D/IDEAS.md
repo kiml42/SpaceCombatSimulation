@@ -64,7 +64,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Evasive manoeuvres
   - Consider the time a projectile will take to arrive and change lateral velocity enough to not be where the enemy expects.
   - Would need counter-strategies, e.g. deliberately aiming randomly based on the target's ability to accelerate (already somewhat accounted for with the trigger range limit)
-- Ramming needs to work harder to cancel lateral velocity, this is more important than getting to the desired forwards velocity.
 
 ## Evolution
 - Make damage and function taken start at 0 and go negative, so the graph scales nicely at the beginning when they're all useless, highlighting even minor improvements.
