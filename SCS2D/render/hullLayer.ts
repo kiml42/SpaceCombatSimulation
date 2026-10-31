@@ -1,5 +1,7 @@
 import { AlphaFilter, Container, Graphics, GraphicsContext } from "pixi.js";
-import { domeRadius, isDomed, type ModuleSpec, type Snapshot } from "../sim/index.js";
+import { domeRadius, isDomed, originOf, type ModuleSpec, type Snapshot } from "../sim/index.js";
+import { bevelsOf } from "./bevels.js";
+import { lightSlope } from "./shading.js";
 import type { Camera } from "./camera.js";
 import {
     BARREL_SHADOW_M,
@@ -52,6 +54,9 @@ export class HullLayer {
     /** Kernels' shadows, on rock. */
     readonly kernelShadows: BlockShadows;
     readonly fighterShadows = new Pool();
+    /** The bevels along the thin hull's outside edges, and the thick modules'. */
+    readonly thinBevels = new Graphics();
+    readonly thickBevels = new Graphics();
     /** Where a thick module's shadow may fall: the thin hull. */
     readonly thinHull = new Pool();
     /** Where a fighter's shadow may fall: any ship's hull. */
@@ -82,8 +87,10 @@ export class HullLayer {
         // Lowest first: each depth's shadows fall on what is drawn before them.
         this.container.addChild(
             this.thin.container,
+            this.thinBevels,
             this.thickShadows.layer,
             this.thick.container,
+            this.thickBevels,
             this.fighterShadows.container,
             this.rockShadows.layer,
             this.rock.container,
@@ -109,6 +116,12 @@ export class HullLayer {
         const awayY = -Math.sin(light.from) * slant;
         for (const pool of this.pools()) pool.begin();
         for (const shadows of this.blockShadows()) shadows.clear();
+        this.thinBevels.clear();
+        this.thickBevels.clear();
+        this.bevelled = 0;
+        const { across } = lightSlope(light);
+        const towardX = Math.cos(light.from) * across;
+        const towardY = Math.sin(light.from) * across;
         for (let s = 0; s < snapshot.shipCount; s++) {
             const ship = snapshot.ships[s]!;
             const design = ship.currentStructure;
@@ -147,7 +160,25 @@ export class HullLayer {
                           : m.weaponsLayer && !domed
                             ? this.thick
                             : this.thin;
-                place(depth.next(fill), x, y, angle).alpha = fillAlpha(ship, i);
+                const alpha = fillAlpha(ship, i);
+                place(depth.next(fill), x, y, angle).alpha = alpha;
+                if (depth === this.thin || depth === this.thick) {
+                    const bevel = Math.min(BEVEL_M, BEVEL_SHARE * Math.min(m.spec.length, m.spec.width));
+                    if (bevel * camera.scale >= MIN_BEVEL_PX) {
+                        const origin = originOf(design, i);
+                        this.bevel(
+                            depth === this.thin ? this.thinBevels : this.thickBevels,
+                            bevelsOf(origin.design, origin.module),
+                            x,
+                            y,
+                            angle,
+                            bevel,
+                            towardX,
+                            towardY,
+                            alpha,
+                        );
+                    }
+                }
                 if (depth === this.thin) place(this.thinHull.next(outline), x, y, angle);
                 if (depth === this.thin || depth === this.thick) {
                     place(this.hull.next(outline), x, y, angle);
@@ -188,6 +219,45 @@ export class HullLayer {
             }
         }
         for (const pool of this.pools()) pool.end();
+    }
+
+    /** Bevels drawn in the last frame. */
+    bevelled = 0;
+
+    /**
+     * A module's bevelled `edges`, each a strip `width` wide inside it, lighter
+     * as it faces `toward` the light and darker as it faces away.
+     */
+    private bevel(
+        into: Graphics,
+        edges: readonly number[],
+        x: number,
+        y: number,
+        angle: number,
+        width: number,
+        towardX: number,
+        towardY: number,
+        alpha: number,
+    ): void {
+        const c = Math.cos(angle);
+        const s = Math.sin(angle);
+        for (let k = 0; k < edges.length; k += 6) {
+            const nx = edges[k + 4]! * c - edges[k + 5]! * s;
+            const ny = edges[k + 4]! * s + edges[k + 5]! * c;
+            const lit = nx * towardX + ny * towardY;
+            if (Math.abs(lit) < MIN_BEVEL_LIT) continue;
+            const ax = x + edges[k]! * c - edges[k + 1]! * s;
+            const ay = y + edges[k]! * s + edges[k + 1]! * c;
+            const bx = x + edges[k + 2]! * c - edges[k + 3]! * s;
+            const by = y + edges[k + 2]! * s + edges[k + 3]! * c;
+            const ix = -nx * width;
+            const iy = -ny * width;
+            into.poly([ax, ay, bx, by, bx + ix, by + iy, ax + ix, ay + iy]).fill({
+                color: lit > 0 ? 0xffffff : 0x000000,
+                alpha: alpha * Math.abs(lit) * (lit > 0 ? BEVEL_LIGHT : BEVEL_DARK),
+            });
+            this.bevelled++;
+        }
     }
 
     /** What is lit is tinted the light's colour; what is in shadow keeps only its ambient share. */
@@ -281,6 +351,17 @@ export class BlockShadows {
         }
     }
 }
+
+/** How wide a bevel is, metres, and at most as a share of its module's narrower side. */
+const BEVEL_M = 0.3;
+const BEVEL_SHARE = 0.12;
+/** Too thin to see under this many pixels, so not drawn. */
+const MIN_BEVEL_PX = 0.75;
+/** How bright a bevel facing the light goes, and how dark one facing away. */
+const BEVEL_LIGHT = 0.45;
+const BEVEL_DARK = 0.4;
+/** Square on to the light, a bevel is as the face beside it: not drawn. */
+const MIN_BEVEL_LIT = 0.05;
 
 /** Graphics kept from frame to frame, placed afresh each one. */
 export class Pool {
