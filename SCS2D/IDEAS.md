@@ -94,8 +94,6 @@ flying round asteroids in its way rather than relying on keeping clear, which lo
  
 
 ### Getting hold safely
-- Two-stage approach: stop and match motion a few lengths off the surface, then creep in at the claw's lowest
-  speed. Slower to grip, but the fast part of the trip never ends at a rock.
 - Abort and go round again: if the approach is out of tolerance close in (too fast, too far across, still turning),
   back off along the stand-off path and try again, rather than pressing on into a bad contact.
 - Grip the richest wedge of the vein in reach, not just the nearest face wide enough for the jaws.
