@@ -626,8 +626,11 @@ function drawShip(
         });
         ctx.lineWidth = legibleWidth(physicalWidth, MIN_BARREL_PX, metresToPx);
         ctx.stroke();
-        // A turret's barrels, as tubes; a hull mount's run back into its block, under a clip.
-        if (light !== undefined && hull === null) shadeBarrels(ctx, ship, t, ctx.lineWidth, light);
+        if (light !== undefined) {
+            const placed = design.modules[module]!;
+            const block = hidden ? blockBox(ship, placed.x, placed.y, placed.angle, spec.length, spec.width, hull.blockLength) : null;
+            shadeBarrels(ctx, ship, t, ctx.lineWidth, light, block);
+        }
         if (gun.braceLength > 0) drawBracing(ctx, gun, physicalWidth, mx, my, dirX, dirY);
         if (hidden) ctx.restore();
         if (hull !== null && !beamLenses) {
@@ -1456,7 +1459,7 @@ function shadeDome(ctx: CanvasRenderingContext2D, x: number, y: number, radius: 
 }
 
 /** A turret's barrels shaded as tubes `width` wide, in the world. */
-function shadeBarrels(ctx: CanvasRenderingContext2D, ship: ShipView, t: number, width: number, light: Light): void {
+function shadeBarrels(ctx: CanvasRenderingContext2D, ship: ShipView, t: number, width: number, light: Light, block: Box | null): void {
     const { across, up } = lightSlope(light);
     barrelLines(ship, t, (x0, y0, x1, y1) => {
         const dx = x1 - x0;
@@ -1466,12 +1469,69 @@ function shadeBarrels(ctx: CanvasRenderingContext2D, ship: ShipView, t: number, 
         const angle = math.atan2(dy, dx);
         const image = cylinderShade(across * sin(light.from - angle), up);
         if (image === null) return;
+        // Only where it is out of its block: a picture is not clipped where Pixi draws it.
+        const [from, to] = block === null ? [1, 1] : throughBox(block, x0, y0, dx, dy);
         ctx.save();
         ctx.translate(x0, y0);
         ctx.rotate(angle);
-        ctx.drawImage(image, 0, -width / 2, span, width);
+        if (from > 0) ctx.drawImage(image, 0, -width / 2, span * from, width);
+        if (to < 1) ctx.drawImage(image, span * to, -width / 2, span * (1 - to), width);
         ctx.restore();
     });
+}
+
+/** A hull mount's block in the world: its centre, which way it runs, and its extent along and across that. */
+export interface Box {
+    readonly x: number;
+    readonly y: number;
+    readonly ax: number;
+    readonly ay: number;
+    readonly back: number;
+    readonly front: number;
+    readonly half: number;
+}
+
+/** The block of a hull mount `length` by `width` placed at `x`, `y`, `angle` on `ship`, `block` long from its back. */
+function blockBox(ship: ShipView, x: number, y: number, angle: number, length: number, width: number, block: number): Box {
+    const c = cos(ship.angle);
+    const s = sin(ship.angle);
+    const a = ship.angle + angle;
+    return {
+        x: ship.x + x * c - y * s,
+        y: ship.y + x * s + y * c,
+        ax: cos(a),
+        ay: sin(a),
+        back: -length / 2,
+        front: -length / 2 + block,
+        half: width / 2,
+    };
+}
+
+/**
+ * Where the line from `x`, `y` to `x + dx`, `y + dy` runs through `box`, as
+ * shares of it from and to; 1 and 1 where it misses.
+ */
+export function throughBox(box: Box, x: number, y: number, dx: number, dy: number): [number, number] {
+    const rx = x - box.x;
+    const ry = y - box.y;
+    let from = -Infinity;
+    let to = Infinity;
+    for (const [p, d, lo, hi] of [
+        [rx * box.ax + ry * box.ay, dx * box.ax + dy * box.ay, box.back, box.front],
+        [-rx * box.ay + ry * box.ax, -dx * box.ay + dy * box.ax, -box.half, box.half],
+    ] as const) {
+        if (d === 0) {
+            if (p < lo || p > hi) return [1, 1];
+            continue;
+        }
+        const t0 = (lo - p) / d;
+        const t1 = (hi - p) / d;
+        from = max(from, min(t0, t1));
+        to = min(to, max(t0, t1));
+    }
+    from = max(0, from);
+    to = min(1, to);
+    return from < to ? [from, to] : [1, 1];
 }
 
 /**

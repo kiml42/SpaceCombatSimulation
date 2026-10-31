@@ -222,13 +222,13 @@ an entry is either still open or it is gone.
     4. **Part art, first pass:** bevels on the hull's outside edges, and on the thick parts' edges, lit by
        the battle's light, and engine bells, barrels and turret domes shaded as rounded. Richer procedural
        parts come later.
-       - **Rounded parts — built.** Engine bells and turrets' barrels are shaded as cylinders across
+       - **Rounded parts — built.** Engine bells and every mount's barrels are shaded as cylinders across
          them, and a turret's dome as a flattened hemisphere on a short cylinder, each by one image laid over
          the part (`render/shading.ts`): black where it turns from the light, white where it turns to it,
          clear where it faces up as the deck does, so it shades whatever colour the part is. Made once per
          angle of the light across the part, rounded to a twelfth, and kept. Drawn in WebGL only, as the
-         shadows are; a hull mount's barrels are not shaded, as they run back into a block under a clip the
-         adapter does not apply to images; they wait for a later pass, shaded from the block's face out.
+         shadows are. A hull mount's barrels run back into its block under a clip the adapter does not apply
+         to images, so they are shaded only where they are out of the block, worked out from the line itself.
          Docking ports are shaded as rounded across, block and collar. The dome's shadow is still the cylinder's; a softer edge to it
          waits on soft shadows.
        - **Bevels — built** (`render/bevels.ts`, drawn by `render/hullLayer.ts`): a strip inside each
