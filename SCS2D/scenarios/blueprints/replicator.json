@@ -282,9 +282,9 @@
           "id": 26,
           "kind": "generator",
           "x": -3.75,
-          "y": 7.25,
+          "y": 8.5,
           "length": 4.5,
-          "width": 6.5,
+          "width": 4,
           "thick": true
         },
         {
@@ -357,7 +357,7 @@
       "length": 4,
       "width": 16,
       "reinforcement": 2,
-      "robotsPerBerth": 5
+      "robotsPerBerth": 7
     },
     {
       "id": 2,
@@ -367,7 +367,7 @@
       "length": 4,
       "width": 8,
       "reinforcement": 2,
-      "robotsPerBerth": 5
+      "robotsPerBerth": 9
     },
     {
       "id": 6,
@@ -394,7 +394,7 @@
       "x": -3.75,
       "y": 0,
       "length": 4.5,
-      "width": 8,
+      "width": 13,
       "thick": true,
       "computing": 0.03
     }
