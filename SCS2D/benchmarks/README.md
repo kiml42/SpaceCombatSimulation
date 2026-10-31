@@ -68,7 +68,7 @@ measured. Leave the window alone while it runs: covering or minimising it slows 
 | `--paused` | off | Hold the battle at `--at`, so the time is drawing alone. |
 | `--strips` | `shown` | `hidden` hides the fleet strips down the edges, to see what they cost. |
 | `--screenshots` | off | Save each scene as measured, beside the results, to check what was drawn. |
-| `--profile` | off | After measuring each scene, take a CPU profile of it for `--seconds` and print the 15 functions with the most self time; the `.cpuprofile` opens in DevTools' Performance panel. Build with `pnpm exec vite build --minify false` first for readable names. |
+| `--profile` | off | After measuring each scene, take a CPU profile of it for `--seconds` and print the 15 functions with the most self time; the `.cpuprofile` opens in DevTools' Performance panel (Firefox: below). Build with `pnpm exec vite build --minify false` first for readable names. |
 | `--vsync` | off | Hold the frame rate to the display's. Without it the rate is uncapped, so a fast machine shows how far over 60 it could go. |
 | `--browser` | `chromium` | Playwright's Chromium, or a `chrome`, `msedge` or `firefox` installed on the machine. |
 | `--executable` | | A browser by its path, in place of `--browser`. |
@@ -79,8 +79,12 @@ It prints a line a scene as it goes, then a table, and writes `benchmarks/result
 first line of the summary names the GPU the browser used: if it says SwiftShader or llvmpipe, WebGL was drawn
 in software and its figures say nothing about the machine.
 
-Firefox is driven over WebDriver BiDi, in a fresh profile of its own with full-precision timers. It has no
-`--profile` (that is Chromium's DevTools protocol), and the GPU it names is a near match, not the exact model.
+Firefox is driven over WebDriver BiDi, in a fresh profile of its own with full-precision timers, and the GPU it
+names is a near match, not the exact model. With `--profile`, Firefox's own profiler records each scene in a
+browser of its own, which writes `render-<label>-<renderer>-<scene>.gecko.json` as it closes (it opens at
+profiler.firefox.com), and each sample is counted to the innermost function of the app's code on its stack, or
+to the browser's own labelled work where there is none. A longer run in one browser loses its start, as the
+profiler keeps a fixed buffer.
 
 Reading the table: **fps** and **frame** p50/p95/worst (ms between frames) are what is felt; **js** p50/p95
 (ms of main-thread work a frame) is where the time goes. Frames far longer than their js time are waiting on
