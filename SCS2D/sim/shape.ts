@@ -1,4 +1,4 @@
-import { abs, max, min, round, sqrt } from "./math.js";
+import { abs, cos, max, min, round, sin, sqrt, TAU } from "./math.js";
 import type { ModuleKind, ModuleSpec } from "./modules.js";
 
 /**
@@ -40,6 +40,38 @@ export const KERNEL_MAX_CORNERS = 12;
 
 /** The most corners any outline has: scratch sized for this holds any module. */
 export const MOST_CORNERS = KERNEL_MAX_CORNERS;
+
+/**
+ * A turret's dome: the part of it that turns, standing above the deck on a
+ * block that does not. The block is the module's box, in the hull layer; the
+ * dome is all of it in the weapons layer, a circle as wide as the module's
+ * narrower side, taken as a regular polygon of this many corners so the same
+ * separating-axis test serves it.
+ */
+export const DOME_CORNERS = 12;
+
+/** Whether this kind of module is a block below the deck with a dome above it. */
+export function isDomed(kind: ModuleKind): boolean {
+    return kind === "turret" || kind === "beamTurret";
+}
+
+const domes = new Map<number, readonly number[]>();
+
+/** A dome's outline in its module's own frame, anticlockwise: a polygon round the inscribed circle of the module's box. */
+export function domeOf(spec: ModuleSpec): readonly number[] {
+    const radius = min(spec.length, spec.width) * 0.5;
+    let made = domes.get(radius);
+    if (made === undefined) {
+        const corners: number[] = [];
+        for (let k = 0; k < DOME_CORNERS; k++) {
+            const a = (k * TAU) / DOME_CORNERS;
+            corners.push(radius * cos(a), radius * sin(a));
+        }
+        made = corners;
+        domes.set(radius, made);
+    }
+    return made;
+}
 
 /**
  * The smallest triangle that is a module, m².

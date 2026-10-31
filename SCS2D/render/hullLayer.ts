@@ -1,5 +1,5 @@
 import { AlphaFilter, Container, Graphics, GraphicsContext } from "pixi.js";
-import type { ModuleSpec, Snapshot } from "../sim/index.js";
+import { domeOf, isDomed, type ModuleSpec, type Snapshot } from "../sim/index.js";
 import type { Camera } from "./camera.js";
 import {
     BARREL_SHADOW_M,
@@ -26,7 +26,8 @@ import { shipColours } from "./teams.js";
  * Lighting takes a module as one of two depths, thin (the hull) or thick
  * (the weapons layer), and a fighter as higher still. In order: the thin
  * fills; the thick modules' shadows, on thin hull only; the thick fills; and
- * the fighters' shadows, on any hull. Asteroids stand higher than any ship,
+ * the fighters' shadows, on any hull. A turret's block is thin and its dome
+ * casts a thick module's shadow. Asteroids stand higher than any ship,
  * thin rock, thick rock and kernel each a step above the last. Fighters themselves stay with
  * Canvas2D, drawn above robots and the details of the decks they sit on,
  * which a layer underneath cannot be; a shadow needs only their outline.
@@ -134,6 +135,8 @@ export class HullLayer {
                 // A piece hooked on from another ship keeps that ship's colours.
                 const fill = contextFor(m.spec, ship.sides?.[i] ?? ship.team, ship.integrity?.[i] ?? 1, m.weaponsLayer);
                 const kind = m.spec.kind;
+                // A turret's block is hull; its dome stands on it, drawn with the turrets.
+                const domed = isDomed(kind);
                 const depth =
                     kind === "kernel"
                         ? this.kernel
@@ -141,7 +144,7 @@ export class HullLayer {
                           ? m.weaponsLayer
                               ? this.thickRock
                               : this.rock
-                          : m.weaponsLayer
+                          : m.weaponsLayer && !domed
                             ? this.thick
                             : this.thin;
                 place(depth.next(fill), x, y, angle).alpha = fillAlpha(ship, i);
@@ -157,6 +160,10 @@ export class HullLayer {
                 // it stands above what the shadow falls on.
                 const cast = (on: BlockShadows, length: number): void => on.cast(m.spec, x, y, angle, awayX * length, awayY * length);
                 if (depth === this.thick) cast(this.thickShadows, THICK_SHADOW_M);
+                // A dome as a short cylinder as high as a thick module: its rounded top
+                // is left for when mounts are shaded as rounded.
+                else if (domed)
+                    this.thickShadows.cast(m.spec, x, y, angle, awayX * THICK_SHADOW_M, awayY * THICK_SHADOW_M, [domeOf(m.spec)]);
                 else if (depth === this.rock) cast(this.rockShadows, rock);
                 else if (depth === this.thickRock) {
                     cast(this.rockShadows, rock * THICK_ROCK_RISE);
@@ -250,10 +257,18 @@ export class BlockShadows {
         if (ends.length > 0) this.graphics.stroke({ width, color: 0x000000 });
     }
 
-    cast(spec: ModuleSpec, x: number, y: number, angle: number, dx: number, dy: number): void {
+    cast(
+        spec: ModuleSpec,
+        x: number,
+        y: number,
+        angle: number,
+        dx: number,
+        dy: number,
+        footprint: readonly (readonly number[])[] = shapesOf(spec),
+    ): void {
         const c = Math.cos(angle);
         const s = Math.sin(angle);
-        for (const corners of shapesOf(spec)) {
+        for (const corners of footprint) {
             const placed: number[] = [];
             for (let k = 0; k < corners.length; k += 2) {
                 placed.push(x + corners[k]! * c - corners[k + 1]! * s, y + corners[k]! * s + corners[k + 1]! * c);

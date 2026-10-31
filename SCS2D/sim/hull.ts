@@ -1,5 +1,5 @@
 import { abs, cos, max, min, sin, sqrt } from "./math.js";
-import { shapeOf } from "./shape.js";
+import { domeOf, isDomed, shapeOf } from "./shape.js";
 import type { DesignModule, ShipDesign } from "./blueprint.js";
 import type { Bodies } from "./bodies.js";
 import type { Rng } from "./rng.js";
@@ -169,8 +169,9 @@ export function modulesAlong(
 
     for (let i = 0; i < design.modules.length; i++) {
         const m = design.modules[i]!;
-        if (i === skip || (moduleLayers(m, bodyLayers) & layers) === 0) continue;
-        const triangle = shapeOf(m.spec);
+        const met = moduleLayers(m, bodyLayers) & layers;
+        if (i === skip || met === 0) continue;
+        const triangle = shapeIn(m.spec, met);
         if (passesWide(m, triangle, x0, y0, ux, uy, length)) continue;
         if (triangle !== null) {
             shapedModuleAlong(m, triangle, i, x0, y0, ux, uy, length, out);
@@ -440,6 +441,14 @@ export const WEAPONS_LAYER = 2;
 export const BOTH_LAYERS = HULL_LAYER | WEAPONS_LAYER;
 /** Each module in the layers its own kind and depth put it in. */
 export const OWN_LAYERS = -1;
+
+/**
+ * A module's outline where it is met in `layers` only: a turret's dome where
+ * that is above the deck alone, else its own outline (null for its box).
+ */
+export function shapeIn(spec: DesignModule["spec"], layers: number): readonly number[] | null {
+    return (layers & HULL_LAYER) === 0 && isDomed(spec.kind) ? domeOf(spec) : shapeOf(spec);
+}
 
 /** Which layers a module is in: the whole ship's, where it has one, else its own. */
 export function moduleLayers(m: { readonly weaponsLayer: boolean }, bodyLayers: number): number {

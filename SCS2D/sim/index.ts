@@ -221,6 +221,8 @@ export {
     polygonArea,
     triangleAcross,
     triangleBounds,
+    domeOf,
+    isDomed,
     shapeOf,
     wedge,
     triangleRadius,

@@ -220,8 +220,12 @@ an entry is either still open or it is gone.
         - **Fighters** keep a darkened version of their fleet's colours, perhaps darkened less once edges are
           drawn on purpose and hulls look smoother. Rock and wreckage keep colours of their own.
     4. **Part art, first pass:** bevels on the hull's outside edges, and on the thick parts' edges, lit by
-       the battle's light, and engine bells and barrels shaded as rounded. Richer procedural parts come
-       later.
+       the battle's light, and engine bells, barrels and turret domes shaded as rounded. Richer procedural
+       parts come later.
+       - **A turret's dome** is a slightly flattened hemisphere on a short cylinder, standing on its block in
+         the hull layer. Its shadow is cast as the cylinder's for now (the dome's circle swept away from the
+         light, as high as a thick module); the rounded top, shading across it and the softer edge to its
+         shadow come with this pass.
         - **Each edge of a module is bevelled or not**, settled once for the design as built: an edge on its
           outline is, an edge it shares with a neighbour is not, so module edges inside the hull stay unseen.
           A little simpler than bevelling the outline itself, and it should look as good.

@@ -1,8 +1,8 @@
 import type { Bodies } from "./bodies.js";
 import type { ShipDesign } from "./blueprint.js";
-import { BOTH_LAYERS, moduleLayers, OWN_LAYERS, type HullDesigns } from "./hull.js";
+import { BOTH_LAYERS, HULL_LAYER, moduleLayers, OWN_LAYERS, type HullDesigns } from "./hull.js";
 import { abs, cos, max, min, sin, sqrt } from "./math.js";
-import { MOST_CORNERS, shapeOf } from "./shape.js";
+import { domeOf, isDomed, MOST_CORNERS, shapeOf } from "./shape.js";
 import type { ModuleSpec } from "./modules.js";
 
 /**
@@ -204,7 +204,15 @@ interface Box {
 }
 
 /** Fill `out` with a module's outline in the world, given its body's pose. */
-function boxOf(design: ShipDesign, module: number, bx: number, by: number, angle: number, out: Box): void {
+function boxOf(
+    design: ShipDesign,
+    module: number,
+    bx: number,
+    by: number,
+    angle: number,
+    out: Box,
+    triangle: readonly number[] | null = shapeOf(design.modules[module]!.spec),
+): void {
     const m = design.modules[module]!;
     const c = cos(angle);
     const s = sin(angle);
@@ -213,7 +221,6 @@ function boxOf(design: ShipDesign, module: number, bx: number, by: number, angle
     const own = angle + m.angle;
     out.ux = cos(own);
     out.uy = sin(own);
-    const triangle = shapeOf(m.spec);
     if (triangle === null) {
         out.count = 0;
         out.halfLength = m.spec.length * 0.5;
@@ -351,6 +358,20 @@ function contactPoint(a: Box, b: Box, nx: number, ny: number): void {
 /** Scratch, so finding contacts allocates nothing after the first few steps. */
 const boxesA: Box[] = [];
 const boxesB: Box[] = [];
+const blankBox = (): Box => ({
+    x: 0,
+    y: 0,
+    ux: 1,
+    uy: 0,
+    halfLength: 0,
+    halfWidth: 0,
+    radius: 0,
+    corners: new Float64Array(MOST_CORNERS * 2),
+    count: 0,
+});
+/** A turret's dome on either hull of a pair, where they meet above the deck alone. */
+const domeA = blankBox();
+const domeB = blankBox();
 /** The bodies that have hulls this step, and what they are built from. */
 const solid: number[] = [];
 const solidDesigns: ShipDesign[] = [];
@@ -502,11 +523,25 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts):
         let moduleB = -1;
 
         for (let ma = 0; ma < designA.modules.length; ma++) {
-            const boxA = boxesA[ma]!;
             const inA = moduleLayers(designA.modules[ma]!, layersA);
             for (let mb = 0; mb < designB.modules.length; mb++) {
-                if ((inA & moduleLayers(designB.modules[mb]!, layersB)) === 0) continue;
-                const boxB = boxesB[mb]!;
+                const shared = inA & moduleLayers(designB.modules[mb]!, layersB);
+                if (shared === 0) continue;
+                let boxA = boxesA[ma]!;
+                let boxB = boxesB[mb]!;
+                // Met above the deck alone, a turret is its dome rather than its block.
+                if ((shared & HULL_LAYER) === 0) {
+                    const specA = designA.modules[ma]!.spec;
+                    const specB = designB.modules[mb]!.spec;
+                    if (isDomed(specA.kind)) {
+                        boxOf(designA, ma, bodies.x[i]!, bodies.y[i]!, bodies.angle[i]!, domeA, domeOf(specA));
+                        boxA = domeA;
+                    }
+                    if (isDomed(specB.kind)) {
+                        boxOf(designB, mb, bodies.x[j]!, bodies.y[j]!, bodies.angle[j]!, domeB, domeOf(specB));
+                        boxB = domeB;
+                    }
+                }
                 // Corner circles first: most module pairs on two hulls that are
                 // touching somewhere are nowhere near each other.
                 const mx = boxB.x - boxA.x;
