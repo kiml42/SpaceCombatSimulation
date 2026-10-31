@@ -106,7 +106,7 @@ const CORE_REACH = 0.55;
 /** How wide a flame's hot core is, as a share of the flame's width where it is. */
 const CORE_WIDTH = 0.45;
 /** How bright a flame's edge is beside its core, which is the sprite's brightest. */
-const EDGE_SHARE = 0.7;
+const EDGE_SHARE = 0.8;
 const flames = new Map<string, Image | null>();
 
 /**

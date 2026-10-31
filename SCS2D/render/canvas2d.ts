@@ -304,7 +304,11 @@ const LOAD_READY = "#4cf24c";
 const PLUME = "255, 217, 160";
 const PLUME_CORE = "255, 244, 224";
 /** How much brighter a plume's hot core is than its edge. */
-const PLUME_CORE_BOOST = 1.4;
+const PLUME_CORE_BOOST = 1.8;
+/** The glow round a burning nozzle's exit, spilling past its bell: its colour, reach as a multiple of the exit's half-width, and brightness beside the flame's. */
+const NOZZLE_GLOW = "#ffd9a0";
+const NOZZLE_GLOW_REACH = 1.8;
+const NOZZLE_GLOW_SHARE = 0.35;
 /** A burn on a hull: the flame's colour, hotter at the middle. */
 const BURN = "255, 170, 90";
 const BURN_CORE = "255, 236, 200";
@@ -1180,11 +1184,20 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
         const root = -engine.length / 2;
         const half = engine.geometry.exitWidth / 2;
         const image = flameSprite(PLUME, PLUME_CORE);
-        if (image === null) return;
-        // The sprite's core is its brightest, its edge a little dimmer: the core
-        // as bright as before, the edge as the flame was.
+        const glow = sprite("halo", NOZZLE_GLOW);
+        if (image === null || glow === null) return;
         const outer = ctx.globalAlpha;
-        ctx.globalAlpha = outer * layerAlpha(min(1, plumeAlpha(plumeIntensity(engine.geometry, force)) * PLUME_CORE_BOOST), split);
+        const blend = ctx.globalCompositeOperation;
+        const brightness = layerAlpha(min(1, plumeAlpha(plumeIntensity(engine.geometry, force)) * PLUME_CORE_BOOST), split);
+        // Round the exit, past the bell's sides and back over its mouth: light,
+        // so it brightens whatever it is over.
+        const g = half * NOZZLE_GLOW_REACH;
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = outer * brightness * NOZZLE_GLOW_SHARE;
+        ctx.drawImage(glow, root - g, across - g, 2 * g, 2 * g);
+        ctx.globalCompositeOperation = blend;
+        // The sprite's core is its brightest, its edge a little dimmer.
+        ctx.globalAlpha = outer * brightness;
         let cutAny = false;
         for (let k = 0; k < PLUME_RAYS; k++) if (landed[k]! > 0) cutAny = true;
         if (!cutAny) ctx.drawImage(image, root - reach, across - half, reach, 2 * half);
