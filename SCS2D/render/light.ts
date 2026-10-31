@@ -27,6 +27,8 @@ export const BUILDER_LIGHT: Light = { from: (3 * Math.PI) / 4, colour: "#ffffff"
 
 /** How far a thick module's shadow falls across the thin hull beside it, metres. */
 export const THICK_SHADOW_M = 1.5;
+/** How far a barrel's shadow falls across the thin hull, metres: it stands on its mount, as high as a thick module. */
+export const BARREL_SHADOW_M = THICK_SHADOW_M;
 /**
  * How high a small asteroid's thin rock stands, as the length of its shadow
  * on a ship beside it, metres: twice a thick module's. A larger asteroid

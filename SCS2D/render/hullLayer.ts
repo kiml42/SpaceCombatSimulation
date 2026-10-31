@@ -2,6 +2,7 @@ import { AlphaFilter, Container, Graphics, GraphicsContext } from "pixi.js";
 import type { ModuleSpec, Snapshot } from "../sim/index.js";
 import type { Camera } from "./camera.js";
 import {
+    BARREL_SHADOW_M,
     DEFAULT_LIGHT,
     FIGHTER_SHADOW_M,
     KERNEL_RISE,
@@ -11,7 +12,9 @@ import {
     THICK_SHADOW_M,
     type Light,
 } from "./light.js";
+import { barrelLines, MIN_BARREL_PX } from "./barrels.js";
 import { fillAlpha, fillColour, isFighterModule, moduleFills, padMark, type Fill } from "./moduleFills.js";
+import { legibleWidth } from "./strokes.js";
 import { shipColours } from "./teams.js";
 
 /**
@@ -60,6 +63,7 @@ export class HullLayer {
     readonly rockUnderKernel = new Pool();
     private readonly fighterShade: AlphaFilter;
     private light: Light | null = null;
+    private readonly barrelEnds: number[] = [];
 
     /**
      * `shade` makes the filter a shadow layer is darkened through, all at once
@@ -161,6 +165,18 @@ export class HullLayer {
                 // On thick rock; thin rock under a kernel takes the same, a little short.
                 else if (depth === this.kernel) cast(this.kernelShadows, rock * (KERNEL_RISE - THICK_ROCK_RISE));
             }
+            // A capital ship's barrels, standing on their mounts as high as a thick
+            // module, as the thick modules' shadows are on the thin hull.
+            const bx = awayX * BARREL_SHADOW_M - camera.x;
+            const by = awayY * BARREL_SHADOW_M - camera.y;
+            for (let t = 0; t < design.turrets.length; t++) {
+                const module = design.turrets[t]!.module;
+                if (ship.drawn?.[module] === false || isFighterModule(design, module)) continue;
+                const ends = this.barrelEnds;
+                ends.length = 0;
+                const width = barrelLines(ship, t, (x0, y0, x1, y1) => ends.push(x0 + bx, y0 + by, x1 + bx, y1 + by));
+                this.thickShadows.lines(ends, legibleWidth(width, MIN_BARREL_PX, camera.scale));
+            }
         }
         for (const pool of this.pools()) pool.end();
     }
@@ -219,6 +235,19 @@ export class BlockShadows {
     clear(): void {
         this.graphics.clear();
         this.shapes.length = 0;
+        this.strokes = 0;
+    }
+
+    /** How many lines were drawn in the last frame. */
+    strokes = 0;
+
+    /** Lines `width` wide, each four numbers in `ends`, as the shadows of things standing clear of the hull. */
+    lines(ends: readonly number[], width: number): void {
+        for (let k = 0; k < ends.length; k += 4) {
+            this.graphics.moveTo(ends[k]!, ends[k + 1]!).lineTo(ends[k + 2]!, ends[k + 3]!);
+            this.strokes++;
+        }
+        if (ends.length > 0) this.graphics.stroke({ width, color: 0x000000 });
     }
 
     cast(spec: ModuleSpec, x: number, y: number, angle: number, dx: number, dy: number): void {

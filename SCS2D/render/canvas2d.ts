@@ -38,6 +38,7 @@ import {
     berthGrid,
 } from "../sim/index.js";
 import { BACKGROUND, GRID, WELL, WELL_ARM_PX, WELL_PULLS } from "./backdrop.js";
+import { barrelLines, MIN_BARREL_PX } from "./barrels.js";
 import { gridStep, type Camera } from "./camera.js";
 import { fillAlpha, fillColour, isFighterModule, moduleFills, padMark, type Fill } from "./moduleFills.js";
 import {
@@ -184,7 +185,6 @@ const MIN_GLOW_PX = 5;
 const BEAM_GLOW_WIDTHS = 5;
 const MIN_BEAM_GLOW_PX = 3;
 const MIN_TRACER_PX = 0.1;
-const MIN_BARREL_PX = 1;
 /** A flash is never smaller than this on screen, however far out the camera is. */
 const MIN_FLASH_PX = 1;
 
@@ -833,22 +833,12 @@ function drawShip(
         }
 
         ctx.strokeStyle = BARREL;
-        // Twice the calibre: for a gun that is the barrel's outer diameter, the
-        // tube the annulus in `moduleStats` charges steel for rather than the bore.
-        // For a beam mount it is the housing round the optic rather than the optic
-        // itself, which comes to the same drawn width and wants no special case —
-        // and the two read quite differently anyway, a laser's housing being about
-        // as deep as it is wide where a barrel is fifty times.
-        // A hull mount knows its outlets' width outright, and for a lens that is
-        // the lens rather than twice it.
-        const physicalWidth = hull !== null ? hull.outletWidth : 2 * gun.calibre;
         // Barrels are allowed to overlap once the floor has widened them past their
         // own gaps, which happens only when the whole ship is a hundred-odd pixels
         // across. A row that closes into one solid bar still says where the turret
         // is pointing, where holding each barrel inside its gap would shrink them
         // back below the floor and say nothing. Overlap is free: the barrel colours
         // are opaque, so a bar drawn twice looks like a bar.
-        ctx.lineWidth = legibleWidth(physicalWidth, MIN_BARREL_PX, metresToPx);
         const hidden = hull !== null && !beamLenses;
         if (hidden) {
             // Behind the block, so a barrel trained hard over never shows its breech.
@@ -856,21 +846,11 @@ function drawShip(
             blockClip(ctx, ship, placed.x, placed.y, placed.angle, spec.length, spec.width, hull.blockLength, reach + spec.length);
         }
         ctx.beginPath();
-        for (let k = 0; k < count; k++) {
-            const lat = count > 1 ? (k - (count - 1) * 0.5) * spacing : 0;
-            if (beamLenses) {
-                // Each lens about its own centre, the row laid across the mount.
-                const cx = mx - sin(rest) * lat;
-                const cy = my + cos(rest) * lat;
-                ctx.moveTo(cx - dirX * reach, cy - dirY * reach);
-                ctx.lineTo(cx + dirX * reach, cy + dirY * reach);
-                continue;
-            }
-            const bx = mx - dirY * lat;
-            const by = my + dirX * lat;
-            ctx.moveTo(bx, by);
-            ctx.lineTo(bx + dirX * reach, by + dirY * reach);
-        }
+        const physicalWidth = barrelLines(ship, t, (x0, y0, x1, y1) => {
+            ctx.moveTo(x0, y0);
+            ctx.lineTo(x1, y1);
+        });
+        ctx.lineWidth = legibleWidth(physicalWidth, MIN_BARREL_PX, metresToPx);
         ctx.stroke();
         if (gun.braceLength > 0) drawBracing(ctx, gun, physicalWidth, mx, my, dirX, dirY);
         if (hidden) ctx.restore();
