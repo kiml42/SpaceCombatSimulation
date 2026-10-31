@@ -163,9 +163,10 @@ export class HullLayer {
                 const alpha = fillAlpha(ship, i);
                 place(depth.next(fill), x, y, angle).alpha = alpha;
                 if (depth === this.thin || depth === this.thick) {
-                    const bevel = Math.min(BEVEL_M, BEVEL_SHARE * Math.min(m.spec.length, m.spec.width));
+                    // As wide on every module of a ship, by the size it was built: a piece keeps its ship's.
+                    const origin = originOf(design, i);
+                    const bevel = Math.min(BEVEL_OF_RADIUS * origin.design.radius, BEVEL_MOST * Math.min(m.spec.length, m.spec.width));
                     if (bevel * camera.scale >= MIN_BEVEL_PX) {
-                        const origin = originOf(design, i);
                         this.bevel(
                             depth === this.thin ? this.thinBevels : this.thickBevels,
                             bevelsOf(origin.design, origin.module),
@@ -352,9 +353,14 @@ export class BlockShadows {
     }
 }
 
-/** How wide a bevel is, metres, and at most as a share of its module's narrower side. */
-const BEVEL_M = 0.3;
-const BEVEL_SHARE = 0.12;
+/**
+ * How wide a ship's bevels are, as a share of its radius as built: the same on
+ * every module of it, so a big ship's show and a small one's still fit. A
+ * Corvette's come to 0.3 m. Never more than `BEVEL_MOST` of a module's
+ * narrower side, so a small module keeps a face.
+ */
+export const BEVEL_OF_RADIUS = 0.0175;
+const BEVEL_MOST = 0.25;
 /** Too thin to see under this many pixels, so not drawn. */
 const MIN_BEVEL_PX = 0.75;
 /** How bright a bevel facing the light goes, and how dark one facing away. */
