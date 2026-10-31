@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AlphaFilter, Graphics } from "pixi.js";
-import { capture, Snapshot } from "../sim/index.js";
+import { capture, isDomed, Snapshot } from "../sim/index.js";
 import { duel } from "../scenarios/duel.js";
 import { asteroidField } from "../scenarios/asteroidField.js";
 import { starWars } from "../scenarios/starWars.js";
@@ -34,7 +34,10 @@ describe("the Pixi hull layer", () => {
         for (const ship of ships) {
             const design = ship.currentStructure;
             for (let i = 0; i < design.modules.length; i++) {
-                if (ship.drawn?.[i] !== false && which(isFighterModule(design, i), design.modules[i]!.weaponsLayer)) n++;
+                const m = design.modules[i]!;
+                // A turret's block is hull; only its dome stands above the deck.
+                const thick = m.weaponsLayer && !isDomed(m.spec.kind);
+                if (ship.drawn?.[i] !== false && which(isFighterModule(design, i), thick)) n++;
             }
         }
         return n;
@@ -43,6 +46,20 @@ describe("the Pixi hull layer", () => {
         layer.update(view, camera, 1000, 1000, light);
         return layer;
     };
+
+    it("casts each turret's dome's shadow on the thin hull, as a thick module's", () => {
+        const layer = drawn(layerOf());
+        const domes = ships.reduce(
+            (sum, ship) =>
+                sum +
+                ship.currentStructure.modules.filter(
+                    (m, i) => ship.drawn?.[i] !== false && isDomed(m.spec.kind) && !isFighterModule(ship.currentStructure, i),
+                ).length,
+            0,
+        );
+        expect(domes).toBeGreaterThan(0);
+        expect(layer.thickShadows.shapes.length).toBeGreaterThanOrEqual(layer.thick.shown().length + domes);
+    });
 
     it("fills every capital module, thin or thick by its layer, each within its ship and relative to the camera", () => {
         const layer = drawn(layerOf());
@@ -147,6 +164,23 @@ describe("the Pixi hull layer", () => {
         expect(BUILDER_LIGHT.slant).toBeLessThan(1);
         // Measured from where it would fall with the light straight overhead.
         low.forEach((x, i) => expect(high[i]! - flat[i]!).toBeCloseTo((x - flat[i]!) * BUILDER_LIGHT.slant!, 6));
+    });
+
+    it("casts each capital turret's barrels' shadows on the thin hull, moved away from the light by a thick module's height", () => {
+        const layer = drawn(layerOf());
+        let barrels = 0;
+        for (const ship of ships) {
+            const design = ship.currentStructure;
+            for (let t = 0; t < design.turrets.length; t++) {
+                const module = design.turrets[t]!.module;
+                if (ship.drawn?.[module] === false || isFighterModule(design, module)) continue;
+                // A hull mount's barrels are at the deck, and cast nothing.
+                if (!isDomed(design.modules[module]!.spec.kind)) continue;
+                barrels += design.turrets[t]!.gun.barrelCount;
+            }
+        }
+        expect(barrels).toBeGreaterThan(0);
+        expect(layer.thickShadows.strokes).toBe(barrels);
     });
 
     it("casts a block's shadow as its footprint swept away from the light", () => {

@@ -1,5 +1,5 @@
 import { abs, cos, max, min, sin, sqrt } from "./math.js";
-import { shapeOf } from "./shape.js";
+import { domeRadius, isDomed, shapeOf } from "./shape.js";
 import type { DesignModule, ShipDesign } from "./blueprint.js";
 import type { Bodies } from "./bodies.js";
 import type { Rng } from "./rng.js";
@@ -169,7 +169,13 @@ export function modulesAlong(
 
     for (let i = 0; i < design.modules.length; i++) {
         const m = design.modules[i]!;
-        if (i === skip || (moduleLayers(m, bodyLayers) & layers) === 0) continue;
+        const met = moduleLayers(m, bodyLayers) & layers;
+        if (i === skip || met === 0) continue;
+        // Met above the deck alone, a turret is its dome rather than its block.
+        if ((met & HULL_LAYER) === 0 && isDomed(m.spec.kind)) {
+            domeAlong(m, domeRadius(m.spec), i, x0, y0, ux, uy, length, out);
+            continue;
+        }
         const triangle = shapeOf(m.spec);
         if (passesWide(m, triangle, x0, y0, ux, uy, length)) continue;
         if (triangle !== null) {
@@ -382,6 +388,37 @@ function shapedModuleAlong(
     // entered by no face at all, and says so with a zero normal.
     const faced = entered && near > 0;
     out.push(index, entry, exit, faced ? nlx * c - nly * s : 0, faced ? nlx * s + nly * c : 0);
+}
+
+/**
+ * `modulesAlong` for a turret's dome: where the segment crosses its circle.
+ * Grazing it counts as missing, as running along a face does.
+ */
+function domeAlong(
+    m: DesignModule,
+    radius: number,
+    index: number,
+    x0: number,
+    y0: number,
+    ux: number,
+    uy: number,
+    length: number,
+    out: HullPath,
+): void {
+    const fx = x0 - m.x;
+    const fy = y0 - m.y;
+    // Half the usual b, since the direction is a unit one.
+    const b = fx * ux + fy * uy;
+    const disc = b * b - (fx * fx + fy * fy - radius * radius);
+    if (!(disc > 0)) return;
+    const root = sqrt(disc);
+    const near = -b - root;
+    const entry = max(near, 0);
+    const exit = min(-b + root, length);
+    if (!(exit > entry)) return;
+    // Out through the surface where it entered; none, for a segment begun inside.
+    if (near > 0) out.push(index, entry, exit, (fx + ux * near) / radius, (fy + uy * near) / radius);
+    else out.push(index, entry, exit, 0, 0);
 }
 
 /**
