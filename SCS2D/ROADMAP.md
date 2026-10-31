@@ -608,6 +608,10 @@ Deliberately unresolved; decide when they block something.
   answered within 15 generations, by a graft, against all three within 10 with it on; the measurements, the PRs and
   what to try next are in
   [notes/skirmish-adaptation.md](notes/skirmish-adaptation.md).
+- **How to make the battle view faster, in Firefox above all.** WebGL beats Canvas2D in Chrome's heavy scenes
+  and is about half as fast as Canvas2D in Firefox. The fleet strips, garbage, plumes and Pixi rebuilding
+  every shape each frame are where the time goes. Measured in October 2026; the figures and what to try next
+  are in [notes/render-performance.md](notes/render-performance.md).
 - **Letting the skirmish enemy steal the player's designs in play.** The `steal` operator is off by default, as
   copying could feel like cheating. Suggested by the author: the game might say the enemy is trying to
   steal the player's designs, and let the player allow it, for a quicker answer, or refuse it. Wanted, not
