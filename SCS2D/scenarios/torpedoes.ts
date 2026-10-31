@@ -15,9 +15,9 @@ import { Rng } from "../sim/rng.js";
 /** How far off the gunship the salvo is launched, metres. */
 const LAUNCH_RANGE = 1500;
 
-export function torpedoes(seed = 20260905, count = 12, target: Blueprint = BEAM_GUNSHIP): Battle {
+export function torpedoes(seed = 20260905, count = 12, target: Blueprint = BEAM_GUNSHIP, launched: Blueprint = TORPEDO): Battle {
     return makeBattle({ seed }, (ships, world) => {
-        const torpedo = compileBlueprint(TORPEDO);
+        const torpedo = compileBlueprint(launched);
         ships.spawn(world, { design: compileBlueprint(target), ...CROSSING.east, team: 1 });
 
         const rng = new Rng(seed);

@@ -375,6 +375,12 @@ export interface Approach extends SupplyPriorities, SupplyShares {
      */
     readonly ramArmed: number;
     /**
+     * Seconds before impact within which a ram cares only for cancelling its
+     * sideways drift, not for closing any faster, easing in over as long again
+     * before that. Zero speeds up all the way in.
+     */
+    readonly ramSettle: number;
+    /**
      * What a half turn costs in choosing which way round to fight, as a share
      * of its main battery. A ship weighs each bearing its main guns can bear on
      * by the share of them that do, less this for every half turn away from
@@ -605,6 +611,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
         brake: 0.8,
         ramRadii: 0,
         ramArmed: 0,
+        ramSettle: 3,
         turnBias: 0.5,
         burnWeight: 2,
         rangeHold: 1,
@@ -818,6 +825,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
     "brake",
     "ramRadii",
     "ramArmed",
+    "ramSettle",
     "turnBias",
     "burnWeight",
     "rangeHold",
@@ -855,6 +863,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
 
 /** Fields that mean nothing below zero, though zero itself is a setting. */
 export const NON_NEGATIVE_FIELDS: readonly string[] = [
+    "ramSettle",
     ...CLAIMS.map((claim) => `${claim}Share`),
     "fuelReserve",
     "metalReserve",
