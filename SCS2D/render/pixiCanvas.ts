@@ -1,4 +1,4 @@
-import { BitmapText, Container, Graphics, Rectangle, Texture } from "pixi.js";
+import { BitmapText, Container, Graphics, GraphicsContext, Matrix as PixiMatrix, Rectangle, Texture } from "pixi.js";
 
 /**
  * The parts of a Canvas2D context that canvas2d.ts draws the battle with,
@@ -67,6 +67,11 @@ class Gradient {
         return [last.rgb, last.alpha];
     }
 }
+
+/** Steps a doubling of scale is cut into for kept drawing (`keep`): kept at one, it is placed at any scale within it. */
+const KEEP_STEPS = 4;
+/** Kept contexts beyond which they are all let go at the start of the next frame. */
+const KEPT_MOST = 4000;
 
 /** How many bands a gradient is filled in at most. */
 const GRADIENT_BANDS = 12;
@@ -157,6 +162,8 @@ export class PixiCanvas {
         }
         this.graphicsUsed = 0;
         this.masksUsed = 0;
+        this.keptUsed = 0;
+        if (this.kept.size > KEPT_MOST) this.forgetKept();
         this.textsUsed = 0;
         this.state = PixiCanvas.fresh();
         this.saved.length = 0;
@@ -426,7 +433,7 @@ export class PixiCanvas {
             this.state.clips = [...this.state.clips, { inside: false, polys: [convexHullOrder(shapes[1]!)] }];
             return;
         }
-        const box = shapes.length === 1 && this.state.clips.length === 0 ? screenRect(shapes[0]!) : null;
+        const box = shapes.length === 1 && this.state.clips.length === 0 && !this.recording ? screenRect(shapes[0]!) : null;
         if (box !== null) {
             // A box on screen, round a close-up or a strip's tile: masked, so sprites are cut too.
             const masked = this.nextMask();
@@ -532,8 +539,81 @@ export class PixiCanvas {
     }
 
     /** The Graphics to draw into now, a fresh one after text, a mask, or a change of blending. */
+    /**
+     * What `draw` paints, kept: the first time `key` is drawn at about this
+     * scale, it is triangulated once, in its own frame, into a context Pixi
+     * keeps; every time after, that context is only placed, at the transform
+     * there is now. `key` must say everything `draw` draws from. It may not
+     * draw text, change blending, or clip to a box on screen.
+     */
+    keep(key: string, draw: () => void): void {
+        const st = this.state;
+        const m = st.m;
+        const det = m.a * m.d - m.b * m.c;
+        if (st.clips.length > 0 || st.globalCompositeOperation !== "source-over" || this.recording || det === 0) return draw();
+        // In quarter steps of scale, so line widths floored on screen and arcs cut by their size stay near enough.
+        const scale = 2 ** (Math.round(Math.log2(Math.sqrt(Math.abs(det))) * KEEP_STEPS) / KEEP_STEPS);
+        const flip = det < 0 ? -1 : 1;
+        const at = `${key}@${scale}${flip < 0 ? "-" : ""}@${st.globalAlpha}`;
+        let context = this.kept.get(at);
+        if (context === undefined) {
+            context = this.record(draw, scale, flip);
+            this.kept.set(at, context);
+        }
+        let g = this.keptPool[this.keptUsed];
+        if (g === undefined) this.keptPool.push((g = new Graphics()));
+        this.keptUsed++;
+        g.context = context;
+        // Where it is now, from the frame it was kept in: the transform there is, undoing the kept scale.
+        this.placed.set(m.a / scale, m.b / scale, m.c / (scale * flip), m.d / (scale * flip), m.e, m.f);
+        g.setFromMatrix(this.placed);
+        this.target().addChild(g);
+        this.graphics = null;
+    }
+
+    private recording = false;
+    private recordingInto: Graphics | null = null;
+    private readonly kept = new Map<string, GraphicsContext>();
+    private readonly keptPool: Graphics[] = [];
+    private keptUsed = 0;
+    private readonly placed = new PixiMatrix();
+
+    /** `draw`'s shapes, in a frame scaled by `scale` (y by `flip`) with no turn or offset, kept out of the frame. */
+    private record(draw: () => void, scale: number, flip: number): GraphicsContext {
+        const into = new Graphics();
+        this.recordingInto = into;
+        const outer = this.graphics;
+        const path = this.path;
+        this.save();
+        this.setTransform(scale, 0, 0, scale * flip, 0, 0);
+        this.recording = true;
+        this.graphics = into;
+        this.path = [];
+        try {
+            draw();
+        } finally {
+            this.recording = false;
+            this.restore();
+            this.graphics = outer;
+            this.path = path;
+        }
+        const context = into.context;
+        into.destroy({ context: false });
+        return context;
+    }
+
+    /** Let every kept context go, once there are too many, as after a long zoom: they are made again as needed. */
+    private forgetKept(): void {
+        const empty = new GraphicsContext();
+        for (const g of this.keptPool) g.context = empty;
+        for (const context of this.kept.values()) context.destroy();
+        this.kept.clear();
+    }
+
     private draw(): Graphics {
         if (this.graphics !== null) return this.graphics;
+        // Kept drawing goes into the one it is kept in, whatever would start another.
+        if (this.recording) return (this.graphics = this.recordingInto!);
         let g = this.graphicsPool[this.graphicsUsed];
         if (g === undefined) {
             g = new Graphics();
