@@ -580,10 +580,17 @@ function drawShip(
         // mantlet goes on after its barrels, below.
         ctx.fillStyle = colours.pivot;
         if (hull === null) {
-            ctx.beginPath();
-            ctx.arc(mx, my, face * 0.5, 0, TAU);
-            ctx.fill();
-            if (light !== undefined) shadeDome(ctx, mx, my, face * 0.5, light);
+            // A disc looks the same however it is turned, and its light comes from the world: kept, and only moved.
+            ctx.save();
+            ctx.translate(mx, my);
+            keep(ctx, `turret ${colours.pivot} ${face} ${light === undefined ? "" : idOf(light)}`, () => {
+                ctx.fillStyle = colours.pivot;
+                ctx.beginPath();
+                ctx.arc(0, 0, face * 0.5, 0, TAU);
+                ctx.fill();
+                if (light !== undefined) shadeDome(ctx, 0, 0, face * 0.5, light);
+            });
+            ctx.restore();
         } else if (beamLenses) {
             // Each lens on a disc of its own that it turns on, as wide as the lens
             // sweeps, and a stalk back from it to the block's face.
@@ -644,6 +651,41 @@ function drawShip(
     if (arcs === "trigger") drawEngineTriggers(ctx, ship, metresToPx);
     drawPlumes(ctx, ship);
     drawLeaks(ctx, ship);
+}
+
+/** Steps a gauge's level is drawn in: each a picture kept between frames (`keep`), so it is redrawn only as it moves a step. */
+const GAUGE_STEPS = 64;
+
+function gaugeStep(share: number): number {
+    return Math.round(share * GAUGE_STEPS) / GAUGE_STEPS;
+}
+
+/** What a robot bay's berth shows: an empty pad, a robot being built on it, one home being filled, or one home full. */
+const BERTH_EMPTY = 0;
+const BERTH_BUILDING = 1;
+const BERTH_FILLING = 2;
+const BERTH_HOME = 3;
+/** Each berth of the bay being drawn: its state, then the build's progress or the robot's charge, then its metal. */
+const berthStates: number[] = [];
+
+const ids = new WeakMap<object, number>();
+let lastId = 0;
+
+/** A number for `thing`, the same every time, for keys. */
+function idOf(thing: object): number {
+    let id = ids.get(thing);
+    if (id === undefined) ids.set(thing, (id = ++lastId));
+    return id;
+}
+
+/**
+ * `draw`, kept between frames where the context can keep it (render/pixiCanvas.ts),
+ * by `key`, which says everything it draws from; drawn as it is where it cannot.
+ */
+function keep(ctx: CanvasRenderingContext2D, key: string, draw: () => void): void {
+    const keeper = (ctx as unknown as { keep?: (key: string, draw: () => void) => void }).keep;
+    if (keeper === undefined) draw();
+    else keeper.call(ctx, key, draw);
 }
 
 /** Pixels across on screen below which a ship's hull is drawn from a picture of it rather than shape by shape. */
@@ -791,7 +833,7 @@ function drawHull(
                 ctx.rotate(m.angle);
                 ctx.globalAlpha = fillAlpha(ship, i);
                 if (bevelled) bevel(ctx, design, i, ship.angle + m.angle, metresToPx, light);
-                else fillModule(ctx, ship, i);
+                else keptFill(ctx, ship, i);
                 ctx.restore();
             }
         }
@@ -819,7 +861,7 @@ function drawHull(
         const halfLength = spec.length / 2;
         const halfWidth = spec.width / 2;
         // Unless Pixi underneath has filled it already (render/pixiView.ts).
-        if (!filled) fillModule(ctx, ship, i);
+        if (!filled) keptFill(ctx, ship, i);
         if (spec.kind === "engine" && light !== undefined) shadeBells(ctx, spec, ship.angle + m.angle, light);
         if (spec.kind === "port" && light !== undefined) shadePort(ctx, spec, ship.angle + m.angle, light);
         if (spec.kind === "pad") {
@@ -839,58 +881,61 @@ function drawHull(
                 // strength however torn the store, since a wreck's load is still there
                 // for a claw to take.
                 const inset = min(spec.length, spec.width) * TANK_INSET;
-                const share =
-                    (spec.kind === "tank" ? ship.fuel?.[i] : spec.kind === "hold" ? ship.metal?.[i] : ship.charge?.[i]) ?? fillOf(spec);
+                const share = gaugeStep(
+                    (spec.kind === "tank" ? ship.fuel?.[i] : spec.kind === "hold" ? ship.metal?.[i] : ship.charge?.[i]) ?? fillOf(spec),
+                );
                 const content = spec.kind === "tank" ? FUEL : spec.kind === "hold" ? METAL : CHARGE;
                 ctx.globalAlpha = 1;
-                if (triangle !== null) {
-                    // The same band of the tank, kept inside the shape rather than drawn
-                    // as the box the corners fit in. Measured from the corner furthest
-                    // back along it, so a triangular tank empties the way a rectangular one does.
-                    const lining = insetTriangle(triangle, inset);
-                    if (lining !== null) {
-                        let aft = Infinity;
-                        let fore = -Infinity;
-                        let low = Infinity;
-                        let high = -Infinity;
-                        for (let v = 0; v < lining.length; v += 2) {
-                            aft = min(aft, lining[v]!);
-                            fore = max(fore, lining[v]!);
-                            low = min(low, lining[v + 1]!);
-                            high = max(high, lining[v + 1]!);
+                keep(ctx, `gauge ${idOf(spec)} ${content} ${share}`, () => {
+                    if (triangle !== null) {
+                        // The same band of the tank, kept inside the shape rather than drawn
+                        // as the box the corners fit in. Measured from the corner furthest
+                        // back along it, so a triangular tank empties the way a rectangular one does.
+                        const lining = insetTriangle(triangle, inset);
+                        if (lining !== null) {
+                            let aft = Infinity;
+                            let fore = -Infinity;
+                            let low = Infinity;
+                            let high = -Infinity;
+                            for (let v = 0; v < lining.length; v += 2) {
+                                aft = min(aft, lining[v]!);
+                                fore = max(fore, lining[v]!);
+                                low = min(low, lining[v + 1]!);
+                                high = max(high, lining[v + 1]!);
+                            }
+                            ctx.save();
+                            ctx.beginPath();
+                            roundedTriangle(ctx, lining, min(spec.length, spec.width) * TANK_ROUNDING - inset);
+                            ctx.fillStyle = FUEL_TRACK;
+                            ctx.fill();
+                            ctx.clip();
+                            ctx.fillStyle = content;
+                            if (fore - aft >= high - low) ctx.fillRect(aft, -halfWidth, (fore - aft) * share, spec.width);
+                            else ctx.fillRect(-halfLength, low, spec.length, (high - low) * share);
+                            ctx.restore();
                         }
+                    } else {
+                        // Rounded inside a square hull that meets its neighbours, the fuel kept inside the rounding.
+                        const inner = spec.length - 2 * inset;
+                        const across = spec.width - 2 * inset;
                         ctx.save();
                         ctx.beginPath();
-                        roundedTriangle(ctx, lining, min(spec.length, spec.width) * TANK_ROUNDING - inset);
+                        ctx.roundRect(
+                            -halfLength + inset,
+                            -halfWidth + inset,
+                            inner,
+                            across,
+                            max(0, min(spec.length, spec.width) * TANK_ROUNDING - inset),
+                        );
                         ctx.fillStyle = FUEL_TRACK;
                         ctx.fill();
                         ctx.clip();
                         ctx.fillStyle = content;
-                        if (fore - aft >= high - low) ctx.fillRect(aft, -halfWidth, (fore - aft) * share, spec.width);
-                        else ctx.fillRect(-halfLength, low, spec.length, (high - low) * share);
+                        if (inner >= across) ctx.fillRect(-halfLength + inset, -halfWidth + inset, inner * share, across);
+                        else ctx.fillRect(-halfLength + inset, -halfWidth + inset, inner, across * share);
                         ctx.restore();
                     }
-                } else {
-                    // Rounded inside a square hull that meets its neighbours, the fuel kept inside the rounding.
-                    const inner = spec.length - 2 * inset;
-                    const across = spec.width - 2 * inset;
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.roundRect(
-                        -halfLength + inset,
-                        -halfWidth + inset,
-                        inner,
-                        across,
-                        max(0, min(spec.length, spec.width) * TANK_ROUNDING - inset),
-                    );
-                    ctx.fillStyle = FUEL_TRACK;
-                    ctx.fill();
-                    ctx.clip();
-                    ctx.fillStyle = content;
-                    if (inner >= across) ctx.fillRect(-halfLength + inset, -halfWidth + inset, inner * share, across);
-                    else ctx.fillRect(-halfLength + inset, -halfWidth + inset, inner, across * share);
-                    ctx.restore();
-                }
+                });
             }
             if (spec.kind === "robotBay") {
                 // A round pad for each berth, all one size, spread evenly over the
@@ -910,11 +955,12 @@ function drawHull(
                 // The pads after every robot aboard are the ones it is building on, in turn.
                 const first = ship.aboard?.[i] ?? m.stats.robots;
                 const builds = ship.builds ?? [];
+                // Each berth's state first, in steps, so the bay is kept (`keep`) until one of them changes.
+                const states = berthStates;
+                states.length = 0;
                 let made = 0;
-                ctx.lineWidth = pad * 0.25;
+                let key = `bay ${idOf(spec)} ${idOf(colours)} ${integrity > 0}`;
                 for (let k = 0; k < m.stats.robots; k++) {
-                    const x = -halfLength + cellLength * ((k % across) + 0.5);
-                    const y = -halfWidth + cellWidth * (floor(k / across) + 0.5);
                     let progress = -1;
                     if (k >= first) {
                         while (made < builds.length && builds[made] !== i) made += 2;
@@ -923,91 +969,122 @@ function drawHull(
                             made += 2;
                         }
                     }
+                    let state: number;
+                    let charge = 1;
+                    let metal = 1;
                     if (progress >= 0) {
-                        // A loading ring: the pad's circle drawn round as the robot is built.
-                        ctx.strokeStyle = FUEL_TRACK;
+                        state = BERTH_BUILDING;
+                        charge = gaugeStep(min(1, progress));
+                    } else if (ship.docked === undefined ? k >= home : here[k] === undefined) state = BERTH_EMPTY;
+                    else {
+                        const r = here[k];
+                        charge = gaugeStep(r === undefined ? 1 : docked[r + 1]!);
+                        metal = gaugeStep(r === undefined ? 1 : docked[r + 2]!);
+                        state = charge < ROBOT_FULL || metal < ROBOT_FULL ? BERTH_FILLING : BERTH_HOME;
+                    }
+                    states.push(state, charge, metal);
+                    key += state === BERTH_EMPTY || state === BERTH_HOME ? ` ${state}` : ` ${state},${charge},${metal}`;
+                }
+                keep(ctx, key, () => {
+                    ctx.lineWidth = pad * 0.25;
+                    for (let k = 0; k < m.stats.robots; k++) {
+                        const x = -halfLength + cellLength * ((k % across) + 0.5);
+                        const y = -halfWidth + cellWidth * (floor(k / across) + 0.5);
+                        const [state, charge, metal] = [states[3 * k]!, states[3 * k + 1]!, states[3 * k + 2]!];
+                        if (state === BERTH_BUILDING) {
+                            // A loading ring: the pad's circle drawn round as the robot is built.
+                            ctx.strokeStyle = FUEL_TRACK;
+                            ctx.beginPath();
+                            ctx.arc(x, y, pad, 0, TAU);
+                            ctx.stroke();
+                            ctx.strokeStyle = colours.trim;
+                            ctx.beginPath();
+                            ctx.arc(x, y, pad, -PI / 2, -PI / 2 + TAU * charge);
+                            ctx.stroke();
+                            continue;
+                        }
+                        ctx.strokeStyle = integrity > 0 ? colours.trim : FUEL_TRACK;
                         ctx.beginPath();
                         ctx.arc(x, y, pad, 0, TAU);
                         ctx.stroke();
-                        ctx.strokeStyle = colours.trim;
-                        ctx.beginPath();
-                        ctx.arc(x, y, pad, -PI / 2, -PI / 2 + TAU * min(1, progress));
-                        ctx.stroke();
-                        continue;
+                        if (state === BERTH_FILLING) {
+                            // Being filled: the robot itself, so its bars are seen filling.
+                            drawRobot(ctx, x, y, 0, charge, metal, min(ROBOT_LENGTH, pad * 2.2), colours.trim, colours.pivot);
+                        } else if (state === BERTH_HOME) {
+                            ctx.fillStyle = colours.trim;
+                            ctx.beginPath();
+                            ctx.arc(x, y, pad * 0.55, 0, TAU);
+                            ctx.fill();
+                        }
                     }
-                    ctx.strokeStyle = integrity > 0 ? colours.trim : FUEL_TRACK;
-                    ctx.beginPath();
-                    ctx.arc(x, y, pad, 0, TAU);
-                    ctx.stroke();
-                    if (ship.docked === undefined ? k >= home : here[k] === undefined) continue;
-                    const r = here[k];
-                    const charge = r === undefined ? 1 : docked[r + 1]!;
-                    const metal = r === undefined ? 1 : docked[r + 2]!;
-                    if (charge < ROBOT_FULL || metal < ROBOT_FULL) {
-                        // Being filled: the robot itself, so its bars are seen filling.
-                        drawRobot(ctx, x, y, 0, charge, metal, min(ROBOT_LENGTH, pad * 2.2), colours.trim, colours.pivot);
-                    } else {
-                        ctx.fillStyle = colours.trim;
-                        ctx.beginPath();
-                        ctx.arc(x, y, pad * 0.55, 0, TAU);
-                        ctx.fill();
-                    }
-                }
+                });
             }
             if (spec.kind === "generator") {
                 // The plant: a disc of charge, dark once it has stopped making any.
                 ctx.globalAlpha = 1;
-                ctx.fillStyle = integrity > 0 ? CHARGE : FUEL_TRACK;
-                ctx.beginPath();
-                ctx.arc(0, 0, (min(spec.length, spec.width) * GENERATOR_DISC) / 2, 0, TAU);
-                ctx.fill();
+                keep(ctx, `generator ${idOf(spec)} ${integrity > 0}`, () => {
+                    ctx.fillStyle = integrity > 0 ? CHARGE : FUEL_TRACK;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, (min(spec.length, spec.width) * GENERATOR_DISC) / 2, 0, TAU);
+                    ctx.fill();
+                });
             }
-            if (spec.kind === "core") drawCoreLight(ctx, design, i, spec, ship.coresWorking?.[design.cores.indexOf(i)] ?? integrity > 0);
+            if (spec.kind === "core") {
+                const working = ship.coresWorking?.[design.cores.indexOf(i)] ?? integrity > 0;
+                keep(ctx, `coreLight ${idOf(spec)} ${idOf(m.stats)} ${working}`, () => drawCoreLight(ctx, design, i, spec, working));
+            }
             if (spec.kind === "core" && integrity > 0) {
                 // What the core holds, each in a corner and sized by the square root
                 // of its share of the room, so a small share is still seen: fuel and
                 // metal forward, charge and the generator aft, the middle left for
                 // the ship's name.
                 ctx.globalAlpha = 1;
-                const sideways = spec.width > spec.length;
-                if (sideways) ctx.rotate(PI / 2);
-                const along = sideways ? spec.width : spec.length;
-                const across = sideways ? spec.length : spec.width;
-                const small = min(along, across);
-                const bar = small * CORE_GAUGE;
-                const inset = small * CORE_GAUGE_INSET;
-                const reach = along / 2 - 1.5 * inset;
-                const room = coreRoom(m.stats);
-                const most = max(room.fuel, room.metal, room.charge, room.generator);
-                const size = (volume: number): number => (most > 0 ? reach * sqrt(volume / most) : 0);
-                const gauge = (share: number, x: number, length: number, y: number, fill: string): void => {
-                    if (!(length > 0)) return;
+                const fuelShare = gaugeStep(ship.fuel?.[i] ?? fillOf(spec));
+                const metalShare = gaugeStep(ship.metal?.[i] ?? fillOf(spec));
+                const chargeShare = gaugeStep(ship.charge?.[i] ?? fillOf(spec));
+                keep(ctx, `coreGauges ${idOf(spec)} ${idOf(m.stats)} ${fuelShare} ${metalShare} ${chargeShare}`, () => {
+                    const sideways = spec.width > spec.length;
                     ctx.save();
-                    ctx.beginPath();
-                    ctx.roundRect(x, y, length, bar, bar / 2);
-                    ctx.fillStyle = FUEL_TRACK;
-                    ctx.fill();
-                    ctx.clip();
-                    ctx.fillStyle = fill;
-                    ctx.fillRect(x, y, length * share, bar);
+                    if (sideways) ctx.rotate(PI / 2);
+                    const along = sideways ? spec.width : spec.length;
+                    const across = sideways ? spec.length : spec.width;
+                    const small = min(along, across);
+                    const bar = small * CORE_GAUGE;
+                    const inset = small * CORE_GAUGE_INSET;
+                    const reach = along / 2 - 1.5 * inset;
+                    const room = coreRoom(m.stats);
+                    const most = max(room.fuel, room.metal, room.charge, room.generator);
+                    const size = (volume: number): number => (most > 0 ? reach * sqrt(volume / most) : 0);
+                    const gauge = (share: number, x: number, length: number, y: number, fill: string): void => {
+                        if (!(length > 0)) return;
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.roundRect(x, y, length, bar, bar / 2);
+                        ctx.fillStyle = FUEL_TRACK;
+                        ctx.fill();
+                        ctx.clip();
+                        ctx.fillStyle = fill;
+                        ctx.fillRect(x, y, length * share, bar);
+                        ctx.restore();
+                    };
+                    const top = -across / 2 + inset;
+                    const bottom = across / 2 - inset - bar;
+                    const fore = along / 2 - inset;
+                    const aft = -along / 2 + inset;
+                    const fuel = size(room.fuel);
+                    const metal = size(room.metal);
+                    gauge(fuelShare, fore - fuel, fuel, top, FUEL);
+                    gauge(metalShare, fore - metal, metal, bottom, METAL);
+                    gauge(chargeShare, aft, size(room.charge), top, CHARGE);
+                    const disc = min(size(room.generator), bar * CORE_DISC_GAUGES);
+                    if (disc > 0) {
+                        ctx.fillStyle = CHARGE;
+                        ctx.beginPath();
+                        ctx.arc(aft + disc / 2, across / 2 - inset - disc / 2, disc / 2, 0, TAU);
+                        ctx.fill();
+                    }
                     ctx.restore();
-                };
-                const top = -across / 2 + inset;
-                const bottom = across / 2 - inset - bar;
-                const fore = along / 2 - inset;
-                const aft = -along / 2 + inset;
-                const fuel = size(room.fuel);
-                const metal = size(room.metal);
-                gauge(ship.fuel?.[i] ?? fillOf(spec), fore - fuel, fuel, top, FUEL);
-                gauge(ship.metal?.[i] ?? fillOf(spec), fore - metal, metal, bottom, METAL);
-                gauge(ship.charge?.[i] ?? fillOf(spec), aft, size(room.charge), top, CHARGE);
-                const disc = min(size(room.generator), bar * CORE_DISC_GAUGES);
-                if (disc > 0) {
-                    ctx.fillStyle = CHARGE;
-                    ctx.beginPath();
-                    ctx.arc(aft + disc / 2, across / 2 - inset - disc / 2, disc / 2, 0, TAU);
-                    ctx.fill();
-                }
+                });
             }
         }
         ctx.restore();
@@ -1234,20 +1311,27 @@ function drawLoad(ctx: CanvasRenderingContext2D, ship: ShipView, t: number, mx: 
     const pivot = min(spec.length, spec.width) * 0.5;
     const thick = pivot * 0.14;
     const radius = pivot - 2 * thick;
-    const back = bearing + PI;
     const half = PI * 0.3;
-    ctx.lineWidth = thick;
-    ctx.lineCap = "butt";
-    ctx.strokeStyle = LOAD_TRACK;
-    ctx.beginPath();
-    ctx.arc(mx, my, radius, back - half, back + half);
-    ctx.stroke();
-    if (load > 0) {
-        ctx.strokeStyle = colour;
+    const step = gaugeStep(load);
+    // The same ring at any bearing, so kept by how full it is and turned to the barrel's.
+    ctx.save();
+    ctx.translate(mx, my);
+    ctx.rotate(bearing + PI);
+    keep(ctx, `load ${radius} ${thick} ${colour} ${step}`, () => {
+        ctx.lineWidth = thick;
+        ctx.lineCap = "butt";
+        ctx.strokeStyle = LOAD_TRACK;
         ctx.beginPath();
-        ctx.arc(mx, my, radius, back - half, back - half + 2 * half * load);
+        ctx.arc(0, 0, radius, -half, half);
         ctx.stroke();
-    }
+        if (step > 0) {
+            ctx.strokeStyle = colour;
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, -half, -half + 2 * half * step);
+            ctx.stroke();
+        }
+    });
+    ctx.restore();
 }
 
 /**
@@ -1384,6 +1468,16 @@ function shadePort(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: numbe
     const collar = spec.length * PORT_COLLAR_SHARE;
     ctx.drawImage(image, -l, -w, spec.length - collar, 2 * w);
     ctx.drawImage(image, l - collar, -w * PORT_COLLAR_WIDTH, collar, 2 * w * PORT_COLLAR_WIDTH);
+}
+
+/** `fillModule`, kept (`keep`) by what it is filled with. */
+function keptFill(ctx: CanvasRenderingContext2D, ship: ShipView, i: number): void {
+    const design = ship.currentStructure;
+    const m = design.modules[i]!;
+    const colours = moduleColours(design, i, ship.sides?.[i] ?? ship.team);
+    const integrity = ship.integrity?.[i] ?? 1;
+    const colour = fillColour(m.spec, integrity, m.weaponsLayer, colours);
+    keep(ctx, `fill ${idOf(m.spec)} ${idOf(colours)} ${colour} ${integrity}`, () => fillModule(ctx, ship, i));
 }
 
 /**
