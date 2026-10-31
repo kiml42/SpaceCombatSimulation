@@ -4614,10 +4614,7 @@ export class Ships {
         // beating holding, so a craft whose want hovers where its guns-on thrust
         // can nearly make it does not flip its hull to and fro; once turned, it
         // stays turned while turning is worth anything.
-        const now =
-            this.burning[i] === 1
-                ? burn * (1 + BURN_MARGIN) > hold
-                : burn > hold * (1 + BURN_MARGIN) && gain > BURN_START;
+        const now = this.burning[i] === 1 ? burn * (1 + BURN_MARGIN) > hold : burn > hold * (1 + BURN_MARGIN) && gain > BURN_START;
         this.burning[i] = now ? 1 : 0;
         return now ? burnHeading : attack;
     }
@@ -4950,10 +4947,7 @@ export class Ships {
                     const turned = mains > brake ? stoppingSpeed(mains, gap, response + turn) : 0;
                     const flipped = arrivalTime(mains, gap, approachSpeed, response + turn) + turn;
                     const held = arrivalTime(brake, gap, approachSpeed, response);
-                    const sooner =
-                        turned > stopping &&
-                        flipped < held &&
-                        (sense < 0 || making > stoppingSpeed(brake, gap, 0));
+                    const sooner = turned > stopping && flipped < held && (sense < 0 || making > stoppingSpeed(brake, gap, 0));
                     if (sooner) stopping = turned;
                     // Already turned onto them: planned on them, with no turn to allow for.
                     if (wasOnMains && mains > 0) stopping = max(stopping, stoppingSpeed(mains, gap, response));
@@ -4972,7 +4966,11 @@ export class Ships {
                 // keep what it is making, down the curve that stops it by the middle.
                 let radial =
                     sense > 0
-                        ? min(approachSpeed, stopping, max(making, min(approachSpeed, stoppingSpeed(brake, max(0, range - far), response)) * share))
+                        ? min(
+                              approachSpeed,
+                              stopping,
+                              max(making, min(approachSpeed, stoppingSpeed(brake, max(0, range - far), response)) * share),
+                          )
                         : min(approachSpeed, stopping) * share;
                 // A share below one caps how much faster it asks to be going within
                 // one response time, which caps the push the pilot demands. At one it
