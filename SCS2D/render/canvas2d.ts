@@ -37,6 +37,7 @@ import {
     METAL_DENSITY,
     type ModuleStats,
     berthGrid,
+    edgeFade,
 } from "../sim/index.js";
 import { BACKGROUND, GRID, WELL, WELL_ARM_PX, WELL_PULLS } from "./backdrop.js";
 import { barrelLines, MIN_BARREL_PX } from "./barrels.js";
@@ -763,7 +764,7 @@ function drawHull(
     // trigger wedges' tips can be read against it.
     const holdMax = ship.holdMax ?? 0;
     if (whole && arcs === "trigger" && holdMax > 0) {
-        drawBand(ctx, 0, 0, ship.holdMin ?? 0, holdMax, metresToPx);
+        drawBand(ctx, 0, 0, ship.holdMin ?? 0, holdMax, design.doctrine.approach.bandFade, metresToPx);
         ctx.strokeStyle = ATTACK_LINE;
         ctx.setLineDash([ATTACK_DASH_PX / metresToPx, ATTACK_DASH_PX / metresToPx]);
         for (const bearing of ship.attackBearings ?? []) {
@@ -2372,7 +2373,7 @@ function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: n
         // The band it is holding, round what it is holding it against, as the editor draws a ship's own.
         if (ship.fightingMax !== undefined && target.body === ship.fighting) {
             ctx.save();
-            drawBand(ctx, target.x, target.y, ship.fightingMin ?? 0, ship.fightingMax, metresToPx);
+            drawBand(ctx, target.x, target.y, ship.fightingMin ?? 0, ship.fightingMax, bandFadeOf(ship), metresToPx);
             ctx.restore();
         }
         ctx.globalAlpha = 0.6;
@@ -2386,7 +2387,7 @@ function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: n
     if (consort !== null && ship.coverBand !== undefined) {
         // And the band it stays inside, round it.
         ctx.save();
-        drawBand(ctx, consort.x, consort.y, 0, ship.coverBand, metresToPx);
+        drawBand(ctx, consort.x, consort.y, 0, ship.coverBand, bandFadeOf(ship), metresToPx);
         ctx.restore();
     }
     if (consort !== null) {
@@ -2398,6 +2399,11 @@ function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: n
         ctx.setLineDash([]);
     }
     ctx.restore();
+}
+
+/** How soft the edges of a ship's bands are, from what it has been told over its doctrine where it says. */
+function bandFadeOf(ship: ShipView): number {
+    return (ship.doctrine ?? ship.currentStructure.doctrine).approach.bandFade;
 }
 
 /** A picked-out ship's ring, without the lines to what it is fighting. */
@@ -2483,13 +2489,40 @@ function drawScreenText(ctx: CanvasRenderingContext2D, text: string, x: number, 
     ctx.restore();
 }
 
-/** A band of ranges about a point, filled faintly and edged: where a ship's doctrine closes to. */
-function drawBand(ctx: CanvasRenderingContext2D, x: number, y: number, min: number, max: number, metresToPx: number): void {
+/** Rings each edge's fade is shaded in. */
+const FADE_STEPS = 8;
+
+/**
+ * A band of ranges about a point, filled faintly and edged: where a ship's
+ * doctrine closes to. Each edge fades out across `fade` of its distance
+ * either side of it, as the pull back into the band fades in (`edgeFade`).
+ */
+function drawBand(ctx: CanvasRenderingContext2D, x: number, y: number, min: number, max: number, fade: number, metresToPx: number): void {
     ctx.fillStyle = HOLD_BAND;
-    ctx.beginPath();
-    ctx.arc(x, y, max, 0, TAU);
-    if (min > 0) ctx.arc(x, y, min, TAU, 0, true);
-    ctx.fill("evenodd");
+    const ring = (from: number, to: number, alpha: number): void => {
+        if (!(to > from) || !(alpha > 0)) return;
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.arc(x, y, to, 0, TAU);
+        if (from > 0) ctx.arc(x, y, from, TAU, 0, true);
+        ctx.fill("evenodd");
+    };
+    const near = min > 0 ? min * (1 + fade) : 0;
+    const far = max * (1 - fade);
+    const shaded = (r: number): number => (1 - edgeFade(r - max, max, fade)) * (min > 0 ? 1 - edgeFade(min - r, min, fade) : 1);
+    const alpha = ctx.globalAlpha;
+    if (fade > 0 && near < far) {
+        ring(near, far, alpha);
+        const fades: [number, number][] = [[far, max * (1 + fade)]];
+        if (min > 0) fades.push([min * (1 - fade), near]);
+        for (const [from, to] of fades) {
+            const step = (to - from) / FADE_STEPS;
+            for (let k = 0; k < FADE_STEPS; k++) ring(from + k * step, from + (k + 1) * step, alpha * shaded(from + (k + 0.5) * step));
+        }
+    } else {
+        ring(min, max, alpha);
+    }
+    ctx.globalAlpha = alpha;
     ctx.strokeStyle = HOLD_EDGE;
     ctx.lineWidth = 1 / metresToPx;
     ctx.beginPath();

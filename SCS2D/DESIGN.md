@@ -518,6 +518,17 @@ inside any one file is not contiguous.
   produced the identical battle. Added as velocities, in a currency they all share, a craft does both at
   once: asking for a formation half as tight costs three per cent in closing on the enemy, and the knob
   means something all the way along instead of having a cliff in it.
+  **A band's edges are soft** (`bandFade`, 0.1 by default, a fraction of each edge's distance either side of
+  it). The pull back into a band — an attack's, a station's, an escort's — eases in across that width rather
+  than switching on at the line, and so does an escort's weight. Two wants that overlap there settle where
+  they balance rather than bouncing between them: the Catamaran's halves, covering each other and keeping
+  clear of each other, come to rest where the two cancel instead of creeping together and flying apart, and
+  a fighter circling at the outer edge of its band burns gently and steadily instead of in bursts each time
+  it crosses the line. A craft that turned onto its mains to brake turns back to its guns once in the fade,
+  when its retros could stop it with them on, and is less keen to turn to burn the further in it is: the last
+  of the closing there is no reason to take its guns off, and a Corvette mirror held them off for its whole
+  ten minutes before that. The overlay shades each fade as a gradient. Measured on two Catamarans left alone
+  too close together, settling cost under half the fuel and no longer overshot the station.
   **A range band is measured from a hull, not from the middle of one.** A gun's reach is how far it can
   throw a round past its own muzzle and what it is shooting at is the hull, which is the same thing on ships
   of a size and nothing like it when a fighter attacks a capital: left centre to centre, a TIE's doctrine
@@ -527,7 +538,14 @@ inside any one file is not contiguous.
   is at its closest and how much room that will leave, since a bubble cannot tell a consort holding station
   a hull's width away from something crossing at two hundred metres a second. How soon is how long until
   they would touch, where they would: for anything large that is far sooner than their middles' closest. A
-  ram keeps clear of rocks and of its own side's ships, at its own size, and of nothing else. It is never applied to the
+  ram keeps clear of rocks and of its own side's ships, at its own size, and of nothing else. **Its charge is
+  kept clear of with a soft edge**, since covering pulls the two together: inside its clearance and drawing
+  closer too slowly to matter within the look-ahead, or not at all, the pair is answered as it stands, and
+  asked to open at a speed that grows with how deep inside it is, less what it is opening at already and no
+  faster than it can stop from by the edge, so the two come to rest where covering and keeping clear
+  balance. Anything else is dodged flat out as before, and so is a rock even when it is its charge, since it
+  will not move: applied to every pair, the soft edge pushed moored
+  neighbours, a scavenger and the friend it was drinking from, and a tender coming home apart. It is never applied to the
   thing a craft is flying at — where it wants to be relative to *that* is already decided, and a second
   opinion would have a ship told to ram sheer off at the last moment and call it seamanship. It costs a
   quarter of the contacts in the Star Wars scene and a third of those between a fighter and a capital, half

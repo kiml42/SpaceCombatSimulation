@@ -513,7 +513,8 @@ describe("how a craft closes on its band", () => {
 
     it("arrives at the band and stops there, rather than sailing through", () => {
         const gaps = closing({});
-        expect(Math.min(...gaps)).toBeGreaterThan(MIN);
+        // Into the inner edge's fade at most, which is part of the band's edge.
+        expect(Math.min(...gaps)).toBeGreaterThan(MIN * (1 - DEFAULT_DOCTRINE.approach.bandFade));
         expect(gaps.at(-1)!).toBeLessThan(MAX * 1.05);
     });
 
