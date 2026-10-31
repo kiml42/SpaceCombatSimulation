@@ -86,8 +86,11 @@ describe("module ordering, one battle each", () => {
 
         // The figures a battle is judged on are untouched, which is the claim that
         // outlives this scenario: these stay comparable once ships collide and
-        // damage each other, where a distance between two of them does not.
-        expect(kinds!.fired).toBe(control!.fired);
+        // damage each other, where a distance between two of them does not. Fired
+        // to within the one round a gun may fire or not as the mark leaves its
+        // range: each shot of the two runs is on the same tick until then, and
+        // the last can fall a hair either side of the limit.
+        expect(Math.abs(kinds!.fired - control!.fired)).toBeLessThanOrEqual(1);
         // Hits only nearly: a burst's fragment lands or misses an edge on a
         // micrometre, and the two runs part on one within seconds — sooner since
         // a secondary mount's first pick is staggered by its place in the list,
