@@ -3787,8 +3787,8 @@ export class Ships {
             if (this.alive[i] === 0) continue;
             const b = bodies.indexOf(this.bodyIds[i]!);
             if (b < 0 || this.shipByBody[b] !== i) continue;
-            this.power.open(b, dt, this.damage);
             this.power.close(b);
+            this.power.open(b, dt, this.damage);
         }
     }
 
@@ -3803,7 +3803,11 @@ export class Ships {
         for (let i = 0; i < this.alive.length; i++) {
             if (this.alive[i] === 0) continue;
             const b = bodies.indexOf(this.bodyIds[i]!);
-            if (b >= 0 && this.shipByBody[b] === i) this.power.open(b, dt, this.damage);
+            if (b >= 0 && this.shipByBody[b] === i) {
+                // Last step's spare banked, now that everything after the pilots has drawn on it.
+                this.power.close(b);
+                this.power.open(b, dt, this.damage);
+            }
         }
 
         for (let i = 0; i < this.alive.length; i++) {
@@ -3836,13 +3840,6 @@ export class Ships {
                     }
                 }
             }
-        }
-
-        // What nothing drew on charges the batteries.
-        for (let i = 0; i < this.alive.length; i++) {
-            if (this.alive[i] === 0) continue;
-            const b = bodies.indexOf(this.bodyIds[i]!);
-            if (b >= 0 && this.shipByBody[b] === i) this.power.close(b);
         }
 
         // Every ship pushing pays for what it burns.
@@ -5278,7 +5275,9 @@ export class Ships {
             // Nor its own fighters: a carrier trusts what flies from its pads to
             // keep clear of it, rather than running from its wing as it comes and goes.
             if (this.home[t] === i) continue;
-            if (hulksOnly && this.hasControl(t)) continue;
+            // Closing on a rock, it keeps clear of hulks, and of a friend moored to that rock, which stands where it is.
+            const neighbour = hulksOnly && this.hasControl(t) && this.isMoored(t) && this.parkedOn[t] === flying;
+            if (hulksOnly && this.hasControl(t) && !neighbour) continue;
             // Ramming, it keeps clear of rocks and its own side, which nothing rams on purpose.
             if (ramming && !this.isAsteroid(t) && !(this.team[t] === this.team[i] && this.hasControl(t))) continue;
             const ob = bodies.indexOf(this.bodyIds[t]!);
@@ -5293,6 +5292,8 @@ export class Ships {
             const touching = mine + this.designs[t]!.radius;
             // Clear by its own size, not the other's, which would keep it a rock's or a carrier's breadth off.
             let room = (ramming ? mine : touching) * approach.separationRadii;
+            // From a neighbour on the rock only by its own size, or it could never grip the face beside it.
+            if (neighbour) room = mine;
             // Its charge no further out than its station, or the two wants fight:
             // covering pulls it in to where keeping clear pushes it out.
             if (t === covering) room = min(room, max(0, this.escortBand(i, this.designs[i]!, t) - touching));
@@ -5753,12 +5754,17 @@ export class Ships {
                 this.rockTouch(i, closing, world.tick);
                 this.rockTouch(j, closing, world.tick);
             }
-            if (stab !== Stab.A && stab !== Stab.B && (!(closing > 0) || closing > CLAW_SPEED_MAX)) continue;
+            // Robots weld on loose wreckage lying slowly against their hull, to take it apart.
+            const salvager = closing > WELD_SPEED ? -1 : this.salvages(a, i, b, j) ? a : this.salvages(b, j, a, i) ? b : -1;
+            const salvage = salvager >= 0;
+            if (stab !== Stab.A && stab !== Stab.B && !salvage && (!(closing > 0) || closing > CLAW_SPEED_MAX)) continue;
             if (i < 0 || j < 0 || joined?.has(i) === true || joined?.has(j) === true) continue;
             if (this.partedAt[i]! > settled || this.partedAt[j]! > settled) continue;
             if (this.damage.isProtected(a) || this.damage.isProtected(b)) continue;
-            // Nothing joins a hull parked on a pad: it would lose its pad.
-            if (this.isParkedBody(a) || this.isParkedBody(b)) continue;
+            // Nothing joins a hull parked on a pad: it would lose its pad. One moored
+            // keeps its body and its grip, so may weld on what it salvages.
+            if (this.isParkedBody(a) && !(a === salvager && this.mooredClaw[i]! >= 0)) continue;
+            if (this.isParkedBody(b) && !(b === salvager && this.mooredClaw[j]! >= 0)) continue;
             const ma = contacts.moduleA[k]!;
             const mb = contacts.moduleB[k]!;
             // A claw closes on what its bow meets, ragged or not.
@@ -5778,7 +5784,7 @@ export class Ships {
             if (rubble && max(this.rockMet[i]!, this.rockMet[j]!) > WELD_SPEED) continue;
             // Nothing else but a claw holds on to an asteroid nothing moves.
             if ((pinnedA || pinnedB) && claw === null && !rubble) continue;
-            if (claw === null && !port && !rubble) {
+            if (claw === null && !port && !rubble && !salvage) {
                 if (closing > WELD_SPEED) continue;
                 if (!this.damage.ragged(a, ma) && !this.damage.ragged(b, mb)) continue;
                 const x = contacts.x[k]!;
@@ -5803,9 +5809,9 @@ export class Ships {
                     continue;
                 }
             }
-            // A pinned major keeps its body and its rail; otherwise a flown hull
-            // keeps its body; two wrecks keep the older's slot.
-            const swap = pinnedB || (!pinnedA && this.derelict[i] === 1 && this.derelict[j] === 0);
+            // A salvager keeps its body; a pinned major its body and its rail; otherwise
+            // a flown hull keeps its body; two wrecks keep the older's slot.
+            const swap = salvage ? salvager === b : pinnedB || (!pinnedA && this.derelict[i] === 1 && this.derelict[j] === 0);
             // Whatever is moored to either rock stays where it is on the one they make.
             if (rubble) this.holdMoorings(bodies, i, j);
             const dock: DockAt | null = port
@@ -5824,6 +5830,15 @@ export class Ships {
             welded++;
         }
         return welded;
+    }
+
+    /**
+     * Whether ship `i`, flying body `a`, would weld on ship `j`, flying body `b`:
+     * `i` under control with robots aboard, `j` neither rock nor anyone's to fly or mend.
+     */
+    private salvages(a: number, i: number, b: number, j: number): boolean {
+        if (i < 0 || j < 0 || !this.hasControl(i) || this.hasControl(j) || this.isAsteroid(i) || this.isAsteroid(j)) return false;
+        return this.hasRobots(a, i) && !this.hasRobots(b, j);
     }
 
     /** Note asteroid `i` touching rock at `closing` m/s at `tick`: the fastest of a run of touching steps, afresh after a step apart. */
@@ -7181,8 +7196,8 @@ export class Ships {
         };
         for (let m = 0; m < design.modules.length; m++) {
             if (!Number.isFinite(dist[m]!) || !this.ownsAt(owner, b, m) || this.wreckage(owner, b, m)) continue;
-            // Building takes metal: none there, nothing to build with.
-            if (!(this.metal.pieceHeld(b, m) > ROBOT_SPENT)) continue;
+            // Building takes metal: a trip's worth not to be had, nothing to build with.
+            if (!this.affords(b, m, design, m, robot)) continue;
             if (design.modules[m]!.shell !== undefined || this.damage.unbuiltAt(b, m) > 0) consider(m, -1, originTier(approach, design, m));
         }
         if (rebuild.frame >= 0) {
@@ -7195,7 +7210,7 @@ export class Ships {
                 ] as const) {
                     const m = rebuild.at[against]!;
                     if (rebuild.at[l]! >= 0 || m < 0 || !Number.isFinite(dist[m]!) || !this.ownsAt(owner, b, m)) continue;
-                    if (this.wreckage(owner, b, m) || !(this.metal.pieceHeld(b, m) > ROBOT_SPENT)) continue;
+                    if (this.wreckage(owner, b, m) || !this.affords(b, m, launch, l, robot)) continue;
                     if (design.modules[m]!.shell !== undefined || originOf(design, m).design !== compiled) continue;
                     // Refitted, what is in the way comes down before this goes up.
                     if (this.refitting[owner] === 1 && this.inTheWay(design, rebuild, launch, l)) continue;
@@ -7363,6 +7378,18 @@ export class Ships {
     }
 
     /**
+     * Whether module `m` of body `b`'s piece of hull can give robot `robot` the
+     * metal for a trip's work on part `part` of `of`: what that work's claim may
+     * take there (`allowed`), against what the robot can spend, or `needs` if
+     * the work wants less. A robot short of it goes mining instead.
+     */
+    private affords(b: number, m: number, of: ShipDesign, part: number, robot: Robot, needs = Infinity): boolean {
+        const trip = min(robot.metal, needs);
+        if (!(trip > ROBOT_SPENT)) return true;
+        return this.allowed(Resource.Metal, b, m, mendClaim(of, part), 0) >= trip;
+    }
+
+    /**
      * Give a robot the next module to mend, from where it is: the first tier
      * with anything in it, and of that the module fewest robots are already
      * after, the nearest of those. With nothing to mend, something to rebuild
@@ -7381,7 +7408,8 @@ export class Ships {
             if (!Number.isFinite(dist[m]!) || !(this.damage.absorbedAt(b, m) > 0) || !this.ownsAt(owner, b, m)) continue;
             if (this.wreckage(owner, b, m)) continue;
             // Nothing to mend it with: no sense walking there.
-            if (!(this.metal.pieceHeld(b, m) > ROBOT_SPENT) && this.damage.repairMetal(b, m, this.damage.absorbedAt(b, m)) > 0) continue;
+            const mendMetal = this.damage.repairMetal(b, m, this.damage.absorbedAt(b, m)) * (1 + REPAIR_WASTE);
+            if (mendMetal > ROBOT_SPENT && !this.affords(b, m, design, m, robot, mendMetal)) continue;
             const tier = repairTier(approach, design, m);
             let crowd = 0;
             for (let k = 0; k < robots.length; k++) if (robots[k] !== robot && robots[k]!.target === m) crowd++;

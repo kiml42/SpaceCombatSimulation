@@ -904,7 +904,8 @@ inside any one file is not contiguous.
   takes the place of the least finished one it is building, whose metal goes back. **While its ship is moored to a rock it keeps
   `robotsPerBerth` robots to a berth** (one by default, any number from one up, whole robots only;
   `robotsKept`), building the extra only into a free berth: the extra work the rock, and a robot coming home to
-  a bay whose berths are all taken waits at the claw for one, so there are never more aboard than berths. Told
+  a bay whose berths are all taken waits at the claw for one, so there are never more aboard than berths; it
+  unloads only in a berth. Told
   to go (any order, or an errand to anything but its rock), the ship calls its robots in and goes once they are
   back; one with no berth to come home to is taken apart into its holds, metal, cargo and all. Those out on the
   rock when the ship is parted from it otherwise are stranded there, as any robot left on a rock is. It is drawn as a deck with a round pad, all
@@ -932,7 +933,8 @@ inside any one file is not contiguous.
   a spine torn ragged, stops none of them — only a bay that cannot refill them once they are spent, which is
   how robots mend the very spine that cut their bay off. Spent, with no bay to refill them or no metal left
   on their piece of hull, they go home and stay there until something on the hull changes. They never set out
-  to mend or build what needs metal their piece of hull does not have, and look again when metal comes aboard
+  to mend or build what needs more metal than their piece of hull can give that work for a trip (`affords`,
+  by its claim's allowance), and a moored ship's go mining instead, and look again when metal comes aboard
   as well as when the hull is hit. A weld or a cut
   remakes the hull and every robot that stays with it carries on where it was and about what it was about.
   One whose module, or whose bay, goes with another
@@ -1155,8 +1157,10 @@ inside any one file is not contiguous.
   by its sides, perimeter times depth (`BATTERY_POWER_PER_AREA`), so several small batteries in the room of
   one big one hold less but deliver faster. Charge is the third store (`sim/charge.ts`, on `sim/store.ts`):
   per module and per piece of hull, weighing nothing. Each step a piece's generators make what damage leaves
-  them; loads draw from that first and then from the batteries, each battery limited by its rate; what
-  nothing used charges the batteries, as far as their room and rate allow, and the rest is lost. A battery
+  them; loads draw from that first and then from the batteries, each battery limited by its rate (a robot, a
+  pad or a slipway, drawing between one step's flying and the next, takes from the generators first and
+  then from the batteries however fast); what nothing used charges the batteries as the next step begins, as
+  far as their room and rate allow, and the rest is lost. A battery
   holds less as its cells break (`DamageEffect.Storage`, charge past that lost) and passes less as its wiring
   goes (`Discharge`); a generator gives out as an engine does (`Generation`). A battery may start part full
   (`fill`). The editor has a Power group and shows a ship's generation, storage and peak discharge; the
@@ -1809,6 +1813,9 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   one body, momentum and angular momentum kept, with their designs joined by a **seam** (`ShipDesign.seams`)
   a `HOOK_SHARE` of the narrower face wide. A seam tears like any weld, but carries no command. This makes
   wreckage into larger chunks worth chasing down and harvesting, instead of lots of tiny fragments.
+  A ship under control with robots aboard also welds on any loose wreck touching it at under `WELD_SPEED`,
+  torn or not and closing or not, keeping its own body (moored too, though not parked on a pad), so its robots
+  can take it apart rather than leave it rattling against the hull.
   **Command** runs from a working core through its hull's welds, and stops at a ragged module (a core
   excepted), so a ship hooked to debris cannot use a live engine or gun on it — nor one of its own beyond a
   torn spine. An uncommanded module thrusts and fires at nothing, and scoring caps a ship's hull at what it

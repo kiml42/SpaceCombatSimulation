@@ -9,12 +9,15 @@ import { fixed } from "./fixed.js";
  * Charge weighs nothing, so unlike fuel and metal it never moves a body's mass.
  * Like them it reaches only its own piece of hull. A step goes:
  *
+ * - `close`: whatever the generators made last step that nothing used goes
+ *   into the batteries, as far as their room and their wiring allow. The rest
+ *   is lost.
  * - `open`: what each piece's generators make this step, and what each battery
  *   may pass, both as damage leaves them. A battery holding more than its
  *   broken cells can loses the rest.
- * - `draw`, for each load: from the generators first, then the batteries.
- * - `close`: whatever the generators made that nothing used goes into the
- *   batteries, as far as their room and their wiring allow. The rest is lost.
+ * - `draw`, for each load, all through the step: from the generators first,
+ *   then the batteries as fast as they can pass it. `drain` takes from the
+ *   generators first too, then the batteries however fast.
  */
 export class Charge extends Store {
     /** Each piece's generation not yet used this step, J. */
@@ -125,6 +128,17 @@ export class Charge extends Store {
         const supply = this.supply[bodyIndex];
         const piece = this.pieceOf[bodyIndex]?.[module] ?? -1;
         return this.pieceHeld(bodyIndex, module) + (supply === null || supply === undefined || piece < 0 ? 0 : supply[piece]!);
+    }
+
+    /** Take up to `joules` for module `user`: what its piece's generators make this step first, then the batteries. */
+    override drain(bodyIndex: number, user: number, joules: number): number {
+        const supply = this.supply[bodyIndex];
+        const piece = this.pieceOf[bodyIndex]?.[user] ?? -1;
+        if (supply === null || supply === undefined || piece < 0 || !(joules > 0)) return super.drain(bodyIndex, user, joules);
+        const made = supply[piece]!;
+        const direct = made < joules ? made : joules;
+        supply[piece] = made - direct;
+        return direct + super.drain(bodyIndex, user, joules - direct);
     }
 
     /** What the generators on module `m`'s piece of hull make as damage leaves them, W. */

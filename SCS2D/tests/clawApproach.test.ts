@@ -15,16 +15,29 @@ import { CORVETTE, REPLICATOR, SCAVENGER } from "../scenarios/blueprints.js";
 
 /** Claw ships coming in square to what they grip, and building only anchored. */
 
+type Placed = Blueprint["modules"][number];
+
+/** The Replicator with `change` made to every module it places, in its assemblies as well as at the top. */
+function changed(change: (m: Placed) => Placed): Blueprint {
+    const assemblies: Record<string, NonNullable<Blueprint["assemblies"]>[string]> = {};
+    for (const [name, assembly] of Object.entries(REPLICATOR.assemblies ?? {})) {
+        assemblies[name] = { ...assembly, modules: assembly.modules.map(change) };
+    }
+    return { ...REPLICATOR, assemblies, modules: REPLICATOR.modules.map(change) };
+}
+
+/** Every module spec a blueprint places, in its assemblies as well as at the top. */
+function specsOf(blueprint: Blueprint): Placed[] {
+    return [...blueprint.modules, ...Object.values(blueprint.assemblies ?? {}).flatMap((a) => a.modules)];
+}
+
 /** The Replicator with its slipway set to build only anchored or not. */
 function replicator(buildAnchored: boolean): Blueprint {
-    return {
-        ...REPLICATOR,
-        modules: REPLICATOR.modules.map((m) => {
-            if (!("kind" in m) || m.kind !== "slipway") return m;
-            const { buildAnchored: _, ...rest } = m;
-            return buildAnchored ? { ...rest, buildAnchored } : rest;
-        }),
-    };
+    return changed((m) => {
+        if (!("kind" in m) || m.kind !== "slipway") return m;
+        const { buildAnchored: _, ...rest } = m;
+        return buildAnchored ? { ...rest, buildAnchored } : rest;
+    });
 }
 
 /** A still rock, and a Replicator `x` out from it, facing it. */
@@ -72,11 +85,9 @@ describe("a slipway that builds only anchored", () => {
     });
 
     it("keeps whether it builds only anchored in a file", () => {
-        const raw = serialiseBlueprint(replicator(true)) as { modules: Record<string, unknown>[] };
-        const slipway = raw.modules.find((m) => m["kind"] === "slipway")!;
-        expect(slipway["buildAnchored"]).toBe(true);
+        const raw = serialiseBlueprint(replicator(true));
         const back = parseBlueprint(JSON.parse(JSON.stringify(raw)));
-        expect((back.modules.find((m) => "kind" in m && m.kind === "slipway") as ModuleSpec).buildAnchored).toBe(true);
+        expect((specsOf(back).find((m) => "kind" in m && m.kind === "slipway") as ModuleSpec).buildAnchored).toBe(true);
     });
 });
 
@@ -108,10 +119,7 @@ describe("a claw ship closing on a source", () => {
             return ships.clawArrival(run.world.bodies, b, ships.workingClaw(run.m, b));
         };
         // The same hull, its holds full and all but empty.
-        const loaded = (fill: number): Blueprint => ({
-            ...REPLICATOR,
-            modules: REPLICATOR.modules.map((m) => ("kind" in m && m.kind === "hold" ? { ...m, fill } : m)),
-        });
+        const loaded = (fill: number): Blueprint => changed((m) => ("kind" in m && m.kind === "hold" ? { ...m, fill } : m));
         expect(speed(loaded(1))).toBeLessThan(speed(loaded(0.1)));
         expect(speed(SCAVENGER)).toBeCloseTo(2.5, 6);
     });
