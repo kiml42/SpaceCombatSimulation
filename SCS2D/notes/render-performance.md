@@ -123,6 +123,16 @@ and arcs are cut into chords by their size on screen, so both change with the zo
   choices are the author's: whether lighting is drawn live over the kept parts, which changes what is over
   what, and how far the zoom may change before the kept geometry is rebuilt.
 
+**Both done.** Ships under 32 pixels across are drawn from a picture of their hull, by side, damage and gauges
+to a quarter, in both renderers: Super Swarm went from 21 to 39 fps in Chrome's WebGL and from 25 to 72 in
+Firefox's Canvas2D. In WebGL, `PixiCanvas.keep` keeps what does not change in a part's own frame, by a key
+saying what it shows: fills, gauges and lights in steps, turret discs and domes (alike at any angle), load
+rings turned to their barrels, and robot bays by their berths. Lighting, barrels and exhaust stay live. That
+took Firefox's WebGL Star Wars from 18 to 30 fps; elsewhere it measured within the noise, as placing a kept
+part costs Pixi about what building a one-shape part did. What remains is Pixi's own work for every object
+a frame (`collectRenderables`, `addRenderable`), now about half the WebGL main thread: fewer, larger kept
+objects, a ship's whole kept hull as one, would be the next step.
+
 ### 6. Pick the renderer per browser
 
 Until WebGL is faster there, Firefox players are better off on Canvas2D: twice the frame rate in every
