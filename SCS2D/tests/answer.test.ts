@@ -12,7 +12,7 @@ const corvette = shipFleet(CORVETTE);
 /** A seed the Gunship beats the Corvette on, from where a round sets them out. */
 const WON = 7;
 /** A seed the player's Corvette beats the same Corvette on. */
-const MIRROR_WON = 25;
+const MIRROR_WON = 17;
 
 function decide(player = gunship, enemy = corvette, seed = WON): Decision {
     const battle = customBattle(roundBattle(player, enemy, seed));
