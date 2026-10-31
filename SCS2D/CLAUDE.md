@@ -99,7 +99,9 @@ Keep these working — they are the cold-start re-entry path:
   and `ui/`, imports flow one way, app → features → ui, and `ui/` imports nothing above it; a boundary error
   means the file is in the wrong layer, so move it rather than disable the rule. There, import across folders
   through `~/`, and no barrel `index.ts` files
-- `pnpm golden` — re-derive golden checksums after a *deliberate* behaviour change
+- `pnpm golden` — after a *deliberate* behaviour change, write the new golden checksums into `tests/golden.test.ts`,
+  with each battle's outcome and time per step as the baseline the next run is reported against; `pnpm golden
+  <scenario> …` for only those
 - `pnpm evolve` — fight a headless evolution run and write it to `runs/`, rewritten after every generation; `--from <stock ships or blueprint files>`, `--fleet <stock fleet
   or fleet file>`, `--deploy <radius>`, `--ships <most>` (ship founders grow into fleets unless it is 1), `--generations`,
   `--population`, `--group`, `--matches`, `--budget`, `--duration`, `--radius`, `--closing`, `--crossing` (each with a `-spread` either side, drawn per match), `--quiet-limit` (seconds every side must go without fighting or closing in before a match ends; 30 unless set), `--map` (asteroids each match is fought among, drawn from its seed, as `majors=2,minors=8,fuel=0.3`), `--seed`, `--kinds`, `--doctrine`, `--build`, `--structural`, `--geometry`, `--thrusters`,
@@ -122,7 +124,8 @@ Keep these working — they are the cold-start re-entry path:
 ## Testing
 
 **Don't run either suite whole locally: CI does** (the root [CLAUDE.md](../CLAUDE.md), "How changes land").
-Run the test files that bear on the change, the typecheck and the format check, and push.
+Run the test files that bear on the change, the typecheck and the format check, and push. `pnpm golden` is the
+exception, run whole after a behaviour change for the outcomes and timings it reports against the baseline.
 
 **Two suites, deliberately.** `pnpm test` must run from a cold checkout with nothing but `pnpm install`, so it
 never needs a browser; the browser tests live in `tests/browser/` and run separately. They check what types
