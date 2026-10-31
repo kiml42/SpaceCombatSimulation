@@ -713,9 +713,11 @@ export function battleView(
         // Pixi's context draws as a canvas does (render/pixiCanvas.ts), so the same code paints either.
         const into = pixi === null ? ctx : (pixi as unknown as CanvasRenderingContext2D);
         draw(into, view, camera, canvas.width, canvas.height, flashes, arcs, teamShots, selected, also, marked, pixi !== null);
-        // The strips' cache is a canvas of its own, so Pixi draws them fresh each frame.
-        if (tiles !== null)
-            drawFleetStrips(into, view, tiles, selected, ratio, flashes, arcs, teamShots, pixi === null ? stripCache : undefined);
+        if (tiles !== null) {
+            drawFleetStrips(into, view, tiles, selected, ratio, flashes, arcs, teamShots, stripCache, canvas.width, canvas.height);
+            // Its tiles are drawn in 2D, and Pixi shows them as a texture, which has to be told it has changed.
+            if (pixi !== null && stripCache.image !== null) pixi.changed(stripCache.image);
+        }
         const insets = closeUps(view, camera, canvas.width, canvas.height, selected, ratio, tiles);
         drawCloseUps(into, view, insets, selected, ratio, flashes, arcs, teamShots, marked);
         drawTargetRange(into, view, camera, canvas.width, canvas.height, selected, insets, ratio);

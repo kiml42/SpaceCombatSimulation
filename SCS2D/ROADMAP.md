@@ -106,8 +106,8 @@ an entry is either still open or it is gone.
     browser tests draw in 2D (`drawIn2D`) but for the ones about WebGL, since without a GPU it is drawn in
     software and is slow to start; (5) how it looks — lighting, the editors in Pixi, liveries, part art, marks
     and effects, in the order and form set out below; (6) a pass over the stop-gaps, done properly alongside a refresh of how those things
-    look rather than fixed in place: gradients filled in bands (plumes fade in steps, burn glows are rings;
-    the fix is one cached gradient per colour, drawn in the shape's own frame), strips drawn afresh each
+    look rather than fixed in place: gradients filled in bands (burn glows are rings;
+    the fix is one cached gradient per colour, drawn in the shape's own frame, as plumes now are), strips drawn afresh each
     frame without their cache, fills not cut by an outside clip, lines thinner than a pixel drawn a pixel
     wide and fainter, and whatever else is still drawn through `render/pixiCanvas.ts` that would be better
     as shared geometry.
@@ -608,6 +608,10 @@ Deliberately unresolved; decide when they block something.
   answered within 15 generations, by a graft, against all three within 10 with it on; the measurements, the PRs and
   what to try next are in
   [notes/skirmish-adaptation.md](notes/skirmish-adaptation.md).
+- **How to make the battle view faster, in Firefox above all.** WebGL beats Canvas2D in Chrome's heavy scenes
+  and is about half as fast as Canvas2D in Firefox. The fleet strips, garbage, plumes and Pixi rebuilding
+  every shape each frame are where the time goes. Measured in October 2026; the figures and what to try next
+  are in [notes/render-performance.md](notes/render-performance.md).
 - **Letting the skirmish enemy steal the player's designs in play.** The `steal` operator is off by default, as
   copying could feel like cheating. Suggested by the author: the game might say the enemy is trying to
   steal the player's designs, and let the player allow it, for a quicker answer, or refuse it. Wanted, not
