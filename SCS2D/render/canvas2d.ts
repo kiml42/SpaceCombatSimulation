@@ -216,6 +216,8 @@ const ROBOT_FULL = 0.999;
 const ROBOT_LENGTH = 1.2;
 /** How far short of the tail each wing case stops, radians round the shell. */
 const ROBOT_WING_GAP = 0.22;
+/** Pixels long a robot is on screen before it is drawn in detail rather than as a dot. */
+const ROBOT_DETAIL_PX = 4;
 /** How round a tank's gauge is drawn at its ends, as a share of the tank's smaller side: enough to read as a tank. */
 const TANK_ROUNDING = 0.35;
 
@@ -953,6 +955,22 @@ function drawRobots(ctx: CanvasRenderingContext2D, ship: ShipView): void {
     const robots = ship.robots ?? [];
     if (robots.length === 0) return;
     const colours = shipColours(ship.team);
+    const m = ctx.getTransform();
+    if (ROBOT_LENGTH * Math.sqrt(Math.abs(m.a * m.d - m.b * m.c)) < ROBOT_DETAIL_PX) {
+        // Too small for its wing cases to be told apart: a dot of its shell's colour.
+        ctx.save();
+        ctx.translate(ship.x, ship.y);
+        ctx.rotate(ship.angle);
+        ctx.fillStyle = colours.trim;
+        ctx.beginPath();
+        for (let r = 0; r + ROBOT_VIEW_STRIDE <= robots.length; r += ROBOT_VIEW_STRIDE) {
+            const half = ROBOT_LENGTH / 2;
+            ctx.rect(robots[r]! - half, robots[r + 1]! - half * 0.6, ROBOT_LENGTH, half * 1.2);
+        }
+        ctx.fill();
+        ctx.restore();
+        return;
+    }
     ctx.save();
     ctx.translate(ship.x, ship.y);
     ctx.rotate(ship.angle);
@@ -1953,9 +1971,13 @@ export class StripCache {
     /** The frame each tile, by where it is and what it shows, was last drawn. */
     private drawn = new Map<string, number>();
 
-    /** Where to draw tiles this frame, sized to `ctx`'s canvas; null where nothing offscreen can be had. */
-    begin(ctx: CanvasRenderingContext2D): CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null {
-        const { width, height } = ctx.canvas;
+    /** What the tiles are drawn on, for a context that must be told when it has changed (render/pixiCanvas.ts). */
+    get image(): HTMLCanvasElement | OffscreenCanvas | null {
+        return this.canvas;
+    }
+
+    /** Where to draw tiles this frame, sized to the view; null where nothing offscreen can be had. */
+    begin(width: number, height: number): CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null {
         if (this.canvas === null || this.canvas.width !== width || this.canvas.height !== height) {
             this.canvas = typeof OffscreenCanvas !== "undefined" ? new OffscreenCanvas(width, height) : document.createElement("canvas");
             this.canvas.width = width;
@@ -1998,8 +2020,10 @@ export function drawFleetStrips(
     arcs: Arcs = "none",
     teamShots = false,
     cache?: StripCache,
+    widthPx = ctx.canvas.width,
+    heightPx = ctx.canvas.height,
 ): void {
-    const into = cache?.begin(ctx) ?? null;
+    const into = cache?.begin(widthPx, heightPx) ?? null;
     let index = 0;
     const drawColumn = (column: StripColumn): void => {
         for (const tile of column.tiles) {

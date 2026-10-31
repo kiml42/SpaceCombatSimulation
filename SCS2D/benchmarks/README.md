@@ -61,10 +61,14 @@ measured. Leave the window alone while it runs: covering or minimising it slows 
 | `--scenes` | `Duel,Star Wars,Super Swarm,Asteroid Field,Factory` | Scenes by their names in the Battle route's list. |
 | `--renderers` | `webgl,canvas2d` | Which to measure, each in a fresh page. |
 | `--seconds` | `8` | How long each scene is measured. |
-| `--warmup` | `3` | Seconds each scene runs first, unmeasured. |
+| `--at` | `5` | Battle seconds each scene is played to first, so every run measures the same moment of it. |
+| `--warmup` | `3` | Seconds each scene runs first, unmeasured, after reaching `--at`. |
 | `--size` | `1600x900` | The page's size, CSS pixels. |
 | `--dpr` | `1` | Device pixel ratio: `2` draws four times the pixels, as a high-DPI screen does. |
-| `--paused` | off | Hold the battle, so the time is drawing alone. |
+| `--paused` | off | Hold the battle at `--at`, so the time is drawing alone. |
+| `--strips` | `shown` | `hidden` hides the fleet strips down the edges, to see what they cost. |
+| `--screenshots` | off | Save each scene as measured, beside the results, to check what was drawn. |
+| `--profile` | off | After measuring each scene, take a CPU profile of it for `--seconds` and print the 15 functions with the most self time; the `.cpuprofile` opens in DevTools' Performance panel. Build with `pnpm exec vite build --minify false` first for readable names. |
 | `--vsync` | off | Hold the frame rate to the display's. Without it the rate is uncapped, so a fast machine shows how far over 60 it could go. |
 | `--browser` | `chromium` | Playwright's Chromium, or a `chrome` or `msedge` installed on the machine. |
 | `--executable` | | A browser by its path, in place of `--browser`. |
@@ -78,4 +82,10 @@ in software and its figures say nothing about the machine.
 Reading the table: **fps** and **frame** p50/p95/worst (ms between frames) are what is felt; **js** p50/p95
 (ms of main-thread work a frame) is where the time goes. Frames far longer than their js time are waiting on
 the GPU or the display; js close to the frame time means the CPU is the limit, in stepping the battle unless
-`--paused` says otherwise.
+`--paused` says otherwise. **from** is the battle time measuring began, and **sim** the battle seconds a
+second while measured: under 1 means the battle fell behind.
+
+Running, a slow frame steps the battle further to catch up, which makes the next frame slower still, so a
+scene near the edge swings widely from run to run. To compare drawing, use `--paused`.
+
+From PowerShell, quote a comma list (`--renderers "webgl,canvas2d"`), or it arrives split on the commas.
