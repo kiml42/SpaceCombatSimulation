@@ -22,6 +22,7 @@ import {
     engineGeometry,
     type GunStats,
     type ModuleSpec,
+    originOf,
     type ShipDesign,
     type ShipView,
     type Snapshot,
@@ -40,6 +41,17 @@ import {
 import { BACKGROUND, GRID, WELL, WELL_ARM_PX, WELL_PULLS } from "./backdrop.js";
 import { barrelLines, MIN_BARREL_PX } from "./barrels.js";
 import type { Light } from "./light.js";
+import {
+    BEVEL_DARK,
+    BEVEL_LIGHT,
+    BEVEL_OF_RADIUS,
+    BEVEL_STRIDE,
+    bevelQuad,
+    bevelsOf,
+    isBevelled,
+    MIN_BEVEL_LIT,
+    MIN_BEVEL_PX,
+} from "./bevels.js";
 import { cylinderShade, domeShade, lightSlope } from "./shading.js";
 import { gridStep, type Camera } from "./camera.js";
 import {
@@ -495,6 +507,7 @@ function drawShip(
                 ctx.fill();
             }
         }
+        if (!filled && light !== undefined && isBevelled(spec)) bevel(ctx, design, i, ship.angle + m.angle, metresToPx, light);
         if (spec.kind === "engine" && light !== undefined) shadeBells(ctx, spec, ship.angle + m.angle, light);
         if (spec.kind === "port" && light !== undefined) shadePort(ctx, spec, ship.angle + m.angle, light);
         if (spec.kind === "pad") {
@@ -1258,6 +1271,35 @@ function shadePort(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: numbe
     ctx.drawImage(image, -l, -w, spec.length - collar, 2 * w);
     ctx.drawImage(image, l - collar, -w * PORT_COLLAR_WIDTH, collar, 2 * w * PORT_COLLAR_WIDTH);
 }
+
+/**
+ * Module `m`'s bevels, lit at `angle` in the world, in its own frame: those
+ * HullLayer does not draw, as a fighter's (render/hullLayer.ts).
+ */
+function bevel(ctx: CanvasRenderingContext2D, design: ShipDesign, m: number, angle: number, metresToPx: number, light: Light): void {
+    const origin = originOf(design, m);
+    const width = BEVEL_OF_RADIUS * origin.design.radius;
+    if (width * metresToPx < MIN_BEVEL_PX) return;
+    const edges = bevelsOf(origin.design, origin.module);
+    const { across } = lightSlope(light);
+    const towardX = cos(light.from - angle) * across;
+    const towardY = sin(light.from - angle) * across;
+    const alpha = ctx.globalAlpha;
+    for (let k = 0; k < edges.length; k += BEVEL_STRIDE) {
+        const lit = edges[k + 4]! * towardX + edges[k + 5]! * towardY;
+        if (Math.abs(lit) < MIN_BEVEL_LIT) continue;
+        bevelQuad(edges, k, width, quad);
+        ctx.globalAlpha = alpha * Math.abs(lit) * (lit > 0 ? BEVEL_LIGHT : BEVEL_DARK);
+        ctx.fillStyle = lit > 0 ? "#fff" : "#000";
+        ctx.beginPath();
+        ctx.moveTo(quad[0]!, quad[1]!);
+        for (let v = 2; v < 8; v += 2) ctx.lineTo(quad[v]!, quad[v + 1]!);
+        ctx.closePath();
+        ctx.fill();
+    }
+    ctx.globalAlpha = alpha;
+}
+const quad: number[] = [0, 0, 0, 0, 0, 0, 0, 0];
 
 /** A turret's dome shaded as rounded, at `x`, `y` in the world. */
 function shadeDome(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, light: Light): void {

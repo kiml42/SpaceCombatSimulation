@@ -1,6 +1,6 @@
 import { AlphaFilter, Container, Graphics, GraphicsContext } from "pixi.js";
 import { domeRadius, isDomed, originOf, type ModuleSpec, type Snapshot } from "../sim/index.js";
-import { BEVEL_STRIDE, bevelsOf } from "./bevels.js";
+import { BEVEL_DARK, BEVEL_LIGHT, BEVEL_OF_RADIUS, BEVEL_STRIDE, bevelQuad, bevelsOf, MIN_BEVEL_LIT, MIN_BEVEL_PX } from "./bevels.js";
 import { lightSlope } from "./shading.js";
 import type { Camera } from "./camera.js";
 import {
@@ -243,20 +243,20 @@ export class HullLayer {
         const c = Math.cos(angle);
         const s = Math.sin(angle);
         for (let k = 0; k < edges.length; k += BEVEL_STRIDE) {
-            // No deeper than the module goes in from this edge allows, so a thin
-            // plate's long sides keep a face and its short ends take the ship's bevel.
-            const deep = Math.min(width, BEVEL_MOST * edges[k + 6]!);
             const nx = edges[k + 4]! * c - edges[k + 5]! * s;
             const ny = edges[k + 4]! * s + edges[k + 5]! * c;
             const lit = nx * towardX + ny * towardY;
             if (Math.abs(lit) < MIN_BEVEL_LIT) continue;
-            const ax = x + edges[k]! * c - edges[k + 1]! * s;
-            const ay = y + edges[k]! * s + edges[k + 1]! * c;
-            const bx = x + edges[k + 2]! * c - edges[k + 3]! * s;
-            const by = y + edges[k + 2]! * s + edges[k + 3]! * c;
-            const ix = -nx * deep;
-            const iy = -ny * deep;
-            into.poly([ax, ay, bx, by, bx + ix, by + iy, ax + ix, ay + iy]).fill({
+            // Its own array: Pixi keeps the one it is given until it draws.
+            const quad: number[] = [];
+            bevelQuad(edges, k, width, quad);
+            for (let v = 0; v < 8; v += 2) {
+                const qx = quad[v]!;
+                const qy = quad[v + 1]!;
+                quad[v] = x + qx * c - qy * s;
+                quad[v + 1] = y + qx * s + qy * c;
+            }
+            into.poly(quad).fill({
                 color: lit > 0 ? 0xffffff : 0x000000,
                 alpha: alpha * Math.abs(lit) * (lit > 0 ? BEVEL_LIGHT : BEVEL_DARK),
             });
@@ -355,22 +355,6 @@ export class BlockShadows {
         }
     }
 }
-
-/**
- * How wide a ship's bevels are, as a share of its radius as built: the same on
- * every module of it, so a big ship's show and a small one's still fit. A
- * Corvette's come to 0.3 m. Never more than `BEVEL_MOST` of how far a module
- * reaches in from the edge, so a small module keeps a face.
- */
-export const BEVEL_OF_RADIUS = 0.0175;
-const BEVEL_MOST = 0.25;
-/** Too thin to see under this many pixels, so not drawn. */
-const MIN_BEVEL_PX = 0.75;
-/** How bright a bevel facing the light goes, and how dark one facing away. */
-const BEVEL_LIGHT = 0.45;
-const BEVEL_DARK = 0.4;
-/** Square on to the light, a bevel is as the face beside it: not drawn. */
-const MIN_BEVEL_LIT = 0.05;
 
 /** Graphics kept from frame to frame, placed afresh each one. */
 export class Pool {
