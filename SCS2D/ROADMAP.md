@@ -232,12 +232,17 @@ an entry is either still open or it is gone.
          Docking ports are shaded as rounded across, block and collar. The dome's shadow is still the cylinder's; a softer edge to it
          waits on soft shadows.
        - **Bevels — built** (`render/bevels.ts`, drawn by `render/hullLayer.ts`): a strip inside each
-         bevelled edge, 0.3 m or an eighth of the module's narrower side, lighter as the edge faces the light
+         bevelled edge, as wide on every module of a ship as `BEVEL_OF_RADIUS` (1.75%) of its radius as built
+         (0.3 m on a Corvette) and at most a quarter of how far the module reaches in from that edge, so a thin plate's short ends
+         take the ship's bevel while its long sides keep a face, lighter as the edge faces the light
          and darker as it faces away; skipped under a pixel wide, so a battle seen whole pays nothing. An edge
          is bevelled where nothing beside it stands as high (asked every half metre along it), so a thick
          module's edge over thin hull is, and the thin hull's edge against it is not; an engine's and a hull
-         mount's block only, and no asteroid's. Worked out once per compiled design and found through a
-         module's `originOf`, which is how a piece keeps the edges it was built with.
+         mount's block only, and no asteroid's nor docking port's, which are round. Worked out once per compiled design and found through a
+         module's `originOf`, which is how a piece keeps the edges it was built with. Where two bevels turn a corner,
+         on one module or two, they are mitred rather than overlapping; a gap narrower than a bevel between
+         modules is a seam; no bevel is deeper than its edge is long. Fighters' are drawn the same way by
+         `render/canvas2d.ts`, which draws their hulls.
         - **Each edge of a module is bevelled or not**, settled once for the design as built: an edge on its
           outline is, an edge it shares with a neighbour is not, so module edges inside the hull stay unseen.
           A little simpler than bevelling the outline itself, and it should look as good.
