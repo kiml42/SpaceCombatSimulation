@@ -228,7 +228,10 @@ an entry is either still open or it is gone.
          clear where it faces up as the deck does, so it shades whatever colour the part is. Made once per
          angle of the light across the part, rounded to a twelfth, and kept. Drawn in WebGL only, as the
          shadows are. A hull mount's barrels run back into its block under a clip the adapter does not apply
-         to images, so they are shaded only where they are out of the block, worked out from the line itself.
+         to images, so they are shaded only where they are out of the block, worked out from the line itself. Once Draw: 2D is
+         retired, hull mounts' barrels, their shading and their mantlets belong in the hull layer under their
+         module's fill, so the block covers a barrel's root however far it trains, and neither the clip nor
+         `throughBox` in `render/canvas2d.ts` is needed.
          Docking ports are shaded as rounded across, block and collar. The dome's shadow is still the cylinder's; a softer edge to it
          waits on soft shadows.
        - **Bevels — built** (`render/bevels.ts`, drawn by `render/hullLayer.ts`): a strip inside each
