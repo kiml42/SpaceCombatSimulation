@@ -43,6 +43,20 @@ Cheaper ways, smallest first:
 - Show each tile as a picture of the ship's design rather than a live view, as the author suggested. That is
   close to free, but loses the live damage and plumes in the tile.
 
+**Done, the first way.** The strips are on a canvas of their own over the view, and a tile not due a redraw is
+left as it is. Measured against master side by side (`--app`, medians of 2–3 rounds, held at 5 s):
+
+| | Firefox WebGL | Firefox Canvas2D | Chrome WebGL | Chrome Canvas2D |
+| --- | ---: | ---: | ---: | ---: |
+| Duel | 140 → 229 | 155 → 426 | 550 → 517 | 488 → 806 |
+| Rival Mines | 115 → 223 | 169 → 508 | 397 → 384 | 552 → 555 |
+| Star Wars | 17.5 → 19.2 | 38.5 → 44.6 | 31.6 → 34.9 | 31.5 → 31.7 |
+| Super Swarm | 10.4 → 13.7 | 24.7 → 28.3 | 22.2 → 22.6 | 25.8 → 21.8 |
+
+Chrome's figures are within its noise, except that Star Wars in WebGL steadied (34.0–36.2 against
+28.0–34.5); in Canvas2D its main thread halved there (22 to 11 ms) and the frame rate did not move, so Chrome
+is waiting on drawing there, not on the script.
+
 ### 2. Less garbage in `PixiCanvas`
 
 Minor GC is 17% of Firefox's WebGL main thread in Star Wars and 23% in Super Swarm, and 12–20% in Chrome.
@@ -50,6 +64,12 @@ Minor GC is 17% of Firefox's WebGL main thread in Star Wars and 23% in Super Swa
 (`[...sub.points, …]`) and every dash pattern, plus a `Gradient` per gradient. Reusing scratch buffers would
 cut most of that. Pixi adds its own: `handleFillObject` / `toFillStyle` make a style object for each `fill` and
 `stroke` call, which caching the style per colour and alpha would avoid.
+
+**Tried, no gain.** Saved states reused, the matrix set in place, no dash pattern made for a plain stroke, and a
+whole stroke's points handed to Pixi uncopied: no difference beyond the noise in Firefox. Most of the garbage
+is Pixi's own: every `fill` and `stroke` clones the path, and every `poly` makes a `Polygon` that keeps the points
+it is given until the frame is drawn, so a path's points cannot be reused either. Only fewer shapes a frame
+(item 5) will cut it. Not merged.
 
 ### 3. Plumes as a stretched texture
 
@@ -72,6 +92,10 @@ main thread in Star Wars, with `robotViews` at 9.5% in all, and it costs both re
 counting robots per bay would make it linear. It is in `sim/`, but every caller (`robotViews`, `robotsDocked`,
 `berthSpot`) is on the snapshot's path, not the step's, so no golden battle should move.
 
+**Tried, no gain.** Counted in one pass, Star Wars and Super Swarm measured no faster in either renderer, side
+by side with master over three rounds: a ship's robots are few, so the quadratic loop was cheap after all, and
+the earlier share was likely the profiler's sampling. Not merged.
+
 ### 5. Keep geometry between frames (the large one)
 
 Pixi's own work, from collecting renderables to triangulating and filling buffers (`render`,
@@ -84,8 +108,20 @@ browsers. It is all rebuilt every frame, because `PixiCanvas` replays `canvas2d.
   design and damage state and drawn with the ship's transform, would remove most of `drawShip`'s geometry.
 - Shots, flashes and robots are many copies of a few shapes: instanced quads or sprites rather than paths.
 
-This is the change that would let WebGL beat Canvas2D in Firefox too, and the most work. Items 2 and 3 are
-steps the same way.
+This is the change that would let WebGL beat Canvas2D in Firefox too, and the most work.
+
+What makes it hard is that `drawShip` mixes what never changes with what does, module by module: fills and
+outlines sit between gauges, robot berths and lighting. The lighting (`shadeBells`, `shadePort`, `shadeDome`)
+follows the ship's angle in the world, so it changes as the ship turns; line widths are floored in screen pixels
+and arcs are cut into chords by their size on screen, so both change with the zoom. Two ways in:
+
+- **Small ships as pictures.** A ship a few pixels long on screen shows none of that detail. Drawn once into an
+  image of its design, by side and damage, and stamped with its position and angle, it costs one quad. Most of
+  Super Swarm's ships are this small. It works the same in both renderers, and nothing large changes.
+- **Every ship's still parts kept.** Split `drawShip` into what is fixed in the ship's frame and what is not,
+  keep the first as a `GraphicsContext` in metres per design and damage state, and draw the rest live. Its
+  choices are the author's: whether lighting is drawn live over the kept parts, which changes what is over
+  what, and how far the zoom may change before the kept geometry is rebuilt.
 
 ### 6. Pick the renderer per browser
 
