@@ -83,6 +83,7 @@ import { FiringSolution, interceptTime, Turrets, TurretState } from "./turrets.j
 import {
     DEFAULT_DOCTRINE,
     holdBand,
+    edgeFade,
     overriddenDoctrine,
     overriddenMount,
     placementOf,
@@ -272,6 +273,9 @@ function arrivalTime(brake: number, gap: number, cruise: number, delay: number):
  * near the line between them does not flip its hull back and forth across it.
  */
 const BURN_MARGIN = 0.25;
+
+/** The least share of a change turning to burn must make sooner than holding would, to start. */
+const BURN_START = 0.25;
 
 /** Seconds of closing at its approach speed that stand in for an unarmed rammer's reach in choosing a target. */
 const RAM_HORIZON = 60;
@@ -1351,6 +1355,8 @@ export class Ships {
     private dodgeWhen = 0;
     /** Whether that dodge is from a rock. */
     private dodgeRock = false;
+    /** How far into its band's fade the craft's fight wants it moved, from 0 at rest in the band to 1 outside the fade (`hold`). */
+    private fightFade = 1;
     /** Where the threats a fleeing craft weighs lie, as a weighted sum of directions to them (`threats`). */
     private threatX = 0;
     private threatY = 0;
@@ -2151,6 +2157,14 @@ export class Ships {
             }
             this.choice.begin();
             this.maskedChoice.begin();
+            // Facing is judged along the line to what it is already fighting, not
+            // along its nose: turned away to burn, a hull's nose says nothing of
+            // what it would rather fight, and judged by it a craft on a pass
+            // changed its mind with every turn.
+            const lb = loyalTo === NO_TARGET || this.alive[loyalTo] !== 1 ? -1 : bodies.indexOf(this.bodyIds[loyalTo]!);
+            const lx = lb < 0 || lb === b ? 0 : bodies.x[lb]! - bodies.x[b]!;
+            const ly = lb < 0 || lb === b ? 0 : bodies.y[lb]! - bodies.y[b]!;
+            const ll = length(lx, ly);
             for (let t = 0; t < this.alive.length; t++) {
                 if (t === i || this.alive[t] === 0) continue;
                 if (attackers && this.focusOf(t) !== defending) continue;
@@ -2172,6 +2186,12 @@ export class Ships {
                 // Sharing a body, it is as far off as its own modules are.
                 const at = this.locate(bodies, t, tb, this.lookAt);
                 if (this.sharesBody(t, tb)) seen = { ...seen, range: length(at.x - bodies.x[b]!, at.y - bodies.y[b]!) };
+                if (ll > 0 && doctrine.facingWeight !== 0) {
+                    const cx = at.x - bodies.x[b]!;
+                    const cy = at.y - bodies.y[b]!;
+                    const cl = length(cx, cy);
+                    seen = { ...seen, facing: cl > 0 ? (cx * lx + cy * ly) / (cl * ll) : 1 };
+                }
                 // Behind an asteroid, it is gone for only when nothing in sight is there to fight.
                 const hidden = this.rockBetween(bodies, bodies.x[b]!, bodies.y[b]!, at.x, at.y, b, tb);
                 const candidate =
@@ -4224,6 +4244,7 @@ export class Ships {
         this.urgeWeight = 0;
         this.dodgeWeight = 0;
         this.dodgeRock = false;
+        this.fightFade = 1;
         let wantAngle = bodies.angle[b]!;
         // What it is fighting, if anything: the body, and how far out it holds it.
         let fighting = -1;
@@ -4579,7 +4600,9 @@ export class Ships {
         const range = length(at.x - bodies.x[b]!, at.y - bodies.y[b]!);
         // On the run out of a pass or back in, its guns wait for its mains.
         const near = this.running[i] === 1 ? 0 : range > maxRange && maxRange > 0 ? maxRange / range : 1;
-        const burn = approach.burnWeight * gain;
+        // Worth less the further into its band's fade it is: the last of the
+        // closing there is no reason to take its guns off.
+        const burn = approach.burnWeight * gain * this.fightFade;
         const hold = approach.rangeHold * near;
         // Committed to stopping on its mains: it holds them against its way in
         // whatever the score, since its approach was planned on them.
@@ -4587,7 +4610,11 @@ export class Ships {
             this.burning[i] = 1;
             return atan2(bodies.y[b]! - at.y, bodies.x[b]! - at.x) - design.thrustBearing;
         }
-        const now = this.burning[i] === 1 ? burn * (1 + BURN_MARGIN) > hold : burn > hold * (1 + BURN_MARGIN);
+        // Turning has to be worth a share of the change to start, as well as
+        // beating holding, so a craft whose want hovers where its guns-on thrust
+        // can nearly make it does not flip its hull to and fro; once turned, it
+        // stays turned while turning is worth anything.
+        const now = this.burning[i] === 1 ? burn * (1 + BURN_MARGIN) > hold : burn > hold * (1 + BURN_MARGIN) && gain > BURN_START;
         this.burning[i] = now ? 1 : 0;
         return now ? burnHeading : attack;
     }
@@ -4887,15 +4914,26 @@ export class Ships {
         let vx = at.vx;
         let vy = at.vy;
         if (range > 0) {
-            // How far outside the band, signed: positive means too far away.
-            const outside = range > maxRange ? range - maxRange : range < minRange ? range - minRange : 0;
-            if (outside !== 0) {
+            // How far into the fade at either edge, signed: positive means too far
+            // away. Measured from the fade's inner side, where the pull starts.
+            const fade = this.doctrines[i]!.approach.bandFade;
+            let near = minRange * (1 + fade);
+            let far = maxRange * (1 - fade);
+            if (near > far) near = far = (near + far) / 2;
+            // A craft coming in plans to stop by the middle of the band rather than
+            // at its edge, braking across the band's width, and so goes on gliding
+            // in past the edge while it is still closing.
+            const middle = (near + far) / 2;
+            const closingIn = ((bodies.vx[b]! - vx) * dx + (bodies.vy[b]! - vy) * dy) / range;
+            const sense = range > far || (range > middle && closingIn > 0) ? 1 : range < near ? -1 : 0;
+            if (sense !== 0) {
                 // The way the band lies, and how fast this craft is already heading
                 // that way relative to the other.
-                const sense = outside > 0 ? 1 : -1;
+                const share = sense > 0 ? edgeFade(range - maxRange, maxRange, fade) : edgeFade(minRange - range, minRange, fade);
+                if (fighting) this.fightFade = share;
                 const ux = (sense * dx) / range;
                 const uy = (sense * dy) / range;
-                const making = (bodies.vx[b]! - vx) * ux + (bodies.vy[b]! - vy) * uy;
+                const making = sense * closingIn;
 
                 const approach = this.doctrines[i]!.approach;
                 const facing = fightingAt ?? bodies.angle[b]!;
@@ -4908,32 +4946,50 @@ export class Ships {
                 // the pilot taking its response time to answer. Braking itself is
                 // never capped: `brake` is what the curve plans on, and a craft that
                 // has fallen behind it spends whatever it has.
-                const gap = outside * sense;
+                const gap = sense > 0 ? range - middle : near - range;
                 const response = approach.responseTime;
                 let stopping = stoppingSpeed(brake, gap, response);
                 // A craft that turns to burn brakes on its mains, once it has turned,
                 // and is held to it: a curve planned on them is one it cannot stop on
                 // otherwise.
                 if (fighting) {
+                    const onRetros = stopping;
                     const mains = this.mainsBrake(bodies, i, b, retro);
                     // Turned away and back again: it fights facing the other way. Only
-                    // when that gets it there sooner, turns and all: on a short run in a
-                    // flip costs more than it saves.
+                    // when that gets it there sooner, turns and all, since on a short run
+                    // in a flip costs more than it saves; and coming in, only when its
+                    // retros could not stop it by the middle of the band with its guns
+                    // on, allowing for the pilot running a response time behind its
+                    // curve: a wide band is room to brake gently, guns on.
                     const turn = this.halfTurnTime(bodies, i, b);
                     const turned = mains > brake ? stoppingSpeed(mains, gap, response + turn) : 0;
-                    const sooner =
-                        turned > stopping &&
-                        arrivalTime(mains, gap, approachSpeed, response + turn) + turn < arrivalTime(brake, gap, approachSpeed, response);
+                    const flipped = arrivalTime(mains, gap, approachSpeed, response + turn) + turn;
+                    const held = arrivalTime(brake, gap, approachSpeed, response);
+                    const sooner = turned > stopping && flipped < held && (sense < 0 || making > stoppingSpeed(brake, gap, 0));
                     if (sooner) stopping = turned;
                     // Already turned onto them: planned on them, with no turn to allow for.
                     if (wasOnMains && mains > 0) stopping = max(stopping, stoppingSpeed(mains, gap, response));
-                    // Once on it, held to it until it has stopped closing.
+                    // Once on it, held to it until it has stopped closing, or in the fade,
+                    // where it is asked for a crawl rather than a stop, until its retros
+                    // could stop it with its guns on.
                     // On the curve: going as fast as it can stop from on its mains, so it
                     // has to turn and start now.
                     const onCurve = sooner && turned < approachSpeed && making >= turned;
-                    this.brakingOnMains[i] = sense > 0 && making > 0 && (onCurve || wasOnMains) ? 1 : 0;
+                    const done = share < 1 ? onRetros : 0;
+                    this.brakingOnMains[i] = sense > 0 && making > done && (onCurve || wasOnMains) ? 1 : 0;
                 }
-                let radial = min(approachSpeed, stopping);
+                // Eased in across the fade, so it settles where this balances
+                // whatever else it wants rather than bouncing off the edge. Coming in,
+                // asked to speed up only by the pull into the band, and otherwise to
+                // keep what it is making, down the curve that stops it by the middle.
+                let radial =
+                    sense > 0
+                        ? min(
+                              approachSpeed,
+                              stopping,
+                              max(making, min(approachSpeed, stoppingSpeed(brake, max(0, range - far), response)) * share),
+                          )
+                        : min(approachSpeed, stopping) * share;
                 // A share below one caps how much faster it asks to be going within
                 // one response time, which caps the push the pilot demands. At one it
                 // is left alone, since the layout is the cap then, and capping the want
@@ -4992,29 +5048,38 @@ export class Ships {
         const closing = rvx * ux + rvy * uy;
         const speed = clamp(across * side, lo, hi);
         const inner = minRange > 0 ? minRange : maxRange / 2;
-        let wantX: number;
-        let wantY: number;
-        if (range > maxRange) {
-            this.running[i] = 1;
-            const arrive = clamp(approachSpeed, lo, hi);
+        const arrive = clamp(approachSpeed, lo, hi);
+        // Across the fade at the outer edge it is part way from going round to
+        // coming back in, so a craft riding that edge leans on its mains gently
+        // and steadily rather than in bursts each time it crosses the line.
+        const out = edgeFade(range - maxRange, maxRange, approach.bandFade);
+        let wantX = 0;
+        let wantY = 0;
+        if (range > maxRange) this.running[i] = 1;
+        if (out > 0) {
             const brake = approach.brake * this.accelerationAlong(bodies, i, b, -ux, -uy, facing);
-            const fly = max(arrive, min(approachSpeed, sqrt(arrive * arrive + 2 * brake * (range - maxRange))));
+            const fly = max(arrive, min(approachSpeed, sqrt(arrive * arrive + 2 * brake * max(0, range - maxRange))));
             const graze = min(1, inner / range);
             const straight = sqrt(1 - graze * graze);
-            wantX = (ux * straight + tx * graze) * fly;
-            wantY = (uy * straight + ty * graze) * fly;
-        } else {
+            wantX += (ux * straight + tx * graze) * fly * out;
+            wantY += (uy * straight + ty * graze) * fly * out;
+        }
+        if (out < 1) {
             // Circles only once it has the speed. Short of it, it carries on through
             // if it is passing, or heads out if not, and the run back in on its
             // mains brings it.
             const pull = approach.accelerate * this.accelerationAlong(bodies, i, b, ux, uy, facing);
             const circling = across * side >= lo && (speed * speed) / range <= pull;
-            const arrive = clamp(approachSpeed, lo, hi);
             const passing = circling || closing > lo / 2;
-            const radial = circling ? (range < inner ? min(closing, 0) : 0) : passing ? closing : min(closing, -arrive);
-            if (!passing) this.running[i] = 1;
-            wantX = ux * radial + tx * speed;
-            wantY = uy * radial + ty * speed;
+            const inside = edgeFade(inner - range, inner, approach.bandFade);
+            // Neither: it carries on the way it is going, which takes it out past the
+            // band, and is pushed out only once into the inner edge's fade, harder
+            // the deeper it is; a craft still on its way in turned to burn away
+            // before it had come anywhere near.
+            const radial = circling ? min(closing, 0) * inside : passing ? closing : closing + (min(closing, -arrive) - closing) * inside;
+            if (!passing && inside > 0.5 && range <= maxRange) this.running[i] = 1;
+            wantX += (ux * radial + tx * speed) * (1 - out);
+            wantY += (uy * radial + ty * speed) * (1 - out);
         }
         this.urge(weight, at.vx + wantX, at.vy + wantY);
     }
@@ -5072,7 +5137,10 @@ export class Ships {
         const station = this.escortBand(i, design, consort);
         const gap = length(bodies.x[cb]! - bodies.x[b]!, bodies.y[cb]! - bodies.y[b]!);
         // Told to, it holds the band as firmly as it would a station.
-        const weight = this.defendingOf(i) === consort ? URGE_REFERENCE : cohesionUrge(this.doctrines[i]!.targeting, gap, station);
+        const weight =
+            this.defendingOf(i) === consort
+                ? URGE_REFERENCE
+                : cohesionUrge(this.doctrines[i]!.targeting, gap, station, this.doctrines[i]!.approach.bandFade);
         const told = this.getCurrentOrder(i);
         const speed = told?.defend === true && told.target === consort ? told.speed : undefined;
         this.hold(
@@ -5329,14 +5397,29 @@ export class Ships {
             // same battle diverge from a rounding difference.
             const speedSq = rvx * rvx + rvy * rvy;
             const closing = dx * rvx + dy * rvy;
-            const closest = speedSq > 0 ? max(0, -closing / speedSq) : 0;
-            const missX = dx + rvx * closest;
-            const missY = dy + rvy * closest;
-            const miss = length(missX, missY);
+            let closest = speedSq > 0 ? max(0, -closing / speedSq) : 0;
+            let missX = dx + rvx * closest;
+            let missY = dy + rvy * closest;
+            let miss = length(missX, missY);
             if (miss >= touching + room) continue;
             // Soon is when they touch, if they will: the closest the middles come is
             // far later than that for anything large.
-            const when = miss < touching && speedSq > 0 ? max(0, closest - sqrt((touching * touching - miss * miss) / speedSq)) : closest;
+            let when = miss < touching && speedSq > 0 ? max(0, closest - sqrt((touching * touching - miss * miss) / speedSq)) : closest;
+            // Its charge, which covering pulls it towards, is kept clear of with a
+            // soft edge, so the two settle where they balance; anything else is
+            // dodged flat out, since nothing pulls it back, and so is a rock, which
+            // will not move.
+            const soft = t === covering && !rock;
+            // Its charge already too close, and drawing closer too slowly to matter
+            // within the look-ahead: answered as it stands now, or a pair drifting
+            // together at a crawl, or at rest, would never be kept apart at all.
+            if (soft && when > approach.avoidHorizon && length(dx, dy) < touching + room) {
+                closest = 0;
+                when = 0;
+                missX = dx;
+                missY = dy;
+                miss = length(dx, dy);
+            }
             // A pass that would come within its own clearance of a rock is looked for
             // however far ahead it is: a rock is big, and does not get out of the way.
             const clearance = mine * approach.separationRadii;
@@ -5363,17 +5446,33 @@ export class Ships {
                 continue;
             }
 
-            let weight =
-                when < approach.avoidHorizon
-                    ? approach.separation * (1 - miss / (touching + room)) * (1 - when / approach.avoidHorizon)
-                    : 0;
+            const depth = 1 - miss / (touching + room);
+            let weight = when < approach.avoidHorizon ? approach.separation * depth * (1 - when / approach.avoidHorizon) : 0;
             if (need > 0) weight = max(weight, approach.separation * this.rockUrgency(bodies, i, b, need, clearance, when, awayX, awayY));
             if (weight > this.dodgeWeight) {
                 this.dodgeWeight = weight;
                 this.dodgeWhen = when;
                 this.dodgeRock = rock;
             }
-            this.urge(weight, vx + awayX * approach.dodgeSpeed, vy + awayY * approach.dodgeSpeed);
+            // From its charge, opening at a speed that grows with how deep inside
+            // the clearance it is, less what it is opening at already, so a pair
+            // drawing apart eases off as it leaves rather than flying apart flat out.
+            const ds = approach.dodgeSpeed;
+            const opening = -(rvx * awayX + rvy * awayY);
+            let dodge: number;
+            if (!soft) dodge = ds;
+            else if (closest > 0) dodge = clamp(ds * depth - opening, 0, ds);
+            else {
+                // Not closing, so nothing to dodge in time for: it opens no faster
+                // than it can stop from by the edge, and slows if it is, so it
+                // comes to rest there rather than sailing on past what pulls it back.
+                const push = this.accelerationAlong(bodies, i, b, awayX, awayY, bodies.angle[b]!);
+                const brake =
+                    approach.brake * max(this.accelerationAlong(bodies, i, b, -awayX, -awayY, bodies.angle[b]!), BRAKE_FLOOR * push);
+                const opens = min(ds * depth, stoppingSpeed(brake, touching + room - miss, approach.responseTime));
+                dodge = clamp(opens - opening, -ds, ds);
+            }
+            this.urge(weight, vx + awayX * dodge, vy + awayY * dodge);
         }
     }
 

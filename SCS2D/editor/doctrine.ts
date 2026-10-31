@@ -152,6 +152,12 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
         step: 0.25,
     },
     { field: "tolerance", label: "slack", hint: "How much closer or further than that is close enough, as a fraction", step: 0.05 },
+    {
+        field: "bandFade",
+        label: "soft edges",
+        hint: "How gently the pull back into a band grows across each edge, as a fraction of its distance either side: 0 is a hard edge",
+        step: 0.05,
+    },
     { field: "approachSpeed", label: "closing speed", hint: "The fastest it will close the difference, metres per second", step: 10 },
     {
         field: "accelerate",
@@ -532,6 +538,7 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                             return `holds ${metres(band.min)}–${metres(band.max)}, centre to centre`;
                         },
                     }),
+                    entry("approach", "bandFade"),
                 ],
             },
             {

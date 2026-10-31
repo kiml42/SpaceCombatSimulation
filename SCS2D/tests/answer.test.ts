@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fleetBill, fleetHulls, serialiseFleet, shipFleet } from "../sim/index.js";
+import { DEFAULT_DOCTRINE, fleetBill, fleetHulls, serialiseFleet, shipFleet } from "../sim/index.js";
 import { fleetFits } from "../evolution/fleetMutate.js";
 import { CORVETTE, GUNSHIP } from "../scenarios/blueprints.js";
 import { customBattle, tally } from "../scenarios/customBattle.js";
@@ -11,8 +11,20 @@ const gunship = shipFleet(GUNSHIP);
 const corvette = shipFleet(CORVETTE);
 /** A seed the Gunship beats the Corvette on, from where a round sets them out. */
 const WON = 7;
-/** A seed the player's Corvette beats the same Corvette on. */
-const MIRROR_WON = 25;
+/** A Corvette closing at `speed` m/s; the faster of two wins, since two set out alike shoot each other's cores out together. */
+const closingAt = (speed: number) =>
+    shipFleet({
+        ...CORVETTE,
+        doctrine: {
+            targeting: { ...DEFAULT_DOCTRINE.targeting, ...CORVETTE.doctrine?.targeting },
+            approach: { ...DEFAULT_DOCTRINE.approach, ...CORVETTE.doctrine?.approach, approachSpeed: speed },
+        },
+    });
+/** As near a mirror as the player wins: its Corvette closing a little faster than the enemy's. */
+const steady = closingAt(40);
+const slow = closingAt(30);
+/** A seed the player's Corvette beats the slower one on. */
+const MIRROR_WON = 17;
 
 function decide(player = gunship, enemy = corvette, seed = WON): Decision {
     const battle = customBattle(roundBattle(player, enemy, seed));
@@ -31,24 +43,24 @@ describe("the skirmish enemy's answer", () => {
     });
 
     it("finds an enemy that beats the player on that seed, to the skirmish decision", { timeout: 120_000 }, () => {
-        // A mirror the player won is the quickest to answer: a Gunship is a long way past a Corvette.
-        expect(decide(corvette, corvette, MIRROR_WON).winner).toBe(0);
-        const answering = new EnemySearch(corvette, corvette, MIRROR_WON, 11);
+        // A near mirror the player won is the quickest to answer: a Gunship is a long way past a Corvette.
+        expect(decide(steady, slow, MIRROR_WON).winner).toBe(0);
+        const answering = new EnemySearch(steady, slow, MIRROR_WON, 11);
         for (let slice = 0; slice < 200 && !answering.advance(5000); slice++);
         const found = answering.progress.found;
         expect(found).not.toBeNull();
-        expect(decide(corvette, found!, MIRROR_WON).winner).toBe(1);
+        expect(decide(steady, found!, MIRROR_WON).winner).toBe(1);
     });
 
     it("wins the round by its margin, or is no answer", { timeout: 120_000 }, () => {
         // Finishing more than all of itself ahead of the player cannot be done.
-        const answering = new EnemySearch(corvette, corvette, MIRROR_WON, 11, { answerMargin: 1.01 });
+        const answering = new EnemySearch(steady, slow, MIRROR_WON, 11, { answerMargin: 1.01 });
         for (let slice = 0; slice < 40 && !answering.advance(5000); slice++);
         expect(answering.progress.found).toBeNull();
         // The answer found by default finishes the round at least that far ahead.
-        const found = new EnemySearch(corvette, corvette, MIRROR_WON, 11);
+        const found = new EnemySearch(steady, slow, MIRROR_WON, 11);
         for (let slice = 0; slice < 200 && !found.advance(5000); slice++);
-        const battle = customBattle(roundBattle(corvette, found.progress.found!, MIRROR_WON));
+        const battle = customBattle(roundBattle(steady, found.progress.found!, MIRROR_WON));
         const activity = new Activity(2);
         while (activity.observe(battle) === null) battle.step();
         const now = tally(battle, 2);

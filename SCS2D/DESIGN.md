@@ -293,17 +293,22 @@ inside any one file is not contiguous.
   what the pilot asks for, so a ship whose guns-on thrust already gives that never turns, and when dodging is
   most of what it wants only what each makes before the near miss counts, so it sidesteps rather than flips.
   The more it wants to change, and the further out it is, the more readily it turns, held either way by a
-  margin so it does not flip back and forth. So a ship whose one
-  big engine is its weapon closes bow first and fights stern first, braking on its flame. A craft that would turn to burn to brake plans its approach on its mains when
-  that gets it into its band sooner, the half turn and the turn back included, and is held to that plan once
-  on it. `burnWeight` is 2
+  margin so it does not flip back and forth, and it starts to turn only when turning makes at least a quarter
+  of the change sooner, staying turned while turning is worth anything at all. So a ship whose one
+  big engine is its weapon closes bow first and fights stern first, braking on its flame. **A craft coming in plans to stop by the middle of its band**, not its edge,
+  gliding on past the edge while it is still closing and braking across the band's width: a wide band is room
+  to manoeuvre gently. It turns to burn to brake only when it is coming in too fast for its guns-on thrust to
+  stop it by then, allowing for the pilot running a response time behind its curve, and that gets it there
+  sooner, the half turn and the turn back included; it is held to that plan once on it. So a Corvette keeps its
+  guns on target all the way into its band, which also means two set out alike shoot each other's cores out
+  together. `burnWeight` is 2
   by default. **A ship may attack on the move** (`tangentialMin`, `tangentialMax`, m/s, both 0 by default,
   which comes to rest at the band): it holds its sideways speed relative to what it is attacking between the
   two, going round whichever way it already is. Out past the band it flies the line that grazes a circle at
   the band's inner edge, so it comes in aiming to miss with its speed sideways by the time it is in range,
   closing faster than that far out only as fast as it can still slow to it. In the band it circles if it has
-  the speed and its thrust can hold the turn (v²/r) at it, and otherwise carries on through on a pass or heads
-  out; out past the band, the same line points it back, and on that run its guns wait for its mains
+  the speed and its thrust can hold the turn (v²/r) at it, and otherwise carries on through on a pass, pushed
+  out only once into the inner edge's fade; out past the band, the same line points it back, and on that run its guns wait for its mains
   (`rangeHold` does not count), so it turns and burns for another pass. Whether it circles or makes passes
   comes from its build and its speed, not a setting: the `circling` scenario has a Y-wing circle a Corvette
   and `passes` a fast-set Dinky make passes at one. Only an attack: a ram, a dock and an escort still close
@@ -518,6 +523,17 @@ inside any one file is not contiguous.
   produced the identical battle. Added as velocities, in a currency they all share, a craft does both at
   once: asking for a formation half as tight costs three per cent in closing on the enemy, and the knob
   means something all the way along instead of having a cliff in it.
+  **A band's edges are soft** (`bandFade`, 0.1 by default, a fraction of each edge's distance either side of
+  it). The pull back into a band — an attack's, a station's, an escort's — eases in across that width rather
+  than switching on at the line, and so does an escort's weight. Two wants that overlap there settle where
+  they balance rather than bouncing between them: the Catamaran's halves, covering each other and keeping
+  clear of each other, come to rest where the two cancel instead of creeping together and flying apart, and
+  a fighter circling at the outer edge of its band burns gently and steadily instead of in bursts each time
+  it crosses the line. A craft that turned onto its mains to brake turns back to its guns once in the fade,
+  when its retros could stop it with them on, and is less keen to turn to burn the further in it is: the last
+  of the closing there is no reason to take its guns off, and a Corvette mirror held them off for its whole
+  ten minutes before that. The overlay shades each fade as a gradient. Measured on two Catamarans left alone
+  too close together, settling cost under half the fuel and no longer overshot the station.
   **A range band is measured from a hull, not from the middle of one.** A gun's reach is how far it can
   throw a round past its own muzzle and what it is shooting at is the hull, which is the same thing on ships
   of a size and nothing like it when a fighter attacks a capital: left centre to centre, a TIE's doctrine
@@ -527,7 +543,14 @@ inside any one file is not contiguous.
   is at its closest and how much room that will leave, since a bubble cannot tell a consort holding station
   a hull's width away from something crossing at two hundred metres a second. How soon is how long until
   they would touch, where they would: for anything large that is far sooner than their middles' closest. A
-  ram keeps clear of rocks and of its own side's ships, at its own size, and of nothing else. It is never applied to the
+  ram keeps clear of rocks and of its own side's ships, at its own size, and of nothing else. **Its charge is
+  kept clear of with a soft edge**, since covering pulls the two together: inside its clearance and drawing
+  closer too slowly to matter within the look-ahead, or not at all, the pair is answered as it stands, and
+  asked to open at a speed that grows with how deep inside it is, less what it is opening at already and no
+  faster than it can stop from by the edge, so the two come to rest where covering and keeping clear
+  balance. Anything else is dodged flat out as before, and so is a rock even when it is its charge, since it
+  will not move: applied to every pair, the soft edge pushed moored
+  neighbours, a scavenger and the friend it was drinking from, and a tender coming home apart. It is never applied to the
   thing a craft is flying at — where it wants to be relative to *that* is already decided, and a second
   opinion would have a ship told to ram sheer off at the last moment and call it seamanship. It costs a
   quarter of the contacts in the Star Wars scene and a third of those between a fighter and a capital, half
@@ -1282,7 +1305,8 @@ inside any one file is not contiguous.
   tuning its numbers (ROADMAP.md §12).
   See ROADMAP.md §8.
   §8 step 3 is done, withdrawal left open (ROADMAP.md §12), and step 7, two layers, is built. What a chooser is already facing (`facingWeight`) and whether anything is in the way
-  (`sightWeight`) are weights, zero by default. Evolution is built and runs both headlessly and on a page
+  (`sightWeight`) are weights, zero by default; a hull already fighting something judges facing along its
+  line to that, not its nose, which turned away to burn says nothing of what it would rather fight. Evolution is built and runs both headlessly and on a page
   of its own; what it has left open is in ROADMAP.md §12, the arena radius being an absolute where a ratio
   belongs chief among them. ROADMAP.md §8 lists what is left of each partly built step, then the steps not started. The blueprint
   editor, step 1, is built; test flight inside it is an open question (§12), since the Battle link already

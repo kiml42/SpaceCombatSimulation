@@ -349,6 +349,14 @@ export interface Approach extends SupplyPriorities, SupplyShares {
     readonly responseTime: number;
     /** How much closer or further than that is close enough, as a fraction. */
     readonly tolerance: number;
+    /**
+     * How soft the edges of every band it holds are, as a fraction of each
+     * edge's distance either side of it (`edgeFade`). The pull back into a band
+     * grows smoothly across that width rather than switching on at the line, so
+     * two wants that overlap there settle where they balance instead of
+     * bouncing between them. Zero is a hard edge.
+     */
+    readonly bandFade: number;
     /** How briskly to close the difference, metres per second. */
     readonly approachSpeed: number;
     /**
@@ -551,6 +559,21 @@ export function holdBand(approach: Approach, reach: number, targetRadius: number
     return { min: floor, max: max > floor ? max : floor };
 }
 
+/**
+ * How far across the fade at a band's edge a range is: nothing at `fade` of
+ * `edge` on the band's side of it, a half on the edge, all of it `fade` of
+ * `edge` beyond, eased at both ends so the pull it scales has no kink to
+ * chatter on. `beyond` is how far past the edge, positive out of the band.
+ */
+export function edgeFade(beyond: number, edge: number, fade: number): number {
+    const width = fade * edge;
+    if (!(width > 0)) return beyond > 0 ? 1 : 0;
+    const t = (beyond + width) / (2 * width);
+    if (t <= 0) return 0;
+    if (t >= 1) return 1;
+    return t * t * (3 - 2 * t);
+}
+
 export interface Doctrine {
     readonly targeting: Targeting;
     readonly approach: Approach;
@@ -606,6 +629,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
         dodgeSpeed: 60,
         responseTime: 2,
         tolerance: 0.2,
+        bandFade: 0.1,
         approachSpeed: 60,
         accelerate: 1,
         brake: 0.8,
@@ -820,6 +844,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
     "dodgeSpeed",
     "responseTime",
     "tolerance",
+    "bandFade",
     "approachSpeed",
     "accelerate",
     "brake",
@@ -864,6 +889,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
 /** Fields that mean nothing below zero, though zero itself is a setting. */
 export const NON_NEGATIVE_FIELDS: readonly string[] = [
     "ramSettle",
+    "bandFade",
     ...CLAIMS.map((claim) => `${claim}Share`),
     "fuelReserve",
     "metalReserve",

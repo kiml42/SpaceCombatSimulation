@@ -120,17 +120,18 @@ export function score(
  * rather than being switched between them.
  *
  * It fades to nothing as the gap closes, so a craft that has caught up is
- * pulled by the fight alone until the fight has drawn it off again: full
- * strength at twice the station distance, nothing at all once it is there.
+ * pulled by the fight alone until the fight has drawn it off again: from
+ * nothing at the inner side of the station's fade (`bandFade` of it short of
+ * it) to full strength a station's distance further out.
  */
-export function cohesionUrge(doctrine: Targeting, gap: number, station: number): number {
-    return slack(gap, station) * doctrine.escortWeight;
+export function cohesionUrge(doctrine: Targeting, gap: number, station: number, fade: number): number {
+    return slack(gap, station, fade) * doctrine.escortWeight;
 }
 
-/** One at twice the station distance or further, nothing once on station. */
-function slack(range: number, station: number): number {
+/** One a station's distance past the inner side of its fade or further, nothing inside it. */
+function slack(range: number, station: number, fade: number): number {
     if (!(station > 0)) return 1;
-    const over = (range - station) / station;
+    const over = (range - station * (1 - fade)) / station;
     return over <= 0 ? 0 : over >= 1 ? 1 : over;
 }
 
