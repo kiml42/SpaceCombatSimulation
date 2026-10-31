@@ -635,6 +635,14 @@ Deliberately unresolved; decide when they block something.
   and is about half as fast as Canvas2D in Firefox. The fleet strips, garbage, plumes and Pixi rebuilding
   every shape each frame are where the time goes. Measured in October 2026; the figures and what to try next
   are in [notes/render-performance.md](notes/render-performance.md).
+- **Bevels against gauges.** A bevel runs inside a module's edge, and a tank's, hold's or battery's gauge
+  is inset from the same edge, so on a big ship's modules the bevel reaches the gauge or under it, which
+  looks wrong. Not settled: insetting the gauge by the ship's bevel width, stopping the bevel short of it,
+  or drawing the gauge as recessed so the bevel belongs over it.
+- **Animating a fighter's take-off and landing.** A fighter moves straight from flying to sitting on its
+  pad, its shadow dropping to the pad's at once. It should sink onto the pad and lift off it, its shadow
+  closing in and growing as it comes down. Not settled: how long that takes, whether it is only drawn or
+  costs the fighter time the sim knows about, and how a port's docking should look beside it.
 - **Letting the skirmish enemy steal the player's designs in play.** The `steal` operator is off by default, as
   copying could feel like cheating. Suggested by the author: the game might say the enemy is trying to
   steal the player's designs, and let the player allow it, for a quicker answer, or refuse it. Wanted, not
