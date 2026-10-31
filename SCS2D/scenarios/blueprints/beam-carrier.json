@@ -19,6 +19,7 @@
       "fighter": true,
       "doctrine": {
         "targeting": {
+          "loyaltyWeight": 100,
           "facingWeight": 100,
           "sightWeight": 50,
           "escortWeight": 100

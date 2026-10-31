@@ -268,19 +268,14 @@ function arrivalTime(brake: number, gap: number, cruise: number, delay: number):
 }
 
 /**
- * The share of the time braking on its retros would take that turning onto its
- * mains has to beat for a craft coming into its band to flip when its retros
- * could stop it anyway: well short, so it keeps its guns on unless they are a
- * poor brake.
- */
-const MAINS_SOONER = 0.5;
-
-/**
  * How far one of turning to burn and holding the guns on target has to
  * outscore the other to take over from it, as a share: enough that a craft
  * near the line between them does not flip its hull back and forth across it.
  */
 const BURN_MARGIN = 0.25;
+
+/** The least share of a change turning to burn must make sooner than holding would, to start. */
+const BURN_START = 0.25;
 
 /** Seconds of closing at its approach speed that stand in for an unarmed rammer's reach in choosing a target. */
 const RAM_HORIZON = 60;
@@ -2162,6 +2157,14 @@ export class Ships {
             }
             this.choice.begin();
             this.maskedChoice.begin();
+            // Facing is judged along the line to what it is already fighting, not
+            // along its nose: turned away to burn, a hull's nose says nothing of
+            // what it would rather fight, and judged by it a craft on a pass
+            // changed its mind with every turn.
+            const lb = loyalTo === NO_TARGET || this.alive[loyalTo] !== 1 ? -1 : bodies.indexOf(this.bodyIds[loyalTo]!);
+            const lx = lb < 0 || lb === b ? 0 : bodies.x[lb]! - bodies.x[b]!;
+            const ly = lb < 0 || lb === b ? 0 : bodies.y[lb]! - bodies.y[b]!;
+            const ll = length(lx, ly);
             for (let t = 0; t < this.alive.length; t++) {
                 if (t === i || this.alive[t] === 0) continue;
                 if (attackers && this.focusOf(t) !== defending) continue;
@@ -2183,6 +2186,12 @@ export class Ships {
                 // Sharing a body, it is as far off as its own modules are.
                 const at = this.locate(bodies, t, tb, this.lookAt);
                 if (this.sharesBody(t, tb)) seen = { ...seen, range: length(at.x - bodies.x[b]!, at.y - bodies.y[b]!) };
+                if (ll > 0 && doctrine.facingWeight !== 0) {
+                    const cx = at.x - bodies.x[b]!;
+                    const cy = at.y - bodies.y[b]!;
+                    const cl = length(cx, cy);
+                    seen = { ...seen, facing: cl > 0 ? (cx * lx + cy * ly) / (cl * ll) : 1 };
+                }
                 // Behind an asteroid, it is gone for only when nothing in sight is there to fight.
                 const hidden = this.rockBetween(bodies, bodies.x[b]!, bodies.y[b]!, at.x, at.y, b, tb);
                 const candidate =
@@ -4601,7 +4610,14 @@ export class Ships {
             this.burning[i] = 1;
             return atan2(bodies.y[b]! - at.y, bodies.x[b]! - at.x) - design.thrustBearing;
         }
-        const now = this.burning[i] === 1 ? burn * (1 + BURN_MARGIN) > hold : burn > hold * (1 + BURN_MARGIN);
+        // Turning has to be worth a share of the change to start, as well as
+        // beating holding, so a craft whose want hovers where its guns-on thrust
+        // can nearly make it does not flip its hull to and fro; once turned, it
+        // stays turned while turning is worth anything.
+        const now =
+            this.burning[i] === 1
+                ? burn * (1 + BURN_MARGIN) > hold
+                : burn > hold * (1 + BURN_MARGIN) && gain > BURN_START;
         this.burning[i] = now ? 1 : 0;
         return now ? burnHeading : attack;
     }
@@ -4929,7 +4945,7 @@ export class Ships {
                     // in a flip costs more than it saves; and coming in, only when its
                     // retros could not stop it by the middle of the band with its guns
                     // on, allowing for the pilot running a response time behind its
-                    // curve, or are so weak that the flip is far sooner.
+                    // curve: a wide band is room to brake gently, guns on.
                     const turn = this.halfTurnTime(bodies, i, b);
                     const turned = mains > brake ? stoppingSpeed(mains, gap, response + turn) : 0;
                     const flipped = arrivalTime(mains, gap, approachSpeed, response + turn) + turn;
@@ -4937,7 +4953,7 @@ export class Ships {
                     const sooner =
                         turned > stopping &&
                         flipped < held &&
-                        (sense < 0 || making > stoppingSpeed(brake, gap, 0) || flipped < MAINS_SOONER * held);
+                        (sense < 0 || making > stoppingSpeed(brake, gap, 0));
                     if (sooner) stopping = turned;
                     // Already turned onto them: planned on them, with no turn to allow for.
                     if (wasOnMains && mains > 0) stopping = max(stopping, stoppingSpeed(mains, gap, response));
