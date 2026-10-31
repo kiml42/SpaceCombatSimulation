@@ -233,7 +233,8 @@ an entry is either still open or it is gone.
          waits on soft shadows.
        - **Bevels — built** (`render/bevels.ts`, drawn by `render/hullLayer.ts`): a strip inside each
          bevelled edge, as wide on every module of a ship as `BEVEL_OF_RADIUS` (1.75%) of its radius as built
-         (0.3 m on a Corvette) and at most a quarter of the module's narrower side, lighter as the edge faces the light
+         (0.3 m on a Corvette) and at most a quarter of how far the module reaches in from that edge, so a thin plate's short ends
+         take the ship's bevel while its long sides keep a face, lighter as the edge faces the light
          and darker as it faces away; skipped under a pixel wide, so a battle seen whole pays nothing. An edge
          is bevelled where nothing beside it stands as high (asked every half metre along it), so a thick
          module's edge over thin hull is, and the thin hull's edge against it is not; an engine's and a hull

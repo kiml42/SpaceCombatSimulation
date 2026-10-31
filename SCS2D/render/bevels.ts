@@ -18,8 +18,15 @@ import {
  * broke.
  */
 
-/** Each bevelled edge of a module, six numbers apiece in its own frame: its ends, and the way it faces out. */
+/**
+ * Each bevelled edge of a module, `BEVEL_STRIDE` numbers apiece in its own
+ * frame: its ends, the way it faces out, and how far the module reaches in
+ * from it, which is as deep as a bevel there can go.
+ */
 export type Bevels = readonly number[];
+
+/** Numbers to each edge in `Bevels`. */
+export const BEVEL_STRIDE = 7;
 
 /** How far apart along an edge it is asked whether something stands beside it, metres. */
 const SAMPLE_M = 0.5;
@@ -105,6 +112,9 @@ function bevelled(design: ShipDesign, m: number): number[] {
         // Anticlockwise, so out is to the right of the edge.
         const nx = ey / span;
         const ny = -ex / span;
+        // How far in the module reaches from this edge: to its furthest corner.
+        let reach = 0;
+        for (let v = 0; v < outline.length; v += 2) reach = Math.max(reach, (ax - outline[v]!) * nx + (ay - outline[v + 1]!) * ny);
         // The edge in equal stretches, each open or not by what is beside its middle.
         const stretches = Math.max(2, Math.ceil(span / SAMPLE_M));
         let from = -1;
@@ -115,7 +125,7 @@ function bevelled(design: ShipDesign, m: number): number[] {
             if (!open && from >= 0) {
                 const t0 = from / stretches;
                 const t1 = k / stretches;
-                out.push(ax + ex * t0, ay + ey * t0, ax + ex * t1, ay + ey * t1, nx, ny);
+                out.push(ax + ex * t0, ay + ey * t0, ax + ex * t1, ay + ey * t1, nx, ny, reach);
                 from = -1;
             }
         }
