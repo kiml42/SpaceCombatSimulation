@@ -250,6 +250,7 @@ export function battleView(
     // The fleet strips, on a canvas of their own over the view: left as drawn between frames, so a tile not due
     // a redraw costs nothing. It takes no input; the view under it does.
     const stripCanvas = document.createElement("canvas");
+    stripCanvas.id = "strips";
     stripCanvas.setAttribute("aria-hidden", "true");
     Object.assign(stripCanvas.style, { position: "absolute", inset: "0", width: "100%", height: "100%", pointerEvents: "none" });
     canvas.style.position = "relative";

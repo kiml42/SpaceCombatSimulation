@@ -180,7 +180,7 @@ it("draws a battle with WebGL unless Canvas2D is picked, leaving the 2D view cle
         .toBeGreaterThan(30);
     expect(await page.getByRole("button", { name: /^Draw:/ }).textContent()).toBe("Draw: WebGL");
     // Pixi's canvas, under the 2D one, which holds nothing but what is dragged or placed.
-    expect(await page.locator("canvas[aria-hidden]").count()).toBe(1);
+    expect(await page.locator("canvas[aria-hidden]:not(#strips)").count()).toBe(1);
     const painted2D = await page.evaluate(() => {
         const canvas = document.getElementById("view") as HTMLCanvasElement;
         const { data } = canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height);
@@ -244,7 +244,7 @@ it("draws fleet pictures with the shared WebGL renderer, lit, unless Canvas2D is
         )
         .toBe(true);
     // One renderer for all of them, off the page.
-    expect(await lit.page.locator("canvas[aria-hidden]").count()).toBe(0);
+    expect(await lit.page.locator("canvas[aria-hidden]:not(#strips)").count()).toBe(0);
     expect(lit.problems).toEqual([]);
     await lit.page.close();
 }, 60_000);
@@ -260,7 +260,7 @@ it.each(["ship", "fleet"])(
         const box = (await view.boundingBox())!;
         // Something picked, so its handles are drawn too.
         await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-        expect(await page.locator("canvas[aria-hidden]").count()).toBe(1);
+        expect(await page.locator("canvas[aria-hidden]:not(#strips)").count()).toBe(1);
         const painted2D = (): Promise<number> =>
             view.evaluate((canvas: HTMLCanvasElement) => {
                 const { data } = canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height);
