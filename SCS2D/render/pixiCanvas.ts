@@ -68,10 +68,20 @@ class Gradient {
     }
 }
 
-/** How many bands a gradient is filled in. */
+/** How many bands a gradient is filled in at most. */
 const GRADIENT_BANDS = 12;
+/** Canvas pixels a band spans at least, so a gradient a few pixels long is a band or two, not twelve. */
+const GRADIENT_BAND_PX = 4;
+
+function bandsFor(lengthPx: number): number {
+    return Math.max(1, Math.min(GRADIENT_BANDS, Math.ceil(lengthPx / GRADIENT_BAND_PX)));
+}
+/** Canvas pixels a line is wide before its round caps are drawn round. */
+const ROUND_CAP_PX = 4;
 /** Canvas pixels an arc's chord spans at most. */
 const ARC_CHORD_PX = 2.5;
+/** Chords a whole circle has at fewest: a dot a pixel or two across is round enough as a hexagon. */
+const ARC_LEAST_CHORDS = 6;
 /** Font size glyphs are rasterised at, and scaled from. */
 const GLYPH_PX = 32;
 
@@ -277,8 +287,8 @@ export class PixiCanvas {
     }
 
     moveTo(x: number, y: number): void {
-        const [px, py] = this.apply(x, y);
-        this.path.push({ points: [px, py], closed: false });
+        const m = this.state.m;
+        this.path.push({ points: [m.a * x + m.c * y + m.e, m.b * x + m.d * y + m.f], closed: false });
         this.lastX = x;
         this.lastY = y;
     }
@@ -286,8 +296,8 @@ export class PixiCanvas {
     lineTo(x: number, y: number): void {
         const current = this.path[this.path.length - 1];
         if (current === undefined) return this.moveTo(x, y);
-        const [px, py] = this.apply(x, y);
-        current.points.push(px, py);
+        const m = this.state.m;
+        current.points.push(m.a * x + m.c * y + m.e, m.b * x + m.d * y + m.f);
         this.lastX = x;
         this.lastY = y;
     }
@@ -328,7 +338,7 @@ export class PixiCanvas {
         const radius = Math.max(rx, ry) * this.scaleOf();
         const n = Math.min(
             256,
-            Math.max(Math.abs(sweep) >= 2 * Math.PI - 1e-9 ? 12 : 1, Math.ceil((Math.abs(sweep) * radius) / ARC_CHORD_PX)),
+            Math.max(Math.abs(sweep) >= 2 * Math.PI - 1e-9 ? ARC_LEAST_CHORDS : 1, Math.ceil((Math.abs(sweep) * radius) / ARC_CHORD_PX)),
         );
         const cr = Math.cos(rotation);
         const sr = Math.sin(rotation);
@@ -455,6 +465,11 @@ export class PixiCanvas {
         g.resetTransform();
     }
 
+    /** Upload `image` again before the frame is shown, as one drawn into since it was last drawn here. */
+    changed(image: object): void {
+        this.textures.get(image)?.source.update();
+    }
+
     measureText(text: string): { width: number } {
         if (this.measurer === undefined) {
             this.measurer = typeof OffscreenCanvas !== "undefined" ? new OffscreenCanvas(1, 1).getContext("2d") : null;
@@ -556,13 +571,14 @@ export class PixiCanvas {
         const dy = y1 - y0;
         const length2 = dx * dx + dy * dy;
         if (length2 === 0) return;
+        const bands = bandsFor(Math.sqrt(length2));
         for (const sub of path) {
             if (sub.points.length < 6) continue;
             for (const piece of clipPolygon(sub.points, this.state.clips)) {
-                for (let k = -1; k <= GRADIENT_BANDS; k++) {
+                for (let k = -1; k <= bands; k++) {
                     // Bands of t along the gradient, the first and last running on past its ends.
-                    const from = k < 0 ? -Infinity : k / GRADIENT_BANDS;
-                    const to = k >= GRADIENT_BANDS ? Infinity : (k + 1) / GRADIENT_BANDS;
+                    const from = k < 0 ? -Infinity : k / bands;
+                    const to = k >= bands ? Infinity : (k + 1) / bands;
                     let band: number[] | null = piece;
                     if (Number.isFinite(from)) band = clipHalfPlane(band, dx, dy, from * length2 + dx * x0 + dy * y0, true);
                     if (band !== null && Number.isFinite(to)) band = clipHalfPlane(band, dx, dy, to * length2 + dx * x0 + dy * y0, false);
@@ -585,13 +601,14 @@ export class PixiCanvas {
             this.path = kept;
             return points;
         };
-        for (let k = 0; k < GRADIENT_BANDS; k++) {
-            const [rgb, alpha] = gradient.at((k + 0.5) / GRADIENT_BANDS);
+        const bands = bandsFor(gradient.r1 * this.scaleOf());
+        for (let k = 0; k < bands; k++) {
+            const [rgb, alpha] = gradient.at((k + 0.5) / bands);
             const a = alpha * this.state.globalAlpha;
             if (a <= 0) continue;
             const g = this.draw();
-            g.poly(ring(((k + 1) / GRADIENT_BANDS) * gradient.r1), true).fill({ color: rgb, alpha: a });
-            if (k > 0) g.poly(ring((k / GRADIENT_BANDS) * gradient.r1), true).cut();
+            g.poly(ring(((k + 1) / bands) * gradient.r1), true).fill({ color: rgb, alpha: a });
+            if (k > 0) g.poly(ring((k / bands) * gradient.r1), true).cut();
         }
     }
 
@@ -608,7 +625,8 @@ export class PixiCanvas {
         }
         if (a <= 0) return;
         const dash = this.state.dash.map((d) => d * this.scaleOf());
-        const cap = this.state.lineCap;
+        // Pixi builds a round cap of 16 or more triangles; on a thin line it looks the same as a square one.
+        const cap = this.state.lineCap === "round" && width < ROUND_CAP_PX ? "square" : this.state.lineCap;
         for (const sub of path) {
             if (sub.points.length < 4) continue;
             const line = sub.closed ? [...sub.points, sub.points[0]!, sub.points[1]!] : sub.points;
