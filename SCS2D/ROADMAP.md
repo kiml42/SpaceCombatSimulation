@@ -177,8 +177,8 @@ an entry is either still open or it is gone.
        metres across, shading ships' hulls beside it; thick rock twice as high, shading the thin; and a
        kernel a step higher again, shading its rock (on thin rock a little short, to spare a layer).
        Each shadow is as long as the caster stands above what it falls on. A pad's landing square is part of the
-       pad's fill, so shadows fall on it. A capital ship's barrels stand on their mounts as high as a thick
-       module, their shadows (lines from `render/barrels.ts`, which the barrels are drawn from too) on the
+       pad's fill, so shadows fall on it. A capital ship's turrets' barrels stand on their domes as high as a
+       thick module (a hull mount's are at the deck and cast nothing), their shadows (lines from `render/barrels.ts`, which the barrels are drawn from too) on the
        thin hull with the thick modules'. Still to do: rock shading a fighter flying close by, which needs
        a shadow layer over the fighters, above everything the adapter draws.
        **Each scene sets its own light**, from a palette in `scenarios/lights.ts` spanning the directions,

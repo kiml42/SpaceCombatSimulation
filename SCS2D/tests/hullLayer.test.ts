@@ -166,7 +166,7 @@ describe("the Pixi hull layer", () => {
         low.forEach((x, i) => expect(high[i]! - flat[i]!).toBeCloseTo((x - flat[i]!) * BUILDER_LIGHT.slant!, 6));
     });
 
-    it("casts each capital barrel's shadow on the thin hull, moved away from the light by a thick module's height", () => {
+    it("casts each capital turret's barrels' shadows on the thin hull, moved away from the light by a thick module's height", () => {
         const layer = drawn(layerOf());
         let barrels = 0;
         for (const ship of ships) {
@@ -174,6 +174,8 @@ describe("the Pixi hull layer", () => {
             for (let t = 0; t < design.turrets.length; t++) {
                 const module = design.turrets[t]!.module;
                 if (ship.drawn?.[module] === false || isFighterModule(design, module)) continue;
+                // A hull mount's barrels are at the deck, and cast nothing.
+                if (!isDomed(design.modules[module]!.spec.kind)) continue;
                 barrels += design.turrets[t]!.gun.barrelCount;
             }
         }

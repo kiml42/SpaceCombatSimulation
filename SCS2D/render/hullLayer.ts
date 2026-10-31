@@ -172,13 +172,15 @@ export class HullLayer {
                 // On thick rock; thin rock under a kernel takes the same, a little short.
                 else if (depth === this.kernel) cast(this.kernelShadows, rock * (KERNEL_RISE - THICK_ROCK_RISE));
             }
-            // A capital ship's barrels, standing on their mounts as high as a thick
-            // module, as the thick modules' shadows are on the thin hull.
+            // A capital ship's turrets' barrels, standing on their domes as high as a
+            // thick module, as the thick modules' shadows are on the thin hull. A
+            // hull mount's are at the deck, with nothing lower to fall on.
             const bx = awayX * BARREL_SHADOW_M - camera.x;
             const by = awayY * BARREL_SHADOW_M - camera.y;
             for (let t = 0; t < design.turrets.length; t++) {
                 const module = design.turrets[t]!.module;
                 if (ship.drawn?.[module] === false || isFighterModule(design, module)) continue;
+                if (!isDomed(design.modules[module]!.spec.kind)) continue;
                 const ends = this.barrelEnds;
                 ends.length = 0;
                 const width = barrelLines(ship, t, (x0, y0, x1, y1) => ends.push(x0 + bx, y0 + by, x1 + bx, y1 + by));
