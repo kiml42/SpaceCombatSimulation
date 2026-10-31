@@ -58,7 +58,7 @@ export { teamColour } from "./teams.js";
 import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth, plumeAlpha, tracerAlpha } from "./strokes.js";
 import { flashExtent, flashFade, flashPosition, muzzleWedge, type Flashes } from "./flashes.js";
 import { clipToStart, exposureEnds, flashSamples, shutterWeight } from "./exposure.js";
-import { sprite } from "./sprites.js";
+import { flameSprite, sprite } from "./sprites.js";
 import { iconAlpha, ICON_OUTLINE, ICON_PX } from "./icons.js";
 
 const { cos, floor, sin, length, max, min, PI, sqrt, TAU } = math;
@@ -303,6 +303,12 @@ const LOAD_READY = "#4cf24c";
 /** Flame colours, as the RGB a gradient fades to transparent from. */
 const PLUME = "255, 217, 160";
 const PLUME_CORE = "255, 244, 224";
+/** How much brighter a plume's hot core is than its edge. */
+const PLUME_CORE_BOOST = 1.8;
+/** The glow round a burning nozzle's exit, spilling past its bell: its colour, reach as a multiple of the exit's half-width, and brightness beside the flame's. */
+const NOZZLE_GLOW = "#ffd9a0";
+const NOZZLE_GLOW_REACH = 1.8;
+const NOZZLE_GLOW_SHARE = 0.35;
 /** A burn on a hull: the flame's colour, hotter at the middle. */
 const BURN = "255, 170, 90";
 const BURN_CORE = "255, 236, 200";
@@ -1176,46 +1182,50 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
         // tip the way its share of the power does, so the brightest part of the
         // picture is the part doing the most damage.
         const root = -engine.length / 2;
-        const alpha = layerAlpha(plumeAlpha(plumeIntensity(engine.geometry, force)), split);
         const half = engine.geometry.exitWidth / 2;
-
-        // Each third cut off where it lands on a hull, inside the glow that marks
-        // it. A side third reaches a third as far as the core.
-        ctx.save();
+        const image = flameSprite(PLUME, PLUME_CORE);
+        const glow = sprite("halo", NOZZLE_GLOW);
+        if (image === null || glow === null) return;
+        const outer = ctx.globalAlpha;
+        const blend = ctx.globalCompositeOperation;
+        const brightness = layerAlpha(min(1, plumeAlpha(plumeIntensity(engine.geometry, force)) * PLUME_CORE_BOOST), split);
+        // Round the exit, past the bell's sides and back over its mouth: light,
+        // so it brightens whatever it is over.
+        const g = half * NOZZLE_GLOW_REACH;
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = outer * brightness * NOZZLE_GLOW_SHARE;
+        ctx.drawImage(glow, root - g, across - g, 2 * g, 2 * g);
+        ctx.globalCompositeOperation = blend;
+        // The sprite's core is its brightest, its edge a little dimmer.
+        ctx.globalAlpha = outer * brightness;
         let cutAny = false;
         for (let k = 0; k < PLUME_RAYS; k++) if (landed[k]! > 0) cutAny = true;
-        if (cutAny) {
-            ctx.beginPath();
+        if (!cutAny) ctx.drawImage(image, root - reach, across - half, reach, 2 * half);
+        else {
+            // Each third cut off where it lands on a hull, inside the glow that marks
+            // it, by drawing only that much of its third of the sprite. A side third
+            // reaches a third as far as the core.
+            const { width, height } = image;
             for (let k = 0; k < PLUME_RAYS; k++) {
                 const third = k === 1 ? reach : reach / 3;
                 const cut = landed[k]! > 0 ? (1 - landed[k]!) * third : reach;
-                ctx.rect(root - cut, across - half + (k * half * 2) / 3, cut, (half * 2) / 3);
+                if (!(cut > 0)) continue;
+                const shown = cut / reach;
+                const strip = (half * 2) / 3;
+                ctx.drawImage(
+                    image,
+                    width * (1 - shown),
+                    (height * k) / 3,
+                    width * shown,
+                    height / 3,
+                    root - cut,
+                    across - half + k * strip,
+                    cut,
+                    strip,
+                );
             }
-            ctx.clip();
         }
-        ctx.fillStyle = fade(ctx, root, reach, PLUME, alpha);
-        ctx.beginPath();
-        ctx.moveTo(root, across - half);
-        ctx.lineTo(root, across + half);
-        ctx.lineTo(root - reach, across);
-        ctx.closePath();
-        ctx.fill();
-        // A brighter core, a third the width, so a hard burn reads as hotter
-        // rather than merely longer.
-        ctx.fillStyle = fade(
-            ctx,
-            root,
-            reach * 0.55,
-            PLUME_CORE,
-            layerAlpha(min(1, plumeAlpha(plumeIntensity(engine.geometry, force)) * 1.4), split),
-        );
-        ctx.beginPath();
-        ctx.moveTo(root, across - half / 3);
-        ctx.lineTo(root, across + half / 3);
-        ctx.lineTo(root - reach * 0.55, across);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
+        ctx.globalAlpha = outer;
     });
 }
 

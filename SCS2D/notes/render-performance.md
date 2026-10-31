@@ -57,6 +57,13 @@ cut most of that. Pixi adds its own: `handleFillObject` / `toFillStyle` make a s
 which `PixiCanvas` fills as several clipped bands. A small gradient texture, drawn once and stretched and
 turned for each plume, would make each one a single quad.
 
+**Done.** Each plume is now one image, `flameSprite` in `render/sprites.ts`, stretched over it in both
+renderers: a single quad, or three strips where a plume is cut short on a hull, and no clip. The image also
+shades the flame smoothly in every direction, its hot core blended in rather than a second, narrower triangle.
+Measured headless here (software WebGL, one run each, so only a sign of the direction), the main thread's
+median per frame with the battle held fell from 59.7 to 49.9 ms in Star Wars and from 7.6 to 6.4 ms in Torch
+Run in WebGL, and from 23.6 to 19.3 ms in Star Wars in Canvas2D.
+
 ### 4. `berthOf` is quadratic, every frame
 
 `Ships.robotViews` (sim/ships.ts), called by `capture` for every snapshot, places each robot with `berthOf`,
