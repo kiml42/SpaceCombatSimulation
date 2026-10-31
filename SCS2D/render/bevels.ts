@@ -4,6 +4,7 @@ import {
     insideOutline,
     isDomed,
     isHullMount,
+    originOf,
     shapeOf,
     type ModuleSpec,
     type ShipDesign,
@@ -26,16 +27,28 @@ const SAMPLE_M = 0.5;
 /** How far out from an edge it is asked, metres: past the edge, short of anything not touching it. */
 const OUTSIDE_M = 0.05;
 
-const built = new WeakMap<ShipDesign, Bevels[]>();
+const built = new WeakMap<ShipDesign, (Bevels | undefined)[]>();
 
 /** The bevelled edges of module `m` of `design` as built: pass a module's compiled design (`originOf`). */
 export function bevelsOf(design: ShipDesign, m: number): Bevels {
     let all = built.get(design);
     if (all === undefined) {
-        all = design.modules.map((_, i) => bevelled(design, i));
+        all = [];
         built.set(design, all);
     }
-    return all[m] ?? [];
+    if (!(m >= 0 && m < design.modules.length)) return [];
+    return (all[m] ??= bevelled(design, m));
+}
+
+/**
+ * The bevelled edges module `m` of `design` is drawn with: those it was built
+ * with, or a shell's own, since a shell is only the part of it that is up and
+ * the edges of the whole would stand out past it.
+ */
+export function drawnBevels(design: ShipDesign, m: number): Bevels {
+    if (design.modules[m]?.shell !== undefined) return bevelsOf(design, m);
+    const origin = originOf(design, m);
+    return bevelsOf(origin.design, origin.module);
 }
 
 /** Whether a module's edges are bevelled at all: not an asteroid's, nor anything round. */
