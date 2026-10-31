@@ -903,7 +903,9 @@ inside any one file is not contiguous.
   takes the place of the least finished one it is building, whose metal goes back. **While its ship is moored to a rock it keeps
   `robotsPerBerth` robots to a berth** (one by default, any number from one up, whole robots only;
   `robotsKept`), building the extra only into a free berth: the extra work the rock, and a robot coming home to
-  a bay whose berths are all taken waits at the claw for one, so there are never more aboard than berths. Told
+  a bay whose berths are all taken hands what it carries over to the holds from the claw, goes back out while
+  it has half its charge (`ROBOT_SORTIE_CHARGE`), and otherwise waits there for a berth, so there are never
+  more aboard than berths. Told
   to go (any order, or an errand to anything but its rock), the ship calls its robots in and goes once they are
   back; one with no berth to come home to is taken apart into its holds, metal, cargo and all. Those out on the
   rock when the ship is parted from it otherwise are stranded there, as any robot left on a rock is. It is drawn as a deck with a round pad, all
@@ -1154,8 +1156,10 @@ inside any one file is not contiguous.
   by its sides, perimeter times depth (`BATTERY_POWER_PER_AREA`), so several small batteries in the room of
   one big one hold less but deliver faster. Charge is the third store (`sim/charge.ts`, on `sim/store.ts`):
   per module and per piece of hull, weighing nothing. Each step a piece's generators make what damage leaves
-  them; loads draw from that first and then from the batteries, each battery limited by its rate; what
-  nothing used charges the batteries, as far as their room and rate allow, and the rest is lost. A battery
+  them; loads draw from that first and then from the batteries, each battery limited by its rate (a robot, a
+  pad or a slipway, drawing between one step's flying and the next, takes from the generators first and
+  then from the batteries however fast); what nothing used charges the batteries as the next step begins, as
+  far as their room and rate allow, and the rest is lost. A battery
   holds less as its cells break (`DamageEffect.Storage`, charge past that lost) and passes less as its wiring
   goes (`Discharge`); a generator gives out as an engine does (`Generation`). A battery may start part full
   (`fill`). The editor has a Power group and shows a ship's generation, storage and peak discharge; the

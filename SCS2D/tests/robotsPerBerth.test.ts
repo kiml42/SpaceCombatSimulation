@@ -53,6 +53,25 @@ describe("a robot bay keeping more robots than it has berths", () => {
         expect(most).toBeLessThanOrEqual(3 * BERTHS);
     });
 
+    it("has the extra hand what they bring over at the claw, rather than holding it until there is a berth", () => {
+        const run = field();
+        const miner = run.miner;
+        const b = () => run.world.bodies.indexOf(run.ships.body(miner));
+        const robots = () =>
+            (
+                run.ships as unknown as { robots: { on(b: number): { away: number; mode: number; path: unknown; cargo: number }[] | null } }
+            ).robots.on(b())!;
+        let waiting = 0;
+        for (let t = 0; t < 300 * 60; t++) {
+            run.step();
+            if (t % 60 !== 0 || t < 120 * 60) continue;
+            // Home on the rock, at the claw, still carrying ore.
+            for (const robot of robots()) if (robot.away >= 0 && robot.mode === 3 && robot.path === null && robot.cargo > 1) waiting++;
+        }
+        expect(run.ships.isMoored(miner)).toBe(true);
+        expect(waiting).toBe(0);
+    }, 120_000);
+
     it("leaves the extra on the rock when it casts off", () => {
         const run = field();
         const miner = run.miner;

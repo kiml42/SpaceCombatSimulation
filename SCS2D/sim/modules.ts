@@ -823,6 +823,12 @@ export const ROBOT_CHARGE = 5e7;
 /** How long a bay takes to refill a robot, s. */
 export const ROBOT_REFILL_TIME = 5;
 
+/**
+ * The share of its charge a robot waiting for a berth needs to go back out
+ * mining rather than wait to be recharged.
+ */
+export const ROBOT_SORTIE_CHARGE = 0.5;
+
 /** How long a berth takes to build a robot, s, given the charge (`ROBOT_BUILD_ENERGY`). */
 export const ROBOT_BUILD_TIME = 20;
 

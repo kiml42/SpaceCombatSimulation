@@ -116,6 +116,7 @@ import {
     ROBOT_LOAD,
     ROBOT_MASS,
     ROBOT_REFILL_TIME,
+    ROBOT_SORTIE_CHARGE,
     ROBOT_REPAIR_RATE,
     GunType,
     interiorVolume,
@@ -3787,8 +3788,8 @@ export class Ships {
             if (this.alive[i] === 0) continue;
             const b = bodies.indexOf(this.bodyIds[i]!);
             if (b < 0 || this.shipByBody[b] !== i) continue;
-            this.power.open(b, dt, this.damage);
             this.power.close(b);
+            this.power.open(b, dt, this.damage);
         }
     }
 
@@ -3803,7 +3804,11 @@ export class Ships {
         for (let i = 0; i < this.alive.length; i++) {
             if (this.alive[i] === 0) continue;
             const b = bodies.indexOf(this.bodyIds[i]!);
-            if (b >= 0 && this.shipByBody[b] === i) this.power.open(b, dt, this.damage);
+            if (b >= 0 && this.shipByBody[b] === i) {
+                // Last step's spare banked, now that everything after the pilots has drawn on it.
+                this.power.close(b);
+                this.power.open(b, dt, this.damage);
+            }
         }
 
         for (let i = 0; i < this.alive.length; i++) {
@@ -3836,13 +3841,6 @@ export class Ships {
                     }
                 }
             }
-        }
-
-        // What nothing drew on charges the batteries.
-        for (let i = 0; i < this.alive.length; i++) {
-            if (this.alive[i] === 0) continue;
-            const b = bodies.indexOf(this.bodyIds[i]!);
-            if (b >= 0 && this.shipByBody[b] === i) this.power.close(b);
         }
 
         // Every ship pushing pays for what it burns.
@@ -5278,7 +5276,9 @@ export class Ships {
             // Nor its own fighters: a carrier trusts what flies from its pads to
             // keep clear of it, rather than running from its wing as it comes and goes.
             if (this.home[t] === i) continue;
-            if (hulksOnly && this.hasControl(t)) continue;
+            // Closing on a rock, it keeps clear of hulks, and of a friend moored to that rock, which stands where it is.
+            const neighbour = hulksOnly && this.hasControl(t) && this.isMoored(t) && this.parkedOn[t] === flying;
+            if (hulksOnly && this.hasControl(t) && !neighbour) continue;
             // Ramming, it keeps clear of rocks and its own side, which nothing rams on purpose.
             if (ramming && !this.isAsteroid(t) && !(this.team[t] === this.team[i] && this.hasControl(t))) continue;
             const ob = bodies.indexOf(this.bodyIds[t]!);
@@ -5293,6 +5293,8 @@ export class Ships {
             const touching = mine + this.designs[t]!.radius;
             // Clear by its own size, not the other's, which would keep it a rock's or a carrier's breadth off.
             let room = (ramming ? mine : touching) * approach.separationRadii;
+            // From a neighbour on the rock only by its own size, or it could never grip the face beside it.
+            if (neighbour) room = mine;
             // Its charge no further out than its station, or the two wants fight:
             // covering pulls it in to where keeping clear pushes it out.
             if (t === covering) room = min(room, max(0, this.escortBand(i, this.designs[i]!, t) - touching));
@@ -6846,6 +6848,22 @@ export class Ships {
         robot.path = path !== null && path.length > 1 ? path : null;
     }
 
+    /** Put what robot `robot` of body `b` carries into the holds and tanks of its bay's piece, and say whether any went. */
+    private handOver(b: number, robot: Robot): boolean {
+        let put = 0;
+        if (robot.cargo > 0) {
+            const went = this.metal.add(b, robot.bay, robot.cargo);
+            robot.cargo -= went;
+            put += went;
+        }
+        if (robot.cargoFuel > 0) {
+            const went = this.fuel.add(b, robot.bay, robot.cargoFuel);
+            robot.cargoFuel -= went;
+            put += went;
+        }
+        return put > 0;
+    }
+
     /**
      * One step of a robot of ship `owner` out on the rock it is moored to, its
      * bay on body `b`: walking, mining, and back across to its claw. Says 1 if
@@ -6893,10 +6911,16 @@ export class Ships {
                 return 0;
             }
             // Back where its claw grips: across onto its own hull and home, once
-            // its bay has a berth for it; the extra a moored bay keeps wait here,
-            // and are taken apart into the holds once their ship is sent away.
+            // its bay has a berth for it; the extra a moored bay keeps hand what
+            // they carry over here and go back for more while they have the
+            // charge, wait here to be recharged, and are taken apart into the
+            // holds once their ship is sent away.
             if (this.aboardIn(b, robot.bay) >= design.modules[robot.bay]!.stats.robots) {
-                if (!this.sentAway(owner)) return 0;
+                if (!this.sentAway(owner)) {
+                    const handed = this.handOver(b, robot);
+                    if (robot.charge >= ROBOT_CHARGE * ROBOT_SORTIE_CHARGE) this.sendOnRock(b, cb, this.robots.on(b)!, robot, owner);
+                    return handed ? 1 : 0;
+                }
                 this.metal.add(b, robot.bay, ROBOT_MASS + robot.cargo);
                 if (robot.cargoFuel > 0) this.fuel.add(b, robot.bay, robot.cargoFuel);
                 return -2;
