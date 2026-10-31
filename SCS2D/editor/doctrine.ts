@@ -357,6 +357,12 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
         hint: "The share of its own main guns still working at or below which it will ram: 0 only once it cannot shoot, 1 whenever it is close enough",
         step: 0.1,
     },
+    {
+        field: "ramSettle",
+        label: "lines up for",
+        hint: "Seconds before impact in which a ram stops closing faster and only cancels its sideways drift, eased in over as long again",
+        step: 0.5,
+    },
 ];
 
 /** What each claim on a ship's stores is, as the panel names it, and what it draws for. */
@@ -620,6 +626,7 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                             return working === 0 ? `only once none of its ${guns} works` : `with ${working} of ${guns} working, or fewer`;
                         },
                     }),
+                    entry("approach", "ramSettle", { shown: (v) => v.approach.ramRadii > 0 }),
                     entry("targeting", "ramMass", {
                         shown: (v) => v.approach.ramRadii > 0,
                         absolute: (v, ship) =>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compileBlueprint } from "../sim/index.js";
+import { compileBlueprint, DEFAULT_DOCTRINE, type Blueprint } from "../sim/index.js";
 import { torpedoes } from "../scenarios/torpedoes.js";
 import { TORPEDO } from "../scenarios/blueprints.js";
 
@@ -39,5 +39,46 @@ describe("a salvo of torpedoes", () => {
         }
         expect(hit.size).toBeGreaterThan(0);
         expect(downed.size).toBeGreaterThan(0);
+    });
+});
+
+describe("a torpedo's last seconds", () => {
+    /** Over five salvoes, how many torpedoes reach the gunship, and how many are still flying having missed it. */
+    const salvoes = (ramSettle: number): { hit: number; missed: number } => {
+        const torpedo: Blueprint = {
+            ...TORPEDO,
+            doctrine: {
+                targeting: { ...DEFAULT_DOCTRINE.targeting, ...TORPEDO.doctrine?.targeting },
+                approach: { ...DEFAULT_DOCTRINE.approach, ...TORPEDO.doctrine?.approach, ramSettle },
+            },
+        };
+        let hit = 0;
+        let missed = 0;
+        for (const seed of [20260905, 1, 2, 3, 4]) {
+            const battle = torpedoes(seed, 12, undefined, torpedo);
+            const ships = battle.ships;
+            const reached = new Set<number>();
+            for (let i = 0; i < 60 * 60; i++) {
+                battle.step();
+                const gunship = battle.world.bodies.indexOf(ships.body(0));
+                const contacts = battle.collisions.contacts;
+                for (let k = 0; k < contacts.count; k++) {
+                    const other = contacts.a[k] === gunship ? contacts.b[k]! : contacts.b[k] === gunship ? contacts.a[k]! : -1;
+                    const pilot = other < 0 ? -1 : ships.pilotAt(other);
+                    if (pilot > 0) reached.add(pilot);
+                }
+            }
+            hit += reached.size;
+            for (let t = 1; t <= 12; t++) if (!reached.has(t) && ships.isAlive(t) && ships.hasControl(t)) missed++;
+        }
+        return { hit, missed };
+    };
+
+    it("are spent cancelling its drift rather than closing faster, so one the guns spare does not miss", () => {
+        const lining = salvoes(compileBlueprint(TORPEDO).doctrine.approach.ramSettle);
+        const flatOut = salvoes(0);
+        expect(lining.missed).toBe(0);
+        expect(flatOut.missed).toBeGreaterThan(0);
+        expect(lining.hit).toBeGreaterThan(flatOut.hit);
     });
 });
