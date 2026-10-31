@@ -264,6 +264,7 @@ export {
     defaultTargeting,
     doctrineUnread,
     holdBand,
+    edgeFade,
     isDoctrinePart,
     overriddenMount,
     partHasField,
