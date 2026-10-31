@@ -22,6 +22,7 @@ import {
     engineGeometry,
     type GunStats,
     type ModuleSpec,
+    originOf,
     type ShipDesign,
     type ShipView,
     type Snapshot,
@@ -40,6 +41,17 @@ import {
 import { BACKGROUND, GRID, WELL, WELL_ARM_PX, WELL_PULLS } from "./backdrop.js";
 import { barrelLines, MIN_BARREL_PX } from "./barrels.js";
 import type { Light } from "./light.js";
+import {
+    BEVEL_DARK,
+    BEVEL_LIGHT,
+    BEVEL_OF_RADIUS,
+    BEVEL_STRIDE,
+    bevelQuad,
+    bevelsOf,
+    isBevelled,
+    MIN_BEVEL_LIT,
+    MIN_BEVEL_PX,
+} from "./bevels.js";
 import { cylinderShade, domeShade, lightSlope } from "./shading.js";
 import { gridStep, type Camera } from "./camera.js";
 import {
@@ -766,6 +778,26 @@ function drawHull(
         ctx.setLineDash([]);
     }
 
+    // Lit, every fill first and then every bevel over them, since a bevel
+    // mitred into an inside corner reaches into the module beside it.
+    if (!filled && light !== undefined) {
+        for (const bevelled of [false, true]) {
+            for (let i = 0; i < design.modules.length; i++) {
+                if (ship.drawn?.[i] === false || isFighterModule(design, i) !== fighters) continue;
+                const m = design.modules[i]!;
+                if (bevelled && !isBevelled(m.spec)) continue;
+                ctx.save();
+                ctx.translate(m.x, m.y);
+                ctx.rotate(m.angle);
+                ctx.globalAlpha = fillAlpha(ship, i);
+                if (bevelled) bevel(ctx, design, i, ship.angle + m.angle, metresToPx, light);
+                else fillModule(ctx, ship, i);
+                ctx.restore();
+            }
+        }
+        filled = true;
+    }
+
     // Module boxes, in the body frame the design already put them in.
     for (let i = 0; i < design.modules.length; i++) {
         if (ship.drawn?.[i] === false || isFighterModule(design, i) !== fighters) continue;
@@ -787,29 +819,11 @@ function drawHull(
         const halfLength = spec.length / 2;
         const halfWidth = spec.width / 2;
         // Unless Pixi underneath has filled it already (render/pixiView.ts).
-        if (!filled) {
-            moduleFills(spec, fillColour(spec, integrity, m.weaponsLayer, colours), colours, integrity, fills);
-            for (const fill of fills) {
-                const points = fill.points;
-                ctx.fillStyle = fill.colour;
-                ctx.beginPath();
-                ctx.moveTo(points[0]!, points[1]!);
-                for (let v = 2; v < points.length; v += 2) ctx.lineTo(points[v]!, points[v + 1]!);
-                ctx.closePath();
-                ctx.fill();
-            }
-        }
+        if (!filled) fillModule(ctx, ship, i);
         if (spec.kind === "engine" && light !== undefined) shadeBells(ctx, spec, ship.angle + m.angle, light);
         if (spec.kind === "port" && light !== undefined) shadePort(ctx, spec, ship.angle + m.angle, light);
         if (spec.kind === "pad") {
-            // A deck in the hull's colour with a landing square marked on it, part
-            // of the deck's fill, so where Pixi fills it the square is shadowed too.
-            if (!filled) {
-                const mark = padMark(spec);
-                ctx.strokeStyle = colours.trim;
-                ctx.lineWidth = mark.line;
-                ctx.strokeRect(mark.x, mark.y, mark.width, mark.height);
-            }
+            // Its landing square is drawn with its fill (`fillModule`).
         } else if (
             spec.kind !== "engine" &&
             !isHullMount(spec.kind) &&
@@ -1371,6 +1385,63 @@ function shadePort(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: numbe
     ctx.drawImage(image, -l, -w, spec.length - collar, 2 * w);
     ctx.drawImage(image, l - collar, -w * PORT_COLLAR_WIDTH, collar, 2 * w * PORT_COLLAR_WIDTH);
 }
+
+/**
+ * Module `i`'s fill, in its own frame: a pad's with its landing square marked
+ * on it, so where Pixi fills it the square is shadowed too.
+ */
+function fillModule(ctx: CanvasRenderingContext2D, ship: ShipView, i: number): void {
+    const design = ship.currentStructure;
+    const m = design.modules[i]!;
+    const spec = m.spec;
+    const colours = moduleColours(design, i, ship.sides?.[i] ?? ship.team);
+    const integrity = ship.integrity?.[i] ?? 1;
+    moduleFills(spec, fillColour(spec, integrity, m.weaponsLayer, colours), colours, integrity, fills);
+    for (const fill of fills) {
+        const points = fill.points;
+        ctx.fillStyle = fill.colour;
+        ctx.beginPath();
+        ctx.moveTo(points[0]!, points[1]!);
+        for (let v = 2; v < points.length; v += 2) ctx.lineTo(points[v]!, points[v + 1]!);
+        ctx.closePath();
+        ctx.fill();
+    }
+    if (spec.kind === "pad") {
+        const mark = padMark(spec);
+        ctx.strokeStyle = colours.trim;
+        ctx.lineWidth = mark.line;
+        ctx.strokeRect(mark.x, mark.y, mark.width, mark.height);
+    }
+}
+
+/**
+ * Module `m`'s bevels, lit at `angle` in the world, in its own frame: those
+ * HullLayer does not draw, as a fighter's (render/hullLayer.ts).
+ */
+function bevel(ctx: CanvasRenderingContext2D, design: ShipDesign, m: number, angle: number, metresToPx: number, light: Light): void {
+    const origin = originOf(design, m);
+    const width = BEVEL_OF_RADIUS * origin.design.radius;
+    if (width * metresToPx < MIN_BEVEL_PX) return;
+    const edges = bevelsOf(origin.design, origin.module);
+    const { across } = lightSlope(light);
+    const towardX = cos(light.from - angle) * across;
+    const towardY = sin(light.from - angle) * across;
+    const alpha = ctx.globalAlpha;
+    for (let k = 0; k < edges.length; k += BEVEL_STRIDE) {
+        const lit = edges[k + 4]! * towardX + edges[k + 5]! * towardY;
+        if (Math.abs(lit) < MIN_BEVEL_LIT) continue;
+        bevelQuad(edges, k, width, quad);
+        ctx.globalAlpha = alpha * Math.abs(lit) * (lit > 0 ? BEVEL_LIGHT : BEVEL_DARK);
+        ctx.fillStyle = lit > 0 ? "#fff" : "#000";
+        ctx.beginPath();
+        ctx.moveTo(quad[0]!, quad[1]!);
+        for (let v = 2; v < 8; v += 2) ctx.lineTo(quad[v]!, quad[v + 1]!);
+        ctx.closePath();
+        ctx.fill();
+    }
+    ctx.globalAlpha = alpha;
+}
+const quad: number[] = [0, 0, 0, 0, 0, 0, 0, 0];
 
 /** A turret's dome shaded as rounded, at `x`, `y` in the world. */
 function shadeDome(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, light: Light): void {

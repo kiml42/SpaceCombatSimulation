@@ -1,6 +1,6 @@
 import { AlphaFilter, Container, Graphics, GraphicsContext } from "pixi.js";
-import { domeRadius, isDomed, type ModuleSpec, type Snapshot } from "../sim/index.js";
-import { drawnBevels } from "./bevels.js";
+import { domeRadius, isDomed, originOf, type ModuleSpec, type Snapshot } from "../sim/index.js";
+import { BEVEL_DARK, BEVEL_LIGHT, BEVEL_OF_RADIUS, BEVEL_STRIDE, bevelQuad, drawnBevels, MIN_BEVEL_LIT, MIN_BEVEL_PX } from "./bevels.js";
 import { lightSlope } from "./shading.js";
 import type { Camera } from "./camera.js";
 import {
@@ -163,7 +163,9 @@ export class HullLayer {
                 const alpha = fillAlpha(ship, i);
                 place(depth.next(fill), x, y, angle).alpha = alpha;
                 if (depth === this.thin || depth === this.thick) {
-                    const bevel = Math.min(BEVEL_M, BEVEL_SHARE * Math.min(m.spec.length, m.spec.width));
+                    // As wide on every module of a ship, by the size it was built: a piece keeps its ship's.
+                    const origin = originOf(design, i);
+                    const bevel = BEVEL_OF_RADIUS * origin.design.radius;
                     if (bevel * camera.scale >= MIN_BEVEL_PX) {
                         this.bevel(
                             depth === this.thin ? this.thinBevels : this.thickBevels,
@@ -240,18 +242,21 @@ export class HullLayer {
     ): void {
         const c = Math.cos(angle);
         const s = Math.sin(angle);
-        for (let k = 0; k < edges.length; k += 6) {
+        for (let k = 0; k < edges.length; k += BEVEL_STRIDE) {
             const nx = edges[k + 4]! * c - edges[k + 5]! * s;
             const ny = edges[k + 4]! * s + edges[k + 5]! * c;
             const lit = nx * towardX + ny * towardY;
             if (Math.abs(lit) < MIN_BEVEL_LIT) continue;
-            const ax = x + edges[k]! * c - edges[k + 1]! * s;
-            const ay = y + edges[k]! * s + edges[k + 1]! * c;
-            const bx = x + edges[k + 2]! * c - edges[k + 3]! * s;
-            const by = y + edges[k + 2]! * s + edges[k + 3]! * c;
-            const ix = -nx * width;
-            const iy = -ny * width;
-            into.poly([ax, ay, bx, by, bx + ix, by + iy, ax + ix, ay + iy]).fill({
+            // Its own array: Pixi keeps the one it is given until it draws.
+            const quad: number[] = [];
+            bevelQuad(edges, k, width, quad);
+            for (let v = 0; v < 8; v += 2) {
+                const qx = quad[v]!;
+                const qy = quad[v + 1]!;
+                quad[v] = x + qx * c - qy * s;
+                quad[v + 1] = y + qx * s + qy * c;
+            }
+            into.poly(quad).fill({
                 color: lit > 0 ? 0xffffff : 0x000000,
                 alpha: alpha * Math.abs(lit) * (lit > 0 ? BEVEL_LIGHT : BEVEL_DARK),
             });
@@ -350,17 +355,6 @@ export class BlockShadows {
         }
     }
 }
-
-/** How wide a bevel is, metres, and at most as a share of its module's narrower side. */
-const BEVEL_M = 0.3;
-const BEVEL_SHARE = 0.12;
-/** Too thin to see under this many pixels, so not drawn. */
-const MIN_BEVEL_PX = 0.75;
-/** How bright a bevel facing the light goes, and how dark one facing away. */
-const BEVEL_LIGHT = 0.45;
-const BEVEL_DARK = 0.4;
-/** Square on to the light, a bevel is as the face beside it: not drawn. */
-const MIN_BEVEL_LIT = 0.05;
 
 /** Graphics kept from frame to frame, placed afresh each one. */
 export class Pool {
