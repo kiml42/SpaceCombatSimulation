@@ -58,7 +58,7 @@ measured. Leave the window alone while it runs: covering or minimising it slows 
 
 | Option | Default | What it does |
 | --- | --- | --- |
-| `--scenes` | `Duel,Star Wars,Super Swarm,Asteroid Field,Factory` | Scenes by their names in the Battle route's list. |
+| `--scenes` | `Duel,Star Wars,Super Swarm,Asteroid Field,Factory` | Scenes by their names in the Battle route's list; [scenarios/README.md](../scenarios/README.md) says which suit what. |
 | `--renderers` | `webgl,canvas2d` | Which to measure, each in a fresh page. |
 | `--seconds` | `8` | How long each scene is measured. |
 | `--at` | `5` | Battle seconds each scene is played to first, so every run measures the same moment of it. |
