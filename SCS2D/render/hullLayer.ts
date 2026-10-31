@@ -1,5 +1,5 @@
 import { AlphaFilter, Container, Graphics, GraphicsContext } from "pixi.js";
-import { domeOf, isDomed, type ModuleSpec, type Snapshot } from "../sim/index.js";
+import { domeRadius, isDomed, type ModuleSpec, type Snapshot } from "../sim/index.js";
 import type { Camera } from "./camera.js";
 import {
     BARREL_SHADOW_M,
@@ -163,7 +163,7 @@ export class HullLayer {
                 // A dome as a short cylinder as high as a thick module: its rounded top
                 // is left for when mounts are shaded as rounded.
                 else if (domed)
-                    this.thickShadows.cast(m.spec, x, y, angle, awayX * THICK_SHADOW_M, awayY * THICK_SHADOW_M, [domeOf(m.spec)]);
+                    this.thickShadows.cast(m.spec, x, y, angle, awayX * THICK_SHADOW_M, awayY * THICK_SHADOW_M, [domeOutline(m.spec)]);
                 else if (depth === this.rock) cast(this.rockShadows, rock);
                 else if (depth === this.thickRock) {
                     cast(this.rockShadows, rock * THICK_ROCK_RISE);
@@ -347,6 +347,26 @@ function contextFor(spec: ModuleSpec, side: number, integrity: number, weaponsLa
         bySpec.set(key, context);
     }
     return context;
+}
+
+const domes = new Map<number, number[]>();
+/** Corners round a turret's dome, many enough that its shadow's edge reads as round. */
+const DOME_SHADOW_CORNERS = 24;
+
+/** A turret's dome as a polygon in its module's frame, for the shadow it casts. */
+function domeOutline(spec: ModuleSpec): number[] {
+    const radius = domeRadius(spec);
+    let made = domes.get(radius);
+    if (made === undefined) {
+        const corners: number[] = [];
+        for (let k = 0; k < DOME_SHADOW_CORNERS; k++) {
+            const a = (k * 2 * Math.PI) / DOME_SHADOW_CORNERS;
+            corners.push(radius * Math.cos(a), radius * Math.sin(a));
+        }
+        made = corners;
+        domes.set(radius, made);
+    }
+    return made;
 }
 
 /** `spec`'s fills in black: the shape a shadow or a mask takes from it. */

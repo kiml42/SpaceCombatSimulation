@@ -1393,8 +1393,8 @@ Rules:
 - **Which layer a module is in** follows from that. Every module is in the hull layer. What is thick is in
   the weapons layer as well, and so are turrets, whatever their depth — by their domes alone: in the hull
   layer a turret is its box, the block it stands on, and in the weapons layer only the circle that turns
-  (`domeOf`, a twelve-sided polygon so the same separating-axis test serves it), which is what a shot, a
-  beam or a fighter above the deck meets there. A thin engine is not, so only hull
+  (`domeRadius`, a true circle: a shot crosses it by one quadratic and a contact is a distance from its
+  centre), which is what a shot, a beam or a fighter above the deck meets there. A thin engine is not, so only hull
   weapons can strip it, and a craft built entirely of modules under a deck across is out of turrets' reach
   altogether: the Dinky is. Thick structure is cover
   for the turrets behind it and pays in wall, in being within reach of turrets, and in the arcs of every

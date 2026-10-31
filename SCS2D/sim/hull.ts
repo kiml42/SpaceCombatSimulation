@@ -1,5 +1,5 @@
 import { abs, cos, max, min, sin, sqrt } from "./math.js";
-import { domeOf, isDomed, shapeOf } from "./shape.js";
+import { domeRadius, isDomed, shapeOf } from "./shape.js";
 import type { DesignModule, ShipDesign } from "./blueprint.js";
 import type { Bodies } from "./bodies.js";
 import type { Rng } from "./rng.js";
@@ -171,7 +171,12 @@ export function modulesAlong(
         const m = design.modules[i]!;
         const met = moduleLayers(m, bodyLayers) & layers;
         if (i === skip || met === 0) continue;
-        const triangle = shapeIn(m.spec, met);
+        // Met above the deck alone, a turret is its dome rather than its block.
+        if ((met & HULL_LAYER) === 0 && isDomed(m.spec.kind)) {
+            domeAlong(m, domeRadius(m.spec), i, x0, y0, ux, uy, length, out);
+            continue;
+        }
+        const triangle = shapeOf(m.spec);
         if (passesWide(m, triangle, x0, y0, ux, uy, length)) continue;
         if (triangle !== null) {
             shapedModuleAlong(m, triangle, i, x0, y0, ux, uy, length, out);
@@ -386,6 +391,37 @@ function shapedModuleAlong(
 }
 
 /**
+ * `modulesAlong` for a turret's dome: where the segment crosses its circle.
+ * Grazing it counts as missing, as running along a face does.
+ */
+function domeAlong(
+    m: DesignModule,
+    radius: number,
+    index: number,
+    x0: number,
+    y0: number,
+    ux: number,
+    uy: number,
+    length: number,
+    out: HullPath,
+): void {
+    const fx = x0 - m.x;
+    const fy = y0 - m.y;
+    // Half the usual b, since the direction is a unit one.
+    const b = fx * ux + fy * uy;
+    const disc = b * b - (fx * fx + fy * fy - radius * radius);
+    if (!(disc > 0)) return;
+    const root = sqrt(disc);
+    const near = -b - root;
+    const entry = max(near, 0);
+    const exit = min(-b + root, length);
+    if (!(exit > entry)) return;
+    // Out through the surface where it entered; none, for a segment begun inside.
+    if (near > 0) out.push(index, entry, exit, (fx + ux * near) / radius, (fy + uy * near) / radius);
+    else out.push(index, entry, exit, 0, 0);
+}
+
+/**
  * How nearly parallel to a face counts as parallel to it.
  *
  * Not a tolerance for sloppiness but a guard on the division below: a
@@ -441,14 +477,6 @@ export const WEAPONS_LAYER = 2;
 export const BOTH_LAYERS = HULL_LAYER | WEAPONS_LAYER;
 /** Each module in the layers its own kind and depth put it in. */
 export const OWN_LAYERS = -1;
-
-/**
- * A module's outline where it is met in `layers` only: a turret's dome where
- * that is above the deck alone, else its own outline (null for its box).
- */
-export function shapeIn(spec: DesignModule["spec"], layers: number): readonly number[] | null {
-    return (layers & HULL_LAYER) === 0 && isDomed(spec.kind) ? domeOf(spec) : shapeOf(spec);
-}
 
 /** Which layers a module is in: the whole ship's, where it has one, else its own. */
 export function moduleLayers(m: { readonly weaponsLayer: boolean }, bodyLayers: number): number {
