@@ -2101,6 +2101,9 @@ export function drawFleetStrips(
             if (!fresh) continue;
             ctx.save();
             ctx.setTransform(1, 0, 0, 1, 0, 0);
+            // Its frame is stroked on its edge, half outside it, so that half is cleared too, or it would build up.
+            const edge = 2 * ratio;
+            ctx.clearRect(tile.x - edge, tile.y - edge, tile.size + 2 * edge, tile.size + 2 * edge);
             ctx.beginPath();
             ctx.rect(tile.x, tile.y, tile.size, tile.size);
             ctx.clip();
