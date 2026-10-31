@@ -78,11 +78,11 @@ const { cos, floor, sin, length, max, min, PI, sqrt, TAU } = math;
 /**
  * A Canvas2D view of a snapshot.
  *
- * **A stop-gap until the WebGL renderer (DESIGN.md Â§5), which replaces it.**
+ * **A stop-gap until the WebGL renderer (DESIGN.md §5), which replaces it.**
  * It exists to make the simulation watchable rather than only checksummable,
  * which is the thing a golden test cannot do: a duel can be bit-for-bit
  * reproducible and still look wrong, and nobody finds that out from a hash.
- * What survives the replacement is the shape â€” a function of a snapshot, with
+ * What survives the replacement is the shape — a function of a snapshot, with
  * no access to the simulation and no state of its own beyond the camera.
  *
  * It knows no game rules. Everything it draws, it draws because the snapshot
@@ -95,11 +95,11 @@ const { cos, floor, sin, length, max, min, PI, sqrt, TAU } = math;
  * own palettes are in `teams.ts`.
  *
  * A mount is drawn as its module box, then the sector it can traverse through,
- * then the barrel â€” and the ordering of *values* is what makes all three
+ * then the barrel — and the ordering of *values* is what makes all three
  * legible rather than the ordering of hues. The sweep is a pale wash, so it
  * shows over the dark field as well as over the hull; the barrel is dark, so
- * it shows against that wash. A barrel never leaves its own sector â€” the two
- * share a radius â€” so it only ever has to contrast with the sweep, which is
+ * it shows against that wash. A barrel never leaves its own sector — the two
+ * share a radius — so it only ever has to contrast with the sweep, which is
  * why it can afford to be the darkest thing on the ship.
  *
  * The sweep is deliberately not team-tinted. It marks where a gun *could*
@@ -166,7 +166,7 @@ const BEAM_GLOW = "#a8f132";
  * Width of the tracer's halo, in calibres, for a round at full opacity
  * (`tracerAlpha`); a fainter round's is narrower by as much, floored or not.
  * Proportional to the round rather than a fixed size, so that close up a light
- * round is a small bright thing and a heavy one is a large one â€” a fixed halo
+ * round is a small bright thing and a heavy one is a large one — a fixed halo
  * makes every round look the same size at the zoom where its true size is
  * finally legible.
  */
@@ -177,7 +177,7 @@ const GLOW_CALIBRES = 7;
  *
  * Zoomed out, honest widths go to a fraction of a pixel and detail that
  * carries meaning stops being drawn at all: a round's two colours collapse
- * into one, and a barrel â€” a few centimetres of steel â€” disappears, taking
+ * into one, and a barrel — a few centimetres of steel — disappears, taking
  * with it the only indication of where a turret is pointing. Below these
  * floors a stroke is therefore drawn wider than life. Above them the true
  * width wins and what is on screen is to scale, which is the point of having
@@ -276,7 +276,7 @@ const APPROACH_BLOCKED = "rgba(232, 176, 72, 0.9)";
 /**
  * How far the arc indicator reaches, as a multiple of the mount's own face.
  *
- * The quantity being shown is an *angle* â€” where the gun may shoot â€” and the
+ * The quantity being shown is an *angle* — where the gun may shoot — and the
  * radius is only there to make that angle readable. Drawn at the mount's own
  * size the wedge is too small to judge, and reads as the volume the mount
  * sweeps rather than the sky it covers. Four times is enough to see the span
@@ -285,7 +285,7 @@ const APPROACH_BLOCKED = "rgba(232, 176, 72, 0.9)";
  *
  * From the mount rather than from the barrel, because a barrel is not a thing
  * every weapon has. A beam mount's emitter housing is about as deep as it is
- * wide, so scaling from that drew a wedge a metre or so across â€” invisible,
+ * wide, so scaling from that drew a wedge a metre or so across — invisible,
  * and invisible in a way that reads as a mount having no arc rather than as
  * the renderer having nothing to scale by. The mount's smaller face is the
  * same quantity the pivot disc is drawn at and the same one the mount's own
@@ -351,7 +351,7 @@ function roundedTriangle(ctx: CanvasRenderingContext2D, corners: readonly number
     ctx.closePath();
 }
 
-/** What a core's room past its computing holds, mÂ³ each: its fuel, metal, battery and generator. */
+/** What a core's room past its computing holds, m³ each: its fuel, metal, battery and generator. */
 function coreRoom(stats: ModuleStats): { fuel: number; metal: number; charge: number; generator: number } {
     return {
         fuel: stats.fuel / FUEL_DENSITY,
@@ -364,7 +364,7 @@ function coreRoom(stats: ModuleStats): { fuel: number; metal: number; charge: nu
 /**
  * A robot as a beetle `size` long, facing `heading`: a shell with its head at
  * the front, and over its back two wing cases, each a curved bar filling from
- * the waist back with what it has left â€” charge on its left, metal on its right.
+ * the waist back with what it has left — charge on its left, metal on its right.
  */
 function drawRobot(
     ctx: CanvasRenderingContext2D,
@@ -462,13 +462,13 @@ function drawShip(
 
         // Where the gun may shoot: a mount fouled by its own ship shows a narrow
         // wedge, one with clear sky a full disc. This is the layout's cost made
-        // visible â€” DESIGN.md Â§3 has arcs derived from where a gun was put rather
+        // visible — DESIGN.md §3 has arcs derived from where a gun was put rather
         // than authored, and this is what that decision bought or cost, per mount.
         //
         // Asymmetric, because the model is: an obstruction off one beam costs the
         // sweep that way alone. The wedge runs from `rest - rightArc` to
         // `rest + leftArc`, since bearings increase anticlockwise and +y is to
-        // port â€” so the left arc is the *upper* bound. Drawing it the other way
+        // port — so the left arc is the *upper* bound. Drawing it the other way
         // round looks perfectly plausible on a symmetric ship and mirrors every
         // gun's arc on an asymmetric one.
         const spec = design.modules[design.turrets[t]!.module]!.spec;
@@ -517,7 +517,7 @@ function drawShip(
 
         // Where it will fire: the bearing it is aiming along, as far either side as
         // it will pull the trigger, out to as far as it is worth shooting at what
-        // it is aiming at. Tinted by whether it would fire now â€” on target, not
+        // it is aiming at. Tinted by whether it would fire now — on target, not
         // yet, or pointing into its own ship.
         const triggerReach = ship.turretTriggerReach?.[t] ?? 0;
         // Its sides are lines a calibre wide, floored on screen, so a gun allowed
@@ -819,8 +819,8 @@ function drawHull(
         ctx.translate(m.x, m.y);
         ctx.rotate(m.angle);
         // Wreckage: still there, still stopping shells, no longer doing its job.
-        // Drawn as what it is rather than removed, which is what Â§4 means by
-        // conserving matter â€” and it is the only way to see a ship being killed
+        // Drawn as what it is rather than removed, which is what §4 means by
+        // conserving matter — and it is the only way to see a ship being killed
         // module by module rather than simply going quiet.
         // Optional, because a view can be built by hand: the editor's preview and
         // the camera's tests both do, and neither has anything to be damaged.
@@ -1191,7 +1191,7 @@ function drawRobots(ctx: CanvasRenderingContext2D, ship: ShipView): void {
 
 /** What leaking fuel looks like: vapour, white. */
 const LEAK = "235, 242, 250";
-/** How long a leak's plume is drawn, metres per âˆš(kg/s) going out of it. */
+/** How long a leak's plume is drawn, metres per √(kg/s) going out of it. */
 const LEAK_PLUME_LENGTH = 1.5;
 /** How far it has spread by its end, as a share of its length either side. */
 const LEAK_PLUME_SPREAD = 0.3;
@@ -1502,7 +1502,7 @@ function layerAlpha(alpha: number, split: number): number {
 /**
  * Where flames are burning something: a soft glow on the hull, as wide as
  * the flame is there and spread along the surface rather than round, and as
- * bright as the power landing on it per square metre â€” a little brighter
+ * bright as the power landing on it per square metre — a little brighter
  * than the flame itself, for the hull it is boiling off.
  *
  * In a pass of its own after every hull, so a glow on a ship drawn later is
@@ -1625,7 +1625,7 @@ function fade(ctx: CanvasRenderingContext2D, root: number, length: number, rgb: 
  * A ship's icon: an arrowhead in its team's colour, pointing the way it is.
  *
  * Drawn at a fixed size on screen rather than in metres, which is the whole
- * point of it â€” the hull shrinks with the zoom and this does not, so a
+ * point of it — the hull shrinks with the zoom and this does not, so a
  * skirmish seen from far enough out to fit is still a picture of ships facing
  * each other rather than a field of specks. `render/icons.ts` decides when it
  * shows and how solid it is.
@@ -1636,7 +1636,7 @@ function fade(ctx: CanvasRenderingContext2D, root: number, length: number, rgb: 
  * core and nothing else is still a ship, and drawing it grey said the
  * opposite about an entire generation of engineless craft.
  *
- * A derelict piece â€” a severed chunk, never controlled â€” gets no
+ * A derelict piece — a severed chunk, never controlled — gets no
  * icon at all: it has no facing worth pointing out, and a debris field that
  * drew as many arrowheads as the battle that made it would count as ships
  * wreckage that no longer is any. A mission-killed hull keeps its icon in
@@ -1711,8 +1711,8 @@ const NAME_MIN_CORE_PX = 18;
 const NAME_MIN_PX = 7;
 
 /**
- * The name painted on each of a ship's cores â€” the side and which of its ships
- * built it, as "Red 5", or "Red 5.2" for the second core of a ship with more â€”
+ * The name painted on each of a ship's cores — the side and which of its ships
+ * built it, as "Red 5", or "Red 5.2" for the second core of a ship with more —
  * in that side's trim, once the core is big enough on screen to carry it.
  * Paint, so it turns with the ship, grows with the zoom, and stays however
  * battered the core or whoever now flies it.
@@ -2321,7 +2321,7 @@ export function drawFleetStrips(
                 ctx.font = `${11 * ratio}px ui-monospace, monospace`;
                 ctx.textAlign = "right";
                 ctx.textBaseline = "bottom";
-                ctx.fillText(`Ã—${tile.count}`, tile.x + tile.size - 3 * ratio, tile.y + tile.size - 2 * ratio);
+                ctx.fillText(`×${tile.count}`, tile.x + tile.size - 3 * ratio, tile.y + tile.size - 2 * ratio);
             }
             ctx.restore();
         }
@@ -2854,7 +2854,7 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
         const calibre = snapshot.beamWidth[i]!;
         ctx.globalAlpha = beamAlpha(snapshot.beamPower[i]!) * flooredFade(calibre, MIN_TRACER_PX, camera.scale);
         // The beam *is* its calibre wide. Twice the calibre is the barrel's outer
-        // diameter â€” right for the tube, wrong for what comes out of it.
+        // diameter — right for the tube, wrong for what comes out of it.
         ctx.lineWidth = legibleWidth(calibre, MIN_TRACER_PX, camera.scale);
         ctx.beginPath();
         ctx.moveTo(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!);
@@ -2871,8 +2871,8 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
 /**
  * Gravity wells, as rings at the radii where their pull reaches round values.
  *
- * A well has no body to draw â€” it is a point mass â€” so what is drawn is its
- * *effect*: the distance at which it pulls at 1 m/sÂ², and at a tenth of that.
+ * A well has no body to draw — it is a point mass — so what is drawn is its
+ * *effect*: the distance at which it pulls at 1 m/s², and at a tenth of that.
  * Without this, ships and rounds curve for no visible reason, which reads as a
  * bug in the physics rather than the physics working.
  */
@@ -2882,7 +2882,7 @@ function drawWells(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
     for (let i = 0; i < snapshot.wells.length; i++) {
         const well = snapshot.wells[i]!;
         for (const pull of WELL_PULLS) {
-            // r where gm/rÂ² is `pull`.
+            // r where gm/r² is `pull`.
             const r = sqrt(well.gm / pull);
             ctx.beginPath();
             ctx.arc(well.x, well.y, r, 0, TAU);
@@ -2902,7 +2902,7 @@ function drawWells(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
 /**
  * A grid at a round spacing, chosen so the lines stay a comfortable distance
  * apart on screen however far the camera has zoomed out. Without it there is
- * nothing to judge scale or motion against â€” two ships closing on a black
+ * nothing to judge scale or motion against — two ships closing on a black
  * field look like two ships sitting still.
  */
 function drawGrid(ctx: CanvasRenderingContext2D, camera: Camera, widthPx: number, heightPx: number): void {
