@@ -69,7 +69,8 @@ ui/         presentational React components, plain props only, and the
 host/       the DOM engines the routes mount and leave alone — the battle view
             on the wall clock, the timeline, the fleet pictures — and the
             answer worker
-scenarios/  the battles, and the blueprints they fly, under blueprints/
+scenarios/  the battles, and the blueprints they fly, under blueprints/;
+            scenarios/README.md says which scene to open to see or test what
             (battle.ts holds the assembly and the step order they share)
 evolution/  breeding and running a generation; imports sim/, never the host,
             and is bound by the same determinism rules
