@@ -439,6 +439,310 @@ function drawShip(
     const whole = design.fighter === fighters;
     if (!whole && (!fighters || design.fighterPieces === undefined)) return;
 
+    if (!drawPicture(ctx, ship, metresToPx, arcs, fighters, whole, filled))
+        drawHull(ctx, ship, metresToPx, arcs, fighters, whole, filled, light);
+
+    // Turrets are drawn in world space: a turret's bearing is a world bearing, so
+    // rotating into the hull frame first would apply the hull's angle twice.
+    const lineWidth = max(0.6, 1.5 / metresToPx);
+    const c = cos(ship.angle);
+    const s = sin(ship.angle);
+
+    for (let t = 0; t < design.turrets.length; t++) {
+        const module = design.turrets[t]!.module;
+        if (ship.drawn?.[module] === false || isFighterModule(design, module) !== fighters) continue;
+        const colours = moduleColours(design, module, ship.sides?.[module] ?? ship.team);
+        const mount = design.turrets[t]!.mount;
+        const mx = ship.x + mount.x * c - mount.y * s;
+        const my = ship.y + mount.x * s + mount.y * c;
+        const reach = mount.muzzleOffset ?? 0;
+        const left = mount.leftArc ?? PI;
+        const right = mount.rightArc ?? PI;
+        const rest = ship.angle + (mount.restBearing ?? 0);
+
+        // Where the gun may shoot: a mount fouled by its own ship shows a narrow
+        // wedge, one with clear sky a full disc. This is the layout's cost made
+        // visible — DESIGN.md §3 has arcs derived from where a gun was put rather
+        // than authored, and this is what that decision bought or cost, per mount.
+        //
+        // Asymmetric, because the model is: an obstruction off one beam costs the
+        // sweep that way alone. The wedge runs from `rest - rightArc` to
+        // `rest + leftArc`, since bearings increase anticlockwise and +y is to
+        // port — so the left arc is the *upper* bound. Drawing it the other way
+        // round looks perfectly plausible on a symmetric ship and mirrors every
+        // gun's arc on an asymmetric one.
+        const spec = design.modules[design.turrets[t]!.module]!.spec;
+        const face = min(spec.length, spec.width);
+        // A wrecked mount shows no arc: the wash says "this gun may shoot here",
+        // which is a promise a gun that cannot shoot is not making. The barrel
+        // stays, because it is still there.
+        if (arcs !== "none" && ship.turretDisabled?.[t] !== true) {
+            const scaled = face * ARC_RADIUS_SCALE;
+            const span = scaled < ARC_MIN_RADIUS ? ARC_MIN_RADIUS : scaled > ARC_MAX_RADIUS ? ARC_MAX_RADIUS : scaled;
+            ctx.fillStyle = SWEEP;
+            ctx.strokeStyle = SWEEP_EDGE;
+            ctx.lineWidth = lineWidth * 0.8;
+            ctx.beginPath();
+            if (left + right >= 2 * PI) {
+                ctx.arc(mx, my, span, 0, TAU);
+            } else {
+                ctx.moveTo(mx, my);
+                ctx.arc(mx, my, span, rest - right, rest + left);
+                ctx.closePath();
+            }
+            ctx.fill();
+            ctx.stroke();
+
+            // Where it may point and may not fire, because its own ship is
+            // downrange: the trigger mask, within the sweep.
+            const mask = mount.mask;
+            if (mask !== undefined && mask.length > 0) {
+                const whole = left + right >= 2 * PI;
+                ctx.fillStyle = MASKED;
+                for (let k = 0; k < mask.length; k += 2) {
+                    for (let wrap = -1; wrap <= 1; wrap++) {
+                        const from = whole ? mask[k]! : max(mask[k]! + wrap * TAU, -right);
+                        const to = whole ? mask[k + 1]! : min(mask[k + 1]! + wrap * TAU, left);
+                        if (!(to > from)) continue;
+                        ctx.beginPath();
+                        ctx.moveTo(mx, my);
+                        ctx.arc(mx, my, span, rest + from, rest + to);
+                        ctx.closePath();
+                        ctx.fill();
+                        if (whole) break;
+                    }
+                }
+            }
+        }
+
+        // Where it will fire: the bearing it is aiming along, as far either side as
+        // it will pull the trigger, out to as far as it is worth shooting at what
+        // it is aiming at. Tinted by whether it would fire now — on target, not
+        // yet, or pointing into its own ship.
+        const triggerReach = ship.turretTriggerReach?.[t] ?? 0;
+        // Its sides are lines a calibre wide, floored on screen, so a gun allowed
+        // only a hair either side still shows which way it will fire.
+        const half = ship.turretTrigger?.[t] ?? 0;
+        if (arcs === "trigger" && triggerReach > 0 && ship.turretDisabled?.[t] !== true) {
+            const aim = ship.turretAim?.[t] ?? rest;
+            const tint = ship.turretFouled?.[t] === true ? TRIGGER_FOULED : ship.turretReady[t] === true ? TRIGGER_ON : TRIGGER_OFF;
+            ctx.fillStyle = tint;
+            ctx.beginPath();
+            ctx.moveTo(mx, my);
+            ctx.arc(mx, my, triggerReach, aim - half, aim + half);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = tint;
+            ctx.lineWidth = legibleWidth(design.turrets[t]!.gun.calibre, MIN_TRIGGER_PX, metresToPx);
+            ctx.beginPath();
+            ctx.moveTo(mx + cos(aim - half) * triggerReach, my + sin(aim - half) * triggerReach);
+            ctx.lineTo(mx, my);
+            ctx.lineTo(mx + cos(aim + half) * triggerReach, my + sin(aim + half) * triggerReach);
+            ctx.stroke();
+
+            // In battle, where the barrel actually points, so how far it is off its
+            // aim shows. A preview has no body, and its barrel is on its aim anyway.
+            if (ship.body >= 0) {
+                const bearing = ship.turretBearings[t] ?? aim;
+                ctx.strokeStyle = BARREL_LINE;
+                ctx.lineWidth = BARREL_LINE_PX / metresToPx;
+                ctx.beginPath();
+                ctx.moveTo(mx, my);
+                ctx.lineTo(mx + cos(bearing) * triggerReach, my + sin(bearing) * triggerReach);
+                ctx.stroke();
+            }
+        }
+
+        const bearing = ship.turretBearings[t] ?? 0;
+        const dirX = cos(bearing);
+        const dirY = sin(bearing);
+        const gun = design.turrets[t]!.gun;
+        const count = gun.barrelCount;
+        const spacing = gun.barrelSpacing;
+        const hull = isHullMount(spec.kind) ? hullMountGeometry(spec) : null;
+        const beamLenses = spec.kind === "hullBeam";
+
+        // The rotating part itself. A turret's is a disc at the mount, sized to the
+        // module it sits in so a heavy mount looks heavy. Each of a hull beam's
+        // lenses has a mount of its own on a stalk out of the face. A hull gun's
+        // mantlet goes on after its barrels, below.
+        ctx.fillStyle = colours.pivot;
+        if (hull === null) {
+            ctx.beginPath();
+            ctx.arc(mx, my, face * 0.5, 0, TAU);
+            ctx.fill();
+            if (light !== undefined) shadeDome(ctx, mx, my, face * 0.5, light);
+        } else if (beamLenses) {
+            // Each lens on a disc of its own that it turns on, as wide as the lens
+            // sweeps, and a stalk back from it to the block's face.
+            const back = hull.trains - hull.pivot;
+            const radius = 0.5 * sqrt(hull.barrelLength * hull.barrelLength + hull.outletWidth * hull.outletWidth);
+            const restX = cos(rest);
+            const restY = sin(rest);
+            for (let k = 0; k < count; k++) {
+                const lat = count > 1 ? (k - (count - 1) * 0.5) * spacing : 0;
+                const cx = mx - restY * lat;
+                const cy = my + restX * lat;
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius, 0, TAU);
+                ctx.fill();
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(rest);
+                ctx.fillRect(-back, -hull.outletWidth * 0.3, back, hull.outletWidth * 0.6);
+                ctx.restore();
+            }
+        }
+
+        ctx.strokeStyle = BARREL;
+        // Barrels are allowed to overlap once the floor has widened them past their
+        // own gaps, which happens only when the whole ship is a hundred-odd pixels
+        // across. A row that closes into one solid bar still says where the turret
+        // is pointing, where holding each barrel inside its gap would shrink them
+        // back below the floor and say nothing. Overlap is free: the barrel colours
+        // are opaque, so a bar drawn twice looks like a bar.
+        const hidden = hull !== null && !beamLenses;
+        if (hidden) {
+            // Behind the block, so a barrel trained hard over never shows its breech.
+            const placed = design.modules[module]!;
+            blockClip(ctx, ship, placed.x, placed.y, placed.angle, spec.length, spec.width, hull.blockLength, reach + spec.length);
+        }
+        ctx.beginPath();
+        const physicalWidth = barrelLines(ship, t, (x0, y0, x1, y1) => {
+            ctx.moveTo(x0, y0);
+            ctx.lineTo(x1, y1);
+        });
+        ctx.lineWidth = legibleWidth(physicalWidth, MIN_BARREL_PX, metresToPx);
+        ctx.stroke();
+        // A turret's barrels, as tubes; a hull mount's run back into its block, under a clip.
+        if (light !== undefined && hull === null) shadeBarrels(ctx, ship, t, ctx.lineWidth, light);
+        if (gun.braceLength > 0) drawBracing(ctx, gun, physicalWidth, mx, my, dirX, dirY);
+        if (hidden) ctx.restore();
+        if (hull !== null && !beamLenses) {
+            // Over the barrels' roots, standing out of the block's face, so a barrel
+            // trained hard over is seen to come out of it rather than the block.
+            ctx.fillStyle = colours.pivot;
+            const row = ((count - 1) / 2) * spacing + hull.outletWidth;
+            mantlet(ctx, mx, my, min(spec.width * 0.5, row), rest);
+        }
+        drawLoad(ctx, ship, t, mx, my, bearing);
+    }
+
+    if (!whole) return;
+    if (arcs === "trigger") drawEngineTriggers(ctx, ship, metresToPx);
+    drawPlumes(ctx, ship);
+    drawLeaks(ctx, ship);
+}
+
+/** Pixels across on screen below which a ship's hull is drawn from a picture of it rather than shape by shape. */
+const PICTURE_BELOW_PX = 32;
+/** Steps a gauge's level or a module's integrity is taken to in a picture's key, so it is not redrawn every frame. */
+const PICTURE_STEPS = 4;
+/** Pictures kept a design, beyond which they are all let go: a design's damage and gauges only move one way. */
+const PICTURES_KEPT = 48;
+
+interface Picture {
+    readonly image: HTMLCanvasElement | OffscreenCanvas;
+    /** Its pixels a metre. */
+    readonly scale: number;
+}
+
+/** Each design's hull pictures, by what they show (`pictureKey`), at each size drawn. */
+const pictures = new WeakMap<ShipDesign, Map<string, Picture | null>>();
+
+/** Everything `drawHull` draws from, rounded to `PICTURE_STEPS`, with the picture's size in pixels. */
+function pictureKey(ship: ShipView, fighters: boolean, filled: boolean, size: number): string {
+    const step = (v: number | undefined): number => (v === undefined ? -1 : Math.round(v * PICTURE_STEPS));
+    let key = `${size} ${ship.team} ${fighters ? 1 : 0}${filled ? 1 : 0}`;
+    const n = ship.currentStructure.modules.length;
+    for (let i = 0; i < n; i++) {
+        key +=
+            `|${step(ship.integrity?.[i])},${ship.drawn?.[i] === false ? 0 : 1},${ship.sides?.[i] ?? ""},` +
+            `${ship.outOfReach?.[i] === true ? 1 : 0},${step(ship.fuel?.[i])},${step(ship.metal?.[i])},${step(ship.charge?.[i])},` +
+            `${ship.berthed?.[i] ?? ""},${ship.aboard?.[i] ?? ""}`;
+    }
+    key += `|${ship.coresWorking?.join(",") ?? ""}|${ship.docked?.length ?? -1}|${ship.builds?.length ?? -1}`;
+    return key;
+}
+
+/**
+ * A small ship's hull drawn from a picture of it, made once for what it shows
+ * and stamped at its place and angle: a few pixels across, it shows none of
+ * what drawing it shape by shape would. Not with arcs, which reach well past
+ * the hull, and not round fighters aboard, drawn in a pass of their own.
+ * Whether it was drawn so; if not, it is for `drawHull`.
+ */
+function drawPicture(
+    ctx: CanvasRenderingContext2D,
+    ship: ShipView,
+    metresToPx: number,
+    arcs: Arcs,
+    fighters: boolean,
+    whole: boolean,
+    filled: boolean,
+): boolean {
+    const design = ship.currentStructure;
+    const across = 2 * design.radius * metresToPx;
+    if (!(across < PICTURE_BELOW_PX) || arcs !== "none" || !whole || design.fighterPieces !== undefined) return false;
+    // In powers of two, so a ship zoomed through a range is drawn at a few sizes, not one a frame.
+    const size = Math.max(4, 2 ** Math.ceil(Math.log2(across)));
+    const key = pictureKey(ship, fighters, filled, size);
+    let kept = pictures.get(design);
+    if (kept === undefined) pictures.set(design, (kept = new Map()));
+    let picture = kept.get(key);
+    if (picture === undefined) {
+        if (kept.size >= PICTURES_KEPT) kept.clear();
+        picture = makePicture(ship, fighters, filled, size);
+        kept.set(key, picture);
+    }
+    if (picture === null) return false;
+    const { image, scale } = picture;
+    ctx.save();
+    ctx.translate(ship.x, ship.y);
+    ctx.rotate(ship.angle);
+    // The picture's rows run down the screen, the world's y up it.
+    ctx.scale(1 / scale, -1 / scale);
+    ctx.drawImage(image, -image.width / 2, -image.height / 2);
+    ctx.restore();
+    return true;
+}
+
+/** Pixels round a picture's hull, for the half of an outline drawn outside it. */
+const PICTURE_MARGIN_PX = 2;
+
+function makePicture(ship: ShipView, fighters: boolean, filled: boolean, size: number): Picture | null {
+    const side = size + 2 * PICTURE_MARGIN_PX;
+    const image =
+        typeof OffscreenCanvas !== "undefined"
+            ? new OffscreenCanvas(side, side)
+            : typeof document !== "undefined"
+              ? Object.assign(document.createElement("canvas"), { width: side, height: side })
+              : null;
+    const ctx = image?.getContext("2d") as CanvasRenderingContext2D | null | undefined;
+    if (image === null || ctx === null || ctx === undefined) return null;
+    const scale = size / (2 * ship.currentStructure.radius);
+    ctx.setTransform(scale, 0, 0, -scale, side / 2, side / 2);
+    // Unlit: the light's shading follows the ship's angle in the world, and is lost at this size anyway.
+    drawHull(ctx, { ...ship, x: 0, y: 0, angle: 0 }, scale, "none", fighters, true, filled, undefined);
+    return { image, scale };
+}
+
+/**
+ * The ship's hull in its own frame: the doctrine's band, each module's fills
+ * and what is on it, and its approaches. Everything `drawShip` draws but the
+ * turrets, which turn in the world, and the exhaust.
+ */
+function drawHull(
+    ctx: CanvasRenderingContext2D,
+    ship: ShipView,
+    metresToPx: number,
+    arcs: Arcs,
+    fighters: boolean,
+    whole: boolean,
+    filled: boolean,
+    light: Light | undefined,
+): void {
+    const design = ship.currentStructure;
     ctx.save();
     ctx.translate(ship.x, ship.y);
     ctx.rotate(ship.angle);
@@ -697,197 +1001,6 @@ function drawShip(
     // Over the hull, since fighters come in over it.
     if (whole && arcs !== "none") drawApproaches(ctx, ship, metresToPx);
     ctx.restore();
-
-    // Turrets are drawn in world space: a turret's bearing is a world bearing, so
-    // rotating into the hull frame first would apply the hull's angle twice.
-    const lineWidth = max(0.6, 1.5 / metresToPx);
-    const c = cos(ship.angle);
-    const s = sin(ship.angle);
-
-    for (let t = 0; t < design.turrets.length; t++) {
-        const module = design.turrets[t]!.module;
-        if (ship.drawn?.[module] === false || isFighterModule(design, module) !== fighters) continue;
-        const colours = moduleColours(design, module, ship.sides?.[module] ?? ship.team);
-        const mount = design.turrets[t]!.mount;
-        const mx = ship.x + mount.x * c - mount.y * s;
-        const my = ship.y + mount.x * s + mount.y * c;
-        const reach = mount.muzzleOffset ?? 0;
-        const left = mount.leftArc ?? PI;
-        const right = mount.rightArc ?? PI;
-        const rest = ship.angle + (mount.restBearing ?? 0);
-
-        // Where the gun may shoot: a mount fouled by its own ship shows a narrow
-        // wedge, one with clear sky a full disc. This is the layout's cost made
-        // visible — DESIGN.md §3 has arcs derived from where a gun was put rather
-        // than authored, and this is what that decision bought or cost, per mount.
-        //
-        // Asymmetric, because the model is: an obstruction off one beam costs the
-        // sweep that way alone. The wedge runs from `rest - rightArc` to
-        // `rest + leftArc`, since bearings increase anticlockwise and +y is to
-        // port — so the left arc is the *upper* bound. Drawing it the other way
-        // round looks perfectly plausible on a symmetric ship and mirrors every
-        // gun's arc on an asymmetric one.
-        const spec = design.modules[design.turrets[t]!.module]!.spec;
-        const face = min(spec.length, spec.width);
-        // A wrecked mount shows no arc: the wash says "this gun may shoot here",
-        // which is a promise a gun that cannot shoot is not making. The barrel
-        // stays, because it is still there.
-        if (arcs !== "none" && ship.turretDisabled?.[t] !== true) {
-            const scaled = face * ARC_RADIUS_SCALE;
-            const span = scaled < ARC_MIN_RADIUS ? ARC_MIN_RADIUS : scaled > ARC_MAX_RADIUS ? ARC_MAX_RADIUS : scaled;
-            ctx.fillStyle = SWEEP;
-            ctx.strokeStyle = SWEEP_EDGE;
-            ctx.lineWidth = lineWidth * 0.8;
-            ctx.beginPath();
-            if (left + right >= 2 * PI) {
-                ctx.arc(mx, my, span, 0, TAU);
-            } else {
-                ctx.moveTo(mx, my);
-                ctx.arc(mx, my, span, rest - right, rest + left);
-                ctx.closePath();
-            }
-            ctx.fill();
-            ctx.stroke();
-
-            // Where it may point and may not fire, because its own ship is
-            // downrange: the trigger mask, within the sweep.
-            const mask = mount.mask;
-            if (mask !== undefined && mask.length > 0) {
-                const whole = left + right >= 2 * PI;
-                ctx.fillStyle = MASKED;
-                for (let k = 0; k < mask.length; k += 2) {
-                    for (let wrap = -1; wrap <= 1; wrap++) {
-                        const from = whole ? mask[k]! : max(mask[k]! + wrap * TAU, -right);
-                        const to = whole ? mask[k + 1]! : min(mask[k + 1]! + wrap * TAU, left);
-                        if (!(to > from)) continue;
-                        ctx.beginPath();
-                        ctx.moveTo(mx, my);
-                        ctx.arc(mx, my, span, rest + from, rest + to);
-                        ctx.closePath();
-                        ctx.fill();
-                        if (whole) break;
-                    }
-                }
-            }
-        }
-
-        // Where it will fire: the bearing it is aiming along, as far either side as
-        // it will pull the trigger, out to as far as it is worth shooting at what
-        // it is aiming at. Tinted by whether it would fire now — on target, not
-        // yet, or pointing into its own ship.
-        const triggerReach = ship.turretTriggerReach?.[t] ?? 0;
-        // Its sides are lines a calibre wide, floored on screen, so a gun allowed
-        // only a hair either side still shows which way it will fire.
-        const half = ship.turretTrigger?.[t] ?? 0;
-        if (arcs === "trigger" && triggerReach > 0 && ship.turretDisabled?.[t] !== true) {
-            const aim = ship.turretAim?.[t] ?? rest;
-            const tint = ship.turretFouled?.[t] === true ? TRIGGER_FOULED : ship.turretReady[t] === true ? TRIGGER_ON : TRIGGER_OFF;
-            ctx.fillStyle = tint;
-            ctx.beginPath();
-            ctx.moveTo(mx, my);
-            ctx.arc(mx, my, triggerReach, aim - half, aim + half);
-            ctx.closePath();
-            ctx.fill();
-            ctx.strokeStyle = tint;
-            ctx.lineWidth = legibleWidth(design.turrets[t]!.gun.calibre, MIN_TRIGGER_PX, metresToPx);
-            ctx.beginPath();
-            ctx.moveTo(mx + cos(aim - half) * triggerReach, my + sin(aim - half) * triggerReach);
-            ctx.lineTo(mx, my);
-            ctx.lineTo(mx + cos(aim + half) * triggerReach, my + sin(aim + half) * triggerReach);
-            ctx.stroke();
-
-            // In battle, where the barrel actually points, so how far it is off its
-            // aim shows. A preview has no body, and its barrel is on its aim anyway.
-            if (ship.body >= 0) {
-                const bearing = ship.turretBearings[t] ?? aim;
-                ctx.strokeStyle = BARREL_LINE;
-                ctx.lineWidth = BARREL_LINE_PX / metresToPx;
-                ctx.beginPath();
-                ctx.moveTo(mx, my);
-                ctx.lineTo(mx + cos(bearing) * triggerReach, my + sin(bearing) * triggerReach);
-                ctx.stroke();
-            }
-        }
-
-        const bearing = ship.turretBearings[t] ?? 0;
-        const dirX = cos(bearing);
-        const dirY = sin(bearing);
-        const gun = design.turrets[t]!.gun;
-        const count = gun.barrelCount;
-        const spacing = gun.barrelSpacing;
-        const hull = isHullMount(spec.kind) ? hullMountGeometry(spec) : null;
-        const beamLenses = spec.kind === "hullBeam";
-
-        // The rotating part itself. A turret's is a disc at the mount, sized to the
-        // module it sits in so a heavy mount looks heavy. Each of a hull beam's
-        // lenses has a mount of its own on a stalk out of the face. A hull gun's
-        // mantlet goes on after its barrels, below.
-        ctx.fillStyle = colours.pivot;
-        if (hull === null) {
-            ctx.beginPath();
-            ctx.arc(mx, my, face * 0.5, 0, TAU);
-            ctx.fill();
-            if (light !== undefined) shadeDome(ctx, mx, my, face * 0.5, light);
-        } else if (beamLenses) {
-            // Each lens on a disc of its own that it turns on, as wide as the lens
-            // sweeps, and a stalk back from it to the block's face.
-            const back = hull.trains - hull.pivot;
-            const radius = 0.5 * sqrt(hull.barrelLength * hull.barrelLength + hull.outletWidth * hull.outletWidth);
-            const restX = cos(rest);
-            const restY = sin(rest);
-            for (let k = 0; k < count; k++) {
-                const lat = count > 1 ? (k - (count - 1) * 0.5) * spacing : 0;
-                const cx = mx - restY * lat;
-                const cy = my + restX * lat;
-                ctx.beginPath();
-                ctx.arc(cx, cy, radius, 0, TAU);
-                ctx.fill();
-                ctx.save();
-                ctx.translate(cx, cy);
-                ctx.rotate(rest);
-                ctx.fillRect(-back, -hull.outletWidth * 0.3, back, hull.outletWidth * 0.6);
-                ctx.restore();
-            }
-        }
-
-        ctx.strokeStyle = BARREL;
-        // Barrels are allowed to overlap once the floor has widened them past their
-        // own gaps, which happens only when the whole ship is a hundred-odd pixels
-        // across. A row that closes into one solid bar still says where the turret
-        // is pointing, where holding each barrel inside its gap would shrink them
-        // back below the floor and say nothing. Overlap is free: the barrel colours
-        // are opaque, so a bar drawn twice looks like a bar.
-        const hidden = hull !== null && !beamLenses;
-        if (hidden) {
-            // Behind the block, so a barrel trained hard over never shows its breech.
-            const placed = design.modules[module]!;
-            blockClip(ctx, ship, placed.x, placed.y, placed.angle, spec.length, spec.width, hull.blockLength, reach + spec.length);
-        }
-        ctx.beginPath();
-        const physicalWidth = barrelLines(ship, t, (x0, y0, x1, y1) => {
-            ctx.moveTo(x0, y0);
-            ctx.lineTo(x1, y1);
-        });
-        ctx.lineWidth = legibleWidth(physicalWidth, MIN_BARREL_PX, metresToPx);
-        ctx.stroke();
-        // A turret's barrels, as tubes; a hull mount's run back into its block, under a clip.
-        if (light !== undefined && hull === null) shadeBarrels(ctx, ship, t, ctx.lineWidth, light);
-        if (gun.braceLength > 0) drawBracing(ctx, gun, physicalWidth, mx, my, dirX, dirY);
-        if (hidden) ctx.restore();
-        if (hull !== null && !beamLenses) {
-            // Over the barrels' roots, standing out of the block's face, so a barrel
-            // trained hard over is seen to come out of it rather than the block.
-            ctx.fillStyle = colours.pivot;
-            const row = ((count - 1) / 2) * spacing + hull.outletWidth;
-            mantlet(ctx, mx, my, min(spec.width * 0.5, row), rest);
-        }
-        drawLoad(ctx, ship, t, mx, my, bearing);
-    }
-
-    if (!whole) return;
-    if (arcs === "trigger") drawEngineTriggers(ctx, ship, metresToPx);
-    drawPlumes(ctx, ship);
-    drawLeaks(ctx, ship);
 }
 
 /** A ship's robots out on its hull: over every capital hull, under every fighter. */
