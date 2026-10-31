@@ -1352,6 +1352,8 @@ export class Ships {
     private dodgeWhen = 0;
     /** Whether that dodge is from a rock. */
     private dodgeRock = false;
+    /** How far into its band's fade the craft's fight wants it moved, from 0 at rest in the band to 1 outside the fade (`hold`). */
+    private fightFade = 1;
     /** Where the threats a fleeing craft weighs lie, as a weighted sum of directions to them (`threats`). */
     private threatX = 0;
     private threatY = 0;
@@ -4225,6 +4227,7 @@ export class Ships {
         this.urgeWeight = 0;
         this.dodgeWeight = 0;
         this.dodgeRock = false;
+        this.fightFade = 1;
         let wantAngle = bodies.angle[b]!;
         // What it is fighting, if anything: the body, and how far out it holds it.
         let fighting = -1;
@@ -4580,7 +4583,9 @@ export class Ships {
         const range = length(at.x - bodies.x[b]!, at.y - bodies.y[b]!);
         // On the run out of a pass or back in, its guns wait for its mains.
         const near = this.running[i] === 1 ? 0 : range > maxRange && maxRange > 0 ? maxRange / range : 1;
-        const burn = approach.burnWeight * gain;
+        // Worth less the further into its band's fade it is: the last of the
+        // closing there is no reason to take its guns off.
+        const burn = approach.burnWeight * gain * this.fightFade;
         const hold = approach.rangeHold * near;
         // Committed to stopping on its mains: it holds them against its way in
         // whatever the score, since its approach was planned on them.
@@ -4882,6 +4887,7 @@ export class Ships {
                 // that way relative to the other.
                 const sense = outside > 0 ? 1 : -1;
                 const share = sense > 0 ? edgeFade(range - maxRange, maxRange, fade) : edgeFade(minRange - range, minRange, fade);
+                if (fighting) this.fightFade = share;
                 const ux = (sense * dx) / range;
                 const uy = (sense * dy) / range;
                 const making = (bodies.vx[b]! - vx) * ux + (bodies.vy[b]! - vy) * uy;
@@ -4904,6 +4910,7 @@ export class Ships {
                 // and is held to it: a curve planned on them is one it cannot stop on
                 // otherwise.
                 if (fighting) {
+                    const onRetros = stopping;
                     const mains = this.mainsBrake(bodies, i, b, retro);
                     // Turned away and back again: it fights facing the other way. Only
                     // when that gets it there sooner, turns and all: on a short run in a
@@ -4916,11 +4923,14 @@ export class Ships {
                     if (sooner) stopping = turned;
                     // Already turned onto them: planned on them, with no turn to allow for.
                     if (wasOnMains && mains > 0) stopping = max(stopping, stoppingSpeed(mains, gap, response));
-                    // Once on it, held to it until it has stopped closing.
+                    // Once on it, held to it until it has stopped closing, or in the fade,
+                    // where it is asked for a crawl rather than a stop, until its retros
+                    // could stop it with its guns on.
                     // On the curve: going as fast as it can stop from on its mains, so it
                     // has to turn and start now.
                     const onCurve = sooner && turned < approachSpeed && making >= turned;
-                    this.brakingOnMains[i] = sense > 0 && making > 0 && (onCurve || wasOnMains) ? 1 : 0;
+                    const done = share < 1 ? onRetros : 0;
+                    this.brakingOnMains[i] = sense > 0 && making > done && (onCurve || wasOnMains) ? 1 : 0;
                 }
                 // Eased in across the fade, so it settles where this balances
                 // whatever else it wants rather than bouncing off the edge.
@@ -5336,10 +5346,14 @@ export class Ships {
             // Soon is when they touch, if they will: the closest the middles come is
             // far later than that for anything large.
             let when = miss < touching && speedSq > 0 ? max(0, closest - sqrt((touching * touching - miss * miss) / speedSq)) : closest;
-            // Already too close, and drawing closer too slowly to matter within the
-            // look-ahead: answered as it stands now, or a pair drifting together at
-            // a crawl, or at rest, would never be kept apart at all.
-            if (when > approach.avoidHorizon && length(dx, dy) < touching + room) {
+            // Its charge, which covering pulls it towards, is kept clear of with a
+            // soft edge, so the two settle where they balance; anything else is
+            // dodged flat out, since nothing pulls it back.
+            const soft = t === covering;
+            // Its charge already too close, and drawing closer too slowly to matter
+            // within the look-ahead: answered as it stands now, or a pair drifting
+            // together at a crawl, or at rest, would never be kept apart at all.
+            if (soft && when > approach.avoidHorizon && length(dx, dy) < touching + room) {
                 closest = 0;
                 when = 0;
                 missX = dx;
@@ -5380,14 +5394,13 @@ export class Ships {
                 this.dodgeWhen = when;
                 this.dodgeRock = rock;
             }
-            // Opening at a speed that grows with how deep inside the clearance it
-            // is, less what it is opening at already: a soft edge, so a pair that
-            // is drawing apart eases off as it leaves rather than flying apart
-            // flat out. A rock is dodged in full, since it will not move.
+            // From its charge, opening at a speed that grows with how deep inside
+            // the clearance it is, less what it is opening at already, so a pair
+            // drawing apart eases off as it leaves rather than flying apart flat out.
             const ds = approach.dodgeSpeed;
             const opening = -(rvx * awayX + rvy * awayY);
             let dodge: number;
-            if (rock) dodge = ds;
+            if (!soft) dodge = ds;
             else if (closest > 0) dodge = clamp(ds * depth - opening, 0, ds);
             else {
                 // Not closing, so nothing to dodge in time for: it opens no faster
