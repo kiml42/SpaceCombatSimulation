@@ -149,6 +149,21 @@ describe("the Pixi hull layer", () => {
         low.forEach((x, i) => expect(high[i]! - flat[i]!).toBeCloseTo((x - flat[i]!) * BUILDER_LIGHT.slant!, 6));
     });
 
+    it("casts each capital barrel's shadow on the thin hull, moved away from the light by a thick module's height", () => {
+        const layer = drawn(layerOf());
+        let barrels = 0;
+        for (const ship of ships) {
+            const design = ship.currentStructure;
+            for (let t = 0; t < design.turrets.length; t++) {
+                const module = design.turrets[t]!.module;
+                if (ship.drawn?.[module] === false || isFighterModule(design, module)) continue;
+                barrels += design.turrets[t]!.gun.barrelCount;
+            }
+        }
+        expect(barrels).toBeGreaterThan(0);
+        expect(layer.thickShadows.strokes).toBe(barrels);
+    });
+
     it("casts a block's shadow as its footprint swept away from the light", () => {
         const shadow = blockShadow([0, 0, 1, 0, 1, 1, 0, 1], 1, -1);
         let area = 0;
