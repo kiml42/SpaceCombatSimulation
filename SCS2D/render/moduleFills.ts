@@ -26,7 +26,9 @@ const SLIPWAY_RAIL_SHARE = 0.12;
 const SLIPWAY_FEED_SHARE = 0.25;
 
 /** How much of a port's length its collar is drawn as. */
-const PORT_COLLAR_SHARE = 0.3;
+export const PORT_COLLAR_SHARE = 0.3;
+/** A port's collar's width as a share of its block's. */
+export const PORT_COLLAR_WIDTH = 0.7;
 
 /** A module that has taken everything it can: still there, no longer anything. */
 export const WRECKAGE = "#3c4048";
@@ -126,7 +128,7 @@ export function moduleFills(spec: ModuleSpec, colour: string, colours: Palette, 
         // A coupling block with a collar standing proud of its outward face.
         const collar = spec.length * PORT_COLLAR_SHARE;
         box(-l, -w, l - collar, w);
-        box(l - collar, -w * 0.7, l, w * 0.7);
+        box(l - collar, -w * PORT_COLLAR_WIDTH, l, w * PORT_COLLAR_WIDTH);
     } else if (spec.kind === "slipway") {
         // A cradle in the hull's colour, open at the face a ship comes out of,
         // between rails along its sides and the feed block aft.
