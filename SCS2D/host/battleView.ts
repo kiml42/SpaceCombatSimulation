@@ -38,6 +38,7 @@ import type { Command, Held, Logged, Order } from "../scenarios/commands.js";
 import type { Battle } from "../scenarios/types.js";
 import { Rewind } from "../scenarios/rewind.js";
 import { viewGestures } from "./viewGestures.js";
+import { DEFAULT_LIGHT } from "../render/light.js";
 import { pixiUnder, type PixiView } from "../render/pixiView.js";
 import { loadRenderer, loadView, saveRenderer, saveView, type Renderer, type ViewSettings } from "./viewSettings.js";
 
@@ -712,7 +713,22 @@ export function battleView(
         }
         // Pixi's context draws as a canvas does (render/pixiCanvas.ts), so the same code paints either.
         const into = pixi === null ? ctx : (pixi as unknown as CanvasRenderingContext2D);
-        draw(into, view, camera, canvas.width, canvas.height, flashes, arcs, teamShots, selected, also, marked, pixi !== null);
+        draw(
+            into,
+            view,
+            camera,
+            canvas.width,
+            canvas.height,
+            flashes,
+            arcs,
+            teamShots,
+            selected,
+            also,
+            marked,
+            pixi !== null,
+            // Lit only where it is lit at all, in WebGL.
+            pixi === null ? undefined : (battle.light ?? DEFAULT_LIGHT),
+        );
         if (tiles !== null) {
             drawFleetStrips(into, view, tiles, selected, ratio, flashes, arcs, teamShots, stripCache, canvas.width, canvas.height);
             // Its tiles are drawn in 2D, and Pixi shows them as a texture, which has to be told it has changed.

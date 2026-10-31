@@ -39,6 +39,8 @@ import {
 } from "../sim/index.js";
 import { BACKGROUND, GRID, WELL, WELL_ARM_PX, WELL_PULLS } from "./backdrop.js";
 import { barrelLines, MIN_BARREL_PX } from "./barrels.js";
+import type { Light } from "./light.js";
+import { cylinderShade, domeShade, lightSlope } from "./shading.js";
 import { gridStep, type Camera } from "./camera.js";
 import { fillAlpha, fillColour, isFighterModule, moduleFills, padMark, type Fill } from "./moduleFills.js";
 import {
@@ -419,6 +421,8 @@ function drawShip(
     fighters: boolean,
     /** Whether the modules' fills are drawn already, underneath. */
     filled = false,
+    /** The light its rounded parts are shaded by; flat without one. */
+    light?: Light,
 ): void {
     const design = ship.currentStructure;
     const whole = design.fighter === fighters;
@@ -480,6 +484,7 @@ function drawShip(
                 ctx.fill();
             }
         }
+        if (spec.kind === "engine" && light !== undefined) shadeBells(ctx, spec, ship.angle + m.angle, light);
         if (spec.kind === "pad") {
             // A deck in the hull's colour with a landing square marked on it, part
             // of the deck's fill, so where Pixi fills it the square is shadowed too.
@@ -810,6 +815,7 @@ function drawShip(
             ctx.beginPath();
             ctx.arc(mx, my, face * 0.5, 0, TAU);
             ctx.fill();
+            if (light !== undefined) shadeDome(ctx, mx, my, face * 0.5, light);
         } else if (beamLenses) {
             // Each lens on a disc of its own that it turns on, as wide as the lens
             // sweeps, and a stalk back from it to the block's face.
@@ -852,6 +858,8 @@ function drawShip(
         });
         ctx.lineWidth = legibleWidth(physicalWidth, MIN_BARREL_PX, metresToPx);
         ctx.stroke();
+        // A turret's barrels, as tubes; a hull mount's run back into its block, under a clip.
+        if (light !== undefined && hull === null) shadeBarrels(ctx, ship, t, ctx.lineWidth, light);
         if (gun.braceLength > 0) drawBracing(ctx, gun, physicalWidth, mx, my, dirX, dirY);
         if (hidden) ctx.restore();
         if (hull !== null && !beamLenses) {
@@ -1209,6 +1217,53 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
     });
 }
 
+/** An engine's bells shaded as rounded, in its module's frame, the module turned `angle` in the world. */
+function shadeBells(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: number, light: Light): void {
+    const engine = engineGeometry(spec);
+    const l = spec.length / 2;
+    const mouth = l - engine.machineryLength;
+    const exit = engine.exitWidth / 2;
+    if (!(exit > 0) || !(mouth + l > 0)) return;
+    const { across, up } = lightSlope(light);
+    // The light across the bell, toward its +y side.
+    const image = cylinderShade(across * sin(light.from - angle), up, engine.throatWidth / engine.exitWidth);
+    if (image === null) return;
+    for (let n = 0; n < engine.nozzles; n++) {
+        ctx.drawImage(image, -l, nozzleOffset(engine, n) - exit, mouth + l, 2 * exit);
+    }
+}
+
+/** A turret's dome shaded as rounded, at `x`, `y` in the world. */
+function shadeDome(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, light: Light): void {
+    const { across, up } = lightSlope(light);
+    const image = domeShade(across, up);
+    if (image === null) return;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(light.from);
+    ctx.drawImage(image, -radius, -radius, 2 * radius, 2 * radius);
+    ctx.restore();
+}
+
+/** A turret's barrels shaded as tubes `width` wide, in the world. */
+function shadeBarrels(ctx: CanvasRenderingContext2D, ship: ShipView, t: number, width: number, light: Light): void {
+    const { across, up } = lightSlope(light);
+    barrelLines(ship, t, (x0, y0, x1, y1) => {
+        const dx = x1 - x0;
+        const dy = y1 - y0;
+        const span = length(dx, dy);
+        if (!(span > 0)) return;
+        const angle = math.atan2(dy, dx);
+        const image = cylinderShade(across * sin(light.from - angle), up);
+        if (image === null) return;
+        ctx.save();
+        ctx.translate(x0, y0);
+        ctx.rotate(angle);
+        ctx.drawImage(image, 0, -width / 2, span, width);
+        ctx.restore();
+    });
+}
+
 /**
  * The opacity of one of `split` flames laid over each other that together
  * look like one flame of `alpha`, so a thick engine's two flames are the
@@ -1512,8 +1567,10 @@ export function draw(
      * wells and filled the capital ships' modules, which are then left clear.
      */
     underneath = false,
+    /** The light rounded parts are shaded by; flat without one. */
+    light?: Light,
 ): void {
-    drawScene(ctx, snapshot, camera, 0, 0, widthPx, heightPx, flashes, arcs, teamShots, selected, alsoSelected, marked, underneath);
+    drawScene(ctx, snapshot, camera, 0, 0, widthPx, heightPx, flashes, arcs, teamShots, selected, alsoSelected, marked, underneath, light);
 }
 
 /** Modules of one ship to outline: the mounts a doctrine is being told to. */
@@ -1591,6 +1648,7 @@ function drawScene(
     alsoSelected: readonly number[] = [],
     marked: Marked | null = null,
     underneath = false,
+    light?: Light,
 ): void {
     ctx.setTransform(1, 0, 0, 1, left, top);
     if (!underneath) {
@@ -1629,7 +1687,7 @@ function drawScene(
     // landed fighter may be painted over what is on top.
     for (let i = 0; i < snapshot.shipCount; i++) {
         const ship = snapshot.ships[i]!;
-        if (shown(ship)) drawShip(ctx, ship, camera.scale, arcsFor(ship.body, selected, arcs), false, underneath);
+        if (shown(ship)) drawShip(ctx, ship, camera.scale, arcsFor(ship.body, selected, arcs), false, underneath, light);
     }
     for (let i = 0; i < snapshot.shipCount; i++) {
         const ship = snapshot.ships[i]!;
@@ -1637,7 +1695,7 @@ function drawScene(
     }
     for (let i = 0; i < snapshot.shipCount; i++) {
         const ship = snapshot.ships[i]!;
-        if (shown(ship)) drawShip(ctx, ship, camera.scale, arcsFor(ship.body, selected, arcs), true);
+        if (shown(ship)) drawShip(ctx, ship, camera.scale, arcsFor(ship.body, selected, arcs), true, false, light);
     }
 
     // Icons in a pass of their own, after every hull: an icon stands for the

@@ -370,7 +370,21 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
         }
         // Pixi's context draws as a canvas does (render/pixiCanvas.ts), so the same code paints either.
         const into = pixi === null ? ctx : (pixi as unknown as CanvasRenderingContext2D);
-        draw(into, snapshot, camera, canvas.width, canvas.height, demonstration.flashes, arcs, false, -1, [], null, pixi !== null);
+        draw(
+            into,
+            snapshot,
+            camera,
+            canvas.width,
+            canvas.height,
+            demonstration.flashes,
+            arcs,
+            false,
+            -1,
+            [],
+            null,
+            pixi !== null,
+            pixi === null ? undefined : BUILDER_LIGHT,
+        );
         drawOverlay(
             into,
             {
