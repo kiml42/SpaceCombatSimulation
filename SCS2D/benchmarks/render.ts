@@ -7,7 +7,7 @@
  *   pnpm exec tsx benchmarks/render.ts [--scenes "Duel,Star Wars"] [--renderers webgl,canvas2d]
  *       [--seconds 8] [--at 5] [--warmup 3] [--size 1600x900] [--dpr 1] [--paused] [--vsync]
  *       [--strips shown|hidden] [--screenshots] [--profile]
- *       [--browser chromium|chrome|msedge] [--executable path] [--headless] [--build] [--label name]
+ *       [--browser chromium|chrome|msedge|firefox] [--executable path] [--headless] [--build] [--label name]
  *
  * Each scene runs on the Battle route as a player sees it, and two things are
  * timed each frame: the gap between frames, and the main thread's time in the
@@ -22,7 +22,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs, promisify } from "node:util";
-import { chromium, type Page } from "playwright";
+import { chromium, firefox, type Page } from "playwright";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
@@ -87,16 +87,28 @@ if (values.build || !existsSync(appPage)) {
     else await promisify(execFile)("npx", ["vite", "build"], { cwd: root });
 }
 
-const browser = await chromium.launch({
-    // A window, so the browser draws on the machine's own GPU; headless usually draws in software.
-    headless: values.headless,
-    ...(values.executable !== undefined
-        ? { executablePath: values.executable }
-        : values.browser === "chromium"
-          ? {}
-          : { channel: values.browser }),
-    args: values.vsync ? [] : ["--disable-gpu-vsync", "--disable-frame-rate-limit"],
-});
+const inFirefox = values.browser === "firefox";
+if (inFirefox && values.profile) throw new Error("--profile needs Chromium's DevTools protocol: not in Firefox");
+
+// A window, so the browser draws on the machine's own GPU; headless usually draws in software.
+const browser = inFirefox
+    ? // The Firefox installed on the machine, driven over WebDriver BiDi. A frame rate of 0 is as fast as it can draw;
+      // timers are otherwise rounded to the millisecond, too coarse for a frame's work.
+      await firefox.launch({
+          channel: "moz-firefox",
+          headless: values.headless,
+          ...(values.executable !== undefined ? { executablePath: values.executable } : {}),
+          firefoxUserPrefs: { "privacy.reduceTimerPrecision": false, ...(values.vsync ? {} : { "layout.frame_rate": 0 }) },
+      })
+    : await chromium.launch({
+          headless: values.headless,
+          ...(values.executable !== undefined
+              ? { executablePath: values.executable }
+              : values.browser === "chromium"
+                ? {}
+                : { channel: values.browser }),
+          args: values.vsync ? [] : ["--disable-gpu-vsync", "--disable-frame-rate-limit"],
+      });
 
 /**
  * Times every animation frame callback the page asks for, from before the app
@@ -209,7 +221,13 @@ let gpu = "unknown";
 try {
     for (const renderer of renderers) {
         const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: Number(values.dpr) });
-        await context.addInitScript((r) => window.localStorage.setItem("scs2d.draw", r), renderer);
+        await context.addInitScript((r) => {
+            try {
+                window.localStorage.setItem("scs2d.draw", r);
+            } catch {
+                // Firefox runs this in about:blank too, whose storage is refused; the app's page is the one that matters.
+            }
+        }, renderer);
         await context.addInitScript({ content: INSTRUMENT });
         const page = await context.newPage();
         page.on("pageerror", (error) => console.error(`page error: ${error.message}`));
@@ -225,7 +243,8 @@ try {
         // WebGL starts a moment after the page does.
         await page.waitForTimeout(1000);
         const drawing = (await draw.textContent()) ?? "";
-        if (renderer === "webgl" && drawing !== "Draw: WebGL") console.warn(`asked for WebGL, but the view says "${drawing}"`);
+        const expected = renderer === "webgl" ? "Draw: WebGL" : "Draw: 2D";
+        if (drawing !== expected) console.warn(`asked for ${renderer}, but the view says "${drawing}"`);
         const fleets = page.getByRole("button", { name: /^Fleets:/ });
         if ((await fleets.textContent()) !== `Fleets: ${values.strips}`) await fleets.click();
         for (const scene of scenes) {
