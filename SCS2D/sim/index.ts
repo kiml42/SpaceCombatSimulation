@@ -316,6 +316,7 @@ export {
     placementAt,
     samePlacement,
     subDesign,
+    originOf,
     inReachDesign,
     weldDesigns,
     budgetMass,
