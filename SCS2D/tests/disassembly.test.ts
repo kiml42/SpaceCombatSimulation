@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compileBlueprint, DAMAGE_ENERGY_PER_KG, ROBOT_LOAD, type ShipDesign } from "../sim/index.js";
+import { compileBlueprint, DAMAGE_ENERGY_PER_KG, ROBOT_LOAD, type Blueprint, type ShipDesign } from "../sim/index.js";
 import type { Robot } from "../sim/robots.js";
 import { makeBattle } from "../scenarios/battle.js";
 import { CORVETTE } from "../scenarios/blueprints.js";
@@ -151,5 +151,41 @@ describe("taking wreckage apart", () => {
         expect(whole).toBe(OWN + corvette.modules.length);
         runFor(run, 120);
         expect(modules(run)).toBe(whole);
+    });
+
+    it("welds on a loose piece lying against its hull, torn or not, and takes it apart", { timeout: 60_000 }, () => {
+        const line: Blueprint = {
+            name: "Line",
+            modules: [
+                { kind: "core", x: 0, y: 0, length: 3, width: 3 },
+                { kind: "structure", x: 4, y: 0, length: 5, width: 3 },
+                { kind: "robotBay", x: 8.5, y: 0, length: 4, width: 4 },
+                { kind: "hold", x: 8.5, y: 3.5, length: 4, width: 3, fill: 0.2 },
+                { kind: "battery", x: 8.5, y: -3.5, length: 4, width: 3 },
+            ],
+        };
+        // Its core shot out, and nothing else of it touched.
+        const plate: Blueprint = {
+            name: "Plate",
+            modules: [
+                { kind: "structure", x: 0, y: 0, length: 5, width: 3 },
+                { kind: "core", x: 0, y: -3, length: 3, width: 3 },
+            ],
+        };
+        const run = makeBattle({ seed: 1 }, (ships, world) => {
+            const a = ships.spawn(world, { design: compileBlueprint(line), x: 0, y: 0, angle: 0 });
+            const b = ships.spawn(world, { design: compileBlueprint(plate), x: 3.5, y: -3.2, angle: 0, vy: 0.3, team: 1 });
+            const core = compileBlueprint(plate).modules[1]!;
+            ships.damage.absorb(world.bodies.indexOf(ships.body(b)), 1, core.stats.hitPoints * DAMAGE_ENERGY_PER_KG);
+            return { a, b };
+        });
+        const own = compileBlueprint(line).modules.length;
+        const before = held(run);
+        runFor(run, 10, () => modules(run) > own);
+        expect(modules(run)).toBe(own + 2);
+        runFor(run, 600, () => modules(run) === own);
+        expect(modules(run)).toBe(own);
+        expect(run.ships.count).toBe(1);
+        expect(run.ships.metal.pieceHeld(body(run), 0)).toBeGreaterThan(before);
     });
 });

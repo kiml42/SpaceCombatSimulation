@@ -5754,12 +5754,17 @@ export class Ships {
                 this.rockTouch(i, closing, world.tick);
                 this.rockTouch(j, closing, world.tick);
             }
-            if (stab !== Stab.A && stab !== Stab.B && (!(closing > 0) || closing > CLAW_SPEED_MAX)) continue;
+            // Robots weld on loose wreckage lying slowly against their hull, to take it apart.
+            const salvager = closing > WELD_SPEED ? -1 : this.salvages(a, i, b, j) ? a : this.salvages(b, j, a, i) ? b : -1;
+            const salvage = salvager >= 0;
+            if (stab !== Stab.A && stab !== Stab.B && !salvage && (!(closing > 0) || closing > CLAW_SPEED_MAX)) continue;
             if (i < 0 || j < 0 || joined?.has(i) === true || joined?.has(j) === true) continue;
             if (this.partedAt[i]! > settled || this.partedAt[j]! > settled) continue;
             if (this.damage.isProtected(a) || this.damage.isProtected(b)) continue;
-            // Nothing joins a hull parked on a pad: it would lose its pad.
-            if (this.isParkedBody(a) || this.isParkedBody(b)) continue;
+            // Nothing joins a hull parked on a pad: it would lose its pad. One moored
+            // keeps its body and its grip, so may weld on what it salvages.
+            if (this.isParkedBody(a) && !(a === salvager && this.mooredClaw[i]! >= 0)) continue;
+            if (this.isParkedBody(b) && !(b === salvager && this.mooredClaw[j]! >= 0)) continue;
             const ma = contacts.moduleA[k]!;
             const mb = contacts.moduleB[k]!;
             // A claw closes on what its bow meets, ragged or not.
@@ -5779,7 +5784,7 @@ export class Ships {
             if (rubble && max(this.rockMet[i]!, this.rockMet[j]!) > WELD_SPEED) continue;
             // Nothing else but a claw holds on to an asteroid nothing moves.
             if ((pinnedA || pinnedB) && claw === null && !rubble) continue;
-            if (claw === null && !port && !rubble) {
+            if (claw === null && !port && !rubble && !salvage) {
                 if (closing > WELD_SPEED) continue;
                 if (!this.damage.ragged(a, ma) && !this.damage.ragged(b, mb)) continue;
                 const x = contacts.x[k]!;
@@ -5804,9 +5809,9 @@ export class Ships {
                     continue;
                 }
             }
-            // A pinned major keeps its body and its rail; otherwise a flown hull
-            // keeps its body; two wrecks keep the older's slot.
-            const swap = pinnedB || (!pinnedA && this.derelict[i] === 1 && this.derelict[j] === 0);
+            // A salvager keeps its body; a pinned major its body and its rail; otherwise
+            // a flown hull keeps its body; two wrecks keep the older's slot.
+            const swap = salvage ? salvager === b : pinnedB || (!pinnedA && this.derelict[i] === 1 && this.derelict[j] === 0);
             // Whatever is moored to either rock stays where it is on the one they make.
             if (rubble) this.holdMoorings(bodies, i, j);
             const dock: DockAt | null = port
@@ -5825,6 +5830,15 @@ export class Ships {
             welded++;
         }
         return welded;
+    }
+
+    /**
+     * Whether ship `i`, flying body `a`, would weld on ship `j`, flying body `b`:
+     * `i` under control with robots aboard, `j` neither rock nor anyone's to fly or mend.
+     */
+    private salvages(a: number, i: number, b: number, j: number): boolean {
+        if (i < 0 || j < 0 || !this.hasControl(i) || this.hasControl(j) || this.isAsteroid(i) || this.isAsteroid(j)) return false;
+        return this.hasRobots(a, i) && !this.hasRobots(b, j);
     }
 
     /** Note asteroid `i` touching rock at `closing` m/s at `tick`: the fastest of a run of touching steps, afresh after a step apart. */

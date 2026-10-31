@@ -1809,6 +1809,9 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   one body, momentum and angular momentum kept, with their designs joined by a **seam** (`ShipDesign.seams`)
   a `HOOK_SHARE` of the narrower face wide. A seam tears like any weld, but carries no command. This makes
   wreckage into larger chunks worth chasing down and harvesting, instead of lots of tiny fragments.
+  A ship under control with robots aboard also welds on any loose wreck touching it at under `WELD_SPEED`,
+  torn or not and closing or not, keeping its own body (moored too, though not parked on a pad), so its robots
+  can take it apart rather than leave it rattling against the hull.
   **Command** runs from a working core through its hull's welds, and stops at a ragged module (a core
   excepted), so a ship hooked to debris cannot use a live engine or gun on it — nor one of its own beyond a
   torn spine. An uncommanded module thrusts and fires at nothing, and scoring caps a ship's hull at what it
