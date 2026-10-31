@@ -70,7 +70,8 @@ host/       the DOM engines the routes mount and leave alone — the battle view
             on the wall clock, the timeline, the fleet pictures — and the
             answer worker
 scenarios/  the battles, and the blueprints they fly, under blueprints/
-            (battle.ts holds the assembly and the step order they share)
+            (battle.ts holds the assembly and the step order they share);
+            README.md there says which scene to open to see or test what
 evolution/  breeding and running a generation; imports sim/, never the host,
             and is bound by the same determinism rules
 benchmarks/ measuring tools, not part of the game: nothing imports from here
