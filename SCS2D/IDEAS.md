@@ -98,8 +98,7 @@ flying round asteroids in its way rather than relying on keeping clear, which lo
   speed. Slower to grip, but the fast part of the trip never ends at a rock.
 - Abort and go round again: if the approach is out of tolerance close in (too fast, too far across, still turning),
   back off along the stand-off path and try again, rather than pressing on into a bad contact.
-- Aim at a point on the surface, not the centre: the wedge facing it, or the richest wedge of the vein in reach.
-  An asteroid's middle is not where the claw meets it, and a spinning one's surface is moving.
+- Grip the richest wedge of the vein in reach, not just the nearest face wide enough for the jaws.
 - Rubble that gives: rock is loosely bound, so a slow knock could crumble the wedge it hits (damage spent on the
   rock) rather than crush the ship's engine. Makes grabbing forgiving without making ships tougher.
 
