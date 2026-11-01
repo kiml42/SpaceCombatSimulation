@@ -27,6 +27,7 @@ import { DEFAULT_FLEET_LIMITS, type FleetMutationLimits } from "./fleetMutate.js
 import { blank, breed, fitness, Generation, offspring, type Individual } from "./generation.js";
 import type { CoevolutionConfig } from "./coevolution.js";
 import { withFleetFighters } from "../sim/fleetHangar.js";
+import { firstLivery, liveryRng } from "../sim/liveryDrift.js";
 
 /**
  * A run: generations of designs, each fought in groups and bred from what
@@ -396,9 +397,17 @@ export type OnGeneration = (record: GenerationRecord) => void;
  */
 export function seedPopulation(founders: readonly Entrant[], rng: Rng, config: RunConfig, firstId = 0): Generation {
     const fleets = isFleetRun(founders, config);
-    const entrants = fleets ? founders.map((founder) => (isFleet(founder) ? founder : shipFleet(founder))) : founders;
     const individuals: Individual[] = [];
     let id = firstId;
+    // Each founder painted, if it is not, unlike those before it: drawn from the run's generator, which it does not move.
+    const painted: string[] = [];
+    const entrants = (fleets ? founders.map((founder) => (isFleet(founder) ? founder : shipFleet(founder))) : founders).map(
+        (founder, k) => {
+            const livery = founder.livery ?? firstLivery(liveryRng(rng, firstId + k), painted);
+            painted.push(livery.base);
+            return founder.livery === undefined ? { ...founder, livery } : founder;
+        },
+    );
     for (const founder of entrants) {
         if (individuals.length >= config.population) break;
         individuals.push(blank(id++, founder, -1, []));

@@ -171,9 +171,13 @@ describe("a run", { timeout: 120_000 }, () => {
         const seeded = seedPopulation([CORVETTE, DINKY], rng, { ...DEFAULT_RUN, population: 5, fleet: { maxShips: 1 } });
         expect(seeded.individuals.length).toEqual(5);
         // The founders go in as they are, so a run always contains what it was
-        // asked about rather than only things bred from it.
-        expect(seeded.individuals[0]!.entrant).toBe(CORVETTE);
-        expect(seeded.individuals[1]!.entrant).toBe(DINKY);
+        // asked about rather than only things bred from it: but painted, being unpainted.
+        const { livery: corvette, ...first } = seeded.individuals[0]!.entrant;
+        const { livery: dinky, ...second } = seeded.individuals[1]!.entrant;
+        expect(first).toEqual(CORVETTE);
+        expect(second).toEqual(DINKY);
+        expect(corvette).toBeDefined();
+        expect(dinky?.base).not.toBe(corvette?.base);
         for (const individual of seeded.individuals) {
             expect(blueprintProblem(individual.entrant as Blueprint)).toBeNull();
         }

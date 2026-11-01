@@ -15,7 +15,7 @@ import type { BattleView } from "~/host/battleView";
 import { designOf, LiveRun, type RunControl } from "~/host/evolutionRun";
 import { BATTLE_KEYS } from "~/host/keyHelp";
 import type { ViewSettings } from "~/host/viewSettings";
-import { teamColour } from "~/render/canvas2d";
+import { sidesOf, teamColour } from "~/render/teams";
 import { serialiseBlueprint, serialiseFleet, type Blueprint, type Fleet } from "~/sim/index";
 import { Button, ToggleButton } from "~/ui/buttons/Button";
 import { KeyHelp } from "~/ui/dialogs/KeyHelp";
@@ -935,7 +935,10 @@ export function EvolutionPage() {
                                                     // In the colour its ships are drawn in: its own, or its side's.
                                                     const { slots, owners, ships: fleet } = scored.battle;
                                                     const k = owners.indexOf(i);
-                                                    const colour = teamColour(k < 0 ? i : fleet.teamOf(slots[k]!));
+                                                    const colour = teamColour(
+                                                        k < 0 ? i : fleet.teamOf(slots[k]!),
+                                                        sidesOf(scored.battle.liveries),
+                                                    );
                                                     const parts = [
                                                         score.survival,
                                                         score.functional,

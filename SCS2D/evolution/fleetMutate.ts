@@ -16,6 +16,7 @@ import {
     isInstance,
     type Blueprint,
     type Fleet,
+    type Livery,
     type FleetEntry,
     type FleetHull,
     type ModuleSpec,
@@ -30,6 +31,7 @@ import {
 } from "../sim/index.js";
 import { atan2, cos, max, min, PI, round, sin, sqrt } from "../sim/math.js";
 import { byContent } from "../sim/byContent.js";
+import { driftLivery, liveryRng, STOCK_BASES } from "../sim/liveryDrift.js";
 import { BARE_CORE } from "../scenarios/blueprints.js";
 import { DEFAULT_LIMITS, drift, mutate, scaledBlueprint, type MutationLimits } from "./mutate.js";
 import { fleetBlueprint, hangarClashes, padReached, renamePadFighter, withFleetFighters } from "../sim/fleetHangar.js";
@@ -155,6 +157,7 @@ export function mutateFleet(parent: Fleet, rng: Rng, limits?: Partial<FleetMutat
     const draft = clone(parent);
     const edits: string[] = [];
     let attempts = 0;
+    const paint = liveryRng(rng, 0);
 
     for (const name of bredDesigns(draft)) {
         if (!rng.chance(bounds.design)) continue;
@@ -189,7 +192,13 @@ export function mutateFleet(parent: Fleet, rng: Rng, limits?: Partial<FleetMutat
     // After a ship is added, so it is spread with the rest.
     edits.push(...move(draft, rng, bounds, new Layout()));
     if (edits.length === 0) return { fleet: parent, edits: [], attempts };
+    if (parent.livery !== undefined) draft.livery = driftLivery(parent.livery, paint, awayFrom(bounds.rivals));
     return { fleet: draft, edits, attempts };
+}
+
+/** What a child's livery leans away from: its rivals' colours, as they are drawn. */
+export function awayFrom(rivals: readonly { readonly livery?: Livery }[]): string[] {
+    return rivals.map((rival) => rival.livery?.base ?? STOCK_BASES[0]);
 }
 
 /**

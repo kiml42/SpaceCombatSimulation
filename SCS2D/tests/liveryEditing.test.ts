@@ -5,7 +5,17 @@ import { DINKY, GUNSHIP } from "../scenarios/blueprints.js";
 import { addShip, differs, emptyFleet } from "../editor/fleetEdit.js";
 import { backToFleet, wearingFleets } from "../editor/livery.js";
 
-const GOLD: Livery = { base: "#d4a017", highlight: "#202020", pattern: "stripes", size: 0.2, spacing: 2.5, offset: 0, angle: 0 };
+const GOLD: Livery = {
+    base: "#d4a017",
+    highlight: "#202020",
+    pattern: "stripes",
+    size: 0.2,
+    spacing: 2.5,
+    offset: 0,
+    angle: 0,
+    chevron: 0.5,
+    points: 0,
+};
 const TEAL: Livery = { ...GOLD, base: "#2a8a85" };
 
 describe("a livery edited in the ship editor opened from a fleet", () => {
