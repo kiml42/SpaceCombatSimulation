@@ -1507,9 +1507,9 @@
         {
           "id": 2,
           "kind": "tank",
-          "x": 182,
+          "x": 169.5,
           "y": -0.000001715,
-          "length": 170,
+          "length": 195,
           "width": 60.003955601,
           "reinforcement": 3
         },
@@ -1565,14 +1565,6 @@
           "length": 10,
           "width": 60.005,
           "computing": 0.25
-        },
-        {
-          "id": 30,
-          "kind": "robotBay",
-          "x": 84.5,
-          "y": 0,
-          "length": 25,
-          "width": 60
         }
       ]
     }
