@@ -17,10 +17,10 @@ import { patternColour, patternTransform, TILE } from "../render/livery.js";
 import { fleetBattle } from "../scenarios/fleetBattle.js";
 import { colourDistance, colourName, liveryPalette, sidesOf, STOCK, TOO_ALIKE, teamColour, teamName } from "../render/teams.js";
 
-const LIVERY = { base: "#d4a017", highlight: "#202020", pattern: "stripes", size: 0.2, spacing: 0.5, offset: 0.25, angle: 30 };
+const LIVERY = { base: "#d4a017", highlight: "#202020", pattern: "stripes", size: 0.2, spacing: 2.5, offset: 0.25, angle: 30 };
 
 function livery(base: string): Livery {
-    return { base, highlight: "#ffffff", pattern: "none", size: 0.1, spacing: 0.3, offset: 0, angle: 0 };
+    return { base, highlight: "#ffffff", pattern: "none", size: 0.1, spacing: 3, offset: 0, angle: 0 };
 }
 
 const fleetFile = (extra: Record<string, unknown>): Record<string, unknown> => ({
@@ -50,6 +50,8 @@ describe("a livery in a file", () => {
         expect(fleetFileProblem(fleetFile({ livery: { base: "red", highlight: "#000000" } }))).toMatch(/base must be a colour/);
         expect(fleetFileProblem(fleetFile({ livery: { ...LIVERY, pattern: "plaid" } }))).toMatch(/pattern must be one of/);
         expect(blueprintFileProblem({ ...serialiseBlueprint(GUNSHIP), livery: { ...LIVERY, size: 0 } })).toMatch(/size must be above zero/);
+        // A stripe as wide as its period would paint the whole hull.
+        expect(fleetFileProblem(fleetFile({ livery: { ...LIVERY, spacing: 1 } }))).toMatch(/spacing must be above one stripe width/);
     });
 
     it("is worn by a ship flying alone, through the fleet it is put in", () => {
@@ -110,11 +112,11 @@ describe("a livery's pattern", () => {
             highlight: "#f0c040",
             pattern: "stripes",
             size: 0.1,
-            spacing: 0.3,
+            spacing: 3,
             offset: 0.25,
             angle: 0.5,
         };
-        const period = livery.spacing * design.radius;
+        const period = livery.spacing * livery.size * design.radius;
         // A tile pixel's place in the design, worked out directly.
         const u = 13;
         const v = 41;

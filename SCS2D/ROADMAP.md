@@ -266,7 +266,8 @@ an entry is either still open or it is gone.
                pictures draw in it; a ship with none is still drawn grey in its editor.
             3. **The pattern and the parts' highlights — built.** Not a shader in the end but a texture:
                `render/livery.ts` makes one tile per pattern, share and colour, and `patternTransform`
-               lays it in the frame of the design a module was built in, so it runs on across modules
+               lays it in the frame of the design a module was built in, a period `spacing` stripe widths
+               across (always more than one, so the base shows between stripes), so it runs on across modules
                and stays put on a piece cut away. The hull layer fills each module's hull-coloured
                polygons a second time with it (one shared context per module of a design, rather than
                per spec, where a side has a pattern); fighters, drawn through the adapter, take it by
