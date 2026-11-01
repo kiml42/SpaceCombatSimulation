@@ -2,7 +2,7 @@ import { styled } from "@linaria/react";
 import { useRef } from "react";
 import { shipFleet } from "~/editor/handoff";
 import { useLibrary } from "~/features/storage/useLibrary";
-import { teamColour } from "~/render/teams";
+import { sidesOf, teamColour } from "~/render/teams";
 import { fleetWarnings, parseBlueprint, parseFleet, type Fleet } from "~/sim/index";
 import type { Slot } from "./customSetup";
 import { Button } from "~/ui/buttons/Button";
@@ -94,13 +94,14 @@ export function FleetSlots({ slots, onChange, onEdit, onProblem }: FleetSlotsPro
         if (notes.length > 0) onProblem(notes.join("\n"));
     };
 
+    const sides = sidesOf(slots.map((slot) => slot.fleet.livery));
     const fleetNames = names(fleets.list());
     const shipNames = names(ships.list());
     return (
         <section id="fleetSlots" aria-label="Fleets">
             {slots.map((slot, i) => (
                 <Row key={i} className="slot">
-                    <Swatch style={{ background: teamColour(i) }} />
+                    <Swatch style={{ background: teamColour(i, sides) }} />
                     <select aria-label={`Side ${i + 1}`} value={valueOf(slot.source)} onChange={(event) => choose(i, event.target.value)}>
                         {slot.source.kind === "other" && <option value="other:">{slot.source.label}</option>}
                         <optgroup label="Fleets">

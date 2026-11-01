@@ -1,5 +1,6 @@
 import { cos, normalizeAngle, PI, sin, TAU } from "./math.js";
 import type { Blueprint } from "./blueprint.js";
+import type { Livery } from "./livery.js";
 import type { UnreadKeys } from "./unread.js";
 
 /**
@@ -16,6 +17,8 @@ import type { UnreadKeys } from "./unread.js";
 export interface Fleet {
     name: string;
     notes?: string;
+    /** How every ship in it is painted, whatever their own designs say. Side colours where left out. */
+    livery?: Livery;
     /** By name. Every ship entry names one of these. */
     designs: Record<string, Blueprint>;
     groups?: Record<string, FleetGroup>;
@@ -106,7 +109,14 @@ export interface TrailStep {
 
 /** A fleet of one ship, named after it, for a design fought on its own. */
 export function shipFleet(blueprint: Blueprint): Fleet {
-    return { name: blueprint.name, designs: { [blueprint.name]: blueprint }, ships: [{ design: blueprint.name, x: 0, y: 0 }] };
+    const fleet: Fleet = {
+        name: blueprint.name,
+        designs: { [blueprint.name]: blueprint },
+        ships: [{ design: blueprint.name, x: 0, y: 0 }],
+    };
+    // Flying alone, it wears its own.
+    if (blueprint.livery !== undefined) fleet.livery = blueprint.livery;
+    return fleet;
 }
 
 export const MAX_GROUP_DEPTH = 8;

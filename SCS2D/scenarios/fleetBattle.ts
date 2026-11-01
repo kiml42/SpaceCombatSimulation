@@ -29,7 +29,7 @@ export function fleetBattle(
     fleets: readonly Fleet[],
     options: FleetBattleOptions,
 ): Battle & { readonly slots: readonly (readonly number[])[] } {
-    return makeBattle(options, (ships, world) => {
+    const battle = makeBattle(options, (ships, world) => {
         const radius = options.range / 2;
         const closing = options.closingSpeed ?? 0;
         const crossing = options.crossingSpeed ?? 0;
@@ -68,6 +68,7 @@ export function fleetBattle(
         }
         return { slots };
     });
+    return Object.assign(battle, { liveries: fleets.map((fleet) => fleet.livery) });
 }
 
 function foldAngle(a: number): number {

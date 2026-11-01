@@ -248,10 +248,15 @@ an entry is either still open or it is gone.
           first livery is drawn from the round's seed, far from the player's; each entrant of a
           single-ship run starts with a random one, drifting the same way.
         - **In four pull requests**, in this order:
-            1. **Data and flat colours**: `Livery` on `Fleet` and `Blueprint`, read and written in files;
-               the fleet-wins rule and `shipFleet`'s copy; side colours as the default; the fallback for
-               sides too alike; hull, trim, pivot, icons, strips and orders coloured from the base. No
-               pattern, so Draw: 2D keeps working.
+            1. **Data and flat colours — built.** `Livery` (`sim/livery.ts`) on `Fleet` and `Blueprint`,
+               read and written in files; `shipFleet` copies a lone ship's. A battle carries its fleets'
+               (`Battle.liveries`), which `sidesOf` in `render/teams.ts` resolves to each team's palette
+               and name, a side too like an earlier one (`TOO_ALIKE`, ΔE 30) taking the first stock
+               colours unlike them all. The battle view draws inside `withSides`, so the module-level
+               lookups (`shipColours`, `teamName`) answer for its sides and fall back to stock outside it;
+               the swatches on the custom battle, skirmish and timeline pass their sides explicitly. A side
+               is named by the nearest of a short list of named colours. The editors and fleet pictures
+               still draw undecided ships grey, until the panel.
             2. **The Livery panel** in both editors, the ship editor's edits going back to its fleet, the
                library's copy and the first-ship rule.
             3. **The pattern shader and the parts' highlights**, WebGL only: Draw: 2D and Pixi's Canvas2D

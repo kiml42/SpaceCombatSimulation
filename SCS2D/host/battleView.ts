@@ -39,6 +39,7 @@ import type { Battle } from "../scenarios/types.js";
 import { Rewind } from "../scenarios/rewind.js";
 import { viewGestures } from "./viewGestures.js";
 import { DEFAULT_LIGHT } from "../render/light.js";
+import { sidesOf, STOCK, withSides, type Sides } from "../render/teams.js";
 import { pixiUnder, type PixiView } from "../render/pixiView.js";
 import { loadRenderer, loadView, saveRenderer, saveView, type Renderer, type ViewSettings } from "./viewSettings.js";
 
@@ -114,6 +115,8 @@ export interface BattleView {
     show(battle: Battle, running: boolean, rewindable?: boolean, orders?: readonly Logged[], advance?: () => void): void;
     /** The battle on show, which winding back replaces. */
     readonly battle: Battle | null;
+    /** Its sides' colours and names, from their liveries. */
+    readonly sides: Sides;
     /** Steps taken, and the furthest reached. */
     readonly at: number;
     readonly reached: number;
@@ -233,6 +236,8 @@ export function battleView(
     if (ctx === null) throw new Error("no 2d context");
 
     let battle: Battle | null = null;
+    /** Its sides' colours, from their liveries. */
+    let sides: Sides = STOCK;
     let advance: (() => void) | null = null;
     let rewind: Rewind<Kept> | null = null;
     let watcher: Watcher | null = null;
@@ -617,6 +622,9 @@ export function battleView(
     let countedSince = 0;
     const tick = (now: number): void => {
         frameRequest = window.requestAnimationFrame(tick);
+        withSides(sides, () => drawFrame(now));
+    };
+    const drawFrame = (now: number): void => {
         framesCounted++;
         if (now - countedSince >= FPS_WINDOW_MS) {
             if (countedSince > 0) fps = (framesCounted * 1000) / (now - countedSince);
@@ -777,6 +785,7 @@ export function battleView(
     return {
         show(next, run, rewindable = false, orders = [], stepper) {
             battle = next;
+            sides = sidesOf(next.liveries);
             advance = stepper ?? null;
             picked = [];
             armed = null;
@@ -794,6 +803,9 @@ export function battleView(
         },
         get battle() {
             return battle;
+        },
+        get sides() {
+            return sides;
         },
         get at() {
             return rewind?.at ?? battle?.world.tick ?? 0;

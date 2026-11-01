@@ -1,4 +1,5 @@
 import type { UnreadKeys } from "./unread.js";
+import type { Livery } from "./livery.js";
 import { abs, angleDelta, asin, atan2, cos, floor, max, min, normalizeAngle, PI, sin, sqrt, TAU } from "./math.js";
 import {
     GunType,
@@ -461,6 +462,8 @@ export interface Blueprint {
      * here too, or is this ship, which is never one of them.
      */
     hangar?: Readonly<Record<string, Blueprint>>;
+    /** How it is painted flying alone; in a fleet, the fleet's livery is worn instead. */
+    livery?: Livery;
     /** Keys its file carried that nothing reads, kept to be written back (`UnreadKeys`). */
     unread?: UnreadKeys;
     /** The same, inside its doctrine block, in the block's own shape. */

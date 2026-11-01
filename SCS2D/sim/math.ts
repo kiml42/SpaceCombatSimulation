@@ -442,3 +442,21 @@ export function brakingRate(error: number, accel: number, dt: number): number {
     const landing = dt > 0 ? magnitude / dt : 0;
     return braking < landing ? braking : landing;
 }
+
+export function degreesToRadians(degrees: number): number {
+    return (degrees / 180) * PI;
+}
+
+/**
+ * Settled on degrees that read back to themselves, so a file written from
+ * what was read is the same file: a turn there and back can move the last digit.
+ */
+export function radiansToDegrees(radians: number): number {
+    let degrees = (radians / PI) * 180;
+    for (let k = 0; k < 4; k++) {
+        const back = (degreesToRadians(degrees) / PI) * 180;
+        if (back === degrees) break;
+        degrees = back;
+    }
+    return degrees;
+}

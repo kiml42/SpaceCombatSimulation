@@ -20,7 +20,7 @@ import type { AnswerProgress } from "~/host/answer";
 import type { BattleView, Watcher } from "~/host/battleView";
 import { BATTLE_KEYS, ORDER_KEYS } from "~/host/keyHelp";
 import type { ViewSettings } from "~/host/viewSettings";
-import { teamColour } from "~/render/canvas2d";
+import { sidesOf, teamColour } from "~/render/teams";
 import { CommitText } from "~/ui/fields/CommitText";
 import { readLog, writeLog, type Logged } from "~/scenarios/commands";
 import { customBattle, DEFAULT_SETUP, tally, type BattleSetup, type CustomBattle } from "~/scenarios/customBattle";
@@ -616,6 +616,7 @@ export function SkirmishPage() {
         return JSON.stringify(
             now.start.map((start, i) => ({
                 name: i === 0 ? "You" : (now.setup.fleets[i]?.name ?? "Enemy"),
+                colour: teamColour(i, sidesOf(now.liveries)),
                 ships: `${counts[i]!.ships}/${start.ships} ships · ${counts[i]!.armed} armed · ${Math.round(start.mass > 0 ? (1 - counts[i]!.mass / start.mass) * 100 : 0)}% of mass lost`,
             })),
         );
@@ -716,7 +717,7 @@ export function SkirmishPage() {
     // The one thing to press next in the round's buttons.
     const next = answeringNow ? null : fits && !roundOver ? "fight" : "edit";
     const fightLabel = running ? "Fighting…" : ticked > 0 ? "Resume" : "Fight";
-    const parsedSides = sides === "" ? [] : (JSON.parse(sides) as { name: string; ships: string }[]);
+    const parsedSides = sides === "" ? [] : (JSON.parse(sides) as { name: string; ships: string; colour: string }[]);
 
     return (
         <Main>
@@ -961,7 +962,7 @@ export function SkirmishPage() {
                                 {parsedSides.map((side, i) => (
                                     <div key={i}>
                                         <Side>
-                                            <span style={{ background: teamColour(i) }} />
+                                            <span style={{ background: side.colour }} />
                                             {side.name}
                                         </Side>
                                         <SideStats>{side.ships}</SideStats>

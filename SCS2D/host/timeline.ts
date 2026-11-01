@@ -1,6 +1,6 @@
 import { Snapshot, type Fleet } from "../sim/index.js";
 import { fitScale } from "../render/camera.js";
-import { teamColour } from "../render/canvas2d.js";
+import { sidesOf, teamColour } from "../render/teams.js";
 import { chains, fleetOf, type Chain, type History, type MatchRow } from "../scenarios/history.js";
 import { drawCentred, formationSnapshot, kindSnapshot, pictureOf, type Picture } from "./fleetPicture.js";
 
@@ -74,7 +74,8 @@ export function timeline(box: HTMLElement, actions: TimelineActions): Timeline {
         name.className = "who";
         const swatch = document.createElement("span");
         swatch.className = "swatch";
-        swatch.style.background = teamColour(which);
+        const fleets = [row.player, row.enemy].map((each) => (history === null ? null : fleetOf(history, each)));
+        swatch.style.background = teamColour(which, sidesOf(fleets.map((fleet) => fleet?.livery)));
         const title = which === 0 ? `Your fleet v${row.playerVersion}` : `Enemy v${row.enemyVersion}`;
         const label = document.createElement("b");
         label.textContent = title;

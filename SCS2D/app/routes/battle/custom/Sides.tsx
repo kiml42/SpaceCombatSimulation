@@ -1,7 +1,7 @@
 import { styled } from "@linaria/react";
 import { useState } from "react";
 import { useSampled } from "~/features/battle/useSampled";
-import { teamColour, teamName } from "~/render/teams";
+import { sidesOf, teamColour, teamName } from "~/render/teams";
 import { tally, winner, type CustomBattle } from "~/scenarios/customBattle";
 
 const Side = styled.div`
@@ -41,11 +41,12 @@ export function Sides({ current }: { readonly current: () => CustomBattle | null
     const [result, setResult] = useState<{ readonly of: CustomBattle; readonly text: string } | null>(null);
 
     const now = battle === null ? [] : tally(battle, battle.start.length);
+    const sides = sidesOf(battle?.liveries);
     const won = battle === null || battle.start.length < 2 ? null : winner(now);
     if (battle !== null && won !== null && result?.of !== battle) {
         const time = (battle.world.tick * battle.world.dt).toFixed(1);
         // The sides' colours by name, as the footer calls them; grey beyond the fourth.
-        const colour = won < 4 ? teamName(won).toLowerCase() : "grey";
+        const colour = won < 4 ? teamName(won, sides).toLowerCase() : "grey";
         const who = won < 0 ? "No side can fight on" : `${battle.setup.fleets[won]?.name ?? ""} (${colour}) wins`;
         setResult({ of: battle, text: `${who} at ${time} s.` });
     }
@@ -59,7 +60,7 @@ export function Sides({ current }: { readonly current: () => CustomBattle | null
                 return (
                     <div key={i}>
                         <Side>
-                            <span style={{ background: teamColour(i) }} />
+                            <span style={{ background: teamColour(i, sides) }} />
                             <span>{battle.setup.fleets[i]?.name ?? `Side ${i + 1}`}</span>
                         </Side>
                         <Stats>

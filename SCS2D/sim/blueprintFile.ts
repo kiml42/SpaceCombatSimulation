@@ -1,4 +1,4 @@
-import { cos, PI, round, sin } from "./math.js";
+import { cos, degreesToRadians, radiansToDegrees, round, sin } from "./math.js";
 import {
     isInstance,
     settleIds,
@@ -45,6 +45,7 @@ import {
     type Targeting,
 } from "./doctrine.js";
 import { unreadOf, unreadWarning, writeUnread, type UnreadKeys } from "./unread.js";
+import { liveryProblem, serialiseLivery, toLivery } from "./livery.js";
 
 /**
  * The blueprint file format: what a saved ship looks like, and how to get a
@@ -133,25 +134,9 @@ const STEP_KEYS: readonly string[] = ["x", "y", "angle"];
 
 const ASSEMBLY_KEYS: readonly string[] = ["modules", "notes"];
 
-const FILE_KEYS: readonly string[] = ["formatVersion", "name", "notes", "fighter", "doctrine", "hangar", "assemblies", "modules"];
+const FILE_KEYS: readonly string[] = ["formatVersion", "name", "notes", "fighter", "doctrine", "hangar", "assemblies", "modules", "livery"];
 
-export function degreesToRadians(degrees: number): number {
-    return (degrees / 180) * PI;
-}
-
-/**
- * Settled on degrees that read back to themselves, so a file written from
- * what was read is the same file: a turn there and back can move the last digit.
- */
-export function radiansToDegrees(radians: number): number {
-    let degrees = (radians / PI) * 180;
-    for (let k = 0; k < 4; k++) {
-        const back = (degreesToRadians(degrees) / PI) * 180;
-        if (back === degrees) break;
-        degrees = back;
-    }
-    return degrees;
-}
+export { degreesToRadians, radiansToDegrees };
 
 function isObject(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -455,6 +440,9 @@ export function blueprintFileProblem(value: unknown): string | null {
     const doctrine = doctrineProblem(value["doctrine"]);
     if (doctrine !== null) return doctrine;
 
+    const livery = liveryProblem(value["livery"], "livery");
+    if (livery !== null) return livery;
+
     const hangar = hangarProblem(value["hangar"]);
     if (hangar !== null) return hangar;
 
@@ -474,6 +462,7 @@ function toBlueprint(file: Record<string, unknown>): Blueprint {
     };
     if (file["notes"] !== undefined) blueprint.notes = file["notes"] as string;
     if (file["fighter"] !== undefined) blueprint.fighter = file["fighter"] as boolean;
+    if (file["livery"] !== undefined) blueprint.livery = toLivery(file["livery"]);
     if (file["doctrine"] !== undefined) {
         blueprint.doctrine = toDoctrine(file["doctrine"]);
         const unreadDoctrine = doctrineUnread(file["doctrine"]);
@@ -623,6 +612,7 @@ export function serialiseBlueprint(blueprint: Blueprint): Record<string, unknown
     };
     if (blueprint.notes !== undefined) file["notes"] = blueprint.notes;
     if (blueprint.fighter !== undefined) file["fighter"] = blueprint.fighter;
+    if (blueprint.livery !== undefined) file["livery"] = serialiseLivery(blueprint.livery);
     if (blueprint.doctrine !== undefined || blueprint.unreadDoctrine !== undefined) {
         // Only what it says differently from the default, so a file stays short
         // and a default that moves later moves for every ship that never had an
@@ -678,6 +668,7 @@ function mergeUnread(block: Record<string, unknown> | undefined, unread: UnreadK
 export function blueprintWarnings(blueprint: Blueprint): string[] {
     const out: string[] = [];
     unreadWarning("the file", blueprint.unread, out);
+    unreadWarning("livery", blueprint.livery?.unread, out);
     if (blueprint.unreadDoctrine !== undefined) {
         const { targeting, approach, ...top } = blueprint.unreadDoctrine as Record<string, unknown>;
         unreadWarning("doctrine", Object.keys(top).length > 0 ? top : undefined, out);

@@ -405,7 +405,7 @@ function contextFor(spec: ModuleSpec, side: number, integrity: number, weaponsLa
     const colours = shipColours(side);
     const colour = fillColour(spec, integrity, weaponsLayer, colours);
     // What else moduleFills reads: the side's palette, and whether it is wreckage.
-    const key = `${colour}|${side}|${integrity <= 0}`;
+    const key = `${colour}|${colours.hull}${colours.trim}${colours.pivot}|${integrity <= 0}`;
     let bySpec = contexts.get(spec);
     if (bySpec === undefined) {
         bySpec = new Map();
