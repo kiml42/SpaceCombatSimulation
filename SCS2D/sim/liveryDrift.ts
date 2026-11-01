@@ -1,5 +1,5 @@
 import { LIVERY_PATTERNS, MOST_CHEVRON, type Livery } from "./livery.js";
-import { PI } from "./math.js";
+import { abs, floor, max, min, PI, round, sqrt } from "./math.js";
 import { Rng } from "./rng.js";
 
 /**
@@ -111,12 +111,12 @@ export function colourGap(a: string, b: string): number {
     const dr = r1 - r2;
     const dg = g1 - g2;
     const db = b1 - b2;
-    return Math.sqrt((2 + mean / 256) * dr * dr + 4 * dg * dg + (2 + (255 - mean) / 256) * db * db);
+    return sqrt((2 + mean / 256) * dr * dr + 4 * dg * dg + (2 + (255 - mean) / 256) * db * db);
 }
 
 function nearest(colour: string, away: readonly string[]): number {
     let least = Infinity;
-    for (const other of away) least = Math.min(least, colourGap(colour, other));
+    for (const other of away) least = min(least, colourGap(colour, other));
     return least;
 }
 
@@ -126,21 +126,21 @@ function rgb(hex: string): [number, number, number] {
 
 function toHsl(hex: string): [number, number, number] {
     const [r, g, b] = rgb(hex).map((c) => c / 255) as [number, number, number];
-    const most = Math.max(r, g, b);
-    const least = Math.min(r, g, b);
+    const most = max(r, g, b);
+    const least = min(r, g, b);
     const l = (most + least) / 2;
     const d = most - least;
     if (d === 0) return [0, 0, l];
-    const s = d / (1 - Math.abs(2 * l - 1));
+    const s = d / (1 - abs(2 * l - 1));
     const h = most === r ? ((g - b) / d + 6) % 6 : most === g ? (b - r) / d + 2 : (r - g) / d + 4;
     return [h / 6, s, l];
 }
 
 function fromHsl(h: number, s: number, l: number): string {
-    const c = (1 - Math.abs(2 * l - 1)) * s;
-    const x = c * (1 - Math.abs(((h * 6) % 2) - 1));
+    const c = (1 - abs(2 * l - 1)) * s;
+    const x = c * (1 - abs(((h * 6) % 2) - 1));
     const m = l - c / 2;
-    const sector = Math.floor(h * 6) % 6;
+    const sector = floor(h * 6) % 6;
     const [r, g, b] = [
         [c, x, 0],
         [x, c, 0],
@@ -150,7 +150,7 @@ function fromHsl(h: number, s: number, l: number): string {
         [c, 0, x],
     ][sector]!;
     const hex = (v: number): string =>
-        Math.round((v + m) * 255)
+        round((v + m) * 255)
             .toString(16)
             .padStart(2, "0");
     return `#${hex(r!)}${hex(g!)}${hex(b!)}`;
@@ -162,10 +162,10 @@ function clamp(v: number, lo: number, hi: number): number {
 
 /** Into [0, 1). */
 function wrap(v: number): number {
-    return v - Math.floor(v);
+    return v - floor(v);
 }
 
 /** Into [-90°, 90°): stripes turned half round are the same stripes. */
 function foldAngle(a: number): number {
-    return a - PI * Math.floor((a + PI / 2) / PI);
+    return a - PI * floor((a + PI / 2) / PI);
 }
