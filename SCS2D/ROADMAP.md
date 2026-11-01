@@ -207,18 +207,57 @@ an entry is either still open or it is gone.
         - The browser tests then read pixels from screenshots rather than a 2D context, and draw WebGL in
           software, so CI slows; `drawIn2D` goes.
     3. **Liveries.** A fleet sets a base colour, a highlight colour and a pattern, applied to every ship in
-       it, replacing the side colours.
-        - The first patterns are simple: stripes or spots of the highlight. A pattern is laid over the whole
-          hull in the design's frame, so it runs on across modules; some parts take the highlight on their
-          own, as a band round an engine block.
+       it, replacing the side colours. Settled with the author on 2026-11-01 (DECISIONS.md).
+        - **Whose livery.** A `Livery` lives on a `Fleet`, and on a `Blueprint` for a ship flying alone. A
+          fleet's livery always wins: a ship's own is never used inside a fleet, and a fleet that sets none
+          flies the side colours, not its ships' liveries. `shipFleet` copies a lone ship's livery onto the
+          fleet it makes, so in the sim only a fleet's livery is ever read.
+        - **The default livery is the side colours of now**, for a ship or fleet that sets none. Icons,
+          strips and orders show a side by its base colour.
+        - **Two sides too alike**: where a side's base colour is within some perceptual distance of an
+          earlier side's, it flies its side colours instead, and the player's side is never the one to fall
+          back. The editors give no warning, since the only known enemy there is a skirmish's, which the
+          player cannot change.
+        - **Colours** are free choices of base and highlight; the trim and dark pivot tones a module needs
+          are worked out from the base, as the side palettes' are now.
+        - **Patterns**: none, stripes or spots of the highlight to start, perhaps chevrons later, each with
+          a few numbers — size, spacing, offset and, for stripes, angle — so evolution can drift them as it
+          drifts colours. A pattern is laid over the whole hull in the design's frame, so it runs on across
+          modules. **Its sizes are shares of each ship's radius**, as bevels are, so a fighter and its
+          carrier carry about as many stripes as each other; they will not line up across docked or welded
+          ships.
+        - **Parts that take the highlight on their own**, by fixed rule: a band across each engine block
+          near the bell; turret domes, in place of today's trim; and pads' and ports' markings. Everything
+          else, cores included, takes only the pattern on the base.
         - Drawn by a shader from each fragment's place in the design, so a module's geometry stays shared
           however the pattern falls on it.
-        - **The default livery is the side colours of now**, for a single ship or any fleet that sets none.
-          Icons, strips and orders show a side by its base colour.
-        - **An enemy's livery evolves**, by drift from one generation to the next, the drift leaning away
-          from the player's colours so the two sides stay told apart.
-        - **Fighters** keep a darkened version of their fleet's colours, perhaps darkened less once edges are
-          drawn on purpose and hulls look smoother. Rock and wreckage keep colours of their own.
+        - **Fighters** show their fleet's pattern, in a darkened version of its colours, perhaps darkened
+          less once edges are drawn on purpose and hulls look smoother. Rock, wreckage and ships without
+          control keep colours of their own.
+        - **A Livery panel**, collapsible, in both the ship and fleet editors: two colour pickers, a pattern
+          picker and its sliders. The fleet editor edits the fleet's livery. The ship editor edits the
+          design's own, unless it was opened from a fleet: then the panel says it is the fleet's livery, and
+          edits go back to the fleet with the design.
+        - **The library**: saving a fleet's design to the library copies the fleet's livery onto the saved
+          blueprint, so it looks as it did while edited. A new fleet takes the livery of the first ship put
+          in it, and never again after that.
+        - **An enemy's livery evolves**: every mutant drifts its parent's a little — colours, pattern
+          numbers, now and then the pattern itself — leaning away from the player's colours so the two sides
+          stay told apart. A chimera or graft keeps its first parent's. The drift draws on a stream of its
+          own split from the mutant's seed, so no search result and no golden moves. A skirmish enemy's
+          first livery is drawn from the round's seed, far from the player's; each entrant of a
+          single-ship run starts with a random one, drifting the same way.
+        - **In four pull requests**, in this order:
+            1. **Data and flat colours**: `Livery` on `Fleet` and `Blueprint`, read and written in files;
+               the fleet-wins rule and `shipFleet`'s copy; side colours as the default; the fallback for
+               sides too alike; hull, trim, pivot, icons, strips and orders coloured from the base. No
+               pattern, so Draw: 2D keeps working.
+            2. **The Livery panel** in both editors, the ship editor's edits going back to its fleet, the
+               library's copy and the first-ship rule.
+            3. **The pattern shader and the parts' highlights**, WebGL only: Draw: 2D and Pixi's Canvas2D
+               fallback show the flat base. It does not wait for Draw: 2D to be retired.
+            4. **Evolution**: drift on every mutant, leaning away from the player, and random first liveries
+               for skirmish enemies and single-ship entrants.
     4. **Part art, first pass:** bevels on the hull's outside edges, and on the thick parts' edges, lit by
        the battle's light, and engine bells, barrels and turret domes shaded as rounded. Richer procedural
        parts come later.
