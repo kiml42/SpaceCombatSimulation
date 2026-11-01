@@ -75,7 +75,7 @@ function drifted(parent: Livery, rng: Rng): Livery {
         base: driftColour(parent.base, rng),
         highlight: driftColour(parent.highlight, rng),
         pattern,
-        size: clamp(parent.size * (1 + step(SCALE_STEP)), 0.02, 0.5),
+        size: clamp(parent.size * (1 + step(SCALE_STEP)), 0.01, 0.5),
         spacing: clamp(parent.spacing * (1 + step(SCALE_STEP)), 1.2, 10),
         offset: wrap(parent.offset + step(OFFSET_STEP)),
         angle: foldAngle(parent.angle + step(ANGLE_STEP)),
