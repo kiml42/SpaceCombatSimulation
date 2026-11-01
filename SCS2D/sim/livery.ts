@@ -64,6 +64,32 @@ export function liveryProblem(value: unknown, where: string): string | null {
     return null;
 }
 
+/**
+ * A livery its file carried that could not be read: kept to be written back
+ * as it was, and said as a warning, while side colours are drawn instead.
+ * Never a reason to refuse the file, since a livery changes nothing but looks.
+ */
+export interface UnreadLivery {
+    readonly value: unknown;
+    readonly problem: string;
+}
+
+/** A file's livery, read, or kept as unread with why. */
+export function readLivery(value: unknown): { livery: Livery } | { unreadLivery: UnreadLivery } {
+    const problem = liveryProblem(value, "livery");
+    return problem === null ? { livery: toLivery(value) } : { unreadLivery: { value, problem } };
+}
+
+/** What a file holds for a livery: the one read, or else the one that could not be. */
+export function writtenLivery(of: { readonly livery?: Livery; readonly unreadLivery?: UnreadLivery }): unknown {
+    return of.livery !== undefined ? serialiseLivery(of.livery) : of.unreadLivery?.value;
+}
+
+/** A warning for a livery that could not be read, if there is one. */
+export function unreadLiveryWarning(unread: UnreadLivery | undefined, out: string[]): void {
+    if (unread !== undefined) out.push(`${unread.problem}: kept as written, and drawn in side colours until another is set`);
+}
+
 const LIVERY_KEYS: readonly string[] = ["base", "highlight", "pattern", "size", "spacing", "offset", "angle"];
 
 /** A livery from a file whose shape `liveryProblem` has passed. */

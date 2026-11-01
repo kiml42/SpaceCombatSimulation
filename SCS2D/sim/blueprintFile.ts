@@ -45,7 +45,7 @@ import {
     type Targeting,
 } from "./doctrine.js";
 import { unreadOf, unreadWarning, writeUnread, type UnreadKeys } from "./unread.js";
-import { liveryProblem, serialiseLivery, toLivery } from "./livery.js";
+import { readLivery, unreadLiveryWarning, writtenLivery } from "./livery.js";
 
 /**
  * The blueprint file format: what a saved ship looks like, and how to get a
@@ -440,9 +440,6 @@ export function blueprintFileProblem(value: unknown): string | null {
     const doctrine = doctrineProblem(value["doctrine"]);
     if (doctrine !== null) return doctrine;
 
-    const livery = liveryProblem(value["livery"], "livery");
-    if (livery !== null) return livery;
-
     const hangar = hangarProblem(value["hangar"]);
     if (hangar !== null) return hangar;
 
@@ -462,7 +459,7 @@ function toBlueprint(file: Record<string, unknown>): Blueprint {
     };
     if (file["notes"] !== undefined) blueprint.notes = file["notes"] as string;
     if (file["fighter"] !== undefined) blueprint.fighter = file["fighter"] as boolean;
-    if (file["livery"] !== undefined) blueprint.livery = toLivery(file["livery"]);
+    if (file["livery"] !== undefined) Object.assign(blueprint, readLivery(file["livery"]));
     if (file["doctrine"] !== undefined) {
         blueprint.doctrine = toDoctrine(file["doctrine"]);
         const unreadDoctrine = doctrineUnread(file["doctrine"]);
@@ -612,7 +609,8 @@ export function serialiseBlueprint(blueprint: Blueprint): Record<string, unknown
     };
     if (blueprint.notes !== undefined) file["notes"] = blueprint.notes;
     if (blueprint.fighter !== undefined) file["fighter"] = blueprint.fighter;
-    if (blueprint.livery !== undefined) file["livery"] = serialiseLivery(blueprint.livery);
+    const livery = writtenLivery(blueprint);
+    if (livery !== undefined) file["livery"] = livery;
     if (blueprint.doctrine !== undefined || blueprint.unreadDoctrine !== undefined) {
         // Only what it says differently from the default, so a file stays short
         // and a default that moves later moves for every ship that never had an
@@ -669,6 +667,7 @@ export function blueprintWarnings(blueprint: Blueprint): string[] {
     const out: string[] = [];
     unreadWarning("the file", blueprint.unread, out);
     unreadWarning("livery", blueprint.livery?.unread, out);
+    unreadLiveryWarning(blueprint.unreadLivery, out);
     if (blueprint.unreadDoctrine !== undefined) {
         const { targeting, approach, ...top } = blueprint.unreadDoctrine as Record<string, unknown>;
         unreadWarning("doctrine", Object.keys(top).length > 0 ? top : undefined, out);

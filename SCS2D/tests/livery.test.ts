@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
     blueprintFileProblem,
+    blueprintWarnings,
     fleetFileProblem,
     fleetWarnings,
     parseBlueprint,
@@ -12,6 +13,7 @@ import {
     type Livery,
 } from "../sim/index.js";
 import { CORVETTE, DINKY, GUNSHIP } from "../scenarios/blueprints.js";
+import { withLivery } from "../editor/livery.js";
 import { moduleFills, type Fill } from "../render/moduleFills.js";
 import { patternColour, patternTransform, TILE } from "../render/livery.js";
 import { fleetBattle } from "../scenarios/fleetBattle.js";
@@ -46,12 +48,28 @@ describe("a livery in a file", () => {
         expect(fleetWarnings(fleet)).toEqual(["livery has a key the game does not read, kept as written: shine"]);
     });
 
-    it("refuses a colour that is not #rrggbb, an unknown pattern and a size of nothing", () => {
-        expect(fleetFileProblem(fleetFile({ livery: { base: "red", highlight: "#000000" } }))).toMatch(/base must be a colour/);
-        expect(fleetFileProblem(fleetFile({ livery: { ...LIVERY, pattern: "plaid" } }))).toMatch(/pattern must be one of/);
-        expect(blueprintFileProblem({ ...serialiseBlueprint(GUNSHIP), livery: { ...LIVERY, size: 0 } })).toMatch(/size must be above zero/);
+    it("warns of one it cannot read, rather than refusing the file, and keeps it as written", () => {
+        const warned = (bad: Record<string, unknown>, problem: RegExp): void => {
+            const raw = fleetFile({ livery: bad });
+            expect(fleetFileProblem(raw)).toBeNull();
+            const fleet = parseFleet(raw);
+            expect(fleet.livery).toBeUndefined();
+            expect(fleetWarnings(fleet).join()).toMatch(problem);
+            expect(serialiseFleet(fleet)).toEqual(raw);
+        };
+        warned({ base: "red", highlight: "#000000" }, /base must be a colour/);
+        warned({ ...LIVERY, pattern: "plaid" }, /pattern must be one of/);
         // A stripe as wide as its period would paint the whole hull.
-        expect(fleetFileProblem(fleetFile({ livery: { ...LIVERY, spacing: 1 } }))).toMatch(/spacing must be above one stripe width/);
+        warned({ ...LIVERY, spacing: 0.12 }, /spacing must be above one stripe width/);
+        const ship = { ...serialiseBlueprint(GUNSHIP), livery: { ...LIVERY, size: 0 } };
+        expect(blueprintFileProblem(ship)).toBeNull();
+        expect(blueprintWarnings(parseBlueprint(ship)).join()).toMatch(/size must be above zero/);
+    });
+
+    it("replaces one it could not read once another is set, or side colours chosen", () => {
+        const fleet = parseFleet(fleetFile({ livery: { ...LIVERY, spacing: 0.12 } }));
+        expect(serialiseFleet(withLivery(fleet, livery("#d4a017")))["livery"]).toMatchObject({ base: "#d4a017" });
+        expect(serialiseFleet(withLivery(fleet, undefined))["livery"]).toBeUndefined();
     });
 
     it("is worn by a ship flying alone, through the fleet it is put in", () => {

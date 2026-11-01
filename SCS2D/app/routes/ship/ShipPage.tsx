@@ -15,7 +15,7 @@ import {
     toPlacementAngle,
 } from "~/editor/edit";
 import { replacedName } from "~/editor/fleetEdit";
-import { backToFleet, wearingFleets } from "~/editor/livery";
+import { backToFleet, wearingFleets, withLivery } from "~/editor/livery";
 import { LiveryPanel } from "~/features/livery/LiveryPanel";
 import { battleRoute, designRoute, fleetRoute, handedDesign, shipFleet, type DesignInFleet } from "~/editor/handoff";
 import { emptyBlueprint, nextName, toFileText, unusedName } from "~/editor/library";
@@ -628,9 +628,7 @@ export function ShipPage() {
                         open={liveryOpen}
                         onOpen={setLiveryOpen}
                         onChange={(livery, continues) => {
-                            const next = { ...doc.blueprint };
-                            if (livery === undefined) delete next.livery;
-                            else next.livery = livery;
+                            const next = withLivery(doc.blueprint, livery);
                             editing.change(next, continues);
                         }}
                         onEnd={editing.endGesture}
