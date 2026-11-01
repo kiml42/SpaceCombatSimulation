@@ -1,4 +1,4 @@
-import type { Blueprint, Fleet, Livery } from "../sim/index.js";
+import type { Blueprint, Fleet, Livery, UnreadLivery } from "../sim/index.js";
 import { STOCK } from "../render/teams.js";
 import { replaceDesign } from "./fleetEdit.js";
 
@@ -14,8 +14,10 @@ export const NEW_LIVERY: Livery = {
 };
 
 /** `of` wearing `livery`, or none. */
-export function withLivery<T extends { livery?: Livery }>(of: T, livery: Livery | undefined): T {
+export function withLivery<T extends { livery?: Livery; unreadLivery?: UnreadLivery }>(of: T, livery: Livery | undefined): T {
     const next = { ...of };
+    // Setting one, or side colours, replaces one that could not be read.
+    delete next.unreadLivery;
     if (livery === undefined) delete next.livery;
     else next.livery = livery;
     return next;

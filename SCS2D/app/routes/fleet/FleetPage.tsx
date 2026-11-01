@@ -18,6 +18,7 @@ import { parseBlueprint, parseFleet, serialiseFleet, type Blueprint, type Fleet 
 import { KeyHelp } from "~/ui/dialogs/KeyHelp";
 import { CommitText } from "~/ui/fields/CommitText";
 import { LiveryPanel } from "~/features/livery/LiveryPanel";
+import { withLivery } from "~/editor/livery";
 import { AddShipMenu } from "./AddShipMenu";
 import { FleetCanvas } from "./FleetCanvas";
 import { designOf, fromLibrary, optionLabel, optionValue } from "./fleetOptions";
@@ -495,9 +496,7 @@ export function FleetPage() {
                         open={liveryOpen}
                         onOpen={setLiveryOpen}
                         onChange={(livery, continues) => {
-                            const next = { ...doc.fleet };
-                            if (livery === undefined) delete next.livery;
-                            else next.livery = livery;
+                            const next = withLivery(doc.fleet, livery);
                             if (continues && gesture.current) doc.amend(next);
                             else doc.apply(next);
                             gesture.current = continues;
