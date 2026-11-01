@@ -9,9 +9,13 @@ import type { Palette } from "./teams.js";
  */
 export const TILE = 64;
 
-/** A stripe's share of a tile, in whole pixels, so a slider dragged makes few tiles; never all of it. */
+/**
+ * A stripe's or spot's share of a tile, in whole pixels, so a slider dragged
+ * makes few tiles: never all of it for stripes, which would cover the hull;
+ * spots as wide as the tile still leave its corners.
+ */
 function share(livery: Livery): number {
-    return Math.max(1, Math.min(TILE - 1, Math.round(TILE / livery.spacing)));
+    return Math.max(1, Math.min(livery.pattern === "stripes" ? TILE - 1 : TILE, Math.round(TILE / livery.spacing)));
 }
 
 /** What a tile is made from: the same for any two liveries tiled alike. */

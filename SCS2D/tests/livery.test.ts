@@ -14,7 +14,7 @@ import {
 import { CORVETTE, DINKY, GUNSHIP } from "../scenarios/blueprints.js";
 import { withLivery } from "../editor/livery.js";
 import { moduleFills, type Fill } from "../render/moduleFills.js";
-import { patternColour, patternTransform, TILE } from "../render/livery.js";
+import { patternColour, patternTransform, TILE, tileKey } from "../render/livery.js";
 import { fleetBattle } from "../scenarios/fleetBattle.js";
 import { colourDistance, colourName, liveryPalette, sidesOf, STOCK, TOO_ALIKE, teamColour, teamName } from "../render/teams.js";
 
@@ -55,10 +55,16 @@ describe("a livery in a file", () => {
         const warnings = fleetWarnings(fleet);
         expect(warnings).toHaveLength(2);
         expect(warnings.join()).toMatch(/pattern must be one of .*"plaid"/);
-        expect(warnings.join()).toMatch(/spacing must be above one stripe width, got 0.12; 3 is worn instead/);
+        expect(warnings.join()).toMatch(/spacing must be at least one stripe width, got 0.12; 3 is worn instead/);
         const ship = parseBlueprint({ ...serialiseBlueprint(GUNSHIP), livery: { base: "red", highlight: "#000000", size: 0 } });
         expect(ship.livery).toMatchObject({ base: "#5b8dd6", highlight: "#000000", size: 0.1 });
         expect(blueprintWarnings(ship).join()).toMatch(/base must be a colour.*size must be above zero/);
+    });
+
+    it("lets spots touch, but keeps stripes apart", () => {
+        expect(parseFleet(fleetFile({ livery: { ...LIVERY, pattern: "spots", spacing: 1 } })).livery?.problems).toBeUndefined();
+        expect(tileKey({ ...livery("#d4a017"), pattern: "spots", spacing: 1 }, "#fff")).toBe(`spots ${TILE} #fff`);
+        expect(tileKey({ ...livery("#d4a017"), pattern: "stripes", spacing: 1 }, "#fff")).toBe(`stripes ${TILE - 1} #fff`);
     });
 
     it("keeps one that is not even an object as written, warning of it", () => {

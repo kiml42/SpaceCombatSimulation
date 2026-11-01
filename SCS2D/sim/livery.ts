@@ -16,7 +16,11 @@ export interface Livery {
     pattern: LiveryPattern;
     /** How wide a stripe or spot is, as a share of the ship's radius. */
     size: number;
-    /** From one stripe or spot to the next, in stripe widths: above one, so the base always shows between them. */
+    /**
+     * From one stripe or spot to the next, in its widths: at least one, where
+     * spots touch and the base still shows between them; stripes that close
+     * are drawn a little apart, so the base always shows.
+     */
     spacing: number;
     /** How far the pattern is moved across the hull, as a share of its spacing. */
     offset: number;
@@ -53,7 +57,7 @@ function partProblem(key: keyof typeof DEFAULTS, value: unknown): string | null 
     if (typeof value !== "number" || !Number.isFinite(value)) return "must be a number";
     if (key === "size" && value <= 0) return "must be above zero";
     // A stripe as wide as its period would paint the whole hull.
-    if (key === "spacing" && value <= 1) return "must be above one stripe width";
+    if (key === "spacing" && value < 1) return "must be at least one stripe width";
     return null;
 }
 
