@@ -19,7 +19,7 @@ import {
 } from "./fleet.js";
 import { unreadOf, unreadWarning, writeUnread } from "./unread.js";
 import { joinHangars } from "./fleetHangar.js";
-import { readLivery, unreadLiveryWarning, writtenLivery } from "./livery.js";
+import { readLivery, liveryWarnings, writtenLivery } from "./livery.js";
 
 /**
  * The fleet file format, modelled on the blueprint one: parse checks the
@@ -258,7 +258,7 @@ export function fleetWarnings(fleet: Fleet): string[] {
     const out: string[] = [];
     unreadWarning("the file", fleet.unread, out);
     unreadWarning("livery", fleet.livery?.unread, out);
-    unreadLiveryWarning(fleet.unreadLivery, out);
+    liveryWarnings(fleet, out);
     for (const [name, design] of Object.entries(fleet.designs)) {
         for (const warning of blueprintWarnings(design)) out.push(`design ${name}: ${warning}`);
     }
