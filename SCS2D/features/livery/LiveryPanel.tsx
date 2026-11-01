@@ -1,8 +1,9 @@
 import { styled } from "@linaria/react";
 import { NEW_LIVERY } from "~/editor/livery";
 import { teamName, sidesOf } from "~/render/teams";
-import { LIVERY_PATTERNS, type Livery, type LiveryPattern } from "~/sim/index";
+import { LIVERY_PATTERNS, MOST_CHEVRON, type Livery, type LiveryPattern } from "~/sim/index";
 import { Button } from "~/ui/buttons/Button";
+import { SliderField } from "~/ui/fields/SliderField";
 
 const Details = styled.details`
     margin-top: 0.7rem;
@@ -44,12 +45,6 @@ const Row = styled.div`
         flex: 1;
         min-width: 0;
     }
-
-    > output {
-        flex: 0 0 3rem;
-        color: var(--colour-faint);
-        text-align: right;
-    }
 `;
 
 const Swatch = styled.span`
@@ -61,17 +56,20 @@ const Swatch = styled.span`
     vertical-align: -0.05em;
 `;
 
-const PATTERN_NAMES: Record<LiveryPattern, string> = { none: "plain", stripes: "stripes", spots: "spots" };
+const PATTERN_NAMES: Record<LiveryPattern, string> = { none: "plain", stripes: "stripes", spots: "spots", chevrons: "chevrons" };
 
-/** A slider's range and how its value reads. */
+/** A slider: its range and step as shown, which is the livery's value times `scale`, in `unit`. */
 interface Slider {
-    readonly field: "size" | "spacing" | "offset" | "angle";
+    readonly field: "size" | "spacing" | "offset" | "angle" | "chevron" | "points";
+    /** Shown for these patterns. */
+    readonly for: readonly LiveryPattern[];
+    readonly scale: number;
+    readonly unit: string;
     readonly label: string;
     readonly min: number;
     readonly max: number;
     readonly step: number;
     readonly title: string;
-    readonly shown: (livery: Livery) => string;
 }
 
 const DEGREES = 180 / Math.PI;
@@ -79,39 +77,69 @@ const DEGREES = 180 / Math.PI;
 const SLIDERS: readonly Slider[] = [
     {
         field: "size",
+        for: ["stripes", "spots", "chevrons"],
+        scale: 100,
+        unit: "%",
         label: "size",
-        min: 0.01,
-        max: 0.5,
-        step: 0.01,
-        title: "How wide a stripe or spot is, as a share of each ship's radius",
-        shown: (l) => `${Math.round(l.size * 100)}%`,
+        min: 1,
+        max: 50,
+        step: 1,
+        title: "How thick a stripe, or how wide a spot, as a share of each ship's radius",
     },
     {
         field: "spacing",
+        for: ["stripes", "spots", "chevrons"],
+        scale: 1,
+        unit: "×",
         label: "spacing",
         min: 1.2,
         max: 10,
         step: 0.1,
         title: "From one stripe or spot to the next, in stripe widths",
-        shown: (l) => `×${l.spacing.toFixed(1)}`,
     },
     {
         field: "offset",
+        for: ["stripes", "spots", "chevrons"],
+        scale: 100,
+        unit: "%",
         label: "offset",
         min: 0,
-        max: 1,
-        step: 0.01,
+        max: 100,
+        step: 1,
         title: "How far the pattern is moved across the hull, as a share of its spacing",
-        shown: (l) => `${Math.round(l.offset * 100)}%`,
     },
     {
         field: "angle",
+        for: ["stripes", "chevrons"],
+        scale: DEGREES,
+        unit: "°",
         label: "angle",
         min: -90,
         max: 90,
         step: 1,
-        title: "Which way the stripes run across the design",
-        shown: (l) => `${Math.round(l.angle * DEGREES)}°`,
+        title: "Which way the whole pattern runs across the design",
+    },
+    {
+        field: "chevron",
+        for: ["chevrons"],
+        scale: DEGREES,
+        unit: "°",
+        label: "chevron",
+        min: 0,
+        max: MOST_CHEVRON,
+        step: 1,
+        title: "How far each arm of a chevron turns from straight",
+    },
+    {
+        field: "points",
+        for: ["chevrons"],
+        scale: 1,
+        unit: "×",
+        label: "points",
+        min: 0,
+        max: 40,
+        step: 1,
+        title: "From one point of a zigzag to the next, in stripe widths; 0 for one chevron with its point at the ship's middle",
     },
 ];
 
@@ -196,29 +224,21 @@ export function LiveryPanel({ livery, whose, note, open, onOpen, onChange, onEnd
                         </select>
                     </Row>
                     {livery.pattern !== "none" &&
-                        SLIDERS.filter((slider) => slider.field !== "angle" || livery.pattern === "stripes").map((slider) => {
-                            const value = slider.field === "angle" ? livery.angle * DEGREES : livery[slider.field];
-                            const id = `livery${slider.field[0]!.toUpperCase()}${slider.field.slice(1)}`;
-                            return (
-                                <Row key={slider.field}>
-                                    <label htmlFor={id}>{slider.label}</label>
-                                    <input
-                                        id={id}
-                                        type="range"
-                                        title={slider.title}
-                                        min={slider.field === "spacing" && livery.pattern === "spots" ? 1 : slider.min}
-                                        max={slider.max}
-                                        step={slider.step}
-                                        value={value}
-                                        onChange={(event) => {
-                                            const typed = Number(event.currentTarget.value);
-                                            set({ [slider.field]: slider.field === "angle" ? typed / DEGREES : typed }, true);
-                                        }}
-                                    />
-                                    <output htmlFor={id}>{slider.shown(livery)}</output>
-                                </Row>
-                            );
-                        })}
+                        SLIDERS.filter((slider) => slider.for.includes(livery.pattern)).map((slider) => (
+                            <SliderField
+                                key={slider.field}
+                                id={`livery${slider.field[0]!.toUpperCase()}${slider.field.slice(1)}`}
+                                label={slider.label}
+                                title={slider.title}
+                                value={livery[slider.field] * slider.scale}
+                                min={slider.field === "spacing" && livery.pattern === "spots" ? 1 : slider.min}
+                                max={slider.max}
+                                step={slider.step}
+                                unit={slider.unit}
+                                onChange={(shown, continues) => set({ [slider.field]: shown / slider.scale }, continues)}
+                                onEnd={onEnd}
+                            />
+                        ))}
                     <p>{note}</p>
                     <Button id="liveryClear" title="Paint it in its side's colours again" onClick={() => onChange(undefined, false)}>
                         Side colours

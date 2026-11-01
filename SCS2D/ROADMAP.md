@@ -220,9 +220,13 @@ an entry is either still open or it is gone.
           player cannot change.
         - **Colours** are free choices of base and highlight; the trim and dark pivot tones a module needs
           are worked out from the base, as the side palettes' are now.
-        - **Patterns**: none, stripes or spots of the highlight to start, perhaps chevrons later, each with
-          a few numbers — size, spacing, offset and, for stripes, angle — so evolution can drift them as it
-          drifts colours. A pattern is laid over the whole hull in the design's frame, so it runs on across
+        - **Patterns**: none, stripes, spots or chevrons of the highlight, each with a few numbers — size,
+          spacing, offset and, for stripes and chevrons, angle; for chevrons also how far each arm bends from
+          straight and how far apart a zigzag's points are, none being a single chevron pointing at the
+          design's middle — so evolution can drift them as it drifts colours. **Chevrons — built**: a
+          zigzag's tile is a period across and a period of its points down, a single chevron's a hull's width
+          down (`render/livery.ts`); evolution drifts the bend and the points' spacing, a single chevron
+          staying one. A pattern is laid over the whole hull in the design's frame, so it runs on across
           modules. **Its sizes are shares of each ship's radius**, as bevels are, so a fighter and its
           carrier carry about as many stripes as each other; they will not line up across docked or welded
           ships.
@@ -279,8 +283,17 @@ an entry is either still open or it is gone.
                cores included, in the highlight itself, untinted; engines and hull mounts take none, so
                they stay told apart (`patternColour`).
                Engine bells are dark grey whatever the side.
-            4. **Evolution**: drift on every mutant, leaning away from the player, and random first liveries
-               for skirmish enemies and single-ship entrants.
+            4. **Evolution — built** (`sim/liveryDrift.ts`). Every child `mutateFleet` or `offspring`
+               makes drifts its parent's livery: hue, saturation and lightness of both colours, the
+               pattern's numbers, and one time in twenty the pattern itself. Of two drifts it keeps the
+               one further from its rivals' colours (a skirmish's player, a co-evolution run's other side),
+               which is the lean away. It draws on a generator split from the breeding one without
+               moving it, so a run or an answer is bred exactly as without liveries. `newSkirmish` paints an
+               unpainted enemy from the skirmish's seed, the best of eight draws from the player's colour;
+               `seedPopulation` paints every unpainted founder, a fleet's or a lone ship's, unlike the
+               founders before it; and a match's battle wears each side's first entrant's livery. A
+               skirmish saved unpainted stays so, its answers drifting nothing. Distances here are
+               "redmean" RGB, arithmetic and a square root, so a run's file is the same on every engine.
     4. **Part art, first pass:** bevels on the hull's outside edges, and on the thick parts' edges, lit by
        the battle's light, and engine bells, barrels and turret domes shaded as rounded. Richer procedural
        parts come later.

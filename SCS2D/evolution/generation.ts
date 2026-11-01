@@ -1,7 +1,8 @@
 import type { Rng } from "../sim/index.js";
 import { min } from "../sim/math.js";
 import { mutate, type MutationLimits } from "./mutate.js";
-import { mutateFleet, type FleetMutationLimits } from "./fleetMutate.js";
+import { awayFrom, mutateFleet, type FleetMutationLimits } from "./fleetMutate.js";
+import { driftLivery, liveryRng } from "../sim/liveryDrift.js";
 import { isFleet, type Entrant, type MatchResult, type Score } from "./match.js";
 
 /**
@@ -201,8 +202,11 @@ export function offspring(
         const child = mutateFleet(parent, rng, { ...fleetLimits, ship: limits });
         return { entrant: child.fleet, edits: child.edits };
     }
+    const paint = liveryRng(rng, 0);
     const child = mutate(parent, rng, limits);
-    return { entrant: child.blueprint, edits: child.edits };
+    if (child.edits.length === 0 || parent.livery === undefined) return { entrant: child.blueprint, edits: child.edits };
+    const livery = driftLivery(parent.livery, paint, awayFrom(fleetLimits?.rivals ?? []));
+    return { entrant: { ...child.blueprint, livery }, edits: child.edits };
 }
 
 /**

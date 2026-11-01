@@ -48,15 +48,21 @@ export const SetAndCleared: Story = {
         await expect(canvas.getByRole("slider", { name: "angle" })).toBeInTheDocument();
         // A slider dragged through two values is one step.
         const size = canvas.getByRole("slider", { name: "size" });
-        fireEvent.change(size, { target: { value: "0.2" } });
-        fireEvent.change(size, { target: { value: "0.3" } });
+        fireEvent.change(size, { target: { value: "20" } });
+        fireEvent.change(size, { target: { value: "30" } });
         fireEvent.pointerUp(size);
         await expect(canvas.getByText("3 steps: #5b8dd6 stripes 0.3")).toBeInTheDocument();
+        // Typed, as a percentage, is a step of its own.
+        const typed = canvas.getByRole("textbox", { name: "size, typed" });
+        await expect(typed).toHaveValue("30");
+        await userEvent.clear(typed);
+        await userEvent.type(typed, "7{Enter}");
+        await expect(canvas.getByText("4 steps: #5b8dd6 stripes 0.07")).toBeInTheDocument();
 
         await userEvent.selectOptions(canvas.getByRole("combobox", { name: "pattern" }), "spots");
         await expect(canvas.queryByRole("slider", { name: "angle" })).toBeNull();
 
         await userEvent.click(canvas.getByRole("button", { name: "Side colours" }));
-        await expect(canvas.getByText("5 steps: none")).toBeInTheDocument();
+        await expect(canvas.getByText("6 steps: none")).toBeInTheDocument();
     },
 };

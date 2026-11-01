@@ -21,6 +21,7 @@ import {
 import type { BattleSetup } from "./customBattle.js";
 import { QUIET_TIME, TIME_CAP } from "./decision.js";
 import { fleetBlueprint, hangarClashes } from "../sim/fleetHangar.js";
+import { firstLivery, liveryRng, STOCK_BASES } from "../sim/liveryDrift.js";
 
 /**
  * A skirmish: the player's fleet against an enemy, a round at a time
@@ -163,9 +164,12 @@ export function newSkirmish(
     budget?: Budget,
     name?: string,
 ): Skirmish {
+    // An enemy unpainted is given a livery from the skirmish's seed, far from the player's colours.
+    const away = [player.livery?.base ?? STOCK_BASES[0]];
+    const painted = enemy.livery === undefined ? { ...enemy, livery: firstLivery(liveryRng(new Rng(seed), 0), away) } : enemy;
     return {
         ...(name === undefined || name.trim() === "" ? {} : { name: name.trim() }),
-        enemy,
+        enemy: painted,
         player,
         budget: budget === undefined ? billOfFleet(enemy) : { ...budget },
         round: 1,

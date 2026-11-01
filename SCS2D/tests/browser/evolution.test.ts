@@ -43,40 +43,46 @@ async function rows(p: Page, id: string): Promise<number> {
     return p.evaluate((of) => document.getElementById(of)?.childElementCount ?? 0, id);
 }
 
-/**
- * Pixels on a canvas by hue band, for telling the sides apart.
- *
- * By hue rather than by the exact colour, because a ship far enough away to
- * be drawn as an icon is faded into the background and a hull is shaded — so
- * what survives of a side's palette on screen is which way round the wheel it
- * was, which is also the only thing a person is reading it for.
- */
-async function hues(p: Page, id: string): Promise<Record<string, number>> {
-    return p.evaluate((of) => {
-        const bands: Record<string, number> = { red: 0, green: 0, blue: 0, magenta: 0 };
-        const canvas = document.getElementById(of) as HTMLCanvasElement;
-        const ctx = canvas.getContext("2d");
-        if (ctx === null) return bands;
-        const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        for (let i = 0; i < data.length; i += 4) {
-            const r = data[i]!;
-            const g = data[i + 1]!;
-            const b = data[i + 2]!;
-            const high = Math.max(r, g, b);
-            const low = Math.min(r, g, b);
-            // Enough colour in it to be a side rather than the grey furniture.
-            if (high - low < 30 || high < 40) continue;
-            let hue: number;
-            if (high === r) hue = (60 * ((g - b) / (high - low)) + 360) % 360;
-            else if (high === g) hue = 60 * (2 + (b - r) / (high - low));
-            else hue = 60 * (4 + (r - g) / (high - low));
-            if (hue < 20 || hue > 340) bands["red"]!++;
-            else if (hue > 90 && hue < 170) bands["green"]!++;
-            else if (hue > 190 && hue < 265) bands["blue"]!++;
-            else if (hue > 280 && hue < 330) bands["magenta"]!++;
-        }
-        return bands;
-    }, id);
+/** The hue of a CSS `rgb(…)` colour, degrees, or null for one with too little colour in it to be a side's. */
+function hueOf(css: string): number | null {
+    const [r, g, b] = (css.match(/\d+/g) ?? []).map(Number) as [number, number, number];
+    const high = Math.max(r, g, b);
+    const low = Math.min(r, g, b);
+    if (high - low < 30 || high < 40) return null;
+    if (high === r) return (60 * ((g - b) / (high - low)) + 360) % 360;
+    if (high === g) return 60 * (2 + (b - r) / (high - low));
+    return 60 * (4 + (r - g) / (high - low));
+}
+
+/** For each of `hues`, how many coloured pixels a canvas shows within 15° of it: a side's ships, light or dark. */
+async function hueCounts(p: Page, id: string, hues: readonly number[]): Promise<number[]> {
+    return p.evaluate(
+        ([of, wanted]) => {
+            const counts = wanted.map(() => 0);
+            const canvas = document.getElementById(of) as HTMLCanvasElement;
+            const ctx = canvas.getContext("2d");
+            if (ctx === null) return counts;
+            const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i]!;
+                const g = data[i + 1]!;
+                const b = data[i + 2]!;
+                const high = Math.max(r, g, b);
+                const low = Math.min(r, g, b);
+                if (high - low < 20 || high < 30) continue;
+                let hue: number;
+                if (high === r) hue = (60 * ((g - b) / (high - low)) + 360) % 360;
+                else if (high === g) hue = 60 * (2 + (b - r) / (high - low));
+                else hue = 60 * (4 + (r - g) / (high - low));
+                wanted.forEach((want, k) => {
+                    const apart = Math.abs(((hue - want + 540) % 360) - 180);
+                    if (apart <= 15) counts[k]!++;
+                });
+            }
+            return counts;
+        },
+        [id, hues] as const,
+    );
 }
 
 /** How many distinct colours a canvas is showing. Blank ones score 1. */
@@ -383,17 +389,21 @@ describe("the evolution route in a browser", () => {
     });
 
     it("draws a third and fourth side in colours of their own", async () => {
-        // A match is a free-for-all, so four entrants are four sides — and two of
-        // them are sides the renderer only ever had to draw once evolution
-        // existed. Checked by hue rather than by counting colours, because a
-        // fourth palette that was quietly the neutral grey would raise a count by
-        // nothing anyone would notice.
+        // A match is a free-for-all, so four entrants are four sides, each painted
+        // in a livery of its own at the founding. Each side's colour, as its row of
+        // scores is written in, is a colour, none of them the others', and its ships
+        // are on the canvas in it — so a side that was quietly the neutral grey, or
+        // drawn in a colour its row does not say, would fail.
         await page.click("#fit");
         await page.waitForTimeout(400);
-        const bands = await hues(page, "view");
-        for (const band of ["red", "green", "blue", "magenta"]) {
-            expect(bands[band], `${band} in ${JSON.stringify(bands)}`).toBeGreaterThan(0);
-        }
+        const colours = await page.$$eval("#battleScores tr[style]", (rows) => rows.map((row) => (row as HTMLElement).style.color));
+        expect(colours).toHaveLength(4);
+        const hues = colours.map(hueOf);
+        for (const hue of hues) expect(hue, `hues ${JSON.stringify(hues)} of ${JSON.stringify(colours)}`).not.toBeNull();
+        for (let a = 0; a < 4; a++) for (let b = a + 1; b < 4; b++) expect(colours[a]).not.toEqual(colours[b]);
+        const shown = await hueCounts(page, "view", hues as number[]);
+        for (const [k, pixels] of shown.entries())
+            expect(pixels, `side ${k} in ${colours[k]}: ${JSON.stringify(shown)}`).toBeGreaterThan(0);
     }, 60_000);
 
     it("reads a generation off the chart, and selects it when clicked", async () => {

@@ -11,6 +11,8 @@ export const NEW_LIVERY: Livery = {
     spacing: 3,
     offset: 0,
     angle: 0,
+    chevron: Math.PI / 4,
+    points: 0,
 };
 
 /** `of` wearing `livery`, or none. */
