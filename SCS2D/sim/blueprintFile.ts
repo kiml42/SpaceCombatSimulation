@@ -45,7 +45,7 @@ import {
     type Targeting,
 } from "./doctrine.js";
 import { unreadOf, unreadWarning, writeUnread, type UnreadKeys } from "./unread.js";
-import { readLivery, unreadLiveryWarning, writtenLivery } from "./livery.js";
+import { readLivery, liveryWarnings, writtenLivery } from "./livery.js";
 
 /**
  * The blueprint file format: what a saved ship looks like, and how to get a
@@ -667,7 +667,7 @@ export function blueprintWarnings(blueprint: Blueprint): string[] {
     const out: string[] = [];
     unreadWarning("the file", blueprint.unread, out);
     unreadWarning("livery", blueprint.livery?.unread, out);
-    unreadLiveryWarning(blueprint.unreadLivery, out);
+    liveryWarnings(blueprint, out);
     if (blueprint.unreadDoctrine !== undefined) {
         const { targeting, approach, ...top } = blueprint.unreadDoctrine as Record<string, unknown>;
         unreadWarning("doctrine", Object.keys(top).length > 0 ? top : undefined, out);

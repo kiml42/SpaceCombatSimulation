@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-    blueprintFileProblem,
     blueprintWarnings,
     fleetFileProblem,
     fleetWarnings,
@@ -48,26 +47,30 @@ describe("a livery in a file", () => {
         expect(fleetWarnings(fleet)).toEqual(["livery has a key the game does not read, kept as written: shine"]);
     });
 
-    it("warns of one it cannot read, rather than refusing the file, and keeps it as written", () => {
-        const warned = (bad: Record<string, unknown>, problem: RegExp): void => {
-            const raw = fleetFile({ livery: bad });
-            expect(fleetFileProblem(raw)).toBeNull();
-            const fleet = parseFleet(raw);
-            expect(fleet.livery).toBeUndefined();
-            expect(fleetWarnings(fleet).join()).toMatch(problem);
-            expect(serialiseFleet(fleet)).toEqual(raw);
-        };
-        warned({ base: "red", highlight: "#000000" }, /base must be a colour/);
-        warned({ ...LIVERY, pattern: "plaid" }, /pattern must be one of/);
-        // A stripe as wide as its period would paint the whole hull.
-        warned({ ...LIVERY, spacing: 0.12 }, /spacing must be above one stripe width/);
-        const ship = { ...serialiseBlueprint(GUNSHIP), livery: { ...LIVERY, size: 0 } };
-        expect(blueprintFileProblem(ship)).toBeNull();
-        expect(blueprintWarnings(parseBlueprint(ship)).join()).toMatch(/size must be above zero/);
+    it("reads every part it can, warning of each it cannot and wearing its default instead", () => {
+        const raw = fleetFile({ livery: { ...LIVERY, spacing: 0.12, pattern: "plaid" } });
+        expect(fleetFileProblem(raw)).toBeNull();
+        const fleet = parseFleet(raw);
+        expect(fleet.livery).toMatchObject({ base: "#d4a017", highlight: "#202020", size: 0.2, spacing: 3, pattern: "none" });
+        const warnings = fleetWarnings(fleet);
+        expect(warnings).toHaveLength(2);
+        expect(warnings.join()).toMatch(/pattern must be one of .*"plaid"/);
+        expect(warnings.join()).toMatch(/spacing must be above one stripe width, got 0.12; 3 is worn instead/);
+        const ship = parseBlueprint({ ...serialiseBlueprint(GUNSHIP), livery: { base: "red", highlight: "#000000", size: 0 } });
+        expect(ship.livery).toMatchObject({ base: "#5b8dd6", highlight: "#000000", size: 0.1 });
+        expect(blueprintWarnings(ship).join()).toMatch(/base must be a colour.*size must be above zero/);
+    });
+
+    it("keeps one that is not even an object as written, warning of it", () => {
+        const raw = fleetFile({ livery: "gold" });
+        const fleet = parseFleet(raw);
+        expect(fleet.livery).toBeUndefined();
+        expect(fleetWarnings(fleet).join()).toMatch(/livery must be an object/);
+        expect(serialiseFleet(fleet)).toEqual(raw);
     });
 
     it("replaces one it could not read once another is set, or side colours chosen", () => {
-        const fleet = parseFleet(fleetFile({ livery: { ...LIVERY, spacing: 0.12 } }));
+        const fleet = parseFleet(fleetFile({ livery: "gold" }));
         expect(serialiseFleet(withLivery(fleet, livery("#d4a017")))["livery"]).toMatchObject({ base: "#d4a017" });
         expect(serialiseFleet(withLivery(fleet, undefined))["livery"]).toBeUndefined();
     });

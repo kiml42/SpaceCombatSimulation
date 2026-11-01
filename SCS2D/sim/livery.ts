@@ -24,60 +24,55 @@ export interface Livery {
     angle: number;
     /** Keys its file carried that nothing reads, kept to be written back (`UnreadKeys`). */
     unread?: UnreadKeys;
+    /** Parts its file had that could not be read, each worn as its default instead (`toLivery`). Not written back. */
+    problems?: readonly string[];
 }
 
 export const LIVERY_PATTERNS = ["none", "stripes", "spots"] as const;
 export type LiveryPattern = (typeof LIVERY_PATTERNS)[number];
 
-/** What a file may leave out of a livery. */
-const PATTERN_DEFAULTS = { pattern: "none", size: 0.1, spacing: 3, offset: 0, angle: 0 } as const;
+/** What a livery is read as where its file leaves a part out, or has one that cannot be read. */
+const DEFAULTS = {
+    base: "#5b8dd6",
+    highlight: "#a8c8f0",
+    pattern: "none",
+    size: 0.1,
+    spacing: 3,
+    offset: 0,
+    angle: 0,
+} as const;
 
 const COLOUR = /^#[0-9a-f]{6}$/i;
 
-/** Why `value` is not a livery as a file holds it, or null if it is one. */
-export function liveryProblem(value: unknown, where: string): string | null {
-    if (value === undefined) return null;
-    if (typeof value !== "object" || value === null || Array.isArray(value)) {
-        return `${where} must be an object, got ${JSON.stringify(value)}`;
+/** Why a part of a livery cannot be read as `key`, or null if it can. */
+function partProblem(key: keyof typeof DEFAULTS, value: unknown): string | null {
+    if (key === "base" || key === "highlight") {
+        return typeof value === "string" && COLOUR.test(value) ? null : "must be a colour as #rrggbb";
     }
-    const raw = value as Record<string, unknown>;
-    for (const key of ["base", "highlight"]) {
-        const colour = raw[key];
-        if (typeof colour !== "string" || !COLOUR.test(colour)) {
-            return `${where}: ${key} must be a colour as #rrggbb, got ${JSON.stringify(colour)}`;
-        }
-    }
-    const pattern = raw["pattern"];
-    if (pattern !== undefined && !LIVERY_PATTERNS.includes(pattern as LiveryPattern)) {
-        return `${where}: pattern must be one of ${LIVERY_PATTERNS.join(", ")}, got ${JSON.stringify(pattern)}`;
-    }
-    for (const key of ["size", "spacing", "offset", "angle"]) {
-        const n = raw[key];
-        if (n !== undefined && (typeof n !== "number" || !Number.isFinite(n))) {
-            return `${where}: ${key} must be a number, got ${JSON.stringify(n)}`;
-        }
-    }
-    const size = raw["size"] as number | undefined;
-    if (size !== undefined && size <= 0) return `${where}: size must be above zero, got ${size}`;
-    const spacing = raw["spacing"] as number | undefined;
-    if (spacing !== undefined && spacing <= 1) return `${where}: spacing must be above one stripe width, got ${spacing}`;
+    if (key === "pattern") return LIVERY_PATTERNS.includes(value as LiveryPattern) ? null : `must be one of ${LIVERY_PATTERNS.join(", ")}`;
+    if (typeof value !== "number" || !Number.isFinite(value)) return "must be a number";
+    if (key === "size" && value <= 0) return "must be above zero";
+    // A stripe as wide as its period would paint the whole hull.
+    if (key === "spacing" && value <= 1) return "must be above one stripe width";
     return null;
 }
 
 /**
- * A livery its file carried that could not be read: kept to be written back
- * as it was, and said as a warning, while side colours are drawn instead.
- * Never a reason to refuse the file, since a livery changes nothing but looks.
+ * A livery its file carried that is not even an object: kept to be written
+ * back as it was, and said as a warning, while side colours are drawn instead.
+ * A livery changes nothing but looks, so it is never a reason to refuse a file.
  */
 export interface UnreadLivery {
     readonly value: unknown;
     readonly problem: string;
 }
 
-/** A file's livery, read, or kept as unread with why. */
+/** A file's livery, read as far as it can be, or kept as unread with why. */
 export function readLivery(value: unknown): { livery: Livery } | { unreadLivery: UnreadLivery } {
-    const problem = liveryProblem(value, "livery");
-    return problem === null ? { livery: toLivery(value) } : { unreadLivery: { value, problem } };
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+        return { unreadLivery: { value, problem: `livery must be an object, got ${JSON.stringify(value)}` } };
+    }
+    return { livery: toLivery(value) };
 }
 
 /** What a file holds for a livery: the one read, or else the one that could not be. */
@@ -85,28 +80,44 @@ export function writtenLivery(of: { readonly livery?: Livery; readonly unreadLiv
     return of.livery !== undefined ? serialiseLivery(of.livery) : of.unreadLivery?.value;
 }
 
-/** A warning for a livery that could not be read, if there is one. */
-export function unreadLiveryWarning(unread: UnreadLivery | undefined, out: string[]): void {
-    if (unread !== undefined) out.push(`${unread.problem}: kept as written, and drawn in side colours until another is set`);
+/** A warning for each part of a livery its file had that could not be read, and for one that could not be read at all. */
+export function liveryWarnings(of: { readonly livery?: Livery; readonly unreadLivery?: UnreadLivery }, out: string[]): void {
+    for (const problem of of.livery?.problems ?? []) out.push(problem);
+    if (of.unreadLivery !== undefined) {
+        out.push(`${of.unreadLivery.problem}: kept as written, and drawn in side colours until another is set`);
+    }
 }
 
 const LIVERY_KEYS: readonly string[] = ["base", "highlight", "pattern", "size", "spacing", "offset", "angle"];
 
-/** A livery from a file whose shape `liveryProblem` has passed. */
+/**
+ * A livery from a file, each part read on its own: one left out is its
+ * default, and one that cannot be read is too, with a warning
+ * (`Livery.problems`), so the rest of it is still worn.
+ */
 export function toLivery(value: unknown): Livery {
     const raw = value as Record<string, unknown>;
-    const number = (key: "size" | "spacing" | "offset"): number => (raw[key] as number | undefined) ?? PATTERN_DEFAULTS[key];
+    const problems: string[] = [];
+    const part = <K extends keyof typeof DEFAULTS>(key: K): unknown => {
+        const given = raw[key];
+        if (given === undefined) return DEFAULTS[key];
+        const problem = partProblem(key, given);
+        if (problem === null) return given;
+        problems.push(`livery: ${key} ${problem}, got ${JSON.stringify(given)}; ${JSON.stringify(DEFAULTS[key])} is worn instead`);
+        return DEFAULTS[key];
+    };
     const livery: Livery = {
-        base: (raw["base"] as string).toLowerCase(),
-        highlight: (raw["highlight"] as string).toLowerCase(),
-        pattern: (raw["pattern"] as LiveryPattern | undefined) ?? PATTERN_DEFAULTS.pattern,
-        size: number("size"),
-        spacing: number("spacing"),
-        offset: number("offset"),
-        angle: raw["angle"] === undefined ? PATTERN_DEFAULTS.angle : degreesToRadians(raw["angle"] as number),
+        base: (part("base") as string).toLowerCase(),
+        highlight: (part("highlight") as string).toLowerCase(),
+        pattern: part("pattern") as LiveryPattern,
+        size: part("size") as number,
+        spacing: part("spacing") as number,
+        offset: part("offset") as number,
+        angle: degreesToRadians(part("angle") as number),
     };
     const unread = unreadOf(raw, LIVERY_KEYS);
     if (unread !== undefined) livery.unread = unread;
+    if (problems.length > 0) livery.problems = problems;
     return livery;
 }
 
