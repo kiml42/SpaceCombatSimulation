@@ -1,5 +1,6 @@
-import { AlphaFilter, Container, Graphics, GraphicsContext } from "pixi.js";
-import { domeRadius, isDomed, originOf, type ModuleSpec, type Snapshot } from "../sim/index.js";
+import { AlphaFilter, Container, Graphics, GraphicsContext, Matrix, Texture } from "pixi.js";
+import { domeRadius, isDomed, originOf, type Livery, type ModuleSpec, type ShipDesign, type Snapshot } from "../sim/index.js";
+import { patternColour, patternTile, patternTransform, tileKey } from "./livery.js";
 import { BEVEL_DARK, BEVEL_LIGHT, BEVEL_OF_RADIUS, BEVEL_STRIDE, bevelQuad, drawnBevels, MIN_BEVEL_LIT, MIN_BEVEL_PX } from "./bevels.js";
 import { lightSlope } from "./shading.js";
 import type { Camera } from "./camera.js";
@@ -17,7 +18,7 @@ import {
 import { barrelLines, MIN_BARREL_PX } from "./barrels.js";
 import { fillAlpha, fillColour, isFighterModule, moduleFills, padMark, type Fill } from "./moduleFills.js";
 import { legibleWidth } from "./strokes.js";
-import { shipColours } from "./teams.js";
+import { shipColours, teamLivery, type Palette } from "./teams.js";
 
 /**
  * The capital ships' module fills, drawn by Pixi under the Canvas2D view, lit
@@ -146,7 +147,7 @@ export class HullLayer {
                     continue;
                 }
                 // A piece hooked on from another ship keeps that ship's colours.
-                const fill = contextFor(m.spec, ship.sides?.[i] ?? ship.team, ship.integrity?.[i] ?? 1);
+                const fill = contextFor(design, i, ship.sides?.[i] ?? ship.team, ship.integrity?.[i] ?? 1);
                 const kind = m.spec.kind;
                 // A turret's block is hull; its dome stands on it, drawn with the turrets.
                 const domed = isDomed(kind);
@@ -400,8 +401,21 @@ const contexts = new WeakMap<ModuleSpec, Map<string, GraphicsContext>>();
 const outlines = new WeakMap<ModuleSpec, GraphicsContext>();
 const fills: Fill[] = [];
 
-/** Module fills for `spec` on side `side`, built the first time they are asked for. */
-function contextFor(spec: ModuleSpec, side: number, integrity: number): GraphicsContext {
+/**
+ * Module `i`'s fills on side `side`, built the first time they are asked for:
+ * shared by every module of its spec, unless its side's livery has a pattern,
+ * which falls on each module of a design differently.
+ */
+function contextFor(design: ShipDesign, i: number, side: number, integrity: number): GraphicsContext {
+    const m = design.modules[i]!;
+    const spec = m.spec;
+    const livery = integrity > 0 && spec.kind !== "rock" && spec.kind !== "kernel" ? teamLivery(side) : undefined;
+    if (livery !== undefined && livery.pattern !== "none") return patternedContext(design, i, side, integrity, livery);
+    return plainContext(spec, side, integrity);
+}
+
+/** Module fills for `spec` on side `side`, in its colours alone. */
+function plainContext(spec: ModuleSpec, side: number, integrity: number): GraphicsContext {
     const colours = shipColours(side);
     const colour = fillColour(spec, integrity, colours);
     // What else moduleFills reads: the side's palette, and whether it is wreckage.
@@ -416,13 +430,67 @@ function contextFor(spec: ModuleSpec, side: number, integrity: number): Graphics
         context = new GraphicsContext();
         moduleFills(spec, colour, colours, integrity, fills);
         for (const fill of fills) context.poly(fill.points).fill(fill.colour);
-        if (spec.kind === "pad") {
-            const mark = padMark(spec);
-            context.rect(mark.x, mark.y, mark.width, mark.height).stroke({ width: mark.line, color: colours.trim });
-        }
+        markPad(context, spec, colours);
         bySpec.set(key, context);
     }
     return context;
+}
+
+function markPad(context: GraphicsContext, spec: ModuleSpec, colours: Palette): void {
+    if (spec.kind !== "pad") return;
+    const mark = padMark(spec);
+    context.rect(mark.x, mark.y, mark.width, mark.height).stroke({ width: mark.line, color: colours.highlight ?? colours.trim });
+}
+
+/** By the design each module was built in, then its module there and what it is painted with. */
+const patterned = new WeakMap<ShipDesign, Map<string, GraphicsContext>>();
+const patternTextures = new Map<string, Texture>();
+
+/**
+ * Module `i`'s fills with its side's pattern over those in its hull colour,
+ * laid in the frame of the design it was built in (`patternTransform`).
+ */
+function patternedContext(design: ShipDesign, i: number, side: number, integrity: number, livery: Livery): GraphicsContext {
+    const m = design.modules[i]!;
+    const colours = shipColours(side);
+    const colour = fillColour(m.spec, integrity, colours);
+    const origin = originOf(design, i);
+    const key =
+        `${origin.module}|${colour}|${colours.hull}${colours.trim}${colours.pivot}${colours.highlight}|` +
+        `${tileKey(livery, "")}|${livery.spacing}|${livery.offset}|${livery.angle}`;
+    let byDesign = patterned.get(origin.design);
+    if (byDesign === undefined) {
+        byDesign = new Map();
+        patterned.set(origin.design, byDesign);
+    }
+    let context = byDesign.get(key);
+    if (context === undefined) {
+        context = new GraphicsContext();
+        moduleFills(m.spec, colour, colours, integrity, fills);
+        const t = patternTransform(livery, design, i);
+        const matrix = new Matrix(t.a, t.b, t.c, t.d, t.e, t.f);
+        for (const fill of fills) {
+            context.poly(fill.points).fill(fill.colour);
+            const over = patternColour(m.spec.kind, fill.colour, colours);
+            const texture = over === null ? null : tileTexture(livery, over);
+            if (texture !== null) context.poly(fill.points).fill({ texture, matrix, textureSpace: "global" });
+        }
+        markPad(context, m.spec, colours);
+        byDesign.set(key, context);
+    }
+    return context;
+}
+
+function tileTexture(livery: Livery, colour: string): Texture | null {
+    const key = tileKey(livery, colour);
+    let texture = patternTextures.get(key);
+    if (texture === undefined) {
+        const tile = patternTile(livery, colour);
+        if (tile === null) return null;
+        texture = Texture.from(tile as HTMLCanvasElement);
+        patternTextures.set(key, texture);
+    }
+    return texture;
 }
 
 const domes = new Map<number, number[]>();

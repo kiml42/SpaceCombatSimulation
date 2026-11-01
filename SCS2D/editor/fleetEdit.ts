@@ -208,8 +208,8 @@ export function distinctDesign(fleet: Fleet, blueprint: Blueprint): Blueprint {
 
 /** Whether the embedded copy differs from another, by what a file would say: but for livery, which a fleet's own overrides. */
 export function differs(a: Blueprint, b: Blueprint): boolean {
-    const { livery: _a, ...left } = a;
-    const { livery: _b, ...right } = b;
+    const { livery: _a, unreadLivery: _ua, ...left } = a;
+    const { livery: _b, unreadLivery: _ub, ...right } = b;
     return !sameBlueprint(left, right);
 }
 

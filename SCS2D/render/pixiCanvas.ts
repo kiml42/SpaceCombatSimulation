@@ -33,6 +33,16 @@ interface Stop {
 }
 
 /** A gradient as canvas2d.ts makes them, filled in bands rather than smoothly. */
+/** A tile repeated, as `createPattern` makes one, laid by its transform in the frame it is filled in. */
+class Pattern {
+    m: Matrix = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
+    constructor(readonly image: object) {}
+
+    setTransform(m: Partial<Matrix> = {}): void {
+        this.m = { a: m.a ?? 1, b: m.b ?? 0, c: m.c ?? 0, d: m.d ?? 1, e: m.e ?? 0, f: m.f ?? 0 };
+    }
+}
+
 class Gradient {
     readonly stops: Stop[] = [];
     constructor(
@@ -92,8 +102,8 @@ const GLYPH_PX = 32;
 
 interface State {
     m: Matrix;
-    fillStyle: string | Gradient;
-    strokeStyle: string | Gradient;
+    fillStyle: string | Gradient | Pattern;
+    strokeStyle: string | Gradient | Pattern;
     lineWidth: number;
     globalAlpha: number;
     globalCompositeOperation: string;
@@ -175,16 +185,16 @@ export class PixiCanvas {
 
     // State.
 
-    get fillStyle(): string | Gradient {
+    get fillStyle(): string | Gradient | Pattern {
         return this.state.fillStyle;
     }
-    set fillStyle(style: string | Gradient) {
+    set fillStyle(style: string | Gradient | Pattern) {
         this.state.fillStyle = style;
     }
-    get strokeStyle(): string | Gradient {
+    get strokeStyle(): string | Gradient | Pattern {
         return this.state.strokeStyle;
     }
-    set strokeStyle(style: string | Gradient) {
+    set strokeStyle(style: string | Gradient | Pattern) {
         this.state.strokeStyle = style;
     }
     get lineWidth(): number {
@@ -389,6 +399,11 @@ export class PixiCanvas {
 
     // Drawing.
 
+    /** Always repeating, the only way canvas2d.ts asks for one. */
+    createPattern(image: object): Pattern {
+        return new Pattern(image);
+    }
+
     createLinearGradient(x0: number, y0: number, x1: number, y1: number): Gradient {
         return new Gradient(false, x0, y0, x1, y1);
     }
@@ -449,11 +464,7 @@ export class PixiCanvas {
     }
 
     drawImage(image: object, ...args: number[]): void {
-        let texture = this.textures.get(image);
-        if (texture === undefined) {
-            texture = Texture.from(image as HTMLCanvasElement);
-            this.textures.set(image, texture);
-        }
+        let texture = this.textureOf(image);
         const whole = [0, 0, texture.width, texture.height];
         const [sx = 0, sy = 0, sw = 0, sh = 0, dx = 0, dy = 0, dw = 0, dh = 0] =
             args.length === 2
@@ -626,8 +637,9 @@ export class PixiCanvas {
         return g;
     }
 
-    private fillPath(path: SubPath[], style: string | Gradient): void {
+    private fillPath(path: SubPath[], style: string | Gradient | Pattern): void {
         if (style instanceof Gradient) return style.radial ? this.fillRadial(style) : this.fillLinear(path, style);
+        if (style instanceof Pattern) return this.fillPattern(path, style);
         const [rgb, alpha] = parseColour(style);
         const a = alpha * this.state.globalAlpha;
         if (a <= 0) return;
@@ -637,6 +649,38 @@ export class PixiCanvas {
                 if (piece.length >= 6) this.draw().poly(piece, true).fill({ color: rgb, alpha: a });
             }
         }
+    }
+
+    /** The tile's pixels to the canvas's: the pattern's own transform, then the one it is filled under. */
+    private fillPattern(path: SubPath[], pattern: Pattern): void {
+        const a = this.state.globalAlpha;
+        if (a <= 0) return;
+        const texture = this.textureOf(pattern.image);
+        const s = this.state.m;
+        const p = pattern.m;
+        const matrix = new PixiMatrix(
+            s.a * p.a + s.c * p.b,
+            s.b * p.a + s.d * p.b,
+            s.a * p.c + s.c * p.d,
+            s.b * p.c + s.d * p.d,
+            s.a * p.e + s.c * p.f + s.e,
+            s.b * p.e + s.d * p.f + s.f,
+        );
+        for (const sub of path) {
+            if (sub.points.length < 6) continue;
+            for (const piece of clipPolygon(sub.points, this.state.clips)) {
+                if (piece.length >= 6) this.draw().poly(piece, true).fill({ texture, matrix, alpha: a, textureSpace: "global" });
+            }
+        }
+    }
+
+    private textureOf(image: object): Texture {
+        let texture = this.textures.get(image);
+        if (texture === undefined) {
+            texture = Texture.from(image as HTMLCanvasElement);
+            this.textures.set(image, texture);
+        }
+        return texture;
     }
 
     private fillLinear(path: SubPath[], gradient: Gradient): void {

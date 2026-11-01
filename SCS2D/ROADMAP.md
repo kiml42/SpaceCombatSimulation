@@ -264,8 +264,21 @@ an entry is either still open or it is gone.
                fleet's with it. `addShip` gives an empty fleet with none its first ship's. A livery never
                makes a design differ from its library copy (`differs`). Both editors and the fleet
                pictures draw in it; a ship with none is still drawn grey in its editor.
-            3. **The pattern shader and the parts' highlights**, WebGL only: Draw: 2D and Pixi's Canvas2D
-               fallback show the flat base. It does not wait for Draw: 2D to be retired.
+            3. **The pattern and the parts' highlights — built.** Not a shader in the end but a texture:
+               `render/livery.ts` makes one tile per pattern, share and colour, and `patternTransform`
+               lays it in the frame of the design a module was built in, a period `spacing` stripe widths
+               across (at least one: spots that touch still leave gaps, and stripes are kept a little apart), so it runs on across modules
+               and stays put on a piece cut away. The hull layer fills each module's hull-coloured
+               polygons a second time with it (one shared context per module of a design, rather than
+               per spec, where a side has a pattern); fighters, drawn through the adapter, take it by
+               `createPattern`, which `render/pixiCanvas.ts` now has, and so does Draw: 2D. A livery's
+               highlight is a `Palette`'s `highlight`, which side colours lack: it bands each engine
+               block a band's width in from its bells, fills turret domes, hull guns' mantlets and beam
+               lenses' discs in place of the pivot tone, and marks pads' landing squares and ports'
+               collars. The pattern falls on every part in the hull's three tones, thick modules and
+               cores included, in the highlight itself, untinted; engines and hull mounts take none, so
+               they stay told apart (`patternColour`).
+               Engine bells are dark grey whatever the side.
             4. **Evolution**: drift on every mutant, leaning away from the player, and random first liveries
                for skirmish enemies and single-ship entrants.
     4. **Part art, first pass:** bevels on the hull's outside edges, and on the thick parts' edges, lit by
