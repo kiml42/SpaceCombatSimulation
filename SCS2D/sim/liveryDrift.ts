@@ -88,8 +88,9 @@ function driftColour(hex: string, rng: Rng): string {
     const [h, s, l] = toHsl(hex);
     return fromHsl(
         wrap(h + rng.nextRange(-HUE_STEP, HUE_STEP)),
-        clamp(s + rng.nextRange(-TONE_STEP, TONE_STEP), 0.2, 0.9),
-        clamp(l + rng.nextRange(-TONE_STEP, TONE_STEP), 0.25, 0.75),
+        // Never so grey or so dark or pale that a side, or its fighters a shade darker, reads as a hulk.
+        clamp(s + rng.nextRange(-TONE_STEP, TONE_STEP), 0.35, 0.9),
+        clamp(l + rng.nextRange(-TONE_STEP, TONE_STEP), 0.3, 0.7),
     );
 }
 
