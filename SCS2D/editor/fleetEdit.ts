@@ -29,10 +29,12 @@ export function emptyFleet(name: string): Fleet {
  * Place a ship of this design, embedding a copy of it if the fleet has none of
  * that name. One it already carries is used as it is: a library copy that has
  * moved on is offered as a refresh, not slipped in. A carrier embedded gives
- * its hangar up to the fleet (`joinHangars`).
+ * its hangar up to the fleet (`joinHangars`). A fleet with neither ships nor a
+ * livery takes the first ship's livery.
  */
 export function addShip(fleet: Fleet, blueprint: Blueprint, x: number, y: number): Fleet {
     const next = cloneFleet(fleet);
+    if (next.ships.length === 0 && next.livery === undefined && blueprint.livery !== undefined) next.livery = { ...blueprint.livery };
     if (next.designs[blueprint.name] === undefined) {
         next.designs[blueprint.name] = JSON.parse(JSON.stringify(blueprint)) as Blueprint;
     }
@@ -204,9 +206,11 @@ export function distinctDesign(fleet: Fleet, blueprint: Blueprint): Blueprint {
     }
 }
 
-/** Whether the embedded copy differs from another, by what a file would say. */
+/** Whether the embedded copy differs from another, by what a file would say: but for livery, which a fleet's own overrides. */
 export function differs(a: Blueprint, b: Blueprint): boolean {
-    return !sameBlueprint(a, b);
+    const { livery: _a, ...left } = a;
+    const { livery: _b, ...right } = b;
+    return !sameBlueprint(left, right);
 }
 
 /** Drop every design nothing flies, and no pad of anything flown keeps. */

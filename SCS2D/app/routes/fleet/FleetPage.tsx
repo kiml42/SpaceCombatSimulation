@@ -1,5 +1,5 @@
 import { styled } from "@linaria/react";
-import { useEffect, useEffectEvent, useReducer, useState } from "react";
+import { useEffect, useEffectEvent, useReducer, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useLibrary } from "~/features/storage/useLibrary";
 import { useSkirmish } from "~/features/skirmish/SkirmishProvider";
@@ -17,6 +17,7 @@ import { serialiseSkirmish, type Skirmish } from "~/scenarios/skirmish";
 import { parseBlueprint, parseFleet, serialiseFleet, type Blueprint, type Fleet } from "~/sim/index";
 import { KeyHelp } from "~/ui/dialogs/KeyHelp";
 import { CommitText } from "~/ui/fields/CommitText";
+import { LiveryPanel } from "~/features/livery/LiveryPanel";
 import { AddShipMenu } from "./AddShipMenu";
 import { FleetCanvas } from "./FleetCanvas";
 import { designOf, fromLibrary, optionLabel, optionValue } from "./fleetOptions";
@@ -175,6 +176,9 @@ export function FleetPage() {
     const [, changed] = useReducer((n: number) => n + 1, 0);
     const [engine, setEngine] = useState<Engine | null>(null);
     const [adding, setAdding] = useState(false);
+    const [liveryOpen, setLiveryOpen] = useState(false);
+    // Whether the next livery change continues the last: a slider dragged is one undo step.
+    const gesture = useRef(false);
 
     // A design saved since, here or in another tab, is checked against the fleet's copy again.
     const [checked, setChecked] = useState(ships);
@@ -484,6 +488,25 @@ export function FleetPage() {
                             }}
                         />
                     </section>
+                    <LiveryPanel
+                        livery={doc.fleet.livery}
+                        whose="the fleet's"
+                        note="Worn by every ship in the fleet, whatever their own designs say."
+                        open={liveryOpen}
+                        onOpen={setLiveryOpen}
+                        onChange={(livery, continues) => {
+                            const next = { ...doc.fleet };
+                            if (livery === undefined) delete next.livery;
+                            else next.livery = livery;
+                            if (continues && gesture.current) doc.amend(next);
+                            else doc.apply(next);
+                            gesture.current = continues;
+                            edited();
+                        }}
+                        onEnd={() => {
+                            gesture.current = false;
+                        }}
+                    />
                     <section>
                         <h2>Fleet notes</h2>
                         <CommitText

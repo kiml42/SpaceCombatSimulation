@@ -1,5 +1,6 @@
 import { degreesToRadians, isGroupUse, math, radiansToDegrees, Snapshot, type Fleet } from "../sim/index.js";
 import { ARC_LABELS, ARCS_KEY, draw, nextArcs, type Arcs } from "../render/canvas2d.js";
+import { sidesOf, withSides } from "../render/teams.js";
 import { frame, snapStep, type Camera } from "../render/camera.js";
 import { viewOptions } from "../host/viewOptions.js";
 import { loadRenderer } from "../host/viewSettings.js";
@@ -116,7 +117,8 @@ export function fleetCanvas(canvas: HTMLCanvasElement, doc: FleetDocument, hooks
         return { ships, boxes };
     };
 
-    const render = (): void => {
+    const render = (): void => withSides(sidesOf([doc.fleet.livery]), paint);
+    const paint = (): void => {
         fleetSnapshot(doc.view, snapshot);
         if (fitPending) {
             // Measured now, as the page round it may have changed its size since.

@@ -257,8 +257,13 @@ an entry is either still open or it is gone.
                the swatches on the custom battle, skirmish and timeline pass their sides explicitly. A side
                is named by the nearest of a short list of named colours. The editors and fleet pictures
                still draw undecided ships grey, until the panel.
-            2. **The Livery panel** in both editors, the ship editor's edits going back to its fleet, the
-               library's copy and the first-ship rule.
+            2. **The Livery panel — built** (`features/livery/LiveryPanel.tsx`), in both editors: colour
+               pickers, a pattern and its sliders, a drag one undo step. Opened from a fleet, the ship
+               editor's design wears the fleet's livery (`wearingFleets`), and `backToFleet` gives it back
+               to the fleet, the design keeping its own; saving it to the library from there saves the
+               fleet's with it. `addShip` gives an empty fleet with none its first ship's. A livery never
+               makes a design differ from its library copy (`differs`). Both editors and the fleet
+               pictures draw in it; a ship with none is still drawn grey in its editor.
             3. **The pattern shader and the parts' highlights**, WebGL only: Draw: 2D and Pixi's Canvas2D
                fallback show the flat base. It does not wait for Draw: 2D to be retired.
             4. **Evolution**: drift on every mutant, leaning away from the player, and random first liveries

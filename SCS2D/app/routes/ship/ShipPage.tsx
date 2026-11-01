@@ -14,7 +14,9 @@ import {
     renameShip,
     toPlacementAngle,
 } from "~/editor/edit";
-import { replaceDesign, replacedName } from "~/editor/fleetEdit";
+import { replacedName } from "~/editor/fleetEdit";
+import { backToFleet, wearingFleets } from "~/editor/livery";
+import { LiveryPanel } from "~/features/livery/LiveryPanel";
 import { battleRoute, designRoute, fleetRoute, handedDesign, shipFleet, type DesignInFleet } from "~/editor/handoff";
 import { emptyBlueprint, nextName, toFileText, unusedName } from "~/editor/library";
 import { ANGLE_SNAP_DEGREES, type ShipCanvas as Engine } from "~/editor/shipCanvas";
@@ -211,13 +213,17 @@ export function ShipPage() {
         const named = search.get("open");
         const read = (): Blueprint | null => (named === null ? null : fromLibrary(library, named)) ?? fromLibrary(library, "Corvette");
         // As it flies in its fleet, carrying the fleet's fighters for its pads.
-        const opened = inFleet === null ? null : withFleetFighters(inFleet.fleet.designs[inFleet.design]!, inFleet.fleet.designs);
+        const opened =
+            inFleet === null
+                ? null
+                : wearingFleets(withFleetFighters(inFleet.fleet.designs[inFleet.design]!, inFleet.fleet.designs), inFleet.fleet);
         return new EditorDocument(opened ?? read() ?? emptyBlueprint("New ship"));
     });
     // The document is changed in place; this is what re-renders the panels when it is.
     const [, changed] = useReducer((n: number) => n + 1, 0);
     const [engine, setEngine] = useState<Engine | null>(null);
     const [doctrineOpen, setDoctrineOpen] = useState<DoctrineOpen>({ mount: false, ship: false });
+    const [liveryOpen, setLiveryOpen] = useState(false);
     // Whether the next edit continues the last: a drag or a held arrow key is one undo step, not hundreds.
     const gesture = useRef(false);
 
@@ -269,7 +275,7 @@ export function ShipPage() {
     const blueprint = doc.blueprint;
     const remember = useEffectEvent(() => {
         if (inFleet === null) return;
-        const fleet = replaceDesign(inFleet.fleet, inFleet.design, doc.blueprint);
+        const fleet = backToFleet(inFleet.fleet, inFleet.design, doc.blueprint);
         const design = replacedName(inFleet.fleet, inFleet.design, doc.blueprint);
         const route = designRoute({ ...inFleet, fleet, design });
         setSearch(new URLSearchParams(route.slice(route.indexOf("?"))), { replace: true });
@@ -500,7 +506,7 @@ export function ShipPage() {
                         onClick={(event) => {
                             event.preventDefault();
                             if (!refuseBroken(event))
-                                void navigate(fleetRoute(replaceDesign(inFleet.fleet, inFleet.design, doc.blueprint), inFleet.skirmish));
+                                void navigate(fleetRoute(backToFleet(inFleet.fleet, inFleet.design, doc.blueprint), inFleet.skirmish));
                         }}
                     >
                         Back to fleet
@@ -611,6 +617,24 @@ export function ShipPage() {
                             />
                         </Field>
                     </section>
+                    <LiveryPanel
+                        livery={blueprint.livery}
+                        whose={inFleet === null ? "this ship's" : "the fleet's"}
+                        note={
+                            inFleet === null
+                                ? "Worn flying alone. In a fleet, the fleet's livery is worn instead."
+                                : `Worn by every ship in ${inFleet.fleet.name}, and taken back to it with this design.`
+                        }
+                        open={liveryOpen}
+                        onOpen={setLiveryOpen}
+                        onChange={(livery, continues) => {
+                            const next = { ...doc.blueprint };
+                            if (livery === undefined) delete next.livery;
+                            else next.livery = livery;
+                            editing.change(next, continues);
+                        }}
+                        onEnd={editing.endGesture}
+                    />
                     <section>
                         <h2>Ship notes</h2>
                         <LiveText
@@ -650,7 +674,7 @@ function memberOf(doc: EditorDocument, instance: ModulePath): number {
 
 /** The fleet this design is one of: what taking it back means, and in a skirmish what it costs against the budget. */
 function InFleet({ inFleet, blueprint }: { readonly inFleet: DesignInFleet; readonly blueprint: Blueprint }) {
-    const fleet = replaceDesign(inFleet.fleet, inFleet.design, blueprint);
+    const fleet = backToFleet(inFleet.fleet, inFleet.design, blueprint);
     const skirmish = inFleet.skirmish;
     // A design that would not fly cannot be priced, and is an ordinary state to be editing in.
     const fault = skirmish === undefined ? null : fleetFault(fleet);
