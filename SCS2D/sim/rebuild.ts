@@ -1,6 +1,6 @@
 import { cos, sin } from "./math.js";
 import { DAMAGE_ENERGY_PER_KG } from "./damage.js";
-import { boxAngle, COMPLEXITY_WORK, moduleOutline, ROBOT_MASS, type ModuleSpec, type ModuleStats } from "./modules.js";
+import { boxAngle, COMPLEXITY_WORK, isThick, moduleOutline, ROBOT_MASS, type ModuleSpec, type ModuleStats } from "./modules.js";
 import { distanceToOutline, polygonArea, polygonMomentOfArea, triangleBounds } from "./shape.js";
 
 /**
@@ -73,7 +73,8 @@ export function faceNearest(spec: ModuleSpec, x: number, y: number): number {
  * The walls of a module, up across `share` of it from edge `face`: a strip of
  * a box, or a triangle of a triangle with its apex drawn in towards the face.
  * Structure, since that is all it is yet, weighing that share of the module's
- * walls and stopping as much as they do.
+ * walls and stopping as much as they do. A thick module's shell is thick, as
+ * deep as the module whole (`stats.thickness`) from the first step.
  */
 export function shellOf(spec: ModuleSpec, stats: ModuleStats, face: number, share: number): { spec: ModuleSpec; stats: ModuleStats } {
     const corners: number[] = [];
@@ -83,6 +84,7 @@ export function shellOf(spec: ModuleSpec, stats: ModuleStats, face: number, shar
     const [ax, ay] = at(face);
     const [bx, by] = at(face + 1);
     const shell: ModuleSpec = { kind: "structure", x: 0, y: 0, length: spec.length, width: spec.width, angle };
+    if (isThick(spec)) shell.thick = true;
     let vertices: number[];
     if (count === 3) {
         // The apex drawn in towards the middle of the face.
