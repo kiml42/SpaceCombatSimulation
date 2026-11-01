@@ -17,7 +17,17 @@ import { mutateFleet } from "../evolution/fleetMutate.js";
 import { offspring } from "../evolution/generation.js";
 import { Match } from "../evolution/match.js";
 
-const TEAL: Livery = { base: "#2a6a8a", highlight: "#f0c040", pattern: "stripes", size: 0.1, spacing: 3, offset: 0.2, angle: 0.3 };
+const TEAL: Livery = {
+    base: "#2a6a8a",
+    highlight: "#f0c040",
+    pattern: "stripes",
+    size: 0.1,
+    spacing: 3,
+    offset: 0.2,
+    angle: 0.3,
+    chevron: 0.5,
+    points: 0,
+};
 
 /** Whether a fleet file would carry it, so a drifted livery is never one a file refuses. */
 function readable(livery: Livery): boolean {

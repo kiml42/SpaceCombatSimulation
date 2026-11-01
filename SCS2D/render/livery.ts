@@ -3,11 +3,36 @@ import type { Palette } from "./teams.js";
 
 /**
  * A livery's pattern, as a tile repeated across a ship's hull in its design's
- * frame, so it runs on across modules however each is drawn. One period of
- * the pattern is a tile `TILE` pixels square; a stripe or spot covers its
- * share of it, so a tile is made once for each pattern, share and colour.
+ * frame, so it runs on across modules however each is drawn. A tile of
+ * stripes or spots is one period `TILE` pixels square, a stripe or spot
+ * covering its share of it; a tile of chevrons is one period across and, for a
+ * zigzag, one period of its points down, at `CHEVRON_WIDTH` pixels a stripe.
+ * A tile is made once for each shape and colour.
  */
 export const TILE = 64;
+/** Pixels a chevron's stripe is wide on its tile. */
+const CHEVRON_WIDTH = 16;
+/** The tallest a single chevron's tile grows, pixels: a hull's width at the thinnest stripes. */
+const TALLEST = 4096;
+
+/** A tile's size, how many of its pixels a stripe's width spans, and the row the design's middle falls on. */
+interface TileShape {
+    readonly width: number;
+    readonly height: number;
+    readonly perWidth: number;
+    readonly middle: number;
+}
+
+function shapeOf(livery: Livery): TileShape {
+    if (livery.pattern !== "chevrons") return { width: TILE, height: TILE, perWidth: TILE / livery.spacing, middle: 0 };
+    const width = Math.max(2, Math.round(CHEVRON_WIDTH * livery.spacing));
+    // A single chevron reaches a radius either side of its point, which is 1 / size stripe widths.
+    const height =
+        livery.points > 0
+            ? Math.max(2, Math.round(CHEVRON_WIDTH * livery.points))
+            : Math.min(TALLEST, Math.round((2 * CHEVRON_WIDTH) / livery.size));
+    return { width, height, perWidth: CHEVRON_WIDTH, middle: livery.points > 0 ? 0 : height / 2 };
+}
 
 /**
  * A stripe's or spot's share of a tile, in whole pixels, so a slider dragged
@@ -20,7 +45,10 @@ function share(livery: Livery): number {
 
 /** What a tile is made from: the same for any two liveries tiled alike. */
 export function tileKey(livery: Livery, colour: string): string {
-    return `${livery.pattern} ${share(livery)} ${colour}`;
+    if (livery.pattern !== "chevrons") return `${livery.pattern} ${share(livery)} ${colour}`;
+    const { width, height } = shapeOf(livery);
+    // In half degrees, so a slider dragged makes few.
+    return `chevrons ${width}x${height} ${Math.round((livery.chevron * 360) / Math.PI)} ${colour}`;
 }
 
 const tiles = new Map<string, HTMLCanvasElement | OffscreenCanvas | null>();
@@ -38,23 +66,47 @@ export function patternTile(livery: Livery, colour: string): HTMLCanvasElement |
 }
 
 function makeTile(livery: Livery, colour: string): HTMLCanvasElement | OffscreenCanvas | null {
+    const { width: w, height: h } = shapeOf(livery);
     const canvas =
         typeof OffscreenCanvas !== "undefined"
-            ? new OffscreenCanvas(TILE, TILE)
+            ? new OffscreenCanvas(w, h)
             : typeof document !== "undefined"
-              ? Object.assign(document.createElement("canvas"), { width: TILE, height: TILE })
+              ? Object.assign(document.createElement("canvas"), { width: w, height: h })
               : null;
     const ctx = canvas?.getContext("2d") as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null | undefined;
     if (canvas == null || ctx == null) return null;
-    const width = share(livery);
     ctx.fillStyle = colour;
-    if (livery.pattern === "stripes") ctx.fillRect(0, 0, width, TILE);
+    if (livery.pattern === "chevrons") chevrons(ctx, livery, w, h);
+    else if (livery.pattern === "stripes") ctx.fillRect(0, 0, share(livery), TILE);
     else {
         ctx.beginPath();
-        ctx.arc(TILE / 2, TILE / 2, width / 2, 0, 2 * Math.PI);
+        ctx.arc(TILE / 2, TILE / 2, share(livery) / 2, 0, 2 * Math.PI);
         ctx.fill();
     }
     return canvas;
+}
+
+/**
+ * A band `CHEVRON_WIDTH` across, square to its arms, bent at its points: for a
+ * zigzag at the tile's top and bottom edges and the other way at its middle,
+ * for a single chevron at its middle alone. Drawn again either side, as far
+ * as its arms reach, so it wraps across the tile's sides.
+ */
+function chevrons(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, livery: Livery, w: number, h: number): void {
+    const lean = Math.tan(livery.chevron);
+    const half = CHEVRON_WIDTH / 2 / Math.cos(livery.chevron);
+    // How far from its point the band has leaned, at the top, middle and bottom rows.
+    const away = livery.points > 0 ? [0, h / 2, 0] : [h / 2, 0, h / 2];
+    const rows = [0, h / 2, h];
+    const reach = Math.ceil((lean * h) / 2 / w) + 1;
+    for (let k = -reach; k <= 1; k++) {
+        const x = w / 2 + k * w;
+        ctx.beginPath();
+        rows.forEach((row, n) => ctx.lineTo(x - half + lean * away[n]!, row));
+        for (let n = 2; n >= 0; n--) ctx.lineTo(x + half + lean * away[n]!, rows[n]!);
+        ctx.closePath();
+        ctx.fill();
+    }
 }
 
 /**
@@ -79,20 +131,26 @@ export interface Affine {
 
 /**
  * From a tile's pixels to module `m`'s own frame: the tile laid in the frame
- * of the design `m` was built in, a period `spacing` stripes of `size` of that design's radius
- * across, turned by the livery's angle and moved by its offset. A piece cut
+ * of the design `m` was built in, a stripe `size` of that design's radius
+ * across and a period `spacing` stripes, turned by the livery's angle and
+ * moved by its offset. A piece cut
  * from a ship keeps the pattern where it was.
  */
 export function patternTransform(livery: Livery, design: ShipDesign, m: number): Affine {
     const origin = originOf(design, m);
     const built = origin.design;
     const module = built.modules[origin.module]!;
-    const period = livery.spacing * livery.size * built.radius;
-    const s = period / TILE;
-    // Tile pixels to the design's frame: scaled, moved along the stripes' normal, turned.
+    const shape = shapeOf(livery);
+    const s = (livery.size * built.radius) / shape.perWidth;
+    const period = shape.width * s;
+    // Tile pixels to the design's frame: scaled, moved along the stripes' normal and the tile's middle row to the
+    // design's, turned.
     const ca = Math.cos(livery.angle);
     const sa = Math.sin(livery.angle);
-    const shift = livery.offset * period;
+    const along = livery.offset * period;
+    const down = -shape.middle * s;
+    const shiftX = along * ca - down * sa;
+    const shiftY = along * sa + down * ca;
     // Then the design's frame to the module's: back from its place, and turned back by its angle.
     const cm = Math.cos(-module.angle);
     const sm = Math.sin(-module.angle);
@@ -100,7 +158,7 @@ export function patternTransform(livery: Livery, design: ShipDesign, m: number):
     const b = s * sa;
     const c = -s * sa;
     const d = s * ca;
-    const e = shift * ca - module.x;
-    const f = shift * sa - module.y;
+    const e = shiftX - module.x;
+    const f = shiftY - module.y;
     return { a: cm * a - sm * b, b: sm * a + cm * b, c: cm * c - sm * d, d: sm * c + cm * d, e: cm * e - sm * f, f: sm * e + cm * f };
 }

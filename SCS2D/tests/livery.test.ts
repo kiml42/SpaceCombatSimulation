@@ -18,10 +18,20 @@ import { patternColour, patternTransform, TILE, tileKey } from "../render/livery
 import { fleetBattle } from "../scenarios/fleetBattle.js";
 import { colourDistance, colourName, liveryPalette, sidesOf, STOCK, TOO_ALIKE, teamColour, teamName } from "../render/teams.js";
 
-const LIVERY = { base: "#d4a017", highlight: "#202020", pattern: "stripes", size: 0.2, spacing: 2.5, offset: 0.25, angle: 30 };
+const LIVERY = {
+    base: "#d4a017",
+    highlight: "#202020",
+    pattern: "stripes",
+    size: 0.2,
+    spacing: 2.5,
+    offset: 0.25,
+    angle: 30,
+    chevron: 45,
+    points: 0,
+};
 
 function livery(base: string): Livery {
-    return { base, highlight: "#ffffff", pattern: "none", size: 0.1, spacing: 3, offset: 0, angle: 0 };
+    return { base, highlight: "#ffffff", pattern: "none", size: 0.1, spacing: 3, offset: 0, angle: 0, chevron: 0.5, points: 0 };
 }
 
 const fleetFile = (extra: Record<string, unknown>): Record<string, unknown> => ({
@@ -59,6 +69,25 @@ describe("a livery in a file", () => {
         const ship = parseBlueprint({ ...serialiseBlueprint(GUNSHIP), livery: { base: "red", highlight: "#000000", size: 0 } });
         expect(ship.livery).toMatchObject({ base: "#5b8dd6", highlight: "#000000", size: 0.1 });
         expect(blueprintWarnings(ship).join()).toMatch(/base must be a colour.*size must be above zero/);
+    });
+
+    it("reads chevrons, warning of an arm bent past lying along the stripes", () => {
+        const fleet = parseFleet(fleetFile({ livery: { ...LIVERY, pattern: "chevrons", chevron: 30, points: 8 } }));
+        expect(fleet.livery).toMatchObject({ pattern: "chevrons", points: 8 });
+        expect(fleet.livery!.chevron).toBeCloseTo(Math.PI / 6, 12);
+        const bent = parseFleet(fleetFile({ livery: { ...LIVERY, pattern: "chevrons", chevron: 80 } }));
+        expect(fleetWarnings(bent).join()).toMatch(/chevron must be from 0 to 75 degrees, got 80; 45 is worn instead/);
+        // Older files, written before chevrons, read with a chevron's defaults.
+        const { chevron: _c, points: _p, ...older } = LIVERY;
+        expect(parseFleet(fleetFile({ livery: older })).livery).toMatchObject({ points: 0 });
+    });
+
+    it("tiles a zigzag one period of its points tall, and a single chevron a hull's width", () => {
+        const zigzag = { ...livery("#d4a017"), pattern: "chevrons" as const, size: 0.1, spacing: 3, points: 8, chevron: Math.PI / 4 };
+        expect(tileKey(zigzag, "#fff")).toBe("chevrons 48x128 90 #fff");
+        expect(tileKey({ ...zigzag, points: 0 }, "#fff")).toBe("chevrons 48x320 90 #fff");
+        // In half degrees of bend; thinner stripes reach further, up to a limit.
+        expect(tileKey({ ...zigzag, points: 0, size: 0.001 }, "#fff")).toBe("chevrons 48x4096 90 #fff");
     });
 
     it("lets spots touch, but keeps stripes apart", () => {
@@ -142,6 +171,8 @@ describe("a livery's pattern", () => {
             spacing: 3,
             offset: 0.25,
             angle: 0.5,
+            chevron: 0,
+            points: 0,
         };
         const period = livery.spacing * livery.size * design.radius;
         // A tile pixel's place in the design, worked out directly.

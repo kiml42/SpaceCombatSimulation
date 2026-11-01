@@ -1,4 +1,4 @@
-import { LIVERY_PATTERNS, type Livery } from "./livery.js";
+import { LIVERY_PATTERNS, MOST_CHEVRON, type Livery } from "./livery.js";
 import { abs, floor, max, min, PI, round, sqrt } from "./math.js";
 import { Rng } from "./rng.js";
 
@@ -65,6 +65,8 @@ function drawn(rng: Rng): Livery {
         spacing: rng.nextRange(2, 5),
         offset: rng.nextFloat(),
         angle: rng.nextRange(-PI / 2, PI / 2),
+        chevron: rng.nextRange(PI / 9, PI / 3),
+        points: rng.chance(0.5) ? 0 : rng.nextRange(4, 16),
     };
 }
 
@@ -79,6 +81,9 @@ function drifted(parent: Livery, rng: Rng): Livery {
         spacing: clamp(parent.spacing * (1 + step(SCALE_STEP)), 1.2, 10),
         offset: wrap(parent.offset + step(OFFSET_STEP)),
         angle: foldAngle(parent.angle + step(ANGLE_STEP)),
+        chevron: clamp(parent.chevron + step(ANGLE_STEP), 0, (MOST_CHEVRON * PI) / 180),
+        // A zigzag's points drift apart or together; a single chevron stays one.
+        points: parent.points > 0 ? clamp(parent.points * (1 + step(SCALE_STEP)), 1, 40) : 0,
     };
     if (parent.unread !== undefined) child.unread = parent.unread;
     return child;
