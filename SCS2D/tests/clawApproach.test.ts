@@ -123,4 +123,66 @@ describe("a claw ship closing on a source", () => {
         expect(speed(loaded(1))).toBeLessThan(speed(loaded(0.1)));
         expect(speed(SCAVENGER)).toBeCloseTo(2.5, 6);
     });
+
+    it("touches down no faster than it planned to, rather than lagging its stopping curve, and holds on first time", () => {
+        const run = atRock(REPLICATOR);
+        const ships = run.ships as unknown as {
+            clawArrival(bodies: unknown, b: number, claw: number): number;
+            workingClaw(i: number, b: number): number;
+        };
+        const bodies = run.world.bodies;
+        const b = bodies.indexOf(run.ships.body(run.m));
+        const arrival = ships.clawArrival(bodies, b, ships.workingClaw(run.m, b));
+        // How fast it was closing when it first touched.
+        let touched = -1;
+        const weld = run.ships.weld.bind(run.ships);
+        run.ships.weld = (world, contacts) => {
+            const mine = world.bodies.indexOf(run.ships.body(run.m));
+            for (let k = 0; k < contacts.count && touched < 0; k++) {
+                if (contacts.a[k] === mine || contacts.b[k] === mine) touched = contacts.closing[k]!;
+            }
+            return weld(world, contacts);
+        };
+        for (let t = 0; t < 120 * 60 && !run.ships.isMoored(run.m); t++) run.step();
+        expect(run.ships.isMoored(run.m)).toBe(true);
+        // It had run in at twice this.
+        expect(touched).toBeGreaterThan(0);
+        expect(touched).toBeLessThan(1.2 * arrival);
+        expect(run.ships.currentStructure(run.m).modules.length).toBe(compileBlueprint(REPLICATOR).modules.length);
+    });
+
+    it("grips clear of a hulk lying in its way in, as its keeping clear of the hulk would otherwise turn it off every time", () => {
+        // A claw broken off, its core gone.
+        const piece: Blueprint = {
+            name: "Piece",
+            modules: [
+                { kind: "core", x: -1, y: 0, length: 1, width: 2 },
+                { kind: "claw", x: 0.75, y: 0, length: 2.5, width: 2 },
+            ],
+        };
+        const run = atRock(REPLICATOR);
+        const ships = run.ships as unknown as {
+            gripModule: number[];
+            gripX: number[];
+            gripY: number[];
+            gripNx: number[];
+            gripNy: number[];
+        };
+        while (ships.gripModule[run.m]! < 0) run.step();
+        // Lying 30 m out from where it first means to grip.
+        const x = ships.gripX[run.m]! + 30 * ships.gripNx[run.m]!;
+        const y = ships.gripY[run.m]! + 30 * ships.gripNy[run.m]!;
+        const h = run.ships.spawn(run.world, { design: compileBlueprint(piece), x, y, team: 0 });
+        run.ships.damage.absorb(
+            run.world.bodies.indexOf(run.ships.body(h)),
+            0,
+            compileBlueprint(piece).modules[0]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG,
+        );
+        expect(run.ships.hasControl(h)).toBe(false);
+        for (let t = 0; t < 120 * 60 && !run.ships.isMoored(run.m); t++) run.step();
+        expect(run.ships.isMoored(run.m)).toBe(true);
+        const bodies = run.world.bodies;
+        const at = (i: number) => bodies.indexOf(run.ships.body(i));
+        expect(Math.hypot(bodies.x[at(h)]! - bodies.x[at(run.m)]!, bodies.y[at(h)]! - bodies.y[at(run.m)]!)).toBeGreaterThan(100);
+    });
 });
