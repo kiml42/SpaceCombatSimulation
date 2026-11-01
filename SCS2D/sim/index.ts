@@ -392,6 +392,7 @@ export {
     withFleetFighters,
 } from "./fleetHangar.js";
 export { LIVERY_PATTERNS, type Livery, type LiveryPattern, type UnreadLivery } from "./livery.js";
+export { colourGap, driftLivery, firstLivery, liveryRng, STOCK_BASES } from "./liveryDrift.js";
 export { FLEET_FORMAT_VERSION, fleetFileProblem, fleetWarnings, parseFleet, serialiseFleet } from "./fleetFile.js";
 export type { UnreadKeys } from "./unread.js";
 export {
