@@ -70,7 +70,7 @@ export interface Fill {
  * of its own: a core in the darkest of the team's colours, since shooting it
  * out is what leaves a hulk; wreckage grey; rock by what it holds.
  */
-export function fillColour(spec: ModuleSpec, integrity: number, _weaponsLayer: boolean, colours: Palette): string {
+export function fillColour(spec: ModuleSpec, integrity: number, colours: Palette): string {
     if (spec.kind === "kernel") return KERNEL;
     if (spec.kind === "rock") return rockColour(spec.ore ?? 0, spec.ice ?? 0);
     if (integrity <= 0) return WRECKAGE;

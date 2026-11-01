@@ -146,7 +146,7 @@ export class HullLayer {
                     continue;
                 }
                 // A piece hooked on from another ship keeps that ship's colours.
-                const fill = contextFor(m.spec, ship.sides?.[i] ?? ship.team, ship.integrity?.[i] ?? 1, m.weaponsLayer);
+                const fill = contextFor(m.spec, ship.sides?.[i] ?? ship.team, ship.integrity?.[i] ?? 1);
                 const kind = m.spec.kind;
                 // A turret's block is hull; its dome stands on it, drawn with the turrets.
                 const domed = isDomed(kind);
@@ -401,9 +401,9 @@ const outlines = new WeakMap<ModuleSpec, GraphicsContext>();
 const fills: Fill[] = [];
 
 /** Module fills for `spec` on side `side`, built the first time they are asked for. */
-function contextFor(spec: ModuleSpec, side: number, integrity: number, weaponsLayer: boolean): GraphicsContext {
+function contextFor(spec: ModuleSpec, side: number, integrity: number): GraphicsContext {
     const colours = shipColours(side);
-    const colour = fillColour(spec, integrity, weaponsLayer, colours);
+    const colour = fillColour(spec, integrity, colours);
     // What else moduleFills reads: the side's palette, and whether it is wreckage.
     const key = `${colour}|${colours.hull}${colours.trim}${colours.pivot}|${integrity <= 0}`;
     let bySpec = contexts.get(spec);

@@ -16,6 +16,7 @@ inside any one file is not contiguous.
 
 | File | Holds | Read it when |
 | --- | --- | --- |
+| 2026-11-01 | **Thick structure is drawn in the hull's colour.** Tried at the author's request and kept: thick structure, tanks, holds and batteries were filled in the mounts' trim to show they stood up into the weapons layer, but the bevels on their outside edges and the shadows they cast show the step well enough, and the hull reads as one colour. Engines, mounts and ports keep the trim. `fillColour` no longer reads whether a module is thick. |
 | **[DESIGN.md](DESIGN.md)** | Status, §§1–7 and 9–11 — what the game is, how it works, and why | Deciding how something should behave |
 | **[ROADMAP.md](ROADMAP.md)** | §8 build order, §12 open questions | Picking up work, or deferring a decision |
 | **[DECISIONS.md](DECISIONS.md)** | The Decision Log | Asking why something ended up the way it is |
