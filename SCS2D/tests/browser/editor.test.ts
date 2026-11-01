@@ -61,7 +61,8 @@ function alike(a: Pixels, b: Pixels): boolean {
 
 /** How many pixels in the view are the fault mark's red. */
 async function redPixels(p: Page): Promise<number> {
-    const { data } = await shownPixels(p.locator("#view"));
+    // The canvases alone: the text over the view can be drawn with coloured edges.
+    const { data } = await shownPixels(p.locator("#view"), true);
     let red = 0;
     // The fault's tint over a grey module: redder than it is green or blue, and those two
     // alike. Not the gold selection, nor a gun's orange flash, where green outweighs blue.
