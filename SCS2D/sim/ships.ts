@@ -256,6 +256,16 @@ function stoppingSpeed(brake: number, gap: number, delay: number): number {
 }
 
 /**
+ * How fast a craft flying down `stoppingSpeed(brake, gap, delay)` slows as it
+ * goes, m/s², where that curve is at `speed`: what its controller has to be
+ * told to expect, or it lags the curve by this times its response time.
+ */
+function curveDeceleration(brake: number, speed: number, delay: number): number {
+    if (!(brake > 0) || !(speed > 0) || !Number.isFinite(delay)) return 0;
+    return (brake * speed) / (speed + brake * delay);
+}
+
+/**
  * Roughly how long it takes to cover `gap` metres and stop: at the fastest of
  * `cruise` and what it can stop from (`stoppingSpeed`), then braking at
  * `brake` m/s². From that speed, so a measure of a plan, not of a craft.
@@ -1258,6 +1268,10 @@ export class Ships {
     /** Each module's outline while a face is chosen, flat, and where each starts in it. */
     private readonly gripOutlines: number[] = [];
     private readonly gripStarts: number[] = [];
+    /** What lies about the source while a face is chosen, flat: where in its frame, and how far off it is kept, middle to middle. */
+    private readonly gripObstacles: number[] = [];
+    /** The points along a face looked at as a grip, metres from its first corner. */
+    private readonly gripAlongs: number[] = [];
     /** The pad, by module of its ship's design, a fighter is making for to refuel; -1 for none. */
     private readonly landingPad: number[] = [];
     /**
@@ -12267,6 +12281,7 @@ export class Ships {
         const s = sin(angle);
         // The jaws in the target's frame.
         this.jawsTip(i, claw);
+        const reach = length(this.partAt.x, this.partAt.y);
         const shipAngle = bodies.angle[b]!;
         const wx = bodies.x[b]! + this.partAt.x * cos(shipAngle) - this.partAt.y * sin(shipAngle) - bodies.x[tb]!;
         const wy = bodies.y[b]! + this.partAt.x * sin(shipAngle) + this.partAt.y * cos(shipAngle) - bodies.y[tb]!;
@@ -12292,6 +12307,7 @@ export class Ships {
             for (let v = 0; v < count * 2; v += 2) outlines.push(corners[v]! - hull.centreOfMassX, corners[v + 1]! - hull.centreOfMassY);
         }
         starts.push(outlines.length);
+        this.gatherObstacles(bodies, i, b, tb, source, c, s);
         const width = this.designs[i]!.modules[claw]!.spec.width;
         let best = Infinity;
         // How good the best face so far is, before how near: wide enough for the jaws counts for more than room in front of it.
@@ -12317,26 +12333,47 @@ export class Ships {
                 if ((qx - ax) * nx + (qy - ay) * ny <= 0) continue;
                 // Where the jaws are square across from, but the middle of a face only a few jaws wide.
                 const margin = min(width, span) / 2;
-                const along = span < 4 * width ? span / 2 : clamp((qx - ax) * tx + (qy - ay) * ty, margin, span - margin);
-                const px = ax + tx * along;
-                const py = ay + ty * along;
-                // Outside: no other module just beyond it.
-                if (this.insideAnyOutline(m, px + nx * 0.01, py + ny * 0.01)) continue;
-                const cost = length(px + nx * gate - qx, py + ny * gate - qy);
-                const fits = span >= width ? 2 : 0;
-                // Not worth asking about room in front of one that could not win with it.
-                if (fits + 1 < bestTier || (fits + 1 === bestTier && !(cost < best))) continue;
-                // Room in front of it, as wide as the ship, to come straight in.
-                const tier = fits + (this.corridorClear(px, py, nx, ny, gate, GRIP_CLEAR * gate) ? 1 : 0);
-                if (tier < bestTier || (tier === bestTier && !(cost < best))) continue;
-                bestTier = tier;
-                best = cost;
-                this.gripModule[i] = m;
-                this.gripX[i] = px;
-                this.gripY[i] = py;
-                this.gripNx[i] = nx;
-                this.gripNy[i] = ny;
-                this.gripSlack[i] = max(0, min(along, span - along) - width / 2);
+                const slides = span >= 4 * width;
+                const alongs = this.gripAlongs;
+                alongs.length = 0;
+                alongs.push(slides ? clamp((qx - ax) * tx + (qy - ay) * ty, margin, span - margin) : span / 2);
+                // Along a long face, also either side of what lies about it, just clear of it on the way in.
+                for (let k = 0; slides && k < this.gripObstacles.length; k += 3) {
+                    const ox = this.gripObstacles[k]! - ax;
+                    const oy = this.gripObstacles[k + 1]! - ay;
+                    const keep = this.gripObstacles[k + 2]!;
+                    const on = ox * nx + oy * ny;
+                    const beyond = on - clamp(on, reach, reach + GRIP_CLEAR * gate);
+                    if (!(abs(beyond) < keep)) continue;
+                    const aside = sqrt(keep * keep - beyond * beyond) + 0.5;
+                    const oa = ox * tx + oy * ty;
+                    alongs.push(clamp(oa - aside, margin, span - margin), clamp(oa + aside, margin, span - margin));
+                }
+                for (let k = 0; k < alongs.length; k++) {
+                    const along = alongs[k]!;
+                    const px = ax + tx * along;
+                    const py = ay + ty * along;
+                    // Outside: no other module just beyond it.
+                    if (this.insideAnyOutline(m, px + nx * 0.01, py + ny * 0.01)) continue;
+                    const cost = length(px + nx * gate - qx, py + ny * gate - qy);
+                    const fits = span >= width ? 2 : 0;
+                    // Not worth asking about room in front of one that could not win with it.
+                    if (fits + 1 < bestTier || (fits + 1 === bestTier && !(cost < best))) continue;
+                    // Room in front of it, as wide as the ship, to come straight in, and nothing on the way it would shy from.
+                    const room =
+                        this.corridorClear(px, py, nx, ny, gate, GRIP_CLEAR * gate) &&
+                        this.wayInClear(px, py, nx, ny, reach, GRIP_CLEAR * gate);
+                    const tier = fits + (room ? 1 : 0);
+                    if (tier < bestTier || (tier === bestTier && !(cost < best))) continue;
+                    bestTier = tier;
+                    best = cost;
+                    this.gripModule[i] = m;
+                    this.gripX[i] = px;
+                    this.gripY[i] = py;
+                    this.gripNx[i] = nx;
+                    this.gripNy[i] = ny;
+                    this.gripSlack[i] = max(0, min(along, span - along) - width / 2);
+                }
             }
         }
         if (best === Infinity) {
@@ -12398,6 +12435,50 @@ export class Ships {
                 if (nearest >= 0) apart = true;
             }
             if (!apart) return false;
+        }
+        return true;
+    }
+
+    /**
+     * Into `gripObstacles`, everything ship `i` closing on body `tb` would keep
+     * clear of on the way in, as `avoid` does when it grapples: hulks, and a
+     * friend moored to the same source. In `tb`'s frame, turned by `c`, `s`.
+     */
+    private gatherObstacles(bodies: Bodies, i: number, b: number, tb: number, source: number, c: number, s: number): void {
+        const out = this.gripObstacles;
+        out.length = 0;
+        const approach = this.doctrines[i]!.approach;
+        if (!(approach.separation > 0) || !(approach.separationRadii > 0)) return;
+        const mine = this.designs[i]!.radius;
+        for (let t = 0; t < this.alive.length; t++) {
+            if (t === i || t === source || this.alive[t] === 0 || this.home[t] === i) continue;
+            const neighbour = this.hasControl(t) && this.isMoored(t) && this.parkedOn[t] === source;
+            if (this.hasControl(t) && !neighbour) continue;
+            const ob = bodies.indexOf(this.bodyIds[t]!);
+            if (ob < 0 || ob === b || ob === tb || bodies.ghost[ob] === 1 || !this.meets(b, ob)) continue;
+            const touching = mine + this.designs[t]!.radius;
+            const keep = touching + (neighbour ? mine : touching * approach.separationRadii);
+            const dx = bodies.x[ob]! - bodies.x[tb]!;
+            const dy = bodies.y[ob]! - bodies.y[tb]!;
+            if (length(dx, dy) > bodies.radius[tb]! + keep + GRIP_CLEAR * bodies.radius[b]!) continue;
+            out.push(dx * c + dy * s, dy * c - dx * s, keep);
+        }
+    }
+
+    /**
+     * Whether a ship whose jaws reach `reach` ahead of its middle, coming
+     * straight in to a face at `px`, `py` with outward normal `nx`, `ny` from
+     * `depth` out, keeps clear of everything in `gripObstacles` all the way.
+     */
+    private wayInClear(px: number, py: number, nx: number, ny: number, reach: number, depth: number): boolean {
+        const obstacles = this.gripObstacles;
+        for (let k = 0; k < obstacles.length; k += 3) {
+            const dx = obstacles[k]! - px;
+            const dy = obstacles[k + 1]! - py;
+            const out = dx * nx + dy * ny;
+            const side = dy * nx - dx * ny;
+            const along = out - clamp(out, reach, reach + depth);
+            if (along * along + side * side < obstacles[k + 2]! * obstacles[k + 2]!) return false;
         }
         return true;
     }
@@ -12467,12 +12548,15 @@ export class Ships {
         let wantX = 0;
         let wantY = 0;
         let closing = 0;
+        let slowing = 0;
         // Once closing, it keeps on with twice the room it was let start with, so a wobble does not send it back.
         const loose = this.gripClosing[i] === 1 ? 2 : 1;
         const lined =
             out <= 1.5 * gate &&
             abs(across) <= loose * max(GRIP_LINE * module.spec.width, this.gripSlack[i]!) &&
             abs(angleDelta(shipAngle, this.gripHeading)) <= loose * GRIP_SQUARE;
+        // Turned off the way in, it looks again: what turned it may be in the way.
+        if (this.gripClosing[i] === 1 && !lined && !standOff) this.gripBody[i] = -1;
         this.gripClosing[i] = lined && !standOff ? 1 : 0;
         if (standOff) {
             closing = -CLAW_APPROACH;
@@ -12491,6 +12575,8 @@ export class Ships {
             // Out to the gate's line, then in: relative to the gate point, out by how far in it is.
             wantX = -nx * closing - ny * sideways;
             wantY = -ny * closing + nx * sideways;
+            // Slowing down the curve as it goes, told so, or it runs fast by that slowing times its response time.
+            if (closing < approach.clawSpeed) slowing = curveDeceleration(braking, stopping, approach.responseTime);
         } else {
             // To the gate, slowing as it gets there.
             const dx = gateX - tipX;
@@ -12514,7 +12600,7 @@ export class Ships {
         }
         // Held against the source's pull rather than lagging behind it.
         this.wellPullOn(bodies, b, tb);
-        this.urge(URGE_REFERENCE, vx + wantX, vy + wantY, -this.partAt.x, -this.partAt.y);
+        this.urge(URGE_REFERENCE, vx + wantX, vy + wantY, nx * slowing - this.partAt.x, ny * slowing - this.partAt.y);
         return closing;
     }
 
@@ -12531,6 +12617,9 @@ export class Ships {
         let vx = bodies.vx[tb]!;
         let vy = bodies.vy[tb]!;
         let radial = 0;
+        let slowing = 0;
+        let ax = 0;
+        let ay = 0;
         if (range > 0) {
             const ux = dx / range;
             const uy = dy / range;
@@ -12551,8 +12640,11 @@ export class Ships {
             radial = standOff ? -CLAW_APPROACH : min(approach.clawSpeed, sqrt(stopping * stopping + arrive * arrive));
             vx += ux * radial;
             vy += uy * radial;
+            if (!standOff && radial < approach.clawSpeed) slowing = curveDeceleration(braking, stopping, approach.responseTime);
+            ax = -ux * slowing;
+            ay = -uy * slowing;
         }
-        this.urge(URGE_REFERENCE, vx, vy);
+        this.urge(URGE_REFERENCE, vx, vy, ax, ay);
         return radial;
     }
 
