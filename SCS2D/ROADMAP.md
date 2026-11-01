@@ -100,11 +100,8 @@ an entry is either still open or it is gone.
     approximations: gradients are filled in bands, a fill is not cut to the outside of a shape (only a
     stroke is), and the strips are drawn afresh each frame rather than from their cache. The trigger band
     still draws over capital fills;
-    (4) **built** — WebGL is the default (`scs2d.draw` in storage). Canvas2D stays as **Draw: 2D**
-    and as the fallback where WebGL is unavailable: it is the same drawing code, canvas2d.ts, so there was
-    none to delete, and the button is useful for comparing the two until the stop-gaps below are done. The
-    browser tests draw in 2D (`drawIn2D`) but for the ones about WebGL, since without a GPU it is drawn in
-    software and is slow to start; (5) how it looks — lighting, the editors in Pixi, liveries, part art, marks
+    (4) **built** — WebGL is the default, and then the only way: **Draw: 2D** was retired on
+    2026-11-01, once WebGL ran well on a laptop and a phone (stage 5's second item); (5) how it looks — lighting, the editors in Pixi, liveries, part art, marks
     and effects, in the order and form set out below; (6) a pass over the stop-gaps, done properly alongside a refresh of how those things
     look rather than fixed in place: gradients filled in bands (burn glows are rings;
     the fix is one cached gradient per colour, drawn in the shape's own frame, as plumes now are), strips drawn afresh each
@@ -197,15 +194,18 @@ an entry is either still open or it is gone.
           third. The fleet pictures share it.
         - The fleet pictures (evolution's kinds, the skirmish timeline) share **one**
           renderer drawing to images, since a page may hold only about sixteen WebGL contexts. **Built**
-          (`host/fleetPicture.ts`): one `pixiView` on a canvas off the page, each picture copied out after it renders; drawn in 2D while it starts, then again.
+          (`host/fleetPicture.ts`): one `pixiView` on a canvas off the page, each picture copied out after it renders, once it has started.
         - The editors' handles and guides move into Pixi with the rest; evolution's charts
           (`render/chart.ts`) are not ships and stay as they are.
-        - Then **Draw: 2D** goes, and every drawing path that takes a 2D context for ships. canvas2d.ts stays
-          for now as what the adapter draws, until what it describes moves to shared geometry. Where WebGL is
-          missing, Pixi's own Canvas2D renderer is the fallback, and does without everything done with
-          filters (lighting, bevels, patterns); it is not expected to be used.
-        - The browser tests then read pixels from screenshots rather than a 2D context, and draw WebGL in
-          software, so CI slows; `drawIn2D` goes.
+        - **Draw: 2D retired — built.** The battle view, the editors and the fleet pictures draw only
+          through Pixi, nothing until it has started; the setting and its storage key are gone, and so is
+          the benchmark's Canvas2D run. canvas2d.ts stays as what the adapter draws, until what it describes
+          moves to shared geometry. Where WebGL is missing, Pixi's own Canvas2D renderer is the fallback
+          (`preference: ["webgl", "canvas"]`), without what is done with filters (lighting, bevels,
+          patterns); it is not expected to be used. The browser tests read what a view shows from a
+          screenshot (`shownPixels`), and draw WebGL in software, waiting up to ten seconds by default for
+          it to start. Still on 2D canvases of their own: the fleet strips down the battle's edges, and the
+          fleet pictures' copies; moving the strips into Pixi is a stage (6) stop-gap.
     3. **Liveries.** A fleet sets a base colour, a highlight colour and a pattern, applied to every ship in
        it, replacing the side colours. Settled with the author on 2026-11-01 (DECISIONS.md).
         - **Whose livery.** A `Livery` lives on a `Fleet`, and on a `Blueprint` for a ship flying alone. A
@@ -280,7 +280,7 @@ an entry is either still open or it is gone.
                and stays put on a piece cut away. The hull layer fills each module's hull-coloured
                polygons a second time with it (one shared context per module of a design, rather than
                per spec, where a side has a pattern); fighters, drawn through the adapter, take it by
-               `createPattern`, which `render/pixiCanvas.ts` now has, and so does Draw: 2D. A livery's
+               `createPattern`, which `render/pixiCanvas.ts` now has. A livery's
                highlight is a `Palette`'s `highlight`, which side colours lack: it bands each engine
                block a band's width in from its bells, fills turret domes, hull guns' mantlets and beam
                lenses' discs in place of the pivot tone, and marks pads' landing squares and ports'
@@ -308,7 +308,7 @@ an entry is either still open or it is gone.
          clear where it faces up as the deck does, so it shades whatever colour the part is. Made once per
          angle of the light across the part, rounded to a twelfth, and kept. Drawn in WebGL only, as the
          shadows are. A hull mount's barrels run back into its block under a clip the adapter does not apply
-         to images, so they are shaded only where they are out of the block, worked out from the line itself. Once Draw: 2D is
+         to images, so they are shaded only where they are out of the block, worked out from the line itself. With Draw: 2D
          retired, hull mounts' barrels, their shading and their mantlets belong in the hull layer under their
          module's fill, so the block covers a barrel's root however far it trains, and neither the clip nor
          `throughBox` in `render/canvas2d.ts` is needed.

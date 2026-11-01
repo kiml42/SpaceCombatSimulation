@@ -56,25 +56,3 @@ export function saveView(page: string, settings: ViewSettings): void {
 export function viewKey(page: string): string {
     return `scs2d.view.${page}`;
 }
-
-/** What draws a battle: Pixi (WebGL, render/pixiView.ts), or Canvas2D where WebGL is unavailable or picked. */
-export type Renderer = "canvas2d" | "webgl";
-
-const RENDERER_KEY = "scs2d.draw";
-
-/** The renderer chosen, for every page alike: WebGL unless Canvas2D is picked. */
-export function loadRenderer(): Renderer {
-    try {
-        return window.localStorage.getItem(RENDERER_KEY) === "canvas2d" ? "canvas2d" : "webgl";
-    } catch {
-        return "webgl";
-    }
-}
-
-export function saveRenderer(renderer: Renderer): void {
-    try {
-        window.localStorage.setItem(RENDERER_KEY, renderer);
-    } catch {
-        // Not remembered; the next visit draws with WebGL.
-    }
-}

@@ -41,7 +41,7 @@ import { viewGestures } from "./viewGestures.js";
 import { DEFAULT_LIGHT } from "../render/light.js";
 import { sidesOf, STOCK, withSides, type Sides } from "../render/teams.js";
 import { pixiUnder, type PixiView } from "../render/pixiView.js";
-import { loadRenderer, loadView, saveRenderer, saveView, type Renderer, type ViewSettings } from "./viewSettings.js";
+import { loadView, saveView, type ViewSettings } from "./viewSettings.js";
 
 /**
  * A battle drawn on a canvas and run on the wall clock: the camera, the
@@ -293,11 +293,9 @@ export function battleView(
     let shownInsets: Inset[] = [];
     /** Where the view's settings are kept, once a page has asked for them to be. */
     let kept: { page: string; settings: ViewSettings } | null = null;
-    let renderer: Renderer = loadRenderer();
-    /** The canvas under this one that Pixi draws on, while it is the renderer. */
-    let under: HTMLCanvasElement | null = null;
-    let layer: PixiView | null = null;
-    let stacked: ReturnType<typeof pixiUnder> | null = null;
+    /** Pixi's canvas, under this one, which draws the battle: this one holds only what is dragged or placed. */
+    const stacked = pixiUnder(canvas);
+    const layer: PixiView = stacked.view;
     const options = viewOptions(canvas.parentElement ?? document.body, [
         {
             label: () => ARC_LABELS[arcs],
@@ -323,15 +321,6 @@ export function battleView(
                 remember();
             },
         },
-        {
-            label: () => (renderer === "canvas2d" ? "Draw: 2D" : layer?.failed === true ? "Draw: no WebGL" : "Draw: WebGL"),
-            title: "Draw the battle with Canvas2D, or with WebGL as far as it has moved there",
-            press: () => {
-                renderer = renderer === "canvas2d" ? "webgl" : "canvas2d";
-                saveRenderer(renderer);
-                useRenderer();
-            },
-        },
     ]);
     const remember = (): void => {
         options.refresh();
@@ -341,30 +330,20 @@ export function battleView(
         saveView(kept.page, kept.settings);
     };
 
-    const useRenderer = (): void => {
-        stacked?.remove();
-        stacked = null;
-        if (renderer === "webgl") stacked = pixiUnder(canvas);
-        under = stacked?.canvas ?? null;
-        layer = stacked?.view ?? null;
-        resize();
-        options.refresh();
-    };
-
     const resize = (): void => {
         const ratio = window.devicePixelRatio || 1;
         const rect = canvas.getBoundingClientRect();
         const width = Math.round(rect.width * ratio);
         const height = Math.round(rect.height * ratio);
         // Setting either clears the canvas, even to the size it already is.
-        for (const each of under === null ? [canvas, stripCanvas] : [canvas, stripCanvas, under]) {
+        for (const each of [canvas, stripCanvas, stacked.canvas]) {
             if (each.width !== width) each.width = width;
             if (each.height !== height) each.height = height;
         }
     };
     const resizing = new ResizeObserver(resize);
     resizing.observe(canvas);
-    useRenderer();
+    resize();
 
     const setRunning = (next: boolean): void => {
         running = next;
@@ -724,35 +703,36 @@ export function battleView(
         const also = picked.slice(1).map((i) => viewOf(view, i)?.body ?? -1);
         const markedBody = markedModules === null ? -1 : (viewOf(view, markedModules.ship)?.body ?? -1);
         const marked = markedBody < 0 ? null : { body: markedBody, modules: markedModules!.modules };
-        const pixi = layer?.ready === true ? layer.begin(view, camera, canvas.width, canvas.height, battle.light) : null;
-        if (pixi !== null) {
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-        }
-        // Pixi's context draws as a canvas does (render/pixiCanvas.ts), so the same code paints either.
-        const into = pixi === null ? ctx : (pixi as unknown as CanvasRenderingContext2D);
-        draw(
-            into,
-            view,
-            camera,
-            canvas.width,
-            canvas.height,
-            flashes,
-            arcs,
-            teamShots,
-            selected,
-            also,
-            marked,
-            pixi !== null,
-            // Lit only where it is lit at all, in WebGL.
-            pixi === null ? undefined : (battle.light ?? DEFAULT_LIGHT),
-        );
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Nothing until Pixi has started.
+        const pixi = layer.ready ? layer.begin(view, camera, canvas.width, canvas.height, battle.light) : null;
+        // Pixi's context draws as a canvas does (render/pixiCanvas.ts).
+        const into = pixi as unknown as CanvasRenderingContext2D;
+        if (pixi !== null)
+            draw(
+                into,
+                view,
+                camera,
+                canvas.width,
+                canvas.height,
+                flashes,
+                arcs,
+                teamShots,
+                selected,
+                also,
+                marked,
+                true,
+                battle.light ?? DEFAULT_LIGHT,
+            );
         if (tiles !== null) drawFleetStrips(stripCtx, view, tiles, selected, ratio, flashes, arcs, teamShots, stripCache);
         else stripCache.begin(stripCtx, null);
         const insets = closeUps(view, camera, canvas.width, canvas.height, selected, ratio, tiles);
-        drawCloseUps(into, view, insets, selected, ratio, flashes, arcs, teamShots, marked);
-        drawTargetRange(into, view, camera, canvas.width, canvas.height, selected, insets, ratio);
-        if (pixi !== null) layer!.end();
+        if (pixi !== null) {
+            drawCloseUps(into, view, insets, selected, ratio, flashes, arcs, teamShots, marked);
+            drawTargetRange(into, view, camera, canvas.width, canvas.height, selected, insets, ratio);
+            layer.end();
+        }
         shownStrips = tiles;
         shownInsets = insets;
         if (box !== null) {
@@ -903,7 +883,7 @@ export function battleView(
             resizing.disconnect();
             window.removeEventListener("keydown", onKey);
             options.remove();
-            stacked?.remove();
+            stacked.remove();
             stripCanvas.remove();
             battle = null;
             rewind = null;

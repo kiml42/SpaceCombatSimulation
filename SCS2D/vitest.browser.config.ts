@@ -30,6 +30,8 @@ export default defineConfig({
                     hookTimeout: 120_000,
                     // One page shared across the file, so they must not run in parallel.
                     fileParallelism: false,
+                    // A page draws nothing until WebGL has started, slowly where it is drawn in software.
+                    expect: { poll: { timeout: 10_000 } },
                 },
             },
             {

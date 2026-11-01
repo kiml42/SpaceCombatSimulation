@@ -1,10 +1,10 @@
 /**
- * Measure how fast the battle view draws, scene by scene, in WebGL and in
- * Canvas2D, in a real browser window on this machine's own graphics. Not part
+ * Measure how fast the battle view draws, scene by scene, in a real browser
+ * window on this machine's own graphics. Not part
  * of the game: a tool for asking whether a change to drawing helped, and how a
  * machine copes.
  *
- *   pnpm exec tsx benchmarks/render.ts [--scenes "Duel,Star Wars"] [--renderers webgl,canvas2d]
+ *   pnpm exec tsx benchmarks/render.ts [--scenes "Duel,Star Wars"]
  *       [--seconds 8] [--at 5] [--warmup 3] [--size 1600x900] [--dpr 1] [--paused] [--vsync]
  *       [--strips shown|hidden] [--screenshots] [--profile]
  *       [--browser chromium|chrome|msedge|firefox] [--executable path] [--headless] [--build] [--label name]
@@ -31,7 +31,6 @@ const appPage = join(root, "dist", "index.html");
 const { values } = parseArgs({
     options: {
         scenes: { type: "string", default: "Duel,Star Wars,Super Swarm,Asteroid Field,Factory" },
-        renderers: { type: "string", default: "webgl,canvas2d" },
         seconds: { type: "string", default: "8" },
         warmup: { type: "string", default: "3" },
         at: { type: "string", default: "5" },
@@ -64,8 +63,8 @@ const scenes = values.scenes
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-const renderers = values.renderers.split(",").map((s) => s.trim());
-for (const r of renderers) if (r !== "webgl" && r !== "canvas2d") throw new Error(`unknown renderer "${r}": webgl or canvas2d`);
+/** Kept in the results, so they compare with runs from when Canvas2D was measured too. */
+const renderer = "webgl";
 const [width, height] = values.size.split("x").map(Number) as [number, number];
 const seconds = Number(values.seconds);
 const warmup = Number(values.warmup);
@@ -252,84 +251,72 @@ const shared = geckoEach ? null : await launch();
 try {
     for (let round = 0; round < repeat; round++)
         for (const app of apps)
-            for (const renderer of renderers)
-                for (const group of geckoEach ? scenes.map((s) => [s]) : [scenes]) {
-                    const geckoTo = geckoEach
-                        ? join(values.out, `render-${values.label}-${renderer}-${group[0]!.replaceAll(" ", "")}.gecko.json`)
-                        : undefined;
-                    const browser = shared ?? (await launch(geckoTo));
-                    geckoSpans.length = 0;
-                    const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: Number(values.dpr) });
-                    await context.addInitScript((r) => {
-                        try {
-                            window.localStorage.setItem("scs2d.draw", r);
-                        } catch {
-                            // Firefox runs this in about:blank too, whose storage is refused; the app's page is the one that matters.
-                        }
-                    }, renderer);
-                    await context.addInitScript({ content: INSTRUMENT });
-                    const page = await context.newPage();
-                    page.on("pageerror", (error) => console.error(`page error: ${error.message}`));
-                    await page.goto(`${pathToFileURL(app.path).href}#/battle`);
-                    gpu = await page.evaluate(() => {
-                        const gl = document.createElement("canvas").getContext("webgl");
-                        const info = gl?.getExtension("WEBGL_debug_renderer_info");
-                        return gl === null || gl === undefined
-                            ? "no WebGL"
-                            : String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER));
-                    });
-                    const draw = page.getByRole("button", { name: /^Draw:/ });
-                    // WebGL starts a moment after the page does.
-                    await page.waitForTimeout(1000);
-                    const drawing = (await draw.textContent()) ?? "";
-                    const expected = renderer === "webgl" ? "Draw: WebGL" : "Draw: 2D";
-                    if (drawing !== expected) console.warn(`asked for ${renderer}, but the view says "${drawing}"`);
-                    const fleets = page.getByRole("button", { name: /^Fleets:/ });
-                    if ((await fleets.textContent()) !== `Fleets: ${values.strips}`) await fleets.click();
-                    for (const scene of group) {
-                        // Whether a new scene plays depends on the last; each is played to the same moment, so every run shows the same frame.
-                        await page.selectOption("#scene", { label: scene });
-                        // The readout is sampled, so it shows the last scene's time for a moment.
-                        await page.waitForFunction(() => battleTime() < 1, null, { polling: 50 });
-                        await setPlaying(page, true);
-                        await page.waitForFunction((t) => battleTime() >= t, at, { polling: 50, timeout: 300_000 });
-                        if (values.paused) await setPlaying(page, false);
-                        await page.waitForTimeout(warmup * 1000);
-                        const from = await page.evaluate(() => battleTime());
-                        const measured = await measure(page);
-                        const to = await page.evaluate(() => battleTime());
-                        const result = { app: app.name, renderer, scene, ...measured, battleAt: from, simSpeed: (to - from) / seconds };
-                        results.push(result);
-                        console.log(
-                            `${apps.length > 1 ? `${app.name.padEnd(10)} ` : ""}${renderer.padEnd(8)} ${scene.padEnd(16)}` +
-                                ` ${result.fps.toFixed(1).padStart(6)} fps  ` +
-                                `frame ${result.frameP50.toFixed(1)} / ${result.frameP95.toFixed(1)} ms  js ${result.jsP50.toFixed(1)} / ${result.jsP95.toFixed(1)} ms`,
-                        );
-                        if (values.screenshots)
-                            await page.screenshot({
-                                path: join(
-                                    values.out,
-                                    `render-${values.label}-${apps.length > 1 ? `${app.name}-` : ""}${renderer}-${scene.replaceAll(" ", "")}.png`,
-                                ),
-                            });
-                        if (values.profile && inFirefox) {
-                            const from = Date.now();
-                            await page.waitForTimeout(seconds * 1000);
-                            geckoSpans.push({ name: `${renderer} ${scene}`, from, to: Date.now() });
-                        } else if (values.profile) {
-                            const { file, top } = await profile(page, `${renderer}-${scene.replaceAll(" ", "")}`);
-                            for (const { fn, ms, share } of top)
-                                console.log(`    ${(share * 100).toFixed(1).padStart(5)}% ${ms.toFixed(0).padStart(6)} ms  ${fn}`);
-                            console.log(`    profile: ${file}`);
-                        }
-                    }
-                    if (geckoTo === undefined) await context.close();
-                    else {
-                        // Closed whole, page and all, so the page's process is still there to be profiled as it shuts down.
-                        await browser.close();
-                        summariseGecko(geckoTo);
+            for (const group of geckoEach ? scenes.map((s) => [s]) : [scenes]) {
+                const geckoTo = geckoEach
+                    ? join(values.out, `render-${values.label}-${renderer}-${group[0]!.replaceAll(" ", "")}.gecko.json`)
+                    : undefined;
+                const browser = shared ?? (await launch(geckoTo));
+                geckoSpans.length = 0;
+                const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: Number(values.dpr) });
+                await context.addInitScript({ content: INSTRUMENT });
+                const page = await context.newPage();
+                page.on("pageerror", (error) => console.error(`page error: ${error.message}`));
+                await page.goto(`${pathToFileURL(app.path).href}#/battle`);
+                gpu = await page.evaluate(() => {
+                    const gl = document.createElement("canvas").getContext("webgl");
+                    const info = gl?.getExtension("WEBGL_debug_renderer_info");
+                    return gl === null || gl === undefined
+                        ? "no WebGL"
+                        : String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER));
+                });
+                // WebGL starts a moment after the page does.
+                await page.waitForTimeout(1000);
+                const fleets = page.getByRole("button", { name: /^Fleets:/ });
+                if ((await fleets.textContent()) !== `Fleets: ${values.strips}`) await fleets.click();
+                for (const scene of group) {
+                    // Whether a new scene plays depends on the last; each is played to the same moment, so every run shows the same frame.
+                    await page.selectOption("#scene", { label: scene });
+                    // The readout is sampled, so it shows the last scene's time for a moment.
+                    await page.waitForFunction(() => battleTime() < 1, null, { polling: 50 });
+                    await setPlaying(page, true);
+                    await page.waitForFunction((t) => battleTime() >= t, at, { polling: 50, timeout: 300_000 });
+                    if (values.paused) await setPlaying(page, false);
+                    await page.waitForTimeout(warmup * 1000);
+                    const from = await page.evaluate(() => battleTime());
+                    const measured = await measure(page);
+                    const to = await page.evaluate(() => battleTime());
+                    const result = { app: app.name, renderer, scene, ...measured, battleAt: from, simSpeed: (to - from) / seconds };
+                    results.push(result);
+                    console.log(
+                        `${apps.length > 1 ? `${app.name.padEnd(10)} ` : ""}${renderer.padEnd(8)} ${scene.padEnd(16)}` +
+                            ` ${result.fps.toFixed(1).padStart(6)} fps  ` +
+                            `frame ${result.frameP50.toFixed(1)} / ${result.frameP95.toFixed(1)} ms  js ${result.jsP50.toFixed(1)} / ${result.jsP95.toFixed(1)} ms`,
+                    );
+                    if (values.screenshots)
+                        await page.screenshot({
+                            path: join(
+                                values.out,
+                                `render-${values.label}-${apps.length > 1 ? `${app.name}-` : ""}${renderer}-${scene.replaceAll(" ", "")}.png`,
+                            ),
+                        });
+                    if (values.profile && inFirefox) {
+                        const from = Date.now();
+                        await page.waitForTimeout(seconds * 1000);
+                        geckoSpans.push({ name: `${renderer} ${scene}`, from, to: Date.now() });
+                    } else if (values.profile) {
+                        const { file, top } = await profile(page, `${renderer}-${scene.replaceAll(" ", "")}`);
+                        for (const { fn, ms, share } of top)
+                            console.log(`    ${(share * 100).toFixed(1).padStart(5)}% ${ms.toFixed(0).padStart(6)} ms  ${fn}`);
+                        console.log(`    profile: ${file}`);
                     }
                 }
+                if (geckoTo === undefined) await context.close();
+                else {
+                    // Closed whole, page and all, so the page's process is still there to be profiled as it shuts down.
+                    await browser.close();
+                    summariseGecko(geckoTo);
+                }
+            }
 } finally {
     await shared?.close();
 }
