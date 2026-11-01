@@ -16,7 +16,18 @@ import { withLivery } from "../editor/livery.js";
 import { moduleFills, type Fill } from "../render/moduleFills.js";
 import { patternColour, patternTransform, TILE, tileKey } from "../render/livery.js";
 import { fleetBattle } from "../scenarios/fleetBattle.js";
-import { colourDistance, colourName, liveryPalette, sidesOf, STOCK, TOO_ALIKE, teamColour, teamName } from "../render/teams.js";
+import {
+    colourDistance,
+    colourName,
+    liveryMarker,
+    liveryPalette,
+    markerOf,
+    sidesOf,
+    STOCK,
+    TOO_ALIKE,
+    teamColour,
+    teamName,
+} from "../render/teams.js";
 
 const LIVERY = {
     base: "#d4a017",
@@ -152,6 +163,30 @@ describe("a side's colours from its livery", () => {
         const alike = sidesOf([livery("#d4a017"), livery("#d8a41b")]);
         expect(alike[0]!.ship.hull).toBe("#d4a017");
         expect(alike[1]).toBe(STOCK[1]);
+    });
+
+    it("tells two grey hulls apart by their markers, and never draws a live side's arrows grey", () => {
+        // The Imperial and Rebel fleets: a cool grey with a slate highlight, and a warm grey with a red one.
+        const imperial = { ...livery("#a6b1bf"), highlight: "#5c6076" };
+        const rebel = { ...livery("#9d948e"), highlight: "#c96d63" };
+        expect(colourDistance(imperial.base, rebel.base)).toBeLessThan(TOO_ALIKE);
+        const sides = sidesOf([imperial, rebel]);
+        expect(sides[0]!.livery).toBe(imperial);
+        expect(sides[1]!.livery).toBe(rebel);
+        // The imperial grey has a blue to it, made vivid; the rebel grey has none, so its red highlight is used.
+        expect(teamName(0, sides)).toBe("Blue");
+        expect(teamName(1, sides)).toBe("Red");
+        for (const side of sides) {
+            for (const colours of [side.ship, side.fighter]) {
+                const [r, g, b] = [1, 3, 5].map((k) => parseInt(markerOf(colours).hull.slice(k, k + 2), 16));
+                expect(Math.max(r!, g!, b!) - Math.min(r!, g!, b!)).toBeGreaterThan(60);
+            }
+        }
+        // Hulls still wear the base.
+        expect(sides[0]!.ship.hull).toBe("#a6b1bf");
+        expect(teamColour(0, sides)).toBe(liveryMarker(imperial));
+        // Both greys, highlight and all: the base itself.
+        expect(liveryMarker({ ...livery("#808080"), highlight: "#c0c0c0" })).toBe("#808080");
     });
 
     it("keeps the stock sides further apart than too alike", () => {
