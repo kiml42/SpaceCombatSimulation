@@ -70,17 +70,13 @@ export interface Fill {
  * of its own: a core in the darkest of the team's colours, since shooting it
  * out is what leaves a hulk; wreckage grey; rock by what it holds.
  */
-export function fillColour(spec: ModuleSpec, integrity: number, weaponsLayer: boolean, colours: Palette): string {
+export function fillColour(spec: ModuleSpec, integrity: number, _weaponsLayer: boolean, colours: Palette): string {
     if (spec.kind === "kernel") return KERNEL;
     if (spec.kind === "rock") return rockColour(spec.ore ?? 0, spec.ice ?? 0);
     if (integrity <= 0) return WRECKAGE;
-    // Thick structure is drawn in the colour of the mounts and engines, since it
-    // is what stands with them in the weapons layer. Read from the compiled flag
-    // rather than the spec, since a plate that is thick by borrowing its
-    // neighbour's depth is only as high as what it covers.
-    if (spec.kind === "structure" || spec.kind === "tank" || spec.kind === "hold" || spec.kind === "battery") {
-        return weaponsLayer ? colours.trim : colours.hull;
-    }
+    // Structure is drawn in the hull's colour, thick or thin: its bevels and its
+    // shadow say which it is.
+    if (spec.kind === "structure" || spec.kind === "tank" || spec.kind === "hold" || spec.kind === "battery") return colours.hull;
     if (spec.kind === "core") return colours.pivot;
     // A deck, as a pad is, for its berth pads to stand out on.
     if (spec.kind === "robotBay") return colours.hull;
