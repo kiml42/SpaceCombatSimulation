@@ -56,14 +56,13 @@ export function firstLivery(rng: Rng, away: readonly string[]): Livery {
 
 function drawn(rng: Rng): Livery {
     const hue = rng.nextFloat();
-    const spacing = rng.nextRange(0.15, 0.6);
     return {
         base: fromHsl(hue, rng.nextRange(0.35, 0.75), rng.nextRange(0.35, 0.55)),
         // Across the wheel from the base, and lighter, so the pattern reads on it.
         highlight: fromHsl(wrap(hue + rng.nextRange(0.35, 0.65)), rng.nextRange(0.5, 0.9), rng.nextRange(0.6, 0.8)),
         pattern: LIVERY_PATTERNS[rng.nextInt(LIVERY_PATTERNS.length)]!,
-        size: spacing * rng.nextRange(0.2, 0.5),
-        spacing,
+        size: rng.nextRange(0.03, 0.15),
+        spacing: rng.nextRange(2, 5),
         offset: rng.nextFloat(),
         angle: rng.nextRange(-PI / 2, PI / 2),
     };
@@ -71,14 +70,13 @@ function drawn(rng: Rng): Livery {
 
 function drifted(parent: Livery, rng: Rng): Livery {
     const step = (size: number): number => rng.nextRange(-size, size);
-    const spacing = clamp(parent.spacing * (1 + step(SCALE_STEP)), 0.05, 1);
     const pattern = rng.chance(PATTERN_SWITCH) ? LIVERY_PATTERNS[rng.nextInt(LIVERY_PATTERNS.length)]! : parent.pattern;
     const child: Livery = {
         base: driftColour(parent.base, rng),
         highlight: driftColour(parent.highlight, rng),
         pattern,
-        size: clamp(parent.size * (1 + step(SCALE_STEP)), 0.02, spacing * 0.9),
-        spacing,
+        size: clamp(parent.size * (1 + step(SCALE_STEP)), 0.02, 0.5),
+        spacing: clamp(parent.spacing * (1 + step(SCALE_STEP)), 1.2, 10),
         offset: wrap(parent.offset + step(OFFSET_STEP)),
         angle: foldAngle(parent.angle + step(ANGLE_STEP)),
     };

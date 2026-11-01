@@ -279,8 +279,17 @@ an entry is either still open or it is gone.
                cores included, in the highlight itself, untinted; engines and hull mounts take none, so
                they stay told apart (`patternColour`).
                Engine bells are dark grey whatever the side.
-            4. **Evolution**: drift on every mutant, leaning away from the player, and random first liveries
-               for skirmish enemies and single-ship entrants.
+            4. **Evolution — built** (`sim/liveryDrift.ts`). Every child `mutateFleet` or `offspring`
+               makes drifts its parent's livery: hue, saturation and lightness of both colours, the
+               pattern's numbers, and one time in twenty the pattern itself. Of two drifts it keeps the
+               one further from its rivals' colours (a skirmish's player, a co-evolution run's other side),
+               which is the lean away. It draws on a generator split from the breeding one without
+               moving it, so a run or an answer is bred exactly as without liveries. `newSkirmish` paints an
+               unpainted enemy from the skirmish's seed, the best of eight draws from the player's colour;
+               `seedPopulation` paints every unpainted founder, a fleet's or a lone ship's, unlike the
+               founders before it; and a match's battle wears each side's first entrant's livery. A
+               skirmish saved unpainted stays so, its answers drifting nothing. Distances here are
+               "redmean" RGB, arithmetic and a square root, so a run's file is the same on every engine.
     4. **Part art, first pass:** bevels on the hull's outside edges, and on the thick parts' edges, lit by
        the battle's light, and engine bells, barrels and turret domes shaded as rounded. Richer procedural
        parts come later.
