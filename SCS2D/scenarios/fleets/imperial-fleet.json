@@ -1,6 +1,15 @@
 {
   "formatVersion": 1,
   "name": "Imperial Fleet",
+  "livery": {
+    "base": "#a6b1bf",
+    "highlight": "#5c6076",
+    "pattern": "none",
+    "size": 0.02,
+    "spacing": 7,
+    "offset": 0.26,
+    "angle": 60
+  },
   "designs": {
     "Star Destroyer": {
       "formatVersion": 2,

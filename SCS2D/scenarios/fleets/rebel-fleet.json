@@ -2,6 +2,15 @@
   "formatVersion": 1,
   "name": "Rebel Fleet",
   "notes": "The ghost with a large number of rebel fighters",
+  "livery": {
+    "base": "#9d948e",
+    "highlight": "#c96d63",
+    "pattern": "stripes",
+    "size": 0.02,
+    "spacing": 3.8,
+    "offset": 0,
+    "angle": -58.99999999999999
+  },
   "designs": {
     "Ghost": {
       "formatVersion": 2,
