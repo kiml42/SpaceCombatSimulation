@@ -1,4 +1,14 @@
-import { compileBlueprint, expandFleet, shipFleet, Snapshot, type Blueprint, type Fleet, type ShipDesign } from "../sim/index.js";
+import {
+    compileBlueprint,
+    expandFleet,
+    shipFleet,
+    Snapshot,
+    type Blueprint,
+    type Fleet,
+    type Livery,
+    type ShipDesign,
+} from "../sim/index.js";
+import { sidesOf, withSides } from "../render/teams.js";
 import { draw } from "../render/canvas2d.js";
 import type { Camera } from "../render/camera.js";
 import { BUILDER_LIGHT } from "../render/light.js";
@@ -20,6 +30,8 @@ export interface ShipKind {
     readonly name: string;
     readonly design: ShipDesign;
     readonly count: number;
+    /** Its fleet's, which it is drawn in; grey where none. */
+    readonly livery?: Livery;
 }
 
 /** A fleet laid out to draw, what it weighs, and what kinds of ship it is made of. */
@@ -28,6 +40,7 @@ export interface Picture {
     readonly mass: number;
     /** Largest first: a fleet is read by its heaviest ship before its escorts. */
     readonly kinds: readonly ShipKind[];
+    readonly livery?: Livery;
 }
 
 export function pictureOf(entrant: Fleet | Blueprint): Picture {
@@ -51,9 +64,10 @@ export function pictureOf(entrant: Fleet | Blueprint): Picture {
         else held.count += 1;
     });
     const kinds: ShipKind[] = [...counted]
-        .map(([name, { design, count }]) => ({ name, design, count }))
+        .map(([name, { design, count }]) => ({ name, design, count, ...(fleet.livery === undefined ? {} : { livery: fleet.livery }) }))
         .sort((a, b) => b.design.mass - a.design.mass || a.name.localeCompare(b.name));
-    return { view: { ships, designs }, mass: designs.reduce((sum, d) => sum + d.mass, 0), kinds };
+    const mass = designs.reduce((sum, d) => sum + d.mass, 0);
+    return { view: { ships, designs }, mass, kinds, ...(fleet.livery === undefined ? {} : { livery: fleet.livery }) };
 }
 
 /**
@@ -67,22 +81,32 @@ export function kindSnapshot(kind: ShipKind, into: Snapshot, turned = false): Sn
             designs: [kind.design],
         },
         into,
-        NO_TEAM,
+        teamOf(kind.livery),
     );
+}
+
+/** In its fleet's livery as the first side, or grey on nobody's. */
+function teamOf(livery: Livery | undefined): number {
+    return livery === undefined ? NO_TEAM : 0;
 }
 
 /** The whole fleet as it stands, to draw or to measure; `turned` half round, as for `kindSnapshot`. */
 export function formationSnapshot(picture: Picture, into: Snapshot, turned = false): Snapshot {
-    if (!turned) return fleetSnapshot(picture.view, into, NO_TEAM);
+    const team = teamOf(picture.livery);
+    if (!turned) return fleetSnapshot(picture.view, into, team);
     const ships = picture.view.ships.map((ship) => ({ ...ship, x: -ship.x, y: -ship.y, angle: ship.angle + Math.PI }));
-    return fleetSnapshot({ ...picture.view, ships }, into, NO_TEAM);
+    return fleetSnapshot({ ...picture.view, ships }, into, team);
 }
 
 /**
  * Draw a snapshot centred on a canvas at a scale, pixels a metre: what `make`
  * fills a snapshot with, so it can be made again once Pixi has started.
  */
-export function drawCentred(canvas: HTMLCanvasElement, make: (into: Snapshot) => Snapshot, scale: number): void {
+export function drawCentred(canvas: HTMLCanvasElement, make: (into: Snapshot) => Snapshot, scale: number, livery?: Livery): void {
+    withSides(sidesOf([livery]), () => drawNow(canvas, make, scale, livery));
+}
+
+function drawNow(canvas: HTMLCanvasElement, make: (into: Snapshot) => Snapshot, scale: number, livery: Livery | undefined): void {
     const shot = make(scratch);
     const view = sharedView();
     if (view?.ready === true && drawnWith(view, canvas, shot, scale)) {
@@ -96,10 +120,13 @@ export function drawCentred(canvas: HTMLCanvasElement, make: (into: Snapshot) =>
             const all = [...waiting];
             waiting.clear();
             if (!started) return;
-            for (const [each, drawing] of all) if (each.isConnected) drawnWith(view, each, drawing.make(scratch), drawing.scale);
+            for (const [each, drawing] of all) {
+                if (each.isConnected)
+                    withSides(sidesOf([drawing.livery]), () => drawnWith(view, each, drawing.make(scratch), drawing.scale));
+            }
         });
     }
-    waiting.set(canvas, { make, scale });
+    waiting.set(canvas, { make, scale, livery });
 }
 
 const scratch = new Snapshot();
@@ -110,7 +137,7 @@ const scratch = new Snapshot();
  */
 let shared: PixiView | null = null;
 /** Pictures drawn in 2D while it starts, to draw again once it has. */
-const waiting = new Map<HTMLCanvasElement, { make: (into: Snapshot) => Snapshot; scale: number }>();
+const waiting = new Map<HTMLCanvasElement, { make: (into: Snapshot) => Snapshot; scale: number; livery: Livery | undefined }>();
 
 function sharedView(): PixiView | null {
     if (loadRenderer() === "canvas2d") return null;

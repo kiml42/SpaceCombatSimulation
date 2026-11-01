@@ -12,6 +12,7 @@ import {
     type ModuleSpec,
 } from "../sim/index.js";
 import { ARCS_KEY, draw, nextArcs, type Arcs } from "../render/canvas2d.js";
+import { sidesOf, withSides } from "../render/teams.js";
 import { BUILDER_LIGHT } from "../render/light.js";
 import { pixiUnder } from "../render/pixiView.js";
 import { loadRenderer } from "../host/viewSettings.js";
@@ -327,12 +328,19 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
     /** Whether the pointer is over the thrust rosette, which is drawn larger while it is. */
     let thrustExpanded = false;
 
+    // In its livery where it has one, and grey where not, being on nobody's side.
     const render = (): void => {
+        const livery = doc.blueprint.livery;
+        withSides(sidesOf([livery]), () => paint(livery !== undefined));
+    };
+    const paint = (dressed: boolean): void => {
         if (disposed) return;
         const view = doc.view;
         const scale = camera.scale;
         if (view.design !== null) {
             previewSnapshot(view.design, snapshot);
+            // Its fighters on their pads too, which wear its livery.
+            if (dressed) for (let i = 0; i < snapshot.shipCount; i++) snapshot.ships[i]!.team = 0;
             if (fitPending) {
                 // Measured now, as the page round it may have changed its size since.
                 resize();
