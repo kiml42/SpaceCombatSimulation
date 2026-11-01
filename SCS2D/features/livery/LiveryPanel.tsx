@@ -80,7 +80,7 @@ const SLIDERS: readonly Slider[] = [
     {
         field: "size",
         label: "size",
-        min: 0.02,
+        min: 0.01,
         max: 0.5,
         step: 0.01,
         title: "How wide a stripe or spot is, as a share of each ship's radius",
@@ -206,7 +206,7 @@ export function LiveryPanel({ livery, whose, note, open, onOpen, onChange, onEnd
                                         id={id}
                                         type="range"
                                         title={slider.title}
-                                        min={slider.min}
+                                        min={slider.field === "spacing" && livery.pattern === "spots" ? 1 : slider.min}
                                         max={slider.max}
                                         step={slider.step}
                                         value={value}
