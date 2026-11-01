@@ -1162,6 +1162,8 @@ export class Ships {
     private readonly partedAt: number[] = [];
     /** The world tick each ship's claws last tried to close, so a miss waits `CLAW_RETRY`. */
     private readonly clawTried: number[] = [];
+    /** Whether each ship's slipways are held up by wreckage caught on what they build, which its robots then clear whatever the room. */
+    private readonly waitsOnWreck: number[] = [];
 
     private readonly blowBody: number[] = [];
     private readonly blowModule: number[] = [];
@@ -1910,6 +1912,7 @@ export class Ships {
         this.cutSeen.push(-1);
         this.partedAt.push(-Infinity);
         this.clawTried.push(-Infinity);
+        this.waitsOnWreck.push(0);
         this.chosen.push(NO_TARGET);
         this.landedReach.push(0);
         this.ramming.push(NO_TARGET);
@@ -6682,8 +6685,8 @@ export class Ships {
                 const put = this.metal.add(b, robot.bay, robot.cargo);
                 robot.cargo = put < robot.cargo ? robot.cargo - put : 0;
                 unloaded = unloaded || put > 0;
-                // Taking its own hull down for a refit, what the holds have no room for is thrown away.
-                if (robot.cargo > 0 && this.refitting[owner] === 1) {
+                // Taking its own hull down for a refit, or clearing a slipway, what the holds have no room for is thrown away.
+                if (robot.cargo > 0 && (this.refitting[owner] === 1 || this.waitsOnWreck[owner] === 1)) {
                     robot.cargo = 0;
                     unloaded = true;
                 }
@@ -7577,17 +7580,29 @@ export class Ships {
     /**
      * Distances from where a robot of ship `owner` stands to every module it may
      * go to: over its own hull's welds, and across a seam onto wreckage and over
-     * that, but never onto a ship still in the fight.
+     * that, but never onto a ship still in the fight. A ship its slipways are
+     * building it may cross, to reach wreckage caught on it.
      */
     private walkFrom(b: number, design: ShipDesign, robot: Robot, owner: number, dist: Float64Array, prev: Int32Array): void {
+        const over = (m: number): boolean => this.wreckage(owner, b, m) || this.buildingFor(owner, b, m);
         walk(
             design,
             robot.at,
             dist,
             prev,
-            (m) => this.ownsAt(owner, b, m) || this.wreckage(owner, b, m),
-            (u, v) => this.wreckage(owner, b, u) || this.wreckage(owner, b, v),
+            (m) => this.ownsAt(owner, b, m) || over(m),
+            (u, v) => over(u) || over(v),
         );
+    }
+
+    /** Whether module `m` of body `b` is of a ship one of ship `owner`'s slipways is building. */
+    private buildingFor(owner: number, b: number, m: number): boolean {
+        const f = this.pilotAt(b, m);
+        if (f < 0 || f === owner || this.unfinished[f] !== 1) return false;
+        for (const seam of this.hullDesign[b]?.seams ?? []) {
+            if (seam.dock === "slipway" && this.pilotAt(b, seam.a) === owner && this.pilotAt(b, seam.b) === f) return true;
+        }
+        return false;
     }
 
     /**
@@ -7792,7 +7807,7 @@ export class Ships {
      * nearest of those. Says whether it found any.
      */
     private sendToStrip(b: number, design: ShipDesign, robots: Robot[], robot: Robot, owner: number, dist: Float64Array): boolean {
-        const metalRoom = this.metal.pieceRoom(b, robot.bay) > ROBOT_SPENT || this.refitting[owner] === 1;
+        const metalRoom = this.metal.pieceRoom(b, robot.bay) > ROBOT_SPENT || this.refitting[owner] === 1 || this.waitsOnWreck[owner] === 1;
         const fuelRoom = this.fuel.pieceRoom(b, robot.bay) > ROBOT_SPENT;
         if (!(metalRoom || fuelRoom) || !(robot.cargo + robot.cargoFuel < ROBOT_LOAD - ROBOT_SPENT)) return false;
         let best = -1;
@@ -11382,6 +11397,7 @@ export class Ships {
             if (b < 0 || this.damage.isProtected(b) || this.onSlipway(i, b)) continue;
             const design = this.designs[i]!;
             const rebuild = this.rebuildFor(i, design);
+            this.waitsOnWreck[i] = 0;
             for (let k = 0; yard !== null && yard !== undefined && k < yard.building.length; k++) this.print(world, i, b, rebuild.at, k);
             if (brood === null || brood === undefined) continue;
             const builds = this.launched[i]!.builds!;
@@ -11686,6 +11702,12 @@ export class Ships {
         const n = keep.length;
         const at = keep.indexOf(slipway);
         if (at < 0) return false;
+        // Anything caught on it alone would be left hanging on nothing: it waits for that to be taken apart.
+        if (components(subDesign(was, keep), () => false).length > 1) {
+            const builder = this.pilotAt(b, slipway);
+            if (builder >= 0) this.waitsOnWreck[builder] = 1;
+            return false;
+        }
         const frame = printFrame(was.modules[slipway]!.spec, craft, depth);
         const width = was.modules[slipway]!.spec.width;
         const held = print.held.map((h) => ({ a: at, b: n + h, width, dock: "slipway" as const }));
