@@ -99,9 +99,9 @@ async function distinctColours(p: Page): Promise<number> {
     return seen.size;
 }
 
-/** Where in the view, CSS pixels from its top left, its brightest pixel is: on a ship. */
+/** Where in the view, CSS pixels from its top left, its brightest pixel is: on a ship, not the controls over it. */
 async function brightest(p: Page): Promise<{ x: number; y: number }> {
-    const { data, width } = await shownPixels(p.locator("#view"));
+    const { data, width } = await shownPixels(p.locator("#view"), true);
     let best = -1;
     let index = 0;
     for (let i = 0; i < data.length; i += 4) {
@@ -471,7 +471,7 @@ describe("the viewer in a browser", () => {
             await page.mouse.wheel(0, 400);
         }
         const lit = async (): Promise<number> => {
-            const { data } = await shownPixels(page.locator("#view"));
+            const { data } = await shownPixels(page.locator("#view"), true);
             let count = 0;
             for (let i = 0; i < data.length; i += 4) if (data[i]! + data[i + 1]! + data[i + 2]! > 200) count++;
             return count;
@@ -482,7 +482,7 @@ describe("the viewer in a browser", () => {
         const grid = async (): Promise<number> => Number(/grid ([\d.]+) m/.exec((await page.textContent("#readout")) ?? "")?.[1] ?? NaN);
         const far = await grid();
         const window = await (async () => {
-            const { data, width } = await shownPixels(page.locator("#view"));
+            const { data, width } = await shownPixels(page.locator("#view"), true);
             // The first lit pixel, reading down, is the top of the upper window's frame: just inside its corner.
             let first = 0;
             while (first < data.length / 4 && data[first * 4]! + data[first * 4 + 1]! + data[first * 4 + 2]! <= 200) first++;
@@ -862,7 +862,7 @@ describe("the viewer in a browser", () => {
             return transparent / (data.length / 4);
         });
         expect(clear).toBeGreaterThan(0.5);
-        const { data } = await shownPixels(page.locator("#view"));
+        const { data } = await shownPixels(page.locator("#view"), true);
         let gridPixels = 0;
         // GRID in render/backdrop.ts.
         for (let i = 0; i < data.length; i += 4) {

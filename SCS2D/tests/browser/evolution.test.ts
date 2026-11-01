@@ -763,8 +763,8 @@ describe("the evolution route in a browser", () => {
         };
         const before = await settled();
 
-        // The leftmost thing drawn, and what is drawn within a few pixels of it, is one ship.
-        const { data, width, height } = await shownPixels(page.locator("#view"));
+        // The leftmost thing drawn, and what is drawn within a few pixels of it, is one ship: not the scores over it.
+        const { data, width, height } = await shownPixels(page.locator("#view"), true);
         const shipAt = (() => {
             const lit = (i: number): boolean => data[i]! + data[i + 1]! + data[i + 2]! > 150;
             let left = Infinity;

@@ -57,10 +57,11 @@ export interface Pixels {
 /**
  * What `target` shows on screen, as pixels: a screenshot, so what Pixi draws
  * under a canvas is in it with whatever is drawn over it, which reading a
- * canvas's own context would miss.
+ * canvas's own context would miss. With `canvasesOnly`, without the page's
+ * other elements, such as a table laid over a view.
  */
-export async function shownPixels(target: Locator): Promise<Pixels> {
-    const png = (await target.screenshot()).toString("base64");
+export async function shownPixels(target: Locator, canvasesOnly = false): Promise<Pixels> {
+    const png = (await target.screenshot(canvasesOnly ? { style: CANVASES_ONLY } : {})).toString("base64");
     const decoded = await target.page().evaluate(async (from) => {
         const image = await createImageBitmap(await (await fetch(`data:image/png;base64,${from}`)).blob());
         const canvas = new OffscreenCanvas(image.width, image.height);
@@ -73,6 +74,8 @@ export async function shownPixels(target: Locator): Promise<Pixels> {
     }, png);
     return { data: new Uint8Array(Buffer.from(decoded.rgba, "base64")), width: decoded.width, height: decoded.height };
 }
+
+const CANVASES_ONLY = "*:not(canvas) { visibility: hidden !important; } canvas { visibility: visible !important; }";
 
 /** Whether a console message is the GPU driver's own note, as drawing WebGL in software gives, rather than the page's. */
 export function driverNote(text: string): boolean {
