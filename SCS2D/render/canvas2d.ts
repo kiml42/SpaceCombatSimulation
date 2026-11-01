@@ -1526,7 +1526,7 @@ function keptFill(ctx: CanvasRenderingContext2D, ship: ShipView, i: number): voi
     const m = design.modules[i]!;
     const colours = moduleColours(design, i, ship.sides?.[i] ?? ship.team);
     const integrity = ship.integrity?.[i] ?? 1;
-    const colour = fillColour(m.spec, integrity, m.weaponsLayer, colours);
+    const colour = fillColour(m.spec, integrity, colours);
     const side = ship.sides?.[i] ?? ship.team;
     keep(ctx, `fill ${idOf(m.spec)} ${idOf(colours)} ${colour} ${integrity} ${patternKey(design, i, side)}`, () =>
         fillModule(ctx, ship, i),
@@ -1543,7 +1543,7 @@ function fillModule(ctx: CanvasRenderingContext2D, ship: ShipView, i: number): v
     const spec = m.spec;
     const colours = moduleColours(design, i, ship.sides?.[i] ?? ship.team);
     const integrity = ship.integrity?.[i] ?? 1;
-    moduleFills(spec, fillColour(spec, integrity, m.weaponsLayer, colours), colours, integrity, fills);
+    moduleFills(spec, fillColour(spec, integrity, colours), colours, integrity, fills);
     const pattern = patternOf(ctx, design, i, ship.sides?.[i] ?? ship.team, integrity);
     for (const fill of fills) {
         const points = fill.points;

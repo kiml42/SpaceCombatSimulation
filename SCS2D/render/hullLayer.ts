@@ -411,13 +411,13 @@ function contextFor(design: ShipDesign, i: number, side: number, integrity: numb
     const spec = m.spec;
     const livery = integrity > 0 && spec.kind !== "rock" && spec.kind !== "kernel" ? teamLivery(side) : undefined;
     if (livery !== undefined && livery.pattern !== "none") return patternedContext(design, i, side, integrity, livery);
-    return plainContext(spec, side, integrity, m.weaponsLayer);
+    return plainContext(spec, side, integrity);
 }
 
 /** Module fills for `spec` on side `side`, in its colours alone. */
-function plainContext(spec: ModuleSpec, side: number, integrity: number, weaponsLayer: boolean): GraphicsContext {
+function plainContext(spec: ModuleSpec, side: number, integrity: number): GraphicsContext {
     const colours = shipColours(side);
-    const colour = fillColour(spec, integrity, weaponsLayer, colours);
+    const colour = fillColour(spec, integrity, colours);
     // What else moduleFills reads: the side's palette, and whether it is wreckage.
     const key = `${colour}|${colours.hull}${colours.trim}${colours.pivot}|${integrity <= 0}`;
     let bySpec = contexts.get(spec);
@@ -453,7 +453,7 @@ const patternTextures = new Map<string, Texture>();
 function patternedContext(design: ShipDesign, i: number, side: number, integrity: number, livery: Livery): GraphicsContext {
     const m = design.modules[i]!;
     const colours = shipColours(side);
-    const colour = fillColour(m.spec, integrity, m.weaponsLayer, colours);
+    const colour = fillColour(m.spec, integrity, colours);
     const origin = originOf(design, i);
     const key =
         `${origin.module}|${colour}|${colours.hull}${colours.trim}${colours.pivot}${colours.highlight}|` +
