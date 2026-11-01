@@ -15,23 +15,23 @@ const degrees = (d: number): number => (d * math.PI) / 180;
  */
 export const LIGHTS = {
     /** White, from the top left: the default. */
-    daylight: { from: degrees(135), colour: "#ffffff", ambient: 0.55 },
+    daylight: { from: degrees(135), colour: "#ffffff", ambient: 0.2 },
     /** A yellow sun, high overhead. */
-    noon: { from: degrees(90), colour: "#fff2d0", ambient: 0.5 },
+    noon: { from: degrees(90), colour: "#fff2d0", ambient: 0.2, slant: 2015 },
     /** Low and orange, from the left. */
-    dusk: { from: degrees(185), colour: "#ffd2a0", ambient: 0.45 },
+    dusk: { from: degrees(185), colour: "#915f43", ambient: 0.1 },
     /** A red dwarf, dim, from the bottom left. */
-    redDwarf: { from: degrees(225), colour: "#ffb8a8", ambient: 0.5 },
+    redDwarf: { from: degrees(225), colour: "#ffb8a8", ambient: 0.2 },
     /** A blue giant, harsh, from the top right. */
-    blueGiant: { from: degrees(40), colour: "#c8dcff", ambient: 0.35 },
+    blueGiant: { from: degrees(40), colour: "#c8dcff", ambient: 0.15 },
     /** Cold and pale, from below. */
-    ice: { from: degrees(275), colour: "#d8f4ff", ambient: 0.6 },
+    ice: { from: degrees(275), colour: "#d8f4ff", ambient: 0.3, slant: 3 },
     /** Inside a green nebula: soft, from the right. */
-    nebula: { from: degrees(350), colour: "#d4ffdc", ambient: 0.7 },
+    nebula: { from: degrees(350), colour: "#5a6c5d", ambient: 0.9, slant: 0.5 },
     /** Violet, from the bottom right. */
-    violet: { from: degrees(315), colour: "#e4d0ff", ambient: 0.55 },
+    violet: { from: degrees(315), colour: "#e4d0ff", ambient: 0.25 },
     /** Gold, from the top left, steep. */
-    gold: { from: degrees(120), colour: "#fff0b0", ambient: 0.4 },
+    gold: { from: degrees(120), colour: "#fff0b0", ambient: 0.2 },
 } as const satisfies Record<string, Light>;
 
 /** Range of a drawn light's ambient. */
