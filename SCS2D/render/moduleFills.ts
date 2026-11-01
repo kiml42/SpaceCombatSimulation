@@ -114,15 +114,16 @@ export function moduleFills(spec: ModuleSpec, colour: string, colours: Palette, 
         const engine = engineGeometry(spec);
         const mouth = l - engine.machineryLength;
         box(mouth, -w, l, w);
-        // A livery's band across the block, next to the bells.
+        // A livery's band across the block, as far from the bells as it is wide.
         if (colours.highlight !== undefined && integrity > 0) {
-            box(mouth, -w, mouth + (l - mouth) * ENGINE_BAND_SHARE, w, colours.highlight);
+            const band = (l - mouth) * ENGINE_BAND_SHARE;
+            box(mouth + band, -w, mouth + 2 * band, w, colours.highlight);
         }
         const throat = engine.throatWidth / 2;
         const exit = engine.exitWidth / 2;
         for (let n = 0; n < engine.nozzles; n++) {
             const across = nozzleOffset(engine, n);
-            out.push({ colour, points: [mouth, across - throat, mouth, across + throat, -l, across + exit, -l, across - exit] });
+            out.push({ colour: BELL, points: [mouth, across - throat, mouth, across + throat, -l, across + exit, -l, across - exit] });
         }
     } else if (isHullMount(spec.kind)) {
         box(-l, -w, -l + hullMountGeometry(spec).blockLength, w);
@@ -158,7 +159,10 @@ export function moduleFills(spec: ModuleSpec, colour: string, colours: Palette, 
     }
 }
 
-/** How much of an engine's block, from the bells forward, a livery's band covers. */
+/** Engine bells, whatever side they are on. */
+const BELL = "#4a4a4a";
+
+/** How much of an engine's block a livery's band covers. */
 const ENGINE_BAND_SHARE = 0.25;
 
 /** How far in from a pad's edge its landing square is drawn, as a share of its smaller side. */

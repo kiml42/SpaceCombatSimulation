@@ -13,7 +13,7 @@ import {
 } from "../sim/index.js";
 import { CORVETTE, DINKY, GUNSHIP } from "../scenarios/blueprints.js";
 import { moduleFills, type Fill } from "../render/moduleFills.js";
-import { patternTransform, TILE } from "../render/livery.js";
+import { patternColour, patternTransform, TILE } from "../render/livery.js";
 import { fleetBattle } from "../scenarios/fleetBattle.js";
 import { colourDistance, colourName, liveryPalette, sidesOf, STOCK, TOO_ALIKE, teamColour, teamName } from "../render/teams.js";
 
@@ -140,7 +140,17 @@ describe("a livery's pattern", () => {
         moduleFills(engine, "#000000", liveryPalette(livery("#2a6a8a")), 1, out);
         expect(out.some((fill) => fill.colour === "#ffffff")).toBe(true);
         moduleFills(engine, "#000000", STOCK[0]!.ship, 1, out);
-        expect(out.every((fill) => fill.colour === "#000000")).toBe(true);
+        // The block and its bells only, the bells grey whatever the side.
+        expect(new Set(out.map((fill) => fill.colour))).toEqual(new Set(["#000000", "#4a4a4a"]));
         expect(sidesOf([livery("#2a6a8a")])[0]!.fighter.highlight).toBeDefined();
+    });
+
+    it("is tinted on each tone as the tone is from the base", () => {
+        const palette = liveryPalette(livery("#2a6a8a"));
+        expect(patternColour(palette.hull, palette)).toBe("#ffffff");
+        expect(patternColour(palette.trim, palette)).toBe("#ffffff");
+        expect(patternColour(palette.pivot, palette)).toBe("#808080");
+        expect(patternColour("#123456", palette)).toBeNull();
+        expect(patternColour(STOCK[0]!.ship.hull, STOCK[0]!.ship)).toBeNull();
     });
 });

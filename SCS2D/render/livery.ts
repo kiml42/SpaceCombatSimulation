@@ -1,4 +1,5 @@
 import { originOf, type Livery, type ShipDesign } from "../sim/index.js";
+import type { Palette } from "./teams.js";
 
 /**
  * A livery's pattern, as a tile repeated across a ship's hull in its design's
@@ -50,6 +51,16 @@ function makeTile(livery: Livery, colour: string): HTMLCanvasElement | Offscreen
         ctx.fill();
     }
     return canvas;
+}
+
+/** The pattern's colour over a fill of `fill`: tinted as the fill's tone is, or none for a part not in the hull's tones. */
+export function patternColour(fill: string, palette: Palette): string | null {
+    const h = palette.highlights;
+    if (h === undefined) return null;
+    if (fill === palette.hull) return h.hull;
+    if (fill === palette.trim) return h.trim;
+    if (fill === palette.pivot) return h.pivot;
+    return null;
 }
 
 /** A 2D affine transform, as a canvas holds one: x' = a x + c y + e, y' = b x + d y + f. */

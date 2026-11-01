@@ -271,9 +271,12 @@ an entry is either still open or it is gone.
                polygons a second time with it (one shared context per module of a design, rather than
                per spec, where a side has a pattern); fighters, drawn through the adapter, take it by
                `createPattern`, which `render/pixiCanvas.ts` now has, and so does Draw: 2D. A livery's
-               highlight is a `Palette`'s `highlight`, which side colours lack, so nothing changes
-               without one: it bands each engine block by its bells, fills turret domes in place of the
-               pivot tone, and marks pads' landing squares and ports' collars.
+               highlight is a `Palette`'s `highlight`, which side colours lack: it bands each engine
+               block a band's width in from its bells, fills turret domes, hull guns' mantlets and beam
+               lenses' discs in place of the pivot tone, and marks pads' landing squares and ports'
+               collars. The pattern falls on every part in the hull's three tones, thick modules and
+               cores included, its colour tinted as each tone is from the base (`Palette.highlights`).
+               Engine bells are dark grey whatever the side.
             4. **Evolution**: drift on every mutant, leaning away from the player, and random first liveries
                for skirmish enemies and single-ship entrants.
     4. **Part art, first pass:** bevels on the hull's outside edges, and on the thick parts' edges, lit by

@@ -55,6 +55,12 @@ export interface Palette {
      * have none, and those parts keep their usual tones.
      */
     readonly highlight?: string;
+    /**
+     * The pattern's colour on each tone: the highlight tinted as the hull,
+     * trim and pivot are from the base, so a pattern on a lighter part is
+     * lighter too. Side colours have none.
+     */
+    readonly highlights?: { readonly hull: string; readonly trim: string; readonly pivot: string };
 }
 
 /**
@@ -86,7 +92,17 @@ function shaded(palette: Palette): Palette {
         trim: towards(palette.trim, palette.pivot, FIGHTER_SHADE),
         pivot: towards(palette.pivot, "#000000", 1 - FIGHTER_PIVOT),
     };
-    return palette.highlight === undefined ? out : { ...out, highlight: towards(palette.highlight, palette.pivot, FIGHTER_SHADE) };
+    const h = palette.highlights;
+    if (palette.highlight === undefined || h === undefined) return out;
+    return {
+        ...out,
+        highlight: towards(palette.highlight, palette.pivot, FIGHTER_SHADE),
+        highlights: {
+            hull: towards(h.hull, h.pivot, FIGHTER_SHADE),
+            trim: towards(h.trim, h.pivot, FIGHTER_SHADE),
+            pivot: towards(h.pivot, "#000000", 1 - FIGHTER_PIVOT),
+        },
+    };
 }
 
 const FIGHTER_COLOURS = TEAM_COLOURS.map(shaded);
@@ -169,6 +185,11 @@ export function liveryPalette(livery: Livery): Palette {
         trim: towards(livery.base, "#ffffff", TRIM_LIGHTER),
         pivot: towards(livery.base, "#000000", PIVOT_DARKER),
         highlight: livery.highlight,
+        highlights: {
+            hull: livery.highlight,
+            trim: towards(livery.highlight, "#ffffff", TRIM_LIGHTER),
+            pivot: towards(livery.highlight, "#000000", PIVOT_DARKER),
+        },
     };
 }
 

@@ -1,6 +1,6 @@
 import { AlphaFilter, Container, Graphics, GraphicsContext, Matrix, Texture } from "pixi.js";
 import { domeRadius, isDomed, originOf, type Livery, type ModuleSpec, type ShipDesign, type Snapshot } from "../sim/index.js";
-import { patternTile, patternTransform, tileKey } from "./livery.js";
+import { patternColour, patternTile, patternTransform, tileKey } from "./livery.js";
 import { BEVEL_DARK, BEVEL_LIGHT, BEVEL_OF_RADIUS, BEVEL_STRIDE, bevelQuad, drawnBevels, MIN_BEVEL_LIT, MIN_BEVEL_PX } from "./bevels.js";
 import { lightSlope } from "./shading.js";
 import type { Camera } from "./camera.js";
@@ -454,11 +454,10 @@ function patternedContext(design: ShipDesign, i: number, side: number, integrity
     const m = design.modules[i]!;
     const colours = shipColours(side);
     const colour = fillColour(m.spec, integrity, m.weaponsLayer, colours);
-    const highlight = colours.highlight ?? livery.highlight;
     const origin = originOf(design, i);
     const key =
-        `${origin.module}|${colour}|${colours.hull}${colours.trim}${colours.pivot}${highlight}|` +
-        `${tileKey(livery, highlight)}|${livery.spacing}|${livery.offset}|${livery.angle}`;
+        `${origin.module}|${colour}|${colours.hull}${colours.trim}${colours.pivot}${colours.highlight}|` +
+        `${tileKey(livery, "")}|${livery.spacing}|${livery.offset}|${livery.angle}`;
     let byDesign = patterned.get(origin.design);
     if (byDesign === undefined) {
         byDesign = new Map();
@@ -468,13 +467,13 @@ function patternedContext(design: ShipDesign, i: number, side: number, integrity
     if (context === undefined) {
         context = new GraphicsContext();
         moduleFills(m.spec, colour, colours, integrity, fills);
-        const texture = tileTexture(livery, highlight);
         const t = patternTransform(livery, design, i);
         const matrix = new Matrix(t.a, t.b, t.c, t.d, t.e, t.f);
         for (const fill of fills) {
             context.poly(fill.points).fill(fill.colour);
-            if (texture !== null && fill.colour === colours.hull)
-                context.poly(fill.points).fill({ texture, matrix, textureSpace: "global" });
+            const over = patternColour(fill.colour, colours);
+            const texture = over === null ? null : tileTexture(livery, over);
+            if (texture !== null) context.poly(fill.points).fill({ texture, matrix, textureSpace: "global" });
         }
         markPad(context, m.spec, colours);
         byDesign.set(key, context);

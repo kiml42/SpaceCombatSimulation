@@ -78,8 +78,8 @@ import {
     type LabelAt,
 } from "./inset.js";
 import { stripsFor, stripTileAt, stripTileUnder, type StripColumn, type StripShip, type Strips, type StripTile } from "./fleetStrip.js";
-import { fighterColours, NEUTRAL, shipColours, teamLivery, teamName, type Palette } from "./teams.js";
-import { patternTile, patternTransform } from "./livery.js";
+import { fighterColours, NEUTRAL, shipColours, teamLivery, teamName } from "./teams.js";
+import { patternColour, patternTile, patternTransform } from "./livery.js";
 
 export { teamColour } from "./teams.js";
 import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth, plumeAlpha, tracerAlpha } from "./strokes.js";
@@ -580,16 +580,15 @@ function drawShip(
         // The rotating part itself. A turret's is a disc at the mount, sized to the
         // module it sits in so a heavy mount looks heavy. Each of a hull beam's
         // lenses has a mount of its own on a stalk out of the face. A hull gun's
-        // mantlet goes on after its barrels, below.
-        ctx.fillStyle = colours.pivot;
+        // mantlet goes on after its barrels, below. A livery picks every one out in its highlight.
+        const mountColour = colours.highlight ?? colours.pivot;
+        ctx.fillStyle = mountColour;
         if (hull === null) {
             // A disc looks the same however it is turned, and its light comes from the world: kept, and only moved.
-            // A livery picks it out in its highlight.
-            const dome = colours.highlight ?? colours.pivot;
             ctx.save();
             ctx.translate(mx, my);
-            keep(ctx, `turret ${dome} ${face} ${light === undefined ? "" : idOf(light)}`, () => {
-                ctx.fillStyle = dome;
+            keep(ctx, `turret ${mountColour} ${face} ${light === undefined ? "" : idOf(light)}`, () => {
+                ctx.fillStyle = mountColour;
                 ctx.beginPath();
                 ctx.arc(0, 0, face * 0.5, 0, TAU);
                 ctx.fill();
@@ -648,7 +647,7 @@ function drawShip(
         if (hull !== null && !beamLenses) {
             // Over the barrels' roots, standing out of the block's face, so a barrel
             // trained hard over is seen to come out of it rather than the block.
-            ctx.fillStyle = colours.pivot;
+            ctx.fillStyle = mountColour;
             const row = ((count - 1) / 2) * spacing + hull.outletWidth;
             mantlet(ctx, mx, my, min(spec.width * 0.5, row), rest);
         }
@@ -1486,27 +1485,26 @@ function shadePort(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: numbe
 }
 
 /**
- * Module `i`'s side's pattern, laid in its own frame (`patternTransform`), or
- * null where its side has none or it is wreckage or rock.
+ * Module `i`'s side's pattern in a colour, laid in its own frame
+ * (`patternTransform`), or null where its side has none or it is wreckage or rock.
  */
 function patternOf(
     ctx: CanvasRenderingContext2D,
     design: ShipDesign,
     i: number,
     side: number,
-    colours: Palette,
     integrity: number,
-): CanvasPattern | null {
+): ((colour: string) => CanvasPattern | null) | null {
     const kind = design.modules[i]!.spec.kind;
     const livery = integrity > 0 && kind !== "rock" && kind !== "kernel" ? teamLivery(side) : undefined;
-    if (livery === undefined) return null;
-    const tile = patternTile(livery, colours.highlight ?? livery.highlight);
-    if (tile === null) return null;
-    const pattern = ctx.createPattern(tile as HTMLCanvasElement, "repeat");
-    if (pattern === null) return null;
+    if (livery === undefined || livery.pattern === "none") return null;
     const t = patternTransform(livery, design, i);
-    pattern.setTransform({ a: t.a, b: t.b, c: t.c, d: t.d, e: t.e, f: t.f });
-    return pattern;
+    return (colour) => {
+        const tile = patternTile(livery, colour);
+        const pattern = tile === null ? null : ctx.createPattern(tile as HTMLCanvasElement, "repeat");
+        pattern?.setTransform({ a: t.a, b: t.b, c: t.c, d: t.d, e: t.e, f: t.f });
+        return pattern ?? null;
+    };
 }
 
 /** What `patternOf` lays on module `i` of side `side`, as a key: empty for nothing. */
@@ -1546,7 +1544,7 @@ function fillModule(ctx: CanvasRenderingContext2D, ship: ShipView, i: number): v
     const colours = moduleColours(design, i, ship.sides?.[i] ?? ship.team);
     const integrity = ship.integrity?.[i] ?? 1;
     moduleFills(spec, fillColour(spec, integrity, m.weaponsLayer, colours), colours, integrity, fills);
-    const pattern = patternOf(ctx, design, i, ship.sides?.[i] ?? ship.team, colours, integrity);
+    const pattern = patternOf(ctx, design, i, ship.sides?.[i] ?? ship.team, integrity);
     for (const fill of fills) {
         const points = fill.points;
         ctx.fillStyle = fill.colour;
@@ -1555,8 +1553,10 @@ function fillModule(ctx: CanvasRenderingContext2D, ship: ShipView, i: number): v
         for (let v = 2; v < points.length; v += 2) ctx.lineTo(points[v]!, points[v + 1]!);
         ctx.closePath();
         ctx.fill();
-        if (pattern !== null && fill.colour === colours.hull) {
-            ctx.fillStyle = pattern;
+        const over = pattern === null ? null : patternColour(fill.colour, colours);
+        const tiled = over === null ? null : pattern!(over);
+        if (tiled !== null) {
+            ctx.fillStyle = tiled;
             ctx.fill();
         }
     }
