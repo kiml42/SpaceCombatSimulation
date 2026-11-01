@@ -218,6 +218,11 @@ an entry is either still open or it is gone.
           earlier side's, it flies its side colours instead, and the player's side is never the one to fall
           back. The editors give no warning, since the only known enemy there is a skirmish's, which the
           player cannot change.
+        - **Markers — built.** A liveried side is told apart off its hull — its arrows, labels, strips,
+          shots, swatches and name — by its marker (`liveryMarker` in `render/teams.ts`): its base made
+          vivid, hue kept, or its highlight where the base is too grey to have a hue. Two sides are too alike
+          by their markers, not their hulls, so two grey fleets with different accents are two sides, and a
+          grey fleet's fighters still read as alive.
         - **Colours** are free choices of base and highlight; the trim and dark pivot tones a module needs
           are worked out from the base, as the side palettes' are now.
         - **Patterns**: none, stripes, spots or chevrons of the highlight, each with a few numbers — size,

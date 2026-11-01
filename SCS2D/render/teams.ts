@@ -55,6 +55,17 @@ export interface Palette {
      * have none, and those parts keep their usual tones.
      */
     readonly highlight?: string;
+    /**
+     * What tells the side apart off its hull — its icons, labels, strips,
+     * shots and swatches — where that is not its hull and trim: a livery's
+     * base made vivid, so a grey hull's arrows still read as alive.
+     */
+    readonly marker?: { readonly hull: string; readonly trim: string };
+}
+
+/** A palette's colours for telling its side apart: its marker, or its hull and trim. */
+export function markerOf(palette: Palette): { readonly hull: string; readonly trim: string } {
+    return palette.marker ?? palette;
 }
 
 /**
@@ -80,13 +91,28 @@ function towards(hex: string, dark: string, share: number): string {
     return toHex(mix(1), mix(3), mix(5));
 }
 
+/** How much darker a fighter's marker is than its side's. */
+const MARKER_SHADE = 0.3;
+
 function shaded(palette: Palette): Palette {
     const out = {
         hull: towards(palette.hull, palette.pivot, FIGHTER_SHADE),
         trim: towards(palette.trim, palette.pivot, FIGHTER_SHADE),
         pivot: towards(palette.pivot, "#000000", 1 - FIGHTER_PIVOT),
     };
-    return palette.highlight === undefined ? out : { ...out, highlight: towards(palette.highlight, palette.pivot, FIGHTER_SHADE) };
+    return {
+        ...out,
+        ...(palette.highlight === undefined ? {} : { highlight: towards(palette.highlight, palette.pivot, FIGHTER_SHADE) }),
+        // Darker towards black rather than the pivot, which for a grey hull would grey it again.
+        ...(palette.marker === undefined
+            ? {}
+            : {
+                  marker: {
+                      hull: towards(palette.marker.hull, "#000000", MARKER_SHADE),
+                      trim: towards(palette.marker.trim, "#000000", MARKER_SHADE),
+                  },
+              }),
+    };
 }
 
 const FIGHTER_COLOURS = TEAM_COLOURS.map(shaded);
@@ -155,7 +181,7 @@ export function teamName(team: number, sides: Sides = shown): string {
 
 /** A side's hull colour, for anything that names the side outside the picture. */
 export function teamColour(team: number, sides: Sides = shown): string {
-    return team < 0 ? NEUTRAL.hull : sideOf(team, sides).ship.hull;
+    return team < 0 ? NEUTRAL.hull : markerOf(sideOf(team, sides).ship).hull;
 }
 
 /** How far a livery's trim is drawn towards white, and its pivot towards black, from its base: as the stock sides' are. */
@@ -164,12 +190,65 @@ const PIVOT_DARKER = 0.5;
 
 /** A side's palette from its livery's base colour. */
 export function liveryPalette(livery: Livery): Palette {
+    const marker = liveryMarker(livery);
     return {
         hull: livery.base,
         trim: towards(livery.base, "#ffffff", TRIM_LIGHTER),
         pivot: towards(livery.base, "#000000", PIVOT_DARKER),
         highlight: livery.highlight,
+        marker: { hull: marker, trim: towards(marker, "#ffffff", TRIM_LIGHTER) },
     };
+}
+
+/** HSL saturation under which a colour has too little hue to make vivid. */
+const GREY = 0.1;
+/** At least this saturated, and this light, a marker reads as a side's at any size. */
+const MARKER_SATURATION = 0.65;
+const MARKER_LIGHTNESS: readonly [number, number] = [0.45, 0.6];
+
+/**
+ * The colour a livery's side is told apart by: its base made vivid, its hue
+ * kept; or, where the base is too grey to have one, its highlight made vivid;
+ * or, where both are, the base itself.
+ */
+export function liveryMarker(livery: Livery): string {
+    return vivid(livery.base) ?? vivid(livery.highlight) ?? livery.base;
+}
+
+function vivid(hex: string): string | null {
+    const [h, s, l] = hsl(hex);
+    if (s < GREY) return null;
+    const [least, most] = MARKER_LIGHTNESS;
+    return fromHsl(h, Math.max(s, MARKER_SATURATION), Math.min(most, Math.max(least, l)));
+}
+
+function hsl(hex: string): [number, number, number] {
+    const r = channel(hex, 1) / 255;
+    const g = channel(hex, 3) / 255;
+    const b = channel(hex, 5) / 255;
+    const high = Math.max(r, g, b);
+    const low = Math.min(r, g, b);
+    const l = (high + low) / 2;
+    const d = high - low;
+    if (d === 0) return [0, 0, l];
+    const s = d / (1 - Math.abs(2 * l - 1));
+    const h = high === r ? ((g - b) / d + 6) % 6 : high === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    return [h / 6, s, l];
+}
+
+function fromHsl(h: number, s: number, l: number): string {
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs(((h * 6) % 2) - 1));
+    const m = l - c / 2;
+    const rgb = [
+        [c, x, 0],
+        [x, c, 0],
+        [0, c, x],
+        [0, x, c],
+        [x, 0, c],
+        [c, 0, x],
+    ][Math.floor(h * 6) % 6]!;
+    return toHex((rgb[0]! + m) * 255, (rgb[1]! + m) * 255, (rgb[2]! + m) * 255);
 }
 
 /**
@@ -187,18 +266,20 @@ export const TOO_ALIKE = 30;
 
 /**
  * Each team's colours from its livery, in team order. An earlier side keeps
- * its own, so the player, listed first, never gives way; a later side too
- * like one before it wears its stock colours, or the first stock colours
- * unlike all of them, as does a side with no livery.
+ * its own, so the player, listed first, never gives way; a later side whose
+ * marker is too like one before it wears its stock colours, or the first stock
+ * colours unlike all of them, as does a side with no livery. Markers are what
+ * is compared, being what the sides are told apart by: two grey hulls whose
+ * vivid colours differ are two sides.
  */
 export function sidesOf(liveries: readonly (Livery | undefined)[] | undefined): Sides {
     if (liveries === undefined) return STOCK;
     const out: Side[] = [];
-    const unlike = (hull: string): boolean => out.every((side) => colourDistance(side.ship.hull, hull) >= TOO_ALIKE);
+    const unlike = (colour: string): boolean => out.every((side) => colourDistance(markerOf(side.ship).hull, colour) >= TOO_ALIKE);
     liveries.forEach((livery, team) => {
-        if (livery !== undefined && unlike(livery.base)) {
+        if (livery !== undefined && unlike(liveryMarker(livery))) {
             const ship = liveryPalette(livery);
-            out.push({ ship, fighter: shaded(ship), name: colourName(livery.base), livery });
+            out.push({ ship, fighter: shaded(ship), name: colourName(liveryMarker(livery)), livery });
             return;
         }
         const n = STOCK.length;

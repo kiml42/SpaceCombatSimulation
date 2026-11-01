@@ -2,6 +2,17 @@
   "formatVersion": 1,
   "name": "Line of Battle",
   "notes": "The capital in the middle, a beam ship and a gun ship on the wings, and a pair of fighters ahead of them — enough of a mix that a doctrine will have something to disagree about.",
+  "livery": {
+    "base": "#4555c7",
+    "highlight": "#841c1c",
+    "pattern": "stripes",
+    "size": 0.01,
+    "spacing": 10,
+    "offset": 0.41,
+    "angle": 44,
+    "chevron": 45,
+    "points": 0
+  },
   "designs": {
     "Gunship": {
       "formatVersion": 2,

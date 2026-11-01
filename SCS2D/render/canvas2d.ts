@@ -78,7 +78,7 @@ import {
     type LabelAt,
 } from "./inset.js";
 import { stripsFor, stripTileAt, stripTileUnder, type StripColumn, type StripShip, type Strips, type StripTile } from "./fleetStrip.js";
-import { fighterColours, NEUTRAL, shipColours, teamLivery, teamName } from "./teams.js";
+import { fighterColours, markerOf, NEUTRAL, shipColours, teamLivery, teamName } from "./teams.js";
 import { patternColour, patternTile, patternTransform } from "./livery.js";
 
 export { teamColour } from "./teams.js";
@@ -1848,7 +1848,7 @@ function drawIcon(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     const alpha = iconAlpha(ship.currentStructure.radius * 2 * metresToPx);
     if (alpha <= 0) return;
     const palette = ship.currentStructure.fighter ? fighterColours : shipColours;
-    const colours = palette(ship.hasControl && !ship.isMissionKilled ? ship.team : -1);
+    const colours = markerOf(palette(ship.hasControl && !ship.isMissionKilled ? ship.team : -1));
     const size = ICON_PX / metresToPx;
 
     ctx.save();
@@ -1957,7 +1957,7 @@ function drawLabel(ctx: CanvasRenderingContext2D, ship: ShipView, core: number, 
         ctx.font = `${size}px ui-monospace, monospace`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillStyle = shipColours(side).trim;
+        ctx.fillStyle = markerOf(shipColours(side)).trim;
         ctx.fillText(text, 0, 0);
     }
     ctx.restore();
@@ -2261,7 +2261,7 @@ export function drawCloseUps(
         ctx.restore();
 
         const ship = shipByBody(snapshot, inset.body)!;
-        const colour = (ship.hasControl && !ship.isMissionKilled ? shipColours(ship.team) : NEUTRAL).trim;
+        const colour = markerOf(ship.hasControl && !ship.isMissionKilled ? shipColours(ship.team) : NEUTRAL).trim;
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.strokeStyle = colour;
@@ -2318,7 +2318,7 @@ export function drawTargetRange(
     const target = shipByBody(snapshot, ship?.fighting ?? -1);
     if (ship === null || target === null) return;
     const text = describeRange(Math.hypot(target.x - ship.x, target.y - ship.y));
-    const colour = (ship.hasControl && !ship.isMissionKilled ? shipColours(ship.team) : NEUTRAL).trim;
+    const colour = markerOf(ship.hasControl && !ship.isMissionKilled ? shipColours(ship.team) : NEUTRAL).trim;
     const size = RANGE_LABEL_PX * ratio;
     const pad = RANGE_PAD_PX * ratio;
     ctx.save();
@@ -2506,7 +2506,7 @@ export function drawFleetStrips(
             ctx.restore();
             ctx.save();
             ctx.setTransform(1, 0, 0, 1, 0, 0);
-            ctx.strokeStyle = shipColours(tile.team).trim;
+            ctx.strokeStyle = markerOf(shipColours(tile.team)).trim;
             ctx.globalAlpha = picked ? 1 : 0.55;
             ctx.lineWidth = (picked ? 2 : 1) * ratio;
             ctx.strokeRect(tile.x, tile.y, tile.size, tile.size);
@@ -2526,7 +2526,7 @@ export function drawFleetStrips(
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.fillStyle = BACKGROUND;
             ctx.fillRect(box.x, box.y, box.size, box.size * 0.5);
-            ctx.fillStyle = shipColours(column.tiles[0]?.team ?? 0).trim;
+            ctx.fillStyle = markerOf(shipColours(column.tiles[0]?.team ?? 0)).trim;
             ctx.font = `${11 * ratio}px ui-monospace, monospace`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
@@ -2555,7 +2555,7 @@ const SELECTED_GAP_PX = 6;
 function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: number, metresToPx: number): void {
     const ship = shipByBody(snapshot, body);
     if (ship === null) return;
-    const colour = (ship.hasControl && !ship.isMissionKilled ? shipColours(ship.team) : NEUTRAL).trim;
+    const colour = markerOf(ship.hasControl && !ship.isMissionKilled ? shipColours(ship.team) : NEUTRAL).trim;
     const gap = SELECTED_GAP_PX / metresToPx;
     ctx.save();
     ctx.strokeStyle = colour;
@@ -2621,7 +2621,7 @@ function drawRing(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: numbe
     const ship = shipByBody(snapshot, body);
     if (ship === null) return;
     ctx.save();
-    ctx.strokeStyle = (ship.hasControl && !ship.isMissionKilled ? shipColours(ship.team) : NEUTRAL).trim;
+    ctx.strokeStyle = markerOf(ship.hasControl && !ship.isMissionKilled ? shipColours(ship.team) : NEUTRAL).trim;
     ctx.lineWidth = 1.5 / metresToPx;
     ctx.beginPath();
     ctx.arc(ship.x, ship.y, ship.currentStructure.radius + SELECTED_GAP_PX / metresToPx, 0, TAU);
@@ -2996,7 +2996,7 @@ function tracerColour(team: number, teamShots: boolean, glow: boolean, inside: b
     if (!teamShots || team < 0) {
         return glow ? (inside ? TRACER_GLOW_INSIDE : TRACER_GLOW) : inside ? TRACER_INSIDE : TRACER;
     }
-    const { hull, trim } = shipColours(team);
+    const { hull, trim } = markerOf(shipColours(team));
     if (glow) return inside ? TRACER_GLOW_INSIDE : `${hull}88`;
     return inside ? `${trim}40` : trim;
 }
@@ -3061,7 +3061,7 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
     const team = (i: number): number => (teamShots ? snapshot.beamTeam[i]! : -1);
     for (let i = 0; i < snapshot.beamCount; i++) {
         if (!nearShown(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!, snapshot.beamEndX[i]!, snapshot.beamEndY[i]!)) continue;
-        ctx.strokeStyle = team(i) < 0 ? BEAM_GLOW : shipColours(team(i)).hull;
+        ctx.strokeStyle = team(i) < 0 ? BEAM_GLOW : markerOf(shipColours(team(i))).hull;
         const calibre = snapshot.beamWidth[i]!;
         const halo = BEAM_GLOW_WIDTHS * calibre;
         ctx.globalAlpha = beamAlpha(snapshot.beamPower[i]!) * BEAM_GLOW_ALPHA * flooredFade(halo, MIN_BEAM_GLOW_PX, camera.scale);
@@ -3077,7 +3077,7 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
     // bucket by width rather than reaching for a single average.
     for (let i = 0; i < snapshot.beamCount; i++) {
         if (!nearShown(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!, snapshot.beamEndX[i]!, snapshot.beamEndY[i]!)) continue;
-        ctx.strokeStyle = team(i) < 0 ? BEAM : shipColours(team(i)).trim;
+        ctx.strokeStyle = team(i) < 0 ? BEAM : markerOf(shipColours(team(i))).trim;
         const calibre = snapshot.beamWidth[i]!;
         ctx.globalAlpha = beamAlpha(snapshot.beamPower[i]!) * flooredFade(calibre, MIN_TRACER_PX, camera.scale);
         // The beam *is* its calibre wide. Twice the calibre is the barrel's outer
