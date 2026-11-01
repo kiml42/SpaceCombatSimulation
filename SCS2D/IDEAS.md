@@ -5,6 +5,7 @@ Things that are obviously wrong.
 - Fuel tanks should stop supplying fuel when they are too damaged.
 - A miner anchored to an asteroid reads no robots in its bays (`ShipView.crews`), though its robots are out mining and loads come home.
 - A hull gun's barrel collides as the rectangle its module would be, not where the barrel is drawn. Nothing welds to a barrel (`onWeldablePart`), as a stop-gap until it collides where it is.
+- Claws have bevel highlights/shadow across their whole front, even in the gap
 
 -----------------------------------------------------------------------
 
@@ -83,6 +84,11 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Cap projectile rendering at the point they hit, so a streak does not overlap the target it struck. (The muzzle end is capped.)
 - A selected ship's framing takes in and rings what it is escorting; it could do the same for what it is keeping clear of, possibly with a symbol to show what sort of attention the selected ship is paying to each
 - Reloading should return to the scenario you were watching
+
+## Render
+- Allow control of the tilt of the main light, as well as which direction it comes from (for longer or shorter shadows)
+- there shouldn't be specular highlights (bevels and rounded parts) in shadows
+- Reconsider shading the gauges, they look a bit too luminous, particularly metal.
 
 ## Harvesting
 - Scavenging wrecks and mining asteroids. Two of the causes of wrecked Salvagers are being fixed as ROADMAP.md
