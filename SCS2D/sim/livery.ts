@@ -24,15 +24,22 @@ export interface Livery {
     spacing: number;
     /** How far the pattern is moved across the hull, as a share of its spacing. */
     offset: number;
-    /** Which way stripes run across the design. Radians here, degrees in the file. */
+    /** Which way stripes or chevrons run across the design. Radians here, degrees in the file. */
     angle: number;
+    /** How far each arm of a chevron turns from straight, radians; none is a straight stripe. Degrees in the file. */
+    chevron: number;
+    /**
+     * From one point of a zigzag to the next pointing the same way, in stripe
+     * widths; none for a single chevron, its point at the design's middle.
+     */
+    points: number;
     /** Keys its file carried that nothing reads, kept to be written back (`UnreadKeys`). */
     unread?: UnreadKeys;
     /** Parts its file had that could not be read, each worn as its default instead (`toLivery`). Not written back. */
     problems?: readonly string[];
 }
 
-export const LIVERY_PATTERNS = ["none", "stripes", "spots"] as const;
+export const LIVERY_PATTERNS = ["none", "stripes", "spots", "chevrons"] as const;
 export type LiveryPattern = (typeof LIVERY_PATTERNS)[number];
 
 /** What a livery is read as where its file leaves a part out, or has one that cannot be read. */
@@ -44,7 +51,12 @@ const DEFAULTS = {
     spacing: 3,
     offset: 0,
     angle: 0,
+    chevron: 45,
+    points: 0,
 } as const;
+
+/** The most a chevron's arms turn from straight, degrees: further, and they lie along the stripes' run. */
+export const MOST_CHEVRON = 75;
 
 const COLOUR = /^#[0-9a-f]{6}$/i;
 
@@ -58,6 +70,8 @@ function partProblem(key: keyof typeof DEFAULTS, value: unknown): string | null 
     if (key === "size" && value <= 0) return "must be above zero";
     // A stripe as wide as its period would paint the whole hull.
     if (key === "spacing" && value < 1) return "must be at least one stripe width";
+    if (key === "chevron" && (value < 0 || value > MOST_CHEVRON)) return `must be from 0 to ${MOST_CHEVRON} degrees`;
+    if (key === "points" && value < 0) return "must not be below zero";
     return null;
 }
 
@@ -92,7 +106,7 @@ export function liveryWarnings(of: { readonly livery?: Livery; readonly unreadLi
     }
 }
 
-const LIVERY_KEYS: readonly string[] = ["base", "highlight", "pattern", "size", "spacing", "offset", "angle"];
+const LIVERY_KEYS: readonly string[] = ["base", "highlight", "pattern", "size", "spacing", "offset", "angle", "chevron", "points"];
 
 /**
  * A livery from a file, each part read on its own: one left out is its
@@ -118,6 +132,8 @@ export function toLivery(value: unknown): Livery {
         spacing: part("spacing") as number,
         offset: part("offset") as number,
         angle: degreesToRadians(part("angle") as number),
+        chevron: degreesToRadians(part("chevron") as number),
+        points: part("points") as number,
     };
     const unread = unreadOf(raw, LIVERY_KEYS);
     if (unread !== undefined) livery.unread = unread;
@@ -135,6 +151,8 @@ export function serialiseLivery(livery: Livery): Record<string, unknown> {
         spacing: livery.spacing,
         offset: livery.offset,
         angle: radiansToDegrees(livery.angle),
+        chevron: radiansToDegrees(livery.chevron),
+        points: livery.points,
     };
     writeUnread(raw, livery.unread);
     return raw;

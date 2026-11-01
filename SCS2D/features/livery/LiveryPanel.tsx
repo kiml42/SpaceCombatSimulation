@@ -1,7 +1,7 @@
 import { styled } from "@linaria/react";
 import { NEW_LIVERY } from "~/editor/livery";
 import { teamName, sidesOf } from "~/render/teams";
-import { LIVERY_PATTERNS, type Livery, type LiveryPattern } from "~/sim/index";
+import { LIVERY_PATTERNS, MOST_CHEVRON, type Livery, type LiveryPattern } from "~/sim/index";
 import { Button } from "~/ui/buttons/Button";
 
 const Details = styled.details`
@@ -61,11 +61,15 @@ const Swatch = styled.span`
     vertical-align: -0.05em;
 `;
 
-const PATTERN_NAMES: Record<LiveryPattern, string> = { none: "plain", stripes: "stripes", spots: "spots" };
+const PATTERN_NAMES: Record<LiveryPattern, string> = { none: "plain", stripes: "stripes", spots: "spots", chevrons: "chevrons" };
 
 /** A slider's range and how its value reads. */
 interface Slider {
-    readonly field: "size" | "spacing" | "offset" | "angle";
+    readonly field: "size" | "spacing" | "offset" | "angle" | "chevron" | "points";
+    /** Shown for these patterns. */
+    readonly for: readonly LiveryPattern[];
+    /** Degrees on the slider, radians in the livery. */
+    readonly degrees?: true;
     readonly label: string;
     readonly min: number;
     readonly max: number;
@@ -79,15 +83,17 @@ const DEGREES = 180 / Math.PI;
 const SLIDERS: readonly Slider[] = [
     {
         field: "size",
+        for: ["stripes", "spots", "chevrons"],
         label: "size",
         min: 0.01,
         max: 0.5,
         step: 0.01,
-        title: "How wide a stripe or spot is, as a share of each ship's radius",
+        title: "How thick a stripe, or how wide a spot, as a share of each ship's radius",
         shown: (l) => `${Math.round(l.size * 100)}%`,
     },
     {
         field: "spacing",
+        for: ["stripes", "spots", "chevrons"],
         label: "spacing",
         min: 1.2,
         max: 10,
@@ -97,6 +103,7 @@ const SLIDERS: readonly Slider[] = [
     },
     {
         field: "offset",
+        for: ["stripes", "spots", "chevrons"],
         label: "offset",
         min: 0,
         max: 1,
@@ -106,12 +113,35 @@ const SLIDERS: readonly Slider[] = [
     },
     {
         field: "angle",
+        for: ["stripes", "chevrons"],
+        degrees: true,
         label: "angle",
         min: -90,
         max: 90,
         step: 1,
-        title: "Which way the stripes run across the design",
+        title: "Which way the whole pattern runs across the design",
         shown: (l) => `${Math.round(l.angle * DEGREES)}°`,
+    },
+    {
+        field: "chevron",
+        for: ["chevrons"],
+        degrees: true,
+        label: "chevron",
+        min: 0,
+        max: MOST_CHEVRON,
+        step: 1,
+        title: "How far each arm of a chevron turns from straight",
+        shown: (l) => `${Math.round(l.chevron * DEGREES)}°`,
+    },
+    {
+        field: "points",
+        for: ["chevrons"],
+        label: "points",
+        min: 0,
+        max: 40,
+        step: 1,
+        title: "From one point of a zigzag to the next, in stripe widths; at the left, one chevron with its point at the ship's middle",
+        shown: (l) => (l.points > 0 ? `×${l.points.toFixed(0)}` : "one"),
     },
 ];
 
@@ -196,8 +226,8 @@ export function LiveryPanel({ livery, whose, note, open, onOpen, onChange, onEnd
                         </select>
                     </Row>
                     {livery.pattern !== "none" &&
-                        SLIDERS.filter((slider) => slider.field !== "angle" || livery.pattern === "stripes").map((slider) => {
-                            const value = slider.field === "angle" ? livery.angle * DEGREES : livery[slider.field];
+                        SLIDERS.filter((slider) => slider.for.includes(livery.pattern)).map((slider) => {
+                            const value = slider.degrees ? livery[slider.field] * DEGREES : livery[slider.field];
                             const id = `livery${slider.field[0]!.toUpperCase()}${slider.field.slice(1)}`;
                             return (
                                 <Row key={slider.field}>
@@ -212,7 +242,7 @@ export function LiveryPanel({ livery, whose, note, open, onOpen, onChange, onEnd
                                         value={value}
                                         onChange={(event) => {
                                             const typed = Number(event.currentTarget.value);
-                                            set({ [slider.field]: slider.field === "angle" ? typed / DEGREES : typed }, true);
+                                            set({ [slider.field]: slider.degrees ? typed / DEGREES : typed }, true);
                                         }}
                                     />
                                     <output htmlFor={id}>{slider.shown(livery)}</output>

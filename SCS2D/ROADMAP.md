@@ -220,9 +220,13 @@ an entry is either still open or it is gone.
           player cannot change.
         - **Colours** are free choices of base and highlight; the trim and dark pivot tones a module needs
           are worked out from the base, as the side palettes' are now.
-        - **Patterns**: none, stripes or spots of the highlight to start, perhaps chevrons later, each with
-          a few numbers — size, spacing, offset and, for stripes, angle — so evolution can drift them as it
-          drifts colours. A pattern is laid over the whole hull in the design's frame, so it runs on across
+        - **Patterns**: none, stripes, spots or chevrons of the highlight, each with a few numbers — size,
+          spacing, offset and, for stripes and chevrons, angle; for chevrons also how far each arm bends from
+          straight and how far apart a zigzag's points are, none being a single chevron pointing at the
+          design's middle — so evolution can drift them as it drifts colours. **Chevrons — built**: a
+          zigzag's tile is a period across and a period of its points down, a single chevron's a hull's width
+          down (`render/livery.ts`); evolution drifts the bend and the points' spacing, a single chevron
+          staying one. A pattern is laid over the whole hull in the design's frame, so it runs on across
           modules. **Its sizes are shares of each ship's radius**, as bevels are, so a fighter and its
           carrier carry about as many stripes as each other; they will not line up across docked or welded
           ships.
