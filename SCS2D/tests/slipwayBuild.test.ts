@@ -3,6 +3,7 @@ import {
     blueprintProblems,
     compileBlueprint,
     compileDraft,
+    DAMAGE_ENERGY_PER_KG,
     footprintOf,
     math,
     moduleOutline,
@@ -16,6 +17,7 @@ import { makeBattle } from "../scenarios/battle.js";
 import type { Battle } from "../scenarios/types.js";
 import { BARE_CORE, SCAVENGER } from "../scenarios/blueprints.js";
 import { SHIPYARD } from "../scenarios/shipyard.js";
+import { LEECH } from "../scenarios/salvage.js";
 
 /** Slipways building ships bow first out of their face (ROADMAP.md §8 step 12, slice 3). */
 
@@ -225,6 +227,35 @@ describe("a slipway", () => {
         expect(s).toBeDefined();
         expect(run.ships.isPrinting(s!)).toBe(true);
     });
+
+    it("has its robots cross what it builds to clear wreckage caught on it, holds full or not, and then goes on", () => {
+        const yard: Blueprint = { ...yardOf(), modules: [...yardOf().modules, { kind: "robotBay", x: -11, y: 0, length: 4, width: 6 }] };
+        const run = battle(yard);
+        runFor(run, 120, () => run.ships.currentStructure(run.y).modules.length >= 12);
+        const [s] = built(run);
+        expect(run.ships.isPrinting(s!)).toBe(true);
+        // A torn hulk drifting slowly onto the bow of the ship on the slipway, which the yard's robots weld on.
+        const bodies = run.world.bodies;
+        const yb = bodies.indexOf(run.ships.body(run.y));
+        const bow = Math.max(...run.ships.currentStructure(run.y).modules.map((m) => m.x + m.spec.length / 2));
+        const leech = compileBlueprint(LEECH);
+        const h = run.ships.spawn(run.world, {
+            design: leech,
+            x: bodies.x[yb]! + bow + leech.radius + 1,
+            y: bodies.y[yb]!,
+            vx: -0.4,
+            team: 1,
+        });
+        const hb = bodies.indexOf(run.ships.body(h));
+        leech.modules.forEach((m, k) => run.ships.damage.absorb(hb, k, m.stats.hitPoints * DAMAGE_ENERGY_PER_KG * 0.95));
+        runFor(run, 30, () => run.ships.body(h) === run.ships.body(run.y));
+        expect(run.ships.body(h)).toBe(run.ships.body(run.y));
+        // The Shipyard's holds are full, and it builds nothing more until the hulk is gone.
+        runFor(run, 600, () => run.ships.body(s!) !== run.ships.body(run.y));
+        expect(run.ships.isAlive(h)).toBe(false);
+        expect(run.ships.body(s!)).not.toBe(run.ships.body(run.y));
+        expect(run.ships.currentStructure(s!).modules.length).toBe(compileBlueprint(SCAVENGER).modules.length);
+    }, 120_000);
 
     it("counts as able to fight while it can build an armed ship, and its building as activity", () => {
         // A Scavenger is not armed; a core with a gun let into its bow is.
