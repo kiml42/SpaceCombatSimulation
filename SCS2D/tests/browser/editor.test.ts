@@ -9,7 +9,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import type { Browser, Page } from "playwright";
-import { drawIn2D, launchChromium } from "./launch.js";
+import { launchChromium, shownPixels, type Pixels } from "./launch.js";
 import { ROTATE_ARM_PX } from "../../editor/handles.js";
 import { EditorDocument } from "../../editor/document.js";
 import { previewSnapshot } from "../../editor/preview.js";
@@ -36,37 +36,40 @@ let browser: Browser;
 let page: Page;
 const problems: string[] = [];
 
-/** How many distinct colours the canvas is showing. Blank pages score 1. */
+/** How many distinct colours the view is showing. Blank pages score 1. */
 async function distinctColours(p: Page): Promise<number> {
-    return p.evaluate(() => {
-        const canvas = document.getElementById("view") as HTMLCanvasElement;
-        const ctx = canvas.getContext("2d");
-        if (ctx === null) return 0;
-        const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const seen = new Set<number>();
-        for (let i = 0; i < data.length; i += 4) {
-            seen.add((data[i]! << 16) | (data[i + 1]! << 8) | data[i + 2]!);
-        }
-        return seen.size;
-    });
+    const { data } = await shownPixels(p.locator("#view"));
+    const seen = new Set<number>();
+    for (let i = 0; i < data.length; i += 4) seen.add((data[i]! << 16) | (data[i + 1]! << 8) | data[i + 2]!);
+    return seen.size;
 }
 
-/** How many pixels on the canvas are the fault mark's red. */
+/** What the view shows once the frame now asked for is drawn, to compare with another; nothing over it hovered or focused. */
+async function shownPicture(p: Page): Promise<Pixels> {
+    await p.mouse.move(0, 0);
+    await p.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await p.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+    return shownPixels(p.locator("#view"));
+}
+
+/** Whether two pictures are the same, but for a shade of compositing noise where a panel lies over the view. */
+function alike(a: Pixels, b: Pixels): boolean {
+    if (a.data.length !== b.data.length) return false;
+    for (let i = 0; i < a.data.length; i++) if (Math.abs(a.data[i]! - b.data[i]!) > 4) return false;
+    return true;
+}
+
+/** How many pixels in the view are the fault mark's red. */
 async function redPixels(p: Page): Promise<number> {
-    return p.evaluate(() => {
-        const canvas = document.getElementById("view") as HTMLCanvasElement;
-        const ctx = canvas.getContext("2d");
-        if (ctx === null) return 0;
-        const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        let red = 0;
-        // The fault's tint over a grey module: redder than it is green or blue, and those two
-        // alike. Not the gold selection, nor a gun's orange flash, where green outweighs blue.
-        for (let i = 0; i < data.length; i += 4) {
-            const [r, g, b] = [data[i]!, data[i + 1]!, data[i + 2]!];
-            if (r > g + 40 && r > b + 40 && Math.abs(g - b) < 20) red++;
-        }
-        return red;
-    });
+    const { data } = await shownPixels(p.locator("#view"));
+    let red = 0;
+    // The fault's tint over a grey module: redder than it is green or blue, and those two
+    // alike. Not the gold selection, nor a gun's orange flash, where green outweighs blue.
+    for (let i = 0; i < data.length; i += 4) {
+        const [r, g, b] = [data[i]!, data[i + 1]!, data[i + 2]!];
+        if (r > g + 40 && r > b + 40 && Math.abs(g - b) < 20) red++;
+    }
+    return red;
 }
 
 /**
@@ -194,7 +197,6 @@ beforeAll(async () => {
     browser = await launchChromium();
     page = await browser.newPage({ viewport: { width: 1200, height: 700 } });
     // Read off its 2D canvas.
-    await drawIn2D(page);
     page.on("pageerror", (error) => problems.push(`pageerror: ${error.message}`));
     page.on("console", (message) => {
         if (message.type() === "error") problems.push(`console: ${message.text()}`);
@@ -225,31 +227,18 @@ describe("the editor in a browser", () => {
     });
 
     it("cycles through three sets of arcs on A, and back", async () => {
-        const picture = (): Promise<string> =>
-            page.evaluate(
-                () =>
-                    new Promise<string>((done) =>
-                        requestAnimationFrame(() => done((document.getElementById("view") as HTMLCanvasElement).toDataURL())),
-                    ),
-            );
-        await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-        const seen: string[] = [await picture()];
+        const picture = (): Promise<Pixels> => shownPicture(page);
+        const seen: Pixels[] = [await picture()];
         for (let k = 0; k < 3; k++) {
             await page.keyboard.press("a");
             seen.push(await picture());
         }
-        expect(new Set(seen.slice(0, 3)).size).toBe(3);
-        expect(seen[3]).toBe(seen[0]);
+        expect(alike(seen[0]!, seen[1]!) || alike(seen[1]!, seen[2]!) || alike(seen[0]!, seen[2]!)).toBe(false);
+        expect(alike(seen[3]!, seen[0]!)).toBe(true);
     });
 
     it("cycles the arcs from the panel over the view too, naming each", async () => {
-        const picture = (): Promise<string> =>
-            page.evaluate(
-                () =>
-                    new Promise<string>((done) =>
-                        requestAnimationFrame(() => done((document.getElementById("view") as HTMLCanvasElement).toDataURL())),
-                    ),
-            );
+        const picture = (): Promise<Pixels> => shownPicture(page);
         const before = await picture();
         const labels: string[] = [];
         for (let k = 0; k < 3; k++) {
@@ -257,7 +246,7 @@ describe("the editor in a browser", () => {
             labels.push((await page.textContent("#cycleArcs")) ?? "");
         }
         expect(labels).toEqual(["Arcs: off", "Arcs: firing", "Arcs: trigger"]);
-        expect(await picture()).toBe(before);
+        expect(alike(await picture(), before)).toBe(true);
     });
 
     it("shows what the layout works out to, and that it would fly", async () => {
@@ -433,13 +422,7 @@ describe("the editor in a browser", () => {
     });
 
     it("hides and shows the refit from the panel over the view, which has nothing to toggle until there is one", async () => {
-        const picture = (): Promise<string> =>
-            page.evaluate(
-                () =>
-                    new Promise<string>((done) =>
-                        requestAnimationFrame(() => done((document.getElementById("view") as HTMLCanvasElement).toDataURL())),
-                    ),
-            );
+        const picture = (): Promise<Pixels> => shownPicture(page);
         await page.click("#newShip");
         expect(await page.isDisabled("#showRefit")).toBe(true);
         await page.click('[data-add="tank"]');
@@ -448,7 +431,7 @@ describe("the editor in a browser", () => {
         await page.click("#showRefit");
         expect(await page.getAttribute("#showRefit", "aria-pressed")).toBe("false");
         const hidden = await picture();
-        expect(hidden).not.toBe(shown);
+        expect(alike(hidden, shown)).toBe(false);
         await page.click("#showRefit");
         expect(await page.getAttribute("#showRefit", "aria-pressed")).toBe("true");
     });
@@ -528,18 +511,14 @@ describe("the editor in a browser", () => {
         // red and blue match — so counting pixels where red runs well ahead of
         // blue measures the plume. The selection outline is warm too, which is why
         // this is compared against itself rather than against a fixed number.
-        const warmth = async (): Promise<number> =>
-            page.evaluate(() => {
-                const canvas = document.getElementById("view") as HTMLCanvasElement;
-                const ctx = canvas.getContext("2d");
-                if (ctx === null) return 0;
-                const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                let warm = 0;
-                for (let i = 0; i < data.length; i += 4) {
-                    if (data[i]! > 120 && data[i]! - data[i + 2]! > 35) warm++;
-                }
-                return warm;
-            });
+        const warmth = async (): Promise<number> => {
+            const { data } = await shownPixels(page.locator("#view"));
+            let warm = 0;
+            for (let i = 0; i < data.length; i += 4) {
+                if (data[i]! > 120 && data[i]! - data[i + 2]! > 35) warm++;
+            }
+            return warm;
+        };
 
         await page.click("#newShip");
         await page.click('[data-add="engine"]');
@@ -1146,9 +1125,9 @@ describe("the editor in a browser", () => {
 
         // Found by colour, since the camera refits: the knob is the far end of a
         // gold arm drawn out from the assembly's origin.
-        const arm = await page.evaluate(() => {
-            const canvas = document.getElementById("view") as HTMLCanvasElement;
-            const { data, width, height } = canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height);
+        const view = page.locator("#view");
+        const { data, width, height } = await shownPixels(view);
+        const arm = await (async () => {
             let far = { x: -1, y: -1 };
             // The arm is a thin line, smoothed across rows, so paler than the knob: gold enough is enough.
             const gold: { x: number; y: number }[] = [];
@@ -1163,13 +1142,13 @@ describe("the editor in a browser", () => {
             }
             const row = gold.filter((p) => Math.abs(p.y - far.y) <= 2);
             const near = Math.min(...row.map((p) => p.x));
-            const rect = canvas.getBoundingClientRect();
-            const toCss = rect.width / canvas.width;
+            const rect = (await view.boundingBox())!;
+            const toCss = rect.width / width;
             return {
-                knob: { x: rect.left + (far.x - 4) * toCss, y: rect.top + far.y * toCss },
-                pivot: { x: rect.left + near * toCss, y: rect.top + far.y * toCss },
+                knob: { x: rect.x + (far.x - 4) * toCss, y: rect.y + far.y * toCss },
+                pivot: { x: rect.x + near * toCss, y: rect.y + far.y * toCss },
             };
-        });
+        })();
         await page.mouse.move(arm.knob.x, arm.knob.y);
         await page.mouse.down();
         await page.mouse.move(arm.pivot.x, arm.pivot.y - 150, { steps: 8 });
@@ -1518,23 +1497,44 @@ describe("the editor in a browser", () => {
     it("eases to a different ship’s scale, so switching shows which is bigger", async () => {
         // Pixels bright enough to be hull, a fighter's darker shade included, which the
         // grid and the background are not.
-        const hull = (): Promise<number> =>
-            page.evaluate(() => {
-                const canvas = document.getElementById("view") as HTMLCanvasElement;
-                const ctx = canvas.getContext("2d");
-                if (ctx === null) return 0;
-                const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                let n = 0;
-                for (let i = 0; i < data.length; i += 4) {
-                    if (data[i]! + data[i + 1]! + data[i + 2]! > 300) n++;
-                }
-                return n;
-            });
+        const hull = async (): Promise<number> => {
+            const { data } = await shownPixels(page.locator("#view"));
+            let n = 0;
+            for (let i = 0; i < data.length; i += 4) {
+                if (data[i]! + data[i + 1]! + data[i + 2]! > 300) n++;
+            }
+            return n;
+        };
         await openShip(page, "Corvette");
         await page.waitForTimeout(100);
+        // Frames held, and let through one at a time, since it eases by the frame and a screenshot takes several.
+        type Frames = { held: FrameRequestCallback[]; native: typeof requestAnimationFrame; original: typeof requestAnimationFrame };
+        await page.evaluate(() => {
+            const frames: Frames = { held: [], native: requestAnimationFrame.bind(window), original: window.requestAnimationFrame };
+            Reflect.set(window, "heldFrames", frames);
+            window.requestAnimationFrame = (callback) => frames.held.push(callback);
+        });
+        const oneFrame = (): Promise<void> =>
+            page.evaluate(
+                () =>
+                    new Promise<void>((done) => {
+                        const frames = Reflect.get(window, "heldFrames") as Frames;
+                        const due = frames.held.splice(0);
+                        frames.native((now) => {
+                            for (const callback of due) callback(now);
+                            frames.native(() => done());
+                        });
+                    }),
+            );
         await page.selectOption("#ship", "Dinky");
         // The Dinky first appears at the corvette's scale, and grows into frame.
+        await oneFrame();
         const early = await hull();
+        await page.evaluate(() => {
+            const frames = Reflect.get(window, "heldFrames") as Frames;
+            window.requestAnimationFrame = frames.original;
+            for (const callback of frames.held.splice(0)) frames.native(callback);
+        });
         await page.waitForTimeout(1500);
         const late = await hull();
         expect(early).toBeGreaterThan(0);

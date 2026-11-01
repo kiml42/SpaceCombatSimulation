@@ -11,7 +11,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import type { Browser, Page } from "playwright";
-import { drawIn2D, launchChromium } from "./launch.js";
+import { launchChromium, shownPixels } from "./launch.js";
 import { serialiseBlueprint } from "../../sim/index.js";
 import { DINKY } from "../../scenarios/blueprints.js";
 import { REFITTED } from "../../scenarios/mending.js";
@@ -91,26 +91,27 @@ async function step(p: Page): Promise<number> {
     return Number(match[1]);
 }
 
-/** How many distinct colours the canvas is showing. Blank pages score 1. */
+/** How many distinct colours the view is showing. Blank pages score 1. */
 async function distinctColours(p: Page): Promise<number> {
-    // Read in an animation frame, which runs after the viewer's own has drawn:
-    // between frames a resize may have cleared the canvas and not yet redrawn it.
-    return p.evaluate(
-        () =>
-            new Promise<number>((resolve) =>
-                requestAnimationFrame(() => {
-                    const canvas = document.getElementById("view") as HTMLCanvasElement;
-                    const ctx = canvas.getContext("2d");
-                    if (ctx === null) return resolve(0);
-                    const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    const seen = new Set<number>();
-                    for (let i = 0; i < data.length; i += 4) {
-                        seen.add((data[i]! << 16) | (data[i + 1]! << 8) | data[i + 2]!);
-                    }
-                    resolve(seen.size);
-                }),
-            ),
-    );
+    const { data } = await shownPixels(p.locator("#view"));
+    const seen = new Set<number>();
+    for (let i = 0; i < data.length; i += 4) seen.add((data[i]! << 16) | (data[i + 1]! << 8) | data[i + 2]!);
+    return seen.size;
+}
+
+/** Where in the view, CSS pixels from its top left, its brightest pixel is: on a ship. */
+async function brightest(p: Page): Promise<{ x: number; y: number }> {
+    const { data, width } = await shownPixels(p.locator("#view"));
+    let best = -1;
+    let index = 0;
+    for (let i = 0; i < data.length; i += 4) {
+        const v = data[i]! + data[i + 1]! + data[i + 2]!;
+        if (v > best) {
+            best = v;
+            index = i / 4;
+        }
+    }
+    return { x: index % width, y: Math.floor(index / width) };
 }
 
 beforeAll(async () => {
@@ -125,7 +126,6 @@ beforeAll(async () => {
 
     browser = await launchChromium();
     page = await browser.newPage({ viewport: { width: 1000, height: 620 } });
-    await drawIn2D(page);
     page.on("pageerror", (error) => problems.push(`pageerror: ${error.message}`));
     page.on("console", (message) => {
         if (message.type() === "error") problems.push(`console: ${message.text()}`);
@@ -384,7 +384,6 @@ describe("the viewer in a browser", () => {
         expect(href).toMatch(/index\.html#\/battle\?battle=[\w-]+$/);
 
         const opened = await browser.newPage({ viewport: { width: 1000, height: 620 } });
-        await drawIn2D(opened);
         const errors: string[] = [];
         opened.on("pageerror", (error) => errors.push(error.message));
         await opened.goto(href);
@@ -402,7 +401,6 @@ describe("the viewer in a browser", () => {
 
     it("zooms in under a pinch on a touch screen, and pans with it", async () => {
         const touch = await browser.newPage({ viewport: { width: 400, height: 800 }, hasTouch: true, isMobile: true });
-        await drawIn2D(touch);
         await touch.goto(battlePage());
         await touch.waitForFunction(() => /step \d+/.test(document.getElementById("readout")?.textContent ?? ""));
         await touch.click("#play");
@@ -465,49 +463,31 @@ describe("the viewer in a browser", () => {
         await painted(page);
         const box = (await page.locator("#view").boundingBox())!;
         // The brightest pixel is on a ship.
-        const at = await page.evaluate(() => {
-            const canvas = document.getElementById("view") as HTMLCanvasElement;
-            const { data, width } = canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height);
-            let best = -1;
-            let index = 0;
-            for (let i = 0; i < data.length; i += 4) {
-                const v = data[i]! + data[i + 1]! + data[i + 2]!;
-                if (v > best) {
-                    best = v;
-                    index = i / 4;
-                }
-            }
-            const ratio = canvas.width / canvas.getBoundingClientRect().width;
-            return { x: (index % width) / ratio, y: Math.floor(index / width) / ratio };
-        });
+        const at = await brightest(page);
         await page.mouse.click(box.x + at.x, box.y + at.y);
         // Far enough out that both ships are specks.
         for (let i = 0; i < 12; i++) {
             await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
             await page.mouse.wheel(0, 400);
         }
-        const lit = (): Promise<number> =>
-            page.evaluate(() => {
-                const canvas = document.getElementById("view") as HTMLCanvasElement;
-                const { data } = canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height);
-                let count = 0;
-                for (let i = 0; i < data.length; i += 4) if (data[i]! + data[i + 1]! + data[i + 2]! > 200) count++;
-                return count;
-            });
+        const lit = async (): Promise<number> => {
+            const { data } = await shownPixels(page.locator("#view"));
+            let count = 0;
+            for (let i = 0; i < data.length; i += 4) if (data[i]! + data[i + 1]! + data[i + 2]! > 200) count++;
+            return count;
+        };
         await painted(page);
         const picked = await lit();
         // Clicking a window frames its ship again: the view zooms back in on the pair.
         const grid = async (): Promise<number> => Number(/grid ([\d.]+) m/.exec((await page.textContent("#readout")) ?? "")?.[1] ?? NaN);
         const far = await grid();
-        const window = await page.evaluate(() => {
-            const canvas = document.getElementById("view") as HTMLCanvasElement;
-            const { data, width } = canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height);
+        const window = await (async () => {
+            const { data, width } = await shownPixels(page.locator("#view"));
             // The first lit pixel, reading down, is the top of the upper window's frame: just inside its corner.
             let first = 0;
             while (first < data.length / 4 && data[first * 4]! + data[first * 4 + 1]! + data[first * 4 + 2]! <= 200) first++;
-            const ratio = canvas.width / canvas.getBoundingClientRect().width;
-            return { x: (first % width) / ratio + 20, y: Math.floor(first / width) / ratio + 20 };
-        });
+            return { x: (first % width) + 20, y: Math.floor(first / width) + 20 };
+        })();
         await page.mouse.click(box.x + window.x, box.y + window.y);
         await page.waitForFunction(
             (was) => Number(/grid ([\d.]+) m/.exec(document.getElementById("readout")?.textContent ?? "")?.[1] ?? NaN) < was / 100,
@@ -604,14 +584,14 @@ describe("the viewer in a browser", () => {
         await advanced(page, 60);
         await page.keyboard.press("Space");
         await painted(page);
-        // Everything the view writes, from here on.
+        // Everything the view lays out to write, from here on: WebGL's text is measured on a 2D canvas off the page.
         await page.evaluate(() => {
             const written: string[] = [];
             (window as unknown as { written: string[] }).written = written;
-            const fill = CanvasRenderingContext2D.prototype.fillText;
-            CanvasRenderingContext2D.prototype.fillText = function (this: CanvasRenderingContext2D, text: string, x: number, y: number) {
+            const measure = OffscreenCanvasRenderingContext2D.prototype.measureText;
+            OffscreenCanvasRenderingContext2D.prototype.measureText = function (this: OffscreenCanvasRenderingContext2D, text: string) {
                 written.push(`${this.font}|${text}`);
-                fill.call(this, text, x, y);
+                return measure.call(this, text);
             };
         });
         // At the line's size, 12 px: a close-up writes the range too, smaller, under its target.
@@ -620,21 +600,7 @@ describe("the viewer in a browser", () => {
         await painted(page);
         expect(await ranges()).toEqual([]);
         const box = (await page.locator("#view").boundingBox())!;
-        const at = await page.evaluate(() => {
-            const canvas = document.getElementById("view") as HTMLCanvasElement;
-            const { data, width } = canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height);
-            let best = -1;
-            let index = 0;
-            for (let i = 0; i < data.length; i += 4) {
-                const v = data[i]! + data[i + 1]! + data[i + 2]!;
-                if (v > best) {
-                    best = v;
-                    index = i / 4;
-                }
-            }
-            const ratio = canvas.width / canvas.getBoundingClientRect().width;
-            return { x: (index % width) / ratio, y: Math.floor(index / width) / ratio };
-        });
+        const at = await brightest(page);
         await page.mouse.click(box.x + at.x, box.y + at.y);
         await painted(page);
         expect((await ranges()).length).toBeGreaterThan(0);
@@ -883,11 +849,9 @@ describe("the viewer in a browser", () => {
         expect(await page.inputValue("#addShip")).toBe("");
     });
 
-    it("draws the grid with WebGL when asked, under a clear Canvas2D view", async () => {
-        const toggle = page.getByRole("button", { name: /^Draw:/ });
-        await toggle.click();
+    it("draws the grid with WebGL, under a clear Canvas2D view", async () => {
         await painted(page);
-        expect(await toggle.textContent()).toBe("Draw: WebGL");
+        expect(await page.getByRole("button", { name: /^Draw:/ }).count()).toBe(0);
         expect(await page.locator("canvas[aria-hidden]:not(#strips)").count()).toBe(1);
         // The Canvas2D view leaves its field clear, so what shows of the grid is WebGL's.
         const clear = await page.evaluate(() => {
@@ -898,26 +862,13 @@ describe("the viewer in a browser", () => {
             return transparent / (data.length / 4);
         });
         expect(clear).toBeGreaterThan(0.5);
-        const shot = (await page.locator("#view").screenshot()).toString("base64");
-        const gridPixels = await page.evaluate(async (png) => {
-            const image = await createImageBitmap(await (await fetch(`data:image/png;base64,${png}`)).blob());
-            const canvas = new OffscreenCanvas(image.width, image.height);
-            const ctx = canvas.getContext("2d")!;
-            ctx.drawImage(image, 0, 0);
-            const { data } = ctx.getImageData(0, 0, image.width, image.height);
-            let count = 0;
-            // GRID in render/backdrop.ts.
-            for (let i = 0; i < data.length; i += 4) {
-                if (Math.abs(data[i]! - 0x16) + Math.abs(data[i + 1]! - 0x1d) + Math.abs(data[i + 2]! - 0x29) <= 3) count++;
-            }
-            return count;
-        }, shot);
+        const { data } = await shownPixels(page.locator("#view"));
+        let gridPixels = 0;
+        // GRID in render/backdrop.ts.
+        for (let i = 0; i < data.length; i += 4) {
+            if (Math.abs(data[i]! - 0x16) + Math.abs(data[i + 1]! - 0x1d) + Math.abs(data[i + 2]! - 0x29) <= 3) gridPixels++;
+        }
         expect(gridPixels).toBeGreaterThan(200);
-
-        await toggle.click();
-        await painted(page);
-        expect(await toggle.textContent()).toBe("Draw: 2D");
-        expect(await page.locator("canvas[aria-hidden]:not(#strips)").count()).toBe(0);
     });
 
     it("reports no errors after all of that", () => {

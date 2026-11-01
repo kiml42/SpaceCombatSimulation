@@ -10,7 +10,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import type { Browser, Page } from "playwright";
-import { drawIn2D, launchChromium } from "./launch.js";
+import { launchChromium, shownPixels } from "./launch.js";
 import { DEFAULT_KINDS } from "../../evolution/mutate.js";
 import { DEFAULT_RUN, runEvolution } from "../../evolution/run.js";
 import { runCoevolution } from "../../evolution/coevolution.js";
@@ -56,48 +56,33 @@ function hueOf(css: string): number | null {
 
 /** For each of `hues`, how many coloured pixels a canvas shows within 15° of it: a side's ships, light or dark. */
 async function hueCounts(p: Page, id: string, hues: readonly number[]): Promise<number[]> {
-    return p.evaluate(
-        ([of, wanted]) => {
-            const counts = wanted.map(() => 0);
-            const canvas = document.getElementById(of) as HTMLCanvasElement;
-            const ctx = canvas.getContext("2d");
-            if (ctx === null) return counts;
-            const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            for (let i = 0; i < data.length; i += 4) {
-                const r = data[i]!;
-                const g = data[i + 1]!;
-                const b = data[i + 2]!;
-                const high = Math.max(r, g, b);
-                const low = Math.min(r, g, b);
-                if (high - low < 20 || high < 30) continue;
-                let hue: number;
-                if (high === r) hue = (60 * ((g - b) / (high - low)) + 360) % 360;
-                else if (high === g) hue = 60 * (2 + (b - r) / (high - low));
-                else hue = 60 * (4 + (r - g) / (high - low));
-                wanted.forEach((want, k) => {
-                    const apart = Math.abs(((hue - want + 540) % 360) - 180);
-                    if (apart <= 15) counts[k]!++;
-                });
-            }
-            return counts;
-        },
-        [id, hues] as const,
-    );
+    const counts = hues.map(() => 0);
+    const { data } = await shownPixels(p.locator(`#${id}`));
+    for (let i = 0; i < data.length; i += 4) {
+        const r = data[i]!;
+        const g = data[i + 1]!;
+        const b = data[i + 2]!;
+        const high = Math.max(r, g, b);
+        const low = Math.min(r, g, b);
+        if (high - low < 20 || high < 30) continue;
+        let hue: number;
+        if (high === r) hue = (60 * ((g - b) / (high - low)) + 360) % 360;
+        else if (high === g) hue = 60 * (2 + (b - r) / (high - low));
+        else hue = 60 * (4 + (r - g) / (high - low));
+        hues.forEach((want, k) => {
+            const apart = Math.abs(((hue - want + 540) % 360) - 180);
+            if (apart <= 15) counts[k]!++;
+        });
+    }
+    return counts;
 }
 
 /** How many distinct colours a canvas is showing. Blank ones score 1. */
 async function distinctColours(p: Page, id: string): Promise<number> {
-    return p.evaluate((of) => {
-        const canvas = document.getElementById(of) as HTMLCanvasElement;
-        const ctx = canvas.getContext("2d");
-        if (ctx === null) return 0;
-        const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const seen = new Set<number>();
-        for (let i = 0; i < data.length; i += 4) {
-            seen.add((data[i]! << 16) | (data[i + 1]! << 8) | data[i + 2]!);
-        }
-        return seen.size;
-    }, id);
+    const { data } = await shownPixels(p.locator(`#${id}`));
+    const seen = new Set<number>();
+    for (let i = 0; i < data.length; i += 4) seen.add((data[i]! << 16) | (data[i + 1]! << 8) | data[i + 2]!);
+    return seen.size;
 }
 
 /** Go to the screen the settings are on, if it is not already showing. */
@@ -134,7 +119,6 @@ beforeAll(async () => {
 
     browser = await launchChromium();
     page = await browser.newPage({ viewport: { width: 1280, height: 760 } });
-    await drawIn2D(page);
     page.on("pageerror", (error) => problems.push(`pageerror: ${error.message}`));
     page.on("console", (message) => {
         if (message.type() === "error") problems.push(`console: ${message.text()}`);
@@ -765,7 +749,7 @@ describe("the evolution route in a browser", () => {
         await page.keyboard.press("t");
         // Held, the camera still eases to where it is framing; a picture once it has been still
         // for a second, since a slow runner can draw nothing for a moment while it is still moving.
-        const picture = (): Promise<string> => page.evaluate(() => (document.getElementById("view") as HTMLCanvasElement).toDataURL());
+        const picture = async (): Promise<string> => (await page.locator("#view").screenshot()).toString("base64");
         const settled = async (): Promise<string> => {
             let was = await picture();
             let still = 0;
@@ -780,9 +764,8 @@ describe("the evolution route in a browser", () => {
         const before = await settled();
 
         // The leftmost thing drawn, and what is drawn within a few pixels of it, is one ship.
-        const shipAt = await page.evaluate(() => {
-            const canvas = document.getElementById("view") as HTMLCanvasElement;
-            const { data, width, height } = canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height);
+        const { data, width, height } = await shownPixels(page.locator("#view"));
+        const shipAt = (() => {
             const lit = (i: number): boolean => data[i]! + data[i + 1]! + data[i + 2]! > 150;
             let left = Infinity;
             for (let i = 0; i < data.length; i += 4) if (lit(i)) left = Math.min(left, (i / 4) % width);
@@ -797,9 +780,8 @@ describe("the evolution route in a browser", () => {
                     n++;
                 }
             }
-            const ratio = canvas.width / canvas.getBoundingClientRect().width;
-            return { x: x / n / ratio, y: y / n / ratio };
-        });
+            return { x: x / n, y: y / n };
+        })();
 
         // A click on the ship rings it and frames it with its target; Escape lets it go.
         await page.locator("#view").click({ position: shipAt });

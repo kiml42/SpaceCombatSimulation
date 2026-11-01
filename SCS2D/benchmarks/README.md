@@ -43,13 +43,13 @@ Read a difference as real only where it shows on more than one seed: three seeds
 
 ## `render.ts`: how fast the battle view draws
 
-Runs scenes on the Battle route in a browser **window**, so it draws on this machine's own graphics, in WebGL
-and in Canvas2D, and times every frame: the gap between frames, and the main thread's time in the frame's
+Runs scenes on the Battle route in a browser **window**, so it draws on this machine's own graphics, and
+times every frame: the gap between frames, and the main thread's time in the frame's
 callbacks (stepping the battle and drawing; WebGL's own GPU work is not in it).
 
 ```sh
 pnpm bench:render
-pnpm bench:render --scenes "Star Wars,Super Swarm" --renderers webgl --paused --label laptop
+pnpm bench:render --scenes "Star Wars,Super Swarm" --paused --label laptop
 ```
 
 It needs Playwright's Chromium (`pnpm exec playwright install chromium`), or `--browser chrome` for an
@@ -59,7 +59,6 @@ measured. Leave the window alone while it runs: covering or minimising it slows 
 | Option | Default | What it does |
 | --- | --- | --- |
 | `--scenes` | `Duel,Star Wars,Super Swarm,Asteroid Field,Factory` | Scenes by their names in the Battle route's list; [scenarios/README.md](../scenarios/README.md) says which suit what. |
-| `--renderers` | `webgl,canvas2d` | Which to measure, each in a fresh page. |
 | `--seconds` | `8` | How long each scene is measured. |
 | `--at` | `5` | Battle seconds each scene is played to first, so every run measures the same moment of it. |
 | `--warmup` | `3` | Seconds each scene runs first, unmeasured, after reaching `--at`. |
@@ -100,4 +99,4 @@ power state, so compare two versions side by side with `--app` and `--repeat 3`,
 Running, a slow frame steps the battle further to catch up, which makes the next frame slower still, so a
 scene near the edge swings widely from run to run. To compare drawing, use `--paused`.
 
-From PowerShell, quote a comma list (`--renderers "webgl,canvas2d"`), or it arrives split on the commas.
+From PowerShell, quote a comma list (`--scenes "Duel,Star Wars"`), or it arrives split on the commas.

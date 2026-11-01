@@ -1,6 +1,6 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { chromium, type Browser, type Page } from "playwright";
+import { chromium, type Browser, type Locator } from "playwright";
 
 /**
  * Launch Chromium, preferring the one Playwright installed for itself.
@@ -47,23 +47,34 @@ export function findInstalledChromium(): string | null {
     return null;
 }
 
+/** A picture's pixels, RGBA, a row at a time from the top. */
+export interface Pixels {
+    readonly data: Uint8Array;
+    readonly width: number;
+    readonly height: number;
+}
+
 /**
- * Draw battles with Canvas2D rather than WebGL, for a page whose tests read
- * the battle's pixels or text off the view's 2D context, or are about the UI
- * rather than the drawing: without a GPU, WebGL is drawn in software and is
- * slow to start. The tests for WebGL itself leave it out.
+ * What `target` shows on screen, as pixels: a screenshot, so what Pixi draws
+ * under a canvas is in it with whatever is drawn over it, which reading a
+ * canvas's own context would miss.
  */
-export async function drawIn2D(page: Page): Promise<void> {
-    await page.addInitScript(() => {
-        // Run in every document the page opens, so once per tab: touching
-        // localStorage as a reload starts can read it before the last page's
-        // writes have landed, and lose them. Some documents refuse storage.
-        try {
-            if (window.sessionStorage.getItem("scs2d.drawIn2D") !== null) return;
-            window.sessionStorage.setItem("scs2d.drawIn2D", "1");
-            window.localStorage.setItem("scs2d.draw", "canvas2d");
-        } catch {
-            // Nothing drawn there to pin.
-        }
-    });
+export async function shownPixels(target: Locator): Promise<Pixels> {
+    const png = (await target.screenshot()).toString("base64");
+    const decoded = await target.page().evaluate(async (from) => {
+        const image = await createImageBitmap(await (await fetch(`data:image/png;base64,${from}`)).blob());
+        const canvas = new OffscreenCanvas(image.width, image.height);
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(image, 0, 0);
+        const { data } = ctx.getImageData(0, 0, image.width, image.height);
+        let text = "";
+        for (let i = 0; i < data.length; i += 0x8000) text += String.fromCharCode(...data.subarray(i, i + 0x8000));
+        return { rgba: btoa(text), width: image.width, height: image.height };
+    }, png);
+    return { data: new Uint8Array(Buffer.from(decoded.rgba, "base64")), width: decoded.width, height: decoded.height };
+}
+
+/** Whether a console message is the GPU driver's own note, as drawing WebGL in software gives, rather than the page's. */
+export function driverNote(text: string): boolean {
+    return text.includes("GL Driver Message") || text.includes("GPU stall");
 }

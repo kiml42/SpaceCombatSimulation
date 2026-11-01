@@ -111,7 +111,7 @@ Keep these working — they are the cold-start re-entry path:
 - `pnpm yardstick` — measure a finished run against a ship that does not evolve; `--run`, and
   `--against latest | founder | <stock ship> | <blueprint or fleet file>`; a co-evolution run is measured as
   a grid of each side's round champions against the other's, `--samples` a side and `--seeds` matches a cell
-- `pnpm bench:render` — time the battle view's frames, scene by scene, in WebGL and Canvas2D, in a browser
+- `pnpm bench:render` — time the battle view's frames, scene by scene, in a browser
   window on this machine's graphics (benchmarks/README.md)
 - `pnpm build` — bundle the React app to `dist/index.html`, one file with nothing external
 - `pnpm dev` — Vite's dev server for the React app. Also runs `sync-fleets` on start
