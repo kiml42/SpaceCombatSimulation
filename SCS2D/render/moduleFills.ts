@@ -114,11 +114,16 @@ export function moduleFills(spec: ModuleSpec, colour: string, colours: Palette, 
         const engine = engineGeometry(spec);
         const mouth = l - engine.machineryLength;
         box(mouth, -w, l, w);
+        // A livery's band across the block, as far from the bells as it is wide.
+        if (colours.highlight !== undefined && integrity > 0) {
+            const band = (l - mouth) * ENGINE_BAND_SHARE;
+            box(mouth + band, -w, mouth + 2 * band, w, colours.highlight);
+        }
         const throat = engine.throatWidth / 2;
         const exit = engine.exitWidth / 2;
         for (let n = 0; n < engine.nozzles; n++) {
             const across = nozzleOffset(engine, n);
-            out.push({ colour, points: [mouth, across - throat, mouth, across + throat, -l, across + exit, -l, across - exit] });
+            out.push({ colour: BELL, points: [mouth, across - throat, mouth, across + throat, -l, across + exit, -l, across - exit] });
         }
     } else if (isHullMount(spec.kind)) {
         box(-l, -w, -l + hullMountGeometry(spec).blockLength, w);
@@ -128,7 +133,7 @@ export function moduleFills(spec: ModuleSpec, colour: string, colours: Palette, 
         // A coupling block with a collar standing proud of its outward face.
         const collar = spec.length * PORT_COLLAR_SHARE;
         box(-l, -w, l - collar, w);
-        box(l - collar, -w * PORT_COLLAR_WIDTH, l, w * PORT_COLLAR_WIDTH);
+        box(l - collar, -w * PORT_COLLAR_WIDTH, l, w * PORT_COLLAR_WIDTH, integrity > 0 ? (colours.highlight ?? colour) : colour);
     } else if (spec.kind === "slipway") {
         // A cradle in the hull's colour, open at the face a ship comes out of,
         // between rails along its sides and the feed block aft.
@@ -153,6 +158,12 @@ export function moduleFills(spec: ModuleSpec, colour: string, colours: Palette, 
         else box(-l, -w, l, w);
     }
 }
+
+/** Engine bells, whatever side they are on. */
+const BELL = "#4a4a4a";
+
+/** How much of an engine's block a livery's band covers. */
+const ENGINE_BAND_SHARE = 0.25;
 
 /** How far in from a pad's edge its landing square is drawn, as a share of its smaller side. */
 const PAD_MARK_INSET = 0.1;

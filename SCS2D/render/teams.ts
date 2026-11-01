@@ -17,7 +17,7 @@ import type { Livery } from "../sim/index.js";
  * round again, so a fifth side is blue like the first: a colour shared with a
  * side far off beats one grey shared with every neutral and every wreck.
  */
-const TEAM_COLOURS = [
+const TEAM_COLOURS: readonly Palette[] = [
     {
         hull: "#5b8dd6",
         trim: "#a8c8f0",
@@ -45,7 +45,17 @@ export const NEUTRAL = {
     pivot: "#4a4a4a",
 };
 
-export type Palette = (typeof TEAM_COLOURS)[number];
+export interface Palette {
+    readonly hull: string;
+    readonly trim: string;
+    readonly pivot: string;
+    /**
+     * A livery's second colour: its pattern, and the parts picked out in it
+     * (engine bands, turret domes, pads' and ports' markings). Side colours
+     * have none, and those parts keep their usual tones.
+     */
+    readonly highlight?: string;
+}
 
 /**
  * How far a fighter's hull and trim are drawn towards its side's dark pivot
@@ -71,11 +81,12 @@ function towards(hex: string, dark: string, share: number): string {
 }
 
 function shaded(palette: Palette): Palette {
-    return {
+    const out = {
         hull: towards(palette.hull, palette.pivot, FIGHTER_SHADE),
         trim: towards(palette.trim, palette.pivot, FIGHTER_SHADE),
         pivot: towards(palette.pivot, "#000000", 1 - FIGHTER_PIVOT),
     };
+    return palette.highlight === undefined ? out : { ...out, highlight: towards(palette.highlight, palette.pivot, FIGHTER_SHADE) };
 }
 
 const FIGHTER_COLOURS = TEAM_COLOURS.map(shaded);
@@ -88,6 +99,8 @@ export interface Side {
     readonly ship: Palette;
     readonly fighter: Palette;
     readonly name: string;
+    /** What it was resolved from, where it wears one: its pattern. */
+    readonly livery?: Livery;
 }
 
 /**
@@ -130,6 +143,11 @@ export function fighterColours(team: number): Palette {
     return team < 0 ? NEUTRAL_FIGHTER : sideOf(team, shown).fighter;
 }
 
+/** A side's livery, where it wears one, for its pattern. */
+export function teamLivery(team: number): Livery | undefined {
+    return team < 0 ? undefined : sideOf(team, shown).livery;
+}
+
 /** A side's name, which is its colour's; empty for nobody's side. */
 export function teamName(team: number, sides: Sides = shown): string {
     return team < 0 ? "" : sideOf(team, sides).name;
@@ -150,6 +168,7 @@ export function liveryPalette(livery: Livery): Palette {
         hull: livery.base,
         trim: towards(livery.base, "#ffffff", TRIM_LIGHTER),
         pivot: towards(livery.base, "#000000", PIVOT_DARKER),
+        highlight: livery.highlight,
     };
 }
 
@@ -179,7 +198,7 @@ export function sidesOf(liveries: readonly (Livery | undefined)[] | undefined): 
     liveries.forEach((livery, team) => {
         if (livery !== undefined && unlike(livery.base)) {
             const ship = liveryPalette(livery);
-            out.push({ ship, fighter: shaded(ship), name: colourName(livery.base) });
+            out.push({ ship, fighter: shaded(ship), name: colourName(livery.base), livery });
             return;
         }
         const n = STOCK.length;

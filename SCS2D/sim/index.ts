@@ -391,7 +391,7 @@ export {
     sameBlueprint,
     withFleetFighters,
 } from "./fleetHangar.js";
-export { LIVERY_PATTERNS, type Livery, type LiveryPattern } from "./livery.js";
+export { LIVERY_PATTERNS, type Livery, type LiveryPattern, type UnreadLivery } from "./livery.js";
 export { FLEET_FORMAT_VERSION, fleetFileProblem, fleetWarnings, parseFleet, serialiseFleet } from "./fleetFile.js";
 export type { UnreadKeys } from "./unread.js";
 export {

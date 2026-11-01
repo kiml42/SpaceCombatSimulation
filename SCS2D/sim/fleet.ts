@@ -1,6 +1,6 @@
 import { cos, normalizeAngle, PI, sin, TAU } from "./math.js";
 import type { Blueprint } from "./blueprint.js";
-import type { Livery } from "./livery.js";
+import type { Livery, UnreadLivery } from "./livery.js";
 import type { UnreadKeys } from "./unread.js";
 
 /**
@@ -19,6 +19,8 @@ export interface Fleet {
     notes?: string;
     /** How every ship in it is painted, whatever their own designs say. Side colours where left out. */
     livery?: Livery;
+    /** A livery its file carried that could not be read, kept to write back (`readLivery`). */
+    unreadLivery?: UnreadLivery;
     /** By name. Every ship entry names one of these. */
     designs: Record<string, Blueprint>;
     groups?: Record<string, FleetGroup>;

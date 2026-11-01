@@ -80,7 +80,7 @@ const SLIDERS: readonly Slider[] = [
     {
         field: "size",
         label: "size",
-        min: 0.02,
+        min: 0.01,
         max: 0.5,
         step: 0.01,
         title: "How wide a stripe or spot is, as a share of each ship's radius",
@@ -89,11 +89,11 @@ const SLIDERS: readonly Slider[] = [
     {
         field: "spacing",
         label: "spacing",
-        min: 0.05,
-        max: 1,
-        step: 0.01,
-        title: "From one stripe or spot to the next, as a share of each ship's radius",
-        shown: (l) => `${Math.round(l.spacing * 100)}%`,
+        min: 1.2,
+        max: 10,
+        step: 0.1,
+        title: "From one stripe or spot to the next, in stripe widths",
+        shown: (l) => `×${l.spacing.toFixed(1)}`,
     },
     {
         field: "offset",
@@ -206,7 +206,7 @@ export function LiveryPanel({ livery, whose, note, open, onOpen, onChange, onEnd
                                         id={id}
                                         type="range"
                                         title={slider.title}
-                                        min={slider.min}
+                                        min={slider.field === "spacing" && livery.pattern === "spots" ? 1 : slider.min}
                                         max={slider.max}
                                         step={slider.step}
                                         value={value}
