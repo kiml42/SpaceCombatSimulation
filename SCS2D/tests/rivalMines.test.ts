@@ -32,6 +32,21 @@ describe("rival mines", () => {
         for (let k = 0; k < b.highWater; k++) expect(Number.isFinite(b.vx[k]!)).toBe(true);
     });
 
+    it("keeps hold of its rock while it builds, an enemy fighter in reach or not", () => {
+        const run = rivalMines();
+        const moored = run.miners.map(() => false);
+        for (let t = 0; t < 400 * 60; t++) {
+            run.step();
+            run.miners.forEach((i, k) => {
+                const now = run.ships.isMoored(i);
+                // A Dinky of Blue's comes in reach of Red's rock at about 333 s.
+                if (moored[k]) expect(now).toBe(true);
+                moored[k] = now;
+            });
+        }
+        expect(moored).toEqual([true, true]);
+    }, 300_000);
+
     it("lands its fighters to refill while a copy is on its slipway, rather than shying from it", () => {
         const run = rivalMines();
         const back = new Set<number>();
