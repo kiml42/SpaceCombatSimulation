@@ -560,6 +560,10 @@ export class Match {
                 return { slots, owners, marker };
             },
         );
+        // Each side drawn in the livery of its first entrant. Only drawn.
+        Object.assign(this.battle, {
+            liveries: Array.from({ length: sides }, (_, side) => entrants[sided === null ? side : sided.indexOf(side)]?.livery),
+        });
 
         // Counted in steps rather than accrued in seconds: a sum of `dt` over two
         // minutes at sixty hertz comes to a shade over the duration it is divided
