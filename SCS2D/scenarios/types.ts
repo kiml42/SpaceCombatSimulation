@@ -11,6 +11,7 @@ import type {
     Impacts,
     Collisions,
     Credit,
+    Livery,
 } from "../sim/index.js";
 
 /**
@@ -41,6 +42,8 @@ export interface Battle {
     readonly wells: readonly WellSpec[];
     /** The light it is seen in, where not the default (render/light.ts). Only drawn. */
     readonly light?: Light;
+    /** Each side's livery by team, where it wears one rather than its side's colours. Only drawn. */
+    readonly liveries?: readonly (Livery | undefined)[];
     readonly ships: Ships;
     readonly projectiles: Projectiles;
     readonly beams: Beams;

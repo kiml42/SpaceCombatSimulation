@@ -19,6 +19,7 @@ import {
 } from "./fleet.js";
 import { unreadOf, unreadWarning, writeUnread } from "./unread.js";
 import { joinHangars } from "./fleetHangar.js";
+import { liveryProblem, serialiseLivery, toLivery } from "./livery.js";
 
 /**
  * The fleet file format, modelled on the blueprint one: parse checks the
@@ -29,7 +30,7 @@ import { joinHangars } from "./fleetHangar.js";
  */
 export const FLEET_FORMAT_VERSION = 1;
 
-const FILE_KEYS: readonly string[] = ["formatVersion", "name", "notes", "designs", "groups", "ships"];
+const FILE_KEYS: readonly string[] = ["formatVersion", "name", "notes", "designs", "groups", "ships", "livery"];
 const SHIP_KEYS: readonly string[] = ["design", "x", "y", "angle", "repeat", "step", "notes"];
 const USE_KEYS: readonly string[] = ["group", "x", "y", "angle", "mirror", "repeat", "step", "notes"];
 const STEP_KEYS: readonly string[] = ["x", "y", "angle"];
@@ -151,6 +152,7 @@ export function fleetFileProblem(value: unknown): string | null {
 
     const shape =
         optionalStringProblem(value["notes"], "notes") ??
+        liveryProblem(value["livery"], "livery") ??
         designsProblem(value["designs"]) ??
         groupsProblem(value["groups"]) ??
         entriesProblem(value["ships"], "ships");
@@ -170,6 +172,7 @@ function readFleet(file: Record<string, unknown>): Fleet {
     }
     const fleet: Fleet = { name: file["name"] as string, designs, ships: toEntries(file["ships"] as unknown[]) };
     if (file["notes"] !== undefined) fleet.notes = file["notes"] as string;
+    if (file["livery"] !== undefined) fleet.livery = toLivery(file["livery"]);
     const unread = unreadOf(file, FILE_KEYS);
     if (unread !== undefined) fleet.unread = unread;
 
@@ -227,6 +230,7 @@ export function parseFleet(value: unknown): Fleet {
 export function serialiseFleet(fleet: Fleet): Record<string, unknown> {
     const file: Record<string, unknown> = { formatVersion: FLEET_FORMAT_VERSION, name: fleet.name };
     if (fleet.notes !== undefined) file["notes"] = fleet.notes;
+    if (fleet.livery !== undefined) file["livery"] = serialiseLivery(fleet.livery);
 
     const designs: Record<string, unknown> = {};
     for (const [name, design] of Object.entries(fleet.designs)) designs[name] = serialiseBlueprint(design);
@@ -253,6 +257,7 @@ export function serialiseFleet(fleet: Fleet): Record<string, unknown> {
 export function fleetWarnings(fleet: Fleet): string[] {
     const out: string[] = [];
     unreadWarning("the file", fleet.unread, out);
+    unreadWarning("livery", fleet.livery?.unread, out);
     for (const [name, design] of Object.entries(fleet.designs)) {
         for (const warning of blueprintWarnings(design)) out.push(`design ${name}: ${warning}`);
     }

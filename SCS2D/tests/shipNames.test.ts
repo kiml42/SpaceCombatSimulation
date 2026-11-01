@@ -35,7 +35,7 @@ describe("a ship's name", () => {
     });
 
     it("is the side's colour", () => {
-        expect([0, 1, 2, 3, 4].map(teamName)).toEqual(["Blue", "Red", "Green", "Magenta", "Blue"]);
+        expect([0, 1, 2, 3, 4].map((team) => teamName(team))).toEqual(["Blue", "Red", "Green", "Magenta", "Blue"]);
         expect(teamName(-1)).toBe("");
     });
 });

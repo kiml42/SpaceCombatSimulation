@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useSampled } from "~/features/battle/useSampled";
 import type { BattleView, Verb } from "~/host/battleView";
-import { teamName } from "~/render/teams";
+import { teamName, type Sides } from "~/render/teams";
 import { viewOf } from "~/render/picking";
 import type { OrderView, Snapshot } from "~/sim/index";
 
@@ -34,7 +34,7 @@ export const NO_ORDERS: OrderState = {
 };
 
 /** An order as the queue lists it: what, against whom, and how far off and how fast where told. */
-export function describe(order: OrderView, shown: Snapshot): string {
+export function describe(order: OrderView, shown: Snapshot, sides?: Sides): string {
     // Making for somewhere doctrine has not chosen yet.
     let named =
         order.kind === "flee"
@@ -45,7 +45,7 @@ export function describe(order: OrderView, shown: Snapshot): string {
     for (let i = 0; i < shown.shipCount; i++) {
         const target = shown.ships[i]!;
         if (target.body === order.target)
-            named = target.rock === undefined ? `${teamName(target.team)} ${target.name ?? target.serial}` : "asteroid";
+            named = target.rock === undefined ? `${teamName(target.team, sides)} ${target.name ?? target.serial}` : "asteroid";
     }
     const distance = order.distance === undefined ? "" : ` · ${order.distance} m`;
     const speed = order.speed === undefined ? "" : ` · ${order.speed} m/s`;
@@ -67,7 +67,10 @@ export function orderState(view: BattleView, shown: Snapshot): OrderState {
         side: view.orderSide(shown),
         picked,
         armed: view.armed,
-        queue: one?.ship === undefined ? null : { ship: one.ship, orders: (one.orders ?? []).map((order) => describe(order, shown)) },
+        queue:
+            one?.ship === undefined
+                ? null
+                : { ship: one.ship, orders: (one.orders ?? []).map((order) => describe(order, shown, view.sides)) },
         designs: ships.map((ship) => (ship.blueprint ?? ship.currentStructure).name),
         crewed: ships.length > 0 && ships.every((ship) => (ship.crews ?? []).some((n) => n > 0)),
         speed: speeds.length > 0 && speeds.every((v) => v !== undefined && v === speeds[0]) ? String(speeds[0]) : "doctrine",

@@ -708,14 +708,21 @@ interface Picture {
 /** Each design's hull pictures, by what they show (`pictureKey`), at each size drawn. */
 const pictures = new WeakMap<ShipDesign, Map<string, Picture | null>>();
 
+/** A team's colours as a key: by colour rather than team, since a team's colours are its battle's. */
+function paletteKey(team: number | undefined): string {
+    if (team === undefined) return "";
+    const { hull, trim, pivot } = shipColours(team);
+    return `${hull}${trim}${pivot}`;
+}
+
 /** Everything `drawHull` draws from, rounded to `PICTURE_STEPS`, with the picture's size in pixels. */
 function pictureKey(ship: ShipView, fighters: boolean, filled: boolean, size: number): string {
     const step = (v: number | undefined): number => (v === undefined ? -1 : Math.round(v * PICTURE_STEPS));
-    let key = `${size} ${ship.team} ${fighters ? 1 : 0}${filled ? 1 : 0}`;
+    let key = `${size} ${paletteKey(ship.team)} ${fighters ? 1 : 0}${filled ? 1 : 0}`;
     const n = ship.currentStructure.modules.length;
     for (let i = 0; i < n; i++) {
         key +=
-            `|${step(ship.integrity?.[i])},${ship.drawn?.[i] === false ? 0 : 1},${ship.sides?.[i] ?? ""},` +
+            `|${step(ship.integrity?.[i])},${ship.drawn?.[i] === false ? 0 : 1},${paletteKey(ship.sides?.[i])},` +
             `${ship.outOfReach?.[i] === true ? 1 : 0},${step(ship.fuel?.[i])},${step(ship.metal?.[i])},${step(ship.charge?.[i])},` +
             `${ship.berthed?.[i] ?? ""},${ship.aboard?.[i] ?? ""}`;
     }

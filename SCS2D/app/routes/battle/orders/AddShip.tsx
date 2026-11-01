@@ -57,7 +57,7 @@ export function AddShip({ view }: { readonly view: BattleView | null }) {
             >
                 {SIDES.map((team) => (
                     <option key={team} value={team}>
-                        {teamName(team)}
+                        {teamName(team, view?.sides)}
                     </option>
                 ))}
             </select>
