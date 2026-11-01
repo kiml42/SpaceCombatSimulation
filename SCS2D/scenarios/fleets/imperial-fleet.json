@@ -316,9 +316,9 @@
             {
               "id": 11,
               "kind": "structure",
-              "x": -133,
+              "x": -156.5,
               "y": 240,
-              "length": 764,
+              "length": 811,
               "width": 60
             },
             {
@@ -739,14 +739,6 @@
               "y": 274,
               "length": 17,
               "width": 8
-            },
-            {
-              "id": 78,
-              "kind": "robotBay",
-              "x": -538.5,
-              "y": 240,
-              "length": 47,
-              "width": 60
             }
           ]
         },
