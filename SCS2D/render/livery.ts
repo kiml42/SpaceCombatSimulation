@@ -1,4 +1,4 @@
-import { originOf, type Livery, type ShipDesign } from "../sim/index.js";
+import { isHullMount, originOf, type Livery, type ModuleKind, type ShipDesign } from "../sim/index.js";
 import type { Palette } from "./teams.js";
 
 /**
@@ -53,14 +53,14 @@ function makeTile(livery: Livery, colour: string): HTMLCanvasElement | Offscreen
     return canvas;
 }
 
-/** The pattern's colour over a fill of `fill`: tinted as the fill's tone is, or none for a part not in the hull's tones. */
-export function patternColour(fill: string, palette: Palette): string | null {
-    const h = palette.highlights;
-    if (h === undefined) return null;
-    if (fill === palette.hull) return h.hull;
-    if (fill === palette.trim) return h.trim;
-    if (fill === palette.pivot) return h.pivot;
-    return null;
+/**
+ * The pattern's colour over a fill of `fill`: the highlight on any part in the
+ * hull's tones, none on anything else. Engines and hull mounts take none, so
+ * they stay told apart from the hull.
+ */
+export function patternColour(kind: ModuleKind, fill: string, palette: Palette): string | null {
+    if (palette.highlight === undefined || kind === "engine" || isHullMount(kind)) return null;
+    return fill === palette.hull || fill === palette.trim || fill === palette.pivot ? palette.highlight : null;
 }
 
 /** A 2D affine transform, as a canvas holds one: x' = a x + c y + e, y' = b x + d y + f. */

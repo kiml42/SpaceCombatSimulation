@@ -471,7 +471,7 @@ function patternedContext(design: ShipDesign, i: number, side: number, integrity
         const matrix = new Matrix(t.a, t.b, t.c, t.d, t.e, t.f);
         for (const fill of fills) {
             context.poly(fill.points).fill(fill.colour);
-            const over = patternColour(fill.colour, colours);
+            const over = patternColour(m.spec.kind, fill.colour, colours);
             const texture = over === null ? null : tileTexture(livery, over);
             if (texture !== null) context.poly(fill.points).fill({ texture, matrix, textureSpace: "global" });
         }

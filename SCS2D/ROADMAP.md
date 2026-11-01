@@ -275,7 +275,8 @@ an entry is either still open or it is gone.
                block a band's width in from its bells, fills turret domes, hull guns' mantlets and beam
                lenses' discs in place of the pivot tone, and marks pads' landing squares and ports'
                collars. The pattern falls on every part in the hull's three tones, thick modules and
-               cores included, its colour tinted as each tone is from the base (`Palette.highlights`).
+               cores included, in the highlight itself, untinted; engines and hull mounts take none, so
+               they stay told apart (`patternColour`).
                Engine bells are dark grey whatever the side.
             4. **Evolution**: drift on every mutant, leaning away from the player, and random first liveries
                for skirmish enemies and single-ship entrants.

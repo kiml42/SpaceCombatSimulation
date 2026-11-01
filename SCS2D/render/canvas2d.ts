@@ -1553,7 +1553,7 @@ function fillModule(ctx: CanvasRenderingContext2D, ship: ShipView, i: number): v
         for (let v = 2; v < points.length; v += 2) ctx.lineTo(points[v]!, points[v + 1]!);
         ctx.closePath();
         ctx.fill();
-        const over = pattern === null ? null : patternColour(fill.colour, colours);
+        const over = pattern === null ? null : patternColour(spec.kind, fill.colour, colours);
         const tiled = over === null ? null : pattern!(over);
         if (tiled !== null) {
             ctx.fillStyle = tiled;

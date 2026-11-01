@@ -145,12 +145,15 @@ describe("a livery's pattern", () => {
         expect(sidesOf([livery("#2a6a8a")])[0]!.fighter.highlight).toBeDefined();
     });
 
-    it("is tinted on each tone as the tone is from the base", () => {
-        const palette = liveryPalette(livery("#2a6a8a"));
-        expect(patternColour(palette.hull, palette)).toBe("#ffffff");
-        expect(patternColour(palette.trim, palette)).toBe("#ffffff");
-        expect(patternColour(palette.pivot, palette)).toBe("#808080");
-        expect(patternColour("#123456", palette)).toBeNull();
-        expect(patternColour(STOCK[0]!.ship.hull, STOCK[0]!.ship)).toBeNull();
+    it("is the highlight on every tone of the hull, but never on engines or hull mounts", () => {
+        const palette = { ...liveryPalette(livery("#2a6a8a")), highlight: "#f0c040" };
+        for (const tone of [palette.hull, palette.trim, palette.pivot]) {
+            expect(patternColour("structure", tone, palette)).toBe("#f0c040");
+            expect(patternColour("core", tone, palette)).toBe("#f0c040");
+            expect(patternColour("engine", tone, palette)).toBeNull();
+            expect(patternColour("hullGun", tone, palette)).toBeNull();
+        }
+        expect(patternColour("structure", "#123456", palette)).toBeNull();
+        expect(patternColour("structure", STOCK[0]!.ship.hull, STOCK[0]!.ship)).toBeNull();
     });
 });
