@@ -8,7 +8,9 @@
     "size": 0.02,
     "spacing": 7,
     "offset": 0.26,
-    "angle": 60
+    "angle": 60,
+    "chevron": 45,
+    "points": 0
   },
   "designs": {
     "Star Destroyer": {

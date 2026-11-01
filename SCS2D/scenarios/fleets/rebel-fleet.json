@@ -9,7 +9,9 @@
     "size": 0.02,
     "spacing": 3.8,
     "offset": 0,
-    "angle": -58.99999999999999
+    "angle": -58.99999999999999,
+    "chevron": 45,
+    "points": 0
   },
   "designs": {
     "Ghost": {

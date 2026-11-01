@@ -359,7 +359,8 @@ describe("the viewer in a browser", () => {
         await page.waitForFunction(() => (document.getElementById("outcome")?.textContent ?? "") !== "", null, {
             timeout: 20_000,
         });
-        expect(await page.textContent("#outcome")).toMatch(/^Line of Battle \(blue\) wins at/);
+        // Named by its livery's colour, whatever that is.
+        expect(await page.textContent("#outcome")).toMatch(/^Line of Battle \([a-z]+\) wins at/);
         // The battle goes on after it is decided.
         expect(await page.textContent("#play")).toBe("Pause");
         const decidedAt = await step(page);

@@ -11,7 +11,10 @@ import {
     type Livery,
 } from "../sim/index.js";
 import { CORVETTE, DINKY } from "../scenarios/blueprints.js";
-import { LINE_OF_BATTLE } from "../scenarios/fleets.js";
+import { LINE_OF_BATTLE as STOCK_LINE } from "../scenarios/fleets.js";
+
+/** The stock fleet unpainted, as a fleet nobody has given a livery. */
+const { livery: _stockLivery, ...LINE_OF_BATTLE } = STOCK_LINE;
 import { newSkirmish } from "../scenarios/skirmish.js";
 import { mutateFleet } from "../evolution/fleetMutate.js";
 import { offspring } from "../evolution/generation.js";
