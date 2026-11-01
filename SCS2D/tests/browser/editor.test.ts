@@ -853,8 +853,9 @@ describe("the editor in a browser", () => {
     });
 
     it("draws a module that broke a rule in red, and clears the mark when it is fixed", async () => {
+        // Polled: a screenshot can catch the last frame drawn, before what changed is.
         await openShip(page, "Corvette");
-        expect(await redPixels(page)).toBe(0);
+        await expect.poll(() => redPixels(page)).toBe(0);
 
         // The bow gun, dragged clear of the ship: attached to nothing.
         const centre = await canvasCentre(page);
@@ -865,12 +866,12 @@ describe("the editor in a browser", () => {
         expect(await page.textContent("#problems")).toMatch(/touches nothing/);
         // The refit's marks would show where the gun was taken from, in orange.
         await page.click("#showRefit");
-        expect(await redPixels(page)).toBeGreaterThan(0);
+        await expect.poll(() => redPixels(page)).toBeGreaterThan(0);
         await page.click("#showRefit");
 
         await page.click("#undo");
         expect(await page.textContent("#problems")).toMatch(/No problems/);
-        expect(await redPixels(page)).toBe(0);
+        await expect.poll(() => redPixels(page)).toBe(0);
     });
 
     it("offers barrels on a gun and not on a hull", async () => {
