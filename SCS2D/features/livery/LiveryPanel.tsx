@@ -89,11 +89,11 @@ const SLIDERS: readonly Slider[] = [
     {
         field: "spacing",
         label: "spacing",
-        min: 0.05,
-        max: 1,
-        step: 0.01,
-        title: "From one stripe or spot to the next, as a share of each ship's radius",
-        shown: (l) => `${Math.round(l.spacing * 100)}%`,
+        min: 1.2,
+        max: 10,
+        step: 0.1,
+        title: "From one stripe or spot to the next, in stripe widths",
+        shown: (l) => `×${l.spacing.toFixed(1)}`,
     },
     {
         field: "offset",

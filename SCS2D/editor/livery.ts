@@ -8,7 +8,7 @@ export const NEW_LIVERY: Livery = {
     highlight: STOCK[0]!.ship.trim,
     pattern: "none",
     size: 0.1,
-    spacing: 0.3,
+    spacing: 3,
     offset: 0,
     angle: 0,
 };

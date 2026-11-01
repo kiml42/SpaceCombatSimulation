@@ -9,9 +9,9 @@ import type { Palette } from "./teams.js";
  */
 export const TILE = 64;
 
-/** A tile's share of a period, in steps of a tile's pixel, so a slider dragged makes few. */
+/** A stripe's share of a tile, in whole pixels, so a slider dragged makes few tiles; never all of it. */
 function share(livery: Livery): number {
-    return Math.max(1, Math.min(TILE, Math.round((livery.size / livery.spacing) * TILE)));
+    return Math.max(1, Math.min(TILE - 1, Math.round(TILE / livery.spacing)));
 }
 
 /** What a tile is made from: the same for any two liveries tiled alike. */
@@ -75,7 +75,7 @@ export interface Affine {
 
 /**
  * From a tile's pixels to module `m`'s own frame: the tile laid in the frame
- * of the design `m` was built in, a period `spacing` of that design's radius
+ * of the design `m` was built in, a period `spacing` stripes of `size` of that design's radius
  * across, turned by the livery's angle and moved by its offset. A piece cut
  * from a ship keeps the pattern where it was.
  */
@@ -83,7 +83,7 @@ export function patternTransform(livery: Livery, design: ShipDesign, m: number):
     const origin = originOf(design, m);
     const built = origin.design;
     const module = built.modules[origin.module]!;
-    const period = livery.spacing * built.radius;
+    const period = livery.spacing * livery.size * built.radius;
     const s = period / TILE;
     // Tile pixels to the design's frame: scaled, moved along the stripes' normal, turned.
     const ca = Math.cos(livery.angle);

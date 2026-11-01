@@ -16,7 +16,7 @@ export interface Livery {
     pattern: LiveryPattern;
     /** How wide a stripe or spot is, as a share of the ship's radius. */
     size: number;
-    /** From one stripe or spot to the next, as a share of the ship's radius. */
+    /** From one stripe or spot to the next, in stripe widths: above one, so the base always shows between them. */
     spacing: number;
     /** How far the pattern is moved across the hull, as a share of its spacing. */
     offset: number;
@@ -30,7 +30,7 @@ export const LIVERY_PATTERNS = ["none", "stripes", "spots"] as const;
 export type LiveryPattern = (typeof LIVERY_PATTERNS)[number];
 
 /** What a file may leave out of a livery. */
-const PATTERN_DEFAULTS = { pattern: "none", size: 0.1, spacing: 0.3, offset: 0, angle: 0 } as const;
+const PATTERN_DEFAULTS = { pattern: "none", size: 0.1, spacing: 3, offset: 0, angle: 0 } as const;
 
 const COLOUR = /^#[0-9a-f]{6}$/i;
 
@@ -57,10 +57,10 @@ export function liveryProblem(value: unknown, where: string): string | null {
             return `${where}: ${key} must be a number, got ${JSON.stringify(n)}`;
         }
     }
-    for (const key of ["size", "spacing"]) {
-        const n = raw[key] as number | undefined;
-        if (n !== undefined && n <= 0) return `${where}: ${key} must be above zero, got ${n}`;
-    }
+    const size = raw["size"] as number | undefined;
+    if (size !== undefined && size <= 0) return `${where}: size must be above zero, got ${size}`;
+    const spacing = raw["spacing"] as number | undefined;
+    if (spacing !== undefined && spacing <= 1) return `${where}: spacing must be above one stripe width, got ${spacing}`;
     return null;
 }
 
