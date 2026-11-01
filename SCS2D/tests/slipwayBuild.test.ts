@@ -95,6 +95,18 @@ describe("a ship built to a depth", () => {
         expect(printedCraft(fork, BOW_FIRST, 2)!.held.length).toBe(2);
         expect(printedCraft(fork, BOW_FIRST, 5)!.held.length).toBe(1);
     });
+
+    it("is as deep across the cut as it will be whole", () => {
+        const craft = compileBlueprint({
+            name: "Block",
+            modules: [{ kind: "core", x: 0, y: 0, length: 6, width: 6, thick: true }],
+        });
+        expect(craft.modules[0]!.weaponsLayer).toBe(true);
+        const shell = printedCraft(craft, BOW_FIRST, 1)!.design.modules[0]!;
+        expect(shell.shell).toBeDefined();
+        expect(shell.weaponsLayer).toBe(true);
+    });
+
     it("never reaches back past the cut: a module turned off the axis waits until it is whole", () => {
         // A draft: only how it prints matters, not whether it holds together.
         const raked = compileDraft({

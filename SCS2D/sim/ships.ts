@@ -6040,7 +6040,8 @@ export class Ships {
             (this.derelict[held] === 1 || (!this.hasControl(held) && !this.hasRobots(o, held))) &&
             this.canStrip(b, holder, m, world.dt);
         if (!drinks && !strips && !heats && !this.wantsAnchor(bodies, holder)) return false;
-        if (!this.sentTo(holder) && this.threatened(bodies, holder, o, false)) return false;
+        // One anchoring to build holds its ground: let go, it would only come back to the rock.
+        if (!this.sentTo(holder) && !this.wantsAnchor(bodies, holder) && this.threatened(bodies, holder, o, false)) return false;
         if (world.tick - this.clawTried[holder]! < CLAW_RETRY / world.dt) return false;
         this.clawTried[holder] = world.tick;
         if (world.rng.nextFloat() >= clawChance(force, bite, this.damage.integrity(o, mo))) return false;
@@ -10635,7 +10636,7 @@ export class Ships {
      * robots taking it apart while its holds have room, or its claw melting
      * the ice out. It lets go once neither can, or it is given an order, when
      * its robots are back; and at once if its claw can no longer grip, what it
-     * held is gone, or an armed enemy is in reach.
+     * held is gone, or an armed enemy is in reach, unless it is anchored to build.
      */
     private tendMoored(world: World, f: number): boolean {
         const bodies = world.bodies;
@@ -10648,7 +10649,7 @@ export class Ships {
         const held = this.heldRock(bodies, f);
         if (held < 0) return false;
         if (this.damage.isProtected(cb)) return true;
-        if (!this.sentTo(f) && this.threatened(bodies, f, cb, false)) return false;
+        if (!this.sentTo(f) && !this.wantsAnchor(bodies, f) && this.threatened(bodies, f, cb, false)) return false;
         // Given an order, it calls its robots in and goes as soon as they are back.
         const ordered = this.sentAway(f);
         if (!ordered && this.canStrip(fb, f, claw, world.dt) && this.strippableAcross(f, fb, claw, cb)) return true;
