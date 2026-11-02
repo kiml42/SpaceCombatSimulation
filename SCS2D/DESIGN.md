@@ -778,9 +778,10 @@ inside any one file is not contiguous.
   than a cubic metre (`CORE_COMPUTING_VOLUME`) is all computing and holds none. Each engine has an exhaust velocity:
   `EXHAUST_VELOCITY`, less what its bell throws sideways (`divergence`) and what a small throat loses to its
   walls — about 1,900 s of specific impulse on a capital's main engine and 1,650 s on a fighter's, and
-  never under 700 s. **An engine with a throat under `PRESSURE_FED_THROAT` (0.25 m) is pressure-fed**, too
-  small for pumps: it leaves at three-quarters of the exhaust velocity (`PRESSURE_FED_EXHAUST`) and is
-  complexity 1 rather than 4 — a step rather than a slope, so a thruster is a different thing from a small
+  never under 700 s. **An engine with a throat under `PRESSURE_FED_THROAT` (0.25 m), or a block shorter than
+  `PRESSURE_FED_BLOCK` (0.25 m), is pressure-fed**, with no room for pumps: it leaves at three-quarters of the
+  exhaust velocity (`PRESSURE_FED_EXHAUST`), its machinery weighs half a pumped one's (`PRESSURE_FED_MASS`),
+  and it is complexity 1 rather than 4 — a step rather than a slope, so a thruster is a different thing from a small
   main engine. It burns the gas it throws over that, throttle by throttle, from the tanks on its own
   piece of hull, in proportion to their size so that tanks starting full run dry together; tanks are
   drained in tiers, highest `drainPriority` first (a whole number on a tank or a core, set in the editor and
@@ -884,8 +885,12 @@ inside any one file is not contiguous.
   them it takes the one whose end, where the way leaves a circle of the carrier's radius and two of its own,
   is soonest reached round the carrier, keeping the one it is on unless another is `WAY_STICK` sooner, and
   keeping it outright once inside that circle; a way something in the weapons layer now stands in, a fighter
-  on the next pad say, is passed over while another is clear. Inside the circle it heads straight for the pad
-  only once nothing in the weapons layer stands between. With arcs shown, every way in is drawn on the pad as a
+  on the next pad say, is passed over while another is clear. It heads straight for the pad only once
+  nothing in the weapons layer stands between, asked from afar as well as inside the circle, so one whose
+  way in runs across the carrier starts round in time. It makes for where its outline, not its centre of
+  mass, lies centred on the pad, so a fighter heavy at one end fits a pad only just long enough for it; and
+  it turns its mains onto a change of velocity under `PAD_HOLD_SPEED` (5 m/s) only if it cannot make it as
+  it points within a response, or it weaves, turning after each small correction and overshooting it. With arcs shown, every way in is drawn on the pad as a
   small arrow pointing in from the middle of its side or from its corner, along the way, in amber for a pad's
   one longest run, so the editor shows how easy a pad is to reach — and from the wrong side it
   first circles the carrier outside its radius, `HULL_ORBIT_STEP` at a time, rather than fly through what is in

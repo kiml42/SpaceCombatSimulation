@@ -181,7 +181,8 @@ export const SMALL_ENGINE_THROAT = 0.25;
 
 /**
  * The throat width below which an engine is pressure-fed, metres: too small
- * for turbopumps, so its tanks' pressure pushes the propellant through. Far
+ * for turbopumps, as is a block shorter than `PRESSURE_FED_BLOCK`, so its
+ * tanks' pressure pushes the propellant through. Far
  * simpler to build (`PRESSURE_FED_COMPLEXITY`), and a step less efficient at
  * once, as a fighter's thrusters are against its mains.
  */
@@ -193,9 +194,19 @@ export const PRESSURE_FED_EXHAUST = 0.75;
 /** A pressure-fed engine's complexity, in units of `COMPLEXITY_WORK`: a chamber and a valve, no pumps. */
 const PRESSURE_FED_COMPLEXITY = 1;
 
-/** Whether an engine of this geometry is too small for pumps (`PRESSURE_FED_THROAT`). */
+/**
+ * The shortest machinery block a pump fits in, metres: shorter, and it is
+ * pressure-fed however wide it is. Room, not proportion, since a pump is
+ * the size it is.
+ */
+export const PRESSURE_FED_BLOCK = 0.25;
+
+/** A pressure-fed engine's machinery mass, as a share of a pumped one's: a chamber and injectors, no pumps. */
+export const PRESSURE_FED_MASS = 0.5;
+
+/** Whether an engine of this geometry has no room for pumps: too small a throat (`PRESSURE_FED_THROAT`), or too short a block (`PRESSURE_FED_BLOCK`). */
 export function isPressureFed(geometry: EngineGeometry): boolean {
-    return geometry.throatWidth < PRESSURE_FED_THROAT;
+    return geometry.throatWidth < PRESSURE_FED_THROAT || geometry.machineryLength < PRESSURE_FED_BLOCK;
 }
 
 /**
@@ -2859,7 +2870,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
         // throws its gas sideways however hard it is pumping.
         thrust = throughput * engine.divergence;
         exhaustVelocity = engineExhaustVelocity(engine);
-        fittingMass = throughput * ENGINE_MASS_PER_NEWTON;
+        fittingMass = throughput * ENGINE_MASS_PER_NEWTON * (isPressureFed(engine) ? PRESSURE_FED_MASS : 1);
     } else if (mount !== null) {
         gun = spec.kind === "hullGun" ? loaded(hullGunStats(spec), spec) : hullBeamStats(spec);
         // The same two masses a turret carries, by the same reasoning — a tube of

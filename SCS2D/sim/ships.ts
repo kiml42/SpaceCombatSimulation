@@ -529,6 +529,9 @@ const GRIP_LINE = 0.5;
 /** The most a fighter may be moving against a pad and still land on it, m/s: settling, not arriving. */
 export const PAD_SPEED = 1;
 
+/** The most change of velocity, m/s, that a fighter coming in to land makes without turning for it, if it can as it points. */
+const PAD_HOLD_SPEED = 5;
+
 /**
  * How long, seconds, a docking ship takes to trust a change in how what it is
  * docking with is accelerating: long enough that a knock does not throw it,
@@ -10905,14 +10908,22 @@ export class Ships {
             ay -= (well.y - bodies.y[b]!) * pull;
         }
         const mine = bodies.radius[b]!;
-        const range = length(place.x - bodies.x[b]!, place.y - bodies.y[b]!);
+        // Its outline, not its centre of mass, centred on the pad: a fighter whose
+        // mass is towards one end only fits a pad just long enough lying there.
+        const box = footprintOf(design);
+        const ox = (box.minX + box.maxX) / 2;
+        const oy = (box.minY + box.maxY) / 2;
+        const heading = bodies.angle[b]!;
+        const px = place.x - (ox * cos(heading) - oy * sin(heading));
+        const py = place.y - (ox * sin(heading) + oy * cos(heading));
+        const range = length(px - bodies.x[b]!, py - bodies.y[b]!);
         // Come in by one of the pad's ways in, from where it leaves the hull's
         // circle, circling round to there first if the hull is in the way.
         this.wayIn(bodies, i, b, tb, host, pad, place.x, place.y);
         const nx = cos(this.wayAngle);
         const ny = sin(this.wayAngle);
-        const rx = bodies.x[b]! - place.x;
-        const ry = bodies.y[b]! - place.y;
+        const rx = bodies.x[b]! - px;
+        const ry = bodies.y[b]! - py;
         const ahead = rx * nx + ry * ny;
         // Near only from the side its way in is, and no wider of the pad than it is:
         // over the hull beyond or beside it, what stands between holds it off.
@@ -10921,12 +10932,13 @@ export class Ships {
         const across = (abs(cos(turned)) * spec.width + abs(sin(turned)) * spec.length) / 2;
         const near = range <= PAD_ALIGN_RADII * mine && ahead > -spec.length / 2 && abs(ry * nx - rx * ny) <= across + mine;
         let lined = ahead > 0 && abs(ry * nx - rx * ny) <= ahead;
-        // Over the hull, only if nothing in its layer stands between it and the pad.
-        if (lined && length(bodies.x[b]! - bodies.x[tb]!, bodies.y[b]! - bodies.y[tb]!) < bodies.radius[tb]! + 2 * mine) {
+        // Only if nothing in its layer stands between it and the pad: asked from afar as
+        // well as over the hull, so one heading in across it starts round in time.
+        if (lined) {
             lined = !this.crossesCarrier(bodies, b, tb, bodies.x[b]!, bodies.y[b]!, -rx, -ry);
         }
-        let gx = place.x;
-        let gy = place.y;
+        let gx = px;
+        let gy = py;
         let left = range;
         if (!near && !lined) {
             const entry = length(this.entryX - place.x, this.entryY - place.y);
@@ -10963,8 +10975,14 @@ export class Ships {
         const dvx = vx - bodies.vx[b]! + ax * approach.responseTime;
         const dvy = vy - bodies.vy[b]! + ay * approach.responseTime;
         // Its mains on what it still has to do, near or not: a fighter mostly pushes one way.
-        const braking = length(dvx, dvy) > PAD_SPEED / 2 ? atan2(dvy, dvx) - design.thrustBearing : bodies.angle[b]!;
-        const box = footprintOf(design);
+        // Not for a small correction it can make as it points within a response, or it
+        // weaves, turning after each and overshooting it while it turns.
+        const need = length(dvx, dvy);
+        const turn =
+            need > PAD_SPEED / 2 &&
+            (need > PAD_HOLD_SPEED ||
+                this.accelerationAlong(bodies, i, b, dvx / need, dvy / need, bodies.angle[b]!) * approach.responseTime < need);
+        const braking = turn ? atan2(dvy, dvx) - design.thrustBearing : bodies.angle[b]!;
         if (!near || length(box.maxX - box.minX, box.maxY - box.minY) <= min(spec.length, spec.width)) return braking;
         // One that has to line up with the pad does so once it has little left to lose, either way round, whichever is nearer.
         if (length(vx - bodies.vx[b]!, vy - bodies.vy[b]!) > PAD_SPEED / 2) return braking;
