@@ -55,14 +55,25 @@ describe("engine layout", () => {
         expect(layout.radius).toBeGreaterThan(0);
     });
 
+    it("cuts a squat engine's chamber deeper rather than narrowing it onto its throat", () => {
+        const { spec } = engineOf(withEngine(1, 3));
+        const layout = engineLayout(spec);
+        // Too short for the whole width, but still well clear of the throat.
+        expect(2 * layout.radius).toBeGreaterThan(1.15 * engineGeometry(spec).throatWidth);
+        expect(layout.fore - layout.centre).toBeCloseTo(0.2 * layout.radius, 6);
+        expect(layout.fore).toBeLessThan(layout.front);
+    });
+
     it("gives each nozzle a chamber of its own, fed by one pump", () => {
         const { spec } = engineOf(withEngine(2, 6, 3));
         const layout = engineLayout(spec);
         expect(layout.centres).toHaveLength(3);
         const fills: Fill[] = [];
         moduleFills(spec, "#888", shipColours(0), 1, fills);
-        // Three bells, three chambers, one pump.
+        // Three bells, three chambers, one pump: a block across them, not a cylinder.
         expect(fills).toHaveLength(7);
+        expect(layout.roundPump).toBe(false);
+        expect(engineLayout(engineOf(withEngine(3, 3)).spec).roundPump).toBe(true);
     });
 
     it("bands a pumped engine's pump with its livery, and a pressure-fed engine not at all", () => {

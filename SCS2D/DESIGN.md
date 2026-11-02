@@ -1641,8 +1641,9 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   that a narrow bell collimates in a fraction of the length a wide one needs, which is how a stubby engine
   gets a good nozzle, and a flame combed into fingers rather than thrown as one sheet.
 - **An engine is drawn as what it is made of**: a spherical chamber on each bell's throat, cut flat to sit
-  on it, and shipward of them one turbopump across the block, banded with the livery and bevelled only at
-  its ends, which each chamber is cut a little flat to meet. A pressure-fed engine has no pump, so its
+  on it, wider than that throat, and shipward of them one turbopump across the block, banded with the
+  livery, which each chamber is cut flat to meet. Feeding one nozzle the pump is a cylinder, bevelled only
+  at its ends; feeding several it is a bevelled block, not a drum with a row of engines through it. A pressure-fed engine has no pump, so its
   chambers run on to the block's front as capsules, and a longer block shows as a longer chamber. Where a
   stretch of the block's faces is against something, a plate and a web hold the chamber to it; elsewhere
   it stands clear, so the missing pump is what shows. The matter is still the whole block to the

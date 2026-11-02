@@ -29,14 +29,22 @@ export interface EngineLayout {
     readonly centres: readonly number[];
     /** Where the pump's aft face is; `front` where there is none. */
     readonly pumpAft: number;
+    /** Whether the pump is a cylinder: it feeds one nozzle. Feeding several, it is a block across them. */
+    readonly roundPump: boolean;
 }
 
 /** How much of a pumped engine's block its chambers may take, so the pump keeps the rest. */
-const CHAMBER_MOST = 0.6;
+const CHAMBER_MOST = 0.75;
 /** A chamber's width as a share of its bell's throat. */
 const CHAMBER_OF_THROAT = 1.5;
-/** How far forward of its centre a pumped chamber is cut flat against the pump, in radii. */
+/**
+ * How far forward of its centre a pumped chamber is cut flat against the pump,
+ * in radii: as far as there is room for, between these. Short of room, the
+ * chamber is cut deeper rather than drawn narrower, so it stays wider than the
+ * throat it sits on.
+ */
 const PUMP_CUT = 0.8;
+const DEEPEST_CUT = 0.2;
 
 const layouts = new WeakMap<ModuleSpec, EngineLayout>();
 
@@ -52,21 +60,24 @@ export function engineLayout(spec: ModuleSpec): EngineLayout {
         const throat = engine.throatWidth / 2;
         // Its centre behind its flat aft face, where the sphere is as wide as the throat.
         const behind = (r: number): number => Math.sqrt(Math.max(0, r * r - throat * throat));
-        const ahead = pressureFed ? 1 : PUMP_CUT;
+        const most = pressureFed ? 1 : PUMP_CUT;
         const room = pressureFed ? long : long * CHAMBER_MOST;
-        // Wider than its throat, no wider than its share of the block, and no longer than its room.
+        // Wider than its throat, and no wider than its share of the block.
         let radius = Math.min(engine.throatWidth * CHAMBER_OF_THROAT, engine.pitch) / 2;
-        if (behind(radius) + ahead * radius > room) {
+        // Narrower only where even cut as deep as it goes it would not fit.
+        if (behind(radius) + DEEPEST_CUT * radius > room) {
             let low = 0;
             for (let n = 0; n < 30; n++) {
                 const mid = (low + radius) / 2;
-                if (behind(mid) + ahead * mid > room) radius = mid;
+                if (behind(mid) + DEEPEST_CUT * mid > room) radius = mid;
                 else low = mid;
             }
             radius = low;
         }
         const centre = mouth + behind(radius);
-        const nose = pressureFed ? Math.max(centre, front - radius) : centre;
+        const ahead = radius > 0 ? Math.min(most, Math.max(DEEPEST_CUT, (room - behind(radius)) / radius)) : 0;
+        // A pressure-fed chamber with room to spare runs on to the front as a capsule.
+        const nose = pressureFed && ahead >= 1 ? Math.max(centre, front - radius) : centre;
         const fore = nose + ahead * radius;
         const centres: number[] = [];
         for (let n = 0; n < engine.nozzles; n++) centres.push(nozzleOffset(engine, n));
@@ -82,6 +93,7 @@ export function engineLayout(spec: ModuleSpec): EngineLayout {
             fore,
             centres,
             pumpAft: pressureFed ? front : fore,
+            roundPump: !pressureFed && engine.nozzles === 1,
         };
         layouts.set(spec, made);
     }

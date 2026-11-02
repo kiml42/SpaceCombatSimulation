@@ -190,8 +190,8 @@ function bevelled(design: ShipDesign, m: number, shapes: readonly (readonly (rea
         const ey = outline[j + 1]! - ay;
         const span = Math.sqrt(ex * ex + ey * ey);
         if (!(span > 0)) continue;
-        // A pump is round along its sides, so only its ends are edges.
-        if (module.spec.kind === "engine" && Math.abs(ex) > Math.abs(ey)) continue;
+        // A round pump has edges only at its ends.
+        if (module.spec.kind === "engine" && engineLayout(module.spec).roundPump && Math.abs(ex) > Math.abs(ey)) continue;
         // Anticlockwise, so out is to the right of the edge.
         const nx = ey / span;
         const ny = -ex / span;
@@ -342,11 +342,15 @@ function mitre(design: ShipDesign, all: number[][]): void {
     const reach = Math.max(OUTSIDE_M, BEVEL_OF_RADIUS * design.radius);
     const meet = reach * reach;
     /** The one of `ends` other than `e` whose start, or with `back` end, is nearest `x`, `y`. */
+    const round = (m: number): boolean => {
+        const spec = design.modules[m]!.spec;
+        return spec.kind === "engine" && engineLayout(spec).roundPump;
+    };
     const nearest = (e: (typeof ends)[number], x: number, y: number, back: boolean): (typeof ends)[number] | null => {
         let best = meet;
         let found: (typeof ends)[number] | null = null;
         for (const f of ends) {
-            if (f === e || f.h !== e.h) continue;
+            if (f === e || f.h !== e.h || round(f.m)) continue;
             const d = ((back ? f.bx : f.ax) - x) ** 2 + ((back ? f.by : f.ay) - y) ** 2;
             if (d < best) {
                 best = d;
@@ -358,6 +362,8 @@ function mitre(design: ShipDesign, all: number[][]): void {
     // Anticlockwise all round, so an edge's end is where the next one starts. Each
     // end and start takes the nearest, told of it in its own module's frame.
     for (const e of ends) {
+        // A round pump's ends are cut square across it, meeting nothing.
+        if (round(e.m)) continue;
         const next = nearest(e, e.bx, e.by, false);
         if (next !== null) link(design, all, e.m, e.k + 10, next.nx, next.ny, all[next.m]![next.k + 6]!);
         const last = nearest(e, e.ax, e.ay, true);

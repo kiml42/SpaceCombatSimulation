@@ -1501,7 +1501,7 @@ function shadeEngine(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: num
         }
         if (tube !== null) ctx.drawImage(tube, layout.centre, y - r, straight, 2 * r);
     }
-    if (layout.pumpAft < l) {
+    if (layout.roundPump) {
         const pump = cylinderShade(side, up);
         if (pump !== null) ctx.drawImage(pump, layout.pumpAft, -layout.halfWidth, l - layout.pumpAft, 2 * layout.halfWidth);
     }
