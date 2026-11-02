@@ -65,7 +65,7 @@ inside any one file is not contiguous.
   core and neither gun nor engine is still a ship, so it is framed and drawn in its own colours, where asking
   whether it could fight drew a whole generation of engineless craft as wreckage and left them out of shot.
   Grey, and framed only with the hulks, is for a core that is out, or for a ship that set out with a gun or
-  an engine and has lost them all, or the stores to use them. A severed piece gets no arrowhead at all, nor does a ship riding another's hull, or a fighter parked on its pad. An arrowhead points the way its ship's core does, which is not always its body's way: a ship that has docked with another keeps the frame of the hull they shared. A blueprint editor on a second page of its own draws a layout
+  an engine and has lost them all, or the stores to use them. A severed piece gets no arrowhead at all, nor does a grey ship under 150 t (`HULK_ICON_MASS`, below an intact Y-wing), which is framed with the wreckage too, so a dead swarm of fighters and torpedoes stops reading as a live one; nor does a ship riding another's hull, or a fighter parked on its pad. An arrowhead points the way its ship's core does, which is not always its body's way: a ship that has docked with another keeps the frame of the hull they shared. A blueprint editor on a second page of its own draws a layout
   through that same renderer and reports what it bought: mass, inertia, the
   acceleration available in each direction — as figures, and as a pair of
   envelope curves separating what a layout can project from what it can use
@@ -1019,7 +1019,9 @@ inside any one file is not contiguous.
   **Robots take apart what is not their ship's own**, once nothing is left to mend or rebuild: hull on the
   same body that nobody flies, that a ship with no control flies and no robots of its own are mending, or a
   piece their own ship hooked on rather than set out with — never a ship under control, friend or foe, nor
-  one being built on a pad or slipway, which has no working core or robots of its own yet either. It is
+  one being built on a pad or slipway, which has no working core or robots of its own yet either, save a ship
+  lodged on the rock a moored ship mines: an enemy's whatever it can still do, a friend's once it is mission
+  killed. It is
   wreckage welded on or a hulk in the claw, reached across the seam it hangs by. **Taking it apart is building
   run backwards**: the robot loads any metal the wreck holds as it is, then takes a module's fittings out,
   leaving it standing full size and doing nothing, and then its walls down a step at a time, a shell
@@ -1843,6 +1845,10 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   A ship under control with robots aboard also welds on any loose wreck touching it at under `WELD_SPEED`,
   torn or not and closing or not, keeping its own body (moored too, though not parked on a pad), so its robots
   can take it apart rather than leave it rattling against the hull.
+  **Wreckage lodges on rock**, and so does any ship, flown or not, that has lain against an asteroid at under
+  `REST_SPEED` where they touch for `REST_TIME` (0.25 m/s for 10 s, first guesses): stuck, a fighter would
+  otherwise press on the rock and flash against it for good, burning what fuel it had. The rock keeps its
+  body and its rail; a ship lodged still flown is still a ship, fighting with whatever it can use.
   **Command** runs from a working core through its hull's welds, and stops at a ragged module (a core
   excepted), so a ship hooked to debris cannot use a live engine or gun on it — nor one of its own beyond a
   torn spine. An uncommanded module thrusts and fires at nothing, and scoring caps a ship's hull at what it

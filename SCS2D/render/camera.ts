@@ -1,4 +1,5 @@
 import { math, type ShipView, type Snapshot } from "../sim/index.js";
+import { isHulk, isWreckage } from "./icons.js";
 
 const { abs, max, min } = math;
 
@@ -163,14 +164,15 @@ function matchedPace(out: number): number {
  * different pictures. A hulk is a ship — a thing that was being flown a moment
  * ago, and the one the viewer was watching; a severed piece is debris, and
  * there is usually far more of it, so counting both together would hand the
- * frame to whichever hull shed the most.
+ * frame to whichever hull shed the most. A small hulk counts as wreckage
+ * (`isWreckage`), as a dead swarm of fighters would otherwise do the same.
  *
  * Fixed at module scope so a frame allocates nothing.
  */
 const FOLLOW_ORDER: readonly ((ship: ShipView) => boolean)[] = [
-    (ship) => ship.hasControl && !ship.isMissionKilled,
-    (ship) => (!ship.hasControl || ship.isMissionKilled) && !ship.isDerelict,
-    (ship) => ship.isDerelict,
+    (ship) => !isHulk(ship),
+    (ship) => isHulk(ship) && !isWreckage(ship),
+    isWreckage,
 ];
 
 /**
