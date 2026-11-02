@@ -399,7 +399,7 @@ an entry is either still open or it is gone.
             3. **Drawing scars — built** (`render/scars.ts`). Each scar is a few ragged polygons in its
                module's frame, as wide as `WIDTH_PER_CBRT_JOULE` (4 mm) a joule's cube root, at least
                5 cm and at most 45% of the module's narrower side, and kept inside the box its drawn
-               fills lie in: a round's dark channel ending in a hole or a light lip, peppering's spray of
+               fills lie in, on an engine its block alone, so none lies on a bell or barrel: a round's dark channel ending in a hole or a light lip, peppering's spray of
                short streaks, a burn's scorch with a glazed core and a sheen across it, and a gouge's
                scraped metal between buckled edges. The hull layer builds each ship's scars into two
                contexts in its own frame, one over its thin hull and one over its thick modules,

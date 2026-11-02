@@ -533,8 +533,13 @@ function scarsOf(ship: Snapshot["ships"][number], scale: number): ShipScars {
         if (m === undefined || m.spec.kind === "rock" || m.spec.kind === "kernel" || isFighterModule(design, i)) continue;
         if (scarWidth(scars, k, m.spec) < least) continue;
         const into = m.weaponsLayer && !isDomed(m.spec.kind) ? (thick ??= new GraphicsContext()) : (thin ??= new GraphicsContext());
+        // One landed off what it is held to — on a bell — would be squashed against its edge.
+        const box = boundsOf(m.spec);
+        const cx = (scars[k + 3]! + scars[k + 5]!) / 2;
+        const cy = (scars[k + 4]! + scars[k + 6]!) / 2;
+        if (cx < box.x0 || cx > box.x1 || cy < box.y0 || cy > box.y1) continue;
         scarShapesScratch.length = 0;
-        scarShapes(scars, k, m.spec, boundsOf(m.spec), scarShapesScratch);
+        scarShapes(scars, k, m.spec, box, scarShapesScratch);
         const c = Math.cos(m.angle);
         const s = Math.sin(m.angle);
         for (const shape of scarShapesScratch) {
@@ -667,7 +672,7 @@ function outlineFor(spec: ModuleSpec): GraphicsContext {
 const shapes = new WeakMap<ModuleSpec, number[][]>();
 const bounds = new WeakMap<ModuleSpec, Bounds>();
 
-/** The box `spec`'s fills lie in. */
+/** The box `spec`'s fills lie in: an engine's block alone, as a scar held to a bell's box would hang off it. */
 function boundsOf(spec: ModuleSpec): Bounds {
     let box = bounds.get(spec);
     if (box === undefined) {
@@ -675,7 +680,8 @@ function boundsOf(spec: ModuleSpec): Bounds {
         let y0 = Infinity;
         let x1 = -Infinity;
         let y1 = -Infinity;
-        for (const points of shapesOf(spec)) {
+        const all = shapesOf(spec);
+        for (const points of spec.kind === "engine" ? all.slice(0, 1) : all) {
             for (let v = 0; v < points.length; v += 2) {
                 x0 = Math.min(x0, points[v]!);
                 x1 = Math.max(x1, points[v]!);
