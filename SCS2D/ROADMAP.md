@@ -333,7 +333,7 @@ an entry is either still open or it is gone.
         - **Severing keeps them**: the pieces, and the rest of the ship, keep the edges they were built
           with, so nothing looks bevelled just because something broke off it.
         - Open: whether a split edge should look rough.
-    5. **Marks for damage**, in place of fading and wreckage grey: wear for how hurt a module is, and scars
+    5. **Marks for damage — built**, in place of fading and wreckage grey: wear for how hurt a module is, and scars
        for the hits that mattered.
         - **Wear** — grime, dents and scuffs — is one texture in which every spot has a threshold of its
           own, shown once the module's damage passes it, by a small shader, the hull layer's first. Wear so
