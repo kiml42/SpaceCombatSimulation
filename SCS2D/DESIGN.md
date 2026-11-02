@@ -49,7 +49,7 @@ inside any one file is not contiguous.
   "Red 5.2", and once "Red 5.1" has rebuilt its other half, the core it built reads "Red 5.1.2" beside its
   own "Red 5.1". **A core carries a status light**, in its aft corner beside its generator disc where it
   has one: lit in a gun's ready green while it flies anything, dark once damage has put it out, since a core
-  stops working well before it is wreckage and its fading colour gives no step at that point. **The camera carries itself along with what it is watching rather
+  stops working well before it is wreckage and its wear, which grows with its damage, gives no step at that point. **The camera carries itself along with what it is watching rather
   than easing after it**, weighting the ships in shot by radius so a fleet action is steered
   by the capital in it; it falls back from the ships still under control to the hulks and then
   to the wreckage, so a fight that ends with every core shot out is still followed; and it
