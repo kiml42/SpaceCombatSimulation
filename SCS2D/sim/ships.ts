@@ -2867,9 +2867,10 @@ export class Ships {
     }
 
     /**
-     * Whether a fighter takes the hull layer as well: whenever it is ramming,
-     * which is flying at a target with a band of nothing, by its doctrine's
-     * decision or by order.
+     * Whether a fighter takes the hull layer as well: whenever it is grappling,
+     * or ramming — by its doctrine's decision or by order — and due to strike
+     * within `ramCommit` seconds. Until then it flies the ram in the weapons
+     * layer, where the hulls it passes on the way are no obstacle.
      *
      * Only while clear of every hull, in either direction (DESIGN.md §3), so a
      * fighter cannot drop into a capital's structure or climb back out of one it
@@ -2883,9 +2884,22 @@ export class Ships {
         const order = this.effectiveOrder(i);
         // Parked, it meets nothing of its carrier, so would look clear on the pad and drop into its hull when let go.
         const ramming = order !== undefined && order.target !== NO_TARGET && (order.ram || order.grapple) && this.parkedOn[i]! < 0;
-        const want = ramming ? 1 : 0;
+        const want = ramming && (order.grapple || this.strikesWithin(bodies, i, b, order.target)) ? 1 : 0;
         if (want === this.committed[i] || !this.clearOfHulls(bodies, b)) return;
         this.committed[i] = want;
+    }
+
+    /** Whether ship `i`, on body `b`, will reach `target`'s bounding circle within its doctrine's `ramCommit` seconds, or has. */
+    private strikesWithin(bodies: Bodies, i: number, b: number, target: number): boolean {
+        const tb = bodies.indexOf(this.bodyIds[target]!);
+        if (tb < 0) return false;
+        const dx = bodies.x[tb]! - bodies.x[b]!;
+        const dy = bodies.y[tb]! - bodies.y[b]!;
+        const range = length(dx, dy);
+        const gap = range - bodies.radius[tb]! - bodies.radius[b]!;
+        if (!(gap > 0)) return true;
+        const closing = ((bodies.vx[b]! - bodies.vx[tb]!) * dx + (bodies.vy[b]! - bodies.vy[tb]!) * dy) / range;
+        return gap <= closing * this.doctrines[i]!.approach.ramCommit;
     }
 
     /** Whether no module of this body overlaps any other hull's. */
@@ -3404,6 +3418,36 @@ export class Ships {
             }
         }
         return deepest;
+    }
+
+    /**
+     * Whether a hull on ship `i`'s side, under control, lies across the line from
+     * its body `b` to (`toX`, `toY`), within its own radius of that hull's circle.
+     * Never body `to`, nor a fighter, which will be elsewhere by the time it gets there.
+     */
+    private friendBetween(bodies: Bodies, i: number, b: number, toX: number, toY: number, to: number): boolean {
+        const fromX = bodies.x[b]!;
+        const fromY = bodies.y[b]!;
+        const dx = toX - fromX;
+        const dy = toY - fromY;
+        const lengthSq = dx * dx + dy * dy;
+        if (!(lengthSq > 0)) return false;
+        const mine = this.designs[i]!.radius;
+        for (let t = 0; t < this.alive.length; t++) {
+            if (t === i || this.alive[t] !== 1 || this.team[t] !== this.team[i] || this.designs[t]!.fighter || !this.hasControl(t))
+                continue;
+            const ob = bodies.indexOf(this.bodyIds[t]!);
+            if (ob < 0 || ob === b || ob === to || bodies.ghost[ob] === 1) continue;
+            const ox = bodies.x[ob]! - fromX;
+            const oy = bodies.y[ob]! - fromY;
+            const along = (ox * dx + oy * dy) / lengthSq;
+            if (along <= 0 || along >= 1) continue;
+            const r = bodies.radius[ob]! + mine;
+            const px = ox - along * dx;
+            const py = oy - along * dy;
+            if (px * px + py * py < r * r) return true;
+        }
+        return false;
     }
 
     /** Note which ships are asteroids, once a step: there are few, and every pilot and gun asks. */
@@ -4373,11 +4417,9 @@ export class Ships {
                     fighting = tb;
                     holdOut = order.maxRange;
                 }
-                if (order.ram) this.charge(bodies, i, b, at, order.approachSpeed);
-                else {
-                    this.hold(bodies, i, b, at, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE, wantAngle);
-                    this.orbit(bodies, i, b, at, tb);
-                }
+                if (order.ram) this.charge(bodies, i, b, at, order.approachSpeed, tb);
+                else this.hold(bodies, i, b, at, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE, wantAngle);
+                this.orbit(bodies, i, b, at, tb);
             }
         }
 
@@ -4894,9 +4936,11 @@ export class Ships {
      * out, speeding up matters as much as drift does; within `ramSettle` seconds
      * of impact only the drift does, easing over as long again before that, so
      * a ram coming in fast spends its last seconds lining up rather than
-     * speeding up past a miss.
+     * speeding up past a miss. With a rock or a friend's hull across the line to
+     * body `tb`, it keeps the speed it has rather than adding to it, which leaves
+     * keeping clear and going round the time they need.
      */
-    private charge(bodies: Bodies, i: number, b: number, at: Spot, speed: number): void {
+    private charge(bodies: Bodies, i: number, b: number, at: Spot, speed: number, tb: number): void {
         const dx = at.x - bodies.x[b]!;
         const dy = at.y - bodies.y[b]!;
         const range = length(dx, dy);
@@ -4910,8 +4954,13 @@ export class Ships {
         const settle = this.doctrines[i]!.approach.ramSettle;
         const toGo = closing > 0 ? range / closing : Infinity;
         const share = settle > 0 ? clamp((toGo - settle) / settle, 0, 1) : 1;
+        const x = bodies.x[b]!;
+        const y = bodies.y[b]!;
+        // A fighter overflies a friend's hull until it commits, which is not until it is about to strike (`commitOne`).
+        const friend = !this.designs[i]!.fighter && this.friendBetween(bodies, i, b, at.x, at.y, tb);
+        const blocked = friend || this.blockingRock(bodies, x, y, at.x, at.y, b, tb) >= 0;
         // Never kept faster than it was told to hit at.
-        const want = min(speed, closing + (speed - closing) * share);
+        const want = blocked ? min(speed, max(0, closing)) : min(speed, closing + (speed - closing) * share);
         this.urge(URGE_REFERENCE, at.vx + ux * want, at.vy + uy * want);
     }
 

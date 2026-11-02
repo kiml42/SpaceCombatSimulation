@@ -389,6 +389,13 @@ export interface Approach extends SupplyPriorities, SupplyShares {
      */
     readonly ramSettle: number;
     /**
+     * Seconds before it would strike that a fighter ramming drops to the hull
+     * layer (DESIGN.md §3). Until then it flies in the weapons layer, clear of
+     * the hulls it passes; too late, and it cannot drop through a hull it is
+     * already inside.
+     */
+    readonly ramCommit: number;
+    /**
      * What a half turn costs in choosing which way round to fight, as a share
      * of its main battery. A ship weighs each bearing its main guns can bear on
      * by the share of them that do, less this for every half turn away from
@@ -636,6 +643,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
         ramRadii: 0,
         ramArmed: 0,
         ramSettle: 3,
+        ramCommit: 2,
         turnBias: 0.5,
         burnWeight: 2,
         rangeHold: 1,
@@ -851,6 +859,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
     "ramRadii",
     "ramArmed",
     "ramSettle",
+    "ramCommit",
     "turnBias",
     "burnWeight",
     "rangeHold",
@@ -931,6 +940,7 @@ export const POSITIVE_FIELDS: readonly string[] = [
     "separationRadii",
     "avoidHorizon",
     "rockMargin",
+    "ramCommit",
     "dodgeSpeed",
     "responseTime",
     "accelerate",

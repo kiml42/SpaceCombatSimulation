@@ -369,6 +369,12 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
         hint: "Seconds before impact in which a ram stops closing faster and only cancels its sideways drift, eased in over as long again",
         step: 0.5,
     },
+    {
+        field: "ramCommit",
+        label: "drops to the deck",
+        hint: "A fighter's ram: seconds before it would strike that it takes the hull layer as well, flying past hulls in the weapons layer until then",
+        step: 0.25,
+    },
 ];
 
 /** What each claim on a ship's stores is, as the panel names it, and what it draws for. */
@@ -634,6 +640,7 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                         },
                     }),
                     entry("approach", "ramSettle", { shown: (v) => v.approach.ramRadii > 0 }),
+                    entry("approach", "ramCommit", { shown: (v) => v.approach.ramRadii > 0 }),
                     entry("targeting", "ramMass", {
                         shown: (v) => v.approach.ramRadii > 0,
                         absolute: (v, ship) =>
