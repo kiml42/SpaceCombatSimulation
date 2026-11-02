@@ -51,10 +51,10 @@ export const ICON_FADE_FULL_PX = 8;
 
 /**
  * Below this mass, kg, a hulk is wreckage: no icon, and framed with the debris.
- * Under a corvette, so a dead swarm of fighters and torpedoes stops cluttering
- * the view while a crippled capital stays findable.
+ * Under an intact Y-wing, so a broken-up fighter or a dead torpedo stops
+ * cluttering the view while a crippled capital stays findable.
  */
-export const HULK_ICON_MASS = 250_000;
+export const HULK_ICON_MASS = 150_000;
 
 /** Whether a ship is out of the fight: core out, or every gun and engine it set out with lost. */
 export function isHulk(ship: ShipView): boolean {
