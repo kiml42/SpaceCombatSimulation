@@ -332,15 +332,49 @@ an entry is either still open or it is gone.
         - **Severing keeps them**: the pieces, and the rest of the ship, keep the edges they were built
           with, so nothing looks bevelled just because something broke off it.
         - Open: whether a split edge should look rough.
-    5. **Marks for damage**, in place of fading to grey.
-        - A module is marked as it is hurt, and mended marks fade one at a time. Marks follow from a
-          module's id and how hurt it is, not from the hits' history, so rewinding shows the same marks and
-          mending takes them off in reverse.
-        - With no grey, a ship looks the same for longer, so more of it is shared, and marks go on top.
-        - Nothing much leans on the grey: most modules already show whether they work (a core's light, a
-          gun's load), and a ship that has lost control should still read as such. Zoomed out, how hurt a
-          ship is was never readable and need not be: picking it shows it larger, and its icon can still
-          turn grey once it is out of the fight.
+    5. **Marks for damage**, in place of fading and wreckage grey: wear for how hurt a module is, and scars
+       for the hits that mattered.
+        - **Wear** — grime, dents and scuffs — is one texture in which every spot has a threshold of its
+          own, shown once the module's damage passes it, by a small shader, the hull layer's first. Wear so
+          spreads smoothly as damage rises and recedes in exact reverse as it is mended. Laid in the
+          design's frame and offset by the module's id, as the livery is, so two modules hurt alike look
+          different and a piece cut away keeps its wear; sized as a share of the ship's radius, so a fighter
+          and a capital ship look as worn at the same share of damage.
+        - **Scars** are kept by the sim, beside each module's damage, so a checkpoint carries them and a
+          rewind, a replay or a link shows the same ones. They change nothing in the battle and are left out
+          of the golden checksums, and the snapshot carries them out. Each holds where on the module it is,
+          its kind, its direction, its size and the module's damage when it was made; mending below that
+          takes it off, so mending peels scars off in reverse.
+        - **A hit scars if it delivers at least a share of what breaks its module** (a tenth to start), so a
+          round that craters a fighter's plate is only wear on a capital ship's armour. A scar's size is the
+          cube root of the hit's energy, as a flash's is. A module holds scars by its area, about one per few
+          square metres, at least one and at most about eight; when full, a new scar replaces the smallest
+          if it is larger than it.
+        - **Kinds**, each drawn along the direction of travel, since a hit arrives edge-on to the view:
+            - **A round** leaves a gouged channel as long as it got into the module and as wide as the
+              round, with a raised lip at the far end; one that went through ends in a hole.
+            - **Fragments** of a burst join a peppering scar near where they land rather than being judged
+              alone, which scars once what has joined it passes the threshold: a spray of small streaks
+              along their travel. The burst itself does nothing to a hull, so leaves no scar.
+            - **A beam or a plume** leaves a burn: blackened, with a glazed core. One held on a spot grows
+              its burn rather than adding another; one that moves draws it out into a streak, up to a limit.
+            - **A collision** leaves a gouge of scraped bright metal with buckled edges, along the way the
+              hulls slid.
+          Each scar's shape is drawn from the module's id and its slot, so scars vary but every replay
+          draws them alike.
+        - **A destroyed module is burnt out** rather than grey: its shape, scars and fullest wear, darkened
+          to a sooty near-black that full wear never reaches, its livery faint through it, and its lights
+          out — a core's glow, a gun's load, a gauge. A ship without control, a hulk and wreckage keep
+          colours of their own, as liveries have them, and a ship's icon can still turn grey once it is
+          out of the fight.
+        - **Skipped under a pixel**, as bevels are: wear on a ship seen whole, and each scar by its own
+          size, so a small one on a big ship goes before a big one as the view zooms out.
+        - With no grey or fading, a ship looks the same for longer, so more of it is shared, and marks go
+          on top. Nothing much leans on the grey: most modules already show whether they work (a core's
+          light, a gun's load). Zoomed out, how hurt a ship is was never readable and need not be: picking
+          it shows it larger.
+        - Not settled: the threshold, the scars a module holds and how far a burn may streak are first
+          guesses, to be set by eye.
     6. **Particles and glows.** Glows for explosions and beams; particles for explosions and impacts;
        bits of metal for collision damage in place of its flashes, and from a leaking tank alongside or in
        place of its wedge. Particles are only drawn, never simulated: on the battle's clock as the flashes
