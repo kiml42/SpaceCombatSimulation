@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { iconAlpha, ICON_FADE_FULL_PX, ICON_FADE_START_PX, ICON_MAX_ALPHA, ICON_OUTLINE } from "../render/icons.js";
+import type { ShipView } from "../sim/index.js";
+import {
+    HULK_ICON_MASS,
+    iconAlpha,
+    ICON_FADE_FULL_PX,
+    ICON_FADE_START_PX,
+    ICON_MAX_ALPHA,
+    ICON_OUTLINE,
+    isWreckage,
+} from "../render/icons.js";
 
 /**
  * The ship icon's fade and shape.
@@ -73,5 +82,30 @@ describe("the arrowhead", () => {
     it("is one unit long, so a caller scales by the size it wants on screen", () => {
         const xs = ICON_OUTLINE.map(([x]) => x);
         expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo(1, 9);
+    });
+});
+
+describe("wreckage", () => {
+    const view = (mass: number, hasControl: boolean, isMissionKilled: boolean, isDerelict = false): ShipView =>
+        ({ currentStructure: { mass }, hasControl, isMissionKilled, isDerelict }) as ShipView;
+    const small = HULK_ICON_MASS / 2;
+    const big = HULK_ICON_MASS * 2;
+
+    it("is a small hulk, its core sound or not", () => {
+        expect(isWreckage(view(small, true, true))).toBe(true);
+        expect(isWreckage(view(small, false, false))).toBe(true);
+    });
+
+    it("is not a big hulk, which stays marked in grey", () => {
+        expect(isWreckage(view(big, true, true))).toBe(false);
+        expect(isWreckage(view(big, false, false))).toBe(false);
+    });
+
+    it("is not a small ship still in the fight, or built with nothing to fight with", () => {
+        expect(isWreckage(view(small, true, false))).toBe(false);
+    });
+
+    it("is a severed piece whatever it weighs", () => {
+        expect(isWreckage(view(big, false, false, true))).toBe(true);
     });
 });

@@ -89,7 +89,7 @@ import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth, plumeAlpha, trac
 import { flashExtent, flashFade, flashPosition, muzzleWedge, type Flashes } from "./flashes.js";
 import { clipToStart, exposureEnds, flashSamples, shutterWeight } from "./exposure.js";
 import { flameSprite, sprite } from "./sprites.js";
-import { iconAlpha, ICON_OUTLINE, ICON_PX } from "./icons.js";
+import { iconAlpha, ICON_OUTLINE, ICON_PX, isWreckage } from "./icons.js";
 
 const { cos, floor, sin, length, max, min, PI, sqrt, TAU } = math;
 
@@ -1868,20 +1868,17 @@ function fade(ctx: CanvasRenderingContext2D, root: number, length: number, rgb: 
  * core and nothing else is still a ship, and drawing it grey said the
  * opposite about an entire generation of engineless craft.
  *
- * A derelict piece — a severed chunk, never controlled — gets no
- * icon at all: it has no facing worth pointing out, and a debris field that
- * drew as many arrowheads as the battle that made it would count as ships
- * wreckage that no longer is any. A mission-killed hull keeps its icon in
- * grey rather than losing it, because it is still a solid thing in the way,
- * and at the zoom where icons are what you are reading, losing it would make
- * it vanish rather than read as a hulk. A ship riding another's body, as a
- * fighter on its pad, has none: the hull's own stands for it.
+ * Wreckage gets no icon (`isWreckage`): a severed piece, or a hulk under
+ * `HULK_ICON_MASS`, so a field of dead fighters and torpedoes does not read
+ * as a swarm. A bigger hulk keeps its icon in grey, being a solid thing in
+ * the way that would otherwise vanish at this zoom. A ship riding another's
+ * body, as a fighter on its pad, has none: the hull's own stands for it.
  *
  * It points the way the ship does (`ShipView.heading`), which is not always
  * its body's angle: a fighter launched from a pad keeps the carrier's frame.
  */
 function drawIcon(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
-    if (ship.isDerelict || ship.riding === true) return;
+    if (isWreckage(ship) || ship.riding === true) return;
     const alpha = iconAlpha(ship.currentStructure.radius * 2 * metresToPx);
     if (alpha <= 0) return;
     const palette = ship.currentStructure.fighter ? fighterColours : shipColours;
