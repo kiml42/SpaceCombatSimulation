@@ -45,6 +45,19 @@ export const NEUTRAL = {
     pivot: "#4a4a4a",
 };
 
+/**
+ * Bare metal: a module whose fittings are not all in, before its paint goes on
+ * (`paintedSide`). Greys close together, so its parts are still told apart and
+ * none reads as dark as soot.
+ */
+export const BARE_TEAM = -2;
+const BARE = {
+    hull: "#a3a7ab",
+    trim: "#bcc0c4",
+    pivot: "#878b90",
+};
+const BARE_FIGHTER = { hull: "#959a9f", trim: "#aeb2b6", pivot: "#7b8085" };
+
 export interface Palette {
     readonly hull: string;
     readonly trim: string;
@@ -161,11 +174,13 @@ function sideOf(team: number, sides: Sides): Side {
 
 export function shipColours(team: number): Palette {
     // Below zero is nobody's side (`NEUTRAL_TEAM`, the editor's `NO_TEAM`).
+    if (team === BARE_TEAM) return BARE;
     return team < 0 ? NEUTRAL : sideOf(team, shown).ship;
 }
 
 /** A side's colours for a fighter: its ships', a shade darker. */
 export function fighterColours(team: number): Palette {
+    if (team === BARE_TEAM) return BARE_FIGHTER;
     return team < 0 ? NEUTRAL_FIGHTER : sideOf(team, shown).fighter;
 }
 

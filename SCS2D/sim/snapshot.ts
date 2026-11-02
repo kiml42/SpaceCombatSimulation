@@ -159,6 +159,12 @@ export interface ShipView {
      * drawn as wreckage rather than not drawn.
      */
     integrity: number[];
+    /**
+     * How much of each module's fittings are in, 1 for all: a module being
+     * built or taken apart does nothing until they are. Optional, as a view
+     * built by hand has none.
+     */
+    fitted?: number[];
     /** Each scar showing, `SCAR_VIEW_STRIDE` numbers apiece (`sim/scars.ts`). Optional, as a view built by hand has none. */
     scars?: number[];
     /** Counts changes to `scars`, so a view can tell when to redraw them. */
@@ -589,11 +595,12 @@ export function capture(
         for (let r = 0; r < rays.length; r++) view.landed[r] = rays[r]!;
 
         view.integrity.length = design.modules.length;
+        const fitted = (view.fitted ??= []);
+        fitted.length = design.modules.length;
         for (let m = 0; m < design.modules.length; m++) {
-            // A rebuilt module waiting for its fittings looks as broken as it is.
             const fitting = fittingOf(design.modules[m]!.stats);
-            const fitted = fitting > 0 ? 1 - ships.damage.unbuiltAt(b, m) / fitting : 1;
-            view.integrity[m] = ships.damage.integrity(b, m) * fitted;
+            fitted[m] = fitting > 0 ? 1 - ships.damage.unbuiltAt(b, m) / fitting : 1;
+            view.integrity[m] = ships.damage.integrity(b, m);
         }
         ships.damage.scars.view(b, (view.scars ??= []));
         view.scarsVersion = ships.damage.scars.version(b);
