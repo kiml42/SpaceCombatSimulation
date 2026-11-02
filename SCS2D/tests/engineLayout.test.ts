@@ -121,20 +121,22 @@ describe("engine mounts", () => {
         expect(sideMounts(withEngine(0.4, 0.2, 1, { kind: "structure", x: -1.2, y: 0.2, length: 0.4, width: 0.2 }))).toBeGreaterThan(0);
     });
 
-    it("bridges a crack too narrow to bevel, so a mount reaches what it is held to", () => {
-        // A core wide enough that a 0.1 m crack between its engines is a seam.
-        const design = compileBlueprint({
-            name: "Pair",
-            modules: [
-                { kind: "core", x: 0, y: 0, length: 2, width: 14 },
-                { kind: "engine", x: -1, y: 0.45, angle: Math.PI, length: 3, width: 0.8 },
-                { kind: "engine", x: -1, y: -0.45, angle: Math.PI, length: 3, width: 0.8 },
-            ],
-        });
-        const m = design.modules.findIndex((module) => module.spec.kind === "engine");
-        const w = engineLayout(design.modules[m]!.spec).halfWidth;
-        const furthest = Math.max(...mountsOf(design, m).polygons.flatMap((p) => p.filter((_, v) => v % 2 === 1).map(Math.abs)));
-        expect(furthest).toBeGreaterThan(w + 0.09);
-        expect(furthest).toBeLessThan(w + 0.11);
+    it("holds a chamber only to what it is welded to, not across a crack", () => {
+        // A core wide enough that a 0.1 m crack between its engines is a seam to the bevels, but no weld.
+        const pair = (crack: number): boolean => {
+            const half = 0.4 + crack / 2;
+            const design = compileBlueprint({
+                name: "Pair",
+                modules: [
+                    { kind: "core", x: 0, y: 0, length: 2, width: 14 },
+                    { kind: "engine", x: -1, y: half, angle: Math.PI, length: 3, width: 0.8 },
+                    { kind: "engine", x: -1, y: -half, angle: Math.PI, length: 3, width: 0.8 },
+                ],
+            });
+            const m = design.modules.findIndex((module) => module.spec.kind === "engine");
+            return mountsOf(design, m).polygons.length > 0;
+        };
+        expect(pair(0)).toBe(true);
+        expect(pair(0.1)).toBe(false);
     });
 });

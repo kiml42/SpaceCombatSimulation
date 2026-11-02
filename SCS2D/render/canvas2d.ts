@@ -883,7 +883,8 @@ function drawHull(
         const halfWidth = spec.width / 2;
         // Unless Pixi underneath has filled it already (render/pixiView.ts).
         if (!filled) keptFill(ctx, ship, i);
-        if (spec.kind === "engine" && light !== undefined) shadeEngine(ctx, spec, ship.angle + m.angle, light);
+        if (spec.kind === "engine" && light !== undefined)
+            shadeEngine(ctx, spec, ship.angle + m.angle, light, drawnMounts(design, i).round);
         if (spec.kind === "port" && light !== undefined) shadePort(ctx, spec, ship.angle + m.angle, light);
         if (spec.kind === "pad") {
             // Its landing square is drawn with its fill (`fillModule`).
@@ -1464,7 +1465,7 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
 }
 
 /** An engine's bells, chambers and pump shaded as rounded, in its module's frame, the module turned `angle` in the world. */
-function shadeEngine(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: number, light: Light): void {
+function shadeEngine(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: number, light: Light, roundPump: boolean): void {
     const engine = engineGeometry(spec);
     const layout = engineLayout(spec);
     const l = spec.length / 2;
@@ -1501,7 +1502,7 @@ function shadeEngine(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: num
         }
         if (tube !== null) ctx.drawImage(tube, layout.centre, y - r, straight, 2 * r);
     }
-    if (layout.roundPump) {
+    if (roundPump) {
         const pump = cylinderShade(side, up);
         if (pump !== null) ctx.drawImage(pump, layout.pumpAft, -layout.halfWidth, l - layout.pumpAft, 2 * layout.halfWidth);
     }

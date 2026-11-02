@@ -1,4 +1,5 @@
 import {
+    ATTACHMENT_TOLERANCE,
     hullMountGeometry,
     insideOutline,
     isDomed,
@@ -191,7 +192,7 @@ function bevelled(design: ShipDesign, m: number, shapes: readonly (readonly (rea
         const span = Math.sqrt(ex * ex + ey * ey);
         if (!(span > 0)) continue;
         // A round pump has edges only at its ends.
-        if (module.spec.kind === "engine" && engineLayout(module.spec).roundPump && Math.abs(ex) > Math.abs(ey)) continue;
+        if (mountsOf(design, m).round && Math.abs(ex) > Math.abs(ey)) continue;
         // Anticlockwise, so out is to the right of the edge.
         const nx = ey / span;
         const ny = -ex / span;
@@ -227,9 +228,17 @@ export interface Mounts {
     readonly polygons: readonly (readonly number[])[];
     /** The polygons as a string, for a cache key: empty where there are none. */
     readonly key: string;
+    /**
+     * Whether its pump is drawn as a cylinder: one feeding a single nozzle, with
+     * nothing beside its sides. Against something it is a block, seamed to it.
+     */
+    readonly round: boolean;
 }
 
-const NO_MOUNTS: Mounts = { polygons: [], key: "" };
+const NO_MOUNTS: Mounts = { polygons: [], key: "", round: false };
+
+/** How far out from an engine's face its neighbour must start to be welded to it, as the simulation has it. */
+const WELD_REACH = ATTACHMENT_TOLERANCE * 0.5;
 
 /** A plate's depth, and a web's half-width, in chamber radii. */
 const PLATE_OF_RADIUS = 0.3;
@@ -264,24 +273,10 @@ function engineBlock(spec: ModuleSpec): number[] {
 function engineMounts(design: ShipDesign, m: number, shapes: readonly (readonly (readonly number[])[])[]): Mounts {
     const layout = engineLayout(design.modules[m]!.spec);
     const { radius, halfWidth: w, front: l, centres } = layout;
-    if (!(radius > 0) || centres.length === 0) return NO_MOUNTS;
-    // Whatever it stands beside holds it, however high.
+    if (!(radius > 0) || centres.length === 0) return { ...NO_MOUNTS, round: layout.roundPump };
+    // Whatever it is welded to holds it, however high; a crack between it and its neighbour is no weld.
     const covered = coverTest(design, m, shapes, true);
-    const gap = Math.max(OUTSIDE_M, BEVEL_OF_RADIUS * design.radius);
-    const touching = (x: number, y: number, nx: number, ny: number): boolean =>
-        covered(x + nx * OUTSIDE_M, y + ny * OUTSIDE_M) || covered(x + nx * gap, y + ny * gap);
-    /** How far out from a face what is beside it starts: across a crack too narrow to bevel, the plate bridges it. */
-    const reach = (x: number, y: number, nx: number, ny: number): number => {
-        if (covered(x + nx * OUTSIDE_M, y + ny * OUTSIDE_M)) return 0;
-        let near = OUTSIDE_M;
-        let far = gap;
-        for (let n = 0; n < 12; n++) {
-            const mid = (near + far) / 2;
-            if (covered(x + nx * mid, y + ny * mid)) far = mid;
-            else near = mid;
-        }
-        return far;
-    };
+    const touching = (x: number, y: number, nx: number, ny: number): boolean => covered(x + nx * WELD_REACH, y + ny * WELD_REACH);
     const plate = radius * PLATE_OF_RADIUS;
     const web = radius * WEB_OF_RADIUS;
     const polygons: number[][] = [];
@@ -296,7 +291,7 @@ function engineMounts(design: ShipDesign, m: number, shapes: readonly (readonly 
         for (let r = 0; r < along.length; r += 2) {
             const a = -w + 2 * w * along[r]!;
             const b = -w + 2 * w * along[r + 1]!;
-            rect(l - plate, a, l + reach(l, (a + b) / 2, 1, 0), b);
+            rect(l - plate, a, l, b);
             for (const y of centres) if (y >= a && y <= b) rect(layout.nose, y - web, l, y + web);
         }
     }
@@ -311,7 +306,7 @@ function engineMounts(design: ShipDesign, m: number, shapes: readonly (readonly 
             for (let r = 0; r < along.length; r += 2) {
                 const a = x0 + span * along[r]!;
                 const b = x0 + span * along[r + 1]!;
-                rect(a, edge - side * plate, b, edge + side * reach((a + b) / 2, edge, 0, side));
+                rect(a, edge - side * plate, b, edge);
                 // Across to the chamber, along its widest.
                 const from = Math.max(a, layout.centre - web);
                 const to = Math.min(b, layout.nose + web);
@@ -319,8 +314,13 @@ function engineMounts(design: ShipDesign, m: number, shapes: readonly (readonly 
             }
         }
     }
-    if (polygons.length === 0) return NO_MOUNTS;
-    return { polygons, key: polygons.map((p) => p.map((v) => v.toFixed(4)).join(",")).join(";") };
+    // A round pump with something beside it is a block, so the crack between them reads as a seam.
+    const pumped = l - layout.pumpAft;
+    const round =
+        layout.roundPump &&
+        [-1, 1].every((side) => runs(pumped, (t) => touching(layout.pumpAft + pumped * t, side * w, 0, side)).length === 0);
+    const key = polygons.map((p) => p.map((v) => v.toFixed(4)).join(",")).join(";");
+    return polygons.length === 0 && round === layout.roundPump && !round ? NO_MOUNTS : { polygons, key, round };
 }
 
 /**
@@ -354,10 +354,7 @@ function mitre(design: ShipDesign, all: number[][]): void {
     const reach = Math.max(OUTSIDE_M, BEVEL_OF_RADIUS * design.radius);
     const meet = reach * reach;
     /** The one of `ends` other than `e` whose start, or with `back` end, is nearest `x`, `y`. */
-    const round = (m: number): boolean => {
-        const spec = design.modules[m]!.spec;
-        return spec.kind === "engine" && engineLayout(spec).roundPump;
-    };
+    const round = (m: number): boolean => mountsOf(design, m).round;
     const nearest = (e: (typeof ends)[number], x: number, y: number, back: boolean): (typeof ends)[number] | null => {
         let best = meet;
         let found: (typeof ends)[number] | null = null;
