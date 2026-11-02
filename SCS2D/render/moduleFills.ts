@@ -1,13 +1,5 @@
-import {
-    engineGeometry,
-    hullMountGeometry,
-    isHullMount,
-    nozzleOffset,
-    shapeOf,
-    type ModuleSpec,
-    type ShipDesign,
-    type ShipView,
-} from "../sim/index.js";
+import { engineGeometry, hullMountGeometry, isHullMount, shapeOf, type ModuleSpec, type ShipDesign, type ShipView } from "../sim/index.js";
+import { engineLayout } from "./engineLayout.js";
 import { BARE_TEAM, type Palette } from "./teams.js";
 
 /**
@@ -98,10 +90,19 @@ export function fillAlpha(ship: ShipView, i: number): number {
 
 /**
  * The polygons a module is filled as, into `out`, which is emptied first:
- * the box for most, a block and its bells for an engine, the block alone for
- * a hull gun (its barrel is drawn with the turrets), and so on.
+ * the box for most, its bells, chambers and pump for an engine, the block
+ * alone for a hull gun (its barrel is drawn with the turrets), and so on.
+ * `mounts`, from what stands beside it in its design (`drawnMounts`), are
+ * filled after it in its colour.
  */
-export function moduleFills(spec: ModuleSpec, colour: string, colours: Palette, integrity: number, out: Fill[]): void {
+export function moduleFills(
+    spec: ModuleSpec,
+    colour: string,
+    colours: Palette,
+    integrity: number,
+    out: Fill[],
+    mounts: readonly (readonly number[])[] = NO_MOUNTS,
+): void {
     out.length = 0;
     const l = spec.length / 2;
     const w = spec.width / 2;
@@ -110,22 +111,25 @@ export function moduleFills(spec: ModuleSpec, colour: string, colours: Palette, 
     };
     const deck = colours.hull;
     if (spec.kind === "engine") {
-        // The block a box like any other module, each bell flaring from its throat
-        // to the exit at -x: the throat is the number the thrust is worked out
-        // from, so what the bell looks like is what it does.
+        // Each bell flaring from its throat to the exit at -x: the throat is the
+        // number the thrust is worked out from, so what the bell looks like is
+        // what it does. A chamber on each, and the pump that feeds them.
         const engine = engineGeometry(spec);
-        const mouth = l - engine.machineryLength;
-        box(mouth, -w, l, w);
-        // A livery's band across the block, as far from the bells as it is wide.
-        if (colours.highlight !== undefined && integrity > 0) {
-            const band = (l - mouth) * ENGINE_BAND_SHARE;
-            box(mouth + band, -w, mouth + 2 * band, w, colours.highlight);
-        }
+        const layout = engineLayout(spec);
+        const mouth = layout.mouth;
         const throat = engine.throatWidth / 2;
         const exit = engine.exitWidth / 2;
-        for (let n = 0; n < engine.nozzles; n++) {
-            const across = nozzleOffset(engine, n);
+        for (const across of layout.centres) {
             out.push({ colour: BELL, points: [mouth, across - throat, mouth, across + throat, -l, across + exit, -l, across - exit] });
+        }
+        for (const across of layout.centres) out.push({ colour, points: layout.chamber.map((v, k) => (k % 2 === 1 ? v + across : v)) });
+        if (layout.pumpAft < l) {
+            box(layout.pumpAft, -w, l, w);
+            // A livery's band round the pump, as far from its aft face as it is wide.
+            if (colours.highlight !== undefined && integrity > 0) {
+                const band = (l - layout.pumpAft) * ENGINE_BAND_SHARE;
+                box(layout.pumpAft + band, -w, layout.pumpAft + 2 * band, w, colours.highlight);
+            }
         }
     } else if (isHullMount(spec.kind)) {
         box(-l, -w, -l + hullMountGeometry(spec).blockLength, w);
@@ -159,12 +163,15 @@ export function moduleFills(spec: ModuleSpec, colour: string, colours: Palette, 
         if (triangle !== null) out.push({ colour, points: [...triangle] });
         else box(-l, -w, l, w);
     }
+    for (const points of mounts) out.push({ colour, points: points as number[] });
 }
+
+const NO_MOUNTS: readonly (readonly number[])[] = [];
 
 /** Engine bells, whatever side they are on. */
 const BELL = "#4a4a4a";
 
-/** How much of an engine's block a livery's band covers. */
+/** How much of an engine's pump a livery's band covers. */
 const ENGINE_BAND_SHARE = 0.25;
 
 /** How far in from a pad's edge its landing square is drawn, as a share of its smaller side. */

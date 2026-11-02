@@ -5,7 +5,9 @@ import {
     engineGeometry,
     isPressureFed,
     moduleStats,
+    PRESSURE_FED_BLOCK,
     PRESSURE_FED_EXHAUST,
+    PRESSURE_FED_MASS,
     type ModuleSpec,
 } from "../sim/modules.js";
 import { DAMAGE_ENERGY_PER_KG, repairWork } from "../sim/damage.js";
@@ -29,7 +31,7 @@ describe("complexity", () => {
     });
 
     it("is the same whatever the size, so it swamps a small part and hardly shows on a big one", () => {
-        const small = moduleStats(engine(0.1, 0.5));
+        const small = moduleStats(engine(0.3, 0.5));
         const big = moduleStats(engine(4, 6));
         expect(small.complexity).toBe(big.complexity);
         expect(buildWork(small) / DAMAGE_ENERGY_PER_KG).toBeGreaterThan(5);
@@ -57,5 +59,21 @@ describe("complexity", () => {
         // Thrust goes by the exit's area alone.
         expect(b.thrust / a.thrust).toBeCloseTo((0.44 / 0.46) ** 2, 1);
         expect(b.exhaustVelocity / a.exhaustVelocity).toBeCloseTo(PRESSURE_FED_EXHAUST, 1);
+    });
+
+    it("is less for a big engine with too short a block for pumps, which is lighter for it", () => {
+        // Wide enough to be pumped by its throat, with a block either side of the cut-off.
+        const pumped = engine(0.4, 2);
+        const fed = engine(0.2, 2);
+        expect(engineGeometry(pumped).machineryLength).toBeGreaterThan(PRESSURE_FED_BLOCK);
+        expect(engineGeometry(fed).machineryLength).toBeLessThan(PRESSURE_FED_BLOCK);
+        expect(isPressureFed(engineGeometry(pumped))).toBe(false);
+        expect(isPressureFed(engineGeometry(fed))).toBe(true);
+        expect(complexityOf(fed)).toBe(1);
+        // Its machinery, sized by the flow, weighs a share of a pumped one's.
+        const a = moduleStats(pumped);
+        const b = moduleStats(fed);
+        const perNewton = (stats: typeof a, thrust: number): number => stats.fittingMass / thrust;
+        expect(perNewton(b, b.thrust) / perNewton(a, a.thrust)).toBeLessThan(PRESSURE_FED_MASS * 1.5);
     });
 });

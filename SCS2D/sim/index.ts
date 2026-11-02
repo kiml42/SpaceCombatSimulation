@@ -115,6 +115,7 @@ export {
     nozzleOffset,
     weldBox,
     engineGeometry,
+    isPressureFed,
     engineExhaustVelocity,
     specificImpulse,
     EXHAUST_VELOCITY,
