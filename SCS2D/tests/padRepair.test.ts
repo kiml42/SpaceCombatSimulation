@@ -4,7 +4,7 @@ import {
     DAMAGE_ENERGY_PER_KG,
     DEFAULT_DOCTRINE,
     joints,
-    PAD_REPAIR_PER_METRE,
+    PAD_REPAIR_PER_AREA,
     REPAIR_WASTE,
     type Blueprint,
     type ShipDesign,
@@ -80,7 +80,7 @@ describe("a pad", () => {
         const metalBefore = hold();
         const discardedBefore = run.ships.discarded;
         // A step in: the core is being mended, the gun not yet touched.
-        expect(capacity(CORE) * 0.5).toBeGreaterThan((PAD_REPAIR_PER_METRE * PAD_WIDTH) / 60);
+        expect(capacity(CORE) * 0.5).toBeGreaterThan((PAD_REPAIR_PER_AREA * PAD_WIDTH * PAD_WIDTH) / 60);
         run.step();
         expect(absorbed(run, CORE)).toBeLessThan(capacity(CORE) * 0.5);
         expect(absorbed(run, GUN)).toBe(capacity(GUN) * 2);
@@ -91,7 +91,7 @@ describe("a pad", () => {
         expect(absorbed(run, GUN)).toBe(0);
         // No quicker than the pad works.
         const damage = capacity(CORE) * 0.5 + capacity(GUN) * 2;
-        expect(steps / 60).toBeGreaterThanOrEqual(damage / (PAD_REPAIR_PER_METRE * PAD_WIDTH) - 0.1);
+        expect(steps / 60).toBeGreaterThanOrEqual(damage / (PAD_REPAIR_PER_AREA * PAD_WIDTH * PAD_WIDTH) - 0.1);
         // The metal they had shed went back into them, and a tenth more was lost.
         expect(metalBefore - hold()).toBeGreaterThanOrEqual(shed * (1 + REPAIR_WASTE) - 1e-6);
         expect(run.ships.discarded - discardedBefore).toBeCloseTo(shed * REPAIR_WASTE, 3);
