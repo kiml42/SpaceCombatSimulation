@@ -42,8 +42,8 @@ const GOLDEN: Record<ScenarioName, string> = {
     kernels: "8d94f835",
     // ships=12 inFlight=6 p.fired=117 p.hits=426 b.fired=0 b.hits=0 contacts=122 severed=1 culled=0 scrap=23.2t · 157.5 µs/step
     asteroidField: "724c4a31",
-    // ships=7 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=134 severed=0 culled=0 scrap=-26.1t · 43.9 µs/step
-    mining: "db287179",
+    // ships=7 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=2 severed=0 culled=0 scrap=-26.3t · 48.7 µs/step
+    mining: "bbe926cb",
     // ships=11 inFlight=0 p.fired=274 p.hits=752 b.fired=0 b.hits=0 contacts=15488 severed=1 culled=1 scrap=76.6t · 1636.5 µs/step
     rivalMines: "7339a105",
     // ships=22 inFlight=46 p.fired=137 p.hits=162 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=2.0t · 962.4 µs/step
