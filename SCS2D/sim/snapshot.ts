@@ -159,6 +159,10 @@ export interface ShipView {
      * drawn as wreckage rather than not drawn.
      */
     integrity: number[];
+    /** Each scar showing, `SCAR_VIEW_STRIDE` numbers apiece (`sim/scars.ts`). Optional, as a view built by hand has none. */
+    scars?: number[];
+    /** Counts changes to `scars`, so a view can tell when to redraw them. */
+    scarsVersion?: number;
     /** Which modules no working core reaches, so they do nothing (`ShipDesign.coveredBy`). Optional, as a view built by hand has none. */
     outOfReach?: boolean[];
     /**
@@ -591,6 +595,8 @@ export function capture(
             const fitted = fitting > 0 ? 1 - ships.damage.unbuiltAt(b, m) / fitting : 1;
             view.integrity[m] = ships.damage.integrity(b, m) * fitted;
         }
+        ships.damage.scars.view(b, (view.scars ??= []));
+        view.scarsVersion = ships.damage.scars.version(b);
         const outOfReach = (view.outOfReach ??= []);
         outOfReach.length = design.modules.length;
         for (let m = 0; m < design.modules.length; m++) outOfReach[m] = view.hasControl && !ships.inReach(i, b, m);

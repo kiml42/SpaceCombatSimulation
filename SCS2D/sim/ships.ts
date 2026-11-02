@@ -9323,6 +9323,7 @@ export class Ships {
             this.scarsOf(b, keep),
             this.weldScarsOf(b, design, chunk, keep),
             keep.map((m) => this.damage.unbuiltAt(b, m)),
+            keep.map((m) => this.damage.scars.carriedAt(b, m)),
         );
         this.fuel.register(
             chunkBody,
@@ -9434,9 +9435,11 @@ export class Ships {
         const metal: number[] = [];
         const charge: number[] = [];
         const unbuilt: number[] = [];
+        const marks: (Float64Array | null)[] = [];
         for (let m = 0; m < design.modules.length; m++) {
             const from = bodyOf(shipOf(m));
             const was = moduleOf(m);
+            marks.push(was < 0 ? null : this.damage.scars.carriedAt(from, was));
             scars.push(was < 0 ? 0 : this.damage.absorbedAt(from, was));
             fuel.push(was < 0 ? 0 : this.fuel.held(from, was));
             metal.push(was < 0 ? 0 : this.metal.held(from, was));
@@ -9525,7 +9528,7 @@ export class Ships {
         this.landed[i] = new Float64Array(landedLength(design));
         this.layouts[i] = null;
         this.layoutVersion[i] = -1;
-        this.damage.register(b, design, scars, weldScars, unbuilt);
+        this.damage.register(b, design, scars, weldScars, unbuilt, marks);
         const leaks = this.leaksInto(design.modules.length, (m) => ({ body: bodyOf(shipOf(m)), module: moduleOf(m) }));
         this.fuel.register(b, design, fuel, leaks);
         this.metal.register(b, design, metal);

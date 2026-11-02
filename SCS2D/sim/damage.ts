@@ -10,6 +10,7 @@ import type { BeamHits, Beams } from "./beams.js";
 import type { Rng } from "./rng.js";
 import { RESTITUTION, type Contacts } from "./collision.js";
 import { cos, exp, max, min, PI, sin, sqrt } from "./math.js";
+import { SCAR_BURN, SCAR_GOUGE, SCAR_PEPPER, SCAR_ROUND, SCAR_SHARE, Scars } from "./scars.js";
 import { COMPLEXITY_WORK, EXPLOSIVE_YIELD, FUEL_DENSITY, FUEL_DRAG_COEFFICIENT, type ModuleSpec, type ModuleStats } from "./modules.js";
 
 /**
@@ -289,6 +290,8 @@ export class Damage {
     /** Shed since the body's mass was last settled, kg, and the bodies with any. */
     private readonly unsettled: number[] = [];
     private readonly unsettledBodies: number[] = [];
+    /** Where the hits that mattered landed, for drawing only: no checksum reads it. */
+    readonly scars = new Scars();
 
     /**
      * Give a body a damage record, sized from its design.
@@ -304,6 +307,7 @@ export class Damage {
         carried?: readonly number[],
         welds?: readonly number[],
         unfitted?: readonly number[],
+        scars?: readonly (Float64Array | null)[],
     ): void {
         const n = design.modules.length;
         const capacity = new Float64Array(n);
@@ -360,6 +364,7 @@ export class Damage {
         this.versions[bodyIndex] = (this.versions[bodyIndex] ?? 0) + 1;
         this.designs[bodyIndex] = design;
         this.commanded[bodyIndex] = null;
+        this.scars.register(bodyIndex, design, scars);
     }
 
     /** Put energy into a module. Energy past what it can take is simply gone. */
@@ -442,6 +447,7 @@ export class Damage {
         if (!(undone > 0)) return 0;
         const kg = this.repairMetal(bodyIndex, module, undone);
         absorbed[module] = a - undone;
+        this.scars.mend(bodyIndex, module, a - undone);
         this.versions[bodyIndex] = (this.versions[bodyIndex] ?? 0) + 1;
         this.shed[bodyIndex] = this.shed[bodyIndex]! - kg;
         this.shedSpin[bodyIndex] = this.shedSpin[bodyIndex]! - kg * this.spin[bodyIndex]![module]!;
@@ -707,6 +713,53 @@ export class Damage {
         this.unbuilt[bodyIndex] = null;
         this.unbuiltTotal[bodyIndex] = 0;
         this.unbuiltSpin[bodyIndex] = 0;
+        this.scars.forget(bodyIndex);
+    }
+
+    /**
+     * Scar a module with a hit it has already absorbed `energy` of, from
+     * `(ax, ay)` to `(bx, by)` along `(dx, dy)`, in the hull's frame.
+     */
+    scar(
+        bodyIndex: number,
+        module: number,
+        kind: number,
+        ax: number,
+        ay: number,
+        bx: number,
+        by: number,
+        dx: number,
+        dy: number,
+        energy: number,
+        through = false,
+    ): void {
+        if (this.protectedBody[bodyIndex] === true || this.kinds[bodyIndex]?.[module] === "kernel") return;
+        const absorbed = this.absorbed[bodyIndex]?.[module];
+        const capacity = this.capacity[bodyIndex]?.[module];
+        if (absorbed === undefined || capacity === undefined) return;
+        this.scars.add(bodyIndex, module, kind, ax, ay, bx, by, dx, dy, energy, absorbed - energy, SCAR_SHARE * capacity, through);
+    }
+
+    /** The same, for a hit at a point and along a direction in the world. */
+    scarInWorld(
+        bodies: Bodies,
+        bodyIndex: number,
+        module: number,
+        kind: number,
+        x: number,
+        y: number,
+        dx: number,
+        dy: number,
+        energy: number,
+    ): void {
+        const angle = bodies.angle[bodyIndex]!;
+        const c = cos(angle);
+        const s = sin(angle);
+        const rx = x - bodies.x[bodyIndex]!;
+        const ry = y - bodies.y[bodyIndex]!;
+        const px = rx * c + ry * s;
+        const py = -rx * s + ry * c;
+        this.scar(bodyIndex, module, kind, px, py, px, py, dx * c + dy * s, -dx * s + dy * c, energy);
     }
 }
 
@@ -765,6 +818,9 @@ export function resolveCollision(
     nx: number,
     ny: number,
     energy: number,
+    /** The other hull's velocity across this one at the contact, world frame: the way a gouge runs. */
+    slideX = 0,
+    slideY = 0,
 ): number {
     if (!(energy > 0)) return 0;
 
@@ -778,6 +834,16 @@ export function resolveCollision(
     const py = -rx * s + ry * c;
     const ux = nx * c + ny * s;
     const uy = -nx * s + ny * c;
+    let gx = slideX * c + slideY * s;
+    let gy = -slideX * s + slideY * c;
+    const slide = sqrt(gx * gx + gy * gy);
+    if (slide > 0) {
+        gx /= slide;
+        gy /= slide;
+    } else {
+        gx = -uy;
+        gy = ux;
+    }
 
     // From outside the hull, through the contact, and out the far side, so that
     // a module is entered by a face rather than from nowhere.
@@ -795,6 +861,9 @@ export function resolveCollision(
         if (!(capacity > 0)) continue;
         const take = min(capacity, left);
         damage.absorb(bodyIndex, module, take);
+        // Where the crush reached it: the contact, or its face if deeper in.
+        const at = max(path.entry[k]!, reach) - reach;
+        damage.scar(bodyIndex, module, SCAR_GOUGE, px + ux * at, py + uy * at, px + ux * at, py + uy * at, gx, gy, take);
         left -= take;
         spent += take;
     }
@@ -916,6 +985,8 @@ function walkRound(
     bodyLayers = OWN_LAYERS,
     fuel?: HullDesigns,
     rng?: Rng,
+    /** What scar it leaves (`SCAR_ROUND` or `SCAR_PEPPER`), or 0 for none: a walk only asked about leaves none. */
+    scarKind = 0,
 ): RoundOutcome {
     out.outcome = Terminal.Perforate;
     out.skidded = false;
@@ -971,6 +1042,23 @@ function walkRound(
             const hit = strike(mass, calibre, carried, design.modules[module]!.stats.wallThickness, incidence);
 
             damage.absorb(bodyIndex, module, hit.energy);
+            if (scarKind !== 0) {
+                const through = hit.outcome === Terminal.Perforate;
+                const end = through ? path.exit[k]! - reach : at;
+                damage.scar(
+                    bodyIndex,
+                    module,
+                    scarKind,
+                    ox + ux * at,
+                    oy + uy * at,
+                    ox + ux * end,
+                    oy + uy * end,
+                    ux,
+                    uy,
+                    hit.energy,
+                    through,
+                );
+            }
             // A round that goes on from one module into the next has gone *through*
             // the weld between them, and taken its own width out of it. Enough
             // rounds along the same seam cut the piece free — a gun shearing a wing
@@ -1484,6 +1572,7 @@ export class Impacts {
             this.designs?.layersOf?.(body) ?? OWN_LAYERS,
             this.designs,
             this.rng,
+            projectiles.fragment[round] === 1 ? SCAR_PEPPER : SCAR_ROUND,
         );
 
         const angle = bodies.angle[body]!;
@@ -1560,6 +1649,14 @@ export class Impacts {
         for (let i = 0; i < hits.count; i++) {
             const energy = beams.power[hits.beam[i]!]! * hits.share[i]! * BEAM_ABSORBED_SHARE * dt;
             damage.absorb(hits.body[i]!, hits.module[i]!, energy);
+            if (bodies !== undefined) {
+                const beam = hits.beam[i]!;
+                const dx = hits.x[i]! - beams.startX[beam]!;
+                const dy = hits.y[i]! - beams.startY[beam]!;
+                const d = sqrt(dx * dx + dy * dy);
+                if (d > 0)
+                    damage.scarInWorld(bodies, hits.body[i]!, hits.module[i]!, SCAR_BURN, hits.x[i]!, hits.y[i]!, dx / d, dy / d, energy);
+            }
             this.log.push(hits.x[i]!, hits.y[i]!, energy, IMPACT_BEAM, bodies, hits.body[i]!);
             credit?.push(beams.owner[hits.beam[i]!]!, hits.body[i]!, energy, hits.module[i]!);
             if (bodies !== undefined && designs !== undefined) {
@@ -1631,8 +1728,18 @@ export class Impacts {
             const b = contacts.b[k]!;
             const ma = contacts.moduleA[k]!;
             const mb = contacts.moduleB[k]!;
-            if (this.crush(designs, damage, bodies, a, x, y, -nx, -ny, half)) credit?.push(b, a, half, ma, mb);
-            if (this.crush(designs, damage, bodies, b, x, y, nx, ny, half)) credit?.push(a, b, half, mb, ma);
+            // How `b` is sliding across `a` at the contact, less its closing.
+            const ax = x - bodies.x[a]!;
+            const ay = y - bodies.y[a]!;
+            const bx = x - bodies.x[b]!;
+            const by = y - bodies.y[b]!;
+            let sx = bodies.vx[b]! - bodies.angularVel[b]! * by - (bodies.vx[a]! - bodies.angularVel[a]! * ay);
+            let sy = bodies.vy[b]! + bodies.angularVel[b]! * bx - (bodies.vy[a]! + bodies.angularVel[a]! * ax);
+            const closing = sx * nx + sy * ny;
+            sx -= closing * nx;
+            sy -= closing * ny;
+            if (this.crush(designs, damage, bodies, a, x, y, -nx, -ny, half, sx, sy)) credit?.push(b, a, half, ma, mb);
+            if (this.crush(designs, damage, bodies, b, x, y, nx, ny, half, -sx, -sy)) credit?.push(a, b, half, mb, ma);
             this.log.push(x, y, energy, IMPACT_COLLISION, bodies, contacts.a[k]!);
         }
     }
@@ -1647,10 +1754,12 @@ export class Impacts {
         nx: number,
         ny: number,
         energy: number,
+        slideX: number,
+        slideY: number,
     ): boolean {
         const design = designs.designOf(body);
         if (design === null) return false;
-        resolveCollision(design, damage, bodies, body, this.path, x, y, nx, ny, energy);
+        resolveCollision(design, damage, bodies, body, this.path, x, y, nx, ny, energy, slideX, slideY);
         return true;
     }
 
