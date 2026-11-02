@@ -47,6 +47,29 @@ describe("rival mines", () => {
         expect(moored).toEqual([true, true]);
     }, 300_000);
 
+    it("never leaves a fighter trying to land for minutes on end close by its carrier", () => {
+        const run = rivalMines();
+        const ships = run.ships;
+        const pads = (run.ships as unknown as { landingPad: number[] }).landingPad;
+        const since = new Map<number, number>();
+        let longest = 0;
+        const b = run.world.bodies;
+        const near = (p: number, q: number) => Math.hypot(b.x[p]! - b.x[q]!, b.y[p]! - b.y[q]!) < 60;
+        for (let t = 0; t < 480 * 60; t++) {
+            run.step();
+            for (let i = 0; i < ships.count; i++) {
+                const landing = ships.isAlive(i) && ships.hasControl(i) && ships.parkedCarrier(i) < 0 && pads[i]! >= 0;
+                const at = (s: number) => b.indexOf(ships.body(s));
+                const trying = landing && run.miners.some((m) => ships.body(m) !== ships.body(i) && near(at(m), at(i)));
+                if (!trying) since.delete(i);
+                else if (!since.has(i)) since.set(i, t);
+                else longest = Math.max(longest, t - since.get(i)!);
+            }
+        }
+        // One was held there from about 200 s to the end, beside its pad over the hull, then overshooting it.
+        expect(longest / 60).toBeLessThan(90);
+    }, 300_000);
+
     it("lands its fighters to refill while a copy is on its slipway, rather than shying from it", () => {
         const run = rivalMines();
         const back = new Set<number>();
