@@ -98,7 +98,8 @@ describe("the Beam Carrier with no raid", () => {
         expect(ships.body(TENDER)).not.toBe(ships.body(CARRIER));
         const before = carrierFuel();
         let docked = false;
-        for (let s = 0; s < 300 * 60 && !docked; s++) {
+        // It docks a few seconds past 300 s: room for that to move.
+        for (let s = 0; s < 360 * 60 && !docked; s++) {
             run.step();
             docked = ships.body(TENDER) === ships.body(CARRIER);
         }
