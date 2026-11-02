@@ -30,8 +30,6 @@ export const PORT_COLLAR_SHARE = 0.3;
 /** A port's collar's width as a share of its block's. */
 export const PORT_COLLAR_WIDTH = 0.7;
 
-/** A module that has taken everything it can: still there, no longer anything. */
-export const WRECKAGE = "#3c4048";
 /** An asteroid's kernel: darker than any rock, so what will be left once the rock is mined is plain. */
 const KERNEL = "#3a3530";
 
@@ -68,12 +66,12 @@ export interface Fill {
 /**
  * The colour a module is filled with, before what its kind fills in a colour
  * of its own: a core in the darkest of the team's colours, since shooting it
- * out is what leaves a hulk; wreckage grey; rock by what it holds.
+ * out is what leaves a hulk; rock by what it holds. A destroyed module keeps
+ * its colours, sooted over (`render/wear.ts`).
  */
-export function fillColour(spec: ModuleSpec, integrity: number, colours: Palette): string {
+export function fillColour(spec: ModuleSpec, colours: Palette): string {
     if (spec.kind === "kernel") return KERNEL;
     if (spec.kind === "rock") return rockColour(spec.ore ?? 0, spec.ice ?? 0);
-    if (integrity <= 0) return WRECKAGE;
     // Structure is drawn in the hull's colour, thick or thin: its bevels and its
     // shadow say which it is.
     if (spec.kind === "structure" || spec.kind === "tank" || spec.kind === "hold" || spec.kind === "battery") return colours.hull;
@@ -83,11 +81,9 @@ export function fillColour(spec: ModuleSpec, integrity: number, colours: Palette
     return colours.trim;
 }
 
-/** How strongly module `i` of a ship is filled: fainter as it is worn, and fainter still out of its cores' reach. */
+/** How strongly module `i` of a ship is filled: faint out of its cores' reach. */
 export function fillAlpha(ship: ShipView, i: number): number {
-    const integrity = ship.integrity?.[i] ?? 1;
-    if (integrity <= 0) return 1;
-    return (0.45 + 0.55 * integrity) * (ship.outOfReach?.[i] === true ? OUT_OF_REACH_ALPHA : 1);
+    return ship.outOfReach?.[i] === true ? OUT_OF_REACH_ALPHA : 1;
 }
 
 /**
@@ -102,7 +98,7 @@ export function moduleFills(spec: ModuleSpec, colour: string, colours: Palette, 
     const box = (x0: number, y0: number, x1: number, y1: number, fill = colour): void => {
         out.push({ colour: fill, points: [x0, y0, x1, y0, x1, y1, x0, y1] });
     };
-    const deck = integrity <= 0 ? WRECKAGE : colours.hull;
+    const deck = colours.hull;
     if (spec.kind === "engine") {
         // The block a box like any other module, each bell flaring from its throat
         // to the exit at -x: the throat is the number the thrust is worked out
@@ -135,7 +131,7 @@ export function moduleFills(spec: ModuleSpec, colour: string, colours: Palette, 
         // between rails along its sides and the feed block aft.
         const rail = spec.width * SLIPWAY_RAIL_SHARE;
         const feed = spec.length * SLIPWAY_FEED_SHARE;
-        const trim = integrity <= 0 ? WRECKAGE : colours.trim;
+        const trim = colours.trim;
         box(-l, -w, l, w, deck);
         box(-l, -w, -l + feed, w, trim);
         box(-l, -w, l, -w + rail, trim);

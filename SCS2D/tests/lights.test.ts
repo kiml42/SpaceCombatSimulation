@@ -3,14 +3,11 @@ import { LIGHTS, roundLight } from "../scenarios/lights.js";
 import { SCENES } from "../scenarios/scenes.js";
 import type { Light } from "../render/light.js";
 
-const channels = (colour: string): number[] => [1, 3, 5].map((i) => parseInt(colour.slice(i, i + 2), 16));
-
-/** Pale enough that a side's colours still read under it. */
-const pale = (light: Light): void => {
+/** Drawable: how dark or tinted is left to taste, down to black shadows. */
+const valid = (light: Light): void => {
     expect(light.colour).toMatch(/^#[0-9a-f]{6}$/);
-    for (const c of channels(light.colour)) expect(c).toBeGreaterThanOrEqual(0xa0);
-    expect(light.ambient).toBeGreaterThan(0.3);
-    expect(light.ambient).toBeLessThan(0.75);
+    expect(light.ambient).toBeGreaterThanOrEqual(0);
+    expect(light.ambient).toBeLessThanOrEqual(1);
 };
 
 describe("battle lights", () => {
@@ -18,20 +15,22 @@ describe("battle lights", () => {
         const seen = SCENES.map((scene) => scene.create().light);
         for (const light of seen) {
             expect(light).toBeDefined();
-            pale(light!);
+            valid(light!);
         }
         expect(new Set(seen).size).toBe(Object.keys(LIGHTS).length);
     });
 
-    it("draws a skirmish round's light from its seed: the same each time, pale, and different round to round", () => {
+    it("draws a skirmish round's light from its seed: the same each time, and different round to round", () => {
         expect(roundLight(1234)).toEqual(roundLight(1234));
         const drawn = Array.from({ length: 64 }, (_, seed) => roundLight(seed));
         for (const light of drawn) {
-            pale(light);
+            valid(light);
             expect(light.from).toBeGreaterThanOrEqual(0);
             expect(light.from).toBeLessThan(2 * Math.PI);
         }
         expect(new Set(drawn.map((light) => light.colour)).size).toBeGreaterThan(32);
+        // More often dark than soft.
+        expect(drawn.filter((light) => light.ambient < 0.3).length).toBeGreaterThan(drawn.length / 2);
         // From every quarter.
         expect(new Set(drawn.map((light) => Math.floor(light.from / (Math.PI / 2)))).size).toBe(4);
     });
