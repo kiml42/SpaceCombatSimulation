@@ -1,5 +1,4 @@
 import {
-    engineGeometry,
     hullMountGeometry,
     insideOutline,
     isDomed,
@@ -9,6 +8,7 @@ import {
     type ModuleSpec,
     type ShipDesign,
 } from "../sim/index.js";
+import { engineLayout } from "./engineLayout.js";
 
 /**
  * Which edges of a design's modules are bevelled: those on its outline, where
@@ -61,7 +61,8 @@ const built = new WeakMap<ShipDesign, Bevels[]>();
 export function bevelsOf(design: ShipDesign, m: number): Bevels {
     let all = built.get(design);
     if (all === undefined) {
-        const edges = design.modules.map((_, i) => bevelled(design, i));
+        const shapes = design.modules.map((other, k) => [bevelOutline(other.spec), ...mountsOf(design, k).polygons]);
+        const edges = design.modules.map((_, i) => bevelled(design, i, shapes));
         mitre(design, edges);
         all = edges;
         built.set(design, all);
@@ -87,15 +88,16 @@ export function isBevelled(spec: ModuleSpec): boolean {
 
 /**
  * The outline that is bevelled, anticlockwise in the module's frame: its box
- * or its corners, or only the block of an engine or a hull mount, whose bells
- * and outlets are their own shapes.
+ * or its corners, or only the pump of an engine or the block of a hull mount,
+ * whose chambers, bells and outlets are their own shapes.
  */
 export function bevelOutline(spec: ModuleSpec): number[] {
     const l = spec.length / 2;
     const w = spec.width / 2;
     if (spec.kind === "engine") {
-        const mouth = l - engineGeometry(spec).machineryLength;
-        return [mouth, -w, l, -w, l, w, mouth, w];
+        // Its pump; its chambers and bells are round.
+        const aft = engineLayout(spec).pumpAft;
+        return aft < l ? [aft, -w, l, -w, l, w, aft, w] : [];
     }
     if (isHullMount(spec.kind)) {
         const block = -l + hullMountGeometry(spec).blockLength;
@@ -111,18 +113,13 @@ function height(design: ShipDesign, m: number): number {
     return module.weaponsLayer && !isDomed(module.spec.kind) ? 1 : 0;
 }
 
-function bevelled(design: ShipDesign, m: number): number[] {
+/** Whether something as high as module `m` of `design` stands at a point in `m`'s frame, among each module's `shapes`. */
+function coverTest(design: ShipDesign, m: number, shapes: readonly (readonly (readonly number[])[])[]): (x: number, y: number) => boolean {
     const module = design.modules[m]!;
-    if (!isBevelled(module.spec)) return [];
-    const outline = bevelOutline(module.spec);
-    const others = design.modules.map((other) => bevelOutline(other.spec));
     const mine = height(design, m);
     const c = Math.cos(module.angle);
     const s = Math.sin(module.angle);
-    const out: number[] = [];
-    const gap = Math.max(OUTSIDE_M, BEVEL_OF_RADIUS * design.radius);
-    /** Whether something as high stands just outside this module at `x`, `y` in its frame. */
-    const covered = (x: number, y: number): boolean => {
+    return (x, y) => {
         const dx = module.x + x * c - y * s;
         const dy = module.y + x * s + y * c;
         for (let k = 0; k < design.modules.length; k++) {
@@ -132,11 +129,51 @@ function bevelled(design: ShipDesign, m: number): number[] {
             const os = Math.sin(other.angle);
             const rx = dx - other.x;
             const ry = dy - other.y;
-            const corners = others[k]!;
-            if (insideOutline(corners, corners.length / 2, rx * oc + ry * os, -rx * os + ry * oc)) return true;
+            const ox = rx * oc + ry * os;
+            const oy = -rx * os + ry * oc;
+            for (const corners of shapes[k]!) if (corners.length > 0 && insideOutline(corners, corners.length / 2, ox, oy)) return true;
         }
         return false;
     };
+}
+
+/**
+ * Where along an edge `span` long `at(t)` holds, t from 0 to 1, as `from, to`
+ * pairs: asked in equal stretches, each by its middle, and where it turns
+ * found between them.
+ */
+function runs(span: number, at: (t: number) => boolean): number[] {
+    const out: number[] = [];
+    const stretches = Math.max(2, Math.ceil(span / SAMPLE_M));
+    const turn = (t0: number, t1: number): number => {
+        const was = at(t0);
+        for (let n = 0; n < 16; n++) {
+            const mid = (t0 + t1) / 2;
+            if (at(mid) === was) t0 = mid;
+            else t1 = mid;
+        }
+        return (t0 + t1) / 2;
+    };
+    let from = -1;
+    for (let k = 0; k <= stretches; k++) {
+        const t = (k + 0.5) / stretches;
+        const holds = k < stretches && at(t);
+        if (holds && from < 0) from = k === 0 ? 0 : turn(t - 1 / stretches, t);
+        if (!holds && from >= 0) {
+            out.push(from, k === stretches ? 1 : turn(t - 1 / stretches, t));
+            from = -1;
+        }
+    }
+    return out;
+}
+
+function bevelled(design: ShipDesign, m: number, shapes: readonly (readonly (readonly number[])[])[]): number[] {
+    const module = design.modules[m]!;
+    if (!isBevelled(module.spec)) return [];
+    const outline = bevelOutline(module.spec);
+    const out: number[] = [];
+    const gap = Math.max(OUTSIDE_M, BEVEL_OF_RADIUS * design.radius);
+    const covered = coverTest(design, m, shapes);
     for (let i = 0; i < outline.length; i += 2) {
         const j = (i + 2) % outline.length;
         const ax = outline[i]!;
@@ -151,37 +188,110 @@ function bevelled(design: ShipDesign, m: number): number[] {
         // How far in the module reaches from this edge: to its furthest corner.
         let reach = 0;
         for (let v = 0; v < outline.length; v += 2) reach = Math.max(reach, (ax - outline[v]!) * nx + (ay - outline[v + 1]!) * ny);
-        // The edge in equal stretches, each open or not by what is beside its middle.
-        const stretches = Math.max(2, Math.ceil(span / SAMPLE_M));
         // Shut where something stands within a bevel's width, so a crack between plates is a seam.
-        const openAt = (t: number): boolean =>
-            !covered(ax + ex * t + nx * OUTSIDE_M, ay + ey * t + ny * OUTSIDE_M) &&
-            !covered(ax + ex * t + nx * gap, ay + ey * t + ny * gap);
-        /** Where between `t0` and `t1`, one open and one not, it turns. */
-        const turn = (t0: number, t1: number): number => {
-            const was = openAt(t0);
-            for (let n = 0; n < 16; n++) {
-                const mid = (t0 + t1) / 2;
-                if (openAt(mid) === was) t0 = mid;
-                else t1 = mid;
-            }
-            return (t0 + t1) / 2;
-        };
-        let from = -1;
-        for (let k = 0; k <= stretches; k++) {
-            const t = (k + 0.5) / stretches;
-            const open = k < stretches && openAt(t);
-            if (open && from < 0) from = k === 0 ? 0 : turn(t - 1 / stretches, t);
-            if (!open && from >= 0) {
-                const to = k === stretches ? 1 : turn(t - 1 / stretches, t);
-                // No deeper than a share of how far the module reaches in, nor than the face is long.
-                const most = Math.min(BEVEL_MOST * reach, (to - from) * span);
-                out.push(ax + ex * from, ay + ey * from, ax + ex * to, ay + ey * to, nx, ny, most, 0, 0, 0, 0, 0, 0);
-                from = -1;
-            }
+        const open = runs(
+            span,
+            (t) =>
+                !covered(ax + ex * t + nx * OUTSIDE_M, ay + ey * t + ny * OUTSIDE_M) &&
+                !covered(ax + ex * t + nx * gap, ay + ey * t + ny * gap),
+        );
+        for (let r = 0; r < open.length; r += 2) {
+            const from = open[r]!;
+            const to = open[r + 1]!;
+            // No deeper than a share of how far the module reaches in, nor than the face is long.
+            const most = Math.min(BEVEL_MOST * reach, (to - from) * span);
+            out.push(ax + ex * from, ay + ey * from, ax + ex * to, ay + ey * to, nx, ny, most, 0, 0, 0, 0, 0, 0);
         }
     }
     return out;
+}
+
+/**
+ * What holds an engine's chambers to whatever it is built against: a plate
+ * along each stretch of its block's faces with something beside it, and a web
+ * from that plate to the nearest chamber. Where nothing touches it the chambers
+ * stand clear, so the module is drawn as the pieces it is made of.
+ */
+export interface Mounts {
+    /** Polygons in the module's frame, filled in its colour. */
+    readonly polygons: readonly (readonly number[])[];
+    /** The polygons as a string, for a cache key: empty where there are none. */
+    readonly key: string;
+}
+
+const NO_MOUNTS: Mounts = { polygons: [], key: "" };
+
+/** A plate's depth, and a web's half-width, in chamber radii. */
+const PLATE_OF_RADIUS = 0.3;
+const WEB_OF_RADIUS = 0.45;
+
+const mounted = new WeakMap<ShipDesign, Mounts[]>();
+
+/** Module `m` of `design`'s mounts, as built: pass a module's compiled design (`originOf`). */
+export function mountsOf(design: ShipDesign, m: number): Mounts {
+    let all = mounted.get(design);
+    if (all === undefined) {
+        const shapes = design.modules.map((other) => [bevelOutline(other.spec)]);
+        all = design.modules.map((module, i) => (module.spec.kind === "engine" ? engineMounts(design, i, shapes) : NO_MOUNTS));
+        mounted.set(design, all);
+    }
+    return all[m] ?? NO_MOUNTS;
+}
+
+/** The mounts module `m` of `design` is drawn with, as `drawnBevels` picks its bevels. */
+export function drawnMounts(design: ShipDesign, m: number): Mounts {
+    if (design.modules[m]?.shell !== undefined) return mountsOf(design, m);
+    const origin = originOf(design, m);
+    return mountsOf(origin.design, origin.module);
+}
+
+function engineMounts(design: ShipDesign, m: number, shapes: readonly (readonly (readonly number[])[])[]): Mounts {
+    const layout = engineLayout(design.modules[m]!.spec);
+    const { radius, halfWidth: w, front: l, centres } = layout;
+    if (!(radius > 0) || centres.length === 0) return NO_MOUNTS;
+    const covered = coverTest(design, m, shapes);
+    const gap = Math.max(OUTSIDE_M, BEVEL_OF_RADIUS * design.radius);
+    const touching = (x: number, y: number, nx: number, ny: number): boolean =>
+        covered(x + nx * OUTSIDE_M, y + ny * OUTSIDE_M) || covered(x + nx * gap, y + ny * gap);
+    const plate = radius * PLATE_OF_RADIUS;
+    const web = radius * WEB_OF_RADIUS;
+    const polygons: number[][] = [];
+    const rect = (x0: number, y0: number, x1: number, y1: number): void => {
+        const [a, b] = x0 < x1 ? [x0, x1] : [x1, x0];
+        const [c, d] = y0 < y1 ? [y0, y1] : [y1, y0];
+        polygons.push([a, c, b, c, b, d, a, d]);
+    };
+    // The forward face, where there is no pump flush with it.
+    if (layout.pumpAft >= l) {
+        const along = runs(2 * w, (t) => touching(l, -w + 2 * w * t, 1, 0));
+        for (let r = 0; r < along.length; r += 2) {
+            const a = -w + 2 * w * along[r]!;
+            const b = -w + 2 * w * along[r + 1]!;
+            rect(l - plate, a, l, b);
+            for (const y of centres) if (y >= a && y <= b) rect(layout.fore - radius, y - web, l, y + web);
+        }
+    }
+    // Each side, beside the chambers.
+    const x0 = layout.mouth;
+    const span = layout.pumpAft - x0;
+    if (span > 0) {
+        for (const side of [-1, 1]) {
+            const edge = side * w;
+            const chamber = side < 0 ? centres[0]! : centres[centres.length - 1]!;
+            const along = runs(span, (t) => touching(x0 + span * t, edge, 0, side));
+            for (let r = 0; r < along.length; r += 2) {
+                const a = x0 + span * along[r]!;
+                const b = x0 + span * along[r + 1]!;
+                rect(a, edge - side * plate, b, edge);
+                // Across to the chamber, over its straight run.
+                const from = Math.max(a, layout.aft + radius - web);
+                const to = Math.min(b, layout.fore - radius + web);
+                if (to > from) rect(from, chamber, to, edge);
+            }
+        }
+    }
+    if (polygons.length === 0) return NO_MOUNTS;
+    return { polygons, key: polygons.map((p) => p.map((v) => v.toFixed(4)).join(",")).join(";") };
 }
 
 /**

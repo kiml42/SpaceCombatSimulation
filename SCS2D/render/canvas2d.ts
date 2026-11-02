@@ -50,11 +50,13 @@ import {
     BEVEL_STRIDE,
     bevelQuad,
     bevelsOf,
+    drawnMounts,
     isBevelled,
     MIN_BEVEL_LIT,
     MIN_BEVEL_PX,
 } from "./bevels.js";
 import { cylinderShade, domeShade, lightSlope } from "./shading.js";
+import { engineLayout } from "./engineLayout.js";
 import { gridStep, type Camera } from "./camera.js";
 import {
     fillAlpha,
@@ -881,7 +883,7 @@ function drawHull(
         const halfWidth = spec.width / 2;
         // Unless Pixi underneath has filled it already (render/pixiView.ts).
         if (!filled) keptFill(ctx, ship, i);
-        if (spec.kind === "engine" && light !== undefined) shadeBells(ctx, spec, ship.angle + m.angle, light);
+        if (spec.kind === "engine" && light !== undefined) shadeEngine(ctx, spec, ship.angle + m.angle, light);
         if (spec.kind === "port" && light !== undefined) shadePort(ctx, spec, ship.angle + m.angle, light);
         if (spec.kind === "pad") {
             // Its landing square is drawn with its fill (`fillModule`).
@@ -1461,19 +1463,44 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
     });
 }
 
-/** An engine's bells shaded as rounded, in its module's frame, the module turned `angle` in the world. */
-function shadeBells(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: number, light: Light): void {
+/** An engine's bells, chambers and pump shaded as rounded, in its module's frame, the module turned `angle` in the world. */
+function shadeEngine(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: number, light: Light): void {
     const engine = engineGeometry(spec);
+    const layout = engineLayout(spec);
     const l = spec.length / 2;
-    const mouth = l - engine.machineryLength;
-    const exit = engine.exitWidth / 2;
-    if (!(exit > 0) || !(mouth + l > 0)) return;
     const { across, up } = lightSlope(light);
-    // The light across the bell, toward its +y side.
-    const image = cylinderShade(across * sin(light.from - angle), up, engine.throatWidth / engine.exitWidth);
-    if (image === null) return;
-    for (let n = 0; n < engine.nozzles; n++) {
-        ctx.drawImage(image, -l, nozzleOffset(engine, n) - exit, mouth + l, 2 * exit);
+    // The light across a part lying along x, toward its +y side.
+    const side = across * sin(light.from - angle);
+    const exit = engine.exitWidth / 2;
+    const mouth = layout.mouth;
+    const bell = exit > 0 && mouth + l > 0 ? cylinderShade(side, up, engine.throatWidth / engine.exitWidth) : null;
+    const r = layout.radius;
+    const straight = layout.fore - layout.aft - 2 * r;
+    const tube = r > 0 && straight > 0 ? cylinderShade(side, up) : null;
+    const dome = r > 0 ? domeShade(across, up) : null;
+    for (const y of layout.centres) {
+        if (bell !== null) ctx.drawImage(bell, -l, y - exit, mouth + l, 2 * exit);
+        if (dome !== null) {
+            // A sphere, or a capsule's two ends with a tube between them.
+            for (const x of straight > 0 ? [layout.aft + r, layout.fore - r] : [layout.aft + r]) {
+                ctx.save();
+                // Each end of a capsule alone, and none of it under the pump.
+                const from = straight > 0 && x > layout.aft + r ? x : x - r;
+                const to = Math.min(straight > 0 && x === layout.aft + r ? x : x + r, layout.pumpAft);
+                ctx.beginPath();
+                ctx.rect(from, y - r, to - from, 2 * r);
+                ctx.clip();
+                ctx.translate(x, y);
+                ctx.rotate(light.from - angle);
+                ctx.drawImage(dome, -r, -r, 2 * r, 2 * r);
+                ctx.restore();
+            }
+        }
+        if (tube !== null) ctx.drawImage(tube, layout.aft + r, y - r, straight, 2 * r);
+    }
+    if (layout.pumpAft < l) {
+        const pump = cylinderShade(side, up);
+        if (pump !== null) ctx.drawImage(pump, layout.pumpAft, -layout.halfWidth, l - layout.pumpAft, 2 * layout.halfWidth);
     }
 }
 
@@ -1532,8 +1559,10 @@ function keptFill(ctx: CanvasRenderingContext2D, ship: ShipView, i: number): voi
     const colours = moduleColours(design, i, side);
     const integrity = ship.integrity?.[i] ?? 1;
     const colour = fillColour(m.spec, colours);
-    keep(ctx, `fill ${idOf(m.spec)} ${idOf(colours)} ${colour} ${integrity} ${patternKey(design, i, side)}`, () =>
-        fillModule(ctx, ship, i),
+    keep(
+        ctx,
+        `fill ${idOf(m.spec)} ${idOf(colours)} ${colour} ${integrity} ${patternKey(design, i, side)} ${drawnMounts(design, i).key}`,
+        () => fillModule(ctx, ship, i),
     );
 }
 
@@ -1548,7 +1577,7 @@ function fillModule(ctx: CanvasRenderingContext2D, ship: ShipView, i: number): v
     const side = paintedSide(ship, i);
     const colours = moduleColours(design, i, side);
     const integrity = ship.integrity?.[i] ?? 1;
-    moduleFills(spec, fillColour(spec, colours), colours, integrity, fills);
+    moduleFills(spec, fillColour(spec, colours), colours, integrity, fills, drawnMounts(design, i).polygons);
     const pattern = patternOf(ctx, design, i, side);
     const ground = spec.kind === "rock" || spec.kind === "kernel";
     const burnt = !ground && integrity <= 0;

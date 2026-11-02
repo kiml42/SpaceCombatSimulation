@@ -1,7 +1,20 @@
 import { AlphaFilter, Container, Graphics, GraphicsContext, Matrix, Texture } from "pixi.js";
 import { domeRadius, isDomed, originOf, type Livery, type ModuleSpec, type ShipDesign, type Snapshot } from "../sim/index.js";
 import { patternColour, patternTile, patternTransform, tileKey } from "./livery.js";
-import { BEVEL_DARK, BEVEL_LIGHT, BEVEL_OF_RADIUS, BEVEL_STRIDE, bevelQuad, drawnBevels, MIN_BEVEL_LIT, MIN_BEVEL_PX } from "./bevels.js";
+import {
+    BEVEL_DARK,
+    BEVEL_LIGHT,
+    BEVEL_OF_RADIUS,
+    BEVEL_STRIDE,
+    bevelQuad,
+    drawnBevels,
+    drawnMounts,
+    MIN_BEVEL_LIT,
+    MIN_BEVEL_PX,
+    mountsOf,
+    type Mounts,
+} from "./bevels.js";
+import { engineLayout } from "./engineLayout.js";
 import { lightSlope } from "./shading.js";
 import type { Camera } from "./camera.js";
 import {
@@ -433,15 +446,15 @@ function contextFor(design: ShipDesign, i: number, side: number, integrity: numb
     const burnt = !ground && integrity <= 0;
     if (level > 0 || burnt) return wornContext(design, i, side, integrity, livery, level, burnt);
     if (livery !== undefined && livery.pattern !== "none") return patternedContext(design, i, side, integrity, livery);
-    return plainContext(spec, side, integrity);
+    return plainContext(spec, side, integrity, drawnMounts(design, i));
 }
 
 /** Module fills for `spec` on side `side`, in its colours alone. */
-function plainContext(spec: ModuleSpec, side: number, integrity: number): GraphicsContext {
+function plainContext(spec: ModuleSpec, side: number, integrity: number, mounts: Mounts): GraphicsContext {
     const colours = shipColours(side);
     const colour = fillColour(spec, colours);
     // What else moduleFills reads: the side's palette, and whether it is destroyed.
-    const key = `${colour}|${colours.hull}${colours.trim}${colours.pivot}|${integrity <= 0}`;
+    const key = `${colour}|${colours.hull}${colours.trim}${colours.pivot}|${integrity <= 0}|${mounts.key}`;
     let bySpec = contexts.get(spec);
     if (bySpec === undefined) {
         bySpec = new Map();
@@ -450,7 +463,7 @@ function plainContext(spec: ModuleSpec, side: number, integrity: number): Graphi
     let context = bySpec.get(key);
     if (context === undefined) {
         context = new GraphicsContext();
-        moduleFills(spec, colour, colours, integrity, fills);
+        moduleFills(spec, colour, colours, integrity, fills, mounts.polygons);
         for (const fill of fills) context.poly(fill.points).fill(fill.colour);
         markPad(context, spec, colours);
         bySpec.set(key, context);
@@ -488,7 +501,7 @@ function patternedContext(design: ShipDesign, i: number, side: number, integrity
     let context = byDesign.get(key);
     if (context === undefined) {
         context = new GraphicsContext();
-        moduleFills(m.spec, colour, colours, integrity, fills);
+        moduleFills(m.spec, colour, colours, integrity, fills, mountsOf(origin.design, origin.module).polygons);
         const t = patternTransform(livery, design, i);
         const matrix = new Matrix(t.a, t.b, t.c, t.d, t.e, t.f);
         for (const fill of fills) {
@@ -593,7 +606,7 @@ function wornContext(
     let context = byDesign.get(key);
     if (context === undefined) {
         context = new GraphicsContext();
-        moduleFills(m.spec, colour, colours, integrity, fills);
+        moduleFills(m.spec, colour, colours, integrity, fills, mountsOf(origin.design, origin.module).polygons);
         const t = pattern === undefined ? null : patternTransform(pattern, design, i);
         const matrix = t === null ? null : new Matrix(t.a, t.b, t.c, t.d, t.e, t.f);
         for (const fill of fills) {
@@ -680,8 +693,10 @@ function boundsOf(spec: ModuleSpec): Bounds {
         let y0 = Infinity;
         let x1 = -Infinity;
         let y1 = -Infinity;
-        const all = shapesOf(spec);
-        for (const points of spec.kind === "engine" ? all.slice(0, 1) : all) {
+        // An engine's block, whatever of it is drawn.
+        const layout = spec.kind === "engine" ? engineLayout(spec) : null;
+        const all = layout === null ? shapesOf(spec) : [[layout.mouth, -layout.halfWidth, layout.front, layout.halfWidth]];
+        for (const points of all) {
             for (let v = 0; v < points.length; v += 2) {
                 x0 = Math.min(x0, points[v]!);
                 x1 = Math.max(x1, points[v]!);
