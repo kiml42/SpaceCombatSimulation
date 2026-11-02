@@ -3882,6 +3882,12 @@ export class Ships {
                 this.failSafe(i);
                 continue;
             }
+            // Nor does a ship with nothing left to push or shoot with fly or aim:
+            // it shuts down until it is mended or restocked.
+            if (this.inert(bodies, i)) {
+                this.shutDown(i);
+                continue;
+            }
             this.removeInvalidOrders(i);
             this.decide(world, bodies, i);
             this.forage(world, bodies, i);
@@ -12826,6 +12832,29 @@ export class Ships {
         this.demandTorque[i] = 0;
         this.brakingOnMains[i] = 0;
         this.burning[i] = 0;
+    }
+
+    /** Whether ship `i` has no engine that can burn and no mount of its own that can fire. */
+    private inert(bodies: Bodies, i: number): boolean {
+        if (!this.hasNoEngines(i)) return false;
+        const b = bodies.indexOf(this.bodyIds[i]!);
+        if (b < 0) return true;
+        const mounts = this.designs[i]!.turrets;
+        for (let t = 0; t < mounts.length; t++) {
+            if (this.ownsAt(i, b, mounts[t]!.module) && this.canFire(i, b, t)) return false;
+        }
+        return true;
+    }
+
+    /** Stop everything ship `i` is doing, and forget what it was fighting. */
+    private shutDown(i: number): void {
+        this.failSafe(i);
+        this.idle(i);
+        this.chosen[i] = NO_TARGET;
+        this.consort[i] = NO_TARGET;
+        this.ramming[i] = NO_TARGET;
+        this.withdrawing[i] = 0;
+        this.hiding[i] = NO_TARGET;
     }
 
     private failSafe(i: number): void {
