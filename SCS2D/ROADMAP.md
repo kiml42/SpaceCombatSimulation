@@ -396,7 +396,15 @@ an entry is either still open or it is gone.
                keeps its livery under the soot. Its lights were already out — a core's, a generator's,
                a bay's — except the store gauges, which stay on a wreck so a salvager can see what it
                holds.
-            3. **Drawing scars.**
+            3. **Drawing scars — built** (`render/scars.ts`). Each scar is a few ragged polygons in its
+               module's frame, as wide as `WIDTH_PER_CBRT_JOULE` (4 mm) a joule's cube root, at least
+               5 cm and at most 45% of the module's narrower side, and kept inside the box its drawn
+               fills lie in: a round's dark channel ending in a hole or a light lip, peppering's spray of
+               short streaks, a burn's scorch with a glazed core and a sheen across it, and a gouge's
+               scraped metal between buckled edges. The hull layer builds each ship's scars into two
+               contexts in its own frame, one over its thin hull and one over its thick modules,
+               rebuilt only when `scarsVersion`, its design or the zoom's power of two changes, and
+               leaves out a scar under 1.5 pixels wide. Not drawn on fighters, nor on rock.
     6. **Particles and glows.** Glows for explosions and beams; particles for explosions and impacts;
        bits of metal for collision damage in place of its flashes, and from a leaking tank alongside or in
        place of its wedge. Particles are only drawn, never simulated: on the battle's clock as the flashes
