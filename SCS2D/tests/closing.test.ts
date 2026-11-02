@@ -38,9 +38,10 @@ describe("closing on a target", () => {
 
 /**
  * Side 0 rams side 1, its distance each step given by `distance(time)`; both
- * fire once at the start, so going quiet counts, and side 1 never again.
+ * fire once at the start, so going quiet counts, and side 1 never again. Its
+ * fuel runs out at `dry`, if given.
  */
-function ram(distance: (time: number) => number, until: number): Decision | null {
+function ram(distance: (time: number) => number, until: number, dry = Infinity): Decision | null {
     const dt = 1;
     const world = { tick: 0, dt };
     const ships = {
@@ -49,6 +50,7 @@ function ram(distance: (time: number) => number, until: number): Decision | null
         teamOf: (i: number) => i,
         hasControl: () => true,
         isRamming: (i: number) => i === 0,
+        hasNoEngines: (i: number) => i === 0 && world.tick * dt >= dry,
         isDisarmed: (i: number) => i === 0,
         lastFired: () => 1,
         pilotAt: (body: number) => body,
@@ -81,5 +83,10 @@ describe("ramming as the skirmish rule sees it", () => {
 
     it("lets a rammer that circles instead go quiet", () => {
         expect(ram(() => 200, 60)).toBeNull();
+    });
+
+    it("counts a rammer out of fuel as out of it, however it drifts on in", () => {
+        // Its only weapon spent at 10 s, so the side is left with nothing.
+        expect(ram((t) => 1000 - 10 * t, 60, 10)).toMatchObject({ winner: 1, reason: "disarmed", time: 10 });
     });
 });
