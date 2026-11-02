@@ -18,6 +18,7 @@ import {
 import { barrelLines, MIN_BARREL_PX } from "./barrels.js";
 import { fillAlpha, fillColour, isFighterModule, moduleFills, padMark, type Fill } from "./moduleFills.js";
 import { legibleWidth } from "./strokes.js";
+import { SOOT, SOOT_ALPHA, wearLevel, wearShows, wearTile, wearTransform } from "./wear.js";
 import { shipColours, teamLivery, type Palette } from "./teams.js";
 
 /**
@@ -133,6 +134,7 @@ export class HullLayer {
             if (Math.abs(dx) - reach > halfW || Math.abs(dy) - reach > halfH) continue;
             const sc = Math.cos(ship.angle);
             const ss = Math.sin(ship.angle);
+            const worn = wearShows(design.radius, camera.scale);
             for (let i = 0; i < design.modules.length; i++) {
                 if (ship.drawn?.[i] === false) continue;
                 const m = design.modules[i]!;
@@ -147,7 +149,7 @@ export class HullLayer {
                     continue;
                 }
                 // A piece hooked on from another ship keeps that ship's colours.
-                const fill = contextFor(design, i, ship.sides?.[i] ?? ship.team, ship.integrity?.[i] ?? 1);
+                const fill = contextFor(design, i, ship.sides?.[i] ?? ship.team, ship.integrity?.[i] ?? 1, worn);
                 const kind = m.spec.kind;
                 // A turret's block is hull; its dome stands on it, drawn with the turrets.
                 const domed = isDomed(kind);
@@ -403,13 +405,19 @@ const fills: Fill[] = [];
 
 /**
  * Module `i`'s fills on side `side`, built the first time they are asked for:
- * shared by every module of its spec, unless its side's livery has a pattern,
- * which falls on each module of a design differently.
+ * shared by every module of its spec, unless its side's livery has a pattern
+ * or it is worn, either of which falls on each module of a design differently.
+ * `worn` says whether wear would show at this zoom; a destroyed module's soot
+ * shows at any.
  */
-function contextFor(design: ShipDesign, i: number, side: number, integrity: number): GraphicsContext {
+function contextFor(design: ShipDesign, i: number, side: number, integrity: number, worn = true): GraphicsContext {
     const m = design.modules[i]!;
     const spec = m.spec;
-    const livery = integrity > 0 && spec.kind !== "rock" && spec.kind !== "kernel" ? teamLivery(side) : undefined;
+    const ground = spec.kind === "rock" || spec.kind === "kernel";
+    const livery = ground ? undefined : teamLivery(side);
+    const level = ground || !worn ? 0 : wearLevel(integrity);
+    const burnt = !ground && integrity <= 0;
+    if (level > 0 || burnt) return wornContext(design, i, side, integrity, livery, level, burnt);
     if (livery !== undefined && livery.pattern !== "none") return patternedContext(design, i, side, integrity, livery);
     return plainContext(spec, side, integrity);
 }
@@ -417,8 +425,8 @@ function contextFor(design: ShipDesign, i: number, side: number, integrity: numb
 /** Module fills for `spec` on side `side`, in its colours alone. */
 function plainContext(spec: ModuleSpec, side: number, integrity: number): GraphicsContext {
     const colours = shipColours(side);
-    const colour = fillColour(spec, integrity, colours);
-    // What else moduleFills reads: the side's palette, and whether it is wreckage.
+    const colour = fillColour(spec, colours);
+    // What else moduleFills reads: the side's palette, and whether it is destroyed.
     const key = `${colour}|${colours.hull}${colours.trim}${colours.pivot}|${integrity <= 0}`;
     let bySpec = contexts.get(spec);
     if (bySpec === undefined) {
@@ -453,10 +461,10 @@ const patternTextures = new Map<string, Texture>();
 function patternedContext(design: ShipDesign, i: number, side: number, integrity: number, livery: Livery): GraphicsContext {
     const m = design.modules[i]!;
     const colours = shipColours(side);
-    const colour = fillColour(m.spec, integrity, colours);
+    const colour = fillColour(m.spec, colours);
     const origin = originOf(design, i);
     const key =
-        `${origin.module}|${colour}|${colours.hull}${colours.trim}${colours.pivot}${colours.highlight}|` +
+        `${origin.module}|${colour}|${colours.hull}${colours.trim}${colours.pivot}${colours.highlight}|${integrity <= 0}|` +
         `${tileKey(livery, "")}|${livery.spacing}|${livery.offset}|${livery.angle}`;
     let byDesign = patterned.get(origin.design);
     if (byDesign === undefined) {
@@ -479,6 +487,71 @@ function patternedContext(design: ShipDesign, i: number, side: number, integrity
         byDesign.set(key, context);
     }
     return context;
+}
+
+/** By the design each module was built in, as `patterned` is. */
+const wornContexts = new WeakMap<ShipDesign, Map<string, GraphicsContext>>();
+const wearTextures = new Map<number, Texture | null>();
+
+/**
+ * Module `i`'s fills, patterned as its livery says, with soot over them if it
+ * is destroyed and wear `level` over that.
+ */
+function wornContext(
+    design: ShipDesign,
+    i: number,
+    side: number,
+    integrity: number,
+    livery: Livery | undefined,
+    level: number,
+    burnt: boolean,
+): GraphicsContext {
+    const m = design.modules[i]!;
+    const colours = shipColours(side);
+    const colour = fillColour(m.spec, colours);
+    const origin = originOf(design, i);
+    const pattern = livery !== undefined && livery.pattern !== "none" ? livery : undefined;
+    const key =
+        `${origin.module}|${colour}|${colours.hull}${colours.trim}${colours.pivot}${colours.highlight}|${level}|${burnt}|` +
+        (pattern === undefined ? "" : `${tileKey(pattern, "")}|${pattern.spacing}|${pattern.offset}|${pattern.angle}`);
+    let byDesign = wornContexts.get(origin.design);
+    if (byDesign === undefined) {
+        byDesign = new Map();
+        wornContexts.set(origin.design, byDesign);
+    }
+    let context = byDesign.get(key);
+    if (context === undefined) {
+        context = new GraphicsContext();
+        moduleFills(m.spec, colour, colours, integrity, fills);
+        const t = pattern === undefined ? null : patternTransform(pattern, design, i);
+        const matrix = t === null ? null : new Matrix(t.a, t.b, t.c, t.d, t.e, t.f);
+        for (const fill of fills) {
+            context.poly(fill.points).fill(fill.colour);
+            const over = pattern === undefined ? null : patternColour(m.spec.kind, fill.colour, colours);
+            const texture = over === null ? null : tileTexture(pattern!, over);
+            if (texture !== null) context.poly(fill.points).fill({ texture, matrix: matrix!, textureSpace: "global" });
+        }
+        markPad(context, m.spec, colours);
+        const w = wearTransform(design, i);
+        const wearMatrix = new Matrix(w.a, w.b, w.c, w.d, w.e, w.f);
+        const wear = level > 0 ? wearTexture(level) : null;
+        for (const fill of fills) {
+            if (burnt) context.poly(fill.points).fill({ color: SOOT, alpha: SOOT_ALPHA });
+            if (wear !== null) context.poly(fill.points).fill({ texture: wear, matrix: wearMatrix, textureSpace: "global" });
+        }
+        byDesign.set(key, context);
+    }
+    return context;
+}
+
+function wearTexture(level: number): Texture | null {
+    let texture = wearTextures.get(level);
+    if (texture === undefined) {
+        const tile = wearTile(level);
+        texture = tile === null ? null : Texture.from(tile as HTMLCanvasElement);
+        wearTextures.set(level, texture);
+    }
+    return texture;
 }
 
 function tileTexture(livery: Livery, colour: string): Texture | null {
