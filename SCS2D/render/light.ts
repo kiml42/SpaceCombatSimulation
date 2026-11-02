@@ -16,8 +16,8 @@ export interface Light {
     readonly slant?: number;
 }
 
-/** White, from the top left, with shadows a little under half dark. */
-export const DEFAULT_LIGHT: Light = { from: (3 * Math.PI) / 4, colour: "#ffffff", ambient: 0.55 };
+/** White, from the top left, with dark shadows. */
+export const DEFAULT_LIGHT: Light = { from: (3 * Math.PI) / 4, colour: "#ffffff", ambient: 0.2 };
 
 /**
  * The light a ship is seen in as it is built, in the editors and fleet

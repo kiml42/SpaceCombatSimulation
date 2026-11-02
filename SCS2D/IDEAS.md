@@ -5,6 +5,7 @@ Things that are obviously wrong.
 - Fuel tanks should stop supplying fuel when they are too damaged.
 - A miner anchored to an asteroid reads no robots in its bays (`ShipView.crews`), though its robots are out mining and loads come home.
 - A hull gun's barrel collides as the rectangle its module would be, not where the barrel is drawn. Nothing welds to a barrel (`onWeldablePart`), as a stop-gap until it collides where it is.
+- Claws have bevel highlights/shadow across their whole front, even in the gap
 
 -----------------------------------------------------------------------
 
