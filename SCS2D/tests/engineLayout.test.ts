@@ -29,19 +29,28 @@ describe("engine layout", () => {
         const layout = engineLayout(spec);
         expect(layout.pumpAft).toBeLessThan(layout.front);
         expect(layout.pumpAft).toBeGreaterThan(layout.aft);
-        // A sphere, wider than the throat it feeds.
-        expect(layout.fore - layout.aft).toBeCloseTo(2 * layout.radius, 9);
-        expect(2 * layout.radius).toBeGreaterThan(engineGeometry(spec).throatWidth);
+        // A sphere wider than the throat it feeds, cut flat onto it and a little onto the pump.
+        const throat = engineGeometry(spec).throatWidth / 2;
+        expect(2 * layout.radius).toBeGreaterThan(2 * throat);
+        expect(layout.aft).toBe(layout.mouth);
+        expect(layout.radius ** 2 - (layout.centre - layout.aft) ** 2).toBeCloseTo(throat ** 2, 9);
+        expect(layout.pumpAft).toBe(layout.fore);
+        expect(layout.fore - layout.centre).toBeLessThan(layout.radius);
     });
 
-    it("gives a pressure-fed engine no pump, its chamber taking the block", () => {
+    it("gives a pressure-fed engine no pump, its chamber round at the front", () => {
         const { spec } = engineOf(withEngine(0.4, 0.2));
         expect(isPressureFed(engineGeometry(spec))).toBe(true);
         const layout = engineLayout(spec);
         expect(layout.pumpAft).toBe(layout.front);
-        expect(layout.fore).toBe(layout.front);
-        // Longer than it is wide: a capsule.
-        expect(layout.fore - layout.aft).toBeGreaterThan(2 * layout.radius);
+        expect(layout.fore - layout.centre).toBeCloseTo(layout.radius, 9);
+        expect(layout.fore).toBeLessThanOrEqual(layout.front + 1e-9);
+    });
+
+    it("keeps a chamber in a block too short for a whole one", () => {
+        const layout = engineLayout(engineOf(withEngine(0.05, 0.2)).spec);
+        expect(layout.fore).toBeLessThanOrEqual(layout.front + 1e-9);
+        expect(layout.radius).toBeGreaterThan(0);
     });
 
     it("gives each nozzle a chamber of its own, fed by one pump", () => {

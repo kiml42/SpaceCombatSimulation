@@ -231,7 +231,8 @@ const mounted = new WeakMap<ShipDesign, Mounts[]>();
 export function mountsOf(design: ShipDesign, m: number): Mounts {
     let all = mounted.get(design);
     if (all === undefined) {
-        const shapes = design.modules.map((other) => [bevelOutline(other.spec)]);
+        // Another engine by its whole block, so two built onto each other each mount to the other.
+        const shapes = design.modules.map((other) => [other.spec.kind === "engine" ? engineBlock(other.spec) : bevelOutline(other.spec)]);
         all = design.modules.map((module, i) => (module.spec.kind === "engine" ? engineMounts(design, i, shapes) : NO_MOUNTS));
         mounted.set(design, all);
     }
@@ -243,6 +244,11 @@ export function drawnMounts(design: ShipDesign, m: number): Mounts {
     if (design.modules[m]?.shell !== undefined) return mountsOf(design, m);
     const origin = originOf(design, m);
     return mountsOf(origin.design, origin.module);
+}
+
+function engineBlock(spec: ModuleSpec): number[] {
+    const { mouth, front, halfWidth: w } = engineLayout(spec);
+    return [mouth, -w, front, -w, front, w, mouth, w];
 }
 
 function engineMounts(design: ShipDesign, m: number, shapes: readonly (readonly (readonly number[])[])[]): Mounts {
@@ -268,7 +274,7 @@ function engineMounts(design: ShipDesign, m: number, shapes: readonly (readonly 
             const a = -w + 2 * w * along[r]!;
             const b = -w + 2 * w * along[r + 1]!;
             rect(l - plate, a, l, b);
-            for (const y of centres) if (y >= a && y <= b) rect(layout.fore - radius, y - web, l, y + web);
+            for (const y of centres) if (y >= a && y <= b) rect(layout.centre, y - web, l, y + web);
         }
     }
     // Each side, beside the chambers.
@@ -283,9 +289,9 @@ function engineMounts(design: ShipDesign, m: number, shapes: readonly (readonly 
                 const a = x0 + span * along[r]!;
                 const b = x0 + span * along[r + 1]!;
                 rect(a, edge - side * plate, b, edge);
-                // Across to the chamber, over its straight run.
-                const from = Math.max(a, layout.aft + radius - web);
-                const to = Math.min(b, layout.fore - radius + web);
+                // Across to the chamber, at its widest.
+                const from = Math.max(a, layout.centre - web);
+                const to = Math.min(b, layout.centre + web);
                 if (to > from) rect(from, chamber, to, edge);
             }
         }

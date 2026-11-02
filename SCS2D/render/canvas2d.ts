@@ -1475,28 +1475,19 @@ function shadeEngine(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: num
     const mouth = layout.mouth;
     const bell = exit > 0 && mouth + l > 0 ? cylinderShade(side, up, engine.throatWidth / engine.exitWidth) : null;
     const r = layout.radius;
-    const straight = layout.fore - layout.aft - 2 * r;
-    const tube = r > 0 && straight > 0 ? cylinderShade(side, up) : null;
     const dome = r > 0 ? domeShade(across, up) : null;
     for (const y of layout.centres) {
         if (bell !== null) ctx.drawImage(bell, -l, y - exit, mouth + l, 2 * exit);
-        if (dome !== null) {
-            // A sphere, or a capsule's two ends with a tube between them.
-            for (const x of straight > 0 ? [layout.aft + r, layout.fore - r] : [layout.aft + r]) {
-                ctx.save();
-                // Each end of a capsule alone, and none of it under the pump.
-                const from = straight > 0 && x > layout.aft + r ? x : x - r;
-                const to = Math.min(straight > 0 && x === layout.aft + r ? x : x + r, layout.pumpAft);
-                ctx.beginPath();
-                ctx.rect(from, y - r, to - from, 2 * r);
-                ctx.clip();
-                ctx.translate(x, y);
-                ctx.rotate(light.from - angle);
-                ctx.drawImage(dome, -r, -r, 2 * r, 2 * r);
-                ctx.restore();
-            }
-        }
-        if (tube !== null) ctx.drawImage(tube, layout.aft + r, y - r, straight, 2 * r);
+        if (dome === null) continue;
+        // Between its flat faces.
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(layout.aft, y - r, layout.fore - layout.aft, 2 * r);
+        ctx.clip();
+        ctx.translate(layout.centre, y);
+        ctx.rotate(light.from - angle);
+        ctx.drawImage(dome, -r, -r, 2 * r, 2 * r);
+        ctx.restore();
     }
     if (layout.pumpAft < l) {
         const pump = cylinderShade(side, up);

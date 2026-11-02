@@ -1,5 +1,5 @@
 import { engineGeometry, hullMountGeometry, isHullMount, shapeOf, type ModuleSpec, type ShipDesign, type ShipView } from "../sim/index.js";
-import { capsule, engineLayout } from "./engineLayout.js";
+import { cutSphere, engineLayout } from "./engineLayout.js";
 import { BARE_TEAM, type Palette } from "./teams.js";
 
 /**
@@ -122,7 +122,8 @@ export function moduleFills(
         for (const across of layout.centres) {
             out.push({ colour: BELL, points: [mouth, across - throat, mouth, across + throat, -l, across + exit, -l, across - exit] });
         }
-        for (const across of layout.centres) out.push({ colour, points: capsule(layout.aft, layout.fore, across, layout.radius) });
+        for (const across of layout.centres)
+            out.push({ colour, points: cutSphere(layout.centre, across, layout.radius, layout.aft, layout.fore) });
         if (layout.pumpAft < l) {
             box(layout.pumpAft, -w, l, w);
             // A livery's band round the pump, as far from its aft face as it is wide.
