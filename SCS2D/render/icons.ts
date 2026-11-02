@@ -14,6 +14,8 @@
  * saying the icons pop.
  */
 
+import type { ShipView } from "../sim/snapshot.js";
+
 /** Nose-to-tail length of an icon on screen, pixels. */
 export const ICON_PX = 18;
 
@@ -46,6 +48,23 @@ export const ICON_MAX_ALPHA = 0.3;
  */
 export const ICON_FADE_START_PX = 16;
 export const ICON_FADE_FULL_PX = 8;
+
+/**
+ * Below this mass, kg, a hulk is wreckage: no icon, and framed with the debris.
+ * Under an intact Y-wing, so a broken-up fighter or a dead torpedo stops
+ * cluttering the view while a crippled capital stays findable.
+ */
+export const HULK_ICON_MASS = 150_000;
+
+/** Whether a ship is out of the fight: core out, or every gun and engine it set out with lost. */
+export function isHulk(ship: ShipView): boolean {
+    return !ship.hasControl || ship.isMissionKilled;
+}
+
+/** Whether a ship is debris: a severed piece, or a hulk too small to be worth marking. */
+export function isWreckage(ship: ShipView): boolean {
+    return ship.isDerelict || (isHulk(ship) && ship.currentStructure.mass < HULK_ICON_MASS);
+}
 
 /**
  * How solid a ship's icon is, for a hull drawn `shipPx` across on screen.
