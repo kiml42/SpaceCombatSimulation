@@ -374,6 +374,13 @@ an entry is either still open or it is gone.
           on top. Nothing much leans on the grey: most modules already show whether they work (a core's
           light, a gun's load). Zoomed out, how hurt a ship is was never readable and need not be: picking
           it shows it larger.
+        - **A module being built is bare metal — built**, not marked: its base colour and pattern are
+          paint, so its walls (a shell) and then the module waiting for its fittings are drawn in greys
+          close together (`BARE_TEAM`), lights out, and take all their paint at once when the last
+          fitting is in. Wear, soot and scars follow damage alone, so the snapshot carries how much of
+          each module is fitted (`ShipView.fitted`) beside its integrity rather than folded into it.
+          A wreck being taken apart goes bare the same way as its fittings come out. Wanted, later: an
+          animation of its paint going on.
         - Not settled: the threshold, the scars a module holds and how far a burn may streak are first
           guesses, to be set by eye.
         - **In three pull requests**, in this order:
