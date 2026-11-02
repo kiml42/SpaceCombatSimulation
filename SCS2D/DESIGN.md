@@ -1641,11 +1641,12 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   that a narrow bell collimates in a fraction of the length a wide one needs, which is how a stubby engine
   gets a good nozzle, and a flame combed into fingers rather than thrown as one sheet.
 - **An engine is drawn as what it is made of**: a spherical chamber on each bell's throat, cut flat to sit
-  on it, and shipward of them one turbopump across the block, banded with the livery, that each chamber is
-  cut a little flat to meet, and bevelled only at its ends. A pressure-fed engine has no pump, so its chambers run on to the block's front as capsules, so a longer
-  block shows as a longer chamber. Where a stretch of the block's faces is against something, a plate
-  and a web hold the chamber to it; elsewhere it stands clear, so the missing pump is what shows. The
-  matter is still the whole block to the simulation; only the picture changes (`render/engineLayout.ts`).
+  on it, and shipward of them one turbopump across the block, banded with the livery and bevelled only at
+  its ends, which each chamber is cut a little flat to meet. A pressure-fed engine has no pump, so its
+  chambers run on to the block's front as capsules, and a longer block shows as a longer chamber. Where a
+  stretch of the block's faces is against something, a plate and a web hold the chamber to it; elsewhere
+  it stands clear, so the missing pump is what shows. The matter is still the whole block to the
+  simulation; only the picture changes (`render/engineLayout.ts`).
 - **How hard the nozzle is fed is the machinery's business.** Thrust is the exit face's area times what
   the chamber and pumps behind it can drive through the throat, and that machinery is the block: a deep
   one feeds more flow. A throat chokes rather than passing whatever is pushed at it, which is what stops a
