@@ -65,7 +65,7 @@ inside any one file is not contiguous.
   core and neither gun nor engine is still a ship, so it is framed and drawn in its own colours, where asking
   whether it could fight drew a whole generation of engineless craft as wreckage and left them out of shot.
   Grey, and framed only with the hulks, is for a core that is out, or for a ship that set out with a gun or
-  an engine and has lost them all, or the stores to use them. A severed piece gets no arrowhead at all, nor does a ship riding another's hull, or a fighter parked on its pad. An arrowhead points the way its ship's core does, which is not always its body's way: a ship that has docked with another keeps the frame of the hull they shared. A blueprint editor on a second page of its own draws a layout
+  an engine and has lost them all, or the stores to use them. A severed piece gets no arrowhead at all, nor does a grey ship under 150 t (`HULK_ICON_MASS`, below an intact Y-wing), which is framed with the wreckage too, so a dead swarm of fighters and torpedoes stops reading as a live one; nor does a ship riding another's hull, or a fighter parked on its pad. An arrowhead points the way its ship's core does, which is not always its body's way: a ship that has docked with another keeps the frame of the hull they shared. A blueprint editor on a second page of its own draws a layout
   through that same renderer and reports what it bought: mass, inertia, the
   acceleration available in each direction — as figures, and as a pair of
   envelope curves separating what a layout can project from what it can use
@@ -898,8 +898,8 @@ inside any one file is not contiguous.
   their own carrier's. The two move off together with
   the momentum they had between them, and it lifts off moving as the pad was. Nothing it has is made part
   of the carrier's hull, so filling, mending and building it remake only the fighter. It idles while the pad fills it from what the
-  carrier can spare above the carrier's own reserves, and **mends it**: `PAD_REPAIR_PER_METRE` of
-  damage a second for every metre of the pad's width, cores first, then engines and weapons, then the rest,
+  carrier can spare above the carrier's own reserves, and **mends it**: `PAD_REPAIR_PER_AREA` of
+  damage a second for every square metre of the pad's deck, whatever its proportions, cores first, then engines and weapons, then the rest,
   each joule taking `REPAIR_ENERGY_PER_JOULE` of the carrier's charge and the metal the module had shed and
   `REPAIR_WASTE` more, the waste counted as discarded — reserves and all, since repairing and rebuilding
   draw on what a ship keeps back for itself, where refuelling, rearming and recharging a friend do not. Once

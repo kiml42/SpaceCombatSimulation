@@ -105,7 +105,7 @@ import { CLAW_ALIGN, CLAW_DEPTH, CLAW_STIFFNESS, hullsOverlap, moduleOverlapsHul
 import {
     DOCK_POWER_PER_METRE,
     FUEL_DENSITY,
-    PAD_REPAIR_PER_METRE,
+    PAD_REPAIR_PER_AREA,
     SLIPWAY_BUILD_PER_METRE,
     SLIPWAY_CLEAR_TIME,
     SLIPWAY_PUSH,
@@ -6292,8 +6292,8 @@ export class Ships {
         const working = this.damage.remaining(cb, pad, DamageEffect.Grip);
         if (!(working > 0)) return false;
         if (this.damage.isProtected(cb)) return true;
-        const width = this.designs[c]!.modules[pad]!.spec.width;
-        const work = PAD_REPAIR_PER_METRE * width * working * world.dt;
+        const deck = this.designs[c]!.modules[pad]!.spec;
+        const work = PAD_REPAIR_PER_AREA * deck.length * deck.width * working * world.dt;
         if (this.unfinished[f] === 1) {
             const progress = this.mend(bodies, fb, f, pad, work, cb) || this.padBuild(bodies, fb, f, cb, pad, work);
             if (progress) this.builtAt[c] = world.tick;
@@ -6308,7 +6308,7 @@ export class Ships {
         }
         const into = this.designs[f]!.cores[0] ?? 0;
         const rate = this.designs[c]!.modules[pad]!.stats.pumpRate * working * world.dt;
-        const cable = DOCK_POWER_PER_METRE * width * working * world.dt;
+        const cable = DOCK_POWER_PER_METRE * deck.width * working * world.dt;
         const fuel = this.across(Resource.Fuel, this.fuel, cb, pad, fb, into, rate);
         const metal = this.across(Resource.Metal, this.metal, cb, pad, fb, into, rate);
         this.across(Resource.Charge, this.power, cb, pad, fb, into, cable);
@@ -11889,7 +11889,8 @@ export class Ships {
         const work = buildWork(whole.stats);
         const perKg = work * REPAIR_ENERGY_PER_JOULE;
         const working = this.left(i, b, pad, DamageEffect.Grip);
-        const joules = PAD_REPAIR_PER_METRE * design.modules[pad]!.spec.width * working * world.dt;
+        const deck = design.modules[pad]!.spec;
+        const joules = PAD_REPAIR_PER_AREA * deck.length * deck.width * working * world.dt;
         const charge = this.allowed(Resource.Charge, b, pad, Claim.Pads, (wall - brood.work[k]!) * perKg);
         const kg = min(min(joules / work, charge / perKg), wall - brood.work[k]!);
         if (kg > 0) {
