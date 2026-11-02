@@ -445,6 +445,14 @@ const SHOCK_REACH = 15;
  */
 export const WELD_SPEED = 2;
 
+/**
+ * A ship lying against an asteroid at under `REST_SPEED` m/s, where they touch,
+ * for `REST_TIME` seconds lodges on it, flown or not: stuck, it would otherwise
+ * press on the rock, and flash against it, for good. First guesses.
+ */
+export const REST_SPEED = 0.25;
+export const REST_TIME = 10;
+
 /** How far past the end of a module's weldable part a contact may still weld it, metres. */
 const WELD_REACH = 0.05;
 
@@ -1245,6 +1253,9 @@ export class Ships {
     private now = 0;
     /** The tick each ship last touched what it means to drink from without holding it. */
     private readonly touchedSource: number[] = [];
+    /** The tick each ship began its present rest against an asteroid, and the tick it was last seen resting. */
+    private readonly restFrom: number[] = [];
+    private readonly restAt: number[] = [];
     /**
      * Where each claw ship means to take hold (`chooseGrip`): the body, the hull
      * it was chosen on and the module it is on, and the point and the face's
@@ -1948,6 +1959,8 @@ export class Ships {
         this.recharging.push(0);
         this.home.push(-1);
         this.touchedSource.push(-Infinity);
+        this.restFrom.push(0);
+        this.restAt.push(-Infinity);
         this.gripBody.push(-1);
         this.gripHull.push(null);
         this.gripModule.push(-1);
@@ -5893,8 +5906,11 @@ export class Ships {
             // Robots weld on loose wreckage lying slowly against their hull, to take it apart.
             const salvager = closing > WELD_SPEED ? -1 : this.salvages(a, i, b, j) ? a : this.salvages(b, j, a, i) ? b : -1;
             const salvage = salvager >= 0;
-            // Wreckage come to rest on rock lodges there, for whoever mines the rock to take apart.
-            const lodged = closing <= WELD_SPEED && (this.lodges(a, i, j) || this.lodges(b, j, i));
+            // Wreckage come to rest on rock lodges there, for whoever mines the rock to take apart,
+            // and so does a ship of any kind that has lain still against it a while.
+            const restA = this.rests(bodies, world, k, contacts, a, i, b, j);
+            const restB = this.rests(bodies, world, k, contacts, b, j, a, i);
+            const lodged = closing <= WELD_SPEED && (this.lodges(a, i, j) || this.lodges(b, j, i) || restA || restB);
             if (stab !== Stab.A && stab !== Stab.B && !salvage && !lodged && (!(closing > 0) || closing > CLAW_SPEED_MAX)) continue;
             if (i < 0 || j < 0 || joined?.has(i) === true || joined?.has(j) === true) continue;
             if (this.partedAt[i]! > settled || this.partedAt[j]! > settled) continue;
@@ -5981,6 +5997,33 @@ export class Ships {
     private salvages(a: number, i: number, b: number, j: number): boolean {
         if (i < 0 || j < 0 || !this.hasControl(i) || this.hasControl(j) || this.isAsteroid(i) || this.isAsteroid(j)) return false;
         return this.hasRobots(a, i) && !this.hasRobots(b, j);
+    }
+
+    /**
+     * Note ship `i`, on body `a`, touching asteroid `rock`, on body `b`, at
+     * contact `k`, and say whether it has now lain still against it for
+     * `REST_TIME`: under `REST_SPEED` where they touch, through a run of
+     * touching steps.
+     */
+    private rests(bodies: Bodies, world: World, k: number, contacts: Contacts, a: number, i: number, b: number, rock: number): boolean {
+        if (i < 0 || rock < 0 || this.isAsteroid(i) || !this.isAsteroid(rock)) return false;
+        const tick = world.tick;
+        const x = contacts.x[k]!;
+        const y = contacts.y[k]!;
+        const ax = x - bodies.x[a]!;
+        const ay = y - bodies.y[a]!;
+        const bx = x - bodies.x[b]!;
+        const by = y - bodies.y[b]!;
+        const vx = bodies.vx[a]! - bodies.angularVel[a]! * ay - (bodies.vx[b]! - bodies.angularVel[b]! * by);
+        const vy = bodies.vy[a]! + bodies.angularVel[a]! * ax - (bodies.vy[b]! + bodies.angularVel[b]! * bx);
+        if (vx * vx + vy * vy > REST_SPEED * REST_SPEED) {
+            this.restFrom[i] = tick;
+            this.restAt[i] = tick;
+            return false;
+        }
+        if (this.restAt[i]! < tick - 1) this.restFrom[i] = tick;
+        this.restAt[i] = tick;
+        return tick - this.restFrom[i]! >= REST_TIME / world.dt;
     }
 
     /** Whether ship `i`, on body `a`, is wreckage that lodges on asteroid `rock`: no one's to fly or mend. */
@@ -6962,8 +7005,8 @@ export class Ships {
             robot.at,
             dist,
             prev,
-            (m) => this.onRock(cb, m),
-            (u, v) => this.onRock(cb, u) && this.onRock(cb, v),
+            (m) => this.onRock(cb, m, owner),
+            (u, v) => this.onRock(cb, u, owner) && this.onRock(cb, v, owner),
         );
         let best = -1;
         let bestRate = -1;
@@ -6971,7 +7014,7 @@ export class Ships {
         // Wreckage lodged on the rock is cleared first, whatever the walk: it is in the way of what grips and lands.
         let bestWreck = false;
         for (let m = 0; m < rd.modules.length; m++) {
-            if (m === held || !Number.isFinite(dist[m]!) || !this.onRock(cb, m) || !this.comesOff(owner, cb, rd, m)) continue;
+            if (m === held || !Number.isFinite(dist[m]!) || !this.onRock(cb, m, owner) || !this.comesOff(owner, cb, rd, m)) continue;
             if (!this.minable(rd, m, metalRoom, fuelRoom)) continue;
             // What it would bring home, as `mineRock` takes it, and the time it would take.
             const spec = rd.modules[m]!.spec;
@@ -7023,8 +7066,8 @@ export class Ships {
             robot.at,
             dist,
             prev,
-            (m) => this.onRock(cb, m),
-            (u, v) => this.onRock(cb, u) && this.onRock(cb, v),
+            (m) => this.onRock(cb, m, owner),
+            (u, v) => this.onRock(cb, u, owner) && this.onRock(cb, v, owner),
         );
         const path = pathTo(prev, dist, entry);
         robot.path = path !== null && path.length > 1 ? path : null;
@@ -7233,7 +7276,7 @@ export class Ships {
             m < 0 ||
             m >= rd.modules.length ||
             m === this.heldRock(this.bodyStore!, owner) ||
-            !this.onRock(cb, m) ||
+            !this.onRock(cb, m, owner) ||
             !this.comesOff(owner, cb, rd, m)
         ) {
             if (!this.sendOnRock(b, cb, this.robots.on(b)!, robot, owner)) this.homeOnRock(cb, robot, owner);
@@ -7273,9 +7316,11 @@ export class Ships {
      * Whether module `m` of rock body `cb` is one a moored ship's robots may
      * walk and mine: the asteroid's, or wreckage lodged on it.
      */
-    private onRock(cb: number, m: number): boolean {
+    private onRock(cb: number, m: number, owner: number): boolean {
         const p = this.pilotAt(cb, m);
-        return p < 0 || this.isAsteroid(p) || this.derelict[p] === 1 || !this.hasControl(p);
+        if (p < 0 || this.isAsteroid(p) || this.derelict[p] === 1 || !this.hasControl(p)) return true;
+        // A ship lodged there still flown: an enemy's to take, a friend's once it can do nothing.
+        return p !== owner && (this.hostile(owner, p) || this.isMissionKilled(p));
     }
 
     /** Whether a step of rock body `cb` is already due to come down this step. */
@@ -10745,7 +10790,7 @@ export class Ships {
         if (rd === null || rd === undefined) return false;
         const held = this.heldRock(this.bodyStore!, f);
         for (let m = 0; m < rd.modules.length; m++) {
-            if (m !== held && this.onRock(cb, m) && this.minable(rd, m, metalRoom, fuelRoom) && this.comesOff(f, cb, rd, m)) return true;
+            if (m !== held && this.onRock(cb, m, f) && this.minable(rd, m, metalRoom, fuelRoom) && this.comesOff(f, cb, rd, m)) return true;
         }
         return false;
     }
