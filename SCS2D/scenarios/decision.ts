@@ -6,11 +6,13 @@ import * as math from "../sim/math.js";
  * last `quietTime` (`QUIET_TIME` unless given) and no other has, counted only
  * once every side has fired at least once, so slow ships closing from far off
  * are not out before they are in range. A ship too far off to shoot is out of
- * it, and an unarmed ship never fires. A hit landing counts as firing, so a
- * slow round that wins after the last shot does not hand the battle to the
- * ship it disables, and a side left with nothing armed or ramming is out at
- * once. Ramming counts as firing only while the rammer is getting closer to
- * what it is ramming: one that circles instead goes quiet. A carrier that can still build an armed fighter is armed, and one
+ * it, and an unarmed ship never fires. A hit landing on another side counts
+ * as firing, so a slow round that wins after the last shot does not hand the
+ * battle to the ship it disables, and a side left with nothing armed or
+ * ramming is out at once. Ramming counts as firing only while the rammer is
+ * getting closer to what it is ramming and can still burn: one that circles
+ * instead goes quiet, and one out of fuel is only drifting, so is out of it.
+ * A carrier that can still build an armed fighter is armed, and one
  * building a fighter is busy, though it is not firing: otherwise a carrier
  * with no gun of its own would be out before its first fighter was. A
  * stalemate ends at `TIME_CAP`.
@@ -39,6 +41,7 @@ export interface Watched {
         | "teamOf"
         | "hasControl"
         | "isRamming"
+        | "hasNoEngines"
         | "isDisarmed"
         | "lastFired"
         | "pilotAt"
@@ -208,11 +211,12 @@ export class Activity {
             if (attacker < 0) continue;
             const team = ships.teamOf(attacker);
             if (team === NEUTRAL_TEAM || team >= this.sides) continue;
-            if (victim >= 0 && ships.teamOf(victim) === team) continue;
+            // Not its own side, nor an asteroid: a hull ground against a rock is not fighting.
+            if (victim >= 0 && (ships.teamOf(victim) === team || ships.teamOf(victim) === NEUTRAL_TEAM)) continue;
             this.lastActive[team] = now;
             this.fired[team] = 1;
             this.landed[attacker] = 1;
-            if (victim >= 0 && ships.teamOf(victim) !== NEUTRAL_TEAM) this.struck[team] = 1;
+            if (victim >= 0) this.struck[team] = 1;
         }
         this.able.fill(0);
         for (let i = 0; i < ships.highWater; i++) {
@@ -222,7 +226,7 @@ export class Activity {
             }
             const team = ships.teamOf(i);
             if (team === NEUTRAL_TEAM || team >= this.sides) continue;
-            const ramming = ships.hasControl(i) && ships.isRamming(i);
+            const ramming = ships.hasControl(i) && ships.isRamming(i) && !ships.hasNoEngines(i);
             if (ramming || !ships.isDisarmed(i) || ships.canBuildArmed(i)) this.able[team] = 1;
             if (ships.lastFired(i) === tick) {
                 this.lastActive[team] = now;
