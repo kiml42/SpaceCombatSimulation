@@ -483,10 +483,11 @@ describe("the viewer in a browser", () => {
         const far = await grid();
         const window = await (async () => {
             const { data, width } = await shownPixels(page.locator("#view"), true);
-            // The first lit pixel, reading down, is the top of the upper window's frame: just inside its corner.
+            // The first lit pixel, reading down, is the top of the upper window's frame. Well inside it, as
+            // that top can sit just under the view's buttons, which would take a click at its edge.
             let first = 0;
             while (first < data.length / 4 && data[first * 4]! + data[first * 4 + 1]! + data[first * 4 + 2]! <= 200) first++;
-            return { x: (first % width) + 20, y: Math.floor(first / width) + 20 };
+            return { x: (first % width) + 20, y: Math.floor(first / width) + 40 };
         })();
         await page.mouse.click(box.x + window.x, box.y + window.y);
         await page.waitForFunction(

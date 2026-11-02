@@ -8,7 +8,7 @@ import {
     type ShipDesign,
     type ShipView,
 } from "../sim/index.js";
-import type { Palette } from "./teams.js";
+import { BARE_TEAM, type Palette } from "./teams.js";
 
 /**
  * The solid shape of each module, as polygons in its own frame, and the
@@ -79,6 +79,16 @@ export function fillColour(spec: ModuleSpec, colours: Palette): string {
     // A deck, as a pad is, for its berth pads to stand out on.
     if (spec.kind === "robotBay") return colours.hull;
     return colours.trim;
+}
+
+/** Whether module `i` of a ship is whole and has all its fittings in: until then it is bare metal, and does nothing. */
+export function isFitted(ship: ShipView, i: number): boolean {
+    return (ship.fitted?.[i] ?? 1) >= 1 && ship.currentStructure.modules[i]?.shell === undefined;
+}
+
+/** The side module `i` is painted as: its own once fitted, bare metal until then, as its base and pattern are paint. */
+export function paintedSide(ship: ShipView, i: number): number {
+    return isFitted(ship, i) ? (ship.sides?.[i] ?? ship.team) : BARE_TEAM;
 }
 
 /** How strongly module `i` of a ship is filled: faint out of its cores' reach. */

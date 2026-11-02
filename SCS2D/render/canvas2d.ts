@@ -60,8 +60,10 @@ import {
     fillAlpha,
     fillColour,
     isFighterModule,
+    isFitted,
     moduleFills,
     padMark,
+    paintedSide,
     PORT_COLLAR_SHARE,
     PORT_COLLAR_WIDTH,
     type Fill,
@@ -726,7 +728,7 @@ function pictureKey(ship: ShipView, fighters: boolean, filled: boolean, size: nu
     const n = ship.currentStructure.modules.length;
     for (let i = 0; i < n; i++) {
         key +=
-            `|${step(ship.integrity?.[i])},${ship.drawn?.[i] === false ? 0 : 1},${paletteKey(ship.sides?.[i])},` +
+            `|${step(ship.integrity?.[i])},${isFitted(ship, i) ? 1 : 0},${ship.drawn?.[i] === false ? 0 : 1},${paletteKey(ship.sides?.[i])},` +
             `${ship.outOfReach?.[i] === true ? 1 : 0},${step(ship.fuel?.[i])},${step(ship.metal?.[i])},${step(ship.charge?.[i])},` +
             `${ship.berthed?.[i] ?? ""},${ship.aboard?.[i] ?? ""}`;
     }
@@ -859,8 +861,8 @@ function drawHull(
     for (let i = 0; i < design.modules.length; i++) {
         if (ship.drawn?.[i] === false || isFighterModule(design, i) !== fighters) continue;
         const m = design.modules[i]!;
-        // A piece hooked on from another ship keeps that ship's colours.
-        const colours = moduleColours(design, i, ship.sides?.[i] ?? ship.team);
+        // A piece hooked on from another ship keeps that ship's colours; one being fitted is bare metal.
+        const colours = moduleColours(design, i, paintedSide(ship, i));
         const spec = m.spec;
         ctx.save();
         ctx.translate(m.x, m.y);
@@ -872,6 +874,8 @@ function drawHull(
         // Optional, because a view can be built by hand: the editor's preview and
         // the camera's tests both do, and neither has anything to be damaged.
         const integrity = ship.integrity?.[i] ?? 1;
+        // Its lights are out while it is broken, and while its fittings are not all in.
+        const working = integrity > 0 && isFitted(ship, i);
         ctx.globalAlpha = fillAlpha(ship, i);
         const halfLength = spec.length / 2;
         const halfWidth = spec.width / 2;
@@ -974,7 +978,7 @@ function drawHull(
                 const states = berthStates;
                 states.length = 0;
                 let made = 0;
-                let key = `bay ${idOf(spec)} ${idOf(colours)} ${integrity > 0}`;
+                let key = `bay ${idOf(spec)} ${idOf(colours)} ${working}`;
                 for (let k = 0; k < m.stats.robots; k++) {
                     let progress = -1;
                     if (k >= first) {
@@ -1018,7 +1022,7 @@ function drawHull(
                             ctx.stroke();
                             continue;
                         }
-                        ctx.strokeStyle = integrity > 0 ? colours.trim : FUEL_TRACK;
+                        ctx.strokeStyle = working ? colours.trim : FUEL_TRACK;
                         ctx.beginPath();
                         ctx.arc(x, y, pad, 0, TAU);
                         ctx.stroke();
@@ -1037,18 +1041,18 @@ function drawHull(
             if (spec.kind === "generator") {
                 // The plant: a disc of charge, dark once it has stopped making any.
                 ctx.globalAlpha = 1;
-                keep(ctx, `generator ${idOf(spec)} ${integrity > 0}`, () => {
-                    ctx.fillStyle = integrity > 0 ? CHARGE : FUEL_TRACK;
+                keep(ctx, `generator ${idOf(spec)} ${working}`, () => {
+                    ctx.fillStyle = working ? CHARGE : FUEL_TRACK;
                     ctx.beginPath();
                     ctx.arc(0, 0, (min(spec.length, spec.width) * GENERATOR_DISC) / 2, 0, TAU);
                     ctx.fill();
                 });
             }
             if (spec.kind === "core") {
-                const working = ship.coresWorking?.[design.cores.indexOf(i)] ?? integrity > 0;
-                keep(ctx, `coreLight ${idOf(spec)} ${idOf(m.stats)} ${working}`, () => drawCoreLight(ctx, design, i, spec, working));
+                const lit = ship.coresWorking?.[design.cores.indexOf(i)] ?? working;
+                keep(ctx, `coreLight ${idOf(spec)} ${idOf(m.stats)} ${lit}`, () => drawCoreLight(ctx, design, i, spec, lit));
             }
-            if (spec.kind === "core" && integrity > 0) {
+            if (spec.kind === "core" && working) {
                 // What the core holds, each in a corner and sized by the square root
                 // of its share of the room, so a small share is still seen: fuel and
                 // metal forward, charge and the generator aft, the middle left for
@@ -1524,10 +1528,10 @@ function liveryKey(livery: Livery | undefined): string {
 function keptFill(ctx: CanvasRenderingContext2D, ship: ShipView, i: number): void {
     const design = ship.currentStructure;
     const m = design.modules[i]!;
-    const colours = moduleColours(design, i, ship.sides?.[i] ?? ship.team);
+    const side = paintedSide(ship, i);
+    const colours = moduleColours(design, i, side);
     const integrity = ship.integrity?.[i] ?? 1;
     const colour = fillColour(m.spec, colours);
-    const side = ship.sides?.[i] ?? ship.team;
     keep(ctx, `fill ${idOf(m.spec)} ${idOf(colours)} ${colour} ${integrity} ${patternKey(design, i, side)}`, () =>
         fillModule(ctx, ship, i),
     );
@@ -1541,10 +1545,11 @@ function fillModule(ctx: CanvasRenderingContext2D, ship: ShipView, i: number): v
     const design = ship.currentStructure;
     const m = design.modules[i]!;
     const spec = m.spec;
-    const colours = moduleColours(design, i, ship.sides?.[i] ?? ship.team);
+    const side = paintedSide(ship, i);
+    const colours = moduleColours(design, i, side);
     const integrity = ship.integrity?.[i] ?? 1;
     moduleFills(spec, fillColour(spec, colours), colours, integrity, fills);
-    const pattern = patternOf(ctx, design, i, ship.sides?.[i] ?? ship.team);
+    const pattern = patternOf(ctx, design, i, side);
     const ground = spec.kind === "rock" || spec.kind === "kernel";
     const burnt = !ground && integrity <= 0;
     const wear = ground ? null : wearPattern(ctx, design, i, wearLevel(integrity));
@@ -2403,7 +2408,7 @@ function weaponsLeft(ship: ShipView): number {
     for (let t = 0; t < design.turrets.length; t++) if (design.turrets[t]!.main && ship.turretDisabled[t] !== true) count++;
     for (const t of design.mainWeaponEngines) {
         const module = design.engines[t]!.module;
-        if (module !== undefined && (ship.integrity[module] ?? 1) > 0) count++;
+        if (module !== undefined && (ship.integrity[module] ?? 1) > 0 && isFitted(ship, module)) count++;
     }
     return count;
 }
