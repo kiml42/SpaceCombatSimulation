@@ -38,13 +38,15 @@ describe("engine layout", () => {
         expect(layout.fore - layout.centre).toBeLessThan(layout.radius);
     });
 
-    it("gives a pressure-fed engine no pump, its chamber round at the front", () => {
+    it("gives a pressure-fed engine no pump, its chamber a capsule to the block's front", () => {
         const { spec } = engineOf(withEngine(0.4, 0.2));
         expect(isPressureFed(engineGeometry(spec))).toBe(true);
         const layout = engineLayout(spec);
         expect(layout.pumpAft).toBe(layout.front);
-        expect(layout.fore - layout.centre).toBeCloseTo(layout.radius, 9);
-        expect(layout.fore).toBeLessThanOrEqual(layout.front + 1e-9);
+        // Longer than it is wide, so the length shows; round at the front.
+        expect(layout.nose).toBeGreaterThan(layout.centre);
+        expect(layout.fore).toBeCloseTo(layout.front, 9);
+        expect(layout.fore - layout.nose).toBeCloseTo(layout.radius, 9);
     });
 
     it("keeps a chamber in a block too short for a whole one", () => {

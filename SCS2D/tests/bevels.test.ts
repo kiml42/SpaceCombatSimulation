@@ -212,7 +212,7 @@ describe("bevels", () => {
             expect(next!.before[1]).toBeCloseTo(e.n[1], 9);
             joined++;
         }
-        // Its pressure-fed engines are round, so only its hull and pumps have edges to join.
-        expect(joined).toBeGreaterThan(4);
+        // Its engines are round, but for its pump's ends, so mostly its hull has edges to join.
+        expect(joined).toBeGreaterThan(2);
     });
 });

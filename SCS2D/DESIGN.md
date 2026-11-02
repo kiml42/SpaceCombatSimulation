@@ -1642,7 +1642,8 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   gets a good nozzle, and a flame combed into fingers rather than thrown as one sheet.
 - **An engine is drawn as what it is made of**: a spherical chamber on each bell's throat, cut flat to sit
   on it, and shipward of them one turbopump across the block, banded with the livery, that each chamber is
-  cut a little flat to meet. A pressure-fed engine has no pump, so its chambers are round in front. Where a stretch of the block's faces is against something, a plate
+  cut a little flat to meet, and bevelled only at its ends. A pressure-fed engine has no pump, so its chambers run on to the block's front as capsules, so a longer
+  block shows as a longer chamber. Where a stretch of the block's faces is against something, a plate
   and a web hold the chamber to it; elsewhere it stands clear, so the missing pump is what shows. The
   matter is still the whole block to the simulation; only the picture changes (`render/engineLayout.ts`).
 - **How hard the nozzle is fed is the machinery's business.** Thrust is the exit face's area times what

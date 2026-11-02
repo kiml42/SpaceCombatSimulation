@@ -1476,18 +1476,30 @@ function shadeEngine(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: num
     const bell = exit > 0 && mouth + l > 0 ? cylinderShade(side, up, engine.throatWidth / engine.exitWidth) : null;
     const r = layout.radius;
     const dome = r > 0 ? domeShade(across, up) : null;
+    const straight = layout.nose - layout.centre;
+    const tube = r > 0 && straight > 0 ? cylinderShade(side, up) : null;
     for (const y of layout.centres) {
         if (bell !== null) ctx.drawImage(bell, -l, y - exit, mouth + l, 2 * exit);
         if (dome === null) continue;
-        // Between its flat faces.
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(layout.aft, y - r, layout.fore - layout.aft, 2 * r);
-        ctx.clip();
-        ctx.translate(layout.centre, y);
-        ctx.rotate(light.from - angle);
-        ctx.drawImage(dome, -r, -r, 2 * r, 2 * r);
-        ctx.restore();
+        // Each end between its flat face and the tube, if there is one.
+        const ends: [number, number, number][] =
+            straight > 0
+                ? [
+                      [layout.centre, layout.aft, layout.centre],
+                      [layout.nose, layout.nose, layout.fore],
+                  ]
+                : [[layout.centre, layout.aft, layout.fore]];
+        for (const [x, from, to] of ends) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(from, y - r, to - from, 2 * r);
+            ctx.clip();
+            ctx.translate(x, y);
+            ctx.rotate(light.from - angle);
+            ctx.drawImage(dome, -r, -r, 2 * r, 2 * r);
+            ctx.restore();
+        }
+        if (tube !== null) ctx.drawImage(tube, layout.centre, y - r, straight, 2 * r);
     }
     if (layout.pumpAft < l) {
         const pump = cylinderShade(side, up);

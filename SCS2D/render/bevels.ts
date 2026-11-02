@@ -113,10 +113,18 @@ function height(design: ShipDesign, m: number): number {
     return module.weaponsLayer && !isDomed(module.spec.kind) ? 1 : 0;
 }
 
-/** Whether something as high as module `m` of `design` stands at a point in `m`'s frame, among each module's `shapes`. */
-function coverTest(design: ShipDesign, m: number, shapes: readonly (readonly (readonly number[])[])[]): (x: number, y: number) => boolean {
+/**
+ * Whether something stands at a point in module `m` of `design`'s frame, among
+ * each module's `shapes`: something as high as it, unless `any`.
+ */
+function coverTest(
+    design: ShipDesign,
+    m: number,
+    shapes: readonly (readonly (readonly number[])[])[],
+    any = false,
+): (x: number, y: number) => boolean {
     const module = design.modules[m]!;
-    const mine = height(design, m);
+    const mine = any ? 0 : height(design, m);
     const c = Math.cos(module.angle);
     const s = Math.sin(module.angle);
     return (x, y) => {
@@ -182,6 +190,8 @@ function bevelled(design: ShipDesign, m: number, shapes: readonly (readonly (rea
         const ey = outline[j + 1]! - ay;
         const span = Math.sqrt(ex * ex + ey * ey);
         if (!(span > 0)) continue;
+        // A pump is round along its sides, so only its ends are edges.
+        if (module.spec.kind === "engine" && Math.abs(ex) > Math.abs(ey)) continue;
         // Anticlockwise, so out is to the right of the edge.
         const nx = ey / span;
         const ny = -ex / span;
@@ -255,7 +265,8 @@ function engineMounts(design: ShipDesign, m: number, shapes: readonly (readonly 
     const layout = engineLayout(design.modules[m]!.spec);
     const { radius, halfWidth: w, front: l, centres } = layout;
     if (!(radius > 0) || centres.length === 0) return NO_MOUNTS;
-    const covered = coverTest(design, m, shapes);
+    // Whatever it stands beside holds it, however high.
+    const covered = coverTest(design, m, shapes, true);
     const gap = Math.max(OUTSIDE_M, BEVEL_OF_RADIUS * design.radius);
     const touching = (x: number, y: number, nx: number, ny: number): boolean =>
         covered(x + nx * OUTSIDE_M, y + ny * OUTSIDE_M) || covered(x + nx * gap, y + ny * gap);
@@ -274,7 +285,7 @@ function engineMounts(design: ShipDesign, m: number, shapes: readonly (readonly 
             const a = -w + 2 * w * along[r]!;
             const b = -w + 2 * w * along[r + 1]!;
             rect(l - plate, a, l, b);
-            for (const y of centres) if (y >= a && y <= b) rect(layout.centre, y - web, l, y + web);
+            for (const y of centres) if (y >= a && y <= b) rect(layout.nose, y - web, l, y + web);
         }
     }
     // Each side, beside the chambers.
@@ -289,9 +300,9 @@ function engineMounts(design: ShipDesign, m: number, shapes: readonly (readonly 
                 const a = x0 + span * along[r]!;
                 const b = x0 + span * along[r + 1]!;
                 rect(a, edge - side * plate, b, edge);
-                // Across to the chamber, at its widest.
+                // Across to the chamber, along its widest.
                 const from = Math.max(a, layout.centre - web);
-                const to = Math.min(b, layout.centre + web);
+                const to = Math.min(b, layout.nose + web);
                 if (to > from) rect(from, chamber, to, edge);
             }
         }

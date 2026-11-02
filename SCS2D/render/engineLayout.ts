@@ -5,7 +5,8 @@ import { engineGeometry, isPressureFed, nozzleOffset, type ModuleSpec } from "..
  * a combustion chamber on each bell's throat and, on a pumped engine, one
  * turbopump across the whole block on the hull's side of them. Each chamber is
  * a sphere cut flat where it sits on its throat and, where there is a pump, cut
- * a little flat where it meets that too. A pressure-fed engine has no pump.
+ * a little flat where it meets that too. A pressure-fed engine has no pump, so
+ * its chambers run on to the block's front as capsules, rounded there.
  * DOM-free, so it is unit-tested.
  */
 export interface EngineLayout {
@@ -15,9 +16,13 @@ export interface EngineLayout {
     /** Half the block's width. */
     readonly halfWidth: number;
     readonly pressureFed: boolean;
-    /** Each chamber's radius and centre along x, and where it is cut flat aft and fore. */
+    /**
+     * Each chamber's radius; the centres along x of its aft and forward ends,
+     * the same for a sphere; and how far it reaches, cut flat aft and maybe fore.
+     */
     readonly radius: number;
     readonly centre: number;
+    readonly nose: number;
     readonly aft: number;
     readonly fore: number;
     /** Each chamber's centre across the block, one per nozzle. */
@@ -61,7 +66,8 @@ export function engineLayout(spec: ModuleSpec): EngineLayout {
             radius = low;
         }
         const centre = mouth + behind(radius);
-        const fore = centre + ahead * radius;
+        const nose = pressureFed ? Math.max(centre, front - radius) : centre;
+        const fore = nose + ahead * radius;
         const centres: number[] = [];
         for (let n = 0; n < engine.nozzles; n++) centres.push(nozzleOffset(engine, n));
         made = {
@@ -71,6 +77,7 @@ export function engineLayout(spec: ModuleSpec): EngineLayout {
             pressureFed,
             radius,
             centre,
+            nose,
             aft: mouth,
             fore,
             centres,
@@ -81,23 +88,28 @@ export function engineLayout(spec: ModuleSpec): EngineLayout {
     return made;
 }
 
-/** Segments round a chamber. */
-const SEGMENTS = 24;
+/** Segments in each quarter of a chamber's round. */
+const SEGMENTS = 8;
 
-/** A sphere `radius` round about `x`, `y`, cut flat at `aft` and `fore` along x, anticlockwise. */
-export function cutSphere(x: number, y: number, radius: number, aft: number, fore: number): number[] {
+/**
+ * A capsule `radius` round between centres `x` and `nose` along x at `y` (a
+ * sphere where they are the same), cut flat at `aft` and `fore`, anticlockwise.
+ */
+export function cutCapsule(x: number, nose: number, y: number, radius: number, aft: number, fore: number): number[] {
     const out: number[] = [];
-    const angle = (at: number): number => Math.acos(Math.min(1, Math.max(-1, (at - x) / radius)));
-    const from = angle(fore);
-    const to = angle(aft);
-    // Over the top from the fore cut to the aft one, then the same underneath.
-    for (let k = 0; k <= SEGMENTS; k++) {
-        const t = from + ((to - from) * k) / SEGMENTS;
-        out.push(x + radius * Math.cos(t), y + radius * Math.sin(t));
-    }
-    for (let k = 0; k <= SEGMENTS; k++) {
-        const t = -to + ((to - from) * k) / SEGMENTS;
-        out.push(x + radius * Math.cos(t), y + radius * Math.sin(t));
-    }
+    const angle = (at: number, about: number): number => Math.acos(Math.min(1, Math.max(-1, (at - about) / radius)));
+    const from = angle(fore, nose);
+    const to = angle(aft, x);
+    const arc = (about: number, a0: number, a1: number): void => {
+        for (let k = 0; k <= SEGMENTS; k++) {
+            const t = a0 + ((a1 - a0) * k) / SEGMENTS;
+            out.push(about + radius * Math.cos(t), y + radius * Math.sin(t));
+        }
+    };
+    // Over the top from the fore cut to the aft one, then back underneath.
+    arc(nose, from, Math.PI / 2);
+    arc(x, Math.PI / 2, to);
+    arc(x, -to, -Math.PI / 2);
+    arc(nose, -Math.PI / 2, -from);
     return out;
 }
