@@ -3,7 +3,6 @@ import { ARC_LABELS, ARCS_KEY, draw, nextArcs, type Arcs } from "../render/canva
 import { sidesOf, withSides } from "../render/teams.js";
 import { frame, snapStep, type Camera } from "../render/camera.js";
 import { viewOptions } from "../host/viewOptions.js";
-import { loadRenderer } from "../host/viewSettings.js";
 import { BUILDER_LIGHT } from "../render/light.js";
 import { pixiUnder } from "../render/pixiView.js";
 import { snap } from "./edit.js";
@@ -58,8 +57,8 @@ type Drag =
 export function fleetCanvas(canvas: HTMLCanvasElement, doc: FleetDocument, hooks: FleetCanvasHooks): FleetCanvas {
     const ctx = canvas.getContext("2d");
     if (ctx === null) throw new Error("no 2d context");
-    // Drawn with Pixi underneath unless Canvas2D is picked, as the battle is.
-    const stacked = loadRenderer() === "webgl" ? pixiUnder(canvas) : null;
+    // Drawn with Pixi underneath, as the battle is.
+    const stacked = pixiUnder(canvas);
     const camera: Camera = { x: 0, y: 0, scale: 1 };
     const snapshot = new Snapshot();
     let fitPending = true;
@@ -81,7 +80,7 @@ export function fleetCanvas(canvas: HTMLCanvasElement, doc: FleetDocument, hooks
         const width = max(1, Math.round(rect.width * ratio));
         const height = max(1, Math.round(rect.height * ratio));
         // Setting either clears the canvas, even to the size it already is.
-        for (const each of stacked === null ? [canvas] : [canvas, stacked.canvas]) {
+        for (const each of [canvas, stacked.canvas]) {
             if (each.width !== width) each.width = width;
             if (each.height !== height) each.height = height;
         }
@@ -126,44 +125,31 @@ export function fleetCanvas(canvas: HTMLCanvasElement, doc: FleetDocument, hooks
             frame(camera, snapshot, canvas.width, canvas.height, 1);
             fitPending = false;
         }
-        const pixi = stacked?.view.ready === true ? stacked.view.begin(snapshot, camera, canvas.width, canvas.height, BUILDER_LIGHT) : null;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Nothing until Pixi has started, which draws it then.
+        const pixi = stacked.view.ready ? stacked.view.begin(snapshot, camera, canvas.width, canvas.height, BUILDER_LIGHT) : null;
         if (pixi !== null) {
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Pixi's context draws as a canvas does (render/pixiCanvas.ts).
+            const into = pixi as unknown as CanvasRenderingContext2D;
+            draw(into, snapshot, camera, canvas.width, canvas.height, undefined, arcs, false, -1, [], null, true, BUILDER_LIGHT);
+            drawFleetOverlay(
+                into,
+                {
+                    hulls: doc.view.hulls,
+                    circles: doc.view.ships.map((ship, i) => {
+                        const design = doc.view.designs[i];
+                        return design == null ? null : { ...centreOf(ship, design), radius: design.radius };
+                    }),
+                    faulty: doc.view.faulty,
+                    ...selectionMarks(),
+                    knob: currentKnob(),
+                },
+                camera,
+                canvas.height,
+            );
+            stacked.view.end();
         }
-        // Pixi's context draws as a canvas does (render/pixiCanvas.ts), so the same code paints either.
-        const into = pixi === null ? ctx : (pixi as unknown as CanvasRenderingContext2D);
-        draw(
-            into,
-            snapshot,
-            camera,
-            canvas.width,
-            canvas.height,
-            undefined,
-            arcs,
-            false,
-            -1,
-            [],
-            null,
-            pixi !== null,
-            pixi === null ? undefined : BUILDER_LIGHT,
-        );
-        drawFleetOverlay(
-            into,
-            {
-                hulls: doc.view.hulls,
-                circles: doc.view.ships.map((ship, i) => {
-                    const design = doc.view.designs[i];
-                    return design == null ? null : { ...centreOf(ship, design), radius: design.radius };
-                }),
-                faulty: doc.view.faulty,
-                ...selectionMarks(),
-                knob: currentKnob(),
-            },
-            camera,
-            canvas.height,
-        );
-        if (pixi !== null) stacked!.view.end();
     };
     const changed = (): void => {
         hooks.changed();
@@ -327,8 +313,8 @@ export function fleetCanvas(canvas: HTMLCanvasElement, doc: FleetDocument, hooks
         render();
     });
     resized.observe(canvas);
-    // Drawn in 2D until Pixi has started, and then again.
-    void stacked?.view.started.then((started) => started && render());
+    // Drawn once Pixi has started.
+    void stacked.view.started.then((started) => started && render());
 
     return {
         camera,
@@ -344,7 +330,7 @@ export function fleetCanvas(canvas: HTMLCanvasElement, doc: FleetDocument, hooks
             canvas.removeEventListener("pointercancel", endDrag);
             canvas.removeEventListener("wheel", wheel);
             resized.disconnect();
-            stacked?.remove();
+            stacked.remove();
             window.removeEventListener("keydown", keyDown);
             viewBar.remove();
         },

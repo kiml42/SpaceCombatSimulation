@@ -100,11 +100,8 @@ an entry is either still open or it is gone.
     approximations: gradients are filled in bands, a fill is not cut to the outside of a shape (only a
     stroke is), and the strips are drawn afresh each frame rather than from their cache. The trigger band
     still draws over capital fills;
-    (4) **built** — WebGL is the default (`scs2d.draw` in storage). Canvas2D stays as **Draw: 2D**
-    and as the fallback where WebGL is unavailable: it is the same drawing code, canvas2d.ts, so there was
-    none to delete, and the button is useful for comparing the two until the stop-gaps below are done. The
-    browser tests draw in 2D (`drawIn2D`) but for the ones about WebGL, since without a GPU it is drawn in
-    software and is slow to start; (5) how it looks — lighting, the editors in Pixi, liveries, part art, marks
+    (4) **built** — WebGL is the default, and then the only way: **Draw: 2D** was retired on
+    2026-11-01, once WebGL ran well on a laptop and a phone (stage 5's second item); (5) how it looks — lighting, the editors in Pixi, liveries, part art, marks
     and effects, in the order and form set out below; (6) a pass over the stop-gaps, done properly alongside a refresh of how those things
     look rather than fixed in place: gradients filled in bands (burn glows are rings;
     the fix is one cached gradient per colour, drawn in the shape's own frame, as plumes now are), strips drawn afresh each
@@ -182,8 +179,9 @@ an entry is either still open or it is gone.
        thin hull with the thick modules'. Still to do: rock shading a fighter flying close by, which needs
        a shadow layer over the fighters, above everything the adapter draws.
        **Each scene sets its own light**, from a palette in `scenarios/lights.ts` spanning the directions,
-       pale tints and harsh to soft ambients, and **each skirmish round draws one from its seed**
-       (`roundLight`), so a replayed round looks as it did. Tints stay pale so a side's colours still read.
+       tints and ambients from black shadows to soft, and **each skirmish round draws one from its seed**
+       (`roundLight`), so a replayed round looks as it did. Neither is held to keeping a side's colours readable in
+       shadow, as a ship is rarely all in shadow, so a light may be as dark as looks right.
        Only the hull layer is tinted: fighters, strips and close-ups, drawn through the adapter, are not,
        until they move to shared geometry with the rest of stage (2). The evolution page and custom battles
        keep the default.
@@ -197,15 +195,18 @@ an entry is either still open or it is gone.
           third. The fleet pictures share it.
         - The fleet pictures (evolution's kinds, the skirmish timeline) share **one**
           renderer drawing to images, since a page may hold only about sixteen WebGL contexts. **Built**
-          (`host/fleetPicture.ts`): one `pixiView` on a canvas off the page, each picture copied out after it renders; drawn in 2D while it starts, then again.
+          (`host/fleetPicture.ts`): one `pixiView` on a canvas off the page, each picture copied out after it renders, once it has started.
         - The editors' handles and guides move into Pixi with the rest; evolution's charts
           (`render/chart.ts`) are not ships and stay as they are.
-        - Then **Draw: 2D** goes, and every drawing path that takes a 2D context for ships. canvas2d.ts stays
-          for now as what the adapter draws, until what it describes moves to shared geometry. Where WebGL is
-          missing, Pixi's own Canvas2D renderer is the fallback, and does without everything done with
-          filters (lighting, bevels, patterns); it is not expected to be used.
-        - The browser tests then read pixels from screenshots rather than a 2D context, and draw WebGL in
-          software, so CI slows; `drawIn2D` goes.
+        - **Draw: 2D retired — built.** The battle view, the editors and the fleet pictures draw only
+          through Pixi, nothing until it has started; the setting and its storage key are gone, and so is
+          the benchmark's Canvas2D run. canvas2d.ts stays as what the adapter draws, until what it describes
+          moves to shared geometry. Where WebGL is missing, Pixi's own Canvas2D renderer is the fallback
+          (`preference: ["webgl", "canvas"]`), without what is done with filters (lighting, bevels,
+          patterns); it is not expected to be used. The browser tests read what a view shows from a
+          screenshot (`shownPixels`), and draw WebGL in software, waiting up to ten seconds by default for
+          it to start. Still on 2D canvases of their own: the fleet strips down the battle's edges, and the
+          fleet pictures' copies; moving the strips into Pixi is a stage (6) stop-gap.
     3. **Liveries.** A fleet sets a base colour, a highlight colour and a pattern, applied to every ship in
        it, replacing the side colours. Settled with the author on 2026-11-01 (DECISIONS.md).
         - **Whose livery.** A `Livery` lives on a `Fleet`, and on a `Blueprint` for a ship flying alone. A
@@ -280,7 +281,7 @@ an entry is either still open or it is gone.
                and stays put on a piece cut away. The hull layer fills each module's hull-coloured
                polygons a second time with it (one shared context per module of a design, rather than
                per spec, where a side has a pattern); fighters, drawn through the adapter, take it by
-               `createPattern`, which `render/pixiCanvas.ts` now has, and so does Draw: 2D. A livery's
+               `createPattern`, which `render/pixiCanvas.ts` now has. A livery's
                highlight is a `Palette`'s `highlight`, which side colours lack: it bands each engine
                block a band's width in from its bells, fills turret domes, hull guns' mantlets and beam
                lenses' discs in place of the pivot tone, and marks pads' landing squares and ports'
@@ -308,7 +309,7 @@ an entry is either still open or it is gone.
          clear where it faces up as the deck does, so it shades whatever colour the part is. Made once per
          angle of the light across the part, rounded to a twelfth, and kept. Drawn in WebGL only, as the
          shadows are. A hull mount's barrels run back into its block under a clip the adapter does not apply
-         to images, so they are shaded only where they are out of the block, worked out from the line itself. Once Draw: 2D is
+         to images, so they are shaded only where they are out of the block, worked out from the line itself. With Draw: 2D
          retired, hull mounts' barrels, their shading and their mantlets belong in the hull layer under their
          module's fill, so the block covers a barrel's root however far it trains, and neither the clip nor
          `throughBox` in `render/canvas2d.ts` is needed.
@@ -332,15 +333,79 @@ an entry is either still open or it is gone.
         - **Severing keeps them**: the pieces, and the rest of the ship, keep the edges they were built
           with, so nothing looks bevelled just because something broke off it.
         - Open: whether a split edge should look rough.
-    5. **Marks for damage**, in place of fading to grey.
-        - A module is marked as it is hurt, and mended marks fade one at a time. Marks follow from a
-          module's id and how hurt it is, not from the hits' history, so rewinding shows the same marks and
-          mending takes them off in reverse.
-        - With no grey, a ship looks the same for longer, so more of it is shared, and marks go on top.
-        - Nothing much leans on the grey: most modules already show whether they work (a core's light, a
-          gun's load), and a ship that has lost control should still read as such. Zoomed out, how hurt a
-          ship is was never readable and need not be: picking it shows it larger, and its icon can still
-          turn grey once it is out of the fight.
+    5. **Marks for damage**, in place of fading and wreckage grey: wear for how hurt a module is, and scars
+       for the hits that mattered.
+        - **Wear** — grime, dents and scuffs — is one texture in which every spot has a threshold of its
+          own, shown once the module's damage passes it, by a small shader, the hull layer's first. Wear so
+          spreads smoothly as damage rises and recedes in exact reverse as it is mended. Laid in the
+          design's frame and offset by the module's id, as the livery is, so two modules hurt alike look
+          different and a piece cut away keeps its wear; sized as a share of the ship's radius, so a fighter
+          and a capital ship look as worn at the same share of damage.
+        - **Scars** are kept by the sim, beside each module's damage, so a checkpoint carries them and a
+          rewind, a replay or a link shows the same ones. They change nothing in the battle and are left out
+          of the golden checksums, and the snapshot carries them out. Each holds where on the module it is,
+          its kind, its direction, its size and the module's damage when it was made; mending below that
+          takes it off, so mending peels scars off in reverse.
+        - **A hit scars if it delivers at least a share of what breaks its module** (a tenth to start), so a
+          round that craters a fighter's plate is only wear on a capital ship's armour. A scar's size is the
+          cube root of the hit's energy, as a flash's is. A module holds scars by its area, about one per few
+          square metres, at least one and at most about eight; when full, a new scar replaces the smallest
+          if it is larger than it.
+        - **Kinds**, each drawn along the direction of travel, since a hit arrives edge-on to the view:
+            - **A round** leaves a gouged channel as long as it got into the module and as wide as the
+              round, with a raised lip at the far end; one that went through ends in a hole.
+            - **Fragments** of a burst join a peppering scar near where they land rather than being judged
+              alone, which scars once what has joined it passes the threshold: a spray of small streaks
+              along their travel. The burst itself does nothing to a hull, so leaves no scar.
+            - **A beam or a plume** leaves a burn: blackened, with a glazed core. One held on a spot grows
+              its burn rather than adding another; one that moves draws it out into a streak, up to a limit.
+            - **A collision** leaves a gouge of scraped bright metal with buckled edges, along the way the
+              hulls slid.
+          Each scar's shape is drawn from the module's id and its slot, so scars vary but every replay
+          draws them alike.
+        - **A destroyed module is burnt out** rather than grey: its shape, scars and fullest wear, darkened
+          to a sooty near-black that full wear never reaches, its livery faint through it, and its lights
+          out — a core's glow, a gun's load, a gauge. A ship without control, a hulk and wreckage keep
+          colours of their own, as liveries have them, and a ship's icon can still turn grey once it is
+          out of the fight.
+        - **Skipped under a pixel**, as bevels are: wear on a ship seen whole, and each scar by its own
+          size, so a small one on a big ship goes before a big one as the view zooms out.
+        - With no grey or fading, a ship looks the same for longer, so more of it is shared, and marks go
+          on top. Nothing much leans on the grey: most modules already show whether they work (a core's
+          light, a gun's load). Zoomed out, how hurt a ship is was never readable and need not be: picking
+          it shows it larger.
+        - Not settled: the threshold, the scars a module holds and how far a burn may streak are first
+          guesses, to be set by eye.
+        - **In three pull requests**, in this order:
+            1. **Scars in the sim — built** (`sim/scars.ts`, held by `Damage`, so registered, carried
+               through severs and remade hulls, copied into checkpoints and forgotten with it, and left
+               out of `checksumDamage`). Rounds scar in `walkRound`, a fragment's as peppering; beams and
+               plumes burn where they land, along their direction; a collision gouges each module the
+               crush reaches, along the other hull's slide at the contact. A burn, peppering or gouge
+               joins one of its kind within a quarter of the module's narrower side, drawn out no
+               further than a quarter of its longer. The snapshot carries the scars showing
+               (`ShipView.scars`, `SCAR_VIEW_STRIDE` apiece) and a version that counts changes. No golden
+               moved.
+            2. **Wear and burnt-out modules — built** (`render/wear.ts`), in place of fading and
+               wreckage grey. Not a shader in the end but `WEAR_LEVELS` (16) textures cut from one
+               threshold field, a sixteenth of damage apiece, so every module still batches; a shader
+               taking each module's damage would draw each alone. Grime comes in broad patches, dents
+               and scuffs in small clusters. The hull layer folds wear and soot into each module's
+               cached fills, keyed by level, so thin and thick depths, shadows and patterns are as they
+               were; fighters and the fleet strips take the same through `render/canvas2d.ts`. Wear is
+               left out once a texel is under about a third of a pixel, soot never. A destroyed module
+               keeps its livery under the soot. Its lights were already out — a core's, a generator's,
+               a bay's — except the store gauges, which stay on a wreck so a salvager can see what it
+               holds.
+            3. **Drawing scars — built** (`render/scars.ts`). Each scar is a few ragged polygons in its
+               module's frame, as wide as `WIDTH_PER_CBRT_JOULE` (4 mm) a joule's cube root, at least
+               5 cm and at most 45% of the module's narrower side, and kept inside the box its drawn
+               fills lie in, on an engine its block alone, so none lies on a bell or barrel: a round's dark channel ending in a hole or a light lip, peppering's spray of
+               short streaks, a burn's scorch with a glazed core and a sheen across it, and a gouge's
+               scraped metal between buckled edges. The hull layer builds each ship's scars into two
+               contexts in its own frame, one over its thin hull and one over its thick modules,
+               rebuilt only when `scarsVersion`, its design or the zoom's power of two changes, and
+               leaves out a scar under 1.5 pixels wide. Not drawn on fighters, nor on rock.
     6. **Particles and glows.** Glows for explosions and beams; particles for explosions and impacts;
        bits of metal for collision damage in place of its flashes, and from a leaking tank alongside or in
        place of its wedge. Particles are only drawn, never simulated: on the battle's clock as the flashes

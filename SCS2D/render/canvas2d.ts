@@ -80,6 +80,7 @@ import {
 import { stripsFor, stripTileAt, stripTileUnder, type StripColumn, type StripShip, type Strips, type StripTile } from "./fleetStrip.js";
 import { fighterColours, markerOf, NEUTRAL, shipColours, teamLivery, teamName } from "./teams.js";
 import { patternColour, patternTile, patternTransform } from "./livery.js";
+import { SOOT, SOOT_ALPHA, wearLevel, wearTile, wearTransform } from "./wear.js";
 
 export { teamColour } from "./teams.js";
 import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth, plumeAlpha, tracerAlpha } from "./strokes.js";
@@ -1486,17 +1487,16 @@ function shadePort(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: numbe
 
 /**
  * Module `i`'s side's pattern in a colour, laid in its own frame
- * (`patternTransform`), or null where its side has none or it is wreckage or rock.
+ * (`patternTransform`), or null where its side has none or it is rock.
  */
 function patternOf(
     ctx: CanvasRenderingContext2D,
     design: ShipDesign,
     i: number,
     side: number,
-    integrity: number,
 ): ((colour: string) => CanvasPattern | null) | null {
     const kind = design.modules[i]!.spec.kind;
-    const livery = integrity > 0 && kind !== "rock" && kind !== "kernel" ? teamLivery(side) : undefined;
+    const livery = kind !== "rock" && kind !== "kernel" ? teamLivery(side) : undefined;
     if (livery === undefined || livery.pattern === "none") return null;
     const t = patternTransform(livery, design, i);
     return (colour) => {
@@ -1526,7 +1526,7 @@ function keptFill(ctx: CanvasRenderingContext2D, ship: ShipView, i: number): voi
     const m = design.modules[i]!;
     const colours = moduleColours(design, i, ship.sides?.[i] ?? ship.team);
     const integrity = ship.integrity?.[i] ?? 1;
-    const colour = fillColour(m.spec, integrity, colours);
+    const colour = fillColour(m.spec, colours);
     const side = ship.sides?.[i] ?? ship.team;
     keep(ctx, `fill ${idOf(m.spec)} ${idOf(colours)} ${colour} ${integrity} ${patternKey(design, i, side)}`, () =>
         fillModule(ctx, ship, i),
@@ -1543,8 +1543,11 @@ function fillModule(ctx: CanvasRenderingContext2D, ship: ShipView, i: number): v
     const spec = m.spec;
     const colours = moduleColours(design, i, ship.sides?.[i] ?? ship.team);
     const integrity = ship.integrity?.[i] ?? 1;
-    moduleFills(spec, fillColour(spec, integrity, colours), colours, integrity, fills);
-    const pattern = patternOf(ctx, design, i, ship.sides?.[i] ?? ship.team, integrity);
+    moduleFills(spec, fillColour(spec, colours), colours, integrity, fills);
+    const pattern = patternOf(ctx, design, i, ship.sides?.[i] ?? ship.team);
+    const ground = spec.kind === "rock" || spec.kind === "kernel";
+    const burnt = !ground && integrity <= 0;
+    const wear = ground ? null : wearPattern(ctx, design, i, wearLevel(integrity));
     for (const fill of fills) {
         const points = fill.points;
         ctx.fillStyle = fill.colour;
@@ -1566,6 +1569,35 @@ function fillModule(ctx: CanvasRenderingContext2D, ship: ShipView, i: number): v
         ctx.lineWidth = mark.line;
         ctx.strokeRect(mark.x, mark.y, mark.width, mark.height);
     }
+    if (!burnt && wear === null) return;
+    const soot = `${SOOT}${Math.round(SOOT_ALPHA * 255)
+        .toString(16)
+        .padStart(2, "0")}`;
+    for (const fill of fills) {
+        const points = fill.points;
+        ctx.beginPath();
+        ctx.moveTo(points[0]!, points[1]!);
+        for (let v = 2; v < points.length; v += 2) ctx.lineTo(points[v]!, points[v + 1]!);
+        ctx.closePath();
+        if (burnt) {
+            ctx.fillStyle = soot;
+            ctx.fill();
+        }
+        if (wear !== null) {
+            ctx.fillStyle = wear;
+            ctx.fill();
+        }
+    }
+}
+
+/** Wear `level` laid on module `i` (`render/wear.ts`), or null for none. */
+function wearPattern(ctx: CanvasRenderingContext2D, design: ShipDesign, i: number, level: number): CanvasPattern | null {
+    const tile = level > 0 ? wearTile(level) : null;
+    const pattern = tile === null ? null : ctx.createPattern(tile as HTMLCanvasElement, "repeat");
+    if (pattern === null) return null;
+    const t = wearTransform(design, i);
+    pattern.setTransform({ a: t.a, b: t.b, c: t.c, d: t.d, e: t.e, f: t.f });
+    return pattern;
 }
 
 /**

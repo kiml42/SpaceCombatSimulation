@@ -14,6 +14,7 @@ import {
     type Hulls,
 } from "./hull.js";
 import { cos, sin, sqrt } from "./math.js";
+import { SCAR_BURN } from "./scars.js";
 import { shapeOf } from "./shape.js";
 import { DECK_HEIGHT, nozzleOffset, THRUST_PER_EXIT_AREA, engineGeometry, type EngineGeometry } from "./modules.js";
 import { RayHit, type SpatialGrid } from "./spatialGrid.js";
@@ -766,6 +767,8 @@ export class Plumes {
                     const clear = module >= 0 ? hulls.transparency(this.body, module) : 0;
                     const joules = PLUME_POWER_PER_NEWTON * carried * through * (1 - clear) * dt;
                     damage.absorb(this.body, module, joules);
+                    if (k === 0 && joules > 0)
+                        damage.scarInWorld(bodies, this.body, module, SCAR_BURN, this.x, this.y, this.dirX, this.dirY, joules);
                     if (victim !== null) heatSeams(damage, victim, this.body, module, joules);
                     through *= clear;
                 }

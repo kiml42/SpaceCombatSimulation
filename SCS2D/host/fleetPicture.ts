@@ -13,7 +13,6 @@ import { draw } from "../render/canvas2d.js";
 import type { Camera } from "../render/camera.js";
 import { BUILDER_LIGHT } from "../render/light.js";
 import { pixiView, type PixiView } from "../render/pixiView.js";
-import { loadRenderer } from "./viewSettings.js";
 import { NO_TEAM } from "../editor/preview.js";
 import { fleetSnapshot } from "../editor/fleetPreview.js";
 import type { FleetView } from "../editor/fleetDocument.js";
@@ -113,7 +112,6 @@ function drawNow(canvas: HTMLCanvasElement, make: (into: Snapshot) => Snapshot, 
         waiting.delete(canvas);
         return;
     }
-    drawIn2D(canvas, shot, scale);
     if (view === null) return;
     if (waiting.size === 0) {
         void view.started.then((started) => {
@@ -136,23 +134,16 @@ const scratch = new Snapshot();
  * since a page may hold only about sixteen WebGL contexts.
  */
 let shared: PixiView | null = null;
-/** Pictures drawn in 2D while it starts, to draw again once it has. */
+/** Pictures asked for while it starts, to draw once it has. */
 const waiting = new Map<HTMLCanvasElement, { make: (into: Snapshot) => Snapshot; scale: number; livery: Livery | undefined }>();
 
 function sharedView(): PixiView | null {
-    if (loadRenderer() === "canvas2d") return null;
     shared ??= pixiView(document.createElement("canvas"));
     return shared.failed ? null : shared;
 }
 
 function eyeOn(shot: Snapshot, scale: number): Camera {
     return { x: (shot.minX + shot.maxX) / 2, y: (shot.minY + shot.maxY) / 2, scale };
-}
-
-function drawIn2D(canvas: HTMLCanvasElement, shot: Snapshot, scale: number): void {
-    const ctx = canvas.getContext("2d");
-    if (ctx === null) return;
-    draw(ctx, shot, eyeOn(shot, scale), canvas.width, canvas.height);
 }
 
 function drawnWith(view: PixiView, canvas: HTMLCanvasElement, shot: Snapshot, scale: number): boolean {
