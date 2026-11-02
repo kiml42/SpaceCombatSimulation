@@ -17,7 +17,7 @@ export const LIGHTS = {
     /** White, from the top left: the default. */
     daylight: { from: degrees(135), colour: "#ffffff", ambient: 0.2 },
     /** A yellow sun, high overhead. */
-    noon: { from: degrees(90), colour: "#fff2d0", ambient: 0.2, slant: 2015 },
+    noon: { from: degrees(90), colour: "#fff2d0", ambient: 0.2, slant: 15 },
     /** Low and orange, from the left. */
     dusk: { from: degrees(185), colour: "#915f43", ambient: 0.1 },
     /** A red dwarf, dim, from the bottom left. */
