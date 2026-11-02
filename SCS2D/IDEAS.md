@@ -90,6 +90,11 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - there shouldn't be specular highlights (bevels and rounded parts) in shadows
 - Reconsider shading the gauges, they look a bit too luminous, particularly metal.
 
+## Livery
+- Locations should be based on the grig, not the COM (at least in the editor) so changing a part doesn't shift the whole pattern
+- Chevrons should allow lateral offset.
+- Chevrons should allow rotating further to point the other way
+
 ## Harvesting
 - Scavenging wrecks and mining asteroids. Two of the causes of wrecked Salvagers are being fixed as ROADMAP.md
 step 15, item 5: arriving with its jaws held on all the way, braking astern, rather than turning round late; and

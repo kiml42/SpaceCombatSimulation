@@ -47,8 +47,8 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
 
     const started = autoDetectRenderer({
         canvas,
-        // Not Pixi's own Canvas2D fallback: without WebGL, ours draws everything.
-        preference: ["webgl"],
+        // Pixi's own Canvas2D where WebGL is missing, which does without filters and so lighting.
+        preference: ["webgl", "canvas"],
         background: BACKGROUND,
         antialias: true,
         width: canvas.width,

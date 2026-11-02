@@ -35,7 +35,7 @@ inside any one file is not contiguous.
   band, training their turrets with lead, and firing salvoes that recoil. A ship
   holds a *queue* of orders rather than one order, each naming what would finish
   it — the target disarmed, stranded, both, or simply gone — so a plan can be
-  given in advance and worked through as targets are put out of the fight. A Canvas2D
+  given in advance and worked through as targets are put out of the fight. A WebGL
   viewer draws snapshots of all of it — ships, turret bearings, tracers and the wells
   bending them — with pause, single-step, a scrub bar to wind it back and on, a speed from a quarter to sixteen times, and zoom and pan over an
   auto-framing camera, by mouse or by touch (pinch to zoom). A ship clicked or tapped is picked out — ringed, a line to what it is fighting with how far off it is written upright on the line just past its ring — or, while it is shown in a window, just outside the window on the side facing its target, clear of the target's — so the figure stays with the ship and in frame while it is, every arc and
@@ -2029,11 +2029,12 @@ SCS2D/
   metadata. **Triangulate a blueprint once, instance per ship** — the same precompute pattern as the
   engine matrix. WebGL through PixiJS, because ~4,000 filled paths per frame is beyond Canvas2D.
   Pixi rather than raw WebGL because it is what work is likely to adopt (DECISIONS.md 2026-10-28).
-  - **How it is drawn now:** the battle view draws with Pixi by default, behind `BattleCanvas`: the
+  - **How it is drawn now:** the battle view, the editors and the fleet pictures draw with Pixi: the
     backdrop and capital hull fills as Pixi's own shared geometry, and everything else as
     `render/canvas2d.ts` drawing through a Canvas-shaped adapter (`render/pixiCanvas.ts`), so canvas2d.ts
-    stays the one description of what things look like. Canvas2D draws it where WebGL is unavailable or
-    picked, and the editors and fleet pictures still draw with it directly (ROADMAP.md §8 step 17).
+    stays the one description of what things look like. Where WebGL is missing, Pixi falls back to its
+    own Canvas2D renderer, without the lighting. The fleet strips down the battle's edges are still drawn
+    on a 2D canvas of their own (ROADMAP.md §8 step 17).
   - Procedural art means **adding a module type costs zero art**, and module variety *is* the
     content. It also guarantees the picture matches the simulation, which matters when the picture
     is the instrument you read design failures from.
@@ -2250,7 +2251,7 @@ Recorded so they aren't reopened without new information.
 | MonoGame / Silk.NET + Dear ImGui | ImGui is excellent for tools and will make a game you want to show people look like a debug build. |
 | Raster sprites | Rotating ships carry baked highlights around under a directional star; fixing it means normal maps, which is 3D work in disguise. |
 | 3D meshes | Art cost per module gates content, and module variety *is* the content. There were only ever 3 mesh files in the old project; there is nothing to preserve. |
-| Canvas2D for the real renderer | ~4,000 filled paths per frame is past where Canvas2D falls over. (Kept until the Pixi viewer, §8 step 17, replaces it.) |
+| Canvas2D for the real renderer | ~4,000 filled paths per frame is past where Canvas2D falls over. Replaced by the Pixi viewer (§8 step 17). |
 | Raw WebGL2 for the renderer | Batching, text, masks and filters all written by hand for the same result, and work is likely to adopt a library rather than raw WebGL. Pixi is still WebGL underneath. |
 | WebGPU | No gain for sprites and filled hulls, and Firefox had not shipped it on Linux or Android by late 2026. Pixi has a WebGPU backend, so it stays a switch away. |
 | three.js | A 3D engine for a 2D game. Its lighting is the draw, but text and pointer handling are weak, and work's games are 2D sprites. |
