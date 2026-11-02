@@ -62,6 +62,52 @@ export function cylinderShade(side: number, up: number, taper = 1): Image | null
     return made;
 }
 
+/** Turns of the light round a sphere it is rounded to. */
+const TURNS = 48;
+/** A sphere's picture across, and steps its cut faces are rounded to, in radii: few engines, so fine. */
+const SPHERE_ACROSS = 64;
+const CUTS = 1000;
+
+/**
+ * A sphere of radius 1 cut flat at `from` and `to` along x, in radii from its
+ * centre, lit from `angle` round it in its own frame, `across` along the deck
+ * and `up` from above: a combustion chamber's end. Its picture already has the
+ * chamber's shape, so it needs no clip, which Pixi's drawing does not apply
+ * to pictures. Columns run from `from` to `to`, rows from -y to +y.
+ */
+export function sphereShade(angle: number, across: number, up: number, from: number, to: number): Image | null {
+    const turn = ((Math.round((angle / (2 * Math.PI)) * TURNS) % TURNS) + TURNS) % TURNS;
+    const a = Math.round(across * STEPS);
+    const u = Math.round(up * STEPS);
+    const f = Math.round(from * CUTS);
+    const t = Math.round(to * CUTS);
+    if (!(t > f)) return null;
+    const key = `s ${turn} ${a} ${u} ${f} ${t}`;
+    let made = cache.get(key);
+    if (made === undefined) {
+        const towards = (turn / TURNS) * 2 * Math.PI;
+        const lx = Math.cos(towards) * (a / STEPS);
+        const ly = Math.sin(towards) * (a / STEPS);
+        const x0 = f / CUTS;
+        const span = (t - f) / CUTS;
+        made = paint(
+            Math.max(2, Math.round((SPHERE_ACROSS * span) / 2)),
+            SPHERE_ACROSS,
+            (x, y) => {
+                const px = x0 + span * x;
+                const r2 = px * px + y * y;
+                if (r2 >= 1) return null;
+                // A true sphere's normal is where it is on it.
+                const lit = px * lx + y * ly + Math.sqrt(1 - r2) * (u / STEPS);
+                return [lit, edge(1 - Math.sqrt(r2), SPHERE_ACROSS / 2)];
+            },
+            u / STEPS,
+        );
+        cache.set(key, made);
+    }
+    return made;
+}
+
 /** A dome, the light coming from +x and `up` from above, `across` along the deck. */
 export function domeShade(across: number, up: number): Image | null {
     const a = Math.round(across * STEPS);

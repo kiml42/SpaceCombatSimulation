@@ -1645,6 +1645,15 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   share one chamber and divide one exit area, so the count is never free power — what a cluster buys is
   that a narrow bell collimates in a fraction of the length a wide one needs, which is how a stubby engine
   gets a good nozzle, and a flame combed into fingers rather than thrown as one sheet.
+- **An engine is drawn as what it is made of**: a spherical chamber on each bell's throat, cut flat to sit on
+  it, wider than that throat, and shipward of them one turbopump across the block, banded with the livery,
+  which each chamber is cut flat to meet. Feeding one nozzle with nothing welded to its sides the pump is a
+  cylinder, bevelled only at its ends; otherwise it is a bevelled block, not a drum with a row of engines
+  through it. A pressure-fed engine has no pump, so its chambers run on to the block's front as capsules, and
+  a longer block shows as a longer chamber. Where a stretch of the block's faces is welded to something
+  (`ATTACHMENT_TOLERANCE`, as the simulation has it), a plate and a web hold the chamber to it; elsewhere it
+  stands clear, so the missing pump is what shows. The matter is still the whole block to the simulation; only
+  the picture changes (`render/engineLayout.ts`).
 - **How hard the nozzle is fed is the machinery's business.** Thrust is the exit face's area times what
   the chamber and pumps behind it can drive through the throat, and that machinery is the block: a deep
   one feeds more flow. A throat chokes rather than passing whatever is pushed at it, which is what stops a
