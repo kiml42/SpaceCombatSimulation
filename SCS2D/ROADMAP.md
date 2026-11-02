@@ -385,7 +385,17 @@ an entry is either still open or it is gone.
                further than a quarter of its longer. The snapshot carries the scars showing
                (`ShipView.scars`, `SCAR_VIEW_STRIDE` apiece) and a version that counts changes. No golden
                moved.
-            2. **Wear and burnt-out modules**, in place of fading and wreckage grey.
+            2. **Wear and burnt-out modules — built** (`render/wear.ts`), in place of fading and
+               wreckage grey. Not a shader in the end but `WEAR_LEVELS` (16) textures cut from one
+               threshold field, a sixteenth of damage apiece, so every module still batches; a shader
+               taking each module's damage would draw each alone. Grime comes in broad patches, dents
+               and scuffs in small clusters. The hull layer folds wear and soot into each module's
+               cached fills, keyed by level, so thin and thick depths, shadows and patterns are as they
+               were; fighters and the fleet strips take the same through `render/canvas2d.ts`. Wear is
+               left out once a texel is under about a third of a pixel, soot never. A destroyed module
+               keeps its livery under the soot. Its lights were already out — a core's, a generator's,
+               a bay's — except the store gauges, which stay on a wreck so a salvager can see what it
+               holds.
             3. **Drawing scars.**
     6. **Particles and glows.** Glows for explosions and beams; particles for explosions and impacts;
        bits of metal for collision damage in place of its flashes, and from a leaking tank alongside or in
