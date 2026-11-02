@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fleetHulls, fleetReach, type Blueprint, type Fleet } from "../sim/index.js";
+import { fleetHulls, fleetReach, NEUTRAL_TEAM, type Blueprint, type Fleet } from "../sim/index.js";
 import { BARE_CORE, GUNSHIP } from "../scenarios/blueprints.js";
 import { LINE_OF_BATTLE } from "../scenarios/fleets.js";
 import { customBattle } from "../scenarios/customBattle.js";
@@ -56,7 +56,7 @@ function fight(a: Fleet, b: Fleet, until: number, range = 1000, cap = TIME_CAP):
 
 /**
  * Two ships, one a side, as the rule sees them, driven by hand: each step says
- * who fired, who is disarmed, and which hits landed.
+ * who fired, who is disarmed, and which hits landed. Body 2 is an asteroid.
  */
 function staged(dt = 1) {
     const fired = [-1, -1];
@@ -66,7 +66,7 @@ function staged(dt = 1) {
     const ships = {
         highWater: 2,
         isAlive: () => true,
-        teamOf: (i: number) => i,
+        teamOf: (i: number) => (i < 2 ? i : NEUTRAL_TEAM),
         hasControl: () => true,
         isRamming: () => false,
         isDisarmed: (i: number) => disarmed[i]!,
@@ -162,6 +162,22 @@ describe("deciding a skirmish battle", () => {
             if (decision !== null) {
                 expect(decision.winner).toBe(1);
                 expect(decision.reason).toBe("quiet");
+                return;
+            }
+        }
+        throw new Error("never decided");
+    });
+
+    it("puts a side out that only grinds against an asteroid while the other fires", () => {
+        const battle = staged();
+        battle.fired[0] = 1;
+        battle.fired[1] = 1;
+        for (let t = 1; t <= QUIET_TIME + 1; t++) {
+            battle.fired[1] = battle.tick() + 1;
+            battle.hits.push([0, 2]);
+            const decision = battle.to(t);
+            if (decision !== null) {
+                expect(decision).toMatchObject({ winner: 1, reason: "quiet" });
                 return;
             }
         }
