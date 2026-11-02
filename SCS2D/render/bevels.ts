@@ -270,6 +270,18 @@ function engineMounts(design: ShipDesign, m: number, shapes: readonly (readonly 
     const gap = Math.max(OUTSIDE_M, BEVEL_OF_RADIUS * design.radius);
     const touching = (x: number, y: number, nx: number, ny: number): boolean =>
         covered(x + nx * OUTSIDE_M, y + ny * OUTSIDE_M) || covered(x + nx * gap, y + ny * gap);
+    /** How far out from a face what is beside it starts: across a crack too narrow to bevel, the plate bridges it. */
+    const reach = (x: number, y: number, nx: number, ny: number): number => {
+        if (covered(x + nx * OUTSIDE_M, y + ny * OUTSIDE_M)) return 0;
+        let near = OUTSIDE_M;
+        let far = gap;
+        for (let n = 0; n < 12; n++) {
+            const mid = (near + far) / 2;
+            if (covered(x + nx * mid, y + ny * mid)) far = mid;
+            else near = mid;
+        }
+        return far;
+    };
     const plate = radius * PLATE_OF_RADIUS;
     const web = radius * WEB_OF_RADIUS;
     const polygons: number[][] = [];
@@ -284,7 +296,7 @@ function engineMounts(design: ShipDesign, m: number, shapes: readonly (readonly 
         for (let r = 0; r < along.length; r += 2) {
             const a = -w + 2 * w * along[r]!;
             const b = -w + 2 * w * along[r + 1]!;
-            rect(l - plate, a, l, b);
+            rect(l - plate, a, l + reach(l, (a + b) / 2, 1, 0), b);
             for (const y of centres) if (y >= a && y <= b) rect(layout.nose, y - web, l, y + web);
         }
     }
@@ -299,7 +311,7 @@ function engineMounts(design: ShipDesign, m: number, shapes: readonly (readonly 
             for (let r = 0; r < along.length; r += 2) {
                 const a = x0 + span * along[r]!;
                 const b = x0 + span * along[r + 1]!;
-                rect(a, edge - side * plate, b, edge);
+                rect(a, edge - side * plate, b, edge + side * reach((a + b) / 2, edge, 0, side));
                 // Across to the chamber, along its widest.
                 const from = Math.max(a, layout.centre - web);
                 const to = Math.min(b, layout.nose + web);
