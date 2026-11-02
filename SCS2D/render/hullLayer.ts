@@ -16,7 +16,7 @@ import {
     type Light,
 } from "./light.js";
 import { barrelLines, MIN_BARREL_PX } from "./barrels.js";
-import { fillAlpha, fillColour, isFighterModule, moduleFills, padMark, type Fill } from "./moduleFills.js";
+import { fillAlpha, fillColour, isFighterModule, moduleFills, padMark, paintedSide, type Fill } from "./moduleFills.js";
 import { legibleWidth } from "./strokes.js";
 import { MIN_SCAR_PX, scarShapes, scarWidth, type Bounds, type ScarShape } from "./scars.js";
 import { SCAR_VIEW_STRIDE } from "../sim/index.js";
@@ -156,7 +156,7 @@ export class HullLayer {
                     continue;
                 }
                 // A piece hooked on from another ship keeps that ship's colours.
-                const fill = contextFor(design, i, ship.sides?.[i] ?? ship.team, ship.integrity?.[i] ?? 1, worn);
+                const fill = contextFor(design, i, paintedSide(ship, i), ship.integrity?.[i] ?? 1, worn);
                 const kind = m.spec.kind;
                 // A turret's block is hull; its dome stands on it, drawn with the turrets.
                 const domed = isDomed(kind);
