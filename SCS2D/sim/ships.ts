@@ -5397,6 +5397,8 @@ export class Ships {
             let room = (ramming ? mine : touching) * approach.separationRadii;
             // From a neighbour on the rock only by its own size, or it could never grip the face beside it.
             if (neighbour) room = mine;
+            // Closing straight in on a face chosen clear of both (`wayInClear`), only from touching them.
+            if (hulksOnly && this.gripClosing[i] === 1) room = 0;
             // Its charge no further out than its station, or the two wants fight:
             // covering pulls it in to where keeping clear pushes it out.
             if (t === covering) room = min(room, max(0, this.escortBand(i, this.designs[i]!, t) - touching));
