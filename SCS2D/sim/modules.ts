@@ -180,6 +180,25 @@ export const SMALL_ENGINE_LOSS = 0.3;
 export const SMALL_ENGINE_THROAT = 0.25;
 
 /**
+ * The throat width below which an engine is pressure-fed, metres: too small
+ * for turbopumps, so its tanks' pressure pushes the propellant through. Far
+ * simpler to build (`PRESSURE_FED_COMPLEXITY`), and a step less efficient at
+ * once, as a fighter's thrusters are against its mains.
+ */
+export const PRESSURE_FED_THROAT = 0.25;
+
+/** A pressure-fed engine's exhaust velocity, as a share of a pumped one's. */
+export const PRESSURE_FED_EXHAUST = 0.75;
+
+/** A pressure-fed engine's complexity, in units of `COMPLEXITY_WORK`: a chamber and a valve, no pumps. */
+const PRESSURE_FED_COMPLEXITY = 1;
+
+/** Whether an engine of this geometry is too small for pumps (`PRESSURE_FED_THROAT`). */
+export function isPressureFed(geometry: EngineGeometry): boolean {
+    return geometry.throatWidth < PRESSURE_FED_THROAT;
+}
+
+/**
  * Density of reaction mass, kg/m³: liquid methane.
  *
  * A drive that only heats its propellant can throw whatever is denser and
@@ -2025,7 +2044,8 @@ export function engineGeometry(spec: ModuleSpec): EngineGeometry {
  */
 export function engineExhaustVelocity(geometry: EngineGeometry): number {
     const small = SMALL_ENGINE_THROAT / (SMALL_ENGINE_THROAT + geometry.throatWidth);
-    return EXHAUST_VELOCITY * geometry.divergence * (1 - SMALL_ENGINE_LOSS * small);
+    const fed = isPressureFed(geometry) ? PRESSURE_FED_EXHAUST : 1;
+    return EXHAUST_VELOCITY * geometry.divergence * (1 - SMALL_ENGINE_LOSS * small) * fed;
 }
 
 /** An exhaust velocity as a specific impulse, seconds. */
@@ -2675,10 +2695,11 @@ const OUTLET_COMPLEXITY = 1;
 
 /**
  * How intricate a module is to make or mend, in units of `COMPLEXITY_WORK`:
- * its kind's, plus a self-sealing lining and every outlet past the first.
+ * its kind's, or a pressure-fed engine's, plus a self-sealing lining and every
+ * outlet past the first.
  */
 export function complexityOf(spec: ModuleSpec): number {
-    let units = KIND_COMPLEXITY[spec.kind];
+    let units = spec.kind === "engine" && isPressureFed(engineGeometry(spec)) ? PRESSURE_FED_COMPLEXITY : KIND_COMPLEXITY[spec.kind];
     if (liningOf(spec) > 0) units += LINING_COMPLEXITY;
     if (countsOutlets(spec.kind)) units += ((spec.barrels ?? 1) - 1) * OUTLET_COMPLEXITY;
     return units;
