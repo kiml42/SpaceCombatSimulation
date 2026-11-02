@@ -18,10 +18,10 @@ function dropped(wreck: Blueprint, bearing: number) {
         });
         const x = 275 * Math.cos(bearing);
         const y = 275 * Math.sin(bearing);
-        return {
-            major,
-            wreck: ships.spawn(world, { design: compileBlueprint(wreck), x, y, vx: -SPIN * y, vy: SPIN * x, angle: bearing, team: 0 }),
-        };
+        const w = ships.spawn(world, { design: compileBlueprint(wreck), x, y, vx: -SPIN * y, vy: SPIN * x, angle: bearing, team: 0 });
+        // Protected, so it never lodges once at rest (`REST_TIME`): what is tested is the contact itself.
+        ships.damage.protect(world.bodies.indexOf(ships.body(w)));
+        return { major, wreck: w };
     });
 }
 
