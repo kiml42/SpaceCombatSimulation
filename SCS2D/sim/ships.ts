@@ -2136,7 +2136,7 @@ export class Ships {
         // no consort to break off for.
         const rammed = this.ramming[i]!;
         if (rammed !== NO_TARGET) {
-            if (this.alive[rammed] === 1 && this.derelict[rammed] === 0 && this.hasControl(rammed)) {
+            if (this.alive[rammed] === 1 && this.derelict[rammed] === 0 && this.hasControl(rammed) && !this.isDisabled(i)) {
                 this.chosen[i] = rammed;
                 this.consort[i] = NO_TARGET;
                 return;
@@ -2147,6 +2147,16 @@ export class Ships {
 
         const design = this.designs[i]!;
         this.rethinkAt[i] = world.tick + this.rethinkTicks(world, design.mass);
+
+        // With no gun or engine that works, it can neither reach a fight nor
+        // shoot one, so it stops looking until it is mended or refuelled.
+        if (this.isDisabled(i)) {
+            this.chosen[i] = NO_TARGET;
+            this.consort[i] = NO_TARGET;
+            this.withdrawing[i] = 0;
+            this.hiding[i] = NO_TARGET;
+            return;
+        }
 
         const b = bodies.indexOf(this.bodyIds[i]!);
         if (b < 0) return;
@@ -2865,6 +2875,8 @@ export class Ships {
      */
     private commitOne(bodies: Bodies, i: number): void {
         if (!this.designs[i]!.fighter) return;
+        // Spent on the way in, it has given up its ram but is still armed: it coasts on into what it was aimed at.
+        if (this.committed[i] === 1 && this.isDisabled(i)) return;
         const b = bodies.indexOf(this.bodyIds[i]!);
         if (b < 0) return;
         const order = this.effectiveOrder(i);
