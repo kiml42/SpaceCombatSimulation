@@ -779,8 +779,8 @@ inside any one file is not contiguous.
   `EXHAUST_VELOCITY`, less what its bell throws sideways (`divergence`) and what a small throat loses to its
   walls — about 1,900 s of specific impulse on a capital's main engine and 1,650 s on a fighter's, and
   never under 700 s. **An engine with a throat under `PRESSURE_FED_THROAT` (0.25 m), or a block shorter than
-  `PRESSURE_FED_BLOCK` (0.25 m), is pressure-fed**, with no room for pumps: it leaves at three-quarters of the
-  exhaust velocity (`PRESSURE_FED_EXHAUST`), its machinery weighs half a pumped one's (`PRESSURE_FED_MASS`),
+  `PRESSURE_FED_BLOCK` (0.25 m), is pressure-fed**, with no room for pumps: it passes half the flow (`PRESSURE_FED_FLOW`), so half
+  the thrust, leaves at three-quarters of the exhaust velocity (`PRESSURE_FED_EXHAUST`), its machinery weighs half a pumped one's (`PRESSURE_FED_MASS`),
   and it is complexity 1 rather than 4 — a step rather than a slope, so a thruster is a different thing from a small
   main engine. It burns the gas it throws over that, throttle by throttle, from the tanks on its own
   piece of hull, in proportion to their size so that tanks starting full run dry together; tanks are
