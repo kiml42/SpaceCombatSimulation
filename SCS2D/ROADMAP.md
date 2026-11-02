@@ -375,6 +375,18 @@ an entry is either still open or it is gone.
           it shows it larger.
         - Not settled: the threshold, the scars a module holds and how far a burn may streak are first
           guesses, to be set by eye.
+        - **In three pull requests**, in this order:
+            1. **Scars in the sim — built** (`sim/scars.ts`, held by `Damage`, so registered, carried
+               through severs and remade hulls, copied into checkpoints and forgotten with it, and left
+               out of `checksumDamage`). Rounds scar in `walkRound`, a fragment's as peppering; beams and
+               plumes burn where they land, along their direction; a collision gouges each module the
+               crush reaches, along the other hull's slide at the contact. A burn, peppering or gouge
+               joins one of its kind within a quarter of the module's narrower side, drawn out no
+               further than a quarter of its longer. The snapshot carries the scars showing
+               (`ShipView.scars`, `SCAR_VIEW_STRIDE` apiece) and a version that counts changes. No golden
+               moved.
+            2. **Wear and burnt-out modules**, in place of fading and wreckage grey.
+            3. **Drawing scars.**
     6. **Particles and glows.** Glows for explosions and beams; particles for explosions and impacts;
        bits of metal for collision damage in place of its flashes, and from a leaking tank alongside or in
        place of its wedge. Particles are only drawn, never simulated: on the battle's clock as the flashes

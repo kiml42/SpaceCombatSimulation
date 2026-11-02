@@ -17,6 +17,7 @@ export { Metal } from "./metal.js";
 export { Charge } from "./charge.js";
 export { CLAIMS, Claim, mendClaim, priorityOf, Resource, shareOf, Supply, type ClaimName } from "./supply.js";
 export { doorBetween, ROBOT_VIEW_STRIDE } from "./robots.js";
+export { SCAR_BURN, SCAR_GOUGE, SCAR_PEPPER, SCAR_ROUND, SCAR_VIEW_STRIDE } from "./scars.js";
 export { Store } from "./store.js";
 export { Rng, type RngState } from "./rng.js";
 export { Bodies, NO_BODY, bodyIndex, bodyGeneration, type BodyId, type BodySpec } from "./bodies.js";
