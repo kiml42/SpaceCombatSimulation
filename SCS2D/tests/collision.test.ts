@@ -373,3 +373,40 @@ describe("a turret's dome", () => {
         expect(contacts.x[0]).toBeCloseTo(1.8, 9);
     });
 });
+
+describe("a hull deep in rock", () => {
+    /** A rail 6 m long and 1 m across, pointing along x. */
+    const rail = {
+        modules: [{ x: 0, y: 0, angle: 0, spec: { kind: "structure", length: 6, width: 1 }, weaponsLayer: false }],
+        radius: Math.hypot(6, 1) / 2,
+        mass: 1000,
+        inertia: 1000,
+    } as unknown as ShipDesign;
+
+    it("is pushed out of a wedge it is wholly inside by the nearer face, not across itself", () => {
+        // A wedge 20 m square, the rail 3 m in from its near face at x = -10.
+        const rock = compileBlueprint({ name: "Rock", modules: [rockModule([-10, -10, 10, -10, 10, 10, -10, 10], 0.3, 0.3)] });
+        const w = world({ design: rock, x: 0, y: 0, fixed: true }, { design: rail, x: -4, y: 0 });
+        findContacts(w.bodies, w.hulls, w.contacts);
+        expect(w.contacts.count).toBe(1);
+        // Out by the near face: its 6 m back plus the 3 m in front of it, not its own metre across.
+        expect(w.contacts.depth[0]).toBeCloseTo(9, 9);
+        expect(w.contacts.nx[0]).toBeCloseTo(-1, 9);
+    });
+
+    it("is pushed back out of rock it dives into along a seam, not into the wedge beside it", () => {
+        // Two wedges meeting along x = 0, the rock's face at y = 10, and the rail
+        // diving down the seam, its tip 6 m in.
+        const rock = compileBlueprint({
+            name: "Rock",
+            modules: [rockModule([-10, -10, 0, -10, 0, 10, -10, 10], 0.3, 0.3), rockModule([0, -10, 10, -10, 10, 10, 0, 10], 0.3, 0.3)],
+        });
+        const w = world({ design: rock, x: 0, y: 0, fixed: true }, { design: rail, x: 0, y: 7, angle: Math.PI / 2 });
+        findContacts(w.bodies, w.hulls, w.contacts);
+        expect(w.contacts.count).toBe(1);
+        // Back up out of the face, rather than half a metre across into the other wedge.
+        expect(w.contacts.depth[0]).toBeCloseTo(6, 6);
+        expect(w.contacts.nx[0]).toBeCloseTo(0, 6);
+        expect(w.contacts.ny[0]).toBeCloseTo(1, 6);
+    });
+});

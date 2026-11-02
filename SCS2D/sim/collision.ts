@@ -203,6 +203,8 @@ interface Box {
     count: number;
     /** A circle of `radius` round its centre, as a turret's dome is: no corners and no extents. */
     round: boolean;
+    /** Bit `i` set where edge `i`, corner `i` to the next, is shared with another module of the hull (`markSeams`). */
+    seams: number;
 }
 
 /** Fill `out` with a module's outline in the world, given its body's pose. */
@@ -210,6 +212,7 @@ function boxOf(design: ShipDesign, module: number, bx: number, by: number, angle
     const m = design.modules[module]!;
     const triangle = shapeOf(m.spec);
     out.round = false;
+    out.seams = 0;
     const c = cos(angle);
     const s = sin(angle);
     out.x = bx + m.x * c - m.y * s;
@@ -261,10 +264,80 @@ function boxesOf(design: ShipDesign, bx: number, by: number, angle: number, out:
                 corners: new Float64Array(MOST_CORNERS * 2),
                 count: 0,
                 round: false,
+                seams: 0,
             });
         }
         boxOf(design, m, bx, by, angle, out[m]!);
     }
+}
+
+/** How near two corners must be to be the same corner of a seam, metres: far more than rounding. */
+const SEAM_SLACK = 1e-3;
+
+/**
+ * Mark each edge of a hull's outlines that another of its outlines shares,
+ * corner for corner: a seam inside the hull rather than a face of it. An
+ * asteroid's wedges meet along seams running in to its middle, and a module
+ * pushed out of one wedge across one is only pushed into the next.
+ */
+function markSeams(boxes: Box[], count: number): void {
+    for (let m = 0; m < count; m++) {
+        const a = boxes[m]!;
+        for (let i = 0; i < a.count; i++) {
+            const ax = a.corners[i * 2]!;
+            const ay = a.corners[i * 2 + 1]!;
+            const k = ((i + 1) % a.count) * 2;
+            const bx = a.corners[k]!;
+            const by = a.corners[k + 1]!;
+            for (let n = 0; n < count && (a.seams & (1 << i)) === 0; n++) {
+                const o = boxes[n]!;
+                if (n === m) continue;
+                for (let j = 0; j < o.count; j++) {
+                    const px = o.corners[j * 2]!;
+                    const py = o.corners[j * 2 + 1]!;
+                    const l = ((j + 1) % o.count) * 2;
+                    const qx = o.corners[l]!;
+                    const qy = o.corners[l + 1]!;
+                    // The same two corners, either way round.
+                    if ((near(px, py, ax, ay) && near(qx, qy, bx, by)) || (near(px, py, bx, by) && near(qx, qy, ax, ay))) {
+                        a.seams |= 1 << i;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
+function near(x0: number, y0: number, x1: number, y1: number): boolean {
+    return abs(x0 - x1) < SEAM_SLACK && abs(y0 - y1) < SEAM_SLACK;
+}
+
+/**
+ * Whether a module leaving outline `box` going `dx`, `dy` leaves it across a
+ * seam: the edge it would leave by, the one facing most that way, is shared.
+ */
+function leavesBySeam(box: Box, dx: number, dy: number): boolean {
+    if (box.seams === 0) return false;
+    let most = -Infinity;
+    let edge = 0;
+    for (let i = 0; i < box.count; i++) {
+        const k = ((i + 1) % box.count) * 2;
+        const ex = box.corners[k]! - box.corners[i * 2]!;
+        const ey = box.corners[k + 1]! - box.corners[i * 2 + 1]!;
+        const span = sqrt(ex * ex + ey * ey);
+        if (!(span > 0)) continue;
+        // Outward whichever way the corners wind: away from the middle.
+        const mx = (box.corners[k]! + box.corners[i * 2]!) * 0.5 - box.x;
+        const my = (box.corners[k + 1]! + box.corners[i * 2 + 1]!) * 0.5 - box.y;
+        const out = ey * mx - ex * my >= 0 ? 1 : -1;
+        const facing = (out * (ey * dx - ex * dy)) / span;
+        if (facing > most) {
+            most = facing;
+            edge = i;
+        }
+    }
+    return (box.seams & (1 << edge)) !== 0;
 }
 
 /** How far a box reaches along an axis from its centre. */
@@ -366,6 +439,7 @@ const blankBox = (): Box => ({
     corners: new Float64Array(MOST_CORNERS * 2),
     count: 0,
     round: false,
+    seams: 0,
 });
 /** A turret's dome on either hull of a pair, where they meet above the deck alone. */
 const domeA = blankBox();
@@ -415,6 +489,12 @@ function overlap(a: Box, b: Box): number {
     let best = Infinity;
     let bestX = 0;
     let bestY = 0;
+    // The shallowest way out that does not cross a seam, which is the one taken
+    // where there is one: pushed out across a seam is pushed into the next module.
+    let face = Infinity;
+    let faceX = 0;
+    let faceY = 0;
+    const seams = a.seams !== 0 || b.seams !== 0;
     // Two boxes are measured as half extents from their centres, which is the
     // same answer as the projections below and a handful of multiplications
     // cheaper — and it is the pair nearly every contact in a battle is.
@@ -423,22 +503,41 @@ function overlap(a: Box, b: Box): number {
         const ax = axes[k]!;
         const ay = axes[k + 1]!;
         let gap: number;
+        // Always from A towards B, so the impulse has a side to push from.
+        let forward: boolean;
         if (boxes) {
             gap = reach(a, ax, ay) + reach(b, ax, ay) - abs(dx * ax + dy * ay);
+            forward = dx * ax + dy * ay >= 0;
         } else {
             project(a, ax, ay, spanA);
             project(b, ax, ay, spanB);
-            gap = min(spanA.hi, spanB.hi) - max(spanA.lo, spanB.lo);
+            // How far to push B either way to clear A, not the length they share:
+            // that is only the inner one's own width when one is inside the other.
+            const ahead = spanA.hi - spanB.lo;
+            const behind = spanB.hi - spanA.lo;
+            forward = ahead <= behind;
+            gap = forward ? ahead : behind;
         }
         // A single axis with daylight along it is a proof of separation.
         if (gap <= 0) return 0;
+        const nx = forward ? ax : -ax;
+        const ny = forward ? ay : -ay;
         if (gap < best) {
             best = gap;
-            // Always from A towards B, so the impulse has a side to push from.
-            const centres = dx * ax + dy * ay;
-            bestX = centres < 0 ? -ax : ax;
-            bestY = centres < 0 ? -ay : ay;
+            bestX = nx;
+            bestY = ny;
         }
+        // A leaves B back along the normal, and B leaves A on along it.
+        if (seams && gap < face && !leavesBySeam(b, -nx, -ny) && !leavesBySeam(a, nx, ny)) {
+            face = gap;
+            faceX = nx;
+            faceY = ny;
+        }
+    }
+    if (face < Infinity) {
+        axes[0] = faceX;
+        axes[1] = faceY;
+        return face;
     }
     axes[0] = bestX;
     axes[1] = bestY;
@@ -646,9 +745,11 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts):
 
         if (!builtA) {
             boxesOf(designA, bodies.x[i]!, bodies.y[i]!, bodies.angle[i]!, boxesA);
+            markSeams(boxesA, designA.modules.length);
             builtA = true;
         }
         boxesOf(designB, bodies.x[j]!, bodies.y[j]!, bodies.angle[j]!, boxesB);
+        markSeams(boxesB, designB.modules.length);
 
         let deepest = 0;
         let deepestX = 0;
@@ -790,6 +891,7 @@ export function moduleOverlapsHull(
             corners: new Float64Array(MOST_CORNERS * 2),
             count: 0,
             round: false,
+            seams: 0,
         });
     }
     boxOf(design, m, bx, by, angle, lone[0]!);
