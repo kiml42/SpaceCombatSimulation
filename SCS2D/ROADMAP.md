@@ -179,8 +179,9 @@ an entry is either still open or it is gone.
        thin hull with the thick modules'. Still to do: rock shading a fighter flying close by, which needs
        a shadow layer over the fighters, above everything the adapter draws.
        **Each scene sets its own light**, from a palette in `scenarios/lights.ts` spanning the directions,
-       pale tints and harsh to soft ambients, and **each skirmish round draws one from its seed**
-       (`roundLight`), so a replayed round looks as it did. Tints stay pale so a side's colours still read.
+       tints and ambients from black shadows to soft, and **each skirmish round draws one from its seed**
+       (`roundLight`), so a replayed round looks as it did. Neither is held to keeping a side's colours readable in
+       shadow, as a ship is rarely all in shadow, so a light may be as dark as looks right.
        Only the hull layer is tinted: fighters, strips and close-ups, drawn through the adapter, are not,
        until they move to shared geometry with the rest of stage (2). The evolution page and custom battles
        keep the default.
