@@ -737,8 +737,8 @@ export const PAD_MASS_PER_AREA = 50;
 /** What a pad pumps per metre of its width, kg/s, into what has landed on it. */
 export const PAD_PUMP_PER_METRE = 50;
 
-/** Damage a pad undoes per metre of its width, J/s, on what has landed on it. */
-export const PAD_REPAIR_PER_METRE = 2e4;
+/** Damage a pad undoes per square metre of its deck, J/s, on what has landed on it: what it builds at too. */
+export const PAD_REPAIR_PER_AREA = 4e3;
 
 /**
  * A slipway's fittings per square metre of its floor, kg/m²: a cradle that

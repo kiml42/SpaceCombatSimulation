@@ -898,8 +898,8 @@ inside any one file is not contiguous.
   their own carrier's. The two move off together with
   the momentum they had between them, and it lifts off moving as the pad was. Nothing it has is made part
   of the carrier's hull, so filling, mending and building it remake only the fighter. It idles while the pad fills it from what the
-  carrier can spare above the carrier's own reserves, and **mends it**: `PAD_REPAIR_PER_METRE` of
-  damage a second for every metre of the pad's width, cores first, then engines and weapons, then the rest,
+  carrier can spare above the carrier's own reserves, and **mends it**: `PAD_REPAIR_PER_AREA` of
+  damage a second for every square metre of the pad's deck, whatever its proportions, cores first, then engines and weapons, then the rest,
   each joule taking `REPAIR_ENERGY_PER_JOULE` of the carrier's charge and the metal the module had shed and
   `REPAIR_WASTE` more, the waste counted as discarded — reserves and all, since repairing and rebuilding
   draw on what a ship keeps back for itself, where refuelling, rearming and recharging a friend do not. Once
