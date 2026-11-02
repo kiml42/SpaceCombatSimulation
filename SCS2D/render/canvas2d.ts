@@ -55,7 +55,7 @@ import {
     MIN_BEVEL_LIT,
     MIN_BEVEL_PX,
 } from "./bevels.js";
-import { cylinderShade, domeShade, lightSlope } from "./shading.js";
+import { cylinderShade, domeShade, lightSlope, sphereShade } from "./shading.js";
 import { engineLayout } from "./engineLayout.js";
 import { gridStep, type Camera } from "./camera.js";
 import {
@@ -1476,29 +1476,22 @@ function shadeEngine(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: num
     const mouth = layout.mouth;
     const bell = exit > 0 && mouth + l > 0 ? cylinderShade(side, up, engine.throatWidth / engine.exitWidth) : null;
     const r = layout.radius;
-    const dome = r > 0 ? domeShade(across, up) : null;
     const straight = layout.nose - layout.centre;
     const tube = r > 0 && straight > 0 ? cylinderShade(side, up) : null;
+    // Each end of the chamber as a sphere's picture cut to it, the tube between them if there is one.
+    const ends: [number, number, number][] =
+        straight > 0
+            ? [
+                  [layout.centre, layout.aft, layout.centre],
+                  [layout.nose, layout.nose, layout.fore],
+              ]
+            : [[layout.centre, layout.aft, layout.fore]];
     for (const y of layout.centres) {
         if (bell !== null) ctx.drawImage(bell, -l, y - exit, mouth + l, 2 * exit);
-        if (dome === null) continue;
-        // Each end between its flat face and the tube, if there is one.
-        const ends: [number, number, number][] =
-            straight > 0
-                ? [
-                      [layout.centre, layout.aft, layout.centre],
-                      [layout.nose, layout.nose, layout.fore],
-                  ]
-                : [[layout.centre, layout.aft, layout.fore]];
+        if (!(r > 0)) continue;
         for (const [x, from, to] of ends) {
-            ctx.save();
-            ctx.beginPath();
-            ctx.rect(from, y - r, to - from, 2 * r);
-            ctx.clip();
-            ctx.translate(x, y);
-            ctx.rotate(light.from - angle);
-            ctx.drawImage(dome, -r, -r, 2 * r, 2 * r);
-            ctx.restore();
+            const image = sphereShade(light.from - angle, across, up, (from - x) / r, (to - x) / r);
+            if (image !== null) ctx.drawImage(image, from, y - r, to - from, 2 * r);
         }
         if (tube !== null) ctx.drawImage(tube, layout.centre, y - r, straight, 2 * r);
     }

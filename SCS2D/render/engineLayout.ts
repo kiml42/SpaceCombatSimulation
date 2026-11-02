@@ -31,6 +31,8 @@ export interface EngineLayout {
     readonly pumpAft: number;
     /** Whether the pump is a cylinder: it feeds one nozzle. Feeding several, it is a block across them. */
     readonly roundPump: boolean;
+    /** A chamber's outline about y = 0 (`cutCapsule`), to fill and to shade within. */
+    readonly chamber: readonly number[];
 }
 
 /** How much of a pumped engine's block its chambers may take, so the pump keeps the rest. */
@@ -94,6 +96,7 @@ export function engineLayout(spec: ModuleSpec): EngineLayout {
             centres,
             pumpAft: pressureFed ? front : fore,
             roundPump: !pressureFed && engine.nozzles === 1,
+            chamber: radius > 0 ? cutCapsule(centre, nose, 0, radius, mouth, fore) : [],
         };
         layouts.set(spec, made);
     }
