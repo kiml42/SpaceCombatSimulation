@@ -5442,9 +5442,9 @@ export class Ships {
             const clearance = mine * approach.separationRadii;
             const need = rock ? touching + clearance - miss : 0;
             if (when > approach.avoidHorizon && !(need > 0)) continue;
-            // Nor a friend coming to land on it or dock with it: shying away from
-            // that is refusing it.
-            if (this.salvaging[t] === i && (this.landingPad[t]! >= 0 || this.dockPort[t]! >= 0)) continue;
+            // Nor a friend coming to land on it, dock with it or drink from it with
+            // its claw: shying away from that is refusing it.
+            if (this.salvaging[t] === i && (this.landingPad[t]! >= 0 || this.dockPort[t]! >= 0 || !this.hostile(t, i))) continue;
 
             // Away from where the gap is going to be. A pass that would be dead on
             // has no side to go to, so the side is taken across the closing motion
