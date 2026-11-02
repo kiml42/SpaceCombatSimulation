@@ -10,8 +10,8 @@ export function lit<B extends Battle>(battle: B, light: Light): B {
 const degrees = (d: number): number => (d * math.PI) / 180;
 
 /**
- * The lights the scenes are seen in, from plain white to tinted suns, and
- * from harsh to soft. Tints stay pale, so a side's colours still read under them.
+ * The lights the scenes are seen in, from plain white to deeply tinted suns,
+ * and from shadows near black to soft. Chosen by eye, not held to a rule.
  */
 export const LIGHTS = {
     /** White, from the top left: the default. */
@@ -34,29 +34,33 @@ export const LIGHTS = {
     gold: { from: degrees(120), colour: "#fff0b0", ambient: 0.2 },
 } as const satisfies Record<string, Light>;
 
-/** Range of a drawn light's ambient. */
-const AMBIENT = [0.35, 0.7] as const;
+/** Most of a drawn light's ambient: its least is 0, black shadows. */
+const MOST_AMBIENT = 0.8;
 /** How far a drawn light's tint is from white at most, as HSV saturation. */
-const MOST_TINT = 0.3;
+const MOST_TINT = 0.5;
+/** How dim a drawn light is at least, as HSV value. */
+const LEAST_BRIGHTNESS = 0.55;
 
 /**
  * The light a skirmish round is seen in, drawn from its seed, so a round
- * replayed looks as it did and each new one is somewhere else.
+ * replayed looks as it did and each new one is somewhere else. Ambient is
+ * drawn squared, so dark shadows are the more common.
  */
 export function roundLight(seed: number): Light {
     const draw = new Rng(seed ^ 0x6c6974);
     const from = draw.nextRange(0, math.TAU);
     const hue = draw.nextRange(0, 6);
     const tint = draw.nextRange(0, MOST_TINT);
-    const ambient = draw.nextRange(AMBIENT[0], AMBIENT[1]);
-    return { from, colour: paleHex(hue, tint), ambient };
+    const ambient = MOST_AMBIENT * draw.nextRange(0, 1) ** 2;
+    const brightness = draw.nextRange(LEAST_BRIGHTNESS, 1);
+    return { from, colour: hsvHex(hue, tint, brightness), ambient };
 }
 
-/** A full-brightness colour of `hue` (0 to 6 round the wheel) and `tint` saturation, as CSS hex. */
-function paleHex(hue: number, tint: number): string {
+/** A colour of `hue` (0 to 6 round the wheel), `tint` saturation and `brightness` value, as CSS hex. */
+function hsvHex(hue: number, tint: number, brightness: number): string {
     const channel = (n: number): string => {
         const k = (n + hue) % 6;
-        const v = 1 - tint * math.max(0, math.min(k, 4 - k, 1));
+        const v = brightness * (1 - tint * math.max(0, math.min(k, 4 - k, 1)));
         return math
             .round(v * 255)
             .toString(16)
