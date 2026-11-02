@@ -10831,9 +10831,12 @@ export class Ships {
         const rx = bodies.x[b]! - place.x;
         const ry = bodies.y[b]! - place.y;
         const ahead = rx * nx + ry * ny;
-        // Near only from the side its way in is: over the hull beyond the pad, its
-        // engines would play on the deck to bring it back.
-        const near = range <= PAD_ALIGN_RADII * mine && ahead > -host.modules[pad]!.spec.length / 2;
+        // Near only from the side its way in is, and no wider of the pad than it is:
+        // over the hull beyond or beside it, what stands between holds it off.
+        const spec = host.modules[pad]!.spec;
+        const turned = this.wayAngle - place.angle;
+        const across = (abs(cos(turned)) * spec.width + abs(sin(turned)) * spec.length) / 2;
+        const near = range <= PAD_ALIGN_RADII * mine && ahead > -spec.length / 2 && abs(ry * nx - rx * ny) <= across + mine;
         let lined = ahead > 0 && abs(ry * nx - rx * ny) <= ahead;
         // Over the hull, only if nothing in its layer stands between it and the pad.
         if (lined && length(bodies.x[b]! - bodies.x[tb]!, bodies.y[b]! - bodies.y[tb]!) < bodies.radius[tb]! + 2 * mine) {
@@ -10874,18 +10877,16 @@ export class Ships {
         }
         this.urge(URGE_REFERENCE, vx, vy, ax, ay);
 
-        const box = footprintOf(design);
-        const spec = host.modules[pad]!.spec;
-        const diagonal = length(box.maxX - box.minX, box.maxY - box.minY);
-        if (near) {
-            // Lined up with the pad either way round, whichever is nearer, unless it fits any way.
-            if (diagonal <= min(spec.length, spec.width)) return bodies.angle[b]!;
-            const along = angleDelta(bodies.angle[b]!, place.angle);
-            return abs(along) <= PI / 2 ? place.angle : place.angle + PI;
-        }
         const dvx = vx - bodies.vx[b]! + ax * approach.responseTime;
         const dvy = vy - bodies.vy[b]! + ay * approach.responseTime;
-        return length(dvx, dvy) > PAD_SPEED / 2 ? atan2(dvy, dvx) - design.thrustBearing : bodies.angle[b]!;
+        // Its mains on what it still has to do, near or not: a fighter mostly pushes one way.
+        const braking = length(dvx, dvy) > PAD_SPEED / 2 ? atan2(dvy, dvx) - design.thrustBearing : bodies.angle[b]!;
+        const box = footprintOf(design);
+        if (!near || length(box.maxX - box.minX, box.maxY - box.minY) <= min(spec.length, spec.width)) return braking;
+        // One that has to line up with the pad does so once it has little left to lose, either way round, whichever is nearer.
+        if (length(vx - bodies.vx[b]!, vy - bodies.vy[b]!) > PAD_SPEED / 2) return braking;
+        const along = angleDelta(bodies.angle[b]!, place.angle);
+        return abs(along) <= PI / 2 ? place.angle : place.angle + PI;
     }
 
     /**
