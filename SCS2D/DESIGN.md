@@ -778,7 +778,10 @@ inside any one file is not contiguous.
   than a cubic metre (`CORE_COMPUTING_VOLUME`) is all computing and holds none. Each engine has an exhaust velocity:
   `EXHAUST_VELOCITY`, less what its bell throws sideways (`divergence`) and what a small throat loses to its
   walls — about 1,900 s of specific impulse on a capital's main engine and 1,650 s on a fighter's, and
-  never under 700 s. It burns the gas it throws over that, throttle by throttle, from the tanks on its own
+  never under 700 s. **An engine with a throat under `PRESSURE_FED_THROAT` (0.25 m) is pressure-fed**, too
+  small for pumps: it leaves at three-quarters of the exhaust velocity (`PRESSURE_FED_EXHAUST`) and is
+  complexity 1 rather than 4 — a step rather than a slope, so a thruster is a different thing from a small
+  main engine. It burns the gas it throws over that, throttle by throttle, from the tanks on its own
   piece of hull, in proportion to their size so that tanks starting full run dry together; tanks are
   drained in tiers, highest `drainPriority` first (a whole number on a tank or a core, set in the editor and
   nudged by evolution, zero by default), so a ship can empty an outboard tank before the one behind its
@@ -1007,7 +1010,7 @@ inside any one file is not contiguous.
   other.
   **Every module has a complexity** (`complexityOf`), work over and above its mass that making or mending it
   takes, the same whatever its size, at `COMPLEXITY_WORK` a unit: structure, tanks and holds 1, a battery 2,
-  claws, pads and ports 3, engines and hull weapons 4, turrets 7, generators and robot bays 6, cores 16, with
+  claws, pads and ports 3, engines and hull weapons 4 (a pressure-fed engine 1), turrets 7, generators and robot bays 6, cores 16, with
   2 more for a self-sealing lining and 1 for every barrel or nozzle past the first. Building a module spreads
   it over every kilogram of walls and fittings (`buildWork`), and mending one over the damage that breaks it
   (`repairWork`), so it costs time and charge alike, in proportion. A Dinky's outrigger engine is almost all
