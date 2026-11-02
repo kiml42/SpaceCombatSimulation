@@ -90,6 +90,7 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Allow control of the tilt of the main light, as well as which direction it comes from (for longer or shorter shadows)
 - there shouldn't be specular highlights (bevels and rounded parts) in shadows
 - Reconsider shading the gauges, they look a bit too luminous, particularly metal.
+- make the wear texture apply across the whole of the hull layer and across the whole of the thick layer for a ship so that the pattern only has a step in opacity at module boundaries instead of a step in pattern placement entirely.
 
 ## Livery
 - Locations should be based on the grig, not the COM (at least in the editor) so changing a part doesn't shift the whole pattern
@@ -100,6 +101,7 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Scavenging wrecks and mining asteroids. Two of the causes of wrecked Salvagers are being fixed as ROADMAP.md
 step 15, item 5: arriving with its jaws held on all the way, braking astern, rather than turning round late; and
 flying round asteroids in its way rather than relying on keeping clear, which looks only seconds ahead.
+- Too many robots converge on small debris to dismantle it on an asteroid
  
 
 ### Getting hold safely
