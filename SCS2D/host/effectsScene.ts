@@ -20,7 +20,7 @@ import {
     type ShipDesign,
     type ShipView,
 } from "../sim/index.js";
-import { leakRate } from "../sim/fuel.js";
+import { leakRate, leakSpeed } from "../sim/fuel.js";
 import { DECK_HEIGHT, DEFAULT_BURST_SPEED, DEFAULT_FRAGMENTS, EXPLOSIVE_YIELD } from "../sim/modules.js";
 import { CORVETTE, TORCH, TORPEDO } from "../scenarios/blueprints.js";
 import { barrelLines } from "../render/barrels.js";
@@ -253,6 +253,8 @@ function place(snapshot: Snapshot, design: ShipDesign, x: number, y: number, ang
     view.leakDirY = [];
     view.leakWidth = [];
     view.leakRate = [];
+    view.leakAge = [];
+    view.leakSpeed = [];
     return view;
 }
 
@@ -544,8 +546,8 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
     },
     {
         name: "Leaks",
-        about: "Rounds from the five guns of the Guns scene punching holes together in a full tank, each hole its round's calibre: the leaks starting, then flowing at what each hole lets out, 4 kg/s to 1.5 t/s.",
-        loop: 1,
+        about: "Rounds from the five guns of the Guns scene punching holes together in a full tank, each hole its round's calibre: each leak growing out of its hole at the 49 m/s its fuel leaves, then flowing at what the hole lets out, 4 kg/s to 1.5 t/s.",
+        loop: 2.5,
         build(t, snapshot, flashes) {
             const each = GUN_MOUNTS.map(gun);
             const holes = each.map((g) => {
@@ -583,6 +585,8 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
                 ship.leakDirY!.push(1);
                 ship.leakWidth!.push(g.calibre);
                 ship.leakRate!.push(holes[k]!.rate);
+                ship.leakAge!.push(t - hit);
+                ship.leakSpeed!.push(leakSpeed(1));
             });
         },
     },

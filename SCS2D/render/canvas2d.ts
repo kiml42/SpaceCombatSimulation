@@ -1257,7 +1257,8 @@ const LEAK_ALPHA = 0.6;
 /**
  * Fuel leaking from a hole: a white plume widening and fading as it goes, longer
  * the faster fuel is going out, so a gash reads from across the battle and a
- * pinhole as a wisp.
+ * pinhole as a wisp. A new hole's plume grows out of it as fast as its fuel
+ * leaves, far slower than an engine's exhaust.
  */
 function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light): void {
     const xs = ship.leakX;
@@ -1268,7 +1269,12 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
     for (let k = 0; k < xs.length; k++) {
         const rate = ship.leakRate![k]!;
         const half = ship.leakWidth![k]! / 2;
-        const length = max(half * 8, LEAK_PLUME_LENGTH * sqrt(rate));
+        // As far as the fuel has got since the hole opened, out to how far it is seen going.
+        const full = max(half * 8, LEAK_PLUME_LENGTH * sqrt(rate));
+        const age = ship.leakAge?.[k];
+        const speed = ship.leakSpeed?.[k];
+        const length = age === undefined || speed === undefined ? full : min(full, speed * age);
+        if (!(length > 0)) continue;
         const spread = half + length * LEAK_PLUME_SPREAD;
         const image = taperSprite(light === undefined ? LEAK : litColour(LEAK, light.colour), half / spread);
         if (image === null) continue;

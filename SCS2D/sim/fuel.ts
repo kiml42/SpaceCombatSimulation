@@ -61,6 +61,8 @@ export interface Leak {
     closing: number;
     /** Fuel through it last step, kg/s. What a renderer draws the plume from. */
     rate: number;
+    /** Seconds it has been open: how far its fuel has got, for a renderer. Nothing in the sim reads it. */
+    age: number;
 }
 
 /**
