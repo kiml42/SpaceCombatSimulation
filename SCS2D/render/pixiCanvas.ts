@@ -7,9 +7,9 @@ import { BitmapText, Container, Graphics, GraphicsContext, Matrix as PixiMatrix,
  * and handed to Pixi as polygons and polylines; everything is rebuilt each
  * frame between `begin` and `end`.
  *
- * Where Pixi has no equivalent it is approximated: gradients are filled in
- * bands, a clip is cut geometrically (a convex region, or the outside of one)
- * or, for a rectangle on screen, masked, and text is `BitmapText`.
+ * Where Pixi has no equivalent it is approximated: a clip is cut geometrically
+ * (a convex region, or the outside of one) or, for a rectangle on screen,
+ * masked, and text is `BitmapText`.
  */
 
 type Matrix = { a: number; b: number; c: number; d: number; e: number; f: number };
@@ -26,13 +26,6 @@ interface Clip {
     readonly polys: number[][];
 }
 
-interface Stop {
-    readonly offset: number;
-    readonly rgb: number;
-    readonly alpha: number;
-}
-
-/** A gradient as canvas2d.ts makes them, filled in bands rather than smoothly. */
 /** A tile repeated, as `createPattern` makes one, laid by its transform in the frame it is filled in. */
 class Pattern {
     m: Matrix = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
@@ -43,54 +36,11 @@ class Pattern {
     }
 }
 
-class Gradient {
-    readonly stops: Stop[] = [];
-    constructor(
-        readonly radial: boolean,
-        /** Linear: from x0, y0 to x1, y1. Radial: about x1, y1 out to r1, as canvas2d.ts uses it. */
-        readonly x0: number,
-        readonly y0: number,
-        readonly x1: number,
-        readonly y1: number,
-        readonly r1 = 0,
-    ) {}
-
-    addColorStop(offset: number, colour: string): void {
-        const [rgb, alpha] = parseColour(colour);
-        this.stops.push({ offset, rgb, alpha });
-        this.stops.sort((p, q) => p.offset - q.offset);
-    }
-
-    /** The colour at `t` along it. */
-    at(t: number): [number, number] {
-        const stops = this.stops;
-        if (stops.length === 0) return [0, 0];
-        if (t <= stops[0]!.offset) return [stops[0]!.rgb, stops[0]!.alpha];
-        for (let k = 1; k < stops.length; k++) {
-            const q = stops[k]!;
-            if (t > q.offset) continue;
-            const p = stops[k - 1]!;
-            const u = q.offset > p.offset ? (t - p.offset) / (q.offset - p.offset) : 0;
-            return [mixRgb(p.rgb, q.rgb, u), p.alpha + (q.alpha - p.alpha) * u];
-        }
-        const last = stops[stops.length - 1]!;
-        return [last.rgb, last.alpha];
-    }
-}
-
 /** Steps a doubling of scale is cut into for kept drawing (`keep`): kept at one, it is placed at any scale within it. */
 const KEEP_STEPS = 4;
 /** Kept contexts beyond which they are all let go at the start of the next frame. */
 const KEPT_MOST = 4000;
 
-/** How many bands a gradient is filled in at most. */
-const GRADIENT_BANDS = 12;
-/** Canvas pixels a band spans at least, so a gradient a few pixels long is a band or two, not twelve. */
-const GRADIENT_BAND_PX = 4;
-
-function bandsFor(lengthPx: number): number {
-    return Math.max(1, Math.min(GRADIENT_BANDS, Math.ceil(lengthPx / GRADIENT_BAND_PX)));
-}
 /** Canvas pixels a line is wide before its round caps are drawn round. */
 const ROUND_CAP_PX = 4;
 /** Canvas pixels an arc's chord spans at most. */
@@ -102,8 +52,8 @@ const GLYPH_PX = 32;
 
 interface State {
     m: Matrix;
-    fillStyle: string | Gradient | Pattern;
-    strokeStyle: string | Gradient | Pattern;
+    fillStyle: string | Pattern;
+    strokeStyle: string | Pattern;
     lineWidth: number;
     globalAlpha: number;
     globalCompositeOperation: string;
@@ -185,16 +135,16 @@ export class PixiCanvas {
 
     // State.
 
-    get fillStyle(): string | Gradient | Pattern {
+    get fillStyle(): string | Pattern {
         return this.state.fillStyle;
     }
-    set fillStyle(style: string | Gradient | Pattern) {
+    set fillStyle(style: string | Pattern) {
         this.state.fillStyle = style;
     }
-    get strokeStyle(): string | Gradient | Pattern {
+    get strokeStyle(): string | Pattern {
         return this.state.strokeStyle;
     }
-    set strokeStyle(style: string | Gradient | Pattern) {
+    set strokeStyle(style: string | Pattern) {
         this.state.strokeStyle = style;
     }
     get lineWidth(): number {
@@ -286,6 +236,18 @@ export class PixiCanvas {
         m.b *= x;
         m.c *= y;
         m.d *= y;
+    }
+
+    /** Multiply the current transform by this one, as Canvas2D's `transform`. */
+    transform(a: number, b: number, c: number, d: number, e: number, f: number): void {
+        const m = this.state.m;
+        const { a: ma, b: mb, c: mc, d: md } = m;
+        m.e += ma * e + mc * f;
+        m.f += mb * e + md * f;
+        m.a = ma * a + mc * b;
+        m.b = mb * a + md * b;
+        m.c = ma * c + mc * d;
+        m.d = mb * c + md * d;
     }
 
     setTransform(a: number | Matrix, b?: number, c?: number, d?: number, e?: number, f?: number): void {
@@ -404,15 +366,6 @@ export class PixiCanvas {
         return new Pattern(image);
     }
 
-    createLinearGradient(x0: number, y0: number, x1: number, y1: number): Gradient {
-        return new Gradient(false, x0, y0, x1, y1);
-    }
-
-    /** Concentric and from the centre, as canvas2d.ts makes them: only the outer circle is kept. */
-    createRadialGradient(_x0: number, _y0: number, _r0: number, x1: number, y1: number, r1: number): Gradient {
-        return new Gradient(true, x1, y1, x1, y1, r1);
-    }
-
     fill(): void {
         this.fillPath(this.path, this.state.fillStyle);
     }
@@ -524,11 +477,6 @@ export class PixiCanvas {
 
     // Internals.
 
-    private apply(x: number, y: number): [number, number] {
-        const m = this.state.m;
-        return [m.a * x + m.c * y + m.e, m.b * x + m.d * y + m.f];
-    }
-
     /** How much the transform stretches a length, on average. */
     private scaleOf(): number {
         const m = this.state.m;
@@ -637,8 +585,7 @@ export class PixiCanvas {
         return g;
     }
 
-    private fillPath(path: SubPath[], style: string | Gradient | Pattern): void {
-        if (style instanceof Gradient) return style.radial ? this.fillRadial(style) : this.fillLinear(path, style);
+    private fillPath(path: SubPath[], style: string | Pattern): void {
         if (style instanceof Pattern) return this.fillPattern(path, style);
         const [rgb, alpha] = parseColour(style);
         const a = alpha * this.state.globalAlpha;
@@ -681,54 +628,6 @@ export class PixiCanvas {
             this.textures.set(image, texture);
         }
         return texture;
-    }
-
-    private fillLinear(path: SubPath[], gradient: Gradient): void {
-        const [x0, y0] = this.apply(gradient.x0, gradient.y0);
-        const [x1, y1] = this.apply(gradient.x1, gradient.y1);
-        const dx = x1 - x0;
-        const dy = y1 - y0;
-        const length2 = dx * dx + dy * dy;
-        if (length2 === 0) return;
-        const bands = bandsFor(Math.sqrt(length2));
-        for (const sub of path) {
-            if (sub.points.length < 6) continue;
-            for (const piece of clipPolygon(sub.points, this.state.clips)) {
-                for (let k = -1; k <= bands; k++) {
-                    // Bands of t along the gradient, the first and last running on past its ends.
-                    const from = k < 0 ? -Infinity : k / bands;
-                    const to = k >= bands ? Infinity : (k + 1) / bands;
-                    let band: number[] | null = piece;
-                    if (Number.isFinite(from)) band = clipHalfPlane(band, dx, dy, from * length2 + dx * x0 + dy * y0, true);
-                    if (band !== null && Number.isFinite(to)) band = clipHalfPlane(band, dx, dy, to * length2 + dx * x0 + dy * y0, false);
-                    if (band === null || band.length < 6) continue;
-                    const [rgb, alpha] = gradient.at(Math.max(0, Math.min(1, (Math.max(from, 0) + Math.min(to, 1)) / 2)));
-                    const a = alpha * this.state.globalAlpha;
-                    if (a > 0) this.draw().poly(band, true).fill({ color: rgb, alpha: a });
-                }
-            }
-        }
-    }
-
-    /** A radial gradient's disc, in rings: what it covers rather than the path, which canvas2d.ts makes the same. */
-    private fillRadial(gradient: Gradient): void {
-        const ring = (r: number): number[] => {
-            const kept = this.path;
-            this.path = [];
-            this.arc(gradient.x1, gradient.y1, r, 0, 2 * Math.PI);
-            const points = this.path[0]?.points ?? [];
-            this.path = kept;
-            return points;
-        };
-        const bands = bandsFor(gradient.r1 * this.scaleOf());
-        for (let k = 0; k < bands; k++) {
-            const [rgb, alpha] = gradient.at((k + 0.5) / bands);
-            const a = alpha * this.state.globalAlpha;
-            if (a <= 0) continue;
-            const g = this.draw();
-            g.poly(ring(((k + 1) / bands) * gradient.r1), true).fill({ color: rgb, alpha: a });
-            if (k > 0) g.poly(ring((k / bands) * gradient.r1), true).cut();
-        }
     }
 
     private strokePath(path: SubPath[]): void {
@@ -1011,11 +910,6 @@ export function parseColour(colour: string): [number, number] {
     }
     colours.set(colour, parsed);
     return parsed;
-}
-
-function mixRgb(p: number, q: number, u: number): number {
-    const mix = (shift: number): number => Math.round(((p >> shift) & 255) * (1 - u) + ((q >> shift) & 255) * u);
-    return (mix(16) << 16) | (mix(8) << 8) | mix(0);
 }
 
 function fontSize(font: string): number {
