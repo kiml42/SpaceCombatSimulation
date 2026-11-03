@@ -236,7 +236,8 @@ inside any one file is not contiguous.
   target, at its present distance, at the speed that holds that distance in the rock's pull, so it coasts round
   on a free orbit rather than burning to hold off; round a rock with no pull, at the speed it has. Blended with
   the approach rather than replacing it, and as loud as the rock is deep in the line, so it gives way to the
-  approach as the line clears.
+  approach as the line clears. A ram does the same, and while a rock — or, for a ship that is not a fighter, a
+  friend's hull — lies across its line it keeps the speed it has rather than adding to it.
   **A ship sharing a body is where its own modules are.** Hooked to a friend or welded to a rock, its body's
   middle is somebody else's: it is flown at, ranged on and judged by the size of the modules it works, and a
   mount aims at one of those rather than at the middle of the whole. The check for a friend in the line of
@@ -1478,7 +1479,9 @@ Rules:
   **A strike craft is a ship flagged as a fighter.** The flag rules
   out turrets and thick modules, which is what keeps a craft small enough to skim a deck, and puts the
   ship in the weapons layer for the battle. A ship that evolves either one flies as an ordinary ship, its
-  flag ignored. It commits when it rams, by its doctrine's decision or by a ram order. Any ship's doctrine
+  flag ignored. It commits when it rams, by its doctrine's decision or by a ram order, but not until it is
+  due to strike within `approach.ramCommit` seconds (two by default): until then it flies the ram in the
+  weapons layer, over the hulls in its way, and goes back to it if it misses. Any ship's doctrine
   can decide to ram: `approach.ramRadii` is how close its target's edge has to be, in the target's own
   radii, and `approach.ramArmed` how little of its own armament it must have left; while that little is all it
   has, `targeting.ramMass`, where set, is the size of target it goes after in place of `preferredMass`. Uncommitted, it collides only with weapons-layer modules — other fighters, turrets and thick structure —
