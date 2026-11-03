@@ -26,6 +26,7 @@ import {
     type GunStats,
     type ModuleSpec,
     type ModuleStats,
+    CORE_SHARE_KEYS,
 } from "./modules.js";
 import { DEFAULT_DOCTRINE, defaultTargeting, resolveTargeting, type Doctrine, type Targeting } from "./doctrine.js";
 import { EngineLayout, type EngineSpec } from "./engines.js";
@@ -1345,6 +1346,7 @@ function place(
         if (placement.drainPriority !== undefined) spec.drainPriority = placement.drainPriority;
         if (placement.fill !== undefined) spec.fill = placement.fill;
         if (placement.computing !== undefined) spec.computing = placement.computing;
+        for (const key of CORE_SHARE_KEYS) if (placement[key] !== undefined) spec[key] = placement[key];
         if (placement.robotsPerBerth !== undefined) spec.robotsPerBerth = placement.robotsPerBerth;
         if (placement.craft !== undefined) spec.craft = placement.craft;
         if (placement.docked !== undefined) spec.docked = placement.docked;

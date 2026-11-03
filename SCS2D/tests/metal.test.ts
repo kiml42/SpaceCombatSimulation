@@ -82,7 +82,7 @@ describe("a hold", () => {
     it("gives a core a little, past its computing", () => {
         const core = moduleStats({ kind: "core", x: 0, y: 0, length: 4, width: 4 });
         expect(core.metal).toBeGreaterThan(0);
-        const small = moduleStats({ kind: "core", x: 0, y: 0, length: 1, width: 1 });
+        const small = moduleStats({ kind: "core", x: 0, y: 0, length: 0.6, width: 0.6 });
         expect(small.interior).toBeLessThan(CORE_COMPUTING_VOLUME);
         expect(small.metal).toBe(0);
     });

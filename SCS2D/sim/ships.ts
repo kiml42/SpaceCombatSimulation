@@ -529,8 +529,13 @@ const GRIP_LINE = 0.5;
 /** The most a fighter may be moving against a pad and still land on it, m/s: settling, not arriving. */
 export const PAD_SPEED = 1;
 
-/** The most change of velocity, m/s, that a fighter coming in to land makes without turning for it, if it can as it points. */
+/**
+ * The most change of velocity, m/s, that a fighter coming in to land makes
+ * without turning for it, while its mains point within `PAD_HOLD_ANGLE` of it,
+ * so that at least half their push goes its way.
+ */
 const PAD_HOLD_SPEED = 5;
+const PAD_HOLD_ANGLE = PI / 3;
 
 /**
  * How long, seconds, a docking ship takes to trust a change in how what it is
@@ -2152,7 +2157,7 @@ export class Ships {
         // no consort to break off for.
         const rammed = this.ramming[i]!;
         if (rammed !== NO_TARGET) {
-            if (this.alive[rammed] === 1 && this.derelict[rammed] === 0 && this.hasControl(rammed)) {
+            if (this.alive[rammed] === 1 && this.derelict[rammed] === 0 && this.hasControl(rammed) && !this.isDisabled(i)) {
                 this.chosen[i] = rammed;
                 this.consort[i] = NO_TARGET;
                 return;
@@ -2163,6 +2168,16 @@ export class Ships {
 
         const design = this.designs[i]!;
         this.rethinkAt[i] = world.tick + this.rethinkTicks(world, design.mass);
+
+        // With no gun or engine that works, it can neither reach a fight nor
+        // shoot one, so it stops looking until it is mended or refuelled.
+        if (this.isDisabled(i)) {
+            this.chosen[i] = NO_TARGET;
+            this.consort[i] = NO_TARGET;
+            this.withdrawing[i] = 0;
+            this.hiding[i] = NO_TARGET;
+            return;
+        }
 
         const b = bodies.indexOf(this.bodyIds[i]!);
         if (b < 0) return;
@@ -2882,6 +2897,8 @@ export class Ships {
      */
     private commitOne(bodies: Bodies, i: number): void {
         if (!this.designs[i]!.fighter) return;
+        // Spent on the way in, it has given up its ram but is still armed: it coasts on into what it was aimed at.
+        if (this.committed[i] === 1 && this.isDisabled(i)) return;
         const b = bodies.indexOf(this.bodyIds[i]!);
         if (b < 0) return;
         const order = this.effectiveOrder(i);
@@ -3917,6 +3934,14 @@ export class Ships {
                 this.failSafe(i);
                 continue;
             }
+            // Nor does a ship with nothing left to push or shoot with fly or aim:
+            // it shuts down until it is mended or restocked.
+            if (this.inert(bodies, i)) {
+                this.shutDown(i);
+                // Its beams still charge, which may bring it back.
+                this.reloadOne(dt, bodies, i);
+                continue;
+            }
             this.removeInvalidOrders(i);
             this.decide(world, bodies, i);
             this.forage(world, bodies, i);
@@ -3924,19 +3949,7 @@ export class Ships {
             this.flyOne(dt, bodies, i, grid);
             this.commitOne(bodies, i);
             this.trainOne(bodies, i);
-            const timers = this.cooldown[i]!;
-            const b = bodies.indexOf(this.bodyIds[i]!);
-            const mounts = this.designs[i]!.turrets;
-            // The main battery first, so it has the power when there is not enough to go round.
-            for (let pass = 0; pass < 2; pass++) {
-                for (let t = 0; t < timers.length; t++) {
-                    if (mounts[t]!.main !== (pass === 0) || !this.ownsAt(i, b, mounts[t]!.module)) continue;
-                    if (timers[t]! > 0) {
-                        const remaining = timers[t]! - dt * this.recharged(b, i, t, dt);
-                        timers[t] = remaining > TIMER_SETTLE ? remaining : 0;
-                    }
-                }
-            }
+            this.reloadOne(dt, bodies, i);
         }
 
         // Every ship pushing pays for what it burns.
@@ -10373,7 +10386,7 @@ export class Ships {
      * The best friend's pad to land on of those it fits, by the fuel, metal and
      * charge its ship can spare for the time it would take to get there and be
      * filled, put off by armed enemies near it by its `dockDanger`, and by every
-     * other fighter already making for it.
+     * other fighter already making for it. None for one that has lost the turn it set out with.
      */
     private pickPad(
         bodies: Bodies,
@@ -10390,6 +10403,12 @@ export class Ships {
         this.landingPad[i] = -1;
         this.dockPort[i] = -1;
         if (!(approach.approachSpeed > 0)) return;
+        // One that has lost the turn either way it set out with cannot line up or steer in,
+        // and would hang by its carrier for good; one still being built has yet to get it.
+        const set = (this.launched[i] ?? this.designs[i]!).engineLayout;
+        const now = this.layoutOf(i);
+        if (this.unfinished[i] !== 1 && set.maxTorque(1) > 0 && set.maxTorque(-1) > 0 && !(now.maxTorque(1) > 0 && now.maxTorque(-1) > 0))
+            return;
         const box = footprintOf(this.designs[i]!);
         let bestScore = 0;
         for (let t = 0; t < this.alive.length; t++) {
@@ -11024,14 +11043,13 @@ export class Ships {
         const dvx = vx - bodies.vx[b]! + ax * approach.responseTime;
         const dvy = vy - bodies.vy[b]! + ay * approach.responseTime;
         // Its mains on what it still has to do, near or not: a fighter mostly pushes one way.
-        // Not for a small correction it can make as it points within a response, or it
-        // weaves, turning after each and overshooting it while it turns.
+        // Not for a small correction its mains already point near enough along, or it
+        // weaves, turning after each and overshooting it while it turns. Its mains,
+        // since thrusters off its middle push it round as they push it across.
         const need = length(dvx, dvy);
-        const turn =
-            need > PAD_SPEED / 2 &&
-            (need > PAD_HOLD_SPEED ||
-                this.accelerationAlong(bodies, i, b, dvx / need, dvy / need, bodies.angle[b]!) * approach.responseTime < need);
-        const braking = turn ? atan2(dvy, dvx) - design.thrustBearing : bodies.angle[b]!;
+        const toward = atan2(dvy, dvx) - design.thrustBearing;
+        const turn = need > PAD_SPEED / 2 && (need > PAD_HOLD_SPEED || abs(angleDelta(bodies.angle[b]!, toward)) > PAD_HOLD_ANGLE);
+        const braking = turn ? toward : bodies.angle[b]!;
         if (!near || length(box.maxX - box.minX, box.maxY - box.minY) <= min(spec.length, spec.width)) return braking;
         // One that has to line up with the pad does so once it has little left to lose, either way round, whichever is nearer.
         if (length(vx - bodies.vx[b]!, vy - bodies.vy[b]!) > PAD_SPEED / 2) return braking;
@@ -12881,6 +12899,46 @@ export class Ships {
         this.demandTorque[i] = 0;
         this.brakingOnMains[i] = 0;
         this.burning[i] = 0;
+    }
+
+    /** Run down each of ship `i`'s mounts' reload, as far as its power allows. */
+    private reloadOne(dt: number, bodies: Bodies, i: number): void {
+        const timers = this.cooldown[i]!;
+        const b = bodies.indexOf(this.bodyIds[i]!);
+        const mounts = this.designs[i]!.turrets;
+        // The main battery first, so it has the power when there is not enough to go round.
+        for (let pass = 0; pass < 2; pass++) {
+            for (let t = 0; t < timers.length; t++) {
+                if (mounts[t]!.main !== (pass === 0) || !this.ownsAt(i, b, mounts[t]!.module)) continue;
+                if (timers[t]! > 0) {
+                    const remaining = timers[t]! - dt * this.recharged(b, i, t, dt);
+                    timers[t] = remaining > TIMER_SETTLE ? remaining : 0;
+                }
+            }
+        }
+    }
+
+    /** Whether ship `i` has no engine that can burn and no mount of its own that can fire. */
+    private inert(bodies: Bodies, i: number): boolean {
+        if (!this.hasNoEngines(i)) return false;
+        const b = bodies.indexOf(this.bodyIds[i]!);
+        if (b < 0) return true;
+        const mounts = this.designs[i]!.turrets;
+        for (let t = 0; t < mounts.length; t++) {
+            if (this.ownsAt(i, b, mounts[t]!.module) && this.canFire(i, b, t)) return false;
+        }
+        return true;
+    }
+
+    /** Stop everything ship `i` is doing, and forget what it was fighting. */
+    private shutDown(i: number): void {
+        this.failSafe(i);
+        this.idle(i);
+        this.chosen[i] = NO_TARGET;
+        this.consort[i] = NO_TARGET;
+        this.ramming[i] = NO_TARGET;
+        this.withdrawing[i] = 0;
+        this.hiding[i] = NO_TARGET;
     }
 
     private failSafe(i: number): void {

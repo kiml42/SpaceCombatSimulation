@@ -209,7 +209,7 @@ inside any one file is not contiguous.
   every live one without a rule saying so; a ship that is a hulk outright — no working core, or no guns
   and no engines — is dropped from the list before it is scored at all, both a chooser's own target and
   each of its mounts', because a hulk can never be finished off and a fleet with nothing better in range
-  would otherwise park on one forever. What size of target a craft goes for is a ratio to its own mass — one meaning
+  would otherwise park on one forever. A chooser that is itself one stops choosing: with no main gun and no engine that can burn, it holds no target and covers no friend, a ram it had begun included, until mended or restocked; with no mount of any kind left to fire either, it shuts down altogether, flying and aiming nothing, as a hulk's controls do. A torpedo spent on the way in stays armed and coasts on. What size of target a craft goes for is a ratio to its own mass — one meaning
   "something my own size", which sends a fighter after fighters and a capital after capitals without
   either being told. An order given always outranks it, so doctrine is a fallback and never
   a second voice — for the ship and its main battery. **A secondary mount ignores orders** and picks by its
@@ -776,7 +776,14 @@ inside any one file is not contiguous.
   one under the pointer on the chart, name the side that was evolving in it.
   **Fuel.** A `tank` archetype whose interior is reaction mass, and every core's interior past its
   computing (see the control radius in §4), so a bare core with one engine can move; a core no bigger
-  than a cubic metre (`CORE_COMPUTING_VOLUME`) is all computing and holds none. Each engine has an exhaust velocity:
+  than half a cubic metre (`CORE_COMPUTING_VOLUME`) is all computing and holds none. **A core's room past its
+  computing is shared between fuel, a hold, a generator and a battery** by weight (`fuelShare`,
+  `holdShare`, `generatorShare`, `batteryShare`, each set in the editor and drifted by evolution). Left to
+  its default (`CORE_FUEL_SHARE` 0.75, then 0.05, 0.1 and 0.1), each steps in, in that order, only once its
+  share would be worth having (`CORE_FUEL_LEAST` 0.25 m³, then 0.1 m³ each) without leaving one already in
+  short of its own; until fuel does, the core is all computing. One set is kept however small, and 0 leaves
+  it out. A core's complexity is 8 for its computing, and 1 more for fuel, 1 for a hold, 4 for a generator
+  and 2 for a battery, so a fighter's bare core is half a full one's. Each engine has an exhaust velocity:
   `EXHAUST_VELOCITY`, less what its bell throws sideways (`divergence`) and what a small throat loses to its
   walls — about 1,900 s of specific impulse on a capital's main engine and 1,650 s on a fighter's, and
   never under 700 s. **An engine with a throat under `PRESSURE_FED_THROAT` (0.25 m), or a block shorter than
@@ -890,8 +897,10 @@ inside any one file is not contiguous.
   nothing in the weapons layer stands between, asked from afar as well as inside the circle, so one whose
   way in runs across the carrier starts round in time. It makes for where its outline, not its centre of
   mass, lies centred on the pad, so a fighter heavy at one end fits a pad only just long enough for it; and
-  it turns its mains onto a change of velocity under `PAD_HOLD_SPEED` (5 m/s) only if it cannot make it as
-  it points within a response, or it weaves, turning after each small correction and overshooting it. With arcs shown, every way in is drawn on the pad as a
+  it turns its mains onto a change of velocity under `PAD_HOLD_SPEED` (5 m/s) only once they point more than
+  `PAD_HOLD_ANGLE` (60°) off it, or it weaves, turning after each small correction and overshooting it; a
+  fighter's thrusters cannot stand in, since those off its middle turn it as they push it across. One that
+  has lost the turn either way it set out with does not try to land at all, since it could never line up. With arcs shown, every way in is drawn on the pad as a
   small arrow pointing in from the middle of its side or from its corner, along the way, in amber for a pad's
   one longest run, so the editor shows how easy a pad is to reach — and from the wrong side it
   first circles the carrier outside its radius, `HULL_ORBIT_STEP` at a time, rather than fly through what is in
@@ -1016,7 +1025,7 @@ inside any one file is not contiguous.
   other.
   **Every module has a complexity** (`complexityOf`), work over and above its mass that making or mending it
   takes, the same whatever its size, at `COMPLEXITY_WORK` a unit: structure, tanks and holds 1, a battery 2,
-  claws, pads and ports 3, engines and hull weapons 4 (a pressure-fed engine 1), turrets 7, generators and robot bays 6, cores 16, with
+  claws, pads and ports 3, engines and hull weapons 4 (a pressure-fed engine 1), turrets 7, generators and robot bays 6, cores 8 to 16 by what they hold, with
   2 more for a self-sealing lining and 1 for every barrel or nozzle past the first. Building a module spreads
   it over every kilogram of walls and fittings (`buildWork`), and mending one over the damage that breaks it
   (`repairWork`), so it costs time and charge alike, in proportion. A Dinky's outrigger engine is almost all
@@ -1160,7 +1169,7 @@ inside any one file is not contiguous.
   from two wrecks, and once full brings what it holds over three fifths back to the carrier; its fighters fight
   a wave of eight Dinkies on their batteries and come back to the pads, leaving with every store full.
   **Metal.** A `hold` archetype whose interior is metal (`METAL_DENSITY`, steel racked about half solid), and
-  a twentieth of every core's interior past its computing (`CORE_METAL_SHARE`), the rest of it still fuel, so
+  by default a twentieth of a core's interior past its computing (`CORE_METAL_SHARE`), the rest of it still fuel, so
   a bare core with one gun can fire a few rounds. A gun loads each round whole from the holds and cores on its
   own piece of hull, as an engine draws fuel from its tanks, and holds its fire, ready, while they have less
   than a round; a round's whole mass, casing and charge, is metal. A ship weighs its metal and gets lighter by
@@ -1201,7 +1210,7 @@ inside any one file is not contiguous.
   battle draws a battery's gauge in violet and a generator as a violet disc. **A beam's reload is paid for
   in charge**: over its reload it draws the energy its bank holds from its piece of hull, the main battery
   first, and reloads only as fast as that comes; with power to spare it reloads at its own gear's rate as
-  before, and with none it fires once. **A core carries a generator and a battery** in a tenth of its spare
+  before, and with none it fires once. **A core carries a generator and a battery**, by default in a tenth of its spare
   interior each (`CORE_GENERATOR_SHARE`, `CORE_BATTERY_SHARE`), taken from its fuel, the generator no bigger
   than `CORE_GENERATOR_MAX_VOLUME` (2 m³) and the rest of its tenth left as fuel, so a core runs a small beam
   but a big one is not a power plant; damage takes them as it takes a generator's and a battery's. **A core

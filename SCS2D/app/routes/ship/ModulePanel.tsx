@@ -9,6 +9,9 @@ import {
     canShape,
     canThicken,
     CORE_COMPUTING_SHARE,
+    CORE_SHARE_DEFAULTS,
+    CORE_SHARE_KEYS,
+    type CoreShareKey,
     degreesToRadians,
     firesShells,
     isHullMount,
@@ -99,6 +102,15 @@ export interface ModulePanelProps {
 }
 
 /** The selected module: its kind, place, size and every setting its kind reads, what it comes to, and its doctrine. */
+/** What each of a core's stores is called on the panel, and what it is for, in `CORE_SHARE_KEYS` order. */
+const CORE_SHARE_LABELS = ["fuel share", "hold share", "generator share", "battery share"] as const;
+const CORE_SHARE_TITLES = [
+    "How much of the core's room is fuel.",
+    "How much of the core's room is a hold for metal.",
+    "How much of the core's room is a generator, up to 2 m³; past that it is fuel.",
+    "How much of the core's room is a battery.",
+] as const;
+
 export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrineOpen, onDoctrineOpen, onDelete }: ModulePanelProps) {
     const { doc } = editing;
     const path = doc.selection;
@@ -126,6 +138,12 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
             const { [key]: _, ...rest } = placement as ModuleSpec;
             const part = Math.min(Math.max(value, 0), 100) / 100;
             return (part !== fallback ? { ...rest, [key]: part } : rest) as Placement;
+        }, true);
+
+    const storeShare = (key: CoreShareKey, value: number | undefined): void =>
+        update((placement) => {
+            const { [key]: _, ...rest } = placement as ModuleSpec;
+            return (value === undefined ? rest : { ...rest, [key]: value }) as Placement;
         }, true);
 
     const box = (
@@ -461,12 +479,37 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                             step: 5,
                             min: 0,
                             max: 100,
-                            title: "How much of the core computes rather than holding fuel, metal and charge, per cent. More reaches modules further away; the circle it reaches is drawn round it. A core of 1 m³ or less is all computing. 10 by default.",
+                            title: "How much of the core computes rather than holding fuel, metal and charge, per cent. More reaches modules further away; the circle it reaches is drawn round it. A core of 0.5 m³ or less is all computing. 10 by default.",
                         },
                         (percent) => share("computing", percent, CORE_COMPUTING_SHARE),
                     )}
                 </Field>
             )}
+            {readsComputing(spec.kind) &&
+                CORE_SHARE_KEYS.map((key, k) => (
+                    <Field id={`${key}Row`} key={key}>
+                        <label htmlFor={`prop${key[0]!.toUpperCase()}${key.slice(1)}`}>{CORE_SHARE_LABELS[k]}</label>
+                        {box(
+                            key,
+                            {
+                                step: 0.05,
+                                min: 0,
+                                disabled: spec[key] === undefined,
+                                title: `${CORE_SHARE_TITLES[k]} A weight against the core's other stores, scaled to fill its room past its computing; 0 leaves it out, and the core is simpler for it. Untick auto to set it.`,
+                            },
+                            (value) => storeShare(key, Math.max(0, value)),
+                        )}
+                        <label>
+                            <input
+                                type="checkbox"
+                                title="Stepped in by default once the core has room for a useful amount, in order: fuel, then a hold, a generator and a battery."
+                                checked={spec[key] === undefined}
+                                onChange={(event) => storeShare(key, event.target.checked ? undefined : CORE_SHARE_DEFAULTS[k]!)}
+                            />
+                            auto
+                        </label>
+                    </Field>
+                ))}
             {readsRobotsPerBerth(spec.kind) && (
                 <Field id="robotsPerBerthRow">
                     <label htmlFor="propRobotsPerBerth">robots per berth</label>
