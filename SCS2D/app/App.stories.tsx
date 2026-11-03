@@ -143,7 +143,7 @@ export const Effects: Story = {
     args: { path: "/effects" },
     play: async ({ canvas }) => {
         await userEvent.selectOptions(canvas.getByRole("combobox", { name: "Effect" }), "Beams");
-        await expect(canvas.getByText(/^Beams of 10 cm/)).toBeVisible();
+        await expect(canvas.getByText(/^Four hull beams/)).toBeVisible();
         await userEvent.click(canvas.getByRole("button", { name: "Pause" }));
         await expect(canvas.getByRole("button", { name: "Play" })).toBeVisible();
         await userEvent.keyboard(" ");
