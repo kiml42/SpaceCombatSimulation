@@ -23,7 +23,7 @@ import {
 import { DEFAULT_BURST_SPEED, DEFAULT_FRAGMENTS, EXPLOSIVE_YIELD } from "../sim/modules.js";
 import { CORVETTE, TORCH, TORPEDO } from "../scenarios/blueprints.js";
 import { barrelLines } from "../render/barrels.js";
-import { Flashes, flashRadius } from "../render/flashes.js";
+import { burstLifetime, Flashes, flashRadius } from "../render/flashes.js";
 
 /**
  * Small scenes of the battle's effects, for looking at them on their own: each
@@ -81,6 +81,9 @@ const tankDesign = (): ShipDesign =>
         { id: 2, kind: "tank", x: 13, y: 0, length: 24, width: 3 },
     ]);
 
+/** How fast the guns' fragments leave their shells, at most, m/s: the Corvette gun's, slow enough that each burst keeps to its own row. */
+const GUN_BURST_SPEED = 200;
+
 /** How wide each gun's mount is, the smallest first: calibres of 2 cm to 40 cm. */
 const GUN_MOUNTS = [0.2, 0.5, 1, 2, 4];
 
@@ -118,6 +121,7 @@ function gun(width: number): Gun {
             barrels: 1,
             barrelCalibres: 40,
             fuse: 0.05,
+            burstSpeed: GUN_BURST_SPEED,
         },
     ]);
     const turret = design.turrets[0]!;
@@ -240,6 +244,19 @@ function flash(
     if (flashes.age[before]! >= flashes.lifetime[before]!) flashes.count = before;
 }
 
+/** How fast each torpedo meets the slab, m/s. */
+const COLLISION_SPEEDS = [10, 30, 100, 300, 1000];
+
+/** How far a design reaches ahead of its centre of mass, where its modules lie square. */
+function aheadOf(design: ShipDesign): number {
+    let ahead = 0;
+    for (const m of design.modules) {
+        const across = Math.abs(Math.sin(m.angle)) > 0.5;
+        ahead = Math.max(ahead, m.x + (across ? m.spec.width : m.spec.length) / 2);
+    }
+    return ahead;
+}
+
 /** A round in flight, `width` across, at `(x, y)` going `(vx, vy)`, fired or burst from `(fromX, fromY)`. */
 function round(snapshot: Snapshot, x: number, y: number, vx: number, vy: number, fromX: number, fromY: number, width: number): void {
     const i = snapshot.projectileCount++;
@@ -307,7 +324,7 @@ function spanOf(energies: readonly number[], reach: number, extra: number): numb
 export const EFFECTS_SCENES: readonly EffectsScene[] = [
     {
         name: "Hits",
-        about: "Rounds from the five guns of the Guns scene, 2 cm to 40 cm, coming in from the top left onto a slab of hull, then a torpedo crashing into its end.",
+        about: "Rounds from the five guns of the Guns scene, 2 cm to 40 cm, coming in from the top left onto a slab of hull.",
         loop: 1,
         build(t, snapshot, flashes) {
             const each = GUN_MOUNTS.map(gun);
@@ -329,9 +346,32 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
                 if (t < hit) round(snapshot, x - vx * (hit - t), top - vy * (hit - t), vx, vy, x - vx * hit, top - vy * hit, g.calibre);
                 flash(flashes, t, hit, x, top, g.energy, IMPACT_ROUND);
             });
+        },
+    },
+    {
+        name: "Collisions",
+        about: "Torpedoes flying nose first onto a slab of hull at 10, 30, 100, 300 and 1000 m/s, each stopping where it meets the slab, its whole energy flashing there.",
+        loop: 1,
+        build(t, snapshot, flashes) {
             const torpedo = torpedoDesign();
-            place(snapshot, torpedo, half + 10 + torpedo.radius, top + 1, Math.PI);
-            flash(flashes, t, 0.6, half + 10, top + 1, 1e6, IMPACT_COLLISION);
+            const energies = COLLISION_SPEEDS.map((speed) => 0.5 * torpedo.mass * speed * speed);
+            const half = spanOf(energies, 2.2, 2);
+            const slab = slabDesign(Math.ceil(2 * half + 20));
+            const top = 1.5;
+            begin(snapshot, flashes, t, -half - 10, -10, half + 10, 40);
+            place(snapshot, slab, 0, -slab.centreOfMassY, 0);
+            const hit = 0.4;
+            const nose = aheadOf(torpedo);
+            spaced(energies, 2.2, 2).forEach((x, k) => {
+                const speed = COLLISION_SPEEDS[k]!;
+                // Nose down, coming straight in, and stopped dead where it meets the slab.
+                const ship = place(snapshot, torpedo, x, top + nose + speed * Math.max(0, hit - t), -Math.PI / 2);
+                if (t < hit) {
+                    ship.vy = -speed;
+                    ship.throttles.fill(1);
+                }
+                flash(flashes, t, hit, x, top, energies[k]!, IMPACT_COLLISION);
+            });
         },
     },
     {
@@ -342,8 +382,8 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
             const fire = 0.1;
             const burst = fire + 3 * STEP;
             const each = GUN_MOUNTS.map(gun);
-            // Each row as tall as its ship or its burst's glow at birth, the smallest at the top.
-            const reach = each.map((g) => Math.max(g.design.radius, flashRadius(g.burst) * 1.5) + 2);
+            // Each row as tall as its burst's glow gets before it goes out, the smallest at the top.
+            const reach = each.map((g) => Math.max(g.design.radius, flashRadius(g.burst) * 2.2 + g.spread * burstLifetime(g.burst)) + 4);
             const ys: number[] = [];
             let y = 0;
             reach.forEach((r, k) => {
@@ -351,7 +391,7 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
                 ys.push(y);
             });
             const far = Math.max(...each.map((g) => g.speed)) * (burst - fire);
-            begin(snapshot, flashes, t, -2 * each[4]!.design.radius, y - reach[4]!, far + 20, reach[0]!);
+            begin(snapshot, flashes, t, -2 * each[4]!.design.radius, y - reach[4]!, far + reach[4]!, reach[0]!);
             room(
                 snapshot,
                 each.reduce((sum, g) => sum + g.fragments + 1, 0),
