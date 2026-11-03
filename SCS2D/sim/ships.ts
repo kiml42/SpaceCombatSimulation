@@ -10053,7 +10053,7 @@ export class Ships {
         // A fighter with no claw lands on a friend's pad instead, and anything
         // else with a port of its own docks with a friend's. Only a pad mends.
         const rearms = claw < 0 && design.fighter && (ordered || (own && approach.rearmBelow >= 0));
-        const repairs = claw < 0 && design.fighter && (ordered || (own && approach.repairBelow > 0));
+        const repairs = claw < 0 && design.fighter && (ordered || (own && (approach.repairBelow > 0 || approach.repairArmed >= 0)));
         const lands = (docks || rearms || recharges || repairs) && claw < 0 && design.fighter;
         const port = docks && !design.fighter ? this.workingPort(bodies, i, b) : -1;
         // A ship with a claw too docks only once it is down to `refuelBelow`, and
@@ -10089,7 +10089,7 @@ export class Ships {
         const flat = chargeRoom > 0 && charge <= approach.rechargeBelow * (charge + chargeRoom);
         const recharging = chargeRoom > 0 && (ordered || flat || this.recharging[i] === 1);
         // Mending only makes it more whole, so nothing need hold it to the trip.
-        const hurt = repairs && (ordered ? this.wholeness(b, i) < 1 : this.wholeness(b, i) <= approach.repairBelow);
+        const hurt = repairs && (ordered ? this.wholeness(b, i) < 1 : this.wholeness(b, i) <= approach.repairBelow || this.disarmed(i, b));
         const going = ordered
             ? room > 0 || metalRoom > 0 || recharging || hurt
             : scavengeOrder
@@ -10361,6 +10361,14 @@ export class Ships {
             if (length(bodies.x[eb]! - bodies.x[tb]!, bodies.y[eb]! - bodies.y[tb]!) <= reach) danger++;
         }
         return danger;
+    }
+
+    /** Whether so few of fighter `i`'s main guns work that its doctrine's `repairArmed` sends it to be mended. */
+    private disarmed(i: number, b: number): boolean {
+        const repairArmed = this.doctrines[i]!.approach.repairArmed;
+        if (repairArmed < 0) return false;
+        const share = this.armedShare(i, b, false);
+        return this.tools > 0 && share <= repairArmed;
     }
 
     /**

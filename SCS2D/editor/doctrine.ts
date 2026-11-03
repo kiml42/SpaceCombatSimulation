@@ -226,6 +226,12 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
         step: 0.05,
     },
     {
+        field: "repairArmed",
+        label: "repairs disarmed",
+        hint: "The share of its main guns still working at or below which a fighter breaks off to land on a friend’s pad and be mended, however whole it is otherwise. 0 goes once none works; below 0 never",
+        step: 0.1,
+    },
+    {
         field: "launchFuel",
         label: "leaves with fuel",
         hint: "The share of a full load of fuel a fighter takes on before it leaves a pad, for danger or a target, or as much as the carrier can spare. An order sends it at once. A ship built on a slipway is let go by the same rule. 1 fills it",
@@ -716,6 +722,14 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                         absolute: (v) =>
                             v.approach.repairBelow > 0 ? `below ${Math.round(v.approach.repairBelow * 100)}% whole, on a pad` : "never",
                     }),
+                    entry("approach", "repairArmed", {
+                        absolute: (v) =>
+                            v.approach.repairArmed < 0
+                                ? "never"
+                                : v.approach.repairArmed > 0
+                                  ? `with ${Math.round(v.approach.repairArmed * 100)}% of its main guns working or fewer, on a pad`
+                                  : "once none of its main guns works, on a pad",
+                    }),
                     ...(["launchFuel", "launchMetal", "launchCharge"] as const).map((field) =>
                         entry("approach", field, {
                             absolute: (v) => (v.approach[field] >= 1 ? "full" : `${Math.round(v.approach[field] * 100)}% full`),
@@ -757,7 +771,8 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                             v.approach.refuelBelow > 0 ||
                             v.approach.rechargeBelow > 0 ||
                             v.approach.rearmBelow >= 0 ||
-                            v.approach.repairBelow > 0,
+                            v.approach.repairBelow > 0 ||
+                            v.approach.repairArmed >= 0,
                     }),
                     entry("approach", "sortieRange", {
                         absolute: (v, ship) =>
