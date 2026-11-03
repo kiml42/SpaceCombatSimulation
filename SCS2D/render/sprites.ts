@@ -12,7 +12,7 @@ export type SpriteShape =
     | "streak"
     /** Fades along its length with the shutter, and out from its centre line. */
     | "glowStreak"
-    /** A hard-edged disc. */
+    /** A disc with a hard edge, as hard as its size allows. */
     | "disc"
     /** Fades out from its centre. */
     | "halo"
@@ -47,7 +47,8 @@ function shade(shape: SpriteShape, u: number, v: number): number {
         case "glowStreak":
             return shutterWeight(u) * falloff(across);
         case "disc":
-            return radial(u, v) <= 1 ? 1 : 0;
+            // Its edge a texel soft, so it stays round stretched far past its size.
+            return Math.min(1, Math.max(0, (1 - radial(u, v)) * (ACROSS / 2) + 0.5));
         case "halo":
             return falloff(radial(u, v));
         case "band":
