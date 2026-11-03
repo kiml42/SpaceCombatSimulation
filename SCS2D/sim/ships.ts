@@ -1548,6 +1548,7 @@ export class Ships {
             floor: max(0, width - lining * SEAL_REACH),
             closing: lining * SEAL_SPEED,
             rate: 0,
+            age: 0,
         });
     }
 
@@ -9784,6 +9785,7 @@ export class Ships {
         let torque = 0;
         let vented = false;
         for (const leak of leaks) {
+            leak.age += dt;
             // The lining swells into the hole, pinching it off as far as it can reach.
             if (leak.width > leak.floor) leak.width = max(leak.floor, leak.width - leak.closing * dt);
             const fill = this.fuel.fill(b, leak.module);

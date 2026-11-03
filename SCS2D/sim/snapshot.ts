@@ -2,6 +2,7 @@ import type { Bodies } from "./bodies.js";
 import { originOf, type ShipDesign } from "./blueprint.js";
 import type { WellSpec } from "./gravity.js";
 import type { Doctrine, DoctrineOverride } from "./doctrine.js";
+import { leakSpeed } from "./fuel.js";
 import { NOT_INSIDE, type Projectiles } from "./projectiles.js";
 import type { Beams } from "./beams.js";
 import type { ImpactLog } from "./damage.js";
@@ -207,6 +208,9 @@ export interface ShipView {
     leakDirY?: number[];
     leakWidth?: number[];
     leakRate?: number[];
+    /** How long each hole has been open, s, and how fast its fuel leaves, m/s: how far its plume has got. */
+    leakAge?: number[];
+    leakSpeed?: number[];
     /**
      * Whether the ship still has a core with control in it (§4).
      *
@@ -631,7 +635,9 @@ export function capture(
         const ldy = (view.leakDirY ??= []);
         const lw = (view.leakWidth ??= []);
         const lr = (view.leakRate ??= []);
-        lx.length = ly.length = ldx.length = ldy.length = lw.length = lr.length = 0;
+        const la = (view.leakAge ??= []);
+        const ls = (view.leakSpeed ??= []);
+        lx.length = ly.length = ldx.length = ldy.length = lw.length = lr.length = la.length = ls.length = 0;
         if (ships.ownsBody(i)) {
             for (const leak of ships.fuel.leaksOf(b)) {
                 if (!(leak.rate > 0)) continue;
@@ -645,6 +651,8 @@ export function capture(
                 ldy.push(leak.nx * s + leak.ny * c);
                 lw.push(leak.width);
                 lr.push(leak.rate);
+                la.push(leak.age);
+                ls.push(leakSpeed(ships.fuel.fill(b, leak.module)));
             }
         }
         const drawn = (view.drawn ??= []);

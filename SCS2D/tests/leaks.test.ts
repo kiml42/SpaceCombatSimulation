@@ -1,6 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { HullPath, Ships, World, compileBlueprint, joints, resolveRound, type Blueprint, type Rng } from "../sim/index.js";
-import { LEAK_CHANCE, leakChance, leakRate, leakSpeed, type Leak } from "../sim/fuel.js";
+import {
+    Beams,
+    HullPath,
+    Projectiles,
+    Ships,
+    Snapshot,
+    World,
+    capture,
+    compileBlueprint,
+    joints,
+    resolveRound,
+    type Blueprint,
+    type Rng,
+} from "../sim/index.js";
+import { LEAK_CHANCE, leakChance, leakRate, leakSpeed, PATCH_SPEED, type Leak } from "../sim/fuel.js";
 
 /** A core and a tank ahead of it, and nothing to fly with: what moves it is the leak. */
 const DRUM: Blueprint = {
@@ -62,6 +75,32 @@ describe("a holed tank", () => {
         // Fuel out of the bow, the ship pushed astern, and nowhere else.
         expect(s.world.bodies.vx[s.body]).toBeLessThan(0);
         expect(Math.abs(s.world.bodies.vy[s.body]!)).toBeLessThan(1e-9);
+    });
+
+    it("counts how long it has been open, for its plume to grow out of it at the speed its fuel leaves", () => {
+        const s = scene();
+        s.ships.holed(s.body, TANK, 1, bowX, 0, 1, 0, 0.2, always);
+        for (let i = 0; i < 30; i++) step(s);
+        expect(s.ships.fuel.leaksOf(s.body)[0]!.age).toBeCloseTo(0.5, 9);
+        const view = capture(new Snapshot(), s.world, s.ships, new Projectiles(), new Beams()).ships[0]!;
+        expect(view.leakAge).toEqual([s.ships.fuel.leaksOf(s.body)[0]!.age]);
+        expect(view.leakSpeed![0]).toBeCloseTo(leakSpeed(s.ships.fuel.fill(s.body, TANK)), 9);
+    });
+
+    it("narrows to nothing once patched, however wide, at the speed a patch closes it", () => {
+        const s = scene();
+        s.ships.holed(s.body, TANK, 1, bowX, 0, 1, 0, 0.4, always);
+        step(s);
+        const before = s.ships.fuel.leaksOf(s.body)[0]!;
+        expect(before.rate).toBeGreaterThan(0);
+        s.ships.fuel.seal(s.body, TANK);
+        for (let i = 0; i < 60; i++) step(s);
+        expect(s.ships.fuel.leaksOf(s.body)[0]!.width).toBeCloseTo(0.4 - PATCH_SPEED, 9);
+        for (let i = 0; i < 120; i++) step(s);
+        expect(s.ships.fuel.leaksOf(s.body)[0]!.width).toBe(0);
+        const held = s.ships.fuel.held(s.body, TANK);
+        step(s);
+        expect(s.ships.fuel.held(s.body, TANK)).toBe(held);
     });
 
     it("is left alone by a round the plate closes round", () => {
