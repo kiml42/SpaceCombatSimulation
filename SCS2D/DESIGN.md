@@ -896,8 +896,10 @@ inside any one file is not contiguous.
   nothing in the weapons layer stands between, asked from afar as well as inside the circle, so one whose
   way in runs across the carrier starts round in time. It makes for where its outline, not its centre of
   mass, lies centred on the pad, so a fighter heavy at one end fits a pad only just long enough for it; and
-  it turns its mains onto a change of velocity under `PAD_HOLD_SPEED` (5 m/s) only if it cannot make it as
-  it points within a response, or it weaves, turning after each small correction and overshooting it. With arcs shown, every way in is drawn on the pad as a
+  it turns its mains onto a change of velocity under `PAD_HOLD_SPEED` (5 m/s) only once they point more than
+  `PAD_HOLD_ANGLE` (60°) off it, or it weaves, turning after each small correction and overshooting it; a
+  fighter's thrusters cannot stand in, since those off its middle turn it as they push it across. One that
+  has lost the turn either way it set out with does not try to land at all, since it could never line up. With arcs shown, every way in is drawn on the pad as a
   small arrow pointing in from the middle of its side or from its corner, along the way, in amber for a pad's
   one longest run, so the editor shows how easy a pad is to reach — and from the wrong side it
   first circles the carrier outside its radius, `HULL_ORBIT_STEP` at a time, rather than fly through what is in
