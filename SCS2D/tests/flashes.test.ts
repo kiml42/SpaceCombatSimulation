@@ -19,7 +19,7 @@ import {
     muzzleWedge,
 } from "../render/flashes.js";
 import { IMPACT_BURST, IMPACT_COLLISION, IMPACT_MUZZLE, IMPACT_ROUND } from "../sim/index.js";
-import { SPARK_LIFE } from "../render/particles.js";
+import { bitCount, METAL_LIFE, seedOf, sparkCount } from "../render/particles.js";
 
 /**
  * Impact flashes: the arithmetic of how big and how bright, and the ageing
@@ -80,14 +80,14 @@ describe("the store", () => {
         expect(flashes.count).toBe(0);
     });
 
-    it("keeps a hit after its light goes out, for as long as its sparks fly", () => {
+    it("keeps a hit after its light goes out, for as long as what it threw off flies", () => {
         const flashes = new Flashes();
         flashes.add(10, 20, FLASH_REFERENCE_ENERGY, IMPACT_ROUND);
-        expect(flashes.kept[0]).toBe(SPARK_LIFE);
+        expect(flashes.kept[0]).toBe(METAL_LIFE);
         flashes.step(ROUND_FLASH_LIFETIME + 1e-9);
         expect(flashes.count).toBe(1);
         expect(flashFade(flashes.age[0]!, flashes.lifetime[0]!)).toBe(0);
-        flashes.step(SPARK_LIFE);
+        flashes.step(METAL_LIFE);
         expect(flashes.count).toBe(0);
     });
 
@@ -255,7 +255,7 @@ describe("copying flashes", () => {
         const flashes = new Flashes();
         for (let i = 0; i < 100; i++) flashes.add(i, 0, FLASH_REFERENCE_ENERGY, IMPACT_ROUND);
         const copy = flashes.copy();
-        flashes.step(SPARK_LIFE);
+        flashes.step(METAL_LIFE);
         expect(flashes.count).toBe(0);
         expect(copy.count).toBe(100);
         expect(copy.x[99]).toBe(99);
@@ -263,5 +263,16 @@ describe("copying flashes", () => {
         copy.clear();
         expect(flashes.count).toBe(100);
         expect(flashes.age[0]).toBe(0);
+    });
+});
+
+describe("what a hit and a collision throw off", () => {
+    it("is mostly sparks from a round and mostly metal from a collision, some of each from both", () => {
+        const energy = 1e7;
+        const seed = seedOf(0, 0, energy, IMPACT_ROUND);
+        expect(sparkCount(IMPACT_ROUND, energy, seed)).toBeGreaterThan(bitCount(IMPACT_ROUND, energy));
+        expect(bitCount(IMPACT_ROUND, energy)).toBeGreaterThan(0);
+        expect(bitCount(IMPACT_COLLISION, energy)).toBeGreaterThan(sparkCount(IMPACT_COLLISION, energy, seed));
+        expect(sparkCount(IMPACT_COLLISION, energy, seed)).toBeGreaterThan(0);
     });
 });
