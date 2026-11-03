@@ -474,7 +474,14 @@ an entry is either still open or it is gone.
                same way, a muzzle flash's wedge held at the face with a hot spot where it struck. Drawn as streaks in one
                additive Pixi `ParticleContainer` a scene (`PixiCanvas.particles`), in their turn among the
                rest. A beam's flashes throw one now and then.
-            2. **Metal from collisions**, with a smaller flash.
+            2. **Metal from collisions, with a smaller flash — built.** A collision logs how the hulls slid
+               across each other, the normal between them and how fast they closed (`ImpactLog.speed`), and
+               its flash is half a hit's of the same energy (`COLLISION_FLASH_SHARE`). Up to 20 bits of metal
+               fly out along the contact either way, leaning the way the hulls slid, at up to six-tenths of
+               the closing speed, tumbling and glinting in the battle's light: jagged shards, laid over what
+               is under them in a second batch. Each throws some of the other's too: a hit knocks out a
+               few bits of metal the way its sparks go, a fifth as many as a collision of its energy, and
+               a collision grinds out a few sparks along the contact, a third as many as a hit's.
             3. **Leak vapour**, from the formula for a hole's width over its life, placed by the ship's
                pose now; then (4) by its pose when each left.
         - **Lingering debris** comes later and is not settled: bits that stay a while need to bounce off

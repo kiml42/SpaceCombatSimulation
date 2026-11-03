@@ -94,7 +94,7 @@ import { flashExtent, flashFade, flashPosition, muzzleWedge, type Flashes } from
 import { clipToStart, exposureEnds, flashSamples, shutterWeight } from "./exposure.js";
 import { flameSprite, rgba, sprite, TAPER_FRONTS, taperSprite, WEDGE_HEADROOM, WEDGE_STEPS, wedgeBox, wedgeSprite } from "./sprites.js";
 import { drawGlows, Lights, type Transform } from "./glows.js";
-import { seedOf, spark, sparkColour, sparkCount, sparkFade, sprayOf, type Spark } from "./particles.js";
+import { bit, bitCount, seedOf, spark, sparkColour, sparkCount, sparkFade, sprayOf, type Bit, type Spark } from "./particles.js";
 import type { PixiCanvas } from "./pixiCanvas.js";
 import { iconAlpha, ICON_OUTLINE, ICON_PX, isWreckage } from "./icons.js";
 
@@ -2240,7 +2240,7 @@ function drawScene(
     drawGlows(ctx, lights);
     lights.clear();
     drawBeams(ctx, snapshot, camera, teamShots);
-    if (flashes !== undefined) drawFlashes(ctx, snapshot, flashes, camera);
+    if (flashes !== undefined) drawFlashes(ctx, snapshot, flashes, camera, light);
     drawGlows(ctx, lights);
     lights.clear();
     shownBox.halfW = Infinity;
@@ -2879,7 +2879,7 @@ function shipByBody(snapshot: Snapshot, body: number): ShipView | null {
  * hit on a hull brightens the hull rather than covering it, and two hits in
  * the same place are brighter than one.
  */
-function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes: Flashes, camera: Camera): void {
+function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes: Flashes, camera: Camera, light?: Light): void {
     // Exposed for the last step, as a camera would photograph it: drawn at
     // moments through the step, each at the size and brightness it had then and
     // where it was then relative to the camera, weighted by how open the shutter
@@ -3009,14 +3009,19 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
         }
     }
     ctx.restore();
-    drawSparks(ctx, snapshot, flashes, camera);
+    drawThrown(ctx, snapshot, flashes, camera, light);
 }
 
-/** What a hit throws off, as it is now: one additive batch, each spark a streak along its way. */
-function drawSparks(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes: Flashes, camera: Camera): void {
+/**
+ * What hits and collisions throw off, as it is now: sparks in one additive
+ * batch, each a streak along its way, and bits of metal in another, laid over
+ * what is under them and catching the light as they tumble.
+ */
+function drawThrown(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes: Flashes, camera: Camera, light: Light | undefined): void {
     const image = sprite("glowStreak", "#ffffff");
+    const shard = sprite("shard", "#ffffff");
     const batches = (ctx as Partial<{ particles: PixiCanvas["particles"] }>).particles;
-    if (image === null || batches === undefined) return;
+    if (image === null || shard === null || batches === undefined) return;
     const dt = snapshot.dt;
     const cvx = camera.vx ?? 0;
     const cvy = camera.vy ?? 0;
@@ -3044,10 +3049,40 @@ function drawSparks(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes: 
         }
     }
     batch?.end();
+
+    let metal: ReturnType<PixiCanvas["particles"]> | null = null;
+    const lit = rgba(light?.colour ?? "#ffffff");
+    for (let i = 0; i < flashes.count; i++) {
+        const n = bitCount(flashes.kind[i]!, flashes.energy[i]!);
+        if (n === 0) continue;
+        const seed = seedOf(flashes.x[i]!, flashes.y[i]!, flashes.energy[i]!, flashes.kind[i]!);
+        const anchor = shipByBody(snapshot, flashes.body[i]!);
+        for (let j = 0; j < n; j++) {
+            if (!bit(flashes, i, j, seed, flashes.age[i]!, anchor?.angle ?? 0, anchor?.vx ?? 0, anchor?.vy ?? 0, broken)) continue;
+            if (broken.length < pixel) continue;
+            metal ??= batches.call(ctx, shard, false);
+            // Dull metal, flashing the light's colour as a face turns to it.
+            const shine = broken.glint ** 6;
+            const tint = mixRgb(BIT_COLOUR, lit, shine);
+            const fade = min(1, (1 - broken.t) / 0.3);
+            metal.add(broken.x, broken.y, cos(broken.angle), sin(broken.angle), broken.length, max(broken.width, pixel), tint, fade);
+        }
+    }
+    metal?.end();
 }
 
-/** Scratch for one spark at a time, so throwing them allocates nothing. */
+/** Bits of metal before they catch the light: a dark steel grey. */
+const BIT_COLOUR: readonly [number, number, number] = [92, 100, 112];
+
+/** `a` towards `b` by `u`, as `0xrrggbb`. */
+function mixRgb(a: readonly number[], b: readonly number[], u: number): number {
+    const mix = (k: number): number => Math.round(a[k]! + (b[k]! - a[k]!) * u);
+    return (mix(0) << 16) | (mix(1) << 8) | mix(2);
+}
+
+/** Scratch for one spark or bit at a time, so throwing them allocates nothing. */
 const thrown: Spark = { x: 0, y: 0, vx: 0, vy: 0, width: 0, t: 0 };
+const broken: Bit = { x: 0, y: 0, angle: 0, length: 0, width: 0, glint: 0, t: 0 };
 
 /**
  * A muzzle flash: a wedge from its narrow back to its wide front, out along

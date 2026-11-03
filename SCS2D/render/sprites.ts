@@ -21,7 +21,9 @@ export type SpriteShape =
     /** A halo's right half, so a band capped with two is a capsule with no seam. */
     | "cap"
     /** Even along its length, and as bright across as a rod is thick there: a beam seen side on. */
-    | "rod";
+    | "rod"
+    /** A torn, jagged sliver, solid, its edge a texel soft: a bit of metal broken off. */
+    | "shard";
 
 type Image = CanvasImageSource & { width: number; height: number };
 
@@ -56,6 +58,14 @@ function shade(shape: SpriteShape, u: number, v: number): number {
         }
         case "band":
             return falloff(across);
+        case "shard": {
+            const x = 2 * u - 1;
+            const y = 2 * v - 1;
+            // A lozenge with a torn edge.
+            const edge = 1 - 0.18 * Math.sin(9 * x + 2) - 0.12 * Math.sin(13 * y);
+            const reach = Math.abs(x) * 0.9 + Math.abs(y) * 1.1;
+            return Math.min(1, Math.max(0, (edge - reach) * (ACROSS / 2) + 0.5));
+        }
         case "rod":
             return Math.sqrt(Math.max(0, 1 - across * across));
         case "cap":
