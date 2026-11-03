@@ -69,8 +69,8 @@ describe("a tank", () => {
         expect(core.fuel).toBeCloseTo((spare * (1 - CORE_METAL_SHARE - CORE_BATTERY_SHARE) - generator) * FUEL_DENSITY, 3);
         expect(core.metal).toBeCloseTo(spare * CORE_METAL_SHARE * METAL_DENSITY, 6);
         // No fuel in a core with no room past its computing, and nothing else lost for it.
-        const small = { kind: "core" as const, x: 0, y: 0, length: 1, width: 1 };
-        expect(interior(1, 1, 1)).toBeLessThan(CORE_COMPUTING_VOLUME);
+        const small = { kind: "core" as const, x: 0, y: 0, length: 0.6, width: 0.6 };
+        expect(moduleStats(small).interior).toBeLessThan(CORE_COMPUTING_VOLUME);
         expect(moduleStats(small).fuel).toBe(0);
         expect(moduleStats(small).hitPoints).toBeGreaterThan(0);
         for (const kind of ["structure", "engine", "turret", "hullGun"] as const) {

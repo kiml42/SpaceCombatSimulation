@@ -529,8 +529,13 @@ const GRIP_LINE = 0.5;
 /** The most a fighter may be moving against a pad and still land on it, m/s: settling, not arriving. */
 export const PAD_SPEED = 1;
 
-/** The most change of velocity, m/s, that a fighter coming in to land makes without turning for it, if it can as it points. */
+/**
+ * The most change of velocity, m/s, that a fighter coming in to land makes
+ * without turning for it, while its mains point within `PAD_HOLD_ANGLE` of it,
+ * so that at least half their push goes its way.
+ */
 const PAD_HOLD_SPEED = 5;
+const PAD_HOLD_ANGLE = PI / 3;
 
 /**
  * How long, seconds, a docking ship takes to trust a change in how what it is
@@ -10332,7 +10337,7 @@ export class Ships {
      * The best friend's pad to land on of those it fits, by the fuel, metal and
      * charge its ship can spare for the time it would take to get there and be
      * filled, put off by armed enemies near it by its `dockDanger`, and by every
-     * other fighter already making for it.
+     * other fighter already making for it. None for one that has lost the turn it set out with.
      */
     private pickPad(
         bodies: Bodies,
@@ -10349,6 +10354,12 @@ export class Ships {
         this.landingPad[i] = -1;
         this.dockPort[i] = -1;
         if (!(approach.approachSpeed > 0)) return;
+        // One that has lost the turn either way it set out with cannot line up or steer in,
+        // and would hang by its carrier for good; one still being built has yet to get it.
+        const set = (this.launched[i] ?? this.designs[i]!).engineLayout;
+        const now = this.layoutOf(i);
+        if (this.unfinished[i] !== 1 && set.maxTorque(1) > 0 && set.maxTorque(-1) > 0 && !(now.maxTorque(1) > 0 && now.maxTorque(-1) > 0))
+            return;
         const box = footprintOf(this.designs[i]!);
         let bestScore = 0;
         for (let t = 0; t < this.alive.length; t++) {
@@ -10983,14 +10994,13 @@ export class Ships {
         const dvx = vx - bodies.vx[b]! + ax * approach.responseTime;
         const dvy = vy - bodies.vy[b]! + ay * approach.responseTime;
         // Its mains on what it still has to do, near or not: a fighter mostly pushes one way.
-        // Not for a small correction it can make as it points within a response, or it
-        // weaves, turning after each and overshooting it while it turns.
+        // Not for a small correction its mains already point near enough along, or it
+        // weaves, turning after each and overshooting it while it turns. Its mains,
+        // since thrusters off its middle push it round as they push it across.
         const need = length(dvx, dvy);
-        const turn =
-            need > PAD_SPEED / 2 &&
-            (need > PAD_HOLD_SPEED ||
-                this.accelerationAlong(bodies, i, b, dvx / need, dvy / need, bodies.angle[b]!) * approach.responseTime < need);
-        const braking = turn ? atan2(dvy, dvx) - design.thrustBearing : bodies.angle[b]!;
+        const toward = atan2(dvy, dvx) - design.thrustBearing;
+        const turn = need > PAD_SPEED / 2 && (need > PAD_HOLD_SPEED || abs(angleDelta(bodies.angle[b]!, toward)) > PAD_HOLD_ANGLE);
+        const braking = turn ? toward : bodies.angle[b]!;
         if (!near || length(box.maxX - box.minX, box.maxY - box.minY) <= min(spec.length, spec.width)) return braking;
         // One that has to line up with the pad does so once it has little left to lose, either way round, whichever is nearer.
         if (length(vx - bodies.vx[b]!, vy - bodies.vy[b]!) > PAD_SPEED / 2) return braking;
