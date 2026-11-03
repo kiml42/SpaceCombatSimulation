@@ -112,6 +112,9 @@ function beamGun(width: number, length: number): { design: ShipDesign; lens: num
 /** How fast the guns' fragments leave their shells, at most, m/s: the Corvette gun's, slow enough that each burst keeps to its own row. */
 const GUN_BURST_SPEED = 200;
 
+/** Steps a shell flies before it bursts: far enough that its burst is well clear of its muzzle flash. */
+export const GUN_FUSE_STEPS = 20;
+
 /** How wide each gun's mount is, the smallest first: calibres of 2 cm to 40 cm. */
 const GUN_MOUNTS = [0.2, 0.5, 1, 2, 4];
 
@@ -413,11 +416,11 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
     },
     {
         name: "Guns",
-        about: "Five guns, 2 cm to 40 cm, each firing a shell that bursts three steps later into fragments: the muzzle flash, the round in flight, the burst and its fragments.",
-        loop: 0.6,
+        about: "Five guns, 2 cm to 40 cm, each firing a shell that bursts twenty steps later, about 230 m on, into fragments: the muzzle flash, the round in flight, the burst and its fragments.",
+        loop: 1,
         build(t, snapshot, flashes) {
             const fire = 0.1;
-            const burst = fire + 3 * STEP;
+            const burst = fire + GUN_FUSE_STEPS * STEP;
             const each = GUN_MOUNTS.map(gun);
             // Each row as tall as its burst's glow gets before it goes out, the smallest at the top.
             const reach = each.map((g) => Math.max(g.design.radius, flashRadius(g.burst) * 2.2 + g.spread * burstLifetime(g.burst)) + 4);
