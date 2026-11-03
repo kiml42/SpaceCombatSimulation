@@ -903,7 +903,11 @@ inside any one file is not contiguous.
   can turn only one way cannot stop a turn, so it lands spinning: it holds a slow spin that way
   (`PAD_SPIN`, a turn every 8 s), fires its mains as they come round to the change of velocity it needs,
   and plans its braking on a 1/π share of their thrust, after half a turn; a pad it fits at any heading it
-  can settle on spinning. One with no turn left at all does not try to land. With arcs shown, every way in is drawn on the pad as a
+  can settle on spinning. So does one whose turn one way is less than half as strong as the other
+  (`PAD_WEAK_TURN`), which overshoots every turn that way and weaves round the pad until its fuel is gone.
+  Spinning, every push adds to the spin it cannot take back, so it asks for the turn a straight push
+  brings, not for none, which the allocator would buy by not pushing. One that has lost its mains steers
+  by whichever engine left pushes hardest. One with no turn left at all does not try to land. With arcs shown, every way in is drawn on the pad as a
   small arrow pointing in from the middle of its side or from its corner, along the way, in amber for a pad's
   one longest run, so the editor shows how easy a pad is to reach — and from the wrong side it
   first circles the carrier outside its radius, `HULL_ORBIT_STEP` at a time, rather than fly through what is in
@@ -1196,7 +1200,9 @@ inside any one file is not contiguous.
   the lower of its weakest core's integrity and the share of the mass it set out with that is still sound, a
   module lost counting for none — it makes for a friend's pad as it would for fuel, and comes back for fuel,
   metal and charge too. It goes only to a pad whose piece of hull has the charge and metal to mend with. The
-  default is 0.6, a little above where a core's control cuts out (0.4); zero never goes.
+  default is 0.6, a little above where a core's control cuts out (0.4); zero never goes. It goes as well once
+  no more of its main guns work than its `repairArmed`, however whole it is otherwise: a gun is not always
+  much of a fighter's mass. Below zero, the default, never; one with no main guns never goes for this.
   **Power: generators and batteries.** A `generator` makes power by its interior
   (`GENERATOR_POWER_PER_VOLUME`) for as long as it works, needing nothing and giving off nothing. A
   `battery` holds charge by its interior (`BATTERY_ENERGY_PER_VOLUME`) and passes it in or out at a rate set

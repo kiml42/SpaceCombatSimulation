@@ -44,8 +44,8 @@ const GOLDEN: Record<ScenarioName, string> = {
     asteroidField: "724c4a31",
     // ships=7 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=2 severed=0 culled=0 scrap=-26.3t · 51.5 µs/step
     mining: "bbe926cb",
-    // ships=11 inFlight=0 p.fired=232 p.hits=636 b.fired=0 b.hits=0 contacts=19287 severed=2 culled=0 scrap=106.9t · 1602.5 µs/step
-    rivalMines: "110c9756",
+    // ships=11 inFlight=2 p.fired=91 p.hits=254 b.fired=0 b.hits=0 contacts=19130 severed=2 culled=0 scrap=101.1t · 1734.3 µs/step
+    rivalMines: "80849211",
     // ships=22 inFlight=53 p.fired=140 p.hits=177 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=2.0t · 684.2 µs/step
     swarm: "e006d2fa",
     // ships=304 inFlight=190 p.fired=909 p.hits=1314 b.fired=0 b.hits=0 contacts=128 severed=7 culled=5 scrap=31.0t · 12403.9 µs/step
@@ -86,8 +86,8 @@ const GOLDEN: Record<ScenarioName, string> = {
     rearm: "cbed1f4a",
     // ships=3 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=10 severed=2 culled=0 scrap=0.2t · 111.9 µs/step
     tanker: "3eaa5d70",
-    // ships=20 inFlight=0 p.fired=18 p.hits=42 b.fired=182 b.hits=5964 contacts=241 severed=2 culled=0 scrap=10.4t · 487.7 µs/step
-    beamCarrier: "c69fa9f7",
+    // ships=20 inFlight=0 p.fired=18 p.hits=42 b.fired=183 b.hits=6073 contacts=241 severed=2 culled=0 scrap=10.4t · 513.1 µs/step
+    beamCarrier: "c076ca18",
     // ships=2 inFlight=4 p.fired=56 p.hits=174 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=8.5t · 34.0 µs/step
     passes: "1351fe4c",
     // ships=2 inFlight=4 p.fired=10 p.hits=33 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=8.5t · 63.4 µs/step
