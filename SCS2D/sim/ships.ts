@@ -538,6 +538,20 @@ const PAD_HOLD_SPEED = 5;
 const PAD_HOLD_ANGLE = PI / 3;
 
 /**
+ * The spin a fighter that can turn only one way lands at, rad/s: a turn every
+ * eight seconds. It cannot stop a turn, so it keeps one going and fires its
+ * mains as they come round to where it needs to go.
+ */
+const PAD_SPIN = (2 * PI) / 8;
+
+/** The one way a layout can turn, 1 or -1, or 0 if it can turn both ways or neither. */
+function oneWayTurn(layout: EngineLayout): number {
+    const up = layout.maxTorque(1) > 0;
+    const down = layout.maxTorque(-1) > 0;
+    return up === down ? 0 : up ? 1 : -1;
+}
+
+/**
  * How long, seconds, a docking ship takes to trust a change in how what it is
  * docking with is accelerating: long enough that a knock does not throw it,
  * short enough to follow a carrier opening its throttle.
@@ -4522,6 +4536,9 @@ export class Ships {
         const maxAlpha = inertia > 0 ? brakeTorque / inertia : 0;
         const turn = min(brakingRate(error, maxAlpha, dt), (error >= 0 ? error : -error) / HEADING_SETTLE_TIME);
         let wantRate = error >= 0 ? turn : -turn;
+        // Landing on a turn it cannot stop, it holds a slow spin instead of a heading.
+        const spin = order?.land === true ? oneWayTurn(layout) : 0;
+        if (spin !== 0) wantRate = spin * PAD_SPIN;
         // Never round into something, but for what it means to touch: a turn that
         // would swing the hull into a neighbour is not started, and one already
         // under way is stopped.
@@ -10403,11 +10420,12 @@ export class Ships {
         this.landingPad[i] = -1;
         this.dockPort[i] = -1;
         if (!(approach.approachSpeed > 0)) return;
-        // One that has lost the turn either way it set out with cannot line up or steer in,
-        // and would hang by its carrier for good; one still being built has yet to get it.
+        // One that has lost all its turn cannot bring its mains round to steer in, and would
+        // hang by its carrier for good; one still being built has yet to get it. One that
+        // can turn one way spins in (`PAD_SPIN`).
         const set = (this.launched[i] ?? this.designs[i]!).engineLayout;
         const now = this.layoutOf(i);
-        if (this.unfinished[i] !== 1 && set.maxTorque(1) > 0 && set.maxTorque(-1) > 0 && !(now.maxTorque(1) > 0 && now.maxTorque(-1) > 0))
+        if (this.unfinished[i] !== 1 && (set.maxTorque(1) > 0 || set.maxTorque(-1) > 0) && !(now.maxTorque(1) > 0 || now.maxTorque(-1) > 0))
             return;
         const box = footprintOf(this.designs[i]!);
         let bestScore = 0;
@@ -11028,11 +11046,14 @@ export class Ships {
                 // rather than overshooting and turning back.
                 radial = min(PAD_SPEED, range / approach.responseTime);
             } else {
-                // Braking on what is left once it is keeping up.
-                const mains =
-                    this.layoutOf(i).maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / movable(bodies.mass[b]!);
-                const spare = max(0, mains - length(ax, ay));
-                const delay = approach.responseTime + this.halfTurnTime(bodies, i, b);
+                // Braking on what is left once it is keeping up. Spinning, its mains
+                // point its way a share 1/π of the time, on average, and come round
+                // in half a turn.
+                const layout = this.layoutOf(i);
+                const spins = oneWayTurn(layout) !== 0;
+                const mains = layout.maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / movable(bodies.mass[b]!);
+                const spare = max(0, (spins ? mains / PI : mains) - length(ax, ay));
+                const delay = approach.responseTime + (spins ? PI / PAD_SPIN : this.halfTurnTime(bodies, i, b));
                 radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * spare, left, delay));
             }
             vx += ux * radial;
