@@ -2152,7 +2152,7 @@ export class Ships {
         // no consort to break off for.
         const rammed = this.ramming[i]!;
         if (rammed !== NO_TARGET) {
-            if (this.alive[rammed] === 1 && this.derelict[rammed] === 0 && this.hasControl(rammed)) {
+            if (this.alive[rammed] === 1 && this.derelict[rammed] === 0 && this.hasControl(rammed) && !this.isDisabled(i)) {
                 this.chosen[i] = rammed;
                 this.consort[i] = NO_TARGET;
                 return;
@@ -2163,6 +2163,16 @@ export class Ships {
 
         const design = this.designs[i]!;
         this.rethinkAt[i] = world.tick + this.rethinkTicks(world, design.mass);
+
+        // With no gun or engine that works, it can neither reach a fight nor
+        // shoot one, so it stops looking until it is mended or refuelled.
+        if (this.isDisabled(i)) {
+            this.chosen[i] = NO_TARGET;
+            this.consort[i] = NO_TARGET;
+            this.withdrawing[i] = 0;
+            this.hiding[i] = NO_TARGET;
+            return;
+        }
 
         const b = bodies.indexOf(this.bodyIds[i]!);
         if (b < 0) return;
@@ -2881,6 +2891,8 @@ export class Ships {
      */
     private commitOne(bodies: Bodies, i: number): void {
         if (!this.designs[i]!.fighter) return;
+        // Spent on the way in, it has given up its ram but is still armed: it coasts on into what it was aimed at.
+        if (this.committed[i] === 1 && this.isDisabled(i)) return;
         const b = bodies.indexOf(this.bodyIds[i]!);
         if (b < 0) return;
         const order = this.effectiveOrder(i);
@@ -3873,6 +3885,14 @@ export class Ships {
                 this.failSafe(i);
                 continue;
             }
+            // Nor does a ship with nothing left to push or shoot with fly or aim:
+            // it shuts down until it is mended or restocked.
+            if (this.inert(bodies, i)) {
+                this.shutDown(i);
+                // Its beams still charge, which may bring it back.
+                this.reloadOne(dt, bodies, i);
+                continue;
+            }
             this.removeInvalidOrders(i);
             this.decide(world, bodies, i);
             this.forage(world, bodies, i);
@@ -3880,19 +3900,7 @@ export class Ships {
             this.flyOne(dt, bodies, i, grid);
             this.commitOne(bodies, i);
             this.trainOne(bodies, i);
-            const timers = this.cooldown[i]!;
-            const b = bodies.indexOf(this.bodyIds[i]!);
-            const mounts = this.designs[i]!.turrets;
-            // The main battery first, so it has the power when there is not enough to go round.
-            for (let pass = 0; pass < 2; pass++) {
-                for (let t = 0; t < timers.length; t++) {
-                    if (mounts[t]!.main !== (pass === 0) || !this.ownsAt(i, b, mounts[t]!.module)) continue;
-                    if (timers[t]! > 0) {
-                        const remaining = timers[t]! - dt * this.recharged(b, i, t, dt);
-                        timers[t] = remaining > TIMER_SETTLE ? remaining : 0;
-                    }
-                }
-            }
+            this.reloadOne(dt, bodies, i);
         }
 
         // Every ship pushing pays for what it burns.
@@ -12832,6 +12840,46 @@ export class Ships {
         this.demandTorque[i] = 0;
         this.brakingOnMains[i] = 0;
         this.burning[i] = 0;
+    }
+
+    /** Run down each of ship `i`'s mounts' reload, as far as its power allows. */
+    private reloadOne(dt: number, bodies: Bodies, i: number): void {
+        const timers = this.cooldown[i]!;
+        const b = bodies.indexOf(this.bodyIds[i]!);
+        const mounts = this.designs[i]!.turrets;
+        // The main battery first, so it has the power when there is not enough to go round.
+        for (let pass = 0; pass < 2; pass++) {
+            for (let t = 0; t < timers.length; t++) {
+                if (mounts[t]!.main !== (pass === 0) || !this.ownsAt(i, b, mounts[t]!.module)) continue;
+                if (timers[t]! > 0) {
+                    const remaining = timers[t]! - dt * this.recharged(b, i, t, dt);
+                    timers[t] = remaining > TIMER_SETTLE ? remaining : 0;
+                }
+            }
+        }
+    }
+
+    /** Whether ship `i` has no engine that can burn and no mount of its own that can fire. */
+    private inert(bodies: Bodies, i: number): boolean {
+        if (!this.hasNoEngines(i)) return false;
+        const b = bodies.indexOf(this.bodyIds[i]!);
+        if (b < 0) return true;
+        const mounts = this.designs[i]!.turrets;
+        for (let t = 0; t < mounts.length; t++) {
+            if (this.ownsAt(i, b, mounts[t]!.module) && this.canFire(i, b, t)) return false;
+        }
+        return true;
+    }
+
+    /** Stop everything ship `i` is doing, and forget what it was fighting. */
+    private shutDown(i: number): void {
+        this.failSafe(i);
+        this.idle(i);
+        this.chosen[i] = NO_TARGET;
+        this.consort[i] = NO_TARGET;
+        this.ramming[i] = NO_TARGET;
+        this.withdrawing[i] = 0;
+        this.hiding[i] = NO_TARGET;
     }
 
     private failSafe(i: number): void {
