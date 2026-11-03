@@ -1,4 +1,5 @@
 import { shutterWeight } from "./exposure.js";
+import { muzzleWedge } from "./flashes.js";
 
 /**
  * Small images stretched over what is drawn, for shading a stroke cannot do:
@@ -14,7 +15,11 @@ export type SpriteShape =
     /** A hard-edged disc. */
     | "disc"
     /** Fades out from its centre. */
-    | "halo";
+    | "halo"
+    /** Even along its length, fading out from its centre line as a halo does from its centre. */
+    | "band"
+    /** A halo's right half, so a band capped with two is a capsule with no seam. */
+    | "cap";
 
 type Image = CanvasImageSource & { width: number; height: number };
 
@@ -45,6 +50,10 @@ function shade(shape: SpriteShape, u: number, v: number): number {
             return radial(u, v) <= 1 ? 1 : 0;
         case "halo":
             return falloff(radial(u, v));
+        case "band":
+            return falloff(across);
+        case "cap":
+            return falloff(Math.sqrt(u * u + (2 * v - 1) ** 2));
     }
 }
 
@@ -63,7 +72,7 @@ function falloff(r: number): number {
 }
 
 function makeSprite(shape: SpriteShape, colour: string): Image | null {
-    const width = shape === "streak" ? ALONG : shape === "glowStreak" ? ALONG : ACROSS;
+    const width = shape === "streak" || shape === "glowStreak" ? ALONG : shape === "band" ? 1 : shape === "cap" ? ACROSS / 2 : ACROSS;
     const height = shape === "streak" ? 1 : ACROSS;
     const canvas = blankCanvas(width, height);
     const ctx = canvas?.getContext("2d") as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
@@ -144,6 +153,120 @@ function makeFlame(edge: string, core: string): Image | null {
             image.data[i + 1] = Math.round(eg + (cg - eg) * heat);
             image.data[i + 2] = Math.round(eb + (cb - eb) * heat);
             image.data[i + 3] = Math.round(255 * (1 - u) * side * (EDGE_SHARE + (1 - EDGE_SHARE) * heat));
+        }
+    }
+    ctx.putImageData(image, 0, 0);
+    return canvas;
+}
+
+/** Steps a taper is rounded to, so there are few to make. */
+const TAPER_STEPS = 8;
+/** How much of its length a taper takes to fade in at either end. */
+const TAPER_END = 0.12;
+const tapers = new Map<string, Image | null>();
+
+/**
+ * A wedge widening from its narrow end at the left to its wide end at the
+ * right, fading to nothing along it and soft at its sides: `taper` is the
+ * narrow end's width over the wide end's, rounded to an eighth. One image
+ * stretched over the wedge's box, so each is a single quad.
+ */
+export function taperSprite(colour: string, taper: number): Image | null {
+    const step = Math.min(TAPER_STEPS, Math.max(1, Math.round(taper * TAPER_STEPS)));
+    const key = `${colour}|${step}`;
+    let made = tapers.get(key);
+    if (made === undefined) {
+        made = makeTaper(colour, step / TAPER_STEPS);
+        tapers.set(key, made);
+    }
+    return made;
+}
+
+function makeTaper(colour: string, taper: number): Image | null {
+    const canvas = blankCanvas(ALONG, ACROSS);
+    const ctx = canvas?.getContext("2d") as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
+    if (canvas === null || ctx === null || ctx === undefined) return null;
+    const [r, g, b, a] = rgba(colour);
+    const image = ctx.createImageData(ALONG, ACROSS);
+    for (let y = 0; y < ACROSS; y++) {
+        for (let x = 0; x < ALONG; x++) {
+            const u = (x + 0.5) / ALONG;
+            const w = Math.abs(2 * ((y + 0.5) / ACROSS) - 1) / (taper + (1 - taper) * u);
+            const ends = Math.min(1, u / TAPER_END, (1 - u) / TAPER_END);
+            const i = 4 * (y * ALONG + x);
+            image.data[i] = r;
+            image.data[i + 1] = g;
+            image.data[i + 2] = b;
+            image.data[i + 3] = Math.round(a * (1 - u) * falloff(w) * ends);
+        }
+    }
+    ctx.putImageData(image, 0, 0);
+    return canvas;
+}
+
+/** Steps a muzzle flash's growth is rounded to, so there are few to make. */
+export const WEDGE_STEPS = 8;
+/**
+ * How much brighter than white a wedge's middle is: its discs overlap to more
+ * than white there, which the sprite keeps by holding a share of it and being
+ * drawn as many times over, so a fading flash stays white-hot in the middle.
+ */
+export const WEDGE_HEADROOM = 2;
+/** Most discs a wedge is made of. */
+const WEDGE_DISCS = 32;
+const wedges = new Map<string, Image | null>();
+
+/**
+ * A muzzle flash's core at growth step `step` of `WEDGE_STEPS`, along x from
+ * its back to its front, over the box `wedgeBox` gives: soft discs from its
+ * narrow back to its wide front, brightest at the back, overlapping into one
+ * shape with a round front. Its shape is the same at every size, so it is made
+ * once per step and stretched.
+ */
+export function wedgeSprite(colour: string, step: number): Image | null {
+    const key = `${colour}|${step}`;
+    let made = wedges.get(key);
+    if (made === undefined) {
+        made = makeWedge(colour, step);
+        wedges.set(key, made);
+    }
+    return made;
+}
+
+/** The box a wedge sprite covers, along and across, for a flash of `radius` at growth step `step`. */
+export function wedgeBox(radius: number, step: number): { from: number; to: number; half: number } {
+    const w = muzzleWedge(radius, (step / WEDGE_STEPS) ** 2, 1);
+    return { from: w.back - w.backWidth, to: w.front + w.frontWidth, half: w.frontWidth };
+}
+
+function makeWedge(colour: string, step: number): Image | null {
+    const canvas = blankCanvas(ALONG, ACROSS);
+    const ctx = canvas?.getContext("2d") as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
+    if (canvas === null || ctx === null || ctx === undefined) return null;
+    const [r, g, b, a] = rgba(colour);
+    const w = muzzleWedge(1, (step / WEDGE_STEPS) ** 2, 1);
+    const box = wedgeBox(1, step);
+    const span = w.front - w.back;
+    const n = Math.min(WEDGE_DISCS, Math.max(2, Math.ceil(span / (w.backWidth * 0.5)) + 1));
+    const spacing = span / (n - 1);
+    const image = ctx.createImageData(ALONG, ACROSS);
+    for (let y = 0; y < ACROSS; y++) {
+        for (let x = 0; x < ALONG; x++) {
+            const px = box.from + ((x + 0.5) / ALONG) * (box.to - box.from);
+            const py = (2 * ((y + 0.5) / ACROSS) - 1) * box.half;
+            let sum = 0;
+            for (let k = 0; k < n; k++) {
+                const u = k / (n - 1);
+                const radius = w.backWidth + u * (w.frontWidth - w.backWidth);
+                const share = Math.min(1, (2.5 * spacing) / radius) * (1 - 0.5 * u);
+                const dx = px - (w.back + u * span);
+                sum += share * falloff(Math.sqrt(dx * dx + py * py) / radius);
+            }
+            const i = 4 * (y * ALONG + x);
+            image.data[i] = r;
+            image.data[i + 1] = g;
+            image.data[i + 2] = b;
+            image.data[i + 3] = Math.round(a * Math.min(1, (0.9 * sum) / WEDGE_HEADROOM));
         }
     }
     ctx.putImageData(image, 0, 0);
