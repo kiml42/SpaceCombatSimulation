@@ -485,9 +485,13 @@ an entry is either still open or it is gone.
                and keeps a closed hole for `LEAK_LINGER` seconds. Puffs leave every fortieth of a second, as
                many as the hole's rate then calls for, at the fuel's speed give or take a sixth, spreading
                and thinning as they go: so a new leak grows out of its hole with a soft front, and one
-               narrowing or shut sends out less or nothing while what is out drifts on. Placed in the
-               hull's frame as it is now, so the stream turns with the ship; then (4) by its pose when each
-               left.
+               narrowing or shut sends out less or nothing while what is out drifts on.
+            4. **Vapour from where the hole was — built** (`render/poses.ts`). The renderer keeps each
+               leaking ship's pose and velocity, frame by frame on the battle's clock, cut back when the
+               battle is wound back; each puff sets out from where its hole was when it left, at the
+               hull's velocity then, so the stream trails behind a ship that turns or speeds up. Older
+               than what is kept, as just after a jump, it falls back on the oldest pose, and with none
+               on the hull's frame as it is now.
         - **Lingering debris** comes later and is not settled: bits that stay a while need to bounce off
           hulls and curve in the wells, which a formula of age cannot do. Never larger than the size below
           which a module is not kept, looking like twisted metal so it is never taken for a module, and

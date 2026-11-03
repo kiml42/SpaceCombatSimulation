@@ -8,8 +8,10 @@ import { leakRate, PATCH_SPEED } from "../sim/fuel.js";
  * nothing of their own. A hole narrowing or closed sends out less or nothing,
  * while what already left drifts on and thins.
  *
- * Placed in the hull's frame as it is now, so the stream turns with the ship.
- * Drawn only: nothing here changes what happens.
+ * Placed by where the hull was when each puff left, given its pose then
+ * (`Pose`), so the stream trails behind a ship that turns or speeds up; or,
+ * without one, in the hull's frame as it is now, turning with it. Drawn only:
+ * nothing here changes what happens.
  */
 
 /** Seconds between the puffs a hole sends out. */
@@ -49,7 +51,16 @@ export function vapourLength(width: number, rate: number): number {
     return Math.max((width * VAPOUR_LEAST_LENGTH) / 2, VAPOUR_LENGTH * Math.sqrt(rate));
 }
 
-/** One puff as it is now, in the hull's frame. */
+/** Where a hull was, and how fast it was going, at a moment: what a puff that left then set out from. */
+export interface Pose {
+    x: number;
+    y: number;
+    angle: number;
+    vx: number;
+    vy: number;
+}
+
+/** One puff as it is now: in the world given poses, in the hull's frame without. */
 export interface Puff {
     x: number;
     y: number;
@@ -73,6 +84,8 @@ export function eachPuff(
     speed: number,
     out: Puff,
     visit: (puff: Puff) => void,
+    /** Where the hull was `ago` seconds before now, into `into`; false where that is not known. */
+    poseAgo?: (ago: number, into: Pose) => boolean,
 ): void {
     if (!(speed > 0) || !(age >= 0)) return;
     // Back as far as the longest-lived puff could have left, which is from the hole at its widest.
@@ -98,8 +111,20 @@ export function eachPuff(
             const through = gone / reach;
             if (through >= 1) continue;
             const across = (unit(seed, n * MOST_PUFFS + m, 1) * 2 - 1) * VAPOUR_SPREAD * gone;
-            out.x = x + dirX * gone - dirY * across;
-            out.y = y + dirY * gone + dirX * across;
+            // In the hull's frame, from the hole.
+            const bx = x + dirX * gone - dirY * across;
+            const by = y + dirY * gone + dirX * across;
+            if (poseAgo !== undefined && poseAgo(since, then)) {
+                // Out of the hole where it was then, at the hull's velocity then
+                // as well as its own: turned out of the hull's frame as it was.
+                const c = Math.cos(then.angle);
+                const sn = Math.sin(then.angle);
+                out.x = then.x + then.vx * since + bx * c - by * sn;
+                out.y = then.y + then.vy * since + bx * sn + by * c;
+            } else {
+                out.x = bx;
+                out.y = by;
+            }
             out.radius = width / 2 + VAPOUR_SPREAD * gone;
             // Its share of the vapour's opacity, thinning as it spreads out.
             out.alpha = (VAPOUR_ALPHA / Math.sqrt(puffs)) * (1 - through) ** 2;
@@ -116,3 +141,6 @@ function unit(seed: number, index: number, salt: number): number {
     h ^= h >>> 16;
     return (h >>> 0) / 4294967296;
 }
+
+/** Scratch for a pose at a time, so placing puffs allocates nothing. */
+const then: Pose = { x: 0, y: 0, angle: 0, vx: 0, vy: 0 };

@@ -93,7 +93,8 @@ import { clipToStart, exposureEnds, flashSamples, shutterWeight } from "./exposu
 import { flameSprite, rgba, sprite, WEDGE_HEADROOM, WEDGE_STEPS, wedgeBox, wedgeSprite } from "./sprites.js";
 import { drawGlows, Lights, type Transform } from "./glows.js";
 import { leakSpeed } from "../sim/fuel.js";
-import { eachPuff, type Hole, type Puff } from "./vapour.js";
+import { eachPuff, type Hole, type Pose, type Puff } from "./vapour.js";
+import { Poses } from "./poses.js";
 import { bit, bitCount, seedOf, spark, sparkColour, sparkCount, sparkFade, type Bit, type Spark } from "./particles.js";
 import type { PixiCanvas } from "./pixiCanvas.js";
 import { iconAlpha, ICON_OUTLINE, ICON_PX, isWreckage } from "./icons.js";
@@ -1266,9 +1267,15 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
     const image = sprite("halo", "#ffffff");
     const batches = (ctx as Partial<{ particles: PixiCanvas["particles"] }>).particles;
     if (image === null || batches === undefined) return;
+    // Set out from where the hull was when each puff left, where that is kept;
+    // otherwise in the hull's frame as it is now.
+    const tracked = poses.at(ship.body, ship.serial, 0, pose);
     ctx.save();
-    ctx.translate(ship.x, ship.y);
-    ctx.rotate(ship.angle);
+    if (!tracked) {
+        ctx.translate(ship.x, ship.y);
+        ctx.rotate(ship.angle);
+    }
+    const poseAgo = tracked ? (ago: number, into: Pose): boolean => poses.at(ship.body, ship.serial, ago, into) : undefined;
     const [r, g, b] = rgba(light === undefined ? LEAK : litColour(LEAK, light.colour));
     const tint = (r << 16) | (g << 8) | b;
     let batch: ReturnType<PixiCanvas["particles"]> | null = null;
@@ -1286,9 +1293,19 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
         const dy = ship.leakDirY![k]!;
         batch ??= batches.call(ctx, image, false);
         const into = batch;
-        eachPuff(hole, xs[k]!, ship.leakY![k]!, dx, dy, age, fill, speed, puff, (p) => {
-            into.add(p.x, p.y, 1, 0, 2 * p.radius, 2 * p.radius, tint, p.alpha);
-        });
+        eachPuff(
+            hole,
+            xs[k]!,
+            ship.leakY![k]!,
+            dx,
+            dy,
+            age,
+            fill,
+            speed,
+            puff,
+            (p) => into.add(p.x, p.y, 1, 0, 2 * p.radius, 2 * p.radius, tint, p.alpha),
+            poseAgo,
+        );
     }
     batch?.end();
     ctx.restore();
@@ -1297,6 +1314,9 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
 /** Scratch for drawing a leak, so drawing one allocates nothing. */
 const hole: Hole = { opened: 0, closing: 0, floor: 0, patched: -1 };
 const puff: Puff = { x: 0, y: 0, radius: 0, alpha: 0 };
+const pose: Pose = { x: 0, y: 0, angle: 0, vx: 0, vy: 0 };
+/** Where each leaking ship has been lately, for its vapour to set out from. */
+const poses = new Poses();
 /** How long a hole is taken to have been open where a picture does not say: long enough for its vapour to have reached its end. */
 const LONG_OPEN = 1e6;
 
@@ -2161,6 +2181,7 @@ function drawScene(
     light?: Light,
 ): void {
     lights.clear();
+    poses.record(snapshot);
     ctx.setTransform(1, 0, 0, 1, left, top);
     if (!underneath) {
         ctx.fillStyle = BACKGROUND;
