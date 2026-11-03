@@ -775,7 +775,14 @@ inside any one file is not contiguous.
   one under the pointer on the chart, name the side that was evolving in it.
   **Fuel.** A `tank` archetype whose interior is reaction mass, and every core's interior past its
   computing (see the control radius in §4), so a bare core with one engine can move; a core no bigger
-  than a cubic metre (`CORE_COMPUTING_VOLUME`) is all computing and holds none. Each engine has an exhaust velocity:
+  than half a cubic metre (`CORE_COMPUTING_VOLUME`) is all computing and holds none. **A core's room past its
+  computing is shared between fuel, a hold, a generator and a battery** by weight (`fuelShare`,
+  `holdShare`, `generatorShare`, `batteryShare`, each set in the editor and drifted by evolution). Left to
+  its default (`CORE_FUEL_SHARE` 0.75, then 0.05, 0.1 and 0.1), each steps in, in that order, only once its
+  share would be worth having (`CORE_FUEL_LEAST` 0.25 m³, then 0.1 m³ each) without leaving one already in
+  short of its own; until fuel does, the core is all computing. One set is kept however small, and 0 leaves
+  it out. A core's complexity is 8 for its computing, and 1 more for fuel, 1 for a hold, 4 for a generator
+  and 2 for a battery, so a fighter's bare core is half a full one's. Each engine has an exhaust velocity:
   `EXHAUST_VELOCITY`, less what its bell throws sideways (`divergence`) and what a small throat loses to its
   walls — about 1,900 s of specific impulse on a capital's main engine and 1,650 s on a fighter's, and
   never under 700 s. **An engine with a throat under `PRESSURE_FED_THROAT` (0.25 m), or a block shorter than
@@ -1015,7 +1022,7 @@ inside any one file is not contiguous.
   other.
   **Every module has a complexity** (`complexityOf`), work over and above its mass that making or mending it
   takes, the same whatever its size, at `COMPLEXITY_WORK` a unit: structure, tanks and holds 1, a battery 2,
-  claws, pads and ports 3, engines and hull weapons 4 (a pressure-fed engine 1), turrets 7, generators and robot bays 6, cores 16, with
+  claws, pads and ports 3, engines and hull weapons 4 (a pressure-fed engine 1), turrets 7, generators and robot bays 6, cores 8 to 16 by what they hold, with
   2 more for a self-sealing lining and 1 for every barrel or nozzle past the first. Building a module spreads
   it over every kilogram of walls and fittings (`buildWork`), and mending one over the damage that breaks it
   (`repairWork`), so it costs time and charge alike, in proportion. A Dinky's outrigger engine is almost all
@@ -1159,7 +1166,7 @@ inside any one file is not contiguous.
   from two wrecks, and once full brings what it holds over three fifths back to the carrier; its fighters fight
   a wave of eight Dinkies on their batteries and come back to the pads, leaving with every store full.
   **Metal.** A `hold` archetype whose interior is metal (`METAL_DENSITY`, steel racked about half solid), and
-  a twentieth of every core's interior past its computing (`CORE_METAL_SHARE`), the rest of it still fuel, so
+  by default a twentieth of a core's interior past its computing (`CORE_METAL_SHARE`), the rest of it still fuel, so
   a bare core with one gun can fire a few rounds. A gun loads each round whole from the holds and cores on its
   own piece of hull, as an engine draws fuel from its tanks, and holds its fire, ready, while they have less
   than a round; a round's whole mass, casing and charge, is metal. A ship weighs its metal and gets lighter by
@@ -1200,7 +1207,7 @@ inside any one file is not contiguous.
   battle draws a battery's gauge in violet and a generator as a violet disc. **A beam's reload is paid for
   in charge**: over its reload it draws the energy its bank holds from its piece of hull, the main battery
   first, and reloads only as fast as that comes; with power to spare it reloads at its own gear's rate as
-  before, and with none it fires once. **A core carries a generator and a battery** in a tenth of its spare
+  before, and with none it fires once. **A core carries a generator and a battery**, by default in a tenth of its spare
   interior each (`CORE_GENERATOR_SHARE`, `CORE_BATTERY_SHARE`), taken from its fuel, the generator no bigger
   than `CORE_GENERATOR_MAX_VOLUME` (2 m³) and the rest of its tenth left as fuel, so a core runs a small beam
   but a big one is not a power plant; damage takes them as it takes a generator's and a battery's. **A core

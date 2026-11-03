@@ -4,7 +4,6 @@ import {
     Beams,
     BATTERY_ENERGY_PER_VOLUME,
     CORE_BATTERY_SHARE,
-    CORE_COMPUTING_VOLUME,
     coreComputing,
     CORE_GENERATOR_SHARE,
     CORE_GENERATOR_MAX_VOLUME,
@@ -228,7 +227,9 @@ describe("a core", () => {
         // A small one is under the cap, and gets its whole share.
         const small = moduleStats({ kind: "core", x: 0, y: 0, length: 2, width: 2 });
         expect(small.generation).toBeCloseTo(
-            (small.interior - CORE_COMPUTING_VOLUME) * CORE_GENERATOR_SHARE * GENERATOR_POWER_PER_VOLUME,
+            (small.interior - coreComputing({ kind: "core", x: 0, y: 0, length: 2, width: 2 }, small.interior)) *
+                CORE_GENERATOR_SHARE *
+                GENERATOR_POWER_PER_VOLUME,
             6,
         );
         expect(small.generation).toBeLessThan(big.generation);

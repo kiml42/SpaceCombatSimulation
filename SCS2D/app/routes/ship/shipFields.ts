@@ -5,6 +5,9 @@ import {
     blueprintProblem,
     compileDraft,
     CORE_COMPUTING_SHARE,
+    CORE_SHARE_DEFAULTS,
+    CORE_SHARE_KEYS,
+    type CoreShareKey,
     DEFAULT_BURST_SPEED,
     DEFAULT_FRAGMENTS,
     DEFAULT_FUSE,
@@ -75,6 +78,7 @@ export type ModuleNumberField =
     | "drainPriority"
     | "fill"
     | "computing"
+    | CoreShareKey
     | "robotsPerBerth"
     | "keep";
 
@@ -96,6 +100,9 @@ export function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
     // Per cent on the panel, a share in the layout.
     if (key === "fill") return (spec.fill ?? 1) * 100;
     if (key === "computing") return (spec.computing ?? CORE_COMPUTING_SHARE) * 100;
+    // What it is weighted at when it steps in by default.
+    const store = (CORE_SHARE_KEYS as readonly string[]).indexOf(key);
+    if (store >= 0) return spec[key as CoreShareKey] ?? CORE_SHARE_DEFAULTS[store]!;
     if (key === "robotsPerBerth") return spec.robotsPerBerth ?? 1;
     if (key === "keep") return spec.keep ?? 0;
     return spec.barrels ?? 1;

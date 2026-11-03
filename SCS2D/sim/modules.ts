@@ -1,6 +1,6 @@
 import type { UnreadKeys } from "./unread.js";
 import type { Targeting } from "./doctrine.js";
-import { abs, asin, atan2, cos, floor as roundDown, max, min, PI, pow, round, sin, sqrt } from "./math.js";
+import { abs, asin, atan2, cos, floor as roundDown, max, PI, pow, round, sin, sqrt } from "./math.js";
 import {
     canShape,
     cornersAllowed,
@@ -234,18 +234,29 @@ export const FUEL_DRAG_COEFFICIENT = 0.3;
 export const METAL_DENSITY = HULL_DENSITY * 0.5;
 
 /**
- * The share of a core's interior past its computing that holds metal rather
- * than fuel, so a bare core with one gun can fire a few rounds.
+ * How a core's interior past its computing is shared when its layout does not
+ * say (`ModuleSpec.fuelShare` and the rest), as weights over that room: mostly
+ * fuel, so a bare core with one engine can move; some metal, so one with a gun
+ * can fire a few rounds; and a generator and a battery, so one big enough can
+ * drive anything bolted to it. A battery passes power at its share of what a
+ * battery the core's size would.
  */
+export const CORE_FUEL_SHARE = 0.75;
 export const CORE_METAL_SHARE = 0.05;
-
-/**
- * The shares of a core's interior past its computing given to a generator and
- * to a battery, so a core big enough can drive anything bolted to it. A battery's
- * share passes power at that share of what a battery the core's size would.
- */
 export const CORE_GENERATOR_SHARE = 0.1;
 export const CORE_BATTERY_SHARE = 0.1;
+
+/**
+ * The least of each store a core takes by default, m³: below it a store is not
+ * worth having, so it is left out, in the order a small ship needs them — fuel,
+ * then a hold, a generator, and last a battery, since things run off a
+ * generator directly — and the core is that much simpler (`CORE_PART_COMPLEXITY`).
+ * One its layout sets is kept however small.
+ */
+export const CORE_FUEL_LEAST = 0.25;
+export const CORE_HOLD_LEAST = 0.1;
+export const CORE_GENERATOR_LEAST = 0.1;
+export const CORE_BATTERY_LEAST = 0.1;
 
 /**
  * The most a core's generator may fill, m³, the rest of its share going to
@@ -337,8 +348,75 @@ export function needsControl(kind: ModuleKind): boolean {
 
 /** How much of an `interior` m³ core computes, m³. */
 export function coreComputing(spec: ModuleSpec, interior: number): number {
-    if (interior <= CORE_COMPUTING_VOLUME) return interior;
-    return max(CORE_COMPUTING_VOLUME, (spec.computing ?? CORE_COMPUTING_SHARE) * interior);
+    return coreLayout(spec, interior).computing;
+}
+
+/** The settings that share a core's room past its computing, in the order its stores step in. */
+export const CORE_SHARE_KEYS = ["fuelShare", "holdShare", "generatorShare", "batteryShare"] as const;
+export type CoreShareKey = (typeof CORE_SHARE_KEYS)[number];
+/** What each of `CORE_SHARE_KEYS` weighs when a core's layout does not say. */
+export const CORE_SHARE_DEFAULTS = [CORE_FUEL_SHARE, CORE_METAL_SHARE, CORE_GENERATOR_SHARE, CORE_BATTERY_SHARE] as const;
+const CORE_SHARE_LEAST = [CORE_FUEL_LEAST, CORE_HOLD_LEAST, CORE_GENERATOR_LEAST, CORE_BATTERY_LEAST] as const;
+
+/** What an `interior` m³ core holds, m³ each: its computing, fuel, hold, generator and battery. */
+export interface CoreLayout {
+    /** Its room past its computing, shared between its stores. */
+    room: number;
+    computing: number;
+    fuel: number;
+    hold: number;
+    generator: number;
+    battery: number;
+}
+
+/**
+ * How a core's interior is shared out. Up to `CORE_COMPUTING_VOLUME` it is all
+ * computing; past it, `computing` of it computes, and the rest is shared by
+ * weight between the stores it has (`ModuleSpec.fuelShare` and the rest). One
+ * its layout leaves to its default steps in, in order, once its share would be
+ * at least its least; until the first does, the core is all computing. A
+ * generator past `CORE_GENERATOR_MAX_VOLUME` gives the rest to fuel, or to
+ * computing where it holds none.
+ */
+export function coreLayout(spec: ModuleSpec, interior: number): CoreLayout {
+    const out = { room: 0, computing: interior, fuel: 0, hold: 0, generator: 0, battery: 0 };
+    if (!(interior > CORE_COMPUTING_VOLUME)) return out;
+    const computing = max(CORE_COMPUTING_VOLUME, (spec.computing ?? CORE_COMPUTING_SHARE) * interior);
+    const spare = interior - computing;
+    if (!(spare > 0)) return out;
+    const weights = [0, 0, 0, 0];
+    for (let k = 0; k < 4; k++) weights[k] = spec[CORE_SHARE_KEYS[k]!] ?? 0;
+    for (let k = 0; k < 4; k++) {
+        if (spec[CORE_SHARE_KEYS[k]!] !== undefined) continue;
+        weights[k] = CORE_SHARE_DEFAULTS[k]!;
+        const total = weights[0]! + weights[1]! + weights[2]! + weights[3]!;
+        // Not worth having yet, nor anything after it, nor if it would leave one already in short.
+        let short = false;
+        for (let j = 0; j <= k; j++) {
+            if (spec[CORE_SHARE_KEYS[j]!] === undefined && weights[j]! > 0 && (spare * weights[j]!) / total < CORE_SHARE_LEAST[j]!)
+                short = true;
+        }
+        if (short) {
+            weights[k] = 0;
+            for (let later = k + 1; later < 4; later++) if (spec[CORE_SHARE_KEYS[later]!] === undefined) weights[later] = 0;
+            break;
+        }
+    }
+    const total = weights[0]! + weights[1]! + weights[2]! + weights[3]!;
+    if (!(total > 0)) return out;
+    out.room = spare;
+    out.computing = computing;
+    out.fuel = (spare * weights[0]!) / total;
+    out.hold = (spare * weights[1]!) / total;
+    out.generator = (spare * weights[2]!) / total;
+    out.battery = (spare * weights[3]!) / total;
+    if (out.generator > CORE_GENERATOR_MAX_VOLUME) {
+        const over = out.generator - CORE_GENERATOR_MAX_VOLUME;
+        out.generator = CORE_GENERATOR_MAX_VOLUME;
+        if (out.fuel > 0) out.fuel += over;
+        else out.computing += over;
+    }
+    return out;
 }
 
 /**
@@ -948,11 +1026,11 @@ export const CORE_MINIMUM_FITTING_MASS = 25;
 
 /**
  * Interior a core needs for itself, m³: one this size or smaller is all
- * computing, since stores that small would be waste. A bigger one computes with
- * `computing` of its interior but never less than this; the rest is stores, so
- * a bare core with one engine can move (ROADMAP.md §8).
+ * computing. A bigger one computes with `computing` of its interior but never
+ * less than this, and the rest is stores (`coreLayout`), so a bare core with one
+ * engine can move (ROADMAP.md §8).
  */
-export const CORE_COMPUTING_VOLUME = 1;
+export const CORE_COMPUTING_VOLUME = 0.5;
 
 /** The share of a core's interior that computes when its layout does not say (`ModuleSpec.computing`). */
 export const CORE_COMPUTING_SHARE = 0.1;
@@ -1323,6 +1401,17 @@ export interface ModuleSpec {
      */
     computing?: number;
     /**
+     * How a core shares its room past its computing between fuel, metal, a
+     * generator and a battery, as weights, at least 0, scaled to fill it. One
+     * left out takes its default (`CORE_FUEL_SHARE` and the rest), stepped in
+     * only once it would be worth having (`CORE_FUEL_LEAST` and the rest); one
+     * set is kept however small, and 0 leaves it out, with its complexity. A core only.
+     */
+    fuelShare?: number;
+    holdShare?: number;
+    generatorShare?: number;
+    batteryShare?: number;
+    /**
      * How many robots a robot bay keeps for each of its berths while its ship
      * is moored to a rock, at least one, and one when absent (`robotsKept`).
      * A robot bay only.
@@ -1620,6 +1709,10 @@ export function moduleProblem(spec: ModuleSpec): string | null {
     }
     if (spec.computing !== undefined && !(spec.computing >= 0 && spec.computing <= 1)) {
         return `${spec.kind}: computing must be from 0 to 1, got ${spec.computing}`;
+    }
+    for (const key of CORE_SHARE_KEYS) {
+        const share = spec[key];
+        if (share !== undefined && !(share >= 0 && Number.isFinite(share))) return `${spec.kind}: ${key} must be at least 0, got ${share}`;
     }
     if (spec.robotsPerBerth !== undefined && !(spec.robotsPerBerth >= 1 && Number.isFinite(spec.robotsPerBerth))) {
         return `${spec.kind}: robots per berth must be at least 1, got ${spec.robotsPerBerth}`;
@@ -2701,6 +2794,10 @@ const KIND_COMPLEXITY: Record<ModuleKind, number> = {
     core: 16,
 };
 
+/** A core's own complexity, computing alone, and what each of its stores adds: fuel, a hold, a generator, a battery. */
+const CORE_COMPUTING_COMPLEXITY = 8;
+const CORE_PART_COMPLEXITY = [1, 1, 4, 2] as const;
+
 /** What a self-sealing lining adds to a tank's complexity. */
 const LINING_COMPLEXITY = 2;
 
@@ -2709,11 +2806,17 @@ const OUTLET_COMPLEXITY = 1;
 
 /**
  * How intricate a module is to make or mend, in units of `COMPLEXITY_WORK`:
- * its kind's, or a pressure-fed engine's, plus a self-sealing lining and every
+ * its kind's, a pressure-fed engine's, or a core's by the stores it holds
+ * (`layout`, all of them if not given), plus a self-sealing lining and every
  * outlet past the first.
  */
-export function complexityOf(spec: ModuleSpec): number {
+export function complexityOf(spec: ModuleSpec, layout?: CoreLayout): number {
     let units = spec.kind === "engine" && isPressureFed(engineGeometry(spec)) ? PRESSURE_FED_COMPLEXITY : KIND_COMPLEXITY[spec.kind];
+    if (spec.kind === "core" && layout !== undefined) {
+        const held = [layout.fuel, layout.hold, layout.generator, layout.battery];
+        units = CORE_COMPUTING_COMPLEXITY;
+        for (let k = 0; k < 4; k++) if (held[k]! > 0) units += CORE_PART_COMPLEXITY[k]!;
+    }
     if (liningOf(spec) > 0) units += LINING_COMPLEXITY;
     if (countsOutlets(spec.kind)) units += ((spec.barrels ?? 1) - 1) * OUTLET_COMPLEXITY;
     return units;
@@ -2790,6 +2893,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     let generation = 0;
     let robots = 0;
     let computing = 0;
+    let coreHeld: CoreLayout | undefined;
     let gun: GunStats | null = null;
     // Mass that hangs off the pivot as a rod rather than filling the box, and
     // the inertia it accounts for. Barrels, and nothing else so far.
@@ -2808,18 +2912,17 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
         // and the fragility of a small one are the whole of what stops a ship
         // carrying five of them.
         fittingMass = max(CORE_MINIMUM_FITTING_MASS, CORE_MASS_PER_AREA * capacity) + liningMass;
-        computing = coreComputing(spec, interior);
-        const spare = max(0, interior - computing);
-        const generator = min(spare * CORE_GENERATOR_SHARE, CORE_GENERATOR_MAX_VOLUME);
-        // What the cap keeps from the generator is fuel, added apart so an uncapped core's is unchanged.
-        fuel =
-            spare * (1 - CORE_METAL_SHARE - CORE_GENERATOR_SHARE - CORE_BATTERY_SHARE) * FUEL_DENSITY +
-            (spare * CORE_GENERATOR_SHARE - generator) * FUEL_DENSITY;
-        metal = spare * CORE_METAL_SHARE * METAL_DENSITY;
-        generation = generator * GENERATOR_POWER_PER_VOLUME;
-        charge = spare * CORE_BATTERY_SHARE * BATTERY_ENERGY_PER_VOLUME;
-        chargeRate = spare > 0 ? CORE_BATTERY_SHARE * BATTERY_POWER_PER_AREA * 2 * (spec.length + spec.width) * height : 0;
-        fittingMass += generator * GENERATOR_MASS_PER_VOLUME + spare * CORE_BATTERY_SHARE * BATTERY_MASS_PER_VOLUME;
+        const layout = coreLayout(spec, interior);
+        coreHeld = layout;
+        computing = layout.computing;
+        fuel = layout.fuel * FUEL_DENSITY;
+        metal = layout.hold * METAL_DENSITY;
+        generation = layout.generator * GENERATOR_POWER_PER_VOLUME;
+        charge = layout.battery * BATTERY_ENERGY_PER_VOLUME;
+        // At the battery's share of what a battery the core's size would pass.
+        chargeRate =
+            layout.battery > 0 ? (layout.battery / layout.room) * BATTERY_POWER_PER_AREA * 2 * (spec.length + spec.width) * height : 0;
+        fittingMass += layout.generator * GENERATOR_MASS_PER_VOLUME + layout.battery * BATTERY_MASS_PER_VOLUME;
     } else if (spec.kind === "port") {
         // A collar on its outward face and a coupling behind it.
         fittingMass = PORT_MASS_PER_AREA * capacity;
@@ -3031,7 +3134,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
         chargeRate,
         generation,
         robots,
-        complexity: complexityOf(spec),
+        complexity: complexityOf(spec, coreHeld),
         controlRadius: controlRadius(computing),
     };
 }
