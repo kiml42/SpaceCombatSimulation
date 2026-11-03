@@ -1202,7 +1202,9 @@ inside any one file is not contiguous.
   the lower of its weakest core's integrity and the share of the mass it set out with that is still sound, a
   module lost counting for none — it makes for a friend's pad as it would for fuel, and comes back for fuel,
   metal and charge too. It goes only to a pad whose piece of hull has the charge and metal to mend with. The
-  default is 0.6, a little above where a core's control cuts out (0.4); zero never goes.
+  default is 0.6, a little above where a core's control cuts out (0.4); zero never goes. It goes as well once
+  no more of its main guns work than its `repairArmed`, however whole it is otherwise: a gun is not always
+  much of a fighter's mass. Below zero, the default, never; one with no main guns never goes for this.
   **Power: generators and batteries.** A `generator` makes power by its interior
   (`GENERATOR_POWER_PER_VOLUME`) for as long as it works, needing nothing and giving off nothing. A
   `battery` holds charge by its interior (`BATTERY_ENERGY_PER_VOLUME`) and passes it in or out at a rate set

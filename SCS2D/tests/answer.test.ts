@@ -85,7 +85,7 @@ describe("the skirmish enemy's answer", () => {
 
     it("answers with an enemy that truly wins the round, and counts no other as winning it", { timeout: 120_000 }, () => {
         // The round is fought to its decision, so one reported as winning it is the answer.
-        const running = new EnemySearch(gunship, corvette, WON, 5);
+        const running = new EnemySearch(gunship, corvette, WON, 6);
         let seen = 0;
         for (let slice = 0; slice < 100 && !running.advance(2000); slice++) {
             const now = running.progress;
