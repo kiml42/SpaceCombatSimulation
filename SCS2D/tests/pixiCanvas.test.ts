@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BitmapText, Container, Graphics } from "pixi.js";
+import { BitmapText, Container, Graphics, Texture, TextureSource } from "pixi.js";
 import { capture, Snapshot } from "../sim/snapshot.js";
 import { SCENES } from "../scenarios/scenes.js";
 import { draw } from "../render/canvas2d.js";
@@ -10,6 +10,7 @@ import {
     convexHullOrder,
     dashed,
     parseColour,
+    ParticleBatch,
     PixiCanvas,
     screenRect,
 } from "../render/pixiCanvas.js";
@@ -122,4 +123,20 @@ describe("canvas2d.ts drawn through PixiCanvas", () => {
             }
         });
     }
+});
+
+describe("a batch of particles", () => {
+    it("draws with the texture it is started with, whatever it drew with before", () => {
+        const texture = (size: number): Texture => new Texture({ source: new TextureSource({ width: size, height: size }) });
+        const identity = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
+        const batch = new ParticleBatch();
+        batch.start(texture(4), identity, true, 1);
+        batch.end();
+        batch.reset();
+        batch.start(texture(8), identity, false, 1);
+        batch.add(0, 0, 1, 0, 1, 1, 0xffffff, 1);
+        batch.end();
+        expect(batch.container.texture.width).toBe(8);
+        expect(batch.container.blendMode).toBe("normal");
+    });
 });
