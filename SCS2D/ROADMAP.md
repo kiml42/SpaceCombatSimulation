@@ -436,9 +436,9 @@ an entry is either still open or it is gone.
           events. Sparks for round and burst impacts, bits of metal for collisions in place of their
           flashes, vapour from leaks (a steady emitter on a fixed grid of birth times).
         - **Leaks pinched off**, with the vapour particles: a self-sealing lining or a mending robot's patch
-          narrowing a hole shrinks the plume back into the hole (the Effects page's Sealing scene shows
-          both), where the fuel already out should drift on and thin while the source narrows. Vapour particles that each carry the rate their fuel left at do that
-          without asking the sim for anything more.
+          narrowing a hole shrinks the plume back into the hole (the Effects page's Leaks scene shows
+          both), where the fuel already out should drift on and thin while the source narrows. Vapour
+          particles that each carry the rate their fuel left at do that without asking the sim for anything more.
         - **Leaks in shadow**, with the vapour particles: vapour hangs above the deck, so a thick module's
           shadow should darken it where it passes through, and the hull layer's shadows, drawn underneath,
           cannot reach it. Each particle asking whether it is in a thick module's shadow is the cheap way;
