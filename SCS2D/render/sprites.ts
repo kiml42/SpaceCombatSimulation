@@ -12,14 +12,16 @@ export type SpriteShape =
     | "streak"
     /** Fades along its length with the shutter, and out from its centre line. */
     | "glowStreak"
-    /** A disc with a hard edge, as hard as its size allows. */
-    | "disc"
+    /** White-hot through its middle, fading out to its edge: a spot of hot metal. */
+    | "hot"
     /** Fades out from its centre. */
     | "halo"
     /** Even along its length, fading out from its centre line as a halo does from its centre. */
     | "band"
     /** A halo's right half, so a band capped with two is a capsule with no seam. */
-    | "cap";
+    | "cap"
+    /** Even along its length, and as bright across as a rod is thick there: a beam seen side on. */
+    | "rod";
 
 type Image = CanvasImageSource & { width: number; height: number };
 
@@ -46,17 +48,23 @@ function shade(shape: SpriteShape, u: number, v: number): number {
             return shutterWeight(u);
         case "glowStreak":
             return shutterWeight(u) * falloff(across);
-        case "disc":
-            // Its edge a texel soft, so it stays round stretched far past its size.
-            return Math.min(1, Math.max(0, (1 - radial(u, v)) * (ACROSS / 2) + 0.5));
         case "halo":
             return falloff(radial(u, v));
+        case "hot": {
+            const r = radial(u, v);
+            return r >= 1 ? 0 : Math.min(1, HOT_PLATEAU * (1 - r * r));
+        }
         case "band":
             return falloff(across);
+        case "rod":
+            return Math.sqrt(Math.max(0, 1 - across * across));
         case "cap":
             return falloff(Math.sqrt(u * u + (2 * v - 1) ** 2));
     }
 }
+
+/** How far past full a hot spot's middle is, so it stays white out to about three-fifths of its radius. */
+const HOT_PLATEAU = 1.6;
 
 /** Distance from the centre, 1 at the edge of the square. */
 function radial(u: number, v: number): number {
@@ -73,7 +81,14 @@ function falloff(r: number): number {
 }
 
 function makeSprite(shape: SpriteShape, colour: string): Image | null {
-    const width = shape === "streak" || shape === "glowStreak" ? ALONG : shape === "band" ? 1 : shape === "cap" ? ACROSS / 2 : ACROSS;
+    const width =
+        shape === "streak" || shape === "glowStreak"
+            ? ALONG
+            : shape === "band" || shape === "rod"
+              ? 1
+              : shape === "cap"
+                ? ACROSS / 2
+                : ACROSS;
     const height = shape === "streak" ? 1 : ACROSS;
     const canvas = blankCanvas(width, height);
     const ctx = canvas?.getContext("2d") as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
@@ -193,12 +208,13 @@ function makeTaper(colour: string, taper: number): Image | null {
         for (let x = 0; x < ALONG; x++) {
             const u = (x + 0.5) / ALONG;
             const w = Math.abs(2 * ((y + 0.5) / ACROSS) - 1) / (taper + (1 - taper) * u);
-            const ends = Math.min(1, u / TAPER_END, (1 - u) / TAPER_END);
+            // Thinning as it spreads, so densest where it comes out.
+            const ends = Math.min(1, (1 - u) / TAPER_END);
             const i = 4 * (y * ALONG + x);
             image.data[i] = r;
             image.data[i + 1] = g;
             image.data[i + 2] = b;
-            image.data[i + 3] = Math.round(a * (1 - u) * falloff(w) * ends);
+            image.data[i + 3] = Math.round(a * (1 - u) ** 2 * falloff(w) * ends);
         }
     }
     ctx.putImageData(image, 0, 0);
@@ -268,6 +284,46 @@ function makeWedge(colour: string, step: number): Image | null {
             image.data[i + 1] = g;
             image.data[i + 2] = b;
             image.data[i + 3] = Math.round(a * Math.min(1, (0.9 * sum) / WEDGE_HEADROOM));
+        }
+    }
+    ctx.putImageData(image, 0, 0);
+    return canvas;
+}
+
+const cones = new Map<string, Image | null>();
+
+/**
+ * A flame's glow: a flame's shape blurred, brightest at its root at the left
+ * and narrowing and fading to nothing at its tip at the right. Its root is a
+ * halo's middle across, so a "cap" laid behind it closes it without a seam.
+ */
+export function coneSprite(colour: string): Image | null {
+    let made = cones.get(colour);
+    if (made === undefined) {
+        made = makeCone(colour);
+        cones.set(colour, made);
+    }
+    return made;
+}
+
+/** How much narrower a flame's glow is at its tip than at its root. */
+const CONE_NARROWING = 0.85;
+
+function makeCone(colour: string): Image | null {
+    const canvas = blankCanvas(ALONG, ACROSS);
+    const ctx = canvas?.getContext("2d") as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
+    if (canvas === null || ctx === null || ctx === undefined) return null;
+    const [r, g, b, a] = rgba(colour);
+    const image = ctx.createImageData(ALONG, ACROSS);
+    for (let y = 0; y < ACROSS; y++) {
+        for (let x = 0; x < ALONG; x++) {
+            const t = (x + 0.5) / ALONG;
+            const across = Math.abs(2 * ((y + 0.5) / ACROSS) - 1);
+            const i = 4 * (y * ALONG + x);
+            image.data[i] = r;
+            image.data[i + 1] = g;
+            image.data[i + 2] = b;
+            image.data[i + 3] = Math.round(a * (1 - t) ** 1.5 * falloff(across / (1 - CONE_NARROWING * t)));
         }
     }
     ctx.putImageData(image, 0, 0);

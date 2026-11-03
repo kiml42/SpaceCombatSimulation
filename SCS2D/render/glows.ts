@@ -1,8 +1,9 @@
-import { sprite } from "./sprites.js";
+import { coneSprite, sprite } from "./sprites.js";
 
 /**
  * What gives off light this frame, and the glow each is seen by: points
- * (flashes, bursts, nozzles) and lines (beams, muzzle flashes, burns on a hull).
+ * (flashes, bursts, beams' emitters), lines (beams, muzzle flashes, burns on
+ * a hull) and cones (plumes, brightest at the nozzle and narrowing to the tip).
  * Filled while a scene is drawn and drawn as one additive pass at its end, so a
  * glow brightens whatever is under it, whichever pass that came from.
  *
@@ -25,6 +26,8 @@ export class Lights {
     radius = new Float64Array(64);
     /** How bright, as the glow's opacity at its middle. */
     brightness = new Float64Array(64);
+    /** Whether each is a cone, from its first end out to its second, rather than a point or a line. */
+    cone = new Uint8Array(64);
     colour: string[] = [];
 
     clear(): void {
@@ -40,7 +43,17 @@ export class Lights {
     }
 
     /** A light along `(x0, y0)`–`(x1, y1)`, reaching `radius` out to either side and past either end. */
-    line(m: Transform, x0: number, y0: number, x1: number, y1: number, radius: number, colour: string, brightness: number): void {
+    line(
+        m: Transform,
+        x0: number,
+        y0: number,
+        x1: number,
+        y1: number,
+        radius: number,
+        colour: string,
+        brightness: number,
+        cone = false,
+    ): void {
         if (!(brightness > 0) || !(radius > 0)) return;
         if (this.count === this.x0.length) this.grow();
         const k = this.count++;
@@ -50,7 +63,13 @@ export class Lights {
         this.y1[k] = m.b * x1 + m.d * y1 + m.f;
         this.radius[k] = radius * Math.sqrt(Math.abs(m.a * m.d - m.b * m.c));
         this.brightness[k] = brightness;
+        this.cone[k] = cone ? 1 : 0;
         this.colour[k] = colour;
+    }
+
+    /** A light from `(x0, y0)`, `radius` either side of it, narrowing and fading out to `(x1, y1)`: a flame's glow. */
+    coneOf(m: Transform, x0: number, y0: number, x1: number, y1: number, radius: number, colour: string, brightness: number): void {
+        this.line(m, x0, y0, x1, y1, radius, colour, brightness, true);
     }
 
     private grow(): void {
@@ -65,8 +84,14 @@ export class Lights {
         this.y1 = more(this.y1);
         this.radius = more(this.radius);
         this.brightness = more(this.brightness);
+        const cone = new Uint8Array(this.cone.length * 2);
+        cone.set(this.cone);
+        this.cone = cone;
     }
 }
+
+/** How far behind its root a cone's glow starts, in its radii. */
+const CONE_BEHIND = 0.4;
 
 /** A 2D affine transform, as `getTransform` returns one. */
 export interface Transform {
@@ -102,6 +127,19 @@ export function drawGlows(ctx: CanvasRenderingContext2D, lights: Lights): void {
             if (halo === null) continue;
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.drawImage(halo, x0 + dx / 2 - r, y0 + dy / 2 - r, 2 * r, 2 * r);
+            continue;
+        }
+        if (lights.cone[k] === 1) {
+            const image = coneSprite(colour);
+            const cap = sprite("cap", colour);
+            if (image === null || cap === null) continue;
+            const c = dx / length;
+            const s = dy / length;
+            ctx.setTransform(c, s, -s, c, x0, y0);
+            ctx.drawImage(image, 0, -r, length, 2 * r);
+            // Wrapping a little way back round its root, round the nozzle it comes out of.
+            ctx.setTransform(-c, -s, s, -c, x0, y0);
+            ctx.drawImage(cap, 0, -r, r * CONE_BEHIND, 2 * r);
             continue;
         }
         const band = sprite("band", colour);

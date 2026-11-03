@@ -439,6 +439,14 @@ an entry is either still open or it is gone.
           and thinning; no smoke and no lingering fireball.
         - **Zoom** as bevels and scars: a particle under a pixel is not drawn; glows keep a pixel floor, as
           flashes do.
+        - **From a first look on the Effects page — built**: a hit's core is white-hot in its middle and fades
+          to its edge; a muzzle flash's back leaves the muzzle slowly, so it is seen coming out of the
+          barrel, and a bigger gun's lasts longer; bursts are brighter and a bigger one lasts up to a quarter
+          of a second; a beam's core is lit across as a rod, with a small glow at its emitter, its glow under
+          its core and the flashes where it lands over it; a plume's glow is the flame's own shape blurred, a
+          cone of light (the third kind in `render/glows.ts`) from its nozzle to where it ends or lands; and a
+          leak is densest at its hole and lit in the battle's light. Still to come: leaks growing out of their
+          holes at the speed the fuel leaves, rather than appearing whole.
         - **The Effects route** (`#/effects`) shows each effect on its own, drawn by the battle's renderer, looped,
           slowed and scrubbed: the place to look at a change to how one is drawn, and to add a scene for a new one.
         - **In pull requests**, in this order: (1) the list of sources and glow sprites, replacing today's
