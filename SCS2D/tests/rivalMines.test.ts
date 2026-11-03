@@ -70,17 +70,31 @@ describe("rival mines", () => {
         expect(longest / 60).toBeLessThan(90);
     }, 300_000);
 
-    it("lands its fighters to refill while a copy is on its slipway, rather than shying from it", () => {
+    it("lands a fighter that can still turn both ways to refill while a copy is on its slipway, rather than shying from it", () => {
+        // Whether a fighter has any turn both ways left is the luck of the dogfight, and one without it does not try (`pickPad`).
         const run = rivalMines();
-        const back = new Set<number>();
-        for (let t = 0; t < 330 * 60; t++) {
+        const ships = run.ships;
+        const pads = (ships as unknown as { landingPad: number[] }).landingPad;
+        const layout = (i: number) => (ships as unknown as { layoutOf(i: number): { maxTorque(sense: number): number } }).layoutOf(i);
+        const turns = (i: number) => layout(i).maxTorque(1) > 0 && layout(i).maxTorque(-1) > 0;
+        const copyOnSlipway = () => Array.from({ length: ships.count }, (_, i) => i).some((i) => ships.isAlive(i) && ships.isPrinting(i));
+        // Each fighter making for a pad, from when it set out.
+        const making = new Map<number, number>();
+        const landed = new Set<number>();
+        for (let t = 0; t < 420 * 60; t++) {
             run.step();
             if (t < 200 * 60) continue;
-            for (let i = 0; i < run.ships.count; i++) {
-                if (run.ships.isAlive(i) && run.ships.currentStructure(i).fighter && run.miners.includes(run.ships.parkedCarrier(i)))
-                    back.add(i);
+            expect(copyOnSlipway()).toBe(true);
+            for (let i = 0; i < ships.count; i++) {
+                if (!ships.isAlive(i) || !ships.currentStructure(i).fighter) continue;
+                if (run.miners.includes(ships.parkedCarrier(i))) {
+                    if (making.delete(i)) landed.add(i);
+                } else if (pads[i]! >= 0 && ships.hasControl(i) && turns(i)) {
+                    if (!making.has(i)) making.set(i, t);
+                    expect((t - making.get(i)!) / 60).toBeLessThan(90);
+                } else making.delete(i);
             }
         }
-        expect(back.size).toBeGreaterThan(0);
+        expect(landed.size).toBeGreaterThan(0);
     }, 300_000);
 });
