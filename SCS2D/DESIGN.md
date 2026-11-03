@@ -778,9 +778,10 @@ inside any one file is not contiguous.
   than a cubic metre (`CORE_COMPUTING_VOLUME`) is all computing and holds none. Each engine has an exhaust velocity:
   `EXHAUST_VELOCITY`, less what its bell throws sideways (`divergence`) and what a small throat loses to its
   walls — about 1,900 s of specific impulse on a capital's main engine and 1,650 s on a fighter's, and
-  never under 700 s. **An engine with a throat under `PRESSURE_FED_THROAT` (0.25 m) is pressure-fed**, too
-  small for pumps: it leaves at three-quarters of the exhaust velocity (`PRESSURE_FED_EXHAUST`) and is
-  complexity 1 rather than 4 — a step rather than a slope, so a thruster is a different thing from a small
+  never under 700 s. **An engine with a throat under `PRESSURE_FED_THROAT` (0.25 m), or a block shorter than
+  `PRESSURE_FED_BLOCK` (0.25 m), is pressure-fed**, with no room for pumps: it passes half the flow (`PRESSURE_FED_FLOW`), so half
+  the thrust, leaves at three-quarters of the exhaust velocity (`PRESSURE_FED_EXHAUST`), its machinery weighs half a pumped one's (`PRESSURE_FED_MASS`),
+  and it is complexity 1 rather than 4 — a step rather than a slope, so a thruster is a different thing from a small
   main engine. It burns the gas it throws over that, throttle by throttle, from the tanks on its own
   piece of hull, in proportion to their size so that tanks starting full run dry together; tanks are
   drained in tiers, highest `drainPriority` first (a whole number on a tank or a core, set in the editor and
@@ -884,8 +885,12 @@ inside any one file is not contiguous.
   them it takes the one whose end, where the way leaves a circle of the carrier's radius and two of its own,
   is soonest reached round the carrier, keeping the one it is on unless another is `WAY_STICK` sooner, and
   keeping it outright once inside that circle; a way something in the weapons layer now stands in, a fighter
-  on the next pad say, is passed over while another is clear. Inside the circle it heads straight for the pad
-  only once nothing in the weapons layer stands between. With arcs shown, every way in is drawn on the pad as a
+  on the next pad say, is passed over while another is clear. It heads straight for the pad only once
+  nothing in the weapons layer stands between, asked from afar as well as inside the circle, so one whose
+  way in runs across the carrier starts round in time. It makes for where its outline, not its centre of
+  mass, lies centred on the pad, so a fighter heavy at one end fits a pad only just long enough for it; and
+  it turns its mains onto a change of velocity under `PAD_HOLD_SPEED` (5 m/s) only if it cannot make it as
+  it points within a response, or it weaves, turning after each small correction and overshooting it. With arcs shown, every way in is drawn on the pad as a
   small arrow pointing in from the middle of its side or from its corner, along the way, in amber for a pad's
   one longest run, so the editor shows how easy a pad is to reach — and from the wrong side it
   first circles the carrier outside its radius, `HULL_ORBIT_STEP` at a time, rather than fly through what is in
@@ -1640,6 +1645,15 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   share one chamber and divide one exit area, so the count is never free power — what a cluster buys is
   that a narrow bell collimates in a fraction of the length a wide one needs, which is how a stubby engine
   gets a good nozzle, and a flame combed into fingers rather than thrown as one sheet.
+- **An engine is drawn as what it is made of**: a spherical chamber on each bell's throat, cut flat to sit on
+  it, wider than that throat, and shipward of them one turbopump across the block, banded with the livery,
+  which each chamber is cut flat to meet. Feeding one nozzle with nothing welded to its sides the pump is a
+  cylinder, bevelled only at its ends; otherwise it is a bevelled block, not a drum with a row of engines
+  through it. A pressure-fed engine has no pump, so its chambers run on to the block's front as capsules, and
+  a longer block shows as a longer chamber. Where a stretch of the block's faces is welded to something
+  (`ATTACHMENT_TOLERANCE`, as the simulation has it), a plate and a web hold the chamber to it; elsewhere it
+  stands clear, so the missing pump is what shows. The matter is still the whole block to the simulation; only
+  the picture changes (`render/engineLayout.ts`).
 - **How hard the nozzle is fed is the machinery's business.** Thrust is the exit face's area times what
   the chamber and pumps behind it can drive through the throat, and that machinery is the block: a deep
   one feeds more flow. A throat chokes rather than passing whatever is pushed at it, which is what stops a
