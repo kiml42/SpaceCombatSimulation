@@ -327,6 +327,8 @@ export class Snapshot {
     /** The outward normal of the surface each met, in the same frame; zero for none. */
     impactNormalX = new Float64Array(0);
     impactNormalY = new Float64Array(0);
+    /** How fast each happened, m/s: a collision's closing speed; zero for the rest. */
+    impactSpeed = new Float64Array(0);
     impactCount = 0;
 
     /**
@@ -389,6 +391,7 @@ function growImpacts(snapshot: Snapshot, needed: number): void {
     snapshot.impactDirY = new Float64Array(size);
     snapshot.impactNormalX = new Float64Array(size);
     snapshot.impactNormalY = new Float64Array(size);
+    snapshot.impactSpeed = new Float64Array(size);
 }
 
 function shipView(snapshot: Snapshot, i: number): ShipView {
@@ -743,6 +746,7 @@ export function capture(
             out.impactDirY[i] = impacts.dirY[i]!;
             out.impactNormalX[i] = impacts.normalX[i]!;
             out.impactNormalY[i] = impacts.normalY[i]!;
+            out.impactSpeed[i] = impacts.speed[i]!;
         }
         out.impactCount = impacts.count;
         impacts.clear();

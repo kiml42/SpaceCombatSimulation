@@ -18,7 +18,7 @@ import {
     muzzleLifetime,
     muzzleWedge,
 } from "../render/flashes.js";
-import { IMPACT_COLLISION, IMPACT_MUZZLE, IMPACT_ROUND } from "../sim/index.js";
+import { IMPACT_BURST, IMPACT_COLLISION, IMPACT_MUZZLE, IMPACT_ROUND } from "../sim/index.js";
 import { SPARK_LIFE } from "../render/particles.js";
 
 /**
@@ -68,14 +68,15 @@ describe("how a flash fades", () => {
 describe("the store", () => {
     it("keeps a flash until its life runs out", () => {
         const flashes = new Flashes();
-        flashes.add(10, 20, FLASH_REFERENCE_ENERGY, IMPACT_COLLISION);
+        // A burst throws nothing, so is kept for its own light alone.
+        flashes.add(10, 20, BURST_REFERENCE_ENERGY, IMPACT_BURST);
         expect(flashes.count).toBe(1);
 
-        flashes.step(ROUND_FLASH_LIFETIME * 0.5);
+        flashes.step(BURST_FLASH_LIFETIME * 0.5);
         expect(flashes.count).toBe(1);
-        expect(flashes.age[0]).toBeCloseTo(ROUND_FLASH_LIFETIME * 0.5, 9);
+        expect(flashes.age[0]).toBeCloseTo(BURST_FLASH_LIFETIME * 0.5, 9);
 
-        flashes.step(ROUND_FLASH_LIFETIME);
+        flashes.step(BURST_FLASH_LIFETIME);
         expect(flashes.count).toBe(0);
     });
 

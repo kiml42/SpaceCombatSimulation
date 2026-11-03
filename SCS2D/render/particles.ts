@@ -1,4 +1,4 @@
-import { IMPACT_BEAM, IMPACT_EXIT, IMPACT_ROUND } from "../sim/index.js";
+import { IMPACT_BEAM, IMPACT_COLLISION, IMPACT_EXIT, IMPACT_ROUND } from "../sim/index.js";
 import type { Flashes } from "./flashes.js";
 
 /**
@@ -14,8 +14,12 @@ import type { Flashes } from "./flashes.js";
 /** The longest a spark flies, seconds. */
 export const SPARK_LIFE = 0.6;
 
+/** The longest a bit of metal broken off in a collision flies, seconds. */
+export const METAL_LIFE = 1.6;
+
 /** How long an event of this kind is kept for what it throws off, seconds: 0 for nothing thrown. */
 export function thrownFor(kind: number): number {
+    if (kind === IMPACT_COLLISION) return METAL_LIFE;
     return kind === IMPACT_ROUND || kind === IMPACT_EXIT || kind === IMPACT_BEAM ? SPARK_LIFE : 0;
 }
 
@@ -50,7 +54,7 @@ export interface Spark {
 
 /** How many sparks this event throws. */
 export function sparkCount(kind: number, energy: number, seed: number): number {
-    if (thrownFor(kind) === 0 || !(energy > 0)) return 0;
+    if (thrownFor(kind) !== SPARK_LIFE || !(energy > 0)) return 0;
     if (kind === IMPACT_BEAM) return unit(seed, 99) < BEAM_SPARK_CHANCE ? 1 : 0;
     return Math.min(MOST_SPARKS, Math.max(1, Math.round(Math.cbrt(energy) * SPARKS_PER_CBRT_JOULE)));
 }
@@ -158,4 +162,94 @@ export function sparkColour(t: number): number {
 /** How bright a spark is as it cools, 1 when thrown and 0 when it lands. */
 export function sparkFade(t: number): number {
     return (1 - t) ** 1.5;
+}
+
+/** Most bits of metal one collision breaks off. */
+export const MOST_BITS = 20;
+/** Bits for each joule's cube root: one for about 30 kJ, all of them by about 200 MJ. */
+const BITS_PER_CBRT_JOULE = 1 / 30;
+/** How fast bits leave, as a share of how fast the hulls closed, at least and at most. */
+const BIT_SLOWEST = 0.1;
+const BIT_FASTEST = 0.6;
+/** The slowest a bit leaves, m/s, however gently the hulls met. */
+const BIT_LEAST_SPEED = 2;
+/** How far either side of the contact line a bit may go, radians. */
+const BIT_SPRAY = 0.7;
+/** How far towards the slide a bit leans, as a share of the slide's speed. */
+const BIT_SLIDE = 0.5;
+/** How long a bit is, metres, for a collision of `FLASH_REFERENCE_ENERGY`, and as the sixth root of its energy otherwise. */
+const BIT_SIZE = 0.25;
+/** The fastest a bit spins, radians a second. */
+const BIT_SPIN = 14;
+
+/** One bit of metal as it is now. */
+export interface Bit {
+    x: number;
+    y: number;
+    /** Which way its long side lies, radians. */
+    angle: number;
+    length: number;
+    width: number;
+    /** How much of its face is turned to the light as it tumbles, 0 to 1. */
+    glint: number;
+    /** How far through its life, 0 to 1. */
+    t: number;
+}
+
+/** How many bits of metal this event breaks off. */
+export function bitCount(kind: number, energy: number): number {
+    if (kind !== IMPACT_COLLISION || !(energy > 0)) return 0;
+    return Math.min(MOST_BITS, Math.max(1, Math.round(Math.cbrt(energy) * BITS_PER_CBRT_JOULE)));
+}
+
+/**
+ * Bit `j` of collision `i`, at `age`, into `out`; false if it is gone. Thrown
+ * out of the contact either way along it, leaning the way the hulls slid and
+ * a little outward, as fast as a share of how fast the hulls met, from the
+ * velocity of the hull the event rides.
+ */
+export function bit(
+    flashes: Flashes,
+    i: number,
+    j: number,
+    seed: number,
+    age: number,
+    angle: number,
+    hullVx: number,
+    hullVy: number,
+    out: Bit,
+): boolean {
+    const life = METAL_LIFE * (0.4 + 0.6 * unit(seed, 8 * j));
+    if (!(age >= 0) || age >= life) return false;
+    const c = Math.cos(angle);
+    const s = Math.sin(angle);
+    let nx = flashes.normalX[i]! * c - flashes.normalY[i]! * s;
+    let ny = flashes.normalX[i]! * s + flashes.normalY[i]! * c;
+    const slideX = flashes.dirX[i]! * c - flashes.dirY[i]! * s;
+    const slideY = flashes.dirX[i]! * s + flashes.dirY[i]! * c;
+    if (nx === 0 && ny === 0) nx = 1;
+    const n = Math.sqrt(nx * nx + ny * ny);
+    nx /= n;
+    ny /= n;
+    // Along the contact line, one way or the other, and a little out of the
+    // side of one hull or the other.
+    const side = unit(seed, 8 * j + 1) < 0.5 ? 1 : -1;
+    const outward = unit(seed, 8 * j + 2) < 0.5 ? 1 : -1;
+    const turn = unit(seed, 8 * j + 3) * BIT_SPRAY;
+    const dx = -ny * side * Math.cos(turn) + nx * outward * Math.sin(turn);
+    const dy = nx * side * Math.cos(turn) + ny * outward * Math.sin(turn);
+    const closing = Math.abs(flashes.speed[i]!);
+    const speed = Math.max(BIT_LEAST_SPEED, closing * (BIT_SLOWEST + (BIT_FASTEST - BIT_SLOWEST) * unit(seed, 8 * j + 4)));
+    const vx = hullVx + dx * speed + slideX * BIT_SLIDE;
+    const vy = hullVy + dy * speed + slideY * BIT_SLIDE;
+    out.x = flashes.x[i]! + vx * age;
+    out.y = flashes.y[i]! + vy * age;
+    const size = BIT_SIZE * Math.pow(flashes.energy[i]! / 1e6, 1 / 6) * (0.4 + unit(seed, 8 * j + 5));
+    out.length = size;
+    out.width = size * (0.3 + 0.4 * unit(seed, 8 * j + 6));
+    const spin = (unit(seed, 8 * j + 7) * 2 - 1) * BIT_SPIN;
+    out.angle = unit(seed, 8 * j + 6) * Math.PI + spin * age;
+    out.glint = Math.abs(Math.cos(spin * age * 1.7 + j));
+    out.t = age / life;
+    return true;
 }

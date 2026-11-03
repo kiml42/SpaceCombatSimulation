@@ -1390,6 +1390,8 @@ export class ImpactLog {
     /** The outward normal of the surface it met, in the same frame, or zero for none: what is thrown off leaves along it. */
     normalX = new Float64Array(64);
     normalY = new Float64Array(64);
+    /** How fast it happened, m/s: two hulls' closing speed, which sets how fast what they break off leaves. */
+    speed = new Float64Array(64);
     count = 0;
 
     push(
@@ -1406,9 +1408,11 @@ export class ImpactLog {
         dirY = 0,
         normalX = 0,
         normalY = 0,
+        speed = 0,
     ): void {
         if (this.count === this.x.length) this.grow();
         const i = this.count++;
+        this.speed[i] = speed;
         this.growth[i] = growth;
         this.dirX[i] = dirX;
         this.dirY[i] = dirY;
@@ -1464,6 +1468,9 @@ export class ImpactLog {
         normalY.set(this.normalY);
         this.normalX = normalX;
         this.normalY = normalY;
+        const speed = new Float64Array(size);
+        speed.set(this.speed);
+        this.speed = speed;
         const x = new Float64Array(size);
         const y = new Float64Array(size);
         const energy = new Float64Array(size);
@@ -1861,7 +1868,8 @@ export class Impacts {
             sy -= closing * ny;
             if (this.crush(designs, damage, bodies, a, x, y, -nx, -ny, half, sx, sy)) credit?.push(b, a, half, ma, mb);
             if (this.crush(designs, damage, bodies, b, x, y, nx, ny, half, -sx, -sy)) credit?.push(a, b, half, mb, ma);
-            this.log.push(x, y, energy, IMPACT_COLLISION, bodies, contacts.a[k]!);
+            // With how `b` slid across `a`, the normal between them and how fast they closed, for what breaks off.
+            this.log.push(x, y, energy, IMPACT_COLLISION, bodies, a, 0, 0, 0, sx, sy, nx, ny, contacts.closing[k]!);
         }
     }
 

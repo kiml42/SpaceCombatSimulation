@@ -21,7 +21,7 @@
  * happens. DOM-free arithmetic, so it is unit-tested like the camera.
  */
 
-import { IMPACT_BEAM, IMPACT_BURST, IMPACT_MUZZLE } from "../sim/index.js";
+import { IMPACT_BEAM, IMPACT_BURST, IMPACT_COLLISION, IMPACT_MUZZLE } from "../sim/index.js";
 import { thrownFor } from "./particles.js";
 
 /** How long a round's flash lasts, in simulated seconds. */
@@ -77,6 +77,8 @@ export function muzzleLifetime(energy: number): number {
  * hide the gun it came from.
  */
 export const MUZZLE_FLASH_SHARE = 0.4;
+/** A collision's flash as a share of a hit's of the same energy: the metal it breaks off shows the rest. */
+export const COLLISION_FLASH_SHARE = 0.5;
 /** How far ahead of the muzzle a muzzle flash reaches at the end of its life, in its radii. */
 export const MUZZLE_FLASH_REACH = 3;
 /** Its width at the muzzle, as a share of its radius. */
@@ -203,6 +205,7 @@ const FIELDS = [
     ["dirY", Float64Array],
     ["normalX", Float64Array],
     ["normalY", Float64Array],
+    ["speed", Float64Array],
 ] as const;
 
 type Field = (typeof FIELDS)[number][0];
@@ -242,6 +245,8 @@ export class Flashes {
     /** The outward normal of the surface it met, in the same frame; zero for none. */
     normalX = new Float64Array(64);
     normalY = new Float64Array(64);
+    /** How fast it happened, m/s: a collision's closing speed; zero for the rest. */
+    speed = new Float64Array(64);
     count = 0;
 
     add(
@@ -259,8 +264,10 @@ export class Flashes {
         dirY = 0,
         normalX = 0,
         normalY = 0,
+        speed = 0,
     ): void {
-        const radius = flashRadius(energy) * (kind === IMPACT_MUZZLE ? MUZZLE_FLASH_SHARE : 1);
+        const radius =
+            flashRadius(energy) * (kind === IMPACT_MUZZLE ? MUZZLE_FLASH_SHARE : kind === IMPACT_COLLISION ? COLLISION_FLASH_SHARE : 1);
         if (!(radius > 0)) return;
         if (this.count === this.x.length) this.grow();
         const i = this.count++;
@@ -290,6 +297,7 @@ export class Flashes {
         this.dirY[i] = dirY;
         this.normalX[i] = normalX;
         this.normalY[i] = normalY;
+        this.speed[i] = speed;
     }
 
     /** Age everything by `dt` *simulated* seconds and drop what has burned out and landed. */

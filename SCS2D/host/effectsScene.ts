@@ -284,10 +284,11 @@ function flash(
     vx = 0,
     normalX = 0,
     normalY = 0,
+    speed = 0,
 ): void {
     if (t < at) return;
     const before = flashes.count;
-    flashes.add(x + vx * (t - at), y, energy, kind, -1, 0, 0, vx, 0, growth, dirX, dirY, normalX, normalY);
+    flashes.add(x + vx * (t - at), y, energy, kind, -1, 0, 0, vx, 0, growth, dirX, dirY, normalX, normalY, speed);
     if (flashes.count === before) return;
     flashes.age[before] = t - at;
     // Kept for as long as what it throws off is flying, as a battle keeps it.
@@ -470,7 +471,7 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
     },
     {
         name: "Collisions",
-        about: "Torpedoes flying nose first onto a thick slab of hull, standing up into the layer they fly in, at 10, 30, 100, 300 and 1000 m/s: each stopping where it meets the slab, its whole energy flashing there.",
+        about: "Torpedoes flying nose first onto a thick slab of hull, standing up into the layer they fly in, at 10, 30, 100, 300 and 1000 m/s: each stopping where it meets the slab, its whole energy flashing there and breaking off bits of metal that fly out along the slab's face at up to six-tenths of how fast it hit.",
         loop: 1,
         build(t, snapshot, flashes) {
             const torpedo = torpedoDesign();
@@ -490,7 +491,7 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
                     ship.vy = -speed;
                     ship.throttles.fill(1);
                 }
-                flash(flashes, t, hit, x, top, energies[k]!, IMPACT_COLLISION, 0, 0, -1, 0, 0, 1);
+                flash(flashes, t, hit, x, top, energies[k]!, IMPACT_COLLISION, 0, 0, 0, 0, 0, 1, speed);
             });
         },
     },
