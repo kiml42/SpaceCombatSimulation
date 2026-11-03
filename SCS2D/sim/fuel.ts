@@ -40,6 +40,9 @@ export function leakChance(integrity: number): number {
     return LEAK_CHANCE + (1 - LEAK_CHANCE) * worn;
 }
 
+/** How fast a patch closes a hole, metres of width a second: a 40 cm gash in two seconds, a fragment's pinhole at once. */
+export const PATCH_SPEED = 0.2;
+
 /**
  * A hole in something holding fuel, open to space. Kept in the holed module's
  * own frame, so it goes with the module through a sever or a weld whatever
@@ -91,11 +94,19 @@ export class Fuel extends Store {
         this.leaks[bodyIndex]?.push(leak);
     }
 
-    /** Close every hole in one module of a body: what mending it does first. */
+    /**
+     * Patch every hole in one module of a body, what mending it does first: each
+     * closes from then on at `PATCH_SPEED`, all the way, as a lining closes one,
+     * so its leak narrows to nothing rather than stopping at once.
+     */
     seal(bodyIndex: number, module: number): void {
         const leaks = this.leaks[bodyIndex];
         if (!leaks) return;
-        for (let k = leaks.length - 1; k >= 0; k--) if (leaks[k]!.module === module) leaks.splice(k, 1);
+        for (const leak of leaks) {
+            if (leak.module !== module) continue;
+            leak.floor = 0;
+            if (leak.closing < PATCH_SPEED) leak.closing = PATCH_SPEED;
+        }
     }
 
     /** Every hole in a body. */

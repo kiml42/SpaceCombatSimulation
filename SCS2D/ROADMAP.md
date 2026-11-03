@@ -435,10 +435,9 @@ an entry is either still open or it is gone.
           id. So pause, step, scrub and replay come free and look alike. Capped by dropping the oldest
           events. Sparks for round and burst impacts, bits of metal for collisions in place of their
           flashes, vapour from leaks (a steady emitter on a fixed grid of birth times).
-        - **Leaks pinched off**, with the vapour particles: a self-sealing lining narrowing a hole, or a robot
-          mending its module, shrinks the plume back into the hole or takes it away at once (the Effects
-          page's Sealing scene shows both), where the fuel already out should drift on and thin while the
-          source narrows or stops. Vapour particles that each carry the rate their fuel left at do that
+        - **Leaks pinched off**, with the vapour particles: a self-sealing lining or a mending robot's patch
+          narrowing a hole shrinks the plume back into the hole (the Effects page's Sealing scene shows
+          both), where the fuel already out should drift on and thin while the source narrows. Vapour particles that each carry the rate their fuel left at do that
           without asking the sim for anything more.
         - **Leaks in shadow**, with the vapour particles: vapour hangs above the deck, so a thick module's
           shadow should darken it where it passes through, and the hull layer's shadows, drawn underneath,

@@ -22,7 +22,7 @@ import {
     type ShipDesign,
     type ShipView,
 } from "../sim/index.js";
-import { leakRate, leakSpeed } from "../sim/fuel.js";
+import { leakRate, leakSpeed, PATCH_SPEED } from "../sim/fuel.js";
 import { DECK_HEIGHT, DEFAULT_BURST_SPEED, DEFAULT_FRAGMENTS, EXPLOSIVE_YIELD } from "../sim/modules.js";
 import { CORVETTE, TORCH, TORPEDO } from "../scenarios/blueprints.js";
 import { barrelLines } from "../render/barrels.js";
@@ -622,7 +622,7 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
     },
     {
         name: "Sealing",
-        about: `The same five holes in two full tanks. Above, a 50 mm self-sealing lining closes each at ${SEAL_SPEED * SEALING * 1000} mm/s, the 2 cm in under half a second, the 40 cm down to nothing in 8 s. Below, an unlined tank's holes are all mended at once, as a repair robot mending it does, 2 s after they open.`,
+        about: `The same five holes in two full tanks. Above, a 50 mm self-sealing lining closes each at ${SEAL_SPEED * SEALING * 1000} mm/s, the 2 cm in under half a second, the 40 cm down to nothing in 8 s. Below, an unlined tank is mended 2 s after it is holed, as a repair robot mends it: each hole patched, closing at ${PATCH_SPEED * 1000} mm/s, the 40 cm in two seconds.`,
         loop: 9,
         build(t, snapshot, flashes) {
             const row = holeRow();
@@ -635,7 +635,9 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
             punch(t, snapshot, flashes, tankDesign(row.length, SEALING), 0, row, (width, open) =>
                 Math.max(Math.max(0, width - floor), width - closing * open),
             );
-            punch(t, snapshot, flashes, tankDesign(row.length), -gap, row, (width, open) => (open < MENDED_AFTER ? width : 0));
+            punch(t, snapshot, flashes, tankDesign(row.length), -gap, row, (width, open) =>
+                open < MENDED_AFTER ? width : Math.max(0, width - PATCH_SPEED * (open - MENDED_AFTER)),
+            );
         },
     },
 ];
