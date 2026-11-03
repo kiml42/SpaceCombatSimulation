@@ -1,7 +1,7 @@
 import { styled } from "@linaria/react";
 import { useEffect, useRef, useState } from "react";
 import { useSampled } from "~/features/battle/useSampled";
-import { EFFECTS_SCENES } from "~/host/effectsScene";
+import { EFFECTS_SCENES, STEP } from "~/host/effectsScene";
 import { effectsView, type EffectsView } from "~/host/effectsView";
 import { BUILDER_LIGHT, DEFAULT_LIGHT, type Light } from "~/render/light";
 import { LIGHTS } from "~/scenarios/lights";
@@ -78,6 +78,24 @@ export function EffectsPage() {
             setView(null);
         };
     }, []);
+    useEffect(() => {
+        if (view === null) return;
+        // As the battle's: Space plays and pauses, `.` steps on and `,` back, a step at a time.
+        const onKey = (event: KeyboardEvent): void => {
+            const focus = document.activeElement;
+            if ((focus instanceof HTMLInputElement && focus.type !== "range") || focus instanceof HTMLTextAreaElement) return;
+            if (event.key === " ") {
+                event.preventDefault();
+                setPlaying((was) => !was);
+            } else if (event.key === "." || event.key === ",") {
+                setPlaying(false);
+                const loop = view.loop;
+                view.seek((view.time + (event.key === "." ? STEP : loop - STEP)) % loop);
+            }
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [view]);
     useEffect(() => view?.show(scene), [view, scene]);
     useEffect(() => view?.setPlaying(playing), [view, playing]);
     useEffect(() => view?.setSpeed(speed), [view, speed]);
@@ -135,7 +153,7 @@ export function EffectsPage() {
                 </label>
                 <Button onClick={() => view?.fit()}>Fit</Button>
             </Controls>
-            <About>{EFFECTS_SCENES[scene]!.about} Scroll to zoom, drag to pan.</About>
+            <About>{EFFECTS_SCENES[scene]!.about} Space plays and pauses, , and . step back and on, scroll zooms, drag pans.</About>
             <Stage>
                 <Canvas ref={canvas} aria-label="Effects" />
             </Stage>

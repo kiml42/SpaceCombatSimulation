@@ -146,6 +146,10 @@ export const Effects: Story = {
         await expect(canvas.getByText(/^Beams of 10 cm/)).toBeVisible();
         await userEvent.click(canvas.getByRole("button", { name: "Pause" }));
         await expect(canvas.getByRole("button", { name: "Play" })).toBeVisible();
+        await userEvent.keyboard(" ");
+        await expect(canvas.getByRole("button", { name: "Pause" })).toBeVisible();
+        await userEvent.keyboard(".");
+        await expect(canvas.getByRole("button", { name: "Play" })).toBeVisible();
     },
 };
 

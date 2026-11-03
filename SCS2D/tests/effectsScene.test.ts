@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { EFFECTS_SCENES } from "../host/effectsScene.js";
+import { EFFECTS_SCENES, STEP } from "../host/effectsScene.js";
 import { Flashes } from "../render/flashes.js";
 import { Snapshot } from "../sim/index.js";
 
@@ -34,9 +34,21 @@ describe("the effects scenes", () => {
     it("show each flash only while it lasts", () => {
         const scene = EFFECTS_SCENES.find((each) => each.name === "Hits")!;
         const flashes = new Flashes();
-        scene.build(0.05, new Snapshot(), flashes);
+        scene.build(0.25, new Snapshot(), flashes);
         expect(flashes.count).toBe(0);
-        scene.build(0.15, new Snapshot(), flashes);
-        expect(flashes.count).toBe(8);
+        scene.build(0.35, new Snapshot(), flashes);
+        expect(flashes.count).toBe(5);
+    });
+
+    it("fire each gun's shell, and burst it into its fragments three steps later", () => {
+        const scene = EFFECTS_SCENES.find((each) => each.name === "Guns")!;
+        const snapshot = new Snapshot();
+        const flashes = new Flashes();
+        scene.build(0.1 + STEP, snapshot, flashes);
+        expect(snapshot.projectileCount).toBe(5);
+        scene.build(0.1 + 4 * STEP, snapshot, flashes);
+        expect(snapshot.projectileCount).toBe(5 * 8);
+        // Fragments leave from where the shell burst.
+        expect(snapshot.projectileStartX[0]).toBeGreaterThan(0);
     });
 });
