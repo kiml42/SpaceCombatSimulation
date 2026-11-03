@@ -453,7 +453,8 @@ an entry is either still open or it is gone.
         - **Leaks grow out of their holes — built**: a hole counts how long it has been open (`Leak.age`,
           read by nothing in the sim, so no golden moved), and the snapshot carries that and how fast its fuel
           leaves (`leakAge`, `leakSpeed`), so its plume reaches out at that speed, about 49 m/s from a full
-          tank, rather than appearing whole.
+          tank, rather than appearing whole: its full width from the start, with a soft front for fuel
+          leaving at a spread of speeds, made at 24 fronts along it and cross-faded between them.
         - **The Effects route** (`#/effects`) shows each effect on its own, drawn by the battle's renderer, looped,
           slowed and scrubbed: the place to look at a change to how one is drawn, and to add a scene for a new one.
         - **In pull requests**, in this order: (1) the list of sources and glow sprites, replacing today's

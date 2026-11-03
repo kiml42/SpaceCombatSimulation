@@ -90,7 +90,7 @@ export { teamColour } from "./teams.js";
 import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth, plumeAlpha, tracerAlpha } from "./strokes.js";
 import { flashExtent, flashFade, flashPosition, muzzleWedge, type Flashes } from "./flashes.js";
 import { clipToStart, exposureEnds, flashSamples, shutterWeight } from "./exposure.js";
-import { flameSprite, rgba, sprite, taperSprite, WEDGE_HEADROOM, WEDGE_STEPS, wedgeBox, wedgeSprite } from "./sprites.js";
+import { flameSprite, rgba, sprite, TAPER_FRONTS, taperSprite, WEDGE_HEADROOM, WEDGE_STEPS, wedgeBox, wedgeSprite } from "./sprites.js";
 import { drawGlows, Lights, type Transform } from "./glows.js";
 import { iconAlpha, ICON_OUTLINE, ICON_PX, isWreckage } from "./icons.js";
 
@@ -1269,20 +1269,31 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
     for (let k = 0; k < xs.length; k++) {
         const rate = ship.leakRate![k]!;
         const half = ship.leakWidth![k]! / 2;
-        // As far as the fuel has got since the hole opened, out to how far it is seen going.
-        const full = max(half * 8, LEAK_PLUME_LENGTH * sqrt(rate));
+        const length = max(half * 8, LEAK_PLUME_LENGTH * sqrt(rate));
+        const spread = half + length * LEAK_PLUME_SPREAD;
+        // Its whole width from the start, reaching only as far as its fuel has got
+        // since the hole opened: between two of the fronts a plume is made at,
+        // the nearer the more of each.
         const age = ship.leakAge?.[k];
         const speed = ship.leakSpeed?.[k];
-        const length = age === undefined || speed === undefined ? full : min(full, speed * age);
-        if (!(length > 0)) continue;
-        const spread = half + length * LEAK_PLUME_SPREAD;
-        const image = taperSprite(light === undefined ? LEAK : litColour(LEAK, light.colour), half / spread);
-        if (image === null) continue;
+        const front = age === undefined || speed === undefined ? TAPER_FRONTS : min(TAPER_FRONTS, ((speed * age) / length) * TAPER_FRONTS);
+        if (!(front > 0)) continue;
+        const colour = light === undefined ? LEAK : litColour(LEAK, light.colour);
+        const below = Math.floor(front);
+        const share = front - below;
         ctx.save();
         ctx.translate(xs[k]!, ship.leakY![k]!);
         ctx.rotate(math.atan2(ship.leakDirY![k]!, ship.leakDirX![k]!));
-        ctx.globalAlpha *= LEAK_ALPHA;
-        ctx.drawImage(image, 0, -spread, length, 2 * spread);
+        const outer = ctx.globalAlpha * LEAK_ALPHA;
+        for (const [at, weight] of [
+            [below, 1 - share],
+            [below + 1, share],
+        ] as const) {
+            const image = weight > 0 && at > 0 ? taperSprite(colour, half / spread, at) : null;
+            if (image === null) continue;
+            ctx.globalAlpha = outer * weight;
+            ctx.drawImage(image, 0, -spread, length, 2 * spread);
+        }
         ctx.restore();
     }
     ctx.restore();
