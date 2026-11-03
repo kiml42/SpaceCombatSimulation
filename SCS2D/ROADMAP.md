@@ -470,7 +470,8 @@ an entry is either still open or it is gone.
                to the flash before it. A flash is kept as an event while its sparks fly (`Flashes.kept`),
                and `render/particles.ts` works each spark out from the event's seed and age: thrown back off
                the face, leaning the way the round glanced, or on out of the far side, flying straight at
-               the hull's velocity plus its own and cooling from white to red. Drawn as streaks in one
+               the hull's velocity plus its own and cooling from white to red. Its flash is a cone opening the
+               same way, a muzzle flash's wedge held at the face with a hot spot where it struck. Drawn as streaks in one
                additive Pixi `ParticleContainer` a scene (`PixiCanvas.particles`), in their turn among the
                rest. A beam's flashes throw one now and then.
             2. **Metal from collisions, with a smaller flash — built.** A collision logs how the hulls slid

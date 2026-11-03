@@ -4,7 +4,9 @@ import {
     hullMountGeometry,
     IMPACT_BEAM,
     IMPACT_BURST,
+    IMPACT_EXIT,
     IMPACT_MUZZLE,
+    IMPACT_ROUND,
     isHullMount,
     math,
     nozzleOffset,
@@ -94,7 +96,7 @@ import { flameSprite, rgba, sprite, WEDGE_HEADROOM, WEDGE_STEPS, wedgeBox, wedge
 import { drawGlows, Lights, type Transform } from "./glows.js";
 import { leakSpeed } from "../sim/fuel.js";
 import { eachPuff, type Hole, type Puff } from "./vapour.js";
-import { bit, bitCount, seedOf, spark, sparkColour, sparkCount, sparkFade, type Bit, type Spark } from "./particles.js";
+import { bit, bitCount, seedOf, spark, sparkColour, sparkCount, sparkFade, sprayOf, type Bit, type Spark } from "./particles.js";
 import type { PixiCanvas } from "./pixiCanvas.js";
 import { iconAlpha, ICON_OUTLINE, ICON_PX, isWreckage } from "./icons.js";
 
@@ -293,6 +295,12 @@ const BURST_BRIGHTNESS = 1.5;
 const FLASH_GLOW_SHARE = 2.2;
 /** A muzzle flash's glow, in its core's widths: tight, so the wedge keeps its shape. */
 const MUZZLE_GLOW_SHARE = 1.5;
+/** A hit's cone, in a muzzle flash's radii of the same size: a little shorter, as it opens off a face rather than out of a barrel. */
+const HIT_CONE_SHARE = 0.6;
+/** The hot spot where a hit struck, as a share of its flash's size. */
+const HIT_SPOT_SHARE = 0.35;
+/** Scratch for the way a hit's cone opens. */
+const sprayed = { x: 0, y: 0 };
 /** How bright a muzzle flash's glow is at its middle. */
 const WEDGE_GLOW = 0.6;
 /** How much of a blast's width its bright core fills; the glow is the rest. */
@@ -2919,6 +2927,16 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
             dirY = lx * sn + dirY * c;
         }
         const pointing = kind === IMPACT_MUZZLE && (dirX !== 0 || dirY !== 0);
+        // A hit on a surface is a cone, opening the way what it throws off goes.
+        let cone = false;
+        if (kind === IMPACT_ROUND || kind === IMPACT_EXIT) {
+            const angle = anchor?.angle ?? 0;
+            const c = cos(angle);
+            const sn = sin(angle);
+            const nx = flashes.normalX[i]! * c - flashes.normalY[i]! * sn;
+            const ny = flashes.normalX[i]! * sn + flashes.normalY[i]! * c;
+            cone = sprayOf(kind, dirX, dirY, nx, ny, sprayed);
+        }
 
         const radius = flashes.radius[i]!;
         const growth = flashes.growth[i]!;
@@ -2952,6 +2970,30 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
             if (pointing) {
                 ctx.setTransform(base);
                 drawWedge(ctx, base, glow, coreColour, x, y, dirX, dirY, flashes.radius[i]!, t, lifetime, fade * weight, floor);
+                continue;
+            }
+            if (cone) {
+                // A hot spot where it struck, and the cone opening from it.
+                const spot = max(flashExtent(start, growth, t, lifetime) * HIT_SPOT_SHARE, floor);
+                ctx.setTransform(base);
+                ctx.globalAlpha = min(1, 0.9 * fade * weight);
+                ctx.drawImage(core, x - spot, y - spot, 2 * spot, 2 * spot);
+                drawWedge(
+                    ctx,
+                    base,
+                    glow,
+                    coreColour,
+                    x,
+                    y,
+                    sprayed.x,
+                    sprayed.y,
+                    radius * HIT_CONE_SHARE,
+                    t,
+                    lifetime,
+                    fade * weight,
+                    floor,
+                    true,
+                );
                 continue;
             }
             // Floored on screen, so a hit is visible from far enough out to see the
@@ -3060,25 +3102,28 @@ function drawWedge(
     lifetime: number,
     brightness: number,
     floor: number,
+    /** Whether it stays where it started, as a hit's on the face it struck, rather than moving out ahead as a muzzle's does. */
+    anchored = false,
 ): void {
     const step = Math.round(sqrt(min(1, max(0, age / lifetime))) * WEDGE_STEPS);
     const image = wedgeSprite(core, step);
     if (image === null) return;
     const box = wedgeBox(radius, step);
-    ctx.transform(dirX, dirY, -dirY, dirX, x, y);
+    const wedge = muzzleWedge(radius, age, lifetime);
+    const back = anchored ? wedge.back : 0;
+    ctx.transform(dirX, dirY, -dirY, dirX, x - dirX * back, y - dirY * back);
     const half = max(box.half, floor);
     for (let left = brightness * WEDGE_HEADROOM; left > 0; left--) {
         ctx.globalAlpha = min(1, left);
         ctx.drawImage(image, box.from, -half, box.to - box.from, 2 * half);
     }
-    const wedge = muzzleWedge(radius, age, lifetime);
     const reach = max(((wedge.backWidth + wedge.frontWidth) / 2) * MUZZLE_GLOW_SHARE, floor);
     lights.line(
         base,
-        x + dirX * wedge.back,
-        y + dirY * wedge.back,
-        x + dirX * wedge.front,
-        y + dirY * wedge.front,
+        x + dirX * (wedge.back - back),
+        y + dirY * (wedge.back - back),
+        x + dirX * (wedge.front - back),
+        y + dirY * (wedge.front - back),
         reach,
         glow,
         brightness * WEDGE_GLOW,
