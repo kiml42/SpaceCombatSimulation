@@ -100,28 +100,14 @@ export function spark(
     const uy = flashes.dirX[i]! * s + flashes.dirY[i]! * c;
     const nx = flashes.normalX[i]! * c - flashes.normalY[i]! * s;
     const ny = flashes.normalX[i]! * s + flashes.normalY[i]! * c;
-    // Which way it is thrown: back off the face it went in by, leaning the way
-    // the round glanced; on out the way the round went where it came out; and
-    // any way at all where nothing says.
-    let bx: number;
-    let by: number;
-    let spray: number;
-    if (kind === IMPACT_EXIT && (ux !== 0 || uy !== 0)) {
-        bx = ux;
-        by = uy;
-        spray = SPRAY_OUT;
-    } else if (nx !== 0 || ny !== 0) {
-        const along = ux * nx + uy * ny;
-        // The way the round would glance off, kept on the face's outside.
-        const gx = ux - 2 * along * nx;
-        const gy = uy - 2 * along * ny;
-        bx = nx * (1 - GLANCE) + gx * GLANCE;
-        by = ny * (1 - GLANCE) + gy * GLANCE;
-        spray = SPRAY_IN;
-    } else {
-        bx = 1;
-        by = 0;
-        spray = Math.PI;
+    // Which way it is thrown, give or take its spray; any way at all where nothing says.
+    let bx = 1;
+    let by = 0;
+    let spray = Math.PI;
+    if (sprayOf(kind, ux, uy, nx, ny, way)) {
+        bx = way.x;
+        by = way.y;
+        spray = kind === IMPACT_EXIT ? SPRAY_OUT : SPRAY_IN;
     }
     const turn = (unit(seed, 4 * j + 1) * 2 - 1) * spray;
     const tc = Math.cos(turn);
@@ -144,6 +130,38 @@ export function spark(
     out.t = age / life;
     return true;
 }
+
+/**
+ * The way what a hit throws off leaves, into `out` as a unit vector, from the
+ * way the round went `(ux, uy)` and the face's outward normal `(nx, ny)`: back
+ * off the face it went in by, leaning the way the round glanced off it, or on
+ * out the way the round went where it came out. False where neither says.
+ */
+export function sprayOf(kind: number, ux: number, uy: number, nx: number, ny: number, out: { x: number; y: number }): boolean {
+    let bx: number;
+    let by: number;
+    if (kind === IMPACT_EXIT && (ux !== 0 || uy !== 0)) {
+        bx = ux;
+        by = uy;
+    } else if (nx !== 0 || ny !== 0) {
+        const along = ux * nx + uy * ny;
+        // The way the round would glance off, kept on the face's outside.
+        const gx = ux - 2 * along * nx;
+        const gy = uy - 2 * along * ny;
+        bx = nx * (1 - GLANCE) + gx * GLANCE;
+        by = ny * (1 - GLANCE) + gy * GLANCE;
+    } else {
+        return false;
+    }
+    const length = Math.sqrt(bx * bx + by * by);
+    if (!(length > 0)) return false;
+    out.x = bx / length;
+    out.y = by / length;
+    return true;
+}
+
+/** Scratch for the way a spark is thrown. */
+const way = { x: 0, y: 0 };
 
 /** A spark's colour as it cools: white, then orange, then a dull red, as `0xrrggbb`. */
 export function sparkColour(t: number): number {
