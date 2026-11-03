@@ -903,7 +903,11 @@ inside any one file is not contiguous.
   can turn only one way cannot stop a turn, so it lands spinning: it holds a slow spin that way
   (`PAD_SPIN`, a turn every 8 s), fires its mains as they come round to the change of velocity it needs,
   and plans its braking on a 1/π share of their thrust, after half a turn; a pad it fits at any heading it
-  can settle on spinning. One with no turn left at all does not try to land. With arcs shown, every way in is drawn on the pad as a
+  can settle on spinning. So does one whose turn one way is less than half as strong as the other
+  (`PAD_WEAK_TURN`), which overshoots every turn that way and weaves round the pad until its fuel is gone.
+  Spinning, every push adds to the spin it cannot take back, so it asks for the turn a straight push
+  brings, not for none, which the allocator would buy by not pushing. One that has lost its mains steers
+  by whichever engine left pushes hardest. One with no turn left at all does not try to land. With arcs shown, every way in is drawn on the pad as a
   small arrow pointing in from the middle of its side or from its corner, along the way, in amber for a pad's
   one longest run, so the editor shows how easy a pad is to reach — and from the wrong side it
   first circles the carrier outside its radius, `HULL_ORBIT_STEP` at a time, rather than fly through what is in
