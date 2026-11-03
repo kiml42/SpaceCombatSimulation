@@ -24,6 +24,7 @@ import {
     type Blueprint,
 } from "../sim/index.js";
 import { makeBattle } from "../scenarios/battle.js";
+import { PATCH_SPEED } from "../sim/fuel.js";
 import { mending } from "../scenarios/mending.js";
 
 /** Robots crawling a hull from their bay to mend it (ROADMAP.md §8, repair stage 3). */
@@ -320,7 +321,7 @@ describe("robots", () => {
         expect(absorbed(run, NEAR)).toBe(capacity(NEAR) * 0.3);
     });
 
-    it("plug every hole in a tank they mend, however wide", { timeout: 60_000 }, () => {
+    it("patch every hole in a tank they mend, however wide", { timeout: 60_000 }, () => {
         const TANKED: Blueprint = {
             name: "Tanked",
             modules: [...LINE.modules, { kind: "tank", x: 23, y: 0, length: 5, width: 4 }],
@@ -331,18 +332,17 @@ describe("robots", () => {
             const a = ships.spawn(world, { design: tanked, x: 0, y: 0, angle: 0 });
             const b = world.bodies.indexOf(ships.body(a));
             // Too wide for any lining to close, and the damage the round that made it did.
-            ships.fuel.hole(b, { module: tank, x: 2.5, y: 0, nx: 1, ny: 0, width: 0.5, floor: 0.5, closing: 0, rate: 0 });
+            ships.fuel.hole(b, { module: tank, x: 2.5, y: 0, nx: 1, ny: 0, width: 0.5, floor: 0.5, closing: 0, rate: 0, age: 0 });
             ships.damage.absorb(b, tank, tanked.modules[tank]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG * 0.2);
             return { a };
         });
         const b = (): number => run.world.bodies.indexOf(run.ships.body(run.a));
         expect(run.ships.fuel.leaksOf(b())).toHaveLength(1);
+        // Patched, to narrow to nothing from then on: the leaks' tests watch it close.
+        const patched = (): boolean => run.ships.fuel.leaksOf(b()).every((leak) => leak.floor === 0 && leak.closing >= PATCH_SPEED);
         let steps = 0;
-        while (run.ships.fuel.leaksOf(b()).length > 0 && steps++ < 120 * 60) run.step();
-        expect(run.ships.fuel.leaksOf(b())).toHaveLength(0);
-        const held = run.ships.fuel.held(b(), tank);
-        for (let s = 0; s < 60; s++) run.step();
-        expect(run.ships.fuel.held(b(), tank)).toBe(held);
+        while (!patched() && steps++ < 120 * 60) run.step();
+        expect(patched()).toBe(true);
     });
 
     it("mend no faster than the robots there can work", () => {

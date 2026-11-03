@@ -181,24 +181,33 @@ const TAPER_STEPS = 8;
 const TAPER_END = 0.12;
 const tapers = new Map<string, Image | null>();
 
+/** Steps a taper's front is put at along it, before it has reached its end. */
+export const TAPER_FRONTS = 24;
+/** How far either side of its front a taper fades out, as a share of how far the front has got: what is out there left at a spread of speeds. */
+const FRONT_FUZZ = 0.2;
+
 /**
  * A wedge widening from its narrow end at the left to its wide end at the
  * right, fading to nothing along it and soft at its sides: `taper` is the
  * narrow end's width over the wide end's, rounded to an eighth. One image
  * stretched over the wedge's box, so each is a single quad.
+ *
+ * Cut off at `front` of `TAPER_FRONTS` along it, with a soft edge, where what
+ * it is made of has got to so far; the whole of it at `TAPER_FRONTS`.
  */
-export function taperSprite(colour: string, taper: number): Image | null {
+export function taperSprite(colour: string, taper: number, front = TAPER_FRONTS): Image | null {
     const step = Math.min(TAPER_STEPS, Math.max(1, Math.round(taper * TAPER_STEPS)));
-    const key = `${colour}|${step}`;
+    const reached = Math.min(TAPER_FRONTS, Math.max(0, Math.round(front)));
+    const key = `${colour}|${step}|${reached}`;
     let made = tapers.get(key);
     if (made === undefined) {
-        made = makeTaper(colour, step / TAPER_STEPS);
+        made = makeTaper(colour, step / TAPER_STEPS, reached / TAPER_FRONTS);
         tapers.set(key, made);
     }
     return made;
 }
 
-function makeTaper(colour: string, taper: number): Image | null {
+function makeTaper(colour: string, taper: number, front: number): Image | null {
     const canvas = blankCanvas(ALONG, ACROSS);
     const ctx = canvas?.getContext("2d") as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
     if (canvas === null || ctx === null || ctx === undefined) return null;
@@ -209,7 +218,7 @@ function makeTaper(colour: string, taper: number): Image | null {
             const u = (x + 0.5) / ALONG;
             const w = Math.abs(2 * ((y + 0.5) / ACROSS) - 1) / (taper + (1 - taper) * u);
             // Thinning as it spreads, so densest where it comes out.
-            const ends = Math.min(1, (1 - u) / TAPER_END);
+            const ends = Math.min(1, (1 - u) / TAPER_END) * frontShare(u, front);
             const i = 4 * (y * ALONG + x);
             image.data[i] = r;
             image.data[i + 1] = g;
@@ -219,6 +228,15 @@ function makeTaper(colour: string, taper: number): Image | null {
     }
     ctx.putImageData(image, 0, 0);
     return canvas;
+}
+
+/** How much of what leaves at once has got as far as `u` by when the front is at `front`. */
+function frontShare(u: number, front: number): number {
+    if (front >= 1) return 1;
+    const fuzz = FRONT_FUZZ * front;
+    if (!(fuzz > 0)) return 0;
+    const t = Math.min(1, Math.max(0, (front + fuzz - u) / (2 * fuzz)));
+    return t * t * (3 - 2 * t);
 }
 
 /** Steps a muzzle flash's growth is rounded to, so there are few to make. */

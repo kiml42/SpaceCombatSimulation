@@ -7,6 +7,8 @@ import {
     IMPACT_MUZZLE,
     IMPACT_ROUND,
     landedIndex,
+    SEAL_REACH,
+    SEAL_SPEED,
     landedLength,
     casingMass,
     nozzleReach,
@@ -20,7 +22,7 @@ import {
     type ShipDesign,
     type ShipView,
 } from "../sim/index.js";
-import { leakRate } from "../sim/fuel.js";
+import { leakRate, leakSpeed, PATCH_SPEED } from "../sim/fuel.js";
 import { DECK_HEIGHT, DEFAULT_BURST_SPEED, DEFAULT_FRAGMENTS, EXPLOSIVE_YIELD } from "../sim/modules.js";
 import { CORVETTE, TORCH, TORPEDO } from "../scenarios/blueprints.js";
 import { barrelLines } from "../render/barrels.js";
@@ -86,10 +88,10 @@ const slabDesign = (length: number, thick = false): ShipDesign => {
 const faceOf = (slab: ShipDesign): number => slab.modules[0]!.spec.width / 2;
 
 /** A long tank, and a core at one end to make it a ship. */
-const tankDesign = (length: number): ShipDesign =>
-    built(`tank ${length}`, [
+const tankDesign = (length: number, sealing = 0): ShipDesign =>
+    built(`tank ${length} ${sealing}`, [
         { id: 1, kind: "core", x: 0, y: 0, length: 2, width: 3 },
-        { id: 2, kind: "tank", x: 1 + length / 2, y: 0, length, width: 3 },
+        { id: 2, kind: "tank", x: 1 + length / 2, y: 0, length, width: 3, sealing },
     ]);
 
 /** How wide each beam's emitter is, and how long: lenses of 10 cm to 80 cm. */
@@ -253,6 +255,8 @@ function place(snapshot: Snapshot, design: ShipDesign, x: number, y: number, ang
     view.leakDirY = [];
     view.leakWidth = [];
     view.leakRate = [];
+    view.leakAge = [];
+    view.leakSpeed = [];
     return view;
 }
 
@@ -289,6 +293,69 @@ function flash(
 /** How long a leak's plume is drawn per √(kg/s), and how far it spreads by its end: `render/canvas2d.ts`'s, for laying the holes out. */
 const LEAK_PLUME_LENGTH = 1.5;
 const LEAK_PLUME_SPREAD = 0.3;
+
+/** How thick the Leaks scene's tank's lining is, metres: enough to close all but its widest hole. */
+const SEALING = 0.02;
+/** Seconds after its holes open that the Leaks scene's tank is mended. */
+const MENDED_AFTER = 4;
+/** When the Leaks scene's rounds land. */
+const HOLED_AT = 0.3;
+
+/** Where the five guns' holes go along a tank's top, so their plumes stay apart, and how long a tank they need. */
+function holeRow(): { xs: number[]; length: number; top: number; tallest: number } {
+    const holes = GUN_MOUNTS.map(gun).map((g) => {
+        const rate = leakRate((Math.PI * g.calibre * g.calibre) / 4, 1);
+        const length = Math.max(g.calibre * 4, LEAK_PLUME_LENGTH * Math.sqrt(rate));
+        return { length, spread: g.calibre / 2 + length * LEAK_PLUME_SPREAD + 2 };
+    });
+    let along = 4;
+    const xs = holes.map((h, k) => {
+        along += k === 0 ? h.spread : holes[k - 1]!.spread + h.spread;
+        return along;
+    });
+    return { xs, length: Math.ceil(along + holes[4]!.spread + 4), top: 1.5, tallest: holes[4]!.length };
+}
+
+/**
+ * The five guns' rounds coming in from the top left onto a full tank lying
+ * `y` up, together, and each hole leaking from then on: as wide as its round,
+ * or as `width` says it is `open` seconds later, and leaking nothing once that
+ * is nought.
+ */
+function punch(
+    t: number,
+    snapshot: Snapshot,
+    flashes: Flashes,
+    design: ShipDesign,
+    y: number,
+    row: ReturnType<typeof holeRow>,
+    width: (calibre: number, open: number) => number | null,
+): void {
+    const ship = place(snapshot, design, design.centreOfMassX, design.centreOfMassY + y, 0);
+    const top = design.modules[1]!.y + design.modules[1]!.spec.width / 2;
+    const down = Math.SQRT1_2;
+    GUN_MOUNTS.map(gun).forEach((g, k) => {
+        const x = row.xs[k]!;
+        const vx = g.speed * down;
+        const vy = -g.speed * down;
+        if (t < HOLED_AT) {
+            const ahead = HOLED_AT - t;
+            round(snapshot, x - vx * ahead, y + top - vy * ahead, vx, vy, x - vx * HOLED_AT, y + top - vy * HOLED_AT, g.calibre);
+            return;
+        }
+        flash(flashes, t, HOLED_AT, x, y + top, g.energy, IMPACT_ROUND);
+        const open = width(g.calibre, t - HOLED_AT) ?? g.calibre;
+        if (!(open > 0)) return;
+        ship.leakX!.push(x - design.centreOfMassX);
+        ship.leakY!.push(top - design.centreOfMassY);
+        ship.leakDirX!.push(0);
+        ship.leakDirY!.push(1);
+        ship.leakWidth!.push(open);
+        ship.leakRate!.push(leakRate((Math.PI * open * open) / 4, 1));
+        ship.leakAge!.push(t - HOLED_AT);
+        ship.leakSpeed!.push(leakSpeed(1));
+    });
+}
 
 /** How fast each torpedo meets the slab, m/s. */
 const COLLISION_SPEEDS = [10, 30, 100, 300, 1000];
@@ -544,46 +611,21 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
     },
     {
         name: "Leaks",
-        about: "Rounds from the five guns of the Guns scene punching holes together in a full tank, each hole its round's calibre: the leaks starting, then flowing at what each hole lets out, 4 kg/s to 1.5 t/s.",
-        loop: 1,
+        about: `Rounds from the five guns of the Guns scene punching holes together in a full tank, each hole its round's calibre. Each leak grows out of its hole at the 49 m/s its fuel leaves, 4 kg/s to 1.5 t/s at first. The tank's 20 mm self-sealing lining closes each hole at ${SEAL_SPEED * SEALING * 1000} mm/s but no wider than ${SEAL_REACH * SEALING * 100} cm: the small ones shut, the 40 cm narrows to 20 cm and stays open. ${MENDED_AFTER} s on, a repair robot mends the tank, patching what is left closed at ${PATCH_SPEED * 1000} mm/s.`,
+        loop: 7,
         build(t, snapshot, flashes) {
-            const each = GUN_MOUNTS.map(gun);
-            const holes = each.map((g) => {
-                const rate = leakRate((Math.PI * g.calibre * g.calibre) / 4, 1);
-                const length = Math.max(g.calibre * 4, LEAK_PLUME_LENGTH * Math.sqrt(rate));
-                return { rate, length, spread: g.calibre / 2 + length * LEAK_PLUME_SPREAD + 2 };
-            });
-            let along = 4;
-            const xs = holes.map((h, k) => {
-                along += k === 0 ? h.spread : holes[k - 1]!.spread + h.spread;
-                return along;
-            });
-            const length = Math.ceil(along + holes[4]!.spread + 4);
-            const design = tankDesign(length);
-            const tank = design.modules[1]!;
-            const top = tank.y + tank.spec.width / 2;
-            begin(snapshot, flashes, t, -10, -10, length + 10, top + holes[4]!.length + 10);
-            const ship = atOrigin(snapshot, design);
-            room(snapshot, each.length);
-            const down = Math.SQRT1_2;
-            each.forEach((g, k) => {
-                const hit = 0.3;
-                const x = xs[k]!;
-                const vx = g.speed * down;
-                const vy = -g.speed * down;
-                const y = top;
-                if (t < hit) {
-                    round(snapshot, x - vx * (hit - t), y - vy * (hit - t), vx, vy, x - vx * hit, y - vy * hit, g.calibre);
-                    return;
-                }
-                flash(flashes, t, hit, x, y, g.energy, IMPACT_ROUND);
-                ship.leakX!.push(x - design.centreOfMassX);
-                ship.leakY!.push(top - design.centreOfMassY);
-                ship.leakDirX!.push(0);
-                ship.leakDirY!.push(1);
-                ship.leakWidth!.push(g.calibre);
-                ship.leakRate!.push(holes[k]!.rate);
-            });
+            const row = holeRow();
+            begin(snapshot, flashes, t, -10, -10, row.length + 10, row.top + row.tallest + 10);
+            room(snapshot, GUN_MOUNTS.length);
+            // The lining swells into the hole as far as it reaches, and a patch closes what it leaves.
+            const closing = SEAL_SPEED * SEALING;
+            const floor = SEAL_REACH * SEALING;
+            const lined = (width: number, open: number): number => Math.max(Math.max(0, width - floor), width - closing * open);
+            punch(t, snapshot, flashes, tankDesign(row.length, SEALING), 0, row, (width, open) =>
+                open < MENDED_AFTER
+                    ? lined(width, open)
+                    : Math.max(0, lined(width, MENDED_AFTER) - Math.max(PATCH_SPEED, closing) * (open - MENDED_AFTER)),
+            );
         },
     },
 ];

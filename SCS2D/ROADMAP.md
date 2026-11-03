@@ -435,6 +435,14 @@ an entry is either still open or it is gone.
           id. So pause, step, scrub and replay come free and look alike. Capped by dropping the oldest
           events. Sparks for round and burst impacts, bits of metal for collisions in place of their
           flashes, vapour from leaks (a steady emitter on a fixed grid of birth times).
+        - **Leaks pinched off**, with the vapour particles: a self-sealing lining or a mending robot's patch
+          narrowing a hole shrinks the plume back into the hole (the Effects page's Leaks scene shows
+          both), where the fuel already out should drift on and thin while the source narrows. Vapour
+          particles that each carry the rate their fuel left at do that without asking the sim for anything more.
+        - **Leaks in shadow**, with the vapour particles: vapour hangs above the deck, so a thick module's
+          shadow should darken it where it passes through, and the hull layer's shadows, drawn underneath,
+          cannot reach it. Each particle asking whether it is in a thick module's shadow is the cheap way;
+          shadows cast at the vapour's own height belong with step 7's shadows from dynamic lights.
         - **A space look**: sparks and metal fly straight and fade; vapour comes only from leaks, spreading
           and thinning; no smoke and no lingering fireball.
         - **Zoom** as bevels and scars: a particle under a pixel is not drawn; glows keep a pixel floor, as
@@ -445,8 +453,12 @@ an entry is either still open or it is gone.
           of a second; a beam's core is lit across as a rod, with a small glow at its emitter, its glow under
           its core and the flashes where it lands over it; a plume's glow is the flame's own shape blurred, a
           cone of light (the third kind in `render/glows.ts`) from its nozzle to where it ends or lands; and a
-          leak is densest at its hole and lit in the battle's light. Still to come: leaks growing out of their
-          holes at the speed the fuel leaves, rather than appearing whole.
+          leak is densest at its hole and lit in the battle's light.
+        - **Leaks grow out of their holes — built**: a hole counts how long it has been open (`Leak.age`,
+          read by nothing in the sim, so no golden moved), and the snapshot carries that and how fast its fuel
+          leaves (`leakAge`, `leakSpeed`), so its plume reaches out at that speed, about 49 m/s from a full
+          tank, rather than appearing whole: its full width from the start, with a soft front for fuel
+          leaving at a spread of speeds, made at 24 fronts along it and cross-faded between them.
         - **The Effects route** (`#/effects`) shows each effect on its own, drawn by the battle's renderer, looped,
           slowed and scrubbed: the place to look at a change to how one is drawn, and to add a scene for a new one.
         - **In pull requests**, in this order: (1) the list of sources and glow sprites, replacing today's
