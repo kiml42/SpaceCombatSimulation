@@ -47,6 +47,9 @@ import {
     readsDrainPriority,
     readsFill,
     readsComputing,
+    CORE_SHARE_DEFAULTS,
+    CORE_SHARE_KEYS,
+    type CoreShareKey,
     readsRobotsPerBerth,
     CORE_COMPUTING_SHARE,
     readsCraft,
@@ -755,6 +758,7 @@ type NumberKnob =
               | "sealing"
               | "fill"
               | "computing"
+              | "stores"
               | "robotsPerBerth"
               | "keep";
           readonly site: ModuleSite;
@@ -993,7 +997,11 @@ function numbers(draft: Draft): NumberKnob[] {
         if (readsSealing(spec.kind)) out.push({ at: "sealing", site });
         // Batteries set out full: charge is not in the budget.
         if (readsFill(spec.kind) && spec.kind !== "battery") out.push({ at: "fill", site });
-        if (readsComputing(spec.kind)) out.push({ at: "computing", site });
+        if (readsComputing(spec.kind)) {
+            out.push({ at: "computing", site });
+            // One knob for the four, so a core is not drawn four times as often for them.
+            out.push({ at: "stores", site });
+        }
         if (readsRobotsPerBerth(spec.kind)) out.push({ at: "robotsPerBerth", site });
         // How many of its craft a pad or slipway keeps: nothing to count without one.
         if (readsCraft(spec.kind) && spec.craft !== undefined) out.push({ at: "keep", site });
@@ -1066,7 +1074,7 @@ function renumber(knob: NumberKnob, draft: Draft, rng: Rng, bounds: MutationLimi
     // cheap, so it is not left to fail the whole batch.
     const spec = knob.site.spec;
     const was = { ...spec };
-    const edit = renumberModule(knob, jitter);
+    const edit = renumberModule(knob, jitter, rng);
     if (edit !== null && moduleProblem(spec) !== null) {
         for (const key of Object.keys(spec)) delete (spec as unknown as Record<string, unknown>)[key];
         Object.assign(spec, was);
@@ -1075,7 +1083,7 @@ function renumber(knob: NumberKnob, draft: Draft, rng: Rng, bounds: MutationLimi
     return edit;
 }
 
-function renumberModule(knob: Exclude<NumberKnob, { at: "doctrine" }>, jitter: Jitter): string | null {
+function renumberModule(knob: Exclude<NumberKnob, { at: "doctrine" }>, jitter: Jitter, rng: Rng): string | null {
     switch (knob.at) {
         case "gunnery":
             return retarget(knob.site, knob.field, jitter);
@@ -1099,6 +1107,8 @@ function renumberModule(knob: Exclude<NumberKnob, { at: "doctrine" }>, jitter: J
             return refill(knob.site, jitter);
         case "computing":
             return recompute(knob.site, jitter);
+        case "stores":
+            return restock(knob.site, CORE_SHARE_KEYS[rng.nextInt(CORE_SHARE_KEYS.length)]!, jitter, rng);
         case "robotsPerBerth":
             return rerobot(knob.site, jitter);
         case "keep":
@@ -1445,6 +1455,35 @@ function refill(site: ModuleSite, jitter: Jitter): string | null {
     if (now < 1) site.spec.fill = now;
     else delete site.spec.fill;
     return `${site.where} ${site.spec.kind}: starts ${round(was * 100)}% full → ${round(now * 100)}%`;
+}
+
+/** How often a store a core's layout sets is put back to its default, and how often left out. */
+const STORE_UNSET_CHANCE = 0.1;
+const STORE_ZERO_CHANCE = 0.1;
+
+/**
+ * Set how much of a core's room one of its stores has: one left to its default
+ * to anything at random up to twice that, so now and then a good one; one set
+ * drifted by its default's scale, now and then left out, or put back to its default.
+ */
+function restock(site: ModuleSite, key: CoreShareKey, jitter: Jitter, rng: Rng): string | null {
+    const was = site.spec[key];
+    const name = key.replace("Share", "");
+    const usual = CORE_SHARE_DEFAULTS[CORE_SHARE_KEYS.indexOf(key)]!;
+    if (was === undefined) {
+        const now = tidy(rng.nextFloat() * 2 * usual, 3);
+        site.spec[key] = now;
+        return `${site.where} core: ${name} share default → ${now}`;
+    }
+    const roll = rng.nextFloat();
+    if (roll < STORE_UNSET_CHANCE) {
+        delete site.spec[key];
+        return `${site.where} core: ${name} share ${was} → default`;
+    }
+    const now = roll < STORE_UNSET_CHANCE + STORE_ZERO_CHANCE ? 0 : tidy(max(0, was + jitter(usual)), 3);
+    if (now === was) return null;
+    site.spec[key] = now;
+    return `${site.where} core: ${name} share ${was} → ${now}`;
 }
 
 /**
