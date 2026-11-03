@@ -6,7 +6,7 @@
  *
  *   pnpm exec tsx benchmarks/render.ts [--scenes "Duel,Star Wars"]
  *       [--seconds 8] [--at 5] [--warmup 3] [--size 1600x900] [--dpr 1] [--paused] [--vsync]
- *       [--strips shown|hidden] [--screenshots] [--profile]
+ *       [--strips shown|hidden] [--pick ship] [--screenshots] [--profile]
  *       [--browser chromium|chrome|msedge|firefox] [--executable path] [--headless] [--build] [--label name]
  *
  * Each scene runs on the Battle route as a player sees it, and two things are
@@ -45,6 +45,7 @@ const { values } = parseArgs({
         profile: { type: "boolean", default: false },
         screenshots: { type: "boolean", default: false },
         strips: { type: "string", default: "shown" },
+        pick: { type: "string" },
         label: { type: "string", default: "run" },
         out: { type: "string", default: join(here, "results") },
         app: { type: "string" },
@@ -161,6 +162,17 @@ const INSTRUMENT = `{
 declare global {
     /** The battle's time, seconds, as the page's readout shows it (set by INSTRUMENT). */
     function battleTime(): number;
+}
+
+/** Ship `ship` picked, as a click on it does, so what a picked ship adds (its close-ups, its arcs) is measured. */
+async function pick(page: Page, ship: number): Promise<void> {
+    const at = await page.evaluate(
+        (i) => (window as unknown as { viewer: { screenOf(i: number): { x: number; y: number } | null } }).viewer.screenOf(i),
+        ship,
+    );
+    const box = await page.locator("#view").boundingBox();
+    if (at === null || box === null) throw new Error(`ship ${ship} is not in view to pick`);
+    await page.mouse.click(box.x + at.x, box.y + at.y);
 }
 
 /** Clicked in the page, not by Playwright, which waits for frames that a slow scene is long in drawing. */
@@ -281,6 +293,7 @@ try {
                     await setPlaying(page, true);
                     await page.waitForFunction((t) => battleTime() >= t, at, { polling: 50, timeout: 300_000 });
                     if (values.paused) await setPlaying(page, false);
+                    if (values.pick !== undefined) await pick(page, Number(values.pick));
                     await page.waitForTimeout(warmup * 1000);
                     const from = await page.evaluate(() => battleTime());
                     const measured = await measure(page);

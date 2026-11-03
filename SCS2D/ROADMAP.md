@@ -413,15 +413,30 @@ an entry is either still open or it is gone.
                contexts in its own frame, one over its thin hull and one over its thick modules,
                rebuilt only when `scarsVersion`, its design or the zoom's power of two changes, and
                leaves out a scar under 1.5 pixels wide. Not drawn on fighters, nor on rock.
-    6. **Particles and glows.** Glows for explosions and beams; particles for explosions and impacts;
-       bits of metal for collision damage in place of its flashes, and from a leaking tank alongside or in
-       place of its wedge. Particles are only drawn, never simulated: on the battle's clock as the flashes
-       are, held when paused, and capped in number.
-        - **Debris** is always well smaller than anything that can be harvested — no larger than the size
-          below which a module is not kept — and looks like twisted metal, so it is never taken for a small
-          module. Most is small and short-lived; a few bits linger a while, never for good (least
-          important).
-    7. **The later lighting passes**, above.
+    6. **Particles and glows.** Render-only throughout: nothing in `sim/` changes and no golden moves.
+        - **The only explosions are shells bursting**, a cosmetic flash over the fragments that do the
+          damage, and muzzle flashes are their kin. Both already look good; worth a look at whether WebGL
+          draws them better or more cheaply, and both should light what is near them once there are
+          dynamic lights. Modules exploding is a separate piece of work, sim and render together.
+        - **One list of light sources a frame**: points (flashes, bursts, muzzles) and lines (beams,
+          plumes). This step draws them as additive glows, one cached gradient texture per colour (which
+          retires the banded burn glows of stage (6)); the dynamic lights of step 7 read the same list.
+        - **Short-lived particles are a function of their event and age**, not stored state: a straight
+          line from where and how fast the event's hull was going, everything else drawn from the event's
+          id. So pause, step, scrub and replay come free and look alike. Capped by dropping the oldest
+          events. Sparks for round and burst impacts, bits of metal for collisions in place of their
+          flashes, vapour from leaks (a steady emitter on a fixed grid of birth times).
+        - **A space look**: sparks and metal fly straight and fade; vapour comes only from leaks, spreading
+          and thinning; no smoke and no lingering fireball.
+        - **Zoom** as bevels and scars: a particle under a pixel is not drawn; glows keep a pixel floor, as
+          flashes do.
+        - **In pull requests**, in this order: (1) the list of sources and glow sprites, replacing today's
+          banded glows, with the bursts and muzzle flashes looked at again; (2) the short-lived particles.
+        - **Lingering debris** comes later and is not settled: bits that stay a while need to bounce off
+          hulls and curve in the wells, which a formula of age cannot do. Never larger than the size below
+          which a module is not kept, looking like twisted metal so it is never taken for a module, and
+          never kept for good.
+    7. **The later lighting passes**, above, starting with the dynamic lights.
 
     Open: **decals**, placed in the editor on particular designs. Some way off.
 

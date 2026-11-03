@@ -746,6 +746,10 @@ export class PixiCanvas {
         const dash = this.state.dash.map((d) => d * this.scaleOf());
         // Pixi builds a round cap of 16 or more triangles; on a thin line it looks the same as a square one.
         const cap = this.state.lineCap === "round" && width < ROUND_CAP_PX ? "square" : this.state.lineCap;
+        const stroke = { width, color: rgb, alpha: a, cap, join: "miter" } as const;
+        // Every open piece, a dash or what a clip leaves, in one path stroked once: a long dashed line is
+        // a hundred pieces, each a shape of Pixi's own if stroked apart.
+        let open = false;
         for (const sub of path) {
             if (sub.points.length < 4) continue;
             const line = sub.closed ? [...sub.points, sub.points[0]!, sub.points[1]!] : sub.points;
@@ -753,12 +757,18 @@ export class PixiCanvas {
             for (const piece of pieces) {
                 for (const kept of clipPolyline(piece, this.state.clips)) {
                     if (kept.length < 4) continue;
-                    const whole = sub.closed && pieces.length === 1 && kept === piece;
                     const g = this.draw();
-                    g.poly(whole ? kept.slice(0, -2) : kept, whole).stroke({ width, color: rgb, alpha: a, cap, join: "miter" });
+                    if (sub.closed && pieces.length === 1 && kept === piece) {
+                        g.poly(kept.slice(0, -2), true).stroke(stroke);
+                        continue;
+                    }
+                    open = true;
+                    g.moveTo(kept[0]!, kept[1]!);
+                    for (let k = 2; k < kept.length; k += 2) g.lineTo(kept[k]!, kept[k + 1]!);
                 }
             }
         }
+        if (open) this.draw().stroke(stroke);
     }
 }
 
