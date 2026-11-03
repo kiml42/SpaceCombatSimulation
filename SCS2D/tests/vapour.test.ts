@@ -71,7 +71,7 @@ describe("a leak's vapour", () => {
         const shut = 0.5 + 0.1 / 0.2;
         const nearest = (age: number): number => {
             let least = Infinity;
-            const puff: Puff = { x: 0, y: 0, radius: 0, alpha: 0 };
+            const puff: Puff = { x: 0, y: 0, radius: 0, dirX: 1, dirY: 0, length: 0, alpha: 0 };
             eachPuff(hole, 0, 0, 1, 0, age, 1, 49, puff, (p) => {
                 least = Math.min(least, p.x);
             });

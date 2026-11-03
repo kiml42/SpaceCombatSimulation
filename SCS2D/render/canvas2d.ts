@@ -1311,7 +1311,7 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
             fill,
             speed,
             puff,
-            (p) => into.add(p.x, p.y, 1, 0, 2 * p.radius, 2 * p.radius, tint, p.alpha),
+            (p) => into.add(p.x, p.y, p.dirX, p.dirY, p.length, 2 * p.radius, tint, p.alpha),
             poseAgo,
         );
     }
@@ -1321,7 +1321,7 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
 
 /** Scratch for drawing a leak, so drawing one allocates nothing. */
 const hole: Hole = { opened: 0, closing: 0, floor: 0, patched: -1 };
-const puff: Puff = { x: 0, y: 0, radius: 0, alpha: 0 };
+const puff: Puff = { x: 0, y: 0, radius: 0, dirX: 1, dirY: 0, length: 0, alpha: 0 };
 const pose: Pose = { x: 0, y: 0, angle: 0, vx: 0, vy: 0 };
 /** Where each leaking ship has been lately, for its vapour to set out from. */
 const poses = new Poses();

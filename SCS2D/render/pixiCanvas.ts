@@ -984,6 +984,9 @@ export class ParticleBatch {
 
     start(texture: Texture, m: Matrix, additive: boolean, alpha: number): void {
         this.texture = texture;
+        // One texture for every particle the container draws, whatever each
+        // particle holds: a pooled batch otherwise keeps the one it first drew.
+        this.container.texture = texture;
         this.m = { ...m };
         this.scale = Math.sqrt(Math.abs(m.a * m.d - m.b * m.c));
         this.alpha = alpha;
