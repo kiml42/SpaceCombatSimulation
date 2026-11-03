@@ -20,6 +20,7 @@ import {
     type ShipDesign,
     type ShipView,
 } from "../sim/index.js";
+import { leakRate } from "../sim/fuel.js";
 import { DEFAULT_BURST_SPEED, DEFAULT_FRAGMENTS, EXPLOSIVE_YIELD } from "../sim/modules.js";
 import { CORVETTE, TORCH, TORPEDO } from "../scenarios/blueprints.js";
 import { barrelLines } from "../render/barrels.js";
@@ -75,11 +76,34 @@ const slabDesign = (length: number): ShipDesign =>
     ]);
 
 /** A long tank, and a core at one end to make it a ship. */
-const tankDesign = (): ShipDesign =>
-    built("tank", [
+const tankDesign = (length: number): ShipDesign =>
+    built(`tank ${length}`, [
         { id: 1, kind: "core", x: 0, y: 0, length: 2, width: 3 },
-        { id: 2, kind: "tank", x: 13, y: 0, length: 24, width: 3 },
+        { id: 2, kind: "tank", x: 1 + length / 2, y: 0, length, width: 3 },
     ]);
+
+/** How wide each beam's emitter is, and how long: lenses of 10 cm to 80 cm. */
+const BEAM_MOUNTS = [
+    [1, 1],
+    [2.5, 2.5],
+    [5, 4.75],
+    [8, 10.8],
+];
+
+/** A hull beam on a core, and where its beam leaves its lens, ahead of its centre of mass. */
+function beamGun(width: number, length: number): { design: ShipDesign; lens: number; width: number; power: number } {
+    const core = Math.max(1, width);
+    const design = built(`beam ${width}`, [
+        { id: 1, kind: "core", x: 0, y: 0, length: core, width: core },
+        { id: 2, kind: "hullBeam", x: core / 2 + length / 2, y: 0, angle: 0, length, width, barrels: 1 },
+    ]);
+    let lens = 0;
+    barrelLines({ currentStructure: design, x: 0, y: 0, angle: 0, turretBearings: [0] } as unknown as ShipView, 0, (_x0, _y0, x1) => {
+        lens = x1;
+    });
+    const stats = design.turrets[0]!.gun;
+    return { design, lens, width: stats.calibre, power: stats.beamPower };
+}
 
 /** How fast the guns' fragments leave their shells, at most, m/s: the Corvette gun's, slow enough that each burst keeps to its own row. */
 const GUN_BURST_SPEED = 200;
@@ -219,6 +243,11 @@ function place(snapshot: Snapshot, design: ShipDesign, x: number, y: number, ang
     return view;
 }
 
+/** A hull lying square with its blueprint's origin at the world's, so its modules are where its blueprint has them. */
+function atOrigin(snapshot: Snapshot, design: ShipDesign): ShipView {
+    return place(snapshot, design, design.centreOfMassX, design.centreOfMassY, 0);
+}
+
 /**
  * A flash of `kind` gone off at `at` seconds into the loop, if it is still
  * showing at `t`. One aimed `dirX, dirY` points that way, as a muzzle flash does.
@@ -243,6 +272,10 @@ function flash(
     flashes.age[before] = t - at;
     if (flashes.age[before]! >= flashes.lifetime[before]!) flashes.count = before;
 }
+
+/** How long a leak's plume is drawn per √(kg/s), and how far it spreads by its end: `render/canvas2d.ts`'s, for laying the holes out. */
+const LEAK_PLUME_LENGTH = 1.5;
+const LEAK_PLUME_SPREAD = 0.3;
 
 /** How fast each torpedo meets the slab, m/s. */
 const COLLISION_SPEEDS = [10, 30, 100, 300, 1000];
@@ -333,8 +366,8 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
             const slab = slabDesign(Math.ceil(2 * half + 20));
             const top = 1.5;
             begin(snapshot, flashes, t, -half - 15, -10, half + 15, 45);
-            // The slab's face at y = top, its centre of mass a little under the plate's middle.
-            place(snapshot, slab, 0, -slab.centreOfMassY, 0);
+            // The slab's face at y = top.
+            atOrigin(snapshot, slab);
             room(snapshot, each.length);
             const hit = 0.3;
             const down = Math.SQRT1_2;
@@ -359,7 +392,7 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
             const slab = slabDesign(Math.ceil(2 * half + 20));
             const top = 1.5;
             begin(snapshot, flashes, t, -half - 10, -10, half + 10, 40);
-            place(snapshot, slab, 0, -slab.centreOfMassY, 0);
+            atOrigin(snapshot, slab);
             const hit = 0.4;
             const nose = aheadOf(torpedo);
             spaced(energies, 2.2, 2).forEach((x, k) => {
@@ -422,27 +455,35 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
     },
     {
         name: "Beams",
-        about: "Beams of 10 cm, 30 cm and 60 cm burning into a hull, from a megawatt to a gigawatt, with their flashes where they land.",
+        about: "Four hull beams, their lenses 10 cm to 80 cm and 1.6 MW to 100 MW, burning into a slab of hull 60 m off: the glow at each lens, along each beam and where it lands.",
         loop: 1,
         build(t, snapshot, flashes) {
-            begin(snapshot, flashes, t, -60, -25, 30, 25);
-            place(snapshot, corvetteDesign(), 10, 0, Math.PI / 2);
-            room(snapshot, 4);
-            [
-                [0.1, 1e6],
-                [0.3, 1e8],
-                [0.6, 1e9],
-            ].forEach(([width, power], k) => {
-                const y = -6 + 6 * k;
+            const each = BEAM_MOUNTS.map(([width, length]) => beamGun(width!, length!));
+            const range = 60;
+            const reach = each.map((b) => b.design.radius + 3);
+            const ys: number[] = [];
+            let y = 0;
+            reach.forEach((r, k) => {
+                y -= k === 0 ? 0 : reach[k - 1]! + r;
+                ys.push(y);
+            });
+            begin(snapshot, flashes, t, -2 * each[3]!.design.radius, y - reach[3]!, range + 10, reach[0]!);
+            const slab = slabDesign(Math.ceil(reach[0]! - y + reach[3]!));
+            // Upright, its face towards the beams and level with them, its core behind it.
+            place(snapshot, slab, range + 1.5 - slab.centreOfMassY, (reach[0]! + y - reach[3]!) / 2 + slab.centreOfMassX, Math.PI / 2);
+            room(snapshot, each.length);
+            each.forEach((b, k) => {
+                const row = ys[k]!;
+                place(snapshot, b.design, -b.lens, row, 0);
                 const i = snapshot.beamCount++;
-                snapshot.beamStartX[i] = -60;
-                snapshot.beamStartY[i] = y;
-                snapshot.beamEndX[i] = 7;
-                snapshot.beamEndY[i] = y;
-                snapshot.beamWidth[i] = width!;
-                snapshot.beamPower[i] = power!;
+                snapshot.beamStartX[i] = 0;
+                snapshot.beamStartY[i] = row;
+                snapshot.beamEndX[i] = range;
+                snapshot.beamEndY[i] = row;
+                snapshot.beamWidth[i] = b.width;
+                snapshot.beamPower[i] = b.power;
                 snapshot.beamTeam[i] = 0;
-                beamFlashes(flashes, t, 7, y, power!);
+                beamFlashes(flashes, t, range, row, b.power);
             });
         },
     },
@@ -484,26 +525,45 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
     },
     {
         name: "Leaks",
-        about: "Fuel leaking from holes in a row along a tank's edge, from a pinhole's wisp at 0.1 kg/s to a gash at 30 kg/s.",
-        loop: 1,
+        about: "Rounds from the five guns of the Guns scene punching holes one after another in a full tank, each hole its round's calibre: the leak starting, then flowing at what the hole lets out, 4 kg/s to 1.5 t/s.",
+        loop: 2,
         build(t, snapshot, flashes) {
-            const design = tankDesign();
+            const each = GUN_MOUNTS.map(gun);
+            const holes = each.map((g) => {
+                const rate = leakRate((Math.PI * g.calibre * g.calibre) / 4, 1);
+                const length = Math.max(g.calibre * 4, LEAK_PLUME_LENGTH * Math.sqrt(rate));
+                return { rate, length, spread: g.calibre / 2 + length * LEAK_PLUME_SPREAD + 2 };
+            });
+            let along = 4;
+            const xs = holes.map((h, k) => {
+                along += k === 0 ? h.spread : holes[k - 1]!.spread + h.spread;
+                return along;
+            });
+            const length = Math.ceil(along + holes[4]!.spread + 4);
+            const design = tankDesign(length);
             const tank = design.modules[1]!;
-            begin(snapshot, flashes, t, tank.x - 14, -6, tank.x + 14, 14);
-            const ship = place(snapshot, design, 0, 0, 0);
-            [
-                [0.05, 0.1],
-                [0.1, 1],
-                [0.15, 3],
-                [0.25, 10],
-                [0.4, 30],
-            ].forEach(([width, rate], k) => {
-                ship.leakX!.push(tank.x - 10 + 5 * k);
-                ship.leakY!.push(tank.y + tank.spec.width / 2);
+            const top = tank.y + tank.spec.width / 2;
+            begin(snapshot, flashes, t, -10, -10, length + 10, top + holes[4]!.length + 10);
+            const ship = atOrigin(snapshot, design);
+            room(snapshot, each.length);
+            const down = Math.SQRT1_2;
+            each.forEach((g, k) => {
+                const hit = 0.3 + 0.25 * k;
+                const x = xs[k]!;
+                const vx = g.speed * down;
+                const vy = -g.speed * down;
+                const y = top;
+                if (t < hit) {
+                    round(snapshot, x - vx * (hit - t), y - vy * (hit - t), vx, vy, x - vx * hit, y - vy * hit, g.calibre);
+                    return;
+                }
+                flash(flashes, t, hit, x, y, g.energy, IMPACT_ROUND);
+                ship.leakX!.push(x - design.centreOfMassX);
+                ship.leakY!.push(top - design.centreOfMassY);
                 ship.leakDirX!.push(0);
                 ship.leakDirY!.push(1);
-                ship.leakWidth!.push(width!);
-                ship.leakRate!.push(rate!);
+                ship.leakWidth!.push(g.calibre);
+                ship.leakRate!.push(holes[k]!.rate);
             });
         },
     },
