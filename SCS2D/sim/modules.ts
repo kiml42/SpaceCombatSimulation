@@ -183,10 +183,13 @@ export const SMALL_ENGINE_THROAT = 0.25;
  * The throat width below which an engine is pressure-fed, metres: too small
  * for turbopumps, as is a block shorter than `PRESSURE_FED_BLOCK`, so its
  * tanks' pressure pushes the propellant through. Far
- * simpler to build (`PRESSURE_FED_COMPLEXITY`), and a step less efficient at
- * once, as a fighter's thrusters are against its mains.
+ * simpler to build (`PRESSURE_FED_COMPLEXITY`), and a step worse at once in
+ * flow and efficiency, as a fighter's thrusters are against its mains.
  */
 export const PRESSURE_FED_THROAT = 0.25;
+
+/** What a pressure-fed engine's chamber passes, as a share of a pumped one's: its thrust, and the machinery sized by it. */
+export const PRESSURE_FED_FLOW = 0.5;
 
 /** A pressure-fed engine's exhaust velocity, as a share of a pumped one's. */
 export const PRESSURE_FED_EXHAUST = 0.75;
@@ -2862,7 +2865,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
         const feed = engine.machineryLength / (PUMP_DEPTH_WIDTHS * spec.width);
         const supply = feed < THROAT_CHOKE ? feed : THROAT_CHOKE;
         const exitArea = engine.nozzles * engine.exitWidth * engine.exitHeight;
-        const throughput = THRUST_PER_EXIT_AREA * exitArea * supply;
+        const throughput = THRUST_PER_EXIT_AREA * exitArea * supply * (isPressureFed(engine) ? PRESSURE_FED_FLOW : 1);
         // What the bell then keeps pointed the right way. **The two pull opposite
         // ways**, which is the whole of the knob: length taken off the bell is
         // flow gained and aim lost, so the best engine is neither all bell nor all

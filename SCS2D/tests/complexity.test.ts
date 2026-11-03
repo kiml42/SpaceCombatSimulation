@@ -7,6 +7,7 @@ import {
     moduleStats,
     PRESSURE_FED_BLOCK,
     PRESSURE_FED_EXHAUST,
+    PRESSURE_FED_FLOW,
     PRESSURE_FED_MASS,
     type ModuleSpec,
 } from "../sim/modules.js";
@@ -46,7 +47,7 @@ describe("complexity", () => {
         expect(repairWork(stats) * capacity).toBeCloseTo(capacity + stats.complexity * COMPLEXITY_WORK, 3);
     });
 
-    it("is less for an engine too small for pumps, which is a step worse in exhaust velocity", () => {
+    it("is less for an engine too small for pumps, which is a step worse in thrust and exhaust velocity", () => {
         // Either side of the cut-off: the same engine but a little narrower.
         const pumped = engine(0.5, 0.46);
         const fed = engine(0.5, 0.44);
@@ -56,8 +57,8 @@ describe("complexity", () => {
         expect(complexityOf(pumped)).toBe(4);
         const a = moduleStats(pumped);
         const b = moduleStats(fed);
-        // Thrust goes by the exit's area alone.
-        expect(b.thrust / a.thrust).toBeCloseTo((0.44 / 0.46) ** 2, 1);
+        // Area alone would give the narrower one 0.44² / 0.46² of the thrust.
+        expect(b.thrust / a.thrust).toBeCloseTo(PRESSURE_FED_FLOW * (0.44 / 0.46) ** 2, 1);
         expect(b.exhaustVelocity / a.exhaustVelocity).toBeCloseTo(PRESSURE_FED_EXHAUST, 1);
     });
 
