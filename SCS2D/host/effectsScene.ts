@@ -294,10 +294,10 @@ function flash(
 const LEAK_PLUME_LENGTH = 1.5;
 const LEAK_PLUME_SPREAD = 0.3;
 
-/** How thick the Sealing scene's lining is, metres. */
-const SEALING = 0.05;
-/** Seconds after its holes open that the Sealing scene's unlined tank is mended. */
-const MENDED_AFTER = 2;
+/** How thick the Sealing scene's lining is, metres: enough to close all but its widest hole. */
+const SEALING = 0.02;
+/** Seconds after its holes open that the Sealing scene's tank is mended. */
+const MENDED_AFTER = 4;
 /** When the Leaks and Sealing scenes' rounds land. */
 const HOLED_AT = 0.3;
 
@@ -622,21 +622,20 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
     },
     {
         name: "Sealing",
-        about: `The same five holes in two full tanks. Above, a 50 mm self-sealing lining closes each at ${SEAL_SPEED * SEALING * 1000} mm/s, the 2 cm in under half a second, the 40 cm down to nothing in 8 s. Below, an unlined tank is mended 2 s after it is holed, as a repair robot mends it: each hole patched, closing at ${PATCH_SPEED * 1000} mm/s, the 40 cm in two seconds.`,
-        loop: 9,
+        about: `The five holes in a full tank with a 20 mm self-sealing lining, which closes each at ${SEAL_SPEED * SEALING * 1000} mm/s but no wider than ${SEAL_REACH * SEALING * 100} cm: the small ones shut, the 40 cm narrows to 20 cm and stays open. ${MENDED_AFTER} s on, a repair robot mends the tank, patching what is left closed at ${PATCH_SPEED * 1000} mm/s.`,
+        loop: 7,
         build(t, snapshot, flashes) {
             const row = holeRow();
-            const gap = row.tallest + 10;
-            begin(snapshot, flashes, t, -10, -gap - 10, row.length + 10, row.top + row.tallest + 10);
-            room(snapshot, 2 * GUN_MOUNTS.length);
-            // The lining swells into the hole, narrowing it as far as it reaches.
+            begin(snapshot, flashes, t, -10, -10, row.length + 10, row.top + row.tallest + 10);
+            room(snapshot, GUN_MOUNTS.length);
+            // The lining swells into the hole as far as it reaches, and a patch closes what it leaves.
             const closing = SEAL_SPEED * SEALING;
             const floor = SEAL_REACH * SEALING;
+            const lined = (width: number, open: number): number => Math.max(Math.max(0, width - floor), width - closing * open);
             punch(t, snapshot, flashes, tankDesign(row.length, SEALING), 0, row, (width, open) =>
-                Math.max(Math.max(0, width - floor), width - closing * open),
-            );
-            punch(t, snapshot, flashes, tankDesign(row.length), -gap, row, (width, open) =>
-                open < MENDED_AFTER ? width : Math.max(0, width - PATCH_SPEED * (open - MENDED_AFTER)),
+                open < MENDED_AFTER
+                    ? lined(width, open)
+                    : Math.max(0, lined(width, MENDED_AFTER) - Math.max(PATCH_SPEED, closing) * (open - MENDED_AFTER)),
             );
         },
     },
