@@ -21,7 +21,7 @@
     "Dinky Raider": {
       "formatVersion": 2,
       "name": "Dinky Raider",
-      "notes": "A Dinky that leaves its pad for an enemy ten times its reach away rather than four, and goes after it rather than staying by its carrier: a Replicator is moored to a rock and goes nowhere, so its fighters have to go to the fight.",
+      "notes": "A Dinky that leaves its pad for an enemy ten times its reach away rather than four, and goes after it rather than staying by its carrier: a Replicator is moored to a rock and goes nowhere, so its fighters have to go to the fight. It never rams: its carrier's pad is always there to mend it.",
       "fighter": true,
       "doctrine": {
         "targeting": {
@@ -34,8 +34,6 @@
           "escortMinRadii": 2,
           "tolerance": 0.3,
           "brake": 0.95,
-          "ramRadii": 1000,
-          "ramArmed": 0.5,
           "refuelBelow": 0.5,
           "sortieRange": 10,
           "tangentialMin": 20,

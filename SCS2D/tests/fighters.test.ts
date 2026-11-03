@@ -87,13 +87,18 @@ describe("a fighter flag", () => {
 });
 
 describe("a fighter in battle", () => {
-    /** A fighter `gap` off a hulk, ordered to ram it or to stand off. */
-    function scene(ram: boolean, gap: number, blueprint = fighter()): { world: World; ships: Ships; craft: number; hulk: number } {
+    /** A fighter `gap` off a hulk and closing on it at `closing`, ordered to ram it or to stand off. */
+    function scene(
+        ram: boolean,
+        gap: number,
+        blueprint = fighter(),
+        closing = 100,
+    ): { world: World; ships: Ships; craft: number; hulk: number } {
         const world = new World({ dt: DT, seed: 2 });
         const ships = new Ships();
         world.addForceProvider(ships.forceProvider());
         const hulk = ships.spawn(world, { design: compileBlueprint(HULK), x: 0, y: 0, team: 1 });
-        const craft = ships.spawn(world, { design: compileBlueprint(blueprint), x: gap, y: 0, team: 0 });
+        const craft = ships.spawn(world, { design: compileBlueprint(blueprint), x: gap, y: 0, vx: -closing, team: 0 });
         if (ram) ships.pushRam(craft, hulk, 10, OrderCancelCondition.None);
         else ships.pushOrder(craft, hulk, 50, 100, 10, OrderCancelCondition.None);
         return { world, ships, craft, hulk };
@@ -110,11 +115,17 @@ describe("a fighter in battle", () => {
         expect(layersOf(s, s.craft)).toBe(WEAPONS_LAYER);
     });
 
-    it("commits once it is ramming, clear of every hull", () => {
+    it("commits once it is ramming and due to strike within `ramCommit`, clear of every hull", () => {
         const s = scene(true, 80);
         s.ships.command(DT, s.world);
         expect(s.ships.isCommitted(s.craft)).toBe(true);
         expect(layersOf(s, s.craft)).toBe(BOTH_LAYERS);
+    });
+
+    it("rams in the weapons layer while the strike is further off than `ramCommit`", () => {
+        const s = scene(true, 80, fighter(), 20);
+        s.ships.command(DT, s.world);
+        expect(s.ships.isCommitted(s.craft)).toBe(false);
     });
 
     it("does not commit on an ordinary order to close to nothing", () => {
@@ -161,7 +172,7 @@ describe("a fighter in battle", () => {
             world.addForceProvider(ships.forceProvider());
             ships.spawn(world, { design: compileBlueprint(HULK), x: 0, y: 0, team: 1 });
             const design = compileBlueprint(fighter(radii));
-            const craft = ships.spawn(world, { design, x: 80, y: 0, team: 0 });
+            const craft = ships.spawn(world, { design, x: 80, y: 0, vx: -100, team: 0 });
             if (disarm) {
                 const b = world.bodies.indexOf(ships.body(craft));
                 for (const t of design.turrets) ships.damage.absorb(b, t.module, 1e12);
