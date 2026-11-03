@@ -479,7 +479,9 @@ an entry is either still open or it is gone.
                its flash is half a hit's of the same energy (`COLLISION_FLASH_SHARE`). Up to 20 bits of metal
                fly out along the contact either way, leaning the way the hulls slid, at up to six-tenths of
                the closing speed, tumbling and glinting in the battle's light: jagged shards, laid over what
-               is under them in a second batch.
+               is under them in a second batch. Each throws some of the other's too: a hit knocks out a
+               few bits of metal the way its sparks go, a fifth as many as a collision of its energy, and
+               a collision grinds out a few sparks along the contact, a third as many as a hit's.
             3. **Leak vapour — built** (`render/vapour.ts`), in place of the plume image. A hole records
                what it has been (`Leak.opened`, `liningClosing`, `liningFloor`, `patched`, `closed`, read
                by nothing in the sim), so its width at any age is a formula, and the snapshot carries them
