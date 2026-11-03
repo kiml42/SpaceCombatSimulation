@@ -19,6 +19,8 @@ import {
     compileBlueprint,
     resolveRound,
     type ShipDesign,
+    IMPACT_EXIT,
+    IMPACT_ROUND,
 } from "../sim/index.js";
 import { BARE_CORE, STAR_DESTROYER } from "../scenarios/blueprints.js";
 import { TURRET_CORVETTE } from "./fixtures.js";
@@ -277,7 +279,9 @@ describe("what a hit logs to be drawn", () => {
             if (hits.count > 0) impacts.rounds(ships, ships.damage, bodies, projectiles, hits);
         }
 
-        expect(impacts.log.count).toBe(1);
+        // Where it went in, and where it came out of the far side.
+        expect(impacts.log.count).toBeGreaterThanOrEqual(1);
+        expect(impacts.log.kind[0]).toBe(IMPACT_ROUND);
         expect(impacts.log.body[0]).toBe(body);
         // The offset is in the ship's frame, so putting it back through the ship's
         // pose returns the world point the hit happened at.
@@ -286,6 +290,35 @@ describe("what a hit logs to be drawn", () => {
         const y = bodies.y[body]! + impacts.log.localX[0]! * Math.sin(angle) + impacts.log.localY[0]! * Math.cos(angle);
         expect(x).toBeCloseTo(impacts.log.x[0]!, 9);
         expect(y).toBeCloseTo(impacts.log.y[0]!, 9);
+    });
+
+    it("says which way it was going and which way the face it met looks, going in and coming out", () => {
+        const world = new World({ dt: 1 / 60, seed: 3 });
+        const ships = new Ships();
+        world.addForceProvider(ships.forceProvider());
+        ships.spawn(world, { design: corvette, x: 0, y: 0, angle: 0, team: 0 });
+        const bodies = world.bodies;
+        const impacts = new Impacts();
+        const projectiles = new Projectiles(8);
+        const hits = new ProjectileHits();
+        const grid = new SpatialGrid(64);
+        grid.rebuild(bodies);
+        // Across the ship, heavy enough to go through.
+        projectiles.spawn({ x: 0, y: -corvette.radius * 2, vx: 0, vy: 1500, width: 0.3, ttl: 5, mass: 400 });
+        for (let i = 0; i < 60 && hits.count === 0; i++) {
+            projectiles.step(1 / 60, bodies, grid, hits, undefined, ships.hulls);
+            if (hits.count > 0) impacts.rounds(ships, ships.damage, bodies, projectiles, hits);
+        }
+        const log = impacts.log;
+        expect(log.kind[0]).toBe(IMPACT_ROUND);
+        // Going in: up the screen, against a face looking back down it.
+        expect(log.dirY[0]).toBeCloseTo(1, 9);
+        expect(log.normalX[0]! * log.dirX[0]! + log.normalY[0]! * log.dirY[0]!).toBeLessThan(0);
+        // Coming out of the far side, the way it was going.
+        const out = Array.from(log.kind.slice(0, log.count)).lastIndexOf(IMPACT_EXIT);
+        expect(out).toBeGreaterThan(0);
+        expect(log.y[out]).toBeGreaterThan(log.y[0]!);
+        expect(log.dirY[out]).toBeCloseTo(1, 9);
     });
 
     it("takes a bite out of every weld it goes through, and none it does not", () => {

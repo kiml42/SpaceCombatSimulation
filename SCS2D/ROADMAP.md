@@ -463,7 +463,19 @@ an entry is either still open or it is gone.
           slowed and scrubbed: the place to look at a change to how one is drawn, and to add a scene for a new one.
         - **In pull requests**, in this order: (1) the list of sources and glow sprites, replacing today's
           banded glows, with the bursts and muzzle flashes looked at again — built; (2) the short-lived
-          particles.
+          particles, themselves in steps:
+            1. **Sparks from hits — built.** The sim logs a flash at every surface a round meets that can
+               be seen (`IMPACT_ROUND` going in, `IMPACT_EXIT` coming out), with the way it was going and
+               the face's normal; a crossing into a module as thick as the one it left is inside and adds
+               to the flash before it. A flash is kept as an event while its sparks fly (`Flashes.kept`),
+               and `render/particles.ts` works each spark out from the event's seed and age: thrown back off
+               the face, leaning the way the round glanced, or on out of the far side, flying straight at
+               the hull's velocity plus its own and cooling from white to red. Drawn as streaks in one
+               additive Pixi `ParticleContainer` a scene (`PixiCanvas.particles`), in their turn among the
+               rest. A beam's flashes throw one now and then.
+            2. **Metal from collisions**, with a smaller flash.
+            3. **Leak vapour**, from the formula for a hole's width over its life, placed by the ship's
+               pose now; then (4) by its pose when each left.
         - **Lingering debris** comes later and is not settled: bits that stay a while need to bounce off
           hulls and curve in the wells, which a formula of age cannot do. Never larger than the size below
           which a module is not kept, looking like twisted metal so it is never taken for a module, and

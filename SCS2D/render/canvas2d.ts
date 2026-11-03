@@ -92,6 +92,8 @@ import { flashExtent, flashFade, flashPosition, muzzleWedge, type Flashes } from
 import { clipToStart, exposureEnds, flashSamples, shutterWeight } from "./exposure.js";
 import { flameSprite, rgba, sprite, TAPER_FRONTS, taperSprite, WEDGE_HEADROOM, WEDGE_STEPS, wedgeBox, wedgeSprite } from "./sprites.js";
 import { drawGlows, Lights, type Transform } from "./glows.js";
+import { seedOf, spark, sparkColour, sparkCount, sparkFade, type Spark } from "./particles.js";
+import type { PixiCanvas } from "./pixiCanvas.js";
 import { iconAlpha, ICON_OUTLINE, ICON_PX, isWreckage } from "./icons.js";
 
 const { cos, floor, sin, length, max, min, PI, sqrt, TAU } = math;
@@ -2917,7 +2919,7 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
             dirX = lx * c - dirY * sn;
             dirY = lx * sn + dirY * c;
         }
-        const pointing = dirX !== 0 || dirY !== 0;
+        const pointing = kind === IMPACT_MUZZLE && (dirX !== 0 || dirY !== 0);
 
         const radius = flashes.radius[i]!;
         const growth = flashes.growth[i]!;
@@ -2965,7 +2967,45 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
         }
     }
     ctx.restore();
+    drawSparks(ctx, snapshot, flashes, camera);
 }
+
+/** What a hit throws off, as it is now: one additive batch, each spark a streak along its way. */
+function drawSparks(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes: Flashes, camera: Camera): void {
+    const image = sprite("glowStreak", "#ffffff");
+    const batches = (ctx as Partial<{ particles: PixiCanvas["particles"] }>).particles;
+    if (image === null || batches === undefined) return;
+    const dt = snapshot.dt;
+    const cvx = camera.vx ?? 0;
+    const cvy = camera.vy ?? 0;
+    const pixel = 1 / camera.scale;
+    let batch: ReturnType<PixiCanvas["particles"]> | null = null;
+    for (let i = 0; i < flashes.count; i++) {
+        const kind = flashes.kind[i]!;
+        const seed = seedOf(flashes.x[i]!, flashes.y[i]!, flashes.energy[i]!, kind);
+        const n = sparkCount(kind, flashes.energy[i]!, seed);
+        if (n === 0) continue;
+        const anchor = shipByBody(snapshot, flashes.body[i]!);
+        for (let j = 0; j < n; j++) {
+            if (!spark(flashes, i, j, seed, flashes.age[i]!, anchor?.angle ?? 0, anchor?.vx ?? 0, anchor?.vy ?? 0, thrown)) continue;
+            // As a step's exposure sees it, as a tracer is: drawn out along its way past the camera.
+            const rvx = thrown.vx - cvx;
+            const rvy = thrown.vy - cvy;
+            const speed = length(rvx, rvy);
+            const streak = max(thrown.width, speed * dt);
+            // Under a pixel it is not drawn.
+            if (max(streak, thrown.width) < pixel) continue;
+            batch ??= batches.call(ctx, image, true);
+            const dirX = speed > 0 ? rvx / speed : 1;
+            const dirY = speed > 0 ? rvy / speed : 0;
+            batch.add(thrown.x, thrown.y, dirX, dirY, streak, max(thrown.width, pixel), sparkColour(thrown.t), sparkFade(thrown.t));
+        }
+    }
+    batch?.end();
+}
+
+/** Scratch for one spark at a time, so throwing them allocates nothing. */
+const thrown: Spark = { x: 0, y: 0, vx: 0, vy: 0, width: 0, t: 0 };
 
 /**
  * A muzzle flash: a wedge from its narrow back to its wide front, out along

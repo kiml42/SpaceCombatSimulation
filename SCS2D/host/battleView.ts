@@ -696,6 +696,8 @@ export function battleView(
                 view.impactGrowth[i]!,
                 view.impactDirX[i]!,
                 view.impactDirY[i]!,
+                view.impactNormalX[i]!,
+                view.impactNormalY[i]!,
             );
         }
         picked = stillThere(view, picked);
@@ -911,6 +913,8 @@ function addHits(flashes: Flashes, log: ImpactLog): void {
             log.growth[i]!,
             log.dirX[i]!,
             log.dirY[i]!,
+            log.normalX[i]!,
+            log.normalY[i]!,
         );
     }
 }

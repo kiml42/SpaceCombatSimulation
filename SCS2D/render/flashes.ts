@@ -22,6 +22,7 @@
  */
 
 import { IMPACT_BEAM, IMPACT_BURST, IMPACT_MUZZLE } from "../sim/index.js";
+import { thrownFor } from "./particles.js";
 
 /** How long a round's flash lasts, in simulated seconds. */
 export const ROUND_FLASH_LIFETIME = 0.35;
@@ -182,7 +183,35 @@ export function flashPosition(localX: number, localY: number, anchor: FlashAncho
     return { x: anchor.x + localX * c - localY * s, y: anchor.y + localX * s + localY * c };
 }
 
-/** Flashes still burning, in arrays a renderer can walk without objects. */
+/** What a flash keeps, by field: each a typed array a flash's index runs through. */
+const FIELDS = [
+    ["x", Float64Array],
+    ["y", Float64Array],
+    ["body", Int32Array],
+    ["localX", Float64Array],
+    ["localY", Float64Array],
+    ["radius", Float64Array],
+    ["age", Float64Array],
+    ["lifetime", Float64Array],
+    ["kept", Float64Array],
+    ["kind", Uint8Array],
+    ["energy", Float64Array],
+    ["vx", Float64Array],
+    ["vy", Float64Array],
+    ["growth", Float64Array],
+    ["dirX", Float64Array],
+    ["dirY", Float64Array],
+    ["normalX", Float64Array],
+    ["normalY", Float64Array],
+] as const;
+
+type Field = (typeof FIELDS)[number][0];
+
+/**
+ * Flashes still burning, in arrays a renderer can walk without objects. Each is
+ * an event as much as a flash: it is kept for as long as what it throws off
+ * (`particles.ts`) is still flying, after its own light has gone out.
+ */
 export class Flashes {
     x = new Float64Array(64);
     y = new Float64Array(64);
@@ -193,15 +222,26 @@ export class Flashes {
     radius = new Float64Array(64);
     age = new Float64Array(64);
     lifetime = new Float64Array(64);
+    /** How long it is kept, seconds: its lifetime, or longer while what it threw off is still flying. */
+    kept = new Float64Array(64);
     kind = new Uint8Array(64);
+    /** What it was worth, joules: how much it throws off. */
+    energy = new Float64Array(64);
     /** Drift, m/s, for a flash that rides nothing. */
     vx = new Float64Array(64);
     vy = new Float64Array(64);
     /** How fast it spreads, m/s, or 0 for one that grows by `flashSize`. */
     growth = new Float64Array(64);
-    /** The way it points, in its body's frame where it rides one; zero for a flash that points no way. */
+    /**
+     * The way it points, in its body's frame where it rides one; zero for a
+     * flash that points no way. A muzzle flash's barrel, or the way a round
+     * was going where it met a surface.
+     */
     dirX = new Float64Array(64);
     dirY = new Float64Array(64);
+    /** The outward normal of the surface it met, in the same frame; zero for none. */
+    normalX = new Float64Array(64);
+    normalY = new Float64Array(64);
     count = 0;
 
     add(
@@ -217,6 +257,8 @@ export class Flashes {
         growth = 0,
         dirX = 0,
         dirY = 0,
+        normalX = 0,
+        normalY = 0,
     ): void {
         const radius = flashRadius(energy) * (kind === IMPACT_MUZZLE ? MUZZLE_FLASH_SHARE : 1);
         if (!(radius > 0)) return;
@@ -229,7 +271,7 @@ export class Flashes {
         this.localY[i] = localY;
         this.radius[i] = radius;
         this.age[i] = 0;
-        this.lifetime[i] =
+        const lifetime =
             kind === IMPACT_BEAM
                 ? BEAM_FLASH_LIFETIME
                 : kind === IMPACT_BURST
@@ -237,34 +279,29 @@ export class Flashes {
                   : kind === IMPACT_MUZZLE
                     ? muzzleLifetime(energy)
                     : ROUND_FLASH_LIFETIME;
+        this.lifetime[i] = lifetime;
+        this.kept[i] = Math.max(lifetime, thrownFor(kind));
         this.kind[i] = kind;
+        this.energy[i] = energy;
         this.vx[i] = vx;
         this.vy[i] = vy;
         this.growth[i] = growth;
         this.dirX[i] = dirX;
         this.dirY[i] = dirY;
+        this.normalX[i] = normalX;
+        this.normalY[i] = normalY;
     }
 
-    /** Age everything by `dt` *simulated* seconds and drop what has burned out. */
+    /** Age everything by `dt` *simulated* seconds and drop what has burned out and landed. */
     step(dt: number): void {
         let kept = 0;
         for (let i = 0; i < this.count; i++) {
             const age = this.age[i]! + dt;
-            if (age >= this.lifetime[i]!) continue;
+            if (age >= this.kept[i]!) continue;
+            for (const [name] of FIELDS) this[name][kept] = this[name][i]!;
             this.x[kept] = this.x[i]! + this.vx[i]! * dt;
             this.y[kept] = this.y[i]! + this.vy[i]! * dt;
-            this.vx[kept] = this.vx[i]!;
-            this.vy[kept] = this.vy[i]!;
-            this.growth[kept] = this.growth[i]!;
-            this.dirX[kept] = this.dirX[i]!;
-            this.dirY[kept] = this.dirY[i]!;
-            this.body[kept] = this.body[i]!;
-            this.localX[kept] = this.localX[i]!;
-            this.localY[kept] = this.localY[i]!;
-            this.radius[kept] = this.radius[i]!;
             this.age[kept] = age;
-            this.lifetime[kept] = this.lifetime[i]!;
-            this.kind[kept] = this.kind[i]!;
             kept++;
         }
         this.count = kept;
@@ -276,20 +313,7 @@ export class Flashes {
 
     copy(): Flashes {
         const out = new Flashes();
-        out.x = this.x.slice();
-        out.y = this.y.slice();
-        out.body = this.body.slice();
-        out.localX = this.localX.slice();
-        out.localY = this.localY.slice();
-        out.radius = this.radius.slice();
-        out.age = this.age.slice();
-        out.lifetime = this.lifetime.slice();
-        out.kind = this.kind.slice();
-        out.vx = this.vx.slice();
-        out.vy = this.vy.slice();
-        out.growth = this.growth.slice();
-        out.dirX = this.dirX.slice();
-        out.dirY = this.dirY.slice();
+        for (const [name] of FIELDS) (out as Record<Field, unknown>)[name] = this[name].slice();
         out.count = this.count;
         return out;
     }
@@ -297,66 +321,16 @@ export class Flashes {
     /** Take on another's flashes, as they are. */
     set(from: Flashes): void {
         const copy = from.copy();
-        this.x = copy.x;
-        this.y = copy.y;
-        this.body = copy.body;
-        this.localX = copy.localX;
-        this.localY = copy.localY;
-        this.radius = copy.radius;
-        this.age = copy.age;
-        this.lifetime = copy.lifetime;
-        this.kind = copy.kind;
-        this.vx = copy.vx;
-        this.vy = copy.vy;
-        this.growth = copy.growth;
-        this.dirX = copy.dirX;
-        this.dirY = copy.dirY;
+        for (const [name] of FIELDS) (this as Record<Field, unknown>)[name] = copy[name];
         this.count = copy.count;
     }
 
     private grow(): void {
         const size = this.x.length * 2;
-        const x = new Float64Array(size);
-        const y = new Float64Array(size);
-        const body = new Int32Array(size);
-        const localX = new Float64Array(size);
-        const localY = new Float64Array(size);
-        const radius = new Float64Array(size);
-        const age = new Float64Array(size);
-        const lifetime = new Float64Array(size);
-        const kind = new Uint8Array(size);
-        const vx = new Float64Array(size);
-        const vy = new Float64Array(size);
-        vx.set(this.vx);
-        vy.set(this.vy);
-        this.vx = vx;
-        this.vy = vy;
-        const growth = new Float64Array(size);
-        growth.set(this.growth);
-        this.growth = growth;
-        const dirX = new Float64Array(size);
-        const dirY = new Float64Array(size);
-        dirX.set(this.dirX);
-        dirY.set(this.dirY);
-        this.dirX = dirX;
-        this.dirY = dirY;
-        x.set(this.x);
-        y.set(this.y);
-        body.set(this.body);
-        localX.set(this.localX);
-        localY.set(this.localY);
-        radius.set(this.radius);
-        age.set(this.age);
-        lifetime.set(this.lifetime);
-        kind.set(this.kind);
-        this.x = x;
-        this.y = y;
-        this.body = body;
-        this.localX = localX;
-        this.localY = localY;
-        this.radius = radius;
-        this.age = age;
-        this.lifetime = lifetime;
-        this.kind = kind;
+        for (const [name, Kind] of FIELDS) {
+            const grown = new Kind(size);
+            grown.set(this[name]);
+            (this as Record<Field, unknown>)[name] = grown;
+        }
     }
 }

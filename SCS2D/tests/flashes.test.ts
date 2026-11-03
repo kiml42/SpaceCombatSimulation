@@ -18,7 +18,8 @@ import {
     muzzleLifetime,
     muzzleWedge,
 } from "../render/flashes.js";
-import { IMPACT_MUZZLE, IMPACT_ROUND } from "../sim/index.js";
+import { IMPACT_COLLISION, IMPACT_MUZZLE, IMPACT_ROUND } from "../sim/index.js";
+import { SPARK_LIFE } from "../render/particles.js";
 
 /**
  * Impact flashes: the arithmetic of how big and how bright, and the ageing
@@ -67,7 +68,7 @@ describe("how a flash fades", () => {
 describe("the store", () => {
     it("keeps a flash until its life runs out", () => {
         const flashes = new Flashes();
-        flashes.add(10, 20, FLASH_REFERENCE_ENERGY, 0);
+        flashes.add(10, 20, FLASH_REFERENCE_ENERGY, IMPACT_COLLISION);
         expect(flashes.count).toBe(1);
 
         flashes.step(ROUND_FLASH_LIFETIME * 0.5);
@@ -78,6 +79,17 @@ describe("the store", () => {
         expect(flashes.count).toBe(0);
     });
 
+    it("keeps a hit after its light goes out, for as long as its sparks fly", () => {
+        const flashes = new Flashes();
+        flashes.add(10, 20, FLASH_REFERENCE_ENERGY, IMPACT_ROUND);
+        expect(flashes.kept[0]).toBe(SPARK_LIFE);
+        flashes.step(ROUND_FLASH_LIFETIME + 1e-9);
+        expect(flashes.count).toBe(1);
+        expect(flashFade(flashes.age[0]!, flashes.lifetime[0]!)).toBe(0);
+        flashes.step(SPARK_LIFE);
+        expect(flashes.count).toBe(0);
+    });
+
     it("gives a beam a shorter life than a round", () => {
         // A beam deposits energy every step it burns, so its flashes arrive as a
         // stream: a long life would pile them into one ever-brightening blob.
@@ -85,17 +97,16 @@ describe("the store", () => {
         const flashes = new Flashes();
         flashes.add(0, 0, FLASH_REFERENCE_ENERGY, 1);
         flashes.add(0, 0, FLASH_REFERENCE_ENERGY, 0);
-        flashes.step(BEAM_FLASH_LIFETIME + 1e-9);
-        expect(flashes.count).toBe(1);
-        expect(flashes.kind[0]).toBe(0);
+        expect(flashes.lifetime[0]).toBe(BEAM_FLASH_LIFETIME);
+        expect(flashes.lifetime[1]).toBe(ROUND_FLASH_LIFETIME);
     });
 
     it("drops the dead ones without disturbing the living", () => {
         const flashes = new Flashes();
-        flashes.add(1, 1, FLASH_REFERENCE_ENERGY, 1);
-        flashes.add(2, 2, FLASH_REFERENCE_ENERGY, 0);
-        flashes.add(3, 3, FLASH_REFERENCE_ENERGY, 1);
-        flashes.step(BEAM_FLASH_LIFETIME + 1e-9);
+        flashes.add(1, 1, FLASH_REFERENCE_ENERGY, IMPACT_MUZZLE);
+        flashes.add(2, 2, FLASH_REFERENCE_ENERGY, IMPACT_COLLISION);
+        flashes.add(3, 3, FLASH_REFERENCE_ENERGY, IMPACT_MUZZLE);
+        flashes.step(MUZZLE_FLASH_LIFETIME + 1e-9);
         expect(flashes.count).toBe(1);
         expect(flashes.x[0]).toBe(2);
     });
@@ -150,9 +161,9 @@ describe("riding the hull it went off against", () => {
 
     it("keeps a survivor\u2019s anchor when a neighbour burns out", () => {
         const flashes = new Flashes();
-        flashes.add(1, 1, FLASH_REFERENCE_ENERGY, 1, 7, 1, 2);
-        flashes.add(2, 2, FLASH_REFERENCE_ENERGY, 0, 9, 3, 4);
-        flashes.step(BEAM_FLASH_LIFETIME + 1e-9);
+        flashes.add(1, 1, FLASH_REFERENCE_ENERGY, IMPACT_MUZZLE, 7, 1, 2);
+        flashes.add(2, 2, FLASH_REFERENCE_ENERGY, IMPACT_COLLISION, 9, 3, 4);
+        flashes.step(MUZZLE_FLASH_LIFETIME + 1e-9);
         expect(flashes.count).toBe(1);
         expect(flashes.body[0]).toBe(9);
         expect(flashes.localX[0]).toBe(3);
@@ -243,7 +254,7 @@ describe("copying flashes", () => {
         const flashes = new Flashes();
         for (let i = 0; i < 100; i++) flashes.add(i, 0, FLASH_REFERENCE_ENERGY, IMPACT_ROUND);
         const copy = flashes.copy();
-        flashes.step(ROUND_FLASH_LIFETIME);
+        flashes.step(SPARK_LIFE);
         expect(flashes.count).toBe(0);
         expect(copy.count).toBe(100);
         expect(copy.x[99]).toBe(99);

@@ -454,6 +454,7 @@ export {
     IMPACT_BURST,
     IMPACT_COLLISION,
     IMPACT_MUZZLE,
+    IMPACT_EXIT,
     IMPACT_ROUND,
     ImpactLog,
     Impacts,

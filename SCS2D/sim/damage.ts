@@ -905,7 +905,28 @@ export interface RoundOutcome {
     inside: boolean;
     /** Seconds left over after it came out of the far side. */
     time: number;
+    /**
+     * Where it met a surface that can be seen, in the hull's frame: going into
+     * the hull or up a step from thin to thick, or out of it or down a step.
+     * A crossing from one module into another as thick is inside, and its
+     * energy goes to the surface before it. For drawing only.
+     */
+    faces: number;
+    faceX: Float64Array;
+    faceY: Float64Array;
+    /** The face's outward normal, going in; the way the round goes, coming out. */
+    faceNx: Float64Array;
+    faceNy: Float64Array;
+    /** The way the round was going when it got there. */
+    faceUx: Float64Array;
+    faceUy: Float64Array;
+    faceEnergy: Float64Array;
+    /** 1 where it came out, 0 where it went in. */
+    faceOut: Uint8Array;
 }
+
+/** Most surfaces one walk records: more than a round meets crossing any hull in a step. */
+const MAX_FACES = 16;
 
 export function roundOutcome(): RoundOutcome {
     return {
@@ -925,7 +946,43 @@ export function roundOutcome(): RoundOutcome {
         firstY: 0,
         inside: false,
         time: 0,
+        faces: 0,
+        faceX: new Float64Array(MAX_FACES),
+        faceY: new Float64Array(MAX_FACES),
+        faceNx: new Float64Array(MAX_FACES),
+        faceNy: new Float64Array(MAX_FACES),
+        faceUx: new Float64Array(MAX_FACES),
+        faceUy: new Float64Array(MAX_FACES),
+        faceEnergy: new Float64Array(MAX_FACES),
+        faceOut: new Uint8Array(MAX_FACES),
     };
+}
+
+/** Record a surface the round met, or add `energy` to the last one where there is no room. */
+function face(
+    out: RoundOutcome,
+    x: number,
+    y: number,
+    nx: number,
+    ny: number,
+    ux: number,
+    uy: number,
+    energy: number,
+    outward: boolean,
+): void {
+    if (out.faces === MAX_FACES) {
+        out.faceEnergy[MAX_FACES - 1] = out.faceEnergy[MAX_FACES - 1]! + energy;
+        return;
+    }
+    const k = out.faces++;
+    out.faceX[k] = x;
+    out.faceY[k] = y;
+    out.faceNx[k] = nx;
+    out.faceNy[k] = ny;
+    out.faceUx[k] = ux;
+    out.faceUy[k] = uy;
+    out.faceEnergy[k] = energy;
+    out.faceOut[k] = outward ? 1 : 0;
 }
 
 /**
@@ -995,6 +1052,7 @@ function walkRound(
     out.first = -1;
     out.inside = false;
     out.time = 0;
+    out.faces = 0;
 
     const reach = design.radius * 2 + 1;
     let at = along;
@@ -1042,6 +1100,25 @@ function walkRound(
             const hit = strike(mass, calibre, carried, design.modules[module]!.stats.wallThickness, incidence);
 
             damage.absorb(bodyIndex, module, hit.energy);
+            {
+                // Coming straight from a module it was already in: a surface only where
+                // the two stand at different heights, out of the thick one's side when
+                // it steps down and into it when it steps up.
+                const from = k > 0 && path.exit[k - 1]! - reach >= at - ARRIVAL_SLACK ? path.module[k - 1]! : -1;
+                const thick = design.modules[module]!.weaponsLayer;
+                if (from < 0 || design.modules[from]!.weaponsLayer !== thick) {
+                    if (from >= 0 && !thick) face(out, ox + ux * at, oy + uy * at, ux, uy, ux, uy, hit.energy, true);
+                    else face(out, ox + ux * at, oy + uy * at, nx, ny, ux, uy, hit.energy, false);
+                } else if (out.faces > 0) {
+                    out.faceEnergy[out.faces - 1] = out.faceEnergy[out.faces - 1]! + hit.energy;
+                }
+                // Out of the far side into open space, through the last module or a gap after it.
+                if (hit.outcome === Terminal.Perforate) {
+                    const end = path.exit[k]! - reach;
+                    const next = k + 1 < path.count ? path.entry[k + 1]! - reach : Infinity;
+                    if (next > end + ARRIVAL_SLACK) face(out, ox + ux * end, oy + uy * end, ux, uy, ux, uy, hit.energy, true);
+                }
+            }
             if (scarKind !== 0) {
                 const through = hit.outcome === Terminal.Perforate;
                 const end = through ? path.exit[k]! - reach : at;
@@ -1304,9 +1381,15 @@ export class ImpactLog {
     vy = new Float64Array(64);
     /** How fast it spreads, m/s: a burst's, as fast as its fastest fragment leaves. */
     growth = new Float64Array(64);
-    /** The way it points, a unit vector in the struck body's frame, or zero for no way: a muzzle's. */
+    /**
+     * The way it points, a unit vector in the struck body's frame, or zero for
+     * no way: a muzzle's, and the way a round was going where it met a surface.
+     */
     dirX = new Float64Array(64);
     dirY = new Float64Array(64);
+    /** The outward normal of the surface it met, in the same frame, or zero for none: what is thrown off leaves along it. */
+    normalX = new Float64Array(64);
+    normalY = new Float64Array(64);
     count = 0;
 
     push(
@@ -1321,12 +1404,16 @@ export class ImpactLog {
         growth = 0,
         dirX = 0,
         dirY = 0,
+        normalX = 0,
+        normalY = 0,
     ): void {
         if (this.count === this.x.length) this.grow();
         const i = this.count++;
         this.growth[i] = growth;
         this.dirX[i] = dirX;
         this.dirY[i] = dirY;
+        this.normalX[i] = normalX;
+        this.normalY[i] = normalY;
         this.x[i] = x;
         this.y[i] = y;
         this.vx[i] = vx;
@@ -1346,6 +1433,8 @@ export class ImpactLog {
         this.localY[i] = -dx * sn + dy * c;
         this.dirX[i] = dirX * c + dirY * sn;
         this.dirY[i] = -dirX * sn + dirY * c;
+        this.normalX[i] = normalX * c + normalY * sn;
+        this.normalY[i] = -normalX * sn + normalY * c;
     }
 
     clear(): void {
@@ -1369,6 +1458,12 @@ export class ImpactLog {
         dirY.set(this.dirY);
         this.dirX = dirX;
         this.dirY = dirY;
+        const normalX = new Float64Array(size);
+        const normalY = new Float64Array(size);
+        normalX.set(this.normalX);
+        normalY.set(this.normalY);
+        this.normalX = normalX;
+        this.normalY = normalY;
         const x = new Float64Array(size);
         const y = new Float64Array(size);
         const energy = new Float64Array(size);
@@ -1409,6 +1504,8 @@ export const IMPACT_COLLISION = 2;
 export const IMPACT_BURST = 3;
 /** A gun firing: logged at its muzzle, with the round's energy, rather than at anything hit. */
 export const IMPACT_MUZZLE = 4;
+/** A round coming out of a hull, or down a step from thick to thin, with what the plate it left took. */
+export const IMPACT_EXIT = 5;
 
 /**
  * Resolving a step's impacts: what each hit does, and a log of them to draw.
@@ -1595,7 +1692,31 @@ export class Impacts {
 
             const px = bx + out.firstX * c - out.firstY * s;
             const py = by + out.firstX * s + out.firstY * c;
-            this.log.push(px, py, out.energy, IMPACT_ROUND, bodies, body);
+            // A flash at every surface it met that can be seen, with the way it was
+            // going and the face's normal, so what is thrown off leaves the right way.
+            for (let f = 0; f < out.faces; f++) {
+                const fx = out.faceX[f]!;
+                const fy = out.faceY[f]!;
+                const ux = out.faceUx[f]!;
+                const uy = out.faceUy[f]!;
+                const nx = out.faceNx[f]!;
+                const ny = out.faceNy[f]!;
+                this.log.push(
+                    bx + fx * c - fy * s,
+                    by + fx * s + fy * c,
+                    out.faceEnergy[f]!,
+                    out.faceOut[f] === 1 ? IMPACT_EXIT : IMPACT_ROUND,
+                    bodies,
+                    body,
+                    0,
+                    0,
+                    0,
+                    ux * c - uy * s,
+                    ux * s + uy * c,
+                    nx * c - ny * s,
+                    nx * s + ny * c,
+                );
+            }
             credit?.push(projectiles.owner[round]!, body, out.energy, out.first);
             // The momentum the round lost is the momentum the ship gained, which is
             // a shove and — where it lands — a blow the hull has to hold together
