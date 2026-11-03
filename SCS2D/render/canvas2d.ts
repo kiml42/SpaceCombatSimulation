@@ -90,7 +90,8 @@ export { teamColour } from "./teams.js";
 import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth, plumeAlpha, tracerAlpha } from "./strokes.js";
 import { flashExtent, flashFade, flashPosition, muzzleWedge, type Flashes } from "./flashes.js";
 import { clipToStart, exposureEnds, flashSamples, shutterWeight } from "./exposure.js";
-import { flameSprite, sprite } from "./sprites.js";
+import { flameSprite, sprite, taperSprite, WEDGE_HEADROOM, WEDGE_STEPS, wedgeBox, wedgeSprite } from "./sprites.js";
+import { drawGlows, Lights, type Transform } from "./glows.js";
 import { iconAlpha, ICON_OUTLINE, ICON_PX, isWreckage } from "./icons.js";
 
 const { cos, floor, sin, length, max, min, PI, sqrt, TAU } = math;
@@ -214,6 +215,10 @@ const GLOW_CALIBRES = 7;
 const MIN_GLOW_PX = 5;
 /** A beam's halo, in its widths, and its floor on screen: kept apart from a tracer's. */
 const BEAM_GLOW_WIDTHS = 5;
+/** How far a beam's glow reaches to either side, as a share of `BEAM_GLOW_WIDTHS` of it: past the half, as it fades out to its edge. */
+const BEAM_GLOW_REACH = 0.8;
+/** Its brightness at the middle beside the flat stroke it replaced, which was as bright edge to edge. */
+const BEAM_GLOW_BOOST = 1.2;
 const MIN_BEAM_GLOW_PX = 3;
 const MIN_TRACER_PX = 0.1;
 /** A flash is never smaller than this on screen, however far out the camera is. */
@@ -277,8 +282,8 @@ const BURST_FLASH_GLOW = "#ff7a2e";
 const FLASH_GLOW_SHARE = 2.2;
 /** A muzzle flash's glow, in its core's widths: tight, so the wedge keeps its shape. */
 const MUZZLE_GLOW_SHARE = 1.5;
-/** Most discs a muzzle flash's wedge is drawn with. */
-const MAX_WEDGE_DISCS = 32;
+/** How bright a muzzle flash's glow is at its middle. */
+const WEDGE_GLOW = 0.6;
 /** How much of a blast's width its bright core fills; the glow is the rest. */
 const BLAST_CORE_SHARE = 0.45;
 
@@ -343,8 +348,8 @@ const NOZZLE_GLOW_SHARE = 0.35;
 /** How long a flame is, in exit widths, when its glow is at full strength. */
 const NOZZLE_GLOW_GROWN = 4;
 /** A burn on a hull: the flame's colour, hotter at the middle. */
-const BURN = "255, 170, 90";
-const BURN_CORE = "255, 236, 200";
+const BURN = "#ffaa5a";
+const BURN_CORE = "#ffecc8";
 
 /**
  * Trace a triangle with its corners rounded by up to `radius`. A sharp corner
@@ -1223,11 +1228,13 @@ function drawRobots(ctx: CanvasRenderingContext2D, ship: ShipView): void {
 }
 
 /** What leaking fuel looks like: vapour, white. */
-const LEAK = "235, 242, 250";
+const LEAK = "#ebf2fa";
 /** How long a leak's plume is drawn, metres per √(kg/s) going out of it. */
 const LEAK_PLUME_LENGTH = 1.5;
 /** How far it has spread by its end, as a share of its length either side. */
 const LEAK_PLUME_SPREAD = 0.3;
+/** How opaque it is where it leaves the hole. */
+const LEAK_ALPHA = 0.6;
 
 /**
  * Fuel leaking from a hole: a white plume widening and fading as it goes, longer
@@ -1245,18 +1252,13 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView): void {
         const half = ship.leakWidth![k]! / 2;
         const length = max(half * 8, LEAK_PLUME_LENGTH * sqrt(rate));
         const spread = half + length * LEAK_PLUME_SPREAD;
+        const image = taperSprite(LEAK, half / spread);
+        if (image === null) continue;
         ctx.save();
         ctx.translate(xs[k]!, ship.leakY![k]!);
-        // `fade` runs towards -x, so turn the plume's way round to face it.
-        ctx.rotate(math.atan2(ship.leakDirY![k]!, ship.leakDirX![k]!) + PI);
-        ctx.fillStyle = fade(ctx, 0, length, LEAK, 0.6);
-        ctx.beginPath();
-        ctx.moveTo(0, -half);
-        ctx.lineTo(0, half);
-        ctx.lineTo(-length, spread);
-        ctx.lineTo(-length, -spread);
-        ctx.closePath();
-        ctx.fill();
+        ctx.rotate(math.atan2(ship.leakDirY![k]!, ship.leakDirX![k]!));
+        ctx.globalAlpha *= LEAK_ALPHA;
+        ctx.drawImage(image, 0, -spread, length, 2 * spread);
         ctx.restore();
     }
     ctx.restore();
@@ -1417,20 +1419,15 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
         const root = -engine.length / 2;
         const half = engine.geometry.exitWidth / 2;
         const image = flameSprite(PLUME, PLUME_CORE);
-        const glow = sprite("halo", NOZZLE_GLOW);
-        if (image === null || glow === null) return;
+        if (image === null) return;
         const outer = ctx.globalAlpha;
-        const blend = ctx.globalCompositeOperation;
         const brightness = layerAlpha(min(1, plumeAlpha(plumeIntensity(engine.geometry, force)) * PLUME_CORE_BOOST), split);
         // Round the exit, past the bell's sides and back over its mouth: light,
         // so it brightens whatever it is over.
         // Fading in with the flame, so a short one has no glow larger than itself.
         const grown = min(1, reach / (NOZZLE_GLOW_GROWN * 2 * half));
         const g = half * NOZZLE_GLOW_REACH * (0.5 + 0.5 * grown);
-        ctx.globalCompositeOperation = "lighter";
-        ctx.globalAlpha = outer * brightness * NOZZLE_GLOW_SHARE * grown;
-        ctx.drawImage(glow, root - g, across - g, 2 * g, 2 * g);
-        ctx.globalCompositeOperation = blend;
+        lights.point(ctx.getTransform(), root, across, g, NOZZLE_GLOW, outer * brightness * NOZZLE_GLOW_SHARE * grown);
         // The sprite's core is its brightest, its edge a little dimmer.
         ctx.globalAlpha = outer * brightness;
         let cutAny = false;
@@ -1763,13 +1760,10 @@ function layerAlpha(alpha: number, split: number): number {
  * bright as the power landing on it per square metre — a little brighter
  * than the flame itself, for the hull it is boiling off.
  *
- * In a pass of its own after every hull, so a glow on a ship drawn later is
- * not painted over by it, and additive, so it lights the hull rather than
- * covering it.
+ * Lights, so drawn with the scene's glows, over every hull and lighting it
+ * rather than covering it.
  */
 function drawBurns(ctx: CanvasRenderingContext2D, snapshot: Snapshot): void {
-    ctx.save();
-    ctx.globalCompositeOperation = "lighter";
     for (let i = 0; i < snapshot.shipCount; i++) {
         eachNozzle(ctx, snapshot.ships[i]!, (engine, force, reach, across, landed, split) => {
             // What of this nozzle's power is landing, and roughly where: the core's
@@ -1799,22 +1793,15 @@ function drawBurns(ctx: CanvasRenderingContext2D, snapshot: Snapshot): void {
             const deep = along * 0.55;
             const alpha = min(1, plumeAlpha(power / (PI * along * deep)) * 1.3);
 
-            ctx.save();
-            ctx.translate(root - at, across + off * exit);
-            ctx.scale(deep, along);
-            const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
-            glow.addColorStop(0, `rgba(${BURN_CORE}, ${alpha})`);
-            glow.addColorStop(0.25, `rgba(${BURN}, ${alpha * 0.7})`);
-            glow.addColorStop(0.6, `rgba(${BURN}, ${alpha * 0.25})`);
-            glow.addColorStop(1, `rgba(${BURN}, 0)`);
-            ctx.fillStyle = glow;
-            ctx.beginPath();
-            ctx.arc(0, 0, 1, 0, TAU);
-            ctx.fill();
-            ctx.restore();
+            // A line along the surface, so its glow is spread along it rather than round.
+            const m = ctx.getTransform();
+            const x = root - at;
+            const y = across + off * exit;
+            const spread = along - deep;
+            lights.line(m, x, y - spread, x, y + spread, deep, BURN, alpha * 0.7);
+            lights.line(m, x, y - spread * 0.5, x, y + spread * 0.5, deep * 0.5, BURN_CORE, alpha * 0.6);
         });
     }
-    ctx.restore();
 }
 
 /** An engine as the flame passes need it: its bell geometry and its length. */
@@ -1869,14 +1856,6 @@ function eachNozzle(
         ctx.restore();
     }
     ctx.restore();
-}
-
-/** A flame's fill: `alpha` at the nozzle, fading to nothing `length` aft of it. */
-function fade(ctx: CanvasRenderingContext2D, root: number, length: number, rgb: string, alpha: number): CanvasGradient {
-    const gradient = ctx.createLinearGradient(root, 0, root - length, 0);
-    gradient.addColorStop(0, `rgba(${rgb}, ${alpha})`);
-    gradient.addColorStop(1, `rgba(${rgb}, 0)`);
-    return gradient;
 }
 
 /**
@@ -2114,6 +2093,9 @@ const CULL_PAD_PX = 48;
 const shownBox = { x: 0, y: 0, halfW: Infinity, halfH: Infinity };
 
 /** `draw`, into the `widthPx` by `heightPx` box whose top left is at `left`, `top`. */
+/** What gives off light in the scene being drawn, its glows drawn at the scene's end. */
+const lights = new Lights();
+
 function drawScene(
     ctx: CanvasRenderingContext2D,
     snapshot: Snapshot,
@@ -2131,6 +2113,7 @@ function drawScene(
     underneath = false,
     light?: Light,
 ): void {
+    lights.clear();
     ctx.setTransform(1, 0, 0, 1, left, top);
     if (!underneath) {
         ctx.fillStyle = BACKGROUND;
@@ -2194,8 +2177,11 @@ function drawScene(
     drawOrders(ctx, snapshot, selected, alsoSelected, camera.scale);
     drawBurns(ctx, snapshot);
     drawProjectiles(ctx, snapshot, camera, teamShots);
-    drawBeams(ctx, snapshot, camera, teamShots);
+    beamLights(ctx, snapshot, camera, teamShots);
     if (flashes !== undefined) drawFlashes(ctx, snapshot, flashes, camera);
+    drawGlows(ctx, lights);
+    lights.clear();
+    drawBeams(ctx, snapshot, camera, teamShots);
     shownBox.halfW = Infinity;
     shownBox.halfH = Infinity;
 }
@@ -2846,14 +2832,12 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
     ctx.globalCompositeOperation = "lighter";
     for (let i = 0; i < flashes.count; i++) {
         const kind = flashes.kind[i]!;
-        const glow = sprite("halo", kind === IMPACT_BEAM ? BEAM_FLASH_GLOW : kind === IMPACT_BURST ? BURST_FLASH_GLOW : FLASH_GLOW);
+        const glow = kind === IMPACT_BEAM ? BEAM_FLASH_GLOW : kind === IMPACT_BURST ? BURST_FLASH_GLOW : FLASH_GLOW;
         // A burst or a muzzle is a blast of gas rather than a spot of hot metal, so
         // its core is soft: as bright in the middle, fading out to its edge.
-        const core = sprite(
-            kind === IMPACT_BURST || kind === IMPACT_MUZZLE ? "halo" : "disc",
-            kind === IMPACT_BEAM ? BEAM_FLASH_CORE : kind === IMPACT_BURST ? BURST_FLASH_CORE : FLASH_CORE,
-        );
-        if (glow === null || core === null) continue;
+        const coreColour = kind === IMPACT_BEAM ? BEAM_FLASH_CORE : kind === IMPACT_BURST ? BURST_FLASH_CORE : FLASH_CORE;
+        const core = sprite(kind === IMPACT_BURST || kind === IMPACT_MUZZLE ? "halo" : "disc", coreColour);
+        if (core === null) continue;
         const age = flashes.age[i]!;
         const lifetime = flashes.lifetime[i]!;
         // Centred on now, as a round's is, and reaching back half a step past the
@@ -2914,7 +2898,7 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
             const y = at.y + rvy * ahead;
             if (pointing) {
                 ctx.setTransform(base);
-                drawWedge(ctx, glow, core, x, y, dirX, dirY, flashes.radius[i]!, t, lifetime, fade * weight, floor);
+                drawWedge(ctx, base, glow, coreColour, x, y, dirX, dirY, flashes.radius[i]!, t, lifetime, fade * weight, floor);
                 continue;
             }
             // Floored on screen, so a hit is visible from far enough out to see the
@@ -2923,8 +2907,7 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
             const r = max(extent * coreShare, floor);
             const g = max(extent * glowShare, floor);
             ctx.setTransform(base);
-            ctx.globalAlpha = 0.5 * fade * weight;
-            ctx.drawImage(glow, x - g, y - g, 2 * g, 2 * g);
+            lights.point(base, x, y, g, glow, 0.5 * fade * weight);
             ctx.globalAlpha = 0.9 * fade * weight;
             ctx.drawImage(core, x - r, y - r, 2 * r, 2 * r);
         }
@@ -2933,13 +2916,15 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
 }
 
 /**
- * A muzzle flash: discs from its narrow back to its wide front, out along the
- * barrel's line, brightest at the muzzle end.
+ * A muzzle flash: a wedge from its narrow back to its wide front, out along
+ * the barrel's line, brightest at the muzzle end, in one sprite; its glow is a
+ * light along it.
  */
 function drawWedge(
     ctx: CanvasRenderingContext2D,
-    glow: CanvasImageSource,
-    core: CanvasImageSource,
+    base: Transform,
+    glow: string,
+    core: string,
     x: number,
     y: number,
     dirX: number,
@@ -2950,24 +2935,28 @@ function drawWedge(
     brightness: number,
     floor: number,
 ): void {
-    const wedge = muzzleWedge(radius, age, lifetime);
-    const span = wedge.front - wedge.back;
-    const n = min(MAX_WEDGE_DISCS, max(2, Math.ceil(span / max(wedge.backWidth * 0.5, floor)) + 1));
-    const spacing = span / (n - 1);
-    for (let k = 0; k < n; k++) {
-        const u = k / (n - 1);
-        const along = wedge.back + u * span;
-        const r = max(wedge.backWidth + u * (wedge.frontWidth - wedge.backWidth), floor);
-        const g = r * MUZZLE_GLOW_SHARE;
-        // Shared between the discs that overlap, so a long wedge is no brighter than a short one.
-        const share = min(1, (2.5 * spacing) / r) * (1 - 0.5 * u);
-        const cx = x + dirX * along;
-        const cy = y + dirY * along;
-        ctx.globalAlpha = 0.5 * brightness * share;
-        ctx.drawImage(glow, cx - g, cy - g, 2 * g, 2 * g);
-        ctx.globalAlpha = 0.9 * brightness * share;
-        ctx.drawImage(core, cx - r, cy - r, 2 * r, 2 * r);
+    const step = Math.round(sqrt(min(1, max(0, age / lifetime))) * WEDGE_STEPS);
+    const image = wedgeSprite(core, step);
+    if (image === null) return;
+    const box = wedgeBox(radius, step);
+    ctx.transform(dirX, dirY, -dirY, dirX, x, y);
+    const half = max(box.half, floor);
+    for (let left = brightness * WEDGE_HEADROOM; left > 0; left--) {
+        ctx.globalAlpha = min(1, left);
+        ctx.drawImage(image, box.from, -half, box.to - box.from, 2 * half);
     }
+    const wedge = muzzleWedge(radius, age, lifetime);
+    const reach = max(((wedge.backWidth + wedge.frontWidth) / 2) * MUZZLE_GLOW_SHARE, floor);
+    lights.line(
+        base,
+        x + dirX * wedge.back,
+        y + dirY * wedge.back,
+        x + dirX * wedge.front,
+        y + dirY * wedge.front,
+        reach,
+        glow,
+        brightness * WEDGE_GLOW,
+    );
 }
 
 /**
@@ -3117,31 +3106,33 @@ function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, came
     ctx.restore();
 }
 
-function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Camera, teamShots: boolean) {
-    // Beams, in two passes so that every glow sits under every streak. Both
-    // are sized from the beam's width and floored on screen, so a beam is
-    // true to size close up and legible from far out.
-    //
-    // A stroke per beam rather than one path for all of them, which the glow's
-    // translucency notices: two beams whose glows cross now brighten where they
-    // meet, where a single stroke over one path would have composited once.
-    // Worth it for a halo that is the round's own size, and rare enough not to
-    // read as anything but two tracers crossing.
-    ctx.lineCap = "butt";
+/**
+ * Each beam's glow, as a light: sized from its width and floored on screen as
+ * its line is, so a beam is true to size close up and legible from far out.
+ */
+function beamLights(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Camera, teamShots: boolean): void {
     const team = (i: number): number => (teamShots ? snapshot.beamTeam[i]! : -1);
+    const base = ctx.getTransform();
     for (let i = 0; i < snapshot.beamCount; i++) {
         if (!nearShown(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!, snapshot.beamEndX[i]!, snapshot.beamEndY[i]!)) continue;
-        ctx.strokeStyle = team(i) < 0 ? BEAM_GLOW : markerOf(shipColours(team(i))).hull;
-        const calibre = snapshot.beamWidth[i]!;
-        const halo = BEAM_GLOW_WIDTHS * calibre;
-        ctx.globalAlpha = beamAlpha(snapshot.beamPower[i]!) * BEAM_GLOW_ALPHA * flooredFade(halo, MIN_BEAM_GLOW_PX, camera.scale);
-        ctx.lineWidth = legibleWidth(halo, MIN_BEAM_GLOW_PX, camera.scale);
-        ctx.beginPath();
-        ctx.moveTo(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!);
-        ctx.lineTo(snapshot.beamEndX[i]!, snapshot.beamEndY[i]!);
-        ctx.stroke();
+        const halo = BEAM_GLOW_WIDTHS * snapshot.beamWidth[i]!;
+        lights.line(
+            base,
+            snapshot.beamStartX[i]!,
+            snapshot.beamStartY[i]!,
+            snapshot.beamEndX[i]!,
+            snapshot.beamEndY[i]!,
+            legibleWidth(halo, MIN_BEAM_GLOW_PX, camera.scale) * BEAM_GLOW_REACH,
+            team(i) < 0 ? BEAM_GLOW : markerOf(shipColours(team(i))).hull,
+            beamAlpha(snapshot.beamPower[i]!) * BEAM_GLOW_ALPHA * BEAM_GLOW_BOOST * flooredFade(halo, MIN_BEAM_GLOW_PX, camera.scale),
+        );
     }
+}
 
+/** Beams' lines, after the glows so that light does not wash out their colour. */
+function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Camera, teamShots: boolean) {
+    ctx.lineCap = "butt";
+    const team = (i: number): number => (teamShots ? snapshot.beamTeam[i]! : -1);
     // A pass per beam, because each carries its own width and its own opacity.
     // Cheap at the beam counts a battle reaches; if that ever stops being true,
     // bucket by width rather than reaching for a single average.

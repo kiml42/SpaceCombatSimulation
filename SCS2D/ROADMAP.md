@@ -103,8 +103,7 @@ an entry is either still open or it is gone.
     (4) **built** — WebGL is the default, and then the only way: **Draw: 2D** was retired on
     2026-11-01, once WebGL ran well on a laptop and a phone (stage 5's second item); (5) how it looks — lighting, the editors in Pixi, liveries, part art, marks
     and effects, in the order and form set out below; (6) a pass over the stop-gaps, done properly alongside a refresh of how those things
-    look rather than fixed in place: gradients filled in bands (burn glows are rings;
-    the fix is one cached gradient per colour, drawn in the shape's own frame, as plumes now are), strips drawn afresh each
+    look rather than fixed in place: strips drawn afresh each
     frame without their cache, fills not cut by an outside clip, lines thinner than a pixel drawn a pixel
     wide and fainter, and whatever else is still drawn through `render/pixiCanvas.ts` that would be better
     as shared geometry.
@@ -418,9 +417,18 @@ an entry is either still open or it is gone.
           damage, and muzzle flashes are their kin. Both already look good; worth a look at whether WebGL
           draws them better or more cheaply, and both should light what is near them once there are
           dynamic lights. Modules exploding is a separate piece of work, sim and render together.
-        - **One list of light sources a frame**: points (flashes, bursts, muzzles) and lines (beams,
-          plumes). This step draws them as additive glows, one cached gradient texture per colour (which
-          retires the banded burn glows of stage (6)); the dynamic lights of step 7 read the same list.
+        - **One list of light sources a frame — built** (`render/glows.ts`): points and lines in canvas
+          pixels, each recorded under the transform its pass draws in, and drawn as one additive pass at
+          the end of the scene: a halo for a point, a capsule for a line (a band capped with a halo's
+          halves). Flashes and bursts give a point each, a nozzle a point at its exit, a muzzle flash and
+          a beam a line, and a burn a short line along the hull it is boiling off. Each emitter still
+          draws its own core; the list is only the light round it, and the dynamic lights of step 7 read
+          the same list. Plumes are lit as points at their nozzles until then, not yet as lines.
+          Beams' lines are drawn after the glows, so the light does not wash out their colour. Burns and
+          leaks are sprites now, so the adapter has no gradients left to fill in bands.
+        - **Muzzle flashes — built**: one sprite per eighth of their growth, made from the discs the
+          wedge was drawn with, so a flash is one or two quads rather than up to 64. A burst was already
+          two sprites, and only its glow moved to the list.
         - **Short-lived particles are a function of their event and age**, not stored state: a straight
           line from where and how fast the event's hull was going, everything else drawn from the event's
           id. So pause, step, scrub and replay come free and look alike. Capped by dropping the oldest
@@ -431,7 +439,8 @@ an entry is either still open or it is gone.
         - **Zoom** as bevels and scars: a particle under a pixel is not drawn; glows keep a pixel floor, as
           flashes do.
         - **In pull requests**, in this order: (1) the list of sources and glow sprites, replacing today's
-          banded glows, with the bursts and muzzle flashes looked at again; (2) the short-lived particles.
+          banded glows, with the bursts and muzzle flashes looked at again — built; (2) the short-lived
+          particles.
         - **Lingering debris** comes later and is not settled: bits that stay a while need to bounce off
           hulls and curve in the wells, which a formula of age cannot do. Never larger than the size below
           which a module is not kept, looking like twisted metal so it is never taken for a module, and
