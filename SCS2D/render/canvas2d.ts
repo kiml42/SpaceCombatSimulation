@@ -2768,6 +2768,16 @@ const FADE_STEPS = 8;
  * either side of it, as the pull back into the band fades in (`edgeFade`).
  */
 function drawBand(ctx: CanvasRenderingContext2D, x: number, y: number, min: number, max: number, fade: number, metresToPx: number): void {
+    // Rings the same from frame to frame while it holds the same band: kept (`keep`), and only moved.
+    ctx.save();
+    ctx.translate(x, y);
+    keep(ctx, `band ${min} ${max} ${fade}`, () => bandRings(ctx, min, max, fade, metresToPx));
+    ctx.restore();
+}
+
+function bandRings(ctx: CanvasRenderingContext2D, min: number, max: number, fade: number, metresToPx: number): void {
+    const x = 0;
+    const y = 0;
     ctx.fillStyle = HOLD_BAND;
     const ring = (from: number, to: number, alpha: number): void => {
         if (!(to > from) || !(alpha > 0)) return;
