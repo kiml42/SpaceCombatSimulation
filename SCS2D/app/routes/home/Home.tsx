@@ -14,6 +14,7 @@ export const SCREENS: readonly PageLink[] = [
     { href: "#/skirmish", name: "Skirmish", purpose: "Build a fleet to beat an enemy that answers back" },
     { href: "#/evolution", name: "Evolution", purpose: "Breed ships and fleets" },
     { href: "#/library", name: "Library", purpose: "The ships and fleets you have saved" },
+    { href: "#/effects", name: "Effects", purpose: "See how hits, beams, flames and leaks are drawn" },
 ];
 
 const Main = styled.main`

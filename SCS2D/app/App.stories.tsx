@@ -139,6 +139,16 @@ export const Skirmish: Story = {
     },
 };
 
+export const Effects: Story = {
+    args: { path: "/effects" },
+    play: async ({ canvas }) => {
+        await userEvent.selectOptions(canvas.getByRole("combobox", { name: "Effect" }), "Beams");
+        await expect(canvas.getByText(/^Beams of 10 cm/)).toBeVisible();
+        await userEvent.click(canvas.getByRole("button", { name: "Pause" }));
+        await expect(canvas.getByRole("button", { name: "Play" })).toBeVisible();
+    },
+};
+
 export const Evolution: Story = {
     args: { path: "/evolution" },
     play: async ({ canvas }) => {

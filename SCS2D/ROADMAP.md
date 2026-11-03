@@ -438,6 +438,8 @@ an entry is either still open or it is gone.
           and thinning; no smoke and no lingering fireball.
         - **Zoom** as bevels and scars: a particle under a pixel is not drawn; glows keep a pixel floor, as
           flashes do.
+        - **The Effects route** (`#/effects`) shows each effect on its own, drawn by the battle's renderer, looped,
+          slowed and scrubbed: the place to look at a change to how one is drawn, and to add a scene for a new one.
         - **In pull requests**, in this order: (1) the list of sources and glow sprites, replacing today's
           banded glows, with the bursts and muzzle flashes looked at again — built; (2) the short-lived
           particles.
