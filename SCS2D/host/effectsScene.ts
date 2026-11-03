@@ -28,6 +28,7 @@ import { DECK_HEIGHT, DEFAULT_BURST_SPEED, DEFAULT_FRAGMENTS, EXPLOSIVE_YIELD } 
 import { CORVETTE, TORCH, TORPEDO } from "../scenarios/blueprints.js";
 import { barrelLines } from "../render/barrels.js";
 import { burstLifetime, Flashes, flashRadius } from "../render/flashes.js";
+import { holeWidth, type Hole } from "../render/vapour.js";
 
 /**
  * Small scenes of the battle's effects, for looking at them on their own: each
@@ -258,6 +259,11 @@ function place(snapshot: Snapshot, design: ShipDesign, x: number, y: number, ang
     view.leakRate = [];
     view.leakAge = [];
     view.leakSpeed = [];
+    view.leakOpened = [];
+    view.leakClosing = [];
+    view.leakFloor = [];
+    view.leakPatched = [];
+    view.leakFill = [];
     return view;
 }
 
@@ -334,7 +340,8 @@ function punch(
     design: ShipDesign,
     y: number,
     row: ReturnType<typeof holeRow>,
-    width: (calibre: number, open: number) => number | null,
+    sealing: number,
+    mendedAfter: number,
 ): void {
     const ship = place(snapshot, design, design.centreOfMassX, design.centreOfMassY + y, 0);
     const top = design.modules[1]!.y + design.modules[1]!.spec.width / 2;
@@ -349,16 +356,28 @@ function punch(
             return;
         }
         flash(flashes, t, HOLED_AT, x, y + top, g.energy, IMPACT_ROUND, 0, down, -down, 0, 0, 1);
-        const open = width(g.calibre, t - HOLED_AT) ?? g.calibre;
-        if (!(open > 0)) return;
+        // Narrowing as its lining closes it, and closing all the way once patched, as the sim has it.
+        const history: Hole = {
+            opened: g.calibre,
+            closing: SEAL_SPEED * sealing,
+            floor: Math.max(0, g.calibre - SEAL_REACH * sealing),
+            patched: mendedAfter,
+        };
+        const age = t - HOLED_AT;
+        const open = holeWidth(history, age);
         ship.leakX!.push(x - design.centreOfMassX);
         ship.leakY!.push(top - design.centreOfMassY);
         ship.leakDirX!.push(0);
         ship.leakDirY!.push(1);
         ship.leakWidth!.push(open);
         ship.leakRate!.push(leakRate((Math.PI * open * open) / 4, 1));
-        ship.leakAge!.push(t - HOLED_AT);
+        ship.leakAge!.push(age);
         ship.leakSpeed!.push(leakSpeed(1));
+        ship.leakOpened!.push(history.opened);
+        ship.leakClosing!.push(history.closing);
+        ship.leakFloor!.push(history.floor);
+        ship.leakPatched!.push(history.patched);
+        ship.leakFill!.push(1);
     });
 }
 
@@ -626,14 +645,7 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
             begin(snapshot, flashes, t, -10, -10, row.length + 10, row.top + row.tallest + 10);
             room(snapshot, GUN_MOUNTS.length);
             // The lining swells into the hole as far as it reaches, and a patch closes what it leaves.
-            const closing = SEAL_SPEED * SEALING;
-            const floor = SEAL_REACH * SEALING;
-            const lined = (width: number, open: number): number => Math.max(Math.max(0, width - floor), width - closing * open);
-            punch(t, snapshot, flashes, tankDesign(row.length, SEALING), 0, row, (width, open) =>
-                open < MENDED_AFTER
-                    ? lined(width, open)
-                    : Math.max(0, lined(width, MENDED_AFTER) - Math.max(PATCH_SPEED, closing) * (open - MENDED_AFTER)),
-            );
+            punch(t, snapshot, flashes, tankDesign(row.length, SEALING), 0, row, SEALING, MENDED_AFTER);
         },
     },
 ];
