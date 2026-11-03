@@ -532,8 +532,8 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
     },
     {
         name: "Leaks",
-        about: "Rounds from the five guns of the Guns scene punching holes one after another in a full tank, each hole its round's calibre: the leak starting, then flowing at what the hole lets out, 4 kg/s to 1.5 t/s.",
-        loop: 2,
+        about: "Rounds from the five guns of the Guns scene punching holes together in a full tank, each hole its round's calibre: the leaks starting, then flowing at what each hole lets out, 4 kg/s to 1.5 t/s.",
+        loop: 1,
         build(t, snapshot, flashes) {
             const each = GUN_MOUNTS.map(gun);
             const holes = each.map((g) => {
@@ -555,7 +555,7 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
             room(snapshot, each.length);
             const down = Math.SQRT1_2;
             each.forEach((g, k) => {
-                const hit = 0.3 + 0.25 * k;
+                const hit = 0.3;
                 const x = xs[k]!;
                 const vx = g.speed * down;
                 const vy = -g.speed * down;
