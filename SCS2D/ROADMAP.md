@@ -482,8 +482,15 @@ an entry is either still open or it is gone.
                is under them in a second batch. Each throws some of the other's too: a hit knocks out a
                few bits of metal the way its sparks go, a fifth as many as a collision of its energy, and
                a collision grinds out a few sparks along the contact, a third as many as a hit's.
-            3. **Leak vapour**, from the formula for a hole's width over its life, placed by the ship's
-               pose now; then (4) by its pose when each left.
+            3. **Leak vapour — built** (`render/vapour.ts`), in place of the plume image. A hole records
+               what it has been (`Leak.opened`, `liningClosing`, `liningFloor`, `patched`, `closed`, read
+               by nothing in the sim), so its width at any age is a formula, and the snapshot carries them
+               and keeps a closed hole for `LEAK_LINGER` seconds. Puffs leave every fortieth of a second, as
+               many as the hole's rate then calls for, at the fuel's speed give or take a sixth, spreading
+               and thinning as they go: so a new leak grows out of its hole with a soft front, and one
+               narrowing or shut sends out less or nothing while what is out drifts on. Placed in the
+               hull's frame as it is now, so the stream turns with the ship; then (4) by its pose when each
+               left.
         - **Lingering debris** comes later and is not settled: bits that stay a while need to bounce off
           hulls and curve in the wells, which a formula of age cannot do. Never larger than the size below
           which a module is not kept, looking like twisted metal so it is never taken for a module, and

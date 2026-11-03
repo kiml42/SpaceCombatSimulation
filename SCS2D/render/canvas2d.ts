@@ -92,8 +92,10 @@ export { teamColour } from "./teams.js";
 import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth, plumeAlpha, tracerAlpha } from "./strokes.js";
 import { flashExtent, flashFade, flashPosition, muzzleWedge, type Flashes } from "./flashes.js";
 import { clipToStart, exposureEnds, flashSamples, shutterWeight } from "./exposure.js";
-import { flameSprite, rgba, sprite, TAPER_FRONTS, taperSprite, WEDGE_HEADROOM, WEDGE_STEPS, wedgeBox, wedgeSprite } from "./sprites.js";
+import { flameSprite, rgba, sprite, WEDGE_HEADROOM, WEDGE_STEPS, wedgeBox, wedgeSprite } from "./sprites.js";
 import { drawGlows, Lights, type Transform } from "./glows.js";
+import { leakSpeed } from "../sim/fuel.js";
+import { eachPuff, type Hole, type Puff } from "./vapour.js";
 import { bit, bitCount, seedOf, spark, sparkColour, sparkCount, sparkFade, sprayOf, type Bit, type Spark } from "./particles.js";
 import type { PixiCanvas } from "./pixiCanvas.js";
 import { iconAlpha, ICON_OUTLINE, ICON_PX, isWreckage } from "./icons.js";
@@ -1257,57 +1259,54 @@ function litColour(colour: string, light: string): string {
 
 /** What leaking fuel looks like: vapour, white, in the light it is seen in. */
 const LEAK = "#ebf2fa";
-/** How long a leak's plume is drawn, metres per √(kg/s) going out of it. */
-const LEAK_PLUME_LENGTH = 1.5;
-/** How far it has spread by its end, as a share of its length either side. */
-const LEAK_PLUME_SPREAD = 0.3;
-/** How opaque it is where it leaves the hole. */
-const LEAK_ALPHA = 0.6;
 
 /**
- * Fuel leaking from a hole: a white plume widening and fading as it goes, longer
- * the faster fuel is going out, so a gash reads from across the battle and a
- * pinhole as a wisp. A new hole's plume grows out of it as fast as its fuel
- * leaves, far slower than an engine's exhaust.
+ * Fuel leaking from a hole: puffs of white vapour (`render/vapour.ts`) widening
+ * and thinning as they go, reaching further the faster fuel is going out, so a
+ * gash reads from across the battle and a pinhole as a wisp. They leave as fast
+ * as the fuel does, far slower than an engine's exhaust, so a new leak grows out
+ * of its hole and one closing thins at the hole while what is out drifts on.
+ * One batch a ship, laid over what is under it.
  */
 function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light): void {
     const xs = ship.leakX;
     if (xs === undefined || xs.length === 0) return;
+    const image = sprite("halo", "#ffffff");
+    const batches = (ctx as Partial<{ particles: PixiCanvas["particles"] }>).particles;
+    if (image === null || batches === undefined) return;
     ctx.save();
     ctx.translate(ship.x, ship.y);
     ctx.rotate(ship.angle);
+    const [r, g, b] = rgba(light === undefined ? LEAK : litColour(LEAK, light.colour));
+    const tint = (r << 16) | (g << 8) | b;
+    let batch: ReturnType<PixiCanvas["particles"]> | null = null;
     for (let k = 0; k < xs.length; k++) {
-        const rate = ship.leakRate![k]!;
-        const half = ship.leakWidth![k]! / 2;
-        const length = max(half * 8, LEAK_PLUME_LENGTH * sqrt(rate));
-        const spread = half + length * LEAK_PLUME_SPREAD;
-        // Its whole width from the start, reaching only as far as its fuel has got
-        // since the hole opened: between two of the fronts a plume is made at,
-        // the nearer the more of each.
-        const age = ship.leakAge?.[k];
-        const speed = ship.leakSpeed?.[k];
-        const front = age === undefined || speed === undefined ? TAPER_FRONTS : min(TAPER_FRONTS, ((speed * age) / length) * TAPER_FRONTS);
-        if (!(front > 0)) continue;
-        const colour = light === undefined ? LEAK : litColour(LEAK, light.colour);
-        const below = Math.floor(front);
-        const share = front - below;
-        ctx.save();
-        ctx.translate(xs[k]!, ship.leakY![k]!);
-        ctx.rotate(math.atan2(ship.leakDirY![k]!, ship.leakDirX![k]!));
-        const outer = ctx.globalAlpha * LEAK_ALPHA;
-        for (const [at, weight] of [
-            [below, 1 - share],
-            [below + 1, share],
-        ] as const) {
-            const image = weight > 0 && at > 0 ? taperSprite(colour, half / spread, at) : null;
-            if (image === null) continue;
-            ctx.globalAlpha = outer * weight;
-            ctx.drawImage(image, 0, -spread, length, 2 * spread);
-        }
-        ctx.restore();
+        const width = ship.leakWidth![k]!;
+        // What the hole has been, or, for a picture that does not say, as it is now and always was.
+        hole.opened = ship.leakOpened?.[k] ?? width;
+        hole.closing = ship.leakClosing?.[k] ?? 0;
+        hole.floor = ship.leakFloor?.[k] ?? width;
+        hole.patched = ship.leakPatched?.[k] ?? -1;
+        const fill = ship.leakFill?.[k] ?? 1;
+        const speed = ship.leakSpeed?.[k] ?? leakSpeed(fill);
+        const age = ship.leakAge?.[k] ?? LONG_OPEN;
+        const dx = ship.leakDirX![k]!;
+        const dy = ship.leakDirY![k]!;
+        batch ??= batches.call(ctx, image, false);
+        const into = batch;
+        eachPuff(hole, xs[k]!, ship.leakY![k]!, dx, dy, age, fill, speed, puff, (p) => {
+            into.add(p.x, p.y, p.dirX, p.dirY, p.length, 2 * p.radius, tint, p.alpha);
+        });
     }
+    batch?.end();
     ctx.restore();
 }
+
+/** Scratch for drawing a leak, so drawing one allocates nothing. */
+const hole: Hole = { opened: 0, closing: 0, floor: 0, patched: -1 };
+const puff: Puff = { x: 0, y: 0, radius: 0, dirX: 1, dirY: 0, length: 0, alpha: 0 };
+/** How long a hole is taken to have been open where a picture does not say: long enough for its vapour to have reached its end. */
+const LONG_OPEN = 1e6;
 
 /**
  * The bracing on a row of long barrels: a block either side of the row and

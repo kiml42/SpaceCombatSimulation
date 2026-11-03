@@ -1593,6 +1593,11 @@ export class Ships {
             closing: lining * SEAL_SPEED,
             rate: 0,
             age: 0,
+            opened: width,
+            liningClosing: lining * SEAL_SPEED,
+            liningFloor: max(0, width - lining * SEAL_REACH),
+            patched: -1,
+            closed: -1,
         });
     }
 
@@ -9851,7 +9856,10 @@ export class Ships {
         for (const leak of leaks) {
             leak.age += dt;
             // The lining swells into the hole, pinching it off as far as it can reach.
-            if (leak.width > leak.floor) leak.width = max(leak.floor, leak.width - leak.closing * dt);
+            if (leak.width > leak.floor) {
+                leak.width = max(leak.floor, leak.width - leak.closing * dt);
+                if (!(leak.width > 0) && leak.closed < 0) leak.closed = leak.age;
+            }
             const fill = this.fuel.fill(b, leak.module);
             const taken = this.fuel.vent(b, leak.module, leakRate(PI * 0.25 * leak.width * leak.width, fill) * dt);
             leak.rate = taken / dt;
