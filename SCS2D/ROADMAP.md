@@ -137,7 +137,8 @@ an entry is either still open or it is gone.
       another shade it. The details canvas2d.ts draws over thin modules (gauges, berth pads) are drawn
       after, so stay unshadowed, which suits them being information.
       **Fighters cast shadows in the same pass**: the shadow layer takes their modules' shared geometry
-      too, offset further for their greater depth and masked to every capital module, thin or thick. A
+      too, offset further for their greater depth and masked to the thin hull alone, as the thick
+      modules' are: a fighter flies at a thick module's height, so never over one. A
       shadow needs only the outline, so the fighters themselves stay drawn where they are, over robots and
       decks; the longer offset is what leaves the shadow apart from the fighter, so it reads as flying.
     - **Later passes**, roughly in order:
@@ -163,7 +164,7 @@ an entry is either still open or it is gone.
        (`Battle.light`, the default where a battle sets none) and the two shadow lengths, 1.5 m for a
        thick module and 2.5 m for a fighter, judged by eye on ships of tens of metres; on a ship a kilometre
        across they barely show, the price of a fixed length. `render/hullLayer.ts` draws thin fills, thick
-       modules' shadows masked to thin hull, thick fills, then fighters' shadows masked to any hull, each
+       modules' and fighters' shadows masked to thin hull, then thick fills, each
        shadow layer darkened through one filter so overlaps are no darker. A thick module is a block, so
        its shadow is each of its shapes swept away from the light (the hull round the shape and the shape
        moved), joined to its foot and made afresh each frame; a fighter's is its outline moved, apart from
@@ -434,10 +435,32 @@ an entry is either still open or it is gone.
           id. So pause, step, scrub and replay come free and look alike. Capped by dropping the oldest
           events. Sparks for round and burst impacts, bits of metal for collisions in place of their
           flashes, vapour from leaks (a steady emitter on a fixed grid of birth times).
+        - **Leaks pinched off**, with the vapour particles: a self-sealing lining or a mending robot's patch
+          narrowing a hole shrinks the plume back into the hole (the Effects page's Leaks scene shows
+          both), where the fuel already out should drift on and thin while the source narrows. Vapour
+          particles that each carry the rate their fuel left at do that without asking the sim for anything more.
+        - **Leaks in shadow**, with the vapour particles: vapour hangs above the deck, so a thick module's
+          shadow should darken it where it passes through, and the hull layer's shadows, drawn underneath,
+          cannot reach it. Each particle asking whether it is in a thick module's shadow is the cheap way;
+          shadows cast at the vapour's own height belong with step 7's shadows from dynamic lights.
         - **A space look**: sparks and metal fly straight and fade; vapour comes only from leaks, spreading
           and thinning; no smoke and no lingering fireball.
         - **Zoom** as bevels and scars: a particle under a pixel is not drawn; glows keep a pixel floor, as
           flashes do.
+        - **From a first look on the Effects page — built**: a hit's core is white-hot in its middle and fades
+          to its edge; a muzzle flash's back leaves the muzzle slowly, so it is seen coming out of the
+          barrel, and a bigger gun's lasts longer; bursts are brighter and a bigger one lasts up to a quarter
+          of a second; a beam's core is lit across as a rod, with a small glow at its emitter, its glow under
+          its core and the flashes where it lands over it; a plume's glow is the flame's own shape blurred, a
+          cone of light (the third kind in `render/glows.ts`) from its nozzle to where it ends or lands; and a
+          leak is densest at its hole and lit in the battle's light.
+        - **Leaks grow out of their holes — built**: a hole counts how long it has been open (`Leak.age`,
+          read by nothing in the sim, so no golden moved), and the snapshot carries that and how fast its fuel
+          leaves (`leakAge`, `leakSpeed`), so its plume reaches out at that speed, about 49 m/s from a full
+          tank, rather than appearing whole: its full width from the start, with a soft front for fuel
+          leaving at a spread of speeds, made at 24 fronts along it and cross-faded between them.
+        - **The Effects route** (`#/effects`) shows each effect on its own, drawn by the battle's renderer, looped,
+          slowed and scrubbed: the place to look at a change to how one is drawn, and to add a scene for a new one.
         - **In pull requests**, in this order: (1) the list of sources and glow sprites, replacing today's
           banded glows, with the bursts and muzzle flashes looked at again — built; (2) the short-lived
           particles.

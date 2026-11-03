@@ -805,7 +805,9 @@ inside any one file is not contiguous.
   core may have a self-sealing lining (`sealing`, set in the editor in millimetres): it weighs and takes room
   from the fuel, and closes a hole steadily, faster the thicker it is, up to ten times its own thickness
   across — a wider hole narrows by that much and stays open. None by default, and none never seals. Mending
-  closes any hole whatever its width: robots or a pad mending a module plug every hole in it first. A tank or
+  closes any hole whatever its width: robots, a pad or a slipway mending a module patch every hole in it first,
+  and a patch closes a hole as a lining does, all the way, at `PATCH_SPEED` (0.2 m/s: a 40 cm gash in two
+  seconds), so a leak narrows to nothing rather than stopping at once. A tank or
   core may start part full (`fill`, a share set in the editor as a percentage and nudged by evolution, full by
   default): the ship sets out lighter, and every budget counts it as it sets out (`launchMass`) rather than
   full, so fuel a ship means to find is fuel it is not built with. The editor has a Tank, and shows an engine's Isp and fuel flow, a tank's fuel,
@@ -1240,7 +1242,7 @@ inside any one file is not contiguous.
   Vite to `dist/index.html`, one file that opens from disk, with Linaria, Storybook with a story and
   accessibility check per component, and ESLint with the import boundaries. Its routes go by the hash
   (`#/library`) inside a shell that links them, and read one shared library and view settings
-  (`features/storage/`), re-rendering on any save, another tab's included. The Library route lists every ship and fleet, each with Edit, which opens it in its editor, and Test, which fights it in a custom battle. The Battle route runs any scene on
+  (`features/storage/`), re-rendering on any save, another tab's included. The Library route lists every ship and fleet, each with Edit, which opens it in its editor, and Test, which fights it in a custom battle. The Effects route shows the battle's effects on their own — guns firing and their shells bursting, hits, collisions, beams, plumes, burns and leaks — each a small scene (`host/effectsScene.ts`) drawn by the battle's renderer, looped, slowed down, scrubbed and lit by any scene's light, for checking how they are drawn by eye. The Battle route runs any scene on
   the wall clock through `BattleCanvas`, a canvas React mounts and leaves to `battleView`, with figures read
   off it at 10 Hz: pause, step, reset, fit, the scrub bar and the speed, a custom battle set up beside it, kept between visits, each side a step from its editor and back,
   orders, doctrine and ships added from controls over it; old shared battle links open it. The Fleet and Ship
