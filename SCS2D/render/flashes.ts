@@ -42,11 +42,11 @@ const BURST_LIFETIME_PER_DECADE = 0.07;
 /** The shortest a burst lasts: under a frame, so a light shell's shows once. */
 const BURST_MIN_LIFETIME = 0.01;
 /** The longest: a heavy shell's flash, never a fireball. */
-const BURST_MAX_LIFETIME = 0.1;
+const BURST_MAX_LIFETIME = 0.25;
 
 /**
  * How long a burst of this energy lasts, seconds: a little longer for each
- * tenfold more charge, between a single frame and six.
+ * tenfold more charge, between a single frame and fifteen.
  */
 export function burstLifetime(energy: number): number {
     if (!(energy > 0)) return BURST_MIN_LIFETIME;
@@ -55,10 +55,21 @@ export function burstLifetime(energy: number): number {
 }
 
 /**
- * A gun going off: a few frames, so a gun can be seen to fire even when its
- * round is too small or too fast to follow.
+ * A gun going off with `FLASH_REFERENCE_ENERGY`: a few frames, so a gun can be
+ * seen to fire even when its round is too small or too fast to follow.
  */
 export const MUZZLE_FLASH_LIFETIME = 0.08;
+/** Seconds longer a muzzle flash lasts for each tenfold more energy. */
+const MUZZLE_LIFETIME_PER_DECADE = 0.03;
+const MUZZLE_MIN_LIFETIME = 0.05;
+const MUZZLE_MAX_LIFETIME = 0.2;
+
+/** How long a muzzle flash of this energy lasts, seconds: a big gun's a little longer. */
+export function muzzleLifetime(energy: number): number {
+    if (!(energy > 0)) return MUZZLE_MIN_LIFETIME;
+    const lifetime = MUZZLE_FLASH_LIFETIME + MUZZLE_LIFETIME_PER_DECADE * Math.log10(energy / FLASH_REFERENCE_ENERGY);
+    return Math.min(MUZZLE_MAX_LIFETIME, Math.max(MUZZLE_MIN_LIFETIME, lifetime));
+}
 /**
  * A muzzle flash's size as a share of a hit's of the same energy: the charge
  * mostly goes into the round, not the flare, and at full size the flash would
@@ -76,7 +87,8 @@ const MUZZLE_FLASH_THROAT = 0.2;
  *
  * A wedge rather than a disc, narrow at the back and wide at the front, which
  * travels out ahead of the barrel as it grows — the gas leaving with the round,
- * rather than something going off on the gun.
+ * rather than something going off on the gun. Its back leaves the muzzle
+ * slowly at first, so it is seen coming out of the barrel.
  */
 export function muzzleWedge(
     radius: number,
@@ -86,7 +98,7 @@ export function muzzleWedge(
     const f = lifetime > 0 ? Math.sqrt(Math.min(1, Math.max(0, age / lifetime))) : 1;
     const reach = radius * MUZZLE_FLASH_REACH;
     return {
-        back: reach * 0.5 * f,
+        back: reach * 0.5 * f * f,
         front: reach * (FLASH_BIRTH_SIZE + (1 - FLASH_BIRTH_SIZE) * f),
         backWidth: radius * MUZZLE_FLASH_THROAT,
         frontWidth: radius * (FLASH_BIRTH_SIZE + (1 - FLASH_BIRTH_SIZE) * f),
@@ -223,7 +235,7 @@ export class Flashes {
                 : kind === IMPACT_BURST
                   ? burstLifetime(energy)
                   : kind === IMPACT_MUZZLE
-                    ? MUZZLE_FLASH_LIFETIME
+                    ? muzzleLifetime(energy)
                     : ROUND_FLASH_LIFETIME;
         this.kind[i] = kind;
         this.vx[i] = vx;
