@@ -909,7 +909,10 @@ inside any one file is not contiguous.
   (`PAD_WEAK_TURN`), which overshoots every turn that way and weaves round the pad until its fuel is gone.
   Spinning, every push adds to the spin it cannot take back, so it asks for the turn a straight push
   brings, not for none, which the allocator would buy by not pushing. One that has lost its mains steers
-  by whichever engine left pushes hardest. One with no turn left at all does not try to land. With arcs shown, every way in is drawn on the pad as a
+  by whichever engine left pushes hardest. So does one that cannot push that way without turning: what it
+  can push along it with the turns cancelled is less than half of all it can (`PAD_STEADY_PUSH`), so it
+  spins in the way the push turns it rather than give up the push to hold its heading. One with no turn left
+  at all does not try to land. With arcs shown, every way in is drawn on the pad as a
   small arrow pointing in from the middle of its side or from its corner, along the way, in amber for a pad's
   one longest run, so the editor shows how easy a pad is to reach — and from the wrong side it
   first circles the carrier outside its radius, `HULL_ORBIT_STEP` at a time, rather than fly through what is in

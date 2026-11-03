@@ -582,6 +582,77 @@ function oneWayTurn(layout: EngineLayout): number {
 }
 
 /**
+ * The share of what a layout pushes along a bearing that it must be able to
+ * push without turning to steer in by turning: less, and every push turns it
+ * further than its heading can be held against, so it spins in instead.
+ */
+const PAD_STEADY_PUSH = 0.5;
+
+/**
+ * The way a fighter lands spinning, 1 or -1, or 0 to land holding a heading:
+ * the way it can turn far more readily (`oneWayTurn`), or, when pushing along
+ * `bearing` without turning gets less than `PAD_STEADY_PUSH` of what it can push
+ * that way at all, the way that push turns it.
+ */
+function landingSpin(layout: EngineLayout, bearing: number): number {
+    const way = oneWayTurn(layout);
+    if (way !== 0) return way;
+    const dx = cos(bearing);
+    const dy = sin(bearing);
+    // Along the bearing: what pushes without turning, and what pushes turning it each way.
+    let level = 0;
+    let all = 0;
+    let up = 0;
+    let down = 0;
+    for (let t = 0; t < layout.count; t++) {
+        const push = layout.wfx[t]! * dx + layout.wfy[t]! * dy;
+        if (!(push > 0)) continue;
+        all += push;
+        const turn = layout.wt[t]!;
+        if (turn > 0) up += turn;
+        else if (turn < 0) down -= turn;
+        else level += push;
+    }
+    if (!(all > 0)) return 0;
+    if (spent.length < layout.count) spent = new Uint8Array(layout.count);
+    // Of the side that turns it less, all; of the other, as much as cancels it,
+    // the engines that push hardest for the turn they bring first.
+    const sense = up > down ? 1 : -1;
+    let budget = sense > 0 ? down : up;
+    let steady = level;
+    for (let t = 0; t < layout.count; t++) {
+        const push = layout.wfx[t]! * dx + layout.wfy[t]! * dy;
+        if (push > 0 && layout.wt[t]! * sense < 0) steady += push;
+    }
+    while (budget > 0) {
+        let best = -1;
+        let bestRatio = 0;
+        for (let t = 0; t < layout.count; t++) {
+            const push = layout.wfx[t]! * dx + layout.wfy[t]! * dy;
+            const turn = layout.wt[t]! * sense;
+            if (!(push > 0) || !(turn > 0)) continue;
+            if (spent[t] === 1) continue;
+            const ratio = push / turn;
+            if (ratio > bestRatio) {
+                bestRatio = ratio;
+                best = t;
+            }
+        }
+        if (best < 0) break;
+        spent[best] = 1;
+        const turn = layout.wt[best]! * sense;
+        const share = turn <= budget ? 1 : budget / turn;
+        steady += share * (layout.wfx[best]! * dx + layout.wfy[best]! * dy);
+        budget -= share * turn;
+    }
+    spent.fill(0, 0, layout.count);
+    return steady < PAD_STEADY_PUSH * all ? sense : 0;
+}
+
+/** Scratch for `landingSpin`: which engines it has already counted, grown to the most engines seen. */
+let spent = new Uint8Array(16);
+
+/**
  * How long, seconds, a docking ship takes to trust a change in how what it is
  * docking with is accelerating: long enough that a knock does not throw it,
  * short enough to follow a carrier opening its throttle.
@@ -4567,8 +4638,8 @@ export class Ships {
         const maxAlpha = inertia > 0 ? brakeTorque / inertia : 0;
         const turn = min(brakingRate(error, maxAlpha, dt), (error >= 0 ? error : -error) / HEADING_SETTLE_TIME);
         let wantRate = error >= 0 ? turn : -turn;
-        // Landing on a turn it cannot stop, it holds a slow spin instead of a heading.
-        const spin = order?.land === true ? oneWayTurn(layout) : 0;
+        // Landing on a turn it cannot stop, or a push that turns it, it holds a slow spin instead of a heading.
+        const spin = order?.land === true ? landingSpin(layout, pushBearing(layout, this.designs[i]!.thrustBearing)) : 0;
         if (spin !== 0) wantRate = spin * PAD_SPIN;
         // Never round into something, but for what it means to touch: a turn that
         // would swing the hull into a neighbour is not started, and one already
@@ -11107,8 +11178,8 @@ export class Ships {
                 // point its way a share 1/π of the time, on average, and come round
                 // in half a turn.
                 const layout = this.layoutOf(i);
-                const spins = oneWayTurn(layout) !== 0;
                 const bearing = pushBearing(layout, design.thrustBearing);
+                const spins = landingSpin(layout, bearing) !== 0;
                 const mains = layout.maxThrustAlong(cos(bearing), sin(bearing)) / movable(bodies.mass[b]!);
                 const spare = max(0, (spins ? mains / PI : mains) - length(ax, ay));
                 const delay = approach.responseTime + (spins ? PI / PAD_SPIN : this.halfTurnTime(bodies, i, b));
