@@ -105,7 +105,7 @@ describe("the skirmish enemy's answer", () => {
         "names the enemy leading a generation once it has fought all its matches, and the best once the generation is done",
         { timeout: 120_000 },
         () => {
-            const running = new EnemySearch(gunship, corvette, WON, 6);
+            const running = new EnemySearch(gunship, corvette, WON, 5);
             expect(running.leader).toBeNull();
             let led = null;
             // A step at a time, so every match's end is seen before what follows it.
@@ -126,7 +126,7 @@ describe("the skirmish enemy's answer", () => {
     );
 
     it("reports each generation as it finishes", () => {
-        const running = new EnemySearch(gunship, corvette, WON, 6);
+        const running = new EnemySearch(gunship, corvette, WON, 5);
         expect(running.progress.generation).toBe(0);
         while (running.progress.generation === 0 && !running.advance(1000));
         expect(running.progress.generation).toBeGreaterThanOrEqual(1);
@@ -150,7 +150,7 @@ describe("how far an answer may grow", () => {
             expect(running.limits.budget[key]).toBeGreaterThanOrEqual(bill[key] * (1 - 1e-12));
         expect(running.limits.maxShips).toBe(1);
         // Without the player's budget, the enemy's own cost at 1×.
-        expect(new EnemySearch(gunship, corvette, WON, 6).limits.budget).toEqual(bill);
+        expect(new EnemySearch(gunship, corvette, WON, 5).limits.budget).toEqual(bill);
     });
 
     it("keeps every enemy it breeds within that", () => {
