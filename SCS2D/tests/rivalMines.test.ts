@@ -77,7 +77,8 @@ describe("rival mines", () => {
         const pads = (ships as unknown as { landingPad: number[] }).landingPad;
         const layout = (i: number) => (ships as unknown as { layoutOf(i: number): { maxTorque(sense: number): number } }).layoutOf(i);
         const turns = (i: number) => layout(i).maxTorque(1) > 0 && layout(i).maxTorque(-1) > 0;
-        const copyOnSlipway = () => Array.from({ length: ships.count }, (_, i) => i).some((i) => ships.isAlive(i) && ships.isPrinting(i));
+        const copyOnSlipway = () =>
+            Array.from({ length: ships.highWater }, (_, i) => i).some((i) => ships.isAlive(i) && ships.isPrinting(i));
         // Each fighter making for a pad: how long it takes is how far out it was, and hanging about close by is the test above's.
         const making = new Set<number>();
         const landed = new Set<number>();
@@ -85,7 +86,7 @@ describe("rival mines", () => {
             run.step();
             if (t < 200 * 60) continue;
             expect(copyOnSlipway()).toBe(true);
-            for (let i = 0; i < ships.count; i++) {
+            for (let i = 0; i < ships.highWater; i++) {
                 if (!ships.isAlive(i) || !ships.currentStructure(i).fighter) continue;
                 if (run.miners.includes(ships.parkedCarrier(i))) {
                     if (making.delete(i)) landed.add(i);
