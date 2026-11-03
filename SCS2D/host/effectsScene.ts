@@ -4,6 +4,7 @@ import {
     IMPACT_BEAM,
     IMPACT_BURST,
     IMPACT_COLLISION,
+    IMPACT_EXIT,
     IMPACT_MUZZLE,
     IMPACT_ROUND,
     landedIndex,
@@ -281,13 +282,16 @@ function flash(
     dirX = 0,
     dirY = 0,
     vx = 0,
+    normalX = 0,
+    normalY = 0,
 ): void {
     if (t < at) return;
     const before = flashes.count;
-    flashes.add(x + vx * (t - at), y, energy, kind, -1, 0, 0, vx, 0, growth, dirX, dirY);
+    flashes.add(x + vx * (t - at), y, energy, kind, -1, 0, 0, vx, 0, growth, dirX, dirY, normalX, normalY);
     if (flashes.count === before) return;
     flashes.age[before] = t - at;
-    if (flashes.age[before]! >= flashes.lifetime[before]!) flashes.count = before;
+    // Kept for as long as what it throws off is flying, as a battle keeps it.
+    if (flashes.age[before]! >= flashes.kept[before]!) flashes.count = before;
 }
 
 /** How long a leak's plume is drawn per √(kg/s), and how far it spreads by its end: `render/canvas2d.ts`'s, for laying the holes out. */
@@ -343,7 +347,7 @@ function punch(
             round(snapshot, x - vx * ahead, y + top - vy * ahead, vx, vy, x - vx * HOLED_AT, y + top - vy * HOLED_AT, g.calibre);
             return;
         }
-        flash(flashes, t, HOLED_AT, x, y + top, g.energy, IMPACT_ROUND);
+        flash(flashes, t, HOLED_AT, x, y + top, g.energy, IMPACT_ROUND, 0, down, -down, 0, 0, 1);
         const open = width(g.calibre, t - HOLED_AT) ?? g.calibre;
         if (!(open > 0)) return;
         ship.leakX!.push(x - design.centreOfMassX);
@@ -437,7 +441,7 @@ function spanOf(energies: readonly number[], reach: number, extra: number): numb
 export const EFFECTS_SCENES: readonly EffectsScene[] = [
     {
         name: "Hits",
-        about: "Rounds from the five guns of the Guns scene, 2 cm to 40 cm, coming in from the top left onto a slab of hull.",
+        about: "Rounds from the five guns of the Guns scene, 2 cm to 40 cm, coming in from the top left onto a slab of hull and out of its underside: the flashes where each goes in and comes out, and the sparks thrown back off the face and on out of the far side.",
         loop: 1,
         build(t, snapshot, flashes) {
             const each = GUN_MOUNTS.map(gun);
@@ -457,7 +461,10 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
                 const vy = -g.speed * down;
                 // In from the top left until it lands, so which way it was going shows.
                 if (t < hit) round(snapshot, x - vx * (hit - t), top - vy * (hit - t), vx, vy, x - vx * hit, top - vy * hit, g.calibre);
-                flash(flashes, t, hit, x, top, g.energy, IMPACT_ROUND);
+                // In at the top, and out of the underside a moment on, the way it was going.
+                flash(flashes, t, hit, x, top, g.energy, IMPACT_ROUND, 0, down, -down, 0, 0, 1);
+                const through = (2 * top) / (g.speed * down);
+                flash(flashes, t, hit + through, x + 2 * top, -top, g.energy / 2, IMPACT_EXIT, 0, down, -down, 0, 0, -1);
             });
         },
     },
@@ -483,7 +490,7 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
                     ship.vy = -speed;
                     ship.throttles.fill(1);
                 }
-                flash(flashes, t, hit, x, top, energies[k]!, IMPACT_COLLISION);
+                flash(flashes, t, hit, x, top, energies[k]!, IMPACT_COLLISION, 0, 0, -1, 0, 0, 1);
             });
         },
     },

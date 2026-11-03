@@ -14,7 +14,7 @@ describe("the effects scenes", () => {
                 scene.build(t, snapshot, flashes);
                 expect(snapshot.maxX, scene.name).toBeGreaterThan(snapshot.minX);
                 expect(snapshot.maxY, scene.name).toBeGreaterThan(snapshot.minY);
-                for (let i = 0; i < flashes.count; i++) expect(flashes.age[i]).toBeLessThan(flashes.lifetime[i]!);
+                for (let i = 0; i < flashes.count; i++) expect(flashes.age[i]).toBeLessThan(flashes.kept[i]!);
             }
         }
     });
@@ -37,7 +37,8 @@ describe("the effects scenes", () => {
         scene.build(0.25, new Snapshot(), flashes);
         expect(flashes.count).toBe(0);
         scene.build(0.35, new Snapshot(), flashes);
-        expect(flashes.count).toBe(5);
+        // Where each went in, and where each came out.
+        expect(flashes.count).toBe(10);
     });
 
     it("fire each gun's shell, and burst it into its fragments as many steps later as its fuse says", () => {
