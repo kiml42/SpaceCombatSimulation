@@ -44,8 +44,9 @@ import { shipColours, teamLivery, type Palette } from "./teams.js";
  *
  * Lighting takes a module as one of two depths, thin (the hull) or thick
  * (the weapons layer), and a fighter as higher still. In order: the thin
- * fills; the thick modules' shadows, on thin hull only; the thick fills; and
- * the fighters' shadows, on any hull. A turret's block is thin and its dome
+ * fills; the thick modules' and the fighters' shadows, on thin hull only, as
+ * a fighter flies at a thick module's height and so never over one; and the
+ * thick fills. A turret's block is thin and its dome
  * casts a thick module's shadow. Asteroids stand higher than any ship,
  * thin rock, thick rock and kernel each a step above the last. Fighters themselves stay with
  * Canvas2D, drawn above robots and the details of the decks they sit on,
@@ -79,7 +80,7 @@ export class HullLayer {
     readonly thickScars = new Pool();
     /** Where a thick module's shadow may fall: the thin hull. */
     readonly thinHull = new Pool();
-    /** Where a fighter's shadow may fall: any ship's hull. */
+    /** Where a fighter's shadow may fall: the thin hull, as a thick module's does. */
     readonly hull = new Pool();
     /** Where rock's shadow may fall: any ship's hull. */
     readonly hullUnderRock = new Pool();
@@ -110,10 +111,10 @@ export class HullLayer {
             this.thinBevels,
             this.thinScars.container,
             this.thickShadows.layer,
+            this.fighterShadows.container,
             this.thick.container,
             this.thickBevels,
             this.thickScars.container,
-            this.fighterShadows.container,
             this.rockShadows.layer,
             this.rock.container,
             this.thickRockShadows.layer,
@@ -204,11 +205,11 @@ export class HullLayer {
                         );
                     }
                 }
-                if (depth === this.thin) place(this.thinHull.next(outline), x, y, angle);
-                if (depth === this.thin || depth === this.thick) {
+                if (depth === this.thin) {
+                    place(this.thinHull.next(outline), x, y, angle);
                     place(this.hull.next(outline), x, y, angle);
-                    place(this.hullUnderRock.next(outline), x, y, angle);
                 }
+                if (depth === this.thin || depth === this.thick) place(this.hullUnderRock.next(outline), x, y, angle);
                 if (depth === this.rock) place(this.thinRock.next(outline), x, y, angle);
                 if (depth === this.rock || depth === this.thickRock) place(this.rockUnderKernel.next(outline), x, y, angle);
                 // A module standing above what is below it is a block, so its shadow
