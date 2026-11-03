@@ -544,11 +544,41 @@ const PAD_HOLD_ANGLE = PI / 3;
  */
 const PAD_SPIN = (2 * PI) / 8;
 
-/** The one way a layout can turn, 1 or -1, or 0 if it can turn both ways or neither. */
+/**
+ * The way a layout pushes hardest, body frame: its mains' `bearing` while
+ * nothing else pushes harder, or the way of whichever engine left does, which
+ * a fighter that has lost its mains turns to steer by instead.
+ */
+function pushBearing(layout: EngineLayout, bearing: number): number {
+    let best = bearing;
+    let most = layout.maxThrustAlong(cos(bearing), sin(bearing));
+    for (let t = 0; t < layout.count; t++) {
+        const along = layout.maxThrustAlong(layout.dirX[t]!, layout.dirY[t]!);
+        if (along > most) {
+            most = along;
+            best = atan2(layout.dirY[t]!, layout.dirX[t]!);
+        }
+    }
+    return best;
+}
+
+/**
+ * How much weaker one way a fighter's turn may be than the other, as a share,
+ * and still steer in by turning: weaker, it overshoots each turn that way and
+ * weaves round the pad until its fuel is gone, so it spins in instead.
+ */
+const PAD_WEAK_TURN = 0.5;
+
+/**
+ * The way a layout lands spinning, 1 or -1: the only way it can turn, or the
+ * far stronger. 0 if it can turn both ways near enough alike, or neither.
+ */
 function oneWayTurn(layout: EngineLayout): number {
-    const up = layout.maxTorque(1) > 0;
-    const down = layout.maxTorque(-1) > 0;
-    return up === down ? 0 : up ? 1 : -1;
+    const up = layout.maxTorque(1);
+    const down = layout.maxTorque(-1);
+    if (up > 0 && !(down > PAD_WEAK_TURN * up)) return 1;
+    if (down > 0 && !(up > PAD_WEAK_TURN * down)) return -1;
+    return 0;
 }
 
 /**
@@ -4570,6 +4600,10 @@ export class Ships {
             }
         }
 
+        // Spinning in, it can turn back little or not at all, so a push adds to the spin:
+        // it asks for what a straight push would turn it by, or a spin-up if more, rather
+        // than for no turn, which the allocator would buy by not pushing at all.
+        if (spin !== 0) demandTorque = spin * max(spin * demandTorque, spin * this.pushTorque(layout, demandFx, demandFy));
         const throttles = this.throttles[i]!;
         layout.allocate(demandFx, demandFy, demandTorque, throttles, this.allocation);
         // Asked for more force than it has, the allocator can give up the turn for
@@ -5221,6 +5255,19 @@ export class Ships {
     /** Seconds to turn half round from rest and stop there, flat out both ways. */
     private halfTurnTime(bodies: Bodies, i: number, b: number): number {
         return this.turnTime(bodies, i, b, PI);
+    }
+
+    /** The torque of pushing along (`fx`, `fy`), body frame, on each engine as far as it points that way, turn or no turn. */
+    private pushTorque(layout: EngineLayout, fx: number, fy: number): number {
+        let torque = 0;
+        for (let t = 0; t < layout.count; t++) {
+            const wfx = layout.wfx[t]!;
+            const wfy = layout.wfy[t]!;
+            const full = wfx * wfx + wfy * wfy;
+            if (!(full > 0)) continue;
+            torque += clamp((wfx * fx + wfy * fy) / full, 0, 1) * layout.wt[t]!;
+        }
+        return torque;
     }
 
     /** Seconds to turn through `by` radians from rest and stop there, flat out both ways. */
@@ -11061,7 +11108,8 @@ export class Ships {
                 // in half a turn.
                 const layout = this.layoutOf(i);
                 const spins = oneWayTurn(layout) !== 0;
-                const mains = layout.maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / movable(bodies.mass[b]!);
+                const bearing = pushBearing(layout, design.thrustBearing);
+                const mains = layout.maxThrustAlong(cos(bearing), sin(bearing)) / movable(bodies.mass[b]!);
                 const spare = max(0, (spins ? mains / PI : mains) - length(ax, ay));
                 const delay = approach.responseTime + (spins ? PI / PAD_SPIN : this.halfTurnTime(bodies, i, b));
                 radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * spare, left, delay));
@@ -11078,7 +11126,7 @@ export class Ships {
         // weaves, turning after each and overshooting it while it turns. Its mains,
         // since thrusters off its middle push it round as they push it across.
         const need = length(dvx, dvy);
-        const toward = atan2(dvy, dvx) - design.thrustBearing;
+        const toward = atan2(dvy, dvx) - pushBearing(this.layoutOf(i), design.thrustBearing);
         const turn = need > PAD_SPEED / 2 && (need > PAD_HOLD_SPEED || abs(angleDelta(bodies.angle[b]!, toward)) > PAD_HOLD_ANGLE);
         const braking = turn ? toward : bodies.angle[b]!;
         if (!near || length(box.maxX - box.minX, box.maxY - box.minY) <= min(spec.length, spec.width)) return braking;
