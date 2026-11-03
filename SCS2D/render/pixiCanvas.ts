@@ -1,4 +1,14 @@
-import { BitmapText, Container, Graphics, GraphicsContext, Matrix as PixiMatrix, Rectangle, Texture } from "pixi.js";
+import {
+    BitmapText,
+    Container,
+    Graphics,
+    GraphicsContext,
+    Particle,
+    ParticleContainer,
+    Matrix as PixiMatrix,
+    Rectangle,
+    Texture,
+} from "pixi.js";
 
 /**
  * The parts of a Canvas2D context that canvas2d.ts draws the battle with,
@@ -88,6 +98,8 @@ export class PixiCanvas {
     private masksUsed = 0;
     private readonly textPool: BitmapText[] = [];
     private textsUsed = 0;
+    private readonly particlePool: ParticleBatch[] = [];
+    private particlesUsed = 0;
     private readonly textures = new WeakMap<object, Texture>();
     private measurer: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null | undefined;
 
@@ -120,8 +132,10 @@ export class PixiCanvas {
             box.removeChildren();
             mask.clear();
         }
+        for (let k = 0; k < this.particlesUsed; k++) this.particlePool[k]!.reset();
         this.graphicsUsed = 0;
         this.masksUsed = 0;
+        this.particlesUsed = 0;
         this.keptUsed = 0;
         if (this.kept.size > KEPT_MOST) this.forgetKept();
         this.textsUsed = 0;
@@ -434,6 +448,25 @@ export class PixiCanvas {
         g.setFillStyle({ alpha: this.state.globalAlpha });
         g.texture(texture, 0xffffff, dx, dy, dw, dh);
         g.resetTransform();
+    }
+
+    /**
+     * A batch of particles, each `image` stretched and turned, drawn here in its
+     * turn among the rest, added or laid over what is under it, under the
+     * transform as it is now. Many particles are one draw, where as many
+     * `drawImage`s would be as many quads in a Graphics rebuilt every frame.
+     */
+    particles(image: object, additive: boolean): ParticleBatch {
+        let batch = this.particlePool[this.particlesUsed];
+        if (batch === undefined) {
+            batch = new ParticleBatch();
+            this.particlePool.push(batch);
+        }
+        this.particlesUsed++;
+        batch.start(this.textureOf(image), this.state.m, additive, this.state.globalAlpha);
+        this.target().addChild(batch.container);
+        this.graphics = null;
+        return batch;
     }
 
     measureText(text: string): { width: number } {
@@ -932,4 +965,67 @@ function anchorY(baseline: string): number {
           : baseline === "top" || baseline === "hanging"
             ? 0
             : 0.8;
+}
+
+/**
+ * Particles of one texture, in one draw: each placed in the frame the batch
+ * was started under, and drawn in canvas pixels.
+ */
+export class ParticleBatch {
+    readonly container = new ParticleContainer({
+        dynamicProperties: { position: true, rotation: true, vertex: true, color: true, uvs: false },
+    });
+    private readonly pool: Particle[] = [];
+    private used = 0;
+    private texture: Texture = Texture.EMPTY;
+    private m: Matrix = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
+    private scale = 1;
+    private alpha = 1;
+
+    start(texture: Texture, m: Matrix, additive: boolean, alpha: number): void {
+        this.texture = texture;
+        // One texture for every particle the container draws, whatever each
+        // particle holds: a pooled batch otherwise keeps the one it first drew.
+        this.container.texture = texture;
+        this.m = { ...m };
+        this.scale = Math.sqrt(Math.abs(m.a * m.d - m.b * m.c));
+        this.alpha = alpha;
+        this.container.blendMode = additive ? "add" : "normal";
+    }
+
+    /**
+     * One particle at `(x, y)`, its image `length` along `(dirX, dirY)` and
+     * `width` across, all in the frame the batch was started under.
+     */
+    add(x: number, y: number, dirX: number, dirY: number, length: number, width: number, tint: number, alpha: number): void {
+        const m = this.m;
+        let p = this.pool[this.used];
+        if (p === undefined) {
+            p = new Particle({ texture: this.texture, anchorX: 0.5, anchorY: 0.5 });
+            this.pool.push(p);
+        }
+        this.used++;
+        p.texture = this.texture;
+        p.x = m.a * x + m.c * y + m.e;
+        p.y = m.b * x + m.d * y + m.f;
+        p.rotation = Math.atan2(m.b * dirX + m.d * dirY, m.a * dirX + m.c * dirY);
+        p.scaleX = (length * this.scale) / this.texture.width;
+        p.scaleY = (width * this.scale) / this.texture.height;
+        p.tint = tint;
+        p.alpha = alpha * this.alpha;
+    }
+
+    /** Hand what was added this frame to the container, which draws only those. */
+    end(): void {
+        const children = this.container.particleChildren;
+        children.length = 0;
+        for (let k = 0; k < this.used; k++) children.push(this.pool[k]!);
+        this.container.update();
+    }
+
+    reset(): void {
+        this.used = 0;
+        this.container.particleChildren.length = 0;
+        this.container.update();
+    }
 }

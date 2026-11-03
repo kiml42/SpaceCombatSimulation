@@ -324,6 +324,9 @@ export class Snapshot {
     /** The way each points, in its body's frame where it has one; zero for none. */
     impactDirX = new Float64Array(0);
     impactDirY = new Float64Array(0);
+    /** The outward normal of the surface each met, in the same frame; zero for none. */
+    impactNormalX = new Float64Array(0);
+    impactNormalY = new Float64Array(0);
     impactCount = 0;
 
     /**
@@ -384,6 +387,8 @@ function growImpacts(snapshot: Snapshot, needed: number): void {
     snapshot.impactGrowth = new Float64Array(size);
     snapshot.impactDirX = new Float64Array(size);
     snapshot.impactDirY = new Float64Array(size);
+    snapshot.impactNormalX = new Float64Array(size);
+    snapshot.impactNormalY = new Float64Array(size);
 }
 
 function shipView(snapshot: Snapshot, i: number): ShipView {
@@ -736,6 +741,8 @@ export function capture(
             out.impactGrowth[i] = impacts.growth[i]!;
             out.impactDirX[i] = impacts.dirX[i]!;
             out.impactDirY[i] = impacts.dirY[i]!;
+            out.impactNormalX[i] = impacts.normalX[i]!;
+            out.impactNormalY[i] = impacts.normalY[i]!;
         }
         out.impactCount = impacts.count;
         impacts.clear();
