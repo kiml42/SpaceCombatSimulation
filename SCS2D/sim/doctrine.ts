@@ -526,6 +526,12 @@ export interface Approach extends SupplyPriorities, SupplyShares {
      */
     readonly repairBelow: number;
     /**
+     * The share of its main guns still working at or below which a fighter
+     * breaks off to land on a friend's pad and be mended, however whole it is
+     * otherwise. Below zero never; one with no main guns never goes for this.
+     */
+    readonly repairArmed: number;
+    /**
      * The share of a full load of fuel a fighter takes on before it leaves a
      * pad, whatever sends it off but an order: danger or a target in reach. Met
      * as well once the carrier has no more to spare and is not anchored to get
@@ -668,6 +674,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
         tangentialMax: 0,
         rearmBelow: 0,
         repairBelow: 0.6,
+        repairArmed: -1,
         launchFuel: 1,
         launchMetal: 1,
         launchCharge: 1,
@@ -879,6 +886,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
     "hideSize",
     "rearmBelow",
     "repairBelow",
+    "repairArmed",
     "launchFuel",
     "launchMetal",
     "launchCharge",

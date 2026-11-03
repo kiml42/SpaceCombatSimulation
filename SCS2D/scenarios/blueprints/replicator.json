@@ -21,20 +21,22 @@
     "Dinky Raider": {
       "formatVersion": 2,
       "name": "Dinky Raider",
-      "notes": "A Dinky that leaves its pad for an enemy ten times its reach away rather than four, and goes after it rather than staying by its carrier: a Replicator is moored to a rock and goes nowhere, so its fighters have to go to the fight. It never rams: its carrier's pad is always there to mend it.",
+      "notes": "A Dinky that leaves its pad for an enemy ten times its reach away rather than four, and goes after it rather than staying by its carrier: a Replicator is moored to a rock and goes nowhere, so its fighters have to go to the fight. It never rams, and goes back to be mended once its gun is out: its carrier's pad is always there to mend it. With nothing better to do it stays by a Replicator, the only friend big enough for it to cover.",
       "fighter": true,
       "doctrine": {
         "targeting": {
           "facingWeight": 100,
-          "sightWeight": 50
+          "sightWeight": 50,
+          "escortWeight": 50
         },
         "approach": {
           "standoffRadii": 60,
           "escortRadii": 10,
-          "escortMinRadii": 2,
+          "escortMinRadii": 5,
           "tolerance": 0.3,
           "brake": 0.95,
           "refuelBelow": 0.5,
+          "repairArmed": 0,
           "sortieRange": 10,
           "tangentialMin": 20,
           "tangentialMax": 60
@@ -339,7 +341,7 @@
           "width": 19.96646305,
           "thick": true,
           "craft": "Replicator",
-          "keep": 1,
+          "keep": 3,
           "buildAnchored": true,
           "craftAngle": 90
         }
