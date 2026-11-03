@@ -51,4 +51,12 @@ describe("the effects scenes", () => {
         // Fragments leave from where the shell burst.
         expect(snapshot.projectileStartX[0]).toBeGreaterThan(0);
     });
+
+    it("crash the torpedoes into a slab standing in the layer they fly in", () => {
+        const scene = EFFECTS_SCENES.find((each) => each.name === "Collisions")!;
+        const snapshot = new Snapshot();
+        scene.build(0, snapshot, new Flashes());
+        const slab = snapshot.ships[0]!.currentStructure;
+        expect(slab.modules[0]!.weaponsLayer).toBe(true);
+    });
 });

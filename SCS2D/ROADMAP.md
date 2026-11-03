@@ -137,7 +137,8 @@ an entry is either still open or it is gone.
       another shade it. The details canvas2d.ts draws over thin modules (gauges, berth pads) are drawn
       after, so stay unshadowed, which suits them being information.
       **Fighters cast shadows in the same pass**: the shadow layer takes their modules' shared geometry
-      too, offset further for their greater depth and masked to every capital module, thin or thick. A
+      too, offset further for their greater depth and masked to the thin hull alone, as the thick
+      modules' are: a fighter flies at a thick module's height, so never over one. A
       shadow needs only the outline, so the fighters themselves stay drawn where they are, over robots and
       decks; the longer offset is what leaves the shadow apart from the fighter, so it reads as flying.
     - **Later passes**, roughly in order:
@@ -163,7 +164,7 @@ an entry is either still open or it is gone.
        (`Battle.light`, the default where a battle sets none) and the two shadow lengths, 1.5 m for a
        thick module and 2.5 m for a fighter, judged by eye on ships of tens of metres; on a ship a kilometre
        across they barely show, the price of a fixed length. `render/hullLayer.ts` draws thin fills, thick
-       modules' shadows masked to thin hull, thick fills, then fighters' shadows masked to any hull, each
+       modules' and fighters' shadows masked to thin hull, then thick fills, each
        shadow layer darkened through one filter so overlaps are no darker. A thick module is a block, so
        its shadow is each of its shapes swept away from the light (the hull round the shape and the shape
        moved), joined to its foot and made afresh each frame; a fighter's is its outline moved, apart from

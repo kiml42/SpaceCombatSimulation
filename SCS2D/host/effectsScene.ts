@@ -21,7 +21,7 @@ import {
     type ShipView,
 } from "../sim/index.js";
 import { leakRate } from "../sim/fuel.js";
-import { DEFAULT_BURST_SPEED, DEFAULT_FRAGMENTS, EXPLOSIVE_YIELD } from "../sim/modules.js";
+import { DECK_HEIGHT, DEFAULT_BURST_SPEED, DEFAULT_FRAGMENTS, EXPLOSIVE_YIELD } from "../sim/modules.js";
 import { CORVETTE, TORCH, TORPEDO } from "../scenarios/blueprints.js";
 import { barrelLines } from "../render/barrels.js";
 import { burstLifetime, Flashes, flashRadius } from "../render/flashes.js";
@@ -69,15 +69,21 @@ function built(name: string, modules: Record<string, unknown>[]): ShipDesign {
 }
 
 /**
- * A slab of hull plate 3 m across, with a core under it to make it a ship:
- * thin, in the hull layer alone, or thick, standing up through the weapons
- * layer too, where a fighter flies.
+ * A slab of hull plate with a core under it to make it a ship: thin, in the
+ * hull layer alone, or thick, standing up through the weapons layer too,
+ * where a fighter flies.
  */
-const slabDesign = (length: number, thick = false): ShipDesign =>
-    built(`slab ${length}${thick ? " thick" : ""}`, [
-        { id: 1, kind: "structure", x: 0, y: 0, length, width: 3, thick },
-        { id: 2, kind: "core", x: 0, y: -2.5, length: 2, width: 2 },
+const slabDesign = (length: number, thick = false): ShipDesign => {
+    // Thick plate stands no deeper than it is across, so past a deck only if it is wider than one.
+    const across = thick ? DECK_HEIGHT + 1 : DECK_HEIGHT;
+    return built(`slab ${length}${thick ? " thick" : ""}`, [
+        { id: 1, kind: "structure", x: 0, y: 0, length, width: across, thick },
+        { id: 2, kind: "core", x: 0, y: -across / 2 - 1, length: 2, width: 2 },
     ]);
+};
+
+/** Where a slab's face is, above its blueprint's origin. */
+const faceOf = (slab: ShipDesign): number => slab.modules[0]!.spec.width / 2;
 
 /** A long tank, and a core at one end to make it a ship. */
 const tankDesign = (length: number): ShipDesign =>
@@ -371,7 +377,7 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
             const energies = each.map((g) => g.energy);
             const half = spanOf(energies, 2.2, 2);
             const slab = slabDesign(Math.ceil(2 * half + 20));
-            const top = 1.5;
+            const top = faceOf(slab);
             begin(snapshot, flashes, t, -half - 15, -10, half + 15, 45);
             // The slab's face at y = top.
             atOrigin(snapshot, slab);
@@ -397,7 +403,7 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
             const energies = COLLISION_SPEEDS.map((speed) => 0.5 * torpedo.mass * speed * speed);
             const half = spanOf(energies, 2.2, 2);
             const slab = slabDesign(Math.ceil(2 * half + 20), true);
-            const top = 1.5;
+            const top = faceOf(slab);
             begin(snapshot, flashes, t, -half - 10, -10, half + 10, 40);
             atOrigin(snapshot, slab);
             const hit = 0.4;
@@ -477,7 +483,13 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
             begin(snapshot, flashes, t, -2 * each[3]!.design.radius, y - reach[3]!, range + 10, reach[0]!);
             const slab = slabDesign(Math.ceil(reach[0]! - y + reach[3]!));
             // Upright, its face towards the beams and level with them, its core behind it.
-            place(snapshot, slab, range + 1.5 - slab.centreOfMassY, (reach[0]! + y - reach[3]!) / 2 + slab.centreOfMassX, Math.PI / 2);
+            place(
+                snapshot,
+                slab,
+                range + faceOf(slab) - slab.centreOfMassY,
+                (reach[0]! + y - reach[3]!) / 2 + slab.centreOfMassX,
+                Math.PI / 2,
+            );
             room(snapshot, each.length);
             each.forEach((b, k) => {
                 const row = ys[k]!;
