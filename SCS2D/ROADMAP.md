@@ -435,6 +435,10 @@ an entry is either still open or it is gone.
           id. So pause, step, scrub and replay come free and look alike. Capped by dropping the oldest
           events. Sparks for round and burst impacts, bits of metal for collisions in place of their
           flashes, vapour from leaks (a steady emitter on a fixed grid of birth times).
+        - **Leaks in shadow**, with the vapour particles: vapour hangs above the deck, so a thick module's
+          shadow should darken it where it passes through, and the hull layer's shadows, drawn underneath,
+          cannot reach it. Each particle asking whether it is in a thick module's shadow is the cheap way;
+          shadows cast at the vapour's own height belong with step 7's shadows from dynamic lights.
         - **A space look**: sparks and metal fly straight and fade; vapour comes only from leaks, spreading
           and thinning; no smoke and no lingering fireball.
         - **Zoom** as bevels and scars: a particle under a pixel is not drawn; glows keep a pixel floor, as
