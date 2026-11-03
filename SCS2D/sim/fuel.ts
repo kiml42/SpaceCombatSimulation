@@ -66,6 +66,17 @@ export interface Leak {
     rate: number;
     /** Seconds it has been open: how far its fuel has got, for a renderer. Nothing in the sim reads it. */
     age: number;
+    /**
+     * What it has been, for a renderer to work out how wide it was at any age
+     * (`render/vapour.ts`), and nothing in the sim reads: how wide it opened,
+     * its lining's closing speed and floor then, how old it was when patched
+     * (below nought if not), and how old when it closed (below nought if open).
+     */
+    opened: number;
+    liningClosing: number;
+    liningFloor: number;
+    patched: number;
+    closed: number;
 }
 
 /**
@@ -104,6 +115,7 @@ export class Fuel extends Store {
         if (!leaks) return;
         for (const leak of leaks) {
             if (leak.module !== module) continue;
+            if (leak.patched < 0) leak.patched = leak.age;
             leak.floor = 0;
             if (leak.closing < PATCH_SPEED) leak.closing = PATCH_SPEED;
         }

@@ -46,7 +46,7 @@ export function holeWidth(hole: Hole, age: number): number {
 
 /** How far the vapour from a hole this wide, leaking this fast, is seen to reach. */
 export function vapourLength(width: number, rate: number): number {
-    return Math.max(width * VAPOUR_LEAST_LENGTH / 2, VAPOUR_LENGTH * Math.sqrt(rate));
+    return Math.max((width * VAPOUR_LEAST_LENGTH) / 2, VAPOUR_LENGTH * Math.sqrt(rate));
 }
 
 /** One puff as it is now, in the hull's frame. */
@@ -76,7 +76,8 @@ export function eachPuff(
 ): void {
     if (!(speed > 0) || !(age >= 0)) return;
     // Back as far as the longest-lived puff could have left, which is from the hole at its widest.
-    const longest = vapourLength(hole.opened, leakRate((Math.PI * hole.opened * hole.opened) / 4, fill)) / (speed * (1 - PUFF_SPEED_SPREAD));
+    const longest =
+        vapourLength(hole.opened, leakRate((Math.PI * hole.opened * hole.opened) / 4, fill)) / (speed * (1 - PUFF_SPEED_SPREAD));
     const first = Math.max(0, Math.ceil((age - longest) / PUFF_EVERY));
     const last = Math.floor(age / PUFF_EVERY);
     const seed = Math.imul(Math.round(x * 1024) ^ Math.imul(Math.round(y * 1024), 0x9e3779b1), 0x85ebca6b);

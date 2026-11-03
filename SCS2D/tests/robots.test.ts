@@ -332,7 +332,23 @@ describe("robots", () => {
             const a = ships.spawn(world, { design: tanked, x: 0, y: 0, angle: 0 });
             const b = world.bodies.indexOf(ships.body(a));
             // Too wide for any lining to close, and the damage the round that made it did.
-            ships.fuel.hole(b, { module: tank, x: 2.5, y: 0, nx: 1, ny: 0, width: 0.5, floor: 0.5, closing: 0, rate: 0, age: 0 });
+            ships.fuel.hole(b, {
+                module: tank,
+                x: 2.5,
+                y: 0,
+                nx: 1,
+                ny: 0,
+                width: 0.5,
+                floor: 0.5,
+                closing: 0,
+                rate: 0,
+                age: 0,
+                opened: 0.5,
+                liningClosing: 0,
+                liningFloor: 0.5,
+                patched: -1,
+                closed: -1,
+            });
             ships.damage.absorb(b, tank, tanked.modules[tank]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG * 0.2);
             return { a };
         });

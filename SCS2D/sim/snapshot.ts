@@ -12,6 +12,9 @@ import type { World } from "./world.js";
 import { cos, sin } from "./math.js";
 import { fittingOf } from "./rebuild.js";
 
+/** Seconds a closed hole is still pictured, for the vapour it let out to drift off. */
+export const LEAK_LINGER = 2;
+
 /**
  * A read-only picture of the world, for anything outside the simulation to
  * draw or report on.
@@ -208,9 +211,15 @@ export interface ShipView {
     leakDirY?: number[];
     leakWidth?: number[];
     leakRate?: number[];
-    /** How long each hole has been open, s, and how fast its fuel leaves, m/s: how far its plume has got. */
+    /** How long each hole has been open, s, and how fast its fuel leaves, m/s: how far its vapour has got. */
     leakAge?: number[];
     leakSpeed?: number[];
+    /** What each hole has been (`Leak`), for how wide it was when each puff left, and how full its tank is. */
+    leakOpened?: number[];
+    leakClosing?: number[];
+    leakFloor?: number[];
+    leakPatched?: number[];
+    leakFill?: number[];
     /**
      * Whether the ship still has a core with control in it (§4).
      *
@@ -645,10 +654,17 @@ export function capture(
         const lr = (view.leakRate ??= []);
         const la = (view.leakAge ??= []);
         const ls = (view.leakSpeed ??= []);
+        const lo = (view.leakOpened ??= []);
+        const lc = (view.leakClosing ??= []);
+        const lf = (view.leakFloor ??= []);
+        const lp = (view.leakPatched ??= []);
+        const lq = (view.leakFill ??= []);
         lx.length = ly.length = ldx.length = ldy.length = lw.length = lr.length = la.length = ls.length = 0;
+        lo.length = lc.length = lf.length = lp.length = lq.length = 0;
         if (ships.ownsBody(i)) {
             for (const leak of ships.fuel.leaksOf(b)) {
-                if (!(leak.rate > 0)) continue;
+                // Leaking, or closed so lately that what it let out is still drifting off.
+                if (!(leak.rate > 0) && !(leak.closed >= 0 && leak.age - leak.closed < LEAK_LINGER)) continue;
                 const m = design.modules[leak.module];
                 if (m === undefined) continue;
                 const c = cos(m.angle);
@@ -660,7 +676,13 @@ export function capture(
                 lw.push(leak.width);
                 lr.push(leak.rate);
                 la.push(leak.age);
-                ls.push(leakSpeed(ships.fuel.fill(b, leak.module)));
+                const fill = ships.fuel.fill(b, leak.module);
+                ls.push(leakSpeed(fill));
+                lo.push(leak.opened);
+                lc.push(leak.liningClosing);
+                lf.push(leak.liningFloor);
+                lp.push(leak.patched);
+                lq.push(fill);
             }
         }
         const drawn = (view.drawn ??= []);
