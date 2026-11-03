@@ -1295,7 +1295,7 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
         batch ??= batches.call(ctx, image, false);
         const into = batch;
         eachPuff(hole, xs[k]!, ship.leakY![k]!, dx, dy, age, fill, speed, puff, (p) => {
-            into.add(p.x, p.y, 1, 0, 2 * p.radius, 2 * p.radius, tint, p.alpha);
+            into.add(p.x, p.y, p.dirX, p.dirY, p.length, 2 * p.radius, tint, p.alpha);
         });
     }
     batch?.end();
@@ -1304,7 +1304,7 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
 
 /** Scratch for drawing a leak, so drawing one allocates nothing. */
 const hole: Hole = { opened: 0, closing: 0, floor: 0, patched: -1 };
-const puff: Puff = { x: 0, y: 0, radius: 0, alpha: 0 };
+const puff: Puff = { x: 0, y: 0, radius: 0, dirX: 1, dirY: 0, length: 0, alpha: 0 };
 /** How long a hole is taken to have been open where a picture does not say: long enough for its vapour to have reached its end. */
 const LONG_OPEN = 1e6;
 

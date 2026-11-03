@@ -54,8 +54,15 @@ export interface Puff {
     x: number;
     y: number;
     radius: number;
+    /** The way it is going, and how long it is drawn along that way: at least as long as it is wide. */
+    dirX: number;
+    dirY: number;
+    length: number;
     alpha: number;
 }
+
+/** How far along its way a puff is drawn, as a share of the gap to the next one out of the hole: enough to meet it. */
+const PUFF_OVERLAP = 1.6;
 
 /**
  * Every puff from a hole at `(x, y)` in the hull's frame, leaving along
@@ -101,8 +108,17 @@ export function eachPuff(
             out.x = x + dirX * gone - dirY * across;
             out.y = y + dirY * gone + dirX * across;
             out.radius = width / 2 + VAPOUR_SPREAD * gone;
-            // Its share of the vapour's opacity, thinning as it spreads out.
-            out.alpha = (VAPOUR_ALPHA / Math.sqrt(puffs)) * (1 - through) ** 2;
+            // Drawn out along its way to meet the next, where it is narrower than
+            // the gap between them: a small leak's puffs then run together into a
+            // plume, as a big one's already do by being wide.
+            const gap = speed * fast * PUFF_EVERY;
+            out.dirX = dirX;
+            out.dirY = dirY;
+            out.length = Math.max(2 * out.radius, gap * PUFF_OVERLAP);
+            // Its share of the vapour's opacity, thinning as it spreads out, and
+            // shared with the next where drawn out over it.
+            const spread = Math.min(1, Math.max(2 * out.radius, gap) / out.length);
+            out.alpha = (VAPOUR_ALPHA / Math.sqrt(puffs)) * (1 - through) ** 2 * spread;
             visit(out);
         }
     }
