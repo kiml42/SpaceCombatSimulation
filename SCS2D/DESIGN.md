@@ -209,7 +209,7 @@ inside any one file is not contiguous.
   every live one without a rule saying so; a ship that is a hulk outright — no working core, or no guns
   and no engines — is dropped from the list before it is scored at all, both a chooser's own target and
   each of its mounts', because a hulk can never be finished off and a fleet with nothing better in range
-  would otherwise park on one forever. What size of target a craft goes for is a ratio to its own mass — one meaning
+  would otherwise park on one forever. A chooser that is itself one stops choosing: with no main gun and no engine that can burn, it holds no target and covers no friend, a ram it had begun included, until mended or restocked; with no mount of any kind left to fire either, it shuts down altogether, flying and aiming nothing, as a hulk's controls do. A torpedo spent on the way in stays armed and coasts on. What size of target a craft goes for is a ratio to its own mass — one meaning
   "something my own size", which sends a fighter after fighters and a capital after capitals without
   either being told. An order given always outranks it, so doctrine is a fallback and never
   a second voice — for the ship and its main battery. **A secondary mount ignores orders** and picks by its

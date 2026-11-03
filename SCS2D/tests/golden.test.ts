@@ -44,8 +44,8 @@ const GOLDEN: Record<ScenarioName, string> = {
     asteroidField: "724c4a31",
     // ships=7 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=2 severed=0 culled=0 scrap=-26.3t · 51.5 µs/step
     mining: "bbe926cb",
-    // ships=14 inFlight=0 p.fired=269 p.hits=792 b.fired=0 b.hits=0 contacts=148 severed=2 culled=1 scrap=48.6t · 3177.9 µs/step
-    rivalMines: "e90dac13",
+    // ships=13 inFlight=15 p.fired=270 p.hits=774 b.fired=0 b.hits=0 contacts=282 severed=1 culled=0 scrap=157.9t · 3102.3 µs/step
+    rivalMines: "c01341ae",
     // ships=22 inFlight=53 p.fired=140 p.hits=177 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=2.0t · 684.2 µs/step
     swarm: "e006d2fa",
     // ships=305 inFlight=206 p.fired=908 p.hits=1305 b.fired=0 b.hits=0 contacts=148 severed=9 culled=6 scrap=34.3t · 18056.0 µs/step
@@ -58,12 +58,12 @@ const GOLDEN: Record<ScenarioName, string> = {
     standoff: "d34c0efe",
     // ships=19 inFlight=0 p.fired=136 p.hits=473 b.fired=34 b.hits=2397 contacts=1651 severed=20 culled=0 scrap=176.7t · 308.5 µs/step
     column: "008a3e73",
-    // ships=4 inFlight=1 p.fired=18 p.hits=105 b.fired=0 b.hits=0 contacts=864 severed=8 culled=6 scrap=66.9t · 304.7 µs/step
+    // ships=4 inFlight=1 p.fired=18 p.hits=105 b.fired=0 b.hits=0 contacts=864 severed=8 culled=6 scrap=66.9t · 336.3 µs/step
     split: "ae39e692",
-    // ships=19 inFlight=0 p.fired=0 p.hits=0 b.fired=9 b.hits=662 contacts=2524 severed=25 culled=0 scrap=129.6t · 456.6 µs/step
+    // ships=19 inFlight=0 p.fired=0 p.hits=0 b.fired=9 b.hits=662 contacts=2524 severed=25 culled=0 scrap=129.6t · 412.0 µs/step
     torchRun: "93cf2675",
-    // ships=6 inFlight=26 p.fired=164 p.hits=886 b.fired=0 b.hits=0 contacts=10 severed=2 culled=0 scrap=39.4t · 224.4 µs/step
-    hooked: "f026b9ba",
+    // ships=6 inFlight=26 p.fired=164 p.hits=886 b.fired=0 b.hits=0 contacts=10 severed=2 culled=0 scrap=39.4t · 171.7 µs/step
+    hooked: "d77951c9",
     // ships=3 inFlight=0 p.fired=24 p.hits=227 b.fired=0 b.hits=0 contacts=120 severed=2 culled=0 scrap=13.5t · 56.7 µs/step
     broadside: "dfe3b0d7",
     // ships=3 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=1 severed=0 culled=0 scrap=4.7t · 18.3 µs/step
