@@ -68,10 +68,14 @@ function built(name: string, modules: Record<string, unknown>[]): ShipDesign {
     return kept(name, () => compileBlueprint(parseBlueprint({ formatVersion: 2, name, modules })));
 }
 
-/** A slab of hull plate 3 m thick, with a core under it to make it a ship. */
-const slabDesign = (length: number): ShipDesign =>
-    built(`slab ${length}`, [
-        { id: 1, kind: "structure", x: 0, y: 0, length, width: 3 },
+/**
+ * A slab of hull plate 3 m across, with a core under it to make it a ship:
+ * thin, in the hull layer alone, or thick, standing up through the weapons
+ * layer too, where a fighter flies.
+ */
+const slabDesign = (length: number, thick = false): ShipDesign =>
+    built(`slab ${length}${thick ? " thick" : ""}`, [
+        { id: 1, kind: "structure", x: 0, y: 0, length, width: 3, thick },
         { id: 2, kind: "core", x: 0, y: -2.5, length: 2, width: 2 },
     ]);
 
@@ -383,13 +387,13 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
     },
     {
         name: "Collisions",
-        about: "Torpedoes flying nose first onto a slab of hull at 10, 30, 100, 300 and 1000 m/s, each stopping where it meets the slab, its whole energy flashing there.",
+        about: "Torpedoes flying nose first onto a thick slab of hull, standing up into the layer they fly in, at 10, 30, 100, 300 and 1000 m/s: each stopping where it meets the slab, its whole energy flashing there.",
         loop: 1,
         build(t, snapshot, flashes) {
             const torpedo = torpedoDesign();
             const energies = COLLISION_SPEEDS.map((speed) => 0.5 * torpedo.mass * speed * speed);
             const half = spanOf(energies, 2.2, 2);
-            const slab = slabDesign(Math.ceil(2 * half + 20));
+            const slab = slabDesign(Math.ceil(2 * half + 20), true);
             const top = 1.5;
             begin(snapshot, flashes, t, -half - 10, -10, half + 10, 40);
             atOrigin(snapshot, slab);
