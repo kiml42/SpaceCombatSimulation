@@ -15,6 +15,7 @@ import {
     flashExtent,
     FLASH_BIRTH_SIZE,
     MUZZLE_FLASH_LIFETIME,
+    muzzleLifetime,
     muzzleWedge,
 } from "../render/flashes.js";
 import { IMPACT_MUZZLE, IMPACT_ROUND } from "../sim/index.js";
@@ -160,12 +161,12 @@ describe("riding the hull it went off against", () => {
 });
 
 describe("a burst", () => {
-    it("lasts longer the more charge it had, between one frame and six", () => {
+    it("lasts longer the more charge it had, between one frame and fifteen", () => {
         expect(burstLifetime(BURST_REFERENCE_ENERGY)).toBeCloseTo(BURST_FLASH_LIFETIME, 12);
         // A Dinky's: under a frame, so it shows once.
         expect(burstLifetime(2.9e4)).toBeLessThan(1 / 60);
-        // A gunship's main gun: a little longer, never a fireball.
-        expect(burstLifetime(2.3e8)).toBe(0.1);
+        // A 40 cm gun's: a quarter of a second, never a fireball.
+        expect(burstLifetime(2.3e8)).toBe(0.25);
     });
 
     it("is a short flash, gone well before a hit\u2019s", () => {
@@ -208,6 +209,14 @@ describe("a muzzle flash", () => {
         flashes.step(MUZZLE_FLASH_LIFETIME + 1e-9);
         expect(flashes.count).toBe(1);
         expect(flashes.kind[0]).toBe(IMPACT_ROUND);
+    });
+
+    it("lasts longer the bigger the gun", () => {
+        expect(muzzleLifetime(FLASH_REFERENCE_ENERGY)).toBeCloseTo(MUZZLE_FLASH_LIFETIME, 12);
+        expect(muzzleLifetime(2.8e8)).toBeGreaterThan(muzzleLifetime(3.5e4));
+        const flashes = new Flashes();
+        flashes.add(0, 0, 2.8e8, IMPACT_MUZZLE);
+        expect(flashes.lifetime[0]).toBe(muzzleLifetime(2.8e8));
     });
 
     it("is a wedge, widening forward and moving out ahead of the barrel as it grows", () => {

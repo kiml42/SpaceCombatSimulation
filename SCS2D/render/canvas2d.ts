@@ -90,7 +90,7 @@ export { teamColour } from "./teams.js";
 import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth, plumeAlpha, tracerAlpha } from "./strokes.js";
 import { flashExtent, flashFade, flashPosition, muzzleWedge, type Flashes } from "./flashes.js";
 import { clipToStart, exposureEnds, flashSamples, shutterWeight } from "./exposure.js";
-import { flameSprite, sprite, taperSprite, WEDGE_HEADROOM, WEDGE_STEPS, wedgeBox, wedgeSprite } from "./sprites.js";
+import { flameSprite, rgba, sprite, taperSprite, WEDGE_HEADROOM, WEDGE_STEPS, wedgeBox, wedgeSprite } from "./sprites.js";
 import { drawGlows, Lights, type Transform } from "./glows.js";
 import { iconAlpha, ICON_OUTLINE, ICON_PX, isWreckage } from "./icons.js";
 
@@ -219,6 +219,11 @@ const BEAM_GLOW_WIDTHS = 5;
 const BEAM_GLOW_REACH = 0.8;
 /** Its brightness at the middle beside the flat stroke it replaced, which was as bright edge to edge. */
 const BEAM_GLOW_BOOST = 1.2;
+/** The glow where a beam leaves its emitter: its reach as a share of the beam's glow's width, and how bright beside the beam. */
+const BEAM_EMITTER_REACH = 0.6;
+const BEAM_EMITTER_BRIGHTNESS = 0.6;
+/** Pixels across a beam is drawn as a rod lit across it, under which it is a line. */
+const MIN_ROD_PX = 2;
 const MIN_BEAM_GLOW_PX = 3;
 const MIN_TRACER_PX = 0.1;
 /** A flash is never smaller than this on screen, however far out the camera is. */
@@ -278,6 +283,8 @@ const BEAM_FLASH_GLOW = "#8ef04a";
 /** A shell bursting: redder than a hit, since it is fire rather than metal. */
 const BURST_FLASH_CORE = "#fff0c8";
 const BURST_FLASH_GLOW = "#ff7a2e";
+/** How much brighter a burst is than a hit's flash of its size: a blast of hot gas, not a spot. */
+const BURST_BRIGHTNESS = 1.5;
 /** How far a flash's glow reaches, in its core's radii. */
 const FLASH_GLOW_SHARE = 2.2;
 /** A muzzle flash's glow, in its core's widths: tight, so the wedge keeps its shape. */
@@ -667,7 +674,7 @@ function drawShip(
     if (!whole) return;
     if (arcs === "trigger") drawEngineTriggers(ctx, ship, metresToPx);
     drawPlumes(ctx, ship);
-    drawLeaks(ctx, ship);
+    drawLeaks(ctx, ship, light);
 }
 
 /** Steps a gauge's level is drawn in: each a picture kept between frames (`keep`), so it is redrawn only as it moves a step. */
@@ -1227,7 +1234,18 @@ function drawRobots(ctx: CanvasRenderingContext2D, ship: ShipView): void {
     ctx.restore();
 }
 
-/** What leaking fuel looks like: vapour, white. */
+/** `colour` lit by a light of `light`'s colour, as the hull's lit fills are: each channel multiplied. */
+function litColour(colour: string, light: string): string {
+    const [r, g, b] = rgba(colour);
+    const [lr, lg, lb] = rgba(light);
+    const hex = (c: number, l: number): string =>
+        Math.round((c * l) / 255)
+            .toString(16)
+            .padStart(2, "0");
+    return `#${hex(r, lr)}${hex(g, lg)}${hex(b, lb)}`;
+}
+
+/** What leaking fuel looks like: vapour, white, in the light it is seen in. */
 const LEAK = "#ebf2fa";
 /** How long a leak's plume is drawn, metres per √(kg/s) going out of it. */
 const LEAK_PLUME_LENGTH = 1.5;
@@ -1241,7 +1259,7 @@ const LEAK_ALPHA = 0.6;
  * the faster fuel is going out, so a gash reads from across the battle and a
  * pinhole as a wisp.
  */
-function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView): void {
+function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light): void {
     const xs = ship.leakX;
     if (xs === undefined || xs.length === 0) return;
     ctx.save();
@@ -1252,7 +1270,7 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView): void {
         const half = ship.leakWidth![k]! / 2;
         const length = max(half * 8, LEAK_PLUME_LENGTH * sqrt(rate));
         const spread = half + length * LEAK_PLUME_SPREAD;
-        const image = taperSprite(LEAK, half / spread);
+        const image = taperSprite(light === undefined ? LEAK : litColour(LEAK, light.colour), half / spread);
         if (image === null) continue;
         ctx.save();
         ctx.translate(xs[k]!, ship.leakY![k]!);
@@ -1422,12 +1440,23 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
         if (image === null) return;
         const outer = ctx.globalAlpha;
         const brightness = layerAlpha(min(1, plumeAlpha(plumeIntensity(engine.geometry, force)) * PLUME_CORE_BOOST), split);
-        // Round the exit, past the bell's sides and back over its mouth: light,
-        // so it brightens whatever it is over.
-        // Fading in with the flame, so a short one has no glow larger than itself.
+        // The flame blurred: from the exit, past the bell's sides and back over its
+        // mouth, out to where the flame ends or lands; light, so it brightens
+        // whatever it is over. Fading in with the flame, so a short one has no
+        // glow larger than itself.
         const grown = min(1, reach / (NOZZLE_GLOW_GROWN * 2 * half));
         const g = half * NOZZLE_GLOW_REACH * (0.5 + 0.5 * grown);
-        lights.point(ctx.getTransform(), root, across, g, NOZZLE_GLOW, outer * brightness * NOZZLE_GLOW_SHARE * grown);
+        const shown = landed[1]! > 0 ? (1 - landed[1]!) * reach : reach;
+        lights.coneOf(
+            ctx.getTransform(),
+            root,
+            across,
+            root - shown,
+            across,
+            g,
+            NOZZLE_GLOW,
+            outer * brightness * NOZZLE_GLOW_SHARE * grown,
+        );
         // The sprite's core is its brightest, its edge a little dimmer.
         ctx.globalAlpha = outer * brightness;
         let cutAny = false;
@@ -2177,11 +2206,16 @@ function drawScene(
     drawOrders(ctx, snapshot, selected, alsoSelected, camera.scale);
     drawBurns(ctx, snapshot);
     drawProjectiles(ctx, snapshot, camera, teamShots);
+    // Beams' glows under their cores, so their own light does not wash out
+    // their colour; their emitters' glows and the flashes where they land over
+    // them, so those lighten them rather than being cut by them.
     beamLights(ctx, snapshot, camera, teamShots);
-    if (flashes !== undefined) drawFlashes(ctx, snapshot, flashes, camera);
     drawGlows(ctx, lights);
     lights.clear();
     drawBeams(ctx, snapshot, camera, teamShots);
+    if (flashes !== undefined) drawFlashes(ctx, snapshot, flashes, camera);
+    drawGlows(ctx, lights);
+    lights.clear();
     shownBox.halfW = Infinity;
     shownBox.halfH = Infinity;
 }
@@ -2836,7 +2870,8 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
         // A burst or a muzzle is a blast of gas rather than a spot of hot metal, so
         // its core is soft: as bright in the middle, fading out to its edge.
         const coreColour = kind === IMPACT_BEAM ? BEAM_FLASH_CORE : kind === IMPACT_BURST ? BURST_FLASH_CORE : FLASH_CORE;
-        const core = sprite(kind === IMPACT_BURST || kind === IMPACT_MUZZLE ? "halo" : "disc", coreColour);
+        const core = sprite(kind === IMPACT_BURST || kind === IMPACT_MUZZLE ? "halo" : "hot", coreColour);
+        const boost = kind === IMPACT_BURST ? BURST_BRIGHTNESS : 1;
         if (core === null) continue;
         const age = flashes.age[i]!;
         const lifetime = flashes.lifetime[i]!;
@@ -2907,8 +2942,8 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
             const r = max(extent * coreShare, floor);
             const g = max(extent * glowShare, floor);
             ctx.setTransform(base);
-            lights.point(base, x, y, g, glow, 0.5 * fade * weight);
-            ctx.globalAlpha = 0.9 * fade * weight;
+            lights.point(base, x, y, g, glow, 0.5 * boost * fade * weight);
+            ctx.globalAlpha = min(1, 0.9 * boost * fade * weight);
             ctx.drawImage(core, x - r, y - r, 2 * r, 2 * r);
         }
     }
@@ -3129,25 +3164,56 @@ function beamLights(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: C
     }
 }
 
-/** Beams' lines, after the glows so that light does not wash out their colour. */
+/**
+ * Beams' cores, each lit across as a rod is, and a small glow where it leaves
+ * its emitter. Drawn after their glows, so that light does not wash out their
+ * colour.
+ */
 function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Camera, teamShots: boolean) {
     ctx.lineCap = "butt";
     const team = (i: number): number => (teamShots ? snapshot.beamTeam[i]! : -1);
+    const base = ctx.getTransform();
     // A pass per beam, because each carries its own width and its own opacity.
     // Cheap at the beam counts a battle reaches; if that ever stops being true,
     // bucket by width rather than reaching for a single average.
     for (let i = 0; i < snapshot.beamCount; i++) {
         if (!nearShown(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!, snapshot.beamEndX[i]!, snapshot.beamEndY[i]!)) continue;
-        ctx.strokeStyle = team(i) < 0 ? BEAM : markerOf(shipColours(team(i))).trim;
+        const colour = team(i) < 0 ? BEAM : markerOf(shipColours(team(i))).trim;
         const calibre = snapshot.beamWidth[i]!;
-        ctx.globalAlpha = beamAlpha(snapshot.beamPower[i]!) * flooredFade(calibre, MIN_TRACER_PX, camera.scale);
+        const alpha = beamAlpha(snapshot.beamPower[i]!);
+        ctx.globalAlpha = alpha * flooredFade(calibre, MIN_TRACER_PX, camera.scale);
         // The beam *is* its calibre wide. Twice the calibre is the barrel's outer
         // diameter — right for the tube, wrong for what comes out of it.
-        ctx.lineWidth = legibleWidth(calibre, MIN_TRACER_PX, camera.scale);
-        ctx.beginPath();
-        ctx.moveTo(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!);
-        ctx.lineTo(snapshot.beamEndX[i]!, snapshot.beamEndY[i]!);
-        ctx.stroke();
+        const width = legibleWidth(calibre, MIN_TRACER_PX, camera.scale);
+        const x0 = snapshot.beamStartX[i]!;
+        const y0 = snapshot.beamStartY[i]!;
+        const dx = snapshot.beamEndX[i]! - x0;
+        const dy = snapshot.beamEndY[i]! - y0;
+        const span = length(dx, dy);
+        const rod = width * camera.scale >= MIN_ROD_PX && span > 0 ? sprite("rod", colour) : null;
+        if (rod !== null) {
+            ctx.save();
+            ctx.transform(dx / span, dy / span, -dy / span, dx / span, x0, y0);
+            ctx.drawImage(rod, 0, -width / 2, span, width);
+            ctx.restore();
+        } else {
+            // Too thin to be seen as round: a line.
+            ctx.strokeStyle = colour;
+            ctx.lineWidth = width;
+            ctx.beginPath();
+            ctx.moveTo(x0, y0);
+            ctx.lineTo(x0 + dx, y0 + dy);
+            ctx.stroke();
+        }
+        const halo = BEAM_GLOW_WIDTHS * calibre;
+        lights.point(
+            base,
+            x0,
+            y0,
+            legibleWidth(halo, MIN_BEAM_GLOW_PX, camera.scale) * BEAM_EMITTER_REACH,
+            team(i) < 0 ? BEAM_FLASH_GLOW : markerOf(shipColours(team(i))).hull,
+            alpha * BEAM_EMITTER_BRIGHTNESS * flooredFade(halo, MIN_BEAM_GLOW_PX, camera.scale),
+        );
     }
 
     // Beams are drawn last, and nothing restores the context between frames:

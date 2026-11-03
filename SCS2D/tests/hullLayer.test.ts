@@ -118,9 +118,11 @@ describe("the Pixi hull layer", () => {
                 expect(shadow.position.y).toBeCloseTo(ship.y - camera.y + m.x * s + m.y * c + fy, 6);
             }
         }
-        // Where they may fall: thick shadows on the thin hull, a fighter's on any.
+        // Where they may fall: thick modules' and fighters' shadows alike on the thin hull alone.
         expect(layer.thinHull.shown().length).toBe(layer.thin.shown().length);
-        expect(layer.hull.shown().length).toBe(layer.thin.shown().length + thick.length);
+        expect(layer.hull.shown().length).toBe(layer.thin.shown().length);
+        const order = layer.container.children;
+        expect(order.indexOf(layer.fighterShadows.container)).toBeLessThan(order.indexOf(layer.thick.container));
         expect(layer.thickShadows.layer.mask).toBe(layer.thinHull.container);
         expect(layer.fighterShadows.container.mask).toBe(layer.hull.container);
         // What is in shadow keeps only the ambient share; what is lit takes the light's colour.
