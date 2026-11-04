@@ -898,18 +898,11 @@ inside any one file is not contiguous.
   on the next pad say, is passed over while another is clear. It heads straight for the pad only once
   nothing in the weapons layer stands between, asked from afar as well as inside the circle, so one whose
   way in runs across the carrier starts round in time. It makes for where its outline, not its centre of
-  mass, lies centred on the pad, so a fighter heavy at one end fits a pad only just long enough for it; and
-  it turns its mains onto a change of velocity under `PAD_HOLD_SPEED` (5 m/s) only once they point more than
-  `PAD_HOLD_ANGLE` (60°) off it, or it weaves, turning after each small correction and overshooting it; a
-  fighter's thrusters cannot stand in, since those off its middle turn it as they push it across. One that
-  can turn only one way cannot stop a turn, so it lands spinning: it holds a slow spin that way
-  (`PAD_SPIN`, a turn every 8 s), fires its mains as they come round to the change of velocity it needs,
-  and plans its braking on a 1/π share of their thrust, after half a turn; a pad it fits at any heading it
-  can settle on spinning. So does one whose turn one way is less than half as strong as the other
-  (`PAD_WEAK_TURN`), which overshoots every turn that way and weaves round the pad until its fuel is gone.
-  Spinning, every push adds to the spin it cannot take back, so it asks for the turn a straight push
-  brings, not for none, which the allocator would buy by not pushing. One that has lost its mains steers
-  by whichever engine left pushes hardest. One with no turn left at all does not try to land. With arcs shown, every way in is drawn on the pad as a
+  mass, lies centred on the pad, so a fighter heavy at one end fits a pad only just long enough for it.
+  Which way it faces on the way is the helm's (§4, engine allocation): it asks only to arrive, with no
+  heading of its own, and plans its braking on what the helm says it can push, so a fighter whose damage
+  has it spin in plans for that; a pad it fits at any heading it can settle on spinning. One with no turn
+  left at all does not try to land. With arcs shown, every way in is drawn on the pad as a
   small arrow pointing in from the middle of its side or from its corner, along the way, in amber for a pad's
   one longest run, so the editor shows how easy a pad is to reach — and from the wrong side it
   first circles the carrier outside its radius, `HULL_ORBIT_STEP` at a time, rather than fly through what is in
@@ -1928,6 +1921,25 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
     the allocator can give the turn up for it, or turn the hull the wrong way, so the pilot halves the
     force it asks for while a turn worth having is starved. Only starved: a lopsided hull loses a little
     turn whenever it pushes at all, and halving for that would leave it unable to move.
+  - **A pilot says what it wants; the helm decides how, with whatever engines are left** (`sim/helm.ts`).
+    Alongside the velocity it wants, a pilot asks to *face* a heading — its guns on a target, its claw on a
+    face, its port on a port — or to *steer*, where it goes mattering and which way it faces not, or to
+    *hurry*, steering as fast as it can push. Steering, the helm turns the push that pushes hardest — the
+    mains, or once they are gone whatever left pushes hardest — onto the change of velocity it needs, but not
+    for one under its slack (`STEER_HOLD_SPEED`, 5 m/s, or less for a pilot that must arrive gently, as a
+    docking one must) while the push already points within `STEER_HOLD_ANGLE` (60°) of it, or it weaves,
+    turning after each small correction and overshooting it. A pilot with a heading of its own to rest on
+    — a ram's target — keeps it for a change under its slack, its other engines making the correction; one
+    with none turns for it rather than push the wrong way. A layout that cannot hold a heading — one that
+    turns only one way, or one way less than half as hard as the other (`WEAK_TURN`), or whose push along
+    its steering bearing with its turns cancelled is less than half its push that way at all
+    (`STEADY_PUSH`) — spins instead, at `STEER_SPIN` (a turn every 8 s), firing as its push comes round:
+    it asks for the turn a straight push brings rather than for none, which the allocator would buy by not
+    pushing. Hurrying never spins, since a spin gives a third of its push: it points, however it can, then
+    burns. Every pilot that plans a stop asks the helm what it can push and how soon (`pushAbility`) — a
+    1/π share after half a spin, spinning — rather than reckoning it from its mains, so the planning and
+    the flying agree. What it does is no business of the helm's: landing, docking, ramming, fleeing and
+    getting out of a rock's way all ask it the same way.
   - **A pilot never turns into something.** Before turning either way it asks whether that would swing
     any module of its hull towards a module of another hull nearer than it needs to stop turning that
     way, from the rate it has, plus a tenth of its radius; if so it does not start the turn, and stops one
