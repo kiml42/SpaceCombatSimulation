@@ -359,6 +359,25 @@ describe("the editor in a browser", () => {
         expect(await page.textContent("#linked")).toMatch(/drawn 2 times/);
     });
 
+    it("mirrors a module into a shared part, and an assembly into a reflected copy", async () => {
+        await openShip(page, "Corvette");
+        const centre = await canvasCentre(page);
+        await page.mouse.click(centre.x + 168, centre.y);
+        expect(await page.inputValue("#propKind")).toBe("hullGun");
+
+        await page.click("#propMirrorCopy");
+        expect(await page.textContent("#linked")).toMatch(/drawn 2 times/);
+        // The bow gun is on the centreline, so its reflection is too.
+        expect(Number(await page.inputValue("#propY"))).toBe(0);
+
+        await page.click("#propSelectAssembly");
+        const plain = await page.isChecked("#assemblyMirror");
+        await page.click("#assemblyMirrorCopy");
+        // The new copy is selected, reflected the other way from the one it was made from.
+        expect(await page.isChecked("#assemblyMirror")).toBe(!plain);
+        expect(problems).toEqual([]);
+    });
+
     it("takes a shared part out of its assembly, leaving the ship as it was", async () => {
         await openShip(page, "Corvette");
         // Made shared here rather than hunting for one of the corvette's own by
