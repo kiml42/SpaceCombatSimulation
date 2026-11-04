@@ -38,7 +38,7 @@ export interface Scene {
 export const SCENES: readonly Scene[] = [
     { name: "Duel", create: () => lit(duel(SCENE_SEED), LIGHTS.daylight) },
     { name: "Beam Duel", create: () => lit(beamDuel(SCENE_SEED), LIGHTS.blueGiant) },
-    { name: "Star Wars", create: () => lit(starWars(SCENE_SEED), LIGHTS.noon) },
+    { name: "Star Wars", create: () => lit(starWars(SCENE_SEED), LIGHTS.eclipse) },
     { name: "Swarm", create: () => lit(swarm(SCENE_SEED), LIGHTS.dusk) },
     { name: "Super Swarm", create: () => lit(swarm(SCENE_SEED, 300), LIGHTS.redDwarf) },
     { name: "Torpedoes", create: () => lit(torpedoes(SCENE_SEED), LIGHTS.violet) },

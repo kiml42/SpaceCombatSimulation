@@ -32,6 +32,12 @@ export const LIGHTS = {
     violet: { from: degrees(315), colour: "#e4d0ff", ambient: 0.25 },
     /** Gold, from the top left, steep. */
     gold: { from: degrees(120), colour: "#fff0b0", ambient: 0.2 },
+    /**
+     * A sun all but eclipsed: dim and cold, from the top left, and nothing at
+     * all in shadow, so what ships light by themselves — their engines, beams
+     * and hits — is most of what is seen of them.
+     */
+    eclipse: { from: degrees(150), colour: "#3c4250", ambient: 0 },
 } as const satisfies Record<string, Light>;
 
 /** Most of a drawn light's ambient: its least is 0, black shadows. */

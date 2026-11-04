@@ -538,6 +538,8 @@ an entry is either still open or it is gone.
               frame's lights are all known, so is lit by its view's lights in the frame before, put back
               in the world through that frame's camera, so a panning view does not move the light; a frame
               late, which a light lasting a few frames hides.
+            - **Seen best in Star Wars**, under `LIGHTS.eclipse`: a dim, cold sun and no ambient at all, so
+              the Star Destroyer is a dark shape lit mostly by its own thrusters, guns and the hits on it.
             - **Never lit**: gauges, icons, names, selection, orders and arcs, as with the battle's light.
         3. **Recorded for later: lights shading bevels and rounded parts.** A light beside a ship should
            brighten the bevels and the sides of bells, barrels and domes that face it, as the battle's light
