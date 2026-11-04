@@ -286,6 +286,13 @@ export function ShipPage() {
         return () => clearTimeout(timer);
     }, [inFleet, blueprint]);
 
+    // Otherwise the address names the ship, so a reload reopens its saved copy.
+    const name = blueprint.name;
+    const named = useEffectEvent(() => {
+        if (inFleet === null && search.get("open") !== name) setSearch({ open: name }, { replace: true });
+    });
+    useEffect(() => named(), [name]);
+
     const add = (kind: ShipModuleKind): void => {
         const spec: ModuleSpec = { ...DEFAULTS[kind], x: 0, y: 0 };
         const view = engine?.visible() ?? { x: 0, y: 0, width: 100, height: 100 };
@@ -320,7 +327,6 @@ export function ShipPage() {
         refresh();
     };
 
-    const name = blueprint.name;
     const entries = library.list();
     const taken = (): string[] => entries.map((entry) => entry.name);
     const listed = entries.some((entry) => entry.name === name);
