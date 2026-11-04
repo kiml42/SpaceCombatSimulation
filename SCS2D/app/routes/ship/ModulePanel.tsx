@@ -1,6 +1,6 @@
 import { styled } from "@linaria/react";
 import { kindName } from "~/editor/doctrine";
-import { dockFighter, duplicatePlacement, instanceOf, reshapePlacement, updatePlacement } from "~/editor/edit";
+import { dockFighter, duplicatePlacement, instanceOf, mirrorPlacement, reshapePlacement, updatePlacement } from "~/editor/edit";
 import type { DesignInFleet } from "~/editor/handoff";
 import type { Library } from "~/editor/library";
 import { selectedPosition } from "~/editor/shipCanvas";
@@ -40,6 +40,7 @@ import {
     wedge,
     type Blueprint,
     type ModuleKind,
+    type ModulePath,
     type ModuleSpec,
     type Placement,
 } from "~/sim/index";
@@ -204,6 +205,16 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
     const index = doc.selectedModules()[0] ?? -1;
     const readout = moduleReadout(spec, doc.view.modules, index, doc.view.design?.radius ?? 0);
     const design = doc.view.design;
+    // The copy just made is selected, not the one it was made from: it is the one about to be put somewhere.
+    const placeCopy = (placed: { blueprint: Blueprint; path: ModulePath } | null): void => {
+        if (placed === null) return;
+        doc.apply(placed.blueprint);
+        doc.select(placed.path);
+        const drawn = doc.selectedModules();
+        if (drawn.length > 0) doc.selectModule(drawn[drawn.length - 1]!);
+        editing.endGesture();
+        editing.refresh();
+    };
 
     return (
         <section id="properties">
@@ -599,18 +610,20 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                     title="Make this a shared part and place a second copy"
                     onClick={() => {
                         if (origin === null) return;
-                        const duplicated = duplicatePlacement(doc.blueprint, origin);
-                        if (duplicated === null) return;
-                        doc.apply(duplicated.blueprint);
-                        // The copy just made is selected, not the one it was made from: it is the one about to be put somewhere.
-                        doc.select(duplicated.path);
-                        const drawn = doc.selectedModules();
-                        if (drawn.length > 0) doc.selectModule(drawn[drawn.length - 1]!);
-                        editing.endGesture();
-                        editing.refresh();
+                        placeCopy(duplicatePlacement(doc.blueprint, origin));
                     }}
                 >
                     Duplicate
+                </Button>
+                <Button
+                    id="propMirrorCopy"
+                    title="Make this a shared part and place a reflected copy on the other side of the centreline"
+                    onClick={() => {
+                        if (origin === null) return;
+                        placeCopy(mirrorPlacement(doc.blueprint, origin));
+                    }}
+                >
+                    Mirror
                 </Button>
                 <TakeOut id="propTakeOut" editing={editing} path={origin === null ? null : origin.path} what="module" />
                 <Button
