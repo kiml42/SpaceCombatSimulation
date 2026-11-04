@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { compileBlueprint, Ships, World, type Blueprint } from "../sim/index.js";
 import { makeBattle } from "../scenarios/battle.js";
 import { DINKY, REPLICATOR } from "../scenarios/blueprints.js";
-import { pushBearing, spinWay, steerHeading, STEER_HOLD_SPEED } from "../sim/helm.js";
+import { burnGain, pushBearing, spinWay, steerHeading, STEER_HOLD_SPEED } from "../sim/helm.js";
 import type { EngineLayout } from "../sim/engines.js";
 
 /** A Dinky's engine layout with its modules `lost` shot away. */
@@ -40,6 +40,21 @@ describe("the helm", () => {
         expect(steerHeading(STEER_HOLD_SPEED - 1, 0, Math.PI, Math.PI, 0, STEER_HOLD_SPEED, true)).toBe(0);
         // A pilot that has to arrive gently gives less slack.
         expect(steerHeading(2, 0, Math.PI, 0.3, 0, 1, false)).toBe(0);
+    });
+
+    it("says what turning its push buys over holding its heading, by what it has left, and nothing when there is nothing to turn for", () => {
+        const design = compileBlueprint(DINKY);
+        const whole = layoutLosing(DINKY, []);
+        const mass = design.mass;
+        const inertia = 1000;
+        // Wanting to go the way it faces, turning buys nothing; the way it does not, a great deal.
+        expect(burnGain(whole, mass, inertia, 0, 50, 0, 2, 0)).toBe(0);
+        expect(burnGain(whole, mass, inertia, Math.PI, 50, 0, 2, 0)).toBeGreaterThan(0.5);
+        // No change wanted, or no push left to turn.
+        expect(burnGain(whole, mass, inertia, 0, 0, 0, 2, 0)).toBe(-1);
+        // Its mains gone, nothing pushes it ahead: turning what pushes hardest onto ahead is worth it.
+        const mainless = layoutLosing(DINKY, [4]);
+        expect(burnGain(mainless, mass, inertia, 0, 50, 0, 2, pushBearing(mainless, 0))).toBeGreaterThan(0.5);
     });
 });
 

@@ -258,6 +258,13 @@ export class Flashes {
     hullAngle = new Float64Array(64);
     hullVx = new Float64Array(64);
     hullVy = new Float64Array(64);
+    /**
+     * When it happened, on `now`: what tells apart events alike in all else, as
+     * a beam's every step on the same spot is, so each throws its own sparks.
+     */
+    born = new Float64Array(64);
+    /** Simulated seconds, as these have been aged: a clock to say when each was born. */
+    now = 0;
     count = 0;
 
     add(
@@ -315,10 +322,12 @@ export class Flashes {
         this.hullAngle[i] = hullAngle;
         this.hullVx[i] = hullVx;
         this.hullVy[i] = hullVy;
+        this.born[i] = this.now;
     }
 
     /** Age everything by `dt` *simulated* seconds and drop what has burned out and landed. */
     step(dt: number): void {
+        this.now += dt;
         let kept = 0;
         for (let i = 0; i < this.count; i++) {
             const age = this.age[i]! + dt;
@@ -340,6 +349,7 @@ export class Flashes {
         const out = new Flashes();
         for (const [name] of FIELDS) (out as Record<Field, unknown>)[name] = this[name].slice();
         out.count = this.count;
+        out.now = this.now;
         return out;
     }
 
@@ -348,6 +358,7 @@ export class Flashes {
         const copy = from.copy();
         for (const [name] of FIELDS) (this as Record<Field, unknown>)[name] = copy[name];
         this.count = copy.count;
+        this.now = copy.now;
     }
 
     private grow(): void {
