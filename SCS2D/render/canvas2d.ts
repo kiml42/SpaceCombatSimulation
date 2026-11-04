@@ -1488,6 +1488,20 @@ function drawEngineTriggers(ctx: CanvasRenderingContext2D, ship: ShipView, metre
     ctx.restore();
 }
 
+/** How far the longest plume a ship is burning reaches past its engine, metres; 0 for none. */
+export function plumeReach(ship: ShipView): number {
+    const design = ship.currentStructure;
+    let engine = 0;
+    let most = 0;
+    for (const m of design.modules) {
+        if (m.spec.kind !== "engine") continue;
+        const t = engine++;
+        const force = (ship.throttles[t] ?? 0) * (design.engines[t]?.maxThrust ?? 0);
+        if (force > 0) most = max(most, nozzleReach(engineGeometry(m.spec), force));
+    }
+    return most;
+}
+
 /**
  * Exhaust, in a pass of its own after the turrets.
  *
@@ -2246,9 +2260,15 @@ function drawScene(
     // fighter, aboard a carrier or not: robots work on the deck, and a fighter
     // sits above it, so neither a capital spawned later nor a robot under a
     // landed fighter may be painted over what is on top.
+    // A ship out of view may still burn a plume reaching into it.
+    const plumeShown = (ship: ShipView): boolean => {
+        const reach = ship.currentStructure.radius + plumeReach(ship);
+        return Math.abs(ship.x - camera.x) - reach <= halfW && Math.abs(ship.y - camera.y) - reach <= halfH;
+    };
     for (let i = 0; i < snapshot.shipCount; i++) {
         const ship = snapshot.ships[i]!;
         if (shown(ship)) drawShip(ctx, ship, camera.scale, arcsFor(ship.body, selected, arcs), false, underneath, light);
+        else if (!ship.currentStructure.fighter && plumeShown(ship)) drawPlumes(ctx, ship);
     }
     for (let i = 0; i < snapshot.shipCount; i++) {
         const ship = snapshot.ships[i]!;
@@ -2257,6 +2277,7 @@ function drawScene(
     for (let i = 0; i < snapshot.shipCount; i++) {
         const ship = snapshot.ships[i]!;
         if (shown(ship)) drawShip(ctx, ship, camera.scale, arcsFor(ship.body, selected, arcs), true, false, light);
+        else if (ship.currentStructure.fighter && plumeShown(ship)) drawPlumes(ctx, ship);
     }
 
     // Icons in a pass of their own, after every hull: an icon stands for the
