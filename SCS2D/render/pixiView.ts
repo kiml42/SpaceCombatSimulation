@@ -12,7 +12,7 @@ import { PixiCanvas } from "./pixiCanvas.js";
  * rest is canvas2d.ts drawing into `PixiCanvas`, in its true order over them.
  */
 export interface PixiView {
-    /** Whether the renderer has started. Until it has, Canvas2D still draws everything. */
+    /** Whether the renderer has started. Until it has, nothing is drawn. */
     readonly ready: boolean;
     /** Whether it could not start, as where WebGL is unavailable. */
     readonly failed: boolean;
