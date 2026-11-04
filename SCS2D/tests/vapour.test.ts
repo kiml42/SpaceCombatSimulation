@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Beams, Projectiles, Ships, Snapshot, World, capture, compileBlueprint, type Blueprint, type Rng } from "../sim/index.js";
-import { LEAK_LINGER } from "../sim/snapshot.js";
-import { eachPuff, holeWidth, type Hole, type Puff } from "../render/vapour.js";
+import { LEAK_LINGER, LEAK_SCRATCH_FADE } from "../sim/snapshot.js";
+import { eachPuff, holeClosedAt, holeWidth, type Hole, type Puff } from "../render/vapour.js";
 
 /** A core and a lined tank ahead of it. */
 const DRUM: Blueprint = {
@@ -63,7 +63,35 @@ describe("a leak's vapour", () => {
         const view = (): Snapshot["ships"][number] => capture(new Snapshot(), s.world, s.ships, new Projectiles(), new Beams()).ships[0]!;
         expect(view().leakX).toHaveLength(1);
         for (let i = 0; i < LEAK_LINGER * 60 + 1; i++) s.step();
+        // Still pictured for its scratches, but done venting.
+        const leak = s.ships.fuel.leaksOf(s.body)[0]!;
+        expect(leak.age - leak.closed).toBeGreaterThan(LEAK_LINGER);
+    });
+
+    it("is pictured for good once its lining has sealed it, and until its scratches fade once patched", () => {
+        const s = holed(0.005);
+        const view = (): Snapshot["ships"][number] => capture(new Snapshot(), s.world, s.ships, new Projectiles(), new Beams()).ships[0]!;
+        for (let i = 0; i < 600; i++) s.step();
+        expect(s.ships.fuel.leaksOf(s.body)[0]!.width).toBe(0);
+        expect(s.ships.fuel.leaksOf(s.body)[0]!.patched).toBeLessThan(0);
+        expect(view().leakX).toHaveLength(1);
+        expect(view().leakClosed![0]).toBeGreaterThanOrEqual(0);
+        expect(view().leakModule![0]).toBe(TANK);
+        s.ships.fuel.seal(s.body, TANK);
+        for (let i = 0; i < LEAK_SCRATCH_FADE * 60 - 10; i++) s.step();
+        expect(view().leakX).toHaveLength(1);
+        for (let i = 0; i < 20; i++) s.step();
         expect(view().leakX).toHaveLength(0);
+    });
+
+    it("closes when the sim says it does", () => {
+        const sealed: Hole = { opened: 0.01, closing: 0.002, floor: 0, patched: -1 };
+        expect(holeClosedAt(sealed)).toBeCloseTo(5, 9);
+        const stuck: Hole = { opened: 0.4, closing: 0.01, floor: 0.2, patched: -1 };
+        expect(holeClosedAt(stuck)).toBeLessThan(0);
+        const patched: Hole = { ...stuck, patched: 30 };
+        expect(holeClosedAt(patched)).toBeCloseTo(30 + 0.2 / 0.2, 9);
+        expect(holeWidth(patched, holeClosedAt(patched))).toBeCloseTo(0, 9);
     });
 
     it("sends out nothing once its hole has closed, while what already left goes on", () => {

@@ -28,7 +28,7 @@ import { DECK_HEIGHT, DEFAULT_BURST_SPEED, DEFAULT_FRAGMENTS, EXPLOSIVE_YIELD } 
 import { CORVETTE, TORCH, TORPEDO } from "../scenarios/blueprints.js";
 import { barrelLines } from "../render/barrels.js";
 import { burstLifetime, Flashes, flashRadius } from "../render/flashes.js";
-import { holeWidth, vapourLength, type Hole } from "../render/vapour.js";
+import { holeClosedAt, holeWidth, vapourLength, type Hole } from "../render/vapour.js";
 
 /**
  * Small scenes of the battle's effects, for looking at them on their own: each
@@ -273,6 +273,8 @@ function place(snapshot: Snapshot, design: ShipDesign, x: number, y: number, ang
     view.leakFloor = [];
     view.leakPatched = [];
     view.leakFill = [];
+    view.leakModule = [];
+    view.leakClosed = [];
     return view;
 }
 
@@ -387,6 +389,9 @@ function punch(
         ship.leakFloor!.push(history.floor);
         ship.leakPatched!.push(history.patched);
         ship.leakFill!.push(1);
+        ship.leakModule!.push(1);
+        const closed = holeClosedAt(history);
+        ship.leakClosed!.push(closed >= 0 && age >= closed ? closed : -1);
     });
 }
 
@@ -647,7 +652,7 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
     },
     {
         name: "Leaks",
-        about: `Rounds from the five guns of the Guns scene punching holes together in a full tank, each hole its round's calibre. Each leak grows out of its hole at the 49 m/s its fuel leaves, 4 kg/s to 1.5 t/s at first. The tank's 20 mm self-sealing lining closes each hole at ${SEAL_SPEED * SEALING * 1000} mm/s but no wider than ${SEAL_REACH * SEALING * 100} cm: the small ones shut, the 40 cm narrows to 20 cm and stays open. ${MENDED_AFTER} s on, a repair robot mends the tank, patching what is left closed at ${PATCH_SPEED * 1000} mm/s.`,
+        about: `Rounds from the five guns of the Guns scene punching holes together in a full tank, each hole its round's calibre. Each leak grows out of its hole at the 49 m/s its fuel leaves, 4 kg/s to 1.5 t/s at first. The tank's 20 mm self-sealing lining closes each hole at ${SEAL_SPEED * SEALING * 1000} mm/s but no wider than ${SEAL_REACH * SEALING * 100} cm: the small ones shut, the 40 cm narrows to 20 cm and stays open. ${MENDED_AFTER} s on, a repair robot mends the tank, patching what is left closed at ${PATCH_SPEED * 1000} mm/s. Each hole is drawn as wide as it is open, in a patch of scratched plate that stays once the lining has sealed it and fades once it is patched.`,
         loop: 7,
         build(t, snapshot, flashes) {
             const row = holeRow();
@@ -710,6 +715,8 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
             ship.leakFloor!.push(width);
             ship.leakPatched!.push(-1);
             ship.leakFill!.push(1);
+            ship.leakModule!.push(1);
+            ship.leakClosed!.push(-1);
         },
     },
 ];
