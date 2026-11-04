@@ -43,22 +43,22 @@ in step when a scene is added or changes what it shows.
 | Scene | Light | What is in it | What it exercises |
 | --- | --- | --- | --- |
 | Duel | daylight | 2 Corvettes against 1 Gunship, crossing, `SIDE_WELL` | Guns, turrets, a hull gun; rounds bent by a well. The golden test's battle |
-| Beam Duel | blue giant | 2 Beam Corvettes against 1 Beam Gunship, as Duel | Beams alone |
-| Star Wars | eclipse | Star Destroyer (18 TIE pads, 2 robot bays) and 10 TIEs against the Ghost, the Quasar (4 X-Wing pads) and 20 X-, Y- and A-Wings, 5 km apart | A capital ship of about 174 modules; guns, beams, fighters; about 32 ships |
+| Beam Duel | eclipse | 2 Beam Corvettes against 1 Beam Gunship, as Duel | Beams alone |
+| Star Wars | noon | Star Destroyer (18 TIE pads, 2 robot bays) and 10 TIEs against the Ghost, the Quasar (4 X-Wing pads) and 20 X-, Y- and A-Wings, 5 km apart | A capital ship of about 174 modules; guns, beams, fighters; about 32 ships |
 | Swarm | dusk | 20 Dinkies against 2 Gunships | Small ships, guns |
 | Super Swarm | red dwarf | 300 Dinkies against 2 Gunships | Ship and module count (about 3,300 Dinky modules) |
 | Torpedoes | violet | 12 Torpedoes rammed at a Beam Gunship from 1500 m | Ramming, beam turrets shooting down craft. Short |
 | Standoff | ice | Two lines of Gunship, Corvette, Beam Corvette and 2 Dinkies, 1 km apart | Fighting from the first frame; doctrine without orders |
 | Line Ahead | gold | Two columns of 4, nose to tail | Shooting past friendly ships |
 | Split | nebula | A Catamaran rammed by a Bare Core at 30 m/s; a Corvette arrives later | A ship breaking into two working ships |
-| Torch Run | red dwarf | 4 Torches round a Laser Frigate | Engine flames as weapons; beams |
+| Torch Run | eclipse | 4 Torches round a Laser Frigate | Engine flames as weapons; beams |
 | Binary | blue giant | Corvette against Gunship between two wells on an eccentric orbit | Moving wells |
 | Kernels | violet | Corvette against Gunship between two spinning asteroid kernels on the binary wells | Collisions with asteroids |
 | Asteroid Field | dusk | Corvette against Gunship among 2 major and 8 minor asteroids | Asteroid drawing and collisions, wells |
 | Mining | gold | 2 empty Salvagers, 1 major and 4 minor asteroids rich in metal and ice | Claws on rock, robots mining, ore into holds. No fighting |
 | Rival Mines | ice | A Replicator a side (2 claws, 2 robot bays, 2 turrets, 2 pads, a slipway), each on its own major, the two on a binary orbit | Robots, mining, building on pads and slipways, wells, fighting. Grows over time |
 | Hooked | nebula | 2 Corvettes welded stern to stern, a Gunship either side | Hooked ships flying as one body |
-| Broadside | daylight | Broadside against a Corvette, 3 km apart | Guns firing over the side; turning side-on |
+| Broadside | eclipse | Broadside against a Corvette, 3 km apart | Guns firing over the side; turning side-on |
 | Salvage Run | red dwarf | A Salvager and 2 wrecks | Claw docking, robots breaking wrecks for metal. No fighting |
 | Mending | noon | A damaged Mender, alone, no pilot | Robots repairing |
 | Refitting | daylight | A Rebuilder being refitted, no pilot | Building, removing and converting modules in place |
