@@ -20,6 +20,12 @@ export const LIGHT_RESOLUTION = 0.5;
  * beside an engine is lit well past it.
  */
 export const LIGHT_REACH = 4;
+/**
+ * How many times brighter than white the buffer can hold light before it is
+ * clipped: lights are drawn into it at this share and scaled back after, so
+ * where several overlap their sum still falls off rather than being cut flat.
+ */
+export const LIGHT_HEADROOM = 4;
 /** How strongly a surface is lit by a light as bright as the buffer holds, as a share of its own colour. */
 export const LIGHT_GAIN = 1;
 
@@ -53,12 +59,15 @@ out vec4 finalColor;
 uniform sampler2D uTexture;
 uniform sampler2D uLight;
 uniform float uGain;
+uniform float uHeadroom;
 
 void main()
 {
     vec4 colour = texture(uTexture, vTextureCoord);
+    // Easing towards full as it grows, so the brightest stretch is not lit flat.
+    vec3 light = 1.0 - exp(-texture(uLight, vScreen).rgb * uHeadroom);
     // Added over what is there, so it leaves the alpha alone.
-    finalColor = vec4(colour.rgb * texture(uLight, vScreen).rgb * uGain, 0.0);
+    finalColor = vec4(colour.rgb * light * uGain, 0.0);
 }
 `;
 
@@ -68,6 +77,7 @@ export class LightBuffer {
     private readonly uniforms = new UniformGroup({
         uScreen: { value: new Float32Array([1, 1]), type: "vec2<f32>" },
         uGain: { value: LIGHT_GAIN, type: "f32" },
+        uHeadroom: { value: LIGHT_HEADROOM, type: "f32" },
     });
     private readonly context = new PixiCanvas();
     private readonly reaching = new Lights();
@@ -96,7 +106,10 @@ export class LightBuffer {
         this.context.root.scale.set(LIGHT_RESOLUTION);
         this.reaching.clear();
         this.reaching.add(lights);
-        for (let k = 0; k < this.reaching.count; k++) this.reaching.radius[k]! *= LIGHT_REACH;
+        for (let k = 0; k < this.reaching.count; k++) {
+            this.reaching.radius[k]! *= LIGHT_REACH;
+            this.reaching.brightness[k]! /= LIGHT_HEADROOM;
+        }
         drawGlows(this.context as unknown as CanvasRenderingContext2D, this.reaching);
         this.context.end();
         renderer.render({ container: this.context.root, target: this.texture, clear: true, clearColor: [0, 0, 0, 1] });

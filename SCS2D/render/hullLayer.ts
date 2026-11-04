@@ -85,6 +85,12 @@ export class HullLayer {
      * through the filter `litBy` sets: filled only while there is one.
      */
     readonly lit = new Pool();
+    /**
+     * The lit fills with the bevels over them, sharing their geometry, so the
+     * light added to a bevel turned from the battle's light is dimmer and to
+     * one turned to it brighter, as the hull under it is: what the filter is on.
+     */
+    readonly litLayer = new Container();
     /** The bevels along the thin hull's outside edges, and the thick modules'. */
     readonly thinBevels = new Graphics();
     readonly thickBevels = new Graphics();
@@ -119,7 +125,8 @@ export class HullLayer {
         this.thickRockShadows = new BlockShadows(shade(), this.thinRock.container);
         this.kernelShadows = new BlockShadows(shade(), this.rockUnderKernel.container);
         this.fighterShade = shade();
-        this.lit.container.visible = false;
+        this.litLayer.addChild(this.lit.container, new Graphics(this.thinBevels.context), new Graphics(this.thickBevels.context));
+        this.litLayer.visible = false;
         this.fighterShadows.container.mask = this.hull.container;
         this.fighterShadows.container.filters = [this.fighterShade];
         // Lowest first: each depth's shadows fall on what is drawn before them.
@@ -141,7 +148,7 @@ export class HullLayer {
             this.thickRock.container,
             this.kernelShadows.layer,
             this.kernel.container,
-            this.lit.container,
+            this.litLayer,
             this.thinHull.container,
             this.hull.container,
             this.hullUnderRock.container,
@@ -288,8 +295,8 @@ export class HullLayer {
     /** Light the hull by `filter`'s dynamic lights, or not at all, as where there is no WebGL to run it. */
     litBy(filter: Filter | null): void {
         this.lighting = filter !== null;
-        this.lit.container.filters = filter === null ? [] : [filter];
-        this.lit.container.visible = this.lighting;
+        this.litLayer.filters = filter === null ? [] : [filter];
+        this.litLayer.visible = this.lighting;
     }
 
     /** Bevels drawn in the last frame. */

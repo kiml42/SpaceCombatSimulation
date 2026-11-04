@@ -518,7 +518,12 @@ an entry is either still open or it is gone.
               the halo round a light, and the hull beside an engine is lit well past it. The hull layer
               fills every module again, untinted and sharing its fills' geometry (`HullLayer.lit`), and
               that pool is drawn through a filter multiplying its colour by the buffer where it lies on
-              screen, times `LIGHT_GAIN` (1), added over the hull. So a hull takes the light in its own
+              screen, times `LIGHT_GAIN` (1), added over the hull. Lights go into the buffer at a quarter
+              of their brightness (`LIGHT_HEADROOM`), so where several overlap, as along a big beam, their
+              sum is not clipped flat at white, and the filter eases it towards full (1 − e^−L) rather than
+              cutting it off. The bevels are drawn over the lit fills too, sharing their geometry, so the
+              light added to a bevel turned from the battle's light is dimmer and to one turned to it
+              brighter, keeping the hull's shading. So a hull takes the light in its own
               colour, in the battle's shadows as out of them, and empty space stays dark. Thin and
               thick modules and rock are lit; WebGL only, as Pixi's Canvas2D fallback has no filters;
               and nothing is drawn while there are no lights. The glows' halos are still drawn over the

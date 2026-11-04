@@ -65,7 +65,7 @@ describe("the Pixi hull layer", () => {
     it("fills every module again for the dynamic lights while it is lit by them, and not otherwise", () => {
         const unlit = drawn(layerOf());
         expect(unlit.lit.shown().length).toBe(0);
-        expect(unlit.lit.container.visible).toBe(false);
+        expect(unlit.litLayer.visible).toBe(false);
         const layer = layerOf();
         // Node cannot build a filter's shader; the layer only hands it on.
         layer.litBy({} as Filter);
