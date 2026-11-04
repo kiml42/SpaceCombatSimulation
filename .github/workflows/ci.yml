@@ -70,6 +70,7 @@ jobs:
       # one Windows row for a bit of coverage in the other direction. Matrix
       # rows run in parallel, so extra rows cost concurrency rather than
       # wall-clock, and this is a public repository so runner minutes are free.
+      # No macOS row: see SCS2D/DECISIONS.md, 2026-11-04.
       #
       # Why several Node versions: the golden tests pin exact checksums, so
       # passing them on three V8 versions is what actually verifies the
@@ -84,15 +85,6 @@ jobs:
       # architecture.test.ts, git line-ending conversion). This row catches a
       # break in one direction or the other.
       #
-      # Why macOS, and why it is arguably the most valuable single row here:
-      # macos-latest is the only GitHub-hosted runner on a different CPU
-      # architecture (ARM64, since Apple Silicon). IEEE-754 guarantees that
-      # + - * / and sqrt are correctly rounded on any conforming hardware, and
-      # the simulation is built from nothing else — so this row is the standing
-      # evidence that the arithmetic is genuinely platform-independent rather
-      # than merely consistent across x64. Portable replays and async
-      # fleet-vs-fleet rest on that, so this row keeps it a verified property
-      # instead of an assumed one.
       matrix:
         include:
           - os: ubuntu-latest
@@ -102,8 +94,6 @@ jobs:
           - os: ubuntu-latest
             node: 26
           - os: windows-latest
-            node: 26
-          - os: macos-latest
             node: 26
     steps:
       - uses: actions/checkout@v7

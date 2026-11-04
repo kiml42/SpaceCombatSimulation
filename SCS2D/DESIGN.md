@@ -2049,6 +2049,8 @@ else, with the implementation-defined functions replaced by our own.
 The practical consequence is that the target above is conservative: portable replays and async fleet-vs-fleet
 work today, and the fixed-point option may never need to be exercised.
 
+CI stopped running on ARM64 macOS on 2026-11-04, so since then only x64 is checked continuously.
+
 Treat this as strong evidence, not proof. CI verifies the *current* fixture scenarios, which do not yet exercise
 `atan2`, collisions or the engine solver. The claim gets stronger as scenarios are added — which is a reason to
 add a golden scenario alongside each new subsystem rather than at the end.
@@ -2213,8 +2215,7 @@ Seven things, and deliberately nothing more:
    Without it you'll be afraid to touch the physics, which is where the interesting work is.
 2. **This document, kept current**, with the Status section at the top actually updated.
 3. **CI running tests on push**, so the repo reports its own state without an environment setup.
-   `.github/workflows/ci.yml` runs the suite on **Linux across Node 22, 24 and 26, plus Windows and macOS on
-   Node 24**.
+   `.github/workflows/ci.yml` runs the suite on **Linux across Node 22, 24 and 26, plus Windows on Node 26**.
    The Node axis is not redundancy: the golden tests pin exact checksums, so passing them on three V8 versions is
    what actually verifies the hand-written transcendentals are doing their job. A row that passes on one Node and
    fails on another means determinism has broken across engine versions — the failure mode that ruled out an
@@ -2223,12 +2224,9 @@ Seven things, and deliberately nothing more:
    direction. Rows run in parallel and the repository is public, so extra rows cost neither time nor money.
    Path-filtered to `SCS2D/**`, so tinkering with the archived Unity tree queues nothing.
 
-   **The macOS row is the ARM one, and the most valuable of the five.** It is the only GitHub-hosted runner on a
-   different CPU architecture, so it is the evidence that the arithmetic is genuinely platform-independent rather
-   than merely consistent across x64. Its consequence is recorded in §4: the golden checksums holding there means
-   cross-platform determinism is *already* true in practice, not just a possible later upgrade. Do not delete
-   this row to save time — the five run in parallel and cost nothing, and losing it would quietly downgrade a
-   verified property to an assumed one.
+   There is no macOS row any more. It was the only ARM64 runner, but in two months it never flagged anything
+   the x64 rows did not, and its runners stopped being allocated; see DECISIONS.md 2026-11-04. Cross-platform
+   determinism (§4) is therefore last verified on ARM64 as of that date.
 4. **The viewer driven in a real browser**, in `tests/browser/`, on one CI row. A renderer typechecks
    perfectly while drawing a black rectangle, and a control can be wired to nothing; neither shows up in a
    unit test or a checksum. These deliberately do not re-check the physics — the viewer and the golden
