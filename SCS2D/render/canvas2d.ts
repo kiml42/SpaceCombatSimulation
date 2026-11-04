@@ -95,6 +95,7 @@ import { clipToStart, exposureEnds, flashSamples, shutterWeight } from "./exposu
 import { flameSprite, rgba, sprite, WEDGE_HEADROOM, WEDGE_STEPS, wedgeBox, wedgeSprite } from "./sprites.js";
 import { drawGlows, Lights, type Transform } from "./glows.js";
 import { Overshadowed } from "./blocks.js";
+import { LIGHT_GAIN, LightField, type Seen } from "./lightField.js";
 import { leakSpeed } from "../sim/fuel.js";
 import { LEAK_LINGER } from "../sim/snapshot.js";
 import { eachPuff, type Hole, type Pose, type Puff } from "./vapour.js";
@@ -884,6 +885,7 @@ function drawHull(
             }
         }
         filled = true;
+        if (fighters) lightFighter(ctx, ship, fighters);
     }
 
     // Module boxes, in the body frame the design already put them in.
@@ -1262,6 +1264,7 @@ function litColour(colour: string, light: string): string {
 
 /** What leaking fuel looks like: vapour, white, in the light it is seen in. */
 const LEAK = "#ebf2fa";
+const LEAK_RGB = rgba(LEAK);
 
 /**
  * Fuel leaking from a hole: puffs of white vapour (`render/vapour.ts`) widening
@@ -1330,7 +1333,13 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
             fill,
             speed,
             puff,
-            (p) => into.add(p.x, p.y, p.dirX, p.dirY, p.length, 2 * p.radius, shaded && inShadow(p) ? shadowTint : tint, p.alpha),
+            (p) => {
+                const base = shaded && inShadow(p) ? shadowTint : tint;
+                // In the world, for the light there: set out from a past pose it already is.
+                const x = tracked ? p.x : ship.x + p.x * c - p.y * s;
+                const y = tracked ? p.y : ship.y + p.x * s + p.y * c;
+                into.add(p.x, p.y, p.dirX, p.dirY, p.length, 2 * p.radius, lightUp(base, LEAK_RGB, x, y), p.alpha);
+            },
             poseAgo,
         );
     }
@@ -2126,6 +2135,11 @@ export function draw(
     /** The light rounded parts are shaded by; flat without one. */
     light?: Light,
 ): void {
+    // Lit by the lights of this view's last frame: this one's are not all known
+    // until it is drawn, and a frame on there is no telling them apart.
+    const last = lastSeen.get(ctx);
+    if (last === undefined) field.clear();
+    else field.set(last.lights, last.camera, last.widthPx, last.heightPx);
     seenLights.clear();
     drawScene(
         ctx,
@@ -2145,6 +2159,73 @@ export function draw(
         light,
         seenLights,
     );
+    field.clear();
+    const kept = last ?? { lights: new Lights(), camera: { x: 0, y: 0, scale: 1 }, widthPx, heightPx };
+    kept.lights.clear();
+    kept.lights.add(seenLights);
+    kept.camera = { x: camera.x, y: camera.y, scale: camera.scale };
+    kept.widthPx = widthPx;
+    kept.heightPx = heightPx;
+    lastSeen.set(ctx, kept);
+}
+
+/** Each view's lights in its last frame, and the camera it saw them through. */
+const lastSeen = new WeakMap<object, { lights: Lights; camera: Seen; widthPx: number; heightPx: number }>();
+/** What lights what is lit a piece at a time, while a view is drawn. */
+const field = new LightField();
+/** Scratch for the light at a point. */
+const glow = { r: 0, g: 0, b: 0 };
+
+/**
+ * `tint`, as `0xrrggbb`, with what the light at `(x, y)` sheds on a surface of
+ * colour `albedo` added: as the light buffer lights the hull.
+ */
+function lightUp(tint: number, albedo: readonly number[], x: number, y: number): number {
+    if (field.count === 0 || !field.at(x, y, glow)) return tint;
+    const add = (channel: number, shift: number, light: number): number =>
+        Math.min(255, ((tint >> shift) & 0xff) + Math.round(albedo[channel]! * light * LIGHT_GAIN)) << shift;
+    return add(0, 16, glow.r) | add(1, 8, glow.g) | add(2, 0, glow.b);
+}
+
+/**
+ * A fighter's modules filled once more, added over themselves in their own
+ * colour times the light on each: the dynamic lights, as the hull layer's
+ * filter gives the capital ships'. A burnt-out module is soot, and stays dark.
+ */
+function lightFighter(ctx: CanvasRenderingContext2D, ship: ShipView, fighters: boolean): void {
+    if (field.count === 0) return;
+    const design = ship.currentStructure;
+    const c = Math.cos(ship.angle);
+    const s = Math.sin(ship.angle);
+    for (let i = 0; i < design.modules.length; i++) {
+        if (ship.drawn?.[i] === false || isFighterModule(design, i) !== fighters) continue;
+        const integrity = ship.integrity?.[i] ?? 1;
+        if (integrity <= 0) continue;
+        const m = design.modules[i]!;
+        if (!field.at(ship.x + m.x * c - m.y * s, ship.y + m.x * s + m.y * c, glow)) continue;
+        const colours = moduleColours(design, i, paintedSide(ship, i));
+        moduleFills(m.spec, fillColour(m.spec, colours), colours, integrity, fills, drawnMounts(design, i).polygons);
+        ctx.save();
+        ctx.translate(m.x, m.y);
+        ctx.rotate(m.angle);
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = fillAlpha(ship, i);
+        for (const fill of fills) {
+            const [r, g, b] = rgba(fill.colour);
+            const lit = (colour: number, light: number): string =>
+                Math.min(255, Math.round(colour * light * LIGHT_GAIN))
+                    .toString(16)
+                    .padStart(2, "0");
+            ctx.fillStyle = `#${lit(r, glow.r)}${lit(g, glow.g)}${lit(b, glow.b)}`;
+            const points = fill.points;
+            ctx.beginPath();
+            ctx.moveTo(points[0]!, points[1]!);
+            for (let v = 2; v < points.length; v += 2) ctx.lineTo(points[v]!, points[v + 1]!);
+            ctx.closePath();
+            ctx.fill();
+        }
+        ctx.restore();
+    }
 }
 
 /**
@@ -3130,7 +3211,7 @@ function drawThrown(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes: 
             metal ??= batches.call(ctx, shard, false);
             // Dull metal, flashing the light's colour as a face turns to it.
             const shine = broken.glint ** 6;
-            const tint = mixRgb(BIT_COLOUR, lit, shine);
+            const tint = lightUp(mixRgb(BIT_COLOUR, lit, shine), BIT_COLOUR, broken.x, broken.y);
             const fade = min(1, (1 - broken.t) / 0.3);
             metal.add(broken.x, broken.y, cos(broken.angle), sin(broken.angle), broken.length, max(broken.width, pixel), tint, fade);
         }

@@ -1,5 +1,6 @@
 import { Filter, GlProgram, RenderTexture, UniformGroup, type Renderer } from "pixi.js";
 import { drawGlows, Lights } from "./glows.js";
+import { LIGHT_GAIN, LIGHT_REACH } from "./lightField.js";
 import { PixiCanvas } from "./pixiCanvas.js";
 
 /**
@@ -14,14 +15,6 @@ import { PixiCanvas } from "./pixiCanvas.js";
 
 /** The buffer's size as a share of the canvas's: light is soft, so it loses little. */
 export const LIGHT_RESOLUTION = 0.5;
-/**
- * How much further a light reaches over a surface than its glow does round
- * it: a glow is the halo seen in the light's own neighbourhood, and the hull
- * beside an engine is lit well past it.
- */
-export const LIGHT_REACH = 4;
-/** How strongly a surface is lit by a light as bright as the buffer holds, as a share of its own colour. */
-export const LIGHT_GAIN = 1;
 
 const vertex = `
 in vec2 aPosition;

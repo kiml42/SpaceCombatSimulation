@@ -1,0 +1,135 @@
+import type { Lights } from "./glows.js";
+import { rgba } from "./sprites.js";
+
+/**
+ * The dynamic lights asked of a point rather than drawn: how much light falls
+ * on whatever is there, as the light buffer (`render/lightBuffer.ts`) holds it
+ * for the hull, worked out from the list of sources itself. For what is not
+ * in the hull layer and is lit a piece at a time: fighters, leaking vapour and
+ * bits of metal. Kept in world metres, so it can be asked of a later frame
+ * than the one whose lights it holds. DOM-free, so it is unit-tested.
+ */
+
+/**
+ * How much further a light reaches over a surface than its glow does round
+ * it: a glow is the halo seen in the light's own neighbourhood, and the hull
+ * beside an engine is lit well past it.
+ */
+export const LIGHT_REACH = 4;
+/** How strongly a surface is lit by a light as bright as the buffer holds, as a share of its own colour. */
+export const LIGHT_GAIN = 1;
+/** How far behind its root a cone's glow starts, in its radii, as `render/glows.ts` draws it. */
+const CONE_BEHIND = 0.4;
+/** How much narrower a cone is at its tip than at its root, as `render/sprites.ts` draws it. */
+const CONE_NARROWING = 0.85;
+
+/** A camera as the lights were seen through: the middle of the view, and pixels to the metre. */
+export interface Seen {
+    x: number;
+    y: number;
+    scale: number;
+}
+
+export class LightField {
+    count = 0;
+    private x0: number[] = [];
+    private y0: number[] = [];
+    private x1: number[] = [];
+    private y1: number[] = [];
+    /** How far it reaches, metres. */
+    private reach: number[] = [];
+    private brightness: number[] = [];
+    private cone: boolean[] = [];
+    /** Its colour, each channel 0 to 1. */
+    private r: number[] = [];
+    private g: number[] = [];
+    private b: number[] = [];
+
+    /** Take on `lights`, in the canvas pixels of a view `widthPx` by `heightPx` through `camera`. */
+    set(lights: Lights, camera: Seen, widthPx: number, heightPx: number): void {
+        this.count = 0;
+        const toX = (px: number): number => camera.x + (px - widthPx / 2) / camera.scale;
+        const toY = (py: number): number => camera.y - (py - heightPx / 2) / camera.scale;
+        for (let k = 0; k < lights.count; k++) {
+            const i = this.count++;
+            let x0 = lights.x0[k]!;
+            let y0 = lights.y0[k]!;
+            let x1 = lights.x1[k]!;
+            let y1 = lights.y1[k]!;
+            const cone = lights.cone[k] === 1;
+            // Under a pixel long, a line is a point at its middle, as its glow is drawn.
+            if ((x1 - x0) ** 2 + (y1 - y0) ** 2 < 1) {
+                x0 = x1 = (x0 + x1) / 2;
+                y0 = y1 = (y0 + y1) / 2;
+            }
+            this.x0[i] = toX(x0);
+            this.y0[i] = toY(y0);
+            this.x1[i] = toX(x1);
+            this.y1[i] = toY(y1);
+            this.reach[i] = (lights.radius[k]! * LIGHT_REACH) / camera.scale;
+            this.brightness[i] = Math.min(1, lights.brightness[k]!);
+            this.cone[i] = cone && (x1 !== x0 || y1 !== y0);
+            const [r, g, b] = rgba(lights.colour[k]!);
+            this.r[i] = r / 255;
+            this.g[i] = g / 255;
+            this.b[i] = b / 255;
+        }
+    }
+
+    clear(): void {
+        this.count = 0;
+    }
+
+    /** The light at `(x, y)` in the world, each channel 0 to 1, into `out`; false where there is none. */
+    at(x: number, y: number, out: { r: number; g: number; b: number }): boolean {
+        let r = 0;
+        let g = 0;
+        let b = 0;
+        for (let k = 0; k < this.count; k++) {
+            const reach = this.reach[k]!;
+            const x0 = this.x0[k]!;
+            const y0 = this.y0[k]!;
+            const x1 = this.x1[k]!;
+            const y1 = this.y1[k]!;
+            if (x < Math.min(x0, x1) - reach || x > Math.max(x0, x1) + reach) continue;
+            if (y < Math.min(y0, y1) - reach || y > Math.max(y0, y1) + reach) continue;
+            const strength = this.brightness[k]! * shine(x - x0, y - y0, x1 - x0, y1 - y0, reach, this.cone[k]!);
+            if (strength <= 0) continue;
+            r += this.r[k]! * strength;
+            g += this.g[k]! * strength;
+            b += this.b[k]! * strength;
+        }
+        // As the buffer holds it, no brighter than white.
+        out.r = Math.min(1, r);
+        out.g = Math.min(1, g);
+        out.b = Math.min(1, b);
+        return r + g + b > 0;
+    }
+}
+
+/**
+ * How much of a light reaches `(dx, dy)` from its first end, the light running
+ * `(lx, ly)` to its second: a halo round a point, a capsule round a line, and
+ * for a cone, bright at its root and narrowing and fading to its tip.
+ */
+function shine(dx: number, dy: number, lx: number, ly: number, reach: number, cone: boolean): number {
+    const length2 = lx * lx + ly * ly;
+    const t = length2 > 0 ? (dx * lx + dy * ly) / length2 : 0;
+    if (!cone) {
+        const u = Math.min(1, Math.max(0, t));
+        return falloff(Math.sqrt((dx - lx * u) ** 2 + (dy - ly * u) ** 2) / reach);
+    }
+    const length = Math.sqrt(length2);
+    const across = Math.abs(dx * ly - dy * lx) / length / reach;
+    // Behind its root, a cap a share of its reach deep.
+    if (t < 0) return falloff(Math.sqrt(((-t * length) / (reach * CONE_BEHIND)) ** 2 + across * across));
+    if (t >= 1) return 0;
+    return (1 - t) ** 1.5 * falloff(across / (1 - CONE_NARROWING * t));
+}
+
+/** Full at the middle, nothing at the edge, softly, as a glow's sprite. */
+function falloff(r: number): number {
+    if (r >= 1) return 0;
+    const left = 1 - r * r;
+    return left * left;
+}
