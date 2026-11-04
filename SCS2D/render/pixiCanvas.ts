@@ -83,6 +83,12 @@ export type TextMaker = () => BitmapText;
 export class PixiCanvas {
     /** Everything drawn since `begin`, in order. */
     readonly root = new Container();
+    /**
+     * Where what hangs at deck height goes, as leaking vapour does, in canvas
+     * pixels: under the thick modules rather than in `root` over them, where a
+     * scene has somewhere to put it.
+     */
+    deck: Container | null = null;
     private state: State = PixiCanvas.fresh();
     private readonly saved: State[] = [];
     private path: SubPath[] = [];
@@ -126,6 +132,7 @@ export class PixiCanvas {
     /** Start a frame: what was drawn last frame is cleared, its objects kept for reuse. */
     begin(): void {
         this.root.removeChildren();
+        this.deck?.removeChildren();
         for (let k = 0; k < this.graphicsUsed; k++) this.graphicsPool[k]!.clear();
         for (let k = 0; k < this.masksUsed; k++) {
             const { box, mask } = this.maskPool[k]!;
@@ -456,7 +463,8 @@ export class PixiCanvas {
      * transform as it is now. Many particles are one draw, where as many
      * `drawImage`s would be as many quads in a Graphics rebuilt every frame.
      */
-    particles(image: object, additive: boolean): ParticleBatch {
+    /** A batch of particles drawing `image`, in order among the rest, or with what is at deck height if `onDeck`. */
+    particles(image: object, additive: boolean, onDeck = false): ParticleBatch {
         let batch = this.particlePool[this.particlesUsed];
         if (batch === undefined) {
             batch = new ParticleBatch();
@@ -464,7 +472,7 @@ export class PixiCanvas {
         }
         this.particlesUsed++;
         batch.start(this.textureOf(image), this.state.m, additive, this.state.globalAlpha);
-        this.target().addChild(batch.container);
+        (onDeck && this.deck !== null ? this.deck : this.target()).addChild(batch.container);
         this.graphics = null;
         return batch;
     }

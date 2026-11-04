@@ -1,5 +1,5 @@
 import { AlphaFilter, Container, Graphics, GraphicsContext, Matrix, Texture } from "pixi.js";
-import { domeRadius, isDomed, originOf, type Livery, type ModuleSpec, type ShipDesign, type Snapshot } from "../sim/index.js";
+import { isDomed, originOf, type Livery, type ModuleSpec, type ShipDesign, type Snapshot } from "../sim/index.js";
 import { patternColour, patternTile, patternTransform, tileKey } from "./livery.js";
 import {
     BEVEL_DARK,
@@ -14,6 +14,7 @@ import {
     mountsOf,
     type Mounts,
 } from "./bevels.js";
+import { domeOutline, footprintOf, shapesOf } from "./blocks.js";
 import { engineLayout } from "./engineLayout.js";
 import { lightSlope } from "./shading.js";
 import type { Camera } from "./camera.js";
@@ -72,6 +73,12 @@ export class HullLayer {
     /** Kernels' shadows, on rock. */
     readonly kernelShadows: BlockShadows;
     readonly fighterShadows = new Pool();
+    /**
+     * What hangs over the thin hull, under the thick modules, as leaking
+     * vapour does: drawn in canvas pixels, so placed back out of the world's
+     * frame each frame.
+     */
+    readonly deck = new Container();
     /** The bevels along the thin hull's outside edges, and the thick modules'. */
     readonly thinBevels = new Graphics();
     readonly thickBevels = new Graphics();
@@ -112,6 +119,7 @@ export class HullLayer {
             this.thinScars.container,
             this.thickShadows.layer,
             this.fighterShadows.container,
+            this.deck,
             this.thick.container,
             this.thickBevels,
             this.thickScars.container,
@@ -131,6 +139,9 @@ export class HullLayer {
 
     update(snapshot: Snapshot, camera: Camera, widthPx: number, heightPx: number, light: Light = DEFAULT_LIGHT): void {
         this.see(light);
+        // The inverse of the world's own placing, metres up from the middle of the canvas.
+        this.deck.position.set(-widthPx / 2 / camera.scale, heightPx / 2 / camera.scale);
+        this.deck.scale.set(1 / camera.scale, -1 / camera.scale);
         const halfW = widthPx / 2 / camera.scale;
         const halfH = heightPx / 2 / camera.scale;
         // Away from the light, so a shadow falls on the side it is not lit from.
@@ -653,26 +664,6 @@ function tileTexture(livery: Livery, colour: string): Texture | null {
     return texture;
 }
 
-const domes = new Map<number, number[]>();
-/** Corners round a turret's dome, many enough that its shadow's edge reads as round. */
-const DOME_SHADOW_CORNERS = 24;
-
-/** A turret's dome as a polygon in its module's frame, for the shadow it casts. */
-function domeOutline(spec: ModuleSpec): number[] {
-    const radius = domeRadius(spec);
-    let made = domes.get(radius);
-    if (made === undefined) {
-        const corners: number[] = [];
-        for (let k = 0; k < DOME_SHADOW_CORNERS; k++) {
-            const a = (k * 2 * Math.PI) / DOME_SHADOW_CORNERS;
-            corners.push(radius * Math.cos(a), radius * Math.sin(a));
-        }
-        made = corners;
-        domes.set(radius, made);
-    }
-    return made;
-}
-
 /** `spec`'s fills in black: the shape a shadow or a mask takes from it. */
 function outlineFor(spec: ModuleSpec, mounts: Mounts): GraphicsContext {
     let byMounts = outlines.get(spec);
@@ -690,12 +681,6 @@ function outlineFor(spec: ModuleSpec, mounts: Mounts): GraphicsContext {
     return context;
 }
 
-/** `spec`'s fills with `mounts` as polygons, for its shadow. */
-function footprintOf(spec: ModuleSpec, mounts: Mounts): readonly (readonly number[])[] {
-    return mounts.polygons.length === 0 ? shapesOf(spec) : [...shapesOf(spec), ...mounts.polygons];
-}
-
-const shapes = new WeakMap<ModuleSpec, number[][]>();
 const bounds = new WeakMap<ModuleSpec, Bounds>();
 
 /** The box `spec`'s fills lie in: an engine's block alone, as a scar held to a bell's box would hang off it. */
@@ -721,17 +706,6 @@ function boundsOf(spec: ModuleSpec): Bounds {
         bounds.set(spec, box);
     }
     return box;
-}
-
-/** `spec`'s fills as polygons in its own frame, each convex. */
-function shapesOf(spec: ModuleSpec): number[][] {
-    let out = shapes.get(spec);
-    if (out === undefined) {
-        moduleFills(spec, "#000000", shipColours(0), 1, fills);
-        out = fills.map((fill) => [...fill.points]);
-        shapes.set(spec, out);
-    }
-    return out;
 }
 
 /**
