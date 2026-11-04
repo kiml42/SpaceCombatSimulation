@@ -1313,7 +1313,8 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
         const age = ship.leakAge?.[k] ?? LONG_OPEN;
         const dx = ship.leakDirX![k]!;
         const dy = ship.leakDirY![k]!;
-        batch ??= batches.call(ctx, image, false);
+        // At deck height, so under the thick modules standing over it.
+        batch ??= batches.call(ctx, image, false, true);
         const into = batch;
         eachPuff(
             hole,

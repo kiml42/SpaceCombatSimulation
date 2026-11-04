@@ -139,4 +139,18 @@ describe("a batch of particles", () => {
         expect(batch.container.texture.width).toBe(8);
         expect(batch.container.blendMode).toBe("normal");
     });
+
+    it("goes with what is at deck height when asked to, under the thick modules, and is cleared from there each frame", () => {
+        const context = new PixiCanvas();
+        context.deck = new Container();
+        context.begin();
+        // Raw pixels, as Node has no canvas to make a texture from.
+        const image = new Uint8Array(4);
+        const over = context.particles(image, true);
+        const under = context.particles(image, false, true);
+        expect(context.root.children).toContain(over.container);
+        expect(context.deck.children).toEqual([under.container]);
+        context.begin();
+        expect(context.deck.children).toEqual([]);
+    });
 });

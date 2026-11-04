@@ -47,6 +47,21 @@ describe("the Pixi hull layer", () => {
         return layer;
     };
 
+    it("keeps a place for what hangs at deck height, over the thin hull's shadows and under the thick modules, in canvas pixels", () => {
+        const layer = layerOf();
+        const order = layer.container.children;
+        expect(order.indexOf(layer.deck)).toBeGreaterThan(order.indexOf(layer.thickShadows.layer));
+        expect(order.indexOf(layer.deck)).toBeLessThan(order.indexOf(layer.thick.container));
+        layer.update(view, { x: 0, y: 0, scale: 2 }, 1000, 600);
+        // The middle of the canvas is the camera, and a pixel right and up is half a metre each way.
+        const at = (px: number, py: number): [number, number] => [
+            layer.deck.position.x + layer.deck.scale.x * px,
+            layer.deck.position.y + layer.deck.scale.y * py,
+        ];
+        expect(at(500, 300)).toEqual([0, 0]);
+        expect(at(502, 298)).toEqual([1, 1]);
+    });
+
     it("casts each turret's dome's shadow on the thin hull, as a thick module's", () => {
         const layer = drawn(layerOf());
         const domes = ships.reduce(

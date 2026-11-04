@@ -73,6 +73,12 @@ export class HullLayer {
     /** Kernels' shadows, on rock. */
     readonly kernelShadows: BlockShadows;
     readonly fighterShadows = new Pool();
+    /**
+     * What hangs over the thin hull, under the thick modules, as leaking
+     * vapour does: drawn in canvas pixels, so placed back out of the world's
+     * frame each frame.
+     */
+    readonly deck = new Container();
     /** The bevels along the thin hull's outside edges, and the thick modules'. */
     readonly thinBevels = new Graphics();
     readonly thickBevels = new Graphics();
@@ -113,6 +119,7 @@ export class HullLayer {
             this.thinScars.container,
             this.thickShadows.layer,
             this.fighterShadows.container,
+            this.deck,
             this.thick.container,
             this.thickBevels,
             this.thickScars.container,
@@ -132,6 +139,9 @@ export class HullLayer {
 
     update(snapshot: Snapshot, camera: Camera, widthPx: number, heightPx: number, light: Light = DEFAULT_LIGHT): void {
         this.see(light);
+        // The inverse of the world's own placing, metres up from the middle of the canvas.
+        this.deck.position.set(-widthPx / 2 / camera.scale, heightPx / 2 / camera.scale);
+        this.deck.scale.set(1 / camera.scale, -1 / camera.scale);
         const halfW = widthPx / 2 / camera.scale;
         const halfH = heightPx / 2 / camera.scale;
         // Away from the light, so a shadow falls on the side it is not lit from.

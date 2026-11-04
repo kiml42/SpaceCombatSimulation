@@ -42,6 +42,7 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
     const hulls = new HullLayer();
     world.addChild(backdrop, hulls.container);
     const context = new PixiCanvas();
+    context.deck = hulls.deck;
     stage.addChild(world, context.root);
     const segments = new Segments();
 

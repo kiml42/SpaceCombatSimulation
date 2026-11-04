@@ -494,7 +494,10 @@ an entry is either still open or it is gone.
            module's height (thick modules and turrets' domes, not fighters) lies between it and the light
            within a shadow's length, the same region the hull layer sweeps, tested against each module's box
            first; where it does, the puff is drawn at the light's ambient share, as the hull in shadow is. The
-           vapour is taken to be at deck height, and a puff is in shadow or not, by its middle. The Effects
+           vapour is taken to be at deck height, and a puff is in shadow or not, by its middle. Being at deck
+           height, it is drawn under the thick modules (`HullLayer.deck`, a place in the hull layer between
+           the thin hull's shadows and the thick fills, where `PixiCanvas.particles` puts a batch drawn
+           `onDeck`), so a puff drifting over the block that shadows it goes under it. The Effects
            page's "Leaking in shadow" scene shows it. Another ship's shadow on the vapour waits on shadows
            cast at the vapour's height, with the shadows from dynamic lights.
         2. **Dynamic lights.** Engines, flashes, bursts, muzzle flashes, beams and plumes light what is
