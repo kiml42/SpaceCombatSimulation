@@ -44,7 +44,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
   - The sections aren't clear enough
 - Mirror into a side group: **Mirror** makes each module a mirrored part of its own. A way to add a module to an existing mirrored side assembly (origin at 0,0) instead would keep a whole side one part.
 - Default the refit mode to off except where it's useful
-- Reloading the page should load the ship you were editing
 - Auto-save
 
 
@@ -82,7 +81,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Fleet status tiles could turn with their ship, so it always points the same way in its tile.
 - Cap projectile rendering at the point they hit, so a streak does not overlap the target it struck. (The muzzle end is capped.)
 - A selected ship's framing takes in and rings what it is escorting; it could do the same for what it is keeping clear of, possibly with a symbol to show what sort of attention the selected ship is paying to each
-- Reloading should return to the scenario you were watching
 
 ## Render
 - Allow control of the tilt of the main light, as well as which direction it comes from (for longer or shorter shadows)

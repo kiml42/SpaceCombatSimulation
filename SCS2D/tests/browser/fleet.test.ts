@@ -233,8 +233,8 @@ describe("the fleet editor in a browser", () => {
         expect(await page.locator("#fleetSlots select option:checked").first().textContent()).toBe("Saved Fleet (from the editor)");
         expect(await page.textContent("#play")).toBe("Play");
         expect(await page.isDisabled("#fight")).toBe(false);
-        // The address is tidied, so a reload does not hand it over again.
-        expect(new URL(page.url()).hash).toBe("#/battle");
+        // The address is tidied, so a reload is the custom battle and not the hand-over again.
+        expect(new URL(page.url()).hash).toBe("#/battle?scene=custom");
         expect(problems).toEqual([]);
     });
 

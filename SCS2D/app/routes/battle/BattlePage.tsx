@@ -19,6 +19,7 @@ import type { Battle } from "~/scenarios/types";
 import { math, parseFleet, type Snapshot } from "~/sim/index";
 import { CustomPanel } from "./custom/CustomPanel";
 import { keepSetup, keptSetup, withReturned } from "./custom/keptSetup";
+import { CUSTOM, sceneIndex, sceneParam } from "./sceneParam";
 import { DEFAULT_FIELDS, fieldsOf, setupOf, slotsOf, type SetupFields, type Slot } from "./custom/customSetup";
 import { KeyHelp } from "~/ui/dialogs/KeyHelp";
 import { AddShip } from "./orders/AddShip";
@@ -33,8 +34,6 @@ import { Button } from "~/ui/buttons/Button";
 const PAGE = "viewer";
 const DEFAULTS: ViewSettings = { arcs: "none", teamShots: false, strips: true, speed: 1 };
 const SPEEDS = [0.25, 0.5, 1, 2, 4, 8, 16];
-/** The scene list's last entry: a battle set up in the panel rather than in code. */
-const CUSTOM = SCENES.length;
 
 const Main = styled.main`
     display: flex;
@@ -86,7 +85,13 @@ const FrameRate = styled.output`
 /** A battle chosen from the scenes, run on the wall clock, with the controls to pause, step, wind and speed it. */
 export function BattlePage() {
     const [view, setView] = useState<BattleView | null>(null);
-    const [scene, setScene] = useState(0);
+    const [search, setSearch] = useSearchParams();
+    // The address names the scene, so a reload comes back to it.
+    const [scene, setScene] = useState(() => sceneIndex(search.get("scene")));
+    const pick = (index: number): void => {
+        setScene(index);
+        setSearch({ scene: sceneParam(index) }, { replace: true });
+    };
     const [running, setRunning] = useState(true);
     const [settings, keep] = useViewSettings(PAGE, DEFAULTS);
     const shown = useRef<Snapshot | null>(null);
@@ -101,7 +106,6 @@ export function BattlePage() {
     useEffect(() => keepSetup(storage, slots, fields), [storage, slots, fields]);
     const orders = useOrderState(view, () => shown.current);
     const [doctrineOpen, setDoctrineOpen] = useState(false);
-    const [search, setSearch] = useSearchParams();
 
     // P opens or closes the picked ships' doctrine, as the button does.
     useEffect(() => {
@@ -123,14 +127,14 @@ export function BattlePage() {
     };
     /** A custom battle handed over whole, by an editor or a link, held at its start. */
     const openWith = (next: BattleView, nextSlots: readonly Slot[], nextFields: SetupFields, logged: readonly Logged[] = []): void => {
-        setScene(CUSTOM);
+        pick(CUSTOM);
         setSlots(nextSlots);
         setFields(nextFields);
         show(next, CUSTOM, false, setupOf(nextSlots, nextFields), logged);
     };
     /**
      * What the address hands over: an editor's fleet (`?fleet=`) or a whole battle (`?battle=`). The
-     * address is tidied after, so a reload is the battle route and not the hand-over again.
+     * address is tidied after, so a reload is the custom battle as it was left and not the hand-over again.
      */
     const takeHandOver = (next: BattleView): boolean => {
         const fleetText = search.get("fleet");
@@ -161,7 +165,7 @@ export function BattlePage() {
     };
     // Set up paused at its first step, so the opening positions can be seen as they are chosen, and started with Fight.
     const openCustom = (): void => {
-        setScene(CUSTOM);
+        pick(CUSTOM);
         show(view, CUSTOM, false);
     };
     const changeSetup = (nextSlots: readonly Slot[], nextFields: SetupFields): void => {
@@ -191,7 +195,8 @@ export function BattlePage() {
         next.keepView(PAGE);
         next.allowOrders();
         next.setSpeed(settings.speed);
-        if (!takeHandOver(next)) show(next, scene, true);
+        // A custom battle reopened by a reload is held at its start, as it is when picked.
+        if (!takeHandOver(next)) show(next, scene, scene !== CUSTOM);
     };
 
     const fps = useSampled(() => (view === null || view.fps === 0 ? "" : `${Math.round(view.fps)} fps`));
@@ -235,7 +240,7 @@ export function BattlePage() {
                     onChange={(event) => {
                         const index = Number(event.target.value);
                         if (index === CUSTOM) return openCustom();
-                        setScene(index);
+                        pick(index);
                         show(view, index);
                     }}
                 >
