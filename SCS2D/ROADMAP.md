@@ -141,8 +141,8 @@ an entry is either still open or it is gone.
       modules' are: a fighter flies at a thick module's height, so never over one. A
       shadow needs only the outline, so the fighters themselves stay drawn where they are, over robots and
       decks; the longer offset is what leaves the shadow apart from the fighter, so it reads as flying.
-    - **Later passes**, in the order and form item 7 of stage (5) sets out below: contact shading, leaks in
-      shadow, dynamic lights, then lights shading bevels and rounded parts, and last and limited, shadows
+    - **Later passes**, in the order and form item 7 of stage (5) sets out below: leaks in shadow,
+      dynamic lights, then lights shading bevels and rounded parts, and last and limited, shadows
       from dynamic lights.
     - **Lighting is the battle's**, render-only, so it never changes a result, but kept with a battle so a
       replay or export looks as it did. Scenarios set it; the skirmish draws a new one each round, so each
@@ -488,18 +488,13 @@ an entry is either still open or it is gone.
           never kept for good.
     7. **The later lighting passes.** Settled with the author on 2026-11-04 (DECISIONS.md). Each is its own
        pull request, in this order:
-        1. **Contact shading** where thin hull meets a thick module: a narrow darkening on the thin hull
-           along the foot of each thick module's bevelled edge, whichever way the light comes from, the job
-           the old Canvas2D seams did by accident. Found from the same edges as the bevels
-           (`render/bevels.ts`), so it is worked out once per design, kept through severing, and skipped
-           under a pixel wide, as they are. Its width and depth are to be set by eye on the Effects page.
-        2. **Leaks in shadow.** Vapour hangs above the deck, so a thick module's shadow darkens it where
+        1. **Leaks in shadow.** Vapour hangs above the deck, so a thick module's shadow darkens it where
            it passes through, and the hull layer's shadows, drawn underneath, cannot reach it. Each puff
            asks whether it lies in one of its own ship's thick modules' shadows (the same swept outlines
            the hull layer draws, tested against the module's box first), and is drawn at the ambient share
            of the light where it does. Another ship's shadow on the vapour waits on shadows cast at the
            vapour's height, with the shadows from dynamic lights.
-        3. **Dynamic lights.** Engines, flashes, bursts, muzzle flashes, beams and plumes light what is
+        2. **Dynamic lights.** Engines, flashes, bursts, muzzle flashes, beams and plumes light what is
            near them, read from the one list of sources (`render/glows.ts`), so a light is still defined
            once.
             - **A light buffer at half resolution**, since light is soft: each frame the list is drawn
@@ -514,14 +509,17 @@ an entry is either still open or it is gone.
               worked out from the list itself at its position rather than read back from the buffer, so
               nothing waits on the GPU. Only sources within reach are counted, found by their boxes.
             - **Never lit**: gauges, icons, names, selection, orders and arcs, as with the battle's light.
-        4. **Recorded for later: lights shading bevels and rounded parts.** A light beside a ship should
+        3. **Recorded for later: lights shading bevels and rounded parts.** A light beside a ship should
            brighten the bevels and the sides of bells, barrels and domes that face it, as the battle's light
            does. Each needs every light's direction at each edge, so it waits until the dynamic lights have
            been seen working.
-        5. **Shadows from dynamic lights**, last and limited: only the brightest lights (bursts, perhaps
+        4. **Shadows from dynamic lights**, last and limited: only the brightest lights (bursts, perhaps
            beams) cast them, over a short range, since every light's shadow costs that light times what is
            near it. A line source's shadow is the hardest of these and may never be worth it. Vapour's own
            shadows, cast at its height, belong here too.
+
+       Contact shading, a darkening where thin hull meets a thick module, was first on this list and is
+       now an open question (§12, "Ambient occlusion"): done properly it is more than a strip along a step.
 
     Open: **decals**, placed in the editor on particular designs. Some way off.
 
@@ -1547,6 +1545,26 @@ Deliberately unresolved; decide when they block something.
 - Whether every ship should hold off an engine whose flame would play on a friend, not only a ship just off
   a slipway on its builder (`Ships.wouldBurn`). It wants a cast for every engine's plume every step, and
   thrust allocated without the engines held off, so it moves every battle; worth it once fleets fly close.
+- **Ambient occlusion: whether, and how.** Raised things should darken the hull round them a little, the job
+  the old Canvas2D seams did by accident between thin and thick, but a fixed dark strip along the foot of a
+  thick module (tried in #631, closed) is right under neither model of the ambient light. If ambient comes
+  from behind the camera, nothing blocks it and there is no occlusion at all. If it comes evenly from the
+  whole sky, weighted towards overhead as light on a surface is, then:
+    - **A wall** of height *h* blocks ½·(1 − d/√(d² + h²)) of it at *d* from its foot: half at the foot,
+      about 15% one height away and 3% at three, so a thick module's reaches several metres, not half of one.
+    - **In general** it is each raised thing's footprint blurred by a kernel as wide as its height: exact for
+      a wall, rounded round a convex corner (a quarter blocked at the corner itself), darker in a concave
+      one. A thin plate at height *H* is exact too, so **a fighter over a pad or a hull** would cast a soft
+      shadow, softer the higher it flies; rock would do the same at its heights. In Pixi, the thick modules,
+      and the fighters apart from them, drawn solid into a texture and blurred, a Gaussian standing in for
+      the exact kernel.
+    - **It darkens only the ambient share of the light**: at the battle default's ambient of 0.2, a wall's
+      foot loses about a tenth of its brightness in direct light, and half of what is left in a shadow,
+      which is where it would show. The hull layer cannot do that as it stands, tinting what is lit the
+      light's colour and darkening what is in shadow towards the ambient, so any darkening drawn over it
+      now is wrong in strength either in shadow or out of it. Exact once a light buffer is built as ambient
+      × (1 − occlusion), plus the direct light where nothing shadows it, plus the dynamic lights.
+  Not essential, and not simple, so left until the dynamic lights' buffer exists and it is worth the cost.
 - Concrete values, now that the units are settled: budgets, engagement ranges, timestep, the weld
   dials (`WELD_SPEED`, `RAGGED_INTEGRITY`, `WELD_SETTLE`, `HOOK_SHARE`), the claw's (its speed band, `CLAW_GRIP_CHANCE`,
   `CLAW_BITE`, `CLAW_PUMP_PER_METRE`, `DOCK_HOLD`), edit-distance bounds, muzzle velocities, armour densities, and how hard a plume
