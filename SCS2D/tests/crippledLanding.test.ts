@@ -84,6 +84,12 @@ describe("a Dinky Raider", () => {
         expect(contacts).toBe(0);
     });
 
+    it.each([[[4, 6]], [[4, 8, 10]]])("lands spinning on thrusters that cannot push its way without turning it, having lost %j", (lost) => {
+        const { at, contacts } = landing(RAIDER, PAD, lost);
+        expect(at).toBeLessThan(150);
+        expect(contacts).toBe(0);
+    });
+
     it.each([[[4, 7, 10]], [[1, 4, 10]]])(
         "lands on its thrusters turning one way, though every push adds to its spin, having lost %j",
         (lost) => {

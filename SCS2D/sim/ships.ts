@@ -78,6 +78,7 @@ import {
     type Robot,
 } from "./robots.js";
 import { Allocation, EngineLayout } from "./engines.js";
+import { pushBearing, pushTorque, spinWay, steerHeading, STEER_HOLD_SPEED, STEER_SPIN } from "./helm.js";
 import { addFlame, addTurret, attackBearing, AttackArcs, AttackRegion } from "./attack.js";
 import { FiringSolution, interceptTime, Turrets, TurretState } from "./turrets.js";
 import {
@@ -290,13 +291,21 @@ const BURN_START = 0.25;
 /** Seconds of closing at its approach speed that stand in for an unarmed rammer's reach in choosing a target. */
 const RAM_HORIZON = 60;
 
-/** Below this much velocity still to gain, m/s, a ram points its nose at the target rather than its thrust. */
-const RAM_AIM_SPEED = 5;
 /** How hard a fleeing ship eases off once clear of every enemy's reach, m/s². */
 const FLEE_EASE = 3;
 
 /** How many times a pilot may halve its ask for force to keep the torque to turn with. */
 const FORCE_HALVINGS = 6;
+
+/**
+ * What a pilot asks the helm of its heading, alongside the velocity it wants:
+ * to `FACE` the heading it gives; to `STEER`, the helm turning its push onto
+ * the change of velocity it needs and resting on that heading otherwise; or to
+ * `HURRY`, steering as fast as it can push, pointing before it burns.
+ */
+const FACE = 0;
+const STEER = 1;
+const HURRY = 2;
 
 /**
  * A turn short by less than this share of the torque the ship has is no turn
@@ -528,58 +537,6 @@ const GRIP_LINE = 0.5;
 
 /** The most a fighter may be moving against a pad and still land on it, m/s: settling, not arriving. */
 export const PAD_SPEED = 1;
-
-/**
- * The most change of velocity, m/s, that a fighter coming in to land makes
- * without turning for it, while its mains point within `PAD_HOLD_ANGLE` of it,
- * so that at least half their push goes its way.
- */
-const PAD_HOLD_SPEED = 5;
-const PAD_HOLD_ANGLE = PI / 3;
-
-/**
- * The spin a fighter that can turn only one way lands at, rad/s: a turn every
- * eight seconds. It cannot stop a turn, so it keeps one going and fires its
- * mains as they come round to where it needs to go.
- */
-const PAD_SPIN = (2 * PI) / 8;
-
-/**
- * The way a layout pushes hardest, body frame: its mains' `bearing` while
- * nothing else pushes harder, or the way of whichever engine left does, which
- * a fighter that has lost its mains turns to steer by instead.
- */
-function pushBearing(layout: EngineLayout, bearing: number): number {
-    let best = bearing;
-    let most = layout.maxThrustAlong(cos(bearing), sin(bearing));
-    for (let t = 0; t < layout.count; t++) {
-        const along = layout.maxThrustAlong(layout.dirX[t]!, layout.dirY[t]!);
-        if (along > most) {
-            most = along;
-            best = atan2(layout.dirY[t]!, layout.dirX[t]!);
-        }
-    }
-    return best;
-}
-
-/**
- * How much weaker one way a fighter's turn may be than the other, as a share,
- * and still steer in by turning: weaker, it overshoots each turn that way and
- * weaves round the pad until its fuel is gone, so it spins in instead.
- */
-const PAD_WEAK_TURN = 0.5;
-
-/**
- * The way a layout lands spinning, 1 or -1: the only way it can turn, or the
- * far stronger. 0 if it can turn both ways near enough alike, or neither.
- */
-function oneWayTurn(layout: EngineLayout): number {
-    const up = layout.maxTorque(1);
-    const down = layout.maxTorque(-1);
-    if (up > 0 && !(down > PAD_WEAK_TURN * up)) return 1;
-    if (down > 0 && !(up > PAD_WEAK_TURN * down)) return -1;
-    return 0;
-}
 
 /**
  * How long, seconds, a docking ship takes to trust a change in how what it is
@@ -1419,6 +1376,14 @@ export class Ships {
     private urgeAx = 0;
     private urgeAy = 0;
     private urgeWeight = 0;
+    /** What this step's pilot asks the helm of its heading: `FACE`, `STEER` or `HURRY`. */
+    private intent = FACE;
+    /** The most change of velocity this step's pilot lets the helm make without turning for it, m/s (`steerHeading`). */
+    private steerSlack = STEER_HOLD_SPEED;
+    /** Whether this step's pilot has no heading of its own for the helm to rest on, only where it faces now. */
+    private steerFree = false;
+    /** What `pushAbility` last said of how long before a push begins, seconds. */
+    private pushDelay = 0;
     /**
      * What each ship docking last saw of the point it is docking with: its
      * velocity, the tick it was seen, and its acceleration as worked out from
@@ -4382,6 +4347,9 @@ export class Ships {
         this.urgeAx = 0;
         this.urgeAy = 0;
         this.urgeWeight = 0;
+        this.intent = FACE;
+        this.steerSlack = STEER_HOLD_SPEED;
+        this.steerFree = false;
         this.dodgeWeight = 0;
         this.dodgeRock = false;
         this.fightFade = 1;
@@ -4433,10 +4401,11 @@ export class Ships {
         const order = this.effectiveOrder(i);
         const target = order?.target ?? NO_TARGET;
         const fleeing = order?.flee === true;
-        // Running, it points its mains the way it wants to go, as a ram does.
-        let running = false;
         if (fleeing) {
-            running = this.flee(bodies, i, b, order!);
+            if (this.flee(bodies, i, b, order!)) {
+                this.intent = STEER;
+                this.steerFree = true;
+            }
             this.avoid(bodies, i, b, NO_TARGET, NO_TARGET);
         } else if (order !== undefined && target !== NO_TARGET && this.alive[target] === 1) {
             const tb = bodies.indexOf(this.bodyIds[target]!);
@@ -4483,8 +4452,10 @@ export class Ships {
                     fighting = tb;
                     holdOut = order.maxRange;
                 }
-                if (order.ram) this.charge(bodies, i, b, at, order.approachSpeed, tb);
-                else this.hold(bodies, i, b, at, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE, wantAngle);
+                if (order.ram) {
+                    this.charge(bodies, i, b, at, order.approachSpeed, tb);
+                    this.intent = HURRY;
+                } else this.hold(bodies, i, b, at, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE, wantAngle);
                 this.orbit(bodies, i, b, at, tb);
             }
         }
@@ -4528,28 +4499,35 @@ export class Ships {
         if (fighting >= 0) wantAngle = this.burnOrFight(i, b, this.fightAt, bodies, wantAngle, wantVx, wantVy, holdOut);
         else this.burning[i] = 0;
 
-        // A ram is a race to the target, so it points its main thrust along the
-        // change of velocity it needs rather than its nose at the target.
-        if (order?.ram === true || running) {
-            const dvx = wantVx - bodies.vx[b]!;
-            const dvy = wantVy - bodies.vy[b]!;
-            if (dvx * dvx + dvy * dvy > RAM_AIM_SPEED * RAM_AIM_SPEED) wantAngle = atan2(dvy, dvx);
-        } else if (this.dodgeRock && 2 * this.dodgeWeight >= this.urgeWeight) {
-            // So is getting out of a rock's way, once that is most of what it wants:
-            // held on target, a heavy hull's thrusters push it aside too slowly to miss.
-            const dvx = wantVx - bodies.vx[b]!;
-            const dvy = wantVy - bodies.vy[b]!;
-            if (dvx * dvx + dvy * dvy > RAM_AIM_SPEED * RAM_AIM_SPEED) wantAngle = atan2(dvy, dvx) - this.designs[i]!.thrustBearing;
-        }
+        // Getting out of a rock's way, once that is most of what it wants, is a
+        // matter of where it goes rather than which way it faces: held on target,
+        // a heavy hull's thrusters push it aside too slowly to miss.
+        if (this.intent === FACE && this.dodgeRock && 2 * this.dodgeWeight >= this.urgeWeight) this.intent = STEER;
 
         const mass = bodies.mass[b]!;
         // The allocator works in the body frame, so the demand is rotated into it.
         const angle = bodies.angle[b]!;
-        // A ram asks for far more than any layout gives, and a saturated ask for
+        const response = this.doctrines[i]!.approach.responseTime;
+        const layout = this.layoutOf(i);
+        // Steering, the helm turns its push onto the change it needs, or, on a
+        // layout that cannot hold a heading, keeps a slow spin and fires as its
+        // push comes round. Hurrying never spins, which gives up two thirds of its
+        // push: it turns its push round, the long way if it must, and burns.
+        let spin = 0;
+        if (this.intent !== FACE) {
+            const bearing = pushBearing(layout, this.designs[i]!.thrustBearing);
+            spin = this.intent === STEER ? spinWay(layout, bearing) : 0;
+            if (spin === 0) {
+                const dvx = wantVx - bodies.vx[b]! + leadAx * response;
+                const dvy = wantVy - bodies.vy[b]! + leadAy * response;
+                wantAngle = steerHeading(dvx, dvy, angle, wantAngle, bearing, this.steerSlack, this.steerFree);
+            }
+        }
+        // Hurrying asks for far more than any layout gives, and a saturated ask for
         // force leaves nothing to stop a turn with. So it points, then burns: the
         // force asked for falls away with how far off its heading still is.
-        const aligned = order?.ram === true ? max(0, cos(angleDelta(angle, wantAngle))) : 1;
-        const response = this.doctrines[i]!.approach.responseTime;
+        const hurry = this.intent === HURRY && spin === 0;
+        const aligned = hurry ? max(0, cos(angleDelta(angle, wantAngle))) : 1;
         const worldFx = aligned * mass * ((wantVx - bodies.vx[b]!) / response + leadAx);
         const worldFy = aligned * mass * ((wantVy - bodies.vy[b]!) / response + leadAy);
         const c = cos(angle);
@@ -4563,7 +4541,6 @@ export class Ships {
         // of.
         const error = angleDelta(angle, wantAngle);
         const inertia = bodies.inertia[b]!;
-        const layout = this.layoutOf(i);
         const maxTorque = layout.maxTorque(error >= 0 ? 1 : -1);
         // Planned on the torque that stops the turn, not the one that starts it.
         // On a lopsided layout those differ, and a turn planned on the stronger
@@ -4572,9 +4549,7 @@ export class Ships {
         const maxAlpha = inertia > 0 ? brakeTorque / inertia : 0;
         const turn = min(brakingRate(error, maxAlpha, dt), (error >= 0 ? error : -error) / HEADING_SETTLE_TIME);
         let wantRate = error >= 0 ? turn : -turn;
-        // Landing on a turn it cannot stop, it holds a slow spin instead of a heading.
-        const spin = order?.land === true ? oneWayTurn(layout) : 0;
-        if (spin !== 0) wantRate = spin * PAD_SPIN;
+        if (spin !== 0) wantRate = spin * STEER_SPIN;
         // Never round into something, but for what it means to touch: a turn that
         // would swing the hull into a neighbour is not started, and one already
         // under way is stopped.
@@ -4600,22 +4575,21 @@ export class Ships {
             }
         }
 
-        // Spinning in, it can turn back little or not at all, so a push adds to the spin:
+        // Spinning, it can turn back little or not at all, so a push adds to the spin:
         // it asks for what a straight push would turn it by, or a spin-up if more, rather
         // than for no turn, which the allocator would buy by not pushing at all.
-        if (spin !== 0) demandTorque = spin * max(spin * demandTorque, spin * this.pushTorque(layout, demandFx, demandFy));
+        if (spin !== 0) demandTorque = spin * max(spin * demandTorque, spin * pushTorque(layout, demandFx, demandFy));
         const throttles = this.throttles[i]!;
         layout.allocate(demandFx, demandFy, demandTorque, throttles, this.allocation);
         // Asked for more force than it has, the allocator can give up the turn for
-        // it, and a lopsided layout can even turn the wrong way. So ask for less: a
-        // ram until it gets most of its turn, anything else only while a turn worth
+        // it, and a lopsided layout can even turn the wrong way. So ask for less:
+        // hurrying, until it gets most of its turn; otherwise only while a turn worth
         // having is starved, since a lopsided hull loses a little whenever it pushes.
-        const ram = order?.ram === true;
         for (let k = 0; k < FORCE_HALVINGS; k++) {
             const got = this.allocation.torque;
             const short = demandTorque - got;
             if (abs(short) <= maxTorque * TORQUE_NEGLIGIBLE) break;
-            if (ram) {
+            if (hurry) {
                 if (abs(short) <= 0.5 * abs(demandTorque)) break;
             } else {
                 const sense = demandTorque >= 0 ? 1 : -1;
@@ -5252,22 +5226,28 @@ export class Ships {
         return turns ? approach.brake * axis : 0;
     }
 
+    /**
+     * How hard ship `i` on body `b` can push along its strongest push, m/s², as
+     * the helm would deliver it, and in `pushDelay` how long before it starts to:
+     * its response time and a half turn, or, spinning (`spinWay`), a 1/π share of
+     * that push on average, with half a spin to bring it round.
+     */
+    private pushAbility(bodies: Bodies, i: number, b: number): number {
+        const layout = this.layoutOf(i);
+        const response = this.doctrines[i]!.approach.responseTime;
+        const bearing = pushBearing(layout, this.designs[i]!.thrustBearing);
+        const push = layout.maxThrustAlong(cos(bearing), sin(bearing)) / movable(bodies.mass[b]!);
+        if (spinWay(layout, bearing) !== 0) {
+            this.pushDelay = response + PI / STEER_SPIN;
+            return push / PI;
+        }
+        this.pushDelay = response + this.halfTurnTime(bodies, i, b);
+        return push;
+    }
+
     /** Seconds to turn half round from rest and stop there, flat out both ways. */
     private halfTurnTime(bodies: Bodies, i: number, b: number): number {
         return this.turnTime(bodies, i, b, PI);
-    }
-
-    /** The torque of pushing along (`fx`, `fy`), body frame, on each engine as far as it points that way, turn or no turn. */
-    private pushTorque(layout: EngineLayout, fx: number, fy: number): number {
-        let torque = 0;
-        for (let t = 0; t < layout.count; t++) {
-            const wfx = layout.wfx[t]!;
-            const wfy = layout.wfy[t]!;
-            const full = wfx * wfx + wfy * wfy;
-            if (!(full > 0)) continue;
-            torque += clamp((wfx * fx + wfy * fy) / full, 0, 1) * layout.wt[t]!;
-        }
-        return torque;
     }
 
     /** Seconds to turn through `by` radians from rest and stop there, flat out both ways. */
@@ -10487,7 +10467,7 @@ export class Ships {
         if (!(approach.approachSpeed > 0)) return;
         // One that has lost all its turn cannot bring its mains round to steer in, and would
         // hang by its carrier for good; one still being built has yet to get it. One that
-        // can turn one way spins in (`PAD_SPIN`).
+        // can turn one way spins in (`spinWay`).
         const set = (this.launched[i] ?? this.designs[i]!).engineLayout;
         const now = this.layoutOf(i);
         if (this.unfinished[i] !== 1 && (set.maxTorque(1) > 0 || set.maxTorque(-1) > 0) && !(now.maxTorque(1) > 0 || now.maxTorque(-1) > 0))
@@ -11111,36 +11091,24 @@ export class Ships {
                 // rather than overshooting and turning back.
                 radial = min(PAD_SPEED, range / approach.responseTime);
             } else {
-                // Braking on what is left once it is keeping up. Spinning, its mains
-                // point its way a share 1/π of the time, on average, and come round
-                // in half a turn.
-                const layout = this.layoutOf(i);
-                const spins = oneWayTurn(layout) !== 0;
-                const bearing = pushBearing(layout, design.thrustBearing);
-                const mains = layout.maxThrustAlong(cos(bearing), sin(bearing)) / movable(bodies.mass[b]!);
-                const spare = max(0, (spins ? mains / PI : mains) - length(ax, ay));
-                const delay = approach.responseTime + (spins ? PI / PAD_SPIN : this.halfTurnTime(bodies, i, b));
-                radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * spare, left, delay));
+                // Braking on what is left once it is keeping up.
+                const spare = max(0, this.pushAbility(bodies, i, b) - length(ax, ay));
+                radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * spare, left, this.pushDelay));
             }
             vx += ux * radial;
             vy += uy * radial;
         }
         this.urge(URGE_REFERENCE, vx, vy, ax, ay);
 
-        const dvx = vx - bodies.vx[b]! + ax * approach.responseTime;
-        const dvy = vy - bodies.vy[b]! + ay * approach.responseTime;
-        // Its mains on what it still has to do, near or not: a fighter mostly pushes one way.
-        // Not for a small correction its mains already point near enough along, or it
-        // weaves, turning after each and overshooting it while it turns. Its mains,
-        // since thrusters off its middle push it round as they push it across.
-        const need = length(dvx, dvy);
-        const toward = atan2(dvy, dvx) - pushBearing(this.layoutOf(i), design.thrustBearing);
-        const turn = need > PAD_SPEED / 2 && (need > PAD_HOLD_SPEED || abs(angleDelta(bodies.angle[b]!, toward)) > PAD_HOLD_ANGLE);
-        const braking = turn ? toward : bodies.angle[b]!;
-        if (!near || length(box.maxX - box.minX, box.maxY - box.minY) <= min(spec.length, spec.width)) return braking;
-        // One that has to line up with the pad does so once it has little left to lose, either way round, whichever is nearer.
-        if (length(vx - bodies.vx[b]!, vy - bodies.vy[b]!) > PAD_SPEED / 2) return braking;
-        const along = angleDelta(bodies.angle[b]!, place.angle);
+        // Where it faces is the helm's to choose until it has to line up with the
+        // pad: once it has little left to lose, either way round, whichever is nearer.
+        const settling = near && length(vx - bodies.vx[b]!, vy - bodies.vy[b]!) <= PAD_SPEED / 2;
+        if (!settling || length(box.maxX - box.minX, box.maxY - box.minY) <= min(spec.length, spec.width)) {
+            this.intent = STEER;
+            this.steerFree = true;
+            return heading;
+        }
+        const along = angleDelta(heading, place.angle);
         return abs(along) <= PI / 2 ? place.angle : place.angle + PI;
     }
 
@@ -11489,20 +11457,19 @@ export class Ships {
                 radial = PORT_APPROACH;
             } else {
                 // Braking on what is left once it is keeping up.
-                const mains =
-                    this.layoutOf(i).maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / movable(bodies.mass[b]!);
-                const spare = max(0, mains - length(ax, ay));
-                const delay = approach.responseTime + this.halfTurnTime(bodies, i, b);
-                radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * spare, left, delay));
+                const spare = max(0, this.pushAbility(bodies, i, b) - length(ax, ay));
+                radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * spare, left, this.pushDelay));
             }
             vx += (dx / range) * radial;
             vy += (dy / range) * radial;
         }
         this.urge(URGE_REFERENCE, vx, vy, ax, ay);
-        const dvx = vx - bodies.vx[b]! + ax * approach.responseTime;
-        const dvy = vy - bodies.vy[b]! + ay * approach.responseTime;
-        const far = left > PAD_ALIGN_RADII * bodies.radius[b]!;
-        if (far && length(dvx, dvy) > PORT_SPEED) return atan2(dvy, dvx) - design.thrustBearing;
+        // Far off, where it faces is the helm's to choose, so long as it turns for
+        // any change it could not mate at; near, it faces the port it mates with.
+        if (left > PAD_ALIGN_RADII * bodies.radius[b]!) {
+            this.intent = STEER;
+            this.steerSlack = PORT_SPEED;
+        }
         return heading;
     }
 
