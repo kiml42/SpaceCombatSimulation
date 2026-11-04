@@ -16,6 +16,12 @@ import { rgba } from "./sprites.js";
  * beside an engine is lit well past it.
  */
 export const LIGHT_REACH = 4;
+/**
+ * How many times brighter than white the buffer can hold light before it is
+ * clipped: lights are drawn into it at this share and scaled back after, so
+ * where several overlap their sum still falls off rather than being cut flat.
+ */
+export const LIGHT_HEADROOM = 4;
 /** How strongly a surface is lit by a light as bright as the buffer holds, as a share of its own colour. */
 export const LIGHT_GAIN = 1;
 /** How far behind its root a cone's glow starts, in its radii, as `render/glows.ts` draws it. */
@@ -67,7 +73,8 @@ export class LightField {
             this.x1[i] = toX(x1);
             this.y1[i] = toY(y1);
             this.reach[i] = (lights.radius[k]! * LIGHT_REACH) / camera.scale;
-            this.brightness[i] = Math.min(1, lights.brightness[k]!);
+            // As the buffer takes it: no brighter than its glow can be drawn, at its headroom's share.
+            this.brightness[i] = Math.min(LIGHT_HEADROOM, lights.brightness[k]!);
             this.cone[i] = cone && (x1 !== x0 || y1 !== y0);
             const [r, g, b] = rgba(lights.colour[k]!);
             this.r[i] = r / 255;
@@ -99,10 +106,10 @@ export class LightField {
             g += this.g[k]! * strength;
             b += this.b[k]! * strength;
         }
-        // As the buffer holds it, no brighter than white.
-        out.r = Math.min(1, r);
-        out.g = Math.min(1, g);
-        out.b = Math.min(1, b);
+        // As the buffer holds it, clipped at its headroom, and eased towards full as the filter does.
+        out.r = eased(r);
+        out.g = eased(g);
+        out.b = eased(b);
         return r + g + b > 0;
     }
 }
@@ -125,6 +132,11 @@ function shine(dx: number, dy: number, lx: number, ly: number, reach: number, co
     if (t < 0) return falloff(Math.sqrt(((-t * length) / (reach * CONE_BEHIND)) ** 2 + across * across));
     if (t >= 1) return 0;
     return (1 - t) ** 1.5 * falloff(across / (1 - CONE_NARROWING * t));
+}
+
+/** How bright light of `sum` lights a surface, as the filter has it: nothing to full, never quite reached. */
+function eased(sum: number): number {
+    return 1 - Math.exp(-Math.min(LIGHT_HEADROOM, sum));
 }
 
 /** Full at the middle, nothing at the edge, softly, as a glow's sprite. */

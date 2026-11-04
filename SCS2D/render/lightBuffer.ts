@@ -1,6 +1,6 @@
 import { Filter, GlProgram, RenderTexture, UniformGroup, type Renderer } from "pixi.js";
 import { drawGlows, Lights } from "./glows.js";
-import { LIGHT_GAIN, LIGHT_REACH } from "./lightField.js";
+import { LIGHT_GAIN, LIGHT_HEADROOM, LIGHT_REACH } from "./lightField.js";
 import { PixiCanvas } from "./pixiCanvas.js";
 
 /**
@@ -46,12 +46,15 @@ out vec4 finalColor;
 uniform sampler2D uTexture;
 uniform sampler2D uLight;
 uniform float uGain;
+uniform float uHeadroom;
 
 void main()
 {
     vec4 colour = texture(uTexture, vTextureCoord);
+    // Easing towards full as it grows, so the brightest stretch is not lit flat.
+    vec3 light = 1.0 - exp(-texture(uLight, vScreen).rgb * uHeadroom);
     // Added over what is there, so it leaves the alpha alone.
-    finalColor = vec4(colour.rgb * texture(uLight, vScreen).rgb * uGain, 0.0);
+    finalColor = vec4(colour.rgb * light * uGain, 0.0);
 }
 `;
 
@@ -61,6 +64,7 @@ export class LightBuffer {
     private readonly uniforms = new UniformGroup({
         uScreen: { value: new Float32Array([1, 1]), type: "vec2<f32>" },
         uGain: { value: LIGHT_GAIN, type: "f32" },
+        uHeadroom: { value: LIGHT_HEADROOM, type: "f32" },
     });
     private readonly context = new PixiCanvas();
     private readonly reaching = new Lights();
@@ -89,7 +93,10 @@ export class LightBuffer {
         this.context.root.scale.set(LIGHT_RESOLUTION);
         this.reaching.clear();
         this.reaching.add(lights);
-        for (let k = 0; k < this.reaching.count; k++) this.reaching.radius[k]! *= LIGHT_REACH;
+        for (let k = 0; k < this.reaching.count; k++) {
+            this.reaching.radius[k]! *= LIGHT_REACH;
+            this.reaching.brightness[k]! /= LIGHT_HEADROOM;
+        }
         drawGlows(this.context as unknown as CanvasRenderingContext2D, this.reaching);
         this.context.end();
         renderer.render({ container: this.context.root, target: this.texture, clear: true, clearColor: [0, 0, 0, 1] });

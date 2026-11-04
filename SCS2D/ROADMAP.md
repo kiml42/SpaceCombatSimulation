@@ -518,7 +518,12 @@ an entry is either still open or it is gone.
               the halo round a light, and the hull beside an engine is lit well past it. The hull layer
               fills every module again, untinted and sharing its fills' geometry (`HullLayer.lit`), and
               that pool is drawn through a filter multiplying its colour by the buffer where it lies on
-              screen, times `LIGHT_GAIN` (1), added over the hull. So a hull takes the light in its own
+              screen, times `LIGHT_GAIN` (1), added over the hull. Lights go into the buffer at a quarter
+              of their brightness (`LIGHT_HEADROOM`), so where several overlap, as along a big beam, their
+              sum is not clipped flat at white, and the filter eases it towards full (1 − e^−L) rather than
+              cutting it off. The bevels are drawn over the lit fills too, sharing their geometry, so the
+              light added to a bevel turned from the battle's light is dimmer and to one turned to it
+              brighter, keeping the hull's shading. So a hull takes the light in its own
               colour, in the battle's shadows as out of them, and empty space stays dark. Thin and
               thick modules and rock are lit; WebGL only, as Pixi's Canvas2D fallback has no filters;
               and nothing is drawn while there are no lights. The glows' halos are still drawn over the
@@ -526,8 +531,8 @@ an entry is either still open or it is gone.
               scenes.
             - **Fighters, vapour and metal — built** (`render/lightField.ts`), lit a piece at a time from
               the list itself rather than read back from the buffer, so nothing waits on the GPU: the same
-              halos, capsules and cones, at the same reach, summed at a point and held to white as the
-              buffer is. A fighter's modules are filled once more, added over themselves in their colour
+              halos, capsules and cones, at the same reach, summed at a point, clipped and eased as the
+              buffer and its filter have them. A fighter's modules are filled once more, added over themselves in their colour
               times the light at each module (a burnt-out one stays dark); a puff of vapour or a bit of
               metal adds its own colour times the light where it is to its tint. Each is drawn before its
               frame's lights are all known, so is lit by its view's lights in the frame before, put back

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Lights } from "../render/glows.js";
-import { LIGHT_REACH, LightField } from "../render/lightField.js";
+import { LIGHT_HEADROOM, LIGHT_REACH, LightField } from "../render/lightField.js";
 
 /** Lights recorded straight in canvas pixels. */
 const IDENTITY = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
@@ -13,6 +13,8 @@ const fieldOf = (lights: Lights, camera = CAMERA): LightField => {
     return field;
 };
 const light = { r: 0, g: 0, b: 0 };
+/** How a sum of light lights a surface, as the filter eases it. */
+const eased = (sum: number): number => 1 - Math.exp(-Math.min(LIGHT_HEADROOM, sum));
 const at = (field: LightField, x: number, y: number): [number, number, number] => {
     field.at(x, y, light);
     return [light.r, light.g, light.b];
@@ -23,10 +25,10 @@ describe("the light at a point", () => {
         const lights = new Lights();
         lights.point(IDENTITY, 400, 300, 5, "#ff8000", 0.5);
         const field = fieldOf(lights);
-        expect(at(field, 0, 0)).toEqual([0.5, 0.5 * (128 / 255), 0]);
+        expect(at(field, 0, 0)).toEqual([eased(0.5), eased(0.5 * (128 / 255)), 0]);
         const reach = 5 * LIGHT_REACH;
         expect(at(field, reach / 2, 0)[0]).toBeGreaterThan(0);
-        expect(at(field, reach / 2, 0)[0]).toBeLessThan(0.5);
+        expect(at(field, reach / 2, 0)[0]).toBeLessThan(eased(0.5));
         expect(field.at(reach, 0, light)).toBe(false);
         expect(field.at(0, -reach - 1, light)).toBe(false);
     });
@@ -36,7 +38,7 @@ describe("the light at a point", () => {
         // A pixel to the right of the middle and two up, at two pixels to the metre.
         lights.point(IDENTITY, 402, 296, 1, "#ffffff", 1);
         const field = fieldOf(lights, { x: 10, y: 20, scale: 2 });
-        expect(at(field, 11, 22)).toEqual([1, 1, 1]);
+        expect(at(field, 11, 22)).toEqual([eased(1), eased(1), eased(1)]);
         // Reaching half as many metres as pixels.
         expect(field.at(11 + LIGHT_REACH / 2, 22, light)).toBe(false);
     });
@@ -45,8 +47,8 @@ describe("the light at a point", () => {
         const lights = new Lights();
         lights.line(IDENTITY, 380, 300, 420, 300, 4, "#ffffff", 1);
         const field = fieldOf(lights);
-        expect(at(field, -20, 0)).toEqual([1, 1, 1]);
-        expect(at(field, 0, 0)).toEqual([1, 1, 1]);
+        expect(at(field, -20, 0)).toEqual([eased(1), eased(1), eased(1)]);
+        expect(at(field, 0, 0)).toEqual([eased(1), eased(1), eased(1)]);
         expect(at(field, 0, 6)[0]).toBeCloseTo(at(field, 26, 0)[0], 9);
     });
 
@@ -61,10 +63,14 @@ describe("the light at a point", () => {
         expect(field.at(-5 * LIGHT_REACH, 0, light)).toBe(false);
     });
 
-    it("adds lights together, but no brighter than white", () => {
-        const lights = new Lights();
-        lights.point(IDENTITY, 400, 300, 5, "#ffffff", 0.7);
-        lights.point(IDENTITY, 400, 300, 5, "#ffffff", 0.7);
-        expect(at(fieldOf(lights), 0, 0)).toEqual([1, 1, 1]);
+    it("adds lights together, easing towards full and clipped where the buffer would clip them", () => {
+        const two = new Lights();
+        two.point(IDENTITY, 400, 300, 5, "#ffffff", 0.7);
+        two.point(IDENTITY, 400, 300, 5, "#ffffff", 0.7);
+        expect(at(fieldOf(two), 0, 0)[0]).toBeCloseTo(eased(1.4), 12);
+        const many = new Lights();
+        for (let k = 0; k < 2 * LIGHT_HEADROOM; k++) many.point(IDENTITY, 400, 300, 5, "#ffffff", 1);
+        expect(at(fieldOf(many), 0, 0)[0]).toBeCloseTo(eased(LIGHT_HEADROOM), 12);
+        expect(at(fieldOf(many), 0, 0)[0]).toBeLessThan(1);
     });
 });

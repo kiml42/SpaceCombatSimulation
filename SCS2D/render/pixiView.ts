@@ -118,7 +118,7 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
             context.end();
             if (renderer === null) return;
             // Lit only while there is something to light it.
-            hulls.lit.container.visible = lightBuffer?.update(renderer, seenLights, size.width, size.height) ?? false;
+            hulls.litLayer.visible = lightBuffer?.update(renderer, seenLights, size.width, size.height) ?? false;
             renderer.render(stage);
         },
         dispose() {
