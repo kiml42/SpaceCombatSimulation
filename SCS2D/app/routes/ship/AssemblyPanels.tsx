@@ -7,6 +7,7 @@ import {
     createAssemblyProblem,
     dissolveInstance,
     duplicateInstance,
+    mirrorInstance,
     extentAlong,
     renameAssembly,
     renameProblem,
@@ -333,6 +334,20 @@ export function AssemblyPanel({
                     }}
                 >
                     Duplicate
+                </Button>
+                <Button
+                    id="assemblyMirrorCopy"
+                    title="Place this assembly again, reflected onto the other side of the frame it sits in"
+                    onClick={() => {
+                        if (path === null) return;
+                        const placed = mirrorInstance(doc.blueprint, path);
+                        if (placed === null) return;
+                        doc.apply(placed.blueprint);
+                        doc.select(placed.path);
+                        editing.refresh();
+                    }}
+                >
+                    Mirror
                 </Button>
                 <TakeOut id="assemblyTakeOut" editing={editing} path={path} what="assembly" />
                 <Button

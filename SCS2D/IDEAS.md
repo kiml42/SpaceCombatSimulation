@@ -41,9 +41,7 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Doctrine needs a major overhaul
   - it's far too hidden for something you will often need. 
   - The sections aren't clear enough
-- Easy way to mirror a ship.
-  - Could add a "Mirror" button to a module off the centre line that creates a side group, puts that module in it, and duplicates the group mirrored. The group's origin should be 0,0 to make reflection easy, and all modules can be offset within it. Using the button when there is already a side group it should add it to that group.
-  - Could make a "duplicate mirrored" button for an assembly that puts it in the right place and mirrors it in one action, instead of having to duplicate it, which offsets it, then needing to mirror it, and offset it to the negative position of where the original was.
+- Mirror into a side group: **Mirror** makes each module a mirrored part of its own. A way to add a module to an existing mirrored side assembly (origin at 0,0) instead would keep a whole side one part.
 - Default the refit mode to off except where it's useful
 - Auto-save
 
