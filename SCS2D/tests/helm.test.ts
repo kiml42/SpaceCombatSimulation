@@ -76,6 +76,8 @@ describe("a crippled fighter fleeing", () => {
             const f = ships.spawn(world, { design: raider, x: 150, y: 0, angle: Math.PI / 2, team: 0 });
             const b = world.bodies.indexOf(ships.body(f));
             for (const m of lost) ships.damage.absorb(b, m, ships.damage.capacityLeft(b, m));
+            // Nothing more, so it is the helm being tested: the fort shooting out its one tank strands it.
+            ships.damage.protect(b);
             ships.pushFlee(f, fort);
             return { fort, f };
         });
