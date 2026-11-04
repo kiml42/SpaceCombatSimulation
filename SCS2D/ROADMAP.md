@@ -534,11 +534,15 @@ an entry is either still open or it is gone.
               and nothing is drawn while there are no lights. The glows' halos are still drawn over the
               hull as before. The reach and gain were set by eye on the Effects page's Engines and Hits
               scenes.
-            - **Fighters** are drawn through the adapter rather than the hull layer, so are not lit yet:
-              each could take the light at its middle, worked out from the list as vapour and metal are.
-            - **Vapour and metal too**, as they are cheap: each puff and bit adds the light it is in,
-              worked out from the list itself at its position rather than read back from the buffer, so
-              nothing waits on the GPU. Only sources within reach are counted, found by their boxes.
+            - **Fighters, vapour and metal — built** (`render/lightField.ts`), lit a piece at a time from
+              the list itself rather than read back from the buffer, so nothing waits on the GPU: the same
+              halos, capsules and cones, at the same reach, summed at a point, clipped and eased as the
+              buffer and its filter have them. A fighter's modules are filled once more, added over themselves in their colour
+              times the light at each module (a burnt-out one stays dark); a puff of vapour or a bit of
+              metal adds its own colour times the light where it is to its tint. Each is drawn before its
+              frame's lights are all known, so is lit by its view's lights in the frame before, put back
+              in the world through that frame's camera, so a panning view does not move the light; a frame
+              late, which a light lasting a few frames hides.
             - **Never lit**: gauges, icons, names, selection, orders and arcs, as with the battle's light.
         3. **Recorded for later: lights shading bevels and rounded parts.** A light beside a ship should
            brighten the bevels and the sides of bells, barrels and domes that face it, as the battle's light
