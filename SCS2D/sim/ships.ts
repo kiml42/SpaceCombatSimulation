@@ -351,6 +351,13 @@ const WRECK_STRENGTH = 0.05;
 const SCRAP_MASS = 2000;
 
 /**
+ * How many times what breaks it a module takes in a single step to shatter:
+ * blown apart, gone from its hull, its mass discarded and broken into debris
+ * rather than kept as wreckage. Any module, whatever its kind or size.
+ */
+const SHATTER = 3;
+
+/**
  * How far past the fighting a piece has to drift before it stops being worth
  * tracking, in metres per kilogram above `SCRAP_MASS`.
  *
@@ -5920,7 +5927,7 @@ export class Ships {
             }
         }
 
-        let pieces = 0;
+        let pieces = this.shatter(world);
         pieces += this.partCutWelds(world);
         for (let k = 0; k < this.blows; k++) {
             this.shakeLoose(world, k);
@@ -5936,6 +5943,100 @@ export class Ships {
         }
         this.blows = 0;
         return pieces;
+    }
+
+    /**
+     * Shatter every module that took more than `SHATTER` times what breaks it
+     * this step: it is gone from its hull, its mass counted as discarded and
+     * broken into debris, and what is left of the hull is split into the parts
+     * still welded together without it, as severing splits one. A hull that was
+     * nothing else goes altogether. Robots rebuild a shattered module as any
+     * module lost. Not for a body more than one ship rides.
+     */
+    private shatter(world: World): number {
+        const damage = this.damage;
+        const bodies = world.bodies;
+        let pieces = 0;
+        // Each body once, with all it lost this step; rare, so allocating here is fine.
+        let lost: Map<number, number[]> | null = null;
+        for (let k = 0; k < damage.stepCount; k++) {
+            const b = damage.stepBody[k]!;
+            const m = damage.stepModule[k]!;
+            const capacity = damage.capacityOf(b, m);
+            if (!(capacity > 0) || damage.stepJoules[k]! < SHATTER * capacity) continue;
+            if (bodies.alive[b] === 0 || (this.shipByBody[b] ?? -1) < 0 || this.pilots[b] != null) continue;
+            lost ??= new Map();
+            const modules = lost.get(b) ?? [];
+            if (!modules.includes(m)) modules.push(m);
+            lost.set(b, modules);
+        }
+        damage.clearStep();
+        if (lost === null) return 0;
+
+        for (const [b, shattered] of lost) {
+            const i = this.shipByBody[b]!;
+            const design = this.designs[i]!;
+            const gone = new Set(shattered);
+            const parts = components(design, (joint) => {
+                if (gone.has(joint.a) || gone.has(joint.b)) return true;
+                const k = jointBetween(design, joint.a, joint.b);
+                return damage.weldIntegrity(b, k, joint.width) <= 0;
+            }).filter((part) => !part.every((m) => gone.has(m)));
+            if (parts.length > 0) {
+                pieces += this.breakUp(world, i, design, parts, shattered);
+                continue;
+            }
+            // Nothing left of it.
+            for (const m of shattered) this.discardModule(world, i, design, m);
+            this.damage.forget(b);
+            this.fuel.forget(b);
+            this.metal.forget(b);
+            this.power.forget(b);
+            this.robots.forget(b);
+            this.shipByBody[b] = -1;
+            this.remove(i);
+            world.destroy(this.bodyIds[i]!);
+        }
+        return pieces;
+    }
+
+    /**
+     * Count module `m` of ship `i`, built to `design`, as discarded, with what
+     * it holds and the velocity its place on the hull has, and break it into
+     * debris there.
+     */
+    private discardModule(world: World, i: number, design: ShipDesign, m: number): void {
+        const bodies = world.bodies;
+        const b = bodies.indexOf(this.bodyIds[i]!);
+        const placed = design.modules[m]!;
+        const { stats } = placed;
+        const mass = max(
+            0,
+            stats.mass - (stats.fuel - this.fuel.held(b, m)) - (stats.metal - this.metal.held(b, m)) - this.damage.shedAt(b, m),
+        );
+        const angle = bodies.angle[b]!;
+        const c = cos(angle);
+        const sn = sin(angle);
+        const ox = placed.x * c - placed.y * sn;
+        const oy = placed.x * sn + placed.y * c;
+        const spin = bodies.angularVel[b]!;
+        const x = bodies.x[b]! + ox;
+        const y = bodies.y[b]! + oy;
+        const vx = bodies.vx[b]! - spin * oy;
+        const vy = bodies.vy[b]! + spin * ox;
+        this.discarded += mass;
+        this.discardedPx += mass * vx;
+        this.discardedPy += mass * vy;
+        this.discardedL += mass * (x * vy - y * vx);
+        this.debris.emit(
+            x,
+            y,
+            vx,
+            vy,
+            spin,
+            mass,
+            0.5 * sqrt(placed.spec.length * placed.spec.length + placed.spec.width * placed.spec.width),
+        );
     }
 
     /**
@@ -9218,12 +9319,15 @@ export class Ships {
      * part as the two ships they were. A piece nobody is flown from is wreckage,
      * or a ship of its own if a working core is on it (`detach`).
      */
-    private breakUp(world: World, i: number, design: ShipDesign, parts: readonly number[][]): number {
+    private breakUp(world: World, i: number, design: ShipDesign, parts: readonly number[][], shattered: readonly number[] = []): number {
         const bodies = world.bodies;
         this.settleShed(bodies);
         this.momentum(bodies);
         const beforeX = this.momentumX;
         const beforeY = this.momentumY;
+        // Counted as discarded before the hull is reshaped without them, so their
+        // momentum is not taken up by what stays.
+        for (const m of shattered) this.discardModule(world, i, design, m);
         this.parted[i] = 0;
         const pieces = this.breakApart(world, i, design, parts);
         // Cut between its cores, it is now the ship flown from the one it kept, as

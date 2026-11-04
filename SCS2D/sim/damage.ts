@@ -292,6 +292,14 @@ export class Damage {
     private readonly unsettledBodies: number[] = [];
     /** Where the hits that mattered landed, for drawing only: no checksum reads it. */
     readonly scars = new Scars();
+    /**
+     * What each module hit this step has taken in it, by body and module, for
+     * shattering one that took far more than breaks it (`Ships.sever`).
+     */
+    readonly stepBody: number[] = [];
+    readonly stepModule: number[] = [];
+    readonly stepJoules: number[] = [];
+    stepCount = 0;
 
     /**
      * Give a body a damage record, sized from its design.
@@ -401,6 +409,7 @@ export class Damage {
         const capacity = this.capacity[bodyIndex]![module]!;
         const before = shedShare(absorbed[module]!, capacity);
         absorbed[module] += joules;
+        this.takenThisStep(bodyIndex, module, joules);
         this.versions[bodyIndex] = (this.versions[bodyIndex] ?? 0) + 1;
         const kg = (shedShare(absorbed[module]!, capacity) - before) * this.dry[bodyIndex]![module]!;
         if (!(kg > 0)) return;
@@ -408,6 +417,29 @@ export class Damage {
         this.shedSpin[bodyIndex] = this.shedSpin[bodyIndex]! + kg * this.spin[bodyIndex]![module]!;
         if (!(this.unsettled[bodyIndex]! > 0)) this.unsettledBodies.push(bodyIndex);
         this.unsettled[bodyIndex] = this.unsettled[bodyIndex]! + kg;
+    }
+
+    /** Add `joules` to what module `module` of body `bodyIndex` has taken this step. */
+    private takenThisStep(bodyIndex: number, module: number, joules: number): void {
+        for (let k = 0; k < this.stepCount; k++) {
+            if (this.stepBody[k] !== bodyIndex || this.stepModule[k] !== module) continue;
+            this.stepJoules[k] = this.stepJoules[k]! + joules;
+            return;
+        }
+        const k = this.stepCount++;
+        this.stepBody[k] = bodyIndex;
+        this.stepModule[k] = module;
+        this.stepJoules[k] = joules;
+    }
+
+    /** Start a new step's account of what each module has taken. */
+    clearStep(): void {
+        this.stepCount = 0;
+    }
+
+    /** Joules a module can take before it stops working, or 0 for one with no record. */
+    capacityOf(bodyIndex: number, module: number): number {
+        return this.capacity[bodyIndex]?.[module] ?? 0;
     }
 
     /** What damage has shed from a body, kg. */

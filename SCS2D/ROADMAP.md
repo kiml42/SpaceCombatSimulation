@@ -515,10 +515,17 @@ an entry is either still open or it is gone.
                pieces are made at all now; and in Rival Mines a Dinky shot down to its core, engines and
                tank comes home and burns against its Replicator's hull for the rest of the battle rather
                than landing, a crippled landing the new path exposes rather than causes.
-            3. **Shattering**: any module that takes more than a multiple of what breaks it in one step
-               (3 to start) is removed, its mass counted as discarded and broken into debris, the hull's
-               connectivity looked at again, so it may sever, and robots rebuilding it as any module lost.
-               It amends §4's "destruction is a state change, not a removal". Goldens move.
+            3. **Shattering — built.** Any module that takes more than `SHATTER` (3) times what breaks it
+               in one step is removed, its mass and what it held counted as discarded and broken into
+               debris, and the rest of the hull split into the parts still welded together without it, so
+               it may sever; a hull of nothing else goes. `Damage` totals what each module hit takes in a
+               step; `Ships.sever` shatters first, through the same `breakUp` as a cut, with the shattered
+               mass discarded inside it so the piece that stays takes up no momentum for it. Robots
+               rebuild a shattered module as any module lost. Not for a body more than one ship rides.
+               DESIGN.md §4 is amended. The Rival Mines, Super Swarm, Torpedoes and Line Ahead goldens
+               moved: more scrap and fewer ships at the end, as modules are blown away rather than kept as
+               wreckage (Line Ahead 19 ships to 15, its scrap 177 t to 229 t); and Rival Mines' Dinky no
+               longer ends up against its Replicator.
     7. **The later lighting passes.** Settled with the author on 2026-11-04 (DECISIONS.md). Each is its own
        pull request, in this order:
         1. **Leaks in shadow — built** (`render/blocks.ts`). Vapour hangs above the deck, so a thick
