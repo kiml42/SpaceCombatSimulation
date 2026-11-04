@@ -39,6 +39,14 @@ import { COMPLEXITY_WORK, EXPLOSIVE_YIELD, FUEL_DENSITY, FUEL_DRAG_COEFFICIENT, 
 export const DAMAGE_ENERGY_PER_KG = 1000;
 
 /**
+ * How many times what breaks it a module takes in a single step to shatter:
+ * blown apart, gone from its hull, its mass discarded and broken into debris
+ * rather than kept as wreckage (`Ships.sever`). Any module, whatever its kind
+ * or size.
+ */
+export const SHATTER = 3;
+
+/**
  * The share of a module's dry mass damage has boiled or shredded off by the
  * time it stops working. It goes on shedding at the same rate past that.
  */
@@ -836,6 +844,7 @@ function shove(bodies: Bodies, body: number, jx: number, jy: number, px: number,
  * reaches deeper rather than being thrown away. That is the one place this
  * differs from a round, which spends what its armour stopped and loses the
  * rest: there is no plate here to stop anything, only structure to fold.
+ * Past what the whole line can absorb, the front is shattered.
  *
  * `(nx, ny)` points **into** the hull being crushed, world frame.
  */
@@ -896,6 +905,20 @@ export function resolveCollision(
         // Where the crush reached it: the contact, or its face if deeper in.
         const at = max(path.entry[k]!, reach) - reach;
         damage.scar(bodyIndex, module, SCAR_GOUGE, px + ux * at, py + uy * at, px + ux * at, py + uy * at, gx, gy, take);
+        left -= take;
+        spent += take;
+    }
+    // More than the whole line can take: the front goes first, each module on the
+    // line taking enough more to shatter it before what is left goes on to the next,
+    // so a crash far past what a hull can stand takes its nose away rather than
+    // denting every module along it and losing the rest.
+    for (let k = 0; k < path.count && left > 0; k++) {
+        if (path.exit[k]! <= reach) continue;
+        const module = path.module[k]!;
+        if (damage.kindAt(bodyIndex, module) === "kernel") continue;
+        const take = min(SHATTER * damage.capacityOf(bodyIndex, module), left);
+        if (!(take > 0)) continue;
+        damage.absorb(bodyIndex, module, take);
         left -= take;
         spent += take;
     }

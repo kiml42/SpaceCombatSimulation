@@ -522,6 +522,11 @@ an entry is either still open or it is gone.
                step; `Ships.sever` shatters first, through the same `breakUp` as a cut, with the shattered
                mass discarded inside it so the piece that stays takes up no momentum for it. Robots
                rebuild a shattered module as any module lost. Not for a body more than one ship rides.
+               A collision's crush stops at what each module can still absorb, so it never shattered
+               anything; what is left over once the whole line is wrecked now goes back to the front,
+               enough to shatter each module in turn. The Crash scene (a Star Destroyer into a major
+               asteroid at 25 m/s) shows it: the bow is blown away, its two front triangles among 23
+               modules, and the hull breaks up.
                DESIGN.md §4 is amended. The Rival Mines, Super Swarm, Torpedoes and Line Ahead goldens
                moved: more scrap and fewer ships at the end, as modules are blown away rather than kept as
                wreckage (Line Ahead 19 ships to 15, its scrap 177 t to 229 t); and Rival Mines' Dinky no

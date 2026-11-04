@@ -22,8 +22,17 @@ export type SpriteShape =
     | "cap"
     /** Even along its length, and as bright across as a rod is thick there: a beam seen side on. */
     | "rod"
-    /** A torn, jagged sliver, solid, its edge a texel soft: a bit of metal broken off. */
-    | "shard";
+    /** A torn, jagged lozenge, solid, its edge a texel soft: a bit of metal broken off. */
+    | "shard"
+    /** A long, bent strip torn from a plate. */
+    | "sliver"
+    /** A wedge, broad at one end and torn to a point at the other. */
+    | "splinter"
+    /** A ragged, notched flake of plating. */
+    | "flake";
+
+/** The shapes a broken-off bit of metal is drawn in, so they do not all look alike. */
+export const SHARDS = ["shard", "sliver", "splinter", "flake"] as const satisfies readonly SpriteShape[];
 
 type Image = CanvasImageSource & { width: number; height: number };
 
@@ -61,16 +70,39 @@ function shade(shape: SpriteShape, u: number, v: number): number {
         case "shard": {
             const x = 2 * u - 1;
             const y = 2 * v - 1;
-            // A lozenge with a torn edge.
-            const edge = 1 - 0.18 * Math.sin(9 * x + 2) - 0.12 * Math.sin(13 * y);
-            const reach = Math.abs(x) * 0.9 + Math.abs(y) * 1.1;
-            return Math.min(1, Math.max(0, (edge - reach) * (ACROSS / 2) + 0.5));
+            return solid(1 - 0.18 * Math.sin(9 * x + 2) - 0.12 * Math.sin(13 * y) - Math.abs(x) * 0.9 - Math.abs(y) * 1.1);
+        }
+        case "sliver": {
+            const x = 2 * u - 1;
+            const y = 2 * v - 1 - 0.3 * Math.sin(2.5 * x + 0.5);
+            return solid(0.45 * (1 - x * x) + 0.06 * Math.sin(17 * x) - Math.abs(y));
+        }
+        case "splinter": {
+            const x = 2 * u - 1;
+            const y = 2 * v - 1;
+            // Its half-width grows from nothing at the point to most of the square at the broad end.
+            const half = 0.9 * (1 - u) + 0.1 * Math.sin(11 * u + 1);
+            return solid(Math.min(half - Math.abs(y + 0.15 * u), 0.95 - Math.abs(x)));
+        }
+        case "flake": {
+            const x = 2 * u - 1;
+            const y = 2 * v - 1;
+            const bearing = Math.atan2(y, x);
+            const edge = 0.85 + 0.1 * Math.sin(5 * bearing + 1) + 0.07 * Math.sin(11 * bearing);
+            // A bite out of one side.
+            const notch = Math.hypot(x - 0.55, y + 0.7) - 0.4;
+            return solid(Math.min(edge - Math.hypot(x, y), notch));
         }
         case "rod":
             return Math.sqrt(Math.max(0, 1 - across * across));
         case "cap":
             return falloff(Math.sqrt(u * u + (2 * v - 1) ** 2));
     }
+}
+
+/** Solid inside where `d` is positive, its edge a texel soft. */
+function solid(d: number): number {
+    return Math.min(1, Math.max(0, d * (ACROSS / 2) + 0.5));
 }
 
 /** How far past full a hot spot's middle is, so it stays white out to about three-fifths of its radius. */

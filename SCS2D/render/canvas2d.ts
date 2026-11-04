@@ -92,7 +92,7 @@ export { teamColour } from "./teams.js";
 import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth, plumeAlpha, tracerAlpha } from "./strokes.js";
 import { flashExtent, flashFade, flashPosition, muzzleWedge, type Flashes } from "./flashes.js";
 import { clipToStart, exposureEnds, flashSamples, shutterWeight } from "./exposure.js";
-import { flameSprite, rgba, sprite, WEDGE_HEADROOM, WEDGE_STEPS, wedgeBox, wedgeSprite } from "./sprites.js";
+import { flameSprite, rgba, SHARDS, sprite, WEDGE_HEADROOM, WEDGE_STEPS, wedgeBox, wedgeSprite } from "./sprites.js";
 import { drawGlows, Lights, type Transform } from "./glows.js";
 import { Overshadowed } from "./blocks.js";
 import { LIGHT_GAIN, LightField, type Seen } from "./lightField.js";
@@ -3307,12 +3307,11 @@ function drawThrown(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes: 
  */
 function drawDebris(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Camera, light: Light | undefined): void {
     if (snapshot.debrisCount === 0) return;
-    const shard = sprite("shard", "#ffffff");
     const batches = (ctx as Partial<{ particles: PixiCanvas["particles"] }>).particles;
-    if (shard === null || batches === undefined) return;
+    if (batches === undefined) return;
     const pixel = 1 / camera.scale;
     const lit = rgba(light?.colour ?? "#ffffff");
-    let batch: ReturnType<PixiCanvas["particles"]> | null = null;
+    debrisBatches.fill(null);
     for (let i = 0; i < snapshot.debrisCount; i++) {
         const length = snapshot.debrisSize[i]!;
         if (length < pixel) continue;
@@ -3321,15 +3320,24 @@ function drawDebris(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: C
         if (!nearShown(x, y, x, y)) continue;
         const seed = snapshot.debrisSeed[i]!;
         const angle = snapshot.debrisAngle[i]!;
-        // Its width, and which way a face catches the light, from its seed.
+        // Its shape, its width, and which way a face catches the light, from its seed.
+        const shape = (seed >>> 16) % SHARDS.length;
+        let batch = debrisBatches[shape]!;
+        if (batch === null) {
+            const image = sprite(SHARDS[shape]!, "#ffffff");
+            if (image === null) continue;
+            batch = debrisBatches[shape] = batches.call(ctx, image, false);
+        }
         const across = 0.3 + 0.4 * ((seed & 0xff) / 255);
         const shine = Math.abs(cos(angle * 1.7 + (seed >>> 8))) ** 6;
         const tint = lightUp(mixRgb(BIT_COLOUR, lit, shine), BIT_COLOUR, x, y);
-        batch ??= batches.call(ctx, shard, false);
         batch.add(x, y, cos(angle), sin(angle), length, max(length * across, pixel), tint, snapshot.debrisFade[i]!);
     }
-    batch?.end();
+    for (const batch of debrisBatches) batch?.end();
 }
+
+/** One batch a shape of bit, open while debris is drawn. */
+const debrisBatches: (ReturnType<PixiCanvas["particles"]> | null)[] = SHARDS.map(() => null);
 
 /** Bits of metal before they catch the light: a dark steel grey. */
 const BIT_COLOUR: readonly [number, number, number] = [92, 100, 112];

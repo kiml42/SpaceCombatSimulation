@@ -37,6 +37,7 @@ import {
     REPAIR_WASTE,
     repairWork,
     DISASSEMBLY_WASTE,
+    SHATTER,
     type ImpactLog,
 } from "./damage.js";
 import { buildWork, faceNearest, faceToward, fittingOf, inFrame, SHELL_STEPS, shellOf } from "./rebuild.js";
@@ -349,13 +350,6 @@ const WRECK_STRENGTH = 0.05;
  * a fighter's wreckage goes to debris and a capital's is kept.
  */
 const SCRAP_MASS = 2000;
-
-/**
- * How many times what breaks it a module takes in a single step to shatter:
- * blown apart, gone from its hull, its mass discarded and broken into debris
- * rather than kept as wreckage. Any module, whatever its kind or size.
- */
-const SHATTER = 3;
 
 /**
  * How far past the fighting a piece has to drift before it stops being worth
