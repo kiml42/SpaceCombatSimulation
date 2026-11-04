@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.34.9",
+  "packageManager": "pnpm@12.16.1",
   "description": "Planar, physics-driven fleet-tactics game. See DESIGN.md.",
   "engines": {
     "node": ">=22.12"
@@ -69,10 +69,5 @@
     "vite": "^8.3.5",
     "vite-plugin-singlefile": "^2.3.4",
     "vitest": "^5.1.0"
-  },
-  "pnpm": {
-    "overrides": {
-      "@wyw-in-js/transform>happy-dom": "^21.0.4"
-    }
   }
 }
