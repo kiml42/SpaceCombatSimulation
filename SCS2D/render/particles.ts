@@ -70,10 +70,14 @@ const MOST_COLLISION_SPARKS = 6;
 const COLLISION_SPARK_SLOWEST = 0.3;
 const COLLISION_SPARK_FASTEST = 1.2;
 
-/** A seed for an event, from what it is, so it throws the same sparks every time it is drawn. */
-export function seedOf(x: number, y: number, energy: number, kind: number): number {
+/**
+ * A seed for an event, from what it is and when it was `born`, so it throws
+ * the same sparks every time it is drawn, and two alike but for when, as a
+ * beam's steps on one spot, throw different ones.
+ */
+export function seedOf(x: number, y: number, energy: number, kind: number, born = 0): number {
     let h = 2166136261 ^ kind;
-    for (const v of [x, y, energy]) {
+    for (const v of [x, y, energy, born]) {
         h = Math.imul(h ^ Math.round(v * 1024), 16777619);
         h = Math.imul(h ^ (h >>> 15), 2246822507);
     }
