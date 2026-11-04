@@ -28,7 +28,7 @@ import { DECK_HEIGHT, DEFAULT_BURST_SPEED, DEFAULT_FRAGMENTS, EXPLOSIVE_YIELD } 
 import { CORVETTE, TORCH, TORPEDO } from "../scenarios/blueprints.js";
 import { barrelLines } from "../render/barrels.js";
 import { burstLifetime, Flashes, flashRadius } from "../render/flashes.js";
-import { holeWidth, type Hole } from "../render/vapour.js";
+import { holeWidth, vapourLength, type Hole } from "../render/vapour.js";
 
 /**
  * Small scenes of the battle's effects, for looking at them on their own: each
@@ -646,6 +646,33 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
             room(snapshot, GUN_MOUNTS.length);
             // The lining swells into the hole as far as it reaches, and a patch closes what it leaves.
             punch(t, snapshot, flashes, tankDesign(row.length, SEALING), 0, row, SEALING, MENDED_AFTER);
+        },
+    },
+    {
+        name: "Leaking while turning",
+        about: "A tank holed 20 cm wide, leaking 390 kg/s and turning once every eight seconds. Each puff sets out from where the hole was when it left, so the vapour trails in a curl behind the turn; scrubbed to straight away, before any frames have been drawn, it turns stiffly with the tank until it has some history to go on.",
+        loop: 8,
+        build(t, snapshot, flashes) {
+            const width = 0.2;
+            const design = tankDesign(12);
+            const tank = design.modules[1]!;
+            const reach = vapourLength(width, leakRate((Math.PI * width * width) / 4, 1));
+            begin(snapshot, flashes, t, -reach - 10, -reach - 10, reach + 10, reach + 10);
+            const ship = place(snapshot, design, 0, 0, (2 * Math.PI * t) / 8);
+            ship.leakX!.push(tank.x - design.centreOfMassX);
+            ship.leakY!.push(tank.y + tank.spec.width / 2 - design.centreOfMassY);
+            ship.leakDirX!.push(0);
+            ship.leakDirY!.push(1);
+            ship.leakWidth!.push(width);
+            ship.leakRate!.push(leakRate((Math.PI * width * width) / 4, 1));
+            // Open long enough before the loop starts for its vapour to have reached its end.
+            ship.leakAge!.push(t + 10);
+            ship.leakSpeed!.push(leakSpeed(1));
+            ship.leakOpened!.push(width);
+            ship.leakClosing!.push(0);
+            ship.leakFloor!.push(width);
+            ship.leakPatched!.push(-1);
+            ship.leakFill!.push(1);
         },
     },
 ];
