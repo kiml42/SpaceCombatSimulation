@@ -488,12 +488,15 @@ an entry is either still open or it is gone.
           never kept for good.
     7. **The later lighting passes.** Settled with the author on 2026-11-04 (DECISIONS.md). Each is its own
        pull request, in this order:
-        1. **Leaks in shadow.** Vapour hangs above the deck, so a thick module's shadow darkens it where
-           it passes through, and the hull layer's shadows, drawn underneath, cannot reach it. Each puff
-           asks whether it lies in one of its own ship's thick modules' shadows (the same swept outlines
-           the hull layer draws, tested against the module's box first), and is drawn at the ambient share
-           of the light where it does. Another ship's shadow on the vapour waits on shadows cast at the
-           vapour's height, with the shadows from dynamic lights.
+        1. **Leaks in shadow — built** (`render/blocks.ts`). Vapour hangs above the deck, so a thick
+           module's shadow darkens it where it passes through, and the hull layer's shadows, drawn
+           underneath, cannot reach it. Each puff asks whether anything its own ship has standing a thick
+           module's height (thick modules and turrets' domes, not fighters) lies between it and the light
+           within a shadow's length, the same region the hull layer sweeps, tested against each module's box
+           first; where it does, the puff is drawn at the light's ambient share, as the hull in shadow is. The
+           vapour is taken to be at deck height, and a puff is in shadow or not, by its middle. The Effects
+           page's "Leaking in shadow" scene shows it. Another ship's shadow on the vapour waits on shadows
+           cast at the vapour's height, with the shadows from dynamic lights.
         2. **Dynamic lights.** Engines, flashes, bursts, muzzle flashes, beams and plumes light what is
            near them, read from the one list of sources (`render/glows.ts`), so a light is still defined
            once.

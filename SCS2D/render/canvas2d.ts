@@ -94,6 +94,7 @@ import { flashExtent, flashFade, flashPosition, muzzleWedge, type Flashes } from
 import { clipToStart, exposureEnds, flashSamples, shutterWeight } from "./exposure.js";
 import { flameSprite, rgba, sprite, WEDGE_HEADROOM, WEDGE_STEPS, wedgeBox, wedgeSprite } from "./sprites.js";
 import { drawGlows, Lights, type Transform } from "./glows.js";
+import { Overshadowed } from "./blocks.js";
 import { leakSpeed } from "../sim/fuel.js";
 import { eachPuff, type Hole, type Pose, type Puff } from "./vapour.js";
 import { Poses } from "./poses.js";
@@ -1286,6 +1287,19 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
     const poseAgo = tracked ? (ago: number, into: Pose): boolean => poses.at(ship.body, ship.serial, ago, into) : undefined;
     const [r, g, b] = rgba(light === undefined ? LEAK : litColour(LEAK, light.colour));
     const tint = (r << 16) | (g << 8) | b;
+    // In a shadow, only the light's ambient share, as the hull there is.
+    const shaded = light !== undefined && overshadowed.set(ship, light);
+    const dim = light?.ambient ?? 1;
+    const shadowTint = (Math.round(r * dim) << 16) | (Math.round(g * dim) << 8) | Math.round(b * dim);
+    const c = Math.cos(ship.angle);
+    const s = Math.sin(ship.angle);
+    const inShadow = (p: Puff): boolean => {
+        if (!tracked) return overshadowed.covers(p.x, p.y);
+        // Set out from a past pose, so in the world: into the hull's frame as it is now.
+        const dx = p.x - ship.x;
+        const dy = p.y - ship.y;
+        return overshadowed.covers(dx * c + dy * s, -dx * s + dy * c);
+    };
     let batch: ReturnType<PixiCanvas["particles"]> | null = null;
     for (let k = 0; k < xs.length; k++) {
         const width = ship.leakWidth![k]!;
@@ -1311,7 +1325,7 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
             fill,
             speed,
             puff,
-            (p) => into.add(p.x, p.y, p.dirX, p.dirY, p.length, 2 * p.radius, tint, p.alpha),
+            (p) => into.add(p.x, p.y, p.dirX, p.dirY, p.length, 2 * p.radius, shaded && inShadow(p) ? shadowTint : tint, p.alpha),
             poseAgo,
         );
     }
@@ -1323,6 +1337,8 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
 const hole: Hole = { opened: 0, closing: 0, floor: 0, patched: -1 };
 const puff: Puff = { x: 0, y: 0, radius: 0, dirX: 1, dirY: 0, length: 0, alpha: 0 };
 const pose: Pose = { x: 0, y: 0, angle: 0, vx: 0, vy: 0 };
+/** Whether a puff is in its own ship's shadows. */
+const overshadowed = new Overshadowed();
 /** Where each leaking ship has been lately, for its vapour to set out from. */
 const poses = new Poses();
 /** How long a hole is taken to have been open where a picture does not say: long enough for its vapour to have reached its end. */

@@ -96,6 +96,15 @@ const tankDesign = (length: number, sealing = 0): ShipDesign =>
         { id: 2, kind: "tank", x: 1 + length / 2, y: 0, length, width: 3, sealing },
     ]);
 
+/** A tank with a thick block standing on it, 1 m along from the middle of its side. */
+const shadowedTankDesign = (): ShipDesign =>
+    built("shadowed tank", [
+        { id: 1, kind: "core", x: 0, y: 0, length: 2, width: 3 },
+        { id: 2, kind: "tank", x: 7, y: 0, length: 12, width: 3 },
+        // Thick plate stands no deeper than it is across, so past a deck only if it is wider than one.
+        { id: 3, kind: "structure", x: 10, y: 3.5, length: 4, width: 4, thick: true },
+    ]);
+
 /** How wide each beam's emitter is, and how long: lenses of 10 cm to 80 cm. */
 const BEAM_MOUNTS = [
     [1, 1],
@@ -659,8 +668,36 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
             const reach = vapourLength(width, leakRate((Math.PI * width * width) / 4, 1));
             begin(snapshot, flashes, t, -reach - 10, -reach - 10, reach + 10, reach + 10);
             const ship = place(snapshot, design, 0, 0, (2 * Math.PI * t) / 8);
-            ship.leakX!.push(tank.x - design.centreOfMassX);
-            ship.leakY!.push(tank.y + tank.spec.width / 2 - design.centreOfMassY);
+            ship.leakX!.push(tank.x);
+            ship.leakY!.push(tank.y + tank.spec.width / 2);
+            ship.leakDirX!.push(0);
+            ship.leakDirY!.push(1);
+            ship.leakWidth!.push(width);
+            ship.leakRate!.push(leakRate((Math.PI * width * width) / 4, 1));
+            // Open long enough before the loop starts for its vapour to have reached its end.
+            ship.leakAge!.push(t + 10);
+            ship.leakSpeed!.push(leakSpeed(1));
+            ship.leakOpened!.push(width);
+            ship.leakClosing!.push(0);
+            ship.leakFloor!.push(width);
+            ship.leakPatched!.push(-1);
+            ship.leakFill!.push(1);
+        },
+    },
+    {
+        name: "Leaking in shadow",
+        about: "A tank holed 20 cm wide beside a thick block standing on it, turning once every sixteen seconds. Where the block's shadow falls across the vapour, the vapour there is seen in only the light's ambient share, as the hull in the shadow is; as the tank turns, the shadow sweeps across the stream and off it again.",
+        loop: 16,
+        build(t, snapshot, flashes) {
+            const width = 0.2;
+            const design = shadowedTankDesign();
+            const tank = design.modules[1]!;
+            const reach = vapourLength(width, leakRate((Math.PI * width * width) / 4, 1));
+            begin(snapshot, flashes, t, -reach - 10, -reach - 10, reach + 10, reach + 10);
+            const ship = place(snapshot, design, 0, 0, (2 * Math.PI * t) / 16);
+            // Beside the block, a metre short of it.
+            ship.leakX!.push(tank.x);
+            ship.leakY!.push(tank.y + tank.spec.width / 2);
             ship.leakDirX!.push(0);
             ship.leakDirY!.push(1);
             ship.leakWidth!.push(width);
