@@ -514,8 +514,13 @@ an entry is either still open or it is gone.
             - **The light buffer and the hull — built** (`render/lightBuffer.ts`). `draw` keeps every
               light the main view gave off (`seenLights`, not a close-up's), and at the end of the frame
               they are drawn, as their glows are, into a texture at half the canvas's size
-              (`LIGHT_RESOLUTION`), each reaching `LIGHT_REACH` (4) times as far as its glow: a glow is
-              the halo round a light, and the hull beside an engine is lit well past it. The hull layer
+              (`LIGHT_RESOLUTION`), each reaching further than its glow, the further the brighter it
+              is: `LIGHT_REACH` (6) times at full brightness, as the square root of its brightness, since
+              light thins as the square of the distance, and at most four times that. A glow is the halo
+              round a light, and the hull beside an engine is lit well past it. A muzzle flash lights
+              from one small, very bright point at the muzzle (`MUZZLE_TIP_BRIGHTNESS`), unseen, its
+              wedge's glow lighting nothing, so its light reaches back along a barrel of 40 to 50
+              calibres to the front of the gun's block as it leaves, and less far as it fades. The hull layer
               fills every module again, untinted and sharing its fills' geometry (`HullLayer.lit`), and
               that pool is drawn through a filter multiplying its colour by the buffer where it lies on
               screen, times `LIGHT_GAIN` (1), added over the hull. Lights go into the buffer at a quarter
