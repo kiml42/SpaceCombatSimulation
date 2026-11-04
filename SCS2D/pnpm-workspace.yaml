@@ -1,5 +1,9 @@
 overrides:
   "@wyw-in-js/transform>happy-dom": ^21.0.4
+  # Past advisories GHSA-g3hv-75wg-m249 and GHSA-3g3m-2fjr-6pw4, in dev tools that ask for older majors.
+  # storybook-design-token keeps glob 9: it imports the default export glob 14 dropped.
+  minimatch: ^11.0.4
+  "@joshwooding/vite-plugin-react-docgen-typescript>glob": ^14.0.3
 
 # esbuild's install script only checks its platform binary, which pnpm installs anyway.
 allowBuilds:
