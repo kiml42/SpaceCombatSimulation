@@ -1,5 +1,5 @@
 import { EngineLayout } from "./engines.js";
-import { abs, angleDelta, atan2, clamp, cos, PI, sin } from "./math.js";
+import { abs, angleDelta, atan2, clamp, cos, max, min, PI, sin, sqrt } from "./math.js";
 
 /**
  * The helm: how a ship delivers the velocity and heading its pilot asks for
@@ -172,4 +172,50 @@ export function pushTorque(layout: EngineLayout, fx: number, fy: number): number
         torque += clamp((wfx * fx + wfy * fy) / full, 0, 1) * layout.wt[t]!;
     }
     return torque;
+}
+
+/** Seconds for a layout to turn a body of `inertia` through `by` radians from rest and stop, flat out. */
+export function turnTime(layout: EngineLayout, inertia: number, by: number): number {
+    const alpha = layout.maxTorque(by >= 0 ? 1 : -1) / inertia;
+    return alpha > 0 ? 2 * sqrt(abs(by) / alpha) : Infinity;
+}
+
+/**
+ * The share of a change of velocity (`dvx`, `dvy`), wanted over `response`
+ * seconds, that turning push `bearing` onto it makes sooner than holding
+ * `heading` would, turn included: by the time the turned push has made it, or
+ * by `by` if that is sooner; -1 when there is nothing to turn for: no change
+ * wanted, no push that way, or no turn to make it with. What a pilot weighs
+ * that against — its guns, its band — is its own business.
+ */
+export function burnGain(
+    layout: EngineLayout,
+    mass: number,
+    inertia: number,
+    heading: number,
+    dvx: number,
+    dvy: number,
+    response: number,
+    bearing: number,
+    by = Infinity,
+): number {
+    const dv = sqrt(dvx * dvx + dvy * dvy);
+    const push = layout.maxThrustAlong(cos(bearing), sin(bearing)) / mass;
+    if (!(dv > 0) || !(push > 0)) return -1;
+    const ux = dvx / dv;
+    const uy = dvy / dv;
+    // What the layout gives along the want, held at `heading`.
+    const c = cos(heading);
+    const s = sin(heading);
+    const held = layout.maxThrustAlong(ux * c + uy * s, -ux * s + uy * c) / mass;
+    const turn = turnTime(layout, inertia, angleDelta(heading, atan2(uy, ux) - bearing));
+    if (!(turn < Infinity)) return -1;
+    // The pilot asks for no more than the change over its response time, so
+    // thrust past that is no use either way.
+    const want = dv / response;
+    const turnedRate = min(push, want);
+    const heldRate = min(held, want);
+    const turned = turn + dv / turnedRate;
+    const until = min(turned, by);
+    return max(0, min(dv, turnedRate * max(0, until - turn)) - min(dv, heldRate * until)) / dv;
 }

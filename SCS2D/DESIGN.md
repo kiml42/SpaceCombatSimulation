@@ -295,7 +295,9 @@ inside any one file is not contiguous.
   most of what it wants only what each makes before the near miss counts, so it sidesteps rather than flips.
   The more it wants to change, and the further out it is, the more readily it turns, held either way by a
   margin so it does not flip back and forth, and it starts to turn only when turning makes at least a quarter
-  of the change sooner, staying turned while turning is worth anything at all. So a ship whose one
+  of the change sooner, staying turned while turning is worth anything at all. How much turning buys is
+  the helm's to say (`burnGain`, §4), from the push it has left rather than the mains it was built with; once
+  turned, where it faces is the helm's, which spins a hull that cannot hold a heading. So a ship whose one
   big engine is its weapon closes bow first and fights stern first, braking on its flame. **A craft coming in plans to stop by the middle of its band**, not its edge,
   gliding on past the edge while it is still closing and braking across the band's width: a wide band is room
   to manoeuvre gently. It turns to burn to brake only when it is coming in too fast for its guns-on thrust to
@@ -1939,7 +1941,8 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
     burns. Every pilot that plans a stop asks the helm what it can push and how soon (`pushAbility`) — a
     1/π share after half a spin, spinning — rather than reckoning it from its mains, so the planning and
     the flying agree. What it does is no business of the helm's: landing, docking, ramming, fleeing and
-    getting out of a rock's way all ask it the same way.
+    getting out of a rock's way all ask it the same way, and so does a fighting ship that turns from its guns
+    to burn (`burnGain` says what that buys; doctrine weighs it against its guns).
   - **A pilot never turns into something.** Before turning either way it asks whether that would swing
     any module of its hull towards a module of another hull nearer than it needs to stop turning that
     way, from the rate it has, plus a tenth of its radius; if so it does not start the turn, and stops one
