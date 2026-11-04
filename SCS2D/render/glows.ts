@@ -34,6 +34,22 @@ export class Lights {
         this.count = 0;
     }
 
+    /** Take on all of `from`'s lights as well, as they are. */
+    add(from: Lights): void {
+        for (let k = 0; k < from.count; k++) {
+            if (this.count === this.x0.length) this.grow();
+            const i = this.count++;
+            this.x0[i] = from.x0[k]!;
+            this.y0[i] = from.y0[k]!;
+            this.x1[i] = from.x1[k]!;
+            this.y1[i] = from.y1[k]!;
+            this.radius[i] = from.radius[k]!;
+            this.brightness[i] = from.brightness[k]!;
+            this.cone[i] = from.cone[k]!;
+            this.colour[i] = from.colour[k]!;
+        }
+    }
+
     /**
      * A light at `(x, y)` reaching `radius` out, both in the frame `m` maps to
      * canvas pixels, as a context's transform does.

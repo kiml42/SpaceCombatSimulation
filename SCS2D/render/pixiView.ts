@@ -1,10 +1,12 @@
-import { autoDetectRenderer, Container, Graphics, type Renderer } from "pixi.js";
+import { autoDetectRenderer, Container, Graphics, RendererType, type Renderer } from "pixi.js";
 import type { Snapshot } from "../sim/index.js";
 import { BACKGROUND, GRID, gridSegments, Segments, WELL, wellSegments } from "./backdrop.js";
 import type { Camera } from "./camera.js";
 import { HullLayer } from "./hullLayer.js";
 import type { Light } from "./light.js";
 import { PixiCanvas } from "./pixiCanvas.js";
+import { seenLights } from "./canvas2d.js";
+import { LightBuffer } from "./lightBuffer.js";
 
 /**
  * The battle drawn with PixiJS, on a canvas under the Canvas2D one, which is
@@ -45,6 +47,8 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
     context.deck = hulls.deck;
     stage.addChild(world, context.root);
     const segments = new Segments();
+    let lightBuffer: LightBuffer | null = null;
+    let size = { width: 0, height: 0 };
 
     const started = autoDetectRenderer({
         canvas,
@@ -59,7 +63,14 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
     }).then(
         (made) => {
             if (disposed) made.destroy();
-            else renderer = made;
+            else {
+                renderer = made;
+                // Pixi's Canvas2D renderer has no filters to light by.
+                if (made.type === RendererType.WEBGL) {
+                    lightBuffer = new LightBuffer();
+                    hulls.litBy(lightBuffer.filter);
+                }
+            }
             return !disposed;
         },
         () => {
@@ -89,6 +100,7 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
         begin(snapshot, camera, widthPx, heightPx, light) {
             if (renderer === null) return null;
             if (renderer.width !== widthPx || renderer.height !== heightPx) renderer.resize(widthPx, heightPx);
+            size = { width: widthPx, height: heightPx };
             world.position.set(widthPx / 2, heightPx / 2);
             world.scale.set(camera.scale, -camera.scale);
             backdrop.clear();
@@ -104,7 +116,10 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
         },
         end() {
             context.end();
-            renderer?.render(stage);
+            if (renderer === null) return;
+            // Lit only while there is something to light it.
+            hulls.lit.container.visible = lightBuffer?.update(renderer, seenLights, size.width, size.height) ?? false;
+            renderer.render(stage);
         },
         dispose() {
             disposed = true;

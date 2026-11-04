@@ -2126,8 +2126,32 @@ export function draw(
     /** The light rounded parts are shaded by; flat without one. */
     light?: Light,
 ): void {
-    drawScene(ctx, snapshot, camera, 0, 0, widthPx, heightPx, flashes, arcs, teamShots, selected, alsoSelected, marked, underneath, light);
+    seenLights.clear();
+    drawScene(
+        ctx,
+        snapshot,
+        camera,
+        0,
+        0,
+        widthPx,
+        heightPx,
+        flashes,
+        arcs,
+        teamShots,
+        selected,
+        alsoSelected,
+        marked,
+        underneath,
+        light,
+        seenLights,
+    );
 }
+
+/**
+ * Every light the last view `draw` drew gave off, in its canvas pixels: what
+ * lights the hulls near them (`render/lightBuffer.ts`). Not a close-up's.
+ */
+export const seenLights = new Lights();
 
 /** Modules of one ship to outline: the mounts a doctrine is being told to. */
 export interface Marked {
@@ -2208,6 +2232,8 @@ function drawScene(
     marked: Marked | null = null,
     underneath = false,
     light?: Light,
+    /** Where to keep what gave off light, as well as drawing its glow. */
+    seen?: Lights,
 ): void {
     lights.clear();
     poses.record(snapshot);
@@ -2279,10 +2305,12 @@ function drawScene(
     // them, so those lighten them rather than being cut by them.
     beamLights(ctx, snapshot, camera, teamShots);
     drawGlows(ctx, lights);
+    seen?.add(lights);
     lights.clear();
     drawBeams(ctx, snapshot, camera, teamShots);
     if (flashes !== undefined) drawFlashes(ctx, snapshot, flashes, camera, light);
     drawGlows(ctx, lights);
+    seen?.add(lights);
     lights.clear();
     shownBox.halfW = Infinity;
     shownBox.halfH = Infinity;

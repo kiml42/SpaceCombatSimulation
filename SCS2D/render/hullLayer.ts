@@ -1,4 +1,4 @@
-import { AlphaFilter, Container, Graphics, GraphicsContext, Matrix, Texture } from "pixi.js";
+import { AlphaFilter, Container, type Filter, Graphics, GraphicsContext, Matrix, Texture } from "pixi.js";
 import { isDomed, originOf, type Livery, type ModuleSpec, type ShipDesign, type Snapshot } from "../sim/index.js";
 import { patternColour, patternTile, patternTransform, tileKey } from "./livery.js";
 import {
@@ -80,6 +80,11 @@ export class HullLayer {
      * frame each frame.
      */
     readonly deck = new Container();
+    /**
+     * Every module's fill again, untinted, for the dynamic lights to light
+     * through the filter `litBy` sets: filled only while there is one.
+     */
+    readonly lit = new Pool();
     /** The bevels along the thin hull's outside edges, and the thick modules'. */
     readonly thinBevels = new Graphics();
     readonly thickBevels = new Graphics();
@@ -114,6 +119,7 @@ export class HullLayer {
         this.thickRockShadows = new BlockShadows(shade(), this.thinRock.container);
         this.kernelShadows = new BlockShadows(shade(), this.rockUnderKernel.container);
         this.fighterShade = shade();
+        this.lit.container.visible = false;
         this.fighterShadows.container.mask = this.hull.container;
         this.fighterShadows.container.filters = [this.fighterShade];
         // Lowest first: each depth's shadows fall on what is drawn before them.
@@ -135,6 +141,7 @@ export class HullLayer {
             this.thickRock.container,
             this.kernelShadows.layer,
             this.kernel.container,
+            this.lit.container,
             this.thinHull.container,
             this.hull.container,
             this.hullUnderRock.container,
@@ -204,6 +211,7 @@ export class HullLayer {
                             : this.thin;
                 const alpha = fillAlpha(ship, i);
                 place(depth.next(fill), x, y, angle).alpha = alpha;
+                if (this.lighting) place(this.lit.next(fill), x, y, angle).alpha = alpha;
                 if (depth === this.thin || depth === this.thick) {
                     // As wide on every module of a ship, by the size it was built: a piece keeps its ship's.
                     const origin = originOf(design, i);
@@ -275,6 +283,15 @@ export class HullLayer {
         for (const pool of this.pools()) pool.end();
     }
 
+    private lighting = false;
+
+    /** Light the hull by `filter`'s dynamic lights, or not at all, as where there is no WebGL to run it. */
+    litBy(filter: Filter | null): void {
+        this.lighting = filter !== null;
+        this.lit.container.filters = filter === null ? [] : [filter];
+        this.lit.container.visible = this.lighting;
+    }
+
     /** Bevels drawn in the last frame. */
     bevelled = 0;
 
@@ -342,6 +359,7 @@ export class HullLayer {
             this.thickRock,
             this.kernel,
             this.fighterShadows,
+            this.lit,
             this.thinHull,
             this.hull,
             this.hullUnderRock,

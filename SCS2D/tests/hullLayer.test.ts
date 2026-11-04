@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { AlphaFilter, Graphics } from "pixi.js";
+import type { AlphaFilter, Filter, Graphics } from "pixi.js";
 import { capture, isDomed, Snapshot } from "../sim/index.js";
 import { duel } from "../scenarios/duel.js";
 import { asteroidField } from "../scenarios/asteroidField.js";
@@ -60,6 +60,21 @@ describe("the Pixi hull layer", () => {
         ];
         expect(at(500, 300)).toEqual([0, 0]);
         expect(at(502, 298)).toEqual([1, 1]);
+    });
+
+    it("fills every module again for the dynamic lights while it is lit by them, and not otherwise", () => {
+        const unlit = drawn(layerOf());
+        expect(unlit.lit.shown().length).toBe(0);
+        expect(unlit.lit.container.visible).toBe(false);
+        const layer = layerOf();
+        // Node cannot build a filter's shader; the layer only hands it on.
+        layer.litBy({} as Filter);
+        drawn(layer);
+        const fills = [layer.thin, layer.thick, layer.rock, layer.thickRock, layer.kernel].flatMap((pool) => pool.shown());
+        expect(layer.lit.shown().length).toBe(fills.length);
+        // Sharing the fills' geometry, so a second fill costs no second build.
+        const contexts = new Set(fills.map((g) => g.context));
+        for (const g of layer.lit.shown()) expect(contexts.has(g.context)).toBe(true);
     });
 
     it("casts each turret's dome's shadow on the thin hull, as a thick module's", () => {
