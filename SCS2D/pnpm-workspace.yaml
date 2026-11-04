@@ -1,0 +1,6 @@
+overrides:
+  "@wyw-in-js/transform>happy-dom": ^21.0.4
+
+# esbuild's install script only checks its platform binary, which pnpm installs anyway.
+allowBuilds:
+  esbuild: false
