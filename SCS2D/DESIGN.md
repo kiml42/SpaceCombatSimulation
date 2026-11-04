@@ -1323,7 +1323,8 @@ inside any one file is not contiguous.
   all three, asking first if a skirmish is under way. A skirmish can be named, on the setup screen or above
   its round, and the file is named for it and the round (`Name-round-3.skirmish.json`). A skirmish opened with
   its round already won — imported, reloaded or handed over in a link — opens on the enemy as it stands fighting
-  the player's fleet on the round it is answering, not on the round won. **The enemy's budget is the player's times
+  the player's fleet on the round it is answering, not on the round won; with *Stop watching*, the history
+  covers the battle view instead, each match's two sides side by side, the player's on the left. **The enemy's budget is the player's times
   a multiplier**, never less than what the enemy already costs: it starts at 1×, or what the enemy already
   costs against the player's budget if more, steps up by 0.1 each time the search goes 4 generations
   without an answer — onto a whole step first, so 1.325× goes to 1.4× — never falls, and is shown to the
