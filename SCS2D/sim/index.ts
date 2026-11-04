@@ -12,7 +12,7 @@
  */
 
 export * as math from "./math.js";
-export { Fuel } from "./fuel.js";
+export { FEED_CUTOUT, Fuel } from "./fuel.js";
 export { Metal } from "./metal.js";
 export { Charge } from "./charge.js";
 export { CLAIMS, Claim, mendClaim, priorityOf, Resource, shareOf, Supply, type ClaimName } from "./supply.js";

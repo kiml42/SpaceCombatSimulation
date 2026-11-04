@@ -798,7 +798,9 @@ inside any one file is not contiguous.
   nudged by evolution, zero by default), so a ship can empty an outboard tank before the one behind its
   armour. A ship weighs its fuel and gets lighter
   as it burns, its centre of mass held where the full ship's was; an engine with nothing left to burn
-  pushes nothing; fuel goes with its tank when a hull
+  pushes nothing, and **a tank too broken to feed it** (integrity at or below `FEED_CUTOUT`, 0.3, where an
+  engine's own plumbing gives out) is left out of what it burns, its fuel still there for a claw, a pump or a
+  robot, and fed from again once mended; fuel goes with its tank when a hull
   comes apart or is welded. A round through a module with fuel in it is slowed by liquid drag over the
   depth of fuel it crosses, and what it loses goes into the tank. A round through a face of a tank open to
   space can hole it, the likelier the more the tank has already been hurt; the hole is the round's width,
