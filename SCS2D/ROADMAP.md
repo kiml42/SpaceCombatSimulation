@@ -490,10 +490,30 @@ an entry is either still open or it is gone.
                hull's velocity then, so the stream trails behind a ship that turns or speeds up. Older
                than what is kept, as just after a jump, it falls back on the oldest pose, and with none
                on the hull's frame as it is now.
-        - **Lingering debris** comes later and is not settled: bits that stay a while need to bounce off
-          hulls and curve in the wells, which a formula of age cannot do. Never larger than the size below
-          which a module is not kept, looking like twisted metal so it is never taken for a module, and
-          never kept for good.
+        - **Lingering debris**, settled with the author on 2026-11-04 (DECISIONS.md), in three pull requests:
+            1. **Debris — built** (`sim/debris.ts`). Kept by the sim, since bits that stay a while must
+               bounce off hulls and curve in the wells, which a formula of age cannot do, and so that pause,
+               scrub, rewind and replay show the same bits; but only drawn, changing nothing, left out of
+               the golden checksums, and made only while a viewer watches (`Debris.watched`, from the
+               impact log's), so a headless run pays nothing. A piece the sim does not keep breaks up
+               rather than vanishing: one too light to be made when it is severed (`SCRAP_MASS`), and loose
+               wreckage let go out of everyone's way (`LOOSE_MASS`); wreckage drifted far off is let go
+               unseen as before. It breaks into a bit for every 25 kg, up to 24, each of its share of the
+               mass at 300 kg/m³, no longer than 1.5 m (`DEBRIS_LONGEST`) so it is never taken for a
+               module, from somewhere in the piece with the velocity that point had and a kick of up to
+               3 m/s, tumbling. Each step a bit is pulled by the wells and cast along its way through the
+               grid and the hulls' narrow phase, as a round is, bouncing off the first hull or rock it
+               meets (keeping 0.4 of its speed into it, 0.7 along it, off the hull's own velocity there);
+               bits do not meet each other, and nothing feels them. Each lasts 30 to 60 s, fading over its
+               last 10; at most 2,048 are kept, a new one taking the oldest's place. Drawn as the hits'
+               bits of metal are: jagged shards of dull steel glinting in the battle's light and lit by the
+               dynamic lights. The Effects page's Debris scene shows a piece breaking up over a slab.
+            2. **Keeping less: `SCRAP_MASS` raised** from 300 kg to about 2 t, above most fighter modules
+               and under every capital one, so most of a fighter's wreckage goes to debris. Goldens move.
+            3. **Shattering**: any module that takes more than a multiple of what breaks it in one step
+               (3 to start) is removed, its mass counted as discarded and broken into debris, the hull's
+               connectivity looked at again, so it may sever, and robots rebuilding it as any module lost.
+               It amends §4's "destruction is a state change, not a removal". Goldens move.
     7. **The later lighting passes.** Settled with the author on 2026-11-04 (DECISIONS.md). Each is its own
        pull request, in this order:
         1. **Leaks in shadow — built** (`render/blocks.ts`). Vapour hangs above the deck, so a thick

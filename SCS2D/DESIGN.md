@@ -1735,7 +1735,10 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   fighting is let go. How far is "clear" grows with the piece's mass, so a shard goes as soon as it
   leaves and a serious chunk effectively never does — which makes "worth hunting down" fall out of the
   rule rather than being declared. What is discarded is counted, mass and momentum both, so the books
-  can still be balanced, and so is what damage boils or shreds off a module (below).
+  can still be balanced, and so is what damage boils or shreds off a module (below). A piece let go where
+  it can be seen is not seen to vanish: it breaks up into **debris**, bits of twisted metal that tumble,
+  bounce off hulls and curve in the wells for half a minute or so and fade, only drawn and changing
+  nothing (`sim/debris.ts`).
 - **Destruction is a state change, not a removal, and costs a module only some of its matter.** A
   "destroyed" module becomes *non-functional* — an engine gives no thrust, a magazine holds no rounds, a
   turret does not fire — but it keeps its place in the layout, its ability to stop a shell, and **at least
