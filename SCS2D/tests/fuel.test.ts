@@ -10,6 +10,8 @@ import {
     METAL_DENSITY,
     DECK_HEIGHT,
     FUEL_DENSITY,
+    Damage,
+    FEED_CUTOUT,
     Fuel,
     Ships,
     World,
@@ -119,6 +121,34 @@ describe("draining tanks", () => {
         expect(fraction(fuel, SMALL)).toBeCloseTo(share, 9);
         // The core's own tank too.
         expect(fraction(fuel, 0)).toBeCloseTo(share, 9);
+    });
+
+    it("feeds no engine from a tank too broken to, though its fuel stays for anything else", () => {
+        const { fuel, full } = registered();
+        const damage = new Damage();
+        damage.register(0, tanker);
+        const big = fuel.held(0, BIG);
+        expect(fuel.fed(0, ENGINE, damage)).toBeCloseTo(full, 6);
+
+        damage.absorb(0, BIG, 1e15);
+        expect(damage.integrity(0, BIG)).toBeLessThanOrEqual(FEED_CUTOUT);
+        expect(fuel.fed(0, ENGINE, damage)).toBeCloseTo(full - big, 6);
+        expect(fuel.feed(0, ENGINE, full, damage)).toBeCloseTo(full - big, 6);
+        expect(fuel.held(0, BIG)).toBe(big);
+        expect(fuel.fed(0, ENGINE, damage)).toBe(0);
+        // A pump, a claw or a robot still reaches it.
+        expect(fuel.drain(0, ENGINE, big)).toBeCloseTo(big, 6);
+    });
+
+    it("feeds again from a tank once it is mended above the cutout", () => {
+        const { fuel, full } = registered();
+        const damage = new Damage();
+        damage.register(0, tanker);
+        damage.absorb(0, BIG, 1e15);
+        expect(fuel.fed(0, ENGINE, damage)).toBeLessThan(full);
+        damage.repair(0, BIG, 1e15);
+        expect(damage.integrity(0, BIG)).toBeGreaterThan(FEED_CUTOUT);
+        expect(fuel.fed(0, ENGINE, damage)).toBeCloseTo(full, 6);
     });
 
     it("gives what is left when asked for more, and nothing once empty", () => {
