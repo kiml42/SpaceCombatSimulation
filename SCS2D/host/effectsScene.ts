@@ -308,6 +308,7 @@ function flash(
     flashes.add(x + vx * (t - at), y, energy, kind, -1, 0, 0, vx, 0, growth, dirX, dirY, normalX, normalY, speed);
     if (flashes.count === before) return;
     flashes.age[before] = t - at;
+    flashes.born[before] = at;
     // Kept for as long as what it throws off is flying, as a battle keeps it.
     if (flashes.age[before]! >= flashes.kept[before]!) flashes.count = before;
 }
