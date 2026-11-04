@@ -18,7 +18,7 @@ import {
     muzzleLifetime,
     muzzleWedge,
 } from "../render/flashes.js";
-import { IMPACT_BURST, IMPACT_COLLISION, IMPACT_MUZZLE, IMPACT_ROUND, ImpactLog } from "../sim/index.js";
+import { IMPACT_BEAM, IMPACT_BURST, IMPACT_COLLISION, IMPACT_MUZZLE, IMPACT_ROUND, ImpactLog } from "../sim/index.js";
 import { Bodies, bodyIndex } from "../sim/bodies.js";
 import { bit, bitCount, METAL_LIFE, seedOf, spark, sparkCount, type Bit, type Spark } from "../render/particles.js";
 
@@ -325,5 +325,34 @@ describe("what is thrown off a hull", () => {
         expect(bit(flashes, 1, 0, seed, 0.1, n)).toBe(true);
         expect(m.x).toBeCloseTo(n.x, 9);
         expect(m.y).toBeCloseTo(n.y, 9);
+    });
+});
+
+describe("telling events alike apart", () => {
+    it("seeds a beam's every step on one spot differently, so their sparks do not line up", () => {
+        const flashes = new Flashes();
+        const seeds = new Set<number>();
+        for (let k = 0; k < 12; k++) {
+            flashes.add(60, -56, 1e5, IMPACT_BEAM);
+            flashes.step(1 / 60);
+        }
+        for (let i = 0; i < flashes.count; i++) {
+            seeds.add(seedOf(flashes.x[i]!, flashes.y[i]!, flashes.energy[i]!, flashes.kind[i]!, flashes.born[i]!));
+        }
+        expect(seeds.size).toBe(flashes.count);
+    });
+
+    it("keeps when each was born as it ages, and the clock through a copy and back", () => {
+        const flashes = new Flashes();
+        flashes.step(2);
+        flashes.add(0, 0, 1e7, IMPACT_ROUND);
+        flashes.step(0.1);
+        expect(flashes.born[0]).toBe(2);
+        const copy = flashes.copy();
+        expect(copy.now).toBeCloseTo(2.1, 12);
+        copy.step(0.1);
+        flashes.set(copy);
+        expect(flashes.now).toBeCloseTo(2.2, 12);
+        expect(flashes.born[0]).toBe(2);
     });
 });

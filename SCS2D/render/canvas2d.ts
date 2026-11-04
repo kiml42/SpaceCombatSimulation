@@ -3114,7 +3114,7 @@ function drawThrown(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes: 
     let batch: ReturnType<PixiCanvas["particles"]> | null = null;
     for (let i = 0; i < flashes.count; i++) {
         const kind = flashes.kind[i]!;
-        const seed = seedOf(flashes.x[i]!, flashes.y[i]!, flashes.energy[i]!, kind);
+        const seed = seedOf(flashes.x[i]!, flashes.y[i]!, flashes.energy[i]!, kind, flashes.born[i]!);
         const n = sparkCount(kind, flashes.energy[i]!, seed);
         if (n === 0) continue;
         for (let j = 0; j < n; j++) {
@@ -3139,7 +3139,7 @@ function drawThrown(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes: 
     for (let i = 0; i < flashes.count; i++) {
         const n = bitCount(flashes.kind[i]!, flashes.energy[i]!);
         if (n === 0) continue;
-        const seed = seedOf(flashes.x[i]!, flashes.y[i]!, flashes.energy[i]!, flashes.kind[i]!);
+        const seed = seedOf(flashes.x[i]!, flashes.y[i]!, flashes.energy[i]!, flashes.kind[i]!, flashes.born[i]!);
         for (let j = 0; j < n; j++) {
             if (!bit(flashes, i, j, seed, flashes.age[i]!, broken)) continue;
             if (broken.length < pixel) continue;

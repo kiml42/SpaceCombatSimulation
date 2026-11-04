@@ -78,7 +78,7 @@ import {
     type Robot,
 } from "./robots.js";
 import { Allocation, EngineLayout } from "./engines.js";
-import { pushBearing, pushTorque, spinWay, steerHeading, STEER_HOLD_SPEED, STEER_SPIN } from "./helm.js";
+import { burnGain, pushBearing, pushTorque, spinWay, steerHeading, STEER_HOLD_SPEED, STEER_SPIN, turnTime } from "./helm.js";
 import { addFlame, addTurret, attackBearing, AttackArcs, AttackRegion } from "./attack.js";
 import { FiringSolution, interceptTime, Turrets, TurretState } from "./turrets.js";
 import {
@@ -4680,62 +4680,57 @@ export class Ships {
         wantVy: number,
         maxRange: number,
     ): number {
-        const design = this.designs[i]!;
         const approach = this.doctrines[i]!.approach;
-        const dvx = wantVx - bodies.vx[b]!;
-        const dvy = wantVy - bodies.vy[b]!;
-        const dv = length(dvx, dvy);
-        const mass = bodies.mass[b]!;
         const layout = this.layoutOf(i);
-        const axis = layout.maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / mass;
-        if (!(approach.burnWeight > 0) || !(dv > 0) || !(axis > 0)) {
-            this.burning[i] = 0;
-            return attack;
-        }
-        const ux = dvx / dv;
-        const uy = dvy / dv;
-        // What the layout gives along the want with the guns held on target.
-        const c = cos(attack);
-        const s = sin(attack);
-        const held = layout.maxThrustAlong(ux * c + uy * s, -ux * s + uy * c) / mass;
-        const burnHeading = atan2(uy, ux) - design.thrustBearing;
-        const turn = this.turnTime(bodies, i, b, angleDelta(attack, burnHeading));
-        if (!(turn < Infinity)) {
-            this.burning[i] = 0;
-            return attack;
-        }
-        // The pilot asks for no more than the change over its response time, so
-        // thrust past that is no use either way. Turning has made the change by
-        // `turned`; compare what holding has made of it by then, or by the near
-        // miss if that is sooner.
-        const want = dv / approach.responseTime;
-        const turnedRate = min(axis, want);
-        const heldRate = min(held, want);
-        const turned = turn + dv / turnedRate;
+        const bearing = pushBearing(layout, this.designs[i]!.thrustBearing);
+        // What turning its push buys over holding its guns on is the helm's to say;
+        // when a dodge is most of what it wants, only what each makes before the
+        // near miss counts.
         const dodging = this.dodgeWeight > 0 && 2 * this.dodgeWeight >= this.urgeWeight;
-        const by = dodging ? min(turned, this.dodgeWhen) : turned;
-        const gain = max(0, min(dv, turnedRate * max(0, by - turn)) - min(dv, heldRate * by)) / dv;
+        const gain =
+            approach.burnWeight > 0
+                ? burnGain(
+                      layout,
+                      bodies.mass[b]!,
+                      bodies.inertia[b]!,
+                      attack,
+                      wantVx - bodies.vx[b]!,
+                      wantVy - bodies.vy[b]!,
+                      approach.responseTime,
+                      bearing,
+                      dodging ? this.dodgeWhen : Infinity,
+                  )
+                : -1;
+        if (gain < 0) {
+            this.burning[i] = 0;
+            return attack;
+        }
 
         const range = length(at.x - bodies.x[b]!, at.y - bodies.y[b]!);
-        // On the run out of a pass or back in, its guns wait for its mains.
+        // On the run out of a pass or back in, its guns wait for its push.
         const near = this.running[i] === 1 ? 0 : range > maxRange && maxRange > 0 ? maxRange / range : 1;
         // Worth less the further into its band's fade it is: the last of the
         // closing there is no reason to take its guns off.
         const burn = approach.burnWeight * gain * this.fightFade;
         const hold = approach.rangeHold * near;
-        // Committed to stopping on its mains: it holds them against its way in
-        // whatever the score, since its approach was planned on them.
+        // Committed to stopping on its push: it holds it against its way in
+        // whatever the score, since its approach was planned on it.
         if (this.brakingOnMains[i] === 1) {
             this.burning[i] = 1;
-            return atan2(bodies.y[b]! - at.y, bodies.x[b]! - at.x) - design.thrustBearing;
+            return atan2(bodies.y[b]! - at.y, bodies.x[b]! - at.x) - bearing;
         }
         // Turning has to be worth a share of the change to start, as well as
         // beating holding, so a craft whose want hovers where its guns-on thrust
         // can nearly make it does not flip its hull to and fro; once turned, it
-        // stays turned while turning is worth anything.
+        // stays turned while turning is worth anything. Turned, where it faces
+        // is the helm's, onto any change at all.
         const now = this.burning[i] === 1 ? burn * (1 + BURN_MARGIN) > hold : burn > hold * (1 + BURN_MARGIN) && gain > BURN_START;
         this.burning[i] = now ? 1 : 0;
-        return now ? burnHeading : attack;
+        if (now) {
+            this.intent = STEER;
+            this.steerSlack = 0;
+        }
+        return attack;
     }
 
     /**
@@ -5220,7 +5215,9 @@ export class Ships {
     private mainsBrake(bodies: Bodies, i: number, b: number, retro: number): number {
         const design = this.designs[i]!;
         const approach = this.doctrines[i]!.approach;
-        const axis = this.layoutOf(i).maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / movable(bodies.mass[b]!);
+        const layout = this.layoutOf(i);
+        const bearing = pushBearing(layout, design.thrustBearing);
+        const axis = layout.maxThrustAlong(cos(bearing), sin(bearing)) / movable(bodies.mass[b]!);
         if (!(axis > retro)) return 0;
         const turns = approach.burnWeight * ((axis - retro) / axis) > approach.rangeHold * (1 + BURN_MARGIN);
         return turns ? approach.brake * axis : 0;
@@ -5252,8 +5249,7 @@ export class Ships {
 
     /** Seconds to turn through `by` radians from rest and stop there, flat out both ways. */
     private turnTime(bodies: Bodies, i: number, b: number, by: number): number {
-        const alpha = this.layoutOf(i).maxTorque(by >= 0 ? 1 : -1) / bodies.inertia[b]!;
-        return alpha > 0 ? 2 * sqrt(abs(by) / alpha) : Infinity;
+        return turnTime(this.layoutOf(i), bodies.inertia[b]!, by);
     }
 
     /** How hard this craft can accelerate along a world direction facing `angle`, m/s². */
@@ -5647,8 +5643,10 @@ export class Ships {
     ): number {
         const design = this.designs[i]!;
         const approach = this.doctrines[i]!.approach;
-        const push = this.layoutOf(i).maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / bodies.mass[b]!;
-        const turn = this.turnTime(bodies, i, b, angleDelta(bodies.angle[b]!, atan2(awayY, awayX) - design.thrustBearing));
+        const layout = this.layoutOf(i);
+        const bearing = pushBearing(layout, design.thrustBearing);
+        const push = layout.maxThrustAlong(cos(bearing), sin(bearing)) / bodies.mass[b]!;
+        const turn = this.turnTime(bodies, i, b, angleDelta(bodies.angle[b]!, atan2(awayY, awayX) - bearing));
         const takes = turn + approach.responseTime + (push > 0 ? sqrt((2 * need) / push) : Infinity);
         const soon = clamp((takes + approach.rockMargin - when) / approach.rockMargin, 0, 1);
         return (clearance > 0 ? min(1, need / clearance) : 1) * soon;
@@ -12320,7 +12318,9 @@ export class Ships {
         const pump = design.modules[claw]!.stats.pumpRate;
         if (!(pump > 0) || !(approach.clawSpeed > 0)) return NO_TARGET;
         const mass = bodies.mass[b]!;
-        const mains = this.layoutOf(i).maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / mass;
+        const layout = this.layoutOf(i);
+        const bearing = pushBearing(layout, design.thrustBearing);
+        const mains = layout.maxThrustAlong(cos(bearing), sin(bearing)) / mass;
         const exhaust = exhaustOf(design);
         let robots = 0;
         if (metalRoom > 0) for (const robot of this.robots.on(b) ?? []) if (this.pilotAt(b, robot.bay) === i) robots++;
@@ -12463,7 +12463,7 @@ export class Ships {
         const left = max(0, range - bodies.radius[tb]!) / max(closing, CLAW_APPROACH);
         const jawsTime = error / this.accelerationAlong(bodies, i, b, ex / error, ey / error, jawsOn);
         if (jawsTime <= left) return jawsOn;
-        const mains = atan2(ey, ex) - this.designs[i]!.thrustBearing;
+        const mains = atan2(ey, ex) - pushBearing(this.layoutOf(i), this.designs[i]!.thrustBearing);
         const mainsTime = 4 * this.halfTurnTime(bodies, i, b) + error / this.accelerationAlong(bodies, i, b, ex / error, ey / error, mains);
         return mainsTime < left && mainsTime < jawsTime ? mains : jawsOn;
     }
