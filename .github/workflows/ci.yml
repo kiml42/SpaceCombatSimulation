@@ -45,7 +45,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: pnpm
           cache-dependency-path: SCS2D/pnpm-lock.yaml
 
@@ -102,9 +102,9 @@ jobs:
           - os: ubuntu-latest
             node: 26
           - os: windows-latest
-            node: 24
+            node: 26
           - os: macos-latest
-            node: 24
+            node: 26
     steps:
       - uses: actions/checkout@v7
 
@@ -140,7 +140,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: pnpm
           cache-dependency-path: SCS2D/pnpm-lock.yaml
 
@@ -190,7 +190,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: pnpm
           cache-dependency-path: SCS2D/pnpm-lock.yaml
 
