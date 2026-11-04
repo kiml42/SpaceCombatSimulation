@@ -1392,6 +1392,10 @@ export class ImpactLog {
     normalY = new Float64Array(64);
     /** How fast it happened, m/s: two hulls' closing speed, which sets how fast what they break off leaves. */
     speed = new Float64Array(64);
+    /** The struck body's angle and velocity as it happened, or zero for none: what it throws off leaves from these. */
+    hullAngle = new Float64Array(64);
+    hullVx = new Float64Array(64);
+    hullVy = new Float64Array(64);
     count = 0;
 
     push(
@@ -1427,8 +1431,14 @@ export class ImpactLog {
         this.body[i] = body;
         this.localX[i] = 0;
         this.localY[i] = 0;
+        this.hullAngle[i] = 0;
+        this.hullVx[i] = 0;
+        this.hullVy[i] = 0;
         if (bodies === undefined || body < 0) return;
         const angle = bodies.angle[body]!;
+        this.hullAngle[i] = angle;
+        this.hullVx[i] = bodies.vx[body]!;
+        this.hullVy[i] = bodies.vy[body]!;
         const c = cos(angle);
         const sn = sin(angle);
         const dx = x - bodies.x[body]!;
@@ -1471,6 +1481,11 @@ export class ImpactLog {
         const speed = new Float64Array(size);
         speed.set(this.speed);
         this.speed = speed;
+        for (const name of ["hullAngle", "hullVx", "hullVy"] as const) {
+            const grown = new Float64Array(size);
+            grown.set(this[name]);
+            this[name] = grown;
+        }
         const x = new Float64Array(size);
         const y = new Float64Array(size);
         const energy = new Float64Array(size);

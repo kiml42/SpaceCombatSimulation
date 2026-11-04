@@ -91,24 +91,16 @@ function unit(seed: number, salt: number): number {
 
 /**
  * Spark `j` of flash `i`, at `age`, into `out`; false if it has landed or was
- * never thrown. `angle` turns the event's directions out of its hull's frame,
- * and `(hullVx, hullVy)` is that hull's velocity, or nought for none.
+ * never thrown. Thrown from its hull as that hull was when it happened, and
+ * free of it after.
  */
-export function spark(
-    flashes: Flashes,
-    i: number,
-    j: number,
-    seed: number,
-    age: number,
-    angle: number,
-    hullVx: number,
-    hullVy: number,
-    out: Spark,
-): boolean {
+export function spark(flashes: Flashes, i: number, j: number, seed: number, age: number, out: Spark): boolean {
     const life = SPARK_LIFE * (0.3 + 0.7 * unit(seed, 4 * j));
     if (!(age >= 0) || age >= life) return false;
-    const c = Math.cos(angle);
-    const s = Math.sin(angle);
+    const c = Math.cos(flashes.hullAngle[i]!);
+    const s = Math.sin(flashes.hullAngle[i]!);
+    const hullVx = flashes.hullVx[i]!;
+    const hullVy = flashes.hullVy[i]!;
     const kind = flashes.kind[i]!;
     // Into the world: the way the round went and the face's outward normal.
     const ux = flashes.dirX[i]! * c - flashes.dirY[i]! * s;
@@ -278,25 +270,17 @@ function alongContact(nx: number, ny: number, seed: number, salt: number, out: {
  * Bit `j` of collision `i`, at `age`, into `out`; false if it is gone. Thrown
  * out of the contact either way along it, leaning the way the hulls slid and
  * a little outward, as fast as a share of how fast the hulls met, from the
- * velocity of the hull the event rides.
+ * velocity its hull had as they met.
  */
-export function bit(
-    flashes: Flashes,
-    i: number,
-    j: number,
-    seed: number,
-    age: number,
-    angle: number,
-    hullVx: number,
-    hullVy: number,
-    out: Bit,
-): boolean {
+export function bit(flashes: Flashes, i: number, j: number, seed: number, age: number, out: Bit): boolean {
     // Salted apart from the event's sparks, so the two are not thrown alike.
     j += 1000;
     const life = METAL_LIFE * (0.4 + 0.6 * unit(seed, 8 * j));
     if (!(age >= 0) || age >= life) return false;
-    const c = Math.cos(angle);
-    const s = Math.sin(angle);
+    const c = Math.cos(flashes.hullAngle[i]!);
+    const s = Math.sin(flashes.hullAngle[i]!);
+    const hullVx = flashes.hullVx[i]!;
+    const hullVy = flashes.hullVy[i]!;
     const nx = flashes.normalX[i]! * c - flashes.normalY[i]! * s;
     const ny = flashes.normalX[i]! * s + flashes.normalY[i]! * c;
     const dirX = flashes.dirX[i]! * c - flashes.dirY[i]! * s;

@@ -206,6 +206,9 @@ const FIELDS = [
     ["normalX", Float64Array],
     ["normalY", Float64Array],
     ["speed", Float64Array],
+    ["hullAngle", Float64Array],
+    ["hullVx", Float64Array],
+    ["hullVy", Float64Array],
 ] as const;
 
 type Field = (typeof FIELDS)[number][0];
@@ -247,6 +250,14 @@ export class Flashes {
     normalY = new Float64Array(64);
     /** How fast it happened, m/s: a collision's closing speed; zero for the rest. */
     speed = new Float64Array(64);
+    /**
+     * Its hull's angle and velocity as it happened; zero for none. What it
+     * throws off leaves from these and then flies free, rather than turning
+     * with a hull that spins on.
+     */
+    hullAngle = new Float64Array(64);
+    hullVx = new Float64Array(64);
+    hullVy = new Float64Array(64);
     count = 0;
 
     add(
@@ -265,6 +276,9 @@ export class Flashes {
         normalX = 0,
         normalY = 0,
         speed = 0,
+        hullAngle = 0,
+        hullVx = 0,
+        hullVy = 0,
     ): void {
         const radius =
             flashRadius(energy) * (kind === IMPACT_MUZZLE ? MUZZLE_FLASH_SHARE : kind === IMPACT_COLLISION ? COLLISION_FLASH_SHARE : 1);
@@ -298,6 +312,9 @@ export class Flashes {
         this.normalX[i] = normalX;
         this.normalY[i] = normalY;
         this.speed[i] = speed;
+        this.hullAngle[i] = hullAngle;
+        this.hullVx[i] = hullVx;
+        this.hullVy[i] = hullVy;
     }
 
     /** Age everything by `dt` *simulated* seconds and drop what has burned out and landed. */
