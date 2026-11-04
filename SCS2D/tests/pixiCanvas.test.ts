@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { BitmapText, Container, Graphics, Texture, TextureSource } from "pixi.js";
 import { capture, Snapshot } from "../sim/snapshot.js";
 import { SCENES } from "../scenarios/scenes.js";
-import { draw } from "../render/canvas2d.js";
+import { draw, seenLights } from "../render/canvas2d.js";
 import {
     arcSweep,
     clipPolyline,
@@ -123,6 +123,24 @@ describe("canvas2d.ts drawn through PixiCanvas", () => {
             }
         });
     }
+
+    it("keeps every light the view gave off, for the dynamic lights, and only the last view's", () => {
+        // Engines burning, so there is light.
+        const battle = SCENES.find((scene) => scene.name === "Torch Run")!.create();
+        for (let s = 0; s < 90; s++) battle.step();
+        const view = capture(new Snapshot(), battle.world, battle.ships, battle.projectiles, battle.beams);
+        const first = view.ships[0]!;
+        const camera = { x: first.x, y: first.y, scale: 0.6 };
+        context.begin();
+        draw(ctx, view, camera, 800, 600, undefined, "none", false, -1, [], null, true);
+        context.end();
+        const seen = seenLights.count;
+        expect(seen).toBeGreaterThan(0);
+        context.begin();
+        draw(ctx, view, camera, 800, 600, undefined, "none", false, -1, [], null, true);
+        context.end();
+        expect(seenLights.count).toBe(seen);
+    });
 });
 
 describe("a batch of particles", () => {

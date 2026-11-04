@@ -511,14 +511,31 @@ an entry is either still open or it is gone.
         2. **Dynamic lights.** Engines, flashes, bursts, muzzle flashes, beams and plumes light what is
            near them, read from the one list of sources (`render/glows.ts`), so a light is still defined
            once.
-            - **A light buffer at half resolution**, since light is soft: each frame the list is drawn
-              into a render texture, additively, as the glows are now, but without their pixel floor.
-            - **What it lights is the hull and the fighters**: the thin and thick layers, rock, and the
-              fighters drawn through the adapter. Each is drawn a second time, sharing its geometry, through
-              a filter that multiplies its colour by the buffer where it lies on screen, and added over the
-              scene. So a hull takes its own colour from the light, brightest beside an engine, and its
-              shadowed side lights up too. Empty space is not lit; the glows' halos there stay as they are,
-              and whether they should still be drawn over a hull is judged by eye.
+            - **The light buffer and the hull — built** (`render/lightBuffer.ts`). `draw` keeps every
+              light the main view gave off (`seenLights`, not a close-up's), and at the end of the frame
+              they are drawn, as their glows are, into a texture at half the canvas's size
+              (`LIGHT_RESOLUTION`), each reaching further than its glow, the further the brighter it
+              is: `LIGHT_REACH` (6) times at full brightness, as the square root of its brightness, since
+              light thins as the square of the distance, and at most four times that. A glow is the halo
+              round a light, and the hull beside an engine is lit well past it. A muzzle flash lights
+              from one small, very bright point at the muzzle (`MUZZLE_TIP_BRIGHTNESS`), unseen, its
+              wedge's glow lighting nothing, so its light reaches back along a barrel of 40 to 50
+              calibres to the front of the gun's block as it leaves, and less far as it fades. The hull layer
+              fills every module again, untinted and sharing its fills' geometry (`HullLayer.lit`), and
+              that pool is drawn through a filter multiplying its colour by the buffer where it lies on
+              screen, times `LIGHT_GAIN` (1), added over the hull. Lights go into the buffer at a quarter
+              of their brightness (`LIGHT_HEADROOM`), so where several overlap, as along a big beam, their
+              sum is not clipped flat at white, and the filter eases it towards full (1 − e^−L) rather than
+              cutting it off. The bevels are drawn over the lit fills too, sharing their geometry, so the
+              light added to a bevel turned from the battle's light is dimmer and to one turned to it
+              brighter, keeping the hull's shading. So a hull takes the light in its own
+              colour, in the battle's shadows as out of them, and empty space stays dark. Thin and
+              thick modules and rock are lit; WebGL only, as Pixi's Canvas2D fallback has no filters;
+              and nothing is drawn while there are no lights. The glows' halos are still drawn over the
+              hull as before. The reach and gain were set by eye on the Effects page's Engines and Hits
+              scenes.
+            - **Fighters** are drawn through the adapter rather than the hull layer, so are not lit yet:
+              each could take the light at its middle, worked out from the list as vapour and metal are.
             - **Vapour and metal too**, as they are cheap: each puff and bit adds the light it is in,
               worked out from the list itself at its position rather than read back from the buffer, so
               nothing waits on the GPU. Only sources within reach are counted, found by their boxes.

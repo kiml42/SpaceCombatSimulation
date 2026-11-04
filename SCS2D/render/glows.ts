@@ -28,10 +28,39 @@ export class Lights {
     brightness = new Float64Array(64);
     /** Whether each is a cone, from its first end out to its second, rather than a point or a line. */
     cone = new Uint8Array(64);
+    /**
+     * Whether each lights what is near it without a glow of its own: light
+     * thrown back along a gun's barrel by its muzzle flash, say, which would
+     * look like the barrel glowing if it were seen.
+     */
+    unseen = new Uint8Array(64);
+    /**
+     * Whether each is a glow that lights nothing round it: a muzzle flash's
+     * wedge, whose light comes from a point at the muzzle instead.
+     */
+    lightless = new Uint8Array(64);
     colour: string[] = [];
 
     clear(): void {
         this.count = 0;
+    }
+
+    /** Take on all of `from`'s lights as well, as they are. */
+    add(from: Lights): void {
+        for (let k = 0; k < from.count; k++) {
+            if (this.count === this.x0.length) this.grow();
+            const i = this.count++;
+            this.x0[i] = from.x0[k]!;
+            this.y0[i] = from.y0[k]!;
+            this.x1[i] = from.x1[k]!;
+            this.y1[i] = from.y1[k]!;
+            this.radius[i] = from.radius[k]!;
+            this.brightness[i] = from.brightness[k]!;
+            this.cone[i] = from.cone[k]!;
+            this.unseen[i] = from.unseen[k]!;
+            this.lightless[i] = from.lightless[k]!;
+            this.colour[i] = from.colour[k]!;
+        }
     }
 
     /**
@@ -53,6 +82,8 @@ export class Lights {
         colour: string,
         brightness: number,
         cone = false,
+        unseen = false,
+        lightless = false,
     ): void {
         if (!(brightness > 0) || !(radius > 0)) return;
         if (this.count === this.x0.length) this.grow();
@@ -64,6 +95,8 @@ export class Lights {
         this.radius[k] = radius * Math.sqrt(Math.abs(m.a * m.d - m.b * m.c));
         this.brightness[k] = brightness;
         this.cone[k] = cone ? 1 : 0;
+        this.unseen[k] = unseen ? 1 : 0;
+        this.lightless[k] = lightless ? 1 : 0;
         this.colour[k] = colour;
     }
 
@@ -87,6 +120,12 @@ export class Lights {
         const cone = new Uint8Array(this.cone.length * 2);
         cone.set(this.cone);
         this.cone = cone;
+        const unseen = new Uint8Array(this.unseen.length * 2);
+        unseen.set(this.unseen);
+        this.unseen = unseen;
+        const lightless = new Uint8Array(this.lightless.length * 2);
+        lightless.set(this.lightless);
+        this.lightless = lightless;
     }
 }
 
@@ -113,6 +152,7 @@ export function drawGlows(ctx: CanvasRenderingContext2D, lights: Lights): void {
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
     for (let k = 0; k < lights.count; k++) {
+        if (lights.unseen[k] === 1) continue;
         const colour = lights.colour[k]!;
         const r = lights.radius[k]!;
         const x0 = lights.x0[k]!;
