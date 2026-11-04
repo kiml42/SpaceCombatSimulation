@@ -1488,6 +1488,39 @@ function drawEngineTriggers(ctx: CanvasRenderingContext2D, ship: ShipView, metre
     ctx.restore();
 }
 
+/**
+ * Whether a nozzle's plume, from its exit out `reach` and as wide as its glow,
+ * reaches the box being drawn: `across` from its engine's middle, on module
+ * `m` of a ship turned by `sc`, `ss`.
+ */
+function plumeNear(
+    ship: ShipView,
+    sc: number,
+    ss: number,
+    m: { x: number; y: number; angle: number },
+    length: number,
+    across: number,
+    reach: number,
+    exitWidth: number,
+): boolean {
+    const mc = cos(m.angle);
+    const ms = sin(m.angle);
+    const world = (px: number, py: number): [number, number] => {
+        const x = m.x + px * mc - py * ms;
+        const y = m.y + px * ms + py * mc;
+        return [ship.x + x * sc - y * ss, ship.y + x * ss + y * sc];
+    };
+    const [x0, y0] = world(-length / 2, across);
+    const [x1, y1] = world(-length / 2 - reach, across);
+    const pad = exitWidth * NOZZLE_GLOW_REACH;
+    return (
+        max(x0, x1) + pad >= shownBox.x - shownBox.halfW &&
+        min(x0, x1) - pad <= shownBox.x + shownBox.halfW &&
+        max(y0, y1) + pad >= shownBox.y - shownBox.halfH &&
+        min(y0, y1) - pad <= shownBox.y + shownBox.halfH
+    );
+}
+
 /** How far the longest plume a ship is burning reaches past its engine, metres; 0 for none. */
 export function plumeReach(ship: ShipView): number {
     const design = ship.currentStructure;
@@ -1510,65 +1543,70 @@ export function plumeReach(ship: ShipView): number {
  * turret sweeps, which dimmed a burning engine to the colour of a shadow.
  */
 function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
-    eachNozzle(ctx, ship, (engine, force, reach, across, landed, split) => {
-        // One flame per nozzle, the same triangles the burn samples its rays
-        // across. How hot it burns is its opacity, and it fades to nothing at its
-        // tip the way its share of the power does, so the brightest part of the
-        // picture is the part doing the most damage.
-        const root = -engine.length / 2;
-        const half = engine.geometry.exitWidth / 2;
-        const image = flameSprite(PLUME, PLUME_CORE);
-        if (image === null) return;
-        const outer = ctx.globalAlpha;
-        const brightness = layerAlpha(min(1, plumeAlpha(plumeIntensity(engine.geometry, force)) * PLUME_CORE_BOOST), split);
-        // The flame blurred: from the exit, past the bell's sides and back over its
-        // mouth, out to where the flame ends or lands; light, so it brightens
-        // whatever it is over. Fading in with the flame, so a short one has no
-        // glow larger than itself.
-        const grown = min(1, reach / (NOZZLE_GLOW_GROWN * 2 * half));
-        const g = half * NOZZLE_GLOW_REACH * (0.5 + 0.5 * grown);
-        const shown = landed[1]! > 0 ? (1 - landed[1]!) * reach : reach;
-        lights.coneOf(
-            ctx.getTransform(),
-            root,
-            across,
-            root - shown,
-            across,
-            g,
-            NOZZLE_GLOW,
-            outer * brightness * NOZZLE_GLOW_SHARE * grown,
-        );
-        // The sprite's core is its brightest, its edge a little dimmer.
-        ctx.globalAlpha = outer * brightness;
-        let cutAny = false;
-        for (let k = 0; k < PLUME_RAYS; k++) if (landed[k]! > 0) cutAny = true;
-        if (!cutAny) ctx.drawImage(image, root - reach, across - half, reach, 2 * half);
-        else {
-            // Each third cut off where it lands on a hull, inside the glow that marks
-            // it, by drawing only that much of its third of the sprite. A side third
-            // reaches a third as far as the core.
-            const { width, height } = image;
-            for (let k = 0; k < PLUME_RAYS; k++) {
-                const third = k === 1 ? reach : reach / 3;
-                const cut = landed[k]! > 0 ? (1 - landed[k]!) * third : reach;
-                if (!(cut > 0)) continue;
-                const shown = cut / reach;
-                const strip = (half * 2) / 3;
-                ctx.drawImage(
-                    image,
-                    width * (1 - shown),
-                    (height * k) / 3,
-                    width * shown,
-                    height / 3,
-                    root - cut,
-                    across - half + k * strip,
-                    cut,
-                    strip,
-                );
+    eachNozzle(
+        ctx,
+        ship,
+        (engine, force, reach, across, landed, split) => {
+            // One flame per nozzle, the same triangles the burn samples its rays
+            // across. How hot it burns is its opacity, and it fades to nothing at its
+            // tip the way its share of the power does, so the brightest part of the
+            // picture is the part doing the most damage.
+            const root = -engine.length / 2;
+            const half = engine.geometry.exitWidth / 2;
+            const image = flameSprite(PLUME, PLUME_CORE);
+            if (image === null) return;
+            const outer = ctx.globalAlpha;
+            const brightness = layerAlpha(min(1, plumeAlpha(plumeIntensity(engine.geometry, force)) * PLUME_CORE_BOOST), split);
+            // The flame blurred: from the exit, past the bell's sides and back over its
+            // mouth, out to where the flame ends or lands; light, so it brightens
+            // whatever it is over. Fading in with the flame, so a short one has no
+            // glow larger than itself.
+            const grown = min(1, reach / (NOZZLE_GLOW_GROWN * 2 * half));
+            const g = half * NOZZLE_GLOW_REACH * (0.5 + 0.5 * grown);
+            const shown = landed[1]! > 0 ? (1 - landed[1]!) * reach : reach;
+            lights.coneOf(
+                ctx.getTransform(),
+                root,
+                across,
+                root - shown,
+                across,
+                g,
+                NOZZLE_GLOW,
+                outer * brightness * NOZZLE_GLOW_SHARE * grown,
+            );
+            // The sprite's core is its brightest, its edge a little dimmer.
+            ctx.globalAlpha = outer * brightness;
+            let cutAny = false;
+            for (let k = 0; k < PLUME_RAYS; k++) if (landed[k]! > 0) cutAny = true;
+            if (!cutAny) ctx.drawImage(image, root - reach, across - half, reach, 2 * half);
+            else {
+                // Each third cut off where it lands on a hull, inside the glow that marks
+                // it, by drawing only that much of its third of the sprite. A side third
+                // reaches a third as far as the core.
+                const { width, height } = image;
+                for (let k = 0; k < PLUME_RAYS; k++) {
+                    const third = k === 1 ? reach : reach / 3;
+                    const cut = landed[k]! > 0 ? (1 - landed[k]!) * third : reach;
+                    if (!(cut > 0)) continue;
+                    const shown = cut / reach;
+                    const strip = (half * 2) / 3;
+                    ctx.drawImage(
+                        image,
+                        width * (1 - shown),
+                        (height * k) / 3,
+                        width * shown,
+                        height / 3,
+                        root - cut,
+                        across - half + k * strip,
+                        cut,
+                        strip,
+                    );
+                }
             }
-        }
-        ctx.globalAlpha = outer;
-    });
+            ctx.globalAlpha = outer;
+        },
+        true,
+    );
 }
 
 /** An engine's bells, chambers and pump shaded as rounded, in its module's frame, the module turned `angle` in the world. */
@@ -1930,12 +1968,16 @@ function eachNozzle(
     ctx: CanvasRenderingContext2D,
     ship: ShipView,
     visit: (engine: Engine, force: number, reach: number, across: number, landed: readonly number[], split: number) => void,
+    /** Only the nozzles whose plume, with its glow, reaches the box being drawn. */
+    onlyShown = false,
 ): void {
     const design = ship.currentStructure;
     // Engines are counted as they are met, because a design lists its
     // engines in the order its modules appear.
     let engine = 0;
     const landed = [0, 0, 0];
+    const sc = cos(ship.angle);
+    const ss = sin(ship.angle);
 
     ctx.save();
     ctx.translate(ship.x, ship.y);
@@ -1957,6 +1999,7 @@ function eachNozzle(
         for (let layer = HULL_LAYER; layer <= WEAPONS_LAYER; layer <<= 1) {
             if ((layers & layer) === 0) continue;
             for (let n = 0; n < geometry.nozzles; n++) {
+                if (onlyShown && !plumeNear(ship, sc, ss, m, spec.length, nozzleOffset(geometry, n), reach, geometry.exitWidth)) continue;
                 for (let k = 0; k < PLUME_RAYS; k++) {
                     landed[k] = ship.landed[landedIndex(design, t, n * PLUME_RAYS + k, layer)] ?? 0;
                 }
