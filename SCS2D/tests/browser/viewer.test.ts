@@ -272,6 +272,15 @@ describe("the viewer in a browser", () => {
         expect(range).toBeGreaterThan(900);
         expect(range).toBeLessThan(1100);
         expect(await advanced(page)).toBeGreaterThan(0);
+        expect(new URL(page.url()).hash).toBe("#/battle?scene=Standoff");
+    });
+
+    it("opens the scene its address names, so a reload comes back to it", async () => {
+        const opened = await browser.newPage({ viewport: { width: 1000, height: 620 } });
+        await opened.goto(`${battlePage()}?scene=Standoff`);
+        await opened.waitForFunction(() => (document.getElementById("readout")?.textContent ?? "") !== "");
+        expect(await opened.locator("#scene option:checked").textContent()).toBe("Standoff");
+        await opened.close();
     });
 
     it("stays paused through a reset or a change of scene", async () => {
@@ -393,8 +402,8 @@ describe("the viewer in a browser", () => {
         expect(await opened.inputValue("#battleSeed")).toBe("4321");
         expect(await opened.inputValue("#battleRange")).toBe("1000");
         expect(await opened.textContent("#play")).toBe("Play");
-        // The address is tidied, so a reload is the battle route and not the battle again.
-        expect(new URL(opened.url()).hash).toBe("#/battle");
+        // The address is tidied, so a reload is the custom battle and not the hand-over again.
+        expect(new URL(opened.url()).hash).toBe("#/battle?scene=custom");
         expect(errors).toEqual([]);
         await opened.close();
     });
