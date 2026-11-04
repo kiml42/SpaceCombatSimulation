@@ -106,9 +106,14 @@ export class Store {
      * much there was.
      */
     drain(bodyIndex: number, user: number, kg: number): number {
+        return this.drainExcept(bodyIndex, user, kg, null);
+    }
+
+    /** `drain`, leaving alone the stores `skip` marks. */
+    protected drainExcept(bodyIndex: number, user: number, kg: number, skip: Uint8Array | null): number {
         const pieceOf = this.pieceOf[bodyIndex];
         if (pieceOf === null || pieceOf === undefined || !(kg > 0)) return 0;
-        return this.take(bodyIndex, pieceOf[user] ?? 0, kg);
+        return this.take(bodyIndex, pieceOf[user] ?? 0, kg, skip);
     }
 
     /**
@@ -179,12 +184,17 @@ export class Store {
 
     /** What is held on the piece of hull a module is on, kg. */
     pieceHeld(bodyIndex: number, module: number): number {
+        return this.pieceHeldExcept(bodyIndex, module, null);
+    }
+
+    /** `pieceHeld`, leaving out the stores `skip` marks. */
+    protected pieceHeldExcept(bodyIndex: number, module: number, skip: Uint8Array | null): number {
         const pieceOf = this.pieceOf[bodyIndex];
         const stores = pieceOf === null || pieceOf === undefined ? undefined : this.stores[bodyIndex]![pieceOf[module] ?? 0];
         if (stores === undefined) return 0;
         const contents = this.contents[bodyIndex]!;
         let held = 0;
-        for (let k = 0; k < stores.length; k++) held += contents[stores[k]!]!;
+        for (let k = 0; k < stores.length; k++) if (skip === null || skip[stores[k]!] === 0) held += contents[stores[k]!]!;
         return held;
     }
 
@@ -226,8 +236,8 @@ export class Store {
         return room;
     }
 
-    /** Take up to `kg` from one piece's stores, highest tier first, and say how much there was. */
-    private take(bodyIndex: number, piece: number, kg: number): number {
+    /** Take up to `kg` from one piece's stores, highest tier first, and say how much there was; none from those `skip` marks. */
+    private take(bodyIndex: number, piece: number, kg: number, skip: Uint8Array | null = null): number {
         const stores = this.stores[bodyIndex]![piece];
         if (stores === undefined || !(kg > 0)) return 0;
         const contents = this.contents[bodyIndex]!;
@@ -246,14 +256,14 @@ export class Store {
                 let size = 0;
                 for (let k = start; k < end; k++) {
                     const m = stores[k]!;
-                    if (contents[m]! > 0) size += full[m]!;
+                    if (contents[m]! > 0 && (skip === null || skip[m] === 0)) size += full[m]!;
                 }
                 if (!(size > 0)) break;
                 let taken = 0;
                 for (let k = start; k < end; k++) {
                     const m = stores[k]!;
                     const held = contents[m]!;
-                    if (!(held > 0)) continue;
+                    if (!(held > 0) || (skip !== null && skip[m] !== 0)) continue;
                     const share = (wanted * full[m]!) / size;
                     const take = share < held ? share : held;
                     contents[m] = held - take;

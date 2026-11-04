@@ -1,4 +1,5 @@
 import type { ShipDesign } from "./blueprint.js";
+import type { Damage } from "./damage.js";
 import { sqrt } from "./math.js";
 import { FUEL_DENSITY } from "./modules.js";
 import { Store } from "./store.js";
@@ -39,6 +40,13 @@ export function leakChance(integrity: number): number {
     const worn = integrity < 0 ? 1 : integrity > 1 ? 0 : 1 - integrity;
     return LEAK_CHANCE + (1 - LEAK_CHANCE) * worn;
 }
+
+/**
+ * Integrity at or below which a module's fuel lines give out, so its fuel no
+ * longer reaches the engines: where an engine's plumbing gives out
+ * (`THRUST_CUTOUT`). The fuel is still in it, for a claw, a pump or a robot.
+ */
+export const FEED_CUTOUT = 0.3;
 
 /** How fast a patch closes a hole, metres of width a second: a 40 cm gash in two seconds, a fragment's pinhole at once. */
 export const PATCH_SPEED = 0.2;
@@ -82,11 +90,15 @@ export interface Leak {
 /**
  * What every body has left in its tanks, and the holes it is leaking from.
  *
- * **An engine draws on the tanks it is connected to** (`drain`), tier by tier,
- * highest `drainPriority` first.
+ * **An engine draws on the tanks it is connected to** (`feed`), tier by tier,
+ * highest `drainPriority` first, but not on one too broken to feed it
+ * (`FEED_CUTOUT`).
  */
 export class Fuel extends Store {
     private readonly leaks: (Leak[] | null)[] = [];
+    /** Each body's modules too broken to feed an engine, 1 for each, and the damage version that was worked out at. */
+    private readonly cutOff: (Uint8Array | null)[] = [];
+    private readonly cutOffAt: number[] = [];
 
     constructor() {
         super(
@@ -98,6 +110,29 @@ export class Fuel extends Store {
     override register(bodyIndex: number, design: ShipDesign, carried?: readonly number[], leaks?: readonly Leak[]): void {
         super.register(bodyIndex, design, carried);
         this.leaks[bodyIndex] = leaks === undefined ? [] : leaks.map((leak) => ({ ...leak }));
+        this.cutOff[bodyIndex] = new Uint8Array(design.modules.length);
+        this.cutOffAt[bodyIndex] = -1;
+    }
+
+    /** Take up to `kg` for an engine at module `user`, from the tanks on its piece of hull that still feed it. */
+    feed(bodyIndex: number, user: number, kg: number, damage: Damage): number {
+        return this.drainExcept(bodyIndex, user, kg, this.cutOffOf(bodyIndex, damage));
+    }
+
+    /** What an engine at module `module` could draw on now, kg: `pieceHeld`, less what is in tanks that no longer feed. */
+    fed(bodyIndex: number, module: number, damage: Damage): number {
+        return this.pieceHeldExcept(bodyIndex, module, this.cutOffOf(bodyIndex, damage));
+    }
+
+    private cutOffOf(bodyIndex: number, damage: Damage): Uint8Array | null {
+        const cut = this.cutOff[bodyIndex];
+        if (cut === null || cut === undefined) return null;
+        const version = damage.version(bodyIndex);
+        if (this.cutOffAt[bodyIndex] === version) return cut;
+        const full = this.full[bodyIndex]!;
+        for (let m = 0; m < cut.length; m++) cut[m] = full[m]! > 0 && damage.integrity(bodyIndex, m) <= FEED_CUTOUT ? 1 : 0;
+        this.cutOffAt[bodyIndex] = version;
+        return cut;
     }
 
     /** Open a hole in a module. */
@@ -142,6 +177,7 @@ export class Fuel extends Store {
     override forget(bodyIndex: number): void {
         super.forget(bodyIndex);
         this.leaks[bodyIndex] = null;
+        this.cutOff[bodyIndex] = null;
     }
 }
 

@@ -186,7 +186,7 @@ export const DAMAGE_RESPONSES: Readonly<Record<ModuleSpec["kind"], readonly Dama
     // Takes no damage at all (`Damage.absorb`).
     kernel: [],
     rock: [],
-    // Holds its fuel however badly it is hit, until leaks are built (ROADMAP.md §8 step 8).
+    // Its fuel lines are held by the fuel store, which knows what it holds (`FEED_CUTOUT`).
     tank: [],
     // Its plant and cells go as a generator's and a battery's do.
     core: [

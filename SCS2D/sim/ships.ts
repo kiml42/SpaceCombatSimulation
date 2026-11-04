@@ -1703,7 +1703,7 @@ export class Ships {
         if (!(this.left(i, b, module, DamageEffect.Thrust) > 0)) return false;
         // A layout built by hand has no modules, and so nothing to run dry.
         if (!((design.modules[module]?.stats.exhaustVelocity ?? 0) > 0)) return true;
-        return this.fuel.pieceHeld(b, module) > 0;
+        return this.fuel.fed(b, module, this.damage) > 0;
     }
 
     /**
@@ -9787,7 +9787,7 @@ export class Ships {
             const wanted = (u * this.exhaustOf(i, design, b, t) * dt) / exhaust;
             if (!(wanted > 0)) continue;
             const allowed = this.allowed(Resource.Fuel, b, module, Claim.Thrust, wanted);
-            const got = this.fuel.drain(b, module, wanted < allowed ? wanted : allowed);
+            const got = this.fuel.feed(b, module, wanted < allowed ? wanted : allowed, this.damage);
             this.took(Resource.Fuel, b, module, Claim.Thrust, got);
             burned = true;
             if (got < wanted) {
