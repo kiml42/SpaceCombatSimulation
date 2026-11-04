@@ -3052,9 +3052,8 @@ function drawThrown(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes: 
         const seed = seedOf(flashes.x[i]!, flashes.y[i]!, flashes.energy[i]!, kind);
         const n = sparkCount(kind, flashes.energy[i]!, seed);
         if (n === 0) continue;
-        const anchor = shipByBody(snapshot, flashes.body[i]!);
         for (let j = 0; j < n; j++) {
-            if (!spark(flashes, i, j, seed, flashes.age[i]!, anchor?.angle ?? 0, anchor?.vx ?? 0, anchor?.vy ?? 0, thrown)) continue;
+            if (!spark(flashes, i, j, seed, flashes.age[i]!, thrown)) continue;
             // As a step's exposure sees it, as a tracer is: drawn out along its way past the camera.
             const rvx = thrown.vx - cvx;
             const rvy = thrown.vy - cvy;
@@ -3076,9 +3075,8 @@ function drawThrown(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes: 
         const n = bitCount(flashes.kind[i]!, flashes.energy[i]!);
         if (n === 0) continue;
         const seed = seedOf(flashes.x[i]!, flashes.y[i]!, flashes.energy[i]!, flashes.kind[i]!);
-        const anchor = shipByBody(snapshot, flashes.body[i]!);
         for (let j = 0; j < n; j++) {
-            if (!bit(flashes, i, j, seed, flashes.age[i]!, anchor?.angle ?? 0, anchor?.vx ?? 0, anchor?.vy ?? 0, broken)) continue;
+            if (!bit(flashes, i, j, seed, flashes.age[i]!, broken)) continue;
             if (broken.length < pixel) continue;
             metal ??= batches.call(ctx, shard, false);
             // Dull metal, flashing the light's colour as a face turns to it.

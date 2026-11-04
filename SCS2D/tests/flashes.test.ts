@@ -18,8 +18,9 @@ import {
     muzzleLifetime,
     muzzleWedge,
 } from "../render/flashes.js";
-import { IMPACT_BURST, IMPACT_COLLISION, IMPACT_MUZZLE, IMPACT_ROUND } from "../sim/index.js";
-import { bitCount, METAL_LIFE, seedOf, sparkCount } from "../render/particles.js";
+import { IMPACT_BURST, IMPACT_COLLISION, IMPACT_MUZZLE, IMPACT_ROUND, ImpactLog } from "../sim/index.js";
+import { Bodies, bodyIndex } from "../sim/bodies.js";
+import { bit, bitCount, METAL_LIFE, seedOf, spark, sparkCount, type Bit, type Spark } from "../render/particles.js";
 
 /**
  * Impact flashes: the arithmetic of how big and how bright, and the ageing
@@ -274,5 +275,55 @@ describe("what a hit and a collision throw off", () => {
         expect(bitCount(IMPACT_ROUND, energy)).toBeGreaterThan(0);
         expect(bitCount(IMPACT_COLLISION, energy)).toBeGreaterThan(sparkCount(IMPACT_COLLISION, energy, seed));
         expect(sparkCount(IMPACT_COLLISION, energy, seed)).toBeGreaterThan(0);
+    });
+});
+
+describe("what is thrown off a hull", () => {
+    it("leaves from the hull as it was when it happened, and flies free of it after", () => {
+        const bodies = new Bodies();
+        const body = bodyIndex(bodies.create({ x: 10, y: 0, angle: Math.PI / 2, mass: 1, inertia: 1, radius: 1 }));
+        bodies.vx[body] = 30;
+        bodies.vy[body] = -5;
+        const log = new ImpactLog();
+        // Sliding along +x against a face whose normal is +y, in the world.
+        log.push(10, 1, 1e7, IMPACT_COLLISION, bodies, body, 0, 0, 0, 1, 0, 0, 1, 20);
+        expect([log.hullAngle[0], log.hullVx[0], log.hullVy[0]]).toEqual([Math.PI / 2, 30, -5]);
+
+        const flashes = new Flashes();
+        // As logged, in the hull's frame; then the same in the world's, on nothing that turns.
+        flashes.add(
+            10,
+            1,
+            1e7,
+            IMPACT_COLLISION,
+            body,
+            0,
+            0,
+            0,
+            0,
+            0,
+            log.dirX[0]!,
+            log.dirY[0]!,
+            log.normalX[0]!,
+            log.normalY[0]!,
+            20,
+            Math.PI / 2,
+            30,
+            -5,
+        );
+        flashes.add(10, 1, 1e7, IMPACT_COLLISION, -1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 20, 0, 30, -5);
+        const seed = seedOf(10, 1, 1e7, IMPACT_COLLISION);
+        const a: Spark = { x: 0, y: 0, vx: 0, vy: 0, width: 0, t: 0 };
+        const b: Spark = { ...a };
+        expect(spark(flashes, 0, 0, seed, 0.1, a)).toBe(true);
+        expect(spark(flashes, 1, 0, seed, 0.1, b)).toBe(true);
+        expect(a.x).toBeCloseTo(b.x, 9);
+        expect(a.y).toBeCloseTo(b.y, 9);
+        const m: Bit = { x: 0, y: 0, angle: 0, length: 0, width: 0, glint: 0, t: 0 };
+        const n: Bit = { ...m };
+        expect(bit(flashes, 0, 0, seed, 0.1, m)).toBe(true);
+        expect(bit(flashes, 1, 0, seed, 0.1, n)).toBe(true);
+        expect(m.x).toBeCloseTo(n.x, 9);
+        expect(m.y).toBeCloseTo(n.y, 9);
     });
 });

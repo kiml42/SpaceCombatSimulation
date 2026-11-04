@@ -338,6 +338,10 @@ export class Snapshot {
     impactNormalY = new Float64Array(0);
     /** How fast each happened, m/s: a collision's closing speed; zero for the rest. */
     impactSpeed = new Float64Array(0);
+    /** The struck hull's angle and velocity as each happened; zero for none. */
+    impactHullAngle = new Float64Array(0);
+    impactHullVx = new Float64Array(0);
+    impactHullVy = new Float64Array(0);
     impactCount = 0;
 
     /**
@@ -401,6 +405,9 @@ function growImpacts(snapshot: Snapshot, needed: number): void {
     snapshot.impactNormalX = new Float64Array(size);
     snapshot.impactNormalY = new Float64Array(size);
     snapshot.impactSpeed = new Float64Array(size);
+    snapshot.impactHullAngle = new Float64Array(size);
+    snapshot.impactHullVx = new Float64Array(size);
+    snapshot.impactHullVy = new Float64Array(size);
 }
 
 function shipView(snapshot: Snapshot, i: number): ShipView {
@@ -769,6 +776,9 @@ export function capture(
             out.impactNormalX[i] = impacts.normalX[i]!;
             out.impactNormalY[i] = impacts.normalY[i]!;
             out.impactSpeed[i] = impacts.speed[i]!;
+            out.impactHullAngle[i] = impacts.hullAngle[i]!;
+            out.impactHullVx[i] = impacts.hullVx[i]!;
+            out.impactHullVy[i] = impacts.hullVy[i]!;
         }
         out.impactCount = impacts.count;
         impacts.clear();
