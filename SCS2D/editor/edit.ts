@@ -777,6 +777,73 @@ export function duplicateInstance(blueprint: Blueprint, path: ModulePath): { blu
 }
 
 /**
+ * An instance reflected across the frame it is placed in: the same part on the
+ * other side of that frame's x-axis, which at the top level is the centreline.
+ * Expansion reflects before it turns, so negating the position and the turn
+ * and toggling `mirror` lands every module where reflecting it would.
+ */
+function reflected(instance: AssemblyInstance): AssemblyInstance {
+    const { angle, mirror: _mirror, ...rest } = instance;
+    // Folded so the centreline gives 0, not -0, which compares equal and has different bits.
+    const out: AssemblyInstance = { ...rest, y: instance.y === 0 ? 0 : -instance.y };
+    if (angle !== undefined && angle !== 0) out.angle = -angle;
+    if (instance.mirror !== true) out.mirror = true;
+    return out;
+}
+
+/**
+ * Place an assembly again, reflected across the frame it sits in: the
+ * other side of a ship in one step, rather than a duplicate that then has to
+ * be mirrored and dragged to the negative of where the first one is.
+ */
+export function mirrorInstance(blueprint: Blueprint, path: ModulePath): { blueprint: Blueprint; path: ModulePath } | null {
+    const placement = placementAt(blueprint, path);
+    if (placement === null || !isInstance(placement)) return null;
+    const copy = cloneBlueprint(blueprint) as unknown as MutableBlueprint;
+    const found = containing(copy, path);
+    if (found === null) return null;
+    const index = found.list.length;
+    found.list.push(reflected(found.list[found.index] as AssemblyInstance));
+    return { blueprint: copy as unknown as Blueprint, path: siblingOf(path, index) };
+}
+
+/**
+ * Make a module a shared part, and place a reflected copy of it on the other
+ * side of the frame it sits in: `duplicatePlacement`, mirrored. A module that
+ * is already the whole of an assembly places that assembly again, reflected.
+ * The path returned is the module in the new copy.
+ */
+export function mirrorPlacement(blueprint: Blueprint, origin: ModuleOrigin): { blueprint: Blueprint; path: ModulePath } | null {
+    const spec = placementAt(blueprint, origin.path);
+    if (spec === null || isInstance(spec)) return null;
+
+    const handle = positionHandle(blueprint, origin);
+    if (handle.perCopy) {
+        const placed = mirrorInstance(blueprint, handle.origin.path);
+        const instance = placed === null ? null : placementAt(placed.blueprint, placed.path);
+        return placed === null || instance === null || !isInstance(instance) ? null : { ...placed, path: into(placed.path, instance.use) };
+    }
+
+    const copy = cloneBlueprint(blueprint) as unknown as MutableBlueprint;
+    const found = containing(copy, origin.path);
+    if (found === null) return null;
+    const name = unusedAssemblyName(copy, spec.kind);
+    const definition: Assembly = { modules: [{ ...spec, x: 0, y: 0 }] };
+    copy.assemblies = { ...copy.assemblies, [name]: definition as { modules: Placement[] } };
+    const instance: AssemblyInstance = { use: name, x: spec.x, y: spec.y };
+    found.list[found.index] = instance;
+    const index = found.list.length;
+    found.list.push(reflected(instance));
+    return { blueprint: copy as unknown as Blueprint, path: into(siblingOf(origin.path, index), name) };
+}
+
+/** The one module of the assembly an instance path names. */
+function into(instance: ModulePath, assembly: string): ModulePath {
+    const last = instance[instance.length - 1]!;
+    return [...instance.slice(0, -1), { index: last.index, copy: 0, into: "assembly", assembly }, { index: 0, copy: 0 }];
+}
+
+/**
  * Every instance a module was placed through, outermost first.
  *
  * An assembly inside an assembly is reached one level at a time, so clicking picks the
