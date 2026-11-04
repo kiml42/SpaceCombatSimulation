@@ -106,14 +106,13 @@ import { iconAlpha, ICON_OUTLINE, ICON_PX, isWreckage } from "./icons.js";
 const { cos, floor, sin, length, max, min, PI, sqrt, TAU } = math;
 
 /**
- * A Canvas2D view of a snapshot.
+ * A snapshot drawn as calls on a Canvas2D context.
  *
- * **A stop-gap until the WebGL renderer (DESIGN.md §5), which replaces it.**
- * It exists to make the simulation watchable rather than only checksummable,
- * which is the thing a golden test cannot do: a duel can be bit-for-bit
- * reproducible and still look wrong, and nobody finds that out from a hash.
- * What survives the replacement is the shape — a function of a snapshot, with
- * no access to the simulation and no state of its own beyond the camera.
+ * On screen the context is `PixiCanvas`, a Canvas-shaped facade over Pixi, so
+ * this file is the one source for what everything looks like, drawn in its true
+ * order; what is hot moves out to shared geometry (`hullLayer.ts`) one thing at
+ * a time (ROADMAP.md §8 step 17). It is a function of a snapshot, with no access
+ * to the simulation and no state of its own beyond the camera.
  *
  * It knows no game rules. Everything it draws, it draws because the snapshot
  * says so: module boxes from the design, barrels from turret bearings, tracers
