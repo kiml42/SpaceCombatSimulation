@@ -30,6 +30,16 @@ describe("the lights a scene gives off", () => {
         into.add(from);
         expect(into.count).toBe(82);
         expect([into.x0[41 + 3], into.colour[41 + 3], into.cone[81]]).toEqual([3, "#ff8000", 1]);
+        // Light that is not seen stays unseen.
+        from.line(m, 0, 0, -5, 0, 2, "#ffffff", 1, false, true);
+        into.clear();
+        into.add(from);
+        expect([into.unseen[0], into.unseen[41]]).toEqual([0, 1]);
+        // A glow that lights nothing stays lightless.
+        from.line(m, 0, 0, 5, 0, 2, "#ffffff", 1, false, false, true);
+        into.clear();
+        into.add(from);
+        expect([into.lightless[41], into.lightless[42]]).toEqual([0, 1]);
     });
 
     it("leave out a light with nothing to show", () => {

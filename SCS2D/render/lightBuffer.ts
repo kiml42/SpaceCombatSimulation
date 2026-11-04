@@ -15,11 +15,23 @@ import { PixiCanvas } from "./pixiCanvas.js";
 /** The buffer's size as a share of the canvas's: light is soft, so it loses little. */
 export const LIGHT_RESOLUTION = 0.5;
 /**
- * How much further a light reaches over a surface than its glow does round
- * it: a glow is the halo seen in the light's own neighbourhood, and the hull
- * beside an engine is lit well past it.
+ * How much further a light at full brightness reaches over a surface than its
+ * glow does round it: a glow is the halo seen in the light's own
+ * neighbourhood, and the hull beside an engine is lit well past it.
  */
-export const LIGHT_REACH = 4;
+export const LIGHT_REACH = 6;
+/** The brightest a light is taken to be in how far it reaches: sixteen times as bright as its glow at full, reaching four times as far. */
+export const LIGHT_BRIGHTEST = 16;
+
+/**
+ * How many times further than its glow a light of `brightness` reaches over a
+ * surface: further the brighter it is, as the square root, since light thins
+ * as the square of the distance it has come.
+ */
+export function lightReach(brightness: number): number {
+    return LIGHT_REACH * Math.sqrt(Math.min(LIGHT_BRIGHTEST, Math.max(0, brightness)));
+}
+
 /**
  * How many times brighter than white the buffer can hold light before it is
  * clipped: lights are drawn into it at this share and scaled back after, so
@@ -107,8 +119,11 @@ export class LightBuffer {
         this.reaching.clear();
         this.reaching.add(lights);
         for (let k = 0; k < this.reaching.count; k++) {
-            this.reaching.radius[k]! *= LIGHT_REACH;
+            this.reaching.radius[k]! *= lightReach(this.reaching.brightness[k]!);
             this.reaching.brightness[k]! /= LIGHT_HEADROOM;
+            // In the buffer, every light is seen, and a glow that lights nothing is not there.
+            this.reaching.unseen[k] = 0;
+            if (this.reaching.lightless[k] === 1) this.reaching.brightness[k] = 0;
         }
         drawGlows(this.context as unknown as CanvasRenderingContext2D, this.reaching);
         this.context.end();
