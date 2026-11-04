@@ -1,6 +1,6 @@
 import { Filter, GlProgram, RenderTexture, UniformGroup, type Renderer } from "pixi.js";
 import { drawGlows, Lights } from "./glows.js";
-import { LIGHT_GAIN, LIGHT_HEADROOM, LIGHT_REACH } from "./lightField.js";
+import { LIGHT_GAIN, LIGHT_HEADROOM, lightReach } from "./lightField.js";
 import { PixiCanvas } from "./pixiCanvas.js";
 
 /**
@@ -94,8 +94,11 @@ export class LightBuffer {
         this.reaching.clear();
         this.reaching.add(lights);
         for (let k = 0; k < this.reaching.count; k++) {
-            this.reaching.radius[k]! *= LIGHT_REACH;
+            this.reaching.radius[k]! *= lightReach(this.reaching.brightness[k]!);
             this.reaching.brightness[k]! /= LIGHT_HEADROOM;
+            // In the buffer, every light is seen, and a glow that lights nothing is not there.
+            this.reaching.unseen[k] = 0;
+            if (this.reaching.lightless[k] === 1) this.reaching.brightness[k] = 0;
         }
         drawGlows(this.context as unknown as CanvasRenderingContext2D, this.reaching);
         this.context.end();

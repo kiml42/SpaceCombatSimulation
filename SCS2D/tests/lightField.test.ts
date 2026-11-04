@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Lights } from "../render/glows.js";
-import { LIGHT_HEADROOM, LIGHT_REACH, LightField } from "../render/lightField.js";
+import { LIGHT_HEADROOM, LIGHT_REACH, LightField, lightReach } from "../render/lightField.js";
 
 /** Lights recorded straight in canvas pixels. */
 const IDENTITY = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
@@ -26,7 +26,7 @@ describe("the light at a point", () => {
         lights.point(IDENTITY, 400, 300, 5, "#ff8000", 0.5);
         const field = fieldOf(lights);
         expect(at(field, 0, 0)).toEqual([eased(0.5), eased(0.5 * (128 / 255)), 0]);
-        const reach = 5 * LIGHT_REACH;
+        const reach = 5 * lightReach(0.5);
         expect(at(field, reach / 2, 0)[0]).toBeGreaterThan(0);
         expect(at(field, reach / 2, 0)[0]).toBeLessThan(eased(0.5));
         expect(field.at(reach, 0, light)).toBe(false);
@@ -72,5 +72,27 @@ describe("the light at a point", () => {
         for (let k = 0; k < 2 * LIGHT_HEADROOM; k++) many.point(IDENTITY, 400, 300, 5, "#ffffff", 1);
         expect(at(fieldOf(many), 0, 0)[0]).toBeCloseTo(eased(LIGHT_HEADROOM), 12);
         expect(at(fieldOf(many), 0, 0)[0]).toBeLessThan(1);
+    });
+});
+
+describe("how far a light reaches", () => {
+    it("is further the brighter it is, as the square root, up to a most", () => {
+        expect(lightReach(1)).toBe(LIGHT_REACH);
+        expect(lightReach(4)).toBe(2 * LIGHT_REACH);
+        expect(lightReach(0.25)).toBe(LIGHT_REACH / 2);
+        expect(lightReach(1000)).toBe(lightReach(16));
+        const dim = new Lights();
+        dim.point(IDENTITY, 400, 300, 1, "#ffffff", 0.25);
+        const bright = new Lights();
+        bright.point(IDENTITY, 400, 300, 1, "#ffffff", 4);
+        const between = LIGHT_REACH;
+        expect(fieldOf(dim).at(between, 0, light)).toBe(false);
+        expect(fieldOf(bright).at(between, 0, light)).toBe(true);
+    });
+
+    it("is nothing for a glow that lights nothing round it", () => {
+        const lights = new Lights();
+        lights.line(IDENTITY, 400, 300, 400, 300, 5, "#ffffff", 1, false, false, true);
+        expect(fieldOf(lights).count).toBe(0);
     });
 });

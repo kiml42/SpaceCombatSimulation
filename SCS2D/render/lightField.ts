@@ -11,11 +11,22 @@ import { rgba } from "./sprites.js";
  */
 
 /**
- * How much further a light reaches over a surface than its glow does round
- * it: a glow is the halo seen in the light's own neighbourhood, and the hull
- * beside an engine is lit well past it.
+ * How much further a light at full brightness reaches over a surface than its
+ * glow does round it: a glow is the halo seen in the light's own
+ * neighbourhood, and the hull beside an engine is lit well past it.
  */
-export const LIGHT_REACH = 4;
+export const LIGHT_REACH = 6;
+/** The brightest a light is taken to be in how far it reaches: sixteen times as bright as its glow at full, reaching four times as far. */
+export const LIGHT_BRIGHTEST = 16;
+
+/**
+ * How many times further than its glow a light of `brightness` reaches over a
+ * surface: further the brighter it is, as the square root, since light thins
+ * as the square of the distance it has come.
+ */
+export function lightReach(brightness: number): number {
+    return LIGHT_REACH * Math.sqrt(Math.min(LIGHT_BRIGHTEST, Math.max(0, brightness)));
+}
 /**
  * How many times brighter than white the buffer can hold light before it is
  * clipped: lights are drawn into it at this share and scaled back after, so
@@ -57,6 +68,8 @@ export class LightField {
         const toX = (px: number): number => camera.x + (px - widthPx / 2) / camera.scale;
         const toY = (py: number): number => camera.y - (py - heightPx / 2) / camera.scale;
         for (let k = 0; k < lights.count; k++) {
+            // A glow that lights nothing round it, as a muzzle flash's wedge.
+            if (lights.lightless[k] === 1) continue;
             const i = this.count++;
             let x0 = lights.x0[k]!;
             let y0 = lights.y0[k]!;
@@ -72,7 +85,7 @@ export class LightField {
             this.y0[i] = toY(y0);
             this.x1[i] = toX(x1);
             this.y1[i] = toY(y1);
-            this.reach[i] = (lights.radius[k]! * LIGHT_REACH) / camera.scale;
+            this.reach[i] = (lights.radius[k]! * lightReach(lights.brightness[k]!)) / camera.scale;
             // As the buffer takes it: no brighter than its glow can be drawn, at its headroom's share.
             this.brightness[i] = Math.min(LIGHT_HEADROOM, lights.brightness[k]!);
             this.cone[i] = cone && (x1 !== x0 || y1 !== y0);
