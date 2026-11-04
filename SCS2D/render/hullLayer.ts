@@ -1,4 +1,4 @@
-import { AlphaFilter, Container, Graphics, GraphicsContext, Matrix, Texture } from "pixi.js";
+import { AlphaFilter, BufferImageSource, Container, Graphics, GraphicsContext, Matrix, Texture } from "pixi.js";
 import { domeRadius, isDomed, originOf, type Livery, type ModuleSpec, type ShipDesign, type Snapshot } from "../sim/index.js";
 import { patternColour, patternTile, patternTransform, tileKey } from "./livery.js";
 import {
@@ -7,7 +7,9 @@ import {
     BEVEL_OF_RADIUS,
     BEVEL_STRIDE,
     bevelQuad,
+    CONTACT_STRIDE,
     drawnBevels,
+    drawnContacts,
     drawnMounts,
     MIN_BEVEL_LIT,
     MIN_BEVEL_PX,
@@ -28,6 +30,18 @@ import {
     THICK_SHADOW_M,
     type Light,
 } from "./light.js";
+
+/**
+ * How far contact shading reaches across the thin hull from the foot of a
+ * thick module, metres: a third of how high it stands.
+ */
+export const CONTACT_M = THICK_SHADOW_M / 3;
+/** How dark it is at the foot, as a share of a shadow's darkness, fading to nothing at its reach. */
+export const CONTACT_DEPTH = 0.6;
+/** Too narrow to see under this many pixels, so not drawn. */
+const MIN_CONTACT_PX = 1;
+/** Texels its fade is made of, from the foot out, smoothed between by the GPU. */
+const CONTACT_TEXELS = 32;
 import { barrelLines, MIN_BARREL_PX } from "./barrels.js";
 import { fillAlpha, fillColour, isFighterModule, moduleFills, padMark, paintedSide, type Fill } from "./moduleFills.js";
 import { legibleWidth } from "./strokes.js";
@@ -72,6 +86,8 @@ export class HullLayer {
     /** Kernels' shadows, on rock. */
     readonly kernelShadows: BlockShadows;
     readonly fighterShadows = new Pool();
+    /** Contact shading on thin hull at the foot of each thick module, drawn with their shadows. */
+    readonly contacts = new Pool();
     /** The bevels along the thin hull's outside edges, and the thick modules'. */
     readonly thinBevels = new Graphics();
     readonly thickBevels = new Graphics();
@@ -102,6 +118,7 @@ export class HullLayer {
         this.rockShadows = new BlockShadows(shade(), this.hullUnderRock.container);
         this.thickRockShadows = new BlockShadows(shade(), this.thinRock.container);
         this.kernelShadows = new BlockShadows(shade(), this.rockUnderKernel.container);
+        this.thickShadows.layer.addChildAt(this.contacts.container, 0);
         this.fighterShade = shade();
         this.fighterShadows.container.mask = this.hull.container;
         this.fighterShadows.container.filters = [this.fighterShade];
@@ -217,7 +234,10 @@ export class HullLayer {
                 // it stands above what the shadow falls on.
                 const cast = (on: BlockShadows, length: number): void =>
                     on.cast(m.spec, x, y, angle, awayX * length, awayY * length, footprintOf(m.spec, mounts));
-                if (depth === this.thick) cast(this.thickShadows, THICK_SHADOW_M);
+                if (depth === this.thick) {
+                    cast(this.thickShadows, THICK_SHADOW_M);
+                    if (CONTACT_M * camera.scale >= MIN_CONTACT_PX) this.contact(drawnContacts(design, i), x, y, angle, alpha);
+                }
                 // A dome as a short cylinder as high as a thick module: its rounded top
                 // is left for when mounts are shaded as rounded.
                 else if (domed)
@@ -255,6 +275,23 @@ export class HullLayer {
 
     /** Bevels drawn in the last frame. */
     bevelled = 0;
+
+    /** A module's contact shading, a strip outside each stretch of its `edges` with hull at its foot. */
+    private contact(edges: readonly number[], x: number, y: number, angle: number, alpha: number): void {
+        const c = Math.cos(angle);
+        const s = Math.sin(angle);
+        for (let k = 0; k < edges.length; k += CONTACT_STRIDE) {
+            const ax = edges[k]!;
+            const ay = edges[k + 1]!;
+            const ex = edges[k + 2]! - ax;
+            const ey = edges[k + 3]! - ay;
+            const g = this.contacts.next(contactContext());
+            place(g, x + ax * c - ay * s, y + ax * s + ay * c, angle + Math.atan2(ey, ex));
+            // Its unit square's y goes out, to the right of the edge as it runs.
+            g.scale.set(Math.sqrt(ex * ex + ey * ey), -CONTACT_M);
+            g.alpha = alpha;
+        }
+    }
 
     /**
      * A module's bevelled `edges`, each a strip `width` wide inside it, lighter
@@ -318,6 +355,7 @@ export class HullLayer {
             this.thickRock,
             this.kernel,
             this.fighterShadows,
+            this.contacts,
             this.thinHull,
             this.hull,
             this.hullUnderRock,
@@ -427,6 +465,22 @@ function place(g: Graphics, x: number, y: number, angle: number): Graphics {
     g.position.set(x, y);
     g.rotation = angle;
     return g;
+}
+
+let contactFill: GraphicsContext | null = null;
+
+/** Contact shading over a unit square, darkest along y = 0 and fading out to y = 1. */
+function contactContext(): GraphicsContext {
+    if (contactFill !== null) return contactFill;
+    const texels = new Uint8Array(4 * CONTACT_TEXELS);
+    for (let k = 0; k < CONTACT_TEXELS; k++) {
+        const fade = 1 - (k + 0.5) / CONTACT_TEXELS;
+        // Black, so its colour needs no premultiplying.
+        texels[4 * k + 3] = Math.round(255 * CONTACT_DEPTH * fade * fade);
+    }
+    const texture = new Texture({ source: new BufferImageSource({ resource: texels, width: 1, height: CONTACT_TEXELS }) });
+    contactFill = new GraphicsContext().rect(0, 0, 1, 1).fill({ texture, textureSpace: "local" });
+    return contactFill;
 }
 
 const contexts = new WeakMap<ModuleSpec, Map<string, GraphicsContext>>();

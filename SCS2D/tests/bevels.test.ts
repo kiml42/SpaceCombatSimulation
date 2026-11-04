@@ -3,7 +3,7 @@ import { compileBlueprint, originOf, subDesign, type Blueprint, type ShipDesign 
 import { rebuiltDesign } from "../sim/blueprint.js";
 import { shellOf } from "../sim/rebuild.js";
 import { DINKY, TANKER } from "../scenarios/blueprints.js";
-import { BEVEL_STRIDE, bevelQuad, bevelsOf, drawnBevels } from "../render/bevels.js";
+import { BEVEL_STRIDE, bevelQuad, bevelsOf, CONTACT_STRIDE, contactsOf, drawnBevels } from "../render/bevels.js";
 
 /** Three boxes in a row along x, each 4 by 4. */
 const ROW: Blueprint = {
@@ -214,5 +214,32 @@ describe("bevels", () => {
         }
         // Its engines are round, but for its pump's ends, so mostly its hull has edges to join.
         expect(joined).toBeGreaterThan(2);
+    });
+});
+
+describe("contact shading", () => {
+    // Thin, thick, thin, along x: the thick box stands over thin hull either side of it.
+    const step = compileBlueprint({
+        name: "Step",
+        modules: [
+            { kind: "structure", x: -4, y: 0, length: 4, width: 4 },
+            { kind: "structure", x: 0, y: 0, length: 4, width: 4, thick: true },
+            { kind: "core", x: 4, y: 0, length: 4, width: 4 },
+        ],
+    });
+    const middle = step.modules.findIndex((m) => m.weaponsLayer);
+
+    it("runs along a thick module's edges with thin hull at their foot, and not where it faces space", () => {
+        const edges = contactsOf(step, middle);
+        expect(edges.length / CONTACT_STRIDE).toBe(2);
+        for (let k = 0; k < edges.length; k += CONTACT_STRIDE) {
+            // Facing along the row, each the whole 4 m side.
+            expect(Math.abs(edges[k + 4]!)).toBeCloseTo(1, 9);
+            expect(Math.hypot(edges[k + 2]! - edges[k]!, edges[k + 3]! - edges[k + 1]!)).toBeCloseTo(4, 3);
+        }
+    });
+
+    it("is nowhere on thin hull's own edges", () => {
+        for (let i = 0; i < step.modules.length; i++) if (i !== middle) expect(contactsOf(step, i)).toEqual([]);
     });
 });

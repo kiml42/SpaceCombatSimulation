@@ -488,11 +488,16 @@ an entry is either still open or it is gone.
           never kept for good.
     7. **The later lighting passes.** Settled with the author on 2026-11-04 (DECISIONS.md). Each is its own
        pull request, in this order:
-        1. **Contact shading** where thin hull meets a thick module: a narrow darkening on the thin hull
-           along the foot of each thick module's bevelled edge, whichever way the light comes from, the job
-           the old Canvas2D seams did by accident. Found from the same edges as the bevels
-           (`render/bevels.ts`), so it is worked out once per design, kept through severing, and skipped
-           under a pixel wide, as they are. Its width and depth are to be set by eye on the Effects page.
+        1. **Contact shading — built**, where thin hull meets a thick module: the thin hull darkens along
+           the foot of each thick module's bevelled edge, whichever way the light comes from, the job the
+           old Canvas2D seams did by accident. `contactsOf` (`render/bevels.ts`) finds each stretch of a
+           thick module's bevelled edges with thin hull just past it, once per design as built, so a piece
+           keeps its own; a thick bar's side over space has none. The hull layer draws each as one shared
+           unit square stretched along it, fading from the foot over `CONTACT_M` (0.5 m, a third of how
+           high a thick module stands), as dark at the foot as `CONTACT_DEPTH` (0.6) of a shadow, and
+           skipped under a pixel wide. It is drawn in the thick modules' shadow layer, so it is masked to the
+           thin hull, deepens with the light's ambient as a shadow does, and adds nothing where a shadow
+           already falls. The Effects page's Steps scene shows it, turning under the light.
         2. **Leaks in shadow.** Vapour hangs above the deck, so a thick module's shadow darkens it where
            it passes through, and the hull layer's shadows, drawn underneath, cannot reach it. Each puff
            asks whether it lies in one of its own ship's thick modules' shadows (the same swept outlines

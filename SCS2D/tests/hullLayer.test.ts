@@ -4,7 +4,7 @@ import { capture, isDomed, Snapshot } from "../sim/index.js";
 import { duel } from "../scenarios/duel.js";
 import { asteroidField } from "../scenarios/asteroidField.js";
 import { starWars } from "../scenarios/starWars.js";
-import { blockShadow, HullLayer } from "../render/hullLayer.js";
+import { blockShadow, CONTACT_M, HullLayer } from "../render/hullLayer.js";
 import {
     BUILDER_LIGHT,
     DEFAULT_LIGHT,
@@ -46,6 +46,16 @@ describe("the Pixi hull layer", () => {
         layer.update(view, camera, 1000, 1000, light);
         return layer;
     };
+
+    it("shades the thin hull at the foot of thick modules once it would show, and not before", () => {
+        expect(drawn(layerOf()).contacts.shown().length).toBe(0);
+        const close = layerOf();
+        // Close enough for its reach to be pixels, wide enough to see every ship.
+        close.update(view, { x: 0, y: 0, scale: 4 }, 1e9, 1e9);
+        const strips = close.contacts.shown();
+        expect(strips.length).toBeGreaterThan(0);
+        for (const g of strips) expect(g.scale.y).toBe(-CONTACT_M);
+    });
 
     it("casts each turret's dome's shadow on the thin hull, as a thick module's", () => {
         const layer = drawn(layerOf());

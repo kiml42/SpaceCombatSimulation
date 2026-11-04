@@ -86,6 +86,21 @@ const slabDesign = (length: number, thick = false): ShipDesign => {
     ]);
 };
 
+/**
+ * A square of thin deck with a thick block standing in its middle, and a
+ * thick bar along one side of it standing over the deck on its inside alone.
+ */
+const stepsDesign = (): ShipDesign =>
+    built("steps", [
+        // Thick plate stands no deeper than it is across, so past a deck only if it is wider than one.
+        { id: 1, kind: "structure", x: 0, y: 0, length: 4, width: 4, thick: true },
+        { id: 2, kind: "structure", x: -4, y: 0, length: 4, width: 12 },
+        { id: 3, kind: "structure", x: 4, y: 0, length: 4, width: 12 },
+        { id: 4, kind: "structure", x: 0, y: 4, length: 4, width: 4 },
+        { id: 5, kind: "core", x: 0, y: -4, length: 4, width: 4 },
+        { id: 6, kind: "structure", x: 8, y: 0, length: 4, width: 8, thick: true },
+    ]);
+
 /** Where a slab's face is, above its blueprint's origin. */
 const faceOf = (slab: ShipDesign): number => slab.modules[0]!.spec.width / 2;
 
@@ -646,6 +661,15 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
             room(snapshot, GUN_MOUNTS.length);
             // The lining swells into the hole as far as it reaches, and a patch closes what it leaves.
             punch(t, snapshot, flashes, tankDesign(row.length, SEALING), 0, row, SEALING, MENDED_AFTER);
+        },
+    },
+    {
+        name: "Steps",
+        about: "Thin deck with a thick block standing in its middle and a thick bar along its side, turning once every sixteen seconds. Each thick module casts its shadow away from the light, and the deck darkens a little at the foot of each, whichever way the light comes from: along all four sides of the block, and along only the bar's inner side, where it stands over the deck rather than out over space.",
+        loop: 16,
+        build(t, snapshot, flashes) {
+            begin(snapshot, flashes, t, -14, -14, 14, 14);
+            place(snapshot, stepsDesign(), 0, 0, (2 * Math.PI * t) / 16);
         },
     },
     {

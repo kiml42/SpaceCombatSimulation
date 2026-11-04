@@ -58,11 +58,16 @@ const OUTSIDE_M = 0.05;
 
 const built = new WeakMap<ShipDesign, Bevels[]>();
 
+/** Each module's shapes, as what stands beside an edge is asked among them. */
+function shapesOf(design: ShipDesign): (readonly number[])[][] {
+    return design.modules.map((other, k) => [bevelOutline(other.spec), ...mountsOf(design, k).polygons]);
+}
+
 /** The bevelled edges of module `m` of `design` as built: pass a module's compiled design (`originOf`). */
 export function bevelsOf(design: ShipDesign, m: number): Bevels {
     let all = built.get(design);
     if (all === undefined) {
-        const shapes = design.modules.map((other, k) => [bevelOutline(other.spec), ...mountsOf(design, k).polygons]);
+        const shapes = shapesOf(design);
         const edges = design.modules.map((_, i) => bevelled(design, i, shapes));
         mitre(design, edges);
         all = edges;
@@ -80,6 +85,56 @@ export function drawnBevels(design: ShipDesign, m: number): Bevels {
     if (design.modules[m]?.shell !== undefined) return bevelsOf(design, m);
     const origin = originOf(design, m);
     return bevelsOf(origin.design, origin.module);
+}
+
+/**
+ * Where a thick module stands over thin hull: each stretch of its bevelled
+ * edges with hull at its foot, `CONTACT_STRIDE` numbers apiece in its frame,
+ * its ends and the way it faces out. Contact shading darkens the hull there.
+ */
+export type Contacts = readonly number[];
+
+/** Numbers to each stretch in `Contacts`. */
+export const CONTACT_STRIDE = 6;
+
+const footed = new WeakMap<ShipDesign, Contacts[]>();
+
+/** Where module `m` of `design` as built stands over thin hull: pass a module's compiled design (`originOf`). */
+export function contactsOf(design: ShipDesign, m: number): Contacts {
+    let all = footed.get(design);
+    if (all === undefined) {
+        const shapes = shapesOf(design);
+        all = design.modules.map((_, i) => (height(design, i) === 0 ? [] : contacts(design, i, shapes)));
+        footed.set(design, all);
+    }
+    return all[m] ?? [];
+}
+
+/** Where module `m` of `design` is drawn standing over thin hull, as its bevels are drawn (`drawnBevels`). */
+export function drawnContacts(design: ShipDesign, m: number): Contacts {
+    if (design.modules[m]?.shell !== undefined) return contactsOf(design, m);
+    const origin = originOf(design, m);
+    return contactsOf(origin.design, origin.module);
+}
+
+function contacts(design: ShipDesign, m: number, shapes: readonly (readonly (readonly number[])[])[]): number[] {
+    const edges = bevelsOf(design, m);
+    const hull = coverTest(design, m, shapes, true);
+    const out: number[] = [];
+    for (let k = 0; k < edges.length; k += BEVEL_STRIDE) {
+        const ax = edges[k]!;
+        const ay = edges[k + 1]!;
+        const ex = edges[k + 2]! - ax;
+        const ey = edges[k + 3]! - ay;
+        const nx = edges[k + 4]!;
+        const ny = edges[k + 5]!;
+        const span = Math.sqrt(ex * ex + ey * ey);
+        const footing = runs(span, (t) => hull(ax + ex * t + nx * OUTSIDE_M, ay + ey * t + ny * OUTSIDE_M));
+        for (let r = 0; r < footing.length; r += 2) {
+            out.push(ax + ex * footing[r]!, ay + ey * footing[r]!, ax + ex * footing[r + 1]!, ay + ey * footing[r + 1]!, nx, ny);
+        }
+    }
+    return out;
 }
 
 /** Whether a module's edges are bevelled at all: not an asteroid's, nor anything round. */
