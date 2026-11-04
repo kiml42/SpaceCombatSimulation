@@ -33,6 +33,7 @@ import { fillAlpha, fillColour, isFighterModule, moduleFills, padMark, paintedSi
 import { legibleWidth } from "./strokes.js";
 import { MIN_SCAR_PX, scarShapes, scarWidth, type Bounds, type ScarShape } from "./scars.js";
 import { SCAR_VIEW_STRIDE } from "../sim/index.js";
+import { holeMarkWidth, leakHoleShapes, scratchShows } from "./leakHoles.js";
 import { SOOT, SOOT_ALPHA, wearLevel, wearShows, wearTile, wearTransform } from "./wear.js";
 import { shipColours, teamLivery, type Palette } from "./teams.js";
 
@@ -78,6 +79,9 @@ export class HullLayer {
     /** Each ship's scars over its thin hull, and over its thick modules. */
     readonly thinScars = new Pool();
     readonly thickScars = new Pool();
+    /** Each ship's leaks' holes, and the scratches round them, on the same depths. */
+    readonly thinHoles = new Pool();
+    readonly thickHoles = new Pool();
     /** Where a thick module's shadow may fall: the thin hull. */
     readonly thinHull = new Pool();
     /** Where a fighter's shadow may fall: the thin hull, as a thick module's does. */
@@ -110,11 +114,13 @@ export class HullLayer {
             this.thin.container,
             this.thinBevels,
             this.thinScars.container,
+            this.thinHoles.container,
             this.thickShadows.layer,
             this.fighterShadows.container,
             this.thick.container,
             this.thickBevels,
             this.thickScars.container,
+            this.thickHoles.container,
             this.rockShadows.layer,
             this.rock.container,
             this.thickRockShadows.layer,
@@ -235,6 +241,11 @@ export class HullLayer {
                 if (scars.thin !== null) place(this.thinScars.next(scars.thin), dx, dy, ship.angle);
                 if (scars.thick !== null) place(this.thickScars.next(scars.thick), dx, dy, ship.angle);
             }
+            if ((ship.leakX?.length ?? 0) > 0) {
+                const holes = holesOf(ship, camera.scale);
+                if (holes.thin !== null) place(this.thinHoles.next(holes.thin), dx, dy, ship.angle);
+                if (holes.thick !== null) place(this.thickHoles.next(holes.thick), dx, dy, ship.angle);
+            }
             // A capital ship's turrets' barrels, standing on their domes as high as a
             // thick module, as the thick modules' shadows are on the thin hull. A
             // hull mount's are at the deck, with nothing lower to fall on.
@@ -314,6 +325,8 @@ export class HullLayer {
             this.thick,
             this.thinScars,
             this.thickScars,
+            this.thinHoles,
+            this.thickHoles,
             this.rock,
             this.thickRock,
             this.kernel,
@@ -573,6 +586,89 @@ function scarsOf(ship: Snapshot["ships"][number], scale: number): ShipScars {
     kept?.thick?.destroy();
     const made = { design, version, band, thin, thick };
     scarContexts.set(ship.body, made);
+    return made;
+}
+
+interface ShipHoles {
+    readonly design: ShipDesign;
+    /** What they were built from: each hole's place, width and scratches, and the zoom's band. */
+    readonly key: string;
+    readonly thin: GraphicsContext | null;
+    readonly thick: GraphicsContext | null;
+}
+
+/** Each body's leak holes as last built, rebuilt when one narrows, fades, comes or goes. */
+const holeContexts = new Map<number, ShipHoles>();
+const holeKey: number[] = [];
+
+/** A ship's leaks' holes in its own frame, split by the depth of the module each is in, as its scars are. */
+function holesOf(ship: Snapshot["ships"][number], scale: number): ShipHoles {
+    const design = ship.currentStructure;
+    const band = Math.round(Math.log2(scale));
+    const xs = ship.leakX!;
+    const modules = ship.leakModule;
+    holeKey.length = 0;
+    holeKey.push(band);
+    for (let k = 0; k < xs.length; k++) {
+        holeKey.push(
+            modules?.[k] ?? -1,
+            Math.round(xs[k]! * 1000),
+            Math.round(ship.leakY![k]! * 1000),
+            Math.round(ship.leakWidth![k]! * 1000),
+            Math.round(scratchShows(ship, k) * 32),
+        );
+    }
+    const key = holeKey.join();
+    const kept = holeContexts.get(ship.body);
+    if (kept !== undefined && kept.design === design && kept.key === key) return kept;
+    let thin: GraphicsContext | null = null;
+    let thick: GraphicsContext | null = null;
+    const least = MIN_SCAR_PX / 2 ** band;
+    for (let k = 0; modules !== undefined && k < xs.length; k++) {
+        const i = modules[k]!;
+        const m = design.modules[i];
+        if (m === undefined || m.spec.kind === "rock" || m.spec.kind === "kernel" || isFighterModule(design, i)) continue;
+        const width = ship.leakWidth![k]!;
+        const opened = ship.leakOpened?.[k] ?? width;
+        if (holeMarkWidth(opened) < least) continue;
+        const shows = scratchShows(ship, k);
+        if (!(shows > 0) && !(width > 0)) continue;
+        // Into the module's frame, to be kept inside its box.
+        const c = Math.cos(m.angle);
+        const s = Math.sin(m.angle);
+        const bx = xs[k]! - m.x;
+        const by = ship.leakY![k]! - m.y;
+        const dx = ship.leakDirX![k]!;
+        const dy = ship.leakDirY![k]!;
+        scarShapesScratch.length = 0;
+        leakHoleShapes(
+            bx * c + by * s,
+            -bx * s + by * c,
+            dx * c + dy * s,
+            -dx * s + dy * c,
+            opened,
+            width,
+            shows,
+            boundsOf(m.spec),
+            scarShapesScratch,
+        );
+        if (scarShapesScratch.length === 0) continue;
+        const into = m.weaponsLayer && !isDomed(m.spec.kind) ? (thick ??= new GraphicsContext()) : (thin ??= new GraphicsContext());
+        for (const shape of scarShapesScratch) {
+            const p = shape.points;
+            for (let v = 0; v < p.length; v += 2) {
+                const x = p[v]!;
+                const y = p[v + 1]!;
+                p[v] = m.x + x * c - y * s;
+                p[v + 1] = m.y + x * s + y * c;
+            }
+            into.poly(p).fill({ color: shape.colour, alpha: shape.alpha });
+        }
+    }
+    kept?.thin?.destroy();
+    kept?.thick?.destroy();
+    const made = { design, key, thin, thick };
+    holeContexts.set(ship.body, made);
     return made;
 }
 

@@ -403,6 +403,14 @@ an entry is either still open or it is gone.
                contexts in its own frame, one over its thin hull and one over its thick modules,
                rebuilt only when `scarsVersion`, its design or the zoom's power of two changes, and
                leaves out a scar under 1.5 pixels wide. Not drawn on fighters, nor on rock.
+        - **Leak holes — built** (`render/leakHoles.ts`). Each leak is drawn where its round went in, a
+          dark hole as wide as it is open now, so it shrinks as its lining or a patch closes it, in a patch
+          of scratched and buckled plate reaching 1.6 times the width it opened. The scratches stay for good
+          once a lining has sealed it, and fade over `LEAK_SCRATCH_FADE` (3 s) once a robot or a pad has
+          patched it; the snapshot keeps a hole until then, with its module and when it closed
+          (`leakModule`, `leakClosed`), and the vapour is drawn only while it leaks or `LEAK_LINGER` after.
+          Built like scars, into a context over the thin hull and one over the thick modules, rebuilt only
+          when a hole narrows, fades, comes or goes. Not settled: the scratches' reach and fade, by eye.
     6. **Particles and glows.** Render-only throughout: nothing in `sim/` changes and no golden moves.
         - **The only explosions are shells bursting**, a cosmetic flash over the fragments that do the
           damage, and muzzle flashes are their kin. Both already look good; worth a look at whether WebGL

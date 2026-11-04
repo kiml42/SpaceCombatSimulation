@@ -23,17 +23,17 @@ export interface ScarShape {
     readonly alpha: number;
 }
 
-const PIT = 0x15110f;
-const HOLE = 0x050404;
+export const PIT = 0x15110f;
+export const HOLE = 0x050404;
 const RIM = 0xc9c3b8;
 const SCORCH = 0x1c1612;
 const GLAZE = 0x0b0a10;
 const SHEEN = 0x8d8fa3;
-const SCRAPE = 0xd6d2ca;
-const BUCKLE = 0x221c18;
+export const SCRAPE = 0xd6d2ca;
+export const BUCKLE = 0x221c18;
 
 /** A small fixed hash to [0, 1). */
-function hash(a: number, b: number, c: number): number {
+export function hash(a: number, b: number, c: number): number {
     let h = Math.imul(a + 1, 374761393) ^ Math.imul(b + 7, 668265263) ^ Math.imul(c + 13, 1274126177);
     h = Math.imul(h ^ (h >>> 15), 2246822519);
     h ^= h >>> 13;
@@ -51,7 +51,17 @@ export function scarWidth(scars: readonly number[], k: number, spec: ModuleSpec)
  * A ragged outline round the segment from `(ax, ay)` to `(bx, by)`, `r` out
  * from it, along `(ux, uy)`; `seed` sets its raggedness, `rough` how much.
  */
-function ragged(ax: number, ay: number, bx: number, by: number, ux: number, uy: number, r: number, seed: number, rough: number): number[] {
+export function ragged(
+    ax: number,
+    ay: number,
+    bx: number,
+    by: number,
+    ux: number,
+    uy: number,
+    r: number,
+    seed: number,
+    rough: number,
+): number[] {
     const out: number[] = [];
     const corners = 14;
     for (let k = 0; k < corners; k++) {
@@ -75,7 +85,7 @@ export interface Bounds {
 }
 
 /** Keep a polygon inside `bounds`. */
-function within(points: number[], bounds: Bounds): number[] {
+export function within(points: number[], bounds: Bounds): number[] {
     for (let k = 0; k < points.length; k += 2) {
         points[k] = Math.max(bounds.x0, Math.min(bounds.x1, points[k]!));
         points[k + 1] = Math.max(bounds.y0, Math.min(bounds.y1, points[k + 1]!));

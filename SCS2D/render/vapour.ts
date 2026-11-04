@@ -46,6 +46,14 @@ export function holeWidth(hole: Hole, age: number): number {
     return Math.max(0, lined(hole.patched) - Math.max(hole.closing, PATCH_SPEED) * (age - hole.patched));
 }
 
+/** How old a hole is when it closes, or below nought if it never does. */
+export function holeClosedAt(hole: Hole): number {
+    const sealed = hole.floor <= 0 && hole.closing > 0 ? hole.opened / hole.closing : Infinity;
+    if (!(hole.patched >= 0) || hole.patched >= sealed) return sealed < Infinity ? sealed : -1;
+    const left = Math.max(hole.floor, hole.opened - hole.closing * hole.patched);
+    return hole.patched + left / Math.max(hole.closing, PATCH_SPEED);
+}
+
 /** How far the vapour from a hole this wide, leaking this fast, is seen to reach. */
 export function vapourLength(width: number, rate: number): number {
     return Math.max((width * VAPOUR_LEAST_LENGTH) / 2, VAPOUR_LENGTH * Math.sqrt(rate));

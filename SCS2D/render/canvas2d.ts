@@ -95,6 +95,7 @@ import { clipToStart, exposureEnds, flashSamples, shutterWeight } from "./exposu
 import { flameSprite, rgba, sprite, WEDGE_HEADROOM, WEDGE_STEPS, wedgeBox, wedgeSprite } from "./sprites.js";
 import { drawGlows, Lights, type Transform } from "./glows.js";
 import { leakSpeed } from "../sim/fuel.js";
+import { LEAK_LINGER } from "../sim/snapshot.js";
 import { eachPuff, type Hole, type Pose, type Puff } from "./vapour.js";
 import { Poses } from "./poses.js";
 import { bit, bitCount, seedOf, spark, sparkColour, sparkCount, sparkFade, sprayOf, type Bit, type Spark } from "./particles.js";
@@ -1289,6 +1290,10 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
     let batch: ReturnType<PixiCanvas["particles"]> | null = null;
     for (let k = 0; k < xs.length; k++) {
         const width = ship.leakWidth![k]!;
+        const age = ship.leakAge?.[k] ?? LONG_OPEN;
+        // Shut, or with nothing left behind it, long enough for its vapour to have drifted off: only its mark is left.
+        const closed = ship.leakClosed?.[k];
+        if (closed !== undefined && !(ship.leakRate![k]! > 0) && !(closed >= 0 && age - closed < LEAK_LINGER)) continue;
         // What the hole has been, or, for a picture that does not say, as it is now and always was.
         hole.opened = ship.leakOpened?.[k] ?? width;
         hole.closing = ship.leakClosing?.[k] ?? 0;
@@ -1296,7 +1301,6 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
         hole.patched = ship.leakPatched?.[k] ?? -1;
         const fill = ship.leakFill?.[k] ?? 1;
         const speed = ship.leakSpeed?.[k] ?? leakSpeed(fill);
-        const age = ship.leakAge?.[k] ?? LONG_OPEN;
         const dx = ship.leakDirX![k]!;
         const dy = ship.leakDirY![k]!;
         batch ??= batches.call(ctx, image, false);

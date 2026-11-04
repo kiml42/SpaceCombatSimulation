@@ -14,6 +14,13 @@ import { fittingOf } from "./rebuild.js";
 
 /** Seconds a closed hole is still pictured, for the vapour it let out to drift off. */
 export const LEAK_LINGER = 2;
+/** Seconds the scratches round a patched hole take to fade. A hole its lining sealed keeps them. */
+export const LEAK_SCRATCH_FADE = 3;
+
+/** Leaking, or closed so lately that what it let out is still drifting off. */
+function venting(leak: { rate: number; age: number; closed: number }): boolean {
+    return leak.rate > 0 || (leak.closed >= 0 && leak.age - leak.closed < LEAK_LINGER);
+}
 
 /**
  * A read-only picture of the world, for anything outside the simulation to
@@ -201,8 +208,9 @@ export interface ShipView {
     /** How full each module is of charge, 0 to 1, and 1 for one that holds none. */
     charge?: number[];
     /**
-     * Holes fuel is leaking from, body frame: where each is, the way the fuel
-     * leaves, how wide the hole is, and how fast it is going out, kg/s. On the
+     * Holes in what holds fuel, body frame: where each is, the way the fuel
+     * leaves, how wide the hole is, and how fast it is going out, kg/s. Kept
+     * after a hole closes while its scratches show (`LEAK_SCRATCH_FADE`). On the
      * first ship riding a body only, so a hull's leaks are drawn once.
      */
     leakX?: number[];
@@ -220,6 +228,9 @@ export interface ShipView {
     leakFloor?: number[];
     leakPatched?: number[];
     leakFill?: number[];
+    /** The module each hole is in, and how old it was when it closed (below nought while open). */
+    leakModule?: number[];
+    leakClosed?: number[];
     /**
      * Whether the ship still has a core with control in it (§4).
      *
@@ -666,12 +677,14 @@ export function capture(
         const lf = (view.leakFloor ??= []);
         const lp = (view.leakPatched ??= []);
         const lq = (view.leakFill ??= []);
+        const lm = (view.leakModule ??= []);
+        const lz = (view.leakClosed ??= []);
         lx.length = ly.length = ldx.length = ldy.length = lw.length = lr.length = la.length = ls.length = 0;
-        lo.length = lc.length = lf.length = lp.length = lq.length = 0;
+        lo.length = lc.length = lf.length = lp.length = lq.length = lm.length = lz.length = 0;
         if (ships.ownsBody(i)) {
             for (const leak of ships.fuel.leaksOf(b)) {
-                // Leaking, or closed so lately that what it let out is still drifting off.
-                if (!(leak.rate > 0) && !(leak.closed >= 0 && leak.age - leak.closed < LEAK_LINGER)) continue;
+                // Until its scratches have faded, once patched; for good, if not.
+                if (leak.patched >= 0 && leak.age - leak.patched >= LEAK_SCRATCH_FADE && !venting(leak)) continue;
                 const m = design.modules[leak.module];
                 if (m === undefined) continue;
                 const c = cos(m.angle);
@@ -690,6 +703,8 @@ export function capture(
                 lf.push(leak.liningFloor);
                 lp.push(leak.patched);
                 lq.push(fill);
+                lm.push(leak.module);
+                lz.push(leak.closed);
             }
         }
         const drawn = (view.drawn ??= []);
