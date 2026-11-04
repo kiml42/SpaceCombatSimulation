@@ -141,19 +141,9 @@ an entry is either still open or it is gone.
       modules' are: a fighter flies at a thick module's height, so never over one. A
       shadow needs only the outline, so the fighters themselves stay drawn where they are, over robots and
       decks; the longer offset is what leaves the shadow apart from the fighter, so it reads as flying.
-    - **Later passes**, roughly in order:
-        - **Contact shading** where thin meets thick: a narrow darkening along the step, the job the old
-          Canvas2D seams did by accident.
-        - **Bevels and curves.** Edges lit by how they face the light, and curved modules (bells, turret
-          discs) shaded across. Done properly, it is a normal for each module from its shape and a lighting
-          filter over the hull; edges tinted per frame is the cheap version.
-        - **Dynamic lights.** Engines, explosions and beam impacts as soft glows drawn into a light buffer,
-          which the lit layers are multiplied by on top of the ambient. Beams and plumes light as **line
-          sources**: a glow stretched along the beam or flame, bright along its length and falling off to
-          the sides, a plume fading towards its tip as the flame does.
-        - **Shadows from dynamic lights**, last and limited: only the brightest lights (explosions, perhaps
-          beams) cast them, over a short range, since every light's shadow costs that light times what is
-          near it. A line source's shadow is the hardest of these and may never be worth it.
+    - **Later passes**, in the order and form item 7 of stage (5) sets out below: contact shading, leaks in
+      shadow, dynamic lights, then lights shading bevels and rounded parts, and last and limited, shadows
+      from dynamic lights.
     - **Lighting is the battle's**, render-only, so it never changes a result, but kept with a battle so a
       replay or export looks as it did. Scenarios set it; the skirmish draws a new one each round, so each
       round is somewhere new; evolution may draw one per match, which matters little.
@@ -439,10 +429,7 @@ an entry is either still open or it is gone.
           narrowing a hole shrinks the plume back into the hole (the Effects page's Leaks scene shows
           both), where the fuel already out should drift on and thin while the source narrows. Vapour
           particles that each carry the rate their fuel left at do that without asking the sim for anything more.
-        - **Leaks in shadow**, with the vapour particles: vapour hangs above the deck, so a thick module's
-          shadow should darken it where it passes through, and the hull layer's shadows, drawn underneath,
-          cannot reach it. Each particle asking whether it is in a thick module's shadow is the cheap way;
-          shadows cast at the vapour's own height belong with step 7's shadows from dynamic lights.
+        - **Leaks in shadow** were left over from the vapour particles, and are item 7's second step.
         - **A space look**: sparks and metal fly straight and fade; vapour comes only from leaks, spreading
           and thinning; no smoke and no lingering fireball.
         - **Zoom** as bevels and scars: a particle under a pixel is not drawn; glows keep a pixel floor, as
@@ -499,7 +486,42 @@ an entry is either still open or it is gone.
           hulls and curve in the wells, which a formula of age cannot do. Never larger than the size below
           which a module is not kept, looking like twisted metal so it is never taken for a module, and
           never kept for good.
-    7. **The later lighting passes**, above, starting with the dynamic lights.
+    7. **The later lighting passes.** Settled with the author on 2026-11-04 (DECISIONS.md). Each is its own
+       pull request, in this order:
+        1. **Contact shading** where thin hull meets a thick module: a narrow darkening on the thin hull
+           along the foot of each thick module's bevelled edge, whichever way the light comes from, the job
+           the old Canvas2D seams did by accident. Found from the same edges as the bevels
+           (`render/bevels.ts`), so it is worked out once per design, kept through severing, and skipped
+           under a pixel wide, as they are. Its width and depth are to be set by eye on the Effects page.
+        2. **Leaks in shadow.** Vapour hangs above the deck, so a thick module's shadow darkens it where
+           it passes through, and the hull layer's shadows, drawn underneath, cannot reach it. Each puff
+           asks whether it lies in one of its own ship's thick modules' shadows (the same swept outlines
+           the hull layer draws, tested against the module's box first), and is drawn at the ambient share
+           of the light where it does. Another ship's shadow on the vapour waits on shadows cast at the
+           vapour's height, with the shadows from dynamic lights.
+        3. **Dynamic lights.** Engines, flashes, bursts, muzzle flashes, beams and plumes light what is
+           near them, read from the one list of sources (`render/glows.ts`), so a light is still defined
+           once.
+            - **A light buffer at half resolution**, since light is soft: each frame the list is drawn
+              into a render texture, additively, as the glows are now, but without their pixel floor.
+            - **What it lights is the hull and the fighters**: the thin and thick layers, rock, and the
+              fighters drawn through the adapter. Each is drawn a second time, sharing its geometry, through
+              a filter that multiplies its colour by the buffer where it lies on screen, and added over the
+              scene. So a hull takes its own colour from the light, brightest beside an engine, and its
+              shadowed side lights up too. Empty space is not lit; the glows' halos there stay as they are,
+              and whether they should still be drawn over a hull is judged by eye.
+            - **Vapour and metal too**, as they are cheap: each puff and bit adds the light it is in,
+              worked out from the list itself at its position rather than read back from the buffer, so
+              nothing waits on the GPU. Only sources within reach are counted, found by their boxes.
+            - **Never lit**: gauges, icons, names, selection, orders and arcs, as with the battle's light.
+        4. **Recorded for later: lights shading bevels and rounded parts.** A light beside a ship should
+           brighten the bevels and the sides of bells, barrels and domes that face it, as the battle's light
+           does. Each needs every light's direction at each edge, so it waits until the dynamic lights have
+           been seen working.
+        5. **Shadows from dynamic lights**, last and limited: only the brightest lights (bursts, perhaps
+           beams) cast them, over a short range, since every light's shadow costs that light times what is
+           near it. A line source's shadow is the hardest of these and may never be worth it. Vapour's own
+           shadows, cast at its height, belong here too.
 
     Open: **decals**, placed in the editor on particular designs. Some way off.
 
