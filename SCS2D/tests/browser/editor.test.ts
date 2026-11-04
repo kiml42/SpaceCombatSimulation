@@ -1254,6 +1254,15 @@ describe("the editor in a browser", () => {
         expect(await page.textContent("#ship")).not.toMatch(/\(stock\)/);
     });
 
+    it("reopens the ship it had open after a reload, as it was saved", async () => {
+        await openShip(page, "Dinky");
+        expect(new URL(page.url()).hash).toBe("#/ship?open=Dinky");
+        await page.reload();
+        await page.waitForFunction(() => (document.getElementById("stats")?.textContent ?? "").includes("Endurance"));
+        expect(await page.inputValue("#shipName")).toBe("Dinky");
+        await openShip(page, "Corvette");
+    });
+
     it("clears the editor when a ship is deleted, and gives it back on undo", async () => {
         await openShip(page, "Corvette");
         await page.click("#duplicateShip");

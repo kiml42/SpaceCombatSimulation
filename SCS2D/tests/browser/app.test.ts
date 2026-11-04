@@ -68,7 +68,7 @@ it("opens an editor's fleet on the Battle route, from its link or an old one, pa
         await page.waitForFunction(() => document.querySelectorAll("#fleetSlots .slot").length === 1, null, { timeout: 10_000 });
         expect(await page.locator("#fleetSlots option:checked").textContent()).toMatch(/\(from the editor\)$/);
         expect(await page.textContent("#play")).toBe("Play");
-        expect(new URL(page.url()).hash).toBe("#/battle");
+        expect(new URL(page.url()).hash).toBe("#/battle?scene=custom");
         expect(problems).toEqual([]);
         await page.close();
     }

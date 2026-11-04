@@ -298,6 +298,13 @@ const BURST_BRIGHTNESS = 1.5;
 const FLASH_GLOW_SHARE = 2.2;
 /** A muzzle flash's glow, in its core's widths: tight, so the wedge keeps its shape. */
 const MUZZLE_GLOW_SHARE = 1.5;
+/**
+ * How much brighter than its wedge's glow a muzzle flash is as light, at the
+ * muzzle itself: a small, very bright point, whose light reaches back along a
+ * barrel of 40 to 50 calibres to the front of the gun's block as the flash
+ * leaves, and less far as it fades.
+ */
+const MUZZLE_TIP_BRIGHTNESS = 4;
 /** A hit's cone, in a muzzle flash's radii of the same size: a little shorter, as it opens off a face rather than out of a barrel. */
 const HIT_CONE_SHARE = 0.6;
 /** The hot spot where a hit struck, as a share of its flash's size. */
@@ -2126,8 +2133,32 @@ export function draw(
     /** The light rounded parts are shaded by; flat without one. */
     light?: Light,
 ): void {
-    drawScene(ctx, snapshot, camera, 0, 0, widthPx, heightPx, flashes, arcs, teamShots, selected, alsoSelected, marked, underneath, light);
+    seenLights.clear();
+    drawScene(
+        ctx,
+        snapshot,
+        camera,
+        0,
+        0,
+        widthPx,
+        heightPx,
+        flashes,
+        arcs,
+        teamShots,
+        selected,
+        alsoSelected,
+        marked,
+        underneath,
+        light,
+        seenLights,
+    );
 }
+
+/**
+ * Every light the last view `draw` drew gave off, in its canvas pixels: what
+ * lights the hulls near them (`render/lightBuffer.ts`). Not a close-up's.
+ */
+export const seenLights = new Lights();
 
 /** Modules of one ship to outline: the mounts a doctrine is being told to. */
 export interface Marked {
@@ -2208,6 +2239,8 @@ function drawScene(
     marked: Marked | null = null,
     underneath = false,
     light?: Light,
+    /** Where to keep what gave off light, as well as drawing its glow. */
+    seen?: Lights,
 ): void {
     lights.clear();
     poses.record(snapshot);
@@ -2279,10 +2312,12 @@ function drawScene(
     // them, so those lighten them rather than being cut by them.
     beamLights(ctx, snapshot, camera, teamShots);
     drawGlows(ctx, lights);
+    seen?.add(lights);
     lights.clear();
     drawBeams(ctx, snapshot, camera, teamShots);
     if (flashes !== undefined) drawFlashes(ctx, snapshot, flashes, camera, light);
     drawGlows(ctx, lights);
+    seen?.add(lights);
     lights.clear();
     shownBox.halfW = Infinity;
     shownBox.halfH = Infinity;
@@ -3000,6 +3035,15 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
         let total = 0;
         for (let k = 0; k < n; k++) total += n === 1 ? 1 : shutterWeight((k + 0.5) / n);
         const overlapping = travelPx > widestPx ? widestPx / travelPx : 1;
+        // A muzzle flash's light: one small point at the muzzle, far brighter than
+        // its wedge's glow, so it reaches back along the barrel to the gun's own
+        // block, furthest as the flash leaves and less as it fades. Unseen: the
+        // wedge is how it looks, and lights nothing itself.
+        if (pointing) {
+            const tip = max(muzzleWedge(radius, age, lifetime).backWidth * MUZZLE_GLOW_SHARE, floor);
+            const shine = flashFade(age, lifetime) * WEDGE_GLOW * MUZZLE_TIP_BRIGHTNESS;
+            lights.line(base, at.x, at.y, at.x, at.y, tip, glow, shine, false, true);
+        }
         for (let k = 0; k < n; k++) {
             const u = n === 1 ? 0.5 : (k + 0.5) / n;
             const weight = (n === 1 ? 1 : shutterWeight(u)) / (total * overlapping);
@@ -3167,6 +3211,10 @@ function drawWedge(
         reach,
         glow,
         brightness * WEDGE_GLOW,
+        false,
+        false,
+        // A muzzle's light comes from its tip; a hit's from its wedge.
+        !anchored,
     );
 }
 
