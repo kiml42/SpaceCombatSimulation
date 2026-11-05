@@ -355,6 +355,15 @@ export class Snapshot {
     impactHullVy = new Float64Array(0);
     impactCount = 0;
 
+    /** Lingering debris (`debris.ts`): where each bit is, which way it lies, how long it is, how faded, and what it is drawn from. */
+    debrisX = new Float64Array(0);
+    debrisY = new Float64Array(0);
+    debrisAngle = new Float64Array(0);
+    debrisSize = new Float64Array(0);
+    debrisFade = new Float64Array(0);
+    debrisSeed = new Uint32Array(0);
+    debrisCount = 0;
+
     /**
      * Bounding box of the *ships*, for a camera to frame.
      *
@@ -770,6 +779,26 @@ export function capture(
         b++;
     }
     out.beamCount = b;
+
+    const debris = ships.debris;
+    if (out.debrisX.length < debris.count) {
+        const size = debris.x.length;
+        out.debrisX = new Float64Array(size);
+        out.debrisY = new Float64Array(size);
+        out.debrisAngle = new Float64Array(size);
+        out.debrisSize = new Float64Array(size);
+        out.debrisFade = new Float64Array(size);
+        out.debrisSeed = new Uint32Array(size);
+    }
+    for (let i = 0; i < debris.count; i++) {
+        out.debrisX[i] = debris.x[i]!;
+        out.debrisY[i] = debris.y[i]!;
+        out.debrisAngle[i] = debris.angle[i]!;
+        out.debrisSize[i] = debris.size[i]!;
+        out.debrisFade[i] = debris.fade(i);
+        out.debrisSeed[i] = debris.seed[i]!;
+    }
+    out.debrisCount = debris.count;
 
     // Drained, not copied: every impact is shown once, whatever the frame rate.
     out.impactCount = 0;

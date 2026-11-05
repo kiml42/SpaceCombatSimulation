@@ -1,3 +1,4 @@
+import { Debris } from "./debris.js";
 import { Bodies, type BodyId } from "./bodies.js";
 import {
     aboardPose,
@@ -341,9 +342,13 @@ const WRECK_STRENGTH = 0.05;
  * free armour (§4). It is not conserved in the world: a shard this small is
  * too broken up to be worth going after and too light to be worth avoiding,
  * so tracking it buys nothing. What is discarded is counted rather than
- * quietly dropped, so a salvage economy can balance its books later.
+ * quietly dropped, so a salvage economy can balance its books later, and is
+ * seen to break up into debris (`debris.ts`) rather than vanish.
+ *
+ * Above most of a fighter's modules and under every capital one, so most of
+ * a fighter's wreckage goes to debris and a capital's is kept.
  */
-const SCRAP_MASS = 300;
+const SCRAP_MASS = 2000;
 
 /**
  * How far past the fighting a piece has to drift before it stops being worth
@@ -1024,6 +1029,8 @@ export class Ships {
      * `Projectiles.step`, which the caller drives, so that one is handed this.
      */
     readonly hulls = new Hulls(this);
+    /** The twisted metal pieces too small to keep become: only drawn, changing nothing (`debris.ts`). */
+    readonly debris = new Debris();
 
     /**
      * The same, for beams and plumes, which get through what they have already
@@ -8906,6 +8913,9 @@ export class Ships {
             if (!away && !(looking && this.loose(world, i, b))) continue;
 
             const mass = bodies.mass[b]!;
+            // A loose piece goes where it can be seen, so it breaks up rather than vanishing.
+            if (!away)
+                this.debris.emit(bodies.x[b]!, bodies.y[b]!, bodies.vx[b]!, bodies.vy[b]!, bodies.angularVel[b]!, mass, bodies.radius[b]!);
             this.discarded += mass;
             this.discardedPx += mass * bodies.vx[b]!;
             this.discardedPy += mass * bodies.vy[b]!;
@@ -9474,6 +9484,8 @@ export class Ships {
             // Whatever it would have left with, had it been worth putting there.
             const vx = bodies.vx[b]! - spin * offset.y;
             const vy = bodies.vy[b]! + spin * offset.x;
+            // Seen to break up rather than vanish.
+            this.debris.emit(bodies.x[b]! + offset.x, bodies.y[b]! + offset.y, vx, vy, spin, mass, chunk.radius);
             this.discardedPx += mass * vx;
             this.discardedPy += mass * vy;
             // Its inertia taken as its full design's, scaled to what it weighs.

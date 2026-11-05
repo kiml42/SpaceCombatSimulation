@@ -246,6 +246,9 @@ export function makeBattle<Extra extends object = Record<never, never>>(
             // a gun and answers to the same rebuilt index.
             ships.scorch(world, grid, dt);
             projectiles.step(dt, world.bodies, grid, hits, wells, ships.hulls, world.rng);
+            // Debris flies on, made only while a viewer is watching and changing nothing.
+            ships.debris.watched = impacts.log.watched;
+            ships.debris.step(dt, world.bodies, grid, ships.hulls, wells);
             impacts.bursts(projectiles);
             this.totalBeamHits += beamHits.count;
             // What the hits did. Rounds walk the modules along their path, a step's
