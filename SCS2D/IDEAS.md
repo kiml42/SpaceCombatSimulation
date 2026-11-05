@@ -27,6 +27,8 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Robot arms on Slipways to make them hold the ship they're creating (just cosmetic to explain how it's staying put)
 - Robots don't need to spread out on a module they're just passing over, they should travel a somewhat efficient route, and only spread out a bit if they would get in each other's way.
 - Ships often shoot at an asteroid that has one of their enemies crashed onto it.
+- In a large collision allow a module to be broken into pieces. E.g. in Crash the long module on teh centreline of the ISD could be split in two, and the front disintegrated, and the back wrecked, ideally with a ragged front.
+- Crashing two big ships together (e.g. two ISDs) feels rather bouncy, they should crumple, absorbing energy so they slow down more than they bounce off sideways. THis might lead to a ram welding two large ships together, which could be pretty cool.
 
 ## Editor
 - (maybe) Allow dragging copies (when a module or assembly is set to be repeated) to set the offset (might get complicated with more than 2, so might need to restrict to the second one)
