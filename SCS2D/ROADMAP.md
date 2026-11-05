@@ -26,6 +26,10 @@ work has to respect.
   `area:` labels (`sim`, `weapons`, `pilot`, `doctrine`, `economy`, `evolution`, `editor`, `fleet-editor`,
   `battle-ui`, `render`, `livery`, `skirmish`, `campaign`). `idea` marks something recorded but not
   committed to.
+- **Priority and size**, at most one of each; none means not yet judged. `priority:high`, `priority:medium`
+  or `priority:low` is how much it matters, judged on its own. `size:small` is a session's work in one
+  area, `size:medium` a pull request or two, and `size:large` several, or new mechanism with design
+  still to settle. `priority:high` with `size:small` is the quick win.
 - **A step in progress is a parent issue**, what is left of it its sub-issues.
 - **A `question` closes with its answer in DECISIONS.md**, in the same change that settles it; the PR says
   `Closes #n`. An open issue reads as still open, so a settled one left open invites it to be re-litigated.
