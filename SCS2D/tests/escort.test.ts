@@ -346,6 +346,8 @@ describe("an escort and a friend that has lost control", () => {
             const h = ships.spawn(world, { design: hulk, x: 800, y: 0, team: 0 });
             const b = world.bodies.indexOf(ships.body(h));
             ships.damage.absorb(b, hulk.cores[0]!, hulk.modules[hulk.cores[0]!]!.stats.hitPoints * 1000 * 5);
+            // Shot out before it begins, not in one blow now, which would shatter it.
+            ships.damage.clearStep();
             return { e, h };
         });
         for (let s = 0; s < 120 * 60; s++) run.step();
