@@ -498,10 +498,29 @@ an entry is either still open or it is gone.
                impact log's), so a headless run pays nothing. A piece the sim does not keep breaks up
                rather than vanishing: one too light to be made when it is severed (`SCRAP_MASS`), and loose
                wreckage let go out of everyone's way (`LOOSE_MASS`); wreckage drifted far off is let go
-               unseen as before. It breaks into a bit for every 25 kg, up to 24, each of its share of the
-               mass at 300 kg/m³, no longer than 1.5 m (`DEBRIS_LONGEST`) so it is never taken for a
-               module, from somewhere in the piece with the velocity that point had and a kick of up to
-               3 m/s, tumbling. Each step a bit is pulled by the wells and cast along its way through the
+               unseen as before. It breaks into bits that between them cover 0.4 of its footprint, so a
+               capital module leaves a field of wreckage rather than a handful of confetti: a few large
+               and many small, the longest half the side of a square of its footprint and no longer than
+               6 m (`DEBRIS_LONGEST`), up to 400 a piece (about 20 for a fighter's, 140 for a Star
+               Destroyer's bow triangle), each from somewhere inside its module's outline with the velocity that
+               point had and a kick of up to 3 m/s, tumbling. A bit carries its module's side, and two in five
+               keep their paint, drawn in that side's hull colour a little weathered; rock is never painted.
+               One born in a blast (a module shattered, or a piece too small to keep blown off) glows
+               white-hot and cools through orange in 0.4 s (`DEBRIS_HOT`), its glow reaching three times its
+               length, so between them they cover the module and it flashes rather than turning into
+               pieces between frames; a loose wreck let go is not blown apart, and does not. A module
+               shattered is thrown too: 5% of the blow's energy (`THROW_SHARE`) over its mass gives a speed,
+               up to 60 m/s, about 17 m/s for one just shattered. Where the blow came from somewhere, as a
+               round's or a crush's does, each bit is thrown at up to that speed along the blow's line and
+               half that across it, and pushed away from where it struck near it and towards it at the far
+               side, by up to three-quarters of it: what was at the impact rebounds off what struck it, and
+               what was furthest from it has not been stopped when the module comes apart. `Damage` keeps
+               each blow's point and line in the step's account for this (`struck`). A beam's, from
+               nowhere in particular, throws evenly. The store
+               grows as it fills, to 4,096. A bit looks
+               eight steps ahead and casts again only once that is spent or something is in its way, since a
+               cast through a capital hull tests every module in it: the Crash scene's 1,100 bits cost
+               about 3 ms a step. Each step a bit is pulled by the wells and cast along its way through the
                grid and the hulls' narrow phase, as a round is, bouncing off the first hull or rock it
                meets (keeping 0.4 of its speed into it, 0.7 along it, off the hull's own velocity there);
                bits do not meet each other, and nothing feels them. Each lasts 30 to 60 s, fading over its
@@ -515,10 +534,26 @@ an entry is either still open or it is gone.
                pieces are made at all now; and in Rival Mines a Dinky shot down to its core, engines and
                tank comes home and burns against its Replicator's hull for the rest of the battle rather
                than landing, a crippled landing the new path exposes rather than causes.
-            3. **Shattering**: any module that takes more than a multiple of what breaks it in one step
-               (3 to start) is removed, its mass counted as discarded and broken into debris, the hull's
-               connectivity looked at again, so it may sever, and robots rebuilding it as any module lost.
-               It amends §4's "destruction is a state change, not a removal". Goldens move.
+            3. **Shattering — built.** Any module that takes more than `SHATTER` (3) times what breaks it
+               in one step is removed, its mass and what it held counted as discarded and broken into
+               debris, and the rest of the hull split into the parts still welded together without it, so
+               it may sever; a hull of nothing else goes. `Damage` totals what each module hit takes in a
+               step; `Ships.sever` shatters first, through the same `breakUp` as a cut, with the shattered
+               mass discarded inside it so the piece that stays takes up no momentum for it. Robots
+               rebuild a shattered module as any module lost. Not for a body more than one ship rides.
+               A collision's crush stopped at what each module could still absorb, so it never shattered
+               anything, and it ran the whole length of the hull. Now a module passes on inward no more
+               than it could take itself (`CRUSH_PASS`), and what it cannot pass on crumples it, as far
+               as shattering it: the front gives way and spares what is behind. The Crash scene (a Star
+               Destroyer into a major asteroid at 20 m/s) shows it: the first contact shatters the two
+               bow triangles and slows it, and it drives on through the engine and then the structure
+               and first turret behind, slower each time, until it comes to rest against the rock, the
+               hull 450 m back untouched. The bow is very light beside the ship, so crumpling it hardly
+               slows it: what stops it is the rock, layer by layer.
+               DESIGN.md §4 is amended. The Rival Mines, Super Swarm, Torpedoes and Line Ahead goldens
+               moved: more scrap and fewer ships at the end, as modules are blown away rather than kept as
+               wreckage (Line Ahead 19 ships to 15, its scrap 177 t to 229 t); and Rival Mines' Dinky no
+               longer ends up against its Replicator.
     7. **The later lighting passes.** Settled with the author on 2026-11-04 (DECISIONS.md). Each is its own
        pull request, in this order:
         1. **Leaks in shadow — built** (`render/blocks.ts`). Vapour hangs above the deck, so a thick

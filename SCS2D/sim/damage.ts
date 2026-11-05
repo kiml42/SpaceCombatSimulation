@@ -39,6 +39,17 @@ import { COMPLEXITY_WORK, EXPLOSIVE_YIELD, FUEL_DENSITY, FUEL_DRAG_COEFFICIENT, 
 export const DAMAGE_ENERGY_PER_KG = 1000;
 
 /**
+ * How many times what breaks it a module takes in a single step to shatter:
+ * blown apart, gone from its hull, its mass discarded and broken into debris
+ * rather than kept as wreckage (`Ships.sever`). Any module, whatever its kind
+ * or size.
+ */
+export const SHATTER = 3;
+
+/** The most a module carries on inward from a crush, as a share of what it can take itself. */
+const CRUSH_PASS = 1;
+
+/**
  * The share of a module's dry mass damage has boiled or shredded off by the
  * time it stops working. It goes on shedding at the same rate past that.
  */
@@ -292,6 +303,24 @@ export class Damage {
     private readonly unsettledBodies: number[] = [];
     /** Where the hits that mattered landed, for drawing only: no checksum reads it. */
     readonly scars = new Scars();
+    /**
+     * What each module hit this step has taken in it, by body and module, for
+     * shattering one that took far more than breaks it (`Ships.sever`).
+     */
+    readonly stepBody: number[] = [];
+    readonly stepModule: number[] = [];
+    readonly stepJoules: number[] = [];
+    /**
+     * Where the blows on it landed and which way they drove, in the hull's frame
+     * from its centre of mass: sums weighted by each blow's joules, and that
+     * weight. Only blows that come from somewhere are counted: a round, a crush.
+     */
+    readonly stepX: number[] = [];
+    readonly stepY: number[] = [];
+    readonly stepDx: number[] = [];
+    readonly stepDy: number[] = [];
+    readonly stepStruck: number[] = [];
+    stepCount = 0;
 
     /**
      * Give a body a damage record, sized from its design.
@@ -401,6 +430,7 @@ export class Damage {
         const capacity = this.capacity[bodyIndex]![module]!;
         const before = shedShare(absorbed[module]!, capacity);
         absorbed[module] += joules;
+        this.takenThisStep(bodyIndex, module, joules);
         this.versions[bodyIndex] = (this.versions[bodyIndex] ?? 0) + 1;
         const kg = (shedShare(absorbed[module]!, capacity) - before) * this.dry[bodyIndex]![module]!;
         if (!(kg > 0)) return;
@@ -408,6 +438,52 @@ export class Damage {
         this.shedSpin[bodyIndex] = this.shedSpin[bodyIndex]! + kg * this.spin[bodyIndex]![module]!;
         if (!(this.unsettled[bodyIndex]! > 0)) this.unsettledBodies.push(bodyIndex);
         this.unsettled[bodyIndex] = this.unsettled[bodyIndex]! + kg;
+    }
+
+    /** Add `joules` to what module `module` of body `bodyIndex` has taken this step. */
+    private takenThisStep(bodyIndex: number, module: number, joules: number): void {
+        const k = this.stepEntry(bodyIndex, module);
+        this.stepJoules[k] = this.stepJoules[k]! + joules;
+    }
+
+    /** The step's account of module `module` of body `bodyIndex`, opened if it has none. */
+    private stepEntry(bodyIndex: number, module: number): number {
+        for (let k = 0; k < this.stepCount; k++) if (this.stepBody[k] === bodyIndex && this.stepModule[k] === module) return k;
+        const k = this.stepCount++;
+        this.stepBody[k] = bodyIndex;
+        this.stepModule[k] = module;
+        this.stepJoules[k] = 0;
+        this.stepX[k] = 0;
+        this.stepY[k] = 0;
+        this.stepDx[k] = 0;
+        this.stepDy[k] = 0;
+        this.stepStruck[k] = 0;
+        return k;
+    }
+
+    /**
+     * Note that a blow of `joules` struck module `module` of body `bodyIndex`
+     * at `(x, y)` driving along `(dx, dy)`, both in the hull's frame: for which
+     * way a module it shatters is thrown.
+     */
+    struck(bodyIndex: number, module: number, x: number, y: number, dx: number, dy: number, joules: number): void {
+        if (!(joules > 0)) return;
+        const k = this.stepEntry(bodyIndex, module);
+        this.stepX[k] = this.stepX[k]! + x * joules;
+        this.stepY[k] = this.stepY[k]! + y * joules;
+        this.stepDx[k] = this.stepDx[k]! + dx * joules;
+        this.stepDy[k] = this.stepDy[k]! + dy * joules;
+        this.stepStruck[k] = this.stepStruck[k]! + joules;
+    }
+
+    /** Start a new step's account of what each module has taken. */
+    clearStep(): void {
+        this.stepCount = 0;
+    }
+
+    /** Joules a module can take before it stops working, or 0 for one with no record. */
+    capacityOf(bodyIndex: number, module: number): number {
+        return this.capacity[bodyIndex]?.[module] ?? 0;
     }
 
     /** What damage has shed from a body, kg. */
@@ -799,11 +875,11 @@ function shove(bodies: Bodies, body: number, jx: number, jy: number, px: number,
  * runs out — which is why a ram crushes a nose in rather than putting a neat
  * hole through a ship.
  *
- * Each module takes what it can still absorb and the rest carries on to
- * whatever is behind it, so a blow far past what the outer plating can hold
- * reaches deeper rather than being thrown away. That is the one place this
- * differs from a round, which spends what its armour stopped and loses the
- * rest: there is no plate here to stop anything, only structure to fold.
+ * Each module takes what it can still absorb and passes the rest on to what
+ * is behind it, but never more than it could take itself: past that it
+ * crumples, as far as being shattered, and what it cannot pass on is spent
+ * folding it. So a blow the front can hold reaches a little deeper, and one
+ * far past it takes the front away and spares the rest of the ship.
  *
  * `(nx, ny)` points **into** the hull being crushed, world frame.
  */
@@ -857,15 +933,24 @@ export function resolveCollision(
         // metal the cast crossed on its way in is on the other side of the ship.
         if (path.exit[k]! <= reach) continue;
         const module = path.module[k]!;
-        const capacity = damage.capacityLeft(bodyIndex, module);
-        if (!(capacity > 0)) continue;
-        const take = min(capacity, left);
-        damage.absorb(bodyIndex, module, take);
-        // Where the crush reached it: the contact, or its face if deeper in.
-        const at = max(path.entry[k]!, reach) - reach;
-        damage.scar(bodyIndex, module, SCAR_GOUGE, px + ux * at, py + uy * at, px + ux * at, py + uy * at, gx, gy, take);
-        left -= take;
-        spent += take;
+        // A kernel takes nothing and is not crumpled: the crush stops at it.
+        if (damage.kindAt(bodyIndex, module) === "kernel") break;
+        const whole = damage.capacityOf(bodyIndex, module);
+        // What it can still absorb, then what it cannot pass on, crumpling it, as
+        // far as shattering it: no module carries more on inward than it could
+        // take itself, so the front gives way and what is behind it is spared.
+        let take = min(damage.capacityLeft(bodyIndex, module), left);
+        const through = min(left - take, CRUSH_PASS * whole);
+        take += min(left - take - through, max(0, SHATTER * whole - take));
+        if (take > 0) {
+            damage.absorb(bodyIndex, module, take);
+            // Where the crush reached it: the contact, or its face if deeper in.
+            const at = max(path.entry[k]!, reach) - reach;
+            damage.scar(bodyIndex, module, SCAR_GOUGE, px + ux * at, py + uy * at, px + ux * at, py + uy * at, gx, gy, take);
+            damage.struck(bodyIndex, module, px + ux * at, py + uy * at, ux, uy, take);
+            spent += take;
+        }
+        left = through;
     }
     return spent;
 }
@@ -1120,6 +1205,7 @@ function walkRound(
                 }
             }
             if (scarKind !== 0) {
+                damage.struck(bodyIndex, module, ox + ux * at, oy + uy * at, ux, uy, hit.energy);
                 const through = hit.outcome === Terminal.Perforate;
                 const end = through ? path.exit[k]! - reach : at;
                 damage.scar(

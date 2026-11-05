@@ -25,6 +25,8 @@ describe("a hull taking damage", () => {
             const body = world.bodies.indexOf(ships.body(a));
             const capacity = corvette.modules[module]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG;
             ships.damage.absorb(body, module, capacity * breaks);
+            // Damaged before it begins, not in one blow now, which would shatter it.
+            ships.damage.clearStep();
             return { a };
         });
         run.step();

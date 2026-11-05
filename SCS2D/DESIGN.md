@@ -1587,6 +1587,10 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   through a ship. Half to each hull, which needs no rule about which is the harder: a module's capacity
   goes with its mass, so the same energy that dents a capital ship destroys the fighter that flew into
   it. That is what makes §3's strike craft literal — a torpedo is a fighter that crashes into things.
+  **No module passes on more than it could take itself**: past that it crumples, as far as being
+  shattered, so a blow far past what the front can stand takes the front away and spares what is behind
+  it. A capital ship driven into a rock loses its bow at the first contact, slows, and drives on through
+  the next layer and the next until it comes to rest, rather than bouncing off dented.
 - **A hull weapon is a block with a barrel out of the front of it**, which is an engine the other way
   round and answers the same questions the same way. The block is the breech and the loading gear, or
   the bank and the plant; it is what has walls, an interior and hit points, and it is the only part
@@ -1740,7 +1744,8 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   it can be seen is not seen to vanish: it breaks up into **debris**, bits of twisted metal that tumble,
   bounce off hulls and curve in the wells for half a minute or so and fade, only drawn and changing
   nothing (`sim/debris.ts`).
-- **Destruction is a state change, not a removal, and costs a module only some of its matter.** A
+- **Destruction is a state change, not a removal, and costs a module only some of its matter** — unless
+  it is **shattered**, below. A
   "destroyed" module becomes *non-functional* — an engine gives no thrust, a magazine holds no rounds, a
   turret does not fire — but it keeps its place in the layout, its ability to stop a shell, and **at least
   half its mass**. Damage boils a little off with a beam's heat or shreds it away with a shell, so a module
@@ -1753,13 +1758,21 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   of its matter would be a lie on screen, and a ship hit harder than another would have to look the same.
   It can go lower once a module can be drawn with holes in it.
 
+  **A module shatters** when it takes more than `SHATTER` (3) times what breaks it in a single step:
+  blown apart rather than broken, it is gone from its hull, its mass and what it held counted as
+  discarded and broken into debris, and what is left of the hull is split into the parts still welded
+  together without it, so a shattered module can cut a ship in two; a hull that was nothing else goes
+  altogether. Any module, whatever its kind or size. Robots rebuild it as any module lost. So the rule
+  above holds for damage taken a little at a time, and a blow far past what a module can stand takes it
+  away, as the eye expects.
+
   This is worth more than its realism:
 
   - **Wrecked structure is free armour**, which is exactly right. A mission-killed capital is a drifting
     hulk that still soaks rounds, so the mission-kill/kill distinction in §3 gets teeth: stripping a ship's
     function does not make it easier to finish off. Half a module still stops a shell.
-  - **Damage never changes topology.** The connectivity graph is only edited by severing, so it cannot be
-    invalidated by a hit. Mass properties are no longer that lucky: what damage sheds changes a hull's mass
+  - **Damage never changes topology**, but for shattering. The connectivity graph is only edited by
+    severing, and shattering is done as a sever, so it cannot be invalidated by a hit. Mass properties are no longer that lucky: what damage sheds changes a hull's mass
     and inertia, as spending fuel does. They are kept cheap the same way: what is shed is subtracted from
     the design's, settled at most once a step for each hull hit, and the centre of mass stays where the
     design put it. A hull that comes apart therefore holds its mass somewhere other than its design says,

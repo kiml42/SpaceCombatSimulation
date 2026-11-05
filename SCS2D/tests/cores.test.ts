@@ -122,6 +122,8 @@ describe("a ship with its core shot out", () => {
     it("is a hulk once the core is spent, sound engines and guns notwithstanding", () => {
         const s = scene(design);
         s.ships.damage.absorb(s.body, 0, 1e12);
+        // Wrecked before the test begins, not blown apart this step.
+        s.ships.damage.clearStep();
         expect(s.ships.hasControl(s.ship)).toBe(false);
         // Nothing is wrong with either of them but what would tell them what to do.
         expect(s.ships.currentStructure(s.ship).turrets).toHaveLength(1);
@@ -151,6 +153,8 @@ describe("a ship with its core shot out", () => {
     it("drifts: a ship with nothing flying it does not hold its heading", () => {
         const s = scene(design);
         s.ships.damage.absorb(s.body, 0, 1e12);
+        // Wrecked before the test begins, not blown apart this step.
+        s.ships.damage.clearStep();
         const b = s.world.bodies;
         const spin = b.angularVel[s.body]!;
         const vx = b.vx[s.body]!;
@@ -176,6 +180,10 @@ describe("a ship with its core shot out", () => {
         expect(s.ships.throttleOf(s.ship, 0)).toBeGreaterThan(0);
 
         s.ships.damage.absorb(s.body, 0, 1e12);
+
+        // Wrecked before the test begins, not blown apart this step.
+
+        s.ships.damage.clearStep();
         step();
         expect(s.ships.throttleOf(s.ship, 0)).toBe(0);
         const fuel = s.ships.fuel.left(s.body);
@@ -228,6 +236,8 @@ describe("a hull cut between its cores", () => {
         const s = scene(compileBlueprint(TWIN_CORE));
         const id = s.ships.body(s.ship);
         s.ships.damage.absorb(s.body, 0, 1e12);
+        // Wrecked before the test begins, not blown apart this step.
+        s.ships.damage.clearStep();
         cutBetween(s, 0, 1);
         expect(s.ships.sever(s.world)).toBe(1);
 

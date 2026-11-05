@@ -103,6 +103,8 @@ describe("a beam held on a hull", () => {
         // Burn it to its floor, as holed as it gets.
         const capacity = b.ships.damage.capacityLeft(b.body, outer) + b.ships.damage.absorbedAt(b.body, outer);
         b.ships.damage.absorb(b.body, outer, capacity * (SHED_FLOOR / SHED_AT_BREAK));
+        // Wrecked before the test begins, not blown apart this step.
+        b.ships.damage.clearStep();
         expect(b.ships.damage.transparency(b.body, outer)).toBe(FLOOR_TRANSPARENCY);
         const before = absorbed();
         b.fire(0);
@@ -251,6 +253,8 @@ describe("a beam through a wreck", () => {
             for (let m = 0; m < block.modules.length; m++) {
                 const capacity = ships.damage.capacityLeft(wreck, m);
                 ships.damage.absorb(wreck, m, capacity * (SHED_FLOOR / SHED_AT_BREAK));
+                // Wrecked before the test begins, not blown apart this step.
+                ships.damage.clearStep();
             }
         }
         const grid = new SpatialGrid(64);

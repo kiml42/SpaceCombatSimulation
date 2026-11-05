@@ -35,6 +35,7 @@ import { torchRun } from "../../scenarios/torchRun.js";
 import { broadside } from "../../scenarios/broadside.js";
 import { column } from "../../scenarios/column.js";
 import { split } from "../../scenarios/split.js";
+import { crash } from "../../scenarios/crash.js";
 import { swarm } from "../../scenarios/swarm.js";
 import { torpedoes } from "../../scenarios/torpedoes.js";
 
@@ -455,6 +456,15 @@ export function splitScenario(seed = 20260905): ScenarioRun {
     };
 }
 
+export function crashScenario(seed = 20260905): ScenarioRun {
+    const run = crash(seed);
+    return {
+        step: () => run.step(),
+        checksum: () => checksumDamage(run.ships.damage, checksumWorld(run.world)),
+        describe: () => describeBattle(run),
+    };
+}
+
 export function columnScenario(seed = 20260905): ScenarioRun {
     const run = column(seed);
     return {
@@ -643,6 +653,8 @@ export const SCENARIOS = {
     standoff: { steps: 3_000, build: () => standoffScenario() },
     column: { steps: 3_000, build: () => columnScenario() },
     split: { steps: 3_000, build: () => splitScenario() },
+    // Long enough for the bow to meet the rock and the wreck to come apart.
+    crash: { steps: 1_800, build: () => crashScenario() },
     torchRun: { steps: 3_000, build: () => torchRunScenario() },
     hooked: { steps: 3_000, build: () => hookedScenario() },
     broadside: { steps: 3_000, build: () => broadsideScenario() },

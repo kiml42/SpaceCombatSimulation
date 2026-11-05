@@ -100,6 +100,8 @@ describe("what parts a hull", () => {
         // wreck, not a pile of parts.
         const s = scene();
         s.ships.damage.absorb(s.body, 0, 1e12);
+        // Wrecked before the test begins, not blown apart this step.
+        s.ships.damage.clearStep();
         expect(s.ships.sever(s.world)).toBe(0);
         expect(s.ships.currentStructure(s.ship).modules).toHaveLength(3);
     });
@@ -125,6 +127,8 @@ describe("what parts a hull", () => {
 
         const wrecked = scene();
         wrecked.ships.damage.absorb(wrecked.body, TIP, 1e12);
+        // Wrecked before the test begins, not blown apart this step.
+        wrecked.ships.damage.clearStep();
         hit(wrecked, TIP, TIP_JOINT.strength * 2);
         expect(wrecked.ships.sever(wrecked.world)).toBe(1);
     });
@@ -132,6 +136,8 @@ describe("what parts a hull", () => {
     it("holds wreckage on under a knock: a dead module is still metal", () => {
         const s = scene();
         s.ships.damage.absorb(s.body, TIP, 1e12);
+        // Wrecked before the test begins, not blown apart this step.
+        s.ships.damage.clearStep();
         hit(s, TIP, GENTLE);
         expect(s.ships.sever(s.world)).toBe(0);
     });

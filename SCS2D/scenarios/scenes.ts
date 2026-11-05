@@ -8,6 +8,7 @@ import { starWars } from "./starWars.js";
 import { standoff } from "./standoff.js";
 import { column } from "./column.js";
 import { split } from "./split.js";
+import { crash } from "./crash.js";
 import { torchRun } from "./torchRun.js";
 import { binary } from "./binary.js";
 import { kernels } from "./kernels.js";
@@ -45,6 +46,7 @@ export const SCENES: readonly Scene[] = [
     { name: "Standoff", create: () => lit(standoff(SCENE_SEED), LIGHTS.ice) },
     { name: "Line Ahead", create: () => lit(column(SCENE_SEED), LIGHTS.gold) },
     { name: "Split", create: () => lit(split(SCENE_SEED), LIGHTS.nebula) },
+    { name: "Crash", create: () => lit(crash(SCENE_SEED), LIGHTS.daylight) },
     { name: "Torch Run", create: () => lit(torchRun(SCENE_SEED), LIGHTS.eclipse) },
     { name: "Binary", create: () => lit(binary(SCENE_SEED), LIGHTS.blueGiant) },
     { name: "Kernels", create: () => lit(kernels(SCENE_SEED), LIGHTS.violet) },
