@@ -75,6 +75,9 @@ export class HullLayer {
     /** Kernels' shadows, on rock. */
     readonly kernelShadows: BlockShadows;
     readonly fighterShadows = new Pool();
+    /** The fighters' barrels' shadows, cast from their height with the rest of them, and how many were cast in the last frame. */
+    readonly fighterBarrels = new Graphics();
+    fighterBarrelCount = 0;
     /**
      * What hangs over the thin hull, under the thick modules, as leaking
      * vapour does: drawn in canvas pixels, so placed back out of the world's
@@ -145,6 +148,7 @@ export class HullLayer {
         this.litTop.addChild(this.litThick.container, new Graphics(this.thickBevels.context));
         this.litLayer.addChild(this.litDeck, this.litTop);
         this.litLayer.visible = false;
+        this.fighterShadows.container.addChild(this.fighterBarrels);
         this.fighterShadows.container.mask = this.hull.container;
         this.fighterShadows.container.filters = [this.fighterShade];
         // Lowest first: each depth's shadows fall on what is drawn before them.
@@ -189,6 +193,8 @@ export class HullLayer {
         for (const pool of this.pools()) pool.begin();
         this.litBevelsThin.length = 0;
         this.litBevelsThick.length = 0;
+        this.fighterBarrels.clear();
+        this.fighterBarrelCount = 0;
         for (const shadows of this.blockShadows()) shadows.clear();
         this.thinBevels.clear();
         this.thickBevels.clear();
@@ -316,6 +322,23 @@ export class HullLayer {
                 ends.length = 0;
                 const width = barrelLines(ship, t, (x0, y0, x1, y1) => ends.push(x0 + bx, y0 + by, x1 + bx, y1 + by));
                 this.thickShadows.lines(ends, legibleWidth(width, MIN_BARREL_PX, camera.scale));
+            }
+            // A fighter's, hull mounts' as well, as high as the fighter, as the rest of its shadow is.
+            const height = design.fighter && ship.riding !== true ? FIGHTER_SHADOW_M : LANDED_SHADOW_M;
+            const fx = awayX * height - camera.x;
+            const fy = awayY * height - camera.y;
+            for (let t = 0; t < design.turrets.length; t++) {
+                const module = design.turrets[t]!.module;
+                if (ship.drawn?.[module] === false || !isFighterModule(design, module)) continue;
+                const ends = this.barrelEnds;
+                ends.length = 0;
+                const width = barrelLines(ship, t, (x0, y0, x1, y1) => ends.push(x0 + fx, y0 + fy, x1 + fx, y1 + fy));
+                for (let k = 0; k < ends.length; k += 4) {
+                    this.fighterBarrels.moveTo(ends[k]!, ends[k + 1]!).lineTo(ends[k + 2]!, ends[k + 3]!);
+                    this.fighterBarrelCount++;
+                }
+                if (ends.length > 0)
+                    this.fighterBarrels.stroke({ width: legibleWidth(width, MIN_BARREL_PX, camera.scale), color: 0x000000 });
             }
         }
         for (const pool of this.pools()) pool.end();

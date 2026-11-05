@@ -637,6 +637,14 @@ an entry is either still open or it is gone.
               the thick modules' a thick top's. In the Effects page's "Fighter over hull" scene the
               thick block's edge beside the Y-Wing's plume brightens, and past the plume it does not.
               Fighters' bevels, drawn by the Canvas2D view, are not lit this way yet.
+            - **Fighters in the battle's light — fixed.** A fighter's fills and bevels, drawn by the
+              Canvas2D view, were never tinted by the battle's light, so under a dim one, as eclipse,
+              they stood out bright against the hull it darkens. They are now drawn in a group
+              multiplied by its colour (`PixiCanvas.tinted`), as the hull layer's fills are tinted;
+              its dynamic lights, its status lights, its turrets and barrels are not.
+            - **Fighters' barrels' shadows — built.** A fighter's barrels, hull mounts' included,
+              cast their shadows on the thin hull from the fighter's height, with the rest of its
+              shadow.
             - **Rounded parts**, next: bells, barrels and domes, their facing drawn into a buffer.
         4. **Shadows from dynamic lights**, last and limited: only the brightest lights (bursts, perhaps
            beams) cast them, over a short range, since every light's shadow costs that light times what is

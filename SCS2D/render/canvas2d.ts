@@ -877,6 +877,9 @@ function drawHull(
     // Lit, every fill first and then every bevel over them, since a bevel
     // mitred into an inside corner reaches into the module beside it.
     if (!filled && light !== undefined) {
+        // Seen in the battle's light, as the capital ships' fills are tinted by it in the hull layer.
+        ctx.save();
+        (ctx as Partial<Pick<PixiCanvas, "tinted">>).tinted?.(Number.parseInt(light.colour.slice(1, 7), 16));
         for (const bevelled of [false, true]) {
             for (let i = 0; i < design.modules.length; i++) {
                 if (ship.drawn?.[i] === false || isFighterModule(design, i) !== fighters) continue;
@@ -891,6 +894,7 @@ function drawHull(
                 ctx.restore();
             }
         }
+        ctx.restore();
         filled = true;
         if (fighters) lightFighter(ctx, ship, fighters);
     }
