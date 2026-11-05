@@ -13,8 +13,12 @@ all three, so "§12" means the same section wherever it is written:
 | File | Holds | Read it when |
 | --- | --- | --- |
 | **[DESIGN.md](DESIGN.md)** | Status, §§1–7 and 9–11 | Deciding how something should behave |
-| **[ROADMAP.md](ROADMAP.md)** | §8 build order, §12 open questions | Picking up work, or deferring a decision |
+| **[ROADMAP.md](ROADMAP.md)** | §8 build order; §12 points at the open questions | Picking up work, or deferring a decision |
 | **[DECISIONS.md](DECISIONS.md)** | The Decision Log | Asking why something ended up the way it is |
+| **[GitHub issues](https://github.com/kiml42/SpaceCombatSimulation/issues)** | Bugs, ideas, work left and open questions | Picking up work |
+
+Ideas, bugs and open questions are issues, labelled as ROADMAP.md's "How this document is maintained"
+describes. A `question` issue is closed by the change that records its answer in DECISIONS.md.
 
 Before proposing a change that reverses a design decision, check **DESIGN.md §11 Rejected alternatives**.
 Those were settled deliberately with reasons recorded. Reopen one only with new information, and if it is
