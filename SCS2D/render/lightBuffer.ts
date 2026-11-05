@@ -145,7 +145,9 @@ void main()
 
 /** The light on one height of surface: what it is drawn into, and the filter that lights a layer by it. */
 class Surface {
-    readonly texture = RenderTexture.create({ width: 1, height: 1 });
+    // Half floats: at 8 bits, faint light steps up a level at a different distance in each channel,
+    // which with the headroom scaled back shows as coloured rings round a light.
+    readonly texture = RenderTexture.create({ width: 1, height: 1, format: "rgba16float" });
     readonly filter: Filter;
 
     constructor(screen: UniformGroup) {
