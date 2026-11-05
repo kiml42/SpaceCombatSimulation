@@ -89,6 +89,7 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - there shouldn't be specular highlights (bevels and rounded parts) in shadows
 - Reconsider shading the gauges, they look a bit too luminous, particularly metal.
 - make the wear texture apply across the whole of the hull layer and across the whole of the thick layer for a ship so that the pattern only has a step in opacity at module boundaries instead of a step in pattern placement entirely.
+- When a module containing fuel is disintegrated, add a puff of the fuel evaporating into space, just like a leak, but omnidirectional, and not continuous.
 
 ## Livery
 - Locations should be based on the grig, not the COM (at least in the editor) so changing a part doesn't shift the whole pattern
