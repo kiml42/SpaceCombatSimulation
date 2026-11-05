@@ -189,8 +189,8 @@ function Legend({ id, series, hover, digits, unit, rightDigits = digits, rightUn
 const SCORE_KEY: readonly Series[] = [
     { name: "best", colour: "#e6edf5", values: [] },
     { name: "mean", colour: "#7fa8e0", values: [] },
-    { name: "hull kept", colour: "#7fd6a0", values: [] },
-    { name: "function kept", colour: "#b48ee0", values: [] },
+    { name: "hull lost", colour: "#7fd6a0", values: [] },
+    { name: "function lost", colour: "#b48ee0", values: [] },
     { name: "damage", colour: "#e0655f", values: [] },
     { name: "function taken", colour: "#e08ec0", values: [] },
     { name: "ground", colour: "#e9c05f", values: [] },

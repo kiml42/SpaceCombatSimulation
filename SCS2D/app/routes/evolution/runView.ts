@@ -1,5 +1,5 @@
 import type { CoevolutionConfig } from "~/evolution/coevolution";
-import type { Entrant } from "~/evolution/match";
+import { DEFAULT_MATCH, type Entrant } from "~/evolution/match";
 import type { RecordedRun } from "~/evolution/recorded";
 import {
     entrantOf,
@@ -286,17 +286,25 @@ export function champions(run: AnyRun | null): { entrant: Entrant; id: number }[
     });
 }
 
-/** What the score chart plots: the run's best and mean and the parts of the mean, and the yardstick over them. */
+/**
+ * What the score chart plots: the run's best and mean and the parts of the mean, and the yardstick over them.
+ *
+ * Hull and function kept score 1 for a ship nothing touched, so they are drawn as what was lost, from 0 down,
+ * and the totals less what those two give an untouched ship: on every line 0 is a match where nothing happened.
+ * Only the drawing is offset; scores are as recorded.
+ */
 export function scoreSeries(run: AnyRun | null, yardstick: readonly YardstickPoint[] | undefined): Series[] {
     const series: Series[] = [];
     const closed = run === null ? [] : run.generations;
+    const weights = { ...DEFAULT_MATCH.weights, ...run?.config.match.weights };
+    const untouched = weights.survival + weights.functional;
     if (closed.length > 0) {
         const of = (read: (g: GenerationRecord) => number): number[] => closed.map(read);
         series.push(
-            { name: "best", colour: "#e6edf5", values: of((g) => g.bestFitness) },
-            { name: "mean", colour: "#7fa8e0", values: of((g) => g.meanFitness) },
-            { name: "hull kept", colour: "#7fd6a0", values: of((g) => g.mean.survival), dashed: true },
-            { name: "function kept", colour: "#b48ee0", values: of((g) => g.mean.functional), dashed: true },
+            { name: "best", colour: "#e6edf5", values: of((g) => g.bestFitness - untouched) },
+            { name: "mean", colour: "#7fa8e0", values: of((g) => g.meanFitness - untouched) },
+            { name: "hull lost", colour: "#7fd6a0", values: of((g) => g.mean.survival - 1), dashed: true },
+            { name: "function lost", colour: "#b48ee0", values: of((g) => g.mean.functional - 1), dashed: true },
             { name: "damage", colour: "#e0655f", values: of((g) => g.mean.damage), dashed: true },
             { name: "function taken", colour: "#e08ec0", values: of((g) => g.mean.disabling), dashed: true },
             { name: "ground", colour: "#e9c05f", values: of((g) => g.mean.race), dashed: true },
@@ -306,7 +314,7 @@ export function scoreSeries(run: AnyRun | null, yardstick: readonly YardstickPoi
     // means the same thing at both ends of the chart, and the others are not.
     if (yardstick !== undefined && yardstick.length > 0) {
         const scores: number[] = [];
-        for (const point of yardstick) scores[point.generation] = point.mean;
+        for (const point of yardstick) scores[point.generation] = point.mean - untouched;
         series.push({ name: "vs. yardstick", colour: "#5bd6d6", values: scores });
     }
     return series;
