@@ -623,11 +623,21 @@ an entry is either still open or it is gone.
               dark shape lit mostly by its own engines, guns and the hits on it: Beam Duel for beams, Torch
               Run for plumes and Broadside for guns are seen in it.
             - **Never lit**: gauges, icons, names, selection, orders and arcs, as with the battle's light.
-        3. **Lights shading bevels and rounded parts**, next, now that each light has a height: a
-           light beside a ship should brighten the bevels and the sides of bells, barrels and domes that
-           face it, as the battle's light does. The plan is a second buffer holding where the light at
-           each point comes from, and the bevels and rounded parts drawn into a buffer of which way
-           they face, the lit pass shading each by both: bevels first, then rounded parts.
+        3. **Lights shading bevels and rounded parts**: a light beside a ship should brighten the
+           bevels and the sides of bells, barrels and domes that face it, as the battle's light does.
+            - **Bevels — built** (`render/litBevels.ts`, `render/bevelLighting.ts`). The light buffer
+              is drawn a second time for each surface, as which way across it the light comes from:
+              the sum of each light's direction along the surface, by how bright it is, each half of
+              each axis in a channel of its own, as what is summed additively cannot go below nothing.
+              The hull layer keeps every bevel of a lit ship, whichever way it faces, with its
+              module's colour, and they are drawn once more over the lit hull, each taking the light
+              where it lies in that light's colour, by how squarely its 45° slope faces where the
+              light comes from, eased as the filter eases it. A bevel only gains: one turned from a
+              light is lit as the hull under it is. The thin hull's bevels read the deck's buffers and
+              the thick modules' a thick top's. In the Effects page's "Fighter over hull" scene the
+              thick block's edge beside the Y-Wing's plume brightens, and past the plume it does not.
+              Fighters' bevels, drawn by the Canvas2D view, are not lit this way yet.
+            - **Rounded parts**, next: bells, barrels and domes, their facing drawn into a buffer.
         4. **Shadows from dynamic lights**, last and limited: only the brightest lights (bursts, perhaps
            beams) cast them, over a short range, since every light's shadow costs that light times what is
            near it. A line source's shadow is the hardest of these and may never be worth it. Vapour's own
