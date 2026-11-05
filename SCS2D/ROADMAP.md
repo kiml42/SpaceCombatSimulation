@@ -640,8 +640,11 @@ an entry is either still open or it is gone.
             - **Fighters in the battle's light — fixed.** A fighter's fills and bevels, drawn by the
               Canvas2D view, were never tinted by the battle's light, so under a dim one, as eclipse,
               they stood out bright against the hull it darkens. They are now drawn in a group
-              multiplied by its colour (`PixiCanvas.tinted`), as the hull layer's fills are tinted;
-              its dynamic lights, its status lights, its turrets and barrels are not.
+              multiplied by its colour (`PixiCanvas.tinted`), as the hull layer's fills are tinted,
+              and so are every ship's turrets: mounts, barrels, bracing and mantlets. What is not
+              tinted is what gives off its own light or says something: the dynamic lights, status
+              lights, gauges, names, arcs and loads. The Effects page also has a "dark" light, black
+              with no ambient, to see the dynamic lights alone.
             - **Fighters' barrels' shadows — built.** A fighter's barrels, hull mounts' included,
               cast their shadows on the thin hull from the fighter's height, with the rest of its
               shadow.
