@@ -26,6 +26,8 @@ import {
 import { leakRate, leakSpeed, PATCH_SPEED } from "../sim/fuel.js";
 import { DECK_HEIGHT, DEFAULT_BURST_SPEED, DEFAULT_FRAGMENTS, EXPLOSIVE_YIELD } from "../sim/modules.js";
 import { CORVETTE, TORCH, TORPEDO } from "../scenarios/blueprints.js";
+import { makeBattle } from "../scenarios/battle.js";
+import { Debris } from "../sim/debris.js";
 import { barrelLines } from "../render/barrels.js";
 import { burstLifetime, Flashes, flashRadius } from "../render/flashes.js";
 import { holeClosedAt, holeWidth, vapourLength, type Hole } from "../render/vapour.js";
@@ -85,6 +87,56 @@ const slabDesign = (length: number, thick = false): ShipDesign => {
         { id: 2, kind: "core", x: 0, y: -across / 2 - 1, length: 2, width: 2 },
     ]);
 };
+
+/** How long the Debris scene's slab is, metres. */
+const DEBRIS_SLAB = 60;
+/** Where the Debris scene's piece breaks up, above the slab's face, and how fast it is falling towards it. */
+const DEBRIS_ABOVE = 20;
+const DEBRIS_FALL = 25;
+/** What the piece weighed, kilograms: a fighter's module, under what is kept. */
+const DEBRIS_MASS = 280;
+
+let debrisWorld: ReturnType<typeof makeBattle> | null = null;
+const debrisScene = new Debris();
+
+/**
+ * The Debris scene's bits at `t`: a piece broken up `DEBRIS_ABOVE` over a slab
+ * of hull at the loop's start, flown on from there in a battle holding only the
+ * slab, so they bounce off it as they would in a fight. Replayed from the start
+ * each time, as everything here is a function of `t`.
+ */
+function debrisAt(t: number, snapshot: Snapshot): void {
+    const slab = slabDesign(DEBRIS_SLAB);
+    if (debrisWorld === null) {
+        debrisWorld = makeBattle({ seed: 1, pilots: false }, (ships, world) => {
+            ships.spawn(world, { design: slab, x: slab.centreOfMassX, y: slab.centreOfMassY, angle: 0, team: 0 });
+        });
+        debrisWorld.grid.rebuild(debrisWorld.world.bodies);
+    }
+    const { world, grid, ships } = debrisWorld;
+    debrisScene.clear();
+    debrisScene.watched = true;
+    debrisScene.emit(0, faceOf(slab) + DEBRIS_ABOVE, 0, -DEBRIS_FALL, 1.5, DEBRIS_MASS, 1.5);
+    for (let at = 0; at + STEP <= t; at += STEP) debrisScene.step(STEP, world.bodies, grid, ships.hulls, []);
+    const n = debrisScene.count;
+    if (snapshot.debrisX.length < n) {
+        snapshot.debrisX = new Float64Array(n);
+        snapshot.debrisY = new Float64Array(n);
+        snapshot.debrisAngle = new Float64Array(n);
+        snapshot.debrisSize = new Float64Array(n);
+        snapshot.debrisFade = new Float64Array(n);
+        snapshot.debrisSeed = new Uint32Array(n);
+    }
+    for (let i = 0; i < n; i++) {
+        snapshot.debrisX[i] = debrisScene.x[i]!;
+        snapshot.debrisY[i] = debrisScene.y[i]!;
+        snapshot.debrisAngle[i] = debrisScene.angle[i]!;
+        snapshot.debrisSize[i] = debrisScene.size[i]!;
+        snapshot.debrisFade[i] = debrisScene.fade(i);
+        snapshot.debrisSeed[i] = debrisScene.seed[i]!;
+    }
+    snapshot.debrisCount = n;
+}
 
 /** Where a slab's face is, above its blueprint's origin. */
 const faceOf = (slab: ShipDesign): number => slab.modules[0]!.spec.width / 2;
@@ -209,6 +261,7 @@ function begin(snapshot: Snapshot, flashes: Flashes, t: number, minX: number, mi
     snapshot.projectileCount = 0;
     snapshot.beamCount = 0;
     snapshot.impactCount = 0;
+    snapshot.debrisCount = 0;
     snapshot.minX = minX;
     snapshot.minY = minY;
     snapshot.maxX = maxX;
@@ -718,6 +771,16 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
             ship.leakFill!.push(1);
             ship.leakModule!.push(1);
             ship.leakClosed!.push(-1);
+        },
+    },
+    {
+        name: "Debris",
+        about: `A ${DEBRIS_MASS} kg piece of a fighter, under what is kept, breaking up ${DEBRIS_ABOVE} m over a slab of hull and falling onto it at ${DEBRIS_FALL} m/s: its bits tumble and glint, bounce off the slab and fly on, and fade out over their last seconds, half a minute to a minute on.`,
+        loop: 8,
+        build(t, snapshot, flashes) {
+            begin(snapshot, flashes, t, -DEBRIS_SLAB / 2 - 5, -10, DEBRIS_SLAB / 2 + 5, DEBRIS_ABOVE + 15);
+            atOrigin(snapshot, slabDesign(DEBRIS_SLAB));
+            debrisAt(t, snapshot);
         },
     },
 ];

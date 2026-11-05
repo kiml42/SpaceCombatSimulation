@@ -2436,6 +2436,8 @@ function drawScene(
         else if (ship.currentStructure.fighter && plumeShown(ship)) drawPlumes(ctx, ship);
     }
 
+    drawDebris(ctx, snapshot, camera, light);
+
     // Icons in a pass of their own, after every hull: an icon stands for the
     // ship as a whole, so it belongs over its neighbours rather than under
     // whichever of them happens to be drawn next.
@@ -3296,6 +3298,37 @@ function drawThrown(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes: 
         }
     }
     metal?.end();
+}
+
+/**
+ * Lingering debris (`sim/debris.ts`): jagged shards of dull metal, tumbling
+ * and glinting in the battle's light as they turn, lit by what is near them,
+ * fading at the end of their lives. One batch, laid over what is under it.
+ */
+function drawDebris(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Camera, light: Light | undefined): void {
+    if (snapshot.debrisCount === 0) return;
+    const shard = sprite("shard", "#ffffff");
+    const batches = (ctx as Partial<{ particles: PixiCanvas["particles"] }>).particles;
+    if (shard === null || batches === undefined) return;
+    const pixel = 1 / camera.scale;
+    const lit = rgba(light?.colour ?? "#ffffff");
+    let batch: ReturnType<PixiCanvas["particles"]> | null = null;
+    for (let i = 0; i < snapshot.debrisCount; i++) {
+        const length = snapshot.debrisSize[i]!;
+        if (length < pixel) continue;
+        const x = snapshot.debrisX[i]!;
+        const y = snapshot.debrisY[i]!;
+        if (!nearShown(x, y, x, y)) continue;
+        const seed = snapshot.debrisSeed[i]!;
+        const angle = snapshot.debrisAngle[i]!;
+        // Its width, and which way a face catches the light, from its seed.
+        const across = 0.3 + 0.4 * ((seed & 0xff) / 255);
+        const shine = Math.abs(cos(angle * 1.7 + (seed >>> 8))) ** 6;
+        const tint = lightUp(mixRgb(BIT_COLOUR, lit, shine), BIT_COLOUR, x, y);
+        batch ??= batches.call(ctx, shard, false);
+        batch.add(x, y, cos(angle), sin(angle), length, max(length * across, pixel), tint, snapshot.debrisFade[i]!);
+    }
+    batch?.end();
 }
 
 /** Bits of metal before they catch the light: a dark steel grey. */

@@ -27,8 +27,8 @@ function weldsOf(design: ShipDesign, module: number): number[] {
 /** A fighter's smallest engine, and the welds holding it on. */
 const SHARD = 1;
 const SHARD_JOINTS = weldsOf(dinky, SHARD);
-/** One worth keeping: the main engine. */
-const KEEPER = 4;
+/** One worth keeping: the gun, a fighter's one module over the scrap mass. */
+const KEEPER = 6;
 const KEEPER_JOINTS = weldsOf(dinky, KEEPER);
 
 interface Scene {
@@ -65,7 +65,7 @@ function driftTo(s: Scene, ship: number, x: number): void {
 
 describe("scrap, which is never created", () => {
     it("leaves the smallest pieces out of the world altogether", () => {
-        expect(dinky.modules[SHARD]!.stats.mass).toBeLessThan(300);
+        expect(dinky.modules[SHARD]!.stats.mass).toBeLessThan(2000);
         const s = scene();
         expect(breakOff(s, SHARD_JOINTS)).toBe(0);
         // The ship has still lost it: this is scrap, not a miss.
@@ -78,15 +78,17 @@ describe("scrap, which is never created", () => {
         expect(s.ships.discarded).toBe(0);
         breakOff(s, SHARD_JOINTS);
         expect(s.ships.discarded).toBeGreaterThan(0);
-        expect(s.ships.discarded).toBeLessThan(300);
+        expect(s.ships.discarded).toBeLessThan(2000);
     });
 
     it("keeps a piece worth keeping", () => {
         const s = scene();
-        expect(dinky.modules[KEEPER]!.stats.mass).toBeGreaterThan(300);
+        expect(dinky.modules[KEEPER]!.stats.mass).toBeGreaterThan(2000);
         expect(breakOff(s, KEEPER_JOINTS)).toBe(1);
         expect(s.ships.count).toBe(2);
-        expect(s.ships.discarded).toBe(0);
+        expect(s.ships.currentStructure(s.ship + 1).mass).toBeGreaterThan(2000);
+        // What hung on by the gun alone comes away with it, too small to keep.
+        expect(s.ships.discarded).toBeLessThan(2000);
     });
 });
 
