@@ -508,8 +508,13 @@ an entry is either still open or it is gone.
                last 10; at most 2,048 are kept, a new one taking the oldest's place. Drawn as the hits'
                bits of metal are: jagged shards of dull steel glinting in the battle's light and lit by the
                dynamic lights. The Effects page's Debris scene shows a piece breaking up over a slab.
-            2. **Keeping less: `SCRAP_MASS` raised** from 300 kg to about 2 t, above most fighter modules
-               and under every capital one, so most of a fighter's wreckage goes to debris. Goldens move.
+            2. **Keeping less: `SCRAP_MASS` raised — built**, from 300 kg to 2 t: above every fighter
+               module but the Dinky's 2.1 t gun, and under every capital one, so a fighter's wreckage goes
+               to debris as it comes off. `SALVAGE_REACH` counts from it, so a piece's reach falls by the
+               same 8.5 km. The Torpedoes, Super Swarm and Rival Mines goldens moved: no spent torpedo's
+               pieces are made at all now; and in Rival Mines a Dinky shot down to its core, engines and
+               tank comes home and burns against its Replicator's hull for the rest of the battle rather
+               than landing, a crippled landing the new path exposes rather than causes.
             3. **Shattering**: any module that takes more than a multiple of what breaks it in one step
                (3 to start) is removed, its mass counted as discarded and broken into debris, the hull's
                connectivity looked at again, so it may sever, and robots rebuilding it as any module lost.
@@ -1307,8 +1312,8 @@ Deliberately unresolved; decide when they block something.
 - **What scrap and salvage reach are worth: `SCRAP_MASS` and `SALVAGE_REACH`.** They encode an economic
   judgement — what is too smashed to harvest, and how far is too far to go for — against an economy that
   does not exist yet, so they will want revisiting when it does. Worth knowing before tuning them: the
-  shipped fleet's _capital_ modules weigh five to nine tonnes apiece, and the only modules under a tonne
-  anywhere are a fighter's, so the scrap floor reaches fighter debris and nothing else. Culling capital
+  shipped fleet's _capital_ modules weigh five to nine tonnes apiece, and the only modules under two tonnes
+  anywhere are a fighter's, so the scrap floor, at 2 t, reaches fighter debris and nothing else. Culling capital
   wreckage at all is entirely `SALVAGE_REACH`'s doing. `LOOSE_MASS`, `LOOSE_AGE`, `LOOSE_HORIZON` and
   `LOOSE_CLEARANCE`, which let small debris go inside the fight once it is in nobody's way, are first
   guesses of the same kind.

@@ -342,9 +342,13 @@ const WRECK_STRENGTH = 0.05;
  * free armour (§4). It is not conserved in the world: a shard this small is
  * too broken up to be worth going after and too light to be worth avoiding,
  * so tracking it buys nothing. What is discarded is counted rather than
- * quietly dropped, so a salvage economy can balance its books later.
+ * quietly dropped, so a salvage economy can balance its books later, and is
+ * seen to break up into debris (`debris.ts`) rather than vanish.
+ *
+ * Above most of a fighter's modules and under every capital one, so most of
+ * a fighter's wreckage goes to debris and a capital's is kept.
  */
-const SCRAP_MASS = 300;
+const SCRAP_MASS = 2000;
 
 /**
  * How far past the fighting a piece has to drift before it stops being worth
