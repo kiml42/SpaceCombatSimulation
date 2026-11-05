@@ -606,7 +606,7 @@ an entry is either still open or it is gone.
             - **Heights — built.** Each light stands above the deck: its layer's height (nothing on a
               capital ship's hull, a turret's, `THICK_SHADOW_M`, for its guns, beams and a shell
               bursting in open space, a flying fighter's, `FIGHTER_SHADOW_M`, for what it gives off,
-              and a parked one's lower), and then a quarter of its glow's radius (`LIGHT_RISE`), the
+              and a parked one's lower), and then two-fifths of its glow's radius (`LIGHT_RISE`), the
               flame or flash inside the halo its glow is. What it lights faces up, so it lights a surface by
               its distance in three dimensions and by how squarely it shines down there (`shine`,
               `render/lightField.ts`). A fighter's plume lights the hull under it well and the fighters
