@@ -714,7 +714,7 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
     },
     {
         name: "Fighter over hull",
-        about: `A Y-Wing, its main engines at full, flying the length of a capital ship's thin hull beside a thick block standing along its side, its upper plume a couple of metres from the block. A Dinky flies in formation behind it, between its plumes, its own engines cold. The plumes are a fighter's height above the deck, so they shine down on the hull under them, and only graze the Dinky level with them; the block's top, nearer their height, they strike a little more glancingly. Best seen under the eclipse light, lit by nothing else.`,
+        about: `A Y-Wing, its main engines cold, opened up over two seconds, held at full and cut at once, flying the length of a capital ship's thin hull beside a thick block standing along its side, its upper plume a couple of metres from the block. A Dinky flies in formation behind it, between its plumes, its own engines cold. The plumes are a fighter's height above the deck, so they shine down on the hull under them, and only graze the Dinky level with them; the block's top, nearer their height, they strike a little more glancingly. Best seen under the eclipse light, lit by nothing else.`,
         loop: 8,
         build(t, snapshot, flashes) {
             const half = OVERFLOWN_LENGTH / 2;
@@ -732,11 +732,13 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
             );
             // And a Dinky in formation behind it, between its plumes, its own engines cold: level with them, so barely lit by them.
             place(snapshot, dinkyDesign(), fighter.x - OVERFLOWN_WINGMAN, fighter.y, 0);
-            // Only those driving it along, so no plume reaches out over the block.
+            // Only those driving it along, so no plume reaches out over the block: cold, opened
+            // up over two seconds, held, and cut at once, to show what they light and what not.
+            const throttle = t < 1 ? 0 : t < 3 ? (t - 1) / 2 : t < 6 ? 1 : 0;
             const yWing = fighter.currentStructure;
             yWing.engines.forEach((engine, k) => {
                 const angle = yWing.modules[engine.module!]!.angle;
-                fighter.throttles[k] = Math.abs(Math.cos(angle) - 1) < 0.01 ? 1 : 0;
+                fighter.throttles[k] = Math.abs(Math.cos(angle) - 1) < 0.01 ? throttle : 0;
             });
         },
     },
