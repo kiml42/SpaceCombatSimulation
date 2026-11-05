@@ -1,7 +1,7 @@
 import type { Bodies } from "./bodies.js";
 import { wellPull, type WellSpec } from "./gravity.js";
 import type { Hulls } from "./hull.js";
-import { cos, imul, max, min, PI, pow, round, sin, sqrt, TAU } from "./math.js";
+import { cos, imul, max, min, PI, sin, sqrt, TAU } from "./math.js";
 import { RayHit, type SpatialGrid } from "./spatialGrid.js";
 
 /**
@@ -12,20 +12,26 @@ import { RayHit, type SpatialGrid } from "./spatialGrid.js";
  * bit does no damage, and the golden checksums do not read it. So it is held
  * only while a viewer is watching (`watched`), and a headless run pays nothing.
  *
- * Never larger than `DEBRIS_LONGEST`, so it is never taken for a module, and
- * never kept for good.
+ * Never larger than `DEBRIS_LONGEST`, and never kept for good.
  */
 
 /** The most bits kept at once; past it, a new one takes the oldest's place. */
-export const MOST_DEBRIS = 2048;
-/** How many bits a piece breaks into, by its mass: one for so many kilograms, between one and `MOST_BITS`. */
-const KG_PER_BIT = 25;
-const MOST_BITS = 24;
-/** How dense a bit of twisted metal is taken to be, kg/m³, for its size from its share of the mass: mostly air. */
-const DEBRIS_DENSITY = 300;
+export const MOST_DEBRIS = 4096;
+/** How many steps ahead a bit looks for anything in its way, and goes without looking again if there is nothing. */
+const LOOK_AHEAD = 8;
+/** How many bits the store has room for before it grows, doubling, to `MOST_DEBRIS`. */
+const FIRST_ROOM = 512;
+/** The most bits one piece breaks into. */
+const MOST_BITS = 400;
+/** How much of a piece's footprint its bits cover between them, so a big module leaves a field of wreckage. */
+const COVER = 0.4;
+/** How much of the square on its length a bit covers, on average: half as wide as long, and ragged. */
+const BIT_FILL = 0.3;
 /** The longest a bit is, metres, and the shortest. */
-export const DEBRIS_LONGEST = 1.5;
+export const DEBRIS_LONGEST = 6;
 const DEBRIS_SHORTEST = 0.1;
+/** The longest bit a piece breaks into, as a share of the side of a square of its footprint. */
+const LONGEST_SHARE = 0.5;
 /** How fast a bit leaves the piece it came from, at most, m/s, on top of the piece's own velocity. */
 const DEBRIS_KICK = 3;
 /** How fast a bit tumbles at most, radians a second. */
@@ -46,52 +52,71 @@ export class Debris {
     /** Whether bits are being made: only while a viewer is watching the battle. */
     watched = false;
     count = 0;
-    x = new Float64Array(MOST_DEBRIS);
-    y = new Float64Array(MOST_DEBRIS);
-    vx = new Float64Array(MOST_DEBRIS);
-    vy = new Float64Array(MOST_DEBRIS);
-    angle = new Float64Array(MOST_DEBRIS);
-    spin = new Float64Array(MOST_DEBRIS);
+    x = new Float64Array(FIRST_ROOM);
+    y = new Float64Array(FIRST_ROOM);
+    vx = new Float64Array(FIRST_ROOM);
+    vy = new Float64Array(FIRST_ROOM);
+    angle = new Float64Array(FIRST_ROOM);
+    spin = new Float64Array(FIRST_ROOM);
     /** How long, metres. */
-    size = new Float64Array(MOST_DEBRIS);
+    size = new Float64Array(FIRST_ROOM);
     /** How old, and how long it lasts, seconds. */
-    age = new Float64Array(MOST_DEBRIS);
-    life = new Float64Array(MOST_DEBRIS);
+    age = new Float64Array(FIRST_ROOM);
+    life = new Float64Array(FIRST_ROOM);
     /** What its shape and glint are drawn from. */
-    seed = new Uint32Array(MOST_DEBRIS);
+    seed = new Uint32Array(FIRST_ROOM);
+    /** Steps it can go before it looks for anything in its way again. */
+    quiet = new Uint8Array(FIRST_ROOM);
     /** Bits made so far, for each one's seed. */
     private made = 0;
     private readonly hit = new RayHit();
 
     /**
-     * Break `mass` kg of metal into bits, from a piece `radius` across centred
-     * on `(x, y)`, moving at `(vx, vy)` and spinning at `spin`: each from
-     * somewhere in it, with the velocity that point had and a little kick.
+     * Break a piece into bits: a box `2 halfLength` by `2 halfWidth` centred on
+     * `(x, y)` and turned to `angle`, of which `area` m² is metal, moving at
+     * `(vx, vy)` and spinning at `spin`. Each bit comes from somewhere in the
+     * box, with the velocity that point had and a little kick, and between them
+     * they cover a share of what the piece did: a few large, many small.
      */
-    emit(x: number, y: number, vx: number, vy: number, spin: number, mass: number, radius: number): void {
-        if (!this.watched || !(mass > 0)) return;
-        const n = max(1, min(MOST_BITS, round(mass / KG_PER_BIT)));
-        const share = mass / n;
-        const size = min(DEBRIS_LONGEST, max(DEBRIS_SHORTEST, pow(share / DEBRIS_DENSITY, 1 / 3)));
-        for (let j = 0; j < n; j++) {
+    emit(
+        x: number,
+        y: number,
+        angle: number,
+        halfLength: number,
+        halfWidth: number,
+        area: number,
+        vx: number,
+        vy: number,
+        spin: number,
+    ): void {
+        if (!this.watched || !(area > 0)) return;
+        const longest = min(DEBRIS_LONGEST, max(DEBRIS_SHORTEST, LONGEST_SHARE * sqrt(area)));
+        const c = cos(angle);
+        const s = sin(angle);
+        let covered = 0;
+        for (let j = 0; j < MOST_BITS && covered < COVER * area; j++) {
             const seed = hash(this.made++);
             const k = this.slot();
-            const where = TAU * unit(seed, 1);
-            const out = radius * 0.7 * sqrt(unit(seed, 2));
-            const ox = out * cos(where);
-            const oy = out * sin(where);
+            const along = (2 * unit(seed, 1) - 1) * halfLength;
+            const across = (2 * unit(seed, 2) - 1) * halfWidth;
+            const ox = along * c - across * s;
+            const oy = along * s + across * c;
             const kick = DEBRIS_KICK * unit(seed, 3);
             const way = TAU * unit(seed, 4);
+            const u = unit(seed, 7);
+            const size = max(DEBRIS_SHORTEST, longest * (0.2 + 0.8 * u * u));
+            covered += BIT_FILL * size * size;
             this.x[k] = x + ox;
             this.y[k] = y + oy;
             this.vx[k] = vx - spin * oy + kick * cos(way);
             this.vy[k] = vy + spin * ox + kick * sin(way);
             this.angle[k] = PI * unit(seed, 5);
             this.spin[k] = (unit(seed, 6) * 2 - 1) * DEBRIS_SPIN;
-            this.size[k] = size * (0.6 + 0.8 * unit(seed, 7));
+            this.size[k] = size;
             this.age[k] = 0;
             this.life[k] = DEBRIS_LEAST_LIFE + (DEBRIS_MOST_LIFE - DEBRIS_LEAST_LIFE) * unit(seed, 8);
             this.seed[k] = seed;
+            this.quiet[k] = 0;
         }
     }
 
@@ -122,33 +147,41 @@ export class Debris {
             const dy = vy * dt;
             const hit = this.hit;
             this.angle[k] = this.angle[k]! + this.spin[k]! * dt;
-            if (grid.raycast(bodies, x, y, x + dx, y + dy, hit, -1, hulls) && hulls.describe(bodies, hit.bodyIndex, x, y, dx, dy)) {
-                const nx = hulls.nx;
-                const ny = hulls.ny;
-                hulls.reset();
-                // Begun inside a hull, with no face to bounce off: let it fly out.
-                if (nx !== 0 || ny !== 0) {
-                    const b = hit.bodyIndex;
-                    // The velocity of the hull at the point met, which it bounces off.
-                    const spin = bodies.angularVel[b]!;
-                    const hvx = bodies.vx[b]! - spin * (hit.y - bodies.y[b]!);
-                    const hvy = bodies.vy[b]! + spin * (hit.x - bodies.x[b]!);
-                    const rvx = vx - hvx;
-                    const rvy = vy - hvy;
-                    const into = rvx * nx + rvy * ny;
-                    if (into < 0) {
-                        const tx = rvx - into * nx;
-                        const ty = rvy - into * ny;
-                        vx = hvx + tx * SLIDE - into * BOUNCE * nx;
-                        vy = hvy + ty * SLIDE - into * BOUNCE * ny;
+            // Looking ahead only when it last saw nothing in its way for so long: a
+            // cast through a capital ship's hull is a test of every module in it.
+            const quiet = this.quiet[k]!;
+            if (quiet > 0) this.quiet[k] = quiet - 1;
+            else if (grid.raycast(bodies, x, y, x + dx * LOOK_AHEAD, y + dy * LOOK_AHEAD, hit, -1, hulls)) {
+                const steps = hit.t * LOOK_AHEAD;
+                if (steps > 1) this.quiet[k] = min(LOOK_AHEAD, steps) - 1;
+                else if (hulls.describe(bodies, hit.bodyIndex, x, y, dx, dy)) {
+                    const nx = hulls.nx;
+                    const ny = hulls.ny;
+                    hulls.reset();
+                    // Begun inside a hull, with no face to bounce off: let it fly out.
+                    if (nx !== 0 || ny !== 0) {
+                        const b = hit.bodyIndex;
+                        // The velocity of the hull at the point met, which it bounces off.
+                        const spin = bodies.angularVel[b]!;
+                        const hvx = bodies.vx[b]! - spin * (hit.y - bodies.y[b]!);
+                        const hvy = bodies.vy[b]! + spin * (hit.x - bodies.x[b]!);
+                        const rvx = vx - hvx;
+                        const rvy = vy - hvy;
+                        const into = rvx * nx + rvy * ny;
+                        if (into < 0) {
+                            const tx = rvx - into * nx;
+                            const ty = rvy - into * ny;
+                            vx = hvx + tx * SLIDE - into * BOUNCE * nx;
+                            vy = hvy + ty * SLIDE - into * BOUNCE * ny;
+                        }
+                        this.x[k] = hit.x + nx * STANDOFF;
+                        this.y[k] = hit.y + ny * STANDOFF;
+                        this.vx[k] = vx;
+                        this.vy[k] = vy;
+                        continue;
                     }
-                    this.x[k] = hit.x + nx * STANDOFF;
-                    this.y[k] = hit.y + ny * STANDOFF;
-                    this.vx[k] = vx;
-                    this.vy[k] = vy;
-                    continue;
                 }
-            }
+            } else this.quiet[k] = LOOK_AHEAD - 1;
             hulls.reset();
             this.x[k] = x + dx;
             this.y[k] = y + dy;
@@ -169,10 +202,34 @@ export class Debris {
 
     /** Where the next bit goes: the end, or the oldest's place once there is no more room. */
     private slot(): number {
-        if (this.count < MOST_DEBRIS) return this.count++;
+        if (this.count === this.x.length && this.count < MOST_DEBRIS) this.grow();
+        if (this.count < this.x.length) return this.count++;
         let oldest = 0;
         for (let i = 1; i < this.count; i++) if (this.age[i]! > this.age[oldest]!) oldest = i;
         return oldest;
+    }
+
+    /** Twice the room, up to `MOST_DEBRIS`. */
+    private grow(): void {
+        const room = min(MOST_DEBRIS, this.x.length * 2);
+        const more = <T extends Float64Array | Uint32Array>(old: T): T => {
+            const made = (old instanceof Float64Array ? new Float64Array(room) : new Uint32Array(room)) as T;
+            made.set(old);
+            return made;
+        };
+        this.x = more(this.x);
+        this.y = more(this.y);
+        this.vx = more(this.vx);
+        this.vy = more(this.vy);
+        this.angle = more(this.angle);
+        this.spin = more(this.spin);
+        this.size = more(this.size);
+        this.age = more(this.age);
+        this.life = more(this.life);
+        this.seed = more(this.seed);
+        const quiet = new Uint8Array(room);
+        quiet.set(this.quiet);
+        this.quiet = quiet;
     }
 
     private move(from: number, to: number): void {
@@ -186,6 +243,7 @@ export class Debris {
         this.age[to] = this.age[from]!;
         this.life[to] = this.life[from]!;
         this.seed[to] = this.seed[from]!;
+        this.quiet[to] = this.quiet[from]!;
     }
 }
 

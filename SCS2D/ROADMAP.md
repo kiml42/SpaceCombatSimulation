@@ -498,10 +498,15 @@ an entry is either still open or it is gone.
                impact log's), so a headless run pays nothing. A piece the sim does not keep breaks up
                rather than vanishing: one too light to be made when it is severed (`SCRAP_MASS`), and loose
                wreckage let go out of everyone's way (`LOOSE_MASS`); wreckage drifted far off is let go
-               unseen as before. It breaks into a bit for every 25 kg, up to 24, each of its share of the
-               mass at 300 kg/m³, no longer than 1.5 m (`DEBRIS_LONGEST`) so it is never taken for a
-               module, from somewhere in the piece with the velocity that point had and a kick of up to
-               3 m/s, tumbling. Each step a bit is pulled by the wells and cast along its way through the
+               unseen as before. It breaks into bits that between them cover 0.4 of its footprint, so a
+               capital module leaves a field of wreckage rather than a handful of confetti: a few large
+               and many small, the longest half the side of a square of its footprint and no longer than
+               6 m (`DEBRIS_LONGEST`), up to 400 a piece (about 20 for a fighter's, 140 for a Star
+               Destroyer's bow triangle), each from somewhere in the piece's box with the velocity that
+               point had and a kick of up to 3 m/s, tumbling. The store grows as it fills, to 4,096. A bit looks
+               eight steps ahead and casts again only once that is spent or something is in its way, since a
+               cast through a capital hull tests every module in it: the Crash scene's 1,100 bits cost
+               about 3 ms a step. Each step a bit is pulled by the wells and cast along its way through the
                grid and the hulls' narrow phase, as a round is, bouncing off the first hull or rock it
                meets (keeping 0.4 of its speed into it, 0.7 along it, off the hull's own velocity there);
                bits do not meet each other, and nothing feels them. Each lasts 30 to 60 s, fading over its
@@ -522,11 +527,15 @@ an entry is either still open or it is gone.
                step; `Ships.sever` shatters first, through the same `breakUp` as a cut, with the shattered
                mass discarded inside it so the piece that stays takes up no momentum for it. Robots
                rebuild a shattered module as any module lost. Not for a body more than one ship rides.
-               A collision's crush stops at what each module can still absorb, so it never shattered
-               anything; what is left over once the whole line is wrecked now goes back to the front,
-               enough to shatter each module in turn. The Crash scene (a Star Destroyer into a major
-               asteroid at 25 m/s) shows it: the bow is blown away, its two front triangles among 23
-               modules, and the hull breaks up.
+               A collision's crush stopped at what each module could still absorb, so it never shattered
+               anything, and it ran the whole length of the hull. Now a module passes on inward no more
+               than it could take itself (`CRUSH_PASS`), and what it cannot pass on crumples it, as far
+               as shattering it: the front gives way and spares what is behind. The Crash scene (a Star
+               Destroyer into a major asteroid at 20 m/s) shows it: the first contact shatters the two
+               bow triangles and slows it, and it drives on through the engine and then the structure
+               and first turret behind, slower each time, until it comes to rest against the rock, the
+               hull 450 m back untouched. The bow is very light beside the ship, so crumpling it hardly
+               slows it: what stops it is the rock, layer by layer.
                DESIGN.md §4 is amended. The Rival Mines, Super Swarm, Torpedoes and Line Ahead goldens
                moved: more scrap and fewer ships at the end, as modules are blown away rather than kept as
                wreckage (Line Ahead 19 ships to 15, its scrap 177 t to 229 t); and Rival Mines' Dinky no

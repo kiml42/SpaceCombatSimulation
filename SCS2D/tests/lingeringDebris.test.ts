@@ -20,26 +20,36 @@ const walled = () =>
     });
 
 describe("lingering debris", () => {
-    it("is made only while a viewer is watching, as many bits as the mass calls for, none too big to pass for a module", () => {
+    it("is made only while a viewer is watching, more bits the bigger the piece, covering a share of it", () => {
         const debris = new Debris();
-        debris.emit(0, 0, 0, 0, 0, 500, 2);
+        debris.emit(0, 0, 0, 2, 2, 4, 0, 0, 0);
         expect(debris.count).toBe(0);
         debris.watched = true;
-        debris.emit(0, 0, 0, 0, 0, 25, 2);
-        expect(debris.count).toBe(1);
-        debris.emit(0, 0, 0, 0, 0, 1e6, 2);
-        expect(debris.count).toBeGreaterThan(1);
-        expect(debris.count).toBeLessThan(30);
-        for (let i = 0; i < debris.count; i++) expect(debris.size[i]).toBeLessThanOrEqual(DEBRIS_LONGEST * 1.4);
+        debris.emit(0, 0, 0, 1, 1, 1, 0, 0, 0);
+        const small = debris.count;
+        expect(small).toBeGreaterThan(0);
+        debris.clear();
+        // A capital ship's plate, 70 m by 30.
+        debris.emit(0, 0, 0, 35, 15, 2100, 0, 0, 0);
+        expect(debris.count).toBeGreaterThan(small * 5);
+        let covered = 0;
+        for (let i = 0; i < debris.count; i++) {
+            expect(debris.size[i]).toBeLessThanOrEqual(DEBRIS_LONGEST);
+            expect(Math.abs(debris.x[i]!)).toBeLessThanOrEqual(35);
+            expect(Math.abs(debris.y[i]!)).toBeLessThanOrEqual(15);
+            covered += debris.size[i]! ** 2;
+        }
+        // Enough metal to read as the plate it was, not a handful of confetti.
+        expect(covered).toBeGreaterThan(2100);
     });
 
     it("takes the oldest's place once there is no more room", () => {
         const debris = new Debris();
         debris.watched = true;
-        while (debris.count < MOST_DEBRIS) debris.emit(0, 0, 0, 0, 0, 1e6, 2);
+        while (debris.count < MOST_DEBRIS) debris.emit(0, 0, 0, 2, 2, 2000, 0, 0, 0);
         const battle = walled();
         debris.step(1, battle.world.bodies, battle.grid, battle.ships.hulls, []);
-        debris.emit(0, 0, 0, 0, 0, 25, 2);
+        debris.emit(0, 0, 0, 2, 2, 1, 0, 0, 0);
         expect(debris.count).toBeLessThanOrEqual(MOST_DEBRIS);
     });
 
@@ -49,7 +59,7 @@ describe("lingering debris", () => {
         const debris = battle.ships.debris;
         debris.watched = true;
         // Coming in from -x at 40 m/s, a few metres off the plate's face.
-        debris.emit(-10, 0, 40, 0, 0, 25, 0);
+        debris.emit(-10, 0, 0, 0, 0, 1, 40, 0, 0);
         let leastX = Infinity;
         let mostX = -Infinity;
         for (let s = 0; s < 120; s++) {
@@ -67,7 +77,7 @@ describe("lingering debris", () => {
     it("curves towards a well", () => {
         const debris = new Debris();
         debris.watched = true;
-        debris.emit(1000, 0, 0, 0, 0, 25, 0);
+        debris.emit(1000, 0, 0, 0, 0, 1, 0, 0, 0);
         const battle = walled();
         const well: WellSpec = { x: 0, y: 0, gm: 1e7 };
         const before = debris.x[0]!;
@@ -79,7 +89,7 @@ describe("lingering debris", () => {
     it("fades and is gone by the end of its life", () => {
         const debris = new Debris();
         debris.watched = true;
-        debris.emit(0, 0, 0, 0, 0, 1000, 2);
+        debris.emit(0, 0, 0, 2, 2, 4, 0, 0, 0);
         const battle = walled();
         expect(debris.fade(0)).toBe(1);
         for (let s = 0; s <= DEBRIS_MOST_LIFE; s++) debris.step(1, battle.world.bodies, battle.grid, battle.ships.hulls, []);
@@ -90,7 +100,7 @@ describe("lingering debris", () => {
         const battle = walled();
         battle.impacts.log.watched = true;
         battle.ships.debris.watched = true;
-        battle.ships.debris.emit(-10, 0, 40, 5, 1, 400, 2);
+        battle.ships.debris.emit(-10, 0, 0, 2, 2, 4, 40, 5, 1);
         battle.step();
         const copy = cloneBattle(battle);
         for (let s = 0; s < 90; s++) {

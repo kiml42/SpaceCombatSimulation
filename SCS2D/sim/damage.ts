@@ -46,6 +46,9 @@ export const DAMAGE_ENERGY_PER_KG = 1000;
  */
 export const SHATTER = 3;
 
+/** The most a module carries on inward from a crush, as a share of what it can take itself. */
+const CRUSH_PASS = 1;
+
 /**
  * The share of a module's dry mass damage has boiled or shredded off by the
  * time it stops working. It goes on shedding at the same rate past that.
@@ -839,12 +842,11 @@ function shove(bodies: Bodies, body: number, jx: number, jy: number, px: number,
  * runs out — which is why a ram crushes a nose in rather than putting a neat
  * hole through a ship.
  *
- * Each module takes what it can still absorb and the rest carries on to
- * whatever is behind it, so a blow far past what the outer plating can hold
- * reaches deeper rather than being thrown away. That is the one place this
- * differs from a round, which spends what its armour stopped and loses the
- * rest: there is no plate here to stop anything, only structure to fold.
- * Past what the whole line can absorb, the front is shattered.
+ * Each module takes what it can still absorb and passes the rest on to what
+ * is behind it, but never more than it could take itself: past that it
+ * crumples, as far as being shattered, and what it cannot pass on is spent
+ * folding it. So a blow the front can hold reaches a little deeper, and one
+ * far past it takes the front away and spares the rest of the ship.
  *
  * `(nx, ny)` points **into** the hull being crushed, world frame.
  */
@@ -898,29 +900,23 @@ export function resolveCollision(
         // metal the cast crossed on its way in is on the other side of the ship.
         if (path.exit[k]! <= reach) continue;
         const module = path.module[k]!;
-        const capacity = damage.capacityLeft(bodyIndex, module);
-        if (!(capacity > 0)) continue;
-        const take = min(capacity, left);
-        damage.absorb(bodyIndex, module, take);
-        // Where the crush reached it: the contact, or its face if deeper in.
-        const at = max(path.entry[k]!, reach) - reach;
-        damage.scar(bodyIndex, module, SCAR_GOUGE, px + ux * at, py + uy * at, px + ux * at, py + uy * at, gx, gy, take);
-        left -= take;
-        spent += take;
-    }
-    // More than the whole line can take: the front goes first, each module on the
-    // line taking enough more to shatter it before what is left goes on to the next,
-    // so a crash far past what a hull can stand takes its nose away rather than
-    // denting every module along it and losing the rest.
-    for (let k = 0; k < path.count && left > 0; k++) {
-        if (path.exit[k]! <= reach) continue;
-        const module = path.module[k]!;
-        if (damage.kindAt(bodyIndex, module) === "kernel") continue;
-        const take = min(SHATTER * damage.capacityOf(bodyIndex, module), left);
-        if (!(take > 0)) continue;
-        damage.absorb(bodyIndex, module, take);
-        left -= take;
-        spent += take;
+        // A kernel takes nothing and is not crumpled: the crush stops at it.
+        if (damage.kindAt(bodyIndex, module) === "kernel") break;
+        const whole = damage.capacityOf(bodyIndex, module);
+        // What it can still absorb, then what it cannot pass on, crumpling it, as
+        // far as shattering it: no module carries more on inward than it could
+        // take itself, so the front gives way and what is behind it is spared.
+        let take = min(damage.capacityLeft(bodyIndex, module), left);
+        const through = min(left - take, CRUSH_PASS * whole);
+        take += min(left - take - through, max(0, SHATTER * whole - take));
+        if (take > 0) {
+            damage.absorb(bodyIndex, module, take);
+            // Where the crush reached it: the contact, or its face if deeper in.
+            const at = max(path.entry[k]!, reach) - reach;
+            damage.scar(bodyIndex, module, SCAR_GOUGE, px + ux * at, py + uy * at, px + ux * at, py + uy * at, gx, gy, take);
+            spent += take;
+        }
+        left = through;
     }
     return spent;
 }

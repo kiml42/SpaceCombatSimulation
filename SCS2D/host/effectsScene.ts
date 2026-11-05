@@ -93,8 +93,9 @@ const DEBRIS_SLAB = 60;
 /** Where the Debris scene's piece breaks up, above the slab's face, and how fast it is falling towards it. */
 const DEBRIS_ABOVE = 20;
 const DEBRIS_FALL = 25;
-/** What the piece weighed, kilograms: a fighter's module, under what is kept. */
-const DEBRIS_MASS = 280;
+/** Half the side of the piece that breaks up, metres, and the metal in it, m². */
+const DEBRIS_HALF = 1;
+const DEBRIS_AREA = 3;
 
 let debrisWorld: ReturnType<typeof makeBattle> | null = null;
 const debrisScene = new Debris();
@@ -116,7 +117,7 @@ function debrisAt(t: number, snapshot: Snapshot): void {
     const { world, grid, ships } = debrisWorld;
     debrisScene.clear();
     debrisScene.watched = true;
-    debrisScene.emit(0, faceOf(slab) + DEBRIS_ABOVE, 0, -DEBRIS_FALL, 1.5, DEBRIS_MASS, 1.5);
+    debrisScene.emit(0, faceOf(slab) + DEBRIS_ABOVE, 0, DEBRIS_HALF, DEBRIS_HALF, DEBRIS_AREA, 0, -DEBRIS_FALL, 1.5);
     for (let at = 0; at + STEP <= t; at += STEP) debrisScene.step(STEP, world.bodies, grid, ships.hulls, []);
     const n = debrisScene.count;
     if (snapshot.debrisX.length < n) {
@@ -775,7 +776,7 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
     },
     {
         name: "Debris",
-        about: `A ${DEBRIS_MASS} kg piece of a fighter, under what is kept, breaking up ${DEBRIS_ABOVE} m over a slab of hull and falling onto it at ${DEBRIS_FALL} m/s: its bits tumble and glint, bounce off the slab and fly on, and fade out over their last seconds, half a minute to a minute on.`,
+        about: `A piece of a fighter ${2 * DEBRIS_HALF} m across, under what is kept, breaking up ${DEBRIS_ABOVE} m over a slab of hull and falling onto it at ${DEBRIS_FALL} m/s: its bits tumble and glint, bounce off the slab and fly on, and fade out over their last seconds, half a minute to a minute on.`,
         loop: 8,
         build(t, snapshot, flashes) {
             begin(snapshot, flashes, t, -DEBRIS_SLAB / 2 - 5, -10, DEBRIS_SLAB / 2 + 5, DEBRIS_ABOVE + 15);

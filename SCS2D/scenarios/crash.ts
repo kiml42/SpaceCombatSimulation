@@ -5,12 +5,14 @@ import { makeBattle } from "./battle.js";
 import { STAR_DESTROYER } from "./blueprints.js";
 
 /** How fast the Star Destroyer drifts at the rock, m/s. */
-export const CRASH_SPEED = 25;
+export const CRASH_SPEED = 20;
 
 /**
  * A Star Destroyer drifting bow first into a major asteroid, nobody at the
  * helm: its bow takes far more in one step than holds it together, so it is
- * shattered into debris rather than dented, and the hull behind breaks up.
+ * shattered into debris rather than dented, and the ship, slowed, drives on
+ * into the next layer, and the next, until it comes to rest against the rock.
+ * Each layer takes the blow for what is behind it.
  */
 export function crash(seed = 20260905, speed = CRASH_SPEED): Battle {
     return makeBattle({ seed, pilots: false }, (ships, world) => {

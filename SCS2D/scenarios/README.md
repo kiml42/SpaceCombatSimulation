@@ -18,7 +18,7 @@ in step when a scene is added or changes what it shows.
 | Many small ships | **Super Swarm** (302 ships), Swarm (22) |
 | Gravity wells | Duel, Beam Duel, Binary (moving wells), Kernels, Asteroid Field, Mining, Rival Mines |
 | Asteroids | Asteroid Field, Kernels, Mining, Rival Mines |
-| A ship breaking in two | Split, Crash |
+| A ship breaking in two | Split |
 | Engines as weapons | Torch Run |
 | Ramming | Torpedoes, Split, Crash |
 | Modules shattered, lingering debris | Crash |
@@ -52,7 +52,7 @@ in step when a scene is added or changes what it shows.
 | Standoff | ice | Two lines of Gunship, Corvette, Beam Corvette and 2 Dinkies, 1 km apart | Fighting from the first frame; doctrine without orders |
 | Line Ahead | gold | Two columns of 4, nose to tail | Shooting past friendly ships |
 | Split | nebula | A Catamaran rammed by a Bare Core at 30 m/s; a Corvette arrives later | A ship breaking into two working ships |
-| Crash | daylight | A Star Destroyer, no pilot, drifting bow first into a major asteroid at 25 m/s | Shattering: its bow broken into debris, the hull behind breaking up |
+| Crash | daylight | A Star Destroyer, no pilot, drifting bow first into a major asteroid at 20 m/s | Shattering: its bow broken into debris at the first contact, then layer after layer until it stops |
 | Torch Run | eclipse | 4 Torches round a Laser Frigate | Engine flames as weapons; beams |
 | Binary | blue giant | Corvette against Gunship between two wells on an eccentric orbit | Moving wells |
 | Kernels | violet | Corvette against Gunship between two spinning asteroid kernels on the binary wells | Collisions with asteroids |

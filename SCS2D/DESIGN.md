@@ -1587,9 +1587,10 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   through a ship. Half to each hull, which needs no rule about which is the harder: a module's capacity
   goes with its mass, so the same energy that dents a capital ship destroys the fighter that flew into
   it. That is what makes §3's strike craft literal — a torpedo is a fighter that crashes into things.
-  **More than the whole line can take shatters its front**: what is left once every module along the
-  crush is wrecked goes back to the front, each module taking enough to shatter it before the rest goes
-  on, so a capital ship driven into a rock loses its bow rather than bouncing off dented.
+  **No module passes on more than it could take itself**: past that it crumples, as far as being
+  shattered, so a blow far past what the front can stand takes the front away and spares what is behind
+  it. A capital ship driven into a rock loses its bow at the first contact, slows, and drives on through
+  the next layer and the next until it comes to rest, rather than bouncing off dented.
 - **A hull weapon is a block with a barrel out of the front of it**, which is an engine the other way
   round and answers the same questions the same way. The block is the breech and the loading gear, or
   the bank and the plant; it is what has walls, an interior and hit points, and it is the only part
