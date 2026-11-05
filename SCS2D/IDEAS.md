@@ -139,5 +139,3 @@ flying round asteroids in its way rather than relying on keeping clear, which lo
 
 ## Skirmish
 - The game should be able to track multiple saved skirmishes internally, by name.
-- When the enemy are evolving, make the history fill the battle area.
-  - In this mode the player's fleet should be put on the left, and the enemy on the right.

@@ -320,6 +320,26 @@ describe("the skirmish in a browser", () => {
         await page.goto("about:blank");
     }, 90_000);
 
+    it("gives the history the battle's room while the search is not watched", async () => {
+        // Bare cores take a long while to answer a Gunship, so the search is still going throughout.
+        const skirmish = won(newSkirmish(shipFleet(BARE_CORE), shipFleet(GUNSHIP), 25));
+        await page.goto(skirmishPage(skirmish));
+        await page.waitForSelector("#answering");
+        expect(await page.isVisible("#wideHistory")).toBe(false);
+        expect(await page.isVisible("#history")).toBe(true);
+
+        await page.click("#watchAnswer");
+        expect(await page.isVisible("#wideHistory")).toBe(true);
+        expect(await page.isVisible("#history")).toBe(false);
+        expect(await page.locator("#wideHistory #timeline.wide").count()).toBe(1);
+
+        await page.click("#watchAnswer");
+        expect(await page.isVisible("#wideHistory")).toBe(false);
+        expect(await page.isVisible("#history #timeline")).toBe(true);
+        expect(problems).toEqual([]);
+        await page.goto("about:blank");
+    }, 60_000);
+
     it("watches the enemy evolve an answer to a round won, and goes on to the next round", async () => {
         // The player's Corvette beats the same Corvette on seed 25, and a mirror is answered in a generation or two.
         const skirmish = won(newSkirmish(shipFleet(CORVETTE), shipFleet(CORVETTE), 25));
