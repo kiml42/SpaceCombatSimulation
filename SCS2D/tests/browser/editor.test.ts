@@ -1282,6 +1282,25 @@ describe("the editor in a browser", () => {
         await openShip(page, "Corvette");
     });
 
+    it("keeps unsaved work through a reload, and throws it away on Revert", async () => {
+        await openShip(page, "Corvette");
+        expect(await page.isDisabled("#revertShip")).toBe(true);
+        await page.fill("#shipNotes", "work in progress");
+        // The draft is kept a moment after the edit.
+        await page.waitForFunction(() => (localStorage.getItem("scs2d.shipDraft") ?? "").includes("work in progress"));
+        await page.reload();
+        await page.waitForFunction(() => (document.getElementById("stats")?.textContent ?? "").includes("Endurance"));
+        expect(await page.inputValue("#shipNotes")).toBe("work in progress");
+
+        await page.click("#revertShip");
+        expect(await page.inputValue("#shipNotes")).not.toBe("work in progress");
+        expect(await page.isDisabled("#revertShip")).toBe(true);
+        // On the undo stack, so undo brings the work back.
+        await page.click("#undo");
+        expect(await page.inputValue("#shipNotes")).toBe("work in progress");
+        await openShip(page, "Corvette");
+    });
+
     it("clears the editor when a ship is deleted, and gives it back on undo", async () => {
         await openShip(page, "Corvette");
         await page.click("#duplicateShip");
