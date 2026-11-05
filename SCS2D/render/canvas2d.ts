@@ -46,6 +46,7 @@ import {
 import { BACKGROUND, GRID, WELL, WELL_ARM_PX, WELL_PULLS } from "./backdrop.js";
 import { barrelLines, MIN_BARREL_PX } from "./barrels.js";
 import { FIGHTER_SHADOW_M, LANDED_SHADOW_M, THICK_SHADOW_M, type Light } from "./light.js";
+import { RoundedParts } from "./roundedLights.js";
 import {
     BEVEL_DARK,
     BEVEL_LIGHT,
@@ -636,6 +637,8 @@ function drawShip(
                 ctx.fill();
                 if (light !== undefined) shadeDome(ctx, 0, 0, face * 0.5, light);
             });
+            // Drawn over the hull's lit fill, so taking all its light: outside the picture, which is kept.
+            rounded?.dome(ctx.getTransform(), 0, 0, face * 0.5, rgba(mountColour), 0, true);
             ctx.restore();
         } else if (beamLenses) {
             // Each lens on a disc of its own that it turns on, as wide as the lens
@@ -928,12 +931,12 @@ function drawHull(
         // Rounded parts' shading, in the battle's light: its highlights are that light.
         if (spec.kind === "engine" && light !== undefined) {
             inLight(ctx, light);
-            shadeEngine(ctx, spec, ship.angle + m.angle, light, drawnMounts(design, i).round);
+            shadeEngine(ctx, spec, ship.angle + m.angle, light, drawnMounts(design, i).round, rgba(fillColour(spec, colours)), fighters);
             ctx.restore();
         }
         if (spec.kind === "port" && light !== undefined) {
             inLight(ctx, light);
-            shadePort(ctx, spec, ship.angle + m.angle, light);
+            shadePort(ctx, spec, ship.angle + m.angle, light, rgba(fillColour(spec, colours)), fighters);
             ctx.restore();
         }
         if (spec.kind === "pad") {
@@ -1641,7 +1644,17 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
 }
 
 /** An engine's bells, chambers and pump shaded as rounded, in its module's frame, the module turned `angle` in the world. */
-function shadeEngine(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: number, light: Light, roundPump: boolean): void {
+function shadeEngine(
+    ctx: CanvasRenderingContext2D,
+    spec: ModuleSpec,
+    angle: number,
+    light: Light,
+    roundPump: boolean,
+    /** Its colour, and whether it stands at a thick module's height, as a fighter's does, for the dynamic lights. */
+    colour: readonly number[],
+    thick: boolean,
+): void {
+    const m = ctx.getTransform();
     const engine = engineGeometry(spec);
     const layout = engineLayout(spec);
     const l = spec.length / 2;
@@ -1663,22 +1676,37 @@ function shadeEngine(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: num
               ]
             : [[layout.centre, layout.aft, layout.fore]];
     for (const y of layout.centres) {
-        if (bell !== null) ctx.drawImage(bell, -l, y - exit, mouth + l, 2 * exit);
+        if (bell !== null) {
+            ctx.drawImage(bell, -l, y - exit, mouth + l, 2 * exit);
+            rounded?.tube(m, -l, y, mouth + l, exit, engine.throatWidth / engine.exitWidth, colour, 1, thick);
+        }
         if (!(r > 0)) continue;
         for (const [x, from, to] of ends) {
             const image = sphereShade(light.from - angle, across, up, (from - x) / r, (to - x) / r);
             if (image !== null) ctx.drawImage(image, from, y - r, to - from, 2 * r);
+            rounded?.sphere(m, x, y, r, from, to, colour, 1, thick);
         }
-        if (tube !== null) ctx.drawImage(tube, layout.centre, y - r, straight, 2 * r);
+        if (tube !== null) {
+            ctx.drawImage(tube, layout.centre, y - r, straight, 2 * r);
+            rounded?.tube(m, layout.centre, y, straight, r, 1, colour, 1, thick);
+        }
     }
     if (roundPump) {
         const pump = cylinderShade(side, up);
         if (pump !== null) ctx.drawImage(pump, layout.pumpAft, -layout.halfWidth, l - layout.pumpAft, 2 * layout.halfWidth);
+        rounded?.tube(m, layout.pumpAft, 0, l - layout.pumpAft, layout.halfWidth, 1, colour, 1, thick);
     }
 }
 
 /** A docking port's block and collar shaded as rounded across, in its module's frame, the module turned `angle`. */
-function shadePort(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: number, light: Light): void {
+function shadePort(
+    ctx: CanvasRenderingContext2D,
+    spec: ModuleSpec,
+    angle: number,
+    light: Light,
+    colour: readonly number[],
+    thick: boolean,
+): void {
     const { across, up } = lightSlope(light);
     const image = cylinderShade(across * sin(light.from - angle), up);
     if (image === null) return;
@@ -1687,6 +1715,9 @@ function shadePort(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: numbe
     const collar = spec.length * PORT_COLLAR_SHARE;
     ctx.drawImage(image, -l, -w, spec.length - collar, 2 * w);
     ctx.drawImage(image, l - collar, -w * PORT_COLLAR_WIDTH, collar, 2 * w * PORT_COLLAR_WIDTH);
+    const m = ctx.getTransform();
+    rounded?.tube(m, -l, 0, spec.length - collar, w, 1, colour, 1, thick);
+    rounded?.tube(m, l - collar, 0, collar, w * PORT_COLLAR_WIDTH, 1, colour, 1, thick);
 }
 
 /**
@@ -1866,6 +1897,10 @@ function shadeBarrels(ctx: CanvasRenderingContext2D, ship: ShipView, t: number, 
         ctx.rotate(angle);
         if (from > 0) ctx.drawImage(image, 0, -width / 2, span * from, width);
         if (to < 1) ctx.drawImage(image, span * to, -width / 2, span * (1 - to), width);
+        // Drawn over everything, so taking all the light, at a turret's height.
+        const m = ctx.getTransform();
+        if (from > 0) rounded?.tube(m, 0, 0, span * from, width / 2, 1, BARREL_RGB, 0, true);
+        if (to < 1) rounded?.tube(m, span * to, 0, span * (1 - to), width / 2, 1, BARREL_RGB, 0, true);
         ctx.restore();
     });
 }
@@ -2220,6 +2255,8 @@ export function draw(
     if (last === undefined) field.clear();
     else field.set(last.lights, last.camera, last.widthPx, last.heightPx);
     seenLights.clear();
+    seenRounded.clear();
+    rounded = seenRounded;
     drawScene(
         ctx,
         snapshot,
@@ -2238,6 +2275,7 @@ export function draw(
         light,
         seenLights,
     );
+    rounded = null;
     field.clear();
     const kept = last ?? { lights: new Lights(), camera: { x: 0, y: 0, scale: 1 }, widthPx, heightPx };
     kept.lights.clear();
@@ -2331,6 +2369,12 @@ function lightFighter(ctx: CanvasRenderingContext2D, ship: ShipView, fighters: b
  * lights the hulls near them (`render/lightBuffer.ts`). Not a close-up's.
  */
 export const seenLights = new Lights();
+/** The rounded parts the last view `draw` drew, for the dynamic lights to light by which way they face (`render/litRounded.ts`). Not a close-up's. */
+export const seenRounded = new RoundedParts();
+/** Where rounded parts are recorded while the main view is drawn, and nowhere otherwise. */
+let rounded: RoundedParts | null = null;
+/** A barrel's colour, as its channels. */
+const BARREL_RGB = rgba(BARREL);
 
 /** Modules of one ship to outline: the mounts a doctrine is being told to. */
 export interface Marked {

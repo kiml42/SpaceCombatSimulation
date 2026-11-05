@@ -649,7 +649,20 @@ an entry is either still open or it is gone.
             - **Fighters' barrels' shadows — built.** A fighter's barrels, hull mounts' included,
               cast their shadows on the thin hull from the fighter's height, with the rest of its
               shadow.
-            - **Rounded parts**, next: bells, barrels and domes, their facing drawn into a buffer.
+            - **Rounded parts — built** (`render/roundedLights.ts`, `render/litRounded.ts`). Where
+              the battle's light shades a rounded part, the Canvas2D view also records it for the
+              dynamic lights: the rectangle its shading is laid over, in canvas pixels, with where
+              each corner is on the shape. Engines' bells, chambers' tubes and pumps and ports are
+              tubes, a bell narrowing by its taper; chambers' ends are spheres cut flat; turrets'
+              domes are hemispheres flattened as their shading has them; barrels are tubes. A mesh
+              over everything the canvas draws lights each point of them by which way it faces, from
+              the light and direction buffers, as a lit bevel is: across the deck towards where the
+              light comes from, and up as far as it does. A part laid over a fill the hull is lit
+              through already, as an engine's bell is, takes only what its rounding adds, never less;
+              one drawn over it, as a dome or a barrel, takes all of it, so turrets, which the
+              hull's lit fills cannot reach, are lit by the dynamic lights at last. Capital ships'
+              engines and ports read the deck's buffers; turrets and every part of a fighter a thick
+              top's, the nearest to a fighter's height.
         4. **Shadows from dynamic lights**, last and limited: only the brightest lights (bursts, perhaps
            beams) cast them, over a short range, since every light's shadow costs that light times what is
            near it. A line source's shadow is the hardest of these and may never be worth it. Vapour's own
