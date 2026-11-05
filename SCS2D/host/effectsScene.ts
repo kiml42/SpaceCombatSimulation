@@ -25,7 +25,7 @@ import {
 } from "../sim/index.js";
 import { leakRate, leakSpeed, PATCH_SPEED } from "../sim/fuel.js";
 import { DECK_HEIGHT, DEFAULT_BURST_SPEED, DEFAULT_FRAGMENTS, EXPLOSIVE_YIELD } from "../sim/modules.js";
-import { CORVETTE, TORCH, TORPEDO } from "../scenarios/blueprints.js";
+import { CORVETTE, DINKY, TORCH, TORPEDO, Y_WING } from "../scenarios/blueprints.js";
 import { makeBattle } from "../scenarios/battle.js";
 import { Debris } from "../sim/debris.js";
 import { barrelLines } from "../render/barrels.js";
@@ -68,6 +68,33 @@ function kept(name: string, make: () => ShipDesign): ShipDesign {
 const corvetteDesign = (): ShipDesign => kept("corvette", () => compileBlueprint(CORVETTE));
 const torchDesign = (): ShipDesign => kept("torch", () => compileBlueprint(TORCH));
 const torpedoDesign = (): ShipDesign => kept("torpedo", () => compileBlueprint(TORPEDO));
+const yWingDesign = (): ShipDesign => kept("y-wing", () => compileBlueprint(Y_WING));
+const dinkyDesign = (): ShipDesign => kept("dinky", () => compileBlueprint(DINKY));
+
+/** How long the Fighter over hull scene's deck is, metres, and how wide its thin hull and the thick block along its side. */
+const OVERFLOWN_LENGTH = 120;
+const OVERFLOWN_THIN = 40;
+const OVERFLOWN_THICK = 20;
+/** How far the fighter flies from the thick block's edge, over the thin hull, metres: its upper plume a couple of metres from it. */
+const OVERFLOWN_OFF = 7.5;
+/** How far behind the Y-Wing its wingman flies, between its plumes, metres. */
+const OVERFLOWN_WINGMAN = 28;
+
+/** A wide thin deck with a thick block standing along one side of it, and a core under it to make it a ship. */
+const overflownDesign = (): ShipDesign =>
+    built("overflown deck", [
+        { id: 1, kind: "structure", x: 0, y: 0, length: OVERFLOWN_LENGTH, width: OVERFLOWN_THIN },
+        {
+            id: 2,
+            kind: "structure",
+            x: 0,
+            y: (OVERFLOWN_THIN + OVERFLOWN_THICK) / 2,
+            length: OVERFLOWN_LENGTH,
+            width: OVERFLOWN_THICK,
+            thick: true,
+        },
+        { id: 3, kind: "core", x: -OVERFLOWN_LENGTH / 2 - 1.5, y: 0, length: 3, width: 3 },
+    ]);
 
 /** A blueprint of these modules, compiled and kept under `name`. */
 function built(name: string, modules: Record<string, unknown>[]): ShipDesign {
@@ -683,6 +710,34 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
             begin(snapshot, flashes, t, -70, -40, 30, 50);
             place(snapshot, corvetteDesign(), 0, 0, 0).throttles.fill(1);
             place(snapshot, torpedoDesign(), 0, 35, 0).throttles.fill(1);
+        },
+    },
+    {
+        name: "Fighter over hull",
+        about: `A Y-Wing, its main engines at full, flying the length of a capital ship's thin hull beside a thick block standing along its side, its upper plume a couple of metres from the block. A Dinky flies in formation behind it, between its plumes, its own engines cold. The plumes are a fighter's height above the deck, so they shine down on the hull under them, and only graze the Dinky level with them; the block's top, nearer their height, they strike a little more glancingly. Best seen under the eclipse light, lit by nothing else.`,
+        loop: 8,
+        build(t, snapshot, flashes) {
+            const half = OVERFLOWN_LENGTH / 2;
+            begin(snapshot, flashes, t, -half - 3, -OVERFLOWN_THIN / 2 - 3, half + 3, OVERFLOWN_THIN / 2 + OVERFLOWN_THICK + 3);
+            // Laid out from its blueprint's origin, which is not its centre of mass.
+            const deck = overflownDesign();
+            place(snapshot, deck, deck.centreOfMassX, deck.centreOfMassY, 0);
+            // From one end to the other, over the thin hull beside the block.
+            const fighter = place(
+                snapshot,
+                yWingDesign(),
+                -half + 20 + ((OVERFLOWN_LENGTH - 20) * t) / 8,
+                OVERFLOWN_THIN / 2 - OVERFLOWN_OFF,
+                0,
+            );
+            // And a Dinky in formation behind it, between its plumes, its own engines cold: level with them, so barely lit by them.
+            place(snapshot, dinkyDesign(), fighter.x - OVERFLOWN_WINGMAN, fighter.y, 0);
+            // Only those driving it along, so no plume reaches out over the block.
+            const yWing = fighter.currentStructure;
+            yWing.engines.forEach((engine, k) => {
+                const angle = yWing.modules[engine.module!]!.angle;
+                fighter.throttles[k] = Math.abs(Math.cos(angle) - 1) < 0.01 ? 1 : 0;
+            });
         },
     },
     {

@@ -82,15 +82,21 @@ export class HullLayer {
     readonly deck = new Container();
     /**
      * Every module's fill again, untinted, for the dynamic lights to light
-     * through the filter `litBy` sets: filled only while there is one.
+     * through the filters `litBy` sets: filled only while there are some. The
+     * thin hull and rock in one, lit as the deck is; the thick modules in the
+     * other, lit as their tops a thick module's height above it are.
      */
     readonly lit = new Pool();
+    readonly litThick = new Pool();
     /**
      * The lit fills with the bevels over them, sharing their geometry, so the
      * light added to a bevel turned from the battle's light is dimmer and to
-     * one turned to it brighter, as the hull under it is: what the filter is on.
+     * one turned to it brighter, as the hull under it is: the deck's and the
+     * thick modules', each what its filter is on.
      */
     readonly litLayer = new Container();
+    private readonly litDeck = new Container();
+    private readonly litTop = new Container();
     /** The bevels along the thin hull's outside edges, and the thick modules'. */
     readonly thinBevels = new Graphics();
     readonly thickBevels = new Graphics();
@@ -125,7 +131,9 @@ export class HullLayer {
         this.thickRockShadows = new BlockShadows(shade(), this.thinRock.container);
         this.kernelShadows = new BlockShadows(shade(), this.rockUnderKernel.container);
         this.fighterShade = shade();
-        this.litLayer.addChild(this.lit.container, new Graphics(this.thinBevels.context), new Graphics(this.thickBevels.context));
+        this.litDeck.addChild(this.lit.container, new Graphics(this.thinBevels.context));
+        this.litTop.addChild(this.litThick.container, new Graphics(this.thickBevels.context));
+        this.litLayer.addChild(this.litDeck, this.litTop);
         this.litLayer.visible = false;
         this.fighterShadows.container.mask = this.hull.container;
         this.fighterShadows.container.filters = [this.fighterShade];
@@ -218,7 +226,7 @@ export class HullLayer {
                             : this.thin;
                 const alpha = fillAlpha(ship, i);
                 place(depth.next(fill), x, y, angle).alpha = alpha;
-                if (this.lighting) place(this.lit.next(fill), x, y, angle).alpha = alpha;
+                if (this.lighting) place((depth === this.thick ? this.litThick : this.lit).next(fill), x, y, angle).alpha = alpha;
                 if (depth === this.thin || depth === this.thick) {
                     // As wide on every module of a ship, by the size it was built: a piece keeps its ship's.
                     const origin = originOf(design, i);
@@ -292,10 +300,15 @@ export class HullLayer {
 
     private lighting = false;
 
-    /** Light the hull by `filter`'s dynamic lights, or not at all, as where there is no WebGL to run it. */
-    litBy(filter: Filter | null): void {
-        this.lighting = filter !== null;
-        this.litLayer.filters = filter === null ? [] : [filter];
+    /**
+     * Light the hull by the dynamic lights, the deck and rock through `deck`
+     * and the thick modules through `thick`, or not at all, as where there is
+     * no WebGL to run them.
+     */
+    litBy(deck: Filter | null, thick: Filter | null = deck): void {
+        this.lighting = deck !== null;
+        this.litDeck.filters = deck === null ? [] : [deck];
+        this.litTop.filters = thick === null ? [] : [thick];
         this.litLayer.visible = this.lighting;
     }
 
@@ -367,6 +380,7 @@ export class HullLayer {
             this.kernel,
             this.fighterShadows,
             this.lit,
+            this.litThick,
             this.thinHull,
             this.hull,
             this.hullUnderRock,

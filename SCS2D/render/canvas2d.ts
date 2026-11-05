@@ -45,7 +45,7 @@ import {
 } from "../sim/index.js";
 import { BACKGROUND, GRID, WELL, WELL_ARM_PX, WELL_PULLS } from "./backdrop.js";
 import { barrelLines, MIN_BARREL_PX } from "./barrels.js";
-import type { Light } from "./light.js";
+import { FIGHTER_SHADOW_M, LANDED_SHADOW_M, THICK_SHADOW_M, type Light } from "./light.js";
 import {
     BEVEL_DARK,
     BEVEL_LIGHT,
@@ -1589,6 +1589,7 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
                 g,
                 NOZZLE_GLOW,
                 outer * brightness * NOZZLE_GLOW_SHARE * grown,
+                heightOf(ship),
             );
             // The sprite's core is its brightest, its edge a little dimmer.
             ctx.globalAlpha = outer * brightness;
@@ -2252,6 +2253,15 @@ function lightUp(tint: number, albedo: readonly number[], x: number, y: number):
 }
 
 /**
+ * How high above the deck a ship is, metres, as its shadow falls: a flying
+ * fighter at its height, one parked on a pad lower, and anything else on the deck.
+ */
+function heightOf(ship: ShipView): number {
+    if (!ship.currentStructure.fighter) return 0;
+    return ship.riding === true ? LANDED_SHADOW_M : FIGHTER_SHADOW_M;
+}
+
+/**
  * A fighter's modules filled once more, added over themselves in their own
  * colour times the light on each: the dynamic lights, as the hull layer's
  * filter gives the capital ships'. A burnt-out module is soot, and stays dark.
@@ -2266,7 +2276,7 @@ function lightFighter(ctx: CanvasRenderingContext2D, ship: ShipView, fighters: b
         const integrity = ship.integrity?.[i] ?? 1;
         if (integrity <= 0) continue;
         const m = design.modules[i]!;
-        if (!field.at(ship.x + m.x * c - m.y * s, ship.y + m.x * s + m.y * c, glow)) continue;
+        if (!field.at(ship.x + m.x * c - m.y * s, ship.y + m.x * s + m.y * c, glow, heightOf(ship))) continue;
         const colours = moduleColours(design, i, paintedSide(ship, i));
         moduleFills(m.spec, fillColour(m.spec, colours), colours, integrity, fills, drawnMounts(design, i).polygons);
         ctx.save();
@@ -3137,6 +3147,8 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
         // and moving with it. A ship that has gone leaves its flashes where they
         // happened, and a burst drifts on at its shell's velocity.
         const anchor = shipByBody(snapshot, flashes.body[i]!);
+        // What gives it off: a flying fighter's at its height, a gun's at a turret's, a hit on a hull's on its deck.
+        const height = anchor !== null && (kind !== IMPACT_MUZZLE || anchor.currentStructure.fighter) ? heightOf(anchor) : THICK_SHADOW_M;
         const at = anchor === null ? { x: flashes.x[i]!, y: flashes.y[i]! } : flashPosition(flashes.localX[i]!, flashes.localY[i]!, anchor);
         const rvx = (anchor === null ? flashes.vx[i]! : anchor.vx) - cvx;
         const rvy = (anchor === null ? flashes.vy[i]! : anchor.vy) - cvy;
@@ -3189,7 +3201,7 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
         if (pointing) {
             const tip = max(muzzleWedge(radius, age, lifetime).backWidth * MUZZLE_GLOW_SHARE, floor);
             const shine = flashFade(age, lifetime) * WEDGE_GLOW * MUZZLE_TIP_BRIGHTNESS;
-            lights.line(base, at.x, at.y, at.x, at.y, tip, glow, shine, false, true);
+            lights.line(base, at.x, at.y, at.x, at.y, tip, glow, shine, false, true, false, height);
         }
         for (let k = 0; k < n; k++) {
             const u = n === 1 ? 0.5 : (k + 0.5) / n;
@@ -3202,7 +3214,23 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
             const y = at.y + rvy * ahead;
             if (pointing) {
                 ctx.setTransform(base);
-                drawWedge(ctx, base, glow, coreColour, x, y, dirX, dirY, flashes.radius[i]!, t, lifetime, fade * weight, floor);
+                drawWedge(
+                    ctx,
+                    base,
+                    glow,
+                    coreColour,
+                    x,
+                    y,
+                    dirX,
+                    dirY,
+                    flashes.radius[i]!,
+                    t,
+                    lifetime,
+                    fade * weight,
+                    floor,
+                    false,
+                    height,
+                );
                 continue;
             }
             if (cone) {
@@ -3226,6 +3254,7 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
                     fade * weight,
                     floor,
                     true,
+                    height,
                 );
                 continue;
             }
@@ -3235,7 +3264,7 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
             const r = max(extent * coreShare, floor);
             const g = max(extent * glowShare, floor);
             ctx.setTransform(base);
-            lights.point(base, x, y, g, glow, 0.5 * boost * fade * weight);
+            lights.point(base, x, y, g, glow, 0.5 * boost * fade * weight, height);
             ctx.globalAlpha = min(1, 0.9 * boost * fade * weight);
             ctx.drawImage(core, x - r, y - r, 2 * r, 2 * r);
         }
@@ -3428,6 +3457,8 @@ function drawWedge(
     floor: number,
     /** Whether it stays where it started, as a hit's on the face it struck, rather than moving out ahead as a muzzle's does. */
     anchored = false,
+    /** How high above the deck what gives it off is, metres. */
+    height = 0,
 ): void {
     const step = Math.round(sqrt(min(1, max(0, age / lifetime))) * WEDGE_STEPS);
     const image = wedgeSprite(core, step);
@@ -3455,6 +3486,7 @@ function drawWedge(
         false,
         // A muzzle's light comes from its tip; a hit's from its wedge.
         !anchored,
+        height,
     );
 }
 
@@ -3624,6 +3656,11 @@ function beamLights(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: C
             legibleWidth(halo, MIN_BEAM_GLOW_PX, camera.scale) * BEAM_GLOW_REACH,
             team(i) < 0 ? BEAM_GLOW : markerOf(shipColours(team(i))).hull,
             beamAlpha(snapshot.beamPower[i]!) * BEAM_GLOW_ALPHA * BEAM_GLOW_BOOST * flooredFade(halo, MIN_BEAM_GLOW_PX, camera.scale),
+            false,
+            false,
+            false,
+            // From a turret, at its height.
+            THICK_SHADOW_M,
         );
     }
 }
@@ -3677,6 +3714,7 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
             legibleWidth(halo, MIN_BEAM_GLOW_PX, camera.scale) * BEAM_EMITTER_REACH,
             team(i) < 0 ? BEAM_FLASH_GLOW : markerOf(shipColours(team(i))).hull,
             alpha * BEAM_EMITTER_BRIGHTNESS * flooredFade(halo, MIN_BEAM_GLOW_PX, camera.scale),
+            THICK_SHADOW_M,
         );
     }
 

@@ -603,14 +603,31 @@ an entry is either still open or it is gone.
               frame's lights are all known, so is lit by its view's lights in the frame before, put back
               in the world through that frame's camera, so a panning view does not move the light; a frame
               late, which a light lasting a few frames hides.
+            - **Heights — built.** Each light stands above the deck: its layer's height (nothing on a
+              capital ship's hull, a turret's, `THICK_SHADOW_M`, for its guns, beams and a shell
+              bursting in open space, a flying fighter's, `FIGHTER_SHADOW_M`, for what it gives off,
+              and a parked one's lower), and then half its glow's radius (`LIGHT_RISE`), about the
+              flame or flash's own half-thickness. What it lights faces up, so it lights a surface by
+              its distance in three dimensions and by how squarely it shines down there (`shine`,
+              `render/lightField.ts`). A fighter's plume lights the hull under it well and the fighters
+              level with it only glancingly; a thick module's top, nearer its height, is struck more
+              glancingly than the deck. The buffer is drawn by a shader rather than from the glows'
+              sprites: a quad over all each light reaches, lit as `shine` has it, drawn twice, onto
+              the deck for the thin hull and rock and onto a thick module's top for the thick modules,
+              each through its own filter. Fighters, vapour and metal ask the field at their own
+              height. `LIGHT_REACH` went from 6 to 9 and `LIGHT_GAIN` from 1 to 1.5, so the deck
+              beside a plume is lit about as before. The Effects page's "Fighter over hull" scene
+              shows it: a Y-Wing over a thin deck beside a thick block, a Dinky in formation between
+              its plumes.
             - **Seen best under `LIGHTS.eclipse`**, a dim, cold sun and no ambient at all, so a ship is a
               dark shape lit mostly by its own engines, guns and the hits on it: Beam Duel for beams, Torch
               Run for plumes and Broadside for guns are seen in it.
             - **Never lit**: gauges, icons, names, selection, orders and arcs, as with the battle's light.
-        3. **Recorded for later: lights shading bevels and rounded parts.** A light beside a ship should
-           brighten the bevels and the sides of bells, barrels and domes that face it, as the battle's light
-           does. Each needs every light's direction at each edge, so it waits until the dynamic lights have
-           been seen working.
+        3. **Lights shading bevels and rounded parts**, next, now that each light has a height: a
+           light beside a ship should brighten the bevels and the sides of bells, barrels and domes that
+           face it, as the battle's light does. The plan is a second buffer holding where the light at
+           each point comes from, and the bevels and rounded parts drawn into a buffer of which way
+           they face, the lit pass shading each by both: bevels first, then rounded parts.
         4. **Shadows from dynamic lights**, last and limited: only the brightest lights (bursts, perhaps
            beams) cast them, over a short range, since every light's shadow costs that light times what is
            near it. A line source's shadow is the hardest of these and may never be worth it. Vapour's own
