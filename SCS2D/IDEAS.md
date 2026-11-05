@@ -64,7 +64,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
   - Would need counter-strategies, e.g. deliberately aiming randomly based on the target's ability to accelerate (already somewhat accounted for with the trigger range limit)
 
 ## Evolution
-- Make damage and function taken start at 0 and go negative, so the graph scales nicely at the beginning when they're all useless, highlighting even minor improvements.
 - We need a mechanism to let ships know what the goal is. This could be something like a "go close to that" order being given to all ships when the race goal is present. (At the moment we lean on the escort doctrine, but that just makes evolving a second ship mean they bunch up with each other instead of going for the goal)
 - Duplicated parts or assemblies can be placed anywhere on the surface of the ship, not just close to the module they're a duplicate of (possibly with a higher chance of appearing nearby)
 - Ships often lose manoeuvrability, even starting with a good configuration of engines, they will often lose some.
