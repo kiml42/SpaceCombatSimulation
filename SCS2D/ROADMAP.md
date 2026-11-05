@@ -152,13 +152,13 @@ an entry is either still open or it is gone.
 
     1. **Lighting, pass 1**, with fighter shadows — **built**. `render/light.ts` holds a battle's `Light`
        (`Battle.light`, the default where a battle sets none) and the two shadow lengths, 1.5 m for a
-       thick module and 2.5 m for a fighter, judged by eye on ships of tens of metres; on a ship a kilometre
+       thick module and 2 m for a fighter (2.5 m until the dynamic lights took heights from them), judged by eye on ships of tens of metres; on a ship a kilometre
        across they barely show, the price of a fixed length. `render/hullLayer.ts` draws thin fills, thick
        modules' and fighters' shadows masked to thin hull, then thick fills, each
        shadow layer darkened through one filter so overlaps are no darker. A thick module is a block, so
        its shadow is each of its shapes swept away from the light (the hull round the shape and the shape
        moved), joined to its foot and made afresh each frame; a fighter's is its outline moved, apart from
-       it, as it flies — 2.5 m, or 0.75 m for one on its carrier's pad, whether part of it or parked there (a step, until a fighter's
+       it, as it flies — 2 m, or 0.75 m for one on its carrier's pad, whether part of it or parked there (a step, until a fighter's
        height is drawn as it lands and lifts). Asteroids stand higher than any ship: thin rock twice a thick
        module's height, or 8% of the asteroid's radius on a large one, so the steps show on rock hundreds of
        metres across, shading ships' hulls beside it; thick rock twice as high, shading the thin; and a
@@ -606,8 +606,8 @@ an entry is either still open or it is gone.
             - **Heights — built.** Each light stands above the deck: its layer's height (nothing on a
               capital ship's hull, a turret's, `THICK_SHADOW_M`, for its guns, beams and a shell
               bursting in open space, a flying fighter's, `FIGHTER_SHADOW_M`, for what it gives off,
-              and a parked one's lower), and then half its glow's radius (`LIGHT_RISE`), about the
-              flame or flash's own half-thickness. What it lights faces up, so it lights a surface by
+              and a parked one's lower), and then a quarter of its glow's radius (`LIGHT_RISE`), the
+              flame or flash inside the halo its glow is. What it lights faces up, so it lights a surface by
               its distance in three dimensions and by how squarely it shines down there (`shine`,
               `render/lightField.ts`). A fighter's plume lights the hull under it well and the fighters
               level with it only glancingly; a thick module's top, nearer its height, is struck more

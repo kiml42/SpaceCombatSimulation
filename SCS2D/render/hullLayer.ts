@@ -430,6 +430,9 @@ export class HullLayer {
         if (this.light === light) return;
         this.light = light;
         for (const lit of [this.thin, this.thick, this.rock, this.thickRock, this.kernel]) lit.container.tint = light.colour;
+        // A bevel's highlight is the light's colour too.
+        this.thinBevels.tint = light.colour;
+        this.thickBevels.tint = light.colour;
         for (const shadows of this.blockShadows()) shadows.shade.alpha = 1 - light.ambient;
         this.fighterShade.alpha = 1 - light.ambient;
     }
