@@ -1,6 +1,7 @@
 import { styled } from "@linaria/react";
 import { useEffect, useEffectEvent, useReducer, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
+import { useStorage } from "~/features/storage/StorageContext";
 import { useLibrary } from "~/features/storage/useLibrary";
 import { kg } from "~/editor/budget";
 import { EditorDocument } from "~/editor/document";
@@ -18,6 +19,7 @@ import { replacedName } from "~/editor/fleetEdit";
 import { backToFleet, wearingFleets, withLivery } from "~/editor/livery";
 import { LiveryPanel } from "~/features/livery/LiveryPanel";
 import { battleRoute, designRoute, fleetRoute, handedDesign, shipFleet, type DesignInFleet } from "~/editor/handoff";
+import { draftOf, keepDraft, sameShip } from "~/editor/draft";
 import { emptyBlueprint, nextName, toFileText, unusedName } from "~/editor/library";
 import { ANGLE_SNAP_DEGREES, type ShipCanvas as Engine } from "~/editor/shipCanvas";
 import { buildTime } from "~/editor/stats";
@@ -206,12 +208,15 @@ function handed(search: URLSearchParams): DesignInFleet | null {
  */
 export function ShipPage() {
     const { ships: library } = useLibrary();
+    const storage = useStorage();
     const [search, setSearch] = useSearchParams();
     const navigate = useNavigate();
     const [inFleet] = useState(() => handed(search));
     const [doc] = useState(() => {
         const named = search.get("open");
-        const read = (): Blueprint | null => (named === null ? null : fromLibrary(library, named)) ?? fromLibrary(library, "Corvette");
+        // The work as it was left, before the saved copy of the same ship.
+        const read = (): Blueprint | null =>
+            draftOf(storage, named) ?? (named === null ? null : fromLibrary(library, named)) ?? fromLibrary(library, "Corvette");
         // As it flies in its fleet, carrying the fleet's fighters for its pads.
         const opened =
             inFleet === null
@@ -259,9 +264,12 @@ export function ShipPage() {
         refresh();
     };
 
-    // Leaving for another route keeps the work, in case it was not saved. A reload does not:
-    // that is how changes are thrown away.
+    // Leaving for another route keeps the work in the library, in case it was not saved; a reload
+    // finds it in the draft. Revert is how changes are thrown away. Only work done since the page
+    // opened: a draft reopened and left untouched stays the draft rather than becoming the saved copy.
+    const [openedWith] = useState(() => doc.blueprint);
     const keep = (): void => {
+        if (doc.blueprint === openedWith) return;
         try {
             library.saveIfChanged(doc.blueprint);
         } catch {
@@ -286,7 +294,13 @@ export function ShipPage() {
         return () => clearTimeout(timer);
     }, [inFleet, blueprint]);
 
-    // Otherwise the address names the ship, so a reload reopens its saved copy.
+    // Otherwise the draft keeps the work and the address names the ship, so a reload reopens it.
+    const keepWork = useEffectEvent(() => keepDraft(storage, doc.blueprint));
+    useEffect(() => {
+        if (inFleet !== null) return;
+        const timer = setTimeout(keepWork, 300);
+        return () => clearTimeout(timer);
+    }, [inFleet, blueprint]);
     const name = blueprint.name;
     const named = useEffectEvent(() => {
         if (inFleet === null && search.get("open") !== name) setSearch({ open: name }, { replace: true });
@@ -330,6 +344,14 @@ export function ShipPage() {
     const entries = library.list();
     const taken = (): string[] => entries.map((entry) => entry.name);
     const listed = entries.some((entry) => entry.name === name);
+    // What Revert goes back to: the saved copy, where the work differs from it.
+    let saved: Blueprint | null = null;
+    try {
+        saved = listed ? library.load(name) : null;
+    } catch {
+        // Unreadable: nothing to go back to.
+    }
+    const reverts = saved !== null && !sameShip(saved, blueprint);
     const broken = doc.view.problems[0];
     // A design that would not fly stays here until it would, so a fleet never carries one it cannot be fixed from.
     const refuseBroken = (event: { preventDefault(): void }): boolean => {
@@ -396,6 +418,15 @@ export function ShipPage() {
                 </Button>
                 <Button id="saveShip" onClick={() => library.save(doc.blueprint)}>
                     Save
+                </Button>
+                {/* On the undo stack too, so undo brings the changes back. */}
+                <Button
+                    id="revertShip"
+                    title="Throw away the changes since this ship was last saved"
+                    disabled={!reverts}
+                    onClick={() => saved !== null && editing.change(saved)}
+                >
+                    Revert
                 </Button>
                 {/* On the undo stack, so undo brings the ship back and Save puts it in the library again. */}
                 <Button

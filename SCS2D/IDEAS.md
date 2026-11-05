@@ -46,7 +46,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
   - The sections aren't clear enough
 - Mirror into a side group: **Mirror** makes each module a mirrored part of its own. A way to add a module to an existing mirrored side assembly (origin at 0,0) instead would keep a whole side one part.
 - Default the refit mode to off except where it's useful
-- Auto-save
 
 
 ## Weapons
@@ -140,4 +139,3 @@ flying round asteroids in its way rather than relying on keeping clear, which lo
   being taken from it.
 
 ## Skirmish
-- The game should be able to track multiple saved skirmishes internally, by name.
