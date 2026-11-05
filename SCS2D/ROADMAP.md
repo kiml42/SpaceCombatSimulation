@@ -641,7 +641,8 @@ an entry is either still open or it is gone.
               Canvas2D view, were never tinted by the battle's light, so under a dim one, as eclipse,
               they stood out bright against the hull it darkens. They are now drawn in a group
               multiplied by its colour (`PixiCanvas.tinted`), as the hull layer's fills are tinted,
-              and so are every ship's turrets: mounts, barrels, bracing and mantlets. What is not
+              and so are every ship's turrets (mounts, barrels, bracing and mantlets) and the
+              shading over its engines and ports, whose highlights are the light's. What is not
               tinted is what gives off its own light or says something: the dynamic lights, status
               lights, gauges, names, arcs and loads. The Effects page also has a "dark" light, black
               with no ambient, to see the dynamic lights alone.

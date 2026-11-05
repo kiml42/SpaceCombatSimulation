@@ -925,9 +925,17 @@ function drawHull(
         const halfWidth = spec.width / 2;
         // Unless Pixi underneath has filled it already (render/pixiView.ts).
         if (!filled) keptFill(ctx, ship, i);
-        if (spec.kind === "engine" && light !== undefined)
+        // Rounded parts' shading, in the battle's light: its highlights are that light.
+        if (spec.kind === "engine" && light !== undefined) {
+            inLight(ctx, light);
             shadeEngine(ctx, spec, ship.angle + m.angle, light, drawnMounts(design, i).round);
-        if (spec.kind === "port" && light !== undefined) shadePort(ctx, spec, ship.angle + m.angle, light);
+            ctx.restore();
+        }
+        if (spec.kind === "port" && light !== undefined) {
+            inLight(ctx, light);
+            shadePort(ctx, spec, ship.angle + m.angle, light);
+            ctx.restore();
+        }
         if (spec.kind === "pad") {
             // Its landing square is drawn with its fill (`fillModule`).
         } else if (
