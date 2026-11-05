@@ -1,5 +1,5 @@
 import { Geometry, GlProgram, Mesh, Shader, UniformGroup, type RenderTexture } from "pixi.js";
-import { BEVEL_SLOPE, BEVEL_QUAD_STRIDE } from "./bevelLighting.js";
+import { BEVEL_SLOPE, BEVEL_QUAD_STRIDE, CHROMA_FLOOR } from "./bevelLighting.js";
 import { LIGHT_GAIN, LIGHT_HEADROOM } from "./lightField.js";
 
 /**
@@ -59,7 +59,8 @@ void main()
     float luminance = dot(light, vec3(0.2126, 0.7152, 0.0722));
     // How much more it takes for facing the light across the deck, in the light's own colour.
     float facing = max(0.0, dot(vNormal, toward)) * uSlope;
-    vec3 colour = luminance > 1e-4 ? light / luminance : vec3(0.0);
+    // Faint light is taken as white rather than its rounding as a colour.
+    vec3 colour = (light + ${CHROMA_FLOOR.toFixed(3)}) / (luminance + ${CHROMA_FLOOR.toFixed(3)});
     vec3 gained = 1.0 - exp(-colour * facing * uHeadroom);
     finalColor = vec4(vAlbedo * gained * uGain, 0.0);
 }

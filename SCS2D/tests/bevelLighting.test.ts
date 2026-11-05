@@ -30,7 +30,16 @@ describe("a bevel lit by the dynamic lights", () => {
         const orange = [0.6, 0.3, 0];
         const [r, g, b] = gain(orange, 0.3, 0, 1, 0);
         expect(r).toBeGreaterThan(g!);
-        expect(b).toBe(0);
+        // Nearly none of what the light has none of.
+        expect(b).toBeLessThan(0.2 * r!);
+    });
+
+    it("takes light too faint to tell its colour from rounding as white, not as pure red or green", () => {
+        // A few levels of an 8-bit buffer, all red, coming strongly from one side: as beside a light on the deck.
+        const [r, g, b] = gain([2 / 255, 0, 0], 0.3, 0, 1, 0);
+        expect(r).toBeGreaterThan(0);
+        expect(g! / r!).toBeGreaterThan(0.6);
+        expect(b! / r!).toBeGreaterThan(0.6);
     });
 
     it("is laid out as its corners, its normal and its colour", () => {

@@ -10,6 +10,15 @@
  */
 export const BEVEL_SLOPE = Math.SQRT1_2;
 
+/**
+ * Added to the light's colour, each channel and its luminance, in the buffer's
+ * units, before the colour is told from it: where the light shining down is
+ * faint, as beside a light on the deck itself, its colour is a few levels of
+ * an 8-bit buffer, and dividing by them would turn their rounding into pure
+ * red or green. Light that faint is taken to be white.
+ */
+export const CHROMA_FLOOR = 0.03;
+
 /** Floats a lit bevel takes: its quad's four corners, its outward normal across the deck, and its colour, each channel 0 to 1. */
 export const BEVEL_QUAD_STRIDE = 13;
 
@@ -30,7 +39,7 @@ export function bevelGain(light: readonly number[], tx: number, ty: number, nx: 
     const luminance = 0.2126 * light[0]! + 0.7152 * light[1]! + 0.0722 * light[2]!;
     const facing = Math.max(0, nx * tx + ny * ty) * BEVEL_SLOPE;
     for (let c = 0; c < 3; c++) {
-        const colour = luminance > 1e-4 ? light[c]! / luminance : 0;
+        const colour = (light[c]! + CHROMA_FLOOR) / (luminance + CHROMA_FLOOR);
         out[c] = 1 - Math.exp(-colour * facing * headroom);
     }
 }

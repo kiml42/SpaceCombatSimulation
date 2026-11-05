@@ -159,8 +159,10 @@ void main()
  * bevel), and the filter that lights a layer facing up by it.
  */
 class Surface {
-    readonly texture = RenderTexture.create({ width: 1, height: 1 });
-    readonly direction = RenderTexture.create({ width: 1, height: 1 });
+    // Half floats: at 8 bits, faint light steps up a level at a different distance in each channel,
+    // which with the headroom scaled back shows as coloured rings round a light.
+    readonly texture = RenderTexture.create({ width: 1, height: 1, format: "rgba16float" });
+    readonly direction = RenderTexture.create({ width: 1, height: 1, format: "rgba16float" });
     readonly filter: Filter;
 
     constructor(screen: UniformGroup) {
