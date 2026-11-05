@@ -9,8 +9,8 @@ import { rgba } from "./sprites.js";
  * bits of metal. Kept in world metres, so it can be asked of a later frame
  * than the one whose lights it holds. DOM-free, so it is unit-tested.
  *
- * **A light stands above what it lights**, its layer's height and then half
- * its glow's radius, and what it lights faces up. So it lights a surface by
+ * **A light stands above what it lights**, its layer's height and then a
+ * quarter of its glow's radius, and what it lights faces up. So it lights a surface by
  * how far it is from it, in three dimensions, and by how squarely it shines
  * down on it: a fighter's plume lights the hull under it well, and the other
  * fighters level with it hardly at all, its light only grazing their tops.
@@ -145,10 +145,10 @@ export class LightField {
 
 /**
  * How far above its layer a light stands, as a share of its glow's radius:
- * about the flame or flash's own half-thickness, its glow being the halo
- * round it, wider than it.
+ * the flame or flash inside it, its glow being the halo round it, far wider.
+ * Low, so a light shines across what is level with it rather than down on it.
  */
-export const LIGHT_RISE = 0.5;
+export const LIGHT_RISE = 0.25;
 
 /** How high a light stands above the deck: its layer's `height`, and then a share of its glow's `radius`. In whatever units both are in. */
 export function lightHeight(height: number, radius: number): number {

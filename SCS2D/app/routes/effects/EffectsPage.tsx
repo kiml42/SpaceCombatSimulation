@@ -8,10 +8,13 @@ import { LIGHTS } from "~/scenarios/lights";
 import { Button } from "~/ui/buttons/Button";
 
 const SPEEDS = [1, 0.25, 0.1, 0.03];
+/** No light at all: what is seen is only what the scene's own lights show. */
+const DARK: Light = { from: 0, colour: "#000000", ambient: 0 };
 const LIGHT_CHOICES: readonly (readonly [string, Light])[] = [
     ["battle default", DEFAULT_LIGHT],
     ["builder", BUILDER_LIGHT],
     ...Object.entries(LIGHTS),
+    ["dark", DARK],
 ];
 
 const Main = styled.main`
