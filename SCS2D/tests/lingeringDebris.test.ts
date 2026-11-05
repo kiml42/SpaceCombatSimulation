@@ -24,6 +24,9 @@ function box(x: number, y: number, hl: number, hw: number): number[] {
     return [x + hl, y - hw, x + hl, y + hw, x - hl, y + hw, x - hl, y - hw];
 }
 
+/** The most a bit drifts off at, m/s, when nothing throws it. */
+const DEBRIS_KICK_MOST = 3;
+
 describe("lingering debris", () => {
     it("is made only while a viewer is watching, more bits the bigger the piece, covering a share of it", () => {
         const debris = new Debris();
@@ -78,6 +81,38 @@ describe("lingering debris", () => {
         expect(debris.heat(0)).toBeCloseTo(0.5, 9);
         debris.step(DEBRIS_HOT, battle.world.bodies, battle.grid, battle.ships.hulls, []);
         expect(debris.heat(0)).toBe(0);
+    });
+
+    it("is thrown by the blow that blew it apart, along its line, from near it and towards it from far off", () => {
+        const debris = new Debris();
+        debris.watched = true;
+        // A plate 80 m by 30 struck on its +x end, driving in along -x, hard enough to shatter it.
+        const mass = 1e6;
+        debris.emit(box(0, 0, 40, 15), 4, 0, 0, 0, 0, 0, UNPAINTED, true, 3 * 1000 * mass, mass, 40, 0, -1, 0);
+        let along = 0;
+        let across = 0;
+        let near = 0;
+        let nearCount = 0;
+        let far = 0;
+        let farCount = 0;
+        for (let i = 0; i < debris.count; i++) {
+            const vx = debris.vx[i]!;
+            along += Math.abs(vx);
+            across += Math.abs(debris.vy[i]!);
+            if (debris.x[i]! > 20) {
+                near += vx;
+                nearCount++;
+            } else if (debris.x[i]! < -20) {
+                far += vx;
+                farCount++;
+            }
+        }
+        // Thrown well past the drift a bit is given anyway, and more along the line than across it.
+        expect(Math.hypot(along, across) / debris.count).toBeGreaterThan(3 * DEBRIS_KICK_MOST);
+        expect(along).toBeGreaterThan(1.5 * across);
+        // Near the impact, away from it (-x); at the far end, towards it (+x).
+        expect(near / nearCount).toBeLessThan(-2);
+        expect(far / farCount).toBeGreaterThan(2);
     });
 
     it("takes the oldest's place once there is no more room", () => {

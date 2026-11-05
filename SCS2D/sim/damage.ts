@@ -310,6 +310,16 @@ export class Damage {
     readonly stepBody: number[] = [];
     readonly stepModule: number[] = [];
     readonly stepJoules: number[] = [];
+    /**
+     * Where the blows on it landed and which way they drove, in the hull's frame
+     * from its centre of mass: sums weighted by each blow's joules, and that
+     * weight. Only blows that come from somewhere are counted: a round, a crush.
+     */
+    readonly stepX: number[] = [];
+    readonly stepY: number[] = [];
+    readonly stepDx: number[] = [];
+    readonly stepDy: number[] = [];
+    readonly stepStruck: number[] = [];
     stepCount = 0;
 
     /**
@@ -432,15 +442,38 @@ export class Damage {
 
     /** Add `joules` to what module `module` of body `bodyIndex` has taken this step. */
     private takenThisStep(bodyIndex: number, module: number, joules: number): void {
-        for (let k = 0; k < this.stepCount; k++) {
-            if (this.stepBody[k] !== bodyIndex || this.stepModule[k] !== module) continue;
-            this.stepJoules[k] = this.stepJoules[k]! + joules;
-            return;
-        }
+        const k = this.stepEntry(bodyIndex, module);
+        this.stepJoules[k] = this.stepJoules[k]! + joules;
+    }
+
+    /** The step's account of module `module` of body `bodyIndex`, opened if it has none. */
+    private stepEntry(bodyIndex: number, module: number): number {
+        for (let k = 0; k < this.stepCount; k++) if (this.stepBody[k] === bodyIndex && this.stepModule[k] === module) return k;
         const k = this.stepCount++;
         this.stepBody[k] = bodyIndex;
         this.stepModule[k] = module;
-        this.stepJoules[k] = joules;
+        this.stepJoules[k] = 0;
+        this.stepX[k] = 0;
+        this.stepY[k] = 0;
+        this.stepDx[k] = 0;
+        this.stepDy[k] = 0;
+        this.stepStruck[k] = 0;
+        return k;
+    }
+
+    /**
+     * Note that a blow of `joules` struck module `module` of body `bodyIndex`
+     * at `(x, y)` driving along `(dx, dy)`, both in the hull's frame: for which
+     * way a module it shatters is thrown.
+     */
+    struck(bodyIndex: number, module: number, x: number, y: number, dx: number, dy: number, joules: number): void {
+        if (!(joules > 0)) return;
+        const k = this.stepEntry(bodyIndex, module);
+        this.stepX[k] = this.stepX[k]! + x * joules;
+        this.stepY[k] = this.stepY[k]! + y * joules;
+        this.stepDx[k] = this.stepDx[k]! + dx * joules;
+        this.stepDy[k] = this.stepDy[k]! + dy * joules;
+        this.stepStruck[k] = this.stepStruck[k]! + joules;
     }
 
     /** Start a new step's account of what each module has taken. */
@@ -914,6 +947,7 @@ export function resolveCollision(
             // Where the crush reached it: the contact, or its face if deeper in.
             const at = max(path.entry[k]!, reach) - reach;
             damage.scar(bodyIndex, module, SCAR_GOUGE, px + ux * at, py + uy * at, px + ux * at, py + uy * at, gx, gy, take);
+            damage.struck(bodyIndex, module, px + ux * at, py + uy * at, ux, uy, take);
             spent += take;
         }
         left = through;
@@ -1171,6 +1205,7 @@ function walkRound(
                 }
             }
             if (scarKind !== 0) {
+                damage.struck(bodyIndex, module, ox + ux * at, oy + uy * at, ux, uy, hit.energy);
                 const through = hit.outcome === Terminal.Perforate;
                 const end = through ? path.exit[k]! - reach : at;
                 damage.scar(

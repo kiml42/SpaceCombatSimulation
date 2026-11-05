@@ -1,7 +1,7 @@
 import type { Bodies } from "./bodies.js";
 import { wellPull, type WellSpec } from "./gravity.js";
 import type { Hulls } from "./hull.js";
-import { abs, cos, imul, max, min, PI, sin, sqrt, TAU } from "./math.js";
+import { abs, cos, imul, length, max, min, PI, sin, sqrt, TAU } from "./math.js";
 import { RayHit, type SpatialGrid } from "./spatialGrid.js";
 
 /**
@@ -34,6 +34,22 @@ const DEBRIS_SHORTEST = 0.1;
 const LONGEST_SHARE = 0.5;
 /** How fast a bit leaves the piece it came from, at most, m/s, on top of the piece's own velocity. */
 const DEBRIS_KICK = 3;
+/**
+ * A module blown apart throws its bits: the blow's energy, as a share of it
+ * turned into their motion, gives the speed, up to `MOST_THROW` m/s.
+ */
+export const THROW_SHARE = 0.05;
+const MOST_THROW = 60;
+/** How much more a thrown bit goes along the blow's line than across it. */
+const THROW_STRETCH = 2;
+/**
+ * How hard, as a share of the throw, a bit near the impact is pushed away from
+ * it and one at the far side of the module is thrown towards it: what was at
+ * the impact rebounds off what struck it, and what was furthest from it has
+ * not yet been stopped when the module comes apart.
+ */
+const THROW_BIAS = 0.75;
+
 /** How fast a bit tumbles at most, radians a second. */
 const DEBRIS_SPIN = 3;
 /** How long a bit lasts, seconds, at least and at most. */
@@ -88,6 +104,12 @@ export class Debris {
      * the outline, with the velocity that point had and a little kick, and
      * between them they cover a share of it: a few large, many small. Each
      * carries `paint`, the side it was painted for, and glows if `hot`.
+     *
+     * Blown apart by `throwJoules`, they are thrown as well, the module's
+     * `mass` taking a share of it: further along the blow's line `(nx, ny)`
+     * than across it, and from where it struck, `(ix, iy)`, those near it
+     * pushed away and those far from it thrown towards it. A blow that came
+     * from nowhere in particular, as a beam's, has no line and throws evenly.
      */
     emit(
         outline: readonly number[],
@@ -99,8 +121,19 @@ export class Debris {
         py: number,
         paint = UNPAINTED,
         hot = false,
+        throwJoules = 0,
+        mass = 0,
+        ix = 0,
+        iy = 0,
+        nx = 0,
+        ny = 0,
     ): void {
         if (!this.watched || corners < 3) return;
+        const thrown = mass > 0 && throwJoules > 0 ? min(MOST_THROW, sqrt((2 * THROW_SHARE * throwJoules) / mass)) : 0;
+        const lined = nx !== 0 || ny !== 0;
+        // How far the furthest of it is from where it was struck.
+        let reach = 0;
+        if (lined) for (let k = 0; k < corners; k++) reach = max(reach, length(outline[2 * k]! - ix, outline[2 * k + 1]! - iy));
         // A fan from the first corner: its triangles' areas, as running totals.
         const fan = this.fan;
         let area = 0;
@@ -128,15 +161,35 @@ export class Debris {
             const y0 = outline[1]!;
             const x = x0 + a * (outline[2 * t]! - x0) + b * (outline[2 * t + 2]! - x0);
             const y = y0 + a * (outline[2 * t + 1]! - y0) + b * (outline[2 * t + 3]! - y0);
-            const kick = DEBRIS_KICK * unit(seed, 3);
+            const kick = DEBRIS_KICK * unit(seed, 3) + thrown * unit(seed, 10);
             const way = TAU * unit(seed, 4);
+            let kx = cos(way);
+            let ky = sin(way);
+            if (lined) {
+                const along = kx * nx + ky * ny;
+                const across = (ky * nx - kx * ny) / THROW_STRETCH;
+                kx = along * nx - across * ny;
+                ky = along * ny + across * nx;
+            }
+            kx *= kick;
+            ky *= kick;
+            if (lined && reach > 0) {
+                const rx = x - ix;
+                const ry = y - iy;
+                const d = length(rx, ry);
+                if (d > 0) {
+                    const push = (THROW_BIAS * thrown * (1 - (2 * d) / reach)) / d;
+                    kx += rx * push;
+                    ky += ry * push;
+                }
+            }
             const u = unit(seed, 7);
             const size = max(DEBRIS_SHORTEST, longest * (0.2 + 0.8 * u * u));
             covered += BIT_FILL * size * size;
             this.x[k] = x;
             this.y[k] = y;
-            this.vx[k] = vx - spin * (y - py) + kick * cos(way);
-            this.vy[k] = vy + spin * (x - px) + kick * sin(way);
+            this.vx[k] = vx - spin * (y - py) + kx;
+            this.vy[k] = vy + spin * (x - px) + ky;
             this.angle[k] = PI * unit(seed, 5);
             this.spin[k] = (unit(seed, 6) * 2 - 1) * DEBRIS_SPIN;
             this.size[k] = size;

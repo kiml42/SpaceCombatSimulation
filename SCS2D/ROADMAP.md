@@ -508,7 +508,15 @@ an entry is either still open or it is gone.
                One born in a blast (a module shattered, or a piece too small to keep blown off) glows
                white-hot and cools through orange in 0.4 s (`DEBRIS_HOT`), its glow reaching three times its
                length, so between them they cover the module and it flashes rather than turning into
-               pieces between frames; a loose wreck let go is not blown apart, and does not. The store
+               pieces between frames; a loose wreck let go is not blown apart, and does not. A module
+               shattered is thrown too: 5% of the blow's energy (`THROW_SHARE`) over its mass gives a speed,
+               up to 60 m/s, about 17 m/s for one just shattered. Where the blow came from somewhere, as a
+               round's or a crush's does, each bit is thrown at up to that speed along the blow's line and
+               half that across it, and pushed away from where it struck near it and towards it at the far
+               side, by up to three-quarters of it: what was at the impact rebounds off what struck it, and
+               what was furthest from it has not been stopped when the module comes apart. `Damage` keeps
+               each blow's point and line in the step's account for this (`struck`). A beam's, from
+               nowhere in particular, throws evenly. The store
                grows as it fills, to 4,096. A bit looks
                eight steps ahead and casts again only once that is spent or something is in its way, since a
                cast through a capital hull tests every module in it: the Crash scene's 1,100 bits cost

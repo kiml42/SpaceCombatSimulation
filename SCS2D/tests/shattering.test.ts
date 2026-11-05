@@ -69,6 +69,28 @@ describe("shattering", () => {
         }
     });
 
+    it("throws its bits along the line of the blow that shattered it", () => {
+        const s = scene();
+        s.ships.debris.watched = true;
+        const end = at(ROW, 4);
+        const m = ROW.modules[end]!;
+        const joules = 3.5 * s.ships.damage.capacityOf(s.body, end);
+        s.ships.damage.absorb(s.body, end, joules);
+        // On its outer face, driving in along -x.
+        s.ships.damage.struck(s.body, end, m.x + 2, m.y, -1, 0, joules);
+        s.ships.sever(s.world);
+        const b = s.world.bodies;
+        const debris = s.ships.debris;
+        let along = 0;
+        let across = 0;
+        for (let i = 0; i < debris.count; i++) {
+            along += Math.abs(debris.vx[i]! - b.vx[s.body]!);
+            across += Math.abs(debris.vy[i]! - b.vy[s.body]!);
+        }
+        expect(along / debris.count).toBeGreaterThan(5);
+        expect(along).toBeGreaterThan(1.5 * across);
+    });
+
     it("keeps one that took as much over several steps, broken but still there", () => {
         const s = scene();
         const end = at(ROW, 4);

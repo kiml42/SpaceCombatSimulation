@@ -915,6 +915,11 @@ export const CLAW_HEAT_RATE = 1;
 export const CLAW_HEAT_ENERGY = 5e6;
 
 /** A body's mass to divide by: a pinned one's, nought, is no mass at all but one nothing moves. */
+/** A module of a body, as one number. */
+function blowKey(body: number, module: number): number {
+    return body * 65536 + module;
+}
+
 function movable(mass: number): number {
     return mass > 0 ? mass : Infinity;
 }
@@ -1034,6 +1039,12 @@ export class Ships {
     readonly debris = new Debris();
     /** Scratch for a module's outline as it is broken up. */
     private readonly outline: number[] = [];
+    /**
+     * The blow that shattered each module this step, by `blowKey`, while it is
+     * broken up: its joules, where it struck and the way it drove, in the
+     * hull's frame. Empty between steps.
+     */
+    private readonly shatterBlows = new Map<number, readonly number[]>();
 
     /**
      * The same, for beams and plumes, which get through what they have already
@@ -5965,6 +5976,14 @@ export class Ships {
             const modules = lost.get(b) ?? [];
             if (!modules.includes(m)) modules.push(m);
             lost.set(b, modules);
+            // How hard it was struck, and where and which way, for how it is thrown.
+            const struck = damage.stepStruck[k]!;
+            this.shatterBlows.set(
+                blowKey(b, m),
+                struck > 0
+                    ? [damage.stepJoules[k]!, damage.stepX[k]! / struck, damage.stepY[k]! / struck, damage.stepDx[k]!, damage.stepDy[k]!]
+                    : [damage.stepJoules[k]!, 0, 0, 0, 0],
+            );
         }
         damage.clearStep();
         if (lost === null) return 0;
@@ -5993,14 +6012,16 @@ export class Ships {
             this.remove(i);
             world.destroy(this.bodyIds[i]!);
         }
+        this.shatterBlows.clear();
         return pieces;
     }
 
     /**
      * Break module `m` of ship `i`'s `design`, the hull on body `b`, into debris
-     * over its outline where it lies, in its paint; `hot` if blown apart.
+     * over its outline where it lies, in its paint; `hot` if blown apart, and
+     * thrown by the blow that shattered it, if one did, its `mass` taking it.
      */
-    private breakUpModule(bodies: Bodies, i: number, b: number, design: ShipDesign, m: number, hot: boolean): void {
+    private breakUpModule(bodies: Bodies, i: number, b: number, design: ShipDesign, m: number, hot: boolean, mass = 0): void {
         if (!this.debris.watched) return;
         const outline = this.outline;
         const corners = moduleOutline(design.modules[m]!.spec, outline);
@@ -6017,7 +6038,23 @@ export class Ships {
         }
         const kind = design.modules[m]!.spec.kind;
         const paint = kind === "rock" || kind === "kernel" ? UNPAINTED : this.moduleSide(i, m);
-        this.debris.emit(outline, corners, bodies.vx[b]!, bodies.vy[b]!, bodies.angularVel[b]!, bx, by, paint, hot);
+        // The blow that shattered it, into the world: where it struck, and the way it drove, made a unit.
+        const blow = this.shatterBlows.get(blowKey(b, m));
+        let ix = 0;
+        let iy = 0;
+        let nx = 0;
+        let ny = 0;
+        if (blow !== undefined) {
+            ix = bx + blow[1]! * c - blow[2]! * s;
+            iy = by + blow[1]! * s + blow[2]! * c;
+            const run = length(blow[3]!, blow[4]!);
+            if (run > 0) {
+                nx = (blow[3]! * c - blow[4]! * s) / run;
+                ny = (blow[3]! * s + blow[4]! * c) / run;
+            }
+        }
+        const spin = bodies.angularVel[b]!;
+        this.debris.emit(outline, corners, bodies.vx[b]!, bodies.vy[b]!, spin, bx, by, paint, hot, blow?.[0] ?? 0, mass, ix, iy, nx, ny);
     }
 
     /**
@@ -6048,7 +6085,7 @@ export class Ships {
         this.discardedPx += mass * vx;
         this.discardedPy += mass * vy;
         this.discardedL += mass * (x * vy - y * vx);
-        if (mass > 0) this.breakUpModule(bodies, i, b, design, m, true);
+        if (mass > 0) this.breakUpModule(bodies, i, b, design, m, true, mass);
     }
 
     /**
