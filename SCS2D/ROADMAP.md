@@ -503,7 +503,13 @@ an entry is either still open or it is gone.
                and many small, the longest half the side of a square of its footprint and no longer than
                6 m (`DEBRIS_LONGEST`), up to 400 a piece (about 20 for a fighter's, 140 for a Star
                Destroyer's bow triangle), each from somewhere inside its module's outline with the velocity that
-               point had and a kick of up to 3 m/s, tumbling. The store grows as it fills, to 4,096. A bit looks
+               point had and a kick of up to 3 m/s, tumbling. A bit carries its module's side, and two in five
+               keep their paint, drawn in that side's hull colour a little weathered; rock is never painted.
+               One born in a blast (a module shattered, or a piece too small to keep blown off) glows
+               white-hot and cools through orange in 0.4 s (`DEBRIS_HOT`), its glow reaching three times its
+               length, so between them they cover the module and it flashes rather than turning into
+               pieces between frames; a loose wreck let go is not blown apart, and does not. The store
+               grows as it fills, to 4,096. A bit looks
                eight steps ahead and casts again only once that is spent or something is in its way, since a
                cast through a capital hull tests every module in it: the Crash scene's 1,100 bits cost
                about 3 ms a step. Each step a bit is pulled by the wells and cast along its way through the

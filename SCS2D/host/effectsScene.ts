@@ -118,7 +118,8 @@ function debrisAt(t: number, snapshot: Snapshot): void {
     debrisScene.watched = true;
     const y = faceOf(slab) + DEBRIS_ABOVE;
     const h = DEBRIS_HALF;
-    debrisScene.emit([h, y - h, h, y + h, -h, y + h, -h, y - h], 4, 0, -DEBRIS_FALL, 1.5, 0, y);
+    // Blown off a ship of the first side, so it flashes as it breaks up and some bits keep its paint.
+    debrisScene.emit([h, y - h, h, y + h, -h, y + h, -h, y - h], 4, 0, -DEBRIS_FALL, 1.5, 0, y, 0, true);
     for (let at = 0; at + STEP <= t; at += STEP) debrisScene.step(STEP, world.bodies, grid, ships.hulls, []);
     const n = debrisScene.count;
     if (snapshot.debrisX.length < n) {
@@ -128,6 +129,8 @@ function debrisAt(t: number, snapshot: Snapshot): void {
         snapshot.debrisSize = new Float64Array(n);
         snapshot.debrisFade = new Float64Array(n);
         snapshot.debrisSeed = new Uint32Array(n);
+        snapshot.debrisPaint = new Int8Array(n);
+        snapshot.debrisHeat = new Float64Array(n);
     }
     for (let i = 0; i < n; i++) {
         snapshot.debrisX[i] = debrisScene.x[i]!;
@@ -136,6 +139,8 @@ function debrisAt(t: number, snapshot: Snapshot): void {
         snapshot.debrisSize[i] = debrisScene.size[i]!;
         snapshot.debrisFade[i] = debrisScene.fade(i);
         snapshot.debrisSeed[i] = debrisScene.seed[i]!;
+        snapshot.debrisPaint[i] = debrisScene.paint[i]!;
+        snapshot.debrisHeat[i] = debrisScene.heat(i);
     }
     snapshot.debrisCount = n;
 }
@@ -777,7 +782,7 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
     },
     {
         name: "Debris",
-        about: `A piece of a fighter ${2 * DEBRIS_HALF} m across, under what is kept, breaking up ${DEBRIS_ABOVE} m over a slab of hull and falling onto it at ${DEBRIS_FALL} m/s: its bits tumble and glint, bounce off the slab and fly on, and fade out over their last seconds, half a minute to a minute on.`,
+        about: `A piece of a fighter ${2 * DEBRIS_HALF} m across, under what is kept, blown apart ${DEBRIS_ABOVE} m over a slab of hull, flashing white-hot as it goes, some bits still in their paint, and falling onto it at ${DEBRIS_FALL} m/s: its bits tumble and glint, bounce off the slab and fly on, and fade out over their last seconds, half a minute to a minute on.`,
         loop: 8,
         build(t, snapshot, flashes) {
             begin(snapshot, flashes, t, -DEBRIS_SLAB / 2 - 5, -10, DEBRIS_SLAB / 2 + 5, DEBRIS_ABOVE + 15);

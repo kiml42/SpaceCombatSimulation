@@ -355,13 +355,19 @@ export class Snapshot {
     impactHullVy = new Float64Array(0);
     impactCount = 0;
 
-    /** Lingering debris (`debris.ts`): where each bit is, which way it lies, how long it is, how faded, and what it is drawn from. */
+    /**
+     * Lingering debris (`debris.ts`): where each bit is, which way it lies, how
+     * long it is, how faded, what it is drawn from, the side whose paint is on
+     * it (`UNPAINTED` for none) and how hot it still glows.
+     */
     debrisX = new Float64Array(0);
     debrisY = new Float64Array(0);
     debrisAngle = new Float64Array(0);
     debrisSize = new Float64Array(0);
     debrisFade = new Float64Array(0);
     debrisSeed = new Uint32Array(0);
+    debrisPaint = new Int8Array(0);
+    debrisHeat = new Float64Array(0);
     debrisCount = 0;
 
     /**
@@ -789,6 +795,8 @@ export function capture(
         out.debrisSize = new Float64Array(size);
         out.debrisFade = new Float64Array(size);
         out.debrisSeed = new Uint32Array(size);
+        out.debrisPaint = new Int8Array(size);
+        out.debrisHeat = new Float64Array(size);
     }
     for (let i = 0; i < debris.count; i++) {
         out.debrisX[i] = debris.x[i]!;
@@ -797,6 +805,8 @@ export function capture(
         out.debrisSize[i] = debris.size[i]!;
         out.debrisFade[i] = debris.fade(i);
         out.debrisSeed[i] = debris.seed[i]!;
+        out.debrisPaint[i] = debris.paint[i]!;
+        out.debrisHeat[i] = debris.heat(i);
     }
     out.debrisCount = debris.count;
 

@@ -39,6 +39,10 @@ const DEBRIS_SPIN = 3;
 /** How long a bit lasts, seconds, at least and at most. */
 export const DEBRIS_LEAST_LIFE = 30;
 export const DEBRIS_MOST_LIFE = 60;
+/** How long a bit born in a blast glows as it cools, seconds. */
+export const DEBRIS_HOT = 0.4;
+/** A bit with no paint on it: rock, or metal never painted. */
+export const UNPAINTED = -128;
 /** How long a bit takes to fade out at the end of its life, seconds. */
 export const DEBRIS_FADE = 10;
 /** How much of its speed into a surface a bit keeps, bounced back off it. */
@@ -67,6 +71,10 @@ export class Debris {
     seed = new Uint32Array(FIRST_ROOM);
     /** Steps it can go before it looks for anything in its way again. */
     quiet = new Uint8Array(FIRST_ROOM);
+    /** The side whose paint is on it, or `UNPAINTED`. */
+    paint = new Int8Array(FIRST_ROOM);
+    /** Whether it was born in a blast, and so glows as it cools. */
+    hot = new Uint8Array(FIRST_ROOM);
     /** Bits made so far, for each one's seed. */
     private made = 0;
     private readonly hit = new RayHit();
@@ -78,9 +86,20 @@ export class Debris {
      * world, convex and wound either way, on a body at `(px, py)` moving at
      * `(vx, vy)` and spinning at `spin`. Each bit comes from somewhere inside
      * the outline, with the velocity that point had and a little kick, and
-     * between them they cover a share of it: a few large, many small.
+     * between them they cover a share of it: a few large, many small. Each
+     * carries `paint`, the side it was painted for, and glows if `hot`.
      */
-    emit(outline: readonly number[], corners: number, vx: number, vy: number, spin: number, px: number, py: number): void {
+    emit(
+        outline: readonly number[],
+        corners: number,
+        vx: number,
+        vy: number,
+        spin: number,
+        px: number,
+        py: number,
+        paint = UNPAINTED,
+        hot = false,
+    ): void {
         if (!this.watched || corners < 3) return;
         // A fan from the first corner: its triangles' areas, as running totals.
         const fan = this.fan;
@@ -125,6 +144,8 @@ export class Debris {
             this.life[k] = DEBRIS_LEAST_LIFE + (DEBRIS_MOST_LIFE - DEBRIS_LEAST_LIFE) * unit(seed, 8);
             this.seed[k] = seed;
             this.quiet[k] = 0;
+            this.paint[k] = paint;
+            this.hot[k] = hot ? 1 : 0;
         }
     }
 
@@ -203,6 +224,11 @@ export class Debris {
         this.count = 0;
     }
 
+    /** How hot bit `i` still glows, from 1 as it is born in a blast to 0 once cooled. */
+    heat(i: number): number {
+        return this.hot[i] === 1 ? max(0, 1 - this.age[i]! / DEBRIS_HOT) : 0;
+    }
+
     /** How faded bit `i` is, from 1 to 0 over its last `DEBRIS_FADE` seconds. */
     fade(i: number): number {
         return min(1, max(0, (this.life[i]! - this.age[i]!) / DEBRIS_FADE));
@@ -238,6 +264,12 @@ export class Debris {
         const quiet = new Uint8Array(room);
         quiet.set(this.quiet);
         this.quiet = quiet;
+        const paint = new Int8Array(room);
+        paint.set(this.paint);
+        this.paint = paint;
+        const hot = new Uint8Array(room);
+        hot.set(this.hot);
+        this.hot = hot;
     }
 
     private move(from: number, to: number): void {
@@ -252,6 +284,8 @@ export class Debris {
         this.life[to] = this.life[from]!;
         this.seed[to] = this.seed[from]!;
         this.quiet[to] = this.quiet[from]!;
+        this.paint[to] = this.paint[from]!;
+        this.hot[to] = this.hot[from]!;
     }
 }
 

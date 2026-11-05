@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { compileBlueprint, type WellSpec } from "../sim/index.js";
 import { makeBattle } from "../scenarios/battle.js";
 import { cloneBattle } from "../scenarios/clone.js";
-import { Debris, DEBRIS_LONGEST, DEBRIS_MOST_LIFE, MOST_DEBRIS } from "../sim/debris.js";
+import { Debris, DEBRIS_HOT, DEBRIS_LONGEST, DEBRIS_MOST_LIFE, MOST_DEBRIS, UNPAINTED } from "../sim/debris.js";
 
 /** A plate 20 m long and 4 m wide across x = 0, with a core behind it: a wall to bounce off. */
 const WALL = compileBlueprint({
@@ -61,6 +61,23 @@ describe("lingering debris", () => {
             // Narrowing to the point: as wide as the triangle is there.
             expect(Math.abs(y)).toBeLessThanOrEqual((15 * (40 - x)) / 80 + 1e-9);
         }
+    });
+
+    it("glows as it cools only when born in a blast, and carries the paint it was given", () => {
+        const debris = new Debris();
+        debris.watched = true;
+        debris.emit(box(0, 0, 2, 2), 4, 0, 0, 0, 0, 0, 1, true);
+        const blown = debris.count;
+        debris.emit(box(0, 0, 2, 2), 4, 0, 0, 0, 0, 0);
+        expect(debris.heat(0)).toBe(1);
+        expect(debris.heat(blown)).toBe(0);
+        expect(debris.paint[0]).toBe(1);
+        expect(debris.paint[blown]).toBe(UNPAINTED);
+        const battle = walled();
+        debris.step(DEBRIS_HOT / 2, battle.world.bodies, battle.grid, battle.ships.hulls, []);
+        expect(debris.heat(0)).toBeCloseTo(0.5, 9);
+        debris.step(DEBRIS_HOT, battle.world.bodies, battle.grid, battle.ships.hulls, []);
+        expect(debris.heat(0)).toBe(0);
     });
 
     it("takes the oldest's place once there is no more room", () => {

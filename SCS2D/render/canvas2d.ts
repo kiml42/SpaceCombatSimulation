@@ -8,6 +8,7 @@ import {
     IMPACT_MUZZLE,
     IMPACT_ROUND,
     isHullMount,
+    UNPAINTED,
     math,
     nozzleOffset,
     nozzleReach,
@@ -3301,9 +3302,12 @@ function drawThrown(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes: 
 }
 
 /**
- * Lingering debris (`sim/debris.ts`): jagged shards of dull metal, tumbling
- * and glinting in the battle's light as they turn, lit by what is near them,
- * fading at the end of their lives. One batch, laid over what is under it.
+ * Lingering debris (`sim/debris.ts`): jagged shards of dull metal, some still
+ * in their side's paint, tumbling and glinting in the battle's light as they
+ * turn, lit by what is near them, fading at the end of their lives. One batch
+ * a shape, laid over what is under it. A bit born in a blast glows white-hot
+ * and cools through orange, its glow reaching a few times its length, so a
+ * module blown apart flashes rather than turning into pieces between frames.
  */
 function drawDebris(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Camera, light: Light | undefined): void {
     if (snapshot.debrisCount === 0) return;
@@ -3312,15 +3316,27 @@ function drawDebris(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: C
     const pixel = 1 / camera.scale;
     const lit = rgba(light?.colour ?? "#ffffff");
     debrisBatches.fill(null);
+    let glows: ReturnType<PixiCanvas["particles"]> | null = null;
     for (let i = 0; i < snapshot.debrisCount; i++) {
         const length = snapshot.debrisSize[i]!;
-        if (length < pixel) continue;
+        const heat = snapshot.debrisHeat[i]!;
+        if (length * (heat > 0 ? HOT_REACH : 1) < pixel) continue;
         const x = snapshot.debrisX[i]!;
         const y = snapshot.debrisY[i]!;
         if (!nearShown(x, y, x, y)) continue;
         const seed = snapshot.debrisSeed[i]!;
+        const fade = snapshot.debrisFade[i]!;
+        if (heat > 0) {
+            const halo = sprite("halo", "#ffffff");
+            if (halo !== null) {
+                glows ??= batches.call(ctx, halo, true);
+                const reach = max(length * HOT_REACH, pixel);
+                glows.add(x, y, 1, 0, reach, reach, mixRgb(HOT_COOL, HOT_FRESH, heat), heat * heat);
+            }
+        }
+        if (length < pixel) continue;
         const angle = snapshot.debrisAngle[i]!;
-        // Its shape, its width, and which way a face catches the light, from its seed.
+        // Its shape, its width, whether its paint is still on, and which way a face catches the light, from its seed.
         const shape = (seed >>> 16) % SHARDS.length;
         let batch = debrisBatches[shape]!;
         if (batch === null) {
@@ -3329,15 +3345,54 @@ function drawDebris(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: C
             batch = debrisBatches[shape] = batches.call(ctx, image, false);
         }
         const across = 0.3 + 0.4 * ((seed & 0xff) / 255);
+        const side = snapshot.debrisPaint[i]!;
+        const painted = side !== UNPAINTED && (seed >>> 24) / 256 < PAINTED_SHARE;
+        const base = painted ? paintOf(side) : BIT_COLOUR;
         const shine = Math.abs(cos(angle * 1.7 + (seed >>> 8))) ** 6;
-        const tint = lightUp(mixRgb(BIT_COLOUR, lit, shine), BIT_COLOUR, x, y);
-        batch.add(x, y, cos(angle), sin(angle), length, max(length * across, pixel), tint, snapshot.debrisFade[i]!);
+        let tint = lightUp(mixRgb(base, lit, shine * (painted ? PAINT_SHINE : 1)), base, x, y);
+        if (heat > 0) tint = mixRgb(unpack(tint), HOT_FRESH, heat);
+        batch.add(x, y, cos(angle), sin(angle), length, max(length * across, pixel), tint, fade);
     }
     for (const batch of debrisBatches) batch?.end();
+    glows?.end();
 }
 
 /** One batch a shape of bit, open while debris is drawn. */
 const debrisBatches: (ReturnType<PixiCanvas["particles"]> | null)[] = SHARDS.map(() => null);
+
+/** The share of a painted module's bits that keep their paint, the rest torn or burnt back to the metal. */
+const PAINTED_SHARE = 0.4;
+/** How much less a painted face glints than bare metal. */
+const PAINT_SHINE = 0.5;
+/** How far a hot bit's glow reaches, in its lengths: enough between them to cover the module they came from. */
+const HOT_REACH = 3;
+/** A hot bit's colour as it is born, and as it is about to go out. */
+const HOT_FRESH: readonly [number, number, number] = [255, 236, 200];
+const HOT_COOL: readonly [number, number, number] = [255, 110, 30];
+
+/** A side's paint as it looks on a bit: its hull colour, a little weathered. Kept by colour, which a livery can change. */
+const paints = new Map<string, readonly number[]>();
+function paintOf(side: number): readonly number[] {
+    const hull = shipColours(side).hull;
+    let paint = paints.get(hull);
+    if (paint === undefined) {
+        const [r, g, b] = rgba(hull);
+        paint = [r * PAINT_WEAR, g * PAINT_WEAR, b * PAINT_WEAR];
+        paints.set(hull, paint);
+    }
+    return paint;
+}
+/** How much darker paint on a bit is than on the hull: scorched, and turned from the light. */
+const PAINT_WEAR = 0.75;
+
+/** `0xrrggbb` as its channels. */
+function unpack(colour: number): readonly number[] {
+    unpacked[0] = (colour >> 16) & 0xff;
+    unpacked[1] = (colour >> 8) & 0xff;
+    unpacked[2] = colour & 0xff;
+    return unpacked;
+}
+const unpacked = [0, 0, 0];
 
 /** Bits of metal before they catch the light: a dark steel grey. */
 const BIT_COLOUR: readonly [number, number, number] = [92, 100, 112];

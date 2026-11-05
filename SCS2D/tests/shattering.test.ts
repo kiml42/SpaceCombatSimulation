@@ -61,6 +61,9 @@ describe("shattering", () => {
         const debris = s.ships.debris;
         expect(debris.count).toBeGreaterThan(0);
         for (let i = 0; i < debris.count; i++) {
+            // Blown apart, so hot, and in its side's paint.
+            expect(debris.heat(i)).toBe(1);
+            expect(debris.paint[i]).toBe(1);
             expect(Math.abs(debris.x[i]! - cx)).toBeLessThanOrEqual(2 + 1e-9);
             expect(Math.abs(debris.y[i]! - cy)).toBeLessThanOrEqual(2 + 1e-9);
         }

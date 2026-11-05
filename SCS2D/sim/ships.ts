@@ -1,4 +1,4 @@
-import { Debris } from "./debris.js";
+import { Debris, UNPAINTED } from "./debris.js";
 import { Bodies, type BodyId } from "./bodies.js";
 import {
     aboardPose,
@@ -5996,8 +5996,11 @@ export class Ships {
         return pieces;
     }
 
-    /** Break module `m` of `design`, the hull on body `b`, into debris over its outline where it lies. */
-    private breakUpModule(bodies: Bodies, b: number, design: ShipDesign, m: number): void {
+    /**
+     * Break module `m` of ship `i`'s `design`, the hull on body `b`, into debris
+     * over its outline where it lies, in its paint; `hot` if blown apart.
+     */
+    private breakUpModule(bodies: Bodies, i: number, b: number, design: ShipDesign, m: number, hot: boolean): void {
         if (!this.debris.watched) return;
         const outline = this.outline;
         const corners = moduleOutline(design.modules[m]!.spec, outline);
@@ -6012,7 +6015,9 @@ export class Ships {
             outline[k] = bx + x * c - y * s;
             outline[k + 1] = by + x * s + y * c;
         }
-        this.debris.emit(outline, corners, bodies.vx[b]!, bodies.vy[b]!, bodies.angularVel[b]!, bx, by);
+        const kind = design.modules[m]!.spec.kind;
+        const paint = kind === "rock" || kind === "kernel" ? UNPAINTED : this.moduleSide(i, m);
+        this.debris.emit(outline, corners, bodies.vx[b]!, bodies.vy[b]!, bodies.angularVel[b]!, bx, by, paint, hot);
     }
 
     /**
@@ -6043,7 +6048,7 @@ export class Ships {
         this.discardedPx += mass * vx;
         this.discardedPy += mass * vy;
         this.discardedL += mass * (x * vy - y * vx);
-        if (mass > 0) this.breakUpModule(bodies, b, design, m);
+        if (mass > 0) this.breakUpModule(bodies, i, b, design, m, true);
     }
 
     /**
@@ -9022,7 +9027,7 @@ export class Ships {
 
             const mass = bodies.mass[b]!;
             // A loose piece goes where it can be seen, so it breaks up rather than vanishing.
-            if (!away) for (let m = 0; m < design.modules.length; m++) this.breakUpModule(bodies, b, design, m);
+            if (!away) for (let m = 0; m < design.modules.length; m++) this.breakUpModule(bodies, i, b, design, m, false);
             this.discarded += mass;
             this.discardedPx += mass * bodies.vx[b]!;
             this.discardedPy += mass * bodies.vy[b]!;
@@ -9595,7 +9600,7 @@ export class Ships {
             const vx = bodies.vx[b]! - spin * offset.y;
             const vy = bodies.vy[b]! + spin * offset.x;
             // Seen to break up rather than vanish.
-            if (mass > 0) for (const m of keep) this.breakUpModule(bodies, b, design, m);
+            if (mass > 0) for (const m of keep) this.breakUpModule(bodies, i, b, design, m, true);
             this.discardedPx += mass * vx;
             this.discardedPy += mass * vy;
             // Its inertia taken as its full design's, scaled to what it weighs.
