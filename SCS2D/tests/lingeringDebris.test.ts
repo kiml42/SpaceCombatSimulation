@@ -19,18 +19,23 @@ const walled = () =>
         ships.spawn(world, { design: WALL, x: 0, y: 0, angle: 0, team: 0 });
     });
 
+/** A box `2 hl` by `2 hw` centred on `(x, y)`, as an outline. */
+function box(x: number, y: number, hl: number, hw: number): number[] {
+    return [x + hl, y - hw, x + hl, y + hw, x - hl, y + hw, x - hl, y - hw];
+}
+
 describe("lingering debris", () => {
     it("is made only while a viewer is watching, more bits the bigger the piece, covering a share of it", () => {
         const debris = new Debris();
-        debris.emit(0, 0, 0, 2, 2, 4, 0, 0, 0);
+        debris.emit(box(0, 0, 2, 2), 4, 0, 0, 0, 0, 0);
         expect(debris.count).toBe(0);
         debris.watched = true;
-        debris.emit(0, 0, 0, 1, 1, 1, 0, 0, 0);
+        debris.emit(box(0, 0, 1, 1), 4, 0, 0, 0, 0, 0);
         const small = debris.count;
         expect(small).toBeGreaterThan(0);
         debris.clear();
         // A capital ship's plate, 70 m by 30.
-        debris.emit(0, 0, 0, 35, 15, 2100, 0, 0, 0);
+        debris.emit(box(0, 0, 35, 15), 4, 0, 0, 0, 0, 0);
         expect(debris.count).toBeGreaterThan(small * 5);
         let covered = 0;
         for (let i = 0; i < debris.count; i++) {
@@ -43,13 +48,28 @@ describe("lingering debris", () => {
         expect(covered).toBeGreaterThan(2100);
     });
 
+    it("comes from inside the outline it broke from, a triangle as much as a box", () => {
+        const debris = new Debris();
+        debris.watched = true;
+        // A capital ship's bow: 80 m long, 30 m across at its base.
+        debris.emit([40, 0, -40, 15, -40, -15], 3, 0, 0, 0, 0, 0);
+        expect(debris.count).toBeGreaterThan(50);
+        for (let i = 0; i < debris.count; i++) {
+            const x = debris.x[i]!;
+            const y = debris.y[i]!;
+            expect(x).toBeGreaterThanOrEqual(-40);
+            // Narrowing to the point: as wide as the triangle is there.
+            expect(Math.abs(y)).toBeLessThanOrEqual((15 * (40 - x)) / 80 + 1e-9);
+        }
+    });
+
     it("takes the oldest's place once there is no more room", () => {
         const debris = new Debris();
         debris.watched = true;
-        while (debris.count < MOST_DEBRIS) debris.emit(0, 0, 0, 2, 2, 2000, 0, 0, 0);
+        while (debris.count < MOST_DEBRIS) debris.emit(box(0, 0, 2, 2), 4, 0, 0, 0, 0, 0);
         const battle = walled();
         debris.step(1, battle.world.bodies, battle.grid, battle.ships.hulls, []);
-        debris.emit(0, 0, 0, 2, 2, 1, 0, 0, 0);
+        debris.emit(box(0, 0, 2, 2), 4, 0, 0, 0, 0, 0);
         expect(debris.count).toBeLessThanOrEqual(MOST_DEBRIS);
     });
 
@@ -59,7 +79,7 @@ describe("lingering debris", () => {
         const debris = battle.ships.debris;
         debris.watched = true;
         // Coming in from -x at 40 m/s, a few metres off the plate's face.
-        debris.emit(-10, 0, 0, 0, 0, 1, 40, 0, 0);
+        debris.emit(box(-10, 0, 0.05, 0.05), 4, 40, 0, 0, -10, 0);
         let leastX = Infinity;
         let mostX = -Infinity;
         for (let s = 0; s < 120; s++) {
@@ -77,7 +97,7 @@ describe("lingering debris", () => {
     it("curves towards a well", () => {
         const debris = new Debris();
         debris.watched = true;
-        debris.emit(1000, 0, 0, 0, 0, 1, 0, 0, 0);
+        debris.emit(box(1000, 0, 0.05, 0.05), 4, 0, 0, 0, 1000, 0);
         const battle = walled();
         const well: WellSpec = { x: 0, y: 0, gm: 1e7 };
         const before = debris.x[0]!;
@@ -89,7 +109,7 @@ describe("lingering debris", () => {
     it("fades and is gone by the end of its life", () => {
         const debris = new Debris();
         debris.watched = true;
-        debris.emit(0, 0, 0, 2, 2, 4, 0, 0, 0);
+        debris.emit(box(0, 0, 2, 2), 4, 0, 0, 0, 0, 0);
         const battle = walled();
         expect(debris.fade(0)).toBe(1);
         for (let s = 0; s <= DEBRIS_MOST_LIFE; s++) debris.step(1, battle.world.bodies, battle.grid, battle.ships.hulls, []);
@@ -100,7 +120,7 @@ describe("lingering debris", () => {
         const battle = walled();
         battle.impacts.log.watched = true;
         battle.ships.debris.watched = true;
-        battle.ships.debris.emit(-10, 0, 0, 2, 2, 4, 40, 5, 1);
+        battle.ships.debris.emit(box(-10, 0, 2, 2), 4, 40, 5, 1, -10, 0);
         battle.step();
         const copy = cloneBattle(battle);
         for (let s = 0; s < 90; s++) {

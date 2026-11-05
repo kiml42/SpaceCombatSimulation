@@ -46,7 +46,6 @@ import { Fuel, LEAK_HOLE_CALIBRES, leakChance, leakRate, leakSpeed, type Leak } 
 import { Charge } from "./charge.js";
 import { Metal } from "./metal.js";
 import { Claim, mendClaim, priorityOf, Resource, Supply } from "./supply.js";
-import { polygonArea, shapeOf } from "./shape.js";
 import { berthGrid, isHullMount, moduleCentre, moduleOutline, robotsOn, SEAL_REACH, SEAL_SPEED, weldBox } from "./modules.js";
 import type { Rng } from "./rng.js";
 import { geometryOf, landedIndex, landedLength, plumeLayers, plumeRays, Plumes, WEAPON_PLUME_SHARE, weaponPlumeReach } from "./exhaust.js";
@@ -916,12 +915,6 @@ export const CLAW_HEAT_RATE = 1;
 export const CLAW_HEAT_ENERGY = 5e6;
 
 /** A body's mass to divide by: a pinned one's, nought, is no mass at all but one nothing moves. */
-/** The floor a module covers, m²: its shape if it has one, else its box. */
-function footprint(spec: ModuleSpec): number {
-    const shape = shapeOf(spec);
-    return shape !== null ? polygonArea(shape) : spec.length * spec.width;
-}
-
 function movable(mass: number): number {
     return mass > 0 ? mass : Infinity;
 }
@@ -1039,6 +1032,8 @@ export class Ships {
     readonly hulls = new Hulls(this);
     /** The twisted metal pieces too small to keep become: only drawn, changing nothing (`debris.ts`). */
     readonly debris = new Debris();
+    /** Scratch for a module's outline as it is broken up. */
+    private readonly outline: number[] = [];
 
     /**
      * The same, for beams and plumes, which get through what they have already
@@ -6001,13 +5996,23 @@ export class Ships {
         return pieces;
     }
 
-    /** Break a piece built to `design` into debris, over a box its size. */
-    private emitPiece(x: number, y: number, angle: number, design: ShipDesign, vx: number, vy: number, spin: number): void {
+    /** Break module `m` of `design`, the hull on body `b`, into debris over its outline where it lies. */
+    private breakUpModule(bodies: Bodies, b: number, design: ShipDesign, m: number): void {
         if (!this.debris.watched) return;
-        let area = 0;
-        for (const placed of design.modules) area += footprint(placed.spec);
-        const half = 0.7 * design.radius;
-        this.debris.emit(x, y, angle, half, half, area, vx, vy, spin);
+        const outline = this.outline;
+        const corners = moduleOutline(design.modules[m]!.spec, outline);
+        const angle = bodies.angle[b]!;
+        const c = cos(angle);
+        const s = sin(angle);
+        const bx = bodies.x[b]!;
+        const by = bodies.y[b]!;
+        for (let k = 0; k < 2 * corners; k += 2) {
+            const x = outline[k]! - design.centreOfMassX;
+            const y = outline[k + 1]! - design.centreOfMassY;
+            outline[k] = bx + x * c - y * s;
+            outline[k + 1] = by + x * s + y * c;
+        }
+        this.debris.emit(outline, corners, bodies.vx[b]!, bodies.vy[b]!, bodies.angularVel[b]!, bx, by);
     }
 
     /**
@@ -6038,10 +6043,7 @@ export class Ships {
         this.discardedPx += mass * vx;
         this.discardedPy += mass * vy;
         this.discardedL += mass * (x * vy - y * vx);
-        if (mass > 0) {
-            const { spec } = placed;
-            this.debris.emit(x, y, angle + placed.angle, 0.5 * spec.length, 0.5 * spec.width, footprint(spec), vx, vy, spin);
-        }
+        if (mass > 0) this.breakUpModule(bodies, b, design, m);
     }
 
     /**
@@ -9020,8 +9022,7 @@ export class Ships {
 
             const mass = bodies.mass[b]!;
             // A loose piece goes where it can be seen, so it breaks up rather than vanishing.
-            if (!away)
-                this.emitPiece(bodies.x[b]!, bodies.y[b]!, bodies.angle[b]!, design, bodies.vx[b]!, bodies.vy[b]!, bodies.angularVel[b]!);
+            if (!away) for (let m = 0; m < design.modules.length; m++) this.breakUpModule(bodies, b, design, m);
             this.discarded += mass;
             this.discardedPx += mass * bodies.vx[b]!;
             this.discardedPy += mass * bodies.vy[b]!;
@@ -9594,7 +9595,7 @@ export class Ships {
             const vx = bodies.vx[b]! - spin * offset.y;
             const vy = bodies.vy[b]! + spin * offset.x;
             // Seen to break up rather than vanish.
-            if (mass > 0) this.emitPiece(bodies.x[b]! + offset.x, bodies.y[b]! + offset.y, bodies.angle[b]!, chunk, vx, vy, spin);
+            if (mass > 0) for (const m of keep) this.breakUpModule(bodies, b, design, m);
             this.discardedPx += mass * vx;
             this.discardedPy += mass * vy;
             // Its inertia taken as its full design's, scaled to what it weighs.

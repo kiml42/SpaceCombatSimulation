@@ -93,9 +93,8 @@ const DEBRIS_SLAB = 60;
 /** Where the Debris scene's piece breaks up, above the slab's face, and how fast it is falling towards it. */
 const DEBRIS_ABOVE = 20;
 const DEBRIS_FALL = 25;
-/** Half the side of the piece that breaks up, metres, and the metal in it, m². */
+/** Half the side of the square piece that breaks up, metres. */
 const DEBRIS_HALF = 1;
-const DEBRIS_AREA = 3;
 
 let debrisWorld: ReturnType<typeof makeBattle> | null = null;
 const debrisScene = new Debris();
@@ -117,7 +116,9 @@ function debrisAt(t: number, snapshot: Snapshot): void {
     const { world, grid, ships } = debrisWorld;
     debrisScene.clear();
     debrisScene.watched = true;
-    debrisScene.emit(0, faceOf(slab) + DEBRIS_ABOVE, 0, DEBRIS_HALF, DEBRIS_HALF, DEBRIS_AREA, 0, -DEBRIS_FALL, 1.5);
+    const y = faceOf(slab) + DEBRIS_ABOVE;
+    const h = DEBRIS_HALF;
+    debrisScene.emit([h, y - h, h, y + h, -h, y + h, -h, y - h], 4, 0, -DEBRIS_FALL, 1.5, 0, y);
     for (let at = 0; at + STEP <= t; at += STEP) debrisScene.step(STEP, world.bodies, grid, ships.hulls, []);
     const n = debrisScene.count;
     if (snapshot.debrisX.length < n) {

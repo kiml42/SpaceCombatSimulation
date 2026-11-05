@@ -47,6 +47,25 @@ describe("shattering", () => {
         expect(s.ships.debris.count).toBeGreaterThan(0);
     });
 
+    it("breaks it into debris where it was, inside its outline", () => {
+        const s = scene();
+        s.ships.debris.watched = true;
+        const end = at(ROW, 4);
+        const m = ROW.modules[end]!;
+        const b = s.world.bodies;
+        // At spawn the hull is unturned, so the module is its place on the hull along.
+        const cx = b.x[s.body]! + m.x;
+        const cy = b.y[s.body]! + m.y;
+        s.ships.damage.absorb(s.body, end, 3.5 * s.ships.damage.capacityOf(s.body, end));
+        s.ships.sever(s.world);
+        const debris = s.ships.debris;
+        expect(debris.count).toBeGreaterThan(0);
+        for (let i = 0; i < debris.count; i++) {
+            expect(Math.abs(debris.x[i]! - cx)).toBeLessThanOrEqual(2 + 1e-9);
+            expect(Math.abs(debris.y[i]! - cy)).toBeLessThanOrEqual(2 + 1e-9);
+        }
+    });
+
     it("keeps one that took as much over several steps, broken but still there", () => {
         const s = scene();
         const end = at(ROW, 4);

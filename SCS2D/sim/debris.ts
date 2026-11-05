@@ -1,7 +1,7 @@
 import type { Bodies } from "./bodies.js";
 import { wellPull, type WellSpec } from "./gravity.js";
 import type { Hulls } from "./hull.js";
-import { cos, imul, max, min, PI, sin, sqrt, TAU } from "./math.js";
+import { abs, cos, imul, max, min, PI, sin, sqrt, TAU } from "./math.js";
 import { RayHit, type SpatialGrid } from "./spatialGrid.js";
 
 /**
@@ -70,46 +70,54 @@ export class Debris {
     /** Bits made so far, for each one's seed. */
     private made = 0;
     private readonly hit = new RayHit();
+    /** Running totals of the areas of the triangles an outline is cut into, twice over. */
+    private readonly fan = new Float64Array(16);
 
     /**
-     * Break a piece into bits: a box `2 halfLength` by `2 halfWidth` centred on
-     * `(x, y)` and turned to `angle`, of which `area` m² is metal, moving at
-     * `(vx, vy)` and spinning at `spin`. Each bit comes from somewhere in the
-     * box, with the velocity that point had and a little kick, and between them
-     * they cover a share of what the piece did: a few large, many small.
+     * Break a module into bits: its outline `outline`, `corners` corners in the
+     * world, convex and wound either way, on a body at `(px, py)` moving at
+     * `(vx, vy)` and spinning at `spin`. Each bit comes from somewhere inside
+     * the outline, with the velocity that point had and a little kick, and
+     * between them they cover a share of it: a few large, many small.
      */
-    emit(
-        x: number,
-        y: number,
-        angle: number,
-        halfLength: number,
-        halfWidth: number,
-        area: number,
-        vx: number,
-        vy: number,
-        spin: number,
-    ): void {
-        if (!this.watched || !(area > 0)) return;
-        const longest = min(DEBRIS_LONGEST, max(DEBRIS_SHORTEST, LONGEST_SHARE * sqrt(area)));
-        const c = cos(angle);
-        const s = sin(angle);
+    emit(outline: readonly number[], corners: number, vx: number, vy: number, spin: number, px: number, py: number): void {
+        if (!this.watched || corners < 3) return;
+        // A fan from the first corner: its triangles' areas, as running totals.
+        const fan = this.fan;
+        let area = 0;
+        for (let t = 1; t < corners - 1; t++) {
+            area += abs(cross(outline, 0, t, t + 1));
+            fan[t] = area;
+        }
+        if (!(area > 0)) return;
+        const longest = min(DEBRIS_LONGEST, max(DEBRIS_SHORTEST, LONGEST_SHARE * sqrt(0.5 * area)));
         let covered = 0;
-        for (let j = 0; j < MOST_BITS && covered < COVER * area; j++) {
+        for (let j = 0; j < MOST_BITS && covered < COVER * 0.5 * area; j++) {
             const seed = hash(this.made++);
             const k = this.slot();
-            const along = (2 * unit(seed, 1) - 1) * halfLength;
-            const across = (2 * unit(seed, 2) - 1) * halfWidth;
-            const ox = along * c - across * s;
-            const oy = along * s + across * c;
+            // A triangle of the fan by its area, and a point evenly inside it.
+            const pick = unit(seed, 1) * area;
+            let t = 1;
+            while (t < corners - 2 && fan[t]! < pick) t++;
+            let a = unit(seed, 2);
+            let b = unit(seed, 9);
+            if (a + b > 1) {
+                a = 1 - a;
+                b = 1 - b;
+            }
+            const x0 = outline[0]!;
+            const y0 = outline[1]!;
+            const x = x0 + a * (outline[2 * t]! - x0) + b * (outline[2 * t + 2]! - x0);
+            const y = y0 + a * (outline[2 * t + 1]! - y0) + b * (outline[2 * t + 3]! - y0);
             const kick = DEBRIS_KICK * unit(seed, 3);
             const way = TAU * unit(seed, 4);
             const u = unit(seed, 7);
             const size = max(DEBRIS_SHORTEST, longest * (0.2 + 0.8 * u * u));
             covered += BIT_FILL * size * size;
-            this.x[k] = x + ox;
-            this.y[k] = y + oy;
-            this.vx[k] = vx - spin * oy + kick * cos(way);
-            this.vy[k] = vy + spin * ox + kick * sin(way);
+            this.x[k] = x;
+            this.y[k] = y;
+            this.vx[k] = vx - spin * (y - py) + kick * cos(way);
+            this.vy[k] = vy + spin * (x - px) + kick * sin(way);
             this.angle[k] = PI * unit(seed, 5);
             this.spin[k] = (unit(seed, 6) * 2 - 1) * DEBRIS_SPIN;
             this.size[k] = size;
@@ -245,6 +253,13 @@ export class Debris {
         this.seed[to] = this.seed[from]!;
         this.quiet[to] = this.quiet[from]!;
     }
+}
+
+/** Twice the signed area of the triangle on corners `a`, `b` and `c` of `outline`. */
+function cross(outline: readonly number[], a: number, b: number, c: number): number {
+    const ax = outline[2 * a]!;
+    const ay = outline[2 * a + 1]!;
+    return (outline[2 * b]! - ax) * (outline[2 * c + 1]! - ay) - (outline[2 * b + 1]! - ay) * (outline[2 * c]! - ax);
 }
 
 /** A well-mixed 32-bit hash of `n`. */
