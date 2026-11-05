@@ -502,7 +502,7 @@ an entry is either still open or it is gone.
                capital module leaves a field of wreckage rather than a handful of confetti: a few large
                and many small, the longest half the side of a square of its footprint and no longer than
                6 m (`DEBRIS_LONGEST`), up to 400 a piece (about 20 for a fighter's, 140 for a Star
-               Destroyer's bow triangle), each from somewhere in the piece's box with the velocity that
+               Destroyer's bow triangle), each from somewhere inside its module's outline with the velocity that
                point had and a kick of up to 3 m/s, tumbling. The store grows as it fills, to 4,096. A bit looks
                eight steps ahead and casts again only once that is spent or something is in its way, since a
                cast through a capital hull tests every module in it: the Crash scene's 1,100 bits cost
