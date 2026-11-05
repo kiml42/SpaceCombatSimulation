@@ -16,6 +16,9 @@ Things that are obviously wrong.
 # Ideas
 Ideas that aren't planned to be implemented yet, they may or may not be good ideas.
 
+## Refactors
+- sim/ships.ts is about 13,000 lines - it should be split up logically, ideally in small stages that can be easily validated.
+
 ## General
 - Fighters should be able to dip into the hull layer (like they do for ramming) so they can fire beams and non-fragmenting projectiles at the hulls of ships. The balancing cost of this is that they can be hit by anything.
 - Ships shouldn't fire engines that make them spin faster while trying to cancel out a spin. The pilot trying to hold orientation should generally win.
@@ -139,5 +142,3 @@ flying round asteroids in its way rather than relying on keeping clear, which lo
 
 ## Skirmish
 - The game should be able to track multiple saved skirmishes internally, by name.
-- When the enemy are evolving, make the history fill the battle area.
-  - In this mode the player's fleet should be put on the left, and the enemy on the right.

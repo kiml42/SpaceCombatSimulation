@@ -146,16 +146,29 @@ const Box = styled.div`
     details.chain summary.enemy-lost {
         color: var(--colour-ok);
     }
+
+    /* Across a whole view: each match's two sides side by side, the player's on the left. */
+    &.wide .match {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        column-gap: 1.2rem;
+    }
+
+    &.wide .match-head {
+        grid-column: 1 / -1;
+    }
 `;
 
 export interface TimelineProps extends TimelineActions {
     readonly history: History;
     /** The history with the enemy leading a generation still being fought at its head, or null. */
     readonly leading: History | null;
+    /** Laid out across a view rather than down a panel. */
+    readonly wide?: boolean;
 }
 
 /** Every match of the skirmish, newest first: a box React mounts and leaves to `host/timeline.ts`. */
-export function Timeline({ history, leading, watch, save, exportFleet }: TimelineProps) {
+export function Timeline({ history, leading, wide = false, watch, save, exportFleet }: TimelineProps) {
     const box = useRef<HTMLDivElement>(null);
     const engine = useRef<Engine | null>(null);
     const onWatch = useEffectEvent(watch);
@@ -172,5 +185,5 @@ export function Timeline({ history, leading, watch, save, exportFleet }: Timelin
     }, []);
     useEffect(() => engine.current?.show(leading ?? history, leading !== null), [history, leading]);
 
-    return <Box ref={box} id="timeline" />;
+    return <Box ref={box} id="timeline" className={wide ? "wide" : undefined} />;
 }

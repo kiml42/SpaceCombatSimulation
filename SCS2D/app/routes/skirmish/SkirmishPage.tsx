@@ -188,6 +188,23 @@ const HistoryBox = styled.section`
     }
 `;
 
+/** The history over the battle view, which it covers while the search is not being watched. */
+const WideHistory = styled.section`
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 0.7rem 1.2rem;
+    background: var(--colour-background);
+
+    h2 {
+        margin: 0.4rem 0;
+        color: var(--colour-muted);
+        font-size: var(--font-size-small);
+    }
+`;
+
 const Muted = styled.p`
     color: var(--colour-muted);
 `;
@@ -712,6 +729,22 @@ export function SkirmishPage() {
     const limit = skirmish === null || fault !== null ? null : overLimit(skirmish);
     const bill = skirmish === null || fault !== null ? null : billOfFleet(skirmish.player);
     const answeringNow = skirmish?.won !== undefined;
+    // Not watching the search, the history has the battle's room, the two sides of each match side by side.
+    const wideHistory = answeringNow && !watching && !replaying && answering.latest?.found == null;
+    const timeline = (
+        <Timeline
+            history={history}
+            leading={leading}
+            wide={wideHistory}
+            watch={(row, player, enemy) => replay(row.round, row.seed, player, enemy, row.orders)}
+            save={(fleet) => {
+                const name = unusedName(fleet.name, fleets.savedNames());
+                fleets.save({ ...fleet, name });
+                window.alert(`Saved to your fleets as ${name}.`);
+            }}
+            exportFleet={(fleet) => download(`${fleet.name}.fleet.json`, `${JSON.stringify(serialiseFleet(fleet), null, 2)}\n`)}
+        />
+    );
     const found = answering.latest?.found ?? null;
     const latest = answering.latest;
     // The one thing to press next in the round's buttons.
@@ -790,6 +823,12 @@ export function SkirmishPage() {
                     onRunningChanged={setRunning}
                     onRewound={(rewound) => (battle.current = rewound as CustomBattle)}
                 >
+                    {wideHistory && (
+                        <WideHistory id="wideHistory">
+                            <h2>History</h2>
+                            {timeline}
+                        </WideHistory>
+                    )}
                     {decided !== null && (
                         <Decided id="decided" className={decided.winner === 0 ? "won" : "lost"}>
                             <strong id="decidedTitle">{`${decided.winner === 0 ? "Victory" : decided.winner === 1 ? "Defeat" : "Draw"} at ${decided.time.toFixed(0)} s`}</strong>
@@ -975,40 +1014,30 @@ export function SkirmishPage() {
                                 </Button>
                             </Buttons>
                         </section>
-                        <HistoryBox id="history">
-                            <h2>History</h2>
-                            {replaying && (
-                                <Buttons id="replaying">
-                                    <Button
-                                        id="backToRound"
-                                        variant="primary"
-                                        onClick={() => {
-                                            setReplaying(false);
-                                            const back = resume.current;
-                                            resume.current = null;
-                                            mode.current = "round";
-                                            setRoundOver(false);
-                                            (back ?? (() => showRound()))();
-                                        }}
-                                    >
-                                        Back to the round
-                                    </Button>
-                                </Buttons>
-                            )}
-                            <Timeline
-                                history={history}
-                                leading={leading}
-                                watch={(row, player, enemy) => replay(row.round, row.seed, player, enemy, row.orders)}
-                                save={(fleet) => {
-                                    const name = unusedName(fleet.name, fleets.savedNames());
-                                    fleets.save({ ...fleet, name });
-                                    window.alert(`Saved to your fleets as ${name}.`);
-                                }}
-                                exportFleet={(fleet) =>
-                                    download(`${fleet.name}.fleet.json`, `${JSON.stringify(serialiseFleet(fleet), null, 2)}\n`)
-                                }
-                            />
-                        </HistoryBox>
+                        {!wideHistory && (
+                            <HistoryBox id="history">
+                                <h2>History</h2>
+                                {replaying && (
+                                    <Buttons id="replaying">
+                                        <Button
+                                            id="backToRound"
+                                            variant="primary"
+                                            onClick={() => {
+                                                setReplaying(false);
+                                                const back = resume.current;
+                                                resume.current = null;
+                                                mode.current = "round";
+                                                setRoundOver(false);
+                                                (back ?? (() => showRound()))();
+                                            }}
+                                        >
+                                            Back to the round
+                                        </Button>
+                                    </Buttons>
+                                )}
+                                {timeline}
+                            </HistoryBox>
+                        )}
                     </Panel>
                 )}
             </Body>
