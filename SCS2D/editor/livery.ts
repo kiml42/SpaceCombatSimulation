@@ -10,6 +10,7 @@ export const NEW_LIVERY: Livery = {
     size: 0.1,
     spacing: 3,
     offset: 0,
+    lateral: 0,
     angle: 0,
     chevron: Math.PI / 4,
     points: 0,

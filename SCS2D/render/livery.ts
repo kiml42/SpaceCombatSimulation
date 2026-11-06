@@ -12,8 +12,14 @@ import type { Palette } from "./teams.js";
 export const TILE = 64;
 /** Pixels a chevron's stripe is wide on its tile. */
 const CHEVRON_WIDTH = 16;
-/** The tallest a single chevron's tile grows, pixels: a hull's width at the thinnest stripes. */
-const TALLEST = 4096;
+/**
+ * How far a single chevron's arms reach either side of its point, in radii:
+ * past the hull with its point moved a radius along (`Livery.lateral`) from a
+ * grid origin up to a radius off the centre of mass.
+ */
+const SINGLE_REACH = 3;
+/** The tallest a single chevron's tile grows, pixels: its reach at the thinnest stripes. */
+const TALLEST = 16384;
 
 /** A tile's size, how many of its pixels a stripe's width spans, and the row the design's middle falls on. */
 interface TileShape {
@@ -26,11 +32,11 @@ interface TileShape {
 function shapeOf(livery: Livery): TileShape {
     if (livery.pattern !== "chevrons") return { width: TILE, height: TILE, perWidth: TILE / livery.spacing, middle: 0 };
     const width = Math.max(2, Math.round(CHEVRON_WIDTH * livery.spacing));
-    // A single chevron reaches a radius either side of its point, which is 1 / size stripe widths.
+    // A radius is 1 / size stripe widths.
     const height =
         livery.points > 0
             ? Math.max(2, Math.round(CHEVRON_WIDTH * livery.points))
-            : Math.min(TALLEST, Math.round((2 * CHEVRON_WIDTH) / livery.size));
+            : Math.min(TALLEST, Math.round((2 * SINGLE_REACH * CHEVRON_WIDTH) / livery.size));
     return { width, height, perWidth: CHEVRON_WIDTH, middle: livery.points > 0 ? 0 : height / 2 };
 }
 
@@ -132,9 +138,11 @@ export interface Affine {
 /**
  * From a tile's pixels to module `m`'s own frame: the tile laid in the frame
  * of the design `m` was built in, a stripe `size` of that design's radius
- * across and a period `spacing` stripes, turned by the livery's angle and
- * moved by its offset. A piece cut
- * from a ship keeps the pattern where it was.
+ * across and a period `spacing` stripes, turned by the livery's angle about
+ * the blueprint's own origin, the editor's grid, rather than its centre of
+ * mass, so a part changed elsewhere leaves it where it was; then moved by its
+ * offset across and its lateral along. A piece cut from a ship keeps the
+ * pattern where it was.
  */
 export function patternTransform(livery: Livery, design: ShipDesign, m: number): Affine {
     const origin = originOf(design, m);
@@ -143,22 +151,22 @@ export function patternTransform(livery: Livery, design: ShipDesign, m: number):
     const shape = shapeOf(livery);
     const s = (livery.size * built.radius) / shape.perWidth;
     const period = shape.width * s;
-    // Tile pixels to the design's frame: scaled, moved along the stripes' normal and the tile's middle row to the
-    // design's, turned.
+    // Tile pixels to the blueprint's frame: scaled, moved along the stripes' normal and its run, turned.
     const ca = Math.cos(livery.angle);
     const sa = Math.sin(livery.angle);
     const along = livery.offset * period;
-    const down = -shape.middle * s;
+    const down = livery.lateral * built.radius - shape.middle * s;
     const shiftX = along * ca - down * sa;
     const shiftY = along * sa + down * ca;
-    // Then the design's frame to the module's: back from its place, and turned back by its angle.
+    // Then to the module's frame: the blueprint's origin is less the centre of mass in the design's, then back from
+    // the module's place, and turned back by its angle.
     const cm = Math.cos(-module.angle);
     const sm = Math.sin(-module.angle);
     const a = s * ca;
     const b = s * sa;
     const c = -s * sa;
     const d = s * ca;
-    const e = shiftX - module.x;
-    const f = shiftY - module.y;
+    const e = shiftX - built.centreOfMassX - module.x;
+    const f = shiftY - built.centreOfMassY - module.y;
     return { a: cm * a - sm * b, b: sm * a + cm * b, c: cm * c - sm * d, d: sm * c + cm * d, e: cm * e - sm * f, f: sm * e + cm * f };
 }

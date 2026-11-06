@@ -36,13 +36,14 @@ const LIVERY = {
     size: 0.2,
     spacing: 2.5,
     offset: 0.25,
+    lateral: -0.4,
     angle: 30,
     chevron: 45,
     points: 0,
 };
 
 function livery(base: string): Livery {
-    return { base, highlight: "#ffffff", pattern: "none", size: 0.1, spacing: 3, offset: 0, angle: 0, chevron: 0.5, points: 0 };
+    return { base, highlight: "#ffffff", pattern: "none", size: 0.1, spacing: 3, offset: 0, lateral: 0, angle: 0, chevron: 0.5, points: 0 };
 }
 
 const fleetFile = (extra: Record<string, unknown>): Record<string, unknown> => ({
@@ -91,14 +92,16 @@ describe("a livery in a file", () => {
         // Older files, written before chevrons, read with a chevron's defaults.
         const { chevron: _c, points: _p, ...older } = LIVERY;
         expect(parseFleet(fleetFile({ livery: older })).livery).toMatchObject({ points: 0 });
+        const { lateral: _l, ...unmoved } = LIVERY;
+        expect(parseFleet(fleetFile({ livery: unmoved })).livery).toMatchObject({ lateral: 0 });
     });
 
-    it("tiles a zigzag one period of its points tall, and a single chevron a hull's width", () => {
+    it("tiles a zigzag one period of its points tall, and a single chevron three radii either side of its point", () => {
         const zigzag = { ...livery("#d4a017"), pattern: "chevrons" as const, size: 0.1, spacing: 3, points: 8, chevron: Math.PI / 4 };
         expect(tileKey(zigzag, "#fff")).toBe("chevrons 48x128 90 #fff");
-        expect(tileKey({ ...zigzag, points: 0 }, "#fff")).toBe("chevrons 48x320 90 #fff");
+        expect(tileKey({ ...zigzag, points: 0 }, "#fff")).toBe("chevrons 48x960 90 #fff");
         // In half degrees of bend; thinner stripes reach further, up to a limit.
-        expect(tileKey({ ...zigzag, points: 0, size: 0.001 }, "#fff")).toBe("chevrons 48x4096 90 #fff");
+        expect(tileKey({ ...zigzag, points: 0, size: 0.001 }, "#fff")).toBe("chevrons 48x16384 90 #fff");
     });
 
     it("lets spots touch, but keeps stripes apart", () => {
@@ -196,8 +199,9 @@ describe("a side's colours from its livery", () => {
 });
 
 describe("a livery's pattern", () => {
-    it("falls on every module in the frame of the design it was built in", () => {
+    it("falls on every module in the frame of the design it was built in, from the blueprint's origin", () => {
         const design = compileBlueprint(CORVETTE);
+        expect(Math.abs(design.centreOfMassX) + Math.abs(design.centreOfMassY)).toBeGreaterThan(0.01);
         const livery: Livery = {
             base: "#2a6a8a",
             highlight: "#f0c040",
@@ -205,6 +209,7 @@ describe("a livery's pattern", () => {
             size: 0.1,
             spacing: 3,
             offset: 0.25,
+            lateral: 0.3,
             angle: 0.5,
             chevron: 0,
             points: 0,
@@ -215,8 +220,11 @@ describe("a livery's pattern", () => {
         const v = 41;
         const s = period / TILE;
         const along = s * u + livery.offset * period;
-        const across = s * v;
-        const expected = [along * Math.cos(0.5) - across * Math.sin(0.5), along * Math.sin(0.5) + across * Math.cos(0.5)];
+        const across = s * v + livery.lateral * design.radius;
+        const expected = [
+            along * Math.cos(0.5) - across * Math.sin(0.5) - design.centreOfMassX,
+            along * Math.sin(0.5) + across * Math.cos(0.5) - design.centreOfMassY,
+        ];
         for (let m = 0; m < design.modules.length; m++) {
             const t = patternTransform(livery, design, m);
             const lx = t.a * u + t.c * v + t.e;

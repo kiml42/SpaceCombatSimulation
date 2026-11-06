@@ -87,7 +87,7 @@ import {
 } from "./inset.js";
 import { stripsFor, stripTileAt, stripTileUnder, type StripColumn, type StripShip, type Strips, type StripTile } from "./fleetStrip.js";
 import { fighterColours, markerOf, NEUTRAL, shipColours, teamLivery, teamName } from "./teams.js";
-import { patternColour, patternTile, patternTransform } from "./livery.js";
+import { patternColour, patternTile, patternTransform, tileKey } from "./livery.js";
 import { SOOT, SOOT_ALPHA, wearLevel, wearTile, wearTransform } from "./wear.js";
 
 export { teamColour } from "./teams.js";
@@ -1755,7 +1755,7 @@ function patternKey(design: ShipDesign, i: number, side: number): string {
 
 function liveryKey(livery: Livery | undefined): string {
     if (livery === undefined) return "";
-    return `${livery.pattern}${livery.highlight}${livery.size},${livery.spacing},${livery.offset},${livery.angle}`;
+    return `${tileKey(livery, livery.highlight)},${livery.size},${livery.spacing},${livery.offset},${livery.lateral},${livery.angle}`;
 }
 
 /** `fillModule`, kept (`keep`) by what it is filled with. */

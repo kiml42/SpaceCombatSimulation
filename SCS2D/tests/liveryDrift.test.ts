@@ -27,6 +27,7 @@ const TEAL: Livery = {
     size: 0.1,
     spacing: 3,
     offset: 0.2,
+    lateral: 0,
     angle: 0.3,
     chevron: 0.5,
     points: 0,
@@ -45,6 +46,18 @@ describe("a livery drifting", () => {
             expect(colourGap(child.base, livery.base)).toBeLessThan(100);
             expect(readable(child)).toBe(true);
             livery = child;
+        }
+    });
+
+    it("turns chevrons all the way round, and stripes only half", () => {
+        for (let k = 0; k < 100; k++) {
+            const chevrons = driftLivery({ ...TEAL, pattern: "chevrons", angle: Math.PI - 0.01 }, new Rng(k), []);
+            if (chevrons.pattern !== "chevrons") continue;
+            expect(chevrons.angle).toBeGreaterThanOrEqual(-Math.PI);
+            expect(chevrons.angle).toBeLessThan(Math.PI);
+            expect(Math.abs(chevrons.angle)).toBeGreaterThan(Math.PI / 2);
+            const stripes = driftLivery({ ...TEAL, angle: Math.PI / 2 - 0.01 }, new Rng(k), []);
+            if (stripes.pattern === "stripes") expect(Math.abs(stripes.angle)).toBeLessThanOrEqual(Math.PI / 2);
         }
     });
 

@@ -632,7 +632,7 @@ function patternedContext(design: ShipDesign, i: number, side: number, integrity
     const origin = originOf(design, i);
     const key =
         `${origin.module}|${colour}|${colours.hull}${colours.trim}${colours.pivot}${colours.highlight}|${integrity <= 0}|` +
-        `${tileKey(livery, "")}|${livery.spacing}|${livery.offset}|${livery.angle}`;
+        `${tileKey(livery, "")}|${livery.size}|${livery.spacing}|${livery.offset}|${livery.lateral}|${livery.angle}`;
     let byDesign = patterned.get(origin.design);
     if (byDesign === undefined) {
         byDesign = new Map();
@@ -820,7 +820,9 @@ function wornContext(
     const pattern = livery !== undefined && livery.pattern !== "none" ? livery : undefined;
     const key =
         `${origin.module}|${colour}|${colours.hull}${colours.trim}${colours.pivot}${colours.highlight}|${level}|${burnt}|` +
-        (pattern === undefined ? "" : `${tileKey(pattern, "")}|${pattern.spacing}|${pattern.offset}|${pattern.angle}`);
+        (pattern === undefined
+            ? ""
+            : `${tileKey(pattern, "")}|${pattern.size}|${pattern.spacing}|${pattern.offset}|${pattern.lateral}|${pattern.angle}`);
     let byDesign = wornContexts.get(origin.design);
     if (byDesign === undefined) {
         byDesign = new Map();
