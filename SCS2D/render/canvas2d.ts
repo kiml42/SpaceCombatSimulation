@@ -685,7 +685,9 @@ function drawShip(
         if (light !== undefined) {
             const placed = design.modules[module]!;
             const block = hidden ? blockBox(ship, placed.x, placed.y, placed.angle, spec.length, spec.width, hull.blockLength) : null;
-            shadeBarrels(ctx, ship, t, ctx.lineWidth, light, block);
+            // The mantlet drawn over their roots, below.
+            const pivot = hidden ? { x: mx, y: my, radius: min(spec.width * 0.5, ((count - 1) / 2) * spacing + hull.outletWidth) } : null;
+            shadeBarrels(ctx, ship, t, ctx.lineWidth, light, block, pivot);
         }
         if (gun.braceLength > 0) drawBracing(ctx, gun, physicalWidth, mx, my, dirX, dirY);
         if (hidden) ctx.restore();
@@ -1867,6 +1869,16 @@ function bevel(ctx: CanvasRenderingContext2D, design: ShipDesign, m: number, ang
 }
 const quad: number[] = [0, 0, 0, 0, 0, 0, 0, 0];
 
+/** How far along `(dx, dy)` from `(x, y)` it leaves a circle `radius` round the origin, as a share of it: 0 if it starts outside it. */
+function leaving(x: number, y: number, dx: number, dy: number, radius: number): number {
+    const a = dx * dx + dy * dy;
+    const b = x * dx + y * dy;
+    const c = x * x + y * y - radius * radius;
+    if (!(a > 0) || c > 0) return 0;
+    const root = b * b - a * c;
+    return root > 0 ? max(0, (-b + sqrt(root)) / a) : 0;
+}
+
 /** Where a turret is lit by the dynamic lights: halfway up a capital ship's hull, as its flames are thick; a fighter's nearest its height. */
 function turretLevel(ship: ShipView): Level {
     return ship.currentStructure.fighter ? "thick" : "middle";
@@ -1884,8 +1896,16 @@ function shadeDome(ctx: CanvasRenderingContext2D, x: number, y: number, radius: 
     ctx.restore();
 }
 
-/** A turret's barrels shaded as tubes `width` wide, in the world. */
-function shadeBarrels(ctx: CanvasRenderingContext2D, ship: ShipView, t: number, width: number, light: Light, block: Box | null): void {
+/** A turret's barrels shaded as tubes `width` wide, in the world, out of `block` and, for the dynamic lights, of the `pivot` drawn over them. */
+function shadeBarrels(
+    ctx: CanvasRenderingContext2D,
+    ship: ShipView,
+    t: number,
+    width: number,
+    light: Light,
+    block: Box | null,
+    pivot: { x: number; y: number; radius: number } | null,
+): void {
     const { across, up } = lightSlope(light);
     barrelLines(ship, t, (x0, y0, x1, y1) => {
         const dx = x1 - x0;
@@ -1902,11 +1922,17 @@ function shadeBarrels(ctx: CanvasRenderingContext2D, ship: ShipView, t: number, 
         ctx.rotate(angle);
         if (from > 0) ctx.drawImage(image, 0, -width / 2, span * from, width);
         if (to < 1) ctx.drawImage(image, span * to, -width / 2, span * (1 - to), width);
-        // Drawn over everything, so taking all the light, at a turret's height.
+        // Drawn over everything, so taking all the light, at a turret's height: not
+        // under the pivot, as it adds to what is drawn over it rather than being hidden.
         const m = ctx.getTransform();
         const level = turretLevel(ship);
-        if (from > 0) rounded?.tube(m, 0, 0, span * from, width / 2, 1, BARREL_RGB, 0, level);
-        if (to < 1) rounded?.tube(m, span * to, 0, span * (1 - to), width / 2, 1, BARREL_RGB, 0, level);
+        const out = pivot === null ? 0 : leaving(x0 - pivot.x, y0 - pivot.y, dx, dy, pivot.radius);
+        const lit = (a: number, b: number): void => {
+            const start = max(a, out);
+            if (b > start) rounded?.tube(m, span * start, 0, span * (b - start), width / 2, 1, BARREL_RGB, 0, level);
+        };
+        if (from > 0) lit(0, from);
+        if (to < 1) lit(to, 1);
         ctx.restore();
     });
 }
