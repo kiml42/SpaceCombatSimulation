@@ -3,6 +3,7 @@ import { compileBlueprint, compileDraft, type Blueprint } from "../sim/blueprint
 import { BOTH_LAYERS, HULL_LAYER, HullPath, modulesAlong, WEAPONS_LAYER, type Boxes } from "../sim/hull.js";
 import { HALF_PI, QUARTER_PI } from "../sim/math.js";
 import { CORVETTE } from "../scenarios/blueprints.js";
+import { hullMountGeometry } from "../sim/modules.js";
 
 /**
  * What a shot meets inside a ship.
@@ -236,5 +237,44 @@ describe("a turret's dome", () => {
         // Through the middle, the dome is met as the block is.
         modulesAlong(turret, -10, 0, 10, 0, path, WEAPONS_LAYER);
         expect(rows(path)).toEqual([[0, 8, 12]]);
+    });
+});
+
+describe("a hull mount", () => {
+    /** A hull gun alone at the origin, facing along x. */
+    const gun = (barrels: number): Boxes =>
+        ({
+            modules: [{ x: 0, y: 0, angle: 0, spec: { kind: "hullGun", length: 10, width: 4, barrels, body: true }, weaponsLayer: false }],
+            turrets: [{ module: 0 }],
+        }) as unknown as Boxes;
+    const path = new HullPath();
+    /** Where a shot down x at height `y`, from well ahead of the mount, first meets it, or null. */
+    const met = (design: Boxes, y: number, hulls?: Parameters<typeof modulesAlong>[9]): number | null => {
+        modulesAlong(design, 20, y, -20, y, path, BOTH_LAYERS, -1, undefined, hulls, 0);
+        return path.count > 0 ? 20 - path.entry[0]! : null;
+    };
+
+    it("is met at a barrel's muzzle, or, between the barrels, at the block", () => {
+        const twin = gun(2);
+        const g = hullMountGeometry(twin.modules[0]!.spec);
+        expect(met(twin, g.outletSpacing / 2)).toBeCloseTo(g.pivot + g.barrelLength);
+        expect(met(twin, 0)).toBeCloseTo(g.pivot);
+    });
+
+    it("is met where its barrel points now", () => {
+        const single = gun(1);
+        const g = hullMountGeometry(single.modules[0]!.spec);
+        const hulls = { designOf: () => null, mountBearing: () => 0.4 };
+        expect(met(single, 0)).toBeCloseTo(g.pivot + g.barrelLength);
+        expect(met(single, 0, hulls)).toBeLessThan(g.pivot + g.barrelLength / 2);
+    });
+
+    it("from the gap between its barrels, is met at the block's face, not from inside", () => {
+        const twin = gun(2);
+        const g = hullMountGeometry(twin.modules[0]!.spec);
+        // From the gap between the barrels: the block is ahead, not around it.
+        modulesAlong(twin, g.pivot + 0.5, 0, -20, 0, path);
+        expect(path.entry[0]).toBeCloseTo(0.5);
+        expect(path.nx[0]).toBeCloseTo(1);
     });
 });

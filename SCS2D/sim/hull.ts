@@ -1,5 +1,6 @@
 import { abs, cos, max, min, sin, sqrt } from "./math.js";
 import { domeRadius, isDomed, shapeOf } from "./shape.js";
+import { BEAM_STALK_WIDTH, isHullMount, lensDiscRadius, mountGeometryOf } from "./modules.js";
 import type { DesignModule, ShipDesign } from "./blueprint.js";
 import type { Bodies } from "./bodies.js";
 import type { Rng } from "./rng.js";
@@ -121,6 +122,7 @@ export class HullPath {
  */
 export interface Boxes {
     readonly modules: readonly DesignModule[];
+    readonly turrets?: readonly { readonly module: number }[];
 }
 
 /**
@@ -135,7 +137,8 @@ export interface Boxes {
  * `layers` is what the cast is in (DESIGN.md §3), and it meets only modules
  * in one of them; `bodyLayers` puts every module of the ship in the same
  * layers, as a fighter's are, or leaves each its own (`OWN_LAYERS`). `skip`
- * leaves one module out.
+ * leaves one module out. A hull mount is its block and what stands out of it,
+ * as drawn, its barrels where `hulls` says body `body`'s point, else at rest.
  *
  * A segment that starts *inside* a module reports it, entering at zero: a
  * round that was stopped at a surface last step and resumes from there is
@@ -157,6 +160,8 @@ export function modulesAlong(
     layers = BOTH_LAYERS,
     skip = -1,
     bodyLayers = OWN_LAYERS,
+    hulls?: HullDesigns,
+    body = -1,
 ): void {
     out.clear();
     const dx = x1 - x0;
@@ -174,6 +179,10 @@ export function modulesAlong(
         // Met above the deck alone, a turret is its dome rather than its block.
         if ((met & HULL_LAYER) === 0 && isDomed(m.spec.kind)) {
             domeAlong(m, domeRadius(m.spec), i, x0, y0, ux, uy, length, out);
+            continue;
+        }
+        if (isHullMount(m.spec.kind)) {
+            hullMountAlong(design, m, i, x0, y0, ux, uy, length, out, hulls, body);
             continue;
         }
         const triangle = shapeOf(m.spec);
@@ -272,6 +281,156 @@ export function modulesAlong(
         }
         out.push(i, entry, exit, nx, ny);
     }
+}
+
+// The crossing of a hull mount's parts so far: entered by the first, left by the last.
+let mountEntry = 0;
+let mountExit = 0;
+let mountNx = 0;
+let mountNy = 0;
+
+/**
+ * `modulesAlong` for a hull mount: its block, and each barrel, or each lens on
+ * its disc and stalk, as `collision.ts` meets them. One crossing for the lot,
+ * from the first part entered to the last part left.
+ */
+function hullMountAlong(
+    design: Boxes,
+    m: DesignModule,
+    index: number,
+    x0: number,
+    y0: number,
+    ux: number,
+    uy: number,
+    length: number,
+    out: HullPath,
+    hulls: HullDesigns | undefined,
+    body: number,
+): void {
+    const mount = mountGeometryOf(m.spec);
+    const c = cos(m.angle);
+    const s = sin(m.angle);
+    mountEntry = Infinity;
+    mountExit = -Infinity;
+    mountNx = 0;
+    mountNy = 0;
+    const back = mount.reach * 0.5;
+    partAlong(m.x - c * back, m.y - s * back, c, s, mount.blockLength * 0.5, m.spec.width * 0.5, x0, y0, ux, uy, length);
+    const mx = m.x + c * mount.trains;
+    const my = m.y + s * mount.trains;
+    const count = mount.outlets;
+    const spacing = mount.outletSpacing;
+    if (m.spec.kind === "hullBeam") {
+        const disc = lensDiscRadius(mount);
+        const stalk = (mount.trains - mount.pivot) * 0.5;
+        for (let o = 0; o < count; o++) {
+            const lat = count > 1 ? (o - (count - 1) * 0.5) * spacing : 0;
+            const cx = mx - s * lat;
+            const cy = my + c * lat;
+            discAlong(cx, cy, disc, x0, y0, ux, uy, length);
+            partAlong(cx - c * stalk, cy - s * stalk, c, s, stalk, mount.outletWidth * BEAM_STALK_WIDTH * 0.5, x0, y0, ux, uy, length);
+        }
+    } else {
+        let dx = c;
+        let dy = s;
+        if (hulls?.mountBearing !== undefined && body >= 0 && design.turrets !== undefined) {
+            for (let t = 0; t < design.turrets.length; t++) {
+                if (design.turrets[t]!.module !== index) continue;
+                const bearing = hulls.mountBearing(body, t);
+                if (bearing === bearing) {
+                    dx = cos(bearing);
+                    dy = sin(bearing);
+                }
+                break;
+            }
+        }
+        const half = mount.barrelLength * 0.5;
+        for (let o = 0; o < count; o++) {
+            const lat = count > 1 ? (o - (count - 1) * 0.5) * spacing : 0;
+            partAlong(mx + dx * half - dy * lat, my + dy * half + dx * lat, dx, dy, half, mount.outletWidth * 0.5, x0, y0, ux, uy, length);
+        }
+    }
+    if (mountExit > mountEntry) out.push(index, mountEntry, mountExit, mountNx, mountNy);
+}
+
+/** Fold the segment's crossing of a box centred (cx, cy) along (ax, ay) into the mount's. */
+function partAlong(
+    cx: number,
+    cy: number,
+    ax: number,
+    ay: number,
+    hl: number,
+    hw: number,
+    x0: number,
+    y0: number,
+    ux: number,
+    uy: number,
+    length: number,
+): void {
+    const ox = x0 - cx;
+    const oy = y0 - cy;
+    const px = ox * ax + oy * ay;
+    const py = -ox * ay + oy * ax;
+    const vx = ux * ax + uy * ay;
+    const vy = -ux * ay + uy * ax;
+    let near = 0;
+    let far = length;
+    let axis = 0;
+    let sign = 0;
+    if (abs(vx) < EDGE_ON) {
+        if (px <= -hl || px >= hl) return;
+    } else {
+        const inv = 1 / vx;
+        const a = (-hl - px) * inv;
+        const b = (hl - px) * inv;
+        const t0 = min(a, b);
+        if (t0 > near) {
+            near = t0;
+            axis = 1;
+            sign = inv > 0 ? -1 : 1;
+        }
+        far = min(far, max(a, b));
+    }
+    if (abs(vy) < EDGE_ON) {
+        if (py <= -hw || py >= hw) return;
+    } else {
+        const inv = 1 / vy;
+        const a = (-hw - py) * inv;
+        const b = (hw - py) * inv;
+        const t0 = min(a, b);
+        if (t0 > near) {
+            near = t0;
+            axis = 2;
+            sign = inv > 0 ? -1 : 1;
+        }
+        far = min(far, max(a, b));
+    }
+    if (!(far > near) || far < 0) return;
+    if (far > mountExit) mountExit = far;
+    if (!(near < mountEntry)) return;
+    mountEntry = near;
+    const lx = axis === 1 ? sign : 0;
+    const ly = axis === 2 ? sign : 0;
+    mountNx = near > 0 ? lx * ax - ly * ay : 0;
+    mountNy = near > 0 ? lx * ay + ly * ax : 0;
+}
+
+/** `partAlong` for a disc of radius `r` about (cx, cy). */
+function discAlong(cx: number, cy: number, r: number, x0: number, y0: number, ux: number, uy: number, length: number): void {
+    const ox = x0 - cx;
+    const oy = y0 - cy;
+    const b = ox * ux + oy * uy;
+    const d = b * b - (ox * ox + oy * oy - r * r);
+    if (!(d > 0)) return;
+    const root = sqrt(d);
+    const near = max(-b - root, 0);
+    const far = min(-b + root, length);
+    if (!(far > near)) return;
+    if (far > mountExit) mountExit = far;
+    if (!(near < mountEntry)) return;
+    mountEntry = near;
+    mountNx = near > 0 ? (ox + ux * near) / r : 0;
+    mountNy = near > 0 ? (oy + uy * near) / r : 0;
 }
 
 /**
@@ -670,6 +829,8 @@ export class Hulls implements RayNarrowPhase {
             this.layers,
             bodyIndex === this.skipBody ? this.skipModule : -1,
             this.designs.layersOf?.(bodyIndex) ?? OWN_LAYERS,
+            this.designs,
+            bodyIndex,
         );
         if (this.live !== undefined) this.skipTransparent(bodyIndex);
         if (this.path.count === 0) return -1;

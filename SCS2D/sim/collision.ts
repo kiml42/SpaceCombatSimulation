@@ -3,7 +3,7 @@ import type { ShipDesign } from "./blueprint.js";
 import { BOTH_LAYERS, HULL_LAYER, moduleLayers, OWN_LAYERS, type HullDesigns } from "./hull.js";
 import { abs, cos, max, min, sin, sqrt } from "./math.js";
 import { domeRadius, isDomed, MOST_CORNERS, shapeOf } from "./shape.js";
-import { BEAM_STALK_WIDTH, hullMountGeometry, isHullMount, lensDiscRadius, type HullMountGeometry, type ModuleSpec } from "./modules.js";
+import { BEAM_STALK_WIDTH, isHullMount, lensDiscRadius, mountGeometryOf, type ModuleSpec } from "./modules.js";
 
 /**
  * Hulls that are solid: ships meeting each other rather than passing through.
@@ -281,17 +281,6 @@ interface Parts {
     first: Int32Array;
 }
 
-const geometries = new WeakMap<ModuleSpec, HullMountGeometry>();
-
-function geometryOf(spec: ModuleSpec): HullMountGeometry {
-    let geometry = geometries.get(spec);
-    if (geometry === undefined) {
-        geometry = hullMountGeometry(spec);
-        geometries.set(spec, geometry);
-    }
-    return geometry;
-}
-
 function partAt(out: Parts, k: number): Box {
     if (out.boxes.length <= k) out.boxes.push(blankBox());
     const box = out.boxes[k]!;
@@ -324,7 +313,7 @@ function partsOf(design: ShipDesign, body: number, angle: number, hulls: HullDes
         out.first[m] = k;
         const spec = design.modules[m]!.spec;
         if (!isHullMount(spec.kind)) continue;
-        const mount = geometryOf(spec);
+        const mount = mountGeometryOf(spec);
         const block = boxes[m]!;
         const ux = block.ux;
         const uy = block.uy;

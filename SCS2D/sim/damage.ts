@@ -1152,7 +1152,19 @@ function walkRound(
         out.ux = ux;
         out.uy = uy;
         out.speed = carried;
-        modulesAlong(design, ox - ux * reach, oy - uy * reach, ox + ux * reach, oy + uy * reach, path, layers, skip, bodyLayers);
+        modulesAlong(
+            design,
+            ox - ux * reach,
+            oy - uy * reach,
+            ox + ux * reach,
+            oy + uy * reach,
+            path,
+            layers,
+            skip,
+            bodyLayers,
+            fuel,
+            bodyIndex,
+        );
 
         let k = crossing;
         if (k < 0) {
@@ -2019,6 +2031,8 @@ export class Impacts {
             beams.layers[beam]!,
             body === beams.owner[beam] ? beams.fromModule[beam]! : -1,
             designs.layersOf?.(body) ?? OWN_LAYERS,
+            designs,
+            body,
         );
 
         for (let k = 1; k < this.path.count; k++) {

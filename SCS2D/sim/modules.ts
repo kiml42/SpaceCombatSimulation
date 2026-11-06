@@ -2391,6 +2391,18 @@ export function mountTraverse(spec: ModuleSpec): number {
 }
 
 /** Whether this kind is a weapon let into the hull rather than a turret on it. */
+const mountGeometries = new WeakMap<ModuleSpec, HullMountGeometry>();
+
+/** `hullMountGeometry`, worked out once for each spec. */
+export function mountGeometryOf(spec: ModuleSpec): HullMountGeometry {
+    let geometry = mountGeometries.get(spec);
+    if (geometry === undefined) {
+        geometry = hullMountGeometry(spec);
+        mountGeometries.set(spec, geometry);
+    }
+    return geometry;
+}
+
 export function isHullMount(kind: ModuleKind): boolean {
     return kind === "hullGun" || kind === "hullBeam";
 }
