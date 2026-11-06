@@ -24,6 +24,7 @@ import { type Ships, ROBOT_SPENT, workforce, originTier, repairTier } from "./sh
 import * as shipRebuild from "./shipRebuild.js";
 import * as shipSupply from "./shipSupply.js";
 import * as shipBreakup from "./shipBreakup.js";
+import * as shipForage from "./shipForage.js";
 
 /**
  * Each hull's robots at their work: out from their bays to mend, rebuild or
@@ -435,7 +436,7 @@ export function sendAcross(ships: Ships, b: number, design: ShipDesign, robot: R
     const claw = ships.mooredClaw[owner]!;
     if (claw < 0 || ships.bodyStore === null || ships.commanded(owner)) return false;
     const cb = ships.carrierBodyOf(ships.bodyStore, owner);
-    if (cb < 0 || !ships.strippableAcross(owner, b, robot.bay, cb)) return false;
+    if (cb < 0 || !shipForage.strippableAcross(ships, owner, b, robot.bay, cb)) return false;
     route(ships, b, design, robot, owner, claw);
     if (robot.path === null && robot.at !== claw) return false;
     robot.bound = ships.parkedOn[owner]!;
@@ -451,7 +452,7 @@ export function crossOver(ships: Ships, b: number, design: ShipDesign, robots: R
     robot.bound = -1;
     const bodies = ships.bodyStore!;
     const cb = ships.parkedOn[owner] === rock && ships.mooredClaw[owner]! >= 0 ? ships.carrierBodyOf(bodies, owner) : -1;
-    const entry = cb < 0 ? -1 : ships.heldRock(bodies, owner);
+    const entry = cb < 0 ? -1 : shipForage.heldRock(ships, bodies, owner);
     if (entry < 0) {
         sendHome(ships, b, design, robot, owner, robot.at);
         return;
@@ -476,7 +477,7 @@ export function sendOnRock(ships: Ships, b: number, cb: number, robots: Robot[],
     const fuelRoom = ships.fuel.pieceRoom(b, robot.bay) > ROBOT_SPENT;
     const room = ROBOT_LOAD - robot.cargo - robot.cargoFuel;
     if (!(metalRoom || fuelRoom) || !(room > ROBOT_SPENT)) return false;
-    const held = ships.heldRock(ships.bodyStore!, owner);
+    const held = shipForage.heldRock(ships, ships.bodyStore!, owner);
     const { dist, prev } = walkScratch(ships, rd.modules.length);
     walk(
         rd,
@@ -531,7 +532,7 @@ export function sendOnRock(ships: Ships, b: number, cb: number, robots: Robot[],
 /** Set a robot of ship `owner` out on its rock, body `cb`, walking back to where its claw grips. */
 export function homeOnRock(ships: Ships, cb: number, robot: Robot, owner: number): void {
     const rd = ships.hullDesign[cb]!;
-    const entry = ships.heldRock(ships.bodyStore!, owner);
+    const entry = shipForage.heldRock(ships, ships.bodyStore!, owner);
     robot.mode = RobotMode.Home;
     robot.target = -1;
     robot.strip = false;
@@ -581,7 +582,7 @@ export function tendAway(ships: Ships, bodies: Bodies, b: number, design: ShipDe
                 if (!sendOnRock(ships, b, cb, ships.robots.on(b)!, robot, owner)) homeOnRock(ships, cb, robot, owner);
                 return 0;
             }
-            if (robot.mode === RobotMode.Home && robot.at !== ships.heldRock(bodies, owner)) {
+            if (robot.mode === RobotMode.Home && robot.at !== shipForage.heldRock(ships, bodies, owner)) {
                 homeOnRock(ships, cb, robot, owner);
                 if (robot.path === null) return 0;
             }
@@ -754,7 +755,7 @@ export function mineRock(ships: Ships, b: number, cb: number, rd: ShipDesign, ro
     if (
         m < 0 ||
         m >= rd.modules.length ||
-        m === ships.heldRock(ships.bodyStore!, owner) ||
+        m === shipForage.heldRock(ships, ships.bodyStore!, owner) ||
         !onRock(ships, cb, m, owner) ||
         !shipRebuild.comesOff(ships, owner, cb, rd, m)
     ) {

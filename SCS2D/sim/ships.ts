@@ -21,19 +21,9 @@ import {
     type DesignTurret,
     type ShipDesign,
 } from "./blueprint.js";
-import { components, DOCK_HOLD, JOINT_IMPULSE_PER_AREA, joints, seamThickness } from "./connectivity.js";
+import { components, joints } from "./connectivity.js";
 import { BOTH_LAYERS, HULL_LAYER, Hulls, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from "./hull.js";
-import {
-    Damage,
-    DAMAGE_ENERGY_PER_KG,
-    DamageEffect,
-    IMPACT_MUZZLE,
-    REPAIR_ENERGY_PER_JOULE,
-    REPAIR_WASTE,
-    repairWork,
-    DISASSEMBLY_WASTE,
-    type ImpactLog,
-} from "./damage.js";
+import { Damage, DamageEffect, IMPACT_MUZZLE, REPAIR_ENERGY_PER_JOULE, REPAIR_WASTE, repairWork, type ImpactLog } from "./damage.js";
 import { buildWork, faceNearest, fittingOf, SHELL_STEPS, shellOf } from "./rebuild.js";
 import { printedCraft, printFrame, printLength, SLIPWAY_STEP, type Print } from "./slipway.js";
 import { Fuel, LEAK_HOLE_CALIBRES, leakChance, leakRate, leakSpeed } from "./fuel.js";
@@ -54,11 +44,11 @@ import {
     moduleRadius,
     type ModuleSpec,
 } from "./modules.js";
-import { abs, atan2, angleDelta, PI, brakingRate, clamp, cos, exp, floor, length, max, min, round, sin, sqrt } from "./math.js";
+import { abs, atan2, angleDelta, PI, brakingRate, clamp, cos, floor, length, max, min, round, sin, sqrt } from "./math.js";
 import { Projectiles } from "./projectiles.js";
 import { padApproaches, type PadApproach } from "./padApproach.js";
 import type { Store } from "./store.js";
-import { RobotMode, Robots, type Robot } from "./robots.js";
+import { Robots, type Robot } from "./robots.js";
 import { Allocation, EngineLayout } from "./engines.js";
 import { burnGain, pushBearing, pushTorque, spinWay, steerHeading, STEER_HOLD_SPEED, STEER_SPIN, turnTime } from "./helm.js";
 import { addFlame, addTurret, attackBearing, AttackArcs, AttackRegion } from "./attack.js";
@@ -91,7 +81,6 @@ import {
     SLIPWAY_BUILD_PER_METRE,
     SLIPWAY_CLEAR_TIME,
     SLIPWAY_PUSH,
-    ROBOT_REPAIR_RATE,
     GunType,
     interiorVolume,
     type GunStats,
@@ -104,6 +93,7 @@ import type { Rebuild, StripShape } from "./shipRebuild.js";
 import * as shipWeld from "./shipWeld.js";
 import * as shipSupply from "./shipSupply.js";
 import * as shipBreakup from "./shipBreakup.js";
+import * as shipForage from "./shipForage.js";
 
 /**
  * Ships: a compiled design bound to a body, flying itself and shooting.
@@ -504,7 +494,7 @@ export function short(store: Store, b: number, m: number, share: number): boolea
 
 /** A design's engines' exhaust speed, m/s, weighted by their thrust; 0 for one with none. */
 const EXHAUST = new WeakMap<ShipDesign, number>();
-function exhaustOf(design: ShipDesign): number {
+export function exhaustOf(design: ShipDesign): number {
     const known = EXHAUST.get(design);
     if (known !== undefined) return known;
     let thrust = 0;
@@ -1025,9 +1015,9 @@ export class Ships {
     /** What each ship has broken off to drink from with its claw, or `NO_TARGET`. */
     readonly salvaging: number[] = [];
     /** The tick each ship next reconsiders whether, and where, to refuel. */
-    private readonly forageAt: number[] = [];
+    readonly forageAt: number[] = [];
     /** Whether each ship is refuelling: from running low until its claw's piece is full. */
-    private readonly refuelling: number[] = [];
+    readonly refuelling: number[] = [];
     /** Whether each ship is being filled at a friend's port: from running down to `refuelBelow` until it is full. */
     readonly docking: number[] = [];
     /** Whether each ship is taking fuel to a friend: from setting out until it has given what it can spare. */
@@ -1037,9 +1027,9 @@ export class Ships {
     /** What each withdrawing ship hides behind, or `NO_TARGET` to flee. */
     private readonly hiding: number[] = [];
     /** Whether each fighter is rearming: from running low on metal until it is full. */
-    private readonly rearming: number[] = [];
+    readonly rearming: number[] = [];
     /** Whether each ship has been docked under the errand it is on, which then ends when the dock lets go. */
-    private readonly errandDocked: number[] = [];
+    readonly errandDocked: number[] = [];
     /** Each ship's doctrine as its design has it, before anything it has been told over it. */
     readonly ownDoctrines: Doctrine[] = [];
     /** What each ship has been told over its doctrine, or undefined for nothing. */
@@ -1053,7 +1043,7 @@ export class Ships {
     /** The carrier each fighter last set out from or landed on, or -1. */
     private readonly home: number[] = [];
     /** Whether each fighter is recharging: from running its batteries down until they are full. */
-    private readonly recharging: number[] = [];
+    readonly recharging: number[] = [];
     /** The world tick `command` is flying. */
     now = 0;
     /** The tick each ship last touched what it means to drink from without holding it. */
@@ -1097,11 +1087,11 @@ export class Ships {
      */
     readonly parkedOn: number[] = [];
     /** The pad it is parked on, by module of its carrier's launch design. */
-    private readonly parkedPad: number[] = [];
+    readonly parkedPad: number[] = [];
     /** Where its blueprint's origin sits in the pad's frame, and which way it points in it. */
-    private readonly parkedX: number[] = [];
-    private readonly parkedY: number[] = [];
-    private readonly parkedAngle: number[] = [];
+    readonly parkedX: number[] = [];
+    readonly parkedY: number[] = [];
+    readonly parkedAngle: number[] = [];
     /** Its mass as its carrier last counted it. */
     readonly parkedMass: number[] = [];
     /**
@@ -1121,9 +1111,9 @@ export class Ships {
     /** Robots left on a rock by a ship no longer moored there, with the side they are on and the ship that left them. */
     readonly stranded: { robot: Robot; team: number; home: number }[] = [];
     /** Scratch for two rocks becoming one: each stranded robot on either, and where it stands, world frame, in threes. */
-    private readonly rebasingStranded: number[] = [];
+    readonly rebasingStranded: number[] = [];
     /** Scratch for two rocks becoming one: each moored ship, and where it grips, world frame, in threes. */
-    private readonly rebasing: number[] = [];
+    readonly rebasing: number[] = [];
     /** Every fighter parked. */
     readonly parkedShips: number[] = [];
     /** Each carrier's fighters by the pad that keeps them (`ShipDesign.builds`); null for a ship whose pads build none. */
@@ -1201,7 +1191,7 @@ export class Ships {
     private threatX = 0;
     private threatY = 0;
     /** How many things the last `armedShare` counted. */
-    private tools = 0;
+    tools = 0;
     private readonly rethinkAt: number[] = [];
     /**
      * The order doctrine makes up, one per ship and rewritten in place, so that
@@ -1385,7 +1375,7 @@ export class Ships {
      * is a version comparison rather than a dirty flag — nothing has to remember
      * to set it.
      */
-    private layoutOf(i: number): EngineLayout {
+    layoutOf(i: number): EngineLayout {
         const design = this.designs[i]!;
         const bodies = this.bodyStore;
         const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
@@ -2610,7 +2600,7 @@ export class Ships {
             const tb = bodies.indexOf(this.bodyIds[t]!);
             if (tb < 0 || tb === b || bodies.ghost[tb] === 1 || bodies.radius[tb]! < approach.hideSize * mine) return -1;
             const d = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!);
-            if (d > range || this.dangerNear(bodies, i, tb) > 0) return -1;
+            if (d > range || shipForage.dangerNear(this, bodies, i, tb) > 0) return -1;
             return d;
         };
         const held = this.hiding[i]!;
@@ -2634,7 +2624,7 @@ export class Ships {
      * ports while delivering, wanted whether or not they work. How many there
      * are is left in `tools`.
      */
-    private armedShare(i: number, b: number, stores: boolean): number {
+    armedShare(i: number, b: number, stores: boolean): number {
         const design = this.designs[i]!;
         const turrets = design.turrets;
         let mounts = 0;
@@ -3303,7 +3293,7 @@ export class Ships {
     }
 
     /** How long a hull of this mass waits before reconsidering, in steps. */
-    private rethinkTicks(world: World, mass: number): number {
+    rethinkTicks(world: World, mass: number): number {
         const seconds = clamp(mass / THINKING_MASS, MIN_RETHINK, MAX_RETHINK);
         // At least one step, or a ship would decide twice in the same instant.
         return max(1, round(seconds / world.dt));
@@ -3445,7 +3435,7 @@ export class Ships {
 
     /** Drop every order this ship has. It holds its heading and its fire. */
     clearOrder(i: number): void {
-        if (this.orders[i]?.[0]?.errand !== undefined) this.stopForaging(i);
+        if (this.orders[i]?.[0]?.errand !== undefined) shipForage.stopForaging(this, i);
         this.orders[i] = [];
         this.errandDocked[i] = 0;
     }
@@ -3598,7 +3588,7 @@ export class Ships {
 
     /** Set ship `i` off on the errand now at the head of its queue, rather than at its next rethink. */
     private startErrand(i: number): void {
-        this.stopForaging(i);
+        shipForage.stopForaging(this, i);
         this.errandDocked[i] = 0;
         this.forageAt[i] = 0;
     }
@@ -3622,7 +3612,7 @@ export class Ships {
     }
 
     /** What follows an order leaving the head of the queue: a fresh start on the next one, if that is an errand. */
-    private nextOrder(i: number): void {
+    nextOrder(i: number): void {
         this.errandDocked[i] = 0;
         if (this.errandOf(i) !== undefined) this.startErrand(i);
     }
@@ -3755,7 +3745,7 @@ export class Ships {
             }
             this.removeInvalidOrders(i);
             this.decide(world, bodies, i);
-            this.forage(world, bodies, i);
+            shipForage.forage(this, world, bodies, i);
             this.decideTurrets(world, bodies, i);
             this.flyOne(dt, bodies, i, grid);
             this.commitOne(bodies, i);
@@ -4068,7 +4058,7 @@ export class Ships {
         }
         this.orders[i] = kept;
         if (kept[0] === orders[0]) return;
-        if (orders[0]?.errand !== undefined) this.stopForaging(i);
+        if (orders[0]?.errand !== undefined) shipForage.stopForaging(this, i);
         this.nextOrder(i);
     }
 
@@ -5299,7 +5289,7 @@ export class Ships {
             // keep clear of it, rather than running from its wing as it comes and goes.
             if (this.home[t] === i) continue;
             // Closing on a rock, it keeps clear of hulks, and of a friend moored to that rock, which stands where it is.
-            const neighbour = hulksOnly && this.hasControl(t) && this.isMoored(t) && this.parkedOn[t] === flying;
+            const neighbour = hulksOnly && this.hasControl(t) && shipForage.isMoored(this, t) && this.parkedOn[t] === flying;
             if (hulksOnly && this.hasControl(t) && !neighbour) continue;
             // Ramming, it keeps clear of rocks and its own side, which nothing rams on purpose.
             if (ramming && !this.isAsteroid(t) && !(this.team[t] === this.team[i] && this.hasControl(t))) continue;
@@ -5936,427 +5926,8 @@ export class Ships {
         shipBreakup.settleShedOf(this, b);
     }
 
-    /** With no working core, every engine cuts out and every turret brakes to a stop. */
-    /**
-     * Break off for fuel, metal or charge, or go back to the fight.
-     *
-     * A ship with a working claw goes looking once its claw's piece of hull is
-     * down to its doctrine's `scavengeFuelBelow` of a full load, and keeps at it,
-     * source after source, until it is full; then the fight has it back. Where
-     * to drink is reconsidered as often as a fight would be, and sooner when the
-     * source is gone or dry. Without one, a fighter goes to a friend's pad, and
-     * anything else with a port to a friend's port, once its fuel or charge is
-     * down to `refuelBelow`; a fighter also goes once its metal is down to
-     * `rearmBelow`, or it is no more whole than `repairBelow`, and whichever
-     * sent it, it comes back for all of them.
-     */
-    private forage(world: World, bodies: Bodies, i: number): void {
-        const b = bodies.indexOf(this.bodyIds[i]!);
-        const held = this.salvaging[i]!;
-        const hb = held !== NO_TARGET && this.alive[held] === 1 ? bodies.indexOf(this.bodyIds[held]!) : -1;
-        // On an errand, it takes on or gives all it can whatever its doctrine's thresholds.
-        const errand = this.errandOf(i);
-        const ordered = errand === "dock";
-        const scavengeOrder = errand === "scavenge";
-        const deliverOrder = errand === "deliver";
-        const only = errand !== undefined ? this.getCurrentOrder(i)!.target : NO_TARGET;
-        // Drinking: its claw or its pad lets go when it is done. First, since it
-        // now rides the other's body under a design that is both of theirs, or
-        // is parked on its pad.
-        const docked = b >= 0 && (hb === b || (held !== NO_TARGET && this.parkedOn[i] === held));
-        if (docked && (this.orders[i]!.length === 0 || errand !== undefined)) {
-            if (errand !== undefined) this.errandDocked[i] = 1;
-            return;
-        }
-        if (errand !== undefined && this.errandDocked[i] === 1) {
-            // Let go: it has had all that dock or source would give, or given all it
-            // could. Sent nowhere in particular, it scavenges or delivers on.
-            if (ordered || only !== NO_TARGET) {
-                this.finishErrand(i);
-                return;
-            }
-            this.errandDocked[i] = 0;
-            this.stopForaging(i);
-        }
-        const design = this.designs[i]!;
-        const approach = this.doctrines[i]!.approach;
-        // An order given outranks it, as it outranks the rest of doctrine.
-        const free = b >= 0 && (this.orders[i]!.length === 0 || errand !== undefined);
-        // Doctrine's own errands, when it is on none of an order's.
-        const own = free && errand === undefined;
-        if (errand !== undefined && errand !== "deliver" && this.delivering[i] === 1) this.stopForaging(i);
-        // Taking fuel to a friend, it keeps at it while it has fuel to give.
-        const giverPort =
-            (own && !design.fighter && approach.deliverFuelAbove > 0) || (free && deliverOrder) ? this.workingPort(bodies, i, b) : -1;
-        if (deliverOrder) {
-            if (giverPort >= 0 && this.hasToSpare(b, giverPort)) this.deliver(world, bodies, i, b, giverPort, only);
-            if (this.salvaging[i] === NO_TARGET) this.finishErrand(i);
-            return;
-        }
-        const deliverable = giverPort >= 0 && this.canDeliver(b, giverPort, approach.deliverFuelAbove);
-        if (this.delivering[i] === 1) {
-            if (deliverable) {
-                this.deliver(world, bodies, i, b, giverPort);
-                return;
-            }
-            this.stopForaging(i);
-        }
-        // A ship that builds only anchored goes to anchor when it would build.
-        const anchors = own && this.wantsAnchor(bodies, i);
-        const forages = scavengeOrder || anchors || (own && (approach.scavengeFuelBelow > 0 || approach.scavengeMetalBelow > 0));
-        const docks = ordered || (own && approach.refuelBelow > 0);
-        const recharges = ordered || (own && approach.rechargeBelow > 0);
-        const claw = forages && b >= 0 ? this.workingClaw(i, b) : -1;
-        if (scavengeOrder && claw < 0) {
-            this.finishErrand(i);
-            return;
-        }
-        // A fighter with no claw lands on a friend's pad instead, and anything
-        // else with a port of its own docks with a friend's. Only a pad mends.
-        const rearms = claw < 0 && design.fighter && (ordered || (own && approach.rearmBelow >= 0));
-        const repairs = claw < 0 && design.fighter && (ordered || (own && (approach.repairBelow > 0 || approach.repairArmed >= 0)));
-        const lands = (docks || rearms || recharges || repairs) && claw < 0 && design.fighter;
-        const port = docks && !design.fighter ? this.workingPort(bodies, i, b) : -1;
-        // A ship with a claw too docks only once it is down to `refuelBelow`, and
-        // until it is full; otherwise it goes scavenging by `scavengeFuelBelow`.
-        let viaPort = port >= 0 && claw < 0;
-        if (port >= 0 && claw >= 0) {
-            const portHeld = this.fuel.pieceHeld(b, port);
-            const portRoom = this.fuel.pieceRoom(b, port);
-            viaPort = portRoom > 0 && (this.docking[i] === 1 || portHeld <= approach.refuelBelow * (portHeld + portRoom));
-        }
-        const scavenges = claw >= 0 && !viaPort;
-        // Metal from a wreck comes by its robots taking it apart.
-        const strips = scavenges && (scavengeOrder || approach.scavengeMetalBelow > 0) && shipRebuild.hasRobots(this, b, i);
-        const into = scavenges ? claw : lands ? (design.cores[0] ?? 0) : viaPort ? port : -1;
-        if (into < 0) {
-            if (ordered) this.finishErrand(i);
-            else this.stopForaging(i);
-            return;
-        }
-        const below = scavenges ? approach.scavengeFuelBelow : approach.refuelBelow;
-        const ownHeld = this.fuel.pieceHeld(b, into);
-        const wantsFuel = scavenges ? scavengeOrder || approach.scavengeFuelBelow > 0 : docks;
-        const room = wantsFuel ? this.fuel.pieceRoom(b, into) : 0;
-        const full = ownHeld + room;
-        const metalRoom = rearms || strips || (ordered && viaPort) ? this.metal.pieceRoom(b, into) : 0;
-        const chargeRoom = (lands || (ordered && viaPort)) && recharges ? this.power.pieceRoom(b, into) : 0;
-        const charge = chargeRoom > 0 ? this.power.pieceHeld(b, into) : 0;
-        const thirsty = full > 0 && room > 0 && ownHeld <= below * full;
-        const empty = rearms && metalRoom > 0 && this.outOfRounds(i, b, into, approach.rearmBelow);
-        const metalHeld = strips ? this.metal.pieceHeld(b, into) : 0;
-        const hungry = strips && metalRoom > 0 && metalHeld <= approach.scavengeMetalBelow * (metalHeld + metalRoom);
-        // Only running flat sends it for charge, so it never lands for a sliver of it.
-        const flat = chargeRoom > 0 && charge <= approach.rechargeBelow * (charge + chargeRoom);
-        const recharging = chargeRoom > 0 && (ordered || flat || this.recharging[i] === 1);
-        // Mending only makes it more whole, so nothing need hold it to the trip.
-        const hurt = repairs && (ordered ? this.wholeness(b, i) < 1 : this.wholeness(b, i) <= approach.repairBelow || this.disarmed(i, b));
-        const going = ordered
-            ? room > 0 || metalRoom > 0 || recharging || hurt
-            : scavengeOrder
-              ? room > 0 || metalRoom > 0
-              : thirsty ||
-                empty ||
-                hungry ||
-                (anchors && scavenges) ||
-                recharging ||
-                hurt ||
-                (this.refuelling[i] === 1 && room > 0) ||
-                (this.rearming[i] === 1 && metalRoom > 0);
-        this.refuelling[i] = going && room > 0 ? 1 : 0;
-        this.docking[i] = going && viaPort && (room > 0 || ordered) ? 1 : 0;
-        this.rearming[i] = going && metalRoom > 0 ? 1 : 0;
-        this.recharging[i] = recharging ? 1 : 0;
-        if (!going && errand !== undefined) {
-            // Nothing it could take on: done, or done before it set out.
-            this.finishErrand(i);
-            return;
-        }
-        if (!going) {
-            // Full, or wanting nothing: what it can spare goes to a friend.
-            if (deliverable) this.deliver(world, bodies, i, b, giverPort);
-            else this.stopForaging(i);
-            return;
-        }
-        if (held !== NO_TARGET) {
-            // Gone, dry, taken, or no longer what it is after: look again now rather
-            // than at the next rethink.
-            const lost = lands
-                ? hb < 0 || this.landingPad[i]! < 0 || !this.padFree(bodies, held, this.landingPad[i]!)
-                : viaPort
-                  ? hb < 0 || this.dockPort[i]! < 0 || this.ownPort[i] !== port || !this.portFree(bodies, held, this.dockPort[i]!)
-                  : hb < 0 ||
-                    this.landingPad[i]! >= 0 ||
-                    this.dockPort[i]! >= 0 ||
-                    this.shipByBody[hb] !== held ||
-                    !(
-                        (room > 0 && this.fuelOffered(i, held, hb)) ||
-                        (metalRoom > 0 && this.strippableWreck(held)) ||
-                        (anchors && this.isAsteroid(held))
-                    );
-            if (lost && scavengeOrder && only !== NO_TARGET) {
-                // Gone, or with nothing more to give: what it was sent to is done with.
-                this.finishErrand(i);
-                return;
-            }
-            if (lost) {
-                this.salvaging[i] = NO_TARGET;
-                this.landingPad[i] = -1;
-                this.dockPort[i] = -1;
-                this.ownPort[i] = -1;
-                this.forageAt[i] = world.tick;
-            }
-        }
-        if (world.tick < this.forageAt[i]!) return;
-        this.forageAt[i] = world.tick + this.rethinkTicks(world, design.mass);
-        if (lands) {
-            this.pickPad(bodies, i, b, room, metalRoom, recharging ? chargeRoom : 0, hurt, only);
-        } else if (viaPort) {
-            this.pickPort(bodies, i, b, port, room, ordered ? metalRoom : 0, ordered ? chargeRoom : 0, only);
-        } else if (only !== NO_TARGET) {
-            if (!this.clawCanTake(bodies, i, b, claw, only)) {
-                this.finishErrand(i);
-                return;
-            }
-            this.salvaging[i] = only;
-            this.landingPad[i] = -1;
-            this.dockPort[i] = -1;
-        } else {
-            this.salvaging[i] = this.pickSource(bodies, i, b, claw, room, strips ? metalRoom : 0, anchors);
-            this.landingPad[i] = -1;
-            this.dockPort[i] = -1;
-            if (scavengeOrder && this.salvaging[i] === NO_TARGET) {
-                // Nothing left anywhere worth the trip.
-                this.finishErrand(i);
-                return;
-            }
-            // Nothing left to scavenge: what it has goes to a friend instead.
-            if (this.salvaging[i] === NO_TARGET && deliverable) this.deliver(world, bodies, i, b, giverPort);
-        }
-    }
-
-    /**
-     * Whether the ship working port `port` of body `b` holds enough to deliver:
-     * more than `above` of a full load on that port's piece of hull, and more
-     * than it keeps back for itself.
-     */
-    /** Whether the ship working port `port` of body `b` holds fuel or metal above what it keeps back for itself. */
-    private hasToSpare(b: number, port: number): boolean {
-        return (
-            this.fuel.pieceHeld(b, port) > shipSupply.fuelReserve(this, b, port) ||
-            this.metal.pieceHeld(b, port) > shipSupply.metalReserve(this, b, port)
-        );
-    }
-
-    /**
-     * Whether ship `i`'s claw on body `b` could ever take anything from ship
-     * `t`: what doctrine would drink from, or a friend still flying, which it
-     * may when it is sent to.
-     */
-    private clawCanTake(bodies: Bodies, i: number, b: number, claw: number, t: number): boolean {
-        if (t === i || this.alive[t] !== 1 || (this.team[t] === NEUTRAL_TEAM && !this.isAsteroid(t))) return false;
-        const tb = bodies.indexOf(this.bodyIds[t]!);
-        if (tb < 0 || tb === b || !this.clawReaches(b, claw, tb)) return false;
-        return this.drinkable(i, t) || this.team[t] === this.team[i];
-    }
-
-    /** Whether ship `t` on body `tb` has fuel for ship `i`'s claw: any at all, or from a friend still flying, any above its reserve. */
-    private fuelOffered(i: number, t: number, tb: number): boolean {
-        if (this.drinkable(i, t)) return this.fuel.left(tb) > 0;
-        const modules = this.designs[t]!.modules;
-        for (let m = 0; m < modules.length; m++) {
-            if (this.ownsAt(t, tb, m) && this.fuel.pieceHeld(tb, m) > shipSupply.fuelReserve(this, tb, m)) return true;
-        }
-        return false;
-    }
-
-    /** Whether ship `i` was sent to scavenge from `t`, a friend still flying, which doctrine never drinks from. */
-    sentToDrink(i: number, t: number): boolean {
-        const given = this.getCurrentOrder(i);
-        return given?.errand === "scavenge" && given.target === t;
-    }
-
-    private canDeliver(b: number, port: number, above: number): boolean {
-        const held = this.fuel.pieceHeld(b, port);
-        const full = held + this.fuel.pieceRoom(b, port);
-        return full > 0 && held > above * full && held > shipSupply.fuelReserve(this, b, port);
-    }
-
-    /**
-     * What the ship working module `m` of body `b` keeps back from a friend
-     * docked with it, kg: its `refuelBelow` of a full load, or, taking fuel to
-     * a friend, its `deliverFuelAbove`, so it gives only what it holds above
-     * that and is never left at its own threshold for refuelling.
-     */
-    keepsBack(b: number, m: number): number {
-        const owner = this.pilotAt(b, m);
-        const kept = shipSupply.fuelReserve(this, b, m);
-        if (owner < 0 || this.delivering[owner] !== 1 || this.errandOf(owner) === "deliver") return kept;
-        const above = this.doctrines[owner]!.approach.deliverFuelAbove;
-        return max(kept, above * (this.fuel.pieceHeld(b, m) + this.fuel.pieceRoom(b, m)));
-    }
-
-    /**
-     * Take fuel to a friend: keep to the friend's port it is making for until it
-     * is gone, taken or full, or it is time to look again, then pick afresh.
-     */
-    private deliver(world: World, bodies: Bodies, i: number, b: number, port: number, only = NO_TARGET): void {
-        this.refuelling[i] = 0;
-        this.docking[i] = 0;
-        this.rearming[i] = 0;
-        this.recharging[i] = 0;
-        this.landingPad[i] = -1;
-        const held = this.salvaging[i]!;
-        const hb = held !== NO_TARGET && this.alive[held] === 1 ? bodies.indexOf(this.bodyIds[held]!) : -1;
-        const keep =
-            this.delivering[i] === 1 &&
-            hb >= 0 &&
-            this.dockPort[i]! >= 0 &&
-            this.ownPort[i] === port &&
-            this.portFree(bodies, held, this.dockPort[i]!) &&
-            (this.fuel.pieceRoom(hb, this.dockPort[i]!) > 0 ||
-                (this.errandOf(i) === "deliver" && this.metal.pieceRoom(hb, this.dockPort[i]!) > 0));
-        if (keep && world.tick < this.forageAt[i]!) return;
-        this.forageAt[i] = world.tick + this.rethinkTicks(world, this.designs[i]!.mass);
-        this.pickDelivery(bodies, i, b, port, only);
-        this.delivering[i] = this.salvaging[i] !== NO_TARGET ? 1 : 0;
-    }
-
-    /**
-     * The best friend's port to take fuel to, as a port to be filled at is
-     * chosen: the fuel it can give and the friend has room for, for the time to
-     * get there and pump it through the slower of the two ports, put off by armed
-     * enemies near it and by every other ship already making for it.
-     */
-    private pickDelivery(bodies: Bodies, i: number, b: number, own: number, only = NO_TARGET): void {
-        const design = this.designs[i]!;
-        const approach = this.doctrines[i]!.approach;
-        this.salvaging[i] = NO_TARGET;
-        this.dockPort[i] = -1;
-        this.ownPort[i] = -1;
-        if (!(approach.approachSpeed > 0)) return;
-        // Ordered, it gives all it can spare, metal too, whatever `deliverFuelAbove` says.
-        const ordered = this.errandOf(i) === "deliver";
-        const held = this.fuel.pieceHeld(b, own);
-        const above = ordered ? 0 : approach.deliverFuelAbove * (held + this.fuel.pieceRoom(b, own));
-        const spare = held - max(shipSupply.fuelReserve(this, b, own), above);
-        const spareMetal = ordered ? this.metal.pieceHeld(b, own) - shipSupply.metalReserve(this, b, own) : 0;
-        if (!(spare > 0) && !(spareMetal > 0)) return;
-        const ownPump = design.modules[own]!.stats.pumpRate;
-        let bestScore = 0;
-        for (let t = 0; t < this.alive.length; t++) {
-            if (t === i || this.alive[t] === 0 || this.derelict[t] === 1 || this.delivering[t] === 1) continue;
-            if (only !== NO_TARGET && t !== only) continue;
-            if (this.team[t] !== this.team[i] || this.hostile(i, t) || !this.hasControl(t)) continue;
-            const tb = bodies.indexOf(this.bodyIds[t]!);
-            if (tb < 0 || tb === b) continue;
-            const host = this.designs[t]!;
-            // Sent to it, it goes whatever is near.
-            let danger = only !== NO_TARGET ? 0 : -1;
-            for (let p = 0; p < host.modules.length; p++) {
-                if (host.modules[p]!.spec.kind !== "port" || !this.ownsAt(t, tb, p) || !this.portFree(bodies, t, p)) continue;
-                const room = this.fuel.pieceRoom(tb, p);
-                const metalRoom = spareMetal > 0 ? this.metal.pieceRoom(tb, p) : 0;
-                const pump = min(ownPump, host.modules[p]!.stats.pumpRate);
-                if (!((room > 0 && spare > 0) || metalRoom > 0) || !(pump > 0)) continue;
-                const take = max(0, spare < room ? spare : room) + (spareMetal < metalRoom ? spareMetal : metalRoom);
-                const gap = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!);
-                if (danger < 0) danger = approach.dockDanger > 0 ? this.dangerNear(bodies, i, tb) : 0;
-                let queue = 0;
-                for (let o = 0; o < this.alive.length; o++) {
-                    if (o !== i && this.alive[o] === 1 && this.salvaging[o] === t && this.dockPort[o] === p) queue++;
-                }
-                const score =
-                    take / (gap / approach.approachSpeed + take / pump) / (1 + max(0, approach.dockDanger) * danger) / (1 + queue);
-                if (score > bestScore) {
-                    bestScore = score;
-                    this.salvaging[i] = t;
-                    this.dockPort[i] = p;
-                    this.ownPort[i] = own;
-                }
-            }
-        }
-    }
-
-    /** Done with the errand at the head of its queue: on to the next order, or back to doctrine. */
-    private finishErrand(i: number): void {
-        this.stopForaging(i);
-        this.orders[i]!.shift();
-        this.nextOrder(i);
-    }
-
-    private stopForaging(i: number): void {
-        this.salvaging[i] = NO_TARGET;
-        this.landingPad[i] = -1;
-        this.dockPort[i] = -1;
-        this.ownPort[i] = -1;
-        this.refuelling[i] = 0;
-        this.docking[i] = 0;
-        this.delivering[i] = 0;
-        this.rearming[i] = 0;
-        this.recharging[i] = 0;
-    }
-
-    /**
-     * Whether ship `i` is down to its doctrine's `below` of a full load of metal
-     * on the piece of hull module `own` is on: at zero, too little for any of its
-     * guns there to load a round. False for a ship with no gun there to feed.
-     */
-    private outOfRounds(i: number, b: number, own: number, below: number): boolean {
-        const design = this.designs[i]!;
-        let round = Infinity;
-        for (const mount of design.turrets) {
-            const kg = mount.gun.roundMass;
-            if (kg > 0 && kg < round && this.metal.pieceAt(b, mount.module) === this.metal.pieceAt(b, own)) round = kg;
-        }
-        if (round === Infinity) return false;
-        const held = this.metal.pieceHeld(b, own);
-        return held < round || held <= below * (held + this.metal.pieceRoom(b, own));
-    }
-
-    /** How many armed enemies of ship `i` are within their own reach of body `tb`. */
-    dangerNear(bodies: Bodies, i: number, tb: number): number {
-        let danger = 0;
-        for (let e = 0; e < this.alive.length; e++) {
-            if (this.alive[e] === 0 || this.derelict[e] === 1 || !this.hostile(i, e) || this.isDisarmed(e)) continue;
-            const eb = bodies.indexOf(this.bodyIds[e]!);
-            if (eb < 0 || eb === tb) continue;
-            const reach = this.designs[e]!.reach + bodies.radius[tb]!;
-            if (length(bodies.x[eb]! - bodies.x[tb]!, bodies.y[eb]! - bodies.y[tb]!) <= reach) danger++;
-        }
-        return danger;
-    }
-
-    /** Whether so few of fighter `i`'s main guns work that its doctrine's `repairArmed` sends it to be mended. */
-    private disarmed(i: number, b: number): boolean {
-        const repairArmed = this.doctrines[i]!.approach.repairArmed;
-        if (repairArmed < 0) return false;
-        const share = this.armedShare(i, b, false);
-        return this.tools > 0 && share <= repairArmed;
-    }
-
-    /**
-     * How whole ship `i` on body `b` is, as `repairBelow` measures it: the lower
-     * of its weakest core's integrity and the share of the mass it set out with
-     * still sound, a module lost counting for none.
-     */
-    private wholeness(b: number, i: number): number {
-        const design = this.designs[i]!;
-        let weakest = 1;
-        let sound = 0;
-        for (let m = 0; m < design.modules.length; m++) {
-            if (!this.ownsAt(i, b, m)) continue;
-            const integrity = this.damage.integrity(b, m);
-            sound += integrity * design.modules[m]!.stats.mass;
-            if (design.modules[m]!.spec.kind === "core" && integrity < weakest) weakest = integrity;
-        }
-        let full = 0;
-        for (const module of (this.launched[i] ?? design).modules) full += module.stats.mass;
-        return full > 0 ? min(weakest, sound / full) : weakest;
-    }
-
     /** Whether module `pad` of ship `t` is a pad still working, with nothing on it. */
-    private padFree(bodies: Bodies, t: number, pad: number): boolean {
+    padFree(bodies: Bodies, t: number, pad: number): boolean {
         const design = this.designs[t]!;
         if (design.modules[pad]?.spec.kind !== "pad") return false;
         const tb = bodies.indexOf(this.bodyIds[t]!);
@@ -6377,7 +5948,7 @@ export class Ships {
      * filled, put off by armed enemies near it by its `dockDanger`, and by every
      * other fighter already making for it. None for one that has lost the turn it set out with.
      */
-    private pickPad(
+    pickPad(
         bodies: Bodies,
         i: number,
         b: number,
@@ -6428,7 +5999,7 @@ export class Ships {
                 // take the far one as soon as it is free, and cross whoever is coming the other way.
                 const place = this.modulePlace(bodies, tb, design, pad);
                 const gap = length(place.x - bodies.x[b]!, place.y - bodies.y[b]!);
-                if (danger < 0) danger = approach.dockDanger > 0 ? this.dangerNear(bodies, i, tb) : 0;
+                if (danger < 0) danger = approach.dockDanger > 0 ? shipForage.dangerNear(this, bodies, i, tb) : 0;
                 // A pad another fighter is already making for is a wait behind it.
                 let queue = 0;
                 for (let o = 0; o < this.alive.length; o++) {
@@ -6586,7 +6157,7 @@ export class Ships {
     /** Put parked fighter `f` where it sits on its pad, moving with it. Nothing, while its pad is gone. */
     private pin(bodies: Bodies, f: number): void {
         if (this.mooredClaw[f]! >= 0) {
-            this.pinMoored(bodies, f);
+            shipForage.pinMoored(this, bodies, f);
             return;
         }
         const fb = bodies.indexOf(this.bodyIds[f]!);
@@ -6619,311 +6190,15 @@ export class Ships {
         if (bodies.mass[fb] !== this.parkedMass[f]) shipBreakup.settleMass(this, bodies, cb);
     }
 
-    /**
-     * Moor ship `f` by claw `claw` of its hull to asteroid `rock`, gripping at
-     * world point `gx`, `gy`: parked as a fighter is on a pad, but on the rock,
-     * keeping its own body and design. The two move off together with the
-     * momentum they had between them; a rock nothing moves takes none of it.
-     */
-    moor(bodies: Bodies, f: number, rock: number, claw: number, gx: number, gy: number): void {
-        const cb = bodies.indexOf(this.bodyIds[rock]!);
-        const fb = bodies.indexOf(this.bodyIds[f]!);
-        if (cb < 0 || fb < 0 || !this.poseMoored(bodies, f, cb, fb, gx, gy)) return;
-        const mc = bodies.mass[cb]!;
-        const mf = bodies.mass[fb]!;
-        const vx = (mc * bodies.vx[cb]! + mf * bodies.vx[fb]!) / (mc + mf);
-        const vy = (mc * bodies.vy[cb]! + mf * bodies.vy[fb]!) / (mc + mf);
-        const rx = bodies.x[fb]! - bodies.x[cb]!;
-        const ry = bodies.y[fb]! - bodies.y[cb]!;
-        const spin =
-            bodies.inertia[cb]! * bodies.angularVel[cb]! +
-            bodies.inertia[fb]! * bodies.angularVel[fb]! +
-            mf * (rx * (bodies.vy[fb]! - vy) - ry * (bodies.vx[fb]! - vx));
-        const moves = mc > 0;
-        if (moves) {
-            bodies.vx[cb] = vx;
-            bodies.vy[cb] = vy;
-        }
-        this.parkedOn[f] = rock;
-        this.parkedPad[f] = -1;
-        this.mooredClaw[f] = claw;
-        this.parkedShips.push(f);
-        shipBreakup.settleMass(this, bodies, cb);
-        if (moves) bodies.angularVel[cb] = spin / bodies.inertia[cb]!;
-        this.pinMoored(bodies, f);
-    }
-
-    /**
-     * Where moored ship `f`, on body `fb`, sits on its rock, body `cb`, and
-     * where its claw grips, world point `gx`, `gy`, kept in the rock's
-     * blueprint frame. False for a body with no hull.
-     */
-    private poseMoored(bodies: Bodies, f: number, cb: number, fb: number, gx: number, gy: number): boolean {
-        const rd = this.hullDesign[cb];
-        const fd = this.hullDesign[fb];
-        if (rd === null || rd === undefined || fd === null || fd === undefined) return false;
-        const angle = bodies.angle[cb]!;
-        const c = cos(angle);
-        const s = sin(angle);
-        // Both blueprint origins, which stay put on their hulls as rock is mined away.
-        const rox = bodies.x[cb]! - (rd.centreOfMassX * c - rd.centreOfMassY * s);
-        const roy = bodies.y[cb]! - (rd.centreOfMassX * s + rd.centreOfMassY * c);
-        const fc = cos(bodies.angle[fb]!);
-        const fs = sin(bodies.angle[fb]!);
-        const dx = bodies.x[fb]! - (fd.centreOfMassX * fc - fd.centreOfMassY * fs) - rox;
-        const dy = bodies.y[fb]! - (fd.centreOfMassX * fs + fd.centreOfMassY * fc) - roy;
-        this.parkedX[f] = dx * c + dy * s;
-        this.parkedY[f] = -dx * s + dy * c;
-        this.parkedAngle[f] = bodies.angle[fb]! - angle;
-        this.mooredGripX[f] = (gx - rox) * c + (gy - roy) * s;
-        this.mooredGripY[f] = -(gx - rox) * s + (gy - roy) * c;
-        return true;
-    }
-
-    /** Where each ship moored to asteroid `i` or `j` grips, in the world, before the two become one. */
-    holdMoorings(bodies: Bodies, i: number, j: number): void {
-        this.rebasing.length = 0;
-        this.rebasingStranded.length = 0;
-        for (let k = 0; k < this.stranded.length; k++) {
-            const robot = this.stranded[k]!.robot;
-            if (robot.away !== i && robot.away !== j) continue;
-            const cb = bodies.indexOf(this.bodyIds[robot.away]!);
-            const here = robot.awayDesign?.modules[robot.at];
-            if (cb < 0 || here === undefined) continue;
-            const c = cos(bodies.angle[cb]!);
-            const s = sin(bodies.angle[cb]!);
-            this.rebasingStranded.push(k, bodies.x[cb]! + here.x * c - here.y * s, bodies.y[cb]! + here.x * s + here.y * c);
-        }
-        for (let k = 0; k < this.parkedShips.length; k++) {
-            const f = this.parkedShips[k]!;
-            if (this.mooredClaw[f]! < 0 || (this.parkedOn[f] !== i && this.parkedOn[f] !== j)) continue;
-            const cb = this.carrierBodyOf(bodies, f);
-            const rd = cb < 0 ? null : this.hullDesign[cb];
-            if (rd === null || rd === undefined) continue;
-            const c = cos(bodies.angle[cb]!);
-            const s = sin(bodies.angle[cb]!);
-            const lx = this.mooredGripX[f]! - rd.centreOfMassX;
-            const ly = this.mooredGripY[f]! - rd.centreOfMassY;
-            this.rebasing.push(f, bodies.x[cb]! + lx * c - ly * s, bodies.y[cb]! + lx * s + ly * c);
-        }
-    }
-
-    /**
-     * Pose again, on the rock two have just made, each ship `holdMoorings`
-     * noted, and step its robots out on the rock back to where its claw grips.
-     */
-    rebaseMoorings(bodies: Bodies): void {
-        for (let k = 0; k < this.rebasing.length; k += 3) {
-            const f = this.rebasing[k]!;
-            const fb = bodies.indexOf(this.bodyIds[f]!);
-            const cb = this.carrierBodyOf(bodies, f);
-            if (fb < 0 || cb < 0) continue;
-            this.poseMoored(bodies, f, cb, fb, this.rebasing[k + 1]!, this.rebasing[k + 2]!);
-            const held = this.heldRock(bodies, f);
-            for (const robot of this.robots.on(fb) ?? []) {
-                if (robot.away < 0) continue;
-                robot.away = this.parkedOn[f]!;
-                robot.awayDesign = this.hullDesign[cb]!;
-                robot.at = held < 0 ? 0 : held;
-                robot.path = null;
-                robot.leg = 0;
-                robot.along = 0;
-                if (robot.mode !== RobotMode.Home) {
-                    robot.mode = RobotMode.Out;
-                    robot.target = -1;
-                }
-            }
-        }
-        this.rebasing.length = 0;
-        // A stranded robot stands where it stood, on the nearest of the rock they make.
-        for (let k = 0; k < this.rebasingStranded.length; k += 3) {
-            const robot = this.stranded[this.rebasingStranded[k]!]!.robot;
-            const cb = bodies.indexOf(this.bodyIds[robot.away]!);
-            const rd = cb < 0 ? null : this.hullDesign[cb];
-            if (rd === null || rd === undefined) continue;
-            const dx = this.rebasingStranded[k + 1]! - bodies.x[cb]!;
-            const dy = this.rebasingStranded[k + 2]! - bodies.y[cb]!;
-            const c = cos(bodies.angle[cb]!);
-            const s = sin(bodies.angle[cb]!);
-            robot.at = shipRobots.nearestModule(rd, dx * c + dy * s, -dx * s + dy * c);
-            robot.awayDesign = rd;
-        }
-        this.rebasingStranded.length = 0;
-    }
-
-    /** Put moored ship `f` where it sits on its rock, moving with it. */
-    private pinMoored(bodies: Bodies, f: number): void {
-        const fb = bodies.indexOf(this.bodyIds[f]!);
-        const cb = this.carrierBodyOf(bodies, f);
-        const rd = cb < 0 ? null : this.hullDesign[cb];
-        const fd = fb < 0 ? null : this.hullDesign[fb];
-        if (rd === null || rd === undefined || fd === null || fd === undefined) return;
-        const angle = bodies.angle[cb]!;
-        const c = cos(angle);
-        const s = sin(angle);
-        const heading = angle + this.parkedAngle[f]!;
-        const fc = cos(heading);
-        const fs = sin(heading);
-        const lx = this.parkedX[f]! - rd.centreOfMassX;
-        const ly = this.parkedY[f]! - rd.centreOfMassY;
-        const rx = lx * c - ly * s + fd.centreOfMassX * fc - fd.centreOfMassY * fs;
-        const ry = lx * s + ly * c + fd.centreOfMassX * fs + fd.centreOfMassY * fc;
-        const spin = bodies.angularVel[cb]!;
-        bodies.x[fb] = bodies.x[cb]! + rx;
-        bodies.y[fb] = bodies.y[cb]! + ry;
-        bodies.angle[fb] = heading;
-        bodies.vx[fb] = bodies.vx[cb]! - spin * ry;
-        bodies.vy[fb] = bodies.vy[cb]! + spin * rx;
-        bodies.angularVel[fb] = spin;
-        if (bodies.mass[fb] !== this.parkedMass[f]) shipBreakup.settleMass(this, bodies, cb);
-    }
-
-    /** Whether ship `i` is moored to an asteroid by its claw. */
     isMoored(i: number): boolean {
-        return this.mooredClaw[i]! >= 0;
-    }
-
-    /**
-     * The module of its rock that moored ship `f`'s claw grips: the nearest to
-     * where it took hold, within reach of it, or -1 once that is mined away.
-     */
-    heldRock(bodies: Bodies, f: number): number {
-        const cb = this.carrierBodyOf(bodies, f);
-        const rd = cb < 0 ? null : this.hullDesign[cb];
-        if (rd === null || rd === undefined) return -1;
-        const gx = this.mooredGripX[f]! - rd.centreOfMassX;
-        const gy = this.mooredGripY[f]! - rd.centreOfMassY;
-        let best = -1;
-        let bestGap = Infinity;
-        for (let m = 0; m < rd.modules.length; m++) {
-            const module = rd.modules[m]!;
-            const reach = max(module.spec.length, module.spec.width);
-            const gap = length(module.x - gx, module.y - gy);
-            if (gap <= reach && gap < bestGap) {
-                best = m;
-                bestGap = gap;
-            }
-        }
-        return best;
-    }
-
-    /**
-     * Work the rock moored ship `f` holds, and say whether it keeps hold: its
-     * robots taking it apart while its holds have room, or its claw melting
-     * the ice out. It lets go once neither can, or it is given an order, when
-     * its robots are back; and at once if its claw can no longer grip, what it
-     * held is gone, or an armed enemy is in reach, unless it is anchored to build.
-     */
-    tendMoored(world: World, f: number): boolean {
-        const bodies = world.bodies;
-        const fb = bodies.indexOf(this.bodyIds[f]!);
-        const cb = this.carrierBodyOf(bodies, f);
-        const claw = this.mooredClaw[f]!;
-        if (fb < 0 || cb < 0 || this.alive[f] === 0 || this.derelict[f] === 1 || !this.hasControl(f)) return false;
-        const working = this.damage.remaining(fb, claw, DamageEffect.Grip);
-        if (!(working > 0)) return false;
-        const held = this.heldRock(bodies, f);
-        if (held < 0) return false;
-        if (this.damage.isProtected(cb)) return true;
-        if (!this.sentTo(f) && !this.wantsAnchor(bodies, f) && shipSupply.threatened(this, bodies, f, cb, false)) return false;
-        // Given an order, it calls its robots in and goes as soon as they are back.
-        const ordered = this.sentAway(f);
-        if (!ordered && shipRebuild.canStrip(this, fb, f, claw, world.dt) && this.strippableAcross(f, fb, claw, cb)) return true;
-        if (!ordered && this.heatAcross(bodies, fb, claw, cb, held, working * world.dt)) return true;
-        // Anchored while it builds, it holds on until what it builds is let go.
-        if (!ordered && this.wantsAnchor(bodies, f)) return true;
-        // Done, but for its robots out on the rock, which it waits for.
-        if (!shipRobots.anyAway(this, fb, f)) return false;
-        shipRobots.recallAway(this, fb, this.hullDesign[fb]!, f, cb);
-        return true;
-    }
-
-    /**
-     * Whether moored ship `f`'s robots could take anything of its rock, body
-     * `cb`, apart for what the holds on its claw's piece of hull, at `into` of
-     * body `fb`, have room for.
-     */
-    strippableAcross(f: number, fb: number, into: number, cb: number): boolean {
-        const metalRoom = this.metal.pieceRoom(fb, into) > ROBOT_SPENT;
-        const fuelRoom = this.fuel.pieceRoom(fb, into) > ROBOT_SPENT;
-        if (!metalRoom && !fuelRoom) return false;
-        const rd = this.hullDesign[cb];
-        if (rd === null || rd === undefined) return false;
-        const held = this.heldRock(this.bodyStore!, f);
-        for (let m = 0; m < rd.modules.length; m++) {
-            if (
-                m !== held &&
-                shipRobots.onRock(this, cb, m, f) &&
-                shipRebuild.minable(rd, m, metalRoom, fuelRoom) &&
-                shipRebuild.comesOff(this, f, cb, rd, m)
-            )
-                return true;
-        }
-        return false;
-    }
-
-    /**
-     * The claw at `claw` of body `fb` melting fuel out of the rock at `held` of
-     * the rock it is moored to, body `cb`, as `heat` does one it has welded to.
-     */
-    private heatAcross(bodies: Bodies, fb: number, claw: number, cb: number, held: number, dt: number): boolean {
-        const rd = this.hullDesign[cb]!;
-        const spec = rd.modules[held]!.spec;
-        if (spec.kind !== "rock") return false;
-        const ice = (spec.ice ?? 0) * (1 - DISASSEMBLY_WASTE);
-        if (!(ice > 0) || !(dt > 0)) return false;
-        const left = rd.modules[held]!.stats.mass - this.damage.unbuiltAt(cb, held);
-        let fuel = min(CLAW_HEAT_RATE * dt, this.fuel.pieceRoom(fb, claw), left * ice);
-        fuel = min(fuel, this.power.pieceHeld(fb, claw) / CLAW_HEAT_ENERGY);
-        if (!(fuel > ROBOT_SPENT)) return false;
-        this.power.drain(fb, claw, fuel * CLAW_HEAT_ENERGY);
-        this.damage.unfit(cb, held, fuel / ice);
-        this.fuel.add(fb, claw, fuel);
-        shipBreakup.settleMass(this, bodies, cb);
-        shipBreakup.settleMass(this, bodies, fb);
-        return true;
-    }
-
-    /**
-     * Whether the blow `k` of this step's knocks a moored ship off its rock:
-     * one landing on it harder than its claw holds, the shock spent with
-     * distance as it is through a weld, the rest of it then the ship's own.
-     */
-    shakeLoose(world: World, k: number): boolean {
-        const bodies = world.bodies;
-        const fb = this.blowBody[k]!;
-        const f = this.shipByBody[fb];
-        if (f === undefined || f < 0 || this.mooredClaw[f]! < 0) return false;
-        const cb = this.carrierBodyOf(bodies, f);
-        const held = this.heldRock(bodies, f);
-        const fd = this.hullDesign[fb];
-        const rd = cb < 0 ? null : this.hullDesign[cb];
-        if (held < 0 || fd === null || fd === undefined || rd === null || rd === undefined) return false;
-        const claw = this.mooredClaw[f]!;
-        const thickness = min(seamThickness(fd, claw), seamThickness(rd, held));
-        const grip = this.damage.remaining(fb, claw, DamageEffect.Grip);
-        const strength = fd.modules[claw]!.spec.width * thickness * JOINT_IMPULSE_PER_AREA * DOCK_HOLD * grip;
-        const jx = this.blowJx[k]!;
-        const jy = this.blowJy[k]!;
-        const place = this.modulePlace(bodies, fb, fd, claw);
-        const carried = SHOCK_REACH / (SHOCK_REACH + length(this.blowX[k]! - place.x, this.blowY[k]! - place.y));
-        const load = length(jx, jy) * carried;
-        if (!(load > strength)) return false;
-        this.unpark(bodies, f, world.tick);
-        // What the rock took of the blow beyond the grip, the ship takes now it is free.
-        const share = 1 - strength / load;
-        bodies.vx[fb] = bodies.vx[fb]! + jx * share * bodies.invMass[fb]!;
-        bodies.vy[fb] = bodies.vy[fb]! + jy * share * bodies.invMass[fb]!;
-        bodies.vx[cb] = bodies.vx[cb]! - jx * share * bodies.invMass[cb]!;
-        bodies.vy[cb] = bodies.vy[cb]! - jy * share * bodies.invMass[cb]!;
-        return true;
+        return shipForage.isMoored(this, i);
     }
 
     /**
      * Where module `m` of body `tb` is and how it is moving, world frame, and
      * which way it faces.
      */
-    private modulePlace(
+    modulePlace(
         bodies: Bodies,
         tb: number,
         design: ShipDesign,
@@ -7247,7 +6522,7 @@ export class Ships {
     }
 
     /** The first of this ship's ports still working and not already mated, or -1. */
-    private workingPort(bodies: Bodies, i: number, b: number): number {
+    workingPort(bodies: Bodies, i: number, b: number): number {
         const design = this.designs[i]!;
         for (let m = 0; m < design.modules.length; m++) {
             if (design.modules[m]!.spec.kind === "port" && this.ownsAt(i, b, m) && this.portFree(bodies, i, m)) return m;
@@ -7256,7 +6531,7 @@ export class Ships {
     }
 
     /** Whether module `port` of ship `t` is a port still working, mated to nothing. */
-    private portFree(bodies: Bodies, t: number, port: number): boolean {
+    portFree(bodies: Bodies, t: number, port: number): boolean {
         const design = this.designs[t]!;
         if (design.modules[port]?.spec.kind !== "port") return false;
         const tb = bodies.indexOf(this.bodyIds[t]!);
@@ -7273,16 +6548,7 @@ export class Ships {
      * the two ports, put off by armed enemies near it and by every other ship
      * already making for it. A friend that is refuelling itself has none to spare.
      */
-    private pickPort(
-        bodies: Bodies,
-        i: number,
-        b: number,
-        own: number,
-        room: number,
-        metalRoom = 0,
-        chargeRoom = 0,
-        only = NO_TARGET,
-    ): void {
+    pickPort(bodies: Bodies, i: number, b: number, own: number, room: number, metalRoom = 0, chargeRoom = 0, only = NO_TARGET): void {
         const design = this.designs[i]!;
         const approach = this.doctrines[i]!.approach;
         this.salvaging[i] = NO_TARGET;
@@ -7310,7 +6576,7 @@ export class Ships {
                 if (!(spare > 0 || others > 0) || !(pump > 0)) continue;
                 const take = max(0, spare < room ? spare : room) + others;
                 const gap = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!);
-                if (danger < 0) danger = approach.dockDanger > 0 ? this.dangerNear(bodies, i, tb) : 0;
+                if (danger < 0) danger = approach.dockDanger > 0 ? shipForage.dangerNear(this, bodies, i, tb) : 0;
                 let queue = 0;
                 for (let o = 0; o < this.alive.length; o++) {
                     if (o !== i && this.alive[o] === 1 && this.salvaging[o] === t && this.dockPort[o] === p) queue++;
@@ -8195,7 +7461,7 @@ export class Ships {
      * How many times over a ship can push itself back from an asteroid, jaws
      * first, against its pull at the surface: Infinity for one with no well.
      */
-    private holdsOff(bodies: Bodies, i: number, b: number, claw: number, tb: number): number {
+    holdsOff(bodies: Bodies, i: number, b: number, claw: number, tb: number): number {
         const pull = this.surfacePull(bodies, tb);
         if (!(pull > 0)) return Infinity;
         const jaws = this.designs[i]!.modules[claw]!.spec.angle ?? 0;
@@ -8229,136 +7495,12 @@ export class Ships {
         return (well.gm * r) / (r2 * sqrt(r2));
     }
 
-    /** What an asteroid's rock still holds, kg: all of it, and the ore and ice in it less what mining wastes. */
-    private rockHeld(b: number, design: ShipDesign): { rock: number; ore: number; ice: number } {
-        let rock = 0;
-        let ore = 0;
-        let ice = 0;
-        for (let m = 0; m < design.modules.length; m++) {
-            const { spec, stats } = design.modules[m]!;
-            if (spec.kind !== "rock") continue;
-            const left = max(0, stats.mass - this.damage.unbuiltAt(b, m));
-            rock += left;
-            ore += left * (spec.ore ?? 0) * (1 - DISASSEMBLY_WASTE);
-            ice += left * (spec.ice ?? 0) * (1 - DISASSEMBLY_WASTE);
-        }
-        return { rock, ore, ice };
-    }
-
-    /**
-     * Seconds mining `take` of fuel and `strip` of metal out of an asteroid
-     * takes: its robots cutting rock until they have both, or with none, a claw
-     * melting the fuel alone.
-     */
-    private miningTime(held: { rock: number; ore: number; ice: number }, take: number, strip: number, stripRate: number): number {
-        if (!(stripRate > 0)) return take / CLAW_HEAT_RATE;
-        const forOre = held.ore > 0 ? (strip / held.ore) * held.rock : 0;
-        const forIce = held.ice > 0 ? (take / held.ice) * held.rock : 0;
-        return max(forOre, forIce) / stripRate;
-    }
-
-    /**
-     * The source a claw ship goes for: what pays most for the time it takes.
-     * Wanting an anchor (`wantsAnchor`), an asteroid with nothing it could take
-     * still serves, the nearest first.
-     */
-    private pickSource(bodies: Bodies, i: number, b: number, claw: number, room: number, metalRoom: number, anchors = false): number {
-        const design = this.designs[i]!;
-        const approach = this.doctrines[i]!.approach;
-        const pump = design.modules[claw]!.stats.pumpRate;
-        if (!(pump > 0) || !(approach.clawSpeed > 0)) return NO_TARGET;
-        const mass = bodies.mass[b]!;
-        const layout = this.layoutOf(i);
-        const bearing = pushBearing(layout, design.thrustBearing);
-        const mains = layout.maxThrustAlong(cos(bearing), sin(bearing)) / mass;
-        const exhaust = exhaustOf(design);
-        let robots = 0;
-        if (metalRoom > 0) for (const robot of this.robots.on(b) ?? []) if (this.pilotAt(b, robot.bay) === i) robots++;
-        const stripRate = (robots * ROBOT_REPAIR_RATE) / DAMAGE_ENERGY_PER_KG;
-        let best = NO_TARGET;
-        let bestScore = 0;
-        for (let t = 0; t < this.alive.length; t++) {
-            if (t === i || this.alive[t] === 0) continue;
-            // What a claw will close on, and of the enemies only those that cannot shoot back.
-            if (!this.drinkable(i, t) || (this.hasControl(t) && !this.isDisarmed(t))) continue;
-            const tb = bodies.indexOf(this.bodyIds[t]!);
-            // A body is offered once, by the ship it is, and only if the claw can touch it.
-            if (tb < 0 || tb === b || this.shipByBody[tb] !== t || !this.clawReaches(b, claw, tb)) continue;
-            // An asteroid is worth what its rock holds: ore its robots smelt, and ice
-            // they melt, or the claw alone does, slower.
-            const asteroid = this.isAsteroid(t);
-            if (asteroid && !(approach.rockWeight > 0)) continue;
-            // One that pulls cannot be closed on slowly jaws first without thrust to hold off its pull.
-            if (asteroid && !(this.holdsOff(bodies, i, b, claw, tb) > 1)) continue;
-            // Nor one an enemy has hold of: it would be closing on the enemy as much as on the rock.
-            if (asteroid && this.enemyMoored(i, t)) continue;
-            const held = asteroid ? this.rockHeld(tb, this.designs[t]!) : null;
-            const fuel = held !== null ? held.ice : this.fuel.left(tb);
-            const take = fuel < room ? fuel : room;
-            // What its robots would bring home of it, less what taking it apart wastes.
-            const metal =
-                held !== null
-                    ? robots > 0
-                        ? held.ore
-                        : 0
-                    : metalRoom > 0 && this.strippableWreck(t)
-                      ? (bodies.mass[tb]! - fuel) * (1 - DISASSEMBLY_WASTE)
-                      : 0;
-            const strip = metal < metalRoom ? metal : metalRoom;
-            const anchor = anchors && asteroid;
-            if (!(take > 0 || strip > 0 || anchor)) continue;
-            const dx = bodies.x[tb]! - bodies.x[b]!;
-            const dy = bodies.y[tb]! - bodies.y[b]!;
-            const apart = length(dx, dy);
-            // Getting there at its closing speed less however fast the source is
-            // going away: one it cannot gain on is no source at all.
-            const gap = max(0, apart - bodies.radius[tb]!);
-            // Already alongside the one it is after, a miss that bounced it off is
-            // a reposition, not a trip: neither how fast it is now drifting off nor
-            // the speed to match counts against it.
-            const alongside = t === this.salvaging[i] && gap <= 2 * bodies.radius[b]!;
-            const receding =
-                alongside || !(apart > 0) ? 0 : ((bodies.vx[tb]! - bodies.vx[b]!) * dx + (bodies.vy[tb]! - bodies.vy[b]!) * dy) / apart;
-            const closing = approach.clawSpeed - receding;
-            if (!(closing > 0)) continue;
-            // What the trip burns: matching the source's motion, then speeding up
-            // and slowing down again, no faster than the gap gives room for. A
-            // source has to pay more than that to be worth going for at all.
-            const cruise = min(closing, sqrt(mains * gap));
-            const dv = (alongside ? 0 : length(bodies.vx[tb]! - bodies.vx[b]!, bodies.vy[tb]! - bodies.vy[b]!)) + 2 * cruise;
-            const cost = exhaust > 0 ? mass * (1 - exp(-dv / exhaust)) : 0;
-            let gain = (take + strip * approach.fuelPerMetal) * (held !== null ? approach.rockWeight : 1) - cost;
-            // An anchor is worth having however little it gives, so the soonest reached wins.
-            if (anchor && !(gain > 0)) gain = 1;
-            if (!(gain > 0)) continue;
-            const time =
-                (gap / closing) * approach.tripWeight +
-                (held !== null ? this.miningTime(held, take, strip, stripRate) : take / pump + (strip > 0 ? strip / stripRate : 0));
-            const danger = approach.scavengeDanger > 0 ? this.dangerNear(bodies, i, tb) : 0;
-            const score = gain / max(time, 1e-3) / (1 + max(0, approach.scavengeDanger) * danger);
-            if (score > bestScore) {
-                best = t;
-                bestScore = score;
-            }
-        }
-        return best;
-    }
-
-    /** Whether a ship hostile to ship `i` is moored to asteroid `t`. */
-    private enemyMoored(i: number, t: number): boolean {
-        for (let k = 0; k < this.parkedShips.length; k++) {
-            const j = this.parkedShips[k]!;
-            if (this.parkedOn[j] === t && this.mooredClaw[j]! >= 0 && this.hostile(i, j)) return true;
-        }
-        return false;
-    }
-
     /**
      * Whether the claw at module `claw` of body `b` shares a layer with any
      * module of body `tb`: a thin claw cannot close on a fighter or a piece of
      * one, which flies above the deck.
      */
-    private clawReaches(b: number, claw: number, tb: number): boolean {
+    clawReaches(b: number, claw: number, tb: number): boolean {
         const mine = moduleLayers(this.hullDesign[b]!.modules[claw]!, this.layersOf(b));
         const design = this.hullDesign[tb];
         if (design === null || design === undefined) return false;
@@ -8367,22 +7509,8 @@ export class Ships {
         return false;
     }
 
-    /** Whether ship `t` is wreckage whole, as robots take it apart: nobody flies it, or nobody mends it. */
-    private strippableWreck(t: number): boolean {
-        if (this.derelict[t] === 1) return true;
-        if (this.hasControl(t)) return false;
-        const bodies = this.bodyStore;
-        const tb = bodies === null ? -1 : bodies.indexOf(this.bodyIds[t]!);
-        return tb >= 0 && !shipRebuild.hasRobots(this, tb, t);
-    }
-
-    /** Whether ship `i`'s claw will close on ship `t`: a wreck of either side, or an enemy. */
-    drinkable(i: number, t: number): boolean {
-        return this.derelict[t] === 1 || this.hostile(i, t) || !this.hasControl(t);
-    }
-
     /** The first claw this ship works that can still close, or -1. */
-    private workingClaw(i: number, b: number): number {
+    workingClaw(i: number, b: number): number {
         const design = this.designs[i]!;
         for (let m = 0; m < design.modules.length; m++) {
             if (design.modules[m]!.spec.kind === "claw" && this.left(i, b, m, DamageEffect.Grip) > 0) return m;
@@ -8629,7 +7757,7 @@ export class Ships {
         const mine = this.designs[i]!.radius;
         for (let t = 0; t < this.alive.length; t++) {
             if (t === i || t === source || this.alive[t] === 0 || this.home[t] === i) continue;
-            const neighbour = this.hasControl(t) && this.isMoored(t) && this.parkedOn[t] === source;
+            const neighbour = this.hasControl(t) && shipForage.isMoored(this, t) && this.parkedOn[t] === source;
             if (this.hasControl(t) && !neighbour) continue;
             const ob = bodies.indexOf(this.bodyIds[t]!);
             if (ob < 0 || ob === b || ob === tb || bodies.ghost[ob] === 1 || !this.meets(b, ob)) continue;

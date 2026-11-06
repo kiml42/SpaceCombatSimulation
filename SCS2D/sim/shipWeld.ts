@@ -21,6 +21,7 @@ import {
 } from "./ships.js";
 import * as shipSupply from "./shipSupply.js";
 import * as shipBreakup from "./shipBreakup.js";
+import * as shipForage from "./shipForage.js";
 
 /**
  * Welding: two hulls that meet slowly enough, or a claw that closes on what its
@@ -180,7 +181,7 @@ export function weld(ships: Ships, world: World, contacts: Contacts): number {
             if (rock >= 0 && ships.isAsteroid(rock)) {
                 // Only a ship flying its own body moors: one riding another's has no body of its own to pin.
                 if (holder < 0 || ships.shipByBody[holderBody] !== holder) continue;
-                ships.moor(bodies, holder, rock, claw === "a" ? ma : mb, contacts.x[k]!, contacts.y[k]!);
+                shipForage.moor(ships, bodies, holder, rock, claw === "a" ? ma : mb, contacts.x[k]!, contacts.y[k]!);
                 joined ??= new Set<number>();
                 joined.add(i);
                 joined.add(j);
@@ -197,7 +198,7 @@ export function weld(ships: Ships, world: World, contacts: Contacts): number {
               ? ships.isAsteroid(j)
               : pinnedB || (!pinnedA && ships.derelict[i] === 1 && ships.derelict[j] === 0);
         // Whatever is moored to either rock stays where it is on the one they make.
-        if (rubble) ships.holdMoorings(bodies, i, j);
+        if (rubble) shipForage.holdMoorings(ships, bodies, i, j);
         const dock: DockAt | null = port
             ? { at: swap ? "b" : "a", kind: "port" }
             : claw === null
@@ -205,7 +206,7 @@ export function weld(ships: Ships, world: World, contacts: Contacts): number {
               : { at: (claw === "a") !== swap ? "a" : "b", kind: "claw" };
         if (swap) merge(ships, world, j, i, mb, ma, dock);
         else merge(ships, world, i, j, ma, mb, dock);
-        if (rubble) ships.rebaseMoorings(bodies);
+        if (rubble) shipForage.rebaseMoorings(ships, bodies);
         joined ??= new Set<number>();
         joined.add(i);
         joined.add(j);
@@ -347,8 +348,8 @@ export function grips(
     const holder = ships.pilotAt(b, m);
     const held = ships.pilotAt(o, mo);
     if (holder < 0 || held < 0 || holder === held) return false;
-    const friend = !ships.drinkable(holder, held);
-    if (friend && !ships.sentToDrink(holder, held)) return false;
+    const friend = !shipForage.drinkable(ships, holder, held);
+    if (friend && !shipForage.sentToDrink(ships, holder, held)) return false;
     // A friend still flying gives only what it holds above its own reserve.
     const drinks = ships.fuel.pieceRoom(b, m) > 0 && ships.fuel.pieceHeld(o, mo) > (friend ? shipSupply.fuelReserve(ships, o, mo) : 0);
     // Rock is mined for its ice as well as its ore, and a claw alone can melt the ice out.

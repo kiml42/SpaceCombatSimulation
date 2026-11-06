@@ -13,6 +13,7 @@ import * as shipRebuild from "./shipRebuild.js";
 import * as shipWeld from "./shipWeld.js";
 import { type Ships, short, originTier, repairTier, NO_TARGET } from "./ships.js";
 import * as shipBreakup from "./shipBreakup.js";
+import * as shipForage from "./shipForage.js";
 
 /**
  * Supply between hulls: fuel, metal and charge pumped across docking seams and
@@ -89,7 +90,8 @@ export function pump(ships: Ships, world: World): number {
                     const holder = ships.pilotAt(b, seam.a);
                     const source = ships.pilotAt(b, seam.b);
                     // A friend still flying, which it was sent to, gives what it holds above its reserve.
-                    const kept = holder >= 0 && source >= 0 && !ships.drinkable(holder, source) ? fuelReserve(ships, b, seam.b) : 0;
+                    const kept =
+                        holder >= 0 && source >= 0 && !shipForage.drinkable(ships, holder, source) ? fuelReserve(ships, b, seam.b) : 0;
                     const offered = ships.fuel.pieceHeld(b, seam.b) - kept;
                     if (offered > 0 && ships.fuel.transfer(b, seam.b, seam.a, rate < offered ? rate : offered) > 0) moved = true;
                     if (ships.fuel.pieceRoom(b, seam.a) > 0 && ships.fuel.pieceHeld(b, seam.b) > kept) continue;
@@ -125,7 +127,7 @@ export function pump(ships: Ships, world: World): number {
                         const narrower = min(design.modules[seam.a]!.stats.pumpRate, design.modules[seam.b]!.stats.pumpRate);
                         const flow = narrower * min(working, bothWorking) * world.dt;
                         // Delivering, it keeps what it means to keep over its reserve.
-                        const over = ships.fuel.pieceHeld(b, from) - ships.keepsBack(b, from);
+                        const over = ships.fuel.pieceHeld(b, from) - shipForage.keepsBack(ships, b, from);
                         if (dockPump(ships, Resource.Fuel, ships.fuel, b, from, to, flow < over ? flow : over, Claim.Ports) > 0)
                             moved = true;
                         if (dockPump(ships, Resource.Metal, ships.metal, b, from, to, flow, Claim.Ports) > 0) moved = true;
@@ -136,7 +138,8 @@ export function pump(ships: Ships, world: World): number {
                             min(working, bothWorking) *
                             world.dt;
                         dockPump(ships, Resource.Charge, ships.power, b, from, to, cable, Claim.Ports);
-                        const fuelLeft = ships.fuel.pieceRoom(b, to) > 0 && ships.fuel.pieceHeld(b, from) > ships.keepsBack(b, from);
+                        const fuelLeft =
+                            ships.fuel.pieceRoom(b, to) > 0 && ships.fuel.pieceHeld(b, from) > shipForage.keepsBack(ships, b, from);
                         const metalLeft = ships.metal.pieceRoom(b, to) > 0 && ships.metal.pieceHeld(b, from) > metalReserve(ships, b, from);
                         const chargeLeft =
                             ships.power.pieceRoom(b, to) > 0 && ships.power.pieceHeld(b, from) > chargeReserve(ships, b, from);
@@ -162,7 +165,7 @@ export function pump(ships: Ships, world: World): number {
     }
     for (let k = 0; k < ships.parkedShips.length; k++) {
         const f = ships.parkedShips[k]!;
-        if (ships.mooredClaw[f]! >= 0 ? ships.tendMoored(world, f) : tendParked(ships, world, f)) continue;
+        if (ships.mooredClaw[f]! >= 0 ? shipForage.tendMoored(ships, world, f) : tendParked(ships, world, f)) continue;
         ships.unpark(bodies, f, world.tick);
         released++;
         k--;
@@ -508,7 +511,7 @@ export function waitsAboard(ships: Ships, bodies: Bodies, i: number, b: number):
  */
 export function threatened(ships: Ships, bodies: Bodies, i: number, at: number, dock: boolean): boolean {
     const approach = ships.doctrines[i]!.approach;
-    return (dock ? approach.dockDanger : approach.scavengeDanger) > 0 && ships.dangerNear(bodies, i, at) > 0;
+    return (dock ? approach.dockDanger : approach.scavengeDanger) > 0 && shipForage.dangerNear(ships, bodies, i, at) > 0;
 }
 
 /**

@@ -3,6 +3,7 @@ import { berthGrid, ROBOT_BUILD_TIME, ROBOT_CHARGE, ROBOT_LOAD, ROBOT_REFILL_TIM
 import { atan2, cos, floor, length, max, min, sin, sqrt } from "./math.js";
 import { doorBetween, legLength, robotShare, RobotMode, type Robot } from "./robots.js";
 import type { Ships } from "./ships.js";
+import * as shipForage from "./shipForage.js";
 
 /**
  * Where each ship's robots are and what they are doing, as the renderer and the
@@ -200,7 +201,7 @@ export function spotFor(ships: Ships, design: ShipDesign, m: number, robots: Rob
     const bodies = ships.bodyStore!;
     const cb = claw >= 0 ? ships.carrierBodyOf(bodies, owner) : -1;
     const atClaw = robot.away < 0 && m === claw;
-    const atGrip = robot.away >= 0 && robot.away === ships.parkedOn[owner] && m === ships.heldRock(bodies, owner);
+    const atGrip = robot.away >= 0 && robot.away === ships.parkedOn[owner] && m === shipForage.heldRock(ships, bodies, owner);
     if (cb < 0 || hull < 0 || !(atClaw || atGrip)) {
         spotOn(ships, design, m, robot.tag);
         return;

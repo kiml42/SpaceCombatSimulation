@@ -13,6 +13,7 @@ import type { World } from "./world.js";
 import { fixed } from "./fixed.js";
 import type { Contacts } from "./collision.js";
 import { type Ships, SHOCK_REACH, NO_TARGET, WHOLE_SHIP } from "./ships.js";
+import * as shipForage from "./shipForage.js";
 
 /**
  * Hulls coming apart: blows and the shock they carry, welds cut and modules
@@ -157,7 +158,7 @@ export function sever(ships: Ships, world: World, contacts?: Contacts): number {
     let pieces = shatter(ships, world);
     pieces += partCutWelds(ships, world);
     for (let k = 0; k < ships.blows; k++) {
-        ships.shakeLoose(world, k);
+        shipForage.shakeLoose(ships, world, k);
         pieces += answer(
             ships,
             world,
