@@ -22,6 +22,7 @@ import * as shipDocking from "./shipDocking.js";
 import * as shipBuild from "./shipBuild.js";
 import { type Ships, stoppingSpeed, FACE, NO_TARGET, STEER, CLAW_RETRY, URGE_REFERENCE, movable, type Spot, type Order } from "./ships.js";
 import * as shipAim from "./shipAim.js";
+import * as shipOrders from "./shipOrders.js";
 
 /**
  * Flying a ship: what each of its orders asks of the hull as an acceleration,
@@ -195,7 +196,7 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
 
     // No order at all is the same problem as an order with no target: hold
     // what you are doing and wait to be told something.
-    const order = ships.effectiveOrder(i);
+    const order = shipOrders.effectiveOrder(ships, i);
     const target = order?.target ?? NO_TARGET;
     const fleeing = order?.flee === true;
     if (fleeing) {

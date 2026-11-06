@@ -3,6 +3,7 @@ import { DEFAULT_DOCTRINE, doctrineProblem, Rng, type Blueprint } from "../sim/i
 import { mutate } from "../evolution/mutate.js";
 import { circling, passes } from "../scenarios/passes.js";
 import { DINKY } from "../scenarios/blueprints.js";
+import { effectiveOrder } from "../sim/shipOrders.js";
 
 /** Attacking on the move: a band of sideways speed relative to the target (`tangentialMin`, `tangentialMax`). */
 
@@ -34,9 +35,7 @@ function fly(run: ReturnType<typeof passes>, seconds: number): Flown {
         const dx = bodies.x[t]! - bodies.x[f]!;
         const dy = bodies.y[t]! - bodies.y[f]!;
         const range = Math.sqrt(dx * dx + dy * dy);
-        const order = (
-            ships as unknown as { effectiveOrder(i: number): { minRange: number; maxRange: number } | undefined }
-        ).effectiveOrder(1);
+        const order = effectiveOrder(ships, 1);
         if (order === undefined) continue;
         const band = { min: order.minRange, max: order.maxRange };
         steps++;

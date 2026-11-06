@@ -41,7 +41,6 @@ import { STEER_HOLD_SPEED } from "./helm.js";
 import { AttackArcs, AttackRegion } from "./attack.js";
 import { FiringSolution, Turrets, TurretState } from "./turrets.js";
 import {
-    holdBand,
     overriddenDoctrine,
     withOverride,
     withoutPart,
@@ -71,6 +70,7 @@ import * as shipDocking from "./shipDocking.js";
 import * as shipBuild from "./shipBuild.js";
 import * as shipFlight from "./shipFlight.js";
 import * as shipAim from "./shipAim.js";
+import * as shipOrders from "./shipOrders.js";
 
 /**
  * Ships: a compiled design bound to a body, flying itself and shooting.
@@ -768,7 +768,7 @@ export class Ships {
     /** A fighter's `fightReach` as it landed on a pad, or as the one a pad is building will be. */
     readonly landedReach: number[] = [];
     /** The ship its doctrine has committed it to ramming, or `NO_TARGET`. Kept until that ship is out of the fight. */
-    private readonly ramming: number[] = [];
+    readonly ramming: number[] = [];
     /** The tick each ship last fired a gun or a beam, or -1. */
     private readonly firedAt: number[] = [];
     /** What each ship has broken off to drink from with its claw, or `NO_TARGET`. */
@@ -782,9 +782,9 @@ export class Ships {
     /** Whether each ship is taking fuel to a friend: from setting out until it has given what it can spare. */
     readonly delivering: number[] = [];
     /** Whether each ship's doctrine has it withdrawing, to hide or flee (`decide`). */
-    private readonly withdrawing: number[] = [];
+    readonly withdrawing: number[] = [];
     /** What each withdrawing ship hides behind, or `NO_TARGET` to flee. */
-    private readonly hiding: number[] = [];
+    readonly hiding: number[] = [];
     /** Whether each fighter is rearming: from running low on metal until it is full. */
     readonly rearming: number[] = [];
     /** Whether each ship has been docked under the errand it is on, which then ends when the dock lets go. */
@@ -951,12 +951,12 @@ export class Ships {
     threatY = 0;
     /** How many things the last `armedShare` counted. */
     tools = 0;
-    private readonly rethinkAt: number[] = [];
+    readonly rethinkAt: number[] = [];
     /**
      * The order doctrine makes up, one per ship and rewritten in place, so that
      * falling back on doctrine allocates nothing per step.
      */
-    private readonly standing: Order[] = [];
+    readonly standing: Order[] = [];
     readonly choice = new Choice();
     /** A mount's pick among what is in reach but it cannot fire at now: tracked, trigger held. */
     readonly maskedChoice = new Choice();
@@ -1867,7 +1867,7 @@ export class Ships {
     escortBand(i: number, design: ShipDesign, target: number): number {
         const approach = this.doctrines[i]!.approach;
         const theirs = shipAim.sizeOf(this, target);
-        const told = this.getCurrentOrder(i);
+        const told = shipOrders.getCurrentOrder(this, i);
         if (told?.defend === true && told.target === target && told.distance !== undefined) return theirs + design.radius + told.distance;
         const wanted = approach.escortRadii * theirs;
         // From skin to skin, for the same reason a standoff is from the target's:
@@ -1946,7 +1946,7 @@ export class Ships {
      * own guns working than `ramArmed` says. Guns that are only empty count as
      * working while a friend's pad could fill them.
      */
-    private rams(i: number, target: number): boolean {
+    rams(i: number, target: number): boolean {
         const approach = this.doctrines[i]!.approach;
         if (!(approach.ramRadii > 0)) return false;
         const bodies = this.bodyStore;
@@ -2103,7 +2103,7 @@ export class Ships {
         if (this.committed[i] === 1 && this.isDisabled(i)) return;
         const b = bodies.indexOf(this.bodyIds[i]!);
         if (b < 0) return;
-        const order = this.effectiveOrder(i);
+        const order = shipOrders.effectiveOrder(this, i);
         // Parked, it meets nothing of its carrier, so would look clear on the pad and drop into its hull when let go.
         const ramming = order !== undefined && order.target !== NO_TARGET && (order.ram || order.grapple) && this.parkedOn[i]! < 0;
         const want = ramming && (order.grapple || this.strikesWithin(bodies, i, b, order.target)) ? 1 : 0;
@@ -2198,7 +2198,7 @@ export class Ships {
      * or an attack. Null for nothing.
      */
     doingOf(i: number): { kind: "attack" | "defend" | "ram" | "flee" | "hide" | Errand; target: number } | null {
-        const given = this.getCurrentOrder(i);
+        const given = shipOrders.getCurrentOrder(this, i);
         if (given?.flee === true) {
             const from = shipFlight.fleeTarget(this, given);
             return from === NO_TARGET ? null : { kind: given.hide === true ? "hide" : "flee", target: from };
@@ -2243,28 +2243,8 @@ export class Ships {
         return cb < 0 || cb === b ? NO_TARGET : consort;
     }
 
-    /**
-     * The order whose band of ranges ship `i` is holding against what it is
-     * fighting, or undefined: for nothing, or for an order that closes to touch
-     * — a ram, a grip, a landing or a dock — rather than to a range.
-     */
     heldOrder(i: number): Readonly<Order> | undefined {
-        const standing = this.standing[i];
-        const order = this.getCurrentOrder(i) ?? (standing !== undefined && standing.target === this.chosenOf(i) ? standing : undefined);
-        if (order === undefined || order.target === NO_TARGET) return undefined;
-        if (
-            order.ram ||
-            order.grapple ||
-            order.land ||
-            order.dock ||
-            order.defend === true ||
-            order.errand !== undefined ||
-            order.flee === true
-        ) {
-            return undefined;
-        }
-        if (!(order.maxRange > 0)) return undefined;
-        return order;
+        return shipOrders.heldOrder(this, i);
     }
 
     /** The doctrine mount `t` of ship `i` goes by, with what the ship has been told over it. */
@@ -2372,12 +2352,12 @@ export class Ships {
 
     /** The errand this ship is ordered on, if its current order is one. */
     errandOf(i: number): Errand | undefined {
-        return this.getCurrentOrder(i)?.errand;
+        return shipOrders.getCurrentOrder(this, i)?.errand;
     }
 
     /** Where ship `i`'s errand is taking it: the friend it was told, or the one its doctrine chose; `NO_TARGET` for none yet. */
     errandTarget(i: number): number {
-        const given = this.getCurrentOrder(i);
+        const given = shipOrders.getCurrentOrder(this, i);
         if (given?.errand === undefined) return NO_TARGET;
         if (given.target !== NO_TARGET) return given.target;
         const source = this.salvaging[i]!;
@@ -2386,25 +2366,25 @@ export class Ships {
 
     /** Whether ship `i` has an order other than an errand, which a dock lets go of it for. */
     commanded(i: number): boolean {
-        const given = this.getCurrentOrder(i);
+        const given = shipOrders.getCurrentOrder(this, i);
         return given !== undefined && given.errand === undefined;
     }
 
     /** Whether moored ship `i` has been told to go: an order, or an errand to anything but the rock it is moored to. */
     sentAway(i: number): boolean {
-        const given = this.getCurrentOrder(i);
+        const given = shipOrders.getCurrentOrder(this, i);
         return given !== undefined && (given.errand === undefined || given.target !== this.parkedOn[i]);
     }
 
     /** Whether ship `i` was told where to go on its errand, so armed enemies near it are not to put it off. */
     sentTo(i: number): boolean {
-        const given = this.getCurrentOrder(i);
+        const given = shipOrders.getCurrentOrder(this, i);
         return given?.errand !== undefined && given.target !== NO_TARGET;
     }
 
     /** The friend this ship is ordered to defend, or `NO_TARGET`. */
     defendingOf(i: number): number {
-        const given = this.getCurrentOrder(i);
+        const given = shipOrders.getCurrentOrder(this, i);
         return given !== undefined && given.defend === true ? given.target : NO_TARGET;
     }
 
@@ -2421,96 +2401,6 @@ export class Ships {
         return max(1, round(seconds / world.dt));
     }
 
-    /**
-     * What this ship is actually doing: what it was told, or failing that what
-     * its doctrine makes of the fight it picked.
-     *
-     * The doctrine order is built here rather than pushed onto the queue, so
-     * that "has orders" goes on meaning "has been told something by somebody".
-     */
-    effectiveOrder(i: number): Order | undefined {
-        const given = this.getCurrentOrder(i);
-        // Defending is covering, which the pilot flies as a consort rather than as a station.
-        if (given?.defend === true) return undefined;
-        // An errand is flown as doctrine's own trips to a dock are.
-        if (given !== undefined && given.errand === undefined) {
-            if (given.flee !== true) this.liveBand(i, given);
-            return given;
-        }
-
-        const design = this.designs[i]!;
-        const approach = this.doctrines[i]!.approach;
-        const standing = this.standing[i]!;
-        const source = this.salvaging[i]!;
-        if (source !== NO_TARGET && this.alive[source] === 1) {
-            standing.target = source;
-            standing.minRange = 0;
-            standing.maxRange = 0;
-            standing.ram = false;
-            standing.grapple = this.landingPad[i]! < 0 && this.dockPort[i]! < 0;
-            standing.land = this.landingPad[i]! >= 0;
-            standing.dock = this.dockPort[i]! >= 0;
-            standing.flee = false;
-            standing.hide = false;
-            standing.approachSpeed = approach.approachSpeed;
-            return standing;
-        }
-        standing.grapple = false;
-        standing.land = false;
-        standing.dock = false;
-        standing.flee = false;
-        standing.hide = false;
-
-        if (this.withdrawing[i] === 1) {
-            const cover = this.hiding[i]!;
-            standing.target = cover !== NO_TARGET && this.alive[cover] === 1 ? cover : NO_TARGET;
-            standing.flee = true;
-            standing.hide = standing.target !== NO_TARGET;
-            standing.minRange = 0;
-            standing.maxRange = 0;
-            standing.ram = false;
-            standing.approachSpeed = approach.approachSpeed;
-            return standing;
-        }
-
-        const target = this.chosen[i]!;
-        if (target === NO_TARGET || this.alive[target] !== 1 || !this.hasControl(target)) {
-            return undefined;
-        }
-
-        standing.target = target;
-
-        // **Close until the target looks big enough to hit.** A gun misses
-        // because its firing solution guessed wrong about where the target would
-        // be, and how much of a guess it can afford depends on how much of the
-        // sky the target fills — so a fighter has to be closed right in on and a
-        // capital does not, and one number covers both because it is measured in
-        // the target's own radii. Capped by what this ship's guns are good for,
-        // so nothing stands off further than it can shoot.
-        // **Measured from the target's skin, not from the middle of it.** A gun's
-        // reach is how far it can throw a round past its own muzzle, and what it
-        // is shooting at is the hull rather than the point the hull turns about —
-        // which is the same thing on ships of a size and nothing like it when a
-        // fighter attacks a capital. Left centre to centre, a TIE's doctrine sends
-        // it to 460 metres from the middle of a Star Destroyer whose own radius is
-        // 1,073: the station it is holding is a third of the way inside the ship,
-        // so it flies into it, and no amount of keeping clear can save a craft
-        // whose orders are to be there.
-        const band = holdBand(approach, design.reach, shipAim.sizeOf(this, target));
-        standing.minRange = band.min;
-        standing.maxRange = band.max;
-        if (this.ramming[i] !== target && this.rams(i, target)) this.ramming[i] = target;
-        standing.ram = this.ramming[i] === target;
-        standing.approachSpeed = approach.approachSpeed;
-        return standing;
-    }
-
-    /**
-     * Add an order to the end of this ship's queue.
-     *
-     * Orders are carried out in the order they were given: the ship works on the
-     * first one until `cancelOn` says it is finished, then takes up the next.
-     */
     pushOrder(
         i: number,
         target: number,
@@ -2519,53 +2409,22 @@ export class Ships {
         approachSpeed: number,
         cancelOn: OrderCancelCondition = OrderCancelCondition.CompleteDisable,
     ): void {
-        const order = {
-            target: target,
-            minRange: minRange,
-            maxRange: maxRange,
-            approachSpeed: approachSpeed,
-            cancelOn: cancelOn,
-            ram: false,
-            grapple: false,
-            land: false,
-            dock: false,
-        };
-        this.orders[i]!.push(order);
+        shipOrders.pushOrder(this, i, target, minRange, maxRange, approachSpeed, cancelOn);
     }
 
-    /** Add an order to ram `target`, closing at `approachSpeed` (its doctrine's, if not given), to the end of this ship's queue. */
     pushRam(
         i: number,
         target: number,
         approachSpeed?: number,
         cancelOn: OrderCancelCondition = OrderCancelCondition.CompleteDisable,
     ): void {
-        const speed = approachSpeed ?? this.doctrines[i]!.approach.approachSpeed;
-        this.orders[i]!.push({
-            target,
-            minRange: 0,
-            maxRange: 0,
-            approachSpeed: speed,
-            cancelOn,
-            ram: true,
-            grapple: false,
-            land: false,
-            dock: false,
-            ...(approachSpeed === undefined ? { live: true } : { speed: approachSpeed }),
-        });
+        shipOrders.pushRam(this, i, target, approachSpeed, cancelOn);
     }
 
-    /** Drop every order this ship has. It holds its heading and its fire. */
     clearOrder(i: number): void {
-        if (this.orders[i]?.[0]?.errand !== undefined) shipForage.stopForaging(this, i);
-        this.orders[i] = [];
-        this.errandDocked[i] = 0;
+        shipOrders.clearOrder(this, i);
     }
 
-    /**
-     * Add an order to attack `target`, fought as this ship's doctrine would fight
-     * one it chose: its standoff band and approach speed.
-     */
     pushAttack(
         i: number,
         target: number,
@@ -2573,175 +2432,35 @@ export class Ships {
         distance?: number,
         speed?: number,
     ): void {
-        this.pushOrder(i, target, 0, 0, 0, cancelOn);
-        const order = this.orders[i]!.at(-1)!;
-        order.live = true;
-        if (distance !== undefined) order.distance = distance;
-        if (speed !== undefined) order.speed = speed;
-        this.liveBand(i, order);
+        shipOrders.pushAttack(this, i, target, cancelOn, distance, speed);
     }
 
-    /**
-     * Bring an order's band and speed up to date: from what it was told, or
-     * from its doctrine as it is now and the target as it now is.
-     */
-    private liveBand(i: number, order: Order): void {
-        if (order.live !== true) return;
-        const approach = this.doctrines[i]!.approach;
-        order.approachSpeed = order.speed ?? approach.approachSpeed;
-        if (order.ram || order.defend === true || order.target === NO_TARGET || this.alive[order.target] !== 1) return;
-        const band = holdBand(approach, this.designs[i]!.reach, this.designs[order.target]!.radius, order.distance);
-        order.minRange = band.min;
-        order.maxRange = band.max;
-    }
-
-    /** Add an order to defend `friend` until it is gone, `distance` off its skin and closing at `speed` where told. */
     pushDefend(i: number, friend: number, distance?: number, speed?: number): void {
-        const approach = this.doctrines[i]!.approach;
-        this.orders[i]!.push({
-            target: friend,
-            minRange: 0,
-            maxRange: 0,
-            approachSpeed: speed ?? approach.approachSpeed,
-            live: true,
-            ...(distance === undefined ? {} : { distance }),
-            ...(speed === undefined ? {} : { speed }),
-            cancelOn: OrderCancelCondition.CompletelyDead,
-            ram: false,
-            grapple: false,
-            land: false,
-            dock: false,
-            defend: true,
-        });
-        // A fresh look at who is attacking it, rather than at the next rethink.
-        this.rethinkAt[i] = 0;
+        shipOrders.pushDefend(this, i, friend, distance, speed);
     }
 
-    /**
-     * Add an order to dock and take on all it can: at `friend`, or with
-     * `NO_TARGET` wherever its doctrine would go. False, and nothing added, for
-     * a friend it could not dock with: no pad it fits, or for a ship that is
-     * not a fighter, no port where it has one.
-     */
     pushDock(i: number, friend: number): boolean {
-        if (friend !== NO_TARGET && !this.couldDockAt(i, friend)) return false;
-        return this.pushErrand(i, "dock", friend);
+        return shipOrders.pushDock(this, i, friend);
     }
 
-    /**
-     * Add an order to fill its claw: from `source` (a wreck, an enemy, a friend
-     * out of control, or one still flying, which gives only fuel above its own
-     * reserve), or with `NO_TARGET` from source after source as its doctrine
-     * would choose, until it is full. False, and nothing added, for a ship with
-     * no claw, or a source on no side.
-     */
     pushScavenge(i: number, source: number): boolean {
-        if (!this.designs[i]!.modules.some((m) => m.spec.kind === "claw")) return false;
-        if (
-            source !== NO_TARGET &&
-            (source === i || this.alive[source] !== 1 || (this.team[source] === NEUTRAL_TEAM && !this.isAsteroid(source)))
-        )
-            return false;
-        return this.pushErrand(i, "scavenge", source);
+        return shipOrders.pushScavenge(this, i, source);
     }
 
-    /**
-     * Add an order to give all it can spare through its port: to `friend`, or
-     * with `NO_TARGET` to friend after friend as its doctrine would choose,
-     * until it has nothing left to spare. False, and nothing added, for a ship
-     * with no port, or a friend without one.
-     */
     pushDeliver(i: number, friend: number): boolean {
-        const design = this.designs[i]!;
-        if (design.fighter || !design.modules.some((m) => m.spec.kind === "port")) return false;
-        if (friend !== NO_TARGET) {
-            if (friend === i || this.alive[friend] !== 1 || this.team[friend] !== this.team[i]) return false;
-            if (!this.designs[friend]!.modules.some((m) => m.spec.kind === "port")) return false;
-        }
-        return this.pushErrand(i, "deliver", friend);
+        return shipOrders.pushDeliver(this, i, friend);
     }
 
-    /**
-     * Replace this ship's orders with running away: from every armed enemy for
-     * `NO_TARGET`, from `target` if it is an armed enemy, or hiding behind it if
-     * it is a friend or on no side, a wreck included. False, and nothing
-     * changed, for itself or an enemy with nothing to run from.
-     */
     pushFlee(i: number, target: number): boolean {
-        let hide = false;
-        if (target !== NO_TARGET) {
-            if (target === i || this.alive[target] !== 1) return false;
-            hide = this.derelict[target] === 1 || !this.hostile(i, target);
-            if (!hide && !shipFlight.armed(this, target)) return false;
-        }
-        this.clearOrder(i);
-        this.orders[i]!.push({
-            target,
-            minRange: 0,
-            maxRange: 0,
-            approachSpeed: this.doctrines[i]!.approach.approachSpeed,
-            cancelOn: OrderCancelCondition.None,
-            ram: false,
-            grapple: false,
-            land: false,
-            dock: false,
-            flee: true,
-            hide,
-        });
-        return true;
+        return shipOrders.pushFlee(this, i, target);
     }
 
-    private pushErrand(i: number, errand: Errand, target: number): boolean {
-        this.orders[i]!.push({
-            target,
-            minRange: 0,
-            maxRange: 0,
-            approachSpeed: this.doctrines[i]!.approach.approachSpeed,
-            cancelOn: OrderCancelCondition.CompletelyDead,
-            ram: false,
-            grapple: false,
-            land: false,
-            dock: false,
-            errand,
-        });
-        if (this.orders[i]!.length === 1) this.startErrand(i);
-        return true;
-    }
-
-    /** Set ship `i` off on the errand now at the head of its queue, rather than at its next rethink. */
-    private startErrand(i: number): void {
-        shipForage.stopForaging(this, i);
-        this.errandDocked[i] = 0;
-        this.forageAt[i] = 0;
-    }
-
-    /** Whether ship `i` has the kind of dock that could ever mate with one of `t`'s, worn or not. */
-    private couldDockAt(i: number, t: number): boolean {
-        if (t === i || this.alive[t] !== 1 || this.team[t] !== this.team[i]) return false;
-        const design = this.designs[i]!;
-        const host = this.designs[t]!;
-        if (design.fighter) {
-            const box = footprintOf(design);
-            return host.modules.some((m) => m.spec.kind === "pad" && this.fitsPad(box, m.spec));
-        }
-        return design.modules.some((m) => m.spec.kind === "port") && host.modules.some((m) => m.spec.kind === "port");
-    }
-
-    /** Drop the order at `n` in this ship's queue, the current one being 0. */
     dropOrder(i: number, n: number): void {
-        this.orders[i]?.splice(n, 1);
-        if (n === 0) this.nextOrder(i);
+        shipOrders.dropOrder(this, i, n);
     }
 
-    /** What follows an order leaving the head of the queue: a fresh start on the next one, if that is an errand. */
-    nextOrder(i: number): void {
-        this.errandDocked[i] = 0;
-        if (this.errandOf(i) !== undefined) this.startErrand(i);
-    }
-
-    /** This ship's orders, the current one first. */
     ordersOf(i: number): readonly Readonly<Order>[] {
-        return this.orders[i] ?? [];
+        return shipOrders.ordersOf(this, i);
     }
 
     /**
@@ -2865,7 +2584,7 @@ export class Ships {
                 this.reloadOne(dt, bodies, i);
                 continue;
             }
-            this.removeInvalidOrders(i);
+            shipOrders.removeInvalidOrders(this, i);
             this.decide(world, bodies, i);
             shipForage.forage(this, world, bodies, i);
             shipAim.decideTurrets(this, world, bodies, i);
@@ -3164,66 +2883,16 @@ export class Ships {
         }
     }
 
-    /**
-     * Drop every order this ship is finished with, wherever it sits in the
-     * queue — not only the one it is working on.
-     *
-     * A target killed by somebody else while the queue waited its turn is just
-     * as finished as one this ship killed itself, and leaving it in would send
-     * the ship off to fight a wreck later.
-     */
     removeInvalidOrders(i: number): void {
-        const orders = this.orders[i];
-        if (orders === undefined) return;
-        const kept: Order[] = [];
-        for (const order of orders) {
-            if (!this.orderFinished(order)) kept.push(order);
-        }
-        this.orders[i] = kept;
-        if (kept[0] === orders[0]) return;
-        if (orders[0]?.errand !== undefined) shipForage.stopForaging(this, i);
-        this.nextOrder(i);
+        shipOrders.removeInvalidOrders(this, i);
     }
 
-    /** Whether an order's `cancelOn` condition has been met. */
-    private orderFinished(order: Order): boolean {
-        // Station-keeping: held whatever becomes of the target, including nothing.
-        if (order.cancelOn === OrderCancelCondition.None) return false;
-        // An errand for doctrine to direct has no target to lose.
-        if (order.errand !== undefined && order.target === NO_TARGET) return false;
-
-        // Everything else needs a target that is still there to be finished with.
-        if (order.target === NO_TARGET || this.alive[order.target] !== 1) return true;
-
-        const disarmed = this.isDisarmed(order.target);
-        const stranded = this.hasNoEngines(order.target);
-        switch (order.cancelOn) {
-            case OrderCancelCondition.CompletelyDead:
-                return false;
-            case OrderCancelCondition.Disarm:
-                return disarmed;
-            case OrderCancelCondition.NoEngines:
-                return stranded;
-            case OrderCancelCondition.DisarmOrNoEngines:
-                return disarmed || stranded;
-            case OrderCancelCondition.CompleteDisable:
-                return disarmed && stranded;
-            default:
-                return false;
-        }
-    }
-
-    /**
-     * The order this ship is working on: the oldest it has not finished with, or
-     * `undefined` when it has none and is free to hold its heading and its fire.
-     */
     getCurrentOrder(i: number): Order | undefined {
-        return this.orders[i]?.[0];
+        return shipOrders.getCurrentOrder(this, i);
     }
 
-    /** How many orders this ship still has, the current one included. */
     orderCount(i: number): number {
-        return this.orders[i]?.length ?? 0;
+        return shipOrders.orderCount(this, i);
     }
 
     /** Whether this ship has turned its main engines along its want rather than its guns to its target. */

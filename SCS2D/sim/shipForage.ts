@@ -16,6 +16,7 @@ import { type Ships, NO_TARGET, NEUTRAL_TEAM, ROBOT_SPENT, CLAW_HEAT_RATE, CLAW_
 import * as shipClaw from "./shipClaw.js";
 import * as shipDocking from "./shipDocking.js";
 import * as shipBuild from "./shipBuild.js";
+import * as shipOrders from "./shipOrders.js";
 
 /**
  * Foraging: a ship with a claw going for fuel, ore or wreckage, mooring to a
@@ -373,7 +374,7 @@ export function pickDelivery(ships: Ships, bodies: Bodies, i: number, b: number,
 export function finishErrand(ships: Ships, i: number): void {
     stopForaging(ships, i);
     ships.orders[i]!.shift();
-    ships.nextOrder(i);
+    shipOrders.nextOrder(ships, i);
 }
 
 export function stopForaging(ships: Ships, i: number): void {
