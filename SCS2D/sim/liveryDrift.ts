@@ -1,4 +1,4 @@
-import { LIVERY_PATTERNS, MOST_CHEVRON, type Livery } from "./livery.js";
+import { LIVERY_PATTERNS, MOST_CHEVRON, type Livery, type LiveryPattern } from "./livery.js";
 import { abs, floor, max, min, PI, round, sqrt } from "./math.js";
 import { Rng } from "./rng.js";
 
@@ -56,15 +56,19 @@ export function firstLivery(rng: Rng, away: readonly string[]): Livery {
 
 function drawn(rng: Rng): Livery {
     const hue = rng.nextFloat();
+    const base = fromHsl(hue, rng.nextRange(0.35, 0.75), rng.nextRange(0.35, 0.55));
+    // Across the wheel from the base, and lighter, so the pattern reads on it.
+    const highlight = fromHsl(wrap(hue + rng.nextRange(0.35, 0.65)), rng.nextRange(0.5, 0.9), rng.nextRange(0.6, 0.8));
+    const pattern = LIVERY_PATTERNS[rng.nextInt(LIVERY_PATTERNS.length)]!;
     return {
-        base: fromHsl(hue, rng.nextRange(0.35, 0.75), rng.nextRange(0.35, 0.55)),
-        // Across the wheel from the base, and lighter, so the pattern reads on it.
-        highlight: fromHsl(wrap(hue + rng.nextRange(0.35, 0.65)), rng.nextRange(0.5, 0.9), rng.nextRange(0.6, 0.8)),
-        pattern: LIVERY_PATTERNS[rng.nextInt(LIVERY_PATTERNS.length)]!,
+        base,
+        highlight,
+        pattern,
         size: rng.nextRange(0.03, 0.15),
         spacing: rng.nextRange(2, 5),
         offset: rng.nextFloat(),
-        angle: rng.nextRange(-PI / 2, PI / 2),
+        lateral: 0,
+        angle: pattern === "chevrons" ? rng.nextRange(-PI, PI) : rng.nextRange(-PI / 2, PI / 2),
         chevron: rng.nextRange(PI / 9, PI / 3),
         points: rng.chance(0.5) ? 0 : rng.nextRange(4, 16),
     };
@@ -80,7 +84,8 @@ function drifted(parent: Livery, rng: Rng): Livery {
         size: clamp(parent.size * (1 + step(SCALE_STEP)), 0.01, 0.5),
         spacing: clamp(parent.spacing * (1 + step(SCALE_STEP)), 1.2, 10),
         offset: wrap(parent.offset + step(OFFSET_STEP)),
-        angle: foldAngle(parent.angle + step(ANGLE_STEP)),
+        lateral: clamp(parent.lateral + step(OFFSET_STEP), -1, 1),
+        angle: foldAngle(parent.angle + step(ANGLE_STEP), pattern),
         chevron: clamp(parent.chevron + step(ANGLE_STEP), 0, (MOST_CHEVRON * PI) / 180),
         // A zigzag's points drift apart or together; a single chevron stays one.
         points: parent.points > 0 ? clamp(parent.points * (1 + step(SCALE_STEP)), 1, 40) : 0,
@@ -165,7 +170,8 @@ function wrap(v: number): number {
     return v - floor(v);
 }
 
-/** Into [-90°, 90°): stripes turned half round are the same stripes. */
-function foldAngle(a: number): number {
-    return a - PI * floor((a + PI / 2) / PI);
+/** Into [-90°, 90°), where turned half round is the same pattern; chevrons, which point, into [-180°, 180°). */
+function foldAngle(a: number, pattern: LiveryPattern): number {
+    const turn = pattern === "chevrons" ? 2 * PI : PI;
+    return a - turn * floor((a + turn / 2) / turn);
 }

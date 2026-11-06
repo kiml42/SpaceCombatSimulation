@@ -233,8 +233,9 @@ work has to respect.
           design's middle — so evolution can drift them as it drifts colours. **Chevrons — built**: a
           zigzag's tile is a period across and a period of its points down, a single chevron's a hull's width
           down (`render/livery.ts`); evolution drifts the bend and the points' spacing, a single chevron
-          staying one. A pattern is laid over the whole hull in the design's frame, so it runs on across
-          modules. **Its sizes are shares of each ship's radius**, as bevels are, so a fighter and its
+          staying one; chevrons also move along their run (`lateral`) and turn all the way round. A pattern
+          is laid over the whole hull in the design's frame, from the blueprint's origin rather than its centre
+          of mass, so it runs on across modules and stays put when a part is changed. **Its sizes are shares of each ship's radius**, as bevels are, so a fighter and its
           carrier carry about as many stripes as each other; they will not line up across docked or welded
           ships.
         - **Parts that take the highlight on their own**, by fixed rule: a band across each engine block

@@ -9,6 +9,7 @@
     "size": 0.01,
     "spacing": 10,
     "offset": 0.41,
+    "lateral": 0,
     "angle": 44,
     "chevron": 45,
     "points": 0

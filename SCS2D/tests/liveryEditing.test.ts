@@ -12,6 +12,7 @@ const GOLD: Livery = {
     size: 0.2,
     spacing: 2.5,
     offset: 0,
+    lateral: 0,
     angle: 0,
     chevron: 0.5,
     points: 0,

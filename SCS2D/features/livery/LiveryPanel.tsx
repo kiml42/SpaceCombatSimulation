@@ -60,7 +60,7 @@ const PATTERN_NAMES: Record<LiveryPattern, string> = { none: "plain", stripes: "
 
 /** A slider: its range and step as shown, which is the livery's value times `scale`, in `unit`. */
 interface Slider {
-    readonly field: "size" | "spacing" | "offset" | "angle" | "chevron" | "points";
+    readonly field: "size" | "spacing" | "offset" | "lateral" | "angle" | "chevron" | "points";
     /** Shown for these patterns. */
     readonly for: readonly LiveryPattern[];
     readonly scale: number;
@@ -109,6 +109,17 @@ const SLIDERS: readonly Slider[] = [
         title: "How far the pattern is moved across the hull, as a share of its spacing",
     },
     {
+        field: "lateral",
+        for: ["chevrons"],
+        scale: 100,
+        unit: "%",
+        label: "lateral",
+        min: -100,
+        max: 100,
+        step: 1,
+        title: "How far the chevrons are moved along their run, as a share of each ship's radius",
+    },
+    {
         field: "angle",
         for: ["stripes", "chevrons"],
         scale: DEGREES,
@@ -117,7 +128,7 @@ const SLIDERS: readonly Slider[] = [
         min: -90,
         max: 90,
         step: 1,
-        title: "Which way the whole pattern runs across the design",
+        title: "Which way the whole pattern runs across the design; chevrons turn all the way round",
     },
     {
         field: "chevron",
@@ -142,6 +153,17 @@ const SLIDERS: readonly Slider[] = [
         title: "From one point of a zigzag to the next, in stripe widths; 0 for one chevron with its point at the ship's middle",
     },
 ];
+
+/** Chevrons point, so turn all the way round; stripes turned half round are the same stripes. */
+function turnsRound(slider: Slider, livery: Livery): boolean {
+    return slider.field === "angle" && livery.pattern === "chevrons";
+}
+
+/** A change to `pattern`, its angle brought within its slider's range. */
+function withPattern(livery: Livery, pattern: LiveryPattern): Partial<Livery> {
+    if (pattern === "chevrons" || Math.abs(livery.angle) <= Math.PI / 2) return { pattern };
+    return { pattern, angle: livery.angle - Math.sign(livery.angle) * Math.PI };
+}
 
 export interface LiveryPanelProps {
     readonly livery: Livery | undefined;
@@ -214,7 +236,7 @@ export function LiveryPanel({ livery, whose, note, open, onOpen, onChange, onEnd
                         <select
                             id="liveryPattern"
                             value={livery.pattern}
-                            onChange={(event) => set({ pattern: event.currentTarget.value as LiveryPattern }, false)}
+                            onChange={(event) => set(withPattern(livery, event.currentTarget.value as LiveryPattern), false)}
                         >
                             {LIVERY_PATTERNS.map((pattern) => (
                                 <option key={pattern} value={pattern}>
@@ -231,8 +253,14 @@ export function LiveryPanel({ livery, whose, note, open, onOpen, onChange, onEnd
                                 label={slider.label}
                                 title={slider.title}
                                 value={livery[slider.field] * slider.scale}
-                                min={slider.field === "spacing" && livery.pattern === "spots" ? 1 : slider.min}
-                                max={slider.max}
+                                min={
+                                    slider.field === "spacing" && livery.pattern === "spots"
+                                        ? 1
+                                        : turnsRound(slider, livery)
+                                          ? -180
+                                          : slider.min
+                                }
+                                max={turnsRound(slider, livery) ? 180 : slider.max}
                                 step={slider.step}
                                 unit={slider.unit}
                                 onChange={(shown, continues) => set({ [slider.field]: shown / slider.scale }, continues)}
