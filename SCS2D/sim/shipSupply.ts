@@ -15,6 +15,7 @@ import { type Ships, short, originTier, repairTier, NO_TARGET } from "./ships.js
 import * as shipBreakup from "./shipBreakup.js";
 import * as shipForage from "./shipForage.js";
 import * as shipDocking from "./shipDocking.js";
+import * as shipBuild from "./shipBuild.js";
 
 /**
  * Supply between hulls: fuel, metal and charge pumped across docking seams and
@@ -57,8 +58,8 @@ export function pump(ships: Ships, world: World): number {
                 if (built >= 0 && ships.printing[built] === 1) continue;
                 if (built >= 0 && ships.unfinished[built] === 1) {
                     const joules = SLIPWAY_BUILD_PER_METRE * design.modules[seam.a]!.spec.width * working * world.dt;
-                    if (ships.tendAtFace(bodies, b, built, seam.a, joules)) ships.builtAt[ships.pilotAt(b, seam.a)] = world.tick;
-                    else if (!ships.atFace(b, built, seam.a)) ships.unfinished[built] = 0;
+                    if (shipBuild.tendAtFace(ships, bodies, b, built, seam.a, joules)) ships.builtAt[ships.pilotAt(b, seam.a)] = world.tick;
+                    else if (!shipBuild.atFace(ships, b, built, seam.a)) ships.unfinished[built] = 0;
                     continue;
                 }
                 if (built >= 0) {
@@ -103,7 +104,7 @@ export function pump(ships: Ships, world: World): number {
                     )
                         continue;
                     // Anchored while it builds, it holds on until what it is building is let go.
-                    if (holder >= 0 && ships.wantsAnchor(bodies, holder)) continue;
+                    if (holder >= 0 && shipBuild.wantsAnchor(ships, bodies, holder)) continue;
                     // With no robots to mine it, it melts the ice out of the rock itself.
                     if (holder >= 0 && shipWeld.heat(ships, b, design, seam.a, seam.b, working * world.dt)) {
                         moved = true;
@@ -214,7 +215,7 @@ export function tendParked(ships: Ships, world: World, f: number): boolean {
     if (ships.unfinished[f] === 1) {
         const progress = mend(ships, bodies, fb, f, pad, work, cb) || padBuild(ships, bodies, fb, f, cb, pad, work);
         if (progress) ships.builtAt[c] = world.tick;
-        if (ships.finished(fb, f, ships.designs[f]!)) {
+        if (shipBuild.finished(ships, fb, f, ships.designs[f]!)) {
             ships.unfinished[f] = 0;
             // Its reach as the fighter it now is, for whether it waits aboard.
             const whole = ships.launched[f]!;

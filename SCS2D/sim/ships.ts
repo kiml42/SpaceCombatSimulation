@@ -3,33 +3,23 @@ import { Bodies, type BodyId } from "./bodies.js";
 import {
     aboardPose,
     footprintOf,
-    modulesOverlap,
     padHolds,
     originOf,
     reachAgainst,
-    rebuiltDesign,
-    keptAs,
-    remarkedDesign,
     sameOrigin,
-    seamedDesign,
     slipwayHolds,
-    twinOf,
-    subDesign,
-    weldDesigns,
     type Footprint,
     type DesignTurret,
     type ShipDesign,
 } from "./blueprint.js";
 import { components, joints } from "./connectivity.js";
 import { BOTH_LAYERS, HULL_LAYER, Hulls, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from "./hull.js";
-import { Damage, DamageEffect, IMPACT_MUZZLE, REPAIR_ENERGY_PER_JOULE, REPAIR_WASTE, repairWork, type ImpactLog } from "./damage.js";
-import { buildWork, faceNearest, fittingOf, SHELL_STEPS, shellOf } from "./rebuild.js";
-import { printedCraft, printFrame, printLength, SLIPWAY_STEP, type Print } from "./slipway.js";
+import { Damage, DamageEffect, IMPACT_MUZZLE, type ImpactLog } from "./damage.js";
 import { Fuel, LEAK_HOLE_CALIBRES, leakChance, leakRate, leakSpeed } from "./fuel.js";
 import { Charge } from "./charge.js";
 import { Metal } from "./metal.js";
 import { Claim, mendClaim, priorityOf, Resource, Supply } from "./supply.js";
-import { moduleOutline, SEAL_REACH, SEAL_SPEED } from "./modules.js";
+import { SEAL_REACH, SEAL_SPEED } from "./modules.js";
 import type { Rng } from "./rng.js";
 import { geometryOf, landedIndex, landedLength, plumeLayers, plumeRays, Plumes, WEAPON_PLUME_SHARE, weaponPlumeReach } from "./exhaust.js";
 import { Choice, cohesionUrge, inSight, look, lookFrom, score } from "./targeting.js";
@@ -71,18 +61,8 @@ import type { BeamHits, Beams, SpatialGrid } from "./index.js";
 import { MAX_BEAM_LENGTH } from "./beams.js";
 import { RayHit } from "./spatialGrid.js";
 import { fixed } from "./fixed.js";
-import { hullsOverlap, moduleOverlapsHull, type Contacts } from "./collision.js";
-import {
-    FUEL_DENSITY,
-    PAD_REPAIR_PER_AREA,
-    SLIPWAY_BUILD_PER_METRE,
-    SLIPWAY_CLEAR_TIME,
-    SLIPWAY_PUSH,
-    GunType,
-    interiorVolume,
-    type GunStats,
-    type ModuleKind,
-} from "./modules.js";
+import { hullsOverlap, type Contacts } from "./collision.js";
+import { FUEL_DENSITY, SLIPWAY_CLEAR_TIME, GunType, interiorVolume, type GunStats, type ModuleKind } from "./modules.js";
 import * as shipRobotViews from "./shipRobotViews.js";
 import * as shipRobots from "./shipRobots.js";
 import * as shipRebuild from "./shipRebuild.js";
@@ -93,6 +73,7 @@ import * as shipBreakup from "./shipBreakup.js";
 import * as shipForage from "./shipForage.js";
 import * as shipClaw from "./shipClaw.js";
 import * as shipDocking from "./shipDocking.js";
+import * as shipBuild from "./shipBuild.js";
 
 /**
  * Ships: a compiled design bound to a body, flying itself and shooting.
@@ -382,7 +363,7 @@ interface Yard {
     readonly craft: (ShipDesign | null)[];
 }
 
-function yardFor(design: ShipDesign): Yard | null {
+export function yardFor(design: ShipDesign): Yard | null {
     const n = design.yards?.length ?? 0;
     if (n === 0) return null;
     return {
@@ -770,7 +751,7 @@ export class Ships {
      */
     readonly landed: Float64Array[] = [];
     /** Scratch for the exhaust pass, so that burning allocates nothing. */
-    private readonly plumes = new Plumes();
+    readonly plumes = new Plumes();
     /**
      * Which engines of the ship being flown this step are burning as weapons.
      * Scratch, written and read inside one `flyOne`, so one array serves every
@@ -967,7 +948,7 @@ export class Ships {
     /** What each ship has been told over its doctrine, or undefined for nothing. */
     readonly overrides: (DoctrineOverride | undefined)[] = [];
     /** Each ship's mounts' doctrines with its override, by mount, for the design they were worked out for. */
-    private readonly mountDoctrines: ({ design: ShipDesign; byMount: Map<DesignTurret, Targeting> } | null)[] = [];
+    readonly mountDoctrines: ({ design: ShipDesign; byMount: Map<DesignTurret, Targeting> } | null)[] = [];
     /** How many each pad and slipway is told to keep, by its module's lasting key, over its design's count. */
     readonly keeps: (Readonly<Record<string, number>> | undefined)[] = [];
     /** What each pad and slipway is told to build, by its module's lasting key, over its design's craft. */
@@ -1049,11 +1030,11 @@ export class Ships {
     /** Every fighter parked. */
     readonly parkedShips: number[] = [];
     /** Each carrier's fighters by the pad that keeps them (`ShipDesign.builds`); null for a ship whose pads build none. */
-    private readonly broods: (Brood | null)[] = [];
+    readonly broods: (Brood | null)[] = [];
     /** Whether each fighter is being built on its pad, from its core laid down until it is whole. */
     readonly unfinished: number[] = [];
     /** Each builder's slipways and what they are building; null for a ship with none that builds. */
-    private readonly yards: (Yard | null)[] = [];
+    readonly yards: (Yard | null)[] = [];
     /** Whether each ship is still going up on a slipway, its walls not yet all built. */
     readonly printing: number[] = [];
     /** The ship that built each ship on a slipway, while the ship is still clearing it; -1 for none. */
@@ -2912,7 +2893,7 @@ export class Ships {
     }
 
     /** How many ship `i`'s pad or slipway `module`, of the design it was launched as, keeps: told, or its design's `keep`. */
-    private keepFor(i: number, module: number, keep: number): number {
+    keepFor(i: number, module: number, keep: number): number {
         const told = this.keeps[i];
         if (told === undefined) return keep;
         return told[slotKey(this.launched[i]!, module)] ?? keep;
@@ -2946,7 +2927,7 @@ export class Ships {
     }
 
     /** What ship `i`'s pad or slipway `module`, of the design it was launched as, builds: told, or its design's. */
-    private craftFor(i: number, module: number, craft: ShipDesign): ShipDesign {
+    craftFor(i: number, module: number, craft: ShipDesign): ShipDesign {
         const told = this.crafts[i];
         if (told === undefined) return craft;
         return told[slotKey(this.launched[i]!, module)] ?? craft;
@@ -4107,7 +4088,7 @@ export class Ships {
                 (bodies.x[b]! - bodies.x[bb]!) * (bodies.vx[b]! - bodies.vx[bb]!) +
                     (bodies.y[b]! - bodies.y[bb]!) * (bodies.vy[b]! - bodies.vy[bb]!) <
                     0;
-            if (bb >= 0 && grid !== undefined && waited < SLIPWAY_CLEAR_TIME && !back && this.wouldBurn(bodies, grid, i, bb)) {
+            if (bb >= 0 && grid !== undefined && waited < SLIPWAY_CLEAR_TIME && !back && shipBuild.wouldBurn(this, bodies, grid, i, bb)) {
                 this.idle(i);
                 return;
             }
@@ -5925,76 +5906,8 @@ export class Ships {
         return shipDocking.land(this, world);
     }
 
-    /**
-     * Refit ship `i` to `to`, a design compiled from a blueprint: from now on it
-     * builds to that rather than to what it set out as. A module of its hull
-     * that is a module of `to` by key (`ShipDesign.keys`), laid out the same, is
-     * kept as that module; the rest of its own hull comes down, and what `to`
-     * has that it has not is built, as robots build back what a ship has lost,
-     * building before taking down, and a wall waiting while anything of its own
-     * hull is in the way. Its cores, robot bays and generators come down last
-     * and go up first, and never the last of its cores or bays, so it is flown
-     * and worked on throughout. Refused, saying why, when `to` keeps nothing of
-     * the ship to build the rest against.
-     */
     refit(world: World, i: number, to: ShipDesign): string | null {
-        const bodies = world.bodies;
-        this.bodyStore = bodies;
-        if (this.alive[i] === 0) return "the ship is gone";
-        const keys = to.keys;
-        if (keys === undefined) return `${to.name} was not compiled from a blueprint`;
-        const b = bodies.indexOf(this.bodyIds[i]!);
-        const p = b < 0 ? -1 : this.shipAt(bodies, b);
-        if (p < 0) return "the ship is gone";
-        const design = this.designs[p]!;
-        const as = keptAs(
-            design.modules.map((_, m) => {
-                if (!this.ownsAt(i, b, m)) return null;
-                const from = originOf(design, m);
-                const was = from.design.modules[from.module]!;
-                return { key: from.design.keys?.[was.index], spec: was.spec };
-            }),
-            to.modules.map((module) => ({ key: keys[module.index], spec: module.spec })),
-        );
-        let kept = 0;
-        const origins = as.map((k) => {
-            if (k < 0) return null;
-            kept++;
-            return { design: to, module: k };
-        });
-        if (kept === 0) return `${to.name} keeps nothing of this ship to build the rest against`;
-        shipBreakup.adopt(
-            this,
-            p,
-            b,
-            remarkedDesign(design, origins),
-            () => p,
-            (m) => m,
-            true,
-            true,
-        );
-        for (const r of this.ridersOf(bodies, b)) if (r !== p) this.board(r, p);
-        this.launched[i] = to;
-        this.rebuilds[i] = null;
-        // What its robots were building is numbered by the design it no longer has.
-        for (const robot of this.robots.on(b) ?? []) if (this.pilotAt(b, robot.bay) === i) robot.build = -1;
-        this.ownDoctrines[i] = to.doctrine;
-        this.doctrines[i] = overriddenDoctrine(to.doctrine, this.overrides[i]);
-        this.mountDoctrines[i] = null;
-        this.couldFight[i] = to.turrets.some((t) => t.main) || to.engines.length > 0 ? 1 : 0;
-        this.buildsFor(i, to);
-        this.refitting[i] = 1;
-        return null;
-    }
-
-    /**
-     * What ship `i`'s pads and slipways build, as design `design` says: the one
-     * it was launched as, not the slice of it a slipway or pad began with.
-     */
-    private buildsFor(i: number, design: ShipDesign): void {
-        const builds = design.builds ?? [];
-        this.broods[i] = builds.length === 0 ? null : { fighters: builds.map(() => []), work: new Float64Array(builds.length) };
-        this.yards[i] = yardFor(design);
+        return shipBuild.refit(this, world, i, to);
     }
 
     /** Whether ship `i` is refitted and its hull is not yet what it was refitted to: something to come down, or to go up. */
@@ -6005,579 +5918,15 @@ export class Ships {
         if (b < 0) return false;
         const design = this.hullDesign[b]!;
         for (let m = 0; m < design.modules.length; m++) if (this.ownsAt(i, b, m) && shipRebuild.wreckage(this, i, b, m)) return true;
-        return !this.finished(b, i, design);
+        return !shipBuild.finished(this, b, i, design);
     }
 
-    /**
-     * Lay down a fighter on every free pad keeping fewer in the fight than its
-     * `keep`: the walls of its core, a shell's first step, laid on the pad
-     * where a fighter set out docked would lie, from the face nearest the
-     * carrier's middle. Its pad builds the rest as it builds back what a
-     * landed fighter has lost (`padBuild`), and holds it until it is whole.
-     *
-     * Only while the carrier is under control, and never while a fighter of
-     * its side is making for the pad: one coming in for fuel matters more than
-     * one not yet begun.
-     */
     build(world: World): void {
-        this.tick = world.tick;
-        const bodies = world.bodies;
-        this.bodyStore = bodies;
-        for (let i = 0; i < this.alive.length; i++) {
-            const brood = this.broods[i];
-            const yard = this.yards[i];
-            if ((brood === null || brood === undefined) && (yard === null || yard === undefined)) continue;
-            if (!this.hasControl(i)) continue;
-            const b = bodies.indexOf(this.bodyIds[i]!);
-            // One still held by the slipway building it builds nothing until it is let go.
-            if (b < 0 || this.damage.isProtected(b) || this.onSlipway(i, b)) continue;
-            const design = this.designs[i]!;
-            const rebuild = shipRebuild.rebuildFor(this, i, design);
-            this.waitsOnWreck[i] = 0;
-            for (let k = 0; yard !== null && yard !== undefined && k < yard.building.length; k++) this.print(world, i, b, rebuild.at, k);
-            if (brood === null || brood === undefined) continue;
-            const builds = this.launched[i]!.builds!;
-            for (let k = 0; k < builds.length; k++) {
-                const order = builds[k]!;
-                const pad = rebuild.at[order.pad]!;
-                if (pad < 0 || !this.ownsAt(i, b, pad)) continue;
-                if (this.fielded(bodies, i, brood.fighters[k]!) >= this.keepFor(i, order.pad, order.keep)) continue;
-                if (!shipDocking.padFree(this, bodies, i, pad) || this.awaited(i, pad)) continue;
-                if (!this.mayBuild(i, b, this.launched[i]!.modules[order.pad]!.spec)) continue;
-                this.layDown(world, i, b, design, pad, k, this.craftFor(i, order.pad, order.design));
-            }
-        }
+        shipBuild.build(this, world);
     }
 
-    /**
-     * Put a step of slipway `k`'s work into the next slice of the ship it
-     * builds, at `SLIPWAY_BUILD_PER_METRE` and the price robots build at, and
-     * build the slice once the work is in and the metal is on the slipway's
-     * piece of hull: the ship's first slice, short of the ships it keeps,
-     * spawned and held against the slipway's face, and every later one pushing
-     * it out by `SLIPWAY_STEP` (`reprint`). Its walls all up, the slipway fits
-     * it out, fills it and lets it go (`pump`).
-     */
-    private print(world: World, i: number, b: number, at: ArrayLike<number>, k: number): void {
-        const bodies = world.bodies;
-        const yard = this.yards[i]!;
-        const order = this.launched[i]!.yards![k]!;
-        const slipway = at[order.slipway]!;
-        if (slipway < 0 || !this.ownsAt(i, b, slipway)) return;
-        if (!this.mayBuild(i, b, this.launched[i]!.modules[order.slipway]!.spec)) return;
-        let f = yard.building[k]!;
-        // Gone, or let go: the slipway is free for the next, and one let go is pushed off.
-        if (f >= 0 && (this.alive[f] === 0 || bodies.indexOf(this.bodyIds[f]!) !== b)) {
-            if (this.alive[f] === 1) this.pushOff(bodies, i, b, f, slipway);
-            yard.building[k] = -1;
-            this.printing[f] = 0;
-            f = -1;
-        }
-        if (f < 0 && this.fielded(bodies, i, yard.ships[k]!) >= this.keepFor(i, order.slipway, order.keep)) return;
-        // One already on the slipway is finished as it was begun.
-        if (f < 0) {
-            const chosen = this.craftFor(i, order.slipway, order.design);
-            yard.craft[k] = chosen === this.launched[i] ? twinOf(chosen) : chosen;
-        }
-        const craft = yard.craft[k] ?? order.design;
-        const berth = this.launched[i]!.modules[order.slipway]!.spec;
-        const length = printLength(craft, berth);
-        const depth = f < 0 ? 0 : yard.depth[k]!;
-        if (f >= 0 && this.printing[f] !== 1) return;
-        const deeper = min(length, depth + SLIPWAY_STEP);
-        const next = printedCraft(craft, berth, deeper);
-        if (next === null) return;
-        const before = f < 0 ? null : printedCraft(craft, berth, depth);
-
-        // What the slice weighs, and the work it takes, module by module.
-        let kg = 0;
-        let joules = 0;
-        const had = new Map<number, number>();
-        before?.modules.forEach((m, d) => had.set(m, before.design.modules[d]!.stats.structureMass));
-        next.modules.forEach((m, d) => {
-            const more = next.design.modules[d]!.stats.structureMass - (had.get(m) ?? 0);
-            kg += more;
-            joules += more * buildWork(craft.modules[m]!.stats);
-        });
-        const working = this.left(i, b, slipway, DamageEffect.Grip);
-        const width = this.designs[i]!.modules[slipway]!.spec.width;
-        // What is at the face is finished before the next slice pushes it out of reach.
-        if (f >= 0) {
-            const busy = this.tendAtFace(bodies, b, f, slipway, SLIPWAY_BUILD_PER_METRE * width * working * world.dt);
-            if (busy) this.builtAt[i] = world.tick;
-            if (busy || this.atFace(b, f, slipway)) return;
-        }
-        const charge = shipSupply.allowed(
-            this,
-            Resource.Charge,
-            b,
-            slipway,
-            Claim.Slipway,
-            (joules - yard.work[k]!) * REPAIR_ENERGY_PER_JOULE,
-        );
-        const put = min(
-            min(SLIPWAY_BUILD_PER_METRE * width * working * world.dt, joules - yard.work[k]!),
-            charge / REPAIR_ENERGY_PER_JOULE,
-        );
-        if (put > 0) {
-            yard.work[k] = yard.work[k]! + put;
-            shipSupply.took(this, Resource.Charge, b, slipway, Claim.Slipway, this.power.drain(b, slipway, put * REPAIR_ENERGY_PER_JOULE));
-            this.builtAt[i] = world.tick;
-        }
-        const cost = kg * (1 + REPAIR_WASTE);
-        // What the slice will cost is set aside for it while its work goes in.
-        const metal = shipSupply.allowed(this, Resource.Metal, b, slipway, Claim.Slipway, cost);
-        if (yard.work[k]! < joules) return;
-        if (metal < cost) return;
-        if (f < 0) {
-            f = this.layKeel(world, i, b, slipway, craft, next, deeper);
-            if (f < 0) return;
-            yard.building[k] = f;
-            yard.ships[k]!.push(f);
-        } else if (!this.reprint(world, b, f, slipway, craft, next, deeper)) return;
-        yard.work[k] = 0;
-        yard.depth[k] = deeper;
-        if (deeper >= length) this.printing[f] = 0;
-        const mass = bodies.mass[b]!;
-        const inertia = bodies.inertia[b]!;
-        shipSupply.took(this, Resource.Metal, b, slipway, Claim.Slipway, this.metal.drain(b, slipway, cost));
-        shipBreakup.settleMass(this, bodies, b);
-        // What it wasted left at the hull's speed.
-        shipBreakup.discardFrom(this, bodies, b, mass, inertia);
-    }
-
-    /**
-     * The module of ship `f`, being built on slipway `slipway` of body `b`, that
-     * the slipway can reach and is not yet whole, fittings and all; -1 for none.
-     * It reaches only what lies within a step of its face: what the slice just
-     * built finished, and what the next pushes out. Cores first.
-     */
-    private atFaceIndex(b: number, f: number, slipway: number): number {
-        const design = this.hullDesign[b]!;
-        const spec = design.modules[slipway]!.spec;
-        const angle = spec.angle ?? 0;
-        const c = cos(angle);
-        const s = sin(angle);
-        const face = spec.length / 2 + SLIPWAY_STEP + 1e-6;
-        const corners = this.faceCorners;
-        let best = -1;
-        let bestTier = Infinity;
-        const approach = this.doctrines[f]!.approach;
-        for (let m = 0; m < design.modules.length; m++) {
-            if (this.pilotAt(b, m) !== f) continue;
-            if (!(this.damage.unbuiltAt(b, m) > 0) && !(this.damage.absorbedAt(b, m) > 0)) continue;
-            const count = moduleOutline(design.modules[m]!.spec, corners);
-            let near = Infinity;
-            for (let v = 0; v < count; v++) near = min(near, (corners[v * 2]! - spec.x) * c + (corners[v * 2 + 1]! - spec.y) * s);
-            if (near > face) continue;
-            const tier = repairTier(approach, design, m);
-            if (tier < bestTier) {
-                best = m;
-                bestTier = tier;
-            }
-        }
-        return best;
-    }
-
-    /** Whether the slipway has anything of ship `f` at its face still to fit or mend. */
-    atFace(b: number, f: number, slipway: number): boolean {
-        return this.atFaceIndex(b, f, slipway) >= 0;
-    }
-
-    /**
-     * Put up to `joules` of slipway `slipway`'s work into what of ship `f` is at
-     * its face and not yet whole: its fittings, then its damage, from the metal
-     * and charge on the slipway's piece of hull at robots' prices. Says whether
-     * it did any.
-     */
-    tendAtFace(bodies: Bodies, b: number, f: number, slipway: number, joules: number): boolean {
-        const m = this.atFaceIndex(b, f, slipway);
-        if (m < 0 || !(joules > 0)) return false;
-        const stats = this.hullDesign[b]!.modules[m]!.stats;
-        const mass = bodies.mass[b]!;
-        const inertia = bodies.inertia[b]!;
-        const waste = 1 + REPAIR_WASTE;
-        if (this.damage.unbuiltAt(b, m) > 0) {
-            const work = buildWork(stats);
-            const perKg = work * REPAIR_ENERGY_PER_JOULE;
-            const most = min(joules / work, this.damage.unbuiltAt(b, m));
-            const charge = shipSupply.allowed(this, Resource.Charge, b, slipway, Claim.Slipway, most * perKg);
-            const metal = shipSupply.allowed(this, Resource.Metal, b, slipway, Claim.Slipway, most * waste);
-            const kg = min(min(joules / work, charge / perKg), metal / waste);
-            const put = this.damage.fit(b, m, kg);
-            if (!(put > 0)) return false;
-            shipSupply.took(this, Resource.Metal, b, slipway, Claim.Slipway, this.metal.drain(b, slipway, put * waste));
-            shipSupply.took(this, Resource.Charge, b, slipway, Claim.Slipway, this.power.drain(b, slipway, put * perKg));
-        } else {
-            shipBreakup.settleShed(this, bodies);
-            const work = repairWork(stats);
-            const most = joules / work;
-            const charge = shipSupply.allowed(this, Resource.Charge, b, slipway, Claim.Slipway, most * work * REPAIR_ENERGY_PER_JOULE);
-            let undo = min(most, charge / (work * REPAIR_ENERGY_PER_JOULE));
-            const kg = this.damage.repairMetal(b, m, undo) * waste;
-            const metal = shipSupply.allowed(this, Resource.Metal, b, slipway, Claim.Slipway, this.damage.repairMetal(b, m, most) * waste);
-            if (kg > metal) undo *= metal / kg;
-            const cost = this.damage.repairMetal(b, m, undo) * waste;
-            const undone = this.damage.repair(b, m, undo);
-            if (!(undone > 0)) return false;
-            this.fuel.seal(b, m);
-            if (cost > 0) shipSupply.took(this, Resource.Metal, b, slipway, Claim.Slipway, this.metal.drain(b, slipway, cost));
-            shipSupply.took(
-                this,
-                Resource.Charge,
-                b,
-                slipway,
-                Claim.Slipway,
-                this.power.drain(b, slipway, undone * work * REPAIR_ENERGY_PER_JOULE),
-            );
-        }
-        shipBreakup.settleMass(this, bodies, b);
-        shipBreakup.discardFrom(this, bodies, b, mass, inertia);
-        return true;
-    }
-
-    /**
-     * Push ship `f`, just let go by slipway `slipway` of builder `i`'s body `b`,
-     * off along the slipway's facing at `SLIPWAY_PUSH` relative to its builder,
-     * each moving as its share of the mass says, as a stage separates. Its
-     * engines stay off, from when it is let go, until they would not burn the
-     * ship that built it (`flyOne`).
-     */
-    private pushOff(bodies: Bodies, i: number, b: number, f: number, slipway: number): void {
-        const fb = bodies.indexOf(this.bodyIds[f]!);
-        if (fb < 0) return;
-        const angle = bodies.angle[b]! + (this.designs[i]!.modules[slipway]!.spec.angle ?? 0);
-        const dx = cos(angle);
-        const dy = sin(angle);
-        // A builder anchored to a rock is pinned, and weighs nothing to this: it does not move.
-        const mb = movable(bodies.mass[b]!);
-        const mf = movable(bodies.mass[fb]!);
-        const impulse = mb === Infinity ? SLIPWAY_PUSH * mf : (SLIPWAY_PUSH * mb * mf) / (mb + mf);
-        bodies.vx[fb] = bodies.vx[fb]! + (impulse / mf) * dx;
-        bodies.vy[fb] = bodies.vy[fb]! + (impulse / mf) * dy;
-        bodies.vx[b] = bodies.vx[b]! - (impulse / mb) * dx;
-        bodies.vy[b] = bodies.vy[b]! - (impulse / mb) * dy;
-    }
-
-    /** Whether any of ship `i`'s engines, at full throttle, would play on body `target`. */
-    private wouldBurn(bodies: Bodies, grid: SpatialGrid, i: number, target: number): boolean {
-        const design = this.designs[i]!;
-        const b = bodies.indexOf(this.bodyIds[i]!);
-        if (b < 0) return false;
-        for (let t = 0; t < design.engines.length; t++) {
-            const force = this.exhaustOf(i, design, b, t);
-            if (!(force > 0)) continue;
-            const engine = design.modules[design.engines[t]?.module ?? -1];
-            const rays = engine === undefined ? 0 : plumeRays(geometryOf(engine));
-            const layers = plumeLayers(design, t, this.layersOf(b));
-            for (let layer = HULL_LAYER; layer <= WEAPONS_LAYER; layer <<= 1) {
-                if ((layers & layer) === 0) continue;
-                for (let ray = 0; ray < rays; ray++) {
-                    if (this.plumes.cast(design, t, ray, force, bodies, b, grid, this.hulls, layer) && this.plumes.body === target)
-                        return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Spawn the first slice of `craft` against slipway `slipway` of builder
-     * `i`'s body `b`, and hold it there: a ship being built, which is one in
-     * all but its parts. Its index, or -1 while anything is in its way.
-     */
-    private layKeel(world: World, i: number, b: number, slipway: number, craft: ShipDesign, print: Print, depth: number): number {
-        const bodies = world.bodies;
-        const hull = this.designs[i]!;
-        const frame = printFrame(hull.modules[slipway]!.spec, craft, depth);
-        const c = cos(frame.angle);
-        const s = sin(frame.angle);
-        const seed = print.design;
-        // Its centre in the hull's blueprint frame, and then in the world.
-        const hx = frame.dx + seed.centreOfMassX * c - seed.centreOfMassY * s - hull.centreOfMassX;
-        const hy = frame.dy + seed.centreOfMassX * s + seed.centreOfMassY * c - hull.centreOfMassY;
-        const angle = bodies.angle[b]!;
-        const ca = cos(angle);
-        const sa = sin(angle);
-        const x = bodies.x[b]! + hx * ca - hy * sa;
-        const y = bodies.y[b]! + hx * sa + hy * ca;
-        for (let j = 0; j < bodies.highWater; j++) {
-            if (j === b || bodies.alive[j] === 0 || bodies.ghost[j] === 1 || !this.meets(b, j)) continue;
-            const other = this.designOf(j);
-            if (other === null) continue;
-            for (let m = 0; m < seed.modules.length; m++) {
-                if (moduleOverlapsHull(seed, m, x, y, angle + frame.angle, bodies, j, other)) return -1;
-            }
-        }
-        const spin = bodies.angularVel[b]!;
-        const f = this.spawn(world, {
-            design: seed,
-            x,
-            y,
-            angle: angle + frame.angle,
-            vx: bodies.vx[b]! - spin * (y - bodies.y[b]!),
-            vy: bodies.vy[b]! + spin * (x - bodies.x[b]!),
-            angularVel: spin,
-            team: this.team[i]!,
-        });
-        this.launched[f] = craft;
-        this.buildsFor(f, craft);
-        this.couldFight[f] = craft.turrets.some((t) => t.main) || craft.engines.length > 0 ? 1 : 0;
-        this.unfinished[f] = 1;
-        this.printing[f] = 1;
-        shipWeld.merge(this, world, i, f, slipway, print.held[0]!, { at: "a", kind: "slipway" });
-        this.home[f] = i;
-        // Held by every piece, the first by the seam it was welded on with.
-        if (print.held.length > 1) this.reprint(world, b, f, slipway, craft, print, depth);
-        return f;
-    }
-
-    /**
-     * Make what ship `f`, being built on slipway `slipway` of body `b`, has of `craft` into `print`, built to `depth`: its modules taken out
-     * of the hull and put back as `print` lays them, pushed out from the face,
-     * each piece held by the slipway. Everything else aboard as it was. False,
-     * changing nothing, while anything is in the way of where it goes.
-     */
-    private reprint(world: World, b: number, f: number, slipway: number, craft: ShipDesign, print: Print, depth: number): boolean {
-        const bodies = world.bodies;
-        const p = this.shipAt(bodies, b);
-        if (p < 0) return false;
-        const was = this.designs[p]!;
-        const keep: number[] = [];
-        const old = new Map<number, number>();
-        for (let m = 0; m < was.modules.length; m++) {
-            if (this.pilotAt(b, m) === f) old.set(originOf(was, m).module, m);
-            else keep.push(m);
-        }
-        const n = keep.length;
-        const at = keep.indexOf(slipway);
-        if (at < 0) return false;
-        // Anything caught on it alone would be left hanging on nothing: it waits for that to be taken apart.
-        if (components(subDesign(was, keep), () => false).length > 1) {
-            const builder = this.pilotAt(b, slipway);
-            if (builder >= 0) this.waitsOnWreck[builder] = 1;
-            return false;
-        }
-        const frame = printFrame(was.modules[slipway]!.spec, craft, depth);
-        const width = was.modules[slipway]!.spec.width;
-        const held = print.held.map((h) => ({ a: at, b: n + h, width, dock: "slipway" as const }));
-        const welded = weldDesigns(subDesign(was, keep), print.design, frame.dx, frame.dy, frame.angle, at, print.held[0]!, width, {
-            at: "a",
-            kind: "slipway",
-        });
-        const next = seamedDesign(welded, held.slice(1));
-        const moduleOf = (m: number): number => (m < n ? keep[m]! : (old.get(print.modules[m - n]!) ?? -1));
-
-        // Nothing of its own hull, or of anything else, where it goes.
-        for (let m = n; m < next.modules.length; m++) {
-            for (let k = 0; k < n; k++) if (modulesOverlap(next.modules[k]!.spec, next.modules[m]!.spec)) return false;
-        }
-        const offset = shipBreakup.offsetOf(bodies, b, was, next);
-        const x = bodies.x[b]! + offset.x;
-        const y = bodies.y[b]! + offset.y;
-        for (let j = 0; j < bodies.highWater; j++) {
-            if (j === b || bodies.alive[j] === 0 || bodies.ghost[j] === 1 || !this.meets(b, j)) continue;
-            const other = this.designOf(j);
-            if (other === null) continue;
-            for (let m = n; m < next.modules.length; m++) {
-                if (moduleOverlapsHull(next, m, x, y, bodies.angle[b]!, bodies, j, other)) return false;
-            }
-        }
-
-        shipBreakup.momentum(this, bodies);
-        const beforeX = this.momentumX;
-        const beforeY = this.momentumY;
-        const id = this.bodyIds[p]!;
-        const spin = bodies.angularVel[b]!;
-        bodies.x[b] = x;
-        bodies.y[b] = y;
-        bodies.vx[b] = bodies.vx[b]! - spin * offset.y;
-        bodies.vy[b] = bodies.vy[b]! + spin * offset.x;
-        bodies.setMass(id, next.mass);
-        bodies.setInertia(id, next.inertia);
-        bodies.radius[b] = next.radius;
-        const pilots = this.pilots[b];
-        const now = new Int32Array(next.modules.length);
-        for (let m = 0; m < now.length; m++) now[m] = m < n ? (pilots?.[keep[m]!] ?? p) : f;
-        shipBreakup.adopt(this, p, b, next, () => p, moduleOf, true, false, f);
-        this.pilots[b] = now;
-        for (const r of this.ridersOf(bodies, b)) if (r !== p) this.board(r, p);
-        // A module just whole has its walls, and is waiting on its fittings.
-        for (let m = n; m < next.modules.length; m++) {
-            const from = moduleOf(m);
-            if (next.modules[m]!.shell === undefined && (from < 0 || was.modules[from]!.shell !== undefined)) {
-                this.damage.unfit(b, m, fittingOf(craft.modules[print.modules[m - n]!]!.stats));
-            }
-        }
-        shipBreakup.settleMass(this, bodies, b);
-        shipBreakup.momentum(this, bodies);
-        bodies.vx[b] = bodies.vx[b]! + (beforeX - this.momentumX) / movable(bodies.mass[b]!);
-        bodies.vy[b] = bodies.vy[b]! + (beforeY - this.momentumY) / movable(bodies.mass[b]!);
-        return true;
-    }
-
-    /**
-     * How many of a pad's fighters are still in the fight, forgetting the dead:
-     * one being built while it is on its carrier, one in control and not
-     * mission killed, and one in control aboard a friend, which will be filled.
-     */
-    private fielded(bodies: Bodies, i: number, fighters: number[]): number {
-        let count = 0;
-        let kept = 0;
-        for (let k = 0; k < fighters.length; k++) {
-            const f = fighters[k]!;
-            if (this.alive[f] === 0) continue;
-            fighters[kept++] = f;
-            if (this.unfinished[f] === 1) {
-                if (bodies.indexOf(this.bodyIds[f]!) >= 0 && this.parkedOn[f] === i) count++;
-                continue;
-            }
-            if (!this.hasControl(f)) continue;
-            const b = bodies.indexOf(this.bodyIds[f]!);
-            const p = this.parkedOn[f]! >= 0 ? this.parkedOn[f]! : b < 0 ? -1 : this.shipByBody[b]!;
-            if (!this.isMissionKilled(f) || (p !== f && p >= 0 && this.team[p] === this.team[f])) count++;
-        }
-        fighters.length = kept;
-        return count;
-    }
-
-    /**
-     * Whether a fighter of ship `i`'s side is making for its pad `pad` and can
-     * still get there: under control, and with an engine that works.
-     */
-    private awaited(i: number, pad: number): boolean {
-        for (let o = 0; o < this.alive.length; o++) {
-            if (this.alive[o] === 0 || this.salvaging[o] !== i || this.landingPad[o] !== pad) continue;
-            if (this.derelict[o] === 1 || !this.hasControl(o) || this.hasNoEngines(o)) continue;
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Put a step of the pad's work into the walls of the core it lays next, at
-     * the rate and price a pad mends at, and lay them down once there is a
-     * shell's step of them and the metal to pay for it.
-     */
-    private layDown(world: World, i: number, b: number, design: ShipDesign, pad: number, k: number, fighter: ShipDesign): void {
-        const bodies = world.bodies;
-        const core = fighter.cores[0];
-        if (core === undefined) return;
-        const whole = fighter.modules[core]!;
-        const wall = whole.stats.structureMass / SHELL_STEPS;
-        const cost = wall * (1 + REPAIR_WASTE);
-        if (shipSupply.allowed(this, Resource.Metal, b, pad, Claim.Pads, cost) < cost) return;
-        const brood = this.broods[i]!;
-        const work = buildWork(whole.stats);
-        const perKg = work * REPAIR_ENERGY_PER_JOULE;
-        const working = this.left(i, b, pad, DamageEffect.Grip);
-        const deck = design.modules[pad]!.spec;
-        const joules = PAD_REPAIR_PER_AREA * deck.length * deck.width * working * world.dt;
-        const charge = shipSupply.allowed(this, Resource.Charge, b, pad, Claim.Pads, (wall - brood.work[k]!) * perKg);
-        const kg = min(min(joules / work, charge / perKg), wall - brood.work[k]!);
-        if (kg > 0) {
-            brood.work[k] = brood.work[k]! + kg;
-            shipSupply.took(this, Resource.Charge, b, pad, Claim.Pads, this.power.drain(b, pad, kg * perKg));
-            this.builtAt[i] = world.tick;
-        }
-        if (brood.work[k]! < wall) return;
-        brood.work[k] = 0;
-
-        // Where the whole fighter would lie, and where its core's first step is in that.
-        const pose = aboardPose(design, { pad, design: fighter });
-        const pc = cos(pose.angle);
-        const ps = sin(pose.angle);
-        // The carrier's middle, in the fighter's blueprint frame.
-        const mx = fighter.centreOfMassX - (pose.x * pc + pose.y * ps);
-        const my = fighter.centreOfMassY - (-pose.x * ps + pose.y * pc);
-        const face = faceNearest(whole.spec, mx, my);
-        const share = 1 / SHELL_STEPS;
-        const part = shellOf(whole.spec, whole.stats, face, share);
-        const origin = { design: fighter, module: core };
-        const seed = rebuiltDesign(subDesign(fighter, [core]), 0, part.spec, part.stats, origin, { share, face, placed: whole.spec });
-        const ox = seed.centreOfMassX - fighter.centreOfMassX;
-        const oy = seed.centreOfMassY - fighter.centreOfMassY;
-        const lx = pose.x + ox * pc - oy * ps;
-        const ly = pose.y + ox * ps + oy * pc;
-
-        const mass = bodies.mass[b]!;
-        const inertia = bodies.inertia[b]!;
-        shipSupply.took(this, Resource.Metal, b, pad, Claim.Pads, this.metal.drain(b, pad, cost));
-        shipBreakup.settleMass(this, bodies, b);
-        const angle = bodies.angle[b]!;
-        const c = cos(angle);
-        const s = sin(angle);
-        const x = bodies.x[b]! + lx * c - ly * s;
-        const y = bodies.y[b]! + lx * s + ly * c;
-        const spin = bodies.angularVel[b]!;
-        const f = this.spawn(world, {
-            design: seed,
-            x,
-            y,
-            angle: angle + pose.angle,
-            vx: bodies.vx[b]! - spin * (y - bodies.y[b]!),
-            vy: bodies.vy[b]! + spin * (x - bodies.x[b]!),
-            angularVel: spin,
-            team: this.team[i]!,
-        });
-        // It is building towards the whole fighter, and is one in all but its parts.
-        this.launched[f] = fighter;
-        this.buildsFor(f, fighter);
-        this.couldFight[f] = fighter.turrets.some((t) => t.main) || fighter.engines.length > 0 ? 1 : 0;
-        this.unfinished[f] = 1;
-        shipDocking.park(this, bodies, i, f, pad);
-        this.home[f] = i;
-        brood.fighters[k]!.push(f);
-        // What it wasted left at the hull's speed.
-        shipBreakup.discardFrom(this, bodies, bodies.indexOf(this.bodyIds[i]!), mass, inertia);
-    }
-
-    /** Whether fighter `i`, being built on body `b` of design `design`, has every module its design has, whole and fitted. */
-    finished(b: number, i: number, design: ShipDesign): boolean {
-        const rebuild = shipRebuild.rebuildFor(this, i, design);
-        for (let l = 0; l < rebuild.at.length; l++) {
-            const m = rebuild.at[l]!;
-            if (m < 0 || design.modules[m]!.shell !== undefined || this.damage.unbuiltAt(b, m) > 0) return false;
-        }
-        return true;
-    }
-
-    /**
-     * Whether ship `i` can still put an armed fighter or ship in the fight:
-     * under control, with a pad or slipway of its own working that builds one
-     * and the metal on its piece of hull for at least the fighter's core or the
-     * ship's first slice.
-     */
     canBuildArmed(i: number): boolean {
-        const builds = this.launched[i]?.builds ?? [];
-        const yards = this.launched[i]?.yards ?? [];
-        if ((builds.length === 0 && yards.length === 0) || !this.hasControl(i)) return false;
-        const bodies = this.bodyStore!;
-        const b = bodies.indexOf(this.bodyIds[i]!);
-        const design = this.designs[i]!;
-        const rebuild = shipRebuild.rebuildFor(this, i, design);
-        for (const order of yards) {
-            const craft = this.craftFor(i, order.slipway, order.design);
-            if (!(craft.turrets.some((t) => t.main) || craft.mainWeaponEngines.length > 0)) continue;
-            const slipway = rebuild.at[order.slipway]!;
-            if (slipway < 0 || !(this.left(i, b, slipway, DamageEffect.Grip) > 0)) continue;
-            // The metal for its first slice, at least.
-            const berth = this.launched[i]!.modules[order.slipway]!.spec;
-            const first = printedCraft(craft, berth, min(printLength(craft, berth), SLIPWAY_STEP));
-            let kg = 0;
-            for (const module of first?.design.modules ?? []) kg += module.stats.structureMass;
-            if (this.metal.pieceHeld(b, slipway) >= kg * (1 + REPAIR_WASTE)) return true;
-        }
-        for (const order of builds) {
-            const fighter = this.craftFor(i, order.pad, order.design);
-            const core = fighter.cores[0];
-            if (core === undefined || !(fighter.turrets.some((t) => t.main) || fighter.mainWeaponEngines.length > 0)) continue;
-            const pad = rebuild.at[order.pad]!;
-            if (pad < 0 || !(this.left(i, b, pad, DamageEffect.Grip) > 0)) continue;
-            const stats = fighter.modules[core]!.stats;
-            if (this.metal.pieceHeld(b, pad) >= (stats.structureMass + fittingOf(stats)) * (1 + REPAIR_WASTE)) return true;
-        }
-        return false;
+        return shipBuild.canBuildArmed(this, i);
     }
 
     /** The tick ship `i` last put work into a fighter it is building on a pad; -1 for never. */
@@ -6593,26 +5942,6 @@ export class Ships {
     /** Whether ship `i` is going up on a slipway, its walls not yet all built. */
     isPrinting(i: number): boolean {
         return this.printing[i] === 1;
-    }
-
-    /** Whether every corner of body `b`'s bounding box lies inside a pad of `spec` at `place`. */
-    within(bodies: Bodies, b: number, design: ShipDesign, place: { x: number; y: number; angle: number }, spec: ModuleSpec): boolean {
-        const box = footprintOf(design);
-        const angle = bodies.angle[b]!;
-        const c = cos(angle);
-        const s = sin(angle);
-        const pc = cos(place.angle);
-        const ps = sin(place.angle);
-        const halfL = spec.length / 2;
-        const halfW = spec.width / 2;
-        for (let k = 0; k < 4; k++) {
-            const lx = k < 2 ? box.minX : box.maxX;
-            const ly = k % 2 === 0 ? box.minY : box.maxY;
-            const dx = bodies.x[b]! + lx * c - ly * s - place.x;
-            const dy = bodies.y[b]! + lx * s + ly * c - place.y;
-            if (abs(dx * pc + dy * ps) > halfL || abs(-dx * ps + dy * pc) > halfW) return false;
-        }
-        return true;
     }
 
     /**
@@ -6672,44 +6001,8 @@ export class Ships {
         return this.parkedOn[i]! >= 0 || this.onSlipway(i, b);
     }
 
-    /** Whether ship `i` on body `b` may build on pad or slipway `spec`: anywhere, unless it builds only anchored (`buildAnchored`). */
-    private mayBuild(i: number, b: number, spec: ModuleSpec): boolean {
-        if (spec.buildAnchored !== true || shipClaw.workingClaw(this, i, b) < 0) return true;
-        // Moored to a rock, or holding a wreck in its claw.
-        if (this.mooredClaw[i]! >= 0) return true;
-        for (const seam of this.hullDesign[b]?.seams ?? []) {
-            if (seam.dock === "claw" && this.pilotAt(b, seam.a) === i) return true;
-        }
-        return false;
-    }
-
-    /**
-     * Whether ship `i` wants an anchor to build: a pad or slipway of it that
-     * builds only anchored (`buildAnchored`) has a ship on it, or keeps more
-     * than are in the fight.
-     */
-    wantsAnchor(bodies: Bodies, i: number): boolean {
-        const launched = this.launched[i];
-        if (launched === undefined || !this.hasControl(i)) return false;
-        const yard = this.yards[i];
-        const yards = launched.yards ?? [];
-        for (let k = 0; yard !== null && yard !== undefined && k < yards.length; k++) {
-            const order = yards[k]!;
-            if (launched.modules[order.slipway]!.spec.buildAnchored !== true) continue;
-            if (yard.building[k]! >= 0 || this.fielded(bodies, i, yard.ships[k]!) < this.keepFor(i, order.slipway, order.keep)) return true;
-        }
-        const brood = this.broods[i];
-        const builds = launched.builds ?? [];
-        for (let k = 0; brood !== null && brood !== undefined && k < builds.length; k++) {
-            const order = builds[k]!;
-            if (launched.modules[order.pad]!.spec.buildAnchored !== true) continue;
-            if (this.fielded(bodies, i, brood.fighters[k]!) < this.keepFor(i, order.pad, order.keep)) return true;
-        }
-        return false;
-    }
-
     /** Whether ship `i` is held by a slipway of body `b`: built, and doing nothing until it is let go. */
-    private onSlipway(i: number, b: number): boolean {
+    onSlipway(i: number, b: number): boolean {
         const design = this.hullDesign[b];
         for (const seam of design?.seams ?? []) {
             if (seam.dock === "slipway" && this.pilotAt(b, seam.b) === i) return true;
@@ -6870,7 +6163,7 @@ export class Ships {
      * one and simply getting nothing for it, so the flame it burns with is the
      * rating and the thrust it flies on is not.
      */
-    private exhaustOf(i: number, design: ShipDesign, bodyIndex: number, engine: number): number {
+    exhaustOf(i: number, design: ShipDesign, bodyIndex: number, engine: number): number {
         const spec = design.engines[engine]!;
         return spec.maxThrust * this.left(i, bodyIndex, spec.module ?? -1, DamageEffect.Thrust);
     }

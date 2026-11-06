@@ -13,6 +13,7 @@ import * as shipSupply from "./shipSupply.js";
 import * as shipBreakup from "./shipBreakup.js";
 import * as shipForage from "./shipForage.js";
 import { type Ships, NO_TARGET, movable, PAD_SPEED, stoppingSpeed, URGE_REFERENCE, STEER, PORT_SPEED, WELD_SETTLE } from "./ships.js";
+import * as shipBuild from "./shipBuild.js";
 
 /**
  * Coming aboard another hull: landing on a carrier's pad and parking there,
@@ -805,7 +806,7 @@ export function land(ships: Ships, world: World): number {
         const host = ships.designs[c]!;
         const place = modulePlace(bodies, cb, host, pad);
         if (length(bodies.vx[b]! - place.vx, bodies.vy[b]! - place.vy) > PAD_SPEED) continue;
-        if (!ships.within(bodies, b, ships.designs[i]!, place, host.modules[pad]!.spec)) continue;
+        if (!shipBuild.within(bodies, b, ships.designs[i]!, place, host.modules[pad]!.spec)) continue;
         if (!park(ships, bodies, c, i, pad)) continue;
         ships.landedReach[i] = shipSupply.fightReach(ships, i);
         ships.home[i] = c;

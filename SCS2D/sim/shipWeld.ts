@@ -22,6 +22,7 @@ import {
 import * as shipSupply from "./shipSupply.js";
 import * as shipBreakup from "./shipBreakup.js";
 import * as shipForage from "./shipForage.js";
+import * as shipBuild from "./shipBuild.js";
 
 /**
  * Welding: two hulls that meet slowly enough, or a claw that closes on what its
@@ -360,9 +361,10 @@ export function grips(
         (ships.metal.pieceRoom(b, m) > 0 || (ice > 0 && ships.fuel.pieceRoom(b, m) > 0)) &&
         (ships.derelict[held] === 1 || (!ships.hasControl(held) && !shipRebuild.hasRobots(ships, o, held))) &&
         shipRebuild.canStrip(ships, b, holder, m, world.dt);
-    if (!drinks && !strips && !heats && !ships.wantsAnchor(bodies, holder)) return false;
+    if (!drinks && !strips && !heats && !shipBuild.wantsAnchor(ships, bodies, holder)) return false;
     // One anchoring to build holds its ground: let go, it would only come back to the rock.
-    if (!ships.sentTo(holder) && !ships.wantsAnchor(bodies, holder) && shipSupply.threatened(ships, bodies, holder, o, false)) return false;
+    if (!ships.sentTo(holder) && !shipBuild.wantsAnchor(ships, bodies, holder) && shipSupply.threatened(ships, bodies, holder, o, false))
+        return false;
     if (world.tick - ships.clawTried[holder]! < CLAW_RETRY / world.dt) return false;
     ships.clawTried[holder] = world.tick;
     if (world.rng.nextFloat() >= clawChance(force, bite, ships.damage.integrity(o, mo))) return false;

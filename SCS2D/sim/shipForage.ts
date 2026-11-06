@@ -15,6 +15,7 @@ import * as shipBreakup from "./shipBreakup.js";
 import { type Ships, NO_TARGET, NEUTRAL_TEAM, ROBOT_SPENT, CLAW_HEAT_RATE, CLAW_HEAT_ENERGY, SHOCK_REACH, exhaustOf } from "./ships.js";
 import * as shipClaw from "./shipClaw.js";
 import * as shipDocking from "./shipDocking.js";
+import * as shipBuild from "./shipBuild.js";
 
 /**
  * Foraging: a ship with a claw going for fuel, ore or wreckage, mooring to a
@@ -89,7 +90,7 @@ export function forage(ships: Ships, world: World, bodies: Bodies, i: number): v
         stopForaging(ships, i);
     }
     // A ship that builds only anchored goes to anchor when it would build.
-    const anchors = own && ships.wantsAnchor(bodies, i);
+    const anchors = own && shipBuild.wantsAnchor(ships, bodies, i);
     const forages = scavengeOrder || anchors || (own && (approach.scavengeFuelBelow > 0 || approach.scavengeMetalBelow > 0));
     const docks = ordered || (own && approach.refuelBelow > 0);
     const recharges = ordered || (own && approach.rechargeBelow > 0);
@@ -651,13 +652,13 @@ export function tendMoored(ships: Ships, world: World, f: number): boolean {
     const held = heldRock(ships, bodies, f);
     if (held < 0) return false;
     if (ships.damage.isProtected(cb)) return true;
-    if (!ships.sentTo(f) && !ships.wantsAnchor(bodies, f) && shipSupply.threatened(ships, bodies, f, cb, false)) return false;
+    if (!ships.sentTo(f) && !shipBuild.wantsAnchor(ships, bodies, f) && shipSupply.threatened(ships, bodies, f, cb, false)) return false;
     // Given an order, it calls its robots in and goes as soon as they are back.
     const ordered = ships.sentAway(f);
     if (!ordered && shipRebuild.canStrip(ships, fb, f, claw, world.dt) && strippableAcross(ships, f, fb, claw, cb)) return true;
     if (!ordered && heatAcross(ships, bodies, fb, claw, cb, held, working * world.dt)) return true;
     // Anchored while it builds, it holds on until what it builds is let go.
-    if (!ordered && ships.wantsAnchor(bodies, f)) return true;
+    if (!ordered && shipBuild.wantsAnchor(ships, bodies, f)) return true;
     // Done, but for its robots out on the rock, which it waits for.
     if (!shipRobots.anyAway(ships, fb, f)) return false;
     shipRobots.recallAway(ships, fb, ships.hullDesign[fb]!, f, cb);
