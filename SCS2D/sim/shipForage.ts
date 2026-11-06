@@ -14,6 +14,7 @@ import * as shipSupply from "./shipSupply.js";
 import * as shipBreakup from "./shipBreakup.js";
 import { type Ships, NO_TARGET, NEUTRAL_TEAM, ROBOT_SPENT, CLAW_HEAT_RATE, CLAW_HEAT_ENERGY, SHOCK_REACH, exhaustOf } from "./ships.js";
 import * as shipClaw from "./shipClaw.js";
+import * as shipDocking from "./shipDocking.js";
 
 /**
  * Foraging: a ship with a claw going for fuel, ore or wreckage, mooring to a
@@ -71,7 +72,9 @@ export function forage(ships: Ships, world: World, bodies: Bodies, i: number): v
     if (errand !== undefined && errand !== "deliver" && ships.delivering[i] === 1) stopForaging(ships, i);
     // Taking fuel to a friend, it keeps at it while it has fuel to give.
     const giverPort =
-        (own && !design.fighter && approach.deliverFuelAbove > 0) || (free && deliverOrder) ? ships.workingPort(bodies, i, b) : -1;
+        (own && !design.fighter && approach.deliverFuelAbove > 0) || (free && deliverOrder)
+            ? shipDocking.workingPort(ships, bodies, i, b)
+            : -1;
     if (deliverOrder) {
         if (giverPort >= 0 && hasToSpare(ships, b, giverPort)) deliver(ships, world, bodies, i, b, giverPort, only);
         if (ships.salvaging[i] === NO_TARGET) finishErrand(ships, i);
@@ -100,7 +103,7 @@ export function forage(ships: Ships, world: World, bodies: Bodies, i: number): v
     const rearms = claw < 0 && design.fighter && (ordered || (own && approach.rearmBelow >= 0));
     const repairs = claw < 0 && design.fighter && (ordered || (own && (approach.repairBelow > 0 || approach.repairArmed >= 0)));
     const lands = (docks || rearms || recharges || repairs) && claw < 0 && design.fighter;
-    const port = docks && !design.fighter ? ships.workingPort(bodies, i, b) : -1;
+    const port = docks && !design.fighter ? shipDocking.workingPort(ships, bodies, i, b) : -1;
     // A ship with a claw too docks only once it is down to `refuelBelow`, and
     // until it is full; otherwise it goes scavenging by `scavengeFuelBelow`.
     let viaPort = port >= 0 && claw < 0;
@@ -167,9 +170,12 @@ export function forage(ships: Ships, world: World, bodies: Bodies, i: number): v
         // Gone, dry, taken, or no longer what it is after: look again now rather
         // than at the next rethink.
         const lost = lands
-            ? hb < 0 || ships.landingPad[i]! < 0 || !ships.padFree(bodies, held, ships.landingPad[i]!)
+            ? hb < 0 || ships.landingPad[i]! < 0 || !shipDocking.padFree(ships, bodies, held, ships.landingPad[i]!)
             : viaPort
-              ? hb < 0 || ships.dockPort[i]! < 0 || ships.ownPort[i] !== port || !ships.portFree(bodies, held, ships.dockPort[i]!)
+              ? hb < 0 ||
+                ships.dockPort[i]! < 0 ||
+                ships.ownPort[i] !== port ||
+                !shipDocking.portFree(ships, bodies, held, ships.dockPort[i]!)
               : hb < 0 ||
                 ships.landingPad[i]! >= 0 ||
                 ships.dockPort[i]! >= 0 ||
@@ -195,9 +201,9 @@ export function forage(ships: Ships, world: World, bodies: Bodies, i: number): v
     if (world.tick < ships.forageAt[i]!) return;
     ships.forageAt[i] = world.tick + ships.rethinkTicks(world, design.mass);
     if (lands) {
-        ships.pickPad(bodies, i, b, room, metalRoom, recharging ? chargeRoom : 0, hurt, only);
+        shipDocking.pickPad(ships, bodies, i, b, room, metalRoom, recharging ? chargeRoom : 0, hurt, only);
     } else if (viaPort) {
-        ships.pickPort(bodies, i, b, port, room, ordered ? metalRoom : 0, ordered ? chargeRoom : 0, only);
+        shipDocking.pickPort(ships, bodies, i, b, port, room, ordered ? metalRoom : 0, ordered ? chargeRoom : 0, only);
     } else if (only !== NO_TARGET) {
         if (!clawCanTake(ships, bodies, i, b, claw, only)) {
             finishErrand(ships, i);
@@ -298,7 +304,7 @@ export function deliver(ships: Ships, world: World, bodies: Bodies, i: number, b
         hb >= 0 &&
         ships.dockPort[i]! >= 0 &&
         ships.ownPort[i] === port &&
-        ships.portFree(bodies, held, ships.dockPort[i]!) &&
+        shipDocking.portFree(ships, bodies, held, ships.dockPort[i]!) &&
         (ships.fuel.pieceRoom(hb, ships.dockPort[i]!) > 0 ||
             (ships.errandOf(i) === "deliver" && ships.metal.pieceRoom(hb, ships.dockPort[i]!) > 0));
     if (keep && world.tick < ships.forageAt[i]!) return;
@@ -339,7 +345,7 @@ export function pickDelivery(ships: Ships, bodies: Bodies, i: number, b: number,
         // Sent to it, it goes whatever is near.
         let danger = only !== NO_TARGET ? 0 : -1;
         for (let p = 0; p < host.modules.length; p++) {
-            if (host.modules[p]!.spec.kind !== "port" || !ships.ownsAt(t, tb, p) || !ships.portFree(bodies, t, p)) continue;
+            if (host.modules[p]!.spec.kind !== "port" || !ships.ownsAt(t, tb, p) || !shipDocking.portFree(ships, bodies, t, p)) continue;
             const room = ships.fuel.pieceRoom(tb, p);
             const metalRoom = spareMetal > 0 ? ships.metal.pieceRoom(tb, p) : 0;
             const pump = min(ownPump, host.modules[p]!.stats.pumpRate);
@@ -725,11 +731,11 @@ export function shakeLoose(ships: Ships, world: World, k: number): boolean {
     const strength = fd.modules[claw]!.spec.width * thickness * JOINT_IMPULSE_PER_AREA * DOCK_HOLD * grip;
     const jx = ships.blowJx[k]!;
     const jy = ships.blowJy[k]!;
-    const place = ships.modulePlace(bodies, fb, fd, claw);
+    const place = shipDocking.modulePlace(bodies, fb, fd, claw);
     const carried = SHOCK_REACH / (SHOCK_REACH + length(ships.blowX[k]! - place.x, ships.blowY[k]! - place.y));
     const load = length(jx, jy) * carried;
     if (!(load > strength)) return false;
-    ships.unpark(bodies, f, world.tick);
+    shipDocking.unpark(ships, bodies, f, world.tick);
     // What the rock took of the blow beyond the grip, the ship takes now it is free.
     const share = 1 - strength / load;
     bodies.vx[fb] = bodies.vx[fb]! + jx * share * bodies.invMass[fb]!;

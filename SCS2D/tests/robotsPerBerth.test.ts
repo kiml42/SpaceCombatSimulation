@@ -5,6 +5,7 @@ import { SALVAGER } from "../scenarios/blueprints.js";
 import { MINE } from "../scenarios/mining.js";
 import { give } from "../scenarios/commands.js";
 import { NO_TARGET } from "../sim/ships.js";
+import { unpark } from "../sim/shipDocking.js";
 import type { Battle } from "../scenarios/types.js";
 
 /** A Salvager whose robot bays keep three robots to a berth while moored. */
@@ -60,7 +61,7 @@ describe("a robot bay keeping more robots than it has berths", () => {
         const rock = run.ships.parkedCarrier(miner);
         const before = crew(run, miner);
         expect(before.all).toBeGreaterThan(BERTHS);
-        (run.ships as unknown as { unpark(...args: unknown[]): void }).unpark(run.world.bodies, miner, run.world.tick);
+        unpark(run.ships, run.world.bodies, miner, run.world.tick);
         run.step();
         run.step();
         expect(crew(run, miner).all).toBeLessThanOrEqual(BERTHS);

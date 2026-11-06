@@ -11,6 +11,7 @@ import { moduleOverlapsHull } from "./collision.js";
 import { type Ships, movable, workforce, ROBOT_SPENT, NO_TARGET } from "./ships.js";
 import * as shipSupply from "./shipSupply.js";
 import * as shipBreakup from "./shipBreakup.js";
+import * as shipDocking from "./shipDocking.js";
 
 /**
  * Rebuilding a hull to its launch design and taking wreckage apart, which is
@@ -646,7 +647,7 @@ export function renumber(ships: Ships, bodies: Bodies, b: number, riders: readon
         if (r === adopted || ships.mooredClaw[r]! < 0) continue;
         const claw = down(ships.mooredClaw[r]!);
         if (claw >= 0) ships.mooredClaw[r] = claw;
-        else ships.unpark(bodies, r, ships.now);
+        else shipDocking.unpark(ships, bodies, r, ships.now);
     }
     for (let s = 0; s < ships.alive.length; s++) {
         if (ships.alive[s] === 0) continue;

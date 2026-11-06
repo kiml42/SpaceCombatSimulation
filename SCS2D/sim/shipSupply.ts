@@ -14,6 +14,7 @@ import * as shipWeld from "./shipWeld.js";
 import { type Ships, short, originTier, repairTier, NO_TARGET } from "./ships.js";
 import * as shipBreakup from "./shipBreakup.js";
 import * as shipForage from "./shipForage.js";
+import * as shipDocking from "./shipDocking.js";
 
 /**
  * Supply between hulls: fuel, metal and charge pumped across docking seams and
@@ -166,7 +167,7 @@ export function pump(ships: Ships, world: World): number {
     for (let k = 0; k < ships.parkedShips.length; k++) {
         const f = ships.parkedShips[k]!;
         if (ships.mooredClaw[f]! >= 0 ? shipForage.tendMoored(ships, world, f) : tendParked(ships, world, f)) continue;
-        ships.unpark(bodies, f, world.tick);
+        shipDocking.unpark(ships, bodies, f, world.tick);
         released++;
         k--;
     }

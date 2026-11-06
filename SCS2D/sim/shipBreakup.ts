@@ -14,6 +14,7 @@ import { fixed } from "./fixed.js";
 import type { Contacts } from "./collision.js";
 import { type Ships, SHOCK_REACH, NO_TARGET, WHOLE_SHIP } from "./ships.js";
 import * as shipForage from "./shipForage.js";
+import * as shipDocking from "./shipDocking.js";
 
 /**
  * Hulls coming apart: blows and the shock they carry, welds cut and modules
@@ -1158,7 +1159,7 @@ export function adopt(
     ships.cutSeen[i] = ships.damage.cutVersion(b);
     if (ships.mooredClaw[i]! >= 0) {
         if (claw >= 0) ships.mooredClaw[i] = claw;
-        else ships.unpark(bodies, i, ships.now);
+        else shipDocking.unpark(ships, bodies, i, ships.now);
     }
 }
 
