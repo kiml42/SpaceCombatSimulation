@@ -4,7 +4,8 @@
 
 **Active development is in `SCS2D/`, a TypeScript rewrite. Start at [SCS2D/DESIGN.md](SCS2D/DESIGN.md) and
 [SCS2D/CLAUDE.md](SCS2D/CLAUDE.md).** The design is split three ways: `DESIGN.md` (what the game is),
-`ROADMAP.md` (what is not built or not settled) and `DECISIONS.md` (why things are as they are).
+`ROADMAP.md` (the build order) and `DECISIONS.md` (why things are as they are); what is not built or not settled is
+in [GitHub issues](https://github.com/kiml42/SpaceCombatSimulation/issues).
 
 The Unity project in `SpaceCombatSimulation/` is a 2017–2021 prototype, kept for reference and occasional
 tinkering. Do not modify it, do not upgrade it, and do not attempt to port it incrementally — the rewrite changes
@@ -18,7 +19,7 @@ merge.
 ## How changes land
 
 **Open a pull request against `master`. That is the default for any piece of work, in either tree.** It applies
-to code, and to documentation that carries a decision — a ROADMAP.md open question, a DECISIONS.md entry, a
+to code, and to documentation that carries a decision — an answered open question, a DECISIONS.md entry, a
 changed convention — because those are the things worth reading before they land, not after.
 
 Pushing straight to `master` is the exception, not a shortcut to reach for when a change feels small. It is for
