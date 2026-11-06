@@ -17,6 +17,7 @@ import { capture, Snapshot } from "../sim/snapshot.js";
 import { CORVETTE, DINKY, GUNSHIP } from "../scenarios/blueprints.js";
 import type { World } from "../sim/world.js";
 import { detach } from "../sim/shipBreakup.js";
+import { merge } from "../sim/shipWeld.js";
 
 /**
  * Ragged hulls hooking together on a slow contact (DESIGN.md §4), and what a
@@ -467,12 +468,18 @@ describe("a mount that breaks off", () => {
 
 describe("enemies hooked together", () => {
     it("both take the new design when wreckage hooks on to them", () => {
-        // A seed on which wreckage welds onto the pair within the 25 s run. A ship
-        // left on the old design is drawn, aimed and fired from a layout its body
-        // no longer has.
-        const run = hookedScenario(20260945);
+        // A ship left on the old design is drawn, aimed and fired from a layout
+        // its body no longer has.
+        const run = hookedScenario();
         const { ships, world } = run;
-        for (let s = 0; s < 1500; s++) {
+        while (run.totalWelded === 0) run.step();
+        const pair = world.bodies.indexOf(ships.body(0));
+        const debris = ships.spawn(world, { design: corvette, x: world.bodies.x[pair]!, y: world.bodies.y[pair]! + 40, team: 0 });
+        wreck(ships, world, debris);
+        run.step();
+        merge(ships, world, ships.shipByBody[world.bodies.indexOf(ships.body(0))]!, debris, 0, 0);
+        expect(ships.currentStructure(0).modules.length).toBe(corvette.modules.length * 3);
+        for (let s = 0; s < 300; s++) {
             run.step();
             const owners = new Map<number, number>();
             for (let i = 0; i < ships.highWater; i++) {
@@ -483,8 +490,6 @@ describe("enemies hooked together", () => {
                 else expect(ships.currentStructure(i)).toBe(ships.currentStructure(first));
             }
         }
-        // The pair's own weld, and at least one more.
-        expect(run.totalWelded).toBeGreaterThan(1);
     });
 
     it("shoot each other across the body they share", () => {
@@ -522,6 +527,28 @@ describe("enemies hooked together", () => {
         expect(run.ships.body(0)).toBe(run.ships.body(1));
         expect(struck[0]).toBeGreaterThan(0);
         expect(struck[1]).toBeGreaterThan(0);
+    });
+});
+
+describe("an enemy hooked to a friend", () => {
+    it("is not shot at by the friend's consort, whose misses would land on the friend", () => {
+        const gunship = compileBlueprint(GUNSHIP);
+        const run = makeBattle({ seed: 5, projectiles: 512 }, (ships, world) => {
+            const friend = ships.spawn(world, { design: gunship, x: 0, y: 0, team: 0 });
+            const clinger = ships.spawn(world, { design: dinky, x: 0, y: (gunship.radius + dinky.radius) * 0.6, team: 1 });
+            ships.spawn(world, { design: gunship, x: 0, y: 300, team: 0 });
+            merge(ships, world, friend, clinger, 0, 0);
+        });
+        const { ships, world } = run;
+        let struck = 0;
+        for (let s = 0; s < 1200; s++) {
+            run.step();
+            expect(ships.body(1)).toBe(ships.body(0));
+            expect(ships.turretTarget[2]).not.toContain(1);
+            const consort = world.bodies.indexOf(ships.body(2));
+            for (let h = 0; h < run.credit.count; h++) if (run.credit.attacker[h] === consort) struck++;
+        }
+        expect(struck).toBe(0);
     });
 });
 

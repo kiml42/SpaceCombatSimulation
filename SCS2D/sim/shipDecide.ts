@@ -120,7 +120,7 @@ export function decide(ships: Ships, world: World, bodies: Bodies, i: number): v
             // everyone, for as long as it liked.
             if (ships.derelict[t] === 1 || !ships.hostile(i, t) || !ships.hasControl(t)) continue;
             const tb = bodies.indexOf(ships.bodyIds[t]!);
-            if (tb < 0 || tb === b) continue;
+            if (tb < 0 || tb === b || shipAim.clingsToFriend(ships, i, t, tb)) continue;
             let seen = look(bodies, b, tb, t, ships.designs[t]!.mass, !ships.isDisarmed(t), !ships.hasNoEngines(t));
             // Sharing a body, it is as far off as its own modules are.
             const at = ships.locate(bodies, t, tb, ships.lookAt);

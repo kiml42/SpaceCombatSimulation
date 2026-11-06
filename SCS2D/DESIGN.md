@@ -243,7 +243,9 @@ inside any one file is not contiguous.
   middle is somebody else's: it is flown at, ranged on and judged by the size of the modules it works, and a
   mount aims at one of those rather than at the middle of the whole. The check for a friend in the line of
   fire asks whose module the shot meets rather than whose body, out to the target itself when the target
-  shares one, since a friend hooked to it is no passer-by.
+  shares one, since a friend hooked to it is no passer-by. **An enemy hooked to a friend is no target**, for
+  a gun or a hull, unless it is hooked to the ship itself: what misses it lands on the friend, and the friend's
+  own guns can reach it across the body they share.
   **A gun's reach is a property of the target as much as of the gun.** Against something that does not
   manoeuvre a shot is accurate at any range: the solution is exact and the round merely takes a while. What
   spoils it is the target changing velocity after the trigger, and the spread of where it might then be

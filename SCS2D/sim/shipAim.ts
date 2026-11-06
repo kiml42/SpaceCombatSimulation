@@ -112,7 +112,13 @@ export function decideTurrets(ships: Ships, world: World, bodies: Bodies, i: num
         // whatever its schedule says: a mount tracking a wreck, or a hulk, is
         // worse than a mount at rest, because it goes on shooting at it.
         const held = targets[t]!;
-        if (held !== NO_TARGET && (ships.alive[held] !== 1 || ships.derelict[held] === 1 || !ships.hasControl(held))) {
+        if (
+            held !== NO_TARGET &&
+            (ships.alive[held] !== 1 ||
+                ships.derelict[held] === 1 ||
+                !ships.hasControl(held) ||
+                clingsToFriend(ships, i, held, bodies.indexOf(ships.bodyIds[held]!)))
+        ) {
             targets[t] = NO_TARGET;
             aims[t] = WHOLE_SHIP;
         }
@@ -153,7 +159,7 @@ export function decideTurrets(ships: Ships, world: World, bodies: Bodies, i: num
             if (e === i || ships.alive[e] === 0) continue;
             if (ships.derelict[e] === 1 || !ships.hostile(i, e) || !ships.hasControl(e)) continue;
             const tb = bodies.indexOf(ships.bodyIds[e]!);
-            if (tb < 0) continue;
+            if (tb < 0 || clingsToFriend(ships, i, e, tb)) continue;
             // An enemy hooked on shares this body, so the body's centre says
             // nothing about where it is: it is where the part this mount would
             // shoot at is.
@@ -414,6 +420,22 @@ export function sharesBody(ships: Ships, t: number, tb: number): boolean {
     const pilots = ships.pilots[tb];
     if (pilots === null || pilots === undefined) return false;
     for (let k = 0; k < pilots.length; k++) if (pilots[k] !== t) return true;
+    return false;
+}
+
+/**
+ * Whether ship `t`, on body `tb`, shares it with a friend of ship `i`'s: then
+ * what misses `t` lands on the friend, so `t` is not `i`'s to shoot at.
+ * Wreckage is no friend, as in `friendlyInTheWay`.
+ */
+export function clingsToFriend(ships: Ships, i: number, t: number, tb: number): boolean {
+    const pilots = ships.pilots[tb];
+    if (pilots === null || pilots === undefined) return false;
+    for (let k = 0; k < pilots.length; k++) {
+        const p = pilots[k]!;
+        if (p < 0 || p === t || p === i) continue;
+        if (ships.alive[p] === 1 && ships.derelict[p] === 0 && !ships.hostile(i, p)) return true;
+    }
     return false;
 }
 
@@ -818,6 +840,14 @@ export function trainOne(ships: Ships, bodies: Bodies, i: number): void {
             sweepVy += spin * rx;
         }
         ships.turrets.aimAt(bodies, ti, x, y, bodies.vx[tb]!, bodies.vy[tb]!, sweepVx, sweepVy);
+        // Sharing a body, its middle is the body's no longer: the rest may be a friend.
+        let radius = design.radius;
+        if (sharesBody(ships, target, tb)) {
+            const own = ships.locate(bodies, target, tb, ships.sizeAt);
+            rx = x - own.x;
+            ry = y - own.y;
+            radius = own.radius;
+        }
         const slack = firingSlack(
             ships,
             aimDoctrine(ships, i, mounts[t]!),
@@ -827,6 +857,7 @@ export function trainOne(ships: Ships, bodies: Bodies, i: number): void {
             ships.turrets.aimDy[ti]!,
             rx,
             ry,
+            radius,
         );
         // In reach of what it will fire on: the part it picked if it minds what
         // it hits, and otherwise the ship, from its middle.
@@ -863,7 +894,9 @@ export function trainOne(ships: Ships, bodies: Bodies, i: number): void {
  * Where the ship will do, the cone is the whole ship's, about its middle,
  * whatever part the aim is on: `slackOffset` says how far that middle is off
  * the aim point. A gun aiming at a wing fires once anywhere on the hull is
- * under the muzzle.
+ * under the muzzle. `partX`, `partY` and `radius` are the part's offset from
+ * that middle and the ship's size, which for a ship sharing a body are its own
+ * rather than the body's.
  *
  * Approximate on purpose, and in the forgiving direction: a bounding circle
  * is not a silhouette, so a target seen end-on is taken to be as wide as it
@@ -882,6 +915,7 @@ export function firingSlack(
     aimY: number,
     partX: number,
     partY: number,
+    radius: number,
 ): number {
     ships.slackOffset = 0;
     const design = ships.designs[target]!;
@@ -900,7 +934,7 @@ export function firingSlack(
     const centre = length(cx, cy);
     if (!(centre > 0)) return 0;
     ships.slackOffset = angleDelta(atan2(aimY, aimX), atan2(cy, cx));
-    return atan2(design.radius, centre);
+    return atan2(radius, centre);
 }
 
 /**
