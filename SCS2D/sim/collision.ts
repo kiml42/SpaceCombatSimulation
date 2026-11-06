@@ -3,7 +3,7 @@ import type { ShipDesign } from "./blueprint.js";
 import { BOTH_LAYERS, HULL_LAYER, moduleLayers, OWN_LAYERS, type HullDesigns } from "./hull.js";
 import { abs, cos, max, min, sin, sqrt } from "./math.js";
 import { domeRadius, isDomed, MOST_CORNERS, shapeOf } from "./shape.js";
-import type { ModuleSpec } from "./modules.js";
+import { BEAM_STALK_WIDTH, hullMountGeometry, isHullMount, lensDiscRadius, type HullMountGeometry, type ModuleSpec } from "./modules.js";
 
 /**
  * Hulls that are solid: ships meeting each other rather than passing through.
@@ -271,6 +271,108 @@ function boxesOf(design: ShipDesign, bx: number, by: number, angle: number, out:
     }
 }
 
+/**
+ * What of each hull mount stands out of its block, as it is drawn: a gun's
+ * barrels where they point now, a beam's lenses on their discs and stalks.
+ * Module `m`'s are `boxes[first[m]]` up to `boxes[first[m + 1]]`.
+ */
+interface Parts {
+    boxes: Box[];
+    first: Int32Array;
+}
+
+const geometries = new WeakMap<ModuleSpec, HullMountGeometry>();
+
+function geometryOf(spec: ModuleSpec): HullMountGeometry {
+    let geometry = geometries.get(spec);
+    if (geometry === undefined) {
+        geometry = hullMountGeometry(spec);
+        geometries.set(spec, geometry);
+    }
+    return geometry;
+}
+
+function partAt(out: Parts, k: number): Box {
+    if (out.boxes.length <= k) out.boxes.push(blankBox());
+    const box = out.boxes[k]!;
+    box.count = 0;
+    box.round = false;
+    box.seams = 0;
+    return box;
+}
+
+function boxPart(box: Box, x: number, y: number, ux: number, uy: number, halfLength: number, halfWidth: number): void {
+    box.x = x;
+    box.y = y;
+    box.ux = ux;
+    box.uy = uy;
+    box.halfLength = halfLength;
+    box.halfWidth = halfWidth;
+    box.radius = sqrt(halfLength * halfLength + halfWidth * halfWidth);
+}
+
+/**
+ * Cut each hull mount of a hull's `boxes` back to its block, and put what
+ * stands out of it into `out`. A gun's barrels point where `hulls` says
+ * they do, or at rest where it cannot say.
+ */
+function partsOf(design: ShipDesign, body: number, angle: number, hulls: HullDesigns | null, boxes: Box[], out: Parts): void {
+    const n = design.modules.length;
+    if (out.first.length <= n) out.first = new Int32Array(2 * (n + 1));
+    let k = 0;
+    for (let m = 0; m < n; m++) {
+        out.first[m] = k;
+        const spec = design.modules[m]!.spec;
+        if (!isHullMount(spec.kind)) continue;
+        const mount = geometryOf(spec);
+        const block = boxes[m]!;
+        const ux = block.ux;
+        const uy = block.uy;
+        const mx = block.x + ux * mount.trains;
+        const my = block.y + uy * mount.trains;
+        const back = mount.reach * 0.5;
+        block.x -= ux * back;
+        block.y -= uy * back;
+        block.halfLength = mount.blockLength * 0.5;
+        block.radius = sqrt(block.halfLength * block.halfLength + block.halfWidth * block.halfWidth);
+        const count = mount.outlets;
+        const spacing = mount.outletSpacing;
+        if (spec.kind === "hullBeam") {
+            const disc = lensDiscRadius(mount);
+            const stalk = (mount.trains - mount.pivot) * 0.5;
+            for (let o = 0; o < count; o++) {
+                const lat = count > 1 ? (o - (count - 1) * 0.5) * spacing : 0;
+                const cx = mx - uy * lat;
+                const cy = my + ux * lat;
+                const lens = partAt(out, k++);
+                lens.x = cx;
+                lens.y = cy;
+                lens.radius = disc;
+                lens.round = true;
+                lens.halfLength = 0;
+                lens.halfWidth = 0;
+                boxPart(partAt(out, k++), cx - ux * stalk, cy - uy * stalk, ux, uy, stalk, mount.outletWidth * BEAM_STALK_WIDTH * 0.5);
+            }
+            continue;
+        }
+        let dx = ux;
+        let dy = uy;
+        let turret = -1;
+        for (let t = 0; t < design.turrets.length && turret < 0; t++) if (design.turrets[t]!.module === m) turret = t;
+        const bearing = turret < 0 || hulls === null ? NaN : (hulls.mountBearing?.(body, turret) ?? NaN);
+        if (bearing === bearing) {
+            dx = cos(angle + bearing);
+            dy = sin(angle + bearing);
+        }
+        const half = mount.barrelLength * 0.5;
+        for (let o = 0; o < count; o++) {
+            const lat = count > 1 ? (o - (count - 1) * 0.5) * spacing : 0;
+            boxPart(partAt(out, k++), mx + dx * half - dy * lat, my + dy * half + dx * lat, dx, dy, half, mount.outletWidth * 0.5);
+        }
+    }
+    out.first[n] = k;
+}
+
 /** How near two corners must be to be the same corner of a seam, metres: far more than rounding. */
 const SEAM_SLACK = 1e-3;
 
@@ -441,6 +543,8 @@ const blankBox = (): Box => ({
     round: false,
     seams: 0,
 });
+const partsA: Parts = { boxes: [], first: new Int32Array(64) };
+const partsB: Parts = { boxes: [], first: new Int32Array(64) };
 /** A turret's dome on either hull of a pair, where they meet above the deck alone. */
 const domeA = blankBox();
 const domeB = blankBox();
@@ -746,10 +850,12 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts):
         if (!builtA) {
             boxesOf(designA, bodies.x[i]!, bodies.y[i]!, bodies.angle[i]!, boxesA);
             markSeams(boxesA, designA.modules.length);
+            partsOf(designA, i, bodies.angle[i]!, hulls, boxesA, partsA);
             builtA = true;
         }
         boxesOf(designB, bodies.x[j]!, bodies.y[j]!, bodies.angle[j]!, boxesB);
         markSeams(boxesB, designB.modules.length);
+        partsOf(designB, j, bodies.angle[j]!, hulls, boxesB, partsB);
 
         let deepest = 0;
         let deepestX = 0;
@@ -764,36 +870,45 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts):
             for (let mb = 0; mb < designB.modules.length; mb++) {
                 const shared = inA & moduleLayers(designB.modules[mb]!, layersB);
                 if (shared === 0) continue;
-                let boxA = boxesA[ma]!;
-                let boxB = boxesB[mb]!;
+                let blockA = boxesA[ma]!;
+                let blockB = boxesB[mb]!;
                 // Met above the deck alone, a turret is its dome rather than its block.
                 if ((shared & HULL_LAYER) === 0) {
                     const specA = designA.modules[ma]!.spec;
                     const specB = designB.modules[mb]!.spec;
-                    if (isDomed(specA.kind)) boxA = domeOf(boxA, specA, domeA);
-                    if (isDomed(specB.kind)) boxB = domeOf(boxB, specB, domeB);
+                    if (isDomed(specA.kind)) blockA = domeOf(blockA, specA, domeA);
+                    if (isDomed(specB.kind)) blockB = domeOf(blockB, specB, domeB);
                 }
-                // Corner circles first: most module pairs on two hulls that are
-                // touching somewhere are nowhere near each other.
-                const mx = boxB.x - boxA.x;
-                const my = boxB.y - boxA.y;
-                const corners = boxA.radius + boxB.radius;
-                if (mx * mx + my * my > corners * corners) continue;
+                // The block, then each part standing out of it.
+                const firstA = partsA.first[ma]!;
+                const firstB = partsB.first[mb]!;
+                for (let pa = firstA - 1; pa < partsA.first[ma + 1]!; pa++) {
+                    const boxA = pa < firstA ? blockA : partsA.boxes[pa]!;
+                    for (let pb = firstB - 1; pb < partsB.first[mb + 1]!; pb++) {
+                        const boxB = pb < firstB ? blockB : partsB.boxes[pb]!;
+                        // Corner circles first: most module pairs on two hulls that are
+                        // touching somewhere are nowhere near each other.
+                        const mx = boxB.x - boxA.x;
+                        const my = boxB.y - boxA.y;
+                        const corners = boxA.radius + boxB.radius;
+                        if (mx * mx + my * my > corners * corners) continue;
 
-                const depth = overlap(boxA, boxB);
-                if (!(depth > deepest)) continue;
+                        const depth = overlap(boxA, boxB);
+                        if (!(depth > deepest)) continue;
 
-                const nx = axes[0]!;
-                const ny = axes[1]!;
-                // A circle's contact is found with its overlap.
-                if (!boxA.round && !boxB.round) contactPoint(boxA, boxB, nx, ny);
-                deepest = depth;
-                deepestNx = nx;
-                deepestNy = ny;
-                deepestX = point.x;
-                deepestY = point.y;
-                moduleA = ma;
-                moduleB = mb;
+                        const nx = axes[0]!;
+                        const ny = axes[1]!;
+                        // A circle's contact is found with its overlap.
+                        if (!boxA.round && !boxB.round) contactPoint(boxA, boxB, nx, ny);
+                        deepest = depth;
+                        deepestNx = nx;
+                        deepestNy = ny;
+                        deepestX = point.x;
+                        deepestY = point.y;
+                        moduleA = ma;
+                        moduleB = mb;
+                    }
+                }
             }
         }
 

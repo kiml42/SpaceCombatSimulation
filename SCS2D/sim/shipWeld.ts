@@ -1,8 +1,7 @@
 import { Bodies } from "./bodies.js";
-import { weldDesigns, type DesignModule, type ShipDesign, type DockAt } from "./blueprint.js";
+import { weldDesigns, type ShipDesign, type DockAt } from "./blueprint.js";
 import { DamageEffect, DISASSEMBLY_WASTE } from "./damage.js";
-import { isHullMount, moduleCentre, weldBox } from "./modules.js";
-import { abs, cos, max, min, sin } from "./math.js";
+import { cos, max, min, sin } from "./math.js";
 import type { World } from "./world.js";
 import { type Contacts, CLAW_ALIGN, Stab } from "./collision.js";
 import { CLAW_SPEED_MAX } from "./shipClaw.js";
@@ -39,38 +38,11 @@ export const CLAW_HEAT_RATE = 1;
 
 export const CLAW_HEAT_ENERGY = 5e6;
 
-/** How far past the end of a module's weldable part a contact may still weld it, metres. */
-const WELD_REACH = 0.05;
-
 /**
  * Closing speed at or below which a ragged edge hooks rather than glancing
  * off, m/s — a drift, not a ram. A dial, in ROADMAP.md §12 with the others.
  */
 export const WELD_SPEED = 2;
-
-/**
- * Whether world point `x`, `y` is on the part of `module` that may be welded,
- * with its body at `bx`, `by` turned `angle`: anywhere but a hull mount's
- * barrel. A stop-gap until a barrel collides where it is drawn rather than as
- * the rest of the module's rectangle. An engine's bell still welds, as debris
- * can snag on one even though a layout is never attached by it.
- */
-export function onWeldablePart(module: DesignModule, bx: number, by: number, angle: number, x: number, y: number): boolean {
-    const spec = module.spec;
-    if (!isHullMount(spec.kind)) return true;
-    const weld = weldBox(spec);
-    const whole = moduleCentre(spec);
-    const part = moduleCentre(weld);
-    // The welded part's middle, along the module from its centre.
-    const offset = (part.x - whole.x) * cos(module.angle) + (part.y - whole.y) * sin(module.angle);
-    const c = cos(angle);
-    const s = sin(angle);
-    const cx = bx + module.x * c - module.y * s;
-    const cy = by + module.x * s + module.y * c;
-    const own = angle + module.angle;
-    const along = (x - cx) * cos(own) + (y - cy) * sin(own);
-    return abs(along - offset) <= weld.length * 0.5 + WELD_REACH;
-}
 
 /**
  * How hard a claw has to be pushed back, stabbing in (`collision.ts`), before
@@ -179,9 +151,6 @@ export function weld(ships: Ships, world: World, contacts: Contacts): number {
         if (claw === null && !port && !rubble && !salvage && !lodged) {
             if (closing > WELD_SPEED) continue;
             if (!ships.damage.ragged(a, ma) && !ships.damage.ragged(b, mb)) continue;
-            const x = contacts.x[k]!;
-            const y = contacts.y[k]!;
-            if (!weldsAt(ships, bodies, a, ma, x, y) || !weldsAt(ships, bodies, b, mb, x, y)) continue;
         }
         // A claw on an asteroid moors to it, keeping its own body, rather than becoming one with it.
         if (claw !== null) {
@@ -285,12 +254,6 @@ export function rockTouch(ships: Ships, i: number, closing: number, tick: number
     if (ships.rockMetAt[i]! < tick - 1) ships.rockMet[i] = 0;
     ships.rockMetAt[i] = tick;
     if (closing > ships.rockMet[i]!) ships.rockMet[i] = closing;
-}
-
-/** `onWeldablePart` for module `m` of body `b`, as it is posed now. */
-export function weldsAt(ships: Ships, bodies: Bodies, b: number, m: number, x: number, y: number): boolean {
-    const module = ships.hullDesign[b]?.modules[m];
-    return module === undefined || onWeldablePart(module, bodies.x[b]!, bodies.y[b]!, bodies.angle[b]!, x, y);
 }
 
 /**

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Bodies } from "../sim/bodies.js";
 import { Collisions, Contacts, RESTITUTION, ROCK_DAMPING, Stab, findContacts, resolveContacts } from "../sim/collision.js";
-import { compileBlueprint, rockModule, type ShipDesign } from "../sim/index.js";
+import { compileBlueprint, hullMountGeometry, rockModule, type ShipDesign } from "../sim/index.js";
 import { OWN_LAYERS, WEAPONS_LAYER, type HullDesigns } from "../sim/hull.js";
 import { CORVETTE, DINKY, SALVAGER } from "../scenarios/blueprints.js";
 import { ram } from "../scenarios/ram.js";
@@ -25,6 +25,8 @@ const dinky: ShipDesign = compileBlueprint(DINKY);
  * that overlap by a good margin with four metres of vacuum between the hulls.
  */
 const NOSE_TO_TAIL = 31.5;
+/** How far the corvette's stern is behind its centre. */
+const TAIL = 14.5;
 
 interface Ship {
     design: ShipDesign;
@@ -177,7 +179,8 @@ describe("resolving a collision", () => {
     });
 
     it("gives back only what it is told to, so a ram is not a bounce", () => {
-        const w = world({ design: corvette, x: 0, y: 0, vx: 100 }, { design: corvette, x: NOSE_TO_TAIL - 0.5, y: 0, vx: -100 });
+        // Stern to stern, square on: the bow is two barrels, which meet off-centre.
+        const w = world({ design: corvette, x: 0, y: 0, angle: Math.PI, vx: 100 }, { design: corvette, x: 2 * TAIL - 0.5, y: 0, vx: -100 });
         findContacts(w.bodies, w.hulls, w.contacts);
         resolveContacts(w.bodies, w.contacts);
 
@@ -371,6 +374,66 @@ describe("a turret's dome", () => {
         expect(contacts.ny[0]).toBeCloseTo(0, 9);
         // On the plate's near face, where the dome meets it.
         expect(contacts.x[0]).toBeCloseTo(1.8, 9);
+    });
+});
+
+describe("a hull mount's barrels and lenses", () => {
+    /** A hull weapon alone at the body's origin, facing along x, with one mount on it. */
+    const mount = (kind: "hullGun" | "hullBeam", barrels: number): ShipDesign =>
+        ({
+            modules: [{ x: 0, y: 0, angle: 0, spec: { kind, length: 10, width: 4, barrels, body: true }, weaponsLayer: false }],
+            turrets: [{ module: 0 }],
+            radius: 6,
+        }) as unknown as ShipDesign;
+    const plate = {
+        modules: [{ x: 0, y: 0, angle: 0, spec: { kind: "structure", length: 0.1, width: 0.1 }, weaponsLayer: false }],
+        turrets: [],
+        radius: 0.1,
+    } as unknown as ShipDesign;
+    /** Whether a plate at `x`, `y` meets the mount, trained `bearing` off its rest if given. */
+    const meets = (design: ShipDesign, x: number, y: number, bearing?: number): boolean => {
+        const w = world({ design, x: 0, y: 0 }, { design: plate, x, y });
+        findContacts(w.bodies, { ...w.hulls, mountBearing: () => bearing ?? NaN }, w.contacts);
+        return w.contacts.count > 0;
+    };
+
+    it("meets a gun's barrel where it is, and not the rest of the opening it swings in", () => {
+        const gun = mount("hullGun", 1);
+        const g = hullMountGeometry(gun.modules[0]!.spec);
+        const mid = g.pivot + g.barrelLength / 2;
+        expect(meets(gun, mid, 0)).toBe(true);
+        expect(meets(gun, mid, 1.5)).toBe(false);
+        // The block is still all there.
+        expect(meets(gun, g.pivot - 0.1, 1.9)).toBe(true);
+    });
+
+    it("meets a gun's barrels where they point now", () => {
+        const gun = mount("hullGun", 1);
+        const g = hullMountGeometry(gun.modules[0]!.spec);
+        const turn = 0.4;
+        const along = g.barrelLength * 0.9;
+        const tx = g.pivot + Math.cos(turn) * along;
+        const ty = Math.sin(turn) * along;
+        expect(meets(gun, tx, ty, turn)).toBe(true);
+        expect(meets(gun, tx, ty)).toBe(false);
+        expect(meets(gun, g.pivot + along, 0, turn)).toBe(false);
+    });
+
+    it("meets each of several barrels, and not the gaps between them", () => {
+        const gun = mount("hullGun", 2);
+        const g = hullMountGeometry(gun.modules[0]!.spec);
+        const mid = g.pivot + g.barrelLength / 2;
+        expect(meets(gun, mid, g.outletSpacing / 2)).toBe(true);
+        expect(meets(gun, mid, -g.outletSpacing / 2)).toBe(true);
+        expect(meets(gun, mid, 0)).toBe(false);
+    });
+
+    it("meets a beam's lens on its disc and stalk, and not beside them", () => {
+        const beam = mount("hullBeam", 1);
+        const g = hullMountGeometry(beam.modules[0]!.spec);
+        expect(meets(beam, g.trains, 0)).toBe(true);
+        expect(meets(beam, (g.pivot + g.trains) / 2, 0)).toBe(true);
+        expect(meets(beam, g.pivot + 0.2, 1.9)).toBe(false);
     });
 });
 

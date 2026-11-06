@@ -796,6 +796,14 @@ export const BEAM_EMITTER_APERTURES = 1.5;
  */
 export const BEAM_STALK_SHARE = 0.5;
 
+/** How wide a hull beam's stalk is, as a share of its lens. */
+export const BEAM_STALK_WIDTH = 0.6;
+
+/** The radius of the disc a hull beam's lens turns on: as wide as the lens sweeps. */
+export function lensDiscRadius(mount: HullMountGeometry): number {
+    return 0.5 * sqrt(mount.barrelLength * mount.barrelLength + mount.outletWidth * mount.outletWidth);
+}
+
 /**
  * Areal density of the final optic, kg/m².
  *

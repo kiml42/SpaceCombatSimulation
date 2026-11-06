@@ -449,6 +449,8 @@ export interface HullDesigns {
      * something meets it; -1 for a body not parked.
      */
     carrierOf?(bodyIndex: number): number;
+    /** Where turret `turret` of this body's design points now, radians in the hull's frame; NaN where unknown. */
+    mountBearing?(bodyIndex: number, turret: number): number;
     /** How much of a module's interior is fuel, 0 to 1, for what a round has to get through. */
     fuelDepth?(bodyIndex: number, module: number): number;
     /**
