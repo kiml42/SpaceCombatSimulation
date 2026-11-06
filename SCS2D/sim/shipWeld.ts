@@ -138,6 +138,8 @@ export function weld(ships: Ships, world: World, contacts: Contacts): number {
         const force = contacts.impulse[k]! / world.dt;
         if (stab === Stab.A && grips(ships, world, a, ma, b, mb, nx, ny, force)) claw = "a";
         else if (stab === Stab.B && grips(ships, world, b, mb, a, ma, -nx, -ny, force)) claw = "b";
+        // A barrel or lens does not tear in a way that hooks.
+        if (claw === null && contacts.outlet[k] !== 0) continue;
         // Two ports nudged face to face mate, when one ship was making for the other.
         const port = claw === null && mates(ships, world, a, ma, b, mb, closing);
         // Rock meeting rock slowly sticks, as rubble does, torn or not; a minor

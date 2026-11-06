@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Bodies } from "../sim/bodies.js";
-import { Collisions, Contacts, RESTITUTION, ROCK_DAMPING, Stab, findContacts, resolveContacts } from "../sim/collision.js";
+import { Collisions, Contacts, OUTLET_A, RESTITUTION, ROCK_DAMPING, Stab, findContacts, resolveContacts } from "../sim/collision.js";
 import { compileBlueprint, hullMountGeometry, rockModule, type ShipDesign } from "../sim/index.js";
 import { OWN_LAYERS, WEAPONS_LAYER, type HullDesigns } from "../sim/hull.js";
 import { CORVETTE, DINKY, SALVAGER } from "../scenarios/blueprints.js";
@@ -417,6 +417,19 @@ describe("a hull mount's barrels and lenses", () => {
         expect(meets(gun, tx, ty, turn)).toBe(true);
         expect(meets(gun, tx, ty)).toBe(false);
         expect(meets(gun, g.pivot + along, 0, turn)).toBe(false);
+    });
+
+    it("says which contacts are on a barrel, which nothing welds to, and which on the block", () => {
+        const gun = mount("hullGun", 1);
+        const g = hullMountGeometry(gun.modules[0]!.spec);
+        const outlet = (x: number, y: number): number => {
+            const w = world({ design: gun, x: 0, y: 0 }, { design: plate, x, y });
+            findContacts(w.bodies, w.hulls, w.contacts);
+            expect(w.contacts.count).toBe(1);
+            return w.contacts.outlet[0]!;
+        };
+        expect(outlet(g.pivot + g.barrelLength / 2, 0)).toBe(OUTLET_A);
+        expect(outlet(g.pivot - 0.1, 1.9)).toBe(0);
     });
 
     it("meets each of several barrels, and not the gaps between them", () => {

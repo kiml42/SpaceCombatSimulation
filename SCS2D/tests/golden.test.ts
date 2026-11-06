@@ -38,14 +38,14 @@ const GOLDEN: Record<ScenarioName, string> = {
     beamDuel: "c5e5abd9",
     // ships=2 inFlight=24 p.fired=74 p.hits=204 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=6.0t · 120.1 µs/step
     binary: "21b83049",
-    // ships=6 inFlight=0 p.fired=111 p.hits=416 b.fired=0 b.hits=0 contacts=206 severed=9 culled=0 scrap=44.4t · 151.1 µs/step
-    kernels: "1b155f42",
+    // ships=6 inFlight=0 p.fired=111 p.hits=416 b.fired=0 b.hits=0 contacts=228 severed=9 culled=0 scrap=46.6t · 137.0 µs/step
+    kernels: "24c4b66d",
     // ships=12 inFlight=0 p.fired=27 p.hits=63 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=15.1t · 102.3 µs/step
     asteroidField: "dd799be7",
     // ships=7 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=2 severed=0 culled=0 scrap=-26.3t · 51.5 µs/step
     mining: "bbe926cb",
-    // ships=14 inFlight=12 p.fired=589 p.hits=1584 b.fired=0 b.hits=0 contacts=4894 severed=1 culled=0 scrap=73.1t · 3052.9 µs/step
-    rivalMines: "05ffb4b0",
+    // ships=12 inFlight=0 p.fired=313 p.hits=822 b.fired=0 b.hits=0 contacts=4943 severed=1 culled=0 scrap=85.9t · 2181.6 µs/step
+    rivalMines: "a64c3eec",
     // ships=22 inFlight=52 p.fired=139 p.hits=177 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=1.8t · 1188.3 µs/step
     swarm: "80a77095",
     // ships=303 inFlight=260 p.fired=910 p.hits=1187 b.fired=0 b.hits=0 contacts=12 severed=4 culled=3 scrap=24.7t · 27912.1 µs/step
@@ -68,8 +68,8 @@ const GOLDEN: Record<ScenarioName, string> = {
     hooked: "3bf43a3c",
     // ships=5 inFlight=0 p.fired=15 p.hits=161 b.fired=0 b.hits=0 contacts=61 severed=3 culled=0 scrap=14.5t · 61.6 µs/step
     broadside: "a152f110",
-    // ships=3 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=1 severed=0 culled=0 scrap=4.8t · 25.3 µs/step
-    salvageRun: "51983874",
+    // ships=3 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=303 severed=1 culled=0 scrap=6.6t · 55.0 µs/step
+    salvageRun: "73345cf5",
     // ships=1 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=6.0t · 20.2 µs/step
     mending: "f63e907e",
     // ships=1 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=1.4t · 20.1 µs/step

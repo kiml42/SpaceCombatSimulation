@@ -90,6 +90,11 @@ export const enum Stab {
  * allocates nothing — and the order is the body order, which is what keeps the
  * resolution reproducible.
  */
+/** `Contacts.outlet`: body `a`'s side of the contact is on a barrel or lens. */
+export const OUTLET_A = 1;
+/** `Contacts.outlet`: body `b`'s side is. */
+export const OUTLET_B = 2;
+
 export class Contacts {
     /** The two bodies, always with `a` the lower index. */
     a = new Int32Array(64);
@@ -115,6 +120,8 @@ export class Contacts {
     impulse = new Float64Array(64);
     /** What the claw at the contact is doing (`Stab`), if one met it. */
     stab = new Uint8Array(64);
+    /** Which side met a hull mount's barrel or lens rather than its block: `OUTLET_A`, `OUTLET_B`, both or neither. */
+    outlet = new Uint8Array(64);
     count = 0;
 
     clear(): void {
@@ -136,6 +143,7 @@ export class Contacts {
         this.closing[i] = 0;
         this.impulse[i] = 0;
         this.stab[i] = Stab.None;
+        this.outlet[i] = 0;
     }
 
     private grow(): void {
@@ -154,6 +162,9 @@ export class Contacts {
         const stab = new Uint8Array(size);
         stab.set(this.stab);
         this.stab = stab;
+        const outlet = new Uint8Array(size);
+        outlet.set(this.outlet);
+        this.outlet = outlet;
         a.set(this.a);
         b.set(this.b);
         x.set(this.x);
@@ -853,6 +864,7 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts):
         let deepestNy = 0;
         let moduleA = -1;
         let moduleB = -1;
+        let outlet = 0;
 
         for (let ma = 0; ma < designA.modules.length; ma++) {
             const inA = moduleLayers(designA.modules[ma]!, layersA);
@@ -896,6 +908,7 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts):
                         deepestY = point.y;
                         moduleA = ma;
                         moduleB = mb;
+                        outlet = (pa < firstA ? 0 : OUTLET_A) | (pb < firstB ? 0 : OUTLET_B);
                     }
                 }
             }
@@ -903,6 +916,7 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts):
 
         if (deepest > 0) {
             out.push(i, j, deepestX, deepestY, deepestNx, deepestNy, deepest, moduleA, moduleB);
+            out.outlet[out.count - 1] = outlet;
         }
     }
 }
