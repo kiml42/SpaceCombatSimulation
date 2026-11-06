@@ -67,6 +67,10 @@ const BOUNCE = 0.4;
 const SLIDE = 0.7;
 /** How far off a surface a bounced bit is set, metres, so its next cast does not start inside it. */
 const STANDOFF = 0.05;
+/** The most clouds of fuel kept at once; past it, a new one takes the oldest's place. */
+export const MOST_CLOUDS = 128;
+/** How long a cloud of fuel is kept, seconds: longer than any is drawn. */
+export const CLOUD_LIFE = 4;
 
 export class Debris {
     /** Whether bits are being made: only while a viewer is watching the battle. */
@@ -91,6 +95,21 @@ export class Debris {
     paint = new Int8Array(FIRST_ROOM);
     /** Whether it was born in a blast, and so glows as it cools. */
     hot = new Uint8Array(FIRST_ROOM);
+    /**
+     * Fuel let out where a module holding it broke up (`vent`): where the
+     * cloud's middle is, how fast it drifts, how old it is, how much fuel and
+     * how full its tank was, and how wide the module was, metres.
+     */
+    cloudCount = 0;
+    readonly cloudX = new Float64Array(MOST_CLOUDS);
+    readonly cloudY = new Float64Array(MOST_CLOUDS);
+    readonly cloudVx = new Float64Array(MOST_CLOUDS);
+    readonly cloudVy = new Float64Array(MOST_CLOUDS);
+    readonly cloudAge = new Float64Array(MOST_CLOUDS);
+    readonly cloudFuel = new Float64Array(MOST_CLOUDS);
+    readonly cloudFill = new Float64Array(MOST_CLOUDS);
+    readonly cloudSize = new Float64Array(MOST_CLOUDS);
+    readonly cloudSeed = new Uint32Array(MOST_CLOUDS);
     /** Bits made so far, for each one's seed. */
     private made = 0;
     private readonly hit = new RayHit();
@@ -203,11 +222,35 @@ export class Debris {
     }
 
     /**
+     * A module `size` across at `(x, y)`, moving at `(vx, vy)`, broken up with
+     * `fuel` kg in it, its tank `fill` full: the fuel let out all at once, to
+     * boil off into space every way.
+     */
+    vent(x: number, y: number, vx: number, vy: number, fuel: number, fill: number, size: number): void {
+        if (!this.watched || !(fuel > 0)) return;
+        let k = this.cloudCount;
+        if (k === MOST_CLOUDS) {
+            k = 0;
+            for (let i = 1; i < MOST_CLOUDS; i++) if (this.cloudAge[i]! > this.cloudAge[k]!) k = i;
+        } else this.cloudCount++;
+        this.cloudX[k] = x;
+        this.cloudY[k] = y;
+        this.cloudVx[k] = vx;
+        this.cloudVy[k] = vy;
+        this.cloudAge[k] = 0;
+        this.cloudFuel[k] = fuel;
+        this.cloudFill[k] = fill;
+        this.cloudSize[k] = size;
+        this.cloudSeed[k] = hash(this.made++);
+    }
+
+    /**
      * Move every bit on by `dt`: pulled by the wells, and cast along its way
      * through the grid, bouncing off the first hull or rock it meets. Bits past
      * their life are dropped.
      */
     step(dt: number, bodies: Bodies, grid: SpatialGrid, hulls: Hulls, wells: readonly WellSpec[]): void {
+        this.stepClouds(dt);
         let kept = 0;
         for (let i = 0; i < this.count; i++) {
             const age = this.age[i]! + dt;
@@ -275,6 +318,27 @@ export class Debris {
 
     clear(): void {
         this.count = 0;
+        this.cloudCount = 0;
+    }
+
+    /** Drift every cloud on by `dt`, dropping those past `CLOUD_LIFE`. */
+    private stepClouds(dt: number): void {
+        let kept = 0;
+        for (let i = 0; i < this.cloudCount; i++) {
+            const age = this.cloudAge[i]! + dt;
+            if (age >= CLOUD_LIFE) continue;
+            this.cloudX[kept] = this.cloudX[i]! + this.cloudVx[i]! * dt;
+            this.cloudY[kept] = this.cloudY[i]! + this.cloudVy[i]! * dt;
+            this.cloudVx[kept] = this.cloudVx[i]!;
+            this.cloudVy[kept] = this.cloudVy[i]!;
+            this.cloudAge[kept] = age;
+            this.cloudFuel[kept] = this.cloudFuel[i]!;
+            this.cloudFill[kept] = this.cloudFill[i]!;
+            this.cloudSize[kept] = this.cloudSize[i]!;
+            this.cloudSeed[kept] = this.cloudSeed[i]!;
+            kept++;
+        }
+        this.cloudCount = kept;
     }
 
     /** How hot bit `i` still glows, from 1 as it is born in a blast to 0 once cooled. */
