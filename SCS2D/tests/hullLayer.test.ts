@@ -64,17 +64,19 @@ describe("the Pixi hull layer", () => {
 
     it("fills every module again for the dynamic lights while it is lit by them, and not otherwise", () => {
         const unlit = drawn(layerOf());
-        expect(unlit.lit.shown().length).toBe(0);
+        expect(unlit.lit.shown().length + unlit.litThick.shown().length).toBe(0);
         expect(unlit.litLayer.visible).toBe(false);
         const layer = layerOf();
         // Node cannot build a filter's shader; the layer only hands it on.
         layer.litBy({} as Filter);
         drawn(layer);
-        const fills = [layer.thin, layer.thick, layer.rock, layer.thickRock, layer.kernel].flatMap((pool) => pool.shown());
+        const fills = [layer.thin, layer.rock, layer.thickRock, layer.kernel].flatMap((pool) => pool.shown());
+        // The thick modules apart, lit as their tops are.
         expect(layer.lit.shown().length).toBe(fills.length);
+        expect(layer.litThick.shown().length).toBe(layer.thick.shown().length);
         // Sharing the fills' geometry, so a second fill costs no second build.
-        const contexts = new Set(fills.map((g) => g.context));
-        for (const g of layer.lit.shown()) expect(contexts.has(g.context)).toBe(true);
+        const contexts = new Set([...fills, ...layer.thick.shown()].map((g) => g.context));
+        for (const g of [...layer.lit.shown(), ...layer.litThick.shown()]) expect(contexts.has(g.context)).toBe(true);
     });
 
     it("casts each turret's dome's shadow on the thin hull, as a thick module's", () => {

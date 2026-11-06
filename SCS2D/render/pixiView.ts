@@ -49,6 +49,8 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
     const segments = new Segments();
     let lightBuffer: LightBuffer | null = null;
     let size = { width: 0, height: 0 };
+    /** Pixels to the metre, as the frame being drawn sees the world. */
+    let scale = 1;
 
     const started = autoDetectRenderer({
         canvas,
@@ -68,7 +70,7 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
                 // Pixi's Canvas2D renderer has no filters to light by.
                 if (made.type === RendererType.WEBGL) {
                     lightBuffer = new LightBuffer();
-                    hulls.litBy(lightBuffer.filter);
+                    hulls.litBy(lightBuffer.deckFilter, lightBuffer.thickFilter);
                 }
             }
             return !disposed;
@@ -101,6 +103,7 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
             if (renderer === null) return null;
             if (renderer.width !== widthPx || renderer.height !== heightPx) renderer.resize(widthPx, heightPx);
             size = { width: widthPx, height: heightPx };
+            scale = camera.scale;
             world.position.set(widthPx / 2, heightPx / 2);
             world.scale.set(camera.scale, -camera.scale);
             backdrop.clear();
@@ -118,7 +121,7 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
             context.end();
             if (renderer === null) return;
             // Lit only while there is something to light it.
-            hulls.litLayer.visible = lightBuffer?.update(renderer, seenLights, size.width, size.height) ?? false;
+            hulls.litLayer.visible = lightBuffer?.update(renderer, seenLights, size.width, size.height, scale) ?? false;
             renderer.render(stage);
         },
         dispose() {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Lights } from "../render/glows.js";
-import { LIGHT_HEADROOM, LIGHT_REACH, LightField, lightReach } from "../render/lightField.js";
+import { FIGHTER_SHADOW_M, THICK_SHADOW_M } from "../render/light.js";
+import { LIGHT_HEADROOM, LIGHT_REACH, LIGHT_RISE, LightField, lightReach, shine } from "../render/lightField.js";
 
 /** Lights recorded straight in canvas pixels. */
 const IDENTITY = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
@@ -15,20 +16,25 @@ const fieldOf = (lights: Lights, camera = CAMERA): LightField => {
 const light = { r: 0, g: 0, b: 0 };
 /** How a sum of light lights a surface, as the filter eases it. */
 const eased = (sum: number): number => 1 - Math.exp(-Math.min(LIGHT_HEADROOM, sum));
-const at = (field: LightField, x: number, y: number): [number, number, number] => {
-    field.at(x, y, light);
+const at = (field: LightField, x: number, y: number, surface = 0): [number, number, number] => {
+    field.at(x, y, light, surface);
     return [light.r, light.g, light.b];
 };
+/** How much of a light of glow `radius` and `brightness` reaches the deck straight under it: it stands a share of its glow's radius up. */
+const under = (radius: number, brightness: number): number =>
+    brightness * shine(0, 0, 0, 0, radius * lightReach(brightness), false, radius * LIGHT_RISE);
 
 describe("the light at a point", () => {
     it("is a light's full colour at its middle, fading to nothing as far out as it reaches", () => {
         const lights = new Lights();
         lights.point(IDENTITY, 400, 300, 5, "#ff8000", 0.5);
         const field = fieldOf(lights);
-        expect(at(field, 0, 0)).toEqual([eased(0.5), eased(0.5 * (128 / 255)), 0]);
+        expect(at(field, 0, 0)).toEqual([eased(under(5, 0.5)), eased(under(5, 0.5) * (128 / 255)), 0]);
+        // Nearly all of it: a light stands only its glow's radius up.
+        expect(under(5, 0.5)).toBeGreaterThan(0.49);
         const reach = 5 * lightReach(0.5);
         expect(at(field, reach / 2, 0)[0]).toBeGreaterThan(0);
-        expect(at(field, reach / 2, 0)[0]).toBeLessThan(eased(0.5));
+        expect(at(field, reach / 2, 0)[0]).toBeLessThan(eased(under(5, 0.5)));
         expect(field.at(reach, 0, light)).toBe(false);
         expect(field.at(0, -reach - 1, light)).toBe(false);
     });
@@ -38,7 +44,8 @@ describe("the light at a point", () => {
         // A pixel to the right of the middle and two up, at two pixels to the metre.
         lights.point(IDENTITY, 402, 296, 1, "#ffffff", 1);
         const field = fieldOf(lights, { x: 10, y: 20, scale: 2 });
-        expect(at(field, 11, 22)).toEqual([eased(1), eased(1), eased(1)]);
+        // A pixel's glow, half a metre up.
+        expect(at(field, 11, 22)[0]).toBeCloseTo(eased(under(0.5, 1)), 12);
         // Reaching half as many metres as pixels.
         expect(field.at(11 + LIGHT_REACH / 2, 22, light)).toBe(false);
     });
@@ -47,8 +54,8 @@ describe("the light at a point", () => {
         const lights = new Lights();
         lights.line(IDENTITY, 380, 300, 420, 300, 4, "#ffffff", 1);
         const field = fieldOf(lights);
-        expect(at(field, -20, 0)).toEqual([eased(1), eased(1), eased(1)]);
-        expect(at(field, 0, 0)).toEqual([eased(1), eased(1), eased(1)]);
+        expect(at(field, -20, 0)[0]).toBeCloseTo(eased(under(4, 1)), 12);
+        expect(at(field, 0, 0)[0]).toBeCloseTo(eased(under(4, 1)), 12);
         expect(at(field, 0, 6)[0]).toBeCloseTo(at(field, 26, 0)[0], 9);
     });
 
@@ -67,11 +74,55 @@ describe("the light at a point", () => {
         const two = new Lights();
         two.point(IDENTITY, 400, 300, 5, "#ffffff", 0.7);
         two.point(IDENTITY, 400, 300, 5, "#ffffff", 0.7);
-        expect(at(fieldOf(two), 0, 0)[0]).toBeCloseTo(eased(1.4), 12);
+        expect(at(fieldOf(two), 0, 0)[0]).toBeCloseTo(eased(2 * under(5, 0.7)), 12);
         const many = new Lights();
         for (let k = 0; k < 2 * LIGHT_HEADROOM; k++) many.point(IDENTITY, 400, 300, 5, "#ffffff", 1);
         expect(at(fieldOf(many), 0, 0)[0]).toBeCloseTo(eased(LIGHT_HEADROOM), 12);
         expect(at(fieldOf(many), 0, 0)[0]).toBeLessThan(1);
+    });
+});
+
+describe("a light above the deck", () => {
+    /** A fighter's plume, a glow two metres round, flying a fighter's height over the deck at the origin. */
+    const plume = (): LightField => {
+        const lights = new Lights();
+        lights.point(IDENTITY, 400, 300, 2, "#ffffff", 1, FIGHTER_SHADOW_M);
+        return fieldOf(lights);
+    };
+
+    it("lights the hull below it more than a fighter flying level with it, which it only grazes", () => {
+        const field = plume();
+        for (const off of [2, 4, 6]) {
+            const deck = at(field, off, 0, 0)[0];
+            const fighter = at(field, off, 0, FIGHTER_SHADOW_M)[0];
+            expect(deck).toBeGreaterThan(0);
+            expect(fighter).toBeLessThan(deck);
+        }
+    });
+
+    it("lights the thin hull it flies over more than a thick module's top beside it, which it strikes more glancingly", () => {
+        const field = plume();
+        const under = at(field, 0, 0, 0)[0];
+        for (const off of [4, 6]) expect(at(field, off, 0, THICK_SHADOW_M)[0]).toBeLessThan(under);
+        // Nearer its height, a thick top falls off faster than the deck further out.
+        const ratio = (off: number): number => at(field, off, 0, THICK_SHADOW_M)[0] / at(field, off, 0, 0)[0];
+        expect(ratio(6)).toBeLessThan(ratio(4));
+        expect(ratio(4)).toBeLessThan(ratio(2));
+    });
+
+    it("lights nothing it is no higher than", () => {
+        const lights = new Lights();
+        // On the deck, a metre round: a metre up, under a flying fighter's height.
+        lights.point(IDENTITY, 400, 300, 1, "#ffffff", 1);
+        expect(fieldOf(lights).at(0, 0, light, FIGHTER_SHADOW_M)).toBe(false);
+        expect(fieldOf(lights).at(0, 0, light, 0)).toBe(true);
+    });
+
+    it("takes the height of its layer through the transform it was recorded in, as its glow's size", () => {
+        const lights = new Lights();
+        // Two pixels to the metre: a fighter's height is twice as many pixels.
+        lights.point({ a: 2, b: 0, c: 0, d: 2, e: 0, f: 0 }, 200, 150, 1, "#ffffff", 1, FIGHTER_SHADOW_M);
+        expect(lights.height[0]).toBe(2 * FIGHTER_SHADOW_M);
     });
 });
 
