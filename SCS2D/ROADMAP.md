@@ -634,11 +634,12 @@ work has to respect.
               dark shape lit mostly by its own engines, guns and the hits on it: Beam Duel for beams, Torch
               Run for plumes and Broadside for guns are seen in it.
             - **Never lit**: gauges, icons, names, selection, orders and arcs, as with the battle's light.
-        3. **What is left** — lights shading bevels and rounded parts (#833), shadows from dynamic
-           lights (#834) and decals placed in the editor (#835) — is in #659's sub-issues. Of #833,
-           bevels are built (`render/litBevels.ts`): the light buffer is drawn a second time as which
-           way across the surface the light comes from, and a bevel facing it gains, in its colour.
-           Fighters are now tinted by the battle's light, as the hull is, and their barrels cast shadows.
+        3. **What is left** — shadows from dynamic lights (#834) and decals placed in the editor
+           (#835) — is in #659's sub-issues. Lights shading bevels and rounded parts (#833) are built
+           (`render/litBevels.ts`, `render/litRounded.ts`): the light buffer is drawn a second time as
+           which way across the surface the light comes from, and a bevel, or a point on a bell, barrel
+           or dome, facing it gains, in its colour. Fighters are now tinted by the battle's light, as
+           the hull is, and their barrels cast shadows.
 
 ### Not started — in order
 

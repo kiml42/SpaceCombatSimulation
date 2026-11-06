@@ -46,6 +46,7 @@ import {
 import { BACKGROUND, GRID, WELL, WELL_ARM_PX, WELL_PULLS } from "./backdrop.js";
 import { barrelLines, MIN_BARREL_PX } from "./barrels.js";
 import { FIGHTER_SHADOW_M, LANDED_SHADOW_M, THICK_SHADOW_M, type Light } from "./light.js";
+import { RoundedParts, type Level } from "./roundedLights.js";
 import {
     BEVEL_DARK,
     BEVEL_LIGHT,
@@ -636,6 +637,8 @@ function drawShip(
                 ctx.fill();
                 if (light !== undefined) shadeDome(ctx, 0, 0, face * 0.5, light);
             });
+            // Drawn over the hull's lit fill, so taking all its light: outside the picture, which is kept.
+            rounded?.dome(ctx.getTransform(), 0, 0, face * 0.5, rgba(mountColour), 0, turretLevel(ship));
             ctx.restore();
         } else if (beamLenses) {
             // Each lens on a disc of its own that it turns on, as wide as the lens
@@ -667,6 +670,8 @@ function drawShip(
         // back below the floor and say nothing. Overlap is free: the barrel colours
         // are opaque, so a bar drawn twice looks like a bar.
         const hidden = hull !== null && !beamLenses;
+        // The mantlet drawn over the barrels' roots, below, and each barrel's collar out of it.
+        const pivot = hidden ? { x: mx, y: my, radius: min(spec.width * 0.5, ((count - 1) / 2) * spacing + hull.outletWidth) } : null;
         if (hidden) {
             // Behind the block, so a barrel trained hard over never shows its breech.
             const placed = design.modules[module]!;
@@ -682,8 +687,9 @@ function drawShip(
         if (light !== undefined) {
             const placed = design.modules[module]!;
             const block = hidden ? blockBox(ship, placed.x, placed.y, placed.angle, spec.length, spec.width, hull.blockLength) : null;
-            shadeBarrels(ctx, ship, t, ctx.lineWidth, light, block);
+            shadeBarrels(ctx, ship, t, ctx.lineWidth, light, block, pivot);
         }
+        if (pivot !== null) drawCollars(ctx, ship, t, ctx.lineWidth, pivot);
         if (gun.braceLength > 0) drawBracing(ctx, gun, physicalWidth, mx, my, dirX, dirY);
         if (hidden) ctx.restore();
         if (hull !== null && !beamLenses) {
@@ -928,12 +934,12 @@ function drawHull(
         // Rounded parts' shading, in the battle's light: its highlights are that light.
         if (spec.kind === "engine" && light !== undefined) {
             inLight(ctx, light);
-            shadeEngine(ctx, spec, ship.angle + m.angle, light, drawnMounts(design, i).round);
+            shadeEngine(ctx, spec, ship.angle + m.angle, light, drawnMounts(design, i).round, rgba(fillColour(spec, colours)), fighters);
             ctx.restore();
         }
         if (spec.kind === "port" && light !== undefined) {
             inLight(ctx, light);
-            shadePort(ctx, spec, ship.angle + m.angle, light);
+            shadePort(ctx, spec, ship.angle + m.angle, light, rgba(fillColour(spec, colours)), fighters);
             ctx.restore();
         }
         if (spec.kind === "pad") {
@@ -1641,7 +1647,17 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
 }
 
 /** An engine's bells, chambers and pump shaded as rounded, in its module's frame, the module turned `angle` in the world. */
-function shadeEngine(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: number, light: Light, roundPump: boolean): void {
+function shadeEngine(
+    ctx: CanvasRenderingContext2D,
+    spec: ModuleSpec,
+    angle: number,
+    light: Light,
+    roundPump: boolean,
+    /** Its colour, and whether it stands at a thick module's height, as a fighter's does, for the dynamic lights. */
+    colour: readonly number[],
+    thick: boolean,
+): void {
+    const m = ctx.getTransform();
     const engine = engineGeometry(spec);
     const layout = engineLayout(spec);
     const l = spec.length / 2;
@@ -1663,22 +1679,37 @@ function shadeEngine(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: num
               ]
             : [[layout.centre, layout.aft, layout.fore]];
     for (const y of layout.centres) {
-        if (bell !== null) ctx.drawImage(bell, -l, y - exit, mouth + l, 2 * exit);
+        if (bell !== null) {
+            ctx.drawImage(bell, -l, y - exit, mouth + l, 2 * exit);
+            rounded?.tube(m, -l, y, mouth + l, exit, engine.throatWidth / engine.exitWidth, colour, 1, thick ? "thick" : "deck");
+        }
         if (!(r > 0)) continue;
         for (const [x, from, to] of ends) {
             const image = sphereShade(light.from - angle, across, up, (from - x) / r, (to - x) / r);
             if (image !== null) ctx.drawImage(image, from, y - r, to - from, 2 * r);
+            rounded?.sphere(m, x, y, r, from, to, colour, 1, thick ? "thick" : "deck");
         }
-        if (tube !== null) ctx.drawImage(tube, layout.centre, y - r, straight, 2 * r);
+        if (tube !== null) {
+            ctx.drawImage(tube, layout.centre, y - r, straight, 2 * r);
+            rounded?.tube(m, layout.centre, y, straight, r, 1, colour, 1, thick ? "thick" : "deck");
+        }
     }
     if (roundPump) {
         const pump = cylinderShade(side, up);
         if (pump !== null) ctx.drawImage(pump, layout.pumpAft, -layout.halfWidth, l - layout.pumpAft, 2 * layout.halfWidth);
+        rounded?.tube(m, layout.pumpAft, 0, l - layout.pumpAft, layout.halfWidth, 1, colour, 1, thick ? "thick" : "deck");
     }
 }
 
 /** A docking port's block and collar shaded as rounded across, in its module's frame, the module turned `angle`. */
-function shadePort(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: number, light: Light): void {
+function shadePort(
+    ctx: CanvasRenderingContext2D,
+    spec: ModuleSpec,
+    angle: number,
+    light: Light,
+    colour: readonly number[],
+    thick: boolean,
+): void {
     const { across, up } = lightSlope(light);
     const image = cylinderShade(across * sin(light.from - angle), up);
     if (image === null) return;
@@ -1687,6 +1718,9 @@ function shadePort(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: numbe
     const collar = spec.length * PORT_COLLAR_SHARE;
     ctx.drawImage(image, -l, -w, spec.length - collar, 2 * w);
     ctx.drawImage(image, l - collar, -w * PORT_COLLAR_WIDTH, collar, 2 * w * PORT_COLLAR_WIDTH);
+    const m = ctx.getTransform();
+    rounded?.tube(m, -l, 0, spec.length - collar, w, 1, colour, 1, thick ? "thick" : "deck");
+    rounded?.tube(m, l - collar, 0, collar, w * PORT_COLLAR_WIDTH, 1, colour, 1, thick ? "thick" : "deck");
 }
 
 /**
@@ -1836,6 +1870,65 @@ function bevel(ctx: CanvasRenderingContext2D, design: ShipDesign, m: number, ang
 }
 const quad: number[] = [0, 0, 0, 0, 0, 0, 0, 0];
 
+/** How much wider a barrel's collar is than the barrel, and how far it stands out of the mantlet, in barrel widths. */
+const COLLAR_WIDTH = 1.3;
+const COLLAR_OUT = 0.4;
+
+/**
+ * How long a barrel `width` wide from `(x, y)` along the unit `(ux, uy)` has its
+ * collar: to where all of it is out of `pivot`, and a little further.
+ */
+function collarLength(
+    x: number,
+    y: number,
+    ux: number,
+    uy: number,
+    width: number,
+    pivot: { x: number; y: number; radius: number },
+): number {
+    const ox = x - pivot.x;
+    const oy = y - pivot.y;
+    const along = ox * ux + oy * uy;
+    // Its edge nearest the pivot's middle is the last of it out.
+    const side = max(0, Math.abs(ox * uy - oy * ux) - (COLLAR_WIDTH * width) / 2);
+    const inside = side < pivot.radius ? sqrt(pivot.radius * pivot.radius - side * side) - along : 0;
+    return max(0, inside) + COLLAR_OUT * width;
+}
+
+/**
+ * A flat collar round each of a hull gun's barrels where it comes out of the
+ * mantlet `pivot` over their roots, so a barrel meets it square rather than
+ * along the mantlet's curve. Unlit by the dynamic lights, as the mantlet is:
+ * their light is added over what is drawn on it.
+ */
+function drawCollars(
+    ctx: CanvasRenderingContext2D,
+    ship: ShipView,
+    t: number,
+    width: number,
+    pivot: { x: number; y: number; radius: number },
+): void {
+    ctx.fillStyle = BARREL;
+    barrelLines(ship, t, (x0, y0, x1, y1) => {
+        const span = length(x1 - x0, y1 - y0);
+        if (!(span > 0)) return;
+        const ux = (x1 - x0) / span;
+        const uy = (y1 - y0) / span;
+        const collar = min(span, collarLength(x0, y0, ux, uy, width, pivot));
+        const half = (COLLAR_WIDTH * width) / 2;
+        ctx.save();
+        ctx.translate(x0, y0);
+        ctx.rotate(math.atan2(uy, ux));
+        ctx.fillRect(0, -half, collar, 2 * half);
+        ctx.restore();
+    });
+}
+
+/** Where a turret is lit by the dynamic lights: halfway up a capital ship's hull, as its flames are thick; a fighter's nearest its height. */
+function turretLevel(ship: ShipView): Level {
+    return ship.currentStructure.fighter ? "thick" : "middle";
+}
+
 /** A turret's dome shaded as rounded, at `x`, `y` in the world. */
 function shadeDome(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, light: Light): void {
     const { across, up } = lightSlope(light);
@@ -1848,8 +1941,16 @@ function shadeDome(ctx: CanvasRenderingContext2D, x: number, y: number, radius: 
     ctx.restore();
 }
 
-/** A turret's barrels shaded as tubes `width` wide, in the world. */
-function shadeBarrels(ctx: CanvasRenderingContext2D, ship: ShipView, t: number, width: number, light: Light, block: Box | null): void {
+/** A turret's barrels shaded as tubes `width` wide, in the world, out of `block` and, for the dynamic lights, past their collars out of `pivot`. */
+function shadeBarrels(
+    ctx: CanvasRenderingContext2D,
+    ship: ShipView,
+    t: number,
+    width: number,
+    light: Light,
+    block: Box | null,
+    pivot: { x: number; y: number; radius: number } | null,
+): void {
     const { across, up } = lightSlope(light);
     barrelLines(ship, t, (x0, y0, x1, y1) => {
         const dx = x1 - x0;
@@ -1866,6 +1967,17 @@ function shadeBarrels(ctx: CanvasRenderingContext2D, ship: ShipView, t: number, 
         ctx.rotate(angle);
         if (from > 0) ctx.drawImage(image, 0, -width / 2, span * from, width);
         if (to < 1) ctx.drawImage(image, span * to, -width / 2, span * (1 - to), width);
+        // Drawn over everything, so taking all the light, at a turret's height: past its
+        // collar, as it adds to what is drawn over it rather than being hidden.
+        const m = ctx.getTransform();
+        const level = turretLevel(ship);
+        const out = pivot === null ? 0 : collarLength(x0, y0, dx / span, dy / span, width, pivot) / span;
+        const lit = (a: number, b: number): void => {
+            const start = max(a, out);
+            if (b > start) rounded?.tube(m, span * start, 0, span * (b - start), width / 2, 1, BARREL_RGB, 0, level);
+        };
+        if (from > 0) lit(0, from);
+        if (to < 1) lit(to, 1);
         ctx.restore();
     });
 }
@@ -2220,6 +2332,8 @@ export function draw(
     if (last === undefined) field.clear();
     else field.set(last.lights, last.camera, last.widthPx, last.heightPx);
     seenLights.clear();
+    seenRounded.clear();
+    rounded = seenRounded;
     drawScene(
         ctx,
         snapshot,
@@ -2238,6 +2352,7 @@ export function draw(
         light,
         seenLights,
     );
+    rounded = null;
     field.clear();
     const kept = last ?? { lights: new Lights(), camera: { x: 0, y: 0, scale: 1 }, widthPx, heightPx };
     kept.lights.clear();
@@ -2331,6 +2446,12 @@ function lightFighter(ctx: CanvasRenderingContext2D, ship: ShipView, fighters: b
  * lights the hulls near them (`render/lightBuffer.ts`). Not a close-up's.
  */
 export const seenLights = new Lights();
+/** The rounded parts the last view `draw` drew, for the dynamic lights to light by which way they face (`render/litRounded.ts`). Not a close-up's. */
+export const seenRounded = new RoundedParts();
+/** Where rounded parts are recorded while the main view is drawn, and nowhere otherwise. */
+let rounded: RoundedParts | null = null;
+/** A barrel's colour, as its channels. */
+const BARREL_RGB = rgba(BARREL);
 
 /** Modules of one ship to outline: the mounts a doctrine is being told to. */
 export interface Marked {

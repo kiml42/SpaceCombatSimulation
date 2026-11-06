@@ -110,9 +110,26 @@ describe("a light above the deck", () => {
         expect(ratio(4)).toBeLessThan(ratio(2));
     });
 
-    it("lights nothing it is no higher than", () => {
+    it("is as thick as a flame: halfway up the hull, a capital ship's plume lights by the share of it above", () => {
         const lights = new Lights();
-        // On the deck, a metre round: a metre up, under a flying fighter's height.
+        // On the deck, 1.8 m round: from the deck up to 1.44 m.
+        lights.point(IDENTITY, 400, 300, 1.8, "#ffffff", 1);
+        const field = fieldOf(lights);
+        const top = 2 * 1.8 * LIGHT_RISE;
+        for (const off of [1, 3]) {
+            const middle = at(field, off, 0, THICK_SHADOW_M / 2)[0];
+            expect(middle).toBeGreaterThan(0);
+            expect(middle).toBeLessThan(at(field, off, 0, 0)[0]);
+        }
+        expect(field.at(0, 0, light, top)).toBe(false);
+        expect(field.at(0, 0, light, THICK_SHADOW_M)).toBe(false);
+        // Nearly to its top, only a sliver of it is above.
+        expect(at(field, 1, 0, top - 0.01)[0]).toBeLessThan(at(field, 1, 0, THICK_SHADOW_M / 2)[0] / 10);
+    });
+
+    it("lights nothing above its top", () => {
+        const lights = new Lights();
+        // On the deck, a metre round: 0.8 m thick, under a flying fighter's height.
         lights.point(IDENTITY, 400, 300, 1, "#ffffff", 1);
         expect(fieldOf(lights).at(0, 0, light, FIGHTER_SHADOW_M)).toBe(false);
         expect(fieldOf(lights).at(0, 0, light, 0)).toBe(true);

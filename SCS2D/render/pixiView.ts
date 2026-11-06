@@ -5,9 +5,10 @@ import type { Camera } from "./camera.js";
 import { HullLayer } from "./hullLayer.js";
 import type { Light } from "./light.js";
 import { PixiCanvas } from "./pixiCanvas.js";
-import { seenLights } from "./canvas2d.js";
+import { seenLights, seenRounded } from "./canvas2d.js";
 import { LightBuffer } from "./lightBuffer.js";
 import { LitBevels } from "./litBevels.js";
+import { LitRounded } from "./litRounded.js";
 
 /**
  * The battle drawn with PixiJS, on a canvas under the Canvas2D one, which is
@@ -46,11 +47,15 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
     world.addChild(backdrop, hulls.container);
     const context = new PixiCanvas();
     context.deck = hulls.deck;
-    stage.addChild(world, context.root);
+    /** Rounded parts lit by the dynamic lights, over everything the canvas draws, as its turrets are. */
+    const roundedLayer = new Container();
+    stage.addChild(world, context.root, roundedLayer);
     const segments = new Segments();
     let lightBuffer: LightBuffer | null = null;
     /** The bevels lit from the side they face, the thin hull's and the thick modules', where there are dynamic lights at all. */
     let bevels: { thin: LitBevels; thick: LitBevels } | null = null;
+    /** Rounded parts lit by which way each point of them faces, over everything the canvas draws, as its turrets are. */
+    let rounded: { deck: LitRounded; middle: LitRounded; thick: LitRounded } | null = null;
     let size = { width: 0, height: 0 };
     /** Pixels to the metre, as the frame being drawn sees the world. */
     let scale = 1;
@@ -79,6 +84,12 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
                         thick: new LitBevels(lightBuffer.thickLight, lightBuffer.thickDirection),
                     };
                     hulls.litLayer.addChild(bevels.thin.mesh, bevels.thick.mesh);
+                    rounded = {
+                        deck: new LitRounded(lightBuffer.deckLight, lightBuffer.deckDirection),
+                        middle: new LitRounded(lightBuffer.middleLight, lightBuffer.middleDirection),
+                        thick: new LitRounded(lightBuffer.thickLight, lightBuffer.thickDirection),
+                    };
+                    roundedLayer.addChild(rounded.deck.mesh, rounded.middle.mesh, rounded.thick.mesh);
                 }
             }
             return !disposed;
@@ -133,6 +144,12 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
             if (hulls.litLayer.visible && bevels !== null) {
                 bevels.thin.set(hulls.litBevelsThin, size.width, size.height);
                 bevels.thick.set(hulls.litBevelsThick, size.width, size.height);
+            }
+            roundedLayer.visible = hulls.litLayer.visible && rounded !== null;
+            if (roundedLayer.visible && rounded !== null) {
+                rounded.deck.set(seenRounded.deck, size.width, size.height);
+                rounded.middle.set(seenRounded.middle, size.width, size.height);
+                rounded.thick.set(seenRounded.thick, size.width, size.height);
             }
             renderer.render(stage);
         },

@@ -15,7 +15,7 @@ type Image = CanvasImageSource & { width: number; height: number };
 const DARKEST = 0.5;
 const BRIGHTEST = 0.35;
 /** A dome's height as a share of its radius: a little flatter than a hemisphere. */
-const DOME_HEIGHT = 0.6;
+export const DOME_HEIGHT = 0.6;
 /** Steps the light's angle across a part is rounded to, either side of square on. */
 const STEPS = 12;
 const ALONG = 32;

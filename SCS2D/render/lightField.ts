@@ -14,6 +14,8 @@ import { rgba } from "./sprites.js";
  * how far it is from it, in three dimensions, and by how squarely it shines
  * down on it: a fighter's plume lights the hull under it well, and the other
  * fighters level with it hardly at all, its light only grazing their tops.
+ * It is as thick as a flame, from its layer up to twice that: a surface
+ * partway up it takes the share of it above, from the middle of that share.
  * The light buffer's shader works the same out on the GPU (`lightBuffer.ts`).
  */
 
@@ -62,8 +64,9 @@ export class LightField {
     private y1: number[] = [];
     /** How far it reaches, metres. */
     private reach: number[] = [];
-    /** How high it stands above the deck, metres. */
-    private z: number[] = [];
+    /** Its bottom and top above the deck, metres. */
+    private bottom: number[] = [];
+    private top: number[] = [];
     private brightness: number[] = [];
     private cone: boolean[] = [];
     /** Its colour, each channel 0 to 1. */
@@ -95,7 +98,8 @@ export class LightField {
             this.x1[i] = toX(x1);
             this.y1[i] = toY(y1);
             this.reach[i] = (lights.radius[k]! * lightReach(lights.brightness[k]!)) / camera.scale;
-            this.z[i] = lightHeight(lights.height[k]!, lights.radius[k]!) / camera.scale;
+            this.bottom[i] = lights.height[k]! / camera.scale;
+            this.top[i] = lightTop(lights.height[k]!, lights.radius[k]!) / camera.scale;
             // As the buffer takes it: no brighter than its glow can be drawn, at its headroom's share.
             this.brightness[i] = Math.min(LIGHT_HEADROOM, lights.brightness[k]!);
             this.cone[i] = cone && (x1 !== x0 || y1 !== y0);
@@ -127,9 +131,13 @@ export class LightField {
             const y1 = this.y1[k]!;
             if (x < Math.min(x0, x1) - reach || x > Math.max(x0, x1) + reach) continue;
             if (y < Math.min(y0, y1) - reach || y > Math.max(y0, y1) + reach) continue;
-            const rise = this.z[k]! - surface;
-            if (!(rise > 0)) continue;
-            const strength = this.brightness[k]! * shine(x - x0, y - y0, x1 - x0, y1 - y0, reach, this.cone[k]!, rise);
+            const top = this.top[k]!;
+            const bottom = this.bottom[k]!;
+            const lowest = Math.max(surface, bottom);
+            if (!(top > lowest)) continue;
+            const share = (top - lowest) / (top - bottom);
+            const rise = (lowest + top) / 2 - surface;
+            const strength = this.brightness[k]! * share * shine(x - x0, y - y0, x1 - x0, y1 - y0, reach, this.cone[k]!, rise);
             if (strength <= 0) continue;
             r += this.r[k]! * strength;
             g += this.g[k]! * strength;
@@ -153,6 +161,11 @@ export const LIGHT_RISE = 0.4;
 /** How high a light stands above the deck: its layer's `height`, and then a share of its glow's `radius`. In whatever units both are in. */
 export function lightHeight(height: number, radius: number): number {
     return height + radius * LIGHT_RISE;
+}
+
+/** The top of a light, as thick as a flame: as far above where it stands as its layer is below. */
+export function lightTop(height: number, radius: number): number {
+    return height + 2 * radius * LIGHT_RISE;
 }
 
 /**

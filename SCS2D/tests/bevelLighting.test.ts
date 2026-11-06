@@ -3,7 +3,7 @@ import { BEVEL_QUAD_STRIDE, bevelGain, pushLitBevel } from "../render/bevelLight
 
 const gain = (light: number[], tx: number, ty: number, nx: number, ny: number): number[] => {
     const out = [0, 0, 0];
-    bevelGain(light, tx, ty, nx, ny, 4, out);
+    bevelGain(light, [Math.max(tx, 0), Math.max(-tx, 0), Math.max(ty, 0), Math.max(-ty, 0)], nx, ny, 4, out);
     return out;
 };
 
@@ -16,6 +16,15 @@ describe("a bevel lit by the dynamic lights", () => {
         expect(gain(white, 0.3, 0, 0, 1)).toEqual([0, 0, 0]);
         // Squarer, more.
         expect(gain(white, 0.3, 0, 1, 0)[0]).toBeGreaterThan(gain(white, 0.3, 0, Math.SQRT1_2, Math.SQRT1_2)[0]);
+    });
+
+    it("between two lights, takes each on the side facing it, rather than their directions cancelling", () => {
+        const white = [0.5, 0.5, 0.5];
+        const out = [0, 0, 0];
+        for (const nx of [1, -1]) {
+            bevelGain(white, [0.3, 0.3, 0, 0], nx, 0, 4, out);
+            expect(out[0]).toBeCloseTo(gain(white, 0.3, 0, 1, 0)[0]!, 12);
+        }
     });
 
     it("takes more the more light comes from that side, easing towards full", () => {
