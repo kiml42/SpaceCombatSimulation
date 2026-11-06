@@ -10,6 +10,7 @@ import {
     type ShipDesign,
 } from "../sim/index.js";
 import { engineLayout } from "./engineLayout.js";
+import { CLAW_JAW_SHARE } from "./moduleFills.js";
 
 /**
  * Which edges of a design's modules are bevelled: those on its outline, where
@@ -62,7 +63,7 @@ const built = new WeakMap<ShipDesign, Bevels[]>();
 export function bevelsOf(design: ShipDesign, m: number): Bevels {
     let all = built.get(design);
     if (all === undefined) {
-        const shapes = design.modules.map((other, k) => [bevelOutline(other.spec), ...mountsOf(design, k).polygons]);
+        const shapes = design.modules.map((other, k) => [...solidsOf(other.spec), ...mountsOf(design, k).polygons]);
         const edges = design.modules.map((_, i) => bevelled(design, i, shapes));
         mitre(design, edges);
         all = edges;
@@ -90,7 +91,8 @@ export function isBevelled(spec: ModuleSpec): boolean {
 /**
  * The outline that is bevelled, anticlockwise in the module's frame: its box
  * or its corners, or only the pump of an engine or the block of a hull mount,
- * whose chambers, bells and outlets are their own shapes.
+ * whose chambers, bells and outlets are their own shapes. A claw's runs round
+ * its jaws and into the gap between them.
  */
 export function bevelOutline(spec: ModuleSpec): number[] {
     const l = spec.length / 2;
@@ -104,8 +106,25 @@ export function bevelOutline(spec: ModuleSpec): number[] {
         const block = -l + hullMountGeometry(spec).blockLength;
         return [-l, -w, block, -w, block, w, -l, w];
     }
+    if (spec.kind === "claw") {
+        const jaw = spec.width * CLAW_JAW_SHARE;
+        return [-l, -w, l, -w, l, -w + jaw, 0, -w + jaw, 0, w - jaw, l, w - jaw, l, w, -l, w];
+    }
     const corners = shapeOf(spec);
     return corners === null ? [-l, -w, l, -w, l, w, -l, w] : [...corners];
+}
+
+/** `bevelOutline` as convex pieces, for asking what is inside it: a claw's pump and jaws apart. */
+function solidsOf(spec: ModuleSpec): number[][] {
+    if (spec.kind !== "claw") return [bevelOutline(spec)];
+    const l = spec.length / 2;
+    const w = spec.width / 2;
+    const jaw = spec.width * CLAW_JAW_SHARE;
+    return [
+        [-l, -w, 0, -w, 0, w, -l, w],
+        [0, -w, l, -w, l, -w + jaw, 0, -w + jaw],
+        [0, w - jaw, l, w - jaw, l, w, 0, w],
+    ];
 }
 
 /** How high a module stands: the hull, or above it. A turret's block is hull. */
@@ -251,7 +270,7 @@ export function mountsOf(design: ShipDesign, m: number): Mounts {
     let all = mounted.get(design);
     if (all === undefined) {
         // Another engine by its whole block, so two built onto each other each mount to the other.
-        const shapes = design.modules.map((other) => [other.spec.kind === "engine" ? engineBlock(other.spec) : bevelOutline(other.spec)]);
+        const shapes = design.modules.map((other) => (other.spec.kind === "engine" ? [engineBlock(other.spec)] : solidsOf(other.spec)));
         all = design.modules.map((module, i) => (module.spec.kind === "engine" ? engineMounts(design, i, shapes) : NO_MOUNTS));
         mounted.set(design, all);
     }

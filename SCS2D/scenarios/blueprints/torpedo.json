@@ -1,6 +1,7 @@
 {
   "formatVersion": 2,
   "name": "Torpedo",
+  "category": "Stock",
   "notes": "A torpedo is a fighter with nothing to shoot: the Dinky's frame with its gun taken off for an armoured nose, and a doctrine that rams. It flies in the weapons layer, where turrets can reach it, and takes the hull layer as well only when it commits.",
   "fighter": true,
   "doctrine": {

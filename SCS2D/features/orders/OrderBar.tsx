@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useLibrary } from "~/features/storage/useLibrary";
 import { ANYWHERE, type BattleView, type Verb } from "~/host/battleView";
 import { choices, remodels, type Remodel } from "~/host/designChoices";
+import { byCategory } from "~/editor/library";
 import { viewOf } from "~/render/picking";
 import type { Snapshot } from "~/sim/index";
 import { OrderCancelCondition } from "~/sim/ships";
@@ -262,10 +263,17 @@ function RemodelPicker({
                 onChange={(event) => setChosen(event.target.value)}
             >
                 <option value="">{current}</option>
-                {offered.map(({ choice, kept, of, bay }, n) => (
-                    <option key={choice.label} value={n}>
-                        {`${choice.label} · keeps ${Math.round((100 * kept) / Math.max(1, of))}%${bay ? "" : " · ⚠ no robot bay"}`}
-                    </option>
+                {byCategory(
+                    offered.map((remodel, n) => ({ ...remodel, n })),
+                    ({ choice }) => choice.blueprint.category,
+                ).map(([category, group]) => (
+                    <optgroup key={category} label={category}>
+                        {group.map(({ choice, kept, of, bay, n }) => (
+                            <option key={choice.label} value={n}>
+                                {`${choice.label} · keeps ${Math.round((100 * kept) / Math.max(1, of))}%${bay ? "" : " · ⚠ no robot bay"}`}
+                            </option>
+                        ))}
+                    </optgroup>
                 ))}
             </select>
             {state.crewed && (

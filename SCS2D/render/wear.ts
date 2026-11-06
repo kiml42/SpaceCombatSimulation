@@ -1,4 +1,4 @@
-import { originOf, type ShipDesign } from "../sim/index.js";
+import { moduleCentre, originOf, shellOf, type ShipDesign } from "../sim/index.js";
 import type { Affine } from "./livery.js";
 
 /**
@@ -127,12 +127,20 @@ export function wearTile(level: number): HTMLCanvasElement | OffscreenCanvas | n
  * From a wear tile's texels to module `m`'s own frame: laid in the frame of
  * the design it was built in, `WEAR_OF_RADIUS` of that design's radius across,
  * and moved and turned by which module it is there, so two modules hurt alike
- * look different and a piece cut away keeps its wear.
+ * look different and a piece cut away keeps its wear. A shell's frame is
+ * centred on what of its module stands, so its wear stays where it was.
  */
 export function wearTransform(design: ShipDesign, m: number): Affine {
     const origin = originOf(design, m);
     const built = origin.design;
-    const module = built.modules[origin.module]!;
+    const whole = built.modules[origin.module]!;
+    const shell = design.modules[m]!.shell;
+    let module = { x: whole.x, y: whole.y, angle: whole.angle };
+    if (shell !== undefined) {
+        const centre = moduleCentre(whole.spec);
+        const part = shellOf(whole.spec, whole.stats, shell.face, shell.share).spec;
+        module = { x: whole.x + part.x - centre.x, y: whole.y + part.y - centre.y, angle: whole.angle };
+    }
     const s = (WEAR_OF_RADIUS * built.radius) / WEAR_TILE;
     const turn = hash(origin.module, 0, 6) * 2 * Math.PI;
     const shiftX = hash(origin.module, 1, 7) * WEAR_TILE * s;

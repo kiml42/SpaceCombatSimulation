@@ -17,6 +17,7 @@
     "Star Destroyer": {
       "formatVersion": 2,
       "name": "Star Destroyer",
+      "category": "Star Wars",
       "notes": "A capital. Its batteries go for the biggest thing on the board — nothing in the battle outweighs it, so a preference for its own mass is a preference for whatever is largest — and they shoot to disable rather than to destroy: guns, then engines, and never the hull while either is left.",
       "doctrine": {
         "targeting": {
@@ -1042,6 +1043,7 @@
     "TIE Fighter": {
       "formatVersion": 2,
       "name": "TIE Fighter",
+      "category": "Star Wars",
       "notes": "A fighter, and a fighter's doctrine: other fighters first, by preferring a target about the size of an X-Wing, and guns and engines rather than hull. What is left over is a capital with its guns stripped, which is more than a TIE could have done to it by shooting at the hull. The ball is the whole ship: a spine of cockpit down the middle, a gun let into the hull either side of it, an engine outboard of each gun with its bell out the back, and plating filling the rest out to a circle. Nothing is bolted on to be shot off.",
       "fighter": true,
       "doctrine": {

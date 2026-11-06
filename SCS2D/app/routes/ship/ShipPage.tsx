@@ -20,12 +20,12 @@ import { backToFleet, wearingFleets, withLivery } from "~/editor/livery";
 import { LiveryPanel } from "~/features/livery/LiveryPanel";
 import { battleRoute, designRoute, fleetRoute, handedDesign, shipFleet, type DesignInFleet } from "~/editor/handoff";
 import { draftOf, keepDraft, sameShip } from "~/editor/draft";
-import { emptyBlueprint, nextName, toFileText, unusedName } from "~/editor/library";
+import { emptyBlueprint, nextName, toFileText, UNCATEGORISED, unusedName } from "~/editor/library";
 import { ANGLE_SNAP_DEGREES, type ShipCanvas as Engine } from "~/editor/shipCanvas";
 import { buildTime } from "~/editor/stats";
 import type { KeyRow } from "~/host/keyHelp";
 import { ARC_LABELS } from "~/render/canvas2d";
-import { billOfFleet, canFight, fleetFault, overLimit } from "~/scenarios/skirmish";
+import { billOfFleet, canFight, fleetFault, inSkirmish, overLimit } from "~/scenarios/skirmish";
 import {
     fighterProblem,
     parseBlueprint,
@@ -40,7 +40,8 @@ import {
 import { Button, ToggleButton } from "~/ui/buttons/Button";
 import { KeyHelp } from "~/ui/dialogs/KeyHelp";
 import { LiveText } from "~/ui/fields/LiveText";
-import { fromLibrary, optionLabel, optionValue } from "../fleet/fleetOptions";
+import { fromLibrary } from "../fleet/fleetOptions";
+import { LibraryOptions } from "../fleet/LibraryOptions";
 import { AddModule } from "./AddModule";
 import { AssemblyPanel, SeveralSelected } from "./AssemblyPanels";
 import type { DoctrineOpen } from "./DoctrineDetails";
@@ -212,6 +213,9 @@ export function ShipPage() {
     const [search, setSearch] = useSearchParams();
     const navigate = useNavigate();
     const [inFleet] = useState(() => handed(search));
+    // In a skirmish, what is made or changed is filed under the skirmish.
+    const filed = (blueprint: Blueprint): Blueprint =>
+        inFleet?.skirmish === undefined ? blueprint : inSkirmish(blueprint, inFleet.skirmish);
     const [doc] = useState(() => {
         const named = search.get("open");
         // The work as it was left, before the saved copy of the same ship.
@@ -222,7 +226,7 @@ export function ShipPage() {
             inFleet === null
                 ? null
                 : wearingFleets(withFleetFighters(inFleet.fleet.designs[inFleet.design]!, inFleet.fleet.designs), inFleet.fleet);
-        return new EditorDocument(opened ?? read() ?? emptyBlueprint("New ship"));
+        return new EditorDocument(filed(opened ?? read() ?? emptyBlueprint("New ship")));
     });
     // The document is changed in place; this is what re-renders the panels when it is.
     const [, changed] = useReducer((n: number) => n + 1, 0);
@@ -240,8 +244,8 @@ export function ShipPage() {
         doc,
         change: (next, continues = false) => {
             if (next === null) return;
-            if (continues && gesture.current) doc.amend(next);
-            else doc.apply(next);
+            if (continues && gesture.current) doc.amend(filed(next));
+            else doc.apply(filed(next));
             gesture.current = continues;
             refresh();
         },
@@ -258,7 +262,7 @@ export function ShipPage() {
         if (origin !== null) editing.change(removeCopy(doc.blueprint, origin));
     };
     const reopen = (blueprint: Blueprint): void => {
-        doc.replace(blueprint);
+        doc.replace(filed(blueprint));
         engine?.easeToNext();
         gesture.current = false;
         refresh();
@@ -383,11 +387,7 @@ export function ShipPage() {
                     }}
                 >
                     {!listed && <option value={name}>{`${name} (unsaved)`}</option>}
-                    {entries.map((entry) => (
-                        <option key={optionValue(entry)} value={optionValue(entry)}>
-                            {optionLabel(entry)}
-                        </option>
-                    ))}
+                    <LibraryOptions entries={entries} />
                 </select>
                 <LiveText
                     id="shipName"
@@ -670,6 +670,35 @@ export function ShipPage() {
                         }}
                         onEnd={editing.endGesture}
                     />
+                    <section>
+                        <h2>Category</h2>
+                        <LiveText
+                            id="shipCategory"
+                            aria-label="Category"
+                            list="shipCategories"
+                            disabled={inFleet?.skirmish !== undefined}
+                            title={
+                                inFleet?.skirmish === undefined
+                                    ? "What it is grouped under wherever ships are chosen"
+                                    : "Filed under the skirmish it is made for"
+                            }
+                            placeholder={UNCATEGORISED}
+                            value={blueprint.category ?? ""}
+                            onStart={editing.endGesture}
+                            onType={(typed) => {
+                                const text = typed.trim();
+                                const next = { ...doc.blueprint };
+                                if (text === "") delete next.category;
+                                else next.category = text;
+                                editing.change(next, true);
+                            }}
+                        />
+                        <datalist id="shipCategories">
+                            {[...new Set(entries.flatMap((entry) => entry.category ?? []))].sort().map((category) => (
+                                <option key={category} value={category} />
+                            ))}
+                        </datalist>
+                    </section>
                     <section>
                         <h2>Ship notes</h2>
                         <LiveText

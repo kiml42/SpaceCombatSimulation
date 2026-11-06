@@ -18,6 +18,7 @@
     "Ghost": {
       "formatVersion": 2,
       "name": "Ghost",
+      "category": "Star Wars",
       "notes": "A light freighter that fights whatever is nearest, whatever size it is: it takes no view on how big a target should be, and a great deal of view on how close. Guns first, then engines — it has neither the weight of fire nor the time to chew through a hull.",
       "doctrine": {
         "targeting": {
@@ -247,6 +248,7 @@
     "X Wing": {
       "formatVersion": 2,
       "name": "X Wing",
+      "category": "Star Wars",
       "notes": "A fighter. It goes after other fighters, and shoots at what makes one dangerous rather than at what holds it together: a laser this light does nothing useful to a capital's plating, but it can strip the guns and engines off anything its own size — and off a capital, once its own size has run out. It goes in fast and close, since a fighter that stands off from a capital is only a slower target.",
       "fighter": true,
       "doctrine": {
@@ -537,6 +539,7 @@
     "Y Wing": {
       "formatVersion": 2,
       "name": "Y Wing",
+      "category": "Star Wars",
       "fighter": true,
       "doctrine": {
         "targeting": {
@@ -750,6 +753,7 @@
     "A Wing": {
       "formatVersion": 2,
       "name": "A Wing",
+      "category": "Star Wars",
       "fighter": true,
       "doctrine": {
         "targeting": {
@@ -978,6 +982,7 @@
     "Quasar Fire-class cruiser-carrier": {
       "formatVersion": 2,
       "name": "Quasar Fire-class cruiser-carrier",
+      "category": "Star Wars",
       "doctrine": {
         "approach": {
           "separation": 800,

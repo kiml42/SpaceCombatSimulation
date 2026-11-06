@@ -1,6 +1,7 @@
 {
   "formatVersion": 2,
   "name": "Y Wing",
+  "category": "Star Wars",
   "fighter": true,
   "doctrine": {
     "targeting": {

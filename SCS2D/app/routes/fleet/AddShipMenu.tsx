@@ -1,8 +1,8 @@
 import { styled } from "@linaria/react";
-import { useEffect, useRef } from "react";
+import { Fragment, useEffect, useRef } from "react";
 import type { RosterLine } from "~/editor/fleetDocument";
-import type { LibraryEntry } from "~/editor/library";
-import { CARRIED, optionValue } from "./fleetOptions";
+import { byCategory, type LibraryEntry } from "~/editor/library";
+import { CARRIED, optionLabel, optionValue } from "./fleetOptions";
 import { Button } from "~/ui/buttons/Button";
 
 const Adding = styled.div`
@@ -64,7 +64,7 @@ export interface AddShipMenuProps {
     readonly onAddFile: (file: File) => void;
 }
 
-/** Add a ship: one the fleet carries first, then the player's, then stock; or one from a file. */
+/** Add a ship: one the fleet carries first, then the library's by category; or one from a file. */
 export function AddShipMenu({ open, onOpen, roster, library, onAdd, onAddFile }: AddShipMenuProps) {
     const menu = useRef<HTMLDivElement>(null);
     const file = useRef<HTMLInputElement>(null);
@@ -120,16 +120,14 @@ export function AddShipMenu({ open, onOpen, roster, library, onAdd, onAddFile }:
                         "In this fleet",
                         roster.map((line) => [CARRIED + line.name, line.name]),
                     )}
-                    {group(
-                        "Saved",
-                        library.filter((entry) => !entry.stock).map((entry) => [optionValue(entry), entry.name]),
-                    )}
-                    {group(
-                        "Stock",
-                        library
-                            .filter((entry) => entry.stock)
-                            .map((entry) => [optionValue(entry), entry.name + (entry.saved ? " (stock)" : "")]),
-                    )}
+                    {byCategory(library, (entry) => entry.category).map(([category, entries]) => (
+                        <Fragment key={category}>
+                            {group(
+                                category,
+                                entries.map((entry) => [optionValue(entry), optionLabel(entry)]),
+                            )}
+                        </Fragment>
+                    ))}
                 </Menu>
             )}
             <input

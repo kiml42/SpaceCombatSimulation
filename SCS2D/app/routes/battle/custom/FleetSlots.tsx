@@ -1,6 +1,7 @@
 import { styled } from "@linaria/react";
 import { useRef } from "react";
 import { shipFleet } from "~/editor/handoff";
+import { namesByCategory } from "~/editor/library";
 import { useLibrary } from "~/features/storage/useLibrary";
 import { sidesOf, teamColour } from "~/render/teams";
 import { fleetWarnings, parseBlueprint, parseFleet, type Fleet } from "~/sim/index";
@@ -96,7 +97,7 @@ export function FleetSlots({ slots, onChange, onEdit, onProblem }: FleetSlotsPro
 
     const sides = sidesOf(slots.map((slot) => slot.fleet.livery));
     const fleetNames = names(fleets.list());
-    const shipNames = names(ships.list());
+    const shipGroups = namesByCategory(ships.list());
     return (
         <section id="fleetSlots" aria-label="Fleets">
             {slots.map((slot, i) => (
@@ -111,13 +112,15 @@ export function FleetSlots({ slots, onChange, onEdit, onProblem }: FleetSlotsPro
                                 </option>
                             ))}
                         </optgroup>
-                        <optgroup label="Single ships">
-                            {shipNames.map((name) => (
-                                <option key={name} value={`ship:${name}`}>
-                                    {name}
-                                </option>
-                            ))}
-                        </optgroup>
+                        {shipGroups.map(([category, names]) => (
+                            <optgroup key={category} label={`Single ships: ${category}`}>
+                                {names.map((name) => (
+                                    <option key={name} value={`ship:${name}`}>
+                                        {name}
+                                    </option>
+                                ))}
+                            </optgroup>
+                        ))}
                     </select>
                     <EditButton
                         label={`Edit side ${i + 1}`}

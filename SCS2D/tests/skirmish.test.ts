@@ -9,6 +9,7 @@ import {
     canFight,
     DEFAULT_SKIRMISH_SETTINGS,
     fleetFault,
+    inSkirmish,
     lost,
     newSkirmish,
     enemyLimits,
@@ -214,6 +215,13 @@ describe("deciding a skirmish battle", () => {
 });
 
 describe("the skirmish", () => {
+    it("files a ship made or changed for it under its name", () => {
+        const skirmish = newSkirmish(LINE_OF_BATTLE, LINE_OF_BATTLE, 5, undefined, undefined, "Long war");
+        expect(inSkirmish(GUNSHIP, skirmish).category).toBe("Long war");
+        expect(inSkirmish(GUNSHIP, newSkirmish(LINE_OF_BATTLE, LINE_OF_BATTLE, 5)).category).toBe("Skirmish");
+        expect(GUNSHIP.category).toBe("Stock");
+    });
+
     it("takes its budget from the enemy, so the enemy itself fits it", () => {
         const skirmish = newSkirmish(LINE_OF_BATTLE, LINE_OF_BATTLE, 5);
         expect(skirmish.budget).toEqual(billOfFleet(LINE_OF_BATTLE));

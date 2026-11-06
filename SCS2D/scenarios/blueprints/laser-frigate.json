@@ -1,6 +1,7 @@
 {
   "formatVersion": 2,
   "name": "Laser Frigate",
+  "category": "Stock",
   "doctrine": {
     "targeting": {
       "proximityWeight": 50,

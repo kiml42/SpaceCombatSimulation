@@ -1,6 +1,7 @@
 {
   "formatVersion": 2,
   "name": "Salvager",
+  "category": "Stock",
   "notes": "Unarmed, with a claw on the bow, robots behind the core and an empty hold, so everything it brings home is metal off a wreck. Below nine tenths of a full hold it goes for the wreck, or the hulk nobody is mending, that pays most for the time it takes, avoiding any an armed enemy is near; it grips it and holds on while its robots take it apart into the hold, then moves on to the next until the hold is full. It drinks fuel too, below half a tank, from what it grips. It works up close, so it has much the same thrust every way: it can hold itself off what it grips jaws first, an asteroid pulling at it included, as well as push on to it.",
   "doctrine": {
     "approach": {
