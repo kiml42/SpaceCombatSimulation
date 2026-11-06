@@ -19,6 +19,7 @@ import {
     ROBOT_SPENT,
     CLAW_GRIP_CHANCE,
 } from "./ships.js";
+import * as shipSupply from "./shipSupply.js";
 
 /**
  * Welding: two hulls that meet slowly enough, or a claw that closes on what its
@@ -306,7 +307,7 @@ export function mates(ships: Ships, world: World, a: number, ma: number, b: numb
         ships.salvaging[s] === t &&
         ships.ownPort[s] === own &&
         ships.dockPort[s] === theirs &&
-        !ships.threatened(bodies, s, s === i ? b : a, true);
+        !shipSupply.threatened(ships, bodies, s, s === i ? b : a, true);
     return wants(i, j, ma, mb) || wants(j, i, mb, ma);
 }
 
@@ -348,7 +349,7 @@ export function grips(
     const friend = !ships.drinkable(holder, held);
     if (friend && !ships.sentToDrink(holder, held)) return false;
     // A friend still flying gives only what it holds above its own reserve.
-    const drinks = ships.fuel.pieceRoom(b, m) > 0 && ships.fuel.pieceHeld(o, mo) > (friend ? ships.reserve(o, mo) : 0);
+    const drinks = ships.fuel.pieceRoom(b, m) > 0 && ships.fuel.pieceHeld(o, mo) > (friend ? shipSupply.fuelReserve(ships, o, mo) : 0);
     // Rock is mined for its ice as well as its ore, and a claw alone can melt the ice out.
     const rock = ships.hullDesign[o]?.modules[mo]?.spec;
     const ice = rock?.kind === "rock" ? (rock.ice ?? 0) : 0;
@@ -359,7 +360,7 @@ export function grips(
         shipRebuild.canStrip(ships, b, holder, m, world.dt);
     if (!drinks && !strips && !heats && !ships.wantsAnchor(bodies, holder)) return false;
     // One anchoring to build holds its ground: let go, it would only come back to the rock.
-    if (!ships.sentTo(holder) && !ships.wantsAnchor(bodies, holder) && ships.threatened(bodies, holder, o, false)) return false;
+    if (!ships.sentTo(holder) && !ships.wantsAnchor(bodies, holder) && shipSupply.threatened(ships, bodies, holder, o, false)) return false;
     if (world.tick - ships.clawTried[holder]! < CLAW_RETRY / world.dt) return false;
     ships.clawTried[holder] = world.tick;
     if (world.rng.nextFloat() >= clawChance(force, bite, ships.damage.integrity(o, mo))) return false;

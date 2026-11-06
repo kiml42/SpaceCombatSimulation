@@ -20,7 +20,6 @@ import {
     triggerMask,
     weldDesigns,
     type Footprint,
-    type Seam,
     type DesignTurret,
     type ShipDesign,
 } from "./blueprint.js";
@@ -68,7 +67,6 @@ import { burnGain, pushBearing, pushTorque, spinWay, steerHeading, STEER_HOLD_SP
 import { addFlame, addTurret, attackBearing, AttackArcs, AttackRegion } from "./attack.js";
 import { FiringSolution, interceptTime, Turrets, TurretState } from "./turrets.js";
 import {
-    DEFAULT_DOCTRINE,
     holdBand,
     edgeFade,
     overriddenDoctrine,
@@ -107,6 +105,7 @@ import * as shipRobots from "./shipRobots.js";
 import * as shipRebuild from "./shipRebuild.js";
 import type { Rebuild, StripShape } from "./shipRebuild.js";
 import * as shipWeld from "./shipWeld.js";
+import * as shipSupply from "./shipSupply.js";
 
 /**
  * Ships: a compiled design bound to a body, flying itself and shooting.
@@ -262,9 +261,6 @@ const BURN_MARGIN = 0.25;
 
 /** The least share of a change turning to burn must make sooner than holding would, to start. */
 const BURN_START = 0.25;
-
-/** Seconds of closing at its approach speed that stand in for an unarmed rammer's reach in choosing a target. */
-const RAM_HORIZON = 60;
 
 /** How hard a fleeing ship eases off once clear of every enemy's reach, m/s². */
 const FLEE_EASE = 3;
@@ -573,7 +569,7 @@ export function workforce(kind: string): boolean {
 }
 
 /** Whether body `b` holds less than `share` of a full load of `store` on module `m`'s piece, with room for more. */
-function short(store: Store, b: number, m: number, share: number): boolean {
+export function short(store: Store, b: number, m: number, share: number): boolean {
     const held = store.pieceHeld(b, m);
     const room = store.pieceRoom(b, m);
     return room > 0 && held < share * (held + room);
@@ -876,7 +872,7 @@ export class Ships {
     readonly metal = new Metal();
     readonly power = new Charge();
     /** Who gets the stores' contents when there is not enough to go round. */
-    private readonly supply = new Supply([this.fuel, this.metal, this.power]);
+    readonly supply = new Supply([this.fuel, this.metal, this.power]);
     /** The world's step, for `supply`. */
     tick = 0;
     readonly robots = new Robots();
@@ -1097,9 +1093,9 @@ export class Ships {
      * queue is empty and is never written into it. An order given is an order
      * obeyed, and a ship that has run out of orders is not left idle.
      */
-    private readonly chosen: number[] = [];
+    readonly chosen: number[] = [];
     /** A fighter's `fightReach` as it landed on a pad, or as the one a pad is building will be. */
-    private readonly landedReach: number[] = [];
+    readonly landedReach: number[] = [];
     /** The ship its doctrine has committed it to ramming, or `NO_TARGET`. Kept until that ship is out of the fight. */
     private readonly ramming: number[] = [];
     /** The tick each ship last fired a gun or a beam, or -1. */
@@ -1111,9 +1107,9 @@ export class Ships {
     /** Whether each ship is refuelling: from running low until its claw's piece is full. */
     private readonly refuelling: number[] = [];
     /** Whether each ship is being filled at a friend's port: from running down to `refuelBelow` until it is full. */
-    private readonly docking: number[] = [];
+    readonly docking: number[] = [];
     /** Whether each ship is taking fuel to a friend: from setting out until it has given what it can spare. */
-    private readonly delivering: number[] = [];
+    readonly delivering: number[] = [];
     /** Whether each ship's doctrine has it withdrawing, to hide or flee (`decide`). */
     private readonly withdrawing: number[] = [];
     /** What each withdrawing ship hides behind, or `NO_TARGET` to flee. */
@@ -1215,15 +1211,15 @@ export class Ships {
     /** Each builder's slipways and what they are building; null for a ship with none that builds. */
     private readonly yards: (Yard | null)[] = [];
     /** Whether each ship is still going up on a slipway, its walls not yet all built. */
-    private readonly printing: number[] = [];
+    readonly printing: number[] = [];
     /** The ship that built each ship on a slipway, while the ship is still clearing it; -1 for none. */
-    private readonly clearing: number[] = [];
+    readonly clearing: number[] = [];
     /** The tick each such ship was let go. */
-    private readonly clearingSince: number[] = [];
+    readonly clearingSince: number[] = [];
     /** Scratch for a module's outline, measured against a slipway's face. */
     private readonly faceCorners: number[] = [];
     /** The tick each carrier last put work into a fighter it is building; -1 for never. */
-    private readonly builtAt: number[] = [];
+    readonly builtAt: number[] = [];
     /** Whether each ship has been refitted to a design other than the one it set out as (`refit`). */
     readonly refitting: number[] = [];
     /** The port, by module of its ship's design, a ship is making for to refuel; -1 for none. */
@@ -2015,7 +2011,7 @@ export class Ships {
             team: spec.team ?? 0,
             ...(spec.invulnerable === true ? { invulnerable: true } : {}),
         });
-        this.landedReach[f] = this.fightReach(f);
+        this.landedReach[f] = shipSupply.fightReach(this, f);
         this.park(bodies, i, f, pad);
         this.home[f] = i;
         return f;
@@ -2086,7 +2082,7 @@ export class Ships {
         // nothing to shoot with at all.
         const approach = this.doctrines[i]!.approach;
         const rammer = approach.ramRadii > 0;
-        const reach = this.fightReach(i);
+        const reach = shipSupply.fightReach(this, i);
         if ((design.reach > 0 && !this.isDisarmed(i)) || (rammer && reach > 0)) {
             const wanted = doctrine.ramMass > 0 && this.wouldRam(bodies, i, b) ? doctrine.ramMass : doctrine.preferredMass;
             // Defending, only what is attacking its charge, while anything is.
@@ -2668,7 +2664,7 @@ export class Ships {
     private withdraws(i: number, b: number, fighting: number): boolean {
         const approach = this.doctrines[i]!.approach;
         const share = this.armedShare(i, b, false);
-        const leaving = this.tools === 0 ? !(this.fightReach(i) > 0) : share <= approach.fleeArmed;
+        const leaving = this.tools === 0 ? !(shipSupply.fightReach(this, i) > 0) : share <= approach.fleeArmed;
         if (!leaving) return false;
         if (fighting !== NO_TARGET && this.rams(i, fighting)) return false;
         for (let e = 0; e < this.alive.length; e++) if (this.hostile(i, e) && this.armed(e)) return true;
@@ -2763,8 +2759,8 @@ export class Ships {
             for (let pad = 0; pad < modules.length; pad++) {
                 if (modules[pad]!.spec.kind !== "pad" || !(modules[pad]!.stats.pumpRate > 0)) continue;
                 if (!this.fitsPad(box, modules[pad]!.spec) || !(this.left(t, tb, pad, DamageEffect.Grip) > 0)) continue;
-                if (metalRoom > 0 && this.metal.pieceHeld(tb, pad) > this.metalReserve(tb, pad)) return true;
-                if (chargeRoom > 0 && this.power.pieceHeld(tb, pad) > this.chargeReserve(tb, pad)) return true;
+                if (metalRoom > 0 && this.metal.pieceHeld(tb, pad) > shipSupply.metalReserve(this, tb, pad)) return true;
+                if (chargeRoom > 0 && this.power.pieceHeld(tb, pad) > shipSupply.chargeReserve(this, tb, pad)) return true;
             }
         }
         return false;
@@ -3977,9 +3973,9 @@ export class Ships {
                 if (gun.type == GunType.Projectile) {
                     // A gun with nothing to load holds, ready, until there is.
                     const mount = design.turrets[t]!.module;
-                    if (this.allowed(Resource.Metal, bodyIdx, mount, Claim.Fire, gun.roundMass) < gun.roundMass) continue;
+                    if (shipSupply.allowed(this, Resource.Metal, bodyIdx, mount, Claim.Fire, gun.roundMass) < gun.roundMass) continue;
                     if (!this.metal.load(bodyIdx, mount, gun.roundMass)) continue;
-                    this.took(Resource.Metal, bodyIdx, mount, Claim.Fire, gun.roundMass);
+                    shipSupply.took(this, Resource.Metal, bodyIdx, mount, Claim.Fire, gun.roundMass);
                     loaded = true;
                     const fuse = design.modules[design.turrets[t]!.module]!.spec;
                     projectiles.fireFrom(
@@ -5236,7 +5232,7 @@ export class Ships {
             if ((only !== NO_TARGET && e !== only) || !this.hostile(i, e) || !this.armed(e)) continue;
             const eb = bodies.indexOf(this.bodyIds[e]!);
             if (eb < 0 || eb === b) continue;
-            const clear = (this.fightReach(e) + mine) * approach.fleeMargin;
+            const clear = (shipSupply.fightReach(this, e) + mine) * approach.fleeMargin;
             const dx = bodies.x[eb]! - x;
             const dy = bodies.y[eb]! - y;
             const d = length(dx, dy);
@@ -5991,422 +5987,8 @@ export class Ships {
         return shipWeld.weld(this, world, contacts);
     }
 
-    /**
-     * Pump what every working claw holds into its own piece of hull, and let go
-     * once its piece is full or what it holds is dry, and say how many let go.
-     *
-     * A claw keeps hold while it cannot pump — its jaws are shut — so only one
-     * that is still working decides it is done.
-     */
     pump(world: World): number {
-        this.tick = world.tick;
-        const bodies = world.bodies;
-        this.bodyStore = bodies;
-        let released = 0;
-        for (let i = 0; i < this.alive.length; i++) {
-            if (this.alive[i] === 0) continue;
-            const b = bodies.indexOf(this.bodyIds[i]!);
-            // A body is walked once, by its primary, however many ships ride it.
-            if (b < 0 || this.shipByBody[b] !== i) continue;
-            const design = this.designs[i]!;
-            const seams = design.seams;
-            if (seams === undefined || this.damage.isProtected(b)) continue;
-            let moved = false;
-            for (const seam of seams) {
-                if (seam.dock === undefined) continue;
-                const working = this.damage.remaining(b, seam.a, DamageEffect.Grip);
-                if (!(working > 0)) continue;
-                if (seam.dock === "slipway") {
-                    // Held while its walls go up, fitted out once they are, filled from
-                    // what the builder can spare, and let go once it has all it can take.
-                    const built = this.pilotAt(b, seam.b);
-                    if (built >= 0 && this.printing[built] === 1) continue;
-                    if (built >= 0 && this.unfinished[built] === 1) {
-                        const joules = SLIPWAY_BUILD_PER_METRE * design.modules[seam.a]!.spec.width * working * world.dt;
-                        if (this.tendAtFace(bodies, b, built, seam.a, joules)) this.builtAt[this.pilotAt(b, seam.a)] = world.tick;
-                        else if (!this.atFace(b, built, seam.a)) this.unfinished[built] = 0;
-                        continue;
-                    }
-                    if (built >= 0) {
-                        const rate = design.modules[seam.a]!.stats.pumpRate * working * world.dt;
-                        const cable = DOCK_POWER_PER_METRE * design.modules[seam.a]!.spec.width * working * world.dt;
-                        if (this.dockPump(Resource.Fuel, this.fuel, b, seam.a, seam.b, rate, Claim.Slipway) > 0) moved = true;
-                        if (this.dockPump(Resource.Metal, this.metal, b, seam.a, seam.b, rate, Claim.Slipway) > 0) moved = true;
-                        this.dockPump(Resource.Charge, this.power, b, seam.a, seam.b, cable, Claim.Slipway);
-                        // Held, as a pad holds a fighter, until it has what its doctrine leaves
-                        // with, or its builder has no more to spare and is not anchored to get more.
-                        const launch = this.doctrines[built]!.approach;
-                        const coming = this.isMoored(this.pilotAt(b, seam.a));
-                        const fuelLeft =
-                            short(this.fuel, b, seam.b, launch.launchFuel) &&
-                            (coming || this.fuel.pieceHeld(b, seam.a) > this.reserve(b, seam.a));
-                        const metalLeft =
-                            short(this.metal, b, seam.b, launch.launchMetal) &&
-                            (coming || this.metal.pieceHeld(b, seam.a) > this.metalReserve(b, seam.a));
-                        const chargeLeft =
-                            short(this.power, b, seam.b, launch.launchCharge) &&
-                            (coming || this.power.pieceHeld(b, seam.a) > this.chargeReserve(b, seam.a));
-                        if (fuelLeft || metalLeft || chargeLeft) continue;
-                    }
-                }
-                const rate = design.modules[seam.a]!.stats.pumpRate * working * world.dt;
-                // A ship that minds danger lets go the moment an armed enemy is in reach.
-                if (seam.dock !== "slipway" && !this.threatenedAt(bodies, b, seam)) {
-                    if (seam.dock === "claw") {
-                        // A claw drinks what it holds, and holds on while its robots can take it apart.
-                        const holder = this.pilotAt(b, seam.a);
-                        const source = this.pilotAt(b, seam.b);
-                        // A friend still flying, which it was sent to, gives what it holds above its reserve.
-                        const kept = holder >= 0 && source >= 0 && !this.drinkable(holder, source) ? this.reserve(b, seam.b) : 0;
-                        const offered = this.fuel.pieceHeld(b, seam.b) - kept;
-                        if (offered > 0 && this.fuel.transfer(b, seam.b, seam.a, rate < offered ? rate : offered) > 0) moved = true;
-                        if (this.fuel.pieceRoom(b, seam.a) > 0 && this.fuel.pieceHeld(b, seam.b) > kept) continue;
-                        if (
-                            holder >= 0 &&
-                            shipRebuild.canStrip(this, b, holder, seam.a, world.dt) &&
-                            shipRebuild.strippable(this, holder, b, design, seam.a)
-                        )
-                            continue;
-                        // Anchored while it builds, it holds on until what it is building is let go.
-                        if (holder >= 0 && this.wantsAnchor(bodies, holder)) continue;
-                        // With no robots to mine it, it melts the ice out of the rock itself.
-                        if (holder >= 0 && shipWeld.heat(this, b, design, seam.a, seam.b, working * world.dt)) {
-                            moved = true;
-                            continue;
-                        }
-                    } else if (seam.dock === "port") {
-                        // Two ports pass fuel, metal and charge into whichever ship is
-                        // refuelling, from what the other can spare, and part once it is
-                        // full, nothing more can be spared, or either is given an order.
-                        const oa = this.pilotAt(b, seam.a);
-                        const ob = this.pilotAt(b, seam.b);
-                        // Or out of whichever is delivering, whether the other asked or not.
-                        const intoB = (this.docking[ob] === 1 && this.docking[oa] !== 1) || this.delivering[oa] === 1;
-                        const intoA = (this.docking[oa] === 1 && this.docking[ob] !== 1) || this.delivering[ob] === 1;
-                        const ordered = this.commanded(oa) || this.commanded(ob);
-                        const bothWorking = this.damage.remaining(b, seam.b, DamageEffect.Grip);
-                        if (!(bothWorking > 0)) continue;
-                        if (!ordered && (intoA || intoB)) {
-                            const from = intoB ? seam.a : seam.b;
-                            const to = intoB ? seam.b : seam.a;
-                            // Through the narrower of the two couplings, as worn as the worse.
-                            const narrower = min(design.modules[seam.a]!.stats.pumpRate, design.modules[seam.b]!.stats.pumpRate);
-                            const flow = narrower * min(working, bothWorking) * world.dt;
-                            // Delivering, it keeps what it means to keep over its reserve.
-                            const over = this.fuel.pieceHeld(b, from) - this.keepsBack(b, from);
-                            if (this.dockPump(Resource.Fuel, this.fuel, b, from, to, flow < over ? flow : over, Claim.Ports) > 0)
-                                moved = true;
-                            if (this.dockPump(Resource.Metal, this.metal, b, from, to, flow, Claim.Ports) > 0) moved = true;
-                            // Charge alongside, through the narrower coupling's cabling.
-                            const cable =
-                                DOCK_POWER_PER_METRE *
-                                min(design.modules[seam.a]!.spec.width, design.modules[seam.b]!.spec.width) *
-                                min(working, bothWorking) *
-                                world.dt;
-                            this.dockPump(Resource.Charge, this.power, b, from, to, cable, Claim.Ports);
-                            const fuelLeft = this.fuel.pieceRoom(b, to) > 0 && this.fuel.pieceHeld(b, from) > this.keepsBack(b, from);
-                            const metalLeft = this.metal.pieceRoom(b, to) > 0 && this.metal.pieceHeld(b, from) > this.metalReserve(b, from);
-                            const chargeLeft =
-                                this.power.pieceRoom(b, to) > 0 && this.power.pieceHeld(b, from) > this.chargeReserve(b, from);
-                            if (fuelLeft || metalLeft || chargeLeft) continue;
-                        }
-                    }
-                }
-                // Done: the dock lets go, which `sever` reads as the seam cut through.
-                if (seam.dock === "slipway") {
-                    // What it built holds its engines until it is clear (`pushOff`).
-                    const built = this.pilotAt(b, seam.b);
-                    if (built >= 0) {
-                        this.clearing[built] = this.pilotAt(b, seam.a);
-                        this.clearingSince[built] = world.tick;
-                    }
-                }
-                const k = jointBetween(design, seam.a, seam.b);
-                this.damage.cutWeld(b, k, seam.width);
-                released++;
-            }
-            if (moved) this.settleMass(bodies, b);
-            shipRebuild.growAll(this, world);
-        }
-        for (let k = 0; k < this.parkedShips.length; k++) {
-            const f = this.parkedShips[k]!;
-            if (this.mooredClaw[f]! >= 0 ? this.tendMoored(world, f) : this.tendParked(world, f)) continue;
-            this.unpark(bodies, f, world.tick);
-            released++;
-            k--;
-        }
-        shipRebuild.growAll(this, world);
-        return released;
-    }
-
-    /**
-     * Pump up to `most` of resource `r` across a dock of body `b`, from module
-     * `from`'s piece to module `to`'s, as `claim` of the giver, wanting what
-     * the receiver has room for, and say how much went.
-     */
-    private dockPump(r: Resource, store: Store, b: number, from: number, to: number, most: number, claim: Claim): number {
-        if (!(most > 0)) return 0;
-        const spare = this.allowed(r, b, from, claim, store.pieceRoom(b, to));
-        if (!(spare > 0)) return 0;
-        const moved = store.transfer(b, from, to, most < spare ? most : spare);
-        this.took(r, b, from, claim, moved);
-        return moved;
-    }
-
-    /**
-     * Work the pad fighter `f` is parked on, and say whether it holds it still.
-     * One being built is built, and held until it is whole whatever else is
-     * going on. Anything else is filled with fuel, metal and charge, each from
-     * what the carrier can spare, and mended, and let go once it holds what its
-     * doctrine leaves with (`launchFuel` and its kind), or all the carrier can
-     * spare if that is less and the carrier is not anchored, and is mended; or
-     * at once once given an order. Danger lets it go once loaded, mended or not. A pad
-     * gone, or one that can no longer grip, lets go of anything.
-     */
-    private tendParked(world: World, f: number): boolean {
-        const bodies = world.bodies;
-        const pad = this.parkedPadOf(bodies, f);
-        const fb = bodies.indexOf(this.bodyIds[f]!);
-        if (pad < 0 || fb < 0 || this.alive[f] === 0 || this.derelict[f] === 1) return false;
-        const c = this.parkedOn[f]!;
-        const cb = this.carrierBodyOf(bodies, f);
-        const working = this.damage.remaining(cb, pad, DamageEffect.Grip);
-        if (!(working > 0)) return false;
-        if (this.damage.isProtected(cb)) return true;
-        const deck = this.designs[c]!.modules[pad]!.spec;
-        const work = PAD_REPAIR_PER_AREA * deck.length * deck.width * working * world.dt;
-        if (this.unfinished[f] === 1) {
-            const progress = this.mend(bodies, fb, f, pad, work, cb) || this.padBuild(bodies, fb, f, cb, pad, work);
-            if (progress) this.builtAt[c] = world.tick;
-            if (this.finished(fb, f, this.designs[f]!)) {
-                this.unfinished[f] = 0;
-                // Its reach as the fighter it now is, for whether it waits aboard.
-                const whole = this.launched[f]!;
-                const approach = this.doctrines[f]!.approach;
-                this.landedReach[f] = whole.reach > 0 ? whole.reach : approach.ramRadii > 0 ? approach.approachSpeed * RAM_HORIZON : 0;
-            }
-            return true;
-        }
-        const into = this.designs[f]!.cores[0] ?? 0;
-        const rate = this.designs[c]!.modules[pad]!.stats.pumpRate * working * world.dt;
-        const cable = DOCK_POWER_PER_METRE * deck.width * working * world.dt;
-        const fuel = this.across(Resource.Fuel, this.fuel, cb, pad, fb, into, rate);
-        const metal = this.across(Resource.Metal, this.metal, cb, pad, fb, into, rate);
-        this.across(Resource.Charge, this.power, cb, pad, fb, into, cable);
-        if (fuel > 0 || metal > 0) {
-            this.settleMass(bodies, fb);
-            this.settleMass(bodies, cb);
-        }
-        // Mended first, and then built back to what it set out as.
-        let repairLeft = this.mend(bodies, fb, f, pad, work, cb);
-        if (!repairLeft) repairLeft = this.padBuild(bodies, fb, f, cb, pad, work);
-        if (this.commanded(f)) return false;
-        // Loaded once it holds what its doctrine leaves with of each, or the
-        // carrier has no more of it to spare and is not getting any: an anchored
-        // carrier is mining or scavenging, so what it is short of is coming, and
-        // it waits for it.
-        const approach = this.doctrines[f]!.approach;
-        const coming = this.isMoored(c);
-        const fuelLeft =
-            short(this.fuel, fb, into, approach.launchFuel) && (coming || this.fuel.pieceHeld(cb, pad) > this.reserve(cb, pad));
-        const metalLeft =
-            short(this.metal, fb, into, approach.launchMetal) && (coming || this.metal.pieceHeld(cb, pad) > this.metalReserve(cb, pad));
-        const chargeLeft =
-            short(this.power, fb, into, approach.launchCharge) && (coming || this.power.pieceHeld(cb, pad) > this.chargeReserve(cb, pad));
-        const loaded = !fuelLeft && !metalLeft && !chargeLeft;
-        // A ship that minds danger lets go once loaded if an armed enemy is in reach, mended or not.
-        if (loaded && !this.sentTo(f) && this.threatened(bodies, f, cb, true)) return false;
-        if (this.waitsAboard(bodies, f, fb)) return true;
-        return !loaded || repairLeft;
-    }
-
-    /**
-     * Pump up to `most` of resource `r` from the piece of body `from` module
-     * `out` is on, as far as its pads may have it, into the piece of body `to`
-     * module `into` is on, as far as it has room, and say how much went.
-     */
-    private across(r: Resource, store: Store, from: number, out: number, to: number, into: number, most: number): number {
-        const room = store.pieceRoom(to, into);
-        const amount = min(most, min(this.allowed(r, from, out, Claim.Pads, room), room));
-        if (!(amount > 0)) return 0;
-        const taken = store.drain(from, out, amount);
-        const put = store.add(to, into, taken);
-        // Anything there turned out to be no room for goes back.
-        if (put < taken) store.add(from, out, taken - put);
-        this.took(r, from, out, Claim.Pads, put);
-        return put;
-    }
-
-    /**
-     * Build some of what fighter `i`, on body `b` and parked on pad `pad` of
-     * body `payB`, has lost since it set out, with `joules` of the pad's work: a
-     * kilogram for each kilogram's worth of damage, as robots build, from the
-     * metal and charge on the pad's piece of hull. Its fittings first, then a
-     * shell's walls, then a module lost, against what is left of it, cores
-     * first. Says whether it built anything.
-     */
-    private padBuild(bodies: Bodies, b: number, i: number, payB: number, pad: number, joules: number): boolean {
-        const launch = this.launched[i];
-        if (launch === undefined) return false;
-        const design = this.hullDesign[b]!;
-        const rebuild = shipRebuild.rebuildFor(this, i, design);
-        let best = -1;
-        let bestBuild = -1;
-        let bestTier = Infinity;
-        const approach = this.doctrines[i]!.approach;
-        for (let m = 0; m < design.modules.length; m++) {
-            if (!this.ownsAt(i, b, m)) continue;
-            if (design.modules[m]!.shell === undefined && !(this.damage.unbuiltAt(b, m) > 0)) continue;
-            const tier = originTier(approach, design, m);
-            if (tier < bestTier) {
-                best = m;
-                bestBuild = -1;
-                bestTier = tier;
-            }
-        }
-        if (best < 0 && rebuild.frame >= 0) {
-            const compiled = originOf(design, rebuild.frame).design;
-            for (const joint of joints(launch)) {
-                if (joint.seam === true) continue;
-                for (const [l, against] of [
-                    [joint.a, joint.b],
-                    [joint.b, joint.a],
-                ] as const) {
-                    const m = rebuild.at[against]!;
-                    if (rebuild.at[l]! >= 0 || m < 0 || !this.ownsAt(i, b, m)) continue;
-                    if (design.modules[m]!.shell !== undefined || originOf(design, m).design !== compiled) continue;
-                    const tier = repairTier(approach, launch, l);
-                    if (tier < bestTier) {
-                        best = m;
-                        bestBuild = l;
-                        bestTier = tier;
-                    }
-                }
-            }
-        }
-        if (best < 0) return false;
-        const fitting = bestBuild < 0 && design.modules[best]!.shell === undefined;
-        const l = fitting ? -1 : bestBuild >= 0 ? bestBuild : rebuild.at.indexOf(best);
-        const origin = fitting ? null : originOf(launch, l);
-        const whole = origin === null ? design.modules[best]!.stats : origin.design.modules[origin.module]!.stats;
-        const work = buildWork(whole);
-        const perKg = work * REPAIR_ENERGY_PER_JOULE;
-        const waste = 1 + REPAIR_WASTE;
-        const wall = whole.structureMass / SHELL_STEPS;
-        const most = joules / work;
-        const metal = this.allowed(Resource.Metal, payB, pad, Claim.Pads, fitting ? most * waste : wall * waste);
-        let kg = min(most, this.allowed(Resource.Charge, payB, pad, Claim.Pads, most * perKg) / perKg);
-        if (fitting) {
-            kg = min(kg, metal / waste);
-            if (!(kg > 0)) return false;
-            const mass = bodies.mass[payB]!;
-            const inertia = bodies.inertia[payB]!;
-            const put = this.damage.fit(b, best, kg);
-            if (!(put > 0)) return false;
-            this.metal.drain(payB, pad, put * waste);
-            this.power.drain(payB, pad, put * perKg);
-            this.took(Resource.Metal, payB, pad, Claim.Pads, put * waste);
-            this.took(Resource.Charge, payB, pad, Claim.Pads, put * perKg);
-            this.settleMass(bodies, b);
-            this.settleMass(bodies, payB);
-            this.discardFrom(bodies, payB, mass, inertia);
-            return true;
-        }
-        // Nothing to pay for the step with, or a step waiting on room to go up.
-        if (metal < wall * waste) return false;
-        kg = min(kg, wall - rebuild.work[l]!);
-        if (!(kg > 0)) {
-            if (rebuild.work[l]! >= wall) this.grows.push(i, l, best, pad, payB);
-            return false;
-        }
-        rebuild.work[l] = rebuild.work[l]! + kg;
-        this.power.drain(payB, pad, kg * perKg);
-        this.took(Resource.Charge, payB, pad, Claim.Pads, kg * perKg);
-        if (rebuild.work[l]! >= wall) this.grows.push(i, l, best, pad, payB);
-        return true;
-    }
-
-    /**
-     * Undo up to `joules` of the damage to ship `i`'s modules on body `b`, from
-     * the metal and charge on module `from`'s piece of hull, reserves and all: cores first,
-     * then engines and weapons, then the rest. Each joule takes
-     * `REPAIR_ENERGY_PER_JOULE` of charge, and the metal it had shed and
-     * `REPAIR_WASTE` more, which leaves the world. Says whether it mended
-     * something and has more to mend.
-     */
-    private mend(bodies: Bodies, b: number, i: number, from: number, joules: number, payB = b): boolean {
-        this.settleShed(bodies);
-        const design = this.hullDesign[b]!;
-        const approach = this.doctrines[i]!.approach;
-        // What a step of it could use at most, for what its pads ask for.
-        let wantMetal = 0;
-        let hurt = false;
-        for (let m = 0; m < design.modules.length; m++) {
-            if (!this.ownsAt(i, b, m) || !(this.damage.absorbedAt(b, m) > 0)) continue;
-            hurt = true;
-            const most = min(joules / repairWork(design.modules[m]!.stats), this.damage.absorbedAt(b, m));
-            wantMetal = max(wantMetal, this.damage.repairMetal(b, m, most) * (1 + REPAIR_WASTE));
-        }
-        if (!hurt) return false;
-        let metal = this.allowed(Resource.Metal, payB, from, Claim.Pads, wantMetal);
-        let charge = this.allowed(Resource.Charge, payB, from, Claim.Pads, joules * REPAIR_ENERGY_PER_JOULE);
-        let budget = joules;
-        let usedMetal = 0;
-        let usedCharge = 0;
-        let left = false;
-        for (
-            let tier = this.firstMend(approach, i, b, design, Infinity);
-            tier > -Infinity;
-            tier = this.firstMend(approach, i, b, design, tier)
-        ) {
-            for (let m = 0; m < design.modules.length; m++) {
-                if (priorityOf(approach, mendClaim(design, m)) !== tier || !this.ownsAt(i, b, m)) continue;
-                const absorbed = this.damage.absorbedAt(b, m);
-                if (!(absorbed > 0)) continue;
-                const work = repairWork(design.modules[m]!.stats);
-                let undo = min(budget / work, charge / (work * REPAIR_ENERGY_PER_JOULE));
-                // What it costs in metal rises no faster than the damage undone, so
-                // cutting the damage down to the metal there is never asks for more.
-                const kg = this.damage.repairMetal(b, m, undo) * (1 + REPAIR_WASTE);
-                if (kg > metal) undo *= metal / kg;
-                const cost = this.damage.repairMetal(b, m, undo) * (1 + REPAIR_WASTE);
-                const undone = this.damage.repair(b, m, undo);
-                // Its holes are the first thing plugged.
-                if (undone > 0) this.fuel.seal(b, m);
-                budget -= undone * work;
-                metal -= cost;
-                charge -= undone * work * REPAIR_ENERGY_PER_JOULE;
-                usedMetal += cost;
-                usedCharge += undone * work * REPAIR_ENERGY_PER_JOULE;
-                if (this.damage.absorbedAt(b, m) > 0) left = true;
-            }
-        }
-        if (!(usedCharge > 0)) return false;
-        const mass = bodies.mass[payB]!;
-        const inertia = bodies.inertia[payB]!;
-        if (usedMetal > 0) this.metal.drain(payB, from, usedMetal);
-        this.power.drain(payB, from, usedCharge);
-        this.took(Resource.Metal, payB, from, Claim.Pads, usedMetal);
-        this.took(Resource.Charge, payB, from, Claim.Pads, usedCharge);
-        this.settleMass(bodies, b);
-        // Paid for from a carrier, which carries what it mends.
-        if (payB !== b) this.settleMass(bodies, payB);
-        this.discardFrom(bodies, payB, mass, inertia);
-        return left;
-    }
-
-    /**
-     * The highest priority below `below` that mending any of ship `i`'s damaged
-     * modules on body `b` has by doctrine `approach`; -Infinity for none.
-     */
-    private firstMend(approach: Approach, i: number, b: number, design: ShipDesign, below: number): number {
-        let best = -Infinity;
-        for (let m = 0; m < design.modules.length; m++) {
-            if (!(this.damage.absorbedAt(b, m) > 0) || !this.ownsAt(i, b, m)) continue;
-            const p = priorityOf(approach, mendClaim(design, m));
-            if (p < below && p > best) best = p;
-        }
-        return best;
+        return shipSupply.pump(this, world);
     }
 
     tend(world: World): void {
@@ -6445,123 +6027,6 @@ export class Ships {
     /** The ship, and its body, whose robots `robotPlace` is placing. */
     placeOwner = -1;
     placeHull = -1;
-
-    /** Whether the ship a dock is filling minds danger and has an armed enemy in reach of the pair. */
-    private threatenedAt(bodies: Bodies, b: number, seam: Seam): boolean {
-        let receiver: number;
-        if (seam.dock === "claw") receiver = this.pilotAt(b, seam.a);
-        else {
-            const oa = this.pilotAt(b, seam.a);
-            const ob = this.pilotAt(b, seam.b);
-            receiver = this.docking[oa] === 1 ? oa : this.docking[ob] === 1 ? ob : -1;
-        }
-        if (receiver < 0 || this.sentTo(receiver)) return false;
-        if (this.threatened(bodies, receiver, b, seam.dock !== "claw")) return true;
-        // Holding a wreck, it cannot get out of the way of anything: what can
-        // will, but a hulk cannot.
-        return seam.dock === "claw" && this.hulkBearingDown(bodies, receiver, b);
-    }
-
-    /** Whether a hulk will hit body `b` within ship `i`'s look-ahead. */
-    private hulkBearingDown(bodies: Bodies, i: number, b: number): boolean {
-        const approach = this.doctrines[i]!.approach;
-        if (!(approach.separation > 0)) return false;
-        const mine = bodies.radius[b]!;
-        for (let t = 0; t < this.alive.length; t++) {
-            if (this.alive[t] === 0 || this.hasControl(t)) continue;
-            const ob = bodies.indexOf(this.bodyIds[t]!);
-            if (ob < 0 || ob === b || bodies.ghost[ob] === 1 || !this.meets(b, ob)) continue;
-            const dx = bodies.x[ob]! - bodies.x[b]!;
-            const dy = bodies.y[ob]! - bodies.y[b]!;
-            const rvx = bodies.vx[ob]! - bodies.vx[b]!;
-            const rvy = bodies.vy[ob]! - bodies.vy[b]!;
-            const closing = dx * rvx + dy * rvy;
-            if (!(closing < 0)) continue;
-            const when = -closing / (rvx * rvx + rvy * rvy);
-            if (when > approach.avoidHorizon) continue;
-            if (length(dx + rvx * when, dy + rvy * when) < mine + bodies.radius[ob]!) return true;
-        }
-        return false;
-    }
-
-    /** How far ship `i` fights from, metres: its guns' reach, or a ram's run if it has none. */
-    private fightReach(i: number): number {
-        const reach = this.designs[i]!.reach;
-        const approach = this.doctrines[i]!.approach;
-        return reach > 0 ? reach : approach.ramRadii > 0 ? approach.approachSpeed * RAM_HORIZON : 0;
-    }
-
-    /**
-     * Whether fighter `i`, aboard body `b`, waits: it has no target, or its
-     * target is further off than its `sortieRange` times its reach. A fighter
-     * with no way to fight never waits.
-     */
-    private waitsAboard(bodies: Bodies, i: number, b: number): boolean {
-        const reach = this.landedReach[i]!;
-        if (!(reach > 0)) return false;
-        const target = this.chosen[i]!;
-        if (target === NO_TARGET) return true;
-        const tb = bodies.indexOf(this.bodyIds[target]!);
-        if (tb < 0) return true;
-        const apart = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!);
-        return apart > this.doctrines[i]!.approach.sortieRange * reach;
-    }
-
-    /**
-     * Whether ship `i` minds danger and has an armed enemy within reach of body
-     * `at`: by its `scavengeDanger` at a source, by its `dockDanger` at a friend's dock.
-     */
-    threatened(bodies: Bodies, i: number, at: number, dock: boolean): boolean {
-        const approach = this.doctrines[i]!.approach;
-        return (dock ? approach.dockDanger : approach.scavengeDanger) > 0 && this.dangerNear(bodies, i, at) > 0;
-    }
-
-    /**
-     * The fuel the ship working module `m` of body `b` keeps back from that
-     * module's piece of hull for its own engines and weapons, kg: its
-     * doctrine's `fuelReserve` of a full load.
-     */
-    reserve(b: number, m: number): number {
-        const owner = this.pilotAt(b, m);
-        const kept = owner < 0 ? 0 : this.doctrines[owner]!.approach.fuelReserve;
-        return kept > 0 ? kept * (this.fuel.pieceHeld(b, m) + this.fuel.pieceRoom(b, m)) : 0;
-    }
-
-    /** The same for charge, its doctrine's `chargeReserve`. */
-    private chargeReserve(b: number, m: number): number {
-        const owner = this.pilotAt(b, m);
-        const kept = owner < 0 ? 0 : this.doctrines[owner]!.approach.chargeReserve;
-        return kept > 0 ? kept * (this.power.pieceHeld(b, m) + this.power.pieceRoom(b, m)) : 0;
-    }
-
-    /** The same for metal, its doctrine's `metalReserve`. */
-    private metalReserve(b: number, m: number): number {
-        const owner = this.pilotAt(b, m);
-        const kept = owner < 0 ? 0 : this.doctrines[owner]!.approach.metalReserve;
-        return kept > 0 ? kept * (this.metal.pieceHeld(b, m) + this.metal.pieceRoom(b, m)) : 0;
-    }
-
-    /** The doctrine of whoever works module `m` of body `b`, or the default for nobody's. */
-    private approachAt(b: number, m: number): Approach {
-        const owner = this.pilotAt(b, m);
-        return owner < 0 ? DEFAULT_DOCTRINE.approach : this.doctrines[owner]!.approach;
-    }
-
-    /**
-     * How much `claim` may take of resource `r` now from module `m`'s piece of
-     * body `b` (`Supply.allow`), wanting `want` in all. Ask once a step with
-     * what it wants, and again with nothing to look again.
-     */
-    allowed(r: Resource, b: number, m: number, claim: Claim, want: number): number {
-        const reserve =
-            r === Resource.Fuel ? this.reserve(b, m) : r === Resource.Metal ? this.metalReserve(b, m) : this.chargeReserve(b, m);
-        return this.supply.allow(b, r, m, claim, want, reserve, this.approachAt(b, m), this.tick);
-    }
-
-    /** Note what `claim` took (`Supply.took`). */
-    took(r: Resource, b: number, m: number, claim: Claim, amount: number): void {
-        this.supply.took(b, r, m, claim, amount);
-    }
 
     /**
      * Stop tracking wreckage that has drifted out of the fight, and say how
@@ -7486,9 +6951,9 @@ export class Ships {
             if (!(exhaust > 0)) continue;
             const wanted = (u * this.exhaustOf(i, design, b, t) * dt) / exhaust;
             if (!(wanted > 0)) continue;
-            const allowed = this.allowed(Resource.Fuel, b, module, Claim.Thrust, wanted);
+            const allowed = shipSupply.allowed(this, Resource.Fuel, b, module, Claim.Thrust, wanted);
             const got = this.fuel.feed(b, module, wanted < allowed ? wanted : allowed, this.damage);
-            this.took(Resource.Fuel, b, module, Claim.Thrust, got);
+            shipSupply.took(this, Resource.Fuel, b, module, Claim.Thrust, got);
             burned = true;
             if (got < wanted) {
                 throttles[t] = (u * got) / wanted;
@@ -7916,7 +7381,10 @@ export class Ships {
      */
     /** Whether the ship working port `port` of body `b` holds fuel or metal above what it keeps back for itself. */
     private hasToSpare(b: number, port: number): boolean {
-        return this.fuel.pieceHeld(b, port) > this.reserve(b, port) || this.metal.pieceHeld(b, port) > this.metalReserve(b, port);
+        return (
+            this.fuel.pieceHeld(b, port) > shipSupply.fuelReserve(this, b, port) ||
+            this.metal.pieceHeld(b, port) > shipSupply.metalReserve(this, b, port)
+        );
     }
 
     /**
@@ -7936,7 +7404,7 @@ export class Ships {
         if (this.drinkable(i, t)) return this.fuel.left(tb) > 0;
         const modules = this.designs[t]!.modules;
         for (let m = 0; m < modules.length; m++) {
-            if (this.ownsAt(t, tb, m) && this.fuel.pieceHeld(tb, m) > this.reserve(tb, m)) return true;
+            if (this.ownsAt(t, tb, m) && this.fuel.pieceHeld(tb, m) > shipSupply.fuelReserve(this, tb, m)) return true;
         }
         return false;
     }
@@ -7950,7 +7418,7 @@ export class Ships {
     private canDeliver(b: number, port: number, above: number): boolean {
         const held = this.fuel.pieceHeld(b, port);
         const full = held + this.fuel.pieceRoom(b, port);
-        return full > 0 && held > above * full && held > this.reserve(b, port);
+        return full > 0 && held > above * full && held > shipSupply.fuelReserve(this, b, port);
     }
 
     /**
@@ -7959,9 +7427,9 @@ export class Ships {
      * a friend, its `deliverFuelAbove`, so it gives only what it holds above
      * that and is never left at its own threshold for refuelling.
      */
-    private keepsBack(b: number, m: number): number {
+    keepsBack(b: number, m: number): number {
         const owner = this.pilotAt(b, m);
-        const kept = this.reserve(b, m);
+        const kept = shipSupply.fuelReserve(this, b, m);
         if (owner < 0 || this.delivering[owner] !== 1 || this.errandOf(owner) === "deliver") return kept;
         const above = this.doctrines[owner]!.approach.deliverFuelAbove;
         return max(kept, above * (this.fuel.pieceHeld(b, m) + this.fuel.pieceRoom(b, m)));
@@ -8010,8 +7478,8 @@ export class Ships {
         const ordered = this.errandOf(i) === "deliver";
         const held = this.fuel.pieceHeld(b, own);
         const above = ordered ? 0 : approach.deliverFuelAbove * (held + this.fuel.pieceRoom(b, own));
-        const spare = held - max(this.reserve(b, own), above);
-        const spareMetal = ordered ? this.metal.pieceHeld(b, own) - this.metalReserve(b, own) : 0;
+        const spare = held - max(shipSupply.fuelReserve(this, b, own), above);
+        const spareMetal = ordered ? this.metal.pieceHeld(b, own) - shipSupply.metalReserve(this, b, own) : 0;
         if (!(spare > 0) && !(spareMetal > 0)) return;
         const ownPump = design.modules[own]!.stats.pumpRate;
         let bestScore = 0;
@@ -8086,7 +7554,7 @@ export class Ships {
     }
 
     /** How many armed enemies of ship `i` are within their own reach of body `tb`. */
-    private dangerNear(bodies: Bodies, i: number, tb: number): number {
+    dangerNear(bodies: Bodies, i: number, tb: number): number {
         let danger = 0;
         for (let e = 0; e < this.alive.length; e++) {
             if (this.alive[e] === 0 || this.derelict[e] === 1 || !this.hostile(i, e) || this.isDisarmed(e)) continue;
@@ -8183,13 +7651,13 @@ export class Ships {
             for (let pad = 0; pad < design.modules.length; pad++) {
                 const spec = design.modules[pad]!.spec;
                 if (spec.kind !== "pad" || !this.padFree(bodies, t, pad) || !this.fitsPad(box, spec)) continue;
-                const spare = this.fuel.pieceHeld(tb, pad) - this.reserve(tb, pad);
-                const spareMetal = this.metal.pieceHeld(tb, pad) - this.metalReserve(tb, pad);
+                const spare = this.fuel.pieceHeld(tb, pad) - shipSupply.fuelReserve(this, tb, pad);
+                const spareMetal = this.metal.pieceHeld(tb, pad) - shipSupply.metalReserve(this, tb, pad);
                 const pump = design.modules[pad]!.stats.pumpRate;
                 const fuelTake = max(0, min(spare, room));
                 const metalTake = max(0, min(spareMetal, metalRoom));
                 const take = fuelTake + metalTake;
-                const spareCharge = this.power.pieceHeld(tb, pad) - this.chargeReserve(tb, pad);
+                const spareCharge = this.power.pieceHeld(tb, pad) - shipSupply.chargeReserve(this, tb, pad);
                 const chargeTake = max(0, min(spareCharge, chargeRoom));
                 const cable = DOCK_POWER_PER_METRE * spec.width;
                 // Mending is paid for in charge and metal, reserves and all.
@@ -8265,7 +7733,7 @@ export class Ships {
     }
 
     /** The pad ship `f` is parked on, by module of its carrier's hull: -1 for one not parked, or whose pad has gone. */
-    private parkedPadOf(bodies: Bodies, f: number): number {
+    parkedPadOf(bodies: Bodies, f: number): number {
         const cb = this.carrierBodyOf(bodies, f);
         if (cb < 0) return -1;
         const c = this.parkedOn[f]!;
@@ -8585,7 +8053,7 @@ export class Ships {
      * its robots are back; and at once if its claw can no longer grip, what it
      * held is gone, or an armed enemy is in reach, unless it is anchored to build.
      */
-    private tendMoored(world: World, f: number): boolean {
+    tendMoored(world: World, f: number): boolean {
         const bodies = world.bodies;
         const fb = bodies.indexOf(this.bodyIds[f]!);
         const cb = this.carrierBodyOf(bodies, f);
@@ -8596,7 +8064,7 @@ export class Ships {
         const held = this.heldRock(bodies, f);
         if (held < 0) return false;
         if (this.damage.isProtected(cb)) return true;
-        if (!this.sentTo(f) && !this.wantsAnchor(bodies, f) && this.threatened(bodies, f, cb, false)) return false;
+        if (!this.sentTo(f) && !this.wantsAnchor(bodies, f) && shipSupply.threatened(this, bodies, f, cb, false)) return false;
         // Given an order, it calls its robots in and goes as soon as they are back.
         const ordered = this.sentAway(f);
         if (!ordered && shipRebuild.canStrip(this, fb, f, claw, world.dt) && this.strippableAcross(f, fb, claw, cb)) return true;
@@ -9073,10 +8541,10 @@ export class Ships {
             let danger = only !== NO_TARGET ? 0 : -1;
             for (let p = 0; p < host.modules.length; p++) {
                 if (host.modules[p]!.spec.kind !== "port" || !this.ownsAt(t, tb, p) || !this.portFree(bodies, t, p)) continue;
-                const spare = this.fuel.pieceHeld(tb, p) - this.reserve(tb, p);
+                const spare = this.fuel.pieceHeld(tb, p) - shipSupply.fuelReserve(this, tb, p);
                 const pump = min(ownPump, host.modules[p]!.stats.pumpRate);
-                const spareMetal = metalRoom > 0 ? this.metal.pieceHeld(tb, p) - this.metalReserve(tb, p) : 0;
-                const spareCharge = chargeRoom > 0 ? this.power.pieceHeld(tb, p) - this.chargeReserve(tb, p) : 0;
+                const spareMetal = metalRoom > 0 ? this.metal.pieceHeld(tb, p) - shipSupply.metalReserve(this, tb, p) : 0;
+                const spareCharge = chargeRoom > 0 ? this.power.pieceHeld(tb, p) - shipSupply.chargeReserve(this, tb, p) : 0;
                 const others = max(0, min(spareMetal, metalRoom)) + (spareCharge > 0 ? 1 : 0);
                 if (!(spare > 0 || others > 0) || !(pump > 0)) continue;
                 const take = max(0, spare < room ? spare : room) + others;
@@ -9221,13 +8689,13 @@ export class Ships {
             const b = bodies.indexOf(this.bodyIds[i]!);
             const cb = bodies.indexOf(this.bodyIds[c]!);
             if (b < 0 || cb < 0 || b === cb || !this.padFree(bodies, c, pad)) continue;
-            if (this.damage.isProtected(b) || this.damage.isProtected(cb) || this.threatened(bodies, i, cb, true)) continue;
+            if (this.damage.isProtected(b) || this.damage.isProtected(cb) || shipSupply.threatened(this, bodies, i, cb, true)) continue;
             const host = this.designs[c]!;
             const place = this.modulePlace(bodies, cb, host, pad);
             if (length(bodies.vx[b]! - place.vx, bodies.vy[b]! - place.vy) > PAD_SPEED) continue;
             if (!this.within(bodies, b, this.designs[i]!, place, host.modules[pad]!.spec)) continue;
             if (!this.park(bodies, c, i, pad)) continue;
-            this.landedReach[i] = this.fightReach(i);
+            this.landedReach[i] = shipSupply.fightReach(this, i);
             this.home[i] = c;
             landed++;
         }
@@ -9415,19 +8883,26 @@ export class Ships {
             if (busy) this.builtAt[i] = world.tick;
             if (busy || this.atFace(b, f, slipway)) return;
         }
-        const charge = this.allowed(Resource.Charge, b, slipway, Claim.Slipway, (joules - yard.work[k]!) * REPAIR_ENERGY_PER_JOULE);
+        const charge = shipSupply.allowed(
+            this,
+            Resource.Charge,
+            b,
+            slipway,
+            Claim.Slipway,
+            (joules - yard.work[k]!) * REPAIR_ENERGY_PER_JOULE,
+        );
         const put = min(
             min(SLIPWAY_BUILD_PER_METRE * width * working * world.dt, joules - yard.work[k]!),
             charge / REPAIR_ENERGY_PER_JOULE,
         );
         if (put > 0) {
             yard.work[k] = yard.work[k]! + put;
-            this.took(Resource.Charge, b, slipway, Claim.Slipway, this.power.drain(b, slipway, put * REPAIR_ENERGY_PER_JOULE));
+            shipSupply.took(this, Resource.Charge, b, slipway, Claim.Slipway, this.power.drain(b, slipway, put * REPAIR_ENERGY_PER_JOULE));
             this.builtAt[i] = world.tick;
         }
         const cost = kg * (1 + REPAIR_WASTE);
         // What the slice will cost is set aside for it while its work goes in.
-        const metal = this.allowed(Resource.Metal, b, slipway, Claim.Slipway, cost);
+        const metal = shipSupply.allowed(this, Resource.Metal, b, slipway, Claim.Slipway, cost);
         if (yard.work[k]! < joules) return;
         if (metal < cost) return;
         if (f < 0) {
@@ -9441,7 +8916,7 @@ export class Ships {
         if (deeper >= length) this.printing[f] = 0;
         const mass = bodies.mass[b]!;
         const inertia = bodies.inertia[b]!;
-        this.took(Resource.Metal, b, slipway, Claim.Slipway, this.metal.drain(b, slipway, cost));
+        shipSupply.took(this, Resource.Metal, b, slipway, Claim.Slipway, this.metal.drain(b, slipway, cost));
         this.settleMass(bodies, b);
         // What it wasted left at the hull's speed.
         this.discardFrom(bodies, b, mass, inertia);
@@ -9481,7 +8956,7 @@ export class Ships {
     }
 
     /** Whether the slipway has anything of ship `f` at its face still to fit or mend. */
-    private atFace(b: number, f: number, slipway: number): boolean {
+    atFace(b: number, f: number, slipway: number): boolean {
         return this.atFaceIndex(b, f, slipway) >= 0;
     }
 
@@ -9491,7 +8966,7 @@ export class Ships {
      * and charge on the slipway's piece of hull at robots' prices. Says whether
      * it did any.
      */
-    private tendAtFace(bodies: Bodies, b: number, f: number, slipway: number, joules: number): boolean {
+    tendAtFace(bodies: Bodies, b: number, f: number, slipway: number, joules: number): boolean {
         const m = this.atFaceIndex(b, f, slipway);
         if (m < 0 || !(joules > 0)) return false;
         const stats = this.hullDesign[b]!.modules[m]!.stats;
@@ -9502,28 +8977,35 @@ export class Ships {
             const work = buildWork(stats);
             const perKg = work * REPAIR_ENERGY_PER_JOULE;
             const most = min(joules / work, this.damage.unbuiltAt(b, m));
-            const charge = this.allowed(Resource.Charge, b, slipway, Claim.Slipway, most * perKg);
-            const metal = this.allowed(Resource.Metal, b, slipway, Claim.Slipway, most * waste);
+            const charge = shipSupply.allowed(this, Resource.Charge, b, slipway, Claim.Slipway, most * perKg);
+            const metal = shipSupply.allowed(this, Resource.Metal, b, slipway, Claim.Slipway, most * waste);
             const kg = min(min(joules / work, charge / perKg), metal / waste);
             const put = this.damage.fit(b, m, kg);
             if (!(put > 0)) return false;
-            this.took(Resource.Metal, b, slipway, Claim.Slipway, this.metal.drain(b, slipway, put * waste));
-            this.took(Resource.Charge, b, slipway, Claim.Slipway, this.power.drain(b, slipway, put * perKg));
+            shipSupply.took(this, Resource.Metal, b, slipway, Claim.Slipway, this.metal.drain(b, slipway, put * waste));
+            shipSupply.took(this, Resource.Charge, b, slipway, Claim.Slipway, this.power.drain(b, slipway, put * perKg));
         } else {
             this.settleShed(bodies);
             const work = repairWork(stats);
             const most = joules / work;
-            const charge = this.allowed(Resource.Charge, b, slipway, Claim.Slipway, most * work * REPAIR_ENERGY_PER_JOULE);
+            const charge = shipSupply.allowed(this, Resource.Charge, b, slipway, Claim.Slipway, most * work * REPAIR_ENERGY_PER_JOULE);
             let undo = min(most, charge / (work * REPAIR_ENERGY_PER_JOULE));
             const kg = this.damage.repairMetal(b, m, undo) * waste;
-            const metal = this.allowed(Resource.Metal, b, slipway, Claim.Slipway, this.damage.repairMetal(b, m, most) * waste);
+            const metal = shipSupply.allowed(this, Resource.Metal, b, slipway, Claim.Slipway, this.damage.repairMetal(b, m, most) * waste);
             if (kg > metal) undo *= metal / kg;
             const cost = this.damage.repairMetal(b, m, undo) * waste;
             const undone = this.damage.repair(b, m, undo);
             if (!(undone > 0)) return false;
             this.fuel.seal(b, m);
-            if (cost > 0) this.took(Resource.Metal, b, slipway, Claim.Slipway, this.metal.drain(b, slipway, cost));
-            this.took(Resource.Charge, b, slipway, Claim.Slipway, this.power.drain(b, slipway, undone * work * REPAIR_ENERGY_PER_JOULE));
+            if (cost > 0) shipSupply.took(this, Resource.Metal, b, slipway, Claim.Slipway, this.metal.drain(b, slipway, cost));
+            shipSupply.took(
+                this,
+                Resource.Charge,
+                b,
+                slipway,
+                Claim.Slipway,
+                this.power.drain(b, slipway, undone * work * REPAIR_ENERGY_PER_JOULE),
+            );
         }
         this.settleMass(bodies, b);
         this.discardFrom(bodies, b, mass, inertia);
@@ -9760,18 +9242,18 @@ export class Ships {
         const whole = fighter.modules[core]!;
         const wall = whole.stats.structureMass / SHELL_STEPS;
         const cost = wall * (1 + REPAIR_WASTE);
-        if (this.allowed(Resource.Metal, b, pad, Claim.Pads, cost) < cost) return;
+        if (shipSupply.allowed(this, Resource.Metal, b, pad, Claim.Pads, cost) < cost) return;
         const brood = this.broods[i]!;
         const work = buildWork(whole.stats);
         const perKg = work * REPAIR_ENERGY_PER_JOULE;
         const working = this.left(i, b, pad, DamageEffect.Grip);
         const deck = design.modules[pad]!.spec;
         const joules = PAD_REPAIR_PER_AREA * deck.length * deck.width * working * world.dt;
-        const charge = this.allowed(Resource.Charge, b, pad, Claim.Pads, (wall - brood.work[k]!) * perKg);
+        const charge = shipSupply.allowed(this, Resource.Charge, b, pad, Claim.Pads, (wall - brood.work[k]!) * perKg);
         const kg = min(min(joules / work, charge / perKg), wall - brood.work[k]!);
         if (kg > 0) {
             brood.work[k] = brood.work[k]! + kg;
-            this.took(Resource.Charge, b, pad, Claim.Pads, this.power.drain(b, pad, kg * perKg));
+            shipSupply.took(this, Resource.Charge, b, pad, Claim.Pads, this.power.drain(b, pad, kg * perKg));
             this.builtAt[i] = world.tick;
         }
         if (brood.work[k]! < wall) return;
@@ -9796,7 +9278,7 @@ export class Ships {
 
         const mass = bodies.mass[b]!;
         const inertia = bodies.inertia[b]!;
-        this.took(Resource.Metal, b, pad, Claim.Pads, this.metal.drain(b, pad, cost));
+        shipSupply.took(this, Resource.Metal, b, pad, Claim.Pads, this.metal.drain(b, pad, cost));
         this.settleMass(bodies, b);
         const angle = bodies.angle[b]!;
         const c = cos(angle);
@@ -9827,7 +9309,7 @@ export class Ships {
     }
 
     /** Whether fighter `i`, being built on body `b` of design `design`, has every module its design has, whole and fitted. */
-    private finished(b: number, i: number, design: ShipDesign): boolean {
+    finished(b: number, i: number, design: ShipDesign): boolean {
         const rebuild = shipRebuild.rebuildFor(this, i, design);
         for (let l = 0; l < rebuild.at.length; l++) {
             const m = rebuild.at[l]!;
@@ -10595,9 +10077,9 @@ export class Ships {
         const rate = this.damage.remaining(b, mount.module, DamageEffect.FireRate);
         const need = (gun.beamPower * gun.beamOnTime * rate * dt) / gun.cycleTime;
         if (!(need > 0)) return 1;
-        const allowed = this.allowed(Resource.Charge, b, mount.module, Claim.Fire, need);
+        const allowed = shipSupply.allowed(this, Resource.Charge, b, mount.module, Claim.Fire, need);
         const got = this.power.draw(b, mount.module, need < allowed ? need : allowed);
-        this.took(Resource.Charge, b, mount.module, Claim.Fire, got);
+        shipSupply.took(this, Resource.Charge, b, mount.module, Claim.Fire, got);
         return got / need;
     }
 

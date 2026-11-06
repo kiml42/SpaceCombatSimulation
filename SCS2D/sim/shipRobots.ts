@@ -22,6 +22,7 @@ import type { World } from "./world.js";
 import * as shipRobotViews from "./shipRobotViews.js";
 import { type Ships, ROBOT_SPENT, workforce, originTier, repairTier } from "./ships.js";
 import * as shipRebuild from "./shipRebuild.js";
+import * as shipSupply from "./shipSupply.js";
 
 /**
  * Each hull's robots at their work: out from their bays to mend, rebuild or
@@ -176,10 +177,10 @@ export function buildRobots(ships: Ships, b: number, design: ShipDesign, robots:
         }
         const kept = robotsKept(design.modules[m]!.spec, design.modules[m]!.stats, ships.isMoored(owner));
         const missing = min(kept - crew, berths - aboard);
-        let metal = missing > 0 ? ships.allowed(Resource.Metal, b, m, Claim.Robots, missing * cost) : 0;
+        let metal = missing > 0 ? shipSupply.allowed(ships, Resource.Metal, b, m, Claim.Robots, missing * cost) : 0;
         while (crew < kept && aboard < berths && metal >= cost) {
             ships.metal.drain(b, m, cost);
-            ships.took(Resource.Metal, b, m, Claim.Robots, cost);
+            shipSupply.took(ships, Resource.Metal, b, m, Claim.Robots, cost);
             metal -= cost;
             ships.robots.start(b, m);
             crew++;
@@ -191,12 +192,12 @@ export function buildRobots(ships: Ships, b: number, design: ShipDesign, robots:
         const step = dt * working * berthRate(design.modules[m]!.stats);
         let wanted = 0;
         for (let k = 0; k < making.length; k++) wanted += (ROBOT_BUILD_TIME - making[k]!) * perSecond;
-        let spare = ships.allowed(Resource.Charge, b, m, Claim.Robots, wanted);
+        let spare = shipSupply.allowed(ships, Resource.Charge, b, m, Claim.Robots, wanted);
         for (let k = 0; k < making.length; k++) {
             const want = min(step, ROBOT_BUILD_TIME - making[k]!) * perSecond;
             if (!(spare > 0)) break;
             const got = ships.power.drain(b, m, want < spare ? want : spare);
-            ships.took(Resource.Charge, b, m, Claim.Robots, got);
+            shipSupply.took(ships, Resource.Charge, b, m, Claim.Robots, got);
             spare -= got;
             making[k] = making[k]! + got / perSecond;
         }
@@ -250,10 +251,10 @@ export function tendOne(ships: Ships, b: number, design: ShipDesign, robots: Rob
             // Charged as it is filled, as fast as there is charge to give over
             // what the ship keeps for its engines and weapons.
             const want = min(ROBOT_CHARGE - robot.charge, (ROBOT_CHARGE / ROBOT_REFILL_TIME) * dt * working);
-            const spare = ships.allowed(Resource.Charge, b, robot.bay, Claim.Robots, ROBOT_CHARGE - robot.charge);
+            const spare = shipSupply.allowed(ships, Resource.Charge, b, robot.bay, Claim.Robots, ROBOT_CHARGE - robot.charge);
             if (want > 0 && spare > 0) {
                 const got = ships.power.drain(b, robot.bay, want < spare ? want : spare);
-                ships.took(Resource.Charge, b, robot.bay, Claim.Robots, got);
+                shipSupply.took(ships, Resource.Charge, b, robot.bay, Claim.Robots, got);
                 robot.charge += got;
             }
             // Waits to be full while its piece of hull has the charge to fill it.
@@ -318,7 +319,7 @@ export function tendOne(ships: Ships, b: number, design: ShipDesign, robots: Rob
     let short = undo < step;
     const claim = mendClaim(design, m);
     const whole = ships.damage.repairMetal(b, m, ships.damage.absorbedAt(b, m)) * (1 + REPAIR_WASTE);
-    const spare = min(robot.metal, ships.allowed(Resource.Metal, b, m, claim, whole));
+    const spare = min(robot.metal, shipSupply.allowed(ships, Resource.Metal, b, m, claim, whole));
     const kg = ships.damage.repairMetal(b, m, undo) * (1 + REPAIR_WASTE);
     if (kg > 0 && kg > spare) {
         undo *= spare > 0 ? spare / kg : 0;
@@ -330,7 +331,7 @@ export function tendOne(ships: Ships, b: number, design: ShipDesign, robots: Rob
     if (undone > 0) ships.fuel.seal(b, m);
     robot.charge -= undone * work * REPAIR_ENERGY_PER_JOULE;
     robot.metal -= cost;
-    if (cost > 0) ships.took(Resource.Metal, b, m, claim, ships.metal.drain(b, m, cost));
+    if (cost > 0) shipSupply.took(ships, Resource.Metal, b, m, claim, ships.metal.drain(b, m, cost));
     // Out of what this needs, short of finishing it: home for more.
     if (short && ships.damage.absorbedAt(b, m) > 0) sendHome(ships, b, design, robot, owner, m);
     return undone > 0;
@@ -365,7 +366,7 @@ export function buildOne(ships: Ships, b: number, design: ShipDesign, robots: Ro
     let short = kg < step;
     const claim = origin === null ? mendClaim(design, m) : mendClaim(origin.design, origin.module);
     const wanted = rebuild === null ? ships.damage.unbuiltAt(b, m) * waste : (whole.structureMass / SHELL_STEPS) * waste;
-    const spare = ships.allowed(Resource.Metal, b, m, claim, wanted);
+    const spare = shipSupply.allowed(ships, Resource.Metal, b, m, claim, wanted);
     let more: boolean;
     let put: number;
     if (rebuild === null) {
@@ -374,7 +375,7 @@ export function buildOne(ships: Ships, b: number, design: ShipDesign, robots: Ro
             short = true;
         }
         put = ships.damage.fit(b, m, kg);
-        if (put > 0) ships.took(Resource.Metal, b, m, claim, ships.metal.drain(b, m, put * waste));
+        if (put > 0) shipSupply.took(ships, Resource.Metal, b, m, claim, ships.metal.drain(b, m, put * waste));
         more = ships.damage.unbuiltAt(b, m) > 0;
     } else {
         const wall = whole.structureMass / SHELL_STEPS;
@@ -912,7 +913,7 @@ export function sendToBuild(
 export function affords(ships: Ships, b: number, m: number, of: ShipDesign, part: number, robot: Robot, needs = Infinity): boolean {
     const trip = min(robot.metal, needs);
     if (!(trip > ROBOT_SPENT)) return true;
-    return ships.allowed(Resource.Metal, b, m, mendClaim(of, part), 0) >= trip;
+    return shipSupply.allowed(ships, Resource.Metal, b, m, mendClaim(of, part), 0) >= trip;
 }
 
 /**

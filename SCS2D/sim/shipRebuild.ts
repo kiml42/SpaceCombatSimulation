@@ -9,6 +9,7 @@ import { neighbourOf, RobotMode, staysWhole } from "./robots.js";
 import type { World } from "./world.js";
 import { moduleOverlapsHull } from "./collision.js";
 import { type Ships, movable, workforce, ROBOT_SPENT, NO_TARGET } from "./ships.js";
+import * as shipSupply from "./shipSupply.js";
 
 /**
  * Rebuilding a hull to its launch design and taking wreckage apart, which is
@@ -157,10 +158,10 @@ export function grow(ships: Ships, world: World, i: number, l: number, from: num
     const cost = wall * (1 + REPAIR_WASTE);
     if (payB >= 0) {
         // On a pad, paid for by the carrier, which carries it.
-        if (ships.allowed(Resource.Metal, payB, payer, Claim.Pads, cost) < cost) return;
+        if (shipSupply.allowed(ships, Resource.Metal, payB, payer, Claim.Pads, cost) < cost) return;
         const carried = bodies.mass[payB]!;
         const turning = bodies.inertia[payB]!;
-        ships.took(Resource.Metal, payB, payer, Claim.Pads, ships.metal.drain(payB, payer, cost));
+        shipSupply.took(ships, Resource.Metal, payB, payer, Claim.Pads, ships.metal.drain(payB, payer, cost));
         rebuild.work[l] = 0;
         regrow(ships, world, p, b, design, next, at, i);
         if (share >= 1 - 1e-9) ships.damage.unfit(b, at, fittingOf(whole.stats));
@@ -170,14 +171,14 @@ export function grow(ships: Ships, world: World, i: number, l: number, from: num
         return;
     }
     const claim = mendClaim(origin.design, origin.module);
-    if (ships.allowed(Resource.Metal, b, payer, claim, cost) < cost) return;
+    if (shipSupply.allowed(ships, Resource.Metal, b, payer, claim, cost) < cost) return;
 
     ships.momentum(bodies);
     const beforeX = ships.momentumX;
     const beforeY = ships.momentumY;
     const mass = bodies.mass[b]!;
     const inertia = bodies.inertia[b]!;
-    ships.took(Resource.Metal, b, payer, claim, ships.metal.drain(b, payer, cost));
+    shipSupply.took(ships, Resource.Metal, b, payer, claim, ships.metal.drain(b, payer, cost));
     rebuild.work[l] = 0;
     regrow(ships, world, p, b, design, next, at, i);
     if (share >= 1 - 1e-9) ships.damage.unfit(b, at, fittingOf(whole.stats));
