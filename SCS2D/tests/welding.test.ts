@@ -16,6 +16,7 @@ import { hooked as hookedScenario } from "../scenarios/hooked.js";
 import { capture, Snapshot } from "../sim/snapshot.js";
 import { CORVETTE, DINKY, GUNSHIP } from "../scenarios/blueprints.js";
 import type { World } from "../sim/world.js";
+import { detach } from "../sim/shipBreakup.js";
 
 /**
  * Ragged hulls hooking together on a slow contact (DESIGN.md §4), and what a
@@ -446,12 +447,7 @@ describe("a mount that breaks off", () => {
         ships.turrets.rate[ti] = 0.4;
         const angle = world.bodies.angle[world.bodies.indexOf(ships.body(ship))]!;
 
-        const detach = (
-            ships as unknown as {
-                detach(world: unknown, i: number, design: unknown, keep: readonly number[]): boolean;
-            }
-        ).detach.bind(ships);
-        expect(detach(world, ship, gunship, [module])).toBe(true);
+        expect(detach(ships, world, ship, gunship, [module])).toBe(true);
         let piece = -1;
         for (let i = 0; i < ships.highWater; i++) if (ships.isAlive(i) && i !== ship) piece = i;
         const pi = ships.turretIndexOf(piece, 0);
