@@ -1895,6 +1895,20 @@ function collarLength(
 }
 
 /**
+ * How far along the same barrel its collar starts: as far out as it can while
+ * its corners there are still inside `pivot`'s whole disc, under the mantlet or
+ * in the block behind it, so they never stand out past either however it is trained.
+ */
+function collarStart(x: number, y: number, ux: number, uy: number, width: number, pivot: { x: number; y: number; radius: number }): number {
+    const ox = x - pivot.x;
+    const oy = y - pivot.y;
+    const along = ox * ux + oy * uy;
+    const side = Math.abs(ox * uy - oy * ux) + (COLLAR_WIDTH * width) / 2;
+    if (side >= pivot.radius) return 0;
+    return max(0, sqrt(pivot.radius * pivot.radius - side * side) - along);
+}
+
+/**
  * A flat collar round each of a hull gun's barrels where it comes out of the
  * mantlet `pivot` over their roots, so a barrel meets it square rather than
  * along the mantlet's curve. Unlit by the dynamic lights, as the mantlet is:
@@ -1914,11 +1928,12 @@ function drawCollars(
         const ux = (x1 - x0) / span;
         const uy = (y1 - y0) / span;
         const collar = min(span, collarLength(x0, y0, ux, uy, width, pivot));
+        const start = min(collar, collarStart(x0, y0, ux, uy, width, pivot));
         const half = (COLLAR_WIDTH * width) / 2;
         ctx.save();
         ctx.translate(x0, y0);
         ctx.rotate(math.atan2(uy, ux));
-        ctx.fillRect(0, -half, collar, 2 * half);
+        ctx.fillRect(start, -half, collar - start, 2 * half);
         ctx.restore();
     });
 }
