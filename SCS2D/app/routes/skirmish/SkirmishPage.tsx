@@ -8,14 +8,14 @@ import { AsteroidCard } from "~/features/battle/AsteroidCard";
 import { DOCTRINE_KEY, DoctrinePanel } from "~/features/orders/DoctrinePanel";
 import { OrderBar } from "~/features/orders/OrderBar";
 import { useOrderState } from "~/features/orders/orderState";
+import { BudgetTable } from "~/features/skirmish/BudgetTable";
+import { CardHand } from "~/features/skirmish/Cards";
 import { useSkirmish } from "~/features/skirmish/SkirmishProvider";
 import { useStorage } from "~/features/storage/StorageContext";
 import { useLibrary } from "~/features/storage/useLibrary";
 import { useViewSettings } from "~/features/storage/useViewSettings";
-import { kg } from "~/editor/budget";
 import { fleetRoute, handedSkirmish, shipFleet } from "~/editor/handoff";
 import { unusedName } from "~/editor/library";
-import { buildTime } from "~/editor/stats";
 import type { AnswerProgress } from "~/host/answer";
 import type { BattleView, Watcher } from "~/host/battleView";
 import { BATTLE_KEYS, ORDER_KEYS } from "~/host/keyHelp";
@@ -31,7 +31,6 @@ import {
     billOfFleet,
     canFight,
     DEFAULT_SKIRMISH_SETTINGS,
-    enemyMultiplier,
     fleetFault,
     lost,
     newSkirmish,
@@ -53,7 +52,6 @@ import { serialiseFleet, type Budget, type Fleet, type Snapshot } from "~/sim/in
 import { Button } from "~/ui/buttons/Button";
 import { EditLink } from "~/ui/buttons/EditButton";
 import { KeyHelp } from "~/ui/dialogs/KeyHelp";
-import { Figures } from "../ship/ShipReport";
 import { EMPTY } from "./FleetChoices";
 import { keptSettings, SetupScreen } from "./SetupScreen";
 import { SETTINGS_KEY } from "./skirmishFields";
@@ -161,11 +159,6 @@ const Panel = styled.aside`
 
     p {
         margin: 0.3rem 0;
-    }
-
-    tr.over th,
-    tr.over td {
-        color: var(--colour-danger);
     }
 
     @media (width <= 800px) {
@@ -294,8 +287,6 @@ const Footer = styled.footer`
 
 /** What is on the screen: the round, the best enemy so far fighting it, the answer it found, or a match watched again. */
 type Mode = "round" | "watching" | "answer" | "replay";
-
-const times = (m: number): string => `${Number(m.toFixed(3))}×`;
 
 /** The enemy where it will stand, in its colour, with nobody yet on the other side. */
 function enemyAlone(enemy: Fleet): CustomBattle {
@@ -503,6 +494,7 @@ export function SkirmishPage() {
             player: current.player,
             enemy: current.enemy,
             ...(given.length === 0 ? {} : { orders: writeLog(given) }),
+            ...(current.picked === undefined ? {} : { card: current.picked }),
         });
         setRoundOver(true);
         const at = `at ${result.time.toFixed(0)} s${given.length === 0 ? "" : ", with orders"}`;
@@ -727,7 +719,6 @@ export function SkirmishPage() {
     const fault = skirmish === null ? null : fleetFault(skirmish.player);
     const fits = skirmish !== null && canFight(skirmish);
     const limit = skirmish === null || fault !== null ? null : overLimit(skirmish);
-    const bill = skirmish === null || fault !== null ? null : billOfFleet(skirmish.player);
     const answeringNow = skirmish?.won !== undefined;
     // Not watching the search, the history has the battle's room, the two sides of each match side by side.
     const wideHistory = answeringNow && !watching && !replaying && answering.latest?.found == null;
@@ -878,37 +869,33 @@ export function SkirmishPage() {
                                 {`Round ${skirmish.round}` + (skirmish.tries > 0 ? ` · try ${skirmish.tries + 1}` : "")}
                             </h2>
                             <p id="enemyName">{enemyLine ?? `Against ${skirmish.enemy.name}.`}</p>
-                            <Muted id="multiplier">{`Playing against a ${times(enemyMultiplier(skirmish))} enemy: its budget is ${times(enemyMultiplier(skirmish))} yours.`}</Muted>
+                            <CardHand
+                                id="enemyCards"
+                                ids={skirmish.enemyCards ?? []}
+                                caption="The enemy's upgrade cards:"
+                                empty="The enemy holds no upgrade cards yet."
+                            />
                             <h2>Your fleet</h2>
                             <p id="playerName">{skirmish.player.name}</p>
-                            <Figures id="budget">
-                                {bill !== null && (
-                                    <tbody>
-                                        <tr className={bill.metal > skirmish.budget.metal ? "over" : undefined}>
-                                            <th>metal</th>
-                                            <td>{`${kg(bill.metal)} of ${kg(skirmish.budget.metal)}`}</td>
-                                        </tr>
-                                        <tr className={bill.fuel > skirmish.budget.fuel ? "over" : undefined}>
-                                            <th>fuel</th>
-                                            <td>{`${kg(bill.fuel)} of ${kg(skirmish.budget.fuel)}`}</td>
-                                        </tr>
-                                        <tr className={bill.build > skirmish.budget.build ? "over" : undefined}>
-                                            <th>build</th>
-                                            <td>{`${buildTime(bill.build)} of ${buildTime(skirmish.budget.build)}`}</td>
-                                        </tr>
-                                    </tbody>
-                                )}
-                            </Figures>
+                            <BudgetTable id="budget" skirmish={skirmish} />
+                            <CardHand
+                                id="playerCards"
+                                ids={skirmish.cards ?? []}
+                                caption="Your upgrade cards:"
+                                empty="You hold no upgrade cards yet."
+                            />
                             <Muted id="fleetNote">
                                 {fits
                                     ? ""
-                                    : skirmish.player.ships.length === 0
-                                      ? "Your fleet has no ships: edit it to add some."
-                                      : fault !== null
-                                        ? `Your fleet would not fly: ${fault}. Edit it to fix that.`
-                                        : limit !== null
-                                          ? `Your fleet has ${limit}: edit it to fit.`
-                                          : "Your fleet is over budget: edit it to cut it down."}
+                                    : skirmish.hand !== undefined
+                                      ? "You have earned an upgrade card: edit your fleet to pick one."
+                                      : skirmish.player.ships.length === 0
+                                        ? "Your fleet has no ships: edit it to add some."
+                                        : fault !== null
+                                          ? `Your fleet would not fly: ${fault}. Edit it to fix that.`
+                                          : limit !== null
+                                            ? `Your fleet has ${limit}: edit it to fit.`
+                                            : "Your fleet is over budget: edit it to cut it down."}
                             </Muted>
                             {!answeringNow && (
                                 <Buttons>
@@ -962,7 +949,7 @@ export function SkirmishPage() {
                                                 ? `Found in generation ${latest!.generation}: ${found.name}, which beats your fleet on the next round's seed.`
                                                 : latest === null
                                                   ? "Wait while the enemy evolves an answer: fighting the first generation of mutants…"
-                                                  : `Generation ${latest.generation}: the best enemy so far won ${latest.wins} of its ${latest.seeds} matches. It may spend ${times(latest.multiplier)} your budget.`}
+                                                  : `Generation ${latest.generation}: the best enemy so far won ${latest.wins} of its ${latest.seeds} matches. It holds ${latest.cards.length} upgrade ${latest.cards.length === 1 ? "card" : "cards"}.`}
                                         </p>
                                     </Waiting>
                                     {found === null ? (

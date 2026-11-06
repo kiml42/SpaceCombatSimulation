@@ -402,7 +402,7 @@ describe("the skirmish in a browser", () => {
         expect(await page.isVisible("#replaying")).toBe(false);
         await page.click("#nextRound");
         expect(await page.textContent("#roundTitle")).toBe("Round 2");
-        expect(await page.textContent("#multiplier")).toMatch(/^Playing against a [\d.]+× enemy/);
+        expect(await page.isVisible("#enemyCards")).toBe(true);
         expect(await page.isVisible("#answering")).toBe(false);
         expect(await page.isVisible("#editFleet")).toBe(true);
         expect(await page.getAttribute("#fight", "data-variant")).toBe("primary");

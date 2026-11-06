@@ -5,6 +5,7 @@ import { CORVETTE, GUNSHIP } from "../scenarios/blueprints.js";
 import { customBattle, tally } from "../scenarios/customBattle.js";
 import { Activity, type Decision } from "../scenarios/decision.js";
 import { DEFAULT_SKIRMISH_SETTINGS, roundBattle } from "../scenarios/skirmish.js";
+import { cardById, isSimple } from "../skirmish/cards.js";
 import { better, damageDealt, damageScale, drillBattle, EnemySearch, JobRunner, share } from "../evolution/answer.js";
 
 const gunship = shipFleet(GUNSHIP);
@@ -135,12 +136,13 @@ describe("the skirmish enemy's answer", () => {
 });
 
 describe("how far an answer may grow", () => {
-    it("to the player's budget times the multiplier, and the skirmish's ship limit", () => {
+    it("to the starting budget moved by the enemy's cards, and the skirmish's ship limit", () => {
         const budget = { metal: 1_000_000, fuel: 200_000, build: 50_000 };
-        const running = new EnemySearch(gunship, corvette, WON, 5, { maxShips: 7 }, budget, 2);
-        expect(running.limits.budget).toEqual({ metal: 2_000_000, fuel: 400_000, build: 100_000 });
-        expect(running.limits.maxShips).toBe(7);
-        expect(running.progress.multiplier).toBe(2);
+        const running = new EnemySearch(gunship, corvette, WON, 5, { maxShips: 7 }, budget, ["metal", "metal", "ship"]);
+        expect(running.limits.budget.metal).toBeCloseTo(1_200_000);
+        expect(running.limits.budget.fuel).toBeCloseTo(200_000);
+        expect(running.limits.maxShips).toBe(8);
+        expect(running.progress.cards).toEqual(["metal", "metal", "ship"]);
     });
 
     it("never to less than the enemy it answers already has", () => {
@@ -161,19 +163,13 @@ describe("how far an answer may grow", () => {
         }
     });
 
-    it("steps its budget up after long enough without an answer, from where it is told", () => {
-        const budget = { metal: 1_000_000, fuel: 200_000, build: 50_000 };
-        const running = new EnemySearch(gunship, corvette, WON, 5, { stretchAfter: 1, budgetStep: 0.1 }, budget, 2);
-        while (running.progress.generation < 2 && !running.advance(1000));
+    it("draws a simple card after long enough without an answer", () => {
+        const running = new EnemySearch(gunship, corvette, WON, 5, { stretchAfter: 1 });
+        while (running.progress.generation < 1 && !running.advance(1000));
         if (running.progress.found !== null) return;
-        expect(running.progress.multiplier).toBe(2.2);
-        expect(running.limits.budget.metal).toBeCloseTo(budget.metal * 2.2);
-    });
-
-    it("starts no lower than the enemy needs to afford itself", () => {
-        const bill = fleetBill(fleetHulls(corvette));
-        const budget = { metal: bill.metal / 1.325, fuel: bill.fuel, build: bill.build };
-        expect(new EnemySearch(gunship, corvette, WON, 5, {}, budget).progress.multiplier).toBeCloseTo(1.325);
+        const cards = running.progress.cards;
+        expect(cards.length).toBe(1);
+        expect(isSimple(cardById(cards[0]!)!)).toBe(true);
     });
 });
 

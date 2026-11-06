@@ -2,6 +2,7 @@ import { Snapshot, type Fleet } from "../sim/index.js";
 import { fitScale } from "../render/camera.js";
 import { sidesOf, teamColour } from "../render/teams.js";
 import { chains, fleetOf, type Chain, type History, type MatchRow } from "../scenarios/history.js";
+import { cardPile, HELD_SCALE } from "./cardFace.js";
 import { drawCentred, formationSnapshot, kindSnapshot, pictureOf, type Picture } from "./fleetPicture.js";
 
 /**
@@ -159,8 +160,21 @@ export function timeline(box: HTMLElement, actions: TimelineActions): Timeline {
             watch.addEventListener("click", () => actions.watch(row, player, enemy));
             head.append(watch);
         }
-        out.append(head, side(row, 0, scales), side(row, 1, scales));
+        out.append(head);
+        if (row.card !== undefined) out.append(cardLine(row));
+        out.append(side(row, 0, scales), side(row, 1, scales));
         return out;
+    };
+
+    /** The card picked before a try, or drawn by the enemy after a generation. */
+    const cardLine = (row: MatchRow): HTMLElement => {
+        const line = document.createElement("div");
+        line.className = "match-card";
+        const said = document.createElement("span");
+        said.className = "muted";
+        said.textContent = row.kind === "try" ? "You picked" : "The enemy drew";
+        line.append(said, cardPile(row.card!, HELD_SCALE));
+        return line;
     };
 
     /** The scales every row is drawn at, so a hull twice the size of another looks it. */

@@ -1327,11 +1327,18 @@ inside any one file is not contiguous.
   its round, and the file is named for it and the round (`Name-round-3.skirmish.json`). A skirmish opened with
   its round already won — imported, reloaded or handed over in a link — opens on the enemy as it stands fighting
   the player's fleet on the round it is answering, not on the round won; with *Stop watching*, the history
-  covers the battle view instead, each match's two sides side by side, the player's on the left. **The enemy's budget is the player's times
-  a multiplier**, never less than what the enemy already costs: it starts at 1×, or what the enemy already
-  costs against the player's budget if more, steps up by 0.1 each time the search goes 4 generations
-  without an answer — onto a whole step first, so 1.325× goes to 1.4× — never falls, and is shown to the
-  player as the size of enemy they are holding off. Step 5 is built; what is left of it is
+  covers the battle view instead, each match's two sides side by side, the player's on the left. **Both sides' budgets grow by upgrade cards**
+  (#691), from the same start, the enemy's never below what it already costs. The cards are data, in
+  `skirmish/cards.json`, read by `skirmish/cards.ts`: each moves metal, fuel or build time by a share of
+  where the skirmish started it, or the ship count or spread by a step, none below half its start nor ships
+  below one. Three losses in a row on a round (a setup setting), each with a fleet that has not lost it
+  before, draw the player a hand of three from the round's seed, held in the fleet editor until one is
+  picked, before the next try. Each time the search goes 4 generations without an answer, the enemy draws
+  three simple cards and keeps the one for the limit its best fleet uses most of. A card is drawn by
+  `host/cardFace.ts`, one face in ems at any size, bordered in the colour of the cost it adds to
+  (`render/resources.ts`, which the battle's gauges use too): large to pick, small in either side's hand on
+  the skirmish page, copies stacked, and in the timeline beside the match it came before. Both sides' limits — metal, fuel, build time, ships and spread — are shown
+  side by side with what each fleet uses of them, on the skirmish page and in the fleet editor (`BudgetTable`). Step 5 is built; what is left of it is
   tuning its numbers (ROADMAP.md §12).
   See ROADMAP.md §8.
   §8 step 3 is done, withdrawal left open (ROADMAP.md §12), and step 7, two layers, is built. What a chooser is already facing (`facingWeight`) and whether anything is in the way

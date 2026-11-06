@@ -13,7 +13,7 @@ import { Library, nextName, SHIPS, unusedName } from "~/editor/library";
 import { snap } from "~/editor/edit";
 import type { KeyRow } from "~/host/keyHelp";
 import { snapStep } from "~/render/camera";
-import { serialiseSkirmish, type Skirmish } from "~/scenarios/skirmish";
+import { pick, serialiseSkirmish, type Skirmish } from "~/scenarios/skirmish";
 import { parseBlueprint, parseFleet, serialiseFleet, type Blueprint, type Fleet } from "~/sim/index";
 import { KeyHelp } from "~/ui/dialogs/KeyHelp";
 import { CommitText } from "~/ui/fields/CommitText";
@@ -156,7 +156,8 @@ export function FleetPage() {
     const [search, setSearch] = useSearchParams();
     const navigate = useNavigate();
     const [start] = useState(() => handed(search));
-    const skirmish = start?.skirmish ?? null;
+    // Changed here only by picking an upgrade card; the fleet is the document's.
+    const [skirmish, setSkirmish] = useState(start?.skirmish ?? null);
     const [doc] = useState(() => {
         const first = fleets.list()[0];
         const named = search.get("open");
@@ -474,7 +475,13 @@ export function FleetPage() {
                         onLeave={keep}
                         onChanged={edited}
                     />
-                    {now !== null && <SkirmishCard skirmish={now} flies={flies} />}
+                    {now !== null && (
+                        <SkirmishCard
+                            skirmish={now}
+                            flies={flies}
+                            onPick={(id) => setSkirmish((was) => (was === null ? was : pick(was, id)))}
+                        />
+                    )}
                     <section>
                         <h2>What it works out to</h2>
                         <FleetStats view={view} />

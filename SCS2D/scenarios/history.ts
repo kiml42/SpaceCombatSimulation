@@ -29,6 +29,8 @@ export interface MatchRow {
     readonly enemyShips: number;
     /** What the player told their fleet, as a log file holds it, for a round fought with orders. */
     readonly orders?: WrittenLog;
+    /** The upgrade card, by id, the player picked before a try, or the enemy drew after a generation. */
+    readonly card?: string;
 }
 
 /** A log of orders as a file or a link writes it (`writeLog`). */
@@ -74,6 +76,7 @@ export interface Played {
     readonly enemy: Fleet;
     readonly generation?: number;
     readonly orders?: WrittenLog;
+    readonly card?: string;
 }
 
 /**
@@ -103,6 +106,7 @@ export function record(history: History, match: Played): History {
         playerShips: expandFleet(match.player).length,
         enemyShips: expandFleet(match.enemy).length,
         ...(match.orders === undefined ? {} : { orders: match.orders }),
+        ...(match.card === undefined ? {} : { card: match.card }),
     };
     return {
         fleets: { ...history.fleets, [player]: playerFile, [enemy]: enemyFile },

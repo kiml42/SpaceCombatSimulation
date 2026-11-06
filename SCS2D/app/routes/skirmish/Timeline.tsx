@@ -58,6 +58,13 @@ const Box = styled.div`
         font-size: 12px;
     }
 
+    .match-card {
+        display: flex;
+        gap: 0.5rem;
+        align-items: flex-start;
+        margin: 0.2rem 0;
+    }
+
     .combatant {
         display: grid;
         grid-template-columns: 5.6rem 1fr;
@@ -154,7 +161,8 @@ const Box = styled.div`
         column-gap: 1.2rem;
     }
 
-    &.wide .match-head {
+    &.wide .match-head,
+    &.wide .match-card {
         grid-column: 1 / -1;
     }
 `;

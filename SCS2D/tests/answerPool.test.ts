@@ -12,7 +12,7 @@ const INPUT: SearchInput = {
     seed: 5,
     settings: { ...DEFAULT_SKIRMISH_SETTINGS, mutants: 3, seeds: 2, duration: 30 },
     budget: { metal: 1e9, fuel: 1e9, build: 1e9 },
-    multiplier: 1,
+    cards: [],
 };
 const GENERATIONS = 3;
 

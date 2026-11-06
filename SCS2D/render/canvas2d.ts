@@ -87,6 +87,7 @@ import {
 } from "./inset.js";
 import { stripsFor, stripTileAt, stripTileUnder, type StripColumn, type StripShip, type Strips, type StripTile } from "./fleetStrip.js";
 import { fighterColours, markerOf, NEUTRAL, shipColours, teamLivery, teamName } from "./teams.js";
+import { RESOURCE_COLOURS } from "./resources.js";
 import { patternColour, patternTile, patternTransform, tileKey } from "./livery.js";
 import { SOOT, SOOT_ALPHA, wearLevel, wearTile, wearTransform } from "./wear.js";
 
@@ -245,12 +246,10 @@ const TANK_INSET = 0.15;
 /** A store's gauge: its whole capacity in this, and what it holds over it. */
 const FUEL_TRACK = "#1a1d22";
 /**
- * What a store holds, the same on every side so it reads at a glance: fuel
- * teal, metal the grey of a neutral hull. Kept clear of the sides' hues and of
- * a gun's amber and green load colours, which a gauge looks like.
+ * What a store holds, in its cost's colour (`RESOURCE_COLOURS`).
  */
-const FUEL = "#2ec4b6";
-const METAL = NEUTRAL.hull;
+const FUEL = RESOURCE_COLOURS.fuel;
+const METAL = RESOURCE_COLOURS.metal;
 /** Charge, the third store: electric violet, the other hue the sides leave free. */
 const CHARGE = "#9b7bff";
 /** How much of a generator's smaller side its disc is drawn across. */
