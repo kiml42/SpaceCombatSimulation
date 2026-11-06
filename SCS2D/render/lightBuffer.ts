@@ -1,7 +1,7 @@
 import { Container, Filter, Geometry, GlProgram, Mesh, RenderTexture, Shader, UniformGroup, type Renderer } from "pixi.js";
 import type { Lights } from "./glows.js";
 import { THICK_SHADOW_M } from "./light.js";
-import { LIGHT_GAIN, LIGHT_HEADROOM, lightHeight, lightReach } from "./lightField.js";
+import { LIGHT_GAIN, LIGHT_HEADROOM, lightReach, lightTop } from "./lightField.js";
 import { rgba } from "./sprites.js";
 
 /**
@@ -15,9 +15,10 @@ import { rgba } from "./sprites.js";
  *
  * Each light is a quad its shader lights the inside of, as `render/lightField.ts`
  * works it out: from above the deck, by its distance in three dimensions and
- * by how squarely it shines down. Drawn twice, once onto the deck and once
- * onto a thick module's top, since a light at a fighter's height shines down
- * on the thin hull and only across a thick module's top beside it.
+ * by how squarely it shines down. Drawn once onto the deck, once onto a thick
+ * module's top, since a light at a fighter's height shines down on the thin
+ * hull and only across a thick module's top beside it, and once halfway
+ * between, for capital ships' turrets.
  */
 
 /** The buffer's size as a share of the canvas's: light is soft, so it loses little. */
@@ -31,11 +32,11 @@ const lightVertex = `
 in vec2 aPosition;
 in vec4 aEnds;
 in vec4 aShape;
-in vec3 aColour;
+in vec4 aColour;
 out vec2 vPosition;
 out vec4 vEnds;
 out vec4 vShape;
-out vec3 vColour;
+out vec4 vColour;
 
 uniform mat3 uProjectionMatrix;
 uniform mat3 uWorldTransformMatrix;
@@ -56,7 +57,7 @@ const lightFragment = `
 in vec2 vPosition;
 in vec4 vEnds;
 in vec4 vShape;
-in vec3 vColour;
+in vec4 vColour;
 out vec4 finalColor;
 
 uniform float uSurface;
@@ -71,14 +72,19 @@ float falloff(float r)
 
 void main()
 {
-    // Canvas pixels throughout: its ends, how far it reaches, how high it stands and how bright it is.
+    // Canvas pixels throughout: its ends, how far it reaches, its bottom and top and how bright it is.
     vec2 from = vEnds.xy;
     vec2 run = vEnds.zw - from;
     float reach = vShape.x;
-    float rise = vShape.y - uSurface;
+    float bottom = vShape.y;
+    float top = vColour.a;
     float brightness = vShape.z;
     bool cone = vShape.w > 0.5;
-    if (rise <= 0.0) discard;
+    // As thick as a flame: what is partway up it takes the share above, from that share's middle.
+    float lowest = max(uSurface, bottom);
+    if (top <= lowest) discard;
+    float share = (top - lowest) / (top - bottom);
+    float rise = (lowest + top) * 0.5 - uSurface;
     vec2 d = vPosition - from;
     float length2 = dot(run, run);
     float t = length2 > 0.0 ? dot(d, run) / length2 : 0.0;
@@ -100,12 +106,12 @@ void main()
     }
     if (uDirection < 0.5) {
         // On a surface facing up: as much as shines down on it.
-        finalColor = vec4(vColour * brightness * strength * down, 0.0);
+        finalColor = vec4(vColour.rgb * brightness * strength * share * down, 0.0);
     } else {
         // Which way across the surface it comes from, by how bright it is: the part of the
         // way to it along the surface, each half of each axis in a channel of its own, as
         // what is summed additively cannot go below nothing.
-        vec2 toward = -off / max(distance, 1e-6) * brightness * strength * dot(vColour, vec3(0.2126, 0.7152, 0.0722));
+        vec2 toward = -off / max(distance, 1e-6) * brightness * strength * dot(vColour.rgb, vec3(0.2126, 0.7152, 0.0722));
         finalColor = vec4(max(toward.x, 0.0), max(-toward.x, 0.0), max(toward.y, 0.0), max(-toward.y, 0.0));
     }
 }
@@ -179,6 +185,8 @@ export class LightBuffer {
     private readonly deck: Surface;
     /** Lighting thick modules' tops, a thick module's height above it. */
     private readonly thick: Surface;
+    /** Halfway between, where capital ships' turrets stand. */
+    private readonly middle: Surface;
     private readonly uniforms = new UniformGroup({
         uScreen: { value: new Float32Array([1, 1]), type: "vec2<f32>" },
         uGain: { value: LIGHT_GAIN, type: "f32" },
@@ -193,6 +201,7 @@ export class LightBuffer {
     constructor() {
         this.deck = new Surface(this.uniforms);
         this.thick = new Surface(this.uniforms);
+        this.middle = new Surface(this.uniforms);
         const shader = new Shader({
             glProgram: GlProgram.from({ vertex: lightVertex, fragment: lightFragment, name: "dynamic-light-source" }),
             resources: { surfaceUniforms: this.surface },
@@ -225,6 +234,12 @@ export class LightBuffer {
     get thickDirection(): RenderTexture {
         return this.thick.direction;
     }
+    get middleLight(): RenderTexture {
+        return this.middle.texture;
+    }
+    get middleDirection(): RenderTexture {
+        return this.middle.direction;
+    }
 
     /**
      * Draw `lights`, in canvas pixels on a canvas `widthPx` by `heightPx` at
@@ -235,7 +250,7 @@ export class LightBuffer {
         if (lights.count === 0) return false;
         const width = Math.max(1, Math.ceil(widthPx * LIGHT_RESOLUTION));
         const height = Math.max(1, Math.ceil(heightPx * LIGHT_RESOLUTION));
-        for (const surface of [this.deck, this.thick]) {
+        for (const surface of [this.deck, this.thick, this.middle]) {
             for (const texture of [surface.texture, surface.direction]) {
                 if (texture.width !== width || texture.height !== height) texture.resize(width, height);
             }
@@ -256,6 +271,7 @@ export class LightBuffer {
         };
         draw(this.deck, 0);
         draw(this.thick, THICK_SHADOW_M * scale);
+        draw(this.middle, (THICK_SHADOW_M / 2) * scale);
         return true;
     }
 
@@ -300,12 +316,13 @@ export class LightBuffer {
                 ends[4 * i + 2] = x1;
                 ends[4 * i + 3] = y1;
                 shape[4 * i] = reach;
-                shape[4 * i + 1] = lightHeight(lights.height[k]!, radius);
+                shape[4 * i + 1] = lights.height[k]!;
                 shape[4 * i + 2] = brightness;
                 shape[4 * i + 3] = cone ? 1 : 0;
-                colour[3 * i] = r / 255;
-                colour[3 * i + 1] = g / 255;
-                colour[3 * i + 2] = b / 255;
+                colour[4 * i] = r / 255;
+                colour[4 * i + 1] = g / 255;
+                colour[4 * i + 2] = b / 255;
+                colour[4 * i + 3] = lightTop(lights.height[k]!, radius);
             }
             n++;
         }
@@ -328,7 +345,7 @@ export class LightBuffer {
                 aPosition: { buffer: new Float32Array(8 * room), format: "float32x2" },
                 aEnds: { buffer: new Float32Array(16 * room), format: "float32x4" },
                 aShape: { buffer: new Float32Array(16 * room), format: "float32x4" },
-                aColour: { buffer: new Float32Array(12 * room), format: "float32x3" },
+                aColour: { buffer: new Float32Array(16 * room), format: "float32x4" },
             },
             indexBuffer: indices,
         });

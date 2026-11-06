@@ -17,14 +17,20 @@ export const DOME = 2;
 /** Floats a vertex takes: where it is, where on the shape, its frame's two axes, its shape and taper, its colour, and how much of the light from above it already has. */
 export const ROUNDED_VERTEX = 14;
 
+/** Which of the light buffer's surfaces a part is lit as: the deck, halfway up the hull, or a thick module's top. */
+export type Level = "deck" | "middle" | "thick";
+
 export class RoundedParts {
     /** Parts lit as the deck is: capital ships' engines and ports. */
     readonly deck: number[] = [];
-    /** Parts lit as a thick module's top is: turrets' domes and barrels, and everything a fighter has. */
+    /** Parts lit halfway up the hull: capital ships' turrets' domes and barrels. */
+    readonly middle: number[] = [];
+    /** Parts lit as a thick module's top is, the nearest to a fighter's height: everything a fighter has. */
     readonly thick: number[] = [];
 
     clear(): void {
         this.deck.length = 0;
+        this.middle.length = 0;
         this.thick.length = 0;
     }
 
@@ -32,8 +38,8 @@ export class RoundedParts {
      * A tube lying along x in the frame `m` maps to canvas pixels, from `x` for
      * `length`, `halfWidth` either side of `y` at its start and `taper` as much
      * at its end, in `colour`. `flat` is how much of the light from above it
-     * already takes, as a part laid over a lit fill does; `thick`, whether it
-     * stands at a thick module's height.
+     * already takes, as a part laid over a lit fill does; `level`, which
+     * height it is lit at.
      */
     tube(
         m: Transform,
@@ -44,9 +50,9 @@ export class RoundedParts {
         taper: number,
         colour: readonly number[],
         flat: number,
-        thick: boolean,
+        level: Level,
     ): void {
-        this.quad(m, x, y - halfWidth, length, 2 * halfWidth, [0, -1, 1, -1, 1, 1, 0, 1], TUBE, taper, colour, flat, thick);
+        this.quad(m, x, y - halfWidth, length, 2 * halfWidth, [0, -1, 1, -1, 1, 1, 0, 1], TUBE, taper, colour, flat, level);
     }
 
     /**
@@ -62,18 +68,18 @@ export class RoundedParts {
         to: number,
         colour: readonly number[],
         flat: number,
-        thick: boolean,
+        level: Level,
     ): void {
         if (!(radius > 0) || !(to > from)) return;
         const u0 = (from - cx) / radius;
         const u1 = (to - cx) / radius;
-        this.quad(m, from, cy - radius, to - from, 2 * radius, [u0, -1, u1, -1, u1, 1, u0, 1], SPHERE, 1, colour, flat, thick);
+        this.quad(m, from, cy - radius, to - from, 2 * radius, [u0, -1, u1, -1, u1, 1, u0, 1], SPHERE, 1, colour, flat, level);
     }
 
     /** A dome `radius` round `(cx, cy)` in the frame `m` maps to canvas pixels: a turret's. */
-    dome(m: Transform, cx: number, cy: number, radius: number, colour: readonly number[], flat: number, thick: boolean): void {
+    dome(m: Transform, cx: number, cy: number, radius: number, colour: readonly number[], flat: number, level: Level): void {
         if (!(radius > 0)) return;
-        this.quad(m, cx - radius, cy - radius, 2 * radius, 2 * radius, [-1, -1, 1, -1, 1, 1, -1, 1], DOME, 1, colour, flat, thick);
+        this.quad(m, cx - radius, cy - radius, 2 * radius, 2 * radius, [-1, -1, 1, -1, 1, 1, -1, 1], DOME, 1, colour, flat, level);
     }
 
     /** The rectangle from `(x, y)`, `w` along x and `h` along y, its corners at `local` on its shape, anticlockwise from `(x, y)`. */
@@ -88,10 +94,10 @@ export class RoundedParts {
         taper: number,
         colour: readonly number[],
         flat: number,
-        thick: boolean,
+        level: Level,
     ): void {
         if (!(w > 0) || !(h > 0)) return;
-        const out = thick ? this.thick : this.deck;
+        const out = this[level];
         // Its frame's axes on the canvas: which way along and across it each point faces is told from these.
         const along = Math.hypot(m.a, m.b) || 1;
         const across = Math.hypot(m.c, m.d) || 1;

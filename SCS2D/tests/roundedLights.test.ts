@@ -8,7 +8,7 @@ const at = (data: readonly number[], vertex: number, field: number): number => d
 describe("rounded parts for the dynamic lights", () => {
     it("lays a tube's corners on the canvas, with where each is across it and its frame's axes made units", () => {
         const parts = new RoundedParts();
-        parts.tube(FRAME, 0, 0, 3, 1, 0.5, [255, 0, 51], 1, false);
+        parts.tube(FRAME, 0, 0, 3, 1, 0.5, [255, 0, 51], 1, "deck");
         expect(parts.deck.length).toBe(4 * ROUNDED_VERTEX);
         expect(parts.thick.length).toBe(0);
         // Its first corner, (0, -1) in its frame.
@@ -23,7 +23,7 @@ describe("rounded parts for the dynamic lights", () => {
 
     it("puts a sphere's cut ends where they are on it, in its radii from its centre", () => {
         const parts = new RoundedParts();
-        parts.sphere(FRAME, 1, 0, 2, 0, 2, [0, 0, 0], 1, true);
+        parts.sphere(FRAME, 1, 0, 2, 0, 2, [0, 0, 0], 1, "thick");
         expect(parts.thick.length).toBe(4 * ROUNDED_VERTEX);
         expect(at(parts.thick, 0, 8)).toBe(SPHERE);
         expect(at(parts.thick, 0, 2)).toBeCloseTo(-0.5, 12);
@@ -32,12 +32,14 @@ describe("rounded parts for the dynamic lights", () => {
 
     it("keeps a dome where a turret stands, and nothing of no size", () => {
         const parts = new RoundedParts();
-        parts.dome(FRAME, 0, 0, 1, [0, 0, 0], 0, true);
-        parts.dome(FRAME, 0, 0, 0, [0, 0, 0], 0, true);
-        parts.tube(FRAME, 0, 0, 0, 1, 1, [0, 0, 0], 0, true);
+        parts.dome(FRAME, 0, 0, 1, [0, 0, 0], 0, "thick");
+        parts.dome(FRAME, 0, 0, 0, [0, 0, 0], 0, "thick");
+        parts.tube(FRAME, 0, 0, 0, 1, 1, [0, 0, 0], 0, "thick");
         expect(parts.thick.length).toBe(4 * ROUNDED_VERTEX);
         expect(at(parts.thick, 0, 8)).toBe(DOME);
+        parts.dome(FRAME, 0, 0, 1, [0, 0, 0], 0, "middle");
+        expect(parts.middle.length).toBe(4 * ROUNDED_VERTEX);
         parts.clear();
-        expect(parts.thick.length + parts.deck.length).toBe(0);
+        expect(parts.thick.length + parts.middle.length + parts.deck.length).toBe(0);
     });
 });

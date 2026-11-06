@@ -1,5 +1,5 @@
 import { Buffer, BufferUsage, Geometry, GlProgram, Mesh, Shader, UniformGroup, type RenderTexture } from "pixi.js";
-import { CHROMA_FLOOR } from "./bevelLighting.js";
+import { CHROMA_FLOOR, FACING_GLSL } from "./bevelLighting.js";
 import { LIGHT_GAIN, LIGHT_HEADROOM } from "./lightField.js";
 import { DOME_HEIGHT } from "./shading.js";
 import { ROUNDED_VERTEX } from "./roundedLights.js";
@@ -65,7 +65,7 @@ uniform sampler2D uLight;
 uniform sampler2D uDirection;
 uniform float uGain;
 uniform float uHeadroom;
-
+${FACING_GLSL}
 void main()
 {
     // Which way this point faces: across the canvas, and up out of it.
@@ -92,12 +92,10 @@ void main()
         up = n.z;
     }
     vec3 light = texture(uLight, vScreen).rgb;
-    vec4 from = texture(uDirection, vScreen);
-    vec2 toward = vec2(from.r - from.g, from.b - from.a);
     float luminance = dot(light, vec3(0.2126, 0.7152, 0.0722));
     vec3 colour = (light + ${CHROMA_FLOOR.toFixed(3)}) / (luminance + ${CHROMA_FLOOR.toFixed(3)});
     // Facing the light across the deck, and facing up as far as it does past what it already takes from above.
-    vec3 taken = max(colour * max(0.0, dot(across, toward)) + light * (up - vFlat), 0.0);
+    vec3 taken = max(colour * facing(texture(uDirection, vScreen), across) + light * (up - vFlat), 0.0);
     finalColor = vec4(vAlbedo * (1.0 - exp(-taken * uHeadroom)) * uGain, 0.0);
 }
 `;

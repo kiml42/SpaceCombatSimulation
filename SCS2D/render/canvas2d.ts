@@ -46,7 +46,7 @@ import {
 import { BACKGROUND, GRID, WELL, WELL_ARM_PX, WELL_PULLS } from "./backdrop.js";
 import { barrelLines, MIN_BARREL_PX } from "./barrels.js";
 import { FIGHTER_SHADOW_M, LANDED_SHADOW_M, THICK_SHADOW_M, type Light } from "./light.js";
-import { RoundedParts } from "./roundedLights.js";
+import { RoundedParts, type Level } from "./roundedLights.js";
 import {
     BEVEL_DARK,
     BEVEL_LIGHT,
@@ -638,7 +638,7 @@ function drawShip(
                 if (light !== undefined) shadeDome(ctx, 0, 0, face * 0.5, light);
             });
             // Drawn over the hull's lit fill, so taking all its light: outside the picture, which is kept.
-            rounded?.dome(ctx.getTransform(), 0, 0, face * 0.5, rgba(mountColour), 0, true);
+            rounded?.dome(ctx.getTransform(), 0, 0, face * 0.5, rgba(mountColour), 0, turretLevel(ship));
             ctx.restore();
         } else if (beamLenses) {
             // Each lens on a disc of its own that it turns on, as wide as the lens
@@ -1678,23 +1678,23 @@ function shadeEngine(
     for (const y of layout.centres) {
         if (bell !== null) {
             ctx.drawImage(bell, -l, y - exit, mouth + l, 2 * exit);
-            rounded?.tube(m, -l, y, mouth + l, exit, engine.throatWidth / engine.exitWidth, colour, 1, thick);
+            rounded?.tube(m, -l, y, mouth + l, exit, engine.throatWidth / engine.exitWidth, colour, 1, thick ? "thick" : "deck");
         }
         if (!(r > 0)) continue;
         for (const [x, from, to] of ends) {
             const image = sphereShade(light.from - angle, across, up, (from - x) / r, (to - x) / r);
             if (image !== null) ctx.drawImage(image, from, y - r, to - from, 2 * r);
-            rounded?.sphere(m, x, y, r, from, to, colour, 1, thick);
+            rounded?.sphere(m, x, y, r, from, to, colour, 1, thick ? "thick" : "deck");
         }
         if (tube !== null) {
             ctx.drawImage(tube, layout.centre, y - r, straight, 2 * r);
-            rounded?.tube(m, layout.centre, y, straight, r, 1, colour, 1, thick);
+            rounded?.tube(m, layout.centre, y, straight, r, 1, colour, 1, thick ? "thick" : "deck");
         }
     }
     if (roundPump) {
         const pump = cylinderShade(side, up);
         if (pump !== null) ctx.drawImage(pump, layout.pumpAft, -layout.halfWidth, l - layout.pumpAft, 2 * layout.halfWidth);
-        rounded?.tube(m, layout.pumpAft, 0, l - layout.pumpAft, layout.halfWidth, 1, colour, 1, thick);
+        rounded?.tube(m, layout.pumpAft, 0, l - layout.pumpAft, layout.halfWidth, 1, colour, 1, thick ? "thick" : "deck");
     }
 }
 
@@ -1716,8 +1716,8 @@ function shadePort(
     ctx.drawImage(image, -l, -w, spec.length - collar, 2 * w);
     ctx.drawImage(image, l - collar, -w * PORT_COLLAR_WIDTH, collar, 2 * w * PORT_COLLAR_WIDTH);
     const m = ctx.getTransform();
-    rounded?.tube(m, -l, 0, spec.length - collar, w, 1, colour, 1, thick);
-    rounded?.tube(m, l - collar, 0, collar, w * PORT_COLLAR_WIDTH, 1, colour, 1, thick);
+    rounded?.tube(m, -l, 0, spec.length - collar, w, 1, colour, 1, thick ? "thick" : "deck");
+    rounded?.tube(m, l - collar, 0, collar, w * PORT_COLLAR_WIDTH, 1, colour, 1, thick ? "thick" : "deck");
 }
 
 /**
@@ -1867,6 +1867,11 @@ function bevel(ctx: CanvasRenderingContext2D, design: ShipDesign, m: number, ang
 }
 const quad: number[] = [0, 0, 0, 0, 0, 0, 0, 0];
 
+/** Where a turret is lit by the dynamic lights: halfway up a capital ship's hull, as its flames are thick; a fighter's nearest its height. */
+function turretLevel(ship: ShipView): Level {
+    return ship.currentStructure.fighter ? "thick" : "middle";
+}
+
 /** A turret's dome shaded as rounded, at `x`, `y` in the world. */
 function shadeDome(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, light: Light): void {
     const { across, up } = lightSlope(light);
@@ -1899,8 +1904,9 @@ function shadeBarrels(ctx: CanvasRenderingContext2D, ship: ShipView, t: number, 
         if (to < 1) ctx.drawImage(image, span * to, -width / 2, span * (1 - to), width);
         // Drawn over everything, so taking all the light, at a turret's height.
         const m = ctx.getTransform();
-        if (from > 0) rounded?.tube(m, 0, 0, span * from, width / 2, 1, BARREL_RGB, 0, true);
-        if (to < 1) rounded?.tube(m, span * to, 0, span * (1 - to), width / 2, 1, BARREL_RGB, 0, true);
+        const level = turretLevel(ship);
+        if (from > 0) rounded?.tube(m, 0, 0, span * from, width / 2, 1, BARREL_RGB, 0, level);
+        if (to < 1) rounded?.tube(m, span * to, 0, span * (1 - to), width / 2, 1, BARREL_RGB, 0, level);
         ctx.restore();
     });
 }
