@@ -7,6 +7,7 @@ import { pushBearing } from "./helm.js";
 import { CLAW_DEPTH, CLAW_STIFFNESS } from "./collision.js";
 import * as shipForage from "./shipForage.js";
 import { type Ships, movable, stoppingSpeed, URGE_REFERENCE } from "./ships.js";
+import * as shipFlight from "./shipFlight.js";
 
 /**
  * Bringing a claw to what it means to grip: matching the target's turn, choosing
@@ -137,10 +138,12 @@ export function matchOrbit(ships: Ships, bodies: Bodies, i: number, b: number, t
     if (!(error > CLAW_SPEED_HIGH - CLAW_APPROACH)) return jawsOn;
     const closing = (bodies.vx[b]! - bodies.vx[tb]!) * ux + (bodies.vy[b]! - bodies.vy[tb]!) * uy;
     const left = max(0, range - bodies.radius[tb]!) / max(closing, CLAW_APPROACH);
-    const jawsTime = error / ships.accelerationAlong(bodies, i, b, ex / error, ey / error, jawsOn);
+    const jawsTime = error / shipFlight.accelerationAlong(ships, bodies, i, b, ex / error, ey / error, jawsOn);
     if (jawsTime <= left) return jawsOn;
     const mains = atan2(ey, ex) - pushBearing(ships.layoutOf(i), ships.designs[i]!.thrustBearing);
-    const mainsTime = 4 * ships.halfTurnTime(bodies, i, b) + error / ships.accelerationAlong(bodies, i, b, ex / error, ey / error, mains);
+    const mainsTime =
+        4 * shipFlight.halfTurnTime(ships, bodies, i, b) +
+        error / shipFlight.accelerationAlong(ships, bodies, i, b, ex / error, ey / error, mains);
     return mainsTime < left && mainsTime < jawsTime ? mains : jawsOn;
 }
 
@@ -490,7 +493,7 @@ export function squareUp(ships: Ships, bodies: Bodies, i: number, b: number, tb:
         // Straight in, the jaws held on the line, planned on half the braking it
         // has less the well's pull: flying lags what it asks for, and a claw
         // driven home too fast is torn off.
-        const retro = ships.accelerationAlong(bodies, i, b, nx, ny, ships.gripHeading);
+        const retro = shipFlight.accelerationAlong(ships, bodies, i, b, nx, ny, ships.gripHeading);
         const braking = GRIP_BRAKING * max(approach.brake * retro - pull, 0.1 * approach.brake * retro);
         const stopping = stoppingSpeed(braking, max(0, out), approach.responseTime);
         const arrive = clawArrival(ships, bodies, b, claw);
@@ -512,7 +515,7 @@ export function squareUp(ships: Ships, bodies: Bodies, i: number, b: number, tb:
             // Well short of it, the jaws on its middle as any claw ship closing on
             // a source holds them, so its mains carry it there.
             if (span > 2 * gate) ships.gripHeading = atan2(bodies.y[tb]! - bodies.y[b]!, bodies.x[tb]! - bodies.x[b]!) - jaws;
-            const retro = ships.accelerationAlong(bodies, i, b, -ux, -uy, ships.gripHeading);
+            const retro = shipFlight.accelerationAlong(ships, bodies, i, b, -ux, -uy, ships.gripHeading);
             const braking = GRIP_BRAKING * max(approach.brake * retro - pull, 0.1 * approach.brake * retro);
             const stopping = stoppingSpeed(braking, span, approach.responseTime);
             const arrive = clawArrival(ships, bodies, b, claw);
@@ -524,7 +527,7 @@ export function squareUp(ships: Ships, bodies: Bodies, i: number, b: number, tb:
     }
     // Held against the source's pull rather than lagging behind it.
     wellPullOn(ships, bodies, b, tb);
-    ships.urge(URGE_REFERENCE, vx + wantX, vy + wantY, nx * slowing - ships.partAt.x, ny * slowing - ships.partAt.y);
+    shipFlight.urge(ships, URGE_REFERENCE, vx + wantX, vy + wantY, nx * slowing - ships.partAt.x, ny * slowing - ships.partAt.y);
     return closing;
 }
 
@@ -566,7 +569,7 @@ export function grapple(
         // Planned on what it really has astern with its jaws held on, with no
         // floor: a claw has to arrive slowly, so a craft that cannot brake
         // facing its source comes in no faster than it can stop.
-        const retro = ships.accelerationAlong(bodies, i, b, -ux, -uy, facing);
+        const retro = shipFlight.accelerationAlong(ships, bodies, i, b, -ux, -uy, facing);
         const braking = max(approach.brake * retro - surfacePull(ships, bodies, tb), 0.1 * approach.brake * retro);
         const stopping = stoppingSpeed(braking, gap, approach.responseTime);
         const arrive = clawArrival(ships, bodies, b, claw);
@@ -577,6 +580,6 @@ export function grapple(
         ax = -ux * slowing;
         ay = -uy * slowing;
     }
-    ships.urge(URGE_REFERENCE, vx, vy, ax, ay);
+    shipFlight.urge(ships, URGE_REFERENCE, vx, vy, ax, ay);
     return radial;
 }

@@ -14,6 +14,7 @@ import * as shipBreakup from "./shipBreakup.js";
 import * as shipForage from "./shipForage.js";
 import { type Ships, NO_TARGET, movable, PAD_SPEED, stoppingSpeed, URGE_REFERENCE, STEER, PORT_SPEED, WELD_SETTLE } from "./ships.js";
 import * as shipBuild from "./shipBuild.js";
+import * as shipFlight from "./shipFlight.js";
 
 /**
  * Coming aboard another hull: landing on a carrier's pad and parking there,
@@ -300,7 +301,7 @@ export function landOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
     const approach = ships.doctrines[i]!.approach;
     const place = modulePlace(bodies, tb, host, pad);
     // Matching how the pad is speeding up as well as how it is moving, as if it keeps on.
-    ships.dockingAccel(i, place.vx, place.vy, dt);
+    shipFlight.dockingAccel(ships, i, place.vx, place.vy, dt);
     let ax = ships.dockAx[i]!;
     let ay = ships.dockAy[i]!;
     // An anchored pad does not fall with what lands on it, so it holds itself up against the rock's pull.
@@ -365,13 +366,13 @@ export function landOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
             radial = min(PAD_SPEED, range / approach.responseTime);
         } else {
             // Braking on what is left once it is keeping up.
-            const spare = max(0, ships.pushAbility(bodies, i, b) - length(ax, ay));
+            const spare = max(0, shipFlight.pushAbility(ships, bodies, i, b) - length(ax, ay));
             radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * spare, left, ships.pushDelay));
         }
         vx += ux * radial;
         vy += uy * radial;
     }
-    ships.urge(URGE_REFERENCE, vx, vy, ax, ay);
+    shipFlight.urge(ships, URGE_REFERENCE, vx, vy, ax, ay);
 
     // Where it faces is the helm's to choose until it has to line up with the
     // pad: once it has little left to lose, either way round, whichever is nearer.
@@ -463,7 +464,7 @@ export function roundHull(ships: Ships, bodies: Bodies, i: number, b: number, ob
         vx += (dx / gap) * speed;
         vy += (dy / gap) * speed;
     }
-    ships.urge(URGE_REFERENCE, vx, vy);
+    shipFlight.urge(ships, URGE_REFERENCE, vx, vy);
     return atan2(dy, dx);
 }
 
@@ -693,7 +694,7 @@ export function dockOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
     if (host === null || host.modules[theirs] === undefined || design.modules[own] === undefined) return bodies.angle[b]!;
     const approach = ships.doctrines[i]!.approach;
     const place = modulePlace(bodies, tb, host, theirs);
-    ships.dockingAccel(i, place.vx, place.vy, dt);
+    shipFlight.dockingAccel(ships, i, place.vx, place.vy, dt);
     const ax = ships.dockAx[i]!;
     const ay = ships.dockAy[i]!;
     const nx = cos(place.angle);
@@ -742,13 +743,13 @@ export function dockOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
             radial = PORT_APPROACH;
         } else {
             // Braking on what is left once it is keeping up.
-            const spare = max(0, ships.pushAbility(bodies, i, b) - length(ax, ay));
+            const spare = max(0, shipFlight.pushAbility(ships, bodies, i, b) - length(ax, ay));
             radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * spare, left, ships.pushDelay));
         }
         vx += (dx / range) * radial;
         vy += (dy / range) * radial;
     }
-    ships.urge(URGE_REFERENCE, vx, vy, ax, ay);
+    shipFlight.urge(ships, URGE_REFERENCE, vx, vy, ax, ay);
     // Far off, where it faces is the helm's to choose, so long as it turns for
     // any change it could not mate at; near, it faces the port it mates with.
     if (left > PAD_ALIGN_RADII * bodies.radius[b]!) {
