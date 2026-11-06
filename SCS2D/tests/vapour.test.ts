@@ -1,7 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { Beams, Projectiles, Ships, Snapshot, World, capture, compileBlueprint, type Blueprint, type Rng } from "../sim/index.js";
 import { LEAK_LINGER, LEAK_SCRATCH_FADE } from "../sim/snapshot.js";
-import { eachPuff, holeClosedAt, holeWidth, type Hole, type Puff } from "../render/vapour.js";
+import {
+    CLOUD_REACH,
+    CLOUD_SEEN,
+    eachCloudPuff,
+    eachPuff,
+    holeClosedAt,
+    holeWidth,
+    type Cloud,
+    type Hole,
+    type Puff,
+} from "../render/vapour.js";
 
 /** A core and a lined tank ahead of it. */
 const DRUM: Blueprint = {
@@ -109,5 +119,33 @@ describe("a leak's vapour", () => {
         expect(nearest(0.4)).toBeLessThan(1);
         // Shut a moment ago: what is left is all some way off.
         expect(nearest(shut + 0.1)).toBeGreaterThan(3);
+    });
+});
+
+describe("a cloud of fuel let out at once", () => {
+    const cloud = (age: number): Cloud => ({ x: 5, y: -3, age, fuel: 1000, fill: 0.5, size: 4, seed: 7 });
+    const puffs = (age: number): Puff[] => {
+        const seen: Puff[] = [];
+        eachCloudPuff(cloud(age), { x: 0, y: 0, radius: 0, dirX: 1, dirY: 0, length: 0, alpha: 0 }, (p) => seen.push({ ...p }));
+        return seen;
+    };
+
+    it("goes out every way from the module, no further than its reach past it", () => {
+        const seen = puffs(0.5);
+        expect(seen.length).toBeGreaterThan(8);
+        const quarters = new Set(seen.map((p) => (p.x > 5 ? 1 : 0) + (p.y > -3 ? 2 : 0)));
+        expect(quarters.size).toBe(4);
+        for (const p of seen) expect(Math.hypot(p.x - 5, p.y + 3)).toBeLessThan(2 + CLOUD_REACH * 10);
+    });
+
+    it("spreads and thins as it goes, and is gone once seen long enough", () => {
+        const early = puffs(0.1);
+        const late = puffs(1);
+        const spread = (seen: Puff[]): number => Math.max(...seen.map((p) => Math.hypot(p.x - 5, p.y + 3)));
+        expect(spread(late)).toBeGreaterThan(spread(early));
+        expect(late[0]!.alpha).toBeLessThan(early[0]!.alpha);
+        expect(late[0]!.radius).toBeGreaterThan(0);
+        expect(puffs(CLOUD_SEEN)).toEqual([]);
+        expect(puffs(-0.1)).toEqual([]);
     });
 });

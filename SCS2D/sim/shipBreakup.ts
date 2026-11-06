@@ -300,6 +300,15 @@ export function breakUpModule(
     }
     const spin = bodies.angularVel[b]!;
     ships.debris.emit(outline, corners, bodies.vx[b]!, bodies.vy[b]!, spin, bx, by, paint, hot, blow?.[0] ?? 0, mass, ix, iy, nx, ny);
+    // What fuel it still held, let out all at once from its middle.
+    const placed = design.modules[m]!;
+    const fuel = ships.fuel.held(b, m);
+    if (fuel > 0 && placed.stats.fuel > 0) {
+        const ox = placed.x * c - placed.y * s;
+        const oy = placed.x * s + placed.y * c;
+        const size = max(placed.spec.length, placed.spec.width);
+        ships.debris.vent(bx + ox, by + oy, bodies.vx[b]! - spin * oy, bodies.vy[b]! + spin * ox, fuel, fuel / placed.stats.fuel, size);
+    }
 }
 
 /**

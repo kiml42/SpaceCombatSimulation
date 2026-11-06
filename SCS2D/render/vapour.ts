@@ -1,4 +1,4 @@
-import { leakRate, PATCH_SPEED } from "../sim/fuel.js";
+import { leakRate, leakSpeed, PATCH_SPEED } from "../sim/fuel.js";
 
 /**
  * Fuel leaking from a hole, as puffs of vapour worked out afresh each frame
@@ -157,6 +157,66 @@ export function eachPuff(
             out.alpha = (VAPOUR_ALPHA / Math.sqrt(puffs)) * (1 - through) ** 2 * spread;
             visit(out);
         }
+    }
+}
+
+/** How far a cloud of fuel spreads, metres per ∛kg let out, past the module it came from. */
+export const CLOUD_REACH = 1.5;
+/** How long a cloud is seen, seconds: it thins to nothing as it slows. */
+export const CLOUD_SEEN = 1.5;
+/** How opaque a cloud is, all its puffs over each other, as it leaves. */
+const CLOUD_ALPHA = 0.8;
+/** The slowest of a cloud's puffs, as a share of the fastest. */
+const CLOUD_SLOWEST = 0.2;
+/** How many puffs a cloud is, at least and at most. */
+const CLOUD_LEAST_PUFFS = 16;
+const CLOUD_MOST_PUFFS = 64;
+
+/** A cloud of fuel let out at once, as the snapshot carries it (`Debris.vent`). */
+export interface Cloud {
+    x: number;
+    y: number;
+    age: number;
+    /** How much fuel, kg, and how full its tank was. */
+    fuel: number;
+    fill: number;
+    /** How wide the module it came from was, metres. */
+    size: number;
+    seed: number;
+}
+
+/**
+ * Every puff of a cloud of fuel, as a leak's vapour but out every way at once
+ * and not again: from all over the module it came from, as fast as the
+ * pressure in its tank sends it and slowing as it spreads, widening and
+ * thinning to nothing. `visit` sees each, in `out`, in the world.
+ */
+export function eachCloudPuff(cloud: Cloud, out: Puff, visit: (puff: Puff) => void): void {
+    const age = cloud.age;
+    if (!(age >= 0) || age >= CLOUD_SEEN || !(cloud.fuel > 0)) return;
+    const speed = Math.max(1, leakSpeed(Math.max(0.05, cloud.fill)));
+    const reach = CLOUD_REACH * Math.cbrt(cloud.fuel);
+    const puffs = Math.min(CLOUD_MOST_PUFFS, CLOUD_LEAST_PUFFS + Math.round(3 * Math.cbrt(cloud.fuel)));
+    const left = 1 - age / CLOUD_SEEN;
+    const alpha = (CLOUD_ALPHA / Math.sqrt(puffs)) * left * left;
+    const start = cloud.size / 2;
+    for (let m = 0; m < puffs; m++) {
+        const way = (2 * Math.PI * (m + unit(cloud.seed, m, 0))) / puffs;
+        // Some far slower than the rest, so it fills in rather than being a ring.
+        const fast = CLOUD_SLOWEST + (1 - CLOUD_SLOWEST) * Math.sqrt(unit(cloud.seed, m, 1));
+        const from = start * Math.sqrt(unit(cloud.seed, m, 2));
+        // Slowing as it spreads, so it never quite gets past its reach.
+        const gone = reach * fast * (1 - Math.exp((-speed * age) / reach));
+        const dirX = Math.cos(way);
+        const dirY = Math.sin(way);
+        out.x = cloud.x + dirX * (from + gone);
+        out.y = cloud.y + dirY * (from + gone);
+        out.radius = start / 2 + VAPOUR_SPREAD * (from + gone);
+        out.dirX = dirX;
+        out.dirY = dirY;
+        out.length = 2 * out.radius;
+        out.alpha = alpha;
+        visit(out);
     }
 }
 
