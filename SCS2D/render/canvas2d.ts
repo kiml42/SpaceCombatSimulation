@@ -101,7 +101,7 @@ import { Overshadowed } from "./blocks.js";
 import { LIGHT_GAIN, LightField, type Seen } from "./lightField.js";
 import { leakSpeed } from "../sim/fuel.js";
 import { LEAK_LINGER } from "../sim/snapshot.js";
-import { eachPuff, type Hole, type Pose, type Puff } from "./vapour.js";
+import { eachCloudPuff, eachPuff, type Cloud, type Hole, type Pose, type Puff } from "./vapour.js";
 import { Poses } from "./poses.js";
 import { bit, bitCount, seedOf, spark, sparkColour, sparkCount, sparkFade, sprayOf, type Bit, type Spark } from "./particles.js";
 import type { PixiCanvas } from "./pixiCanvas.js";
@@ -2592,6 +2592,7 @@ function drawScene(
     }
 
     drawDebris(ctx, snapshot, camera, light);
+    drawClouds(ctx, snapshot, light);
 
     // Icons in a pass of their own, after every hull: an icon stands for the
     // ship as a whole, so it belongs over its neighbours rather than under
@@ -3529,6 +3530,39 @@ function drawDebris(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: C
     for (const batch of debrisBatches) batch?.end();
     glows?.end();
 }
+
+/**
+ * Fuel let out where a module holding it broke up (`render/vapour.ts`): a puff
+ * of white vapour out every way at once, as a leak's but all in one go,
+ * thinning to nothing. One batch, laid over the debris.
+ */
+function drawClouds(ctx: CanvasRenderingContext2D, snapshot: Snapshot, light: Light | undefined): void {
+    if (snapshot.cloudCount === 0) return;
+    const batches = (ctx as Partial<{ particles: PixiCanvas["particles"] }>).particles;
+    const image = sprite("halo", "#ffffff");
+    if (batches === undefined || image === null) return;
+    const [r, g, b] = rgba(light === undefined ? LEAK : litColour(LEAK, light.colour));
+    const tint = (r << 16) | (g << 8) | b;
+    let batch: ReturnType<PixiCanvas["particles"]> | null = null;
+    for (let i = 0; i < snapshot.cloudCount; i++) {
+        cloud.x = snapshot.cloudX[i]!;
+        cloud.y = snapshot.cloudY[i]!;
+        cloud.age = snapshot.cloudAge[i]!;
+        cloud.fuel = snapshot.cloudFuel[i]!;
+        cloud.fill = snapshot.cloudFill[i]!;
+        cloud.size = snapshot.cloudSize[i]!;
+        cloud.seed = snapshot.cloudSeed[i]!;
+        eachCloudPuff(cloud, puff, (p) => {
+            if (!nearShown(p.x - p.radius, p.y - p.radius, p.x + p.radius, p.y + p.radius)) return;
+            batch ??= batches.call(ctx, image, false);
+            batch.add(p.x, p.y, p.dirX, p.dirY, p.length, 2 * p.radius, lightUp(tint, LEAK_RGB, p.x, p.y), p.alpha);
+        });
+    }
+    (batch as ReturnType<PixiCanvas["particles"]> | null)?.end();
+}
+
+/** Scratch for drawing a cloud, so drawing one allocates nothing. */
+const cloud: Cloud = { x: 0, y: 0, age: 0, fuel: 0, fill: 0, size: 0, seed: 0 };
 
 /** One batch a shape of bit, open while debris is drawn. */
 const debrisBatches: (ReturnType<PixiCanvas["particles"]> | null)[] = SHARDS.map(() => null);

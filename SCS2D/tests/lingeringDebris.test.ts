@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { compileBlueprint, type WellSpec } from "../sim/index.js";
 import { makeBattle } from "../scenarios/battle.js";
 import { cloneBattle } from "../scenarios/clone.js";
-import { Debris, DEBRIS_HOT, DEBRIS_LONGEST, DEBRIS_MOST_LIFE, MOST_DEBRIS, UNPAINTED } from "../sim/debris.js";
+import { CLOUD_LIFE, Debris, DEBRIS_HOT, DEBRIS_LONGEST, DEBRIS_MOST_LIFE, MOST_CLOUDS, MOST_DEBRIS, UNPAINTED } from "../sim/debris.js";
+import { breakUpModule } from "../sim/shipBreakup.js";
 
 /** A plate 20 m long and 4 m wide across x = 0, with a core behind it: a wall to bounce off. */
 const WALL = compileBlueprint({
@@ -184,5 +185,62 @@ describe("lingering debris", () => {
         expect(b.count).toBe(a.count);
         expect(Array.from(b.x.subarray(0, b.count))).toEqual(Array.from(a.x.subarray(0, a.count)));
         expect(Array.from(b.y.subarray(0, b.count))).toEqual(Array.from(a.y.subarray(0, a.count)));
+    });
+});
+
+describe("fuel let out as a module breaks up", () => {
+    /** A core, a full tank ahead of it and a plate behind, at rest. */
+    const DRUM = compileBlueprint({
+        name: "Drum",
+        modules: [
+            { kind: "core", x: 0, y: 0, length: 2, width: 2 },
+            { kind: "tank", x: 4, y: 0, length: 6, width: 4 },
+            { kind: "structure", x: -2, y: 0, length: 2, width: 2 },
+        ],
+    });
+
+    it("is a cloud of what fuel the module held, where it was, and none from what held none", () => {
+        const battle = makeBattle({ seed: 1, pilots: false }, (ships, world) => {
+            ships.spawn(world, { design: DRUM, x: 10, y: 20, angle: Math.PI / 2, team: 0 });
+        });
+        const { ships, world } = battle;
+        const bodies = world.bodies;
+        const b = bodies.indexOf(ships.bodyIds[0]!);
+        const debris = ships.debris;
+        breakUpModule(ships, bodies, 0, b, DRUM, 1, true);
+        expect(debris.cloudCount).toBe(0);
+        debris.watched = true;
+        breakUpModule(ships, bodies, 0, b, DRUM, 2, true);
+        expect(debris.cloudCount).toBe(0);
+        breakUpModule(ships, bodies, 0, b, DRUM, 1, true);
+        expect(debris.cloudCount).toBe(1);
+        expect(debris.cloudFuel[0]).toBeCloseTo(ships.fuel.held(b, 1), 9);
+        expect(debris.cloudFill[0]).toBeCloseTo(1, 9);
+        expect(debris.cloudSize[0]).toBe(6);
+        // Turned a quarter, the tank's middle is along y from the centre of mass.
+        const tank = DRUM.modules[1]!;
+        expect(debris.cloudX[0]).toBeCloseTo(bodies.x[b]! - tank.y, 9);
+        expect(debris.cloudY[0]).toBeCloseTo(bodies.y[b]! + tank.x, 9);
+    });
+
+    it("drifts on and is let go of once it has thinned away, the oldest giving way when there are too many", () => {
+        const debris = new Debris();
+        debris.vent(0, 0, 2, 0, 100, 1, 4);
+        expect(debris.cloudCount).toBe(0);
+        debris.watched = true;
+        debris.vent(0, 0, 2, 0, 100, 1, 4);
+        const battle = walled();
+        debris.step(0.5, battle.world.bodies, battle.grid, battle.ships.hulls, []);
+        expect(debris.cloudX[0]).toBeCloseTo(1, 12);
+        expect(debris.cloudAge[0]).toBe(0.5);
+        debris.step(CLOUD_LIFE, battle.world.bodies, battle.grid, battle.ships.hulls, []);
+        expect(debris.cloudCount).toBe(0);
+        for (let k = 0; k <= MOST_CLOUDS; k++) {
+            debris.vent(k, 0, 0, 0, 100, 1, 4);
+            debris.step(0.001, battle.world.bodies, battle.grid, battle.ships.hulls, []);
+        }
+        expect(debris.cloudCount).toBe(MOST_CLOUDS);
+        // The first in has gone.
+        expect(Math.min(...debris.cloudX)).toBe(1);
     });
 });
