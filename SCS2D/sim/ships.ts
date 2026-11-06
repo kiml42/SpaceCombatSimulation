@@ -46,7 +46,7 @@ import { Fuel, LEAK_HOLE_CALIBRES, leakChance, leakRate, leakSpeed, type Leak } 
 import { Charge } from "./charge.js";
 import { Metal } from "./metal.js";
 import { Claim, mendClaim, priorityOf, Resource, Supply } from "./supply.js";
-import { berthGrid, isHullMount, moduleCentre, moduleOutline, robotsOn, SEAL_REACH, SEAL_SPEED, weldBox } from "./modules.js";
+import { isHullMount, moduleCentre, moduleOutline, robotsOn, SEAL_REACH, SEAL_SPEED, weldBox } from "./modules.js";
 import type { Rng } from "./rng.js";
 import { geometryOf, landedIndex, landedLength, plumeLayers, plumeRays, Plumes, WEAPON_PLUME_SHARE, weaponPlumeReach } from "./exhaust.js";
 import { Choice, cohesionUrge, inSight, look, lookFrom, score } from "./targeting.js";
@@ -65,20 +65,7 @@ import { abs, atan2, angleDelta, PI, brakingRate, clamp, cos, exp, floor, length
 import { Projectiles } from "./projectiles.js";
 import { padApproaches, type PadApproach } from "./padApproach.js";
 import type { Store } from "./store.js";
-import {
-    crawl,
-    doorBetween,
-    legLength,
-    neighbourOf,
-    pathTo,
-    robotShare,
-    RobotMode,
-    Robots,
-    staysWhole,
-    walk,
-    walkTime,
-    type Robot,
-} from "./robots.js";
+import { crawl, legLength, neighbourOf, pathTo, RobotMode, Robots, staysWhole, walk, walkTime, type Robot } from "./robots.js";
 import { Allocation, EngineLayout } from "./engines.js";
 import { burnGain, pushBearing, pushTorque, spinWay, steerHeading, STEER_HOLD_SPEED, STEER_SPIN, turnTime } from "./helm.js";
 import { addFlame, addTurret, attackBearing, AttackArcs, AttackRegion } from "./attack.js";
@@ -126,6 +113,7 @@ import {
     type GunStats,
     type ModuleKind,
 } from "./modules.js";
+import * as shipRobotViews from "./shipRobotViews.js";
 
 /**
  * Ships: a compiled design bound to a body, flying itself and shooting.
@@ -586,21 +574,6 @@ const HULL_ORBIT_STEP = 0.5;
  */
 const WAY_STICK = 0.3;
 
-/**
- * How full a robot's bar is drawn, 0 to 1: what it is carrying home while it
- * fetches, whether taking wreckage apart or bound for or out on rock, or else
- * what it still has to spend mending.
- */
-function robotLoad(robot: Robot): number {
-    const fetching = robot.strip || robot.bound >= 0 || robot.away >= 0 || robot.cargo + robot.cargoFuel > 0;
-    return (fetching ? robot.cargo + robot.cargoFuel : robot.metal) / ROBOT_LOAD;
-}
-
-/** How much of a module's half-length and half-breadth the robots on it stand within, so all are seen on it. */
-const ROBOT_SPOT_SHARE = 0.6;
-/** How far about where its claw grips a robot of a moored ship stands, as a share of its spot on the claw. */
-const ROBOT_GRIP_SPREAD = 0.3;
-
 /** Which turn a module takes to be mended: cores, then engines and weapons, then the rest. */
 /** Less metal than this a robot carries, or a hull holds, is rounding rather than metal, kg. */
 const ROBOT_SPENT = 1e-6;
@@ -994,7 +967,7 @@ export class Ships {
      * that hull's design, so its doctrine is read from here rather than from it.
      */
     private readonly doctrines: Doctrine[] = [];
-    private readonly bodyIds: BodyId[] = [];
+    readonly bodyIds: BodyId[] = [];
     /**
      * Body index → the hull that body is built from, for the narrow phase, which
      * knows bodies and not ships. The handle is kept beside the design so that a
@@ -1004,13 +977,13 @@ export class Ships {
      * its body stays in the world (§4), and a wreck's matter still stops a
      * shell, so the entry is left where it is.
      */
-    private readonly hullDesign: (ShipDesign | null)[] = [];
+    readonly hullDesign: (ShipDesign | null)[] = [];
     private readonly hullBody: BodyId[] = [];
     /** The well each pinned hull rides, by body index (`ShipSpec.rides`). */
     private readonly rides: (WellSpec | undefined)[] = [];
     /** Every hull that has ridden a well, live or not. */
     private readonly riders: BodyId[] = [];
-    private bodyStore: Bodies | null = null;
+    bodyStore: Bodies | null = null;
 
     /** What every ship has taken, by body index. */
     readonly damage = new Damage();
@@ -1172,7 +1145,7 @@ export class Ships {
      * has to be answered by. Guarded by the handle, since a destroyed body's
      * slot is handed out again.
      */
-    private readonly shipByBody: number[] = [];
+    readonly shipByBody: number[] = [];
     /**
      * Body index → which ship's computer works each of its modules, where more
      * than one ship rides that body; null where one works all of it. -1 is nobody's.
@@ -1320,7 +1293,7 @@ export class Ships {
      * own body, which shots and beams hit, but is pinned to its pad, meets no
      * other hull, and weighs on the carrier (`park`).
      */
-    private readonly parkedOn: number[] = [];
+    readonly parkedOn: number[] = [];
     /** The pad it is parked on, by module of its carrier's launch design. */
     private readonly parkedPad: number[] = [];
     /** Where its blueprint's origin sits in the pad's frame, and which way it points in it. */
@@ -1334,17 +1307,17 @@ export class Ships {
      * the claw, by module of its own hull; -1 for any other. A moored ship is
      * parked with no pad (`parkedPad` -1), posed in its rock's blueprint frame.
      */
-    private readonly mooredClaw: number[] = [];
+    readonly mooredClaw: number[] = [];
     /** Where its claw grips, in the rock's blueprint frame. */
-    private readonly mooredGripX: number[] = [];
-    private readonly mooredGripY: number[] = [];
+    readonly mooredGripX: number[] = [];
+    readonly mooredGripY: number[] = [];
     /** Each asteroid's fastest closing on another this run of touching, m/s, and the last step it touched one. */
     private readonly rockMet: number[] = [];
     private readonly rockMetAt: number[] = [];
     /** Scratch for drawing: the robots stranded on one rock. */
-    private readonly strandedHere: Robot[] = [];
+    readonly strandedHere: Robot[] = [];
     /** Robots left on a rock by a ship no longer moored there, with the side they are on and the ship that left them. */
-    private readonly stranded: { robot: Robot; team: number; home: number }[] = [];
+    readonly stranded: { robot: Robot; team: number; home: number }[] = [];
     /** Scratch for two rocks becoming one: each stranded robot on either, and where it stands, world frame, in threes. */
     private readonly rebasingStranded: number[] = [];
     /** Scratch for two rocks becoming one: each moored ship, and where it grips, world frame, in threes. */
@@ -1456,7 +1429,7 @@ export class Ships {
     private readonly leakFy: number[] = [];
     private readonly leakTorque: number[] = [];
 
-    private readonly alive: number[] = [];
+    readonly alive: number[] = [];
 
     private readonly allocation = new Allocation();
     private readonly solution = new FiringSolution();
@@ -7392,7 +7365,7 @@ export class Ships {
             // Back where its claw grips: across onto its own hull and home, once
             // its bay has a berth for it; the extra a moored bay keeps wait here,
             // and are taken apart into the holds once their ship is sent away.
-            if (this.aboardIn(b, robot.bay) >= design.modules[robot.bay]!.stats.robots) {
+            if (shipRobotViews.aboardIn(this, b, robot.bay) >= design.modules[robot.bay]!.stats.robots) {
                 if (!this.sentAway(owner)) return 0;
                 this.metal.add(b, robot.bay, ROBOT_MASS + robot.cargo);
                 if (robot.cargoFuel > 0) this.fuel.add(b, robot.bay, robot.cargoFuel);
@@ -8491,314 +8464,31 @@ export class Ships {
         return { dist: this.walkDist, prev: this.walkPrev };
     }
 
-    /**
-     * How many robots are home in each module of ship `i`'s hull, by module,
-     * into `out`: all nought unless `i` is the ship that flies the body.
-     */
     robotsBerthed(i: number, out: number[]): void {
-        const b = this.bodyStore === null ? -1 : this.bodyStore.indexOf(this.bodyIds[i]!);
-        const design = b >= 0 ? this.hullDesign[b] : null;
-        out.length = design?.modules.length ?? 0;
-        out.fill(0);
-        if (b < 0 || this.shipByBody[b] !== i) return;
-        for (const robot of this.robots.on(b) ?? []) if (robot.mode === RobotMode.Berthed) out[robot.bay] = (out[robot.bay] ?? 0) + 1;
+        shipRobotViews.robotsBerthed(this, i, out);
     }
 
-    /**
-     * Each robot home on ship `i`'s hull, four numbers apiece into `out`: its
-     * bay, the share of its charge and of its metal it has, its metal counted
-     * up over its refill, or what it brought home counted down as it unloads,
-     * so that is seen happening, and its berth there. Nothing unless `i`
-     * is the ship that flies the body.
-     */
     robotsDocked(i: number, out: number[]): void {
-        out.length = 0;
-        const b = this.bodyStore === null ? -1 : this.bodyStore.indexOf(this.bodyIds[i]!);
-        if (b < 0 || this.shipByBody[b] !== i) return;
-        const robots = this.robots.on(b) ?? [];
-        for (let r = 0; r < robots.length; r++) {
-            const robot = robots[r]!;
-            if (robot.mode !== RobotMode.Berthed) continue;
-            // Unloading what it fetched, its bar empties; topping up what it mends with, it fills.
-            const left = robot.refill / ROBOT_REFILL_TIME;
-            const metal = robot.refill > 0 ? (robot.brought > 0 ? robot.brought * left : 1 - left) : robot.metal / ROBOT_LOAD;
-            out.push(robot.bay, robot.charge / ROBOT_CHARGE, metal, this.berthOf(robots, r));
-        }
+        shipRobotViews.robotsDocked(this, i, out);
     }
 
-    /**
-     * For each module of ship `i`'s hull, how many robots it is the bay of,
-     * home or out, into `crews`, and how many of those are aboard, holding a
-     * berth, into `aboard`; and each robot a bay is building, as its bay and how
-     * far it is through, 0 to 1, into `builds`, two numbers apiece, the most
-     * nearly finished of a bay first. Nothing unless `i` is the ship that flies the body.
-     */
     robotCrews(i: number, crews: number[], aboard: number[], builds: number[]): void {
-        const b = this.bodyStore === null ? -1 : this.bodyStore.indexOf(this.bodyIds[i]!);
-        const design = b >= 0 ? this.hullDesign[b] : null;
-        crews.length = aboard.length = design?.modules.length ?? 0;
-        builds.length = 0;
-        crews.fill(0);
-        aboard.fill(0);
-        if (b < 0 || this.shipByBody[b] !== i) return;
-        for (const robot of this.robots.on(b) ?? []) {
-            crews[robot.bay] = (crews[robot.bay] ?? 0) + 1;
-            if (robot.away < 0) aboard[robot.bay] = (aboard[robot.bay] ?? 0) + 1;
-        }
-        const making = this.robots.buildingOn(b);
-        if (making !== null) for (let m = 0; m < making.length; m++) for (const done of making[m]!) builds.push(m, done / ROBOT_BUILD_TIME);
+        shipRobotViews.robotCrews(this, i, crews, aboard, builds);
     }
 
-    /**
-     * Each robot out on ship `i`'s hull, `ROBOT_VIEW_STRIDE` numbers apiece into
-     * `out`: where it is and which way it faces, in its body's frame, and the
-     * share of its charge and of its metal it has left. Nothing unless `i` is
-     * the ship that flies the body, so a hull two ships share shows its robots
-     * once.
-     */
     robotViews(i: number, out: number[]): void {
-        out.length = 0;
-        const b = this.bodyStore === null ? -1 : this.bodyStore.indexOf(this.bodyIds[i]!);
-        if (b < 0 || this.shipByBody[b] !== i) return;
-        const robots = this.robots.on(b) ?? [];
-        const design = this.hullDesign[b];
-        const bodies = this.bodyStore!;
-        if (design === null || design === undefined) return;
-        this.placeOwner = i;
-        this.placeHull = b;
-        // A rock shows the robots stranded on it, where they stand, dotted over the module as any are.
-        const here = this.strandedHere;
-        here.length = 0;
-        for (let k = 0; k < this.stranded.length; k++) {
-            const robot = this.stranded[k]!.robot;
-            if (robot.awayDesign === design && bodies.indexOf(this.bodyIds[robot.away]!) === b) here.push(robot);
-        }
-        for (let k = 0; k < here.length; k++) {
-            const robot = here[k]!;
-            const module = design.modules[robot.at]!;
-            const heading = this.robotPlace(design, here, k);
-            out.push(
-                module.x + this.robotDx,
-                module.y + this.robotDy,
-                heading,
-                robot.charge / ROBOT_CHARGE,
-                (robot.cargo + robot.cargoFuel) / ROBOT_LOAD,
-            );
-        }
-        for (let r = 0; r < robots.length; r++) {
-            const robot = robots[r]!;
-            if (robot.mode === RobotMode.Berthed) continue;
-            if (robot.away >= 0) {
-                this.awayView(b, robots, r, out);
-                continue;
-            }
-            const here = design.modules[robot.at]!;
-            const charge = robot.charge / ROBOT_CHARGE;
-            // Taking wreckage apart, it fills with what it carries home.
-            const metal = robotLoad(robot);
-            const heading = this.robotPlace(design, robots, r);
-            out.push(here.x + this.robotDx, here.y + this.robotDy, heading, charge, metal);
-        }
+        shipRobotViews.robotViews(this, i, out);
     }
 
     /** Where `robotPlace` puts a robot from the middle of the module it is on, m, in its design's frame. */
-    private robotDx = 0;
-    private robotDy = 0;
+    robotDx = 0;
+    robotDy = 0;
     /** Where `spotOn` puts a robot from a module's middle, m, in its design's frame. */
-    private spotX = 0;
-    private spotY = 0;
+    spotX = 0;
+    spotY = 0;
     /** The ship, and its body, whose robots `robotPlace` is placing. */
-    private placeOwner = -1;
-    private placeHull = -1;
-
-    /**
-     * Where robot `r` is drawn from the middle of the module it is on, into
-     * `robotDx` and `robotDy`, and which way it faces. Each robot has its own
-     * spot on each module (`spotOn`), works there, and crawls straight from its
-     * spot on one module to its spot on the next, so it arrives where it works.
-     */
-    private robotPlace(design: ShipDesign, robots: Robot[], r: number): number {
-        const robot = robots[r]!;
-        const here = design.modules[robot.at]!;
-        this.spotFor(design, robot.at, robots, r);
-        const fromX = this.spotX;
-        const fromY = this.spotY;
-        const path = robot.path;
-        if (path !== null && robot.leg < path.length - 1) {
-            const next = path[robot.leg + 1]!;
-            const there = design.modules[next]!;
-            this.spotFor(design, next, robots, r);
-            const leg = legLength(design, path, robot.leg);
-            const t = leg > 0 ? min(1, robot.along / leg) : 0;
-            const toX = there.x + this.spotX - here.x;
-            const toY = there.y + this.spotY - here.y;
-            // By where the two meet, so it never crosses a gap between their corners.
-            const door = doorBetween(design, robot.at, next);
-            const doorX = door === null ? fromX : door[0] - here.x;
-            const doorY = door === null ? fromY : door[1] - here.y;
-            const first = length(doorX - fromX, doorY - fromY);
-            const second = length(toX - doorX, toY - doorY);
-            const gone = t * (first + second);
-            if (gone < first) {
-                const share = first > 0 ? gone / first : 0;
-                this.robotDx = fromX + (doorX - fromX) * share;
-                this.robotDy = fromY + (doorY - fromY) * share;
-                // Facing the way it crawls.
-                return atan2(doorY - fromY, doorX - fromX);
-            }
-            const share = second > 0 ? (gone - first) / second : 1;
-            this.robotDx = doorX + (toX - doorX) * share;
-            this.robotDy = doorY + (toY - doorY) * share;
-            return atan2(toY - doorY, toX - doorX);
-        }
-        this.robotDx = fromX;
-        this.robotDy = fromY;
-        // Facing in to the middle of the module it is working on.
-        return atan2(-fromY, -fromX);
-    }
-
-    /**
-     * Robot `r`'s spot on module `m` of `design`, its own hull's or, out, its
-     * rock's, from the module's middle, into `spotX` and `spotY`. Its own bay's
-     * is its berth, so it walks home onto its pad. Moored, its claw's is where
-     * the claw grips, and the gripped rock's is the same place, so it steps
-     * across without moving; elsewhere, its own spot on the module (`spotOn`).
-     */
-    private spotFor(design: ShipDesign, m: number, robots: Robot[], r: number): void {
-        const robot = robots[r]!;
-        const owner = this.placeOwner;
-        const hull = this.placeHull;
-        if (robot.away < 0 && m === robot.bay) {
-            this.berthSpot(design, m, robots, r);
-            return;
-        }
-        const claw = this.mooredClaw[owner]!;
-        const bodies = this.bodyStore!;
-        const cb = claw >= 0 ? this.carrierBodyOf(bodies, owner) : -1;
-        const atClaw = robot.away < 0 && m === claw;
-        const atGrip = robot.away >= 0 && robot.away === this.parkedOn[owner] && m === this.heldRock(bodies, owner);
-        if (cb < 0 || hull < 0 || !(atClaw || atGrip)) {
-            this.spotOn(design, m, robot.tag);
-            return;
-        }
-        // The grip, in the hull's frame, by way of the world, with a little of its own spot on the claw about it.
-        const hd = this.hullDesign[hull]!;
-        const rd = this.hullDesign[cb]!;
-        const rc = cos(bodies.angle[cb]!);
-        const rs = sin(bodies.angle[cb]!);
-        const gx = this.mooredGripX[owner]! - rd.centreOfMassX;
-        const gy = this.mooredGripY[owner]! - rd.centreOfMassY;
-        const wx = bodies.x[cb]! + gx * rc - gy * rs - bodies.x[hull]!;
-        const wy = bodies.y[cb]! + gx * rs + gy * rc - bodies.y[hull]!;
-        const hc = cos(bodies.angle[hull]!);
-        const hs = sin(bodies.angle[hull]!);
-        this.spotOn(hd, claw, robot.tag);
-        const px = wx * hc + wy * hs + ROBOT_GRIP_SPREAD * this.spotX;
-        const py = -wx * hs + wy * hc + ROBOT_GRIP_SPREAD * this.spotY;
-        if (atClaw) {
-            this.spotX = px - hd.modules[claw]!.x;
-            this.spotY = py - hd.modules[claw]!.y;
-            return;
-        }
-        // And back out into the rock's frame, as the design it is out on has it.
-        const qx = bodies.x[hull]! + px * hc - py * hs - bodies.x[cb]!;
-        const qy = bodies.y[hull]! + px * hs + py * hc - bodies.y[cb]!;
-        this.spotX = qx * rc + qy * rs + rd.centreOfMassX - design.centreOfMassX - design.modules[m]!.x;
-        this.spotY = -qx * rs + qy * rc + rd.centreOfMassY - design.centreOfMassY - design.modules[m]!.y;
-    }
-
-    /**
-     * Robot `r`'s berth in its bay `m`, from the bay's middle, into `spotX` and
-     * `spotY`: the pad of the bay's grid (`berthGrid`) its place among the
-     * bay's robots gives it, where it is drawn once home.
-     */
-    private berthSpot(design: ShipDesign, m: number, robots: Robot[], r: number): void {
-        const spec = design.modules[m]!.spec;
-        const { across, down } = berthGrid(spec);
-        const slot = this.berthOf(robots, r);
-        const along = -0.5 * spec.length + (spec.length / max(1, across)) * ((slot % max(1, across)) + 0.5);
-        const side = -0.5 * spec.width + (spec.width / max(1, down)) * (floor(slot / max(1, across)) + 0.5);
-        const angle = spec.angle ?? 0;
-        const c = cos(angle);
-        const s = sin(angle);
-        this.spotX = along * c - side * s;
-        this.spotY = along * s + side * c;
-    }
-
-    /** Which of its bay's berths robot `r` has: its place among the robots of that bay aboard. */
-    private berthOf(robots: Robot[], r: number): number {
-        let slot = 0;
-        for (let k = 0; k < r; k++) if (robots[k]!.bay === robots[r]!.bay && robots[k]!.away < 0) slot++;
-        return slot;
-    }
-
-    /** How many berths of body `b`'s bay `bay` are taken: its robots aboard, not out on a rock, and those it is building. */
-    private aboardIn(b: number, bay: number): number {
-        const robots = this.robots.on(b);
-        let aboard = this.robots.buildingOn(b)?.[bay]?.length ?? 0;
-        if (robots !== null) for (let r = 0; r < robots.length; r++) if (robots[r]!.bay === bay && robots[r]!.away < 0) aboard++;
-        return aboard;
-    }
-
-    /**
-     * Robot `tag`'s spot on module `m`, from its middle, into `spotX` and
-     * `spotY`: over the middle of the module, the robots of one body dotted
-     * evenly over it, each module laid out its own way.
-     */
-    private spotOn(design: ShipDesign, m: number, tag: number): void {
-        const spec = design.modules[m]!.spec;
-        // A low-discrepancy sequence by tag, so robots numbered together stand apart.
-        const u = (tag * 0.7548776662 + robotShare(m, 1)) % 1;
-        const v = (tag * 0.5698402911 + robotShare(m, 2)) % 1;
-        const corners = spec.vertices;
-        if (corners !== undefined) {
-            // A shaped module's box is not centred on it: one triangle of the fan
-            // from its middle, and a point within it, so the spot is on the matter.
-            const n = corners.length / 2;
-            const k = floor(u * n);
-            const f = u * n - k;
-            const reach = ROBOT_SPOT_SHARE * sqrt(v);
-            const j = (k + 1) % n;
-            const x = reach * ((1 - f) * corners[2 * k]! + f * corners[2 * j]!);
-            const y = reach * ((1 - f) * corners[2 * k + 1]! + f * corners[2 * j + 1]!);
-            const c = cos(spec.angle ?? 0);
-            const s = sin(spec.angle ?? 0);
-            this.spotX = x * c - y * s;
-            this.spotY = x * s + y * c;
-            return;
-        }
-        const along = (2 * u - 1) * ROBOT_SPOT_SHARE * 0.5 * spec.length;
-        const across = (2 * v - 1) * ROBOT_SPOT_SHARE * 0.5 * spec.width;
-        const angle = spec.angle ?? 0;
-        const c = cos(angle);
-        const s = sin(angle);
-        this.spotX = along * c - across * s;
-        this.spotY = along * s + across * c;
-    }
-
-    /** `robotViews` for robot `r`, out on its rock, put in the frame of its own ship's body `b`. */
-    private awayView(b: number, robots: Robot[], r: number, out: number[]): void {
-        const bodies = this.bodyStore!;
-        const robot = robots[r]!;
-        const rock = robot.away;
-        const cb = this.alive[rock] === 1 ? bodies.indexOf(this.bodyIds[rock]!) : -1;
-        const rd = robot.awayDesign;
-        const here = rd?.modules[robot.at];
-        if (cb < 0 || rd === null || here === undefined) return;
-        const heading = this.robotPlace(rd, robots, r);
-        const x = here.x + this.robotDx;
-        const y = here.y + this.robotDy;
-        // From the rock's frame to the world's, and into its own ship's.
-        const rc = cos(bodies.angle[cb]!);
-        const rs = sin(bodies.angle[cb]!);
-        const wx = bodies.x[cb]! + x * rc - y * rs - bodies.x[b]!;
-        const wy = bodies.y[cb]! + x * rs + y * rc - bodies.y[b]!;
-        const turn = bodies.angle[cb]! - bodies.angle[b]!;
-        const c = cos(-bodies.angle[b]!);
-        const s = sin(-bodies.angle[b]!);
-        const metal = robotLoad(robot);
-        out.push(wx * c - wy * s, wx * s + wy * c, heading + turn, robot.charge / ROBOT_CHARGE, metal);
-    }
+    placeOwner = -1;
+    placeHull = -1;
 
     /** Whether the ship a dock is filling minds danger and has an armed enemy in reach of the pair. */
     private threatenedAt(bodies: Bodies, b: number, seam: Seam): boolean {
@@ -10723,7 +10413,7 @@ export class Ships {
     }
 
     /** The body of the carrier ship `f` is parked on, or -1. */
-    private carrierBodyOf(bodies: Bodies, f: number): number {
+    carrierBodyOf(bodies: Bodies, f: number): number {
         const c = this.parkedOn[f]!;
         return c < 0 || this.alive[c] === 0 ? -1 : bodies.indexOf(this.bodyIds[c]!);
     }
@@ -11022,7 +10712,7 @@ export class Ships {
      * The module of its rock that moored ship `f`'s claw grips: the nearest to
      * where it took hold, within reach of it, or -1 once that is mined away.
      */
-    private heldRock(bodies: Bodies, f: number): number {
+    heldRock(bodies: Bodies, f: number): number {
         const cb = this.carrierBodyOf(bodies, f);
         const rd = cb < 0 ? null : this.hullDesign[cb];
         if (rd === null || rd === undefined) return -1;
