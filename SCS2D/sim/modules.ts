@@ -743,7 +743,7 @@ export const BEAM_STORED_ENERGY_PER_VOLUME = 1.2e5;
 /**
  * Fraction of the time a beam turret can be firing, given all the power it
  * wants: how fast its own charging gear refills its bank. Short of power it
- * refills slower, at what its piece of hull can supply (`Ships.recharged`).
+ * refills slower, at what its piece of hull can supply (`recharged` in shipFire.ts).
  *
  * **A stop-gap until heat is modelled**, which is what should decide the
  * rest: the mount can keep firing until its heat sinks are full.

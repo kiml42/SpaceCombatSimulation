@@ -3,25 +3,16 @@ import { Bodies, type BodyId } from "./bodies.js";
 import { aboardPose, padHolds, originOf, sameOrigin, slipwayHolds, type DesignTurret, type ShipDesign } from "./blueprint.js";
 import { components, joints } from "./connectivity.js";
 import { BOTH_LAYERS, HULL_LAYER, Hulls, OWN_LAYERS, WEAPONS_LAYER } from "./hull.js";
-import { Damage, DamageEffect, IMPACT_MUZZLE, type ImpactLog } from "./damage.js";
+import { Damage, DamageEffect, type ImpactLog } from "./damage.js";
 import { Fuel, LEAK_HOLE_CALIBRES, leakChance } from "./fuel.js";
 import { Charge } from "./charge.js";
 import { Metal } from "./metal.js";
-import { Claim, mendClaim, priorityOf, Resource, Supply } from "./supply.js";
+import { mendClaim, priorityOf, Supply } from "./supply.js";
 import { SEAL_REACH, SEAL_SPEED } from "./modules.js";
 import type { Rng } from "./rng.js";
 import { geometryOf, landedIndex, landedLength, plumeLayers, Plumes, weaponPlumeReach } from "./exhaust.js";
 import { Choice } from "./targeting.js";
-import {
-    casingMass,
-    chargeShare,
-    DEFAULT_BURST_SPEED,
-    DEFAULT_FRAGMENTS,
-    DEFAULT_FUSE,
-    firesShells,
-    moduleRadius,
-    type ModuleSpec,
-} from "./modules.js";
+import { moduleRadius, type ModuleSpec } from "./modules.js";
 import { atan2, clamp, cos, floor, length, max, min, round, sin, sqrt } from "./math.js";
 import { Projectiles } from "./projectiles.js";
 import type { Store } from "./store.js";
@@ -61,6 +52,7 @@ import * as shipFlight from "./shipFlight.js";
 import * as shipAim from "./shipAim.js";
 import * as shipOrders from "./shipOrders.js";
 import * as shipDecide from "./shipDecide.js";
+import * as shipFire from "./shipFire.js";
 
 /**
  * Ships: a compiled design bound to a body, flying itself and shooting.
@@ -100,22 +92,6 @@ import * as shipDecide from "./shipDecide.js";
  *   in the same step it leaves the barrel, and the muzzle has to be where the
  *   hull now is rather than where it was.
  */
-
-/**
- * Seconds a round lives before expiring. At any muzzle velocity these guns
- * reach, this is tens of kilometres — far outside an engagement — so it is a
- * guard against rounds accumulating for ever, not a range limit.
- */
-const ROUND_FLIGHT_TIME = 30;
-
-/** The least a fragment flies, seconds, however short its fuse. */
-const FRAGMENT_MIN_LIFE = 0.5;
-
-/** Twice the lead, so a fragment outlives the burst's arrival at what it was aimed at. */
-function fragmentLife(spec: ModuleSpec): number {
-    const life = 2 * (spec.fuse ?? DEFAULT_FUSE);
-    return life > FRAGMENT_MIN_LIFE ? life : FRAGMENT_MIN_LIFE;
-}
 
 /**
  * How near zero a countdown has to get before it counts as finished, seconds.
@@ -171,8 +147,6 @@ export function stoppingSpeed(brake: number, gap: number, delay: number): number
  */
 export const FACE = 0;
 export const STEER = 1;
-const TIMER_SETTLE = 1e-9;
-
 /** No order, or an order whose target has gone. */
 /**
  * How much hull it takes to be worth a second of thinking, kilograms.
@@ -760,7 +734,7 @@ export class Ships {
     /** The ship its doctrine has committed it to ramming, or `NO_TARGET`. Kept until that ship is out of the fight. */
     readonly ramming: number[] = [];
     /** The tick each ship last fired a gun or a beam, or -1. */
-    private readonly firedAt: number[] = [];
+    readonly firedAt: number[] = [];
     /** What each ship has broken off to drink from with its claw, or `NO_TARGET`. */
     readonly salvaging: number[] = [];
     /** The tick each ship next reconsiders whether, and where, to refuel. */
@@ -1034,7 +1008,7 @@ export class Ships {
      * body's, or, on a hull shared with a carrier, a fighter's own on a piece
      * that came aboard a fighter, so it flies over the deck it is sat on.
      */
-    private pieceLayers(i: number, b: number, design: ShipDesign, m: number): number {
+    pieceLayers(i: number, b: number, design: ShipDesign, m: number): number {
         const whole = this.layersOf(b);
         if (whole !== OWN_LAYERS) return whole;
         const piece = design.pieces?.[m];
@@ -2175,7 +2149,7 @@ export class Ships {
             if (this.inert(bodies, i)) {
                 this.shutDown(i);
                 // Its beams still charge, which may bring it back.
-                this.reloadOne(dt, bodies, i);
+                shipFire.reloadOne(this, dt, bodies, i);
                 continue;
             }
             shipOrders.removeInvalidOrders(this, i);
@@ -2185,7 +2159,7 @@ export class Ships {
             shipFlight.flyOne(this, dt, bodies, i, grid);
             shipDecide.commitOne(this, bodies, i);
             shipAim.trainOne(this, bodies, i);
-            this.reloadOne(dt, bodies, i);
+            shipFire.reloadOne(this, dt, bodies, i);
         }
 
         // Every ship pushing pays for what it burns.
@@ -2212,269 +2186,12 @@ export class Ships {
         }
     }
 
-    /**
-     * Fire every gun that is loaded, on target and clear to shoot. Call after
-     * the world has stepped and the index has been rebuilt. Given `log`, each
-     * round fired is recorded at its muzzle, for a flash.
-     */
     fire(world: World, projectiles: Projectiles, beams: Beams, grid: SpatialGrid, beamHits: BeamHits, log?: ImpactLog): FireReport {
-        this.tick = world.tick;
-        const bodies = world.bodies;
-        this.bodyStore = bodies;
-        shipAim.noteRocks(this, world.tick);
-        let projectilesFired = 0;
-        let beamsFired = 0;
-
-        for (let i = 0; i < this.alive.length; i++) {
-            if (this.alive[i] === 0) continue;
-            // A gun with nothing left to tell it what to shoot at holds its fire,
-            // which is the same rule for a severed chunk and for a ship whose cores
-            // have gone.
-            if (!this.hasControl(i)) continue;
-            const design = this.designs[i]!;
-            const indices = this.turretIndex[i]!;
-            const aiming = this.turretAiming[i]!;
-            const timers = this.cooldown[i]!;
-
-            const turretStates = this.turretStates[i]!;
-            const barrels = this.nextBarrelToFire[i]!;
-            const bodyIdx = bodies.indexOf(this.bodyIds[i]!);
-            if (bodyIdx < 0 || this.onSlipway(i, bodyIdx)) continue;
-
-            // Recoil is accumulated across the ship's guns and applied once, after
-            // all of them have fired. Applying it per gun would work only for a ship
-            // with one: `fireFrom` gives a round the hull's velocity, so the second
-            // gun's round would inherit a hull the first gun had already pushed, and
-            // the salvo would quietly gain the momentum that ordering invented. A
-            // broadside leaves together.
-            let impulseX = 0;
-            let impulseY = 0;
-            let angularImpulse = 0;
-            let loaded = false;
-
-            for (let t = 0; t < indices.length; t++) {
-                let state = turretStates[t]!;
-                const gun = design.turrets[t]!.gun;
-                let barrel = barrels[t]!;
-
-                // What damage has left of this mount's rate of fire. A wrecked mount
-                // stops where it is: it does not finish the shot it was committed to,
-                // because there is no longer a gun to finish it with.
-                if (!this.ownsAt(i, bodyIdx, design.turrets[t]!.module)) continue;
-                const rate = this.left(i, bodyIdx, design.turrets[t]!.module, DamageEffect.FireRate);
-                if (!(rate > 0)) {
-                    turretStates[t] = TurretState.Idle;
-                    timers[t] = 0;
-                    continue;
-                }
-
-                if (timers[t]! <= 0 && state != TurretState.Idle) {
-                    // the timer's run out, progress the state (except idle, which only progresses when ready to fire)
-                    if (state == TurretState.Reloading) {
-                        // finished reloading -> idle & switch to the next barrel
-                        state = turretStates[t] = TurretState.Idle;
-                        barrel = barrels[t] = (barrel + 1) % gun.barrelCount;
-                    }
-                    if (state == TurretState.CommittedOn) {
-                        // finished firing -> reload
-                        state = turretStates[t] = TurretState.Reloading;
-                        timers[t] = gun.cycleTime / rate;
-                    }
-                }
-
-                const ti = indices[t]!;
-                this.turrets.lit[ti] = state == TurretState.CommittedOn ? 1 : 0;
-                if (state == TurretState.Reloading) continue; // Can't fire while reloading.
-
-                // What this gun was trained on, rather than what it would pick now:
-                // the hull has turned since, and a target chosen after the barrel
-                // stopped moving is one the barrel is not pointing at.
-                const target = aiming[t]!;
-
-                // skip if it's not ready to fire, and it's not committed to being on.
-                if ((target === NO_TARGET || !this.turrets.readyToFire(ti)) && state != TurretState.CommittedOn) continue;
-
-                const lateralOffset = gun.barrelCount > 1 ? (barrel - (gun.barrelCount - 1) * 0.5) * gun.barrelSpacing : 0;
-
-                this.turrets.firingSolution(bodies, ti, this.solution, lateralOffset);
-
-                // A burst already committed is seen through: the emitter is lit and
-                // there is nothing to hold. Discipline is about pulling the trigger.
-                if (
-                    (state != TurretState.CommittedOn &&
-                        shipAim.friendlyInTheWay(
-                            this,
-                            bodies,
-                            grid,
-                            i,
-                            bodyIdx,
-                            gun,
-                            target === NO_TARGET ? design.turrets[t]!.reach : this.turrets.fireReach[ti]!,
-                            target,
-                            shipAim.mountLayers(this, i, design.turrets[t]!),
-                        )) ||
-                    (target !== NO_TARGET && shipAim.rockInTheWay(this, bodies, bodyIdx, target))
-                ) {
-                    continue;
-                }
-
-                if (gun.type == GunType.Projectile) {
-                    // A gun with nothing to load holds, ready, until there is.
-                    const mount = design.turrets[t]!.module;
-                    if (shipSupply.allowed(this, Resource.Metal, bodyIdx, mount, Claim.Fire, gun.roundMass) < gun.roundMass) continue;
-                    if (!this.metal.load(bodyIdx, mount, gun.roundMass)) continue;
-                    shipSupply.took(this, Resource.Metal, bodyIdx, mount, Claim.Fire, gun.roundMass);
-                    loaded = true;
-                    const fuse = design.modules[design.turrets[t]!.module]!.spec;
-                    projectiles.fireFrom(
-                        bodies,
-                        bodyIdx,
-                        this.solution.x,
-                        this.solution.y,
-                        this.solution.dirX * gun.muzzleSpeed + this.solution.vx,
-                        this.solution.dirY * gun.muzzleSpeed + this.solution.vy,
-                        gun.calibre,
-                        ROUND_FLIGHT_TIME,
-                        gun.roundMass,
-                        gun.muzzleEnergy,
-                        0,
-                        0,
-                        design.turrets[t]!.module,
-                        shipAim.mountLayers(this, i, design.turrets[t]!),
-                        shipAim.fuseFor(this, ti, target, fuse),
-                        fuse.burstSpeed ?? DEFAULT_BURST_SPEED,
-                        fragmentLife(fuse),
-                        firesShells(fuse) ? (fuse.fragments ?? DEFAULT_FRAGMENTS) : 0,
-                        casingMass(fuse, gun.roundMass),
-                        firesShells(fuse) ? 1 - chargeShare(fuse.burstSpeed ?? DEFAULT_BURST_SPEED) : 1,
-                    );
-                    log?.push(
-                        this.solution.x,
-                        this.solution.y,
-                        gun.muzzleEnergy,
-                        IMPACT_MUZZLE,
-                        bodies,
-                        bodyIdx,
-                        0,
-                        0,
-                        0,
-                        this.solution.dirX,
-                        this.solution.dirY,
-                    );
-
-                    // An impulse rather than a force: the round leaves within the step, so
-                    // there is no interval to spread it over. A beam mount firing off the
-                    // centreline also yaws its own hull, which is part of what an outrigger
-                    // costs.
-                    //
-                    // Only the muzzle velocity recoils. The round also leaves carrying the
-                    // tangential velocity of the mount it sat on, but that is momentum it
-                    // already had while attached rather than anything the gun gave it, so
-                    // the charge does not push back for it.
-                    //
-                    // The round was part of the hull's mass until it was loaded, so the
-                    // hull's velocity it leaves with is momentum the hull no longer has.
-                    const impulse = gun.roundMass * gun.muzzleSpeed;
-                    const jx = -this.solution.dirX * impulse;
-                    const jy = -this.solution.dirY * impulse;
-                    impulseX += jx;
-                    impulseY += jy;
-                    angularImpulse += (this.solution.x - bodies.x[bodyIdx]!) * jy - (this.solution.y - bodies.y[bodyIdx]!) * jx;
-
-                    // A battered mount loads slower, which is the whole of what damage
-                    // does to a gun for now.
-                    timers[t] = gun.cycleTime / rate;
-
-                    turretStates[t] = TurretState.Reloading; // Projectile guns immediately reload after firing.
-
-                    projectilesFired++; // increment for every shot fired
-                    this.firedAt[i] = world.tick;
-                } else {
-                    // One beam a layer, each with its share of the power: a thick
-                    // module takes both, and what is in one layer only takes its half
-                    // and lets the other go on past it, as a thick engine's flame does.
-                    const layers = shipAim.mountLayers(this, i, design.turrets[t]!);
-                    // A craft in both layers to ram or dock fires as it is, in both at once.
-                    const split = layers === BOTH_LAYERS && shipAim.shipLayers(this, i) === OWN_LAYERS;
-                    for (let k = 0; k < (split ? 2 : 1); k++) {
-                        const layer = split ? (k === 0 ? HULL_LAYER : WEAPONS_LAYER) : layers;
-                        beams.fireFrom(
-                            bodyIdx,
-                            this.solution.x,
-                            this.solution.y,
-                            this.solution.dirX,
-                            this.solution.dirY,
-                            gun.calibre,
-                            split ? gun.beamPower / 2 : gun.beamPower,
-                            0,
-                            bodies,
-                            grid,
-                            beamHits,
-                            this.holedHulls,
-                            design.turrets[t]!.module,
-                            layer,
-                        );
-                    }
-                    this.firedAt[i] = world.tick;
-                    if (state == TurretState.Idle) {
-                        // was idle before, now committed on for beamOnTime
-                        turretStates[t] = TurretState.CommittedOn;
-                        timers[t] = gun.beamOnTime;
-                        this.turrets.lit[ti] = 1;
-
-                        beamsFired++; // only increment when going from idle to on.
-                    }
-                }
-            }
-
-            // Lighter by what left, before what pushed it off acts on what remains.
-            if (loaded) shipBreakup.settleMass(this, bodies, bodyIdx);
-            const mass = bodies.mass[bodyIdx]!;
-            if (mass > 0 && (impulseX !== 0 || impulseY !== 0)) {
-                bodies.vx[bodyIdx] = bodies.vx[bodyIdx]! + impulseX / mass;
-                bodies.vy[bodyIdx] = bodies.vy[bodyIdx]! + impulseY / mass;
-            }
-            const inertia = bodies.inertia[bodyIdx]!;
-            if (inertia > 0 && angularImpulse !== 0) {
-                bodies.angularVel[bodyIdx] = bodies.angularVel[bodyIdx]! + angularImpulse / inertia;
-            }
-        }
-
-        return { projectilesFired, beamsFired };
+        return shipFire.fire(this, world, projectiles, beams, grid, beamHits, log);
     }
 
-    /**
-     * Burn whatever every burning engine is pointed at.
-     *
-     * Driven after the index is rebuilt, like firing, and with the throttles the
-     * pilot set before the world stepped: an engine damages what is behind it
-     * now, where it is now.
-     *
-     * The thrust it burns with is what the engine is actually producing rather
-     * than what it is rated at, so an engine that damage has already half killed
-     * leaves a shorter, weaker flame — which is also the flame the renderer
-     * draws, since `throttleOf` reports the same fraction.
-     */
     scorch(world: World, grid: SpatialGrid, dt: number): void {
-        const bodies = world.bodies;
-        this.bodyStore = bodies;
-
-        for (let i = 0; i < this.alive.length; i++) {
-            if (this.alive[i] === 0) continue;
-            const bodyIdx = bodies.indexOf(this.bodyIds[i]!);
-            if (bodyIdx < 0) continue;
-            const design = this.designs[i]!;
-            const throttles = this.throttles[i]!;
-            const landed = this.landed[i]!;
-            landed.fill(0);
-
-            for (let t = 0; t < design.engines.length; t++) {
-                const force = throttles[t]! * this.exhaustOf(i, design, bodyIdx, t);
-                if (!(force > 0)) continue;
-                const layers = this.pieceLayers(i, bodyIdx, design, design.engines[t]!.module ?? -1);
-                this.plumes.burn(design, t, force, this.damage, bodies, bodyIdx, grid, this.holedHulls, dt, landed, layers);
-            }
-        }
+        shipFire.scorch(this, world, grid, dt);
     }
 
     removeInvalidOrders(i: number): void {
@@ -2813,26 +2530,6 @@ export class Ships {
         }
     }
 
-    /**
-     * How much of a step's reload a gun gets through, 0 to 1. A gun that loads
-     * rounds gets all of it. A beam refills its bank from its piece of hull's
-     * power over its reload, so it gets the share of the step's energy that
-     * power could supply.
-     */
-    private recharged(b: number, i: number, t: number, dt: number): number {
-        if (this.turretStates[i]![t] !== TurretState.Reloading) return 1;
-        const mount = this.designs[i]!.turrets[t]!;
-        const gun = mount.gun;
-        if (gun.type !== GunType.Beam || !(gun.cycleTime > 0)) return 1;
-        const rate = this.damage.remaining(b, mount.module, DamageEffect.FireRate);
-        const need = (gun.beamPower * gun.beamOnTime * rate * dt) / gun.cycleTime;
-        if (!(need > 0)) return 1;
-        const allowed = shipSupply.allowed(this, Resource.Charge, b, mount.module, Claim.Fire, need);
-        const got = this.power.draw(b, mount.module, need < allowed ? need : allowed);
-        shipSupply.took(this, Resource.Charge, b, mount.module, Claim.Fire, got);
-        return got / need;
-    }
-
     /** Whether ship `i` is parked on a pad, or is held by a slipway of body `b` building it. */
     onPad(i: number, b: number): boolean {
         return this.parkedOn[i]! >= 0 || this.onSlipway(i, b);
@@ -2855,23 +2552,6 @@ export class Ships {
         this.demandTorque[i] = 0;
         this.brakingOnMains[i] = 0;
         this.burning[i] = 0;
-    }
-
-    /** Run down each of ship `i`'s mounts' reload, as far as its power allows. */
-    private reloadOne(dt: number, bodies: Bodies, i: number): void {
-        const timers = this.cooldown[i]!;
-        const b = bodies.indexOf(this.bodyIds[i]!);
-        const mounts = this.designs[i]!.turrets;
-        // The main battery first, so it has the power when there is not enough to go round.
-        for (let pass = 0; pass < 2; pass++) {
-            for (let t = 0; t < timers.length; t++) {
-                if (mounts[t]!.main !== (pass === 0) || !this.ownsAt(i, b, mounts[t]!.module)) continue;
-                if (timers[t]! > 0) {
-                    const remaining = timers[t]! - dt * this.recharged(b, i, t, dt);
-                    timers[t] = remaining > TIMER_SETTLE ? remaining : 0;
-                }
-            }
-        }
     }
 
     /** Whether ship `i` has no engine that can burn and no mount of its own that can fire. */
