@@ -13,6 +13,7 @@ import * as shipRebuild from "./shipRebuild.js";
 import * as shipSupply from "./shipSupply.js";
 import * as shipBreakup from "./shipBreakup.js";
 import { type Ships, NO_TARGET, NEUTRAL_TEAM, ROBOT_SPENT, CLAW_HEAT_RATE, CLAW_HEAT_ENERGY, SHOCK_REACH, exhaustOf } from "./ships.js";
+import * as shipClaw from "./shipClaw.js";
 
 /**
  * Foraging: a ship with a claw going for fuel, ore or wreckage, mooring to a
@@ -89,7 +90,7 @@ export function forage(ships: Ships, world: World, bodies: Bodies, i: number): v
     const forages = scavengeOrder || anchors || (own && (approach.scavengeFuelBelow > 0 || approach.scavengeMetalBelow > 0));
     const docks = ordered || (own && approach.refuelBelow > 0);
     const recharges = ordered || (own && approach.rechargeBelow > 0);
-    const claw = forages && b >= 0 ? ships.workingClaw(i, b) : -1;
+    const claw = forages && b >= 0 ? shipClaw.workingClaw(ships, i, b) : -1;
     if (scavengeOrder && claw < 0) {
         finishErrand(ships, i);
         return;
@@ -240,7 +241,7 @@ export function hasToSpare(ships: Ships, b: number, port: number): boolean {
 export function clawCanTake(ships: Ships, bodies: Bodies, i: number, b: number, claw: number, t: number): boolean {
     if (t === i || ships.alive[t] !== 1 || (ships.team[t] === NEUTRAL_TEAM && !ships.isAsteroid(t))) return false;
     const tb = bodies.indexOf(ships.bodyIds[t]!);
-    if (tb < 0 || tb === b || !ships.clawReaches(b, claw, tb)) return false;
+    if (tb < 0 || tb === b || !shipClaw.clawReaches(ships, b, claw, tb)) return false;
     return drinkable(ships, i, t) || ships.team[t] === ships.team[i];
 }
 
@@ -801,13 +802,13 @@ export function pickSource(
         if (!drinkable(ships, i, t) || (ships.hasControl(t) && !ships.isDisarmed(t))) continue;
         const tb = bodies.indexOf(ships.bodyIds[t]!);
         // A body is offered once, by the ship it is, and only if the claw can touch it.
-        if (tb < 0 || tb === b || ships.shipByBody[tb] !== t || !ships.clawReaches(b, claw, tb)) continue;
+        if (tb < 0 || tb === b || ships.shipByBody[tb] !== t || !shipClaw.clawReaches(ships, b, claw, tb)) continue;
         // An asteroid is worth what its rock holds: ore its robots smelt, and ice
         // they melt, or the claw alone does, slower.
         const asteroid = ships.isAsteroid(t);
         if (asteroid && !(approach.rockWeight > 0)) continue;
         // One that pulls cannot be closed on slowly jaws first without thrust to hold off its pull.
-        if (asteroid && !(ships.holdsOff(bodies, i, b, claw, tb) > 1)) continue;
+        if (asteroid && !(shipClaw.holdsOff(ships, bodies, i, b, claw, tb) > 1)) continue;
         // Nor one an enemy has hold of: it would be closing on the enemy as much as on the rock.
         if (asteroid && enemyMoored(ships, i, t)) continue;
         const held = asteroid ? rockHeld(ships, tb, ships.designs[t]!) : null;

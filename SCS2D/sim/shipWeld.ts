@@ -5,11 +5,11 @@ import { isHullMount, moduleCentre, weldBox } from "./modules.js";
 import { abs, cos, max, min, sin } from "./math.js";
 import type { World } from "./world.js";
 import { type Contacts, CLAW_ALIGN, Stab } from "./collision.js";
+import { CLAW_SPEED_MAX } from "./shipClaw.js";
 import * as shipRebuild from "./shipRebuild.js";
 import {
     type Ships,
     WELD_SETTLE,
-    CLAW_SPEED_MAX,
     REST_SPEED,
     REST_TIME,
     PORT_SPEED,

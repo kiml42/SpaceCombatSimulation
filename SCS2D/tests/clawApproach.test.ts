@@ -10,6 +10,7 @@ import {
     type ModuleSpec,
 } from "../sim/index.js";
 import { Rng } from "../sim/rng.js";
+import { clawArrival, workingClaw } from "../sim/shipClaw.js";
 import { makeBattle } from "../scenarios/battle.js";
 import { CORVETTE, REPLICATOR, SCAVENGER } from "../scenarios/blueprints.js";
 
@@ -111,12 +112,8 @@ describe("a claw ship closing on a source", () => {
     it("brings a heavy ship in slower than a light one, so its claw is not driven home and torn off", () => {
         const speed = (design: Blueprint) => {
             const run = atRock(design, 400);
-            const ships = run.ships as unknown as {
-                clawArrival(bodies: unknown, b: number, claw: number): number;
-                workingClaw(i: number, b: number): number;
-            };
             const b = run.world.bodies.indexOf(run.ships.body(run.m));
-            return ships.clawArrival(run.world.bodies, b, ships.workingClaw(run.m, b));
+            return clawArrival(run.ships, run.world.bodies, b, workingClaw(run.ships, run.m, b));
         };
         // The same hull, its holds full and all but empty.
         const loaded = (fill: number): Blueprint => changed((m) => ("kind" in m && m.kind === "hold" ? { ...m, fill } : m));
@@ -126,13 +123,9 @@ describe("a claw ship closing on a source", () => {
 
     it("touches down no faster than it planned to, rather than lagging its stopping curve, and holds on first time", () => {
         const run = atRock(REPLICATOR);
-        const ships = run.ships as unknown as {
-            clawArrival(bodies: unknown, b: number, claw: number): number;
-            workingClaw(i: number, b: number): number;
-        };
         const bodies = run.world.bodies;
         const b = bodies.indexOf(run.ships.body(run.m));
-        const arrival = ships.clawArrival(bodies, b, ships.workingClaw(run.m, b));
+        const arrival = clawArrival(run.ships, bodies, b, workingClaw(run.ships, run.m, b));
         // How fast it was closing when it first touched.
         let touched = -1;
         const weld = run.ships.weld.bind(run.ships);

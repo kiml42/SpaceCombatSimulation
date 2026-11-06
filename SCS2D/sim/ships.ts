@@ -73,7 +73,7 @@ import type { BeamHits, Beams, SpatialGrid } from "./index.js";
 import { MAX_BEAM_LENGTH } from "./beams.js";
 import { RayHit } from "./spatialGrid.js";
 import { fixed } from "./fixed.js";
-import { CLAW_DEPTH, CLAW_STIFFNESS, hullsOverlap, moduleOverlapsHull, type Contacts } from "./collision.js";
+import { hullsOverlap, moduleOverlapsHull, type Contacts } from "./collision.js";
 import {
     DOCK_POWER_PER_METRE,
     FUEL_DENSITY,
@@ -94,6 +94,7 @@ import * as shipWeld from "./shipWeld.js";
 import * as shipSupply from "./shipSupply.js";
 import * as shipBreakup from "./shipBreakup.js";
 import * as shipForage from "./shipForage.js";
+import * as shipClaw from "./shipClaw.js";
 
 /**
  * Ships: a compiled design bound to a body, flying itself and shooting.
@@ -193,7 +194,7 @@ const TURN_CLEARANCE_RADII = 0.1;
  * The weight an order is flown with, so a doctrine number of this much is
  * worth exactly as much as doing what it was told.
  */
-const URGE_REFERENCE = 100;
+export const URGE_REFERENCE = 100;
 
 /** Where a ship is, how it moves and how big it is, as whatever flies or aims at it sees it (`Ships.locate`). */
 interface Spot {
@@ -212,20 +213,10 @@ function spot(): Spot {
  * The fastest a craft can be closing and still stop within `gap` metres
  * braking at `brake` m/s², once `delay` seconds have gone by at that speed.
  */
-function stoppingSpeed(brake: number, gap: number, delay: number): number {
+export function stoppingSpeed(brake: number, gap: number, delay: number): number {
     if (!(brake > 0) || !Number.isFinite(delay)) return 0;
     const lag = brake * delay;
     return sqrt(2 * brake * gap + lag * lag) - lag;
-}
-
-/**
- * How fast a craft flying down `stoppingSpeed(brake, gap, delay)` slows as it
- * goes, m/s², where that curve is at `speed`: what its controller has to be
- * told to expect, or it lags the curve by this times its response time.
- */
-function curveDeceleration(brake: number, speed: number, delay: number): number {
-    if (!(brake > 0) || !(speed > 0) || !Number.isFinite(delay)) return 0;
-    return (brake * speed) / (speed + brake * delay);
 }
 
 /**
@@ -348,39 +339,11 @@ export const SHOCK_REACH = 15;
 export const REST_SPEED = 0.25;
 export const REST_TIME = 10;
 
-/**
- * The closing speeds a claw takes best between, m/s: quicker than a ragged
- * edge hooks, since jaws are made to close on what meets them, and short of
- * a ram. Below the band it has too little to bite with; above it, up to
- * `CLAW_SPEED_MAX`, it is more likely to glance off.
- */
-export const CLAW_SPEED_LOW = 1;
-export const CLAW_SPEED_HIGH = 4;
-export const CLAW_SPEED_MAX = 8;
-
 /** Chance a claw takes a sound module in its band. Certain on one spent. */
 export const CLAW_GRIP_CHANCE = 0.8;
 
 /** Seconds a claw that missed waits before it tries again. */
 export const CLAW_RETRY = 0.5;
-
-/** The closing speed a pilot brings its claw in at, m/s: the middle of its band. */
-const CLAW_APPROACH = (CLAW_SPEED_LOW + CLAW_SPEED_HIGH) / 2;
-
-/** Seconds a claw ship keeps the face it chose to grip before looking again, while still out past the gate. */
-const GRIP_RECHOOSE = 1;
-/**
- * How far out from a face, in the gripping ship's radii, nothing of its source
- * may stand for the face to have room in front of it: room to come in, and
- * for what docks with it once it holds on, rather than the floor of a notch.
- */
-const GRIP_CLEAR = 4;
-/** The share of the braking it has that a claw ship plans its last approach on. */
-const GRIP_BRAKING = 0.5;
-/** How far off square to its face, radians, a claw may be and still close on it. */
-const GRIP_SQUARE = 0.15;
-/** How far off the line out from its grip point a claw may be and still close, as a share of the jaws' width, where its face leaves it less. */
-const GRIP_LINE = 0.5;
 
 /** The most a fighter may be moving against a pad and still land on it, m/s: settling, not arriving. */
 export const PAD_SPEED = 1;
@@ -772,7 +735,7 @@ export class Ships {
     readonly hullDesign: (ShipDesign | null)[] = [];
     readonly hullBody: BodyId[] = [];
     /** The well each pinned hull rides, by body index (`ShipSpec.rides`). */
-    private readonly rides: (WellSpec | undefined)[] = [];
+    readonly rides: (WellSpec | undefined)[] = [];
     /** Every hull that has ridden a well, live or not. */
     private readonly riders: BodyId[] = [];
     bodyStore: Bodies | null = null;
@@ -1041,7 +1004,7 @@ export class Ships {
     /** What each pad and slipway is told to build, by its module's lasting key, over its design's craft. */
     readonly crafts: (Readonly<Record<string, ShipDesign>> | undefined)[] = [];
     /** The carrier each fighter last set out from or landed on, or -1. */
-    private readonly home: number[] = [];
+    readonly home: number[] = [];
     /** Whether each fighter is recharging: from running its batteries down until they are full. */
     readonly recharging: number[] = [];
     /** The world tick `command` is flying. */
@@ -1057,27 +1020,27 @@ export class Ships {
      * outward normal in that hull's frame about its centre of mass, so it turns
      * with the hull. The tick it was chosen, to look again from.
      */
-    private readonly gripBody: number[] = [];
-    private readonly gripHull: (ShipDesign | null)[] = [];
-    private readonly gripModule: number[] = [];
-    private readonly gripX: number[] = [];
-    private readonly gripY: number[] = [];
-    private readonly gripNx: number[] = [];
-    private readonly gripNy: number[] = [];
+    readonly gripBody: number[] = [];
+    readonly gripHull: (ShipDesign | null)[] = [];
+    readonly gripModule: number[] = [];
+    readonly gripX: number[] = [];
+    readonly gripY: number[] = [];
+    readonly gripNx: number[] = [];
+    readonly gripNy: number[] = [];
     /** How far the jaws may land either side of the grip point and still be on its face, m. */
-    private readonly gripSlack: number[] = [];
+    readonly gripSlack: number[] = [];
     /** Whether each claw ship is closing straight in on its grip point, rather than making for the gate. */
-    private readonly gripClosing: number[] = [];
-    private readonly gripAt: number[] = [];
+    readonly gripClosing: number[] = [];
+    readonly gripAt: number[] = [];
     /** The heading `squareUp` last asked for. */
-    private gripHeading = 0;
+    gripHeading = 0;
     /** Each module's outline while a face is chosen, flat, and where each starts in it. */
-    private readonly gripOutlines: number[] = [];
-    private readonly gripStarts: number[] = [];
+    readonly gripOutlines: number[] = [];
+    readonly gripStarts: number[] = [];
     /** What lies about the source while a face is chosen, flat: where in its frame, and how far off it is kept, middle to middle. */
-    private readonly gripObstacles: number[] = [];
+    readonly gripObstacles: number[] = [];
     /** The points along a face looked at as a grip, metres from its first corner. */
-    private readonly gripAlongs: number[] = [];
+    readonly gripAlongs: number[] = [];
     /** The pad, by module of its ship's design, a fighter is making for to refuel; -1 for none. */
     readonly landingPad: number[] = [];
     /**
@@ -1129,7 +1092,7 @@ export class Ships {
     /** The tick each such ship was let go. */
     readonly clearingSince: number[] = [];
     /** Scratch for a module's outline, measured against a slipway's face. */
-    private readonly faceCorners: number[] = [];
+    readonly faceCorners: number[] = [];
     /** The tick each carrier last put work into a fighter it is building; -1 for never. */
     readonly builtAt: number[] = [];
     /** Whether each ship has been refitted to a design other than the one it set out as (`refit`). */
@@ -1232,7 +1195,7 @@ export class Ships {
      */
     private readonly gunPoint = { x: 0, y: 0, vx: 0, vy: 0 };
     /** Where a part of a target is, for a mount choosing between them. */
-    private readonly partAt = { x: 0, y: 0 };
+    readonly partAt = { x: 0, y: 0 };
     /** What the pilot is fighting, what it is covering, and what it is weighing up. Reused, never shared. */
     private readonly fightAt = spot();
     private readonly coverAt = spot();
@@ -2656,7 +2619,7 @@ export class Ships {
         const design = this.designs[i]!;
         const approach = this.doctrines[i]!.approach;
         if (!design.fighter || !(approach.approachSpeed > 0)) return false;
-        if (approach.scavengeFuelBelow > 0 && this.workingClaw(i, b) >= 0) return false;
+        if (approach.scavengeFuelBelow > 0 && shipClaw.workingClaw(this, i, b) >= 0) return false;
         const own = design.cores[0] ?? 0;
         const metalRoom = approach.rearmBelow >= 0 ? this.metal.pieceRoom(b, own) : 0;
         const chargeRoom = approach.rechargeBelow > 0 ? this.power.pieceRoom(b, own) : 0;
@@ -4200,7 +4163,7 @@ export class Ships {
                 this.idle(i);
                 return;
             }
-            const claw = order.grapple ? this.workingClaw(i, b) : -1;
+            const claw = order.grapple ? shipClaw.workingClaw(this, i, b) : -1;
             if (order.dock) {
                 // Docked and the larger, it flies the pair, wanting nothing but to hold still.
                 if (tb >= 0 && tb !== b) wantAngle = this.dockOn(dt, bodies, i, b, tb, this.dockPort[i]!, this.ownPort[i]!);
@@ -4219,15 +4182,19 @@ export class Ships {
                     let radial: number;
                     // Lining up square takes turning both ways: one that cannot stop a turn closes on the middle.
                     const layout = this.layoutOf(i);
-                    if (layout.maxTorque(1) > 0 && layout.maxTorque(-1) > 0 && this.chooseGrip(bodies, i, b, tb, target, claw, dt)) {
-                        radial = this.squareUp(bodies, i, b, tb, claw, standOff);
+                    if (
+                        layout.maxTorque(1) > 0 &&
+                        layout.maxTorque(-1) > 0 &&
+                        shipClaw.chooseGrip(this, bodies, i, b, tb, target, claw, dt)
+                    ) {
+                        radial = shipClaw.squareUp(this, bodies, i, b, tb, claw, standOff);
                         wantAngle = this.gripHeading;
                     } else {
                         wantAngle = atan2(bodies.y[tb]! - bodies.y[b]!, bodies.x[tb]! - bodies.x[b]!) - jaws;
-                        radial = this.grapple(bodies, i, b, tb, claw, wantAngle, standOff);
+                        radial = shipClaw.grapple(this, bodies, i, b, tb, claw, wantAngle, standOff);
                     }
                     // An asteroid comes on in its orbit: match its motion on the mains first, then turn the jaws to it.
-                    if (this.isAsteroid(target)) wantAngle = this.matchOrbit(bodies, i, b, tb, wantAngle, radial);
+                    if (this.isAsteroid(target)) wantAngle = shipClaw.matchOrbit(this, bodies, i, b, tb, wantAngle, radial);
                 }
             } else if (tb >= 0 && tb !== b) {
                 // Not hooked on to it, which would leave nowhere to steer for.
@@ -4668,7 +4635,7 @@ export class Ships {
      * well as closed on: a velocity alone is always a step behind a target that
      * is speeding up.
      */
-    private urge(weight: number, vx: number, vy: number, ax = 0, ay = 0): void {
+    urge(weight: number, vx: number, vy: number, ax = 0, ay = 0): void {
         if (!(weight > 0)) return;
         this.urgeVx += weight * vx;
         this.urgeVy += weight * vy;
@@ -4747,7 +4714,7 @@ export class Ships {
         const sense = ux * (at.y - bodies.y[rb]!) - uy * (at.x - bodies.x[rb]!) >= 0 ? 1 : -1;
         const rvx = bodies.vx[b]! - bodies.vx[rb]!;
         const rvy = bodies.vy[b]! - bodies.vy[rb]!;
-        this.wellPullOn(bodies, b, rb);
+        shipClaw.wellPullOn(this, bodies, b, rb);
         const free = sqrt(length(this.partAt.x, this.partAt.y) * r);
         const speed = free > 0 ? free : min(length(rvx, rvy), approach.approachSpeed);
         const clear = bodies.radius[rb]! + this.designs[i]!.radius * (1 + approach.separationRadii);
@@ -5029,7 +4996,7 @@ export class Ships {
     }
 
     /** Seconds to turn half round from rest and stop there, flat out both ways. */
-    private halfTurnTime(bodies: Bodies, i: number, b: number): number {
+    halfTurnTime(bodies: Bodies, i: number, b: number): number {
         return this.turnTime(bodies, i, b, PI);
     }
 
@@ -5039,7 +5006,7 @@ export class Ships {
     }
 
     /** How hard this craft can accelerate along a world direction facing `angle`, m/s². */
-    private accelerationAlong(bodies: Bodies, i: number, b: number, dirX: number, dirY: number, angle: number): number {
+    accelerationAlong(bodies: Bodies, i: number, b: number, dirX: number, dirY: number, angle: number): number {
         const c = cos(angle);
         const s = sin(angle);
         const force = this.layoutOf(i).maxThrustAlong(dirX * c + dirY * s, -dirX * s + dirY * c);
@@ -7458,502 +7425,6 @@ export class Ships {
     }
 
     /**
-     * How many times over a ship can push itself back from an asteroid, jaws
-     * first, against its pull at the surface: Infinity for one with no well.
-     */
-    holdsOff(bodies: Bodies, i: number, b: number, claw: number, tb: number): number {
-        const pull = this.surfacePull(bodies, tb);
-        if (!(pull > 0)) return Infinity;
-        const jaws = this.designs[i]!.modules[claw]!.spec.angle ?? 0;
-        const back = this.layoutOf(i).maxThrustAlong(-cos(jaws), -sin(jaws)) / movable(bodies.mass[b]!);
-        return back / pull;
-    }
-
-    /** How hard body `tb`'s well pulls body `b` where it is, m/s², into `partAt`: nothing for a body that rides none. */
-    private wellPullOn(bodies: Bodies, b: number, tb: number): void {
-        this.partAt.x = 0;
-        this.partAt.y = 0;
-        const well = this.rides[tb];
-        if (well === undefined) return;
-        const dx = bodies.x[tb]! - bodies.x[b]!;
-        const dy = bodies.y[tb]! - bodies.y[b]!;
-        const soft = well.softening ?? 0;
-        const r2 = dx * dx + dy * dy + soft * soft;
-        if (!(r2 > 0)) return;
-        const k = well.gm / (r2 * sqrt(r2));
-        this.partAt.x = dx * k;
-        this.partAt.y = dy * k;
-    }
-
-    /** How hard body `tb`'s well pulls at its edge, m/s²: none for a body that rides none. */
-    private surfacePull(bodies: Bodies, tb: number): number {
-        const well = this.rides[tb];
-        if (well === undefined) return 0;
-        const r = bodies.radius[tb]!;
-        const soft = well.softening ?? 0;
-        const r2 = r * r + soft * soft;
-        return (well.gm * r) / (r2 * sqrt(r2));
-    }
-
-    /**
-     * Whether the claw at module `claw` of body `b` shares a layer with any
-     * module of body `tb`: a thin claw cannot close on a fighter or a piece of
-     * one, which flies above the deck.
-     */
-    clawReaches(b: number, claw: number, tb: number): boolean {
-        const mine = moduleLayers(this.hullDesign[b]!.modules[claw]!, this.layersOf(b));
-        const design = this.hullDesign[tb];
-        if (design === null || design === undefined) return false;
-        const theirs = this.layersOf(tb);
-        for (const module of design.modules) if ((moduleLayers(module, theirs) & mine) !== 0) return true;
-        return false;
-    }
-
-    /** The first claw this ship works that can still close, or -1. */
-    workingClaw(i: number, b: number): number {
-        const design = this.designs[i]!;
-        for (let m = 0; m < design.modules.length; m++) {
-            if (design.modules[m]!.spec.kind === "claw" && this.left(i, b, m, DamageEffect.Grip) > 0) return m;
-        }
-        return -1;
-    }
-
-    /**
-     * The heading to hold closing on an asteroid: `jawsOn`, the claw towards it,
-     * unless its motion is off what `grapple` asks for (`radial`, closing) by
-     * more than it can put right with its jaws held on before it arrives, and
-     * turning its mains along the difference, and back, would put it right
-     * sooner. An asteroid in orbit, or one pulling it in, is never as still as
-     * a wreck.
-     */
-    private matchOrbit(bodies: Bodies, i: number, b: number, tb: number, jawsOn: number, radial: number): number {
-        const dx = bodies.x[tb]! - bodies.x[b]!;
-        const dy = bodies.y[tb]! - bodies.y[b]!;
-        const range = length(dx, dy);
-        if (!(range > 0)) return jawsOn;
-        const ux = dx / range;
-        const uy = dy / range;
-        const ex = bodies.vx[tb]! + ux * radial - bodies.vx[b]!;
-        const ey = bodies.vy[tb]! + uy * radial - bodies.vy[b]!;
-        const error = length(ex, ey);
-        if (!(error > CLAW_SPEED_HIGH - CLAW_APPROACH)) return jawsOn;
-        const closing = (bodies.vx[b]! - bodies.vx[tb]!) * ux + (bodies.vy[b]! - bodies.vy[tb]!) * uy;
-        const left = max(0, range - bodies.radius[tb]!) / max(closing, CLAW_APPROACH);
-        const jawsTime = error / this.accelerationAlong(bodies, i, b, ex / error, ey / error, jawsOn);
-        if (jawsTime <= left) return jawsOn;
-        const mains = atan2(ey, ex) - pushBearing(this.layoutOf(i), this.designs[i]!.thrustBearing);
-        const mainsTime = 4 * this.halfTurnTime(bodies, i, b) + error / this.accelerationAlong(bodies, i, b, ex / error, ey / error, mains);
-        return mainsTime < left && mainsTime < jawsTime ? mains : jawsOn;
-    }
-
-    /**
-     * How fast body `b` brings claw `claw` in to touch: `CLAW_APPROACH`, unless
-     * that is more than the claw's spring could stop it from in its stroke, a
-     * heavy ship's claw otherwise driven home hard and torn off.
-     */
-    private clawArrival(bodies: Bodies, b: number, claw: number): number {
-        const spec = this.hullDesign[b]!.modules[claw]!.spec;
-        const reach = CLAW_DEPTH * spec.length;
-        const mass = bodies.mass[b]!;
-        // Its spring's work over the stroke, half k·w·reach², as the hull's speed.
-        const most = mass > 0 ? reach * sqrt((CLAW_STIFFNESS * spec.width) / mass) : CLAW_APPROACH;
-        return min(CLAW_APPROACH, most);
-    }
-
-    /** Where the jaws of claw `claw` of ship `i` reach to, in its body frame about its centre of mass, into `partAt`. */
-    private jawsTip(i: number, claw: number): void {
-        const module = this.designs[i]!.modules[claw]!;
-        const turned = module.spec.angle ?? 0;
-        this.partAt.x = module.x + (cos(turned) * module.spec.length) / 2;
-        this.partAt.y = module.y + (sin(turned) * module.spec.length) / 2;
-    }
-
-    /**
-     * Choose, or keep, where ship `i`'s claw will take hold of body `tb`: a
-     * point on an outside face of its hull facing the claw, the one whose gate,
-     * out along its normal, is nearest the jaws, of those wide enough for the
-     * jaws and with room in front of them for the ship to come straight in, if
-     * any are, or else of those wide enough, or with room. Kept in `tb`'s frame so it turns with the hull, and kept
-     * once the jaws are inside the gate, unless the hull changes or the module
-     * is spent; looked at again every `GRIP_RECHOOSE` before that. False with
-     * no outside face facing the claw, for it to close on the middle instead.
-     */
-    private chooseGrip(bodies: Bodies, i: number, b: number, tb: number, source: number, claw: number, dt: number): boolean {
-        const hull = this.hullDesign[tb];
-        if (hull === null || hull === undefined) return false;
-        const angle = bodies.angle[tb]!;
-        const c = cos(angle);
-        const s = sin(angle);
-        // The jaws in the target's frame.
-        this.jawsTip(i, claw);
-        const reach = length(this.partAt.x, this.partAt.y);
-        const shipAngle = bodies.angle[b]!;
-        const wx = bodies.x[b]! + this.partAt.x * cos(shipAngle) - this.partAt.y * sin(shipAngle) - bodies.x[tb]!;
-        const wy = bodies.y[b]! + this.partAt.x * sin(shipAngle) + this.partAt.y * cos(shipAngle) - bodies.y[tb]!;
-        const qx = wx * c + wy * s;
-        const qy = wy * c - wx * s;
-        const gate = bodies.radius[b]!;
-        const kept =
-            this.gripBody[i] === tb && this.gripHull[i] === hull && this.gripModule[i]! >= 0 && !this.damage.spent(tb, this.gripModule[i]!);
-        if (kept) {
-            const out = (qx - this.gripX[i]!) * this.gripNx[i]! + (qy - this.gripY[i]!) * this.gripNy[i]!;
-            if (out < 2 * gate || (this.now - this.gripAt[i]!) * dt < GRIP_RECHOOSE) return true;
-        }
-
-        const outlines = this.gripOutlines;
-        const starts = this.gripStarts;
-        const corners = this.faceCorners;
-        outlines.length = 0;
-        starts.length = 0;
-        for (let m = 0; m < hull.modules.length; m++) {
-            starts.push(outlines.length);
-            if (this.damage.spent(tb, m)) continue;
-            const count = moduleOutline(hull.modules[m]!.spec, corners);
-            for (let v = 0; v < count * 2; v += 2) outlines.push(corners[v]! - hull.centreOfMassX, corners[v + 1]! - hull.centreOfMassY);
-        }
-        starts.push(outlines.length);
-        this.gatherObstacles(bodies, i, b, tb, source, c, s);
-        const width = this.designs[i]!.modules[claw]!.spec.width;
-        let best = Infinity;
-        // How good the best face so far is, before how near: wide enough for the jaws counts for more than room in front of it.
-        let bestTier = -1;
-        for (let m = 0; m < hull.modules.length; m++) {
-            // Only the source's own: a friend anchored to the same rock stands in the way, and is no face to grip.
-            if (this.pilotAt(tb, m) !== source) continue;
-            const from = starts[m]!;
-            const n = (starts[m + 1]! - from) / 2;
-            for (let e = 0; e < n; e++) {
-                const ax = outlines[from + e * 2]!;
-                const ay = outlines[from + e * 2 + 1]!;
-                const bx = outlines[from + ((e + 1) % n) * 2]!;
-                const by = outlines[from + ((e + 1) % n) * 2 + 1]!;
-                const span = length(bx - ax, by - ay);
-                if (!(span > 0)) continue;
-                const tx = (bx - ax) / span;
-                const ty = (by - ay) / span;
-                // Outward, the outline being anticlockwise.
-                const nx = ty;
-                const ny = -tx;
-                // Facing the jaws.
-                if ((qx - ax) * nx + (qy - ay) * ny <= 0) continue;
-                // Where the jaws are square across from, but the middle of a face only a few jaws wide.
-                const margin = min(width, span) / 2;
-                const slides = span >= 4 * width;
-                const alongs = this.gripAlongs;
-                alongs.length = 0;
-                alongs.push(slides ? clamp((qx - ax) * tx + (qy - ay) * ty, margin, span - margin) : span / 2);
-                // Along a long face, also either side of what lies about it, just clear of it on the way in.
-                for (let k = 0; slides && k < this.gripObstacles.length; k += 3) {
-                    const ox = this.gripObstacles[k]! - ax;
-                    const oy = this.gripObstacles[k + 1]! - ay;
-                    const keep = this.gripObstacles[k + 2]!;
-                    const on = ox * nx + oy * ny;
-                    const beyond = on - clamp(on, reach, reach + GRIP_CLEAR * gate);
-                    if (!(abs(beyond) < keep)) continue;
-                    const aside = sqrt(keep * keep - beyond * beyond) + 0.5;
-                    const oa = ox * tx + oy * ty;
-                    alongs.push(clamp(oa - aside, margin, span - margin), clamp(oa + aside, margin, span - margin));
-                }
-                for (let k = 0; k < alongs.length; k++) {
-                    const along = alongs[k]!;
-                    const px = ax + tx * along;
-                    const py = ay + ty * along;
-                    // Outside: no other module just beyond it.
-                    if (this.insideAnyOutline(m, px + nx * 0.01, py + ny * 0.01)) continue;
-                    const cost = length(px + nx * gate - qx, py + ny * gate - qy);
-                    const fits = span >= width ? 2 : 0;
-                    // Not worth asking about room in front of one that could not win with it.
-                    if (fits + 1 < bestTier || (fits + 1 === bestTier && !(cost < best))) continue;
-                    // Room in front of it, as wide as the ship, to come straight in, and nothing on the way it would shy from.
-                    const room =
-                        this.corridorClear(px, py, nx, ny, gate, GRIP_CLEAR * gate) &&
-                        this.wayInClear(px, py, nx, ny, reach, GRIP_CLEAR * gate);
-                    const tier = fits + (room ? 1 : 0);
-                    if (tier < bestTier || (tier === bestTier && !(cost < best))) continue;
-                    bestTier = tier;
-                    best = cost;
-                    this.gripModule[i] = m;
-                    this.gripX[i] = px;
-                    this.gripY[i] = py;
-                    this.gripNx[i] = nx;
-                    this.gripNy[i] = ny;
-                    this.gripSlack[i] = max(0, min(along, span - along) - width / 2);
-                }
-            }
-        }
-        if (best === Infinity) {
-            this.gripBody[i] = -1;
-            return false;
-        }
-        this.gripBody[i] = tb;
-        this.gripHull[i] = hull;
-        this.gripAt[i] = this.now;
-        return true;
-    }
-
-    /**
-     * Whether the strip in front of a face at `px`, `py` with outward normal
-     * `nx`, `ny`, `half` either side of it and `depth` out, misses every
-     * module of `gripOutlines`: room for a ship to come straight in to it.
-     */
-    private corridorClear(px: number, py: number, nx: number, ny: number, half: number, depth: number): boolean {
-        const outlines = this.gripOutlines;
-        const starts = this.gripStarts;
-        // From just off the face, so the module the face is on does not count.
-        const lo = 0.05;
-        for (let m = 0; m + 1 < starts.length; m++) {
-            const from = starts[m]!;
-            const n = (starts[m + 1]! - from) / 2;
-            if (n < 3) continue;
-            // Apart along the strip's own axes?
-            let minOut = Infinity;
-            let maxOut = -Infinity;
-            let minSide = Infinity;
-            let maxSide = -Infinity;
-            for (let v = 0; v < n; v++) {
-                const dx = outlines[from + v * 2]! - px;
-                const dy = outlines[from + v * 2 + 1]! - py;
-                const out = dx * nx + dy * ny;
-                const side = dy * nx - dx * ny;
-                minOut = min(minOut, out);
-                maxOut = max(maxOut, out);
-                minSide = min(minSide, side);
-                maxSide = max(maxSide, side);
-            }
-            if (maxOut <= lo || minOut >= depth || maxSide <= -half || minSide >= half) continue;
-            // Apart along one of the module's edge normals?
-            let apart = false;
-            for (let e = 0; e < n && !apart; e++) {
-                const ax = outlines[from + e * 2]!;
-                const ay = outlines[from + e * 2 + 1]!;
-                const ex = outlines[from + ((e + 1) % n) * 2]! - ax;
-                const ey = outlines[from + ((e + 1) % n) * 2 + 1]! - ay;
-                // Outward, (ey, -ex): the strip apart if every corner of it lies beyond the edge.
-                let nearest = Infinity;
-                for (let k = 0; k < 4; k++) {
-                    const o = k < 2 ? lo : depth;
-                    const sd = k % 2 === 0 ? -half : half;
-                    const cx = px + nx * o - ny * sd - ax;
-                    const cy = py + ny * o + nx * sd - ay;
-                    nearest = min(nearest, cx * ey - cy * ex);
-                }
-                if (nearest >= 0) apart = true;
-            }
-            if (!apart) return false;
-        }
-        return true;
-    }
-
-    /**
-     * Into `gripObstacles`, everything ship `i` closing on body `tb` would keep
-     * clear of on the way in, as `avoid` does when it grapples: hulks, and a
-     * friend moored to the same source. In `tb`'s frame, turned by `c`, `s`.
-     */
-    private gatherObstacles(bodies: Bodies, i: number, b: number, tb: number, source: number, c: number, s: number): void {
-        const out = this.gripObstacles;
-        out.length = 0;
-        const approach = this.doctrines[i]!.approach;
-        if (!(approach.separation > 0) || !(approach.separationRadii > 0)) return;
-        const mine = this.designs[i]!.radius;
-        for (let t = 0; t < this.alive.length; t++) {
-            if (t === i || t === source || this.alive[t] === 0 || this.home[t] === i) continue;
-            const neighbour = this.hasControl(t) && shipForage.isMoored(this, t) && this.parkedOn[t] === source;
-            if (this.hasControl(t) && !neighbour) continue;
-            const ob = bodies.indexOf(this.bodyIds[t]!);
-            if (ob < 0 || ob === b || ob === tb || bodies.ghost[ob] === 1 || !this.meets(b, ob)) continue;
-            const touching = mine + this.designs[t]!.radius;
-            const keep = touching + (neighbour ? mine : touching * approach.separationRadii);
-            const dx = bodies.x[ob]! - bodies.x[tb]!;
-            const dy = bodies.y[ob]! - bodies.y[tb]!;
-            if (length(dx, dy) > bodies.radius[tb]! + keep + GRIP_CLEAR * bodies.radius[b]!) continue;
-            out.push(dx * c + dy * s, dy * c - dx * s, keep);
-        }
-    }
-
-    /**
-     * Whether a ship whose jaws reach `reach` ahead of its middle, coming
-     * straight in to a face at `px`, `py` with outward normal `nx`, `ny` from
-     * `depth` out, keeps clear of everything in `gripObstacles` all the way.
-     */
-    private wayInClear(px: number, py: number, nx: number, ny: number, reach: number, depth: number): boolean {
-        const obstacles = this.gripObstacles;
-        for (let k = 0; k < obstacles.length; k += 3) {
-            const dx = obstacles[k]! - px;
-            const dy = obstacles[k + 1]! - py;
-            const out = dx * nx + dy * ny;
-            const side = dy * nx - dx * ny;
-            const along = out - clamp(out, reach, reach + depth);
-            if (along * along + side * side < obstacles[k + 2]! * obstacles[k + 2]!) return false;
-        }
-        return true;
-    }
-
-    /** Whether a point in a hull's frame lies inside any module of `gripOutlines` but `skip`. */
-    private insideAnyOutline(skip: number, x: number, y: number): boolean {
-        const outlines = this.gripOutlines;
-        const starts = this.gripStarts;
-        for (let m = 0; m + 1 < starts.length; m++) {
-            if (m === skip) continue;
-            const from = starts[m]!;
-            const n = (starts[m + 1]! - from) / 2;
-            if (n < 3) continue;
-            let inside = true;
-            for (let e = 0; e < n && inside; e++) {
-                const ax = outlines[from + e * 2]!;
-                const ay = outlines[from + e * 2 + 1]!;
-                const bx = outlines[from + ((e + 1) % n) * 2]!;
-                const by = outlines[from + ((e + 1) % n) * 2 + 1]!;
-                if ((bx - ax) * (y - ay) - (by - ay) * (x - ax) <= 0) inside = false;
-            }
-            if (inside) return true;
-        }
-        return false;
-    }
-
-    /**
-     * Bring claw `claw` in square to the face `chooseGrip` chose: make for its
-     * gate, a ship's radius out along its normal, down a stopping curve, the
-     * jaws on the source's middle until it is near and then turned on to the
-     * face; and there, once the jaws are on that
-     * line and square to the face, straight in, down a stopping curve as
-     * `grapple`'s, onto the face. All moving as that point of the hull does,
-     * turning with it included, and held against its well's pull. Sets
-     * `gripHeading`, and returns the speed it closes at, negative backing off.
-     */
-    private squareUp(bodies: Bodies, i: number, b: number, tb: number, claw: number, standOff: boolean): number {
-        const angle = bodies.angle[tb]!;
-        const c = cos(angle);
-        const s = sin(angle);
-        const gx = this.gripX[i]!;
-        const gy = this.gripY[i]!;
-        const px = bodies.x[tb]! + gx * c - gy * s;
-        const py = bodies.y[tb]! + gx * s + gy * c;
-        const nx = this.gripNx[i]! * c - this.gripNy[i]! * s;
-        const ny = this.gripNx[i]! * s + this.gripNy[i]! * c;
-
-        const module = this.designs[i]!.modules[claw]!;
-        const jaws = module.spec.angle ?? 0;
-        this.gripHeading = atan2(-ny, -nx) - jaws;
-        this.jawsTip(i, claw);
-        const shipAngle = bodies.angle[b]!;
-        const tipX = bodies.x[b]! + this.partAt.x * cos(shipAngle) - this.partAt.y * sin(shipAngle);
-        const tipY = bodies.y[b]! + this.partAt.x * sin(shipAngle) + this.partAt.y * cos(shipAngle);
-        const out = (tipX - px) * nx + (tipY - py) * ny;
-        const across = (tipX - px) * -ny + (tipY - py) * nx;
-
-        const approach = this.doctrines[i]!.approach;
-        const gate = bodies.radius[b]!;
-        // The gate, and how it moves with the hull.
-        const gateX = px + nx * gate;
-        const gateY = py + ny * gate;
-        const spin = bodies.angularVel[tb]!;
-        const vx = bodies.vx[tb]! - spin * (gateY - bodies.y[tb]!);
-        const vy = bodies.vy[tb]! + spin * (gateX - bodies.x[tb]!);
-        const pull = this.surfacePull(bodies, tb);
-        let wantX = 0;
-        let wantY = 0;
-        let closing = 0;
-        let slowing = 0;
-        // Once closing, it keeps on with twice the room it was let start with, so a wobble does not send it back.
-        const loose = this.gripClosing[i] === 1 ? 2 : 1;
-        const lined =
-            out <= 1.5 * gate &&
-            abs(across) <= loose * max(GRIP_LINE * module.spec.width, this.gripSlack[i]!) &&
-            abs(angleDelta(shipAngle, this.gripHeading)) <= loose * GRIP_SQUARE;
-        // Turned off the way in, it looks again: what turned it may be in the way.
-        if (this.gripClosing[i] === 1 && !lined && !standOff) this.gripBody[i] = -1;
-        this.gripClosing[i] = lined && !standOff ? 1 : 0;
-        if (standOff) {
-            closing = -CLAW_APPROACH;
-            wantX = nx * CLAW_APPROACH;
-            wantY = ny * CLAW_APPROACH;
-        } else if (lined) {
-            // Straight in, the jaws held on the line, planned on half the braking it
-            // has less the well's pull: flying lags what it asks for, and a claw
-            // driven home too fast is torn off.
-            const retro = this.accelerationAlong(bodies, i, b, nx, ny, this.gripHeading);
-            const braking = GRIP_BRAKING * max(approach.brake * retro - pull, 0.1 * approach.brake * retro);
-            const stopping = stoppingSpeed(braking, max(0, out), approach.responseTime);
-            const arrive = this.clawArrival(bodies, b, claw);
-            closing = min(approach.clawSpeed, sqrt(stopping * stopping + arrive * arrive));
-            const sideways = clamp(-across / max(approach.responseTime, 1e-3), -arrive, arrive);
-            // Out to the gate's line, then in: relative to the gate point, out by how far in it is.
-            wantX = -nx * closing - ny * sideways;
-            wantY = -ny * closing + nx * sideways;
-            // Slowing down the curve as it goes, told so, or it runs fast by that slowing times its response time.
-            if (closing < approach.clawSpeed) slowing = curveDeceleration(braking, stopping, approach.responseTime);
-        } else {
-            // To the gate, slowing as it gets there.
-            const dx = gateX - tipX;
-            const dy = gateY - tipY;
-            const span = length(dx, dy);
-            if (span > 0) {
-                const ux = dx / span;
-                const uy = dy / span;
-                // Well short of it, the jaws on its middle as any claw ship closing on
-                // a source holds them, so its mains carry it there.
-                if (span > 2 * gate) this.gripHeading = atan2(bodies.y[tb]! - bodies.y[b]!, bodies.x[tb]! - bodies.x[b]!) - jaws;
-                const retro = this.accelerationAlong(bodies, i, b, -ux, -uy, this.gripHeading);
-                const braking = GRIP_BRAKING * max(approach.brake * retro - pull, 0.1 * approach.brake * retro);
-                const stopping = stoppingSpeed(braking, span, approach.responseTime);
-                const arrive = this.clawArrival(bodies, b, claw);
-                const speed = min(approach.clawSpeed, sqrt(stopping * stopping + arrive * arrive), span / max(approach.responseTime, 1e-3));
-                wantX = ux * speed;
-                wantY = uy * speed;
-                closing = -(wantX * nx + wantY * ny);
-            }
-        }
-        // Held against the source's pull rather than lagging behind it.
-        this.wellPullOn(bodies, b, tb);
-        this.urge(URGE_REFERENCE, vx + wantX, vy + wantY, nx * slowing - this.partAt.x, ny * slowing - this.partAt.y);
-        return closing;
-    }
-
-    /**
-     * Close on a source jaws first: down a stopping curve onto its edge that
-     * stops not at nothing but at `clawArrival`, so the claw arrives inside
-     * its band. `facing` is the heading it holds to point the claw. `standOff`
-     * backs it away instead, for another run at it.
-     */
-    private grapple(bodies: Bodies, i: number, b: number, tb: number, claw: number, facing: number, standOff: boolean): number {
-        const dx = bodies.x[tb]! - bodies.x[b]!;
-        const dy = bodies.y[tb]! - bodies.y[b]!;
-        const range = length(dx, dy);
-        let vx = bodies.vx[tb]!;
-        let vy = bodies.vy[tb]!;
-        let radial = 0;
-        let slowing = 0;
-        let ax = 0;
-        let ay = 0;
-        if (range > 0) {
-            const ux = dx / range;
-            const uy = dy / range;
-            const design = this.designs[i]!;
-            const module = design.modules[claw]!;
-            const turned = module.spec.angle ?? 0;
-            // How far ahead of the centre of mass its jaws reach.
-            const jaws = module.x * cos(turned) + module.y * sin(turned) + module.spec.length / 2;
-            const gap = max(0, range - bodies.radius[tb]! - jaws);
-            const approach = this.doctrines[i]!.approach;
-            // Planned on what it really has astern with its jaws held on, with no
-            // floor: a claw has to arrive slowly, so a craft that cannot brake
-            // facing its source comes in no faster than it can stop.
-            const retro = this.accelerationAlong(bodies, i, b, -ux, -uy, facing);
-            const braking = max(approach.brake * retro - this.surfacePull(bodies, tb), 0.1 * approach.brake * retro);
-            const stopping = stoppingSpeed(braking, gap, approach.responseTime);
-            const arrive = this.clawArrival(bodies, b, claw);
-            radial = standOff ? -CLAW_APPROACH : min(approach.clawSpeed, sqrt(stopping * stopping + arrive * arrive));
-            vx += ux * radial;
-            vy += uy * radial;
-            if (!standOff && radial < approach.clawSpeed) slowing = curveDeceleration(braking, stopping, approach.responseTime);
-            ax = -ux * slowing;
-            ay = -uy * slowing;
-        }
-        this.urge(URGE_REFERENCE, vx, vy, ax, ay);
-        return radial;
-    }
-
-    /**
      * How much of a step's reload a gun gets through, 0 to 1. A gun that loads
      * rounds gets all of it. A beam refills its bank from its piece of hull's
      * power over its reload, so it gets the share of the step's energy that
@@ -7980,7 +7451,7 @@ export class Ships {
 
     /** Whether ship `i` on body `b` may build on pad or slipway `spec`: anywhere, unless it builds only anchored (`buildAnchored`). */
     private mayBuild(i: number, b: number, spec: ModuleSpec): boolean {
-        if (spec.buildAnchored !== true || this.workingClaw(i, b) < 0) return true;
+        if (spec.buildAnchored !== true || shipClaw.workingClaw(this, i, b) < 0) return true;
         // Moored to a rock, or holding a wreck in its claw.
         if (this.mooredClaw[i]! >= 0) return true;
         for (const seam of this.hullDesign[b]?.seams ?? []) {
