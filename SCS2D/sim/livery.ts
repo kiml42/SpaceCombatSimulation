@@ -24,7 +24,12 @@ export interface Livery {
     spacing: number;
     /** How far the pattern is moved across the hull, as a share of its spacing. */
     offset: number;
-    /** Which way stripes or chevrons run across the design. Radians here, degrees in the file. */
+    /** How far chevrons are moved along their run, as a share of the ship's radius. */
+    lateral: number;
+    /**
+     * Which way stripes or chevrons run across the design, radians here,
+     * degrees in the file: stripes within ±90°, chevrons all the way round.
+     */
     angle: number;
     /** How far each arm of a chevron turns from straight, radians; none is a straight stripe. Degrees in the file. */
     chevron: number;
@@ -50,6 +55,7 @@ const DEFAULTS = {
     size: 0.1,
     spacing: 3,
     offset: 0,
+    lateral: 0,
     angle: 0,
     chevron: 45,
     points: 0,
@@ -106,7 +112,18 @@ export function liveryWarnings(of: { readonly livery?: Livery; readonly unreadLi
     }
 }
 
-const LIVERY_KEYS: readonly string[] = ["base", "highlight", "pattern", "size", "spacing", "offset", "angle", "chevron", "points"];
+const LIVERY_KEYS: readonly string[] = [
+    "base",
+    "highlight",
+    "pattern",
+    "size",
+    "spacing",
+    "offset",
+    "lateral",
+    "angle",
+    "chevron",
+    "points",
+];
 
 /**
  * A livery from a file, each part read on its own: one left out is its
@@ -131,6 +148,7 @@ export function toLivery(value: unknown): Livery {
         size: part("size") as number,
         spacing: part("spacing") as number,
         offset: part("offset") as number,
+        lateral: part("lateral") as number,
         angle: degreesToRadians(part("angle") as number),
         chevron: degreesToRadians(part("chevron") as number),
         points: part("points") as number,
@@ -150,6 +168,7 @@ export function serialiseLivery(livery: Livery): Record<string, unknown> {
         size: livery.size,
         spacing: livery.spacing,
         offset: livery.offset,
+        lateral: livery.lateral,
         angle: radiansToDegrees(livery.angle),
         chevron: radiansToDegrees(livery.chevron),
         points: livery.points,
