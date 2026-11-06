@@ -21,6 +21,7 @@ import * as shipClaw from "./shipClaw.js";
 import * as shipDocking from "./shipDocking.js";
 import * as shipBuild from "./shipBuild.js";
 import { type Ships, stoppingSpeed, FACE, NO_TARGET, STEER, CLAW_RETRY, URGE_REFERENCE, movable, type Spot, type Order } from "./ships.js";
+import * as shipAim from "./shipAim.js";
 
 /**
  * Flying a ship: what each of its orders asks of the hull as an acceleration,
@@ -564,7 +565,7 @@ export function turnBlocked(
     const sweep = design.radius * chord + margin;
     let c = NaN;
     let sn = NaN;
-    const myLayers = ships.shipLayers(i);
+    const myLayers = shipAim.shipLayers(ships, i);
     // By body: a carrier holding something in its claw is one body with it, which either may ride first.
     const touched = touching === NO_TARGET || ships.alive[touching] === 0 ? -1 : bodies.indexOf(ships.bodyIds[touching]!);
     for (let t = 0; t < ships.alive.length; t++) {
@@ -748,7 +749,7 @@ export function orbit(ships: Ships, bodies: Bodies, i: number, b: number, at: Sp
     if (!(approach.orbitWeight > 0)) return;
     const x = bodies.x[b]!;
     const y = bodies.y[b]!;
-    const rock = ships.blockingRock(bodies, x, y, at.x, at.y, b, tb);
+    const rock = shipAim.blockingRock(ships, bodies, x, y, at.x, at.y, b, tb);
     if (rock < 0) return;
     const rb = bodies.indexOf(ships.bodyIds[rock]!);
     const ox = x - bodies.x[rb]!;
@@ -800,8 +801,8 @@ export function charge(ships: Ships, bodies: Bodies, i: number, b: number, at: S
     const x = bodies.x[b]!;
     const y = bodies.y[b]!;
     // A fighter overflies a friend's hull until it commits, which is not until it is about to strike (`commitOne`).
-    const friend = !ships.designs[i]!.fighter && ships.friendBetween(bodies, i, b, at.x, at.y, tb);
-    const blocked = friend || ships.blockingRock(bodies, x, y, at.x, at.y, b, tb) >= 0;
+    const friend = !ships.designs[i]!.fighter && shipAim.friendBetween(ships, bodies, i, b, at.x, at.y, tb);
+    const blocked = friend || shipAim.blockingRock(ships, bodies, x, y, at.x, at.y, b, tb) >= 0;
     // Never kept faster than it was told to hit at.
     const want = blocked ? min(speed, max(0, closing)) : min(speed, closing + (speed - closing) * share);
     urge(ships, URGE_REFERENCE, at.vx + ux * want, at.vy + uy * want);
