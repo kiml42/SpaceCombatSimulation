@@ -17,6 +17,7 @@ import { capture, Snapshot } from "../sim/snapshot.js";
 import { CORVETTE, DINKY, GUNSHIP } from "../scenarios/blueprints.js";
 import type { World } from "../sim/world.js";
 import { detach } from "../sim/shipBreakup.js";
+import { merge } from "../sim/shipWeld.js";
 
 /**
  * Ragged hulls hooking together on a slow contact (DESIGN.md §4), and what a
@@ -522,6 +523,35 @@ describe("enemies hooked together", () => {
         expect(run.ships.body(0)).toBe(run.ships.body(1));
         expect(struck[0]).toBeGreaterThan(0);
         expect(struck[1]).toBeGreaterThan(0);
+    });
+});
+
+describe("an enemy hooked to a friend", () => {
+    it.each([
+        [0, 300],
+        [300, 0],
+    ])("is shot at by the friend's consort, from (%i, %i), without hitting the friend", (cx, cy) => {
+        const gunship = compileBlueprint(GUNSHIP);
+        const run = makeBattle({ seed: 5, projectiles: 512 }, (ships, world) => {
+            const friend = ships.spawn(world, { design: gunship, x: 0, y: 0, team: 0 });
+            const clinger = ships.spawn(world, { design: dinky, x: 0, y: (gunship.radius + dinky.radius) * 0.6, team: 1 });
+            ships.spawn(world, { design: gunship, x: cx, y: cy, team: 0 });
+            merge(ships, world, friend, clinger, 0, 0);
+        });
+        const { ships, world } = run;
+        let targeted = false;
+        let onFriend = 0;
+        for (let s = 0; s < 1800; s++) {
+            run.step();
+            if (ships.turretTarget[2]!.includes(1)) targeted = true;
+            const consort = world.bodies.indexOf(ships.body(2));
+            for (let h = 0; h < run.credit.count; h++) {
+                if (run.credit.attacker[h] !== consort) continue;
+                if (ships.pilotAt(run.credit.victim[h]!, run.credit.module[h]!) === 0) onFriend++;
+            }
+        }
+        expect(targeted).toBe(true);
+        expect(onFriend).toBe(0);
     });
 });
 
