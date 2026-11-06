@@ -5,6 +5,7 @@ import type { Doctrine, DoctrineOverride } from "./doctrine.js";
 import { leakSpeed } from "./fuel.js";
 import { NOT_INSIDE, type Projectiles } from "./projectiles.js";
 import type { Beams } from "./beams.js";
+import { MOST_CLOUDS, type Debris } from "./debris.js";
 import type { ImpactLog } from "./damage.js";
 import type { Ships } from "./ships.js";
 import type { Turrets } from "./turrets.js";
@@ -369,6 +370,15 @@ export class Snapshot {
     debrisPaint = new Int8Array(0);
     debrisHeat = new Float64Array(0);
     debrisCount = 0;
+    /** Fuel let out where a module holding it broke up (`Debris.vent`), as the debris store holds it. */
+    cloudX = new Float64Array(MOST_CLOUDS);
+    cloudY = new Float64Array(MOST_CLOUDS);
+    cloudAge = new Float64Array(MOST_CLOUDS);
+    cloudFuel = new Float64Array(MOST_CLOUDS);
+    cloudFill = new Float64Array(MOST_CLOUDS);
+    cloudSize = new Float64Array(MOST_CLOUDS);
+    cloudSeed = new Uint32Array(MOST_CLOUDS);
+    cloudCount = 0;
 
     /**
      * Bounding box of the *ships*, for a camera to frame.
@@ -786,29 +796,7 @@ export function capture(
     }
     out.beamCount = b;
 
-    const debris = ships.debris;
-    if (out.debrisX.length < debris.count) {
-        const size = debris.x.length;
-        out.debrisX = new Float64Array(size);
-        out.debrisY = new Float64Array(size);
-        out.debrisAngle = new Float64Array(size);
-        out.debrisSize = new Float64Array(size);
-        out.debrisFade = new Float64Array(size);
-        out.debrisSeed = new Uint32Array(size);
-        out.debrisPaint = new Int8Array(size);
-        out.debrisHeat = new Float64Array(size);
-    }
-    for (let i = 0; i < debris.count; i++) {
-        out.debrisX[i] = debris.x[i]!;
-        out.debrisY[i] = debris.y[i]!;
-        out.debrisAngle[i] = debris.angle[i]!;
-        out.debrisSize[i] = debris.size[i]!;
-        out.debrisFade[i] = debris.fade(i);
-        out.debrisSeed[i] = debris.seed[i]!;
-        out.debrisPaint[i] = debris.paint[i]!;
-        out.debrisHeat[i] = debris.heat(i);
-    }
-    out.debrisCount = debris.count;
+    copyDebris(ships.debris, out);
 
     // Drained, not copied: every impact is shown once, whatever the frame rate.
     out.impactCount = 0;
@@ -848,4 +836,39 @@ export function capture(
     out.maxY = maxY;
 
     return out;
+}
+
+/** Copy `debris`'s bits and clouds into `out`. */
+export function copyDebris(debris: Debris, out: Snapshot): void {
+    if (out.debrisX.length < debris.count) {
+        const size = debris.x.length;
+        out.debrisX = new Float64Array(size);
+        out.debrisY = new Float64Array(size);
+        out.debrisAngle = new Float64Array(size);
+        out.debrisSize = new Float64Array(size);
+        out.debrisFade = new Float64Array(size);
+        out.debrisSeed = new Uint32Array(size);
+        out.debrisPaint = new Int8Array(size);
+        out.debrisHeat = new Float64Array(size);
+    }
+    for (let i = 0; i < debris.count; i++) {
+        out.debrisX[i] = debris.x[i]!;
+        out.debrisY[i] = debris.y[i]!;
+        out.debrisAngle[i] = debris.angle[i]!;
+        out.debrisSize[i] = debris.size[i]!;
+        out.debrisFade[i] = debris.fade(i);
+        out.debrisSeed[i] = debris.seed[i]!;
+        out.debrisPaint[i] = debris.paint[i]!;
+        out.debrisHeat[i] = debris.heat(i);
+    }
+    out.debrisCount = debris.count;
+    const clouds = debris.cloudCount;
+    out.cloudX.set(debris.cloudX.subarray(0, clouds));
+    out.cloudY.set(debris.cloudY.subarray(0, clouds));
+    out.cloudAge.set(debris.cloudAge.subarray(0, clouds));
+    out.cloudFuel.set(debris.cloudFuel.subarray(0, clouds));
+    out.cloudFill.set(debris.cloudFill.subarray(0, clouds));
+    out.cloudSize.set(debris.cloudSize.subarray(0, clouds));
+    out.cloudSeed.set(debris.cloudSeed.subarray(0, clouds));
+    out.cloudCount = clouds;
 }
