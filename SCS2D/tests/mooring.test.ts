@@ -3,6 +3,7 @@ import { mining } from "../scenarios/mining.js";
 import { give } from "../scenarios/commands.js";
 import { unpark } from "../sim/shipDocking.js";
 import { moor } from "../sim/shipForage.js";
+import { capture, Snapshot } from "../sim/snapshot.js";
 
 /** The robots on ship `i`'s body, and how many are out on its rock. */
 function crew(run: ReturnType<typeof mining>, i: number): { all: number; away: number } {
@@ -60,6 +61,16 @@ describe("a ship moored to an asteroid", () => {
         for (let t = 0; t < 180 * 60 && run.ships.isMoored(miner); t++) run.step();
         expect(run.ships.metal.left(body())).toBeGreaterThan(before);
         expect(Math.max(...robots().map((r) => r.cargoFuel))).toBeLessThan(1);
+    });
+
+    it("reads its robots in its bays, those out on the rock among them, and the rock reads none", () => {
+        const { run, miner, rock } = moored();
+        const { all, away } = crew(run, miner);
+        expect(away).toBeGreaterThan(0);
+        const shown = capture(new Snapshot(), run.world, run.ships, run.projectiles, run.beams);
+        const crews = (i: number) => (shown.ships.find((v) => v.ship === i)!.crews ?? []).reduce((n, c) => n + c, 0);
+        expect(crews(miner)).toBe(all);
+        expect(crews(rock)).toBe(0);
     });
 
     it("shows a robot home with ore emptying its load into the holds, not filling up", () => {
