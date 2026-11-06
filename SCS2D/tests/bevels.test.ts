@@ -3,6 +3,7 @@ import { compileBlueprint, originOf, subDesign, type Blueprint, type ShipDesign 
 import { rebuiltDesign } from "../sim/blueprint.js";
 import { shellOf } from "../sim/rebuild.js";
 import { DINKY, TANKER } from "../scenarios/blueprints.js";
+import { LEECH } from "../scenarios/salvage.js";
 import { BEVEL_STRIDE, bevelQuad, bevelsOf, drawnBevels } from "../render/bevels.js";
 
 /** Three boxes in a row along x, each 4 by 4. */
@@ -214,5 +215,22 @@ describe("bevels", () => {
         }
         // Its engines are round, but for its pump's ends, so mostly its hull has edges to join.
         expect(joined).toBeGreaterThan(2);
+    });
+    it("bevels a claw round its jaws, not across the gap between them", () => {
+        const leech = compileBlueprint(LEECH);
+        const m = leech.modules.findIndex((module) => module.spec.kind === "claw");
+        const edges = bevelsOf(leech, m);
+        // 2 by 2, jaws 0.6 wide: its bow is two 0.6 m tips, never the gap's 0.8 m middle.
+        let bow = 0;
+        for (let k = 0; k < edges.length; k += BEVEL_STRIDE) {
+            const [ax, ay, by, nx] = [edges[k]!, edges[k + 1]!, edges[k + 3]!, edges[k + 4]!];
+            if (nx > 0.5 && ax > 0.9) {
+                bow += Math.abs(by - ay);
+                expect(Math.min(Math.abs(ay), Math.abs(by))).toBeGreaterThan(0.4 - 1e-6);
+            }
+        }
+        expect(bow).toBeCloseTo(1.2, 6);
+        // The gap's floor is bevelled.
+        expect(edges.some((_, k) => k % BEVEL_STRIDE === 0 && Math.abs(edges[k]!) < 1e-6 && Math.abs(edges[k + 2]!) < 1e-6)).toBe(true);
     });
 });
