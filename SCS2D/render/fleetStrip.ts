@@ -4,9 +4,9 @@ import type { InsetRect } from "./inset.js";
 /**
  * The fleets down the sides of a battle view: a live tile for every ship, each
  * drawn by a camera of its own, the even sides on the left and the odd on the
- * right. A side's fighters of one design share a tile, one of them shown with
- * a count of all. DOM-free arithmetic, so it is unit-tested; `canvas2d.ts`
- * draws it.
+ * right. A column with more ships than `MOST_TILES` shares a tile among a
+ * side's ships of one design, one of them shown with a count of all. DOM-free
+ * arithmetic, so it is unit-tested; `canvas2d.ts` draws it.
  */
 
 /** What laying out a tile needs of the ship it shows. */
@@ -19,9 +19,9 @@ export interface StripShip {
     readonly vy: number;
     /** Hull radius, m. */
     readonly radius: number;
-    /** For a fighter, its design, the same for every fighter of that design; absent for any other ship. */
-    readonly fighter?: number;
-    /** Weapons it can still fight with, so a fighter's tile shows the one least likely to be lost. */
+    /** Its design, the same for every ship of that design; absent for one never grouped. */
+    readonly design?: number;
+    /** Weapons it can still fight with, so a shared tile shows the one least likely to be lost. */
     readonly weapons?: number;
 }
 
@@ -29,8 +29,10 @@ export interface StripTile extends InsetRect {
     readonly body: number;
     readonly team: number;
     readonly camera: Camera;
-    /** How many fighters the tile stands for; 1 for any other ship. */
+    /** How many ships the tile stands for. */
     readonly count: number;
+    /** The bodies of every ship it stands for, `body` among them. */
+    readonly bodies: readonly number[];
 }
 
 export interface StripSettings {
@@ -61,34 +63,62 @@ export interface Strips {
 /** How much of a tile's half-width the ship's radius fills. */
 const FILL = 0.8;
 
-/** One column of tiles down one edge, `fromLeft` the left edge. */
-/**
- * One entry a tile: every ship but fighters as given, then a ship for each
- * side's design of fighter, the one with most weapons left (the lowest body of
- * equals, so it holds steady), with how many there are.
- */
-function grouped(ships: readonly StripShip[]): { ship: StripShip; count: number }[] {
-    const out: { ship: StripShip; count: number }[] = [];
-    const fighters = new Map<string, { ship: StripShip; count: number }>();
-    for (const ship of ships) {
-        if (ship.fighter === undefined) {
-            out.push({ ship, count: 1 });
-            continue;
-        }
-        const key = `${ship.team}:${ship.fighter}`;
-        const group = fighters.get(key);
-        if (group === undefined) {
-            fighters.set(key, { ship, count: 1 });
-            continue;
-        }
-        group.count++;
-        const best = group.ship;
-        const [mine, theirs] = [ship.weapons ?? 0, best.weapons ?? 0];
-        if (mine > theirs || (mine === theirs && ship.body < best.body)) group.ship = ship;
-    }
-    return [...out, ...fighters.values()];
+/** Tiles a column shows before it starts sharing them among ships of one design. */
+export const MOST_TILES = 5;
+
+interface Entry {
+    ship: StripShip;
+    bodies: number[];
 }
 
+/**
+ * One entry a tile, in the order given, a shared tile where the first of its
+ * ships was. Past `MOST_TILES`, a side's most numerous design shares one, then
+ * the next, until the column is down to `MOST_TILES` or every tile is a design
+ * of its own. A shared tile shows the ship with most weapons left (the lowest
+ * body of equals, so it holds steady).
+ */
+function grouped(ships: readonly StripShip[]): Entry[] {
+    const designs = new Map<string, StripShip[]>();
+    for (const ship of ships) {
+        if (ship.design === undefined) continue;
+        const key = `${ship.team}:${ship.design}`;
+        const same = designs.get(key);
+        if (same === undefined) designs.set(key, [ship]);
+        else same.push(ship);
+    }
+    // A stable sort, so of equal numbers the design met first goes first.
+    const commonest = [...designs].filter(([, same]) => same.length > 1).sort(([, a], [, b]) => b.length - a.length);
+    const shared = new Set<string>();
+    let tiles = ships.length;
+    for (const [key, same] of commonest) {
+        if (tiles <= MOST_TILES) break;
+        shared.add(key);
+        tiles -= same.length - 1;
+    }
+    const out: Entry[] = [];
+    const placed = new Map<string, Entry>();
+    for (const ship of ships) {
+        const key = ship.design === undefined ? "" : `${ship.team}:${ship.design}`;
+        if (!shared.has(key)) {
+            out.push({ ship, bodies: [ship.body] });
+            continue;
+        }
+        const entry = placed.get(key);
+        if (entry === undefined) {
+            const first = { ship, bodies: [ship.body] };
+            placed.set(key, first);
+            out.push(first);
+            continue;
+        }
+        entry.bodies.push(ship.body);
+        const [mine, theirs] = [ship.weapons ?? 0, entry.ship.weapons ?? 0];
+        if (mine > theirs || (mine === theirs && ship.body < entry.ship.body)) entry.ship = ship;
+    }
+    return out;
+}
+
+/** One column of tiles down one edge, `fromLeft` the left edge. */
 function column(entries: readonly StripShip[], widthPx: number, heightPx: number, settings: StripSettings, fromLeft: boolean): StripColumn {
     const { largest, smallest, margin, gap } = settings;
     const ships = grouped(entries);
@@ -99,11 +129,12 @@ function column(entries: readonly StripShip[], widthPx: number, heightPx: number
     // One slot kept for saying how many more there are, when they do not all fit.
     const shown = ships.length <= fit ? ships.length : Math.max(0, fit - 1);
     const x = fromLeft ? margin : widthPx - margin - size;
-    const tiles = ships.slice(0, shown).map(({ ship, count }, k): StripTile => {
+    const tiles = ships.slice(0, shown).map(({ ship, bodies }, k): StripTile => {
         const half = size / 2;
         return {
             body: ship.body,
-            count,
+            count: bodies.length,
+            bodies,
             team: ship.team,
             x,
             y: margin + k * (size + gap),
@@ -111,7 +142,7 @@ function column(entries: readonly StripShip[], widthPx: number, heightPx: number
             camera: { x: ship.x, y: ship.y, scale: (half * FILL) / Math.max(ship.radius, 0.1), vx: ship.vx, vy: ship.vy },
         };
     });
-    const hidden = ships.slice(shown).reduce((sum, entry) => sum + entry.count, 0);
+    const hidden = ships.slice(shown).reduce((sum, entry) => sum + entry.bodies.length, 0);
     return {
         tiles,
         hidden,
@@ -120,7 +151,7 @@ function column(entries: readonly StripShip[], widthPx: number, heightPx: number
     };
 }
 
-/** The two columns: even sides on the left, odd on the right, each in the order given, its fighters last. */
+/** The two columns: even sides on the left, odd on the right, each in the order given. */
 export function stripsFor(ships: readonly StripShip[], widthPx: number, heightPx: number, settings: StripSettings): Strips {
     return {
         left: column(

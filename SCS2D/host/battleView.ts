@@ -33,7 +33,7 @@ import {
     type Camera,
     type JumpAnchor,
 } from "../render/camera.js";
-import { boxed, clicked, fighterGroup, sameDesign, shipViewAt, sideOf, stillThere, viewOf, wholeSide } from "../render/picking.js";
+import { boxed, clicked, sameDesign, shipViewAt, sideOf, stillThere, viewOf, wholeSide } from "../render/picking.js";
 import type { Command, Held, Logged, Order } from "../scenarios/commands.js";
 import type { Battle } from "../scenarios/types.js";
 import { Rewind } from "../scenarios/rewind.js";
@@ -380,9 +380,12 @@ export function battleView(
                 const at = viewPoint(shownInsets, camera, canvas.width, canvas.height, x, y);
                 if (partPicker(ship, at.x, at.y)) return;
             }
-            // A tile standing for a side's fighters of one design picks them all.
+            // A tile standing for several ships picks them all.
             const tile = shift ? null : overlayTileAt(shownStrips, shownInsets, camera, canvas.width, canvas.height, x, y);
-            picked = tile !== null && tile.count > 1 ? fighterGroup(snapshot, ship) : clicked(snapshot, picked, ship, shift);
+            picked =
+                tile !== null && tile.count > 1
+                    ? tile.bodies.flatMap((body) => viewByBody(snapshot, body)?.ship ?? [])
+                    : clicked(snapshot, picked, ship, shift);
             // A close-up clicked asks to see its ship, as Fit does.
             if (shown >= 0 && tile === null && picked.length > 0) {
                 autoFrame = true;
