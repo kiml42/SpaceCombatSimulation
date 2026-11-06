@@ -670,6 +670,8 @@ function drawShip(
         // back below the floor and say nothing. Overlap is free: the barrel colours
         // are opaque, so a bar drawn twice looks like a bar.
         const hidden = hull !== null && !beamLenses;
+        // The mantlet drawn over the barrels' roots, below, and each barrel's collar out of it.
+        const pivot = hidden ? { x: mx, y: my, radius: min(spec.width * 0.5, ((count - 1) / 2) * spacing + hull.outletWidth) } : null;
         if (hidden) {
             // Behind the block, so a barrel trained hard over never shows its breech.
             const placed = design.modules[module]!;
@@ -685,10 +687,9 @@ function drawShip(
         if (light !== undefined) {
             const placed = design.modules[module]!;
             const block = hidden ? blockBox(ship, placed.x, placed.y, placed.angle, spec.length, spec.width, hull.blockLength) : null;
-            // The mantlet drawn over their roots, below.
-            const pivot = hidden ? { x: mx, y: my, radius: min(spec.width * 0.5, ((count - 1) / 2) * spacing + hull.outletWidth) } : null;
             shadeBarrels(ctx, ship, t, ctx.lineWidth, light, block, pivot);
         }
+        if (pivot !== null) drawCollars(ctx, ship, t, ctx.lineWidth, pivot);
         if (gun.braceLength > 0) drawBracing(ctx, gun, physicalWidth, mx, my, dirX, dirY);
         if (hidden) ctx.restore();
         if (hull !== null && !beamLenses) {
@@ -1869,14 +1870,58 @@ function bevel(ctx: CanvasRenderingContext2D, design: ShipDesign, m: number, ang
 }
 const quad: number[] = [0, 0, 0, 0, 0, 0, 0, 0];
 
-/** How far along `(dx, dy)` from `(x, y)` it leaves a circle `radius` round the origin, as a share of it: 0 if it starts outside it. */
-function leaving(x: number, y: number, dx: number, dy: number, radius: number): number {
-    const a = dx * dx + dy * dy;
-    const b = x * dx + y * dy;
-    const c = x * x + y * y - radius * radius;
-    if (!(a > 0) || c > 0) return 0;
-    const root = b * b - a * c;
-    return root > 0 ? max(0, (-b + sqrt(root)) / a) : 0;
+/** How much wider a barrel's collar is than the barrel, and how far it stands out of the mantlet, in barrel widths. */
+const COLLAR_WIDTH = 1.3;
+const COLLAR_OUT = 0.4;
+
+/**
+ * How long a barrel `width` wide from `(x, y)` along the unit `(ux, uy)` has its
+ * collar: to where all of it is out of `pivot`, and a little further.
+ */
+function collarLength(
+    x: number,
+    y: number,
+    ux: number,
+    uy: number,
+    width: number,
+    pivot: { x: number; y: number; radius: number },
+): number {
+    const ox = x - pivot.x;
+    const oy = y - pivot.y;
+    const along = ox * ux + oy * uy;
+    // Its edge nearest the pivot's middle is the last of it out.
+    const side = max(0, Math.abs(ox * uy - oy * ux) - (COLLAR_WIDTH * width) / 2);
+    const inside = side < pivot.radius ? sqrt(pivot.radius * pivot.radius - side * side) - along : 0;
+    return max(0, inside) + COLLAR_OUT * width;
+}
+
+/**
+ * A flat collar round each of a hull gun's barrels where it comes out of the
+ * mantlet `pivot` over their roots, so a barrel meets it square rather than
+ * along the mantlet's curve. Unlit by the dynamic lights, as the mantlet is:
+ * their light is added over what is drawn on it.
+ */
+function drawCollars(
+    ctx: CanvasRenderingContext2D,
+    ship: ShipView,
+    t: number,
+    width: number,
+    pivot: { x: number; y: number; radius: number },
+): void {
+    ctx.fillStyle = BARREL;
+    barrelLines(ship, t, (x0, y0, x1, y1) => {
+        const span = length(x1 - x0, y1 - y0);
+        if (!(span > 0)) return;
+        const ux = (x1 - x0) / span;
+        const uy = (y1 - y0) / span;
+        const collar = min(span, collarLength(x0, y0, ux, uy, width, pivot));
+        const half = (COLLAR_WIDTH * width) / 2;
+        ctx.save();
+        ctx.translate(x0, y0);
+        ctx.rotate(math.atan2(uy, ux));
+        ctx.fillRect(0, -half, collar, 2 * half);
+        ctx.restore();
+    });
 }
 
 /** Where a turret is lit by the dynamic lights: halfway up a capital ship's hull, as its flames are thick; a fighter's nearest its height. */
@@ -1896,7 +1941,7 @@ function shadeDome(ctx: CanvasRenderingContext2D, x: number, y: number, radius: 
     ctx.restore();
 }
 
-/** A turret's barrels shaded as tubes `width` wide, in the world, out of `block` and, for the dynamic lights, of the `pivot` drawn over them. */
+/** A turret's barrels shaded as tubes `width` wide, in the world, out of `block` and, for the dynamic lights, past their collars out of `pivot`. */
 function shadeBarrels(
     ctx: CanvasRenderingContext2D,
     ship: ShipView,
@@ -1922,11 +1967,11 @@ function shadeBarrels(
         ctx.rotate(angle);
         if (from > 0) ctx.drawImage(image, 0, -width / 2, span * from, width);
         if (to < 1) ctx.drawImage(image, span * to, -width / 2, span * (1 - to), width);
-        // Drawn over everything, so taking all the light, at a turret's height: not
-        // under the pivot, as it adds to what is drawn over it rather than being hidden.
+        // Drawn over everything, so taking all the light, at a turret's height: past its
+        // collar, as it adds to what is drawn over it rather than being hidden.
         const m = ctx.getTransform();
         const level = turretLevel(ship);
-        const out = pivot === null ? 0 : leaving(x0 - pivot.x, y0 - pivot.y, dx, dy, pivot.radius);
+        const out = pivot === null ? 0 : collarLength(x0, y0, dx / span, dy / span, width, pivot) / span;
         const lit = (a: number, b: number): void => {
             const start = max(a, out);
             if (b > start) rounded?.tube(m, span * start, 0, span * (b - start), width / 2, 1, BARREL_RGB, 0, level);
