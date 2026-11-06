@@ -646,8 +646,6 @@ work has to respect.
 18. **Campaign** (#836) — last, because its screens would otherwise be built in plain DOM and then
     rewritten in React.
 
-**Skirmish upgrade cards** (#691) — settled in DECISIONS.md 2026-11-06; the cards are data in `skirmish/cards.json`.
-
 **Scenario packs** (#837).
 
 **Multiplayer** is not a step, and nothing is being built for it — but nothing forecloses it either: the pure
@@ -780,9 +778,9 @@ mine in. What is left of it is in §12, for later.
 #### Skirmish (step 5)
 
 - **An endless loop against an enemy that evolves to beat the player.** The first enemy's bill is the
-  player's budget, and stays it; the enemy's grows a round at a time, to half as much again as it was —
-  metal, fuel, build time and ships, though always one ship more — and by as much again each time 20
-  generations go by without an answer (`evolution/answer.ts`).
+  starting budget for both sides, and each side's grows only by upgrade cards: the player's picked after
+  losing with fleet after fleet, the enemy's drawn when its search stalls (`skirmish/cards.ts`). A new card
+  is a new entry in `skirmish/cards.json`; a new kind of limit needs `Limit` and `withCards` to know it.
 - **A round is one seed**, so a retry is the same battle and what changes it is the player's edit; a round
   won is answered on that seed and the next round takes a new one.
 - **A battle is decided** once one side has fired, hit or rammed in the last 30 s and the other has not,

@@ -2,7 +2,7 @@ import { createContext, use, useEffect, useRef, useState, type ReactNode } from 
 import { useStorage } from "~/features/storage/StorageContext";
 import type { AnswerProgress } from "~/host/answer";
 import { dropOldest, EMPTY_HISTORY, HISTORY_STORAGE_KEY, parseHistory, record, type History, type Played } from "~/scenarios/history";
-import { enemyMultiplier, parseSkirmish, serialiseSkirmish, settingsOf, SKIRMISH_STORAGE_KEY, type Skirmish } from "~/scenarios/skirmish";
+import { parseSkirmish, serialiseSkirmish, settingsOf, SKIRMISH_STORAGE_KEY, type Skirmish } from "~/scenarios/skirmish";
 import { startSkirmishAnswer } from "./answerSearch";
 
 /** What the enemy's search has come to, as the skirmish route shows it. */
@@ -125,8 +125,11 @@ export function SkirmishProvider({ children }: { readonly children: ReactNode })
             setLeading(record(now.current.history, row));
             return;
         }
-        // Kept as it goes, so a reload carries on from the best so far, at the budget reached.
-        setSkirmish({ ...current, enemy: progress.found ?? progress.best, multiplier: progress.multiplier });
+        // A card the enemy drew since, shown on the generation's row.
+        const held = current.enemyCards ?? [];
+        const drawn = progress.cards.length > held.length ? progress.cards[progress.cards.length - 1] : undefined;
+        // Kept as it goes, so a reload carries on from the best so far, with the cards drawn.
+        setSkirmish({ ...current, enemy: progress.found ?? progress.best, enemyCards: progress.cards });
         if (progress.found !== null) {
             stop.current?.();
             stop.current = null;
@@ -138,7 +141,7 @@ export function SkirmishProvider({ children }: { readonly children: ReactNode })
                 player: current.player,
                 enemy: progress.found,
             });
-        } else recordMatch(row);
+        } else recordMatch(drawn === undefined ? row : { ...row, card: drawn });
         setAnswering({ latest: progress, running: progress.found === null });
         for (const listener of listeners.current) listener(progress);
     };
@@ -156,7 +159,7 @@ export function SkirmishProvider({ children }: { readonly children: ReactNode })
                 seed: (current.won ^ current.round) >>> 0,
                 settings: settingsOf(current),
                 budget: current.budget,
-                multiplier: enemyMultiplier(current),
+                cards: current.enemyCards ?? [],
             },
             progressed,
         );

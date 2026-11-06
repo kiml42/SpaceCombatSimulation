@@ -22,12 +22,14 @@ import type { BattleSetup } from "./customBattle.js";
 import { QUIET_TIME, TIME_CAP } from "./decision.js";
 import { fleetBlueprint, hangarClashes } from "../sim/fleetHangar.js";
 import { firstLivery, liveryRng, STOCK_BASES } from "../sim/liveryDrift.js";
+import { cardById, drawHand, withCards, type Limits } from "../skirmish/cards.js";
+import { fleetId } from "./history.js";
 
 /**
  * A skirmish: the player's fleet against an enemy, a round at a time
  * (ROADMAP.md §8 step 5). The player's fleet must fit a budget set by the
- * enemy it first faced; a round is one battle with a fixed seed, fought again
- * until the player wins it.
+ * enemy it first faced, moved by the upgrade cards they pick; a round is one
+ * battle with a fixed seed, fought again until the player wins it.
  */
 
 export const SKIRMISH_FORMAT_VERSION = 1;
@@ -37,7 +39,7 @@ export interface Skirmish {
     name?: string;
     enemy: Fleet;
     player: Fleet;
-    /** What the player's fleet may cost. */
+    /** What either side's fleet may cost before its cards. */
     budget: Budget;
     /** Counting from 1. */
     round: number;
@@ -53,11 +55,18 @@ export interface Skirmish {
     won?: number;
     /** What it is played under; the defaults where it says nothing. */
     settings?: SkirmishSettings;
-    /**
-     * The enemy's budget as a multiple of the player's, 1 where not said. It
-     * steps up by `budgetStep` each time the enemy's search stalls, and never falls.
-     */
-    multiplier?: number;
+    /** The upgrade cards the player has picked, by id, in the order picked. */
+    cards?: readonly string[];
+    /** The cards the enemy has drawn, by id, in the order drawn. */
+    enemyCards?: readonly string[];
+    /** Cards offered the player to pick one of, before they fight again. */
+    hand?: readonly string[];
+    /** Losses towards the next hand, each with a fleet that had not lost this round before. */
+    streak?: number;
+    /** The fleets that have lost this round, by id (`fleetId`). */
+    losing?: readonly string[];
+    /** The card picked since the last try, which the next try's row in the history shows. */
+    picked?: string;
 }
 
 /**
@@ -89,9 +98,9 @@ export interface SkirmishSettings {
     readonly bareCoreDrills: number;
     /** Drills each enemy fights a generation, invincible, against the player's fleet, which only add to its score. */
     readonly shieldedDrills: number;
-    /** What is added to the enemy's budget multiplier each time its search stalls, from the step below. */
-    readonly budgetStep: number;
-    /** Generations without an answer before the multiplier steps up again. */
+    /** Losses in a row, each with a new fleet, that earn the player a card; none for no cards. */
+    readonly cardAfter: number;
+    /** Generations without an answer before the enemy draws a card. */
     readonly stretchAfter: number;
     /**
      * How far ahead an answer must finish the round, its share of its own
@@ -133,7 +142,7 @@ export const DEFAULT_SKIRMISH_SETTINGS: SkirmishSettings = {
     duration: 180,
     bareCoreDrills: 1,
     shieldedDrills: 1,
-    budgetStep: 0.1,
+    cardAfter: 3,
     stretchAfter: 4,
     answerMargin: 0.2,
     maxShips: 20,
@@ -194,29 +203,49 @@ export function fleetFault(fleet: Fleet): string | null {
 }
 
 /**
- * How the player's fleet breaks the skirmish's limit on ships or spread, or
- * null if it does not. Each limit is at least what the enemy fields.
+ * The player's limits before their cards: the skirmish's budget, and its ship
+ * count and spread, each at least what the enemy fields.
  */
-export function overLimit(skirmish: Skirmish): string | null {
+export function startLimits(skirmish: Skirmish): Limits {
     const settings = settingsOf(skirmish);
     const enemy = fleetHulls(skirmish.enemy);
-    const maxShips = math.max(settings.maxShips, enemy.length);
-    const radius = math.max(settings.radius, math.ceil(fleetReach(enemy)));
+    return {
+        budget: skirmish.budget,
+        maxShips: math.max(settings.maxShips, enemy.length),
+        radius: math.max(settings.radius, math.ceil(fleetReach(enemy))),
+    };
+}
+
+/** What the player's fleet is held to: the starting limits, moved by the cards they hold. */
+export function playerLimits(skirmish: Skirmish): Limits {
+    return withCards(startLimits(skirmish), skirmish.cards ?? []);
+}
+
+/**
+ * How the player's fleet breaks the skirmish's limit on ships or spread, or
+ * null if it does not.
+ */
+export function overLimit(skirmish: Skirmish): string | null {
+    const { maxShips, radius } = playerLimits(skirmish);
     const hulls = fleetHulls(skirmish.player);
     if (hulls.length > maxShips) return `${hulls.length} ships, more than the ${maxShips} allowed`;
     const reach = fleetReach(hulls);
-    if (reach > radius) return `reaches ${math.round(reach)} m from its origin, beyond the ${radius} m allowed`;
+    if (reach > radius) return `reaches ${math.round(reach)} m from its origin, beyond the ${math.round(radius)} m allowed`;
     return null;
 }
 
-/** Whether the player's fleet has a ship to fight with, every design flies, and it is within budget and limits. */
+/**
+ * Whether the player's fleet has a ship to fight with, every design flies, and
+ * it is within budget and limits, with no card waiting to be picked.
+ */
 export function canFight(skirmish: Skirmish): boolean {
     const player = skirmish.player;
     return (
+        skirmish.hand === undefined &&
         player.ships.length > 0 &&
         fleetFault(player) === null &&
         overLimit(skirmish) === null &&
-        affords(skirmish.budget, billOfFleet(player))
+        affords(playerLimits(skirmish).budget, billOfFleet(player))
     );
 }
 
@@ -265,45 +294,39 @@ export function roundBattle(
     };
 }
 
-/** The enemy's budget as a multiple of the player's, as kept. */
-export function multiplierOf(skirmish: Skirmish): number {
-    return skirmish.multiplier ?? 1;
+/** The round won: the enemy is to answer it on a new seed, the next round's. */
+export function won(skirmish: Skirmish): Skirmish {
+    const { picked: _picked, streak: _streak, ...rest } = skirmish;
+    return { ...rest, won: new Rng(skirmish.seed).nextUint32() };
 }
 
 /**
- * A multiplier no less than the enemy needs to afford itself: an enemy that
- * already costs 1.325 times the player's budget is a 1.325× enemy. A currency
- * the player has none of does not count.
+ * The same round, to be fought again. A loss with a fleet that has not lost
+ * this round counts towards a hand of cards, drawn once enough have.
  */
-export function startingMultiplier(multiplier: number, budget: Budget, enemyBill: Bill): number {
-    let m = multiplier;
-    for (const key of ["metal", "fuel", "build"] as const) {
-        if (budget[key] > 0) m = math.max(m, enemyBill[key] / budget[key]);
-    }
-    return m;
-}
-
-/** The next step up from `m`: onto the step's grid first, so 1.325 goes to 1.4, and up a step from there. */
-export function nextMultiplier(m: number, step: number): number {
-    if (!(step > 0)) return m;
-    // Rounded, so 1.1 + 0.1 is not 1.2000000000000002, and a value on the grid is taken as on it.
-    const steps = math.floor(math.round((m / step) * 1e6) / 1e6) + 1;
-    return math.round(steps * step * 1e9) / 1e9;
-}
-
-/** The size of enemy the player is facing: its budget as a multiple of theirs. */
-export function enemyMultiplier(skirmish: Skirmish): number {
-    return startingMultiplier(multiplierOf(skirmish), skirmish.budget, billOfFleet(skirmish.enemy));
-}
-
-/** The round won: the enemy is to answer it on a new seed, the next round's. */
-export function won(skirmish: Skirmish): Skirmish {
-    return { ...skirmish, won: new Rng(skirmish.seed).nextUint32() };
-}
-
-/** The same round, to be fought again. */
 export function lost(skirmish: Skirmish): Skirmish {
-    return { ...skirmish, tries: skirmish.tries + 1 };
+    const { picked: _picked, ...rest } = skirmish;
+    const id = fleetId(serialiseFleet(skirmish.player));
+    const losing = skirmish.losing ?? [];
+    const counts = !losing.includes(id);
+    const streak = (skirmish.streak ?? 0) + (counts ? 1 : 0);
+    const next: Skirmish = { ...rest, tries: skirmish.tries + 1, losing: counts ? [...losing, id] : losing, streak };
+    const after = settingsOf(skirmish).cardAfter;
+    if (after < 1 || streak < after || skirmish.hand !== undefined) return next;
+    const hand = drawHand(handRng(skirmish), startLimits(skirmish), skirmish.cards ?? []);
+    return hand.length === 0 ? next : { ...next, streak: 0, hand };
+}
+
+/** The draw for the player's next hand: from the round's seed and the cards held, so a reload draws the same. */
+function handRng(skirmish: Skirmish): Rng {
+    return new Rng((skirmish.seed ^ 0x63617264 ^ math.imul(skirmish.cards?.length ?? 0, 0x9e3779b9)) >>> 0);
+}
+
+/** The card of the hand the player picks, kept; the rest go back. */
+export function pick(skirmish: Skirmish, id: string): Skirmish {
+    if (!(skirmish.hand ?? []).includes(id) || cardById(id) === null) return skirmish;
+    const { hand: _hand, ...rest } = skirmish;
+    return { ...rest, cards: [...(skirmish.cards ?? []), id], picked: id };
 }
 
 /**
@@ -312,7 +335,7 @@ export function lost(skirmish: Skirmish): Skirmish {
  * change to win. The budget is the player's and does not follow the enemy.
  */
 export function nextRound(skirmish: Skirmish, enemy: Fleet): Skirmish {
-    const { won, ...rest } = skirmish;
+    const { won, losing: _losing, streak: _streak, ...rest } = skirmish;
     return { ...rest, enemy, round: skirmish.round + 1, tries: 0, seed: won ?? skirmish.seed };
 }
 
@@ -324,7 +347,12 @@ export function serialiseSkirmish(skirmish: Skirmish): Record<string, unknown> {
         tries: skirmish.tries,
         seed: skirmish.seed,
         ...(skirmish.won === undefined ? {} : { won: skirmish.won }),
-        ...(skirmish.multiplier === undefined ? {} : { multiplier: skirmish.multiplier }),
+        ...(skirmish.cards === undefined ? {} : { cards: [...skirmish.cards] }),
+        ...(skirmish.enemyCards === undefined ? {} : { enemyCards: [...skirmish.enemyCards] }),
+        ...(skirmish.hand === undefined ? {} : { hand: [...skirmish.hand] }),
+        ...(skirmish.streak === undefined ? {} : { streak: skirmish.streak }),
+        ...(skirmish.losing === undefined ? {} : { losing: [...skirmish.losing] }),
+        ...(skirmish.picked === undefined ? {} : { picked: skirmish.picked }),
         budget: { ...skirmish.budget },
         enemy: serialiseFleet(skirmish.enemy),
         player: serialiseFleet(skirmish.player),
@@ -404,16 +432,32 @@ export function parseSkirmish(value: unknown): Skirmish {
         }
     };
     const wonSeed = file["won"] === undefined ? undefined : whole("won", 0);
-    const multiplier = file["multiplier"];
-    if (multiplier !== undefined && (typeof multiplier !== "number" || !(multiplier > 0) || !Number.isFinite(multiplier))) {
-        fail("multiplier must be a number above zero");
-    }
+    // Cards the deck has, by id; a skirmish from before cards, which kept a budget multiplier instead, holds none.
+    const ids = (key: string, known: boolean): string[] | undefined => {
+        const raw = file[key];
+        if (raw === undefined) return undefined;
+        if (!Array.isArray(raw) || raw.some((id) => typeof id !== "string" || (known && cardById(id) === null)))
+            fail(`${key} must be a list of ${known ? "cards the deck has" : "ids"}`);
+        return [...(raw as string[])];
+    };
+    const cards = ids("cards", true);
+    const enemyCards = ids("enemyCards", true);
+    const hand = ids("hand", true);
+    const losing = ids("losing", false);
+    const streak = file["streak"] === undefined ? undefined : whole("streak", 0);
+    const picked = file["picked"];
+    if (picked !== undefined && (typeof picked !== "string" || cardById(picked) === null)) fail("picked must be a card the deck has");
     const name = file["name"];
     if (name !== undefined && typeof name !== "string") fail("name must be text");
     return {
         ...(typeof name === "string" && name.trim() !== "" ? { name: name.trim() } : {}),
         ...(wonSeed === undefined ? {} : { won: wonSeed }),
-        ...(multiplier === undefined ? {} : { multiplier: multiplier as number }),
+        ...(cards === undefined ? {} : { cards }),
+        ...(enemyCards === undefined ? {} : { enemyCards }),
+        ...(hand === undefined ? {} : { hand }),
+        ...(streak === undefined ? {} : { streak }),
+        ...(losing === undefined ? {} : { losing }),
+        ...(typeof picked === "string" ? { picked } : {}),
         round: whole("round", 1),
         tries: whole("tries", 0),
         seed: whole("seed", 0),

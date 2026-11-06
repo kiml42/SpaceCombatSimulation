@@ -17,9 +17,9 @@ export interface AnswerInput {
     seed: number;
     /** What the skirmish is played under. */
     settings: SkirmishSettings;
-    /** The player's budget, and the multiple of it the enemy's starts at. */
+    /** The skirmish's starting budget, and the cards the enemy holds, which move it. */
     budget: Budget;
-    multiplier: number;
+    cards: readonly string[];
 }
 
 export interface AnswerProgress {
@@ -32,8 +32,8 @@ export interface AnswerProgress {
     wins: number;
     /** Whether the best won on the next round's seed. */
     onRound: boolean;
-    /** The enemy's budget as a multiple of the player's. */
-    multiplier: number;
+    /** The enemy's upgrade cards, by id. */
+    cards: readonly string[];
     seeds: number;
     best: Fleet;
     found: Fleet | null;
@@ -45,7 +45,7 @@ interface Wire {
     leading: boolean;
     wins: number;
     onRound: boolean;
-    multiplier: number;
+    cards: readonly string[];
     seeds: number;
     best: unknown;
     found: unknown;
@@ -75,7 +75,7 @@ export function startAnswer(
             leading: wire.leading,
             wins: wire.wins,
             onRound: wire.onRound,
-            multiplier: wire.multiplier,
+            cards: wire.cards,
             seeds: wire.seeds,
             best: parseFleet(wire.best),
             found: wire.found === null ? null : parseFleet(wire.found),
@@ -87,7 +87,7 @@ export function startAnswer(
         seed: input.seed,
         settings: input.settings,
         budget: input.budget,
-        multiplier: input.multiplier,
+        cards: input.cards,
     };
     try {
         if (worker === undefined) throw new Error("no worker");
@@ -150,7 +150,7 @@ export interface SearchInput {
     seed: number;
     settings: SkirmishSettings;
     budget: Budget;
-    multiplier: number;
+    cards: readonly string[];
 }
 
 function searchOf(input: SearchInput): EnemySearch {
@@ -161,7 +161,7 @@ function searchOf(input: SearchInput): EnemySearch {
         input.seed,
         input.settings,
         input.budget,
-        input.multiplier,
+        input.cards,
     );
 }
 
@@ -268,7 +268,7 @@ function reporter(search: EnemySearch, post: (wire: Wire) => void): () => boolea
                 leading: false,
                 wins: now.best.wins,
                 onRound: now.best.onRound,
-                multiplier: now.multiplier,
+                cards: now.cards,
                 seeds: now.seeds,
                 best: serialiseFleet(now.best.enemy),
                 found: now.found === null ? null : serialiseFleet(now.found),
@@ -282,7 +282,7 @@ function reporter(search: EnemySearch, post: (wire: Wire) => void): () => boolea
                     leading: true,
                     wins: leader.wins,
                     onRound: leader.onRound,
-                    multiplier: now.multiplier,
+                    cards: now.cards,
                     seeds: now.seeds,
                     best: serialiseFleet(leader.enemy),
                     found: null,

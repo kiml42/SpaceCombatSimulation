@@ -11,9 +11,8 @@ import {
     fleetFault,
     lost,
     newSkirmish,
-    multiplierOf,
-    nextMultiplier,
-    startingMultiplier,
+    pick,
+    playerLimits,
     roundBattle,
     overLimit,
     nextRound,
@@ -356,33 +355,76 @@ describe("the skirmish", () => {
         expect(new Set(held).size).toBe(1);
     });
 
-    it("steps the enemy's budget multiplier onto a neat number first, then by whole steps", () => {
-        expect(nextMultiplier(1, 0.1)).toBe(1.1);
-        expect(nextMultiplier(1.325, 0.1)).toBe(1.4);
-        expect(nextMultiplier(1.4, 0.1)).toBe(1.5);
-        expect(nextMultiplier(1.1, 0.1)).toBe(1.2);
-        expect(nextMultiplier(2.9, 0.1)).toBe(3);
-        expect(nextMultiplier(1.3, 0.25)).toBe(1.5);
-        // No step, no growth.
-        expect(nextMultiplier(1.325, 0)).toBe(1.325);
+    it("draws a hand of cards after three losses in a row, each with a fleet that has not lost the round", () => {
+        const start = newSkirmish(gunship, gunship, 5);
+        // The same fleet losing again does not count.
+        let skirmish = lost(lost(lost(start)));
+        expect(skirmish.streak).toBe(1);
+        expect(skirmish.hand).toBeUndefined();
+        expect(canFight(skirmish)).toBe(true);
+        skirmish = lost({ ...skirmish, player: core });
+        // Going back to a fleet that has already lost does not count either.
+        skirmish = lost({ ...skirmish, player: gunship });
+        expect(skirmish.streak).toBe(2);
+        skirmish = lost({ ...skirmish, player: lone("Two", GUNSHIP) });
+        expect(skirmish.streak).toBe(0);
+        expect(skirmish.hand).toHaveLength(3);
+        expect(new Set(skirmish.hand).size).toBe(3);
+        // Drawn from the round, so the same losses in another order draw the same hand.
+        const other = lost({ ...lost({ ...lost({ ...start, player: core }), player: gunship }), player: lone("Two", GUNSHIP) });
+        expect(other.hand).toEqual(skirmish.hand);
+        // No fighting until one is picked.
+        expect(canFight(skirmish)).toBe(false);
+        const card = skirmish.hand![1]!;
+        const picked = pick(skirmish, card);
+        expect(picked.hand).toBeUndefined();
+        expect(picked.cards).toEqual([card]);
+        expect(picked.picked).toBe(card);
+        expect(canFight(picked)).toBe(true);
+        // A card not offered is not taken.
+        expect(pick(skirmish, "nothing")).toBe(skirmish);
+        // The next loss forgets which card was picked; a round won forgets the streak.
+        expect(lost(picked).picked).toBeUndefined();
+        expect(won(lost(picked)).streak).toBeUndefined();
     });
 
-    it("counts an enemy that costs more than the player's budget as that much bigger", () => {
-        const budget = { metal: 100, fuel: 100, build: 100 };
-        expect(startingMultiplier(1, budget, { metal: 132.5, fuel: 50, build: 90 })).toBeCloseTo(1.325);
-        expect(startingMultiplier(2, budget, { metal: 132.5, fuel: 50, build: 90 })).toBe(2);
-        // A currency the player has none of is left out.
-        expect(startingMultiplier(1, { ...budget, fuel: 0 }, { metal: 50, fuel: 10, build: 50 })).toBe(1);
+    it("draws no cards when the settings ask for none", () => {
+        const settings = { ...DEFAULT_SKIRMISH_SETTINGS, cardAfter: 0 };
+        let skirmish = newSkirmish(gunship, gunship, 5, settings);
+        for (const player of [gunship, core, lone("Two", GUNSHIP), lone("Three", GUNSHIP)]) skirmish = lost({ ...skirmish, player });
+        expect(skirmish.hand).toBeUndefined();
     });
 
-    it("keeps the enemy's budget multiplier, 1 where not said, and refuses a nonsensical one", () => {
-        const skirmish = newSkirmish(gunship, gunship, 5);
-        expect(multiplierOf(skirmish)).toBe(1);
-        const grown = { ...skirmish, multiplier: 2.25 };
-        expect(multiplierOf(viaLink(grown)!)).toBe(2.25);
-        // It carries on into the next round.
-        expect(multiplierOf(nextRound(grown, gunship))).toBe(2.25);
-        expect(() => parseSkirmish({ ...serialiseSkirmish(skirmish), multiplier: 0 })).toThrow(/multiplier/);
+    it("moves the player's limits by the cards they hold, from where the skirmish started them", () => {
+        const skirmish = newSkirmish(gunship, gunship, 5, undefined, { metal: 1000, fuel: 100, build: 50 });
+        const held = { ...skirmish, cards: ["metal", "metal", "fuel-for-metal", "ship", "spread"] };
+        const limits = playerLimits(held);
+        expect(limits.budget.metal).toBeCloseTo(1350);
+        expect(limits.budget.fuel).toBeCloseTo(90);
+        expect(limits.budget.build).toBeCloseTo(50);
+        expect(limits.maxShips).toBe(DEFAULT_SKIRMISH_SETTINGS.maxShips + 1);
+        expect(limits.radius).toBe(DEFAULT_SKIRMISH_SETTINGS.radius + 100);
+        // Never below half where it started.
+        const cut = playerLimits({ ...skirmish, cards: Array<string>(8).fill("metal-for-fuel") });
+        expect(cut.budget.metal).toBeCloseTo(500);
+    });
+
+    it("keeps its cards through a link, and reads a skirmish from before cards", () => {
+        const skirmish = {
+            ...newSkirmish(gunship, gunship, 5),
+            cards: ["metal", "ship"],
+            enemyCards: ["fuel"],
+            hand: ["build", "spread", "metal"],
+            streak: 1,
+            losing: ["abc"],
+            picked: "ship",
+        };
+        expect(viaLink(skirmish)).toEqual(skirmish);
+        expect(nextRound(skirmish, gunship).cards).toEqual(["metal", "ship"]);
+        expect(nextRound(skirmish, gunship).losing).toBeUndefined();
+        const file = serialiseSkirmish(newSkirmish(gunship, gunship, 5));
+        expect(parseSkirmish({ ...file, multiplier: 2.25 }).enemyCards).toBeUndefined();
+        expect(() => parseSkirmish({ ...file, cards: ["nothing"] })).toThrow(/cards/);
     });
 
     it("refuses a skirmish it cannot read", () => {

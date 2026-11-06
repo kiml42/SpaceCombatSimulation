@@ -78,6 +78,8 @@ scenarios/  the battles, and the blueprints they fly, under blueprints/
             README.md there says which scene to open to see or test what
 evolution/  breeding and running a generation; imports sim/, never the host,
             and is bound by the same determinism rules
+skirmish/   the skirmish's data and what reads it: the upgrade card deck
+            (cards.json), and its rules (cards.ts)
 benchmarks/ measuring tools, not part of the game: nothing imports from here
             (benchmarks/README.md)
 notes/      write-ups of investigations, with their measurements, linked from

@@ -108,7 +108,7 @@ async function run(seed: number, name: string): Promise<void> {
         seed,
         settings,
         budget: skirmish.budget,
-        multiplier: 1,
+        cards: [],
     };
     await new Promise<void>((resolve) => {
         searchPool(

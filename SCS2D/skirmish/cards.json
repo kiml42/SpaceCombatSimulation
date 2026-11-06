@@ -1,0 +1,74 @@
+{
+    "formatVersion": 1,
+    "cards": [
+        { "id": "metal", "name": "Foundry", "effects": [{ "limit": "metal", "share": 0.1 }] },
+        { "id": "fuel", "name": "Deep Tanks", "effects": [{ "limit": "fuel", "share": 0.1 }] },
+        { "id": "build", "name": "Night Shift", "effects": [{ "limit": "build", "share": 0.1 }] },
+        { "id": "ship", "name": "Reinforcements", "effects": [{ "limit": "ships", "step": 1 }] },
+        { "id": "spread", "name": "Wide Deployment", "effects": [{ "limit": "spread", "step": 100 }] },
+        {
+            "id": "fuel-for-metal",
+            "name": "Heavy Plating",
+            "effects": [
+                { "limit": "fuel", "share": -0.1 },
+                { "limit": "metal", "share": 0.15 }
+            ]
+        },
+        {
+            "id": "build-for-metal",
+            "name": "Rough Welds",
+            "effects": [
+                { "limit": "build", "share": -0.1 },
+                { "limit": "metal", "share": 0.15 }
+            ]
+        },
+        {
+            "id": "metal-for-fuel",
+            "name": "Drop Tanks",
+            "effects": [
+                { "limit": "metal", "share": -0.1 },
+                { "limit": "fuel", "share": 0.15 }
+            ]
+        },
+        {
+            "id": "build-for-fuel",
+            "name": "Bulk Refinery",
+            "effects": [
+                { "limit": "build", "share": -0.1 },
+                { "limit": "fuel", "share": 0.15 }
+            ]
+        },
+        {
+            "id": "metal-for-build",
+            "name": "Light Frames",
+            "effects": [
+                { "limit": "metal", "share": -0.1 },
+                { "limit": "build", "share": 0.15 }
+            ]
+        },
+        {
+            "id": "fuel-for-build",
+            "name": "Overtime",
+            "effects": [
+                { "limit": "fuel", "share": -0.1 },
+                { "limit": "build", "share": 0.15 }
+            ]
+        },
+        {
+            "id": "ship-for-metal",
+            "name": "Fewer, Bigger",
+            "effects": [
+                { "limit": "ships", "step": -1 },
+                { "limit": "metal", "share": 0.2 }
+            ]
+        },
+        {
+            "id": "spread-for-ship",
+            "name": "Close Formation",
+            "effects": [
+                { "limit": "spread", "step": -100 },
+                { "limit": "ships", "step": 1 }
+            ]
+        }
+    ]
+}

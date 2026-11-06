@@ -30,6 +30,15 @@ export const SKIRMISH_FIELDS: readonly SettingField[] = [
         title: "How far from its origin any of either side's hulls may reach, unless the enemy already reaches further.",
     },
     {
+        name: "cardAfter",
+        group: "limits",
+        label: "card after losses",
+        step: 1,
+        min: 0,
+        value: D.cardAfter,
+        title: "Losses in a row, each with a fleet that has not lost the round before, that earn you an upgrade card to pick from three. 0 for no cards.",
+    },
+    {
         name: "quietTime",
         group: "round",
         label: "quiet s",
@@ -144,21 +153,13 @@ export const SKIRMISH_FIELDS: readonly SettingField[] = [
         title: "Matches each enemy fights a generation against your fleet with itself made invincible, scored on how much of your fleet it destroys and how soon it leaves it nothing to fire. They only add to its score: it learns to hurt you before you strip it.",
     },
     {
-        name: "budgetStep",
-        group: "answer",
-        label: "budget step",
-        step: 0.05,
-        value: D.budgetStep,
-        title: "What is added to the enemy's budget, as a multiple of yours, each time its search stalls. It starts at 1×, or what the enemy already costs if more, and never falls.",
-    },
-    {
         name: "stretchAfter",
         group: "answer",
-        label: "step up after",
+        label: "enemy card after",
         step: 1,
         min: 1,
         value: D.stretchAfter,
-        title: "Generations without an answer before the enemy's budget steps up again.",
+        title: "Generations without an answer before the enemy draws an upgrade card: three simple cards, keeping the one for what its best fleet presses hardest.",
     },
     {
         name: "answerMargin",
@@ -170,7 +171,7 @@ export const SKIRMISH_FIELDS: readonly SettingField[] = [
     },
 ];
 /** Those that are counts, and so whole. */
-export const WHOLE = new Set(["mutants", "seeds", "stretchAfter", "maxShips", "bareCoreDrills", "shieldedDrills"]);
+export const WHOLE = new Set(["cardAfter", "mutants", "seeds", "stretchAfter", "maxShips", "bareCoreDrills", "shieldedDrills"]);
 
 /** Every box of the setup screen: the skirmish's, the mutation odds and the map, each with its ±. */
 export const SETUP_FIELDS: readonly SettingField[] = [...SKIRMISH_FIELDS, ...MUTATION_FIELDS, ...rangedMapFields()];
