@@ -2864,16 +2864,14 @@ const STRIP_MIN_PX = 34;
 const STRIP_MARGIN_PX = 6;
 const STRIP_GAP_PX = 4;
 
-/** Main guns and weapon engines a ship still has. */
-function weaponsLeft(ship: ShipView): number {
+/** Mass of what is left of a ship, each module discounted by its wear: kg, roughly. */
+function intactMass(ship: ShipView): number {
     const design = ship.currentStructure;
-    let count = 0;
-    for (let t = 0; t < design.turrets.length; t++) if (design.turrets[t]!.main && ship.turretDisabled[t] !== true) count++;
-    for (const t of design.mainWeaponEngines) {
-        const module = design.engines[t]!.module;
-        if (module !== undefined && (ship.integrity[module] ?? 1) > 0 && isFitted(ship, module)) count++;
-    }
-    return count;
+    const n = design.modules.length;
+    if (n === 0) return design.mass;
+    let integrity = 0;
+    for (let m = 0; m < n; m++) integrity += ship.integrity[m] ?? 1;
+    return (design.mass * integrity) / n;
 }
 
 /**
@@ -2902,7 +2900,7 @@ export function fleetStrips(snapshot: Snapshot, widthPx: number, heightPx: numbe
             vy: ship.vy,
             radius: ship.currentStructure.radius,
             design,
-            weapons: weaponsLeft(ship),
+            intact: intactMass(ship),
         });
     }
     return stripsFor(ships, widthPx, heightPx, {

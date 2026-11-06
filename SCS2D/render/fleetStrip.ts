@@ -21,8 +21,8 @@ export interface StripShip {
     readonly radius: number;
     /** Its design, the same for every ship of that design; absent for one never grouped. */
     readonly design?: number;
-    /** Weapons it can still fight with, so a shared tile shows the one least likely to be lost. */
-    readonly weapons?: number;
+    /** How much of it is left, kg, so a shared tile shows the least damaged. */
+    readonly intact?: number;
 }
 
 export interface StripTile extends InsetRect {
@@ -75,7 +75,7 @@ interface Entry {
  * One entry a tile, in the order given, a shared tile where the first of its
  * ships was. Past `MOST_TILES`, a side's most numerous design shares one, then
  * the next, until the column is down to `MOST_TILES` or every tile is a design
- * of its own. A shared tile shows the ship with most weapons left (the lowest
+ * of its own. A shared tile shows the least damaged ship (the lowest
  * body of equals, so it holds steady).
  */
 function grouped(ships: readonly StripShip[]): Entry[] {
@@ -112,7 +112,7 @@ function grouped(ships: readonly StripShip[]): Entry[] {
             continue;
         }
         entry.bodies.push(ship.body);
-        const [mine, theirs] = [ship.weapons ?? 0, entry.ship.weapons ?? 0];
+        const [mine, theirs] = [ship.intact ?? 0, entry.ship.intact ?? 0];
         if (mine > theirs || (mine === theirs && ship.body < entry.ship.body)) entry.ship = ship;
     }
     return out;
