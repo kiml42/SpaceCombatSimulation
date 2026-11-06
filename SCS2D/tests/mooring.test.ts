@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { mining } from "../scenarios/mining.js";
 import { give } from "../scenarios/commands.js";
+import { unpark } from "../sim/shipDocking.js";
+import { moor } from "../sim/shipForage.js";
 
 /** The robots on ship `i`'s body, and how many are out on its rock. */
 function crew(run: ReturnType<typeof mining>, i: number): { all: number; away: number } {
@@ -15,7 +17,7 @@ function crew(run: ReturnType<typeof mining>, i: number): { all: number; away: n
  * blow, which at what it takes breaks pieces off the hull as well.
  */
 function knockOff(run: ReturnType<typeof mining>, i: number): void {
-    (run.ships as unknown as { unpark(...args: unknown[]): void }).unpark(run.world.bodies, i, run.world.tick);
+    unpark(run.ships, run.world.bodies, i, run.world.tick);
     run.step();
 }
 
@@ -127,7 +129,7 @@ describe("a ship moored to an asteroid", () => {
         const b = run.world.bodies;
         const claw = run.ships.currentStructure(miner).modules.findIndex((m) => m.spec.kind === "claw");
         const body = b.indexOf(run.ships.body(miner));
-        (run.ships as unknown as { moor(...args: unknown[]): void }).moor(b, miner, rock, claw, b.x[body]!, b.y[body]!);
+        moor(run.ships, b, miner, rock, claw, b.x[body]!, b.y[body]!);
         run.step();
         expect(run.ships.strandedOn(rock)).toBe(0);
         expect(crew(run, miner).all).toBe(before.all);
@@ -145,19 +147,17 @@ describe("a ship moored to an asteroid", () => {
         const fb = b.indexOf(run.ships.body(friend));
         const ships = run.ships as unknown as {
             robots: { lose(b: number, r: number): void };
-            unpark(...args: unknown[]): void;
-            moor(...args: unknown[]): void;
         };
         // A friend a robot short, moored to the same rock.
         ships.robots.lose(fb, 0);
-        if (run.ships.isMoored(friend)) ships.unpark(b, friend, run.world.tick);
+        if (run.ships.isMoored(friend)) unpark(run.ships, b, friend, run.world.tick);
         const claw = run.ships.currentStructure(friend).modules.findIndex((m) => m.spec.kind === "claw");
         // Gripping a module of the rock, wherever it was left floating.
         const rb = b.indexOf(run.ships.body(rock));
         const grip = run.ships.currentStructure(rock).modules[0]!;
         const c = Math.cos(b.angle[rb]!);
         const sn = Math.sin(b.angle[rb]!);
-        ships.moor(b, friend, rock, claw, b.x[rb]! + grip.x * c - grip.y * sn, b.y[rb]! + grip.x * sn + grip.y * c);
+        moor(run.ships, b, friend, rock, claw, b.x[rb]! + grip.x * c - grip.y * sn, b.y[rb]! + grip.x * sn + grip.y * c);
         run.step();
         // Its own robots out on the rock it left are stranded there in turn, so its berths take all they can.
         const taken = (run.ships as unknown as { robots: { on(b: number): { away: number }[] } }).robots

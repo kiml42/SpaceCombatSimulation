@@ -18,6 +18,7 @@ import {
 } from "../sim/index.js";
 import { findContacts, Contacts } from "../sim/collision.js";
 import { OrderCancelCondition } from "../sim/ships.js";
+import { effectiveOrder } from "../sim/shipOrders.js";
 import { mutate } from "../evolution/mutate.js";
 import { DINKY } from "../scenarios/blueprints.js";
 import { customBattle, DEFAULT_SETUP } from "../scenarios/customBattle.js";
@@ -198,8 +199,7 @@ describe("a fighter in battle", () => {
             ships.command(DT, world);
             world.step();
         }
-        const order = (): { ram: boolean; target: number } =>
-            (ships as unknown as { effectiveOrder(i: number): { ram: boolean; target: number } }).effectiveOrder(craft);
+        const order = () => effectiveOrder(ships, craft)!;
         expect(order().ram).toBe(true);
         // Carried far out of `ramRadii`, with a nearer enemy put beside it: still the same ram.
         const h = world.bodies.indexOf(ships.body(hulk));
@@ -226,7 +226,7 @@ describe("a fighter in battle", () => {
             world.step();
         }
         // `ramArmed` of one rams with every gun still working.
-        const station = (ships as unknown as { effectiveOrder(i: number): { ram: boolean } }).effectiveOrder(craft);
+        const station = effectiveOrder(ships, craft)!;
         expect(station.ram).toBe(true);
         expect(ships.isCommitted(craft)).toBe(false);
     });

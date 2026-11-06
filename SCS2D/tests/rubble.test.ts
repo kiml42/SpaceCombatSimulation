@@ -3,6 +3,7 @@ import { asteroidBlueprint, compileBlueprint, majorWell, NEUTRAL_TEAM } from "..
 import { Rng } from "../sim/rng.js";
 import { makeBattle } from "../scenarios/battle.js";
 import { SALVAGER } from "../scenarios/blueprints.js";
+import { moor } from "../sim/shipForage.js";
 
 const minor = (seed: number) =>
     compileBlueprint(asteroidBlueprint(`Rock ${seed}`, { radius: 40, kernel: false, ore: 0.3, ice: 0.3 }, new Rng(seed)));
@@ -58,7 +59,7 @@ describe("rock meeting rock", () => {
         const at = () => b.indexOf(run.ships.body(run.miner));
         // Moored by hand on the minor's far side, where it would have gripped it, so only the weld is tested.
         const claw = run.ships.currentStructure(run.miner).modules.findIndex((m) => m.spec.kind === "claw");
-        (run.ships as unknown as { moor(...args: unknown[]): void }).moor(b, run.miner, run.rock, claw, 300, 0);
+        moor(run.ships, b, run.miner, run.rock, claw, 300, 0);
         let x = b.x[at()]!;
         let y = b.y[at()]!;
         let jump = 0;

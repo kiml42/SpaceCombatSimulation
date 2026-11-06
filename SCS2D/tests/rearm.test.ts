@@ -3,6 +3,7 @@ import { compileBlueprint, type Blueprint, type ShipDesign } from "../sim/index.
 import { makeBattle } from "../scenarios/battle.js";
 import { DINKY } from "../scenarios/blueprints.js";
 import { ANY_RANGE, QUARRY } from "./fixtures/quarry.js";
+import * as shipDecide from "../sim/shipDecide.js";
 
 /** Fighters landing on a friend's pad to take on metal for their guns, and fuel with it. */
 
@@ -143,7 +144,7 @@ describe("a fighter out of rounds with a ram doctrine", () => {
         const b = run.world.bodies.indexOf(run.ships.body(run.f));
         for (let m = 0; m < fighter.modules.length; m++) run.ships.metal.drain(b, m, run.ships.metal.held(b, m));
         expect(run.ships.isDisarmed(run.f)).toBe(true);
-        return (run.ships as unknown as { rams(i: number, t: number): boolean }).rams(run.f, run.e);
+        return shipDecide.rams(run.ships, run.f, run.e);
     }
 
     it("would rather rearm than ram while a friend has a pad for it", () => {
