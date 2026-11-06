@@ -420,18 +420,16 @@ export {
     NEUTRAL_TEAM,
     slotKey,
     NO_TARGET,
-    CLAW_BITE,
     CLAW_GRIP_CHANCE,
     CLAW_RETRY,
     CLAW_SPEED_HIGH,
     CLAW_SPEED_LOW,
     CLAW_SPEED_MAX,
-    clawChance,
     PAD_SPEED,
-    onWeldablePart,
     type Order,
     type ShipSpec,
 } from "./ships.js";
+export { CLAW_BITE, clawChance, onWeldablePart } from "./shipWeld.js";
 export { capture, Snapshot, type OrderView, type ShipView } from "./snapshot.js";
 export { UNPAINTED } from "./debris.js";
 export { DE_MARRE_K, RICOCHET_ANGLE, Terminal, deflected, incidenceAngle, strike, type Strike } from "./ballistics.js";

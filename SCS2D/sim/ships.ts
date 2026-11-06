@@ -19,10 +19,8 @@ import {
     subDesign,
     triggerMask,
     weldDesigns,
-    type DockAt,
     type Footprint,
     type Seam,
-    type DesignModule,
     type DesignTurret,
     type ShipDesign,
 } from "./blueprint.js";
@@ -46,7 +44,7 @@ import { Fuel, LEAK_HOLE_CALIBRES, leakChance, leakRate, leakSpeed, type Leak } 
 import { Charge } from "./charge.js";
 import { Metal } from "./metal.js";
 import { Claim, mendClaim, priorityOf, Resource, Supply } from "./supply.js";
-import { isHullMount, moduleCentre, moduleOutline, SEAL_REACH, SEAL_SPEED, weldBox } from "./modules.js";
+import { moduleOutline, SEAL_REACH, SEAL_SPEED } from "./modules.js";
 import type { Rng } from "./rng.js";
 import { geometryOf, landedIndex, landedLength, plumeLayers, plumeRays, Plumes, WEAPON_PLUME_SHARE, weaponPlumeReach } from "./exhaust.js";
 import { Choice, cohesionUrge, inSight, look, lookFrom, score } from "./targeting.js";
@@ -90,7 +88,7 @@ import type { BeamHits, Beams, SpatialGrid } from "./index.js";
 import { MAX_BEAM_LENGTH } from "./beams.js";
 import { RayHit } from "./spatialGrid.js";
 import { fixed } from "./fixed.js";
-import { CLAW_ALIGN, CLAW_DEPTH, CLAW_STIFFNESS, hullsOverlap, moduleOverlapsHull, Stab, type Contacts } from "./collision.js";
+import { CLAW_DEPTH, CLAW_STIFFNESS, hullsOverlap, moduleOverlapsHull, type Contacts } from "./collision.js";
 import {
     DOCK_POWER_PER_METRE,
     FUEL_DENSITY,
@@ -108,6 +106,7 @@ import * as shipRobotViews from "./shipRobotViews.js";
 import * as shipRobots from "./shipRobots.js";
 import * as shipRebuild from "./shipRebuild.js";
 import type { Rebuild, StripShape } from "./shipRebuild.js";
+import * as shipWeld from "./shipWeld.js";
 
 /**
  * Ships: a compiled design bound to a body, flying itself and shooting.
@@ -429,48 +428,12 @@ const FRIENDLY_LOOKAHEAD = 0.5;
 const SHOCK_REACH = 15;
 
 /**
- * Closing speed at or below which a ragged edge hooks rather than glancing
- * off, m/s — a drift, not a ram. A dial, in ROADMAP.md §12 with the others.
- */
-export const WELD_SPEED = 2;
-
-/**
  * A ship lying against an asteroid at under `REST_SPEED` m/s, where they touch,
  * for `REST_TIME` seconds lodges on it, flown or not: stuck, it would otherwise
  * press on the rock, and flash against it, for good. First guesses.
  */
 export const REST_SPEED = 0.25;
 export const REST_TIME = 10;
-
-/** How far past the end of a module's weldable part a contact may still weld it, metres. */
-const WELD_REACH = 0.05;
-
-/**
- * Whether world point `x`, `y` is on the part of `module` that may be welded,
- * with its body at `bx`, `by` turned `angle`: anywhere but a hull mount's
- * barrel. A stop-gap until a barrel collides where it is drawn rather than as
- * the rest of the module's rectangle. An engine's bell still welds, as debris
- * can snag on one even though a layout is never attached by it.
- */
-export function onWeldablePart(module: DesignModule, bx: number, by: number, angle: number, x: number, y: number): boolean {
-    const spec = module.spec;
-    if (!isHullMount(spec.kind)) return true;
-    const weld = weldBox(spec);
-    const whole = moduleCentre(spec);
-    const part = moduleCentre(weld);
-    // The welded part's middle, along the module from its centre.
-    const offset = (part.x - whole.x) * cos(module.angle) + (part.y - whole.y) * sin(module.angle);
-    const c = cos(angle);
-    const s = sin(angle);
-    const cx = bx + module.x * c - module.y * s;
-    const cy = by + module.x * s + module.y * c;
-    const own = angle + module.angle;
-    const along = (x - cx) * cos(own) + (y - cy) * sin(own);
-    return abs(along - offset) <= weld.length * 0.5 + WELD_REACH;
-}
-
-/** How much of the smaller module's narrower side a hooked edge catches. */
-const HOOK_SHARE = 0.5;
 
 /**
  * The closing speeds a claw takes best between, m/s: quicker than a ragged
@@ -485,17 +448,8 @@ export const CLAW_SPEED_MAX = 8;
 /** Chance a claw takes a sound module in its band. Certain on one spent. */
 export const CLAW_GRIP_CHANCE = 0.8;
 
-/**
- * How hard a claw has to be pushed back, stabbing in (`collision.ts`), before
- * it bites, per metre of its width, N: a heavier ship bites coming in slower.
- */
-export const CLAW_BITE_FORCE = 5e4;
-
 /** Seconds a claw that missed waits before it tries again. */
 export const CLAW_RETRY = 0.5;
-
-/** Share of a gripped module's capacity the jaws take as they close. */
-export const CLAW_BITE = 0.1;
 
 /** The closing speed a pilot brings its claw in at, m/s: the middle of its band. */
 const CLAW_APPROACH = (CLAW_SPEED_LOW + CLAW_SPEED_HIGH) / 2;
@@ -527,9 +481,6 @@ const DOCK_ACCEL_SETTLE = 0.25;
 
 /** The most two ports may be closing at and still mate, m/s: a nudge, not a bump. */
 export const PORT_SPEED = 1;
-
-/** Cosine of how far from face to face two ports may meet and still mate: 30°. */
-const PORT_ALIGN = 0.8660254037844386;
 
 /** The speed a pilot closes the last stretch onto a port at, m/s. */
 const PORT_APPROACH = 0.5;
@@ -657,22 +608,11 @@ function moduleSizes(design: ShipDesign): Float64Array {
 }
 
 /**
- * The chance a claw pushed back with `force` takes a module left at
- * `integrity`: none short of `bite`, and past it likelier the more the module
- * has already been torn open.
- */
-export function clawChance(force: number, bite: number, integrity: number): number {
-    if (!(force >= bite) || !(force > 0)) return 0;
-    const worn = integrity < 0 ? 1 : integrity > 1 ? 0 : 1 - integrity;
-    return CLAW_GRIP_CHANCE + (1 - CLAW_GRIP_CHANCE) * worn;
-}
-
-/**
  * Seconds a hull that has just come apart must drift before it can hook
  * again. A break leaves both faces torn and touching, and without this the
  * pieces would catch each other again on the next step.
  */
-const WELD_SETTLE = 2;
+export const WELD_SETTLE = 2;
 
 export const NO_TARGET = -1;
 
@@ -1104,13 +1044,13 @@ export class Ships {
      * all the primary's. A hull that hooked a piece of somebody else's keeps it
      * in that side's colours, as a severed piece does.
      */
-    private readonly sides: (Int32Array | null)[] = [];
+    readonly sides: (Int32Array | null)[] = [];
     /**
      * Body index → the name painted on each of its cores, null for any other
      * module. Painted by whoever builds the core and never changed, so it goes
      * with the module wherever the hull takes it.
      */
-    private readonly paint: ((string | null)[] | null)[] = [];
+    readonly paint: ((string | null)[] | null)[] = [];
 
     /**
      * Blows waiting to be answered: an impulse at a point on a hull, world
@@ -1124,9 +1064,9 @@ export class Ships {
      * only when something has taken a fresh bite out of one of its welds. */
     private readonly cutSeen: number[] = [];
     /** The world tick each ship last came apart at, or was broken off at. */
-    private readonly partedAt: number[] = [];
+    readonly partedAt: number[] = [];
     /** The world tick each ship's claws last tried to close, so a miss waits `CLAW_RETRY`. */
-    private readonly clawTried: number[] = [];
+    readonly clawTried: number[] = [];
     /** Whether each ship's slipways are held up by wreckage caught on what they build, which its robots then clear whatever the room. */
     readonly waitsOnWreck: number[] = [];
 
@@ -1199,10 +1139,10 @@ export class Ships {
     /** The world tick `command` is flying. */
     now = 0;
     /** The tick each ship last touched what it means to drink from without holding it. */
-    private readonly touchedSource: number[] = [];
+    readonly touchedSource: number[] = [];
     /** The tick each ship began its present rest against an asteroid, and the tick it was last seen resting. */
-    private readonly restFrom: number[] = [];
-    private readonly restAt: number[] = [];
+    readonly restFrom: number[] = [];
+    readonly restAt: number[] = [];
     /**
      * Where each claw ship means to take hold (`chooseGrip`): the body, the hull
      * it was chosen on and the module it is on, and the point and the face's
@@ -1256,8 +1196,8 @@ export class Ships {
     readonly mooredGripX: number[] = [];
     readonly mooredGripY: number[] = [];
     /** Each asteroid's fastest closing on another this run of touching, m/s, and the last step it touched one. */
-    private readonly rockMet: number[] = [];
-    private readonly rockMetAt: number[] = [];
+    readonly rockMet: number[] = [];
+    readonly rockMetAt: number[] = [];
     /** Scratch for drawing: the robots stranded on one rock. */
     readonly strandedHere: Robot[] = [];
     /** Robots left on a rock by a ship no longer moored there, with the side they are on and the ship that left them. */
@@ -2042,7 +1982,7 @@ export class Ships {
             const mine = main.includes(joint.a) ? joint.a : joint.b;
             const theirs = mine === joint.a ? joint.b : joint.a;
             const offset = this.designs[i]!.modules.length;
-            this.merge(world, i, ship, where[mine]!, group.indexOf(theirs), { at: "a", kind: "port" });
+            shipWeld.merge(this, world, i, ship, where[mine]!, group.indexOf(theirs), { at: "a", kind: "port" });
             group.forEach((m, k) => (where[m] = offset + k));
         }
         return (m) => where[m]!;
@@ -3214,7 +3154,7 @@ export class Ships {
     }
 
     /** Whether ship `i` was told where to go on its errand, so armed enemies near it are not to put it off. */
-    private sentTo(i: number): boolean {
+    sentTo(i: number): boolean {
         const given = this.getCurrentOrder(i);
         return given?.errand !== undefined && given.target !== NO_TARGET;
     }
@@ -6047,289 +5987,8 @@ export class Ships {
         return pieces;
     }
 
-    /**
-     * Hook together the hulls this step's slow contacts pressed a ragged edge
-     * into, and say how many pairs became one.
-     *
-     * Torn metal catches where a clean hull would glance off, so a contact
-     * closing at no more than `WELD_SPEED` where either module is ragged
-     * (`Damage.ragged`) makes the two bodies one, held by a seam. A ship hooked
-     * onto a wreck carries it and gains nothing it can use, since command never
-     * crosses a seam. Two ships hooked together both ride the one body, each
-     * flying and fighting with what it brought, so they pull against each other.
-     * A seam holds and tears like any weld, so a blow can part them again.
-     *
-     * **A claw closes on what its bow meets**, sound or torn, at up to
-     * `CLAW_SPEED_MAX` and by chance (`clawChance`), and its seam holds
-     * `DOCK_HOLD` times harder and carries a fuel line (`pump`).
-     *
-     * Every weld *removes* a body rather than holding two in a lasting contact.
-     */
     weld(world: World, contacts: Contacts): number {
-        const bodies = world.bodies;
-        this.bodyStore = bodies;
-        let welded = 0;
-        // Made only on a weld, which is rare, so a quiet step allocates nothing.
-        let joined = null as Set<number> | null;
-        const settled = world.tick - WELD_SETTLE / world.dt;
-        for (let k = 0; k < contacts.count; k++) {
-            const a = contacts.a[k]!;
-            const b = contacts.b[k]!;
-            const i = this.shipAt(bodies, a);
-            const j = this.shipAt(bodies, b);
-            // A pilot pressed against its source has to stand off and come again,
-            // since leaning on it closes at nothing.
-            if (i >= 0 && j >= 0 && this.salvaging[i] === j) this.touchedSource[i] = world.tick;
-            if (i >= 0 && j >= 0 && this.salvaging[j] === i) this.touchedSource[j] = world.tick;
-            // Pressed together, slowly: touching or drifting apart hooks nothing,
-            // but for a claw stabbing in, which bites by how hard it is pushed back.
-            const closing = contacts.closing[k]!;
-            const stab = contacts.stab[k]!;
-            // Rock meeting rock is judged by how fast it met, before giving slowed it.
-            if (i >= 0 && j >= 0 && this.isAsteroid(i) && this.isAsteroid(j)) {
-                this.rockTouch(i, closing, world.tick);
-                this.rockTouch(j, closing, world.tick);
-            }
-            // Robots weld on loose wreckage lying slowly against their hull, to take it apart.
-            const salvager = closing > WELD_SPEED ? -1 : this.salvages(a, i, b, j) ? a : this.salvages(b, j, a, i) ? b : -1;
-            const salvage = salvager >= 0;
-            // Wreckage come to rest on rock lodges there, for whoever mines the rock to take apart,
-            // and so does a ship of any kind that has lain still against it a while.
-            const restA = this.rests(bodies, world, k, contacts, a, i, b, j);
-            const restB = this.rests(bodies, world, k, contacts, b, j, a, i);
-            const lodged = closing <= WELD_SPEED && (this.lodges(a, i, j) || this.lodges(b, j, i) || restA || restB);
-            if (stab !== Stab.A && stab !== Stab.B && !salvage && !lodged && (!(closing > 0) || closing > CLAW_SPEED_MAX)) continue;
-            if (i < 0 || j < 0 || joined?.has(i) === true || joined?.has(j) === true) continue;
-            if (this.partedAt[i]! > settled || this.partedAt[j]! > settled) continue;
-            if (this.damage.isProtected(a) || this.damage.isProtected(b)) continue;
-            // Nothing joins a hull parked on a pad: it would lose its pad. One moored
-            // keeps its body and its grip, so may weld on what it salvages.
-            if (this.isParkedBody(a) && !(a === salvager && this.mooredClaw[i]! >= 0)) continue;
-            if (this.isParkedBody(b) && !(b === salvager && this.mooredClaw[j]! >= 0)) continue;
-            const ma = contacts.moduleA[k]!;
-            const mb = contacts.moduleB[k]!;
-            // A claw closes on what its bow meets, ragged or not.
-            const nx = contacts.nx[k]!;
-            const ny = contacts.ny[k]!;
-            let claw: "a" | "b" | null = null;
-            const force = contacts.impulse[k]! / world.dt;
-            if (stab === Stab.A && this.grips(world, a, ma, b, mb, nx, ny, force)) claw = "a";
-            else if (stab === Stab.B && this.grips(world, b, mb, a, ma, -nx, -ny, force)) claw = "b";
-            // Two ports nudged face to face mate, when one ship was making for the other.
-            const port = claw === null && this.mates(world, a, ma, b, mb, closing);
-            // Rock meeting rock slowly sticks, as rubble does, torn or not; a minor
-            // onto a major rides its rail, and two majors never meet on one.
-            const pinnedA = bodies.pinned[a] === 1;
-            const pinnedB = bodies.pinned[b] === 1;
-            const rubble = claw === null && this.isAsteroid(i) && this.isAsteroid(j) && !(pinnedA && pinnedB);
-            if (rubble && max(this.rockMet[i]!, this.rockMet[j]!) > WELD_SPEED) continue;
-            // Nothing else but a claw or lodged wreckage holds on to an asteroid nothing moves.
-            if ((pinnedA || pinnedB) && claw === null && !rubble && !lodged) continue;
-            if (claw === null && !port && !rubble && !salvage && !lodged) {
-                if (closing > WELD_SPEED) continue;
-                if (!this.damage.ragged(a, ma) && !this.damage.ragged(b, mb)) continue;
-                const x = contacts.x[k]!;
-                const y = contacts.y[k]!;
-                if (!this.weldsAt(bodies, a, ma, x, y) || !this.weldsAt(bodies, b, mb, x, y)) continue;
-            }
-            // A claw on an asteroid moors to it, keeping its own body, rather than becoming one with it.
-            if (claw !== null) {
-                const holderBody = claw === "a" ? a : b;
-                const rockBody = claw === "a" ? b : a;
-                const holder = this.pilotAt(holderBody, claw === "a" ? ma : mb);
-                const rock = this.pilotAt(rockBody, claw === "a" ? mb : ma);
-                if (rock >= 0 && this.isAsteroid(rock)) {
-                    // Only a ship flying its own body moors: one riding another's has no body of its own to pin.
-                    if (holder < 0 || this.shipByBody[holderBody] !== holder) continue;
-                    this.moor(bodies, holder, rock, claw === "a" ? ma : mb, contacts.x[k]!, contacts.y[k]!);
-                    joined ??= new Set<number>();
-                    joined.add(i);
-                    joined.add(j);
-                    contacts.impulse[k] = 0;
-                    welded++;
-                    continue;
-                }
-            }
-            // A salvager keeps its body; rock what lodges on it; a pinned major its body and
-            // its rail; otherwise a flown hull keeps its body; two wrecks keep the older's slot.
-            const swap = salvage
-                ? salvager === b
-                : lodged
-                  ? this.isAsteroid(j)
-                  : pinnedB || (!pinnedA && this.derelict[i] === 1 && this.derelict[j] === 0);
-            // Whatever is moored to either rock stays where it is on the one they make.
-            if (rubble) this.holdMoorings(bodies, i, j);
-            const dock: DockAt | null = port
-                ? { at: swap ? "b" : "a", kind: "port" }
-                : claw === null
-                  ? null
-                  : { at: (claw === "a") !== swap ? "a" : "b", kind: "claw" };
-            if (swap) this.merge(world, j, i, mb, ma, dock);
-            else this.merge(world, i, j, ma, mb, dock);
-            if (rubble) this.rebaseMoorings(bodies);
-            joined ??= new Set<number>();
-            joined.add(i);
-            joined.add(j);
-            // The contact is now inside one body: its impulse is no blow to answer.
-            contacts.impulse[k] = 0;
-            welded++;
-        }
-        return welded;
-    }
-
-    /**
-     * Whether ship `i`, flying body `a`, would weld on ship `j`, flying body `b`:
-     * `i` under control with robots aboard, `j` neither rock nor anyone's to fly or mend.
-     */
-    private salvages(a: number, i: number, b: number, j: number): boolean {
-        if (i < 0 || j < 0 || !this.hasControl(i) || this.hasControl(j) || this.isAsteroid(i) || this.isAsteroid(j)) return false;
-        return shipRebuild.hasRobots(this, a, i) && !shipRebuild.hasRobots(this, b, j);
-    }
-
-    /**
-     * Note ship `i`, on body `a`, touching asteroid `rock`, on body `b`, at
-     * contact `k`, and say whether it has now lain still against it for
-     * `REST_TIME`: under `REST_SPEED` where they touch, through a run of
-     * touching steps.
-     */
-    private rests(bodies: Bodies, world: World, k: number, contacts: Contacts, a: number, i: number, b: number, rock: number): boolean {
-        if (i < 0 || rock < 0 || this.isAsteroid(i) || !this.isAsteroid(rock)) return false;
-        const tick = world.tick;
-        const x = contacts.x[k]!;
-        const y = contacts.y[k]!;
-        const ax = x - bodies.x[a]!;
-        const ay = y - bodies.y[a]!;
-        const bx = x - bodies.x[b]!;
-        const by = y - bodies.y[b]!;
-        const vx = bodies.vx[a]! - bodies.angularVel[a]! * ay - (bodies.vx[b]! - bodies.angularVel[b]! * by);
-        const vy = bodies.vy[a]! + bodies.angularVel[a]! * ax - (bodies.vy[b]! + bodies.angularVel[b]! * bx);
-        if (vx * vx + vy * vy > REST_SPEED * REST_SPEED) {
-            this.restFrom[i] = tick;
-            this.restAt[i] = tick;
-            return false;
-        }
-        if (this.restAt[i]! < tick - 1) this.restFrom[i] = tick;
-        this.restAt[i] = tick;
-        return tick - this.restFrom[i]! >= REST_TIME / world.dt;
-    }
-
-    /** Whether ship `i`, on body `a`, is wreckage that lodges on asteroid `rock`: no one's to fly or mend. */
-    private lodges(a: number, i: number, rock: number): boolean {
-        if (i < 0 || rock < 0 || this.isAsteroid(i) || !this.isAsteroid(rock)) return false;
-        return !this.hasControl(i) && !shipRebuild.hasRobots(this, a, i);
-    }
-
-    /** Note asteroid `i` touching rock at `closing` m/s at `tick`: the fastest of a run of touching steps, afresh after a step apart. */
-    private rockTouch(i: number, closing: number, tick: number): void {
-        if (this.rockMetAt[i]! < tick - 1) this.rockMet[i] = 0;
-        this.rockMetAt[i] = tick;
-        if (closing > this.rockMet[i]!) this.rockMet[i] = closing;
-    }
-
-    /** `onWeldablePart` for module `m` of body `b`, as it is posed now. */
-    private weldsAt(bodies: Bodies, b: number, m: number, x: number, y: number): boolean {
-        const module = this.hullDesign[b]?.modules[m];
-        return module === undefined || onWeldablePart(module, bodies.x[b]!, bodies.y[b]!, bodies.angle[b]!, x, y);
-    }
-
-    /**
-     * Whether port `ma` of body `a` and port `mb` of body `b` mate: both still
-     * working, worked by two friends both under control, met within 30° of face
-     * to face at no more than `PORT_SPEED`, and one of the two making for
-     * exactly this pair of ports.
-     */
-    private mates(world: World, a: number, ma: number, b: number, mb: number, closing: number): boolean {
-        if (closing > PORT_SPEED) return false;
-        const da = this.hullDesign[a];
-        const db = this.hullDesign[b];
-        if (da === null || da === undefined || db === null || db === undefined) return false;
-        const sa = da.modules[ma]!.spec;
-        const sb = db.modules[mb]!.spec;
-        if (sa.kind !== "port" || sb.kind !== "port") return false;
-        const i = this.pilotAt(a, ma);
-        const j = this.pilotAt(b, mb);
-        if (i < 0 || j < 0 || i === j || this.hostile(i, j) || this.team[i] !== this.team[j]) return false;
-        if (!this.hasControl(i) || !this.hasControl(j)) return false;
-        if (!(this.left(i, a, ma, DamageEffect.Grip) > 0) || !(this.left(j, b, mb, DamageEffect.Grip) > 0)) return false;
-        const bodies = world.bodies;
-        const fa = bodies.angle[a]! + (sa.angle ?? 0);
-        const fb = bodies.angle[b]! + (sb.angle ?? 0);
-        if (cos(fa - fb) > -PORT_ALIGN) return false;
-        const wants = (s: number, t: number, own: number, theirs: number): boolean =>
-            this.salvaging[s] === t &&
-            this.ownPort[s] === own &&
-            this.dockPort[s] === theirs &&
-            !this.threatened(bodies, s, s === i ? b : a, true);
-        return wants(i, j, ma, mb) || wants(j, i, mb, ma);
-    }
-
-    /**
-     * Whether module `m` of body `b` is a claw that closes on module `mo` of
-     * body `o`, met along `nx`, `ny` (pointing from the claw into what it met)
-     * pushed back with `force`. Rolls for it, so only a claw that could take asks the
-     * battle's generator anything; a miss leaves the claw's ship waiting
-     * `CLAW_RETRY`. Taking bites the module it closes on.
-     *
-     * A claw goes for wrecks and enemies, never a friend still under control,
-     * and only for fuel it has room for, or for a wreck its ship's robots could
-     * take apart into metal it has room for.
-     */
-    private grips(world: World, b: number, m: number, o: number, mo: number, nx: number, ny: number, force: number): boolean {
-        const design = this.hullDesign[b];
-        if (design === null || design === undefined) return false;
-        const spec = design.modules[m]!.spec;
-        if (spec.kind !== "claw") return false;
-        const bite = CLAW_BITE_FORCE * spec.width;
-        if (!(force >= bite)) return false;
-        if (!(this.damage.remaining(b, m, DamageEffect.Grip) > 0)) return false;
-        const bodies = world.bodies;
-        const facing = bodies.angle[b]! + (spec.angle ?? 0);
-        if (nx * cos(facing) + ny * sin(facing) < CLAW_ALIGN) return false;
-        const holder = this.pilotAt(b, m);
-        const held = this.pilotAt(o, mo);
-        if (holder < 0 || held < 0 || holder === held) return false;
-        const friend = !this.drinkable(holder, held);
-        if (friend && !this.sentToDrink(holder, held)) return false;
-        // A friend still flying gives only what it holds above its own reserve.
-        const drinks = this.fuel.pieceRoom(b, m) > 0 && this.fuel.pieceHeld(o, mo) > (friend ? this.reserve(o, mo) : 0);
-        // Rock is mined for its ice as well as its ore, and a claw alone can melt the ice out.
-        const rock = this.hullDesign[o]?.modules[mo]?.spec;
-        const ice = rock?.kind === "rock" ? (rock.ice ?? 0) : 0;
-        const heats = ice > 0 && this.fuel.pieceRoom(b, m) > 0 && this.power.pieceHeld(b, m) > 0;
-        const strips =
-            (this.metal.pieceRoom(b, m) > 0 || (ice > 0 && this.fuel.pieceRoom(b, m) > 0)) &&
-            (this.derelict[held] === 1 || (!this.hasControl(held) && !shipRebuild.hasRobots(this, o, held))) &&
-            shipRebuild.canStrip(this, b, holder, m, world.dt);
-        if (!drinks && !strips && !heats && !this.wantsAnchor(bodies, holder)) return false;
-        // One anchoring to build holds its ground: let go, it would only come back to the rock.
-        if (!this.sentTo(holder) && !this.wantsAnchor(bodies, holder) && this.threatened(bodies, holder, o, false)) return false;
-        if (world.tick - this.clawTried[holder]! < CLAW_RETRY / world.dt) return false;
-        this.clawTried[holder] = world.tick;
-        if (world.rng.nextFloat() >= clawChance(force, bite, this.damage.integrity(o, mo))) return false;
-        const capacity = this.damage.capacityLeft(o, mo) + this.damage.absorbedAt(o, mo);
-        this.damage.absorb(o, mo, CLAW_BITE * capacity);
-        return true;
-    }
-
-    /**
-     * A claw melting fuel out of the rock it grips, for `dt` seconds of its
-     * working: as fast as `CLAW_HEAT_RATE`, its piece's tanks have room and its
-     * charge pays for, the rock it heats taken off whatever it gives. Says
-     * whether it melted any.
-     */
-    private heat(b: number, design: ShipDesign, claw: number, held: number, dt: number): boolean {
-        const spec = design.modules[held]!.spec;
-        if (spec.kind !== "rock") return false;
-        const ice = (spec.ice ?? 0) * (1 - DISASSEMBLY_WASTE);
-        if (!(ice > 0) || !(dt > 0)) return false;
-        const left = design.modules[held]!.stats.mass - this.damage.unbuiltAt(b, held);
-        let fuel = min(CLAW_HEAT_RATE * dt, this.fuel.pieceRoom(b, claw), left * ice);
-        fuel = min(fuel, this.power.pieceHeld(b, claw) / CLAW_HEAT_ENERGY);
-        if (!(fuel > ROBOT_SPENT)) return false;
-        this.power.drain(b, claw, fuel * CLAW_HEAT_ENERGY);
-        this.damage.unfit(b, held, fuel / ice);
-        this.fuel.add(b, claw, fuel);
-        return true;
+        return shipWeld.weld(this, world, contacts);
     }
 
     /**
@@ -6411,7 +6070,7 @@ export class Ships {
                         // Anchored while it builds, it holds on until what it is building is let go.
                         if (holder >= 0 && this.wantsAnchor(bodies, holder)) continue;
                         // With no robots to mine it, it melts the ice out of the rock itself.
-                        if (holder >= 0 && this.heat(b, design, seam.a, seam.b, working * world.dt)) {
+                        if (holder >= 0 && shipWeld.heat(this, b, design, seam.a, seam.b, working * world.dt)) {
                             moved = true;
                             continue;
                         }
@@ -6852,7 +6511,7 @@ export class Ships {
      * Whether ship `i` minds danger and has an armed enemy within reach of body
      * `at`: by its `scavengeDanger` at a source, by its `dockDanger` at a friend's dock.
      */
-    private threatened(bodies: Bodies, i: number, at: number, dock: boolean): boolean {
+    threatened(bodies: Bodies, i: number, at: number, dock: boolean): boolean {
         const approach = this.doctrines[i]!.approach;
         return (dock ? approach.dockDanger : approach.scavengeDanger) > 0 && this.dangerNear(bodies, i, at) > 0;
     }
@@ -6862,7 +6521,7 @@ export class Ships {
      * module's piece of hull for its own engines and weapons, kg: its
      * doctrine's `fuelReserve` of a full load.
      */
-    private reserve(b: number, m: number): number {
+    reserve(b: number, m: number): number {
         const owner = this.pilotAt(b, m);
         const kept = owner < 0 ? 0 : this.doctrines[owner]!.approach.fuelReserve;
         return kept > 0 ? kept * (this.fuel.pieceHeld(b, m) + this.fuel.pieceRoom(b, m)) : 0;
@@ -6902,116 +6561,6 @@ export class Ships {
     /** Note what `claim` took (`Supply.took`). */
     took(r: Resource, b: number, m: number, claim: Claim, amount: number): void {
         this.supply.took(b, r, m, claim, amount);
-    }
-
-    /**
-     * Make `other` part of `keep`, hooked where module `mk` of one met module
-     * `mo` of the other. Momentum and angular momentum come out as they went in:
-     * one rigid body moving as the two did between them.
-     */
-    private merge(world: World, keep: number, other: number, mk: number, mo: number, dock: DockAt | null = null): void {
-        const bodies = world.bodies;
-        this.settleShed(bodies);
-        const idK = this.bodyIds[keep]!;
-        const bk = bodies.indexOf(idK);
-        const bo = bodies.indexOf(this.bodyIds[other]!);
-        const dk = this.designs[keep]!;
-        const dO = this.designs[other]!;
-
-        // The other's blueprint frame, in the keeper's.
-        const angleK = bodies.angle[bk]!;
-        const turn = bodies.angle[bo]! - angleK;
-        const ck = cos(angleK);
-        const sk = sin(angleK);
-        const ct = cos(turn);
-        const st = sin(turn);
-        const wx = bodies.x[bo]! - bodies.x[bk]!;
-        const wy = bodies.y[bo]! - bodies.y[bk]!;
-        const dx = dk.centreOfMassX + (wx * ck + wy * sk) - (dO.centreOfMassX * ct - dO.centreOfMassY * st);
-        const dy = dk.centreOfMassY + (-wx * sk + wy * ck) - (dO.centreOfMassX * st + dO.centreOfMassY * ct);
-        const specK = dk.modules[mk]!.spec;
-        const specO = dO.modules[mo]!.spec;
-        // A dock holds across the whole of its part; torn metal catches on part of an edge.
-        const width =
-            dock === null
-                ? HOOK_SHARE * min(min(specK.length, specK.width), min(specO.length, specO.width))
-                : dock.at === "a"
-                  ? specK.width
-                  : specO.width;
-        const design = weldDesigns(dk, dO, dx, dy, turn, mk, mo, width, dock);
-
-        const massK = bodies.mass[bk]!;
-        const massO = bodies.mass[bo]!;
-        const total = massK + massO;
-        const cx = bodies.x[bk]! + (design.centreOfMassX - dk.centreOfMassX) * ck - (design.centreOfMassY - dk.centreOfMassY) * sk;
-        const cy = bodies.y[bk]! + (design.centreOfMassX - dk.centreOfMassX) * sk + (design.centreOfMassY - dk.centreOfMassY) * ck;
-        // A pinned keeper goes on as its rail has it, whatever joins it.
-        const pinned = bodies.pinned[bk] === 1;
-        const vx = pinned ? bodies.vx[bk]! : (massK * bodies.vx[bk]! + massO * bodies.vx[bo]!) / total;
-        const vy = pinned ? bodies.vy[bk]! : (massK * bodies.vy[bk]! + massO * bodies.vy[bo]!) / total;
-        // About the new centre: each body's own spin, and its motion around it.
-        const spinOf = (body: number, mass: number): number =>
-            bodies.inertia[body]! * bodies.angularVel[body]! +
-            mass * ((bodies.x[body]! - cx) * bodies.vy[body]! - (bodies.y[body]! - cy) * bodies.vx[body]!);
-        const angular = spinOf(bk, massK) + spinOf(bo, massO);
-
-        bodies.x[bk] = cx;
-        bodies.y[bk] = cy;
-        bodies.vx[bk] = vx;
-        bodies.vy[bk] = vy;
-        bodies.setMass(idK, design.mass);
-        bodies.setInertia(idK, design.inertia);
-        bodies.angularVel[bk] = angular / design.inertia;
-        bodies.radius[bk] = design.radius;
-
-        // Who works what: a wreck is nobody's once a second pilot is aboard, and a
-        // ship alone keeps working all of it.
-        const n = dk.modules.length;
-        const flown = this.derelict[other] === 0;
-        const staying = this.ridersOf(bodies, bk);
-        const moving = flown ? this.ridersOf(bodies, bo) : [];
-        const wasK = this.pilots[bk] ?? null;
-        const wasO = this.pilots[bo] ?? null;
-        let pilots: Int32Array | null = null;
-        if (flown || wasK !== null) {
-            pilots = new Int32Array(design.modules.length);
-            for (let m = 0; m < n; m++) pilots[m] = wasK === null ? keep : wasK[m]!;
-            for (let m = n; m < pilots.length; m++) pilots[m] = !flown ? -1 : wasO === null ? other : wasO[m - n]!;
-        }
-
-        this.adopt(
-            keep,
-            bk,
-            design,
-            (m) => (m < n ? keep : other),
-            (m) => (m < n ? m : m - n),
-        );
-        this.pilots[bk] = pilots;
-        // Spun up against the inertia the fuel left aboard gives it.
-        bodies.angularVel[bk] = angular / bodies.inertia[bk]!;
-
-        const gone = this.bodyIds[other]!;
-        this.damage.forget(bo);
-        this.fuel.forget(bo);
-        this.metal.forget(bo);
-        this.power.forget(bo);
-        this.robots.forget(bo);
-        this.shipByBody[bo] = -1;
-        this.pilots[bo] = null;
-        this.sides[bo] = null;
-        this.paint[bo] = null;
-        // Everyone already aboard takes the new design, wreckage hooked on or not:
-        // a ship left on the old one would be drawn, aimed and fired from a layout
-        // the body no longer has.
-        for (const r of staying) if (r !== keep) this.board(r, keep);
-        if (flown) {
-            const old = this.turretIndex[other]!;
-            for (let t = 0; t < old.length; t++) this.turrets.remove(old[t]!);
-            for (const r of moving) this.board(r, keep);
-        } else {
-            this.remove(other);
-        }
-        world.destroy(gone);
     }
 
     /**
@@ -8393,7 +7942,7 @@ export class Ships {
     }
 
     /** Whether ship `i` was sent to scavenge from `t`, a friend still flying, which doctrine never drinks from. */
-    private sentToDrink(i: number, t: number): boolean {
+    sentToDrink(i: number, t: number): boolean {
         const given = this.getCurrentOrder(i);
         return given?.errand === "scavenge" && given.target === t;
     }
@@ -8847,7 +8396,7 @@ export class Ships {
      * keeping its own body and design. The two move off together with the
      * momentum they had between them; a rock nothing moves takes none of it.
      */
-    private moor(bodies: Bodies, f: number, rock: number, claw: number, gx: number, gy: number): void {
+    moor(bodies: Bodies, f: number, rock: number, claw: number, gx: number, gy: number): void {
         const cb = bodies.indexOf(this.bodyIds[rock]!);
         const fb = bodies.indexOf(this.bodyIds[f]!);
         if (cb < 0 || fb < 0 || !this.poseMoored(bodies, f, cb, fb, gx, gy)) return;
@@ -8903,7 +8452,7 @@ export class Ships {
     }
 
     /** Where each ship moored to asteroid `i` or `j` grips, in the world, before the two become one. */
-    private holdMoorings(bodies: Bodies, i: number, j: number): void {
+    holdMoorings(bodies: Bodies, i: number, j: number): void {
         this.rebasing.length = 0;
         this.rebasingStranded.length = 0;
         for (let k = 0; k < this.stranded.length; k++) {
@@ -8934,7 +8483,7 @@ export class Ships {
      * Pose again, on the rock two have just made, each ship `holdMoorings`
      * noted, and step its robots out on the rock back to where its claw grips.
      */
-    private rebaseMoorings(bodies: Bodies): void {
+    rebaseMoorings(bodies: Bodies): void {
         for (let k = 0; k < this.rebasing.length; k += 3) {
             const f = this.rebasing[k]!;
             const fb = bodies.indexOf(this.bodyIds[f]!);
@@ -10070,7 +9619,7 @@ export class Ships {
         this.couldFight[f] = craft.turrets.some((t) => t.main) || craft.engines.length > 0 ? 1 : 0;
         this.unfinished[f] = 1;
         this.printing[f] = 1;
-        this.merge(world, i, f, slipway, print.held[0]!, { at: "a", kind: "slipway" });
+        shipWeld.merge(this, world, i, f, slipway, print.held[0]!, { at: "a", kind: "slipway" });
         this.home[f] = i;
         // Held by every piece, the first by the seam it was welded on with.
         if (print.held.length > 1) this.reprint(world, b, f, slipway, craft, print, depth);
@@ -10584,7 +10133,7 @@ export class Ships {
     }
 
     /** Whether ship `i`'s claw will close on ship `t`: a wreck of either side, or an enemy. */
-    private drinkable(i: number, t: number): boolean {
+    drinkable(i: number, t: number): boolean {
         return this.derelict[t] === 1 || this.hostile(i, t) || !this.hasControl(t);
     }
 
@@ -11073,7 +10622,7 @@ export class Ships {
      * builds only anchored (`buildAnchored`) has a ship on it, or keeps more
      * than are in the fight.
      */
-    private wantsAnchor(bodies: Bodies, i: number): boolean {
+    wantsAnchor(bodies: Bodies, i: number): boolean {
         const launched = this.launched[i];
         if (launched === undefined || !this.hasControl(i)) return false;
         const yard = this.yards[i];
