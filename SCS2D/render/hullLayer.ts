@@ -32,6 +32,7 @@ import {
 import { barrelLines, MIN_BARREL_PX } from "./barrels.js";
 import { fillAlpha, fillColour, isFighterModule, moduleFills, padMark, paintedSide, type Fill } from "./moduleFills.js";
 import { legibleWidth } from "./strokes.js";
+import { pushLitBevel } from "./bevelLighting.js";
 import { MIN_SCAR_PX, scarShapes, scarWidth, type Bounds, type ScarShape } from "./scars.js";
 import { SCAR_VIEW_STRIDE } from "../sim/index.js";
 import { holeMarkWidth, leakHoleShapes, scratchShows } from "./leakHoles.js";
@@ -74,6 +75,9 @@ export class HullLayer {
     /** Kernels' shadows, on rock. */
     readonly kernelShadows: BlockShadows;
     readonly fighterShadows = new Pool();
+    /** The fighters' barrels' shadows, cast from their height with the rest of them, and how many were cast in the last frame. */
+    readonly fighterBarrels = new Graphics();
+    fighterBarrelCount = 0;
     /**
      * What hangs over the thin hull, under the thick modules, as leaking
      * vapour does: drawn in canvas pixels, so placed back out of the world's
@@ -97,6 +101,13 @@ export class HullLayer {
     readonly litLayer = new Container();
     private readonly litDeck = new Container();
     private readonly litTop = new Container();
+    /**
+     * Every bevel again, for the dynamic lights to light from the side it faces
+     * (`render/litBevels.ts`), as `render/bevelLighting.ts` lays them out: the
+     * thin hull's and the thick modules'. Filled only while lit.
+     */
+    readonly litBevelsThin: number[] = [];
+    readonly litBevelsThick: number[] = [];
     /** The bevels along the thin hull's outside edges, and the thick modules'. */
     readonly thinBevels = new Graphics();
     readonly thickBevels = new Graphics();
@@ -118,6 +129,8 @@ export class HullLayer {
     readonly rockUnderKernel = new Pool();
     private readonly fighterShade: AlphaFilter;
     private light: Light | null = null;
+    /** Scratch for a bevel's corners. */
+    private readonly quad: number[] = [];
     private readonly barrelEnds: number[] = [];
 
     /**
@@ -135,6 +148,7 @@ export class HullLayer {
         this.litTop.addChild(this.litThick.container, new Graphics(this.thickBevels.context));
         this.litLayer.addChild(this.litDeck, this.litTop);
         this.litLayer.visible = false;
+        this.fighterShadows.container.addChild(this.fighterBarrels);
         this.fighterShadows.container.mask = this.hull.container;
         this.fighterShadows.container.filters = [this.fighterShade];
         // Lowest first: each depth's shadows fall on what is drawn before them.
@@ -177,6 +191,10 @@ export class HullLayer {
         const awayX = -Math.cos(light.from) * slant;
         const awayY = -Math.sin(light.from) * slant;
         for (const pool of this.pools()) pool.begin();
+        this.litBevelsThin.length = 0;
+        this.litBevelsThick.length = 0;
+        this.fighterBarrels.clear();
+        this.fighterBarrelCount = 0;
         for (const shadows of this.blockShadows()) shadows.clear();
         this.thinBevels.clear();
         this.thickBevels.clear();
@@ -231,6 +249,17 @@ export class HullLayer {
                     // As wide on every module of a ship, by the size it was built: a piece keeps its ship's.
                     const origin = originOf(design, i);
                     const bevel = BEVEL_OF_RADIUS * origin.design.radius;
+                    if (bevel * camera.scale >= MIN_BEVEL_PX && this.lighting) {
+                        this.litBevel(
+                            depth === this.thin ? this.litBevelsThin : this.litBevelsThick,
+                            drawnBevels(design, i),
+                            x,
+                            y,
+                            angle,
+                            bevel,
+                            albedoOf(fillColour(m.spec, shipColours(paintedSide(ship, i)))),
+                        );
+                    }
                     if (bevel * camera.scale >= MIN_BEVEL_PX) {
                         this.bevel(
                             depth === this.thin ? this.thinBevels : this.thickBevels,
@@ -294,6 +323,23 @@ export class HullLayer {
                 const width = barrelLines(ship, t, (x0, y0, x1, y1) => ends.push(x0 + bx, y0 + by, x1 + bx, y1 + by));
                 this.thickShadows.lines(ends, legibleWidth(width, MIN_BARREL_PX, camera.scale));
             }
+            // A fighter's, hull mounts' as well, as high as the fighter, as the rest of its shadow is.
+            const height = design.fighter && ship.riding !== true ? FIGHTER_SHADOW_M : LANDED_SHADOW_M;
+            const fx = awayX * height - camera.x;
+            const fy = awayY * height - camera.y;
+            for (let t = 0; t < design.turrets.length; t++) {
+                const module = design.turrets[t]!.module;
+                if (ship.drawn?.[module] === false || !isFighterModule(design, module)) continue;
+                const ends = this.barrelEnds;
+                ends.length = 0;
+                const width = barrelLines(ship, t, (x0, y0, x1, y1) => ends.push(x0 + fx, y0 + fy, x1 + fx, y1 + fy));
+                for (let k = 0; k < ends.length; k += 4) {
+                    this.fighterBarrels.moveTo(ends[k]!, ends[k + 1]!).lineTo(ends[k + 2]!, ends[k + 3]!);
+                    this.fighterBarrelCount++;
+                }
+                if (ends.length > 0)
+                    this.fighterBarrels.stroke({ width: legibleWidth(width, MIN_BARREL_PX, camera.scale), color: 0x000000 });
+            }
         }
         for (const pool of this.pools()) pool.end();
     }
@@ -351,6 +397,31 @@ export class HullLayer {
                 alpha: alpha * Math.abs(lit) * (lit > 0 ? BEVEL_LIGHT : BEVEL_DARK),
             });
             this.bevelled++;
+        }
+    }
+
+    /** Each of `edges`' bevels, all round, into `out` for the dynamic lights, facing as it does in the hull layer's frame. */
+    private litBevel(
+        out: number[],
+        edges: readonly number[],
+        x: number,
+        y: number,
+        angle: number,
+        width: number,
+        colour: readonly number[],
+    ): void {
+        const c = Math.cos(angle);
+        const s = Math.sin(angle);
+        const quad = this.quad;
+        for (let k = 0; k < edges.length; k += BEVEL_STRIDE) {
+            bevelQuad(edges, k, width, quad);
+            for (let v = 0; v < 8; v += 2) {
+                const qx = quad[v]!;
+                const qy = quad[v + 1]!;
+                quad[v] = x + qx * c - qy * s;
+                quad[v + 1] = y + qx * s + qy * c;
+            }
+            pushLitBevel(out, quad, edges[k + 4]! * c - edges[k + 5]! * s, edges[k + 4]! * s + edges[k + 5]! * c, colour);
         }
     }
 
@@ -869,4 +940,16 @@ export function blockShadow(points: readonly number[], dx: number, dy: number): 
         return out;
     };
     return [...half(all), ...half([...all].reverse())].flat();
+}
+
+/** A module's colour, `#rrggbb`, as its channels, kept. */
+const albedos = new Map<string, readonly number[]>();
+function albedoOf(colour: string): readonly number[] {
+    let albedo = albedos.get(colour);
+    if (albedo === undefined) {
+        const n = Number.parseInt(colour.slice(1, 7), 16);
+        albedo = [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff];
+        albedos.set(colour, albedo);
+    }
+    return albedo;
 }

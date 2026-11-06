@@ -617,6 +617,8 @@ function drawShip(
         const hull = isHullMount(spec.kind) ? hullMountGeometry(spec) : null;
         const beamLenses = spec.kind === "hullBeam";
 
+        // What it is made of is seen in the battle's light; what it says, its arcs and its load, is not.
+        if (light !== undefined) inLight(ctx, light);
         // The rotating part itself. A turret's is a disc at the mount, sized to the
         // module it sits in so a heavy mount looks heavy. Each of a hull beam's
         // lenses has a mount of its own on a stalk out of the face. A hull gun's
@@ -691,6 +693,7 @@ function drawShip(
             const row = ((count - 1) / 2) * spacing + hull.outletWidth;
             mantlet(ctx, mx, my, min(spec.width * 0.5, row), rest);
         }
+        if (light !== undefined) ctx.restore();
         drawLoad(ctx, ship, t, mx, my, bearing);
     }
 
@@ -877,6 +880,8 @@ function drawHull(
     // Lit, every fill first and then every bevel over them, since a bevel
     // mitred into an inside corner reaches into the module beside it.
     if (!filled && light !== undefined) {
+        // Seen in the battle's light, as the capital ships' fills are tinted by it in the hull layer.
+        inLight(ctx, light);
         for (const bevelled of [false, true]) {
             for (let i = 0; i < design.modules.length; i++) {
                 if (ship.drawn?.[i] === false || isFighterModule(design, i) !== fighters) continue;
@@ -891,6 +896,7 @@ function drawHull(
                 ctx.restore();
             }
         }
+        ctx.restore();
         filled = true;
         if (fighters) lightFighter(ctx, ship, fighters);
     }
@@ -919,9 +925,17 @@ function drawHull(
         const halfWidth = spec.width / 2;
         // Unless Pixi underneath has filled it already (render/pixiView.ts).
         if (!filled) keptFill(ctx, ship, i);
-        if (spec.kind === "engine" && light !== undefined)
+        // Rounded parts' shading, in the battle's light: its highlights are that light.
+        if (spec.kind === "engine" && light !== undefined) {
+            inLight(ctx, light);
             shadeEngine(ctx, spec, ship.angle + m.angle, light, drawnMounts(design, i).round);
-        if (spec.kind === "port" && light !== undefined) shadePort(ctx, spec, ship.angle + m.angle, light);
+            ctx.restore();
+        }
+        if (spec.kind === "port" && light !== undefined) {
+            inLight(ctx, light);
+            shadePort(ctx, spec, ship.angle + m.angle, light);
+            ctx.restore();
+        }
         if (spec.kind === "pad") {
             // Its landing square is drawn with its fill (`fillModule`).
         } else if (
@@ -2250,6 +2264,16 @@ function lightUp(tint: number, albedo: readonly number[], x: number, y: number):
     const add = (channel: number, shift: number, light: number): number =>
         Math.min(255, ((tint >> shift) & 0xff) + Math.round(albedo[channel]! * light * LIGHT_GAIN)) << shift;
     return add(0, 16, glow.r) | add(1, 8, glow.g) | add(2, 0, glow.b);
+}
+
+/**
+ * Save the context and draw from here, until its `restore`, multiplied by
+ * `light`'s colour, as the hull layer tints what it fills: where the context
+ * can (`PixiCanvas.tinted`), and otherwise as it was.
+ */
+function inLight(ctx: CanvasRenderingContext2D, light: Light): void {
+    ctx.save();
+    (ctx as Partial<Pick<PixiCanvas, "tinted">>).tinted?.(Number.parseInt(light.colour.slice(1, 7), 16));
 }
 
 /**

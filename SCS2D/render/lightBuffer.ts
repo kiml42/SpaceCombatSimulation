@@ -60,6 +60,7 @@ in vec3 vColour;
 out vec4 finalColor;
 
 uniform float uSurface;
+uniform float uDirection;
 
 float falloff(float r)
 {
@@ -87,17 +88,26 @@ void main()
     float down = distance > 0.0 ? rise / distance : 1.0;
     float strength;
     if (!cone) {
-        strength = falloff(distance / reach) * down;
+        strength = falloff(distance / reach);
     } else {
         float len = sqrt(length2);
         float side = (d.x * run.y - d.y * run.x) / len;
         float across = sqrt(side * side + rise * rise) / reach;
         float behind = (-t * len) / (reach * ${CONE_BEHIND.toFixed(3)});
-        if (t < 0.0) strength = falloff(sqrt(behind * behind + across * across)) * down;
+        if (t < 0.0) strength = falloff(sqrt(behind * behind + across * across));
         else if (t >= 1.0) strength = 0.0;
-        else strength = pow(1.0 - t, 1.5) * falloff(across / (1.0 - ${CONE_NARROWING.toFixed(3)} * t)) * down;
+        else strength = pow(1.0 - t, 1.5) * falloff(across / (1.0 - ${CONE_NARROWING.toFixed(3)} * t));
     }
-    finalColor = vec4(vColour * brightness * strength, 0.0);
+    if (uDirection < 0.5) {
+        // On a surface facing up: as much as shines down on it.
+        finalColor = vec4(vColour * brightness * strength * down, 0.0);
+    } else {
+        // Which way across the surface it comes from, by how bright it is: the part of the
+        // way to it along the surface, each half of each axis in a channel of its own, as
+        // what is summed additively cannot go below nothing.
+        vec2 toward = -off / max(distance, 1e-6) * brightness * strength * dot(vColour, vec3(0.2126, 0.7152, 0.0722));
+        finalColor = vec4(max(toward.x, 0.0), max(-toward.x, 0.0), max(toward.y, 0.0), max(-toward.y, 0.0));
+    }
 }
 `;
 
@@ -143,11 +153,16 @@ void main()
 }
 `;
 
-/** The light on one height of surface: what it is drawn into, and the filter that lights a layer by it. */
+/**
+ * The light on one height of surface: what it is drawn into, which way across
+ * the surface it comes from (`direction`, for what does not face up, as a
+ * bevel), and the filter that lights a layer facing up by it.
+ */
 class Surface {
     // Half floats: at 8 bits, faint light steps up a level at a different distance in each channel,
     // which with the headroom scaled back shows as coloured rings round a light.
     readonly texture = RenderTexture.create({ width: 1, height: 1, format: "rgba16float" });
+    readonly direction = RenderTexture.create({ width: 1, height: 1, format: "rgba16float" });
     readonly filter: Filter;
 
     constructor(screen: UniformGroup) {
@@ -169,7 +184,7 @@ export class LightBuffer {
         uGain: { value: LIGHT_GAIN, type: "f32" },
         uHeadroom: { value: LIGHT_HEADROOM, type: "f32" },
     });
-    private readonly surface = new UniformGroup({ uSurface: { value: 0, type: "f32" } });
+    private readonly surface = new UniformGroup({ uSurface: { value: 0, type: "f32" }, uDirection: { value: 0, type: "f32" } });
     private readonly root = new Container();
     private readonly mesh: Mesh<Geometry, Shader>;
     /** How many lights the geometry has room for. */
@@ -197,6 +212,20 @@ export class LightBuffer {
         return this.thick.filter;
     }
 
+    /** The light on the deck and on thick modules' tops, and which way across each it comes from. */
+    get deckLight(): RenderTexture {
+        return this.deck.texture;
+    }
+    get deckDirection(): RenderTexture {
+        return this.deck.direction;
+    }
+    get thickLight(): RenderTexture {
+        return this.thick.texture;
+    }
+    get thickDirection(): RenderTexture {
+        return this.thick.direction;
+    }
+
     /**
      * Draw `lights`, in canvas pixels on a canvas `widthPx` by `heightPx` at
      * `scale` pixels to the metre, into the buffers: false, drawing nothing,
@@ -207,19 +236,26 @@ export class LightBuffer {
         const width = Math.max(1, Math.ceil(widthPx * LIGHT_RESOLUTION));
         const height = Math.max(1, Math.ceil(heightPx * LIGHT_RESOLUTION));
         for (const surface of [this.deck, this.thick]) {
-            if (surface.texture.width !== width || surface.texture.height !== height) surface.texture.resize(width, height);
+            for (const texture of [surface.texture, surface.direction]) {
+                if (texture.width !== width || texture.height !== height) texture.resize(width, height);
+            }
         }
         const screen = this.uniforms.uniforms.uScreen as Float32Array;
         screen[0] = widthPx;
         screen[1] = heightPx;
         if (!this.fill(lights)) return false;
         this.root.scale.set(LIGHT_RESOLUTION);
-        this.surface.uniforms.uSurface = 0;
-        this.surface.update();
-        renderer.render({ container: this.root, target: this.deck.texture, clear: true, clearColor: [0, 0, 0, 1] });
-        this.surface.uniforms.uSurface = THICK_SHADOW_M * scale;
-        this.surface.update();
-        renderer.render({ container: this.root, target: this.thick.texture, clear: true, clearColor: [0, 0, 0, 1] });
+        const draw = (surface: Surface, height: number): void => {
+            this.surface.uniforms.uSurface = height;
+            this.surface.uniforms.uDirection = 0;
+            this.surface.update();
+            renderer.render({ container: this.root, target: surface.texture, clear: true, clearColor: [0, 0, 0, 1] });
+            this.surface.uniforms.uDirection = 1;
+            this.surface.update();
+            renderer.render({ container: this.root, target: surface.direction, clear: true, clearColor: [0, 0, 0, 0] });
+        };
+        draw(this.deck, 0);
+        draw(this.thick, THICK_SHADOW_M * scale);
         return true;
     }
 

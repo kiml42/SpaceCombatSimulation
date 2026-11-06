@@ -1,3 +1,4 @@
+import { BEVEL_QUAD_STRIDE } from "../render/bevelLighting.js";
 import { describe, expect, it } from "vitest";
 import type { AlphaFilter, Filter, Graphics } from "pixi.js";
 import { capture, isDomed, Snapshot } from "../sim/index.js";
@@ -65,6 +66,7 @@ describe("the Pixi hull layer", () => {
     it("fills every module again for the dynamic lights while it is lit by them, and not otherwise", () => {
         const unlit = drawn(layerOf());
         expect(unlit.lit.shown().length + unlit.litThick.shown().length).toBe(0);
+        expect(unlit.litBevelsThin.length + unlit.litBevelsThick.length).toBe(0);
         expect(unlit.litLayer.visible).toBe(false);
         const layer = layerOf();
         // Node cannot build a filter's shader; the layer only hands it on.
@@ -77,6 +79,8 @@ describe("the Pixi hull layer", () => {
         // Sharing the fills' geometry, so a second fill costs no second build.
         const contexts = new Set([...fills, ...layer.thick.shown()].map((g) => g.context));
         for (const g of [...layer.lit.shown(), ...layer.litThick.shown()]) expect(contexts.has(g.context)).toBe(true);
+        // Every bevel again, whichever way it faces, for the lights beside it.
+        expect((layer.litBevelsThin.length + layer.litBevelsThick.length) / BEVEL_QUAD_STRIDE).toBeGreaterThanOrEqual(layer.bevelled);
     });
 
     it("casts each turret's dome's shadow on the thin hull, as a thick module's", () => {
@@ -215,6 +219,21 @@ describe("the Pixi hull layer", () => {
         }
         expect(barrels).toBeGreaterThan(0);
         expect(layer.thickShadows.strokes).toBe(barrels);
+    });
+
+    it("casts each fighter's barrels' shadows, hull mounts' too, from the fighter's height", () => {
+        const layer = drawn(layerOf());
+        let barrels = 0;
+        for (const ship of ships) {
+            const design = ship.currentStructure;
+            for (let t = 0; t < design.turrets.length; t++) {
+                const module = design.turrets[t]!.module;
+                if (ship.drawn?.[module] === false || !isFighterModule(design, module)) continue;
+                barrels += design.turrets[t]!.gun.barrelCount;
+            }
+        }
+        expect(barrels).toBeGreaterThan(0);
+        expect(layer.fighterBarrelCount).toBe(barrels);
     });
 
     it("casts a block's shadow as its footprint swept away from the light", () => {

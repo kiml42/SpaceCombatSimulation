@@ -7,6 +7,7 @@ import type { Light } from "./light.js";
 import { PixiCanvas } from "./pixiCanvas.js";
 import { seenLights } from "./canvas2d.js";
 import { LightBuffer } from "./lightBuffer.js";
+import { LitBevels } from "./litBevels.js";
 
 /**
  * The battle drawn with PixiJS, on a canvas under the Canvas2D one, which is
@@ -48,6 +49,8 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
     stage.addChild(world, context.root);
     const segments = new Segments();
     let lightBuffer: LightBuffer | null = null;
+    /** The bevels lit from the side they face, the thin hull's and the thick modules', where there are dynamic lights at all. */
+    let bevels: { thin: LitBevels; thick: LitBevels } | null = null;
     let size = { width: 0, height: 0 };
     /** Pixels to the metre, as the frame being drawn sees the world. */
     let scale = 1;
@@ -71,6 +74,11 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
                 if (made.type === RendererType.WEBGL) {
                     lightBuffer = new LightBuffer();
                     hulls.litBy(lightBuffer.deckFilter, lightBuffer.thickFilter);
+                    bevels = {
+                        thin: new LitBevels(lightBuffer.deckLight, lightBuffer.deckDirection),
+                        thick: new LitBevels(lightBuffer.thickLight, lightBuffer.thickDirection),
+                    };
+                    hulls.litLayer.addChild(bevels.thin.mesh, bevels.thick.mesh);
                 }
             }
             return !disposed;
@@ -122,6 +130,10 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
             if (renderer === null) return;
             // Lit only while there is something to light it.
             hulls.litLayer.visible = lightBuffer?.update(renderer, seenLights, size.width, size.height, scale) ?? false;
+            if (hulls.litLayer.visible && bevels !== null) {
+                bevels.thin.set(hulls.litBevelsThin, size.width, size.height);
+                bevels.thick.set(hulls.litBevelsThick, size.width, size.height);
+            }
             renderer.render(stage);
         },
         dispose() {

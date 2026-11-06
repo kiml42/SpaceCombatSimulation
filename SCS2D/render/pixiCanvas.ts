@@ -102,6 +102,9 @@ export class PixiCanvas {
     private graphicsUsed = 0;
     private readonly maskPool: { box: Container; mask: Graphics }[] = [];
     private masksUsed = 0;
+    /** Containers what is drawn is multiplied by a colour in, until the `restore` that ends each. */
+    private readonly tintPool: Container[] = [];
+    private tintsUsed = 0;
     private readonly textPool: BitmapText[] = [];
     private textsUsed = 0;
     private readonly particlePool: ParticleBatch[] = [];
@@ -139,6 +142,8 @@ export class PixiCanvas {
             box.removeChildren();
             mask.clear();
         }
+        for (let k = 0; k < this.tintsUsed; k++) this.tintPool[k]!.removeChildren();
+        this.tintsUsed = 0;
         for (let k = 0; k < this.particlesUsed; k++) this.particlePool[k]!.reset();
         this.graphicsUsed = 0;
         this.masksUsed = 0;
@@ -218,6 +223,26 @@ export class PixiCanvas {
 
     save(): void {
         this.saved.push({ ...this.state, m: { ...this.state.m }, clips: [...this.state.clips] });
+    }
+
+    /**
+     * Multiply everything drawn from here until the `restore` matching the
+     * `save` before this by `tint`, `0xrrggbb`, as a container's tint does:
+     * what is lit by a battle's light, seen in it.
+     */
+    tinted(tint: number): void {
+        let box = this.tintPool[this.tintsUsed];
+        if (box === undefined) {
+            box = new Container();
+            this.tintPool.push(box);
+        }
+        this.tintsUsed++;
+        box.tint = tint;
+        this.target().addChild(box);
+        this.targets.push(box);
+        // Popped as a mask's box is.
+        this.state.masks++;
+        this.graphics = null;
     }
 
     restore(): void {
