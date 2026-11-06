@@ -181,7 +181,7 @@ export function fire(
                     0,
                     design.turrets[t]!.module,
                     shipAim.mountLayers(ships, i, design.turrets[t]!),
-                    shipAim.fuseFor(ships, ti, target, fuse),
+                    shipAim.fuseFor(ships, bodies, i, ti, target, fuse),
                     fuse.burstSpeed ?? DEFAULT_BURST_SPEED,
                     fragmentLife(fuse),
                     firesShells(fuse) ? (fuse.fragments ?? DEFAULT_FRAGMENTS) : 0,

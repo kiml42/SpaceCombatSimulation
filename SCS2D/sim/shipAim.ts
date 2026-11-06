@@ -9,7 +9,7 @@ import { overriddenMount, placementOf, type Targeting } from "./doctrine.js";
 import type { World } from "./world.js";
 import type { SpatialGrid } from "./index.js";
 import { MAX_BEAM_LENGTH } from "./beams.js";
-import { type Ships, NO_TARGET, WHOLE_SHIP, bearing } from "./ships.js";
+import { type Ships, NEUTRAL_TEAM, NO_TARGET, WHOLE_SHIP, bearing } from "./ships.js";
 
 /**
  * Turrets: what each mount picks to shoot at and which part of it, where it
@@ -112,13 +112,7 @@ export function decideTurrets(ships: Ships, world: World, bodies: Bodies, i: num
         // whatever its schedule says: a mount tracking a wreck, or a hulk, is
         // worse than a mount at rest, because it goes on shooting at it.
         const held = targets[t]!;
-        if (
-            held !== NO_TARGET &&
-            (ships.alive[held] !== 1 ||
-                ships.derelict[held] === 1 ||
-                !ships.hasControl(held) ||
-                clingsToFriend(ships, i, held, bodies.indexOf(ships.bodyIds[held]!)))
-        ) {
+        if (held !== NO_TARGET && (ships.alive[held] !== 1 || ships.derelict[held] === 1 || !ships.hasControl(held))) {
             targets[t] = NO_TARGET;
             aims[t] = WHOLE_SHIP;
         }
@@ -159,7 +153,7 @@ export function decideTurrets(ships: Ships, world: World, bodies: Bodies, i: num
             if (e === i || ships.alive[e] === 0) continue;
             if (ships.derelict[e] === 1 || !ships.hostile(i, e) || !ships.hasControl(e)) continue;
             const tb = bodies.indexOf(ships.bodyIds[e]!);
-            if (tb < 0 || clingsToFriend(ships, i, e, tb)) continue;
+            if (tb < 0) continue;
             // An enemy hooked on shares this body, so the body's centre says
             // nothing about where it is: it is where the part this mount would
             // shoot at is.
@@ -425,8 +419,8 @@ export function sharesBody(ships: Ships, t: number, tb: number): boolean {
 
 /**
  * Whether ship `t`, on body `tb`, shares it with a friend of ship `i`'s: then
- * what misses `t` lands on the friend, so `t` is not `i`'s to shoot at.
- * Wreckage is no friend, as in `friendlyInTheWay`.
+ * `i` fires only with its barrel on the part of `t` it picked. Wreckage is no
+ * friend, as in `friendlyInTheWay`, and nor is a rock.
  */
 export function clingsToFriend(ships: Ships, i: number, t: number, tb: number): boolean {
     const pilots = ships.pilots[tb];
@@ -434,7 +428,35 @@ export function clingsToFriend(ships: Ships, i: number, t: number, tb: number): 
     for (let k = 0; k < pilots.length; k++) {
         const p = pilots[k]!;
         if (p < 0 || p === t || p === i) continue;
-        if (ships.alive[p] === 1 && ships.derelict[p] === 0 && !ships.hostile(i, p)) return true;
+        if (ships.team[p] === NEUTRAL_TEAM || ships.alive[p] !== 1 || ships.derelict[p] === 1) continue;
+        if (!ships.hostile(i, p)) return true;
+    }
+    return false;
+}
+
+/**
+ * Whether the line of fire, out to `range`, passes over a module of body `tb`
+ * that a friend of ship `i`'s works, other than `target`.
+ */
+function crossesFriend(ships: Ships, bodies: Bodies, i: number, target: number, tb: number, range: number): boolean {
+    const pilots = ships.pilots[tb]!;
+    const design = ships.designs[target]!;
+    const x = ships.solution.x;
+    const y = ships.solution.y;
+    const dx = ships.solution.dirX;
+    const dy = ships.solution.dirY;
+    for (let k = 0; k < design.modules.length && k < pilots.length; k++) {
+        const p = pilots[k]!;
+        if (p < 0 || p === target || p === i || ships.team[p] === NEUTRAL_TEAM || ships.hostile(i, p)) continue;
+        if (ships.damage.spent(tb, k)) continue;
+        partPoint(ships, bodies, tb, design, k);
+        const ox = ships.partAt.x - x;
+        const oy = ships.partAt.y - y;
+        const along = ox * dx + oy * dy;
+        if (along < 0 || along > range) continue;
+        const across = ox * dy - oy * dx;
+        const r = moduleRadius(design.modules[k]!.spec);
+        if (across * across < r * r) return true;
     }
     return false;
 }
@@ -565,12 +587,14 @@ export function turretAim(ships: Ships, bodies: Bodies, i: number, t: number): n
 }
 
 /**
- * Seconds until a round from this mount bursts: its fuse short of the
- * flight time to what it is aimed at. Never, with nothing to time it to.
+ * Seconds until a round from ship `i`'s mount bursts: its fuse short of the
+ * flight time to what it is aimed at. Never, with nothing to time it to, nor
+ * at a target clinging to a friend, whom the spray would reach.
  */
-export function fuseFor(ships: Ships, turret: number, target: number, spec: ModuleSpec): number {
+export function fuseFor(ships: Ships, bodies: Bodies, i: number, turret: number, target: number, spec: ModuleSpec): number {
     const flight = ships.turrets.aimTime[turret]!;
     if (target === NO_TARGET || !(flight > 0) || !firesShells(spec)) return Infinity;
+    if (clingsToFriend(ships, i, target, bodies.indexOf(ships.bodyIds[target]!))) return Infinity;
     const fuse = flight - (spec.fuse ?? DEFAULT_FUSE);
     return fuse > 0 ? fuse : 0;
 }
@@ -611,6 +635,8 @@ export function friendlyInTheWay(
     const lookahead = gun.type === GunType.Beam ? MAX_BEAM_LENGTH : shared ? reach : gun.muzzleSpeed * FRIENDLY_LOOKAHEAD;
     const range = lookahead < reach ? lookahead : reach;
     if (!(range > 0)) return false;
+    // Clinging to a friend, a miss or a shell's spray lands on what lies behind: the friend must not.
+    if (shared && clingsToFriend(ships, i, target, tb) && crossesFriend(ships, bodies, i, target, tb, range)) return true;
     const hit = ships.lineOfFire;
     // A friend is only in the way of what it would stop.
     ships.hulls.castFrom(layers, -1, -1);
@@ -851,6 +877,7 @@ export function trainOne(ships: Ships, bodies: Bodies, i: number): void {
             middleY = at.y - bodies.y[tb]!;
             size = at.radius;
         }
+        const careful = clingsToFriend(ships, i, target, tb);
         const slack = firingSlack(
             ships,
             aimDoctrine(ships, i, mounts[t]!),
@@ -861,10 +888,11 @@ export function trainOne(ships: Ships, bodies: Bodies, i: number): void {
             rx - middleX,
             ry - middleY,
             size,
+            careful,
         );
         // In reach of what it will fire on: the part it picked if it minds what
         // it hits, and otherwise the ship, from its middle.
-        const selective = refusesAnything(aimDoctrine(ships, i, mounts[t]!)) && part !== WHOLE_SHIP;
+        const selective = (careful || refusesAnything(aimDoctrine(ships, i, mounts[t]!))) && part !== WHOLE_SHIP;
         ships.turrets.allowSlack(
             ti,
             slack,
@@ -900,6 +928,7 @@ export function trainOne(ships: Ships, bodies: Bodies, i: number): void {
  * middle, which is `partX`, `partY` short of the part, whatever part the aim
  * is on: `slackOffset` says how far that middle is off the aim point. A gun
  * aiming at a wing fires once anywhere on the hull is under the muzzle.
+ * `careful` is a target sharing a body with a friend: only its part will do.
  *
  * Approximate on purpose, and in the forgiving direction: a bounding circle
  * is not a silhouette, so a target seen end-on is taken to be as wide as it
@@ -919,14 +948,15 @@ export function firingSlack(
     partX: number,
     partY: number,
     radius = ships.designs[target]!.radius,
+    careful = false,
 ): number {
     ships.slackOffset = 0;
     const design = ships.designs[target]!;
     const range = length(aimX, aimY);
     if (!(range > 0)) return 0;
 
-    // Selective, so the part it picked is the whole of what it will accept.
-    if (refusesAnything(doctrine) && part !== WHOLE_SHIP) {
+    // Selective, or clinging to a friend, so the part it picked is the whole of what it will accept.
+    if ((careful || refusesAnything(doctrine)) && part !== WHOLE_SHIP) {
         return atan2(moduleRadius(design.modules[part]!.spec), range);
     }
 

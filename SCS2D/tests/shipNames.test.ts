@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { compileBlueprint, Ships, World } from "../sim/index.js";
 import { DINKY } from "../scenarios/blueprints.js";
 import { teamName } from "../render/teams.js";
-import { split } from "../scenarios/split.js";
+import { hooked } from "../scenarios/hooked.js";
 
 describe("a ship's name", () => {
     it("counts each side from one, in the order its ships were put in", () => {
@@ -15,7 +15,7 @@ describe("a ship's name", () => {
     });
 
     it("is carried by a piece broken off a ship rather than counted again", () => {
-        const run = split();
+        const run = hooked();
         const { ships } = run;
         const before = new Map<number, number>();
         for (let i = 0; i < ships.highWater; i++) if (ships.isAlive(i)) before.set(i, ships.serialOf(i));
