@@ -1,6 +1,7 @@
 {
   "formatVersion": 2,
   "name": "Fractal",
+  "category": "Stock",
   "notes": "A long-winged ship built from one repeated segment, to exercise repetition. Each wing is the same segment placed several times, so lengthening a wing is a single number rather than a copy-and-paste — and because the segment carries its own braking engine, a longer ship brakes harder as well as weighing more.",
   "assemblies": {
     "wingSegment": {

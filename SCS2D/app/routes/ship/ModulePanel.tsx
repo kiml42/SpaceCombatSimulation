@@ -2,7 +2,7 @@ import { styled } from "@linaria/react";
 import { kindName } from "~/editor/doctrine";
 import { dockFighter, duplicatePlacement, instanceOf, mirrorPlacement, reshapePlacement, updatePlacement } from "~/editor/edit";
 import type { DesignInFleet } from "~/editor/handoff";
-import type { Library } from "~/editor/library";
+import { byCategory, type Library } from "~/editor/library";
 import { selectedPosition } from "~/editor/shipCanvas";
 import { moduleReadout, roundsAboard, type Envelopes } from "~/editor/stats";
 import {
@@ -680,9 +680,15 @@ function CraftRows({
             (spec.kind === "pad"
                 ? padHolds(design, spec)
                 : [spec.craftAngle ?? 0, 0, PI / 2].some((turn) => slipwayHolds(design, { ...spec, craftAngle: turn })));
-        return { name, label: `${name}${own ? " (itself)" : ""}${fits ? "" : spec.kind === "pad" ? " ✗ too big" : " ✗ too wide"}` };
+        return {
+            name,
+            category: blueprint.category,
+            label: `${name}${own ? " (itself)" : ""}${fits ? "" : spec.kind === "pad" ? " ✗ too big" : " ✗ too wide"}`,
+        };
     });
-    if (spec.craft !== undefined && !choices.has(spec.craft)) options.push({ name: spec.craft, label: `${spec.craft} ✗ missing` });
+    if (spec.craft !== undefined && !choices.has(spec.craft)) {
+        options.push({ name: spec.craft, category: undefined, label: `${spec.craft} ✗ missing` });
+    }
     const chosen = options.find((option) => option.name === spec.craft);
     const named = spec.craft !== undefined;
     const turn = spec.craftAngle ?? 0;
@@ -706,10 +712,14 @@ function CraftRows({
                     }}
                 >
                     <option value="">none</option>
-                    {options.map((option) => (
-                        <option key={option.name} value={option.name}>
-                            {option.label}
-                        </option>
+                    {byCategory(options, (option) => option.category).map(([category, group]) => (
+                        <optgroup key={category} label={category}>
+                            {group.map((option) => (
+                                <option key={option.name} value={option.name}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </optgroup>
                     ))}
                 </select>
             </Field>

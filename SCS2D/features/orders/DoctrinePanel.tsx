@@ -6,6 +6,7 @@ import { MOUNT_SECTIONS, SHIP_SECTIONS, type DoctrineEntry } from "~/editor/doct
 import { keyOf, mountsOf, shared, slotsOf, told, valuesOf, type BuildSlot } from "~/editor/doctrineParts";
 import type { BattleView } from "~/host/battleView";
 import { choices, type Choice } from "~/host/designChoices";
+import { byCategory } from "~/editor/library";
 import { mountAt, viewOf } from "~/render/picking";
 import { padHolds, placementOf, slipwayHolds, type DoctrinePart, type ShipView, type Snapshot } from "~/sim/index";
 import type { OrderState } from "./orderState";
@@ -322,10 +323,17 @@ function BuildBox({
                 }}
             >
                 <option value="">{slot.craft ?? "mixed"}</option>
-                {buildable.map((choice, n) => (
-                    <option key={choice.label} value={n}>
-                        {choice.label}
-                    </option>
+                {byCategory(
+                    buildable.map((choice, n) => ({ choice, n })),
+                    ({ choice }) => choice.blueprint.category,
+                ).map(([category, group]) => (
+                    <optgroup key={category} label={category}>
+                        {group.map(({ choice, n }) => (
+                            <option key={choice.label} value={n}>
+                                {choice.label}
+                            </option>
+                        ))}
+                    </optgroup>
                 ))}
             </select>
             <CommitBox

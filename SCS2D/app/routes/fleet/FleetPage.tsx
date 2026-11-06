@@ -13,7 +13,7 @@ import { Library, nextName, SHIPS, unusedName } from "~/editor/library";
 import { snap } from "~/editor/edit";
 import type { KeyRow } from "~/host/keyHelp";
 import { snapStep } from "~/render/camera";
-import { pick, serialiseSkirmish, type Skirmish } from "~/scenarios/skirmish";
+import { inSkirmish, pick, serialiseSkirmish, type Skirmish } from "~/scenarios/skirmish";
 import { parseBlueprint, parseFleet, serialiseFleet, type Blueprint, type Fleet } from "~/sim/index";
 import { KeyHelp } from "~/ui/dialogs/KeyHelp";
 import { CommitText } from "~/ui/fields/CommitText";
@@ -21,7 +21,8 @@ import { LiveryPanel } from "~/features/livery/LiveryPanel";
 import { withLivery } from "~/editor/livery";
 import { AddShipMenu } from "./AddShipMenu";
 import { FleetCanvas } from "./FleetCanvas";
-import { designOf, fromLibrary, optionLabel, optionValue } from "./fleetOptions";
+import { designOf, fromLibrary } from "./fleetOptions";
+import { LibraryOptions } from "./LibraryOptions";
 import { DesignList, FleetProblems, FleetStats } from "./FleetReport";
 import { SelectionPanel } from "./SelectionPanel";
 import { SkirmishCard, skirmishBlock } from "./SkirmishCard";
@@ -239,7 +240,8 @@ export function FleetPage() {
         const camera = engine?.camera ?? { x: 0, y: 0, scale: 1 };
         // In the middle of the view, on the grid.
         const step = snapStep(camera.scale);
-        doc.apply(addShip(doc.fleet, blueprint, snap(camera.x, step), snap(camera.y, step)));
+        const added = skirmish === null ? blueprint : inSkirmish(blueprint, skirmish);
+        doc.apply(addShip(doc.fleet, added, snap(camera.x, step), snap(camera.y, step)));
         doc.select([[doc.fleet.ships.length - 1]]);
         edited();
     };
@@ -274,11 +276,7 @@ export function FleetPage() {
                     }}
                 >
                     {!listed && <option value={name}>{`${name} (unsaved)`}</option>}
-                    {entries.map((entry) => (
-                        <option key={optionValue(entry)} value={optionValue(entry)}>
-                            {optionLabel(entry)}
-                        </option>
-                    ))}
+                    <LibraryOptions entries={entries} />
                 </select>
                 <CommitText
                     id="fleetName"

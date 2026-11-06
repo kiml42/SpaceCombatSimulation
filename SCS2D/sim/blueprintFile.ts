@@ -139,7 +139,18 @@ const STEP_KEYS: readonly string[] = ["x", "y", "angle"];
 
 const ASSEMBLY_KEYS: readonly string[] = ["modules", "notes"];
 
-const FILE_KEYS: readonly string[] = ["formatVersion", "name", "notes", "fighter", "doctrine", "hangar", "assemblies", "modules", "livery"];
+const FILE_KEYS: readonly string[] = [
+    "formatVersion",
+    "name",
+    "category",
+    "notes",
+    "fighter",
+    "doctrine",
+    "hangar",
+    "assemblies",
+    "modules",
+    "livery",
+];
 
 export { degreesToRadians, radiansToDegrees };
 
@@ -440,7 +451,7 @@ export function blueprintFileProblem(value: unknown): string | null {
         return `name must be a non-empty string, got ${JSON.stringify(name)}`;
     }
 
-    const notesProblem = optionalStringProblem(value["notes"], "notes");
+    const notesProblem = optionalStringProblem(value["notes"], "notes") ?? optionalStringProblem(value["category"], "category");
     if (notesProblem !== null) return notesProblem;
 
     const fighter = optionalBooleanProblem(value["fighter"], "fighter");
@@ -466,6 +477,7 @@ function toBlueprint(file: Record<string, unknown>): Blueprint {
         name: file["name"] as string,
         modules: toPlacements(file["modules"] as unknown[], whole),
     };
+    if (typeof file["category"] === "string" && file["category"].trim() !== "") blueprint.category = file["category"].trim();
     if (file["notes"] !== undefined) blueprint.notes = file["notes"] as string;
     if (file["fighter"] !== undefined) blueprint.fighter = file["fighter"] as boolean;
     if (file["livery"] !== undefined) Object.assign(blueprint, readLivery(file["livery"]));
@@ -617,6 +629,7 @@ export function serialiseBlueprint(blueprint: Blueprint): Record<string, unknown
         formatVersion: BLUEPRINT_FORMAT_VERSION,
         name: blueprint.name,
     };
+    if (blueprint.category !== undefined) file["category"] = blueprint.category;
     if (blueprint.notes !== undefined) file["notes"] = blueprint.notes;
     if (blueprint.fighter !== undefined) file["fighter"] = blueprint.fighter;
     const livery = writtenLivery(blueprint);

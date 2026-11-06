@@ -1,6 +1,7 @@
 {
   "formatVersion": 2,
   "name": "Star Destroyer",
+  "category": "Star Wars",
   "notes": "A capital. Its batteries go for the biggest thing on the board — nothing in the battle outweighs it, so a preference for its own mass is a preference for whatever is largest — and they shoot to disable rather than to destroy: guns, then engines, and never the hull while either is left.",
   "doctrine": {
     "targeting": {

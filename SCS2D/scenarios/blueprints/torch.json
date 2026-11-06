@@ -1,6 +1,7 @@
 {
   "formatVersion": 2,
   "name": "Torch",
+  "category": "Stock",
   "notes": "A small craft whose weapon is an engine. The big engine on the bow faces forwards, so the same burn that scorches a target brakes the approach and then shoves the ship back out: it closes fast to stop against the hull, braking on the bow engine, burns, is pushed away, and comes round again.",
   "doctrine": {
     "targeting": {

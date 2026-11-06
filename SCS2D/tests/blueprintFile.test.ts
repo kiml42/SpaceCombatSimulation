@@ -162,6 +162,14 @@ describe("rejecting a file that arrived from somewhere else", () => {
         expect(blueprintFileProblem(file({ modules: "lots" }))).toMatch(/modules must be an array/);
         expect(blueprintFileProblem(file({ name: "   " }))).toMatch(/name must be a non-empty string/);
         expect(blueprintFileProblem(file({ notes: 7 }))).toMatch(/notes must be a string/);
+        expect(blueprintFileProblem(file({ category: 7 }))).toMatch(/category must be a string/);
+    });
+
+    it("carries a ship's category out and back", () => {
+        const read = parseBlueprint(file({ category: "Star Wars.Imperial" }));
+        expect(read.category).toBe("Star Wars.Imperial");
+        expect(serialiseBlueprint(read)["category"]).toBe("Star Wars.Imperial");
+        expect(parseBlueprint(file({ category: "  " })).category).toBeUndefined();
     });
 
     it("carries an engine's bell and its nozzle count out and back", () => {

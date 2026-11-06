@@ -68,6 +68,23 @@ export interface LibraryEntry {
     stock: boolean;
     /** Whether a saved copy of this name exists at all, stock entry or not. */
     saved: boolean;
+    /** What it is grouped under, if it says (`Blueprint.category`). */
+    category?: string;
+}
+
+/** What a ship with no category of its own is grouped under. */
+export const UNCATEGORISED = "Uncategorised";
+
+/** Items grouped by category, the groups in alphabetical order and each in the order given. */
+export function byCategory<T>(items: readonly T[], categoryOf: (item: T) => string | undefined): [string, T[]][] {
+    const groups = new Map<string, T[]>();
+    for (const item of items) {
+        const category = categoryOf(item) ?? UNCATEGORISED;
+        const group = groups.get(category);
+        if (group === undefined) groups.set(category, [item]);
+        else group.push(item);
+    }
+    return [...groups].sort(([a], [b]) => a.localeCompare(b));
 }
 
 export class Library<T extends { name: string } = Blueprint> {
@@ -96,15 +113,23 @@ export class Library<T extends { name: string } = Blueprint> {
         for (const blueprint of this.kind.builtIn) {
             const shadowed = saved.includes(blueprint.name);
             // The player's copy first: it is the one the name means.
-            if (shadowed) out.push({ name: blueprint.name, stock: false, saved: true });
-            out.push({ name: blueprint.name, stock: true, saved: shadowed });
+            if (shadowed) out.push(this.savedEntry(blueprint.name));
+            out.push(withCategory({ name: blueprint.name, stock: true, saved: shadowed }, categoryIn(blueprint)));
         }
         for (const name of saved) {
-            if (!this.kind.builtIn.some((blueprint) => blueprint.name === name)) {
-                out.push({ name, stock: false, saved: true });
-            }
+            if (!this.kind.builtIn.some((blueprint) => blueprint.name === name)) out.push(this.savedEntry(name));
         }
         return out;
+    }
+
+    private savedEntry(name: string): LibraryEntry {
+        let category: string | undefined;
+        try {
+            category = categoryIn(JSON.parse(this.store.getItem(this.kind.prefix + name) ?? "null"));
+        } catch {
+            // Unreadable: listed uncategorised, for the editor to put right.
+        }
+        return withCategory({ name, stock: false, saved: true }, category);
     }
 
     savedNames(): string[] {
@@ -174,6 +199,25 @@ export class Library<T extends { name: string } = Blueprint> {
     remove(name: string): void {
         this.store.removeItem(this.kind.prefix + name);
     }
+}
+
+function categoryIn(value: unknown): string | undefined {
+    const category = (value as { category?: unknown } | null)?.category;
+    return typeof category === "string" && category.trim() !== "" ? category.trim() : undefined;
+}
+
+function withCategory(entry: LibraryEntry, category: string | undefined): LibraryEntry {
+    return category === undefined ? entry : { ...entry, category };
+}
+
+/**
+ * The names a library opens by name, grouped by category: a shadowed stock
+ * entry is left out, since its name opens the player's copy.
+ */
+export function namesByCategory(entries: readonly LibraryEntry[]): [string, string[]][] {
+    const seen = new Set<string>();
+    const opened = entries.filter((entry) => !seen.has(entry.name) && seen.add(entry.name));
+    return byCategory(opened, (entry) => entry.category).map(([category, group]) => [category, group.map((entry) => entry.name)]);
 }
 
 /** A blueprint as the text an export writes and an import reads. */
