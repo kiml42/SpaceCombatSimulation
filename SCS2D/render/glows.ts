@@ -39,6 +39,13 @@ export class Lights {
      * wedge, whose light comes from a point at the muzzle instead.
      */
     lightless = new Uint8Array(64);
+    /**
+     * How high above the deck its layer is, canvas pixels: nothing for what is
+     * on a capital ship's hull, a turret's height for its guns and beams, a
+     * fighter's for what a flying fighter gives off. The light itself stands a
+     * little above that (`lightHeight`).
+     */
+    height = new Float64Array(64);
     colour: string[] = [];
 
     clear(): void {
@@ -59,19 +66,20 @@ export class Lights {
             this.cone[i] = from.cone[k]!;
             this.unseen[i] = from.unseen[k]!;
             this.lightless[i] = from.lightless[k]!;
+            this.height[i] = from.height[k]!;
             this.colour[i] = from.colour[k]!;
         }
     }
 
     /**
      * A light at `(x, y)` reaching `radius` out, both in the frame `m` maps to
-     * canvas pixels, as a context's transform does.
+     * canvas pixels, as a context's transform does, its layer `height` above the deck.
      */
-    point(m: Transform, x: number, y: number, radius: number, colour: string, brightness: number): void {
-        this.line(m, x, y, x, y, radius, colour, brightness);
+    point(m: Transform, x: number, y: number, radius: number, colour: string, brightness: number, height = 0): void {
+        this.line(m, x, y, x, y, radius, colour, brightness, false, false, false, height);
     }
 
-    /** A light along `(x0, y0)`–`(x1, y1)`, reaching `radius` out to either side and past either end. */
+    /** A light along `(x0, y0)`–`(x1, y1)`, reaching `radius` out to either side and past either end, its layer `height` above the deck. */
     line(
         m: Transform,
         x0: number,
@@ -84,6 +92,7 @@ export class Lights {
         cone = false,
         unseen = false,
         lightless = false,
+        height = 0,
     ): void {
         if (!(brightness > 0) || !(radius > 0)) return;
         if (this.count === this.x0.length) this.grow();
@@ -92,7 +101,9 @@ export class Lights {
         this.y0[k] = m.b * x0 + m.d * y0 + m.f;
         this.x1[k] = m.a * x1 + m.c * y1 + m.e;
         this.y1[k] = m.b * x1 + m.d * y1 + m.f;
-        this.radius[k] = radius * Math.sqrt(Math.abs(m.a * m.d - m.b * m.c));
+        const scale = Math.sqrt(Math.abs(m.a * m.d - m.b * m.c));
+        this.radius[k] = radius * scale;
+        this.height[k] = height * scale;
         this.brightness[k] = brightness;
         this.cone[k] = cone ? 1 : 0;
         this.unseen[k] = unseen ? 1 : 0;
@@ -101,8 +112,18 @@ export class Lights {
     }
 
     /** A light from `(x0, y0)`, `radius` either side of it, narrowing and fading out to `(x1, y1)`: a flame's glow. */
-    coneOf(m: Transform, x0: number, y0: number, x1: number, y1: number, radius: number, colour: string, brightness: number): void {
-        this.line(m, x0, y0, x1, y1, radius, colour, brightness, true);
+    coneOf(
+        m: Transform,
+        x0: number,
+        y0: number,
+        x1: number,
+        y1: number,
+        radius: number,
+        colour: string,
+        brightness: number,
+        height = 0,
+    ): void {
+        this.line(m, x0, y0, x1, y1, radius, colour, brightness, true, false, false, height);
     }
 
     private grow(): void {
@@ -117,6 +138,7 @@ export class Lights {
         this.y1 = more(this.y1);
         this.radius = more(this.radius);
         this.brightness = more(this.brightness);
+        this.height = more(this.height);
         const cone = new Uint8Array(this.cone.length * 2);
         cone.set(this.cone);
         this.cone = cone;

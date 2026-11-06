@@ -47,7 +47,7 @@ export function rockHeight(radius: number): number {
     return Math.max(ROCK_SHADOW_M, radius * ROCK_RISE);
 }
 /** How far a flying fighter's shadow falls on the hull below it, metres: further, as it is higher. */
-export const FIGHTER_SHADOW_M = 2.5;
+export const FIGHTER_SHADOW_M = 2;
 /**
  * How far the shadow falls of a fighter on its carrier's pad, being built,
  * mended or filled, metres: nearer, as it sits on the deck. A stop-gap
