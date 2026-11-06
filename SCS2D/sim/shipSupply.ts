@@ -12,6 +12,7 @@ import { DOCK_POWER_PER_METRE, PAD_REPAIR_PER_AREA, SLIPWAY_BUILD_PER_METRE } fr
 import * as shipRebuild from "./shipRebuild.js";
 import * as shipWeld from "./shipWeld.js";
 import { type Ships, short, originTier, repairTier, NO_TARGET } from "./ships.js";
+import * as shipBreakup from "./shipBreakup.js";
 
 /**
  * Supply between hulls: fuel, metal and charge pumped across docking seams and
@@ -156,7 +157,7 @@ export function pump(ships: Ships, world: World): number {
             ships.damage.cutWeld(b, k, seam.width);
             released++;
         }
-        if (moved) ships.settleMass(bodies, b);
+        if (moved) shipBreakup.settleMass(ships, bodies, b);
         shipRebuild.growAll(ships, world);
     }
     for (let k = 0; k < ships.parkedShips.length; k++) {
@@ -225,8 +226,8 @@ export function tendParked(ships: Ships, world: World, f: number): boolean {
     const metal = across(ships, Resource.Metal, ships.metal, cb, pad, fb, into, rate);
     across(ships, Resource.Charge, ships.power, cb, pad, fb, into, cable);
     if (fuel > 0 || metal > 0) {
-        ships.settleMass(bodies, fb);
-        ships.settleMass(bodies, cb);
+        shipBreakup.settleMass(ships, bodies, fb);
+        shipBreakup.settleMass(ships, bodies, cb);
     }
     // Mended first, and then built back to what it set out as.
     let repairLeft = mend(ships, bodies, fb, f, pad, work, cb);
@@ -338,9 +339,9 @@ export function padBuild(ships: Ships, bodies: Bodies, b: number, i: number, pay
         ships.power.drain(payB, pad, put * perKg);
         took(ships, Resource.Metal, payB, pad, Claim.Pads, put * waste);
         took(ships, Resource.Charge, payB, pad, Claim.Pads, put * perKg);
-        ships.settleMass(bodies, b);
-        ships.settleMass(bodies, payB);
-        ships.discardFrom(bodies, payB, mass, inertia);
+        shipBreakup.settleMass(ships, bodies, b);
+        shipBreakup.settleMass(ships, bodies, payB);
+        shipBreakup.discardFrom(ships, bodies, payB, mass, inertia);
         return true;
     }
     // Nothing to pay for the step with, or a step waiting on room to go up.
@@ -366,7 +367,7 @@ export function padBuild(ships: Ships, bodies: Bodies, b: number, i: number, pay
  * something and has more to mend.
  */
 export function mend(ships: Ships, bodies: Bodies, b: number, i: number, from: number, joules: number, payB = b): boolean {
-    ships.settleShed(bodies);
+    shipBreakup.settleShed(ships, bodies);
     const design = ships.hullDesign[b]!;
     const approach = ships.doctrines[i]!.approach;
     // What a step of it could use at most, for what its pads ask for.
@@ -419,10 +420,10 @@ export function mend(ships: Ships, bodies: Bodies, b: number, i: number, from: n
     ships.power.drain(payB, from, usedCharge);
     took(ships, Resource.Metal, payB, from, Claim.Pads, usedMetal);
     took(ships, Resource.Charge, payB, from, Claim.Pads, usedCharge);
-    ships.settleMass(bodies, b);
+    shipBreakup.settleMass(ships, bodies, b);
     // Paid for from a carrier, which carries what it mends.
-    if (payB !== b) ships.settleMass(bodies, payB);
-    ships.discardFrom(bodies, payB, mass, inertia);
+    if (payB !== b) shipBreakup.settleMass(ships, bodies, payB);
+    shipBreakup.discardFrom(ships, bodies, payB, mass, inertia);
     return left;
 }
 

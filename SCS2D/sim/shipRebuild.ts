@@ -10,6 +10,7 @@ import type { World } from "./world.js";
 import { moduleOverlapsHull } from "./collision.js";
 import { type Ships, movable, workforce, ROBOT_SPENT, NO_TARGET } from "./ships.js";
 import * as shipSupply from "./shipSupply.js";
+import * as shipBreakup from "./shipBreakup.js";
 
 /**
  * Rebuilding a hull to its launch design and taking wreckage apart, which is
@@ -146,7 +147,7 @@ export function grow(ships: Ships, world: World, i: number, l: number, from: num
     }
 
     // Where the hull will be, and whether anything else is.
-    const offset = ships.offsetOf(bodies, b, design, next);
+    const offset = shipBreakup.offsetOf(bodies, b, design, next);
     const x = bodies.x[b]! + offset.x;
     const y = bodies.y[b]! + offset.y;
     for (let j = 0; j < bodies.highWater; j++) {
@@ -165,15 +166,15 @@ export function grow(ships: Ships, world: World, i: number, l: number, from: num
         rebuild.work[l] = 0;
         regrow(ships, world, p, b, design, next, at, i);
         if (share >= 1 - 1e-9) ships.damage.unfit(b, at, fittingOf(whole.stats));
-        ships.settleMass(bodies, b);
-        ships.settleMass(bodies, payB);
-        ships.discardFrom(bodies, payB, carried, turning);
+        shipBreakup.settleMass(ships, bodies, b);
+        shipBreakup.settleMass(ships, bodies, payB);
+        shipBreakup.discardFrom(ships, bodies, payB, carried, turning);
         return;
     }
     const claim = mendClaim(origin.design, origin.module);
     if (shipSupply.allowed(ships, Resource.Metal, b, payer, claim, cost) < cost) return;
 
-    ships.momentum(bodies);
+    shipBreakup.momentum(ships, bodies);
     const beforeX = ships.momentumX;
     const beforeY = ships.momentumY;
     const mass = bodies.mass[b]!;
@@ -182,11 +183,11 @@ export function grow(ships: Ships, world: World, i: number, l: number, from: num
     rebuild.work[l] = 0;
     regrow(ships, world, p, b, design, next, at, i);
     if (share >= 1 - 1e-9) ships.damage.unfit(b, at, fittingOf(whole.stats));
-    ships.settleMass(bodies, b);
+    shipBreakup.settleMass(ships, bodies, b);
     // What it wasted left at the hull's speed; the hull's centre moved, and the
     // momentum it had with it.
-    ships.discardFrom(bodies, b, mass, inertia);
-    ships.momentum(bodies);
+    shipBreakup.discardFrom(ships, bodies, b, mass, inertia);
+    shipBreakup.momentum(ships, bodies);
     bodies.vx[b] = bodies.vx[b]! + (beforeX - ships.momentumX) / movable(bodies.mass[b]!);
     bodies.vy[b] = bodies.vy[b]! + (beforeY - ships.momentumY) / movable(bodies.mass[b]!);
     // Robots about to start it are building it now, standing on it.
@@ -216,7 +217,7 @@ export function regrow(
 ): void {
     const bodies = world.bodies;
     const id = ships.bodyIds[p]!;
-    const offset = ships.offsetOf(bodies, b, was, next);
+    const offset = shipBreakup.offsetOf(bodies, b, was, next);
     const spin = bodies.angularVel[b]!;
     bodies.x[b] = bodies.x[b]! + offset.x;
     bodies.y[b] = bodies.y[b]! + offset.y;
@@ -233,7 +234,8 @@ export function regrow(
         more[at] = builder;
         ships.pilots[b] = more;
     }
-    ships.adopt(
+    shipBreakup.adopt(
+        ships,
         p,
         b,
         next,
@@ -419,7 +421,7 @@ export function refitInPlace(ships: Ships, world: World, b: number, m: number, i
     const next = rebuiltDesign(design, m, placed, whole.stats, origin, null, design.pieces?.[m] ?? 0);
     const out = ships.damage.unbuiltAt(b, m);
 
-    ships.momentum(bodies);
+    shipBreakup.momentum(ships, bodies);
     const beforeX = ships.momentumX;
     const beforeY = ships.momentumY;
     const mass = bodies.mass[b]!;
@@ -427,9 +429,9 @@ export function refitInPlace(ships: Ships, world: World, b: number, m: number, i
     regrow(ships, world, p, b, design, next, m, i);
     ships.damage.fit(b, m, out);
     ships.damage.unfit(b, m, fittingOf(whole.stats));
-    ships.settleMass(bodies, b);
-    ships.discardFrom(bodies, b, mass, inertia);
-    ships.momentum(bodies);
+    shipBreakup.settleMass(ships, bodies, b);
+    shipBreakup.discardFrom(ships, bodies, b, mass, inertia);
+    shipBreakup.momentum(ships, bodies);
     bodies.vx[b] = bodies.vx[b]! + (beforeX - ships.momentumX) / movable(bodies.mass[b]!);
     bodies.vy[b] = bodies.vy[b]! + (beforeY - ships.momentumY) / movable(bodies.mass[b]!);
 }
@@ -506,12 +508,12 @@ export function stepDown(ships: Ships, world: World, b: number, m: number): void
         takeApart(ships, world, b, m);
         return;
     }
-    ships.settleShed(bodies);
+    shipBreakup.settleShed(ships, bodies);
     const part = shellOf(step.spec, step.stats, step.face, share);
     const next = rebuiltDesign(design, m, part.spec, part.stats, originOf(design, m), { share, face: step.face }, design.pieces?.[m] ?? 0);
     ships.stripShapes.set(part.spec, { spec: step.spec, stats: step.stats, face: step.face, share });
 
-    ships.momentum(bodies);
+    shipBreakup.momentum(ships, bodies);
     const beforeX = ships.momentumX;
     const beforeY = ships.momentumY;
     const mass = bodies.mass[b]!;
@@ -522,14 +524,14 @@ export function stepDown(ships: Ships, world: World, b: number, m: number): void
     for (const robot of ships.robots.on(b) ?? []) if (robot.stoodOn === m) robot.stoodOn = -1;
     // What was taken off is already out of it, as fittings not in.
     ships.damage.fit(b, m, step.kg);
-    ships.settleMass(bodies, b);
+    shipBreakup.settleMass(ships, bodies, b);
     // Never more of it than there was: what the walls left had shed is lost.
     if (bodies.mass[b]! > mass) {
         ships.damage.unfit(b, m, bodies.mass[b]! - mass);
-        ships.settleMass(bodies, b);
+        shipBreakup.settleMass(ships, bodies, b);
     }
-    ships.discardFrom(bodies, b, mass, inertia);
-    ships.momentum(bodies);
+    shipBreakup.discardFrom(ships, bodies, b, mass, inertia);
+    shipBreakup.momentum(ships, bodies);
     bodies.vx[b] = bodies.vx[b]! + (beforeX - ships.momentumX) / movable(bodies.mass[b]!);
     bodies.vy[b] = bodies.vy[b]! + (beforeY - ships.momentumY) / movable(bodies.mass[b]!);
 }
@@ -545,7 +547,7 @@ export function takeApart(ships: Ships, world: World, b: number, m: number): voi
     if (p < 0) return;
     const design = ships.designs[p]!;
     if (m >= design.modules.length || design.modules.length < 2 || !staysWhole(design, m)) return;
-    ships.settleShed(bodies);
+    shipBreakup.settleShed(ships, bodies);
 
     const keep: number[] = [];
     for (let k = 0; k < design.modules.length; k++) if (k !== m) keep.push(k);
@@ -581,13 +583,13 @@ export function takeApart(ships: Ships, world: World, b: number, m: number): voi
     }
     const riders = ships.ridersOf(bodies, b);
 
-    ships.momentum(bodies);
+    shipBreakup.momentum(ships, bodies);
     const beforeX = ships.momentumX;
     const beforeY = ships.momentumY;
     const mass = bodies.mass[b]!;
     const inertia = bodies.inertia[b]!;
     const id = ships.bodyIds[p]!;
-    const offset = ships.offsetOf(bodies, b, design, next);
+    const offset = shipBreakup.offsetOf(bodies, b, design, next);
     const spin = bodies.angularVel[b]!;
     bodies.x[b] = bodies.x[b]! + offset.x;
     bodies.y[b] = bodies.y[b]! + offset.y;
@@ -598,7 +600,8 @@ export function takeApart(ships: Ships, world: World, b: number, m: number): voi
     bodies.radius[b] = next.radius;
     const pilots = ships.pilots[b];
     if (pilots !== null && pilots !== undefined) ships.pilots[b] = Int32Array.from(keep, (k) => pilots[k]!);
-    ships.adopt(
+    shipBreakup.adopt(
+        ships,
         p,
         b,
         next,
@@ -625,9 +628,9 @@ export function takeApart(ships: Ships, world: World, b: number, m: number): voi
             ships.remove(r);
         }
     }
-    ships.settleMass(bodies, b);
-    ships.discardFrom(bodies, b, mass, inertia);
-    ships.momentum(bodies);
+    shipBreakup.settleMass(ships, bodies, b);
+    shipBreakup.discardFrom(ships, bodies, b, mass, inertia);
+    shipBreakup.momentum(ships, bodies);
     bodies.vx[b] = bodies.vx[b]! + (beforeX - ships.momentumX) / movable(bodies.mass[b]!);
     bodies.vy[b] = bodies.vy[b]! + (beforeY - ships.momentumY) / movable(bodies.mass[b]!);
 }

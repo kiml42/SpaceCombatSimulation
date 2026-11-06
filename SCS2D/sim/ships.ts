@@ -1,4 +1,4 @@
-import { Debris, UNPAINTED } from "./debris.js";
+import { Debris } from "./debris.js";
 import { Bodies, type BodyId } from "./bodies.js";
 import {
     aboardPose,
@@ -13,17 +13,15 @@ import {
     remarkedDesign,
     sameOrigin,
     seamedDesign,
-    shotSpread,
     slipwayHolds,
     twinOf,
     subDesign,
-    triggerMask,
     weldDesigns,
     type Footprint,
     type DesignTurret,
     type ShipDesign,
 } from "./blueprint.js";
-import { components, cuts, DOCK_HOLD, JOINT_IMPULSE_PER_AREA, jointBetween, joints, seamThickness, type Joint } from "./connectivity.js";
+import { components, DOCK_HOLD, JOINT_IMPULSE_PER_AREA, joints, seamThickness } from "./connectivity.js";
 import { BOTH_LAYERS, HULL_LAYER, Hulls, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from "./hull.js";
 import {
     Damage,
@@ -34,12 +32,11 @@ import {
     REPAIR_WASTE,
     repairWork,
     DISASSEMBLY_WASTE,
-    SHATTER,
     type ImpactLog,
 } from "./damage.js";
 import { buildWork, faceNearest, fittingOf, SHELL_STEPS, shellOf } from "./rebuild.js";
 import { printedCraft, printFrame, printLength, SLIPWAY_STEP, type Print } from "./slipway.js";
-import { Fuel, LEAK_HOLE_CALIBRES, leakChance, leakRate, leakSpeed, type Leak } from "./fuel.js";
+import { Fuel, LEAK_HOLE_CALIBRES, leakChance, leakRate, leakSpeed } from "./fuel.js";
 import { Charge } from "./charge.js";
 import { Metal } from "./metal.js";
 import { Claim, mendClaim, priorityOf, Resource, Supply } from "./supply.js";
@@ -106,6 +103,7 @@ import * as shipRebuild from "./shipRebuild.js";
 import type { Rebuild, StripShape } from "./shipRebuild.js";
 import * as shipWeld from "./shipWeld.js";
 import * as shipSupply from "./shipSupply.js";
+import * as shipBreakup from "./shipBreakup.js";
 
 /**
  * Ships: a compiled design bound to a body, flying itself and shooting.
@@ -295,77 +293,6 @@ const TIMER_SETTLE = 1e-9;
 
 /** No order, or an order whose target has gone. */
 /**
- * How much of a weld survives the metal at its ends being wrecked.
- *
- * A destroyed module keeps its mass and its place (§4), so it keeps holding
- * on to its neighbours — badly. Zero here would mean a hull whose middle had
- * been shot out fell to pieces at the first nudge.
- */
-const WRECK_STRENGTH = 0.05;
-
-/**
- * Below this mass, a severed piece is scrap and is never put in the world at
- * all, kilograms.
- *
- * Matter is conserved *within a hull* — a wrecked module keeps its mass and
- * its place, which is what makes a battered ship sluggish and its wreckage
- * free armour (§4). It is not conserved in the world: a shard this small is
- * too broken up to be worth going after and too light to be worth avoiding,
- * so tracking it buys nothing. What is discarded is counted rather than
- * quietly dropped, so a salvage economy can balance its books later, and is
- * seen to break up into debris (`debris.ts`) rather than vanish.
- *
- * Above most of a fighter's modules and under every capital one, so most of
- * a fighter's wreckage goes to debris and a capital's is kept.
- */
-const SCRAP_MASS = 2000;
-
-/**
- * How far past the fighting a piece has to drift before it stops being worth
- * tracking, in metres per kilogram above `SCRAP_MASS`.
- *
- * Continuous rather than a second threshold, and that is the point: a shard
- * just over the scrap mass is gone as soon as it leaves the battle, a tonne
- * of hull has to clear it by kilometres, and a serious chunk effectively
- * never leaves. "Worth hunting down for the rest of the battle" falls out of
- * that rather than being declared, which leaves one cliff in the rule instead
- * of two — and the one that is left is at a mass where nothing cares.
- */
-const SALVAGE_REACH = 5;
-
-/**
- * Below this mass, wreckage in the fight is let go once it is in nobody's way,
- * kilograms (`Ships.loose`).
- *
- * A fighter's parts weigh a few hundred kilograms to a few tonnes and a
- * capital's modules five to nine, so this reaches fighter debris and no more:
- * pieces too small to be worth a scavenger's trip, kept only as obstacles.
- */
-const LOOSE_MASS = 5000;
-
-/** How long a loose piece is kept whatever, seconds, so the eye sees it fly off. */
-const LOOSE_AGE = 5;
-
-/** How far ahead a loose piece looks for something under control to meet, seconds. */
-const LOOSE_HORIZON = 10;
-
-/** How near that has to pass beyond the two radii to count, metres. */
-const LOOSE_CLEARANCE = 50;
-
-/** How often loose pieces are looked over, seconds. */
-const LOOSE_PERIOD = 1;
-
-/**
- * How small the battle can get, metres.
- *
- * The area is drawn round the ships still in it, so it shrinks as they die
- * and would collapse to a point around the last one — taking the whole debris
- * field with it in a single step. A survivor going back for the wreckage has
- * to find it still there.
- */
-const MINIMUM_BATTLE_RADIUS = 2000;
-
-/**
  * How much hull it takes to be worth a second of thinking, kilograms.
  *
  * How often a ship reconsiders what it is fighting is *derived* rather than
@@ -421,7 +348,7 @@ const FRIENDLY_LOOKAHEAD = 0.5;
  * could pay for, wherever they were, and take the ship apart from end to end
  * — the blow has to land *somewhere*.
  */
-const SHOCK_REACH = 15;
+export const SHOCK_REACH = 15;
 
 /**
  * A ship lying against an asteroid at under `REST_SPEED` m/s, where they touch,
@@ -618,7 +545,7 @@ function bearing(fromX: number, fromY: number, toX: number, toY: number): number
 }
 
 /** Aiming at a ship rather than at any part of it. */
-const WHOLE_SHIP = -1;
+export const WHOLE_SHIP = -1;
 /**
  * Nothing on this ship that this mount's doctrine will shoot at.
  *
@@ -768,11 +695,6 @@ export const CLAW_HEAT_RATE = 1;
 export const CLAW_HEAT_ENERGY = 5e6;
 
 /** A body's mass to divide by: a pinned one's, nought, is no mass at all but one nothing moves. */
-/** A module of a body, as one number. */
-function blowKey(body: number, module: number): number {
-    return body * 65536 + module;
-}
-
 export function movable(mass: number): number {
     return mass > 0 ? mass : Infinity;
 }
@@ -858,7 +780,7 @@ export class Ships {
      * shell, so the entry is left where it is.
      */
     readonly hullDesign: (ShipDesign | null)[] = [];
-    private readonly hullBody: BodyId[] = [];
+    readonly hullBody: BodyId[] = [];
     /** The well each pinned hull rides, by body index (`ShipSpec.rides`). */
     private readonly rides: (WellSpec | undefined)[] = [];
     /** Every hull that has ridden a well, live or not. */
@@ -891,13 +813,13 @@ export class Ships {
     /** The twisted metal pieces too small to keep become: only drawn, changing nothing (`debris.ts`). */
     readonly debris = new Debris();
     /** Scratch for a module's outline as it is broken up. */
-    private readonly outline: number[] = [];
+    readonly outline: number[] = [];
     /**
      * The blow that shattered each module this step, by `blowKey`, while it is
      * broken up: its joules, where it struck and the way it drove, in the
      * hull's frame. Empty between steps.
      */
-    private readonly shatterBlows = new Map<number, readonly number[]>();
+    readonly shatterBlows = new Map<number, readonly number[]>();
 
     /**
      * The same, for beams and plumes, which get through what they have already
@@ -915,16 +837,16 @@ export class Ships {
      * which is what §4's "damage never changes topology" buys: the geometry of
      * what can push is what changed, and mass properties are untouched.
      */
-    private readonly layouts: (EngineLayout | null)[] = [];
-    private readonly layoutVersion: number[] = [];
+    readonly layouts: (EngineLayout | null)[] = [];
+    readonly layoutVersion: number[] = [];
     /** Persistent between steps, per §12: never shared scratch. */
-    private readonly throttles: Float64Array[] = [];
+    readonly throttles: Float64Array[] = [];
     /**
      * How much of each of a ship's flame rays landed on something last step,
      * as the ray's `share`: what a renderer draws the burn's glow from, and
      * where it cuts the flame off. Indexed by `landedIndex`.
      */
-    private readonly landed: Float64Array[] = [];
+    readonly landed: Float64Array[] = [];
     /** Scratch for the exhaust pass, so that burning allocates nothing. */
     private readonly plumes = new Plumes();
     /**
@@ -937,12 +859,12 @@ export class Ships {
     private readonly attackArcs = new AttackArcs();
     private readonly attackRegion = new AttackRegion();
     /** Which of each ship's engines burned as weapons when it was last flown. */
-    private readonly lit: Uint8Array[] = [];
+    readonly lit: Uint8Array[] = [];
     /** Turret store indices owned by each ship, and their gun timers. */
     readonly turretIndex: Int32Array[] = [];
-    private readonly cooldown: Float64Array[] = [];
-    private readonly turretStates: Uint8Array[] = [];
-    private readonly nextBarrelToFire: Int32Array[] = [];
+    readonly cooldown: Float64Array[] = [];
+    readonly turretStates: Uint8Array[] = [];
+    readonly nextBarrelToFire: Int32Array[] = [];
     /**
      * What each mount has picked to shoot at, and the step it will think about
      * that again.
@@ -953,8 +875,8 @@ export class Ships {
      * and its own gun's reach. `focusWeight` is what keeps them together
      * without tying them together.
      */
-    private readonly turretTarget: Int32Array[] = [];
-    private readonly turretRethinkAt: Float64Array[] = [];
+    readonly turretTarget: Int32Array[] = [];
+    readonly turretRethinkAt: Float64Array[] = [];
     /**
      * What each mount was actually trained on, last time it was trained.
      *
@@ -965,19 +887,19 @@ export class Ships {
      * round to. A gun with a stale answer shoots off into empty space, which is
      * exactly what it looks like.
      */
-    private readonly turretAiming: Int32Array[] = [];
+    readonly turretAiming: Int32Array[] = [];
     /**
      * Which module of its target each mount is shooting at, or -1 for the ship
      * as a whole — which is what a doctrine with no opinion about parts means,
      * since picking a part is picking a smaller thing to miss.
      */
-    private readonly turretAimModule: Int32Array[] = [];
+    readonly turretAimModule: Int32Array[] = [];
 
     readonly team: number[] = [];
-    private readonly serial: number[] = [];
-    private readonly names: string[] = [];
+    readonly serial: number[] = [];
+    readonly names: string[] = [];
     /** Whether a ship has had a piece fly off it this step, flown from a core of its own. */
-    private readonly parted: number[] = [];
+    readonly parted: number[] = [];
     /** Ships each side has had put in, so the next is one more. */
     private readonly served = new Map<number, number>();
 
@@ -993,7 +915,7 @@ export class Ships {
      */
     readonly derelict: number[] = [];
     /** Whether each ship set out with a gun or an engine to lose; a piece takes its ship's. */
-    private readonly couldFight: number[] = [];
+    readonly couldFight: number[] = [];
     /** 1 for a fighter its doctrine has taken down into the hull layer as well. */
     private readonly committed: number[] = [];
     /** Whether each ship has turned its main engines along its want rather than its guns to its target. */
@@ -1058,7 +980,7 @@ export class Ships {
      */
     /** The weld-cut version each ship was last checked at, so a hull is walked
      * only when something has taken a fresh bite out of one of its welds. */
-    private readonly cutSeen: number[] = [];
+    readonly cutSeen: number[] = [];
     /** The world tick each ship last came apart at, or was broken off at. */
     readonly partedAt: number[] = [];
     /** The world tick each ship's claws last tried to close, so a miss waits `CLAW_RETRY`. */
@@ -1066,13 +988,13 @@ export class Ships {
     /** Whether each ship's slipways are held up by wreckage caught on what they build, which its robots then clear whatever the room. */
     readonly waitsOnWreck: number[] = [];
 
-    private readonly blowBody: number[] = [];
-    private readonly blowModule: number[] = [];
-    private readonly blowJx: number[] = [];
-    private readonly blowJy: number[] = [];
-    private readonly blowX: number[] = [];
-    private readonly blowY: number[] = [];
-    private blows = 0;
+    readonly blowBody: number[] = [];
+    readonly blowModule: number[] = [];
+    readonly blowJx: number[] = [];
+    readonly blowJy: number[] = [];
+    readonly blowX: number[] = [];
+    readonly blowY: number[] = [];
+    blows = 0;
 
     /**
      * Each ship's orders, oldest first: `orders[ship][n]`.
@@ -1082,7 +1004,7 @@ export class Ships {
      * is what makes a list of orders a *plan* rather than a pile of
      * interruptions.
      */
-    private readonly orders: Order[][] = [];
+    readonly orders: Order[][] = [];
 
     /**
      * What each ship has decided to fight on its own account, and the step at
@@ -1119,15 +1041,15 @@ export class Ships {
     /** Whether each ship has been docked under the errand it is on, which then ends when the dock lets go. */
     private readonly errandDocked: number[] = [];
     /** Each ship's doctrine as its design has it, before anything it has been told over it. */
-    private readonly ownDoctrines: Doctrine[] = [];
+    readonly ownDoctrines: Doctrine[] = [];
     /** What each ship has been told over its doctrine, or undefined for nothing. */
-    private readonly overrides: (DoctrineOverride | undefined)[] = [];
+    readonly overrides: (DoctrineOverride | undefined)[] = [];
     /** Each ship's mounts' doctrines with its override, by mount, for the design they were worked out for. */
     private readonly mountDoctrines: ({ design: ShipDesign; byMount: Map<DesignTurret, Targeting> } | null)[] = [];
     /** How many each pad and slipway is told to keep, by its module's lasting key, over its design's count. */
-    private readonly keeps: (Readonly<Record<string, number>> | undefined)[] = [];
+    readonly keeps: (Readonly<Record<string, number>> | undefined)[] = [];
     /** What each pad and slipway is told to build, by its module's lasting key, over its design's craft. */
-    private readonly crafts: (Readonly<Record<string, ShipDesign>> | undefined)[] = [];
+    readonly crafts: (Readonly<Record<string, ShipDesign>> | undefined)[] = [];
     /** The carrier each fighter last set out from or landed on, or -1. */
     private readonly home: number[] = [];
     /** Whether each fighter is recharging: from running its batteries down until they are full. */
@@ -1181,7 +1103,7 @@ export class Ships {
     private readonly parkedY: number[] = [];
     private readonly parkedAngle: number[] = [];
     /** Its mass as its carrier last counted it. */
-    private readonly parkedMass: number[] = [];
+    readonly parkedMass: number[] = [];
     /**
      * For a ship moored to an asteroid by its claw, rather than parked on a pad,
      * the claw, by module of its own hull; -1 for any other. A moored ship is
@@ -1726,14 +1648,14 @@ export class Ships {
      * core: its own, numbered by which core of the design it set out as this is
      * where that design has more than one. Null for any other module.
      */
-    private painted(i: number, design: ShipDesign, m: number): string | null {
+    painted(i: number, design: ShipDesign, m: number): string | null {
         if (design.modules[m]!.spec.kind !== "core") return null;
         const number = this.launched[i]!.cores.length > 1 ? this.coreNumber(i, design, m) : 0;
         return number > 0 ? `${this.names[i]}.${number}` : this.names[i]!;
     }
 
     /** The name painted on module `m` of body `b`, or null for anything but a core. */
-    private paintAt(b: number, m: number): string | null {
+    paintAt(b: number, m: number): string | null {
         return this.paint[b]?.[m] ?? null;
     }
 
@@ -1785,7 +1707,7 @@ export class Ships {
         this.power.register(bodyIdx, design);
         this.robots.register(bodyIdx, design);
         // Set out with stores part full, it weighs only what it carries.
-        if (this.fuel.spentMass(bodyIdx) > 0 || this.metal.spentMass(bodyIdx) > 0) this.settleMass(world.bodies, bodyIdx);
+        if (this.fuel.spentMass(bodyIdx) > 0 || this.metal.spentMass(bodyIdx) > 0) shipBreakup.settleMass(this, world.bodies, bodyIdx);
         if (spec.invulnerable === true) this.damage.protect(bodyIdx);
         const mounts = design.turrets;
         const indices = new Int32Array(mounts.length);
@@ -1965,9 +1887,9 @@ export class Ships {
         for (const group of groups) {
             if (group === main) continue;
             const before = this.alive.length;
-            if (this.detach(world, i, design, group)) others.push({ ship: before, group });
+            if (shipBreakup.detach(this, world, i, design, group)) others.push({ ship: before, group });
         }
-        this.reshape(world, i, design, main);
+        shipBreakup.reshape(this, world, i, design, main);
         // Where each module of the layout ends up in the docked hull: this ship's
         // own first, then each docked ship's after them in turn.
         const where = new Int32Array(design.modules.length).fill(-1);
@@ -4080,7 +4002,7 @@ export class Ships {
             }
 
             // Lighter by what left, before what pushed it off acts on what remains.
-            if (loaded) this.settleMass(bodies, bodyIdx);
+            if (loaded) shipBreakup.settleMass(this, bodies, bodyIdx);
             const mass = bodies.mass[bodyIdx]!;
             if (mass > 0 && (impulseX !== 0 || impulseY !== 0)) {
                 bodies.vx[bodyIdx] = bodies.vx[bodyIdx]! + impulseX / mass;
@@ -5729,258 +5651,12 @@ export class Ships {
         return this.aimFor(bodies, i, mount, layers, target, this.gunPoint.x, this.gunPoint.y, hooked);
     }
 
-    /**
-     * Remove a ship and its turrets. The body is the caller's to destroy, since
-     * a dead ship's hull normally stays in the world as a wreck (§4).
-     */
-    /**
-     * Record a blow a hull has to survive: an impulse, newton-seconds, applied
-     * at a world-frame point on the module it landed on.
-     *
-     * The momentum itself is the caller's to apply — the contact solver and the
-     * gunnery each already do it, and doing it twice would be inventing
-     * momentum. This is only the structural half: what the blow does to the
-     * welds holding the ship together, answered by `sever`.
-     */
     blow(bodyIndex: number, module: number, jx: number, jy: number, px: number, py: number): void {
-        // Nothing breaks a hull that nothing can hurt.
-        if (module < 0 || this.damage.isProtected(bodyIndex)) return;
-        if (!(jx !== 0 || jy !== 0)) return;
-        const i = this.blows++;
-        this.blowBody[i] = bodyIndex;
-        this.blowModule[i] = module;
-        this.blowJx[i] = jx;
-        this.blowJy[i] = jy;
-        this.blowX[i] = px;
-        this.blowY[i] = py;
+        shipBreakup.blow(this, bodyIndex, module, jx, jy, px, py);
     }
 
-    /**
-     * Answer this step's blows, breaking hulls where they could not take them,
-     * and say how many pieces came off.
-     *
-     * **What parts a hull is a blow, not a wound.** Damage decides how much of
-     * a weld is left; something still has to hit the ship hard enough to spend
-     * it. So a ship shot to pieces around its spine goes on carrying its wings
-     * until something *hits* it, which is the whole difference between a hull
-     * coming apart and a hull dissolving.
-     *
-     * `contacts` are this step's collisions, which are blows like any other and
-     * the heaviest a battle has.
-     */
     sever(world: World, contacts?: Contacts): number {
-        const bodies = world.bodies;
-        this.bodyStore = bodies;
-        this.settleShed(bodies);
-
-        if (contacts !== undefined) {
-            for (let k = 0; k < contacts.count; k++) {
-                const j = contacts.impulse[k]!;
-                if (!(j > 0)) continue;
-                const jx = contacts.nx[k]! * j;
-                const jy = contacts.ny[k]! * j;
-                const x = contacts.x[k]!;
-                const y = contacts.y[k]!;
-                // The normal points from `a` towards `b`, so `a` took it the other way.
-                this.blow(contacts.a[k]!, contacts.moduleA[k]!, -jx, -jy, x, y);
-                this.blow(contacts.b[k]!, contacts.moduleB[k]!, jx, jy, x, y);
-            }
-        }
-
-        let pieces = this.shatter(world);
-        pieces += this.partCutWelds(world);
-        for (let k = 0; k < this.blows; k++) {
-            this.shakeLoose(world, k);
-            pieces += this.answer(
-                world,
-                this.blowBody[k]!,
-                this.blowModule[k]!,
-                this.blowJx[k]!,
-                this.blowJy[k]!,
-                this.blowX[k]!,
-                this.blowY[k]!,
-            );
-        }
-        this.blows = 0;
-        return pieces;
-    }
-
-    /**
-     * Shatter every module that took more than `SHATTER` times what breaks it
-     * this step: it is gone from its hull, its mass counted as discarded and
-     * broken into debris, and what is left of the hull is split into the parts
-     * still welded together without it, as severing splits one. A hull that was
-     * nothing else goes altogether. Robots rebuild a shattered module as any
-     * module lost. Not for a body more than one ship rides.
-     */
-    private shatter(world: World): number {
-        const damage = this.damage;
-        const bodies = world.bodies;
-        let pieces = 0;
-        // Each body once, with all it lost this step; rare, so allocating here is fine.
-        let lost: Map<number, number[]> | null = null;
-        for (let k = 0; k < damage.stepCount; k++) {
-            const b = damage.stepBody[k]!;
-            const m = damage.stepModule[k]!;
-            const capacity = damage.capacityOf(b, m);
-            if (!(capacity > 0) || damage.stepJoules[k]! < SHATTER * capacity) continue;
-            if (bodies.alive[b] === 0 || (this.shipByBody[b] ?? -1) < 0 || this.pilots[b] != null) continue;
-            lost ??= new Map();
-            const modules = lost.get(b) ?? [];
-            if (!modules.includes(m)) modules.push(m);
-            lost.set(b, modules);
-            // How hard it was struck, and where and which way, for how it is thrown.
-            const struck = damage.stepStruck[k]!;
-            this.shatterBlows.set(
-                blowKey(b, m),
-                struck > 0
-                    ? [damage.stepJoules[k]!, damage.stepX[k]! / struck, damage.stepY[k]! / struck, damage.stepDx[k]!, damage.stepDy[k]!]
-                    : [damage.stepJoules[k]!, 0, 0, 0, 0],
-            );
-        }
-        damage.clearStep();
-        if (lost === null) return 0;
-
-        for (const [b, shattered] of lost) {
-            const i = this.shipByBody[b]!;
-            const design = this.designs[i]!;
-            const gone = new Set(shattered);
-            const parts = components(design, (joint) => {
-                if (gone.has(joint.a) || gone.has(joint.b)) return true;
-                const k = jointBetween(design, joint.a, joint.b);
-                return damage.weldIntegrity(b, k, joint.width) <= 0;
-            }).filter((part) => !part.every((m) => gone.has(m)));
-            if (parts.length > 0) {
-                pieces += this.breakUp(world, i, design, parts, shattered);
-                continue;
-            }
-            // Nothing left of it.
-            for (const m of shattered) this.discardModule(world, i, design, m);
-            this.damage.forget(b);
-            this.fuel.forget(b);
-            this.metal.forget(b);
-            this.power.forget(b);
-            this.robots.forget(b);
-            this.shipByBody[b] = -1;
-            this.remove(i);
-            world.destroy(this.bodyIds[i]!);
-        }
-        this.shatterBlows.clear();
-        return pieces;
-    }
-
-    /**
-     * Break module `m` of ship `i`'s `design`, the hull on body `b`, into debris
-     * over its outline where it lies, in its paint; `hot` if blown apart, and
-     * thrown by the blow that shattered it, if one did, its `mass` taking it.
-     */
-    private breakUpModule(bodies: Bodies, i: number, b: number, design: ShipDesign, m: number, hot: boolean, mass = 0): void {
-        if (!this.debris.watched) return;
-        const outline = this.outline;
-        const corners = moduleOutline(design.modules[m]!.spec, outline);
-        const angle = bodies.angle[b]!;
-        const c = cos(angle);
-        const s = sin(angle);
-        const bx = bodies.x[b]!;
-        const by = bodies.y[b]!;
-        for (let k = 0; k < 2 * corners; k += 2) {
-            const x = outline[k]! - design.centreOfMassX;
-            const y = outline[k + 1]! - design.centreOfMassY;
-            outline[k] = bx + x * c - y * s;
-            outline[k + 1] = by + x * s + y * c;
-        }
-        const kind = design.modules[m]!.spec.kind;
-        const paint = kind === "rock" || kind === "kernel" ? UNPAINTED : this.moduleSide(i, m);
-        // The blow that shattered it, into the world: where it struck, and the way it drove, made a unit.
-        const blow = this.shatterBlows.get(blowKey(b, m));
-        let ix = 0;
-        let iy = 0;
-        let nx = 0;
-        let ny = 0;
-        if (blow !== undefined) {
-            ix = bx + blow[1]! * c - blow[2]! * s;
-            iy = by + blow[1]! * s + blow[2]! * c;
-            const run = length(blow[3]!, blow[4]!);
-            if (run > 0) {
-                nx = (blow[3]! * c - blow[4]! * s) / run;
-                ny = (blow[3]! * s + blow[4]! * c) / run;
-            }
-        }
-        const spin = bodies.angularVel[b]!;
-        this.debris.emit(outline, corners, bodies.vx[b]!, bodies.vy[b]!, spin, bx, by, paint, hot, blow?.[0] ?? 0, mass, ix, iy, nx, ny);
-    }
-
-    /**
-     * Count module `m` of ship `i`, built to `design`, as discarded, with what
-     * it holds and the velocity its place on the hull has, and break it into
-     * debris there.
-     */
-    private discardModule(world: World, i: number, design: ShipDesign, m: number): void {
-        const bodies = world.bodies;
-        const b = bodies.indexOf(this.bodyIds[i]!);
-        const placed = design.modules[m]!;
-        const { stats } = placed;
-        const mass = max(
-            0,
-            stats.mass - (stats.fuel - this.fuel.held(b, m)) - (stats.metal - this.metal.held(b, m)) - this.damage.shedAt(b, m),
-        );
-        const angle = bodies.angle[b]!;
-        const c = cos(angle);
-        const sn = sin(angle);
-        const ox = placed.x * c - placed.y * sn;
-        const oy = placed.x * sn + placed.y * c;
-        const spin = bodies.angularVel[b]!;
-        const x = bodies.x[b]! + ox;
-        const y = bodies.y[b]! + oy;
-        const vx = bodies.vx[b]! - spin * oy;
-        const vy = bodies.vy[b]! + spin * ox;
-        this.discarded += mass;
-        this.discardedPx += mass * vx;
-        this.discardedPy += mass * vy;
-        this.discardedL += mass * (x * vy - y * vx);
-        if (mass > 0) this.breakUpModule(bodies, i, b, design, m, true, mass);
-    }
-
-    /**
-     * Let go of every weld that has been cut through.
-     *
-     * **A cut needs no blow.** Everything else here is a weld failing under a
-     * load, but a weld with none of its section left is not a weak weld: it is
-     * an absent one, and what it was holding is simply no longer attached.
-     *
-     * Walked only for hulls something has cut into since the last look, which
-     * is a version comparison like the engine layout's.
-     */
-    private partCutWelds(world: World): number {
-        const bodies = world.bodies;
-        let pieces = 0;
-        for (let i = 0; i < this.alive.length; i++) {
-            if (this.alive[i] === 0) continue;
-            const b = bodies.indexOf(this.bodyIds[i]!);
-            // A body is walked once, by its primary, however many ships ride it.
-            if (b < 0 || this.shipByBody[b] !== i) continue;
-            const version = this.damage.cutVersion(b);
-            if (this.cutSeen[i] === version) continue;
-            this.cutSeen[i] = version;
-
-            const design = this.designs[i]!;
-            const all = joints(design);
-            let through = false;
-            for (let k = 0; k < all.length; k++) {
-                if (this.damage.weldIntegrity(b, k, all[k]!.width) > 0) continue;
-                through = true;
-                break;
-            }
-            if (!through) continue;
-
-            const parts = components(design, (joint) => {
-                const k = jointBetween(design, joint.a, joint.b);
-                return this.damage.weldIntegrity(b, k, joint.width) <= 0;
-            });
-            if (parts.length < 2) continue;
-            pieces += this.breakUp(world, i, design, parts);
-        }
-        return pieces;
+        return shipBreakup.sever(this, world, contacts);
     }
 
     weld(world: World, contacts: Contacts): number {
@@ -6028,129 +5704,12 @@ export class Ships {
     placeOwner = -1;
     placeHull = -1;
 
-    /**
-     * Stop tracking wreckage that has drifted out of the fight, and say how
-     * many pieces were let go.
-     *
-     * Between "too smashed to be worth harvesting" and "worth hunting down" is
-     * a question about *relevance* rather than size: what matters is whether a
-     * piece could still hit somebody or still be worth going after, and both
-     * depend on how big it is and how far it is from where the fighting is. So
-     * a piece is kept while it is within the battle plus its own reach, and its
-     * reach grows with its mass — a shard goes as soon as it leaves, a tonne of
-     * hull has to clear the fight by kilometres, and a serious chunk never
-     * really leaves at all.
-     *
-     * Small debris goes sooner, wherever it is, once it is in nobody's way
-     * (`loose`).
-     *
-     * Only wreckage. A ship is tracked wherever it goes, because a ship can
-     * come back.
-     */
     cull(world: World): number {
-        const bodies = world.bodies;
-        const area = this.battleArea(bodies);
-        const period = max(1, round(LOOSE_PERIOD / world.dt));
-        const looking = world.tick % period === 0;
-        let dropped = 0;
-
-        for (let i = 0; i < this.alive.length; i++) {
-            if (this.alive[i] === 0 || this.derelict[i] === 0) continue;
-            const b = bodies.indexOf(this.bodyIds[i]!);
-            if (b < 0) continue;
-            const design = this.designs[i]!;
-            const reach = area.radius + (design.mass - SCRAP_MASS) * SALVAGE_REACH;
-            const away = length(bodies.x[b]! - area.x, bodies.y[b]! - area.y) > reach;
-            if (!away && !(looking && this.loose(world, i, b))) continue;
-
-            const mass = bodies.mass[b]!;
-            // A loose piece goes where it can be seen, so it breaks up rather than vanishing.
-            if (!away) for (let m = 0; m < design.modules.length; m++) this.breakUpModule(bodies, i, b, design, m, false);
-            this.discarded += mass;
-            this.discardedPx += mass * bodies.vx[b]!;
-            this.discardedPy += mass * bodies.vy[b]!;
-            this.discardedL +=
-                bodies.inertia[b]! * bodies.angularVel[b]! + mass * (bodies.x[b]! * bodies.vy[b]! - bodies.y[b]! * bodies.vx[b]!);
-            this.damage.forget(b);
-            this.fuel.forget(b);
-            this.metal.forget(b);
-            this.power.forget(b);
-            this.robots.forget(b);
-            this.shipByBody[b] = -1;
-            this.remove(i);
-            world.destroy(this.bodyIds[i]!);
-            dropped++;
-        }
-
-        return dropped;
-    }
-
-    /**
-     * Whether wreck `i`, on body `b`, is small debris in nobody's way: lighter
-     * than `LOOSE_MASS`, loose for `LOOSE_AGE`, nobody's salvage, and with
-     * nothing under control due to pass within `LOOSE_CLEARANCE` of it in the
-     * next `LOOSE_HORIZON`, going as both are. Such a piece will not be gone
-     * after and is not in the way, so it is only scenery. Another wreck does
-     * not keep it: two that meet weld into something heavier.
-     */
-    private loose(world: World, i: number, b: number): boolean {
-        const bodies = world.bodies;
-        if (!(bodies.mass[b]! < LOOSE_MASS) || (world.tick - this.partedAt[i]!) * world.dt < LOOSE_AGE) return false;
-        for (let t = 0; t < this.alive.length; t++) {
-            if (this.alive[t] === 0 || this.derelict[t] === 1) continue;
-            if (this.salvaging[t] === i) return false;
-            if (!this.hasControl(t)) continue;
-            const tb = bodies.indexOf(this.bodyIds[t]!);
-            if (tb < 0 || tb === b) continue;
-            const dx = bodies.x[tb]! - bodies.x[b]!;
-            const dy = bodies.y[tb]! - bodies.y[b]!;
-            const vx = bodies.vx[tb]! - bodies.vx[b]!;
-            const vy = bodies.vy[tb]! - bodies.vy[b]!;
-            const speedSq = vx * vx + vy * vy;
-            const when = speedSq > 0 ? clamp(-(dx * vx + dy * vy) / speedSq, 0, LOOSE_HORIZON) : 0;
-            const clear = bodies.radius[b]! + bodies.radius[tb]! + LOOSE_CLEARANCE;
-            if (length(dx + vx * when, dy + vy * when) < clear) return false;
-        }
-        return true;
-    }
-
-    /**
-     * Where the fighting is and how far it reaches: the ships still in it, and
-     * the distance from the middle of them to the furthest.
-     *
-     * Their centre and their spread rather than the smallest circle that
-     * contains them — the exact answer is either randomised or cubic, and what
-     * this is for is the *scale* of the fight rather than a tight bound. Hulks
-     * count, since a drifting wreck is still somewhere the battle was.
-     */
-    private battleArea(bodies: Bodies): { x: number; y: number; radius: number } {
-        let x = 0;
-        let y = 0;
-        let n = 0;
-        for (let i = 0; i < this.alive.length; i++) {
-            if (this.alive[i] === 0 || this.derelict[i] === 1) continue;
-            const b = bodies.indexOf(this.bodyIds[i]!);
-            if (b < 0) continue;
-            x += bodies.x[b]!;
-            y += bodies.y[b]!;
-            n++;
-        }
-        if (n === 0) return { x: 0, y: 0, radius: Infinity };
-        x /= n;
-        y /= n;
-
-        let radius = MINIMUM_BATTLE_RADIUS;
-        for (let i = 0; i < this.alive.length; i++) {
-            if (this.alive[i] === 0 || this.derelict[i] === 1) continue;
-            const b = bodies.indexOf(this.bodyIds[i]!);
-            if (b < 0) continue;
-            radius = max(radius, length(bodies.x[b]! - x, bodies.y[b]! - y));
-        }
-        return { x, y, radius };
+        return shipBreakup.cull(this, world);
     }
 
     /** The side module `m` of body `b` came from. */
-    private sideAt(b: number, m: number): number {
+    sideAt(b: number, m: number): number {
         const sides = this.sides[b];
         return sides === null || sides === undefined ? this.team[this.shipByBody[b]!]! : sides[m]!;
     }
@@ -6162,7 +5721,7 @@ export class Ships {
     }
 
     /** Each module's side, or null if every one is `team`'s. */
-    private sidesOf(sideOf: (m: number) => number, count: number, team: number): Int32Array | null {
+    sidesOf(sideOf: (m: number) => number, count: number, team: number): Int32Array | null {
         let mixed = false;
         const sides = new Int32Array(count);
         for (let m = 0; m < count; m++) {
@@ -6271,662 +5830,8 @@ export class Ships {
         return i;
     }
 
-    /**
-     * What one blow does to one hull.
-     *
-     * The hull answers the blow as a rigid body would — every module has to
-     * reach the new motion — and a weld's job is to drag whatever hangs off it
-     * along. So the load through a weld is the impulse that has to *cross* it:
-     * the far side's mass by the velocity change at the far side's centre. That
-     * is the whole of why a hit on an outlying module takes it off while the
-     * same hit amidships takes nothing: the wing's root has to carry the ship,
-     * and the ship's middle barely has to carry the wing.
-     *
-     * **A blow is spent as it breaks things.** The worst-loaded weld goes
-     * first, its strength comes off the blow, and what is left goes on to the
-     * next — so a ram tears off as much as it has paid for and a nudge tears
-     * off one thing or nothing. Answering every overloaded weld at once is what
-     * makes a ship shatter rather than break.
-     */
-    private answer(world: World, bodyIndex: number, module: number, jx: number, jy: number, px: number, py: number): number {
-        const bodies = world.bodies;
-        const i = this.shipAt(bodies, bodyIndex);
-        if (i < 0) return 0;
-        const design = this.designs[i]!;
-        if (design.modules.length < 2) return 0;
-        if (module >= design.modules.length) return 0;
-
-        const all = joints(design);
-        const sides = cuts(design);
-        if (all.length === 0) return 0;
-
-        // The hull's response, in its own frame, where its modules live.
-        const angle = bodies.angle[bodyIndex]!;
-        const c = cos(angle);
-        const s = sin(angle);
-        const invMass = bodies.invMass[bodyIndex]!;
-        const invInertia = bodies.invInertia[bodyIndex]!;
-        const rcx = px - bodies.x[bodyIndex]!;
-        const rcy = py - bodies.y[bodyIndex]!;
-        const spin = (rcx * jy - rcy * jx) * invInertia;
-        // Where the blow landed, in the hull's frame, to measure outward from.
-        const hitX = rcx * c + rcy * s;
-        const hitY = -rcx * s + rcy * c;
-        const dvx = jx * invMass * c + jy * invMass * s;
-        const dvy = -(jx * invMass) * s + jy * invMass * c;
-
-        const failed = new Set<Joint>();
-        // What the blow has left to give. Every load is linear in it, so spending
-        // it is one scale over all of them.
-        const delivered = sqrt(jx * jx + jy * jy);
-        let budget = delivered;
-        for (;;) {
-            let worst = -1;
-            let worstLoad = 0;
-            let worstStrength = 0;
-            for (let k = 0; k < all.length; k++) {
-                const joint = all[k]!;
-                if (failed.has(joint)) continue;
-                const cut = sides[k];
-                if (cut === null || cut === undefined) continue;
-                const far = 1 - cut.side[module]!;
-                const mass = cut.mass[far]!;
-                if (!(mass > 0)) continue;
-                // Velocity change where the far side's mass actually is.
-                const fx = dvx - spin * cut.y[far]!;
-                const fy = dvy + spin * cut.x[far]!;
-                // What is left of the shock by the time it reaches this weld.
-                const away = length(joint.x - hitX, joint.y - hitY);
-                const carried = SHOCK_REACH / (SHOCK_REACH + away);
-                const load = (mass * sqrt(fx * fx + fy * fy) * budget * carried) / delivered;
-                const strength = this.weldStrength(bodyIndex, joint, k);
-                if (load <= strength) continue;
-                if (load - strength <= worstLoad - worstStrength) continue;
-                worst = k;
-                worstLoad = load;
-                worstStrength = strength;
-            }
-            if (worst < 0) break;
-            failed.add(all[worst]!);
-            // Tearing a weld costs the blow what the weld was worth.
-            budget -= worstStrength;
-            if (!(budget > 0)) break;
-        }
-        if (failed.size === 0) return 0;
-
-        const parts = components(design, (joint) => failed.has(joint));
-        if (parts.length < 2) return 0;
-        return this.breakUp(world, i, design, parts);
-    }
-
-    /**
-     * Give every piece of a hull that has come apart a body of its own, and say
-     * how many came off. Ship `i` is the body's primary and stays with it.
-     *
-     * With several ships aboard, each goes with the piece it is flown from — its
-     * lowest working core, else its first core — so two ships hooked together
-     * part as the two ships they were. A piece nobody is flown from is wreckage,
-     * or a ship of its own if a working core is on it (`detach`).
-     */
-    private breakUp(world: World, i: number, design: ShipDesign, parts: readonly number[][], shattered: readonly number[] = []): number {
-        const bodies = world.bodies;
-        this.settleShed(bodies);
-        this.momentum(bodies);
-        const beforeX = this.momentumX;
-        const beforeY = this.momentumY;
-        // Counted as discarded before the hull is reshaped without them, so their
-        // momentum is not taken up by what stays.
-        for (const m of shattered) this.discardModule(world, i, design, m);
-        this.parted[i] = 0;
-        const pieces = this.breakApart(world, i, design, parts);
-        // Cut between its cores, it is now the ship flown from the one it kept, as
-        // each piece that flew off is the ship flown from its own.
-        if (this.parted[i] === 1) {
-            const kept = this.designs[i]!;
-            const core =
-                kept.cores.find((c) => this.damage.remaining(bodies.indexOf(this.bodyIds[i]!), c, DamageEffect.Control) > 0) ??
-                kept.cores[0];
-            const name = core === undefined ? null : this.paintAt(bodies.indexOf(this.bodyIds[i]!), core);
-            if (name !== null) this.names[i] = name;
-            this.parted[i] = 0;
-        }
-        // Each piece leaves at the hull's velocity at its own centre of mass, which
-        // conserves momentum only if the hull's mass is where its design put it.
-        // What spending and damage have taken off unevenly says otherwise, so the
-        // piece that stays with the ship takes up the difference.
-        this.momentum(bodies);
-        const b = bodies.indexOf(this.bodyIds[i]!);
-        const mass = bodies.mass[b]!;
-        if (mass > 0) {
-            bodies.vx[b] = bodies.vx[b]! + (beforeX - this.momentumX) / mass;
-            bodies.vy[b] = bodies.vy[b]! + (beforeY - this.momentumY) / mass;
-        }
-        return pieces;
-    }
-
-    /** The world's momentum, with what it has discarded, into `momentumX` and `momentumY`. */
-    momentum(bodies: Bodies): void {
-        let x = this.discardedPx;
-        let y = this.discardedPy;
-        for (let b = 0; b < bodies.highWater; b++) {
-            // A parked fighter's is its carrier's.
-            if (bodies.alive[b] === 0 || this.isParkedBody(b)) continue;
-            x += bodies.mass[b]! * bodies.vx[b]!;
-            y += bodies.mass[b]! * bodies.vy[b]!;
-        }
-        this.momentumX = x;
-        this.momentumY = y;
-    }
-
     momentumX = 0;
     momentumY = 0;
-
-    private breakApart(world: World, i: number, design: ShipDesign, parts: readonly number[][]): number {
-        const bodies = world.bodies;
-        const b = bodies.indexOf(this.bodyIds[i]!);
-        const pilots = this.pilots[b] ?? null;
-        let pieces = 0;
-        if (pilots === null) {
-            const keeper = this.keeperOf(b, design, parts);
-            for (let p = 0; p < parts.length; p++) {
-                if (p === keeper) continue;
-                if (this.detach(world, i, design, parts[p]!)) pieces++;
-            }
-            this.reshape(world, i, design, parts[keeper]!);
-            return pieces;
-        }
-
-        const partOf = new Int32Array(design.modules.length);
-        for (let p = 0; p < parts.length; p++) for (const m of parts[p]!) partOf[m] = p;
-        const riders = this.ridersOf(bodies, b);
-        const home = riders.map((r) => partOf[this.anchorOf(b, design, pilots, r)]!);
-        const keeper = home[riders.indexOf(i)]!;
-        for (let p = 0; p < parts.length; p++) {
-            if (p === keeper) continue;
-            const aboard = riders.filter((_, k) => home[k] === p);
-            if (aboard.length > 0) {
-                this.rehome(world, i, aboard, design, parts[p]!, pilots);
-                pieces++;
-                continue;
-            }
-            // A second core of somebody's, flying on for that ship's side.
-            const core = design.cores.find((c) => partOf[c] === p && this.damage.remaining(b, c, DamageEffect.Control) > 0);
-            const owner = core === undefined ? -1 : pilots[core]!;
-            if (this.detach(world, i, design, parts[p]!, owner >= 0 && this.alive[owner] === 1 ? owner : i)) pieces++;
-        }
-        const staying = riders.filter((_, k) => home[k] === keeper);
-        this.reshape(world, i, design, parts[keeper]!);
-        this.assignPilots(b, i, staying, pilots, parts[keeper]!);
-        return pieces;
-    }
-
-    /** The module ship `r` is flown from: its lowest working core, its first core, or its lowest module. */
-    private anchorOf(b: number, design: ShipDesign, pilots: Int32Array, r: number): number {
-        let first = -1;
-        for (const core of design.cores) {
-            if (pilots[core] !== r) continue;
-            if (this.damage.remaining(b, core, DamageEffect.Control) > 0) return core;
-            if (first < 0) first = core;
-        }
-        if (first >= 0) return first;
-        for (let m = 0; m < pilots.length; m++) if (pilots[m] === r) return m;
-        return 0;
-    }
-
-    /**
-     * Carry who works what over to body `b`, now cut down to `keep`, and put
-     * everyone `aboard` on its primary `p`. One ship alone works all of it.
-     */
-    private assignPilots(b: number, p: number, aboard: readonly number[], was: Int32Array, keep: readonly number[]): void {
-        if (aboard.length < 2) {
-            this.pilots[b] = null;
-            return;
-        }
-        const pilots = new Int32Array(keep.length);
-        for (let k = 0; k < keep.length; k++) {
-            const owner = was[keep[k]!]!;
-            pilots[k] = aboard.includes(owner) ? owner : -1;
-        }
-        this.pilots[b] = pilots;
-        for (const r of aboard) if (r !== p) this.board(r, p);
-    }
-
-    /**
-     * Move the ships `aboard` onto a new body made of the modules `keep` of the
-     * body `from` is primary of — a ship parting from the one it was hooked to,
-     * leaving as a rigid split does (`detach`) and taking its own orders and
-     * mount state with it.
-     */
-    private rehome(
-        world: World,
-        from: number,
-        aboard: readonly number[],
-        was: ShipDesign,
-        keep: readonly number[],
-        pilots: Int32Array,
-    ): void {
-        const bodies = world.bodies;
-        const b = bodies.indexOf(this.bodyIds[from]!);
-        const chunk = subDesign(was, keep);
-        const offset = this.offsetOf(bodies, b, was, chunk);
-        const spin = bodies.angularVel[b]!;
-        const id = world.spawn({
-            x: bodies.x[b]! + offset.x,
-            y: bodies.y[b]! + offset.y,
-            angle: bodies.angle[b]!,
-            vx: bodies.vx[b]! - spin * offset.y,
-            vy: bodies.vy[b]! + spin * offset.x,
-            angularVel: spin,
-            mass: chunk.mass,
-            inertia: chunk.inertia,
-            radius: chunk.radius,
-        });
-        const nb = bodies.indexOf(id);
-        const p = aboard[0]!;
-        this.hullBody[nb] = id;
-        // Read from `from`, which still holds the old body and its mounts; those are
-        // released when it is reshaped.
-        this.adopt(
-            p,
-            nb,
-            chunk,
-            () => from,
-            (m) => keep[m]!,
-            false,
-        );
-        this.bodyIds[p] = id;
-        this.shipByBody[nb] = p;
-        for (const r of aboard) this.partedAt[r] = world.tick;
-        this.assignPilots(nb, p, aboard, pilots, keep);
-    }
-
-    /**
-     * Which piece of a hull that has just come apart goes on being the ship,
-     * as an index into `parts`.
-     *
-     * **The piece holding the lowest-numbered working core.** A ship is flown
-     * from its cores, so that is where everything that belongs to the ship
-     * rather than to its shape stays: its orders, its side, and what its guns
-     * were doing. Lowest-numbered and not largest, for the reason the layout
-     * rule anchors on the first core — the size of a piece says nothing about
-     * which of them is still a ship, and an index gives the same answer every
-     * time the same battle is run.
-     *
-     * Every *other* piece with a working core of its own becomes a ship too;
-     * this only decides which of them is the one that was already there. A hull
-     * with no working core left keeps the piece holding its first core, or its
-     * lowest module if it has no core at all — a chunk coming apart further.
-     * Both are wreckage whichever piece is chosen, so what this settles for them
-     * is merely which body goes on being tracked. An asteroid keeps the piece
-     * holding its kernel, which is the one its rail pins in place; rock knocked
-     * off it goes free.
-     */
-    private keeperOf(bodyIndex: number, design: ShipDesign, parts: readonly number[][]): number {
-        const partOf = new Map<number, number>();
-        for (let p = 0; p < parts.length; p++) {
-            for (const module of parts[p]!) partOf.set(module, p);
-        }
-        for (let m = 0; m < design.modules.length; m++) {
-            if (design.modules[m]!.spec.kind === "kernel") return partOf.get(m) ?? 0;
-        }
-        let fallback = -1;
-        // `cores` is in module order, so the first one that works wins and the
-        // first one at all is the fallback.
-        for (const core of design.cores) {
-            const p = partOf.get(core);
-            if (p === undefined) continue;
-            if (fallback < 0) fallback = p;
-            if (this.damage.remaining(bodyIndex, core, DamageEffect.Control) > 0) return p;
-        }
-        return fallback < 0 ? 0 : fallback;
-    }
-
-    /**
-     * What a weld can still carry, newton-seconds.
-     *
-     * A weld is only as good as the metal at its ends, so damage to either
-     * module takes it down — but never to nothing: **wreckage is still metal,
-     * and still holds, badly.** Without that floor a hull whose middle had been
-     * shot out would shed everything at the first nudge, which is the failure
-     * this model exists to avoid.
-     */
-    private weldStrength(bodyIndex: number, joint: Joint, index: number): number {
-        const metal = min(this.damage.integrity(bodyIndex, joint.a), this.damage.integrity(bodyIndex, joint.b));
-        // What is left of the section, which no amount of sound metal at its ends
-        // can make up for: a weld cut through is not a weak weld but an absent one.
-        const section = this.damage.weldIntegrity(bodyIndex, index, joint.width);
-        return joint.strength * section * (WRECK_STRENGTH + (1 - WRECK_STRENGTH) * metal);
-    }
-
-    /**
-     * Put a piece of a ship into the world as a body of its own.
-     *
-     * It leaves with the velocity the point it broke off at already had —
-     * `v + ω × r` — and the hull's spin, which is what a rigid split conserves:
-     * no impulse is invented, so the momentum and the angular momentum of the
-     * pieces together are the ones the whole hull had a moment earlier.
-     *
-     * **A piece with a working core leaves as a ship**, not as wreckage: it is
-     * flown, it shoots, it keeps the side it was on, and it works through a copy
-     * of the plan the ship was given, because the core it is flown from was given
-     * that plan too. Everything else comes away as a piece of hull with nothing
-     * controlling it. This is what a second core buys — a hull cut in two amidships
-     * becomes two ships rather than a ship and a wreck.
-     */
-    private detach(world: World, i: number, design: ShipDesign, keep: readonly number[], side = i): boolean {
-        const bodies = world.bodies;
-        const b = bodies.indexOf(this.bodyIds[i]!);
-        const chunk = subDesign(design, keep);
-        const offset = this.offsetOf(bodies, b, design, chunk);
-        const spin = bodies.angularVel[b]!;
-        // Asked of the hull it is still part of, since that is where the damage
-        // to these modules is recorded.
-        const flies = chunk.cores.some((core) => this.damage.remaining(b, keep[core]!, DamageEffect.Control) > 0);
-        // Scrap never reaches the world, so nothing the eye was following ever
-        // vanishes: a piece this small is not created rather than removed. A piece
-        // that still flies is not scrap at whatever mass — it is a ship, and the
-        // smallest ship in the game weighs less than this.
-        let mass = chunk.mass;
-        for (let m = 0; m < keep.length; m++) {
-            const { stats } = chunk.modules[m]!;
-            mass -= stats.fuel - this.fuel.held(b, keep[m]!) + stats.metal - this.metal.held(b, keep[m]!);
-            mass -= this.damage.shedAt(b, keep[m]!);
-        }
-        if (!flies && mass < SCRAP_MASS) {
-            this.discarded += mass;
-            // Whatever it would have left with, had it been worth putting there.
-            const vx = bodies.vx[b]! - spin * offset.y;
-            const vy = bodies.vy[b]! + spin * offset.x;
-            // Seen to break up rather than vanish.
-            if (mass > 0) for (const m of keep) this.breakUpModule(bodies, i, b, design, m, true);
-            this.discardedPx += mass * vx;
-            this.discardedPy += mass * vy;
-            // Its inertia taken as its full design's, scaled to what it weighs.
-            this.discardedL +=
-                ((chunk.inertia * mass) / chunk.mass) * spin + mass * ((bodies.x[b]! + offset.x) * vy - (bodies.y[b]! + offset.y) * vx);
-            return false;
-        }
-
-        const j = this.spawn(world, {
-            design: chunk,
-            x: bodies.x[b]! + offset.x,
-            y: bodies.y[b]! + offset.y,
-            angle: bodies.angle[b]!,
-            vx: bodies.vx[b]! - spin * offset.y,
-            vy: bodies.vy[b]! + spin * offset.x,
-            angularVel: spin,
-            team: this.team[side]!,
-            serial: this.serial[side]!,
-        });
-        this.partedAt[j] = world.tick;
-        this.couldFight[j] = this.couldFight[side]!;
-        if (flies) {
-            this.orders[j] = this.orders[side]!.map((order) => ({ ...order }));
-            // And what it was told of how to fight.
-            this.overrides[j] = this.overrides[side];
-            this.keeps[j] = this.keeps[side];
-            this.crafts[j] = this.crafts[side];
-            this.doctrines[j] = overriddenDoctrine(this.ownDoctrines[j]!, this.overrides[j]);
-            // Still that ship, so it rebuilds to the design that ship set out as: a
-            // hull cut in two can grow back into two. Wreckage sets out as itself.
-            this.launched[j] = this.launched[side]!;
-            // Named for the core it is flown from, by what is painted on it.
-            const core = chunk.cores.find((c) => this.damage.remaining(b, keep[c]!, DamageEffect.Control) > 0);
-            const name = core === undefined ? null : this.paintAt(b, keep[core]!);
-            if (name !== null) {
-                this.names[j] = name;
-                if (side === i) this.parted[i] = 1;
-            }
-        } else {
-            this.derelict[j] = 1;
-        }
-
-        // Its mounts keep pointing and slewing as they were rather than starting
-        // at rest; with nothing to fly it, a fail-safe then brakes them where
-        // they point.
-        const from = this.turretIndex[i]!;
-        const to = this.turretIndex[j]!;
-        chunk.turrets.forEach((mount, t) => {
-            const before = design.turrets.findIndex((m) => m.module === keep[mount.module]);
-            if (before >= 0) this.turrets.carry(from[before]!, to[t]!, 0);
-        });
-
-        const chunkBody = bodies.indexOf(this.bodyIds[j]!);
-        this.damage.register(
-            chunkBody,
-            chunk,
-            this.scarsOf(b, keep),
-            this.weldScarsOf(b, design, chunk, keep),
-            keep.map((m) => this.damage.unbuiltAt(b, m)),
-            keep.map((m) => this.damage.scars.carriedAt(b, m)),
-        );
-        this.fuel.register(
-            chunkBody,
-            chunk,
-            keep.map((m) => this.fuel.held(b, m)),
-            this.leaksInto(keep.length, (m) => ({ body: b, module: keep[m]! })),
-        );
-        this.metal.register(
-            chunkBody,
-            chunk,
-            keep.map((m) => this.metal.held(b, m)),
-        );
-        this.power.register(
-            chunkBody,
-            chunk,
-            keep.map((m) => this.power.held(b, m)),
-        );
-        const kept = new Int32Array(design.modules.length).fill(-1);
-        for (let k = 0; k < keep.length; k++) kept[keep[k]!] = k;
-        const madeBefore = this.robots.buildingOn(b);
-        this.robots.register(
-            chunkBody,
-            chunk,
-            this.robots.take(b, (m) => kept[m] ?? -1),
-            (m) => madeBefore?.[keep[m]!] ?? [],
-        );
-        this.settleMass(bodies, chunkBody);
-        this.shipByBody[chunkBody] = j;
-        this.sides[chunkBody] = this.sidesOf((m) => this.sideAt(b, keep[m]!), keep.length, this.team[j]!);
-        this.paint[chunkBody] = keep.map((m) => this.paintAt(b, m));
-        return true;
-    }
-
-    /**
-     * Cut a ship down to the piece it is flown from, in place.
-     *
-     * Everything derived from the layout is derived again, because the layout
-     * is what changed: mass and inertia, the centre of mass the body turns
-     * about, the engine matrix, the mounts and their arcs. What is carried
-     * over is state that belongs to the ship rather than to its shape — its
-     * orders, its gun timers, where its surviving turrets were pointing, and
-     * what each remaining module had already taken.
-     */
-    private reshape(world: World, i: number, was: ShipDesign, keep: readonly number[]): void {
-        const bodies = world.bodies;
-        this.settleShed(bodies);
-        const id = this.bodyIds[i]!;
-        const b = bodies.indexOf(id);
-        const design = subDesign(was, keep);
-        const offset = this.offsetOf(bodies, b, was, design);
-        const spin = bodies.angularVel[b]!;
-
-        bodies.x[b] = bodies.x[b]! + offset.x;
-        bodies.y[b] = bodies.y[b]! + offset.y;
-        bodies.vx[b] = bodies.vx[b]! - spin * offset.y;
-        bodies.vy[b] = bodies.vy[b]! + spin * offset.x;
-        bodies.setMass(id, design.mass);
-        bodies.setInertia(id, design.inertia);
-        bodies.radius[b] = design.radius;
-
-        this.partedAt[i] = world.tick;
-        this.adopt(
-            i,
-            b,
-            design,
-            () => i,
-            (m) => keep[m]!,
-        );
-    }
-
-    /**
-     * Make a ship's body carry a new design in place, keeping whatever belongs to
-     * the ship rather than its shape: each module's scars, each weld's cuts, and
-     * each surviving mount's state. `shipOf` and `moduleOf` say which ship and
-     * which of its modules each module of the new design was; a core new to the
-     * hull is painted by `builder`.
-     */
-    adopt(
-        i: number,
-        b: number,
-        design: ShipDesign,
-        shipOf: (module: number) => number,
-        moduleOf: (module: number) => number,
-        release = true,
-        keepRobots = false,
-        builder = i,
-    ): void {
-        const bodies = this.bodyStore!;
-        const bodyOf = (ship: number): number => bodies.indexOf(this.bodyIds[ship]!);
-        // The claw it is moored by, where it went in the new layout: -1 if it went with a piece cut away.
-        let claw = this.mooredClaw[i]!;
-        if (claw >= 0) {
-            let at = -1;
-            for (let m = 0; m < design.modules.length && at < 0; m++) if (shipOf(m) === i && moduleOf(m) === claw) at = m;
-            claw = at;
-        }
-        // A module new to the hull (`moduleOf` -1) is its builder's, empty and unhurt.
-        const sides = this.sidesOf(
-            (m) => (moduleOf(m) < 0 ? this.team[i]! : this.sideAt(bodyOf(shipOf(m)), moduleOf(m))),
-            design.modules.length,
-            this.team[i]!,
-        );
-        const paint = design.modules.map((_, m) => {
-            const was = moduleOf(m);
-            return (was < 0 ? null : this.paintAt(bodyOf(shipOf(m)), was)) ?? this.painted(builder, design, m);
-        });
-        const scars: number[] = [];
-        const fuel: number[] = [];
-        const metal: number[] = [];
-        const charge: number[] = [];
-        const unbuilt: number[] = [];
-        const marks: (Float64Array | null)[] = [];
-        for (let m = 0; m < design.modules.length; m++) {
-            const from = bodyOf(shipOf(m));
-            const was = moduleOf(m);
-            marks.push(was < 0 ? null : this.damage.scars.carriedAt(from, was));
-            scars.push(was < 0 ? 0 : this.damage.absorbedAt(from, was));
-            fuel.push(was < 0 ? 0 : this.fuel.held(from, was));
-            metal.push(was < 0 ? 0 : this.metal.held(from, was));
-            charge.push(was < 0 ? 0 : this.power.held(from, was));
-            unbuilt.push(was < 0 ? 0 : this.damage.unbuiltAt(from, was));
-        }
-        // A weld half sawn through stays half sawn through; a seam is new.
-        const weldScars: number[] = [];
-        for (const joint of joints(design)) {
-            const ship = shipOf(joint.a);
-            if (shipOf(joint.b) !== ship || moduleOf(joint.a) < 0 || moduleOf(joint.b) < 0) {
-                weldScars.push(0);
-                continue;
-            }
-            const k = jointBetween(this.designs[ship]!, moduleOf(joint.a), moduleOf(joint.b));
-            weldScars.push(this.damage.cutAt(bodyOf(ship), k));
-        }
-
-        // Mounts are added before the old ones go, so that a freed slot cannot be
-        // handed straight back out and leave two turrets sharing an index.
-        const indices = new Int32Array(design.turrets.length);
-        const cooldown = new Float64Array(design.turrets.length);
-        const states = new Uint8Array(design.turrets.length);
-        const barrels = new Int32Array(design.turrets.length);
-        const targets = new Int32Array(design.turrets.length).fill(NO_TARGET);
-        const aiming = new Int32Array(design.turrets.length).fill(NO_TARGET);
-        const aims = new Int32Array(design.turrets.length).fill(WHOLE_SHIP);
-        const schedule = new Float64Array(design.turrets.length);
-        const specs = sides === null ? [] : design.modules.map((m) => m.spec);
-        for (let t = 0; t < design.turrets.length; t++) {
-            const mount = design.turrets[t]!;
-            // Two sides on one body: the other side's modules are not this mount's
-            // own ship downrange but something to shoot at.
-            const mask =
-                sides === null
-                    ? (mount.mount.mask ?? [])
-                    : triggerMask(
-                          specs,
-                          mount.module,
-                          (_spec, k) => sides[k] === sides[mount.module] && (mount.hullLayer || design.modules[k]!.weaponsLayer),
-                          shotSpread(mount.gun),
-                      );
-            const index = this.turrets.add({ ...mount.mount, mask, owner: b });
-            indices[t] = index;
-            // Which mount this was, by the module it sits on.
-            const ship = shipOf(mount.module);
-            const module = moduleOf(mount.module);
-            const was = this.designs[ship]!;
-            let before = -1;
-            for (let k = 0; module >= 0 && k < was.turrets.length; k++) {
-                if (was.turrets[k]!.module === module) before = k;
-            }
-            if (before < 0) continue;
-            // Pointing and slewing as it was, turned into this hull's frame: a ship
-            // merged in was flying a heading of its own.
-            const turn = bodies.angle[bodyOf(ship)]! - bodies.angle[b]!;
-            this.turrets.carry(this.turretIndex[ship]![before]!, index, turn);
-            cooldown[t] = this.cooldown[ship]![before]!;
-            states[t] = this.turretStates[ship]![before]!;
-            barrels[t] = this.nextBarrelToFire[ship]![before]!;
-            targets[t] = this.turretTarget[ship]![before]!;
-            // Not what it was aiming at: a weld lands between aiming and firing, so
-            // it holds fire until the next `command` has aimed it from the new hull.
-            aims[t] = this.turretAimModule[ship]![before]!;
-            schedule[t] = this.turretRethinkAt[ship]![before]!;
-        }
-        if (release) {
-            const old = this.turretIndex[i]!;
-            for (let t = 0; t < old.length; t++) this.turrets.remove(old[t]!);
-        }
-
-        this.designs[i] = design;
-        this.hullDesign[b] = design;
-        this.sides[b] = sides;
-        this.paint[b] = paint;
-        this.turretIndex[i] = fixed(indices);
-        this.cooldown[i] = cooldown;
-        this.turretStates[i] = states;
-        this.nextBarrelToFire[i] = barrels;
-        this.turretTarget[i] = targets;
-        this.turretAiming[i] = aiming;
-        this.turretAimModule[i] = aims;
-        this.turretRethinkAt[i] = schedule;
-        this.throttles[i] = new Float64Array(design.engines.length);
-        this.lit[i] = new Uint8Array(design.engines.length);
-        this.landed[i] = new Float64Array(landedLength(design));
-        this.layouts[i] = null;
-        this.layoutVersion[i] = -1;
-        this.damage.register(b, design, scars, weldScars, unbuilt, marks);
-        const leaks = this.leaksInto(design.modules.length, (m) => ({ body: bodyOf(shipOf(m)), module: moduleOf(m) }));
-        this.fuel.register(b, design, fuel, leaks);
-        this.metal.register(b, design, metal);
-        this.power.register(b, design, charge);
-        // Grown in place, every robot is where it was and about what it was about.
-        // The robots each bay was building, wherever the bay came from.
-        const made = (m: number): readonly number[] => {
-            const was = moduleOf(m);
-            return was < 0 ? [] : (this.robots.buildingOn(bodyOf(shipOf(m)))?.[was] ?? []);
-        };
-        this.robots.register(
-            b,
-            design,
-            keepRobots ? (this.robots.on(b) ?? []) : this.robotsInto(design.modules.length, bodyOf, shipOf, moduleOf),
-            made,
-        );
-        this.settleMass(bodies, b);
-        this.cutSeen[i] = this.damage.cutVersion(b);
-        if (this.mooredClaw[i]! >= 0) {
-            if (claw >= 0) this.mooredClaw[i] = claw;
-            else this.unpark(bodies, i, this.now);
-        }
-    }
 
     /**
      * Draw what this ship's engines burned this step from its tanks, and throttle
@@ -6960,7 +5865,7 @@ export class Ships {
                 short = true;
             }
         }
-        if (burned) this.settleMass(bodies, b);
+        if (burned) shipBreakup.settleMass(this, bodies, b);
         if (!short) return;
 
         // What the engines that ran short actually push with.
@@ -7021,158 +5926,14 @@ export class Ships {
             fy += py;
             torque += hx * py - hy * px;
         }
-        if (vented) this.settleMass(bodies, b);
+        if (vented) shipBreakup.settleMass(this, bodies, b);
         this.leakFx[i] = fx;
         this.leakFy[i] = fy;
         this.leakTorque[i] = torque;
     }
 
-    /**
-     * Every robot that comes over to a new design from the bodies its modules
-     * were on, renumbered by where each module went.
-     */
-    private robotsInto(
-        n: number,
-        bodyOf: (ship: number) => number,
-        shipOf: (module: number) => number,
-        moduleOf: (module: number) => number,
-    ): Robot[] {
-        const out: Robot[] = [];
-        const sources: number[] = [];
-        for (let m = 0; m < n; m++) {
-            const body = bodyOf(shipOf(m));
-            if (!sources.includes(body)) sources.push(body);
-        }
-        for (const body of sources) {
-            const into = new Map<number, number>();
-            for (let m = 0; m < n; m++) if (bodyOf(shipOf(m)) === body) into.set(moduleOf(m), m);
-            for (const robot of this.robots.take(body, (m) => into.get(m) ?? -1)) out.push(robot);
-        }
-        return out;
-    }
-
-    /** Every hole in a body that comes over to a new design, renumbered by where each module went. */
-    private leaksInto(n: number, from: (module: number) => { body: number; module: number }): Leak[] {
-        const out: Leak[] = [];
-        for (let m = 0; m < n; m++) {
-            const { body, module } = from(m);
-            for (const leak of this.fuel.leaksOf(body)) if (leak.module === module) out.push({ ...leak, module: m });
-        }
-        return out;
-    }
-
-    /**
-     * A body's mass and inertia: its design's, less the fuel and metal spent
-     * from it and what damage has shed, and with every fighter parked on it.
-     * Its centre of mass stays put.
-     */
-    settleMass(bodies: Bodies, b: number): void {
-        const design = this.hullDesign[b];
-        // Something nothing moves stays that way.
-        if (design === null || design === undefined || !(bodies.mass[b]! > 0)) return;
-        const id = this.hullBody[b]!;
-        let parkedMass = 0;
-        let parkedInertia = 0;
-        for (let k = 0; k < this.parkedShips.length; k++) {
-            const f = this.parkedShips[k]!;
-            const fb = bodies.indexOf(this.bodyIds[f]!);
-            if (fb < 0 || bodies.indexOf(this.bodyIds[this.parkedOn[f]!]!) !== b) continue;
-            const dx = bodies.x[fb]! - bodies.x[b]!;
-            const dy = bodies.y[fb]! - bodies.y[b]!;
-            this.parkedMass[f] = bodies.mass[fb]!;
-            parkedMass += bodies.mass[fb]!;
-            parkedInertia += bodies.inertia[fb]! + bodies.mass[fb]! * (dx * dx + dy * dy);
-        }
-        bodies.setMass(
-            id,
-            parkedMass +
-                design.mass -
-                this.fuel.spentMass(b) -
-                this.metal.spentMass(b) -
-                this.damage.shedMass(b) -
-                this.robots.missingMass(b) -
-                this.damage.unbuiltMass(b) +
-                this.robots.cargoMass(b),
-        );
-        bodies.setInertia(
-            id,
-            parkedInertia +
-                design.inertia -
-                this.fuel.spentInertia(b) -
-                this.metal.spentInertia(b) -
-                this.damage.shedInertia(b) -
-                this.robots.missingInertia(b) -
-                this.damage.unbuiltInertia(b),
-        );
-    }
-
-    /**
-     * Settle every hull damage has shed mass from since last asked, counting
-     * what it shed as discarded: it left at the hull's own speed, so the books
-     * still balance. Done before anything reads a hull's mass to remake it.
-     */
-    settleShed(bodies: Bodies): void {
-        this.bodyStore = bodies;
-        this.damage.takeUnsettled(this);
-    }
-
-    /** Damage's call back, for `settleShed`. */
     settleShedOf(b: number): void {
-        const bodies = this.bodyStore!;
-        const mass = bodies.mass[b]!;
-        const inertia = bodies.inertia[b]!;
-        this.settleMass(bodies, b);
-        this.discardFrom(bodies, b, mass, inertia);
-    }
-
-    /**
-     * Count as discarded what body `b` lost since it weighed `mass` and turned
-     * with `inertia`: it left at the body's own speed, so the books still
-     * balance. Nothing, for a body nothing moves.
-     */
-    discardFrom(bodies: Bodies, b: number, mass: number, inertia: number): void {
-        const kg = mass - bodies.mass[b]!;
-        this.discarded += kg;
-        this.discardedPx += kg * bodies.vx[b]!;
-        this.discardedPy += kg * bodies.vy[b]!;
-        // Its share of the hull's turning, and of the hull's motion about the origin.
-        this.discardedL +=
-            (inertia - bodies.inertia[b]!) * bodies.angularVel[b]! + kg * (bodies.x[b]! * bodies.vy[b]! - bodies.y[b]! * bodies.vx[b]!);
-    }
-
-    /** What each kept module has already absorbed, in the new design's order. */
-    private scarsOf(bodyIndex: number, keep: readonly number[]): number[] {
-        const scars: number[] = [];
-        for (let k = 0; k < keep.length; k++) scars.push(this.damage.absorbedAt(bodyIndex, keep[k]!));
-        return scars;
-    }
-
-    /**
-     * What has already been cut out of each weld the piece keeps, in the new
-     * design's joint order — a weld half sawn through stays half sawn through.
-     */
-    private weldScarsOf(bodyIndex: number, was: ShipDesign, piece: ShipDesign, keep: readonly number[]): number[] {
-        const scars: number[] = [];
-        for (const joint of joints(piece)) {
-            scars.push(this.damage.cutAt(bodyIndex, jointBetween(was, keep[joint.a]!, keep[joint.b]!)));
-        }
-        return scars;
-    }
-
-    /**
-     * Where a piece's centre of mass sits relative to the whole hull's, world
-     * frame — the arm its share of the spin acts through.
-     */
-    offsetOf(bodies: Bodies, b: number, was: ShipDesign, piece: ShipDesign): { x: number; y: number } {
-        // Both centres are measured in the blueprint's frame, which is the body's
-        // frame shifted rather than turned, so the difference needs only the
-        // hull's angle to reach the world.
-        const dx = piece.centreOfMassX - was.centreOfMassX;
-        const dy = piece.centreOfMassY - was.centreOfMassY;
-        const angle = bodies.angle[b]!;
-        const c = cos(angle);
-        const s = sin(angle);
-        return { x: dx * c - dy * s, y: dx * s + dy * c };
+        shipBreakup.settleShedOf(this, b);
     }
 
     /** With no working core, every engine cuts out and every turret brakes to a stop. */
@@ -7793,7 +6554,7 @@ export class Ships {
         this.parkedOn[f] = c;
         this.parkedPad[f] = l;
         this.parkedShips.push(f);
-        this.settleMass(bodies, cb);
+        shipBreakup.settleMass(this, bodies, cb);
         if (moves) bodies.angularVel[cb] = spin / bodies.inertia[cb]!;
         this.pin(bodies, f);
         return true;
@@ -7814,7 +6575,7 @@ export class Ships {
         this.mooredClaw[f] = -1;
         this.partedAt[f] = tick;
         if (cb < 0) return;
-        this.settleMass(bodies, cb);
+        shipBreakup.settleMass(this, bodies, cb);
         if (fb < 0) return;
         // Counted at the carrier's middle while parked, it was going round it as well.
         const share = bodies.mass[fb]! / movable(bodies.mass[cb]!);
@@ -7855,7 +6616,7 @@ export class Ships {
         bodies.vy[fb] = bodies.vy[cb]! + spin * rx;
         bodies.angularVel[fb] = spin;
         // Its weight changes as it is filled, mended and shot at.
-        if (bodies.mass[fb] !== this.parkedMass[f]) this.settleMass(bodies, cb);
+        if (bodies.mass[fb] !== this.parkedMass[f]) shipBreakup.settleMass(this, bodies, cb);
     }
 
     /**
@@ -7887,7 +6648,7 @@ export class Ships {
         this.parkedPad[f] = -1;
         this.mooredClaw[f] = claw;
         this.parkedShips.push(f);
-        this.settleMass(bodies, cb);
+        shipBreakup.settleMass(this, bodies, cb);
         if (moves) bodies.angularVel[cb] = spin / bodies.inertia[cb]!;
         this.pinMoored(bodies, f);
     }
@@ -8014,7 +6775,7 @@ export class Ships {
         bodies.vx[fb] = bodies.vx[cb]! - spin * ry;
         bodies.vy[fb] = bodies.vy[cb]! + spin * rx;
         bodies.angularVel[fb] = spin;
-        if (bodies.mass[fb] !== this.parkedMass[f]) this.settleMass(bodies, cb);
+        if (bodies.mass[fb] !== this.parkedMass[f]) shipBreakup.settleMass(this, bodies, cb);
     }
 
     /** Whether ship `i` is moored to an asteroid by its claw. */
@@ -8118,8 +6879,8 @@ export class Ships {
         this.power.drain(fb, claw, fuel * CLAW_HEAT_ENERGY);
         this.damage.unfit(cb, held, fuel / ice);
         this.fuel.add(fb, claw, fuel);
-        this.settleMass(bodies, cb);
-        this.settleMass(bodies, fb);
+        shipBreakup.settleMass(this, bodies, cb);
+        shipBreakup.settleMass(this, bodies, fb);
         return true;
     }
 
@@ -8128,7 +6889,7 @@ export class Ships {
      * one landing on it harder than its claw holds, the shock spent with
      * distance as it is through a weld, the rest of it then the ship's own.
      */
-    private shakeLoose(world: World, k: number): boolean {
+    shakeLoose(world: World, k: number): boolean {
         const bodies = world.bodies;
         const fb = this.blowBody[k]!;
         const f = this.shipByBody[fb];
@@ -8740,7 +7501,8 @@ export class Ships {
             return { design: to, module: k };
         });
         if (kept === 0) return `${to.name} keeps nothing of this ship to build the rest against`;
-        this.adopt(
+        shipBreakup.adopt(
+            this,
             p,
             b,
             remarkedDesign(design, origins),
@@ -8917,9 +7679,9 @@ export class Ships {
         const mass = bodies.mass[b]!;
         const inertia = bodies.inertia[b]!;
         shipSupply.took(this, Resource.Metal, b, slipway, Claim.Slipway, this.metal.drain(b, slipway, cost));
-        this.settleMass(bodies, b);
+        shipBreakup.settleMass(this, bodies, b);
         // What it wasted left at the hull's speed.
-        this.discardFrom(bodies, b, mass, inertia);
+        shipBreakup.discardFrom(this, bodies, b, mass, inertia);
     }
 
     /**
@@ -8985,7 +7747,7 @@ export class Ships {
             shipSupply.took(this, Resource.Metal, b, slipway, Claim.Slipway, this.metal.drain(b, slipway, put * waste));
             shipSupply.took(this, Resource.Charge, b, slipway, Claim.Slipway, this.power.drain(b, slipway, put * perKg));
         } else {
-            this.settleShed(bodies);
+            shipBreakup.settleShed(this, bodies);
             const work = repairWork(stats);
             const most = joules / work;
             const charge = shipSupply.allowed(this, Resource.Charge, b, slipway, Claim.Slipway, most * work * REPAIR_ENERGY_PER_JOULE);
@@ -9007,8 +7769,8 @@ export class Ships {
                 this.power.drain(b, slipway, undone * work * REPAIR_ENERGY_PER_JOULE),
             );
         }
-        this.settleMass(bodies, b);
-        this.discardFrom(bodies, b, mass, inertia);
+        shipBreakup.settleMass(this, bodies, b);
+        shipBreakup.discardFrom(this, bodies, b, mass, inertia);
         return true;
     }
 
@@ -9148,7 +7910,7 @@ export class Ships {
         for (let m = n; m < next.modules.length; m++) {
             for (let k = 0; k < n; k++) if (modulesOverlap(next.modules[k]!.spec, next.modules[m]!.spec)) return false;
         }
-        const offset = this.offsetOf(bodies, b, was, next);
+        const offset = shipBreakup.offsetOf(bodies, b, was, next);
         const x = bodies.x[b]! + offset.x;
         const y = bodies.y[b]! + offset.y;
         for (let j = 0; j < bodies.highWater; j++) {
@@ -9160,7 +7922,7 @@ export class Ships {
             }
         }
 
-        this.momentum(bodies);
+        shipBreakup.momentum(this, bodies);
         const beforeX = this.momentumX;
         const beforeY = this.momentumY;
         const id = this.bodyIds[p]!;
@@ -9175,7 +7937,7 @@ export class Ships {
         const pilots = this.pilots[b];
         const now = new Int32Array(next.modules.length);
         for (let m = 0; m < now.length; m++) now[m] = m < n ? (pilots?.[keep[m]!] ?? p) : f;
-        this.adopt(p, b, next, () => p, moduleOf, true, false, f);
+        shipBreakup.adopt(this, p, b, next, () => p, moduleOf, true, false, f);
         this.pilots[b] = now;
         for (const r of this.ridersOf(bodies, b)) if (r !== p) this.board(r, p);
         // A module just whole has its walls, and is waiting on its fittings.
@@ -9185,8 +7947,8 @@ export class Ships {
                 this.damage.unfit(b, m, fittingOf(craft.modules[print.modules[m - n]!]!.stats));
             }
         }
-        this.settleMass(bodies, b);
-        this.momentum(bodies);
+        shipBreakup.settleMass(this, bodies, b);
+        shipBreakup.momentum(this, bodies);
         bodies.vx[b] = bodies.vx[b]! + (beforeX - this.momentumX) / movable(bodies.mass[b]!);
         bodies.vy[b] = bodies.vy[b]! + (beforeY - this.momentumY) / movable(bodies.mass[b]!);
         return true;
@@ -9279,7 +8041,7 @@ export class Ships {
         const mass = bodies.mass[b]!;
         const inertia = bodies.inertia[b]!;
         shipSupply.took(this, Resource.Metal, b, pad, Claim.Pads, this.metal.drain(b, pad, cost));
-        this.settleMass(bodies, b);
+        shipBreakup.settleMass(this, bodies, b);
         const angle = bodies.angle[b]!;
         const c = cos(angle);
         const s = sin(angle);
@@ -9305,7 +8067,7 @@ export class Ships {
         this.home[f] = i;
         brood.fighters[k]!.push(f);
         // What it wasted left at the hull's speed.
-        this.discardFrom(bodies, bodies.indexOf(this.bodyIds[i]!), mass, inertia);
+        shipBreakup.discardFrom(this, bodies, bodies.indexOf(this.bodyIds[i]!), mass, inertia);
     }
 
     /** Whether fighter `i`, being built on body `b` of design `design`, has every module its design has, whole and fitted. */

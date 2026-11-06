@@ -23,6 +23,7 @@ import * as shipRobotViews from "./shipRobotViews.js";
 import { type Ships, ROBOT_SPENT, workforce, originTier, repairTier } from "./ships.js";
 import * as shipRebuild from "./shipRebuild.js";
 import * as shipSupply from "./shipSupply.js";
+import * as shipBreakup from "./shipBreakup.js";
 
 /**
  * Each hull's robots at their work: out from their bays to mend, rebuild or
@@ -114,8 +115,8 @@ export function tend(ships: Ships, world: World): void {
         }
         if (buildRobots(ships, b, design, robots, dt)) mended = true;
         if (mended) {
-            ships.settleMass(bodies, b);
-            ships.discardFrom(bodies, b, mass, inertia);
+            shipBreakup.settleMass(ships, bodies, b);
+            shipBreakup.discardFrom(ships, bodies, b, mass, inertia);
         }
         shipRebuild.growAll(ships, world);
         const done = ships.stripped[b] ?? -1;
@@ -783,7 +784,7 @@ export function mineRock(ships: Ships, b: number, cb: number, rd: ShipDesign, ro
         robot.charge -= kg * per;
         robot.cargo += kg * ore * (1 - DISASSEMBLY_WASTE);
         robot.cargoFuel += kg * ice * (1 - DISASSEMBLY_WASTE);
-        ships.settleMass(ships.bodyStore!, cb);
+        shipBreakup.settleMass(ships, ships.bodyStore!, cb);
     }
     if (done + (kg > 0 ? kg : 0) >= step.kg - ROBOT_SPENT && !rockStepped(ships, cb)) ships.rockSteps.push(cb, m);
     if (short || !(ROBOT_LOAD - robot.cargo - robot.cargoFuel > ROBOT_SPENT)) homeOnRock(ships, cb, robot, owner);

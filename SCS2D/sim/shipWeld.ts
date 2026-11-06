@@ -20,6 +20,7 @@ import {
     CLAW_GRIP_CHANCE,
 } from "./ships.js";
 import * as shipSupply from "./shipSupply.js";
+import * as shipBreakup from "./shipBreakup.js";
 
 /**
  * Welding: two hulls that meet slowly enough, or a claw that closes on what its
@@ -397,7 +398,7 @@ export function heat(ships: Ships, b: number, design: ShipDesign, claw: number, 
  */
 export function merge(ships: Ships, world: World, keep: number, other: number, mk: number, mo: number, dock: DockAt | null = null): void {
     const bodies = world.bodies;
-    ships.settleShed(bodies);
+    shipBreakup.settleShed(ships, bodies);
     const idK = ships.bodyIds[keep]!;
     const bk = bodies.indexOf(idK);
     const bo = bodies.indexOf(ships.bodyIds[other]!);
@@ -465,7 +466,8 @@ export function merge(ships: Ships, world: World, keep: number, other: number, m
         for (let m = n; m < pilots.length; m++) pilots[m] = !flown ? -1 : wasO === null ? other : wasO[m - n]!;
     }
 
-    ships.adopt(
+    shipBreakup.adopt(
+        ships,
         keep,
         bk,
         design,
