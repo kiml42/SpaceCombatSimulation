@@ -818,8 +818,12 @@ function wornContext(
     const colour = fillColour(m.spec, colours);
     const origin = originOf(design, i);
     const pattern = livery !== undefined && livery.pattern !== "none" ? livery : undefined;
+    const shell = m.shell;
+    const mounts = drawnMounts(design, i);
+    // A shell is its own shape, smaller each step it goes up or comes down.
     const key =
-        `${origin.module}|${colour}|${colours.hull}${colours.trim}${colours.pivot}${colours.highlight}|${level}|${burnt}|` +
+        `${origin.module}|${shell === undefined ? "" : `${shell.face}|${shell.share}`}|${mounts.key}|` +
+        `${colour}|${colours.hull}${colours.trim}${colours.pivot}${colours.highlight}|${level}|${burnt}|` +
         (pattern === undefined
             ? ""
             : `${tileKey(pattern, "")}|${pattern.size}|${pattern.spacing}|${pattern.offset}|${pattern.lateral}|${pattern.angle}`);
@@ -831,7 +835,7 @@ function wornContext(
     let context = byDesign.get(key);
     if (context === undefined) {
         context = new GraphicsContext();
-        moduleFills(m.spec, colour, colours, integrity, fills, mountsOf(origin.design, origin.module).polygons);
+        moduleFills(m.spec, colour, colours, integrity, fills, mounts.polygons);
         const t = pattern === undefined ? null : patternTransform(pattern, design, i);
         const matrix = t === null ? null : new Matrix(t.a, t.b, t.c, t.d, t.e, t.f);
         for (const fill of fills) {
