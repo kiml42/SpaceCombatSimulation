@@ -72,7 +72,7 @@ function face(card: Card): HTMLElement {
     }
     const kind = document.createElement("div");
     kind.textContent = isSimple(card) ? "upgrade" : "trade-off";
-    Object.assign(kind.style, { color: "var(--colour-faint)", fontSize: "0.75em", letterSpacing: "0.1em" });
+    Object.assign(kind.style, { color: "var(--colour-muted)", fontSize: "0.75em", letterSpacing: "0.1em" });
     out.append(name, effects, kind);
     return out;
 }
