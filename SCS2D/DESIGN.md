@@ -1279,7 +1279,8 @@ inside any one file is not contiguous.
   asteroid an enemy has hold of. **It comes in square to the surface** (`chooseGrip`, `squareUp`): it
   picks a point on an outside face of its source facing it, preferring one wide enough for its jaws and
   with room out in front of it, four of its radii deep and its width across, so not the floor of a notch;
-  keeps it in the source's frame, so it turns with a tumbling wreck, and looks again each second while
+  never a hull mount's barrels or lenses, nor the face of its block they stand on, which a claw does not
+  close on (`Contacts.outlet`), so it goes round to another face; keeps it in the source's frame, so it turns with a tumbling wreck, and looks again each second while
   still well out, or once the face's module is spent. It makes for a gate a radius out along the face's
   normal, its jaws on the source's middle until near and then turned on to the face, and once on that
   line and square to the face closes straight in down a stopping curve, all moving as that point of the

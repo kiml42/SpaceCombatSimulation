@@ -3,7 +3,7 @@ import { weldDesigns, type ShipDesign, type DockAt } from "./blueprint.js";
 import { DamageEffect, DISASSEMBLY_WASTE } from "./damage.js";
 import { cos, max, min, sin } from "./math.js";
 import type { World } from "./world.js";
-import { type Contacts, CLAW_ALIGN, Stab } from "./collision.js";
+import { type Contacts, CLAW_ALIGN, OUTLET_A, OUTLET_B, Stab } from "./collision.js";
 import { CLAW_SPEED_MAX } from "./shipClaw.js";
 import * as shipRebuild from "./shipRebuild.js";
 import { type Ships, REST_SPEED, REST_TIME, CLAW_RETRY } from "./ships.js";
@@ -136,10 +136,12 @@ export function weld(ships: Ships, world: World, contacts: Contacts): number {
         const ny = contacts.ny[k]!;
         let claw: "a" | "b" | null = null;
         const force = contacts.impulse[k]! / world.dt;
-        if (stab === Stab.A && grips(ships, world, a, ma, b, mb, nx, ny, force)) claw = "a";
-        else if (stab === Stab.B && grips(ships, world, b, mb, a, ma, -nx, -ny, force)) claw = "b";
+        // Nor does a claw close on a barrel or lens.
+        const outlet = contacts.outlet[k]!;
+        if (stab === Stab.A && (outlet & OUTLET_B) === 0 && grips(ships, world, a, ma, b, mb, nx, ny, force)) claw = "a";
+        else if (stab === Stab.B && (outlet & OUTLET_A) === 0 && grips(ships, world, b, mb, a, ma, -nx, -ny, force)) claw = "b";
         // A barrel or lens does not tear in a way that hooks.
-        if (claw === null && contacts.outlet[k] !== 0) continue;
+        if (claw === null && outlet !== 0) continue;
         // Two ports nudged face to face mate, when one ship was making for the other.
         const port = claw === null && mates(ships, world, a, ma, b, mb, closing);
         // Rock meeting rock slowly sticks, as rubble does, torn or not; a minor

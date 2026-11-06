@@ -68,16 +68,16 @@ const GOLDEN: Record<ScenarioName, string> = {
     hooked: "3bf43a3c",
     // ships=5 inFlight=0 p.fired=15 p.hits=161 b.fired=0 b.hits=0 contacts=61 severed=3 culled=0 scrap=14.5t · 61.6 µs/step
     broadside: "a152f110",
-    // ships=3 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=303 severed=1 culled=0 scrap=6.6t · 55.0 µs/step
-    salvageRun: "73345cf5",
+    // ships=3 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=1 severed=0 culled=0 scrap=5.0t · 30.4 µs/step
+    salvageRun: "fa736e64",
     // ships=1 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=6.0t · 20.2 µs/step
     mending: "f63e907e",
     // ships=1 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=1.4t · 20.1 µs/step
     refitting: "052760e4",
     // ships=2 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=144.1t · 90.9 µs/step
     catamaranRefits: "eb579586",
-    // ships=5 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=28 severed=3 culled=0 scrap=108.6t · 62.1 µs/step
-    scavenge: "2594a062",
+    // ships=5 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=22 severed=3 culled=0 scrap=108.2t · 72.8 µs/step
+    scavenge: "a024a6a1",
     // ships=3 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=0.2t · 62.4 µs/step
     padRebuild: "c311dfbd",
     // ships=5 inFlight=0 p.fired=18 p.hits=57 b.fired=0 b.hits=0 contacts=34 severed=0 culled=0 scrap=1.6t · 118.2 µs/step
@@ -88,8 +88,8 @@ const GOLDEN: Record<ScenarioName, string> = {
     rearm: "332c6929",
     // ships=3 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=10 severed=2 culled=0 scrap=0.2t · 80.5 µs/step
     tanker: "5d78cc4f",
-    // ships=20 inFlight=0 p.fired=8 p.hits=12 b.fired=197 b.hits=5747 contacts=8 severed=2 culled=0 scrap=11.5t · 649.5 µs/step
-    beamCarrier: "699ab25c",
+    // ships=20 inFlight=0 p.fired=15 p.hits=42 b.fired=179 b.hits=5273 contacts=5 severed=1 culled=0 scrap=15.3t · 772.3 µs/step
+    beamCarrier: "dcac750f",
     // ships=2 inFlight=3 p.fired=56 p.hits=179 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=8.5t · 37.2 µs/step
     passes: "d6649dd2",
     // ships=2 inFlight=4 p.fired=10 p.hits=33 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=8.5t · 40.6 µs/step

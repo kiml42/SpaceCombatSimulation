@@ -1,7 +1,7 @@
 import { Bodies } from "./bodies.js";
 import { moduleLayers } from "./hull.js";
 import { DamageEffect } from "./damage.js";
-import { moduleOutline } from "./modules.js";
+import { isHullMount, moduleOutline, weldBox, type ModuleSpec } from "./modules.js";
 import { abs, atan2, angleDelta, clamp, cos, length, max, min, sin, sqrt } from "./math.js";
 import { pushBearing } from "./helm.js";
 import { CLAW_DEPTH, CLAW_STIFFNESS } from "./collision.js";
@@ -234,13 +234,19 @@ export function chooseGrip(
     for (let m = 0; m < hull.modules.length; m++) {
         // Only the source's own: a friend anchored to the same rock stands in the way, and is no face to grip.
         if (ships.pilotAt(tb, m) !== source) continue;
-        const from = starts[m]!;
-        const n = (starts[m + 1]! - from) / 2;
+        // A hull mount's barrels or lenses are no grip: only its block, and not the face they stand on.
+        const spec = hull.modules[m]!.spec;
+        const block = isHullMount(spec.kind) ? blockOutline(spec) : null;
+        const faces = block ?? outlines;
+        const from = block === null ? starts[m]! : 0;
+        const n = block === null ? (starts[m + 1]! - from) / 2 : block.length / 2;
+        const ox = block === null ? 0 : hull.centreOfMassX;
+        const oy = block === null ? 0 : hull.centreOfMassY;
         for (let e = 0; e < n; e++) {
-            const ax = outlines[from + e * 2]!;
-            const ay = outlines[from + e * 2 + 1]!;
-            const bx = outlines[from + ((e + 1) % n) * 2]!;
-            const by = outlines[from + ((e + 1) % n) * 2 + 1]!;
+            const ax = faces[from + e * 2]! - ox;
+            const ay = faces[from + e * 2 + 1]! - oy;
+            const bx = faces[from + ((e + 1) % n) * 2]! - ox;
+            const by = faces[from + ((e + 1) % n) * 2 + 1]! - oy;
             const span = length(bx - ax, by - ay);
             if (!(span > 0)) continue;
             const tx = (bx - ax) / span;
@@ -272,8 +278,9 @@ export function chooseGrip(
                 const along = alongs[k]!;
                 const px = ax + tx * along;
                 const py = ay + ty * along;
-                // Outside: no other module just beyond it.
+                // Outside: no other module just beyond it, nor a mount's own barrels.
                 if (insideAnyOutline(ships, m, px + nx * 0.01, py + ny * 0.01)) continue;
+                if (block !== null && insideOutline(ships, m, px + nx * 0.01, py + ny * 0.01)) continue;
                 const cost = length(px + nx * gate - qx, py + ny * gate - qy);
                 const fits = span >= width ? 2 : 0;
                 // Not worth asking about room in front of one that could not win with it.
@@ -413,24 +420,37 @@ export function wayInClear(ships: Ships, px: number, py: number, nx: number, ny:
 
 /** Whether a point in a hull's frame lies inside any module of `gripOutlines` but `skip`. */
 export function insideAnyOutline(ships: Ships, skip: number, x: number, y: number): boolean {
-    const outlines = ships.gripOutlines;
-    const starts = ships.gripStarts;
-    for (let m = 0; m + 1 < starts.length; m++) {
-        if (m === skip) continue;
-        const from = starts[m]!;
-        const n = (starts[m + 1]! - from) / 2;
-        if (n < 3) continue;
-        let inside = true;
-        for (let e = 0; e < n && inside; e++) {
-            const ax = outlines[from + e * 2]!;
-            const ay = outlines[from + e * 2 + 1]!;
-            const bx = outlines[from + ((e + 1) % n) * 2]!;
-            const by = outlines[from + ((e + 1) % n) * 2 + 1]!;
-            if ((bx - ax) * (y - ay) - (by - ay) * (x - ax) <= 0) inside = false;
-        }
-        if (inside) return true;
-    }
+    for (let m = 0; m + 1 < ships.gripStarts.length; m++) if (m !== skip && insideOutline(ships, m, x, y)) return true;
     return false;
+}
+
+/** Whether `x`, `y` is inside module `m`'s outline of `gripOutlines`. */
+function insideOutline(ships: Ships, m: number, x: number, y: number): boolean {
+    const outlines = ships.gripOutlines;
+    const from = ships.gripStarts[m]!;
+    const n = (ships.gripStarts[m + 1]! - from) / 2;
+    if (n < 3) return false;
+    for (let e = 0; e < n; e++) {
+        const ax = outlines[from + e * 2]!;
+        const ay = outlines[from + e * 2 + 1]!;
+        const bx = outlines[from + ((e + 1) % n) * 2]!;
+        const by = outlines[from + ((e + 1) % n) * 2 + 1]!;
+        if ((bx - ax) * (y - ay) - (by - ay) * (x - ax) <= 0) return false;
+    }
+    return true;
+}
+
+const blockOutlines = new WeakMap<ModuleSpec, number[]>();
+
+/** A hull mount's block, the only part of it a claw closes on, as `moduleOutline` gives it. */
+function blockOutline(spec: ModuleSpec): number[] {
+    let corners = blockOutlines.get(spec);
+    if (corners === undefined) {
+        corners = [];
+        moduleOutline(weldBox(spec), corners);
+        blockOutlines.set(spec, corners);
+    }
+    return corners;
 }
 
 /**
