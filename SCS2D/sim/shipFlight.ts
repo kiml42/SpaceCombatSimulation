@@ -23,6 +23,7 @@ import * as shipBuild from "./shipBuild.js";
 import { type Ships, stoppingSpeed, FACE, NO_TARGET, STEER, CLAW_RETRY, URGE_REFERENCE, movable, type Spot, type Order } from "./ships.js";
 import * as shipAim from "./shipAim.js";
 import * as shipOrders from "./shipOrders.js";
+import * as shipDecide from "./shipDecide.js";
 
 /**
  * Flying a ship: what each of its orders asks of the hull as an acceleration,
@@ -275,7 +276,7 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
             const ab = attacker === NO_TARGET ? -1 : bodies.indexOf(ships.bodyIds[attacker]!);
             if (cb >= 0 && ab >= 0 && ab !== b) {
                 const gap = length(bodies.x[cb]! - bodies.x[b]!, bodies.y[cb]! - bodies.y[b]!);
-                if (gap <= ships.escortBand(i, ships.designs[i]!, covering)) {
+                if (gap <= shipDecide.escortBand(ships, i, ships.designs[i]!, covering)) {
                     const at = ships.locate(bodies, attacker, ab, ships.lookAt);
                     wantAngle = attackHeading(ships, i, b, at, bodies, atan2(at.y - bodies.y[b]!, at.x - bodies.x[b]!));
                 }
@@ -1075,12 +1076,12 @@ export function accelerationAlong(ships: Ships, bodies: Bodies, i: number, b: nu
  * stringing out.
  */
 export function cover(ships: Ships, bodies: Bodies, i: number, b: number): number {
-    const consort = ships.liveConsort(bodies, i, b);
+    const consort = shipDecide.liveConsort(ships, bodies, i, b);
     if (consort === NO_TARGET) return NO_TARGET;
     const cb = bodies.indexOf(ships.bodyIds[consort]!);
 
     const design = ships.designs[i]!;
-    const station = ships.escortBand(i, design, consort);
+    const station = shipDecide.escortBand(ships, i, design, consort);
     const gap = length(bodies.x[cb]! - bodies.x[b]!, bodies.y[cb]! - bodies.y[b]!);
     // Told to, it holds the band as firmly as it would a station.
     const weight =
@@ -1332,7 +1333,7 @@ export function avoid(
         if (hulksOnly && ships.gripClosing[i] === 1) room = 0;
         // Its charge no further out than its station, or the two wants fight:
         // covering pulls it in to where keeping clear pushes it out.
-        if (t === covering) room = min(room, max(0, ships.escortBand(i, ships.designs[i]!, t) - touching));
+        if (t === covering) room = min(room, max(0, shipDecide.escortBand(ships, i, ships.designs[i]!, t) - touching));
         const dx = bodies.x[ob]! - x;
         const dy = bodies.y[ob]! - y;
         const rvx = bodies.vx[ob]! - vx;

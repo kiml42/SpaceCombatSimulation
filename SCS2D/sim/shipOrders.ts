@@ -4,6 +4,7 @@ import * as shipForage from "./shipForage.js";
 import * as shipFlight from "./shipFlight.js";
 import * as shipAim from "./shipAim.js";
 import { type Ships, NO_TARGET, OrderCancelCondition, NEUTRAL_TEAM, type Order, type Errand } from "./ships.js";
+import * as shipDecide from "./shipDecide.js";
 
 /**
  * Each ship's queue of orders: what is pushed onto it, what the ship takes its
@@ -112,7 +113,7 @@ export function effectiveOrder(ships: Ships, i: number): Order | undefined {
     const band = holdBand(approach, design.reach, shipAim.sizeOf(ships, target));
     standing.minRange = band.min;
     standing.maxRange = band.max;
-    if (ships.ramming[i] !== target && ships.rams(i, target)) ships.ramming[i] = target;
+    if (ships.ramming[i] !== target && shipDecide.rams(ships, i, target)) ships.ramming[i] = target;
     standing.ram = ships.ramming[i] === target;
     standing.approachSpeed = approach.approachSpeed;
     return standing;
@@ -338,7 +339,7 @@ export function couldDockAt(ships: Ships, i: number, t: number): boolean {
     const host = ships.designs[t]!;
     if (design.fighter) {
         const box = footprintOf(design);
-        return host.modules.some((m) => m.spec.kind === "pad" && ships.fitsPad(box, m.spec));
+        return host.modules.some((m) => m.spec.kind === "pad" && shipDecide.fitsPad(box, m.spec));
     }
     return design.modules.some((m) => m.spec.kind === "port") && host.modules.some((m) => m.spec.kind === "port");
 }

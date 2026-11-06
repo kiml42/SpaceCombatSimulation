@@ -17,6 +17,7 @@ import * as shipClaw from "./shipClaw.js";
 import * as shipDocking from "./shipDocking.js";
 import * as shipBuild from "./shipBuild.js";
 import * as shipOrders from "./shipOrders.js";
+import * as shipDecide from "./shipDecide.js";
 
 /**
  * Foraging: a ship with a claw going for fuel, ore or wreckage, mooring to a
@@ -423,7 +424,7 @@ export function dangerNear(ships: Ships, bodies: Bodies, i: number, tb: number):
 export function disarmed(ships: Ships, i: number, b: number): boolean {
     const repairArmed = ships.doctrines[i]!.approach.repairArmed;
     if (repairArmed < 0) return false;
-    const share = ships.armedShare(i, b, false);
+    const share = shipDecide.armedShare(ships, i, b, false);
     return ships.tools > 0 && share <= repairArmed;
 }
 

@@ -15,6 +15,7 @@ import * as shipForage from "./shipForage.js";
 import { type Ships, NO_TARGET, movable, PAD_SPEED, stoppingSpeed, URGE_REFERENCE, STEER, PORT_SPEED, WELD_SETTLE } from "./ships.js";
 import * as shipBuild from "./shipBuild.js";
 import * as shipFlight from "./shipFlight.js";
+import * as shipDecide from "./shipDecide.js";
 
 /**
  * Coming aboard another hull: landing on a carrier's pad and parking there,
@@ -107,7 +108,7 @@ export function pickPad(
         let danger = only !== NO_TARGET ? 0 : -1;
         for (let pad = 0; pad < design.modules.length; pad++) {
             const spec = design.modules[pad]!.spec;
-            if (spec.kind !== "pad" || !padFree(ships, bodies, t, pad) || !ships.fitsPad(box, spec)) continue;
+            if (spec.kind !== "pad" || !padFree(ships, bodies, t, pad) || !shipDecide.fitsPad(box, spec)) continue;
             const spare = ships.fuel.pieceHeld(tb, pad) - shipSupply.fuelReserve(ships, tb, pad);
             const spareMetal = ships.metal.pieceHeld(tb, pad) - shipSupply.metalReserve(ships, tb, pad);
             const pump = design.modules[pad]!.stats.pumpRate;
