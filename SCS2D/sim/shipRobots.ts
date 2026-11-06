@@ -21,6 +21,7 @@ import { crawl, legLength, pathTo, RobotMode, walk, walkTime, type Robot } from 
 import type { World } from "./world.js";
 import * as shipRobotViews from "./shipRobotViews.js";
 import { type Ships, ROBOT_SPENT, workforce, originTier, repairTier } from "./ships.js";
+import * as shipRebuild from "./shipRebuild.js";
 
 /**
  * Each hull's robots at their work: out from their bays to mend, rebuild or
@@ -101,7 +102,7 @@ export function tend(ships: Ships, world: World): void {
             const owner = ships.pilotAt(b, robot.bay);
             if (owner < 0) continue;
             // Home to a bay a refit is about to take down: taken apart, its metal to the holds.
-            if (robot.mode === RobotMode.Berthed && ships.due(owner, b, design, robot.bay)) {
+            if (robot.mode === RobotMode.Berthed && shipRebuild.due(ships, owner, b, design, robot.bay)) {
                 ships.metal.add(b, robot.bay, ROBOT_MASS + robot.cargo);
                 if (robot.cargoFuel > 0) ships.fuel.add(b, robot.bay, robot.cargoFuel);
                 ships.robots.lose(b, r--);
@@ -115,11 +116,11 @@ export function tend(ships: Ships, world: World): void {
             ships.settleMass(bodies, b);
             ships.discardFrom(bodies, b, mass, inertia);
         }
-        ships.growAll(world);
+        shipRebuild.growAll(ships, world);
         const done = ships.stripped[b] ?? -1;
         if (done >= 0) {
             ships.stripped[b] = -1;
-            ships.stepDown(world, b, done);
+            shipRebuild.stepDown(ships, world, b, done);
         }
     }
     tendStranded(ships, bodies);
@@ -127,7 +128,7 @@ export function tend(ships: Ships, world: World): void {
     while (ships.rockSteps.length > 0) {
         const m = ships.rockSteps.pop()!;
         const rb = ships.rockSteps.pop()!;
-        if (bodies.alive[rb] === 1) ships.stepDown(world, rb, m);
+        if (bodies.alive[rb] === 1) shipRebuild.stepDown(ships, world, rb, m);
     }
 }
 
@@ -162,7 +163,7 @@ export function buildRobots(ships: Ships, b: number, design: ShipDesign, robots:
         const owner = ships.pilotAt(b, m);
         if (!(berths > 0) || owner < 0) continue;
         // One a refit is taking down builds no more.
-        if (ships.refitting[owner] === 1 && ships.wreckage(owner, b, m)) continue;
+        if (ships.refitting[owner] === 1 && shipRebuild.wreckage(ships, owner, b, m)) continue;
         const working = ships.left(owner, b, m, DamageEffect.Tending);
         if (!(working > 0)) continue;
         const making = building[m]!;
@@ -346,7 +347,7 @@ export function tendOne(ships: Ships, b: number, design: ShipDesign, robots: Rob
 export function buildOne(ships: Ships, b: number, design: ShipDesign, robots: Robot[], robot: Robot, owner: number, dt: number): boolean {
     const m = robot.target;
     const fitting = robot.build < 0 && design.modules[m]!.shell === undefined;
-    const rebuild = fitting ? null : ships.rebuildFor(owner, design);
+    const rebuild = fitting ? null : shipRebuild.rebuildFor(ships, owner, design);
     const l = rebuild === null ? -1 : robot.build >= 0 ? robot.build : rebuild.at.indexOf(m);
     // Begun for a design it has since been refitted from: nothing to build there now.
     if (rebuild !== null && l < 0) {
@@ -489,15 +490,16 @@ export function sendOnRock(ships: Ships, b: number, cb: number, robots: Robot[],
     // Wreckage lodged on the rock is cleared first, whatever the walk: it is in the way of what grips and lands.
     let bestWreck = false;
     for (let m = 0; m < rd.modules.length; m++) {
-        if (m === held || !Number.isFinite(dist[m]!) || !onRock(ships, cb, m, owner) || !ships.comesOff(owner, cb, rd, m)) continue;
-        if (!ships.minable(rd, m, metalRoom, fuelRoom)) continue;
+        if (m === held || !Number.isFinite(dist[m]!) || !onRock(ships, cb, m, owner) || !shipRebuild.comesOff(ships, owner, cb, rd, m))
+            continue;
+        if (!shipRebuild.minable(rd, m, metalRoom, fuelRoom)) continue;
         // What it would bring home, as `mineRock` takes it, and the time it would take.
         const spec = rd.modules[m]!.spec;
         const rock = spec.kind === "rock";
         // Wreckage lodged on it is all metal.
         const ore = rock ? (spec.ore ?? 0) : 1;
         const kept = ((metalRoom ? ore : 0) + (rock && fuelRoom ? (spec.ice ?? 0) : 0)) * (1 - DISASSEMBLY_WASTE);
-        const work = buildWork(ships.stripStep(cb, rd, m).stats);
+        const work = buildWork(shipRebuild.stripStep(ships, cb, rd, m).stats);
         let kg = robot.charge / (work * REPAIR_ENERGY_PER_JOULE * MINING_POWER);
         if (kept > 0) kg = min(kg, room / kept);
         const time = 2 * walkTime(rd, prev, m, robot.tag) + (kg * work) / ROBOT_REPAIR_RATE;
@@ -752,7 +754,7 @@ export function mineRock(ships: Ships, b: number, cb: number, rd: ShipDesign, ro
         m >= rd.modules.length ||
         m === ships.heldRock(ships.bodyStore!, owner) ||
         !onRock(ships, cb, m, owner) ||
-        !ships.comesOff(owner, cb, rd, m)
+        !shipRebuild.comesOff(ships, owner, cb, rd, m)
     ) {
         if (!sendOnRock(ships, b, cb, ships.robots.on(b)!, robot, owner)) homeOnRock(ships, cb, robot, owner);
         return false;
@@ -767,7 +769,7 @@ export function mineRock(ships: Ships, b: number, cb: number, rd: ShipDesign, ro
     const ore = spec.kind === "rock" ? (spec.ore ?? 0) : 1;
     // Its ice is kept only while its bay's tanks have room for it.
     const ice = spec.kind === "rock" && ships.fuel.pieceRoom(b, robot.bay) > ROBOT_SPENT ? (spec.ice ?? 0) : 0;
-    const step = ships.stripStep(cb, rd, m);
+    const step = shipRebuild.stripStep(ships, cb, rd, m);
     const work = buildWork(step.stats);
     const per = work * REPAIR_ENERGY_PER_JOULE * MINING_POWER;
     const done = ships.damage.unbuiltAt(cb, m);
@@ -842,7 +844,7 @@ export function sendToBuild(
 ): boolean {
     const launch = ships.launched[owner];
     if (launch === undefined) return false;
-    const rebuild = ships.rebuildFor(owner, design);
+    const rebuild = shipRebuild.rebuildFor(ships, owner, design);
     const crowdOf = (m: number, l: number): number => {
         let crowd = 0;
         for (let k = 0; k < robots.length; k++) {
@@ -872,7 +874,7 @@ export function sendToBuild(
         }
     };
     for (let m = 0; m < design.modules.length; m++) {
-        if (!Number.isFinite(dist[m]!) || !ships.ownsAt(owner, b, m) || ships.wreckage(owner, b, m)) continue;
+        if (!Number.isFinite(dist[m]!) || !ships.ownsAt(owner, b, m) || shipRebuild.wreckage(ships, owner, b, m)) continue;
         // Building takes metal: a trip's worth not to be had, nothing to build with.
         if (!affords(ships, b, m, design, m, robot)) continue;
         if (design.modules[m]!.shell !== undefined || ships.damage.unbuiltAt(b, m) > 0) consider(m, -1, originTier(approach, design, m));
@@ -887,10 +889,10 @@ export function sendToBuild(
             ] as const) {
                 const m = rebuild.at[against]!;
                 if (rebuild.at[l]! >= 0 || m < 0 || !Number.isFinite(dist[m]!) || !ships.ownsAt(owner, b, m)) continue;
-                if (ships.wreckage(owner, b, m) || !affords(ships, b, m, launch, l, robot)) continue;
+                if (shipRebuild.wreckage(ships, owner, b, m) || !affords(ships, b, m, launch, l, robot)) continue;
                 if (design.modules[m]!.shell !== undefined || originOf(design, m).design !== compiled) continue;
                 // Refitted, what is in the way comes down before this goes up.
-                if (ships.refitting[owner] === 1 && ships.inTheWay(design, rebuild, launch, l)) continue;
+                if (ships.refitting[owner] === 1 && shipRebuild.inTheWay(design, rebuild, launch, l)) continue;
                 consider(m, l, repairTier(approach, launch, l));
             }
         }
@@ -930,7 +932,7 @@ export function sendOut(ships: Ships, b: number, design: ShipDesign, robots: Rob
     const approach = ships.doctrines[owner]!.approach;
     for (let m = 0; m < n; m++) {
         if (!Number.isFinite(dist[m]!) || !(ships.damage.absorbedAt(b, m) > 0) || !ships.ownsAt(owner, b, m)) continue;
-        if (ships.wreckage(owner, b, m)) continue;
+        if (shipRebuild.wreckage(ships, owner, b, m)) continue;
         // Nothing to mend it with: no sense walking there.
         const mendMetal = ships.damage.repairMetal(b, m, ships.damage.absorbedAt(b, m)) * (1 + REPAIR_WASTE);
         if (mendMetal > ROBOT_SPENT && !affords(ships, b, m, design, m, robot, mendMetal)) continue;
@@ -995,7 +997,7 @@ export function walkFrom(
     dist: Float64Array,
     prev: Int32Array,
 ): void {
-    const over = (m: number): boolean => ships.wreckage(owner, b, m) || ships.buildingFor(owner, b, m);
+    const over = (m: number): boolean => shipRebuild.wreckage(ships, owner, b, m) || shipRebuild.buildingFor(ships, owner, b, m);
     walk(
         design,
         robot.at,
@@ -1029,13 +1031,14 @@ export function sendToStrip(
     let bestCrowd = Infinity;
     let bestDist = Infinity;
     for (let m = 0; m < design.modules.length; m++) {
-        if (!Number.isFinite(dist[m]!) || !ships.wreckage(owner, b, m) || !ships.comesOff(owner, b, design, m)) continue;
+        if (!Number.isFinite(dist[m]!) || !shipRebuild.wreckage(ships, owner, b, m) || !shipRebuild.comesOff(ships, owner, b, design, m))
+            continue;
         // Rock is worth taking only for what the bay has room for of what it holds.
-        if (!ships.minable(design, m, metalRoom, fuelRoom)) continue;
+        if (!shipRebuild.minable(design, m, metalRoom, fuelRoom)) continue;
         // Its own hull's cores, bays and generators come down last of all, and only when due.
-        if (ships.ownWorkforce(owner, b, design, m) && !ships.due(owner, b, design, m)) continue;
+        if (shipRebuild.ownWorkforce(ships, owner, b, design, m) && !shipRebuild.due(ships, owner, b, design, m)) continue;
         // A bay comes down once its robots are home and taken apart; its own go home for that.
-        if (design.modules[m]!.spec.kind === "robotBay" && ships.ownWorkforce(owner, b, design, m)) {
+        if (design.modules[m]!.spec.kind === "robotBay" && shipRebuild.ownWorkforce(ships, owner, b, design, m)) {
             if (robot.bay === m) {
                 sendHome(ships, b, design, robot, owner, m);
                 return true;
@@ -1066,7 +1069,12 @@ export function sendToStrip(
  */
 export function stripOne(ships: Ships, b: number, design: ShipDesign, robots: Robot[], robot: Robot, owner: number, dt: number): boolean {
     const m = robot.target;
-    if (m < 0 || m >= design.modules.length || !ships.wreckage(owner, b, m) || !ships.comesOff(owner, b, design, m)) {
+    if (
+        m < 0 ||
+        m >= design.modules.length ||
+        !shipRebuild.wreckage(ships, owner, b, m) ||
+        !shipRebuild.comesOff(ships, owner, b, design, m)
+    ) {
         sendOut(ships, b, design, robots, robot, owner);
         return false;
     }
@@ -1079,16 +1087,16 @@ export function stripOne(ships: Ships, b: number, design: ShipDesign, robots: Ro
     // On its own piece of hull, what the module holds is its ship's: poured
     // into the rest of its stores before any of it comes down, and the rest
     // of the piece's metal left where it is.
-    const own = (design.pieces?.[m] ?? 0) === (design.pieces === undefined ? 0 : ships.ownPiece(owner, b));
+    const own = (design.pieces?.[m] ?? 0) === (design.pieces === undefined ? 0 : shipRebuild.ownPiece(ships, owner, b));
     if (own && ships.fuel.spill(b, m) + ships.metal.spill(b, m) + ships.power.spill(b, m) > 0) return true;
     const loose = own ? 0 : ships.metal.pieceHeld(b, m);
     if (loose > ROBOT_SPENT) {
         robot.cargo += ships.metal.drain(b, m, min(lift, room));
         return true;
     }
-    const step = ships.stripStep(b, design, m);
+    const step = shipRebuild.stripStep(ships, b, design, m);
     // Refitted in place, only its fittings come out.
-    if (ships.swapFor(owner, b, design, m) >= 0)
+    if (shipRebuild.swapFor(ships, owner, b, design, m) >= 0)
         step.kg = fittingOf(step.stats) * (1 - ships.damage.shedAt(b, m) / (step.stats.structureMass + step.stats.fittingMass));
     const work = buildWork(step.stats);
     // Rock is mined, not unbuilt: its ore smelted to metal and its ice melted
