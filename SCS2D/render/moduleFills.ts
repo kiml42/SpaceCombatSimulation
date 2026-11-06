@@ -11,7 +11,7 @@ import { BARE_TEAM, type Palette } from "./teams.js";
  */
 
 /** How much of a claw's width each of its two jaws is drawn across. */
-const CLAW_JAW_SHARE = 0.3;
+export const CLAW_JAW_SHARE = 0.3;
 
 /** How much of a slipway's width each side rail takes, and of its length the feed block aft. */
 const SLIPWAY_RAIL_SHARE = 0.12;
