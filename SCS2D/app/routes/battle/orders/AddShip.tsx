@@ -1,5 +1,6 @@
 import { styled } from "@linaria/react";
 import { useMemo, useRef, useState } from "react";
+import { byCategory } from "~/editor/library";
 import { useLibrary } from "~/features/storage/useLibrary";
 import type { BattleView } from "~/host/battleView";
 import { choices } from "~/host/designChoices";
@@ -42,10 +43,17 @@ export function AddShip({ view }: { readonly view: BattleView | null }) {
                 }}
             >
                 <option value="">Add ship…</option>
-                {designs.map((choice, k) => (
-                    <option key={choice.label} value={k}>
-                        {choice.label}
-                    </option>
+                {byCategory(
+                    designs.map((choice, k) => ({ choice, k })),
+                    ({ choice }) => choice.blueprint.category,
+                ).map(([category, group]) => (
+                    <optgroup key={category} label={category}>
+                        {group.map(({ choice, k }) => (
+                            <option key={choice.label} value={k}>
+                                {choice.label}
+                            </option>
+                        ))}
+                    </optgroup>
                 ))}
             </Designs>
             <select

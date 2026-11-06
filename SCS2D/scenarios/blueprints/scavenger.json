@@ -1,6 +1,7 @@
 {
   "formatVersion": 2,
   "name": "Scavenger",
+  "category": "Stock",
   "notes": "Unarmed, with a claw on the bow and a tank behind the core that starts a fifth full, so it is cheap to send out and has to scavenge. Below three quarters of a full load it goes for the wreck, or the disarmed enemy, that pays most fuel for the time it takes, avoiding any an armed enemy is near; it brings the claw in at a walking pace, drinks, and moves on to the next until it is full.",
   "doctrine": {
     "approach": {

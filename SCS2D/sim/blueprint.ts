@@ -446,6 +446,8 @@ export interface Blueprint {
     assemblies?: Readonly<Record<string, Assembly>>;
     /** Why the ship is shaped this way. See `ModuleSpec.notes`. */
     notes?: string;
+    /** What it is grouped under where ships are chosen, as "Star Wars" or "Stock". Nothing the battle reads. */
+    category?: string;
     /**
      * What a craft of this design does when it has no orders. Left out, it
      * fights by `DEFAULT_DOCTRINE`.

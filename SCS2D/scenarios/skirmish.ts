@@ -11,6 +11,7 @@ import {
     Rng,
     serialiseFleet,
     type Bill,
+    type Blueprint,
     type Budget,
     type Fleet,
     drawnMap,
@@ -151,6 +152,12 @@ export const DEFAULT_SKIRMISH_SETTINGS: SkirmishSettings = {
     map: {},
     mapSpread: {},
 };
+
+/** A ship made or changed for a skirmish, filed under the skirmish's name. */
+export function inSkirmish(blueprint: Blueprint, skirmish: Skirmish): Blueprint {
+    const category = skirmish.name ?? "Skirmish";
+    return blueprint.category === category ? blueprint : { ...blueprint, category };
+}
 
 /** What a skirmish is played under. */
 export function settingsOf(skirmish: Skirmish): SkirmishSettings {

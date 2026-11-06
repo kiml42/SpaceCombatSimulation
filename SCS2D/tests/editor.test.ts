@@ -62,7 +62,16 @@ import {
     updatePlacement,
     arrivingModule,
 } from "../editor/edit.js";
-import { emptyBlueprint, Library, nextName, toFileText, unusedName, type KeyValueStore } from "../editor/library.js";
+import {
+    byCategory,
+    emptyBlueprint,
+    Library,
+    nextName,
+    toFileText,
+    UNCATEGORISED,
+    unusedName,
+    type KeyValueStore,
+} from "../editor/library.js";
 import { Demonstration, ROUND_LIFETIME } from "../editor/demonstrate.js";
 import { MAX_BEAM_LENGTH } from "../sim/beams.js";
 import { GunType } from "../sim/modules.js";
@@ -1127,8 +1136,33 @@ describe("Library", () => {
         const library = new Library(fakeStore());
         expect(library.list().filter((e) => e.name === CORVETTE.name)).toHaveLength(1);
         library.save({ ...CORVETTE, name: "Mine" });
-        expect(library.list().filter((e) => e.name === "Mine")).toEqual([{ name: "Mine", stock: false, saved: true }]);
+        expect(library.list().filter((e) => e.name === "Mine")).toEqual([{ name: "Mine", stock: false, saved: true, category: "Stock" }]);
         expect(library.loadStock("Mine")).toBeNull();
+    });
+
+    it("lists each ship under its category", () => {
+        const library = new Library(fakeStore());
+        library.save({ ...CORVETTE, name: "Mine", category: "Skirmish one" });
+        library.save({ name: "Loose", modules: [] });
+        const category = (name: string) => library.list().find((e) => e.name === name)?.category;
+        expect(category(CORVETTE.name)).toBe("Stock");
+        expect(category("X Wing")).toBe("Star Wars");
+        expect(category("Mine")).toBe("Skirmish one");
+        expect(category("Loose")).toBeUndefined();
+    });
+
+    it("groups by category in alphabetical order, keeping the order within each", () => {
+        const items = [
+            { name: "b", category: "Stock" },
+            { name: "a", category: "Star Wars" },
+            { name: "c" },
+            { name: "d", category: "Stock" },
+        ];
+        expect(byCategory(items, (item) => item.category).map(([c, group]) => [c, group.map((i) => i.name)])).toEqual([
+            ["Star Wars", ["a"]],
+            ["Stock", ["b", "d"]],
+            [UNCATEGORISED, ["c"]],
+        ]);
     });
 
     it("exports text a parser reads back unchanged", () => {

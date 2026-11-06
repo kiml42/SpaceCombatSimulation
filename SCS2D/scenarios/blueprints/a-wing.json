@@ -1,6 +1,7 @@
 {
   "formatVersion": 2,
   "name": "A Wing",
+  "category": "Star Wars",
   "fighter": true,
   "doctrine": {
     "targeting": {

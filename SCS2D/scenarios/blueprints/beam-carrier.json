@@ -1,6 +1,7 @@
 {
   "formatVersion": 2,
   "name": "Beam Carrier",
+  "category": "Stock",
   "notes": "A carrier for beam fighters: eight pads, each with a battery to recharge what lands on it, and a tender docked port to port amidships that casts off to scavenge fuel with its claw.",
   "doctrine": {
     "approach": {
