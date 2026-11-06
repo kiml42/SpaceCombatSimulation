@@ -12,15 +12,23 @@ import * as shipRebuild from "./shipRebuild.js";
 import * as shipSupply from "./shipSupply.js";
 import * as shipBreakup from "./shipBreakup.js";
 import * as shipForage from "./shipForage.js";
-import { type Ships, NO_TARGET, movable, PAD_SPEED, stoppingSpeed, URGE_REFERENCE, STEER, PORT_SPEED, WELD_SETTLE } from "./ships.js";
+import { type Ships, NO_TARGET, movable, STEER } from "./ships.js";
 import * as shipBuild from "./shipBuild.js";
 import * as shipFlight from "./shipFlight.js";
 import * as shipDecide from "./shipDecide.js";
+import { WELD_SETTLE } from "./shipWeld.js";
+import { URGE_REFERENCE, stoppingSpeed } from "./shipFlight.js";
 
 /**
  * Coming aboard another hull: landing on a carrier's pad and parking there,
  * docking port to port, and finding a way in round the carrier's hull.
  */
+
+/** The most a fighter may be moving against a pad and still land on it, m/s: settling, not arriving. */
+export const PAD_SPEED = 1;
+
+/** The most two ports may be closing at and still mate, m/s: a nudge, not a bump. */
+export const PORT_SPEED = 1;
 
 /** The speed a pilot closes the last stretch onto a port at, m/s. */
 const PORT_APPROACH = 0.5;

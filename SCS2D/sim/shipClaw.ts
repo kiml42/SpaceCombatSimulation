@@ -6,8 +6,9 @@ import { abs, atan2, angleDelta, clamp, cos, length, max, min, sin, sqrt } from 
 import { pushBearing } from "./helm.js";
 import { CLAW_DEPTH, CLAW_STIFFNESS } from "./collision.js";
 import * as shipForage from "./shipForage.js";
-import { type Ships, movable, stoppingSpeed, URGE_REFERENCE } from "./ships.js";
+import { type Ships, movable } from "./ships.js";
 import * as shipFlight from "./shipFlight.js";
+import { URGE_REFERENCE, stoppingSpeed } from "./shipFlight.js";
 
 /**
  * Bringing a claw to what it means to grip: matching the target's turn, choosing

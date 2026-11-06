@@ -12,12 +12,15 @@ import * as shipRobots from "./shipRobots.js";
 import * as shipRebuild from "./shipRebuild.js";
 import * as shipSupply from "./shipSupply.js";
 import * as shipBreakup from "./shipBreakup.js";
-import { type Ships, NO_TARGET, NEUTRAL_TEAM, ROBOT_SPENT, CLAW_HEAT_RATE, CLAW_HEAT_ENERGY, SHOCK_REACH, exhaustOf } from "./ships.js";
+import { type Ships, NO_TARGET, NEUTRAL_TEAM, exhaustOf } from "./ships.js";
 import * as shipClaw from "./shipClaw.js";
 import * as shipDocking from "./shipDocking.js";
 import * as shipBuild from "./shipBuild.js";
 import * as shipOrders from "./shipOrders.js";
 import * as shipDecide from "./shipDecide.js";
+import { CLAW_HEAT_RATE, CLAW_HEAT_ENERGY } from "./shipWeld.js";
+import { ROBOT_SPENT } from "./shipRobots.js";
+import { SHOCK_REACH } from "./shipBreakup.js";
 
 /**
  * Foraging: a ship with a claw going for fuel, ore or wreckage, mooring to a

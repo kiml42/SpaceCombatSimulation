@@ -8,10 +8,11 @@ import { abs, angleDelta, min } from "./math.js";
 import { neighbourOf, RobotMode, staysWhole } from "./robots.js";
 import type { World } from "./world.js";
 import { moduleOverlapsHull } from "./collision.js";
-import { type Ships, movable, workforce, ROBOT_SPENT, NO_TARGET } from "./ships.js";
+import { type Ships, movable, NO_TARGET } from "./ships.js";
 import * as shipSupply from "./shipSupply.js";
 import * as shipBreakup from "./shipBreakup.js";
 import * as shipDocking from "./shipDocking.js";
+import { ROBOT_SPENT, workforce } from "./shipRobots.js";
 
 /**
  * Rebuilding a hull to its launch design and taking wreckage apart, which is

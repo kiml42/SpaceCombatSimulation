@@ -1,6 +1,6 @@
 import { Debris } from "./debris.js";
 import { Bodies, type BodyId } from "./bodies.js";
-import { aboardPose, padHolds, originOf, sameOrigin, slipwayHolds, type DesignTurret, type ShipDesign } from "./blueprint.js";
+import { aboardPose, padHolds, sameOrigin, slipwayHolds, type DesignTurret, type ShipDesign } from "./blueprint.js";
 import { components, joints } from "./connectivity.js";
 import { BOTH_LAYERS, HULL_LAYER, Hulls, OWN_LAYERS, WEAPONS_LAYER } from "./hull.js";
 import { Damage, DamageEffect, type ImpactLog } from "./damage.js";
@@ -13,7 +13,7 @@ import type { Rng } from "./rng.js";
 import { geometryOf, landedIndex, landedLength, plumeLayers, Plumes, weaponPlumeReach } from "./exhaust.js";
 import { Choice } from "./targeting.js";
 import { moduleRadius, type ModuleSpec } from "./modules.js";
-import { atan2, clamp, cos, floor, length, max, min, round, sin, sqrt } from "./math.js";
+import { atan2, clamp, cos, floor, length, max, min, round, sin } from "./math.js";
 import { Projectiles } from "./projectiles.js";
 import type { Store } from "./store.js";
 import { Robots, type Robot } from "./robots.js";
@@ -110,12 +110,6 @@ import * as shipFire from "./shipFire.js";
  * that a finished timer reads as zero everywhere — including anything that
  * later shows a reload as a fraction of its cycle.
  */
-/**
- * The weight an order is flown with, so a doctrine number of this much is
- * worth exactly as much as doing what it was told.
- */
-export const URGE_REFERENCE = 100;
-
 /** Where a ship is, how it moves and how big it is, as whatever flies or aims at it sees it (`Ships.locate`). */
 export interface Spot {
     x: number;
@@ -127,16 +121,6 @@ export interface Spot {
 
 function spot(): Spot {
     return { x: 0, y: 0, vx: 0, vy: 0, radius: 0 };
-}
-
-/**
- * The fastest a craft can be closing and still stop within `gap` metres
- * braking at `brake` m/s², once `delay` seconds have gone by at that speed.
- */
-export function stoppingSpeed(brake: number, gap: number, delay: number): number {
-    if (!(brake > 0) || !Number.isFinite(delay)) return 0;
-    const lag = brake * delay;
-    return sqrt(2 * brake * gap + lag * lag) - lag;
 }
 
 /**
@@ -165,19 +149,6 @@ const MIN_RETHINK = 0.25;
 const MAX_RETHINK = 4;
 
 /**
- * How far a blow carries through a hull before it has half spent itself,
- * metres.
- *
- * A shock disperses as it travels: the metal it passes through crushes,
- * bends and heats, and what reaches a weld thirty metres away is a fraction
- * of what the plating at the impact felt. Without this a fighter that flew
- * into a capital ship's flank would break every weld the fighter's momentum
- * could pay for, wherever they were, and take the ship apart from end to end
- * — the blow has to land *somewhere*.
- */
-export const SHOCK_REACH = 15;
-
-/**
  * A ship lying against an asteroid at under `REST_SPEED` m/s, where they touch,
  * for `REST_TIME` seconds lodges on it, flown or not: stuck, it would otherwise
  * press on the rock, and flash against it, for good. First guesses.
@@ -185,22 +156,10 @@ export const SHOCK_REACH = 15;
 export const REST_SPEED = 0.25;
 export const REST_TIME = 10;
 
-/** Chance a claw takes a sound module in its band. Certain on one spent. */
-export const CLAW_GRIP_CHANCE = 0.8;
-
 /** Seconds a claw that missed waits before it tries again. */
 export const CLAW_RETRY = 0.5;
 
-/** The most a fighter may be moving against a pad and still land on it, m/s: settling, not arriving. */
-export const PAD_SPEED = 1;
-
-/** The most two ports may be closing at and still mate, m/s: a nudge, not a bump. */
-export const PORT_SPEED = 1;
-
 /** Which turn a module takes to be mended: cores, then engines and weapons, then the rest. */
-/** Less metal than this a robot carries, or a hull holds, is rounding rather than metal, kg. */
-export const ROBOT_SPENT = 1e-6;
-
 /** The fighters a carrier's pads keep, by its launch design's `builds`. */
 interface Brood {
     /** Each pad's fighters, set out or built, by ship index. */
@@ -235,27 +194,12 @@ export function yardFor(design: ShipDesign): Yard | null {
     };
 }
 
-/** The module of its compiled design a hull module is, for what tier rebuilding it falls in. */
-export function originTier(approach: Approach, design: ShipDesign, m: number): number {
-    const origin = originOf(design, m);
-    return repairTier(approach, origin.design, origin.module);
-}
-
 /**
  * How soon a module is mended or rebuilt, lowest first: by its doctrine's
  * priority for mending it (`mendCorePriority` and the rest).
  */
 export function repairTier(approach: Approach, design: ShipDesign, m: number): number {
     return -priorityOf(approach, mendClaim(design, m));
-}
-
-/**
- * What a ship is flown and worked on with: cores, robot bays and the
- * generators that charge its robots, which a refit puts up first and takes
- * down last, so as much of the work goes on as can.
- */
-export function workforce(kind: string): boolean {
-    return kind === "core" || kind === "robotBay" || kind === "generator";
 }
 
 /** Whether body `b` holds less than `share` of a full load of `store` on module `m`'s piece, with room for more. */
@@ -280,13 +224,6 @@ export function exhaustOf(design: ShipDesign): number {
     EXHAUST.set(design, exhaust);
     return exhaust;
 }
-
-/**
- * Seconds a hull that has just come apart must drift before it can hook
- * again. A break leaves both faces torn and touching, and without this the
- * pieces would catch each other again on the next step.
- */
-export const WELD_SETTLE = 2;
 
 export const NO_TARGET = -1;
 
@@ -398,14 +335,6 @@ export enum OrderCancelCondition {
  * battle is *about* rather than one fighting in it.
  */
 export const NEUTRAL_TEAM = -1;
-
-/**
- * How fast a claw with no robots melts fuel out of the rock it grips, kg/s,
- * and the charge each kilogram takes, J: it heats the rock round the ice too,
- * and keeps none of the ore. First guesses, slower and far dearer than robots.
- */
-export const CLAW_HEAT_RATE = 1;
-export const CLAW_HEAT_ENERGY = 5e6;
 
 /** A body's mass to divide by: a pinned one's, nought, is no mass at all but one nothing moves. */
 export function movable(mass: number): number {

@@ -19,8 +19,9 @@ import {
 import { length, min } from "./math.js";
 import { crawl, legLength, pathTo, RobotMode, walk, walkTime, type Robot } from "./robots.js";
 import type { World } from "./world.js";
+import type { Approach } from "./doctrine.js";
 import * as shipRobotViews from "./shipRobotViews.js";
-import { type Ships, ROBOT_SPENT, workforce, originTier, repairTier } from "./ships.js";
+import { type Ships, repairTier } from "./ships.js";
 import * as shipRebuild from "./shipRebuild.js";
 import * as shipSupply from "./shipSupply.js";
 import * as shipBreakup from "./shipBreakup.js";
@@ -30,6 +31,24 @@ import * as shipForage from "./shipForage.js";
  * Each hull's robots at their work: out from their bays to mend, rebuild or
  * take wreckage apart, out onto a rock to mine it, and home to be refilled.
  */
+
+/** Less metal than this a robot carries, or a hull holds, is rounding rather than metal, kg. */
+export const ROBOT_SPENT = 1e-6;
+
+/** The module of its compiled design a hull module is, for what tier rebuilding it falls in. */
+export function originTier(approach: Approach, design: ShipDesign, m: number): number {
+    const origin = originOf(design, m);
+    return repairTier(approach, origin.design, origin.module);
+}
+
+/**
+ * What a ship is flown and worked on with: cores, robot bays and the
+ * generators that charge its robots, which a refit puts up first and takes
+ * down last, so as much of the work goes on as can.
+ */
+export function workforce(kind: string): boolean {
+    return kind === "core" || kind === "robotBay" || kind === "generator";
+}
 
 /** Robots a bay is building, the most nearly finished first. */
 function mostDone(a: number, b: number): number {

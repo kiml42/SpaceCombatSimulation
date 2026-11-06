@@ -11,11 +11,12 @@ import type { World } from "./world.js";
 import { DOCK_POWER_PER_METRE, PAD_REPAIR_PER_AREA, SLIPWAY_BUILD_PER_METRE } from "./modules.js";
 import * as shipRebuild from "./shipRebuild.js";
 import * as shipWeld from "./shipWeld.js";
-import { type Ships, short, originTier, repairTier, NO_TARGET } from "./ships.js";
+import { type Ships, short, repairTier, NO_TARGET } from "./ships.js";
 import * as shipBreakup from "./shipBreakup.js";
 import * as shipForage from "./shipForage.js";
 import * as shipDocking from "./shipDocking.js";
 import * as shipBuild from "./shipBuild.js";
+import { originTier } from "./shipRobots.js";
 
 /**
  * Supply between hulls: fuel, metal and charge pumped across docking seams and

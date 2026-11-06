@@ -20,7 +20,7 @@ import * as shipForage from "./shipForage.js";
 import * as shipClaw from "./shipClaw.js";
 import * as shipDocking from "./shipDocking.js";
 import * as shipBuild from "./shipBuild.js";
-import { type Ships, stoppingSpeed, FACE, NO_TARGET, STEER, CLAW_RETRY, URGE_REFERENCE, movable, type Spot, type Order } from "./ships.js";
+import { type Ships, FACE, NO_TARGET, STEER, CLAW_RETRY, movable, type Spot, type Order } from "./ships.js";
 import * as shipAim from "./shipAim.js";
 import * as shipOrders from "./shipOrders.js";
 import * as shipDecide from "./shipDecide.js";
@@ -30,6 +30,22 @@ import * as shipDecide from "./shipDecide.js";
  * the heading to turn to and the engines to burn for it, and the fuel the burn
  * and any leaks cost.
  */
+
+/**
+ * The weight an order is flown with, so a doctrine number of this much is
+ * worth exactly as much as doing what it was told.
+ */
+export const URGE_REFERENCE = 100;
+
+/**
+ * The fastest a craft can be closing and still stop within `gap` metres
+ * braking at `brake` m/s², once `delay` seconds have gone by at that speed.
+ */
+export function stoppingSpeed(brake: number, gap: number, delay: number): number {
+    if (!(brake > 0) || !Number.isFinite(delay)) return 0;
+    const lag = brake * delay;
+    return sqrt(2 * brake * gap + lag * lag) - lag;
+}
 
 /** Half of each of a design's modules' diagonals, metres: the circle round its box. */
 const SIZES = new WeakMap<ShipDesign, Float64Array>();

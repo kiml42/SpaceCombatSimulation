@@ -12,7 +12,7 @@ import { overriddenDoctrine } from "./doctrine.js";
 import type { World } from "./world.js";
 import { fixed } from "./fixed.js";
 import type { Contacts } from "./collision.js";
-import { type Ships, SHOCK_REACH, NO_TARGET, WHOLE_SHIP } from "./ships.js";
+import { type Ships, NO_TARGET, WHOLE_SHIP } from "./ships.js";
 import * as shipForage from "./shipForage.js";
 import * as shipDocking from "./shipDocking.js";
 
@@ -21,6 +21,19 @@ import * as shipDocking from "./shipDocking.js";
  * shattered, a body split into the pieces still joined, each piece adopted by
  * whoever is aboard it, and loose wreckage culled once it can matter no more.
  */
+
+/**
+ * How far a blow carries through a hull before it has half spent itself,
+ * metres.
+ *
+ * A shock disperses as it travels: the metal it passes through crushes,
+ * bends and heats, and what reaches a weld thirty metres away is a fraction
+ * of what the plating at the impact felt. Without this a fighter that flew
+ * into a capital ship's flank would break every weld the fighter's momentum
+ * could pay for, wherever they were, and take the ship apart from end to end
+ * — the blow has to land *somewhere*.
+ */
+export const SHOCK_REACH = 15;
 
 /**
  * How much of a weld survives the metal at its ends being wrecked.

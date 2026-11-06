@@ -7,27 +7,37 @@ import type { World } from "./world.js";
 import { type Contacts, CLAW_ALIGN, Stab } from "./collision.js";
 import { CLAW_SPEED_MAX } from "./shipClaw.js";
 import * as shipRebuild from "./shipRebuild.js";
-import {
-    type Ships,
-    WELD_SETTLE,
-    REST_SPEED,
-    REST_TIME,
-    PORT_SPEED,
-    CLAW_RETRY,
-    CLAW_HEAT_RATE,
-    CLAW_HEAT_ENERGY,
-    ROBOT_SPENT,
-    CLAW_GRIP_CHANCE,
-} from "./ships.js";
+import { type Ships, REST_SPEED, REST_TIME, CLAW_RETRY } from "./ships.js";
 import * as shipSupply from "./shipSupply.js";
 import * as shipBreakup from "./shipBreakup.js";
 import * as shipForage from "./shipForage.js";
 import * as shipBuild from "./shipBuild.js";
+import { PORT_SPEED } from "./shipDocking.js";
+import { ROBOT_SPENT } from "./shipRobots.js";
 
 /**
  * Welding: two hulls that meet slowly enough, or a claw that closes on what its
  * bow meets, become one body flown by both.
  */
+
+/** Chance a claw takes a sound module in its band. Certain on one spent. */
+export const CLAW_GRIP_CHANCE = 0.8;
+
+/**
+ * Seconds a hull that has just come apart must drift before it can hook
+ * again. A break leaves both faces torn and touching, and without this the
+ * pieces would catch each other again on the next step.
+ */
+export const WELD_SETTLE = 2;
+
+/**
+ * How fast a claw with no robots melts fuel out of the rock it grips, kg/s,
+ * and the charge each kilogram takes, J: it heats the rock round the ice too,
+ * and keeps none of the ore. First guesses, slower and far dearer than robots.
+ */
+export const CLAW_HEAT_RATE = 1;
+
+export const CLAW_HEAT_ENERGY = 5e6;
 
 /** How far past the end of a module's weldable part a contact may still weld it, metres. */
 const WELD_REACH = 0.05;
