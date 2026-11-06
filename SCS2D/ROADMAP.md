@@ -646,6 +646,8 @@ work has to respect.
 18. **Campaign** (#836) — last, because its screens would otherwise be built in plain DOM and then
     rewritten in React.
 
+**Skirmish upgrade cards** (#691) — settled in DECISIONS.md 2026-11-06; the cards are data in `skirmish/cards.json`.
+
 **Scenario packs** (#837).
 
 **Multiplayer** is not a step, and nothing is being built for it — but nothing forecloses it either: the pure
