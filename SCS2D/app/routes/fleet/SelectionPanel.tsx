@@ -25,7 +25,8 @@ import {
 } from "~/sim/index";
 import { CommitText } from "~/ui/fields/CommitText";
 import { LiveNumber } from "~/ui/fields/LiveText";
-import { CARRIED, designOf, optionLabel, optionValue } from "./fleetOptions";
+import { CARRIED, designOf } from "./fleetOptions";
+import { LibraryOptions } from "./LibraryOptions";
 import { Button } from "~/ui/buttons/Button";
 import { EditLink } from "~/ui/buttons/EditButton";
 
@@ -129,7 +130,6 @@ export function SelectionPanel({ doc, scale, ships, library, designHref, onLeave
 
     const carried = Object.keys(doc.fleet.designs).sort((a, b) => a.localeCompare(b));
     const others = library.filter((each) => !carried.includes(each.name));
-    const saved = others.filter((each) => !each.stock);
 
     return (
         <section id="selection">
@@ -156,24 +156,7 @@ export function SelectionPanel({ doc, scale, ships, library, designHref, onLeave
                                         </option>
                                     ))}
                                 </optgroup>
-                                {saved.length > 0 && (
-                                    <optgroup label="Saved">
-                                        {saved.map((each) => (
-                                            <option key={optionValue(each)} value={optionValue(each)}>
-                                                {optionLabel(each)}
-                                            </option>
-                                        ))}
-                                    </optgroup>
-                                )}
-                                <optgroup label="Stock">
-                                    {others
-                                        .filter((each) => each.stock)
-                                        .map((each) => (
-                                            <option key={optionValue(each)} value={optionValue(each)}>
-                                                {optionLabel(each)}
-                                            </option>
-                                        ))}
-                                </optgroup>
+                                <LibraryOptions entries={others} />
                             </select>
                             <EditLink
                                 id="editDesign"

@@ -1,6 +1,6 @@
 import { styled } from "@linaria/react";
 import { useRef, type ReactNode } from "react";
-import { BUILT_IN, FLEET_FILES, type Library } from "~/editor/library";
+import { BUILT_IN, byCategory, FLEET_FILES, type Library, type LibraryEntry } from "~/editor/library";
 import { MUTATION_FIELDS } from "~/evolution/mutationFields";
 import type { SettingField } from "~/host/settingsFields";
 import type { Blueprint, Fleet } from "~/sim/index";
@@ -249,26 +249,22 @@ export function EntrantOptions({
     readonly fleets: Library<Fleet>;
     readonly label: (stock: boolean, name: string) => string;
 }) {
+    // The editors list a shadowed stock design beside the player's copy, as something to open; a founder picked by name is not.
+    const listed = (library: Library<Blueprint> | Library<Fleet>) => library.list().filter((entry) => !(entry.stock && entry.saved));
+    const options = (kind: "ship" | "fleet", entries: readonly LibraryEntry[], stock: ReadonlySet<string>) =>
+        entries.map((entry) => (
+            <option key={entry.name} value={valueOf(kind, entry.name)}>
+                {label(stock.has(entry.name), entry.name)}
+            </option>
+        ));
     return (
         <>
-            {(
-                [
-                    ["ship", "Ships", ships, STOCK_SHIPS],
-                    ["fleet", "Fleets", fleets, STOCK_FLEETS],
-                ] as const
-            ).map(([kind, title, library, stock]) => (
-                <optgroup key={kind} label={title}>
-                    {library
-                        .list()
-                        // The editors list a shadowed stock design beside the player's copy, as something to open; a founder picked by name is not.
-                        .filter((entry) => !(entry.stock && entry.saved))
-                        .map((entry) => (
-                            <option key={entry.name} value={valueOf(kind, entry.name)}>
-                                {label(stock.has(entry.name), entry.name)}
-                            </option>
-                        ))}
+            {byCategory(listed(ships), (entry) => entry.category).map(([category, entries]) => (
+                <optgroup key={category} label={`Ships: ${category}`}>
+                    {options("ship", entries, STOCK_SHIPS)}
                 </optgroup>
             ))}
+            <optgroup label="Fleets">{options("fleet", listed(fleets), STOCK_FLEETS)}</optgroup>
         </>
     );
 }

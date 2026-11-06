@@ -1,6 +1,7 @@
 {
   "formatVersion": 2,
   "name": "Beam Catamaran",
+  "category": "Stock",
   "notes": "Two hulls and a footbridge. Each hull is a whole ship — core, gun, engines — and what joins them is four sections of thin structure, so the pair is held together by welds a fraction of the width of the ones inside either hull. Built to be cut in half: what the two halves then do is what tells you whether a piece with a core of its own is a ship or wreckage. Each hull carries a robot bay, a hold and a generator, enough between them to rebuild the other half, so each half of a cut Catamaran can grow back into the whole ship.",
   "doctrine": {
     "targeting": {

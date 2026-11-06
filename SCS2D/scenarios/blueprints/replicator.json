@@ -1,6 +1,7 @@
 {
   "formatVersion": 2,
   "name": "Replicator",
+  "category": "Stock",
   "notes": "A mining ship that builds copies of itself. Two claws on the bow take hold of rock, robots strip it into the holds, and the slipway astern lays a copy of the whole ship out side first, beam leading, since the ship is far broader than it is long.",
   "doctrine": {
     "approach": {

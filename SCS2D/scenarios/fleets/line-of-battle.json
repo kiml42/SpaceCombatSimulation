@@ -18,6 +18,7 @@
     "Gunship": {
       "formatVersion": 2,
       "name": "Gunship",
+      "category": "Stock",
       "notes": "A heavy gunship: a bow gun firing a shell an order of magnitude heavier than the corvette's, and a broadside turret on each beam for anything that gets inside it. Twice the corvette's engines move four times its mass, so it is markedly more sluggish — which is the point of having two ships to compare.",
       "doctrine": {
         "targeting": {
@@ -267,6 +268,7 @@
     "Corvette": {
       "formatVersion": 2,
       "name": "Corvette",
+      "category": "Stock",
       "notes": "A light escort: one main engine, one gun, and enough manoeuvring thrust to turn faster than anything can track it. Drawn as a deck plan on round numbers, +x the bow and +y to port, with modules abutting exactly.",
       "doctrine": {
         "targeting": {
@@ -420,6 +422,7 @@
     "Beam Corvette": {
       "formatVersion": 2,
       "name": "Beam Corvette",
+      "category": "Stock",
       "notes": "A light escort: one main engine, one gun, and enough manoeuvring thrust to turn faster than anything can track it. Drawn as a deck plan on round numbers, +x the bow and +y to port, with modules abutting exactly.",
       "doctrine": {
         "targeting": {
@@ -608,6 +611,7 @@
     "Dinky": {
       "formatVersion": 2,
       "name": "Dinky",
+      "category": "Stock",
       "notes": "A fighter. It cannot hope to destroy anything much larger than itself, so it puts engines above the guns everything else shoots at first: a capital it strands is a capital out of the battle, which is the most a craft this size can do to one.",
       "fighter": true,
       "doctrine": {

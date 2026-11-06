@@ -85,6 +85,12 @@ describe("editing a fleet", () => {
         expect(distinctDesign(both, changed).name).toBe("Dinky 2");
     });
 
+    it("takes a design that differs only by category as the same one", () => {
+        const fleet = addShip(emptyFleet("F"), DINKY, 0, 0);
+        const filed = { ...DINKY, category: "Elsewhere" };
+        expect(distinctDesign(fleet, filed)).toBe(filed);
+    });
+
     it("drops a design nothing flies any more", () => {
         const fleet = addShip(addShip(emptyFleet("F"), DINKY, 0, 0), GUNSHIP, 100, 0);
         expect(Object.keys(deleteEntries(fleet, [[1]]).designs)).toEqual(["Dinky"]);

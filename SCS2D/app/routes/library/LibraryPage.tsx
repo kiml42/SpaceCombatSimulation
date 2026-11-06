@@ -1,7 +1,8 @@
 import { styled } from "@linaria/react";
 import { useNavigate } from "react-router";
 import { battleRoute, openFleetRoute, openShipRoute } from "~/editor/handoff";
-import type { Library, LibraryEntry } from "~/editor/library";
+import { byCategory, type Library, type LibraryEntry } from "~/editor/library";
+import { Fragment } from "react";
 import { useLibrary } from "~/features/storage/useLibrary";
 import { shipFleet, type Blueprint, type Fleet } from "~/sim/index";
 import { Button } from "~/ui/buttons/Button";
@@ -21,6 +22,13 @@ const Heading = styled.h2`
     color: var(--colour-heading);
     font-size: 1rem;
     font-weight: 600;
+`;
+
+const Category = styled.h3`
+    margin: 0.8rem 0 0.2rem;
+    color: var(--colour-muted);
+    font-size: var(--font-size-small);
+    font-weight: 400;
 `;
 
 const List = styled.ul`
@@ -57,33 +65,44 @@ interface EntriesProps {
 
 function Entries({ title, entries, edit, fleet }: EntriesProps) {
     const navigate = useNavigate();
+    const categorised = entries.some((entry) => entry.category !== undefined);
+    const groups = categorised ? byCategory(entries, (entry) => entry.category) : [["", [...entries]] as const];
     return (
         <section aria-label={title}>
             <Heading>{title}</Heading>
-            <List>
-                {entries.map((entry) => {
-                    const value = optionValue(entry);
-                    // A stock ship shadowed by a saved one of its name is told apart, as the editors do.
-                    const named = entry.name + (entry.stock && entry.saved ? " (stock)" : "");
-                    return (
-                        <Item key={`${entry.name}/${entry.stock ? "stock" : "saved"}`}>
-                            <span>{entry.name}</span>
-                            <Kind>{entry.stock ? "stock" : "saved"}</Kind>
-                            <EditButton label={`Edit ${named}`} title="Open it in its editor" onClick={() => void navigate(edit(value))} />
-                            <Button
-                                aria-label={`Test ${named}`}
-                                title="Fight it in a custom battle, as the first side"
-                                onClick={() => {
-                                    const opened = fleet(value);
-                                    if (opened !== null) void navigate(battleRoute(opened));
-                                }}
-                            >
-                                Test
-                            </Button>
-                        </Item>
-                    );
-                })}
-            </List>
+            {groups.map(([category, group]) => (
+                <Fragment key={category}>
+                    {categorised && <Category>{category}</Category>}
+                    <List>
+                        {group.map((entry) => {
+                            const value = optionValue(entry);
+                            // A stock ship shadowed by a saved one of its name is told apart, as the editors do.
+                            const named = entry.name + (entry.stock && entry.saved ? " (stock)" : "");
+                            return (
+                                <Item key={`${entry.name}/${entry.stock ? "stock" : "saved"}`}>
+                                    <span>{entry.name}</span>
+                                    <Kind>{entry.stock ? "stock" : "saved"}</Kind>
+                                    <EditButton
+                                        label={`Edit ${named}`}
+                                        title="Open it in its editor"
+                                        onClick={() => void navigate(edit(value))}
+                                    />
+                                    <Button
+                                        aria-label={`Test ${named}`}
+                                        title="Fight it in a custom battle, as the first side"
+                                        onClick={() => {
+                                            const opened = fleet(value);
+                                            if (opened !== null) void navigate(battleRoute(opened));
+                                        }}
+                                    >
+                                        Test
+                                    </Button>
+                                </Item>
+                            );
+                        })}
+                    </List>
+                </Fragment>
+            ))}
         </section>
     );
 }

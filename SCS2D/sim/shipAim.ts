@@ -840,13 +840,16 @@ export function trainOne(ships: Ships, bodies: Bodies, i: number): void {
             sweepVy += spin * rx;
         }
         ships.turrets.aimAt(bodies, ti, x, y, bodies.vx[tb]!, bodies.vy[tb]!, sweepVx, sweepVy);
-        // Sharing a body, its middle is the body's no longer: the rest may be a friend.
-        let radius = design.radius;
+        // Sharing a body, the ship is the modules it works, not the body: one
+        // stuck to a rock is a small thing on it, not the whole rock.
+        let middleX = 0;
+        let middleY = 0;
+        let size = design.radius;
         if (sharesBody(ships, target, tb)) {
-            const own = ships.locate(bodies, target, tb, ships.sizeAt);
-            rx = x - own.x;
-            ry = y - own.y;
-            radius = own.radius;
+            const at = ships.locate(bodies, target, tb, ships.sizeAt);
+            middleX = at.x - bodies.x[tb]!;
+            middleY = at.y - bodies.y[tb]!;
+            size = at.radius;
         }
         const slack = firingSlack(
             ships,
@@ -855,9 +858,9 @@ export function trainOne(ships: Ships, bodies: Bodies, i: number): void {
             part,
             ships.turrets.aimDx[ti]!,
             ships.turrets.aimDy[ti]!,
-            rx,
-            ry,
-            radius,
+            rx - middleX,
+            ry - middleY,
+            size,
         );
         // In reach of what it will fire on: the part it picked if it minds what
         // it hits, and otherwise the ship, from its middle.
@@ -867,7 +870,9 @@ export function trainOne(ships: Ships, bodies: Bodies, i: number): void {
             slack,
             ships.slackOffset,
             reachOn(ships, i, mounts[t]!, target, part),
-            selective ? length(x - ships.gunPoint.x, y - ships.gunPoint.y) : length(x - rx - ships.gunPoint.x, y - ry - ships.gunPoint.y),
+            selective
+                ? length(x - ships.gunPoint.x, y - ships.gunPoint.y)
+                : length(x - rx + middleX - ships.gunPoint.x, y - ry + middleY - ships.gunPoint.y),
         );
     }
 }
@@ -891,12 +896,10 @@ export function trainOne(ships: Ships, bodies: Bodies, i: number): void {
  * that part is under the muzzle. A refusal therefore says two things at
  * once, and they are the same thing — *mind what you hit*.
  *
- * Where the ship will do, the cone is the whole ship's, about its middle,
- * whatever part the aim is on: `slackOffset` says how far that middle is off
- * the aim point. A gun aiming at a wing fires once anywhere on the hull is
- * under the muzzle. `partX`, `partY` and `radius` are the part's offset from
- * that middle and the ship's size, which for a ship sharing a body are its own
- * rather than the body's.
+ * Where the ship will do, the cone is the whole ship's, `radius` about its
+ * middle, which is `partX`, `partY` short of the part, whatever part the aim
+ * is on: `slackOffset` says how far that middle is off the aim point. A gun
+ * aiming at a wing fires once anywhere on the hull is under the muzzle.
  *
  * Approximate on purpose, and in the forgiving direction: a bounding circle
  * is not a silhouette, so a target seen end-on is taken to be as wide as it
@@ -915,7 +918,7 @@ export function firingSlack(
     aimY: number,
     partX: number,
     partY: number,
-    radius: number,
+    radius = ships.designs[target]!.radius,
 ): number {
     ships.slackOffset = 0;
     const design = ships.designs[target]!;

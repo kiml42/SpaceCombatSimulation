@@ -1,6 +1,7 @@
 {
   "formatVersion": 2,
   "name": "Quasar Fire-class cruiser-carrier",
+  "category": "Star Wars",
   "doctrine": {
     "approach": {
       "separation": 800,

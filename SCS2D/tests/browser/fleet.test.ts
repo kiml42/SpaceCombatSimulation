@@ -148,7 +148,7 @@ describe("the fleet editor in a browser", () => {
         expect(await page.textContent("#designList")).toMatch(/Dinky2 at start/);
         await page.click("#addShip");
         // The fleet's own designs first, then the library.
-        expect(await page.locator("#addMenu h3").allTextContents()).toEqual(["In this fleet", "Stock"]);
+        expect(await page.locator("#addMenu h3").allTextContents()).toEqual(["In this fleet", "Star Wars", "Stock"]);
         expect((await page.locator("#addMenu button").allTextContents()).slice(0, 4)).toEqual([
             "Beam Corvette",
             "Corvette",

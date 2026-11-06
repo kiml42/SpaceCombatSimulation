@@ -1,6 +1,7 @@
 {
   "formatVersion": 2,
   "name": "Ghost",
+  "category": "Star Wars",
   "notes": "A light freighter that fights whatever is nearest, whatever size it is: it takes no view on how big a target should be, and a great deal of view on how close. Guns first, then engines — it has neither the weight of fire nor the time to chew through a hull.",
   "doctrine": {
     "targeting": {
