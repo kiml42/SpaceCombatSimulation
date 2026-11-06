@@ -2,7 +2,7 @@ import { DAMAGE_ENERGY_PER_KG, fleetBill, fleetHulls, fleetReach, math, Rng, shi
 import { BARE_CORE } from "../scenarios/blueprints.js";
 import { customBattle, tally, type CustomBattle } from "../scenarios/customBattle.js";
 import { Activity } from "../scenarios/decision.js";
-import { DEFAULT_SKIRMISH_SETTINGS, roundBattle, type SkirmishSettings } from "../scenarios/skirmish.js";
+import { atLeast, DEFAULT_SKIRMISH_SETTINGS, roundBattle, type SkirmishSettings } from "../scenarios/skirmish.js";
 import { drawHand, isSimple, neediest, shareOf, withCards, type Limits } from "../skirmish/cards.js";
 import { breeding, type Breeding } from "./mutationFields.js";
 import { mutateFleet } from "./fleetMutate.js";
@@ -102,10 +102,8 @@ export class EnemySearch {
     private readonly settings: AnswerSettings;
     /** How the enemy is bred, from the settings' mutation odds. */
     private readonly bred: Breeding;
-    /** What the enemy cost, how many ships it had and how far it reached: an answer may always have as much. */
-    private readonly startReach: number;
-    private readonly startBill: Budget;
-    private readonly startShips: number;
+    /** The enemy it answers: an answer may always cost, field and reach as much. */
+    private readonly startEnemy: Fleet;
     private cards: readonly string[];
     /** The draws for the enemy's cards, apart from the breeding's, so a card drawn moves no mutant. */
     private readonly cardRng: Rng;
@@ -142,10 +140,7 @@ export class EnemySearch {
         this.settings = { ...DEFAULT_ANSWER, ...settings };
         const odds = this.settings.breeding;
         this.bred = breeding((name) => odds[name]);
-        const hulls = fleetHulls(enemy);
-        this.startReach = fleetReach(hulls);
-        this.startBill = fleetBill(hulls);
-        this.startShips = hulls.length;
+        this.startEnemy = enemy;
         this.best = { enemy, wins: 0, onRound: false, margin: -Infinity };
         this.begin();
     }
@@ -177,7 +172,11 @@ export class EnemySearch {
 
     /** The enemy's limits before its cards: the skirmish's budget, ship count and spread. */
     private get start(): Limits {
-        return { budget: this.playerBudget ?? this.startBill, maxShips: this.settings.maxShips, radius: this.settings.radius };
+        return {
+            budget: this.playerBudget ?? fleetBill(fleetHulls(this.startEnemy)),
+            maxShips: this.settings.maxShips,
+            radius: this.settings.radius,
+        };
     }
 
     /**
@@ -185,16 +184,7 @@ export class EnemySearch {
      * the enemy's cards, each never less than the enemy it answers already has.
      */
     get limits(): Limits {
-        const carded = withCards(this.start, this.cards);
-        return {
-            budget: {
-                metal: math.max(this.startBill.metal, carded.budget.metal),
-                fuel: math.max(this.startBill.fuel, carded.budget.fuel),
-                build: math.max(this.startBill.build, carded.budget.build),
-            },
-            maxShips: math.max(this.startShips, carded.maxShips),
-            radius: math.max(this.startReach, carded.radius),
-        };
+        return atLeast(withCards(this.start, this.cards), this.startEnemy);
     }
 
     /** What every piece of work is fought against: the player's fleet, the round's seed and the settings. */

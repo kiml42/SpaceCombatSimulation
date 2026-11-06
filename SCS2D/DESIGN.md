@@ -1337,7 +1337,8 @@ inside any one file is not contiguous.
   three simple cards and keeps the one for the limit its best fleet uses most of. A card is drawn by
   `host/cardFace.ts`, one face in ems at any size, bordered in the colour of the cost it adds to
   (`render/resources.ts`, which the battle's gauges use too): large to pick, small in either side's hand on
-  the skirmish page, copies stacked, and in the timeline beside the match it came before. Step 5 is built; what is left of it is
+  the skirmish page, copies stacked, and in the timeline beside the match it came before. Both sides' limits — metal, fuel, build time, ships and spread — are shown
+  side by side with what each fleet uses of them, on the skirmish page and in the fleet editor (`BudgetTable`). Step 5 is built; what is left of it is
   tuning its numbers (ROADMAP.md §12).
   See ROADMAP.md §8.
   §8 step 3 is done, withdrawal left open (ROADMAP.md §12), and step 7, two layers, is built. What a chooser is already facing (`facingWeight`) and whether anything is in the way

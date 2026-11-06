@@ -11,6 +11,7 @@ import {
     fleetFault,
     lost,
     newSkirmish,
+    enemyLimits,
     pick,
     playerLimits,
     roundBattle,
@@ -407,6 +408,17 @@ describe("the skirmish", () => {
         // Never below half where it started.
         const cut = playerLimits({ ...skirmish, cards: Array<string>(8).fill("metal-for-fuel") });
         expect(cut.budget.metal).toBeCloseTo(500);
+    });
+
+    it("holds the enemy to the starting limits moved by its own cards, never below what it has", () => {
+        const skirmish = newSkirmish(gunship, gunship, 5, undefined, { metal: 1, fuel: 1, build: 1 });
+        const limits = enemyLimits({ ...skirmish, enemyCards: ["ship", "spread"] });
+        const bill = billOfFleet(gunship);
+        expect(limits.budget).toEqual(bill);
+        expect(limits.maxShips).toBe(DEFAULT_SKIRMISH_SETTINGS.maxShips + 1);
+        expect(limits.radius).toBe(DEFAULT_SKIRMISH_SETTINGS.radius + 100);
+        // The player's cards are theirs alone.
+        expect(enemyLimits({ ...skirmish, cards: ["ship"] }).maxShips).toBe(DEFAULT_SKIRMISH_SETTINGS.maxShips);
     });
 
     it("keeps its cards through a link, and reads a skirmish from before cards", () => {

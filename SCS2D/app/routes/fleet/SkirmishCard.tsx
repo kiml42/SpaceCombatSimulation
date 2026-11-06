@@ -1,31 +1,7 @@
 import { styled } from "@linaria/react";
-import { kg } from "~/editor/budget";
-import { buildTime } from "~/editor/stats";
-import { CardHand, CardPick, ResourceWord } from "~/features/skirmish/Cards";
-import { billOfFleet, canFight, fleetFault, overLimit, playerLimits, type Skirmish } from "~/scenarios/skirmish";
-
-const Budget = styled.table`
-    width: 100%;
-    border-collapse: collapse;
-
-    th {
-        padding: 0.1rem 0.6rem 0.1rem 0;
-        color: var(--colour-muted);
-        font-weight: 400;
-        text-align: left;
-    }
-
-    td {
-        padding: 0.1rem 0;
-        color: var(--colour-heading);
-        text-align: right;
-    }
-
-    tr[data-over] th,
-    tr[data-over] td {
-        color: var(--colour-danger);
-    }
-`;
+import { BudgetTable } from "~/features/skirmish/BudgetTable";
+import { CardHand, CardPick } from "~/features/skirmish/Cards";
+import { canFight, fleetFault, overLimit, type Skirmish } from "~/scenarios/skirmish";
 
 const Note = styled.p`
     margin: 0.4rem 0 0;
@@ -71,9 +47,6 @@ export function SkirmishCard({
     readonly flies: boolean;
     readonly onPick: (id: string) => void;
 }) {
-    const priced = fleetFault(skirmish.player) === null;
-    const bill = priced ? billOfFleet(skirmish.player) : null;
-    const { budget } = playerLimits(skirmish);
     const block = skirmishBlock(skirmish, flies);
     return (
         <section id="skirmish">
@@ -85,26 +58,7 @@ export function SkirmishCard({
                     <CardPick hand={skirmish.hand} onPick={onPick} />
                 </Pick>
             )}
-            <Budget id="skirmishBudget">
-                {bill !== null && (
-                    <tbody>
-                        {(
-                            [
-                                ["metal", kg(bill.metal), kg(budget.metal), bill.metal > budget.metal],
-                                ["fuel", kg(bill.fuel), kg(budget.fuel), bill.fuel > budget.fuel],
-                                ["build", buildTime(bill.build), buildTime(budget.build), bill.build > budget.build],
-                            ] as const
-                        ).map(([name, spent, allowed, over]) => (
-                            <tr key={name} data-over={over || undefined}>
-                                <th>
-                                    <ResourceWord resource={name} />
-                                </th>
-                                <td>{`${spent} of ${allowed}`}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                )}
-            </Budget>
+            <BudgetTable id="skirmishBudget" skirmish={skirmish} />
             <CardHand id="heldCards" ids={skirmish.cards ?? []} caption="Your upgrade cards:" empty="No upgrade cards yet." />
             <Note id="skirmishNote">{block ?? `Against ${skirmish.enemy.name}.`}</Note>
         </section>

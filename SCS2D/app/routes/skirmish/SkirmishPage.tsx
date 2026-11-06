@@ -8,15 +8,14 @@ import { AsteroidCard } from "~/features/battle/AsteroidCard";
 import { DOCTRINE_KEY, DoctrinePanel } from "~/features/orders/DoctrinePanel";
 import { OrderBar } from "~/features/orders/OrderBar";
 import { useOrderState } from "~/features/orders/orderState";
-import { CardHand, ResourceWord } from "~/features/skirmish/Cards";
+import { BudgetTable } from "~/features/skirmish/BudgetTable";
+import { CardHand } from "~/features/skirmish/Cards";
 import { useSkirmish } from "~/features/skirmish/SkirmishProvider";
 import { useStorage } from "~/features/storage/StorageContext";
 import { useLibrary } from "~/features/storage/useLibrary";
 import { useViewSettings } from "~/features/storage/useViewSettings";
-import { kg } from "~/editor/budget";
 import { fleetRoute, handedSkirmish, shipFleet } from "~/editor/handoff";
 import { unusedName } from "~/editor/library";
-import { buildTime } from "~/editor/stats";
 import type { AnswerProgress } from "~/host/answer";
 import type { BattleView, Watcher } from "~/host/battleView";
 import { BATTLE_KEYS, ORDER_KEYS } from "~/host/keyHelp";
@@ -32,7 +31,6 @@ import {
     billOfFleet,
     canFight,
     DEFAULT_SKIRMISH_SETTINGS,
-    playerLimits,
     fleetFault,
     lost,
     newSkirmish,
@@ -54,7 +52,6 @@ import { serialiseFleet, type Budget, type Fleet, type Snapshot } from "~/sim/in
 import { Button } from "~/ui/buttons/Button";
 import { EditLink } from "~/ui/buttons/EditButton";
 import { KeyHelp } from "~/ui/dialogs/KeyHelp";
-import { Figures } from "../ship/ShipReport";
 import { EMPTY } from "./FleetChoices";
 import { keptSettings, SetupScreen } from "./SetupScreen";
 import { SETTINGS_KEY } from "./skirmishFields";
@@ -162,11 +159,6 @@ const Panel = styled.aside`
 
     p {
         margin: 0.3rem 0;
-    }
-
-    tr.over th,
-    tr.over td {
-        color: var(--colour-danger);
     }
 
     @media (width <= 800px) {
@@ -727,8 +719,6 @@ export function SkirmishPage() {
     const fault = skirmish === null ? null : fleetFault(skirmish.player);
     const fits = skirmish !== null && canFight(skirmish);
     const limit = skirmish === null || fault !== null ? null : overLimit(skirmish);
-    const bill = skirmish === null || fault !== null ? null : billOfFleet(skirmish.player);
-    const budget = skirmish === null ? null : playerLimits(skirmish).budget;
     const answeringNow = skirmish?.won !== undefined;
     // Not watching the search, the history has the battle's room, the two sides of each match side by side.
     const wideHistory = answeringNow && !watching && !replaying && answering.latest?.found == null;
@@ -887,30 +877,7 @@ export function SkirmishPage() {
                             />
                             <h2>Your fleet</h2>
                             <p id="playerName">{skirmish.player.name}</p>
-                            <Figures id="budget">
-                                {bill !== null && budget !== null && (
-                                    <tbody>
-                                        <tr className={bill.metal > budget.metal ? "over" : undefined}>
-                                            <th>
-                                                <ResourceWord resource="metal" />
-                                            </th>
-                                            <td>{`${kg(bill.metal)} of ${kg(budget.metal)}`}</td>
-                                        </tr>
-                                        <tr className={bill.fuel > budget.fuel ? "over" : undefined}>
-                                            <th>
-                                                <ResourceWord resource="fuel" />
-                                            </th>
-                                            <td>{`${kg(bill.fuel)} of ${kg(budget.fuel)}`}</td>
-                                        </tr>
-                                        <tr className={bill.build > budget.build ? "over" : undefined}>
-                                            <th>
-                                                <ResourceWord resource="build" />
-                                            </th>
-                                            <td>{`${buildTime(bill.build)} of ${buildTime(budget.build)}`}</td>
-                                        </tr>
-                                    </tbody>
-                                )}
-                            </Figures>
+                            <BudgetTable id="budget" skirmish={skirmish} />
                             <CardHand
                                 id="playerCards"
                                 ids={skirmish.cards ?? []}

@@ -221,6 +221,31 @@ export function playerLimits(skirmish: Skirmish): Limits {
     return withCards(startLimits(skirmish), skirmish.cards ?? []);
 }
 
+/** Limits raised where need be to what `fleet` already costs, fields and reaches. */
+export function atLeast(limits: Limits, fleet: Fleet): Limits {
+    const hulls = fleetHulls(fleet);
+    const bill = fleetBill(hulls);
+    return {
+        budget: {
+            metal: math.max(bill.metal, limits.budget.metal),
+            fuel: math.max(bill.fuel, limits.budget.fuel),
+            build: math.max(bill.build, limits.budget.build),
+        },
+        maxShips: math.max(hulls.length, limits.maxShips),
+        radius: math.max(fleetReach(hulls), limits.radius),
+    };
+}
+
+/**
+ * What the enemy is held to: the skirmish's budget, ship count and spread,
+ * moved by its cards, and never less than what it already has.
+ */
+export function enemyLimits(skirmish: Skirmish): Limits {
+    const settings = settingsOf(skirmish);
+    const start = { budget: skirmish.budget, maxShips: settings.maxShips, radius: settings.radius };
+    return atLeast(withCards(start, skirmish.enemyCards ?? []), skirmish.enemy);
+}
+
 /**
  * How the player's fleet breaks the skirmish's limit on ships or spread, or
  * null if it does not.
