@@ -182,7 +182,8 @@ export function modulesAlong(
             continue;
         }
         if (isHullMount(m.spec.kind)) {
-            hullMountAlong(design, m, i, x0, y0, ux, uy, length, out, hulls, body);
+            // Its barrels swing inside its box, so what misses the box misses them.
+            if (!passesWide(m, null, x0, y0, ux, uy, length)) hullMountAlong(design, m, i, x0, y0, ux, uy, length, out, hulls, body);
             continue;
         }
         const triangle = shapeOf(m.spec);
