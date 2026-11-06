@@ -50,3 +50,33 @@ it("holds fire on an enemy stuck to the far side of a rock", () => {
     const { elsewhere } = fight(run, 60);
     expect(elsewhere).toBeLessThan(20e6);
 });
+
+it("fires only with its barrel on the stuck ship, not anywhere on the rock", () => {
+    const run = stuck(1500);
+    const bodies = run.world.bodies;
+    const p = run.projectiles;
+    const at = { x: 0, y: 0, vx: 0, vy: 0, radius: 0 };
+    const seen = new Set<string>();
+    let rounds = 0;
+    let wide = 0;
+    for (let t = 0; t < 60 * 60; t++) {
+        run.step();
+        const gunship = bodies.indexOf(run.ships.body(run.gunship));
+        run.ships.locate(bodies, run.corvette, bodies.indexOf(run.ships.body(run.corvette)), at);
+        for (let q = 0; q < p.alive.length; q++) {
+            if (p.alive[q] !== 1 || p.fragment[q] === 1 || p.owner[q] !== gunship) continue;
+            const key = `${q} ${p.startX[q]} ${p.startY[q]}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            // How far its line, relative to the ship, passes from the ship's middle.
+            const vx = p.vx[q]! - at.vx;
+            const vy = p.vy[q]! - at.vy;
+            const miss = Math.abs(vx * (at.y - p.startY[q]!) - vy * (at.x - p.startX[q]!)) / Math.hypot(vx, vy);
+            rounds++;
+            if (miss > at.radius) wide++;
+        }
+    }
+    expect(rounds).toBeGreaterThan(10);
+    // Fired once the barrel was anywhere on the rock, a fifth of them went wide of the ship.
+    expect(wide).toBe(0);
+});
