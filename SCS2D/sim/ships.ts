@@ -46,7 +46,7 @@ import { Fuel, LEAK_HOLE_CALIBRES, leakChance, leakRate, leakSpeed, type Leak } 
 import { Charge } from "./charge.js";
 import { Metal } from "./metal.js";
 import { Claim, mendClaim, priorityOf, Resource, Supply } from "./supply.js";
-import { isHullMount, moduleCentre, moduleOutline, robotsOn, SEAL_REACH, SEAL_SPEED, weldBox } from "./modules.js";
+import { isHullMount, moduleCentre, moduleOutline, SEAL_REACH, SEAL_SPEED, weldBox } from "./modules.js";
 import type { Rng } from "./rng.js";
 import { geometryOf, landedIndex, landedLength, plumeLayers, plumeRays, Plumes, WEAPON_PLUME_SHARE, weaponPlumeReach } from "./exhaust.js";
 import { Choice, cohesionUrge, inSight, look, lookFrom, score } from "./targeting.js";
@@ -65,7 +65,7 @@ import { abs, atan2, angleDelta, PI, brakingRate, clamp, cos, exp, floor, length
 import { Projectiles } from "./projectiles.js";
 import { padApproaches, type PadApproach } from "./padApproach.js";
 import type { Store } from "./store.js";
-import { crawl, legLength, neighbourOf, pathTo, RobotMode, Robots, staysWhole, walk, walkTime, type Robot } from "./robots.js";
+import { neighbourOf, RobotMode, Robots, staysWhole, type Robot } from "./robots.js";
 import { Allocation, EngineLayout } from "./engines.js";
 import { burnGain, pushBearing, pushTorque, spinWay, steerHeading, STEER_HOLD_SPEED, STEER_SPIN, turnTime } from "./helm.js";
 import { addFlame, addTurret, attackBearing, AttackArcs, AttackRegion } from "./attack.js";
@@ -99,14 +99,6 @@ import {
     SLIPWAY_BUILD_PER_METRE,
     SLIPWAY_CLEAR_TIME,
     SLIPWAY_PUSH,
-    ROBOT_BUILD_ENERGY,
-    ROBOT_BUILD_TIME,
-    berthRate,
-    robotsKept,
-    ROBOT_CHARGE,
-    ROBOT_LOAD,
-    ROBOT_MASS,
-    ROBOT_REFILL_TIME,
     ROBOT_REPAIR_RATE,
     GunType,
     interiorVolume,
@@ -114,6 +106,7 @@ import {
     type ModuleKind,
 } from "./modules.js";
 import * as shipRobotViews from "./shipRobotViews.js";
+import * as shipRobots from "./shipRobots.js";
 
 /**
  * Ships: a compiled design bound to a body, flying itself and shooting.
@@ -227,14 +220,6 @@ interface Spot {
 function spot(): Spot {
     return { x: 0, y: 0, vx: 0, vy: 0, radius: 0 };
 }
-
-/** Robots a bay is building, the most nearly finished first. */
-function mostDone(a: number, b: number): number {
-    return b - a;
-}
-
-/** Seconds of a robot's work short of `ROBOT_BUILD_TIME` that still counts as done, for what rounding leaves. */
-const BUILD_SLACK = 1e-9;
 
 /**
  * The fastest a craft can be closing and still stop within `gap` metres
@@ -576,7 +561,7 @@ const WAY_STICK = 0.3;
 
 /** Which turn a module takes to be mended: cores, then engines and weapons, then the rest. */
 /** Less metal than this a robot carries, or a hull holds, is rounding rather than metal, kg. */
-const ROBOT_SPENT = 1e-6;
+export const ROBOT_SPENT = 1e-6;
 
 /** A ship's hull matched to the design it set out as, for rebuilding what it has lost. */
 /** What a module of wreckage being taken apart was whole, and how far down it has come. */
@@ -648,7 +633,7 @@ function sameWalls(a: ModuleSpec, b: ModuleSpec): boolean {
 }
 
 /** The module of its compiled design a hull module is, for what tier rebuilding it falls in. */
-function originTier(approach: Approach, design: ShipDesign, m: number): number {
+export function originTier(approach: Approach, design: ShipDesign, m: number): number {
     const origin = originOf(design, m);
     return repairTier(approach, origin.design, origin.module);
 }
@@ -657,7 +642,7 @@ function originTier(approach: Approach, design: ShipDesign, m: number): number {
  * How soon a module is mended or rebuilt, lowest first: by its doctrine's
  * priority for mending it (`mendCorePriority` and the rest).
  */
-function repairTier(approach: Approach, design: ShipDesign, m: number): number {
+export function repairTier(approach: Approach, design: ShipDesign, m: number): number {
     return -priorityOf(approach, mendClaim(design, m));
 }
 
@@ -666,7 +651,7 @@ function repairTier(approach: Approach, design: ShipDesign, m: number): number {
  * generators that charge its robots, which a refit puts up first and takes
  * down last, so as much of the work goes on as can.
  */
-function workforce(kind: string): boolean {
+export function workforce(kind: string): boolean {
     return kind === "core" || kind === "robotBay" || kind === "generator";
 }
 
@@ -873,13 +858,6 @@ export enum OrderCancelCondition {
 export const NEUTRAL_TEAM = -1;
 
 /**
- * How much more charge a kilogram of rock takes robots to mine than a
- * kilogram of wreckage to strip: they smelt its ore and melt its ice as they
- * cut it out. A first guess.
- */
-export const MINING_POWER = 3;
-
-/**
  * How fast a claw with no robots melts fuel out of the rock it grips, kg/s,
  * and the charge each kilogram takes, J: it heats the rock round the ice too,
  * and keeps none of the ore. First guesses, slower and far dearer than robots.
@@ -947,11 +925,11 @@ export class Ships {
 
     private readonly designs: (ShipDesign | null)[] = [];
     /** What each ship's robots rebuild it to: the design it set out as, or that of the ship it flew off. */
-    private readonly launched: ShipDesign[] = [];
+    readonly launched: ShipDesign[] = [];
     /** Each ship's hull matched to its launch design (`rebuildFor`). */
     private readonly rebuilds: (Rebuild | null)[] = [];
     /** Shell steps finished this tick, as ship, launch module, the module built from, the one paying and its body if another's, else -1. */
-    private readonly grows: number[] = [];
+    readonly grows: number[] = [];
     /**
      * What a module of wreckage being taken apart was whole, by the spec of the
      * shell it is now: what each step down is cut from, and the face it goes
@@ -959,14 +937,14 @@ export class Ships {
      */
     private readonly stripShapes = new WeakMap<ModuleSpec, StripShape>();
     /** A module of wreckage with a step of it taken apart this tick, by body: -1 for none. */
-    private readonly stripped: number[] = [];
+    readonly stripped: number[] = [];
     /** Rock bodies and modules, in pairs, that moored ships' robots have taken a step of this step. */
-    private readonly rockSteps: number[] = [];
+    readonly rockSteps: number[] = [];
     /**
      * Each ship's own doctrine, as it set out. A ship riding a merged hull shares
      * that hull's design, so its doctrine is read from here rather than from it.
      */
-    private readonly doctrines: Doctrine[] = [];
+    readonly doctrines: Doctrine[] = [];
     readonly bodyIds: BodyId[] = [];
     /**
      * Body index → the hull that body is built from, for the narrow phase, which
@@ -994,7 +972,7 @@ export class Ships {
     /** Who gets the stores' contents when there is not enough to go round. */
     private readonly supply = new Supply([this.fuel, this.metal, this.power]);
     /** The world's step, for `supply`. */
-    private tick = 0;
+    tick = 0;
     readonly robots = new Robots();
     /** How deep in a spawn this is, so only one asked for from outside is split at its ports. */
     private spawning = 0;
@@ -1093,7 +1071,7 @@ export class Ships {
      */
     private readonly turretAimModule: Int32Array[] = [];
 
-    private readonly team: number[] = [];
+    readonly team: number[] = [];
     private readonly serial: number[] = [];
     private readonly names: string[] = [];
     /** Whether a ship has had a piece fly off it this step, flown from a core of its own. */
@@ -1111,7 +1089,7 @@ export class Ships {
      * Making it a ship rather than a third kind of thing is what lets it be
      * drawn, hit and severed by the code that already does those.
      */
-    private readonly derelict: number[] = [];
+    readonly derelict: number[] = [];
     /** Whether each ship set out with a gun or an engine to lose; a piece takes its ship's. */
     private readonly couldFight: number[] = [];
     /** 1 for a fighter its doctrine has taken down into the hull layer as well. */
@@ -1184,7 +1162,7 @@ export class Ships {
     /** The world tick each ship's claws last tried to close, so a miss waits `CLAW_RETRY`. */
     private readonly clawTried: number[] = [];
     /** Whether each ship's slipways are held up by wreckage caught on what they build, which its robots then clear whatever the room. */
-    private readonly waitsOnWreck: number[] = [];
+    readonly waitsOnWreck: number[] = [];
 
     private readonly blowBody: number[] = [];
     private readonly blowModule: number[] = [];
@@ -1323,7 +1301,7 @@ export class Ships {
     /** Scratch for two rocks becoming one: each moored ship, and where it grips, world frame, in threes. */
     private readonly rebasing: number[] = [];
     /** Every fighter parked. */
-    private readonly parkedShips: number[] = [];
+    readonly parkedShips: number[] = [];
     /** Each carrier's fighters by the pad that keeps them (`ShipDesign.builds`); null for a ship whose pads build none. */
     private readonly broods: (Brood | null)[] = [];
     /** Whether each fighter is being built on its pad, from its core laid down until it is whole. */
@@ -1341,7 +1319,7 @@ export class Ships {
     /** The tick each carrier last put work into a fighter it is building; -1 for never. */
     private readonly builtAt: number[] = [];
     /** Whether each ship has been refitted to a design other than the one it set out as (`refit`). */
-    private readonly refitting: number[] = [];
+    readonly refitting: number[] = [];
     /** The port, by module of its ship's design, a ship is making for to refuel; -1 for none. */
     private readonly dockPort: number[] = [];
     /** Which of its own ports it means to mate with it; -1 for none. */
@@ -2335,7 +2313,7 @@ export class Ships {
      * simulation owns: a side is hostile to every side but its own, and
      * `NEUTRAL_TEAM` is hostile to none and safe from all.
      */
-    private hostile(i: number, other: number): boolean {
+    hostile(i: number, other: number): boolean {
         const mine = this.team[i]!;
         const theirs = this.team[other]!;
         if (mine === NEUTRAL_TEAM || theirs === NEUTRAL_TEAM) return false;
@@ -3258,13 +3236,13 @@ export class Ships {
     }
 
     /** Whether ship `i` has an order other than an errand, which a dock lets go of it for. */
-    private commanded(i: number): boolean {
+    commanded(i: number): boolean {
         const given = this.getCurrentOrder(i);
         return given !== undefined && given.errand === undefined;
     }
 
     /** Whether moored ship `i` has been told to go: an order, or an errand to anything but the rock it is moored to. */
-    private sentAway(i: number): boolean {
+    sentAway(i: number): boolean {
         const given = this.getCurrentOrder(i);
         return given !== undefined && (given.errand === undefined || given.target !== this.parkedOn[i]);
     }
@@ -6720,7 +6698,7 @@ export class Ships {
     }
 
     /** Put up every shell step finished since last asked (`grow`). */
-    private growAll(world: World): void {
+    growAll(world: World): void {
         for (let k = 0; k < this.grows.length; k += 5) {
             this.grow(world, this.grows[k]!, this.grows[k + 1]!, this.grows[k + 2]!, this.grows[k + 3]!, this.grows[k + 4]!);
         }
@@ -6810,790 +6788,16 @@ export class Ships {
         return best;
     }
 
-    /**
-     * Send every hull's robots about their work: out from their bays to what
-     * needs mending most, mending it, and home to be refilled.
-     *
-     * A robot works only for the ship that works its bay, and only on that
-     * ship's modules, but on what it carries: neither a ship with no control
-     * nor a bay out of command or broken stops it, only one that cannot refill
-     * it once it is spent. It goes
-     * for cores first, then engines and weapons, then the rest, the nearest of
-     * each, sharing out the work so two do not crowd one module while another
-     * waits. Mending costs what it costs on a pad (`mend`): charge from what it
-     * carries, and metal drawn from its piece of hull up to what it may spend.
-     */
     tend(world: World): void {
-        this.tick = world.tick;
-        const bodies = world.bodies;
-        this.bodyStore = bodies;
-        const dt = world.dt;
-        for (let b = 0; b < bodies.highWater; b++) {
-            const robots = this.robots.on(b);
-            const design = this.hullDesign[b];
-            if (robots === null || design === null || design === undefined || bodies.alive[b] === 0) continue;
-            // What was shed is settled before any of it comes back.
-            this.damage.takeUnsettledAt(b, this);
-            const mass = bodies.mass[b]!;
-            const inertia = bodies.inertia[b]!;
-            let mended = false;
-            for (let r = 0; r < robots.length; r++) {
-                const robot = robots[r]!;
-                // Out on the rock its ship is moored to, it works there.
-                if (robot.away >= 0) {
-                    const owner = this.pilotAt(b, robot.bay);
-                    const kept = this.tendAway(bodies, b, design, robot, owner, dt);
-                    if (kept === -2) {
-                        this.robots.lose(b, r--);
-                        mended = true;
-                        continue;
-                    }
-                    // Its ship gone from the rock: left there, for whichever friend comes for it.
-                    if (kept < 0) {
-                        this.strand(bodies, robot, owner >= 0 ? owner : this.shipByBody[b]!);
-                        this.robots.lose(b, r--);
-                    }
-                    if (kept !== 0) mended = true;
-                    continue;
-                }
-                // A module destroyed under a robot takes it with it.
-                const on = this.robotOn(design, robot);
-                const left = this.damage.integrity(b, on);
-                if (robot.stoodOn === on && robot.stood > 0 && !(left > 0)) {
-                    this.robots.lose(b, r--);
-                    mended = true;
-                    continue;
-                }
-                robot.stoodOn = on;
-                robot.stood = left;
-                const owner = this.pilotAt(b, robot.bay);
-                if (owner < 0) continue;
-                // Home to a bay a refit is about to take down: taken apart, its metal to the holds.
-                if (robot.mode === RobotMode.Berthed && this.due(owner, b, design, robot.bay)) {
-                    this.metal.add(b, robot.bay, ROBOT_MASS + robot.cargo);
-                    if (robot.cargoFuel > 0) this.fuel.add(b, robot.bay, robot.cargoFuel);
-                    this.robots.lose(b, r--);
-                    mended = true;
-                    continue;
-                }
-                if (this.tendOne(b, design, robots, robot, owner, dt)) mended = true;
-            }
-            if (this.buildRobots(b, design, robots, dt)) mended = true;
-            if (mended) {
-                this.settleMass(bodies, b);
-                this.discardFrom(bodies, b, mass, inertia);
-            }
-            this.growAll(world);
-            const done = this.stripped[b] ?? -1;
-            if (done >= 0) {
-                this.stripped[b] = -1;
-                this.stepDown(world, b, done);
-            }
-        }
-        this.tendStranded(bodies);
-        // Rock robots from moored ships have taken a step of, which has none of its own.
-        while (this.rockSteps.length > 0) {
-            const m = this.rockSteps.pop()!;
-            const rb = this.rockSteps.pop()!;
-            if (bodies.alive[rb] === 1) this.stepDown(world, rb, m);
-        }
+        shipRobots.tend(this, world);
     }
 
-    /** The module a robot is on: where it stands, or of the two its leg joins, the nearer. */
-    private robotOn(design: ShipDesign, robot: Robot): number {
-        if (robot.path === null || robot.leg >= robot.path.length - 1) return robot.at;
-        return robot.along * 2 < legLength(design, robot.path, robot.leg) ? robot.at : robot.path[robot.leg + 1]!;
-    }
-
-    /**
-     * Each of a body's working bays that is short of robots builds them.
-     *
-     * **Metal to start one, charge to finish it.** A bay starts a robot in each
-     * free berth it is short of one for, so long as its piece of hull holds a
-     * robot's mass of metal and `REPAIR_WASTE` more to pay for it then: the
-     * metal is aboard from the start, as the robot it will be. Each then takes
-     * `ROBOT_BUILD_TIME` of a berth's work, slower as the bay is damaged, and
-     * `ROBOT_BUILD_ENERGY` of charge from the piece as it goes, so metal sets how
-     * many it builds at once and charge how fast. Short of charge, the most
-     * nearly finished are built first. Only from what is over what its doctrine
-     * keeps for its own engines and weapons (`metalReserve`, `chargeReserve`). Short by `robotsKept`,
-     * counting those out on a rock. Says whether one was started or finished.
-     */
-    private buildRobots(b: number, design: ShipDesign, robots: Robot[], dt: number): boolean {
-        const building = this.robots.buildingOn(b);
-        if (building === null) return false;
-        let changed = false;
-        const cost = ROBOT_MASS * (1 + REPAIR_WASTE);
-        const perSecond = ROBOT_BUILD_ENERGY / ROBOT_BUILD_TIME;
-        for (let m = 0; m < design.modules.length; m++) {
-            const berths = design.modules[m]!.stats.robots;
-            const owner = this.pilotAt(b, m);
-            if (!(berths > 0) || owner < 0) continue;
-            // One a refit is taking down builds no more.
-            if (this.refitting[owner] === 1 && this.wreckage(owner, b, m)) continue;
-            const working = this.left(owner, b, m, DamageEffect.Tending);
-            if (!(working > 0)) continue;
-            const making = building[m]!;
-            let crew = making.length;
-            let aboard = making.length;
-            for (let r = 0; r < robots.length; r++) {
-                if (robots[r]!.bay !== m) continue;
-                crew++;
-                if (robots[r]!.away < 0) aboard++;
-            }
-            const kept = robotsKept(design.modules[m]!.spec, design.modules[m]!.stats, this.isMoored(owner));
-            const missing = min(kept - crew, berths - aboard);
-            let metal = missing > 0 ? this.allowed(Resource.Metal, b, m, Claim.Robots, missing * cost) : 0;
-            while (crew < kept && aboard < berths && metal >= cost) {
-                this.metal.drain(b, m, cost);
-                this.took(Resource.Metal, b, m, Claim.Robots, cost);
-                metal -= cost;
-                this.robots.start(b, m);
-                crew++;
-                aboard++;
-                changed = true;
-            }
-            if (making.length === 0) continue;
-            making.sort(mostDone);
-            const step = dt * working * berthRate(design.modules[m]!.stats);
-            let wanted = 0;
-            for (let k = 0; k < making.length; k++) wanted += (ROBOT_BUILD_TIME - making[k]!) * perSecond;
-            let spare = this.allowed(Resource.Charge, b, m, Claim.Robots, wanted);
-            for (let k = 0; k < making.length; k++) {
-                const want = min(step, ROBOT_BUILD_TIME - making[k]!) * perSecond;
-                if (!(spare > 0)) break;
-                const got = this.power.drain(b, m, want < spare ? want : spare);
-                this.took(Resource.Charge, b, m, Claim.Robots, got);
-                spare -= got;
-                making[k] = making[k]! + got / perSecond;
-            }
-            for (let k = making.length - 1; k >= 0; k--) {
-                if (making[k]! < ROBOT_BUILD_TIME - BUILD_SLACK) continue;
-                this.robots.finish(b, m, k);
-                changed = true;
-            }
-        }
-        return changed;
-    }
-
-    /** One robot's step. Says whether it mended anything. */
-    private tendOne(b: number, design: ShipDesign, robots: Robot[], robot: Robot, owner: number, dt: number): boolean {
-        if (robot.mode === RobotMode.Berthed) {
-            // A working bay refills it, and tops its charge up from its piece of
-            // hull, reserves and all, each step it waits.
-            const working = this.left(owner, b, robot.bay, DamageEffect.Tending) * berthRate(design.modules[robot.bay]!.stats);
-            // What it brought home goes into the holds, as far as they have room.
-            let unloaded = false;
-            if (robot.cargo + robot.cargoFuel > 0) robot.brought = (robot.cargo + robot.cargoFuel) / ROBOT_LOAD;
-            if (robot.cargoFuel > 0) {
-                const put = this.fuel.add(b, robot.bay, robot.cargoFuel);
-                robot.cargoFuel = put < robot.cargoFuel ? robot.cargoFuel - put : 0;
-                unloaded = put > 0;
-                // What the tanks have no room for is let go, not carried out again.
-                if (robot.cargoFuel > 0) {
-                    robot.cargoFuel = 0;
-                    unloaded = true;
-                }
-            }
-            if (robot.cargo > 0) {
-                const put = this.metal.add(b, robot.bay, robot.cargo);
-                robot.cargo = put < robot.cargo ? robot.cargo - put : 0;
-                unloaded = unloaded || put > 0;
-                // Taking its own hull down for a refit, or clearing a slipway, what the holds have no room for is thrown away.
-                if (robot.cargo > 0 && (this.refitting[owner] === 1 || this.waitsOnWreck[owner] === 1)) {
-                    robot.cargo = 0;
-                    unloaded = true;
-                }
-            }
-            if (working > 0) {
-                if (robot.refill > 0) {
-                    robot.refill -= dt * working;
-                    if (!(robot.refill > 0)) {
-                        robot.refill = 0;
-                        robot.metal = ROBOT_LOAD;
-                        robot.brought = 0;
-                    }
-                }
-                // Charged as it is filled, as fast as there is charge to give over
-                // what the ship keeps for its engines and weapons.
-                const want = min(ROBOT_CHARGE - robot.charge, (ROBOT_CHARGE / ROBOT_REFILL_TIME) * dt * working);
-                const spare = this.allowed(Resource.Charge, b, robot.bay, Claim.Robots, ROBOT_CHARGE - robot.charge);
-                if (want > 0 && spare > 0) {
-                    const got = this.power.drain(b, robot.bay, want < spare ? want : spare);
-                    this.took(Resource.Charge, b, robot.bay, Claim.Robots, got);
-                    robot.charge += got;
-                }
-                // Waits to be full while its piece of hull has the charge to fill it.
-                if (robot.refill > 0 || (robot.charge < ROBOT_CHARGE - 1 && spare > want)) return unloaded;
-            }
-            // It goes on what it carries, whether its bay can still refill it or not.
-            if (!(robot.metal > ROBOT_SPENT) || !(robot.charge >= ROBOT_REPAIR_RATE * REPAIR_ENERGY_PER_JOULE * dt)) return unloaded;
-            // Nothing has been hit, nor metal come aboard, since it last looked and found nothing to do.
-            if (robot.idleAt !== this.idleKey(b, robot.bay)) {
-                this.sendOut(b, design, robots, robot, owner);
-                if (robot.target < 0) robot.idleAt = this.idleKey(b, robot.bay);
-            }
-            // Nothing on its own hull: over to the rock its ship is moored to, if it has room for any.
-            if (robot.target < 0) this.sendAcross(b, design, robot, owner);
-            return unloaded;
-        }
-        if (robot.mode === RobotMode.Out || robot.mode === RobotMode.Home) {
-            if (robot.path === null) {
-                // Come over to a remade hull with nowhere to be, or sent home from its own bay: home.
-                this.route(b, design, robot, owner, robot.bay);
-                if (robot.path === null && robot.at !== robot.bay) return false;
-                if (robot.path === null) robot.mode = RobotMode.Home;
-            }
-            const path = robot.path;
-            if (path !== null) {
-                crawl(design, robot, dt);
-                if (robot.leg < path.length - 1) return false;
-            }
-            robot.path = null;
-            robot.leg = 0;
-            robot.along = 0;
-            if (robot.mode === RobotMode.Home) {
-                robot.mode = RobotMode.Berthed;
-                robot.refill = ROBOT_REFILL_TIME;
-                robot.target = -1;
-                robot.strip = false;
-            } else {
-                robot.mode = RobotMode.Working;
-            }
-            return false;
-        }
-        if (robot.bound >= 0) {
-            this.crossOver(b, design, robots, robot, owner);
-            return false;
-        }
-        if (robot.strip) return this.stripOne(b, design, robots, robot, owner, dt);
-        // Working: mending what is hurt before building any more of it.
-        const m = robot.target;
-        const owned = m >= 0 && this.ownsAt(owner, b, m);
-        const hurt = owned && robot.build < 0 && this.damage.absorbedAt(b, m) > 0;
-        if (owned && !hurt && (robot.build >= 0 || design.modules[m]!.shell !== undefined || this.damage.unbuiltAt(b, m) > 0)) {
-            return this.buildOne(b, design, robots, robot, owner, dt);
-        }
-        if (!hurt) {
-            this.sendOut(b, design, robots, robot, owner);
-            return false;
-        }
-        const work = repairWork(design.modules[m]!.stats);
-        const step = (ROBOT_REPAIR_RATE * dt) / work;
-        let undo = min(step, robot.charge / (work * REPAIR_ENERGY_PER_JOULE));
-        // Short of charge for a full step's work: this is its last.
-        let short = undo < step;
-        const claim = mendClaim(design, m);
-        const whole = this.damage.repairMetal(b, m, this.damage.absorbedAt(b, m)) * (1 + REPAIR_WASTE);
-        const spare = min(robot.metal, this.allowed(Resource.Metal, b, m, claim, whole));
-        const kg = this.damage.repairMetal(b, m, undo) * (1 + REPAIR_WASTE);
-        if (kg > 0 && kg > spare) {
-            undo *= spare > 0 ? spare / kg : 0;
-            short = true;
-        }
-        const cost = this.damage.repairMetal(b, m, undo) * (1 + REPAIR_WASTE);
-        const undone = this.damage.repair(b, m, undo);
-        // Its holes are the first thing plugged.
-        if (undone > 0) this.fuel.seal(b, m);
-        robot.charge -= undone * work * REPAIR_ENERGY_PER_JOULE;
-        robot.metal -= cost;
-        if (cost > 0) this.took(Resource.Metal, b, m, claim, this.metal.drain(b, m, cost));
-        // Out of what this needs, short of finishing it: home for more.
-        if (short && this.damage.absorbedAt(b, m) > 0) this.sendHome(b, design, robot, owner, m);
-        return undone > 0;
-    }
-
-    /**
-     * One robot's step building module `robot.target`: putting its fittings in,
-     * or for a shell, or a module lost against it (`robot.build`), the walls of
-     * the next step, which go up when the step is paid for (`grow`). A
-     * kilogram is the work of mending a kilogram's worth of damage, and costs
-     * `REPAIR_WASTE` more metal than ends up in the module, off its piece of
-     * hull, reserves and all. Says whether it put anything in.
-     */
-    private buildOne(b: number, design: ShipDesign, robots: Robot[], robot: Robot, owner: number, dt: number): boolean {
-        const m = robot.target;
-        const fitting = robot.build < 0 && design.modules[m]!.shell === undefined;
-        const rebuild = fitting ? null : this.rebuildFor(owner, design);
-        const l = rebuild === null ? -1 : robot.build >= 0 ? robot.build : rebuild.at.indexOf(m);
-        // Begun for a design it has since been refitted from: nothing to build there now.
-        if (rebuild !== null && l < 0) {
-            robot.build = -1;
-            this.sendOut(b, design, robots, robot, owner);
-            return false;
-        }
-        const origin = rebuild === null ? null : originOf(this.launched[owner]!, l);
-        const whole = origin === null ? design.modules[m]!.stats : origin.design.modules[origin.module]!.stats;
-        const work = buildWork(whole);
-        const step = (ROBOT_REPAIR_RATE / work) * dt;
-        const charge = work * REPAIR_ENERGY_PER_JOULE;
-        const waste = 1 + REPAIR_WASTE;
-        let kg = min(step, min(robot.charge / charge, robot.metal / waste));
-        let short = kg < step;
-        const claim = origin === null ? mendClaim(design, m) : mendClaim(origin.design, origin.module);
-        const wanted = rebuild === null ? this.damage.unbuiltAt(b, m) * waste : (whole.structureMass / SHELL_STEPS) * waste;
-        const spare = this.allowed(Resource.Metal, b, m, claim, wanted);
-        let more: boolean;
-        let put: number;
-        if (rebuild === null) {
-            if (kg * waste > spare) {
-                kg = spare > 0 ? spare / waste : 0;
-                short = true;
-            }
-            put = this.damage.fit(b, m, kg);
-            if (put > 0) this.took(Resource.Metal, b, m, claim, this.metal.drain(b, m, put * waste));
-            more = this.damage.unbuiltAt(b, m) > 0;
-        } else {
-            const wall = whole.structureMass / SHELL_STEPS;
-            // Waiting on a step that is in the way of something: mending comes first, if any has come up since.
-            if (rebuild.work[l]! >= wall && robot.idleAt !== this.idleKey(b, robot.bay)) {
-                robot.idleAt = this.idleKey(b, robot.bay);
-                this.sendOut(b, design, robots, robot, owner);
-                return false;
-            }
-            // Nothing to pay for the step with: no sense starting it.
-            if (spare < wall * waste) {
-                kg = 0;
-                short = true;
-            }
-            kg = min(kg, wall - rebuild.work[l]!);
-            if (kg > 0) rebuild.work[l] = rebuild.work[l]! + kg;
-            put = kg > 0 ? kg : 0;
-            if (rebuild.work[l]! >= wall) this.grows.push(owner, l, m, m, -1);
-            more = true;
-        }
-        robot.charge -= put * charge;
-        robot.metal -= put * waste;
-        // Out of what this needs, short of finishing it: home for more.
-        if (short && more) {
-            this.sendHome(b, design, robot, owner, m);
-            robot.build = -1;
-        }
-        return robot.build < 0 && design.modules[m]!.shell === undefined && put > 0;
-    }
-
-    /**
-     * Send a robot home from module `m`, short of what its work there needs.
-     * If that piece of hull has no metal left to give, it stays berthed until
-     * something on the hull changes, rather than going straight back out.
-     */
-    private sendHome(b: number, design: ShipDesign, robot: Robot, owner: number, m: number): void {
-        this.route(b, design, robot, owner, robot.bay);
-        robot.mode = RobotMode.Home;
-        if (!(this.metal.pieceHeld(b, m) > ROBOT_SPENT)) robot.idleAt = this.idleKey(b, robot.bay);
-    }
-
-    /**
-     * What a robot of body `b`, its bay module `bay`, last looked for work at:
-     * the hull's damage as it was, and whether there was metal to mend with.
-     * Either changing sends it to look again.
-     */
-    private idleKey(b: number, bay: number): number {
-        return this.damage.version(b) * 2 + (this.metal.pieceHeld(b, bay) > ROBOT_SPENT ? 1 : 0);
-    }
-
-    /**
-     * Send a berthed robot of moored ship `owner` to its claw, body `b`, to
-     * cross onto the rock and mine it, if the rock has any it has room for.
-     */
-    private sendAcross(b: number, design: ShipDesign, robot: Robot, owner: number): boolean {
-        const claw = this.mooredClaw[owner]!;
-        if (claw < 0 || this.bodyStore === null || this.commanded(owner)) return false;
-        const cb = this.carrierBodyOf(this.bodyStore, owner);
-        if (cb < 0 || !this.strippableAcross(owner, b, robot.bay, cb)) return false;
-        this.route(b, design, robot, owner, claw);
-        if (robot.path === null && robot.at !== claw) return false;
-        robot.bound = this.parkedOn[owner]!;
-        robot.target = claw;
-        robot.strip = false;
-        robot.mode = robot.path === null ? RobotMode.Working : RobotMode.Out;
-        return true;
-    }
-
-    /** A robot of ship `owner` at its claw, body `b`, stepping onto the rock it is bound for, or home if it has let go. */
-    private crossOver(b: number, design: ShipDesign, robots: Robot[], robot: Robot, owner: number): void {
-        const rock = robot.bound;
-        robot.bound = -1;
-        const bodies = this.bodyStore!;
-        const cb = this.parkedOn[owner] === rock && this.mooredClaw[owner]! >= 0 ? this.carrierBodyOf(bodies, owner) : -1;
-        const entry = cb < 0 ? -1 : this.heldRock(bodies, owner);
-        if (entry < 0) {
-            this.sendHome(b, design, robot, owner, robot.at);
-            return;
-        }
-        robot.away = rock;
-        robot.awayDesign = this.hullDesign[cb]!;
-        robot.at = entry;
-        robot.path = null;
-        if (!this.sendOnRock(b, cb, robots, robot, owner)) this.homeOnRock(cb, robot, owner);
-    }
-
-    /**
-     * Give a robot of ship `owner` out on its rock, body `cb`, rock to take
-     * apart for what its bay on body `b` has room for: as `sendToStrip` does on
-     * a hull, but for the rock its claw holds, which stays to hold it by. It
-     * goes where a trip, there and back, brings home the most a second; a wedge
-     * of rock is too big for robots to crowd, so fewer there only breaks a tie.
-     */
-    private sendOnRock(b: number, cb: number, robots: Robot[], robot: Robot, owner: number): boolean {
-        const rd = this.hullDesign[cb]!;
-        const metalRoom = this.metal.pieceRoom(b, robot.bay) > ROBOT_SPENT;
-        const fuelRoom = this.fuel.pieceRoom(b, robot.bay) > ROBOT_SPENT;
-        const room = ROBOT_LOAD - robot.cargo - robot.cargoFuel;
-        if (!(metalRoom || fuelRoom) || !(room > ROBOT_SPENT)) return false;
-        const held = this.heldRock(this.bodyStore!, owner);
-        const { dist, prev } = this.walkScratch(rd.modules.length);
-        walk(
-            rd,
-            robot.at,
-            dist,
-            prev,
-            (m) => this.onRock(cb, m, owner),
-            (u, v) => this.onRock(cb, u, owner) && this.onRock(cb, v, owner),
-        );
-        let best = -1;
-        let bestRate = -1;
-        let bestCrowd = Infinity;
-        // Wreckage lodged on the rock is cleared first, whatever the walk: it is in the way of what grips and lands.
-        let bestWreck = false;
-        for (let m = 0; m < rd.modules.length; m++) {
-            if (m === held || !Number.isFinite(dist[m]!) || !this.onRock(cb, m, owner) || !this.comesOff(owner, cb, rd, m)) continue;
-            if (!this.minable(rd, m, metalRoom, fuelRoom)) continue;
-            // What it would bring home, as `mineRock` takes it, and the time it would take.
-            const spec = rd.modules[m]!.spec;
-            const rock = spec.kind === "rock";
-            // Wreckage lodged on it is all metal.
-            const ore = rock ? (spec.ore ?? 0) : 1;
-            const kept = ((metalRoom ? ore : 0) + (rock && fuelRoom ? (spec.ice ?? 0) : 0)) * (1 - DISASSEMBLY_WASTE);
-            const work = buildWork(this.stripStep(cb, rd, m).stats);
-            let kg = robot.charge / (work * REPAIR_ENERGY_PER_JOULE * MINING_POWER);
-            if (kept > 0) kg = min(kg, room / kept);
-            const time = 2 * walkTime(rd, prev, m, robot.tag) + (kg * work) / ROBOT_REPAIR_RATE;
-            const rate = time > 0 ? (kg * kept) / time : 0;
-            let crowd = 0;
-            for (let k = 0; k < robots.length; k++)
-                if (robots[k] !== robot && robots[k]!.away === robot.away && robots[k]!.target === m) crowd++;
-            const wreck = rd.modules[m]!.spec.kind !== "rock";
-            if (wreck !== bestWreck ? wreck : rate > bestRate || (rate === bestRate && crowd < bestCrowd)) {
-                best = m;
-                bestRate = rate;
-                bestCrowd = crowd;
-                bestWreck = wreck;
-            }
-        }
-        if (best < 0) return false;
-        robot.target = best;
-        robot.strip = true;
-        robot.path = pathTo(prev, dist, best);
-        robot.leg = 0;
-        robot.along = 0;
-        robot.mode = robot.path !== null && robot.path.length > 1 ? RobotMode.Out : RobotMode.Working;
-        if (robot.mode === RobotMode.Working) robot.path = null;
-        return true;
-    }
-
-    /** Set a robot of ship `owner` out on its rock, body `cb`, walking back to where its claw grips. */
-    private homeOnRock(cb: number, robot: Robot, owner: number): void {
-        const rd = this.hullDesign[cb]!;
-        const entry = this.heldRock(this.bodyStore!, owner);
-        robot.mode = RobotMode.Home;
-        robot.target = -1;
-        robot.strip = false;
-        robot.leg = 0;
-        robot.along = 0;
-        robot.path = null;
-        if (entry < 0 || robot.at === entry) return;
-        const { dist, prev } = this.walkScratch(rd.modules.length);
-        walk(
-            rd,
-            robot.at,
-            dist,
-            prev,
-            (m) => this.onRock(cb, m, owner),
-            (u, v) => this.onRock(cb, u, owner) && this.onRock(cb, v, owner),
-        );
-        const path = pathTo(prev, dist, entry);
-        robot.path = path !== null && path.length > 1 ? path : null;
-    }
-
-    /**
-     * One step of a robot of ship `owner` out on the rock it is moored to, its
-     * bay on body `b`: walking, mining, and back across to its claw. Says 1 if
-     * it mined, -1 if it was lost, with its ship no longer moored there, -2 if
-     * it was taken apart, with no berth to come home to, and 0 otherwise.
-     */
-    private tendAway(bodies: Bodies, b: number, design: ShipDesign, robot: Robot, owner: number, dt: number): number {
-        const rock = robot.away;
-        if (owner < 0 || this.parkedOn[owner] !== rock || !(this.mooredClaw[owner]! >= 0)) return -1;
-        const cb = this.carrierBodyOf(bodies, owner);
-        const rd = cb < 0 ? null : this.hullDesign[cb];
-        if (rd === null || rd === undefined) return -1;
-        // The rock has changed under it: on the nearest of what is left, and about its work afresh.
-        if (rd !== robot.awayDesign) {
-            this.remapOnRock(robot, rd);
-            robot.path = null;
-            robot.leg = 0;
-            robot.along = 0;
-            if (robot.mode !== RobotMode.Home) {
-                robot.mode = RobotMode.Out;
-                robot.target = -1;
-            }
-        }
-        if (robot.mode === RobotMode.Out || robot.mode === RobotMode.Home) {
-            if (robot.path === null) {
-                if (robot.mode === RobotMode.Out && robot.target < 0) {
-                    if (!this.sendOnRock(b, cb, this.robots.on(b)!, robot, owner)) this.homeOnRock(cb, robot, owner);
-                    return 0;
-                }
-                if (robot.mode === RobotMode.Home && robot.at !== this.heldRock(bodies, owner)) {
-                    this.homeOnRock(cb, robot, owner);
-                    if (robot.path === null) return 0;
-                }
-            }
-            const path = robot.path;
-            if (path !== null) {
-                crawl(rd, robot, dt);
-                if (robot.leg < path.length - 1) return 0;
-            }
-            robot.path = null;
-            robot.leg = 0;
-            robot.along = 0;
-            if (robot.mode === RobotMode.Out) {
-                robot.mode = RobotMode.Working;
-                return 0;
-            }
-            // Back where its claw grips: across onto its own hull and home, once
-            // its bay has a berth for it; the extra a moored bay keeps wait here,
-            // and are taken apart into the holds once their ship is sent away.
-            if (shipRobotViews.aboardIn(this, b, robot.bay) >= design.modules[robot.bay]!.stats.robots) {
-                if (!this.sentAway(owner)) return 0;
-                this.metal.add(b, robot.bay, ROBOT_MASS + robot.cargo);
-                if (robot.cargoFuel > 0) this.fuel.add(b, robot.bay, robot.cargoFuel);
-                return -2;
-            }
-            robot.away = -1;
-            robot.awayDesign = null;
-            robot.at = this.mooredClaw[owner]!;
-            this.route(b, design, robot, owner, robot.bay);
-            return 0;
-        }
-        return this.mineRock(b, cb, rd, robot, owner, dt) ? 1 : 0;
-    }
-
-    /**
-     * Put a robot out on a rock whose design has changed under it, as mining
-     * does, on the nearest module of the new design to where it stood.
-     */
-    private remapOnRock(robot: Robot, rd: ShipDesign): void {
-        const was = robot.awayDesign!.modules[robot.at];
-        robot.at = this.nearestModule(
-            rd,
-            (was?.x ?? 0) + robot.awayDesign!.centreOfMassX - rd.centreOfMassX,
-            (was?.y ?? 0) + robot.awayDesign!.centreOfMassY - rd.centreOfMassY,
-        );
-        robot.awayDesign = rd;
-    }
-
-    /** The module of `design` nearest body-frame point `x`, `y`. */
-    private nearestModule(design: ShipDesign, x: number, y: number): number {
-        let near = 0;
-        let gap = Infinity;
-        for (let m = 0; m < design.modules.length; m++) {
-            const d = length(design.modules[m]!.x - x, design.modules[m]!.y - y);
-            if (d < gap) {
-                gap = d;
-                near = m;
-            }
-        }
-        return near;
-    }
-
-    /**
-     * Leave a robot of ship `owner` where it is on the rock it is out on, its
-     * ship no longer moored there: still carrying what it had mined, waiting
-     * for a friend to moor there with a berth for it. Lost if the rock is.
-     */
-    private strand(bodies: Bodies, robot: Robot, owner: number): void {
-        const rock = robot.away;
-        if (rock < 0 || this.alive[rock] === 0 || bodies.indexOf(this.bodyIds[rock]!) < 0 || owner < 0) return;
-        robot.mode = RobotMode.Home;
-        robot.target = -1;
-        robot.strip = false;
-        robot.bound = -1;
-        robot.path = null;
-        robot.leg = 0;
-        robot.along = 0;
-        this.stranded.push({ robot, team: this.team[owner]!, home: owner });
-    }
-
-    /**
-     * Each robot stranded on a rock, waiting where it is, or taken aboard by a
-     * ship of its side moored to that rock with a berth for it: the ship that
-     * left it before any other. It then walks to that ship's claw and goes home
-     * to its new bay with what it carries. One whose rock is gone is lost.
-     */
-    private tendStranded(bodies: Bodies): void {
-        for (let k = this.stranded.length - 1; k >= 0; k--) {
-            const { robot, team, home } = this.stranded[k]!;
-            const rock = robot.away;
-            const cb = this.alive[rock] === 1 ? bodies.indexOf(this.bodyIds[rock]!) : -1;
-            const rd = cb < 0 ? null : this.hullDesign[cb];
-            if (rd === null || rd === undefined) {
-                this.stranded.splice(k, 1);
-                continue;
-            }
-            if (rd !== robot.awayDesign) this.remapOnRock(robot, rd);
-            let taker = -1;
-            let bay = -1;
-            for (let p = 0; p < this.parkedShips.length && taker !== home; p++) {
-                const f = this.parkedShips[p]!;
-                if (this.mooredClaw[f]! < 0 || this.team[f] !== team || !this.hasControl(f) || this.carrierBodyOf(bodies, f) !== cb)
-                    continue;
-                const berth = this.freeBerth(bodies, f);
-                if (berth < 0) continue;
-                if (taker < 0 || f === home) {
-                    taker = f;
-                    bay = berth;
-                }
-            }
-            if (taker < 0) continue;
-            const fb = bodies.indexOf(this.bodyIds[taker]!);
-            this.stranded.splice(k, 1);
-            robot.bay = bay;
-            robot.away = this.parkedOn[taker]!;
-            this.robots.adopt(fb, robot);
-            this.makeRoomFor(fb, taker, bay);
-            this.homeOnRock(cb, robot, taker);
-        }
-    }
-
-    /**
-     * Bay `bay` of ship `f`, on body `fb`, having taken a robot aboard: if that
-     * and those it is building are more than it keeps, it stops building the
-     * least finished, and the metal goes back into its piece of hull.
-     */
-    private makeRoomFor(fb: number, f: number, bay: number): void {
-        const design = this.hullDesign[fb];
-        const robots = this.robots.on(fb);
-        if (design === null || design === undefined || robots === null) return;
-        let crew = this.robots.buildingOn(fb)?.[bay]?.length ?? 0;
-        for (let r = 0; r < robots.length; r++) if (robots[r]!.bay === bay) crew++;
-        if (crew > robotsKept(design.modules[bay]!.spec, design.modules[bay]!.stats, this.isMoored(f)) && this.robots.cancel(fb, bay)) {
-            this.metal.add(fb, bay, ROBOT_MASS);
-        }
-    }
-
-    /** A robot bay of ship `f`'s short of the robots it keeps (`robotsKept`), or -1. */
-    private freeBerth(bodies: Bodies, f: number): number {
-        const fb = bodies.indexOf(this.bodyIds[f]!);
-        const design = fb < 0 ? null : this.hullDesign[fb];
-        const robots = this.robots.on(fb);
-        if (design === null || design === undefined || robots === null) return -1;
-        for (let m = 0; m < design.modules.length; m++) {
-            const berths = design.modules[m]!.stats.robots;
-            if (!(berths > 0) || this.pilotAt(fb, m) !== f) continue;
-            // Not counting those it is building: one it takes aboard takes the place of one of them.
-            let crew = 0;
-            for (let r = 0; r < robots.length; r++) if (robots[r]!.bay === m) crew++;
-            if (crew < robotsKept(design.modules[m]!.spec, design.modules[m]!.stats, this.isMoored(f))) return m;
-        }
-        return -1;
-    }
-
-    /** How many robots are stranded on asteroid `rock`, by its ship. */
     strandedOn(rock: number): number {
-        let count = 0;
-        for (const { robot } of this.stranded) if (robot.away === rock) count++;
-        return count;
-    }
-
-    /**
-     * One step of a robot out on its rock, body `cb`, taking module
-     * `robot.target` apart as `stripOne` does wreckage: ore smelted and ice
-     * melted into what it carries, for its charge, until it is full or short
-     * of charge, when it walks back. Says whether it took any.
-     */
-    private mineRock(b: number, cb: number, rd: ShipDesign, robot: Robot, owner: number, dt: number): boolean {
-        const m = robot.target;
-        if (
-            m < 0 ||
-            m >= rd.modules.length ||
-            m === this.heldRock(this.bodyStore!, owner) ||
-            !this.onRock(cb, m, owner) ||
-            !this.comesOff(owner, cb, rd, m)
-        ) {
-            if (!this.sendOnRock(b, cb, this.robots.on(b)!, robot, owner)) this.homeOnRock(cb, robot, owner);
-            return false;
-        }
-        const room = ROBOT_LOAD - robot.cargo - robot.cargoFuel;
-        if (!(room > ROBOT_SPENT)) {
-            this.homeOnRock(cb, robot, owner);
-            return false;
-        }
-        const spec = rd.modules[m]!.spec;
-        // Wreckage lodged on it is all metal.
-        const ore = spec.kind === "rock" ? (spec.ore ?? 0) : 1;
-        // Its ice is kept only while its bay's tanks have room for it.
-        const ice = spec.kind === "rock" && this.fuel.pieceRoom(b, robot.bay) > ROBOT_SPENT ? (spec.ice ?? 0) : 0;
-        const step = this.stripStep(cb, rd, m);
-        const work = buildWork(step.stats);
-        const per = work * REPAIR_ENERGY_PER_JOULE * MINING_POWER;
-        const done = this.damage.unbuiltAt(cb, m);
-        let kg = min((ROBOT_REPAIR_RATE / work) * dt, robot.charge / per);
-        const short = kg < (ROBOT_REPAIR_RATE / work) * dt;
-        const yieldPerKg = (ore + ice) * (1 - DISASSEMBLY_WASTE);
-        kg = min(kg, yieldPerKg > 0 ? room / yieldPerKg : Infinity, step.kg - done);
-        if (kg > 0) {
-            this.damage.unfit(cb, m, kg);
-            robot.charge -= kg * per;
-            robot.cargo += kg * ore * (1 - DISASSEMBLY_WASTE);
-            robot.cargoFuel += kg * ice * (1 - DISASSEMBLY_WASTE);
-            this.settleMass(this.bodyStore!, cb);
-        }
-        if (done + (kg > 0 ? kg : 0) >= step.kg - ROBOT_SPENT && !this.rockStepped(cb)) this.rockSteps.push(cb, m);
-        if (short || !(ROBOT_LOAD - robot.cargo - robot.cargoFuel > ROBOT_SPENT)) this.homeOnRock(cb, robot, owner);
-        return kg > 0;
-    }
-
-    /**
-     * Whether module `m` of rock body `cb` is one a moored ship's robots may
-     * walk and mine: the asteroid's, or wreckage lodged on it.
-     */
-    private onRock(cb: number, m: number, owner: number): boolean {
-        const p = this.pilotAt(cb, m);
-        if (p < 0 || this.isAsteroid(p) || this.derelict[p] === 1 || !this.hasControl(p)) return true;
-        // A ship lodged there still flown: an enemy's to take, a friend's once it can do nothing.
-        return p !== owner && (this.hostile(owner, p) || this.isMissionKilled(p));
-    }
-
-    /** Whether a step of rock body `cb` is already due to come down this step. */
-    private rockStepped(cb: number): boolean {
-        for (let k = 0; k < this.rockSteps.length; k += 2) if (this.rockSteps[k] === cb) return true;
-        return false;
-    }
-
-    /** Whether any robot of ship `f`'s, on body `b`, is out on its rock or on its way there. */
-    private anyAway(b: number, f: number): boolean {
-        for (const robot of this.robots.on(b) ?? [])
-            if (this.pilotAt(b, robot.bay) === f && (robot.away >= 0 || robot.bound >= 0)) return true;
-        return false;
-    }
-
-    /** Call ship `f`'s robots on body `b` in off its rock, body `cb`: those out there walk back, those on their way turn round. */
-    private recallAway(b: number, design: ShipDesign, f: number, cb: number): void {
-        for (const robot of this.robots.on(b) ?? []) {
-            if (this.pilotAt(b, robot.bay) !== f) continue;
-            if (robot.bound >= 0) {
-                robot.bound = -1;
-                this.sendHome(b, design, robot, f, robot.at);
-            } else if (robot.away >= 0 && robot.mode !== RobotMode.Home) {
-                this.homeOnRock(cb, robot, f);
-            }
-        }
+        return shipRobots.strandedOn(this, rock);
     }
 
     /** Ship `i`'s hull matched to its launch design, worked out again when the hull has changed. */
-    private rebuildFor(i: number, design: ShipDesign): Rebuild {
+    rebuildFor(i: number, design: ShipDesign): Rebuild {
         const known = this.rebuilds[i];
         if (known !== null && known !== undefined && known.design === design) return known;
         const launch = this.launched[i]!;
@@ -7616,77 +6820,8 @@ export class Ships {
         return rebuild;
     }
 
-    /**
-     * Give a robot something of its ship's launch design to rebuild, once there
-     * is nothing to mend: the fittings of a module whose walls are up, the
-     * walls of a shell, or a module lost, against a module of its hull that is
-     * whole. The first tier with anything in it, of that what fewest robots are
-     * after, the nearest of those. Says whether it found anything.
-     */
-    private sendToBuild(b: number, design: ShipDesign, robots: Robot[], robot: Robot, owner: number, dist: Float64Array): boolean {
-        const launch = this.launched[owner];
-        if (launch === undefined) return false;
-        const rebuild = this.rebuildFor(owner, design);
-        const crowdOf = (m: number, l: number): number => {
-            let crowd = 0;
-            for (let k = 0; k < robots.length; k++) {
-                const other = robots[k]!;
-                if (other !== robot && other.target === m && other.build === l) crowd++;
-            }
-            return crowd;
-        };
-        let best = -1;
-        let bestBuild = -1;
-        let bestTier = Infinity;
-        const approach = this.doctrines[owner]!.approach;
-        let bestCrowd = Infinity;
-        let bestDist = Infinity;
-        // Refitted, what flies and works on the ship goes up first, to get more of the work going sooner.
-        const refit = this.refitting[owner] === 1;
-        const consider = (m: number, l: number, kept: number): void => {
-            const kind = l >= 0 ? launch.modules[l]!.spec.kind : originOf(design, m).design.modules[originOf(design, m).module]!.spec.kind;
-            const tier = refit && workforce(kind) ? -Infinity : kept;
-            const crowd = crowdOf(m, l);
-            if (tier < bestTier || (tier === bestTier && (crowd < bestCrowd || (crowd === bestCrowd && dist[m]! < bestDist)))) {
-                best = m;
-                bestBuild = l;
-                bestTier = tier;
-                bestCrowd = crowd;
-                bestDist = dist[m]!;
-            }
-        };
-        for (let m = 0; m < design.modules.length; m++) {
-            if (!Number.isFinite(dist[m]!) || !this.ownsAt(owner, b, m) || this.wreckage(owner, b, m)) continue;
-            // Building takes metal: a trip's worth not to be had, nothing to build with.
-            if (!this.affords(b, m, design, m, robot)) continue;
-            if (design.modules[m]!.shell !== undefined || this.damage.unbuiltAt(b, m) > 0) consider(m, -1, originTier(approach, design, m));
-        }
-        if (rebuild.frame >= 0) {
-            const compiled = originOf(design, rebuild.frame).design;
-            for (const joint of joints(launch)) {
-                if (joint.seam === true) continue;
-                for (const [l, against] of [
-                    [joint.a, joint.b],
-                    [joint.b, joint.a],
-                ] as const) {
-                    const m = rebuild.at[against]!;
-                    if (rebuild.at[l]! >= 0 || m < 0 || !Number.isFinite(dist[m]!) || !this.ownsAt(owner, b, m)) continue;
-                    if (this.wreckage(owner, b, m) || !this.affords(b, m, launch, l, robot)) continue;
-                    if (design.modules[m]!.shell !== undefined || originOf(design, m).design !== compiled) continue;
-                    // Refitted, what is in the way comes down before this goes up.
-                    if (this.refitting[owner] === 1 && this.inTheWay(design, rebuild, launch, l)) continue;
-                    consider(m, l, repairTier(approach, launch, l));
-                }
-            }
-        }
-        if (best < 0) return false;
-        robot.target = best;
-        robot.build = bestBuild;
-        return true;
-    }
-
     /** Whether anything of hull `design` stands where launch module `l` of `launch` would be built. */
-    private inTheWay(design: ShipDesign, rebuild: Rebuild, launch: ShipDesign, l: number): boolean {
+    inTheWay(design: ShipDesign, rebuild: Rebuild, launch: ShipDesign, l: number): boolean {
         const origin = originOf(launch, l);
         const reference = originOf(design, rebuild.frame);
         const placed = inFrame(
@@ -7838,105 +6973,8 @@ export class Ships {
         for (const r of this.ridersOf(bodies, b)) if (r !== p) this.board(r, p);
     }
 
-    /**
-     * Whether module `m` of body `b`'s piece of hull can give robot `robot` the
-     * metal for a trip's work on part `part` of `of`: what that work's claim may
-     * take there (`allowed`), against what the robot can spend, or `needs` if
-     * the work wants less. A robot short of it goes mining instead.
-     */
-    private affords(b: number, m: number, of: ShipDesign, part: number, robot: Robot, needs = Infinity): boolean {
-        const trip = min(robot.metal, needs);
-        if (!(trip > ROBOT_SPENT)) return true;
-        return this.allowed(Resource.Metal, b, m, mendClaim(of, part), 0) >= trip;
-    }
-
-    /**
-     * Give a robot the next module to mend, from where it is: the first tier
-     * with anything in it, and of that the module fewest robots are already
-     * after, the nearest of those. With nothing to mend, something to rebuild
-     * (`sendToBuild`). Home when there is nothing.
-     */
-    private sendOut(b: number, design: ShipDesign, robots: Robot[], robot: Robot, owner: number): void {
-        const n = design.modules.length;
-        const { dist, prev } = this.walkScratch(n);
-        this.walkFrom(b, design, robot, owner, dist, prev);
-        let best = -1;
-        let bestTier = Infinity;
-        let bestCrowd = Infinity;
-        let bestDist = Infinity;
-        const approach = this.doctrines[owner]!.approach;
-        for (let m = 0; m < n; m++) {
-            if (!Number.isFinite(dist[m]!) || !(this.damage.absorbedAt(b, m) > 0) || !this.ownsAt(owner, b, m)) continue;
-            if (this.wreckage(owner, b, m)) continue;
-            // Nothing to mend it with: no sense walking there.
-            const mendMetal = this.damage.repairMetal(b, m, this.damage.absorbedAt(b, m)) * (1 + REPAIR_WASTE);
-            if (mendMetal > ROBOT_SPENT && !this.affords(b, m, design, m, robot, mendMetal)) continue;
-            const tier = repairTier(approach, design, m);
-            let crowd = 0;
-            for (let k = 0; k < robots.length; k++) if (robots[k] !== robot && robots[k]!.target === m) crowd++;
-            // No more on it than it has room for: the rest mend something else, or go mining.
-            if (crowd >= robotsOn(design.modules[m]!.spec)) continue;
-            if (tier < bestTier || (tier === bestTier && (crowd < bestCrowd || (crowd === bestCrowd && dist[m]! < bestDist)))) {
-                best = m;
-                bestTier = tier;
-                bestCrowd = crowd;
-                bestDist = dist[m]!;
-            }
-        }
-        robot.build = -1;
-        robot.strip = false;
-        if (best < 0 && this.sendToBuild(b, design, robots, robot, owner, dist)) best = robot.target;
-        if (best < 0 && this.sendToStrip(b, design, robots, robot, owner, dist)) best = robot.target;
-        if (best < 0) {
-            robot.target = -1;
-            if (robot.mode !== RobotMode.Berthed) {
-                this.route(b, design, robot, owner, robot.bay);
-                robot.mode = robot.at === robot.bay ? RobotMode.Berthed : RobotMode.Home;
-            }
-            return;
-        }
-        robot.target = best;
-        robot.path = pathTo(prev, dist, best);
-        robot.leg = 0;
-        robot.along = 0;
-        robot.mode = robot.path !== null && robot.path.length > 1 ? RobotMode.Out : RobotMode.Working;
-        if (robot.mode === RobotMode.Working) robot.path = null;
-    }
-
-    /** Set a robot walking from where it is to module `to`, over its owner's modules; no path if it cannot. */
-    private route(b: number, design: ShipDesign, robot: Robot, owner: number, to: number): void {
-        robot.leg = 0;
-        robot.along = 0;
-        if (robot.at === to) {
-            robot.path = null;
-            return;
-        }
-        const { dist, prev } = this.walkScratch(design.modules.length);
-        this.walkFrom(b, design, robot, owner, dist, prev);
-        const path = pathTo(prev, dist, to);
-        robot.path = path !== null && path.length > 1 ? path : null;
-    }
-
-    /**
-     * Distances from where a robot of ship `owner` stands to every module it may
-     * go to: over its own hull's welds, and across a seam onto wreckage and over
-     * that, but never onto a ship still in the fight. A ship its slipways are
-     * building it may cross, to reach wreckage caught on it.
-     */
-    private walkFrom(b: number, design: ShipDesign, robot: Robot, owner: number, dist: Float64Array, prev: Int32Array): void {
-        const over = (m: number): boolean => this.wreckage(owner, b, m) || this.buildingFor(owner, b, m);
-        walk(
-            design,
-            robot.at,
-            dist,
-            prev,
-            (m) => this.ownsAt(owner, b, m) || over(m),
-            (u, v) => over(u) || over(v),
-        );
-    }
-
     /** Whether module `m` of body `b` is of a ship one of ship `owner`'s slipways is building. */
-    private buildingFor(owner: number, b: number, m: number): boolean {
+    buildingFor(owner: number, b: number, m: number): boolean {
         const f = this.pilotAt(b, m);
         if (f < 0 || f === owner || this.unfinished[f] !== 1) return false;
         for (const seam of this.hullDesign[b]?.seams ?? []) {
@@ -7951,7 +6989,7 @@ export class Ships {
      * or a piece of ship `i`'s own body it hooked on rather than set out with.
      * Never a ship still under control, friend or foe.
      */
-    private wreckage(i: number, b: number, m: number): boolean {
+    wreckage(i: number, b: number, m: number): boolean {
         const owner = this.pilots[b]?.[m] ?? i;
         if (owner === i) {
             const hull = this.hullDesign[b];
@@ -7970,7 +7008,7 @@ export class Ships {
     }
 
     /** The piece of body `b` ship `i` is flown from: that of a core of its own, a working one first. */
-    private ownPiece(i: number, b: number): number {
+    ownPiece(i: number, b: number): number {
         const design = this.hullDesign[b]!;
         let first = -1;
         for (const core of design.cores) {
@@ -7998,7 +7036,7 @@ export class Ships {
     }
 
     /** Whether module `m` of body `b` is a core, bay or generator of ship `owner`'s own that a refit is taking down. */
-    private ownWorkforce(owner: number, b: number, design: ShipDesign, m: number): boolean {
+    ownWorkforce(owner: number, b: number, design: ShipDesign, m: number): boolean {
         return (
             this.refitting[owner] === 1 &&
             this.pilotAt(b, m) === owner &&
@@ -8023,7 +7061,7 @@ export class Ships {
      * bay, another of its kind built, fitted out and working, a bay with robots
      * of its own, so it is flown and worked on to the end.
      */
-    private due(owner: number, b: number, design: ShipDesign, m: number): boolean {
+    due(owner: number, b: number, design: ShipDesign, m: number): boolean {
         if (!this.ownWorkforce(owner, b, design, m) || this.anyPlainWreckage(owner, b, design)) return false;
         const kind = design.modules[m]!.spec.kind;
         if (kind === "generator") return true;
@@ -8044,7 +7082,7 @@ export class Ships {
     }
 
     /** Whether module `m`, wreckage to ship `owner`, can come off: without cutting the rest loose, or refitted in place. */
-    private comesOff(owner: number, b: number, design: ShipDesign, m: number): boolean {
+    comesOff(owner: number, b: number, design: ShipDesign, m: number): boolean {
         return staysWhole(design, m) || this.swapFor(owner, b, design, m) >= 0;
     }
 
@@ -8054,7 +7092,7 @@ export class Ships {
      * walls of the same shape and mass. `m` is then refitted in place, its
      * fittings out and the new ones in, rather than taken down and built again.
      */
-    private swapFor(owner: number, b: number, design: ShipDesign, m: number): number {
+    swapFor(owner: number, b: number, design: ShipDesign, m: number): number {
         if (this.refitting[owner] !== 1 || this.pilotAt(b, m) !== owner) return -1;
         const rebuild = this.rebuildFor(owner, design);
         if (rebuild.swaps === null) {
@@ -8140,53 +7178,11 @@ export class Ships {
     }
 
     /**
-     * Give a robot wreckage to take apart, once there is nothing to mend or
-     * build and its bay's holds have room for what it brings home: a module
-     * whose going leaves the rest held on, so a wreck comes off from its far
-     * end inwards and never drifts free. Fewest robots already at it first, the
-     * nearest of those. Says whether it found any.
-     */
-    private sendToStrip(b: number, design: ShipDesign, robots: Robot[], robot: Robot, owner: number, dist: Float64Array): boolean {
-        const metalRoom = this.metal.pieceRoom(b, robot.bay) > ROBOT_SPENT || this.refitting[owner] === 1 || this.waitsOnWreck[owner] === 1;
-        const fuelRoom = this.fuel.pieceRoom(b, robot.bay) > ROBOT_SPENT;
-        if (!(metalRoom || fuelRoom) || !(robot.cargo + robot.cargoFuel < ROBOT_LOAD - ROBOT_SPENT)) return false;
-        let best = -1;
-        let bestCrowd = Infinity;
-        let bestDist = Infinity;
-        for (let m = 0; m < design.modules.length; m++) {
-            if (!Number.isFinite(dist[m]!) || !this.wreckage(owner, b, m) || !this.comesOff(owner, b, design, m)) continue;
-            // Rock is worth taking only for what the bay has room for of what it holds.
-            if (!this.minable(design, m, metalRoom, fuelRoom)) continue;
-            // Its own hull's cores, bays and generators come down last of all, and only when due.
-            if (this.ownWorkforce(owner, b, design, m) && !this.due(owner, b, design, m)) continue;
-            // A bay comes down once its robots are home and taken apart; its own go home for that.
-            if (design.modules[m]!.spec.kind === "robotBay" && this.ownWorkforce(owner, b, design, m)) {
-                if (robot.bay === m) {
-                    this.sendHome(b, design, robot, owner, m);
-                    return true;
-                }
-                if (robots.some((other) => other.bay === m)) continue;
-            }
-            let crowd = 0;
-            for (let k = 0; k < robots.length; k++) if (robots[k] !== robot && robots[k]!.target === m) crowd++;
-            if (crowd < bestCrowd || (crowd === bestCrowd && dist[m]! < bestDist)) {
-                best = m;
-                bestCrowd = crowd;
-                bestDist = dist[m]!;
-            }
-        }
-        if (best < 0) return false;
-        robot.target = best;
-        robot.strip = true;
-        return true;
-    }
-
-    /**
      * Whether a robot may take module `m` apart for what its bay has room for:
      * anything but a kernel, and rock only if it holds ore or ice the bay can
      * take. Any other wreckage is metal.
      */
-    private minable(design: ShipDesign, m: number, metalRoom: boolean, fuelRoom: boolean): boolean {
+    minable(design: ShipDesign, m: number, metalRoom: boolean, fuelRoom: boolean): boolean {
         const spec = design.modules[m]!.spec;
         if (spec.kind === "kernel") return false;
         if (spec.kind !== "rock") return metalRoom;
@@ -8199,7 +7195,7 @@ export class Ships {
      * metal the next step down holds, kg — its fittings, while it has any, and a
      * step of its walls, less what damage has shed of them.
      */
-    private stripStep(b: number, design: ShipDesign, m: number): StripShape & { kg: number } {
+    stripStep(b: number, design: ShipDesign, m: number): StripShape & { kg: number } {
         const module = design.modules[m]!;
         const shape = this.stripShapes.get(module.spec);
         const stats = module.stats;
@@ -8214,71 +7210,12 @@ export class Ships {
     }
 
     /**
-     * One robot's step taking wreckage apart, which is building run backwards:
-     * any metal the wreck holds first, as it is, then its fittings out and its
-     * walls down a step at a time (`stepDown`), a kilogram the work it took to
-     * build, paid for in charge. What comes off goes into the robot, less
-     * `DISASSEMBLY_WASTE`, and once it is full, or short of charge, it takes it
-     * home to its bay's holds.
-     */
-    private stripOne(b: number, design: ShipDesign, robots: Robot[], robot: Robot, owner: number, dt: number): boolean {
-        const m = robot.target;
-        if (m < 0 || m >= design.modules.length || !this.wreckage(owner, b, m) || !this.comesOff(owner, b, design, m)) {
-            this.sendOut(b, design, robots, robot, owner);
-            return false;
-        }
-        const room = ROBOT_LOAD - robot.cargo - robot.cargoFuel;
-        if (!(room > ROBOT_SPENT)) {
-            this.sendHome(b, design, robot, owner, robot.bay);
-            return false;
-        }
-        const lift = (ROBOT_REPAIR_RATE / DAMAGE_ENERGY_PER_KG) * dt;
-        // On its own piece of hull, what the module holds is its ship's: poured
-        // into the rest of its stores before any of it comes down, and the rest
-        // of the piece's metal left where it is.
-        const own = (design.pieces?.[m] ?? 0) === (design.pieces === undefined ? 0 : this.ownPiece(owner, b));
-        if (own && this.fuel.spill(b, m) + this.metal.spill(b, m) + this.power.spill(b, m) > 0) return true;
-        const loose = own ? 0 : this.metal.pieceHeld(b, m);
-        if (loose > ROBOT_SPENT) {
-            robot.cargo += this.metal.drain(b, m, min(lift, room));
-            return true;
-        }
-        const step = this.stripStep(b, design, m);
-        // Refitted in place, only its fittings come out.
-        if (this.swapFor(owner, b, design, m) >= 0)
-            step.kg = fittingOf(step.stats) * (1 - this.damage.shedAt(b, m) / (step.stats.structureMass + step.stats.fittingMass));
-        const work = buildWork(step.stats);
-        // Rock is mined, not unbuilt: its ore smelted to metal and its ice melted
-        // to fuel as it comes off, for more charge, and the rest of it lost.
-        const spec = design.modules[m]!.spec;
-        const rock = spec.kind === "rock";
-        const ore = rock ? (spec.ore ?? 0) : 1;
-        const ice = rock && this.fuel.pieceRoom(b, robot.bay) > ROBOT_SPENT ? (spec.ice ?? 0) : 0;
-        const per = work * REPAIR_ENERGY_PER_JOULE * (rock ? MINING_POWER : 1);
-        const done = this.damage.unbuiltAt(b, m);
-        let kg = min((ROBOT_REPAIR_RATE / work) * dt, robot.charge / per);
-        // Short of charge for a full step's work: this is its last.
-        const short = kg < (ROBOT_REPAIR_RATE / work) * dt;
-        const yieldPerKg = (ore + ice) * (1 - DISASSEMBLY_WASTE);
-        kg = min(kg, yieldPerKg > 0 ? room / yieldPerKg : Infinity, step.kg - done);
-        if (kg > 0) {
-            this.damage.unfit(b, m, kg);
-            robot.charge -= kg * per;
-            robot.cargo += kg * ore * (1 - DISASSEMBLY_WASTE);
-            robot.cargoFuel += kg * ice * (1 - DISASSEMBLY_WASTE);
-        }
-        if (done + (kg > 0 ? kg : 0) >= step.kg - ROBOT_SPENT) this.stripped[b] = m;
-        if (short || !(ROBOT_LOAD - robot.cargo - robot.cargoFuel > ROBOT_SPENT)) this.sendHome(b, design, robot, owner, robot.bay);
-        return kg > 0;
-    }
-
-    /**
      * Take a step of module `m` of body `b` down, the work for it done: a
      * module's fittings and the first step of its walls, then each step after,
      * the shell shrinking towards the face it was built against as a rebuilt
      * one grows, and at the last, what is left of it off the hull (`takeApart`).
      */
-    private stepDown(world: World, b: number, m: number): void {
+    stepDown(world: World, b: number, m: number): void {
         const bodies = world.bodies;
         const p = this.shipAt(bodies, b);
         if (p < 0) return;
@@ -8453,16 +7390,8 @@ export class Ships {
         }
     }
 
-    private walkDist = new Float64Array(0);
-    private walkPrev = new Int32Array(0);
-
-    private walkScratch(n: number): { dist: Float64Array; prev: Int32Array } {
-        if (this.walkDist.length < n) {
-            this.walkDist = new Float64Array(n);
-            this.walkPrev = new Int32Array(n);
-        }
-        return { dist: this.walkDist, prev: this.walkPrev };
-    }
+    walkDist = new Float64Array(0);
+    walkPrev = new Int32Array(0);
 
     robotsBerthed(i: number, out: number[]): void {
         shipRobotViews.robotsBerthed(this, i, out);
@@ -8596,14 +7525,14 @@ export class Ships {
      * body `b` (`Supply.allow`), wanting `want` in all. Ask once a step with
      * what it wants, and again with nothing to look again.
      */
-    private allowed(r: Resource, b: number, m: number, claim: Claim, want: number): number {
+    allowed(r: Resource, b: number, m: number, claim: Claim, want: number): number {
         const reserve =
             r === Resource.Fuel ? this.reserve(b, m) : r === Resource.Metal ? this.metalReserve(b, m) : this.chargeReserve(b, m);
         return this.supply.allow(b, r, m, claim, want, reserve, this.approachAt(b, m), this.tick);
     }
 
     /** Note what `claim` took (`Supply.took`). */
-    private took(r: Resource, b: number, m: number, claim: Claim, amount: number): void {
+    took(r: Resource, b: number, m: number, claim: Claim, amount: number): void {
         this.supply.took(b, r, m, claim, amount);
     }
 
@@ -8862,7 +7791,7 @@ export class Ships {
     }
 
     /** Whether ship `i`, riding body index `b`, works module `m` of it. */
-    private ownsAt(i: number, b: number, m: number): boolean {
+    ownsAt(i: number, b: number, m: number): boolean {
         const pilots = this.pilots[b];
         return pilots === null || pilots === undefined || pilots[m] === i;
     }
@@ -8871,7 +7800,7 @@ export class Ships {
      * What damage has left of a module's effect, for the ship working it: none
      * for anyone else, and none while no working core reaches it (`inReach`).
      */
-    private left(i: number, b: number, module: number, effect: DamageEffect): number {
+    left(i: number, b: number, module: number, effect: DamageEffect): number {
         if (!this.ownsAt(i, b, module)) return 0;
         if (effect !== DamageEffect.Control && !this.inReach(i, b, module)) return 0;
         return this.damage.remaining(b, module, effect);
@@ -9755,7 +8684,7 @@ export class Ships {
      * from it and what damage has shed, and with every fighter parked on it.
      * Its centre of mass stays put.
      */
-    private settleMass(bodies: Bodies, b: number): void {
+    settleMass(bodies: Bodies, b: number): void {
         const design = this.hullDesign[b];
         // Something nothing moves stays that way.
         if (design === null || design === undefined || !(bodies.mass[b]! > 0)) return;
@@ -9819,7 +8748,7 @@ export class Ships {
      * with `inertia`: it left at the body's own speed, so the books still
      * balance. Nothing, for a body nothing moves.
      */
-    private discardFrom(bodies: Bodies, b: number, mass: number, inertia: number): void {
+    discardFrom(bodies: Bodies, b: number, mass: number, inertia: number): void {
         const kg = mass - bodies.mass[b]!;
         this.discarded += kg;
         this.discardedPx += kg * bodies.vx[b]!;
@@ -10670,7 +9599,7 @@ export class Ships {
             const dy = this.rebasingStranded[k + 2]! - bodies.y[cb]!;
             const c = cos(bodies.angle[cb]!);
             const s = sin(bodies.angle[cb]!);
-            robot.at = this.nearestModule(rd, dx * c + dy * s, -dx * s + dy * c);
+            robot.at = shipRobots.nearestModule(rd, dx * c + dy * s, -dx * s + dy * c);
             robot.awayDesign = rd;
         }
         this.rebasingStranded.length = 0;
@@ -10758,8 +9687,8 @@ export class Ships {
         // Anchored while it builds, it holds on until what it builds is let go.
         if (!ordered && this.wantsAnchor(bodies, f)) return true;
         // Done, but for its robots out on the rock, which it waits for.
-        if (!this.anyAway(fb, f)) return false;
-        this.recallAway(fb, this.hullDesign[fb]!, f, cb);
+        if (!shipRobots.anyAway(this, fb, f)) return false;
+        shipRobots.recallAway(this, fb, this.hullDesign[fb]!, f, cb);
         return true;
     }
 
@@ -10768,7 +9697,7 @@ export class Ships {
      * `cb`, apart for what the holds on its claw's piece of hull, at `into` of
      * body `fb`, have room for.
      */
-    private strippableAcross(f: number, fb: number, into: number, cb: number): boolean {
+    strippableAcross(f: number, fb: number, into: number, cb: number): boolean {
         const metalRoom = this.metal.pieceRoom(fb, into) > ROBOT_SPENT;
         const fuelRoom = this.fuel.pieceRoom(fb, into) > ROBOT_SPENT;
         if (!metalRoom && !fuelRoom) return false;
@@ -10776,7 +9705,8 @@ export class Ships {
         if (rd === null || rd === undefined) return false;
         const held = this.heldRock(this.bodyStore!, f);
         for (let m = 0; m < rd.modules.length; m++) {
-            if (m !== held && this.onRock(cb, m, f) && this.minable(rd, m, metalRoom, fuelRoom) && this.comesOff(f, cb, rd, m)) return true;
+            if (m !== held && shipRobots.onRock(this, cb, m, f) && this.minable(rd, m, metalRoom, fuelRoom) && this.comesOff(f, cb, rd, m))
+                return true;
         }
         return false;
     }
