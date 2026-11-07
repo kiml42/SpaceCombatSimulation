@@ -43,9 +43,7 @@ import {
     firesShells,
     MAX_FRAGMENTS,
     readsFuse,
-    readsRail,
     readsMagnetic,
-    isRail,
     readsSealing,
     readsDrainPriority,
     readsFill,
@@ -253,6 +251,8 @@ export const DEFAULT_KINDS: KindWeights = {
     // the size it arrives, and what it costs — almost nowhere to point — is a cost at
     // any size, so a lineage that wants one has to grow it.
     hullGun: 2,
+    // A hull gun on power: worth anything only to a ship with the power to load it.
+    railGun: 1,
     hullBeam: 1,
     core: 1,
     // Rare: worth anything only to a doctrine that goes after wrecks, which a
@@ -778,7 +778,6 @@ type SwitchKnob =
               | "weapon"
               | "main"
               | "thick"
-              | "rail"
               | "magnetic"
               | "drainPriority"
               | "shape"
@@ -918,7 +917,6 @@ function switches(draft: Draft): SwitchKnob[] {
         // A box with two free faces can lose the corner between them.
         if (canShape(spec.kind) && !isShaped(spec)) out.push({ at: "shape", site });
         if (canThicken(spec)) out.push({ at: "thick", site });
-        if (readsRail(spec.kind)) out.push({ at: "rail", site });
         if (readsMagnetic(spec.kind)) out.push({ at: "magnetic", site });
         if (readsDrainPriority(spec.kind)) out.push({ at: "drainPriority", site });
         // The outlet count divides a hull mount's opening between more of them,
@@ -954,7 +952,6 @@ function switchWeight(knob: SwitchKnob, { build }: MutationLimits): number {
             return build.shape;
         case "barrels":
         case "thick":
-        case "rail":
         case "magnetic":
         case "craftAngle":
         case "buildAnchored":
@@ -981,8 +978,6 @@ function flip(knob: SwitchKnob, draft: Draft, rng: Rng, bounds: MutationLimits):
             return cutCorner(knob.site);
         case "thick":
             return thicken(knob.site);
-        case "rail":
-            return electrify(knob.site);
         case "magnetic":
             return magnetise(knob.site);
         case "drainPriority":
@@ -1387,7 +1382,7 @@ function rebell(site: ModuleSite, jitter: Jitter): string | null {
 function relength(site: ModuleSite, jitter: Jitter): string | null {
     const was = barrelCalibres(site.spec);
     // A rail gun's may draw its rails back onto its block altogether.
-    const now = clamp(round(was + jitter(max(was, COUNT_SCALE))), isRail(site.spec) ? 0 : 1, MAX_BARREL_CALIBRES);
+    const now = clamp(round(was + jitter(max(was, COUNT_SCALE))), site.spec.kind === "railGun" ? 0 : 1, MAX_BARREL_CALIBRES);
     if (now === was) return null;
     site.spec.barrelCalibres = now;
     return `${site.where} ${site.spec.kind}: barrel ${was} → ${now} calibres`;
@@ -1634,14 +1629,6 @@ function thicken(site: ModuleSite): string {
     if (was) delete site.spec.thick;
     else site.spec.thick = true;
     return `${site.where} ${site.spec.kind}: made ${was ? "thin" : "thick"}`;
-}
-
-/** Make a hull gun a rail gun, or a powder gun again. */
-function electrify(site: ModuleSite): string {
-    const was = site.spec.rail === true;
-    if (was) delete site.spec.rail;
-    else site.spec.rail = true;
-    return `${site.where} ${site.spec.kind}: made a ${was ? "powder" : "rail"} gun`;
 }
 
 /** Give an engine a magnetic nozzle, or take it away. */

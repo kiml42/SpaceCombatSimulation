@@ -17,7 +17,6 @@ import {
     isHullMount,
     isShaped,
     isThick,
-    isRail,
     isMagnetic,
     isWeaponMount,
     math,
@@ -57,9 +56,6 @@ import { asCraft, barrelReadout, craftChoices, CRAFT_ANGLES, moduleField, number
 import type { ShipEditing } from "./shipEditing";
 
 const { abs, PI } = math;
-
-/** The kind dropdown's value for a hull gun that is a rail gun. */
-const RAIL_GUN = "railGun";
 
 const Linked = styled.p`
     margin: 0 0 0.5rem;
@@ -233,30 +229,18 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                 <select
                     id="propKind"
                     title="Swap this module for another kind in the same space. Becoming or ceasing to be an engine turns it round, so what faced outboard still does."
-                    value={isRail(spec) ? RAIL_GUN : spec.kind}
+                    value={spec.kind}
                     onChange={(event) => {
-                        const value = event.target.value;
-                        const to = (value === RAIL_GUN ? "hullGun" : value) as ModuleKind;
+                        const to = event.target.value as ModuleKind;
                         // Every copy of a shared part is swapped, as any other edit to it is.
-                        update((placement) => {
-                            if (!("kind" in placement)) return placement;
-                            const { rail: _, ...rest } = placement.kind === to ? placement : refitModule(placement, to);
-                            return value === RAIL_GUN ? { ...rest, rail: true } : rest;
-                        });
+                        update((placement) => ("kind" in placement ? refitModule(placement, to) : placement));
                     }}
                 >
-                    {MODULE_KINDS.flatMap((kind) => [
+                    {MODULE_KINDS.map((kind) => (
                         <option key={kind} value={kind} disabled={fighter && (kind === "turret" || kind === "beamTurret")}>
                             {kindName(kind)}
-                        </option>,
-                        ...(kind === "hullGun"
-                            ? [
-                                  <option key={RAIL_GUN} value={RAIL_GUN}>
-                                      rail gun
-                                  </option>,
-                              ]
-                            : []),
-                    ])}
+                        </option>
+                    ))}
                 </select>
             </Field>
             <Field>
@@ -306,10 +290,10 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
             )}
             {readsBarrelCalibres(spec.kind) && (
                 <Field id="barrelCalibresRow">
-                    <label htmlFor="propBarrelCalibres">{isRail(spec) ? "barrel extension cal" : "barrel cal"}</label>
+                    <label htmlFor="propBarrelCalibres">{spec.kind === "railGun" ? "barrel extension cal" : "barrel cal"}</label>
                     {box(
                         "barrelCalibres",
-                        isRail(spec)
+                        spec.kind === "railGun"
                             ? {
                                   step: 1,
                                   min: 0,
@@ -327,7 +311,7 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                     <Readout id="barrelMetres">{barrelReadout(spec)}</Readout>
                 </Field>
             )}
-            {isWeaponMount(spec.kind) && !isRail(spec) && (
+            {isWeaponMount(spec.kind) && spec.kind !== "railGun" && (
                 <Field id="traverseRow">
                     <label htmlFor="propTraverse">traverse °</label>
                     {box(
@@ -341,7 +325,7 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                     )}
                 </Field>
             )}
-            {readsFuse(spec.kind) && !isRail(spec) && (
+            {readsFuse(spec.kind) && (
                 <Shell id="shellRow">
                     <legend>shell</legend>
                     <Field>

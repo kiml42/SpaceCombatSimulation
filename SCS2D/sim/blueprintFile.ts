@@ -28,7 +28,6 @@ import {
     readsDocked,
     readsCraftAngle,
     readsThick,
-    readsRail,
     readsMagnetic,
     readsFuse,
     readsWeapon,
@@ -115,7 +114,6 @@ const MODULE_KEYS: readonly string[] = [
     "weapon",
     "main",
     "thick",
-    "rail",
     "magnetic",
     "sealing",
     "drainPriority",
@@ -276,7 +274,6 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
         optionalBooleanProblem(value["weapon"], `${where}: weapon`) ??
         optionalBooleanProblem(value["main"], `${where}: main`) ??
         optionalBooleanProblem(value["thick"], `${where}: thick`) ??
-        optionalBooleanProblem(value["rail"], `${where}: rail`) ??
         optionalBooleanProblem(value["magnetic"], `${where}: magnetic`) ??
         optionalNumberProblem(value["sealing"], `${where}: sealing`) ??
         optionalNumberProblem(value["drainPriority"], `${where}: drainPriority`) ??
@@ -318,7 +315,6 @@ function moduleReads(kind: ModuleKind): readonly string[] {
         if (key === "weapon") return readsWeapon(kind);
         if (key === "main") return readsMain(kind);
         if (key === "thick") return readsThick(kind);
-        if (key === "rail") return readsRail(kind);
         if (key === "magnetic") return readsMagnetic(kind);
         if (key === "sealing") return readsSealing(kind);
         if (key === "drainPriority") return readsDrainPriority(kind);
@@ -578,7 +574,6 @@ function toPlacements(raws: unknown[], whole: boolean): Placement[] {
         if (read("weapon")) spec.weapon = raw["weapon"] as boolean;
         if (read("main")) spec.main = raw["main"] as boolean;
         if (read("thick")) spec.thick = raw["thick"] as boolean;
-        if (read("rail")) spec.rail = raw["rail"] as boolean;
         if (read("magnetic")) spec.magnetic = raw["magnetic"] as boolean;
         if (read("sealing")) spec.sealing = raw["sealing"] as number;
         if (read("drainPriority")) spec.drainPriority = raw["drainPriority"] as number;
@@ -791,9 +786,6 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
     }
     if (placement.thick !== undefined && readsThick(placement.kind)) {
         raw["thick"] = placement.thick;
-    }
-    if (placement.rail !== undefined && readsRail(placement.kind)) {
-        raw["rail"] = placement.rail;
     }
     if (placement.magnetic !== undefined && readsMagnetic(placement.kind)) {
         raw["magnetic"] = placement.magnetic;

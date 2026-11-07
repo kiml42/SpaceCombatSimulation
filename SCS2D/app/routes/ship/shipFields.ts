@@ -54,6 +54,8 @@ export const DEFAULTS: Record<ShipModuleKind, Omit<ModuleSpec, "x" | "y">> = {
     turret: { kind: "turret", angle: 0, length: 4, width: 3, barrels: 1 },
     beamTurret: { kind: "beamTurret", angle: 0, length: 4, width: 3, barrels: 1 },
     hullGun: { kind: "hullGun", angle: 0, length: 4, width: 4, barrels: 1 },
+    // Its rails along a block long enough to load from, and a little way out past it.
+    railGun: { kind: "railGun", angle: 0, length: 6, width: 4, barrels: 1, barrelCalibres: 10 },
     hullBeam: { kind: "hullBeam", angle: 0, length: 4, width: 4, barrels: 1 },
     claw: { kind: "claw", angle: 0, length: 2, width: 2 },
     // Room for a fighter to sit on, wholly inside it.
