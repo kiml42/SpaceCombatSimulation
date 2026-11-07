@@ -9,6 +9,10 @@ function clear(blueprint: Blueprint): number {
     return compileBlueprint(blueprint).engines.filter((t) => (t.escaping ?? 1) === 1).length;
 }
 
+/**
+ * Sensitive to what can mutate, as `mutation.test.ts` is: a new kind, knob or
+ * switch changes the random numbers drawn for everything after it.
+ */
 describe("copying an engine", () => {
     it("puts the copy beside it, firing the same way, so no clear flame is ever blocked by it", { timeout: 240_000 }, () => {
         // A copy bolted on pointing out of a face sat in its original's flame when
