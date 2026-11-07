@@ -30,6 +30,11 @@ import { BARE_CORE, CATAMARAN, CORVETTE, DINKY, GUNSHIP } from "../scenarios/blu
  * is only visible over a lineage: an operator that removes more than it adds
  * produces valid ships all the way down to a hull with nothing on it, and
  * every individual draw looks fine while it happens.
+ *
+ * **These are sensitive to what can mutate.** A new kind, knob or switch
+ * changes the random numbers drawn for everything after it, so a seeded test
+ * can land on a case it never met before. When one fails after such a change,
+ * look for what that case shows rather than reseeding past it.
  */
 
 /**
