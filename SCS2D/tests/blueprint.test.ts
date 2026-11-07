@@ -9,7 +9,7 @@ import {
     type Blueprint,
 } from "../sim/blueprint.js";
 import { HALF_PI, PI } from "../sim/math.js";
-import { GunType, hullMountGeometry, isWeaponMount, moduleCentre, moduleStats, type ModuleSpec } from "../sim/modules.js";
+import { GunType, hullMountGeometry, isWeaponMount, moduleCentre, moduleStats, mountTraverse, type ModuleSpec } from "../sim/modules.js";
 import { BEAM_CARRIER, BLUEPRINTS, BROADSIDE, type BlueprintName } from "../scenarios/blueprints.js";
 
 /**
@@ -483,6 +483,7 @@ const ASYMMETRIC: readonly Blueprint[] = [BROADSIDE, BEAM_CARRIER];
 const FLEET: readonly BlueprintName[] = [
     "corvette",
     "beamCorvette",
+    "railCorvette",
     "gunship",
     "beamGunship",
     "fractal",
@@ -578,13 +579,17 @@ describe("the authored blueprints", () => {
                 // trains on nothing — the Ghost's dorsal turret is exactly that, and
                 // says so in its own notes — because what fixes it is masking by what
                 // a turret can shoot *over* (ROADMAP.md §12) rather than a redraw.
-                const canTrain = design.turrets.filter((t) => t.mount.leftArc! > 0 && t.mount.rightArc! > 0);
-                expect(canTrain.length).toBeGreaterThan(0);
-                if (inFleet(name)) expect(canTrain.length).toBe(design.turrets.length);
+                // A mount built not to train, as a rail gun is, is aimed by its hull.
+                const trains = design.turrets.filter((t) => mountTraverse(design.modules[t.module]!.spec) > 0);
+                const canTrain = trains.filter((t) => t.mount.leftArc! > 0 && t.mount.rightArc! > 0);
+                if (trains.length > 0) expect(canTrain.length).toBeGreaterThan(0);
+                if (inFleet(name)) expect(canTrain.length).toBe(trains.length);
 
                 for (const turret of design.turrets) {
-                    expect(turret.mount.maxRate).toBeGreaterThan(0);
-                    expect(turret.mount.maxAccel).toBeGreaterThan(0);
+                    if (trains.includes(turret)) {
+                        expect(turret.mount.maxRate).toBeGreaterThan(0);
+                        expect(turret.mount.maxAccel).toBeGreaterThan(0);
+                    }
                     // Asked of the gun rather than of the ship's name: a name-based
                     // test passes until someone adds a second beam ship, and then
                     // reports the new design as broken rather than as unrecognised.
