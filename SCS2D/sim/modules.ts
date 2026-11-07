@@ -725,7 +725,16 @@ export const RAIL_SETBACK_CALIBRES = 2;
  */
 export const RAIL_BANK_POWER_PER_VOLUME = 1.2e6;
 
-/** How much heavier a rail gun's barrel beyond its block is than a powder gun's, for the rails it carries. */
+/**
+ * The most charge a rail gun's bank holds, joules per cubic metre of block: a
+ * shot can use no more, so too small a block fires a weaker one.
+ */
+export const RAIL_BANK_ENERGY_PER_VOLUME = 2e7;
+
+/** Mass of a rail gun's capacitor bank, kg per cubic metre of block, on top of the block's hull and loading gear. */
+export const RAIL_BANK_MASS_PER_VOLUME = 500;
+
+/** How much heavier a rail gun's barrel is than a powder gun's, for the rails it carries, all along it. */
 export const RAIL_BARREL_MASS = 2;
 
 /**
@@ -2774,9 +2783,12 @@ export function hullGunStats(spec: ModuleSpec): GunStats {
     const boreArea = PI * 0.25 * calibre * calibre;
     const roundMass = boreArea * (calibre * SHELL_CALIBRES) * SHELL_DENSITY;
     const rail = spec.kind === "railGun";
-    // A rail gun's barrel is its whole run of rails, the stretch along its block included.
+    // A rail gun's barrel is its whole run of rails, the stretch along its block
+    // included, and a shot spends no more than its bank holds.
     const run = rail ? railLength(calibre, blockLength, barrelLength) / calibre : calibres;
-    const muzzleEnergy = muzzleEnergyOf(calibre, run) * (rail ? RAIL_SPEED * RAIL_SPEED : 1);
+    const full = muzzleEnergyOf(calibre, run) * (rail ? RAIL_SPEED * RAIL_SPEED : 1);
+    const bank = rail ? RAIL_BANK_ENERGY_PER_VOLUME * blockLength * spec.width * moduleThickness(spec) * RAIL_EFFICIENCY : full;
+    const muzzleEnergy = full < bank ? full : bank;
     const muzzleSpeed = roundMass > 0 ? sqrt((2 * muzzleEnergy) / roundMass) : 0;
 
     return {
@@ -3257,8 +3269,22 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
         if (isHullGun(spec.kind)) {
             const outer = BARREL_OUTER_CALIBRES * gun.calibre;
             const section = PI * 0.25 * (outer * outer - gun.calibre * gun.calibre);
-            protrudingMass = section * gun.barrelLength * HULL_DENSITY * (spec.kind === "railGun" ? RAIL_BARREL_MASS : 1);
-            fittingMass = (protrudingMass + MECHANISM_MASS_PER_CALIBRE * gun.calibre) * gun.barrelCount + braceMass(gun);
+            if (spec.kind === "railGun") {
+                // The same mass for the same run of rails, however much of it is
+                // along the block, braced all the way, and the bank on top.
+                const run = railLength(gun.calibre, mount.blockLength, gun.barrelLength);
+                const perMetre = section * HULL_DENSITY * RAIL_BARREL_MASS;
+                protrudingMass = perMetre * gun.barrelLength;
+                const braceSection = gun.braceWidth * BARREL_OUTER_CALIBRES * gun.calibre;
+                const bank = RAIL_BANK_MASS_PER_VOLUME * mount.blockLength * spec.width * height;
+                fittingMass =
+                    (perMetre * run + MECHANISM_MASS_PER_CALIBRE * gun.calibre) * gun.barrelCount +
+                    (gun.barrelCount + 1) * braceSection * run * HULL_DENSITY +
+                    bank;
+            } else {
+                protrudingMass = section * gun.barrelLength * HULL_DENSITY;
+                fittingMass = (protrudingMass + MECHANISM_MASS_PER_CALIBRE * gun.calibre) * gun.barrelCount + braceMass(gun);
+            }
         } else {
             protrudingMass = OPTIC_AREAL_DENSITY * PI * 0.25 * gun.calibre * gun.calibre;
             fittingMass = (protrudingMass + BEAM_MASS_PER_WATT * gun.beamPower) * gun.barrelCount;

@@ -659,10 +659,14 @@ inside any one file is not contiguous.
   battle charged. **It fires as fast as its block charges the bank a shot is fired from**
   (`RAIL_BANK_POWER_PER_VOLUME`, 1.2 MW/m³), as a hull beam's block is its bank, rather than as fast as it
   loads: its breech is simpler than a powder gun's, and only that fixed part of the loading time counts.
-  Several rails share one bank. A light rail gun reloads on a core's power; a big one is starved by it (the Corvette's bow
-  gun as a rail gun needs 440 MJ a shot, more than its batteries hold), so it wants power of its own. What
-  reaches beyond the block carries the rails, so it is `RAIL_BARREL_MASS` (2) times as heavy as a powder
-  barrel, and is braced along its sides all the way out. Its recoil is its round's alone. It does not train,
+  Several rails share one bank, and the bank holds at most `RAIL_BANK_ENERGY_PER_VOLUME` (20 MJ/m³) of
+  block: a shot spends no more, so too small a block fires a weaker, slower shot. The bank weighs
+  `RAIL_BANK_MASS_PER_VOLUME` (500 kg/m³) of block on top of the block's hull and loading gear, and the
+  rails weigh the same per metre all the way along, block and extension alike, so the same run of rails is
+  the same mass however it is got: more block buys a fuller shot and a faster rate of fire with mass. A light rail gun reloads on a core's power; a big one is starved by it (the Corvette's bow
+  gun as a rail gun needs 440 MJ a shot, more than its batteries hold), so it wants power of its own. The rails make
+  its barrel `RAIL_BARREL_MASS` (2) times as heavy as a powder barrel, braced along its sides; what reaches
+  beyond the block is drawn braced. Its recoil is its round's alone. It does not train,
   so it carries no training gear and the hull aims it, and its rails are drawn running back over the top of
   its block. The editor offers it as a kind like any other, its barrel field read as the extension, and
   evolution draws it as one, at half a hull gun's weight. The Rail Corvette is the Corvette with its
