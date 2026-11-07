@@ -49,6 +49,24 @@ describe("the attack bearing", () => {
         expect(choose(a, deg(10), 10, 0, new AttackRegion()).guns).toBe(1);
     });
 
+    it("keeps a mount that does not train, masked elsewhere, bearing along its rest with its shot's speed", () => {
+        // A rail gun on the bow, its own ship downrange well off to one side.
+        const a = new AttackArcs();
+        a.addMount(0, 0, 0, 1000, [deg(100), deg(140)]);
+        expect(a.total).toBe(1);
+        expect(a.count).toBe(1);
+        const region = choose(a, deg(5), 0.5, 0, new AttackRegion());
+        expect(region.guns).toBe(1);
+        expect(region.aim).toBe(0);
+        // What the pilot leads the target by.
+        expect(region.speed).toBe(1000);
+        // Masked dead ahead, it bears nowhere, though it is still a gun.
+        const masked = new AttackArcs();
+        masked.addMount(0, 0, 0, 1000, [deg(-5), deg(5)]);
+        expect(masked.total).toBe(1);
+        expect(masked.count).toBe(0);
+    });
+
     it("splits an arc right round only where its mask is, and counts it once", () => {
         const a = new AttackArcs();
         a.addMount(0, Math.PI, Math.PI, 1000, [deg(-20), deg(20), deg(170), deg(200)]);

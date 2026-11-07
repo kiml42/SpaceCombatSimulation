@@ -89,6 +89,16 @@ export class AttackArcs {
             this.add(rest - rightArc, leftArc + rightArc, speed);
             return;
         }
+        // A mount that does not train bears along its rest alone, unless that is
+        // where it may not fire. Cutting its arc round its mask would leave no
+        // piece at all, and a hull aiming it would lose its lead.
+        if (!(leftArc + rightArc > 0)) {
+            let masked = false;
+            for (let k = 0; k < mask.length; k += 2) if (mask[k]! < 0 && 0 < mask[k + 1]!) masked = true;
+            if (masked) this.guns++;
+            else this.add(rest, 0, speed);
+            return;
+        }
         // A mount that goes right round starts where a sector ends, so no piece is
         // cut in two at the wrap.
         const full = leftArc + rightArc >= TAU;
