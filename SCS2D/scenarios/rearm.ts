@@ -18,7 +18,7 @@ export function rearm(seed = 20261010): Battle {
     return makeBattle({ seed, projectiles: 128, beams: 16 }, (ships, world) => {
         const tender = compileBlueprint(TENDER);
         const dinky = compileBlueprint(DINKY);
-        const round = dinky.turrets.find((t) => t.gun.roundMass > 0)!.gun.roundMass;
+        const round = dinky.turrets.find((t) => t.gun.casing > 0)!.gun.casing;
         ships.spawn(world, { design: tender, x: 0, y: 0, angle: 0.2 });
         ships.spawn(world, { design: compileBlueprint(BARE_CORE), x: 320, y: 40, team: 1 });
         for (const [x, y] of [

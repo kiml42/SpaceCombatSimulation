@@ -275,7 +275,8 @@ inside any one file is not contiguous.
   close it flies and for whether it is still armed. So a capital that has lost its main guns knows it, however
   much point defence it has left, and enemies weighing `armedWeight` and its own `ramArmed` see it the same
   way; a piece broken off with only secondaries is disarmed, and a carrier can have no main armament at all.
-  **Running dry counts as being shot out**: a gun without a round's metal on its piece of hull is not armed,
+  **Running dry counts as being shot out**: a gun without a round's metal on its piece of hull, or the fuel to
+  finish reloading, is not armed,
   a beam recharging is not armed unless its piece's batteries, and what its generators make in a cycle, cover
   the rest of the shot, and an engine without fuel on its piece does not make it mobile. Only empty is not
   reason enough to ram, though: a fighter goes on counting empty guns as working while a friend has a pad
@@ -1182,8 +1183,14 @@ inside any one file is not contiguous.
   by default a twentieth of a core's interior past its computing (`CORE_METAL_SHARE`), the rest of it still fuel, so
   a bare core with one gun can fire a few rounds. A gun loads each round whole from the holds and cores on its
   own piece of hull, as an engine draws fuel from its tanks, and holds its fire, ready, while they have less
-  than a round; a round's whole mass, casing and charge, is metal. A ship weighs its metal and gets lighter by
-  every round that leaves, so a shot keeps the momentum of hull and round together. Fuel and metal are kept
+  than a round's casing. **Fuel is a gun's propellant and a shell's bursting charge**: a gun draws its next
+  round's from the tanks on its piece of hull as it reloads, as a beam draws its charge, so it reloads only as
+  fast as they supply it, first come first served against the engines, and starts a battle loaded. The
+  propellant is the muzzle energy at `PROPELLANT_ENERGY`, 1.2 MJ/kg (the 16"/50's 297 kg charge), so it goes
+  with the square of muzzle speed: about a fifth of the round's mass at 700 m/s, nearly all of it at 1500,
+  which is what a long barrel costs a shot. Its gas recoils too, leaving `GAS_RECOIL` (1.5) times as fast as
+  the round. A ship weighs its metal and fuel and gets lighter by every round that leaves and everything that
+  fired it, so a shot keeps the momentum of hull and round together. Fuel and metal are kept
   by the same per-module, per-piece store (`sim/store.ts`): metal goes with its hold through a sever or a
   weld, and a hold or core may start part full (`fill`). A hold may be shaped, is shot at as plating and has
   no failure mode of its own. The editor has a Hold and shows a module's metal and a ship's, how many rounds

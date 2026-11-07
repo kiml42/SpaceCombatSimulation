@@ -409,7 +409,7 @@ export function outOfRounds(ships: Ships, i: number, b: number, own: number, bel
     const design = ships.designs[i]!;
     let round = Infinity;
     for (const mount of design.turrets) {
-        const kg = mount.gun.roundMass;
+        const kg = mount.gun.casing;
         if (kg > 0 && kg < round && ships.metal.pieceAt(b, mount.module) === ships.metal.pieceAt(b, own)) round = kg;
     }
     if (round === Infinity) return false;

@@ -12,6 +12,7 @@ import {
     type ShipDesign,
     BeamHits,
     DEFAULT_DOCTRINE,
+    GAS_RECOIL,
 } from "../sim/index.js";
 import { BEAM_GUNSHIP, DINKY } from "../scenarios/blueprints.js";
 import { makeBattle } from "../scenarios/battle.js";
@@ -349,10 +350,12 @@ describe("gunnery", () => {
         let py = bodies.mass[b]! * bodies.vy[b]!;
         for (let i = 0; i < r.projectiles.highWater; i++) {
             if (r.projectiles.alive[i] === 0) continue;
-            px += r.projectiles.mass[i]! * r.projectiles.vx[i]!;
-            py += r.projectiles.mass[i]! * r.projectiles.vy[i]!;
+            // With the hull at rest, each round's propellant gas leaves along it.
+            const gun = salvoGunship.modules[r.projectiles.fromModule[i]!]!.stats.gun!;
+            const carried = r.projectiles.mass[i]! + GAS_RECOIL * gun.propellant;
+            px += carried * r.projectiles.vx[i]!;
+            py += carried * r.projectiles.vy[i]!;
         }
-        // TODO the test implies the momentum should be non-zero after because of teh recoil of the shots, but it asserts that the momentum is zero.
         expect(px).toBeCloseTo(0, 6);
         expect(py).toBeCloseTo(0, 6);
     });
