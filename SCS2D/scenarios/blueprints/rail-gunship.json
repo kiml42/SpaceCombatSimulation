@@ -2,7 +2,7 @@
   "formatVersion": 2,
   "name": "Rail Gunship",
   "category": "Stock",
-  "notes": "The Gunship with its bow gun a rail gun, fed from a battery that holds three or four shots and next to nothing to refill it, and a broadside turret on each beam for anything that gets inside it. It fights from far out, where its fast shot counts most, holding its bow on its target.",
+  "notes": "The Gunship with its bow gun a rail gun, a generator aft that charges a shot in about fourteen seconds, and batteries in its outriggers that let it fire faster for the first few. A broadside turret on each beam takes anything that gets inside it. It fights from far out, where its fast shot counts most, holding its bow on its target.",
   "doctrine": {
     "targeting": {
       "loyaltyWeight": 60,
@@ -19,11 +19,11 @@
   },
   "assemblies": {
     "outrigger": {
-      "notes": "An outrigger, holding a small fast-firing multi-barrelled gun clear of the spine. A gun flat against the hull has almost no traverse worth the mass it costs.",
+      "notes": "An outrigger, holding a small fast-firing multi-barrelled gun clear of the spine on a battery block for the rail gun.",
       "modules": [
         {
           "id": 13,
-          "kind": "structure",
+          "kind": "battery",
           "x": 0,
           "y": -1,
           "length": 8,
@@ -160,7 +160,7 @@
     },
     {
       "id": 3,
-      "kind": "battery",
+      "kind": "generator",
       "x": -8.75,
       "y": 0,
       "length": 13.5,
