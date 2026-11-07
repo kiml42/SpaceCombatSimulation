@@ -75,6 +75,7 @@ export {
     gunStats,
     beamGunStats,
     firingPeriod,
+    volleyCharge,
     shotFuel,
     shotCharge,
     moduleCentre,

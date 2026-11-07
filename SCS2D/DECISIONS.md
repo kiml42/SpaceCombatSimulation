@@ -17,6 +17,7 @@ inside any one file is not contiguous.
 
 | File | Holds | Read it when |
 | --- | --- | --- |
+| 2026-11-07 | **A rail gun fires a volley, a round down every rail, from a bank that is a store** (#747). From the author, reviewing #881, where extra rails only split a full bank's shot into narrower rounds and an opening-capped bore left bank unused. Two options were weighed: a bank holding several shots fired as a salvo, and letting the bore grow until something else stops it. Both were taken: only what fits caps the bore, and the bank is a store that a volley draws down and the block refills from the ship's power. The bank runs out before the barrel fills its opening, as the author expected, so no salvo arises and every volley is a full bank. More rails mean lighter rounds for the same energy, with each opening split by about `1/√n` so the barrels drawn and collided with stay near the bore. A rail gun's `cycleTime` is now only its loader, and `firingPeriod` gives its sustained rate. |
 | **[DESIGN.md](DESIGN.md)** | Status, §§1–7 and 9–11 — what the game is, how it works, and why | Deciding how something should behave |
 | **[ROADMAP.md](ROADMAP.md)** | §8 build order; §12 points at the open questions, now issues | Picking up work, or deferring a decision |
 | **[DECISIONS.md](DECISIONS.md)** | The Decision Log | Asking why something ended up the way it is |

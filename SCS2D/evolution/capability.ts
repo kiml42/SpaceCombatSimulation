@@ -1,5 +1,5 @@
 import { DAMAGE_RESPONSES, DamageEffect, type ShipDesign, type Ships } from "../sim/index.js";
-import { GunType, type ModuleStats } from "../sim/modules.js";
+import { firingPeriod, GunType, type ModuleStats } from "../sim/modules.js";
 
 /**
  * What a hull can still do, one figure per damage effect: thrust in newtons,
@@ -22,7 +22,7 @@ function rating(stats: ModuleStats, effect: DamageEffect): number {
             const gun = stats.gun;
             if (gun === null || !(gun.cycleTime > 0)) return 0;
             // Energy delivered per second, sustained: a beam is on for part of each cycle.
-            return gun.type === GunType.Beam ? (gun.beamPower * gun.beamOnTime) / gun.cycleTime : gun.muzzleEnergy / gun.cycleTime;
+            return gun.type === GunType.Beam ? (gun.beamPower * gun.beamOnTime) / gun.cycleTime : gun.muzzleEnergy / firingPeriod(gun);
         }
         case DamageEffect.Control:
             return stats.hitPoints;
