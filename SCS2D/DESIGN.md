@@ -665,7 +665,9 @@ inside any one file is not contiguous.
   barrel, and is braced along its sides all the way out. Its recoil is its round's alone. It does not train,
   so it carries no training gear and the hull aims it, and its rails are drawn running back over the top of
   its block. The editor offers it as a kind like any other, its barrel field read as the extension, and
-  evolution draws it as one, at half a hull gun's weight.
+  evolution draws it as one, at half a hull gun's weight. The Rail Corvette is the Corvette with its
+  bow gun a rail gun, generators and batteries along its sides to feed it, and the Rail Duel is the Duel
+  with two of them.
   **A plasma lance** (`plasmaLance`) is a module of its own, a hull beam on fuel: the same block and
   outlet and the laws that size them (`isHullBeam`), with two prongs between which a field throws a pulse of
   the ship's fuel, white hot, for `LANCE_PULSE` (a second). Fuel is how hard it hits and power how far it

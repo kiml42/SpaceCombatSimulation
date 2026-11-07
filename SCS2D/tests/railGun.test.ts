@@ -115,6 +115,14 @@ describe("a rail gun", () => {
         expect(moduleStats(railGun()).traverseMass).toBe(0);
     });
 
+    it("reads a hull gun marked `rail`, as files briefly wrote one, as a rail gun", () => {
+        const old = { formatVersion: 2, name: "Old", modules: [{ kind: "hullGun", x: 0, y: 0, length: 6, width: 4, rail: true }] };
+        const spec = parseBlueprint(old).modules[0] as ModuleSpec;
+        expect(spec.kind).toBe("railGun");
+        expect("rail" in spec).toBe(false);
+        expect(spec.unread).toBeUndefined();
+    });
+
     it("is saved and read back as one", () => {
         const blueprint = railed(CORVETTE);
         const back = parseBlueprint(serialiseBlueprint(blueprint));
