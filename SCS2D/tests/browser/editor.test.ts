@@ -432,11 +432,14 @@ describe("the editor in a browser", () => {
             expect(await page.inputValue("#propKind")).toBe(kind);
         }
         await page.click('[data-add="railGun"]');
+        expect(await page.inputValue("#propKind")).toBe("railGun");
+        // Back to a powder gun from the same dropdown.
+        await page.selectOption("#propKind", "hullGun");
         expect(await page.inputValue("#propKind")).toBe("hullGun");
-        expect(await page.isChecked("#propRail")).toBe(true);
         await page.click('[data-add="plasmaLance"]');
+        expect(await page.inputValue("#propKind")).toBe("plasmaLance");
+        await page.selectOption("#propKind", "hullBeam");
         expect(await page.inputValue("#propKind")).toBe("hullBeam");
-        expect(await page.isChecked("#propPlasma")).toBe(true);
     });
 
     it("says what a refit from the ship as it was opened would build, once it differs", async () => {
