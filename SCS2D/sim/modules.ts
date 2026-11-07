@@ -650,6 +650,19 @@ export const DEFAULT_BURST_SPEED = 650;
 export const CHARGE_ENERGY_PER_BORE_VOLUME = 1.4e8;
 
 /**
+ * Muzzle energy per kilogram of fuel burnt as propellant, J/kg. The 16"/50
+ * again: 356 MJ from a 297 kg charge. Fixed, so a round's propellant goes
+ * with the square of its muzzle speed, and a long barrel costs fuel each shot.
+ */
+export const PROPELLANT_ENERGY = 1.2e6;
+
+/**
+ * How much faster than the round its propellant's gas leaves the muzzle,
+ * for recoil: about 1.5 for a gun without a muzzle brake.
+ */
+export const GAS_RECOIL = 1.5;
+
+/**
  * Loading cycle time per metre of calibre, seconds. A 16" gun manages a round
  * every 30 s and a 5" mount several times a minute; one number cannot honour
  * both, and this sits between them. The most obviously provisional constant
@@ -1501,6 +1514,10 @@ export interface GunStats {
     barrelSpacing: number;
     /** Mass of one round, kg. */
     roundMass: number;
+    /** The metal in a round, kg: all of it, less a shell's bursting charge. */
+    casing: number;
+    /** Fuel burnt to fire a round, kg. */
+    propellant: number;
     /** Muzzle velocity, m/s. */
     muzzleSpeed: number;
     /** Kinetic energy of one round at the muzzle, joules. */
@@ -1513,6 +1530,11 @@ export interface GunStats {
     beamOnTime: number;
     /** What its shell bursts into, or null for solid shot and for a beam. */
     burst: BurstStats | null;
+}
+
+/** Fuel a gun draws for each round, kg: its propellant and any bursting charge. */
+export function shotFuel(gun: GunStats): number {
+    return gun.propellant + gun.roundMass - gun.casing;
 }
 
 /** Seconds from one shot to the next: a beam's burst, then its reload. */
@@ -2596,6 +2618,8 @@ export function hullGunStats(spec: ModuleSpec): GunStats {
         barrelCount: outlets,
         barrelSpacing: outletSpacing,
         roundMass,
+        casing: roundMass,
+        propellant: muzzleEnergy / PROPELLANT_ENERGY,
         muzzleSpeed,
         muzzleEnergy,
         beamPower: 0,
@@ -2691,6 +2715,8 @@ export function hullBeamStats(spec: ModuleSpec): GunStats {
         barrelCount: outlets,
         barrelSpacing: outletSpacing,
         roundMass: 0,
+        casing: 0,
+        propellant: 0,
         muzzleSpeed: -1,
         muzzleEnergy: 0,
         beamPower: power,
@@ -2746,6 +2772,7 @@ function loaded(gun: GunStats, spec: ModuleSpec): GunStats {
     return {
         ...gun,
         roundMass,
+        casing: gun.roundMass * (1 - share),
         muzzleSpeed,
         burst: {
             fragments,
@@ -3226,6 +3253,8 @@ export function gunStats(
         barrelCount,
         barrelSpacing,
         roundMass,
+        casing: roundMass,
+        propellant: muzzleEnergy / PROPELLANT_ENERGY,
         muzzleSpeed,
         muzzleEnergy,
         beamPower: 0,
@@ -3316,6 +3345,8 @@ export function beamGunStats(mountLength: number, mountWidth: number, barrelCoun
         // A beam has no round, so nothing here describes one. Negative muzzle
         // speed is how a weapon says it arrives the instant it is fired.
         roundMass: 0,
+        casing: 0,
+        propellant: 0,
         muzzleSpeed: -1,
         muzzleEnergy: 0,
         beamPower: power,
