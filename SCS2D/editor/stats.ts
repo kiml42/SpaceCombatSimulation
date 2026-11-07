@@ -474,6 +474,14 @@ export function moduleReadout(spec: ModuleSpec, layout: readonly ModuleSpec[] = 
                 `${(stats.thrust / stats.exhaustVelocity).toLocaleString("en-GB", { maximumFractionDigits: 1 })} kg/s flat out`,
         ]);
     }
+    if (stats.ringPower > 0) {
+        const bell = engineGeometry(spec).bellDivergence;
+        rows.push([
+            "Ring",
+            `${(stats.ringPower / 1e6).toLocaleString("en-GB", { maximumFractionDigits: 2 })} MW flat out; ` +
+                `unpowered, ${(bell * 100).toLocaleString("en-GB", { maximumFractionDigits: 0 })}% of its thrust`,
+        ]);
+    }
     if (stats.thrust > 0) {
         // What the nozzle throws, and — where some of it runs into the ship — what
         // is left over to fly on. An engine part-buried in its own hull hands that

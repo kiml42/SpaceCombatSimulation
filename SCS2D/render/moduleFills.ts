@@ -119,8 +119,12 @@ export function moduleFills(
         const mouth = layout.mouth;
         const throat = engine.throatWidth / 2;
         const exit = engine.exitWidth / 2;
+        // A magnetic nozzle's bell stops short, leaving a gap and the ring at the end.
+        const end = mouth - engine.bellLength;
+        const ring = (mouth + l - engine.bellLength) * RING_THICKNESS;
         for (const across of layout.centres) {
-            out.push({ colour: BELL, points: [mouth, across - throat, mouth, across + throat, -l, across + exit, -l, across - exit] });
+            out.push({ colour: BELL, points: [mouth, across - throat, mouth, across + throat, end, across + exit, end, across - exit] });
+            if (end > -l) box(-l, across - exit * RING_WIDTH, -l + ring, across + exit * RING_WIDTH, RING);
         }
         for (const across of layout.centres) out.push({ colour, points: layout.chamber.map((v, k) => (k % 2 === 1 ? v + across : v)) });
         if (layout.pumpAft < l) {
@@ -170,6 +174,10 @@ const NO_MOUNTS: readonly (readonly number[])[] = [];
 
 /** Engine bells, whatever side they are on. */
 const BELL = "#4a4a4a";
+const RING = "#6d6a86";
+/** A magnetic nozzle's ring: how much of the space past its bell it fills along the axis, and how far it stands out past the exit. */
+const RING_THICKNESS = 0.4;
+const RING_WIDTH = 1.25;
 
 /** How much of an engine's pump a livery's band covers. */
 const ENGINE_BAND_SHARE = 0.25;

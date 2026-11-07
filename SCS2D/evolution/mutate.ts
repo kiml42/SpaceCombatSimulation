@@ -44,6 +44,7 @@ import {
     MAX_FRAGMENTS,
     readsFuse,
     readsRail,
+    readsMagnetic,
     readsSealing,
     readsDrainPriority,
     readsFill,
@@ -777,6 +778,7 @@ type SwitchKnob =
               | "main"
               | "thick"
               | "rail"
+              | "magnetic"
               | "drainPriority"
               | "shape"
               | "solid"
@@ -916,6 +918,7 @@ function switches(draft: Draft): SwitchKnob[] {
         if (canShape(spec.kind) && !isShaped(spec)) out.push({ at: "shape", site });
         if (canThicken(spec)) out.push({ at: "thick", site });
         if (readsRail(spec.kind)) out.push({ at: "rail", site });
+        if (readsMagnetic(spec.kind)) out.push({ at: "magnetic", site });
         if (readsDrainPriority(spec.kind)) out.push({ at: "drainPriority", site });
         // The outlet count divides a hull mount's opening between more of them,
         // and an engine's are counted by the same field a gun's barrels are.
@@ -951,6 +954,7 @@ function switchWeight(knob: SwitchKnob, { build }: MutationLimits): number {
         case "barrels":
         case "thick":
         case "rail":
+        case "magnetic":
         case "craftAngle":
         case "buildAnchored":
             return build.fittings;
@@ -978,6 +982,8 @@ function flip(knob: SwitchKnob, draft: Draft, rng: Rng, bounds: MutationLimits):
             return thicken(knob.site);
         case "rail":
             return electrify(knob.site);
+        case "magnetic":
+            return magnetise(knob.site);
         case "drainPriority":
             return reprioritise(knob.site, rng);
         case "barrels":
@@ -1634,6 +1640,14 @@ function electrify(site: ModuleSite): string {
     if (was) delete site.spec.rail;
     else site.spec.rail = true;
     return `${site.where} ${site.spec.kind}: made a ${was ? "powder" : "rail"} gun`;
+}
+
+/** Give an engine a magnetic nozzle, or take it away. */
+function magnetise(site: ModuleSite): string {
+    const was = site.spec.magnetic === true;
+    if (was) delete site.spec.magnetic;
+    else site.spec.magnetic = true;
+    return `${site.where} ${site.spec.kind}: ${was ? "lost its" : "given a"} magnetic nozzle`;
 }
 
 function turnModule(site: ModuleSite, rng: Rng, bounds: MutationLimits, weight: number): string | null {

@@ -689,6 +689,17 @@ inside any one file is not contiguous.
   fleet thrust: their engines are wide and short, which is a bad bell, and a corvette lost 3% of its
   acceleration and a fighter 19%. That is the law being right about hulls drawn before it existed — the
   answer for them is a cluster of small bells, which is a change to the ships rather than to the law.
+  **An engine may have a magnetic nozzle** (`magnetic`): a ring at the end of its bell that, powered, holds
+  the jet straight, so none of it is thrown sideways. The ring adds no energy (the drive already carries
+  gigawatts, which no generator could add to); it aims what is there, so a powered magnetic engine pushes
+  and runs as though its bell were perfect, and throws the longer flame a perfect bell would. That makes a
+  short bell, and the flow it leaves room for, worth having. The ring draws `MAGNETIC_POWER_PER_EXIT_AREA`
+  (0.2 MW/m²) at full throttle, as thrust's claim on charge: a fighter's core runs its main engine's ring,
+  and a capital's mains want generators of their own. Short of power the jet leaves aimed only as well as
+  the bell aims it. The ring and the gap before it take the last quarter of the bell (`RING_SHARE`), so
+  unpowered it aims a little worse than a plain bell of the same length, and the ring weighs. It is drawn
+  as a shorter bell, a straight column of exhaust and the ring at the engine's aft edge; the editor shows
+  its power and its unpowered share, and evolution adds and removes it.
   **A fleet is a file too**: its designs embedded whole, its ships placed in the fleet's own frame, and
   named groups of ships — reflected, turned, nested and repeated in rows and arcs as a ship's assemblies
   are — flattened to a plain list on load, so nothing past the parser knows groups exist. A battle is built from fleets round a ring, one team each, with no orders;

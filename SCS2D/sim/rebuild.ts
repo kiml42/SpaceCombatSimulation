@@ -140,6 +140,7 @@ export function shellOf(spec: ModuleSpec, stats: ModuleStats, face: number, shar
             hitPoints: stats.hitPoints * share,
             thrust: 0,
             exhaustVelocity: 0,
+            ringPower: 0,
             fuel: 0,
             metal: 0,
             lining: 0,

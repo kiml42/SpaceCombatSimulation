@@ -18,6 +18,7 @@ import {
     isShaped,
     isThick,
     isRail,
+    isMagnetic,
     isWeaponMount,
     math,
     MODULE_KINDS,
@@ -36,6 +37,7 @@ import {
     readsSealing,
     readsThick,
     readsRail,
+    readsMagnetic,
     refitModule,
     shapeModule,
     slipwayHolds,
@@ -127,7 +129,7 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
     };
     const patch = (fields: Partial<ModuleSpec>): void => update((placement) => ({ ...placement, ...fields }) as Placement, true);
     /** A flag, absent rather than false when it is off, so a file only ever says the unusual thing. */
-    const flag = (key: "weapon" | "thick" | "rail" | "docked" | "buildAnchored", on: boolean): void =>
+    const flag = (key: "weapon" | "thick" | "rail" | "magnetic" | "docked" | "buildAnchored", on: boolean): void =>
         update((placement) => {
             if (!("kind" in placement)) return placement;
             const next = { ...placement };
@@ -416,6 +418,18 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                                 reshapePlacement(doc.blueprint, origin, shaped.vertices ?? null, shaped.x - drawn.x, shaped.y - drawn.y),
                             );
                         }}
+                    />
+                </Field>
+            )}
+            {readsMagnetic(spec.kind) && (
+                <Field id="magneticRow">
+                    <label htmlFor="propMagnetic">magnetic nozzle</label>
+                    <input
+                        id="propMagnetic"
+                        type="checkbox"
+                        title="A ring at the end of the bell that, powered, holds the jet straight: more thrust and a longer flame from the same fuel, for power drawn as it burns. It takes the end of the bell, so unpowered the engine aims its jet a little worse."
+                        checked={isMagnetic(spec)}
+                        onChange={(event) => flag("magnetic", event.target.checked)}
                     />
                 </Field>
             )}

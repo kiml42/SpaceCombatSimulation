@@ -1581,6 +1581,9 @@ export function plumeReach(ship: ShipView): number {
  * part of it: sharing the module pass put it *under* the sector a nearby
  * turret sweeps, which dimmed a burning engine to the colour of a shadow.
  */
+/** How wide a magnetic nozzle's jet is between bell and ring, as a share of the exit. */
+const COLUMN_WIDTH = 0.6;
+
 function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
     eachNozzle(
         ctx,
@@ -1616,6 +1619,12 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
             );
             // The sprite's core is its brightest, its edge a little dimmer.
             ctx.globalAlpha = outer * brightness;
+            // A magnetic nozzle's jet runs straight from its bell through its ring.
+            const gap = engine.geometry.nozzleLength - engine.geometry.bellLength;
+            if (gap > 0) {
+                ctx.fillStyle = `rgb(${PLUME_CORE})`;
+                ctx.fillRect(root, across - half * COLUMN_WIDTH, gap, 2 * half * COLUMN_WIDTH);
+            }
             let cutAny = false;
             for (let k = 0; k < PLUME_RAYS; k++) if (landed[k]! > 0) cutAny = true;
             if (!cutAny) ctx.drawImage(image, root - reach, across - half, reach, 2 * half);
@@ -1683,8 +1692,9 @@ function shadeEngine(
             : [[layout.centre, layout.aft, layout.fore]];
     for (const y of layout.centres) {
         if (bell !== null) {
-            ctx.drawImage(bell, -l, y - exit, mouth + l, 2 * exit);
-            rounded?.tube(m, -l, y, mouth + l, exit, engine.throatWidth / engine.exitWidth, colour, 1, thick ? "thick" : "deck");
+            const end = mouth - engine.bellLength;
+            ctx.drawImage(bell, end, y - exit, mouth - end, 2 * exit);
+            rounded?.tube(m, end, y, mouth - end, exit, engine.throatWidth / engine.exitWidth, colour, 1, thick ? "thick" : "deck");
         }
         if (!(r > 0)) continue;
         for (const [x, from, to] of ends) {
