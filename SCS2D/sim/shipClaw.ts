@@ -496,7 +496,6 @@ export function squareUp(ships: Ships, bodies: Bodies, i: number, b: number, tb:
     let wantX = 0;
     let wantY = 0;
     let closing = 0;
-    let slowing = 0;
     // Once closing, it keeps on with twice the room it was let start with, so a wobble does not send it back.
     const loose = ships.gripClosing[i] === 1 ? 2 : 1;
     const lined =
@@ -511,20 +510,15 @@ export function squareUp(ships: Ships, bodies: Bodies, i: number, b: number, tb:
         wantX = nx * CLAW_APPROACH;
         wantY = ny * CLAW_APPROACH;
     } else if (lined) {
-        // Straight in, the jaws held on the line, planned on half the braking it
-        // has less the well's pull: flying lags what it asks for, and a claw
-        // driven home too fast is torn off.
-        const retro = shipFlight.accelerationAlong(ships, bodies, i, b, nx, ny, ships.gripHeading);
-        const braking = GRIP_BRAKING * max(approach.brake * retro - pull, 0.1 * approach.brake * retro);
-        const stopping = stoppingSpeed(braking, max(0, out), approach.responseTime);
+        // Straight in at the speed it means to arrive at, from the gate: it
+        // came to the gate slowing for this, so has nothing to brake, and
+        // braking this near would throw its exhaust on to what it is closing on.
         const arrive = clawArrival(ships, bodies, b, claw);
-        closing = min(approach.clawSpeed, sqrt(stopping * stopping + arrive * arrive));
+        closing = arrive;
         const sideways = clamp(-across / max(approach.responseTime, 1e-3), -arrive, arrive);
         // Out to the gate's line, then in: relative to the gate point, out by how far in it is.
         wantX = -nx * closing - ny * sideways;
         wantY = -ny * closing + nx * sideways;
-        // Slowing down the curve as it goes, told so, or it runs fast by that slowing times its response time.
-        if (closing < approach.clawSpeed) slowing = curveDeceleration(braking, stopping, approach.responseTime);
     } else {
         // To the gate, slowing as it gets there.
         const dx = gateX - tipX;
@@ -552,13 +546,15 @@ export function squareUp(ships: Ships, bodies: Bodies, i: number, b: number, tb:
     const reachY = tipY - bodies.y[b]!;
     // Held against the source's pull rather than lagging behind it.
     wellPullOn(ships, bodies, b, tb);
+    // Carried round with a spinning source rather than flung off it.
+    const swing = spin * spin;
     shipFlight.urge(
         ships,
         URGE_REFERENCE,
         vx + wantX + turn * reachY,
         vy + wantY - turn * reachX,
-        nx * slowing - ships.partAt.x,
-        ny * slowing - ships.partAt.y,
+        -ships.partAt.x - swing * (bodies.x[b]! - bodies.x[tb]!),
+        -ships.partAt.y - swing * (bodies.y[b]! - bodies.y[tb]!),
     );
     return closing;
 }
