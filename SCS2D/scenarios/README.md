@@ -46,7 +46,7 @@ in step when a scene is added or changes what it shows.
 | --- | --- | --- | --- |
 | Duel | daylight | 2 Corvettes against 1 Gunship, crossing, `SIDE_WELL` | Guns, turrets, a hull gun; rounds bent by a well. The golden test's battle |
 | Beam Duel | eclipse | 2 Beam Corvettes against 1 Beam Gunship, as Duel | Beams alone |
-| Rail Duel | blue giant | 2 Rail Corvettes against 1 Gunship, as Duel | Rail guns charging from generators and batteries, against powder guns |
+| Rail Duel | blue giant | 2 Rail Corvettes against 1 Rail Gunship, as Duel | Rail guns charging from generators and batteries: the Corvettes' generators keep theirs going, the Gunship's battery holds a few shots |
 | Star Wars | noon | Star Destroyer (18 TIE pads, 2 robot bays) and 10 TIEs against the Ghost, the Quasar (4 X-Wing pads) and 20 X-, Y- and A-Wings, 5 km apart | A capital ship of about 174 modules; guns, beams, fighters; about 32 ships |
 | Swarm | dusk | 20 Dinkies against 2 Gunships | Small ships, guns |
 | Super Swarm | red dwarf | 300 Dinkies against 2 Gunships | Ship and module count (about 3,300 Dinky modules) |
