@@ -724,7 +724,8 @@ inside any one file is not contiguous.
   (0.2 MW/m²) at full throttle, as thrust's claim on charge: a fighter's core runs its main engine's ring,
   and a capital's mains want generators of their own. Short of power the jet leaves aimed only as well as
   the bell aims it. The ring and the gap before it take the bell's last three fifths (`RING_SHARE`), so the bell
-  proper is short, and bars either side of each nozzle carry the ring, narrowing its exit by `RING_BAR_SHARE`
+  proper is short, and bars either side of each nozzle carry the ring, running back past the bell and the chamber to the machinery
+  block, or to the engine's front where it has none, narrowing its exit by `RING_BAR_SHARE`
   each side; so unpowered it aims worse and throws less than a plain bell of the same length, and the ring
   weighs. It is drawn as a short bell, the bars, the exhaust running full width and undimmed through the gap,
   and the ring across the engine's whole width at its aft edge, over the exhaust; the editor shows

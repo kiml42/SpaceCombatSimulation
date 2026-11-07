@@ -136,19 +136,24 @@ export function moduleFills(
         const mouth = layout.mouth;
         const throat = engine.throatWidth / 2;
         const exit = engine.exitWidth / 2;
-        // A magnetic nozzle's bell stops short, and bars either side of each
-        // carry the ring across the engine's aft end.
+        // A magnetic nozzle's bell stops short.
         const end = mouth - engine.bellLength;
-        const bar = engine.exitHeight * RING_BAR_SHARE;
         for (const across of layout.centres) {
             out.push({ colour: BELL, points: [mouth, across - throat, mouth, across + throat, end, across + exit, end, across - exit] });
-            if (end > -l) {
-                box(-l, across - exit - bar, end, across - exit, RING);
-                box(-l, across + exit, end, across + exit + bar, RING);
-            }
         }
-        if (end > -l) box(-l, -w, -l + ringThickness(engine), w, RING);
         for (const across of layout.centres) out.push({ colour, points: layout.chamber.map((v, k) => (k % 2 === 1 ? v + across : v)) });
+        if (end > -l) {
+            // Bars either side of each nozzle carry the ring across the engine's aft
+            // end, run past the bell and the chamber from the machinery block, or from
+            // the engine's front where it has none.
+            const bar = engine.exitHeight * RING_BAR_SHARE;
+            const root = layout.pumpAft < l ? layout.pumpAft : l;
+            for (const across of layout.centres) {
+                box(-l, across - exit - bar, root, across - exit, RING);
+                box(-l, across + exit, root, across + exit + bar, RING);
+            }
+            box(-l, -w, -l + ringThickness(engine), w, RING);
+        }
         if (layout.pumpAft < l) {
             box(layout.pumpAft, -w, l, w);
             // A livery's band round the pump, as far from its aft face as it is wide.
