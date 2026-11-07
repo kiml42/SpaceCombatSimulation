@@ -210,6 +210,23 @@ describe("a pilot with a claw", () => {
         expect(salvaging(run.ships, run.a)).toBe(run.wrecks[1]);
     });
 
+    it("passes over a wreck spinning too fast to be carried round with for a farther one", () => {
+        const spinning = (ships: Ships, world: World): void => {
+            world.bodies.angularVel[world.bodies.indexOf(ships.body(1))] = 0.5;
+        };
+        const run = scene(
+            scavenger(0.5),
+            15_000,
+            [
+                [0, 0],
+                [0, -4000],
+            ],
+            spinning,
+        );
+        for (let s = 0; s < 120; s++) run.step();
+        expect(salvaging(run.ships, run.a)).toBe(run.wrecks[1]);
+    });
+
     it("passes over a wreck an armed enemy is near for one nobody guards", () => {
         const guard = (ships: Ships, world: World): void => {
             ships.spawn(world, { design: gunship, x: 0, y: 300, angle: 0, team: 1 });

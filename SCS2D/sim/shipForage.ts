@@ -23,6 +23,13 @@ import { ROBOT_SPENT } from "./shipRobots.js";
 import { SHOCK_REACH } from "./shipBreakup.js";
 
 /**
+ * The most of its thrust across its jaws a ship will spend being carried round
+ * a spinning source at its gate: past it, there is too little left to steer
+ * on to a face, and the source is too fast a spin to grip.
+ */
+const SPIN_HOLD = 0.5;
+
+/**
  * Foraging: a ship with a claw going for fuel, ore or wreckage, mooring to a
  * rock to mine it, and delivering what it holds to a friend.
  */
@@ -803,6 +810,9 @@ export function pickSource(
     const bearing = pushBearing(layout, design.thrustBearing);
     const mains = layout.maxThrustAlong(cos(bearing), sin(bearing)) / mass;
     const exhaust = exhaustOf(design);
+    // Its weaker way across its jaws, for following a spinning source.
+    const jaws = design.modules[claw]!.spec.angle ?? 0;
+    const across = min(layout.maxThrustAlong(-sin(jaws), cos(jaws)), layout.maxThrustAlong(sin(jaws), -cos(jaws))) / mass;
     let robots = 0;
     if (metalRoom > 0) for (const robot of ships.robots.on(b) ?? []) if (ships.pilotAt(b, robot.bay) === i) robots++;
     const stripRate = (robots * ROBOT_REPAIR_RATE) / DAMAGE_ENERGY_PER_KG;
@@ -823,6 +833,9 @@ export function pickSource(
         if (asteroid && !(shipClaw.holdsOff(ships, bodies, i, b, claw, tb) > 1)) continue;
         // Nor one an enemy has hold of: it would be closing on the enemy as much as on the rock.
         if (asteroid && enemyMoored(ships, i, t)) continue;
+        // Nor one spinning too fast to be carried round with at its gate.
+        const spin = bodies.angularVel[tb]!;
+        if (spin * spin * (bodies.radius[tb]! + bodies.radius[b]!) > SPIN_HOLD * across) continue;
         const held = asteroid ? rockHeld(ships, tb, ships.designs[t]!) : null;
         const fuel = held !== null ? held.ice : ships.fuel.left(tb);
         const take = fuel < room ? fuel : room;
