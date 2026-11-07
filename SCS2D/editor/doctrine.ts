@@ -874,6 +874,7 @@ function isAimField(field: string): boolean {
 export function kindName(kind: ModuleKind): string {
     if (kind === "beamTurret") return "beam turret";
     if (kind === "hullGun") return "hull gun";
+    if (kind === "railGun") return "rail gun";
     if (kind === "hullBeam") return "hull beam";
     return kind;
 }

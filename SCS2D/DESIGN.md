@@ -649,7 +649,8 @@ inside any one file is not contiguous.
   beam, the opening turns out barely to constrain one at all: a lens is a fraction of the width a row
   of tubes is, so what holds a hull beam is the mounting limit until its housing runs most of the
   length of the module.
-  **A hull gun may be a rail gun** (`rail`). Its barrel is its whole run of rails: along its block from
+  **A rail gun** (`railGun`) is a module of its own, a hull gun on power: the same block, barrel and laws
+  (`isHullGun`), with rails for powder. Its barrel is its whole run of rails: along its block from
   `RAIL_SETBACK_CALIBRES` (2) in from the back, and on out as far as its barrel extension reaches beyond the
   block, which may be not at all. It throws solid shot `RAIL_SPEED` (2) times as fast as powder would from a
   barrel that long, so with four times the energy, and never fires shells. That energy is charge rather than
@@ -660,8 +661,8 @@ inside any one file is not contiguous.
   reaches beyond the block carries the rails, so it is `RAIL_BARREL_MASS` (2) times as heavy as a powder
   barrel, and is braced along its sides all the way out. Its recoil is its round's alone. It does not train,
   so it carries no training gear and the hull aims it, and its rails are drawn running back over the top of
-  its block. The editor offers it as a button and as a kind in the kind dropdown, its barrel field read as
-  the extension; evolution flips a hull gun to a rail gun and back.
+  its block. The editor offers it as a kind like any other, its barrel field read as the extension, and
+  evolution draws it as one, at half a hull gun's weight.
   **Two layers** (§3). Every module is in the hull layer. Turrets and anything marked *thick* stand up into
   the weapons layer as well; a turret only by its dome, a circle as wide as the mount, on a block in the
   hull layer. A turret's rounds and beams meet only what is in the weapons layer, so they strip

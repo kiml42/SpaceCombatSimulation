@@ -1,5 +1,5 @@
 import { styled } from "@linaria/react";
-import type { ModuleSpec, ShipModuleKind } from "~/sim/index";
+import type { ShipModuleKind } from "~/sim/index";
 import { Button } from "~/ui/buttons/Button";
 
 const Group = styled.div`
@@ -18,17 +18,7 @@ const Group = styled.div`
     }
 `;
 
-/** A button: a kind, and anything that sets this one apart from the kind's default. */
-interface Addable {
-    kind: ShipModuleKind;
-    label: string;
-    title?: string;
-    /** Names the button where a kind has more than one. */
-    id?: string;
-    preset?: Partial<ModuleSpec>;
-}
-
-const GROUPS: readonly { title: string; kinds: readonly Addable[] }[] = [
+const GROUPS: readonly { title: string; kinds: readonly { kind: ShipModuleKind; label: string; title?: string }[] }[] = [
     {
         title: "Structural",
         kinds: [
@@ -66,10 +56,8 @@ const GROUPS: readonly { title: string; kinds: readonly Addable[] }[] = [
             { kind: "beamTurret", label: "Beam turret" },
             { kind: "hullGun", label: "Hull gun" },
             {
-                kind: "hullGun",
+                kind: "railGun",
                 label: "Rail gun",
-                id: "railGun",
-                preset: { rail: true },
                 title: "A hull gun whose rails throw solid shot twice as fast, on power rather than fuel. It does not train: the hull aims it",
             },
             { kind: "hullBeam", label: "Hull beam" },
@@ -99,7 +87,7 @@ export interface AddModuleProps {
     readonly into: string | null;
     /** A fighter has no turrets. */
     readonly fighter: boolean;
-    readonly onAdd: (kind: ShipModuleKind, preset?: Partial<ModuleSpec>) => void;
+    readonly onAdd: (kind: ShipModuleKind) => void;
 }
 
 /** A button for each kind of module, by what it is for. */
@@ -110,13 +98,13 @@ export function AddModule({ into, fighter, onAdd }: AddModuleProps) {
             {GROUPS.map((group) => (
                 <Group key={group.title}>
                     <h3>{group.title}</h3>
-                    {group.kinds.map(({ kind, label, title, id, preset }) => (
+                    {group.kinds.map(({ kind, label, title }) => (
                         <Button
-                            key={id ?? kind}
-                            data-add={id ?? kind}
+                            key={kind}
+                            data-add={kind}
                             title={title}
                             disabled={fighter && (kind === "turret" || kind === "beamTurret")}
-                            onClick={() => onAdd(kind, preset)}
+                            onClick={() => onAdd(kind)}
                         >
                             {label}
                         </Button>

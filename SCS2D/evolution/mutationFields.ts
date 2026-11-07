@@ -172,6 +172,14 @@ export const MUTATION_FIELDS: readonly MutationField[] = [
         title: "Odds that a new or refitted module is a hull gun: fixed in the hull, firing shells, aimed by turning the whole ship.",
     },
     {
+        name: "kindRailGun",
+        group: "kinds",
+        label: "rail guns",
+        step: 1,
+        value: DEFAULT_KINDS.railGun,
+        title: "Odds that a new or refitted module is a rail gun: a hull gun throwing solid shot twice as fast, on power rather than fuel, aimed by turning the whole ship.",
+    },
+    {
         name: "kindHullBeam",
         group: "kinds",
         label: "hull beams",

@@ -28,7 +28,6 @@ import {
     readsDocked,
     readsCraftAngle,
     readsThick,
-    readsRail,
     readsFuse,
     readsWeapon,
     readsMain,
@@ -114,7 +113,6 @@ const MODULE_KEYS: readonly string[] = [
     "weapon",
     "main",
     "thick",
-    "rail",
     "sealing",
     "drainPriority",
     "fill",
@@ -274,7 +272,6 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
         optionalBooleanProblem(value["weapon"], `${where}: weapon`) ??
         optionalBooleanProblem(value["main"], `${where}: main`) ??
         optionalBooleanProblem(value["thick"], `${where}: thick`) ??
-        optionalBooleanProblem(value["rail"], `${where}: rail`) ??
         optionalNumberProblem(value["sealing"], `${where}: sealing`) ??
         optionalNumberProblem(value["drainPriority"], `${where}: drainPriority`) ??
         optionalNumberProblem(value["fill"], `${where}: fill`) ??
@@ -315,7 +312,6 @@ function moduleReads(kind: ModuleKind): readonly string[] {
         if (key === "weapon") return readsWeapon(kind);
         if (key === "main") return readsMain(kind);
         if (key === "thick") return readsThick(kind);
-        if (key === "rail") return readsRail(kind);
         if (key === "sealing") return readsSealing(kind);
         if (key === "drainPriority") return readsDrainPriority(kind);
         if (key === "fill") return readsFill(kind);
@@ -574,7 +570,6 @@ function toPlacements(raws: unknown[], whole: boolean): Placement[] {
         if (read("weapon")) spec.weapon = raw["weapon"] as boolean;
         if (read("main")) spec.main = raw["main"] as boolean;
         if (read("thick")) spec.thick = raw["thick"] as boolean;
-        if (read("rail")) spec.rail = raw["rail"] as boolean;
         if (read("sealing")) spec.sealing = raw["sealing"] as number;
         if (read("drainPriority")) spec.drainPriority = raw["drainPriority"] as number;
         if (read("fill")) spec.fill = raw["fill"] as number;
@@ -786,9 +781,6 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
     }
     if (placement.thick !== undefined && readsThick(placement.kind)) {
         raw["thick"] = placement.thick;
-    }
-    if (placement.rail !== undefined && readsRail(placement.kind)) {
-        raw["rail"] = placement.rail;
     }
     if (placement.sealing !== undefined && readsSealing(placement.kind)) {
         raw["sealing"] = placement.sealing;

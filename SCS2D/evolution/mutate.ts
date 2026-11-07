@@ -43,8 +43,6 @@ import {
     firesShells,
     MAX_FRAGMENTS,
     readsFuse,
-    readsRail,
-    isRail,
     readsSealing,
     readsDrainPriority,
     readsFill,
@@ -252,6 +250,8 @@ export const DEFAULT_KINDS: KindWeights = {
     // the size it arrives, and what it costs — almost nowhere to point — is a cost at
     // any size, so a lineage that wants one has to grow it.
     hullGun: 2,
+    // A hull gun on power: worth anything only to a ship with the power to load it.
+    railGun: 1,
     hullBeam: 1,
     core: 1,
     // Rare: worth anything only to a doctrine that goes after wrecks, which a
@@ -772,17 +772,7 @@ type SwitchKnob =
     | { readonly at: "scale" }
     | {
           readonly at:
-              | "kind"
-              | "barrels"
-              | "weapon"
-              | "main"
-              | "thick"
-              | "rail"
-              | "drainPriority"
-              | "shape"
-              | "solid"
-              | "craftAngle"
-              | "buildAnchored";
+              "kind" | "barrels" | "weapon" | "main" | "thick" | "drainPriority" | "shape" | "solid" | "craftAngle" | "buildAnchored";
           readonly site: ModuleSite;
       }
     | { readonly at: "mirror"; readonly site: InstanceSite }
@@ -916,7 +906,6 @@ function switches(draft: Draft): SwitchKnob[] {
         // A box with two free faces can lose the corner between them.
         if (canShape(spec.kind) && !isShaped(spec)) out.push({ at: "shape", site });
         if (canThicken(spec)) out.push({ at: "thick", site });
-        if (readsRail(spec.kind)) out.push({ at: "rail", site });
         if (readsDrainPriority(spec.kind)) out.push({ at: "drainPriority", site });
         // The outlet count divides a hull mount's opening between more of them,
         // and an engine's are counted by the same field a gun's barrels are.
@@ -951,7 +940,6 @@ function switchWeight(knob: SwitchKnob, { build }: MutationLimits): number {
             return build.shape;
         case "barrels":
         case "thick":
-        case "rail":
         case "craftAngle":
         case "buildAnchored":
             return build.fittings;
@@ -977,8 +965,6 @@ function flip(knob: SwitchKnob, draft: Draft, rng: Rng, bounds: MutationLimits):
             return cutCorner(knob.site);
         case "thick":
             return thicken(knob.site);
-        case "rail":
-            return electrify(knob.site);
         case "drainPriority":
             return reprioritise(knob.site, rng);
         case "barrels":
@@ -1381,7 +1367,7 @@ function rebell(site: ModuleSite, jitter: Jitter): string | null {
 function relength(site: ModuleSite, jitter: Jitter): string | null {
     const was = barrelCalibres(site.spec);
     // A rail gun's may draw its rails back onto its block altogether.
-    const now = clamp(round(was + jitter(max(was, COUNT_SCALE))), isRail(site.spec) ? 0 : 1, MAX_BARREL_CALIBRES);
+    const now = clamp(round(was + jitter(max(was, COUNT_SCALE))), site.spec.kind === "railGun" ? 0 : 1, MAX_BARREL_CALIBRES);
     if (now === was) return null;
     site.spec.barrelCalibres = now;
     return `${site.where} ${site.spec.kind}: barrel ${was} → ${now} calibres`;
@@ -1628,14 +1614,6 @@ function thicken(site: ModuleSite): string {
     if (was) delete site.spec.thick;
     else site.spec.thick = true;
     return `${site.where} ${site.spec.kind}: made ${was ? "thin" : "thick"}`;
-}
-
-/** Make a hull gun a rail gun, or a powder gun again. */
-function electrify(site: ModuleSite): string {
-    const was = site.spec.rail === true;
-    if (was) delete site.spec.rail;
-    else site.spec.rail = true;
-    return `${site.where} ${site.spec.kind}: made a ${was ? "powder" : "rail"} gun`;
 }
 
 function turnModule(site: ModuleSite, rng: Rng, bounds: MutationLimits, weight: number): string | null {

@@ -9,6 +9,7 @@ import {
     bodySpec,
     engineGeometry,
     hullMountGeometry,
+    isHullGun,
     MAX_BARREL_CALIBRES,
     moduleCentre,
     normalizeShape,
@@ -163,7 +164,7 @@ export function handlesFor(spec: ModuleSpec, scale: number): Handle[] {
     });
     // Clear of the bell or barrel, which is on the side the module faces.
     const arm = hl + protrusion(spec) + ROTATE_ARM_PX / scale;
-    const tip = readsNozzle(spec.kind) || spec.kind === "hullGun" ? [tipHandle(spec)] : [];
+    const tip = readsNozzle(spec.kind) || isHullGun(spec.kind) ? [tipHandle(spec)] : [];
     return [
         size(1, 1),
         size(1, -1),
@@ -233,8 +234,10 @@ export function nozzleTo(spec: ModuleSpec, x: number, y: number, step: number): 
 export function barrelCalibresTo(spec: ModuleSpec, x: number, y: number, exact: boolean): number {
     const calibre = hullMountGeometry(spec).outletWidth / BARREL_OUTER_CALIBRES;
     const wanted = beyondBlock(spec, x, y) / calibre;
-    const held = wanted < 1 ? 1 : wanted > MAX_BARREL_CALIBRES ? MAX_BARREL_CALIBRES : wanted;
-    return exact ? round(held * 1000) / 1000 : max(1, Math.floor(held));
+    // A rail gun's rails may stop at its block.
+    const least = spec.kind === "railGun" ? 0 : 1;
+    const held = wanted < least ? least : wanted > MAX_BARREL_CALIBRES ? MAX_BARREL_CALIBRES : wanted;
+    return exact ? round(held * 1000) / 1000 : max(least, Math.floor(held));
 }
 
 /** Which handle a point is within reach of — the nearest of them — or -1. */

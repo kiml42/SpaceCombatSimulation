@@ -10,6 +10,7 @@ import {
     type ModuleOrigin,
     type ModulePath,
     type ModuleSpec,
+    isHullGun,
 } from "../sim/index.js";
 import { ARCS_KEY, draw, nextArcs, type Arcs } from "../render/canvas2d.js";
 import { sidesOf, withSides } from "../render/teams.js";
@@ -527,7 +528,7 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
         const world = worldAt(event);
         let next: Blueprint | null;
         if (drag.kind === "tip") {
-            if (drag.spec.kind === "hullGun") {
+            if (isHullGun(drag.spec.kind)) {
                 const barrelCalibres = barrelCalibresTo(drag.spec, world.x, world.y, event.altKey);
                 next = updatePlacement(drag.from, path, (p) => ({ ...p, barrelCalibres }));
             } else {
