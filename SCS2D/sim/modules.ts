@@ -698,10 +698,13 @@ export const RAIL_SETBACK_CALIBRES = 2;
 export const RAIL_BANK_POWER_PER_VOLUME = 1.2e6;
 
 /**
- * The most charge a rail gun's bank holds, joules per cubic metre of block: a
- * shot can use no more, so too small a block fires a weaker one.
+ * The share of a rail gun's block given to its capacitor bank, of what its
+ * rails and loader leave: the rest is charging gear and heat handling.
  */
-export const RAIL_BANK_ENERGY_PER_VOLUME = 2e7;
+export const RAIL_BANK_SHARE = 0.8;
+
+/** How long a rail gun's loader is, in calibres, as wide and deep as its barrel. */
+export const RAIL_LOADER_CALIBRES = 3;
 
 /** Mass of a rail gun's capacitor bank, kg per cubic metre of block, on top of the block's hull and loading gear. */
 export const RAIL_BANK_MASS_PER_VOLUME = 500;
@@ -798,17 +801,25 @@ export const BEAM_APERTURE_FRACTION = 0.05;
 export const OPTIC_INTENSITY_LIMIT = 2e8;
 
 /**
- * Energy in the mount's capacitor bank per cubic metre of mount, J/m³.
+ * What a weapon's capacitor bank holds, J per cubic metre of bank: about what
+ * supercapacitors reach. Every powered weapon's bank is this; what differs is
+ * how much of its mount the bank takes.
+ */
+export const CAPACITOR_ENERGY_PER_VOLUME = 2e7;
+
+/**
+ * The share of a beam mount given to its capacitor bank, the rest being
+ * optics, pumping and cooling — the right shape for a weapon whose real
+ * problem is heat.
  *
  * A beam mount does not reload; it discharges. The bank is what lets it put
  * out far more power than the ship's plant can supply, for as long as the bank
  * lasts, and that is what `beamOnTime` measures.
- *
- * Supercapacitors reach something like 10 MJ/m³, so this is a few per cent of
- * the mount given over to storage and the rest to optics, pumping and cooling
- * — which is the right shape for a weapon whose real problem is heat.
  */
-export const BEAM_STORED_ENERGY_PER_VOLUME = 1.2e5;
+export const BEAM_BANK_SHARE = 0.012;
+
+/** Energy in a beam mount's bank per cubic metre of mount, J/m³. */
+export const BEAM_STORED_ENERGY_PER_VOLUME = CAPACITOR_ENERGY_PER_VOLUME * BEAM_BANK_SHARE;
 
 /**
  * Fraction of the time a beam turret can be firing, given all the power it
@@ -2728,46 +2739,105 @@ export function weldBox(spec: ModuleSpec): ModuleSpec {
  * loads from and the traverse it no longer has.
  */
 export function hullGunStats(spec: ModuleSpec): GunStats {
+    if (spec.kind === "railGun") return railGunStats(spec);
     const { outlets, outletWidth, outletSpacing, barrelLength, blockLength } = hullMountGeometry(spec);
     const calibre = outletWidth / BARREL_OUTER_CALIBRES;
     const calibres = barrelCalibres(spec);
     const boreArea = PI * 0.25 * calibre * calibre;
     const roundMass = boreArea * (calibre * SHELL_CALIBRES) * SHELL_DENSITY;
-    const rail = spec.kind === "railGun";
-    // A rail gun's barrel is its whole run of rails, the stretch along its block
-    // included, and a shot spends no more than its bank holds.
-    const run = rail ? railLength(calibre, blockLength, barrelLength) / calibre : calibres;
-    const full = muzzleEnergyOf(calibre, run) * (rail ? RAIL_SPEED * RAIL_SPEED : 1);
-    const bank = rail ? RAIL_BANK_ENERGY_PER_VOLUME * blockLength * spec.width * moduleThickness(spec) * RAIL_EFFICIENCY : full;
-    const muzzleEnergy = full < bank ? full : bank;
+    const muzzleEnergy = muzzleEnergyOf(calibre, calibres);
     const muzzleSpeed = roundMass > 0 ? sqrt((2 * muzzleEnergy) / roundMass) : 0;
 
     return {
         type: GunType.Projectile,
         calibre,
         barrelLength,
-        // What reaches beyond a rail gun's block is braced all along its sides.
-        braceLength: rail ? barrelLength : braceLengthOf(calibre, calibres),
+        braceLength: braceLengthOf(calibre, calibres),
         braceWidth: BRACE_CALIBRES * calibre,
         barrelCount: outlets,
         barrelSpacing: outletSpacing,
         roundMass,
         casing: roundMass,
-        propellant: rail ? 0 : muzzleEnergy / PROPELLANT_ENERGY,
-        shotEnergy: rail ? muzzleEnergy / RAIL_EFFICIENCY : 0,
+        propellant: muzzleEnergy / PROPELLANT_ENERGY,
+        shotEnergy: 0,
         muzzleSpeed,
         muzzleEnergy,
         beamPower: 0,
         // One block loads every tube, so its depth is measured against the bore
-        // they share rather than each tube's own. A rail gun's is its bank, which
-        // charges each shot in turn whichever rails it goes down; its breech is
-        // simpler than a powder gun's, so only its fixed part counts.
-        cycleTime: rail
-            ? max(
-                  CYCLE_TIME_PER_CALIBRE * calibre * LOADING_FLOOR,
-                  muzzleEnergy / RAIL_EFFICIENCY / (RAIL_BANK_POWER_PER_VOLUME * blockLength * spec.width * moduleThickness(spec)),
-              )
-            : hullCycleTime(calibre, blockLength * loadingDecks(spec), outlets) / outlets,
+        // they share rather than each tube's own.
+        cycleTime: hullCycleTime(calibre, blockLength * loadingDecks(spec), outlets) / outlets,
+        beamOnTime: 0,
+        burst: null,
+    };
+}
+
+/**
+ * The charge a rail gun's bank holds with a bore of `calibre`, J: of its block,
+ * what its rails along it and a loader for each barrel leave, `RAIL_BANK_SHARE`
+ * of it capacitors.
+ */
+export function railBankEnergy(spec: ModuleSpec, calibre: number): number {
+    const { outlets, blockLength } = hullMountGeometry(spec);
+    const outer = BARREL_OUTER_CALIBRES * calibre;
+    const along = blockLength - RAIL_SETBACK_CALIBRES * calibre;
+    const barrels = outlets * outer * outer * ((along > 0 ? along : 0) + RAIL_LOADER_CALIBRES * calibre);
+    const free = blockLength * spec.width * moduleThickness(spec) - barrels;
+    return free > 0 ? CAPACITOR_ENERGY_PER_VOLUME * RAIL_BANK_SHARE * free : 0;
+}
+
+/** Bisection steps to the calibre a rail gun's bank fills: far finer than anything a design can tell. */
+const RAIL_CALIBRE_STEPS = 48;
+
+/**
+ * A rail gun: a hull gun on power, firing solid shot `RAIL_SPEED` times as
+ * fast as powder would from the same run of barrel.
+ *
+ * **Its bore is whatever its bank fills.** A wider bore wants more energy for
+ * every shot and leaves less of the block for capacitors, so there is one
+ * calibre whose full shot uses exactly the charge its bank holds, and that is
+ * the gun's. More barrel narrows it, so a longer gun throws a lighter shot
+ * faster for much the same energy, which its block sets. Its opening caps it,
+ * so a bore that would want more than the opening takes is held there.
+ */
+function railGunStats(spec: ModuleSpec): GunStats {
+    const { outlets, outletWidth, outletSpacing, barrelLength, blockLength } = hullMountGeometry(spec);
+    const widest = outletWidth / BARREL_OUTER_CALIBRES;
+    const need = (calibre: number): number =>
+        (muzzleEnergyOf(calibre, railLength(calibre, blockLength, barrelLength) / calibre) * RAIL_SPEED * RAIL_SPEED) / RAIL_EFFICIENCY;
+    let calibre = widest;
+    if (need(widest) > railBankEnergy(spec, widest)) {
+        let lo = 0;
+        let hi = widest;
+        for (let k = 0; k < RAIL_CALIBRE_STEPS; k++) {
+            const mid = (lo + hi) * 0.5;
+            if (need(mid) > railBankEnergy(spec, mid)) hi = mid;
+            else lo = mid;
+        }
+        calibre = lo;
+    }
+    const shotEnergy = need(calibre);
+    const muzzleEnergy = shotEnergy * RAIL_EFFICIENCY;
+    const roundMass = PI * 0.25 * calibre * calibre * (calibre * SHELL_CALIBRES) * SHELL_DENSITY;
+    const block = blockLength * spec.width * moduleThickness(spec);
+    return {
+        type: GunType.Projectile,
+        calibre,
+        barrelLength,
+        // What reaches beyond its block is braced all along its sides.
+        braceLength: barrelLength,
+        braceWidth: BRACE_CALIBRES * calibre,
+        barrelCount: outlets,
+        barrelSpacing: outletSpacing,
+        roundMass,
+        casing: roundMass,
+        propellant: 0,
+        shotEnergy,
+        muzzleSpeed: roundMass > 0 ? sqrt((2 * muzzleEnergy) / roundMass) : 0,
+        muzzleEnergy,
+        beamPower: 0,
+        // Its bank, which charges each shot in turn whichever rails it goes down;
+        // its breech is simpler than a powder gun's, so only its fixed part counts.
+        cycleTime: max(CYCLE_TIME_PER_CALIBRE * calibre * LOADING_FLOOR, shotEnergy / (RAIL_BANK_POWER_PER_VOLUME * block)),
         beamOnTime: 0,
         burst: null,
     };

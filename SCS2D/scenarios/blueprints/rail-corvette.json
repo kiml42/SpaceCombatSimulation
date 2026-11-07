@@ -116,7 +116,7 @@
       "width": 4,
       "reinforcement": 1.5,
       "barrels": 1,
-      "barrelCalibres": 3,
+      "barrelCalibres": 9,
       "targeting": {
         "facingWeight": 100,
         "sightWeight": 50,
