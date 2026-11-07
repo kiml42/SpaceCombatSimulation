@@ -73,6 +73,13 @@ const GROUPS: readonly { title: string; kinds: readonly Addable[] }[] = [
                 title: "A hull gun whose rails throw solid shot twice as fast, on power rather than fuel. It does not train: the hull aims it",
             },
             { kind: "hullBeam", label: "Hull beam" },
+            {
+                kind: "hullBeam",
+                label: "Plasma lance",
+                id: "plasmaLance",
+                preset: { plasma: true },
+                title: "Two prongs that throw a pulse of fuel, white hot, a short way and hard. Wider hits harder on more fuel; longer reaches further on more power. It kicks back as it fires",
+            },
         ],
     },
     {

@@ -9,6 +9,9 @@ import {
     DEFAULT_FUSE,
     firesShells,
     GAS_RECOIL,
+    type GunStats,
+    isPlasma,
+    LANCE_LEAK,
     type ModuleSpec,
     GunType,
     shotCharge,
@@ -18,6 +21,7 @@ import { Projectiles } from "./projectiles.js";
 import { TurretState } from "./turrets.js";
 import type { World } from "./world.js";
 import type { BeamHits, Beams, SpatialGrid } from "./index.js";
+import { BEAM_PLASMA, MAX_BEAM_LENGTH } from "./beams.js";
 import * as shipSupply from "./shipSupply.js";
 import * as shipBreakup from "./shipBreakup.js";
 import * as shipAim from "./shipAim.js";
@@ -250,14 +254,24 @@ export function fire(
                         ships.solution.dirY,
                         gun.calibre,
                         split ? gun.beamPower / 2 : gun.beamPower,
-                        0,
+                        gun.plasmaReach > 0 ? BEAM_PLASMA : 0,
                         bodies,
                         grid,
                         beamHits,
                         ships.holedHulls,
                         design.turrets[t]!.module,
                         layer,
+                        gun.plasmaReach > 0 ? gun.plasmaReach : MAX_BEAM_LENGTH,
                     );
+                }
+                // A lance's jet pushes back for as long as it burns.
+                if (gun.jetThrust > 0) {
+                    const kick = gun.jetThrust * world.dt;
+                    const jx = -ships.solution.dirX * kick;
+                    const jy = -ships.solution.dirY * kick;
+                    impulseX += jx;
+                    impulseY += jy;
+                    angularImpulse += (ships.solution.x - bodies.x[bodyIdx]!) * jy - (ships.solution.y - bodies.y[bodyIdx]!) * jx;
                 }
                 ships.firedAt[i] = world.tick;
                 if (state == TurretState.Idle) {
@@ -332,23 +346,57 @@ export function recharged(ships: Ships, b: number, i: number, t: number, dt: num
     const mount = ships.designs[i]!.turrets[t]!;
     const gun = mount.gun;
     if (!(gun.cycleTime > 0)) return 1;
+    // A lance not kept ready charges only while it is on target.
+    if (waitsForTarget(ships, i, t) && !onTarget(ships, i, t)) return 0;
     const scale = (ships.damage.remaining(b, mount.module, DamageEffect.FireRate) * dt) / gun.cycleTime;
+    return drawShare(ships, b, mount.module, gun, scale);
+}
+
+/** Draw `scale` of a shot's fuel and charge for the mount at `module`, and say what share of it there was. */
+function drawShare(ships: Ships, b: number, module: number, gun: GunStats, scale: number): number {
     let share = 1;
     const fuel = shotFuel(gun) * scale;
     if (fuel > 0) {
-        const allowed = shipSupply.allowed(ships, Resource.Fuel, b, mount.module, Claim.Fire, fuel);
-        const got = ships.fuel.feed(b, mount.module, fuel < allowed ? fuel : allowed, ships.damage);
-        shipSupply.took(ships, Resource.Fuel, b, mount.module, Claim.Fire, got);
+        const allowed = shipSupply.allowed(ships, Resource.Fuel, b, module, Claim.Fire, fuel);
+        const got = ships.fuel.feed(b, module, fuel < allowed ? fuel : allowed, ships.damage);
+        shipSupply.took(ships, Resource.Fuel, b, module, Claim.Fire, got);
         share = got / fuel;
     }
     const charge = shotCharge(gun) * scale;
     if (charge > 0) {
-        const allowed = shipSupply.allowed(ships, Resource.Charge, b, mount.module, Claim.Fire, charge);
-        const got = ships.power.draw(b, mount.module, charge < allowed ? charge : allowed);
-        shipSupply.took(ships, Resource.Charge, b, mount.module, Claim.Fire, got);
+        const allowed = shipSupply.allowed(ships, Resource.Charge, b, module, Claim.Fire, charge);
+        const got = ships.power.draw(b, module, charge < allowed ? charge : allowed);
+        shipSupply.took(ships, Resource.Charge, b, module, Claim.Fire, got);
         if (got / charge < share) share = got / charge;
     }
     return share;
+}
+
+/** Whether mount `t` is a plasma lance charged only once it is on target. */
+function waitsForTarget(ships: Ships, i: number, t: number): boolean {
+    const design = ships.designs[i]!;
+    const spec = design.modules[design.turrets[t]!.module]?.spec;
+    return spec !== undefined && isPlasma(spec) && spec.ready !== true;
+}
+
+/** Whether mount `t` is trained on something it means to shoot. */
+function onTarget(ships: Ships, i: number, t: number): boolean {
+    return ships.turretAiming[i]![t] !== NO_TARGET && ships.turrets.readyToFire(ships.turretIndex[i]![t]!);
+}
+
+/**
+ * A charged lance leaks its pulse's charge and fuel, `LANCE_LEAK` of each a
+ * second; what its stores cannot make up, it loses, and has to charge again.
+ */
+function leak(ships: Ships, b: number, i: number, t: number, dt: number): void {
+    const mount = ships.designs[i]!.turrets[t]!;
+    const gun = mount.gun;
+    const lost = LANCE_LEAK * dt;
+    const kept = drawShare(ships, b, mount.module, gun, lost);
+    if (kept >= 1) return;
+    const rate = ships.damage.remaining(b, mount.module, DamageEffect.FireRate);
+    ships.turretStates[i]![t] = TurretState.Reloading;
+    ships.cooldown[i]![t] = (lost * (1 - kept) * gun.cycleTime) / (rate > 0 ? rate : 1);
 }
 
 /** Run down each of ship `i`'s mounts' reload, as far as its power and fuel allow. */
@@ -364,6 +412,8 @@ export function reloadOne(ships: Ships, dt: number, bodies: Bodies, i: number): 
             if (timers[t]! > 0) {
                 const remaining = timers[t]! - dt * recharged(ships, b, i, t, dt);
                 timers[t] = remaining > TIMER_SETTLE ? remaining : 0;
+            } else if (mounts[t]!.gun.plasmaReach > 0 && ships.turretStates[i]![t] === TurretState.Idle) {
+                leak(ships, b, i, t, dt);
             }
         }
     }

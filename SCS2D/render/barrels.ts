@@ -1,4 +1,4 @@
-import { hullMountGeometry, isHullMount, isRail, math, type ShipView } from "../sim/index.js";
+import { hullMountGeometry, isHullMount, isPlasma, isRail, math, type ShipView } from "../sim/index.js";
 
 const { cos, sin } = math;
 
@@ -18,6 +18,8 @@ export function barrelLines(ship: ShipView, t: number, visit: (x0: number, y0: n
     const turret = design.turrets[t]!;
     const spec = design.modules[turret.module]!.spec;
     const mount = turret.mount;
+    // A plasma lance has prongs rather than barrels.
+    if (isPlasma(spec)) return 0;
     const c = cos(ship.angle);
     const s = sin(ship.angle);
     const mx = ship.x + mount.x * c - mount.y * s;

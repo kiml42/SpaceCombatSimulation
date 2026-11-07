@@ -10,6 +10,7 @@ import {
     IMPACT_MUZZLE,
     IMPACT_ROUND,
     isHullMount,
+    isPlasma,
     isRail,
     UNPAINTED,
     math,
@@ -70,6 +71,8 @@ import {
     fillColour,
     isFighterModule,
     isFitted,
+    LANCE_BASE_SHARE,
+    LANCE_PRONG_SHARE,
     moduleFills,
     padMark,
     paintedSide,
@@ -619,6 +622,13 @@ function drawShip(
         const spacing = gun.barrelSpacing;
         const hull = isHullMount(spec.kind) ? hullMountGeometry(spec) : null;
         const beamLenses = spec.kind === "hullBeam";
+
+        // A lance has no mount to draw over its module, only the field it is charging.
+        if (isPlasma(spec)) {
+            drawSparks(ctx, ship, design.modules[module]!, ship.turretDisabled?.[t] === true ? 0 : (ship.turretLoad?.[t] ?? 1));
+            drawLoad(ctx, ship, t, mx, my, bearing);
+            continue;
+        }
 
         // What it is made of is seen in the battle's light; what it says, its arcs and its load, is not.
         if (light !== undefined) inLight(ctx, light);
@@ -1581,6 +1591,50 @@ export function plumeReach(ship: ShipView): number {
  * part of it: sharing the module pass put it *under* the sector a nearby
  * turret sweeps, which dimmed a burning engine to the colour of a shadow.
  */
+/** The most sparks a fully charged lance shows between its prongs. */
+const MAX_SPARKS = 7;
+/** Kinks in each spark. */
+const SPARK_KINKS = 4;
+const SPARK = "rgba(170, 220, 255, 0.9)";
+
+/**
+ * Lightning between a plasma lance's prongs, none when it is empty and more as
+ * it fills: it leaks what it holds, and this is the leak. Drawn afresh each
+ * frame, so it flickers.
+ */
+function drawSparks(
+    ctx: CanvasRenderingContext2D,
+    ship: ShipView,
+    module: { x: number; y: number; angle: number; spec: ModuleSpec },
+    load: number,
+): void {
+    const count = Math.round(load * load * MAX_SPARKS);
+    if (count === 0) return;
+    const { spec } = module;
+    const l = spec.length / 2;
+    const w = spec.width / 2;
+    const from = -l + spec.length * LANCE_BASE_SHARE;
+    const edge = w - spec.width * LANCE_PRONG_SHARE;
+    ctx.save();
+    ctx.translate(ship.x, ship.y);
+    ctx.rotate(ship.angle);
+    ctx.translate(module.x, module.y);
+    ctx.rotate(module.angle);
+    ctx.strokeStyle = SPARK;
+    ctx.lineWidth = spec.width * 0.03;
+    ctx.beginPath();
+    for (let k = 0; k < count; k++) {
+        const x = from + Math.random() * (l - from);
+        ctx.moveTo(x, -edge);
+        for (let j = 1; j < SPARK_KINKS; j++) {
+            ctx.lineTo(x + (Math.random() - 0.5) * edge, -edge + (2 * edge * j) / SPARK_KINKS);
+        }
+        ctx.lineTo(x, edge);
+    }
+    ctx.stroke();
+    ctx.restore();
+}
+
 /** How wide a magnetic nozzle's jet is between bell and ring, as a share of the exit. */
 const COLUMN_WIDTH = 0.6;
 
@@ -3893,8 +3947,16 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
         const dx = snapshot.beamEndX[i]! - x0;
         const dy = snapshot.beamEndY[i]! - y0;
         const span = length(dx, dy);
-        const rod = width * camera.scale >= MIN_ROD_PX && span > 0 ? sprite("rod", colour) : null;
-        if (rod !== null) {
+        const flame = snapshot.beamPlasma[i] === 1 && span > 0 ? flameSprite(PLUME, PLUME_CORE) : null;
+        const rod = flame === null && width * camera.scale >= MIN_ROD_PX && span > 0 ? sprite("rod", colour) : null;
+        if (flame !== null) {
+            // Hot gas rather than light: brightest at the prongs, gone at its reach.
+            ctx.save();
+            ctx.transform(dx / span, dy / span, -dy / span, dx / span, x0, y0);
+            ctx.scale(-1, 1);
+            ctx.drawImage(flame, -span, -width / 2, span, width);
+            ctx.restore();
+        } else if (rod !== null) {
             ctx.save();
             ctx.transform(dx / span, dy / span, -dy / span, dx / span, x0, y0);
             ctx.drawImage(rod, 0, -width / 2, span, width);

@@ -19,6 +19,7 @@ import {
     isThick,
     isRail,
     isMagnetic,
+    isPlasma,
     isWeaponMount,
     math,
     MODULE_KINDS,
@@ -38,6 +39,7 @@ import {
     readsThick,
     readsRail,
     readsMagnetic,
+    readsPlasma,
     refitModule,
     shapeModule,
     slipwayHolds,
@@ -129,7 +131,7 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
     };
     const patch = (fields: Partial<ModuleSpec>): void => update((placement) => ({ ...placement, ...fields }) as Placement, true);
     /** A flag, absent rather than false when it is off, so a file only ever says the unusual thing. */
-    const flag = (key: "weapon" | "thick" | "rail" | "magnetic" | "docked" | "buildAnchored", on: boolean): void =>
+    const flag = (key: "weapon" | "thick" | "rail" | "magnetic" | "plasma" | "ready" | "docked" | "buildAnchored", on: boolean): void =>
         update((placement) => {
             if (!("kind" in placement)) return placement;
             const next = { ...placement };
@@ -306,7 +308,7 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                     <Readout id="barrelMetres">{barrelReadout(spec)}</Readout>
                 </Field>
             )}
-            {isWeaponMount(spec.kind) && !isRail(spec) && (
+            {isWeaponMount(spec.kind) && !isRail(spec) && !isPlasma(spec) && (
                 <Field id="traverseRow">
                     <label htmlFor="propTraverse">traverse °</label>
                     {box(
@@ -430,6 +432,30 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                         title="A ring at the end of the bell that, powered, holds the jet straight: more thrust and a longer flame from the same fuel, for power drawn as it burns. It takes the end of the bell, so unpowered the engine aims its jet a little worse."
                         checked={isMagnetic(spec)}
                         onChange={(event) => flag("magnetic", event.target.checked)}
+                    />
+                </Field>
+            )}
+            {readsPlasma(spec.kind) && (
+                <Field id="plasmaRow">
+                    <label htmlFor="propPlasma">plasma lance</label>
+                    <input
+                        id="propPlasma"
+                        type="checkbox"
+                        title="Two prongs that throw a pulse of fuel, white hot: its power falls off to nothing at its reach. Wider hits harder on more fuel; longer reaches further on more power. It kicks back as it fires, and does not train."
+                        checked={isPlasma(spec)}
+                        onChange={(event) => flag("plasma", event.target.checked)}
+                    />
+                </Field>
+            )}
+            {isPlasma(spec) && (
+                <Field id="readyRow">
+                    <label htmlFor="propReady">keep charged</label>
+                    <input
+                        id="propReady"
+                        type="checkbox"
+                        title="Kept charged and ready to fire the moment it bears, leaking a tenth of a pulse's power and fuel a second while it waits. Unticked, it charges only once it is on target, and may lose the target before it is ready."
+                        checked={spec.ready === true}
+                        onChange={(event) => flag("ready", event.target.checked)}
                     />
                 </Field>
             )}
@@ -606,11 +632,15 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                                 <tr>
                                     <th>Gun</th>
                                     <td>
-                                        {`${numbers(readout.gun.calibre * 1000, 0)} mm${readout.gun.barrels > 1 ? ` ×${readout.gun.barrels}` : ""}, ` +
-                                            `${numbers(readout.gun.roundsPerMinute)} rpm, ${numbers(readout.gun.muzzleSpeed, 0)} m/s, ${numbers(readout.gun.roundMass, 1)} kg shell, ` +
-                                            (readout.gun.shotEnergy > 0
-                                                ? `${numbers(readout.gun.shotEnergy / 1e6, 1)} MJ a shot`
-                                                : `${numbers(readout.gun.shotFuel, 1)} kg fuel a shot`)}
+                                        {readout.gun.plasmaReach > 0
+                                            ? `${numbers(readout.gun.beamPower / 1e6, 1)} MW pulses to ${numbers(readout.gun.plasmaReach, 0)} m, ` +
+                                              `${numbers(readout.gun.roundsPerMinute)} a minute, ${numbers(readout.gun.shotFuel, 1)} kg fuel and ` +
+                                              `${numbers(readout.gun.shotEnergy / 1e6, 1)} MJ a pulse, ${numbers(readout.gun.jetThrust / 1e3, 0)} kN kick`
+                                            : `${numbers(readout.gun.calibre * 1000, 0)} mm${readout.gun.barrels > 1 ? ` ×${readout.gun.barrels}` : ""}, ` +
+                                              `${numbers(readout.gun.roundsPerMinute)} rpm, ${numbers(readout.gun.muzzleSpeed, 0)} m/s, ${numbers(readout.gun.roundMass, 1)} kg shell, ` +
+                                              (readout.gun.shotEnergy > 0
+                                                  ? `${numbers(readout.gun.shotEnergy / 1e6, 1)} MJ a shot`
+                                                  : `${numbers(readout.gun.shotFuel, 1)} kg fuel a shot`)}
                                     </td>
                                 </tr>
                                 {design !== null && readout.gun.roundMass > 0 && design.modules[index]?.spec.kind === spec.kind && (

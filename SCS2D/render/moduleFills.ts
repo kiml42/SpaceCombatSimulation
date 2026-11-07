@@ -1,4 +1,13 @@
-import { engineGeometry, hullMountGeometry, isHullMount, shapeOf, type ModuleSpec, type ShipDesign, type ShipView } from "../sim/index.js";
+import {
+    engineGeometry,
+    hullMountGeometry,
+    isHullMount,
+    isPlasma,
+    shapeOf,
+    type ModuleSpec,
+    type ShipDesign,
+    type ShipView,
+} from "../sim/index.js";
 import { engineLayout } from "./engineLayout.js";
 import { BARE_TEAM, type Palette } from "./teams.js";
 
@@ -12,6 +21,14 @@ import { BARE_TEAM, type Palette } from "./teams.js";
 
 /** How much of a claw's width each of its two jaws is drawn across. */
 export const CLAW_JAW_SHARE = 0.3;
+/** A plasma lance's base, as a share of its length, its prongs and their nubs as shares of its width and of a prong. */
+export const LANCE_BASE_SHARE = 0.25;
+export const LANCE_PRONG_SHARE = 0.22;
+/** How far a nub reaches into the gap, as a share of half of it, and how wide it is, as a share of the space between nubs. */
+const LANCE_NUB_REACH = 0.3;
+const LANCE_NUB_WIDTH = 0.25;
+/** Nubs along each prong. */
+const LANCE_NUBS = 3;
 
 /** How much of a slipway's width each side rail takes, and of its length the feed block aft. */
 const SLIPWAY_RAIL_SHARE = 0.12;
@@ -134,6 +151,21 @@ export function moduleFills(
                 const band = (l - layout.pumpAft) * ENGINE_BAND_SHARE;
                 box(layout.pumpAft + band, -w, layout.pumpAft + 2 * band, w, colours.highlight);
             }
+        }
+    } else if (isPlasma(spec)) {
+        // A base aft, two prongs out of it along the sides, and nubs reaching into the gap between them.
+        const base = spec.length * LANCE_BASE_SHARE;
+        const prong = spec.width * LANCE_PRONG_SHARE;
+        const reach = (w - prong) * LANCE_NUB_REACH;
+        box(-l, -w, -l + base, w);
+        box(-l + base, -w, l, -w + prong);
+        box(-l + base, w - prong, l, w);
+        const pitch = (2 * l - base) / LANCE_NUBS;
+        const half = pitch * LANCE_NUB_WIDTH * 0.5;
+        for (let k = 0; k < LANCE_NUBS; k++) {
+            const x = -l + base + pitch * (k + 0.5);
+            box(x - half, -w + prong, x + half, -w + prong + reach);
+            box(x - half, w - prong - reach, x + half, w - prong);
         }
     } else if (isHullMount(spec.kind)) {
         box(-l, -w, -l + hullMountGeometry(spec).blockLength, w);

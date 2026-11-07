@@ -422,9 +422,9 @@ describe("the editor in a browser", () => {
         expect((await page.textContent("#stats"))?.match(/[\d,.]+ t/)?.[0]).not.toBe(mass);
     });
 
-    it("offers a button for every kind of module, each adding one of that kind, and one for a rail gun", async () => {
+    it("offers a button for every kind of module, each adding one of that kind, and one each for a rail gun and a plasma lance", async () => {
         await page.click("#newShip");
-        const kinds = [...MODULE_KINDS, "railGun"];
+        const kinds = [...MODULE_KINDS, "railGun", "plasmaLance"];
         const buttons = await page.$$eval("[data-add]", (found) => found.map((b) => (b as HTMLElement).dataset["add"]));
         expect([...buttons].sort()).toEqual([...kinds].sort());
         for (const kind of ["claw", "pad", "port"]) {
@@ -434,6 +434,9 @@ describe("the editor in a browser", () => {
         await page.click('[data-add="railGun"]');
         expect(await page.inputValue("#propKind")).toBe("hullGun");
         expect(await page.isChecked("#propRail")).toBe(true);
+        await page.click('[data-add="plasmaLance"]');
+        expect(await page.inputValue("#propKind")).toBe("hullBeam");
+        expect(await page.isChecked("#propPlasma")).toBe(true);
     });
 
     it("says what a refit from the ship as it was opened would build, once it differs", async () => {

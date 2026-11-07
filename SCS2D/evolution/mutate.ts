@@ -45,6 +45,8 @@ import {
     readsFuse,
     readsRail,
     readsMagnetic,
+    readsPlasma,
+    isPlasma,
     readsSealing,
     readsDrainPriority,
     readsFill,
@@ -779,6 +781,8 @@ type SwitchKnob =
               | "thick"
               | "rail"
               | "magnetic"
+              | "plasma"
+              | "ready"
               | "drainPriority"
               | "shape"
               | "solid"
@@ -919,6 +923,8 @@ function switches(draft: Draft): SwitchKnob[] {
         if (canThicken(spec)) out.push({ at: "thick", site });
         if (readsRail(spec.kind)) out.push({ at: "rail", site });
         if (readsMagnetic(spec.kind)) out.push({ at: "magnetic", site });
+        if (readsPlasma(spec.kind)) out.push({ at: "plasma", site });
+        if (isPlasma(spec)) out.push({ at: "ready", site });
         if (readsDrainPriority(spec.kind)) out.push({ at: "drainPriority", site });
         // The outlet count divides a hull mount's opening between more of them,
         // and an engine's are counted by the same field a gun's barrels are.
@@ -955,11 +961,13 @@ function switchWeight(knob: SwitchKnob, { build }: MutationLimits): number {
         case "thick":
         case "rail":
         case "magnetic":
+        case "plasma":
         case "craftAngle":
         case "buildAnchored":
             return build.fittings;
         case "weapon":
         case "main":
+        case "ready":
         case "drainPriority":
         case "solid":
             return build.tuning;
@@ -984,6 +992,10 @@ function flip(knob: SwitchKnob, draft: Draft, rng: Rng, bounds: MutationLimits):
             return electrify(knob.site);
         case "magnetic":
             return magnetise(knob.site);
+        case "plasma":
+            return ionise(knob.site);
+        case "ready":
+            return keepReady(knob.site);
         case "drainPriority":
             return reprioritise(knob.site, rng);
         case "barrels":
@@ -1648,6 +1660,22 @@ function magnetise(site: ModuleSite): string {
     if (was) delete site.spec.magnetic;
     else site.spec.magnetic = true;
     return `${site.where} ${site.spec.kind}: ${was ? "lost its" : "given a"} magnetic nozzle`;
+}
+
+/** Make a hull beam a plasma lance, or a beam again. */
+function ionise(site: ModuleSite): string {
+    const was = site.spec.plasma === true;
+    if (was) delete site.spec.plasma;
+    else site.spec.plasma = true;
+    return `${site.where} ${site.spec.kind}: made a ${was ? "beam" : "plasma lance"}`;
+}
+
+/** Keep a plasma lance charged and ready, or have it charge only on target. */
+function keepReady(site: ModuleSite): string {
+    const was = site.spec.ready === true;
+    if (was) delete site.spec.ready;
+    else site.spec.ready = true;
+    return `${site.where} ${site.spec.kind}: ${was ? "charges on target" : "kept ready"}`;
 }
 
 function turnModule(site: ModuleSite, rng: Rng, bounds: MutationLimits, weight: number): string | null {

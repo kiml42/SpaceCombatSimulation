@@ -12,7 +12,7 @@ import { SEAL_REACH, SEAL_SPEED } from "./modules.js";
 import type { Rng } from "./rng.js";
 import { geometryOf, landedIndex, landedLength, plumeLayers, Plumes, weaponPlumeReach } from "./exhaust.js";
 import { Choice } from "./targeting.js";
-import { moduleRadius, shotCharge, shotFuel, type ModuleSpec } from "./modules.js";
+import { isPlasma, moduleRadius, shotCharge, shotFuel, type ModuleSpec } from "./modules.js";
 import { atan2, clamp, cos, floor, length, max, min, round, sin } from "./math.js";
 import { Projectiles } from "./projectiles.js";
 import type { Store } from "./store.js";
@@ -1132,10 +1132,8 @@ export class Ships {
         const timer = this.cooldown[i]![t]!;
         const reloading = timer > 0 && gun.cycleTime > 0;
         const rate = reloading ? this.damage.remaining(b, mount.module, DamageEffect.FireRate) : 0;
-        if (gun.type === GunType.Projectile) {
-            if (gun.casing > 0 && this.metal.pieceHeld(b, mount.module) < gun.casing) return false;
-            if (reloading && this.fuel.fed(b, mount.module, this.damage) < (shotFuel(gun) * rate * timer) / gun.cycleTime) return false;
-        }
+        if (gun.type === GunType.Projectile && gun.casing > 0 && this.metal.pieceHeld(b, mount.module) < gun.casing) return false;
+        if (reloading && this.fuel.fed(b, mount.module, this.damage) < (shotFuel(gun) * rate * timer) / gun.cycleTime) return false;
         if (!reloading) return true;
         const need = (shotCharge(gun) * rate * timer) / gun.cycleTime;
         if (!(need > 0)) return true;
@@ -1378,8 +1376,17 @@ export class Ships {
         this.lit.push(new Uint8Array(design.engines.length));
         this.landed.push(new Float64Array(landedLength(design)));
         this.turretIndex.push(fixed(indices));
-        this.cooldown.push(new Float64Array(mounts.length));
-        this.turretStates.push(new Uint8Array(mounts.length));
+        const cooldown = new Float64Array(mounts.length);
+        const states = new Uint8Array(mounts.length);
+        // A lance charged only on target sets out uncharged.
+        for (let t = 0; t < mounts.length; t++) {
+            const spec = design.modules[mounts[t]!.module]?.spec;
+            if (spec === undefined || !isPlasma(spec) || spec.ready === true) continue;
+            states[t] = TurretState.Reloading;
+            cooldown[t] = mounts[t]!.gun.cycleTime;
+        }
+        this.cooldown.push(cooldown);
+        this.turretStates.push(states);
         this.nextBarrelToFire.push(new Int32Array(mounts.length));
         const chosenBy = new Int32Array(mounts.length).fill(NO_TARGET);
         this.turretTarget.push(chosenBy);

@@ -659,6 +659,23 @@ inside any one file is not contiguous.
   not train, so it carries no training gear and the hull aims it, and its rails are drawn running back
   over the top of its block. The editor offers it as a button of its own, and evolution flips a hull gun
   to a rail gun and back.
+  **A hull beam may be a plasma lance** (`plasma`): two prongs between which a field throws a pulse of
+  the ship's fuel, white hot, for `LANCE_PULSE` (a second). Fuel is how hard it hits and power how far it
+  holds together. Its face is its exit, as an engine's is, so a wider lance throws more fuel
+  (`THRUST_PER_EXIT_AREA` over the exhaust speed), hits harder (`LANCE_POWER_PER_NEWTON`, 50 W for each
+  newton of jet, a dozen times a flame's) and kicks back harder, with the jet's thrust for as long as it
+  burns. Its length is the field, so a longer lance reaches further (`LANCE_REACH_PER_METRE`, 40 m a metre)
+  and takes more charge to fill (`LANCE_FIELD_ENERGY_PER_VOLUME`, by reach and exit). Its power falls off
+  along its reach to nothing at the end, and it never reflects, so it is worth firing only well inside it
+  (`LANCE_WORTH`, half). It draws a pulse's fuel and charge as it recharges (`LANCE_CHARGE_TIME`), as any
+  mount does. **A charged lance leaks**: a tenth of a pulse's charge and fuel a second (`LANCE_LEAK`), and
+  what its stores cannot make up it loses. So each lance is built one of two ways (`ready`): kept charged,
+  ready the moment it bears and paying for it, or charged only once it is on target, setting out uncharged
+  and risking the target slipping away before it is full. It does not train, so the hull aims it, and it
+  welds on by its back and sides as any hull mount does. It is drawn as a base and two prongs with nubs
+  into the gap, lightning across the gap growing with its charge, and its pulse as a flame. The editor
+  offers it as a button of its own; evolution flips a hull beam to a lance and back, and a lance between
+  ready and not.
   **Two layers** (§3). Every module is in the hull layer. Turrets and anything marked *thick* stand up into
   the weapons layer as well; a turret only by its dome, a circle as wide as the mount, on a block in the
   hull layer. A turret's rounds and beams meet only what is in the weapons layer, so they strip
