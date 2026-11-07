@@ -880,7 +880,8 @@ inside any one file is not contiguous.
   seconds of draining, divided by one more `scavengeDanger` for every armed enemy within reach of it. The trip is reckoned at what it can close at, `approachSpeed` less however fast the source is
   going away, and burns what matching the source's motion and then speeding up and stopping again costs at its
   engines' exhaust speed; a source going away faster than it can follow, or holding no more than that, is
-  not gone for. **It goes for metal too**, with robots of its own, once its claw's piece of hull is down to
+  not gone for, nor one spinning so fast that being carried round with it at its gate would take more than
+  half its thrust across its jaws (`SPIN_HOLD`). **It goes for metal too**, with robots of its own, once its claw's piece of hull is down to
   `scavengeMetalBelow` of a full load of metal (zero, never, by default), until its holds are full: a wreck,
   or a hulk nobody is mending, is then worth what its robots would bring home of it as well, its mass less
   its fuel and `DISASSEMBLY_WASTE`, counted at `fuelPerMetal` kilograms of fuel a kilogram (one by default),
@@ -1320,8 +1321,10 @@ inside any one file is not contiguous.
   close on (`Contacts.outlet`), so it goes round to another face; keeps it in the source's frame, so it turns with a tumbling wreck, and looks again each second while
   still well out, or once the face's module is spent. It makes for a gate a radius out along the face's
   normal, its jaws on the source's middle until near and then turned on to the face, and once on that
-  line and square to the face closes straight in down a stopping curve, all moving as that point of the
-  source does and held against its well's pull, which it otherwise lagged by a metre a second. It
+  line and square to the face closes straight in at the speed it means to touch down at, braking for it on
+  the way to the gate rather than near the face, where its retros' exhaust would shove and spin what it was
+  closing on; all moving as that point of the source does, carried round with it if it spins, and held
+  against its well's pull, which it otherwise lagged by a metre a second. It
   touches down no faster than its claw's spring could stop it in its stroke (`clawArrival`): the
   middle of the claw's band for a light ship, slower for a heavy one, whose claw was otherwise driven
   home and torn off. One that cannot turn both ways closes on the middle as before. A miss alongside
