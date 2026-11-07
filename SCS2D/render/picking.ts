@@ -91,22 +91,6 @@ export function sameDesign(snapshot: Snapshot, ship: ShipView | null): number[] 
     return out;
 }
 
-/**
- * Every fighter a fleet strip's tile stands for along with `ship`: its side's
- * fighters of its design still under control, as the strips group them.
- */
-export function fighterGroup(snapshot: Snapshot, ship: ShipView | null): number[] {
-    if (ship?.ship === undefined) return [];
-    if (!blueprintOf(ship).fighter || ship.team === NEUTRAL_TEAM) return [ship.ship];
-    const out: number[] = [];
-    for (let i = 0; i < snapshot.shipCount; i++) {
-        const other = snapshot.ships[i]!;
-        if (other.ship !== undefined && other.team === ship.team && blueprintOf(other).name === blueprintOf(ship).name && other.hasControl)
-            out.push(other.ship);
-    }
-    return out;
-}
-
 /** The design a ship is built to, damage aside. */
 function blueprintOf(ship: ShipView): ShipView["currentStructure"] {
     return ship.blueprint ?? ship.currentStructure;

@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { stripsFor, stripTileAt, type StripShip } from "../render/fleetStrip.js";
+import { MOST_TILES, stripsFor, stripTileAt, type StripShip } from "../render/fleetStrip.js";
 import { Snapshot, type ShipView } from "../sim/index.js";
 import { fleetStrips } from "../render/canvas2d.js";
-import { fighterGroup } from "../render/picking.js";
 import { capture } from "../sim/snapshot.js";
 import { beamCarrier } from "../scenarios/beamCarrier.js";
 
@@ -62,38 +61,65 @@ describe("the fleets down the edges", () => {
         expect(stripTileAt(strips, W / 2, H / 2)).toBe(-1);
     });
 
-    it("shows a side's fighters of a design in one tile, the best armed of them, with how many there are", () => {
-        const fighter = (body: number, team: number, weapons: number, design = 0): StripShip => ({
-            ...ship(body, team, 5),
-            fighter: design,
-            weapons,
-        });
-        const strips = stripsFor(
-            [fighter(5, 0, 1), ship(1, 0), fighter(6, 0, 2), fighter(7, 0, 2), fighter(8, 0, 1, 1), fighter(9, 2, 3), fighter(10, 1, 0)],
-            W,
-            H,
-            SETTINGS,
-        );
-        // Other ships first, then one tile a design and side; of equals, the lowest body.
-        expect(strips.left.tiles.map((tile) => [tile.body, tile.count])).toEqual([
-            [1, 1],
-            [6, 3],
-            [8, 1],
-            [9, 1],
-        ]);
-        expect(strips.right.tiles.map((tile) => [tile.body, tile.count])).toEqual([[10, 1]]);
+    const kind = (body: number, team: number, design: number, intact = 1): StripShip => ({ ...ship(body, team), design, intact });
+
+    it(`gives every ship a tile of its own while there are no more than ${MOST_TILES}`, () => {
+        const few = Array.from({ length: MOST_TILES }, (_, k) => kind(k, 0, 0));
+        expect(stripsFor(few, W, H, SETTINGS).left.tiles.map((tile) => tile.count)).toEqual(Array(MOST_TILES).fill(1));
     });
 
-    it("counts the fighters in a tile that did not fit among those left out", () => {
+    it("past that, shares a tile among the commonest design first, fighter or not, until few enough", () => {
+        // Six of design 0, three of 1, two of 2: grouping 0 leaves 1 + 3 + 2 = 6, so 1 goes too.
+        const fleet = [
+            kind(1, 0, 1),
+            kind(2, 0, 0),
+            kind(3, 0, 2),
+            kind(4, 0, 0, 2),
+            kind(5, 0, 1),
+            kind(6, 0, 0),
+            kind(7, 0, 2),
+            kind(8, 0, 0),
+            kind(9, 0, 1),
+            kind(10, 0, 0),
+            kind(11, 0, 0, 2),
+        ];
+        const tiles = stripsFor(fleet, W, H, SETTINGS).left.tiles;
+        // Each shared tile where its first ship was, showing the least damaged, the lowest body of equals.
+        expect(tiles.map((tile) => [tile.body, tile.count])).toEqual([
+            [1, 3],
+            [4, 6],
+            [3, 1],
+            [7, 1],
+        ]);
+        expect(tiles[1]!.bodies).toEqual([2, 4, 6, 8, 10, 11]);
+    });
+
+    it("stops when every tile is a design of its own, however many there are", () => {
+        const fleet = [...Array.from({ length: 8 }, (_, k) => kind(k, 0, k)), kind(8, 0, 0), ship(9, 0), ship(10, 0)];
+        const tiles = stripsFor(fleet, W, H, SETTINGS).left.tiles;
+        expect(tiles.map((tile) => tile.count)).toEqual([2, 1, 1, 1, 1, 1, 1, 1, 1, 1]);
+    });
+
+    it("never shares a tile between sides on the same edge", () => {
+        const fleet = [...Array.from({ length: 3 }, (_, k) => kind(k, 0, 0)), ...Array.from({ length: 3 }, (_, k) => kind(10 + k, 2, 0))];
+        expect(stripsFor(fleet, W, H, SETTINGS).left.tiles.map((tile) => [tile.team, tile.count])).toEqual([
+            [0, 3],
+            [2, 1],
+            [2, 1],
+            [2, 1],
+        ]);
+    });
+
+    it("counts the ships in a tile that did not fit among those left out", () => {
         const many = Array.from({ length: 40 }, (_, k) => ship(k, 0));
-        const fighters = Array.from({ length: 5 }, (_, k): StripShip => ({ ...ship(100 + k, 0, 5), fighter: 0, weapons: 1 }));
+        const fighters = Array.from({ length: 5 }, (_, k): StripShip => ({ ...ship(100 + k, 0, 5), design: 0, intact: 1 }));
         const column = stripsFor([...many, ...fighters], W, H, SETTINGS).left;
         expect(column.tiles.length + column.hidden).toBe(45);
     });
 });
 
 describe("the fleet strips of a battle", () => {
-    it("give a side one tile for its fighters of a design, however damaged each is", () => {
+    it("give a side one tile for its ships of a design, however damaged each is", () => {
         const tie = {
             radius: 5,
             name: "TIE",
@@ -124,10 +150,36 @@ describe("the fleet strips of a battle", () => {
                 turretReady: [],
             }) as unknown as ShipView;
         const picture = new Snapshot();
-        picture.ships = [fighter(0, tie), fighter(1, knocked), fighter(2, knocked)];
-        picture.shipCount = 3;
+        picture.ships = Array.from({ length: MOST_TILES + 1 }, (_, k) => fighter(k, k === 0 ? tie : knocked));
+        picture.shipCount = MOST_TILES + 1;
         const strips = fleetStrips(picture, 1000, 600);
-        expect(strips.left.tiles.map((tile) => tile.count)).toEqual([3]);
+        expect(strips.left.tiles.map((tile) => tile.count)).toEqual([MOST_TILES + 1]);
+    });
+
+    it("show the least damaged of a shared tile's ships, by the mass of what is left of each", () => {
+        const design = { radius: 5, name: "Corvette", mass: 100, modules: [{}, {}] } as unknown as ShipView["currentStructure"];
+        const lost = { ...design, mass: 60, modules: [{}] } as unknown as ShipView["currentStructure"];
+        const corvette = (body: number, structure: ShipView["currentStructure"], integrity: number[]): ShipView =>
+            ({
+                currentStructure: structure,
+                body,
+                ship: body,
+                team: 0,
+                x: 0,
+                y: 0,
+                vx: 0,
+                vy: 0,
+                hasControl: true,
+                integrity,
+            }) as unknown as ShipView;
+        const picture = new Snapshot();
+        picture.ships = [
+            ...Array.from({ length: MOST_TILES }, (_, k) => corvette(k, design, [0.5, 1])),
+            corvette(MOST_TILES, lost, [1]),
+            corvette(MOST_TILES + 1, design, [1, 0.9]),
+        ];
+        picture.shipCount = MOST_TILES + 2;
+        expect(fleetStrips(picture, 1000, 600).left.tiles.map((tile) => tile.body)).toEqual([MOST_TILES + 1]);
     });
 
     it("puts a carrier's fighters from every pad on one tile, though each pad compiled its own copy of the design", () => {
@@ -141,7 +193,6 @@ describe("the fleet strips of a battle", () => {
         const bodies = new Set(dinkies.map((v) => v.body));
         expect(tiles.filter((tile) => bodies.has(tile.body))).toHaveLength(1);
         expect(tiles.find((tile) => bodies.has(tile.body))!.count).toBe(dinkies.length);
-        // Picking that tile stands for all of them.
-        expect(fighterGroup(picture, dinkies[0]!).length).toBe(dinkies.length);
+        expect(tiles.find((tile) => bodies.has(tile.body))!.bodies.length).toBe(dinkies.length);
     });
 });

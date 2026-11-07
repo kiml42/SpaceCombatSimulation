@@ -2866,30 +2866,34 @@ const STRIP_MIN_PX = 34;
 const STRIP_MARGIN_PX = 6;
 const STRIP_GAP_PX = 4;
 
-/** Main guns and weapon engines a ship still has. */
-function weaponsLeft(ship: ShipView): number {
+/** Mass of what is left of a ship, each module discounted by its wear: kg, roughly. */
+function intactMass(ship: ShipView): number {
     const design = ship.currentStructure;
-    let count = 0;
-    for (let t = 0; t < design.turrets.length; t++) if (design.turrets[t]!.main && ship.turretDisabled[t] !== true) count++;
-    for (const t of design.mainWeaponEngines) {
-        const module = design.engines[t]!.module;
-        if (module !== undefined && (ship.integrity[module] ?? 1) > 0 && isFitted(ship, module)) count++;
-    }
-    return count;
+    const n = design.modules.length;
+    if (n === 0) return design.mass;
+    let integrity = 0;
+    for (let m = 0; m < n; m++) integrity += ship.integrity[m] ?? 1;
+    return (design.mass * integrity) / n;
 }
 
 /**
  * Each side's ships as live tiles down the view's edges: every ship anyone
- * controls, a side's fighters of one design sharing a tile, as they come and
- * go in numbers. `ratio` is canvas pixels per CSS pixel.
+ * controls, a side's ships of one design sharing a tile when there are too
+ * many, as they come and go in numbers. `ratio` is canvas pixels per CSS pixel.
  */
 export function fleetStrips(snapshot: Snapshot, widthPx: number, heightPx: number, ratio = 1): Strips {
     const ships: StripShip[] = [];
-    const fighterDesigns = new Map<string, number>();
+    const designs = new Map<string, number>();
     for (let i = 0; i < snapshot.shipCount; i++) {
         const ship = snapshot.ships[i]!;
         if (ship.team < 0 || !ship.hasControl) continue;
-        const at = {
+        // Grouped by the name of what each is built to, so a ship knocked about
+        // stays with its kind, and fighters from each of a carrier's pads, each
+        // pad's copy of the design its own, all go together.
+        const name = (ship.blueprint ?? ship.currentStructure).name;
+        let design = designs.get(name);
+        if (design === undefined) designs.set(name, (design = designs.size));
+        ships.push({
             body: ship.body,
             team: ship.team,
             x: ship.x,
@@ -2897,18 +2901,9 @@ export function fleetStrips(snapshot: Snapshot, widthPx: number, heightPx: numbe
             vx: ship.vx,
             vy: ship.vy,
             radius: ship.currentStructure.radius,
-        };
-        // Grouped by the name of what each is built to, so a fighter knocked about
-        // stays with its kind, and one from each of a carrier's pads, each pad's
-        // copy of the design its own, all go together.
-        const blueprint = ship.blueprint ?? ship.currentStructure;
-        if (!blueprint.fighter) {
-            ships.push(at);
-            continue;
-        }
-        let fighter = fighterDesigns.get(blueprint.name);
-        if (fighter === undefined) fighterDesigns.set(blueprint.name, (fighter = fighterDesigns.size));
-        ships.push({ ...at, fighter, weapons: weaponsLeft(ship) });
+            design,
+            intact: intactMass(ship),
+        });
     }
     return stripsFor(ships, widthPx, heightPx, {
         largest: Math.min(STRIP_MAX_PX * ratio, widthPx * STRIP_SHARE),
