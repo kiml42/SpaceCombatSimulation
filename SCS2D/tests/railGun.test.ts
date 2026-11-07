@@ -8,6 +8,8 @@ import {
     moduleProblem,
     railLength,
     RAIL_BANK_POWER_PER_VOLUME,
+    RAIL_BANK_ENERGY_PER_VOLUME,
+    RAIL_BANK_MASS_PER_VOLUME,
     moduleThickness,
     RAIL_SETBACK_CALIBRES,
     moduleStats,
@@ -102,6 +104,30 @@ describe("a rail gun", () => {
         expect(gun.cycleTime).toBeCloseTo(shotCharge(gun) / bank, 9);
         // A powder gun of the same block loads far faster than the bank charges.
         expect(moduleStats(hullGun({ length: 13, width: 4, barrelCalibres: 10 })).gun!.cycleTime).toBeLessThan(gun.cycleTime);
+    });
+
+    it("fires no more than its bank holds, so too small a block fires a weaker shot", () => {
+        // 20 m of rails in all, the block's share of it varied.
+        const gun = (block: number) => moduleStats(railGun({ length: block, width: 4, barrelCalibres: (20 - block) / 0.4 })).gun!;
+        const bank = (block: number) => {
+            const spec = railGun({ length: block, width: 4, barrelCalibres: (20 - block) / 0.4 });
+            return RAIL_BANK_ENERGY_PER_VOLUME * hullMountGeometry(spec).blockLength * spec.width * moduleThickness(spec);
+        };
+        expect(shotCharge(gun(4))).toBeCloseTo(bank(4), 0);
+        expect(gun(4).muzzleSpeed).toBeLessThan(gun(18).muzzleSpeed);
+        expect(shotCharge(gun(18))).toBeLessThan(bank(18));
+    });
+
+    it("weighs the same in rails for the same run of them, and its bank on top", () => {
+        const mass = (block: number, extension: number) =>
+            moduleStats(railGun({ length: block, width: 4, barrelCalibres: extension / 0.4 })).mass;
+        // Moving a metre from extension into block adds a metre of block, less the
+        // metre of rails that only moved: its hull and its bank, and no more.
+        const moved = mass(11, 9) - mass(10, 10);
+        const blockMetre = mass(11, 0) - mass(10, 0);
+        const railMetre = mass(10, 1) - mass(10, 0);
+        expect(moved).toBeCloseTo(blockMetre - railMetre, 0);
+        expect(moved).toBeGreaterThan(RAIL_BANK_MASS_PER_VOLUME * 4 * moduleThickness(railGun({ width: 4 })) * 0.99);
     });
 
     it("never fires shells, whatever its fuse says", () => {
