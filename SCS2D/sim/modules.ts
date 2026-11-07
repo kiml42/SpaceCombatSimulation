@@ -662,6 +662,12 @@ export const PROPELLANT_ENERGY = 1.2e6;
  */
 export const GAS_RECOIL = 1.5;
 
+/** How much faster a rail gun throws its round than powder would from the same barrel. */
+export const RAIL_SPEED = 2;
+
+/** The share of the charge a rail gun draws that reaches its round as kinetic energy. */
+export const RAIL_EFFICIENCY = 0.5;
+
 /**
  * Loading cycle time per metre of calibre, seconds. A 16" gun manages a round
  * every 30 s and a 5" mount several times a minute; one number cannot honour
@@ -1391,6 +1397,12 @@ export interface ModuleSpec {
      * module's depth along the run.
      */
     thick?: boolean;
+    /**
+     * A hull gun that is a rail gun: its rails throw solid shot twice as fast
+     * as powder would from the same barrel, on power rather than fuel, and it
+     * does not train.
+     */
+    rail?: boolean;
 
     /**
      * How thick a self-sealing lining is inside the walls, metres; zero or absent
@@ -1526,6 +1538,8 @@ export interface GunStats {
     casing: number;
     /** Fuel burnt to fire a round, kg. */
     propellant: number;
+    /** Charge a round draws as the gun reloads, J: a rail gun's. */
+    shotEnergy: number;
     /** Muzzle velocity, m/s. */
     muzzleSpeed: number;
     /** Kinetic energy of one round at the muzzle, joules. */
@@ -1543,6 +1557,11 @@ export interface GunStats {
 /** Fuel a gun draws for each round, kg: its propellant and any bursting charge. */
 export function shotFuel(gun: GunStats): number {
     return gun.propellant + gun.roundMass - gun.casing;
+}
+
+/** Charge a mount draws for each shot, J: a beam's burst, or a rail gun's round. */
+export function shotCharge(gun: GunStats): number {
+    return gun.type === GunType.Beam ? gun.beamPower * gun.beamOnTime : gun.shotEnergy;
 }
 
 /** Seconds from one shot to the next: a beam's burst, then its reload. */
@@ -2387,6 +2406,16 @@ export function hullMountGeometry(spec: ModuleSpec): HullMountGeometry {
     };
 }
 
+/** Whether `rail` means anything on this kind. */
+export function readsRail(kind: ModuleKind): boolean {
+    return kind === "hullGun";
+}
+
+/** Whether this is a rail gun. */
+export function isRail(spec: ModuleSpec): boolean {
+    return readsRail(spec.kind) && spec.rail === true;
+}
+
 /** Whether `fuse` means anything on this kind: a gun that fires rounds. */
 export function readsFuse(kind: ModuleKind): boolean {
     return kind === "turret" || kind === "hullGun";
@@ -2406,6 +2435,7 @@ export function isWeaponMount(kind: ModuleKind): boolean {
  * asks it, and this stays a property of the mount alone.
  */
 export function mountTraverse(spec: ModuleSpec): number {
+    if (isRail(spec)) return 0;
     const archetype = isHullMount(spec.kind) ? hullMountGeometry(spec).traverse : FULL_TRAVERSE;
     const asked = spec.traverse;
     if (asked === undefined) return archetype;
@@ -2626,7 +2656,8 @@ export function hullGunStats(spec: ModuleSpec): GunStats {
     const calibres = barrelCalibres(spec);
     const boreArea = PI * 0.25 * calibre * calibre;
     const roundMass = boreArea * (calibre * SHELL_CALIBRES) * SHELL_DENSITY;
-    const muzzleEnergy = muzzleEnergyOf(calibre, calibres);
+    const rail = isRail(spec);
+    const muzzleEnergy = muzzleEnergyOf(calibre, calibres) * (rail ? RAIL_SPEED * RAIL_SPEED : 1);
     const muzzleSpeed = roundMass > 0 ? sqrt((2 * muzzleEnergy) / roundMass) : 0;
 
     return {
@@ -2639,7 +2670,8 @@ export function hullGunStats(spec: ModuleSpec): GunStats {
         barrelSpacing: outletSpacing,
         roundMass,
         casing: roundMass,
-        propellant: muzzleEnergy / PROPELLANT_ENERGY,
+        propellant: rail ? 0 : muzzleEnergy / PROPELLANT_ENERGY,
+        shotEnergy: rail ? muzzleEnergy / RAIL_EFFICIENCY : 0,
         muzzleSpeed,
         muzzleEnergy,
         beamPower: 0,
@@ -2737,6 +2769,7 @@ export function hullBeamStats(spec: ModuleSpec): GunStats {
         roundMass: 0,
         casing: 0,
         propellant: 0,
+        shotEnergy: 0,
         muzzleSpeed: -1,
         muzzleEnergy: 0,
         beamPower: power,
@@ -2748,7 +2781,7 @@ export function hullBeamStats(spec: ModuleSpec): GunStats {
 
 /** Whether a gun fires shells that burst, rather than solid shot: more than one fragment. */
 export function firesShells(spec: ModuleSpec): boolean {
-    return readsFuse(spec.kind) && (spec.fragments ?? DEFAULT_FRAGMENTS) > 1;
+    return readsFuse(spec.kind) && !isRail(spec) && (spec.fragments ?? DEFAULT_FRAGMENTS) > 1;
 }
 
 /**
@@ -3275,6 +3308,7 @@ export function gunStats(
         roundMass,
         casing: roundMass,
         propellant: muzzleEnergy / PROPELLANT_ENERGY,
+        shotEnergy: 0,
         muzzleSpeed,
         muzzleEnergy,
         beamPower: 0,
@@ -3367,6 +3401,7 @@ export function beamGunStats(mountLength: number, mountWidth: number, barrelCoun
         roundMass: 0,
         casing: 0,
         propellant: 0,
+        shotEnergy: 0,
         muzzleSpeed: -1,
         muzzleEnergy: 0,
         beamPower: power,

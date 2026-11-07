@@ -12,7 +12,7 @@ import { SEAL_REACH, SEAL_SPEED } from "./modules.js";
 import type { Rng } from "./rng.js";
 import { geometryOf, landedIndex, landedLength, plumeLayers, Plumes, weaponPlumeReach } from "./exhaust.js";
 import { Choice } from "./targeting.js";
-import { moduleRadius, shotFuel, type ModuleSpec } from "./modules.js";
+import { moduleRadius, shotCharge, shotFuel, type ModuleSpec } from "./modules.js";
 import { atan2, clamp, cos, floor, length, max, min, round, sin } from "./math.js";
 import { Projectiles } from "./projectiles.js";
 import type { Store } from "./store.js";
@@ -1120,10 +1120,10 @@ export class Ships {
 
     /**
      * Whether mount `t` is sound and can shoot once more: a gun with a round's
-     * metal on its piece of hull, and the rest of its fuel if it is still
-     * reloading, or a beam with the rest of a shot's charge stored there or
-     * made there within a cycle. A beam whose generators will get there in the
-     * end counts, however long they take.
+     * metal on its piece of hull and, if it is still reloading, the rest of
+     * its fuel there, and the rest of its charge stored there or made there
+     * within a cycle. One whose generators will get there in the end counts,
+     * however long they take.
      */
     canFire(i: number, b: number, t: number): boolean {
         if (this.isTurretDisabled(i, t)) return false;
@@ -1134,10 +1134,11 @@ export class Ships {
         const rate = reloading ? this.damage.remaining(b, mount.module, DamageEffect.FireRate) : 0;
         if (gun.type === GunType.Projectile) {
             if (gun.casing > 0 && this.metal.pieceHeld(b, mount.module) < gun.casing) return false;
-            return !reloading || this.fuel.fed(b, mount.module, this.damage) >= (shotFuel(gun) * rate * timer) / gun.cycleTime;
+            if (reloading && this.fuel.fed(b, mount.module, this.damage) < (shotFuel(gun) * rate * timer) / gun.cycleTime) return false;
         }
         if (!reloading) return true;
-        const need = (gun.beamPower * gun.beamOnTime * rate * timer) / gun.cycleTime;
+        const need = (shotCharge(gun) * rate * timer) / gun.cycleTime;
+        if (!(need > 0)) return true;
         const made = this.power.pieceGeneration(b, mount.module, this.damage) * gun.cycleTime;
         const held = this.power.pieceHeld(b, mount.module);
         if (!(made > 0)) return held >= need;

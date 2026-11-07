@@ -11,6 +11,7 @@ import {
     GAS_RECOIL,
     type ModuleSpec,
     GunType,
+    shotCharge,
     shotFuel,
 } from "./modules.js";
 import { Projectiles } from "./projectiles.js";
@@ -322,25 +323,32 @@ export function scorch(ships: Ships, world: World, grid: SpatialGrid, dt: number
 
 /**
  * How much of a step's reload a gun gets through, 0 to 1: the share of the
- * step's draw its piece of hull could supply. A beam refills its bank from
- * power over its reload; a gun draws its next round's fuel from the tanks.
- * A gun starts a battle loaded, as a beam starts it charged.
+ * step's draw its piece of hull could supply. A beam or a rail gun refills
+ * from power over its reload; a powder gun draws its next round's fuel from
+ * the tanks. A gun starts a battle loaded, as a beam starts it charged.
  */
 export function recharged(ships: Ships, b: number, i: number, t: number, dt: number): number {
     if (ships.turretStates[i]![t] !== TurretState.Reloading) return 1;
     const mount = ships.designs[i]!.turrets[t]!;
     const gun = mount.gun;
     if (!(gun.cycleTime > 0)) return 1;
-    const rate = ships.damage.remaining(b, mount.module, DamageEffect.FireRate);
-    const beam = gun.type === GunType.Beam;
-    const need = ((beam ? gun.beamPower * gun.beamOnTime : shotFuel(gun)) * rate * dt) / gun.cycleTime;
-    if (!(need > 0)) return 1;
-    const r = beam ? Resource.Charge : Resource.Fuel;
-    const allowed = shipSupply.allowed(ships, r, b, mount.module, Claim.Fire, need);
-    const want = need < allowed ? need : allowed;
-    const got = beam ? ships.power.draw(b, mount.module, want) : ships.fuel.feed(b, mount.module, want, ships.damage);
-    shipSupply.took(ships, r, b, mount.module, Claim.Fire, got);
-    return got / need;
+    const scale = (ships.damage.remaining(b, mount.module, DamageEffect.FireRate) * dt) / gun.cycleTime;
+    let share = 1;
+    const fuel = shotFuel(gun) * scale;
+    if (fuel > 0) {
+        const allowed = shipSupply.allowed(ships, Resource.Fuel, b, mount.module, Claim.Fire, fuel);
+        const got = ships.fuel.feed(b, mount.module, fuel < allowed ? fuel : allowed, ships.damage);
+        shipSupply.took(ships, Resource.Fuel, b, mount.module, Claim.Fire, got);
+        share = got / fuel;
+    }
+    const charge = shotCharge(gun) * scale;
+    if (charge > 0) {
+        const allowed = shipSupply.allowed(ships, Resource.Charge, b, mount.module, Claim.Fire, charge);
+        const got = ships.power.draw(b, mount.module, charge < allowed ? charge : allowed);
+        shipSupply.took(ships, Resource.Charge, b, mount.module, Claim.Fire, got);
+        if (got / charge < share) share = got / charge;
+    }
+    return share;
 }
 
 /** Run down each of ship `i`'s mounts' reload, as far as its power and fuel allow. */

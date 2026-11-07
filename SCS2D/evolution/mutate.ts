@@ -43,6 +43,7 @@ import {
     firesShells,
     MAX_FRAGMENTS,
     readsFuse,
+    readsRail,
     readsSealing,
     readsDrainPriority,
     readsFill,
@@ -770,7 +771,17 @@ type SwitchKnob =
     | { readonly at: "scale" }
     | {
           readonly at:
-              "kind" | "barrels" | "weapon" | "main" | "thick" | "drainPriority" | "shape" | "solid" | "craftAngle" | "buildAnchored";
+              | "kind"
+              | "barrels"
+              | "weapon"
+              | "main"
+              | "thick"
+              | "rail"
+              | "drainPriority"
+              | "shape"
+              | "solid"
+              | "craftAngle"
+              | "buildAnchored";
           readonly site: ModuleSite;
       }
     | { readonly at: "mirror"; readonly site: InstanceSite }
@@ -904,6 +915,7 @@ function switches(draft: Draft): SwitchKnob[] {
         // A box with two free faces can lose the corner between them.
         if (canShape(spec.kind) && !isShaped(spec)) out.push({ at: "shape", site });
         if (canThicken(spec)) out.push({ at: "thick", site });
+        if (readsRail(spec.kind)) out.push({ at: "rail", site });
         if (readsDrainPriority(spec.kind)) out.push({ at: "drainPriority", site });
         // The outlet count divides a hull mount's opening between more of them,
         // and an engine's are counted by the same field a gun's barrels are.
@@ -938,6 +950,7 @@ function switchWeight(knob: SwitchKnob, { build }: MutationLimits): number {
             return build.shape;
         case "barrels":
         case "thick":
+        case "rail":
         case "craftAngle":
         case "buildAnchored":
             return build.fittings;
@@ -963,6 +976,8 @@ function flip(knob: SwitchKnob, draft: Draft, rng: Rng, bounds: MutationLimits):
             return cutCorner(knob.site);
         case "thick":
             return thicken(knob.site);
+        case "rail":
+            return electrify(knob.site);
         case "drainPriority":
             return reprioritise(knob.site, rng);
         case "barrels":
@@ -1611,6 +1626,14 @@ function thicken(site: ModuleSite): string {
     if (was) delete site.spec.thick;
     else site.spec.thick = true;
     return `${site.where} ${site.spec.kind}: made ${was ? "thin" : "thick"}`;
+}
+
+/** Make a hull gun a rail gun, or a powder gun again. */
+function electrify(site: ModuleSite): string {
+    const was = site.spec.rail === true;
+    if (was) delete site.spec.rail;
+    else site.spec.rail = true;
+    return `${site.where} ${site.spec.kind}: made a ${was ? "powder" : "rail"} gun`;
 }
 
 function turnModule(site: ModuleSite, rng: Rng, bounds: MutationLimits, weight: number): string | null {

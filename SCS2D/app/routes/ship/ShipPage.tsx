@@ -311,8 +311,8 @@ export function ShipPage() {
     });
     useEffect(() => named(), [name]);
 
-    const add = (kind: ShipModuleKind): void => {
-        const spec: ModuleSpec = { ...DEFAULTS[kind], x: 0, y: 0 };
+    const add = (kind: ShipModuleKind, preset?: Partial<ModuleSpec>): void => {
+        const spec: ModuleSpec = { ...DEFAULTS[kind], ...preset, x: 0, y: 0 };
         const view = engine?.visible() ?? { x: 0, y: 0, width: 100, height: 100 };
         const step = editing.snapMetres();
         // With an assembly selected, the module goes into it, at its origin, facing the way it would on the ship.

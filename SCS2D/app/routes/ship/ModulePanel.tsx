@@ -17,6 +17,7 @@ import {
     isHullMount,
     isShaped,
     isThick,
+    isRail,
     isWeaponMount,
     math,
     MODULE_KINDS,
@@ -34,6 +35,7 @@ import {
     readsFuse,
     readsSealing,
     readsThick,
+    readsRail,
     refitModule,
     shapeModule,
     slipwayHolds,
@@ -125,7 +127,7 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
     };
     const patch = (fields: Partial<ModuleSpec>): void => update((placement) => ({ ...placement, ...fields }) as Placement, true);
     /** A flag, absent rather than false when it is off, so a file only ever says the unusual thing. */
-    const flag = (key: "weapon" | "thick" | "docked" | "buildAnchored", on: boolean): void =>
+    const flag = (key: "weapon" | "thick" | "rail" | "docked" | "buildAnchored", on: boolean): void =>
         update((placement) => {
             if (!("kind" in placement)) return placement;
             const next = { ...placement };
@@ -302,7 +304,7 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                     <Readout id="barrelMetres">{barrelReadout(spec)}</Readout>
                 </Field>
             )}
-            {isWeaponMount(spec.kind) && (
+            {isWeaponMount(spec.kind) && !isRail(spec) && (
                 <Field id="traverseRow">
                     <label htmlFor="propTraverse">traverse °</label>
                     {box(
@@ -316,7 +318,7 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                     )}
                 </Field>
             )}
-            {readsFuse(spec.kind) && (
+            {readsFuse(spec.kind) && !isRail(spec) && (
                 <Shell id="shellRow">
                     <legend>shell</legend>
                     <Field>
@@ -414,6 +416,18 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                                 reshapePlacement(doc.blueprint, origin, shaped.vertices ?? null, shaped.x - drawn.x, shaped.y - drawn.y),
                             );
                         }}
+                    />
+                </Field>
+            )}
+            {readsRail(spec.kind) && (
+                <Field id="railRow">
+                    <label htmlFor="propRail">rail gun</label>
+                    <input
+                        id="propRail"
+                        type="checkbox"
+                        title="Rails throw solid shot twice as fast as powder from the same barrel, drawing the shot's energy from this piece of hull's power as it reloads. It does not train: the hull aims it."
+                        checked={isRail(spec)}
+                        onChange={(event) => flag("rail", event.target.checked)}
                     />
                 </Field>
             )}
@@ -579,7 +593,10 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                                     <th>Gun</th>
                                     <td>
                                         {`${numbers(readout.gun.calibre * 1000, 0)} mm${readout.gun.barrels > 1 ? ` ×${readout.gun.barrels}` : ""}, ` +
-                                            `${numbers(readout.gun.roundsPerMinute)} rpm, ${numbers(readout.gun.muzzleSpeed, 0)} m/s, ${numbers(readout.gun.roundMass, 1)} kg shell, ${numbers(readout.gun.shotFuel, 1)} kg fuel a shot`}
+                                            `${numbers(readout.gun.roundsPerMinute)} rpm, ${numbers(readout.gun.muzzleSpeed, 0)} m/s, ${numbers(readout.gun.roundMass, 1)} kg shell, ` +
+                                            (readout.gun.shotEnergy > 0
+                                                ? `${numbers(readout.gun.shotEnergy / 1e6, 1)} MJ a shot`
+                                                : `${numbers(readout.gun.shotFuel, 1)} kg fuel a shot`)}
                                     </td>
                                 </tr>
                                 {design !== null && readout.gun.roundMass > 0 && design.modules[index]?.spec.kind === spec.kind && (

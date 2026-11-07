@@ -891,7 +891,9 @@ describe("splitting a module", () => {
                 doctrine: { targeting: 0, approach: 0, escort: 0, avoidance: 0, gunnery: 0 },
             });
             const edit = child.edits.find((e) => /split in two/.test(e));
-            if (edit === undefined) continue;
+            // An engine's or a hull mount's length follows what it is fitted with,
+            // so halving its width shortens it.
+            if (edit === undefined || /hull(Gun|Beam)|engine/.test(edit)) continue;
             seen++;
             expect(blueprintProblem(child.blueprint)).toBeNull();
             const before = expandBlueprint(GUNSHIP);
