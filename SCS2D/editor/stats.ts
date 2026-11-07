@@ -10,6 +10,7 @@ import {
     exhaustObstruction,
     firingArc,
     firingPeriod,
+    shotFuel,
     barrelHalfWidth,
     barrelCalibres,
     braceMass,
@@ -78,6 +79,8 @@ export interface TurretReadout {
     barrels: number;
     /** Mass of one round, kg. */
     roundMass: number;
+    /** Fuel each round burns, kg: its propellant and any bursting charge. */
+    shotFuel: number;
     /** Muzzle velocity, m/s. */
     muzzleSpeed: number;
     /** Rounds per minute the mount can sustain. */
@@ -191,8 +194,8 @@ export interface DesignStats {
  * fires no rounds.
  */
 export function roundsAboard(design: ShipDesign, module: number): number {
-    const roundMass = design.modules[module]?.stats.gun?.roundMass ?? 0;
-    if (!(roundMass > 0)) return 0;
+    const casing = design.modules[module]?.stats.gun?.casing ?? 0;
+    if (!(casing > 0)) return 0;
     const piece = design.pieces?.[module] ?? 0;
     let metal = 0;
     for (let m = 0; m < design.modules.length; m++) {
@@ -201,7 +204,7 @@ export function roundsAboard(design: ShipDesign, module: number): number {
         metal += stats.metal * fillOf(spec);
     }
     // A whisker under a whole round is still a whole round, not round-off short of one.
-    return Math.floor(metal / roundMass + 1e-9);
+    return Math.floor(metal / casing + 1e-9);
 }
 
 /** The main battery's heaviest gun, and how many of its rounds the ship sets out with. */
@@ -290,6 +293,7 @@ export function designStats(design: ShipDesign, envelope: Envelopes): DesignStat
                 calibre: gun.calibre,
                 barrels: gun.barrelCount,
                 roundMass: gun.roundMass,
+                shotFuel: shotFuel(gun),
                 muzzleSpeed: gun.muzzleSpeed,
                 roundsPerMinute: firingPeriod(gun) > 0 ? 60 / firingPeriod(gun) : 0,
                 arcLeft: radiansToDegrees(mount.leftArc ?? math.PI),
@@ -558,6 +562,7 @@ export function moduleReadout(spec: ModuleSpec, layout: readonly ModuleSpec[] = 
                       calibre: gun.calibre,
                       barrels: gun.barrelCount,
                       roundMass: gun.roundMass,
+                      shotFuel: shotFuel(gun),
                       muzzleSpeed: gun.muzzleSpeed,
                       roundsPerMinute: firingPeriod(gun) > 0 ? 60 / firingPeriod(gun) : 0,
                       ...arcOf(layout, index, gun.barrelLength, barrelHalfWidth(gun)),

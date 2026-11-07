@@ -579,7 +579,7 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                                     <th>Gun</th>
                                     <td>
                                         {`${numbers(readout.gun.calibre * 1000, 0)} mm${readout.gun.barrels > 1 ? ` ×${readout.gun.barrels}` : ""}, ` +
-                                            `${numbers(readout.gun.roundsPerMinute)} rpm, ${numbers(readout.gun.muzzleSpeed, 0)} m/s, ${numbers(readout.gun.roundMass, 1)} kg shell`}
+                                            `${numbers(readout.gun.roundsPerMinute)} rpm, ${numbers(readout.gun.muzzleSpeed, 0)} m/s, ${numbers(readout.gun.roundMass, 1)} kg shell, ${numbers(readout.gun.shotFuel, 1)} kg fuel a shot`}
                                     </td>
                                 </tr>
                                 {design !== null && readout.gun.roundMass > 0 && design.modules[index]?.spec.kind === spec.kind && (

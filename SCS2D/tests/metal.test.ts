@@ -3,6 +3,7 @@ import {
     BeamHits,
     Beams,
     CORE_COMPUTING_VOLUME,
+    GAS_RECOIL,
     METAL_DENSITY,
     Metal,
     Projectiles,
@@ -12,6 +13,7 @@ import {
     blueprintProblem,
     compileBlueprint,
     moduleStats,
+    shotFuel,
     type Blueprint,
     type ShipDesign,
 } from "../sim/index.js";
@@ -34,7 +36,7 @@ function emptied(blueprint: Blueprint): Blueprint {
 }
 
 /** A ship moving at `vx` firing on a corvette ahead of it for `seconds`, the world never stepped. */
-function firing(design: ShipDesign, seconds: number, vx = 0) {
+function firing(design: ShipDesign, seconds: number, vx = 0, dry = false) {
     const world = new World({ dt: DT, seed: 6 });
     const ships = new Ships();
     world.addForceProvider(ships.forceProvider());
@@ -46,13 +48,28 @@ function firing(design: ShipDesign, seconds: number, vx = 0) {
     const enemy = ships.spawn(world, { design: corvette, x: 850, y: 0, team: 1 });
     ships.pushOrder(mine, enemy, 750, 950, 10);
     const body = world.bodies.indexOf(ships.body(mine));
+    if (dry) ships.fuel.drain(body, design.cores[0]!, ships.fuel.left(body));
+    const gun = design.turrets.find((t) => t.gun.roundMass > 0)?.gun;
+    const gas = gun === undefined ? 0 : GAS_RECOIL * gun.propellant * gun.muzzleSpeed;
     let rounds = 0;
+    // What the propellant's gas carried off, which no projectile records.
+    let gasX = 0;
+    let gasY = 0;
     for (let i = 0; i < seconds / DT; i++) {
         ships.command(DT, world);
         grid.rebuild(world.bodies);
+        const { highWater } = projectiles;
+        const hullVx = world.bodies.vx[body]!;
+        const hullVy = world.bodies.vy[body]!;
         rounds += ships.fire(world, projectiles, beams, grid, beamHits).projectilesFired;
+        for (let r = highWater; r < projectiles.highWater; r++) {
+            const dx = projectiles.vx[r]! - hullVx;
+            const dy = projectiles.vy[r]! - hullVy;
+            gasX += (gas * dx) / Math.hypot(dx, dy);
+            gasY += (gas * dy) / Math.hypot(dx, dy);
+        }
     }
-    return { world, ships, projectiles, body, rounds };
+    return { world, ships, projectiles, body, mine, rounds, gasX, gasY };
 }
 
 describe("a hold", () => {
@@ -122,13 +139,29 @@ describe("a gun firing", () => {
         expect(firing(compileBlueprint(emptied(TURRET_CORVETTE)), 20).rounds).toBe(0);
     });
 
-    it("spends a round of metal for every round fired, and the hull is lighter by it", () => {
+    it("fires the round it set out loaded with, and no more, with no fuel to reload", () => {
+        const s = firing(corvette, 20, 0, true);
+        expect(s.rounds).toBeGreaterThan(0);
+        expect(s.rounds).toBeLessThanOrEqual(corvette.turrets.length);
+        expect(s.ships.isDisarmed(s.mine)).toBe(true);
+    });
+
+    it("burns a round's propellant and bursting charge of fuel for each round it reloads", () => {
         const s = firing(corvette, 20);
-        const roundMass = corvette.turrets.find((t) => t.gun.roundMass > 0)!.gun.roundMass;
+        const gun = corvette.turrets.find((t) => t.gun.roundMass > 0)!.gun;
+        expect(shotFuel(gun)).toBeCloseTo(gun.propellant + gun.roundMass - gun.casing, 9);
+        // Each gun starts loaded, and the last reloads may be part done; the pilot burns the rest.
+        const reloads = s.rounds - corvette.turrets.length;
+        expect(s.ships.fuel.spentMass(s.body)).toBeGreaterThan(reloads * shotFuel(gun));
+    });
+
+    it("spends a round's casing of metal for every round fired, and the hull is lighter by it", () => {
+        const s = firing(corvette, 20);
+        const casing = corvette.turrets.find((t) => t.gun.casing > 0)!.gun.casing;
         expect(s.rounds).toBeGreaterThan(0);
         // Every gun on the corvette is the same bore, so every round weighs the same.
-        for (const t of corvette.turrets) if (t.gun.roundMass > 0) expect(t.gun.roundMass).toBe(roundMass);
-        expect(s.ships.metal.spentMass(s.body)).toBeCloseTo(s.rounds * roundMass, 6);
+        for (const t of corvette.turrets) if (t.gun.casing > 0) expect(t.gun.casing).toBe(casing);
+        expect(s.ships.metal.spentMass(s.body)).toBeCloseTo(s.rounds * casing, 6);
         expect(s.world.bodies.mass[s.body]).toBeCloseTo(
             corvette.mass - s.ships.fuel.spentMass(s.body) - s.ships.metal.spentMass(s.body),
             6,
@@ -140,17 +173,22 @@ describe("a gun firing", () => {
         const s = firing(corvette, 20, vx);
         expect(s.rounds).toBeGreaterThan(0);
         const { bodies } = s.world;
-        let px = bodies.mass[s.body]! * bodies.vx[s.body]!;
-        let py = bodies.mass[s.body]! * bodies.vy[s.body]!;
+        let px = bodies.mass[s.body]! * bodies.vx[s.body]! + s.gasX;
+        let py = bodies.mass[s.body]! * bodies.vy[s.body]! + s.gasY;
         for (let r = 0; r < s.projectiles.highWater; r++) {
             px += s.projectiles.mass[r]! * s.projectiles.vx[r]!;
             py += s.projectiles.mass[r]! * s.projectiles.vy[r]!;
         }
         // Fuel the pilot burned left without a world step to push anything. What
         // is left over is the hull's spin, which a round leaves with and a centre
-        // of mass held still does not answer for: far less than the rounds carried.
-        const carried = s.ships.metal.spentMass(s.body) * vx;
-        expect(Math.abs(px - (corvette.mass - s.ships.fuel.spentMass(s.body)) * vx)).toBeLessThan(carried / 20);
-        expect(Math.abs(py)).toBeLessThan(carried / 20);
+        // of mass held still does not answer for: far less than the rounds carried,
+        // and less again than what the gas carried off.
+        const gun = corvette.turrets.find((t) => t.gun.roundMass > 0)!.gun;
+        const carried = s.rounds * gun.roundMass * vx;
+        expect(Math.hypot(s.gasX, s.gasY)).toBeGreaterThan(carried);
+        // A shell's bursting charge left the tanks as fuel and the muzzle as part of the round.
+        const charges = s.rounds * (gun.roundMass - gun.casing);
+        expect(Math.abs(px - (corvette.mass - s.ships.fuel.spentMass(s.body) + charges) * vx)).toBeLessThan(carried / 10);
+        expect(Math.abs(py)).toBeLessThan(carried / 10);
     });
 });
