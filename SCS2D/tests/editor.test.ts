@@ -952,7 +952,7 @@ describe("designStats", () => {
         const main = design.turrets.filter((t) => t.main && t.gun.roundMass > 0).sort((a, b) => b.gun.roundMass - a.gun.roundMass)[0]!;
         let metal = 0;
         for (const m of design.modules) metal += m.stats.metal;
-        const rounds = Math.floor(metal / main.gun.roundMass);
+        const rounds = Math.floor(metal / main.gun.casing);
         expect(rounds).toBeGreaterThan(0);
         expect(roundsAboard(design, main.module)).toBe(rounds);
         expect(designStats(design, envelopes(design)).mainRounds).toEqual({ roundMass: main.gun.roundMass, rounds });

@@ -3,14 +3,15 @@ import { BOTH_LAYERS, HULL_LAYER, OWN_LAYERS, WEAPONS_LAYER } from "./hull.js";
 import { DamageEffect, IMPACT_MUZZLE, type ImpactLog } from "./damage.js";
 import { Claim, Resource } from "./supply.js";
 import {
-    casingMass,
     chargeShare,
     DEFAULT_BURST_SPEED,
     DEFAULT_FRAGMENTS,
     DEFAULT_FUSE,
     firesShells,
+    GAS_RECOIL,
     type ModuleSpec,
     GunType,
+    shotFuel,
 } from "./modules.js";
 import { Projectiles } from "./projectiles.js";
 import { TurretState } from "./turrets.js";
@@ -159,11 +160,12 @@ export function fire(
             }
 
             if (gun.type == GunType.Projectile) {
-                // A gun with nothing to load holds, ready, until there is.
+                // A gun with nothing to load holds, ready, until there is. Its
+                // fuel went in as it reloaded (`recharged`).
                 const mount = design.turrets[t]!.module;
-                if (shipSupply.allowed(ships, Resource.Metal, bodyIdx, mount, Claim.Fire, gun.roundMass) < gun.roundMass) continue;
-                if (!ships.metal.load(bodyIdx, mount, gun.roundMass)) continue;
-                shipSupply.took(ships, Resource.Metal, bodyIdx, mount, Claim.Fire, gun.roundMass);
+                if (shipSupply.allowed(ships, Resource.Metal, bodyIdx, mount, Claim.Fire, gun.casing) < gun.casing) continue;
+                if (!ships.metal.load(bodyIdx, mount, gun.casing)) continue;
+                shipSupply.took(ships, Resource.Metal, bodyIdx, mount, Claim.Fire, gun.casing);
                 loaded = true;
                 const fuse = design.modules[design.turrets[t]!.module]!.spec;
                 projectiles.fireFrom(
@@ -185,7 +187,7 @@ export function fire(
                     fuse.burstSpeed ?? DEFAULT_BURST_SPEED,
                     fragmentLife(fuse),
                     firesShells(fuse) ? (fuse.fragments ?? DEFAULT_FRAGMENTS) : 0,
-                    casingMass(fuse, gun.roundMass),
+                    gun.casing,
                     firesShells(fuse) ? 1 - chargeShare(fuse.burstSpeed ?? DEFAULT_BURST_SPEED) : 1,
                 );
                 log?.push(
@@ -214,7 +216,8 @@ export function fire(
                 //
                 // The round was part of the hull's mass until it was loaded, so the
                 // hull's velocity it leaves with is momentum the hull no longer has.
-                const impulse = gun.roundMass * gun.muzzleSpeed;
+                // The propellant's gas pushes back too, and it leaves faster.
+                const impulse = (gun.roundMass + GAS_RECOIL * gun.propellant) * gun.muzzleSpeed;
                 const jx = -ships.solution.dirX * impulse;
                 const jy = -ships.solution.dirY * impulse;
                 impulseX += jx;
@@ -318,31 +321,35 @@ export function scorch(ships: Ships, world: World, grid: SpatialGrid, dt: number
 }
 
 /**
- * How much of a step's reload a gun gets through, 0 to 1. A gun that loads
- * rounds gets all of it. A beam refills its bank from its piece of hull's
- * power over its reload, so it gets the share of the step's energy that
- * power could supply.
+ * How much of a step's reload a gun gets through, 0 to 1: the share of the
+ * step's draw its piece of hull could supply. A beam refills its bank from
+ * power over its reload; a gun draws its next round's fuel from the tanks.
+ * A gun starts a battle loaded, as a beam starts it charged.
  */
 export function recharged(ships: Ships, b: number, i: number, t: number, dt: number): number {
     if (ships.turretStates[i]![t] !== TurretState.Reloading) return 1;
     const mount = ships.designs[i]!.turrets[t]!;
     const gun = mount.gun;
-    if (gun.type !== GunType.Beam || !(gun.cycleTime > 0)) return 1;
+    if (!(gun.cycleTime > 0)) return 1;
     const rate = ships.damage.remaining(b, mount.module, DamageEffect.FireRate);
-    const need = (gun.beamPower * gun.beamOnTime * rate * dt) / gun.cycleTime;
+    const beam = gun.type === GunType.Beam;
+    const need = ((beam ? gun.beamPower * gun.beamOnTime : shotFuel(gun)) * rate * dt) / gun.cycleTime;
     if (!(need > 0)) return 1;
-    const allowed = shipSupply.allowed(ships, Resource.Charge, b, mount.module, Claim.Fire, need);
-    const got = ships.power.draw(b, mount.module, need < allowed ? need : allowed);
-    shipSupply.took(ships, Resource.Charge, b, mount.module, Claim.Fire, got);
+    const r = beam ? Resource.Charge : Resource.Fuel;
+    const allowed = shipSupply.allowed(ships, r, b, mount.module, Claim.Fire, need);
+    const want = need < allowed ? need : allowed;
+    const got = beam ? ships.power.draw(b, mount.module, want) : ships.fuel.feed(b, mount.module, want, ships.damage);
+    shipSupply.took(ships, r, b, mount.module, Claim.Fire, got);
     return got / need;
 }
 
-/** Run down each of ship `i`'s mounts' reload, as far as its power allows. */
+/** Run down each of ship `i`'s mounts' reload, as far as its power and fuel allow. */
 export function reloadOne(ships: Ships, dt: number, bodies: Bodies, i: number): void {
     const timers = ships.cooldown[i]!;
     const b = bodies.indexOf(ships.bodyIds[i]!);
     const mounts = ships.designs[i]!.turrets;
-    // The main battery first, so it has the power when there is not enough to go round.
+    const fuelSpent = ships.fuel.spentMass(b);
+    // The main battery first, so it has the power and fuel when there is not enough to go round.
     for (let pass = 0; pass < 2; pass++) {
         for (let t = 0; t < timers.length; t++) {
             if (mounts[t]!.main !== (pass === 0) || !ships.ownsAt(i, b, mounts[t]!.module)) continue;
@@ -352,4 +359,5 @@ export function reloadOne(ships: Ships, dt: number, bodies: Bodies, i: number): 
             }
         }
     }
+    if (ships.fuel.spentMass(b) !== fuelSpent) shipBreakup.settleMass(ships, bodies, b);
 }

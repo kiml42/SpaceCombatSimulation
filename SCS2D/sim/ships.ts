@@ -12,7 +12,7 @@ import { SEAL_REACH, SEAL_SPEED } from "./modules.js";
 import type { Rng } from "./rng.js";
 import { geometryOf, landedIndex, landedLength, plumeLayers, Plumes, weaponPlumeReach } from "./exhaust.js";
 import { Choice } from "./targeting.js";
-import { moduleRadius, type ModuleSpec } from "./modules.js";
+import { moduleRadius, shotFuel, type ModuleSpec } from "./modules.js";
 import { atan2, clamp, cos, floor, length, max, min, round, sin } from "./math.js";
 import { Projectiles } from "./projectiles.js";
 import type { Store } from "./store.js";
@@ -1119,21 +1119,24 @@ export class Ships {
     }
 
     /**
-     * Whether mount `t` is sound and can shoot once more: a gun with a round on
-     * its piece of hull to load, or a beam with the rest of a shot's charge
-     * stored there or made there within a cycle. A beam whose generators will
-     * get there in the end counts, however long they take.
+     * Whether mount `t` is sound and can shoot once more: a gun with a round's
+     * metal on its piece of hull, and the rest of its fuel if it is still
+     * reloading, or a beam with the rest of a shot's charge stored there or
+     * made there within a cycle. A beam whose generators will get there in the
+     * end counts, however long they take.
      */
     canFire(i: number, b: number, t: number): boolean {
         if (this.isTurretDisabled(i, t)) return false;
         const mount = this.designs[i]!.turrets[t]!;
         const gun = mount.gun;
-        if (gun.type === GunType.Projectile) {
-            return !(gun.roundMass > 0) || this.metal.pieceHeld(b, mount.module) >= gun.roundMass;
-        }
         const timer = this.cooldown[i]![t]!;
-        if (!(timer > 0) || !(gun.cycleTime > 0)) return true;
-        const rate = this.damage.remaining(b, mount.module, DamageEffect.FireRate);
+        const reloading = timer > 0 && gun.cycleTime > 0;
+        const rate = reloading ? this.damage.remaining(b, mount.module, DamageEffect.FireRate) : 0;
+        if (gun.type === GunType.Projectile) {
+            if (gun.casing > 0 && this.metal.pieceHeld(b, mount.module) < gun.casing) return false;
+            return !reloading || this.fuel.fed(b, mount.module, this.damage) >= (shotFuel(gun) * rate * timer) / gun.cycleTime;
+        }
+        if (!reloading) return true;
         const need = (gun.beamPower * gun.beamOnTime * rate * timer) / gun.cycleTime;
         const made = this.power.pieceGeneration(b, mount.module, this.damage) * gun.cycleTime;
         const held = this.power.pieceHeld(b, mount.module);
@@ -2084,7 +2087,7 @@ export class Ships {
             // it shuts down until it is mended or restocked.
             if (this.inert(bodies, i)) {
                 this.shutDown(i);
-                // Its beams still charge, which may bring it back.
+                // Its guns still reload, which may bring it back.
                 shipFire.reloadOne(this, dt, bodies, i);
                 continue;
             }
