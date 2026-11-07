@@ -667,7 +667,7 @@ inside any one file is not contiguous.
   its block. The editor offers it as a kind like any other, its barrel field read as the extension, and
   evolution draws it as one, at half a hull gun's weight. The Rail Corvette is the Corvette with its
   bow gun a rail gun, generators and batteries along its sides to feed it, and the Rail Gunship the Gunship
-  with its bow gun one too, on a battery that holds three or four shots, fighting from far out; the Rail
+  with its bow gun one too, charged from a generator aft and batteries in its outriggers, fighting from far out; the Rail
   Duel is the Duel with those in place of its ships.
   **Two layers** (§3). Every module is in the hull layer. Turrets and anything marked *thick* stand up into
   the weapons layer as well; a turret only by its dome, a circle as wide as the mount, on a block in the
