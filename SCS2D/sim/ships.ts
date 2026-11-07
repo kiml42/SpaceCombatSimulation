@@ -12,7 +12,7 @@ import { SEAL_REACH, SEAL_SPEED } from "./modules.js";
 import type { Rng } from "./rng.js";
 import { geometryOf, landedIndex, landedLength, plumeLayers, Plumes, weaponPlumeReach } from "./exhaust.js";
 import { Choice } from "./targeting.js";
-import { isPlasma, moduleRadius, shotCharge, shotFuel, type ModuleSpec } from "./modules.js";
+import { moduleRadius, shotCharge, shotFuel, type ModuleSpec } from "./modules.js";
 import { atan2, clamp, cos, floor, length, max, min, round, sin } from "./math.js";
 import { Projectiles } from "./projectiles.js";
 import type { Store } from "./store.js";
@@ -1381,7 +1381,7 @@ export class Ships {
         // A lance charged only on target sets out uncharged.
         for (let t = 0; t < mounts.length; t++) {
             const spec = design.modules[mounts[t]!.module]?.spec;
-            if (spec === undefined || !isPlasma(spec) || spec.ready === true) continue;
+            if (spec === undefined || spec.kind !== "plasmaLance" || spec.ready === true) continue;
             states[t] = TurretState.Reloading;
             cooldown[t] = mounts[t]!.gun.cycleTime;
         }

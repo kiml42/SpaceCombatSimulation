@@ -702,6 +702,24 @@ export const DEFAULT_DOCTRINE: Doctrine = {
  * a beam turret is what answers something small and quick, and a hull weapon
  * is a heavy piece aimed by the hull.
  */
+const HULL_GUN_TARGETING: Targeting = {
+    ...DEFAULT_DOCTRINE.targeting,
+    massWeight: 80,
+    focusWeight: 300,
+};
+
+const HULL_BEAM_TARGETING: Targeting = {
+    ...DEFAULT_DOCTRINE.targeting,
+    proximityWeight: 150,
+    preferredMass: 0.5,
+    massWeight: 80,
+    mobileWeight: 60,
+    focusWeight: 250,
+    gunWeight: 150,
+    engineWeight: 120,
+    coreWeight: 40,
+};
+
 const MOUNT_TARGETING: Record<string, Targeting> = {
     /**
      * A gun turret trains all the way round and picks its own fight, so what it
@@ -750,26 +768,16 @@ const MOUNT_TARGETING: Record<string, Targeting> = {
      * careful with a round as any gun, and more so by disposition: the shell is
      * bigger and the cycle longer.
      */
-    hullGun: {
-        ...DEFAULT_DOCTRINE.targeting,
-        massWeight: 80,
-        focusWeight: 300,
-    },
+    hullGun: HULL_GUN_TARGETING,
+    /** Aimed by its hull as a hull gun is, and after the same. */
+    railGun: HULL_GUN_TARGETING,
     /**
      * The same mount with a beam in it: aimed by the hull, so focused like one,
      * and lighting up early like any beam.
      */
-    hullBeam: {
-        ...DEFAULT_DOCTRINE.targeting,
-        proximityWeight: 150,
-        preferredMass: 0.5,
-        massWeight: 80,
-        mobileWeight: 60,
-        focusWeight: 250,
-        gunWeight: 150,
-        engineWeight: 120,
-        coreWeight: 40,
-    },
+    hullBeam: HULL_BEAM_TARGETING,
+    /** Aimed by its hull as a hull beam is, and after the same. */
+    plasmaLance: HULL_BEAM_TARGETING,
 };
 
 /**

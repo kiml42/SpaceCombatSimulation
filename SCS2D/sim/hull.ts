@@ -1,6 +1,6 @@
 import { abs, cos, max, min, sin, sqrt } from "./math.js";
 import { domeRadius, isDomed, shapeOf } from "./shape.js";
-import { BEAM_STALK_WIDTH, isHullMount, lensDiscRadius, mountGeometryOf } from "./modules.js";
+import { BEAM_STALK_WIDTH, isHullBeam, isHullMount, lensDiscRadius, mountGeometryOf } from "./modules.js";
 import type { DesignModule, ShipDesign } from "./blueprint.js";
 import type { Bodies } from "./bodies.js";
 import type { Rng } from "./rng.js";
@@ -321,7 +321,7 @@ function hullMountAlong(
     const my = m.y + s * mount.trains;
     const count = mount.outlets;
     const spacing = mount.outletSpacing;
-    if (m.spec.kind === "hullBeam") {
+    if (isHullBeam(m.spec.kind)) {
         const disc = lensDiscRadius(mount);
         const stalk = (mount.trains - mount.pivot) * 0.5;
         for (let o = 0; o < count; o++) {

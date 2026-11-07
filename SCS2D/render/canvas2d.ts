@@ -10,8 +10,6 @@ import {
     IMPACT_MUZZLE,
     IMPACT_ROUND,
     isHullMount,
-    isPlasma,
-    isRail,
     UNPAINTED,
     math,
     nozzleOffset,
@@ -624,7 +622,7 @@ function drawShip(
         const beamLenses = spec.kind === "hullBeam";
 
         // A lance has no mount to draw over its module, only the field it is charging.
-        if (isPlasma(spec)) {
+        if (spec.kind === "plasmaLance") {
             drawSparks(ctx, ship, design.modules[module]!, ship.turretDisabled?.[t] === true ? 0 : (ship.turretLoad?.[t] ?? 1));
             drawLoad(ctx, ship, t, mx, my, bearing);
             continue;
@@ -682,7 +680,7 @@ function drawShip(
         // back below the floor and say nothing. Overlap is free: the barrel colours
         // are opaque, so a bar drawn twice looks like a bar.
         // A rail gun's rails lie on top of its block, so nothing of them is hidden.
-        const hidden = hull !== null && !beamLenses && !isRail(spec);
+        const hidden = hull !== null && !beamLenses && spec.kind !== "railGun";
         // The mantlet drawn over the barrels' roots, below, and each barrel's collar out of it.
         const pivot = hidden ? { x: mx, y: my, radius: min(spec.width * 0.5, ((count - 1) / 2) * spacing + hull.outletWidth) } : null;
         if (hidden) {

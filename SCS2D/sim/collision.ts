@@ -3,7 +3,7 @@ import type { ShipDesign } from "./blueprint.js";
 import { BOTH_LAYERS, HULL_LAYER, moduleLayers, OWN_LAYERS, type HullDesigns } from "./hull.js";
 import { abs, cos, max, min, sin, sqrt } from "./math.js";
 import { domeRadius, isDomed, MOST_CORNERS, shapeOf } from "./shape.js";
-import { BEAM_STALK_WIDTH, isHullMount, lensDiscRadius, mountGeometryOf, type ModuleSpec } from "./modules.js";
+import { BEAM_STALK_WIDTH, isHullBeam, isHullMount, lensDiscRadius, mountGeometryOf, type ModuleSpec } from "./modules.js";
 
 /**
  * Hulls that are solid: ships meeting each other rather than passing through.
@@ -337,7 +337,7 @@ function partsOf(design: ShipDesign, body: number, angle: number, hulls: HullDes
         block.radius = sqrt(block.halfLength * block.halfLength + block.halfWidth * block.halfWidth);
         const count = mount.outlets;
         const spacing = mount.outletSpacing;
-        if (spec.kind === "hullBeam") {
+        if (isHullBeam(spec.kind)) {
             const disc = lensDiscRadius(mount);
             const stalk = (mount.trains - mount.pivot) * 0.5;
             for (let o = 0; o < count; o++) {

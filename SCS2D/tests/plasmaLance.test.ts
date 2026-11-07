@@ -29,8 +29,7 @@ import { CORVETTE } from "../scenarios/blueprints.js";
 const DT = 1 / 60;
 
 const lance = (over: Partial<ModuleSpec> = {}): ModuleSpec => ({
-    kind: "hullBeam",
-    plasma: true,
+    kind: "plasmaLance",
     x: 0,
     y: 0,
     angle: 0,
@@ -44,7 +43,7 @@ function lanced(ready: boolean): Blueprint {
     return {
         ...CORVETTE,
         modules: CORVETTE.modules.map((p) =>
-            "kind" in p && p.kind === "hullGun" ? { ...p, kind: "hullBeam", plasma: true, ...(ready ? { ready: true } : {}) } : p,
+            "kind" in p && p.kind === "hullGun" ? { ...p, kind: "plasmaLance", ...(ready ? { ready: true } : {}) } : p,
         ),
     };
 }
@@ -104,7 +103,7 @@ describe("a plasma lance", () => {
         for (const ready of [true, false]) {
             const back = compileBlueprint(parseBlueprint(serialiseBlueprint(lanced(ready))));
             const spec = back.modules[back.turrets[0]!.module]!.spec;
-            expect(spec.plasma).toBe(true);
+            expect(spec.kind).toBe("plasmaLance");
             expect(spec.ready === true).toBe(ready);
         }
     });

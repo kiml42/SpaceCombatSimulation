@@ -649,7 +649,8 @@ inside any one file is not contiguous.
   beam, the opening turns out barely to constrain one at all: a lens is a fraction of the width a row
   of tubes is, so what holds a hull beam is the mounting limit until its housing runs most of the
   length of the module.
-  **A hull gun may be a rail gun** (`rail`). Its barrel is its whole run of rails: along its block from
+  **A rail gun** (`railGun`) is a module of its own, a hull gun on power: the same block, barrel and laws
+  (`isHullGun`), with rails for powder. Its barrel is its whole run of rails: along its block from
   `RAIL_SETBACK_CALIBRES` (2) in from the back, and on out as far as its barrel extension reaches beyond the
   block, which may be not at all. It throws solid shot `RAIL_SPEED` (2) times as fast as powder would from a
   barrel that long, so with four times the energy, and never fires shells. That energy is charge rather than
@@ -660,9 +661,10 @@ inside any one file is not contiguous.
   reaches beyond the block carries the rails, so it is `RAIL_BARREL_MASS` (2) times as heavy as a powder
   barrel, and is braced along its sides all the way out. Its recoil is its round's alone. It does not train,
   so it carries no training gear and the hull aims it, and its rails are drawn running back over the top of
-  its block. The editor offers it as a button and as a kind in the kind dropdown, its barrel field read as
-  the extension; evolution flips a hull gun to a rail gun and back.
-  **A hull beam may be a plasma lance** (`plasma`): two prongs between which a field throws a pulse of
+  its block. The editor offers it as a kind like any other, its barrel field read as the extension, and
+  evolution draws it as one, at half a hull gun's weight.
+  **A plasma lance** (`plasmaLance`) is a module of its own, a hull beam on fuel: the same block and
+  outlet and the laws that size them (`isHullBeam`), with two prongs between which a field throws a pulse of
   the ship's fuel, white hot, for `LANCE_PULSE` (a second). Fuel is how hard it hits and power how far it
   holds together. Its face is its exit, as an engine's is, so a wider lance throws more fuel
   (`THRUST_PER_EXIT_AREA` over the exhaust speed), hits harder (`LANCE_POWER_PER_NEWTON`, 50 W for each
@@ -677,8 +679,8 @@ inside any one file is not contiguous.
   and risking the target slipping away before it is full. It does not train, so the hull aims it, and it
   welds on by its back and sides as any hull mount does. It is drawn as a base and two prongs with nubs
   into the gap, lightning across the gap growing with its charge, and its pulse as a flame. The editor
-  offers it as a button and as a kind in the kind dropdown; evolution flips a hull beam to a lance and back, and a lance between
-  ready and not.
+  offers it as a kind like any other; evolution draws it as one, at a hull beam's weight, and flips a lance
+  between ready and not.
   **Two layers** (§3). Every module is in the hull layer. Turrets and anything marked *thick* stand up into
   the weapons layer as well; a turret only by its dome, a circle as wide as the mount, on a block in the
   hull layer. A turret's rounds and beams meet only what is in the weapons layer, so they strip

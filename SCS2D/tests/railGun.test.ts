@@ -28,12 +28,13 @@ import { CORVETTE } from "../scenarios/blueprints.js";
 const DT = 1 / 60;
 
 const hullGun = (over: Partial<ModuleSpec> = {}): ModuleSpec => ({ kind: "hullGun", x: 0, y: 0, angle: 0, length: 6, width: 4, ...over });
+const railGun = (over: Partial<ModuleSpec> = {}): ModuleSpec => hullGun({ kind: "railGun", ...over });
 
-/** The corvette with its hull guns made rail guns. */
+/** The corvette with its hull guns swapped for rail guns. */
 function railed(blueprint: Blueprint): Blueprint {
     return {
         ...blueprint,
-        modules: blueprint.modules.map((p) => ("kind" in p && p.kind === "hullGun" ? { ...p, rail: true } : p)),
+        modules: blueprint.modules.map((p) => ("kind" in p && p.kind === "hullGun" ? { ...p, kind: "railGun" as const } : p)),
     };
 }
 
@@ -63,7 +64,7 @@ function firingDry(blueprint: Blueprint, seconds: number): number {
 
 describe("a rail gun", () => {
     it("throws solid shot twice as fast as powder from a barrel as long as its rails, on charge rather than fuel", () => {
-        const spec = hullGun({ rail: true, barrelCalibres: 5 });
+        const spec = railGun({ barrelCalibres: 5 });
         const rail = moduleStats(spec).gun!;
         const { blockLength } = hullMountGeometry(spec);
         const run = railLength(rail.calibre, blockLength, rail.barrelLength);
@@ -81,10 +82,10 @@ describe("a rail gun", () => {
     });
 
     it("may keep its rails on its block, and braces and weighs more what reaches beyond it", () => {
-        expect(moduleProblem(hullGun({ rail: true, barrelCalibres: 0 }))).toBeNull();
+        expect(moduleProblem(railGun({ barrelCalibres: 0 }))).toBeNull();
         expect(moduleProblem(hullGun({ barrelCalibres: 0 }))).not.toBeNull();
-        expect(moduleStats(hullGun({ rail: true, barrelCalibres: 0 })).gun!.muzzleSpeed).toBeGreaterThan(0);
-        const rail = moduleStats(hullGun({ rail: true, barrelCalibres: 10, fragments: 1 }));
+        expect(moduleStats(railGun({ barrelCalibres: 0 })).gun!.muzzleSpeed).toBeGreaterThan(0);
+        const rail = moduleStats(railGun({ barrelCalibres: 10, fragments: 1 }));
         const powder = moduleStats(hullGun({ barrelCalibres: 10, fragments: 1 }));
         expect(rail.gun!.braceLength).toBeCloseTo(rail.gun!.barrelLength, 9);
         expect(powder.gun!.braceLength).toBe(0);
@@ -93,19 +94,19 @@ describe("a rail gun", () => {
 
     it("never fires shells, whatever its fuse says", () => {
         expect(firesShells(hullGun({ fragments: 12 }))).toBe(true);
-        expect(firesShells(hullGun({ rail: true, fragments: 12 }))).toBe(false);
+        expect(firesShells(railGun({ fragments: 12 }))).toBe(false);
     });
 
     it("does not train, and carries no gear to", () => {
         expect(mountTraverse(hullGun())).toBeGreaterThan(0);
-        expect(mountTraverse(hullGun({ rail: true }))).toBe(0);
-        expect(moduleStats(hullGun({ rail: true })).traverseMass).toBe(0);
+        expect(mountTraverse(railGun())).toBe(0);
+        expect(moduleStats(railGun()).traverseMass).toBe(0);
     });
 
     it("is saved and read back as one", () => {
         const blueprint = railed(CORVETTE);
         const back = parseBlueprint(serialiseBlueprint(blueprint));
-        const rails = back.modules.filter((p) => "kind" in p && p.kind === "hullGun" && p.rail === true);
+        const rails = back.modules.filter((p) => "kind" in p && p.kind === "railGun");
         expect(rails.length).toBeGreaterThan(0);
     });
 

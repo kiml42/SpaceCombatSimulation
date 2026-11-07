@@ -1,13 +1,4 @@
-import {
-    engineGeometry,
-    hullMountGeometry,
-    isHullMount,
-    isPlasma,
-    shapeOf,
-    type ModuleSpec,
-    type ShipDesign,
-    type ShipView,
-} from "../sim/index.js";
+import { engineGeometry, hullMountGeometry, isHullMount, shapeOf, type ModuleSpec, type ShipDesign, type ShipView } from "../sim/index.js";
 import { engineLayout } from "./engineLayout.js";
 import { BARE_TEAM, type Palette } from "./teams.js";
 
@@ -152,7 +143,7 @@ export function moduleFills(
                 box(layout.pumpAft + band, -w, layout.pumpAft + 2 * band, w, colours.highlight);
             }
         }
-    } else if (isPlasma(spec)) {
+    } else if (spec.kind === "plasmaLance") {
         // A base aft, two prongs out of it along the sides, and nubs reaching into the gap between them.
         const base = spec.length * LANCE_BASE_SHARE;
         const prong = spec.width * LANCE_PRONG_SHARE;

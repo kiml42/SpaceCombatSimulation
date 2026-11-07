@@ -10,7 +10,6 @@ import {
     firesShells,
     GAS_RECOIL,
     type GunStats,
-    isPlasma,
     LANCE_LEAK,
     type ModuleSpec,
     GunType,
@@ -376,7 +375,7 @@ function drawShare(ships: Ships, b: number, module: number, gun: GunStats, scale
 function waitsForTarget(ships: Ships, i: number, t: number): boolean {
     const design = ships.designs[i]!;
     const spec = design.modules[design.turrets[t]!.module]?.spec;
-    return spec !== undefined && isPlasma(spec) && spec.ready !== true;
+    return spec !== undefined && spec.kind === "plasmaLance" && spec.ready !== true;
 }
 
 /** Whether mount `t` is trained on something it means to shoot. */

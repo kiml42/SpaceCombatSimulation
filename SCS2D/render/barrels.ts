@@ -1,4 +1,4 @@
-import { hullMountGeometry, isHullMount, isPlasma, isRail, math, RAIL_SETBACK_CALIBRES, type ShipView } from "../sim/index.js";
+import { hullMountGeometry, isHullMount, math, RAIL_SETBACK_CALIBRES, type ShipView } from "../sim/index.js";
 
 const { cos, max, sin } = math;
 
@@ -19,7 +19,7 @@ export function barrelLines(ship: ShipView, t: number, visit: (x0: number, y0: n
     const spec = design.modules[turret.module]!.spec;
     const mount = turret.mount;
     // A plasma lance has prongs rather than barrels.
-    if (isPlasma(spec)) return 0;
+    if (spec.kind === "plasmaLance") return 0;
     const c = cos(ship.angle);
     const s = sin(ship.angle);
     const mx = ship.x + mount.x * c - mount.y * s;
@@ -33,7 +33,7 @@ export function barrelLines(ship: ShipView, t: number, visit: (x0: number, y0: n
     const spacing = turret.gun.barrelSpacing;
     const hull = isHullMount(spec.kind) ? hullMountGeometry(spec) : null;
     const lenses = spec.kind === "hullBeam";
-    const back = hull !== null && isRail(spec) ? max(0, hull.blockLength - RAIL_SETBACK_CALIBRES * turret.gun.calibre) : 0;
+    const back = hull !== null && spec.kind === "railGun" ? max(0, hull.blockLength - RAIL_SETBACK_CALIBRES * turret.gun.calibre) : 0;
     for (let k = 0; k < count; k++) {
         const lat = count > 1 ? (k - (count - 1) * 0.5) * spacing : 0;
         if (lenses) {

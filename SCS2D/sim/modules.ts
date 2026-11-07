@@ -1152,7 +1152,9 @@ export type ModuleKind =
     | "turret"
     | "beamTurret"
     | "hullGun"
+    | "railGun"
     | "hullBeam"
+    | "plasmaLance"
     | "claw"
     | "pad"
     | "port"
@@ -1209,7 +1211,9 @@ export const MODULE_KINDS: readonly ShipModuleKind[] = [
     "turret",
     "beamTurret",
     "hullGun",
+    "railGun",
     "hullBeam",
+    "plasmaLance",
     "claw",
     "pad",
     "port",
@@ -1452,24 +1456,12 @@ export interface ModuleSpec {
      */
     thick?: boolean;
     /**
-     * A hull gun that is a rail gun: its rails throw solid shot twice as fast
-     * as powder would from the same barrel, on power rather than fuel, and it
-     * does not train.
-     */
-    rail?: boolean;
-    /**
      * An engine with a magnetic nozzle: a ring at the end of its bell that,
      * powered, holds the jet straight, so none of it is thrown sideways. It
      * takes the end of the bell's length, so unpowered the shorter bell aims
      * the jet a little worse.
      */
     magnetic?: boolean;
-    /**
-     * A hull beam that is a plasma lance: two prongs between which a field
-     * throws a pulse of the ship's fuel, white hot. Fuel is how hard it hits
-     * (its width), power how far it holds together (its length).
-     */
-    plasma?: boolean;
     /**
      * A plasma lance kept charged and ready, leaking power and fuel as it
      * waits, rather than charged only once it is on target.
@@ -1814,7 +1806,7 @@ export function moduleProblem(spec: ModuleSpec): string | null {
     if (spec.barrelCalibres !== undefined) {
         // Dormant on a kind that does not read it, as a bell is: only the range.
         // A rail gun's says how far its rails reach beyond the block, which may be not at all.
-        const rail = isRail(spec);
+        const rail = spec.kind === "railGun";
         if (!(rail ? spec.barrelCalibres >= 0 : spec.barrelCalibres > 0) || !(spec.barrelCalibres <= MAX_BARREL_CALIBRES)) {
             return `${spec.kind}: barrel must be ${rail ? "at least" : "more than"} 0 and at most ${MAX_BARREL_CALIBRES} calibres, got ${spec.barrelCalibres}`;
         }
@@ -2445,9 +2437,8 @@ function hullOutlets(spec: ModuleSpec): {
     // What a single outlet would be, and each of several split the way a
     // turret splits it: tubes divide the bore, so each is `1/n` as wide; lenses
     // divide the optic's area, so each is `1/√n` as wide.
-    const single =
-        spec.kind === "hullBeam" ? HULL_APERTURE_FRACTION * spec.width : BARREL_OUTER_CALIBRES * HULL_CALIBRE_FRACTION * spec.width;
-    const each = spec.kind === "hullBeam" ? single / sqrt(outlets) : single / outlets;
+    const single = isHullBeam(spec.kind) ? HULL_APERTURE_FRACTION * spec.width : BARREL_OUTER_CALIBRES * HULL_CALIBRE_FRACTION * spec.width;
+    const each = isHullBeam(spec.kind) ? single / sqrt(outlets) : single / outlets;
     // Spread across the face as a turret's barrels are, one gap outboard of
     // each end, so neighbours stand apart rather than touching.
     const outletSpacing = outlets > 1 ? spec.width / (outlets + 1) : 0;
@@ -2460,9 +2451,10 @@ function hullOutlets(spec: ModuleSpec): {
     const barrelWidth = (outlets - 1) * outletSpacing + outletWidth;
     // A gun's barrel is as many calibres as it says; a lens housing is as deep
     // as a turret's, since a shallower one is better in every way.
-    const barrelLength =
-        spec.kind === "hullBeam" ? outletWidth * BEAM_EMITTER_APERTURES : (barrelCalibres(spec) * outletWidth) / BARREL_OUTER_CALIBRES;
-    const reach = spec.kind === "hullBeam" ? barrelLength * (1 + BEAM_STALK_SHARE) : barrelLength;
+    const barrelLength = isHullBeam(spec.kind)
+        ? outletWidth * BEAM_EMITTER_APERTURES
+        : (barrelCalibres(spec) * outletWidth) / BARREL_OUTER_CALIBRES;
+    const reach = isHullBeam(spec.kind) ? barrelLength * (1 + BEAM_STALK_SHARE) : barrelLength;
     return { outlets, outletWidth, outletSpacing, barrelWidth, barrelLength, reach };
 }
 
@@ -2498,20 +2490,19 @@ export function hullMountGeometry(spec: ModuleSpec): HullMountGeometry {
         outletSpacing,
         barrelWidth,
         pivot,
-        trains: spec.kind === "hullBeam" ? pivot + out - barrelLength * 0.5 : pivot,
-        muzzle: spec.kind === "hullBeam" ? barrelLength * 0.5 : barrelLength,
+        trains: isHullBeam(spec.kind) ? pivot + out - barrelLength * 0.5 : pivot,
+        muzzle: isHullBeam(spec.kind) ? barrelLength * 0.5 : barrelLength,
         traverse: limit > 0 ? (limit < HULL_MAX_TRAVERSE ? limit : HULL_MAX_TRAVERSE) : 0,
     };
 }
 
-/** Whether `rail` means anything on this kind. */
-export function readsRail(kind: ModuleKind): boolean {
-    return kind === "hullGun";
-}
-
-/** Whether this is a rail gun. */
-export function isRail(spec: ModuleSpec): boolean {
-    return readsRail(spec.kind) && spec.rail === true;
+/**
+ * Whether this kind is a gun let into a hull: a hull gun, or a rail gun, which
+ * is one whose rails throw solid shot on power rather than powder on fuel. The
+ * two share a block, a barrel out of its face and every law that sizes them.
+ */
+export function isHullGun(kind: ModuleKind): boolean {
+    return kind === "hullGun" || kind === "railGun";
 }
 
 /** Whether `fuse` means anything on this kind: a gun that fires rounds. */
@@ -2533,7 +2524,7 @@ export function isWeaponMount(kind: ModuleKind): boolean {
  * asks it, and this stays a property of the mount alone.
  */
 export function mountTraverse(spec: ModuleSpec): number {
-    if (isRail(spec) || isPlasma(spec)) return 0;
+    if (spec.kind === "railGun" || spec.kind === "plasmaLance") return 0;
     const archetype = isHullMount(spec.kind) ? hullMountGeometry(spec).traverse : FULL_TRAVERSE;
     const asked = spec.traverse;
     if (asked === undefined) return archetype;
@@ -2554,7 +2545,7 @@ export function mountGeometryOf(spec: ModuleSpec): HullMountGeometry {
 }
 
 export function isHullMount(kind: ModuleKind): boolean {
-    return kind === "hullGun" || kind === "hullBeam";
+    return isHullGun(kind) || isHullBeam(kind);
 }
 
 /**
@@ -2578,13 +2569,13 @@ export function readsNozzle(kind: ModuleKind): boolean {
 
 /** Whether `barrelCalibres` means anything on this kind: a gun with a barrel. */
 export function readsBarrelCalibres(kind: ModuleKind): boolean {
-    return kind === "turret" || kind === "hullGun";
+    return kind === "turret" || isHullGun(kind);
 }
 
 /** How many calibres long a gun's barrels are: what it says, or its archetype's default. */
 export function barrelCalibres(spec: ModuleSpec): number {
     if (spec.barrelCalibres !== undefined) return spec.barrelCalibres;
-    return spec.kind === "hullGun" ? DEFAULT_HULL_BARREL_CALIBRES : BARREL_CALIBRES;
+    return isHullGun(spec.kind) ? DEFAULT_HULL_BARREL_CALIBRES : BARREL_CALIBRES;
 }
 
 /**
@@ -2754,7 +2745,7 @@ export function hullGunStats(spec: ModuleSpec): GunStats {
     const calibres = barrelCalibres(spec);
     const boreArea = PI * 0.25 * calibre * calibre;
     const roundMass = boreArea * (calibre * SHELL_CALIBRES) * SHELL_DENSITY;
-    const rail = isRail(spec);
+    const rail = spec.kind === "railGun";
     // A rail gun's barrel is its whole run of rails, the stretch along its block included.
     const run = rail ? railLength(calibre, blockLength, barrelLength) / calibre : calibres;
     const muzzleEnergy = muzzleEnergyOf(calibre, run) * (rail ? RAIL_SPEED * RAIL_SPEED : 1);
@@ -2845,7 +2836,7 @@ function hullCycleTime(calibre: number, blockLength: number, outlets: number): n
  * inventing a second one.
  */
 export function hullBeamStats(spec: ModuleSpec): GunStats {
-    if (isPlasma(spec)) return lanceStats(spec);
+    if (spec.kind === "plasmaLance") return lanceStats(spec);
     const { outlets, outletWidth, outletSpacing, barrelLength, blockLength } = hullMountGeometry(spec);
     const aperture = outletWidth;
     const apertureArea = PI * 0.25 * aperture * aperture;
@@ -2922,19 +2913,23 @@ function lanceStats(spec: ModuleSpec): GunStats {
     };
 }
 
-/** Whether `plasma` and `ready` mean anything on this kind. */
-export function readsPlasma(kind: ModuleKind): boolean {
-    return kind === "hullBeam";
+/** Whether `ready` means anything on this kind: a plasma lance. */
+export function readsReady(kind: ModuleKind): boolean {
+    return kind === "plasmaLance";
 }
 
-/** Whether this is a plasma lance. */
-export function isPlasma(spec: ModuleSpec): boolean {
-    return readsPlasma(spec.kind) && spec.plasma === true;
+/**
+ * Whether this kind is a hull mount that throws a beam: a hull beam, or a
+ * plasma lance, which throws a pulse of fuel. The two share a hull beam's block
+ * and outlet, and every law that sizes them.
+ */
+export function isHullBeam(kind: ModuleKind): boolean {
+    return kind === "hullBeam" || kind === "plasmaLance";
 }
 
 /** Whether a gun fires shells that burst, rather than solid shot: more than one fragment. */
 export function firesShells(spec: ModuleSpec): boolean {
-    return readsFuse(spec.kind) && !isRail(spec) && (spec.fragments ?? DEFAULT_FRAGMENTS) > 1;
+    return readsFuse(spec.kind) && (spec.fragments ?? DEFAULT_FRAGMENTS) > 1;
 }
 
 /**
@@ -3019,7 +3014,11 @@ const KIND_COMPLEXITY: Record<ModuleKind, number> = {
     rock: 0,
     engine: 4,
     hullGun: 4,
+    // The rails and the bank that drives them, on top of a hull gun's breech.
+    railGun: 5,
     hullBeam: 4,
+    // Its field and the plumbing that feeds it fuel, on top of a hull beam's.
+    plasmaLance: 5,
     turret: 7,
     beamTurret: 7,
     generator: 6,
@@ -3216,14 +3215,14 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
             fittingMass += MAGNETIC_MASS_PER_EXIT_AREA * exitArea;
         }
     } else if (mount !== null) {
-        gun = spec.kind === "hullGun" ? loaded(hullGunStats(spec), spec) : hullBeamStats(spec);
+        gun = isHullGun(spec.kind) ? loaded(hullGunStats(spec), spec) : hullBeamStats(spec);
         // The same two masses a turret carries, by the same reasoning — a tube of
         // steel or an optic out in front, and the machinery that works it behind.
         let protrudingMass: number;
-        if (spec.kind === "hullGun") {
+        if (isHullGun(spec.kind)) {
             const outer = BARREL_OUTER_CALIBRES * gun.calibre;
             const section = PI * 0.25 * (outer * outer - gun.calibre * gun.calibre);
-            protrudingMass = section * gun.barrelLength * HULL_DENSITY * (isRail(spec) ? RAIL_BARREL_MASS : 1);
+            protrudingMass = section * gun.barrelLength * HULL_DENSITY * (spec.kind === "railGun" ? RAIL_BARREL_MASS : 1);
             fittingMass = (protrudingMass + MECHANISM_MASS_PER_CALIBRE * gun.calibre) * gun.barrelCount + braceMass(gun);
         } else {
             protrudingMass = OPTIC_AREAL_DENSITY * PI * 0.25 * gun.calibre * gun.calibre;
@@ -3252,7 +3251,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
         fittingMass += traverseMass;
         const middle = (protrudingMass * gun.barrelLength * gun.barrelLength) / 12;
         // A lens turns about its own centre, a barrel about its root.
-        const lens = spec.kind === "hullBeam";
+        const lens = isHullBeam(spec.kind);
         const spin = lens ? middle : (protrudingMass * gun.barrelLength * gun.barrelLength) / 3;
         const braceSpin = braceInertia(gun, braced);
         const braceMiddle = (braced * gun.braceLength * gun.braceLength) / 12;
