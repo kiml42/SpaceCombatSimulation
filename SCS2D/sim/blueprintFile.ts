@@ -194,6 +194,16 @@ function currentKind(kind: unknown): unknown {
     return kind === "thruster" ? "engine" : kind;
 }
 
+/**
+ * A module as the format writes it now. A rail gun was briefly a hull gun with
+ * `rail` set; such a file reads as the rail gun it meant, and the flag goes.
+ */
+function currentRail(raw: Record<string, unknown>): Record<string, unknown> {
+    if (!("rail" in raw)) return raw;
+    const { rail, ...rest } = raw;
+    return rail === true && raw["kind"] === "hullGun" ? { ...rest, kind: "railGun" } : rest;
+}
+
 /** A module's facing in degrees, turned half round for a `thruster` written the old way. */
 function currentAngle(raw: Record<string, unknown>): number | undefined {
     const angle = raw["angle"] as number | undefined;
@@ -519,7 +529,7 @@ function toBlueprint(file: Record<string, unknown>): Blueprint {
 
 function toPlacements(raws: unknown[], whole: boolean): Placement[] {
     return raws.map((value) => {
-        const raw = value as Record<string, unknown>;
+        const raw = currentRail(value as Record<string, unknown>);
         // Assigned conditionally rather than written as `angle: raw.angle`,
         // because `exactOptionalPropertyTypes` distinguishes an absent optional
         // field from one present and undefined, and the two must round-trip the
