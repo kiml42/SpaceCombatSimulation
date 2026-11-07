@@ -7,6 +7,8 @@ import {
     hullMountGeometry,
     moduleProblem,
     railLength,
+    RAIL_BANK_POWER_PER_VOLUME,
+    moduleThickness,
     RAIL_SETBACK_CALIBRES,
     moduleStats,
     mountTraverse,
@@ -90,6 +92,16 @@ describe("a rail gun", () => {
         expect(rail.gun!.braceLength).toBeCloseTo(rail.gun!.barrelLength, 9);
         expect(powder.gun!.braceLength).toBe(0);
         expect(rail.fittingMass).toBeGreaterThan(powder.fittingMass);
+    });
+
+    it("fires as fast as its block charges its bank, not as fast as it loads", () => {
+        const spec = railGun({ length: 13, width: 4, barrelCalibres: 10 });
+        const gun = moduleStats(spec).gun!;
+        const { blockLength } = hullMountGeometry(spec);
+        const bank = RAIL_BANK_POWER_PER_VOLUME * blockLength * spec.width * moduleThickness(spec);
+        expect(gun.cycleTime).toBeCloseTo(shotCharge(gun) / bank, 9);
+        // A powder gun of the same block loads far faster than the bank charges.
+        expect(moduleStats(hullGun({ length: 13, width: 4, barrelCalibres: 10 })).gun!.cycleTime).toBeLessThan(gun.cycleTime);
     });
 
     it("never fires shells, whatever its fuse says", () => {

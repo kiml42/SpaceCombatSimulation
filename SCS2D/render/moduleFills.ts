@@ -1,4 +1,13 @@
-import { engineGeometry, hullMountGeometry, isHullMount, shapeOf, type ModuleSpec, type ShipDesign, type ShipView } from "../sim/index.js";
+import {
+    engineGeometry,
+    hullMountGeometry,
+    isHullMount,
+    RING_BAR_SHARE,
+    shapeOf,
+    type ModuleSpec,
+    type ShipDesign,
+    type ShipView,
+} from "../sim/index.js";
 import { engineLayout } from "./engineLayout.js";
 import { BARE_TEAM, type Palette } from "./teams.js";
 
@@ -127,13 +136,18 @@ export function moduleFills(
         const mouth = layout.mouth;
         const throat = engine.throatWidth / 2;
         const exit = engine.exitWidth / 2;
-        // A magnetic nozzle's bell stops short, leaving a gap and the ring at the end.
+        // A magnetic nozzle's bell stops short, and bars either side of each
+        // carry the ring across the engine's aft end.
         const end = mouth - engine.bellLength;
-        const ring = (mouth + l - engine.bellLength) * RING_THICKNESS;
+        const bar = engine.exitHeight * RING_BAR_SHARE;
         for (const across of layout.centres) {
             out.push({ colour: BELL, points: [mouth, across - throat, mouth, across + throat, end, across + exit, end, across - exit] });
-            if (end > -l) box(-l, across - exit * RING_WIDTH, -l + ring, across + exit * RING_WIDTH, RING);
+            if (end > -l) {
+                box(-l, across - exit - bar, end, across - exit, RING);
+                box(-l, across + exit, end, across + exit + bar, RING);
+            }
         }
+        if (end > -l) box(-l, -w, -l + ringThickness(engine), w, RING);
         for (const across of layout.centres) out.push({ colour, points: layout.chamber.map((v, k) => (k % 2 === 1 ? v + across : v)) });
         if (layout.pumpAft < l) {
             box(layout.pumpAft, -w, l, w);
@@ -197,10 +211,14 @@ const NO_MOUNTS: readonly (readonly number[])[] = [];
 
 /** Engine bells, whatever side they are on. */
 const BELL = "#4a4a4a";
-const RING = "#6d6a86";
-/** A magnetic nozzle's ring: how much of the space past its bell it fills along the axis, and how far it stands out past the exit. */
-const RING_THICKNESS = 0.4;
-const RING_WIDTH = 1.25;
+export const RING = "#6d6a86";
+/** How much of the space past a magnetic nozzle's bell its ring fills along the axis. */
+const RING_THICKNESS = 0.3;
+
+/** How thick a magnetic nozzle's ring is drawn along its engine's axis, metres. */
+export function ringThickness(engine: { nozzleLength: number; bellLength: number }): number {
+    return (engine.nozzleLength - engine.bellLength) * RING_THICKNESS;
+}
 
 /** How much of an engine's pump a livery's band covers. */
 const ENGINE_BAND_SHARE = 0.25;

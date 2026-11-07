@@ -662,8 +662,14 @@ export const PROPELLANT_ENERGY = 1.2e6;
  */
 export const GAS_RECOIL = 1.5;
 
-/** The share of a magnetic engine's bell its ring and the gap before it take. */
-export const RING_SHARE = 0.25;
+/** The share of a magnetic engine's bell its ring and the gap before it take: the bell proper is short. */
+export const RING_SHARE = 0.6;
+
+/**
+ * How wide each of the two bars carrying a magnetic nozzle's ring is, as a
+ * share of the exit it runs beside, which is narrower by both.
+ */
+export const RING_BAR_SHARE = 0.08;
 
 /**
  * Power a magnetic nozzle draws at full throttle, watts per square metre of
@@ -708,6 +714,13 @@ export const RAIL_EFFICIENCY = 0.5;
 
 /** How far in from the back of its block a rail gun's rails start, in calibres. */
 export const RAIL_SETBACK_CALIBRES = 2;
+
+/**
+ * How fast a rail gun's block charges the bank a shot is fired from, watts per
+ * cubic metre of block: the bank, not the breech, is what limits how often it
+ * fires, as a hull beam's does.
+ */
+export const RAIL_BANK_POWER_PER_VOLUME = 1.2e6;
 
 /** How much heavier a rail gun's barrel beyond its block is than a powder gun's, for the rails it carries. */
 export const RAIL_BARREL_MASS = 2;
@@ -2255,8 +2268,10 @@ export function engineGeometry(spec: ModuleSpec): EngineGeometry {
     const bell = magnetic ? nozzleLength * (1 - RING_SHARE) : nozzleLength;
     const share = nozzleLength / spec.length;
     const pitch = spec.width / nozzles;
-    // Square: a thin engine's bell is held to a deck both ways.
-    const exitWidth = moduleThickness(spec);
+    // Square: a thin engine's bell is held to a deck both ways. A magnetic one's
+    // gives the bars that carry its ring their room either side.
+    const exitHeight = moduleThickness(spec);
+    const exitWidth = magnetic ? exitHeight * (1 - 2 * RING_BAR_SHARE) : exitHeight;
     const throatWidth = exitWidth * NOZZLE_THROAT_FRACTION;
     // How far the wall has to travel sideways over the bell's length.
     const flare = (exitWidth - throatWidth) * 0.5;
@@ -2271,7 +2286,7 @@ export function engineGeometry(spec: ModuleSpec): EngineGeometry {
         nozzleLength,
         pitch,
         exitWidth,
-        exitHeight: exitWidth,
+        exitHeight,
         throatWidth,
         halfAngle,
         divergence: magnetic ? 1 : (1 + axial) * 0.5,
@@ -2770,8 +2785,15 @@ export function hullGunStats(spec: ModuleSpec): GunStats {
         muzzleEnergy,
         beamPower: 0,
         // One block loads every tube, so its depth is measured against the bore
-        // they share rather than each tube's own.
-        cycleTime: hullCycleTime(calibre, blockLength * loadingDecks(spec), outlets) / outlets,
+        // they share rather than each tube's own. A rail gun's is its bank, which
+        // charges each shot in turn whichever rails it goes down; its breech is
+        // simpler than a powder gun's, so only its fixed part counts.
+        cycleTime: rail
+            ? max(
+                  CYCLE_TIME_PER_CALIBRE * calibre * LOADING_FLOOR,
+                  muzzleEnergy / RAIL_EFFICIENCY / (RAIL_BANK_POWER_PER_VOLUME * blockLength * spec.width * moduleThickness(spec)),
+              )
+            : hullCycleTime(calibre, blockLength * loadingDecks(spec), outlets) / outlets,
         beamOnTime: 0,
         burst: null,
     };

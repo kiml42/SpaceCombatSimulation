@@ -656,7 +656,10 @@ inside any one file is not contiguous.
   barrel that long, so with four times the energy, and never fires shells. That energy is charge rather than
   fuel: it draws the shot's energy, over `RAIL_EFFICIENCY` (half), from its piece of hull's power as it
   reloads, as a beam does, so it reloads only as fast as its batteries and generators deliver, and starts a
-  battle charged. A light rail gun reloads on a core's power; a big one is starved by it (the Corvette's bow
+  battle charged. **It fires as fast as its block charges the bank a shot is fired from**
+  (`RAIL_BANK_POWER_PER_VOLUME`, 1.2 MW/m³), as a hull beam's block is its bank, rather than as fast as it
+  loads: its breech is simpler than a powder gun's, and only that fixed part of the loading time counts.
+  Several rails share one bank. A light rail gun reloads on a core's power; a big one is starved by it (the Corvette's bow
   gun as a rail gun needs 440 MJ a shot, more than its batteries hold), so it wants power of its own. What
   reaches beyond the block carries the rails, so it is `RAIL_BARREL_MASS` (2) times as heavy as a powder
   barrel, and is braced along its sides all the way out. Its recoil is its round's alone. It does not train,
@@ -718,9 +721,11 @@ inside any one file is not contiguous.
   short bell, and the flow it leaves room for, worth having. The ring draws `MAGNETIC_POWER_PER_EXIT_AREA`
   (0.2 MW/m²) at full throttle, as thrust's claim on charge: a fighter's core runs its main engine's ring,
   and a capital's mains want generators of their own. Short of power the jet leaves aimed only as well as
-  the bell aims it. The ring and the gap before it take the last quarter of the bell (`RING_SHARE`), so
-  unpowered it aims a little worse than a plain bell of the same length, and the ring weighs. It is drawn
-  as a shorter bell, a straight column of exhaust and the ring at the engine's aft edge; the editor shows
+  the bell aims it. The ring and the gap before it take the bell's last three fifths (`RING_SHARE`), so the bell
+  proper is short, and bars either side of each nozzle carry the ring, narrowing its exit by `RING_BAR_SHARE`
+  each side; so unpowered it aims worse and throws less than a plain bell of the same length, and the ring
+  weighs. It is drawn as a short bell, the bars, the exhaust running full width and undimmed through the gap,
+  and the ring across the engine's whole width at its aft edge, over the exhaust; the editor shows
   its power and its unpowered share, and evolution adds and removes it.
   **A fleet is a file too**: its designs embedded whole, its ships placed in the fleet's own frame, and
   named groups of ships — reflected, turned, nested and repeated in rows and arcs as a ship's assemblies
