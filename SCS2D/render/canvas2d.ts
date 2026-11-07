@@ -74,6 +74,8 @@ import {
     paintedSide,
     PORT_COLLAR_SHARE,
     PORT_COLLAR_WIDTH,
+    RING,
+    ringThickness,
     type Fill,
 } from "./moduleFills.js";
 import {
@@ -1580,9 +1582,6 @@ export function plumeReach(ship: ShipView): number {
  * part of it: sharing the module pass put it *under* the sector a nearby
  * turret sweeps, which dimmed a burning engine to the colour of a shadow.
  */
-/** How wide a magnetic nozzle's jet is between bell and ring, as a share of the exit. */
-const COLUMN_WIDTH = 0.6;
-
 function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
     eachNozzle(
         ctx,
@@ -1618,12 +1617,10 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
             );
             // The sprite's core is its brightest, its edge a little dimmer.
             ctx.globalAlpha = outer * brightness;
-            // A magnetic nozzle's jet runs straight from its bell through its ring.
+            // A magnetic nozzle's jet runs straight from its bell through its ring,
+            // as the flame's own base does: its last column, stretched over the gap.
             const gap = engine.geometry.nozzleLength - engine.geometry.bellLength;
-            if (gap > 0) {
-                ctx.fillStyle = `rgb(${PLUME_CORE})`;
-                ctx.fillRect(root, across - half * COLUMN_WIDTH, gap, 2 * half * COLUMN_WIDTH);
-            }
+            if (gap > 0) ctx.drawImage(image, image.width - 1, 0, 1, image.height, root, across - half, gap, 2 * half);
             let cutAny = false;
             for (let k = 0; k < PLUME_RAYS; k++) if (landed[k]! > 0) cutAny = true;
             if (!cutAny) ctx.drawImage(image, root - reach, across - half, reach, 2 * half);
@@ -1652,6 +1649,12 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
                 }
             }
             ctx.globalAlpha = outer;
+            // The ring stands across the jet, so it hides what passes through it.
+            if (gap > 0) {
+                const span = engine.geometry.pitch * engine.geometry.nozzles;
+                ctx.fillStyle = RING;
+                ctx.fillRect(root, -span / 2, ringThickness(engine.geometry), span);
+            }
         },
         true,
     );

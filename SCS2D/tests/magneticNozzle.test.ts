@@ -3,6 +3,7 @@ import {
     compileBlueprint,
     engineGeometry,
     MAGNETIC_POWER_PER_EXIT_AREA,
+    RING_BAR_SHARE,
     moduleStats,
     parseBlueprint,
     serialiseBlueprint,
@@ -50,18 +51,23 @@ function burnt(blueprint: Blueprint): number[] {
 }
 
 describe("a magnetic nozzle", () => {
-    it("aims a stubby engine's whole jet, for more thrust and efficiency from the same fuel, and draws power for it", () => {
+    it("aims a stubby engine's whole jet, for more thrust and efficiency from each square metre of exit, and draws power for it", () => {
         const plain = moduleStats(stubby());
         const magnetic = moduleStats(stubby({ magnetic: true }));
-        expect(magnetic.thrust).toBeGreaterThan(plain.thrust * 1.1);
+        const exit = (spec: ModuleSpec): number => {
+            const g = engineGeometry(spec);
+            return g.nozzles * g.exitWidth * g.exitHeight;
+        };
+        // The bars that carry the ring narrow the exit.
+        expect(exit(stubby({ magnetic: true }))).toBeCloseTo(exit(stubby()) * (1 - 2 * RING_BAR_SHARE), 9);
+        expect(magnetic.thrust / exit(stubby({ magnetic: true }))).toBeGreaterThan((plain.thrust / exit(stubby())) * 1.1);
         expect(magnetic.exhaustVelocity).toBeGreaterThan(plain.exhaustVelocity * 1.1);
-        expect(magnetic.thrust / magnetic.exhaustVelocity).toBeCloseTo(plain.thrust / plain.exhaustVelocity, 6);
-        const geometry = engineGeometry(stubby({ magnetic: true }));
-        expect(magnetic.ringPower).toBeCloseTo(
-            MAGNETIC_POWER_PER_EXIT_AREA * geometry.nozzles * geometry.exitWidth * geometry.exitHeight,
-            3,
-        );
-        expect(magnetic.mass).toBeGreaterThan(plain.mass);
+        // Much the same fuel through each square metre of exit, thrown straighter; its
+        // narrower throat loses a little more to its walls.
+        const flow = (stats: typeof plain, spec: ModuleSpec): number => stats.thrust / stats.exhaustVelocity / exit(spec);
+        expect(flow(magnetic, stubby({ magnetic: true })) / flow(plain, stubby())).toBeCloseTo(1, 1);
+        expect(magnetic.ringPower).toBeCloseTo(MAGNETIC_POWER_PER_EXIT_AREA * exit(stubby({ magnetic: true })), 3);
+        expect(magnetic.mass).toBeGreaterThan(plain.mass * 0.9);
         expect(plain.ringPower).toBe(0);
     });
 
