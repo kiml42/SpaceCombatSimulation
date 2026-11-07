@@ -679,10 +679,11 @@ export const RAIL_SETBACK_CALIBRES = 2;
 export const RAIL_BANK_POWER_PER_VOLUME = 1.2e6;
 
 /**
- * The most charge a rail gun's bank holds, joules per cubic metre of block: a
- * shot can use no more, so too small a block fires a weaker one.
+ * The share of a rail gun's block given to its capacitor bank, the rest being
+ * hull and loading gear. A shot can use no more than the bank holds, so too
+ * small a block fires a weaker one.
  */
-export const RAIL_BANK_ENERGY_PER_VOLUME = 2e7;
+export const RAIL_BANK_SHARE = 0.8;
 
 /** Mass of a rail gun's capacitor bank, kg per cubic metre of block, on top of the block's hull and loading gear. */
 export const RAIL_BANK_MASS_PER_VOLUME = 500;
@@ -779,17 +780,25 @@ export const BEAM_APERTURE_FRACTION = 0.05;
 export const OPTIC_INTENSITY_LIMIT = 2e8;
 
 /**
- * Energy in the mount's capacitor bank per cubic metre of mount, J/m³.
+ * What a weapon's capacitor bank holds, J per cubic metre of bank: about what
+ * supercapacitors reach. Every powered weapon's bank is this; what differs is
+ * how much of its mount the bank takes.
+ */
+export const CAPACITOR_ENERGY_PER_VOLUME = 1e7;
+
+/**
+ * The share of a beam mount given to its capacitor bank, the rest being
+ * optics, pumping and cooling — the right shape for a weapon whose real
+ * problem is heat.
  *
  * A beam mount does not reload; it discharges. The bank is what lets it put
  * out far more power than the ship's plant can supply, for as long as the bank
  * lasts, and that is what `beamOnTime` measures.
- *
- * Supercapacitors reach something like 10 MJ/m³, so this is a few per cent of
- * the mount given over to storage and the rest to optics, pumping and cooling
- * — which is the right shape for a weapon whose real problem is heat.
  */
-export const BEAM_STORED_ENERGY_PER_VOLUME = 1.2e5;
+export const BEAM_BANK_SHARE = 0.012;
+
+/** Energy in a beam mount's bank per cubic metre of mount, J/m³. */
+export const BEAM_STORED_ENERGY_PER_VOLUME = CAPACITOR_ENERGY_PER_VOLUME * BEAM_BANK_SHARE;
 
 /**
  * Fraction of the time a beam turret can be firing, given all the power it
@@ -2690,7 +2699,9 @@ export function hullGunStats(spec: ModuleSpec): GunStats {
     // included, and a shot spends no more than its bank holds.
     const run = rail ? railLength(calibre, blockLength, barrelLength) / calibre : calibres;
     const full = muzzleEnergyOf(calibre, run) * (rail ? RAIL_SPEED * RAIL_SPEED : 1);
-    const bank = rail ? RAIL_BANK_ENERGY_PER_VOLUME * blockLength * spec.width * moduleThickness(spec) * RAIL_EFFICIENCY : full;
+    const bank = rail
+        ? CAPACITOR_ENERGY_PER_VOLUME * RAIL_BANK_SHARE * blockLength * spec.width * moduleThickness(spec) * RAIL_EFFICIENCY
+        : full;
     const muzzleEnergy = full < bank ? full : bank;
     const muzzleSpeed = roundMass > 0 ? sqrt((2 * muzzleEnergy) / roundMass) : 0;
 

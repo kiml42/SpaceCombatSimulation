@@ -8,7 +8,8 @@ import {
     moduleProblem,
     railLength,
     RAIL_BANK_POWER_PER_VOLUME,
-    RAIL_BANK_ENERGY_PER_VOLUME,
+    CAPACITOR_ENERGY_PER_VOLUME,
+    RAIL_BANK_SHARE,
     RAIL_BANK_MASS_PER_VOLUME,
     moduleThickness,
     RAIL_SETBACK_CALIBRES,
@@ -111,7 +112,7 @@ describe("a rail gun", () => {
         const gun = (block: number) => moduleStats(railGun({ length: block, width: 4, barrelCalibres: (20 - block) / 0.4 })).gun!;
         const bank = (block: number) => {
             const spec = railGun({ length: block, width: 4, barrelCalibres: (20 - block) / 0.4 });
-            return RAIL_BANK_ENERGY_PER_VOLUME * hullMountGeometry(spec).blockLength * spec.width * moduleThickness(spec);
+            return CAPACITOR_ENERGY_PER_VOLUME * RAIL_BANK_SHARE * hullMountGeometry(spec).blockLength * spec.width * moduleThickness(spec);
         };
         expect(shotCharge(gun(4))).toBeCloseTo(bank(4), 0);
         expect(gun(4).muzzleSpeed).toBeLessThan(gun(18).muzzleSpeed);
