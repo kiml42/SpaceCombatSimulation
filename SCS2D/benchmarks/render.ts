@@ -6,7 +6,7 @@
  *
  *   pnpm exec tsx benchmarks/render.ts [--scenes "Duel,Star Wars"]
  *       [--seconds 8] [--at 5] [--warmup 3] [--size 1600x900] [--dpr 1] [--paused] [--vsync]
- *       [--strips shown|hidden] [--pick ship] [--screenshots] [--profile]
+ *       [--strips shown|hidden] [--pick ship] [--zoom-by factor] [--zoom seconds] [--zoom-at ship] [--screenshots] [--profile]
  *       [--browser chromium|chrome|msedge|firefox] [--executable path] [--headless] [--build] [--label name]
  *
  * Each scene runs on the Battle route as a player sees it, and two things are
@@ -46,6 +46,9 @@ const { values } = parseArgs({
         screenshots: { type: "boolean", default: false },
         strips: { type: "string", default: "shown" },
         pick: { type: "string" },
+        zoom: { type: "string" },
+        "zoom-at": { type: "string" },
+        "zoom-by": { type: "string" },
         label: { type: "string", default: "run" },
         out: { type: "string", default: join(here, "results") },
         app: { type: "string" },
@@ -185,7 +188,68 @@ async function setPlaying(page: Page, play: boolean): Promise<void> {
 
 const percentile = (sorted: number[], p: number): number => sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))] ?? NaN;
 
+/** A wheel's delta that zooms ten times (host/viewGestures.ts: exp(-delta × 0.0015) a notch). */
+const TEN_TIMES = Math.log(10) / 0.0015;
+
+/**
+ * Zoom ten times in over `sweep` seconds and back out over as long, over and
+ * over, about ship `at` (or the view's middle), by wheel events in the page
+ * every 16 ms, so it zooms as fast whatever the frame rate. Stopped by the
+ * function it hands back.
+ */
+/** Where to zoom about: ship `at` on screen, or the view's middle. */
+async function zoomPoint(page: Page, at: number | undefined): Promise<{ x: number; y: number }> {
+    const box = await page.locator("#view").boundingBox();
+    const ship =
+        at === undefined
+            ? null
+            : await page.evaluate(
+                  (i) => (window as unknown as { viewer: { screenOf(i: number): { x: number; y: number } | null } }).viewer.screenOf(i),
+                  at,
+              );
+    return { x: box!.x + (ship?.x ?? box!.width / 2), y: box!.y + (ship?.y ?? box!.height / 2) };
+}
+
+/** Zoom `factor` times in about ship `at`, at once, as a wheel turned that far. */
+async function zoomBy(page: Page, factor: number, at: number | undefined): Promise<void> {
+    const { x, y } = await zoomPoint(page, at);
+    // In turns of the wheel no more than half as far again each, a frame apart, as a hand turns it.
+    const turns = Math.max(1, Math.ceil(Math.log(factor) / Math.log(1.5)));
+    for (let k = 0; k < turns; k++) {
+        await page.evaluate(
+            ([x, y, delta]) =>
+                document
+                    .getElementById("view")!
+                    .dispatchEvent(new WheelEvent("wheel", { clientX: x, clientY: y, deltaY: delta, cancelable: true })),
+            [x, y, -Math.log(factor) / turns / 0.0015],
+        );
+        await page.waitForTimeout(50);
+    }
+}
+
+async function startZooming(page: Page, sweep: number, at: number | undefined): Promise<() => Promise<void>> {
+    const { x, y } = await zoomPoint(page, at);
+    await page.evaluate(
+        ([x, y, step, ticks]) => {
+            const view = document.getElementById("view")!;
+            let tick = 0;
+            const timer = window.setInterval(() => {
+                const inward = Math.floor(tick / ticks!) % 2 === 0;
+                tick++;
+                view.dispatchEvent(new WheelEvent("wheel", { clientX: x, clientY: y, deltaY: inward ? -step! : step!, cancelable: true }));
+            }, 16);
+            (window as unknown as { __stopZoom: () => void }).__stopZoom = () => window.clearInterval(timer);
+        },
+        [x, y, TEN_TIMES / ((sweep * 1000) / 16), (sweep * 1000) / 16],
+    );
+    return () => page.evaluate(() => (window as unknown as { __stopZoom: () => void }).__stopZoom());
+}
+
 async function measure(page: Page): Promise<Omit<Result, "app" | "renderer" | "scene" | "battleAt" | "simSpeed">> {
+    const stopZooming =
+        values.zoom === undefined
+            ? null
+            : await startZooming(page, Number(values.zoom), values["zoom-at"] === undefined ? undefined : Number(values["zoom-at"]));
     await page.evaluate(() => {
         const bench = (window as unknown as { __bench: { on: boolean; gaps: number[]; busy: Map<number, number>; last: number } }).__bench;
         bench.gaps = [];
@@ -199,6 +263,7 @@ async function measure(page: Page): Promise<Omit<Result, "app" | "renderer" | "s
         bench.on = false;
         return { gaps: bench.gaps, busy: [...bench.busy.values()] };
     });
+    await stopZooming?.();
     gaps.sort((a, b) => a - b);
     busy.sort((a, b) => a - b);
     const total = gaps.reduce((sum, g) => sum + g, 0);
@@ -294,6 +359,8 @@ try {
                     await page.waitForFunction((t) => battleTime() >= t, at, { polling: 50, timeout: 300_000 });
                     if (values.paused) await setPlaying(page, false);
                     if (values.pick !== undefined) await pick(page, Number(values.pick));
+                    const zoomAt = values["zoom-at"] === undefined ? undefined : Number(values["zoom-at"]);
+                    if (values["zoom-by"] !== undefined) await zoomBy(page, Number(values["zoom-by"]), zoomAt);
                     await page.waitForTimeout(warmup * 1000);
                     const from = await page.evaluate(() => battleTime());
                     const measured = await measure(page);
