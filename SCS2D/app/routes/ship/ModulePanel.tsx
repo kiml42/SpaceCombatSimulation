@@ -36,7 +36,6 @@ import {
     readsFuse,
     readsSealing,
     readsThick,
-    readsRail,
     readsMagnetic,
     refitModule,
     shapeModule,
@@ -58,6 +57,9 @@ import { asCraft, barrelReadout, craftChoices, CRAFT_ANGLES, moduleField, number
 import type { ShipEditing } from "./shipEditing";
 
 const { abs, PI } = math;
+
+/** The kind dropdown's value for a hull gun that is a rail gun. */
+const RAIL_GUN = "railGun";
 
 const Linked = styled.p`
     margin: 0 0 0.5rem;
@@ -129,7 +131,7 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
     };
     const patch = (fields: Partial<ModuleSpec>): void => update((placement) => ({ ...placement, ...fields }) as Placement, true);
     /** A flag, absent rather than false when it is off, so a file only ever says the unusual thing. */
-    const flag = (key: "weapon" | "thick" | "rail" | "magnetic" | "docked" | "buildAnchored", on: boolean): void =>
+    const flag = (key: "weapon" | "thick" | "magnetic" | "docked" | "buildAnchored", on: boolean): void =>
         update((placement) => {
             if (!("kind" in placement)) return placement;
             const next = { ...placement };
@@ -231,18 +233,30 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                 <select
                     id="propKind"
                     title="Swap this module for another kind in the same space. Becoming or ceasing to be an engine turns it round, so what faced outboard still does."
-                    value={spec.kind}
+                    value={isRail(spec) ? RAIL_GUN : spec.kind}
                     onChange={(event) => {
-                        const to = event.target.value as ModuleKind;
+                        const value = event.target.value;
+                        const to = (value === RAIL_GUN ? "hullGun" : value) as ModuleKind;
                         // Every copy of a shared part is swapped, as any other edit to it is.
-                        update((placement) => ("kind" in placement ? refitModule(placement, to) : placement));
+                        update((placement) => {
+                            if (!("kind" in placement)) return placement;
+                            const { rail: _, ...rest } = placement.kind === to ? placement : refitModule(placement, to);
+                            return value === RAIL_GUN ? { ...rest, rail: true } : rest;
+                        });
                     }}
                 >
-                    {MODULE_KINDS.map((kind) => (
+                    {MODULE_KINDS.flatMap((kind) => [
                         <option key={kind} value={kind} disabled={fighter && (kind === "turret" || kind === "beamTurret")}>
                             {kindName(kind)}
-                        </option>
-                    ))}
+                        </option>,
+                        ...(kind === "hullGun"
+                            ? [
+                                  <option key={RAIL_GUN} value={RAIL_GUN}>
+                                      rail gun
+                                  </option>,
+                              ]
+                            : []),
+                    ])}
                 </select>
             </Field>
             <Field>
@@ -292,15 +306,22 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
             )}
             {readsBarrelCalibres(spec.kind) && (
                 <Field id="barrelCalibresRow">
-                    <label htmlFor="propBarrelCalibres">barrel cal</label>
+                    <label htmlFor="propBarrelCalibres">{isRail(spec) ? "barrel extension cal" : "barrel cal"}</label>
                     {box(
                         "barrelCalibres",
-                        {
-                            step: 1,
-                            min: 1,
-                            max: 100,
-                            title: "How long the barrels are, in calibres of the bore. Longer is a faster shell, with diminishing returns, and costs steel and traverse; on a hull gun it reaches out beyond the block that length and width size. Past 50 calibres a barrel needs bracing, which makes each calibre heavier, and nothing may be longer than 100.",
-                        },
+                        isRail(spec)
+                            ? {
+                                  step: 1,
+                                  min: 0,
+                                  max: 100,
+                                  title: "How far the rails reach out beyond the block, in calibres of the bore; zero keeps them on it. The rails run along the block too, from two calibres in from its back, and the whole run is the barrel: longer is a faster round, with diminishing returns. What reaches beyond the block is braced along its sides and carries the rails, so it is heavier than a powder gun's barrel.",
+                              }
+                            : {
+                                  step: 1,
+                                  min: 1,
+                                  max: 100,
+                                  title: "How long the barrels are, in calibres of the bore. Longer is a faster shell, with diminishing returns, and costs steel and traverse; on a hull gun it reaches out beyond the block that length and width size. Past 50 calibres a barrel needs bracing, which makes each calibre heavier, and nothing may be longer than 100.",
+                              },
                         (barrelCalibres) => patch({ barrelCalibres }),
                     )}
                     <Readout id="barrelMetres">{barrelReadout(spec)}</Readout>
@@ -430,18 +451,6 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                         title="A ring at the end of the bell that, powered, holds the jet straight: more thrust and a longer flame from the same fuel, for power drawn as it burns. It takes the end of the bell, so unpowered the engine aims its jet a little worse."
                         checked={isMagnetic(spec)}
                         onChange={(event) => flag("magnetic", event.target.checked)}
-                    />
-                </Field>
-            )}
-            {readsRail(spec.kind) && (
-                <Field id="railRow">
-                    <label htmlFor="propRail">rail gun</label>
-                    <input
-                        id="propRail"
-                        type="checkbox"
-                        title="Rails throw solid shot twice as fast as powder from the same barrel, drawing the shot's energy from this piece of hull's power as it reloads. It does not train: the hull aims it."
-                        checked={isRail(spec)}
-                        onChange={(event) => flag("rail", event.target.checked)}
                     />
                 </Field>
             )}

@@ -681,6 +681,22 @@ export const RAIL_SPEED = 2;
 /** The share of the charge a rail gun draws that reaches its round as kinetic energy. */
 export const RAIL_EFFICIENCY = 0.5;
 
+/** How far in from the back of its block a rail gun's rails start, in calibres. */
+export const RAIL_SETBACK_CALIBRES = 2;
+
+/** How much heavier a rail gun's barrel beyond its block is than a powder gun's, for the rails it carries. */
+export const RAIL_BARREL_MASS = 2;
+
+/**
+ * How long a rail gun's rails are, metres: along its block from
+ * `RAIL_SETBACK_CALIBRES` in from the back, and on out as far as its barrel
+ * reaches beyond the block.
+ */
+export function railLength(calibre: number, blockLength: number, extension: number): number {
+    const along = blockLength - RAIL_SETBACK_CALIBRES * calibre;
+    return (along > 0 ? along : 0) + extension;
+}
+
 /**
  * Loading cycle time per metre of calibre, seconds. A 16" gun manages a round
  * every 30 s and a 5" mount several times a minute; one number cannot honour
@@ -1757,8 +1773,10 @@ export function moduleProblem(spec: ModuleSpec): string | null {
     }
     if (spec.barrelCalibres !== undefined) {
         // Dormant on a kind that does not read it, as a bell is: only the range.
-        if (!(spec.barrelCalibres > 0) || !(spec.barrelCalibres <= MAX_BARREL_CALIBRES)) {
-            return `${spec.kind}: barrel must be more than 0 and at most ${MAX_BARREL_CALIBRES} calibres, got ${spec.barrelCalibres}`;
+        // A rail gun's says how far its rails reach beyond the block, which may be not at all.
+        const rail = isRail(spec);
+        if (!(rail ? spec.barrelCalibres >= 0 : spec.barrelCalibres > 0) || !(spec.barrelCalibres <= MAX_BARREL_CALIBRES)) {
+            return `${spec.kind}: barrel must be ${rail ? "at least" : "more than"} 0 and at most ${MAX_BARREL_CALIBRES} calibres, got ${spec.barrelCalibres}`;
         }
     }
     if (spec.traverse !== undefined && !(spec.traverse >= 0)) {
@@ -2697,14 +2715,17 @@ export function hullGunStats(spec: ModuleSpec): GunStats {
     const boreArea = PI * 0.25 * calibre * calibre;
     const roundMass = boreArea * (calibre * SHELL_CALIBRES) * SHELL_DENSITY;
     const rail = isRail(spec);
-    const muzzleEnergy = muzzleEnergyOf(calibre, calibres) * (rail ? RAIL_SPEED * RAIL_SPEED : 1);
+    // A rail gun's barrel is its whole run of rails, the stretch along its block included.
+    const run = rail ? railLength(calibre, blockLength, barrelLength) / calibre : calibres;
+    const muzzleEnergy = muzzleEnergyOf(calibre, run) * (rail ? RAIL_SPEED * RAIL_SPEED : 1);
     const muzzleSpeed = roundMass > 0 ? sqrt((2 * muzzleEnergy) / roundMass) : 0;
 
     return {
         type: GunType.Projectile,
         calibre,
         barrelLength,
-        braceLength: braceLengthOf(calibre, calibres),
+        // What reaches beyond a rail gun's block is braced all along its sides.
+        braceLength: rail ? barrelLength : braceLengthOf(calibre, calibres),
         braceWidth: BRACE_CALIBRES * calibre,
         barrelCount: outlets,
         barrelSpacing: outletSpacing,
@@ -3110,7 +3131,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
         if (spec.kind === "hullGun") {
             const outer = BARREL_OUTER_CALIBRES * gun.calibre;
             const section = PI * 0.25 * (outer * outer - gun.calibre * gun.calibre);
-            protrudingMass = section * gun.barrelLength * HULL_DENSITY;
+            protrudingMass = section * gun.barrelLength * HULL_DENSITY * (isRail(spec) ? RAIL_BARREL_MASS : 1);
             fittingMass = (protrudingMass + MECHANISM_MASS_PER_CALIBRE * gun.calibre) * gun.barrelCount + braceMass(gun);
         } else {
             protrudingMass = OPTIC_AREAL_DENSITY * PI * 0.25 * gun.calibre * gun.calibre;
