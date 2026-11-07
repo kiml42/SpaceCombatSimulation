@@ -138,6 +138,13 @@ export interface ShipView {
     turretLoad?: number[];
     turretReloading?: boolean[];
     /**
+     * How much lightning each mount shows, 0 to 1: a plasma lance's charge, which
+     * it leaks; nothing for any other mount. Absent, none.
+     */
+    turretSparks?: number[];
+    /** Seconds the lightning is drawn at, so it stands still when time does. */
+    sparkClock?: number;
+    /**
      * The band of ranges its doctrine closes to, centre to centre, against the
      * enemy it prefers, metres. Only a preview sets it.
      */
@@ -625,8 +632,10 @@ export function capture(
         const fouled = (view.turretFouled ??= []);
         const load = (view.turretLoad ??= []);
         const reloading = (view.turretReloading ??= []);
+        const sparks = (view.turretSparks ??= []);
         aim.length = trigger.length = triggerReach.length = fouled.length = design.turrets.length;
-        load.length = reloading.length = design.turrets.length;
+        load.length = reloading.length = sparks.length = design.turrets.length;
+        view.sparkClock = out.time;
         for (let t = 0; t < design.turrets.length; t++) {
             const ti = ships.turretIndexOf(i, t);
             view.turretBearings[t] = turrets.worldBearing(bodies, ti);
@@ -637,6 +646,7 @@ export function capture(
             fouled[t] = turrets.fouled(ti);
             load[t] = ships.loadOf(i, t);
             reloading[t] = ships.isReloading(i, t);
+            sparks[t] = design.modules[design.turrets[t]!.module]?.spec.kind === "plasmaLance" ? load[t]! : 0;
             view.turretDisabled[t] = ships.isTurretDisabled(i, t);
         }
 

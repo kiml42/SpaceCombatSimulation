@@ -4,7 +4,9 @@ import {
     Beams,
     BEAM_PLASMA,
     compileBlueprint,
+    LANCE_BASE_SHARE,
     LANCE_LEAK,
+    hullMountGeometry,
     LANCE_REACH_PER_METRE,
     LANCE_WORTH,
     moduleStats,
@@ -88,6 +90,12 @@ describe("a plasma lance", () => {
         expect(mountTraverse(lance())).toBe(0);
         const gun = moduleStats(lance()).gun!;
         expect(reachAgainst(gun, 10)).toBeCloseTo(gun.plasmaReach * LANCE_WORTH, 9);
+    });
+
+    it("fires from the back of the gap between its prongs", () => {
+        const spec = lance();
+        const g = hullMountGeometry(spec);
+        expect(g.trains + g.muzzle).toBeCloseTo(-spec.length / 2 + spec.length * LANCE_BASE_SHARE, 9);
     });
 
     it("falls off along its reach, to nothing at the end of it", () => {

@@ -680,8 +680,10 @@ inside any one file is not contiguous.
   what its stores cannot make up it loses. So each lance is built one of two ways (`ready`): kept charged,
   ready the moment it bears and paying for it, or charged only once it is on target, setting out uncharged
   and risking the target slipping away before it is full. It does not train, so the hull aims it, and it
-  welds on by its back and sides as any hull mount does. It is drawn as a base and two prongs with nubs
-  into the gap, lightning across the gap growing with its charge, and its pulse as a flame. The editor
+  welds on by its back and sides as any hull mount does. Its pulse leaves from the back of the gap between its prongs and runs the length of it. It is drawn as a
+  base and two prongs with nubs into the gap, lightning across the gap growing with its charge (in the editor
+  only while it is selected and shown firing), changing with the clock so it holds still when time does, and
+  its pulse as a flame. The editor
   offers it as a kind like any other; evolution draws it as one, at a hull beam's weight, and flips a lance
   between ready and not.
   **Two layers** (§3). Every module is in the hull layer. Turrets and anything marked *thick* stand up into

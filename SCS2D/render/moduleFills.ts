@@ -2,6 +2,7 @@ import {
     engineGeometry,
     hullMountGeometry,
     isHullMount,
+    LANCE_BASE_SHARE,
     RING_BAR_SHARE,
     shapeOf,
     type ModuleSpec,
@@ -21,8 +22,7 @@ import { BARE_TEAM, type Palette } from "./teams.js";
 
 /** How much of a claw's width each of its two jaws is drawn across. */
 export const CLAW_JAW_SHARE = 0.3;
-/** A plasma lance's base, as a share of its length, its prongs and their nubs as shares of its width and of a prong. */
-export const LANCE_BASE_SHARE = 0.25;
+/** A plasma lance's prongs, as a share of its width. */
 export const LANCE_PRONG_SHARE = 0.22;
 /** How far a nub reaches into the gap, as a share of half of it, and how wide it is, as a share of the space between nubs. */
 const LANCE_NUB_REACH = 0.3;

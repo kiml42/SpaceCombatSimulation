@@ -681,6 +681,9 @@ export const MAGNETIC_POWER_PER_EXIT_AREA = 2e5;
 /** Mass of a magnetic nozzle's ring, kg per square metre of exit. */
 export const MAGNETIC_MASS_PER_EXIT_AREA = 300;
 
+/** The share of a plasma lance's length its base takes, aft of the gap between its prongs. */
+export const LANCE_BASE_SHARE = 0.25;
+
 /** Seconds a plasma lance's pulse lasts. */
 export const LANCE_PULSE = 1;
 
@@ -1922,7 +1925,8 @@ export function moduleRadius(spec: ModuleSpec): number {
 
 /** Whether a kind has something reaching out of its block: a bell or a barrel. */
 function protrudes(kind: ModuleKind): boolean {
-    return kind === "engine" || isHullMount(kind);
+    // A plasma lance's prongs are the whole of it, with nothing out past them.
+    return kind === "engine" || (isHullMount(kind) && kind !== "plasmaLance");
 }
 
 /** How long an engine's bell is, metres: so many exit widths. */
@@ -2466,9 +2470,12 @@ function hullOutlets(spec: ModuleSpec): {
     const barrelWidth = (outlets - 1) * outletSpacing + outletWidth;
     // A gun's barrel is as many calibres as it says; a lens housing is as deep
     // as a turret's, since a shallower one is better in every way.
-    const barrelLength = isHullBeam(spec.kind)
-        ? outletWidth * BEAM_EMITTER_APERTURES
-        : (barrelCalibres(spec) * outletWidth) / BARREL_OUTER_CALIBRES;
+    const barrelLength =
+        spec.kind === "plasmaLance"
+            ? 0
+            : isHullBeam(spec.kind)
+              ? outletWidth * BEAM_EMITTER_APERTURES
+              : (barrelCalibres(spec) * outletWidth) / BARREL_OUTER_CALIBRES;
     const reach = isHullBeam(spec.kind) ? barrelLength * (1 + BEAM_STALK_SHARE) : barrelLength;
     return { outlets, outletWidth, outletSpacing, barrelWidth, barrelLength, reach };
 }
@@ -2506,7 +2513,13 @@ export function hullMountGeometry(spec: ModuleSpec): HullMountGeometry {
         barrelWidth,
         pivot,
         trains: isHullBeam(spec.kind) ? pivot + out - barrelLength * 0.5 : pivot,
-        muzzle: isHullBeam(spec.kind) ? barrelLength * 0.5 : barrelLength,
+        // A lance's pulse starts at the back of the gap between its prongs.
+        muzzle:
+            spec.kind === "plasmaLance"
+                ? -spec.length * 0.5 + spec.length * LANCE_BASE_SHARE - (pivot + out - barrelLength * 0.5)
+                : isHullBeam(spec.kind)
+                  ? barrelLength * 0.5
+                  : barrelLength,
         traverse: limit > 0 ? (limit < HULL_MAX_TRAVERSE ? limit : HULL_MAX_TRAVERSE) : 0,
     };
 }

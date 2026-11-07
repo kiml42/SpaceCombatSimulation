@@ -10,6 +10,7 @@ import {
     IMPACT_MUZZLE,
     IMPACT_ROUND,
     isHullMount,
+    LANCE_BASE_SHARE,
     UNPAINTED,
     math,
     nozzleOffset,
@@ -69,7 +70,6 @@ import {
     fillColour,
     isFighterModule,
     isFitted,
-    LANCE_BASE_SHARE,
     LANCE_PRONG_SHARE,
     moduleFills,
     padMark,
@@ -625,7 +625,7 @@ function drawShip(
 
         // A lance has no mount to draw over its module, only the field it is charging.
         if (spec.kind === "plasmaLance") {
-            drawSparks(ctx, ship, design.modules[module]!, ship.turretDisabled?.[t] === true ? 0 : (ship.turretLoad?.[t] ?? 1));
+            drawSparks(ctx, ship, t, design.modules[module]!);
             drawLoad(ctx, ship, t, mx, my, bearing);
             continue;
         }
@@ -1595,26 +1595,38 @@ export function plumeReach(ship: ShipView): number {
 const MAX_SPARKS = 7;
 /** Kinks in each spark. */
 const SPARK_KINKS = 4;
+/** How many times a second the lightning changes shape. */
+const SPARK_RATE = 12;
 const SPARK = "rgba(170, 220, 255, 0.9)";
+
+/** A number in [0, 1) that depends on its three arguments alone. */
+function sparkNoise(a: number, b: number, c: number): number {
+    let h = Math.imul(a | 0, 0x27d4eb2d) ^ Math.imul(b | 0, 0x165667b1) ^ Math.imul(c | 0, 0x9e3779b1);
+    h = Math.imul(h ^ (h >>> 15), 0x85ebca6b);
+    h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
 
 /**
  * Lightning between a plasma lance's prongs, none when it is empty and more as
- * it fills: it leaks what it holds, and this is the leak. Drawn afresh each
- * frame, so it flickers.
+ * it fills: it leaks what it holds, and this is the leak. Its shape follows the
+ * ship's spark clock, so it holds still while time does and while the view moves.
  */
 function drawSparks(
     ctx: CanvasRenderingContext2D,
     ship: ShipView,
+    t: number,
     module: { x: number; y: number; angle: number; spec: ModuleSpec },
-    load: number,
 ): void {
-    const count = Math.round(load * load * MAX_SPARKS);
+    const charge = ship.turretDisabled?.[t] === true ? 0 : (ship.turretSparks?.[t] ?? 0);
+    const count = Math.round(charge * charge * MAX_SPARKS);
     if (count === 0) return;
     const { spec } = module;
     const l = spec.length / 2;
     const w = spec.width / 2;
     const from = -l + spec.length * LANCE_BASE_SHARE;
     const edge = w - spec.width * LANCE_PRONG_SHARE;
+    const frame = Math.floor((ship.sparkClock ?? 0) * SPARK_RATE);
     ctx.save();
     ctx.translate(ship.x, ship.y);
     ctx.rotate(ship.angle);
@@ -1624,10 +1636,10 @@ function drawSparks(
     ctx.lineWidth = spec.width * 0.03;
     ctx.beginPath();
     for (let k = 0; k < count; k++) {
-        const x = from + Math.random() * (l - from);
+        const x = from + sparkNoise(frame, t, k * SPARK_KINKS) * (l - from);
         ctx.moveTo(x, -edge);
         for (let j = 1; j < SPARK_KINKS; j++) {
-            ctx.lineTo(x + (Math.random() - 0.5) * edge, -edge + (2 * edge * j) / SPARK_KINKS);
+            ctx.lineTo(x + (sparkNoise(frame, t, k * SPARK_KINKS + j) - 0.5) * edge, -edge + (2 * edge * j) / SPARK_KINKS);
         }
         ctx.lineTo(x, edge);
     }
@@ -3971,6 +3983,8 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
             ctx.lineTo(x0 + dx, y0 + dy);
             ctx.stroke();
         }
+        // A pulse of hot gas lights what is round it as a flame does, not as an emitter.
+        if (flame !== null) continue;
         const halo = BEAM_GLOW_WIDTHS * calibre;
         lights.point(
             base,
