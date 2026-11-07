@@ -1010,6 +1010,13 @@ export class Ships {
         return min(1, this.fuel.held(bodyIndex, module) / (FUEL_DENSITY * interiorVolume(stats)));
     }
 
+    mountBearing(bodyIndex: number, turret: number): number {
+        const i = this.shipByBody[bodyIndex];
+        if (i === undefined || i < 0 || this.alive[i] !== 1 || this.designs[i] !== this.hullDesign[bodyIndex]) return NaN;
+        const index = this.turretIndex[i]?.[turret];
+        return index === undefined ? NaN : this.turrets.bearing[index]!;
+    }
+
     designOf(bodyIndex: number): ShipDesign | null {
         const design = this.hullDesign[bodyIndex];
         if (design === undefined || design === null) return null;

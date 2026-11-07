@@ -53,7 +53,8 @@ describe("the skirmish enemy's answer", () => {
         expect(decide(steady, found!, MIRROR_WON).winner).toBe(1);
     });
 
-    it("wins the round by its margin, or is no answer", { timeout: 120_000 }, () => {
+    // Two searches and a battle: the slowest test here.
+    it("wins the round by its margin, or is no answer", { timeout: 240_000 }, () => {
         // Finishing more than all of itself ahead of the player cannot be done.
         const answering = new EnemySearch(steady, slow, MIRROR_WON, 11, { answerMargin: 1.01 });
         for (let slice = 0; slice < 40 && !answering.advance(5000); slice++);

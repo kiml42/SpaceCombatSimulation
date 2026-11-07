@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compileBlueprint, DAMAGE_ENERGY_PER_KG, type ModuleSpec, type ShipDesign, type Ships } from "../sim/index.js";
+import { compileBlueprint, DAMAGE_ENERGY_PER_KG, hullMountGeometry, type ModuleSpec, type ShipDesign, type Ships } from "../sim/index.js";
 import { makeBattle } from "../scenarios/battle.js";
 import { CORVETTE, GUNSHIP, SCAVENGER } from "../scenarios/blueprints.js";
 import type { World } from "../sim/world.js";
@@ -83,6 +83,24 @@ describe("a pilot with a claw", () => {
         for (let s = 0; s < 120; s++) run.step();
         expect(ownFuel(run)).toBeGreaterThan(held);
         expect(ownFuel(run)).toBeGreaterThan(before);
+    });
+
+    it("takes a wreck bow on by something other than its gun's barrels", () => {
+        const gun = corvette.modules.findIndex((m) => m.spec.kind === "hullGun");
+        const mount = corvette.modules[gun]!;
+        const muzzleSide = mount.x + hullMountGeometry(mount.spec).pivot;
+        // Its bow, and the gun on it, towards the scavenger.
+        const run = scene(scavenger(0.5), 15_000, [[0, 0]], (_ships, world) => {
+            world.bodies.angle[1] = PI;
+        });
+        const grip = run.ships as unknown as { gripModule: number[]; gripX: number[] };
+        let onBarrels = 0;
+        for (let s = 0; s < 90 * 60 && !holding(run, run.wrecks[0]!); s++) {
+            run.step();
+            if (grip.gripModule[run.a] === gun && grip.gripX[run.a]! > muzzleSide + 1e-6) onBarrels++;
+        }
+        expect(holding(run, run.wrecks[0]!)).toBe(true);
+        expect(onBarrels).toBe(0);
     });
 
     it("lets go full, and leaves what is left", () => {

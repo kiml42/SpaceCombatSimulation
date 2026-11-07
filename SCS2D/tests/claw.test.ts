@@ -55,7 +55,7 @@ interface Setup {
     live?: boolean;
 }
 
-/** A dry leech drifting bow first into a corvette at `closing` m/s. */
+/** A dry leech drifting bow first into a corvette's stern at `closing` m/s: its bow is all gun barrel, which no claw closes on. */
 function approach(closing: number, setup: Setup = {}): ReturnType<typeof makeBattle<{ a: number; b: number }>> {
     return makeBattle({ seed: 1, pilots: false }, (ships, world) => {
         const gap = leech.radius + corvette.radius + 1;
@@ -64,7 +64,7 @@ function approach(closing: number, setup: Setup = {}): ReturnType<typeof makeBat
             design: corvette,
             x: gap / 2,
             y: 0,
-            angle: Math.PI,
+            angle: 0,
             vx: -closing / 2,
             team: setup.friend === true ? 0 : 1,
         });
