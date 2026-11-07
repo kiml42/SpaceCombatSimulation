@@ -546,9 +546,20 @@ export function squareUp(ships: Ships, bodies: Bodies, i: number, b: number, tb:
             closing = -(wantX * nx + wantY * ny);
         }
     }
+    // What is flown is the middle, so less the jaws' own swing about it as it turns.
+    const turn = bodies.angularVel[b]!;
+    const reachX = tipX - bodies.x[b]!;
+    const reachY = tipY - bodies.y[b]!;
     // Held against the source's pull rather than lagging behind it.
     wellPullOn(ships, bodies, b, tb);
-    shipFlight.urge(ships, URGE_REFERENCE, vx + wantX, vy + wantY, nx * slowing - ships.partAt.x, ny * slowing - ships.partAt.y);
+    shipFlight.urge(
+        ships,
+        URGE_REFERENCE,
+        vx + wantX + turn * reachY,
+        vy + wantY - turn * reachX,
+        nx * slowing - ships.partAt.x,
+        ny * slowing - ships.partAt.y,
+    );
     return closing;
 }
 
