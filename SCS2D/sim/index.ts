@@ -85,6 +85,8 @@ export {
     hullBeamStats,
     hullGunStats,
     hullMountGeometry,
+    BEAM_STALK_WIDTH,
+    lensDiscRadius,
     isHullMount,
     countsOutlets,
     readsNozzle,
@@ -419,7 +421,7 @@ export {
 } from "./fleetHulls.js";
 export { Turrets, FiringSolution, interceptTime, masked, type TurretSpec } from "./turrets.js";
 export { Ships, NEUTRAL_TEAM, slotKey, NO_TARGET, CLAW_RETRY, type Order, type ShipSpec } from "./ships.js";
-export { CLAW_BITE, CLAW_GRIP_CHANCE, clawChance, onWeldablePart } from "./shipWeld.js";
+export { CLAW_BITE, CLAW_GRIP_CHANCE, clawChance } from "./shipWeld.js";
 export { PAD_SPEED } from "./shipDocking.js";
 export { shellOf } from "./rebuild.js";
 export { CLAW_SPEED_HIGH, CLAW_SPEED_LOW, CLAW_SPEED_MAX } from "./shipClaw.js";

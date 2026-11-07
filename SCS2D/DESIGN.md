@@ -1286,7 +1286,8 @@ inside any one file is not contiguous.
   asteroid an enemy has hold of. **It comes in square to the surface** (`chooseGrip`, `squareUp`): it
   picks a point on an outside face of its source facing it, preferring one wide enough for its jaws and
   with room out in front of it, four of its radii deep and its width across, so not the floor of a notch;
-  keeps it in the source's frame, so it turns with a tumbling wreck, and looks again each second while
+  never a hull mount's barrels or lenses, nor the face of its block they stand on, which a claw does not
+  close on (`Contacts.outlet`), so it goes round to another face; keeps it in the source's frame, so it turns with a tumbling wreck, and looks again each second while
   still well out, or once the face's module is spent. It makes for a gate a radius out along the face's
   normal, its jaws on the source's middle until near and then turned on to the face, and once on that
   line and square to the face closes straight in down a stopping curve, all moving as that point of the
@@ -1904,9 +1905,10 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   plain ascending order, which keeps damage application order reproducible.
 - **Weld on slow contact** (`Ships.weld`, built). A module at or under `RAGGED_INTEGRITY` has ragged edges,
   and two bodies closing at under `WELD_SPEED` hook together if either touching module is ragged and
-  neither has parted within `WELD_SETTLE`, unless the contact is on a hull mount's barrel (`onWeldablePart`): a
-  stop-gap, as a barrel still collides as the rest of its module's rectangle rather than where it is drawn. An
-  engine's bell does weld, though a layout is never attached by one, as debris can snag on it. They merge into
+  neither has parted within `WELD_SETTLE`. A hull mount collides as it is drawn — its block, and a gun's
+  barrels where they point now or a beam's lenses on their discs and stalks — and nothing welds to a barrel or
+  a lens: they do not tear in a way that hooks, and what welded to one would be left behind, fixed to the hull,
+  when it trained away. What touches one welds, if at all, where it comes to rest on something else. An engine's bell does weld, though a layout is never attached by one, as debris can snag on it. They merge into
   one body, momentum and angular momentum kept, with their designs joined by a **seam** (`ShipDesign.seams`)
   a `HOOK_SHARE` of the narrower face wide. A seam tears like any weld, but carries no command. This makes
   wreckage into larger chunks worth chasing down and harvesting, instead of lots of tiny fragments.

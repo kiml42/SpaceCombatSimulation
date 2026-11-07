@@ -2,6 +2,8 @@ import {
     approachesOf,
     approachTurn,
     hullMountGeometry,
+    BEAM_STALK_WIDTH,
+    lensDiscRadius,
     IMPACT_BEAM,
     IMPACT_BURST,
     IMPACT_EXIT,
@@ -643,7 +645,7 @@ function drawShip(
             // Each lens on a disc of its own that it turns on, as wide as the lens
             // sweeps, and a stalk back from it to the block's face.
             const back = hull.trains - hull.pivot;
-            const radius = 0.5 * sqrt(hull.barrelLength * hull.barrelLength + hull.outletWidth * hull.outletWidth);
+            const radius = lensDiscRadius(hull);
             const restX = cos(rest);
             const restY = sin(rest);
             for (let k = 0; k < count; k++) {
@@ -656,7 +658,7 @@ function drawShip(
                 ctx.save();
                 ctx.translate(cx, cy);
                 ctx.rotate(rest);
-                ctx.fillRect(-back, -hull.outletWidth * 0.3, back, hull.outletWidth * 0.6);
+                ctx.fillRect(-back, -hull.outletWidth * BEAM_STALK_WIDTH * 0.5, back, hull.outletWidth * BEAM_STALK_WIDTH);
                 ctx.restore();
             }
         }
