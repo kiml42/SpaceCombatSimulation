@@ -8,7 +8,7 @@ import {
     moduleProblem,
     railLength,
     RAIL_BANK_POWER_PER_VOLUME,
-    RAIL_BANK_ENERGY_PER_VOLUME,
+    railBankEnergy,
     RAIL_BANK_MASS_PER_VOLUME,
     moduleThickness,
     RAIL_SETBACK_CALIBRES,
@@ -106,26 +106,40 @@ describe("a rail gun", () => {
         expect(moduleStats(hullGun({ length: 13, width: 4, barrelCalibres: 10 })).gun!.cycleTime).toBeLessThan(gun.cycleTime);
     });
 
-    it("fires no more than its bank holds, so too small a block fires a weaker shot", () => {
-        // 20 m of rails in all, the block's share of it varied.
-        const gun = (block: number) => moduleStats(railGun({ length: block, width: 4, barrelCalibres: (20 - block) / 0.4 })).gun!;
-        const bank = (block: number) => {
-            const spec = railGun({ length: block, width: 4, barrelCalibres: (20 - block) / 0.4 });
-            return RAIL_BANK_ENERGY_PER_VOLUME * hullMountGeometry(spec).blockLength * spec.width * moduleThickness(spec);
+    it("takes the bore whose full shot its bank holds, which more barrel narrows", () => {
+        const at = (extension: number) => {
+            const spec = railGun({ length: 10, width: 4, barrelCalibres: extension });
+            return { gun: moduleStats(spec).gun!, spec };
         };
-        expect(shotCharge(gun(4))).toBeCloseTo(bank(4), 0);
-        expect(gun(4).muzzleSpeed).toBeLessThan(gun(18).muzzleSpeed);
-        expect(shotCharge(gun(18))).toBeLessThan(bank(18));
+        const mid = at(20);
+        const long = at(40);
+        // Every joule of its bank, and no more.
+        expect(shotCharge(mid.gun) / railBankEnergy(mid.spec, mid.gun.calibre)).toBeCloseTo(1, 6);
+        expect(shotCharge(long.gun) / railBankEnergy(long.spec, long.gun.calibre)).toBeCloseTo(1, 6);
+        // A longer gun throws a lighter shot faster, for much the same energy.
+        expect(long.gun.calibre).toBeLessThan(mid.gun.calibre);
+        expect(long.gun.muzzleSpeed).toBeGreaterThan(mid.gun.muzzleSpeed);
+        expect(shotCharge(long.gun) / shotCharge(mid.gun)).toBeCloseTo(1, 1);
+    });
+
+    it("is held to the bore its opening takes, using less than its bank holds", () => {
+        const spec = railGun({ length: 10, width: 4, barrelCalibres: 0 });
+        const gun = moduleStats(spec).gun!;
+        expect(gun.calibre).toBeCloseTo(hullMountGeometry(spec).outletWidth / 2, 9);
+        expect(shotCharge(gun)).toBeLessThan(railBankEnergy(spec, gun.calibre));
     });
 
     it("weighs the same in rails for the same run of them, and its bank on top", () => {
-        const mass = (block: number, extension: number) =>
-            moduleStats(railGun({ length: block, width: 4, barrelCalibres: extension / 0.4 })).mass;
+        // Short guns, so the bore is held at the opening's and the same in each.
+        const stats = (block: number, extension: number) =>
+            moduleStats(railGun({ length: block, width: 4, barrelCalibres: extension / 0.4 }));
+        expect(stats(7, 1).gun!.calibre).toBeCloseTo(stats(6, 2).gun!.calibre, 9);
+        const mass = (block: number, extension: number) => stats(block, extension).mass;
         // Moving a metre from extension into block adds a metre of block, less the
         // metre of rails that only moved: its hull and its bank, and no more.
-        const moved = mass(11, 9) - mass(10, 10);
-        const blockMetre = mass(11, 0) - mass(10, 0);
-        const railMetre = mass(10, 1) - mass(10, 0);
+        const moved = mass(7, 1) - mass(6, 2);
+        const blockMetre = mass(7, 0) - mass(6, 0);
+        const railMetre = mass(6, 1) - mass(6, 0);
         expect(moved).toBeCloseTo(blockMetre - railMetre, 0);
         expect(moved).toBeGreaterThan(RAIL_BANK_MASS_PER_VOLUME * 4 * moduleThickness(railGun({ width: 4 })) * 0.99);
     });

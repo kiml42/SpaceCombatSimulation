@@ -3,6 +3,7 @@ import {
     BeamHits,
     Beams,
     BEAM_PLASMA,
+    CAPACITOR_ENERGY_PER_VOLUME,
     compileBlueprint,
     LANCE_BASE_SHARE,
     LANCE_LEAK,
@@ -10,9 +11,11 @@ import {
     LANCE_REACH_PER_METRE,
     LANCE_WORTH,
     moduleStats,
+    moduleThickness,
     mountTraverse,
     parseBlueprint,
     Projectiles,
+    RAIL_BANK_SHARE,
     serialiseBlueprint,
     Ships,
     shotCharge,
@@ -84,6 +87,13 @@ describe("a plasma lance", () => {
         expect(long.plasmaReach - base.plasmaReach).toBeCloseTo(LANCE_REACH_PER_METRE * 6, 9);
         expect(shotCharge(long)).toBeGreaterThan(shotCharge(base));
         expect(shotFuel(long)).toBeCloseTo(shotFuel(base), 9);
+    });
+
+    it("holds a pulse in its base, on the share of the capacitors a rail gun's block gives its bank", () => {
+        for (const spec of [lance(), lance({ width: 6 }), lance({ length: 30, width: 1 })]) {
+            const base = LANCE_BASE_SHARE * spec.length * spec.width * moduleThickness(spec);
+            expect(shotCharge(moduleStats(spec).gun!)).toBeLessThan(CAPACITOR_ENERGY_PER_VOLUME * RAIL_BANK_SHARE * base);
+        }
     });
 
     it("does not train, and is worth firing only well inside its reach", () => {
