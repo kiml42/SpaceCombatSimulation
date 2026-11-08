@@ -1796,10 +1796,11 @@ let inScene = false;
 function drawJetRing(ctx: CanvasRenderingContext2D, ring: JetRing): void {
     ctx.save();
     ctx.setTransform(ring.m.a, ring.m.b, ring.m.c, ring.m.d, ring.m.e, ring.m.f);
+    // Its fill in the battle's light too, as a hull's is.
+    if (ring.light !== undefined) inLight(ctx, ring.light);
     ctx.fillStyle = ring.hull;
     ctx.fillRect(ring.x, -ring.span / 2, ring.thickness, ring.span);
     if (ring.light !== undefined) {
-        inLight(ctx, ring.light);
         shadeRing(ctx, ring.x, ring.span, ring.thickness, ring.angle, ring.light);
         ctx.restore();
     }
