@@ -14,7 +14,8 @@ function clear(blueprint: Blueprint): number {
  * switch changes the random numbers drawn for everything after it.
  */
 describe("copying an engine", () => {
-    it("puts the copy beside it, firing the same way, so no clear flame is ever blocked by it", { timeout: 240_000 }, () => {
+    // Over two minutes alone, so a loaded CI runner needs room beyond that.
+    it("puts the copy beside it, firing the same way, so no clear flame is ever blocked by it", { timeout: 480_000 }, () => {
         // A copy bolted on pointing out of a face sat in its original's flame when
         // that face was the bell's: most copied engines stacked up end to end.
         let copies = 0;
