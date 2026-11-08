@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Bodies } from "../sim/bodies.js";
 import { Collisions, Contacts, OUTLET_A, RESTITUTION, ROCK_DAMPING, Stab, findContacts, resolveContacts } from "../sim/collision.js";
-import { compileBlueprint, hullMountGeometry, rockModule, type ShipDesign } from "../sim/index.js";
+import { bodySpec, compileBlueprint, hullMountGeometry, rockModule, type ShipDesign } from "../sim/index.js";
 import { OWN_LAYERS, WEAPONS_LAYER, type HullDesigns } from "../sim/hull.js";
 import { CORVETTE, DINKY, SALVAGER } from "../scenarios/blueprints.js";
 import { ram } from "../scenarios/ram.js";
@@ -18,15 +18,37 @@ import { ram } from "../scenarios/ram.js";
 const corvette: ShipDesign = compileBlueprint(CORVETTE);
 const dinky: ShipDesign = compileBlueprint(DINKY);
 
+/** How far the corvette's hull reaches behind its centre of mass (`stern`) and ahead of it (`nose`). */
+function extent(design: ShipDesign): { stern: number; nose: number } {
+    let stern = 0;
+    let nose = 0;
+    for (const m of design.modules) {
+        const s = bodySpec(m.spec);
+        const c = Math.cos(m.angle);
+        const n = Math.sin(m.angle);
+        for (const [u, v] of [
+            [1, 1],
+            [1, -1],
+            [-1, 1],
+            [-1, -1],
+        ] as const) {
+            const x = m.x + ((u * s.length) / 2) * c - ((v * s.width) / 2) * n;
+            if (-x > stern) stern = -x;
+            if (x > nose) nose = x;
+        }
+    }
+    return { stern, nose };
+}
+
 /**
- * The corvette runs from x = -14.5 to x = +17 and is 16 m across, inside a
- * bounding circle of 17.1 m. So two of them nose to tail are clear at 31.5 m
- * apart and overlapping at anything less, and two abeam at 20 m have circles
- * that overlap by a good margin with four metres of vacuum between the hulls.
+ * The corvette is 16 m across, inside a bounding circle of about 17 m, and
+ * about 31.5 m long. So two of them nose to tail are clear at its length apart
+ * and overlapping at anything less, and two abeam at 20 m have circles that
+ * overlap by a good margin with four metres of vacuum between the hulls.
  */
-const NOSE_TO_TAIL = 31.5;
+const NOSE_TO_TAIL = extent(corvette).stern + extent(corvette).nose;
 /** How far the corvette's stern is behind its centre. */
-const TAIL = 14.5;
+const TAIL = extent(corvette).stern;
 
 interface Ship {
     design: ShipDesign;

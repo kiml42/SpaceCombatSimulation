@@ -78,7 +78,7 @@ describe("a kernel riding its rail", () => {
         }
     });
 
-    it("turns back a ship flown into it, takes no harm, and stays put", () => {
+    it("stops a ship flown into it, takes no harm, and stays put", () => {
         const well = { x: 0, y: 0, gm: 0 };
         const run = makeBattle({ seed: 1, wells: [well], pilots: false }, (ships, world, wells) => {
             const rock = ships.spawn(world, {
@@ -94,9 +94,14 @@ describe("a kernel riding its rail", () => {
         const ship = b.indexOf(run.ships.body(run.ship));
         for (let t = 0; t < 900; t++) run.step();
         expect(run.totalContacts).toBeGreaterThan(0);
-        expect(b.vx[ship]).toBeLessThan(0);
-        expect(b.x[rock]).toBe(0);
-        expect(b.y[rock]).toBe(0);
+        // A ram, not a bounce: most of its 40 m/s is gone, whichever way what is left points.
+        expect(Math.abs(b.vx[ship]!)).toBeLessThan(4);
+        // Its kernel stays on its well, though wreckage lodged against it moves its body's middle.
+        const kernel = run.ships.designs[run.rock]!.modules.find((m) => m.spec.kind === "kernel")!;
+        const c = Math.cos(b.angle[rock]!);
+        const s = Math.sin(b.angle[rock]!);
+        expect(b.x[rock]! + kernel.x * c - kernel.y * s).toBeCloseTo(0, 9);
+        expect(b.y[rock]! + kernel.x * s + kernel.y * c).toBeCloseTo(0, 9);
         expect(run.ships.damage.integrity(rock, 0)).toBe(1);
     });
 });
