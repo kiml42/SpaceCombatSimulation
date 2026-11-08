@@ -547,7 +547,10 @@ describe("an enemy hooked to a friend", () => {
             const consort = world.bodies.indexOf(ships.body(2));
             for (let h = 0; h < run.credit.count; h++) {
                 if (run.credit.attacker[h] !== consort) continue;
-                if (ships.pilotAt(run.credit.victim[h]!, run.credit.module[h]!) === 0) onFriend++;
+                // The friend's own modules come first in the merged hull: the clinger's,
+                // once its core is gone, are the friend's to command but still its wreck.
+                const m = run.credit.module[h]!;
+                if (m < gunship.modules.length && ships.pilotAt(run.credit.victim[h]!, m) === 0) onFriend++;
             }
         }
         expect(targeted).toBe(true);

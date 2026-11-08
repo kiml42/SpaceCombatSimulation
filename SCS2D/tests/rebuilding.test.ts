@@ -238,7 +238,11 @@ describe("robots rebuilding", () => {
         const k = all.findIndex((j) => (j.a === FIN && j.b === HOLD) || (j.a === HOLD && j.b === FIN));
         run.ships.damage.cutWeld(b, k, all[k]!.width * 2);
         run.step();
-        // The fin that came off is still where it was.
+        // The fin that came off is still where it was, lifted clear of the hold so
+        // nothing touches for the robots to salvage, but still filling its place.
+        for (let j = 0; j < run.world.bodies.highWater; j++) {
+            if (j !== body(run) && run.world.bodies.alive[j] === 1) run.world.bodies.y[j] = run.world.bodies.y[j]! + 0.3;
+        }
         runUntil(run, () => false, 120);
         expect(find(run, FIN)).toBe(-1);
         // Anything hurt meanwhile is mended, though nothing is built.

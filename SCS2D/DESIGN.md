@@ -706,6 +706,24 @@ inside any one file is not contiguous.
   fleet thrust: their engines are wide and short, which is a bad bell, and a corvette lost 3% of its
   acceleration and a fighter 19%. That is the law being right about hulls drawn before it existed — the
   answer for them is a cluster of small bells, which is a change to the ships rather than to the law.
+  **An engine may have a magnetic nozzle** (`magnetic`): a ring at the end of its bell that, powered, holds
+  the jet straight, so none of it is thrown sideways. The ring adds no energy (the drive already carries
+  gigawatts, which no generator could add to); it aims what is there, so a powered magnetic engine pushes
+  and runs as though its bell were perfect, and its field holds the flame together past the ring, which a
+  bell's walls cannot: it reaches `MAGNETIC_PLUME_REACH` (1.5) times as far as the same bell's would aimed
+  perfectly. That makes a short bell, and the flow and mass it saves, worth having. The ring draws `MAGNETIC_POWER_PER_EXIT_AREA`
+  (0.2 MW/m²) at full throttle, as thrust's claim on charge: a fighter's core runs its main engine's ring,
+  and a capital's mains want generators of their own. Short of power the jet leaves aimed only as well as
+  the bell aims it. The ring and the gap before it take the bell's last three fifths (`RING_SHARE`), so the bell
+  proper is short, and thin bars beside each nozzle carry the ring, running back past the bell and the chamber
+  to the machinery block, or to the engine's front where it has none, and taking nothing off its exit. So
+  unpowered it aims a little worse than a plain bell of the same length. The ring weighs
+  `MAGNETIC_MASS_PER_EXIT_AREA` (300 kg/m² of exit), which the bell it shortens mostly pays for. It is
+  drawn as a short bell, the bars, the exhaust running full width and undimmed through the gap, and the
+  ring across the engine's whole width at its aft edge, over the exhaust, ring and bars in the hull's
+  colour, the ring shaded round the jet and the bars as rods; its bell is drawn only as wide as leaves the
+  bars room, since the field and not the bell aims the jet, with the same throat and flow; the editor shows
+  its power and its unpowered share, and evolution adds and removes it.
   **A fleet is a file too**: its designs embedded whole, its ships placed in the fleet's own frame, and
   named groups of ships — reflected, turned, nested and repeated in rows and arcs as a ship's assemblies
   are — flattened to a plain list on load, so nothing past the parser knows groups exist. A battle is built from fleets round a ring, one team each, with no orders;
@@ -818,10 +836,11 @@ inside any one file is not contiguous.
   it out. A core's complexity is 8 for its computing, and 1 more for fuel, 1 for a hold, 4 for a generator
   and 2 for a battery, so a fighter's bare core is half a full one's. Each engine has an exhaust velocity:
   `EXHAUST_VELOCITY`, less what its bell throws sideways (`divergence`) and what a small throat loses to its
-  walls — about 1,900 s of specific impulse on a capital's main engine and 1,650 s on a fighter's, and
+  walls. **A bell weighs its sheet**, `BELL_MASS_PER_AREA` (50 kg/m²) of wall with coolant channels through
+  it, so a long bell costs mass as well as the flow it takes from the machinery — about 1,900 s of specific impulse on a capital's main engine and 1,650 s on a fighter's, and
   never under 700 s. **An engine with a throat under `PRESSURE_FED_THROAT` (0.25 m), or a block shorter than
   `PRESSURE_FED_BLOCK` (0.25 m), is pressure-fed**, with no room for pumps: it passes half the flow (`PRESSURE_FED_FLOW`), so half
-  the thrust, leaves at three-quarters of the exhaust velocity (`PRESSURE_FED_EXHAUST`), its machinery weighs half a pumped one's (`PRESSURE_FED_MASS`),
+  the thrust, leaves at three-quarters of the exhaust velocity (`PRESSURE_FED_EXHAUST`), its machinery weighs half a pumped one's (`PRESSURE_FED_MASS`), its bell three fifths (`PRESSURE_FED_BELL`), being bare sheet with no pump to drive coolant through it,
   and it is complexity 1 rather than 4 — a step rather than a slope, so a thruster is a different thing from a small
   main engine. It burns the gas it throws over that, throttle by throttle, from the tanks on its own
   piece of hull, in proportion to their size so that tanks starting full run dry together; tanks are

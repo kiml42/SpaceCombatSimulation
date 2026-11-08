@@ -43,6 +43,7 @@ import {
     firesShells,
     MAX_FRAGMENTS,
     readsFuse,
+    readsMagnetic,
     readsSealing,
     readsDrainPriority,
     readsFill,
@@ -772,7 +773,17 @@ type SwitchKnob =
     | { readonly at: "scale" }
     | {
           readonly at:
-              "kind" | "barrels" | "weapon" | "main" | "thick" | "drainPriority" | "shape" | "solid" | "craftAngle" | "buildAnchored";
+              | "kind"
+              | "barrels"
+              | "weapon"
+              | "main"
+              | "thick"
+              | "magnetic"
+              | "drainPriority"
+              | "shape"
+              | "solid"
+              | "craftAngle"
+              | "buildAnchored";
           readonly site: ModuleSite;
       }
     | { readonly at: "mirror"; readonly site: InstanceSite }
@@ -906,6 +917,7 @@ function switches(draft: Draft): SwitchKnob[] {
         // A box with two free faces can lose the corner between them.
         if (canShape(spec.kind) && !isShaped(spec)) out.push({ at: "shape", site });
         if (canThicken(spec)) out.push({ at: "thick", site });
+        if (readsMagnetic(spec.kind)) out.push({ at: "magnetic", site });
         if (readsDrainPriority(spec.kind)) out.push({ at: "drainPriority", site });
         // The outlet count divides a hull mount's opening between more of them,
         // and an engine's are counted by the same field a gun's barrels are.
@@ -940,6 +952,7 @@ function switchWeight(knob: SwitchKnob, { build }: MutationLimits): number {
             return build.shape;
         case "barrels":
         case "thick":
+        case "magnetic":
         case "craftAngle":
         case "buildAnchored":
             return build.fittings;
@@ -965,6 +978,8 @@ function flip(knob: SwitchKnob, draft: Draft, rng: Rng, bounds: MutationLimits):
             return cutCorner(knob.site);
         case "thick":
             return thicken(knob.site);
+        case "magnetic":
+            return magnetise(knob.site);
         case "drainPriority":
             return reprioritise(knob.site, rng);
         case "barrels":
@@ -1614,6 +1629,14 @@ function thicken(site: ModuleSite): string {
     if (was) delete site.spec.thick;
     else site.spec.thick = true;
     return `${site.where} ${site.spec.kind}: made ${was ? "thin" : "thick"}`;
+}
+
+/** Give an engine a magnetic nozzle, or take it away. */
+function magnetise(site: ModuleSite): string {
+    const was = site.spec.magnetic === true;
+    if (was) delete site.spec.magnetic;
+    else site.spec.magnetic = true;
+    return `${site.where} ${site.spec.kind}: ${was ? "lost its" : "given a"} magnetic nozzle`;
 }
 
 function turnModule(site: ModuleSite, rng: Rng, bounds: MutationLimits, weight: number): string | null {

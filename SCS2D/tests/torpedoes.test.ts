@@ -45,7 +45,7 @@ describe("a salvo of torpedoes", () => {
 });
 
 describe("a torpedo's last seconds", () => {
-    /** Over five salvoes, how many torpedoes reach the gunship, and how many are still flying having missed it. */
+    /** Over fifteen salvoes, how many torpedoes reach the gunship, and how many are still flying having missed it. */
     const salvoes = (ramSettle: number): { hit: number; missed: number } => {
         const torpedo: Blueprint = {
             ...TORPEDO,
@@ -56,7 +56,8 @@ describe("a torpedo's last seconds", () => {
         };
         let hit = 0;
         let missed = 0;
-        for (const seed of [20260905, 1, 2, 3, 4]) {
+        // Enough seeds that the margin does not hang on a handful of salvoes.
+        for (const seed of [20260905, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]) {
             const battle = torpedoes(seed, 12, undefined, torpedo);
             const ships = battle.ships;
             const reached = new Set<number>();

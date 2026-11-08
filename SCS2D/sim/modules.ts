@@ -207,6 +207,20 @@ export const PRESSURE_FED_BLOCK = 0.25;
 /** A pressure-fed engine's machinery mass, as a share of a pumped one's: a chamber and injectors, no pumps. */
 export const PRESSURE_FED_MASS = 0.5;
 
+/** Mass of an engine's bell, kg per square metre of its wall: sheet with coolant channels through it. */
+export const BELL_MASS_PER_AREA = 50;
+
+/** A pressure-fed bell's mass as a share of a pumped one's: with no pump to drive coolant through it, it is bare sheet. */
+export const PRESSURE_FED_BELL = 0.6;
+
+/** The wall area of an engine's bells, m²: each a square-sectioned flare from its throat to its exit. */
+export function bellWallArea(geometry: EngineGeometry): number {
+    const flare = (geometry.exitWidth - geometry.throatWidth) * 0.5;
+    const slant = sqrt(geometry.bellLength * geometry.bellLength + flare * flare);
+    const perimeter = geometry.exitWidth + geometry.exitHeight + 2 * geometry.throatWidth;
+    return geometry.nozzles * slant * perimeter;
+}
+
 /** Whether an engine of this geometry has no room for pumps: too small a throat (`PRESSURE_FED_THROAT`), or too short a block (`PRESSURE_FED_BLOCK`). */
 export function isPressureFed(geometry: EngineGeometry): boolean {
     return geometry.throatWidth < PRESSURE_FED_THROAT || geometry.machineryLength < PRESSURE_FED_BLOCK;
@@ -661,6 +675,25 @@ export const PROPELLANT_ENERGY = 1.2e6;
  * for recoil: about 1.5 for a gun without a muzzle brake.
  */
 export const GAS_RECOIL = 1.5;
+
+/** The share of a magnetic engine's bell its ring and the gap before it take: the bell proper is short. */
+export const RING_SHARE = 0.6;
+
+/**
+ * How much further a powered ring's field holds a flame together past the
+ * exit than a bell can, whose walls end where the gas leaves them.
+ */
+export const MAGNETIC_PLUME_REACH = 1.5;
+
+/**
+ * Power a magnetic nozzle draws at full throttle, watts per square metre of
+ * exit. Set so a core's generator runs a fighter's ring, and a capital's
+ * mains want generators of their own.
+ */
+export const MAGNETIC_POWER_PER_EXIT_AREA = 2e5;
+
+/** Mass of a magnetic nozzle's ring, kg per square metre of exit. */
+export const MAGNETIC_MASS_PER_EXIT_AREA = 300;
 
 /** How much faster a rail gun throws its round than powder would from the same barrel. */
 export const RAIL_SPEED = 2;
@@ -1442,6 +1475,13 @@ export interface ModuleSpec {
      * module's depth along the run.
      */
     thick?: boolean;
+    /**
+     * An engine with a magnetic nozzle: a ring at the end of its bell that,
+     * powered, holds the jet straight, so none of it is thrown sideways. It
+     * takes the end of the bell's length, so unpowered the shorter bell aims
+     * the jet a little worse.
+     */
+    magnetic?: boolean;
 
     /**
      * How thick a self-sealing lining is inside the walls, metres; zero or absent
@@ -1651,6 +1691,8 @@ export interface ModuleStats {
      * fuel a second. Zero unless the module is an engine.
      */
     exhaustVelocity: number;
+    /** Power a magnetic nozzle draws at full throttle, watts. Zero for any other module. */
+    ringPower: number;
     /** Fuel the module holds when full, kg, counted in `mass`. Zero unless it is a tank. */
     fuel: number;
     /** Metal the module holds when full, kg, counted in `mass`. Zero unless it is a hold. */
@@ -2197,8 +2239,22 @@ export interface EngineGeometry {
     throatWidth: number;
     /** Bell half-angle, radians. A right angle when there is no bell. */
     halfAngle: number;
-    /** Momentum kept along the axis, `(1 + cos a) / 2`: 0.5 to 1. */
+    /** Momentum kept along the axis, `(1 + cos a) / 2`: 0.5 to 1; all of it through a powered magnetic nozzle. */
     divergence: number;
+    /** What the bell alone keeps: `divergence`, but for a magnetic nozzle unpowered. */
+    bellDivergence: number;
+    /** Length of the bell proper, metres: short of `nozzleLength` by a magnetic nozzle's ring and gap. */
+    bellLength: number;
+}
+
+/** Whether `magnetic` means anything on this kind. */
+export function readsMagnetic(kind: ModuleKind): boolean {
+    return kind === "engine";
+}
+
+/** Whether this is an engine with a magnetic nozzle. */
+export function isMagnetic(spec: ModuleSpec): boolean {
+    return readsMagnetic(spec.kind) && spec.magnetic === true;
 }
 
 /** An engine's halves and its bell geometry. Engines only. */
@@ -2206,17 +2262,20 @@ export function engineGeometry(spec: ModuleSpec): EngineGeometry {
     spec = bodySpec(spec);
     const nozzles = spec.barrels ?? 1;
     const nozzleLength = bellLength(spec);
+    const magnetic = isMagnetic(spec);
+    const bell = magnetic ? nozzleLength * (1 - RING_SHARE) : nozzleLength;
     const share = nozzleLength / spec.length;
     const pitch = spec.width / nozzles;
     // Square: a thin engine's bell is held to a deck both ways.
-    const exitWidth = moduleThickness(spec);
+    const exitHeight = moduleThickness(spec);
+    const exitWidth = exitHeight;
     const throatWidth = exitWidth * NOZZLE_THROAT_FRACTION;
     // How far the wall has to travel sideways over the bell's length.
     const flare = (exitWidth - throatWidth) * 0.5;
-    const halfAngle = atan2(flare, nozzleLength);
+    const halfAngle = atan2(flare, bell);
     // cos of that angle without going back through a trig function, and exactly
     // zero rather than nearly so when there is no bell at all.
-    const axial = nozzleLength > 0 ? nozzleLength / sqrt(nozzleLength * nozzleLength + flare * flare) : 0;
+    const axial = bell > 0 ? bell / sqrt(bell * bell + flare * flare) : 0;
     return {
         nozzles,
         share,
@@ -2224,10 +2283,12 @@ export function engineGeometry(spec: ModuleSpec): EngineGeometry {
         nozzleLength,
         pitch,
         exitWidth,
-        exitHeight: exitWidth,
+        exitHeight,
         throatWidth,
         halfAngle,
-        divergence: (1 + axial) * 0.5,
+        divergence: magnetic ? 1 : (1 + axial) * 0.5,
+        bellDivergence: (1 + axial) * 0.5,
+        bellLength: bell,
     };
 }
 
@@ -3080,6 +3141,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     let fittingMass = 0;
     let thrust = 0;
     let exhaustVelocity = 0;
+    let ringPower = 0;
     let fuel = 0;
     let metal = 0;
     let charge = 0;
@@ -3171,6 +3233,12 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
         thrust = throughput * engine.divergence;
         exhaustVelocity = engineExhaustVelocity(engine);
         fittingMass = throughput * ENGINE_MASS_PER_NEWTON * (isPressureFed(engine) ? PRESSURE_FED_MASS : 1);
+        // The bell weighs its sheet, so a long one costs mass as well as flow.
+        fittingMass += bellWallArea(engine) * BELL_MASS_PER_AREA * (isPressureFed(engine) ? PRESSURE_FED_BELL : 1);
+        if (isMagnetic(spec)) {
+            ringPower = MAGNETIC_POWER_PER_EXIT_AREA * exitArea;
+            fittingMass += MAGNETIC_MASS_PER_EXIT_AREA * exitArea;
+        }
     } else if (mount !== null) {
         gun = isHullGun(spec.kind) ? loaded(hullGunStats(spec), spec) : hullBeamStats(spec);
         // The same two masses a turret carries, by the same reasoning — a tube of
@@ -3321,6 +3389,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
         hitPoints: structureMass,
         thrust,
         exhaustVelocity,
+        ringPower,
         fuel,
         metal,
         lining,

@@ -9,6 +9,9 @@ import {
     PRESSURE_FED_EXHAUST,
     PRESSURE_FED_FLOW,
     PRESSURE_FED_MASS,
+    bellWallArea,
+    BELL_MASS_PER_AREA,
+    PRESSURE_FED_BELL,
     type ModuleSpec,
 } from "../sim/modules.js";
 import { DAMAGE_ENERGY_PER_KG, repairWork } from "../sim/damage.js";
@@ -74,7 +77,11 @@ describe("complexity", () => {
         // Its machinery, sized by the flow, weighs a share of a pumped one's.
         const a = moduleStats(pumped);
         const b = moduleStats(fed);
-        const perNewton = (stats: typeof a, thrust: number): number => stats.fittingMass / thrust;
-        expect(perNewton(b, b.thrust) / perNewton(a, a.thrust)).toBeLessThan(PRESSURE_FED_MASS * 1.5);
+        // Less its bell, which weighs by its own sheet rather than by the flow.
+        const machinery = (spec: ModuleSpec, stats: typeof a): number => {
+            const g = engineGeometry(spec);
+            return stats.fittingMass - bellWallArea(g) * BELL_MASS_PER_AREA * (isPressureFed(g) ? PRESSURE_FED_BELL : 1);
+        };
+        expect(machinery(fed, b) / b.thrust / (machinery(pumped, a) / a.thrust)).toBeLessThan(PRESSURE_FED_MASS * 1.5);
     });
 });

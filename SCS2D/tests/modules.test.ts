@@ -52,6 +52,11 @@ import {
     TRAVERSE_SPINUP_TIME,
     type GunStats,
     type ModuleSpec,
+    bellWallArea,
+    engineGeometry,
+    isPressureFed,
+    BELL_MASS_PER_AREA,
+    PRESSURE_FED_BELL,
 } from "../sim/modules.js";
 
 /**
@@ -141,6 +146,11 @@ describe("engine scaling", () => {
         nozzle,
         ...(barrels === undefined ? {} : { barrels }),
     });
+    /** Its machinery's mass alone, priced on its throughput: its fittings less its bell's sheet. */
+    const machinery = (spec: ModuleSpec): number => {
+        const g = engineGeometry(spec);
+        return moduleStats(spec).fittingMass - bellWallArea(g) * BELL_MASS_PER_AREA * (isPressureFed(g) ? PRESSURE_FED_BELL : 1);
+    };
 
     it("takes the gas it has to throw from the exit area, so width is what buys it", () => {
         // Doubling the width doubles the exit area and so doubles what the engine
@@ -176,12 +186,12 @@ describe("engine scaling", () => {
         const some = moduleStats(engine(6, 2, 0.25));
         const most = moduleStats(engine(6, 2, 0.75));
 
-        expect(none.thrust).toBeCloseTo(none.fittingMass / ENGINE_MASS_PER_NEWTON / 2, 6);
+        expect(none.thrust).toBeCloseTo(machinery(engine(6, 2, 0)) / ENGINE_MASS_PER_NEWTON / 2, 6);
         expect(some.thrust).toBeGreaterThan(none.thrust);
         expect(most.thrust).toBeGreaterThan(some.thrust);
         // Diminishing: the first quarter of bell is worth far more than the third.
         expect(some.thrust - none.thrust).toBeGreaterThan((most.thrust - some.thrust) * 2);
-        expect(most.thrust).toBeLessThan(most.fittingMass / ENGINE_MASS_PER_NEWTON);
+        expect(most.thrust).toBeLessThan(machinery(engine(6, 2, 0.75)) / ENGINE_MASS_PER_NEWTON);
     });
 
     it("lets a cluster of small bells do in a stub what one wide bell cannot", () => {
@@ -191,7 +201,7 @@ describe("engine scaling", () => {
         const one = moduleStats({ ...engine(4.8, 8, 0.15), thick: true });
         const four = moduleStats(engine(4.8, 8, 0.6, 4));
         const area = (8 / 4) ** 2 * 4;
-        expect(four.fittingMass).toBeCloseTo((one.fittingMass * area) / 64, 6);
+        expect(machinery(engine(4.8, 8, 0.6, 4))).toBeCloseTo((machinery({ ...engine(4.8, 8, 0.15), thick: true }) * area) / 64, 6);
         expect(four.thrust / area).toBeGreaterThan((one.thrust / 64) * 1.2);
     });
 

@@ -26,7 +26,7 @@ import {
     type ShipDesign,
     settleIds,
 } from "../sim/index.js";
-import { CORVETTE, GUNSHIP, TORCH } from "../scenarios/blueprints.js";
+import { CORVETTE, GUNSHIP, RAIL_CORVETTE, TORCH } from "../scenarios/blueprints.js";
 import { EditorDocument } from "../editor/document.js";
 import {
     addModule,
@@ -928,9 +928,9 @@ describe("designStats", () => {
     });
 
     it("reports the acceleration a ship can use, not the most it can project", () => {
-        const design = new EditorDocument(CORVETTE).view.design!;
+        const design = new EditorDocument(RAIL_CORVETTE).view.design!;
         const stats = designStats(design, envelopes(design));
-        // Fore and aft the corvette is balanced, so the two agree. Abeam they do
+        // Fore and aft the rail corvette is balanced, so the two agree. Abeam they do
         // not: trimming out the laterals' torque costs some of their push, and the
         // panel reports what is left.
         expect(stats.accelFore).toBeCloseTo(design.engineLayout.maxThrustAlong(1, 0) / design.mass, 2);
@@ -990,11 +990,11 @@ describe("the manoeuvring envelopes", () => {
         }
     });
 
-    it("costs the corvette nothing fore and aft, and something abeam and on the diagonal", () => {
-        const design = new EditorDocument(CORVETTE).view.design!;
+    it("costs the rail corvette nothing fore and aft, and something abeam and on the diagonal", () => {
+        const design = new EditorDocument(RAIL_CORVETTE).view.design!;
         const envelope = envelopes(design, 8);
         // The lateral engines sit at x = ±4 while the centre of mass is
-        // forward of the middle, pulled there by the long bow gun — so pushing abeam needs
+        // forward of the middle, pulled there by the heavy rail gun in its bow — so pushing abeam needs
         // more trim than the retros can give. That is the whole of what the two
         // curves are drawn to show.
         expect(envelope.holding[0]).toBeCloseTo(envelope.free[0]!, 6);

@@ -1478,11 +1478,29 @@ export function rockUrgency(
 }
 
 /**
+ * The share of a magnetic engine's thrust its ring's power keeps this step,
+ * having drawn it: 1 when powered, its bell's own aim when not, and 1 for any
+ * other engine.
+ */
+function ringAim(ships: Ships, design: ShipDesign, b: number, module: number, u: number, dt: number): number {
+    const placed = design.modules[module];
+    const need = u * (placed?.stats.ringPower ?? 0) * dt;
+    if (!(need > 0)) return 1;
+    const allowed = shipSupply.allowed(ships, Resource.Charge, b, module, Claim.Thrust, need);
+    const got = ships.power.draw(b, module, need < allowed ? need : allowed);
+    shipSupply.took(ships, Resource.Charge, b, module, Claim.Thrust, got);
+    const bell = geometryOf(placed!).bellDivergence;
+    return bell + (1 - bell) * (got / need);
+}
+
+/**
  * Draw what this ship's engines burned this step from its tanks, and throttle
  * back any engine whose tanks could not supply it.
  *
  * Paid by gas thrown rather than by thrust delivered: an engine firing into
- * its own hull burns its fuel all the same (`exhaustOf`).
+ * its own hull burns its fuel all the same (`exhaustOf`). A magnetic nozzle
+ * also draws its ring's power; short of it, the same gas leaves aimed only as
+ * well as its bell aims it, so it pushes with less.
  */
 export function burn(ships: Ships, dt: number, bodies: Bodies, i: number): void {
     const b = bodies.indexOf(ships.bodyIds[i]!);
@@ -1504,8 +1522,9 @@ export function burn(ships: Ships, dt: number, bodies: Bodies, i: number): void 
         const got = ships.fuel.feed(b, module, wanted < allowed ? wanted : allowed, ships.damage);
         shipSupply.took(ships, Resource.Fuel, b, module, Claim.Thrust, got);
         burned = true;
-        if (got < wanted) {
-            throttles[t] = (u * got) / wanted;
+        const aimed = ringAim(ships, design, b, module, u, dt);
+        if (got < wanted || aimed < 1) {
+            throttles[t] = ((u * got) / wanted) * aimed;
             short = true;
         }
     }

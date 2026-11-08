@@ -25,6 +25,7 @@ import {
     PLUME_RAYS,
     SHELL_CALIBRES,
     engineGeometry,
+    isMagnetic,
     type GunStats,
     type ModuleSpec,
     originOf,
@@ -74,6 +75,9 @@ import {
     paintedSide,
     PORT_COLLAR_SHARE,
     PORT_COLLAR_WIDTH,
+    drawnExit,
+    ringBars,
+    ringThickness,
     type Fill,
 } from "./moduleFills.js";
 import {
@@ -707,7 +711,7 @@ function drawShip(
 
     if (!whole) return;
     if (arcs === "trigger") drawEngineTriggers(ctx, ship, metresToPx);
-    drawPlumes(ctx, ship);
+    drawPlumes(ctx, ship, light);
     drawLeaks(ctx, ship, light);
 }
 
@@ -936,7 +940,17 @@ function drawHull(
         // Rounded parts' shading, in the battle's light: its highlights are that light.
         if (spec.kind === "engine" && light !== undefined) {
             inLight(ctx, light);
-            shadeEngine(ctx, spec, ship.angle + m.angle, light, drawnMounts(design, i).round, rgba(fillColour(spec, colours)), fighters);
+            shadeEngine(
+                ctx,
+                spec,
+                ship.angle + m.angle,
+                light,
+                drawnMounts(design, i).round,
+                rgba(fillColour(spec, colours)),
+                fighters,
+                colours.hull,
+                fillColour(spec, colours),
+            );
             ctx.restore();
         }
         if (spec.kind === "port" && light !== undefined) {
@@ -1580,7 +1594,7 @@ export function plumeReach(ship: ShipView): number {
  * part of it: sharing the module pass put it *under* the sector a nearby
  * turret sweeps, which dimmed a burning engine to the colour of a shadow.
  */
-function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
+function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light): void {
     eachNozzle(
         ctx,
         ship,
@@ -1590,7 +1604,9 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
             // tip the way its share of the power does, so the brightest part of the
             // picture is the part doing the most damage.
             const root = -engine.length / 2;
-            const half = engine.geometry.exitWidth / 2;
+            // As wide as its bell is drawn: a magnetic nozzle's is narrower, its jet the same.
+            const gap = engine.geometry.nozzleLength - engine.geometry.bellLength;
+            const half = drawnExit(engine.geometry, gap > 0);
             const image = flameSprite(PLUME, PLUME_CORE);
             if (image === null) return;
             const outer = ctx.globalAlpha;
@@ -1602,9 +1618,10 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
             const grown = min(1, reach / (NOZZLE_GLOW_GROWN * 2 * half));
             const g = half * NOZZLE_GLOW_REACH * (0.5 + 0.5 * grown);
             const shown = landed[1]! > 0 ? (1 - landed[1]!) * reach : reach;
+            // A magnetic nozzle's jet glows from its bell, through the gap to its ring.
             lights.coneOf(
                 ctx.getTransform(),
-                root,
+                root + gap,
                 across,
                 root - shown,
                 across,
@@ -1615,6 +1632,9 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
             );
             // The sprite's core is its brightest, its edge a little dimmer.
             ctx.globalAlpha = outer * brightness;
+            // A magnetic nozzle's jet runs straight from its bell through its ring,
+            // as the flame's own base does: its last column, stretched over the gap.
+            if (gap > 0) ctx.drawImage(image, image.width - 1, 0, 1, image.height, root, across - half, gap, 2 * half);
             let cutAny = false;
             for (let k = 0; k < PLUME_RAYS; k++) if (landed[k]! > 0) cutAny = true;
             if (!cutAny) ctx.drawImage(image, root - reach, across - half, reach, 2 * half);
@@ -1643,6 +1663,23 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
                 }
             }
             ctx.globalAlpha = outer;
+            // The ring stands across the jet, in front of it and of its glow: drawn
+            // once the glows are (`drawJetRings`), so the jet's light does not fall on it.
+            if (gap > 0) {
+                const m = ctx.getTransform();
+                const ring: JetRing = {
+                    m: { a: m.a, b: m.b, c: m.c, d: m.d, e: m.e, f: m.f },
+                    x: root,
+                    span: engine.geometry.pitch * engine.geometry.nozzles,
+                    thickness: ringThickness(engine.geometry),
+                    hull: engine.hull,
+                    angle: engine.angle,
+                    light,
+                };
+                // Outside a scene there are no glows to wait for.
+                if (inScene) jetRings.push(ring);
+                else drawJetRing(ctx, ring);
+            }
         },
         true,
     );
@@ -1658,6 +1695,10 @@ function shadeEngine(
     /** Its colour, and whether it stands at a thick module's height, as a fighter's does, for the dynamic lights. */
     colour: readonly number[],
     thick: boolean,
+    /** The hull's colour, which a magnetic nozzle's ring and bars are in. */
+    hull: string,
+    /** The engine's own colour, its chambers' fill. */
+    fill: string,
 ): void {
     const m = ctx.getTransform();
     const engine = engineGeometry(spec);
@@ -1666,9 +1707,10 @@ function shadeEngine(
     const { across, up } = lightSlope(light);
     // The light across a part lying along x, toward its +y side.
     const side = across * sin(light.from - angle);
-    const exit = engine.exitWidth / 2;
+    const magnetic = isMagnetic(spec);
+    const exit = drawnExit(engine, magnetic);
     const mouth = layout.mouth;
-    const bell = exit > 0 && mouth + l > 0 ? cylinderShade(side, up, engine.throatWidth / engine.exitWidth) : null;
+    const bell = exit > 0 && mouth + l > 0 ? cylinderShade(side, up, engine.throatWidth / (2 * exit)) : null;
     const r = layout.radius;
     const straight = layout.nose - layout.centre;
     const tube = r > 0 && straight > 0 ? cylinderShade(side, up) : null;
@@ -1681,10 +1723,36 @@ function shadeEngine(
               ]
             : [[layout.centre, layout.aft, layout.fore]];
     for (const y of layout.centres) {
-        if (bell !== null) {
-            ctx.drawImage(bell, -l, y - exit, mouth + l, 2 * exit);
-            rounded?.tube(m, -l, y, mouth + l, exit, engine.throatWidth / engine.exitWidth, colour, 1, thick ? "thick" : "deck");
+        if (bell === null) continue;
+        const end = mouth - engine.bellLength;
+        ctx.drawImage(bell, end, y - exit, mouth - end, 2 * exit);
+        rounded?.tube(m, end, y, mouth - end, exit, engine.throatWidth / (2 * exit), colour, 1, thick ? "thick" : "deck");
+    }
+    // A magnetic nozzle's bars, rods along the engine from its ring, pass
+    // behind its chambers: painted over the bells beside them, then each
+    // chamber painted again over them.
+    if (magnetic) {
+        const rod = cylinderShade(side, up);
+        const root = layout.pumpAft < l ? layout.pumpAft : l;
+        const start = -l + ringThickness(engine);
+        ctx.fillStyle = hull;
+        for (const y of layout.centres) {
+            for (const [from, to] of ringBars(engine, y)) {
+                ctx.fillRect(start, from, root - start, to - from);
+                if (rod !== null) ctx.drawImage(rod, start, from, root - start, to - from);
+                rounded?.tube(m, start, (from + to) / 2, root - start, (to - from) / 2, 1, rgba(hull), 1, thick ? "thick" : "deck");
+            }
         }
+        ctx.fillStyle = fill;
+        for (const y of layout.centres) {
+            const points = layout.chamber;
+            ctx.beginPath();
+            for (let k = 0; k < points.length; k += 2) ctx.lineTo(points[k]!, points[k + 1]! + y);
+            ctx.closePath();
+            ctx.fill();
+        }
+    }
+    for (const y of layout.centres) {
         if (!(r > 0)) continue;
         for (const [x, from, to] of ends) {
             const image = sphereShade(light.from - angle, across, up, (from - x) / r, (to - x) / r);
@@ -1696,11 +1764,60 @@ function shadeEngine(
             rounded?.tube(m, layout.centre, y, straight, r, 1, colour, 1, thick ? "thick" : "deck");
         }
     }
+    // Its ring round the jet at its aft end, shaded by the battle's light alone:
+    // the dynamic lights are mostly its own jet's, which it stands in front of.
+    if (magnetic) {
+        ctx.fillStyle = hull;
+        ctx.fillRect(-l, -spec.width / 2, ringThickness(engine), spec.width);
+        shadeRing(ctx, -l, spec.width, ringThickness(engine), angle, light);
+    }
     if (roundPump) {
         const pump = cylinderShade(side, up);
         if (pump !== null) ctx.drawImage(pump, layout.pumpAft, -layout.halfWidth, l - layout.pumpAft, 2 * layout.halfWidth);
         rounded?.tube(m, layout.pumpAft, 0, l - layout.pumpAft, layout.halfWidth, 1, colour, 1, thick ? "thick" : "deck");
     }
+}
+
+/** A magnetic nozzle's ring over a burning jet, waiting to be drawn over the jet's glow. */
+interface JetRing {
+    m: { a: number; b: number; c: number; d: number; e: number; f: number };
+    x: number;
+    span: number;
+    thickness: number;
+    hull: string;
+    angle: number;
+    light: Light | undefined;
+}
+
+const jetRings: JetRing[] = [];
+/** Whether a scene is being drawn, whose glows the rings over its jets wait for. */
+let inScene = false;
+
+function drawJetRing(ctx: CanvasRenderingContext2D, ring: JetRing): void {
+    ctx.save();
+    ctx.setTransform(ring.m.a, ring.m.b, ring.m.c, ring.m.d, ring.m.e, ring.m.f);
+    // Its fill in the battle's light too, as a hull's is.
+    if (ring.light !== undefined) inLight(ctx, ring.light);
+    ctx.fillStyle = ring.hull;
+    ctx.fillRect(ring.x, -ring.span / 2, ring.thickness, ring.span);
+    if (ring.light !== undefined) {
+        shadeRing(ctx, ring.x, ring.span, ring.thickness, ring.angle, ring.light);
+        ctx.restore();
+    }
+    ctx.restore();
+}
+
+/** The rings in front of burning jets, over the glows, so a jet's light does not fall on its own ring. */
+function drawJetRings(ctx: CanvasRenderingContext2D): void {
+    for (const ring of jetRings) drawJetRing(ctx, ring);
+    jetRings.length = 0;
+}
+
+/** A magnetic nozzle's ring, `span` across at `x`, shaded as round about the jet it encircles. */
+function shadeRing(ctx: CanvasRenderingContext2D, x: number, span: number, thickness: number, angle: number, light: Light): void {
+    const { across, up } = lightSlope(light);
+    const image = cylinderShade(across * sin(light.from - angle), up);
+    if (image !== null) ctx.drawImage(image, x, -span / 2, thickness, span);
 }
 
 /** A docking port's block and collar shaded as rounded across, in its module's frame, the module turned `angle`. */
@@ -2116,6 +2233,10 @@ function drawBurns(ctx: CanvasRenderingContext2D, snapshot: Snapshot): void {
 interface Engine {
     geometry: ReturnType<typeof engineGeometry>;
     length: number;
+    /** The hull's colour, which a magnetic nozzle's ring is drawn in. */
+    hull: string;
+    /** The engine's bearing in the world, for its ring's shading. */
+    angle: number;
 }
 
 /**
@@ -2151,6 +2272,7 @@ function eachNozzle(
         if (!(force > 0)) continue;
         const geometry = engineGeometry(spec);
         const reach = nozzleReach(geometry, force);
+        const hull = moduleColours(design, i, paintedSide(ship, i)).hull;
         ctx.save();
         ctx.translate(m.x, m.y);
         ctx.rotate(m.angle);
@@ -2163,7 +2285,14 @@ function eachNozzle(
                 for (let k = 0; k < PLUME_RAYS; k++) {
                     landed[k] = ship.landed[landedIndex(design, t, n * PLUME_RAYS + k, layer)] ?? 0;
                 }
-                visit({ geometry, length: spec.length }, force, reach, nozzleOffset(geometry, n), landed, split);
+                visit(
+                    { geometry, length: spec.length, hull, angle: ship.angle + m.angle },
+                    force,
+                    reach,
+                    nozzleOffset(geometry, n),
+                    landed,
+                    split,
+                );
             }
         }
         ctx.restore();
@@ -2552,6 +2681,7 @@ function drawScene(
     /** Where to keep what gave off light, as well as drawing its glow. */
     seen?: Lights,
 ): void {
+    inScene = true;
     lights.clear();
     poses.record(snapshot);
     ctx.setTransform(1, 0, 0, 1, left, top);
@@ -2597,7 +2727,7 @@ function drawScene(
     for (let i = 0; i < snapshot.shipCount; i++) {
         const ship = snapshot.ships[i]!;
         if (shown(ship)) drawShip(ctx, ship, camera.scale, arcsFor(ship.body, selected, arcs), false, underneath, light);
-        else if (!ship.currentStructure.fighter && plumeShown(ship)) drawPlumes(ctx, ship);
+        else if (!ship.currentStructure.fighter && plumeShown(ship)) drawPlumes(ctx, ship, light);
     }
     for (let i = 0; i < snapshot.shipCount; i++) {
         const ship = snapshot.ships[i]!;
@@ -2606,7 +2736,7 @@ function drawScene(
     for (let i = 0; i < snapshot.shipCount; i++) {
         const ship = snapshot.ships[i]!;
         if (shown(ship)) drawShip(ctx, ship, camera.scale, arcsFor(ship.body, selected, arcs), true, false, light);
-        else if (ship.currentStructure.fighter && plumeShown(ship)) drawPlumes(ctx, ship);
+        else if (ship.currentStructure.fighter && plumeShown(ship)) drawPlumes(ctx, ship, light);
     }
 
     drawDebris(ctx, snapshot, camera, light);
@@ -2632,6 +2762,8 @@ function drawScene(
     // them, so those lighten them rather than being cut by them.
     beamLights(ctx, snapshot, camera, teamShots);
     drawGlows(ctx, lights);
+    inScene = false;
+    drawJetRings(ctx);
     seen?.add(lights);
     lights.clear();
     drawBeams(ctx, snapshot, camera, teamShots);
