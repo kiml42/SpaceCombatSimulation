@@ -706,10 +706,11 @@ export const LANCE_CHARGE_TIME = 3;
 
 /**
  * Power a lance's pulse delivers to what it meets, watts per newton of its
- * jet: a balance dial, as `PLUME_POWER_PER_NEWTON` is for a flame, and a dozen
- * times that, the jet being held together rather than spraying.
+ * jet: a balance dial, as `PLUME_POWER_PER_NEWTON` is for a flame, and far
+ * more, the jet being held together rather than spraying. Set so a lance is
+ * deadly inside its reach: still a tenth of its jet's own kinetic power.
  */
-export const LANCE_POWER_PER_NEWTON = 50;
+export const LANCE_POWER_PER_NEWTON = 1000;
 
 /** How far a lance's pulse holds together, metres per metre of its length. Its power falls to nothing there. */
 export const LANCE_REACH_PER_METRE = 40;
@@ -3023,7 +3024,8 @@ export function hullBeamStats(spec: ModuleSpec): GunStats {
 function lanceStats(spec: ModuleSpec): GunStats {
     const { barrelLength } = hullMountGeometry(spec);
     const exitArea = spec.width * moduleThickness(spec);
-    const jetThrust = THRUST_PER_EXIT_AREA * exitArea;
+    // As hard as an engine of the same exit can push, its throat choked.
+    const jetThrust = THRUST_PER_EXIT_AREA * THROAT_CHOKE * exitArea;
     const plasmaReach = LANCE_REACH_PER_METRE * spec.length;
     return {
         type: GunType.Beam,

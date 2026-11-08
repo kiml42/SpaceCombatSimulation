@@ -680,9 +680,10 @@ inside any one file is not contiguous.
   outlet and the laws that size them (`isHullBeam`), with two prongs between which a field throws a pulse of
   the ship's fuel, white hot, for `LANCE_PULSE` (a second). Fuel is how hard it hits and power how far it
   holds together. Its face is its exit, as an engine's is, so a wider lance throws more fuel
-  (`THRUST_PER_EXIT_AREA` over the exhaust speed), hits harder (`LANCE_POWER_PER_NEWTON`, 50 W for each
-  newton of jet, a dozen times a flame's) and kicks back harder, with the jet's thrust for as long as it
-  burns. Its length is the field, so a longer lance reaches further (`LANCE_REACH_PER_METRE`, 40 m a metre)
+  (as hard as an engine of the same exit can push, `THRUST_PER_EXIT_AREA` with its throat choked, over the
+  exhaust speed), hits harder (`LANCE_POWER_PER_NEWTON`, 1 kW for each newton of jet, so a Corvette-sized
+  lance's pulse carries more than a rail gun's shot, deadly inside its reach and nothing past it) and kicks
+  back harder, with the jet's thrust, an engine's, for as long as it burns. Its length is the field, so a longer lance reaches further (`LANCE_REACH_PER_METRE`, 40 m a metre)
   and takes more charge to fill (`LANCE_FIELD_ENERGY_PER_VOLUME`, by reach and exit), which
   its base holds a score of times over in the capacitors a rail gun's bank has, so the base never limits it. Its power falls off
   along its reach to nothing at the end, and it never reflects, so it is worth firing only well inside it
@@ -692,9 +693,9 @@ inside any one file is not contiguous.
   ready the moment it bears and paying for it, or charged only once it is on target, setting out uncharged
   and risking the target slipping away before it is full. It does not train, so the hull aims it, and it
   welds on by its back and sides as any hull mount does. Its pulse leaves from the back of the gap between its prongs and runs the length of it. It is drawn as a
-  base and two prongs with nubs into the gap, lightning across the gap growing with its charge (in the editor
+  base and two prongs with bronze nubs, a gun barrel's colour, narrowing into the gap, lightning across the gap growing with its charge (in the editor
   only while it is selected and shown firing), changing with the clock so it holds still when time does, and
-  its pulse as a flame. The editor
+  its pulse as a flame, blue-white at its core and purple at its edge, cut off where it lands as an engine's is. The editor
   offers it as a kind like any other; evolution draws it as one, at a hull beam's weight, and flips a lance
   between ready and not. The Lance Corvette is the Corvette with its bow gun a lance charged only on
   target, holding a bigger ship in its sights long enough, and the Lance Gunship the Gunship with a heavy

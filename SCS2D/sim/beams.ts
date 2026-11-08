@@ -211,6 +211,8 @@ export class Beams {
     /** The layers it is in, as a `HULL_LAYER` / `WEAPONS_LAYER` mask. */
     layers!: Uint8Array;
     kind!: Int32Array;
+    /** How far it was fired, metres, before anything stopped it short: a pulse is drawn clipped to it. */
+    reach!: Float64Array;
     /** How many reflections deep it is: 0 for a beam fired from a mount. */
     bounces!: Uint8Array;
     alive!: Uint8Array;
@@ -271,6 +273,7 @@ export class Beams {
         if (this.layers) layer.set(this.layers);
         this.layers = layer;
         this.kind = i32(this.kind);
+        this.reach = f64(this.reach);
         const bounces = new Uint8Array(capacity);
         if (this.bounces) bounces.set(this.bounces);
         this.bounces = bounces;
@@ -365,6 +368,7 @@ export class Beams {
         this.fromModule[i] = fromModule;
         this.layers[i] = layers;
         this.kind[i] = kind;
+        this.reach[i] = sqrt((endX - startX) * (endX - startX) + (endY - startY) * (endY - startY));
         this.bounces[i] = 0;
         this.alive[i] = 1;
         this.pending[i] = 0;

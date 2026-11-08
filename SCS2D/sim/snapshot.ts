@@ -321,6 +321,8 @@ export class Snapshot {
     beamTeam = new Int16Array(0);
     /** 1 for a plasma lance's pulse rather than a beam. */
     beamPlasma = new Uint8Array(0);
+    /** How far each was fired, metres, before anything stopped it short. */
+    beamReach = new Float64Array(0);
     beamCount = 0;
 
     /** Each body's side while a picture is taken, so a shot can be told whose it is. */
@@ -431,6 +433,7 @@ function growBeams(snapshot: Snapshot, needed: number): void {
     snapshot.beamPower = new Float64Array(size);
     snapshot.beamTeam = new Int16Array(size);
     snapshot.beamPlasma = new Uint8Array(size);
+    snapshot.beamReach = new Float64Array(size);
 }
 
 function growImpacts(snapshot: Snapshot, needed: number): void {
@@ -806,6 +809,7 @@ export function capture(
         out.beamPower[b] = beams.power[i]!;
         out.beamTeam[b] = bodyTeam[beams.owner[i]!] ?? -1;
         out.beamPlasma[b] = beams.kind[i] === BEAM_PLASMA ? 1 : 0;
+        out.beamReach[b] = beams.reach[i]!;
         b++;
     }
     out.beamCount = b;
