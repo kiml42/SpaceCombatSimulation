@@ -188,6 +188,14 @@ export const MUTATION_FIELDS: readonly MutationField[] = [
         title: "Odds that a new or refitted module is a hull beam: fixed in the hull, firing a beam, aimed by turning the whole ship.",
     },
     {
+        name: "kindPlasmaLance",
+        group: "kinds",
+        label: "plasma lances",
+        step: 1,
+        value: DEFAULT_KINDS.plasmaLance,
+        title: "Odds that a new or refitted module is a plasma lance: fixed in the hull, firing short, hard pulses of fuel, aimed by turning the whole ship.",
+    },
+    {
         name: "kindCore",
         group: "kinds",
         label: "cores",

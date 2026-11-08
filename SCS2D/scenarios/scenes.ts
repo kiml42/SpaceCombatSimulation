@@ -2,6 +2,7 @@ import type { Battle } from "./types.js";
 import { LIGHTS, lit } from "./lights.js";
 import { duel } from "./duel.js";
 import { railDuel } from "./railDuel.js";
+import { lanceDuel } from "./lanceDuel.js";
 import { beamDuel } from "./beamDuel.js";
 import { swarm } from "./swarm.js";
 import { torpedoes } from "./torpedoes.js";
@@ -41,6 +42,7 @@ export const SCENES: readonly Scene[] = [
     { name: "Duel", create: () => lit(duel(SCENE_SEED), LIGHTS.daylight) },
     { name: "Beam Duel", create: () => lit(beamDuel(SCENE_SEED), LIGHTS.eclipse) },
     { name: "Rail Duel", create: () => lit(railDuel(SCENE_SEED), LIGHTS.blueGiant) },
+    { name: "Lance Duel", create: () => lit(lanceDuel(SCENE_SEED), LIGHTS.redDwarf) },
     { name: "Star Wars", create: () => lit(starWars(SCENE_SEED), LIGHTS.noon) },
     { name: "Swarm", create: () => lit(swarm(SCENE_SEED), LIGHTS.dusk) },
     { name: "Super Swarm", create: () => lit(swarm(SCENE_SEED, 300), LIGHTS.redDwarf) },

@@ -679,6 +679,35 @@ inside any one file is not contiguous.
   from a generator aft and batteries in its outriggers, fighting from far out; each has the shortest
   extension that fills its bank at the widest bore. The Rail Duel is the Duel with those in place of its
   ships.
+  **A plasma lance** (`plasmaLance`) is a module of its own, a hull beam on fuel: the same block and
+  outlet and the laws that size them (`isHullBeam`), with two prongs between which a field throws a pulse of
+  the ship's fuel, white hot, for `LANCE_PULSE` (a second). **It is a powered weapon, as a rail gun is**: its
+  base (`LANCE_BASE_SHARE`, a quarter of its length) is a capacitor bank at a rail gun's share
+  (`RAIL_BANK_SHARE`) of the capacitors every powered weapon has, weighing as a rail gun's does, charged at a
+  rail gun's rate (`RAIL_BANK_POWER_PER_VOLUME`) from its piece of hull's power, so a pulse every 13 s or so
+  whatever its shape, and each pulse spends all of it. On top it delivers `LANCE_FUEL_SHARE` (5%) of its
+  fuel's energy as an engine would throw it, half its mass by the exhaust speed squared: what of the jet its
+  field holds together all the way there. So a Corvette-sized lance strikes with about 1.1 GJ, half bank and
+  half fuel, deadly inside its reach and nothing past it, and gives its enemy a long charge to see coming.
+  Its face is its exit, as an engine's is, so a wider lance throws more fuel (as hard as an engine of the
+  same exit can push, `THRUST_PER_EXIT_AREA` with its throat choked, over the exhaust speed), hits harder
+  and kicks back harder, with the jet's thrust for as long as it burns. Its length is the field and the
+  bank, so a longer lance reaches further (`LANCE_REACH_PER_METRE`, 40 m a metre) and stores more. Its
+  power falls off along its reach to nothing at the end, and it never reflects, so it is worth firing only
+  well inside it (`LANCE_WORTH`, half). It draws a pulse's fuel and charge as it recharges, as any mount
+  does. **A charged lance leaks**: a fortieth of a pulse's charge and fuel a second (`LANCE_LEAK`), a third
+  of what its base charges, and what its stores cannot make up it loses. So each lance is built one of two ways (`ready`): kept charged,
+  ready the moment it bears and paying for it, or charged only once it is on target, setting out uncharged
+  and risking the target slipping away before it is full. It does not train, so the hull aims it, and it
+  welds on by its back and sides as any hull mount does. Its pulse leaves from the back of the gap between its prongs and runs the length of it. It is drawn as a
+  base and two prongs with bronze nubs, a gun barrel's colour, narrowing into the gap, lightning across the gap growing with its charge (in the editor
+  only while it is selected and shown firing), changing with the clock so it holds still when time does, and
+  its pulse as a flame, blue-white at its core and purple at its edge, cut off where it lands as an engine's is. The editor
+  offers it as a kind like any other; evolution draws it as one, at a hull beam's weight, and flips a lance
+  between ready and not. The Lance Corvette is the Corvette with its bow gun a lance charged only on
+  target, holding a bigger ship in its sights long enough, and the Lance Gunship the Gunship with a heavy
+  one kept ready to strike a small ship the moment it bears; both close to knife range. The
+  Lance Duel sets two Lance Corvettes against a Lance Gunship, head on and at rest 1.2 km apart.
   **Two layers** (§3). Every module is in the hull layer. Turrets and anything marked *thick* stand up into
   the weapons layer as well; a turret only by its dome, a circle as wide as the mount, on a block in the
   hull layer. A turret's rounds and beams meet only what is in the weapons layer, so they strip

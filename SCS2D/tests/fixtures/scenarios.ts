@@ -20,6 +20,7 @@ import { rivalMines } from "../../scenarios/rivalMines.js";
 import type { Battle } from "../../scenarios/types.js";
 import { beamDuel } from "../../scenarios/beamDuel.js";
 import { railDuel } from "../../scenarios/railDuel.js";
+import { lanceDuel } from "../../scenarios/lanceDuel.js";
 import { soloOrdering } from "../../scenarios/ordering.js";
 import { hooked } from "../../scenarios/hooked.js";
 import { salvageRun } from "../../scenarios/salvage.js";
@@ -345,6 +346,17 @@ export function railDuelScenario(seed = 20260905): ScenarioRun {
     };
 }
 
+/** The duel with plasma lances: what pins a lance's charging, leaking, pulse and kick. */
+export function lanceDuelScenario(seed = 20260905): ScenarioRun {
+    const run = lanceDuel(seed);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
+}
+
 /** The duel's ships between two wells on rails: what pins wells that move. */
 export function binaryScenario(seed = 20260905): ScenarioRun {
     const run = binary(seed);
@@ -651,6 +663,7 @@ export const SCENARIOS = {
     gunnery: { steps: 3_000, build: () => gunneryScenario() },
     duel: { steps: 3_000, build: () => duelScenario() },
     railDuel: { steps: 3_000, build: () => railDuelScenario() },
+    lanceDuel: { steps: 3_000, build: () => lanceDuelScenario() },
     beamDuel: { steps: 3_000, build: () => beamDuelScenario() },
     binary: { steps: 3_000, build: () => binaryScenario() },
     kernels: { steps: 6_000, build: () => kernelsScenario() },

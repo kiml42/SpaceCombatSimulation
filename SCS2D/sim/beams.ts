@@ -47,6 +47,13 @@ import { BEAM_ABSORBED_SHARE } from "./damage.js";
  */
 export const MAX_BEAM_LENGTH = 60_000;
 
+/**
+ * A beam's `kind` for a plasma lance's pulse: fired only as far as it reaches,
+ * its power falling off along it to nothing there, and never reflected, since
+ * it is hot gas rather than light.
+ */
+export const BEAM_PLASMA = 1;
+
 /** The least share of a beam worth following further into a hull. */
 const MIN_BEAM_SHARE = 1e-3;
 
@@ -204,6 +211,8 @@ export class Beams {
     /** The layers it is in, as a `HULL_LAYER` / `WEAPONS_LAYER` mask. */
     layers!: Uint8Array;
     kind!: Int32Array;
+    /** How far it was fired, metres, before anything stopped it short: a pulse is drawn clipped to it. */
+    reach!: Float64Array;
     /** How many reflections deep it is: 0 for a beam fired from a mount. */
     bounces!: Uint8Array;
     alive!: Uint8Array;
@@ -264,6 +273,7 @@ export class Beams {
         if (this.layers) layer.set(this.layers);
         this.layers = layer;
         this.kind = i32(this.kind);
+        this.reach = f64(this.reach);
         const bounces = new Uint8Array(capacity);
         if (this.bounces) bounces.set(this.bounces);
         this.bounces = bounces;
@@ -358,6 +368,7 @@ export class Beams {
         this.fromModule[i] = fromModule;
         this.layers[i] = layers;
         this.kind[i] = kind;
+        this.reach[i] = sqrt((endX - startX) * (endX - startX) + (endY - startY) * (endY - startY));
         this.bounces[i] = 0;
         this.alive[i] = 1;
         this.pending[i] = 0;
@@ -463,6 +474,14 @@ export class Beams {
         const startY = this.startY[i];
         const endX = this.endX[i];
         const endY = this.endY[i];
+        const plasma = this.kind[i] === BEAM_PLASMA;
+        const reach = plasma ? sqrt((endX! - startX!) * (endX! - startX!) + (endY! - startY!) * (endY! - startY!)) : 0;
+        /** What is left of a plasma pulse's power at a point along it; all of a beam's. */
+        const left = (x: number, y: number): number => {
+            if (!(reach > 0)) return 1;
+            const d = sqrt((x - startX!) * (x - startX!) + (y - startY!) * (y - startY!));
+            return d < reach ? 1 - d / reach : 0;
+        };
 
         // A beam that knows which part fired it may land on the rest of its own
         // ship; one that does not passes through all of it. A reflection may land
@@ -519,9 +538,9 @@ export class Beams {
                 this.pendingCount++;
             }
             const clear = module >= 0 && hulls !== undefined ? hulls.transparency(bi, module) : 0;
-            hits.push(i, bi, hit.x, hit.y, nx, ny, module, share * (1 - clear));
+            hits.push(i, bi, hit.x, hit.y, nx, ny, module, share * (1 - clear) * left(hit.x, hit.y));
             // The hull's face throws some of what it stops back off it.
-            if (module >= 0 && depth < MAX_REFLECTIONS) {
+            if (module >= 0 && depth < MAX_REFLECTIONS && !plasma) {
                 const length = sqrt(dx * dx + dy * dy);
                 const ux = length > 0 ? dx / length : 0;
                 const uy = length > 0 ? dy / length : 0;
@@ -550,7 +569,7 @@ export class Beams {
                 const next = hulls.transparency(bi, hulls.module);
                 stopX = x0 + dx * along;
                 stopY = y0 + dy * along;
-                hits.push(i, bi, stopX, stopY, hulls.nx, hulls.ny, hulls.module, through * (1 - next));
+                hits.push(i, bi, stopX, stopY, hulls.nx, hulls.ny, hulls.module, through * (1 - next) * left(stopX, stopY));
                 through *= next;
                 out = hulls.exitOf(k);
             }
@@ -597,12 +616,14 @@ export class Beams {
         hulls?: Hulls,
         fromModule = -1,
         layers = HULL_LAYER,
+        /** How far it reaches, for a plasma pulse; a beam goes on out to `MAX_BEAM_LENGTH`. */
+        reach = MAX_BEAM_LENGTH,
     ): number {
         return this.shootRaw(
             muzzleX,
             muzzleY,
-            muzzleX + muzzleDirectionX * MAX_BEAM_LENGTH,
-            muzzleY + muzzleDirectionY * MAX_BEAM_LENGTH,
+            muzzleX + muzzleDirectionX * reach,
+            muzzleY + muzzleDirectionY * reach,
             width,
             power,
             bodyIndex,

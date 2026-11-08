@@ -10,6 +10,7 @@ import {
     IMPACT_MUZZLE,
     IMPACT_ROUND,
     isHullMount,
+    LANCE_BASE_SHARE,
     UNPAINTED,
     math,
     nozzleOffset,
@@ -70,12 +71,14 @@ import {
     fillColour,
     isFighterModule,
     isFitted,
+    LANCE_PRONG_SHARE,
     moduleFills,
     padMark,
     paintedSide,
     PORT_COLLAR_SHARE,
     PORT_COLLAR_WIDTH,
     drawnExit,
+    BARREL,
     ringBars,
     ringThickness,
     type Fill,
@@ -362,7 +365,6 @@ const ARC_MIN_RADIUS = 8;
 const ARC_MAX_RADIUS = 40;
 
 /** A barrel that is not clear to fire. Dark, because it sits on the pale sweep. */
-const BARREL = "#8f6f25";
 /** Bracing on a barrel too long to hold itself up: the barrel's colour, darker. */
 const BRACE = "#4f3d14";
 /**
@@ -375,6 +377,10 @@ const LOAD_READY = "#4cf24c";
 /** Flame colours, as the RGB a gradient fades to transparent from. */
 const PLUME = "255, 217, 160";
 const PLUME_CORE = "255, 244, 224";
+/** A plasma lance's pulse: blue-white at its core, purple at its edge, and the purple it lights round it. */
+const PULSE = "150, 90, 255";
+const PULSE_CORE = "225, 235, 255";
+const PULSE_GLOW = "#9a5cff";
 /** How much brighter a plume's hot core is than its edge. */
 const PLUME_CORE_BOOST = 1.8;
 /** The glow round a burning nozzle's exit, spilling past its bell: its colour, reach as a multiple of the exit's half-width, and brightness beside the flame's. */
@@ -622,6 +628,13 @@ function drawShip(
         const spacing = gun.barrelSpacing;
         const hull = isHullMount(spec.kind) ? hullMountGeometry(spec) : null;
         const beamLenses = spec.kind === "hullBeam";
+
+        // A lance has no mount to draw over its module, only the field it is charging.
+        if (spec.kind === "plasmaLance") {
+            drawSparks(ctx, ship, t, design.modules[module]!);
+            drawLoad(ctx, ship, t, mx, my, bearing);
+            continue;
+        }
 
         // What it is made of is seen in the battle's light; what it says, its arcs and its load, is not.
         if (light !== undefined) inLight(ctx, light);
@@ -1594,6 +1607,62 @@ export function plumeReach(ship: ShipView): number {
  * part of it: sharing the module pass put it *under* the sector a nearby
  * turret sweeps, which dimmed a burning engine to the colour of a shadow.
  */
+/** The most sparks a fully charged lance shows between its prongs. */
+const MAX_SPARKS = 7;
+/** Kinks in each spark. */
+const SPARK_KINKS = 4;
+/** How many times a second the lightning changes shape. */
+const SPARK_RATE = 12;
+const SPARK = "rgba(170, 220, 255, 0.9)";
+
+/** A number in [0, 1) that depends on its three arguments alone. */
+function sparkNoise(a: number, b: number, c: number): number {
+    let h = Math.imul(a | 0, 0x27d4eb2d) ^ Math.imul(b | 0, 0x165667b1) ^ Math.imul(c | 0, 0x9e3779b1);
+    h = Math.imul(h ^ (h >>> 15), 0x85ebca6b);
+    h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+/**
+ * Lightning between a plasma lance's prongs, none when it is empty and more as
+ * it fills: it leaks what it holds, and this is the leak. Its shape follows the
+ * ship's spark clock, so it holds still while time does and while the view moves.
+ */
+function drawSparks(
+    ctx: CanvasRenderingContext2D,
+    ship: ShipView,
+    t: number,
+    module: { x: number; y: number; angle: number; spec: ModuleSpec },
+): void {
+    const charge = ship.turretDisabled?.[t] === true ? 0 : (ship.turretSparks?.[t] ?? 0);
+    const count = Math.round(charge * charge * MAX_SPARKS);
+    if (count === 0) return;
+    const { spec } = module;
+    const l = spec.length / 2;
+    const w = spec.width / 2;
+    const from = -l + spec.length * LANCE_BASE_SHARE;
+    const edge = w - spec.width * LANCE_PRONG_SHARE;
+    const frame = Math.floor((ship.sparkClock ?? 0) * SPARK_RATE);
+    ctx.save();
+    ctx.translate(ship.x, ship.y);
+    ctx.rotate(ship.angle);
+    ctx.translate(module.x, module.y);
+    ctx.rotate(module.angle);
+    ctx.strokeStyle = SPARK;
+    ctx.lineWidth = spec.width * 0.03;
+    ctx.beginPath();
+    for (let k = 0; k < count; k++) {
+        const x = from + sparkNoise(frame, t, k * SPARK_KINKS) * (l - from);
+        ctx.moveTo(x, -edge);
+        for (let j = 1; j < SPARK_KINKS; j++) {
+            ctx.lineTo(x + (sparkNoise(frame, t, k * SPARK_KINKS + j) - 0.5) * edge, -edge + (2 * edge * j) / SPARK_KINKS);
+        }
+        ctx.lineTo(x, edge);
+    }
+    ctx.stroke();
+    ctx.restore();
+}
+
 function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light): void {
     eachNozzle(
         ctx,
@@ -3977,7 +4046,7 @@ function beamLights(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: C
             snapshot.beamEndX[i]!,
             snapshot.beamEndY[i]!,
             legibleWidth(halo, MIN_BEAM_GLOW_PX, camera.scale) * BEAM_GLOW_REACH,
-            team(i) < 0 ? BEAM_GLOW : markerOf(shipColours(team(i))).hull,
+            snapshot.beamPlasma[i] === 1 ? PULSE_GLOW : team(i) < 0 ? BEAM_GLOW : markerOf(shipColours(team(i))).hull,
             beamAlpha(snapshot.beamPower[i]!) * BEAM_GLOW_ALPHA * BEAM_GLOW_BOOST * flooredFade(halo, MIN_BEAM_GLOW_PX, camera.scale),
             false,
             false,
@@ -4014,8 +4083,20 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
         const dx = snapshot.beamEndX[i]! - x0;
         const dy = snapshot.beamEndY[i]! - y0;
         const span = length(dx, dy);
-        const rod = width * camera.scale >= MIN_ROD_PX && span > 0 ? sprite("rod", colour) : null;
-        if (rod !== null) {
+        const flame = snapshot.beamPlasma[i] === 1 && span > 0 ? flameSprite(PULSE, PULSE_CORE) : null;
+        const rod = flame === null && width * camera.scale >= MIN_ROD_PX && span > 0 ? sprite("rod", colour) : null;
+        if (flame !== null) {
+            // Hot gas rather than light: brightest at the prongs, gone at its reach,
+            // and cut off where it lands, as a flame is, rather than drawn whole into
+            // the shorter length.
+            const reach = snapshot.beamReach[i]! > span ? snapshot.beamReach[i]! : span;
+            const shown = span / reach;
+            ctx.save();
+            ctx.transform(dx / span, dy / span, -dy / span, dx / span, x0, y0);
+            ctx.scale(-1, 1);
+            ctx.drawImage(flame, flame.width * (1 - shown), 0, flame.width * shown, flame.height, -span, -width / 2, span, width);
+            ctx.restore();
+        } else if (rod !== null) {
             ctx.save();
             ctx.transform(dx / span, dy / span, -dy / span, dx / span, x0, y0);
             ctx.drawImage(rod, 0, -width / 2, span, width);
@@ -4029,6 +4110,8 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
             ctx.lineTo(x0 + dx, y0 + dy);
             ctx.stroke();
         }
+        // A pulse of hot gas lights what is round it as a flame does, not as an emitter.
+        if (flame !== null) continue;
         const halo = BEAM_GLOW_WIDTHS * calibre;
         lights.point(
             base,

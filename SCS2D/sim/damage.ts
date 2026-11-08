@@ -213,6 +213,7 @@ export const DAMAGE_RESPONSES: Readonly<Record<ModuleSpec["kind"], readonly Dama
     hullGun: [{ effect: DamageEffect.FireRate, remaining: fadesOutAt(FIRE_RATE_CUTOUT) }],
     railGun: [{ effect: DamageEffect.FireRate, remaining: fadesOutAt(FIRE_RATE_CUTOUT) }],
     hullBeam: [{ effect: DamageEffect.FireRate, remaining: fadesOutAt(FIRE_RATE_CUTOUT) }],
+    plasmaLance: [{ effect: DamageEffect.FireRate, remaining: fadesOutAt(FIRE_RATE_CUTOUT) }],
     // Jaws and a pump are plumbing and machinery, and give out as an engine's do.
     claw: [{ effect: DamageEffect.Grip, remaining: fadesOutAt(THRUST_CUTOUT) }],
     // A pad's clamps and fuel line, the same.
