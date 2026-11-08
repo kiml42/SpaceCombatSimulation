@@ -135,7 +135,7 @@ export function moduleFills(
         const layout = engineLayout(spec);
         const mouth = layout.mouth;
         const throat = engine.throatWidth / 2;
-        const exit = engine.exitWidth / 2;
+        const exit = drawnExit(engine, isMagnetic(spec));
         // A magnetic nozzle's bell stops short.
         const end = mouth - engine.bellLength;
         for (const across of layout.centres) {
@@ -219,19 +219,27 @@ const RING_THICKNESS = 0.15;
 /** How wide each bar carrying a magnetic nozzle's ring is drawn, as a share of its exit. */
 const RING_BAR_SHARE = 0.06;
 
+type NozzleShape = { exitWidth: number; exitHeight: number; pitch: number };
+
 /**
- * Where the two bars beside a magnetic nozzle's exit run across it, metres
- * from the engine's middle: just outside the exit where its pitch leaves room,
- * else over the bell's edge.
+ * Half the width a bell is drawn at its exit, metres. A magnetic nozzle's
+ * field aims its jet, so its bell is drawn only as wide as leaves its bars
+ * room beside it: the same throat and flow, aimed another way.
  */
-export function ringBars(engine: { exitWidth: number; exitHeight: number; pitch: number }, across: number): [number, number][] {
-    const bar = engine.exitHeight * RING_BAR_SHARE;
+export function drawnExit(engine: NozzleShape, magnetic: boolean): number {
     const exit = engine.exitWidth / 2;
-    const room = engine.pitch / 2;
-    const outer = exit + bar < room ? exit + bar : room;
+    if (!magnetic) return exit;
+    const room = engine.pitch / 2 - engine.exitHeight * RING_BAR_SHARE;
+    return room < exit ? room : exit;
+}
+
+/** Where the two bars beside a magnetic nozzle's bell run, metres from the engine's middle: just outside it. */
+export function ringBars(engine: NozzleShape, across: number): [number, number][] {
+    const bar = engine.exitHeight * RING_BAR_SHARE;
+    const exit = drawnExit(engine, true);
     return [
-        [across - outer, across - outer + bar],
-        [across + outer - bar, across + outer],
+        [across - exit - bar, across - exit],
+        [across + exit, across + exit + bar],
     ];
 }
 
