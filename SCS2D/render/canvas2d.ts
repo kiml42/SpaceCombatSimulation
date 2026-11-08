@@ -1668,7 +1668,9 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light
             // tip the way its share of the power does, so the brightest part of the
             // picture is the part doing the most damage.
             const root = -engine.length / 2;
-            const half = engine.geometry.exitWidth / 2;
+            // As wide as its bell is drawn: a magnetic nozzle's is narrower, its jet the same.
+            const gap = engine.geometry.nozzleLength - engine.geometry.bellLength;
+            const half = drawnExit(engine.geometry, gap > 0);
             const image = flameSprite(PLUME, PLUME_CORE);
             if (image === null) return;
             const outer = ctx.globalAlpha;
@@ -1681,7 +1683,6 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light
             const g = half * NOZZLE_GLOW_REACH * (0.5 + 0.5 * grown);
             const shown = landed[1]! > 0 ? (1 - landed[1]!) * reach : reach;
             // A magnetic nozzle's jet glows from its bell, through the gap to its ring.
-            const gap = engine.geometry.nozzleLength - engine.geometry.bellLength;
             lights.coneOf(
                 ctx.getTransform(),
                 root + gap,
@@ -1803,8 +1804,10 @@ function shadeEngine(
         ctx.fillStyle = hull;
         for (const y of layout.centres) {
             for (const [from, to] of ringBars(engine, y)) {
-                ctx.fillRect(-l, from, root + l, to - from);
-                if (rod !== null) ctx.drawImage(rod, -l, from, root + l, to - from);
+                // From where they meet the ring.
+                const start = -l + ringThickness(engine);
+                ctx.fillRect(start, from, root - start, to - from);
+                if (rod !== null) ctx.drawImage(rod, start, from, root - start, to - from);
             }
         }
         ctx.fillRect(-l, -spec.width / 2, ringThickness(engine), spec.width);
