@@ -74,7 +74,7 @@ import {
     paintedSide,
     PORT_COLLAR_SHARE,
     PORT_COLLAR_WIDTH,
-    RING,
+    ringBars,
     ringThickness,
     type Fill,
 } from "./moduleFills.js";
@@ -709,7 +709,7 @@ function drawShip(
 
     if (!whole) return;
     if (arcs === "trigger") drawEngineTriggers(ctx, ship, metresToPx);
-    drawPlumes(ctx, ship);
+    drawPlumes(ctx, ship, light);
     drawLeaks(ctx, ship, light);
 }
 
@@ -1582,7 +1582,7 @@ export function plumeReach(ship: ShipView): number {
  * part of it: sharing the module pass put it *under* the sector a nearby
  * turret sweeps, which dimmed a burning engine to the colour of a shadow.
  */
-function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
+function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light): void {
     eachNozzle(
         ctx,
         ship,
@@ -1652,8 +1652,13 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
             // The ring stands across the jet, so it hides what passes through it.
             if (gap > 0) {
                 const span = engine.geometry.pitch * engine.geometry.nozzles;
-                ctx.fillStyle = RING;
+                ctx.fillStyle = engine.hull;
                 ctx.fillRect(root, -span / 2, ringThickness(engine.geometry), span);
+                if (light !== undefined) {
+                    inLight(ctx, light);
+                    shadeRing(ctx, root, span, ringThickness(engine.geometry), engine.angle, light);
+                    ctx.restore();
+                }
             }
         },
         true,
@@ -1709,11 +1714,34 @@ function shadeEngine(
             rounded?.tube(m, layout.centre, y, straight, r, 1, colour, 1, thick ? "thick" : "deck");
         }
     }
+    // A magnetic nozzle's ring, round in section, lies across the engine's aft
+    // end, and its bars along it.
+    if (engine.bellLength < engine.nozzleLength) {
+        const rod = cylinderShade(side, up);
+        const root = layout.pumpAft < l ? layout.pumpAft : l;
+        for (const y of layout.centres) {
+            for (const [from, to] of ringBars(engine, y)) if (rod !== null) ctx.drawImage(rod, -l, from, root + l, to - from);
+        }
+        shadeRing(ctx, -l, spec.width, ringThickness(engine), angle, light);
+    }
     if (roundPump) {
         const pump = cylinderShade(side, up);
         if (pump !== null) ctx.drawImage(pump, layout.pumpAft, -layout.halfWidth, l - layout.pumpAft, 2 * layout.halfWidth);
         rounded?.tube(m, layout.pumpAft, 0, l - layout.pumpAft, layout.halfWidth, 1, colour, 1, thick ? "thick" : "deck");
     }
+}
+
+/** A magnetic nozzle's ring shaded as round in section: a rod `span` long lying across the engine at `x`. */
+function shadeRing(ctx: CanvasRenderingContext2D, x: number, span: number, thickness: number, angle: number, light: Light): void {
+    const { across, up } = lightSlope(light);
+    // Turned a quarter, the image's +y runs toward the engine's -x.
+    const image = cylinderShade(-across * cos(light.from - angle), up);
+    if (image === null) return;
+    ctx.save();
+    ctx.translate(x + thickness / 2, 0);
+    ctx.rotate(Math.PI / 2);
+    ctx.drawImage(image, -span / 2, -thickness / 2, span, thickness);
+    ctx.restore();
 }
 
 /** A docking port's block and collar shaded as rounded across, in its module's frame, the module turned `angle`. */
@@ -2129,6 +2157,10 @@ function drawBurns(ctx: CanvasRenderingContext2D, snapshot: Snapshot): void {
 interface Engine {
     geometry: ReturnType<typeof engineGeometry>;
     length: number;
+    /** The hull's colour, which a magnetic nozzle's ring is drawn in. */
+    hull: string;
+    /** The engine's bearing in the world, for its ring's shading. */
+    angle: number;
 }
 
 /**
@@ -2164,6 +2196,7 @@ function eachNozzle(
         if (!(force > 0)) continue;
         const geometry = engineGeometry(spec);
         const reach = nozzleReach(geometry, force);
+        const hull = moduleColours(design, i, paintedSide(ship, i)).hull;
         ctx.save();
         ctx.translate(m.x, m.y);
         ctx.rotate(m.angle);
@@ -2176,7 +2209,14 @@ function eachNozzle(
                 for (let k = 0; k < PLUME_RAYS; k++) {
                     landed[k] = ship.landed[landedIndex(design, t, n * PLUME_RAYS + k, layer)] ?? 0;
                 }
-                visit({ geometry, length: spec.length }, force, reach, nozzleOffset(geometry, n), landed, split);
+                visit(
+                    { geometry, length: spec.length, hull, angle: ship.angle + m.angle },
+                    force,
+                    reach,
+                    nozzleOffset(geometry, n),
+                    landed,
+                    split,
+                );
             }
         }
         ctx.restore();
@@ -2610,7 +2650,7 @@ function drawScene(
     for (let i = 0; i < snapshot.shipCount; i++) {
         const ship = snapshot.ships[i]!;
         if (shown(ship)) drawShip(ctx, ship, camera.scale, arcsFor(ship.body, selected, arcs), false, underneath, light);
-        else if (!ship.currentStructure.fighter && plumeShown(ship)) drawPlumes(ctx, ship);
+        else if (!ship.currentStructure.fighter && plumeShown(ship)) drawPlumes(ctx, ship, light);
     }
     for (let i = 0; i < snapshot.shipCount; i++) {
         const ship = snapshot.ships[i]!;
@@ -2619,7 +2659,7 @@ function drawScene(
     for (let i = 0; i < snapshot.shipCount; i++) {
         const ship = snapshot.ships[i]!;
         if (shown(ship)) drawShip(ctx, ship, camera.scale, arcsFor(ship.body, selected, arcs), true, false, light);
-        else if (ship.currentStructure.fighter && plumeShown(ship)) drawPlumes(ctx, ship);
+        else if (ship.currentStructure.fighter && plumeShown(ship)) drawPlumes(ctx, ship, light);
     }
 
     drawDebris(ctx, snapshot, camera, light);

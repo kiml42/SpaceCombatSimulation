@@ -207,6 +207,20 @@ export const PRESSURE_FED_BLOCK = 0.25;
 /** A pressure-fed engine's machinery mass, as a share of a pumped one's: a chamber and injectors, no pumps. */
 export const PRESSURE_FED_MASS = 0.5;
 
+/** Mass of an engine's bell, kg per square metre of its wall: sheet with coolant channels through it. */
+export const BELL_MASS_PER_AREA = 50;
+
+/** A pressure-fed bell's mass as a share of a pumped one's: with no pump to drive coolant through it, it is bare sheet. */
+export const PRESSURE_FED_BELL = 0.6;
+
+/** The wall area of an engine's bells, m²: each a square-sectioned flare from its throat to its exit. */
+export function bellWallArea(geometry: EngineGeometry): number {
+    const flare = (geometry.exitWidth - geometry.throatWidth) * 0.5;
+    const slant = sqrt(geometry.bellLength * geometry.bellLength + flare * flare);
+    const perimeter = geometry.exitWidth + geometry.exitHeight + 2 * geometry.throatWidth;
+    return geometry.nozzles * slant * perimeter;
+}
+
 /** Whether an engine of this geometry has no room for pumps: too small a throat (`PRESSURE_FED_THROAT`), or too short a block (`PRESSURE_FED_BLOCK`). */
 export function isPressureFed(geometry: EngineGeometry): boolean {
     return geometry.throatWidth < PRESSURE_FED_THROAT || geometry.machineryLength < PRESSURE_FED_BLOCK;
@@ -666,10 +680,10 @@ export const GAS_RECOIL = 1.5;
 export const RING_SHARE = 0.6;
 
 /**
- * How wide each of the two bars carrying a magnetic nozzle's ring is, as a
- * share of the exit it runs beside, which is narrower by both.
+ * How much further a powered ring's field holds a flame together past the
+ * exit than a bell can, whose walls end where the gas leaves them.
  */
-export const RING_BAR_SHARE = 0.08;
+export const MAGNETIC_PLUME_REACH = 1.5;
 
 /**
  * Power a magnetic nozzle draws at full throttle, watts per square metre of
@@ -2252,10 +2266,9 @@ export function engineGeometry(spec: ModuleSpec): EngineGeometry {
     const bell = magnetic ? nozzleLength * (1 - RING_SHARE) : nozzleLength;
     const share = nozzleLength / spec.length;
     const pitch = spec.width / nozzles;
-    // Square: a thin engine's bell is held to a deck both ways. A magnetic one's
-    // gives the bars that carry its ring their room either side.
+    // Square: a thin engine's bell is held to a deck both ways.
     const exitHeight = moduleThickness(spec);
-    const exitWidth = magnetic ? exitHeight * (1 - 2 * RING_BAR_SHARE) : exitHeight;
+    const exitWidth = exitHeight;
     const throatWidth = exitWidth * NOZZLE_THROAT_FRACTION;
     // How far the wall has to travel sideways over the bell's length.
     const flare = (exitWidth - throatWidth) * 0.5;
@@ -3220,6 +3233,8 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
         thrust = throughput * engine.divergence;
         exhaustVelocity = engineExhaustVelocity(engine);
         fittingMass = throughput * ENGINE_MASS_PER_NEWTON * (isPressureFed(engine) ? PRESSURE_FED_MASS : 1);
+        // The bell weighs its sheet, so a long one costs mass as well as flow.
+        fittingMass += bellWallArea(engine) * BELL_MASS_PER_AREA * (isPressureFed(engine) ? PRESSURE_FED_BELL : 1);
         if (isMagnetic(spec)) {
             ringPower = MAGNETIC_POWER_PER_EXIT_AREA * exitArea;
             fittingMass += MAGNETIC_MASS_PER_EXIT_AREA * exitArea;

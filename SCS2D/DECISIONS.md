@@ -17,6 +17,7 @@ inside any one file is not contiguous.
 
 | File | Holds | Read it when |
 | --- | --- | --- |
+| 2026-11-08 | **A bell weighs its sheet, and a magnetic nozzle's bars take nothing off its exit** (#874, #882). From the author, who found that a Y Wing with magnetic mains got worse: its long bell already aimed 99.9% of the jet, while the bars carrying the ring narrowed its exit by 16%, and the ring's mass was pure addition, because a bell weighed nothing. Now every bell weighs `BELL_MASS_PER_AREA` (50 kg/m²) of wall, a pressure-fed one three fifths of that (`PRESSURE_FED_BELL`, the author's "a bit over half": with no pump, nothing drives coolant through it), so a magnetic engine's short bell pays for most of its ring. The bars are thin and stand beside the exit, and a powered ring's field holds the flame together past it, reaching `MAGNETIC_PLUME_REACH` (1.5) times as far, which the author expected of it. Every engine is heavier by its bell, so the goldens moved. |
 | **[DESIGN.md](DESIGN.md)** | Status, §§1–7 and 9–11 — what the game is, how it works, and why | Deciding how something should behave |
 | **[ROADMAP.md](ROADMAP.md)** | §8 build order; §12 points at the open questions, now issues | Picking up work, or deferring a decision |
 | **[DECISIONS.md](DECISIONS.md)** | The Decision Log | Asking why something ended up the way it is |
