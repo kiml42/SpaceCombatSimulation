@@ -958,6 +958,7 @@ function drawHull(
                 rgba(fillColour(spec, colours)),
                 fighters,
                 colours.hull,
+                fillColour(spec, colours),
             );
             ctx.restore();
         }
@@ -1755,6 +1756,8 @@ function shadeEngine(
     thick: boolean,
     /** The hull's colour, which a magnetic nozzle's ring and bars are in. */
     hull: string,
+    /** The engine's own colour, its chambers' fill. */
+    fill: string,
 ): void {
     const m = ctx.getTransform();
     const engine = engineGeometry(spec);
@@ -1779,11 +1782,35 @@ function shadeEngine(
               ]
             : [[layout.centre, layout.aft, layout.fore]];
     for (const y of layout.centres) {
-        if (bell !== null) {
-            const end = mouth - engine.bellLength;
-            ctx.drawImage(bell, end, y - exit, mouth - end, 2 * exit);
-            rounded?.tube(m, end, y, mouth - end, exit, engine.throatWidth / (2 * exit), colour, 1, thick ? "thick" : "deck");
+        if (bell === null) continue;
+        const end = mouth - engine.bellLength;
+        ctx.drawImage(bell, end, y - exit, mouth - end, 2 * exit);
+        rounded?.tube(m, end, y, mouth - end, exit, engine.throatWidth / (2 * exit), colour, 1, thick ? "thick" : "deck");
+    }
+    // A magnetic nozzle's bars, rods along the engine from its ring, pass
+    // behind its chambers: painted over the bells beside them, then each
+    // chamber painted again over them.
+    if (magnetic) {
+        const rod = cylinderShade(side, up);
+        const root = layout.pumpAft < l ? layout.pumpAft : l;
+        const start = -l + ringThickness(engine);
+        ctx.fillStyle = hull;
+        for (const y of layout.centres) {
+            for (const [from, to] of ringBars(engine, y)) {
+                ctx.fillRect(start, from, root - start, to - from);
+                if (rod !== null) ctx.drawImage(rod, start, from, root - start, to - from);
+            }
         }
+        ctx.fillStyle = fill;
+        for (const y of layout.centres) {
+            const points = layout.chamber;
+            ctx.beginPath();
+            for (let k = 0; k < points.length; k += 2) ctx.lineTo(points[k]!, points[k + 1]! + y);
+            ctx.closePath();
+            ctx.fill();
+        }
+    }
+    for (const y of layout.centres) {
         if (!(r > 0)) continue;
         for (const [x, from, to] of ends) {
             const image = sphereShade(light.from - angle, across, up, (from - x) / r, (to - x) / r);
@@ -1795,21 +1822,9 @@ function shadeEngine(
             rounded?.tube(m, layout.centre, y, straight, r, 1, colour, 1, thick ? "thick" : "deck");
         }
     }
-    // A magnetic nozzle's bars, rods along the engine, and its ring round the
-    // jet at its aft end: painted again over whatever bell or chamber they
-    // cross, so each carries only its own shading.
+    // Its ring round the jet at its aft end.
     if (magnetic) {
-        const rod = cylinderShade(side, up);
-        const root = layout.pumpAft < l ? layout.pumpAft : l;
         ctx.fillStyle = hull;
-        for (const y of layout.centres) {
-            for (const [from, to] of ringBars(engine, y)) {
-                // From where they meet the ring.
-                const start = -l + ringThickness(engine);
-                ctx.fillRect(start, from, root - start, to - from);
-                if (rod !== null) ctx.drawImage(rod, start, from, root - start, to - from);
-            }
-        }
         ctx.fillRect(-l, -spec.width / 2, ringThickness(engine), spec.width);
         shadeRing(ctx, -l, spec.width, ringThickness(engine), angle, light);
     }

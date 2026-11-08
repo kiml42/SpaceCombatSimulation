@@ -141,17 +141,17 @@ export function moduleFills(
         for (const across of layout.centres) {
             out.push({ colour: BELL, points: [mouth, across - throat, mouth, across + throat, end, across + exit, end, across - exit] });
         }
-        for (const across of layout.centres) out.push({ colour, points: layout.chamber.map((v, k) => (k % 2 === 1 ? v + across : v)) });
         if (isMagnetic(spec)) {
             // Bars either side of each nozzle carry the ring across the engine's aft
-            // end, run past the bell and the chamber from the machinery block, or from
-            // the engine's front where it has none. In the hull's colour, as the ring is.
+            // end, run behind the chamber from the machinery block, or from the
+            // engine's front where it has none. In the hull's colour, as the ring is.
             const root = layout.pumpAft < l ? layout.pumpAft : l;
             for (const across of layout.centres) {
                 for (const [from, to] of ringBars(engine, across)) box(-l + ringThickness(engine), from, root, to, deck);
             }
-            box(-l, -w, -l + ringThickness(engine), w, deck);
         }
+        for (const across of layout.centres) out.push({ colour, points: layout.chamber.map((v, k) => (k % 2 === 1 ? v + across : v)) });
+        if (isMagnetic(spec)) box(-l, -w, -l + ringThickness(engine), w, deck);
         if (layout.pumpAft < l) {
             box(layout.pumpAft, -w, l, w);
             // A livery's band round the pump, as far from its aft face as it is wide.
