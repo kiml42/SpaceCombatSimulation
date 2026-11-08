@@ -16,13 +16,14 @@ const CARRIER: Blueprint = {
 
 /**
  * A Dinky full of fuel with its gun shot away, by a carrier, with nothing to fight: whether it lands, and is mended there.
- * Its gun is half its mass, so `repairBelow` would send it too, and is off.
+ * Its gun is half its mass, so `repairBelow` would send it too, and is off; so
+ * is `refuelBelow`, since it burns its fuel down loitering for want of a target.
  */
 function disarmed(repairArmed: number): { landed: boolean; mended: boolean } {
     const doctrine = compileBlueprint(DINKY).doctrine;
     const fighter = compileBlueprint({
         ...DINKY,
-        doctrine: { ...doctrine, approach: { ...doctrine.approach, repairArmed, repairBelow: 0 } },
+        doctrine: { ...doctrine, approach: { ...doctrine.approach, repairArmed, repairBelow: 0, refuelBelow: 0 } },
     });
     const gun = fighter.modules.findIndex((m) => m.spec.kind === "hullGun");
     const run = makeBattle({ seed: 3 }, (ships, world) => {
