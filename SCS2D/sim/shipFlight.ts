@@ -8,7 +8,7 @@ import { geometryOf, plumeLayers, plumeRays, WEAPON_PLUME_SHARE } from "./exhaus
 import { cohesionUrge } from "./targeting.js";
 import { abs, atan2, angleDelta, PI, brakingRate, clamp, cos, length, max, min, sin, sqrt } from "./math.js";
 import { EngineLayout } from "./engines.js";
-import { burnGain, pushBearing, pushTorque, spinWay, steerHeading, STEER_HOLD_SPEED, STEER_SPIN, turnTime } from "./helm.js";
+import { burnGain, pushBearing, pushTorque, spinCheck, spinWay, steerHeading, STEER_HOLD_SPEED, STEER_SPIN, turnTime } from "./helm.js";
 import { addFlame, addTurret, attackBearing } from "./attack.js";
 import { interceptTime } from "./turrets.js";
 import { edgeFade } from "./doctrine.js";
@@ -394,6 +394,8 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
     // it asks for what a straight push would turn it by, or a spin-up if more, rather
     // than for no turn, which the allocator would buy by not pushing at all.
     if (spin !== 0) demandTorque = spin * max(spin * demandTorque, spin * pushTorque(layout, demandFx, demandFy));
+    // Past the clamp, so a spin it cannot stop still holds back the push that feeds it.
+    demandTorque += spinCheck(layout, bodies.angularVel[b]!, ships.doctrines[i]!.approach.spinResist);
     const throttles = ships.throttles[i]!;
     layout.allocate(demandFx, demandFy, demandTorque, throttles, ships.allocation);
     // Asked for more force than it has, the allocator can give up the turn for
