@@ -701,16 +701,14 @@ export const LANCE_BASE_SHARE = 0.25;
 /** Seconds a plasma lance's pulse lasts. */
 export const LANCE_PULSE = 1;
 
-/** Seconds a plasma lance takes to charge again after a pulse, at the least. */
-export const LANCE_CHARGE_TIME = 3;
-
 /**
- * Power a lance's pulse delivers to what it meets, watts per newton of its
- * jet: a balance dial, as `PLUME_POWER_PER_NEWTON` is for a flame, and far
- * more, the jet being held together rather than spraying. Set so a lance is
- * deadly inside its reach: still a tenth of its jet's own kinetic power.
+ * The share of its fuel's energy, as an engine would throw it, that a lance's
+ * pulse delivers to what it meets, on top of its bank: what of the jet its
+ * field holds together all the way there. A balance dial, as
+ * `PLUME_POWER_PER_NEWTON` is for a flame, and far more, the jet being held
+ * together rather than spraying.
  */
-export const LANCE_POWER_PER_NEWTON = 1000;
+export const LANCE_FUEL_SHARE = 0.05;
 
 /** How far a lance's pulse holds together, metres per metre of its length. Its power falls to nothing there. */
 export const LANCE_REACH_PER_METRE = 40;
@@ -719,13 +717,10 @@ export const LANCE_REACH_PER_METRE = 40;
 export const LANCE_WORTH = 0.5;
 
 /**
- * Charge a lance's field takes for each pulse, joules per cubic metre: its reach by its exit.
- * Its base, as a rail gun's block, holds a score of pulses in capacitors, so it never limits it.
+ * The share of a pulse's charge and fuel a charged lance leaks a second: a
+ * third of what its base charges a second.
  */
-export const LANCE_FIELD_ENERGY_PER_VOLUME = 5e3;
-
-/** The share of a pulse's charge and fuel a charged lance leaks a second. */
-export const LANCE_LEAK = 0.1;
+export const LANCE_LEAK = 0.025;
 
 /** How much faster a rail gun throws its round than powder would from the same barrel. */
 export const RAIL_SPEED = 2;
@@ -3016,17 +3011,27 @@ export function hullBeamStats(spec: ModuleSpec): GunStats {
  * A plasma lance: a jet of the ship's fuel thrown out of its face for a pulse,
  * held together by a field between its prongs.
  *
+ * A powered weapon, as a rail gun is: its base is a capacitor bank, at the
+ * rail gun's share (`RAIL_BANK_SHARE`) of the capacitors every powered weapon
+ * has, charged at a rail gun's rate, and a pulse spends all of it. On top it
+ * delivers `LANCE_FUEL_SHARE` of its fuel's energy as an engine would throw it.
  * Its face is its exit, so a wider lance throws more fuel, hits harder and
- * kicks harder, as an engine's exit does. Its length is the field, so a longer
- * lance reaches further and takes more charge to fill. Its power falls off
+ * kicks harder, as an engine's exit does. Its length is its field and its
+ * bank, so a longer lance reaches further and stores more. Its power falls off
  * along its reach to nothing at the end of it.
  */
 function lanceStats(spec: ModuleSpec): GunStats {
     const { barrelLength } = hullMountGeometry(spec);
-    const exitArea = spec.width * moduleThickness(spec);
+    const depth = moduleThickness(spec);
+    const exitArea = spec.width * depth;
     // As hard as an engine of the same exit can push, its throat choked.
     const jetThrust = THRUST_PER_EXIT_AREA * THROAT_CHOKE * exitArea;
     const plasmaReach = LANCE_REACH_PER_METRE * spec.length;
+    const base = LANCE_BASE_SHARE * spec.length * spec.width * depth;
+    const bank = CAPACITOR_ENERGY_PER_VOLUME * RAIL_BANK_SHARE * base;
+    // The fuel's energy as an engine's jet carries it, half its mass by its speed squared.
+    const fuel = (jetThrust / EXHAUST_VELOCITY) * LANCE_PULSE;
+    const thrown = 0.5 * fuel * EXHAUST_VELOCITY * EXHAUST_VELOCITY;
     return {
         type: GunType.Beam,
         calibre: spec.width,
@@ -3037,15 +3042,15 @@ function lanceStats(spec: ModuleSpec): GunStats {
         barrelSpacing: 0,
         roundMass: 0,
         casing: 0,
-        propellant: (jetThrust / EXHAUST_VELOCITY) * LANCE_PULSE,
-        shotEnergy: LANCE_FIELD_ENERGY_PER_VOLUME * plasmaReach * exitArea,
+        propellant: fuel,
+        shotEnergy: bank,
         plasmaReach,
         jetThrust,
         muzzleSpeed: -1,
         muzzleEnergy: 0,
-        beamPower: LANCE_POWER_PER_NEWTON * jetThrust,
+        beamPower: (bank + LANCE_FUEL_SHARE * thrown) / LANCE_PULSE,
         beamOnTime: LANCE_PULSE,
-        cycleTime: LANCE_CHARGE_TIME,
+        cycleTime: bank / (RAIL_BANK_POWER_PER_VOLUME * base),
         burst: null,
     };
 }
@@ -3377,6 +3382,11 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
                 protrudingMass = section * gun.barrelLength * HULL_DENSITY;
                 fittingMass = (protrudingMass + MECHANISM_MASS_PER_CALIBRE * gun.calibre) * gun.barrelCount + braceMass(gun);
             }
+        } else if (spec.kind === "plasmaLance") {
+            // Its field gear, and the bank in its base, which weighs as a rail gun's
+            // does: its power comes from that and from its fuel, not from an optic.
+            protrudingMass = OPTIC_AREAL_DENSITY * PI * 0.25 * gun.calibre * gun.calibre;
+            fittingMass = protrudingMass + RAIL_BANK_MASS_PER_VOLUME * LANCE_BASE_SHARE * spec.length * spec.width * height;
         } else {
             protrudingMass = OPTIC_AREAL_DENSITY * PI * 0.25 * gun.calibre * gun.calibre;
             fittingMass = (protrudingMass + BEAM_MASS_PER_WATT * gun.beamPower) * gun.barrelCount;

@@ -678,18 +678,22 @@ inside any one file is not contiguous.
   ships.
   **A plasma lance** (`plasmaLance`) is a module of its own, a hull beam on fuel: the same block and
   outlet and the laws that size them (`isHullBeam`), with two prongs between which a field throws a pulse of
-  the ship's fuel, white hot, for `LANCE_PULSE` (a second). Fuel is how hard it hits and power how far it
-  holds together. Its face is its exit, as an engine's is, so a wider lance throws more fuel
-  (as hard as an engine of the same exit can push, `THRUST_PER_EXIT_AREA` with its throat choked, over the
-  exhaust speed), hits harder (`LANCE_POWER_PER_NEWTON`, 1 kW for each newton of jet, so a Corvette-sized
-  lance's pulse carries more than a rail gun's shot, deadly inside its reach and nothing past it) and kicks
-  back harder, with the jet's thrust, an engine's, for as long as it burns. Its length is the field, so a longer lance reaches further (`LANCE_REACH_PER_METRE`, 40 m a metre)
-  and takes more charge to fill (`LANCE_FIELD_ENERGY_PER_VOLUME`, by reach and exit), which
-  its base holds a score of times over in the capacitors a rail gun's bank has, so the base never limits it. Its power falls off
-  along its reach to nothing at the end, and it never reflects, so it is worth firing only well inside it
-  (`LANCE_WORTH`, half). It draws a pulse's fuel and charge as it recharges (`LANCE_CHARGE_TIME`), as any
-  mount does. **A charged lance leaks**: a tenth of a pulse's charge and fuel a second (`LANCE_LEAK`), and
-  what its stores cannot make up it loses. So each lance is built one of two ways (`ready`): kept charged,
+  the ship's fuel, white hot, for `LANCE_PULSE` (a second). **It is a powered weapon, as a rail gun is**: its
+  base (`LANCE_BASE_SHARE`, a quarter of its length) is a capacitor bank at a rail gun's share
+  (`RAIL_BANK_SHARE`) of the capacitors every powered weapon has, weighing as a rail gun's does, charged at a
+  rail gun's rate (`RAIL_BANK_POWER_PER_VOLUME`) from its piece of hull's power, so a pulse every 13 s or so
+  whatever its shape, and each pulse spends all of it. On top it delivers `LANCE_FUEL_SHARE` (5%) of its
+  fuel's energy as an engine would throw it, half its mass by the exhaust speed squared: what of the jet its
+  field holds together all the way there. So a Corvette-sized lance strikes with about 1.1 GJ, half bank and
+  half fuel, deadly inside its reach and nothing past it, and gives its enemy a long charge to see coming.
+  Its face is its exit, as an engine's is, so a wider lance throws more fuel (as hard as an engine of the
+  same exit can push, `THRUST_PER_EXIT_AREA` with its throat choked, over the exhaust speed), hits harder
+  and kicks back harder, with the jet's thrust for as long as it burns. Its length is the field and the
+  bank, so a longer lance reaches further (`LANCE_REACH_PER_METRE`, 40 m a metre) and stores more. Its
+  power falls off along its reach to nothing at the end, and it never reflects, so it is worth firing only
+  well inside it (`LANCE_WORTH`, half). It draws a pulse's fuel and charge as it recharges, as any mount
+  does. **A charged lance leaks**: a fortieth of a pulse's charge and fuel a second (`LANCE_LEAK`), a third
+  of what its base charges, and what its stores cannot make up it loses. So each lance is built one of two ways (`ready`): kept charged,
   ready the moment it bears and paying for it, or charged only once it is on target, setting out uncharged
   and risking the target slipping away before it is full. It does not train, so the hull aims it, and it
   welds on by its back and sides as any hull mount does. Its pulse leaves from the back of the gap between its prongs and runs the length of it. It is drawn as a
