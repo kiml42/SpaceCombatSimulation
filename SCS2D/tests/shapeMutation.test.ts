@@ -160,7 +160,8 @@ describe("breeding a shape", () => {
                 { kind: "structure", x: 0, y: -2, length: 2, width: 2 },
             ],
         };
-        const more = breedLine(elbow, 15, 40, shapeOnly);
+        // Several lines, so a cut turning up does not hang on one seed's draws.
+        const more = [15, 16, 17, 18, 19].flatMap((seed) => breedLine(elbow, seed, 40, shapeOnly));
         let cuts = 0;
         for (const step of matching(more, CUT)) {
             // Only a generation whose *whole* change was the cut says anything about
