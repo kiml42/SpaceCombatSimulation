@@ -1,458 +1,458 @@
 {
-  "formatVersion": 2,
-  "name": "Beam Carrier",
-  "category": "Stock",
-  "notes": "A carrier for beam fighters: eight pads, each with a battery to recharge what lands on it, and a tender docked port to port amidships that casts off to scavenge fuel with its claw.",
-  "doctrine": {
-    "approach": {
-      "scavengeFuelBelow": 0.8,
-      "refuelBelow": 0.1,
-      "deliverFuelAbove": 0.6,
-      "clawSpeed": 30,
-      "fuelReserve": 0.1
-    }
-  },
-  "hangar": {
-    "Dinky Beam": {
-      "formatVersion": 2,
-      "name": "Dinky Beam",
-      "notes": "A fighter. It cannot hope to destroy anything much larger than itself, so it puts engines above the guns everything else shoots at first: a capital it strands is a capital out of the battle, which is the most a craft this size can do to one.",
-      "fighter": true,
-      "doctrine": {
-        "targeting": {
-          "loyaltyWeight": 100,
-          "facingWeight": 100,
-          "sightWeight": 50,
-          "escortWeight": 100
-        },
+    "formatVersion": 2,
+    "name": "Beam Carrier",
+    "category": "Stock",
+    "notes": "A carrier for beam fighters: eight pads, each with a battery to recharge what lands on it, and a tender docked port to port amidships that casts off to scavenge fuel with its claw.",
+    "doctrine": {
         "approach": {
-          "standoffRadii": 60,
-          "escortRadii": 10,
-          "escortMinRadii": 2,
-          "tolerance": 0.3,
-          "brake": 0.95,
-          "ramRadii": 1000,
-          "ramArmed": 0.5,
-          "refuelBelow": 0.5,
-          "rechargeBelow": 0.5,
-          "tangentialMin": 20,
-          "tangentialMax": 60
+            "scavengeFuelBelow": 0.8,
+            "refuelBelow": 0.1,
+            "deliverFuelAbove": 0.6,
+            "clawSpeed": 30,
+            "fuelReserve": 0.1
         }
-      },
-      "assemblies": {
-        "Side": {
-          "modules": [
-            {
-              "id": 8,
-              "kind": "engine",
-              "x": 0.04999999999999999,
-              "y": -0.04999999999999998,
-              "angle": -90,
-              "length": 0.2,
-              "width": 0.5,
-              "nozzle": 0.2
+    },
+    "hangar": {
+        "Dinky Beam": {
+            "formatVersion": 2,
+            "name": "Dinky Beam",
+            "notes": "A fighter. It cannot hope to destroy anything much larger than itself, so it puts engines above the guns everything else shoots at first: a capital it strands is a capital out of the battle, which is the most a craft this size can do to one.",
+            "fighter": true,
+            "doctrine": {
+                "targeting": {
+                    "loyaltyWeight": 100,
+                    "facingWeight": 100,
+                    "sightWeight": 50,
+                    "escortWeight": 100
+                },
+                "approach": {
+                    "standoffRadii": 60,
+                    "escortRadii": 10,
+                    "escortMinRadii": 2,
+                    "tolerance": 0.3,
+                    "brake": 0.95,
+                    "ramRadii": 1000,
+                    "ramArmed": 0.5,
+                    "refuelBelow": 0.5,
+                    "rechargeBelow": 0.5,
+                    "tangentialMin": 20,
+                    "tangentialMax": 60
+                }
             },
-            {
-              "id": 9,
-              "kind": "engine",
-              "x": -2.15,
-              "y": -0.05000000000000002,
-              "angle": -180,
-              "length": 0.4,
-              "width": 0.2,
-              "barrels": 1,
-              "nozzle": 1.75
+            "assemblies": {
+                "Side": {
+                    "modules": [
+                        {
+                            "id": 8,
+                            "kind": "engine",
+                            "x": 0.04999999999999999,
+                            "y": -0.04999999999999998,
+                            "angle": -90,
+                            "length": 0.2,
+                            "width": 0.5,
+                            "nozzle": 0.2
+                        },
+                        {
+                            "id": 9,
+                            "kind": "engine",
+                            "x": -2.15,
+                            "y": -0.05000000000000002,
+                            "angle": -180,
+                            "length": 0.4,
+                            "width": 0.2,
+                            "barrels": 1,
+                            "nozzle": 1.75
+                        },
+                        {
+                            "id": 10,
+                            "kind": "engine",
+                            "x": -2.35,
+                            "y": -0.15,
+                            "angle": -90,
+                            "length": 0.125,
+                            "width": 0.4,
+                            "barrels": 1,
+                            "nozzle": 0.3125
+                        }
+                    ]
+                }
             },
-            {
-              "id": 10,
-              "kind": "engine",
-              "x": -2.35,
-              "y": -0.15,
-              "angle": -90,
-              "length": 0.125,
-              "width": 0.4,
-              "barrels": 1,
-              "nozzle": 0.3125
+            "modules": [
+                {
+                    "id": 1,
+                    "kind": "tank",
+                    "x": 0.675,
+                    "y": 0,
+                    "length": 1.15,
+                    "width": 0.8,
+                    "reinforcement": 1
+                },
+                {
+                    "id": 2,
+                    "use": "Side",
+                    "x": -0.1,
+                    "y": 0.25,
+                    "angle": 180
+                },
+                {
+                    "id": 3,
+                    "kind": "engine",
+                    "x": -0.4,
+                    "y": 0,
+                    "angle": 180,
+                    "length": 0.5,
+                    "width": 0.8,
+                    "nozzle": 0.625
+                },
+                {
+                    "id": 4,
+                    "kind": "core",
+                    "x": -0.15,
+                    "y": 0,
+                    "length": 0.5,
+                    "width": 0.6,
+                    "reinforcement": 1.5,
+                    "notes": "A tiny simple fighter with just enough engines to fly"
+                },
+                {
+                    "id": 5,
+                    "kind": "hullBeam",
+                    "x": 2.02,
+                    "y": 0,
+                    "angle": 0,
+                    "length": 1.04,
+                    "width": 0.4,
+                    "reinforcement": 1.5,
+                    "barrels": 1,
+                    "traverse": 6,
+                    "targeting": {
+                        "engineWeight": 150,
+                        "facingWeight": 100,
+                        "sightWeight": 100
+                    }
+                },
+                {
+                    "id": 6,
+                    "use": "Side",
+                    "x": -0.1,
+                    "y": -0.25,
+                    "angle": 180,
+                    "mirror": true
+                },
+                {
+                    "id": 7,
+                    "kind": "battery",
+                    "x": 1.375,
+                    "y": 0,
+                    "length": 0.25,
+                    "width": 0.8,
+                    "reinforcement": 1
+                }
+            ]
+        }
+    },
+    "assemblies": {
+        "turret": {
+            "modules": [
+                {
+                    "id": 17,
+                    "kind": "beamTurret",
+                    "x": -1,
+                    "y": 6.123233995736766e-17,
+                    "angle": 90,
+                    "length": 3,
+                    "width": 3,
+                    "barrels": 2,
+                    "main": false
+                },
+                {
+                    "id": 18,
+                    "kind": "engine",
+                    "x": -0.9999999999999999,
+                    "y": 1.5,
+                    "angle": 90,
+                    "length": 1.5,
+                    "width": 3,
+                    "nozzle": 0.5
+                }
+            ]
+        },
+        "pad": {
+            "modules": [
+                {
+                    "id": 19,
+                    "kind": "pad",
+                    "x": 0,
+                    "y": 0,
+                    "length": 8,
+                    "width": 4,
+                    "reinforcement": 3,
+                    "craft": "Dinky Beam",
+                    "docked": true
+                },
+                {
+                    "id": 20,
+                    "kind": "battery",
+                    "x": 6,
+                    "y": 0,
+                    "length": 4,
+                    "width": 4,
+                    "reinforcement": 3
+                }
+            ]
+        },
+        "engine": {
+            "modules": [
+                {
+                    "id": 21,
+                    "kind": "engine",
+                    "x": 0,
+                    "y": 0,
+                    "angle": 90,
+                    "length": 4,
+                    "width": 3,
+                    "reinforcement": 3,
+                    "nozzle": 1.3333
+                }
+            ]
+        },
+        "Engine Block": {
+            "modules": [
+                {
+                    "id": 22,
+                    "kind": "engine",
+                    "x": -1.5,
+                    "y": 0,
+                    "angle": 180,
+                    "length": 4,
+                    "width": 8,
+                    "reinforcement": 3,
+                    "barrels": 3,
+                    "nozzle": 1.5
+                },
+                {
+                    "id": 23,
+                    "use": "engine",
+                    "x": 0,
+                    "y": 0,
+                    "angle": -180
+                },
+                {
+                    "id": 24,
+                    "use": "engine",
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        },
+        "engine2": {
+            "modules": [
+                {
+                    "id": 25,
+                    "kind": "engine",
+                    "x": 0,
+                    "y": 0,
+                    "angle": 90,
+                    "length": 0.5,
+                    "width": 3,
+                    "nozzle": 0.1667
+                }
+            ]
+        },
+        "assembly": {
+            "modules": [
+                {
+                    "id": 26,
+                    "kind": "port",
+                    "x": 0,
+                    "y": -1,
+                    "angle": 90,
+                    "length": 2,
+                    "width": 7
+                },
+                {
+                    "id": 27,
+                    "use": "engine2",
+                    "x": -7,
+                    "y": -2
+                },
+                {
+                    "id": 28,
+                    "use": "engine2",
+                    "x": 8,
+                    "y": -2
+                },
+                {
+                    "id": 29,
+                    "kind": "engine",
+                    "x": -8.5,
+                    "y": -2.75,
+                    "angle": -180,
+                    "length": 1,
+                    "width": 2.5,
+                    "nozzle": 0.4
+                },
+                {
+                    "id": 30,
+                    "kind": "engine",
+                    "x": 8,
+                    "y": -2.75,
+                    "angle": 0,
+                    "length": 1.5,
+                    "width": 1.5,
+                    "nozzle": 1
+                }
+            ]
+        }
+    },
+    "modules": [
+        {
+            "id": 1,
+            "kind": "core",
+            "x": -43.5,
+            "y": 13,
+            "length": 12,
+            "width": 6,
+            "reinforcement": 3,
+            "thick": true,
+            "computing": 0.15
+        },
+        {
+            "id": 2,
+            "kind": "tank",
+            "x": -20.5,
+            "y": 4,
+            "length": 90,
+            "width": 12,
+            "reinforcement": 6,
+            "sealing": 0.002,
+            "fill": 0.45
+        },
+        {
+            "id": 3,
+            "use": "turret",
+            "x": -36,
+            "y": 12.5,
+            "angle": -90
+        },
+        {
+            "id": 4,
+            "use": "turret",
+            "x": -51,
+            "y": 12.5,
+            "angle": -90,
+            "mirror": true
+        },
+        {
+            "id": 5,
+            "use": "pad",
+            "x": -64.5,
+            "y": -4,
+            "repeat": 8,
+            "step": {
+                "x": 12,
+                "y": 0
             }
-          ]
+        },
+        {
+            "id": 6,
+            "kind": "battery",
+            "x": -70.5,
+            "y": -4,
+            "length": 4,
+            "width": 4,
+            "reinforcement": 3
+        },
+        {
+            "id": 7,
+            "use": "Engine Block",
+            "x": -74,
+            "y": 2
+        },
+        {
+            "id": 8,
+            "use": "Engine Block",
+            "x": 29,
+            "y": 2,
+            "angle": 180
+        },
+        {
+            "id": 9,
+            "kind": "port",
+            "x": -21.5,
+            "y": -7.5,
+            "angle": -90,
+            "length": 3,
+            "width": 7,
+            "reinforcement": 3
+        },
+        {
+            "id": 10,
+            "kind": "generator",
+            "x": -69,
+            "y": 4,
+            "length": 7,
+            "width": 12,
+            "reinforcement": 3
+        },
+        {
+            "id": 11,
+            "kind": "tank",
+            "x": -20.75,
+            "y": -14.5,
+            "length": 14.5,
+            "width": 7,
+            "fill": 0.3
+        },
+        {
+            "id": 12,
+            "use": "assembly",
+            "x": -21.5,
+            "y": -9
+        },
+        {
+            "id": 13,
+            "use": "assembly",
+            "x": -21.5,
+            "y": -20,
+            "mirror": true
+        },
+        {
+            "id": 14,
+            "kind": "claw",
+            "x": -11.25,
+            "y": -14.5,
+            "angle": 0,
+            "length": 4.5,
+            "width": 4
+        },
+        {
+            "id": 15,
+            "kind": "core",
+            "x": -29,
+            "y": -14.5,
+            "length": 2,
+            "width": 7,
+            "computing": 0.2
+        },
+        {
+            "id": 16,
+            "kind": "beamTurret",
+            "x": -31,
+            "y": -14.5,
+            "angle": 0,
+            "length": 2,
+            "width": 3,
+            "barrels": 1,
+            "main": false
+        },
+        {
+            "id": 31,
+            "kind": "core",
+            "x": 26,
+            "y": 4,
+            "length": 3,
+            "width": 12
         }
-      },
-      "modules": [
-        {
-          "id": 1,
-          "kind": "tank",
-          "x": 0.675,
-          "y": 0,
-          "length": 1.15,
-          "width": 0.8,
-          "reinforcement": 1
-        },
-        {
-          "id": 2,
-          "use": "Side",
-          "x": -0.1,
-          "y": 0.25,
-          "angle": 180
-        },
-        {
-          "id": 3,
-          "kind": "engine",
-          "x": -0.4,
-          "y": 0,
-          "angle": 180,
-          "length": 0.5,
-          "width": 0.8,
-          "nozzle": 0.625
-        },
-        {
-          "id": 4,
-          "kind": "core",
-          "x": -0.15,
-          "y": 0,
-          "length": 0.5,
-          "width": 0.6,
-          "reinforcement": 1.5,
-          "notes": "A tiny simple fighter with just enough engines to fly"
-        },
-        {
-          "id": 5,
-          "kind": "hullBeam",
-          "x": 2.02,
-          "y": 0,
-          "angle": 0,
-          "length": 1.04,
-          "width": 0.4,
-          "reinforcement": 1.5,
-          "barrels": 1,
-          "traverse": 6,
-          "targeting": {
-            "engineWeight": 150,
-            "facingWeight": 100,
-            "sightWeight": 100
-          }
-        },
-        {
-          "id": 6,
-          "use": "Side",
-          "x": -0.1,
-          "y": -0.25,
-          "angle": 180,
-          "mirror": true
-        },
-        {
-          "id": 7,
-          "kind": "battery",
-          "x": 1.375,
-          "y": 0,
-          "length": 0.25,
-          "width": 0.8,
-          "reinforcement": 1
-        }
-      ]
-    }
-  },
-  "assemblies": {
-    "turret": {
-      "modules": [
-        {
-          "id": 17,
-          "kind": "beamTurret",
-          "x": -1,
-          "y": 6.123233995736766e-17,
-          "angle": 90,
-          "length": 3,
-          "width": 3,
-          "barrels": 2,
-          "main": false
-        },
-        {
-          "id": 18,
-          "kind": "engine",
-          "x": -0.9999999999999999,
-          "y": 1.5,
-          "angle": 90,
-          "length": 1.5,
-          "width": 3,
-          "nozzle": 0.5
-        }
-      ]
-    },
-    "pad": {
-      "modules": [
-        {
-          "id": 19,
-          "kind": "pad",
-          "x": 0,
-          "y": 0,
-          "length": 8,
-          "width": 4,
-          "reinforcement": 3,
-          "craft": "Dinky Beam",
-          "docked": true
-        },
-        {
-          "id": 20,
-          "kind": "battery",
-          "x": 6,
-          "y": 0,
-          "length": 4,
-          "width": 4,
-          "reinforcement": 3
-        }
-      ]
-    },
-    "engine": {
-      "modules": [
-        {
-          "id": 21,
-          "kind": "engine",
-          "x": 0,
-          "y": 0,
-          "angle": 90,
-          "length": 4,
-          "width": 3,
-          "reinforcement": 3,
-          "nozzle": 1.3333
-        }
-      ]
-    },
-    "Engine Block": {
-      "modules": [
-        {
-          "id": 22,
-          "kind": "engine",
-          "x": -1.5,
-          "y": 0,
-          "angle": 180,
-          "length": 4,
-          "width": 8,
-          "reinforcement": 3,
-          "barrels": 3,
-          "nozzle": 1.5
-        },
-        {
-          "id": 23,
-          "use": "engine",
-          "x": 0,
-          "y": 0,
-          "angle": -180
-        },
-        {
-          "id": 24,
-          "use": "engine",
-          "x": 0,
-          "y": 0
-        }
-      ]
-    },
-    "engine2": {
-      "modules": [
-        {
-          "id": 25,
-          "kind": "engine",
-          "x": 0,
-          "y": 0,
-          "angle": 90,
-          "length": 0.5,
-          "width": 3,
-          "nozzle": 0.1667
-        }
-      ]
-    },
-    "assembly": {
-      "modules": [
-        {
-          "id": 26,
-          "kind": "port",
-          "x": 0,
-          "y": -1,
-          "angle": 90,
-          "length": 2,
-          "width": 7
-        },
-        {
-          "id": 27,
-          "use": "engine2",
-          "x": -7,
-          "y": -2
-        },
-        {
-          "id": 28,
-          "use": "engine2",
-          "x": 8,
-          "y": -2
-        },
-        {
-          "id": 29,
-          "kind": "engine",
-          "x": -8.5,
-          "y": -2.75,
-          "angle": -180,
-          "length": 1,
-          "width": 2.5,
-          "nozzle": 0.4
-        },
-        {
-          "id": 30,
-          "kind": "engine",
-          "x": 8,
-          "y": -2.75,
-          "angle": 0,
-          "length": 1.5,
-          "width": 1.5,
-          "nozzle": 1
-        }
-      ]
-    }
-  },
-  "modules": [
-    {
-      "id": 1,
-      "kind": "core",
-      "x": -43.5,
-      "y": 13,
-      "length": 12,
-      "width": 6,
-      "reinforcement": 3,
-      "thick": true,
-      "computing": 0.15
-    },
-    {
-      "id": 2,
-      "kind": "tank",
-      "x": -20.5,
-      "y": 4,
-      "length": 90,
-      "width": 12,
-      "reinforcement": 6,
-      "sealing": 0.002,
-      "fill": 0.45
-    },
-    {
-      "id": 3,
-      "use": "turret",
-      "x": -36,
-      "y": 12.5,
-      "angle": -90
-    },
-    {
-      "id": 4,
-      "use": "turret",
-      "x": -51,
-      "y": 12.5,
-      "angle": -90,
-      "mirror": true
-    },
-    {
-      "id": 5,
-      "use": "pad",
-      "x": -64.5,
-      "y": -4,
-      "repeat": 8,
-      "step": {
-        "x": 12,
-        "y": 0
-      }
-    },
-    {
-      "id": 6,
-      "kind": "battery",
-      "x": -70.5,
-      "y": -4,
-      "length": 4,
-      "width": 4,
-      "reinforcement": 3
-    },
-    {
-      "id": 7,
-      "use": "Engine Block",
-      "x": -74,
-      "y": 2
-    },
-    {
-      "id": 8,
-      "use": "Engine Block",
-      "x": 29,
-      "y": 2,
-      "angle": 180
-    },
-    {
-      "id": 9,
-      "kind": "port",
-      "x": -21.5,
-      "y": -7.5,
-      "angle": -90,
-      "length": 3,
-      "width": 7,
-      "reinforcement": 3
-    },
-    {
-      "id": 10,
-      "kind": "generator",
-      "x": -69,
-      "y": 4,
-      "length": 7,
-      "width": 12,
-      "reinforcement": 3
-    },
-    {
-      "id": 11,
-      "kind": "tank",
-      "x": -20.75,
-      "y": -14.5,
-      "length": 14.5,
-      "width": 7,
-      "fill": 0.3
-    },
-    {
-      "id": 12,
-      "use": "assembly",
-      "x": -21.5,
-      "y": -9
-    },
-    {
-      "id": 13,
-      "use": "assembly",
-      "x": -21.5,
-      "y": -20,
-      "mirror": true
-    },
-    {
-      "id": 14,
-      "kind": "claw",
-      "x": -11.25,
-      "y": -14.5,
-      "angle": 0,
-      "length": 4.5,
-      "width": 4
-    },
-    {
-      "id": 15,
-      "kind": "core",
-      "x": -29,
-      "y": -14.5,
-      "length": 2,
-      "width": 7,
-      "computing": 0.2
-    },
-    {
-      "id": 16,
-      "kind": "beamTurret",
-      "x": -31,
-      "y": -14.5,
-      "angle": 0,
-      "length": 2,
-      "width": 3,
-      "barrels": 1,
-      "main": false
-    },
-    {
-      "id": 31,
-      "kind": "core",
-      "x": 26,
-      "y": 4,
-      "length": 3,
-      "width": 12
-    }
-  ]
+    ]
 }

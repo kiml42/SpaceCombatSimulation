@@ -1,139 +1,139 @@
 {
-  "formatVersion": 2,
-  "name": "Dinky",
-  "category": "Stock",
-  "notes": "A fighter. It cannot hope to destroy anything much larger than itself, so it puts engines above the guns everything else shoots at first: a capital it strands is a capital out of the battle, which is the most a craft this size can do to one.",
-  "fighter": true,
-  "doctrine": {
-    "targeting": {
-      "facingWeight": 100,
-      "sightWeight": 50,
-      "escortWeight": 100
-    },
-    "approach": {
-      "standoffRadii": 60,
-      "escortRadii": 10,
-      "escortMinRadii": 2,
-      "tolerance": 0.3,
-      "brake": 0.95,
-      "ramRadii": 1000,
-      "ramArmed": 0.5,
-      "refuelBelow": 0.5,
-      "tangentialMin": 20,
-      "tangentialMax": 60
-    }
-  },
-  "assemblies": {
-    "Side": {
-      "modules": [
-        {
-          "id": 8,
-          "kind": "engine",
-          "x": -0.1,
-          "y": -0.05,
-          "angle": -90,
-          "length": 0.2,
-          "width": 0.2,
-          "nozzle": 0.5
+    "formatVersion": 2,
+    "name": "Dinky",
+    "category": "Stock",
+    "notes": "A fighter. It cannot hope to destroy anything much larger than itself, so it puts engines above the guns everything else shoots at first: a capital it strands is a capital out of the battle, which is the most a craft this size can do to one.",
+    "fighter": true,
+    "doctrine": {
+        "targeting": {
+            "facingWeight": 100,
+            "sightWeight": 50,
+            "escortWeight": 100
         },
-        {
-          "id": 9,
-          "kind": "engine",
-          "x": -2.05,
-          "y": -0.05,
-          "angle": -180,
-          "length": 0.4,
-          "width": 0.2,
-          "barrels": 1,
-          "nozzle": 1.75
-        },
-        {
-          "id": 10,
-          "kind": "engine",
-          "x": -2.25,
-          "y": -0.15,
-          "angle": -90,
-          "length": 0.125,
-          "width": 0.4,
-          "barrels": 1,
-          "nozzle": 0.3125
+        "approach": {
+            "standoffRadii": 60,
+            "escortRadii": 10,
+            "escortMinRadii": 2,
+            "tolerance": 0.3,
+            "brake": 0.95,
+            "ramRadii": 1000,
+            "ramArmed": 0.5,
+            "refuelBelow": 0.5,
+            "tangentialMin": 20,
+            "tangentialMax": 60
         }
-      ]
-    }
-  },
-  "modules": [
-    {
-      "id": 1,
-      "kind": "tank",
-      "x": 0.675,
-      "y": 0,
-      "length": 1.15,
-      "width": 0.8,
-      "reinforcement": 1
     },
-    {
-      "id": 2,
-      "use": "Side",
-      "x": -0.1,
-      "y": 0.25,
-      "angle": 180
+    "assemblies": {
+        "Side": {
+            "modules": [
+                {
+                    "id": 8,
+                    "kind": "engine",
+                    "x": -0.1,
+                    "y": -0.05,
+                    "angle": -90,
+                    "length": 0.2,
+                    "width": 0.2,
+                    "nozzle": 0.5
+                },
+                {
+                    "id": 9,
+                    "kind": "engine",
+                    "x": -2.05,
+                    "y": -0.05,
+                    "angle": -180,
+                    "length": 0.4,
+                    "width": 0.2,
+                    "barrels": 1,
+                    "nozzle": 1.75
+                },
+                {
+                    "id": 10,
+                    "kind": "engine",
+                    "x": -2.25,
+                    "y": -0.15,
+                    "angle": -90,
+                    "length": 0.125,
+                    "width": 0.4,
+                    "barrels": 1,
+                    "nozzle": 0.3125
+                }
+            ]
+        }
     },
-    {
-      "id": 3,
-      "kind": "engine",
-      "x": -0.1,
-      "y": 0,
-      "angle": 180,
-      "length": 0.5,
-      "width": 0.8,
-      "nozzle": 0.625
-    },
-    {
-      "id": 4,
-      "kind": "core",
-      "x": 0,
-      "y": 0,
-      "length": 0.2,
-      "width": 0.6,
-      "reinforcement": 1.5,
-      "notes": "A tiny simple fighter with just enough engines to fly"
-    },
-    {
-      "id": 5,
-      "kind": "hullGun",
-      "x": 1.96,
-      "y": 0,
-      "angle": 0,
-      "length": 0.92,
-      "width": 0.4,
-      "reinforcement": 1.5,
-      "barrels": 1,
-      "barrelCalibres": 22,
-      "traverse": 6,
-      "fragments": 4,
-      "burstSpeed": 100,
-      "targeting": {
-        "engineWeight": 150,
-        "facingWeight": 100,
-        "sightWeight": 100
-      }
-    },
-    {
-      "id": 6,
-      "use": "Side",
-      "x": -0.1,
-      "y": -0.25,
-      "angle": 180,
-      "mirror": true
-    },
-    {
-      "id": 7,
-      "kind": "hold",
-      "x": 1.375,
-      "y": 0,
-      "length": 0.25,
-      "width": 0.8,
-      "reinforcement": 1
-    }
-  ]
+    "modules": [
+        {
+            "id": 1,
+            "kind": "tank",
+            "x": 0.675,
+            "y": 0,
+            "length": 1.15,
+            "width": 0.8,
+            "reinforcement": 1
+        },
+        {
+            "id": 2,
+            "use": "Side",
+            "x": -0.1,
+            "y": 0.25,
+            "angle": 180
+        },
+        {
+            "id": 3,
+            "kind": "engine",
+            "x": -0.1,
+            "y": 0,
+            "angle": 180,
+            "length": 0.5,
+            "width": 0.8,
+            "nozzle": 0.625
+        },
+        {
+            "id": 4,
+            "kind": "core",
+            "x": 0,
+            "y": 0,
+            "length": 0.2,
+            "width": 0.6,
+            "reinforcement": 1.5,
+            "notes": "A tiny simple fighter with just enough engines to fly"
+        },
+        {
+            "id": 5,
+            "kind": "hullGun",
+            "x": 1.96,
+            "y": 0,
+            "angle": 0,
+            "length": 0.92,
+            "width": 0.4,
+            "reinforcement": 1.5,
+            "barrels": 1,
+            "barrelCalibres": 22,
+            "traverse": 6,
+            "fragments": 4,
+            "burstSpeed": 100,
+            "targeting": {
+                "engineWeight": 150,
+                "facingWeight": 100,
+                "sightWeight": 100
+            }
+        },
+        {
+            "id": 6,
+            "use": "Side",
+            "x": -0.1,
+            "y": -0.25,
+            "angle": 180,
+            "mirror": true
+        },
+        {
+            "id": 7,
+            "kind": "hold",
+            "x": 1.375,
+            "y": 0,
+            "length": 0.25,
+            "width": 0.8,
+            "reinforcement": 1
+        }
+    ]
 }

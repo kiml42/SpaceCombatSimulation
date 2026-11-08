@@ -1,189 +1,189 @@
 {
-  "formatVersion": 2,
-  "name": "Beam Corvette",
-  "category": "Stock",
-  "notes": "A light escort: one main engine, one gun, and enough manoeuvring thrust to turn faster than anything can track it. Drawn as a deck plan on round numbers, +x the bow and +y to port, with modules abutting exactly.",
-  "doctrine": {
-    "targeting": {
-      "escortWeight": 50
-    },
-    "approach": {
-      "standoffRadii": 100,
-      "escortMinRadii": 1.2,
-      "tolerance": 0.4,
-      "ramRadii": 30
-    }
-  },
-  "assemblies": {
-    "wingBox": {
-      "notes": "The wings exist to hold the manoeuvring engines out where their moment arm is worth having. That they also foul the bow gun's traverse is the trade this layout makes, and it is visible in the arc the design compiles to.",
-      "modules": [
-        {
-          "id": 7,
-          "kind": "tank",
-          "x": 0,
-          "y": 0,
-          "length": 4,
-          "width": 3,
-          "reinforcement": 1.5
+    "formatVersion": 2,
+    "name": "Beam Corvette",
+    "category": "Stock",
+    "notes": "A light escort: one main engine, one gun, and enough manoeuvring thrust to turn faster than anything can track it. Drawn as a deck plan on round numbers, +x the bow and +y to port, with modules abutting exactly.",
+    "doctrine": {
+        "targeting": {
+            "escortWeight": 50
+        },
+        "approach": {
+            "standoffRadii": 100,
+            "escortMinRadii": 1.2,
+            "tolerance": 0.4,
+            "ramRadii": 30
         }
-      ]
     },
-    "lateral": {
-      "modules": [
-        {
-          "id": 8,
-          "kind": "engine",
-          "x": 0,
-          "y": -1,
-          "angle": 90,
-          "length": 1,
-          "width": 3,
-          "nozzle": 0.3333
+    "assemblies": {
+        "wingBox": {
+            "notes": "The wings exist to hold the manoeuvring engines out where their moment arm is worth having. That they also foul the bow gun's traverse is the trade this layout makes, and it is visible in the arc the design compiles to.",
+            "modules": [
+                {
+                    "id": 7,
+                    "kind": "tank",
+                    "x": 0,
+                    "y": 0,
+                    "length": 4,
+                    "width": 3,
+                    "reinforcement": 1.5
+                }
+            ]
+        },
+        "lateral": {
+            "modules": [
+                {
+                    "id": 8,
+                    "kind": "engine",
+                    "x": 0,
+                    "y": -1,
+                    "angle": 90,
+                    "length": 1,
+                    "width": 3,
+                    "nozzle": 0.3333
+                }
+            ]
+        },
+        "Side": {
+            "modules": [
+                {
+                    "id": 9,
+                    "use": "wingBox",
+                    "x": -7.25,
+                    "y": 2.3499999999999996
+                },
+                {
+                    "id": 10,
+                    "use": "lateral",
+                    "x": 0.75,
+                    "y": 4.35
+                },
+                {
+                    "id": 11,
+                    "use": "lateral",
+                    "x": -7.25,
+                    "y": 4.85
+                },
+                {
+                    "id": 12,
+                    "use": "engine",
+                    "x": 1.75,
+                    "y": 1.85
+                },
+                {
+                    "id": 13,
+                    "kind": "structure",
+                    "x": 0.5,
+                    "y": -0.25,
+                    "length": 3.5,
+                    "width": 1.2
+                },
+                {
+                    "id": 14,
+                    "kind": "structure",
+                    "x": 0.25,
+                    "y": 1.85,
+                    "length": 3,
+                    "width": 3,
+                    "reinforcement": 1.5
+                },
+                {
+                    "id": 15,
+                    "use": "engine",
+                    "x": -9.25,
+                    "y": 2.3499999999999996,
+                    "angle": -180
+                }
+            ]
+        },
+        "engine": {
+            "modules": [
+                {
+                    "id": 16,
+                    "kind": "engine",
+                    "x": 0,
+                    "y": 0,
+                    "angle": 0,
+                    "length": 1.5,
+                    "width": 3,
+                    "reinforcement": 1.5,
+                    "nozzle": 0.5
+                }
+            ]
         }
-      ]
     },
-    "Side": {
-      "modules": [
+    "modules": [
         {
-          "id": 9,
-          "use": "wingBox",
-          "x": -7.25,
-          "y": 2.3499999999999996
+            "id": 1,
+            "kind": "core",
+            "x": 0,
+            "y": 0,
+            "length": 4,
+            "width": 6,
+            "reinforcement": 3.5,
+            "notes": "Amidships, with a section of hull either side of it: the compartment the ship is flown from is the one thing worth putting the rest of the ship in front of."
         },
         {
-          "id": 10,
-          "use": "lateral",
-          "x": 0.75,
-          "y": 4.35
+            "id": 2,
+            "kind": "engine",
+            "x": -2,
+            "y": 0,
+            "angle": 180,
+            "length": 5,
+            "width": 6,
+            "barrels": 2,
+            "nozzle": 1.6667
         },
         {
-          "id": 11,
-          "use": "lateral",
-          "x": -7.25,
-          "y": 4.85
+            "id": 3,
+            "kind": "beamTurret",
+            "x": 3.75,
+            "y": 0,
+            "angle": 0,
+            "length": 3.5,
+            "width": 2.6,
+            "reinforcement": 2,
+            "barrels": 1,
+            "targeting": {
+                "preferredMass": 0.3,
+                "armedWeight": 100,
+                "mobileWeight": 60,
+                "facingWeight": 30,
+                "sightWeight": 50,
+                "coreWeight": 10,
+                "engineWeight": 60,
+                "proximityWeight": 200
+            }
         },
         {
-          "id": 12,
-          "use": "engine",
-          "x": 1.75,
-          "y": 1.85
+            "id": 4,
+            "kind": "hullBeam",
+            "x": 7.875,
+            "y": 0,
+            "angle": 0,
+            "length": 4.75,
+            "width": 5,
+            "reinforcement": 2,
+            "barrels": 1,
+            "targeting": {
+                "proximityWeight": 50,
+                "preferredMass": 1.8,
+                "facingWeight": 200,
+                "sightWeight": 150,
+                "focusWeight": 300
+            }
         },
         {
-          "id": 13,
-          "kind": "structure",
-          "x": 0.5,
-          "y": -0.25,
-          "length": 3.5,
-          "width": 1.2
+            "id": 5,
+            "use": "Side",
+            "x": 3.25,
+            "y": 2.15
         },
         {
-          "id": 14,
-          "kind": "structure",
-          "x": 0.25,
-          "y": 1.85,
-          "length": 3,
-          "width": 3,
-          "reinforcement": 1.5
-        },
-        {
-          "id": 15,
-          "use": "engine",
-          "x": -9.25,
-          "y": 2.3499999999999996,
-          "angle": -180
+            "id": 6,
+            "use": "Side",
+            "x": 3.25,
+            "y": -2.15,
+            "mirror": true
         }
-      ]
-    },
-    "engine": {
-      "modules": [
-        {
-          "id": 16,
-          "kind": "engine",
-          "x": 0,
-          "y": 0,
-          "angle": 0,
-          "length": 1.5,
-          "width": 3,
-          "reinforcement": 1.5,
-          "nozzle": 0.5
-        }
-      ]
-    }
-  },
-  "modules": [
-    {
-      "id": 1,
-      "kind": "core",
-      "x": 0,
-      "y": 0,
-      "length": 4,
-      "width": 6,
-      "reinforcement": 3.5,
-      "notes": "Amidships, with a section of hull either side of it: the compartment the ship is flown from is the one thing worth putting the rest of the ship in front of."
-    },
-    {
-      "id": 2,
-      "kind": "engine",
-      "x": -2,
-      "y": 0,
-      "angle": 180,
-      "length": 5,
-      "width": 6,
-      "barrels": 2,
-      "nozzle": 1.6667
-    },
-    {
-      "id": 3,
-      "kind": "beamTurret",
-      "x": 3.75,
-      "y": 0,
-      "angle": 0,
-      "length": 3.5,
-      "width": 2.6,
-      "reinforcement": 2,
-      "barrels": 1,
-      "targeting": {
-        "preferredMass": 0.3,
-        "armedWeight": 100,
-        "mobileWeight": 60,
-        "facingWeight": 30,
-        "sightWeight": 50,
-        "coreWeight": 10,
-        "engineWeight": 60,
-        "proximityWeight": 200
-      }
-    },
-    {
-      "id": 4,
-      "kind": "hullBeam",
-      "x": 7.875,
-      "y": 0,
-      "angle": 0,
-      "length": 4.75,
-      "width": 5,
-      "reinforcement": 2,
-      "barrels": 1,
-      "targeting": {
-        "proximityWeight": 50,
-        "preferredMass": 1.8,
-        "facingWeight": 200,
-        "sightWeight": 150,
-        "focusWeight": 300
-      }
-    },
-    {
-      "id": 5,
-      "use": "Side",
-      "x": 3.25,
-      "y": 2.15
-    },
-    {
-      "id": 6,
-      "use": "Side",
-      "x": 3.25,
-      "y": -2.15,
-      "mirror": true
-    }
-  ]
+    ]
 }

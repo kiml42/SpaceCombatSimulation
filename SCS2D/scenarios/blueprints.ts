@@ -3,6 +3,8 @@ import corvetteFile from "./blueprints/corvette.json" with { type: "json" };
 import beamCorvetteFile from "./blueprints/beam-corvette.json" with { type: "json" };
 import railCorvetteFile from "./blueprints/rail-corvette.json" with { type: "json" };
 import railGunshipFile from "./blueprints/rail-gunship.json" with { type: "json" };
+import lanceCorvetteFile from "./blueprints/lance-corvette.json" with { type: "json" };
+import lanceGunshipFile from "./blueprints/lance-gunship.json" with { type: "json" };
 import gunshipFile from "./blueprints/gunship.json" with { type: "json" };
 import beamGunshipFile from "./blueprints/beam-gunship.json" with { type: "json" };
 import fractalFile from "./blueprints/fractal.json" with { type: "json" };
@@ -54,6 +56,8 @@ export const CORVETTE: Blueprint = parseBlueprint(corvetteFile);
 export const BEAM_CORVETTE: Blueprint = parseBlueprint(beamCorvetteFile);
 export const RAIL_CORVETTE: Blueprint = parseBlueprint(railCorvetteFile);
 export const RAIL_GUNSHIP: Blueprint = parseBlueprint(railGunshipFile);
+export const LANCE_CORVETTE: Blueprint = parseBlueprint(lanceCorvetteFile);
+export const LANCE_GUNSHIP: Blueprint = parseBlueprint(lanceGunshipFile);
 export const GUNSHIP: Blueprint = parseBlueprint(gunshipFile);
 export const BEAM_GUNSHIP: Blueprint = parseBlueprint(beamGunshipFile);
 export const FRACTAL: Blueprint = parseBlueprint(fractalFile);
@@ -85,6 +89,8 @@ export const BLUEPRINTS = {
     railCorvette: RAIL_CORVETTE,
     gunship: GUNSHIP,
     railGunship: RAIL_GUNSHIP,
+    lanceCorvette: LANCE_CORVETTE,
+    lanceGunship: LANCE_GUNSHIP,
     beamGunship: BEAM_GUNSHIP,
     fractal: FRACTAL,
     dinky: DINKY,

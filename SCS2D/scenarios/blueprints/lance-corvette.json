@@ -1,0 +1,144 @@
+{
+    "formatVersion": 2,
+    "name": "Lance Corvette",
+    "category": "Stock",
+    "notes": "The Corvette with its bow gun a plasma lance, kept charged and ready: a pulse of white-hot fuel that reaches 400 m and is worth firing inside 200, on fuel for its punch and power from the generators and batteries along its sides for its reach. It closes to knife range rather than standing off. A light escort, drawn as a deck plan on round numbers, +x the bow and +y to port, with modules abutting exactly.",
+    "doctrine": {
+        "targeting": {
+            "preferredMass": 3,
+            "facingWeight": 50,
+            "sightWeight": 20,
+            "escortWeight": 5
+        },
+        "approach": {
+            "standoffRadii": 6,
+            "standoff": 0.7,
+            "tolerance": 0.6,
+            "ramRadii": 5
+        }
+    },
+    "assemblies": {
+        "lateral": {
+            "modules": [
+                {
+                    "id": 8,
+                    "kind": "engine",
+                    "x": 0,
+                    "y": -1,
+                    "angle": 90,
+                    "length": 1,
+                    "width": 3,
+                    "nozzle": 0.3333
+                }
+            ]
+        },
+        "Side": {
+            "modules": [
+                {
+                    "id": 14,
+                    "kind": "generator",
+                    "x": 0,
+                    "y": -2.5,
+                    "length": 4,
+                    "width": 3,
+                    "reinforcement": 1
+                },
+                {
+                    "id": 7,
+                    "kind": "battery",
+                    "x": -8.9,
+                    "y": -2.75,
+                    "length": 2.2,
+                    "width": 2.5,
+                    "reinforcement": 1
+                },
+                {
+                    "id": 11,
+                    "use": "lateral",
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "id": 12,
+                    "use": "lateral",
+                    "x": -8,
+                    "y": -0.5
+                },
+                {
+                    "id": 13,
+                    "kind": "engine",
+                    "x": 2,
+                    "y": -2.5,
+                    "angle": 0,
+                    "length": 1,
+                    "width": 3,
+                    "reinforcement": 1.5,
+                    "nozzle": 0.3333
+                },
+                {
+                    "id": 15,
+                    "kind": "hold",
+                    "x": -6.8999999999999995,
+                    "y": -2.75,
+                    "length": 1.8,
+                    "width": 2.5
+                }
+            ]
+        }
+    },
+    "modules": [
+        {
+            "id": 1,
+            "kind": "tank",
+            "x": 4.25,
+            "y": 0,
+            "length": 4.5,
+            "width": 6,
+            "reinforcement": 1
+        },
+        {
+            "id": 2,
+            "kind": "core",
+            "x": 0,
+            "y": 0,
+            "length": 4,
+            "width": 6,
+            "notes": "Amidships, with a section of hull either side of it: the compartment the ship is flown from is the one thing worth putting the rest of the ship in front of."
+        },
+        {
+            "id": 3,
+            "kind": "plasmaLance",
+            "x": 11.5,
+            "y": 0,
+            "angle": 0,
+            "length": 10,
+            "width": 4,
+            "reinforcement": 1.5,
+            "ready": true
+        },
+        {
+            "id": 4,
+            "kind": "engine",
+            "x": -2,
+            "y": 0,
+            "angle": 180,
+            "length": 5,
+            "width": 6,
+            "nozzle": 0.8333,
+            "thick": true
+        },
+        {
+            "id": 5,
+            "use": "Side",
+            "x": 4,
+            "y": 7
+        },
+        {
+            "id": 6,
+            "use": "Side",
+            "x": 4,
+            "y": -7,
+            "mirror": true
+        }
+    ]
+}

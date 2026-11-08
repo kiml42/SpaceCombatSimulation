@@ -1,152 +1,152 @@
 {
-  "formatVersion": 2,
-  "name": "Torch",
-  "category": "Stock",
-  "notes": "A small craft whose weapon is an engine. The big engine on the bow faces forwards, so the same burn that scorches a target brakes the approach and then shoves the ship back out: it closes fast to stop against the hull, braking on the bow engine, burns, is pushed away, and comes round again.",
-  "doctrine": {
-    "targeting": {
-      "proximityWeight": 60,
-      "preferredMass": 2,
-      "massWeight": 150,
-      "closingWeight": 60,
-      "facingWeight": 100,
-      "sightWeight": 50,
-      "escortWeight": 20
-    },
-    "approach": {
-      "standoffRadii": 0.6,
-      "standoff": 0.5,
-      "escortRadii": 10,
-      "escort": 1.1,
-      "separationRadii": 1,
-      "tolerance": 0.1,
-      "approachSpeed": 200,
-      "brake": 0.9,
-      "burnWeight": 0.6,
-      "rangeHold": 0.8
-    }
-  },
-  "assemblies": {
-    "Side": {
-      "modules": [
-        {
-          "id": 4,
-          "use": "engine",
-          "x": 24.5,
-          "y": 0.5000000000000001
+    "formatVersion": 2,
+    "name": "Torch",
+    "category": "Stock",
+    "notes": "A small craft whose weapon is an engine. The big engine on the bow faces forwards, so the same burn that scorches a target brakes the approach and then shoves the ship back out: it closes fast to stop against the hull, braking on the bow engine, burns, is pushed away, and comes round again.",
+    "doctrine": {
+        "targeting": {
+            "proximityWeight": 60,
+            "preferredMass": 2,
+            "massWeight": 150,
+            "closingWeight": 60,
+            "facingWeight": 100,
+            "sightWeight": 50,
+            "escortWeight": 20
         },
-        {
-          "id": 5,
-          "kind": "structure",
-          "x": 9.55,
-          "y": 0.25,
-          "length": 35,
-          "width": 0.5,
-          "reinforcement": 2
-        },
-        {
-          "id": 6,
-          "use": "engine",
-          "x": -10.45,
-          "y": 9.430705902947948e-17
+        "approach": {
+            "standoffRadii": 0.6,
+            "standoff": 0.5,
+            "escortRadii": 10,
+            "escort": 1.1,
+            "separationRadii": 1,
+            "tolerance": 0.1,
+            "approachSpeed": 200,
+            "brake": 0.9,
+            "burnWeight": 0.6,
+            "rangeHold": 0.8
         }
-      ]
     },
-    "assembly": {
-      "modules": [
+    "assemblies": {
+        "Side": {
+            "modules": [
+                {
+                    "id": 4,
+                    "use": "engine",
+                    "x": 24.5,
+                    "y": 0.5000000000000001
+                },
+                {
+                    "id": 5,
+                    "kind": "structure",
+                    "x": 9.55,
+                    "y": 0.25,
+                    "length": 35,
+                    "width": 0.5,
+                    "reinforcement": 2
+                },
+                {
+                    "id": 6,
+                    "use": "engine",
+                    "x": -10.45,
+                    "y": 9.430705902947948e-17
+                }
+            ]
+        },
+        "assembly": {
+            "modules": [
+                {
+                    "id": 7,
+                    "kind": "engine",
+                    "x": -15.25,
+                    "y": 0,
+                    "angle": 0,
+                    "length": 19.2603,
+                    "width": 8,
+                    "reinforcement": 1.5,
+                    "barrels": 1,
+                    "nozzle": 2.3425,
+                    "weapon": true,
+                    "thick": true,
+                    "notes": "The weapon. Its thrust points aft, so firing it at a target is also braking, and holding it on is being pushed away."
+                },
+                {
+                    "id": 8,
+                    "use": "Side",
+                    "x": -2.6,
+                    "y": 4
+                },
+                {
+                    "id": 9,
+                    "use": "Side",
+                    "x": -2.5,
+                    "y": -4,
+                    "mirror": true
+                }
+            ]
+        },
+        "engine": {
+            "modules": [
+                {
+                    "id": 10,
+                    "kind": "engine",
+                    "x": -1.5,
+                    "y": 0,
+                    "angle": 90,
+                    "length": 1.5,
+                    "width": 8,
+                    "barrels": 1,
+                    "nozzle": 0.1875,
+                    "weapon": true,
+                    "main": false,
+                    "thick": true
+                }
+            ]
+        }
+    },
+    "modules": [
         {
-          "id": 7,
-          "kind": "engine",
-          "x": -15.25,
-          "y": 0,
-          "angle": 0,
-          "length": 19.2603,
-          "width": 8,
-          "reinforcement": 1.5,
-          "barrels": 1,
-          "nozzle": 2.3425,
-          "weapon": true,
-          "thick": true,
-          "notes": "The weapon. Its thrust points aft, so firing it at a target is also braking, and holding it on is being pushed away."
+            "id": 1,
+            "kind": "core",
+            "x": 0.05,
+            "y": 0,
+            "length": 1.5,
+            "width": 8,
+            "reinforcement": 2,
+            "notes": "Armoured, because the bow is always pointed at something with guns."
         },
         {
-          "id": 8,
-          "use": "Side",
-          "x": -2.6,
-          "y": 4
+            "id": 2,
+            "use": "assembly",
+            "x": -15.95,
+            "y": 0,
+            "angle": -180
         },
         {
-          "id": 9,
-          "use": "Side",
-          "x": -2.5,
-          "y": -4,
-          "mirror": true
-        }
-      ]
-    },
-    "engine": {
-      "modules": [
+            "id": 3,
+            "kind": "tank",
+            "x": 3.8,
+            "y": 0,
+            "length": 6,
+            "width": 8,
+            "reinforcement": 3,
+            "sealing": 0.0005
+        },
         {
-          "id": 10,
-          "kind": "engine",
-          "x": -1.5,
-          "y": 0,
-          "angle": 90,
-          "length": 1.5,
-          "width": 8,
-          "barrels": 1,
-          "nozzle": 0.1875,
-          "weapon": true,
-          "main": false,
-          "thick": true
+            "id": 11,
+            "kind": "core",
+            "x": -30.5,
+            "y": 5.5,
+            "length": 2,
+            "width": 2,
+            "notes": "One of a pair on the struts, flying the side engines, which are out of the bow core's reach."
+        },
+        {
+            "id": 12,
+            "kind": "core",
+            "x": -30.5,
+            "y": -5.5,
+            "length": 2,
+            "width": 2
         }
-      ]
-    }
-  },
-  "modules": [
-    {
-      "id": 1,
-      "kind": "core",
-      "x": 0.05,
-      "y": 0,
-      "length": 1.5,
-      "width": 8,
-      "reinforcement": 2,
-      "notes": "Armoured, because the bow is always pointed at something with guns."
-    },
-    {
-      "id": 2,
-      "use": "assembly",
-      "x": -15.95,
-      "y": 0,
-      "angle": -180
-    },
-    {
-      "id": 3,
-      "kind": "tank",
-      "x": 3.8,
-      "y": 0,
-      "length": 6,
-      "width": 8,
-      "reinforcement": 3,
-      "sealing": 0.0005
-    },
-    {
-      "id": 11,
-      "kind": "core",
-      "x": -30.5,
-      "y": 5.5,
-      "length": 2,
-      "width": 2,
-      "notes": "One of a pair on the struts, flying the side engines, which are out of the bow core's reach."
-    },
-    {
-      "id": 12,
-      "kind": "core",
-      "x": -30.5,
-      "y": -5.5,
-      "length": 2,
-      "width": 2
-    }
-  ]
+    ]
 }
