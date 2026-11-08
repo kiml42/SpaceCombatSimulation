@@ -77,6 +77,7 @@ import {
     paintedSide,
     PORT_COLLAR_SHARE,
     PORT_COLLAR_WIDTH,
+    drawnExit,
     ringBars,
     ringThickness,
     type Fill,
@@ -948,7 +949,16 @@ function drawHull(
         // Rounded parts' shading, in the battle's light: its highlights are that light.
         if (spec.kind === "engine" && light !== undefined) {
             inLight(ctx, light);
-            shadeEngine(ctx, spec, ship.angle + m.angle, light, drawnMounts(design, i).round, rgba(fillColour(spec, colours)), fighters);
+            shadeEngine(
+                ctx,
+                spec,
+                ship.angle + m.angle,
+                light,
+                drawnMounts(design, i).round,
+                rgba(fillColour(spec, colours)),
+                fighters,
+                colours.hull,
+            );
             ctx.restore();
         }
         if (spec.kind === "port" && light !== undefined) {
@@ -1741,6 +1751,8 @@ function shadeEngine(
     /** Its colour, and whether it stands at a thick module's height, as a fighter's does, for the dynamic lights. */
     colour: readonly number[],
     thick: boolean,
+    /** The hull's colour, which a magnetic nozzle's ring and bars are in. */
+    hull: string,
 ): void {
     const m = ctx.getTransform();
     const engine = engineGeometry(spec);
@@ -1749,9 +1761,10 @@ function shadeEngine(
     const { across, up } = lightSlope(light);
     // The light across a part lying along x, toward its +y side.
     const side = across * sin(light.from - angle);
-    const exit = engine.exitWidth / 2;
+    const magnetic = isMagnetic(spec);
+    const exit = drawnExit(engine, magnetic);
     const mouth = layout.mouth;
-    const bell = exit > 0 && mouth + l > 0 ? cylinderShade(side, up, engine.throatWidth / engine.exitWidth) : null;
+    const bell = exit > 0 && mouth + l > 0 ? cylinderShade(side, up, engine.throatWidth / (2 * exit)) : null;
     const r = layout.radius;
     const straight = layout.nose - layout.centre;
     const tube = r > 0 && straight > 0 ? cylinderShade(side, up) : null;
@@ -1767,7 +1780,7 @@ function shadeEngine(
         if (bell !== null) {
             const end = mouth - engine.bellLength;
             ctx.drawImage(bell, end, y - exit, mouth - end, 2 * exit);
-            rounded?.tube(m, end, y, mouth - end, exit, engine.throatWidth / engine.exitWidth, colour, 1, thick ? "thick" : "deck");
+            rounded?.tube(m, end, y, mouth - end, exit, engine.throatWidth / (2 * exit), colour, 1, thick ? "thick" : "deck");
         }
         if (!(r > 0)) continue;
         for (const [x, from, to] of ends) {
@@ -1780,14 +1793,20 @@ function shadeEngine(
             rounded?.tube(m, layout.centre, y, straight, r, 1, colour, 1, thick ? "thick" : "deck");
         }
     }
-    // A magnetic nozzle's ring, round in section, lies across the engine's aft
-    // end, and its bars along it.
-    if (isMagnetic(spec)) {
+    // A magnetic nozzle's bars, rods along the engine, and its ring round the
+    // jet at its aft end: painted again over whatever bell or chamber they
+    // cross, so each carries only its own shading.
+    if (magnetic) {
         const rod = cylinderShade(side, up);
         const root = layout.pumpAft < l ? layout.pumpAft : l;
+        ctx.fillStyle = hull;
         for (const y of layout.centres) {
-            for (const [from, to] of ringBars(engine, y)) if (rod !== null) ctx.drawImage(rod, -l, from, root + l, to - from);
+            for (const [from, to] of ringBars(engine, y)) {
+                ctx.fillRect(-l, from, root + l, to - from);
+                if (rod !== null) ctx.drawImage(rod, -l, from, root + l, to - from);
+            }
         }
+        ctx.fillRect(-l, -spec.width / 2, ringThickness(engine), spec.width);
         shadeRing(ctx, -l, spec.width, ringThickness(engine), angle, light);
     }
     if (roundPump) {
@@ -1797,17 +1816,11 @@ function shadeEngine(
     }
 }
 
-/** A magnetic nozzle's ring shaded as round in section: a rod `span` long lying across the engine at `x`. */
+/** A magnetic nozzle's ring, `span` across at `x`, shaded as round about the jet it encircles. */
 function shadeRing(ctx: CanvasRenderingContext2D, x: number, span: number, thickness: number, angle: number, light: Light): void {
     const { across, up } = lightSlope(light);
-    // Turned a quarter, the image's +y runs toward the engine's -x.
-    const image = cylinderShade(-across * cos(light.from - angle), up);
-    if (image === null) return;
-    ctx.save();
-    ctx.translate(x + thickness / 2, 0);
-    ctx.rotate(Math.PI / 2);
-    ctx.drawImage(image, -span / 2, -thickness / 2, span, thickness);
-    ctx.restore();
+    const image = cylinderShade(across * sin(light.from - angle), up);
+    if (image !== null) ctx.drawImage(image, x, -span / 2, thickness, span);
 }
 
 /** A docking port's block and collar shaded as rounded across, in its module's frame, the module turned `angle`. */

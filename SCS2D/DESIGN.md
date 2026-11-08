@@ -744,7 +744,8 @@ inside any one file is not contiguous.
   `MAGNETIC_MASS_PER_EXIT_AREA` (300 kg/m² of exit), which the bell it shortens mostly pays for. It is
   drawn as a short bell, the bars, the exhaust running full width and undimmed through the gap, and the
   ring across the engine's whole width at its aft edge, over the exhaust, ring and bars in the hull's
-  colour and shaded round; the editor shows
+  colour, the ring shaded round the jet and the bars as rods; its bell is drawn only as wide as leaves the
+  bars room, since the field and not the bell aims the jet, with the same throat and flow; the editor shows
   its power and its unpowered share, and evolution adds and removes it.
   **A fleet is a file too**: its designs embedded whole, its ships placed in the fleet's own frame, and
   named groups of ships — reflected, turned, nested and repeated in rows and arcs as a ship's assemblies
