@@ -140,7 +140,7 @@ export function moduleFills(
             // the engine's front where it has none. In the hull's colour, as the ring is.
             const root = layout.pumpAft < l ? layout.pumpAft : l;
             for (const across of layout.centres) {
-                for (const [from, to] of ringBars(engine, across)) box(-l, from, root, to, deck);
+                for (const [from, to] of ringBars(engine, across)) box(-l + ringThickness(engine), from, root, to, deck);
             }
             box(-l, -w, -l + ringThickness(engine), w, deck);
         }
