@@ -2030,7 +2030,7 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
     the flying agree. What it does is no business of the helm's: landing, docking, ramming, fleeing and
     getting out of a rock's way all ask it the same way, and so does a fighting ship that turns from its guns
     to burn (`burnGain` says what that buys; doctrine weighs it against its guns).
-  - **A ship resists spinning faster as hard as its doctrine says** (`spinResist`, 0.25 by default). On top
+  - **A ship resists spinning faster as hard as its doctrine says** (`spinResist`, 0 by default). On top
     of the turn it wants it asks for torque against its rotation, `spinResist` × (spin ÷ `STEER_SPIN`) × the
     torque it has the way it spins, and that ask is added past the clamp to what the layout can give. So a
     lopsided hull whose push would spin it further, which once had its "stop" clipped to "no torque" and
@@ -2038,6 +2038,8 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
     engines that would feed the spin off. It caps a spin rather than stopping it — a hull with no torque the
     other way coasts at the rate it reached — and it caps a deliberate turn too: at 1, a turn tops out at
     `STEER_SPIN`. Zero lets it spin up, which suits a spinner; a turreted ship with even thrust wants it high.
+    Off by default because any at all costs a crippled hull its landing: one steering by its push, every
+    push a little turn, holds the push back and never settles on its pad.
   - **A pilot never turns into something.** Before turning either way it asks whether that would swing
     any module of its hull towards a module of another hull nearer than it needs to stop turning that
     way, from the rate it has, plus a tenth of its radius; if so it does not start the turn, and stops one

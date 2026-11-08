@@ -649,7 +649,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
         chargeReserve: 0.25,
         dodgeSpeed: 60,
         responseTime: 2,
-        spinResist: 0.25,
+        spinResist: 0,
         tolerance: 0.2,
         bandFade: 0.1,
         approachSpeed: 60,
