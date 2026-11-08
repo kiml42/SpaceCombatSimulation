@@ -1,146 +1,146 @@
 {
-    "formatVersion": 2,
-    "name": "Fractal",
-    "category": "Stock",
-    "notes": "A long-winged ship built from one repeated segment, to exercise repetition. Each wing is the same segment placed several times, so lengthening a wing is a single number rather than a copy-and-paste — and because the segment carries its own braking engine, a longer ship brakes harder as well as weighing more.",
-    "assemblies": {
-        "wingSegment": {
-            "notes": "One bay of a wing: a box, a gun on its leading edge, thrust forward, and braking thrust outboard where it clears the gun. Repeated along the wing rather than duplicated, so every bay is the same bay.",
-            "modules": [
-                {
-                    "id": 6,
-                    "kind": "structure",
-                    "x": 0,
-                    "y": 1,
-                    "length": 4,
-                    "width": 10
-                },
-                {
-                    "id": 7,
-                    "kind": "turret",
-                    "x": 4.5,
-                    "y": 0,
-                    "angle": 0,
-                    "length": 5,
-                    "width": 4,
-                    "barrels": 1,
-                    "barrelCalibres": 50
-                },
-                {
-                    "id": 8,
-                    "kind": "engine",
-                    "x": -2,
-                    "y": 2,
-                    "angle": 180,
-                    "length": 2,
-                    "width": 6,
-                    "nozzle": 0.3333,
-                    "thick": true
-                },
-                {
-                    "id": 9,
-                    "kind": "engine",
-                    "x": 2,
-                    "y": 4,
-                    "angle": 0,
-                    "length": 2,
-                    "width": 3,
-                    "nozzle": 0.6667,
-                    "notes": "Braking thrust, tucked outboard of the gun. Every bay carries one, so a longer wing stops harder — which is the point of repeating a segment that is more than structure."
-                }
-            ]
+  "formatVersion": 2,
+  "name": "Fractal",
+  "category": "Stock",
+  "notes": "A long-winged ship built from one repeated segment, to exercise repetition. Each wing is the same segment placed several times, so lengthening a wing is a single number rather than a copy-and-paste — and because the segment carries its own braking engine, a longer ship brakes harder as well as weighing more.",
+  "assemblies": {
+    "wingSegment": {
+      "notes": "One bay of a wing: a box, a gun on its leading edge, thrust forward, and braking thrust outboard where it clears the gun. Repeated along the wing rather than duplicated, so every bay is the same bay.",
+      "modules": [
+        {
+          "id": 6,
+          "kind": "structure",
+          "x": 0,
+          "y": 1,
+          "length": 4,
+          "width": 10
         },
-        "rcs": {
-            "notes": "A manoeuvring engine on the spine.",
-            "modules": [
-                {
-                    "id": 10,
-                    "kind": "engine",
-                    "x": 1.1,
-                    "y": -6.123233995736766e-18,
-                    "angle": 180,
-                    "length": 3,
-                    "width": 3,
-                    "nozzle": 1
-                }
-            ]
+        {
+          "id": 7,
+          "kind": "turret",
+          "x": 4.5,
+          "y": 0,
+          "angle": 0,
+          "length": 5,
+          "width": 4,
+          "barrels": 1,
+          "barrelCalibres": 50
         },
-        "Side": {
-            "modules": [
-                {
-                    "id": 11,
-                    "kind": "structure",
-                    "x": 0,
-                    "y": 0,
-                    "length": 21.5,
-                    "width": 5
-                },
-                {
-                    "id": 12,
-                    "use": "wingSegment",
-                    "x": 0.75,
-                    "y": 6.5,
-                    "repeat": 3,
-                    "step": {
-                        "x": -1,
-                        "y": 10
-                    }
-                },
-                {
-                    "id": 13,
-                    "use": "rcs",
-                    "x": 19.25,
-                    "y": -4.4,
-                    "angle": -90
-                },
-                {
-                    "id": 14,
-                    "use": "rcs",
-                    "x": -22.75,
-                    "y": -4.4,
-                    "angle": -90
-                }
-            ]
+        {
+          "id": 8,
+          "kind": "engine",
+          "x": -2,
+          "y": 2,
+          "angle": 180,
+          "length": 2,
+          "width": 6,
+          "nozzle": 0.3333,
+          "thick": true
+        },
+        {
+          "id": 9,
+          "kind": "engine",
+          "x": 2,
+          "y": 4,
+          "angle": 0,
+          "length": 2,
+          "width": 3,
+          "nozzle": 0.6667,
+          "notes": "Braking thrust, tucked outboard of the gun. Every bay carries one, so a longer wing stops harder — which is the point of repeating a segment that is more than structure."
         }
+      ]
     },
-    "modules": [
+    "rcs": {
+      "notes": "A manoeuvring engine on the spine.",
+      "modules": [
         {
-            "id": 1,
-            "kind": "tank",
-            "x": 9,
-            "y": 0,
-            "length": 15,
-            "width": 6
-        },
-        {
-            "id": 2,
-            "kind": "core",
-            "x": 0,
-            "y": 0,
-            "length": 3,
-            "width": 6,
-            "computing": 0.35
-        },
-        {
-            "id": 3,
-            "kind": "structure",
-            "x": -12,
-            "y": 0,
-            "length": 21,
-            "width": 6
-        },
-        {
-            "id": 4,
-            "use": "Side",
-            "x": -1.25,
-            "y": 5.5
-        },
-        {
-            "id": 5,
-            "use": "Side",
-            "x": -1.25,
-            "y": -5.5,
-            "mirror": true
+          "id": 10,
+          "kind": "engine",
+          "x": 1.1,
+          "y": -6.123233995736766e-18,
+          "angle": 180,
+          "length": 3,
+          "width": 3,
+          "nozzle": 1
         }
-    ]
+      ]
+    },
+    "Side": {
+      "modules": [
+        {
+          "id": 11,
+          "kind": "structure",
+          "x": 0,
+          "y": 0,
+          "length": 21.5,
+          "width": 5
+        },
+        {
+          "id": 12,
+          "use": "wingSegment",
+          "x": 0.75,
+          "y": 6.5,
+          "repeat": 3,
+          "step": {
+            "x": -1,
+            "y": 10
+          }
+        },
+        {
+          "id": 13,
+          "use": "rcs",
+          "x": 19.25,
+          "y": -4.4,
+          "angle": -90
+        },
+        {
+          "id": 14,
+          "use": "rcs",
+          "x": -22.75,
+          "y": -4.4,
+          "angle": -90
+        }
+      ]
+    }
+  },
+  "modules": [
+    {
+      "id": 1,
+      "kind": "tank",
+      "x": 9,
+      "y": 0,
+      "length": 15,
+      "width": 6
+    },
+    {
+      "id": 2,
+      "kind": "core",
+      "x": 0,
+      "y": 0,
+      "length": 3,
+      "width": 6,
+      "computing": 0.35
+    },
+    {
+      "id": 3,
+      "kind": "structure",
+      "x": -12,
+      "y": 0,
+      "length": 21,
+      "width": 6
+    },
+    {
+      "id": 4,
+      "use": "Side",
+      "x": -1.25,
+      "y": 5.5
+    },
+    {
+      "id": 5,
+      "use": "Side",
+      "x": -1.25,
+      "y": -5.5,
+      "mirror": true
+    }
+  ]
 }

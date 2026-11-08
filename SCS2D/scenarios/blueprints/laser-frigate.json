@@ -1,250 +1,250 @@
 {
-    "formatVersion": 2,
-    "name": "Laser Frigate",
-    "category": "Stock",
-    "doctrine": {
-        "targeting": {
-            "proximityWeight": 50,
-            "preferredMass": 2,
-            "massWeight": 60,
-            "loyaltyWeight": 80,
-            "armedWeight": 60,
-            "facingWeight": 30,
-            "sightWeight": 20,
-            "escortWeight": 10
-        },
-        "approach": {
-            "ramRadii": 10
-        }
+  "formatVersion": 2,
+  "name": "Laser Frigate",
+  "category": "Stock",
+  "doctrine": {
+    "targeting": {
+      "proximityWeight": 50,
+      "preferredMass": 2,
+      "massWeight": 60,
+      "loyaltyWeight": 80,
+      "armedWeight": 60,
+      "facingWeight": 30,
+      "sightWeight": 20,
+      "escortWeight": 10
     },
-    "assemblies": {
-        "structure": {
-            "modules": [
-                {
-                    "id": 10,
-                    "kind": "structure",
-                    "x": 13.75,
-                    "y": 0,
-                    "length": 60,
-                    "width": 1.5,
-                    "reinforcement": 3,
-                    "thick": true
-                }
-            ]
-        },
-        "structure2": {
-            "modules": [
-                {
-                    "id": 11,
-                    "kind": "tank",
-                    "x": 0,
-                    "y": 2.5,
-                    "length": 7,
-                    "width": 6
-                },
-                {
-                    "id": 12,
-                    "kind": "generator",
-                    "x": 2,
-                    "y": -1.5,
-                    "length": 3,
-                    "width": 2,
-                    "notes": "Powers the spine beam past what the core can, from a slice of the tank."
-                },
-                {
-                    "id": 13,
-                    "use": "engine",
-                    "x": 0,
-                    "y": 5.5
-                },
-                {
-                    "id": 14,
-                    "use": "engine",
-                    "x": 3.5,
-                    "y": 4,
-                    "angle": -90
-                },
-                {
-                    "id": 15,
-                    "kind": "battery",
-                    "x": -1.5182019869999994,
-                    "y": -1.5,
-                    "length": 4.036403974,
-                    "width": 2
-                }
-            ]
-        },
-        "engine": {
-            "modules": [
-                {
-                    "id": 16,
-                    "kind": "engine",
-                    "x": 0,
-                    "y": 0,
-                    "angle": 90,
-                    "length": 2,
-                    "width": 7,
-                    "barrels": 2,
-                    "nozzle": 0.6667
-                }
-            ]
-        },
-        "engine2": {
-            "modules": [
-                {
-                    "id": 17,
-                    "kind": "engine",
-                    "x": 0.5,
-                    "y": 0,
-                    "angle": 90,
-                    "length": 2,
-                    "width": 6,
-                    "barrels": 2,
-                    "nozzle": 0.6667
-                },
-                {
-                    "id": 18,
-                    "kind": "structure",
-                    "x": 4.5,
-                    "y": 2,
-                    "length": 2,
-                    "width": 4,
-                    "reinforcement": 5
-                },
-                {
-                    "id": 19,
-                    "kind": "structure",
-                    "x": 7.5,
-                    "y": -2.5,
-                    "length": 9,
-                    "width": 2,
-                    "reinforcement": 5
-                },
-                {
-                    "id": 20,
-                    "use": "turret",
-                    "x": -25.5,
-                    "y": 1.25
-                }
-            ]
-        },
-        "turret": {
-            "modules": [
-                {
-                    "id": 21,
-                    "kind": "beamTurret",
-                    "x": 0,
-                    "y": 0.25,
-                    "angle": 90,
-                    "length": 3,
-                    "width": 3,
-                    "barrels": 1,
-                    "targeting": {
-                        "focusWeight": 0,
-                        "sightWeight": 100,
-                        "facingWeight": 20
-                    }
-                }
-            ]
+    "approach": {
+      "ramRadii": 10
+    }
+  },
+  "assemblies": {
+    "structure": {
+      "modules": [
+        {
+          "id": 10,
+          "kind": "structure",
+          "x": 13.75,
+          "y": 0,
+          "length": 60,
+          "width": 1.5,
+          "reinforcement": 3,
+          "thick": true
         }
+      ]
     },
-    "modules": [
+    "structure2": {
+      "modules": [
         {
-            "id": 1,
-            "kind": "core",
-            "x": -0.963596026,
-            "y": 0,
-            "length": 5,
-            "width": 8,
-            "reinforcement": 1.5
+          "id": 11,
+          "kind": "tank",
+          "x": 0,
+          "y": 2.5,
+          "length": 7,
+          "width": 6
         },
         {
-            "id": 2,
-            "kind": "hullBeam",
-            "x": 25.6364,
-            "y": 0,
-            "angle": 0,
-            "length": 48.2,
-            "width": 8,
-            "barrels": 1,
-            "traverse": 3,
-            "thick": true,
-            "targeting": {
-                "coreWeight": 80,
-                "proximityWeight": 100,
-                "facingWeight": 100,
-                "sightWeight": 100,
-                "preferredMass": 2,
-                "massWeight": 100
-            }
+          "id": 12,
+          "kind": "generator",
+          "x": 2,
+          "y": -1.5,
+          "length": 3,
+          "width": 2,
+          "notes": "Powers the spine beam past what the core can, from a slice of the tank."
         },
         {
-            "id": 3,
-            "use": "structure",
-            "x": 12.786403974,
-            "y": 4.75
+          "id": 13,
+          "use": "engine",
+          "x": 0,
+          "y": 5.5
         },
         {
-            "id": 4,
-            "use": "structure",
-            "x": 12.786403974,
-            "y": -4.75,
-            "mirror": true
+          "id": 14,
+          "use": "engine",
+          "x": 3.5,
+          "y": 4,
+          "angle": -90
         },
         {
-            "id": 5,
-            "kind": "engine",
-            "x": -3.463596026,
-            "y": 0,
-            "angle": 180,
-            "length": 9,
-            "width": 11,
-            "nozzle": 0.8182,
-            "thick": true
-        },
-        {
-            "id": 6,
-            "use": "structure2",
-            "x": -5.463596026,
-            "y": 8
-        },
-        {
-            "id": 7,
-            "use": "structure2",
-            "x": -5.463596026,
-            "y": -8,
-            "mirror": true
-        },
-        {
-            "id": 8,
-            "use": "engine2",
-            "x": 48.536403974,
-            "y": 5.5
-        },
-        {
-            "id": 9,
-            "use": "engine2",
-            "x": 48.536403974,
-            "y": -5.5,
-            "angle": 0,
-            "mirror": true
-        },
-        {
-            "id": 22,
-            "kind": "core",
-            "x": 36,
-            "y": 7,
-            "length": 3,
-            "width": 3,
-            "notes": "One of two outboard of the struts, flying the beam turrets and the forward engines."
-        },
-        {
-            "id": 23,
-            "kind": "core",
-            "x": 36,
-            "y": -7,
-            "length": 3,
-            "width": 3
+          "id": 15,
+          "kind": "battery",
+          "x": -1.5182019869999994,
+          "y": -1.5,
+          "length": 4.036403974,
+          "width": 2
         }
-    ]
+      ]
+    },
+    "engine": {
+      "modules": [
+        {
+          "id": 16,
+          "kind": "engine",
+          "x": 0,
+          "y": 0,
+          "angle": 90,
+          "length": 2,
+          "width": 7,
+          "barrels": 2,
+          "nozzle": 0.6667
+        }
+      ]
+    },
+    "engine2": {
+      "modules": [
+        {
+          "id": 17,
+          "kind": "engine",
+          "x": 0.5,
+          "y": 0,
+          "angle": 90,
+          "length": 2,
+          "width": 6,
+          "barrels": 2,
+          "nozzle": 0.6667
+        },
+        {
+          "id": 18,
+          "kind": "structure",
+          "x": 4.5,
+          "y": 2,
+          "length": 2,
+          "width": 4,
+          "reinforcement": 5
+        },
+        {
+          "id": 19,
+          "kind": "structure",
+          "x": 7.5,
+          "y": -2.5,
+          "length": 9,
+          "width": 2,
+          "reinforcement": 5
+        },
+        {
+          "id": 20,
+          "use": "turret",
+          "x": -25.5,
+          "y": 1.25
+        }
+      ]
+    },
+    "turret": {
+      "modules": [
+        {
+          "id": 21,
+          "kind": "beamTurret",
+          "x": 0,
+          "y": 0.25,
+          "angle": 90,
+          "length": 3,
+          "width": 3,
+          "barrels": 1,
+          "targeting": {
+            "focusWeight": 0,
+            "sightWeight": 100,
+            "facingWeight": 20
+          }
+        }
+      ]
+    }
+  },
+  "modules": [
+    {
+      "id": 1,
+      "kind": "core",
+      "x": -0.963596026,
+      "y": 0,
+      "length": 5,
+      "width": 8,
+      "reinforcement": 1.5
+    },
+    {
+      "id": 2,
+      "kind": "hullBeam",
+      "x": 25.6364,
+      "y": 0,
+      "angle": 0,
+      "length": 48.2,
+      "width": 8,
+      "barrels": 1,
+      "traverse": 3,
+      "thick": true,
+      "targeting": {
+        "coreWeight": 80,
+        "proximityWeight": 100,
+        "facingWeight": 100,
+        "sightWeight": 100,
+        "preferredMass": 2,
+        "massWeight": 100
+      }
+    },
+    {
+      "id": 3,
+      "use": "structure",
+      "x": 12.786403974,
+      "y": 4.75
+    },
+    {
+      "id": 4,
+      "use": "structure",
+      "x": 12.786403974,
+      "y": -4.75,
+      "mirror": true
+    },
+    {
+      "id": 5,
+      "kind": "engine",
+      "x": -3.463596026,
+      "y": 0,
+      "angle": 180,
+      "length": 9,
+      "width": 11,
+      "nozzle": 0.8182,
+      "thick": true
+    },
+    {
+      "id": 6,
+      "use": "structure2",
+      "x": -5.463596026,
+      "y": 8
+    },
+    {
+      "id": 7,
+      "use": "structure2",
+      "x": -5.463596026,
+      "y": -8,
+      "mirror": true
+    },
+    {
+      "id": 8,
+      "use": "engine2",
+      "x": 48.536403974,
+      "y": 5.5
+    },
+    {
+      "id": 9,
+      "use": "engine2",
+      "x": 48.536403974,
+      "y": -5.5,
+      "angle": 0,
+      "mirror": true
+    },
+    {
+      "id": 22,
+      "kind": "core",
+      "x": 36,
+      "y": 7,
+      "length": 3,
+      "width": 3,
+      "notes": "One of two outboard of the struts, flying the beam turrets and the forward engines."
+    },
+    {
+      "id": 23,
+      "kind": "core",
+      "x": 36,
+      "y": -7,
+      "length": 3,
+      "width": 3
+    }
+  ]
 }

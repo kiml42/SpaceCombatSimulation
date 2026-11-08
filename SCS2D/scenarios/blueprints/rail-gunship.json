@@ -1,245 +1,245 @@
 {
-    "formatVersion": 2,
-    "name": "Rail Gunship",
-    "category": "Stock",
-    "notes": "The Gunship with its bow gun a rail gun, a generator aft that charges a shot in about fourteen seconds, and batteries in its outriggers that let it fire faster for the first few. A broadside turret on each beam takes anything that gets inside it. It fights from far out, where its fast shot counts most, holding its bow on its target.",
-    "doctrine": {
-        "targeting": {
-            "loyaltyWeight": 60,
-            "facingWeight": 100,
-            "sightWeight": 20
-        },
-        "approach": {
-            "standoffRadii": 60,
-            "standoff": 0.75,
-            "tolerance": 0.3,
-            "ramRadii": 5,
-            "burnWeight": 1
-        }
+  "formatVersion": 2,
+  "name": "Rail Gunship",
+  "category": "Stock",
+  "notes": "The Gunship with its bow gun a rail gun, a generator aft that charges a shot in about fourteen seconds, and batteries in its outriggers that let it fire faster for the first few. A broadside turret on each beam takes anything that gets inside it. It fights from far out, where its fast shot counts most, holding its bow on its target.",
+  "doctrine": {
+    "targeting": {
+      "loyaltyWeight": 60,
+      "facingWeight": 100,
+      "sightWeight": 20
     },
-    "assemblies": {
-        "outrigger": {
-            "notes": "An outrigger, holding a small fast-firing multi-barrelled gun clear of the spine on a battery block for the rail gun.",
-            "modules": [
-                {
-                    "id": 13,
-                    "kind": "battery",
-                    "x": 0,
-                    "y": -1,
-                    "length": 8,
-                    "width": 6,
-                    "thick": true
-                },
-                {
-                    "id": 14,
-                    "kind": "turret",
-                    "x": 0,
-                    "y": 5,
-                    "angle": 90,
-                    "length": 6,
-                    "width": 5,
-                    "barrels": 4,
-                    "barrelCalibres": 90,
-                    "traverse": 110.00000000000001,
-                    "fuse": 0.2,
-                    "fragments": 10,
-                    "burstSpeed": 200,
-                    "main": false,
-                    "targeting": {
-                        "preferredMass": 0.1,
-                        "proximityWeight": 200,
-                        "armedWeight": 250,
-                        "mobileWeight": 100,
-                        "focusWeight": 0,
-                        "closingWeight": 50,
-                        "facingWeight": 60,
-                        "sightWeight": 20,
-                        "coreWeight": 20,
-                        "gunWeight": 160
-                    },
-                    "notes": "Many narrow barrels rather than one wide one: the same bore budget spent on rate of fire instead of weight of shell. It goes after whatever is small, close and still dangerous while the main battery fights its own weight class \u2014 a shell this light is wasted on a capital, and a close-in gun exists for what can still do something rather than for what is already out of the fight. Caring about that is worth more than the whole of its proximity preference, so it passes over a drifting hulk at any range. It also takes no interest in what the ship as a whole is fighting, which leaves each of the pair free to take whichever threat is nearer to it rather than both piling onto one."
-                }
-            ]
+    "approach": {
+      "standoffRadii": 60,
+      "standoff": 0.75,
+      "tolerance": 0.3,
+      "ramRadii": 5,
+      "burnWeight": 1
+    }
+  },
+  "assemblies": {
+    "outrigger": {
+      "notes": "An outrigger, holding a small fast-firing multi-barrelled gun clear of the spine on a battery block for the rail gun.",
+      "modules": [
+        {
+          "id": 13,
+          "kind": "battery",
+          "x": 0,
+          "y": -1,
+          "length": 8,
+          "width": 6,
+          "thick": true
         },
-        "mainEngine": {
-            "notes": "One of the pair that drives the ship forward.",
-            "modules": [
-                {
-                    "id": 15,
-                    "kind": "engine",
-                    "x": 4,
-                    "y": -0.25,
-                    "angle": 180,
-                    "length": 4,
-                    "width": 4.5,
-                    "nozzle": 0.8889,
-                    "thick": true
-                }
-            ]
-        },
-        "lateral": {
-            "notes": "A manoeuvring engine pushing inboard, so its exhaust leaves into clear air rather than into the stub it is bolted to.",
-            "modules": [
-                {
-                    "id": 16,
-                    "kind": "engine",
-                    "x": 0,
-                    "y": -1,
-                    "angle": 90,
-                    "length": 1,
-                    "width": 5,
-                    "barrels": 2,
-                    "nozzle": 0.4,
-                    "thick": true
-                }
-            ]
-        },
-        "retro": {
-            "notes": "Braking thrust, pushing aft.",
-            "modules": [
-                {
-                    "id": 17,
-                    "kind": "engine",
-                    "x": -1.5,
-                    "y": 0,
-                    "angle": 0,
-                    "length": 1.5,
-                    "width": 4,
-                    "barrels": 2,
-                    "nozzle": 0.75,
-                    "thick": true
-                }
-            ]
-        },
-        "Engine Node": {
-            "modules": [
-                {
-                    "id": 18,
-                    "kind": "tank",
-                    "x": -4.5,
-                    "y": 0,
-                    "length": 6,
-                    "width": 4
-                },
-                {
-                    "id": 19,
-                    "use": "lateral",
-                    "x": -4.5,
-                    "y": -3,
-                    "mirror": true
-                },
-                {
-                    "id": 20,
-                    "use": "retro",
-                    "x": 0,
-                    "y": 0
-                }
-            ]
+        {
+          "id": 14,
+          "kind": "turret",
+          "x": 0,
+          "y": 5,
+          "angle": 90,
+          "length": 6,
+          "width": 5,
+          "barrels": 4,
+          "barrelCalibres": 90,
+          "traverse": 110.00000000000001,
+          "fuse": 0.2,
+          "fragments": 10,
+          "burstSpeed": 200,
+          "main": false,
+          "targeting": {
+            "preferredMass": 0.1,
+            "proximityWeight": 200,
+            "armedWeight": 250,
+            "mobileWeight": 100,
+            "focusWeight": 0,
+            "closingWeight": 50,
+            "facingWeight": 60,
+            "sightWeight": 20,
+            "coreWeight": 20,
+            "gunWeight": 160
+          },
+          "notes": "Many narrow barrels rather than one wide one: the same bore budget spent on rate of fire instead of weight of shell. It goes after whatever is small, close and still dangerous while the main battery fights its own weight class \u2014 a shell this light is wasted on a capital, and a close-in gun exists for what can still do something rather than for what is already out of the fight. Caring about that is worth more than the whole of its proximity preference, so it passes over a drifting hulk at any range. It also takes no interest in what the ship as a whole is fighting, which leaves each of the pair free to take whichever threat is nearer to it rather than both piling onto one."
         }
+      ]
     },
-    "modules": [
+    "mainEngine": {
+      "notes": "One of the pair that drives the ship forward.",
+      "modules": [
         {
-            "id": 1,
-            "kind": "hold",
-            "x": 6,
-            "y": 0,
-            "length": 8,
-            "width": 10,
-            "thick": true
-        },
-        {
-            "id": 2,
-            "kind": "core",
-            "x": 0,
-            "y": 0,
-            "length": 4,
-            "width": 10,
-            "reinforcement": 6,
-            "thick": true,
-            "notes": "A bay amidships, where the spine is thickest and everything else is in the way. Cutting the spine here is what would part the ship, so it is also the last place a shell reaches."
-        },
-        {
-            "id": 3,
-            "kind": "generator",
-            "x": -8.75,
-            "y": 0,
-            "length": 13.5,
-            "width": 10,
-            "thick": true
-        },
-        {
-            "id": 4,
-            "kind": "railGun",
-            "x": 20.5,
-            "y": 0,
-            "angle": 0,
-            "length": 21,
-            "width": 8,
-            "barrels": 1,
-            "barrelCalibres": 22,
-            "thick": true,
-            "targeting": {
-                "loyaltyWeight": 30,
-                "focusWeight": 400,
-                "facingWeight": 100,
-                "sightWeight": 100,
-                "coreWeight": 150,
-                "fireRange": 1.6
-            }
-        },
-        {
-            "id": 5,
-            "use": "outrigger",
-            "x": 0,
-            "y": 9
-        },
-        {
-            "id": 6,
-            "use": "outrigger",
-            "x": 0,
-            "y": -9,
-            "mirror": true
-        },
-        {
-            "id": 7,
-            "use": "mainEngine",
-            "x": -19.5,
-            "y": 3
-        },
-        {
-            "id": 8,
-            "use": "mainEngine",
-            "x": -19.5,
-            "y": -3,
-            "mirror": true
-        },
-        {
-            "id": 9,
-            "use": "Engine Node",
-            "x": 17.5,
-            "y": 6,
-            "mirror": true
-        },
-        {
-            "id": 10,
-            "use": "Engine Node",
-            "x": 17.5,
-            "y": -6
-        },
-        {
-            "id": 11,
-            "use": "Engine Node",
-            "x": -16.5,
-            "y": -7,
-            "angle": -180,
-            "mirror": true
-        },
-        {
-            "id": 12,
-            "use": "Engine Node",
-            "x": -16.5,
-            "y": 7,
-            "angle": -180
+          "id": 15,
+          "kind": "engine",
+          "x": 4,
+          "y": -0.25,
+          "angle": 180,
+          "length": 4,
+          "width": 4.5,
+          "nozzle": 0.8889,
+          "thick": true
         }
-    ]
+      ]
+    },
+    "lateral": {
+      "notes": "A manoeuvring engine pushing inboard, so its exhaust leaves into clear air rather than into the stub it is bolted to.",
+      "modules": [
+        {
+          "id": 16,
+          "kind": "engine",
+          "x": 0,
+          "y": -1,
+          "angle": 90,
+          "length": 1,
+          "width": 5,
+          "barrels": 2,
+          "nozzle": 0.4,
+          "thick": true
+        }
+      ]
+    },
+    "retro": {
+      "notes": "Braking thrust, pushing aft.",
+      "modules": [
+        {
+          "id": 17,
+          "kind": "engine",
+          "x": -1.5,
+          "y": 0,
+          "angle": 0,
+          "length": 1.5,
+          "width": 4,
+          "barrels": 2,
+          "nozzle": 0.75,
+          "thick": true
+        }
+      ]
+    },
+    "Engine Node": {
+      "modules": [
+        {
+          "id": 18,
+          "kind": "tank",
+          "x": -4.5,
+          "y": 0,
+          "length": 6,
+          "width": 4
+        },
+        {
+          "id": 19,
+          "use": "lateral",
+          "x": -4.5,
+          "y": -3,
+          "mirror": true
+        },
+        {
+          "id": 20,
+          "use": "retro",
+          "x": 0,
+          "y": 0
+        }
+      ]
+    }
+  },
+  "modules": [
+    {
+      "id": 1,
+      "kind": "hold",
+      "x": 6,
+      "y": 0,
+      "length": 8,
+      "width": 10,
+      "thick": true
+    },
+    {
+      "id": 2,
+      "kind": "core",
+      "x": 0,
+      "y": 0,
+      "length": 4,
+      "width": 10,
+      "reinforcement": 6,
+      "thick": true,
+      "notes": "A bay amidships, where the spine is thickest and everything else is in the way. Cutting the spine here is what would part the ship, so it is also the last place a shell reaches."
+    },
+    {
+      "id": 3,
+      "kind": "generator",
+      "x": -8.75,
+      "y": 0,
+      "length": 13.5,
+      "width": 10,
+      "thick": true
+    },
+    {
+      "id": 4,
+      "kind": "railGun",
+      "x": 20.5,
+      "y": 0,
+      "angle": 0,
+      "length": 21,
+      "width": 8,
+      "barrels": 1,
+      "barrelCalibres": 22,
+      "thick": true,
+      "targeting": {
+        "loyaltyWeight": 30,
+        "focusWeight": 400,
+        "facingWeight": 100,
+        "sightWeight": 100,
+        "coreWeight": 150,
+        "fireRange": 1.6
+      }
+    },
+    {
+      "id": 5,
+      "use": "outrigger",
+      "x": 0,
+      "y": 9
+    },
+    {
+      "id": 6,
+      "use": "outrigger",
+      "x": 0,
+      "y": -9,
+      "mirror": true
+    },
+    {
+      "id": 7,
+      "use": "mainEngine",
+      "x": -19.5,
+      "y": 3
+    },
+    {
+      "id": 8,
+      "use": "mainEngine",
+      "x": -19.5,
+      "y": -3,
+      "mirror": true
+    },
+    {
+      "id": 9,
+      "use": "Engine Node",
+      "x": 17.5,
+      "y": 6,
+      "mirror": true
+    },
+    {
+      "id": 10,
+      "use": "Engine Node",
+      "x": 17.5,
+      "y": -6
+    },
+    {
+      "id": 11,
+      "use": "Engine Node",
+      "x": -16.5,
+      "y": -7,
+      "angle": -180,
+      "mirror": true
+    },
+    {
+      "id": 12,
+      "use": "Engine Node",
+      "x": -16.5,
+      "y": 7,
+      "angle": -180
+    }
+  ]
 }

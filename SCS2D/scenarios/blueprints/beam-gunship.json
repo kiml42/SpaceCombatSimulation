@@ -1,226 +1,226 @@
 {
-    "formatVersion": 2,
-    "name": "Beam Gunship",
-    "category": "Stock",
-    "notes": "A heavy gunship: a bow gun firing a shell an order of magnitude heavier than the corvette's, and a multi-barrelled turret on each beam for anything that gets inside it. Twice the corvette's engines move four times its mass, so it is markedly more sluggish — which is the point of having two ships to compare.",
-    "doctrine": {
-        "targeting": {
-            "proximityWeight": 60,
-            "closingWeight": 5,
-            "loyaltyWeight": 60,
+  "formatVersion": 2,
+  "name": "Beam Gunship",
+  "category": "Stock",
+  "notes": "A heavy gunship: a bow gun firing a shell an order of magnitude heavier than the corvette's, and a multi-barrelled turret on each beam for anything that gets inside it. Twice the corvette's engines move four times its mass, so it is markedly more sluggish — which is the point of having two ships to compare.",
+  "doctrine": {
+    "targeting": {
+      "proximityWeight": 60,
+      "closingWeight": 5,
+      "loyaltyWeight": 60,
+      "facingWeight": 50,
+      "sightWeight": 20,
+      "escortWeight": 3
+    },
+    "approach": {
+      "standoffRadii": 100,
+      "ramRadii": 30
+    }
+  },
+  "assemblies": {
+    "outrigger": {
+      "notes": "An outrigger, holding a small fast-firing multi-barrelled gun clear of the spine. A gun flat against the hull has almost no traverse worth the mass it costs.",
+      "modules": [
+        {
+          "id": 16,
+          "kind": "structure",
+          "x": 0,
+          "y": -2.5,
+          "length": 6,
+          "width": 5
+        },
+        {
+          "id": 17,
+          "kind": "beamTurret",
+          "x": 0,
+          "y": 3,
+          "angle": 90,
+          "length": 6,
+          "width": 6,
+          "barrels": 1,
+          "targeting": {
+            "focusWeight": 0,
             "facingWeight": 50,
-            "sightWeight": 20,
-            "escortWeight": 3
-        },
-        "approach": {
-            "standoffRadii": 100,
-            "ramRadii": 30
+            "sightWeight": 50,
+            "gunWeight": 200
+          }
         }
+      ]
     },
-    "assemblies": {
-        "outrigger": {
-            "notes": "An outrigger, holding a small fast-firing multi-barrelled gun clear of the spine. A gun flat against the hull has almost no traverse worth the mass it costs.",
-            "modules": [
-                {
-                    "id": 16,
-                    "kind": "structure",
-                    "x": 0,
-                    "y": -2.5,
-                    "length": 6,
-                    "width": 5
-                },
-                {
-                    "id": 17,
-                    "kind": "beamTurret",
-                    "x": 0,
-                    "y": 3,
-                    "angle": 90,
-                    "length": 6,
-                    "width": 6,
-                    "barrels": 1,
-                    "targeting": {
-                        "focusWeight": 0,
-                        "facingWeight": 50,
-                        "sightWeight": 50,
-                        "gunWeight": 200
-                    }
-                }
-            ]
-        },
-        "mainEngine": {
-            "notes": "One of the pair that drives the ship forward.",
-            "modules": [
-                {
-                    "id": 18,
-                    "kind": "engine",
-                    "x": 4,
-                    "y": 0.5,
-                    "angle": 180,
-                    "length": 4,
-                    "width": 3,
-                    "nozzle": 1.3333,
-                    "thick": true
-                }
-            ]
-        },
-        "Engine Node": {
-            "modules": [
-                {
-                    "id": 19,
-                    "kind": "tank",
-                    "x": -1,
-                    "y": 3.061616997868383e-17,
-                    "length": 4,
-                    "width": 4
-                },
-                {
-                    "id": 20,
-                    "kind": "engine",
-                    "x": 1,
-                    "y": 2,
-                    "angle": 90,
-                    "length": 1,
-                    "width": 4,
-                    "nozzle": 0.3333
-                },
-                {
-                    "id": 21,
-                    "kind": "engine",
-                    "x": 1,
-                    "y": 6.123233995736766e-17,
-                    "angle": 0,
-                    "length": 2.25,
-                    "width": 4,
-                    "barrels": 1,
-                    "nozzle": 0.75
-                }
-            ]
+    "mainEngine": {
+      "notes": "One of the pair that drives the ship forward.",
+      "modules": [
+        {
+          "id": 18,
+          "kind": "engine",
+          "x": 4,
+          "y": 0.5,
+          "angle": 180,
+          "length": 4,
+          "width": 3,
+          "nozzle": 1.3333,
+          "thick": true
         }
+      ]
     },
-    "modules": [
+    "Engine Node": {
+      "modules": [
         {
-            "id": 1,
-            "kind": "structure",
-            "x": 7,
-            "y": 0,
-            "length": 10,
-            "width": 10
+          "id": 19,
+          "kind": "tank",
+          "x": -1,
+          "y": 3.061616997868383e-17,
+          "length": 4,
+          "width": 4
         },
         {
-            "id": 2,
-            "kind": "core",
-            "x": 0,
-            "y": 0,
-            "length": 4,
-            "width": 10,
-            "notes": "A bay amidships, where the spine is thickest and everything else is in the way. Cutting the spine here is what would part the ship, so it is also the last place a shell reaches."
+          "id": 20,
+          "kind": "engine",
+          "x": 1,
+          "y": 2,
+          "angle": 90,
+          "length": 1,
+          "width": 4,
+          "nozzle": 0.3333
         },
         {
-            "id": 3,
-            "kind": "structure",
-            "x": -12,
-            "y": 0,
-            "length": 16,
-            "width": 10
-        },
-        {
-            "id": 4,
-            "kind": "generator",
-            "x": -3,
-            "y": 0,
-            "length": 2,
-            "width": 5,
-            "notes": "Powers the beams past what the core can, in a slice of the aft structure."
-        },
-        {
-            "id": 5,
-            "kind": "structure",
-            "x": -3,
-            "y": 3.75,
-            "length": 2,
-            "width": 2.5
-        },
-        {
-            "id": 6,
-            "kind": "structure",
-            "x": -3,
-            "y": -3.75,
-            "length": 2,
-            "width": 2.5
-        },
-        {
-            "id": 7,
-            "kind": "hullBeam",
-            "x": 17.4,
-            "y": 0,
-            "angle": 0,
-            "length": 10.8,
-            "width": 8,
-            "barrels": 1,
-            "traverse": 20,
-            "thick": true,
-            "targeting": {
-                "proximityWeight": 20,
-                "preferredMass": 1,
-                "loyaltyWeight": 30,
-                "facingWeight": 100,
-                "focusWeight": 600,
-                "sightWeight": 50
-            }
-        },
-        {
-            "id": 8,
-            "use": "outrigger",
-            "x": 0,
-            "y": 10
-        },
-        {
-            "id": 9,
-            "use": "outrigger",
-            "x": 0,
-            "y": -10,
-            "mirror": true
-        },
-        {
-            "id": 10,
-            "use": "mainEngine",
-            "x": -24,
-            "y": 2
-        },
-        {
-            "id": 11,
-            "use": "mainEngine",
-            "x": -24,
-            "y": -2,
-            "mirror": true
-        },
-        {
-            "id": 12,
-            "use": "Engine Node",
-            "x": 19,
-            "y": -6,
-            "mirror": true
-        },
-        {
-            "id": 13,
-            "use": "Engine Node",
-            "x": 19,
-            "y": 6
-        },
-        {
-            "id": 14,
-            "use": "Engine Node",
-            "x": -18,
-            "y": -7,
-            "angle": -180
-        },
-        {
-            "id": 15,
-            "use": "Engine Node",
-            "x": -18,
-            "y": 7,
-            "angle": -180,
-            "mirror": true
+          "id": 21,
+          "kind": "engine",
+          "x": 1,
+          "y": 6.123233995736766e-17,
+          "angle": 0,
+          "length": 2.25,
+          "width": 4,
+          "barrels": 1,
+          "nozzle": 0.75
         }
-    ]
+      ]
+    }
+  },
+  "modules": [
+    {
+      "id": 1,
+      "kind": "structure",
+      "x": 7,
+      "y": 0,
+      "length": 10,
+      "width": 10
+    },
+    {
+      "id": 2,
+      "kind": "core",
+      "x": 0,
+      "y": 0,
+      "length": 4,
+      "width": 10,
+      "notes": "A bay amidships, where the spine is thickest and everything else is in the way. Cutting the spine here is what would part the ship, so it is also the last place a shell reaches."
+    },
+    {
+      "id": 3,
+      "kind": "structure",
+      "x": -12,
+      "y": 0,
+      "length": 16,
+      "width": 10
+    },
+    {
+      "id": 4,
+      "kind": "generator",
+      "x": -3,
+      "y": 0,
+      "length": 2,
+      "width": 5,
+      "notes": "Powers the beams past what the core can, in a slice of the aft structure."
+    },
+    {
+      "id": 5,
+      "kind": "structure",
+      "x": -3,
+      "y": 3.75,
+      "length": 2,
+      "width": 2.5
+    },
+    {
+      "id": 6,
+      "kind": "structure",
+      "x": -3,
+      "y": -3.75,
+      "length": 2,
+      "width": 2.5
+    },
+    {
+      "id": 7,
+      "kind": "hullBeam",
+      "x": 17.4,
+      "y": 0,
+      "angle": 0,
+      "length": 10.8,
+      "width": 8,
+      "barrels": 1,
+      "traverse": 20,
+      "thick": true,
+      "targeting": {
+        "proximityWeight": 20,
+        "preferredMass": 1,
+        "loyaltyWeight": 30,
+        "facingWeight": 100,
+        "focusWeight": 600,
+        "sightWeight": 50
+      }
+    },
+    {
+      "id": 8,
+      "use": "outrigger",
+      "x": 0,
+      "y": 10
+    },
+    {
+      "id": 9,
+      "use": "outrigger",
+      "x": 0,
+      "y": -10,
+      "mirror": true
+    },
+    {
+      "id": 10,
+      "use": "mainEngine",
+      "x": -24,
+      "y": 2
+    },
+    {
+      "id": 11,
+      "use": "mainEngine",
+      "x": -24,
+      "y": -2,
+      "mirror": true
+    },
+    {
+      "id": 12,
+      "use": "Engine Node",
+      "x": 19,
+      "y": -6,
+      "mirror": true
+    },
+    {
+      "id": 13,
+      "use": "Engine Node",
+      "x": 19,
+      "y": 6
+    },
+    {
+      "id": 14,
+      "use": "Engine Node",
+      "x": -18,
+      "y": -7,
+      "angle": -180
+    },
+    {
+      "id": 15,
+      "use": "Engine Node",
+      "x": -18,
+      "y": 7,
+      "angle": -180,
+      "mirror": true
+    }
+  ]
 }
