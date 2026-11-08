@@ -287,7 +287,7 @@ export const DEFAULT_KINDS: KindWeights = {
  */
 export const DEFAULT_LIMITS: MutationLimits = {
     magnitude: 0.1,
-    deadZone: 0.5,
+    deadZone: 0.25,
     tail: 0.1,
     geometry: 0.4,
     switches: 0.05,
