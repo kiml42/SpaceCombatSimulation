@@ -19,6 +19,7 @@ import { mining } from "../../scenarios/mining.js";
 import { rivalMines } from "../../scenarios/rivalMines.js";
 import type { Battle } from "../../scenarios/types.js";
 import { beamDuel } from "../../scenarios/beamDuel.js";
+import { railDuel } from "../../scenarios/railDuel.js";
 import { soloOrdering } from "../../scenarios/ordering.js";
 import { hooked } from "../../scenarios/hooked.js";
 import { salvageRun } from "../../scenarios/salvage.js";
@@ -333,6 +334,17 @@ export function duelScenario(seed = 20260905): ScenarioRun {
     };
 }
 
+/** The duel with rail guns on the corvettes: what pins a rail gun's charging, flight and hits. */
+export function railDuelScenario(seed = 20260905): ScenarioRun {
+    const run = railDuel(seed);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
+}
+
 /** The duel's ships between two wells on rails: what pins wells that move. */
 export function binaryScenario(seed = 20260905): ScenarioRun {
     const run = binary(seed);
@@ -638,6 +650,7 @@ export const SCENARIOS = {
     tumble: worldScenario(() => tumbleScenario(), 5_000),
     gunnery: { steps: 3_000, build: () => gunneryScenario() },
     duel: { steps: 3_000, build: () => duelScenario() },
+    railDuel: { steps: 3_000, build: () => railDuelScenario() },
     beamDuel: { steps: 3_000, build: () => beamDuelScenario() },
     binary: { steps: 3_000, build: () => binaryScenario() },
     kernels: { steps: 6_000, build: () => kernelsScenario() },

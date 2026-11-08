@@ -250,6 +250,8 @@ export const DEFAULT_KINDS: KindWeights = {
     // the size it arrives, and what it costs — almost nowhere to point — is a cost at
     // any size, so a lineage that wants one has to grow it.
     hullGun: 2,
+    // A hull gun on power: worth anything only to a ship with the power to load it.
+    railGun: 1,
     hullBeam: 1,
     core: 1,
     // Rare: worth anything only to a doctrine that goes after wrecks, which a
@@ -1364,7 +1366,8 @@ function rebell(site: ModuleSite, jitter: Jitter): string | null {
  */
 function relength(site: ModuleSite, jitter: Jitter): string | null {
     const was = barrelCalibres(site.spec);
-    const now = clamp(round(was + jitter(max(was, COUNT_SCALE))), 1, MAX_BARREL_CALIBRES);
+    // A rail gun's may draw its rails back onto its block altogether.
+    const now = clamp(round(was + jitter(max(was, COUNT_SCALE))), site.spec.kind === "railGun" ? 0 : 1, MAX_BARREL_CALIBRES);
     if (now === was) return null;
     site.spec.barrelCalibres = now;
     return `${site.where} ${site.spec.kind}: barrel ${was} → ${now} calibres`;
@@ -2597,6 +2600,8 @@ function addModule(draft: Draft, rng: Rng, bounds: MutationLimits, scale: Scale,
             for (const along of berths(anchor.spec, face, copy, scale, rng)) {
                 const added = against(anchor.spec, face, along, kind, copy, bounds, scale, rng);
                 if (neighbours.some((neighbour) => modulesOverlap(added, neighbour))) continue;
+                // A copy is meant to work as its original does, so not one that smothers another engine.
+                if (copy && neighbours.some((neighbour) => inFlame(added, neighbour))) continue;
                 anchor.list.placements.push(added);
                 // Said out loud, because a wedge and a box are the same line of the
                 // file otherwise and the changelog is what a run is read back through.
@@ -2609,6 +2614,26 @@ function addModule(draft: Draft, rng: Rng, bounds: MutationLimits, scale: Scale,
         }
     }
     return null;
+}
+
+/** How far past an engine's exit a module counts as in its flame, in the engine's widths: past any flame's reach. */
+const FLAME_CLEARANCE_WIDTHS = 40;
+
+/** Whether `spec` sits in the path of `engine`'s flame, if it is an engine. */
+function inFlame(spec: ModuleSpec, engine: ModuleSpec): boolean {
+    if (engine.kind !== "engine") return false;
+    // An engine's position is its exit, and its flame runs on along its angle from there.
+    const angle = engine.angle ?? 0;
+    const reach = FLAME_CLEARANCE_WIDTHS * engine.width;
+    const path: ModuleSpec = {
+        kind: "structure",
+        x: engine.x + cos(angle) * reach * 0.5,
+        y: engine.y + sin(angle) * reach * 0.5,
+        angle,
+        length: reach,
+        width: engine.width,
+    };
+    return modulesOverlap(spec, path);
 }
 
 /** The most thrusters one child gets, however the rolls go. */

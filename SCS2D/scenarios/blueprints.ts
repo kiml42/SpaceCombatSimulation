@@ -1,6 +1,8 @@
 import { parseBlueprint, type Blueprint } from "../sim/index.js";
 import corvetteFile from "./blueprints/corvette.json" with { type: "json" };
 import beamCorvetteFile from "./blueprints/beam-corvette.json" with { type: "json" };
+import railCorvetteFile from "./blueprints/rail-corvette.json" with { type: "json" };
+import railGunshipFile from "./blueprints/rail-gunship.json" with { type: "json" };
 import gunshipFile from "./blueprints/gunship.json" with { type: "json" };
 import beamGunshipFile from "./blueprints/beam-gunship.json" with { type: "json" };
 import fractalFile from "./blueprints/fractal.json" with { type: "json" };
@@ -50,6 +52,8 @@ import starDestroyerFile from "./blueprints/star-destroyer.json" with { type: "j
 
 export const CORVETTE: Blueprint = parseBlueprint(corvetteFile);
 export const BEAM_CORVETTE: Blueprint = parseBlueprint(beamCorvetteFile);
+export const RAIL_CORVETTE: Blueprint = parseBlueprint(railCorvetteFile);
+export const RAIL_GUNSHIP: Blueprint = parseBlueprint(railGunshipFile);
 export const GUNSHIP: Blueprint = parseBlueprint(gunshipFile);
 export const BEAM_GUNSHIP: Blueprint = parseBlueprint(beamGunshipFile);
 export const FRACTAL: Blueprint = parseBlueprint(fractalFile);
@@ -78,7 +82,9 @@ export const STAR_DESTROYER: Blueprint = parseBlueprint(starDestroyerFile);
 export const BLUEPRINTS = {
     corvette: CORVETTE,
     beamCorvette: BEAM_CORVETTE,
+    railCorvette: RAIL_CORVETTE,
     gunship: GUNSHIP,
+    railGunship: RAIL_GUNSHIP,
     beamGunship: BEAM_GUNSHIP,
     fractal: FRACTAL,
     dinky: DINKY,

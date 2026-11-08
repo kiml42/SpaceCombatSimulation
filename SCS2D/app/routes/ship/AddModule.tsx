@@ -55,6 +55,11 @@ const GROUPS: readonly { title: string; kinds: readonly { kind: ShipModuleKind; 
             { kind: "turret", label: "Turret" },
             { kind: "beamTurret", label: "Beam turret" },
             { kind: "hullGun", label: "Hull gun" },
+            {
+                kind: "railGun",
+                label: "Rail gun",
+                title: "A hull gun whose rails throw solid shot twice as fast, on power rather than fuel. It does not train: the hull aims it",
+            },
             { kind: "hullBeam", label: "Hull beam" },
         ],
     },

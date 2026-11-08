@@ -81,6 +81,8 @@ export interface TurretReadout {
     roundMass: number;
     /** Fuel each round burns, kg: its propellant and any bursting charge. */
     shotFuel: number;
+    /** Charge each round draws, J: a rail gun's. */
+    shotEnergy: number;
     /** Muzzle velocity, m/s. */
     muzzleSpeed: number;
     /** Rounds per minute the mount can sustain. */
@@ -294,6 +296,7 @@ export function designStats(design: ShipDesign, envelope: Envelopes): DesignStat
                 barrels: gun.barrelCount,
                 roundMass: gun.roundMass,
                 shotFuel: shotFuel(gun),
+                shotEnergy: gun.shotEnergy,
                 muzzleSpeed: gun.muzzleSpeed,
                 roundsPerMinute: firingPeriod(gun) > 0 ? 60 / firingPeriod(gun) : 0,
                 arcLeft: radiansToDegrees(mount.leftArc ?? math.PI),
@@ -563,6 +566,7 @@ export function moduleReadout(spec: ModuleSpec, layout: readonly ModuleSpec[] = 
                       barrels: gun.barrelCount,
                       roundMass: gun.roundMass,
                       shotFuel: shotFuel(gun),
+                      shotEnergy: gun.shotEnergy,
                       muzzleSpeed: gun.muzzleSpeed,
                       roundsPerMinute: firingPeriod(gun) > 0 ? 60 / firingPeriod(gun) : 0,
                       ...arcOf(layout, index, gun.barrelLength, barrelHalfWidth(gun)),

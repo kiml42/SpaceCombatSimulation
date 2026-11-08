@@ -427,7 +427,7 @@ describe("the editor in a browser", () => {
         const kinds = [...MODULE_KINDS];
         const buttons = await page.$$eval("[data-add]", (found) => found.map((b) => (b as HTMLElement).dataset["add"]));
         expect([...buttons].sort()).toEqual([...kinds].sort());
-        for (const kind of ["claw", "pad", "port"]) {
+        for (const kind of ["claw", "pad", "port", "railGun"]) {
             await page.click(`[data-add="${kind}"]`);
             expect(await page.inputValue("#propKind")).toBe(kind);
         }

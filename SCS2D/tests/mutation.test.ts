@@ -30,6 +30,11 @@ import { BARE_CORE, CATAMARAN, CORVETTE, DINKY, GUNSHIP } from "../scenarios/blu
  * is only visible over a lineage: an operator that removes more than it adds
  * produces valid ships all the way down to a hull with nothing on it, and
  * every individual draw looks fine while it happens.
+ *
+ * **These are sensitive to what can mutate.** A new kind, knob or switch
+ * changes the random numbers drawn for everything after it, so a seeded test
+ * can land on a case it never met before. When one fails after such a change,
+ * look for what that case shows rather than reseeding past it.
  */
 
 /**
@@ -348,6 +353,7 @@ describe("mutation", () => {
                     turret: 0,
                     beamTurret: 0,
                     hullGun: 3,
+                    railGun: 0,
                     hullBeam: 1,
                     core: 0,
                     claw: 0,
@@ -386,6 +392,7 @@ describe("mutation", () => {
             turret: 0,
             beamTurret: 0,
             hullGun: 0,
+            railGun: 0,
             hullBeam: 0,
             core: 0,
             claw: 0,
@@ -516,6 +523,7 @@ describe("mutation", () => {
                     turret: 0,
                     beamTurret: 0,
                     hullGun: 0,
+                    railGun: 0,
                     hullBeam: 0,
                     core: 0,
                     claw: 0,
@@ -699,6 +707,7 @@ describe("mutation", () => {
                     turret: 0,
                     beamTurret: 0,
                     hullGun: 0,
+                    railGun: 0,
                     hullBeam: 0,
                     core: 0,
                     claw: 0,
@@ -891,7 +900,9 @@ describe("splitting a module", () => {
                 doctrine: { targeting: 0, approach: 0, escort: 0, avoidance: 0, gunnery: 0 },
             });
             const edit = child.edits.find((e) => /split in two/.test(e));
-            if (edit === undefined) continue;
+            // An engine's or a hull mount's length follows what it is fitted with,
+            // so halving its width shortens it.
+            if (edit === undefined || /hull(Gun|Beam)|engine/.test(edit)) continue;
             seen++;
             expect(blueprintProblem(child.blueprint)).toBeNull();
             const before = expandBlueprint(GUNSHIP);

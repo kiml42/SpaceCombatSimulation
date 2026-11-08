@@ -702,6 +702,12 @@ export const DEFAULT_DOCTRINE: Doctrine = {
  * a beam turret is what answers something small and quick, and a hull weapon
  * is a heavy piece aimed by the hull.
  */
+const HULL_GUN_TARGETING: Targeting = {
+    ...DEFAULT_DOCTRINE.targeting,
+    massWeight: 80,
+    focusWeight: 300,
+};
+
 const MOUNT_TARGETING: Record<string, Targeting> = {
     /**
      * A gun turret trains all the way round and picks its own fight, so what it
@@ -750,11 +756,9 @@ const MOUNT_TARGETING: Record<string, Targeting> = {
      * careful with a round as any gun, and more so by disposition: the shell is
      * bigger and the cycle longer.
      */
-    hullGun: {
-        ...DEFAULT_DOCTRINE.targeting,
-        massWeight: 80,
-        focusWeight: 300,
-    },
+    hullGun: HULL_GUN_TARGETING,
+    /** Aimed by its hull as a hull gun is, and after the same. */
+    railGun: HULL_GUN_TARGETING,
     /**
      * The same mount with a beam in it: aimed by the hull, so focused like one,
      * and lighting up early like any beam.

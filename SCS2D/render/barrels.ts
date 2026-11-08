@@ -1,6 +1,6 @@
-import { hullMountGeometry, isHullMount, math, type ShipView } from "../sim/index.js";
+import { hullMountGeometry, isHullMount, math, RAIL_SETBACK_CALIBRES, type ShipView } from "../sim/index.js";
 
-const { cos, sin } = math;
+const { cos, max, sin } = math;
 
 /** A barrel is never narrower than this on screen, nor its shadow. */
 export const MIN_BARREL_PX = 1;
@@ -10,7 +10,8 @@ export const MIN_BARREL_PX = 1;
  * mount bears now, so a barrel and its shadow are drawn from one place.
  * Returns the barrels' width before any floor on screen: twice the calibre,
  * the tube's outer diameter (for a beam mount, the housing round the optic),
- * or a hull mount's outlets.
+ * or a hull mount's outlets. A rail gun's rails run back over the top of its
+ * block, so its barrels start near the block's back rather than at its face.
  */
 export function barrelLines(ship: ShipView, t: number, visit: (x0: number, y0: number, x1: number, y1: number) => void): number {
     const design = ship.currentStructure;
@@ -30,6 +31,7 @@ export function barrelLines(ship: ShipView, t: number, visit: (x0: number, y0: n
     const spacing = turret.gun.barrelSpacing;
     const hull = isHullMount(spec.kind) ? hullMountGeometry(spec) : null;
     const lenses = spec.kind === "hullBeam";
+    const back = hull !== null && spec.kind === "railGun" ? max(0, hull.blockLength - RAIL_SETBACK_CALIBRES * turret.gun.calibre) : 0;
     for (let k = 0; k < count; k++) {
         const lat = count > 1 ? (k - (count - 1) * 0.5) * spacing : 0;
         if (lenses) {
@@ -41,7 +43,7 @@ export function barrelLines(ship: ShipView, t: number, visit: (x0: number, y0: n
         }
         const bx = mx - dirY * lat;
         const by = my + dirX * lat;
-        visit(bx, by, bx + dirX * reach, by + dirY * reach);
+        visit(bx - dirX * back, by - dirY * back, bx + dirX * reach, by + dirY * reach);
     }
     return hull !== null ? hull.outletWidth : 2 * turret.gun.calibre;
 }

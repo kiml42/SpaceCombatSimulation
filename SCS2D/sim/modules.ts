@@ -662,6 +662,47 @@ export const PROPELLANT_ENERGY = 1.2e6;
  */
 export const GAS_RECOIL = 1.5;
 
+/** How much faster a rail gun throws its round than powder would from the same barrel. */
+export const RAIL_SPEED = 2;
+
+/** The share of the charge a rail gun draws that reaches its round as kinetic energy. */
+export const RAIL_EFFICIENCY = 0.5;
+
+/** How far in from the back of its block a rail gun's rails start, in calibres. */
+export const RAIL_SETBACK_CALIBRES = 2;
+
+/**
+ * How fast a rail gun's block charges the bank a shot is fired from, watts per
+ * cubic metre of block: the bank, not the breech, is what limits how often it
+ * fires, as a hull beam's does.
+ */
+export const RAIL_BANK_POWER_PER_VOLUME = 1.2e6;
+
+/**
+ * The share of a rail gun's block given to its capacitor bank, of what its
+ * rails and loader leave: the rest is charging gear and heat handling.
+ */
+export const RAIL_BANK_SHARE = 0.8;
+
+/** How long a rail gun's loader is, in calibres, as wide and deep as its barrel. */
+export const RAIL_LOADER_CALIBRES = 3;
+
+/** Mass of a rail gun's capacitor bank, kg per cubic metre of block, on top of the block's hull and loading gear. */
+export const RAIL_BANK_MASS_PER_VOLUME = 500;
+
+/** How much heavier a rail gun's barrel is than a powder gun's, for the rails it carries, all along it. */
+export const RAIL_BARREL_MASS = 2;
+
+/**
+ * How long a rail gun's rails are, metres: along its block from
+ * `RAIL_SETBACK_CALIBRES` in from the back, and on out as far as its barrel
+ * reaches beyond the block.
+ */
+export function railLength(calibre: number, blockLength: number, extension: number): number {
+    const along = blockLength - RAIL_SETBACK_CALIBRES * calibre;
+    return (along > 0 ? along : 0) + extension;
+}
+
 /**
  * Loading cycle time per metre of calibre, seconds. A 16" gun manages a round
  * every 30 s and a 5" mount several times a minute; one number cannot honour
@@ -741,17 +782,25 @@ export const BEAM_APERTURE_FRACTION = 0.05;
 export const OPTIC_INTENSITY_LIMIT = 2e8;
 
 /**
- * Energy in the mount's capacitor bank per cubic metre of mount, J/m³.
+ * What a weapon's capacitor bank holds, J per cubic metre of bank: about what
+ * supercapacitors reach. Every powered weapon's bank is this; what differs is
+ * how much of its mount the bank takes.
+ */
+export const CAPACITOR_ENERGY_PER_VOLUME = 2e7;
+
+/**
+ * The share of a beam mount given to its capacitor bank, the rest being
+ * optics, pumping and cooling — the right shape for a weapon whose real
+ * problem is heat.
  *
  * A beam mount does not reload; it discharges. The bank is what lets it put
  * out far more power than the ship's plant can supply, for as long as the bank
  * lasts, and that is what `beamOnTime` measures.
- *
- * Supercapacitors reach something like 10 MJ/m³, so this is a few per cent of
- * the mount given over to storage and the rest to optics, pumping and cooling
- * — which is the right shape for a weapon whose real problem is heat.
  */
-export const BEAM_STORED_ENERGY_PER_VOLUME = 1.2e5;
+export const BEAM_BANK_SHARE = 0.012;
+
+/** Energy in a beam mount's bank per cubic metre of mount, J/m³. */
+export const BEAM_STORED_ENERGY_PER_VOLUME = CAPACITOR_ENERGY_PER_VOLUME * BEAM_BANK_SHARE;
 
 /**
  * Fraction of the time a beam turret can be firing, given all the power it
@@ -1092,6 +1141,7 @@ export type ModuleKind =
     | "turret"
     | "beamTurret"
     | "hullGun"
+    | "railGun"
     | "hullBeam"
     | "claw"
     | "pad"
@@ -1149,6 +1199,7 @@ export const MODULE_KINDS: readonly ShipModuleKind[] = [
     "turret",
     "beamTurret",
     "hullGun",
+    "railGun",
     "hullBeam",
     "claw",
     "pad",
@@ -1526,6 +1577,8 @@ export interface GunStats {
     casing: number;
     /** Fuel burnt to fire a round, kg. */
     propellant: number;
+    /** Charge a round draws as the gun reloads, J: a rail gun's. */
+    shotEnergy: number;
     /** Muzzle velocity, m/s. */
     muzzleSpeed: number;
     /** Kinetic energy of one round at the muzzle, joules. */
@@ -1543,6 +1596,11 @@ export interface GunStats {
 /** Fuel a gun draws for each round, kg: its propellant and any bursting charge. */
 export function shotFuel(gun: GunStats): number {
     return gun.propellant + gun.roundMass - gun.casing;
+}
+
+/** Charge a mount draws for each shot, J: a beam's burst, or a rail gun's round. */
+export function shotCharge(gun: GunStats): number {
+    return gun.type === GunType.Beam ? gun.beamPower * gun.beamOnTime : gun.shotEnergy;
 }
 
 /** Seconds from one shot to the next: a beam's burst, then its reload. */
@@ -1716,8 +1774,10 @@ export function moduleProblem(spec: ModuleSpec): string | null {
     }
     if (spec.barrelCalibres !== undefined) {
         // Dormant on a kind that does not read it, as a bell is: only the range.
-        if (!(spec.barrelCalibres > 0) || !(spec.barrelCalibres <= MAX_BARREL_CALIBRES)) {
-            return `${spec.kind}: barrel must be more than 0 and at most ${MAX_BARREL_CALIBRES} calibres, got ${spec.barrelCalibres}`;
+        // A rail gun's says how far its rails reach beyond the block, which may be not at all.
+        const rail = spec.kind === "railGun";
+        if (!(rail ? spec.barrelCalibres >= 0 : spec.barrelCalibres > 0) || !(spec.barrelCalibres <= MAX_BARREL_CALIBRES)) {
+            return `${spec.kind}: barrel must be ${rail ? "at least" : "more than"} 0 and at most ${MAX_BARREL_CALIBRES} calibres, got ${spec.barrelCalibres}`;
         }
     }
     if (spec.traverse !== undefined && !(spec.traverse >= 0)) {
@@ -2387,6 +2447,15 @@ export function hullMountGeometry(spec: ModuleSpec): HullMountGeometry {
     };
 }
 
+/**
+ * Whether this kind is a gun let into a hull: a hull gun, or a rail gun, which
+ * is one whose rails throw solid shot on power rather than powder on fuel. The
+ * two share a block, a barrel out of its face and every law that sizes them.
+ */
+export function isHullGun(kind: ModuleKind): boolean {
+    return kind === "hullGun" || kind === "railGun";
+}
+
 /** Whether `fuse` means anything on this kind: a gun that fires rounds. */
 export function readsFuse(kind: ModuleKind): boolean {
     return kind === "turret" || kind === "hullGun";
@@ -2406,6 +2475,7 @@ export function isWeaponMount(kind: ModuleKind): boolean {
  * asks it, and this stays a property of the mount alone.
  */
 export function mountTraverse(spec: ModuleSpec): number {
+    if (spec.kind === "railGun") return 0;
     const archetype = isHullMount(spec.kind) ? hullMountGeometry(spec).traverse : FULL_TRAVERSE;
     const asked = spec.traverse;
     if (asked === undefined) return archetype;
@@ -2426,7 +2496,7 @@ export function mountGeometryOf(spec: ModuleSpec): HullMountGeometry {
 }
 
 export function isHullMount(kind: ModuleKind): boolean {
-    return kind === "hullGun" || kind === "hullBeam";
+    return isHullGun(kind) || kind === "hullBeam";
 }
 
 /**
@@ -2450,13 +2520,13 @@ export function readsNozzle(kind: ModuleKind): boolean {
 
 /** Whether `barrelCalibres` means anything on this kind: a gun with a barrel. */
 export function readsBarrelCalibres(kind: ModuleKind): boolean {
-    return kind === "turret" || kind === "hullGun";
+    return kind === "turret" || isHullGun(kind);
 }
 
 /** How many calibres long a gun's barrels are: what it says, or its archetype's default. */
 export function barrelCalibres(spec: ModuleSpec): number {
     if (spec.barrelCalibres !== undefined) return spec.barrelCalibres;
-    return spec.kind === "hullGun" ? DEFAULT_HULL_BARREL_CALIBRES : BARREL_CALIBRES;
+    return isHullGun(spec.kind) ? DEFAULT_HULL_BARREL_CALIBRES : BARREL_CALIBRES;
 }
 
 /**
@@ -2621,6 +2691,7 @@ export function weldBox(spec: ModuleSpec): ModuleSpec {
  * loads from and the traverse it no longer has.
  */
 export function hullGunStats(spec: ModuleSpec): GunStats {
+    if (spec.kind === "railGun") return railGunStats(spec);
     const { outlets, outletWidth, outletSpacing, barrelLength, blockLength } = hullMountGeometry(spec);
     const calibre = outletWidth / BARREL_OUTER_CALIBRES;
     const calibres = barrelCalibres(spec);
@@ -2640,12 +2711,85 @@ export function hullGunStats(spec: ModuleSpec): GunStats {
         roundMass,
         casing: roundMass,
         propellant: muzzleEnergy / PROPELLANT_ENERGY,
+        shotEnergy: 0,
         muzzleSpeed,
         muzzleEnergy,
         beamPower: 0,
         // One block loads every tube, so its depth is measured against the bore
         // they share rather than each tube's own.
         cycleTime: hullCycleTime(calibre, blockLength * loadingDecks(spec), outlets) / outlets,
+        beamOnTime: 0,
+        burst: null,
+    };
+}
+
+/**
+ * The charge a rail gun's bank holds with a bore of `calibre`, J: of its block,
+ * what its rails along it and a loader for each barrel leave, `RAIL_BANK_SHARE`
+ * of it capacitors.
+ */
+export function railBankEnergy(spec: ModuleSpec, calibre: number): number {
+    const { outlets, blockLength } = hullMountGeometry(spec);
+    const outer = BARREL_OUTER_CALIBRES * calibre;
+    const along = blockLength - RAIL_SETBACK_CALIBRES * calibre;
+    const barrels = outlets * outer * outer * ((along > 0 ? along : 0) + RAIL_LOADER_CALIBRES * calibre);
+    const free = blockLength * spec.width * moduleThickness(spec) - barrels;
+    return free > 0 ? CAPACITOR_ENERGY_PER_VOLUME * RAIL_BANK_SHARE * free : 0;
+}
+
+/** Bisection steps to the calibre a rail gun's bank fills: far finer than anything a design can tell. */
+const RAIL_CALIBRE_STEPS = 48;
+
+/**
+ * A rail gun: a hull gun on power, firing solid shot `RAIL_SPEED` times as
+ * fast as powder would from the same run of barrel.
+ *
+ * **Its bore is whatever its bank fills.** A wider bore wants more energy for
+ * every shot and leaves less of the block for capacitors, so there is one
+ * calibre whose full shot uses exactly the charge its bank holds, and that is
+ * the gun's. More barrel narrows it, so a longer gun throws a lighter shot
+ * faster for much the same energy, which its block sets. Its opening caps it,
+ * so a bore that would want more than the opening takes is held there.
+ */
+function railGunStats(spec: ModuleSpec): GunStats {
+    const { outlets, outletWidth, outletSpacing, barrelLength, blockLength } = hullMountGeometry(spec);
+    const widest = outletWidth / BARREL_OUTER_CALIBRES;
+    const need = (calibre: number): number =>
+        (muzzleEnergyOf(calibre, railLength(calibre, blockLength, barrelLength) / calibre) * RAIL_SPEED * RAIL_SPEED) / RAIL_EFFICIENCY;
+    let calibre = widest;
+    if (need(widest) > railBankEnergy(spec, widest)) {
+        let lo = 0;
+        let hi = widest;
+        for (let k = 0; k < RAIL_CALIBRE_STEPS; k++) {
+            const mid = (lo + hi) * 0.5;
+            if (need(mid) > railBankEnergy(spec, mid)) hi = mid;
+            else lo = mid;
+        }
+        calibre = lo;
+    }
+    const shotEnergy = need(calibre);
+    const muzzleEnergy = shotEnergy * RAIL_EFFICIENCY;
+    const roundMass = PI * 0.25 * calibre * calibre * (calibre * SHELL_CALIBRES) * SHELL_DENSITY;
+    const block = blockLength * spec.width * moduleThickness(spec);
+    return {
+        type: GunType.Projectile,
+        calibre,
+        barrelLength,
+        // What reaches beyond its block is braced all along its sides.
+        braceLength: barrelLength,
+        braceWidth: BRACE_CALIBRES * calibre,
+        barrelCount: outlets,
+        barrelSpacing: outletSpacing,
+        roundMass,
+        casing: roundMass,
+        propellant: 0,
+        shotEnergy,
+        muzzleSpeed: roundMass > 0 ? sqrt((2 * muzzleEnergy) / roundMass) : 0,
+        muzzleEnergy,
+        beamPower: 0,
+        // Its bank, which charges each shot in turn whichever rails it goes down;
+        // its breech is simpler than a powder gun's, so only its fixed part counts.
+        cycleTime: max(CYCLE_TIME_PER_CALIBRE * calibre * LOADING_FLOOR, shotEnergy / (RAIL_BANK_POWER_PER_VOLUME * block)),
         beamOnTime: 0,
         burst: null,
     };
@@ -2737,6 +2881,7 @@ export function hullBeamStats(spec: ModuleSpec): GunStats {
         roundMass: 0,
         casing: 0,
         propellant: 0,
+        shotEnergy: 0,
         muzzleSpeed: -1,
         muzzleEnergy: 0,
         beamPower: power,
@@ -2833,6 +2978,8 @@ const KIND_COMPLEXITY: Record<ModuleKind, number> = {
     rock: 0,
     engine: 4,
     hullGun: 4,
+    // The rails and the bank that drives them, on top of a hull gun's breech.
+    railGun: 5,
     hullBeam: 4,
     turret: 7,
     beamTurret: 7,
@@ -3025,15 +3172,29 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
         exhaustVelocity = engineExhaustVelocity(engine);
         fittingMass = throughput * ENGINE_MASS_PER_NEWTON * (isPressureFed(engine) ? PRESSURE_FED_MASS : 1);
     } else if (mount !== null) {
-        gun = spec.kind === "hullGun" ? loaded(hullGunStats(spec), spec) : hullBeamStats(spec);
+        gun = isHullGun(spec.kind) ? loaded(hullGunStats(spec), spec) : hullBeamStats(spec);
         // The same two masses a turret carries, by the same reasoning — a tube of
         // steel or an optic out in front, and the machinery that works it behind.
         let protrudingMass: number;
-        if (spec.kind === "hullGun") {
+        if (isHullGun(spec.kind)) {
             const outer = BARREL_OUTER_CALIBRES * gun.calibre;
             const section = PI * 0.25 * (outer * outer - gun.calibre * gun.calibre);
-            protrudingMass = section * gun.barrelLength * HULL_DENSITY;
-            fittingMass = (protrudingMass + MECHANISM_MASS_PER_CALIBRE * gun.calibre) * gun.barrelCount + braceMass(gun);
+            if (spec.kind === "railGun") {
+                // The same mass for the same run of rails, however much of it is
+                // along the block, braced all the way, and the bank on top.
+                const run = railLength(gun.calibre, mount.blockLength, gun.barrelLength);
+                const perMetre = section * HULL_DENSITY * RAIL_BARREL_MASS;
+                protrudingMass = perMetre * gun.barrelLength;
+                const braceSection = gun.braceWidth * BARREL_OUTER_CALIBRES * gun.calibre;
+                const bank = RAIL_BANK_MASS_PER_VOLUME * mount.blockLength * spec.width * height;
+                fittingMass =
+                    (perMetre * run + MECHANISM_MASS_PER_CALIBRE * gun.calibre) * gun.barrelCount +
+                    (gun.barrelCount + 1) * braceSection * run * HULL_DENSITY +
+                    bank;
+            } else {
+                protrudingMass = section * gun.barrelLength * HULL_DENSITY;
+                fittingMass = (protrudingMass + MECHANISM_MASS_PER_CALIBRE * gun.calibre) * gun.barrelCount + braceMass(gun);
+            }
         } else {
             protrudingMass = OPTIC_AREAL_DENSITY * PI * 0.25 * gun.calibre * gun.calibre;
             fittingMass = (protrudingMass + BEAM_MASS_PER_WATT * gun.beamPower) * gun.barrelCount;
@@ -3275,6 +3436,7 @@ export function gunStats(
         roundMass,
         casing: roundMass,
         propellant: muzzleEnergy / PROPELLANT_ENERGY,
+        shotEnergy: 0,
         muzzleSpeed,
         muzzleEnergy,
         beamPower: 0,
@@ -3367,6 +3529,7 @@ export function beamGunStats(mountLength: number, mountWidth: number, barrelCoun
         roundMass: 0,
         casing: 0,
         propellant: 0,
+        shotEnergy: 0,
         muzzleSpeed: -1,
         muzzleEnergy: 0,
         beamPower: power,

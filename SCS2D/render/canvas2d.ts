@@ -670,7 +670,8 @@ function drawShip(
         // is pointing, where holding each barrel inside its gap would shrink them
         // back below the floor and say nothing. Overlap is free: the barrel colours
         // are opaque, so a bar drawn twice looks like a bar.
-        const hidden = hull !== null && !beamLenses;
+        // A rail gun's rails lie on top of its block, so nothing of them is hidden.
+        const hidden = hull !== null && !beamLenses && spec.kind !== "railGun";
         // The mantlet drawn over the barrels' roots, below, and each barrel's collar out of it.
         const pivot = hidden ? { x: mx, y: my, radius: min(spec.width * 0.5, ((count - 1) / 2) * spacing + hull.outletWidth) } : null;
         if (hidden) {
@@ -693,7 +694,7 @@ function drawShip(
         if (pivot !== null) drawCollars(ctx, ship, t, ctx.lineWidth, pivot);
         if (gun.braceLength > 0) drawBracing(ctx, gun, physicalWidth, mx, my, dirX, dirY);
         if (hidden) ctx.restore();
-        if (hull !== null && !beamLenses) {
+        if (hidden) {
             // Over the barrels' roots, standing out of the block's face, so a barrel
             // trained hard over is seen to come out of it rather than the block.
             ctx.fillStyle = mountColour;

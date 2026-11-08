@@ -649,6 +649,33 @@ inside any one file is not contiguous.
   beam, the opening turns out barely to constrain one at all: a lens is a fraction of the width a row
   of tubes is, so what holds a hull beam is the mounting limit until its housing runs most of the
   length of the module.
+  **A rail gun** (`railGun`) is a module of its own, a hull gun on power: the same block, barrel and laws
+  (`isHullGun`), with rails for powder. Its barrel is its whole run of rails: along its block from
+  `RAIL_SETBACK_CALIBRES` (2) in from the back, and on out as far as its barrel extension reaches beyond the
+  block, which may be not at all. It throws solid shot `RAIL_SPEED` (2) times as fast as powder would from a
+  barrel that long, so with four times the energy, and never fires shells. That energy is charge rather than
+  fuel, drawn at `RAIL_EFFICIENCY` (half) from its piece of hull's power as it reloads, as a beam's is, and
+  it starts a battle charged. **Its bore is whatever its bank fills.** The block holds its rails, a loader
+  `RAIL_LOADER_CALIBRES` (3) long for each barrel, and in what they leave a capacitor bank, `RAIL_BANK_SHARE`
+  (80%) of it at `CAPACITOR_ENERGY_PER_VOLUME` (20 MJ/m³), the same capacitors every powered weapon has, the
+  rest charging gear and heat handling. A wider bore wants more energy a shot and leaves less room for
+  capacitors, so there is one calibre whose full shot uses exactly the bank, and that is the gun's: its
+  opening caps it, and an extension too short to fill the bank at that leaves charge unused. More barrel
+  narrows it, so a longer gun throws a lighter shot faster for much the same energy, which its block sets.
+  **It fires as fast as its block charges its bank** (`RAIL_BANK_POWER_PER_VOLUME`, 1.2 MW/m³), as a hull
+  beam's block is its bank, rather than as fast as it loads; with every shot a full bank, that is much the
+  same for every rail gun, a dozen seconds or so, and its ship's power is what decides whether it keeps up.
+  Several rails share one bank. The bank weighs `RAIL_BANK_MASS_PER_VOLUME` (500 kg/m³) of block on top of
+  its hull and loader, and the rails weigh `RAIL_BARREL_MASS` (2) times a powder barrel per metre, braced,
+  the same all the way along; what reaches beyond the block is drawn braced. Its recoil is its round's
+  alone. It does not train, so it carries no training gear and the hull aims it, and its rails are drawn
+  running back over the top of its block. The editor offers it as a kind like any other, its barrel field
+  read as the extension, in calibres of the widest bore its opening takes; evolution draws it as one, at
+  half a hull gun's weight. The Rail Corvette is the Corvette with its bow gun a rail gun, generators and
+  batteries along its sides to feed it, and the Rail Gunship the Gunship with its bow gun one too, charged
+  from a generator aft and batteries in its outriggers, fighting from far out; each has the shortest
+  extension that fills its bank at the widest bore. The Rail Duel is the Duel with those in place of its
+  ships.
   **Two layers** (§3). Every module is in the hull layer. Turrets and anything marked *thick* stand up into
   the weapons layer as well; a turret only by its dome, a circle as wide as the mount, on a block in the
   hull layer. A turret's rounds and beams meet only what is in the weapons layer, so they strip

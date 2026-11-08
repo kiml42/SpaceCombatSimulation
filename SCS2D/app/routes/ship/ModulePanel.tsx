@@ -288,21 +288,28 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
             )}
             {readsBarrelCalibres(spec.kind) && (
                 <Field id="barrelCalibresRow">
-                    <label htmlFor="propBarrelCalibres">barrel cal</label>
+                    <label htmlFor="propBarrelCalibres">{spec.kind === "railGun" ? "barrel extension cal" : "barrel cal"}</label>
                     {box(
                         "barrelCalibres",
-                        {
-                            step: 1,
-                            min: 1,
-                            max: 100,
-                            title: "How long the barrels are, in calibres of the bore. Longer is a faster shell, with diminishing returns, and costs steel and traverse; on a hull gun it reaches out beyond the block that length and width size. Past 50 calibres a barrel needs bracing, which makes each calibre heavier, and nothing may be longer than 100.",
-                        },
+                        spec.kind === "railGun"
+                            ? {
+                                  step: 1,
+                                  min: 0,
+                                  max: 100,
+                                  title: "How far the rails reach out beyond the block, in calibres of the bore; zero keeps them on it. The rails run along the block too, from two calibres in from its back, and the whole run is the barrel: longer is a faster round, with diminishing returns. What reaches beyond the block is braced along its sides and carries the rails, so it is heavier than a powder gun's barrel.",
+                              }
+                            : {
+                                  step: 1,
+                                  min: 1,
+                                  max: 100,
+                                  title: "How long the barrels are, in calibres of the bore. Longer is a faster shell, with diminishing returns, and costs steel and traverse; on a hull gun it reaches out beyond the block that length and width size. Past 50 calibres a barrel needs bracing, which makes each calibre heavier, and nothing may be longer than 100.",
+                              },
                         (barrelCalibres) => patch({ barrelCalibres }),
                     )}
                     <Readout id="barrelMetres">{barrelReadout(spec)}</Readout>
                 </Field>
             )}
-            {isWeaponMount(spec.kind) && (
+            {isWeaponMount(spec.kind) && spec.kind !== "railGun" && (
                 <Field id="traverseRow">
                     <label htmlFor="propTraverse">traverse °</label>
                     {box(
@@ -579,7 +586,10 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                                     <th>Gun</th>
                                     <td>
                                         {`${numbers(readout.gun.calibre * 1000, 0)} mm${readout.gun.barrels > 1 ? ` ×${readout.gun.barrels}` : ""}, ` +
-                                            `${numbers(readout.gun.roundsPerMinute)} rpm, ${numbers(readout.gun.muzzleSpeed, 0)} m/s, ${numbers(readout.gun.roundMass, 1)} kg shell, ${numbers(readout.gun.shotFuel, 1)} kg fuel a shot`}
+                                            `${numbers(readout.gun.roundsPerMinute)} rpm, ${numbers(readout.gun.muzzleSpeed, 0)} m/s, ${numbers(readout.gun.roundMass, 1)} kg shell, ` +
+                                            (readout.gun.shotEnergy > 0
+                                                ? `${numbers(readout.gun.shotEnergy / 1e6, 1)} MJ a shot`
+                                                : `${numbers(readout.gun.shotFuel, 1)} kg fuel a shot`)}
                                     </td>
                                 </tr>
                                 {design !== null && readout.gun.roundMass > 0 && design.modules[index]?.spec.kind === spec.kind && (
