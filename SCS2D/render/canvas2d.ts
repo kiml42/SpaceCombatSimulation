@@ -1680,9 +1680,11 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light
             const grown = min(1, reach / (NOZZLE_GLOW_GROWN * 2 * half));
             const g = half * NOZZLE_GLOW_REACH * (0.5 + 0.5 * grown);
             const shown = landed[1]! > 0 ? (1 - landed[1]!) * reach : reach;
+            // A magnetic nozzle's jet glows from its bell, through the gap to its ring.
+            const gap = engine.geometry.nozzleLength - engine.geometry.bellLength;
             lights.coneOf(
                 ctx.getTransform(),
-                root,
+                root + gap,
                 across,
                 root - shown,
                 across,
@@ -1695,7 +1697,6 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light
             ctx.globalAlpha = outer * brightness;
             // A magnetic nozzle's jet runs straight from its bell through its ring,
             // as the flame's own base does: its last column, stretched over the gap.
-            const gap = engine.geometry.nozzleLength - engine.geometry.bellLength;
             if (gap > 0) ctx.drawImage(image, image.width - 1, 0, 1, image.height, root, across - half, gap, 2 * half);
             let cutAny = false;
             for (let k = 0; k < PLUME_RAYS; k++) if (landed[k]! > 0) cutAny = true;
