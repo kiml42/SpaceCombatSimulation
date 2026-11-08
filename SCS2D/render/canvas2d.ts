@@ -1663,16 +1663,22 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light
                 }
             }
             ctx.globalAlpha = outer;
-            // The ring stands across the jet, so it hides what passes through it.
+            // The ring stands across the jet, in front of it and of its glow: drawn
+            // once the glows are (`drawJetRings`), so the jet's light does not fall on it.
             if (gap > 0) {
-                const span = engine.geometry.pitch * engine.geometry.nozzles;
-                ctx.fillStyle = engine.hull;
-                ctx.fillRect(root, -span / 2, ringThickness(engine.geometry), span);
-                if (light !== undefined) {
-                    inLight(ctx, light);
-                    shadeRing(ctx, root, span, ringThickness(engine.geometry), engine.angle, light);
-                    ctx.restore();
-                }
+                const m = ctx.getTransform();
+                const ring: JetRing = {
+                    m: { a: m.a, b: m.b, c: m.c, d: m.d, e: m.e, f: m.f },
+                    x: root,
+                    span: engine.geometry.pitch * engine.geometry.nozzles,
+                    thickness: ringThickness(engine.geometry),
+                    hull: engine.hull,
+                    angle: engine.angle,
+                    light,
+                };
+                // Outside a scene there are no glows to wait for.
+                if (inScene) jetRings.push(ring);
+                else drawJetRing(ctx, ring);
             }
         },
         true,
@@ -1758,19 +1764,52 @@ function shadeEngine(
             rounded?.tube(m, layout.centre, y, straight, r, 1, colour, 1, thick ? "thick" : "deck");
         }
     }
-    // Its ring round the jet at its aft end, lit by the dynamic lights over
-    // everything drawn, so over the jet it is drawn again above too.
+    // Its ring round the jet at its aft end, shaded by the battle's light alone:
+    // the dynamic lights are mostly its own jet's, which it stands in front of.
     if (magnetic) {
         ctx.fillStyle = hull;
         ctx.fillRect(-l, -spec.width / 2, ringThickness(engine), spec.width);
         shadeRing(ctx, -l, spec.width, ringThickness(engine), angle, light);
-        rounded?.tube(m, -l, 0, ringThickness(engine), spec.width / 2, 1, rgba(hull), 1, thick ? "thick" : "deck");
     }
     if (roundPump) {
         const pump = cylinderShade(side, up);
         if (pump !== null) ctx.drawImage(pump, layout.pumpAft, -layout.halfWidth, l - layout.pumpAft, 2 * layout.halfWidth);
         rounded?.tube(m, layout.pumpAft, 0, l - layout.pumpAft, layout.halfWidth, 1, colour, 1, thick ? "thick" : "deck");
     }
+}
+
+/** A magnetic nozzle's ring over a burning jet, waiting to be drawn over the jet's glow. */
+interface JetRing {
+    m: { a: number; b: number; c: number; d: number; e: number; f: number };
+    x: number;
+    span: number;
+    thickness: number;
+    hull: string;
+    angle: number;
+    light: Light | undefined;
+}
+
+const jetRings: JetRing[] = [];
+/** Whether a scene is being drawn, whose glows the rings over its jets wait for. */
+let inScene = false;
+
+function drawJetRing(ctx: CanvasRenderingContext2D, ring: JetRing): void {
+    ctx.save();
+    ctx.setTransform(ring.m.a, ring.m.b, ring.m.c, ring.m.d, ring.m.e, ring.m.f);
+    ctx.fillStyle = ring.hull;
+    ctx.fillRect(ring.x, -ring.span / 2, ring.thickness, ring.span);
+    if (ring.light !== undefined) {
+        inLight(ctx, ring.light);
+        shadeRing(ctx, ring.x, ring.span, ring.thickness, ring.angle, ring.light);
+        ctx.restore();
+    }
+    ctx.restore();
+}
+
+/** The rings in front of burning jets, over the glows, so a jet's light does not fall on its own ring. */
+function drawJetRings(ctx: CanvasRenderingContext2D): void {
+    for (const ring of jetRings) drawJetRing(ctx, ring);
+    jetRings.length = 0;
 }
 
 /** A magnetic nozzle's ring, `span` across at `x`, shaded as round about the jet it encircles. */
@@ -2641,6 +2680,7 @@ function drawScene(
     /** Where to keep what gave off light, as well as drawing its glow. */
     seen?: Lights,
 ): void {
+    inScene = true;
     lights.clear();
     poses.record(snapshot);
     ctx.setTransform(1, 0, 0, 1, left, top);
@@ -2721,6 +2761,8 @@ function drawScene(
     // them, so those lighten them rather than being cut by them.
     beamLights(ctx, snapshot, camera, teamShots);
     drawGlows(ctx, lights);
+    inScene = false;
+    drawJetRings(ctx);
     seen?.add(lights);
     lights.clear();
     drawBeams(ctx, snapshot, camera, teamShots);
