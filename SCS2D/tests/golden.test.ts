@@ -34,8 +34,8 @@ const GOLDEN: Record<ScenarioName, string> = {
     gunnery: "b2054d50",
     // ships=3 inFlight=0 p.fired=101 p.hits=291 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=36.4t · 248.2 µs/step
     duel: "473bed97",
-    // ships=3 inFlight=3 p.fired=58 p.hits=213 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=32.9t · 156.4 µs/step
-    railDuel: "dcf19728",
+    // ships=3 inFlight=3 p.fired=39 p.hits=150 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=19.4t · 157.3 µs/step
+    railDuel: "0f086da8",
     // ships=9 inFlight=0 p.fired=0 p.hits=0 b.fired=36 b.hits=2370 contacts=307 severed=6 culled=0 scrap=35.1t · 272.2 µs/step
     beamDuel: "76c40842",
     // ships=2 inFlight=23 p.fired=78 p.hits=216 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=10.2t · 120.5 µs/step
