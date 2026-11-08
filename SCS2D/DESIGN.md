@@ -404,7 +404,8 @@ inside any one file is not contiguous.
   repair rule would be a second opinion about what a ship is — **edit by edit**, as someone moving things in
   the editor presses undo whenever it goes red and carries on with the next part, so one bad edit costs
   itself rather than the child. **Every number drifts every generation**, drawn from a bell about a tenth
-  wide with a dead zone around nothing and a rare tail five times as wide; **each part's geometry changes
+  wide with a dead zone around nothing — a draw past it moves by how far past it is, so any step however
+  small can happen — and a rare tail five times as wide; **each part's geometry changes
   with a chance of its own**, so a ship with more parts has more of them change; and **switches** — a
   kind, a flag, a count of barrels — flip rarely. Geometry is measured against the ship: a face, seam or
   slide drifts by about half the median module, rounded to a tenth of that on the editor's 1-2-5 ladder,
