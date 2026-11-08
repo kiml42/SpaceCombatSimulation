@@ -106,8 +106,9 @@ export interface MutationLimits {
      */
     readonly magnitude: number;
     /**
-     * Draws within this many spreads of zero change nothing, so a number is as
-     * often left alone as nudged, and a nudge is never too small to matter.
+     * Draws within this many spreads of zero change nothing, so a number is
+     * often left alone; a draw past it moves the number by how far past it is,
+     * so any step size is possible, however small.
      */
     readonly deadZone: number;
     /** Chance a draw comes from a bell `TAIL_WIDTH` times as wide: the rare large mutation. */
@@ -289,7 +290,7 @@ export const DEFAULT_KINDS: KindWeights = {
  */
 export const DEFAULT_LIMITS: MutationLimits = {
     magnitude: 0.1,
-    deadZone: 0.5,
+    deadZone: 0.25,
     tail: 0.1,
     geometry: 0.4,
     switches: 0.05,
@@ -534,8 +535,10 @@ export function drift(rng: Rng, bounds: Pick<MutationLimits, "deadZone" | "tail"
     // Four uniforms have a variance of a third; this makes it one.
     const z = (sum - 2) * SQRT_3;
     const wide = rng.chance(bounds.tail) ? TAIL_WIDTH : 1;
-    if (abs(z) < bounds.deadZone) return 0;
-    return z * width * wide;
+    // Shifted in by the dead zone, so a step just past it is a small one.
+    const past = abs(z) - bounds.deadZone;
+    if (!(past > 0)) return 0;
+    return (z > 0 ? past : -past) * width * wide;
 }
 
 const SQRT_3 = sqrt(3);
