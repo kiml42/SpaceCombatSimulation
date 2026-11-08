@@ -459,7 +459,9 @@ inside any one file is not contiguous.
   founder with a number on. A doctrine number is perturbed by a fraction of its *default* rather than of what is held, so nothing that has reached zero
   is stuck there — and where the default is zero too, by a fraction of what a number is worth in that half
   of the doctrine, since otherwise every draw is a fraction of nothing and the field is not slow to find but
-  unreachable. **A run can start from nothing**: the Bare Core is a single control compartment that cannot
+  unreachable. A field can also name the least it drifts by, in its own units (`STEP_SCALE`), which a
+  zero-default share, distance or speed does: a share of a load drifts by a tenth of a half, not of the
+  weights' mean, which would throw it past one in a single step. **A run can start from nothing**: the Bare Core is a single control compartment that cannot
   move, shoot or turn, so everything a lineage from it ever has is something selection paid for — where a
   seed with an engine on it has already been told which way a ship is meant to go.
   **A match is fought and scored.** A handful of designs are put in an arena together — every entrant its
