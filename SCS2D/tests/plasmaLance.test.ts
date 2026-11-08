@@ -6,6 +6,7 @@ import {
     CAPACITOR_ENERGY_PER_VOLUME,
     compileBlueprint,
     LANCE_BASE_SHARE,
+    LANCE_FUEL_SHARE,
     LANCE_LEAK,
     hullMountGeometry,
     LANCE_REACH_PER_METRE,
@@ -15,7 +16,9 @@ import {
     mountTraverse,
     parseBlueprint,
     Projectiles,
+    RAIL_BANK_POWER_PER_VOLUME,
     RAIL_BANK_SHARE,
+    EXHAUST_VELOCITY,
     serialiseBlueprint,
     Ships,
     shotCharge,
@@ -89,10 +92,15 @@ describe("a plasma lance", () => {
         expect(shotFuel(long)).toBeCloseTo(shotFuel(base), 9);
     });
 
-    it("holds a pulse in its base, on the share of the capacitors a rail gun's block gives its bank", () => {
+    it("spends a rail gun's bank in its base each pulse, and a share of its fuel's energy on top, charging as a rail gun does", () => {
         for (const spec of [lance(), lance({ width: 6 }), lance({ length: 30, width: 1 })]) {
+            const gun = moduleStats(spec).gun!;
             const base = LANCE_BASE_SHARE * spec.length * spec.width * moduleThickness(spec);
-            expect(shotCharge(moduleStats(spec).gun!)).toBeLessThan(CAPACITOR_ENERGY_PER_VOLUME * RAIL_BANK_SHARE * base);
+            const bank = CAPACITOR_ENERGY_PER_VOLUME * RAIL_BANK_SHARE * base;
+            expect(shotCharge(gun)).toBeCloseTo(bank, 0);
+            const thrown = 0.5 * shotFuel(gun) * EXHAUST_VELOCITY * EXHAUST_VELOCITY;
+            expect(gun.beamPower * gun.beamOnTime).toBeCloseTo(bank + LANCE_FUEL_SHARE * thrown, 0);
+            expect(gun.cycleTime).toBeCloseTo(bank / (RAIL_BANK_POWER_PER_VOLUME * base), 9);
         }
     });
 
