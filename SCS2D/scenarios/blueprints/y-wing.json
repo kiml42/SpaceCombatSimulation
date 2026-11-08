@@ -62,7 +62,9 @@
           "angle": 180,
           "length": 5.49,
           "width": 2.2,
-          "nozzle": 3.05
+          "nozzle": 3.409,
+          "weapon": true,
+          "magnetic": true
         },
         {
           "id": 9,
@@ -81,19 +83,19 @@
           "y": 1.2999999999999998,
           "angle": 0,
           "length": 0.75,
-          "width": 2,
-          "nozzle": 0.375
+          "width": 1.6,
+          "nozzle": 0.25
         },
         {
           "id": 11,
           "kind": "engine",
-          "x": 5.000000000000001,
-          "y": -2.5,
+          "x": 4.150000000000001,
+          "y": -2.6,
           "angle": 90,
-          "length": 0.4,
-          "width": 1.8,
+          "length": 1,
+          "width": 2.1,
           "reinforcement": 1,
-          "barrels": 1,
+          "barrels": 2,
           "nozzle": 0.2222
         },
         {
@@ -106,6 +108,14 @@
           "width": 1.7,
           "barrels": 1,
           "nozzle": 0.2353
+        },
+        {
+          "id": 14,
+          "kind": "hold",
+          "x": 4.5221265729999995,
+          "y": -2.8,
+          "length": 2.819330691,
+          "width": 0.4
         }
       ]
     }
@@ -114,9 +124,9 @@
     {
       "id": 1,
       "kind": "core",
-      "x": -3,
+      "x": -3.4,
       "y": 0,
-      "length": 1.8,
+      "length": 2.6,
       "width": 2.6,
       "reinforcement": 2.48,
       "sealing": 0.0012,
@@ -124,19 +134,16 @@
     },
     {
       "id": 2,
-      "kind": "hullGun",
-      "x": 4.08,
+      "kind": "railGun",
+      "x": 3.4299999999999997,
       "y": 0,
       "angle": 0,
-      "length": 3.16,
-      "width": 2.8,
+      "length": 4.46,
+      "width": 1.8,
       "reinforcement": 1.78,
       "barrels": 1,
-      "barrelCalibres": 50,
+      "barrelCalibres": 18,
       "traverse": 11.279,
-      "fuse": 0.046,
-      "fragments": 4,
-      "burstSpeed": 157.5,
       "targeting": {
         "facingWeight": 116.812,
         "fireRange": 1.508,
@@ -153,19 +160,22 @@
         "coreWeight": 119.549,
         "structureWeight": 3.283,
         "closingWeight": 11.843
-      }
+      },
+      "fuse": 0.046,
+      "fragments": 4,
+      "burstSpeed": 157.5
     },
     {
       "id": 3,
       "kind": "hullGun",
-      "x": -4.85,
+      "x": -5.65,
       "y": 0,
       "angle": -180,
       "length": 1.9,
-      "width": 2.6,
+      "width": 1.4,
       "reinforcement": 1.02,
       "barrels": 2,
-      "barrelCalibres": 50,
+      "barrelCalibres": 37,
       "traverse": 12.265,
       "fuse": 0.105,
       "fragments": 7,
@@ -202,13 +212,12 @@
       "mirror": true
     },
     {
-      "id": 7,
-      "kind": "hold",
-      "x": 0.19999999999999996,
+      "id": 13,
+      "kind": "generator",
+      "x": -0.45000000000000007,
       "y": 0,
-      "length": 4.6,
-      "width": 1.8,
-      "reinforcement": 1.23
+      "length": 3.3,
+      "width": 1.8
     }
   ]
 }

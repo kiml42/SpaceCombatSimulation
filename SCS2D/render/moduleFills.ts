@@ -1,4 +1,13 @@
-import { engineGeometry, hullMountGeometry, isHullMount, shapeOf, type ModuleSpec, type ShipDesign, type ShipView } from "../sim/index.js";
+import {
+    engineGeometry,
+    hullMountGeometry,
+    isHullMount,
+    isMagnetic,
+    shapeOf,
+    type ModuleSpec,
+    type ShipDesign,
+    type ShipView,
+} from "../sim/index.js";
 import { engineLayout } from "./engineLayout.js";
 import { BARE_TEAM, type Palette } from "./teams.js";
 
@@ -125,7 +134,7 @@ export function moduleFills(
             out.push({ colour: BELL, points: [mouth, across - throat, mouth, across + throat, end, across + exit, end, across - exit] });
         }
         for (const across of layout.centres) out.push({ colour, points: layout.chamber.map((v, k) => (k % 2 === 1 ? v + across : v)) });
-        if (end > -l) {
+        if (isMagnetic(spec)) {
             // Bars either side of each nozzle carry the ring across the engine's aft
             // end, run past the bell and the chamber from the machinery block, or from
             // the engine's front where it has none. In the hull's colour, as the ring is.

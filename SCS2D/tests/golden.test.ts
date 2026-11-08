@@ -94,8 +94,8 @@ const GOLDEN: Record<ScenarioName, string> = {
     beamCarrier: "45ea287c",
     // ships=2 inFlight=0 p.fired=54 p.hits=185 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=9.3t · 46.6 µs/step
     passes: "0de6b99c",
-    // ships=2 inFlight=4 p.fired=10 p.hits=33 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=9.3t · 44.1 µs/step
-    circling: "c5ec4eaa",
+    // ships=2 inFlight=0 p.fired=2 p.hits=8 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=9.3t · 72.0 µs/step
+    circling: "d757a70a",
 };
 
 describe("golden scenarios", () => {
