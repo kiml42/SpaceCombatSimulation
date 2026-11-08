@@ -14,7 +14,11 @@
       "standoffRadii": 6,
       "standoff": 0.7,
       "tolerance": 0.6,
-      "ramRadii": 5
+      "brake": 1,
+      "ramRadii": 5,
+      "burnWeight": 0.5,
+      "rangeHold": 3,
+      "tangentialMax": 30
     }
   },
   "assemblies": {
@@ -36,19 +40,19 @@
       "modules": [
         {
           "id": 14,
-          "kind": "generator",
-          "x": 0,
+          "kind": "battery",
+          "x": -0.8,
           "y": -2.5,
-          "length": 4,
+          "length": 2.4,
           "width": 3,
           "reinforcement": 1
         },
         {
           "id": 7,
-          "kind": "battery",
-          "x": -8.9,
+          "kind": "generator",
+          "x": -8,
           "y": -2.75,
-          "length": 2.2,
+          "length": 4,
           "width": 2.5,
           "reinforcement": 1
         },
@@ -67,21 +71,13 @@
         {
           "id": 13,
           "kind": "engine",
-          "x": 2,
+          "x": 0.3999999999999999,
           "y": -2.5,
           "angle": 0,
-          "length": 1,
+          "length": 2.6,
           "width": 3,
           "reinforcement": 1.5,
           "nozzle": 0.3333
-        },
-        {
-          "id": 15,
-          "kind": "hold",
-          "x": -6.8999999999999995,
-          "y": -2.75,
-          "length": 1.8,
-          "width": 2.5
         }
       ]
     }
@@ -113,7 +109,10 @@
       "angle": 0,
       "length": 10,
       "width": 4,
-      "reinforcement": 1.5
+      "reinforcement": 1.5,
+      "targeting": {
+        "gunWeight": 400
+      }
     },
     {
       "id": 4,
