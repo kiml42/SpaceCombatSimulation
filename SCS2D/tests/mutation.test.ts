@@ -777,6 +777,22 @@ describe("doctrine weights", () => {
     });
 });
 
+describe("doctrine step scales", () => {
+    it("drifts a share that defaults to zero by a share, not by the other weights' mean", () => {
+        const rng = new Rng(9);
+        const steps: number[] = [];
+        for (let i = 0; i < 200; i++) {
+            for (const edit of mutate(GUNSHIP, rng, { structural: 0 }).edits) {
+                const m = /^doctrine\.approach\.ramArmed .*?([-\d.e]+) → ([-\d.e]+)$/.exec(edit);
+                if (m !== null && Number(m[1]) === 0) steps.push(Number(m[2]));
+            }
+        }
+        expect(steps.length).toBeGreaterThan(0);
+        // A tenth of 0.5 wide, five times that in the tail, so never past one.
+        expect(Math.max(...steps)).toBeLessThan(1);
+    });
+});
+
 describe("build weights", () => {
     /** Every module's kind, place and size, which is what a ship looks like. */
     const looks = (blueprint: Blueprint): string =>

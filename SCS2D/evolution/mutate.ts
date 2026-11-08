@@ -1176,10 +1176,31 @@ function typical(half: "targeting" | "approach"): number {
 const TYPICAL = { targeting: typical("targeting"), approach: typical("approach") };
 
 /**
+ * The least scale a doctrine field drifts by, in its own units: what a
+ * meaningful change of it is. Without one, a field whose default is zero
+ * drifts by `typical`, the other weights' mean, which suits a weight but
+ * throws a share of a load (0–1) or a speed straight to the far end.
+ */
+const STEP_SCALE: Readonly<Record<string, number>> = {
+    ramMass: 1,
+    ramRadii: 2,
+    ramArmed: 0.5,
+    scavengeFuelBelow: 0.5,
+    scavengeMetalBelow: 0.5,
+    deliverFuelAbove: 0.5,
+    rearmBelow: 0.5,
+    metalReserve: 0.5,
+    dockDanger: 1,
+    tangentialMin: 20,
+    tangentialMax: 20,
+};
+
+/**
  * Perturb a doctrine number.
  *
- * Scaled by the default doctrine's own value for the field rather than by
- * what the parent holds, so a weight that has reached zero can come back —
+ * Scaled by the larger of what the parent holds, the default doctrine's value
+ * for the field and its `STEP_SCALE`, not by what the parent holds alone, so
+ * a weight that has reached zero can come back —
  * scaling by the held value alone makes zero an absorbing state, and "ignore
  * this entirely" is a setting a lineage should be able to change its mind
  * about.
@@ -1187,7 +1208,7 @@ const TYPICAL = { targeting: typical("targeting"), approach: typical("approach")
 function turnDoctrine(draft: Draft, half: "targeting" | "approach", field: string, jitter: Jitter): string | null {
     const held = draft.doctrine[half];
     const reference = (DEFAULT_DOCTRINE[half] as unknown as Record<string, number>)[field]!;
-    const scale = max(abs(held[field]!), abs(reference)) || TYPICAL[half];
+    const scale = max(abs(held[field]!), abs(reference), STEP_SCALE[field] ?? 0) || TYPICAL[half];
     const was = held[field]!;
     let now = was + jitter(scale);
     // Some fields are a size or a distance rather than a weight, and none of
