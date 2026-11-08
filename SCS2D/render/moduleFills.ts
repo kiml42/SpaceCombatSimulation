@@ -24,11 +24,17 @@ import { BARE_TEAM, type Palette } from "./teams.js";
 export const CLAW_JAW_SHARE = 0.3;
 /** A plasma lance's prongs, as a share of its width. */
 export const LANCE_PRONG_SHARE = 0.22;
-/** How far a nub reaches into the gap, as a share of half of it, and how wide it is, as a share of the space between nubs. */
+/**
+ * How far a nub reaches into the gap, as a share of half of it, and how wide
+ * it is at its root and its tip, as shares of the space between nubs.
+ */
 const LANCE_NUB_REACH = 0.3;
-const LANCE_NUB_WIDTH = 0.25;
+const LANCE_NUB_ROOT = 0.6;
+const LANCE_NUB_TIP = 0.25;
 /** Nubs along each prong. */
-const LANCE_NUBS = 3;
+const LANCE_NUBS = 6;
+/** A gun's barrels, and a lance's nubs, the same bronze across the weapons. */
+export const BARREL = "#8f6f25";
 
 /** How much of a slipway's width each side rail takes, and of its length the feed block aft. */
 const SLIPWAY_RAIL_SHARE = 0.12;
@@ -169,11 +175,16 @@ export function moduleFills(
         box(-l + base, -w, l, -w + prong);
         box(-l + base, w - prong, l, w);
         const pitch = (2 * l - base) / LANCE_NUBS;
-        const half = pitch * LANCE_NUB_WIDTH * 0.5;
+        const root = pitch * LANCE_NUB_ROOT * 0.5;
+        const tip = pitch * LANCE_NUB_TIP * 0.5;
+        const inner = w - prong;
         for (let k = 0; k < LANCE_NUBS; k++) {
             const x = -l + base + pitch * (k + 0.5);
-            box(x - half, -w + prong, x + half, -w + prong + reach);
-            box(x - half, w - prong - reach, x + half, w - prong);
+            for (const side of [-1, 1]) {
+                const from = side * inner;
+                const to = side * (inner - reach);
+                out.push({ colour: BARREL, points: [x - root, from, x + root, from, x + tip, to, x - tip, to] });
+            }
         }
     } else if (isHullMount(spec.kind)) {
         box(-l, -w, -l + hullMountGeometry(spec).blockLength, w);

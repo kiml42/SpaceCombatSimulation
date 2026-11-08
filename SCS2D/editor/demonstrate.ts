@@ -69,6 +69,8 @@ interface Beams {
     remaining: Float64Array<ArrayBuffer>;
     /** 1 for a plasma lance's pulse. */
     plasma: Uint8Array<ArrayBuffer>;
+    /** How far each was fired, metres. */
+    reach: Float64Array<ArrayBuffer>;
     count: number;
 }
 
@@ -95,6 +97,7 @@ export class Demonstration {
         power: new Float64Array(MAX_ROUNDS),
         remaining: new Float64Array(MAX_ROUNDS),
         plasma: new Uint8Array(MAX_ROUNDS),
+        reach: new Float64Array(MAX_ROUNDS),
         count: 0,
     };
     /** Whether each turret is being shown, for whether a lance's lightning is. */
@@ -217,6 +220,7 @@ export class Demonstration {
             beams.power[i] = beams.power[last]!;
             beams.remaining[i] = beams.remaining[last]!;
             beams.plasma[i] = beams.plasma[last]!;
+            beams.reach[i] = beams.reach[last]!;
         }
 
         this.busy = busy || rounds.count > 0 || beams.count > 0 || this.flashes.count > 0;
@@ -254,6 +258,7 @@ export class Demonstration {
         snapshot.beamWidth = beams.width;
         snapshot.beamPower = beams.power;
         snapshot.beamPlasma = beams.plasma;
+        snapshot.beamReach = beams.reach;
         snapshot.beamCount = beams.count;
     }
 
@@ -348,6 +353,7 @@ export class Demonstration {
             beams.endX[i] = startX + dirX * length;
             beams.endY[i] = startY + dirY * length;
             beams.plasma[i] = plasma ? 1 : 0;
+            beams.reach[i] = length;
             beams.width[i] = gun.calibre;
             beams.power[i] = gun.beamPower;
             // Lit for as long as the mount holds it, which is the figure the panel

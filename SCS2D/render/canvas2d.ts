@@ -78,6 +78,7 @@ import {
     PORT_COLLAR_SHARE,
     PORT_COLLAR_WIDTH,
     drawnExit,
+    BARREL,
     ringBars,
     ringThickness,
     type Fill,
@@ -364,7 +365,6 @@ const ARC_MIN_RADIUS = 8;
 const ARC_MAX_RADIUS = 40;
 
 /** A barrel that is not clear to fire. Dark, because it sits on the pale sweep. */
-const BARREL = "#8f6f25";
 /** Bracing on a barrel too long to hold itself up: the barrel's colour, darker. */
 const BRACE = "#4f3d14";
 /**
@@ -4086,11 +4086,15 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
         const flame = snapshot.beamPlasma[i] === 1 && span > 0 ? flameSprite(PULSE, PULSE_CORE) : null;
         const rod = flame === null && width * camera.scale >= MIN_ROD_PX && span > 0 ? sprite("rod", colour) : null;
         if (flame !== null) {
-            // Hot gas rather than light: brightest at the prongs, gone at its reach.
+            // Hot gas rather than light: brightest at the prongs, gone at its reach,
+            // and cut off where it lands, as a flame is, rather than drawn whole into
+            // the shorter length.
+            const reach = snapshot.beamReach[i]! > span ? snapshot.beamReach[i]! : span;
+            const shown = span / reach;
             ctx.save();
             ctx.transform(dx / span, dy / span, -dy / span, dx / span, x0, y0);
             ctx.scale(-1, 1);
-            ctx.drawImage(flame, -span, -width / 2, span, width);
+            ctx.drawImage(flame, flame.width * (1 - shown), 0, flame.width * shown, flame.height, -span, -width / 2, span, width);
             ctx.restore();
         } else if (rod !== null) {
             ctx.save();
