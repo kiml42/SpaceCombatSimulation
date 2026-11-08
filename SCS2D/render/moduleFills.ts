@@ -3,7 +3,6 @@ import {
     hullMountGeometry,
     isHullMount,
     LANCE_BASE_SHARE,
-    RING_BAR_SHARE,
     shapeOf,
     type ModuleSpec,
     type ShipDesign,
@@ -145,14 +144,12 @@ export function moduleFills(
         if (end > -l) {
             // Bars either side of each nozzle carry the ring across the engine's aft
             // end, run past the bell and the chamber from the machinery block, or from
-            // the engine's front where it has none.
-            const bar = engine.exitHeight * RING_BAR_SHARE;
+            // the engine's front where it has none. In the hull's colour, as the ring is.
             const root = layout.pumpAft < l ? layout.pumpAft : l;
             for (const across of layout.centres) {
-                box(-l, across - exit - bar, root, across - exit, RING);
-                box(-l, across + exit, root, across + exit + bar, RING);
+                for (const [from, to] of ringBars(engine, across)) box(-l, from, root, to, deck);
             }
-            box(-l, -w, -l + ringThickness(engine), w, RING);
+            box(-l, -w, -l + ringThickness(engine), w, deck);
         }
         if (layout.pumpAft < l) {
             box(layout.pumpAft, -w, l, w);
@@ -216,9 +213,26 @@ const NO_MOUNTS: readonly (readonly number[])[] = [];
 
 /** Engine bells, whatever side they are on. */
 const BELL = "#4a4a4a";
-export const RING = "#6d6a86";
 /** How much of the space past a magnetic nozzle's bell its ring fills along the axis. */
-const RING_THICKNESS = 0.3;
+const RING_THICKNESS = 0.15;
+/** How wide each bar carrying a magnetic nozzle's ring is drawn, as a share of its exit. */
+const RING_BAR_SHARE = 0.06;
+
+/**
+ * Where the two bars beside a magnetic nozzle's exit run across it, metres
+ * from the engine's middle: just outside the exit where its pitch leaves room,
+ * else over the bell's edge.
+ */
+export function ringBars(engine: { exitWidth: number; exitHeight: number; pitch: number }, across: number): [number, number][] {
+    const bar = engine.exitHeight * RING_BAR_SHARE;
+    const exit = engine.exitWidth / 2;
+    const room = engine.pitch / 2;
+    const outer = exit + bar < room ? exit + bar : room;
+    return [
+        [across - outer, across - outer + bar],
+        [across + outer - bar, across + outer],
+    ];
+}
 
 /** How thick a magnetic nozzle's ring is drawn along its engine's axis, metres. */
 export function ringThickness(engine: { nozzleLength: number; bellLength: number }): number {

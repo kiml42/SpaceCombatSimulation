@@ -16,7 +16,7 @@ import {
 import { cos, sin, sqrt } from "./math.js";
 import { SCAR_BURN } from "./scars.js";
 import { shapeOf } from "./shape.js";
-import { DECK_HEIGHT, nozzleOffset, THRUST_PER_EXIT_AREA, engineGeometry, type EngineGeometry } from "./modules.js";
+import { DECK_HEIGHT, MAGNETIC_PLUME_REACH, nozzleOffset, THRUST_PER_EXIT_AREA, engineGeometry, type EngineGeometry } from "./modules.js";
 import { RayHit, type SpatialGrid } from "./spatialGrid.js";
 
 /**
@@ -235,7 +235,9 @@ export function nozzleReach(geometry: EngineGeometry, force: number): number {
     // face, so each is fed at the same pressure the single nozzle was — and so
     // throws a flame as much shorter as it is narrower, less what its better
     // bell gives back.
-    return plumeReach(force / geometry.nozzles, geometry.exitWidth, geometry.divergence, geometry.exitHeight);
+    const reach = plumeReach(force / geometry.nozzles, geometry.exitWidth, geometry.divergence, geometry.exitHeight);
+    // A magnetic nozzle's field reaches on past its ring.
+    return geometry.bellLength < geometry.nozzleLength ? reach * MAGNETIC_PLUME_REACH : reach;
 }
 
 /**

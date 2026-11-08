@@ -2,8 +2,15 @@ import { describe, expect, it } from "vitest";
 import {
     compileBlueprint,
     engineGeometry,
+    BELL_MASS_PER_AREA,
+    bellWallArea,
+    ENGINE_MASS_PER_NEWTON,
+    PRESSURE_FED_MASS,
+    isPressureFed,
+    MAGNETIC_MASS_PER_EXIT_AREA,
+    MAGNETIC_PLUME_REACH,
+    PRESSURE_FED_BELL,
     MAGNETIC_POWER_PER_EXIT_AREA,
-    RING_BAR_SHARE,
     moduleStats,
     parseBlueprint,
     serialiseBlueprint,
@@ -12,6 +19,7 @@ import {
     type Blueprint,
     type ModuleSpec,
 } from "../sim/index.js";
+import { nozzleReach } from "../sim/exhaust.js";
 import { burn } from "../sim/shipFlight.js";
 import { DINKY, X_WING } from "../scenarios/blueprints.js";
 
@@ -58,17 +66,39 @@ describe("a magnetic nozzle", () => {
             const g = engineGeometry(spec);
             return g.nozzles * g.exitWidth * g.exitHeight;
         };
-        // The bars that carry the ring narrow the exit.
-        expect(exit(stubby({ magnetic: true }))).toBeCloseTo(exit(stubby()) * (1 - 2 * RING_BAR_SHARE), 9);
+        // The bars that carry the ring take nothing off the exit.
+        expect(exit(stubby({ magnetic: true }))).toBeCloseTo(exit(stubby()), 9);
         expect(magnetic.thrust / exit(stubby({ magnetic: true }))).toBeGreaterThan((plain.thrust / exit(stubby())) * 1.1);
         expect(magnetic.exhaustVelocity).toBeGreaterThan(plain.exhaustVelocity * 1.1);
-        // Much the same fuel through each square metre of exit, thrown straighter; its
-        // narrower throat loses a little more to its walls.
+        // The same fuel through each square metre of exit, thrown straighter.
         const flow = (stats: typeof plain, spec: ModuleSpec): number => stats.thrust / stats.exhaustVelocity / exit(spec);
         expect(flow(magnetic, stubby({ magnetic: true })) / flow(plain, stubby())).toBeCloseTo(1, 1);
         expect(magnetic.ringPower).toBeCloseTo(MAGNETIC_POWER_PER_EXIT_AREA * exit(stubby({ magnetic: true })), 3);
         expect(magnetic.mass).toBeGreaterThan(plain.mass * 0.9);
         expect(plain.ringPower).toBe(0);
+    });
+
+    it("weighs its bell's sheet, a pressure-fed one's lighter, so a ring's short bell pays for most of the ring", () => {
+        const long = { kind: "engine", x: 0, y: 0, angle: 0, length: 5.49, width: 2.2, nozzle: 3.05 } as ModuleSpec;
+        const plain = moduleStats(long);
+        const magnetic = moduleStats({ ...long, magnetic: true });
+        const ring = MAGNETIC_MASS_PER_EXIT_AREA * 2.2 * 2.2;
+        expect(magnetic.mass - plain.mass).toBeLessThan(ring * 0.25);
+        // More bell, more sheet.
+        expect(moduleStats({ ...long, nozzle: 2 }).mass).toBeLessThan(plain.mass);
+        // A pressure-fed bell is bare sheet: a short block leaves no room for a pump.
+        const fed = { kind: "engine", x: 0, y: 0, angle: 0, length: 0.2, width: 1, nozzle: 0.5 } as ModuleSpec;
+        const g = engineGeometry(fed);
+        const stats = moduleStats(fed);
+        expect(isPressureFed(g)).toBe(true);
+        const machinery = (stats.thrust / g.divergence) * ENGINE_MASS_PER_NEWTON * PRESSURE_FED_MASS;
+        expect(stats.fittingMass - machinery).toBeCloseTo(bellWallArea(g) * BELL_MASS_PER_AREA * PRESSURE_FED_BELL, 3);
+    });
+
+    it("throws its flame further than the plain bell does on the same thrust", () => {
+        const plain = engineGeometry(stubby());
+        const magnetic = engineGeometry(stubby({ magnetic: true }));
+        expect(nozzleReach(magnetic, 1e5)).toBeGreaterThan(nozzleReach(plain, 1e5) * MAGNETIC_PLUME_REACH);
     });
 
     it("takes the end of the bell, so unpowered it aims a little worse than the plain bell", () => {
