@@ -1799,6 +1799,7 @@ function shadeEngine(
             for (const [from, to] of ringBars(engine, y)) {
                 ctx.fillRect(start, from, root - start, to - from);
                 if (rod !== null) ctx.drawImage(rod, start, from, root - start, to - from);
+                rounded?.tube(m, start, (from + to) / 2, root - start, (to - from) / 2, 1, rgba(hull), 1, thick ? "thick" : "deck");
             }
         }
         ctx.fillStyle = fill;
@@ -1822,11 +1823,13 @@ function shadeEngine(
             rounded?.tube(m, layout.centre, y, straight, r, 1, colour, 1, thick ? "thick" : "deck");
         }
     }
-    // Its ring round the jet at its aft end.
+    // Its ring round the jet at its aft end, lit by the dynamic lights over
+    // everything drawn, so over the jet it is drawn again above too.
     if (magnetic) {
         ctx.fillStyle = hull;
         ctx.fillRect(-l, -spec.width / 2, ringThickness(engine), spec.width);
         shadeRing(ctx, -l, spec.width, ringThickness(engine), angle, light);
+        rounded?.tube(m, -l, 0, ringThickness(engine), spec.width / 2, 1, rgba(hull), 1, thick ? "thick" : "deck");
     }
     if (roundPump) {
         const pump = cylinderShade(side, up);
