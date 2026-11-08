@@ -26,6 +26,7 @@ import {
     PLUME_RAYS,
     SHELL_CALIBRES,
     engineGeometry,
+    isMagnetic,
     type GunStats,
     type ModuleSpec,
     originOf,
@@ -1781,7 +1782,7 @@ function shadeEngine(
     }
     // A magnetic nozzle's ring, round in section, lies across the engine's aft
     // end, and its bars along it.
-    if (engine.bellLength < engine.nozzleLength) {
+    if (isMagnetic(spec)) {
         const rod = cylinderShade(side, up);
         const root = layout.pumpAft < l ? layout.pumpAft : l;
         for (const y of layout.centres) {
