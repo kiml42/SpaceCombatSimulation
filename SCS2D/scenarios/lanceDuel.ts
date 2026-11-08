@@ -4,8 +4,8 @@ import { SIDE_WELL, makeBattle } from "./battle.js";
 import { LANCE_CORVETTE, LANCE_GUNSHIP } from "./blueprints.js";
 
 /**
- * The duel with plasma lances: two Lance Corvettes, kept charged, against a
- * Lance Gunship that charges only once it is on target.
+ * The duel with plasma lances: two Lance Corvettes, which charge only once
+ * they are on target, against a Lance Gunship kept charged and ready.
  *
  * Head on and at rest, 1.2 km apart, rather than the duel's crossing: a lance
  * is aimed by its hull and fights only up close, so it is set going toward its

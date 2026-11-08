@@ -2,7 +2,7 @@
   "formatVersion": 2,
   "name": "Lance Gunship",
   "category": "Stock",
-  "notes": "The Gunship with its bow gun a heavy plasma lance, charged only once it is on target: it sets out cold and leaks nothing while it hunts, and reaches 840 m once it has a mark, on its generator aft and the batteries in its outriggers. It closes in rather than fighting from far out.",
+  "notes": "The Gunship with its bow gun a heavy plasma lance, kept charged and ready, so it can strike a small ship the moment one crosses its bow: it leaks fuel and power for it, and reaches 840 m, on its generator aft and the batteries in its outriggers. It closes in rather than fighting from far out.",
   "doctrine": {
     "targeting": {
       "loyaltyWeight": 60,
@@ -175,7 +175,8 @@
       "angle": 0,
       "length": 21,
       "width": 8,
-      "thick": true
+      "thick": true,
+      "ready": true
     },
     {
       "id": 5,

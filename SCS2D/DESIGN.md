@@ -696,8 +696,9 @@ inside any one file is not contiguous.
   only while it is selected and shown firing), changing with the clock so it holds still when time does, and
   its pulse as a flame. The editor
   offers it as a kind like any other; evolution draws it as one, at a hull beam's weight, and flips a lance
-  between ready and not. The Lance Corvette is the Corvette with its bow gun a lance kept ready, and
-  the Lance Gunship the Gunship with a heavy one charged only on target; both close to knife range. The
+  between ready and not. The Lance Corvette is the Corvette with its bow gun a lance charged only on
+  target, holding a bigger ship in its sights long enough, and the Lance Gunship the Gunship with a heavy
+  one kept ready to strike a small ship the moment it bears; both close to knife range. The
   Lance Duel sets two Lance Corvettes against a Lance Gunship, head on and at rest 1.2 km apart.
   **Two layers** (§3). Every module is in the hull layer. Turrets and anything marked *thick* stand up into
   the weapons layer as well; a turret only by its dome, a circle as wide as the mount, on a block in the

@@ -2,7 +2,7 @@
   "formatVersion": 2,
   "name": "Lance Corvette",
   "category": "Stock",
-  "notes": "The Corvette with its bow gun a plasma lance, kept charged and ready: a pulse of white-hot fuel that reaches 400 m and is worth firing inside 200, on fuel for its punch and power from the generators and batteries along its sides for its reach. It closes to knife range rather than standing off. A light escort, drawn as a deck plan on round numbers, +x the bow and +y to port, with modules abutting exactly.",
+  "notes": "The Corvette with its bow gun a plasma lance, charged only once it is on target, as long as it can hold a bigger ship in its sights: a pulse of white-hot fuel that reaches 400 m and is worth firing inside 200, on fuel for its punch and power from the generators and batteries along its sides for its reach. It closes to knife range rather than standing off. A light escort, drawn as a deck plan on round numbers, +x the bow and +y to port, with modules abutting exactly.",
   "doctrine": {
     "targeting": {
       "preferredMass": 3,
@@ -113,8 +113,7 @@
       "angle": 0,
       "length": 10,
       "width": 4,
-      "reinforcement": 1.5,
-      "ready": true
+      "reinforcement": 1.5
     },
     {
       "id": 4,

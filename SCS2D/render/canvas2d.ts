@@ -377,6 +377,10 @@ const LOAD_READY = "#4cf24c";
 /** Flame colours, as the RGB a gradient fades to transparent from. */
 const PLUME = "255, 217, 160";
 const PLUME_CORE = "255, 244, 224";
+/** A plasma lance's pulse: blue-white at its core, purple at its edge, and the purple it lights round it. */
+const PULSE = "150, 90, 255";
+const PULSE_CORE = "225, 235, 255";
+const PULSE_GLOW = "#9a5cff";
 /** How much brighter a plume's hot core is than its edge. */
 const PLUME_CORE_BOOST = 1.8;
 /** The glow round a burning nozzle's exit, spilling past its bell: its colour, reach as a multiple of the exit's half-width, and brightness beside the flame's. */
@@ -4042,7 +4046,7 @@ function beamLights(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: C
             snapshot.beamEndX[i]!,
             snapshot.beamEndY[i]!,
             legibleWidth(halo, MIN_BEAM_GLOW_PX, camera.scale) * BEAM_GLOW_REACH,
-            team(i) < 0 ? BEAM_GLOW : markerOf(shipColours(team(i))).hull,
+            snapshot.beamPlasma[i] === 1 ? PULSE_GLOW : team(i) < 0 ? BEAM_GLOW : markerOf(shipColours(team(i))).hull,
             beamAlpha(snapshot.beamPower[i]!) * BEAM_GLOW_ALPHA * BEAM_GLOW_BOOST * flooredFade(halo, MIN_BEAM_GLOW_PX, camera.scale),
             false,
             false,
@@ -4079,7 +4083,7 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
         const dx = snapshot.beamEndX[i]! - x0;
         const dy = snapshot.beamEndY[i]! - y0;
         const span = length(dx, dy);
-        const flame = snapshot.beamPlasma[i] === 1 && span > 0 ? flameSprite(PLUME, PLUME_CORE) : null;
+        const flame = snapshot.beamPlasma[i] === 1 && span > 0 ? flameSprite(PULSE, PULSE_CORE) : null;
         const rod = flame === null && width * camera.scale >= MIN_ROD_PX && span > 0 ? sprite("rod", colour) : null;
         if (flame !== null) {
             // Hot gas rather than light: brightest at the prongs, gone at its reach.
