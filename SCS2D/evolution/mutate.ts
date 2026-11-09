@@ -59,6 +59,7 @@ import {
     moduleProblem,
     mountTraverse,
     isHullMount,
+    countsOutlets,
     MODULE_KINDS,
     blockCentre,
     bodySpec,
@@ -929,9 +930,7 @@ function switches(draft: Draft): SwitchKnob[] {
         if (readsDrainPriority(spec.kind)) out.push({ at: "drainPriority", site });
         // The outlet count divides a hull mount's opening between more of them,
         // and an engine's are counted by the same field a gun's barrels are.
-        if (spec.kind === "turret" || spec.kind === "beamTurret" || isHullMount(spec.kind) || spec.kind === "engine") {
-            out.push({ at: "barrels", site });
-        }
+        if (countsOutlets(spec.kind)) out.push({ at: "barrels", site });
         if (isWeaponMount(spec.kind)) out.push({ at: "main", site });
         if (spec.kind === "engine") {
             out.push({ at: "weapon", site });

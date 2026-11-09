@@ -1832,7 +1832,7 @@ export function moduleProblem(spec: ModuleSpec): string | null {
     if (!(reinforcement >= 1)) {
         return `${spec.kind}: reinforcement must be at least 1, got ${reinforcement}`;
     }
-    if (spec.barrels !== undefined) {
+    if (spec.barrels !== undefined && countsOutlets(spec.kind)) {
         // Whole barrels only. A fractional count divides the calibre and the cycle
         // time perfectly happily, so nothing downstream complains — but the firing
         // order steps through it modulo the count, landing on positions between
@@ -2484,7 +2484,7 @@ function hullOutlets(spec: ModuleSpec): {
     barrelLength: number;
     reach: number;
 } {
-    const outlets = spec.barrels ?? 1;
+    const outlets = countsOutlets(spec.kind) ? (spec.barrels ?? 1) : 1;
     // What a single outlet would be, and each of several split the way a
     // turret splits it: tubes divide the bore, so each is `1/n` as wide; lenses
     // divide the optic's area, so each is `1/√n` as wide.
@@ -2665,9 +2665,12 @@ export function braceMass(gun: GunStats): number {
     return (gun.barrelCount + 1) * section * gun.braceLength * HULL_DENSITY;
 }
 
-/** Whether `barrels` means anything on this kind: barrels, outlets or nozzles. */
+/**
+ * Whether `barrels` means anything on this kind: barrels, outlets or nozzles.
+ * A lance has one jet, so it ignores the field, but keeps it for a refit.
+ */
 export function countsOutlets(kind: ModuleKind): boolean {
-    return kind === "turret" || kind === "beamTurret" || kind === "engine" || isHullMount(kind);
+    return kind === "turret" || kind === "beamTurret" || kind === "engine" || (isHullMount(kind) && kind !== "plasmaLance");
 }
 
 /** Whether `weapon` means anything on this kind. Only an engine has a plume to point. */

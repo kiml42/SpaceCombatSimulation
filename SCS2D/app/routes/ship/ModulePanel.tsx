@@ -8,13 +8,13 @@ import { moduleReadout, roundsAboard, type Envelopes } from "~/editor/stats";
 import {
     canShape,
     canThicken,
+    countsOutlets,
     CORE_COMPUTING_SHARE,
     CORE_SHARE_DEFAULTS,
     CORE_SHARE_KEYS,
     type CoreShareKey,
     degreesToRadians,
     firesShells,
-    isHullMount,
     isShaped,
     isThick,
     isMagnetic,
@@ -199,7 +199,7 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
 
     // One field, three words for it: a gun's outlets are barrels, a beam's emitters, an engine's nozzles.
     const nozzles = spec.kind === "engine";
-    const barrels = nozzles || isHullMount(spec.kind) || spec.kind === "turret" || spec.kind === "beamTurret";
+    const barrels = countsOutlets(spec.kind);
     // Solid shot has no burst to time or to size.
     const shells = firesShells(spec);
     const thickable = canThicken(spec) && !fighter;
