@@ -12,7 +12,7 @@ import { SEAL_REACH, SEAL_SPEED } from "./modules.js";
 import type { Rng } from "./rng.js";
 import { geometryOf, landedIndex, landedLength, plumeLayers, Plumes, weaponPlumeReach } from "./exhaust.js";
 import { Choice } from "./targeting.js";
-import { moduleRadius, shotCharge, shotFuel, volleyCharge, type ModuleSpec } from "./modules.js";
+import { moduleRadius, shotCharge, shotFuel, shotMetal, volleyCharge, type ModuleSpec } from "./modules.js";
 import { atan2, clamp, cos, floor, length, max, min, round, sin } from "./math.js";
 import { Projectiles } from "./projectiles.js";
 import type { Store } from "./store.js";
@@ -37,7 +37,7 @@ import type { BeamHits, Beams, SpatialGrid } from "./index.js";
 import { RayHit } from "./spatialGrid.js";
 import { fixed } from "./fixed.js";
 import type { Contacts } from "./collision.js";
-import { FUEL_DENSITY, GunType, interiorVolume } from "./modules.js";
+import { FUEL_DENSITY, interiorVolume } from "./modules.js";
 import * as shipRobotViews from "./shipRobotViews.js";
 import * as shipRobots from "./shipRobots.js";
 import * as shipRebuild from "./shipRebuild.js";
@@ -509,6 +509,8 @@ export class Ships {
     readonly nextBarrelToFire: Int32Array[] = [];
     /** What each rail gun's capacitor bank holds, J; it starts a battle full. */
     readonly bank: Float64Array[] = [];
+    /** Whether each gun has its next shot's metal, taken before it reloads (`shipFire.chamber`). */
+    readonly chambered: Uint8Array[] = [];
     /**
      * What each mount has picked to shoot at, and the step it will think about
      * that again.
@@ -1124,8 +1126,8 @@ export class Ships {
     }
 
     /**
-     * Whether mount `t` is sound and can shoot once more: a gun with a round's
-     * metal on its piece of hull and, if it is still reloading, the rest of
+     * Whether mount `t` is sound and can shoot once more: a gun with its round
+     * loaded or the metal for it on its piece of hull and, if it is still reloading, the rest of
      * its fuel there, and the rest of its charge stored there or made there
      * within a cycle. One whose generators will get there in the end counts,
      * however long they take.
@@ -1137,7 +1139,7 @@ export class Ships {
         const timer = this.cooldown[i]![t]!;
         const reloading = timer > 0 && gun.cycleTime > 0;
         const rate = reloading ? this.damage.remaining(b, mount.module, DamageEffect.FireRate) : 0;
-        if (gun.type === GunType.Projectile && gun.casing > 0 && this.metal.pieceHeld(b, mount.module) < gun.casing) return false;
+        if (this.chambered[i]![t] !== 1 && this.metal.pieceHeld(b, mount.module) < shotMetal(gun)) return false;
         if (reloading && this.fuel.fed(b, mount.module, this.damage) < (shotFuel(gun) * rate * timer) / gun.cycleTime) return false;
         if (gun.bankEnergy > 0) {
             const short = volleyCharge(gun) - this.bank[i]![t]!;
@@ -1365,6 +1367,12 @@ export class Ships {
         this.damage.register(bodyIdx, design);
         this.fuel.register(bodyIdx, design);
         this.metal.register(bodyIdx, design);
+        // A gun starts a battle loaded, with its first round's metal from the holds.
+        const chambered = new Uint8Array(design.turrets.length);
+        for (let t = 0; t < chambered.length; t++) {
+            const mount = design.turrets[t]!;
+            chambered[t] = this.metal.load(bodyIdx, mount.module, shotMetal(mount.gun)) ? 1 : 0;
+        }
         this.power.register(bodyIdx, design);
         this.robots.register(bodyIdx, design);
         // Set out with stores part full, it weighs only what it carries.
@@ -1401,6 +1409,7 @@ export class Ships {
         const bank = new Float64Array(mounts.length);
         for (let t = 0; t < mounts.length; t++) bank[t] = mounts[t]!.gun.bankEnergy;
         this.bank.push(bank);
+        this.chambered.push(chambered);
         const chosenBy = new Int32Array(mounts.length).fill(NO_TARGET);
         this.turretTarget.push(chosenBy);
         this.turretAiming.push(new Int32Array(mounts.length).fill(NO_TARGET));
@@ -2344,6 +2353,7 @@ export class Ships {
         this.turretStates[r] = this.turretStates[p]!;
         this.nextBarrelToFire[r] = this.nextBarrelToFire[p]!;
         this.bank[r] = this.bank[p]!;
+        this.chambered[r] = this.chambered[p]!;
         this.turretTarget[r] = this.turretTarget[p]!;
         this.turretAiming[r] = this.turretAiming[p]!;
         this.turretAimModule[r] = this.turretAimModule[p]!;
@@ -2688,11 +2698,13 @@ export class Ships {
 
     /**
      * How full a gun is, 0 to 1: through its reload while it reloads, what is
-     * left of its burst while a beam fires, and 1 when it is ready.
+     * left of its burst while a beam fires, 1 when it is ready, and 0 while it
+     * waits for metal.
      */
     loadOf(i: number, turret: number): number {
         const timer = this.cooldown[i]![turret]!;
         const mount = this.designs[i]!.turrets[turret]!;
+        if (this.chambered[i]![turret] !== 1) return 0;
         // A rail gun is as loaded as its bank is towards its next volley.
         if (mount.gun.bankEnergy > 0 && !(timer > 0)) return min(1, this.bank[i]![turret]! / volleyCharge(mount.gun));
         if (!(timer > 0)) return 1;
@@ -2706,8 +2718,12 @@ export class Ships {
         return cycle > 0 ? max(0, 1 - timer / cycle) : 1;
     }
 
-    /** Whether a gun is reloading, rather than ready or firing: a rail gun reloads until its bank holds a volley. */
+    /**
+     * Whether a gun is reloading, rather than ready or firing: one waiting for
+     * metal is, and a rail gun is until its bank holds a volley.
+     */
     isReloading(i: number, turret: number): boolean {
+        if (this.chambered[i]![turret] !== 1) return true;
         const timer = this.cooldown[i]![turret]!;
         const gun = this.designs[i]!.turrets[turret]!.gun;
         if (gun.bankEnergy > 0 && !(timer > 0)) return this.bank[i]![turret]! < volleyCharge(gun);

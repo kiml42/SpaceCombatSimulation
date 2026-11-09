@@ -36,7 +36,7 @@ function emptied(blueprint: Blueprint): Blueprint {
 }
 
 /** A ship moving at `vx` firing on a corvette ahead of it for `seconds`, the world never stepped. */
-function firing(design: ShipDesign, seconds: number, vx = 0, dry = false) {
+function firing(design: ShipDesign, seconds: number, vx = 0, dry = false, unarmed = false) {
     const world = new World({ dt: DT, seed: 6 });
     const ships = new Ships();
     world.addForceProvider(ships.forceProvider());
@@ -49,6 +49,7 @@ function firing(design: ShipDesign, seconds: number, vx = 0, dry = false) {
     ships.pushOrder(mine, enemy, 750, 950, 10);
     const body = world.bodies.indexOf(ships.body(mine));
     if (dry) ships.fuel.drain(body, design.cores[0]!, ships.fuel.left(body));
+    if (unarmed) for (let m = 0; m < design.modules.length; m++) ships.metal.drain(body, m, ships.metal.held(body, m));
     const gun = design.turrets.find((t) => t.gun.roundMass > 0)?.gun;
     const gas = gun === undefined ? 0 : GAS_RECOIL * gun.propellant * gun.muzzleSpeed;
     let rounds = 0;
@@ -125,9 +126,11 @@ describe("a ship out of metal", () => {
         const body = world.bodies.indexOf(ships.body(ship));
         const mount = corvette.turrets[0]!;
         expect(ships.isDisarmed(ship)).toBe(false);
-        // Not quite a round left.
+        // Not quite a round left in the holds, and none loaded.
         const held = ships.metal.pieceHeld(body, mount.module);
         ships.metal.drain(body, mount.module, held - mount.gun.roundMass / 2);
+        expect(ships.isDisarmed(ship)).toBe(false);
+        ships.chambered[ship]!.fill(0);
         expect(ships.isDisarmed(ship)).toBe(true);
         expect(ships.isDisabled(ship)).toBe(ships.hasNoEngines(ship));
     });
@@ -146,6 +149,29 @@ describe("a gun firing", () => {
         expect(s.ships.isDisarmed(s.mine)).toBe(true);
     });
 
+    it("waits empty, its reload not begun, with no metal to load its next round", () => {
+        const s = firing(corvette, 20, 0, false, true);
+        expect(s.rounds).toBeGreaterThan(0);
+        expect(s.rounds).toBeLessThanOrEqual(corvette.turrets.length);
+        let waiting = 0;
+        for (let t = 0; t < corvette.turrets.length; t++) {
+            if (s.ships.chambered[s.mine]![t] === 1) continue;
+            waiting++;
+            expect(s.ships.isReloading(s.mine, t)).toBe(true);
+            expect(s.ships.loadOf(s.mine, t)).toBe(0);
+        }
+        expect(waiting).toBe(s.rounds);
+        expect(s.ships.isDisarmed(s.mine)).toBe(true);
+
+        // Given metal, it loads and begins to reload.
+        const gun = corvette.turrets[0]!;
+        s.ships.metal.add(s.body, gun.module, gun.gun.casing * corvette.turrets.length);
+        const before = s.ships.cooldownOf(s.mine, 0);
+        s.ships.command(DT, s.world);
+        expect(s.ships.chambered[s.mine]![0]).toBe(1);
+        if (before > 0) expect(s.ships.cooldownOf(s.mine, 0)).toBeLessThan(before);
+    });
+
     it("burns a round's propellant and bursting charge of fuel for each round it reloads", () => {
         const s = firing(corvette, 20);
         const gun = corvette.turrets.find((t) => t.gun.roundMass > 0)!.gun;
@@ -155,13 +181,16 @@ describe("a gun firing", () => {
         expect(s.ships.fuel.spentMass(s.body)).toBeGreaterThan(reloads * shotFuel(gun));
     });
 
-    it("spends a round's casing of metal for every round fired, and the hull is lighter by it", () => {
+    it("spends a round's casing of metal for every round fired or loaded, and the hull is lighter by it", () => {
         const s = firing(corvette, 20);
         const casing = corvette.turrets.find((t) => t.gun.casing > 0)!.gun.casing;
         expect(s.rounds).toBeGreaterThan(0);
         // Every gun on the corvette is the same bore, so every round weighs the same.
         for (const t of corvette.turrets) if (t.gun.casing > 0) expect(t.gun.casing).toBe(casing);
-        expect(s.ships.metal.spentMass(s.body)).toBeCloseTo(s.rounds * casing, 6);
+        // Every gun takes its next round's metal before it reloads.
+        let loaded = 0;
+        for (const c of s.ships.chambered[s.mine]!) loaded += c;
+        expect(s.ships.metal.spentMass(s.body)).toBeCloseTo((s.rounds + loaded) * casing, 6);
         expect(s.world.bodies.mass[s.body]).toBeCloseTo(
             corvette.mass - s.ships.fuel.spentMass(s.body) - s.ships.metal.spentMass(s.body),
             6,
