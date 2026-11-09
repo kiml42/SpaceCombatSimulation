@@ -3278,7 +3278,10 @@ function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: n
         const length = Math.sqrt(dx * dx + dy * dy);
         const from = ship.currentStructure.radius + gap;
         const to = length - target.currentStructure.radius - gap;
-        if (to > from) {
+        if (ship.routeX !== undefined && ship.routeY !== undefined) {
+            // By the corner it plans round what is in its way.
+            drawRoute(ctx, ship, ship.routeX, ship.routeY, target, from, target.currentStructure.radius + gap, metresToPx);
+        } else if (to > from) {
             ctx.setLineDash([6 / metresToPx, 6 / metresToPx]);
             ctx.beginPath();
             ctx.moveTo(ship.x + (dx / length) * from, ship.y + (dy / length) * from);
@@ -3355,6 +3358,35 @@ function avoidRings(ctx: CanvasRenderingContext2D, touching: number, room: numbe
     ctx.globalAlpha = 0.5;
     ctx.beginPath();
     ctx.arc(0, 0, room, 0, TAU);
+    ctx.stroke();
+}
+
+/** A broken line from `ship`, `from` out, by the corner (`cx`, `cy`) to `target`, stopping `short` of its middle. */
+function drawRoute(
+    ctx: CanvasRenderingContext2D,
+    ship: ShipView,
+    cx: number,
+    cy: number,
+    target: ShipView,
+    from: number,
+    short: number,
+    metresToPx: number,
+): void {
+    const ax = cx - ship.x;
+    const ay = cy - ship.y;
+    const a = Math.sqrt(ax * ax + ay * ay);
+    const bx = target.x - cx;
+    const by = target.y - cy;
+    const bl = Math.sqrt(bx * bx + by * by);
+    ctx.setLineDash([6 / metresToPx, 6 / metresToPx]);
+    ctx.beginPath();
+    ctx.moveTo(a > from ? ship.x + (ax / a) * from : ship.x, a > from ? ship.y + (ay / a) * from : ship.y);
+    ctx.lineTo(cx, cy);
+    ctx.lineTo(bl > short ? target.x - (bx / bl) * short : cx, bl > short ? target.y - (by / bl) * short : cy);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.arc(cx, cy, 3 / metresToPx, 0, TAU);
     ctx.stroke();
 }
 

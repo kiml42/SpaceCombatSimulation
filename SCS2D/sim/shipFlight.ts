@@ -242,9 +242,10 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
         } else if (claw >= 0 && tb >= 0) {
             // The jaws, not the bow, are what point at it.
             const jaws = ships.designs[i]!.modules[claw]!.spec.angle ?? 0;
-            const across = shipDocking.hullAcross(ships, bodies, i, b, tb, target);
-            if (across >= 0) {
-                wantAngle = shipDocking.roundHull(ships, bodies, i, b, across, tb) - jaws;
+            // Round whatever stands between it and its source, by a corner (`shipRoute`).
+            if (shipRoute.route(ships, bodies, i, b, bodies.x[tb]!, bodies.y[tb]!, target, shipRoute.GOAL_CLEAR, ROUTE)) {
+                seek(ships, bodies, b, ROUTE, ships.doctrines[i]!.approach.clawSpeed, URGE_REFERENCE);
+                wantAngle = atan2(ROUTE.y - bodies.y[b]!, ROUTE.x - bodies.x[b]!) - jaws;
             } else {
                 const standOff = ships.now - ships.touchedSource[i]! < CLAW_RETRY / dt;
                 let radial: number;
@@ -273,13 +274,7 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
                 charge(ships, bodies, i, b, at, order.approachSpeed, tb);
                 ships.intent = HURRY;
             } else if (ships.guarding[i] !== 1) {
-                // Still to close, by a corner round whatever stands in the way (`shipRoute`).
-                const range = length(at.x - bodies.x[b]!, at.y - bodies.y[b]!);
-                if (range > order.maxRange && shipRoute.route(ships, bodies, i, b, at.x, at.y, target, false, ROUTE)) {
-                    seek(ships, bodies, b, ROUTE, order.approachSpeed);
-                } else {
-                    hold(ships, bodies, i, b, at, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE, wantAngle);
-                }
+                hold(ships, bodies, i, b, at, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE, wantAngle, target);
             }
             // Guarding, it fights from its station by its charge: only the escort moves it.
             if (ships.guarding[i] !== 1) orbit(ships, bodies, i, b, at, tb);
@@ -905,6 +900,7 @@ export function hold(
     approachSpeed: number,
     weight: number,
     fightingAt?: number,
+    goal: number = NO_TARGET,
 ): void {
     const fighting = fightingAt !== undefined;
     // Set again below while it is still closing on a curve planned on its mains.
@@ -917,6 +913,11 @@ export function hold(
     const dx = at.x - bodies.x[b]!;
     const dy = at.y - bodies.y[b]!;
     const range = length(dx, dy);
+    // Still to close, by a corner round whatever stands in the way (`shipRoute`).
+    if (goal !== NO_TARGET && range > maxRange && shipRoute.route(ships, bodies, i, b, at.x, at.y, goal, shipRoute.GOAL_CLEAR, ROUTE)) {
+        seek(ships, bodies, b, ROUTE, approachSpeed, weight);
+        return;
+    }
     if (fighting && range > 0 && ships.doctrines[i]!.approach.tangentialMax > 0) {
         pass(ships, bodies, i, b, at, dx / range, dy / range, range, minRange, maxRange, approachSpeed, fightingAt, weight);
         return;
@@ -1185,6 +1186,8 @@ export function cover(ships: Ships, bodies: Bodies, i: number, b: number): numbe
         station,
         speed ?? ships.doctrines[i]!.approach.approachSpeed,
         weight,
+        undefined,
+        consort,
     );
     return consort;
 }
@@ -1539,8 +1542,8 @@ const THEIR_CIRCLE: HitCircle = { x: 0, y: 0, vx: 0, vy: 0, r: 0 };
 /** The corner a ship closing on its target makes for, when it has one. */
 const ROUTE: Spot = { x: 0, y: 0, vx: 0, vy: 0, radius: 0 };
 
-/** Fly body `b` through `at` at `speed` relative to it, not stopping there. */
-function seek(ships: Ships, bodies: Bodies, b: number, at: Spot, speed: number): void {
+/** Fly body `b` through `at` at `speed` relative to it, not stopping there, wanting it by `weight`. */
+function seek(ships: Ships, bodies: Bodies, b: number, at: Spot, speed: number, weight: number): void {
     const dx = at.x - bodies.x[b]!;
     const dy = at.y - bodies.y[b]!;
     const d = length(dx, dy);
@@ -1550,7 +1553,7 @@ function seek(ships: Ships, bodies: Bodies, b: number, at: Spot, speed: number):
         vx += (dx / d) * speed;
         vy += (dy / d) * speed;
     }
-    urge(ships, URGE_REFERENCE, vx, vy);
+    urge(ships, weight, vx, vy);
 }
 
 /**

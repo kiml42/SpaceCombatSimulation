@@ -810,9 +810,6 @@ export class Ships {
     readonly dockPort: number[] = [];
     /** Which of its own ports it means to mate with it; -1 for none. */
     readonly ownPort: number[] = [];
-    /** Where `aroundHull` last said to steer for, world metres. */
-    wayX = 0;
-    wayY = 0;
     /** The way in `wayIn` last chose, world radians, and where it leaves the carrier's circle, world metres. */
     wayAngle = 0;
     entryX = 0;

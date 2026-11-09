@@ -17,6 +17,11 @@ import { type Ships, NO_TARGET, type Spot } from "./ships.js";
  * it goes round so that it moves with it, and replanned every `REPLAN_TICKS`.
  */
 
+/** How a route treats what it makes for: not in the way, its deck's superstructure in the way, or its whole hull. */
+export const GOAL_CLEAR = 0;
+export const GOAL_DECK = 1;
+export const GOAL_SOLID = 2;
+
 /** Steps between plans: a search is too heavy for every step. */
 export const REPLAN_TICKS = 30;
 /** Hulls this many times a ship's radius or more are planned round; smaller ones are only kept clear of. */
@@ -50,8 +55,9 @@ const THEIRS: shipFlight.HitCircle = { x: 0, y: 0, vx: 0, vy: 0, r: 0 };
 /**
  * Whether ship `i`, on body `b`, should go by a corner on its way to the
  * point (`gx`, `gy`), leaving it in `out` if so. `goal` is the ship it is
- * making for, never an obstacle itself; with `deck`, what stands up from its
- * deck is, at no clearance beyond touching, as for a fighter landing on it.
+ * making for, and `as` says how that is in the way: not at all, as a target;
+ * by what stands up from its deck, at no clearance beyond touching, as for a
+ * fighter landing on it; or by its whole hull, as for a ship docking with it.
  * Replans every `REPLAN_TICKS`, or sooner once it reaches its corner.
  */
 export function route(
@@ -62,7 +68,7 @@ export function route(
     gx: number,
     gy: number,
     goal: number,
-    deck: boolean,
+    as: number,
     out: Spot,
 ): boolean {
     const due = ships.now - ships.routeAt[i]! >= REPLAN_TICKS || ships.routeGoal[i] !== goal;
@@ -71,7 +77,7 @@ export function route(
         if (length(out.x - bodies.x[b]!, out.y - bodies.y[b]!) > ships.designs[i]!.radius * 2) return true;
     }
     if (!due && ships.routeVia[i] === NO_TARGET) return false;
-    plan(ships, bodies, i, b, gx, gy, goal, deck);
+    plan(ships, bodies, i, b, gx, gy, goal, as);
     return ships.routeVia[i] !== NO_TARGET && cornerOf(ships, bodies, i, out);
 }
 
@@ -89,13 +95,13 @@ export function cornerOf(ships: Ships, bodies: Bodies, i: number, out: Spot): bo
     return true;
 }
 
-function plan(ships: Ships, bodies: Bodies, i: number, b: number, gx: number, gy: number, goal: number, deck: boolean): void {
+function plan(ships: Ships, bodies: Bodies, i: number, b: number, gx: number, gy: number, goal: number, as: number): void {
     ships.routeAt[i] = ships.now;
     ships.routeGoal[i] = goal;
     ships.routeVia[i] = NO_TARGET;
     const sx = bodies.x[b]!;
     const sy = bodies.y[b]!;
-    gather(ships, bodies, i, b, sx, sy, gx, gy, goal, deck);
+    gather(ships, bodies, i, b, sx, sy, gx, gy, goal, as);
     if (obstacles === 0 || blocking(sx, sy, gx, gy, -1) < 0) return;
 
     const approach = ships.doctrines[i]!.approach;
@@ -224,8 +230,7 @@ function inside(x: number, y: number): number {
 
 /**
  * What ship `i` plans round on its way from (`sx`, `sy`) to (`gx`, `gy`):
- * rocks and hulls well larger than it, at their clearance; and with `deck`,
- * what stands up from `goal`'s deck, at touching.
+ * rocks and hulls well larger than it, at their clearance; and `goal` as `as` says.
  */
 function gather(
     ships: Ships,
@@ -237,20 +242,27 @@ function gather(
     gx: number,
     gy: number,
     goal: number,
-    deck: boolean,
+    as: number,
 ): void {
     obstacles = 0;
     const mine = ships.designs[i]!.radius;
     const clearance = mine * ships.doctrines[i]!.approach.separationRadii;
     const reach = length(gx - sx, gy - sy);
+    // Nothing riding what it makes for, as a ship moored to the same rock: that is the goal too.
+    const goalBody = goal === NO_TARGET ? -1 : bodies.indexOf(ships.bodyIds[goal]!);
     for (let t = 0; t < ships.alive.length && obstacles < MAX_OBSTACLES; t++) {
         if (t === i || ships.alive[t] === 0 || ships.home[t] === i) continue;
         const ob = bodies.indexOf(ships.bodyIds[t]!);
         if (ob < 0 || ob === b || bodies.ghost[ob] === 1 || !ships.meets(b, ob)) continue;
         if (t === goal) {
-            if (deck) addDeck(ships, bodies, t, ob, mine);
+            if (as === GOAL_DECK) addDeck(ships, bodies, t, ob, mine);
+            if (as === GOAL_SOLID) {
+                shipFlight.hitCircle(ships, bodies, t, ob, i, THEIRS);
+                add(THEIRS.x, THEIRS.y, THEIRS.r + mine, t, ob);
+            }
             continue;
         }
+        if (ob === goalBody) continue;
         const big = ships.rockFlag[t] === 1 || ships.designs[t]!.radius >= BIG_HULL * mine;
         if (!big) continue;
         shipFlight.hitCircle(ships, bodies, t, ob, i, THEIRS);

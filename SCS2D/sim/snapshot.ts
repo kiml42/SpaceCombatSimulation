@@ -11,6 +11,7 @@ import type { Ships } from "./ships.js";
 import type { Turrets } from "./turrets.js";
 import type { World } from "./world.js";
 import { cos, sin } from "./math.js";
+import * as shipRoute from "./shipRoute.js";
 import { fittingOf } from "./rebuild.js";
 
 /** Seconds a closed hole is still pictured, for the vapour it let out to drift off. */
@@ -99,6 +100,9 @@ export interface ShipView {
     avoidY?: number;
     /** How close the two would be touching there. */
     avoidTouch?: number;
+    /** The corner it is making for on its way round what is in its way (`shipRoute`), world frame; absent for none. */
+    routeX?: number;
+    routeY?: number;
     /**
      * The design it is built to, whatever damage has made of `design`: what it is
      * of, for grouping it with others. Absent where it is `design`, as in an editor.
@@ -506,6 +510,9 @@ function shipView(snapshot: Snapshot, i: number): ShipView {
     return created;
 }
 
+/** Where a ship's corner is, as `shipRoute` finds it. */
+const ROUTE_SPOT = { x: 0, y: 0, vx: 0, vy: 0, radius: 0 };
+
 /** Take a picture of the world into `out`, reusing its buffers. */
 export function capture(
     out: Snapshot,
@@ -600,6 +607,13 @@ export function capture(
             delete view.avoidX;
             delete view.avoidY;
             delete view.avoidTouch;
+        }
+        if (shipRoute.cornerOf(ships, bodies, i, ROUTE_SPOT)) {
+            view.routeX = ROUTE_SPOT.x;
+            view.routeY = ROUTE_SPOT.y;
+        } else {
+            delete view.routeX;
+            delete view.routeY;
         }
         view.ship = i;
         view.doctrine = ships.doctrineOf(i);
