@@ -33,6 +33,9 @@ import { reachAgainst } from "../sim/blueprint.js";
 import { NO_OWNER } from "../sim/projectiles.js";
 import { TurretState } from "../sim/turrets.js";
 import { CORVETTE } from "../scenarios/blueprints.js";
+import { mutate } from "../evolution/mutate.js";
+import { Rng } from "../sim/rng.js";
+import { complexityOf, moduleProblem } from "../sim/modules.js";
 
 const DT = 1 / 60;
 
@@ -123,6 +126,36 @@ describe("a plasma lance", () => {
         expect(near).toBeCloseTo(1 - 95 / 400, 2);
         expect(far).toBeCloseTo(1 - 295 / 400, 2);
         expect(landed(500, 400)).toBe(0);
+    });
+
+    it("has one jet however many barrels it is given, and evolution leaves the number alone", () => {
+        const one = moduleStats(lance());
+        for (const barrels of [2, 3, 0.5]) {
+            const many = moduleStats(lance({ barrels }));
+            expect(moduleProblem(lance({ barrels }))).toBeNull();
+            expect(many.gun).toEqual(one.gun);
+            expect(many.mass).toBe(one.mass);
+            expect(complexityOf(lance({ barrels }))).toBe(complexityOf(lance()));
+        }
+        // Evolution never changes it.
+        const rng = new Rng(3);
+        let held: Blueprint = {
+            ...CORVETTE,
+            modules: CORVETTE.modules.map((p) => ("kind" in p && p.kind === "hullGun" ? { ...p, kind: "plasmaLance", barrels: 3 } : p)),
+        };
+        let seen = 0;
+        for (let i = 0; i < 100; i++) {
+            const child = mutate(held, rng);
+            expect(child.edits.some((edit) => /plasmaLance: barrels/.test(edit))).toBe(false);
+            held = child.blueprint;
+            for (const p of held.modules) {
+                // A lance refitted from something else has none to keep.
+                if (!("kind" in p) || p.kind !== "plasmaLance" || p.barrels === undefined) continue;
+                expect(p.barrels).toBe(3);
+                seen++;
+            }
+        }
+        expect(seen).toBeGreaterThan(0);
     });
 
     it("is saved and read back, ready or not", () => {

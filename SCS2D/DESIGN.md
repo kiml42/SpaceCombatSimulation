@@ -704,7 +704,8 @@ inside any one file is not contiguous.
   of what its base charges, and what its stores cannot make up it loses. So each lance is built one of two ways (`ready`): kept charged,
   ready the moment it bears and paying for it, or charged only once it is on target, setting out uncharged
   and risking the target slipping away before it is full. It does not train, so the hull aims it, and it
-  welds on by its back and sides as any hull mount does. Its pulse leaves from the back of the gap between its prongs and runs the length of it. It is drawn as a
+  welds on by its back and sides as any hull mount does. It has one jet: it ignores `barrels`, which the
+  editor does not offer and evolution does not change, though a value it was given is kept for a refit. Its pulse leaves from the back of the gap between its prongs and runs the length of it. It is drawn as a
   base and two prongs with bronze nubs, a gun barrel's colour, narrowing into the gap, lightning across the gap growing with its charge (in the editor
   only while it is selected and shown firing), changing with the clock so it holds still when time does, and
   its pulse as a flame, blue-white at its core and purple at its edge, cut off where it lands as an engine's is. The editor
