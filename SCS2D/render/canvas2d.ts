@@ -3316,40 +3316,24 @@ function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: n
 const DANGER = "#ff3b30";
 
 /**
- * What a ship is keeping clear of: a red ring round it as far out as the ship
- * wants to stay, and the ship's course relative to it, to where they pass
- * closest — inside the ring is why it is dodging.
+ * What a ship is keeping clear of: red round it out to where the ship wants it,
+ * fading from where their hulls would touch to nothing at that edge, as
+ * `avoid` weighs a near miss.
  */
 function drawAvoiding(ctx: CanvasRenderingContext2D, ship: ShipView, hazard: ShipView, room: number, metresToPx: number): void {
+    const touching = Math.min(room, ship.currentStructure.radius + hazard.currentStructure.radius);
     ctx.save();
-    ctx.strokeStyle = DANGER;
-    ctx.fillStyle = DANGER;
-    ctx.lineWidth = 1.5 / metresToPx;
-    ctx.globalAlpha = 0.08;
+    const shade = ctx.createRadialGradient(hazard.x, hazard.y, touching, hazard.x, hazard.y, room);
+    shade.addColorStop(0, "rgba(255, 59, 48, 0.3)");
+    shade.addColorStop(1, "rgba(255, 59, 48, 0)");
+    ctx.fillStyle = shade;
     ctx.beginPath();
     ctx.arc(hazard.x, hazard.y, room, 0, TAU);
     ctx.fill();
-    ctx.globalAlpha = 0.7;
+    ctx.strokeStyle = DANGER;
+    ctx.lineWidth = 1 / metresToPx;
+    ctx.globalAlpha = 0.5;
     ctx.stroke();
-    const dx = hazard.x - ship.x;
-    const dy = hazard.y - ship.y;
-    const rvx = ship.vx - hazard.vx;
-    const rvy = ship.vy - hazard.vy;
-    const speedSq = rvx * rvx + rvy * rvy;
-    const closest = speedSq > 0 ? Math.max(0, (dx * rvx + dy * rvy) / speedSq) : 0;
-    if (closest > 0) {
-        const px = ship.x + rvx * closest;
-        const py = ship.y + rvy * closest;
-        ctx.setLineDash([4 / metresToPx, 4 / metresToPx]);
-        ctx.beginPath();
-        ctx.moveTo(ship.x, ship.y);
-        ctx.lineTo(px, py);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.beginPath();
-        ctx.arc(px, py, 3 / metresToPx, 0, TAU);
-        ctx.fill();
-    }
     ctx.restore();
 }
 
