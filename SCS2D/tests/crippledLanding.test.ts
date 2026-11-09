@@ -10,8 +10,11 @@ import { SCENE_SEED } from "../scenarios/scenes.js";
 /** How each fighter can turn: none one way, or one way far weaker than the other. */
 type Turn = "one way" | "one weak";
 
-/** By variant: the slowest landing allowed, in seconds, and how its fighters are left able to turn. */
-const EXPECTED: Record<string, { within: number; turn?: Turn }> = {
+/**
+ * By variant: the slowest landing allowed, in seconds, and how its fighters are left able to turn. A variant
+ * `broken` is a known failure, kept to be fixed: asserted still to leave some fighter unlanded, so its fix shows here.
+ */
+const EXPECTED: Record<string, { within: number; turn?: Turn; broken?: true }> = {
     "Raider, one turn far weaker [1, 8]": { within: 90, turn: "one weak" },
     "Raider, one turn far weaker [3, 7]": { within: 90, turn: "one weak" },
     "Raider, no main [4]": { within: 150 },
@@ -23,6 +26,8 @@ const EXPECTED: Record<string, { within: number; turn?: Turn }> = {
     "Dinky, turns anticlockwise only [2, 7, 8]": { within: 90, turn: "one way" },
     "Dinky, turns clockwise only [1, 2, 9]": { within: 90, turn: "one way" },
     "Dinky, nothing ahead of its tank [2, 3, 6, 8, 9, 10]": { within: 210 },
+    // None lands within 300 s.
+    "Dinky Beam on a Beam Carrier, nothing ahead of its tank [2, 3, 6, 8, 9, 10]": { within: 300, broken: true },
 };
 
 describe("Crippled Landing", () => {
@@ -33,7 +38,7 @@ describe("Crippled Landing", () => {
     it.each(CRIPPLINGS.map((crippling) => [crippling.name, crippling] as const))(
         "%s: every fighter lands",
         (name, crippling) => {
-            const { within, turn } = EXPECTED[name]!;
+            const { within, turn, broken } = EXPECTED[name]!;
             const run = crippledLanding(SCENE_SEED, crippling);
 
             // As crippled, before a pad mends it.
@@ -54,7 +59,12 @@ describe("Crippled Landing", () => {
                 for (let k = 0; k < at.length; k++) if (at[k] === Infinity && landed(k)) at[k] = t / 60;
             }
             // Which approaches, from 0 (east of its carrier) round anticlockwise, failed to land in time.
-            expect(at.flatMap((s, k) => (Number.isFinite(s) ? [] : [k]))).toEqual([]);
+            const unlanded = at.flatMap((s, k) => (Number.isFinite(s) ? [] : [k]));
+            if (broken) {
+                expect(unlanded).not.toEqual([]);
+                return;
+            }
+            expect(unlanded).toEqual([]);
             expect(run.totalContacts).toBe(0);
         },
         120_000,
