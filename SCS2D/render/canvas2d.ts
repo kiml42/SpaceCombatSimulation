@@ -3323,18 +3323,33 @@ const DANGER = "#ff3b30";
 function drawAvoiding(ctx: CanvasRenderingContext2D, ship: ShipView, hazard: ShipView, room: number, metresToPx: number): void {
     const touching = Math.min(room, ship.currentStructure.radius + hazard.currentStructure.radius);
     ctx.save();
-    const shade = ctx.createRadialGradient(hazard.x, hazard.y, touching, hazard.x, hazard.y, room);
-    shade.addColorStop(0, "rgba(255, 59, 48, 0.3)");
-    shade.addColorStop(1, "rgba(255, 59, 48, 0)");
-    ctx.fillStyle = shade;
+    ctx.translate(hazard.x, hazard.y);
+    keep(ctx, `avoid ${touching} ${room}`, () => avoidRings(ctx, touching, room, metresToPx));
+    ctx.restore();
+}
+
+/** Stepped, not a gradient: the battle view's context draws no gradients. */
+function avoidRings(ctx: CanvasRenderingContext2D, touching: number, room: number, metresToPx: number): void {
+    const strongest = 0.3;
+    ctx.fillStyle = DANGER;
+    ctx.globalAlpha = strongest;
     ctx.beginPath();
-    ctx.arc(hazard.x, hazard.y, room, 0, TAU);
+    ctx.arc(0, 0, touching, 0, TAU);
     ctx.fill();
+    const step = (room - touching) / FADE_STEPS;
+    for (let k = 0; k < FADE_STEPS && step > 0; k++) {
+        ctx.globalAlpha = strongest * (1 - (k + 0.5) / FADE_STEPS);
+        ctx.beginPath();
+        ctx.arc(0, 0, touching + (k + 1) * step, 0, TAU);
+        ctx.arc(0, 0, touching + k * step, TAU, 0, true);
+        ctx.fill("evenodd");
+    }
     ctx.strokeStyle = DANGER;
     ctx.lineWidth = 1 / metresToPx;
     ctx.globalAlpha = 0.5;
+    ctx.beginPath();
+    ctx.arc(0, 0, room, 0, TAU);
     ctx.stroke();
-    ctx.restore();
 }
 
 /** How soft the edges of a ship's bands are, from what it has been told over its doctrine where it says. */
