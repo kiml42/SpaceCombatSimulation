@@ -1196,7 +1196,7 @@ const STEP_SCALE: Readonly<Record<string, number>> = {
     dockDanger: 1,
     tangentialMin: 20,
     tangentialMax: 20,
-    spinResist: 0.25,
+    spinResist: 1,
 };
 
 /**
