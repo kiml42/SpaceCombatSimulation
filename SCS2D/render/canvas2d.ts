@@ -164,9 +164,15 @@ const TRACER_GLOW_INSIDE: string | null = null;
 const TRIGGER_ON = "#ffd76a2e";
 const TRIGGER_OFF = "#9fb6d61a";
 const TRIGGER_FOULED = "#ff5a5a24";
+/** A band's fill and edge colours. */
+interface BandColours {
+    readonly fill: string;
+    readonly edge: string;
+}
 /** The band of ranges a ship's doctrine closes to, against the enemy it wants. */
-const HOLD_BAND = "#7fd6c214";
-const HOLD_EDGE = "#7fd6c266";
+const ATTACK_BAND: BandColours = { fill: "#ff9a3c14", edge: "#ff9a3c66" };
+/** The band a ship stays inside round what it is escorting. */
+const ESCORT_BAND: BandColours = { fill: "#7fd6c214", edge: "#7fd6c266" };
 /** Where a ship turns its target to, out to the band. */
 const ATTACK_LINE = "#7fd6c2b0";
 const ATTACK_DASH_PX = 6;
@@ -887,7 +893,7 @@ function drawHull(
     // trigger wedges' tips can be read against it.
     const holdMax = ship.holdMax ?? 0;
     if (whole && arcs === "trigger" && holdMax > 0) {
-        drawBand(ctx, 0, 0, ship.holdMin ?? 0, holdMax, design.doctrine.approach.bandFade, metresToPx);
+        drawBand(ctx, 0, 0, ship.holdMin ?? 0, holdMax, design.doctrine.approach.bandFade, metresToPx, ATTACK_BAND);
         ctx.strokeStyle = ATTACK_LINE;
         ctx.setLineDash([ATTACK_DASH_PX / metresToPx, ATTACK_DASH_PX / metresToPx]);
         for (const bearing of ship.attackBearings ?? []) {
@@ -3283,7 +3289,7 @@ function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: n
         // The band it is holding, round what it is holding it against, as the editor draws a ship's own.
         if (ship.fightingMax !== undefined && target.body === ship.fighting) {
             ctx.save();
-            drawBand(ctx, target.x, target.y, ship.fightingMin ?? 0, ship.fightingMax, bandFadeOf(ship), metresToPx);
+            drawBand(ctx, target.x, target.y, ship.fightingMin ?? 0, ship.fightingMax, bandFadeOf(ship), metresToPx, ATTACK_BAND);
             ctx.restore();
         }
         ctx.globalAlpha = 0.6;
@@ -3297,7 +3303,7 @@ function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: n
     if (consort !== null && ship.coverBand !== undefined) {
         // And the band it stays inside, round it.
         ctx.save();
-        drawBand(ctx, consort.x, consort.y, 0, ship.coverBand, bandFadeOf(ship), metresToPx);
+        drawBand(ctx, consort.x, consort.y, 0, ship.coverBand, bandFadeOf(ship), metresToPx, ESCORT_BAND);
         ctx.restore();
     }
     if (consort !== null) {
@@ -3448,18 +3454,27 @@ const FADE_STEPS = 8;
  * doctrine closes to. Each edge fades out across `fade` of its distance
  * either side of it, as the pull back into the band fades in (`edgeFade`).
  */
-function drawBand(ctx: CanvasRenderingContext2D, x: number, y: number, min: number, max: number, fade: number, metresToPx: number): void {
+function drawBand(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    min: number,
+    max: number,
+    fade: number,
+    metresToPx: number,
+    colours: BandColours,
+): void {
     // Rings the same from frame to frame while it holds the same band: kept (`keep`), and only moved.
     ctx.save();
     ctx.translate(x, y);
-    keep(ctx, `band ${min} ${max} ${fade}`, () => bandRings(ctx, min, max, fade, metresToPx));
+    keep(ctx, `band ${colours.fill} ${min} ${max} ${fade}`, () => bandRings(ctx, min, max, fade, metresToPx, colours));
     ctx.restore();
 }
 
-function bandRings(ctx: CanvasRenderingContext2D, min: number, max: number, fade: number, metresToPx: number): void {
+function bandRings(ctx: CanvasRenderingContext2D, min: number, max: number, fade: number, metresToPx: number, colours: BandColours): void {
     const x = 0;
     const y = 0;
-    ctx.fillStyle = HOLD_BAND;
+    ctx.fillStyle = colours.fill;
     const ring = (from: number, to: number, alpha: number): void => {
         if (!(to > from) || !(alpha > 0)) return;
         ctx.globalAlpha = alpha;
@@ -3484,7 +3499,7 @@ function bandRings(ctx: CanvasRenderingContext2D, min: number, max: number, fade
         ring(min, max, alpha);
     }
     ctx.globalAlpha = alpha;
-    ctx.strokeStyle = HOLD_EDGE;
+    ctx.strokeStyle = colours.edge;
     ctx.lineWidth = 1 / metresToPx;
     ctx.beginPath();
     ctx.arc(x, y, max, 0, TAU);
