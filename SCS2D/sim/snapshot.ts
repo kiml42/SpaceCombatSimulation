@@ -88,8 +88,9 @@ export interface ShipView {
     fightingMax?: number;
     /** The body of what it is escorting, or -1 or absent for nothing. */
     covering?: number;
-    /** How far from that it stays, centre to centre, metres. */
+    /** How far from that it stays, centre to centre, metres, and how close it comes; absent, as close as keeping clear lets it. */
     coverBand?: number;
+    coverInner?: number;
     /** The body of what it is keeping clear of most, and how far off it wants it, centre to centre, metres; absent for nothing. */
     avoiding?: number;
     avoidRoom?: number;
@@ -572,8 +573,15 @@ export function capture(
         }
         const covering = ships.coveringOf(i);
         view.covering = covering >= 0 ? bodies.indexOf(ships.body(covering)) : -1;
-        if (covering >= 0) view.coverBand = ships.coverBandOf(i, covering);
-        else delete view.coverBand;
+        if (covering >= 0) {
+            view.coverBand = ships.coverBandOf(i, covering);
+            const inner = ships.coverInnerOf(i, covering);
+            if (inner > 0) view.coverInner = inner;
+            else delete view.coverInner;
+        } else {
+            delete view.coverBand;
+            delete view.coverInner;
+        }
         const dodging = ships.dodgingOf(i);
         if (dodging >= 0) {
             view.avoiding = bodies.indexOf(ships.body(dodging));

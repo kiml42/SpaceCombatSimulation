@@ -119,6 +119,12 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
         step: 0.1,
     },
     {
+        field: "escortInner",
+        label: "escort inside",
+        hint: "The inside of the escort band, as a fraction of the way out from touching to its outside: 0 none, so keeping clear alone holds it off; 1 at the outside edge",
+        step: 0.05,
+    },
+    {
         field: "escort",
         label: "escort cap",
         hint: "The furthest it will stray from what it is covering, as a fraction of its own reach",
@@ -611,7 +617,7 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                 title: "Escorting",
                 entries: [
                     entry("targeting", "escortWeight"),
-                    ...(["escortMinRadii", "escortRadii", "escort"] as const).map((field) =>
+                    ...(["escortMinRadii", "escortRadii", "escort", "escortInner"] as const).map((field) =>
                         entry("approach", field, {
                             // Nothing about escorting matters to a ship that never escorts.
                             shown: (v) => v.targeting.escortWeight > 0,
@@ -622,9 +628,13 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                                         : "covers friends of any size"
                                     : field === "escortRadii"
                                       ? `${metres(v.approach.escortRadii * ship.radius)} off the skin of a consort its own size`
-                                      : ship.reach > 0
-                                        ? `no further than ${metres(v.approach.escort * ship.reach)}`
-                                        : "no cap: it has no guns",
+                                      : field === "escortInner"
+                                        ? v.approach.escortInner > 0
+                                            ? `${Math.round(Math.min(1, v.approach.escortInner) * 100)}% of the way out across its band`
+                                            : "no inside edge: as close as keeping clear lets it"
+                                        : ship.reach > 0
+                                          ? `no further than ${metres(v.approach.escort * ship.reach)}`
+                                          : "no cap: it has no guns",
                         }),
                     ),
                 ],

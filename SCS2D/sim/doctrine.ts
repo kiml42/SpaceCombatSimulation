@@ -280,6 +280,12 @@ export interface Approach extends SupplyPriorities, SupplyShares {
      */
     readonly escort: number;
     /**
+     * The inside of its escort band, as a fraction of the way from touching
+     * its charge to the band's outside: half way by default; 0 has no inside
+     * edge, and keeping clear alone holds it off; 1 holds it at the outside edge.
+     */
+    readonly escortInner: number;
+    /**
      * The smallest friend it will cover, in multiples of its own radius: one,
      * the default, only what is at least its own size, so a capital does not
      * trail round after a fighter it happens to be nearest; zero anything. A
@@ -638,6 +644,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
         standoff: 0.65,
         escortRadii: 8,
         escort: 0.15,
+        escortInner: 0.5,
         escortMinRadii: 1,
         separation: 300,
         separationRadii: 3,
@@ -869,6 +876,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
     "standoff",
     "escortRadii",
     "escort",
+    "escortInner",
     "escortMinRadii",
     "separation",
     "separationRadii",
@@ -924,6 +932,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
 /** Fields that mean nothing below zero, though zero itself is a setting. */
 export const NON_NEGATIVE_FIELDS: readonly string[] = [
     "ramSettle",
+    "escortInner",
     "spinResist",
     "bandFade",
     ...CLAIMS.map((claim) => `${claim}Share`),
