@@ -263,7 +263,7 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
             const at = ships.locate(bodies, target, tb, ships.fightAt);
             wantAngle = atan2(at.y - bodies.y[b]!, at.x - bodies.x[b]!);
             if (!order.ram) {
-                wantAngle = attackHeading(ships, i, b, at, bodies, wantAngle);
+                wantAngle = attackHeading(ships, i, b, at, bodies, wantAngle, target, tb);
                 fighting = tb;
                 holdOut = order.maxRange;
             }
@@ -294,7 +294,7 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
                 const gap = length(bodies.x[cb]! - bodies.x[b]!, bodies.y[cb]! - bodies.y[b]!);
                 if (gap <= shipDecide.escortBand(ships, i, ships.designs[i]!, covering)) {
                     const at = ships.locate(bodies, attacker, ab, ships.lookAt);
-                    wantAngle = attackHeading(ships, i, b, at, bodies, atan2(at.y - bodies.y[b]!, at.x - bodies.x[b]!));
+                    wantAngle = attackHeading(ships, i, b, at, bodies, atan2(at.y - bodies.y[b]!, at.x - bodies.x[b]!), attacker, ab);
                 }
             }
         }
@@ -451,8 +451,21 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
  * working main guns bear most (`attackBearing`), led by those guns' time of
  * flight, so a battery that cannot train far is pointed where its shot will
  * meet the target rather than where the target is.
+ *
+ * Where its main guns are after a part of `target` rather than the whole of
+ * it (`aimedPart`), the hull is pointed at that part instead, led as a gun
+ * leads it: by the part's own motion, spin and all.
  */
-export function attackHeading(ships: Ships, i: number, b: number, at: Spot, bodies: Bodies, towards: number): number {
+export function attackHeading(
+    ships: Ships,
+    i: number,
+    b: number,
+    at: Spot,
+    bodies: Bodies,
+    towards: number,
+    target: number = NO_TARGET,
+    tb: number = -1,
+): number {
     const design = ships.designs[i]!;
     const arcs = ships.attackArcs;
     arcs.clear();
@@ -463,17 +476,59 @@ export function attackHeading(ships: Ships, i: number, b: number, at: Spot, bodi
     for (const t of design.mainWeaponEngines) {
         if (ships.left(i, b, design.engines[t]!.module ?? -1, DamageEffect.Thrust) > 0) addFlame(arcs, design, t);
     }
+    let ax = at.x;
+    let ay = at.y;
+    let avx = at.vx;
+    let avy = at.vy;
+    const part = tb >= 0 ? aimedPart(ships, i, target, tb) : -1;
+    if (part >= 0) {
+        const module = ships.designs[target]!.modules[part]!;
+        const angle = bodies.angle[tb]!;
+        const rx = module.x * cos(angle) - module.y * sin(angle);
+        const ry = module.x * sin(angle) + module.y * cos(angle);
+        const spin = bodies.angularVel[tb]!;
+        ax = bodies.x[tb]! + rx;
+        ay = bodies.y[tb]! + ry;
+        avx = bodies.vx[tb]! - spin * ry;
+        avy = bodies.vy[tb]! + spin * rx;
+        towards = atan2(ay - bodies.y[b]!, ax - bodies.x[b]!);
+    }
     const current = angleDelta(bodies.angle[b]!, towards);
     const region = attackBearing(arcs, current, ships.doctrines[i]!.approach.turnBias, design.thrustBearing, ships.attackRegion);
     if (region.speed > 0) {
-        const dx = at.x - bodies.x[b]!;
-        const dy = at.y - bodies.y[b]!;
-        const dvx = at.vx - bodies.vx[b]!;
-        const dvy = at.vy - bodies.vy[b]!;
+        const dx = ax - bodies.x[b]!;
+        const dy = ay - bodies.y[b]!;
+        const dvx = avx - bodies.vx[b]!;
+        const dvy = avy - bodies.vy[b]!;
         const t = interceptTime(dx, dy, dvx, dvy, region.speed);
         if (t > 0) towards = atan2(dy + dvy * t, dx + dvx * t);
     }
     return towards - region.aim;
+}
+
+/**
+ * The part of `target`, on body `tb`, that ship `i`'s main guns are after,
+ * taken from the one the hull aims most nearly (its narrowest arc), or -1
+ * where none is after a part of it: the whole ship, or another ship. A mount
+ * that trains all the way round needs nothing of the hull, so is left out.
+ */
+function aimedPart(ships: Ships, i: number, target: number, tb: number): number {
+    const design = ships.designs[i]!;
+    const parts = ships.designs[target]?.modules.length ?? 0;
+    let best = -1;
+    let narrowest = Infinity;
+    for (let t = 0; t < design.turrets.length; t++) {
+        const turret = design.turrets[t]!;
+        if (!turret.main || ships.isTurretDisabled(i, t) || ships.turretAiming[i]![t] !== target) continue;
+        const part = ships.turretAimModule[i]![t]!;
+        if (part < 0 || part >= parts || ships.damage.spent(tb, part)) continue;
+        const arc = (turret.mount.leftArc ?? PI) + (turret.mount.rightArc ?? PI);
+        if (arc < 2 * PI && arc < narrowest) {
+            narrowest = arc;
+            best = part;
+        }
+    }
+    return best;
 }
 
 /**

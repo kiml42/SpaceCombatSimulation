@@ -288,7 +288,10 @@ inside any one file is not contiguous.
   less doctrine's `turnBias` for every half turn it is from where the target already is, so a Star Destroyer
   fights on whichever beam is nearer and turns the other to the enemy only for enough more guns to pay for
   the turn. The battery is pointed where its shot will meet the target, led by the harmonic mean of its guns'
-  muzzle speeds (beams and flames arrive at once and lead nothing). Where the guns bear on the ship's main
+  muzzle speeds (beams and flames arrive at once and lead nothing). Where a main gun that cannot train right
+  round is after a part of its target rather than the whole of it (its doctrine's part weights), the battery
+  is pointed at that part, led as the gun leads it: a lance after the enemy's guns points its bow at them,
+  not at the middle of the ship. Where the guns bear on the ship's main
   thrust axis — the way its layout pushes hardest — or bear everywhere, it holds the target on that, so a
   ship with turrets that train right round flies at what it is fighting. The editor draws each best bearing
   out to the band and lists it. **It turns from its guns to its engines when doctrine says the push is
