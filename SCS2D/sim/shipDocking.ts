@@ -351,7 +351,11 @@ export function landOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
     let gx = px;
     let gy = py;
     let left = range;
+    ships.destX[i] = place.x;
+    ships.destY[i] = place.y;
     if (!near && !lined) {
+        ships.viaX[i] = ships.entryX;
+        ships.viaY[i] = ships.entryY;
         const entry = length(ships.entryX - place.x, ships.entryY - place.y);
         gx = ships.entryX;
         gy = ships.entryY;
@@ -647,6 +651,12 @@ export function dockOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
     const standoff = PORT_STANDOFF_RADII * bodies.radius[b]!;
     let tx = lined ? gx : gx + nx * standoff;
     let ty = lined ? gy : gy + ny * standoff;
+    ships.destX[i] = place.x + nx * face;
+    ships.destY[i] = place.y + ny * face;
+    if (!lined) {
+        ships.viaX[i] = tx;
+        ships.viaY[i] = ty;
+    }
     // Not out in front of their port: round their hull to a point a radius of
     // theirs off it first, rather than through the hull.
     const fx = bodies.x[b]! - (place.x + nx * face);
@@ -660,6 +670,8 @@ export function dockOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
         ty = place.y + ny * (face + reach);
         const offX = tx;
         const offY = ty;
+        ships.viaX[i] = offX;
+        ships.viaY[i] = offY;
         if (shipRoute.route(ships, bodies, i, b, offX, offY, ships.salvaging[i]!, shipRoute.GOAL_SOLID, ROUTE)) {
             tx = ROUTE.x;
             ty = ROUTE.y;

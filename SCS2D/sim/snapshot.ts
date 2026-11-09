@@ -92,6 +92,14 @@ export interface ShipView {
     /** How far from that it stays, centre to centre, metres, and how close it comes; absent, as close as keeping clear lets it. */
     coverBand?: number;
     coverInner?: number;
+    /**
+     * Where it is flying to, world frame: the point it makes for first, such as where a pad's way in
+     * starts, and the point it means to end up at, such as the pad; absent for nowhere in particular.
+     */
+    viaX?: number;
+    viaY?: number;
+    destX?: number;
+    destY?: number;
     /** The body of what it is keeping clear of most, and how far off it wants it, centre to centre, metres; absent for nothing. */
     avoiding?: number;
     avoidRoom?: number;
@@ -593,6 +601,22 @@ export function capture(
         } else {
             delete view.coverBand;
             delete view.coverInner;
+        }
+        const via = ships.viaX[i]!;
+        if (via === via) {
+            view.viaX = via;
+            view.viaY = ships.viaY[i]!;
+        } else {
+            delete view.viaX;
+            delete view.viaY;
+        }
+        const dest = ships.destX[i]!;
+        if (dest === dest) {
+            view.destX = dest;
+            view.destY = ships.destY[i]!;
+        } else {
+            delete view.destX;
+            delete view.destY;
         }
         const dodging = ships.dodgingOf(i);
         if (dodging >= 0) {

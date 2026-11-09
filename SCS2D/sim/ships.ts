@@ -722,6 +722,15 @@ export class Ships {
     readonly gripSlack: number[] = [];
     /** Whether each claw ship is closing straight in on its grip point, rather than making for the gate. */
     readonly gripClosing: number[] = [];
+    /**
+     * Where each ship is flying to this step, world frame, m, NaN for nowhere in particular: the point it
+     * makes for first (`viaX`, `viaY`), such as where a pad's way in starts, and the point it means to end
+     * up at (`destX`, `destY`), such as the pad. For the view only.
+     */
+    readonly viaX: number[] = [];
+    readonly viaY: number[] = [];
+    readonly destX: number[] = [];
+    readonly destY: number[] = [];
     /** What each ship's heaviest dodge this step is from, or -1; and how far off it wants that, centre to centre, m. */
     readonly dodgingFrom: number[] = [];
     readonly dodgingRoom: number[] = [];
@@ -1478,6 +1487,10 @@ export class Ships {
         this.gripNy.push(0);
         this.gripSlack.push(0);
         this.gripClosing.push(0);
+        this.viaX.push(NaN);
+        this.viaY.push(NaN);
+        this.destX.push(NaN);
+        this.destY.push(NaN);
         this.dodgingFrom.push(-1);
         this.dodgingRoom.push(0);
         this.dodgingTouch.push(0);
@@ -2135,6 +2148,11 @@ export class Ships {
 
         for (let i = 0; i < this.alive.length; i++) {
             if (this.alive[i] === 0) continue;
+            // Set again by the pilot below, if it flies anywhere in particular.
+            this.viaX[i] = NaN;
+            this.viaY[i] = NaN;
+            this.destX[i] = NaN;
+            this.destY[i] = NaN;
             // Nothing controls a severed chunk, or a ship whose cores have been
             // shot out, so nothing holds its heading or kills its
             // drift: its engines and turrets fail safe and stop, and it tumbles on

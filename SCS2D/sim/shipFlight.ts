@@ -271,6 +271,9 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
                 holdOut = order.maxRange;
             }
             if (order.ram) {
+                // For the view: no part is picked, so the middle of what is left of it.
+                ships.destX[i] = at.x;
+                ships.destY[i] = at.y;
                 charge(ships, bodies, i, b, at, order.approachSpeed, tb);
                 ships.intent = HURRY;
             } else if (ships.guarding[i] !== 1) {
