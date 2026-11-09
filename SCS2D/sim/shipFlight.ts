@@ -1434,6 +1434,8 @@ export function avoid(
         let room = (ramming ? mine : touching) * approach.separationRadii;
         // From a neighbour on the rock only by its own size, or it could never grip the face beside it.
         if (neighbour) room = mine;
+        // From another coming down on the same deck, only from touching: neighbouring pads are closer than the clearance.
+        if (landing && ships.salvaging[t] === flying && ships.landingPad[t]! >= 0) room = 0;
         // Closing straight in on a face chosen clear of both (`wayInClear`), only from touching them.
         if (hulksOnly && ships.gripClosing[i] === 1) room = 0;
         // Its charge no further out than its station, or the two wants fight:
