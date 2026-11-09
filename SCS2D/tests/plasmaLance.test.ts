@@ -143,14 +143,19 @@ describe("a plasma lance", () => {
             ...CORVETTE,
             modules: CORVETTE.modules.map((p) => ("kind" in p && p.kind === "hullGun" ? { ...p, kind: "plasmaLance", barrels: 3 } : p)),
         };
+        // The lances it starts with: one refitted from something else keeps what that had.
+        const lances = new Set(
+            held.modules.filter((p) => "kind" in p && p.kind === "plasmaLance").map((p) => ("id" in p ? p.id : undefined)),
+        );
+        expect(lances.size).toBeGreaterThan(0);
+        expect(lances.has(undefined)).toBe(false);
         let seen = 0;
         for (let i = 0; i < 100; i++) {
             const child = mutate(held, rng);
             expect(child.edits.some((edit) => /plasmaLance: barrels/.test(edit))).toBe(false);
             held = child.blueprint;
             for (const p of held.modules) {
-                // A lance refitted from something else has none to keep.
-                if (!("kind" in p) || p.kind !== "plasmaLance" || p.barrels === undefined) continue;
+                if (!("kind" in p) || p.kind !== "plasmaLance" || !lances.has(p.id)) continue;
                 expect(p.barrels).toBe(3);
                 seen++;
             }
