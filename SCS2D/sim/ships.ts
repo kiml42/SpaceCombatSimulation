@@ -725,6 +725,11 @@ export class Ships {
     /** What each ship's heaviest dodge this step is from, or -1; and how far off it wants that, centre to centre, m. */
     readonly dodgingFrom: number[] = [];
     readonly dodgingRoom: number[] = [];
+    /** Where the middle of what it keeps clear of is, world frame, m: off its body's where only its deck can be hit. */
+    /** How close the two would be touching, centre to centre of what each can hit, m. */
+    readonly dodgingTouch: number[] = [];
+    readonly dodgingX: number[] = [];
+    readonly dodgingY: number[] = [];
     readonly gripAt: number[] = [];
     /** The heading `squareUp` last asked for. */
     gripHeading = 0;
@@ -1464,6 +1469,9 @@ export class Ships {
         this.gripClosing.push(0);
         this.dodgingFrom.push(-1);
         this.dodgingRoom.push(0);
+        this.dodgingTouch.push(0);
+        this.dodgingX.push(0);
+        this.dodgingY.push(0);
         this.gripAt.push(-Infinity);
         this.landingPad.push(-1);
         this.dockSeenVx.push(0);
