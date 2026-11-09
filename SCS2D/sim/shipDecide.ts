@@ -168,6 +168,8 @@ export function decide(ships: Ships, world: World, bodies: Bodies, i: number): v
         // So is a hulk with robots aboard, which may yet mend its core.
         if (ships.derelict[t] === 1 || ships.hostile(i, t)) continue;
         if (ships.hulk(t) && !ships.mending(bodies, t)) continue;
+        // Nor is a rock: neutral, but scenery rather than an objective.
+        if (ships.rockFlag[t] === 1) continue;
         // Nor is a friend too small for it to bother covering. A neutral is an
         // objective rather than a ship to look after, and is gone to whatever
         // its size: a goal is a marker far smaller than anything racing to it.
