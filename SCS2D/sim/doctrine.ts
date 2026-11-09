@@ -281,8 +281,8 @@ export interface Approach extends SupplyPriorities, SupplyShares {
     readonly escort: number;
     /**
      * The inside of its escort band, as a fraction of the way from touching
-     * its charge to the band's outside: 0, the default, has no inside edge,
-     * and keeping clear alone holds it off; 1 holds it at the outside edge.
+     * its charge to the band's outside: half way by default; 0 has no inside
+     * edge, and keeping clear alone holds it off; 1 holds it at the outside edge.
      */
     readonly escortInner: number;
     /**
@@ -636,7 +636,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
         standoff: 0.65,
         escortRadii: 8,
         escort: 0.15,
-        escortInner: 0,
+        escortInner: 0.5,
         escortMinRadii: 1,
         separation: 300,
         separationRadii: 3,
