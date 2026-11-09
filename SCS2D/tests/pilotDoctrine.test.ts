@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { compileBlueprint, DEFAULT_DOCTRINE, type Blueprint, type Doctrine } from "../sim/index.js";
 import { OrderCancelCondition } from "../sim/ships.js";
+import { STEER_SPIN } from "../sim/helm.js";
 import { makeBattle } from "../scenarios/battle.js";
-import { BARE_CORE, BROADSIDE } from "../scenarios/blueprints.js";
+import { BARE_CORE, BROADSIDE, DINKY } from "../scenarios/blueprints.js";
 
 /** `blueprint` with its approach doctrine changed by `approach`. */
 function withApproach(blueprint: Blueprint, approach: Partial<Doctrine["approach"]>): Blueprint {
@@ -59,5 +60,36 @@ describe("a pilot's own doctrine", () => {
         const hard = sidestep({ dodgeSpeed: 120 }, 15);
         const soft = sidestep({ dodgeSpeed: 20 }, 15);
         expect(Math.hypot(hard.x, hard.y)).toBeGreaterThan(Math.hypot(soft.x, soft.y) + 1);
+    });
+});
+
+describe("resisting spin", () => {
+    /** The fastest a Dinky that turns only one way spins over `seconds`, flying at a core 3 km off. */
+    function fastestSpin(spinResist: number, seconds: number): number {
+        const run = makeBattle({ seed: 4 }, (ships, world) => {
+            const design = compileBlueprint(withApproach(DINKY, { spinResist }));
+            const mine = ships.spawn(world, { design, x: 0, y: 0, team: 0 });
+            const them = ships.spawn(world, { design: compileBlueprint(BARE_CORE), x: 3000, y: 0, team: 1 });
+            const b = world.bodies.indexOf(ships.body(mine));
+            for (const m of [2, 7, 8]) ships.damage.absorb(b, m, ships.damage.capacityLeft(b, m));
+            ships.clearOrder(mine);
+            ships.pushOrder(mine, them, 300, 500, 10, OrderCancelCondition.None);
+            return { mine, them };
+        });
+        let fastest = 0;
+        for (let s = 0; s < seconds * 60; s++) {
+            run.step();
+            const b = run.world.bodies.indexOf(run.ships.body(run.mine));
+            fastest = Math.max(fastest, Math.abs(run.world.bodies.angularVel[b]!));
+        }
+        return fastest;
+    }
+
+    it("holds back the push that would spin it faster", () => {
+        const free = fastestSpin(0, 20);
+        const resisted = fastestSpin(1, 20);
+        // At one, it tops out at `STEER_SPIN`, an eighth of a turn a second.
+        expect(resisted).toBeLessThan(STEER_SPIN * 1.05);
+        expect(free).toBeGreaterThan(STEER_SPIN * 1.5);
     });
 });

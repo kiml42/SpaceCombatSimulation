@@ -347,6 +347,14 @@ export interface Approach extends SupplyPriorities, SupplyShares {
      * engines, so it also turns to burn less readily.
      */
     readonly responseTime: number;
+    /**
+     * How hard it refuses to spin faster, as an ask against its rotation on top
+     * of whatever turn it wants: at one, spinning `STEER_SPIN` asks for all the
+     * torque it has that way, so a turn tops out there. Unlike the turn, the ask
+     * is never clipped to what the layout can give, so a lopsided ship whose push
+     * would spin it further holds that push back instead. Zero lets it spin up.
+     */
+    readonly spinResist: number;
     /** How much closer or further than that is close enough, as a fraction. */
     readonly tolerance: number;
     /**
@@ -641,6 +649,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
         chargeReserve: 0.25,
         dodgeSpeed: 60,
         responseTime: 2,
+        spinResist: 0,
         tolerance: 0.2,
         bandFade: 0.1,
         approachSpeed: 60,
@@ -866,6 +875,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
     "avoidHorizon",
     "dodgeSpeed",
     "responseTime",
+    "spinResist",
     "tolerance",
     "bandFade",
     "approachSpeed",
@@ -914,6 +924,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
 /** Fields that mean nothing below zero, though zero itself is a setting. */
 export const NON_NEGATIVE_FIELDS: readonly string[] = [
     "ramSettle",
+    "spinResist",
     "bandFade",
     ...CLAIMS.map((claim) => `${claim}Share`),
     "fuelReserve",

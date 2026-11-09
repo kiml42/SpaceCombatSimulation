@@ -174,6 +174,16 @@ export function pushTorque(layout: EngineLayout, fx: number, fy: number): number
     return torque;
 }
 
+/**
+ * The torque a ship spinning at `spin` rad/s asks for against it, given its
+ * doctrine's `spinResist`: in proportion to the spin, against `STEER_SPIN`
+ * and the torque the layout has the way it spins.
+ */
+export function spinCheck(layout: EngineLayout, spin: number, resist: number): number {
+    if (!(resist > 0) || spin === 0) return 0;
+    return -resist * (spin / STEER_SPIN) * layout.maxTorque(spin > 0 ? 1 : -1);
+}
+
 /** Seconds for a layout to turn a body of `inertia` through `by` radians from rest and stop, flat out. */
 export function turnTime(layout: EngineLayout, inertia: number, by: number): number {
     const alpha = layout.maxTorque(by >= 0 ? 1 : -1) / inertia;
