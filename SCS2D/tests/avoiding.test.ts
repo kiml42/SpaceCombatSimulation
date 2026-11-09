@@ -42,5 +42,25 @@ describe("what a ship is avoiding", () => {
         const room = ships.dodgingRoom[fighter]!;
         const separation = ships.doctrines[fighter]!.approach.separationRadii;
         expect(room).toBeCloseTo((carrier.raisedRadius + dinky.radius) * (1 + separation));
+        // Round what stands up, wherever on the hull that is, not round the hull's middle:
+        // the carrier as it was spawned, at the origin and unturned, when the fighter decided.
+        expect(ships.dodgingX[fighter]).toBeCloseTo(carrier.raisedX, 6);
+        expect(ships.dodgingY[fighter]).toBeCloseTo(carrier.raisedY, 6);
+        expect(ships.dodgingTouch[fighter]).toBeCloseTo(carrier.raisedRadius + dinky.radius);
+    });
+
+    it("rings a hull's raised parts by a circle of their own, off its middle where they are", () => {
+        // A long hull with one turret at its bow: the circle is round the turret, not the hull.
+        const design = compileBlueprint({
+            name: "Bow turret",
+            modules: [
+                { kind: "core", x: 0, y: 0, length: 6, width: 6 },
+                { kind: "structure", x: 30, y: 0, length: 54, width: 6 },
+                { kind: "turret", x: 59, y: 0, length: 4, width: 4 },
+            ],
+        });
+        expect(design.raisedRadius).toBeGreaterThan(0);
+        expect(design.raisedRadius).toBeLessThan(design.radius / 4);
+        expect(design.raisedX).toBeGreaterThan(design.radius / 2);
     });
 });

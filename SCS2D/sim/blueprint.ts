@@ -598,7 +598,13 @@ export interface ShipDesign {
     readonly inertia: number;
     /** Bounding-circle radius about the centre of mass, metres. */
     readonly radius: number;
-    /** The same, of its modules in the weapons layer alone: all a fighter flying over its deck can hit. */
+    /**
+     * A circle round its modules in the weapons layer alone, all a fighter flying
+     * over its deck can hit: its centre from the centre of mass, body frame, and
+     * its radius. A radius of 0 for none.
+     */
+    readonly raisedX: number;
+    readonly raisedY: number;
     readonly raisedRadius: number;
     /** Where the centre of mass sat in the blueprint's own frame, metres. */
     readonly centreOfMassX: number;
@@ -2704,7 +2710,7 @@ function designFrom(
     const cores: number[] = [];
     let inertia = 0;
     let radius = 0;
-    let raisedRadius = 0;
+    const raisedPoints: number[] = [];
     const c: number[] = [];
 
     for (let i = 0; i < specs.length; i++) {
@@ -2730,7 +2736,7 @@ function designFrom(
             const dy = c[k + 1]! - comY;
             const out = sqrt(dx * dx + dy * dy);
             radius = max(radius, out);
-            if (standsUp) raisedRadius = max(raisedRadius, out);
+            if (standsUp) raisedPoints.push(dx, dy);
         }
 
         modules.push({
@@ -2930,7 +2936,7 @@ function designFrom(
         launchMass: mass - unfilled,
         inertia,
         radius,
-        raisedRadius,
+        ...raisedCircle(raisedPoints),
         centreOfMassX: comX,
         centreOfMassY: comY,
         engines,
@@ -2944,4 +2950,28 @@ function designFrom(
         ...(joins === undefined ? {} : { pieces: joins.pieces, seams: joins.seams }),
         ...(joins?.fighterPieces === undefined ? {} : { fighterPieces: joins.fighterPieces }),
     };
+}
+
+/** A circle round points (x, y, …): about the middle of their box, out to the furthest. */
+function raisedCircle(points: readonly number[]): { raisedX: number; raisedY: number; raisedRadius: number } {
+    if (points.length === 0) return { raisedX: 0, raisedY: 0, raisedRadius: 0 };
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (let k = 0; k < points.length; k += 2) {
+        minX = min(minX, points[k]!);
+        maxX = max(maxX, points[k]!);
+        minY = min(minY, points[k + 1]!);
+        maxY = max(maxY, points[k + 1]!);
+    }
+    const raisedX = (minX + maxX) / 2;
+    const raisedY = (minY + maxY) / 2;
+    let raisedRadius = 0;
+    for (let k = 0; k < points.length; k += 2) {
+        const dx = points[k]! - raisedX;
+        const dy = points[k + 1]! - raisedY;
+        raisedRadius = max(raisedRadius, sqrt(dx * dx + dy * dy));
+    }
+    return { raisedX, raisedY, raisedRadius };
 }

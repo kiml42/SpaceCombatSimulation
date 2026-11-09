@@ -94,6 +94,11 @@ export interface ShipView {
     /** The body of what it is keeping clear of most, and how far off it wants it, centre to centre, metres; absent for nothing. */
     avoiding?: number;
     avoidRoom?: number;
+    /** Where the middle of that clearance is, world frame: off the body's middle where only its deck can be hit. */
+    avoidX?: number;
+    avoidY?: number;
+    /** How close the two would be touching there. */
+    avoidTouch?: number;
     /**
      * The design it is built to, whatever damage has made of `design`: what it is
      * of, for grouping it with others. Absent where it is `design`, as in an editor.
@@ -586,9 +591,15 @@ export function capture(
         if (dodging >= 0) {
             view.avoiding = bodies.indexOf(ships.body(dodging));
             view.avoidRoom = ships.dodgingRoom[i];
+            view.avoidX = ships.dodgingX[i];
+            view.avoidY = ships.dodgingY[i];
+            view.avoidTouch = ships.dodgingTouch[i];
         } else {
             delete view.avoiding;
             delete view.avoidRoom;
+            delete view.avoidX;
+            delete view.avoidY;
+            delete view.avoidTouch;
         }
         view.ship = i;
         view.doctrine = ships.doctrineOf(i);
