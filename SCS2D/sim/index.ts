@@ -469,6 +469,7 @@ export {
     DAMAGE_ENERGY_PER_KG,
     RAGGED_INTEGRITY,
     SHED_AT_BREAK,
+    SHATTER,
     SHED_FLOOR,
     shedShare,
     REPAIR_ENERGY_PER_JOULE,

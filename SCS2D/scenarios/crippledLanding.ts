@@ -1,4 +1,4 @@
-import { compileBlueprint, math, type Blueprint } from "../sim/index.js";
+import { compileBlueprint, math, SHATTER, type Blueprint } from "../sim/index.js";
 import { type Battle } from "./types.js";
 import { makeBattle } from "./battle.js";
 import { DINKY, REPLICATOR } from "./blueprints.js";
@@ -34,6 +34,8 @@ export interface Crippling {
     readonly fighter: Blueprint;
     readonly carrier: Blueprint;
     readonly lost: readonly number[];
+    /** Modules blown off altogether, as a fighter often comes out of a battle, rather than left wrecked on it. */
+    readonly blownOff?: readonly number[];
 }
 
 /**
@@ -41,6 +43,7 @@ export interface Crippling {
  * 1, 3, 7, 9 thrusters pushing it sideways, 2 and 8 pushing it back, 4 its
  * main, 6 its gun (half its mass, at the nose), 10 its hold. A Dinky's Side
  * thrusters and their opposite numbers: losing [2, 7, 8] or [1, 2, 9] leaves its turn one way only.
+ * A Dinky's 2, 3, 8 and 9 are its forward thrusters, 6 its gun and 10 its hold: everything ahead of its tank.
  */
 export const CRIPPLINGS: readonly Crippling[] = [
     { name: "Raider, one turn far weaker [1, 8]", fighter: RAIDER, carrier: RAIDER_PAD, lost: [1, 8] },
@@ -53,6 +56,14 @@ export const CRIPPLINGS: readonly Crippling[] = [
     { name: "Raider, turns one way, every push spins it [1, 4, 10]", fighter: RAIDER, carrier: RAIDER_PAD, lost: [1, 4, 10] },
     { name: "Dinky, turns anticlockwise only [2, 7, 8]", fighter: DINKY, carrier: DINKY_PAD, lost: [2, 7, 8] },
     { name: "Dinky, turns clockwise only [1, 2, 9]", fighter: DINKY, carrier: DINKY_PAD, lost: [1, 2, 9] },
+    // Its forward thrusters, gun and hold: what is left is its tank, core, main and the two Side thrusters astern.
+    {
+        name: "Dinky, nothing ahead of its tank [2, 3, 6, 8, 9, 10]",
+        fighter: DINKY,
+        carrier: DINKY_PAD,
+        lost: [],
+        blownOff: [2, 3, 6, 8, 9, 10],
+    },
 ];
 
 /** How many fighters come in at once, one from each eighth of the way round. */
@@ -91,6 +102,8 @@ export function crippledLanding(seed = 20260905, crippling: Crippling = CRIPPLIN
             const b = world.bodies.indexOf(ships.body(f));
             for (let m = 0; m < fighter.modules.length; m++) ships.fuel.vent(b, m, ships.fuel.held(b, m) * 0.7);
             for (const m of crippling.lost) ships.damage.absorb(b, m, ships.damage.capacityLeft(b, m));
+            // Enough at once to shatter it, so the first step takes it off the hull.
+            for (const m of crippling.blownOff ?? []) ships.damage.absorb(b, m, SHATTER * ships.damage.capacityOf(b, m));
             fighters.push(f);
         }
         return { carriers, fighters };
