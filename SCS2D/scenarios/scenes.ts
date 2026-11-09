@@ -28,13 +28,16 @@ import { beamCarrier } from "./beamCarrier.js";
 import { circling, passes } from "./passes.js";
 import { rearm } from "./rearm.js";
 import { tanker } from "./tanker.js";
+import { CRIPPLINGS, crippledLanding } from "./crippledLanding.js";
 
 /** The seed every scene is built from, so a scene looks the same each time it is opened. */
 export const SCENE_SEED = 20260905;
 
 export interface Scene {
     readonly name: string;
-    create(): Battle;
+    /** The versions of this scene a viewer can pick between, by name; `create` takes the index of one. */
+    readonly variants?: readonly string[];
+    create(variant?: number): Battle;
 }
 
 /** The battles a viewer offers, by name, in the order it lists them, each in a light of its own. */
@@ -44,8 +47,11 @@ export const SCENES: readonly Scene[] = [
     { name: "Rail Duel", create: () => lit(railDuel(SCENE_SEED), LIGHTS.blueGiant) },
     { name: "Lance Duel", create: () => lit(lanceDuel(SCENE_SEED), LIGHTS.redDwarf) },
     { name: "Star Wars", create: () => lit(starWars(SCENE_SEED), LIGHTS.noon) },
-    { name: "Swarm", create: () => lit(swarm(SCENE_SEED), LIGHTS.dusk) },
-    { name: "Super Swarm", create: () => lit(swarm(SCENE_SEED, 300), LIGHTS.redDwarf) },
+    {
+        name: "Swarm",
+        variants: ["20 fighters", "300 fighters"],
+        create: (variant = 0) => (variant === 1 ? lit(swarm(SCENE_SEED, 300), LIGHTS.redDwarf) : lit(swarm(SCENE_SEED), LIGHTS.dusk)),
+    },
     { name: "Torpedoes", create: () => lit(torpedoes(SCENE_SEED), LIGHTS.violet) },
     { name: "Standoff", create: () => lit(standoff(SCENE_SEED), LIGHTS.ice) },
     { name: "Line Ahead", create: () => lit(column(SCENE_SEED), LIGHTS.gold) },
@@ -72,4 +78,9 @@ export const SCENES: readonly Scene[] = [
     { name: "Beam Carrier", create: () => lit(beamCarrier(SCENE_SEED), LIGHTS.nebula) },
     { name: "Passes", create: () => lit(passes(SCENE_SEED), LIGHTS.dusk) },
     { name: "Circling", create: () => lit(circling(SCENE_SEED), LIGHTS.ice) },
+    {
+        name: "Crippled Landing",
+        variants: CRIPPLINGS.map((crippling) => crippling.name),
+        create: (variant = 0) => lit(crippledLanding(SCENE_SEED, CRIPPLINGS[variant]), LIGHTS.gold),
+    },
 ];

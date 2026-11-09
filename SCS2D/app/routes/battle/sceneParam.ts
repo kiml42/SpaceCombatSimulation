@@ -15,3 +15,15 @@ export function sceneIndex(param: string | null): number {
     const index = SCENES.findIndex((scene) => scene.name === param);
     return index < 0 ? 0 : index;
 }
+
+/** How the address names a scene's variant: `&variant=300 fighters`, or nothing for a scene without them. */
+export function variantParam(scene: number, variant: number): string | null {
+    const variants = SCENES[scene]?.variants;
+    return variants === undefined ? null : (variants[variant] ?? variants[0]!);
+}
+
+/** The variant of `scene` the address names, or its first if it names none. */
+export function variantIndex(scene: number, param: string | null): number {
+    const index = SCENES[scene]?.variants?.indexOf(param ?? "") ?? -1;
+    return index < 0 ? 0 : index;
+}

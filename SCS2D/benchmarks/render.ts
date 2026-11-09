@@ -30,7 +30,7 @@ const appPage = join(root, "dist", "index.html");
 
 const { values } = parseArgs({
     options: {
-        scenes: { type: "string", default: "Duel,Star Wars,Super Swarm,Asteroid Field,Factory" },
+        scenes: { type: "string", default: "Duel,Star Wars,Swarm:300 fighters,Asteroid Field,Factory" },
         seconds: { type: "string", default: "8" },
         warmup: { type: "string", default: "3" },
         at: { type: "string", default: "5" },
@@ -287,7 +287,10 @@ try {
                 if ((await fleets.textContent()) !== `Fleets: ${values.strips}`) await fleets.click();
                 for (const scene of group) {
                     // Whether a new scene plays depends on the last; each is played to the same moment, so every run shows the same frame.
-                    await page.selectOption("#scene", { label: scene });
+                    // "Scene:Variant" picks a variant too.
+                    const [name, variant] = scene.split(":");
+                    await page.selectOption("#scene", { label: name! });
+                    if (variant !== undefined) await page.selectOption("#variant", { label: variant });
                     // The readout is sampled, so it shows the last scene's time for a moment.
                     await page.waitForFunction(() => battleTime() < 1, null, { polling: 50 });
                     await setPlaying(page, true);
