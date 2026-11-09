@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { capture, Snapshot } from "../sim/index.js";
 import { duel } from "../scenarios/duel.js";
 import { beamVGun } from "../scenarios/beamVGun.js";
+import { railDuel } from "../scenarios/railDuel.js";
 
 /** What a battle tells the renderer about how loaded each gun is. */
 
@@ -46,5 +47,23 @@ describe("a gun’s load in battle", () => {
             }
         }
         expect(firing).toBeGreaterThan(0);
+    });
+
+    it("shows a rail gun reloading until its bank holds a volley", () => {
+        const battle = railDuel();
+        const snapshot = new Snapshot();
+        let charging = 0;
+        for (let step = 0; step < 1500; step++) {
+            battle.step();
+            capture(snapshot, battle.world, battle.ships, battle.projectiles, battle.beams, battle.wells);
+            for (let s = 0; s < snapshot.shipCount; s++) {
+                const view = snapshot.ships[s]!;
+                for (let t = 0; t < view.turretLoad!.length; t++) {
+                    if (view.turretReloading![t]) charging++;
+                    else expect(view.turretLoad![t]).toBe(1);
+                }
+            }
+        }
+        expect(charging).toBeGreaterThan(0);
     });
 });
