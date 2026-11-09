@@ -36,7 +36,9 @@
           "refuelBelow": 0.5,
           "rechargeBelow": 0.5,
           "tangentialMin": 20,
-          "tangentialMax": 60
+          "tangentialMax": 60,
+          "separation": 150,
+          "separationRadii": 1
         }
       },
       "assemblies": {
