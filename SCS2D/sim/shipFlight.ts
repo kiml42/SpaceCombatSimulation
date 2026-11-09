@@ -143,6 +143,7 @@ function moduleSizes(design: ShipDesign): Float64Array {
  * allocator. There is no evasion, approach angle or propellant budget.
  */
 export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid?: SpatialGrid): void {
+    ships.dodgingFrom[i] = -1;
     const b = bodies.indexOf(ships.bodyIds[i]!);
     if (b < 0) return;
 
@@ -1475,6 +1476,8 @@ export function avoid(
             ships.dodgeWeight = weight;
             ships.dodgeWhen = when;
             ships.dodgeRock = rock;
+            ships.dodgingFrom[i] = t;
+            ships.dodgingRoom[i] = touching + room;
         }
         // From its charge, opening at a speed that grows with how deep inside
         // the clearance it is, less what it is opening at already, so a pair
