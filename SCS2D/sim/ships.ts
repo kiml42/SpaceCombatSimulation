@@ -1768,6 +1768,11 @@ export class Ships {
         return shipDecide.escortBand(this, i, this.designs[i]!, consort);
     }
 
+    /** The inside edge of that band, centre to centre, metres; 0 for none. */
+    coverInnerOf(i: number, consort: number): number {
+        return shipDecide.escortInnerEdge(this, i, this.designs[i]!, consort, this.coverBandOf(i, consort));
+    }
+
     heldOrder(i: number): Readonly<Order> | undefined {
         return shipOrders.heldOrder(this, i);
     }

@@ -88,8 +88,9 @@ export interface ShipView {
     fightingMax?: number;
     /** The body of what it is escorting, or -1 or absent for nothing. */
     covering?: number;
-    /** How far from that it stays, centre to centre, metres. */
+    /** How far from that it stays, centre to centre, metres, and how close it comes; absent, as close as keeping clear lets it. */
     coverBand?: number;
+    coverInner?: number;
     /**
      * The design it is built to, whatever damage has made of `design`: what it is
      * of, for grouping it with others. Absent where it is `design`, as in an editor.
@@ -569,8 +570,15 @@ export function capture(
         }
         const covering = ships.coveringOf(i);
         view.covering = covering >= 0 ? bodies.indexOf(ships.body(covering)) : -1;
-        if (covering >= 0) view.coverBand = ships.coverBandOf(i, covering);
-        else delete view.coverBand;
+        if (covering >= 0) {
+            view.coverBand = ships.coverBandOf(i, covering);
+            const inner = ships.coverInnerOf(i, covering);
+            if (inner > 0) view.coverInner = inner;
+            else delete view.coverInner;
+        } else {
+            delete view.coverBand;
+            delete view.coverInner;
+        }
         view.ship = i;
         view.doctrine = ships.doctrineOf(i);
         const override = ships.overrideOf(i);

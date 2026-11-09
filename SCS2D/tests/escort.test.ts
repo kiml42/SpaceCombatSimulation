@@ -208,6 +208,35 @@ describe("escort and neutrals", () => {
         expect(fly(1)).toBeGreaterThan(fly(0) * 2);
     });
 
+    it("keeps outside the inside of its band, where it has one", () => {
+        // A corvette beside a friend of its size, nothing else about: with no
+        // inside edge it sits where keeping clear puts it; with one most of the
+        // way out, further off.
+        function fly(escortInner: number): number {
+            const base = escorting(CORVETTE, 400);
+            const escort = compileBlueprint({
+                ...base,
+                doctrine: { ...base.doctrine!, approach: { ...base.doctrine!.approach, escortInner } },
+            });
+            const consort = compileBlueprint(CORVETTE);
+            const battle = makeBattle({ seed: 5 }, (ships, world) => {
+                const covering = ships.spawn(world, { design: escort, x: 0, y: 0, angle: 0, team: 0 });
+                const charge = ships.spawn(world, { design: consort, x: 0, y: 60, team: 0 });
+                return { covering, charge };
+            });
+            for (let step = 0; step < 1800; step++) battle.step();
+            const bodies = battle.world.bodies;
+            const a = bodies.indexOf(battle.ships.body(battle.covering));
+            const b = bodies.indexOf(battle.ships.body(battle.charge));
+            return math.length(bodies.x[a]! - bodies.x[b]!, bodies.y[a]! - bodies.y[b]!);
+        }
+
+        const band = fly(0.8);
+        const touching = 2 * compileBlueprint(CORVETTE).radius;
+        expect(band).toBeGreaterThan(fly(0) * 1.5);
+        expect(band).toBeGreaterThan(touching);
+    });
+
     it("covers no friend with its core shot out", () => {
         // A friend nothing controls is nothing to cover: the escort goes to the fight as
         // though there were nothing there, as it does for a hulk it might shoot.

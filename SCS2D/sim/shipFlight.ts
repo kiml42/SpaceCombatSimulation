@@ -1153,12 +1153,13 @@ export function cover(ships: Ships, bodies: Bodies, i: number, b: number): numbe
 
     const design = ships.designs[i]!;
     const station = shipDecide.escortBand(ships, i, design, consort);
+    const inner = shipDecide.escortInnerEdge(ships, i, design, consort, station);
     const gap = length(bodies.x[cb]! - bodies.x[b]!, bodies.y[cb]! - bodies.y[b]!);
     // Told to, it holds the band as firmly as it would a station.
     const weight =
         ships.defendingOf(i) === consort
             ? URGE_REFERENCE
-            : cohesionUrge(ships.doctrines[i]!.targeting, gap, station, ships.doctrines[i]!.approach.bandFade);
+            : cohesionUrge(ships.doctrines[i]!.targeting, gap, station, ships.doctrines[i]!.approach.bandFade, inner);
     const told = ships.getCurrentOrder(i);
     const speed = told?.defend === true && told.target === consort ? told.speed : undefined;
     hold(
@@ -1167,7 +1168,7 @@ export function cover(ships: Ships, bodies: Bodies, i: number, b: number): numbe
         i,
         b,
         ships.locate(bodies, consort, cb, ships.coverAt),
-        0,
+        inner,
         station,
         speed ?? ships.doctrines[i]!.approach.approachSpeed,
         weight,

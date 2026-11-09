@@ -220,7 +220,7 @@ export const DEFAULT_BUILD_WEIGHTS: BuildWeights = {
 };
 
 /** Approach fields that are about covering a friend, and the targeting urge to. */
-const ESCORT_FIELDS: readonly string[] = ["escortWeight", "escortRadii", "escort", "escortMinRadii"];
+const ESCORT_FIELDS: readonly string[] = ["escortWeight", "escortRadii", "escort", "escortInner", "escortMinRadii"];
 const AVOIDANCE_FIELDS: readonly string[] = ["separation", "separationRadii", "avoidHorizon", "rockMargin", "dodgeSpeed"];
 
 /**
@@ -1195,6 +1195,7 @@ const STEP_SCALE: Readonly<Record<string, number>> = {
     dockDanger: 1,
     tangentialMin: 20,
     tangentialMax: 20,
+    escortInner: 0.5,
 };
 
 /**

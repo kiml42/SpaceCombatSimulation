@@ -3296,7 +3296,7 @@ function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: n
     if (consort !== null && ship.coverBand !== undefined) {
         // And the band it stays inside, round it.
         ctx.save();
-        drawBand(ctx, consort.x, consort.y, 0, ship.coverBand, bandFadeOf(ship), metresToPx);
+        drawBand(ctx, consort.x, consort.y, ship.coverInner ?? 0, ship.coverBand, bandFadeOf(ship), metresToPx);
         ctx.restore();
     }
     if (consort !== null) {
