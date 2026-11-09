@@ -520,7 +520,8 @@ inside any one file is not contiguous.
   for something you are covering. The band is measured from skin to skin, both hulls' radii out, so two
   ships of a size never station inside the circle the pair sweep turning, and a craft keeps clear of its
   charge as of anything else, though no further out than its station, or covering and keeping clear pull it
-  back and forth across the line between them. It covers no friend smaller than `escortMinRadii` of its own
+  back and forth across the line between them. Its band can have an inside edge too, `escortInner` of the way
+  out from touching, for an escort that should sit further off than keeping clear puts it. It covers no friend smaller than `escortMinRadii` of its own
   radius — its own size, by default — so a capital does not trail round after the nearest fighter; a neutral objective is
   gone to whatever its size, since a goal is a marker far smaller than anything racing to it. A friend that
   has lost control is covered only while it has robots aboard, which may yet mend its core; wreckage and
