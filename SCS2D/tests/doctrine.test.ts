@@ -49,6 +49,12 @@ const candidate = (over: Partial<Candidate> = {}): Candidate => ({
     ...over,
 });
 
+/** A blueprint that escorts nothing, so it stays where the test puts it relative to the fight. */
+function withoutEscort(blueprint: Blueprint): Blueprint {
+    const doctrine = blueprint.doctrine!;
+    return { ...blueprint, doctrine: { ...doctrine, targeting: { ...doctrine.targeting, escortWeight: 0 } } };
+}
+
 describe("a doctrine as written down", () => {
     it("is two halves of named numbers, every one of them reachable", () => {
         // Named, so a person can read the file; numbers, so evolution can mutate
@@ -413,7 +419,8 @@ describe("a ship deciding for itself", () => {
                 ...GUNSHIP,
                 doctrine: { ...DEFAULT_DOCTRINE, targeting: { ...DEFAULT_DOCTRINE.targeting, facingWeight } },
             });
-            const enemy = compileBlueprint(CORVETTE);
+            // Not escorting each other, which would carry them past it to their charge.
+            const enemy = compileBlueprint(withoutEscort(CORVETTE));
             const mine = ships.spawn(world, { design, x: 0, y: 0, team: 0 });
             ships.spawn(world, { design: enemy, x: 1600, y: 0, angle: Math.PI, team: 1 });
             ships.spawn(world, { design: enemy, x: -1400, y: 0, team: 1 });
@@ -430,7 +437,8 @@ describe("a ship deciding for itself", () => {
     });
 
     it("goes round a friend for the enemy behind it, only if it prefers a clear line", () => {
-        const heading = (sightWeight: number): number => {
+        // Which it chooses rather than where its nose ends up, since the enemies move as well.
+        const chosen = (sightWeight: number): { behind: boolean; clear: boolean } => {
             const world = new World({ dt: 1 / 60, seed: 6 });
             const ships = new Ships();
             world.addForceProvider(ships.forceProvider());
@@ -441,17 +449,17 @@ describe("a ship deciding for itself", () => {
             const corvette = compileBlueprint(CORVETTE);
             const mine = ships.spawn(world, { design, x: 0, y: 0, team: 0 });
             ships.spawn(world, { design: corvette, x: 500, y: 0, team: 0 });
-            ships.spawn(world, { design: corvette, x: 1000, y: 0, angle: Math.PI, team: 1 });
-            ships.spawn(world, { design: corvette, x: 0, y: 1100, angle: -Math.PI / 2, team: 1 });
+            const behind = ships.spawn(world, { design: corvette, x: 1000, y: 0, angle: Math.PI, team: 1 });
+            const clear = ships.spawn(world, { design: corvette, x: 0, y: 1100, angle: -Math.PI / 2, team: 1 });
             for (let i = 0; i < 900; i++) {
                 ships.command(1 / 60, world);
                 world.step();
             }
-            return world.bodies.angle[world.bodies.indexOf(ships.body(mine))]!;
+            return { behind: ships.chosenOf(mine) === behind, clear: ships.chosenOf(mine) === clear };
         };
         // Spawned facing the nearer enemy, with a friend between them.
-        expect(Math.abs(heading(0))).toBeLessThan(0.3);
-        expect(Math.abs(heading(200) - Math.PI / 2)).toBeLessThan(0.3);
+        expect(chosen(0).behind).toBe(true);
+        expect(chosen(200).clear).toBe(true);
     });
 
     it("reconsiders faster on a light hull than on a heavy one", () => {

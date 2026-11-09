@@ -271,8 +271,11 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
             if (order.ram) {
                 charge(ships, bodies, i, b, at, order.approachSpeed, tb);
                 ships.intent = HURRY;
-            } else hold(ships, bodies, i, b, at, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE, wantAngle);
-            orbit(ships, bodies, i, b, at, tb);
+            } else if (ships.guarding[i] !== 1) {
+                hold(ships, bodies, i, b, at, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE, wantAngle);
+            }
+            // Guarding, it fights from its station by its charge: only the escort moves it.
+            if (ships.guarding[i] !== 1) orbit(ships, bodies, i, b, at, tb);
         }
     }
 
@@ -1253,6 +1256,29 @@ export function threats(ships: Ships, bodies: Bodies, i: number, b: number, x: n
     ships.threatX = tx;
     ships.threatY = ty;
     return total;
+}
+
+/**
+ * The armed enemy of ship `i` deepest inside its own reach, times `i`'s
+ * `fleeMargin`, of point (`x`, `y`), as `threats` weighs them; `NO_TARGET` for none.
+ */
+export function deepestThreat(ships: Ships, bodies: Bodies, i: number, b: number, x: number, y: number): number {
+    const approach = ships.doctrines[i]!.approach;
+    const mine = ships.designs[i]!.radius;
+    let best = NO_TARGET;
+    let deepest = 0;
+    for (let e = 0; e < ships.alive.length; e++) {
+        if (!ships.hostile(i, e) || !armed(ships, e)) continue;
+        const eb = bodies.indexOf(ships.bodyIds[e]!);
+        if (eb < 0 || eb === b) continue;
+        const clear = (shipSupply.fightReach(ships, e) + mine) * approach.fleeMargin;
+        const depth = 1 - length(bodies.x[eb]! - x, bodies.y[eb]! - y) / clear;
+        if (depth > deepest) {
+            deepest = depth;
+            best = e;
+        }
+    }
+    return best;
 }
 
 /** Whether any of ship `e`'s mounts is aimed at ship `i`. */

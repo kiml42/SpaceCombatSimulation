@@ -512,8 +512,11 @@ inside any one file is not contiguous.
   out of somebody's way — and so that a ship can be *told* to go to it, every order in this game being
   relative to an object. It can instead be a **ghost**, a ship still there to be escorted and scored against
   that nothing collides with, shoots through or moves, so ships either side of it can still fight across it. What takes a ship there without being told is **escorting**: a weight saying how
-  much a craft would rather be with something it will never shoot at than at the best fight it can find, so
-  covering a consort is one preference argued against the rest rather than a mode the ship is put into.
+  firmly a craft holds by something it will never shoot at. **Escorting and fighting are a choice, not a
+  blend:** while an armed enemy has its charge in reach, a craft stays and fights that enemy from its station;
+  while none has, it leaves its charge and goes to the fight it chose. Weighed against each other, the two
+  settled halfway, and an escort trailed an enemy moving away from its charge at half its speed, staying with
+  neither. The choice is by threat, not by score, so the trap below does not apply to it.
   A craft escorting stations on its charge and fights on with whatever its mounts can reach, since where the
   hull goes and what the guns do are different questions, and it holds a band of its own rather than the
   gunnery standoff — where you sit to *shoot* at something being the wrong answer by an order of magnitude
@@ -527,7 +530,8 @@ inside any one file is not contiguous.
   has lost control is covered only while it has robots aboard, which may yet mend its core; wreckage and
   any other hulk are nobody's charge. The Catamaran's halves escort each other this way, three radii apart.
   **Where a craft goes is several wants added up.** Holding the station it has been given, staying with what
-  it is covering, and keeping out of everybody's way are not alternatives to choose between: each is a
+  it is covering, and keeping out of everybody's way are not alternatives to choose between — but for an
+  escort's own fight and its charge, as above: each is a
   velocity it would like to have and how much it would like it, and the pilot flies their weighted average.
   One want is exactly that want, so a craft with nothing to avoid and nobody to cover flies its orders as it
   always did. Weighing them as *target scores* instead cannot work, and the reason is worth keeping: a
@@ -2456,6 +2460,7 @@ Recorded so they aren't reopened without new information.
 | Hand-modelled hero ships alongside procedural ones | Looks inconsistent, not aspirational. Polish is *better procedural*. |
 | Evolution in a loading screen | Procedural art means there is nothing to load; a fabricated progress bar is worse than free. Run it in workers during the current battle. |
 | Free-form evolution for the campaign enemy | Produces illegible weirdness. Kept for the sandbox. |
+| An escort's fight and its charge weighed together as two wants | Against an enemy moving away from its charge, the blend settles halfway and the escort trails at half the enemy's speed, staying with neither: in Beam Carrier the Dinky Beams fell further behind a crippled ship they had plenty of fuel to catch. It stays or goes by whether an enemy has its charge in reach (`shipDecide.guard`). |
 | Real-time PvP | Incompatible with pause-to-think. |
 | A backend server | Hosting, auth and sync are ongoing work and cost for a project that goes quiet; a static site never rots. |
 | Campaign first | Needs progression and campaign-only mechanisms as well as authoring — scripted missions, pacing, narrative — the least-proven discipline. Skirmish is a complete loop and a better environment for the adaptive enemy anyway (hundreds of battles, not fifteen). |

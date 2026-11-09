@@ -35,6 +35,7 @@ export function decide(ships: Ships, world: World, bodies: Bodies, i: number): v
         // running out of orders is a fresh look rather than a stale one.
         ships.chosen[i] = NO_TARGET;
         ships.consort[i] = NO_TARGET;
+        ships.guarding[i] = 0;
         ships.ramming[i] = NO_TARGET;
         ships.salvaging[i] = NO_TARGET;
         ships.withdrawing[i] = 0;
@@ -51,6 +52,7 @@ export function decide(ships: Ships, world: World, bodies: Bodies, i: number): v
         if (ships.alive[rammed] === 1 && ships.derelict[rammed] === 0 && ships.hasControl(rammed) && !ships.isDisabled(i)) {
             ships.chosen[i] = rammed;
             ships.consort[i] = NO_TARGET;
+            ships.guarding[i] = 0;
             return;
         }
         ships.ramming[i] = NO_TARGET;
@@ -65,6 +67,7 @@ export function decide(ships: Ships, world: World, bodies: Bodies, i: number): v
     if (ships.isDisabled(i)) {
         ships.chosen[i] = NO_TARGET;
         ships.consort[i] = NO_TARGET;
+        ships.guarding[i] = 0;
         ships.withdrawing[i] = 0;
         ships.hiding[i] = NO_TARGET;
         return;
@@ -149,6 +152,7 @@ export function decide(ships: Ships, world: World, bodies: Bodies, i: number): v
     // huddling rather than fighting.
     ships.chosen[i] = fighting;
     ships.consort[i] = defending;
+    ships.guarding[i] = 0;
     if (defending === NO_TARGET && withdraws(ships, i, b, fighting)) {
         ships.chosen[i] = NO_TARGET;
         ships.consort[i] = NO_TARGET;
@@ -185,6 +189,30 @@ export function decide(ships: Ships, world: World, bodies: Bodies, i: number): v
         ships.choice.offer(candidate, score(doctrine, candidate, design.reach, design.mass, loyalTo));
     }
     ships.consort[i] = ships.choice.ship;
+    guard(ships, bodies, i, b);
+}
+
+/**
+ * Escorting or fighting, never both at once.
+ *
+ * Weighed against each other, the two settle halfway: an escort chasing an
+ * enemy that is moving away from its charge trails it at half its speed, and
+ * stays with neither. So while an armed enemy has its charge in reach, ship
+ * `i` stays and fights that one from its station; while none has, it leaves
+ * its charge to go after what it chose.
+ */
+function guard(ships: Ships, bodies: Bodies, i: number, b: number): void {
+    const consort = ships.consort[i]!;
+    if (consort === NO_TARGET || ships.chosen[i] === NO_TARGET) return;
+    const cb = bodies.indexOf(ships.bodyIds[consort]!);
+    if (cb < 0) return;
+    const threat = shipFlight.deepestThreat(ships, bodies, i, b, bodies.x[cb]!, bodies.y[cb]!);
+    if (threat === NO_TARGET) {
+        ships.consort[i] = NO_TARGET;
+        return;
+    }
+    ships.chosen[i] = threat;
+    ships.guarding[i] = 1;
 }
 
 /**
