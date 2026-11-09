@@ -88,12 +88,12 @@ const GOLDEN: Record<ScenarioName, string> = {
     factory: "ad8e9319",
     // ships=3 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=0 severed=1 culled=0 scrap=32.1t · 128.1 µs/step
     shipyard: "ed2487e5",
-    // ships=5 inFlight=0 p.fired=14 p.hits=56 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=0.4t · 81.6 µs/step
-    rearm: "12a43e79",
+    // ships=5 inFlight=0 p.fired=14 p.hits=56 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=0.4t · 86.6 µs/step
+    rearm: "2721b034",
     // ships=3 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=12 severed=2 culled=0 scrap=0.2t · 90.0 µs/step
     tanker: "69ab665b",
-    // ships=21 inFlight=0 p.fired=5 p.hits=16 b.fired=213 b.hits=7316 contacts=118 severed=2 culled=0 scrap=10.0t · 561.2 µs/step
-    beamCarrier: "1e4700ba",
+    // ships=22 inFlight=0 p.fired=58 p.hits=193 b.fired=250 b.hits=7550 contacts=101 severed=4 culled=1 scrap=17.5t · 682.7 µs/step
+    beamCarrier: "db328461",
     // ships=2 inFlight=0 p.fired=54 p.hits=181 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=9.3t · 40.9 µs/step
     passes: "e721914a",
     // ships=2 inFlight=0 p.fired=2 p.hits=8 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=9.3t · 60.6 µs/step
