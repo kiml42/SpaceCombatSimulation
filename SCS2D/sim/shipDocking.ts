@@ -12,9 +12,13 @@ import * as shipRebuild from "./shipRebuild.js";
 import * as shipSupply from "./shipSupply.js";
 import * as shipBreakup from "./shipBreakup.js";
 import * as shipForage from "./shipForage.js";
-import { type Ships, NO_TARGET, movable, STEER } from "./ships.js";
+import { type Ships, NO_TARGET, movable, STEER, type Spot } from "./ships.js";
+
+/** The corner a fighter coming in to land makes for, when it has one. */
+const ROUTE: Spot = { x: 0, y: 0, vx: 0, vy: 0, radius: 0 };
 import * as shipBuild from "./shipBuild.js";
 import * as shipFlight from "./shipFlight.js";
+import * as shipRoute from "./shipRoute.js";
 import * as shipDecide from "./shipDecide.js";
 import { WELD_SETTLE } from "./shipWeld.js";
 import { URGE_REFERENCE, stoppingSpeed } from "./shipFlight.js";
@@ -331,12 +335,18 @@ export function landOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
     const px = place.x - (ox * cos(heading) - oy * sin(heading));
     const py = place.y - (ox * sin(heading) + oy * cos(heading));
     const range = length(px - bodies.x[b]!, py - bodies.y[b]!);
-    // Straight in to the pad: keeping clear of what stands up from the deck is `avoid`'s.
+    // Straight in to the pad, or by a corner round what stands up from the deck
+    // between (`shipRoute`); what is left of it, keeping clear of, is `avoid`'s.
     const spec = host.modules[pad]!.spec;
     const near = range <= PAD_ALIGN_RADII * mine;
-    const gx = px;
-    const gy = py;
-    const left = range;
+    let gx = px;
+    let gy = py;
+    let left = range;
+    if (!near && shipRoute.route(ships, bodies, i, b, px, py, ships.salvaging[i]!, true, ROUTE)) {
+        gx = ROUTE.x;
+        gy = ROUTE.y;
+        left = length(gx - bodies.x[b]!, gy - bodies.y[b]!) + length(px - gx, py - gy);
+    }
     const dx = gx - bodies.x[b]!;
     const dy = gy - bodies.y[b]!;
     const gap = length(dx, dy);

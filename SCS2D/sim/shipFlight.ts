@@ -24,6 +24,7 @@ import { type Ships, FACE, NO_TARGET, STEER, CLAW_RETRY, movable, type Spot, typ
 import * as shipAim from "./shipAim.js";
 import * as shipOrders from "./shipOrders.js";
 import * as shipDecide from "./shipDecide.js";
+import * as shipRoute from "./shipRoute.js";
 
 /**
  * Flying a ship: what each of its orders asks of the hull as an acceleration,
@@ -272,7 +273,13 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
                 charge(ships, bodies, i, b, at, order.approachSpeed, tb);
                 ships.intent = HURRY;
             } else if (ships.guarding[i] !== 1) {
-                hold(ships, bodies, i, b, at, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE, wantAngle);
+                // Still to close, by a corner round whatever stands in the way (`shipRoute`).
+                const range = length(at.x - bodies.x[b]!, at.y - bodies.y[b]!);
+                if (range > order.maxRange && shipRoute.route(ships, bodies, i, b, at.x, at.y, target, false, ROUTE)) {
+                    seek(ships, bodies, b, ROUTE, order.approachSpeed);
+                } else {
+                    hold(ships, bodies, i, b, at, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE, wantAngle);
+                }
             }
             // Guarding, it fights from its station by its charge: only the escort moves it.
             if (ships.guarding[i] !== 1) orbit(ships, bodies, i, b, at, tb);
@@ -1519,7 +1526,7 @@ export function avoid(
 }
 
 /** A circle a ship can be hit in, where it is and how it moves: world frame. */
-interface HitCircle {
+export interface HitCircle {
     x: number;
     y: number;
     vx: number;
@@ -1528,6 +1535,23 @@ interface HitCircle {
 }
 const OWN_CIRCLE: HitCircle = { x: 0, y: 0, vx: 0, vy: 0, r: 0 };
 const THEIR_CIRCLE: HitCircle = { x: 0, y: 0, vx: 0, vy: 0, r: 0 };
+
+/** The corner a ship closing on its target makes for, when it has one. */
+const ROUTE: Spot = { x: 0, y: 0, vx: 0, vy: 0, radius: 0 };
+
+/** Fly body `b` through `at` at `speed` relative to it, not stopping there. */
+function seek(ships: Ships, bodies: Bodies, b: number, at: Spot, speed: number): void {
+    const dx = at.x - bodies.x[b]!;
+    const dy = at.y - bodies.y[b]!;
+    const d = length(dx, dy);
+    let vx = at.vx;
+    let vy = at.vy;
+    if (d > 0) {
+        vx += (dx / d) * speed;
+        vy += (dy / d) * speed;
+    }
+    urge(ships, URGE_REFERENCE, vx, vy);
+}
 
 /**
  * The module of ship `of`, on body `ob`, standing up into the weapons layer
@@ -1573,7 +1597,7 @@ function nearestRaised(ships: Ships, bodies: Bodies, of: number, ob: number, own
  * weapons layer alone against a fighter in that layer, as collisions meet them,
  * which is off its middle wherever that layer is, and swung round as it turns.
  */
-function hitCircle(ships: Ships, bodies: Bodies, of: number, ob: number, by: number, out: HitCircle): void {
+export function hitCircle(ships: Ships, bodies: Bodies, of: number, ob: number, by: number, out: HitCircle): void {
     const design = ships.designs[of]!;
     out.x = bodies.x[ob]!;
     out.y = bodies.y[ob]!;
