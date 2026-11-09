@@ -13,7 +13,7 @@ import { addFlame, addTurret, attackBearing } from "./attack.js";
 import { interceptTime } from "./turrets.js";
 import { edgeFade } from "./doctrine.js";
 import type { SpatialGrid } from "./index.js";
-import { SLIPWAY_CLEAR_TIME } from "./modules.js";
+import { moduleRadius, SLIPWAY_CLEAR_TIME } from "./modules.js";
 import * as shipSupply from "./shipSupply.js";
 import * as shipBreakup from "./shipBreakup.js";
 import * as shipForage from "./shipForage.js";
@@ -24,6 +24,7 @@ import { type Ships, FACE, NO_TARGET, STEER, CLAW_RETRY, movable, type Spot, typ
 import * as shipAim from "./shipAim.js";
 import * as shipOrders from "./shipOrders.js";
 import * as shipDecide from "./shipDecide.js";
+import * as shipRoute from "./shipRoute.js";
 
 /**
  * Flying a ship: what each of its orders asks of the hull as an acceleration,
@@ -241,9 +242,10 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
         } else if (claw >= 0 && tb >= 0) {
             // The jaws, not the bow, are what point at it.
             const jaws = ships.designs[i]!.modules[claw]!.spec.angle ?? 0;
-            const across = shipDocking.hullAcross(ships, bodies, i, b, tb, target);
-            if (across >= 0) {
-                wantAngle = shipDocking.roundHull(ships, bodies, i, b, across, tb) - jaws;
+            // Round whatever stands between it and its source, by a corner (`shipRoute`).
+            if (shipRoute.route(ships, bodies, i, b, bodies.x[tb]!, bodies.y[tb]!, target, shipRoute.GOAL_CLEAR, ROUTE)) {
+                seek(ships, bodies, b, ROUTE, ships.doctrines[i]!.approach.clawSpeed, URGE_REFERENCE);
+                wantAngle = atan2(ROUTE.y - bodies.y[b]!, ROUTE.x - bodies.x[b]!) - jaws;
             } else {
                 const standOff = ships.now - ships.touchedSource[i]! < CLAW_RETRY / dt;
                 let radial: number;
@@ -275,7 +277,7 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
                 charge(ships, bodies, i, b, at, order.approachSpeed, tb);
                 ships.intent = HURRY;
             } else if (ships.guarding[i] !== 1) {
-                hold(ships, bodies, i, b, at, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE, wantAngle);
+                hold(ships, bodies, i, b, at, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE, wantAngle, target);
             }
             // Guarding, it fights from its station by its charge: only the escort moves it.
             if (ships.guarding[i] !== 1) orbit(ships, bodies, i, b, at, tb);
@@ -901,6 +903,7 @@ export function hold(
     approachSpeed: number,
     weight: number,
     fightingAt?: number,
+    goal: number = NO_TARGET,
 ): void {
     const fighting = fightingAt !== undefined;
     // Set again below while it is still closing on a curve planned on its mains.
@@ -913,6 +916,11 @@ export function hold(
     const dx = at.x - bodies.x[b]!;
     const dy = at.y - bodies.y[b]!;
     const range = length(dx, dy);
+    // Still to close, by a corner round whatever stands in the way (`shipRoute`).
+    if (goal !== NO_TARGET && range > maxRange && shipRoute.route(ships, bodies, i, b, at.x, at.y, goal, shipRoute.GOAL_CLEAR, ROUTE)) {
+        seek(ships, bodies, b, ROUTE, approachSpeed, weight);
+        return;
+    }
     if (fighting && range > 0 && ships.doctrines[i]!.approach.tangentialMax > 0) {
         pass(ships, bodies, i, b, at, dx / range, dy / range, range, minRange, maxRange, approachSpeed, fightingAt, weight);
         return;
@@ -1181,6 +1189,8 @@ export function cover(ships: Ships, bodies: Bodies, i: number, b: number): numbe
         station,
         speed ?? ships.doctrines[i]!.approach.approachSpeed,
         weight,
+        undefined,
+        consort,
     );
     return consort;
 }
@@ -1385,7 +1395,9 @@ export function avoid(
         // and a second opinion here is this code arguing with the orders it is
         // meant to be carrying out — a ship told to ram would sheer off at the
         // last moment and call it seamanship.
-        if (t === flying) continue;
+        // But for the carrier it lands on, whose deck it comes down onto between what stands up from it.
+        const deck = landing && t === flying;
+        if (t === flying && !deck) continue;
         // Nor its own fighters: a carrier trusts what flies from its pads to
         // keep clear of it, rather than running from its wing as it comes and goes.
         if (ships.home[t] === i) continue;
@@ -1400,12 +1412,14 @@ export function avoid(
         // Coming in to grip or land, it is among rocks on purpose, and keeps clear of them as of anything.
         const rock = ships.rockFlag[t] === 1 && !hulksOnly && !landing;
         // Landing, nothing riding the hull it lands on: a copy on its carrier's slipway is that hull.
-        if ((ramming || rock || landing) && ob === flyingBody) continue;
+        if ((ramming || rock || landing) && ob === flyingBody && !deck) continue;
         if (ob === under) continue;
 
         // Only the part of each the other can hit: a fighter flies over a hull's deck.
         hitCircle(ships, bodies, i, b, t, OWN_CIRCLE);
         hitCircle(ships, bodies, t, ob, i, THEIR_CIRCLE);
+        // Its deck's superstructure one piece at a time: the nearest miss of all of it.
+        if (deck && !nearestRaised(ships, bodies, t, ob, OWN_CIRCLE, THEIR_CIRCLE)) continue;
         if (!(OWN_CIRCLE.r > 0) || !(THEIR_CIRCLE.r > 0)) continue;
         const touching = OWN_CIRCLE.r + THEIR_CIRCLE.r;
         // Clear by its own size, not the other's, which would keep it a rock's or a carrier's breadth off.
@@ -1413,7 +1427,7 @@ export function avoid(
         // From a neighbour on the rock only by its own size, or it could never grip the face beside it.
         if (neighbour) room = mine;
         // From another coming down on the same deck, only from touching: neighbouring pads are closer than the clearance.
-        if (landing && ships.salvaging[t] === flying && ships.landingPad[t]! >= 0) room = 0;
+        if (landing && ((ships.salvaging[t] === flying && ships.landingPad[t]! >= 0) || deck)) room = 0;
         // Closing straight in on a face chosen clear of both (`wayInClear`), only from touching them.
         if (hulksOnly && ships.gripClosing[i] === 1) room = 0;
         // Its charge no further out than its station, or the two wants fight:
@@ -1518,7 +1532,7 @@ export function avoid(
 }
 
 /** A circle a ship can be hit in, where it is and how it moves: world frame. */
-interface HitCircle {
+export interface HitCircle {
     x: number;
     y: number;
     vx: number;
@@ -1528,12 +1542,68 @@ interface HitCircle {
 const OWN_CIRCLE: HitCircle = { x: 0, y: 0, vx: 0, vy: 0, r: 0 };
 const THEIR_CIRCLE: HitCircle = { x: 0, y: 0, vx: 0, vy: 0, r: 0 };
 
+/** The corner a ship closing on its target makes for, when it has one. */
+const ROUTE: Spot = { x: 0, y: 0, vx: 0, vy: 0, radius: 0 };
+
+/** Fly body `b` through `at` at `speed` relative to it, not stopping there, wanting it by `weight`. */
+function seek(ships: Ships, bodies: Bodies, b: number, at: Spot, speed: number, weight: number): void {
+    const dx = at.x - bodies.x[b]!;
+    const dy = at.y - bodies.y[b]!;
+    const d = length(dx, dy);
+    let vx = at.vx;
+    let vy = at.vy;
+    if (d > 0) {
+        vx += (dx / d) * speed;
+        vy += (dy / d) * speed;
+    }
+    urge(ships, weight, vx, vy);
+}
+
+/**
+ * The module of ship `of`, on body `ob`, standing up into the weapons layer
+ * that circle `own` will pass closest to, as a circle into `out`; false for none.
+ */
+function nearestRaised(ships: Ships, bodies: Bodies, of: number, ob: number, own: HitCircle, out: HitCircle): boolean {
+    const design = ships.designs[of]!;
+    const c = cos(bodies.angle[ob]!);
+    const s = sin(bodies.angle[ob]!);
+    const spin = bodies.angularVel[ob]!;
+    let best = Infinity;
+    for (let m = 0; m < design.modules.length; m++) {
+        const module = design.modules[m]!;
+        if (!module.weaponsLayer || ships.damage.spent(ob, m)) continue;
+        const ox = module.x * c - module.y * s;
+        const oy = module.x * s + module.y * c;
+        const x = bodies.x[ob]! + ox;
+        const y = bodies.y[ob]! + oy;
+        const vx = bodies.vx[ob]! - spin * oy;
+        const vy = bodies.vy[ob]! + spin * ox;
+        const r = moduleRadius(module.spec);
+        const dx = x - own.x;
+        const dy = y - own.y;
+        const rvx = vx - own.vx;
+        const rvy = vy - own.vy;
+        const speedSq = rvx * rvx + rvy * rvy;
+        const closest = speedSq > 0 ? max(0, -(dx * rvx + dy * rvy) / speedSq) : 0;
+        const gap = length(dx + rvx * closest, dy + rvy * closest) - r;
+        if (gap < best) {
+            best = gap;
+            out.x = x;
+            out.y = y;
+            out.vx = vx;
+            out.vy = vy;
+            out.r = r;
+        }
+    }
+    return best < Infinity;
+}
+
 /**
  * Where ship `of`, on body `ob`, can be hit by ship `by`, into `out`: round its
  * weapons layer alone against a fighter in that layer, as collisions meet them,
  * which is off its middle wherever that layer is, and swung round as it turns.
  */
-function hitCircle(ships: Ships, bodies: Bodies, of: number, ob: number, by: number, out: HitCircle): void {
+export function hitCircle(ships: Ships, bodies: Bodies, of: number, ob: number, by: number, out: HitCircle): void {
     const design = ships.designs[of]!;
     out.x = bodies.x[ob]!;
     out.y = bodies.y[ob]!;

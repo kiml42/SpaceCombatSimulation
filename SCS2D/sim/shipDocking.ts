@@ -12,9 +12,13 @@ import * as shipRebuild from "./shipRebuild.js";
 import * as shipSupply from "./shipSupply.js";
 import * as shipBreakup from "./shipBreakup.js";
 import * as shipForage from "./shipForage.js";
-import { type Ships, NO_TARGET, movable, STEER } from "./ships.js";
+import { type Ships, NO_TARGET, movable, STEER, type Spot } from "./ships.js";
+
+/** The corner a fighter coming in to land makes for, when it has one. */
+const ROUTE: Spot = { x: 0, y: 0, vx: 0, vy: 0, radius: 0 };
 import * as shipBuild from "./shipBuild.js";
 import * as shipFlight from "./shipFlight.js";
+import * as shipRoute from "./shipRoute.js";
 import * as shipDecide from "./shipDecide.js";
 import { WELD_SETTLE } from "./shipWeld.js";
 import { URGE_REFERENCE, stoppingSpeed } from "./shipFlight.js";
@@ -45,11 +49,7 @@ const PORT_HEADING_SLACK = 0.1;
  */
 const PAD_ALIGN_RADII = 4;
 
-/**
- * How far round a friend, radians, a ship coming in from the wrong side for a
- * pad or a port steers at a time: it circles the hull outside its radius rather
- * than flying through what stands between it and where it is going.
- */
+/** How far round its carrier, radians, a fighter steers at a time while it circles to a pad's way in. */
 const HULL_ORBIT_STEP = 0.5;
 
 /**
@@ -332,7 +332,7 @@ export function landOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
     const py = place.y - (ox * sin(heading) + oy * cos(heading));
     const range = length(px - bodies.x[b]!, py - bodies.y[b]!);
     // Come in by one of the pad's ways in, from where it leaves the hull's
-    // circle, circling round to there first if the hull is in the way.
+    // circle, by a corner round what stands up from the deck on the way there (`shipRoute`).
     wayIn(ships, bodies, i, b, tb, host, pad, place.x, place.y);
     const nx = cos(ships.wayAngle);
     const ny = sin(ships.wayAngle);
@@ -360,9 +360,26 @@ export function landOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
         ships.viaX[i] = ships.entryX;
         ships.viaY[i] = ships.entryY;
         const entry = length(ships.entryX - place.x, ships.entryY - place.y);
-        left = aroundHull(ships, bodies, b, tb, ships.entryX, ships.entryY) + entry;
-        gx = ships.wayX;
-        gy = ships.wayY;
+        gx = ships.entryX;
+        gy = ships.entryY;
+        if (shipRoute.route(ships, bodies, i, b, ships.entryX, ships.entryY, ships.salvaging[i]!, shipRoute.GOAL_DECK, ROUTE)) {
+            gx = ROUTE.x;
+            gy = ROUTE.y;
+        } else {
+            // Nothing in the way: still round the carrier's ring to the way in, not straight across to it,
+            // so it comes to it moving along the ring as a crippled fighter can settle from.
+            const cx = bodies.x[tb]!;
+            const cy = bodies.y[tb]!;
+            const from = atan2(bodies.y[b]! - cy, bodies.x[b]! - cx);
+            const off = angleDelta(from, atan2(ships.entryY - cy, ships.entryX - cx));
+            if (abs(off) > HULL_ORBIT_STEP) {
+                const ring = max(length(ships.entryX - cx, ships.entryY - cy), bodies.radius[tb]! + 2 * mine);
+                const step = from + (off > 0 ? HULL_ORBIT_STEP : -HULL_ORBIT_STEP);
+                gx = cx + cos(step) * ring;
+                gy = cy + sin(step) * ring;
+            }
+        }
+        left = length(gx - bodies.x[b]!, gy - bodies.y[b]!) + length(ships.entryX - gx, ships.entryY - gy) + entry;
     }
     const dx = gx - bodies.x[b]!;
     const dy = gy - bodies.y[b]!;
@@ -397,90 +414,6 @@ export function landOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
     }
     const along = angleDelta(heading, place.angle);
     return abs(along) <= PI / 2 ? place.angle : place.angle + PI;
-}
-
-/**
- * Steer body `b` for the point `ax`, `ay` off body `tb`'s hull, circling the
- * hull outside its radius when that point is round the far side rather than
- * flying through it. Leaves the next point to make for in `wayX`, `wayY`,
- * and returns how far that is.
- */
-export function aroundHull(ships: Ships, bodies: Bodies, b: number, tb: number, ax: number, ay: number): number {
-    const cx = bodies.x[tb]!;
-    const cy = bodies.y[tb]!;
-    const from = atan2(bodies.y[b]! - cy, bodies.x[b]! - cx);
-    const off = angleDelta(from, atan2(ay - cy, ax - cx));
-    if (abs(off) > HULL_ORBIT_STEP) {
-        const ring = max(length(ax - cx, ay - cy), bodies.radius[tb]! + 2 * bodies.radius[b]!);
-        const step = from + (off > 0 ? HULL_ORBIT_STEP : -HULL_ORBIT_STEP);
-        ships.wayX = cx + cos(step) * ring;
-        ships.wayY = cy + sin(step) * ring;
-    } else {
-        ships.wayX = ax;
-        ships.wayY = ay;
-    }
-    return length(ships.wayX - bodies.x[b]!, ships.wayY - bodies.y[b]!);
-}
-
-/**
- * The body of the nearest hull across body `b`'s line to body `tb` that a
- * claw ship should go round, or -1: a ship under control larger than it, not
- * after the same source, or an asteroid, and far enough short of it to circle clear.
- */
-export function hullAcross(ships: Ships, bodies: Bodies, i: number, b: number, tb: number, source: number): number {
-    const x = bodies.x[b]!;
-    const y = bodies.y[b]!;
-    const dx = bodies.x[tb]! - x;
-    const dy = bodies.y[tb]! - y;
-    const range = length(dx, dy);
-    if (!(range > 0)) return -1;
-    const ux = dx / range;
-    const uy = dy / range;
-    const short = range - bodies.radius[tb]!;
-    let nearest = -1;
-    let nearestAt = short;
-    for (let t = 0; t < ships.alive.length; t++) {
-        if (t === i || ships.alive[t] === 0 || ships.salvaging[t] === source) continue;
-        if (!ships.isAsteroid(t) && (ships.derelict[t] === 1 || !ships.hasControl(t))) continue;
-        const ob = bodies.indexOf(ships.bodyIds[t]!);
-        if (ob < 0 || ob === b || ob === tb || bodies.ghost[ob] === 1 || !ships.meets(b, ob) || !(bodies.radius[ob]! > bodies.radius[b]!))
-            continue;
-        const cx = bodies.x[ob]! - x;
-        const cy = bodies.y[ob]! - y;
-        const at = cx * ux + cy * uy;
-        if (!(at > 0) || at + bodies.radius[ob]! + 2 * bodies.radius[b]! >= nearestAt) continue;
-        if (abs(cx * uy - cy * ux) < bodies.radius[ob]! + bodies.radius[b]!) {
-            nearest = ob;
-            nearestAt = at;
-        }
-    }
-    return nearest;
-}
-
-/**
- * Fly body `b` round body `ob`'s hull, outside its radius, to the side of it
- * facing body `tb`, matching how `ob` is moving. Returns the heading to the
- * next point to make for.
- */
-export function roundHull(ships: Ships, bodies: Bodies, i: number, b: number, ob: number, tb: number): number {
-    const cx = bodies.x[ob]!;
-    const cy = bodies.y[ob]!;
-    const out = atan2(bodies.y[tb]! - cy, bodies.x[tb]! - cx);
-    const clear = bodies.radius[ob]! + 2 * bodies.radius[b]!;
-    ships.viaX[i] = cx + cos(out) * clear;
-    ships.viaY[i] = cy + sin(out) * clear;
-    const gap = aroundHull(ships, bodies, b, ob, ships.viaX[i]!, ships.viaY[i]!);
-    const dx = ships.wayX - bodies.x[b]!;
-    const dy = ships.wayY - bodies.y[b]!;
-    let vx = bodies.vx[ob]!;
-    let vy = bodies.vy[ob]!;
-    if (gap > 0) {
-        const speed = ships.doctrines[i]!.approach.clawSpeed;
-        vx += (dx / gap) * speed;
-        vy += (dy / gap) * speed;
-    }
-    shipFlight.urge(ships, URGE_REFERENCE, vx, vy);
-    return atan2(dy, dx);
 }
 
 /**
@@ -747,12 +680,19 @@ export function dockOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
     const ahead = fx * nx + fy * ny;
     let left = -1;
     if (!lined && !(ahead > 0 && abs(fy * nx - fx * ny) <= ahead)) {
+        // Round their hull, and whatever else is in the way, to a point a radius of theirs off it (`shipRoute`).
         const reach = bodies.radius[tb]!;
-        ships.viaX[i] = place.x + nx * (face + reach);
-        ships.viaY[i] = place.y + ny * (face + reach);
-        left = aroundHull(ships, bodies, b, tb, ships.viaX[i]!, ships.viaY[i]!) + reach;
-        tx = ships.wayX;
-        ty = ships.wayY;
+        tx = place.x + nx * (face + reach);
+        ty = place.y + ny * (face + reach);
+        const offX = tx;
+        const offY = ty;
+        ships.viaX[i] = offX;
+        ships.viaY[i] = offY;
+        if (shipRoute.route(ships, bodies, i, b, offX, offY, ships.salvaging[i]!, shipRoute.GOAL_SOLID, ROUTE)) {
+            tx = ROUTE.x;
+            ty = ROUTE.y;
+        }
+        left = length(tx - bodies.x[b]!, ty - bodies.y[b]!) + length(offX - tx, offY - ty) + reach;
     }
     const dx = tx - bodies.x[b]!;
     const dy = ty - bodies.y[b]!;

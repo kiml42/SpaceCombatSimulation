@@ -3309,50 +3309,63 @@ function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: n
 
 /** Pixels across the marks for where a selected ship goes first and where it means to end up. */
 const VIA_MARK_PX = 2.5;
+const CORNER_MARK_PX = 3;
 const DEST_MARK_PX = 4;
 
 /**
- * A broken line from a ship to where it is flying: through the point it makes
- * for first and on to the point it means to end up at, if it has them, or
- * else to the edge of what it is after.
+ * A broken line from a ship to where it is flying: by the corner it plans
+ * round what is in its way, through the point it makes for first, and on to
+ * the point it means to end up at, if it has them, or else to the edge of
+ * what it is after. The corner is ringed, the first point dotted, the end ringed larger.
  */
 function drawWay(ctx: CanvasRenderingContext2D, ship: ShipView, target: ShipView, gap: number, metresToPx: number): void {
+    const corner = ship.routeX !== undefined && ship.routeY !== undefined;
     const via = ship.viaX !== undefined && ship.viaY !== undefined;
     const dest = ship.destX !== undefined && ship.destY !== undefined;
-    const fromX = via ? ship.viaX! : ship.x;
-    const fromY = via ? ship.viaY! : ship.y;
-    let endX = ship.destX ?? target.x;
-    let endY = ship.destY ?? target.y;
-    if (!dest) {
+    const xs: number[] = [];
+    const ys: number[] = [];
+    if (corner) {
+        xs.push(ship.routeX!);
+        ys.push(ship.routeY!);
+    }
+    if (via) {
+        xs.push(ship.viaX!);
+        ys.push(ship.viaY!);
+    }
+    if (dest) {
+        xs.push(ship.destX!);
+        ys.push(ship.destY!);
+    } else {
         // Short of what it is after, by its radius and the gap.
+        const fromX = xs.length > 0 ? xs[xs.length - 1]! : ship.x;
+        const fromY = ys.length > 0 ? ys[ys.length - 1]! : ship.y;
         const dx = target.x - fromX;
         const dy = target.y - fromY;
         const length = Math.sqrt(dx * dx + dy * dy);
         const short = target.currentStructure.radius + gap;
-        if (length <= short) {
-            endX = fromX;
-            endY = fromY;
-        } else {
-            endX = target.x - (dx / length) * short;
-            endY = target.y - (dy / length) * short;
+        if (length > short) {
+            xs.push(target.x - (dx / length) * short);
+            ys.push(target.y - (dy / length) * short);
         }
     }
+    if (xs.length === 0) return;
     // Starting outside the ring round the ship.
-    const firstX = via ? ship.viaX! : endX;
-    const firstY = via ? ship.viaY! : endY;
-    const dx = firstX - ship.x;
-    const dy = firstY - ship.y;
+    const dx = xs[0]! - ship.x;
+    const dy = ys[0]! - ship.y;
     const length = Math.sqrt(dx * dx + dy * dy);
     const from = ship.currentStructure.radius + gap;
     ctx.setLineDash([6 / metresToPx, 6 / metresToPx]);
     ctx.beginPath();
-    if (length > from) {
-        ctx.moveTo(ship.x + (dx / length) * from, ship.y + (dy / length) * from);
-        ctx.lineTo(firstX, firstY);
-    } else ctx.moveTo(firstX, firstY);
-    if (via) ctx.lineTo(endX, endY);
+    if (length > from) ctx.moveTo(ship.x + (dx / length) * from, ship.y + (dy / length) * from);
+    else ctx.moveTo(xs[0]!, ys[0]!);
+    for (let k = 0; k < xs.length; k++) ctx.lineTo(xs[k]!, ys[k]!);
     ctx.stroke();
     ctx.setLineDash([]);
+    if (corner) {
+        ctx.beginPath();
+        ctx.arc(ship.routeX!, ship.routeY!, CORNER_MARK_PX / metresToPx, 0, Math.PI * 2);
+        ctx.stroke();
+    }
     if (via) {
         ctx.fillStyle = ctx.strokeStyle;
         ctx.beginPath();
@@ -3361,7 +3374,7 @@ function drawWay(ctx: CanvasRenderingContext2D, ship: ShipView, target: ShipView
     }
     if (dest) {
         ctx.beginPath();
-        ctx.arc(endX, endY, DEST_MARK_PX / metresToPx, 0, Math.PI * 2);
+        ctx.arc(ship.destX!, ship.destY!, DEST_MARK_PX / metresToPx, 0, Math.PI * 2);
         ctx.stroke();
     }
 }

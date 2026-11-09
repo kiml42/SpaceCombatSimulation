@@ -739,6 +739,16 @@ export class Ships {
     readonly dodgingTouch: number[] = [];
     readonly dodgingX: number[] = [];
     readonly dodgingY: number[] = [];
+    /**
+     * The corner each ship is making for on its way round what is in its way
+     * (`shipRoute`): the ship it goes round, or `NO_TARGET` for none, and where
+     * from that ship's body, world frame, m; when it was planned, and for what.
+     */
+    readonly routeVia: number[] = [];
+    readonly routeDX: number[] = [];
+    readonly routeDY: number[] = [];
+    readonly routeAt: number[] = [];
+    readonly routeGoal: number[] = [];
     readonly gripAt: number[] = [];
     /** The heading `squareUp` last asked for. */
     gripHeading = 0;
@@ -809,9 +819,6 @@ export class Ships {
     readonly dockPort: number[] = [];
     /** Which of its own ports it means to mate with it; -1 for none. */
     readonly ownPort: number[] = [];
-    /** Where `aroundHull` last said to steer for, world metres. */
-    wayX = 0;
-    wayY = 0;
     /** The way in `wayIn` last chose, world radians, and where it leaves the carrier's circle, world metres. */
     wayAngle = 0;
     entryX = 0;
@@ -1489,6 +1496,11 @@ export class Ships {
         this.dodgingTouch.push(0);
         this.dodgingX.push(0);
         this.dodgingY.push(0);
+        this.routeVia.push(NO_TARGET);
+        this.routeDX.push(0);
+        this.routeDY.push(0);
+        this.routeAt.push(-Infinity);
+        this.routeGoal.push(NO_TARGET);
         this.gripAt.push(-Infinity);
         this.landingPad.push(-1);
         this.dockSeenVx.push(0);
