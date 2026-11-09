@@ -5,6 +5,7 @@ import { crippledLanding } from "../scenarios/crippledLanding.js";
 import { scavenge } from "../scenarios/scavenge.js";
 import { tanker } from "../scenarios/tanker.js";
 import { duel } from "../scenarios/duel.js";
+import { torpedoes } from "../scenarios/torpedoes.js";
 import { beamCarrier } from "../scenarios/beamCarrier.js";
 
 /** Every ship as the picture sees it at each step, until `seen` says enough. */
@@ -45,6 +46,10 @@ describe("where a ship is flying to", () => {
 
     it("is the port it docks with, for a ship docking", () => {
         expect(watch(tanker(), 1200, (ship) => ship.destX !== undefined)).toBe(true);
+    });
+
+    it("is the middle of what is left of its target, for a ship ramming", () => {
+        expect(watch(torpedoes(), 300, (ship) => ship.doing === "ram" && ship.destX !== undefined)).toBe(true);
     });
 
     it("is nowhere in particular for a ship fighting", () => {
