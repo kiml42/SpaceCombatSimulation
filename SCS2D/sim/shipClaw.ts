@@ -502,6 +502,8 @@ export function squareUp(ships: Ships, bodies: Bodies, i: number, b: number, tb:
         out <= 1.5 * gate &&
         abs(across) <= loose * max(GRIP_LINE * module.spec.width, ships.gripSlack[i]!) &&
         abs(angleDelta(shipAngle, ships.gripHeading)) <= loose * GRIP_SQUARE;
+    ships.destX[i] = px;
+    ships.destY[i] = py;
     // Turned off the way in, it looks again: what turned it may be in the way.
     if (ships.gripClosing[i] === 1 && !lined && !standOff) ships.gripBody[i] = -1;
     ships.gripClosing[i] = lined && !standOff ? 1 : 0;
@@ -521,6 +523,8 @@ export function squareUp(ships: Ships, bodies: Bodies, i: number, b: number, tb:
         wantY = -ny * closing + nx * sideways;
     } else {
         // To the gate, slowing as it gets there.
+        ships.viaX[i] = gateX;
+        ships.viaY[i] = gateY;
         const dx = gateX - tipX;
         const dy = gateY - tipY;
         const span = length(dx, dy);

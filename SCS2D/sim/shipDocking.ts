@@ -354,7 +354,11 @@ export function landOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
     let gx = px;
     let gy = py;
     let left = range;
+    ships.destX[i] = place.x;
+    ships.destY[i] = place.y;
     if (!near && !lined) {
+        ships.viaX[i] = ships.entryX;
+        ships.viaY[i] = ships.entryY;
         const entry = length(ships.entryX - place.x, ships.entryY - place.y);
         left = aroundHull(ships, bodies, b, tb, ships.entryX, ships.entryY) + entry;
         gx = ships.wayX;
@@ -463,7 +467,9 @@ export function roundHull(ships: Ships, bodies: Bodies, i: number, b: number, ob
     const cy = bodies.y[ob]!;
     const out = atan2(bodies.y[tb]! - cy, bodies.x[tb]! - cx);
     const clear = bodies.radius[ob]! + 2 * bodies.radius[b]!;
-    const gap = aroundHull(ships, bodies, b, ob, cx + cos(out) * clear, cy + sin(out) * clear);
+    ships.viaX[i] = cx + cos(out) * clear;
+    ships.viaY[i] = cy + sin(out) * clear;
+    const gap = aroundHull(ships, bodies, b, ob, ships.viaX[i]!, ships.viaY[i]!);
     const dx = ships.wayX - bodies.x[b]!;
     const dy = ships.wayY - bodies.y[b]!;
     let vx = bodies.vx[ob]!;
@@ -728,6 +734,12 @@ export function dockOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
     const standoff = PORT_STANDOFF_RADII * bodies.radius[b]!;
     let tx = lined ? gx : gx + nx * standoff;
     let ty = lined ? gy : gy + ny * standoff;
+    ships.destX[i] = place.x + nx * face;
+    ships.destY[i] = place.y + ny * face;
+    if (!lined) {
+        ships.viaX[i] = tx;
+        ships.viaY[i] = ty;
+    }
     // Not out in front of their port: round their hull to a point a radius of
     // theirs off it first, rather than through the hull.
     const fx = bodies.x[b]! - (place.x + nx * face);
@@ -736,7 +748,9 @@ export function dockOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
     let left = -1;
     if (!lined && !(ahead > 0 && abs(fy * nx - fx * ny) <= ahead)) {
         const reach = bodies.radius[tb]!;
-        left = aroundHull(ships, bodies, b, tb, place.x + nx * (face + reach), place.y + ny * (face + reach)) + reach;
+        ships.viaX[i] = place.x + nx * (face + reach);
+        ships.viaY[i] = place.y + ny * (face + reach);
+        left = aroundHull(ships, bodies, b, tb, ships.viaX[i]!, ships.viaY[i]!) + reach;
         tx = ships.wayX;
         ty = ships.wayY;
     }
