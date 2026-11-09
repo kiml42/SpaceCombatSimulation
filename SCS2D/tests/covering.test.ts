@@ -1,13 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { DAMAGE_ENERGY_PER_KG } from "../sim/index.js";
+import { compileBlueprint, DAMAGE_ENERGY_PER_KG, math } from "../sim/index.js";
 import { capture, Snapshot } from "../sim/snapshot.js";
-import { duel } from "../scenarios/duel.js";
+import { makeBattle } from "../scenarios/battle.js";
+import { CORVETTE, GUNSHIP } from "../scenarios/blueprints.js";
+
+/**
+ * Two corvettes, which escort each other, with a gunship in their reach: they
+ * stay together and fight it from there, rather than leaving to go after it.
+ */
+function guarded(): ReturnType<typeof makeBattle> {
+    const corvette = compileBlueprint(CORVETTE);
+    return makeBattle({ seed: 1, projectiles: 512 }, (ships, world) => {
+        ships.spawn(world, { design: corvette, x: 0, y: -100, angle: 0, team: 0 });
+        ships.spawn(world, { design: corvette, x: 0, y: 100, angle: 0, team: 0 });
+        ships.spawn(world, { design: compileBlueprint(GUNSHIP), x: 1500, y: 0, angle: math.PI, team: 1 });
+    });
+}
 
 /** What a ship is escorting, carried to the picture so a selected ship's framing can take it in. */
 describe("what a ship is escorting", () => {
     it("is a friend’s body, and -1 for a ship with no friend to stay with", () => {
-        // Two corvettes against a gunship: each corvette covers the other.
-        const battle = duel();
+        const battle = guarded();
         for (let s = 0; s < 60; s++) battle.step();
         const view = capture(new Snapshot(), battle.world, battle.ships, battle.projectiles, battle.beams);
         const ships = view.ships.slice(0, view.shipCount);
@@ -19,7 +32,7 @@ describe("what a ship is escorting", () => {
     });
 
     it("is -1 for a ship whose cores are out, whatever it was covering", () => {
-        const battle = duel();
+        const battle = guarded();
         for (let s = 0; s < 60; s++) battle.step();
         const { ships, world } = battle;
         const corvette = [0, 1, 2].find((i) => ships.currentStructure(i).name === "Corvette" && ships.coveringOf(i) >= 0)!;
