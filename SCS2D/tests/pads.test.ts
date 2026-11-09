@@ -250,7 +250,8 @@ describe("a fighter low on fuel", () => {
     });
 
     it("shares one pad with another only by taking turns", () => {
-        const run = scene({ pair: true });
+        // Fuel enough for the second to wait its turn and still come in.
+        const run = scene({ pair: true, spent: 0.7 });
         let both = false;
         const landed = new Set<number>();
         for (let s = 0; s < 90 * 60; s++) {
