@@ -3,7 +3,7 @@ import { footprintOf, type Footprint, type ShipDesign } from "./blueprint.js";
 import { DamageEffect } from "./damage.js";
 import { inSight, look, score } from "./targeting.js";
 import type { ModuleSpec } from "./modules.js";
-import { length, min } from "./math.js";
+import { length, max, min } from "./math.js";
 import type { World } from "./world.js";
 import { hullsOverlap } from "./collision.js";
 import * as shipSupply from "./shipSupply.js";
@@ -208,6 +208,17 @@ export function escortBand(ships: Ships, i: number, design: ShipDesign, target: 
     const skin = theirs + design.radius;
     if (!(design.reach > 0)) return skin + wanted;
     return skin + min(wanted, approach.escort * design.reach);
+}
+
+/**
+ * The inside edge of the band `escortBand` gives, centre to centre, metres:
+ * `escortInner` of the way out from touching, or 0 for none.
+ */
+export function escortInnerEdge(ships: Ships, i: number, design: ShipDesign, target: number, band: number): number {
+    const inner = min(1, ships.doctrines[i]!.approach.escortInner);
+    if (!(inner > 0)) return 0;
+    const touching = shipAim.sizeOf(ships, target) + design.radius;
+    return touching + inner * max(0, band - touching);
 }
 
 /**

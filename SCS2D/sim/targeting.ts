@@ -1,6 +1,6 @@
 import type { Bodies } from "./bodies.js";
 import type { Targeting } from "./doctrine.js";
-import { abs, cos, length, log, sin } from "./math.js";
+import { abs, cos, length, log, max, sin } from "./math.js";
 
 /**
  * Choosing what to shoot at.
@@ -124,8 +124,15 @@ export function score(
  * nothing at the inner side of the station's fade (`bandFade` of it short of
  * it) to full strength a station's distance further out.
  */
-export function cohesionUrge(doctrine: Targeting, gap: number, station: number, fade: number): number {
-    return slack(gap, station, fade) * doctrine.escortWeight;
+export function cohesionUrge(doctrine: Targeting, gap: number, station: number, fade: number, inner = 0): number {
+    return max(slack(gap, station, fade), crowding(gap, inner, fade)) * doctrine.escortWeight;
+}
+
+/** The inside edge's mirror of `slack`: nothing outside its fade, one at touching distance or closer. */
+function crowding(range: number, inner: number, fade: number): number {
+    if (!(inner > 0)) return 0;
+    const under = (inner * (1 + fade) - range) / inner;
+    return under <= 0 ? 0 : under >= 1 ? 1 : under;
 }
 
 /** One a station's distance past the inner side of its fade or further, nothing inside it. */
