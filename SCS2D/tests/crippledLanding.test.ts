@@ -15,7 +15,7 @@ const EXPECTED: Record<string, { within: number; turn?: Turn }> = {
     "Raider, one turn far weaker [1, 8]": { within: 90, turn: "one weak" },
     "Raider, one turn far weaker [3, 7]": { within: 90, turn: "one weak" },
     "Raider, no main [4]": { within: 150 },
-    "Raider, no main [2, 4]": { within: 210 },
+    "Raider, no main [2, 4]": { within: 260 },
     "Raider, pushes turn it [4, 6]": { within: 130 },
     "Raider, pushes turn it [4, 8, 10]": { within: 130 },
     "Raider, turns one way, every push spins it [4, 7, 10]": { within: 210, turn: "one way" },

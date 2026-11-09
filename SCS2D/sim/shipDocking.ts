@@ -49,6 +49,9 @@ const PORT_HEADING_SLACK = 0.1;
  */
 const PAD_ALIGN_RADII = 4;
 
+/** How far round its carrier, radians, a fighter steers at a time while it circles to a pad's way in. */
+const HULL_ORBIT_STEP = 0.5;
+
 /**
  * How much shorter a trip round a carrier, radians, another way in to a pad
  * has to be before a fighter gives up the one it is taking, so one coming in
@@ -362,6 +365,19 @@ export function landOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
         if (shipRoute.route(ships, bodies, i, b, ships.entryX, ships.entryY, ships.salvaging[i]!, shipRoute.GOAL_DECK, ROUTE)) {
             gx = ROUTE.x;
             gy = ROUTE.y;
+        } else {
+            // Nothing in the way: still round the carrier's ring to the way in, not straight across to it,
+            // so it comes to it moving along the ring as a crippled fighter can settle from.
+            const cx = bodies.x[tb]!;
+            const cy = bodies.y[tb]!;
+            const from = atan2(bodies.y[b]! - cy, bodies.x[b]! - cx);
+            const off = angleDelta(from, atan2(ships.entryY - cy, ships.entryX - cx));
+            if (abs(off) > HULL_ORBIT_STEP) {
+                const ring = max(length(ships.entryX - cx, ships.entryY - cy), bodies.radius[tb]! + 2 * mine);
+                const step = from + (off > 0 ? HULL_ORBIT_STEP : -HULL_ORBIT_STEP);
+                gx = cx + cos(step) * ring;
+                gy = cy + sin(step) * ring;
+            }
         }
         left = length(gx - bodies.x[b]!, gy - bodies.y[b]!) + length(ships.entryX - gx, ships.entryY - gy) + entry;
     }
