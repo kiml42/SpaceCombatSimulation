@@ -143,7 +143,7 @@ describe("a fighter out of rounds with a ram doctrine", () => {
         run.step();
         const b = run.world.bodies.indexOf(run.ships.body(run.f));
         for (let m = 0; m < fighter.modules.length; m++) run.ships.metal.drain(b, m, run.ships.metal.held(b, m));
-        run.ships.chambered[run.f]!.fill(0);
+        for (const t of fighter.turrets) run.ships.metal.unload(b, t.module);
         expect(run.ships.isDisarmed(run.f)).toBe(true);
         return shipDecide.rams(run.ships, run.f, run.e);
     }

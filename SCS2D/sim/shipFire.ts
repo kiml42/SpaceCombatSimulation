@@ -97,6 +97,7 @@ export function fire(
         let impulseX = 0;
         let impulseY = 0;
         let angularImpulse = 0;
+        let loaded = false;
 
         for (let t = 0; t < indices.length; t++) {
             let state = turretStates[t]!;
@@ -170,9 +171,10 @@ export function fire(
                 // once, once its bank holds them.
                 const volley = gun.bankEnergy > 0;
                 const rounds = volley ? gun.barrelCount : 1;
-                if (ships.chambered[i]![t] !== 1) continue;
+                if (!ships.isLoaded(bodyIdx, design.turrets[t]!)) continue;
                 if (volley && ships.bank[i]![t]! < volleyCharge(gun)) continue;
-                ships.chambered[i]![t] = 0;
+                ships.metal.unload(bodyIdx, design.turrets[t]!.module);
+                loaded = true;
                 if (volley) ships.bank[i]![t] = ships.bank[i]![t]! - volleyCharge(gun);
                 const fuse = design.modules[design.turrets[t]!.module]!.spec;
                 for (let r = 0; r < rounds; r++) {
@@ -293,6 +295,7 @@ export function fire(
         }
 
         // Lighter by what left, before what pushed it off acts on what remains.
+        if (loaded) shipBreakup.settleMass(ships, bodies, bodyIdx);
         const mass = bodies.mass[bodyIdx]!;
         if (mass > 0 && (impulseX !== 0 || impulseY !== 0)) {
             bodies.vx[bodyIdx] = bodies.vx[bodyIdx]! + impulseX / mass;
@@ -428,13 +431,12 @@ function leak(ships: Ships, b: number, i: number, t: number, dt: number): void {
  * gun with nothing to load waits empty.
  */
 function chamber(ships: Ships, b: number, i: number, t: number): boolean {
-    if (ships.chambered[i]![t] === 1) return true;
     const mount = ships.designs[i]!.turrets[t]!;
+    if (ships.isLoaded(b, mount)) return true;
     const metal = shotMetal(mount.gun);
     if (shipSupply.allowed(ships, Resource.Metal, b, mount.module, Claim.Fire, metal) < metal) return false;
     if (!ships.metal.load(b, mount.module, metal)) return false;
     shipSupply.took(ships, Resource.Metal, b, mount.module, Claim.Fire, metal);
-    ships.chambered[i]![t] = 1;
     return true;
 }
 
@@ -444,7 +446,6 @@ export function reloadOne(ships: Ships, dt: number, bodies: Bodies, i: number): 
     const b = bodies.indexOf(ships.bodyIds[i]!);
     const mounts = ships.designs[i]!.turrets;
     const fuelSpent = ships.fuel.spentMass(b);
-    const metalSpent = ships.metal.spentMass(b);
     // The main battery first, so it has the power and fuel when there is not enough to go round.
     for (let pass = 0; pass < 2; pass++) {
         for (let t = 0; t < timers.length; t++) {
@@ -459,5 +460,5 @@ export function reloadOne(ships: Ships, dt: number, bodies: Bodies, i: number): 
             }
         }
     }
-    if (ships.fuel.spentMass(b) !== fuelSpent || ships.metal.spentMass(b) !== metalSpent) shipBreakup.settleMass(ships, bodies, b);
+    if (ships.fuel.spentMass(b) !== fuelSpent) shipBreakup.settleMass(ships, bodies, b);
 }

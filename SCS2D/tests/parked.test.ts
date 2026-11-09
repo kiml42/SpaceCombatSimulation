@@ -43,7 +43,9 @@ describe("a fighter parked on a pad", () => {
         expect(bodies.angularVel[fb]).toBeCloseTo(bodies.angularVel[cb]!, 9);
         expect(bodies.angle[fb]).toBeCloseTo(bodies.angle[cb]!, 9);
         const carrier = compileBlueprint({ ...LADEN, modules: LADEN.modules.map((m) => ({ ...m, docked: false })) });
-        expect(bodies.mass[cb]! - bodies.mass[fb]!).toBeCloseTo(carrier.mass, 6);
+        // Less the metal its holds gave the fighter's gun while it was docked.
+        expect(bodies.mass[cb]! - bodies.mass[fb]!).toBeCloseTo(carrier.mass - run.ships.metal.spentMass(cb), 6);
+        expect(run.ships.metal.spentMass(cb)).toBeGreaterThan(0);
         expect(run.totalContacts).toBe(0);
     });
 

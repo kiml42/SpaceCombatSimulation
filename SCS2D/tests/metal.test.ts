@@ -130,7 +130,7 @@ describe("a ship out of metal", () => {
         const held = ships.metal.pieceHeld(body, mount.module);
         ships.metal.drain(body, mount.module, held - mount.gun.roundMass / 2);
         expect(ships.isDisarmed(ship)).toBe(false);
-        ships.chambered[ship]!.fill(0);
+        for (const t of corvette.turrets) ships.metal.unload(body, t.module);
         expect(ships.isDisarmed(ship)).toBe(true);
         expect(ships.isDisabled(ship)).toBe(ships.hasNoEngines(ship));
     });
@@ -155,7 +155,7 @@ describe("a gun firing", () => {
         expect(s.rounds).toBeLessThanOrEqual(corvette.turrets.length);
         let waiting = 0;
         for (let t = 0; t < corvette.turrets.length; t++) {
-            if (s.ships.chambered[s.mine]![t] === 1) continue;
+            if (s.ships.isLoaded(s.body, corvette.turrets[t]!)) continue;
             waiting++;
             expect(s.ships.isReloading(s.mine, t)).toBe(true);
             expect(s.ships.loadOf(s.mine, t)).toBe(0);
@@ -168,7 +168,7 @@ describe("a gun firing", () => {
         s.ships.metal.add(s.body, gun.module, gun.gun.casing * corvette.turrets.length);
         const before = s.ships.cooldownOf(s.mine, 0);
         s.ships.command(DT, s.world);
-        expect(s.ships.chambered[s.mine]![0]).toBe(1);
+        expect(s.ships.isLoaded(s.body, gun)).toBe(true);
         if (before > 0) expect(s.ships.cooldownOf(s.mine, 0)).toBeLessThan(before);
     });
 
@@ -181,16 +181,13 @@ describe("a gun firing", () => {
         expect(s.ships.fuel.spentMass(s.body)).toBeGreaterThan(reloads * shotFuel(gun));
     });
 
-    it("spends a round's casing of metal for every round fired or loaded, and the hull is lighter by it", () => {
+    it("spends a round's casing of metal for every round fired, and the hull is lighter by it", () => {
         const s = firing(corvette, 20);
         const casing = corvette.turrets.find((t) => t.gun.casing > 0)!.gun.casing;
         expect(s.rounds).toBeGreaterThan(0);
         // Every gun on the corvette is the same bore, so every round weighs the same.
         for (const t of corvette.turrets) if (t.gun.casing > 0) expect(t.gun.casing).toBe(casing);
-        // Every gun takes its next round's metal before it reloads.
-        let loaded = 0;
-        for (const c of s.ships.chambered[s.mine]!) loaded += c;
-        expect(s.ships.metal.spentMass(s.body)).toBeCloseTo((s.rounds + loaded) * casing, 6);
+        expect(s.ships.metal.spentMass(s.body)).toBeCloseTo(s.rounds * casing, 6);
         expect(s.world.bodies.mass[s.body]).toBeCloseTo(
             corvette.mass - s.ships.fuel.spentMass(s.body) - s.ships.metal.spentMass(s.body),
             6,
