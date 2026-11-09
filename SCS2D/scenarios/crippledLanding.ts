@@ -78,7 +78,7 @@ export function crippledLanding(seed = 20260905, crippling: Crippling = CRIPPLIN
         const fighters: number[] = [];
         for (let k = 0; k < APPROACHES; k++) {
             const cx = (k % (APPROACHES / 2)) * SPACING;
-            const cy = Math.floor(k / (APPROACHES / 2)) * SPACING;
+            const cy = k < APPROACHES / 2 ? 0 : SPACING;
             carriers.push(ships.spawn(world, { design: carrier, x: cx, y: cy, angle: 0.3, team: 0 }));
             const from = (k * 2 * math.PI) / APPROACHES;
             const f = ships.spawn(world, {
