@@ -3249,7 +3249,8 @@ const SELECTED_GAP_PX = 6;
 /**
  * The ship the viewer has picked out: a ring round it in its side's trim, a
  * broken line from it to whatever it is fighting, with a smaller ring there,
- * and a broken ring round whatever it is escorting.
+ * a broken ring round whatever it is escorting, and a red one round whatever
+ * it is keeping clear of.
  */
 function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: number, metresToPx: number): void {
     const ship = shipByBody(snapshot, body);
@@ -3306,6 +3307,48 @@ function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: n
         ctx.arc(consort.x, consort.y, consort.currentStructure.radius + gap, 0, Math.PI * 2);
         ctx.stroke();
         ctx.setLineDash([]);
+    }
+    const hazard = shipByBody(snapshot, ship.avoiding ?? -1);
+    if (hazard !== null && ship.avoidRoom !== undefined) drawAvoiding(ctx, ship, hazard, ship.avoidRoom, metresToPx);
+    ctx.restore();
+}
+
+const DANGER = "#ff3b30";
+
+/**
+ * What a ship is keeping clear of: a red ring round it as far out as the ship
+ * wants to stay, and the ship's course relative to it, to where they pass
+ * closest — inside the ring is why it is dodging.
+ */
+function drawAvoiding(ctx: CanvasRenderingContext2D, ship: ShipView, hazard: ShipView, room: number, metresToPx: number): void {
+    ctx.save();
+    ctx.strokeStyle = DANGER;
+    ctx.fillStyle = DANGER;
+    ctx.lineWidth = 1.5 / metresToPx;
+    ctx.globalAlpha = 0.08;
+    ctx.beginPath();
+    ctx.arc(hazard.x, hazard.y, room, 0, TAU);
+    ctx.fill();
+    ctx.globalAlpha = 0.7;
+    ctx.stroke();
+    const dx = hazard.x - ship.x;
+    const dy = hazard.y - ship.y;
+    const rvx = ship.vx - hazard.vx;
+    const rvy = ship.vy - hazard.vy;
+    const speedSq = rvx * rvx + rvy * rvy;
+    const closest = speedSq > 0 ? Math.max(0, (dx * rvx + dy * rvy) / speedSq) : 0;
+    if (closest > 0) {
+        const px = ship.x + rvx * closest;
+        const py = ship.y + rvy * closest;
+        ctx.setLineDash([4 / metresToPx, 4 / metresToPx]);
+        ctx.beginPath();
+        ctx.moveTo(ship.x, ship.y);
+        ctx.lineTo(px, py);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.arc(px, py, 3 / metresToPx, 0, TAU);
+        ctx.fill();
     }
     ctx.restore();
 }
