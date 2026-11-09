@@ -1372,8 +1372,6 @@ export function avoid(
     const flyingBody = flying === NO_TARGET ? -1 : bodies.indexOf(ships.bodyIds[flying]!);
     // Landing, nor the rock its carrier is moored to, which its pad sits against.
     const under = landing && flying !== NO_TARGET ? ships.carrierBodyOf(bodies, flying) : -1;
-    const x = bodies.x[b]!;
-    const y = bodies.y[b]!;
     const vx = bodies.vx[b]!;
     const vy = bodies.vy[b]!;
 
@@ -1402,11 +1400,11 @@ export function avoid(
         if ((ramming || rock || landing) && ob === flyingBody) continue;
         if (ob === under) continue;
 
-        // Only as big as the part of each the other can hit: a fighter flies over a hull's deck.
-        const own = hitRadius(ships, i, t);
-        const theirs = hitRadius(ships, t, i);
-        if (!(own > 0) || !(theirs > 0)) continue;
-        const touching = own + theirs;
+        // Only the part of each the other can hit: a fighter flies over a hull's deck.
+        hitCircle(ships, bodies, i, b, t, OWN_CIRCLE);
+        hitCircle(ships, bodies, t, ob, i, THEIR_CIRCLE);
+        if (!(OWN_CIRCLE.r > 0) || !(THEIR_CIRCLE.r > 0)) continue;
+        const touching = OWN_CIRCLE.r + THEIR_CIRCLE.r;
         // Clear by its own size, not the other's, which would keep it a rock's or a carrier's breadth off.
         let room = (ramming ? mine : touching) * approach.separationRadii;
         // From a neighbour on the rock only by its own size, or it could never grip the face beside it.
@@ -1418,10 +1416,10 @@ export function avoid(
         // Its charge no further out than its station, or the two wants fight:
         // covering pulls it in to where keeping clear pushes it out.
         if (t === covering) room = min(room, max(0, shipDecide.escortBand(ships, i, ships.designs[i]!, t) - touching));
-        const dx = bodies.x[ob]! - x;
-        const dy = bodies.y[ob]! - y;
-        const rvx = bodies.vx[ob]! - vx;
-        const rvy = bodies.vy[ob]! - vy;
+        const dx = THEIR_CIRCLE.x - OWN_CIRCLE.x;
+        const dy = THEIR_CIRCLE.y - OWN_CIRCLE.y;
+        const rvx = THEIR_CIRCLE.vx - OWN_CIRCLE.vx;
+        const rvy = THEIR_CIRCLE.vy - OWN_CIRCLE.vy;
 
         // When they will be at their closest, and how far apart that is. A pair
         // already opening is at its closest *now*, which is what the clamp says
@@ -1490,6 +1488,9 @@ export function avoid(
             ships.dodgeRock = rock;
             ships.dodgingFrom[i] = t;
             ships.dodgingRoom[i] = touching + room;
+            ships.dodgingTouch[i] = touching;
+            ships.dodgingX[i] = THEIR_CIRCLE.x;
+            ships.dodgingY[i] = THEIR_CIRCLE.y;
         }
         // From its charge, opening at a speed that grows with how deep inside
         // the clearance it is, less what it is opening at already, so a pair
@@ -1513,14 +1514,40 @@ export function avoid(
     }
 }
 
+/** A circle a ship can be hit in, where it is and how it moves: world frame. */
+interface HitCircle {
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    r: number;
+}
+const OWN_CIRCLE: HitCircle = { x: 0, y: 0, vx: 0, vy: 0, r: 0 };
+const THEIR_CIRCLE: HitCircle = { x: 0, y: 0, vx: 0, vy: 0, r: 0 };
+
 /**
- * How far out from its centre ship `of` can be hit by ship `by`: its weapons
- * layer alone against a fighter in that layer, as collisions meet them.
+ * Where ship `of`, on body `ob`, can be hit by ship `by`, into `out`: round its
+ * weapons layer alone against a fighter in that layer, as collisions meet them,
+ * which is off its middle wherever that layer is, and swung round as it turns.
  */
-function hitRadius(ships: Ships, of: number, by: number): number {
+function hitCircle(ships: Ships, bodies: Bodies, of: number, ob: number, by: number, out: HitCircle): void {
     const design = ships.designs[of]!;
-    if (shipAim.shipLayers(ships, by) === WEAPONS_LAYER && shipAim.shipLayers(ships, of) === OWN_LAYERS) return design.raisedRadius;
-    return design.radius;
+    out.x = bodies.x[ob]!;
+    out.y = bodies.y[ob]!;
+    out.vx = bodies.vx[ob]!;
+    out.vy = bodies.vy[ob]!;
+    out.r = design.radius;
+    if (shipAim.shipLayers(ships, by) !== WEAPONS_LAYER || shipAim.shipLayers(ships, of) !== OWN_LAYERS) return;
+    const c = cos(bodies.angle[ob]!);
+    const s = sin(bodies.angle[ob]!);
+    const ox = design.raisedX * c - design.raisedY * s;
+    const oy = design.raisedX * s + design.raisedY * c;
+    const spin = bodies.angularVel[ob]!;
+    out.x += ox;
+    out.y += oy;
+    out.vx -= spin * oy;
+    out.vy += spin * ox;
+    out.r = design.raisedRadius;
 }
 
 /**

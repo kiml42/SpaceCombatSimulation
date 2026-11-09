@@ -3322,14 +3322,14 @@ function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: n
 const DANGER = "#ff3b30";
 
 /**
- * What a ship is keeping clear of: red round it out to where the ship wants it,
- * fading from where their hulls would touch to nothing at that edge, as
- * `avoid` weighs a near miss.
+ * What a ship is keeping clear of: red round the part of it the ship can hit,
+ * out to where the ship wants it, fading from where they would touch to nothing
+ * at that edge, as `avoid` weighs a near miss.
  */
 function drawAvoiding(ctx: CanvasRenderingContext2D, ship: ShipView, hazard: ShipView, room: number, metresToPx: number): void {
-    const touching = Math.min(room, ship.currentStructure.radius + hazard.currentStructure.radius);
+    const touching = Math.min(room, ship.avoidTouch ?? ship.currentStructure.radius + hazard.currentStructure.radius);
     ctx.save();
-    ctx.translate(hazard.x, hazard.y);
+    ctx.translate(ship.avoidX ?? hazard.x, ship.avoidY ?? hazard.y);
     keep(ctx, `avoid ${touching} ${room}`, () => avoidRings(ctx, touching, room, metresToPx));
     ctx.restore();
 }
