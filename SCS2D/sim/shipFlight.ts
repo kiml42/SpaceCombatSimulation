@@ -452,7 +452,7 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
  *
  * Where its main guns are after a part of `target` rather than the whole of
  * it (`aimedPart`), the hull is pointed at that part instead, led as a gun
- * leads it: by the hull's motion, from where the part is now.
+ * leads it: by the part's own motion, spin and all.
  */
 export function attackHeading(
     ships: Ships,
@@ -482,10 +482,13 @@ export function attackHeading(
     if (part >= 0) {
         const module = ships.designs[target]!.modules[part]!;
         const angle = bodies.angle[tb]!;
-        ax = bodies.x[tb]! + module.x * cos(angle) - module.y * sin(angle);
-        ay = bodies.y[tb]! + module.x * sin(angle) + module.y * cos(angle);
-        avx = bodies.vx[tb]!;
-        avy = bodies.vy[tb]!;
+        const rx = module.x * cos(angle) - module.y * sin(angle);
+        const ry = module.x * sin(angle) + module.y * cos(angle);
+        const spin = bodies.angularVel[tb]!;
+        ax = bodies.x[tb]! + rx;
+        ay = bodies.y[tb]! + ry;
+        avx = bodies.vx[tb]! - spin * ry;
+        avy = bodies.vy[tb]! + spin * rx;
         towards = atan2(ay - bodies.y[b]!, ax - bodies.x[b]!);
     }
     const current = angleDelta(bodies.angle[b]!, towards);
