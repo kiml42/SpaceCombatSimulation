@@ -67,7 +67,7 @@ it("goes for an enemy in sight over a nearer one behind a rock", () => {
     expect(run.ships.fightingOf(run.hunter)).toBe(run.open);
 });
 
-it("orbits a rock hiding its target, getting round sooner and on less fuel than flying at it", () => {
+it("orbits a rock hiding its target, getting round on less fuel than flying at it", () => {
     const meet = (orbitWeight: number): { first: number; fuel: number } => {
         const plain = compileBlueprint(GUNSHIP);
         const design = { ...plain, doctrine: { ...plain.doctrine, approach: { ...plain.doctrine.approach, orbitWeight } } };
@@ -87,6 +87,8 @@ it("orbits a rock hiding its target, getting round sooner and on less fuel than 
     };
     const straight = meet(0);
     const orbiting = meet(1);
-    expect(orbiting.first).toBeLessThan(straight.first / 2);
-    expect(orbiting.fuel).toBeLessThan(straight.fuel);
+    // Round on far less fuel, and not much later: flying straight at it is no
+    // longer held up by escorting the rock, which nobody does any more.
+    expect(orbiting.fuel).toBeLessThan(straight.fuel * 0.75);
+    expect(orbiting.first).toBeLessThan(straight.first * 1.5);
 });
