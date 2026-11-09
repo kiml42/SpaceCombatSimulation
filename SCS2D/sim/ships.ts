@@ -722,6 +722,9 @@ export class Ships {
     readonly gripSlack: number[] = [];
     /** Whether each claw ship is closing straight in on its grip point, rather than making for the gate. */
     readonly gripClosing: number[] = [];
+    /** What each ship's heaviest dodge this step is from, or -1; and how far off it wants that, centre to centre, m. */
+    readonly dodgingFrom: number[] = [];
+    readonly dodgingRoom: number[] = [];
     readonly gripAt: number[] = [];
     /** The heading `squareUp` last asked for. */
     gripHeading = 0;
@@ -1459,6 +1462,8 @@ export class Ships {
         this.gripNy.push(0);
         this.gripSlack.push(0);
         this.gripClosing.push(0);
+        this.dodgingFrom.push(-1);
+        this.dodgingRoom.push(0);
         this.gripAt.push(-Infinity);
         this.landingPad.push(-1);
         this.dockSeenVx.push(0);
@@ -1761,6 +1766,13 @@ export class Ships {
         const bodies = this.bodyStore;
         if (bodies === null || this.alive[i] !== 1 || !this.hasControl(i)) return NO_TARGET;
         return shipDecide.liveConsort(this, bodies, i, bodies.indexOf(this.bodyIds[i]!));
+    }
+
+    /** What this ship is keeping clear of above all else, as `avoid` flew it last step; `NO_TARGET` for nothing. */
+    dodgingOf(i: number): number {
+        if (this.alive[i] !== 1 || !this.hasControl(i)) return NO_TARGET;
+        const t = this.dodgingFrom[i]!;
+        return t >= 0 && this.alive[t] === 1 ? t : NO_TARGET;
     }
 
     /** How far from `consort` ship `i` stays as its escort, centre to centre, metres. */
