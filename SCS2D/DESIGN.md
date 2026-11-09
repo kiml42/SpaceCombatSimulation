@@ -1274,8 +1274,8 @@ inside any one file is not contiguous.
   **Metal.** A `hold` archetype whose interior is metal (`METAL_DENSITY`, steel racked about half solid), and
   by default a twentieth of a core's interior past its computing (`CORE_METAL_SHARE`), the rest of it still fuel, so
   a bare core with one gun can fire a few rounds. A gun loads each round whole from the holds and cores on its
-  own piece of hull, as an engine draws fuel from its tanks, and holds its fire, ready, while they have less
-  than a round's casing. **Fuel is a gun's propellant and a shell's bursting charge**: a gun draws its next
+  own piece of hull, as an engine draws fuel from its tanks, before it reloads, and waits empty, its reload not
+  begun, while they have less than a round's casing. **Fuel is a gun's propellant and a shell's bursting charge**: a gun draws its next
   round's from the tanks on its piece of hull as it reloads, as a beam draws its charge, so it reloads only as
   fast as they supply it, first come first served against the engines, and starts a battle loaded. The
   propellant is the muzzle energy at `PROPELLANT_ENERGY`, 1.2 MJ/kg (the 16"/50's 297 kg charge), so it goes

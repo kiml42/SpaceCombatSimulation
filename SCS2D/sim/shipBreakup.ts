@@ -323,7 +323,10 @@ export function discardModule(ships: Ships, world: World, i: number, design: Shi
     const { stats } = placed;
     const mass = max(
         0,
-        stats.mass - (stats.fuel - ships.fuel.held(b, m)) - (stats.metal - ships.metal.held(b, m)) - ships.damage.shedAt(b, m),
+        stats.mass -
+            (stats.fuel - ships.fuel.held(b, m)) -
+            (stats.metal - ships.metal.held(b, m) - ships.metal.loadedAt(b, m)) -
+            ships.damage.shedAt(b, m),
     );
     const angle = bodies.angle[b]!;
     const c = cos(angle);
@@ -884,7 +887,7 @@ export function detach(ships: Ships, world: World, i: number, design: ShipDesign
     let mass = chunk.mass;
     for (let m = 0; m < keep.length; m++) {
         const { stats } = chunk.modules[m]!;
-        mass -= stats.fuel - ships.fuel.held(b, keep[m]!) + stats.metal - ships.metal.held(b, keep[m]!);
+        mass -= stats.fuel - ships.fuel.held(b, keep[m]!) + stats.metal - ships.metal.held(b, keep[m]!) - ships.metal.loadedAt(b, keep[m]!);
         mass -= ships.damage.shedAt(b, keep[m]!);
     }
     if (!flies && mass < SCRAP_MASS) {
@@ -965,6 +968,7 @@ export function detach(ships: Ships, world: World, i: number, design: ShipDesign
         chunkBody,
         chunk,
         keep.map((m) => ships.metal.held(b, m)),
+        keep.map((m) => ships.metal.loadedAt(b, m)),
     );
     ships.power.register(
         chunkBody,
@@ -1065,6 +1069,7 @@ export function adopt(
     const scars: number[] = [];
     const fuel: number[] = [];
     const metal: number[] = [];
+    const loaded: number[] = [];
     const charge: number[] = [];
     const unbuilt: number[] = [];
     const marks: (Float64Array | null)[] = [];
@@ -1075,6 +1080,7 @@ export function adopt(
         scars.push(was < 0 ? 0 : ships.damage.absorbedAt(from, was));
         fuel.push(was < 0 ? 0 : ships.fuel.held(from, was));
         metal.push(was < 0 ? 0 : ships.metal.held(from, was));
+        loaded.push(was < 0 ? 0 : ships.metal.loadedAt(from, was));
         charge.push(was < 0 ? 0 : ships.power.held(from, was));
         unbuilt.push(was < 0 ? 0 : ships.damage.unbuiltAt(from, was));
     }
@@ -1166,7 +1172,7 @@ export function adopt(
     ships.damage.register(b, design, scars, weldScars, unbuilt, marks);
     const leaks = leaksInto(ships, design.modules.length, (m) => ({ body: bodyOf(shipOf(m)), module: moduleOf(m) }));
     ships.fuel.register(b, design, fuel, leaks);
-    ships.metal.register(b, design, metal);
+    ships.metal.register(b, design, metal, loaded);
     ships.power.register(b, design, charge);
     // Grown in place, every robot is where it was and about what it was about.
     // The robots each bay was building, wherever the bay came from.

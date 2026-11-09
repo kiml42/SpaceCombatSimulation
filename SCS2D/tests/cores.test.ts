@@ -139,6 +139,7 @@ describe("a ship with its core shot out", () => {
         for (let m = 0; m < design.modules.length; m++) {
             s.ships.fuel.drain(s.body, m, s.ships.fuel.held(s.body, m));
             s.ships.metal.drain(s.body, m, s.ships.metal.held(s.body, m));
+            s.ships.metal.unload(s.body, m);
         }
         expect(s.ships.hasControl(s.ship)).toBe(true);
         expect(s.ships.isMissionKilled(s.ship)).toBe(true);
