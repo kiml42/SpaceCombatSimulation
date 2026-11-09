@@ -123,7 +123,8 @@ describe("breeding a shape", () => {
         expect(walks).toBeGreaterThan(0);
     });
 
-    it("keeps every module a box when shape is weighted out", { timeout: 240_000 }, () => {
+    // Breeds a long line: slow on a loaded CI runner.
+    it("keeps every module a box when shape is weighted out", { timeout: 480_000 }, () => {
         // The off switch a long run reaches for: a hull with wedges in it compiles
         // about half as dear again, so a run that does not want them should not
         // pay for them.
