@@ -78,7 +78,7 @@ const TARGETING_ROWS: readonly DoctrineRow[] = [
     {
         field: "escortWeight",
         label: "escort",
-        hint: "How much it would rather stay with a consort than go to the best fight it can find",
+        hint: "How firmly it holds by a consort. It stays and fights from there while an enemy is in its reach of that station, and leaves to fight further off while none is; 0 escorts nobody",
         step: 20,
     },
     {

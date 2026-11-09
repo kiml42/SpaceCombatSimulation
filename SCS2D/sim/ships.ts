@@ -813,6 +813,8 @@ export class Ships {
      * relative to its charge changes far faster than which charge it wants.
      */
     readonly consort: number[] = [];
+    /** Whether each ship is holding by its consort against what threatens it, fighting only from there (`guard`). */
+    readonly guarding: number[] = [];
     /** The blend of steering urges being accumulated for one craft, and the acceleration each wants matched. */
     urgeVx = 0;
     urgeVy = 0;
@@ -1497,6 +1499,7 @@ export class Ships {
         this.dockPort.push(-1);
         this.ownPort.push(-1);
         this.consort.push(NO_TARGET);
+        this.guarding.push(0);
         // Staggered by index, so a fleet spawned together does not all stop to
         // think on the same step for the rest of the battle.
         this.rethinkAt.push(i);

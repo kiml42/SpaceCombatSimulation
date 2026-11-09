@@ -156,21 +156,21 @@ export interface Targeting {
     readonly gunWeight: number;
     readonly structureWeight: number;
     /**
-     * How much a ship would rather be with something it will never shoot at
-     * than at the best fight it can find.
+     * How firmly a ship holds by something it will never shoot at.
      *
      * What a craft escorts is anything not hostile to it — one of its own, or
      * a neutral — and escorting means station-keeping and nothing else: the
      * guns go on fighting whatever they can reach, since a consort does not
      * need covering by a mount that is pointing the wrong way.
      *
-     * **It is weighed against holding station, not against a target's score.**
-     * A hundred is worth exactly as much as the order a craft is flying, so a
-     * craft with that much splits the difference between closing on its enemy
-     * and staying with its charge, and one with four hundred stays with its
-     * charge and fights from there. It fades to nothing as the gap closes, so a
-     * craft that has caught up is pulled by the fight alone until the fight has
-     * drawn it off again.
+     * **Escorting and fighting are a choice, not a blend** (`shipDecide.guard`).
+     * While an enemy is within its own reach of its station, a craft stays and
+     * fights the nearest from there; while none is, it leaves its charge and
+     * goes to the fight it chose. Weighed against each other, the two settled
+     * halfway, and an escort trailed an enemy moving away from its charge at
+     * half its speed. This is how hard the station pulls against keeping clear,
+     * a hundred being worth as much as an order; it fades to nothing as the
+     * gap closes.
      *
      * **Zero means escort nobody, and is the default.** A friendly is not
      * offered to the stack at all below it, which is deliberate rather than

@@ -35,6 +35,7 @@ export function decide(ships: Ships, world: World, bodies: Bodies, i: number): v
         // running out of orders is a fresh look rather than a stale one.
         ships.chosen[i] = NO_TARGET;
         ships.consort[i] = NO_TARGET;
+        ships.guarding[i] = 0;
         ships.ramming[i] = NO_TARGET;
         ships.salvaging[i] = NO_TARGET;
         ships.withdrawing[i] = 0;
@@ -51,6 +52,7 @@ export function decide(ships: Ships, world: World, bodies: Bodies, i: number): v
         if (ships.alive[rammed] === 1 && ships.derelict[rammed] === 0 && ships.hasControl(rammed) && !ships.isDisabled(i)) {
             ships.chosen[i] = rammed;
             ships.consort[i] = NO_TARGET;
+            ships.guarding[i] = 0;
             return;
         }
         ships.ramming[i] = NO_TARGET;
@@ -65,6 +67,7 @@ export function decide(ships: Ships, world: World, bodies: Bodies, i: number): v
     if (ships.isDisabled(i)) {
         ships.chosen[i] = NO_TARGET;
         ships.consort[i] = NO_TARGET;
+        ships.guarding[i] = 0;
         ships.withdrawing[i] = 0;
         ships.hiding[i] = NO_TARGET;
         return;
@@ -147,8 +150,10 @@ export function decide(ships: Ships, world: World, bodies: Bodies, i: number): v
     // negative and a consort scored by the ordinary ones would beat a distant
     // enemy on proximity alone — which would have every fleet in the game
     // huddling rather than fighting.
+    const wasGuarding = ships.guarding[i] === 1;
     ships.chosen[i] = fighting;
     ships.consort[i] = defending;
+    ships.guarding[i] = 0;
     if (defending === NO_TARGET && withdraws(ships, i, b, fighting)) {
         ships.chosen[i] = NO_TARGET;
         ships.consort[i] = NO_TARGET;
@@ -185,6 +190,47 @@ export function decide(ships: Ships, world: World, bodies: Bodies, i: number): v
         ships.choice.offer(candidate, score(doctrine, candidate, design.reach, design.mass, loyalTo));
     }
     ships.consort[i] = ships.choice.ship;
+    guard(ships, bodies, i, b, wasGuarding);
+}
+
+/** How much further out than where it starts guarding an escort stops. */
+const GUARD_LEAVE = 1.5;
+
+/**
+ * Escorting or fighting, never both at once.
+ *
+ * Weighed against each other, the two settle halfway: an escort chasing an
+ * enemy that is moving away from its charge trails it at half its speed, and
+ * stays with neither. So while an enemy is in ship `i`'s reach of where it
+ * stations, it stays and fights the nearest such from there; while none is,
+ * it leaves its charge to go after what it chose. Guarding already, it stays
+ * until none is within `GUARD_LEAVE` of that, or an enemy hanging about the
+ * edge would have it to and fro across it.
+ */
+function guard(ships: Ships, bodies: Bodies, i: number, b: number, wasGuarding: boolean): void {
+    const consort = ships.consort[i]!;
+    if (consort === NO_TARGET || ships.chosen[i] === NO_TARGET) return;
+    const cb = bodies.indexOf(ships.bodyIds[consort]!);
+    if (cb < 0) return;
+    const reach = (shipSupply.fightReach(ships, i) + escortBand(ships, i, ships.designs[i]!, consort)) * (wasGuarding ? GUARD_LEAVE : 1);
+    let nearest = NO_TARGET;
+    let best = reach;
+    for (let t = 0; t < ships.alive.length; t++) {
+        if (ships.alive[t] !== 1 || ships.derelict[t] === 1 || !ships.hostile(i, t) || !ships.hasControl(t)) continue;
+        const tb = bodies.indexOf(ships.bodyIds[t]!);
+        if (tb < 0 || tb === b) continue;
+        const d = length(bodies.x[tb]! - bodies.x[cb]!, bodies.y[tb]! - bodies.y[cb]!);
+        if (d < best) {
+            best = d;
+            nearest = t;
+        }
+    }
+    if (nearest === NO_TARGET) {
+        ships.consort[i] = NO_TARGET;
+        return;
+    }
+    ships.chosen[i] = nearest;
+    ships.guarding[i] = 1;
 }
 
 /**
