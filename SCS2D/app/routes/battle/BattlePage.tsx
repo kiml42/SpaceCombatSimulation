@@ -19,7 +19,7 @@ import type { Battle } from "~/scenarios/types";
 import { math, parseFleet, type Snapshot } from "~/sim/index";
 import { CustomPanel } from "./custom/CustomPanel";
 import { keepSetup, keptSetup, withReturned } from "./custom/keptSetup";
-import { CUSTOM, sceneIndex, sceneParam } from "./sceneParam";
+import { CUSTOM, sceneIndex, sceneParam, variantIndex, variantParam } from "./sceneParam";
 import { DEFAULT_FIELDS, fieldsOf, setupOf, slotsOf, type SetupFields, type Slot } from "./custom/customSetup";
 import { KeyHelp } from "~/ui/dialogs/KeyHelp";
 import { AddShip } from "./orders/AddShip";
@@ -88,9 +88,12 @@ export function BattlePage() {
     const [search, setSearch] = useSearchParams();
     // The address names the scene, so a reload comes back to it.
     const [scene, setScene] = useState(() => sceneIndex(search.get("scene")));
-    const pick = (index: number): void => {
+    const [variant, setVariant] = useState(() => variantIndex(scene, search.get("variant")));
+    const pick = (index: number, nextVariant = 0): void => {
         setScene(index);
-        setSearch({ scene: sceneParam(index) }, { replace: true });
+        setVariant(nextVariant);
+        const named = variantParam(index, nextVariant);
+        setSearch(named === null ? { scene: sceneParam(index) } : { scene: sceneParam(index), variant: named }, { replace: true });
     };
     const [running, setRunning] = useState(true);
     const [settings, keep] = useViewSettings(PAGE, DEFAULTS);
@@ -120,9 +123,16 @@ export function BattlePage() {
     }, [view]);
 
     /** The scene built afresh, running or held as the battle before it was; a custom battle's logged orders replayed in it. */
-    const show = (next: BattleView | null, index = scene, run = running, setup?: BattleSetup, logged: readonly Logged[] = []): void => {
+    const show = (
+        next: BattleView | null,
+        index = scene,
+        run = running,
+        setup?: BattleSetup,
+        logged: readonly Logged[] = [],
+        which = index === scene ? variant : 0,
+    ): void => {
         if (next === null) return;
-        battle.current = index === CUSTOM ? customBattle(setup ?? setupOf(slots, fields)) : SCENES[index]!.create();
+        battle.current = index === CUSTOM ? customBattle(setup ?? setupOf(slots, fields)) : SCENES[index]!.create(which);
         next.show(battle.current, run, true, logged);
     };
     /** A custom battle handed over whole, by an editor or a link, held at its start. */
@@ -251,6 +261,24 @@ export function BattlePage() {
                     ))}
                     <option value={CUSTOM}>Custom battle</option>
                 </select>
+                {SCENES[scene]?.variants !== undefined && (
+                    <select
+                        id="variant"
+                        aria-label="Variant"
+                        value={variant}
+                        onChange={(event) => {
+                            const index = Number(event.target.value);
+                            pick(scene, index);
+                            show(view, scene, running, undefined, [], index);
+                        }}
+                    >
+                        {SCENES[scene]!.variants!.map((name, index) => (
+                            <option key={name} value={index}>
+                                {name}
+                            </option>
+                        ))}
+                    </select>
+                )}
                 <Button id="customBattle" title="Set up a battle between fleets" onClick={openCustom}>
                     Custom
                 </Button>

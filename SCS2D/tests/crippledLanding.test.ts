@@ -1,102 +1,61 @@
 import { describe, expect, it } from "vitest";
-import { compileBlueprint, type Blueprint } from "../sim/index.js";
-import { makeBattle } from "../scenarios/battle.js";
-import { DINKY, REPLICATOR } from "../scenarios/blueprints.js";
+import { CRIPPLINGS, crippledLanding } from "../scenarios/crippledLanding.js";
+import { SCENE_SEED } from "../scenarios/scenes.js";
 
 /**
- * Fighters deliberately crippled, each making for a carrier's pad low on fuel:
- * the kinds of damage a fighter used to be left hanging by its carrier with.
+ * The Crippled Landing scene, every variant as the battle page shows it: each of its fighters
+ * on its own carrier's pad within the time given, having hit nothing. Open the scene to see one go.
  */
 
-/** A carrier with a pad as big as `pad` long and wide, and fuel, metal and charge to give. */
-function carrier(length: number, width: number): Blueprint {
-    return {
-        name: "Carrier",
-        modules: [
-            { kind: "core", x: 0, y: 0, length: 6, width: 6 },
-            { kind: "tank", x: -13, y: 0, length: 20, width: 10 },
-            { kind: "hold", x: 0, y: 6, length: 6, width: 6, fill: 1 },
-            { kind: "generator", x: 0, y: -6, length: 6, width: 6 },
-            { kind: "pad", x: 3 + length / 2, y: 0, length, width },
-        ],
-    };
-}
+/** How each fighter can turn: none one way, or one way far weaker than the other. */
+type Turn = "one way" | "one weak";
 
-/** `fighter` with its modules `lost` shot away and most of its fuel gone, 360 m off a carrier: when it lands, in seconds, what it hit, and how it can turn. */
-function landing(fighter: Blueprint, pad: Blueprint, lost: readonly number[]): { at: number; contacts: number; turns: [number, number] } {
-    const doctrine = compileBlueprint(fighter).doctrine;
-    // Low enough on fuel to go, and not sent by how whole it is, which would muddle what is being tested.
-    const design = compileBlueprint({
-        ...fighter,
-        doctrine: { ...doctrine, approach: { ...doctrine.approach, refuelBelow: 0.5, repairBelow: 0 } },
-    });
-    const run = makeBattle({ seed: 3 }, (ships, world) => {
-        const c = ships.spawn(world, { design: compileBlueprint(pad), x: 0, y: 0, angle: 0.3, team: 0 });
-        const f = ships.spawn(world, { design, x: -300, y: 200, angle: 0, team: 0 });
-        const b = world.bodies.indexOf(ships.body(f));
-        for (let m = 0; m < design.modules.length; m++) ships.fuel.vent(b, m, ships.fuel.held(b, m) * 0.7);
-        for (const m of lost) ships.damage.absorb(b, m, ships.damage.capacityLeft(b, m));
-        return { c, f };
-    });
-    const layout = (run.ships as unknown as { layoutOf(i: number): { maxTorque(sense: number): number } }).layoutOf(run.f);
-    let t = 0;
-    while (t < 180 * 60 && run.ships.parkedCarrier(run.f) !== run.c) {
-        run.step();
-        t++;
-    }
-    return {
-        at: run.ships.parkedCarrier(run.f) === run.c ? t / 60 : Infinity,
-        contacts: run.totalContacts,
-        turns: [layout.maxTorque(1), layout.maxTorque(-1)],
-    };
-}
+/** By variant: the slowest landing allowed, in seconds, and how its fighters are left able to turn. */
+const EXPECTED: Record<string, { within: number; turn?: Turn }> = {
+    "Raider, one turn far weaker [1, 8]": { within: 90, turn: "one weak" },
+    "Raider, one turn far weaker [3, 7]": { within: 90, turn: "one weak" },
+    "Raider, no main [4]": { within: 150 },
+    "Raider, no main [2, 4]": { within: 210 },
+    "Raider, pushes turn it [4, 6]": { within: 130 },
+    "Raider, pushes turn it [4, 8, 10]": { within: 130 },
+    "Raider, turns one way, every push spins it [4, 7, 10]": { within: 210, turn: "one way" },
+    "Raider, turns one way, every push spins it [1, 4, 10]": { within: 210, turn: "one way" },
+    "Dinky, turns anticlockwise only [2, 7, 8]": { within: 90, turn: "one way" },
+    "Dinky, turns clockwise only [1, 2, 9]": { within: 90, turn: "one way" },
+};
 
-describe("a Dinky that can turn only one way", () => {
-    // Its Side thrusters and their opposite numbers: losing these leaves its turn one way only.
-    it.each([
-        ["anticlockwise", [2, 7, 8]],
-        ["clockwise", [1, 2, 9]],
-    ])("lands spinning, turning only %s", (_, lost) => {
-        const { at, contacts, turns } = landing(DINKY, carrier(10, 10), lost);
-        expect(turns.filter((t) => t > 0)).toHaveLength(1);
-        expect(at).toBeLessThan(120);
-        expect(contacts).toBe(0);
-    });
-});
-
-describe("a Dinky Raider", () => {
-    // Its modules: 1, 3, 7, 9 thrusters pushing it sideways, 2 and 8 pushing it back,
-    // 4 its main, 6 its gun (half its mass, at the nose), 10 its hold.
-    const RAIDER = REPLICATOR.hangar!["Dinky Raider"]!;
-    const PAD = carrier(8.674634452, 7);
-
-    it.each([[[1, 8]], [[3, 7]]])("lands with its turn one way far weaker than the other, spinning in, having lost %j", (lost) => {
-        const { at, contacts, turns } = landing(RAIDER, PAD, lost);
-        expect(Math.min(...turns) / Math.max(...turns)).toBeLessThan(0.5);
-        expect(Math.min(...turns)).toBeGreaterThan(0);
-        expect(at).toBeLessThan(120);
-        expect(contacts).toBe(0);
+describe("Crippled Landing", () => {
+    it("has an expectation for every variant", () => {
+        expect(Object.keys(EXPECTED).sort()).toEqual(CRIPPLINGS.map((c) => c.name).sort());
     });
 
-    it.each([[[4]], [[2, 4]]])("lands on its thrusters once its main is gone, having lost %j", (lost) => {
-        const { at, contacts } = landing(RAIDER, PAD, lost);
-        expect(at).toBeLessThan(150);
-        expect(contacts).toBe(0);
-    });
+    it.each(CRIPPLINGS.map((crippling) => [crippling.name, crippling] as const))(
+        "%s: every fighter lands",
+        (name, crippling) => {
+            const { within, turn } = EXPECTED[name]!;
+            const run = crippledLanding(SCENE_SEED, crippling);
 
-    it.each([[[4, 6]], [[4, 8, 10]]])("lands spinning on thrusters that cannot push its way without turning it, having lost %j", (lost) => {
-        const { at, contacts } = landing(RAIDER, PAD, lost);
-        expect(at).toBeLessThan(150);
-        expect(contacts).toBe(0);
-    });
+            // As crippled, before a pad mends it.
+            const layout = (run.ships as unknown as { layoutOf(i: number): { maxTorque(sense: number): number } }).layoutOf(
+                run.fighters[0]!,
+            );
+            const turns = [layout.maxTorque(1), layout.maxTorque(-1)];
+            if (turn === "one way") expect(turns.filter((t) => t > 0)).toHaveLength(1);
+            if (turn === "one weak") {
+                expect(Math.min(...turns)).toBeGreaterThan(0);
+                expect(Math.min(...turns) / Math.max(...turns)).toBeLessThan(0.5);
+            }
 
-    it.each([[[4, 7, 10]], [[1, 4, 10]]])(
-        "lands on its thrusters turning one way, though every push adds to its spin, having lost %j",
-        (lost) => {
-            const { at, contacts, turns } = landing(RAIDER, PAD, lost);
-            expect(turns.filter((t) => t > 0)).toHaveLength(1);
-            expect(at).toBeLessThan(170);
-            expect(contacts).toBe(0);
+            const landed = (k: number): boolean => run.ships.parkedCarrier(run.fighters[k]!) === run.carriers[k];
+            const at = run.fighters.map(() => Infinity);
+            for (let t = 1; t <= within * 60 && !at.every(Number.isFinite); t++) {
+                run.step();
+                for (let k = 0; k < at.length; k++) if (at[k] === Infinity && landed(k)) at[k] = t / 60;
+            }
+            // Which approaches, from 0 (east of its carrier) round anticlockwise, failed to land in time.
+            expect(at.flatMap((s, k) => (Number.isFinite(s) ? [] : [k]))).toEqual([]);
+            expect(run.totalContacts).toBe(0);
         },
+        120_000,
     );
 });
