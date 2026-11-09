@@ -1489,14 +1489,14 @@ export function avoid(
         // From its charge, opening at a speed that grows with how deep inside
         // the clearance it is, less what it is opening at already, so a pair
         // drawing apart eases off as it leaves rather than flying apart flat out.
-        // A claw ship already opening from a hulk eases to a stop at the edge
-        // too: flat out from the velocity it has, it swung to and fro past the
+        // A claw ship already opening from a hulk, not a rock, eases to a stop
+        // at the edge too: flat out from the velocity it has, it swung to and fro past the
         // hulk between it and its own. Anything else is left to fly apart, which
         // keeps a fleet from bunching (`DECISIONS.md`, 2026-11-09).
         const ds = approach.dodgeSpeed;
         const opening = -(rvx * awayX + rvy * awayY);
         let dodge: number;
-        if (!soft && (closest > 0 || !hulksOnly)) dodge = ds;
+        if (!soft && (closest > 0 || !hulksOnly || ships.rockFlag[t] === 1)) dodge = ds;
         else if (closest > 0) dodge = clamp(ds * depth - opening, 0, ds);
         else {
             // Not closing, so nothing to dodge in time for: it opens no faster
