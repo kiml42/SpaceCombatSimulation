@@ -2,7 +2,7 @@
 
 The battles the Battle route lists (`SCENES` in `scenes.ts`), in its order: what is in each, and which to open
 to see or test a given part of the game. Counts are from the blueprints in `blueprints/` and `fleets/`. Keep this
-in step when a scene is added or changes what it shows. A scene with variants (Swarm, Crippled Landing) offers
+in step when a scene is added or changes what it shows. A scene with variants (Swarm, Crippled Landing, Rock Landing) offers
 them in a second list beside the first, and the address names the one picked (`?scene=Swarm&variant=300 fighters`).
 
 ## Which scene for what
@@ -12,7 +12,7 @@ them in a second list beside the first, and the address names the one picked (`?
 | Robots: bays, berths, robots out on a hull | **Rival Mines** (two bays a ship, big on screen), Mending, Refitting |
 | Mining and ore into holds | Mining (no fighting), Rival Mines |
 | Building: pads, slipways, refits | Factory (pad), Shipyard (slipway), Refitting, Catamaran Refits, Pad Rebuild |
-| Fighters launching, landing, rearming | Beam Carrier, Rearm, Pad Rebuild, Crippled Landing (damaged) |
+| Fighters launching, landing, rearming | Beam Carrier, Rearm, Pad Rebuild, Crippled Landing (damaged), Rock Landing (on a rock) |
 | Docking, claws, ports, fuel and metal moving | Tanker (ports), Scavenge, Salvage Run (claws), Hooked (welded) |
 | Beams on their own | Beam Duel |
 | Rail guns: charged from power, solid shot | Rail Duel |
@@ -80,3 +80,4 @@ them in a second list beside the first, and the address names the one picked (`?
 | Passes | dusk | An invulnerable Dinky strafing a crippled, protected Corvette | Fighter flight and guns, forever |
 | Circling | ice | The same, with a Y-Wing circling | As Passes |
 | Crippled Landing | gold | 8 carriers, each with a fighter low on fuel and damaged as the variant says, coming in from its own eighth of the way round | Landing with thrusters or a main shot away; `tests/crippledLanding.test.ts` runs every variant |
+| Rock Landing | dusk | 4 Replicators moored by their claws round one asteroid, under its pull, and a Raider low on fuel for each of their 8 pads, from a circular orbit 700 m out, damaged as the variant says | Landing on carriers anchored to a rock, against its pull |
