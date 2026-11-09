@@ -1657,13 +1657,17 @@ export interface GunStats {
     plasmaReach: number;
     /** What a plasma lance's jet pushes back with while it fires, newtons. */
     jetThrust: number;
+    /** What a rail gun's capacitor bank holds, J: a volley or more. Zero for a gun that charges each shot as it reloads. */
+    bankEnergy: number;
+    /** How fast a rail gun's block charges its bank, watts. */
+    bankPower: number;
     /** Muzzle velocity, m/s. */
     muzzleSpeed: number;
     /** Kinetic energy of one round at the muzzle, joules. */
     muzzleEnergy: number;
     /** beam power at the muzzle, watts. */
     beamPower: number;
-    /** Seconds spent reloading between shots: after a beam's burst, not including it. */
+    /** Seconds spent reloading between shots: after a beam's burst, not including it, and between a rail gun's volleys. */
     cycleTime: number;
     /** Seconds a beam stays on. */
     beamOnTime: number;
@@ -1681,9 +1685,20 @@ export function shotCharge(gun: GunStats): number {
     return gun.shotEnergy;
 }
 
-/** Seconds from one shot to the next: a beam's burst, then its reload. */
+/** The charge a volley draws from a rail gun's bank, J: a round from every barrel. */
+export function volleyCharge(gun: GunStats): number {
+    return gun.barrelCount * gun.shotEnergy;
+}
+
+/**
+ * Seconds from one shot to the next, sustained: a beam's burst, then its
+ * reload; a rail gun's round, as fast as its bank charges or it loads.
+ */
 export function firingPeriod(gun: GunStats): number {
-    return gun.type === GunType.Beam ? gun.beamOnTime + gun.cycleTime : gun.cycleTime;
+    if (gun.type === GunType.Beam) return gun.beamOnTime + gun.cycleTime;
+    if (!(gun.bankPower > 0)) return gun.cycleTime;
+    const charging = volleyCharge(gun) / gun.bankPower;
+    return (charging > gun.cycleTime ? charging : gun.cycleTime) / gun.barrelCount;
 }
 
 /** Everything the scaling laws derive from a module's geometry. */
@@ -2487,9 +2502,9 @@ function hullOutlets(spec: ModuleSpec): {
     const outlets = countsOutlets(spec.kind) ? (spec.barrels ?? 1) : 1;
     // What a single outlet would be, and each of several split the way a
     // turret splits it: tubes divide the bore, so each is `1/n` as wide; lenses
-    // divide the optic's area, so each is `1/√n` as wide.
+    // divide the optic's area, and rails their bank, so each is about `1/√n` as wide.
     const single = isHullBeam(spec.kind) ? HULL_APERTURE_FRACTION * spec.width : BARREL_OUTER_CALIBRES * HULL_CALIBRE_FRACTION * spec.width;
-    const each = isHullBeam(spec.kind) ? single / sqrt(outlets) : single / outlets;
+    const each = isHullBeam(spec.kind) || spec.kind === "railGun" ? single / sqrt(outlets) : single / outlets;
     // Spread across the face as a turret's barrels are, one gap outboard of
     // each end, so neighbours stand apart rather than touching.
     const outletSpacing = outlets > 1 ? spec.width / (outlets + 1) : 0;
@@ -2826,6 +2841,8 @@ export function hullGunStats(spec: ModuleSpec): GunStats {
         shotEnergy: 0,
         plasmaReach: 0,
         jetThrust: 0,
+        bankEnergy: 0,
+        bankPower: 0,
         muzzleSpeed,
         muzzleEnergy,
         beamPower: 0,
@@ -2856,27 +2873,31 @@ const RAIL_CALIBRE_STEPS = 48;
 
 /**
  * A rail gun: a hull gun on power, firing solid shot `RAIL_SPEED` times as
- * fast as powder would from the same run of barrel.
+ * fast as powder would from the same run of barrel, a volley at a time.
  *
  * **Its bore is whatever its bank fills.** A wider bore wants more energy for
  * every shot and leaves less of the block for capacitors, so there is one
- * calibre whose full shot uses exactly the charge its bank holds, and that is
- * the gun's. More barrel narrows it, so a longer gun throws a lighter shot
- * faster for much the same energy, which its block sets. Its opening caps it,
- * so a bore that would want more than the opening takes is held there.
+ * calibre at which a round from every barrel uses exactly the charge its bank
+ * holds, and that is the gun's. More barrel narrows it, so a longer gun throws
+ * a lighter shot faster for much the same energy, which its block sets. What
+ * fits caps it, its barrels side by side in the block's depth, and a capped
+ * bank holds more than one volley, fired as a salvo as fast as it loads.
  */
 function railGunStats(spec: ModuleSpec): GunStats {
-    const { outlets, outletWidth, outletSpacing, barrelLength, blockLength } = hullMountGeometry(spec);
-    const widest = outletWidth / BARREL_OUTER_CALIBRES;
+    const { outlets, outletSpacing, barrelLength, blockLength } = hullMountGeometry(spec);
+    const room = HULL_BARREL_WIDTH_CAP * (outlets > 1 ? outletSpacing : spec.width);
+    const depth = moduleThickness(spec);
+    const widest = (room < depth ? room : depth) / BARREL_OUTER_CALIBRES;
     const need = (calibre: number): number =>
         (muzzleEnergyOf(calibre, railLength(calibre, blockLength, barrelLength) / calibre) * RAIL_SPEED * RAIL_SPEED) / RAIL_EFFICIENCY;
+    const short = (calibre: number): boolean => outlets * need(calibre) > railBankEnergy(spec, calibre);
     let calibre = widest;
-    if (need(widest) > railBankEnergy(spec, widest)) {
+    if (short(widest)) {
         let lo = 0;
         let hi = widest;
         for (let k = 0; k < RAIL_CALIBRE_STEPS; k++) {
             const mid = (lo + hi) * 0.5;
-            if (need(mid) > railBankEnergy(spec, mid)) hi = mid;
+            if (short(mid)) hi = mid;
             else lo = mid;
         }
         calibre = lo;
@@ -2884,7 +2905,6 @@ function railGunStats(spec: ModuleSpec): GunStats {
     const shotEnergy = need(calibre);
     const muzzleEnergy = shotEnergy * RAIL_EFFICIENCY;
     const roundMass = PI * 0.25 * calibre * calibre * (calibre * SHELL_CALIBRES) * SHELL_DENSITY;
-    const block = blockLength * spec.width * moduleThickness(spec);
     return {
         type: GunType.Projectile,
         calibre,
@@ -2900,12 +2920,14 @@ function railGunStats(spec: ModuleSpec): GunStats {
         shotEnergy,
         plasmaReach: 0,
         jetThrust: 0,
+        bankEnergy: railBankEnergy(spec, calibre),
+        bankPower: RAIL_BANK_POWER_PER_VOLUME * blockLength * spec.width * depth,
         muzzleSpeed: roundMass > 0 ? sqrt((2 * muzzleEnergy) / roundMass) : 0,
         muzzleEnergy,
         beamPower: 0,
-        // Its bank, which charges each shot in turn whichever rails it goes down;
-        // its breech is simpler than a powder gun's, so only its fixed part counts.
-        cycleTime: max(CYCLE_TIME_PER_CALIBRE * calibre * LOADING_FLOOR, shotEnergy / (RAIL_BANK_POWER_PER_VOLUME * block)),
+        // Between volleys of a salvo: its breech is simpler than a powder gun's,
+        // so only the fixed part of loading counts.
+        cycleTime: CYCLE_TIME_PER_CALIBRE * calibre * LOADING_FLOOR,
         beamOnTime: 0,
         burst: null,
     };
@@ -3001,6 +3023,8 @@ export function hullBeamStats(spec: ModuleSpec): GunStats {
         shotEnergy: power * beamOnTime,
         plasmaReach: 0,
         jetThrust: 0,
+        bankEnergy: 0,
+        bankPower: 0,
         muzzleSpeed: -1,
         muzzleEnergy: 0,
         beamPower: power,
@@ -3049,6 +3073,8 @@ function lanceStats(spec: ModuleSpec): GunStats {
         shotEnergy: bank,
         plasmaReach,
         jetThrust,
+        bankEnergy: 0,
+        bankPower: 0,
         muzzleSpeed: -1,
         muzzleEnergy: 0,
         beamPower: (bank + LANCE_FUEL_SHARE * thrown) / LANCE_PULSE,
@@ -3635,6 +3661,8 @@ export function gunStats(
         shotEnergy: 0,
         plasmaReach: 0,
         jetThrust: 0,
+        bankEnergy: 0,
+        bankPower: 0,
         muzzleSpeed,
         muzzleEnergy,
         beamPower: 0,
@@ -3730,6 +3758,8 @@ export function beamGunStats(mountLength: number, mountWidth: number, barrelCoun
         shotEnergy: power * beamOnTime,
         plasmaReach: 0,
         jetThrust: 0,
+        bankEnergy: 0,
+        bankPower: 0,
         muzzleSpeed: -1,
         muzzleEnergy: 0,
         beamPower: power,

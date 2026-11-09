@@ -1096,6 +1096,7 @@ export function adopt(
     const cooldown = new Float64Array(design.turrets.length);
     const states = new Uint8Array(design.turrets.length);
     const barrels = new Int32Array(design.turrets.length);
+    const bank = new Float64Array(design.turrets.length);
     const targets = new Int32Array(design.turrets.length).fill(NO_TARGET);
     const aiming = new Int32Array(design.turrets.length).fill(NO_TARGET);
     const aims = new Int32Array(design.turrets.length).fill(WHOLE_SHIP);
@@ -1132,6 +1133,7 @@ export function adopt(
         cooldown[t] = ships.cooldown[ship]![before]!;
         states[t] = ships.turretStates[ship]![before]!;
         barrels[t] = ships.nextBarrelToFire[ship]![before]!;
+        bank[t] = ships.bank[ship]![before]!;
         targets[t] = ships.turretTarget[ship]![before]!;
         // Not what it was aiming at: a weld lands between aiming and firing, so
         // it holds fire until the next `command` has aimed it from the new hull.
@@ -1151,6 +1153,7 @@ export function adopt(
     ships.cooldown[i] = cooldown;
     ships.turretStates[i] = states;
     ships.nextBarrelToFire[i] = barrels;
+    ships.bank[i] = bank;
     ships.turretTarget[i] = targets;
     ships.turretAiming[i] = aiming;
     ships.turretAimModule[i] = aims;

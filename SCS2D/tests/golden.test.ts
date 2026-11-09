@@ -34,8 +34,8 @@ const GOLDEN: Record<ScenarioName, string> = {
     gunnery: "b2054d50",
     // ships=4 inFlight=2 p.fired=111 p.hits=340 b.fired=0 b.hits=0 contacts=316 severed=2 culled=0 scrap=34.5t · 299.4 µs/step
     duel: "0e5681dd",
-    // ships=3 inFlight=4 p.fired=58 p.hits=212 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=32.2t · 180.2 µs/step
-    railDuel: "eaaeedee",
+    // ships=3 inFlight=4 p.fired=39 p.hits=148 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=35.3t · 148.8 µs/step
+    railDuel: "ace620db",
     // ships=5 inFlight=4 p.fired=157 p.hits=611 b.fired=2 b.hits=246 contacts=514 severed=3 culled=0 scrap=132.3t · 232.9 µs/step
     lanceDuel: "6e3a21ba",
     // ships=11 inFlight=0 p.fired=0 p.hits=0 b.fired=37 b.hits=2317 contacts=206 severed=8 culled=0 scrap=44.3t · 211.7 µs/step
@@ -96,8 +96,8 @@ const GOLDEN: Record<ScenarioName, string> = {
     beamCarrier: "984d3faa",
     // ships=2 inFlight=0 p.fired=54 p.hits=181 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=9.3t · 40.9 µs/step
     passes: "e721914a",
-    // ships=2 inFlight=0 p.fired=2 p.hits=8 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=9.3t · 72.0 µs/step
-    circling: "d757a70a",
+    // ships=2 inFlight=0 p.fired=2 p.hits=8 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=9.3t · 60.6 µs/step
+    circling: "212fd5d1",
 };
 
 describe("golden scenarios", () => {
