@@ -63,6 +63,22 @@ export function masked(mask: ArrayLike<number>, offset: number): boolean {
     return false;
 }
 
+/**
+ * Whether every bearing a mount can train to, `right` clockwise of rest to
+ * `left` anticlockwise of it, falls in its `triggerMask`: a gun that can
+ * only point where its own ship is in the way, so never fires.
+ */
+export function masksWholeArc(mask: ArrayLike<number>, left: number, right: number): boolean {
+    if (!masked(mask, 0) || !masked(mask, left) || !masked(mask, -right)) return false;
+    // A clear stretch starts where a sector ends, so if none ends inside the arc, there is none.
+    for (let k = 1; k < mask.length; k += 2) {
+        let end = mask[k]!;
+        while (end > PI) end -= TAU;
+        if (end >= -right && end <= left && !masked(mask, end)) return false;
+    }
+    return true;
+}
+
 export enum TurretState {
     // ready to fire
     Idle = 0,

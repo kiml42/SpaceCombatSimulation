@@ -698,6 +698,9 @@ export const MAGNETIC_MASS_PER_EXIT_AREA = 300;
 /** The share of a plasma lance's length its base takes, aft of the gap between its prongs. */
 export const LANCE_BASE_SHARE = 0.25;
 
+/** A plasma lance's prongs, each as a share of its width: its pulse fills the gap between them. */
+export const LANCE_PRONG_SHARE = 0.22;
+
 /** Seconds a plasma lance's pulse lasts. */
 export const LANCE_PULSE = 1;
 
