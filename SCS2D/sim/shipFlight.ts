@@ -271,8 +271,11 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
             if (order.ram) {
                 charge(ships, bodies, i, b, at, order.approachSpeed, tb);
                 ships.intent = HURRY;
-            } else hold(ships, bodies, i, b, at, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE, wantAngle);
-            orbit(ships, bodies, i, b, at, tb);
+            } else if (ships.guarding[i] !== 1) {
+                hold(ships, bodies, i, b, at, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE, wantAngle);
+            }
+            // Guarding, it fights from its station by its charge: only the escort moves it.
+            if (ships.guarding[i] !== 1) orbit(ships, bodies, i, b, at, tb);
         }
     }
 

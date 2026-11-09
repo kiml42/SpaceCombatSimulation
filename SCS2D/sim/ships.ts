@@ -818,6 +818,8 @@ export class Ships {
      * relative to its charge changes far faster than which charge it wants.
      */
     readonly consort: number[] = [];
+    /** Whether each ship is holding by its consort against what threatens it, fighting only from there (`guard`). */
+    readonly guarding: number[] = [];
     /** The blend of steering urges being accumulated for one craft, and the acceleration each wants matched. */
     urgeVx = 0;
     urgeVy = 0;
@@ -1505,6 +1507,7 @@ export class Ships {
         this.dockPort.push(-1);
         this.ownPort.push(-1);
         this.consort.push(NO_TARGET);
+        this.guarding.push(0);
         // Staggered by index, so a fleet spawned together does not all stop to
         // think on the same step for the rest of the battle.
         this.rethinkAt.push(i);
@@ -2714,9 +2717,12 @@ export class Ships {
         return cycle > 0 ? max(0, 1 - timer / cycle) : 1;
     }
 
-    /** Whether a gun is reloading, rather than ready or firing. */
+    /** Whether a gun is reloading, rather than ready or firing: a rail gun reloads until its bank holds a volley. */
     isReloading(i: number, turret: number): boolean {
-        return this.turretStates[i]![turret] === TurretState.Reloading && this.cooldown[i]![turret]! > 0;
+        const timer = this.cooldown[i]![turret]!;
+        const gun = this.designs[i]!.turrets[turret]!.gun;
+        if (gun.bankEnergy > 0 && !(timer > 0)) return this.bank[i]![turret]! < volleyCharge(gun);
+        return this.turretStates[i]![turret] === TurretState.Reloading && timer > 0;
     }
 
     /** Whether the pilot's demand exceeded what the layout can produce. */

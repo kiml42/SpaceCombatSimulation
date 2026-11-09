@@ -682,6 +682,13 @@ describe("the viewer in a browser", () => {
 
         await page.keyboard.press("Escape");
         await click(1);
+        // Out far enough that its friend is in view: a ship framed with what it
+        // fights takes in its consort only while it is escorting one.
+        for (let i = 0; i < 6; i++) {
+            await page.mouse.move(canvas.x + canvas.width / 2, canvas.y + canvas.height / 2);
+            await page.mouse.wheel(0, 400);
+        }
+        await painted(page);
         await click(0, { right: true });
         expect(JSON.stringify((await orders()).at(-1))).toContain('"defend"');
         // A alone takes the picked ship's whole side.
