@@ -4,7 +4,7 @@ import type { WellSpec } from "./gravity.js";
 import type { Doctrine, DoctrineOverride } from "./doctrine.js";
 import { leakSpeed } from "./fuel.js";
 import { NOT_INSIDE, type Projectiles } from "./projectiles.js";
-import type { Beams } from "./beams.js";
+import { BEAM_PLASMA, type Beams } from "./beams.js";
 import { MOST_CLOUDS, type Debris } from "./debris.js";
 import type { ImpactLog } from "./damage.js";
 import type { Ships } from "./ships.js";
@@ -137,6 +137,13 @@ export interface ShipView {
      */
     turretLoad?: number[];
     turretReloading?: boolean[];
+    /**
+     * How much lightning each mount shows, 0 to 1: a plasma lance's charge, which
+     * it leaks; nothing for any other mount. Absent, none.
+     */
+    turretSparks?: number[];
+    /** Seconds the lightning is drawn at, so it stands still when time does. */
+    sparkClock?: number;
     /**
      * The band of ranges its doctrine closes to, centre to centre, against the
      * enemy it prefers, metres. Only a preview sets it.
@@ -312,6 +319,10 @@ export class Snapshot {
     beamPower = new Float64Array(0);
     /** The side whose ship fired it, or -1 where that ship is gone. */
     beamTeam = new Int16Array(0);
+    /** 1 for a plasma lance's pulse rather than a beam. */
+    beamPlasma = new Uint8Array(0);
+    /** How far each was fired, metres, before anything stopped it short. */
+    beamReach = new Float64Array(0);
     beamCount = 0;
 
     /** Each body's side while a picture is taken, so a shot can be told whose it is. */
@@ -421,6 +432,8 @@ function growBeams(snapshot: Snapshot, needed: number): void {
     snapshot.beamWidth = new Float64Array(size);
     snapshot.beamPower = new Float64Array(size);
     snapshot.beamTeam = new Int16Array(size);
+    snapshot.beamPlasma = new Uint8Array(size);
+    snapshot.beamReach = new Float64Array(size);
 }
 
 function growImpacts(snapshot: Snapshot, needed: number): void {
@@ -622,8 +635,10 @@ export function capture(
         const fouled = (view.turretFouled ??= []);
         const load = (view.turretLoad ??= []);
         const reloading = (view.turretReloading ??= []);
+        const sparks = (view.turretSparks ??= []);
         aim.length = trigger.length = triggerReach.length = fouled.length = design.turrets.length;
-        load.length = reloading.length = design.turrets.length;
+        load.length = reloading.length = sparks.length = design.turrets.length;
+        view.sparkClock = out.time;
         for (let t = 0; t < design.turrets.length; t++) {
             const ti = ships.turretIndexOf(i, t);
             view.turretBearings[t] = turrets.worldBearing(bodies, ti);
@@ -634,6 +649,7 @@ export function capture(
             fouled[t] = turrets.fouled(ti);
             load[t] = ships.loadOf(i, t);
             reloading[t] = ships.isReloading(i, t);
+            sparks[t] = design.modules[design.turrets[t]!.module]?.spec.kind === "plasmaLance" ? load[t]! : 0;
             view.turretDisabled[t] = ships.isTurretDisabled(i, t);
         }
 
@@ -792,6 +808,8 @@ export function capture(
         out.beamWidth[b] = beams.width[i]!;
         out.beamPower[b] = beams.power[i]!;
         out.beamTeam[b] = bodyTeam[beams.owner[i]!] ?? -1;
+        out.beamPlasma[b] = beams.kind[i] === BEAM_PLASMA ? 1 : 0;
+        out.beamReach[b] = beams.reach[i]!;
         b++;
     }
     out.beamCount = b;

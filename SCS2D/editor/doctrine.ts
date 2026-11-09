@@ -883,6 +883,7 @@ export function kindName(kind: ModuleKind): string {
     if (kind === "hullGun") return "hull gun";
     if (kind === "railGun") return "rail gun";
     if (kind === "hullBeam") return "hull beam";
+    if (kind === "plasmaLance") return "plasma lance";
     return kind;
 }
 

@@ -717,6 +717,18 @@ const HULL_GUN_TARGETING: Targeting = {
     focusWeight: 300,
 };
 
+const HULL_BEAM_TARGETING: Targeting = {
+    ...DEFAULT_DOCTRINE.targeting,
+    proximityWeight: 150,
+    preferredMass: 0.5,
+    massWeight: 80,
+    mobileWeight: 60,
+    focusWeight: 250,
+    gunWeight: 150,
+    engineWeight: 120,
+    coreWeight: 40,
+};
+
 const MOUNT_TARGETING: Record<string, Targeting> = {
     /**
      * A gun turret trains all the way round and picks its own fight, so what it
@@ -772,17 +784,9 @@ const MOUNT_TARGETING: Record<string, Targeting> = {
      * The same mount with a beam in it: aimed by the hull, so focused like one,
      * and lighting up early like any beam.
      */
-    hullBeam: {
-        ...DEFAULT_DOCTRINE.targeting,
-        proximityWeight: 150,
-        preferredMass: 0.5,
-        massWeight: 80,
-        mobileWeight: 60,
-        focusWeight: 250,
-        gunWeight: 150,
-        engineWeight: 120,
-        coreWeight: 40,
-    },
+    hullBeam: HULL_BEAM_TARGETING,
+    /** Aimed by its hull as a hull beam is, and after the same. */
+    plasmaLance: HULL_BEAM_TARGETING,
 };
 
 /**

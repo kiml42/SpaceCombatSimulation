@@ -179,10 +179,11 @@ describe("mutation", () => {
     // 2,400 generations of a growing ship, which is the sample the ratio needs
     // to be stable. How long depends on how big the three lines happen to grow,
     // which any new knob reshuffles: 45 s on a desktop on one set of lines, past
-    // 240 s on a loaded CI runner on another, and 560 s alone once a core's
-    // store shares made one line grow to 126 modules, so the budget is wide
-    // rather than close.
-    it("adds as much as it takes away", { timeout: 900_000 }, () => {
+    // 240 s on a loaded CI runner on another, 560 s alone once a core's
+    // store shares made one line grow to 126 modules, and 650 s alone, past
+    // 900 s on a loaded CI runner, once lances became powered weapons, so the
+    // budget is wide rather than close.
+    it("adds as much as it takes away", { timeout: 1_800_000 }, () => {
         // The operator is neutral about how big a ship is; selection is what
         // decides that. An imbalance here is invisible in any one child and
         // fatal over a run — a lineage that loses a module every time it gains
@@ -355,6 +356,7 @@ describe("mutation", () => {
                     hullGun: 3,
                     railGun: 0,
                     hullBeam: 1,
+                    plasmaLance: 0,
                     core: 0,
                     claw: 0,
                     pad: 0,
@@ -394,6 +396,7 @@ describe("mutation", () => {
             hullGun: 0,
             railGun: 0,
             hullBeam: 0,
+            plasmaLance: 0,
             core: 0,
             claw: 0,
             pad: 0,
@@ -525,6 +528,7 @@ describe("mutation", () => {
                     hullGun: 0,
                     railGun: 0,
                     hullBeam: 0,
+                    plasmaLance: 0,
                     core: 0,
                     claw: 0,
                     pad: 0,
@@ -709,6 +713,7 @@ describe("mutation", () => {
                     hullGun: 0,
                     railGun: 0,
                     hullBeam: 0,
+                    plasmaLance: 0,
                     core: 0,
                     claw: 0,
                     pad: 0,

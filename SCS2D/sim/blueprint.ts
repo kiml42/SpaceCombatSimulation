@@ -3,6 +3,8 @@ import type { Livery, UnreadLivery } from "./livery.js";
 import { abs, angleDelta, asin, atan2, cos, floor, max, min, normalizeAngle, PI, sin, sqrt, TAU } from "./math.js";
 import {
     GunType,
+    isHullBeam,
+    LANCE_WORTH,
     grownOutline,
     moduleCentre,
     bodySpec,
@@ -1074,6 +1076,7 @@ export function lethalRadius(gun: GunStats, targetRadius: number): number {
  * emitter on one spot long enough to burn through.
  */
 export function reachAgainst(gun: GunStats, targetRadius: number): number {
+    if (gun.plasmaReach > 0) return gun.plasmaReach * LANCE_WORTH;
     if (gun.type === GunType.Beam) return BEAM_REACH;
     return gun.muzzleSpeed * sqrt((2 * lethalRadius(gun, targetRadius)) / EVASION_ACCEL);
 }
@@ -1343,6 +1346,7 @@ function place(
         if (placement.main !== undefined) spec.main = placement.main;
         if (placement.thick !== undefined) spec.thick = placement.thick;
         if (placement.magnetic !== undefined) spec.magnetic = placement.magnetic;
+        if (placement.ready !== undefined) spec.ready = placement.ready;
         if (placement.ore !== undefined) spec.ore = placement.ore;
         if (placement.ice !== undefined) spec.ice = placement.ice;
         if (placement.sealing !== undefined) spec.sealing = placement.sealing;
@@ -2778,7 +2782,7 @@ function designFrom(
                     inertia: s.swingInertia,
                     muzzleSpeed: gun.muzzleSpeed,
                     muzzleOffset: mount.muzzle,
-                    ...(spec.kind === "hullBeam" ? { outletsFixed: true } : {}),
+                    ...(isHullBeam(spec.kind) ? { outletsFixed: true } : {}),
                     mask,
                 },
                 gun,

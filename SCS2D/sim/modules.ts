@@ -695,6 +695,33 @@ export const MAGNETIC_POWER_PER_EXIT_AREA = 2e5;
 /** Mass of a magnetic nozzle's ring, kg per square metre of exit. */
 export const MAGNETIC_MASS_PER_EXIT_AREA = 300;
 
+/** The share of a plasma lance's length its base takes, aft of the gap between its prongs. */
+export const LANCE_BASE_SHARE = 0.25;
+
+/** Seconds a plasma lance's pulse lasts. */
+export const LANCE_PULSE = 1;
+
+/**
+ * The share of its fuel's energy, as an engine would throw it, that a lance's
+ * pulse delivers to what it meets, on top of its bank: what of the jet its
+ * field holds together all the way there. A balance dial, as
+ * `PLUME_POWER_PER_NEWTON` is for a flame, and far more, the jet being held
+ * together rather than spraying.
+ */
+export const LANCE_FUEL_SHARE = 0.05;
+
+/** How far a lance's pulse holds together, metres per metre of its length. Its power falls to nothing there. */
+export const LANCE_REACH_PER_METRE = 40;
+
+/** The share of its reach a lance is worth firing within, where it still hits with more than half its power. */
+export const LANCE_WORTH = 0.5;
+
+/**
+ * The share of a pulse's charge and fuel a charged lance leaks a second: a
+ * third of what its base charges a second.
+ */
+export const LANCE_LEAK = 0.025;
+
 /** How much faster a rail gun throws its round than powder would from the same barrel. */
 export const RAIL_SPEED = 2;
 
@@ -1176,6 +1203,7 @@ export type ModuleKind =
     | "hullGun"
     | "railGun"
     | "hullBeam"
+    | "plasmaLance"
     | "claw"
     | "pad"
     | "port"
@@ -1234,6 +1262,7 @@ export const MODULE_KINDS: readonly ShipModuleKind[] = [
     "hullGun",
     "railGun",
     "hullBeam",
+    "plasmaLance",
     "claw",
     "pad",
     "port",
@@ -1482,6 +1511,11 @@ export interface ModuleSpec {
      * the jet a little worse.
      */
     magnetic?: boolean;
+    /**
+     * A plasma lance kept charged and ready, leaking power and fuel as it
+     * waits, rather than charged only once it is on target.
+     */
+    ready?: boolean;
 
     /**
      * How thick a self-sealing lining is inside the walls, metres; zero or absent
@@ -1617,8 +1651,12 @@ export interface GunStats {
     casing: number;
     /** Fuel burnt to fire a round, kg. */
     propellant: number;
-    /** Charge a round draws as the gun reloads, J: a rail gun's. */
+    /** Charge each shot draws as the mount reloads, J: a beam's burst, a rail gun's round or a lance's field. */
     shotEnergy: number;
+    /** How far a plasma lance's pulse reaches, metres; zero for any other weapon. */
+    plasmaReach: number;
+    /** What a plasma lance's jet pushes back with while it fires, newtons. */
+    jetThrust: number;
     /** Muzzle velocity, m/s. */
     muzzleSpeed: number;
     /** Kinetic energy of one round at the muzzle, joules. */
@@ -1638,9 +1676,9 @@ export function shotFuel(gun: GunStats): number {
     return gun.propellant + gun.roundMass - gun.casing;
 }
 
-/** Charge a mount draws for each shot, J: a beam's burst, or a rail gun's round. */
+/** Charge a mount draws for each shot, J. */
 export function shotCharge(gun: GunStats): number {
-    return gun.type === GunType.Beam ? gun.beamPower * gun.beamOnTime : gun.shotEnergy;
+    return gun.shotEnergy;
 }
 
 /** Seconds from one shot to the next: a beam's burst, then its reload. */
@@ -1920,7 +1958,8 @@ export function moduleRadius(spec: ModuleSpec): number {
 
 /** Whether a kind has something reaching out of its block: a bell or a barrel. */
 function protrudes(kind: ModuleKind): boolean {
-    return kind === "engine" || isHullMount(kind);
+    // A plasma lance's prongs are the whole of it, with nothing out past them.
+    return kind === "engine" || (isHullMount(kind) && kind !== "plasmaLance");
 }
 
 /** How long an engine's bell is, metres: so many exit widths. */
@@ -2449,9 +2488,8 @@ function hullOutlets(spec: ModuleSpec): {
     // What a single outlet would be, and each of several split the way a
     // turret splits it: tubes divide the bore, so each is `1/n` as wide; lenses
     // divide the optic's area, so each is `1/√n` as wide.
-    const single =
-        spec.kind === "hullBeam" ? HULL_APERTURE_FRACTION * spec.width : BARREL_OUTER_CALIBRES * HULL_CALIBRE_FRACTION * spec.width;
-    const each = spec.kind === "hullBeam" ? single / sqrt(outlets) : single / outlets;
+    const single = isHullBeam(spec.kind) ? HULL_APERTURE_FRACTION * spec.width : BARREL_OUTER_CALIBRES * HULL_CALIBRE_FRACTION * spec.width;
+    const each = isHullBeam(spec.kind) ? single / sqrt(outlets) : single / outlets;
     // Spread across the face as a turret's barrels are, one gap outboard of
     // each end, so neighbours stand apart rather than touching.
     const outletSpacing = outlets > 1 ? spec.width / (outlets + 1) : 0;
@@ -2465,8 +2503,12 @@ function hullOutlets(spec: ModuleSpec): {
     // A gun's barrel is as many calibres as it says; a lens housing is as deep
     // as a turret's, since a shallower one is better in every way.
     const barrelLength =
-        spec.kind === "hullBeam" ? outletWidth * BEAM_EMITTER_APERTURES : (barrelCalibres(spec) * outletWidth) / BARREL_OUTER_CALIBRES;
-    const reach = spec.kind === "hullBeam" ? barrelLength * (1 + BEAM_STALK_SHARE) : barrelLength;
+        spec.kind === "plasmaLance"
+            ? 0
+            : isHullBeam(spec.kind)
+              ? outletWidth * BEAM_EMITTER_APERTURES
+              : (barrelCalibres(spec) * outletWidth) / BARREL_OUTER_CALIBRES;
+    const reach = isHullBeam(spec.kind) ? barrelLength * (1 + BEAM_STALK_SHARE) : barrelLength;
     return { outlets, outletWidth, outletSpacing, barrelWidth, barrelLength, reach };
 }
 
@@ -2502,8 +2544,14 @@ export function hullMountGeometry(spec: ModuleSpec): HullMountGeometry {
         outletSpacing,
         barrelWidth,
         pivot,
-        trains: spec.kind === "hullBeam" ? pivot + out - barrelLength * 0.5 : pivot,
-        muzzle: spec.kind === "hullBeam" ? barrelLength * 0.5 : barrelLength,
+        trains: isHullBeam(spec.kind) ? pivot + out - barrelLength * 0.5 : pivot,
+        // A lance's pulse starts at the back of the gap between its prongs.
+        muzzle:
+            spec.kind === "plasmaLance"
+                ? -spec.length * 0.5 + spec.length * LANCE_BASE_SHARE - (pivot + out - barrelLength * 0.5)
+                : isHullBeam(spec.kind)
+                  ? barrelLength * 0.5
+                  : barrelLength,
         traverse: limit > 0 ? (limit < HULL_MAX_TRAVERSE ? limit : HULL_MAX_TRAVERSE) : 0,
     };
 }
@@ -2536,7 +2584,7 @@ export function isWeaponMount(kind: ModuleKind): boolean {
  * asks it, and this stays a property of the mount alone.
  */
 export function mountTraverse(spec: ModuleSpec): number {
-    if (spec.kind === "railGun") return 0;
+    if (spec.kind === "railGun" || spec.kind === "plasmaLance") return 0;
     const archetype = isHullMount(spec.kind) ? hullMountGeometry(spec).traverse : FULL_TRAVERSE;
     const asked = spec.traverse;
     if (asked === undefined) return archetype;
@@ -2557,7 +2605,7 @@ export function mountGeometryOf(spec: ModuleSpec): HullMountGeometry {
 }
 
 export function isHullMount(kind: ModuleKind): boolean {
-    return isHullGun(kind) || kind === "hullBeam";
+    return isHullGun(kind) || isHullBeam(kind);
 }
 
 /**
@@ -2773,6 +2821,8 @@ export function hullGunStats(spec: ModuleSpec): GunStats {
         casing: roundMass,
         propellant: muzzleEnergy / PROPELLANT_ENERGY,
         shotEnergy: 0,
+        plasmaReach: 0,
+        jetThrust: 0,
         muzzleSpeed,
         muzzleEnergy,
         beamPower: 0,
@@ -2845,6 +2895,8 @@ function railGunStats(spec: ModuleSpec): GunStats {
         casing: roundMass,
         propellant: 0,
         shotEnergy,
+        plasmaReach: 0,
+        jetThrust: 0,
         muzzleSpeed: roundMass > 0 ? sqrt((2 * muzzleEnergy) / roundMass) : 0,
         muzzleEnergy,
         beamPower: 0,
@@ -2915,6 +2967,7 @@ function hullCycleTime(calibre: number, blockLength: number, outlets: number): n
  * inventing a second one.
  */
 export function hullBeamStats(spec: ModuleSpec): GunStats {
+    if (spec.kind === "plasmaLance") return lanceStats(spec);
     const { outlets, outletWidth, outletSpacing, barrelLength, blockLength } = hullMountGeometry(spec);
     const aperture = outletWidth;
     const apertureArea = PI * 0.25 * aperture * aperture;
@@ -2942,7 +2995,9 @@ export function hullBeamStats(spec: ModuleSpec): GunStats {
         roundMass: 0,
         casing: 0,
         propellant: 0,
-        shotEnergy: 0,
+        shotEnergy: power * beamOnTime,
+        plasmaReach: 0,
+        jetThrust: 0,
         muzzleSpeed: -1,
         muzzleEnergy: 0,
         beamPower: power,
@@ -2950,6 +3005,68 @@ export function hullBeamStats(spec: ModuleSpec): GunStats {
         cycleTime,
         burst: null,
     };
+}
+
+/**
+ * A plasma lance: a jet of the ship's fuel thrown out of its face for a pulse,
+ * held together by a field between its prongs.
+ *
+ * A powered weapon, as a rail gun is: its base is a capacitor bank, at the
+ * rail gun's share (`RAIL_BANK_SHARE`) of the capacitors every powered weapon
+ * has, charged at a rail gun's rate, and a pulse spends all of it. On top it
+ * delivers `LANCE_FUEL_SHARE` of its fuel's energy as an engine would throw it.
+ * Its face is its exit, so a wider lance throws more fuel, hits harder and
+ * kicks harder, as an engine's exit does. Its length is its field and its
+ * bank, so a longer lance reaches further and stores more. Its power falls off
+ * along its reach to nothing at the end of it.
+ */
+function lanceStats(spec: ModuleSpec): GunStats {
+    const { barrelLength } = hullMountGeometry(spec);
+    const depth = moduleThickness(spec);
+    const exitArea = spec.width * depth;
+    // As hard as an engine of the same exit can push, its throat choked.
+    const jetThrust = THRUST_PER_EXIT_AREA * THROAT_CHOKE * exitArea;
+    const plasmaReach = LANCE_REACH_PER_METRE * spec.length;
+    const base = LANCE_BASE_SHARE * spec.length * spec.width * depth;
+    const bank = CAPACITOR_ENERGY_PER_VOLUME * RAIL_BANK_SHARE * base;
+    // The fuel's energy as an engine's jet carries it, half its mass by its speed squared.
+    const fuel = (jetThrust / EXHAUST_VELOCITY) * LANCE_PULSE;
+    const thrown = 0.5 * fuel * EXHAUST_VELOCITY * EXHAUST_VELOCITY;
+    return {
+        type: GunType.Beam,
+        calibre: spec.width,
+        barrelLength,
+        braceLength: 0,
+        braceWidth: 0,
+        barrelCount: 1,
+        barrelSpacing: 0,
+        roundMass: 0,
+        casing: 0,
+        propellant: fuel,
+        shotEnergy: bank,
+        plasmaReach,
+        jetThrust,
+        muzzleSpeed: -1,
+        muzzleEnergy: 0,
+        beamPower: (bank + LANCE_FUEL_SHARE * thrown) / LANCE_PULSE,
+        beamOnTime: LANCE_PULSE,
+        cycleTime: bank / (RAIL_BANK_POWER_PER_VOLUME * base),
+        burst: null,
+    };
+}
+
+/** Whether `ready` means anything on this kind: a plasma lance. */
+export function readsReady(kind: ModuleKind): boolean {
+    return kind === "plasmaLance";
+}
+
+/**
+ * Whether this kind is a hull mount that throws a beam: a hull beam, or a
+ * plasma lance, which throws a pulse of fuel. The two share a hull beam's block
+ * and outlet, and every law that sizes them.
+ */
+export function isHullBeam(kind: ModuleKind): boolean {
+    return kind === "hullBeam" || kind === "plasmaLance";
 }
 
 /** Whether a gun fires shells that burst, rather than solid shot: more than one fragment. */
@@ -3042,6 +3159,8 @@ const KIND_COMPLEXITY: Record<ModuleKind, number> = {
     // The rails and the bank that drives them, on top of a hull gun's breech.
     railGun: 5,
     hullBeam: 4,
+    // Its field and the plumbing that feeds it fuel, on top of a hull beam's.
+    plasmaLance: 5,
     turret: 7,
     beamTurret: 7,
     generator: 6,
@@ -3263,6 +3382,11 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
                 protrudingMass = section * gun.barrelLength * HULL_DENSITY;
                 fittingMass = (protrudingMass + MECHANISM_MASS_PER_CALIBRE * gun.calibre) * gun.barrelCount + braceMass(gun);
             }
+        } else if (spec.kind === "plasmaLance") {
+            // Its field gear, and the bank in its base, which weighs as a rail gun's
+            // does: its power comes from that and from its fuel, not from an optic.
+            protrudingMass = OPTIC_AREAL_DENSITY * PI * 0.25 * gun.calibre * gun.calibre;
+            fittingMass = protrudingMass + RAIL_BANK_MASS_PER_VOLUME * LANCE_BASE_SHARE * spec.length * spec.width * height;
         } else {
             protrudingMass = OPTIC_AREAL_DENSITY * PI * 0.25 * gun.calibre * gun.calibre;
             fittingMass = (protrudingMass + BEAM_MASS_PER_WATT * gun.beamPower) * gun.barrelCount;
@@ -3290,7 +3414,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
         fittingMass += traverseMass;
         const middle = (protrudingMass * gun.barrelLength * gun.barrelLength) / 12;
         // A lens turns about its own centre, a barrel about its root.
-        const lens = spec.kind === "hullBeam";
+        const lens = isHullBeam(spec.kind);
         const spin = lens ? middle : (protrudingMass * gun.barrelLength * gun.barrelLength) / 3;
         const braceSpin = braceInertia(gun, braced);
         const braceMiddle = (braced * gun.braceLength * gun.braceLength) / 12;
@@ -3506,6 +3630,8 @@ export function gunStats(
         casing: roundMass,
         propellant: muzzleEnergy / PROPELLANT_ENERGY,
         shotEnergy: 0,
+        plasmaReach: 0,
+        jetThrust: 0,
         muzzleSpeed,
         muzzleEnergy,
         beamPower: 0,
@@ -3598,7 +3724,9 @@ export function beamGunStats(mountLength: number, mountWidth: number, barrelCoun
         roundMass: 0,
         casing: 0,
         propellant: 0,
-        shotEnergy: 0,
+        shotEnergy: power * beamOnTime,
+        plasmaReach: 0,
+        jetThrust: 0,
         muzzleSpeed: -1,
         muzzleEnergy: 0,
         beamPower: power,

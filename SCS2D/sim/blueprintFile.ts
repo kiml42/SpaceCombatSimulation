@@ -29,6 +29,7 @@ import {
     readsCraftAngle,
     readsThick,
     readsMagnetic,
+    readsReady,
     readsFuse,
     readsWeapon,
     readsMain,
@@ -115,6 +116,7 @@ const MODULE_KEYS: readonly string[] = [
     "main",
     "thick",
     "magnetic",
+    "ready",
     "sealing",
     "drainPriority",
     "fill",
@@ -285,6 +287,7 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
         optionalBooleanProblem(value["main"], `${where}: main`) ??
         optionalBooleanProblem(value["thick"], `${where}: thick`) ??
         optionalBooleanProblem(value["magnetic"], `${where}: magnetic`) ??
+        optionalBooleanProblem(value["ready"], `${where}: ready`) ??
         optionalNumberProblem(value["sealing"], `${where}: sealing`) ??
         optionalNumberProblem(value["drainPriority"], `${where}: drainPriority`) ??
         optionalNumberProblem(value["fill"], `${where}: fill`) ??
@@ -326,6 +329,7 @@ function moduleReads(kind: ModuleKind): readonly string[] {
         if (key === "main") return readsMain(kind);
         if (key === "thick") return readsThick(kind);
         if (key === "magnetic") return readsMagnetic(kind);
+        if (key === "ready") return readsReady(kind);
         if (key === "sealing") return readsSealing(kind);
         if (key === "drainPriority") return readsDrainPriority(kind);
         if (key === "fill") return readsFill(kind);
@@ -585,6 +589,7 @@ function toPlacements(raws: unknown[], whole: boolean): Placement[] {
         if (read("main")) spec.main = raw["main"] as boolean;
         if (read("thick")) spec.thick = raw["thick"] as boolean;
         if (read("magnetic")) spec.magnetic = raw["magnetic"] as boolean;
+        if (read("ready")) spec.ready = raw["ready"] as boolean;
         if (read("sealing")) spec.sealing = raw["sealing"] as number;
         if (read("drainPriority")) spec.drainPriority = raw["drainPriority"] as number;
         if (read("fill")) spec.fill = raw["fill"] as number;
@@ -799,6 +804,9 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
     }
     if (placement.magnetic !== undefined && readsMagnetic(placement.kind)) {
         raw["magnetic"] = placement.magnetic;
+    }
+    if (placement.ready !== undefined && readsReady(placement.kind)) {
+        raw["ready"] = placement.ready;
     }
     if (placement.sealing !== undefined && readsSealing(placement.kind)) {
         raw["sealing"] = placement.sealing;

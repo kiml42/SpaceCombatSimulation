@@ -67,6 +67,10 @@ interface Beams {
     power: Float64Array<ArrayBuffer>;
     /** Seconds of dwell still to run. */
     remaining: Float64Array<ArrayBuffer>;
+    /** 1 for a plasma lance's pulse. */
+    plasma: Uint8Array<ArrayBuffer>;
+    /** How far each was fired, metres. */
+    reach: Float64Array<ArrayBuffer>;
     count: number;
 }
 
@@ -92,8 +96,14 @@ export class Demonstration {
         width: new Float64Array(MAX_ROUNDS),
         power: new Float64Array(MAX_ROUNDS),
         remaining: new Float64Array(MAX_ROUNDS),
+        plasma: new Uint8Array(MAX_ROUNDS),
+        reach: new Float64Array(MAX_ROUNDS),
         count: 0,
     };
+    /** Whether each turret is being shown, for whether a lance's lightning is. */
+    private shown = new Uint8Array(0);
+    /** Seconds shown, which a lance's lightning is drawn at. */
+    private clock = 0;
     /** Which barrel of each turret fires next, so a multi-barrel mount alternates. */
     private barrels = new Int32Array(0);
     /** Muzzle flashes, drawn as a battle's are. */
@@ -125,6 +135,8 @@ export class Demonstration {
         this.throttles = new Float64Array(0);
         this.cycles = new Float64Array(0);
         this.barrels = new Int32Array(0);
+        this.shown = new Uint8Array(0);
+        this.clock = 0;
         this.rounds.count = 0;
         this.beams.count = 0;
         this.flashes.clear();
@@ -141,6 +153,7 @@ export class Demonstration {
     step(design: ShipDesign, selected: readonly number[], dt: number): void {
         this.fit(design);
         let busy = false;
+        this.clock += dt;
         // Aged before this frame's shots are added, which are born now.
         this.flashes.step(dt);
 
@@ -156,10 +169,12 @@ export class Demonstration {
         for (let t = 0; t < design.turrets.length; t++) {
             const turret = design.turrets[t]!;
             const module = design.modules[turret.module];
+            this.shown[t] = 0;
             if (module === undefined || !selected.includes(module.index)) {
                 this.cycles[t] = 0;
                 continue;
             }
+            this.shown[t] = 1;
             const cycle = firingPeriod(turret.gun);
             if (!(cycle > 0)) continue;
             // A gun waiting out a long cycle is still being shown, even with nothing
@@ -204,6 +219,8 @@ export class Demonstration {
             beams.width[i] = beams.width[last]!;
             beams.power[i] = beams.power[last]!;
             beams.remaining[i] = beams.remaining[last]!;
+            beams.plasma[i] = beams.plasma[last]!;
+            beams.reach[i] = beams.reach[last]!;
         }
 
         this.busy = busy || rounds.count > 0 || beams.count > 0 || this.flashes.count > 0;
@@ -216,8 +233,15 @@ export class Demonstration {
             for (let t = 0; t < view.throttles.length; t++) view.throttles[t] = this.throttles[t] ?? 0;
             const load = (view.turretLoad ??= []);
             const reloading = (view.turretReloading ??= []);
-            load.length = reloading.length = view.currentStructure.turrets.length;
-            for (let t = 0; t < load.length; t++) this.loadOf(view.currentStructure, t, load, reloading);
+            const sparks = (view.turretSparks ??= []);
+            load.length = reloading.length = sparks.length = view.currentStructure.turrets.length;
+            for (let t = 0; t < load.length; t++) {
+                this.loadOf(view.currentStructure, t, load, reloading);
+                // A lance shows its lightning only while it is being shown firing.
+                const lance = view.currentStructure.modules[view.currentStructure.turrets[t]!.module]?.spec.kind === "plasmaLance";
+                sparks[t] = lance && this.shown[t] === 1 ? load[t]! : 0;
+            }
+            view.sparkClock = this.clock;
         }
         const rounds = this.rounds;
         snapshot.projectileX = rounds.x;
@@ -233,6 +257,8 @@ export class Demonstration {
         snapshot.beamEndY = beams.endY;
         snapshot.beamWidth = beams.width;
         snapshot.beamPower = beams.power;
+        snapshot.beamPlasma = beams.plasma;
+        snapshot.beamReach = beams.reach;
         snapshot.beamCount = beams.count;
     }
 
@@ -265,6 +291,7 @@ export class Demonstration {
         if (this.cycles.length !== design.turrets.length) {
             this.cycles = new Float64Array(design.turrets.length);
             this.barrels = new Int32Array(design.turrets.length);
+            this.shown = new Uint8Array(design.turrets.length);
         }
     }
 
@@ -312,14 +339,21 @@ export class Demonstration {
         } else {
             if (beams.count >= MAX_ROUNDS) return;
             const i = beams.count++;
-            const startX = design.centreOfMassX + mount.x + dirX * gun.barrelLength - dirY * lateral;
-            const startY = design.centreOfMassY + mount.y + dirY * gun.barrelLength + dirX * lateral;
+            // A lance's pulse leaves from the back of the gap between its prongs, and
+            // reaches only as far as it holds together.
+            const plasma = gun.plasmaReach > 0;
+            const muzzle = plasma ? (mount.muzzleOffset ?? 0) : gun.barrelLength;
+            const startX = design.centreOfMassX + mount.x + dirX * muzzle - dirY * lateral;
+            const startY = design.centreOfMassY + mount.y + dirY * muzzle + dirX * lateral;
+            const length = plasma ? gun.plasmaReach : MAX_BEAM_LENGTH;
             beams.startX[i] = startX;
             beams.startY[i] = startY;
             // Both ends are positions. Writing the heading alone here would run the
             // beam from the muzzle to a point measured from the world origin.
-            beams.endX[i] = startX + dirX * MAX_BEAM_LENGTH;
-            beams.endY[i] = startY + dirY * MAX_BEAM_LENGTH;
+            beams.endX[i] = startX + dirX * length;
+            beams.endY[i] = startY + dirY * length;
+            beams.plasma[i] = plasma ? 1 : 0;
+            beams.reach[i] = length;
             beams.width[i] = gun.calibre;
             beams.power[i] = gun.beamPower;
             // Lit for as long as the mount holds it, which is the figure the panel

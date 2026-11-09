@@ -57,6 +57,8 @@ export const DEFAULTS: Record<ShipModuleKind, Omit<ModuleSpec, "x" | "y">> = {
     // Its rails along a block long enough to load from, and a little way out past it.
     railGun: { kind: "railGun", angle: 0, length: 6, width: 4, barrels: 1, barrelCalibres: 10 },
     hullBeam: { kind: "hullBeam", angle: 0, length: 4, width: 4, barrels: 1 },
+    // Long enough for its field to reach a fight's width, and a deck wide.
+    plasmaLance: { kind: "plasmaLance", angle: 0, length: 6, width: 3 },
     claw: { kind: "claw", angle: 0, length: 2, width: 2 },
     // Room for a fighter to sit on, wholly inside it.
     pad: { kind: "pad", length: 12, width: 10 },
