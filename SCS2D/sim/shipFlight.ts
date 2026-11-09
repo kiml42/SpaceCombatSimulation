@@ -1,6 +1,6 @@
 import { Bodies } from "./bodies.js";
 import type { ShipDesign } from "./blueprint.js";
-import { HULL_LAYER, moduleLayers, WEAPONS_LAYER } from "./hull.js";
+import { HULL_LAYER, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from "./hull.js";
 import { DamageEffect } from "./damage.js";
 import { leakRate, leakSpeed } from "./fuel.js";
 import { Claim, Resource } from "./supply.js";
@@ -1398,7 +1398,11 @@ export function avoid(
         if ((ramming || rock || landing) && ob === flyingBody) continue;
         if (ob === under) continue;
 
-        const touching = mine + ships.designs[t]!.radius;
+        // Only as big as the part of each the other can hit: a fighter flies over a hull's deck.
+        const own = hitRadius(ships, i, t);
+        const theirs = hitRadius(ships, t, i);
+        if (!(own > 0) || !(theirs > 0)) continue;
+        const touching = own + theirs;
         // Clear by its own size, not the other's, which would keep it a rock's or a carrier's breadth off.
         let room = (ramming ? mine : touching) * approach.separationRadii;
         // From a neighbour on the rock only by its own size, or it could never grip the face beside it.
@@ -1501,6 +1505,16 @@ export function avoid(
         }
         urge(ships, weight, vx + awayX * dodge, vy + awayY * dodge);
     }
+}
+
+/**
+ * How far out from its centre ship `of` can be hit by ship `by`: its weapons
+ * layer alone against a fighter in that layer, as collisions meet them.
+ */
+function hitRadius(ships: Ships, of: number, by: number): number {
+    const design = ships.designs[of]!;
+    if (shipAim.shipLayers(ships, by) === WEAPONS_LAYER && shipAim.shipLayers(ships, of) === OWN_LAYERS) return design.raisedRadius;
+    return design.radius;
 }
 
 /**

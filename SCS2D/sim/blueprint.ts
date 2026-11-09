@@ -598,6 +598,8 @@ export interface ShipDesign {
     readonly inertia: number;
     /** Bounding-circle radius about the centre of mass, metres. */
     readonly radius: number;
+    /** The same, of its modules in the weapons layer alone: all a fighter flying over its deck can hit. */
+    readonly raisedRadius: number;
     /** Where the centre of mass sat in the blueprint's own frame, metres. */
     readonly centreOfMassX: number;
     readonly centreOfMassY: number;
@@ -2702,6 +2704,7 @@ function designFrom(
     const cores: number[] = [];
     let inertia = 0;
     let radius = 0;
+    let raisedRadius = 0;
     const c: number[] = [];
 
     for (let i = 0; i < specs.length; i++) {
@@ -2720,11 +2723,14 @@ function designFrom(
         // Parallel axis: each module's own inertia, carried out to where it sits.
         inertia += s.inertia + s.mass * (x * x + y * y);
 
+        const standsUp = inWeaponsLayer(spec, s.thickness);
         const count = moduleOutline(spec, c);
         for (let k = 0; k < count * 2; k += 2) {
             const dx = c[k]! - comX;
             const dy = c[k + 1]! - comY;
-            radius = max(radius, sqrt(dx * dx + dy * dy));
+            const out = sqrt(dx * dx + dy * dy);
+            radius = max(radius, out);
+            if (standsUp) raisedRadius = max(raisedRadius, out);
         }
 
         modules.push({
@@ -2924,6 +2930,7 @@ function designFrom(
         launchMass: mass - unfilled,
         inertia,
         radius,
+        raisedRadius,
         centreOfMassX: comX,
         centreOfMassY: comY,
         engines,
