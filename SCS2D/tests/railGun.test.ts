@@ -3,6 +3,8 @@ import {
     BeamHits,
     Beams,
     compileBlueprint,
+    firingPeriod,
+    HULL_CALIBRE_FRACTION,
     firesShells,
     hullMountGeometry,
     moduleProblem,
@@ -25,6 +27,7 @@ import {
     SpatialGrid,
     World,
     type Blueprint,
+    volleyCharge,
     type ModuleSpec,
 } from "../sim/index.js";
 import { CORVETTE } from "../scenarios/blueprints.js";
@@ -75,7 +78,8 @@ describe("a rail gun", () => {
         // Its rails run along its block, from two calibres in from the back, and on out past it.
         expect(run).toBeCloseTo(blockLength - RAIL_SETBACK_CALIBRES * rail.calibre + rail.barrelLength, 9);
         // A powder gun of the same bore whose barrel is that long, all of it out past its block.
-        const powder = moduleStats(hullGun({ fragments: 1, barrelCalibres: run / rail.calibre, length: blockLength + run })).gun!;
+        const width = rail.calibre / HULL_CALIBRE_FRACTION;
+        const powder = moduleStats(hullGun({ fragments: 1, width, barrelCalibres: run / rail.calibre, length: blockLength + run })).gun!;
         expect(powder.calibre).toBeCloseTo(rail.calibre, 9);
         expect(rail.muzzleSpeed).toBeCloseTo(RAIL_SPEED * powder.muzzleSpeed, 6);
         expect(rail.burst).toBeNull();
@@ -100,10 +104,11 @@ describe("a rail gun", () => {
         const spec = railGun({ length: 13, width: 4, barrelCalibres: 10 });
         const gun = moduleStats(spec).gun!;
         const { blockLength } = hullMountGeometry(spec);
-        const bank = RAIL_BANK_POWER_PER_VOLUME * blockLength * spec.width * moduleThickness(spec);
-        expect(gun.cycleTime).toBeCloseTo(shotCharge(gun) / bank, 9);
+        expect(gun.bankPower).toBeCloseTo(RAIL_BANK_POWER_PER_VOLUME * blockLength * spec.width * moduleThickness(spec), 3);
+        expect(firingPeriod(gun)).toBeCloseTo(shotCharge(gun) / gun.bankPower, 9);
+        expect(gun.cycleTime).toBeLessThan(firingPeriod(gun));
         // A powder gun of the same block loads far faster than the bank charges.
-        expect(moduleStats(hullGun({ length: 13, width: 4, barrelCalibres: 10 })).gun!.cycleTime).toBeLessThan(gun.cycleTime);
+        expect(firingPeriod(moduleStats(hullGun({ length: 13, width: 4, barrelCalibres: 10 })).gun!)).toBeLessThan(firingPeriod(gun));
     });
 
     it("takes the bore whose full shot its bank holds, which more barrel narrows", () => {
@@ -122,26 +127,19 @@ describe("a rail gun", () => {
         expect(shotCharge(long.gun) / shotCharge(mid.gun)).toBeCloseTo(1, 1);
     });
 
-    it("is held to the bore its opening takes, using less than its bank holds", () => {
-        const spec = railGun({ length: 10, width: 4, barrelCalibres: 0 });
-        const gun = moduleStats(spec).gun!;
-        expect(gun.calibre).toBeCloseTo(hullMountGeometry(spec).outletWidth / 2, 9);
-        expect(shotCharge(gun)).toBeLessThan(railBankEnergy(spec, gun.calibre));
+    it("splits its bank between its rails, a round down each at once", () => {
+        const one = moduleStats(railGun({ length: 10, width: 4, barrelCalibres: 9 })).gun!;
+        const three = moduleStats(railGun({ length: 10, width: 4, barrels: 3, barrelCalibres: 9 })).gun!;
+        expect(volleyCharge(three) / three.bankEnergy).toBeCloseTo(1, 6);
+        expect(shotCharge(three)).toBeCloseTo(shotCharge(one) / 3, -8);
+        expect(three.calibre).toBeLessThan(one.calibre);
+        // The same energy a minute, as its block charges it.
+        expect(three.muzzleEnergy / firingPeriod(three)).toBeCloseTo(one.muzzleEnergy / firingPeriod(one), -5);
     });
 
-    it("weighs the same in rails for the same run of them, and its bank on top", () => {
-        // Short guns, so the bore is held at the opening's and the same in each.
-        const stats = (block: number, extension: number) =>
-            moduleStats(railGun({ length: block, width: 4, barrelCalibres: extension / 0.4 }));
-        expect(stats(7, 1).gun!.calibre).toBeCloseTo(stats(6, 2).gun!.calibre, 9);
-        const mass = (block: number, extension: number) => stats(block, extension).mass;
-        // Moving a metre from extension into block adds a metre of block, less the
-        // metre of rails that only moved: its hull and its bank, and no more.
-        const moved = mass(7, 1) - mass(6, 2);
-        const blockMetre = mass(7, 0) - mass(6, 0);
-        const railMetre = mass(6, 1) - mass(6, 0);
-        expect(moved).toBeCloseTo(blockMetre - railMetre, 0);
-        expect(moved).toBeGreaterThan(RAIL_BANK_MASS_PER_VOLUME * 4 * moduleThickness(railGun({ width: 4 })) * 0.99);
+    it("weighs its bank on top of its rails", () => {
+        const mass = (block: number) => moduleStats(railGun({ length: block, width: 4, barrelCalibres: 0 })).mass;
+        expect(mass(7) - mass(6)).toBeGreaterThan(RAIL_BANK_MASS_PER_VOLUME * 4 * moduleThickness(railGun({ width: 4 })));
     });
 
     it("never fires shells, whatever its fuse says", () => {
@@ -168,6 +166,30 @@ describe("a rail gun", () => {
         const back = parseBlueprint(serialiseBlueprint(blueprint));
         const rails = back.modules.filter((p) => "kind" in p && p.kind === "railGun");
         expect(rails.length).toBeGreaterThan(0);
+    });
+
+    it("fires a round down every rail in the same step", () => {
+        const three: Blueprint = {
+            ...CORVETTE,
+            modules: CORVETTE.modules.map((p) =>
+                "kind" in p && p.kind === "hullGun" ? { ...p, kind: "railGun" as const, barrels: 3 } : p,
+            ),
+        };
+        const world = new World({ dt: DT, seed: 3 });
+        const ships = new Ships();
+        world.addForceProvider(ships.forceProvider());
+        const projectiles = new Projectiles(256);
+        const grid = new SpatialGrid(64);
+        const mine = ships.spawn(world, { design: compileBlueprint(three), x: 0, y: 0, team: 0 });
+        const enemy = ships.spawn(world, { design: compileBlueprint(CORVETTE), x: 600, y: 0, team: 1 });
+        ships.pushOrder(mine, enemy, 500, 700, 10);
+        let first = 0;
+        for (let i = 0; i < 20 / DT && first === 0; i++) {
+            ships.command(DT, world);
+            grid.rebuild(world.bodies);
+            first = ships.fire(world, projectiles, new Beams(16), grid, new BeamHits()).projectilesFired;
+        }
+        expect(first).toBe(3);
     });
 
     it("reloads on power with its tanks dry, where a powder gun fires only the round it set out with", () => {

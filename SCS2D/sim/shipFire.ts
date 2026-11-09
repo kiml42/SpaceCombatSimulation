@@ -15,6 +15,7 @@ import {
     GunType,
     shotCharge,
     shotFuel,
+    volleyCharge,
 } from "./modules.js";
 import { Projectiles } from "./projectiles.js";
 import { TurretState } from "./turrets.js";
@@ -165,68 +166,80 @@ export function fire(
 
             if (gun.type == GunType.Projectile) {
                 // A gun with nothing to load holds, ready, until there is. Its
-                // fuel went in as it reloaded (`recharged`).
+                // fuel went in as it reloaded (`recharged`). A rail gun fires a
+                // round down every rail at once, once its bank holds them.
                 const mount = design.turrets[t]!.module;
-                if (shipSupply.allowed(ships, Resource.Metal, bodyIdx, mount, Claim.Fire, gun.casing) < gun.casing) continue;
-                if (!ships.metal.load(bodyIdx, mount, gun.casing)) continue;
-                shipSupply.took(ships, Resource.Metal, bodyIdx, mount, Claim.Fire, gun.casing);
+                const volley = gun.bankEnergy > 0;
+                const rounds = volley ? gun.barrelCount : 1;
+                if (volley && ships.bank[i]![t]! < volleyCharge(gun)) continue;
+                const metal = gun.casing * rounds;
+                if (shipSupply.allowed(ships, Resource.Metal, bodyIdx, mount, Claim.Fire, metal) < metal) continue;
+                if (!ships.metal.load(bodyIdx, mount, metal)) continue;
+                shipSupply.took(ships, Resource.Metal, bodyIdx, mount, Claim.Fire, metal);
+                if (volley) ships.bank[i]![t] = ships.bank[i]![t]! - volleyCharge(gun);
                 loaded = true;
                 const fuse = design.modules[design.turrets[t]!.module]!.spec;
-                projectiles.fireFrom(
-                    bodies,
-                    bodyIdx,
-                    ships.solution.x,
-                    ships.solution.y,
-                    ships.solution.dirX * gun.muzzleSpeed + ships.solution.vx,
-                    ships.solution.dirY * gun.muzzleSpeed + ships.solution.vy,
-                    gun.calibre,
-                    ROUND_FLIGHT_TIME,
-                    gun.roundMass,
-                    gun.muzzleEnergy,
-                    0,
-                    0,
-                    design.turrets[t]!.module,
-                    shipAim.mountLayers(ships, i, design.turrets[t]!),
-                    shipAim.fuseFor(ships, bodies, i, ti, target, fuse),
-                    fuse.burstSpeed ?? DEFAULT_BURST_SPEED,
-                    fragmentLife(fuse),
-                    firesShells(fuse) ? (fuse.fragments ?? DEFAULT_FRAGMENTS) : 0,
-                    gun.casing,
-                    firesShells(fuse) ? 1 - chargeShare(fuse.burstSpeed ?? DEFAULT_BURST_SPEED) : 1,
-                );
-                log?.push(
-                    ships.solution.x,
-                    ships.solution.y,
-                    gun.muzzleEnergy,
-                    IMPACT_MUZZLE,
-                    bodies,
-                    bodyIdx,
-                    0,
-                    0,
-                    0,
-                    ships.solution.dirX,
-                    ships.solution.dirY,
-                );
+                for (let r = 0; r < rounds; r++) {
+                    if (volley && gun.barrelCount > 1) {
+                        ships.turrets.firingSolution(bodies, ti, ships.solution, (r - (gun.barrelCount - 1) * 0.5) * gun.barrelSpacing);
+                    }
+                    projectiles.fireFrom(
+                        bodies,
+                        bodyIdx,
+                        ships.solution.x,
+                        ships.solution.y,
+                        ships.solution.dirX * gun.muzzleSpeed + ships.solution.vx,
+                        ships.solution.dirY * gun.muzzleSpeed + ships.solution.vy,
+                        gun.calibre,
+                        ROUND_FLIGHT_TIME,
+                        gun.roundMass,
+                        gun.muzzleEnergy,
+                        0,
+                        0,
+                        design.turrets[t]!.module,
+                        shipAim.mountLayers(ships, i, design.turrets[t]!),
+                        shipAim.fuseFor(ships, bodies, i, ti, target, fuse),
+                        fuse.burstSpeed ?? DEFAULT_BURST_SPEED,
+                        fragmentLife(fuse),
+                        firesShells(fuse) ? (fuse.fragments ?? DEFAULT_FRAGMENTS) : 0,
+                        gun.casing,
+                        firesShells(fuse) ? 1 - chargeShare(fuse.burstSpeed ?? DEFAULT_BURST_SPEED) : 1,
+                    );
+                    log?.push(
+                        ships.solution.x,
+                        ships.solution.y,
+                        gun.muzzleEnergy,
+                        IMPACT_MUZZLE,
+                        bodies,
+                        bodyIdx,
+                        0,
+                        0,
+                        0,
+                        ships.solution.dirX,
+                        ships.solution.dirY,
+                    );
 
-                // An impulse rather than a force: the round leaves within the step, so
-                // there is no interval to spread it over. A beam mount firing off the
-                // centreline also yaws its own hull, which is part of what an outrigger
-                // costs.
-                //
-                // Only the muzzle velocity recoils. The round also leaves carrying the
-                // tangential velocity of the mount it sat on, but that is momentum it
-                // already had while attached rather than anything the gun gave it, so
-                // the charge does not push back for it.
-                //
-                // The round was part of the hull's mass until it was loaded, so the
-                // hull's velocity it leaves with is momentum the hull no longer has.
-                // The propellant's gas pushes back too, and it leaves faster.
-                const impulse = (gun.roundMass + GAS_RECOIL * gun.propellant) * gun.muzzleSpeed;
-                const jx = -ships.solution.dirX * impulse;
-                const jy = -ships.solution.dirY * impulse;
-                impulseX += jx;
-                impulseY += jy;
-                angularImpulse += (ships.solution.x - bodies.x[bodyIdx]!) * jy - (ships.solution.y - bodies.y[bodyIdx]!) * jx;
+                    // An impulse rather than a force: the round leaves within the step, so
+                    // there is no interval to spread it over. A beam mount firing off the
+                    // centreline also yaws its own hull, which is part of what an outrigger
+                    // costs.
+                    //
+                    // Only the muzzle velocity recoils. The round also leaves carrying the
+                    // tangential velocity of the mount it sat on, but that is momentum it
+                    // already had while attached rather than anything the gun gave it, so
+                    // the charge does not push back for it.
+                    //
+                    // The round was part of the hull's mass until it was loaded, so the
+                    // hull's velocity it leaves with is momentum the hull no longer has.
+                    // The propellant's gas pushes back too, and it leaves faster.
+                    const impulse = (gun.roundMass + GAS_RECOIL * gun.propellant) * gun.muzzleSpeed;
+                    const jx = -ships.solution.dirX * impulse;
+                    const jy = -ships.solution.dirY * impulse;
+                    impulseX += jx;
+                    impulseY += jy;
+                    angularImpulse += (ships.solution.x - bodies.x[bodyIdx]!) * jy - (ships.solution.y - bodies.y[bodyIdx]!) * jx;
+                    projectilesFired++;
+                }
 
                 // A battered mount loads slower, which is the whole of what damage
                 // does to a gun for now.
@@ -234,7 +247,6 @@ export function fire(
 
                 turretStates[t] = TurretState.Reloading; // Projectile guns immediately reload after firing.
 
-                projectilesFired++; // increment for every shot fired
                 ships.firedAt[i] = world.tick;
             } else {
                 // One beam a layer, each with its share of the power: a thick
@@ -345,6 +357,8 @@ export function recharged(ships: Ships, b: number, i: number, t: number, dt: num
     const mount = ships.designs[i]!.turrets[t]!;
     const gun = mount.gun;
     if (!(gun.cycleTime > 0)) return 1;
+    // A rail gun's charge goes into its bank (`chargeBank`), not its loader.
+    if (gun.bankEnergy > 0) return 1;
     // A lance not kept ready charges only while it is on target.
     if (waitsForTarget(ships, i, t) && !onTarget(ships, i, t)) return 0;
     const scale = (ships.damage.remaining(b, mount.module, DamageEffect.FireRate) * dt) / gun.cycleTime;
@@ -369,6 +383,21 @@ function drawShare(ships: Ships, b: number, module: number, gun: GunStats, scale
         if (got / charge < share) share = got / charge;
     }
     return share;
+}
+
+/** Fill rail gun `t`'s bank towards full, as fast as its block charges it and its piece of hull has the power. */
+function chargeBank(ships: Ships, b: number, i: number, t: number, dt: number): void {
+    const mount = ships.designs[i]!.turrets[t]!;
+    const gun = mount.gun;
+    const room = gun.bankEnergy - ships.bank[i]![t]!;
+    if (!(room > 0)) return;
+    const rate = gun.bankPower * ships.damage.remaining(b, mount.module, DamageEffect.FireRate) * dt;
+    const want = rate < room ? rate : room;
+    if (!(want > 0)) return;
+    const allowed = shipSupply.allowed(ships, Resource.Charge, b, mount.module, Claim.Fire, want);
+    const got = ships.power.draw(b, mount.module, want < allowed ? want : allowed);
+    shipSupply.took(ships, Resource.Charge, b, mount.module, Claim.Fire, got);
+    ships.bank[i]![t] = ships.bank[i]![t]! + got;
 }
 
 /** Whether mount `t` is a plasma lance charged only once it is on target. */
@@ -408,6 +437,7 @@ export function reloadOne(ships: Ships, dt: number, bodies: Bodies, i: number): 
     for (let pass = 0; pass < 2; pass++) {
         for (let t = 0; t < timers.length; t++) {
             if (mounts[t]!.main !== (pass === 0) || !ships.ownsAt(i, b, mounts[t]!.module)) continue;
+            if (mounts[t]!.gun.bankEnergy > 0) chargeBank(ships, b, i, t, dt);
             if (timers[t]! > 0) {
                 const remaining = timers[t]! - dt * recharged(ships, b, i, t, dt);
                 timers[t] = remaining > TIMER_SETTLE ? remaining : 0;

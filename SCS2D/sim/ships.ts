@@ -12,7 +12,7 @@ import { SEAL_REACH, SEAL_SPEED } from "./modules.js";
 import type { Rng } from "./rng.js";
 import { geometryOf, landedIndex, landedLength, plumeLayers, Plumes, weaponPlumeReach } from "./exhaust.js";
 import { Choice } from "./targeting.js";
-import { moduleRadius, shotCharge, shotFuel, type ModuleSpec } from "./modules.js";
+import { moduleRadius, shotCharge, shotFuel, volleyCharge, type ModuleSpec } from "./modules.js";
 import { atan2, clamp, cos, floor, length, max, min, round, sin } from "./math.js";
 import { Projectiles } from "./projectiles.js";
 import type { Store } from "./store.js";
@@ -507,6 +507,8 @@ export class Ships {
     readonly cooldown: Float64Array[] = [];
     readonly turretStates: Uint8Array[] = [];
     readonly nextBarrelToFire: Int32Array[] = [];
+    /** What each rail gun's capacitor bank holds, J; it starts a battle full. */
+    readonly bank: Float64Array[] = [];
     /**
      * What each mount has picked to shoot at, and the step it will think about
      * that again.
@@ -720,6 +722,9 @@ export class Ships {
     readonly gripSlack: number[] = [];
     /** Whether each claw ship is closing straight in on its grip point, rather than making for the gate. */
     readonly gripClosing: number[] = [];
+    /** What each ship's heaviest dodge this step is from, or -1; and how far off it wants that, centre to centre, m. */
+    readonly dodgingFrom: number[] = [];
+    readonly dodgingRoom: number[] = [];
     readonly gripAt: number[] = [];
     /** The heading `squareUp` last asked for. */
     gripHeading = 0;
@@ -1134,6 +1139,11 @@ export class Ships {
         const rate = reloading ? this.damage.remaining(b, mount.module, DamageEffect.FireRate) : 0;
         if (gun.type === GunType.Projectile && gun.casing > 0 && this.metal.pieceHeld(b, mount.module) < gun.casing) return false;
         if (reloading && this.fuel.fed(b, mount.module, this.damage) < (shotFuel(gun) * rate * timer) / gun.cycleTime) return false;
+        if (gun.bankEnergy > 0) {
+            const short = volleyCharge(gun) - this.bank[i]![t]!;
+            if (!(short > 0)) return true;
+            return this.power.pieceHeld(b, mount.module) >= short || this.power.pieceGeneration(b, mount.module, this.damage) > 0;
+        }
         if (!reloading) return true;
         const need = (shotCharge(gun) * rate * timer) / gun.cycleTime;
         if (!(need > 0)) return true;
@@ -1388,6 +1398,9 @@ export class Ships {
         this.cooldown.push(cooldown);
         this.turretStates.push(states);
         this.nextBarrelToFire.push(new Int32Array(mounts.length));
+        const bank = new Float64Array(mounts.length);
+        for (let t = 0; t < mounts.length; t++) bank[t] = mounts[t]!.gun.bankEnergy;
+        this.bank.push(bank);
         const chosenBy = new Int32Array(mounts.length).fill(NO_TARGET);
         this.turretTarget.push(chosenBy);
         this.turretAiming.push(new Int32Array(mounts.length).fill(NO_TARGET));
@@ -1449,6 +1462,8 @@ export class Ships {
         this.gripNy.push(0);
         this.gripSlack.push(0);
         this.gripClosing.push(0);
+        this.dodgingFrom.push(-1);
+        this.dodgingRoom.push(0);
         this.gripAt.push(-Infinity);
         this.landingPad.push(-1);
         this.dockSeenVx.push(0);
@@ -1751,6 +1766,13 @@ export class Ships {
         const bodies = this.bodyStore;
         if (bodies === null || this.alive[i] !== 1 || !this.hasControl(i)) return NO_TARGET;
         return shipDecide.liveConsort(this, bodies, i, bodies.indexOf(this.bodyIds[i]!));
+    }
+
+    /** What this ship is keeping clear of above all else, as `avoid` flew it last step; `NO_TARGET` for nothing. */
+    dodgingOf(i: number): number {
+        if (this.alive[i] !== 1 || !this.hasControl(i)) return NO_TARGET;
+        const t = this.dodgingFrom[i]!;
+        return t >= 0 && this.alive[t] === 1 ? t : NO_TARGET;
     }
 
     /** How far from `consort` ship `i` stays as its escort, centre to centre, metres. */
@@ -2316,6 +2338,7 @@ export class Ships {
         this.cooldown[r] = this.cooldown[p]!;
         this.turretStates[r] = this.turretStates[p]!;
         this.nextBarrelToFire[r] = this.nextBarrelToFire[p]!;
+        this.bank[r] = this.bank[p]!;
         this.turretTarget[r] = this.turretTarget[p]!;
         this.turretAiming[r] = this.turretAiming[p]!;
         this.turretAimModule[r] = this.turretAimModule[p]!;
@@ -2664,8 +2687,10 @@ export class Ships {
      */
     loadOf(i: number, turret: number): number {
         const timer = this.cooldown[i]![turret]!;
-        if (!(timer > 0)) return 1;
         const mount = this.designs[i]!.turrets[turret]!;
+        // A rail gun is as loaded as its bank is towards its next volley.
+        if (mount.gun.bankEnergy > 0 && !(timer > 0)) return min(1, this.bank[i]![turret]! / volleyCharge(mount.gun));
+        if (!(timer > 0)) return 1;
         if (this.turretStates[i]![turret] === TurretState.CommittedOn) {
             return mount.gun.beamOnTime > 0 ? min(1, timer / mount.gun.beamOnTime) : 0;
         }

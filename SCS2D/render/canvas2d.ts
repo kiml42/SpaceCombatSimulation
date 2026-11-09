@@ -3249,7 +3249,8 @@ const SELECTED_GAP_PX = 6;
 /**
  * The ship the viewer has picked out: a ring round it in its side's trim, a
  * broken line from it to whatever it is fighting, with a smaller ring there,
- * and a broken ring round whatever it is escorting.
+ * a broken ring round whatever it is escorting, and a red one round whatever
+ * it is keeping clear of.
  */
 function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: number, metresToPx: number): void {
     const ship = shipByBody(snapshot, body);
@@ -3307,7 +3308,48 @@ function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: n
         ctx.stroke();
         ctx.setLineDash([]);
     }
+    const hazard = shipByBody(snapshot, ship.avoiding ?? -1);
+    if (hazard !== null && ship.avoidRoom !== undefined) drawAvoiding(ctx, ship, hazard, ship.avoidRoom, metresToPx);
     ctx.restore();
+}
+
+const DANGER = "#ff3b30";
+
+/**
+ * What a ship is keeping clear of: red round it out to where the ship wants it,
+ * fading from where their hulls would touch to nothing at that edge, as
+ * `avoid` weighs a near miss.
+ */
+function drawAvoiding(ctx: CanvasRenderingContext2D, ship: ShipView, hazard: ShipView, room: number, metresToPx: number): void {
+    const touching = Math.min(room, ship.currentStructure.radius + hazard.currentStructure.radius);
+    ctx.save();
+    ctx.translate(hazard.x, hazard.y);
+    keep(ctx, `avoid ${touching} ${room}`, () => avoidRings(ctx, touching, room, metresToPx));
+    ctx.restore();
+}
+
+/** Stepped, not a gradient: the battle view's context draws no gradients. */
+function avoidRings(ctx: CanvasRenderingContext2D, touching: number, room: number, metresToPx: number): void {
+    const strongest = 0.3;
+    ctx.fillStyle = DANGER;
+    ctx.globalAlpha = strongest;
+    ctx.beginPath();
+    ctx.arc(0, 0, touching, 0, TAU);
+    ctx.fill();
+    const step = (room - touching) / FADE_STEPS;
+    for (let k = 0; k < FADE_STEPS && step > 0; k++) {
+        ctx.globalAlpha = strongest * (1 - (k + 0.5) / FADE_STEPS);
+        ctx.beginPath();
+        ctx.arc(0, 0, touching + (k + 1) * step, 0, TAU);
+        ctx.arc(0, 0, touching + k * step, TAU, 0, true);
+        ctx.fill("evenodd");
+    }
+    ctx.strokeStyle = DANGER;
+    ctx.lineWidth = 1 / metresToPx;
+    ctx.globalAlpha = 0.5;
+    ctx.beginPath();
+    ctx.arc(0, 0, room, 0, TAU);
+    ctx.stroke();
 }
 
 /** How soft the edges of a ship's bands are, from what it has been told over its doctrine where it says. */
