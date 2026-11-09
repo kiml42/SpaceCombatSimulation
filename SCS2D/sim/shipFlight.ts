@@ -1258,29 +1258,6 @@ export function threats(ships: Ships, bodies: Bodies, i: number, b: number, x: n
     return total;
 }
 
-/**
- * The armed enemy of ship `i` deepest inside its own reach, times `i`'s
- * `fleeMargin`, of point (`x`, `y`), as `threats` weighs them; `NO_TARGET` for none.
- */
-export function deepestThreat(ships: Ships, bodies: Bodies, i: number, b: number, x: number, y: number): number {
-    const approach = ships.doctrines[i]!.approach;
-    const mine = ships.designs[i]!.radius;
-    let best = NO_TARGET;
-    let deepest = 0;
-    for (let e = 0; e < ships.alive.length; e++) {
-        if (!ships.hostile(i, e) || !armed(ships, e)) continue;
-        const eb = bodies.indexOf(ships.bodyIds[e]!);
-        if (eb < 0 || eb === b) continue;
-        const clear = (shipSupply.fightReach(ships, e) + mine) * approach.fleeMargin;
-        const depth = 1 - length(bodies.x[eb]! - x, bodies.y[eb]! - y) / clear;
-        if (depth > deepest) {
-            deepest = depth;
-            best = e;
-        }
-    }
-    return best;
-}
-
 /** Whether any of ship `e`'s mounts is aimed at ship `i`. */
 export function aimsAt(ships: Ships, e: number, i: number): boolean {
     const aiming = ships.turretAiming[e]!;

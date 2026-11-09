@@ -164,8 +164,8 @@ export interface Targeting {
      * need covering by a mount that is pointing the wrong way.
      *
      * **Escorting and fighting are a choice, not a blend** (`shipDecide.guard`).
-     * While an armed enemy has its charge in reach, a craft stays and fights
-     * that enemy from its station; while none has, it leaves its charge and
+     * While an enemy is within its own reach of its station, a craft stays and
+     * fights the nearest from there; while none is, it leaves its charge and
      * goes to the fight it chose. Weighed against each other, the two settled
      * halfway, and an escort trailed an enemy moving away from its charge at
      * half its speed. This is how hard the station pulls against keeping clear,

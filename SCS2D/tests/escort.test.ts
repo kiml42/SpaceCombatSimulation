@@ -148,35 +148,6 @@ describe("escort and neutrals", () => {
         expect(battle.totalSevered).toEqual(0);
     });
 
-    it("covers a consort rather than going to the fight", () => {
-        // The same battle twice, differing in one number. With nothing to escort
-        // the ship closes on the enemy; with a consort worth covering it stays
-        // with it — and this is a preference rather than a mode, so what decides
-        // it is one weight against the rest of the doctrine.
-        function fly(escortWeight: number): number {
-            const consort = compileBlueprint(MARKER);
-            const escort = compileBlueprint(escorting(CORVETTE, escortWeight));
-            const enemy = compileBlueprint(GUNSHIP);
-            const battle = makeBattle({ seed: 5, projectiles: 512 }, (ships, world) => {
-                const covering = ships.spawn(world, { design: escort, x: 0, y: 0, angle: 0, team: 0 });
-                const charge = ships.spawn(world, { design: consort, x: 0, y: 300, team: NEUTRAL_TEAM });
-                ships.spawn(world, { design: enemy, x: 2500, y: 0, angle: math.PI, team: 1 });
-                return { covering, charge };
-            });
-            for (let step = 0; step < 1800; step++) battle.step();
-            const bodies = battle.world.bodies;
-            const a = bodies.indexOf(battle.ships.body(battle.covering));
-            const b = bodies.indexOf(battle.ships.body(battle.charge));
-            return math.length(bodies.x[a]! - bodies.x[b]!, bodies.y[a]! - bodies.y[b]!);
-        }
-
-        const alone = fly(0);
-        const covering = fly(400);
-        // Not by as much as it might: the enemy breaks the escort in two early,
-        // and it will not turn into its own wreckage while that lies alongside.
-        expect(covering).toBeLessThan(alone * 0.6);
-    });
-
     it("covers no friend smaller than it will bother with", () => {
         // The same escort, told to cover only what is at least its own size: a
         // friendly marker is a fraction of a corvette's radius, so it goes to the
@@ -194,7 +165,7 @@ describe("escort and neutrals", () => {
             const battle = makeBattle({ seed: 5, projectiles: 512 }, (ships, world) => {
                 const covering = ships.spawn(world, { design: escort, x: 0, y: 0, angle: 0, team: 0 });
                 const charge = ships.spawn(world, { design: consort, x: 0, y: 300, team: 0 });
-                ships.spawn(world, { design: enemy, x: 2500, y: 0, angle: math.PI, team: 1 });
+                ships.spawn(world, { design: enemy, x: 1500, y: 0, angle: math.PI, team: 1 });
                 return { covering, charge };
             });
             // Before the gunship arrives and takes the escort apart.
@@ -251,7 +222,7 @@ describe("escort and neutrals", () => {
             const battle = makeBattle({ seed: 5, projectiles: 512 }, (ships, world) => {
                 const covering = ships.spawn(world, { design: escort, x: 0, y: 0, angle: 0, team: 0 });
                 const charge = ships.spawn(world, { design: consort, x: 0, y: 300, team: 0 });
-                ships.spawn(world, { design: enemy, x: 2500, y: 0, angle: math.PI, team: 1 });
+                ships.spawn(world, { design: enemy, x: 1500, y: 0, angle: math.PI, team: 1 });
                 return { covering, charge };
             });
             const bodies = battle.world.bodies;
@@ -302,18 +273,19 @@ describe("escort and neutrals", () => {
         expect(covering.enemy).toBeLessThan(alone.enemy * 1.1);
     });
 
-    it("stays with a charge an enemy has in reach, and fights that enemy from its station", () => {
+    it("stays with a charge while an enemy is in its reach from there, and fights that enemy from its station", () => {
+        // Never ramming, which takes a ship from its charge whatever it is doing.
         const base = escorting(CORVETTE, 400);
         const design = compileBlueprint({
             ...base,
-            doctrine: { ...base.doctrine!, approach: { ...base.doctrine!.approach, escortMinRadii: 0 } },
+            doctrine: { ...base.doctrine!, approach: { ...base.doctrine!.approach, escortMinRadii: 0, ramRadii: 0 } },
         });
         const enemy = compileBlueprint(GUNSHIP);
-        const clear = (enemy.reach + design.radius) * design.doctrine.approach.fleeMargin;
         const battle = makeBattle({ seed: 9, projectiles: 512 }, (ships, world) => {
-            const covering = ships.spawn(world, { design, x: 0, y: -100, angle: 0, team: 0 });
+            // Neither shot to pieces, so what is measured is where it flies.
+            const covering = ships.spawn(world, { design, x: 0, y: -100, angle: 0, team: 0, invulnerable: true });
             const charge = ships.spawn(world, { design: compileBlueprint(MARKER), x: 0, y: 0, team: 0, invulnerable: true });
-            const foe = ships.spawn(world, { design: enemy, x: clear / 2, y: 0, angle: math.PI, team: 1 });
+            const foe = ships.spawn(world, { design: enemy, x: design.reach * 0.6, y: 0, angle: math.PI, team: 1 });
             return { covering, charge, foe };
         });
         const { ships } = battle;
