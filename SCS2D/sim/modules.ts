@@ -1683,6 +1683,11 @@ export function shotFuel(gun: GunStats): number {
     return gun.propellant + gun.roundMass - gun.casing;
 }
 
+/** Metal a gun loads for each shot, kg: a round's casing, or a rail gun's volley of them; none for a beam. */
+export function shotMetal(gun: GunStats): number {
+    return gun.type === GunType.Projectile ? gun.casing * (gun.bankEnergy > 0 ? gun.barrelCount : 1) : 0;
+}
+
 /** Charge a mount draws for each shot, J. */
 export function shotCharge(gun: GunStats): number {
     return gun.shotEnergy;

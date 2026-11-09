@@ -36,7 +36,7 @@ function emptied(blueprint: Blueprint): Blueprint {
 }
 
 /** A ship moving at `vx` firing on a corvette ahead of it for `seconds`, the world never stepped. */
-function firing(design: ShipDesign, seconds: number, vx = 0, dry = false) {
+function firing(design: ShipDesign, seconds: number, vx = 0, dry = false, unarmed = false) {
     const world = new World({ dt: DT, seed: 6 });
     const ships = new Ships();
     world.addForceProvider(ships.forceProvider());
@@ -49,6 +49,7 @@ function firing(design: ShipDesign, seconds: number, vx = 0, dry = false) {
     ships.pushOrder(mine, enemy, 750, 950, 10);
     const body = world.bodies.indexOf(ships.body(mine));
     if (dry) ships.fuel.drain(body, design.cores[0]!, ships.fuel.left(body));
+    if (unarmed) for (let m = 0; m < design.modules.length; m++) ships.metal.drain(body, m, ships.metal.held(body, m));
     const gun = design.turrets.find((t) => t.gun.roundMass > 0)?.gun;
     const gas = gun === undefined ? 0 : GAS_RECOIL * gun.propellant * gun.muzzleSpeed;
     let rounds = 0;
@@ -125,9 +126,11 @@ describe("a ship out of metal", () => {
         const body = world.bodies.indexOf(ships.body(ship));
         const mount = corvette.turrets[0]!;
         expect(ships.isDisarmed(ship)).toBe(false);
-        // Not quite a round left.
+        // Not quite a round left in the holds, and none loaded.
         const held = ships.metal.pieceHeld(body, mount.module);
         ships.metal.drain(body, mount.module, held - mount.gun.roundMass / 2);
+        expect(ships.isDisarmed(ship)).toBe(false);
+        for (const t of corvette.turrets) ships.metal.unload(body, t.module);
         expect(ships.isDisarmed(ship)).toBe(true);
         expect(ships.isDisabled(ship)).toBe(ships.hasNoEngines(ship));
     });
@@ -144,6 +147,29 @@ describe("a gun firing", () => {
         expect(s.rounds).toBeGreaterThan(0);
         expect(s.rounds).toBeLessThanOrEqual(corvette.turrets.length);
         expect(s.ships.isDisarmed(s.mine)).toBe(true);
+    });
+
+    it("waits empty, its reload not begun, with no metal to load its next round", () => {
+        const s = firing(corvette, 20, 0, false, true);
+        expect(s.rounds).toBeGreaterThan(0);
+        expect(s.rounds).toBeLessThanOrEqual(corvette.turrets.length);
+        let waiting = 0;
+        for (let t = 0; t < corvette.turrets.length; t++) {
+            if (s.ships.isLoaded(s.body, corvette.turrets[t]!)) continue;
+            waiting++;
+            expect(s.ships.isReloading(s.mine, t)).toBe(true);
+            expect(s.ships.loadOf(s.mine, t)).toBe(0);
+        }
+        expect(waiting).toBe(s.rounds);
+        expect(s.ships.isDisarmed(s.mine)).toBe(true);
+
+        // Given metal, it loads and begins to reload.
+        const gun = corvette.turrets[0]!;
+        s.ships.metal.add(s.body, gun.module, gun.gun.casing * corvette.turrets.length);
+        const before = s.ships.cooldownOf(s.mine, 0);
+        s.ships.command(DT, s.world);
+        expect(s.ships.isLoaded(s.body, gun)).toBe(true);
+        if (before > 0) expect(s.ships.cooldownOf(s.mine, 0)).toBeLessThan(before);
     });
 
     it("burns a round's propellant and bursting charge of fuel for each round it reloads", () => {

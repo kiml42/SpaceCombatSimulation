@@ -85,6 +85,8 @@ export const Battle: Story = {
         await expect(canvas.getByRole("button", { name: "Play" })).toBeVisible();
         await userEvent.selectOptions(canvas.getByRole("combobox", { name: "Scenario" }), "Swarm");
         await expect(canvas.getByRole("combobox", { name: "Scenario" })).toHaveDisplayValue("Swarm");
+        await userEvent.selectOptions(canvas.getByRole("combobox", { name: "Variant" }), "300 fighters");
+        await expect(canvas.getByRole("combobox", { name: "Variant" })).toHaveDisplayValue("300 fighters");
     },
 };
 

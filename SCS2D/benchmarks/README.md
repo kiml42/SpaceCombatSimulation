@@ -49,7 +49,7 @@ callbacks (stepping the battle and drawing; WebGL's own GPU work is not in it).
 
 ```sh
 pnpm bench:render
-pnpm bench:render --scenes "Star Wars,Super Swarm" --paused --label laptop
+pnpm bench:render --scenes "Star Wars,Swarm:300 fighters" --paused --label laptop
 ```
 
 It needs Playwright's Chromium (`pnpm exec playwright install chromium`), or `--browser chrome` for an
@@ -58,7 +58,7 @@ measured. Leave the window alone while it runs: covering or minimising it slows 
 
 | Option | Default | What it does |
 | --- | --- | --- |
-| `--scenes` | `Duel,Star Wars,Super Swarm,Asteroid Field,Factory` | Scenes by their names in the Battle route's list; [scenarios/README.md](../scenarios/README.md) says which suit what. |
+| `--scenes` | `Duel,Star Wars,Swarm:300 fighters,Asteroid Field,Factory` | Scenes by their names in the Battle route's list, `Scene:Variant` for one of a scene's variants; [scenarios/README.md](../scenarios/README.md) says which suit what. |
 | `--seconds` | `8` | How long each scene is measured. |
 | `--at` | `5` | Battle seconds each scene is played to first, so every run measures the same moment of it. |
 | `--warmup` | `3` | Seconds each scene runs first, unmeasured, after reaching `--at`. |

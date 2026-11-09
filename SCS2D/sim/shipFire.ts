@@ -15,6 +15,7 @@ import {
     GunType,
     shotCharge,
     shotFuel,
+    shotMetal,
     volleyCharge,
 } from "./modules.js";
 import { Projectiles } from "./projectiles.js";
@@ -165,19 +166,16 @@ export function fire(
             }
 
             if (gun.type == GunType.Projectile) {
-                // A gun with nothing to load holds, ready, until there is. Its
-                // fuel went in as it reloaded (`recharged`). A rail gun fires a
-                // round down every rail at once, once its bank holds them.
-                const mount = design.turrets[t]!.module;
+                // Its round and fuel went in before and as it reloaded (`chamber`,
+                // `recharged`). A rail gun fires a round down every rail at
+                // once, once its bank holds them.
                 const volley = gun.bankEnergy > 0;
                 const rounds = volley ? gun.barrelCount : 1;
+                if (!ships.isLoaded(bodyIdx, design.turrets[t]!)) continue;
                 if (volley && ships.bank[i]![t]! < volleyCharge(gun)) continue;
-                const metal = gun.casing * rounds;
-                if (shipSupply.allowed(ships, Resource.Metal, bodyIdx, mount, Claim.Fire, metal) < metal) continue;
-                if (!ships.metal.load(bodyIdx, mount, metal)) continue;
-                shipSupply.took(ships, Resource.Metal, bodyIdx, mount, Claim.Fire, metal);
-                if (volley) ships.bank[i]![t] = ships.bank[i]![t]! - volleyCharge(gun);
+                ships.metal.unload(bodyIdx, design.turrets[t]!.module);
                 loaded = true;
+                if (volley) ships.bank[i]![t] = ships.bank[i]![t]! - volleyCharge(gun);
                 const fuse = design.modules[design.turrets[t]!.module]!.spec;
                 for (let r = 0; r < rounds; r++) {
                     if (volley && gun.barrelCount > 1) {
@@ -427,7 +425,22 @@ function leak(ships: Ships, b: number, i: number, t: number, dt: number): void {
     ships.cooldown[i]![t] = (lost * (1 - kept) * gun.cycleTime) / (rate > 0 ? rate : 1);
 }
 
-/** Run down each of ship `i`'s mounts' reload, as far as its power and fuel allow. */
+/**
+ * Take gun `t`'s next shot's metal from the holds on its piece of hull, if it
+ * has not got it, and say whether it has. A gun reloads only once it has, so a
+ * gun with nothing to load waits empty.
+ */
+function chamber(ships: Ships, b: number, i: number, t: number): boolean {
+    const mount = ships.designs[i]!.turrets[t]!;
+    if (ships.isLoaded(b, mount)) return true;
+    const metal = shotMetal(mount.gun);
+    if (shipSupply.allowed(ships, Resource.Metal, b, mount.module, Claim.Fire, metal) < metal) return false;
+    if (!ships.metal.load(b, mount.module, metal)) return false;
+    shipSupply.took(ships, Resource.Metal, b, mount.module, Claim.Fire, metal);
+    return true;
+}
+
+/** Run down each of ship `i`'s mounts' reload, as far as its metal, power and fuel allow. */
 export function reloadOne(ships: Ships, dt: number, bodies: Bodies, i: number): void {
     const timers = ships.cooldown[i]!;
     const b = bodies.indexOf(ships.bodyIds[i]!);
@@ -438,6 +451,7 @@ export function reloadOne(ships: Ships, dt: number, bodies: Bodies, i: number): 
         for (let t = 0; t < timers.length; t++) {
             if (mounts[t]!.main !== (pass === 0) || !ships.ownsAt(i, b, mounts[t]!.module)) continue;
             if (mounts[t]!.gun.bankEnergy > 0) chargeBank(ships, b, i, t, dt);
+            if (!chamber(ships, b, i, t)) continue;
             if (timers[t]! > 0) {
                 const remaining = timers[t]! - dt * recharged(ships, b, i, t, dt);
                 timers[t] = remaining > TIMER_SETTLE ? remaining : 0;
