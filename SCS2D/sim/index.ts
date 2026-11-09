@@ -117,6 +117,7 @@ export {
     RAIL_SPEED,
     RING_SHARE,
     LANCE_BASE_SHARE,
+    LANCE_PRONG_SHARE,
     LANCE_PULSE,
     LANCE_FUEL_SHARE,
     LANCE_REACH_PER_METRE,
@@ -454,7 +455,7 @@ export {
     placeModules,
     type FleetHull,
 } from "./fleetHulls.js";
-export { Turrets, FiringSolution, interceptTime, masked, type TurretSpec } from "./turrets.js";
+export { Turrets, FiringSolution, interceptTime, masked, masksWholeArc, type TurretSpec } from "./turrets.js";
 export { Ships, NEUTRAL_TEAM, slotKey, NO_TARGET, CLAW_RETRY, type Order, type ShipSpec } from "./ships.js";
 export { CLAW_BITE, CLAW_GRIP_CHANCE, clawChance } from "./shipWeld.js";
 export { PAD_SPEED } from "./shipDocking.js";

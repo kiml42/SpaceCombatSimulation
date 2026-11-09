@@ -12,6 +12,7 @@ import {
     DEFAULT_FRAGMENTS,
     DEFAULT_FUSE,
     DEFAULT_NOZZLE_WIDTHS,
+    masksWholeArc,
     math,
     moduleProblem,
     moduleStats,
@@ -129,7 +130,7 @@ export function barrelReadout(spec: ModuleSpec): string {
     return gun.braceLength > 0 ? `${metres}, ${gun.braceLength.toFixed(2)} m braced` : metres;
 }
 
-/** Each module out of every core's reach: it flies, but that module does nothing. */
+/** What flies but does nothing: a module out of every core's reach, and a gun that can only point at its own ship. */
 export function reachWarnings(design: ShipDesign | null): string[] {
     const out: string[] = [];
     design?.coveredBy?.forEach((cores, m) => {
@@ -137,6 +138,12 @@ export function reachWarnings(design: ShipDesign | null): string[] {
         const module = design.modules[m]!;
         out.push(`module ${module.index} (${module.spec.kind}) is out of every core's reach, so it will not work`);
     });
+    for (const turret of design?.turrets ?? []) {
+        const mount = turret.mount;
+        if (!masksWholeArc(mount.mask ?? [], mount.leftArc ?? math.PI, mount.rightArc ?? math.PI)) continue;
+        const module = design!.modules[turret.module]!;
+        out.push(`module ${module.index} (${module.spec.kind}) can only point where its own ship is in the way, so it will never fire`);
+    }
     return out;
 }
 

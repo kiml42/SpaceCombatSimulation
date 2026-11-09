@@ -4,6 +4,7 @@ import {
     isHullMount,
     isMagnetic,
     LANCE_BASE_SHARE,
+    LANCE_PRONG_SHARE,
     shapeOf,
     type ModuleSpec,
     type ShipDesign,
@@ -22,8 +23,6 @@ import { BARE_TEAM, type Palette } from "./teams.js";
 
 /** How much of a claw's width each of its two jaws is drawn across. */
 export const CLAW_JAW_SHARE = 0.3;
-/** A plasma lance's prongs, as a share of its width. */
-export const LANCE_PRONG_SHARE = 0.22;
 /**
  * How far a nub reaches into the gap, as a share of half of it, and how wide
  * it is at its root and its tip, as shares of the space between nubs.

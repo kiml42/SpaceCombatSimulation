@@ -722,8 +722,11 @@ inside any one file is not contiguous.
   mount has a traverse — where its barrels may go, stopped by what the row of them would foul within a
   barrel's length, as wide as the outer barrel, and which it slews round the way it allows, however much
   further that is than the short way — and, separately, a trigger mask: the bearings its own ship is downrange of, at any distance,
-  where it may point but not fire. For a turret both count only what is in the weapons layer. The editor draws the mask
-  as a warm wedge inside the sweep. A mount prefers a target it can fire at, but with none it tracks one
+  where it may point but not fire. Both are widened by how far off the centre line a shot or barrel leaves —
+  for a lance, the gap between its prongs, not its whole width — and a module just beside the mount blocks only
+  the bearings leaving towards it, while one flush with the shot's edge blocks none. For a turret both count only
+  what is in the weapons layer. The editor draws the mask
+  as a warm wedge inside the sweep, and warns of a mount that can only point where it is masked, since it never fires. A mount prefers a target it can fire at, but with none it tracks one
   on a masked bearing with its trigger held, so it is on target as the ship turns. A lit beam's drive stops at the edge of a masked sector rather than
   sweep across its own ship. A shot may land on its own ship, but never on the mount that fired it, so
   two enemies hooked together shoot each other. **A gun's rounds burst** just short of their aim point,

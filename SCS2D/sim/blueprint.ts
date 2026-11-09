@@ -5,6 +5,7 @@ import {
     GunType,
     isHullBeam,
     LANCE_WORTH,
+    LANCE_PRONG_SHARE,
     grownOutline,
     moduleCentre,
     bodySpec,
@@ -783,15 +784,22 @@ function distanceToModule(m: ModuleSpec, px: number, py: number): number {
 
 /**
  * How far a corner's bearing widens for something `pad` metres either side of
- * a line from the mount: the line clears the corner once it is `pad` off it,
+ * a line out of the mount: the line clears the corner once it is `pad` off it,
  * which is the corner grown into a disc of that radius. Far corners need
- * little; one within `pad` of the mount blocks every bearing near it.
+ * little; one within `pad` of the mount blocks every bearing that leaves
+ * towards it, but none leaving away from it, since the line starts at the mount.
+ *
+ * A neighbour exactly `pad` off, flush with the shot's edge, is not in its way.
  */
 function cornerMargin(pad: number, dx: number, dy: number): number {
     if (!(pad > 0)) return 0;
+    const clear = pad * (1 - FLUSH);
     const r = sqrt(dx * dx + dy * dy);
-    return r <= pad ? PI : asin(pad / r);
+    return r <= clear ? PI / 2 : asin(clear / r);
 }
+
+/** How much of `pad` a neighbour may touch and still count as beside the shot rather than in it. */
+const FLUSH = 1e-9;
 
 /**
  * The traverse a mount has before its own ship is in the way of its barrel.
@@ -966,8 +974,9 @@ export function barrelHalfWidth(gun: GunStats): number {
     return ((gun.barrelCount - 1) / 2) * gun.barrelSpacing + gun.calibre;
 }
 
-/** How far off a mount's centre line its shots may leave, metres. */
+/** How far off a mount's centre line its shots may leave, metres. A lance's pulse fills the gap between its prongs. */
 export function shotSpread(gun: GunStats): number {
+    if (gun.plasmaReach > 0) return (gun.calibre * (1 - 2 * LANCE_PRONG_SHARE)) / 2;
     return ((gun.barrelCount - 1) / 2) * gun.barrelSpacing + gun.calibre / 2;
 }
 
