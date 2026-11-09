@@ -209,16 +209,17 @@ describe("escort and neutrals", () => {
     });
 
     it("keeps outside the inside of its band, where it has one", () => {
-        // A corvette beside a friend of its size, nothing else about: with no
-        // inside edge it sits where keeping clear puts it; with one most of the
-        // way out, further off.
+        // A corvette beside a friend of its size, nothing else about, with a band
+        // far wider than keeping clear holds it off by: with no inside edge it
+        // sits where keeping clear puts it; with one, inside the band.
         function fly(escortInner: number): number {
             const base = escorting(CORVETTE, 400);
             const escort = compileBlueprint({
                 ...base,
-                doctrine: { ...base.doctrine!, approach: { ...base.doctrine!.approach, escortInner } },
+                doctrine: { ...base.doctrine!, approach: { ...base.doctrine!.approach, escortRadii: 40, escort: 5, escortInner } },
             });
-            const consort = compileBlueprint(CORVETTE);
+            // Not escorting back, or it follows.
+            const consort = compileBlueprint(escorting(CORVETTE, 0));
             const battle = makeBattle({ seed: 5 }, (ships, world) => {
                 const covering = ships.spawn(world, { design: escort, x: 0, y: 0, angle: 0, team: 0 });
                 const charge = ships.spawn(world, { design: consort, x: 0, y: 60, team: 0 });
@@ -231,10 +232,9 @@ describe("escort and neutrals", () => {
             return math.length(bodies.x[a]! - bodies.x[b]!, bodies.y[a]! - bodies.y[b]!);
         }
 
-        const band = fly(0.8);
-        const touching = 2 * compileBlueprint(CORVETTE).radius;
-        expect(band).toBeGreaterThan(fly(0) * 1.5);
-        expect(band).toBeGreaterThan(touching);
+        expect(fly(0)).toBeLessThan(300);
+        // The band is 35 m–732 m, its inside edge at 0.8 near 593 m.
+        expect(fly(0.8)).toBeGreaterThan(550);
     });
 
     it("covers no friend with its core shot out", () => {
