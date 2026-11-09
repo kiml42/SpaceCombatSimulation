@@ -157,6 +157,12 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
         hint: "How quickly it corrects its velocity, seconds: smaller asks its engines for more, and turns to burn more readily",
         step: 0.25,
     },
+    {
+        field: "spinResist",
+        label: "resists spin",
+        hint: "How hard it refuses to spin faster, held back even when its push would spin it: at 1, a turn tops out at an eighth of a turn a second. 0 lets it spin up",
+        step: 0.05,
+    },
     { field: "tolerance", label: "slack", hint: "How much closer or further than that is close enough, as a fraction", step: 0.05 },
     {
         field: "bandFade",
@@ -586,6 +592,7 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                 title: "How it gets there",
                 entries: [
                     entry("approach", "responseTime"),
+                    entry("approach", "spinResist"),
                     entry("approach", "approachSpeed"),
                     entry("approach", "accelerate", {
                         absolute: (v, ship) => `≈ ${(v.approach.accelerate * ship.accelFore).toFixed(2)} m/s² ahead`,
