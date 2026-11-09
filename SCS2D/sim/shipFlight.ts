@@ -13,7 +13,7 @@ import { addFlame, addTurret, attackBearing } from "./attack.js";
 import { interceptTime } from "./turrets.js";
 import { edgeFade } from "./doctrine.js";
 import type { SpatialGrid } from "./index.js";
-import { SLIPWAY_CLEAR_TIME } from "./modules.js";
+import { moduleRadius, SLIPWAY_CLEAR_TIME } from "./modules.js";
 import * as shipSupply from "./shipSupply.js";
 import * as shipBreakup from "./shipBreakup.js";
 import * as shipForage from "./shipForage.js";
@@ -1382,7 +1382,9 @@ export function avoid(
         // and a second opinion here is this code arguing with the orders it is
         // meant to be carrying out — a ship told to ram would sheer off at the
         // last moment and call it seamanship.
-        if (t === flying) continue;
+        // But for the carrier it lands on, whose deck it comes down onto between what stands up from it.
+        const deck = landing && t === flying;
+        if (t === flying && !deck) continue;
         // Nor its own fighters: a carrier trusts what flies from its pads to
         // keep clear of it, rather than running from its wing as it comes and goes.
         if (ships.home[t] === i) continue;
@@ -1397,12 +1399,14 @@ export function avoid(
         // Coming in to grip or land, it is among rocks on purpose, and keeps clear of them as of anything.
         const rock = ships.rockFlag[t] === 1 && !hulksOnly && !landing;
         // Landing, nothing riding the hull it lands on: a copy on its carrier's slipway is that hull.
-        if ((ramming || rock || landing) && ob === flyingBody) continue;
+        if ((ramming || rock || landing) && ob === flyingBody && !deck) continue;
         if (ob === under) continue;
 
         // Only the part of each the other can hit: a fighter flies over a hull's deck.
         hitCircle(ships, bodies, i, b, t, OWN_CIRCLE);
         hitCircle(ships, bodies, t, ob, i, THEIR_CIRCLE);
+        // Its deck's superstructure one piece at a time: the nearest miss of all of it.
+        if (deck && !nearestRaised(ships, bodies, t, ob, OWN_CIRCLE, THEIR_CIRCLE)) continue;
         if (!(OWN_CIRCLE.r > 0) || !(THEIR_CIRCLE.r > 0)) continue;
         const touching = OWN_CIRCLE.r + THEIR_CIRCLE.r;
         // Clear by its own size, not the other's, which would keep it a rock's or a carrier's breadth off.
@@ -1410,7 +1414,7 @@ export function avoid(
         // From a neighbour on the rock only by its own size, or it could never grip the face beside it.
         if (neighbour) room = mine;
         // From another coming down on the same deck, only from touching: neighbouring pads are closer than the clearance.
-        if (landing && ships.salvaging[t] === flying && ships.landingPad[t]! >= 0) room = 0;
+        if (landing && ((ships.salvaging[t] === flying && ships.landingPad[t]! >= 0) || deck)) room = 0;
         // Closing straight in on a face chosen clear of both (`wayInClear`), only from touching them.
         if (hulksOnly && ships.gripClosing[i] === 1) room = 0;
         // Its charge no further out than its station, or the two wants fight:
@@ -1524,6 +1528,45 @@ interface HitCircle {
 }
 const OWN_CIRCLE: HitCircle = { x: 0, y: 0, vx: 0, vy: 0, r: 0 };
 const THEIR_CIRCLE: HitCircle = { x: 0, y: 0, vx: 0, vy: 0, r: 0 };
+
+/**
+ * The module of ship `of`, on body `ob`, standing up into the weapons layer
+ * that circle `own` will pass closest to, as a circle into `out`; false for none.
+ */
+function nearestRaised(ships: Ships, bodies: Bodies, of: number, ob: number, own: HitCircle, out: HitCircle): boolean {
+    const design = ships.designs[of]!;
+    const c = cos(bodies.angle[ob]!);
+    const s = sin(bodies.angle[ob]!);
+    const spin = bodies.angularVel[ob]!;
+    let best = Infinity;
+    for (let m = 0; m < design.modules.length; m++) {
+        const module = design.modules[m]!;
+        if (!module.weaponsLayer || ships.damage.spent(ob, m)) continue;
+        const ox = module.x * c - module.y * s;
+        const oy = module.x * s + module.y * c;
+        const x = bodies.x[ob]! + ox;
+        const y = bodies.y[ob]! + oy;
+        const vx = bodies.vx[ob]! - spin * oy;
+        const vy = bodies.vy[ob]! + spin * ox;
+        const r = moduleRadius(module.spec);
+        const dx = x - own.x;
+        const dy = y - own.y;
+        const rvx = vx - own.vx;
+        const rvy = vy - own.vy;
+        const speedSq = rvx * rvx + rvy * rvy;
+        const closest = speedSq > 0 ? max(0, -(dx * rvx + dy * rvy) / speedSq) : 0;
+        const gap = length(dx + rvx * closest, dy + rvy * closest) - r;
+        if (gap < best) {
+            best = gap;
+            out.x = x;
+            out.y = y;
+            out.vx = vx;
+            out.vy = vy;
+            out.r = r;
+        }
+    }
+    return best < Infinity;
+}
 
 /**
  * Where ship `of`, on body `ob`, can be hit by ship `by`, into `out`: round its

@@ -331,35 +331,12 @@ export function landOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
     const px = place.x - (ox * cos(heading) - oy * sin(heading));
     const py = place.y - (ox * sin(heading) + oy * cos(heading));
     const range = length(px - bodies.x[b]!, py - bodies.y[b]!);
-    // Come in by one of the pad's ways in, from where it leaves the hull's
-    // circle, circling round to there first if the hull is in the way.
-    wayIn(ships, bodies, i, b, tb, host, pad, place.x, place.y);
-    const nx = cos(ships.wayAngle);
-    const ny = sin(ships.wayAngle);
-    const rx = bodies.x[b]! - px;
-    const ry = bodies.y[b]! - py;
-    const ahead = rx * nx + ry * ny;
-    // Near only from the side its way in is, and no wider of the pad than it is:
-    // over the hull beyond or beside it, what stands between holds it off.
+    // Straight in to the pad: keeping clear of what stands up from the deck is `avoid`'s.
     const spec = host.modules[pad]!.spec;
-    const turned = ships.wayAngle - place.angle;
-    const across = (abs(cos(turned)) * spec.width + abs(sin(turned)) * spec.length) / 2;
-    const near = range <= PAD_ALIGN_RADII * mine && ahead > -spec.length / 2 && abs(ry * nx - rx * ny) <= across + mine;
-    let lined = ahead > 0 && abs(ry * nx - rx * ny) <= ahead;
-    // Only if nothing in its layer stands between it and the pad: asked from afar as
-    // well as over the hull, so one heading in across it starts round in time.
-    if (lined) {
-        lined = !crossesCarrier(ships, bodies, b, tb, bodies.x[b]!, bodies.y[b]!, -rx, -ry);
-    }
-    let gx = px;
-    let gy = py;
-    let left = range;
-    if (!near && !lined) {
-        const entry = length(ships.entryX - place.x, ships.entryY - place.y);
-        left = aroundHull(ships, bodies, b, tb, ships.entryX, ships.entryY) + entry;
-        gx = ships.wayX;
-        gy = ships.wayY;
-    }
+    const near = range <= PAD_ALIGN_RADII * mine;
+    const gx = px;
+    const gy = py;
+    const left = range;
     const dx = gx - bodies.x[b]!;
     const dy = gy - bodies.y[b]!;
     const gap = length(dx, dy);
