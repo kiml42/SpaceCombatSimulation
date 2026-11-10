@@ -411,18 +411,11 @@ export function landOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
     }
     shipFlight.urge(ships, URGE_REFERENCE, vx, vy, ax, ay);
 
-    // Where it faces is the helm's to choose until it has to line up with the
-    // pad: once it has little left to lose, either way round, whichever is nearer.
-    const settling = near && length(vx - bodies.vx[b]!, vy - bodies.vy[b]!) <= PAD_ARRIVAL_SPEED / 2;
-    if (!settling) {
-        ships.intent = STEER;
-        ships.steerFree = true;
-        return heading;
-    }
-    // One that fits at any heading holds the one it has, which stops it turning: it may not land spinning (`PAD_SPIN`).
-    if (length(box.maxX - box.minX, box.maxY - box.minY) <= min(spec.length, spec.width)) return heading;
-    const along = angleDelta(heading, place.angle);
-    return abs(along) <= PI / 2 ? place.angle : place.angle + PI;
+    // Where it faces is the helm's to choose all the way in, turning only for a change it could not
+    // otherwise make (`steerSlack`): chasing every small one, a fighter that turns on thrusters at its
+    // stern pushes itself off its way in with each turn. The pad's field squares it up (`padField`).
+    ships.intent = STEER;
+    return heading;
 }
 
 /**
