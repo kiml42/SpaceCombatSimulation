@@ -2,7 +2,7 @@
 
 exports[`Rock Landing > Raider,  one way, spins [1, 4, 10] 1`] = `
 {
-  "contacts": 14501,
+  "contacts": 13630,
   "landed": [
     "not by 150 s",
     "not by 150 s",
@@ -11,7 +11,7 @@ exports[`Rock Landing > Raider,  one way, spins [1, 4, 10] 1`] = `
     "not by 150 s",
     "not by 150 s",
     "not by 150 s",
-    "not by 150 s",
+    "131.23 s",
   ],
 }
 `;
@@ -50,47 +50,47 @@ exports[`Rock Landing > Raider, no main [2, 4] 1`] = `
 
 exports[`Rock Landing > Raider, no main [4] 1`] = `
 {
-  "contacts": 23311,
+  "contacts": 17964,
   "landed": [
-    "85.83 s",
+    "48.63 s",
+    "44.73 s",
+    "48.95 s",
     "not by 150 s",
+    "84.47 s",
     "not by 150 s",
+    "86.58 s",
     "not by 150 s",
-    "115.00 s",
-    "not by 150 s",
-    "109.48 s",
-    "72.83 s",
   ],
 }
 `;
 
 exports[`Rock Landing > Raider, one turn far weaker [1, 8] 1`] = `
 {
-  "contacts": 18281,
+  "contacts": 9033,
   "landed": [
+    "61.55 s",
+    "36.48 s",
+    "52.55 s",
+    "58.70 s",
+    "58.67 s",
     "not by 150 s",
-    "not by 150 s",
-    "not by 150 s",
-    "52.03 s",
-    "not by 150 s",
-    "not by 150 s",
-    "not by 150 s",
-    "not by 150 s",
+    "55.75 s",
+    "98.30 s",
   ],
 }
 `;
 
 exports[`Rock Landing > Raider, one turn far weaker [3, 7] 1`] = `
 {
-  "contacts": 6020,
+  "contacts": 6031,
   "landed": [
+    "56.02 s",
+    "45.57 s",
+    "50.20 s",
     "not by 150 s",
-    "not by 150 s",
-    "not by 150 s",
-    "not by 150 s",
-    "not by 150 s",
-    "not by 150 s",
-    "not by 150 s",
+    "57.90 s",
+    "40.55 s",
+    "58.32 s",
     "not by 150 s",
   ],
 }
@@ -130,16 +130,16 @@ exports[`Rock Landing > Raider, pushes turn it [4, 8, 10] 1`] = `
 
 exports[`Rock Landing > Raider, undamaged 1`] = `
 {
-  "contacts": 11031,
+  "contacts": 14586,
   "landed": [
+    "55.13 s",
+    "33.62 s",
+    "27.63 s",
+    "33.00 s",
+    "28.42 s",
     "not by 150 s",
-    "44.77 s",
-    "28.25 s",
-    "44.60 s",
-    "29.22 s",
-    "not by 150 s",
-    "50.23 s",
-    "not by 150 s",
+    "25.58 s",
+    "40.60 s",
   ],
 }
 `;
