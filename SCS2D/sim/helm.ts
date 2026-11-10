@@ -69,6 +69,30 @@ export function oneWayTurn(layout: EngineLayout): number {
     return 0;
 }
 
+/**
+ * Whether a layout can turn `sense` (1 or -1) without pushing across
+ * `bearing`: by an engine pushing along it, or by two pushing across it
+ * opposite ways. One that cannot is pushed off its line by every turn.
+ */
+export function turnsLevel(layout: EngineLayout, bearing: number, sense: number): boolean {
+    const ax = -sin(bearing);
+    const ay = cos(bearing);
+    let left = false;
+    let right = false;
+    for (let t = 0; t < layout.count; t++) {
+        if (!(layout.wt[t]! * sense > 0)) continue;
+        const across = layout.wfx[t]! * ax + layout.wfy[t]! * ay;
+        const full = sqrt(layout.wfx[t]! * layout.wfx[t]! + layout.wfy[t]! * layout.wfy[t]!);
+        if (abs(across) <= LEVEL_SHARE * full) return true;
+        if (across > 0) left = true;
+        else right = true;
+    }
+    return left && right;
+}
+
+/** The share of an engine's push that may be across a ship's bearing for it to count as turning it level. */
+const LEVEL_SHARE = 0.1;
+
 /** Scratch for `spinWay`: which engines it has already counted, grown to the most engines seen. */
 let spent = new Uint8Array(16);
 
@@ -81,6 +105,8 @@ let spent = new Uint8Array(16);
 export function spinWay(layout: EngineLayout, bearing: number): number {
     const way = oneWayTurn(layout);
     if (way !== 0) return way;
+    // Turning either way, but only by pushing itself off its line one way or the other: a slow spin costs it less.
+    if (layout.maxTorque(1) > 0 && (!turnsLevel(layout, bearing, 1) || !turnsLevel(layout, bearing, -1))) return 1;
     const dx = cos(bearing);
     const dy = sin(bearing);
     let level = 0;

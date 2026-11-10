@@ -2,16 +2,16 @@
 
 exports[`Crippled Landing > Carrier, no front [2, 3, 6, 8, 9, 10] 1`] = `
 {
-  "contacts": 56,
+  "contacts": 0,
   "landed": [
-    "83.32 s",
-    "123.58 s",
-    "64.83 s",
-    "128.93 s",
-    "35.18 s",
-    "117.87 s",
-    "96.22 s",
-    "37.20 s",
+    "34.93 s",
+    "38.33 s",
+    "27.45 s",
+    "27.48 s",
+    "27.13 s",
+    "33.92 s",
+    "39.60 s",
+    "29.27 s",
   ],
 }
 `;
@@ -52,14 +52,14 @@ exports[`Crippled Landing > Dinky, no front [2, 3, 6, 8, 9, 10] 1`] = `
 {
   "contacts": 0,
   "landed": [
-    "not by 300 s",
-    "not by 300 s",
-    "not by 300 s",
-    "not by 300 s",
-    "not by 300 s",
-    "not by 300 s",
-    "not by 300 s",
-    "not by 300 s",
+    "25.07 s",
+    "25.37 s",
+    "25.28 s",
+    "25.58 s",
+    "25.47 s",
+    "25.67 s",
+    "25.43 s",
+    "25.57 s",
   ],
 }
 `;
