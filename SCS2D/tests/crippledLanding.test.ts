@@ -22,6 +22,7 @@ const EXPECTED: Record<string, { within: number; turn?: Turn }> = {
     "Raider, turns one way, every push spins it [1, 4, 10]": { within: 210, turn: "one way" },
     "Dinky, turns anticlockwise only [2, 7, 8]": { within: 90, turn: "one way" },
     "Dinky, turns clockwise only [1, 2, 9]": { within: 90, turn: "one way" },
+    "Dinky, nothing ahead of its tank [2, 3, 6, 8, 9, 10]": { within: 210 },
 };
 
 describe("Crippled Landing", () => {
