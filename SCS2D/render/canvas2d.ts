@@ -3403,6 +3403,14 @@ function drawWay(ctx: CanvasRenderingContext2D, ship: ShipView, target: ShipView
         ctx.beginPath();
         ctx.arc(ship.routeX!, ship.routeY!, CORNER_MARK_PX / metresToPx, 0, Math.PI * 2);
         ctx.stroke();
+        // What that corner goes round, as the route saw it.
+        if (ship.routeAroundR !== undefined) {
+            ctx.setLineDash([2 / metresToPx, 4 / metresToPx]);
+            ctx.beginPath();
+            ctx.arc(ship.routeAroundX!, ship.routeAroundY!, ship.routeAroundR, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
     }
     if (via) {
         ctx.fillStyle = ctx.strokeStyle;

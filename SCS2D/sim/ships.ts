@@ -758,6 +758,10 @@ export class Ships {
     readonly routeVia: number[] = [];
     readonly routeDX: number[] = [];
     readonly routeDY: number[] = [];
+    /** The circle the route goes round, as planned: its middle from that ship's body, world frame, and its radius, m. */
+    readonly routeAroundDX: number[] = [];
+    readonly routeAroundDY: number[] = [];
+    readonly routeAroundR: number[] = [];
     readonly routeAt: number[] = [];
     readonly routeGoal: number[] = [];
     /** Whether the pilot made for that corner this step: for the view, which shows only that. */
@@ -1517,6 +1521,9 @@ export class Ships {
         this.routeVia.push(NO_TARGET);
         this.routeDX.push(0);
         this.routeDY.push(0);
+        this.routeAroundDX.push(0);
+        this.routeAroundDY.push(0);
+        this.routeAroundR.push(0);
         this.routeAt.push(-Infinity);
         this.routeGoal.push(NO_TARGET);
         this.routeShown.push(0);

@@ -111,6 +111,10 @@ export interface ShipView {
     /** The corner it is making for on its way round what is in its way (`shipRoute`), world frame; absent for none. */
     routeX?: number;
     routeY?: number;
+    /** The circle that corner goes round, as the route planned it: middle and radius, m. */
+    routeAroundX?: number;
+    routeAroundY?: number;
+    routeAroundR?: number;
     /**
      * The design it is built to, whatever damage has made of `design`: what it is
      * of, for grouping it with others. Absent where it is `design`, as in an editor.
@@ -642,9 +646,16 @@ export function capture(
         if (ships.routeShown[i] === 1 && shipRoute.cornerOf(ships, bodies, i, ROUTE_SPOT)) {
             view.routeX = ROUTE_SPOT.x;
             view.routeY = ROUTE_SPOT.y;
+            const around = bodies.indexOf(ships.bodyIds[ships.routeVia[i]!]!);
+            view.routeAroundX = bodies.x[around]! + ships.routeAroundDX[i]!;
+            view.routeAroundY = bodies.y[around]! + ships.routeAroundDY[i]!;
+            view.routeAroundR = ships.routeAroundR[i]!;
         } else {
             delete view.routeX;
             delete view.routeY;
+            delete view.routeAroundX;
+            delete view.routeAroundY;
+            delete view.routeAroundR;
         }
         view.ship = i;
         view.doctrine = ships.doctrineOf(i);

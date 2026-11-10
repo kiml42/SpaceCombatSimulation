@@ -30,7 +30,7 @@ const BIG_HULL = 2;
 const CORNER_SLACK = 1.15;
 /** Seconds the change of velocity a first leg asks for is worth, as distance at that speed. */
 const DV_SECONDS = 2;
-/** How far out an obstacle with the goal inside its circle reaches, as a share of the way to the goal. */
+/** How far out an obstacle with the ship or its goal inside its circle reaches, as a share of the way to the nearer. */
 const GOAL_ROOM = 0.9;
 const MAX_OBSTACLES = 64;
 const MAX_NODES = 32;
@@ -111,11 +111,11 @@ function plan(ships: Ships, bodies: Bodies, i: number, b: number, gx: number, gy
     const sx = bodies.x[b]!;
     const sy = bodies.y[b]!;
     gather(ships, bodies, i, b, sx, sy, gx, gy, goal, as);
-    // A goal inside an obstacle's clearance, as a pad moored on a rock is, would have every way to it
-    // blocked and be gone round wide: that obstacle reaches only to just short of it, and no nearer its
-    // hull than touching unless the goal is nearer still.
+    // The ship or its goal inside an obstacle's clearance, as one close by a rock or a pad moored on it
+    // is, would have every way blocked and be sent round it wide: that obstacle reaches only to just
+    // short of the nearer, and no nearer its hull than touching unless that one is nearer still.
     for (let k = 0; k < obstacles; k++) {
-        const d = length(gx - ox[k]!, gy - oy[k]!);
+        const d = min(length(gx - ox[k]!, gy - oy[k]!), length(sx - ox[k]!, sy - oy[k]!));
         if (d < or[k]!) or[k] = d > oHull[k]! ? max(oHull[k]!, d * GOAL_ROOM) : d * GOAL_ROOM;
     }
     if (obstacles === 0 || blocking(sx, sy, gx, gy, -1) < 0) return;
@@ -158,6 +158,9 @@ function plan(ships: Ships, bodies: Bodies, i: number, b: number, gx: number, gy
             ships.routeVia[i] = oShip[k]!;
             ships.routeDX[i] = nx[first]! - bodies.x[vb]!;
             ships.routeDY[i] = ny[first]! - bodies.y[vb]!;
+            ships.routeAroundDX[i] = ox[k]! - bodies.x[vb]!;
+            ships.routeAroundDY[i] = oy[k]! - bodies.y[vb]!;
+            ships.routeAroundR[i] = or[k]!;
             return;
         }
         for (let side = -1; side <= 1; side += 2) {
