@@ -46,7 +46,8 @@ export function rockLanding(seed = 20260905, crippling: Crippling = ROCK_CRIPPLI
         const bodies = world.bodies;
         const shape = { radius: ROCK_RADIUS, kernel: true, ore: 0.35, ice: 0.25, corners: 10, rings: 3 };
         const rockDesign = compileBlueprint(asteroidBlueprint("Asteroid", shape, new Rng(20261022)));
-        const rock = ships.spawn(world, { design: rockDesign, rides: well, team: NEUTRAL_TEAM });
+        // Unbreakable, so its Replicators keep hold with no robots to mine it, and nothing the fighters hit chips it.
+        const rock = ships.spawn(world, { design: rockDesign, rides: well, team: NEUTRAL_TEAM, invulnerable: true });
         const rb = bodies.indexOf(ships.body(rock));
 
         // How far out the rock's surface is along `bearing`, from its middle: stepping in until inside one of its modules.
