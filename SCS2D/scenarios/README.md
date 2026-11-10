@@ -80,4 +80,4 @@ them in a second list beside the first, and the address names the one picked (`?
 | Passes | dusk | An invulnerable Dinky strafing a crippled, protected Corvette | Fighter flight and guns, forever |
 | Circling | ice | The same, with a Y-Wing circling | As Passes |
 | Crippled Landing | gold | 8 carriers, each with a fighter low on fuel and damaged as the variant says, coming in from its own eighth of the way round | Landing with thrusters or a main shot away; `tests/crippledLanding.test.ts` runs every variant |
-| Rock Landing | dusk | 4 Replicators moored by their claws round one asteroid, under its pull, and a Raider low on fuel for each of their 8 pads, from a circular orbit 700 m out, damaged as the variant says | Landing on carriers anchored to a rock, against its pull |
+| Rock Landing | dusk | 4 Replicators moored by their claws round one unbreakable asteroid, under its pull, building nothing and with no robots, and a Raider low on fuel for each of their 8 pads, from a circular orbit 700 m out, damaged as the variant says | Landing on carriers anchored to a rock, against its pull |
