@@ -44,18 +44,18 @@ const GOLDEN: Record<ScenarioName, string> = {
     binary: "4a82eaa1",
     // ships=7 inFlight=0 p.fired=126 p.hits=469 b.fired=0 b.hits=0 contacts=135 severed=8 culled=0 scrap=70.7t · 74.0 µs/step
     kernels: "2bae7741",
-    // ships=15 inFlight=25 p.fired=156 p.hits=929 b.fired=0 b.hits=0 contacts=479 severed=3 culled=0 scrap=53.1t · 112.9 µs/step
-    asteroidField: "b6a8713f",
+    // ships=12 inFlight=21 p.fired=109 p.hits=370 b.fired=0 b.hits=0 contacts=120 severed=1 culled=0 scrap=22.7t · 106.3 µs/step
+    asteroidField: "5956494a",
     // ships=7 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=2 severed=0 culled=0 scrap=-25.1t · 48.7 µs/step
     mining: "eb814177",
-    // ships=15 inFlight=0 p.fired=347 p.hits=1014 b.fired=0 b.hits=0 contacts=1307 severed=2 culled=1 scrap=118.7t · 1975.7 µs/step
-    rivalMines: "106ae760",
+    // ships=14 inFlight=0 p.fired=387 p.hits=1157 b.fired=0 b.hits=0 contacts=725 severed=1 culled=0 scrap=94.1t · 1900.5 µs/step
+    rivalMines: "8de726e7",
     // ships=22 inFlight=75 p.fired=170 p.hits=148 b.fired=0 b.hits=0 contacts=0 severed=1 culled=1 scrap=5.8t · 606.3 µs/step
     swarm: "22a94808",
-    // ships=302 inFlight=138 p.fired=354 p.hits=404 b.fired=0 b.hits=0 contacts=147 severed=11 culled=11 scrap=38.7t · 18103.4 µs/step
-    superSwarm: "eb03d595",
-    // ships=13 inFlight=0 p.fired=0 p.hits=0 b.fired=6 b.hits=399 contacts=174 severed=1 culled=0 scrap=20.8t · 119.6 µs/step
-    torpedoes: "1765f0d6",
+    // ships=302 inFlight=84 p.fired=316 p.hits=407 b.fired=0 b.hits=0 contacts=147 severed=11 culled=11 scrap=38.1t · 18469.1 µs/step
+    superSwarm: "ac9ecf0a",
+    // ships=11 inFlight=0 p.fired=0 p.hits=0 b.fired=7 b.hits=401 contacts=57 severed=0 culled=0 scrap=18.9t · 109.7 µs/step
+    torpedoes: "44aceb15",
     // ships=2 inFlight=0 p.fired=45 p.hits=228 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=3.2t · 94.9 µs/step
     ordering: "dac00a46",
     // ships=10 inFlight=0 p.fired=114 p.hits=356 b.fired=11 b.hits=689 contacts=0 severed=0 culled=0 scrap=92.7t · 295.3 µs/step
@@ -82,18 +82,18 @@ const GOLDEN: Record<ScenarioName, string> = {
     catamaranRefits: "2b1a25f3",
     // ships=5 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=27 severed=2 culled=0 scrap=107.7t · 44.1 µs/step
     scavenge: "483c4b24",
-    // ships=3 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=0.2t · 57.7 µs/step
-    padRebuild: "431580f6",
-    // ships=5 inFlight=0 p.fired=21 p.hits=84 b.fired=0 b.hits=0 contacts=34 severed=0 culled=0 scrap=1.6t · 86.3 µs/step
-    factory: "150c4b3f",
+    // ships=3 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=0.2t · 52.7 µs/step
+    padRebuild: "69f77065",
+    // ships=5 inFlight=0 p.fired=21 p.hits=84 b.fired=0 b.hits=0 contacts=34 severed=0 culled=0 scrap=1.6t · 81.2 µs/step
+    factory: "62c59a83",
     // ships=3 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=0 severed=1 culled=0 scrap=32.1t · 128.1 µs/step
     shipyard: "ed2487e5",
-    // ships=5 inFlight=0 p.fired=19 p.hits=68 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=0.4t · 120.7 µs/step
-    rearm: "dc2728d2",
+    // ships=5 inFlight=0 p.fired=19 p.hits=67 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=0.4t · 98.6 µs/step
+    rearm: "796cf3b2",
     // ships=3 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=12 severed=2 culled=0 scrap=0.2t · 90.0 µs/step
     tanker: "69ab665b",
-    // ships=20 inFlight=0 p.fired=16 p.hits=30 b.fired=239 b.hits=8657 contacts=17 severed=1 culled=0 scrap=15.8t · 767.1 µs/step
-    beamCarrier: "16bd8deb",
+    // ships=20 inFlight=0 p.fired=6 p.hits=8 b.fired=243 b.hits=8686 contacts=93 severed=4 culled=2 scrap=14.3t · 679.9 µs/step
+    beamCarrier: "9e7816f1",
     // ships=2 inFlight=0 p.fired=54 p.hits=181 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=9.3t · 40.9 µs/step
     passes: "e721914a",
     // ships=2 inFlight=0 p.fired=2 p.hits=8 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=9.3t · 60.6 µs/step

@@ -30,6 +30,8 @@ const BIG_HULL = 2;
 const CORNER_SLACK = 1.15;
 /** Seconds the change of velocity a first leg asks for is worth, as distance at that speed. */
 const DV_SECONDS = 2;
+/** How far out an obstacle with the goal inside its circle reaches, as a share of the way to the goal. */
+const GOAL_ROOM = 0.9;
 const MAX_OBSTACLES = 64;
 const MAX_NODES = 32;
 
@@ -102,6 +104,12 @@ function plan(ships: Ships, bodies: Bodies, i: number, b: number, gx: number, gy
     const sx = bodies.x[b]!;
     const sy = bodies.y[b]!;
     gather(ships, bodies, i, b, sx, sy, gx, gy, goal, as);
+    // A goal inside an obstacle's circle, as a pad moored on a rock is, would have every way to it blocked
+    // and be gone round wide: that obstacle reaches only to just short of it.
+    for (let k = 0; k < obstacles; k++) {
+        const d = length(gx - ox[k]!, gy - oy[k]!);
+        if (d < or[k]!) or[k] = d * GOAL_ROOM;
+    }
     if (obstacles === 0 || blocking(sx, sy, gx, gy, -1) < 0) return;
 
     const approach = ships.doctrines[i]!.approach;
