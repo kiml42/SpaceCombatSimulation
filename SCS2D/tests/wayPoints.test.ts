@@ -62,7 +62,7 @@ describe("where a ship is flying to", () => {
         let cornered = false;
         const parkedWithCorner = watch(battle, 60 * 70, (ship) => {
             cornered ||= ship.routeX !== undefined;
-            return ship.routeX !== undefined && battle.ships.parkedCarrier(ship.ship) >= 0;
+            return ship.routeX !== undefined && ship.ship !== undefined && battle.ships.parkedCarrier(ship.ship) >= 0;
         });
         expect(cornered).toBe(true);
         expect(parkedWithCorner).toBe(false);
