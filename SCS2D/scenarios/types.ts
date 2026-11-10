@@ -10,6 +10,7 @@ import type {
     BeamHits,
     Impacts,
     Collisions,
+    ContactGrades,
     Credit,
     Livery,
 } from "../sim/index.js";
@@ -64,8 +65,10 @@ export interface Battle {
     totalProjectileHits: number;
     totalBeamsFired: number;
     totalBeamHits: number;
-    /** Cumulative contacts, so a scenario that stops colliding is detectable. */
+    /** Cumulative contacts, every step two hulls touch, so a scenario that stops colliding is detectable. */
     totalContacts: number;
+    /** The same contacts by encounter, as bumps and crashes: what to judge piloting by. */
+    readonly contactGrades: ContactGrades;
     /** Cumulative pieces broken off hulls, which is how severing shows up. */
     totalSevered: number;
     /** Pairs of bodies a slow ragged contact has hooked into one. */

@@ -6,7 +6,7 @@ import { landings } from "./landingRecord.js";
 /**
  * The Crippled Landing scene, every variant as the battle page shows it: when each of its fighters lands on
  * its own carrier's pad, from 0 (east of its carrier) round anticlockwise, or that it has not by `LIMIT`,
- * and how many contacts there were. Recorded in `__snapshots__` as the goldens are, describing what
+ * and how many bumps and crashes there were. Recorded in `__snapshots__` as the goldens are, describing what
  * happens rather than judging it, so a change either way shows. After a deliberate change, re-record with
  * `pnpm exec vitest run tests/crippledLanding.test.ts -u` and read the diff. Open the scene to see one go.
  */

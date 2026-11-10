@@ -3,6 +3,8 @@ import {
     BEAM_FLASH_LIFETIME,
     BURST_FLASH_LIFETIME,
     BURST_REFERENCE_ENERGY,
+    COLLISION_FLASH_FLOOR,
+    collisionFlashRadius,
     burstLifetime,
     flashPosition,
     FLASH_REFERENCE_ENERGY,
@@ -49,6 +51,28 @@ describe("how a flash is sized", () => {
     it("is clamped at both ends", () => {
         expect(flashRadius(1)).toBeGreaterThan(0);
         expect(flashRadius(1e15)).toBeLessThan(100);
+    });
+});
+
+describe("how a collision's flash is sized", () => {
+    it("is nothing at or below the floor, where hulls only touch, and throws nothing", () => {
+        expect(collisionFlashRadius(COLLISION_FLASH_FLOOR)).toBe(0);
+        expect(collisionFlashRadius(1)).toBe(0);
+        const flashes = new Flashes();
+        flashes.add(0, 0, COLLISION_FLASH_FLOOR, IMPACT_COLLISION);
+        expect(flashes.count).toBe(0);
+    });
+
+    it("is a speck just above the floor, and grows with the energy", () => {
+        const speck = collisionFlashRadius(COLLISION_FLASH_FLOOR * 1.01);
+        expect(speck).toBeGreaterThan(0);
+        expect(speck).toBeLessThan(0.01);
+        let was = speck;
+        for (const energy of [1e4, 1e5, 1e6, 1e7]) {
+            expect(collisionFlashRadius(energy)).toBeGreaterThan(was);
+            was = collisionFlashRadius(energy);
+        }
+        expect(collisionFlashRadius(1e20)).toBeLessThan(100);
     });
 });
 
