@@ -1815,10 +1815,10 @@ export class Ships {
         return { kind: this.defendingOf(i) !== NO_TARGET ? "defend" : "attack", target };
     }
 
-    /** What this ship is staying with as an escort, as `cover` flies it; `NO_TARGET` for nothing, or for a ship out of control. */
+    /** What this ship is staying with as an escort, as `cover` flies it; `NO_TARGET` for nothing, for a ship out of control, or for one busy with something else. */
     coveringOf(i: number): number {
         const bodies = this.bodyStore;
-        if (bodies === null || this.alive[i] !== 1 || !this.hasControl(i)) return NO_TARGET;
+        if (bodies === null || this.alive[i] !== 1 || !this.hasControl(i) || !shipOrders.escorting(this, i)) return NO_TARGET;
         return shipDecide.liveConsort(this, bodies, i, bodies.indexOf(this.bodyIds[i]!));
     }
 
