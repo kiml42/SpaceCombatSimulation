@@ -37,43 +37,77 @@ const HELD_LOWEST = 0.9;
  * `padHeld` and `lowered` for the pilot and the view.
  */
 export function holdOnPads(ships: Ships, bodies: Bodies, dt: number): void {
+    // Which fighters are over the pads they are landing on, and how near its middle.
+    const near = ships.padReach;
+    for (let i = 0; i < ships.alive.length; i++) near[i] = ships.alive[i] === 0 || ships.isParked(i) ? Infinity : over(ships, bodies, i);
     for (let i = 0; i < ships.alive.length; i++) {
         const was = ships.lowered[i]!;
+        const held = ships.padHeld[i] === 1;
         ships.padHeld[i] = 0;
         if (ships.alive[i] === 0) continue;
         if (ships.isParked(i)) {
             ships.lowered[i] = 1;
             continue;
         }
-        if (hold(ships, bodies, i, dt)) {
+        if (near[i] !== Infinity && first(ships, i, held) && hold(ships, bodies, i, dt)) {
             ships.padHeld[i] = 1;
             ships.lowered[i] = min(HELD_LOWEST, was + dt / LOWER_TIME);
         } else ships.lowered[i] = max(0, was - dt / RISE_TIME);
     }
 }
 
-/** Fighter `i` held over its pad this step, if it is over the one it is landing on and the carrier has the charge to; whether it was. */
-function hold(ships: Ships, bodies: Bodies, i: number, dt: number): boolean {
+/**
+ * Whether fighter `i` is the one its pad holds, of all over it: the one it
+ * already held, else the nearest its middle, else the first. A pad holds one
+ * at a time, or it would pull two making for it into each other.
+ */
+function first(ships: Ships, i: number, held: boolean): boolean {
+    const near = ships.padReach;
+    const c = ships.salvaging[i]!;
+    const pad = ships.landingPad[i]!;
+    for (let j = 0; j < ships.alive.length; j++) {
+        if (j === i || near[j] === Infinity || ships.salvaging[j] !== c || ships.landingPad[j] !== pad) continue;
+        const theirs = ships.padHeld[j] === 1;
+        if (theirs && !held) return false;
+        if (theirs === held && (near[j]! < near[i]! || (near[j] === near[i] && j < i))) return false;
+    }
+    return true;
+}
+
+/** How far fighter `i` is from the middle of the pad it is landing on, if within the pad's reach and it may be held there, or `Infinity`. */
+function over(ships: Ships, bodies: Bodies, i: number): number {
     const pad = ships.landingPad[i]!;
     const c = ships.salvaging[i]!;
     const design = ships.designs[i]!;
-    if (pad < 0 || c === NO_TARGET || ships.alive[c] === 0 || ships.committed[i] === 1 || !design.fighter) return false;
+    if (pad < 0 || c === NO_TARGET || ships.alive[c] === 0 || ships.committed[i] === 1 || !design.fighter) return Infinity;
     const b = bodies.indexOf(ships.bodyIds[i]!);
     const cb = bodies.indexOf(ships.bodyIds[c]!);
-    if (b < 0 || cb < 0 || b === cb || !padFree(ships, bodies, c, pad)) return false;
+    if (b < 0 || cb < 0 || b === cb || !padFree(ships, bodies, c, pad)) return Infinity;
     const host = ships.designs[c]!;
     const module = host.modules[pad];
-    if (module === undefined) return false;
-    const spec = module.spec;
+    if (module === undefined) return Infinity;
     const place = modulePlace(bodies, cb, host, pad);
-
-    // Over the pad, or within reach of its edge, in the pad's own frame.
     const pc = cos(place.angle);
     const ps = sin(place.angle);
     const rx = bodies.x[b]! - place.x;
     const ry = bodies.y[b]! - place.y;
     const reach = FIELD_REACH_RADII * bodies.radius[b]!;
-    if (abs(rx * pc + ry * ps) > spec.length / 2 + reach || abs(-rx * ps + ry * pc) > spec.width / 2 + reach) return false;
+    const along = rx * pc + ry * ps;
+    const across = -rx * ps + ry * pc;
+    if (abs(along) > module.spec.length / 2 + reach || abs(across) > module.spec.width / 2 + reach) return Infinity;
+    return length(rx, ry);
+}
+
+/** Fighter `i`, over its pad (`over`), held there this step, if it is over the one it is landing on and the carrier has the charge to; whether it was. */
+function hold(ships: Ships, bodies: Bodies, i: number, dt: number): boolean {
+    const pad = ships.landingPad[i]!;
+    const c = ships.salvaging[i]!;
+    const design = ships.designs[i]!;
+    const b = bodies.indexOf(ships.bodyIds[i]!);
+    const cb = bodies.indexOf(ships.bodyIds[c]!);
+    const host = ships.designs[c]!;
+    const spec = host.modules[pad]!.spec;
+    const place = modulePlace(bodies, cb, host, pad);
 
     // Squared up whichever way round it fits that is nearest how it lies.
     const box = footprintOf(design);
