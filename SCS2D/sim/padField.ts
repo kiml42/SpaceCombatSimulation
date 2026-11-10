@@ -5,6 +5,7 @@ import { abs, angleDelta, clamp, cos, length, max, min, PI, sin } from "./math.j
 import { Claim, Resource } from "./supply.js";
 import { modulePlace, padFree } from "./shipDocking.js";
 import * as shipSupply from "./shipSupply.js";
+import * as shipFlight from "./shipFlight.js";
 import { NO_TARGET, type Ships } from "./ships.js";
 
 /**
@@ -149,10 +150,11 @@ function hold(ships: Ships, bodies: Bodies, i: number, dt: number): boolean {
     const gy = place.y - (ox * sin(heading) + oy * cos(heading));
     settled = length(gx - bodies.x[b]!, gy - bodies.y[b]!) <= SETTLE_RADII * bodies.radius[b]! && off <= SETTLE_ANGLE;
 
-    // A critically damped spring to there, moving with the pad, holding it up against a rock the carrier is anchored to.
+    // A critically damped spring to there, moving and speeding up with the pad, holding it up against a rock the carrier is anchored to.
+    shipFlight.dockingAccel(ships, i, place.vx, place.vy, dt);
     const k2 = FIELD_RATE * FIELD_RATE;
-    let ax = k2 * (gx - bodies.x[b]!) + 2 * FIELD_RATE * (place.vx - bodies.vx[b]!);
-    let ay = k2 * (gy - bodies.y[b]!) + 2 * FIELD_RATE * (place.vy - bodies.vy[b]!);
+    let ax = k2 * (gx - bodies.x[b]!) + 2 * FIELD_RATE * (place.vx - bodies.vx[b]!) + ships.dockAx[i]!;
+    let ay = k2 * (gy - bodies.y[b]!) + 2 * FIELD_RATE * (place.vy - bodies.vy[b]!) + ships.dockAy[i]!;
     const root = ships.carrierOf(c);
     const well = ships.rides[root >= 0 ? root : c];
     if (well !== undefined) {

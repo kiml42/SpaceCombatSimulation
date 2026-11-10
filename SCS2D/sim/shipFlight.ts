@@ -785,9 +785,11 @@ export function urge(ships: Ships, weight: number, vx: number, vy: number, ax = 
 /**
  * How ship `i`, docking, sees the point it is docking with accelerating, from
  * that point's velocity now and when it last looked, into `dockAx`, `dockAy`.
- * A look that is not the step after the last starts afresh.
+ * A look that is not the step after the last starts afresh; a second in the same step changes nothing.
  */
 export function dockingAccel(ships: Ships, i: number, vx: number, vy: number, dt: number): void {
+    // Seen once a step, whoever asks: the pilot coming in and the pad's field holding it both do.
+    if (ships.dockSeenAt[i] === ships.now) return;
     if (ships.dockSeenAt[i] === ships.now - 1 && dt > 0) {
         const settle = min(1, dt / DOCK_ACCEL_SETTLE);
         ships.dockAx[i] = ships.dockAx[i]! + ((vx - ships.dockSeenVx[i]!) / dt - ships.dockAx[i]!) * settle;
