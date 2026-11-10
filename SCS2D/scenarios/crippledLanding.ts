@@ -30,16 +30,21 @@ const DINKY_BEAM = BEAM_CARRIER.hangar!["Dinky Beam"]!;
 
 /** `carrier` setting out with nothing on its pads and building nothing for them, so every pad is free to land on. */
 export function emptyPads(carrier: Blueprint): Blueprint {
-    const empty = <T>(modules: readonly T[]): T[] =>
-        modules.map((m) => (typeof m === "object" && m !== null && "kind" in m && m.kind === "pad" ? { ...m, docked: false, keep: 0 } : m));
+    return editModules(carrier, (m) => (m.kind === "pad" ? { ...m, docked: false, keep: 0 } : m));
+}
+
+/** `blueprint` with `edit` applied to each module it lays down, its assemblies' included; a placement of an assembly is left alone. */
+export function editModules(blueprint: Blueprint, edit: (module: { kind: string } & Record<string, unknown>) => object): Blueprint {
+    const each = <T>(modules: readonly T[]): T[] =>
+        modules.map((m) => (typeof m === "object" && m !== null && "kind" in m ? (edit(m as { kind: string }) as T) : m));
     return {
-        ...carrier,
-        modules: empty(carrier.modules),
-        ...(carrier.assemblies === undefined
+        ...blueprint,
+        modules: each(blueprint.modules),
+        ...(blueprint.assemblies === undefined
             ? {}
             : {
                   assemblies: Object.fromEntries(
-                      Object.entries(carrier.assemblies).map(([k, a]) => [k, { ...a, modules: empty(a.modules) }]),
+                      Object.entries(blueprint.assemblies).map(([k, a]) => [k, { ...a, modules: each(a.modules) }]),
                   ),
               }),
     };

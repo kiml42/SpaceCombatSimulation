@@ -6,7 +6,7 @@ import { Rng } from "../sim/rng.js";
 import type { Battle } from "./types.js";
 import { makeBattle } from "./battle.js";
 import { REPLICATOR } from "./blueprints.js";
-import { CRIPPLINGS, cripple, crippledDesign, emptyPads, type Crippling } from "./crippledLanding.js";
+import { CRIPPLINGS, cripple, crippledDesign, editModules, emptyPads, type Crippling } from "./crippledLanding.js";
 
 /**
  * Fighters coming home to carriers moored round one asteroid, under its pull:
@@ -22,8 +22,15 @@ const SURFACE_GRAVITY = 0.5;
 const OUTPOSTS = 4;
 /** How far out each fighter starts, on a circular orbit, metres. */
 const START = 700;
-
-const OUTPOST: Blueprint = emptyPads(REPLICATOR);
+/**
+ * A Replicator doing nothing but take fighters in: its pads empty and building
+ * nothing, its slipway building nothing, and its robot bays plain structure of
+ * the same size, so no robots mine the rock or tend the hull. All three cost
+ * time every step and change the scene as it goes, and none bears on landing.
+ */
+const OUTPOST: Blueprint = editModules(emptyPads(REPLICATOR), ({ robotsPerBerth: _, ...m }) =>
+    m.kind === "slipway" ? { ...m, keep: 0 } : m.kind === "robotBay" ? { ...m, kind: "structure" } : m,
+);
 
 /** The Raider cripplings, and one undamaged to compare them with: the fighter a Replicator builds. */
 export const ROCK_CRIPPLINGS: readonly Crippling[] = [
