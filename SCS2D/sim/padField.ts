@@ -44,6 +44,7 @@ export function holdOnPads(ships: Ships, bodies: Bodies, dt: number): void {
         const was = ships.lowered[i]!;
         const held = ships.padHeld[i] === 1;
         ships.padHeld[i] = 0;
+        ships.padPush[i] = 0;
         if (ships.alive[i] === 0) continue;
         if (ships.isParked(i)) {
             ships.lowered[i] = 1;
@@ -169,6 +170,8 @@ function hold(ships: Ships, bodies: Bodies, i: number, dt: number): boolean {
     fx *= share;
     fy *= share;
     const turn = torque * share;
+    // How hard it is working, for the pad's lights.
+    if (most > 0) ships.padPush[i] = min(1, max(length(fx, fy) / most, abs(turn) / (most * lever)));
 
     // On the fighter, and back on whatever holds the carrier still: the carrier, or the rock it is moored to.
     const hb = holdingBody(ships, bodies, c, cb);

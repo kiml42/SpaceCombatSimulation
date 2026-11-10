@@ -978,7 +978,8 @@ function drawHull(
             ctx.restore();
         }
         if (spec.kind === "pad") {
-            // Its landing square is drawn with its fill (`fillModule`).
+            // Its landing square is drawn with its fill (`fillModule`); its lights, lit by its field, here.
+            drawPadLights(ctx, spec, working ? (ship.padField?.[i] ?? 0) : 0);
         } else if (
             spec.kind !== "engine" &&
             !isHullMount(spec.kind) &&
@@ -2453,6 +2454,48 @@ function drawCoreLight(ctx: CanvasRenderingContext2D, design: ShipDesign, i: num
     ctx.beginPath();
     ctx.arc(-along / 2 + inset + (disc > 0 ? disc + inset : 0) + r, middle, r, 0, TAU);
     ctx.fill();
+    ctx.restore();
+}
+
+/** A pad's lights, across, as a share of its narrower side; and how far their glow reaches, in their own radii. */
+const PAD_LIGHT = 0.07;
+const PAD_LIGHT_GLOW = 2.2;
+/** How bright a lit pad light is at the least, before how hard its field is working adds the rest. */
+const PAD_LIGHT_LEAST = 0.4;
+
+/**
+ * A pad's four lights, one inside each corner of its landing square: dark,
+ * or green while its field is holding a fighter, brighter the harder it is
+ * working (`field`, 0 to 1), the green a gun's ready light and a core's are.
+ */
+function drawPadLights(ctx: CanvasRenderingContext2D, spec: ModuleSpec, field: number): void {
+    const mark = padMark(spec);
+    const r = (min(spec.length, spec.width) * PAD_LIGHT) / 2;
+    const left = mark.x + mark.line / 2 + r * 1.5;
+    const right = mark.x + mark.width - mark.line / 2 - r * 1.5;
+    const top = mark.y + mark.line / 2 + r * 1.5;
+    const bottom = mark.y + mark.height - mark.line / 2 - r * 1.5;
+    ctx.save();
+    for (let k = 0; k < 4; k++) {
+        const x = k % 2 === 0 ? left : right;
+        const y = k < 2 ? top : bottom;
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = FUEL_TRACK;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, TAU);
+        ctx.fill();
+        if (!(field > 0)) continue;
+        const bright = PAD_LIGHT_LEAST + (1 - PAD_LIGHT_LEAST) * min(1, field);
+        ctx.fillStyle = LOAD_READY;
+        ctx.globalAlpha = 0.3 * bright;
+        ctx.beginPath();
+        ctx.arc(x, y, r * PAD_LIGHT_GLOW, 0, TAU);
+        ctx.fill();
+        ctx.globalAlpha = bright;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, TAU);
+        ctx.fill();
+    }
     ctx.restore();
 }
 

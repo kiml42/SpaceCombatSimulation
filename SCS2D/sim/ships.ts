@@ -736,6 +736,8 @@ export class Ships {
     readonly padHeld: number[] = [];
     /** How far each fighter has been lowered towards a pad, 0 flying to 1 landed: for the view, whose shadow it draws in. */
     readonly lowered: number[] = [];
+    /** How hard the field holding each fighter is pushing or turning it, as a share of the most its pad can, 0 to 1: for the view, whose pad's lights it brightens. */
+    readonly padPush: number[] = [];
     /** Scratch for `padField`: how far each fighter is from the middle of the pad it is over and landing on, or `Infinity`. */
     readonly padReach: number[] = [];
     /** What each ship's heaviest dodge this step is from, or -1; and how far off it wants that, centre to centre, m. */
@@ -1501,6 +1503,7 @@ export class Ships {
         this.padHeld.push(0);
         this.lowered.push(0);
         this.padReach.push(Infinity);
+        this.padPush.push(0);
         this.dodgingFrom.push(-1);
         this.dodgingRoom.push(0);
         this.dodgingTouch.push(0);

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { compileBlueprint } from "../sim/index.js";
+import { capture, Snapshot } from "../sim/snapshot.js";
 import { makeBattle } from "../scenarios/battle.js";
 import { DINKY } from "../scenarios/blueprints.js";
 import { padCarrier } from "../scenarios/crippledLanding.js";
@@ -72,5 +73,23 @@ describe("a pad's field", () => {
         for (let t = 0; t < 120; t++) run.step();
         expect(run.ships.padHeld[run.f]).toBe(1);
         expect(drawn).toBeGreaterThan(0);
+    });
+
+    it("shows on its carrier's view, for the pad's lights, while it holds a fighter", () => {
+        const run = overThePad(3, 1.5);
+        const pad = run.ships.designs[run.c]!.modules.findIndex((m) => m.spec.kind === "pad");
+        const view = new Snapshot();
+        let lit = 0;
+        for (let t = 0; t < 120; t++) {
+            run.step();
+            capture(view, run.world, run.ships, run.projectiles, run.beams);
+            const carrier = view.ships.slice(0, view.shipCount).find((s) => s.ship === run.c)!;
+            expect(carrier.padField).toBeDefined();
+            if (run.ships.padHeld[run.f] === 1) {
+                expect(carrier.padField![pad]).toBeGreaterThan(0);
+                lit++;
+            } else expect(carrier.padField![pad]).toBe(0);
+        }
+        expect(lit).toBeGreaterThan(0);
     });
 });

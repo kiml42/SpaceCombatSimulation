@@ -239,6 +239,11 @@ export interface ShipView {
     /** How full each module is of charge, 0 to 1, and 1 for one that holds none. */
     charge?: number[];
     /**
+     * How hard each pad's field is working on the fighter it holds, 0 to 1 of
+     * the most it can, and 0 for any other module; absent on a ship with no pads.
+     */
+    padField?: number[];
+    /**
      * Holes in what holds fuel, body frame: where each is, the way the fuel
      * leaves, how wide the hole is, and how fast it is going out, kg/s. Kept
      * after a hole closes while its scratches show (`LEAK_SCRATCH_FADE`). On the
@@ -771,6 +776,13 @@ export function capture(
             const full = design.modules[m]!.stats.metal;
             metal[m] = full > 0 ? ships.metal.held(b, m) / full : 1;
         }
+        let pads = false;
+        for (let m = 0; m < design.modules.length && !pads; m++) pads = design.modules[m]!.spec.kind === "pad";
+        if (pads) {
+            const field = (view.padField ??= []);
+            field.length = design.modules.length;
+            field.fill(0);
+        } else delete view.padField;
         const charge = (view.charge ??= []);
         charge.length = design.modules.length;
         for (let m = 0; m < design.modules.length; m++) {
@@ -838,6 +850,18 @@ export function capture(
         }
     }
     out.shipCount = n;
+    // Each pad's field, from the fighter it holds, onto its carrier's view.
+    for (let k = 0; k < n; k++) {
+        const fighter = out.ships[k]!;
+        const f = fighter.ship;
+        if (f === undefined || ships.padHeld[f] !== 1) continue;
+        const cb = bodies.indexOf(ships.body(ships.salvaging[f]!));
+        for (let v = 0; v < n; v++) {
+            const carrier = out.ships[v]!;
+            if (carrier.body !== cb || carrier.ship !== ships.salvaging[f] || carrier.padField === undefined) continue;
+            carrier.padField[ships.landingPad[f]!] = ships.padPush[f]!;
+        }
+    }
 
     // Unless every one of them is wreckage, in which case the wreckage is the
     // battle and framing nothing would leave the camera with infinite bounds.
