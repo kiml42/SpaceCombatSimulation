@@ -29,6 +29,7 @@ import { circling, passes } from "./passes.js";
 import { rearm } from "./rearm.js";
 import { tanker } from "./tanker.js";
 import { CRIPPLINGS, crippledLanding } from "./crippledLanding.js";
+import { ROCK_CRIPPLINGS, rockLanding } from "./rockLanding.js";
 
 /** The seed every scene is built from, so a scene looks the same each time it is opened. */
 export const SCENE_SEED = 20260905;
@@ -82,5 +83,10 @@ export const SCENES: readonly Scene[] = [
         name: "Crippled Landing",
         variants: CRIPPLINGS.map((crippling) => crippling.name),
         create: (variant = 0) => lit(crippledLanding(SCENE_SEED, CRIPPLINGS[variant]), LIGHTS.gold),
+    },
+    {
+        name: "Rock Landing",
+        variants: ROCK_CRIPPLINGS.map((crippling) => crippling.name),
+        create: (variant = 0) => lit(rockLanding(SCENE_SEED, ROCK_CRIPPLINGS[variant]), LIGHTS.daylight),
     },
 ];

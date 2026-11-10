@@ -72,6 +72,8 @@ export interface AsteroidShape {
     /** How many corners round it and rings of rock deep, drawn from `ASTEROID_CORNERS` and its kind's rings when absent. */
     readonly corners?: number;
     readonly rings?: number;
+    /** False for an outer ring with no wedges missing; ragged, as `RAGGED` says, when absent. */
+    readonly ragged?: boolean;
 }
 
 /** How many corners round an asteroid, and how many rings of rock deep. */
@@ -163,7 +165,7 @@ export function asteroidBlueprint(name: string, shape: AsteroidShape, rng: Rng):
     }
     for (let r = 0; r < rings; r++) {
         for (let k = 0; k < corners; k++) {
-            if (r === rings - 1 && rings > 1 && rng.chance(RAGGED)) continue;
+            if (r === rings - 1 && rings > 1 && shape.ragged !== false && rng.chance(RAGGED)) continue;
             const vertices = [...point(r, k), ...point(r + 1, k), ...point(r + 1, k + 1), ...point(r, k + 1)];
             // The outermost ring is thin rubble, low enough to fly over.
             modules.push(...wedges(vertices, ((k + 0.5) * TAU) / corners, r < rings - 1));
