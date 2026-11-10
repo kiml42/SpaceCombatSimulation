@@ -55,3 +55,9 @@ export const FIGHTER_SHADOW_M = 2;
  * and lifts off.
  */
 export const LANDED_SHADOW_M = 0.75;
+
+/** How high a fighter's shadow is cast from: landed on a pad, flying, or lowered towards one by its field (`lowered`, 0 to 1). */
+export function fighterHeight(riding: boolean | undefined, lowered: number | undefined): number {
+    if (riding === true) return LANDED_SHADOW_M;
+    return FIGHTER_SHADOW_M + (LANDED_SHADOW_M - FIGHTER_SHADOW_M) * (lowered ?? 0);
+}

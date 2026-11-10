@@ -21,7 +21,7 @@ import type { Camera } from "./camera.js";
 import {
     BARREL_SHADOW_M,
     DEFAULT_LIGHT,
-    FIGHTER_SHADOW_M,
+    fighterHeight,
     KERNEL_RISE,
     LANDED_SHADOW_M,
     rockHeight,
@@ -223,7 +223,7 @@ export class HullLayer {
                 const outline = outlineFor(m.spec, mounts);
                 if (isFighterModule(design, i)) {
                     // A fighter of its own is flying, unless parked on a pad; one that is part of its carrier is on one.
-                    const height = design.fighter && ship.riding !== true ? FIGHTER_SHADOW_M : LANDED_SHADOW_M;
+                    const height = design.fighter ? fighterHeight(ship.riding, ship.lowered) : LANDED_SHADOW_M;
                     place(this.fighterShadows.next(outline), x + awayX * height, y + awayY * height, angle);
                     continue;
                 }
@@ -324,7 +324,7 @@ export class HullLayer {
                 this.thickShadows.lines(ends, legibleWidth(width, MIN_BARREL_PX, camera.scale));
             }
             // A fighter's, hull mounts' as well, as high as the fighter, as the rest of its shadow is.
-            const height = design.fighter && ship.riding !== true ? FIGHTER_SHADOW_M : LANDED_SHADOW_M;
+            const height = design.fighter ? fighterHeight(ship.riding, ship.lowered) : LANDED_SHADOW_M;
             const fx = awayX * height - camera.x;
             const fy = awayY * height - camera.y;
             for (let t = 0; t < design.turrets.length; t++) {

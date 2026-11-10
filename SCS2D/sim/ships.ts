@@ -47,6 +47,7 @@ import * as shipSupply from "./shipSupply.js";
 import * as shipBreakup from "./shipBreakup.js";
 import * as shipForage from "./shipForage.js";
 import * as shipDocking from "./shipDocking.js";
+import { holdOnPads } from "./padField.js";
 import * as shipBuild from "./shipBuild.js";
 import * as shipFlight from "./shipFlight.js";
 import * as shipAim from "./shipAim.js";
@@ -731,6 +732,10 @@ export class Ships {
     readonly viaY: number[] = [];
     readonly destX: number[] = [];
     readonly destY: number[] = [];
+    /** Whether each fighter is held by the field of the pad it is landing on this step (`padField`). */
+    readonly padHeld: number[] = [];
+    /** How far each fighter has been lowered towards a pad, 0 flying to 1 landed: for the view, whose shadow it draws in. */
+    readonly lowered: number[] = [];
     /** What each ship's heaviest dodge this step is from, or -1; and how far off it wants that, centre to centre, m. */
     readonly dodgingFrom: number[] = [];
     readonly dodgingRoom: number[] = [];
@@ -1491,6 +1496,8 @@ export class Ships {
         this.viaY.push(NaN);
         this.destX.push(NaN);
         this.destY.push(NaN);
+        this.padHeld.push(0);
+        this.lowered.push(0);
         this.dodgingFrom.push(-1);
         this.dodgingRoom.push(0);
         this.dodgingTouch.push(0);
@@ -2077,6 +2084,8 @@ export class Ships {
                 this.demandTorque[i]! + this.recoil[i]! + this.leakTorque[i]!,
             );
         }
+        // Pads' fields on the fighters landing on them, and back on their carriers.
+        holdOnPads(this, bodies, world.dt);
     }
 
     /**

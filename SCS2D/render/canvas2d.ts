@@ -50,7 +50,7 @@ import {
 } from "../sim/index.js";
 import { BACKGROUND, GRID, WELL, WELL_ARM_PX, WELL_PULLS } from "./backdrop.js";
 import { barrelLines, MIN_BARREL_PX } from "./barrels.js";
-import { FIGHTER_SHADOW_M, LANDED_SHADOW_M, THICK_SHADOW_M, type Light } from "./light.js";
+import { fighterHeight, THICK_SHADOW_M, type Light } from "./light.js";
 import { RoundedParts, type Level } from "./roundedLights.js";
 import {
     BEVEL_DARK,
@@ -2618,7 +2618,7 @@ function inLight(ctx: CanvasRenderingContext2D, light: Light): void {
  */
 function heightOf(ship: ShipView): number {
     if (!ship.currentStructure.fighter) return 0;
-    return ship.riding === true ? LANDED_SHADOW_M : FIGHTER_SHADOW_M;
+    return fighterHeight(ship.riding, ship.lowered);
 }
 
 /**

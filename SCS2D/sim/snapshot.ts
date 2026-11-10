@@ -135,6 +135,8 @@ export interface ShipView {
     heading?: number;
     /** Whether it rides a body another ship owns, or is parked on a pad: that ship's icon stands for it. */
     riding?: boolean;
+    /** How far a fighter has been lowered towards a pad by its field, 0 to 1 (`Ships.lowered`); absent for none. */
+    lowered?: number;
     vx: number;
     vy: number;
     /** World bearing of each turret, in the design's turret order. */
@@ -686,6 +688,8 @@ export function capture(
             view.heading = view.angle;
         }
         view.riding = !ships.ownsBody(i) || ships.isParked(i);
+        if (ships.lowered[i]! > 0) view.lowered = ships.lowered[i]!;
+        else delete view.lowered;
         view.vx = bodies.vx[b]!;
         view.vy = bodies.vy[b]!;
         view.hasControl = ships.hasControl(i);

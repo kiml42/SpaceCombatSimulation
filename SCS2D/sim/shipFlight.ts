@@ -187,9 +187,10 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
         }
     }
 
-    // Sat on a pad, however it got there: the pad lets it go, and its engines
-    // would only push the carrier and burn the deck.
-    if (ships.onPad(i, b)) {
+    // Sat on a pad, however it got there, or held over one by its field: the
+    // pad lets it go or sets it down, and its engines would only fight it and
+    // burn the deck.
+    if (ships.onPad(i, b) || ships.padHeld[i] === 1) {
         ships.idle(i);
         return;
     }

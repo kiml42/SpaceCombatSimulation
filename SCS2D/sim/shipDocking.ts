@@ -28,11 +28,14 @@ import { URGE_REFERENCE, stoppingSpeed } from "./shipFlight.js";
  * docking port to port, and finding a way in round the carrier's hull.
  */
 
-/** The most a fighter may be moving against a pad and still land on it, m/s: settling, not arriving. */
-export const PAD_SPEED = 1;
+/** How fast a pilot brings its fighter in over a pad, m/s, for the pad's field to take hold of (`padField`). */
+export const PAD_ARRIVAL_SPEED = 1;
 
-/** The fastest a fighter may be turning against a pad and still land on it, rad/s: settled, not spinning. */
-export const PAD_SPIN = 1.5;
+/** The most a fighter the pad's field holds may be moving against the pad and still land on it, m/s: at rest on it. */
+export const PAD_SPEED = 0.25;
+
+/** The fastest a fighter the pad's field holds may be turning against the pad and still land on it, rad/s. */
+export const PAD_SPIN = 0.1;
 
 /** The most two ports may be closing at and still mate, m/s: a nudge, not a bump. */
 export const PORT_SPEED = 1;
@@ -396,7 +399,7 @@ export function landOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
         if (near) {
             // The last few metres eased in at what it may land at, so it settles
             // rather than overshooting and turning back.
-            radial = min(PAD_SPEED, range / approach.responseTime);
+            radial = min(PAD_ARRIVAL_SPEED, range / approach.responseTime);
         } else {
             // Braking on what is left once it is keeping up.
             const spare = max(0, shipFlight.pushAbility(ships, bodies, i, b) - length(ax, ay));
@@ -409,7 +412,7 @@ export function landOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
 
     // Where it faces is the helm's to choose until it has to line up with the
     // pad: once it has little left to lose, either way round, whichever is nearer.
-    const settling = near && length(vx - bodies.vx[b]!, vy - bodies.vy[b]!) <= PAD_SPEED / 2;
+    const settling = near && length(vx - bodies.vx[b]!, vy - bodies.vy[b]!) <= PAD_ARRIVAL_SPEED / 2;
     if (!settling) {
         ships.intent = STEER;
         ships.steerFree = true;
@@ -752,7 +755,8 @@ export function ownMass(ships: Ships, i: number, b: number): number {
 /**
  * Take aboard every fighter that has settled onto the pad it was making for:
  * its whole outline inside the pad's, and moving with it to within
- * `PAD_SPEED` and turning with it to within `PAD_SPIN`. Say how many landed.
+ * `PAD_SPEED` and turning with it to within `PAD_SPIN`, held there by the
+ * pad's field (`padField`), which is what brings it to rest. Say how many landed.
  *
  * A fighter flies above a deck, so it never touches a pad; landing is the
  * two meeting at the boundary between the layers, and no commitment.
@@ -774,6 +778,7 @@ export function land(ships: Ships, world: World): number {
         if (ships.damage.isProtected(b) || ships.damage.isProtected(cb) || shipSupply.threatened(ships, bodies, i, cb, true)) continue;
         const host = ships.designs[c]!;
         const place = modulePlace(bodies, cb, host, pad);
+        if (ships.padHeld[i] !== 1) continue;
         if (length(bodies.vx[b]! - place.vx, bodies.vy[b]! - place.vy) > PAD_SPEED) continue;
         if (abs(bodies.angularVel[b]! - bodies.angularVel[cb]!) > PAD_SPIN) continue;
         if (!shipBuild.within(bodies, b, ships.designs[i]!, place, host.modules[pad]!.spec)) continue;
