@@ -346,18 +346,14 @@ export function landOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
     const rx = bodies.x[b]! - px;
     const ry = bodies.y[b]! - py;
     const ahead = rx * nx + ry * ny;
-    // Near only from the side its way in is, and no wider of the pad than it is:
-    // over the hull beyond or beside it, what stands between holds it off.
-    const spec = host.modules[pad]!.spec;
-    const turned = ships.wayAngle - place.angle;
-    const across = (abs(cos(turned)) * spec.width + abs(sin(turned)) * spec.length) / 2;
-    const near = range <= PAD_ALIGN_RADII * mine && ahead > -spec.length / 2 && abs(ry * nx - rx * ny) <= across + mine;
-    let lined = ahead > 0 && abs(ry * nx - rx * ny) <= ahead;
-    // Only if nothing in its layer stands between it and the pad: asked from afar as
-    // well as over the hull, so one heading in across it starts round in time.
-    if (lined) {
-        lined = !crossesCarrier(ships, bodies, b, tb, bodies.x[b]!, bodies.y[b]!, -rx, -ry);
-    }
+    // Near enough to ease in on the pad, from whichever side.
+    const near = range <= PAD_ALIGN_RADII * mine;
+    // Nothing in its layer between it and the pad: asked from afar as well as over the hull, so one
+    // heading in across it starts round in time.
+    const clear = !crossesCarrier(ships, bodies, b, tb, bodies.x[b]!, bodies.y[b]!, -rx, -ry);
+    // Lined up on its way in, or near the pad from any side: either way it goes straight in rather
+    // than back out to the way in, throwing away how near it has come.
+    const lined = clear && ((ahead > 0 && abs(ry * nx - rx * ny) <= ahead) || range <= PAD_ALIGN_RADII * mine);
     let gx = px;
     let gy = py;
     let left = range;
@@ -411,9 +407,9 @@ export function landOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
     }
     shipFlight.urge(ships, URGE_REFERENCE, vx, vy, ax, ay);
 
-    // Where it faces is the helm's to choose all the way in, turning only for a change it could not
-    // otherwise make (`steerSlack`): chasing every small one, a fighter that turns on thrusters at its
-    // stern pushes itself off its way in with each turn. The pad's field squares it up (`padField`).
+    // Where it faces is the helm's to choose all the way in. It turns for a small change only when it
+    // cannot push that way as it faces: chasing every one, a fighter that turns on thrusters at its stern
+    // pushes itself off its way in with each turn. The pad's field squares it up (`padField`).
     ships.intent = STEER;
     return heading;
 }
