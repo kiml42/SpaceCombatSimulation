@@ -2457,9 +2457,8 @@ function drawCoreLight(ctx: CanvasRenderingContext2D, design: ShipDesign, i: num
     ctx.restore();
 }
 
-/** A pad's lights, across, as a share of its narrower side; and how far their glow reaches, in their own radii. */
+/** A pad's lights, across, as a share of its narrower side. */
 const PAD_LIGHT = 0.07;
-const PAD_LIGHT_GLOW = 2.2;
 /** How bright a lit pad light is at the least, before how hard its field is working adds the rest. */
 const PAD_LIGHT_LEAST = 0.4;
 
@@ -2487,10 +2486,6 @@ function drawPadLights(ctx: CanvasRenderingContext2D, spec: ModuleSpec, field: n
         if (!(field > 0)) continue;
         const bright = PAD_LIGHT_LEAST + (1 - PAD_LIGHT_LEAST) * min(1, field);
         ctx.fillStyle = LOAD_READY;
-        ctx.globalAlpha = 0.3 * bright;
-        ctx.beginPath();
-        ctx.arc(x, y, r * PAD_LIGHT_GLOW, 0, TAU);
-        ctx.fill();
         ctx.globalAlpha = bright;
         ctx.beginPath();
         ctx.arc(x, y, r, 0, TAU);
