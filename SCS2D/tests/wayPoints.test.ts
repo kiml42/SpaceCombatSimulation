@@ -7,6 +7,7 @@ import { tanker } from "../scenarios/tanker.js";
 import { duel } from "../scenarios/duel.js";
 import { torpedoes } from "../scenarios/torpedoes.js";
 import { beamCarrier } from "../scenarios/beamCarrier.js";
+import { rockLanding } from "../scenarios/rockLanding.js";
 
 /** Every ship as the picture sees it at each step, until `seen` says enough. */
 function watch(battle: Battle, steps: number, seen: (ship: ShipView, view: Snapshot) => boolean): boolean {
@@ -55,4 +56,20 @@ describe("where a ship is flying to", () => {
     it("is nowhere in particular for a ship fighting", () => {
         expect(watch(duel(), 600, (ship) => ship.viaX !== undefined || ship.destX !== undefined)).toBe(false);
     });
+
+    it("shows a corner round what is in the way only while it makes for it", () => {
+        const battle = rockLanding();
+        let cornered = false;
+        const parkedWithCorner = watch(battle, 60 * 70, (ship) => {
+            cornered ||= ship.routeX !== undefined;
+            // With what it goes round, the corner outside it.
+            if (ship.routeX !== undefined) {
+                expect(ship.routeAroundR).toBeGreaterThan(0);
+                expect(Math.hypot(ship.routeX - ship.routeAroundX!, ship.routeY! - ship.routeAroundY!)).toBeGreaterThan(ship.routeAroundR!);
+            }
+            return ship.routeX !== undefined && ship.ship !== undefined && battle.ships.parkedCarrier(ship.ship) >= 0;
+        });
+        expect(cornered).toBe(true);
+        expect(parkedWithCorner).toBe(false);
+    }, 120_000);
 });

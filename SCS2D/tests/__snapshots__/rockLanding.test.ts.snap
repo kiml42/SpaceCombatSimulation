@@ -2,7 +2,7 @@
 
 exports[`Rock Landing > Raider,  one way, spins [1, 4, 10] 1`] = `
 {
-  "contacts": 9188,
+  "contacts": 10555,
   "landed": [
     "not by 150 s",
     "not by 150 s",
@@ -18,7 +18,7 @@ exports[`Rock Landing > Raider,  one way, spins [1, 4, 10] 1`] = `
 
 exports[`Rock Landing > Raider,  one way, spins [4, 7, 10] 1`] = `
 {
-  "contacts": 1976,
+  "contacts": 1704,
   "landed": [
     "not by 150 s",
     "not by 150 s",
@@ -34,7 +34,7 @@ exports[`Rock Landing > Raider,  one way, spins [4, 7, 10] 1`] = `
 
 exports[`Rock Landing > Raider, no main [2, 4] 1`] = `
 {
-  "contacts": 56517,
+  "contacts": 44715,
   "landed": [
     "not by 150 s",
     "not by 150 s",
@@ -50,47 +50,47 @@ exports[`Rock Landing > Raider, no main [2, 4] 1`] = `
 
 exports[`Rock Landing > Raider, no main [4] 1`] = `
 {
-  "contacts": 18036,
+  "contacts": 13183,
   "landed": [
-    "98.95 s",
     "not by 150 s",
+    "106.53 s",
+    "78.83 s",
     "not by 150 s",
+    "82.05 s",
+    "74.75 s",
+    "80.85 s",
     "not by 150 s",
-    "not by 150 s",
-    "not by 150 s",
-    "87.60 s",
-    "104.08 s",
   ],
 }
 `;
 
 exports[`Rock Landing > Raider, one turn far weaker [1, 8] 1`] = `
 {
-  "contacts": 9343,
+  "contacts": 87,
   "landed": [
-    "not by 150 s",
-    "not by 150 s",
-    "56.87 s",
-    "93.75 s",
-    "78.32 s",
-    "not by 150 s",
-    "58.78 s",
-    "not by 150 s",
+    "57.90 s",
+    "58.08 s",
+    "55.28 s",
+    "57.82 s",
+    "57.28 s",
+    "53.03 s",
+    "51.77 s",
+    "99.22 s",
   ],
 }
 `;
 
 exports[`Rock Landing > Raider, one turn far weaker [3, 7] 1`] = `
 {
-  "contacts": 12909,
+  "contacts": 10437,
   "landed": [
-    "73.40 s",
+    "47.53 s",
     "not by 150 s",
-    "71.83 s",
+    "54.20 s",
     "not by 150 s",
+    "56.05 s",
     "not by 150 s",
-    "42.48 s",
-    "not by 150 s",
+    "45.20 s",
     "not by 150 s",
   ],
 }
@@ -130,16 +130,16 @@ exports[`Rock Landing > Raider, pushes turn it [4, 8, 10] 1`] = `
 
 exports[`Rock Landing > Raider, undamaged 1`] = `
 {
-  "contacts": 65,
+  "contacts": 0,
   "landed": [
-    "53.93 s",
-    "38.33 s",
-    "28.33 s",
-    "67.23 s",
-    "28.03 s",
-    "52.88 s",
-    "27.88 s",
-    "40.38 s",
+    "27.60 s",
+    "38.52 s",
+    "27.55 s",
+    "38.32 s",
+    "27.70 s",
+    "38.30 s",
+    "27.82 s",
+    "39.07 s",
   ],
 }
 `;

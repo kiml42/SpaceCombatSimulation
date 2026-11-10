@@ -426,6 +426,8 @@ export class Ships {
     readonly hullBody: BodyId[] = [];
     /** The well each pinned hull rides, by body index (`ShipSpec.rides`). */
     readonly rides: (WellSpec | undefined)[] = [];
+    /** Every well pulling on the battle, which pilots allow for: the battle's own list, so wells added later are in it. */
+    wells: readonly WellSpec[] = [];
     /** Every hull that has ridden a well, live or not. */
     private readonly riders: BodyId[] = [];
     bodyStore: Bodies | null = null;
@@ -758,8 +760,14 @@ export class Ships {
     readonly routeVia: number[] = [];
     readonly routeDX: number[] = [];
     readonly routeDY: number[] = [];
+    /** The circle the route goes round, as planned: its middle from that ship's body, world frame, and its radius, m. */
+    readonly routeAroundDX: number[] = [];
+    readonly routeAroundDY: number[] = [];
+    readonly routeAroundR: number[] = [];
     readonly routeAt: number[] = [];
     readonly routeGoal: number[] = [];
+    /** Whether the pilot made for that corner this step: for the view, which shows only that. */
+    readonly routeShown: number[] = [];
     readonly gripAt: number[] = [];
     /** The heading `squareUp` last asked for. */
     gripHeading = 0;
@@ -1515,8 +1523,12 @@ export class Ships {
         this.routeVia.push(NO_TARGET);
         this.routeDX.push(0);
         this.routeDY.push(0);
+        this.routeAroundDX.push(0);
+        this.routeAroundDY.push(0);
+        this.routeAroundR.push(0);
         this.routeAt.push(-Infinity);
         this.routeGoal.push(NO_TARGET);
+        this.routeShown.push(0);
         this.gripAt.push(-Infinity);
         this.landingPad.push(-1);
         this.dockSeenVx.push(0);
@@ -2171,6 +2183,7 @@ export class Ships {
             this.viaY[i] = NaN;
             this.destX[i] = NaN;
             this.destY[i] = NaN;
+            this.routeShown[i] = 0;
             // Nothing controls a severed chunk, or a ship whose cores have been
             // shot out, so nothing holds its heading or kills its
             // drift: its engines and turrets fail safe and stop, and it tumbles on

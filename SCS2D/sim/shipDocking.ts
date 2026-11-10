@@ -6,7 +6,6 @@ import { DamageEffect } from "./damage.js";
 import { abs, atan2, angleDelta, PI, cos, length, max, min, sin, sqrt } from "./math.js";
 import { padApproaches, type PadApproach } from "./padApproach.js";
 import type { World } from "./world.js";
-import { wellPull } from "./gravity.js";
 import { DOCK_POWER_PER_METRE } from "./modules.js";
 import * as shipRebuild from "./shipRebuild.js";
 import * as shipSupply from "./shipSupply.js";
@@ -315,16 +314,8 @@ export function landOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
     const place = modulePlace(bodies, tb, host, pad);
     // Matching how the pad is speeding up as well as how it is moving, as if it keeps on.
     shipFlight.dockingAccel(ships, i, place.vx, place.vy, dt);
-    let ax = ships.dockAx[i]!;
-    let ay = ships.dockAy[i]!;
-    // An anchored pad does not fall with what lands on it, so it holds itself up against the rock's pull.
-    const root = ships.carrierOf(tb);
-    const well = ships.rides[root >= 0 ? root : tb];
-    if (well !== undefined) {
-        const pull = wellPull(well, bodies.x[b]!, bodies.y[b]!);
-        ax -= (well.x - bodies.x[b]!) * pull;
-        ay -= (well.y - bodies.y[b]!) * pull;
-    }
+    const ax = ships.dockAx[i]!;
+    const ay = ships.dockAy[i]!;
     const mine = bodies.radius[b]!;
     // Its outline, not its centre of mass, centred on the pad: a fighter whose
     // mass is towards one end only fits a pad just long enough lying there.
@@ -365,7 +356,9 @@ export function landOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
             radial = min(PAD_ARRIVAL_SPEED, range / approach.responseTime);
         } else {
             // Braking on what is left once it is keeping up.
-            const spare = max(0, shipFlight.pushAbility(ships, bodies, i, b) - length(ax, ay));
+            // Less what it takes to keep up with the pad and hold off the wells' pull.
+            shipFlight.pullAt(ships, bodies.x[b]!, bodies.y[b]!);
+            const spare = max(0, shipFlight.pushAbility(ships, bodies, i, b) - length(ax - shipFlight.PULL.x, ay - shipFlight.PULL.y));
             radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * spare, left, ships.pushDelay));
         }
         vx += ux * radial;
@@ -675,7 +668,9 @@ export function dockOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
             radial = PORT_APPROACH;
         } else {
             // Braking on what is left once it is keeping up.
-            const spare = max(0, shipFlight.pushAbility(ships, bodies, i, b) - length(ax, ay));
+            // Less what it takes to keep up with the pad and hold off the wells' pull.
+            shipFlight.pullAt(ships, bodies.x[b]!, bodies.y[b]!);
+            const spare = max(0, shipFlight.pushAbility(ships, bodies, i, b) - length(ax - shipFlight.PULL.x, ay - shipFlight.PULL.y));
             radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * spare, left, ships.pushDelay));
         }
         vx += (dx / range) * radial;

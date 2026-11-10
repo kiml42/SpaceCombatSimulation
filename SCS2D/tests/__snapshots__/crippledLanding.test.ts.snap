@@ -100,14 +100,14 @@ exports[`Crippled Landing > Raider, no main [2, 4] 1`] = `
 {
   "contacts": 0,
   "landed": [
-    "131.08 s",
-    "141.90 s",
-    "94.75 s",
-    "126.18 s",
-    "133.33 s",
-    "129.28 s",
-    "131.57 s",
-    "128.70 s",
+    "62.78 s",
+    "90.28 s",
+    "62.77 s",
+    "89.75 s",
+    "62.72 s",
+    "63.70 s",
+    "62.57 s",
+    "89.68 s",
   ],
 }
 `;
@@ -116,14 +116,14 @@ exports[`Crippled Landing > Raider, no main [4] 1`] = `
 {
   "contacts": 0,
   "landed": [
-    "81.85 s",
-    "84.67 s",
-    "80.78 s",
-    "87.38 s",
-    "83.40 s",
-    "80.12 s",
-    "82.52 s",
-    "84.08 s",
+    "not by 300 s",
+    "not by 300 s",
+    "not by 300 s",
+    "not by 300 s",
+    "not by 300 s",
+    "not by 300 s",
+    "not by 300 s",
+    "not by 300 s",
   ],
 }
 `;

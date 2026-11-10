@@ -8,6 +8,7 @@ import { geometryOf, plumeLayers, plumeRays, WEAPON_PLUME_SHARE } from "./exhaus
 import { cohesionUrge } from "./targeting.js";
 import { abs, atan2, angleDelta, PI, brakingRate, clamp, cos, length, max, min, sin, sqrt } from "./math.js";
 import { EngineLayout } from "./engines.js";
+import { wellPull } from "./gravity.js";
 import {
     burnGain,
     pushBearing,
@@ -333,8 +334,13 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
     // and nothing in its way kills its drift and waits.
     const wantVx = ships.urgeWeight > 0 ? ships.urgeVx / ships.urgeWeight : 0;
     const wantVy = ships.urgeWeight > 0 ? ships.urgeVy / ships.urgeWeight : 0;
-    const leadAx = ships.urgeWeight > 0 ? ships.urgeAx / ships.urgeWeight : 0;
-    const leadAy = ships.urgeWeight > 0 ? ships.urgeAy / ships.urgeWeight : 0;
+    // What it wants to speed up by, less what the wells' pull does for it: wanting to keep on as it is
+    // is pushing against the pull, and wanting to fall is leaving it to.
+    let leadAx = ships.urgeWeight > 0 ? ships.urgeAx / ships.urgeWeight : 0;
+    let leadAy = ships.urgeWeight > 0 ? ships.urgeAy / ships.urgeWeight : 0;
+    pullAt(ships, bodies.x[b]!, bodies.y[b]!);
+    leadAx -= PULL.x;
+    leadAy -= PULL.y;
 
     if (fighting < 0) ships.brakingOnMains[i] = 0;
     if (fighting >= 0) wantAngle = burnOrFight(ships, i, b, ships.fightAt, bodies, wantAngle, wantVx, wantVy, holdOut);
@@ -391,7 +397,15 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
     // Planned on the torque that stops the turn, not the one that starts it.
     // On a lopsided layout those differ, and a turn planned on the stronger
     // overshoots past half round, where the error wraps and it goes round again.
-    const brakeTorque = layout.maxTorque(error >= 0 ? -1 : 1);
+    // And on what of it is left while it pushes as it means to: thrusters that push and turn it the
+    // wrong way take their share, and a turn planned on the whole overshoots. The helm gives up push
+    // for no more than `TURN_SHARE` of a starved turn, so it plans on no less.
+    const brakeSense = error >= 0 ? -1 : 1;
+    let brakeTorque = layout.maxTorque(brakeSense);
+    if (spin === 0 && brakeTorque > 0 && (localFx !== 0 || localFy !== 0)) {
+        layout.allocate(localFx, localFy, brakeSense * brakeTorque, ships.throttles[i]!, ships.allocation);
+        brakeTorque = clamp(brakeSense * ships.allocation.torque, TURN_SHARE * brakeTorque, brakeTorque);
+    }
     const maxAlpha = inertia > 0 ? brakeTorque / inertia : 0;
     const turn = min(brakingRate(error, maxAlpha, dt), (error >= 0 ? error : -error) / HEADING_SETTLE_TIME);
     let wantRate = error >= 0 ? turn : -turn;
@@ -1171,6 +1185,21 @@ export function halfTurnTime(ships: Ships, bodies: Bodies, i: number, b: number)
 /** Seconds to turn through `by` radians from rest and stop there, flat out both ways. */
 export function hullTurnTime(ships: Ships, bodies: Bodies, i: number, b: number, by: number): number {
     return turnTime(ships.layoutOf(i), bodies.inertia[b]!, by);
+}
+
+/** The wells' pull at a point, m/s², from `pullAt`. */
+export const PULL = { x: 0, y: 0 };
+
+/** The pull of every well in the battle at (`x`, `y`), into `PULL`. */
+export function pullAt(ships: Ships, x: number, y: number): void {
+    PULL.x = 0;
+    PULL.y = 0;
+    for (let w = 0; w < ships.wells.length; w++) {
+        const well = ships.wells[w]!;
+        const pull = wellPull(well, x, y);
+        PULL.x += (well.x - x) * pull;
+        PULL.y += (well.y - y) * pull;
+    }
 }
 
 /** How hard this craft can accelerate along a world direction facing `angle`, m/s². */

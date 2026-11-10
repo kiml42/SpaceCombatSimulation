@@ -30,7 +30,7 @@ const BIG_HULL = 2;
 const CORNER_SLACK = 1.15;
 /** Seconds the change of velocity a first leg asks for is worth, as distance at that speed. */
 const DV_SECONDS = 2;
-/** How far out an obstacle with the goal inside its circle reaches, as a share of the way to the goal. */
+/** How far out an obstacle with the ship or its goal inside its circle reaches, as a share of the way to the nearer. */
 const GOAL_ROOM = 0.9;
 const MAX_OBSTACLES = 64;
 const MAX_NODES = 32;
@@ -39,6 +39,8 @@ const MAX_NODES = 32;
 const ox = new Float64Array(MAX_OBSTACLES);
 const oy = new Float64Array(MAX_OBSTACLES);
 const or = new Float64Array(MAX_OBSTACLES);
+// How far out it reaches with no clearance, only touching.
+const oHull = new Float64Array(MAX_OBSTACLES);
 const oShip = new Int32Array(MAX_OBSTACLES);
 const oBody = new Int32Array(MAX_OBSTACLES);
 let obstacles = 0;
@@ -76,11 +78,16 @@ export function route(
     const due = ships.now - ships.routeAt[i]! >= REPLAN_TICKS || ships.routeGoal[i] !== goal;
     if (!due && ships.routeVia[i] !== NO_TARGET && cornerOf(ships, bodies, i, out)) {
         // Reached, or as good as: on to the next, or straight in.
-        if (length(out.x - bodies.x[b]!, out.y - bodies.y[b]!) > ships.designs[i]!.radius * 2) return true;
+        if (length(out.x - bodies.x[b]!, out.y - bodies.y[b]!) > ships.designs[i]!.radius * 2) {
+            ships.routeShown[i] = 1;
+            return true;
+        }
     }
     if (!due && ships.routeVia[i] === NO_TARGET) return false;
     plan(ships, bodies, i, b, gx, gy, goal, as);
-    return ships.routeVia[i] !== NO_TARGET && cornerOf(ships, bodies, i, out);
+    const going = ships.routeVia[i] !== NO_TARGET && cornerOf(ships, bodies, i, out);
+    ships.routeShown[i] = going ? 1 : 0;
+    return going;
 }
 
 /** Where ship `i`'s corner is now, moving with what it goes round, into `out`; false for none. */
@@ -104,11 +111,12 @@ function plan(ships: Ships, bodies: Bodies, i: number, b: number, gx: number, gy
     const sx = bodies.x[b]!;
     const sy = bodies.y[b]!;
     gather(ships, bodies, i, b, sx, sy, gx, gy, goal, as);
-    // A goal inside an obstacle's circle, as a pad moored on a rock is, would have every way to it blocked
-    // and be gone round wide: that obstacle reaches only to just short of it.
+    // The ship or its goal inside an obstacle's clearance, as one close by a rock or a pad moored on it
+    // is, would have every way blocked and be sent round it wide: that obstacle reaches only to just
+    // short of the nearer, and no nearer its hull than touching unless that one is nearer still.
     for (let k = 0; k < obstacles; k++) {
-        const d = length(gx - ox[k]!, gy - oy[k]!);
-        if (d < or[k]!) or[k] = d * GOAL_ROOM;
+        const d = min(length(gx - ox[k]!, gy - oy[k]!), length(sx - ox[k]!, sy - oy[k]!));
+        if (d < or[k]!) or[k] = d > oHull[k]! ? max(oHull[k]!, d * GOAL_ROOM) : d * GOAL_ROOM;
     }
     if (obstacles === 0 || blocking(sx, sy, gx, gy, -1) < 0) return;
 
@@ -150,6 +158,9 @@ function plan(ships: Ships, bodies: Bodies, i: number, b: number, gx: number, gy
             ships.routeVia[i] = oShip[k]!;
             ships.routeDX[i] = nx[first]! - bodies.x[vb]!;
             ships.routeDY[i] = ny[first]! - bodies.y[vb]!;
+            ships.routeAroundDX[i] = ox[k]! - bodies.x[vb]!;
+            ships.routeAroundDY[i] = oy[k]! - bodies.y[vb]!;
+            ships.routeAroundR[i] = or[k]!;
             return;
         }
         for (let side = -1; side <= 1; side += 2) {
@@ -278,7 +289,7 @@ function gather(
         const r = THEIRS.r + mine + clearance;
         // Only what could stand between: within its clearance of the way, or of a detour round it.
         if (distanceToSegment(THEIRS.x, THEIRS.y, sx, sy, gx, gy) > r + reach / 2) continue;
-        add(THEIRS.x, THEIRS.y, r, t, ob);
+        add(THEIRS.x, THEIRS.y, r, t, ob, THEIRS.r + mine);
     }
 }
 
@@ -300,10 +311,11 @@ function addDeck(ships: Ships, bodies: Bodies, t: number, ob: number, mine: numb
     }
 }
 
-function add(x: number, y: number, r: number, ship: number, body: number): void {
+function add(x: number, y: number, r: number, ship: number, body: number, hull = r): void {
     ox[obstacles] = x;
     oy[obstacles] = y;
     or[obstacles] = r;
+    oHull[obstacles] = hull;
     oShip[obstacles] = ship;
     oBody[obstacles] = body;
     obstacles++;
