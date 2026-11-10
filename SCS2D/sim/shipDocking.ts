@@ -410,11 +410,13 @@ export function landOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
     // Where it faces is the helm's to choose until it has to line up with the
     // pad: once it has little left to lose, either way round, whichever is nearer.
     const settling = near && length(vx - bodies.vx[b]!, vy - bodies.vy[b]!) <= PAD_SPEED / 2;
-    if (!settling || length(box.maxX - box.minX, box.maxY - box.minY) <= min(spec.length, spec.width)) {
+    if (!settling) {
         ships.intent = STEER;
         ships.steerFree = true;
         return heading;
     }
+    // One that fits at any heading holds the one it has, which stops it turning: it may not land spinning (`PAD_SPIN`).
+    if (length(box.maxX - box.minX, box.maxY - box.minY) <= min(spec.length, spec.width)) return heading;
     const along = angleDelta(heading, place.angle);
     return abs(along) <= PI / 2 ? place.angle : place.angle + PI;
 }
