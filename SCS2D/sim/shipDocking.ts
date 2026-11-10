@@ -32,7 +32,7 @@ import { URGE_REFERENCE, stoppingSpeed } from "./shipFlight.js";
 export const PAD_SPEED = 1;
 
 /** The fastest a fighter may be turning against a pad and still land on it, rad/s: settled, not spinning. */
-export const PAD_SPIN = 0.5;
+export const PAD_SPIN = 1.5;
 
 /** The most two ports may be closing at and still mate, m/s: a nudge, not a bump. */
 export const PORT_SPEED = 1;
