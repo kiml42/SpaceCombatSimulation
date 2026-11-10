@@ -56,9 +56,6 @@ const PORT_HEADING_SLACK = 0.1;
  */
 const PAD_ALIGN_RADII = 4;
 
-/** How far round its carrier, radians, a fighter steers at a time while it circles to a pad's way in. */
-const HULL_ORBIT_STEP = 0.5;
-
 /**
  * How much shorter a trip round a carrier, radians, another way in to a pad
  * has to be before a fighter gives up the one it is taking, so one coming in
@@ -338,51 +335,20 @@ export function landOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
     const px = place.x - (ox * cos(heading) - oy * sin(heading));
     const py = place.y - (ox * sin(heading) + oy * cos(heading));
     const range = length(px - bodies.x[b]!, py - bodies.y[b]!);
-    // Come in by one of the pad's ways in, from where it leaves the hull's
-    // circle, by a corner round what stands up from the deck on the way there (`shipRoute`).
-    wayIn(ships, bodies, i, b, tb, host, pad, place.x, place.y);
-    const nx = cos(ships.wayAngle);
-    const ny = sin(ships.wayAngle);
-    const rx = bodies.x[b]! - px;
-    const ry = bodies.y[b]! - py;
-    const ahead = rx * nx + ry * ny;
-    // Near enough to ease in on the pad, from whichever side.
+    // Near enough to ease in on the pad.
     const near = range <= PAD_ALIGN_RADII * mine;
-    // Nothing in its layer between it and the pad: asked from afar as well as over the hull, so one
-    // heading in across it starts round in time.
-    const clear = !crossesCarrier(ships, bodies, b, tb, bodies.x[b]!, bodies.y[b]!, -rx, -ry);
-    // Lined up on its way in, or near the pad from any side: either way it goes straight in rather
-    // than back out to the way in, throwing away how near it has come.
-    const lined = clear && ((ahead > 0 && abs(ry * nx - rx * ny) <= ahead) || range <= PAD_ALIGN_RADII * mine);
+    // Straight for the pad, by a corner round whatever stands in the way (`shipRoute`).
     let gx = px;
     let gy = py;
     let left = range;
     ships.destX[i] = place.x;
     ships.destY[i] = place.y;
-    if (!near && !lined) {
-        ships.viaX[i] = ships.entryX;
-        ships.viaY[i] = ships.entryY;
-        const entry = length(ships.entryX - place.x, ships.entryY - place.y);
-        gx = ships.entryX;
-        gy = ships.entryY;
-        if (shipRoute.route(ships, bodies, i, b, ships.entryX, ships.entryY, ships.salvaging[i]!, shipRoute.GOAL_DECK, ROUTE)) {
-            gx = ROUTE.x;
-            gy = ROUTE.y;
-        } else {
-            // Nothing in the way: still round the carrier's ring to the way in, not straight across to it,
-            // so it comes to it moving along the ring as a crippled fighter can settle from.
-            const cx = bodies.x[tb]!;
-            const cy = bodies.y[tb]!;
-            const from = atan2(bodies.y[b]! - cy, bodies.x[b]! - cx);
-            const off = angleDelta(from, atan2(ships.entryY - cy, ships.entryX - cx));
-            if (abs(off) > HULL_ORBIT_STEP) {
-                const ring = max(length(ships.entryX - cx, ships.entryY - cy), bodies.radius[tb]! + 2 * mine);
-                const step = from + (off > 0 ? HULL_ORBIT_STEP : -HULL_ORBIT_STEP);
-                gx = cx + cos(step) * ring;
-                gy = cy + sin(step) * ring;
-            }
-        }
-        left = length(gx - bodies.x[b]!, gy - bodies.y[b]!) + length(ships.entryX - gx, ships.entryY - gy) + entry;
+    if (!near && shipRoute.route(ships, bodies, i, b, px, py, ships.salvaging[i]!, shipRoute.GOAL_DECK, ROUTE)) {
+        gx = ROUTE.x;
+        gy = ROUTE.y;
+        ships.viaX[i] = gx;
+        ships.viaY[i] = gy;
+        left = length(gx - bodies.x[b]!, gy - bodies.y[b]!) + length(px - gx, py - gy);
     }
     const dx = gx - bodies.x[b]!;
     const dy = gy - bodies.y[b]!;

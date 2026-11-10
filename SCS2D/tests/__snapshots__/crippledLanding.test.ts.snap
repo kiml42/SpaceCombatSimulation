@@ -2,16 +2,16 @@
 
 exports[`Crippled Landing > Carrier, no front [2, 3, 6, 8, 9, 10] 1`] = `
 {
-  "contacts": 101,
+  "contacts": 56,
   "landed": [
-    "27.77 s",
-    "not by 300 s",
-    "27.27 s",
-    "149.42 s",
-    "237.63 s",
-    "33.85 s",
-    "not by 300 s",
-    "75.23 s",
+    "83.32 s",
+    "123.58 s",
+    "64.83 s",
+    "128.93 s",
+    "35.18 s",
+    "117.87 s",
+    "96.22 s",
+    "37.20 s",
   ],
 }
 `;
@@ -20,14 +20,14 @@ exports[`Crippled Landing > Dinky,  anticlockwise only [2, 7, 8] 1`] = `
 {
   "contacts": 0,
   "landed": [
-    "48.90 s",
-    "48.87 s",
-    "49.47 s",
-    "48.63 s",
-    "49.07 s",
-    "49.42 s",
-    "49.63 s",
-    "49.12 s",
+    "49.75 s",
+    "49.80 s",
+    "50.38 s",
+    "49.27 s",
+    "50.33 s",
+    "49.87 s",
+    "48.38 s",
+    "49.10 s",
   ],
 }
 `;
@@ -36,14 +36,14 @@ exports[`Crippled Landing > Dinky,  clockwise only [1, 2, 9] 1`] = `
 {
   "contacts": 0,
   "landed": [
-    "50.80 s",
-    "51.18 s",
+    "51.40 s",
+    "49.30 s",
     "50.65 s",
     "50.27 s",
-    "51.15 s",
+    "50.97 s",
     "51.28 s",
-    "52.52 s",
-    "49.98 s",
+    "50.97 s",
+    "51.20 s",
   ],
 }
 `;
@@ -52,14 +52,14 @@ exports[`Crippled Landing > Dinky, no front [2, 3, 6, 8, 9, 10] 1`] = `
 {
   "contacts": 0,
   "landed": [
-    "90.87 s",
     "not by 300 s",
-    "33.23 s",
     "not by 300 s",
-    "157.67 s",
-    "56.67 s",
-    "157.43 s",
-    "57.93 s",
+    "not by 300 s",
+    "not by 300 s",
+    "not by 300 s",
+    "not by 300 s",
+    "not by 300 s",
+    "not by 300 s",
   ],
 }
 `;
@@ -100,14 +100,14 @@ exports[`Crippled Landing > Raider, no main [2, 4] 1`] = `
 {
   "contacts": 0,
   "landed": [
-    "215.62 s",
-    "135.08 s",
-    "144.42 s",
-    "125.98 s",
-    "221.43 s",
-    "127.77 s",
-    "128.77 s",
-    "131.08 s",
+    "160.08 s",
+    "130.77 s",
+    "95.03 s",
+    "128.00 s",
+    "not by 300 s",
+    "129.13 s",
+    "165.27 s",
+    "130.22 s",
   ],
 }
 `;
@@ -120,7 +120,7 @@ exports[`Crippled Landing > Raider, no main [4] 1`] = `
     "51.38 s",
     "54.08 s",
     "56.57 s",
-    "not by 300 s",
+    "60.67 s",
     "55.83 s",
     "53.95 s",
     "51.92 s",
@@ -132,14 +132,14 @@ exports[`Crippled Landing > Raider, one turn far weaker [1, 8] 1`] = `
 {
   "contacts": 0,
   "landed": [
-    "49.42 s",
-    "49.78 s",
-    "48.88 s",
-    "49.53 s",
-    "50.57 s",
+    "46.45 s",
+    "48.28 s",
+    "49.65 s",
+    "49.57 s",
+    "47.97 s",
     "47.35 s",
-    "50.07 s",
-    "49.32 s",
+    "50.12 s",
+    "47.10 s",
   ],
 }
 `;
@@ -148,14 +148,14 @@ exports[`Crippled Landing > Raider, one turn far weaker [3, 7] 1`] = `
 {
   "contacts": 0,
   "landed": [
-    "48.17 s",
-    "50.23 s",
-    "48.40 s",
+    "43.35 s",
+    "44.47 s",
+    "46.83 s",
     "46.42 s",
     "46.67 s",
-    "47.52 s",
-    "46.42 s",
-    "46.23 s",
+    "46.90 s",
+    "44.80 s",
+    "45.32 s",
   ],
 }
 `;
