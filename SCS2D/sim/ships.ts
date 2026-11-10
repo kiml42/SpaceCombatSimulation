@@ -760,6 +760,8 @@ export class Ships {
     readonly routeDY: number[] = [];
     readonly routeAt: number[] = [];
     readonly routeGoal: number[] = [];
+    /** Whether the pilot made for that corner this step: for the view, which shows only that. */
+    readonly routeShown: number[] = [];
     readonly gripAt: number[] = [];
     /** The heading `squareUp` last asked for. */
     gripHeading = 0;
@@ -1517,6 +1519,7 @@ export class Ships {
         this.routeDY.push(0);
         this.routeAt.push(-Infinity);
         this.routeGoal.push(NO_TARGET);
+        this.routeShown.push(0);
         this.gripAt.push(-Infinity);
         this.landingPad.push(-1);
         this.dockSeenVx.push(0);
@@ -2171,6 +2174,7 @@ export class Ships {
             this.viaY[i] = NaN;
             this.destX[i] = NaN;
             this.destY[i] = NaN;
+            this.routeShown[i] = 0;
             // Nothing controls a severed chunk, or a ship whose cores have been
             // shot out, so nothing holds its heading or kills its
             // drift: its engines and turrets fail safe and stop, and it tumbles on

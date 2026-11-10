@@ -639,7 +639,7 @@ export function capture(
             delete view.avoidY;
             delete view.avoidTouch;
         }
-        if (shipRoute.cornerOf(ships, bodies, i, ROUTE_SPOT)) {
+        if (ships.routeShown[i] === 1 && shipRoute.cornerOf(ships, bodies, i, ROUTE_SPOT)) {
             view.routeX = ROUTE_SPOT.x;
             view.routeY = ROUTE_SPOT.y;
         } else {

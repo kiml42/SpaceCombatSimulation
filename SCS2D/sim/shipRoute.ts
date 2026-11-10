@@ -78,11 +78,16 @@ export function route(
     const due = ships.now - ships.routeAt[i]! >= REPLAN_TICKS || ships.routeGoal[i] !== goal;
     if (!due && ships.routeVia[i] !== NO_TARGET && cornerOf(ships, bodies, i, out)) {
         // Reached, or as good as: on to the next, or straight in.
-        if (length(out.x - bodies.x[b]!, out.y - bodies.y[b]!) > ships.designs[i]!.radius * 2) return true;
+        if (length(out.x - bodies.x[b]!, out.y - bodies.y[b]!) > ships.designs[i]!.radius * 2) {
+            ships.routeShown[i] = 1;
+            return true;
+        }
     }
     if (!due && ships.routeVia[i] === NO_TARGET) return false;
     plan(ships, bodies, i, b, gx, gy, goal, as);
-    return ships.routeVia[i] !== NO_TARGET && cornerOf(ships, bodies, i, out);
+    const going = ships.routeVia[i] !== NO_TARGET && cornerOf(ships, bodies, i, out);
+    ships.routeShown[i] = going ? 1 : 0;
+    return going;
 }
 
 /** Where ship `i`'s corner is now, moving with what it goes round, into `out`; false for none. */
