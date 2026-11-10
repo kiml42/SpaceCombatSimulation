@@ -20,6 +20,8 @@ const ROCK_RADIUS = 250;
 const SURFACE_GRAVITY = 0.5;
 /** How many Replicators are moored round it, evenly. */
 const OUTPOSTS = 4;
+/** How far either side of its line a Replicator measures the rock's slope to square up to it, metres. */
+const SQUARE_ACROSS = 10;
 /** How far out each fighter starts, on a circular orbit, metres. */
 const START = 700;
 /**
@@ -50,35 +52,63 @@ export function rockLanding(seed = 20260905, crippling: Crippling = ROCK_CRIPPLI
         const rock = ships.spawn(world, { design: rockDesign, rides: well, team: NEUTRAL_TEAM, invulnerable: true });
         const rb = bodies.indexOf(ships.body(rock));
 
-        // How far out the rock's surface is along `bearing`, from its middle: stepping in until inside one of its modules.
+        // Whether a point of the rock's frame, from the middle of its mass, is inside one of its modules.
         const corners: number[] = [];
         const solid = (x: number, y: number): boolean =>
             rockDesign.modules.some((m) => {
                 const count = moduleOutline(m.spec, corners);
-                // Its outline is in the blueprint's frame, `x`, `y` from the middle of its mass.
+                // Its outline is in the blueprint's frame.
                 return insideOutline(corners, count, x + rockDesign.centreOfMassX, y + rockDesign.centreOfMassY);
             });
-        const surface = (bearing: number): number => {
+        /** How far out the rock's surface is along `bearing`, `across` to its left: stepping in until inside it, or 0 for a line that misses it. */
+        const surface = (bearing: number, across: number): number => {
             const a = bearing - bodies.angle[rb]!;
+            const ux = math.cos(a);
+            const uy = math.sin(a);
             let r = 2 * ROCK_RADIUS;
-            while (r > 0 && !solid(r * math.cos(a), r * math.sin(a))) r -= 0.25;
-            return r;
+            while (r > 0 && !solid(r * ux - across * uy, r * uy + across * ux)) r -= 0.25;
+            return math.max(r, 0);
         };
 
         const outpost = compileBlueprint(OUTPOST);
         const claw = outpost.modules.findIndex((m) => m.spec.kind === "claw");
-        const jaws = outpost.modules[claw]!;
-        // Its claws' tips, ahead of its middle: bow down on the rock, they meet the surface.
-        const tip = jaws.x + jaws.spec.length / 2;
+        // Its outline, every metre or so along each module's edges, in its own frame from the middle of its mass, bow along +x.
+        const hull: number[] = [];
+        for (const m of outpost.modules) {
+            const count = moduleOutline(m.spec, corners);
+            for (let c = 0; c < count; c++) {
+                const ax = corners[c * 2]! - outpost.centreOfMassX;
+                const ay = corners[c * 2 + 1]! - outpost.centreOfMassY;
+                const bx = corners[((c + 1) % count) * 2]! - outpost.centreOfMassX;
+                const by = corners[((c + 1) % count) * 2 + 1]! - outpost.centreOfMassY;
+                const steps = math.max(1, math.ceil(math.sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay))));
+                for (let t = 0; t < steps; t++) hull.push(ax + ((bx - ax) * t) / steps, ay + ((by - ay) * t) / steps);
+            }
+        }
         const outposts: number[] = [];
         for (let k = 0; k < OUTPOSTS; k++) {
             const bearing = (k * 2 * math.PI) / OUTPOSTS;
             const ux = math.cos(bearing);
             const uy = math.sin(bearing);
-            const gx = bodies.x[rb]! + ux * surface(bearing);
-            const gy = bodies.y[rb]! + uy * surface(bearing);
-            const o = ships.spawn(world, { design: outpost, x: gx + ux * tip, y: gy + uy * tip, angle: bearing + math.PI, team: 0 });
-            moor(ships, bodies, o, rock, claw, gx, gy);
+            // Square to the surface under it, by its slope either side of its line, rather than to the rock's middle.
+            const tilt = math.atan2(surface(bearing, -SQUARE_ACROSS) - surface(bearing, SQUARE_ACROSS), 2 * SQUARE_ACROSS);
+            const angle = bearing + tilt + math.PI;
+            const c = math.cos(angle);
+            const sn = math.sin(angle);
+            // As near as it comes with nothing of it inside the rock: each point of its hull, turned as it will be, is
+            // `along` further out than its middle and `across` to the left looking out.
+            let out = 0;
+            for (let h = 0; h < hull.length; h += 2) {
+                const wx = hull[h]! * c - hull[h + 1]! * sn;
+                const wy = hull[h]! * sn + hull[h + 1]! * c;
+                const along = wx * ux + wy * uy;
+                const across = -wx * uy + wy * ux;
+                out = math.max(out, surface(bearing, across) - along);
+            }
+            const o = ships.spawn(world, { design: outpost, x: bodies.x[rb]! + ux * out, y: bodies.y[rb]! + uy * out, angle, team: 0 });
+            // Its claw grips the rock where its line meets the surface.
+            const grip = surface(bearing, 0);
+            moor(ships, bodies, o, rock, claw, bodies.x[rb]! + ux * grip, bodies.y[rb]! + uy * grip);
             outposts.push(o);
         }
 

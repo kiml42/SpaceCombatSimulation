@@ -87,6 +87,6 @@ export const SCENES: readonly Scene[] = [
     {
         name: "Rock Landing",
         variants: ROCK_CRIPPLINGS.map((crippling) => crippling.name),
-        create: (variant = 0) => lit(rockLanding(SCENE_SEED, ROCK_CRIPPLINGS[variant]), LIGHTS.dusk),
+        create: (variant = 0) => lit(rockLanding(SCENE_SEED, ROCK_CRIPPLINGS[variant]), LIGHTS.daylight),
     },
 ];
