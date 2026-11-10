@@ -68,11 +68,11 @@ exports[`Rock Landing > Raider, one turn far weaker [1, 8] 1`] = `
 {
   "contacts": 18281,
   "landed": [
-    "60.62 s",
-    "53.18 s",
-    "53.18 s",
-    "49.88 s",
-    "57.83 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "52.03 s",
+    "not by 150 s",
     "not by 150 s",
     "not by 150 s",
     "not by 150 s",
@@ -84,13 +84,13 @@ exports[`Rock Landing > Raider, one turn far weaker [3, 7] 1`] = `
 {
   "contacts": 6020,
   "landed": [
-    "72.52 s",
-    "69.42 s",
-    "51.47 s",
     "not by 150 s",
-    "54.75 s",
-    "66.42 s",
-    "54.62 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
     "not by 150 s",
   ],
 }
