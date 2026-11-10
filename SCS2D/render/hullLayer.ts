@@ -291,9 +291,9 @@ export class HullLayer {
                 // is left for when mounts are shaded as rounded.
                 else if (domed)
                     this.thickShadows.cast(m.spec, x, y, angle, awayX * THICK_SHADOW_M, awayY * THICK_SHADOW_M, [domeOutline(m.spec)]);
-                else if (depth === this.rock) cast(this.rockShadows, rock);
+                // Thin rock is at the deck, so casts nothing; thick rock stands as high above either.
                 else if (depth === this.thickRock) {
-                    cast(this.rockShadows, rock * THICK_ROCK_RISE);
+                    cast(this.rockShadows, rock * (THICK_ROCK_RISE - 1));
                     cast(this.thickRockShadows, rock * (THICK_ROCK_RISE - 1));
                 }
                 // On thick rock; thin rock under a kernel takes the same, a little short.
