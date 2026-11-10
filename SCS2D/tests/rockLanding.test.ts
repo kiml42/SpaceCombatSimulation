@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { ROCK_CRIPPLINGS, rockLanding } from "../scenarios/rockLanding.js";
+import { SCENE_SEED } from "../scenarios/scenes.js";
+import { landings } from "./landingRecord.js";
+
+/**
+ * The Rock Landing scene: that it sets out as it should, and, for every variant, when each fighter lands on
+ * any of the moored Replicators, or that it has not by `LIMIT`, and how many contacts there were. Recorded in
+ * `__snapshots__` as the goldens are, describing what happens rather than judging it, so a change either way
+ * shows. After a deliberate change, re-record with `pnpm exec vitest run tests/rockLanding.test.ts -u`.
+ */
+
+/** How long each variant runs for at most, seconds. */
+const LIMIT = 150;
 
 describe("Rock Landing", () => {
     it("sets out with every carrier moored to the rock, a fighter for each of their pads, and every pad free", () => {
@@ -21,6 +33,16 @@ describe("Rock Landing", () => {
             expect(Math.hypot(bodies.x[ob]! - bodies.x[rb]!, bodies.y[ob]! - bodies.y[rb]!)).toBeLessThan(300);
         }
     });
+
+    it.each(ROCK_CRIPPLINGS.map((crippling) => [crippling.name, crippling] as const))(
+        "%s",
+        (_, crippling) => {
+            const run = rockLanding(SCENE_SEED, crippling);
+            const home = (k: number): boolean => run.outposts.includes(run.ships.parkedCarrier(run.fighters[k]!));
+            expect(landings(run, run.fighters, home, LIMIT)).toMatchSnapshot();
+        },
+        600_000,
+    );
 
     it("has an undamaged Raider and every Raider crippling as variants", () => {
         expect(ROCK_CRIPPLINGS[0]!.lost).toEqual([]);
