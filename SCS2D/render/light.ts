@@ -50,11 +50,10 @@ export function rockHeight(radius: number): number {
 export const FIGHTER_SHADOW_M = 2;
 /**
  * How far the shadow falls of a fighter on its carrier's pad, being built,
- * mended or filled, metres: nearer, as it sits on the deck. A stop-gap
- * step from one to the other until a fighter's height is drawn as it lands
- * and lifts off.
+ * mended or filled, metres: just off it, as it sits on the deck. A fighter
+ * coming in is lowered to it by its pad's field (`fighterHeight`).
  */
-export const LANDED_SHADOW_M = 0.75;
+export const LANDED_SHADOW_M = 0.3;
 
 /** How high a fighter's shadow is cast from: landed on a pad, flying, or lowered towards one by its field (`lowered`, 0 to 1). */
 export function fighterHeight(riding: boolean | undefined, lowered: number | undefined): number {

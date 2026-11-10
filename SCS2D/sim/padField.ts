@@ -30,6 +30,18 @@ const LOWER_TIME = 4;
 const RISE_TIME = 0.5;
 /** How far a held fighter is lowered before it lands, as a share of the way: landing takes it the rest. */
 const HELD_LOWEST = 0.9;
+/**
+ * How near where it will come to rest a held fighter must be, as a share of
+ * its radius, and how near squared up, radians, before it is lowered: only
+ * once it is mostly in place.
+ */
+const SETTLE_RADII = 0.25;
+const SETTLE_ANGLE = 0.15;
+/** Where across the field's reach, from the pad's middle (0) to its edge (1), it starts to weaken, fading to nothing at the edge. */
+const FIELD_FULL = 0.3;
+
+/** Whether the fighter `hold` last held is mostly in place: set by it, for `holdOnPads`. */
+let settled = false;
 
 /**
  * Hold every fighter over the pad it is landing on, for this step: its push
@@ -52,7 +64,8 @@ export function holdOnPads(ships: Ships, bodies: Bodies, dt: number): void {
         }
         if (near[i] !== Infinity && first(ships, i, held) && hold(ships, bodies, i, dt)) {
             ships.padHeld[i] = 1;
-            ships.lowered[i] = min(HELD_LOWEST, was + dt / LOWER_TIME);
+            // Lowered once it is mostly in place; raised again if it is pushed out of it.
+            ships.lowered[i] = settled ? min(HELD_LOWEST, was + dt / LOWER_TIME) : max(0, was - dt / RISE_TIME);
         } else ships.lowered[i] = max(0, was - dt / RISE_TIME);
     }
 }
@@ -109,6 +122,7 @@ function hold(ships: Ships, bodies: Bodies, i: number, dt: number): boolean {
     const host = ships.designs[c]!;
     const spec = host.modules[pad]!.spec;
     const place = modulePlace(bodies, cb, host, pad);
+    settled = false;
 
     // Squared up whichever way round it fits that is nearest how it lies.
     const box = footprintOf(design);
@@ -133,6 +147,7 @@ function hold(ships: Ships, bodies: Bodies, i: number, dt: number): boolean {
     const oy = (box.minY + box.maxY) / 2;
     const gx = place.x - (ox * cos(heading) - oy * sin(heading));
     const gy = place.y - (ox * sin(heading) + oy * cos(heading));
+    settled = length(gx - bodies.x[b]!, gy - bodies.y[b]!) <= SETTLE_RADII * bodies.radius[b]! && off <= SETTLE_ANGLE;
 
     // A critically damped spring to there, moving with the pad, holding it up against a rock the carrier is anchored to.
     const k2 = FIELD_RATE * FIELD_RATE;
@@ -147,9 +162,18 @@ function hold(ships: Ships, bodies: Bodies, i: number, dt: number): boolean {
     }
     const alpha = k2 * angleDelta(heading, want) + 2 * FIELD_RATE * (bodies.angularVel[cb]! - bodies.angularVel[b]!);
 
-    // As hard as the pad can, and its charge lets it.
+    // As hard as the pad can where the fighter is over it, and its charge lets it: as hard as it can
+    // over its middle, weakening towards the edge of its reach, so one skimming its edge slips through.
     const area = spec.length * spec.width;
-    const most = PAD_FIELD_PER_AREA * area * ships.damage.integrity(cb, pad);
+    const full = PAD_FIELD_PER_AREA * area * ships.damage.integrity(cb, pad);
+    const reach = FIELD_REACH_RADII * bodies.radius[b]!;
+    const rx = bodies.x[b]! - place.x;
+    const ry = bodies.y[b]! - place.y;
+    const pc = cos(place.angle);
+    const ps = sin(place.angle);
+    const out = max(abs(rx * pc + ry * ps) / (spec.length / 2 + reach), abs(-rx * ps + ry * pc) / (spec.width / 2 + reach));
+    const fade = clamp((out - FIELD_FULL) / (1 - FIELD_FULL), 0, 1);
+    const most = full * (1 - fade * fade * (3 - 2 * fade));
     const lever = min(spec.length, spec.width) / 2;
     const mass = bodies.mass[b]!;
     let fx = mass * ax;
@@ -171,7 +195,7 @@ function hold(ships: Ships, bodies: Bodies, i: number, dt: number): boolean {
     fy *= share;
     const turn = torque * share;
     // How hard it is working, for the pad's lights.
-    if (most > 0) ships.padPush[i] = min(1, max(length(fx, fy) / most, abs(turn) / (most * lever)));
+    if (full > 0) ships.padPush[i] = min(1, max(length(fx, fy) / full, abs(turn) / (full * lever)));
 
     // On the fighter, and back on whatever holds the carrier still: the carrier, or the rock it is moored to.
     const hb = holdingBody(ships, bodies, c, cb);
