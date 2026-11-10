@@ -3,6 +3,8 @@ import { compileBlueprint, DAMAGE_ENERGY_PER_KG, math } from "../sim/index.js";
 import { capture, Snapshot } from "../sim/snapshot.js";
 import { makeBattle } from "../scenarios/battle.js";
 import { CORVETTE, GUNSHIP } from "../scenarios/blueprints.js";
+import { beamCarrier } from "../scenarios/beamCarrier.js";
+import * as shipOrders from "../sim/shipOrders.js";
 
 /**
  * Two corvettes, which escort each other, with a gunship in their reach: they
@@ -43,5 +45,27 @@ describe("what a ship is escorting", () => {
         }
         expect(ships.hasControl(corvette)).toBe(false);
         expect(ships.coveringOf(corvette)).toBe(-1);
+    });
+});
+
+/** Beam Carrier's fighters escort, and go home to their pads to recharge. */
+describe("a ship on its way to a pad", () => {
+    it("escorts nothing, and its view and its flight agree on that", { timeout: 60_000 }, () => {
+        const run = beamCarrier();
+        const { ships } = run;
+        let landing = 0;
+        for (let s = 0; s < 300 * 60 && landing < 600; s++) {
+            run.step();
+            for (let f = 0; f < ships.alive.length; f++) {
+                if (ships.alive[f] !== 1) continue;
+                // First, as flight asks it: it may decide on a ram as it goes.
+                const order = shipOrders.effectiveOrder(ships, f);
+                expect(shipOrders.escorting(ships, f)).toBe(shipOrders.escorts(order));
+                if (order?.land !== true) continue;
+                landing++;
+                expect(ships.coveringOf(f)).toBe(-1);
+            }
+        }
+        expect(landing).toBeGreaterThan(0);
     });
 });
