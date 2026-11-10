@@ -76,13 +76,13 @@ export const CRIPPLINGS: readonly Crippling[] = [
     { name: "Raider, no main [2, 4]", fighter: RAIDER, carrier: RAIDER_PAD, lost: [2, 4] },
     { name: "Raider, pushes turn it [4, 6]", fighter: RAIDER, carrier: RAIDER_PAD, lost: [4, 6] },
     { name: "Raider, pushes turn it [4, 8, 10]", fighter: RAIDER, carrier: RAIDER_PAD, lost: [4, 8, 10] },
-    { name: "Raider, turns one way, every push spins it [4, 7, 10]", fighter: RAIDER, carrier: RAIDER_PAD, lost: [4, 7, 10] },
-    { name: "Raider, turns one way, every push spins it [1, 4, 10]", fighter: RAIDER, carrier: RAIDER_PAD, lost: [1, 4, 10] },
-    { name: "Dinky, turns anticlockwise only [2, 7, 8]", fighter: DINKY, carrier: DINKY_PAD, lost: [2, 7, 8] },
-    { name: "Dinky, turns clockwise only [1, 2, 9]", fighter: DINKY, carrier: DINKY_PAD, lost: [1, 2, 9] },
+    { name: "Raider,  one way, spins [4, 7, 10]", fighter: RAIDER, carrier: RAIDER_PAD, lost: [4, 7, 10] },
+    { name: "Raider,  one way, spins [1, 4, 10]", fighter: RAIDER, carrier: RAIDER_PAD, lost: [1, 4, 10] },
+    { name: "Dinky,  anticlockwise only [2, 7, 8]", fighter: DINKY, carrier: DINKY_PAD, lost: [2, 7, 8] },
+    { name: "Dinky,  clockwise only [1, 2, 9]", fighter: DINKY, carrier: DINKY_PAD, lost: [1, 2, 9] },
     // Its forward thrusters, gun and hold: what is left is its tank, core, main and the two Side thrusters astern.
     {
-        name: "Dinky, nothing ahead of its tank [2, 3, 6, 8, 9, 10]",
+        name: "Dinky, no front [2, 3, 6, 8, 9, 10]",
         fighter: DINKY,
         carrier: DINKY_PAD,
         lost: [],
@@ -90,7 +90,7 @@ export const CRIPPLINGS: readonly Crippling[] = [
     },
     // The same, coming in to a carrier with superstructure to keep clear of.
     {
-        name: "Dinky Beam on a Beam Carrier, nothing ahead of its tank [2, 3, 6, 8, 9, 10]",
+        name: "Carrier, no front [2, 3, 6, 8, 9, 10]",
         fighter: DINKY_BEAM,
         carrier: emptyPads(BEAM_CARRIER),
         lost: [],

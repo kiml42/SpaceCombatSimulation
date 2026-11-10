@@ -96,7 +96,7 @@ exports[`Rock Landing > Raider, pushes turn it [4, 8, 10] 1`] = `
 }
 `;
 
-exports[`Rock Landing > Raider, turns one way, every push spins it [1, 4, 10] 1`] = `
+exports[`Rock Landing > Raider,  one way, spins [1, 4, 10] 1`] = `
 {
   "contacts": 16037,
   "landed": [
@@ -112,7 +112,7 @@ exports[`Rock Landing > Raider, turns one way, every push spins it [1, 4, 10] 1`
 }
 `;
 
-exports[`Rock Landing > Raider, turns one way, every push spins it [4, 7, 10] 1`] = `
+exports[`Rock Landing > Raider,  one way, spins [4, 7, 10] 1`] = `
 {
   "contacts": 47,
   "landed": [

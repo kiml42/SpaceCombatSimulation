@@ -19,10 +19,10 @@ type Turn = "one way" | "one weak";
 const TURNS: Record<string, Turn> = {
     "Raider, one turn far weaker [1, 8]": "one weak",
     "Raider, one turn far weaker [3, 7]": "one weak",
-    "Raider, turns one way, every push spins it [4, 7, 10]": "one way",
-    "Raider, turns one way, every push spins it [1, 4, 10]": "one way",
-    "Dinky, turns anticlockwise only [2, 7, 8]": "one way",
-    "Dinky, turns clockwise only [1, 2, 9]": "one way",
+    "Raider,  one way, spins [4, 7, 10]": "one way",
+    "Raider,  one way, spins [1, 4, 10]": "one way",
+    "Dinky,  anticlockwise only [2, 7, 8]": "one way",
+    "Dinky,  clockwise only [1, 2, 9]": "one way",
 };
 
 describe("Crippled Landing", () => {
