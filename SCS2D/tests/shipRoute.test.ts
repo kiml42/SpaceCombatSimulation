@@ -45,4 +45,19 @@ describe("a route round what is in the way", () => {
         // Outside both: round the far side of one or the other, not between them.
         expect(Math.abs(at.y)).toBeGreaterThan(150 + stone.radius);
     });
+
+    it("goes straight for a target beside a rock, inside the clearance it keeps from it", () => {
+        const stone = rock(200);
+        const run = makeBattle({ seed: 1 }, (ships, world) => {
+            ships.spawn(world, { design: stone, x: 0, y: 0, team: NEUTRAL_TEAM });
+            const ship = ships.spawn(world, { design: compileBlueprint(GUNSHIP), x: 0, y: -4000, angle: math.HALF_PI, team: 0 });
+            ships.spawn(world, { design: compileBlueprint(GUNSHIP), x: 0, y: -300, angle: -math.HALF_PI, team: 1 });
+            return { ship };
+        });
+        // Past choosing what to fight, which comes first.
+        for (let t = 0; t < 3; t++) run.step();
+        const at = { x: 0, y: 0, vx: 0, vy: 0, radius: 0 };
+        // Not round the rock's side to come at it, which planning on the whole of its clearance asked.
+        expect(cornerOf(run.ships, run.world.bodies, run.ship, at)).toBe(false);
+    });
 });
