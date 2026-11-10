@@ -419,7 +419,7 @@ export function landOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
  * to it, into `wayAngle`, and where that way leaves the circle round carrier
  * body `tb` it keeps outside, into `entryX`, `entryY`: the one reached
  * soonest going round the carrier, unless the one it is already taking is
- * nearly as soon, or it is already inside that circle on one. The ways were worked out once, for the carrier as it was
+ * nearly as soon, or it is inside that circle and in front of it. The ways were worked out once, for the carrier as it was
  * compiled, and turn with the pad into whatever hull it is now.
  */
 export function wayIn(
@@ -440,10 +440,10 @@ export function wayIn(
     const compiled: readonly PadApproach[] = origin.design.approaches ?? [];
     let best = NaN;
     let soonest = Infinity;
-    // Inside the circle, round the carrier means nothing: it keeps the way it is on.
+    // Inside the circle, round the carrier means nothing: it keeps the way it is on, while still in front of it.
     const ring = bodies.radius[tb]! + 2 * bodies.radius[b]!;
     const inside = length(bodies.x[b]! - bodies.x[tb]!, bodies.y[b]! - bodies.y[tb]!) < ring;
-    if (inside && !Number.isNaN(was)) {
+    if (inside && !Number.isNaN(was) && inFront(bodies, b, px, py, was + bodies.angle[tb]!)) {
         soonest = -Infinity;
         best = was + bodies.angle[tb]!;
     }
@@ -476,6 +476,11 @@ export function wayIn(
     ships.landingWayBody[i] = tb;
     ships.wayAngle = best;
     wayCost(ships, bodies, b, tb, px, py, best, NaN);
+}
+
+/** Whether body `b` is out in front of the pad at `px`, `py` along the way at `angle`. */
+function inFront(bodies: Bodies, b: number, px: number, py: number, angle: number): boolean {
+    return (bodies.x[b]! - px) * cos(angle) + (bodies.y[b]! - py) * sin(angle) > 0;
 }
 
 /**
