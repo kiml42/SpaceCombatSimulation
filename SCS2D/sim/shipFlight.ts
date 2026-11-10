@@ -143,6 +143,9 @@ function moduleSizes(design: ShipDesign): Float64Array {
  * (§2), not the pilot's; it only turns them into a demand wrench for the
  * allocator. There is no evasion, approach angle or propellant budget.
  */
+/** How long a fighter a pad's field has taken hold of takes to hand itself over, easing its engines off, seconds. */
+const HANDOFF_TIME = 0.5;
+
 export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid?: SpatialGrid): void {
     ships.dodgingFrom[i] = -1;
     const b = bodies.indexOf(ships.bodyIds[i]!);
@@ -187,9 +190,12 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
         }
     }
 
-    // Sat on a pad, however it got there: the pad lets it go, and its engines
-    // would only push the carrier and burn the deck.
-    if (ships.onPad(i, b)) {
+    // Sat on a pad, however it got there, or held over one by its field: the
+    // pad lets it go or sets it down, and its engines would only fight it and
+    // burn the deck.
+    // Handed over to a pad's field over `HANDOFF_TIME`, its engines easing off as it is (`Ships.command`).
+    ships.handoff[i] = ships.padHeld[i] === 1 ? min(1, ships.handoff[i]! + dt / HANDOFF_TIME) : 0;
+    if (ships.onPad(i, b) || ships.handoff[i] === 1) {
         ships.idle(i);
         return;
     }
@@ -779,9 +785,11 @@ export function urge(ships: Ships, weight: number, vx: number, vy: number, ax = 
 /**
  * How ship `i`, docking, sees the point it is docking with accelerating, from
  * that point's velocity now and when it last looked, into `dockAx`, `dockAy`.
- * A look that is not the step after the last starts afresh.
+ * A look that is not the step after the last starts afresh; a second in the same step changes nothing.
  */
 export function dockingAccel(ships: Ships, i: number, vx: number, vy: number, dt: number): void {
+    // Seen once a step, whoever asks: the pilot coming in and the pad's field holding it both do.
+    if (ships.dockSeenAt[i] === ships.now) return;
     if (ships.dockSeenAt[i] === ships.now - 1 && dt > 0) {
         const settle = min(1, dt / DOCK_ACCEL_SETTLE);
         ships.dockAx[i] = ships.dockAx[i]! + ((vx - ships.dockSeenVx[i]!) / dt - ships.dockAx[i]!) * settle;

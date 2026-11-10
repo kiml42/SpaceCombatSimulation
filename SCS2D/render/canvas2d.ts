@@ -50,7 +50,7 @@ import {
 } from "../sim/index.js";
 import { BACKGROUND, GRID, WELL, WELL_ARM_PX, WELL_PULLS } from "./backdrop.js";
 import { barrelLines, MIN_BARREL_PX } from "./barrels.js";
-import { FIGHTER_SHADOW_M, LANDED_SHADOW_M, THICK_SHADOW_M, type Light } from "./light.js";
+import { fighterHeight, THICK_SHADOW_M, type Light } from "./light.js";
 import { RoundedParts, type Level } from "./roundedLights.js";
 import {
     BEVEL_DARK,
@@ -978,7 +978,8 @@ function drawHull(
             ctx.restore();
         }
         if (spec.kind === "pad") {
-            // Its landing square is drawn with its fill (`fillModule`).
+            // Its landing square is drawn with its fill (`fillModule`); its lights, lit by its field, here.
+            drawPadLights(ctx, spec, working ? (ship.padField?.[i] ?? 0) : 0);
         } else if (
             spec.kind !== "engine" &&
             !isHullMount(spec.kind) &&
@@ -2456,6 +2457,43 @@ function drawCoreLight(ctx: CanvasRenderingContext2D, design: ShipDesign, i: num
     ctx.restore();
 }
 
+/** A pad's lights, across, as a share of its narrower side. */
+const PAD_LIGHT = 0.07;
+/** How bright a lit pad light is at the least, before how hard its field is working adds the rest. */
+const PAD_LIGHT_LEAST = 0.4;
+
+/**
+ * A pad's four lights, one inside each corner of its landing square: dark,
+ * or green while its field is holding a fighter, brighter the harder it is
+ * working (`field`, 0 to 1), the green a gun's ready light and a core's are.
+ */
+function drawPadLights(ctx: CanvasRenderingContext2D, spec: ModuleSpec, field: number): void {
+    const mark = padMark(spec);
+    const r = (min(spec.length, spec.width) * PAD_LIGHT) / 2;
+    const left = mark.x + mark.line / 2 + r * 1.5;
+    const right = mark.x + mark.width - mark.line / 2 - r * 1.5;
+    const top = mark.y + mark.line / 2 + r * 1.5;
+    const bottom = mark.y + mark.height - mark.line / 2 - r * 1.5;
+    ctx.save();
+    for (let k = 0; k < 4; k++) {
+        const x = k % 2 === 0 ? left : right;
+        const y = k < 2 ? top : bottom;
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = FUEL_TRACK;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, TAU);
+        ctx.fill();
+        if (!(field > 0)) continue;
+        const bright = PAD_LIGHT_LEAST + (1 - PAD_LIGHT_LEAST) * min(1, field);
+        ctx.fillStyle = LOAD_READY;
+        ctx.globalAlpha = bright;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, TAU);
+        ctx.fill();
+    }
+    ctx.restore();
+}
+
 /** Smallest a core is drawn, across, before its ship's name is written on it, pixels. */
 const NAME_MIN_CORE_PX = 18;
 /** The smallest a name is worth writing, pixels. */
@@ -2618,7 +2656,7 @@ function inLight(ctx: CanvasRenderingContext2D, light: Light): void {
  */
 function heightOf(ship: ShipView): number {
     if (!ship.currentStructure.fighter) return 0;
-    return ship.riding === true ? LANDED_SHADOW_M : FIGHTER_SHADOW_M;
+    return fighterHeight(ship.riding, ship.lowered);
 }
 
 /**

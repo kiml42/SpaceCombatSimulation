@@ -47,6 +47,7 @@ import * as shipSupply from "./shipSupply.js";
 import * as shipBreakup from "./shipBreakup.js";
 import * as shipForage from "./shipForage.js";
 import * as shipDocking from "./shipDocking.js";
+import { holdOnPads } from "./padField.js";
 import * as shipBuild from "./shipBuild.js";
 import * as shipFlight from "./shipFlight.js";
 import * as shipAim from "./shipAim.js";
@@ -731,6 +732,16 @@ export class Ships {
     readonly viaY: number[] = [];
     readonly destX: number[] = [];
     readonly destY: number[] = [];
+    /** Whether each fighter is held by the field of the pad it is landing on this step (`padField`). */
+    readonly padHeld: number[] = [];
+    /** How far each fighter has been lowered towards a pad, 0 flying to 1 landed: for the view, whose shadow it draws in. */
+    readonly lowered: number[] = [];
+    /** How hard the field holding each fighter is pushing or turning it, as a share of the most its pad can, 0 to 1: for the view, whose pad's lights it brightens. */
+    readonly padPush: number[] = [];
+    /** How far through handing itself over to a pad's field each fighter is, 0 to 1 (`shipFlight.flyOne`). */
+    readonly handoff: number[] = [];
+    /** Scratch for `padField`: how far each fighter is from the middle of the pad it is over and landing on, or `Infinity`. */
+    readonly padReach: number[] = [];
     /** What each ship's heaviest dodge this step is from, or -1; and how far off it wants that, centre to centre, m. */
     readonly dodgingFrom: number[] = [];
     readonly dodgingRoom: number[] = [];
@@ -1491,6 +1502,11 @@ export class Ships {
         this.viaY.push(NaN);
         this.destX.push(NaN);
         this.destY.push(NaN);
+        this.padHeld.push(0);
+        this.lowered.push(0);
+        this.padReach.push(Infinity);
+        this.padPush.push(0);
+        this.handoff.push(0);
         this.dodgingFrom.push(-1);
         this.dodgingRoom.push(0);
         this.dodgingTouch.push(0);
@@ -2077,6 +2093,8 @@ export class Ships {
                 this.demandTorque[i]! + this.recoil[i]! + this.leakTorque[i]!,
             );
         }
+        // Pads' fields on the fighters landing on them, and back on their carriers.
+        holdOnPads(this, bodies, world.dt);
     }
 
     /**
@@ -2174,6 +2192,13 @@ export class Ships {
             shipForage.forage(this, world, bodies, i);
             shipAim.decideTurrets(this, world, bodies, i);
             shipFlight.flyOne(this, dt, bodies, i, grid);
+            const easing = 1 - this.handoff[i]!;
+            if (easing < 1) {
+                for (let t = 0; t < this.throttles[i]!.length; t++) this.throttles[i]![t] = this.throttles[i]![t]! * easing;
+                this.demandFx[i] = this.demandFx[i]! * easing;
+                this.demandFy[i] = this.demandFy[i]! * easing;
+                this.demandTorque[i] = this.demandTorque[i]! * easing;
+            }
             shipDecide.commitOne(this, bodies, i);
             shipAim.trainOne(this, bodies, i);
             shipFire.reloadOne(this, dt, bodies, i);
