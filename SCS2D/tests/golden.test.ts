@@ -92,8 +92,8 @@ const GOLDEN: Record<ScenarioName, string> = {
     rearm: "1a591814",
     // ships=3 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=12 severed=2 culled=0 scrap=0.2t · 90.0 µs/step
     tanker: "69ab665b",
-    // ships=20 inFlight=0 p.fired=16 p.hits=30 b.fired=244 b.hits=8594 contacts=10 severed=1 culled=0 scrap=15.6t · 729.6 µs/step
-    beamCarrier: "cee4560c",
+    // ships=20 inFlight=0 p.fired=16 p.hits=30 b.fired=234 b.hits=8479 contacts=14 severed=1 culled=0 scrap=15.9t · 734.5 µs/step
+    beamCarrier: "ef903100",
     // ships=2 inFlight=0 p.fired=54 p.hits=181 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=9.3t · 40.9 µs/step
     passes: "e721914a",
     // ships=2 inFlight=0 p.fired=2 p.hits=8 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=9.3t · 60.6 µs/step
