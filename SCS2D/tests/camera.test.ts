@@ -460,12 +460,14 @@ describe("picking out a ship", () => {
         expect(selectionBounds(scene, 3)).toEqual({ minX: -20, minY: -20, maxX: 520, maxY: 320 });
     });
 
-    it("takes in the asteroid or hulk the ship is scavenging, but not what it is on any other errand", () => {
+    it("takes in what the ship is scavenging or docking with, but not what it is on any other errand", () => {
         const scene = picked();
         scene.ships[0]!.doing = "scavenge";
         scene.ships[0]!.doingTo = 9;
         expect(selectionBounds(scene, 3)).toEqual({ minX: -20, minY: -20, maxX: 520, maxY: 320 });
         scene.ships[0]!.doing = "dock";
+        expect(selectionBounds(scene, 3)).toEqual({ minX: -20, minY: -20, maxX: 520, maxY: 320 });
+        scene.ships[0]!.doing = "deliver";
         expect(selectionBounds(scene, 3)).toEqual({ minX: -20, minY: -20, maxX: 520, maxY: 20 });
     });
 });

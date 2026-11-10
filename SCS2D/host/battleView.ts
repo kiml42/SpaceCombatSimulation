@@ -83,7 +83,7 @@ function viewByBody(view: Snapshot, body: number): ShipView | null {
     return null;
 }
 
-/** What framing a selection takes in: each picked ship, and what each is fighting and escorting. */
+/** What framing a selection takes in: each picked ship, and what each is fighting, escorting, scavenging or docking with. */
 function pickedBounds(view: Snapshot, picked: readonly number[]): Bounds | null {
     let out: Bounds | null = null;
     for (const ship of picked) {
