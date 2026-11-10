@@ -1,0 +1,193 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Crippled Landing > Dinky Beam on a Beam Carrier, nothing ahead of its tank [2, 3, 6, 8, 9, 10] 1`] = `
+{
+  "contacts": 12,
+  "landed": [
+    "not by 300 s",
+    "not by 300 s",
+    "not by 300 s",
+    "not by 300 s",
+    "not by 300 s",
+    "not by 300 s",
+    "not by 300 s",
+    "not by 300 s",
+  ],
+}
+`;
+
+exports[`Crippled Landing > Dinky, nothing ahead of its tank [2, 3, 6, 8, 9, 10] 1`] = `
+{
+  "contacts": 0,
+  "landed": [
+    "169.13 s",
+    "79.50 s",
+    "65.40 s",
+    "83.40 s",
+    "53.38 s",
+    "55.82 s",
+    "56.12 s",
+    "55.87 s",
+  ],
+}
+`;
+
+exports[`Crippled Landing > Dinky, turns anticlockwise only [2, 7, 8] 1`] = `
+{
+  "contacts": 0,
+  "landed": [
+    "47.48 s",
+    "49.05 s",
+    "48.98 s",
+    "48.85 s",
+    "47.75 s",
+    "47.17 s",
+    "47.15 s",
+    "47.17 s",
+  ],
+}
+`;
+
+exports[`Crippled Landing > Dinky, turns clockwise only [1, 2, 9] 1`] = `
+{
+  "contacts": 0,
+  "landed": [
+    "50.68 s",
+    "48.78 s",
+    "48.37 s",
+    "48.40 s",
+    "48.90 s",
+    "49.37 s",
+    "48.93 s",
+    "49.65 s",
+  ],
+}
+`;
+
+exports[`Crippled Landing > Raider, no main [2, 4] 1`] = `
+{
+  "contacts": 0,
+  "landed": [
+    "90.65 s",
+    "111.93 s",
+    "185.20 s",
+    "202.48 s",
+    "114.58 s",
+    "127.67 s",
+    "240.13 s",
+    "78.87 s",
+  ],
+}
+`;
+
+exports[`Crippled Landing > Raider, no main [4] 1`] = `
+{
+  "contacts": 0,
+  "landed": [
+    "86.73 s",
+    "65.27 s",
+    "58.57 s",
+    "57.17 s",
+    "57.02 s",
+    "85.03 s",
+    "88.68 s",
+    "66.17 s",
+  ],
+}
+`;
+
+exports[`Crippled Landing > Raider, one turn far weaker [1, 8] 1`] = `
+{
+  "contacts": 0,
+  "landed": [
+    "50.43 s",
+    "47.27 s",
+    "44.28 s",
+    "44.70 s",
+    "46.23 s",
+    "46.98 s",
+    "46.02 s",
+    "47.97 s",
+  ],
+}
+`;
+
+exports[`Crippled Landing > Raider, one turn far weaker [3, 7] 1`] = `
+{
+  "contacts": 0,
+  "landed": [
+    "46.80 s",
+    "46.65 s",
+    "43.72 s",
+    "42.95 s",
+    "43.58 s",
+    "42.38 s",
+    "41.90 s",
+    "43.23 s",
+  ],
+}
+`;
+
+exports[`Crippled Landing > Raider, pushes turn it [4, 6] 1`] = `
+{
+  "contacts": 0,
+  "landed": [
+    "94.45 s",
+    "94.75 s",
+    "95.73 s",
+    "96.83 s",
+    "97.33 s",
+    "97.18 s",
+    "96.32 s",
+    "95.28 s",
+  ],
+}
+`;
+
+exports[`Crippled Landing > Raider, pushes turn it [4, 8, 10] 1`] = `
+{
+  "contacts": 0,
+  "landed": [
+    "95.78 s",
+    "96.07 s",
+    "97.07 s",
+    "98.90 s",
+    "99.28 s",
+    "99.20 s",
+    "97.72 s",
+    "96.63 s",
+  ],
+}
+`;
+
+exports[`Crippled Landing > Raider, turns one way, every push spins it [1, 4, 10] 1`] = `
+{
+  "contacts": 0,
+  "landed": [
+    "181.67 s",
+    "148.68 s",
+    "138.15 s",
+    "136.47 s",
+    "138.50 s",
+    "135.38 s",
+    "136.27 s",
+    "148.38 s",
+  ],
+}
+`;
+
+exports[`Crippled Landing > Raider, turns one way, every push spins it [4, 7, 10] 1`] = `
+{
+  "contacts": 0,
+  "landed": [
+    "189.97 s",
+    "161.68 s",
+    "148.48 s",
+    "144.00 s",
+    "150.33 s",
+    "145.17 s",
+    "145.63 s",
+    "153.85 s",
+  ],
+}
+`;

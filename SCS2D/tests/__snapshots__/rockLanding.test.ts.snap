@@ -1,0 +1,145 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Rock Landing > Raider, no main [2, 4] 1`] = `
+{
+  "contacts": 12051,
+  "landed": [
+    "not by 150 s",
+    "not by 150 s",
+    "77.63 s",
+    "not by 150 s",
+    "not by 150 s",
+    "130.53 s",
+    "not by 150 s",
+    "not by 150 s",
+  ],
+}
+`;
+
+exports[`Rock Landing > Raider, no main [4] 1`] = `
+{
+  "contacts": 9660,
+  "landed": [
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+  ],
+}
+`;
+
+exports[`Rock Landing > Raider, one turn far weaker [1, 8] 1`] = `
+{
+  "contacts": 7420,
+  "landed": [
+    "57.58 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "48.27 s",
+    "53.30 s",
+    "51.77 s",
+  ],
+}
+`;
+
+exports[`Rock Landing > Raider, one turn far weaker [3, 7] 1`] = `
+{
+  "contacts": 3227,
+  "landed": [
+    "48.88 s",
+    "not by 150 s",
+    "46.00 s",
+    "not by 150 s",
+    "not by 150 s",
+    "49.37 s",
+    "49.82 s",
+    "not by 150 s",
+  ],
+}
+`;
+
+exports[`Rock Landing > Raider, pushes turn it [4, 6] 1`] = `
+{
+  "contacts": 0,
+  "landed": [
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+  ],
+}
+`;
+
+exports[`Rock Landing > Raider, pushes turn it [4, 8, 10] 1`] = `
+{
+  "contacts": 0,
+  "landed": [
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+  ],
+}
+`;
+
+exports[`Rock Landing > Raider, turns one way, every push spins it [1, 4, 10] 1`] = `
+{
+  "contacts": 1679,
+  "landed": [
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+  ],
+}
+`;
+
+exports[`Rock Landing > Raider, turns one way, every push spins it [4, 7, 10] 1`] = `
+{
+  "contacts": 40,
+  "landed": [
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+    "not by 150 s",
+  ],
+}
+`;
+
+exports[`Rock Landing > Raider, undamaged 1`] = `
+{
+  "contacts": 4,
+  "landed": [
+    "38.58 s",
+    "47.73 s",
+    "25.80 s",
+    "not by 150 s",
+    "26.03 s",
+    "43.18 s",
+    "28.92 s",
+    "51.82 s",
+  ],
+}
+`;
