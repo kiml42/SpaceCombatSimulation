@@ -35,6 +35,23 @@ export function heldOrder(ships: Ships, i: number): Readonly<Order> | undefined 
     return order;
 }
 
+/** Whether a ship flying `order` stays with a consort: not while it flees, rams, or closes on a pad, port or source. */
+export function escorts(order: Readonly<Order> | undefined): boolean {
+    return order === undefined || !(order.flee === true || order.ram || order.grapple || order.land || order.dock);
+}
+
+/** `escorts(effectiveOrder(ships, i))`, without writing the standing order, so the view can ask. */
+export function escorting(ships: Ships, i: number): boolean {
+    const given = getCurrentOrder(ships, i);
+    if (given?.defend === true) return true;
+    if (given !== undefined && given.errand === undefined) return escorts(given);
+    const source = ships.salvaging[i]!;
+    if (source !== NO_TARGET && ships.alive[source] === 1) return false;
+    if (ships.withdrawing[i] === 1) return false;
+    const target = ships.chosen[i]!;
+    return target === NO_TARGET || ships.alive[target] !== 1 || !ships.hasControl(target) || ships.ramming[i] !== target;
+}
+
 /**
  * What this ship is actually doing: what it was told, or failing that what
  * its doctrine makes of the fight it picked.

@@ -163,6 +163,11 @@ export function decide(ships: Ships, world: World, bodies: Bodies, i: number): v
     }
     ships.withdrawing[i] = 0;
     ships.hiding[i] = NO_TARGET;
+    // Landing or the like, it would not fly a consort, so it does not look for one.
+    if (!shipOrders.escorting(ships, i)) {
+        ships.consort[i] = NO_TARGET;
+        return;
+    }
     if (defending !== NO_TARGET || !(doctrine.escortWeight > 0)) return;
 
     ships.choice.begin();

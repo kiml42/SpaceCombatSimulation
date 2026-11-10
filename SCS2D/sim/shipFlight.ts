@@ -297,7 +297,7 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
     if (order?.grapple === true) avoid(ships, bodies, i, b, target, NO_TARGET, true);
     if (order?.ram === true) avoid(ships, bodies, i, b, target, NO_TARGET, false, true);
     if (order?.land === true) avoid(ships, bodies, i, b, target, NO_TARGET, false, false, true);
-    if (!fleeing && (order === undefined || !(order.ram || order.grapple || order.land || order.dock))) {
+    if (shipOrders.escorts(order)) {
         const covering = cover(ships, bodies, i, b);
         if (target === NO_TARGET && covering >= 0) {
             const cb = bodies.indexOf(ships.bodyIds[covering]!);
