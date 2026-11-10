@@ -19,6 +19,7 @@ const ROUTE: Spot = { x: 0, y: 0, vx: 0, vy: 0, radius: 0 };
 import * as shipBuild from "./shipBuild.js";
 import * as shipFlight from "./shipFlight.js";
 import * as shipRoute from "./shipRoute.js";
+import { HELD_LOWEST } from "./padField.js";
 import * as shipDecide from "./shipDecide.js";
 import { WELD_SETTLE } from "./shipWeld.js";
 import { URGE_REFERENCE, stoppingSpeed } from "./shipFlight.js";
@@ -778,7 +779,9 @@ export function land(ships: Ships, world: World): number {
         if (ships.damage.isProtected(b) || ships.damage.isProtected(cb) || shipSupply.threatened(ships, bodies, i, cb, true)) continue;
         const host = ships.designs[c]!;
         const place = modulePlace(bodies, cb, host, pad);
-        if (ships.padHeld[i] !== 1) continue;
+        // Held by a powered pad, it lands once lowered all the way, which it is only while in place and squared up;
+        // a pad with no charge to hold it takes it as it settles, at any angle it fits.
+        if (ships.padHeld[i] === 1 && ships.lowered[i]! < HELD_LOWEST) continue;
         if (length(bodies.vx[b]! - place.vx, bodies.vy[b]! - place.vy) > PAD_SPEED) continue;
         if (abs(bodies.angularVel[b]! - bodies.angularVel[cb]!) > PAD_SPIN) continue;
         if (!shipBuild.within(bodies, b, ships.designs[i]!, place, host.modules[pad]!.spec)) continue;

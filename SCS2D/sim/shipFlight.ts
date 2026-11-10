@@ -143,6 +143,9 @@ function moduleSizes(design: ShipDesign): Float64Array {
  * (§2), not the pilot's; it only turns them into a demand wrench for the
  * allocator. There is no evasion, approach angle or propellant budget.
  */
+/** How long a fighter a pad's field has taken hold of takes to hand itself over, easing its engines off, seconds. */
+const HANDOFF_TIME = 0.5;
+
 export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid?: SpatialGrid): void {
     ships.dodgingFrom[i] = -1;
     const b = bodies.indexOf(ships.bodyIds[i]!);
@@ -190,7 +193,9 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
     // Sat on a pad, however it got there, or held over one by its field: the
     // pad lets it go or sets it down, and its engines would only fight it and
     // burn the deck.
-    if (ships.onPad(i, b) || ships.padHeld[i] === 1) {
+    // Handed over to a pad's field over `HANDOFF_TIME`, its engines easing off as it is (`Ships.command`).
+    ships.handoff[i] = ships.padHeld[i] === 1 ? min(1, ships.handoff[i]! + dt / HANDOFF_TIME) : 0;
+    if (ships.onPad(i, b) || ships.handoff[i] === 1) {
         ships.idle(i);
         return;
     }

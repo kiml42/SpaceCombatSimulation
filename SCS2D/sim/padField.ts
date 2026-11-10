@@ -23,13 +23,13 @@ export const PAD_FIELD_PER_AREA = 400;
 export const PAD_FIELD_POWER_PER_NEWTON = 50;
 /** How quickly the field brings a fighter to where it should be, rad/s: a critically damped spring's. */
 const FIELD_RATE = 1;
-/** How far out from the pad's edge, in the fighter's own radii, the field reaches. */
-const FIELD_REACH_RADII = 1;
+/** How far out from the pad's edge, in the fighter's own radii, the field reaches: none, so it takes hold only of one whose middle is over the pad. */
+const FIELD_REACH_RADII = 0;
 /** How long a fighter held by a pad takes to be lowered most of the way to it, and how quickly one let go rises, seconds. */
-const LOWER_TIME = 4;
+const LOWER_TIME = 2;
 const RISE_TIME = 0.5;
-/** How far a held fighter is lowered before it lands, as a share of the way: landing takes it the rest. */
-const HELD_LOWEST = 0.9;
+/** How far a held fighter is lowered before it lands, as a share of the way: landing takes it the rest, and waits for it. */
+export const HELD_LOWEST = 0.9;
 /**
  * How near where it will come to rest a held fighter must be, as a share of
  * its radius, and how near squared up, radians, before it is lowered: only

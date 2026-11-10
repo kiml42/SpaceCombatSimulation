@@ -41,7 +41,7 @@ describe("a pad's field", () => {
         const fb = bodies.indexOf(run.ships.body(run.f));
         const cb = bodies.indexOf(run.ships.body(run.c));
         // The field alone: the fighter's pilot lets go once held, and the carrier has nothing to do.
-        // Steps well into a hold: a step's first half is pushed by the last one's forces, which held a pilot still flying.
+        // Steps well into a hold: the pilot eases its engines off over the first half second (30 steps), and a step's first half is pushed by the last one's forces.
         let checked = 0;
         let heldFor = 0;
         for (let t = 0; t < 600 && run.ships.parkedCarrier(run.f) < 0; t++) {
@@ -49,7 +49,7 @@ describe("a pad's field", () => {
             const py = bodies.mass[fb]! * bodies.vy[fb]! + bodies.mass[cb]! * bodies.vy[cb]!;
             run.step();
             heldFor = run.ships.padHeld[run.f] === 1 ? heldFor + 1 : 0;
-            if (heldFor < 3 || run.ships.parkedCarrier(run.f) >= 0) continue;
+            if (heldFor < 32 || run.ships.parkedCarrier(run.f) >= 0) continue;
             const qx = bodies.mass[fb]! * bodies.vx[fb]! + bodies.mass[cb]! * bodies.vx[cb]!;
             const qy = bodies.mass[fb]! * bodies.vy[fb]! + bodies.mass[cb]! * bodies.vy[cb]!;
             expect(Math.abs(qx - px)).toBeLessThan(1e-6 * bodies.mass[cb]!);
