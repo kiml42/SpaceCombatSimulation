@@ -248,7 +248,7 @@ describe("the Pixi hull layer", () => {
         expect(shadow.length / 2).toBe(6);
     });
 
-    it("stands an asteroid's thin rock above any ship, its thick rock and kernel each a step higher, each shadowing what is below", () => {
+    it("lays an asteroid's thin rock level with a ship's deck, its thick rock and kernel each a step higher, each shadowing what is below", () => {
         const field = asteroidField();
         const seen = capture(new Snapshot(), field.world, field.ships, field.projectiles, field.beams);
         const layer = layerOf();
@@ -271,10 +271,10 @@ describe("the Pixi hull layer", () => {
         expect(layer.rock.shown().length).toBe(thin);
         expect(layer.thickRock.shown().length).toBe(thick);
         expect(layer.kernel.shown().length).toBe(kernel);
-        expect(layer.rockShadows.shapes.length).toBeGreaterThanOrEqual(thin + thick);
+        expect(layer.rockShadows.shapes.length).toBe(layer.thickRockShadows.shapes.length);
         expect(layer.thickRockShadows.shapes.length).toBeGreaterThanOrEqual(thick);
         expect(layer.kernelShadows.shapes.length).toBeGreaterThanOrEqual(kernel);
-        // Rock shades ships' hulls; thick rock, the thin; a kernel, the rock round it.
+        // Thick rock shades ships' hulls and thin rock alike, which lie level; a kernel, the rock round it.
         expect(layer.rockShadows.layer.mask).toBe(layer.hullUnderRock.container);
         expect(layer.thickRockShadows.layer.mask).toBe(layer.thinRock.container);
         expect(layer.kernelShadows.layer.mask).toBe(layer.rockUnderKernel.container);
