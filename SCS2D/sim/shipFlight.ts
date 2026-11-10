@@ -386,7 +386,15 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
     // Planned on the torque that stops the turn, not the one that starts it.
     // On a lopsided layout those differ, and a turn planned on the stronger
     // overshoots past half round, where the error wraps and it goes round again.
-    const brakeTorque = layout.maxTorque(error >= 0 ? -1 : 1);
+    // And on what of it is left while it pushes as it means to: thrusters that push and turn it the
+    // wrong way take their share, and a turn planned on the whole overshoots. The helm gives up push
+    // for no more than `TURN_SHARE` of a starved turn, so it plans on no less.
+    const brakeSense = error >= 0 ? -1 : 1;
+    let brakeTorque = layout.maxTorque(brakeSense);
+    if (spin === 0 && brakeTorque > 0 && (localFx !== 0 || localFy !== 0)) {
+        layout.allocate(localFx, localFy, brakeSense * brakeTorque, ships.throttles[i]!, ships.allocation);
+        brakeTorque = clamp(brakeSense * ships.allocation.torque, TURN_SHARE * brakeTorque, brakeTorque);
+    }
     const maxAlpha = inertia > 0 ? brakeTorque / inertia : 0;
     const turn = min(brakingRate(error, maxAlpha, dt), (error >= 0 ? error : -error) / HEADING_SETTLE_TIME);
     let wantRate = error >= 0 ? turn : -turn;
