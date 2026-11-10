@@ -548,8 +548,6 @@ export function squareUp(ships: Ships, bodies: Bodies, i: number, b: number, tb:
     const turn = bodies.angularVel[b]!;
     const reachX = tipX - bodies.x[b]!;
     const reachY = tipY - bodies.y[b]!;
-    // Held against the source's pull rather than lagging behind it.
-    wellPullOn(ships, bodies, b, tb);
     // Carried round with a spinning source rather than flung off it.
     const swing = spin * spin;
     shipFlight.urge(
@@ -557,8 +555,8 @@ export function squareUp(ships: Ships, bodies: Bodies, i: number, b: number, tb:
         URGE_REFERENCE,
         vx + wantX + turn * reachY,
         vy + wantY - turn * reachX,
-        -ships.partAt.x - swing * (bodies.x[b]! - bodies.x[tb]!),
-        -ships.partAt.y - swing * (bodies.y[b]! - bodies.y[tb]!),
+        -swing * (bodies.x[b]! - bodies.x[tb]!),
+        -swing * (bodies.y[b]! - bodies.y[tb]!),
     );
     return closing;
 }

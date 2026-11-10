@@ -892,11 +892,14 @@ export function orbit(ships: Ships, bodies: Bodies, i: number, b: number, at: Sp
     const speed = free > 0 ? free : min(length(rvx, rvy), approach.approachSpeed);
     const clear = bodies.radius[rb]! + ships.designs[i]!.radius * (1 + approach.separationRadii);
     const out = r < clear ? (clear - r) / approach.responseTime : 0;
+    // Falling round it: the pull, which the helm leaves to bend its way, is all it speeds up by.
     urge(
         ships,
         approach.orbitWeight * URGE_REFERENCE * ships.blockDepth,
         bodies.vx[rb]! - sense * uy * speed + ux * out,
         bodies.vy[rb]! + sense * ux * speed + uy * out,
+        ships.partAt.x,
+        ships.partAt.y,
     );
 }
 
