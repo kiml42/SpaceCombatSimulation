@@ -31,6 +31,9 @@ import { URGE_REFERENCE, stoppingSpeed } from "./shipFlight.js";
 /** The most a fighter may be moving against a pad and still land on it, m/s: settling, not arriving. */
 export const PAD_SPEED = 1;
 
+/** The fastest a fighter may be turning against a pad and still land on it, rad/s: settled, not spinning. */
+export const PAD_SPIN = 0.5;
+
 /** The most two ports may be closing at and still mate, m/s: a nudge, not a bump. */
 export const PORT_SPEED = 1;
 
@@ -747,7 +750,7 @@ export function ownMass(ships: Ships, i: number, b: number): number {
 /**
  * Take aboard every fighter that has settled onto the pad it was making for:
  * its whole outline inside the pad's, and moving with it to within
- * `PAD_SPEED`. Say how many landed.
+ * `PAD_SPEED` and turning with it to within `PAD_SPIN`. Say how many landed.
  *
  * A fighter flies above a deck, so it never touches a pad; landing is the
  * two meeting at the boundary between the layers, and no commitment.
@@ -770,6 +773,7 @@ export function land(ships: Ships, world: World): number {
         const host = ships.designs[c]!;
         const place = modulePlace(bodies, cb, host, pad);
         if (length(bodies.vx[b]! - place.vx, bodies.vy[b]! - place.vy) > PAD_SPEED) continue;
+        if (abs(bodies.angularVel[b]! - bodies.angularVel[cb]!) > PAD_SPIN) continue;
         if (!shipBuild.within(bodies, b, ships.designs[i]!, place, host.modules[pad]!.spec)) continue;
         if (!park(ships, bodies, c, i, pad)) continue;
         ships.landedReach[i] = shipSupply.fightReach(ships, i);
