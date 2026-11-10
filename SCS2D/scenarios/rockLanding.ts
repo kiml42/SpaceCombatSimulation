@@ -20,8 +20,6 @@ const ROCK_RADIUS = 250;
 const SURFACE_GRAVITY = 0.5;
 /** How many Replicators are moored round it, evenly. */
 const OUTPOSTS = 4;
-/** How far either side of its line a Replicator measures the rock's slope to square up to it, metres. */
-const SQUARE_ACROSS = 10;
 /** How far out each fighter starts, on a circular orbit, metres. */
 const START = 700;
 /**
@@ -46,7 +44,7 @@ export function rockLanding(seed = 20260905, crippling: Crippling = ROCK_CRIPPLI
     return makeBattle({ seed, wells: [majorWell(ROCK_RADIUS, SURFACE_GRAVITY)] }, (ships, world, wells) => {
         const well = wells[0]!;
         const bodies = world.bodies;
-        const shape = { radius: ROCK_RADIUS, kernel: true, ore: 0.35, ice: 0.25, corners: 10, rings: 3 };
+        const shape = { radius: ROCK_RADIUS, kernel: true, ore: 0.35, ice: 0.25, corners: 12, rings: 3, ragged: false };
         const rockDesign = compileBlueprint(asteroidBlueprint("Asteroid", shape, new Rng(20261022)));
         // Unbreakable, so its Replicators keep hold with no robots to mine it, and nothing the fighters hit chips it.
         const rock = ships.spawn(world, { design: rockDesign, rides: well, team: NEUTRAL_TEAM, invulnerable: true });
@@ -65,9 +63,13 @@ export function rockLanding(seed = 20260905, crippling: Crippling = ROCK_CRIPPLI
             const a = bearing - bodies.angle[rb]!;
             const ux = math.cos(a);
             const uy = math.sin(a);
-            let r = 2 * ROCK_RADIUS;
-            while (r > 0 && !solid(r * ux - across * uy, r * uy + across * ux)) r -= 0.25;
-            return math.max(r, 0);
+            const inside = (r: number): boolean => solid(r * ux - across * uy, r * uy + across * ux);
+            // In from beyond its furthest reach a metre at a time, then back out to the nearest centimetre or so.
+            let r = 1.5 * ROCK_RADIUS;
+            while (r > 0 && !inside(r)) r -= 1;
+            if (r <= 0) return 0;
+            for (let step = 0.5; step > 0.01; step /= 2) if (inside(r + step)) r += step;
+            return r;
         };
 
         const outpost = compileBlueprint(OUTPOST);
@@ -90,20 +92,16 @@ export function rockLanding(seed = 20260905, crippling: Crippling = ROCK_CRIPPLI
             const bearing = (k * 2 * math.PI) / OUTPOSTS;
             const ux = math.cos(bearing);
             const uy = math.sin(bearing);
-            // Square to the surface under it, by its slope either side of its line, rather than to the rock's middle.
-            const tilt = math.atan2(surface(bearing, -SQUARE_ACROSS) - surface(bearing, SQUARE_ACROSS), 2 * SQUARE_ACROSS);
-            const angle = bearing + tilt + math.PI;
+            // Bow down on the rock, as near as it comes with nothing of it inside the rock: each point of its hull is
+            // `along` further out than its middle and `across` to the left looking out.
+            const angle = bearing + math.PI;
             const c = math.cos(angle);
             const sn = math.sin(angle);
-            // As near as it comes with nothing of it inside the rock: each point of its hull, turned as it will be, is
-            // `along` further out than its middle and `across` to the left looking out.
             let out = 0;
             for (let h = 0; h < hull.length; h += 2) {
                 const wx = hull[h]! * c - hull[h + 1]! * sn;
                 const wy = hull[h]! * sn + hull[h + 1]! * c;
-                const along = wx * ux + wy * uy;
-                const across = -wx * uy + wy * ux;
-                out = math.max(out, surface(bearing, across) - along);
+                out = math.max(out, surface(bearing, -wx * uy + wy * ux) - (wx * ux + wy * uy));
             }
             const o = ships.spawn(world, { design: outpost, x: bodies.x[rb]! + ux * out, y: bodies.y[rb]! + uy * out, angle, team: 0 });
             // Its claw grips the rock where its line meets the surface.
