@@ -8,7 +8,18 @@ import { geometryOf, plumeLayers, plumeRays, WEAPON_PLUME_SHARE } from "./exhaus
 import { cohesionUrge } from "./targeting.js";
 import { abs, atan2, angleDelta, PI, brakingRate, clamp, cos, length, max, min, sin, sqrt } from "./math.js";
 import { EngineLayout } from "./engines.js";
-import { burnGain, pushBearing, pushTorque, spinCheck, spinWay, steerHeading, STEER_HOLD_SPEED, STEER_SPIN, turnTime } from "./helm.js";
+import {
+    burnGain,
+    pushBearing,
+    pushTorque,
+    spinCheck,
+    spinWay,
+    steerHeading,
+    STEER_HOLD_SPEED,
+    STEER_SPIN,
+    turnLever,
+    turnTime,
+} from "./helm.js";
 import { addFlame, addTurret, attackBearing } from "./attack.js";
 import { interceptTime } from "./turrets.js";
 import { edgeFade } from "./doctrine.js";
@@ -346,7 +357,7 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
     let spin = 0;
     if (ships.intent !== FACE) {
         const bearing = pushBearing(layout, ships.designs[i]!.thrustBearing);
-        spin = ships.intent === STEER ? spinWay(layout, bearing) : 0;
+        spin = ships.intent === STEER ? spinWay(layout, bearing, turnLever(bodies.inertia[b]!, bodies.mass[b]!, bodies.radius[b]!)) : 0;
         if (spin === 0) {
             const dvx = wantVx - bodies.vx[b]! + leadAx * response;
             const dvy = wantVy - bodies.vy[b]! + leadAy * response;
@@ -1136,7 +1147,7 @@ export function pushAbility(ships: Ships, bodies: Bodies, i: number, b: number):
     const response = ships.doctrines[i]!.approach.responseTime;
     const bearing = pushBearing(layout, ships.designs[i]!.thrustBearing);
     const push = layout.maxThrustAlong(cos(bearing), sin(bearing)) / movable(bodies.mass[b]!);
-    if (spinWay(layout, bearing) !== 0) {
+    if (spinWay(layout, bearing, turnLever(bodies.inertia[b]!, bodies.mass[b]!, bodies.radius[b]!)) !== 0) {
         ships.pushDelay = response + PI / STEER_SPIN;
         return push / PI;
     }

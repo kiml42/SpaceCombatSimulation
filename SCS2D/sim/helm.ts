@@ -69,18 +69,57 @@ export function oneWayTurn(layout: EngineLayout): number {
     return 0;
 }
 
+/**
+ * Whether a layout can turn `sense` (1 or -1) without being pushed far off its
+ * line: by an engine pushing along `bearing`, or across it on a lever of at
+ * least `lever` metres, or by two pushing across it opposite ways.
+ */
+export function turnsLevel(layout: EngineLayout, bearing: number, sense: number, lever: number): boolean {
+    const ax = -sin(bearing);
+    const ay = cos(bearing);
+    let left = false;
+    let right = false;
+    for (let t = 0; t < layout.count; t++) {
+        if (!(layout.wt[t]! * sense > 0)) continue;
+        const across = layout.wfx[t]! * ax + layout.wfy[t]! * ay;
+        const full = sqrt(layout.wfx[t]! * layout.wfx[t]! + layout.wfy[t]! * layout.wfy[t]!);
+        if (abs(across) <= LEVEL_SHARE * full || abs(layout.wt[t]!) >= lever * abs(across)) return true;
+        if (across > 0) left = true;
+        else right = true;
+    }
+    return left && right;
+}
+
+/** The share of an engine's push that may be across a ship's bearing for it to count as turning it level. */
+const LEVEL_SHARE = 0.1;
+
+/** How far, in its own radii, a half turn flat out may push a ship sideways before it spins instead (`turnLever`). */
+export const TURN_SHIFT_RADII = 4;
+
+/**
+ * The shortest lever, metres, a thruster pushing across a ship can turn it on
+ * without a half turn pushing it more than `TURN_SHIFT_RADII` sideways: that
+ * shift is π·I/(m·lever), whatever the thrust.
+ */
+export function turnLever(inertia: number, mass: number, radius: number): number {
+    return mass > 0 && radius > 0 ? (PI * inertia) / (mass * TURN_SHIFT_RADII * radius) : 0;
+}
+
 /** Scratch for `spinWay`: which engines it has already counted, grown to the most engines seen. */
 let spent = new Uint8Array(16);
 
 /**
  * The way a layout steering by its push along `bearing` spins, 1 or -1, or 0
  * if it can hold a heading: the way it turns far more readily (`oneWayTurn`),
- * or, when what it pushes that way with its turns cancelled is less than
+ * or 1 when it cannot turn one way without being pushed far off its line
+ * (`turnsLevel` on levers shorter than `lever` metres, `turnLever`), or, when
+ * what it pushes that way with its turns cancelled is less than
  * `STEADY_PUSH` of what it pushes that way at all, the way that push turns it.
  */
-export function spinWay(layout: EngineLayout, bearing: number): number {
+export function spinWay(layout: EngineLayout, bearing: number, lever = 0): number {
     const way = oneWayTurn(layout);
     if (way !== 0) return way;
+    if (layout.maxTorque(1) > 0 && (!turnsLevel(layout, bearing, 1, lever) || !turnsLevel(layout, bearing, -1, lever))) return 1;
     const dx = cos(bearing);
     const dy = sin(bearing);
     let level = 0;
