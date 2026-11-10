@@ -2,7 +2,7 @@
 
 exports[`Rock Landing > Raider,  one way, spins [1, 4, 10] 1`] = `
 {
-  "contacts": 13630,
+  "contacts": 14716,
   "landed": [
     "not by 150 s",
     "not by 150 s",
@@ -18,7 +18,7 @@ exports[`Rock Landing > Raider,  one way, spins [1, 4, 10] 1`] = `
 
 exports[`Rock Landing > Raider,  one way, spins [4, 7, 10] 1`] = `
 {
-  "contacts": 240,
+  "contacts": 192,
   "landed": [
     "not by 150 s",
     "not by 150 s",
@@ -34,14 +34,14 @@ exports[`Rock Landing > Raider,  one way, spins [4, 7, 10] 1`] = `
 
 exports[`Rock Landing > Raider, no main [2, 4] 1`] = `
 {
-  "contacts": 39602,
+  "contacts": 45724,
   "landed": [
     "not by 150 s",
     "not by 150 s",
     "not by 150 s",
     "not by 150 s",
     "not by 150 s",
-    "76.17 s",
+    "not by 150 s",
     "not by 150 s",
     "not by 150 s",
   ],
@@ -50,15 +50,15 @@ exports[`Rock Landing > Raider, no main [2, 4] 1`] = `
 
 exports[`Rock Landing > Raider, no main [4] 1`] = `
 {
-  "contacts": 18911,
+  "contacts": 18572,
   "landed": [
-    "72.00 s",
+    "87.03 s",
     "not by 150 s",
-    "86.00 s",
+    "81.73 s",
     "not by 150 s",
-    "44.15 s",
+    "73.52 s",
     "not by 150 s",
-    "43.97 s",
+    "43.27 s",
     "not by 150 s",
   ],
 }
@@ -66,31 +66,31 @@ exports[`Rock Landing > Raider, no main [4] 1`] = `
 
 exports[`Rock Landing > Raider, one turn far weaker [1, 8] 1`] = `
 {
-  "contacts": 5142,
+  "contacts": 48,
   "landed": [
-    "52.93 s",
+    "53.00 s",
     "56.77 s",
-    "57.63 s",
-    "60.40 s",
-    "57.95 s",
-    "54.15 s",
+    "57.68 s",
+    "59.53 s",
+    "56.87 s",
+    "53.72 s",
     "52.40 s",
-    "not by 150 s",
+    "115.72 s",
   ],
 }
 `;
 
 exports[`Rock Landing > Raider, one turn far weaker [3, 7] 1`] = `
 {
-  "contacts": 6113,
+  "contacts": 10505,
   "landed": [
-    "47.70 s",
-    "74.18 s",
-    "54.40 s",
+    "47.08 s",
+    "46.90 s",
+    "54.90 s",
     "not by 150 s",
-    "55.10 s",
-    "43.43 s",
-    "48.88 s",
+    "56.57 s",
+    "not by 150 s",
+    "49.83 s",
     "not by 150 s",
   ],
 }
@@ -132,14 +132,14 @@ exports[`Rock Landing > Raider, undamaged 1`] = `
 {
   "contacts": 0,
   "landed": [
-    "31.12 s",
-    "39.02 s",
-    "30.52 s",
-    "38.92 s",
-    "30.00 s",
-    "39.25 s",
+    "31.50 s",
+    "39.30 s",
     "30.30 s",
-    "38.95 s",
+    "39.27 s",
+    "29.90 s",
+    "39.35 s",
+    "30.30 s",
+    "39.03 s",
   ],
 }
 `;

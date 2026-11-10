@@ -426,6 +426,8 @@ export class Ships {
     readonly hullBody: BodyId[] = [];
     /** The well each pinned hull rides, by body index (`ShipSpec.rides`). */
     readonly rides: (WellSpec | undefined)[] = [];
+    /** Every well pulling on the battle, which pilots allow for: the battle's own list, so wells added later are in it. */
+    wells: readonly WellSpec[] = [];
     /** Every hull that has ridden a well, live or not. */
     private readonly riders: BodyId[] = [];
     bodyStore: Bodies | null = null;
