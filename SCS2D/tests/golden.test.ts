@@ -88,8 +88,8 @@ const GOLDEN: Record<ScenarioName, string> = {
     factory: "16297489",
     // ships=3 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=0 severed=1 culled=0 scrap=32.1t · 128.1 µs/step
     shipyard: "ed2487e5",
-    // ships=5 inFlight=0 p.fired=20 p.hits=71 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=0.4t · 93.6 µs/step
-    rearm: "18f53891",
+    // ships=5 inFlight=0 p.fired=22 p.hits=73 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=0.4t · 100.4 µs/step
+    rearm: "f3dacc94",
     // ships=3 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=12 severed=2 culled=0 scrap=0.2t · 90.0 µs/step
     tanker: "69ab665b",
     // ships=20 inFlight=0 p.fired=16 p.hits=30 b.fired=241 b.hits=8567 contacts=10 severed=1 culled=0 scrap=15.5t · 648.8 µs/step
