@@ -361,7 +361,12 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
         if (spin === 0) {
             const dvx = wantVx - bodies.vx[b]! + leadAx * response;
             const dvy = wantVy - bodies.vy[b]! + leadAy * response;
-            wantAngle = steerHeading(dvx, dvy, angle, wantAngle, bearing, ships.steerSlack, ships.steerFree);
+            // A change it can barely push for as it faces is worth turning for, however small.
+            const need = length(dvx, dvy);
+            const lx = need > 0 ? (dvx * cos(angle) + dvy * sin(angle)) / need : 0;
+            const ly = need > 0 ? (-dvx * sin(angle) + dvy * cos(angle)) / need : 0;
+            const stuck = layout.maxThrustAlong(lx, ly) < STUCK_PUSH * layout.maxThrustAlong(cos(bearing), sin(bearing));
+            wantAngle = steerHeading(dvx, dvy, angle, wantAngle, bearing, stuck ? 0 : ships.steerSlack, ships.steerFree);
         }
     }
     // Hurrying asks for far more than any layout gives, and a saturated ask for
@@ -471,6 +476,9 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
     ships.demandFy[i] = fy;
     ships.demandTorque[i] = torque;
 }
+
+/** The share of its strongest push under which a ship counts as unable to push a way as it faces, and turns for it (`flyOne`). */
+const STUCK_PUSH = 0.1;
 
 /**
  * The heading that puts a target lying at `towards` where this ship's
