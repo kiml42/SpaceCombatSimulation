@@ -17,6 +17,8 @@ import type { Blueprint } from "../sim/index.js";
  */
 
 const FLEET = [CORVETTE, GUNSHIP, DINKY, BEAM_CORVETTE];
+/** The default weights, but for a race worth nothing, which nobody is told to run. */
+const UNRACED = { ...DEFAULT_MATCH.weights, race: 0 };
 
 function escorting(blueprint: Blueprint, escortWeight: number): Blueprint {
     const doctrine = blueprint.doctrine!;
@@ -193,18 +195,20 @@ describe("match", () => {
         // A craft that starts on the goal and stays there has gained nothing, and
         // nor has one that starts far off and stays there. The quantity is ground
         // *gained*: what a design is credited with is what it did, not where it
-        // happened to be put. Without the stock corvette's urge to escort, which
-        // would take it to the goal.
+        // happened to be put. Not told to go to the goal, which a race weighted at
+        // nothing is not, and without the stock corvette's urge to escort.
         const holding = escorting(CORVETTE, 0);
         const onIt = runMatch([holding], {
             seed: 17,
             duration: 20,
             goal: { x: DEFAULT_MATCH.radius, y: 0, scale: 500, size: 12 },
+            weights: UNRACED,
         });
         const milesOff = runMatch([holding], {
             seed: 17,
             duration: 20,
             goal: { x: 100_000, y: 0, scale: 500, size: 12 },
+            weights: UNRACED,
         });
         expect(onIt.scores[0]!.race).toBeCloseTo(0, 2);
         expect(milesOff.scores[0]!.race).toBeCloseTo(0, 6);
@@ -236,18 +240,18 @@ describe("match", () => {
         expect(closing(200)).toBeGreaterThan(closing(20_000));
     });
 
-    it("is reached by a ship whose doctrine says to go to it", () => {
-        // The goal is a hull on the neutral side, so going to it is *escorting*
-        // it: what a ship does about the objective comes out of its doctrine like
-        // everything else it does, and is weighed against the fight rather than
-        // scripted. A design with nothing to say about escorting never leaves the
-        // ring it started on, and so gains no ground and scores nothing at all —
-        // where one that goes to the goal is credited with the whole of the
-        // distance it closed.
-        const alone = runMatch([escorting(CORVETTE, 0)], { seed: 23, duration: 60 });
-        const going = runMatch([escorting(CORVETTE, 200)], { seed: 23, duration: 60 });
+    it("is reached by a ship told to go to it, or whose doctrine says to", () => {
+        // Where the race counts, every ship is told to make for the goal. Not
+        // told, a design with nothing to say about escorting never leaves the
+        // ring it started on, and so gains no ground and scores nothing at all;
+        // one that escorts the goal, or is told to go, is credited with the
+        // whole of the distance it closed.
+        const alone = runMatch([escorting(CORVETTE, 0)], { seed: 23, duration: 60, weights: UNRACED });
+        const escorts = runMatch([escorting(CORVETTE, 200)], { seed: 23, duration: 60, weights: UNRACED });
+        const told = runMatch([escorting(CORVETTE, 0)], { seed: 23, duration: 60 });
         expect(alone.scores[0]!.race).toBeCloseTo(0, 2);
-        expect(going.scores[0]!.race).toBeGreaterThan(0.25);
+        expect(escorts.scores[0]!.race).toBeGreaterThan(0.25);
+        expect(told.scores[0]!.race).toBeGreaterThan(0.25);
     });
 
     it("measures a hull by what it can absorb", () => {

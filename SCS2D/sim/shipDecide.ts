@@ -94,7 +94,7 @@ export function decide(ships: Ships, world: World, bodies: Bodies, i: number): v
         const wanted = doctrine.ramMass > 0 && wouldRam(ships, bodies, i, b) ? doctrine.ramMass : doctrine.preferredMass;
         // Defending, only what is attacking its charge, while anything is.
         let attackers = false;
-        if (defending !== NO_TARGET) {
+        if (defending !== NO_TARGET && ships.getCurrentOrder(i)?.waypoint !== true) {
             for (let t = 0; t < ships.alive.length && !attackers; t++) {
                 attackers = ships.alive[t] === 1 && ships.hostile(i, t) && shipAim.focusOf(ships, t) === defending;
             }
@@ -501,7 +501,7 @@ export function clearOfHulls(ships: Ships, bodies: Bodies, b: number): boolean {
 export function liveConsort(ships: Ships, bodies: Bodies, i: number, b: number): number {
     const consort = ships.consort[i] ?? NO_TARGET;
     if (consort === NO_TARGET || ships.alive[consort] !== 1) return NO_TARGET;
-    if (ships.hulk(consort) && !ships.mending(bodies, consort)) return NO_TARGET;
+    if (ships.hulk(consort) && !ships.mending(bodies, consort) && ships.defendingOf(i) !== consort) return NO_TARGET;
     const cb = bodies.indexOf(ships.bodyIds[consort]!);
     return cb < 0 || cb === b ? NO_TARGET : consort;
 }

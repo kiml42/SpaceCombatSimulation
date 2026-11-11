@@ -274,6 +274,12 @@ export interface Order {
      */
     defend?: boolean;
     /**
+     * With `defend`: go to the target, anything on any side, and stay in the
+     * escort band on it, fighting whatever its doctrine picks from there
+     * rather than only what attacks the target.
+     */
+    waypoint?: boolean;
+    /**
      * Something to fetch or give rather than a target to fight: `dock` takes on
      * all a friend's pad or port can give it, `scavenge` fills its claw from
      * what it grips, and `deliver` gives a friend all it can spare through its
@@ -1824,7 +1830,7 @@ export class Ships {
         const target = shipAim.focusOf(this, i);
         if (target === NO_TARGET || this.alive[target] !== 1) return null;
         if (given?.ram === true || (given === undefined && this.ramming[i] === target)) return { kind: "ram", target };
-        return { kind: this.defendingOf(i) !== NO_TARGET ? "defend" : "attack", target };
+        return { kind: this.defendingOf(i) !== NO_TARGET && given?.waypoint !== true ? "defend" : "attack", target };
     }
 
     /** What this ship is staying with as an escort, as `cover` flies it; `NO_TARGET` for nothing, for a ship out of control, or for one busy with something else. */
@@ -1990,7 +1996,7 @@ export class Ships {
         return given?.errand !== undefined && given.target !== NO_TARGET;
     }
 
-    /** The friend this ship is ordered to defend, or `NO_TARGET`. */
+    /** The friend this ship is ordered to defend, or the waypoint it is to make for; `NO_TARGET` for neither. */
     defendingOf(i: number): number {
         const given = shipOrders.getCurrentOrder(this, i);
         return given !== undefined && given.defend === true ? given.target : NO_TARGET;
@@ -2045,6 +2051,10 @@ export class Ships {
 
     pushDefend(i: number, friend: number, distance?: number, speed?: number): void {
         shipOrders.pushDefend(this, i, friend, distance, speed);
+    }
+
+    pushWaypoint(i: number, target: number, distance?: number, speed?: number): void {
+        shipOrders.pushWaypoint(this, i, target, distance, speed);
     }
 
     pushDock(i: number, friend: number): boolean {

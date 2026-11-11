@@ -505,12 +505,14 @@ inside any one file is not contiguous.
   survivor still has the goal to fly and is scored on flying it rather than frozen where the fighting left it. One ship to
   a match is allowed, and is a test of piloting alone. A four-ship match runs in a quarter of a second,
   about three hundred times faster than the battle it simulates.
-  **The objective is an object, and a ship goes to it because its doctrine says to.** The goal is a marker
+  **The objective is an object, and a ship goes to it because it is told to.** The goal is a marker
   hull on a side nobody is on and nobody is against: never shot at, and protected, because an objective that
   can be destroyed stops being one and a doctrine that has learnt to ignore a wreck would learn to ignore
   this. It is a hull rather than a coordinate so that it is solid — sheltered behind, run into, and shoved
   out of somebody's way — and so that a ship can be *told* to go to it, every order in this game being
-  relative to an object. It can instead be a **ghost**, a ship still there to be escorted and scored against
+  relative to an object. Where the race counts, every ship is given a **waypoint** order on it at the start:
+  flown as a defence is, in its escort band on the goal, fighting whatever its doctrine picks from there.
+  Left to doctrine, ships of a fleet escorting the goal escorted each other instead. It can instead be a **ghost**, a ship still there to be escorted and scored against
   that nothing collides with, shoots through or moves, so ships either side of it can still fight across it. What takes a ship there without being told is **escorting**: a weight saying how
   firmly a craft holds by something it will never shoot at. **Escorting and fighting are a choice, not a
   blend:** while an enemy is within its own reach of its station, a craft stays and fights the nearest from
@@ -1360,7 +1362,8 @@ inside any one file is not contiguous.
   (step 14), built in full: telling ships what to do mid-battle, from the paused battle. The viewer's battle
   can be wound back from checkpoints. Picked-out ships are told by right-click or an order bar, and the
   orders are logged so a rewind or a link replays them: attack, defend and ram, each with a distance and
-  speed over doctrine's if told; dock, scavenge and deliver; and Flee (W, or Enter for every enemy), running
+  speed over doctrine's if told; a waypoint, to go close to anything and stay there, which evolution gives every ship
+  for the goal of a race; dock, scavenge and deliver; and Flee (W, or Enter for every enemy), running
   from every armed enemy, from one, or hiding behind a friend or wreck until told otherwise. Doctrine, build
   counts and remodelling are settings beside them, from a doctrine panel and a design picker. Under doctrine
   a ship withdraws at `fleeArmed` of what it fights or works with, or with nothing to fight or work with
@@ -1374,7 +1377,7 @@ inside any one file is not contiguous.
   clear of the ships (the Asteroid Field scene), and offered by the custom battle, evolution and the
   skirmish. Rock that meets rock slowly sticks, torn or not, and the two go on as one body: a minor onto a major rides its rail, and two majors never weld. A claw moors its ship to an asteroid, as a pad parks a fighter, and its robots cross onto the rock to mine it into one hold, ore as metal and ice as fuel, and a claw alone melts ice;
   scavenging goes for asteroids by what they hold (the Mining scene). An asteroid picked out in the
-  viewer shows what is left in it, and a right-click on one sends the picked ships with claws to mine it.
+  viewer shows what is left in it, and a right-click on one sends the picked ships with claws to mine it, and the rest to it.
   A claw ship closes jaws first, round asteroids in its way, at doctrine's `clawSpeed`, and passes over an
   asteroid an enemy has hold of. **It comes in square to the surface** (`chooseGrip`, `squareUp`): it
   picks a point on an outside face of its source facing it, preferring one wide enough for its jaws and
