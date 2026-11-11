@@ -11,6 +11,7 @@ import { Button } from "~/ui/buttons/Button";
 import { Figures } from "../ship/ShipReport";
 import { readSettings, SETTINGS_KEY, SETUP_FIELDS, settingsTexts } from "./skirmishFields";
 import { EMPTY, FleetChoices } from "./FleetChoices";
+import { SKIRMISH_PRESETS } from "./skirmishPresets";
 
 const Screen = styled.section`
     flex: 1.4;
@@ -195,6 +196,24 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart }: SetupScreenPr
                         <h2>New skirmish</h2>
                     </summary>
                     <p>Pick an enemy and a budget, then build a fleet within it that beats it.</p>
+                    <Buttons id="skirmishPresets">
+                        {SKIRMISH_PRESETS.map((preset) => (
+                            <Button
+                                key={preset.name}
+                                title={`${preset.hint}. Every setting back to its default otherwise, and the budget to the enemy's cost`}
+                                onClick={() => {
+                                    setEnemy(preset.enemy);
+                                    onEnemy(read(preset.enemy));
+                                    keep(settingsTexts(preset.settings));
+                                    // Blank boxes follow the enemy's cost as it comes in.
+                                    setBudget({ metal: "", fuel: "", build: "" });
+                                    setFollowed({ metal: "", fuel: "", build: "" });
+                                }}
+                            >
+                                {preset.name}
+                            </Button>
+                        ))}
+                    </Buttons>
                     <Field title="What the skirmish is called, which its exported files are named for">
                         name
                         <input
