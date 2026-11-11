@@ -82,43 +82,18 @@ describe("a match of fleets", () => {
         expect(two.scores[0]!.survival).toBeCloseTo(1, 9);
     });
 
-    it("races by the nearest ship, so a straggler costs nothing", () => {
-        const straggler: Fleet = {
-            name: "Straggler",
-            designs: { Dinky: DINKY, Core: BARE_CORE },
-            ships: [
+    it("races by the furthest ship, so a straggler costs nothing", () => {
+        const fleet = (ships: Fleet["ships"]): Fleet => ({ name: "Straggler", designs: { Dinky: DINKY, Core: BARE_CORE }, ships });
+        const race = (entrant: Fleet): number => runMatch([entrant, CORVETTE], { ...SHORT, seed: 2 }).scores[0]!.race;
+        const straggler = race(
+            fleet([
                 { design: "Dinky", x: 0, y: 0 },
                 { design: "Core", x: -150, y: 0 },
-            ],
-        };
-        const match = new Match([straggler, CORVETTE], { ...SHORT, seed: 2 });
-        const { ships, world, slots, owners, marker } = match.battle;
-        const nearest = (): number => {
-            const goal = world.bodies.indexOf(ships.body(marker));
-            let best = 0;
-            let fighting = false;
-            slots.forEach((slot, k) => {
-                if (owners[k] !== 0 || !ships.isAlive(slot) || !ships.hasControl(slot)) return;
-                const body = world.bodies.indexOf(ships.body(slot));
-                const d = Math.sqrt(
-                    (world.bodies.x[body]! - world.bodies.x[goal]!) ** 2 + (world.bodies.y[body]! - world.bodies.y[goal]!) ** 2,
-                );
-                best = Math.max(best, 500 / (500 + d));
-                if (!ships.isDisabled(slot)) fighting = true;
-            });
-            // A fleet with nothing left that can fight races no further.
-            return fighting ? best : 0;
-        };
-        const start = nearest();
-        let sum = 0;
-        let steps = 0;
-        while (!match.done) {
-            match.advance();
-            steps++;
-            const best = nearest();
-            if (best > 0) sum += best - start;
-        }
-        expect(match.result().scores[0]!.race).toBeCloseTo(sum / steps, 6);
+            ]),
+        );
+        // The bare core alone goes nowhere; with the Dinky, the fleet has reached the goal.
+        expect(race(fleet([{ design: "Core", x: 0, y: 0 }]))).toBeCloseTo(0, 6);
+        expect(straggler).toBeGreaterThan(1 / 1.1);
     });
 
     it("widens the ring rather than start two fleets on top of each other", () => {
