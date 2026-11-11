@@ -98,6 +98,7 @@ const FILE_KEYS: readonly string[] = [
     "generations",
     "population",
     "winners",
+    "keep",
     "group",
     "minMatches",
     "budget",
@@ -125,6 +126,7 @@ const VERSUS_KEYS: readonly string[] = [
     "bareCoreDrills",
     "population",
     "winners",
+    "keep",
     "group",
     "budget",
     "massBudget",
@@ -174,6 +176,8 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
         generations: config.generations,
         population: config.population,
         winners: config.winners,
+        // Only where set, so a file that keeps none reads as it always did.
+        ...(config.keep > 0 ? { keep: config.keep } : {}),
         group: config.group,
         minMatches: config.minMatches,
         budget: serialiseBudget(config.budget),
@@ -227,6 +231,7 @@ function serialiseVersus(versus: VersusSetup): Record<string, unknown> {
         bareCoreDrills,
         ...(rival.population === undefined ? {} : { population: rival.population }),
         ...(rival.winners === undefined ? {} : { winners: rival.winners }),
+        ...(rival.keep === undefined ? {} : { keep: rival.keep }),
         ...(rival.group === undefined ? {} : { group: rival.group }),
         ...(rival.budget === undefined ? {} : { budget: serialiseBudget(rival.budget) }),
         ...(rival.fleet === undefined ? {} : { fleet: { ...rival.fleet } }),
@@ -267,6 +272,7 @@ export function runConfigFileProblem(value: unknown, warnings: string[] = []): s
         countProblem(value["generations"], "generations") ??
         countProblem(value["population"], "population") ??
         countProblem(value["winners"], "winners") ??
+        wholeProblem(value["keep"], "keep") ??
         countProblem(value["group"], "group") ??
         countProblem(value["minMatches"], "minMatches") ??
         numberProblem(value["seed"], "seed") ??
@@ -358,6 +364,7 @@ function versusProblem(versus: unknown, warnings: string[]): string | null {
         wholeProblem(versus["bareCoreDrills"], "versus.bareCoreDrills") ??
         countProblem(versus["population"], "versus.population") ??
         countProblem(versus["winners"], "versus.winners") ??
+        wholeProblem(versus["keep"], "versus.keep") ??
         countProblem(versus["group"], "versus.group") ??
         budgetProblem(versus["budget"], "versus.budget", warnings) ??
         limitProblem(versus["massBudget"], "versus.massBudget") ??
@@ -414,6 +421,7 @@ export function parseRunConfig(value: unknown): RunSetup {
             generations: read(file["generations"], DEFAULT_RUN.generations),
             population: read(file["population"], DEFAULT_RUN.population),
             winners: read(file["winners"], DEFAULT_RUN.winners),
+            keep: read(file["keep"], DEFAULT_RUN.keep),
             group: read(file["group"], DEFAULT_RUN.group),
             minMatches: read(file["minMatches"], DEFAULT_RUN.minMatches),
             budget: readBudget(file["budget"], file["massBudget"]) ?? NO_BUDGET,
@@ -466,6 +474,7 @@ function parseVersus(versus: Record<string, unknown>): VersusSetup {
     const rival: { -readonly [K in keyof SideSettings]?: SideSettings[K] } = {};
     if (typeof versus["population"] === "number") rival.population = versus["population"];
     if (typeof versus["winners"] === "number") rival.winners = versus["winners"];
+    if (typeof versus["keep"] === "number") rival.keep = versus["keep"];
     if (typeof versus["group"] === "number") rival.group = versus["group"];
     const budget = readBudget(versus["budget"], versus["massBudget"]);
     if (budget !== null) rival.budget = budget;
