@@ -130,7 +130,8 @@ export function padFree(ships: Ships, bodies: Bodies, t: number, pad: number): b
  * The best friend's pad to land on of those it fits, by the fuel, metal and
  * charge its ship can spare for the time it would take to get there and be
  * filled, put off by armed enemies near it by its `dockDanger`, and by every
- * other fighter already making for it. None for one that has lost the turn it set out with.
+ * other fighter already making for it. None for one that has lost the turn it set out with,
+ * nor down a well whose pull is more than it can hold itself up against.
  */
 export function pickPad(
     ships: Ships,
@@ -156,6 +157,7 @@ export function pickPad(
     if (ships.unfinished[i] !== 1 && (set.maxTorque(1) > 0 || set.maxTorque(-1) > 0) && !(now.maxTorque(1) > 0 || now.maxTorque(-1) > 0))
         return;
     const box = footprintOf(ships.designs[i]!);
+    const lift = shipFlight.pushAbility(ships, bodies, i, b);
     let bestScore = 0;
     for (let t = 0; t < ships.alive.length; t++) {
         if (t === i || ships.alive[t] === 0 || ships.derelict[t] === 1 || (only !== NO_TARGET && t !== only)) continue;
@@ -183,6 +185,9 @@ export function pickPad(
             // To the pad, not the carrier's middle: one waiting at a pad would otherwise
             // take the far one as soon as it is free, and cross whoever is coming the other way.
             const place = modulePlace(bodies, tb, design, pad);
+            // Not a pad down a well it cannot hold itself up in: it would hang over it until its
+            // fuel ran out, or fall on it. Some damage leaves a fighter unable to land at all.
+            if (!shipFlight.keepsWith(ships, bodies, lift, t, place.x, place.y)) continue;
             const gap = length(place.x - bodies.x[b]!, place.y - bodies.y[b]!);
             if (danger < 0) danger = approach.dockDanger > 0 ? shipForage.dangerNear(ships, bodies, i, tb) : 0;
             // A pad another fighter is already making for is a wait behind it.
