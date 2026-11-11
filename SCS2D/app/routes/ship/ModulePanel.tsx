@@ -20,6 +20,7 @@ import {
     isMagnetic,
     isWeaponMount,
     math,
+    MAX_BORE,
     MODULE_KINDS,
     padHolds,
     placementAt,
@@ -310,6 +311,28 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                         (barrelCalibres) => patch({ barrelCalibres }),
                     )}
                     <Readout id="barrelMetres">{barrelReadout(spec)}</Readout>
+                </Field>
+            )}
+            {readsBarrelCalibres(spec.kind) && (
+                <Field id="boreRow">
+                    <label htmlFor="propBore">bore ×</label>
+                    {box(
+                        "bore",
+                        {
+                            step: 0.1,
+                            min: 0.1,
+                            max: MAX_BORE,
+                            title: `A multiple of the bore this mount's size gives it, up to ${MAX_BORE}. Wider is a heavier shell, barrel and load: more weight of metal a shot, fewer shots. Several barrels share it.`,
+                        },
+                        // The archetype's own bore is not a statement, so the file stops carrying one.
+                        (bore) =>
+                            update((placement) => {
+                                const next = { ...placement } as ModuleSpec;
+                                if (bore === 1) delete next.bore;
+                                else next.bore = bore;
+                                return next as Placement;
+                            }, true),
+                    )}
                 </Field>
             )}
             {isWeaponMount(spec.kind) && spec.kind !== "railGun" && spec.kind !== "plasmaLance" && (

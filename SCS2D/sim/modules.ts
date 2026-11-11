@@ -469,6 +469,13 @@ export const DEFAULT_NOZZLE_WIDTHS = 1;
  */
 export const CALIBRE_FRACTION = 0.04;
 
+/**
+ * The most a gun's `bore` may multiply its archetype's: a turret's single barrel
+ * then takes about a third of its dome, the most that still looks like a gun on
+ * a mount. The rails that cap a bore in metres still apply on top.
+ */
+export const MAX_BORE = 8;
+
 /** A barrel's outside diameter in calibres. A tube is thick-walled steel. */
 export const BARREL_OUTER_CALIBRES = 2;
 
@@ -1401,6 +1408,14 @@ export interface ModuleSpec {
     barrelCalibres?: number;
 
     /**
+     * A multiple of the bore its archetype's rule gives a gun, from a turret's
+     * dome or a hull mount's face: 1 when unsaid, up to `MAX_BORE`. More bore
+     * is a heavier shell, a heavier barrel and a slower load, so it is a trade
+     * against rate of fire rather than free weight of metal. Guns only.
+     */
+    bore?: number;
+
+    /**
      * How far a weapon may train either way from where it rests, radians. The
      * archetype's own limit when unsaid: all the way round for a turret, and
      * whatever its opening leaves for a hull mount.
@@ -1882,6 +1897,10 @@ export function moduleProblem(spec: ModuleSpec): string | null {
         if (!(rail ? spec.barrelCalibres >= 0 : spec.barrelCalibres > 0) || !(spec.barrelCalibres <= MAX_BARREL_CALIBRES)) {
             return `${spec.kind}: barrel must be ${rail ? "at least" : "more than"} 0 and at most ${MAX_BARREL_CALIBRES} calibres, got ${spec.barrelCalibres}`;
         }
+    }
+    if (spec.bore !== undefined && !(spec.bore > 0 && spec.bore <= MAX_BORE)) {
+        // Dormant on a kind that does not read it, as a barrel's length is: only the range.
+        return `${spec.kind}: bore must be more than 0 and at most ${MAX_BORE} times its archetype's, got ${spec.bore}`;
     }
     if (spec.traverse !== undefined && !(spec.traverse >= 0)) {
         // Dormant on a kind that does not train, as a bell is on a gun mount: only
@@ -2511,7 +2530,9 @@ function hullOutlets(spec: ModuleSpec): {
     // What a single outlet would be, and each of several split the way a
     // turret splits it: tubes divide the bore, so each is `1/n` as wide; lenses
     // divide the optic's area, and rails their bank, so each is about `1/√n` as wide.
-    const single = isHullBeam(spec.kind) ? HULL_APERTURE_FRACTION * spec.width : BARREL_OUTER_CALIBRES * HULL_CALIBRE_FRACTION * spec.width;
+    const single = isHullBeam(spec.kind)
+        ? HULL_APERTURE_FRACTION * spec.width
+        : BARREL_OUTER_CALIBRES * HULL_CALIBRE_FRACTION * spec.width * boreScale(spec);
     const each = isHullBeam(spec.kind) || spec.kind === "railGun" ? single / sqrt(outlets) : single / outlets;
     // Spread across the face as a turret's barrels are, one gap outboard of
     // each end, so neighbours stand apart rather than touching.
@@ -2653,6 +2674,11 @@ export function readsNozzle(kind: ModuleKind): boolean {
 /** Whether `barrelCalibres` means anything on this kind: a gun with a barrel. */
 export function readsBarrelCalibres(kind: ModuleKind): boolean {
     return kind === "turret" || isHullGun(kind);
+}
+
+/** How many times its archetype's bore a gun has: what it says, or 1. */
+export function boreScale(spec: ModuleSpec): number {
+    return readsBarrelCalibres(spec.kind) ? (spec.bore ?? 1) : 1;
 }
 
 /** How many calibres long a gun's barrels are: what it says, or its archetype's default. */
@@ -3468,7 +3494,10 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     } else if (spec.kind === "turret" || spec.kind === "beamTurret") {
         gun =
             spec.kind === "turret"
-                ? loaded(gunStats(spec.length, spec.width, spec.barrels, barrelCalibres(spec), turretDecks(spec, height)), spec)
+                ? loaded(
+                      gunStats(spec.length, spec.width, spec.barrels, barrelCalibres(spec), turretDecks(spec, height), boreScale(spec)),
+                      spec,
+                  )
                 : beamGunStats(spec.length, spec.width, spec.barrels);
 
         // What hangs off the front of the mount, per barrel or emitter. The two
@@ -3640,9 +3669,10 @@ export function gunStats(
     barrelCount: number = 1,
     calibres: number = BARREL_CALIBRES,
     decks: number = 1,
+    bore: number = 1,
 ): GunStats {
     const dome = mountWidth < mountLength ? mountWidth : mountLength;
-    const wide = (dome * CALIBRE_FRACTION) / barrelCount;
+    const wide = (dome * CALIBRE_FRACTION * bore) / barrelCount;
     const calibre = wide < MAX_TURRET_CALIBRE ? wide : MAX_TURRET_CALIBRE;
     const barrelLength = calibre * calibres;
 
