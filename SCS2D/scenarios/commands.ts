@@ -25,6 +25,8 @@ export interface Held {
 export type Order =
     | ({ readonly kind: "attack"; readonly target: number; readonly cancelOn: OrderCancelCondition } & Held)
     | ({ readonly kind: "defend"; readonly target: number } & Held)
+    /** Go close to `target`, on any side, and stay there: its escort band, or `distance` off where told. */
+    | ({ readonly kind: "waypoint"; readonly target: number } & Held)
     | ({ readonly kind: "ram"; readonly target: number } & Pick<Held, "speed">)
     /** Take on all a friend's dock can give: at `target`, or wherever doctrine chooses for `NO_TARGET`. */
     | { readonly kind: "dock"; readonly target: number }
@@ -142,6 +144,11 @@ export function give(battle: Battle, command: Command): void {
             else ships.pushDeliver(i, order.target);
             continue;
         }
+        if (order.kind === "waypoint") {
+            if (!command.append) ships.clearOrder(i);
+            ships.pushWaypoint(i, order.target, order.distance, order.speed);
+            continue;
+        }
         // A friend is defended and an enemy attacked, whatever a hand-written log says.
         const friend = ships.teamOf(i) === ships.teamOf(order.target);
         if (friend !== (order.kind === "defend")) continue;
@@ -163,7 +170,7 @@ function compiled(blueprint: Blueprint): ShipDesign {
     return design;
 }
 
-const KINDS = new Set(["attack", "defend", "ram", "dock", "scavenge", "deliver", "flee"]);
+const KINDS = new Set(["attack", "defend", "waypoint", "ram", "dock", "scavenge", "deliver", "flee"]);
 /** Orders whose target may be `NO_TARGET`. */
 const ANYWHERE = new Set(["dock", "scavenge", "deliver", "flee"]);
 const CANCELS = new Set(Object.values(OrderCancelCondition).filter((v) => typeof v === "number"));
@@ -231,11 +238,11 @@ export function parseLog(value: unknown): Logged[] {
             if (order!["kind"] === "attack" && !CANCELS.has(order!["cancelOn"] as number)) fail("an attack wants cancelOn");
             const distance = order!["distance"];
             const speed = order!["speed"];
-            const held = order!["kind"] === "attack" || order!["kind"] === "defend";
+            const held = order!["kind"] === "attack" || order!["kind"] === "defend" || order!["kind"] === "waypoint";
             if (distance !== undefined && !(held && typeof distance === "number" && distance >= 0))
-                fail("a distance wants an attack or defence, and 0 or more");
+                fail("a distance wants an attack, defence or waypoint, and 0 or more");
             if (speed !== undefined && !((held || order!["kind"] === "ram") && typeof speed === "number" && speed > 0)) {
-                fail("a speed wants an attack, defence or ram, and more than 0");
+                fail("a speed wants an attack, defence, waypoint or ram, and more than 0");
             }
         } else fail(`unknown command ${String(command["kind"])}`);
         return { step: step as number, command: command as unknown as Command };
