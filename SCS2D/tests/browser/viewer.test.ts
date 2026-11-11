@@ -699,7 +699,7 @@ describe("the viewer in a browser", () => {
         expect(await page.isHidden("#orderBar")).toBe(true);
     }, 60_000);
 
-    it("shows what is in an asteroid picked out, and mines it on a right-click", async () => {
+    it("shows what is in an asteroid picked out, and mines it on a right-click or with G", async () => {
         await page.selectOption("#scene", { label: "Mining" });
         if ((await page.textContent("#play")) === "Pause") await page.click("#play");
         await painted(page);
@@ -725,9 +725,14 @@ describe("the viewer in a browser", () => {
         await page.waitForTimeout(1000);
         await painted(page);
         expect(await page.isHidden("#asteroidCard")).toBe(true);
+        const last = (): Promise<unknown> =>
+            page.evaluate(() => (window as unknown as { viewer: { orders: unknown[] } }).viewer.orders.at(-1));
+        // Both have claws, so a right-click mines it, as G and a click does.
         await click(3, true);
-        const last = await page.evaluate(() => (window as unknown as { viewer: { orders: unknown[] } }).viewer.orders.at(-1));
-        expect(last).toMatchObject({ command: { ships: [0, 1], order: { kind: "scavenge", target: 3 } } });
+        expect(await last()).toMatchObject({ command: { ships: [0, 1], order: { kind: "scavenge", target: 3 } } });
+        await page.keyboard.press("g");
+        await click(3, false);
+        expect(await last()).toMatchObject({ command: { ships: [0, 1], order: { kind: "scavenge", target: 3 } } });
         await page.keyboard.press("Escape");
     }, 60_000);
 

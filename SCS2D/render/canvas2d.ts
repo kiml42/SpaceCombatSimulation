@@ -107,6 +107,7 @@ import { clipToStart, exposureEnds, flashSamples, shutterWeight } from "./exposu
 import { flameSprite, rgba, SHARDS, sprite, WEDGE_HEADROOM, WEDGE_STEPS, wedgeBox, wedgeSprite } from "./sprites.js";
 import { drawGlows, Lights, type Transform } from "./glows.js";
 import { Overshadowed } from "./blocks.js";
+import { Income, incomeText } from "./income.js";
 import { LIGHT_GAIN, LightField, type Seen } from "./lightField.js";
 import { leakSpeed } from "../sim/fuel.js";
 import { LEAK_LINGER } from "../sim/snapshot.js";
@@ -3217,7 +3218,20 @@ function layoutOf(strips: Strips): string {
     return `${column(strips.left)}|${column(strips.right)}`;
 }
 
-/** Draw the strips: each tile its ship live, framed in its side's colours, the picked one brightest. */
+/** What each tile's ships have been bringing in lately, keyed by the lowest body a tile stands for. */
+const tileIncome = new Income();
+
+/** What the ships of a tile have brought in all battle, kg of metal, or null if none of them has gathered any. */
+function gatheredBy(snapshot: Snapshot, bodies: readonly number[]): number | null {
+    let total: number | null = null;
+    for (const body of bodies) {
+        const metal = shipByBody(snapshot, body)?.gatheredMetal;
+        if (metal !== undefined) total = (total ?? 0) + metal;
+    }
+    return total;
+}
+
+/** Draw the strips: each tile its ship live, framed in its side's colours, the picked one brightest, and what it is mining as income. */
 export function drawFleetStrips(
     ctx: CanvasRenderingContext2D,
     snapshot: Snapshot,
@@ -3260,6 +3274,26 @@ export function drawFleetStrips(
                 ctx.textAlign = "right";
                 ctx.textBaseline = "bottom";
                 ctx.fillText(`×${tile.count}`, tile.x + tile.size - 3 * ratio, tile.y + tile.size - 2 * ratio);
+            }
+            const gathered = gatheredBy(snapshot, tile.bodies);
+            if (gathered !== null) {
+                const rate = tileIncome.note(Math.min(...tile.bodies), snapshot.time, gathered);
+                if (rate > 0) {
+                    ctx.globalAlpha = 1;
+                    ctx.fillStyle = ctx.strokeStyle;
+                    ctx.font = `${10 * ratio}px ui-monospace, monospace`;
+                    ctx.textAlign = "left";
+                    ctx.textBaseline = "bottom";
+                    const text = incomeText(rate);
+                    // On a backing, as it often sits over bright rock.
+                    const colour = ctx.fillStyle;
+                    ctx.fillStyle = BACKGROUND;
+                    ctx.globalAlpha = 0.75;
+                    ctx.fillRect(tile.x + ratio, tile.y + tile.size - 13 * ratio, ctx.measureText(text).width + 4 * ratio, 12 * ratio);
+                    ctx.globalAlpha = 1;
+                    ctx.fillStyle = colour;
+                    ctx.fillText(text, tile.x + 3 * ratio, tile.y + tile.size - 2 * ratio);
+                }
             }
             ctx.restore();
         }
@@ -3486,6 +3520,7 @@ function drawRing(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: numbe
 const ORDER_COLOURS = {
     attack: "#ff7a6b",
     defend: "#6fb6ff",
+    waypoint: "#8f8f8f",
     ram: "#ffb347",
     dock: "#7ee07a",
     scavenge: "#d7a6ff",

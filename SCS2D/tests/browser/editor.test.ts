@@ -447,13 +447,15 @@ describe("the editor in a browser", () => {
         expect(await page.isDisabled("#showRefit")).toBe(true);
         await page.click('[data-add="tank"]');
         expect(await page.isDisabled("#showRefit")).toBe(false);
-        const shown = await picture();
-        await page.click("#showRefit");
+        // Hidden to begin with.
         expect(await page.getAttribute("#showRefit", "aria-pressed")).toBe("false");
         const hidden = await picture();
-        expect(alike(hidden, shown)).toBe(false);
         await page.click("#showRefit");
         expect(await page.getAttribute("#showRefit", "aria-pressed")).toBe("true");
+        const shown = await picture();
+        expect(alike(hidden, shown)).toBe(false);
+        await page.click("#showRefit");
+        expect(await page.getAttribute("#showRefit", "aria-pressed")).toBe("false");
     });
 
     it("sets a pad out with a fighter, marking those too big for it", async () => {
@@ -884,10 +886,9 @@ describe("the editor in a browser", () => {
         await page.mouse.move(centre.x + 168, centre.y - 220, { steps: 8 });
         await page.mouse.up();
         expect(await page.textContent("#problems")).toMatch(/touches nothing/);
-        // The refit's marks would show where the gun was taken from, in orange.
-        await page.click("#showRefit");
+        // The refit's marks, which would show where the gun was taken from in orange, are hidden to begin with.
+        expect(await page.getAttribute("#showRefit", "aria-pressed")).toBe("false");
         await expect.poll(() => redPixels(page)).toBeGreaterThan(0);
-        await page.click("#showRefit");
 
         await page.click("#undo");
         expect(await page.textContent("#problems")).toMatch(/No problems/);

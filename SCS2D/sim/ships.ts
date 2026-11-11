@@ -274,6 +274,12 @@ export interface Order {
      */
     defend?: boolean;
     /**
+     * With `defend`: go to the target, anything on any side, and stay in the
+     * escort band on it, fighting whatever its doctrine picks from there
+     * rather than only what attacks the target.
+     */
+    waypoint?: boolean;
+    /**
      * Something to fetch or give rather than a target to fight: `dock` takes on
      * all a friend's pad or port can give it, `scavenge` fills its claw from
      * what it grips, and `deliver` gives a friend all it can spare through its
@@ -747,6 +753,9 @@ export class Ships {
     /** What each ship's heaviest dodge this step is from, or -1; and how far off it wants that, centre to centre, m. */
     readonly dodgingFrom: number[] = [];
     readonly dodgingRoom: number[] = [];
+    /** Metal and fuel each ship's robots have brought in from rock and wreckage, kg, all battle: for the view, as income. */
+    readonly gatheredMetal: number[] = [];
+    readonly gatheredFuel: number[] = [];
     /** Where the middle of what it keeps clear of is, world frame, m: off its body's where only its deck can be hit. */
     /** How close the two would be touching, centre to centre of what each can hit, m. */
     readonly dodgingTouch: number[] = [];
@@ -1517,6 +1526,8 @@ export class Ships {
         this.handoff.push(0);
         this.dodgingFrom.push(-1);
         this.dodgingRoom.push(0);
+        this.gatheredMetal.push(0);
+        this.gatheredFuel.push(0);
         this.dodgingTouch.push(0);
         this.dodgingX.push(0);
         this.dodgingY.push(0);
@@ -1824,7 +1835,7 @@ export class Ships {
         const target = shipAim.focusOf(this, i);
         if (target === NO_TARGET || this.alive[target] !== 1) return null;
         if (given?.ram === true || (given === undefined && this.ramming[i] === target)) return { kind: "ram", target };
-        return { kind: this.defendingOf(i) !== NO_TARGET ? "defend" : "attack", target };
+        return { kind: this.defendingOf(i) !== NO_TARGET && given?.waypoint !== true ? "defend" : "attack", target };
     }
 
     /** What this ship is staying with as an escort, as `cover` flies it; `NO_TARGET` for nothing, for a ship out of control, or for one busy with something else. */
@@ -1990,7 +2001,7 @@ export class Ships {
         return given?.errand !== undefined && given.target !== NO_TARGET;
     }
 
-    /** The friend this ship is ordered to defend, or `NO_TARGET`. */
+    /** The friend this ship is ordered to defend, or the waypoint it is to make for; `NO_TARGET` for neither. */
     defendingOf(i: number): number {
         const given = shipOrders.getCurrentOrder(this, i);
         return given !== undefined && given.defend === true ? given.target : NO_TARGET;
@@ -2045,6 +2056,10 @@ export class Ships {
 
     pushDefend(i: number, friend: number, distance?: number, speed?: number): void {
         shipOrders.pushDefend(this, i, friend, distance, speed);
+    }
+
+    pushWaypoint(i: number, target: number, distance?: number, speed?: number): void {
+        shipOrders.pushWaypoint(this, i, target, distance, speed);
     }
 
     pushDock(i: number, friend: number): boolean {
