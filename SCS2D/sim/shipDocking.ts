@@ -3,7 +3,7 @@ import { footprintOf, approachTurn, originOf, type ShipDesign } from "./blueprin
 import { WEAPONS_LAYER } from "./hull.js";
 import { DamageEffect } from "./damage.js";
 
-import { abs, atan2, angleDelta, PI, cos, length, max, min, sin, sqrt } from "./math.js";
+import { abs, atan2, angleDelta, PI, clamp, cos, length, max, min, sin, sqrt } from "./math.js";
 import { padApproaches, type PadApproach } from "./padApproach.js";
 import type { World } from "./world.js";
 import { DOCK_POWER_PER_METRE } from "./modules.js";
@@ -54,6 +54,51 @@ const PORT_HEADING_SLACK = 0.1;
  * radii. Further off it points where it is going.
  */
 const PAD_ALIGN_RADII = 4;
+
+/**
+ * The share of its doctrine's braking a craft coming in to a pad or a port
+ * allows that it may really have: the doctrine's `brake` is for holding a range
+ * band, where stopping a little long costs nothing. A lander comes in no faster
+ * than it could stop from on this share within the room past its pad
+ * (`roomPast`), so in the open it flies its doctrine's curve; a docking craft
+ * has the other ship's hull just past the port, so it always plans on this.
+ */
+const PLACING_BRAKE = 0.5;
+
+/** The pull, as a share of a lander's push, at which it counts on no room past its pad at all. */
+const WELL_ROOM_SHARE = 0.02;
+
+/**
+ * How far past (`x`, `y`), along (`ux`, `uy`), a fighter overshooting it would
+ * go before meeting anything in its own layer, the weapons layer, so over the
+ * pad and the deck: carrier body `tb`, a fighter parked on it, or a rock; up to
+ * `most` metres.
+ */
+function roomPast(ships: Ships, bodies: Bodies, tb: number, x: number, y: number, ux: number, uy: number, most: number): number {
+    if (!(most > 0)) return 0;
+    const dx = ux * most;
+    const dy = uy * most;
+    let first = 1;
+    ships.hulls.castFrom(WEAPONS_LAYER, -1, -1);
+    const carrier = ships.hulls.confirm(bodies, tb, x, y, dx, dy);
+    if (carrier >= 0) first = carrier;
+    for (let k = 0; k < ships.parkedShips.length; k++) {
+        const f = ships.parkedShips[k]!;
+        const fb = bodies.indexOf(ships.bodyIds[f]!);
+        if (fb < 0 || ships.carrierBodyOf(bodies, f) !== tb) continue;
+        const t = ships.hulls.confirm(bodies, fb, x, y, dx, dy);
+        if (t >= 0 && t < first) first = t;
+    }
+    for (let r = 0; r < ships.alive.length; r++) {
+        if (ships.alive[r] !== 1 || ships.rockFlag[r] !== 1) continue;
+        const rb = bodies.indexOf(ships.bodyIds[r]!);
+        if (rb < 0 || length(bodies.x[rb]! - x, bodies.y[rb]! - y) > bodies.radius[rb]! + most) continue;
+        const t = ships.hulls.confirm(bodies, rb, x, y, dx, dy);
+        if (t >= 0 && t < first) first = t;
+    }
+    ships.hulls.reset();
+    return first * most;
+}
 
 /** How far round its carrier, radians, a fighter steers at a time while it circles to a pad's way in. */
 const HULL_ORBIT_STEP = 0.5;
@@ -393,7 +438,18 @@ export function landOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
             // Less what it takes to keep up with the pad and hold off the strongest pull on the way.
             const pull = shipFlight.pullOnWay(ships, bodies.x[b]!, bodies.y[b]!, ux, uy, left);
             const spare = max(0, shipFlight.pushAbility(ships, bodies, i, b) - length(ax, ay) - pull);
-            radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * spare, left, ships.pushDelay));
+            // On all it has, unless that leaves too little room to stop on what it might really have:
+            // where there is room past the pad, an overshoot does no harm.
+            // In a well an overshoot falls, so the stronger the pull against its push, the less room it counts on.
+            const push = shipFlight.pushAbility(ships, bodies, i, b);
+            const falls = push > 0 ? clamp(1 - pull / (WELL_ROOM_SHARE * push), 0, 1) : 0;
+            const room =
+                range > 0 && falls > 0
+                    ? falls * roomPast(ships, bodies, tb, place.x, place.y, (px - bodies.x[b]!) / range, (py - bodies.y[b]!) / range, left)
+                    : 0;
+            const full = stoppingSpeed(approach.brake * spare, left, ships.pushDelay);
+            const careful = stoppingSpeed(PLACING_BRAKE * approach.brake * spare, left + room, ships.pushDelay);
+            radial = min(approach.approachSpeed, full, careful);
         }
         vx += ux * radial;
         vy += uy * radial;
@@ -705,7 +761,7 @@ export function dockOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
             // Less what it takes to keep up with the port and hold off the strongest pull on the way.
             const pull = shipFlight.pullOnWay(ships, bodies.x[b]!, bodies.y[b]!, dx / range, dy / range, left);
             const spare = max(0, shipFlight.pushAbility(ships, bodies, i, b) - length(ax, ay) - pull);
-            radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * spare, left, ships.pushDelay));
+            radial = min(approach.approachSpeed, stoppingSpeed(PLACING_BRAKE * approach.brake * spare, left, ships.pushDelay));
         }
         vx += (dx / range) * radial;
         vy += (dy / range) * radial;
