@@ -489,6 +489,29 @@ export function movePlacement(blueprint: Blueprint, origin: ModuleOrigin, dx: nu
 }
 
 /**
+ * Drag the second copy of a repeated assembly to set the row's step, rather
+ * than moving the whole row: `dx`/`dy` (blueprint frame) are added to the step
+ * as the first copy's frame sees it, which is the frame a step is written in.
+ * Null unless `origin` names copy 1 of an instance that repeats, so a caller
+ * can move the placement instead.
+ */
+export function moveRepeatStep(blueprint: Blueprint, origin: ModuleOrigin, dx: number, dy: number): Blueprint | null {
+    const last = origin.path[origin.path.length - 1];
+    const placement = placementAt(blueprint, origin.path);
+    if (last?.copy !== 1 || placement === null || !isInstance(placement) || (placement.repeat ?? 1) < 2) return null;
+    // The first copy's frame: the list's, turned by the instance and reflected if the two disagree.
+    const own = placement.angle ?? 0;
+    const turned = origin.rotation + (origin.mirrored ? -own : own);
+    const flipped = origin.mirrored !== (placement.mirror ?? false);
+    const local = toPlacementFrame({ ...origin, rotation: turned, mirrored: flipped }, dx, dy);
+    return updatePlacement(blueprint, origin.path, (p) => {
+        const instance = p as AssemblyInstance;
+        const step = instance.step ?? { x: 0, y: 0 };
+        return { ...instance, step: { ...step, x: step.x + local.dx, y: step.y + local.dy } };
+    });
+}
+
+/**
  * Resize a drawn module: its size on the part, and `dx`/`dy` (blueprint frame)
  * on the module within its own frame, as `resizedTo` works them out — so every
  * copy of a shared part moves alike, mirrored where the copy is.

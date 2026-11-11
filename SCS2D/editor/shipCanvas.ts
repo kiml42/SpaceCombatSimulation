@@ -23,6 +23,7 @@ import {
     instancePose,
     moduleAt,
     movePlacement,
+    moveRepeatStep,
     positionHandle,
     reshapePlacement,
     resizePlacement,
@@ -705,7 +706,8 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
         dx = tidyMetres(dx + pull.dx);
         dy = tidyMetres(dy + pull.dy);
         if (dx === 0 && dy === 0 && !moving.moved) return;
-        const next = movePlacement(moving.from, handle.origin, dx, dy);
+        // The second copy of a row sets the row's step; any other copy moves the row.
+        const next = moveRepeatStep(moving.from, handle.origin, dx, dy) ?? movePlacement(moving.from, handle.origin, dx, dy);
         if (next === null) return;
         if (moving.moved) doc.amend(next);
         else doc.apply(next);
