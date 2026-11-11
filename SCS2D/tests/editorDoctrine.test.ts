@@ -120,12 +120,16 @@ describe("what the panel shows of a ship’s doctrine", () => {
     it("says what a relative number comes to for this ship", () => {
         const v = values({ standoff: 0.5, escortMinRadii: 1, ramRadii: 2, ramArmed: 0.5 }, { preferredMass: 4 });
         const said = (field: string): string => row(field).absolute!(v, ship)!;
-        expect(said("standoff")).toBe("no further than 1,000 m");
+        // The standoff is 3,000 m off a target twice its radius, so the cap is what holds it.
+        expect(said("standoff")).toBe("no further than 1,000 m: sets its range against the size it wants");
         expect(said("preferredMass")).toBe("≈ 800 t");
         // The enemy it wants is four times its mass, so twice its radius.
         expect(said("standoffRadii")).toBe(
-            `${(DEFAULT_DOCTRINE.approach.standoffRadii * 60).toLocaleString("en-GB")} m off the skin of the size it wants`,
+            `${(DEFAULT_DOCTRINE.approach.standoffRadii * 60).toLocaleString("en-GB")} m off the skin of the size it wants: past its range cap, which sets the range instead`,
         );
+        const near = values({ standoff: 0.5, standoffRadii: 5 }, { preferredMass: 4 });
+        expect(row("standoffRadii").absolute!(near, ship)).toBe("300 m off the skin of the size it wants: sets its range");
+        expect(row("standoff").absolute!(near, ship)).toBe("no further than 1,000 m: the standoff is nearer");
         const band = holdBand(v.approach, ship.reach, 60);
         expect(said("tolerance")).toBe(
             `holds ${Math.round(band.min).toLocaleString("en-GB")} m–${Math.round(band.max).toLocaleString("en-GB")} m, centre to centre`,

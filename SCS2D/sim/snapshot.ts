@@ -47,7 +47,7 @@ function venting(leak: { rate: number; age: number; closed: number }): boolean {
 
 /** An order as drawn: what it is, and the body of what it is given against. */
 export interface OrderView {
-    kind: "attack" | "defend" | "ram" | "dock" | "scavenge" | "deliver" | "flee" | "hide";
+    kind: "attack" | "defend" | "waypoint" | "ram" | "dock" | "scavenge" | "deliver" | "flee" | "hide";
     /** The body it is against or making for, or -1 for none yet. */
     target: number;
     /** How far off it was told to hold, and how fast to close, where told rather than doctrine's. */
@@ -692,11 +692,13 @@ export function capture(
                         ? order.hide === true
                             ? "hide"
                             : "flee"
-                        : order.defend === true
-                          ? "defend"
-                          : order.ram
-                            ? "ram"
-                            : "attack");
+                        : order.waypoint === true
+                          ? "waypoint"
+                          : order.defend === true
+                            ? "defend"
+                            : order.ram
+                              ? "ram"
+                              : "attack");
                 // Docking anywhere, where doctrine has chosen to go.
                 const target = order.errand !== undefined && order.target < 0 && order === given[0] ? ships.errandTarget(i) : order.target;
                 const shown: OrderView = { kind, target: ships.isAlive(target) ? bodies.indexOf(ships.body(target)) : -1 };

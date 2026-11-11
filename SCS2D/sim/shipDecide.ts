@@ -88,11 +88,13 @@ export function decide(ships: Ships, world: World, bodies: Bodies, i: number): v
     const approach = ships.doctrines[i]!.approach;
     const rammer = approach.ramRadii > 0;
     const reach = shipSupply.fightReach(ships, i);
+    // No deeper into a well than it can climb back out of, but to ram.
+    const lift = wouldRam(ships, bodies, i, b) ? Infinity : shipFlight.pushAbility(ships, bodies, i, b);
     if ((design.reach > 0 && !ships.isDisarmed(i)) || (rammer && reach > 0)) {
         const wanted = doctrine.ramMass > 0 && wouldRam(ships, bodies, i, b) ? doctrine.ramMass : doctrine.preferredMass;
         // Defending, only what is attacking its charge, while anything is.
         let attackers = false;
-        if (defending !== NO_TARGET) {
+        if (defending !== NO_TARGET && ships.getCurrentOrder(i)?.waypoint !== true) {
             for (let t = 0; t < ships.alive.length && !attackers; t++) {
                 attackers = ships.alive[t] === 1 && ships.hostile(i, t) && shipAim.focusOf(ships, t) === defending;
             }
@@ -128,6 +130,7 @@ export function decide(ships: Ships, world: World, bodies: Bodies, i: number): v
             // Sharing a body, it is as far off as its own modules are.
             const at = ships.locate(bodies, t, tb, ships.lookAt);
             if (shipAim.sharesBody(ships, t, tb)) seen = { ...seen, range: length(at.x - bodies.x[b]!, at.y - bodies.y[b]!) };
+            if (!within(ships, bodies, lift, t, at.x, at.y, bodies.x[b]!, bodies.y[b]!, reach)) continue;
             if (ll > 0 && doctrine.facingWeight !== 0) {
                 const cx = at.x - bodies.x[b]!;
                 const cy = at.y - bodies.y[b]!;
@@ -158,7 +161,7 @@ export function decide(ships: Ships, world: World, bodies: Bodies, i: number): v
         ships.chosen[i] = NO_TARGET;
         ships.consort[i] = NO_TARGET;
         ships.withdrawing[i] = 1;
-        ships.hiding[i] = coverFor(ships, bodies, i, b);
+        ships.hiding[i] = coverFor(ships, bodies, i, b, lift);
         return;
     }
     ships.withdrawing[i] = 0;
@@ -188,6 +191,8 @@ export function decide(ships: Ships, world: World, bodies: Bodies, i: number): v
         }
         const tb = bodies.indexOf(ships.bodyIds[t]!);
         if (tb < 0 || tb === b) continue;
+        const band = escortBand(ships, i, design, t);
+        if (!within(ships, bodies, lift, t, bodies.x[tb]!, bodies.y[tb]!, bodies.x[b]!, bodies.y[b]!, band)) continue;
         const candidate = look(bodies, b, tb, t, ships.designs[t]!.mass, !ships.isDisarmed(t), !ships.hasNoEngines(t));
         // Which consort is the ordinary stack's question — proximity dominating,
         // nearly always the nearest. How hard it pulls is the pilot's, and is
@@ -196,6 +201,27 @@ export function decide(ships: Ships, world: World, bodies: Bodies, i: number): v
     }
     ships.consort[i] = ships.choice.ship;
     guard(ships, bodies, i, b, wasGuarding);
+}
+
+/**
+ * Whether a craft at (`fromX`, `fromY`) that can push `lift` could keep with
+ * ship `t`, at (`x`, `y`), from `reach` of it on its own side
+ * (`shipFlight.keepsWith`).
+ */
+export function within(
+    ships: Ships,
+    bodies: Bodies,
+    lift: number,
+    t: number,
+    x: number,
+    y: number,
+    fromX: number,
+    fromY: number,
+    reach: number,
+): boolean {
+    const d = length(fromX - x, fromY - y);
+    const k = d > reach ? reach / d : 1;
+    return shipFlight.keepsWith(ships, bodies, lift, t, x + (fromX - x) * k, y + (fromY - y) * k);
 }
 
 /** How much further out than where it starts guarding an escort stops. */
@@ -325,7 +351,7 @@ export function withdraws(ships: Ships, i: number, b: number, fighting: number):
  * `hideSize` of its radius, and no armed enemy's reach on it. `NO_TARGET`
  * for none, to flee instead.
  */
-export function coverFor(ships: Ships, bodies: Bodies, i: number, b: number): number {
+export function coverFor(ships: Ships, bodies: Bodies, i: number, b: number, lift = Infinity): number {
     const approach = ships.doctrines[i]!.approach;
     const mine = ships.designs[i]!.radius;
     const range = approach.hideRange * mine;
@@ -336,6 +362,7 @@ export function coverFor(ships: Ships, bodies: Bodies, i: number, b: number): nu
         if (tb < 0 || tb === b || bodies.ghost[tb] === 1 || bodies.radius[tb]! < approach.hideSize * mine) return -1;
         const d = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!);
         if (d > range || shipForage.dangerNear(ships, bodies, i, tb) > 0) return -1;
+        if (!within(ships, bodies, lift, t, bodies.x[tb]!, bodies.y[tb]!, bodies.x[b]!, bodies.y[b]!, bodies.radius[tb]! + mine)) return -1;
         return d;
     };
     const held = ships.hiding[i]!;
@@ -474,7 +501,7 @@ export function clearOfHulls(ships: Ships, bodies: Bodies, b: number): boolean {
 export function liveConsort(ships: Ships, bodies: Bodies, i: number, b: number): number {
     const consort = ships.consort[i] ?? NO_TARGET;
     if (consort === NO_TARGET || ships.alive[consort] !== 1) return NO_TARGET;
-    if (ships.hulk(consort) && !ships.mending(bodies, consort)) return NO_TARGET;
+    if (ships.hulk(consort) && !ships.mending(bodies, consort) && ships.defendingOf(i) !== consort) return NO_TARGET;
     const cb = bodies.indexOf(ships.bodyIds[consort]!);
     return cb < 0 || cb === b ? NO_TARGET : consort;
 }

@@ -231,6 +231,19 @@ export function liveBand(ships: Ships, i: number, order: Order): void {
 
 /** Add an order to defend `friend` until it is gone, `distance` off its skin and closing at `speed` where told. */
 export function pushDefend(ships: Ships, i: number, friend: number, distance?: number, speed?: number): void {
+    pushStation(ships, i, friend, false, distance, speed);
+}
+
+/**
+ * Add an order to go close to `target` and stay there until it is gone: in
+ * its escort band, or `distance` off its skin where told. Flown as a defence
+ * is, but its fights are its doctrine's.
+ */
+export function pushWaypoint(ships: Ships, i: number, target: number, distance?: number, speed?: number): void {
+    pushStation(ships, i, target, true, distance, speed);
+}
+
+function pushStation(ships: Ships, i: number, friend: number, waypoint: boolean, distance?: number, speed?: number): void {
     const approach = ships.doctrines[i]!.approach;
     ships.orders[i]!.push({
         target: friend,
@@ -246,6 +259,7 @@ export function pushDefend(ships: Ships, i: number, friend: number, distance?: n
         land: false,
         dock: false,
         defend: true,
+        ...(waypoint ? { waypoint } : {}),
     });
     // A fresh look at who is attacking it, rather than at the next rethink.
     ships.rethinkAt[i] = 0;
