@@ -186,9 +186,8 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
     ships.dodgeRock = false;
     ships.fightFade = 1;
     let wantAngle = bodies.angle[b]!;
-    // What it is fighting, if anything: the body, and how far out it holds it.
+    // The body of what it is fighting, if anything.
     let fighting = -1;
-    let holdOut = 0;
 
     // Of two ships docked by their ports, the smaller idles and the larger
     // flies the pair: two pilots on one body would pull it apart.
@@ -286,7 +285,6 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
             if (!order.ram) {
                 wantAngle = attackHeading(ships, i, b, at, bodies, wantAngle, target, tb);
                 fighting = tb;
-                holdOut = order.maxRange;
             }
             if (order.ram) {
                 // For the view: no part is picked, so the middle of what is left of it.
@@ -314,15 +312,13 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
         if (target === NO_TARGET && covering >= 0) {
             const cb = bodies.indexOf(ships.bodyIds[covering]!);
             if (cb >= 0) wantAngle = atan2(bodies.y[cb]! - bodies.y[b]!, bodies.x[cb]! - bodies.x[b]!);
-            // Defending and on station, it turns its main battery on the attacker.
+            // Defending, its main battery is for the attacker, as burning or fighting has it.
             const attacker = covering === ships.defendingOf(i) ? ships.chosenOf(i) : NO_TARGET;
             const ab = attacker === NO_TARGET ? -1 : bodies.indexOf(ships.bodyIds[attacker]!);
             if (cb >= 0 && ab >= 0 && ab !== b) {
-                const gap = length(bodies.x[cb]! - bodies.x[b]!, bodies.y[cb]! - bodies.y[b]!);
-                if (gap <= shipDecide.escortBand(ships, i, ships.designs[i]!, covering)) {
-                    const at = ships.locate(bodies, attacker, ab, ships.lookAt);
-                    wantAngle = attackHeading(ships, i, b, at, bodies, atan2(at.y - bodies.y[b]!, at.x - bodies.x[b]!), attacker, ab);
-                }
+                const at = ships.locate(bodies, attacker, ab, ships.fightAt);
+                wantAngle = attackHeading(ships, i, b, at, bodies, atan2(at.y - bodies.y[b]!, at.x - bodies.x[b]!), attacker, ab);
+                fighting = ab;
             }
         }
         // Clear of what it is covering, as of anything else: a charge is
@@ -343,8 +339,15 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
     leadAy -= PULL.y;
 
     if (fighting < 0) ships.brakingOnMains[i] = 0;
-    if (fighting >= 0) wantAngle = burnOrFight(ships, i, b, ships.fightAt, bodies, wantAngle, wantVx, wantVy, holdOut);
+    if (fighting >= 0) wantAngle = burnOrFight(ships, i, b, ships.fightAt, bodies, wantAngle, wantVx, wantVy);
     else ships.burning[i] = 0;
+    // With nothing to point its guns at, where its bow points is the helm's, for
+    // its best push: on a course, with a charge, or waiting. Not where it is
+    // closing on a port, pad or source, which it must face.
+    if (fighting < 0 && ships.intent === FACE && target === NO_TARGET) {
+        ships.intent = STEER;
+        ships.steerFree = true;
+    }
 
     // Getting out of a rock's way, once that is most of what it wants, is a
     // matter of where it goes rather than which way it faces: held on target,
@@ -575,8 +578,10 @@ function aimedPart(ships: Ships, i: number, target: number, tb: number): number 
  * The attack heading, or the heading that points the main thrust axis along
  * the change of velocity this ship wants, whichever its doctrine scores
  * higher: `burnWeight` for the share of that change turning makes before
- * holding would, turn included, against `rangeHold` for how near the band it
- * is. Held by `BURN_MARGIN` either way.
+ * holding would, turn included, against `rangeHold` for how near its main
+ * guns' reach the target is — all of it within reach, falling away beyond, so
+ * the further out it is the longer it has to turn back, and none for a ship
+ * with no main gun. Held by `BURN_MARGIN` either way.
  *
  * A ship whose guns-on thrust already gives what the pilot asks for never
  * turns. When a dodge is most of what it wants, only what each makes
@@ -591,7 +596,6 @@ export function burnOrFight(
     attack: number,
     wantVx: number,
     wantVy: number,
-    maxRange: number,
 ): number {
     const approach = ships.doctrines[i]!.approach;
     const layout = ships.layoutOf(i);
@@ -620,8 +624,9 @@ export function burnOrFight(
     }
 
     const range = length(at.x - bodies.x[b]!, at.y - bodies.y[b]!);
+    const reach = ships.designs[i]!.reach;
     // On the run out of a pass or back in, its guns wait for its push.
-    const near = ships.running[i] === 1 ? 0 : range > maxRange && maxRange > 0 ? maxRange / range : 1;
+    const near = ships.running[i] === 1 || !(reach > 0) ? 0 : range > reach ? reach / range : 1;
     // Worth less the further into its band's fade it is: the last of the
     // closing there is no reason to take its guns off.
     const burn = approach.burnWeight * gain * ships.fightFade;
