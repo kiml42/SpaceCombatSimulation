@@ -300,8 +300,10 @@ inside any one file is not contiguous.
   axis along it makes before holding the guns on would, the turn included, against `rangeHold` for keeping the
   guns on target, all of it within its main guns' reach and falling away beyond, so the further out it is the
   longer it has to turn back; nothing for a ship with no main gun. **With nothing to point its guns at, where
-  its bow points is the helm's alone**, for its best push: on a waypoint or a course, escorting with no enemy
-  about, or waiting. Only docking, landing and gripping still face as they must. A defender weighs turning to
+  its bow points is the helm's alone**, for its best push, wherever the change it wants is worth turning for:
+  on a waypoint or a course, escorting with no enemy about, or waiting. Small corrections it leaves to its
+  other engines, so a craft on station does not weave. Docking, landing and gripping still face as they must,
+  and an order with no target still holds its heading. A defender weighs turning to
   its charge's attacker the same way, rather than only once on station. Neither side counts thrust past
   what the pilot asks for, so a ship whose guns-on thrust already gives that never turns, and when dodging is
   most of what it wants only what each makes before the near miss counts, so it sidesteps rather than flips.
