@@ -19,6 +19,7 @@ export const RIVAL = "b_";
 export const SIDE_FIELDS = [
     "population",
     "winners",
+    "keep",
     "group",
     "metalBudget",
     "fuelBudget",
@@ -85,6 +86,7 @@ export const DEFAULT_TEXTS: Texts = {
     generations: String(DEFAULT_RUN.generations),
     population: String(DEFAULT_RUN.population),
     winners: String(DEFAULT_RUN.winners),
+    keep: String(DEFAULT_RUN.keep),
     group: String(DEFAULT_RUN.group),
     minMatches: String(DEFAULT_RUN.minMatches),
     metalBudget: "",
@@ -211,6 +213,7 @@ function sideSettings(texts: Texts): SideSettings {
     return {
         population: Math.max(2, Math.round(number(texts["population"], DEFAULT_RUN.population))),
         winners: Math.max(1, Math.round(number(texts["winners"], DEFAULT_RUN.winners))),
+        keep: Math.max(0, Math.round(number(texts["keep"], DEFAULT_RUN.keep))),
         group: Math.max(1, Math.round(number(texts["group"], DEFAULT_RUN.group))),
         budget: { metal: limit("metalBudget", 1000), fuel: limit("fuelBudget", 1000), build: limit("buildBudget", 60) },
         fleet: {
@@ -338,6 +341,7 @@ function sideTexts(config: RunConfig): Texts {
     const out: Texts = {
         population: String(config.population),
         winners: String(config.winners),
+        keep: String(config.keep),
         group: String(config.group),
         metalBudget: shown(config.budget.metal, 1000),
         fuelBudget: shown(config.budget.fuel, 1000),

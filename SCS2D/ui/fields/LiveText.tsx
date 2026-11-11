@@ -71,20 +71,27 @@ export function LiveText({ value, onType, onStart, onDone, multiline = false, ..
 
 export interface LiveNumberProps extends Omit<LiveTextProps, "value" | "onType" | "type" | "multiline"> {
     readonly value: number;
-    /** Every key that leaves a number in the box. */
+    readonly min?: number;
+    readonly max?: number;
+    /** Every key that leaves a number within min and max in the box. */
     readonly onEdit: (value: number) => void;
 }
 
 /** A number edited as it is typed. */
-export function LiveNumber({ value, onEdit, ...rest }: LiveNumberProps) {
+export function LiveNumber({ value, onEdit, min, max, ...rest }: LiveNumberProps) {
     return (
         <LiveText
             {...rest}
+            {...(min === undefined ? {} : { min })}
+            {...(max === undefined ? {} : { max })}
             type="number"
             value={String(value)}
             onType={(typed) => {
                 const number = Number(typed);
-                if (typed.trim() !== "" && Number.isFinite(number)) onEdit(number);
+                // Half-typed, "0.5" is "0" first: out of range waits for the next key.
+                if (typed.trim() === "" || !Number.isFinite(number)) return;
+                if ((min !== undefined && number < min) || (max !== undefined && number > max)) return;
+                onEdit(number);
             }}
         />
     );
