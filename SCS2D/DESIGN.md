@@ -1374,7 +1374,7 @@ inside any one file is not contiguous.
   clear of the ships (the Asteroid Field scene), and offered by the custom battle, evolution and the
   skirmish. Rock that meets rock slowly sticks, torn or not, and the two go on as one body: a minor onto a major rides its rail, and two majors never weld. A claw moors its ship to an asteroid, as a pad parks a fighter, and its robots cross onto the rock to mine it into one hold, ore as metal and ice as fuel, and a claw alone melts ice;
   scavenging goes for asteroids by what they hold (the Mining scene). An asteroid picked out in the
-  viewer shows what is left in it, and a right-click on one sends the picked ships with claws to mine it.
+  viewer shows what is left in it, and while it is being taken how soon it will be mined out at that rate, and a right-click on one sends the picked ships with claws to mine it.
   A claw ship closes jaws first, round asteroids in its way, at doctrine's `clawSpeed`, and passes over an
   asteroid an enemy has hold of. **It comes in square to the surface** (`chooseGrip`, `squareUp`): it
   picks a point on an outside face of its source facing it, preferring one wide enough for its jaws and
