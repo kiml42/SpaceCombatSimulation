@@ -1,6 +1,6 @@
 import { PI } from "../sim/math.js";
 import { MODULE_KINDS } from "../sim/modules.js";
-import { DEFAULT_MATCH, SCORE_PARTS, type GoalSpec, type MatchConfig, type ScoreWeights } from "./match.js";
+import { DEFAULT_MATCH, SCORE_PARTS, type CoursePoint, type GoalSpec, type MatchConfig, type ScoreWeights } from "./match.js";
 import {
     DEFAULT_BUILD_WEIGHTS,
     DEFAULT_DOCTRINE_WEIGHTS,
@@ -159,7 +159,8 @@ const MATCH_KEYS: readonly string[] = [
     "weights",
 ];
 const GOAL_KEYS: readonly string[] = ["x", "y", "scale", "size"];
-const GOAL_OPTIONAL_KEYS: readonly string[] = ["solid", "reach"];
+const GOAL_OPTIONAL_KEYS: readonly string[] = ["solid", "reach", "linger", "finalLinger"];
+const POINT_KEYS: readonly string[] = ["x", "y"];
 const WEIGHT_KEYS: readonly (keyof ScoreWeights)[] = SCORE_PARTS;
 
 /** The settings a run is given, as the object a file holds. */
@@ -209,7 +210,7 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
             ...(match.quietLimit > 0 ? { quietLimit: match.quietLimit } : {}),
             ...(match.map !== undefined && writeMap(match.map) !== undefined ? { map: writeMap(match.map) } : {}),
             goal: match.goal === null ? null : { ...match.goal },
-            ...((match.course ?? []).length > 0 ? { course: match.course!.map((goal) => ({ ...goal })) } : {}),
+            ...((match.course ?? []).length > 0 ? { course: match.course!.map((point) => ({ x: point.x, y: point.y })) } : {}),
             weights: { ...match.weights },
         },
         ...(setup.versus == null ? {} : { versus: serialiseVersus(setup.versus) }),
@@ -458,7 +459,9 @@ export function parseRunConfig(value: unknown): RunSetup {
                         : match["goal"] === null
                           ? null
                           : ({ ...(match["goal"] as GoalSpec) } as GoalSpec),
-                ...(Array.isArray(match["course"]) ? { course: (match["course"] as GoalSpec[]).map((goal) => ({ ...goal })) } : {}),
+                ...(Array.isArray(match["course"])
+                    ? { course: (match["course"] as CoursePoint[]).map((point) => ({ x: point.x, y: point.y })) }
+                    : {}),
                 weights: { ...DEFAULT_MATCH.weights, ...(match["weights"] as Partial<ScoreWeights> | undefined) },
             },
         },
@@ -656,16 +659,22 @@ function matchProblem(value: unknown, warnings: string[]): string | null {
 
 function courseProblem(value: unknown, warnings: string[]): string | null {
     if (value === undefined) return null;
-    if (!Array.isArray(value)) return "match.course must be a list of goals";
-    for (const [n, goal] of value.entries()) {
-        if (goal === null) return `match.course[${n}] must be a goal`;
-        const problem = goalProblem(goal, warnings, `match.course[${n}]`);
-        if (problem !== null) return problem;
+    if (!Array.isArray(value)) return "match.course must be a list of points, as { x, y }";
+    for (const [n, point] of value.entries()) {
+        const name = `match.course[${n}]`;
+        if (!isRecord(point)) return `${name} must be a point, as { x, y }`;
+        unknownKeys(point, POINT_KEYS, name, warnings);
+        for (const key of POINT_KEYS) {
+            if (point[key] === undefined) return `${name} is missing ${key}`;
+            const problem = numberProblem(point[key], `${name}.${key}`);
+            if (problem !== null) return problem;
+        }
     }
     return null;
 }
 
-function goalProblem(value: unknown, warnings: string[], name = "match.goal"): string | null {
+function goalProblem(value: unknown, warnings: string[]): string | null {
+    const name = "match.goal";
     if (value === undefined || value === null) return null;
     if (!isRecord(value)) return `${name} must be an object, or null for a match that is only a fight`;
     unknownKeys(value, [...GOAL_KEYS, ...GOAL_OPTIONAL_KEYS], name, warnings);
@@ -679,10 +688,11 @@ function goalProblem(value: unknown, warnings: string[], name = "match.goal"): s
     }
     if ((value["scale"] as number) <= 0) return `${name}.scale must be more than nothing`;
     if ((value["size"] as number) <= 0) return `${name}.size must be more than nothing`;
-    if (value["reach"] !== undefined) {
-        const problem = numberProblem(value["reach"], `${name}.reach`);
+    for (const key of ["reach", "linger", "finalLinger"]) {
+        if (value[key] === undefined) continue;
+        const problem = numberProblem(value[key], `${name}.${key}`);
         if (problem !== null) return problem;
-        if ((value["reach"] as number) < 0) return `${name}.reach must be nothing or more`;
+        if ((value[key] as number) < 0) return `${name}.${key} must be nothing or more`;
     }
     return null;
 }

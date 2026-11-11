@@ -2,7 +2,7 @@ import { mapFields } from "~/host/mapFields";
 import { DEFAULT_COEVOLUTION, rivalSettings, type CoevolutionConfig, type SideSettings } from "~/evolution/coevolution";
 import type { RunSetup } from "~/evolution/configFile";
 import { DEFAULT_FLEET_LIMITS } from "~/evolution/fleetMutate";
-import { DEFAULT_MATCH, isFleet, type Entrant, type MatchConfig } from "~/evolution/match";
+import { DEFAULT_MATCH, GOAL_REACH, isFleet, type Entrant, type MatchConfig } from "~/evolution/match";
 import { DEFAULT_BUILD_WEIGHTS, DEFAULT_KINDS, DEFAULT_LIMITS, doctrineWeights, type KindWeights } from "~/evolution/mutate";
 import { breeding, MUTATION_FIELDS } from "~/evolution/mutationFields";
 import { DEFAULT_RUN, type RunConfig } from "~/evolution/run";
@@ -103,6 +103,9 @@ export const DEFAULT_TEXTS: Texts = {
     crossingSpread: String(DEFAULT_MATCH.crossingSpread),
     quietLimit: String(DEFAULT_MATCH.quietLimit),
     course: "",
+    goalReach: String(GOAL_REACH),
+    goalLinger: "0",
+    goalFinalLinger: "",
     survivalWeight: String(DEFAULT_MATCH.weights.survival),
     functionalWeight: String(DEFAULT_MATCH.weights.functional),
     damageWeight: String(DEFAULT_MATCH.weights.damage),
@@ -237,12 +240,23 @@ function mapOf(texts: Texts): MatchConfig["map"] {
  */
 function goalsOf(form: SetupForm): Pick<MatchConfig, "goal" | "course"> {
     if (form.goal === "none" || DEFAULT_MATCH.goal === null) return { goal: null };
-    const goal = { ...DEFAULT_MATCH.goal, solid: form.goal !== "ghost" };
-    const course = (form.texts["course"] ?? "")
+    const t = form.texts;
+    const finalLinger = (t["goalFinalLinger"] ?? "").trim() === "" ? {} : { finalLinger: Math.max(0, number(t["goalFinalLinger"], 0)) };
+    // Only what differs from the defaults, so a file that changes none of them reads as it always did.
+    const reach = Math.max(0, number(t["goalReach"], GOAL_REACH));
+    const linger = Math.max(0, number(t["goalLinger"], 0));
+    const goal = {
+        ...DEFAULT_MATCH.goal,
+        solid: form.goal !== "ghost",
+        ...(reach === GOAL_REACH ? {} : { reach }),
+        ...(linger === 0 ? {} : { linger }),
+        ...finalLinger,
+    };
+    const course = (t["course"] ?? "")
         .split(";")
         .map((point) => point.split(",").map((n) => Number(n.trim())))
         .filter((point) => point.length === 2 && point.every(Number.isFinite))
-        .map(([x, y]) => ({ ...goal, x: x!, y: y! }));
+        .map(([x, y]) => ({ x: x!, y: y! }));
     return course.length === 0 ? { goal } : { goal, course };
 }
 
@@ -369,7 +383,10 @@ export function formOfSetup(setup: RunSetup, founders: readonly string[], versus
         closingSpread: String(match.closingSpread ?? DEFAULT_MATCH.closingSpread),
         crossingSpread: String(match.crossingSpread ?? DEFAULT_MATCH.crossingSpread),
         quietLimit: String(match.quietLimit ?? DEFAULT_MATCH.quietLimit),
-        course: (match.course ?? []).map((goal) => `${goal.x},${goal.y}`).join("; "),
+        course: (match.course ?? []).map((point) => `${point.x},${point.y}`).join("; "),
+        goalReach: String(match.goal?.reach ?? GOAL_REACH),
+        goalLinger: String(match.goal?.linger ?? 0),
+        goalFinalLinger: match.goal?.finalLinger === undefined ? "" : String(match.goal.finalLinger),
         survivalWeight: String(match.weights.survival),
         functionalWeight: String(match.weights.functional),
         damageWeight: String(match.weights.damage),

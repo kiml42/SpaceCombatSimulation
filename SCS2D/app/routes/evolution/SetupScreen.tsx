@@ -394,9 +394,28 @@ export function SetupScreen({ hidden, form, onForm, ships, fleets, onExport, onI
                     {field({
                         id: "course",
                         label: "then",
-                        title: "Goals to reach after the first, in order, as x,y metres separated by ;. Each ship is sent on to the next once within 100 m of one, and the match ends once every ship has reached the last.",
+                        title: "Goals to reach after the first, in order, as x,y metres separated by ;, each like the first. Each ship is sent on to the next once it has reached one, and the match ends once every ship has reached the last.",
                         text: true,
                         placeholder: "none",
+                    })}
+                    {field({
+                        id: "goalReach",
+                        label: "reach m",
+                        step: 10,
+                        title: "How close a ship must be to a goal to be at it, metres from its hull to the goal's",
+                    })}
+                    {field({
+                        id: "goalLinger",
+                        label: "linger s",
+                        step: 1,
+                        title: "How long a ship must stay at a goal, without leaving, for it to count as reached",
+                    })}
+                    {field({
+                        id: "goalFinalLinger",
+                        label: "last linger s",
+                        step: 5,
+                        placeholder: "as linger",
+                        title: "How long a ship must stay at the last goal: a station to be held. Empty for the same as every other goal",
                     })}
                 </Fold>
                 <Fold k="asteroids" title="Asteroids" open={false}>

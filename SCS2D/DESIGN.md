@@ -476,8 +476,10 @@ inside any one file is not contiguous.
   course** of goals a craft got — a single goal by default, or several reached in turn. Each goal reached is
   worth more than any progress towards one not reached, reaching it sooner a little more, and progress towards
   the next is the best a craft managed, measured from where it set out for it rather than against the goal
-  outright, so standing still is nothing and any closing is something. A goal is reached within `reach` of it,
-  skin to skin (100 m unless set), and reaching one sends a craft on to the next. Nearness falls away with distance
+  outright, so standing still is nothing and any closing is something. Every goal of a course is set up as the first is.
+  A goal is reached by staying within `reach` of it, skin to skin (100 m unless set), for `linger` seconds
+  without leaving (none unless set), and for the last for `finalLinger`, so a course can end in a station to
+  be held; staying counts towards it as getting there does. Reaching one sends a craft on to the next. Nearness falls away with distance
   for ever rather than stopping at a range, since a flat region is one selection cannot see across and a
   hull whose engine is too feeble to cross it would score exactly what a hull with no engine scores. Each is scaled to run from nothing to one before it is weighted — a
   whole match survived, the whole of the opposition destroyed, a match spent sitting on the goal — so a

@@ -96,11 +96,23 @@ export interface GoalSpec {
     /** False for a marker nothing can meet or move. Solid when left out. */
     readonly solid?: boolean;
     /**
-     * How close counts as having reached it, metres from the marker's skin to
-     * the ship's; `GOAL_REACH` when left out. Reaching a goal of a course sends
-     * the ship on to the next.
+     * How close counts as being at it, metres from the marker's skin to the
+     * ship's; `GOAL_REACH` when left out.
      */
     readonly reach?: number;
+    /**
+     * Seconds a ship must stay within `reach` of a goal, without leaving, for it
+     * to count as reached, which sends the ship on to the next; none when left out.
+     */
+    readonly linger?: number;
+    /** `linger` for the last goal of the course: a station to be held. `linger` when left out. */
+    readonly finalLinger?: number;
+}
+
+/** Where a goal of a course after the first is; the rest of it is as the first. */
+export interface CoursePoint {
+    readonly x: number;
+    readonly y: number;
 }
 
 /** How close a ship must come to a goal to have reached it, metres skin to skin, where the goal does not say. */
@@ -164,11 +176,12 @@ export interface MatchConfig {
      */
     readonly goal: GoalSpec | null;
     /**
-     * Goals to reach after `goal`, in order: a course. Each ship is told to make
-     * for the next once it reaches the one before, and the match ends once every
-     * ship still flown has reached the last. Ignored without a `goal`.
+     * Where the goals to reach after `goal` are, in order, each otherwise as
+     * `goal` is: a course. Each ship is told to make for the next once it
+     * reaches the one before, and the match ends once every ship still flown
+     * has reached the last. Ignored without a `goal`.
      */
-    readonly course?: readonly GoalSpec[];
+    readonly course?: readonly CoursePoint[];
     readonly weights: ScoreWeights;
     readonly wells: readonly WellSpec[];
     /**
@@ -422,11 +435,16 @@ export class Match {
     private readonly survival: Float64Array;
     /** The course: `goal`, then `course`. */
     private readonly goals: readonly GoalSpec[];
-    /** Per ship: the goal it is making for, its nearness to it when it set out, its best progress towards it, and its early reaching so far. */
+    /**
+     * Per ship: the goal it is making for, its nearness to it when it set out,
+     * its best progress towards it, its early reaching so far, and how long it
+     * has been at it.
+     */
     private readonly leg: Int32Array;
     private readonly from: Float64Array;
     private readonly toward: Float64Array;
     private readonly early: Float64Array;
+    private readonly stay: Float64Array;
     /** Per entrant: its furthest ship's `wayRound`. */
     private readonly race: Float64Array;
     private readonly lifetime: Float64Array;
@@ -600,6 +618,7 @@ export class Match {
         this.from = new Float64Array(fielded);
         this.toward = new Float64Array(fielded);
         this.early = new Float64Array(fielded);
+        this.stay = new Float64Array(fielded);
         this.race = new Float64Array(count);
         this.lifetime = new Float64Array(count);
         this.fightingNow = new Uint8Array(count);
@@ -655,27 +674,47 @@ export class Match {
         return (goal.reach ?? GOAL_REACH) + ships.designs[this.battle.slots[k]!]!.radius + ships.designs[this.battle.markers[g]!]!.radius;
     }
 
+    /** How long a ship must stay at goal `g` for it to count, seconds. */
+    private lingerOf(g: number): number {
+        const goal = this.goals[g]!;
+        return (g === this.goals.length - 1 ? goal.finalLinger : undefined) ?? goal.linger ?? 0;
+    }
+
     /**
      * Move ship `k` on round the course: past every goal it has reached, telling
      * it to make for the next, and its best progress towards the one it has not.
      */
     private run(k: number): void {
         const legs = this.goals.length;
+        // Only this step's time at the goal it was already making for.
+        let stepped = this.settings.dt;
         while (this.leg[k]! < legs) {
             const g = this.leg[k]!;
             const reach = this.reachOf(k, g);
+            const linger = this.lingerOf(g);
+            // Getting there, then staying, half each where it must stay; never quite one.
+            let made: number;
             if (this.gap(k, g) > reach) {
-                // From nothing where it set out to one at the edge of reaching, never quite one.
+                this.stay[k] = 0;
                 const goal = this.goals[g]!;
                 const edge = goal.scale / (goal.scale + reach);
                 const room = edge - this.from[k]!;
-                const made = room > 0 ? (this.nearness(k, g) - this.from[k]!) / room : 0;
-                this.toward[k] = math.max(this.toward[k]!, math.min(made, 1 - 1e-9));
+                made = room > 0 ? (this.nearness(k, g) - this.from[k]!) / room : 0;
+            } else {
+                this.stay[k]! += stepped;
+                made = 1;
+            }
+            stepped = 0;
+            const stayed = linger > 0 ? math.min(1, this.stay[k]! / linger) : 1;
+            if (made < 1 || stayed < 1 - 1e-9) {
+                const share = linger > 0 ? (made + stayed) / 2 : made;
+                this.toward[k] = math.max(this.toward[k]!, math.min(share, 1 - 1e-9));
                 return;
             }
             this.early[k]! += 1 - this.step / this.total;
             this.leg[k] = g + 1;
             this.toward[k] = 0;
+            this.stay[k] = 0;
             if (g + 1 < legs) {
                 this.from[k] = this.nearness(k, g + 1);
                 const ship = this.battle.slots[k]!;
@@ -982,7 +1021,8 @@ function hullLeft(ships: Ships, ship: number, design: ShipDesign, body: number):
 
 /** The goals of a match's course, in order: none without a `goal`. */
 function courseOf(settings: MatchConfig): readonly GoalSpec[] {
-    return settings.goal === null ? [] : [settings.goal, ...(settings.course ?? [])];
+    const goal = settings.goal;
+    return goal === null ? [] : [goal, ...(settings.course ?? []).map((point) => ({ ...goal, x: point.x, y: point.y }))];
 }
 
 /**
