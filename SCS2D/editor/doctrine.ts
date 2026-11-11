@@ -104,8 +104,18 @@ const TARGETING_ROWS: readonly DoctrineRow[] = [
 ];
 
 const APPROACH_ROWS: readonly DoctrineRow[] = [
-    { field: "standoffRadii", label: "standoff", hint: "How close to get, in multiples of the target's own radius", step: 5 },
-    { field: "standoff", label: "range cap", hint: "The furthest it will hold, as a fraction of its own reach", step: 0.05 },
+    {
+        field: "standoffRadii",
+        label: "standoff",
+        hint: "How close to get, in multiples of the target's own radius. It holds at the nearer of this and the range cap",
+        step: 5,
+    },
+    {
+        field: "standoff",
+        label: "range cap",
+        hint: "The furthest it will hold, as a fraction of its own reach. It holds at the nearer of this and the standoff",
+        step: 0.05,
+    },
     {
         field: "escortRadii",
         label: "escort range",
@@ -523,6 +533,11 @@ const sizeWanted = (half: DoctrineEntry["half"]): DoctrineEntry =>
             `≈ ${((ship.mass * v.targeting.preferredMass) / 1000).toLocaleString("en-GB", { maximumFractionDigits: 1 })} t`,
     });
 
+/** Whether the range cap, rather than the standoff, sets how far off it holds from the size it wants. */
+function capBinds(values: DoctrineValues, ship: DoctrineContext): boolean {
+    return ship.reach > 0 && values.approach.standoff * ship.reach < values.approach.standoffRadii * enemyRadius(values, ship);
+}
+
 const preferences = (half: DoctrineEntry["half"], fields: readonly string[]): DoctrineEntry[] => fields.map((field) => entry(half, field));
 
 /**
@@ -550,11 +565,21 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                 title: "How close it holds",
                 entries: [
                     entry("approach", "standoffRadii", {
-                        absolute: (v, ship) =>
-                            `${metres(v.approach.standoffRadii * enemyRadius(v, ship))} off the skin of the size it wants`,
+                        absolute: (v, ship) => {
+                            const off = `${metres(v.approach.standoffRadii * enemyRadius(v, ship))} off the skin of the size it wants`;
+                            return capBinds(v, ship)
+                                ? `${off}: past its range cap, which sets the range instead`
+                                : `${off}: sets its range`;
+                        },
                     }),
                     entry("approach", "standoff", {
-                        absolute: (v, ship) => (ship.reach > 0 ? `no further than ${metres(v.approach.standoff * ship.reach)}` : null),
+                        absolute: (v, ship) => {
+                            if (!(ship.reach > 0)) return null;
+                            const cap = `no further than ${metres(v.approach.standoff * ship.reach)}`;
+                            return capBinds(v, ship)
+                                ? `${cap}: sets its range against the size it wants`
+                                : `${cap}: the standoff is nearer`;
+                        },
                     }),
                     entry("approach", "tolerance", {
                         absolute: (v, ship) => {
