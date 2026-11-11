@@ -804,6 +804,8 @@ export function mineRock(ships: Ships, b: number, cb: number, rd: ShipDesign, ro
         robot.charge -= kg * per;
         robot.cargo += kg * ore * (1 - DISASSEMBLY_WASTE);
         robot.cargoFuel += kg * ice * (1 - DISASSEMBLY_WASTE);
+        ships.gatheredMetal[owner]! += kg * ore * (1 - DISASSEMBLY_WASTE);
+        ships.gatheredFuel[owner]! += kg * ice * (1 - DISASSEMBLY_WASTE);
         shipBreakup.settleMass(ships, ships.bodyStore!, cb);
     }
     if (done + (kg > 0 ? kg : 0) >= step.kg - ROBOT_SPENT && !rockStepped(ships, cb)) ships.rockSteps.push(cb, m);
@@ -1113,7 +1115,9 @@ export function stripOne(ships: Ships, b: number, design: ShipDesign, robots: Ro
     if (own && ships.fuel.spill(b, m) + ships.metal.spill(b, m) + ships.power.spill(b, m) > 0) return true;
     const loose = own ? 0 : ships.metal.pieceHeld(b, m);
     if (loose > ROBOT_SPENT) {
-        robot.cargo += ships.metal.drain(b, m, min(lift, room));
+        const drained = ships.metal.drain(b, m, min(lift, room));
+        robot.cargo += drained;
+        ships.gatheredMetal[owner]! += drained;
         return true;
     }
     const step = shipRebuild.stripStep(ships, b, design, m);
@@ -1139,6 +1143,8 @@ export function stripOne(ships: Ships, b: number, design: ShipDesign, robots: Ro
         robot.charge -= kg * per;
         robot.cargo += kg * ore * (1 - DISASSEMBLY_WASTE);
         robot.cargoFuel += kg * ice * (1 - DISASSEMBLY_WASTE);
+        ships.gatheredMetal[owner]! += kg * ore * (1 - DISASSEMBLY_WASTE);
+        ships.gatheredFuel[owner]! += kg * ice * (1 - DISASSEMBLY_WASTE);
     }
     if (done + (kg > 0 ? kg : 0) >= step.kg - ROBOT_SPENT) ships.stripped[b] = m;
     if (short || !(ROBOT_LOAD - robot.cargo - robot.cargoFuel > ROBOT_SPENT)) sendHome(ships, b, design, robot, owner, robot.bay);
