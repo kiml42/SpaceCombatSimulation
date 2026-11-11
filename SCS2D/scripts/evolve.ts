@@ -180,6 +180,10 @@ function parse(argv: readonly string[]): Options {
             case "--winners":
                 config["winners"] = Number(value());
                 break;
+            // How many of those are always the generation's best, rather than drawn for.
+            case "--keep":
+                config["keep"] = Number(value());
+                break;
             case "--group":
                 config["group"] = Number(value());
                 break;
@@ -354,6 +358,9 @@ function parse(argv: readonly string[]): Options {
                 coevolution = { ...coevolution, rivalEvolves: false };
                 break;
             // Side B's entrants a match, where they differ from side A's `--group`.
+            case "--versus-keep":
+                coevolution = { ...coevolution, rival: { ...coevolution.rival, keep: Number(value()) } };
+                break;
             case "--versus-group":
                 coevolution = { ...coevolution, rival: { ...coevolution.rival, group: Number(value()) } };
                 break;
