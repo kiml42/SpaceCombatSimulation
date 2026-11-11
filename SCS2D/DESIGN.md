@@ -751,7 +751,9 @@ inside any one file is not contiguous.
   so the shell's mass) and how early; one fragment or fewer is solid shot, all metal and never bursting. A module is as deep as it is across, capped at a deck
   (3 m) unless it is thick. Shipped ships mark every engine wider than a deck thick, and the Corvette and
   Gunship carry their bow guns as hull guns. Every gun sets its barrel in calibres; past fifty it is
-  braced and drawn so, and a hundred is the cap (§4). A match is over when at most one side can
+  braced and drawn so, and a hundred is the cap (§4). A gun's `bore` multiplies the bore its mount's size
+  gives it, up to eight times (a turret's single barrel then about a third of its dome), within the caps in
+  metres that already hold it; a heavier shell loads slower, and evolution turns it like the barrel's length. A match is over when at most one side can
   still shoot or push, since most fleets can no longer destroy each other.
   **An engine has a nozzle rather than being one.** An engine is a machinery block with a bell out of the
   back, its length and width sizing the block and its bell measured in widths of its exit: a long bell keeps
