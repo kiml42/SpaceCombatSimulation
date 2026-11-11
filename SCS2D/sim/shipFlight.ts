@@ -342,12 +342,11 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
     if (fighting >= 0) wantAngle = burnOrFight(ships, i, b, ships.fightAt, bodies, wantAngle, wantVx, wantVy);
     else ships.burning[i] = 0;
     // With nothing to point its guns at, where its bow points is the helm's, for
-    // its best push: on a course, with a charge, or waiting. Not where it is
-    // closing on a port, pad or source, which it must face.
-    if (fighting < 0 && ships.intent === FACE && target === NO_TARGET) {
-        ships.intent = STEER;
-        ships.steerFree = true;
-    }
+    // its best push: making for a waypoint, with a charge, or waiting. Not where
+    // it is closing on a port, pad or source, which it must face, nor under an
+    // order to hold its heading. Small corrections it leaves to its other
+    // engines, so a craft on station does not weave.
+    if (fighting < 0 && ships.intent === FACE && order === undefined) ships.intent = STEER;
 
     // Getting out of a rock's way, once that is most of what it wants, is a
     // matter of where it goes rather than which way it faces: held on target,
