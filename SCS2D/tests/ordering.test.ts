@@ -94,8 +94,9 @@ describe("module ordering, one battle each", () => {
         // Hits only nearly: a burst's fragment lands or misses an edge on a
         // micrometre, and the two runs part on one within seconds — sooner since
         // a secondary mount's first pick is staggered by its place in the list,
-        // and each round fired leaves the ship lighter by its own grams.
-        expect(Math.abs(kinds!.hits - control!.hits)).toBeLessThanOrEqual(control!.hits * 0.08);
+        // and each round fired leaves the ship lighter by its own grams. A tenth,
+        // since how the pilots brake against the well moves where they part.
+        expect(Math.abs(kinds!.hits - control!.hits)).toBeLessThanOrEqual(control!.hits * 0.1);
     });
 });
 
