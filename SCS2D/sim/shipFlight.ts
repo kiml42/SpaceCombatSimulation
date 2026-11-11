@@ -1199,6 +1199,23 @@ export function pullAt(ships: Ships, x: number, y: number): void {
     }
 }
 
+/**
+ * Twice the energy per kilogram the wells give a craft falling from (`x0`, `y0`)
+ * to (`x1`, `y1`), m²/s²: the speed squared it gains on the way with nothing
+ * pushing, or loses, if negative, climbing.
+ */
+export function fallGain(ships: Ships, x0: number, y0: number, x1: number, y1: number): number {
+    let gain = 0;
+    for (let w = 0; w < ships.wells.length; w++) {
+        const well = ships.wells[w]!;
+        const soft = (well.softening ?? 0) * (well.softening ?? 0);
+        const from = sqrt((well.x - x0) * (well.x - x0) + (well.y - y0) * (well.y - y0) + soft);
+        const to = sqrt((well.x - x1) * (well.x - x1) + (well.y - y1) * (well.y - y1) + soft);
+        if (from > 0 && to > 0) gain += 2 * well.gm * (1 / to - 1 / from);
+    }
+    return gain;
+}
+
 /** How many points along the way to a stop `pullOnWay` reads the pull at. */
 const PULL_SAMPLES = 6;
 

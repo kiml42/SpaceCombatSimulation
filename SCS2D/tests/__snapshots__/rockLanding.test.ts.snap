@@ -2,8 +2,8 @@
 
 exports[`Rock Landing > Raider,  one way, spins [1, 4, 10] 1`] = `
 {
-  "bumps": 0,
-  "crashes": 0,
+  "bumps": 23,
+  "crashes": 35,
   "landed": [
     "not by 150 s",
     "not by 150 s",
@@ -19,12 +19,12 @@ exports[`Rock Landing > Raider,  one way, spins [1, 4, 10] 1`] = `
 
 exports[`Rock Landing > Raider,  one way, spins [4, 7, 10] 1`] = `
 {
-  "bumps": 0,
-  "crashes": 0,
+  "bumps": 5,
+  "crashes": 21,
   "landed": [
     "not by 150 s",
     "not by 150 s",
-    "not by 150 s",
+    "143.07 s",
     "not by 150 s",
     "not by 150 s",
     "not by 150 s",
@@ -104,11 +104,11 @@ exports[`Rock Landing > Raider, one turn far weaker [3, 7] 1`] = `
 
 exports[`Rock Landing > Raider, pushes turn it [4, 6] 1`] = `
 {
-  "bumps": 0,
-  "crashes": 0,
+  "bumps": 11,
+  "crashes": 28,
   "landed": [
     "not by 150 s",
-    "not by 150 s",
+    "82.45 s",
     "not by 150 s",
     "not by 150 s",
     "not by 150 s",
@@ -121,8 +121,8 @@ exports[`Rock Landing > Raider, pushes turn it [4, 6] 1`] = `
 
 exports[`Rock Landing > Raider, pushes turn it [4, 8, 10] 1`] = `
 {
-  "bumps": 0,
-  "crashes": 0,
+  "bumps": 22,
+  "crashes": 25,
   "landed": [
     "not by 150 s",
     "not by 150 s",

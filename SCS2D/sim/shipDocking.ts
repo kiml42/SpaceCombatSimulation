@@ -69,6 +69,17 @@ const PLACING_BRAKE = 0.5;
 const WELL_ROOM_SHARE = 0.02;
 
 /**
+ * The fastest a craft can be closing and still be down to the speed whose
+ * square is `arrive` within `gap` metres, braking at `brake` once `delay`
+ * seconds have gone by: `stoppingSpeed`, arriving at that speed, not at rest.
+ */
+function arrivingSpeed(brake: number, gap: number, delay: number, arrive: number): number {
+    if (!(brake > 0) || !Number.isFinite(delay)) return sqrt(arrive);
+    const lag = brake * delay;
+    return sqrt(arrive + 2 * brake * gap + lag * lag) - lag;
+}
+
+/**
  * How far past (`x`, `y`), along (`ux`, `uy`), a fighter overshooting it would
  * go before meeting anything in its own layer, the weapons layer, so over the
  * pad and the deck: carrier body `tb`, a fighter parked on it, or a rock; up to
@@ -447,8 +458,13 @@ export function landOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
                 range > 0 && falls > 0
                     ? falls * roomPast(ships, bodies, tb, place.x, place.y, (px - bodies.x[b]!) / range, (py - bodies.y[b]!) / range, left)
                     : 0;
-            const full = stoppingSpeed(approach.brake * spare, left, ships.pushDelay);
-            const careful = stoppingSpeed(PLACING_BRAKE * approach.brake * spare, left + room, ships.pushDelay);
+            // A craft too weak to stop against the pull at the pad still comes down, at the least it can
+            // arrive at: what the fall gives it, less what braking on all the way takes off; the pad's
+            // field catches it. One that can stop arrives at nothing, as ever.
+            const fall = shipFlight.fallGain(ships, bodies.x[b]!, bodies.y[b]!, place.x, place.y);
+            const arrive = max(0, fall - 2 * PLACING_BRAKE * approach.brake * push * left);
+            const full = arrivingSpeed(approach.brake * spare, left, ships.pushDelay, arrive);
+            const careful = arrivingSpeed(PLACING_BRAKE * approach.brake * spare, left + room, ships.pushDelay, arrive);
             radial = min(approach.approachSpeed, full, careful);
         }
         vx += ux * radial;
