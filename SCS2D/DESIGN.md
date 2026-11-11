@@ -126,7 +126,7 @@ inside any one file is not contiguous.
   whether it could be refitted at all, or never finished for want of a robot bay (`refitPlan`, matched as
   `Ships.refit` matches). A panel in the
   view's bottom left says what the view draws over the ship: the refit, shown or hidden — hidden to begin
-  with unless the design has a robot bay, without which no refit to it would finish — and which firing
+  with — and which firing
   arcs, cycled as A cycles them.
   **Doctrine is edited there too, and is meant to be ignorable**: a section that stays shut, on a weapon for
   what it shoots at and on a core for what its ship does, saying while it is shut only whether this is the

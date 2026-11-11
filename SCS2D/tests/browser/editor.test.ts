@@ -447,7 +447,7 @@ describe("the editor in a browser", () => {
         expect(await page.isDisabled("#showRefit")).toBe(true);
         await page.click('[data-add="tank"]');
         expect(await page.isDisabled("#showRefit")).toBe(false);
-        // Hidden to begin with on a design with no robot bay, which could never finish a refit.
+        // Hidden to begin with.
         expect(await page.getAttribute("#showRefit", "aria-pressed")).toBe("false");
         const hidden = await picture();
         await page.click("#showRefit");
@@ -886,7 +886,7 @@ describe("the editor in a browser", () => {
         await page.mouse.move(centre.x + 168, centre.y - 220, { steps: 8 });
         await page.mouse.up();
         expect(await page.textContent("#problems")).toMatch(/touches nothing/);
-        // The refit's marks, which would show where the gun was taken from in orange, are hidden on a ship with no robot bay.
+        // The refit's marks, which would show where the gun was taken from in orange, are hidden to begin with.
         expect(await page.getAttribute("#showRefit", "aria-pressed")).toBe("false");
         await expect.poll(() => redPixels(page)).toBeGreaterThan(0);
 
