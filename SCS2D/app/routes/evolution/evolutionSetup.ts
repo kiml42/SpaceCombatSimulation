@@ -102,6 +102,7 @@ export const DEFAULT_TEXTS: Texts = {
     closingSpread: String(DEFAULT_MATCH.closingSpread),
     crossingSpread: String(DEFAULT_MATCH.crossingSpread),
     quietLimit: String(DEFAULT_MATCH.quietLimit),
+    course: "",
     survivalWeight: String(DEFAULT_MATCH.weights.survival),
     functionalWeight: String(DEFAULT_MATCH.weights.functional),
     damageWeight: String(DEFAULT_MATCH.weights.damage),
@@ -230,6 +231,21 @@ function mapOf(texts: Texts): MatchConfig["map"] {
     return writeMap(out);
 }
 
+/**
+ * The goal and the course after it, as the form says them: the course as
+ * `x,y` points, one after another, separated by `;`, each a goal like the first.
+ */
+function goalsOf(form: SetupForm): Pick<MatchConfig, "goal" | "course"> {
+    if (form.goal === "none" || DEFAULT_MATCH.goal === null) return { goal: null };
+    const goal = { ...DEFAULT_MATCH.goal, solid: form.goal !== "ghost" };
+    const course = (form.texts["course"] ?? "")
+        .split(";")
+        .map((point) => point.split(",").map((n) => Number(n.trim())))
+        .filter((point) => point.length === 2 && point.every(Number.isFinite))
+        .map(([x, y]) => ({ ...goal, x: x!, y: y! }));
+    return course.length === 0 ? { goal } : { goal, course };
+}
+
 /** The run's settings, as the form says them. */
 export function configOf(form: SetupForm): RunConfig {
     const t = form.texts;
@@ -251,7 +267,7 @@ export function configOf(form: SetupForm): RunConfig {
             crossingSpread: Math.max(0, number(t["crossingSpread"], DEFAULT_MATCH.crossingSpread)),
             quietLimit: Math.max(0, number(t["quietLimit"], DEFAULT_MATCH.quietLimit)),
             ...(map === undefined ? {} : { map }),
-            goal: form.goal === "none" || DEFAULT_MATCH.goal === null ? null : { ...DEFAULT_MATCH.goal, solid: form.goal !== "ghost" },
+            ...goalsOf(form),
             weights: {
                 survival: number(t["survivalWeight"], 1),
                 functional: number(t["functionalWeight"], 1),
@@ -353,6 +369,7 @@ export function formOfSetup(setup: RunSetup, founders: readonly string[], versus
         closingSpread: String(match.closingSpread ?? DEFAULT_MATCH.closingSpread),
         crossingSpread: String(match.crossingSpread ?? DEFAULT_MATCH.crossingSpread),
         quietLimit: String(match.quietLimit ?? DEFAULT_MATCH.quietLimit),
+        course: (match.course ?? []).map((goal) => `${goal.x},${goal.y}`).join("; "),
         survivalWeight: String(match.weights.survival),
         functionalWeight: String(match.weights.functional),
         damageWeight: String(match.weights.damage),

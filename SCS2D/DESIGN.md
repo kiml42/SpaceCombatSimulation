@@ -472,9 +472,12 @@ inside any one file is not contiguous.
   own side, evenly round a ring, on a heading it did not choose — and the battle is run until one of them is left or
   the clock runs out. The ring's radius and the starting speeds in and across may each carry a spread, drawn
   once a match from its seed, so a run can breed against a range of arenas rather than one. Three things are scored in the one match rather than in separate kinds of match,
-  because the trade between them is the interesting part: surviving, damage done, and and **ground gained** on a point
-  worth reaching — that last measured from where a craft started rather than against the goal outright, so
-  standing still is nothing, closing is positive and drifting away is negative. It falls away with distance
+  because the trade between them is the interesting part: surviving, damage done, and **how far round a
+  course** of goals a craft got — a single goal by default, or several reached in turn. Each goal reached is
+  worth more than any progress towards one not reached, reaching it sooner a little more, and progress towards
+  the next is the best a craft managed, measured from where it set out for it rather than against the goal
+  outright, so standing still is nothing and any closing is something. A goal is reached within `reach` of it,
+  skin to skin (100 m unless set), and reaching one sends a craft on to the next. Nearness falls away with distance
   for ever rather than stopping at a range, since a flat region is one selection cannot see across and a
   hull whose engine is too feeble to cross it would score exactly what a hull with no engine scores. Each is scaled to run from nothing to one before it is weighted — a
   whole match survived, the whole of the opposition destroyed, a match spent sitting on the goal — so a
@@ -490,8 +493,8 @@ inside any one file is not contiguous.
   counts for nothing — so armour counts there only for what it keeps working. Its mirror is **function
   taken** from the opposition, credited to each attacker by its share of everything the victim's hulls lost
   that step; a ship's own fire and exhaust are part of that and nobody's credit, so hurting yourself never
-  pays. Ground gained
-  is by an entrant's nearest ship, so more ships help only by covering the one that gets there. Damage is credited to whoever
+  pays. The course
+  is by an entrant's furthest ship, so more ships help only by covering the one that gets there. Damage is credited to whoever
   fired, or in a collision to the other hull, each with what it did to the other — so a ram that drives
   armour into an enemy's guns or engines costs both hulls alike but takes function from only one. Who did it is the one thing a fitness function cannot get from what a
   hull has taken. Damage is capped per victim, since a gun must not be paid for firing into something it has already killed. What is left of
@@ -501,8 +504,9 @@ inside any one file is not contiguous.
   it has been — or nobody is left to fight, and only then is a winner declared: the side last at it on its
   own, if it has landed a hit on somebody. Stopped the moment a side was out, as it was, a ship that grew
   a gun beat one with none before firing it and scored nothing for it, so weapons drifted away; and a drill
-  against a bare core ended on its first step. While the goal counts, a match plays its full length, since a
-  survivor still has the goal to fly and is scored on flying it rather than frozen where the fighting left it. One ship to
+  against a bare core ended on its first step. While the goal counts, a match plays on until every craft still
+  flown has reached the last goal, or the clock runs out, since a survivor still has the course to fly and is
+  scored on flying it rather than frozen where the fighting left it. One ship to
   a match is allowed, and is a test of piloting alone. A four-ship match runs in a quarter of a second,
   about three hundred times faster than the battle it simulates.
   **The objective is an object, and a ship goes to it because it is told to.** The goal is a marker

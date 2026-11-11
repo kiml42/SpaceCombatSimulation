@@ -391,6 +391,13 @@ export function SetupScreen({ hidden, form, onForm, ships, fleets, onExport, onI
                             <option value="none">none</option>
                         </select>
                     </Row>
+                    {field({
+                        id: "course",
+                        label: "then",
+                        title: "Goals to reach after the first, in order, as x,y metres separated by ;. Each ship is sent on to the next once within 100 m of one, and the match ends once every ship has reached the last.",
+                        text: true,
+                        placeholder: "none",
+                    })}
                 </Fold>
                 <Fold k="asteroids" title="Asteroids" open={false}>
                     <Group fields={MAP_FIELDS} group="map" form={form} onForm={onForm} />

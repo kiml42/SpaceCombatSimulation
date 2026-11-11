@@ -155,10 +155,11 @@ const MATCH_KEYS: readonly string[] = [
     "quietLimit",
     "map",
     "goal",
+    "course",
     "weights",
 ];
 const GOAL_KEYS: readonly string[] = ["x", "y", "scale", "size"];
-const GOAL_OPTIONAL_KEYS: readonly string[] = ["solid"];
+const GOAL_OPTIONAL_KEYS: readonly string[] = ["solid", "reach"];
 const WEIGHT_KEYS: readonly (keyof ScoreWeights)[] = SCORE_PARTS;
 
 /** The settings a run is given, as the object a file holds. */
@@ -208,6 +209,7 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
             ...(match.quietLimit > 0 ? { quietLimit: match.quietLimit } : {}),
             ...(match.map !== undefined && writeMap(match.map) !== undefined ? { map: writeMap(match.map) } : {}),
             goal: match.goal === null ? null : { ...match.goal },
+            ...((match.course ?? []).length > 0 ? { course: match.course!.map((goal) => ({ ...goal })) } : {}),
             weights: { ...match.weights },
         },
         ...(setup.versus == null ? {} : { versus: serialiseVersus(setup.versus) }),
@@ -456,6 +458,7 @@ export function parseRunConfig(value: unknown): RunSetup {
                         : match["goal"] === null
                           ? null
                           : ({ ...(match["goal"] as GoalSpec) } as GoalSpec),
+                ...(Array.isArray(match["course"]) ? { course: (match["course"] as GoalSpec[]).map((goal) => ({ ...goal })) } : {}),
                 weights: { ...DEFAULT_MATCH.weights, ...(match["weights"] as Partial<ScoreWeights> | undefined) },
             },
         },
@@ -648,23 +651,39 @@ function matchProblem(value: unknown, warnings: string[]): string | null {
         const map = mapProblem(value["map"], "match.map");
         if (map !== null) return map;
     }
-    return goalProblem(value["goal"], warnings) ?? weightsProblem(value["weights"], warnings);
+    return goalProblem(value["goal"], warnings) ?? courseProblem(value["course"], warnings) ?? weightsProblem(value["weights"], warnings);
 }
 
-function goalProblem(value: unknown, warnings: string[]): string | null {
-    if (value === undefined || value === null) return null;
-    if (!isRecord(value)) return "match.goal must be an object, or null for a match that is only a fight";
-    unknownKeys(value, [...GOAL_KEYS, ...GOAL_OPTIONAL_KEYS], "match.goal", warnings);
-    if (value["solid"] !== undefined && typeof value["solid"] !== "boolean") {
-        return `match.goal.solid must be true or false, got ${JSON.stringify(value["solid"])}`;
-    }
-    for (const key of GOAL_KEYS) {
-        if (value[key] === undefined) return `match.goal is missing ${key}`;
-        const problem = numberProblem(value[key], `match.goal.${key}`);
+function courseProblem(value: unknown, warnings: string[]): string | null {
+    if (value === undefined) return null;
+    if (!Array.isArray(value)) return "match.course must be a list of goals";
+    for (const [n, goal] of value.entries()) {
+        if (goal === null) return `match.course[${n}] must be a goal`;
+        const problem = goalProblem(goal, warnings, `match.course[${n}]`);
         if (problem !== null) return problem;
     }
-    if ((value["scale"] as number) <= 0) return "match.goal.scale must be more than nothing";
-    if ((value["size"] as number) <= 0) return "match.goal.size must be more than nothing";
+    return null;
+}
+
+function goalProblem(value: unknown, warnings: string[], name = "match.goal"): string | null {
+    if (value === undefined || value === null) return null;
+    if (!isRecord(value)) return `${name} must be an object, or null for a match that is only a fight`;
+    unknownKeys(value, [...GOAL_KEYS, ...GOAL_OPTIONAL_KEYS], name, warnings);
+    if (value["solid"] !== undefined && typeof value["solid"] !== "boolean") {
+        return `${name}.solid must be true or false, got ${JSON.stringify(value["solid"])}`;
+    }
+    for (const key of GOAL_KEYS) {
+        if (value[key] === undefined) return `${name} is missing ${key}`;
+        const problem = numberProblem(value[key], `${name}.${key}`);
+        if (problem !== null) return problem;
+    }
+    if ((value["scale"] as number) <= 0) return `${name}.scale must be more than nothing`;
+    if ((value["size"] as number) <= 0) return `${name}.size must be more than nothing`;
+    if (value["reach"] !== undefined) {
+        const problem = numberProblem(value["reach"], `${name}.reach`);
+        if (problem !== null) return problem;
+        if ((value["reach"] as number) < 0) return `${name}.reach must be nothing or more`;
+    }
     return null;
 }
 
