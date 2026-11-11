@@ -22,6 +22,7 @@ import {
     math,
     MAX_BORE,
     MODULE_KINDS,
+    moduleProblem,
     padHolds,
     placementAt,
     radiansToDegrees,
@@ -125,7 +126,15 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
 
     const update = (change: (placement: Placement) => Placement, continues = false): void => {
         if (path === null) return;
-        editing.change(updatePlacement(doc.blueprint, path, change), continues);
+        // A half-typed number can make a module that can't be built; it waits for the next key.
+        let invalid = false;
+        const valid = (placement: Placement): Placement => {
+            const next = change(placement);
+            invalid ||= "kind" in next && moduleProblem(next) !== null && !("kind" in placement && moduleProblem(placement) !== null);
+            return next;
+        };
+        const blueprint = updatePlacement(doc.blueprint, path, valid);
+        if (!invalid) editing.change(blueprint, continues);
     };
     const patch = (fields: Partial<ModuleSpec>): void => update((placement) => ({ ...placement, ...fields }) as Placement, true);
     /** A flag, absent rather than false when it is off, so a file only ever says the unusual thing. */
