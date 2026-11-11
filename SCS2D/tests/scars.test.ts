@@ -3,7 +3,7 @@ import { capture, compileBlueprint, Damage, Snapshot, type ShipDesign } from "..
 import { DAMAGE_ENERGY_PER_KG } from "../sim/damage.js";
 import { SCAR_BURN, SCAR_ROUND, SCAR_SHARE, SCAR_VIEW_STRIDE, scarSlots } from "../sim/scars.js";
 import { CORVETTE } from "../scenarios/blueprints.js";
-import { duel } from "../scenarios/duel.js";
+import { standoff } from "../scenarios/standoff.js";
 import { beamDuel } from "../scenarios/beamDuel.js";
 import { cloneBattle } from "../scenarios/clone.js";
 import type { Battle } from "../scenarios/types.js";
@@ -126,7 +126,8 @@ function battleScars(battle: Battle): number[][] {
 
 describe("scars in a battle", () => {
     for (const [name, create, kind] of [
-        ["duel", () => duel(SEED), SCAR_ROUND],
+        // A battle with no well, so how pilots allow for one does not decide whether a round ever scars.
+        ["standoff", () => standoff(SEED), SCAR_ROUND],
         ["beamDuel", () => beamDuel(SEED), SCAR_BURN],
     ] as const) {
         it(`${name} leaves them, and a copy of it goes on to leave the same`, () => {

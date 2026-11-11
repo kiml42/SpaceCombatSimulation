@@ -143,6 +143,7 @@ export function makeBattle<Extra extends object = Record<never, never>>(
     for (const well of wells) world.addForceProvider(gravityWell(well));
 
     const ships = new Ships();
+    ships.wells = wells;
     world.addForceProvider(ships.forceProvider());
 
     const extra = setup(ships, world, wells) ?? ({} as Extra);
