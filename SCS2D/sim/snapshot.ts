@@ -100,6 +100,9 @@ export interface ShipView {
     viaY?: number;
     destX?: number;
     destY?: number;
+    /** Metal and fuel its robots have brought in from rock and wreckage, kg, all battle; absent for none. */
+    gatheredMetal?: number;
+    gatheredFuel?: number;
     /** The body of what it is keeping clear of most, and how far off it wants it, centre to centre, metres; absent for nothing. */
     avoiding?: number;
     avoidRoom?: number;
@@ -628,6 +631,15 @@ export function capture(
         } else {
             delete view.destX;
             delete view.destY;
+        }
+        const gathered = ships.gatheredMetal[i]!;
+        const gatheredFuel = ships.gatheredFuel[i]!;
+        if (gathered > 0 || gatheredFuel > 0) {
+            view.gatheredMetal = gathered;
+            view.gatheredFuel = gatheredFuel;
+        } else {
+            delete view.gatheredMetal;
+            delete view.gatheredFuel;
         }
         const dodging = ships.dodgingOf(i);
         if (dodging >= 0) {
