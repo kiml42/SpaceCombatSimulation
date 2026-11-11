@@ -456,8 +456,9 @@ export function shipAt(snapshot: Snapshot, x: number, y: number, reach: number):
 
 /**
  * The bounds of the picked-out ship, what it is fighting and what it is
- * escorting, the asteroid or hulk it is scavenging and the ship it is docking
- * or landing on, to frame on; null when nothing is picked out.
+ * escorting, the asteroid or hulk it is scavenging, the ship it is docking
+ * or landing on and what it is keeping clear of most, to frame on; null when
+ * nothing is picked out.
  */
 export function selectionBounds(snapshot: Snapshot, body: number): Bounds | null {
     if (body < 0) return null;
@@ -465,16 +466,19 @@ export function selectionBounds(snapshot: Snapshot, body: number): Bounds | null
     let target = -1;
     let consort = -1;
     let source = -1;
+    let hazard = -1;
     for (let i = 0; i < snapshot.shipCount; i++) {
         const ship = snapshot.ships[i]!;
         if (ship.body !== body) continue;
         target = ship.fighting ?? -1;
         consort = ship.covering ?? -1;
         source = ship.doing === "scavenge" || ship.doing === "dock" ? (ship.doingTo ?? -1) : -1;
+        hazard = ship.avoiding ?? -1;
     }
     for (let i = 0; i < snapshot.shipCount; i++) {
         const ship = snapshot.ships[i]!;
-        if (ship.body !== body && ship.body !== target && ship.body !== consort && ship.body !== source) continue;
+        const b = ship.body;
+        if (b !== body && b !== target && b !== consort && b !== source && b !== hazard) continue;
         const r = ship.currentStructure.radius;
         bounds.minX = Math.min(bounds.minX, ship.x - r);
         bounds.minY = Math.min(bounds.minY, ship.y - r);
