@@ -15,7 +15,7 @@ import {
     type DoctrineValues,
 } from "~/editor/doctrine";
 import { updatePlacement } from "~/editor/edit";
-import { withPreset } from "~/editor/doctrinePresets";
+import { presetDoctrine } from "~/editor/doctrinePresets";
 import { PresetPicker } from "~/features/doctrine/PresetPicker";
 import { designStats, moduleReadout, type Envelopes } from "~/editor/stats";
 import {
@@ -282,7 +282,7 @@ export function DoctrineDetails({
                 <PresetPicker
                     id="shipDoctrinePreset"
                     onPick={(preset) => {
-                        const changed = withPreset(doc.blueprint.doctrine, preset);
+                        const changed = presetDoctrine(preset);
                         const next = { ...doc.blueprint };
                         if (changed === undefined) delete next.doctrine;
                         else next.doctrine = changed;

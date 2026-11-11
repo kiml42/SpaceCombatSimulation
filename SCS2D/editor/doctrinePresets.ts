@@ -1,4 +1,4 @@
-import { APPROACH_FIELDS, DEFAULT_DOCTRINE, type Approach, type Doctrine, type Targeting } from "../sim/index.js";
+import { APPROACH_FIELDS, DEFAULT_DOCTRINE, SHIP_TARGETING_FIELDS, type Approach, type Doctrine, type Targeting } from "../sim/index.js";
 import { withShipField } from "./doctrine.js";
 
 /**
@@ -10,10 +10,9 @@ import { withShipField } from "./doctrine.js";
  * picked: what the ship goes by is still only its numbers, so a preset tweaked
  * afterwards is just a doctrine.
  *
- * **Every preset sets every field any preset touches**, the ones it does not
- * care about at their defaults. So one preset picked after another replaces
- * it whole, rather than leaving the first's numbers behind in fields the
- * second does not mention.
+ * **A preset is the whole of the ship's doctrine**: every number it does not
+ * name goes back to its default, so nothing left over from before, or from
+ * another preset, works against it.
  */
 export interface DoctrinePreset {
     readonly name: string;
@@ -58,17 +57,30 @@ export const DOCTRINE_PRESETS: readonly DoctrinePreset[] = [
         },
     },
     {
+        name: "Tender",
+        hint: "Scavenges and mines whenever it has room, and takes fuel to friends that want it",
+        approach: {
+            scavengeFuelBelow: 0.9,
+            scavengeMetalBelow: 0.9,
+            deliverFuelAbove: 0.5,
+            scavengeDanger: 3,
+            dockDanger: 2,
+            fleeArmed: 0.5,
+        },
+    },
+    {
+        name: "Escort",
+        hint: "Stays by a friend, and turns its guns on anything that comes near",
+        targeting: { escortWeight: 100, loyaltyWeight: 40 },
+        approach: { rangeHold: 4, burnWeight: 1 },
+    },
+    {
         name: "Torpedo",
         hint: "Goes for the biggest thing there is and rams it",
         targeting: { preferredMass: 20, ramMass: 20, massWeight: 100 },
         approach: { ramRadii: 3, ramArmed: 1, approachSpeed: 150 },
     },
 ];
-
-const TOUCHED = {
-    targeting: [...new Set(DOCTRINE_PRESETS.flatMap((preset) => Object.keys(preset.targeting ?? {})))] as (keyof Targeting)[],
-    approach: APPROACH_FIELDS.filter((field) => DOCTRINE_PRESETS.some((preset) => preset.approach?.[field] !== undefined)),
-};
 
 /** One field a preset sets: the half of the doctrine it is in, its name and its value. */
 export interface PresetField {
@@ -77,10 +89,12 @@ export interface PresetField {
     readonly value: number;
 }
 
-/** Every field `preset` sets, including those it leaves at their defaults. */
+const SHIP_FIELDS = { targeting: SHIP_TARGETING_FIELDS, approach: APPROACH_FIELDS } as const;
+
+/** Every field of a ship's doctrine as `preset` leaves it: its own numbers, and every other at its default. */
 export function presetFields(preset: DoctrinePreset): PresetField[] {
     return (["targeting", "approach"] as const).flatMap((half) =>
-        TOUCHED[half].map((field) => ({
+        (SHIP_FIELDS[half] as readonly string[]).map((field) => ({
             half,
             field,
             value:
@@ -90,9 +104,9 @@ export function presetFields(preset: DoctrinePreset): PresetField[] {
     );
 }
 
-/** A blueprint's doctrine with `preset` written over it; `undefined` where that leaves it the default. */
-export function withPreset(doctrine: Doctrine | undefined, preset: DoctrinePreset): Doctrine | undefined {
-    let next = doctrine;
+/** A ship's doctrine as `preset` makes it, whatever it was; `undefined` where that is the default. */
+export function presetDoctrine(preset: DoctrinePreset): Doctrine | undefined {
+    let next: Doctrine | undefined = undefined;
     for (const { half, field, value } of presetFields(preset)) next = withShipField(next, half, field, value);
     return next;
 }
