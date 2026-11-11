@@ -5,7 +5,7 @@ import { landings } from "./landingRecord.js";
 
 /**
  * The Rock Landing scene: that it sets out as it should, and, for every variant, when each fighter lands on
- * any of the moored Replicators, or that it has not by `LIMIT`, and how many contacts there were. Recorded in
+ * any of the moored Replicators, or that it has not by `LIMIT`, and how many bumps and crashes there were. Recorded in
  * `__snapshots__` as the goldens are, describing what happens rather than judging it, so a change either way
  * shows. After a deliberate change, re-record with `pnpm exec vitest run tests/rockLanding.test.ts -u`.
  */

@@ -79,6 +79,8 @@ export function muzzleLifetime(energy: number): number {
 export const MUZZLE_FLASH_SHARE = 0.4;
 /** A collision's flash as a share of a hit's of the same energy: the metal it breaks off shows the rest. */
 export const COLLISION_FLASH_SHARE = 0.5;
+/** Joules a collision must lose to flash at all: below it, hulls only touch, and throw nothing. */
+export const COLLISION_FLASH_FLOOR = 1e3;
 /** How far ahead of the muzzle a muzzle flash reaches at the end of its life, in its radii. */
 export const MUZZLE_FLASH_REACH = 3;
 /** Its width at the muzzle, as a share of its radius. */
@@ -126,6 +128,16 @@ export function flashRadius(energy: number): number {
     if (!(energy > 0)) return 0;
     const scaled = FLASH_REFERENCE_RADIUS * Math.cbrt(energy / FLASH_REFERENCE_ENERGY);
     return Math.min(FLASH_MAX_RADIUS, Math.max(FLASH_MIN_RADIUS, scaled));
+}
+
+/**
+ * How big a collision's flash is, metres: none at `COLLISION_FLASH_FLOOR` or below, and growing from
+ * nothing above it as a hit's does, so a bump just over the floor makes only a speck.
+ */
+export function collisionFlashRadius(energy: number): number {
+    if (!(energy > COLLISION_FLASH_FLOOR)) return 0;
+    const over = Math.cbrt(energy / FLASH_REFERENCE_ENERGY) - Math.cbrt(COLLISION_FLASH_FLOOR / FLASH_REFERENCE_ENERGY);
+    return COLLISION_FLASH_SHARE * Math.min(FLASH_MAX_RADIUS, FLASH_REFERENCE_RADIUS * over);
 }
 
 /**
@@ -288,7 +300,9 @@ export class Flashes {
         hullVy = 0,
     ): void {
         const radius =
-            flashRadius(energy) * (kind === IMPACT_MUZZLE ? MUZZLE_FLASH_SHARE : kind === IMPACT_COLLISION ? COLLISION_FLASH_SHARE : 1);
+            kind === IMPACT_COLLISION
+                ? collisionFlashRadius(energy)
+                : flashRadius(energy) * (kind === IMPACT_MUZZLE ? MUZZLE_FLASH_SHARE : 1);
         if (!(radius > 0)) return;
         if (this.count === this.x.length) this.grow();
         const i = this.count++;

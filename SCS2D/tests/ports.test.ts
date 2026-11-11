@@ -68,7 +68,8 @@ describe("a ship low on fuel with a port", () => {
         expect(docked(run)).toBe(false);
         const b = run.world.bodies.indexOf(run.ships.body(run.p));
         expect(run.ships.fuel.pieceRoom(b, run.ships.currentStructure(run.p).cores[0]!)).toBeCloseTo(0, 3);
-        expect(run.totalContacts).toBeLessThan(10);
+        expect(run.contactGrades.crashes).toBe(0);
+        expect(run.contactGrades.bumps).toBeLessThan(3);
     });
 
     it("with a claw too, docks only once it is down to its refuelBelow, not its scavengeFuelBelow", () => {
@@ -138,7 +139,8 @@ describe("a ship low on fuel with a port", () => {
         });
         runUntil(run, () => docked(run), 120);
         expect(docked(run)).toBe(true);
-        expect(run.totalContacts).toBeLessThan(10);
+        expect(run.contactGrades.crashes).toBe(0);
+        expect(run.contactGrades.bumps).toBeLessThan(3);
     });
 
     it("idles while docked when it is the smaller, and flies the pair when it is the larger", () => {
