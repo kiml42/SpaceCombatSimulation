@@ -18,6 +18,7 @@ import * as shipDocking from "./shipDocking.js";
 import * as shipBuild from "./shipBuild.js";
 import * as shipOrders from "./shipOrders.js";
 import * as shipDecide from "./shipDecide.js";
+import * as shipFlight from "./shipFlight.js";
 import { CLAW_HEAT_RATE, CLAW_HEAT_ENERGY } from "./shipWeld.js";
 import { ROBOT_SPENT } from "./shipRobots.js";
 import { SHOCK_REACH } from "./shipBreakup.js";
@@ -347,6 +348,7 @@ export function pickDelivery(ships: Ships, bodies: Bodies, i: number, b: number,
     const spareMetal = ordered ? ships.metal.pieceHeld(b, own) - shipSupply.metalReserve(ships, b, own) : 0;
     if (!(spare > 0) && !(spareMetal > 0)) return;
     const ownPump = design.modules[own]!.stats.pumpRate;
+    const lift = shipFlight.pushAbility(ships, bodies, i, b);
     let bestScore = 0;
     for (let t = 0; t < ships.alive.length; t++) {
         if (t === i || ships.alive[t] === 0 || ships.derelict[t] === 1 || ships.delivering[t] === 1) continue;
@@ -354,6 +356,8 @@ export function pickDelivery(ships: Ships, bodies: Bodies, i: number, b: number,
         if (ships.team[t] !== ships.team[i] || ships.hostile(i, t) || !ships.hasControl(t)) continue;
         const tb = bodies.indexOf(ships.bodyIds[t]!);
         if (tb < 0 || tb === b) continue;
+        if (!shipDecide.within(ships, bodies, lift, t, bodies.x[tb]!, bodies.y[tb]!, bodies.x[b]!, bodies.y[b]!, bodies.radius[tb]!))
+            continue;
         const host = ships.designs[t]!;
         // Sent to it, it goes whatever is near.
         let danger = only !== NO_TARGET ? 0 : -1;
@@ -816,6 +820,7 @@ export function pickSource(
     let robots = 0;
     if (metalRoom > 0) for (const robot of ships.robots.on(b) ?? []) if (ships.pilotAt(b, robot.bay) === i) robots++;
     const stripRate = (robots * ROBOT_REPAIR_RATE) / DAMAGE_ENERGY_PER_KG;
+    const lift = shipFlight.pushAbility(ships, bodies, i, b);
     let best = NO_TARGET;
     let bestScore = 0;
     for (let t = 0; t < ships.alive.length; t++) {
@@ -833,6 +838,9 @@ export function pickSource(
         if (asteroid && !(shipClaw.holdsOff(ships, bodies, i, b, claw, tb) > 1)) continue;
         // Nor one an enemy has hold of: it would be closing on the enemy as much as on the rock.
         if (asteroid && enemyMoored(ships, i, t)) continue;
+        // Nor anything down a well it could not climb back out of.
+        if (!shipDecide.within(ships, bodies, lift, t, bodies.x[tb]!, bodies.y[tb]!, bodies.x[b]!, bodies.y[b]!, bodies.radius[tb]!))
+            continue;
         // Nor one spinning too fast to be carried round with at its gate.
         const spin = bodies.angularVel[tb]!;
         if (spin * spin * (bodies.radius[tb]! + bodies.radius[b]!) > SPIN_HOLD * across) continue;

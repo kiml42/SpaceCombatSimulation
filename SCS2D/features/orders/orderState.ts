@@ -46,7 +46,12 @@ export function describe(order: OrderView, shown: Snapshot, sides?: Sides): stri
     for (let i = 0; i < shown.shipCount; i++) {
         const target = shown.ships[i]!;
         if (target.body === order.target)
-            named = target.rock === undefined ? `${teamName(target.team, sides)} ${target.name ?? target.serial}` : "asteroid";
+            named =
+                target.rock !== undefined
+                    ? "asteroid"
+                    : target.team < 0
+                      ? "marker"
+                      : `${teamName(target.team, sides)} ${target.name ?? target.serial}`;
     }
     const distance = order.distance === undefined ? "" : ` · ${order.distance} m`;
     const speed = order.speed === undefined ? "" : ` · ${order.speed} m/s`;
