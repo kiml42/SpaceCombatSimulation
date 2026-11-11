@@ -15,6 +15,8 @@ import {
     type DoctrineValues,
 } from "~/editor/doctrine";
 import { updatePlacement } from "~/editor/edit";
+import { withPreset } from "~/editor/doctrinePresets";
+import { PresetPicker } from "~/features/doctrine/PresetPicker";
 import { designStats, moduleReadout, type Envelopes } from "~/editor/stats";
 import {
     DEFAULT_DOCTRINE,
@@ -275,6 +277,19 @@ export function DoctrineDetails({
             <summary>
                 What the ship does — <span id="shipDoctrineSummary">{shipSummary(doctrine)}</span>
             </summary>
+            <Field>
+                <label htmlFor="shipDoctrinePreset">Fight as</label>
+                <PresetPicker
+                    id="shipDoctrinePreset"
+                    onPick={(preset) => {
+                        const changed = withPreset(doc.blueprint.doctrine, preset);
+                        const next = { ...doc.blueprint };
+                        if (changed === undefined) delete next.doctrine;
+                        else next.doctrine = changed;
+                        editing.change(next);
+                    }}
+                />
+            </Field>
             <div id="shipDoctrineFields">
                 <DoctrineBoxes
                     sections={SHIP_SECTIONS}
