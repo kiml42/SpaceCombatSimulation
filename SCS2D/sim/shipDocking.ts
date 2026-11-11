@@ -55,6 +55,13 @@ const PORT_HEADING_SLACK = 0.1;
  */
 const PAD_ALIGN_RADII = 4;
 
+/**
+ * The share of its doctrine's braking a craft plans on coming in to a pad or a
+ * port. A doctrine's `brake` is for holding a range band, where stopping a little
+ * long costs nothing; here it has to stop on a spot, so it leaves itself room.
+ */
+const PLACING_BRAKE = 0.5;
+
 /** How far round its carrier, radians, a fighter steers at a time while it circles to a pad's way in. */
 const HULL_ORBIT_STEP = 0.5;
 
@@ -393,7 +400,7 @@ export function landOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
             // Less what it takes to keep up with the pad and hold off the strongest pull on the way.
             const pull = shipFlight.pullOnWay(ships, bodies.x[b]!, bodies.y[b]!, ux, uy, left);
             const spare = max(0, shipFlight.pushAbility(ships, bodies, i, b) - length(ax, ay) - pull);
-            radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * spare, left, ships.pushDelay));
+            radial = min(approach.approachSpeed, stoppingSpeed(PLACING_BRAKE * approach.brake * spare, left, ships.pushDelay));
         }
         vx += ux * radial;
         vy += uy * radial;
@@ -705,7 +712,7 @@ export function dockOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
             // Less what it takes to keep up with the port and hold off the strongest pull on the way.
             const pull = shipFlight.pullOnWay(ships, bodies.x[b]!, bodies.y[b]!, dx / range, dy / range, left);
             const spare = max(0, shipFlight.pushAbility(ships, bodies, i, b) - length(ax, ay) - pull);
-            radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * spare, left, ships.pushDelay));
+            radial = min(approach.approachSpeed, stoppingSpeed(PLACING_BRAKE * approach.brake * spare, left, ships.pushDelay));
         }
         vx += (dx / range) * radial;
         vy += (dy / range) * radial;
