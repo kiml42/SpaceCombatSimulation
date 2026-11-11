@@ -65,6 +65,11 @@ const PAD_ALIGN_RADII = 4;
  */
 const PLACING_BRAKE = 0.5;
 
+/** SPIKE: the share of its push the pull is where a too-weak lander hovers over its pad, how far off the pad's line in its radii and how fast across it it may be to drop. */
+const HOVER_PULL = 0.5;
+const HOVER_SIDE_RADII = 2;
+const HOVER_DRIFT = 0.5;
+
 /** The pull, as a share of a lander's push, at which it counts on no room past its pad at all. */
 const WELL_ROOM_SHARE = 0.02;
 
@@ -431,6 +436,35 @@ export function landOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
         }
         left = length(gx - bodies.x[b]!, gy - bodies.y[b]!) + length(ships.entryX - gx, ships.entryY - gy) + entry;
     }
+    // SPIKE: one too weak to hold itself up at the pad lines up over it first, high enough up the well
+    // to steer, and drops onto it only once it is over it and not drifting.
+    let hovering = false;
+    {
+        const root = ships.carrierOf(tb);
+        const well = ships.rides[root >= 0 ? root : tb];
+        const lift = shipFlight.pushAbility(ships, bodies, i, b);
+        shipFlight.pullAt(ships, place.x, place.y);
+        if (well !== undefined && !(lift > length(shipFlight.PULL.x, shipFlight.PULL.y))) {
+            const wx = place.x - well.x;
+            const wy = place.y - well.y;
+            const wr = length(wx, wy);
+            const upx = wx / wr;
+            const upy = wy / wr;
+            const high = max(wr, sqrt(well.gm / (HOVER_PULL * lift)));
+            const sx = bodies.x[b]! - place.x;
+            const sy = bodies.y[b]! - place.y;
+            const side = abs(-sx * upy + sy * upx);
+            const drift = abs(-(bodies.vx[b]! - place.vx) * upy + (bodies.vy[b]! - place.vy) * upx);
+            if (side > HOVER_SIDE_RADII * mine || drift > HOVER_DRIFT) {
+                hovering = true;
+                gx = well.x + upx * high;
+                gy = well.y + upy * high;
+                left = length(gx - bodies.x[b]!, gy - bodies.y[b]!);
+                ships.viaX[i] = gx;
+                ships.viaY[i] = gy;
+            }
+        }
+    }
     const dx = gx - bodies.x[b]!;
     const dy = gy - bodies.y[b]!;
     const gap = length(dx, dy);
@@ -462,7 +496,7 @@ export function landOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
             // arrive at: what the fall gives it, less what braking on all the way takes off; the pad's
             // field catches it. One that can stop arrives at nothing, as ever.
             const fall = shipFlight.fallGain(ships, bodies.x[b]!, bodies.y[b]!, place.x, place.y);
-            const arrive = max(0, fall - 2 * PLACING_BRAKE * approach.brake * push * left);
+            const arrive = hovering ? 0 : max(0, fall - 2 * PLACING_BRAKE * approach.brake * push * left);
             const full = arrivingSpeed(approach.brake * spare, left, ships.pushDelay, arrive);
             const careful = arrivingSpeed(PLACING_BRAKE * approach.brake * spare, left + room, ships.pushDelay, arrive);
             radial = min(approach.approachSpeed, full, careful);
