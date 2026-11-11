@@ -1229,6 +1229,25 @@ export function keepsWith(ships: Ships, bodies: Bodies, lift: number, t: number,
     return length(PULL.x - fallX, PULL.y - fallY) <= lift;
 }
 
+/** How far out, in its own radii, a craft coming in to a spot it stops on lines up before it closes. */
+const LINE_UP_RADII = 8;
+/** How little drift across its line to the spot, m/s, a craft lining up waits for before it closes. */
+const LINE_UP_DRIFT = 0.3;
+
+/**
+ * The closing speed a craft on body `b` coming in to a spot `range` off along
+ * (`ux`, `uy`), moving at (`vx`, `vy`), asks for: `wanted`, unless it is near
+ * and drifting across the line, when it keeps the closing speed it has and
+ * spends its push on the drift.
+ */
+export function lineUp(bodies: Bodies, b: number, ux: number, uy: number, vx: number, vy: number, range: number, wanted: number): number {
+    if (range > LINE_UP_RADII * bodies.radius[b]!) return wanted;
+    const rvx = bodies.vx[b]! - vx;
+    const rvy = bodies.vy[b]! - vy;
+    if (abs(rvx * uy - rvy * ux) <= LINE_UP_DRIFT) return wanted;
+    return rvx * ux + rvy * uy;
+}
+
 /** How many points along the way to a stop `pullOnWay` reads the pull at. */
 const PULL_SAMPLES = 6;
 

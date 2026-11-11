@@ -422,6 +422,7 @@ export function landOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
             const careful = stoppingSpeed(PLACING_BRAKE * approach.brake * spare, left + room, ships.pushDelay);
             radial = min(approach.approachSpeed, full, careful);
         }
+        radial = shipFlight.lineUp(bodies, b, ux, uy, place.vx, place.vy, range, radial);
         vx += ux * radial;
         vy += uy * radial;
     }

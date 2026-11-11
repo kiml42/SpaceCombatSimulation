@@ -48,8 +48,8 @@ const GOLDEN: Record<ScenarioName, string> = {
     asteroidField: "097951dd",
     // ships=7 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=2 severed=0 culled=0 scrap=-25.1t · 40.7 µs/step
     mining: "ba358939",
-    // ships=12 inFlight=0 p.fired=205 p.hits=562 b.fired=0 b.hits=0 contacts=19 bumps=2 crashes=3 severed=0 culled=0 scrap=83.8t · 1412.3 µs/step
-    rivalMines: "0c660364",
+    // ships=16 inFlight=0 p.fired=387 p.hits=1120 b.fired=0 b.hits=0 contacts=13 bumps=2 crashes=2 severed=1 culled=1 scrap=37.8t · 1492.5 µs/step
+    rivalMines: "79622f7f",
     // ships=22 inFlight=35 p.fired=123 p.hits=105 b.fired=0 b.hits=0 contacts=76 severed=1 culled=1 scrap=5.0t · 647.2 µs/step
     swarm: "55516a1e",
     // ships=302 inFlight=69 p.fired=221 p.hits=226 b.fired=0 b.hits=0 contacts=66 severed=7 culled=7 scrap=29.5t · 17668.9 µs/step
@@ -82,18 +82,18 @@ const GOLDEN: Record<ScenarioName, string> = {
     catamaranRefits: "2b1a25f3",
     // ships=5 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=38 severed=3 culled=0 scrap=108.2t · 56.5 µs/step
     scavenge: "53e5831e",
-    // ships=3 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=0.2t · 42.5 µs/step
-    padRebuild: "6d03b457",
+    // ships=3 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=0.2t · 42.7 µs/step
+    padRebuild: "4be26843",
     // ships=5 inFlight=0 p.fired=22 p.hits=86 b.fired=0 b.hits=0 contacts=34 severed=0 culled=0 scrap=1.6t · 84.9 µs/step
     factory: "c8d8f8f2",
     // ships=3 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=0 severed=1 culled=0 scrap=32.1t · 128.1 µs/step
     shipyard: "ed2487e5",
-    // ships=5 inFlight=0 p.fired=20 p.hits=69 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=0.4t · 75.5 µs/step
-    rearm: "8fb58c4b",
+    // ships=5 inFlight=0 p.fired=20 p.hits=71 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=0.4t · 76.1 µs/step
+    rearm: "f8bc14a4",
     // ships=3 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=11 bumps=2 crashes=0 severed=2 culled=0 scrap=0.2t · 59.6 µs/step
     tanker: "f2dde2c5",
-    // ships=21 inFlight=0 p.fired=31 p.hits=37 b.fired=252 b.hits=7261 contacts=96 bumps=3 crashes=14 severed=3 culled=1 scrap=18.1t · 655.8 µs/step
-    beamCarrier: "ffe37bd5",
+    // ships=21 inFlight=0 p.fired=31 p.hits=37 b.fired=247 b.hits=7648 contacts=131 bumps=2 crashes=10 severed=2 culled=0 scrap=15.0t · 564.4 µs/step
+    beamCarrier: "800422c5",
     // ships=2 inFlight=0 p.fired=55 p.hits=182 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=9.3t · 40.7 µs/step
     passes: "cee4ef1b",
     // ships=2 inFlight=0 p.fired=2 p.hits=8 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=9.3t · 67.4 µs/step
