@@ -148,7 +148,8 @@ export function SkirmishProvider({ children }: { readonly children: ReactNode })
 
     const answer = (): void => {
         const current = now.current.skirmish;
-        if (current === null || current.won === undefined) return;
+        // Waits for the player to pick where the next round is fought.
+        if (current === null || current.won === undefined || current.ways !== undefined) return;
         stop.current?.();
         setAnswering({ latest: null, running: true });
         stop.current = startSkirmishAnswer(
