@@ -30,14 +30,18 @@ describe("where the next round is fought", () => {
     });
 
     it("each changes the settings it says it does", () => {
+        // Rock, speed and a dim light: somewhere every one of them is open.
+        const busy = ["rocks", "headOn", "dark"].reduce((s, id) => destinationById(id)!.apply(s), DEFAULT_SKIRMISH_SETTINGS);
         for (const destination of DESTINATIONS) {
-            const from = destination.open(DEFAULT_SKIRMISH_SETTINGS)
-                ? DEFAULT_SKIRMISH_SETTINGS
-                : DESTINATIONS[2]!.apply(DESTINATIONS[4]!.apply(DEFAULT_SKIRMISH_SETTINGS));
+            const from = destination.open(DEFAULT_SKIRMISH_SETTINGS) ? DEFAULT_SKIRMISH_SETTINGS : busy;
             expect(destination.open(from)).toBe(true);
             expect(destination.apply(from)).not.toEqual(from);
         }
         expect(destinationById("rocks")!.apply(DEFAULT_SKIRMISH_SETTINGS).map).toMatchObject({ majors: 1, minors: 6 });
+        // Dimmed and brightened again, the light is back where it was.
+        const dim = destinationById("dark")!.apply(DEFAULT_SKIRMISH_SETTINGS);
+        expect(dim.light).toBe(0.6);
+        expect(destinationById("bright")!.apply(dim).light).toBe(1);
     });
 
     it("waits on a round won until one is picked, which then decides how the next is fought", () => {

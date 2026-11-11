@@ -295,9 +295,9 @@ function enemyAlone(enemy: Fleet): CustomBattle {
     return customBattle({ ...DEFAULT_SETUP, fleets: [{ name: "", designs: {}, ships: [] }, enemy] });
 }
 
-/** A round's battle, seen in the light its seed draws. */
-function roundOn(setup: BattleSetup): CustomBattle {
-    return lit(customBattle(setup), roundLight(setup.seed));
+/** A round's battle, seen in the light its seed draws, as bright as the skirmish says. */
+function roundOn(setup: BattleSetup, light: number): CustomBattle {
+    return lit(customBattle(setup), roundLight(setup.seed, light));
 }
 
 function download(name: string, text: string): void {
@@ -395,7 +395,7 @@ export function SkirmishPage() {
         const fits = canFight(current);
         setFightable(fits);
         if (fits) {
-            battle.current = roundOn(roundSetup(current));
+            battle.current = roundOn(roundSetup(current), settingsOf(current).light);
             // Your round alone takes orders, and can be wound back.
             on.allowOrders(0);
             on.show(battle.current, false, true);
@@ -417,7 +417,7 @@ export function SkirmishPage() {
         setReplaying(false);
         undecided();
         activity.current = newActivity();
-        battle.current = roundOn(roundBattle(current.player, current.enemy, current.won, settingsOf(current)));
+        battle.current = roundOn(roundBattle(current.player, current.enemy, current.won, settingsOf(current)), settingsOf(current).light);
         if (current.ways !== undefined) {
             setOutcome({ text: "Round won. Pick where the next round is fought.", kind: "won" });
             setEnemyLine(`Against ${current.enemy.name}.`);
@@ -435,7 +435,7 @@ export function SkirmishPage() {
         mode.current = "watching";
         undecided();
         activity.current = newActivity();
-        battle.current = roundOn(roundBattle(current.player, now.best, current.won, settingsOf(current)));
+        battle.current = roundOn(roundBattle(current.player, now.best, current.won, settingsOf(current)), settingsOf(current).light);
         setOutcome({ text: `Generation ${now.generation}'s best enemy against your fleet.`, kind: "" });
         setEnemyLine(`Against ${now.best.name}, evolving.`);
         setFightable(true);
@@ -447,7 +447,7 @@ export function SkirmishPage() {
         mode.current = "answer";
         undecided();
         activity.current = newActivity();
-        battle.current = roundOn(roundBattle(current.player, enemy, current.won, settingsOf(current)));
+        battle.current = roundOn(roundBattle(current.player, enemy, current.won, settingsOf(current)), settingsOf(current).light);
         setOutcome({ text: "The enemy's answer.", kind: "lost" });
         setEnemyLine(`Against ${enemy.name}, the answer.`);
         setFightable(true);
@@ -473,7 +473,8 @@ export function SkirmishPage() {
         setRoundOver(true);
         undecided();
         activity.current = newActivity();
-        battle.current = roundOn(roundBattle(player, enemy, seed, skirmish === null ? DEFAULT_SKIRMISH_SETTINGS : settingsOf(skirmish)));
+        const settings = skirmish === null ? DEFAULT_SKIRMISH_SETTINGS : settingsOf(skirmish);
+        battle.current = roundOn(roundBattle(player, enemy, seed, settings), settings.light);
         setOutcome({ text: `Round ${round}, again.`, kind: "" });
         setFightable(true);
         setReplaying(true);
