@@ -403,8 +403,12 @@ export function battleView(
                     armed = null;
                     return;
                 }
-                // Anything on no side, and any wreck, is somewhere to go.
-                if (ship.team === NEUTRAL_TEAM || ship.isDerelict) order("waypoint", ship, queue, armedCancel);
+                // An asteroid or a wreck is mined by those with a claw, and gone to by
+                // the rest, as is anything else on no side.
+                if (ship.rock !== undefined || ship.isDerelict) {
+                    order("scavenge", ship, queue, armedCancel);
+                    order("waypoint", ship, queue, armedCancel, (i) => !hasClaw(viewOf(snapshot, i)));
+                } else if (ship.team === NEUTRAL_TEAM) order("waypoint", ship, queue, armedCancel);
                 else order(ship.team === side ? "defend" : "attack", ship, queue, OrderCancelCondition.CompleteDisable);
             },
             doubled(x, y, reach) {
@@ -421,8 +425,14 @@ export function battleView(
         },
     );
 
-    /** The picked ships told `verb` against `target`, if that makes sense for them. */
-    const order = (verb: Verb, target: ShipView, append: boolean, cancelOn: OrderCancelCondition): void => {
+    /** The picked ships, or those of them `only` passes, told `verb` against `target`, if that makes sense for them. */
+    const order = (
+        verb: Verb,
+        target: ShipView,
+        append: boolean,
+        cancelOn: OrderCancelCondition,
+        only: (i: number) => boolean = () => true,
+    ): void => {
         const side = orderSide(snapshot);
         if (!ordersAllowed || side === null || target.ship === undefined) return;
         // On no side is only cover, and asteroids to mine.
@@ -431,7 +441,7 @@ export function battleView(
         // A friend is defended or docked with, and an enemy attacked or rammed.
         if (!EITHER.has(verb) && FRIENDLY.has(verb) !== (target.team === side)) return;
         // Only a ship with a claw scavenges: the rest keep what they were doing.
-        const ships = picked.filter((i) => i !== target.ship && (verb !== "scavenge" || hasClaw(viewOf(snapshot, i))));
+        const ships = picked.filter((i) => i !== target.ship && only(i) && (verb !== "scavenge" || hasClaw(viewOf(snapshot, i))));
         if (ships.length === 0) return;
         const speed = held.speed === undefined ? {} : { speed: held.speed };
         const given: Order =
