@@ -38,6 +38,13 @@ describe("where the next round is fought", () => {
             expect(destination.apply(from)).not.toEqual(from);
         }
         expect(destinationById("rocks")!.apply(DEFAULT_SKIRMISH_SETTINGS).map).toMatchObject({ majors: 1, minors: 6 });
+        // No further than two majors, which orbit truly; more only where the setup asked for them.
+        const rocks = destinationById("rocks")!;
+        const two = rocks.apply(rocks.apply(DEFAULT_SKIRMISH_SETTINGS));
+        expect(two.map).toMatchObject({ majors: 2, minors: 12 });
+        expect(rocks.apply(two).map).toMatchObject({ majors: 2, minors: 18 });
+        const three = { ...DEFAULT_SKIRMISH_SETTINGS, map: { majors: 3 } };
+        expect(rocks.apply(three).map.majors).toBe(3);
     });
 
     it("waits on a round won until one is picked, which then decides how the next is fought", () => {

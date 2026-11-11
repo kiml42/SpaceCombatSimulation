@@ -19,7 +19,13 @@ export interface Destination {
 /** How much a step moves the gap, m, and either starting speed, m/s. */
 const GAP_STEP = 1500;
 const SPEED_STEP = 40;
-const MOST_MAJORS = 4;
+/**
+ * The most majors a step brings: two orbit each other as real bodies do, and
+ * more is an approximation, which a round has only if its setup asked for it.
+ */
+const MOST_MAJORS = 2;
+/** The most minors a step brings a round up to. */
+const MOST_MINORS = 30;
 
 const majors = (s: SkirmishSettings): number => s.map.majors ?? DEFAULT_MAP.majors;
 const minors = (s: SkirmishSettings): number => s.map.minors ?? DEFAULT_MAP.minors;
@@ -42,9 +48,16 @@ export const DESTINATIONS: readonly Destination[] = [
     {
         id: "rocks",
         name: "Asteroid field",
-        hint: "More rock to fight among: another major asteroid and a scatter of minor ones",
-        open: (s) => majors(s) < MOST_MAJORS,
-        apply: (s) => ({ ...s, map: { ...s.map, majors: majors(s) + 1, minors: minors(s) + 6 } }),
+        hint: "More rock to fight among: a scatter of minor asteroids, and another major while there are fewer than two",
+        open: (s) => majors(s) < MOST_MAJORS || minors(s) < MOST_MINORS,
+        apply: (s) => ({
+            ...s,
+            map: {
+                ...s.map,
+                majors: majors(s) < MOST_MAJORS ? majors(s) + 1 : majors(s),
+                minors: math.min(MOST_MINORS, minors(s) + 6),
+            },
+        }),
     },
     {
         id: "clear",
