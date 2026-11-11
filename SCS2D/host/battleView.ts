@@ -83,7 +83,7 @@ function viewByBody(view: Snapshot, body: number): ShipView | null {
     return null;
 }
 
-/** What framing a selection takes in: each picked ship, and what each is fighting, escorting, scavenging or docking with. */
+/** What framing a selection takes in: each picked ship, and what each is fighting, escorting, scavenging, docking with or keeping clear of. */
 function pickedBounds(view: Snapshot, picked: readonly number[]): Bounds | null {
     let out: Bounds | null = null;
     for (const ship of picked) {
@@ -210,12 +210,12 @@ interface Kept {
 }
 
 /** What a click on a ship can be armed to tell the selection. */
-export type Verb = "attack" | "defend" | "ram" | "dock" | "scavenge" | "deliver" | "flee";
+export type Verb = "attack" | "defend" | "waypoint" | "ram" | "dock" | "scavenge" | "deliver" | "flee";
 
 /** Verbs given to a friend rather than against an enemy. */
 const FRIENDLY: ReadonlySet<Verb> = new Set(["defend", "dock", "deliver"]);
 /** Verbs given to a ship of either side. */
-const EITHER: ReadonlySet<Verb> = new Set(["scavenge", "flee"]);
+const EITHER: ReadonlySet<Verb> = new Set(["waypoint", "scavenge", "flee"]);
 /** Verbs that can be given with no target, for doctrine to choose one. */
 export const ANYWHERE: ReadonlySet<Verb> = new Set(["dock", "scavenge", "deliver", "flee"]);
 
@@ -403,10 +403,13 @@ export function battleView(
                     armed = null;
                     return;
                 }
-                // An asteroid is mined, by those with a claw to hold it.
-                if (ship.rock !== undefined) order("scavenge", ship, queue, armedCancel);
-                else if (ship.team !== NEUTRAL_TEAM)
-                    order(ship.team === side ? "defend" : "attack", ship, queue, OrderCancelCondition.CompleteDisable);
+                // An asteroid or a wreck is mined by those with a claw, and gone to by
+                // the rest, as is anything else on no side.
+                if (ship.rock !== undefined || ship.isDerelict) {
+                    order("scavenge", ship, queue, armedCancel);
+                    order("waypoint", ship, queue, armedCancel, (i) => !hasClaw(viewOf(snapshot, i)));
+                } else if (ship.team === NEUTRAL_TEAM) order("waypoint", ship, queue, armedCancel);
+                else order(ship.team === side ? "defend" : "attack", ship, queue, OrderCancelCondition.CompleteDisable);
             },
             doubled(x, y, reach) {
                 if (!ordersAllowed) return;
@@ -422,23 +425,30 @@ export function battleView(
         },
     );
 
-    /** The picked ships told `verb` against `target`, if that makes sense for them. */
-    const order = (verb: Verb, target: ShipView, append: boolean, cancelOn: OrderCancelCondition): void => {
+    /** The picked ships, or those of them `only` passes, told `verb` against `target`, if that makes sense for them. */
+    const order = (
+        verb: Verb,
+        target: ShipView,
+        append: boolean,
+        cancelOn: OrderCancelCondition,
+        only: (i: number) => boolean = () => true,
+    ): void => {
         const side = orderSide(snapshot);
         if (!ordersAllowed || side === null || target.ship === undefined) return;
         // On no side is only cover, and asteroids to mine.
-        if (target.team === NEUTRAL_TEAM && verb !== "flee" && !(verb === "scavenge" && target.rock !== undefined)) return;
+        if (target.team === NEUTRAL_TEAM && verb !== "flee" && verb !== "waypoint" && !(verb === "scavenge" && target.rock !== undefined))
+            return;
         // A friend is defended or docked with, and an enemy attacked or rammed.
         if (!EITHER.has(verb) && FRIENDLY.has(verb) !== (target.team === side)) return;
         // Only a ship with a claw scavenges: the rest keep what they were doing.
-        const ships = picked.filter((i) => i !== target.ship && (verb !== "scavenge" || hasClaw(viewOf(snapshot, i))));
+        const ships = picked.filter((i) => i !== target.ship && only(i) && (verb !== "scavenge" || hasClaw(viewOf(snapshot, i))));
         if (ships.length === 0) return;
         const speed = held.speed === undefined ? {} : { speed: held.speed };
         const given: Order =
             verb === "attack"
                 ? { kind: "attack", target: target.ship, cancelOn, ...held }
-                : verb === "defend"
-                  ? { kind: "defend", target: target.ship, ...held }
+                : verb === "defend" || verb === "waypoint"
+                  ? { kind: verb, target: target.ship, ...held }
                   : verb === "ram"
                     ? { kind: "ram", target: target.ship, ...speed }
                     : { kind: verb, target: target.ship };

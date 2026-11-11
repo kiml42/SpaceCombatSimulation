@@ -560,6 +560,10 @@ export class Match {
                 return { slots, owners, marker };
             },
         );
+        // A race is told where it is to, rather than left for escorting to find.
+        if (this.battle.marker >= 0 && settings.weights.race !== 0) {
+            for (const ship of this.battle.slots) this.battle.ships.pushWaypoint(ship, this.battle.marker);
+        }
         // Each side drawn in the livery of its first entrant. Only drawn.
         Object.assign(this.battle, {
             liveries: Array.from({ length: sides }, (_, side) => entrants[sided === null ? side : sided.indexOf(side)]?.livery),
