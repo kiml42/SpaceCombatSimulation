@@ -390,10 +390,9 @@ export function landOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
             radial = min(PAD_ARRIVAL_SPEED, range / approach.responseTime);
         } else {
             // Braking on what is left once it is keeping up.
-            // Less what it takes to keep up with the pad and hold off the wells' pull, as strong as it
-            // is at the pad, where it brakes last and the pull is greatest, not as weak as it is up here.
-            shipFlight.pullAt(ships, place.x, place.y);
-            const spare = max(0, shipFlight.pushAbility(ships, bodies, i, b) - length(ax - shipFlight.PULL.x, ay - shipFlight.PULL.y));
+            // Less what it takes to keep up with the pad and hold off the strongest pull on the way.
+            const pull = shipFlight.pullOnWay(ships, bodies.x[b]!, bodies.y[b]!, ux, uy, left);
+            const spare = max(0, shipFlight.pushAbility(ships, bodies, i, b) - length(ax, ay) - pull);
             radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * spare, left, ships.pushDelay));
         }
         vx += ux * radial;
@@ -703,10 +702,9 @@ export function dockOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
             radial = PORT_APPROACH;
         } else {
             // Braking on what is left once it is keeping up.
-            // Less what it takes to keep up with the pad and hold off the wells' pull, as strong as it
-            // is at the pad, where it brakes last and the pull is greatest, not as weak as it is up here.
-            shipFlight.pullAt(ships, place.x, place.y);
-            const spare = max(0, shipFlight.pushAbility(ships, bodies, i, b) - length(ax - shipFlight.PULL.x, ay - shipFlight.PULL.y));
+            // Less what it takes to keep up with the port and hold off the strongest pull on the way.
+            const pull = shipFlight.pullOnWay(ships, bodies.x[b]!, bodies.y[b]!, dx / range, dy / range, left);
+            const spare = max(0, shipFlight.pushAbility(ships, bodies, i, b) - length(ax, ay) - pull);
             radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * spare, left, ships.pushDelay));
         }
         vx += (dx / range) * radial;
