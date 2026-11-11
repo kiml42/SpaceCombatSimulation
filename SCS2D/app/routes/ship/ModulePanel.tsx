@@ -20,7 +20,9 @@ import {
     isMagnetic,
     isWeaponMount,
     math,
+    MAX_BORE,
     MODULE_KINDS,
+    moduleProblem,
     padHolds,
     placementAt,
     radiansToDegrees,
@@ -124,7 +126,15 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
 
     const update = (change: (placement: Placement) => Placement, continues = false): void => {
         if (path === null) return;
-        editing.change(updatePlacement(doc.blueprint, path, change), continues);
+        // A half-typed number can make a module that can't be built; it waits for the next key.
+        let invalid = false;
+        const valid = (placement: Placement): Placement => {
+            const next = change(placement);
+            invalid ||= "kind" in next && moduleProblem(next) !== null && !("kind" in placement && moduleProblem(placement) !== null);
+            return next;
+        };
+        const blueprint = updatePlacement(doc.blueprint, path, valid);
+        if (!invalid) editing.change(blueprint, continues);
     };
     const patch = (fields: Partial<ModuleSpec>): void => update((placement) => ({ ...placement, ...fields }) as Placement, true);
     /** A flag, absent rather than false when it is off, so a file only ever says the unusual thing. */
@@ -310,6 +320,28 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                         (barrelCalibres) => patch({ barrelCalibres }),
                     )}
                     <Readout id="barrelMetres">{barrelReadout(spec)}</Readout>
+                </Field>
+            )}
+            {readsBarrelCalibres(spec.kind) && (
+                <Field id="boreRow">
+                    <label htmlFor="propBore">bore ×</label>
+                    {box(
+                        "bore",
+                        {
+                            step: 0.1,
+                            min: 0.1,
+                            max: MAX_BORE,
+                            title: `A multiple of the bore this mount's size gives it, up to ${MAX_BORE}. Wider is a heavier shell, barrel and load: more weight of metal a shot, fewer shots. Several barrels share it.`,
+                        },
+                        // The archetype's own bore is not a statement, so the file stops carrying one.
+                        (bore) =>
+                            update((placement) => {
+                                const next = { ...placement } as ModuleSpec;
+                                if (bore === 1) delete next.bore;
+                                else next.bore = bore;
+                                return next as Placement;
+                            }, true),
+                    )}
                 </Field>
             )}
             {isWeaponMount(spec.kind) && spec.kind !== "railGun" && spec.kind !== "plasmaLance" && (

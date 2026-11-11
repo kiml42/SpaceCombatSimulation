@@ -75,6 +75,7 @@ export type ModuleNumberField =
     | "barrels"
     | "nozzle"
     | "barrelCalibres"
+    | "bore"
     | "traverse"
     | "fuse"
     | "fragments"
@@ -93,6 +94,7 @@ export function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
     if (key === "reinforcement") return spec.reinforcement ?? 1;
     if (key === "nozzle") return spec.nozzle ?? DEFAULT_NOZZLE_WIDTHS;
     if (key === "barrelCalibres") return barrelCalibres(spec);
+    if (key === "bore") return spec.bore ?? 1;
     // What the mount would do if the layout said nothing, so the box shows the
     // arc it actually has rather than a blank.
     if (key === "traverse") return radiansToDegrees(mountTraverse(spec));
