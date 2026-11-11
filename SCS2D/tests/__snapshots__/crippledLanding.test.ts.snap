@@ -2,7 +2,8 @@
 
 exports[`Crippled Landing > Carrier, no front [2, 3, 6, 8, 9, 10] 1`] = `
 {
-  "contacts": 0,
+  "bumps": 0,
+  "crashes": 0,
   "landed": [
     "34.93 s",
     "43.52 s",
@@ -18,7 +19,8 @@ exports[`Crippled Landing > Carrier, no front [2, 3, 6, 8, 9, 10] 1`] = `
 
 exports[`Crippled Landing > Dinky,  anticlockwise only [2, 7, 8] 1`] = `
 {
-  "contacts": 0,
+  "bumps": 0,
+  "crashes": 0,
   "landed": [
     "48.90 s",
     "48.87 s",
@@ -34,7 +36,8 @@ exports[`Crippled Landing > Dinky,  anticlockwise only [2, 7, 8] 1`] = `
 
 exports[`Crippled Landing > Dinky,  clockwise only [1, 2, 9] 1`] = `
 {
-  "contacts": 0,
+  "bumps": 0,
+  "crashes": 0,
   "landed": [
     "50.80 s",
     "51.18 s",
@@ -50,7 +53,8 @@ exports[`Crippled Landing > Dinky,  clockwise only [1, 2, 9] 1`] = `
 
 exports[`Crippled Landing > Dinky, no front [2, 3, 6, 8, 9, 10] 1`] = `
 {
-  "contacts": 0,
+  "bumps": 0,
+  "crashes": 0,
   "landed": [
     "25.07 s",
     "25.37 s",
@@ -66,7 +70,8 @@ exports[`Crippled Landing > Dinky, no front [2, 3, 6, 8, 9, 10] 1`] = `
 
 exports[`Crippled Landing > Raider,  one way, spins [1, 4, 10] 1`] = `
 {
-  "contacts": 0,
+  "bumps": 0,
+  "crashes": 0,
   "landed": [
     "97.43 s",
     "96.98 s",
@@ -82,7 +87,8 @@ exports[`Crippled Landing > Raider,  one way, spins [1, 4, 10] 1`] = `
 
 exports[`Crippled Landing > Raider,  one way, spins [4, 7, 10] 1`] = `
 {
-  "contacts": 0,
+  "bumps": 0,
+  "crashes": 0,
   "landed": [
     "106.13 s",
     "105.32 s",
@@ -98,7 +104,8 @@ exports[`Crippled Landing > Raider,  one way, spins [4, 7, 10] 1`] = `
 
 exports[`Crippled Landing > Raider, no main [2, 4] 1`] = `
 {
-  "contacts": 0,
+  "bumps": 0,
+  "crashes": 0,
   "landed": [
     "92.05 s",
     "97.55 s",
@@ -114,7 +121,8 @@ exports[`Crippled Landing > Raider, no main [2, 4] 1`] = `
 
 exports[`Crippled Landing > Raider, no main [4] 1`] = `
 {
-  "contacts": 0,
+  "bumps": 0,
+  "crashes": 0,
   "landed": [
     "127.60 s",
     "67.65 s",
@@ -130,7 +138,8 @@ exports[`Crippled Landing > Raider, no main [4] 1`] = `
 
 exports[`Crippled Landing > Raider, one turn far weaker [1, 8] 1`] = `
 {
-  "contacts": 0,
+  "bumps": 0,
+  "crashes": 0,
   "landed": [
     "49.42 s",
     "49.78 s",
@@ -146,7 +155,8 @@ exports[`Crippled Landing > Raider, one turn far weaker [1, 8] 1`] = `
 
 exports[`Crippled Landing > Raider, one turn far weaker [3, 7] 1`] = `
 {
-  "contacts": 0,
+  "bumps": 0,
+  "crashes": 0,
   "landed": [
     "48.17 s",
     "50.23 s",
@@ -162,7 +172,8 @@ exports[`Crippled Landing > Raider, one turn far weaker [3, 7] 1`] = `
 
 exports[`Crippled Landing > Raider, pushes turn it [4, 6] 1`] = `
 {
-  "contacts": 0,
+  "bumps": 0,
+  "crashes": 0,
   "landed": [
     "96.02 s",
     "96.57 s",
@@ -178,7 +189,8 @@ exports[`Crippled Landing > Raider, pushes turn it [4, 6] 1`] = `
 
 exports[`Crippled Landing > Raider, pushes turn it [4, 8, 10] 1`] = `
 {
-  "contacts": 0,
+  "bumps": 0,
+  "crashes": 0,
   "landed": [
     "98.07 s",
     "98.37 s",

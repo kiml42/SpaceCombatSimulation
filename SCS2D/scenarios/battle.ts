@@ -6,6 +6,7 @@ import {
     castableBeamLength,
     MAX_BEAM_LENGTH,
     Collisions,
+    ContactGrades,
     Credit,
     gravityWell,
     Impacts,
@@ -208,6 +209,7 @@ export function makeBattle<Extra extends object = Record<never, never>>(
         totalBeamsFired: 0,
         totalBeamHits: 0,
         totalContacts: 0,
+        contactGrades: new ContactGrades(),
         totalSevered: 0,
         totalWelded: 0,
         totalCulled: 0,
@@ -226,6 +228,7 @@ export function makeBattle<Extra extends object = Record<never, never>>(
             collisions.step(world.bodies, ships, world.dt);
             this.totalContacts += collisions.contacts.count;
             impacts.collisions(ships, ships.damage, world.bodies, collisions.contacts, credit);
+            this.contactGrades.tally(collisions.contacts, ships.damage, dt);
             // A slow contact onto torn metal hooks the two into one, once the crush
             // has decided what is torn.
             this.totalWelded += ships.weld(world, collisions.contacts);

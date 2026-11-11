@@ -2,7 +2,8 @@
 
 exports[`Rock Landing > Raider,  one way, spins [1, 4, 10] 1`] = `
 {
-  "contacts": 14716,
+  "bumps": 10,
+  "crashes": 23,
   "landed": [
     "not by 150 s",
     "not by 150 s",
@@ -18,7 +19,8 @@ exports[`Rock Landing > Raider,  one way, spins [1, 4, 10] 1`] = `
 
 exports[`Rock Landing > Raider,  one way, spins [4, 7, 10] 1`] = `
 {
-  "contacts": 192,
+  "bumps": 2,
+  "crashes": 15,
   "landed": [
     "not by 150 s",
     "not by 150 s",
@@ -34,7 +36,8 @@ exports[`Rock Landing > Raider,  one way, spins [4, 7, 10] 1`] = `
 
 exports[`Rock Landing > Raider, no main [2, 4] 1`] = `
 {
-  "contacts": 45724,
+  "bumps": 0,
+  "crashes": 23,
   "landed": [
     "not by 150 s",
     "not by 150 s",
@@ -50,7 +53,8 @@ exports[`Rock Landing > Raider, no main [2, 4] 1`] = `
 
 exports[`Rock Landing > Raider, no main [4] 1`] = `
 {
-  "contacts": 18572,
+  "bumps": 1,
+  "crashes": 11,
   "landed": [
     "87.03 s",
     "not by 150 s",
@@ -66,7 +70,8 @@ exports[`Rock Landing > Raider, no main [4] 1`] = `
 
 exports[`Rock Landing > Raider, one turn far weaker [1, 8] 1`] = `
 {
-  "contacts": 48,
+  "bumps": 0,
+  "crashes": 7,
   "landed": [
     "53.00 s",
     "56.77 s",
@@ -82,7 +87,8 @@ exports[`Rock Landing > Raider, one turn far weaker [1, 8] 1`] = `
 
 exports[`Rock Landing > Raider, one turn far weaker [3, 7] 1`] = `
 {
-  "contacts": 10505,
+  "bumps": 1,
+  "crashes": 11,
   "landed": [
     "47.08 s",
     "46.90 s",
@@ -98,7 +104,8 @@ exports[`Rock Landing > Raider, one turn far weaker [3, 7] 1`] = `
 
 exports[`Rock Landing > Raider, pushes turn it [4, 6] 1`] = `
 {
-  "contacts": 0,
+  "bumps": 0,
+  "crashes": 0,
   "landed": [
     "not by 150 s",
     "not by 150 s",
@@ -114,7 +121,8 @@ exports[`Rock Landing > Raider, pushes turn it [4, 6] 1`] = `
 
 exports[`Rock Landing > Raider, pushes turn it [4, 8, 10] 1`] = `
 {
-  "contacts": 0,
+  "bumps": 0,
+  "crashes": 0,
   "landed": [
     "not by 150 s",
     "not by 150 s",
@@ -130,7 +138,8 @@ exports[`Rock Landing > Raider, pushes turn it [4, 8, 10] 1`] = `
 
 exports[`Rock Landing > Raider, undamaged 1`] = `
 {
-  "contacts": 0,
+  "bumps": 0,
+  "crashes": 0,
   "landed": [
     "31.50 s",
     "39.30 s",
