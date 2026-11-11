@@ -1199,6 +1199,28 @@ export function pullAt(ships: Ships, x: number, y: number): void {
     }
 }
 
+/**
+ * Whether a craft that can push `lift` m/s² against the wells (`pushAbility`)
+ * could keep at (`x`, `y`) with ship `t`, if `t` is moored or parked: the pull
+ * there less what it is held to falls by, which a rock at a well's middle does
+ * not. Something flying free is kept with by passing it or orbiting with it, not
+ * by holding against the pull. Doctrine sends nothing where it could not climb
+ * back out but a ram, which passes an infinite `lift`; one with no push goes
+ * nowhere it could be sent from.
+ */
+export function keepsWith(ships: Ships, bodies: Bodies, lift: number, t: number, x: number, y: number): boolean {
+    if (lift === Infinity || !(lift > 0)) return true;
+    let held = t;
+    for (let k = 0; k < 4 && ships.parkedOn[held]! >= 0 && ships.alive[ships.parkedOn[held]!] === 1; k++) held = ships.parkedOn[held]!;
+    const hb = held === t ? -1 : bodies.indexOf(ships.bodyIds[held]!);
+    if (hb < 0) return true;
+    pullAt(ships, bodies.x[hb]!, bodies.y[hb]!);
+    const fallX = PULL.x;
+    const fallY = PULL.y;
+    pullAt(ships, x, y);
+    return length(PULL.x - fallX, PULL.y - fallY) <= lift;
+}
+
 /** How many points along the way to a stop `pullOnWay` reads the pull at. */
 const PULL_SAMPLES = 6;
 
