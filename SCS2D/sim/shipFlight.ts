@@ -52,12 +52,13 @@ export const URGE_REFERENCE = 100;
 
 /**
  * The fastest a craft can be closing and still stop within `gap` metres
- * braking at `brake` m/s², once `delay` seconds have gone by at that speed.
+ * braking at `brake` m/s², once `delay` seconds have gone by at that speed;
+ * or get there no faster than `arrive`.
  */
-export function stoppingSpeed(brake: number, gap: number, delay: number): number {
-    if (!(brake > 0) || !Number.isFinite(delay)) return 0;
+export function stoppingSpeed(brake: number, gap: number, delay: number, arrive = 0): number {
+    if (!(brake > 0) || !Number.isFinite(delay)) return arrive;
     const lag = brake * delay;
-    return sqrt(2 * brake * gap + lag * lag) - lag;
+    return sqrt(2 * brake * gap + arrive * arrive + lag * lag) - lag;
 }
 
 /** Half of each of a design's modules' diagonals, metres: the circle round its box. */
@@ -1230,7 +1231,7 @@ export function keepsWith(ships: Ships, bodies: Bodies, lift: number, t: number,
 }
 
 /** How far out, in its own radii, a craft coming in to a spot it stops on lines up before it closes. */
-const LINE_UP_RADII = 8;
+export const LINE_UP_RADII = 8;
 /** How little drift across its line to the spot, m/s, a craft lining up waits for before it closes. */
 const LINE_UP_DRIFT = 0.3;
 

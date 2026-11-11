@@ -420,7 +420,13 @@ export function landOn(ships: Ships, dt: number, bodies: Bodies, i: number, b: n
                     : 0;
             const full = stoppingSpeed(approach.brake * spare, left, ships.pushDelay);
             const careful = stoppingSpeed(PLACING_BRAKE * approach.brake * spare, left + room, ships.pushDelay);
-            radial = min(approach.approachSpeed, full, careful);
+            // Slow enough by the time it is near to line up on the pad that it need hardly close at all.
+            const zone = shipFlight.LINE_UP_RADII * mine;
+            const lined =
+                left > zone
+                    ? stoppingSpeed(PLACING_BRAKE * approach.brake * spare, left - zone, ships.pushDelay, PAD_ARRIVAL_SPEED)
+                    : PAD_ARRIVAL_SPEED;
+            radial = min(approach.approachSpeed, full, careful, lined);
         }
         radial = shipFlight.lineUp(bodies, b, ux, uy, place.vx, place.vy, range, radial);
         vx += ux * radial;
