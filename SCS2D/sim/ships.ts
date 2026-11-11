@@ -753,6 +753,9 @@ export class Ships {
     /** What each ship's heaviest dodge this step is from, or -1; and how far off it wants that, centre to centre, m. */
     readonly dodgingFrom: number[] = [];
     readonly dodgingRoom: number[] = [];
+    /** Metal and fuel each ship's robots have brought in from rock and wreckage, kg, all battle: for the view, as income. */
+    readonly gatheredMetal: number[] = [];
+    readonly gatheredFuel: number[] = [];
     /** Where the middle of what it keeps clear of is, world frame, m: off its body's where only its deck can be hit. */
     /** How close the two would be touching, centre to centre of what each can hit, m. */
     readonly dodgingTouch: number[] = [];
@@ -1523,6 +1526,8 @@ export class Ships {
         this.handoff.push(0);
         this.dodgingFrom.push(-1);
         this.dodgingRoom.push(0);
+        this.gatheredMetal.push(0);
+        this.gatheredFuel.push(0);
         this.dodgingTouch.push(0);
         this.dodgingX.push(0);
         this.dodgingY.push(0);
