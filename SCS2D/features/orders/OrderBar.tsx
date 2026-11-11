@@ -61,7 +61,7 @@ const VERBS: readonly { readonly verb: Verb; readonly label: string; readonly ti
     {
         verb: "scavenge",
         label: "Scavenge",
-        title: "Fill its claw from the next ship or asteroid clicked, friend or foe (G)",
+        title: "Fill its claw from the next ship or asteroid clicked, friend or foe (G); right-click an asteroid or wreck for the same",
     },
     { verb: "deliver", label: "Deliver", title: "Give the next friend clicked all it can spare, through its port (U)" },
     {
