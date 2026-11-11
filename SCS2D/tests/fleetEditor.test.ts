@@ -128,8 +128,28 @@ describe("editing a fleet", () => {
         const fleet = addShip(emptyFleet("F"), DINKY, 0, 0);
         expect(moveEntries(fleet, [{ path: [0], dx: 5, dy: -5 }]).ships[0]).toMatchObject({ x: 5, y: -5 });
         const copied = duplicateEntries(fleet, [[0]], 0, 30);
-        expect(copied.fleet.ships[1]).toMatchObject({ x: 0, y: 30 });
+        // As the ship editor does a module: a group of one, placed twice.
+        expect(copied.fleet.ships).toEqual([
+            { group: "Dinky", x: 0, y: 0 },
+            { group: "Dinky", x: 0, y: 30 },
+        ]);
+        expect(copied.fleet.groups!["Dinky"]!.ships).toEqual([{ ...fleet.ships[0]!, x: 0, y: 0 }]);
         expect(copied.paths).toEqual([[1]]);
+        // Again, from either the use or the ship that is the whole of it: one more use, not a group in a group.
+        for (const path of [[1], [1, 0]]) {
+            const again = duplicateEntries(copied.fleet, [path], 0, 30);
+            expect(again.fleet.ships).toHaveLength(3);
+            expect(again.fleet.ships[2]).toEqual({ group: "Dinky", x: 0, y: 60 });
+            expect(Object.keys(again.fleet.groups!)).toEqual(["Dinky"]);
+        }
+        // A ship among others in a group becomes a group of one within it, for every use.
+        const group = LINE_OF_BATTLE.ships.findIndex((entry) => "group" in entry);
+        const members = LINE_OF_BATTLE.groups!["Fighter Pair"]!.ships;
+        const inner = duplicateEntries(LINE_OF_BATTLE, [[group, 0]], 0, 30);
+        expect(inner.paths).toEqual([[group, members.length]]);
+        const wrapped = inner.fleet.groups!["Fighter Pair"]!.ships;
+        expect(wrapped).toHaveLength(members.length + 1);
+        expect(wrapped[0]).toMatchObject({ group: (members[0] as { design: string }).design });
     });
 
     it("edits and deletes a member inside a group, for every use of the group", () => {

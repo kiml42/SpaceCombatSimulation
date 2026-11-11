@@ -95,21 +95,44 @@ export function moveEntries(fleet: Fleet, moves: readonly { path: EntryPath; dx:
     return next;
 }
 
-/** A copy of each entry beside it in its own list, offset in that list's frame. Returns the copies' paths too. */
+/**
+ * A copy of each entry beside it, offset in its list's frame, as the ship
+ * editor duplicates a module: a ship is made a group of one, and placed twice,
+ * so the two stay one design to edit. A group use is placed once more, and so
+ * is the use of a group a ship is the whole of, rather than nesting it again.
+ * Returns the copies' paths too.
+ */
 export function duplicateEntries(fleet: Fleet, paths: readonly EntryPath[], dx: number, dy: number): { fleet: Fleet; paths: EntryPath[] } {
     const next = cloneFleet(fleet);
     const out: EntryPath[] = [];
-    for (const path of paths) {
+    for (const asked of paths) {
+        const path = soleMemberOf(next, asked) ?? asked;
         const list = listOf(next, path);
-        const entry = entryAt(fleet, path);
+        const entry = entryAt(next, path);
         if (list === null || entry === null) continue;
-        const copy = JSON.parse(JSON.stringify(entry)) as FleetEntry;
+        let use: FleetEntry = entry;
+        if (!isGroupUse(entry)) {
+            const name = freeGroupName(next, entry.design);
+            (next.groups ??= {})[name] = { ships: [{ ...entry, x: 0, y: 0 }] };
+            use = { group: name, x: entry.x, y: entry.y };
+            list[path[path.length - 1]!] = use;
+        }
+        const copy = JSON.parse(JSON.stringify(use)) as FleetEntry;
         copy.x += dx;
         copy.y += dy;
         list.push(copy);
         out.push([...path.slice(0, -1), list.length - 1]);
     }
     return { fleet: next, paths: out };
+}
+
+/** The path of the group use whose group is only the entry at `path`, or null. */
+function soleMemberOf(fleet: Fleet, path: EntryPath): EntryPath | null {
+    if (path.length < 2) return null;
+    const parent = path.slice(0, -1);
+    const use = entryAt(fleet, parent);
+    if (use === null || !isGroupUse(use)) return null;
+    return fleet.groups?.[use.group]?.ships.length === 1 ? parent : null;
 }
 
 /** Remove entries, and any design nothing flies any more. */

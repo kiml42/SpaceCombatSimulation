@@ -778,7 +778,9 @@ inside any one file is not contiguous.
   and drags, turns, duplicates and repeats them in rows and arcs on the same snapping grid and through the
   same renderer as the ship editor, with undo throughout, a carrier drawn with the fighters it sets out with
   on their pads. A group is clicked as one thing and clicked again
-  to step into it, and a member moved there moves in every use of the group. Ships and groups selected in one
+  to step into it, and a member moved there moves in every use of the group. A ship duplicated is made a group
+  of one placed twice, as a module duplicated in the ship editor is, and a group use duplicated is placed once
+  more. Ships and groups selected in one
   list are made a group where they stand, a group use dissolved back into what it places — every copy,
   mirrored and turned as it was — and a group renamed in every use. A selected ship can be swapped
   for another design, from the fleet's own or the library, where it stands and facing the same way, as a

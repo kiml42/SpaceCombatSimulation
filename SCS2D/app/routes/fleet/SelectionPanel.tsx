@@ -318,6 +318,7 @@ export function SelectionPanel({ doc, scale, ships, library, designHref, onLeave
                 )}
                 <Button
                     id="duplicateEntry"
+                    title="Place another beside it: a ship becomes a group of one placed twice, so the two stay one to edit"
                     onClick={() => {
                         const result = duplicateEntries(doc.fleet, picked, 0, -snapStep(scale) * 20);
                         doc.apply(result.fleet);
