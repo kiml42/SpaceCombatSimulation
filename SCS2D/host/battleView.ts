@@ -210,12 +210,12 @@ interface Kept {
 }
 
 /** What a click on a ship can be armed to tell the selection. */
-export type Verb = "attack" | "defend" | "ram" | "dock" | "scavenge" | "deliver" | "flee";
+export type Verb = "attack" | "defend" | "waypoint" | "ram" | "dock" | "scavenge" | "deliver" | "flee";
 
 /** Verbs given to a friend rather than against an enemy. */
 const FRIENDLY: ReadonlySet<Verb> = new Set(["defend", "dock", "deliver"]);
 /** Verbs given to a ship of either side. */
-const EITHER: ReadonlySet<Verb> = new Set(["scavenge", "flee"]);
+const EITHER: ReadonlySet<Verb> = new Set(["waypoint", "scavenge", "flee"]);
 /** Verbs that can be given with no target, for doctrine to choose one. */
 export const ANYWHERE: ReadonlySet<Verb> = new Set(["dock", "scavenge", "deliver", "flee"]);
 
@@ -403,10 +403,9 @@ export function battleView(
                     armed = null;
                     return;
                 }
-                // An asteroid is mined, by those with a claw to hold it.
-                if (ship.rock !== undefined) order("scavenge", ship, queue, armedCancel);
-                else if (ship.team !== NEUTRAL_TEAM)
-                    order(ship.team === side ? "defend" : "attack", ship, queue, OrderCancelCondition.CompleteDisable);
+                // Anything on no side, and any wreck, is somewhere to go.
+                if (ship.team === NEUTRAL_TEAM || ship.isDerelict) order("waypoint", ship, queue, armedCancel);
+                else order(ship.team === side ? "defend" : "attack", ship, queue, OrderCancelCondition.CompleteDisable);
             },
             doubled(x, y, reach) {
                 if (!ordersAllowed) return;
@@ -427,7 +426,8 @@ export function battleView(
         const side = orderSide(snapshot);
         if (!ordersAllowed || side === null || target.ship === undefined) return;
         // On no side is only cover, and asteroids to mine.
-        if (target.team === NEUTRAL_TEAM && verb !== "flee" && !(verb === "scavenge" && target.rock !== undefined)) return;
+        if (target.team === NEUTRAL_TEAM && verb !== "flee" && verb !== "waypoint" && !(verb === "scavenge" && target.rock !== undefined))
+            return;
         // A friend is defended or docked with, and an enemy attacked or rammed.
         if (!EITHER.has(verb) && FRIENDLY.has(verb) !== (target.team === side)) return;
         // Only a ship with a claw scavenges: the rest keep what they were doing.
@@ -437,8 +437,8 @@ export function battleView(
         const given: Order =
             verb === "attack"
                 ? { kind: "attack", target: target.ship, cancelOn, ...held }
-                : verb === "defend"
-                  ? { kind: "defend", target: target.ship, ...held }
+                : verb === "defend" || verb === "waypoint"
+                  ? { kind: verb, target: target.ship, ...held }
                   : verb === "ram"
                     ? { kind: "ram", target: target.ship, ...speed }
                     : { kind: verb, target: target.ship };
