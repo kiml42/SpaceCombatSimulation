@@ -125,7 +125,8 @@ inside any one file is not contiguous.
   if refitted to it, draws dashed where they stood what it would take down, and says how many of each, and
   whether it could be refitted at all, or never finished for want of a robot bay (`refitPlan`, matched as
   `Ships.refit` matches). A panel in the
-  view's bottom left says what the view draws over the ship: the refit, shown or hidden, and which firing
+  view's bottom left says what the view draws over the ship: the refit, shown or hidden — hidden to begin
+  with — and which firing
   arcs, cycled as A cycles them.
   **Doctrine is edited there too, and is meant to be ignorable**: a section that stays shut, on a weapon for
   what it shoots at and on a core for what its ship does, saying while it is shut only whether this is the
@@ -1409,7 +1410,7 @@ inside any one file is not contiguous.
   to the fleet editor, which shows the budget, and back between tries. A ship of a fleet opens in the ship
   editor from the fleet editor's *Edit* and goes back to the fleet, skirmish and all. A round won, the
   player picks where the next is fought from three changes drawn from its seed (`skirmish/destinations.ts`:
-  further apart or closer, more asteroids or none, closing, crossing or from rest, a darker or brighter
+  further apart or closer, more asteroids (no more than two majors, which orbit truly, unless the setup asked for more) or none, closing, crossing or from rest, a darker or brighter
   light), kept in the skirmish's
   settings from then on; then the enemy evolves an answer in a worker (`evolution/answer.ts`), which deals each generation's matches out to a
   job worker a spare core, coming out the same as fought in one, watched as each generation's best fights the
