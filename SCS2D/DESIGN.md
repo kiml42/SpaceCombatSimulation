@@ -101,7 +101,9 @@ inside any one file is not contiguous.
   its origin, and one selected alone turned by a knob of its own about that origin, and an assembly is then
   placed again and reflected
   to build a symmetrical ship out of one side and a mirror of it — in one step with Mirror, which places the
-  reflection across the frame it sits in, and on a module makes it a shared part with a reflected copy — and clicked, dragged
+  reflection across the frame it sits in, and on a module makes it a shared part with a reflected copy, or with
+  *Mirror into* moves it into a side already placed plain and reflected at the origin, so a whole side stays
+  one part — and clicked, dragged
   and added to as one thing, carries a name of its own, and is placed in a row or round
   an arc by a count and a step rather than by placing it again and again;
   every problem with the layout is listed rather than enforced — including a module

@@ -837,6 +837,62 @@ export function mirrorPlacement(blueprint: Blueprint, origin: ModuleOrigin): { b
     return { blueprint: copy as unknown as Blueprint, path: into(siblingOf(origin.path, index), name) };
 }
 
+/** Whether an entry places a whole side: an assembly at the origin, unturned and unrepeated, reflected or not. */
+function isSideUse(entry: Placement, reflected: boolean): entry is AssemblyInstance {
+    return (
+        isInstance(entry) &&
+        entry.x === 0 &&
+        entry.y === 0 &&
+        (entry.angle ?? 0) === 0 &&
+        (entry.repeat ?? 1) === 1 &&
+        (entry.mirror === true) === reflected
+    );
+}
+
+/**
+ * The side parts a module could join instead of being mirrored on its own:
+ * assemblies placed both plain and reflected at the origin of the list it sits
+ * in, so each is one whole side of the ship and the other side is its
+ * reflection. In the order the list first places them.
+ */
+export function sideParts(blueprint: Blueprint, origin: ModuleOrigin): string[] {
+    const spec = placementAt(blueprint, origin.path);
+    if (spec === null || isInstance(spec)) return [];
+    const found = containing(blueprint as unknown as MutableBlueprint, origin.path);
+    if (found === null) return [];
+    const reflected = new Set(found.list.filter((entry) => isSideUse(entry, true)).map((entry) => (entry as AssemblyInstance).use));
+    const out: string[] = [];
+    for (const entry of found.list) {
+        if (isSideUse(entry, false) && reflected.has(entry.use) && !out.includes(entry.use)) out.push(entry.use);
+    }
+    return out;
+}
+
+/**
+ * Move a module into one of its `sideParts`, where it stood: one more part of
+ * that side, reflected onto the other with the rest of it, rather than a
+ * mirrored part of its own. The path returned is the module in the plain side.
+ */
+export function mirrorInto(blueprint: Blueprint, origin: ModuleOrigin, side: string): { blueprint: Blueprint; path: ModulePath } | null {
+    if (!sideParts(blueprint, origin).includes(side)) return null;
+    const copy = cloneBlueprint(blueprint) as unknown as MutableBlueprint;
+    const found = containing(copy, origin.path);
+    const assembly = copy.assemblies?.[side];
+    if (found === null || assembly === undefined) return null;
+    // The side is placed at the origin unturned, so its frame is the list's and the module keeps its place.
+    const [moved] = found.list.splice(found.index, 1);
+    assembly.modules.push(moved!);
+    const plain = found.list.findIndex((entry) => isSideUse(entry, false) && entry.use === side);
+    return {
+        blueprint: copy as unknown as Blueprint,
+        path: [
+            ...origin.path.slice(0, -1),
+            { index: plain, copy: 0, into: "assembly", assembly: side },
+            { index: assembly.modules.length - 1, copy: 0 },
+        ],
+    };
+}
+
 /** The one module of the assembly an instance path names. */
 function into(instance: ModulePath, assembly: string): ModulePath {
     const last = instance[instance.length - 1]!;

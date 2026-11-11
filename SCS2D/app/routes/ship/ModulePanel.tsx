@@ -1,6 +1,15 @@
 import { styled } from "@linaria/react";
 import { kindName } from "~/editor/doctrine";
-import { dockFighter, duplicatePlacement, instanceOf, mirrorPlacement, reshapePlacement, updatePlacement } from "~/editor/edit";
+import {
+    dockFighter,
+    duplicatePlacement,
+    instanceOf,
+    mirrorInto,
+    mirrorPlacement,
+    reshapePlacement,
+    sideParts,
+    updatePlacement,
+} from "~/editor/edit";
 import type { DesignInFleet } from "~/editor/handoff";
 import { byCategory, type Library } from "~/editor/library";
 import { selectedPosition } from "~/editor/shipCanvas";
@@ -666,6 +675,24 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                 >
                     Mirror
                 </Button>
+                {origin !== null && sideParts(doc.blueprint, origin).length > 0 && (
+                    <select
+                        id="propMirrorInto"
+                        aria-label="Mirror into a side"
+                        title="Move this module into a side placed at the centre and reflected, so it is mirrored with the rest of that side"
+                        value=""
+                        onChange={(event) => {
+                            if (event.target.value !== "") placeCopy(mirrorInto(doc.blueprint, origin, event.target.value));
+                        }}
+                    >
+                        <option value="">Mirror into…</option>
+                        {sideParts(doc.blueprint, origin).map((side) => (
+                            <option key={side} value={side}>
+                                {side}
+                            </option>
+                        ))}
+                    </select>
+                )}
                 <TakeOut id="propTakeOut" editing={editing} path={origin === null ? null : origin.path} what="module" />
                 <Button
                     id="propSelectAssembly"
