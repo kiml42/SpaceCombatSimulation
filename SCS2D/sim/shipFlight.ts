@@ -998,13 +998,15 @@ export function hold(
             const push = accelerationAlong(ships, bodies, i, b, ux, uy, facing);
             const retro = max(accelerationAlong(ships, bodies, i, b, -ux, -uy, facing), BRAKE_FLOOR * push);
             const accelerate = approach.accelerate * push;
-            const brake = approach.brake * retro;
+            const gap = sense > 0 ? range - middle : near - range;
+            // Braking against the strongest pull on the way, but on a tenth of what it has at least.
+            const against = pullOnWay(ships, bodies.x[b]!, bodies.y[b]!, ux, uy, gap);
+            const brake = approach.brake * max(retro - against, BRAKE_FLOOR * retro);
 
             // The fastest it can be making and still stop in the gap, allowing for
             // the pilot taking its response time to answer. Braking itself is
             // never capped: `brake` is what the curve plans on, and a craft that
             // has fallen behind it spends whatever it has.
-            const gap = sense > 0 ? range - middle : near - range;
             const response = approach.responseTime;
             let stopping = stoppingSpeed(brake, gap, response);
             // A craft that turns to burn brakes on its mains, once it has turned,
@@ -1012,7 +1014,7 @@ export function hold(
             // otherwise.
             if (fighting) {
                 const onRetros = stopping;
-                const mains = mainsBrake(ships, bodies, i, b, retro);
+                const mains = max(0, mainsBrake(ships, bodies, i, b, retro) - approach.brake * against);
                 // Turned away and back again: it fights facing the other way. Only
                 // when that gets it there sooner, turns and all, since on a short run
                 // in a flip costs more than it saves; and coming in, only when its
@@ -1203,6 +1205,48 @@ export function pullAt(ships: Ships, x: number, y: number): void {
         PULL.x += (well.x - x) * pull;
         PULL.y += (well.y - y) * pull;
     }
+}
+
+/**
+ * Whether a craft that can push `lift` m/s² against the wells (`pushAbility`)
+ * could keep at (`x`, `y`) with ship `t`, if `t` is moored or parked: the pull
+ * there less what it is held to falls by, which a rock at a well's middle does
+ * not. Something flying free is kept with by passing it or orbiting with it, not
+ * by holding against the pull. Doctrine sends nothing where it could not climb
+ * back out but a ram, which passes an infinite `lift`; one with no push goes
+ * nowhere it could be sent from.
+ */
+export function keepsWith(ships: Ships, bodies: Bodies, lift: number, t: number, x: number, y: number): boolean {
+    if (lift === Infinity || !(lift > 0)) return true;
+    let held = t;
+    for (let k = 0; k < 4 && ships.parkedOn[held]! >= 0 && ships.alive[ships.parkedOn[held]!] === 1; k++) held = ships.parkedOn[held]!;
+    const hb = held === t ? -1 : bodies.indexOf(ships.bodyIds[held]!);
+    if (hb < 0) return true;
+    pullAt(ships, bodies.x[hb]!, bodies.y[hb]!);
+    const fallX = PULL.x;
+    const fallY = PULL.y;
+    pullAt(ships, x, y);
+    return length(PULL.x - fallX, PULL.y - fallY) <= lift;
+}
+
+/** How many points along the way to a stop `pullOnWay` reads the pull at. */
+const PULL_SAMPLES = 6;
+
+/**
+ * The strongest pull of the wells, m/s², anywhere on the way from (`x`, `y`)
+ * `gap` metres along (`ux`, `uy`): what a craft planning to stop there must
+ * hold off as well as stop, wherever on the way it is braking, rather than
+ * the pull where it is now, which far up a well is a fraction of the pull at
+ * the bottom.
+ */
+export function pullOnWay(ships: Ships, x: number, y: number, ux: number, uy: number, gap: number): number {
+    let most = 0;
+    for (let k = 0; k <= PULL_SAMPLES; k++) {
+        const along = (gap * k) / PULL_SAMPLES;
+        pullAt(ships, x + ux * along, y + uy * along);
+        most = max(most, length(PULL.x, PULL.y));
+    }
+    return most;
 }
 
 /** How hard this craft can accelerate along a world direction facing `angle`, m/s². */
@@ -1417,7 +1461,8 @@ export function hide(ships: Ships, bodies: Bodies, i: number, b: number, cb: num
         const ux = dx / gap;
         const uy = dy / gap;
         const push = accelerationAlong(ships, bodies, i, b, ux, uy, bodies.angle[b]!);
-        const brake = approach.brake * max(accelerationAlong(ships, bodies, i, b, -ux, -uy, bodies.angle[b]!), BRAKE_FLOOR * push);
+        const retro = max(accelerationAlong(ships, bodies, i, b, -ux, -uy, bodies.angle[b]!), BRAKE_FLOOR * push);
+        const brake = approach.brake * max(retro - pullOnWay(ships, bodies.x[b]!, bodies.y[b]!, ux, uy, gap), BRAKE_FLOOR * retro);
         const speed = min(approach.approachSpeed, stoppingSpeed(brake, gap, approach.responseTime));
         wx += ux * speed;
         wy += uy * speed;

@@ -2,8 +2,8 @@
 
 exports[`Rock Landing > Raider,  one way, spins [1, 4, 10] 1`] = `
 {
-  "bumps": 5,
-  "crashes": 19,
+  "bumps": 0,
+  "crashes": 0,
   "landed": [
     "not by 150 s",
     "not by 150 s",
@@ -12,15 +12,15 @@ exports[`Rock Landing > Raider,  one way, spins [1, 4, 10] 1`] = `
     "not by 150 s",
     "not by 150 s",
     "not by 150 s",
-    "133.53 s",
+    "not by 150 s",
   ],
 }
 `;
 
 exports[`Rock Landing > Raider,  one way, spins [4, 7, 10] 1`] = `
 {
-  "bumps": 8,
-  "crashes": 11,
+  "bumps": 0,
+  "crashes": 0,
   "landed": [
     "not by 150 s",
     "not by 150 s",
@@ -36,14 +36,14 @@ exports[`Rock Landing > Raider,  one way, spins [4, 7, 10] 1`] = `
 
 exports[`Rock Landing > Raider, no main [2, 4] 1`] = `
 {
-  "bumps": 6,
-  "crashes": 23,
+  "bumps": 3,
+  "crashes": 7,
   "landed": [
     "not by 150 s",
-    "not by 150 s",
-    "not by 150 s",
-    "not by 150 s",
-    "not by 150 s",
+    "83.35 s",
+    "127.22 s",
+    "78.70 s",
+    "137.90 s",
     "not by 150 s",
     "not by 150 s",
     "not by 150 s",
@@ -53,17 +53,17 @@ exports[`Rock Landing > Raider, no main [2, 4] 1`] = `
 
 exports[`Rock Landing > Raider, no main [4] 1`] = `
 {
-  "bumps": 3,
-  "crashes": 9,
+  "bumps": 0,
+  "crashes": 0,
   "landed": [
-    "not by 150 s",
-    "106.53 s",
-    "78.83 s",
-    "not by 150 s",
-    "82.05 s",
-    "74.75 s",
-    "80.85 s",
-    "not by 150 s",
+    "68.38 s",
+    "63.45 s",
+    "66.48 s",
+    "65.97 s",
+    "68.30 s",
+    "66.62 s",
+    "68.95 s",
+    "66.27 s",
   ],
 }
 `;
@@ -71,33 +71,33 @@ exports[`Rock Landing > Raider, no main [4] 1`] = `
 exports[`Rock Landing > Raider, one turn far weaker [1, 8] 1`] = `
 {
   "bumps": 0,
-  "crashes": 9,
+  "crashes": 0,
   "landed": [
-    "57.90 s",
-    "58.08 s",
-    "55.28 s",
-    "57.82 s",
-    "57.28 s",
-    "53.03 s",
-    "51.77 s",
-    "99.22 s",
+    "58.00 s",
+    "59.03 s",
+    "58.58 s",
+    "61.87 s",
+    "58.70 s",
+    "63.33 s",
+    "58.78 s",
+    "62.43 s",
   ],
 }
 `;
 
 exports[`Rock Landing > Raider, one turn far weaker [3, 7] 1`] = `
 {
-  "bumps": 1,
-  "crashes": 11,
+  "bumps": 0,
+  "crashes": 0,
   "landed": [
-    "47.53 s",
-    "not by 150 s",
-    "54.20 s",
-    "not by 150 s",
-    "56.05 s",
-    "not by 150 s",
-    "45.20 s",
-    "not by 150 s",
+    "59.72 s",
+    "54.22 s",
+    "57.28 s",
+    "56.28 s",
+    "59.07 s",
+    "58.12 s",
+    "58.32 s",
+    "57.52 s",
   ],
 }
 `;
@@ -141,14 +141,14 @@ exports[`Rock Landing > Raider, undamaged 1`] = `
   "bumps": 0,
   "crashes": 0,
   "landed": [
-    "27.60 s",
-    "38.52 s",
-    "27.55 s",
-    "38.32 s",
-    "27.70 s",
-    "38.30 s",
-    "27.82 s",
-    "39.07 s",
+    "30.55 s",
+    "29.50 s",
+    "30.40 s",
+    "29.93 s",
+    "30.42 s",
+    "30.13 s",
+    "30.78 s",
+    "30.12 s",
   ],
 }
 `;
