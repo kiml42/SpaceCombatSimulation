@@ -3486,6 +3486,7 @@ function drawRing(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: numbe
 const ORDER_COLOURS = {
     attack: "#ff7a6b",
     defend: "#6fb6ff",
+    waypoint: "#8f8f8f",
     ram: "#ffb347",
     dock: "#7ee07a",
     scavenge: "#d7a6ff",
