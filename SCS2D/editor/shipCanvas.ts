@@ -100,7 +100,7 @@ export interface ShipCanvas {
     readonly camera: Camera;
     /** The firing arcs drawn. The editor is where a mount's arcs are decided, so it starts showing them all. */
     readonly arcs: Arcs;
-    /** Whether a refit's built and taken-down modules are marked. */
+    /** Whether a refit's built and taken-down modules are marked: at first, only on a ship with a robot bay. */
     readonly showRefit: boolean;
     /**
      * The grid an edit snaps to, metres: a tenth of the grid on screen, so it
@@ -116,7 +116,10 @@ export interface ShipCanvas {
     changed(): void;
     /** Frame the ship at once, at the next draw. */
     fit(): void;
-    /** Another ship opened: ease from this one's scale to its, so switching shows which is bigger. */
+    /**
+     * Another ship opened: ease from this one's scale to its, so switching shows which is bigger, and show
+     * its refit or not as `showRefit` starts.
+     */
     easeToNext(): void;
     cycleArcs(): void;
     toggleRefit(): void;
@@ -230,7 +233,9 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
     const demonstration = new Demonstration();
     let fitPending = true;
     let arcs: Arcs = "trigger";
-    let showRefit = true;
+    /** Whether the refit is worth showing on the ship as opened: only if it has a robot bay, without which no refit finishes. */
+    const refitUseful = (): boolean => doc.view.modules.some((module) => module.kind === "robotBay");
+    let showRefit = refitUseful();
     let easeFit = false;
     /** Wall time of the last animated frame, or 0 when nothing is animating. */
     let lastFrame = 0;
@@ -818,6 +823,7 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
         easeToNext: () => {
             demonstration.reset();
             easeFit = true;
+            showRefit = refitUseful();
         },
         cycleArcs,
         toggleRefit: () => {
