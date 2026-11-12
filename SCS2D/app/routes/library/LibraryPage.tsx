@@ -8,7 +8,7 @@ import { shipFleet, type Blueprint, type Fleet } from "~/sim/index";
 import { Button } from "~/ui/buttons/Button";
 import { EditButton } from "~/ui/buttons/EditButton";
 import { fromLibrary, optionValue } from "../fleet/fleetOptions";
-import { PauseMenu } from "~/features/menu/PauseMenu";
+import { BackToMenu } from "~/features/menu/BackToMenu";
 
 const Main = styled.main`
     display: grid;
@@ -118,7 +118,7 @@ export function LibraryPage() {
     return (
         <Main>
             <div style={{ gridColumn: "1 / -1" }}>
-                <PauseMenu title="Library" />
+                <BackToMenu />
             </div>
             <Entries title="Ships" entries={ships.list()} edit={openShipRoute} fleet={shipAsFleet(ships)} />
             <Entries title="Fleets" entries={fleets.list()} edit={openFleetRoute} fleet={(entry) => fromLibrary(fleets, entry)} />

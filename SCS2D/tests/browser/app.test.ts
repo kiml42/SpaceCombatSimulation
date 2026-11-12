@@ -157,8 +157,8 @@ it("runs a battle on its route, and lets go of it on leaving", async () => {
     expect(await page.evaluate(() => Reflect.get(window, "framesAsked"))).toBe(before);
     expect(await page.getByRole("toolbar").count()).toBe(0);
 
+    // The library's menu button goes straight back.
     await page.getByRole("button", { name: "Menu" }).click();
-    await page.getByRole("button", { name: "Main menu" }).click();
     await page.locator('a[href="#/battle"]').click();
     expect(await page.getByRole("combobox", { name: "speed" }).inputValue()).toBe("4");
     await page.evaluate(() => localStorage.removeItem("scs2d.view.viewer"));
