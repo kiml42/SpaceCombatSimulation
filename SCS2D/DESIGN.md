@@ -1442,7 +1442,9 @@ inside any one file is not contiguous.
   a skirmish starts: the round's quiet time, time cap, gap and starting speeds, the answer's mutants,
   matches, match length, growth and the margin it must win by, and the ship, fleet and doctrine mutation odds the enemy is bred with,
   remembered for the next skirmish, kept with this one so it is played out under those it started with,
-  and put back with *Reset to defaults*, which the evolution page has too. The mutation fields are written
+  and put back with *Reset to defaults*, which the evolution page has too. The screen leads with the name and two presets, one for the
+  enemy and the most ships a side, one for the battlefield (open space, an asteroid field, a small universe, a radiation field of fast
+  mutation and wide draws), with everything else under *Advanced config*. The mutation fields are written
   once (`evolution/mutationFields.ts`) and both pages draw them. *Export* saves the setup, the skirmish under way and its whole
   history as one `.skirmish.json`, to look into a run or ask about one, and *Import* reads one back in place of
   all three, asking first if a skirmish is under way. A skirmish can be named, on the setup screen or above
