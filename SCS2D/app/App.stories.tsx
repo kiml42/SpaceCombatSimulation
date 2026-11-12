@@ -61,12 +61,7 @@ export const StartContinuing: Story = {
         await expect(canvas.getByRole("link", { name: /^Continue: Iron Tide/ })).toBeVisible();
         await userEvent.click(canvas.getByRole("button", { name: "New skirmish" }));
         await userEvent.click(within(await canvas.findByRole("dialog")).getByRole("button", { name: "Start new" }));
-        await userEvent.click(await canvas.findByText("Advanced config"));
-        await expect(canvas.getByRole("combobox", { name: "Enemy" })).toBeVisible();
-        // On past the setup screen, as the Skirmish story is.
-        await userEvent.selectOptions(canvas.getByRole("combobox", { name: "Your fleet" }), "ship:Gunship");
-        await userEvent.click(canvas.getByRole("button", { name: "Start" }));
-        await expect(canvas.getByRole("heading", { name: "Round 1" })).toBeVisible();
+        await expect(await canvas.findByRole("heading", { name: "New skirmish" })).toBeVisible();
     },
 };
 
@@ -165,13 +160,12 @@ export const Ship: Story = {
 export const Skirmish: Story = {
     args: { path: "/skirmish" },
     play: async ({ canvas }) => {
-        await expect(canvas.getByRole("combobox", { name: "Enemy" })).not.toBeVisible();
-        await userEvent.click(canvas.getByText("Advanced config"));
-        await expect(canvas.getByRole("combobox", { name: "Enemy" })).toBeVisible();
-        await waitFor(() => expect(canvas.getByRole("row", { name: /^metal/ })).toBeVisible());
-        await userEvent.selectOptions(canvas.getByRole("combobox", { name: "Your fleet" }), "ship:Gunship");
-        await userEvent.click(canvas.getByRole("button", { name: "Start" }));
-        await expect(canvas.getByRole("heading", { name: "Round 1" })).toBeVisible();
+        await expect(canvas.getByRole("combobox", { name: "Enemy fleet" })).not.toBeVisible();
+        await expect(canvas.getByRole("combobox", { name: "Enemy" })).toHaveDisplayValue(/./);
+        await waitFor(() => expect(canvas.getByText(/^Next, build your fleet/)).toHaveTextContent("within a budget of"));
+        // A fleet is built next, in the fleet editor.
+        await userEvent.click(canvas.getByRole("button", { name: "Start: build your fleet" }));
+        await expect(await canvas.findByRole("combobox", { name: "Fleet" })).toBeVisible();
     },
 };
 

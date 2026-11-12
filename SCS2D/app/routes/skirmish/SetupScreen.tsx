@@ -11,14 +11,28 @@ import { Button } from "~/ui/buttons/Button";
 import { Figures } from "../ship/ShipReport";
 import { readSettings, SETTINGS_KEY, SETUP_FIELDS, settingsTexts } from "./skirmishFields";
 import { EMPTY, FleetChoices } from "./FleetChoices";
-import { BATTLEFIELD_PRESETS, ENEMY_PRESETS, withBattlefield, withEnemyPreset } from "./skirmishPresets";
+import {
+    BATTLEFIELD_PRESETS,
+    ENEMY_PRESETS,
+    withBattlefield,
+    withEnemyPreset,
+    type BattlefieldPreset,
+    type EnemyPreset,
+} from "./skirmishPresets";
 
 const Screen = styled.section`
     flex: 1.4;
     min-width: 0;
-    padding: 0.7rem 0.9rem 2rem;
+    padding: 1rem 1.2rem 2rem;
     overflow-y: auto;
     border-right: 1px solid var(--colour-border);
+
+    h1 {
+        margin: 0;
+        color: var(--colour-heading);
+        font-size: 1.3rem;
+        font-weight: 600;
+    }
 
     h2 {
         display: inline-block;
@@ -32,21 +46,42 @@ const Screen = styled.section`
 
     select {
         width: 100%;
-        margin-bottom: 0.3rem;
     }
 
     summary {
         cursor: pointer;
     }
 
-    p {
+    /* No more specific than a class, so the styled paragraphs below set their own margins. */
+    :where(p) {
         margin: 0.3rem 0 0;
-        color: var(--colour-faint);
+        color: var(--colour-muted);
     }
 
     @media (width <= 800px) {
         border-right: none;
         border-bottom: 1px solid var(--colour-border);
+    }
+`;
+
+const Intro = styled.p`
+    margin: 0.4rem 0 1.2rem;
+`;
+
+/** A section of the setup that opens to show more, set apart from the rest. */
+const Section = styled.details`
+    margin-top: 1rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--colour-border);
+
+    > summary h2 {
+        margin: 0;
+        color: var(--colour-heading);
+        font-weight: 600;
+    }
+
+    > p:first-of-type {
+        margin-bottom: 0.6rem;
     }
 `;
 
@@ -79,6 +114,36 @@ const Field = styled.label`
     align-items: center;
     margin-bottom: 0.25rem;
     color: var(--colour-muted);
+`;
+
+/** What a choice above it means, under its box. */
+const Hint = styled.p`
+    margin: 0 0 0.7rem 7.8rem;
+    font-size: var(--font-size-small);
+`;
+
+const Start = styled.div`
+    margin: 1.2rem 0 0.4rem;
+
+    > button {
+        width: 100%;
+        padding: 0.5rem;
+        font-size: 1rem;
+    }
+
+    > p {
+        margin-top: 0.4rem;
+    }
+`;
+
+/** A way in for those who have a skirmish file, out of the way of those who do not. */
+const Quiet = styled.button`
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--colour-link);
+    text-decoration: underline;
+    cursor: pointer;
 `;
 
 /** The budget boxes in tonnes and hours, as a big fleet's bill reads. */
@@ -118,17 +183,48 @@ export interface SetupScreenProps {
     readonly onImport: () => void;
 }
 
-/** Choose an enemy, a budget, the settings and a fleet to start from, and start a skirmish. */
+/** The enemy preset these settings and this enemy are, or undefined: custom. */
+function enemyPresetOf(enemy: string, settings: SkirmishSettings): EnemyPreset | undefined {
+    return ENEMY_PRESETS.find((preset) => preset.enemy === enemy && preset.maxShips === settings.maxShips);
+}
+
+/** The battlefield preset these settings are, or undefined: custom. */
+function battlefieldOf(settings: SkirmishSettings): BattlefieldPreset | undefined {
+    const now = JSON.stringify(settingsTexts(settings));
+    return BATTLEFIELD_PRESETS.find((preset) => JSON.stringify(settingsTexts(withBattlefield(settings, preset))) === now);
+}
+
+/** A fleet's name, from its value in the list of fleets: "fleet:Line of Battle" is Line of Battle. */
+const nameOf = (value: string): string => value.slice(value.indexOf(":") + 1);
+
+/** What a skirmish set up so is called until the player names it: "Small ships in an asteroid field". */
+function suggestedName(enemy: string, settings: SkirmishSettings): string {
+    const against = enemyPresetOf(enemy, settings)?.name ?? nameOf(enemy);
+    return `${against} in ${battlefieldOf(settings)?.place ?? "a battlefield of your own"}`;
+}
+
+/** The settings kept from the last skirmish set up, against the enemy they suit; on a first visit, the first presets. */
+function opening(storage: Pick<Storage, "getItem">): { enemy: string; settings: SkirmishSettings } {
+    const first = ENEMY_PRESETS[0]!;
+    let stored: string | null = null;
+    try {
+        stored = storage.getItem(SETTINGS_KEY);
+    } catch {
+        // Unreadable: a first visit.
+    }
+    if (stored === null) return { enemy: first.enemy, settings: withEnemyPreset(DEFAULT_SKIRMISH_SETTINGS, first) };
+    const kept = keptSettings(storage);
+    return { enemy: (ENEMY_PRESETS.find((preset) => preset.maxShips === kept.maxShips) ?? first).enemy, settings: kept };
+}
+
+/** Choose an enemy, a battlefield and a budget, and start a skirmish, whose fleet is built next in the fleet editor. */
 export function SetupScreen({ onEnemy, enemyCost, read, onStart, onImport }: SetupScreenProps) {
     const storage = useStorage();
     const { ships, fleets } = useLibrary();
-    const [texts, setTexts] = useState(() => settingsTexts(keptSettings(storage)));
-    const firstEnemy = `fleet:${fleets.list()[0]?.name ?? ""}`;
-    const [enemy, setEnemy] = useState(firstEnemy);
-    const [player, setPlayer] = useState(EMPTY);
+    const [start] = useState(() => opening(storage));
+    const [texts, setTexts] = useState(() => settingsTexts(start.settings));
+    const [enemy, setEnemy] = useState(start.enemy);
     const [name, setName] = useState("");
-    const [enemyPreset, setEnemyPreset] = useState("");
-    const [battlefield, setBattlefield] = useState("");
     // Each box's text, and what was put in it from the enemy's cost: a box still showing that follows the enemy.
     const [budget, setBudget] = useState<Record<keyof Budget, string>>({ metal: "", fuel: "", build: "" });
     const [followed, setFollowed] = useState<Record<keyof Budget, string>>({ metal: "", fuel: "", build: "" });
@@ -150,6 +246,11 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart, onImport }: Set
         setBudget(nextBudget);
         setFollowed(nextFollowed);
     }
+
+    const settings = readSettings(texts);
+    const enemyPreset = enemyPresetOf(enemy, settings);
+    const battlefield = battlefieldOf(settings);
+    const suggested = suggestedName(enemy, settings);
 
     const keep = (next: Record<string, string>): void => {
         setTexts(next);
@@ -174,6 +275,7 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart, onImport }: Set
         }
         return out;
     };
+    const shownBudget = enemyCost === null ? null : readBudget(enemyCost);
 
     const card = (key: string, title: string, groups: readonly string[], note: string, open = true) => (
         <details open={open} data-key={key}>
@@ -186,10 +288,7 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart, onImport }: Set
                     fields={SETUP_FIELDS}
                     group={group}
                     values={texts}
-                    onChange={(name, text) => {
-                        keep({ ...texts, [name]: text });
-                        setBattlefield("");
-                    }}
+                    onChange={(field, text) => keep({ ...texts, [field]: text })}
                 />
             ))}
             <p>{note}</p>
@@ -198,165 +297,164 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart, onImport }: Set
 
     return (
         <Screen id="setupScreen">
-            <h2>New skirmish</h2>
-            <p>Pick an enemy and a battlefield, then build a fleet within the budget that beats it.</p>
-            <Field title="What the skirmish is called, which its exported files are named for">
-                name
-                <input
-                    id="skirmishNameNew"
-                    type="text"
-                    placeholder="skirmish"
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                />
-            </Field>
-            <Field title="The enemy to begin against, and the most ships a side; the budget follows its cost">
-                enemy
+            <h1>New skirmish</h1>
+            <Intro>
+                Pick an enemy and a battlefield, then build a fleet within the budget that beats it. Win, and the enemy evolves to beat you
+                back.
+            </Intro>
+            <Field>
+                Enemy
                 <select
                     id="enemyPreset"
-                    value={enemyPreset}
+                    value={enemyPreset?.name ?? ""}
                     onChange={(event) => {
                         const preset = ENEMY_PRESETS.find((p) => p.name === event.target.value);
-                        setEnemyPreset(event.target.value);
                         if (preset === undefined) return;
                         setEnemy(preset.enemy);
                         onEnemy(read(preset.enemy));
-                        keep(settingsTexts(withEnemyPreset(readSettings(texts), preset)));
+                        keep(settingsTexts(withEnemyPreset(settings, preset)));
                         // Blank boxes follow the enemy's cost as it comes in.
                         setBudget({ metal: "", fuel: "", build: "" });
                         setFollowed({ metal: "", fuel: "", build: "" });
                     }}
                 >
-                    <option value="">Custom</option>
+                    {enemyPreset === undefined && <option value="">Custom</option>}
                     {ENEMY_PRESETS.map((preset) => (
-                        <option key={preset.name} value={preset.name} title={preset.hint}>
+                        <option key={preset.name} value={preset.name}>
                             {preset.name}
                         </option>
                     ))}
                 </select>
             </Field>
-            <Field title="Where and how the rounds are fought, and how the enemy is bred: every other setting back to its default">
-                battlefield
+            <Hint id="enemyHint">
+                {enemyPreset?.hint ??
+                    `Against ${nameOf(enemy)}, ${settings.maxShips} ship${settings.maxShips === 1 ? "" : "s"} a side at most`}
+            </Hint>
+            <Field>
+                Battlefield
                 <select
                     id="battlefieldPreset"
-                    value={battlefield}
+                    value={battlefield?.name ?? ""}
                     onChange={(event) => {
                         const preset = BATTLEFIELD_PRESETS.find((p) => p.name === event.target.value);
-                        setBattlefield(event.target.value);
-                        if (preset !== undefined) keep(settingsTexts(withBattlefield(readSettings(texts), preset)));
+                        if (preset !== undefined) keep(settingsTexts(withBattlefield(settings, preset)));
                     }}
                 >
-                    <option value="">Custom</option>
+                    {battlefield === undefined && <option value="">Custom</option>}
                     {BATTLEFIELD_PRESETS.map((preset) => (
-                        <option key={preset.name} value={preset.name} title={preset.hint}>
+                        <option key={preset.name} value={preset.name}>
                             {preset.name}
                         </option>
                     ))}
                 </select>
             </Field>
-            <Buttons>
-                <Button id="start" variant="primary" onClick={() => onStart(enemy, player, readSettings(texts), readBudget, name)}>
-                    Start
-                </Button>
+            <Hint id="battlefieldHint">{battlefield?.hint ?? "Your own settings, under Evolution settings below"}</Hint>
+            <Field title="What the skirmish is called, which its exported files are named for">
+                Name
+                <input
+                    id="skirmishNameNew"
+                    type="text"
+                    placeholder={suggested}
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                />
+            </Field>
+            <Start>
                 <Button
-                    id="resetSettings"
-                    title="Put every setting back to its default, and the budget to what the enemy cost; the enemy and your fleet stay as chosen"
-                    onClick={() => {
-                        keep(settingsTexts(DEFAULT_SKIRMISH_SETTINGS));
-                        matchEnemy();
-                        setEnemyPreset("");
-                        setBattlefield("");
-                    }}
+                    id="start"
+                    variant="primary"
+                    onClick={() => onStart(enemy, EMPTY, settings, readBudget, name.trim() === "" ? suggested : name)}
                 >
-                    Reset to defaults
+                    Start: build your fleet
                 </Button>
-            </Buttons>
-            <Buttons>
-                <Button
+                <p id="startNote">
+                    Next, build your fleet in the fleet editor
+                    {shownBudget === null
+                        ? "."
+                        : ` within a budget of ${kg(shownBudget.metal)} metal, ${kg(shownBudget.fuel)} fuel and ${buildTime(shownBudget.build)} of building.`}{" "}
+                    The enemy, {nameOf(enemy)}, is shown on the right.
+                </p>
+            </Start>
+            <p>
+                <Quiet
                     id="importSkirmish"
-                    title="Load a skirmish file: its settings, and the skirmish and matches it holds, in place of these"
+                    type="button"
                     onClick={onImport}
+                    title="Load a skirmish file: its settings, and the skirmish and matches it holds"
                 >
-                    Import
-                </Button>
-            </Buttons>
-            <p>The settings are kept with the skirmish, so one already going is played out under those it started with.</p>
-            <details id="advanced" data-key="advanced">
+                    Load a saved skirmish…
+                </Quiet>
+            </p>
+            <Section id="advanced" data-key="customise">
                 <summary>
-                    <h2>Advanced config</h2>
+                    <h2>Customise</h2>
                 </summary>
+                <p>Any enemy from your library, and a budget of your own.</p>
+                <h2>Enemy fleet</h2>
+                <FleetChoices
+                    id="enemy"
+                    label="Enemy fleet"
+                    ships={ships}
+                    fleets={fleets}
+                    value={enemy}
+                    onChange={(value) => {
+                        setEnemy(value);
+                        onEnemy(read(value));
+                    }}
+                />
+                <Figures id="enemyBill">
+                    {enemyCost !== null && (
+                        <tbody>
+                            <tr>
+                                <th>metal</th>
+                                <td>{kg(enemyCost.metal)}</td>
+                            </tr>
+                            <tr>
+                                <th>fuel</th>
+                                <td>{kg(enemyCost.fuel)}</td>
+                            </tr>
+                            <tr>
+                                <th>build</th>
+                                <td>{buildTime(enemyCost.build)}</td>
+                            </tr>
+                        </tbody>
+                    )}
+                </Figures>
+                <h2>Your budget</h2>
+                {BUDGET_ROWS.map(({ key, label, title }) => (
+                    <Field key={key} title={title}>
+                        {label}
+                        <input
+                            id={`${key}Budget`}
+                            type="number"
+                            min={0}
+                            step="any"
+                            value={budget[key]}
+                            onChange={(event) => setBudget({ ...budget, [key]: event.target.value })}
+                        />
+                    </Field>
+                ))}
+                <Buttons>
+                    <Button id="matchEnemy" title="Set the budget to what the enemy cost" onClick={matchEnemy}>
+                        Match the enemy
+                    </Button>
+                </Buttons>
+                <SettingFields
+                    fields={SETUP_FIELDS}
+                    group="limits"
+                    values={texts}
+                    onChange={(field, text) => keep({ ...texts, [field]: text })}
+                />
+            </Section>
+            <Section id="evolutionSettings" data-key="evolution">
+                <summary>
+                    <h2>Evolution settings</h2>
+                </summary>
+                <p>
+                    How the rounds are fought and how the enemy is bred, which the battlefield sets. They are kept with the skirmish, so one
+                    already going is played out under those it started with.
+                </p>
                 <Cards>
-                    <div>
-                        <h2>Enemy</h2>
-                        <FleetChoices
-                            id="enemy"
-                            label="Enemy"
-                            ships={ships}
-                            fleets={fleets}
-                            value={enemy}
-                            onChange={(value) => {
-                                setEnemy(value);
-                                setEnemyPreset("");
-                                onEnemy(read(value));
-                            }}
-                        />
-                        <Figures id="enemyBill">
-                            {enemyCost !== null && (
-                                <tbody>
-                                    <tr>
-                                        <th>metal</th>
-                                        <td>{kg(enemyCost.metal)}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>fuel</th>
-                                        <td>{kg(enemyCost.fuel)}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>build</th>
-                                        <td>{buildTime(enemyCost.build)}</td>
-                                    </tr>
-                                </tbody>
-                            )}
-                        </Figures>
-                        <h2>Your budget</h2>
-                        {BUDGET_ROWS.map(({ key, label, title }) => (
-                            <Field key={key} title={title}>
-                                {label}
-                                <input
-                                    id={`${key}Budget`}
-                                    type="number"
-                                    min={0}
-                                    step="any"
-                                    value={budget[key]}
-                                    onChange={(event) => setBudget({ ...budget, [key]: event.target.value })}
-                                />
-                            </Field>
-                        ))}
-                        <Buttons>
-                            <Button id="matchEnemy" title="Set the budget to what the enemy cost" onClick={matchEnemy}>
-                                Match the enemy
-                            </Button>
-                        </Buttons>
-                        <SettingFields
-                            fields={SETUP_FIELDS}
-                            group="limits"
-                            values={texts}
-                            onChange={(name, text) => {
-                                keep({ ...texts, [name]: text });
-                                setEnemyPreset("");
-                            }}
-                        />
-                        <h2>Your fleet</h2>
-                        <FleetChoices
-                            id="startFleet"
-                            label="Your fleet"
-                            ships={ships}
-                            fleets={fleets}
-                            value={player}
-                            onChange={setPlayer}
-                            empty
-                        />
-                    </div>
                     {card(
                         "round",
                         "The round",
@@ -395,7 +493,7 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart, onImport }: Set
                         "How often each part of a ship's doctrine changes, against a number in its build at 1.",
                     )}
                 </Cards>
-            </details>
+            </Section>
         </Screen>
     );
 }

@@ -12,7 +12,7 @@ import { launchChromium } from "./launch.js";
 import { shipFleet, type Blueprint } from "../../sim/index.js";
 import { BARE_CORE, CORVETTE, GUNSHIP } from "../../scenarios/blueprints.js";
 import { HISTORY_STORAGE_KEY } from "../../scenarios/history.js";
-import { DEFAULT_SKIRMISH_SETTINGS, newSkirmish, won, type Skirmish } from "../../scenarios/skirmish.js";
+import { DEFAULT_SKIRMISH_SETTINGS, newSkirmish, parseSkirmish, won, type Skirmish } from "../../scenarios/skirmish.js";
 import { DEFAULT_KINDS } from "../../evolution/mutate.js";
 import { designRoute, fleetRoute, skirmishRoute } from "../../editor/handoff.js";
 
@@ -61,9 +61,20 @@ afterAll(async () => {
     await browser?.close();
 });
 
-/** Open the setup screen's advanced config, where the enemy, the budget and the settings are. */
+/** Open the setup screen's Customise and Evolution settings, where the enemy, the budget and the settings are. */
 async function advanced(): Promise<void> {
-    if (!(await page.$eval("#advanced", (details) => (details as HTMLDetailsElement).open))) await page.click("#advanced > summary");
+    for (const id of ["#advanced", "#evolutionSettings"]) {
+        if (!(await page.$eval(id, (details) => (details as HTMLDetailsElement).open))) await page.click(`${id} > summary`);
+    }
+}
+
+/** Start the skirmish set up, which goes to the fleet editor, and come back to its round with this ship for a fleet. */
+async function startWith(ship: Blueprint): Promise<void> {
+    await page.click("#start");
+    await page.waitForURL(/#\/fleet/);
+    const kept = parseSkirmish(JSON.parse((await page.evaluate(() => localStorage.getItem("scs2d.skirmish")))!));
+    await page.goto(skirmishPage({ ...kept, player: shipFleet(ship) }));
+    await page.waitForSelector("#round");
 }
 
 describe("the skirmish in a browser", () => {
@@ -80,8 +91,7 @@ describe("the skirmish in a browser", () => {
     it("will not fight with a fleet over budget", async () => {
         await advanced();
         await page.selectOption("#enemy", "ship:Bare Core");
-        await page.selectOption("#startFleet", "ship:Gunship");
-        await page.click("#start");
+        await startWith(GUNSHIP);
         expect(await page.isVisible("#round")).toBe(true);
         expect(await page.isDisabled("#play")).toBe(true);
         expect(await page.isDisabled("#fight")).toBe(true);
@@ -96,10 +106,9 @@ describe("the skirmish in a browser", () => {
     it("fights over the enemy's cost with a budget raised to fit, and matches the enemy again", async () => {
         await advanced();
         await page.selectOption("#enemy", "ship:Bare Core");
-        await page.selectOption("#startFleet", "ship:Gunship");
         const matched = await page.inputValue("#metalBudget");
         for (const id of ["metalBudget", "fuelBudget", "buildBudget"]) await page.fill(`#${id}`, "100000");
-        await page.click("#start");
+        await startWith(GUNSHIP);
         expect(await page.isDisabled("#play")).toBe(false);
         const kept = await page.evaluate(() => JSON.parse(window.localStorage.getItem("scs2d.skirmish")!));
         expect(kept.budget.metal).toBe(100_000_000);
@@ -110,7 +119,7 @@ describe("the skirmish in a browser", () => {
         await page.fill("#metalBudget", "1");
         const fuel = await page.inputValue("#fuelBudget");
         await page.fill("#fuelBudget", "");
-        await page.selectOption("#enemy", "ship:Gunship");
+        await page.selectOption("#enemy", "ship:Corvette");
         expect(await page.inputValue("#metalBudget")).toBe("1");
         expect(await page.inputValue("#fuelBudget")).not.toBe(fuel);
         expect(await page.inputValue("#fuelBudget")).not.toBe("");
@@ -133,26 +142,29 @@ describe("the skirmish in a browser", () => {
         await set("maxShips", "5");
         await set("gapSpread", "1000");
         await page.selectOption("#enemy", "ship:Gunship");
-        await page.selectOption("#startFleet", "ship:Gunship");
-        await page.click("#start");
+        await startWith(GUNSHIP);
         const kept = await page.evaluate(() => JSON.parse(window.localStorage.getItem("scs2d.skirmish")!));
         expect(kept.settings.quietTime).toBe(45);
         expect(kept.settings.mutants).toBe(2);
         expect(kept.settings.breeding.kindTank).toBe(7);
         expect(kept.settings.maxShips).toBe(5);
         expect(kept.settings.gapSpread).toBe(1000);
-        // Remembered for the next one, until reset.
+        // Remembered for the next one, until a preset puts them back.
         await page.click("#abandon");
         await page.click("#abandonConfirm");
         await advanced();
         expect(await page.inputValue("#quietTime")).toBe("45");
-        await page.click("#resetSettings");
+        expect(await page.inputValue("#battlefieldPreset")).toBe("");
+        await page.selectOption("#battlefieldPreset", "Open space");
         expect(await page.inputValue("#quietTime")).toBe(String(DEFAULT_SKIRMISH_SETTINGS.quietTime));
         expect(await page.inputValue("#mutants")).toBe(String(DEFAULT_SKIRMISH_SETTINGS.mutants));
         expect(await page.inputValue("#kindTank")).toBe(String(DEFAULT_KINDS.tank));
+        expect(await page.inputValue("#gapSpread")).toBe("0");
+        // The battlefield leaves the enemy's settings; the enemy's preset puts those back.
+        expect(await page.inputValue("#maxShips")).toBe("5");
+        await page.selectOption("#enemyPreset", "Bare core");
         expect(await page.inputValue("#maxShips")).toBe("3");
         expect(await page.inputValue("#radius")).toBe("500");
-        expect(await page.inputValue("#gapSpread")).toBe("0");
         expect(problems).toEqual([]);
     });
 
@@ -165,17 +177,25 @@ describe("the skirmish in a browser", () => {
         expect(await page.inputValue("#gap")).toBe("800");
         expect(await page.inputValue("#timeCap")).toBe("400");
         expect(await page.inputValue("#maxShips")).toBe("1");
-        await page.click("#resetSettings");
-        expect(await page.inputValue("#enemyPreset")).toBe("");
+        expect(await page.inputValue("#enemyPreset")).toBe("One big ship");
+        expect(await page.inputValue("#battlefieldPreset")).toBe("Small universe");
+        expect(await page.getAttribute("#skirmishNameNew", "placeholder")).toBe("One big ship in a small universe");
+        // Tinkering makes either custom; putting it back makes it the preset again.
+        await page.fill("#gap", "900");
+        await page.dispatchEvent("#gap", "change");
         expect(await page.inputValue("#battlefieldPreset")).toBe("");
+        await page.fill("#gap", "800");
+        await page.dispatchEvent("#gap", "change");
+        expect(await page.inputValue("#battlefieldPreset")).toBe("Small universe");
+        await page.selectOption("#enemy", "ship:Corvette");
+        expect(await page.inputValue("#enemyPreset")).toBe("");
         expect(problems).toEqual([]);
     });
 
     it("fights a round with a fleet that fits", async () => {
         await advanced();
         await page.selectOption("#enemy", "ship:Gunship");
-        await page.selectOption("#startFleet", "ship:Gunship");
-        await page.click("#start");
+        await startWith(GUNSHIP);
         expect(await page.isDisabled("#play")).toBe(false);
         expect(await page.textContent("#roundTitle")).toBe("Round 1");
         expect(await page.getAttribute("#fight", "data-variant")).toBe("primary");
