@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { compileBlueprint, DAMAGE_ENERGY_PER_KG, math } from "../sim/index.js";
-import { reachAgainst } from "../sim/blueprint.js";
+import { ASPECT_STEPS, aspectAlong, reachAgainst } from "../sim/blueprint.js";
 import { makeBattle } from "../scenarios/battle.js";
 import { CORVETTE, RAIL_GUNSHIP } from "../scenarios/blueprints.js";
 
@@ -69,5 +69,41 @@ describe("a gun's trigger at long range", () => {
 
     it("still fires anywhere on the target close in", () => {
         expect(misses(0.2).length).toBeGreaterThan(0);
+    });
+});
+
+describe("a ship's presented aspect", () => {
+    // A long thin ship along its bow: 40 m by 4 m, the core aft so its centre of mass is off the middle.
+    const design = compileBlueprint({
+        name: "Needle",
+        modules: [
+            { kind: "core", x: -18, y: 0, length: 4, width: 4 },
+            { kind: "structure", x: 2, y: 0, length: 36, width: 4 },
+        ],
+    });
+    const out = { near: 0, far: 0 };
+
+    it("is its width seen end on, and its length seen broadside", () => {
+        aspectAlong(design, 0, out);
+        expect(out.far - out.near).toBeCloseTo(4, 6);
+        aspectAlong(design, math.PI / 2, out);
+        expect(out.far - out.near).toBeCloseTo(40, 6);
+    });
+
+    it("measures each edge from the centre of mass, so a lopsided ship is lopsided", () => {
+        aspectAlong(design, math.PI / 2, out);
+        // Seen broadside, "across" points aft; the core pulls the centre of mass aft, so the bow is further from it.
+        expect(-out.near).toBeGreaterThan(out.far);
+        expect(out.far - out.near).toBeCloseTo(40, 6);
+    });
+
+    it("interpolates between the bearings it was tabulated at", () => {
+        const step = (2 * math.PI) / ASPECT_STEPS;
+        aspectAlong(design, step * 0.5, out);
+        const half = out.far - out.near;
+        aspectAlong(design, 0, out);
+        const at0 = out.far - out.near;
+        aspectAlong(design, step, out);
+        expect(half).toBeCloseTo((at0 + out.far - out.near) / 2, 9);
     });
 });

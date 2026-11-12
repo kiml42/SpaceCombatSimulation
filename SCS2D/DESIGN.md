@@ -375,8 +375,11 @@ inside any one file is not contiguous.
   has to be hit is the doctrine's own refusals rather than a setting beside them**: the question is whether
   the shot would land on something the weapon is allowed to shoot at, and a mount that has refused nothing
   is allowed to hit any part of that ship, so anywhere on the hull will do — the whole ship's cone, about
-  its middle, whatever part it is aiming at. **That cone narrows with the flight time**: it is what the
-  round can hit (`lethalRadius`, a burst's reach for a shell) less how far the target may have jinked
+  its middle, whatever part it is aiming at. What counts as the ship is **its hull as presented along the
+  line of fire** (`presentedAspect`, tabulated per design at 64 bearings), not its bounding circle: a long
+  thin ship seen end on is only its width, and a lopsided one's cone sits over its hull rather than its
+  centre of mass. **That cone narrows with the flight time**: it is what the
+  round can hit (that span, widened by a burst's reach for a shell) less how far the target may have jinked
   before it arrives (`EVASION_ACCEL`, ½·a·t²), so close in anywhere on the hull will do, while at long range
   a slow-firing sniper waits for the middle rather than spending a round on an edge it will likely miss,
   and at the gun's reach, where the two are equal, only dead centre will do. Further off than that part is worth shooting at, it aims at

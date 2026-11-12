@@ -1,5 +1,5 @@
 import { Bodies } from "./bodies.js";
-import { EVASION_ACCEL, lethalRadius, reachAgainst, type DesignTurret, type ShipDesign } from "./blueprint.js";
+import { aspectAlong, EVASION_ACCEL, lethalRadius, reachAgainst, type DesignTurret, type ShipDesign } from "./blueprint.js";
 import { BOTH_LAYERS, HULL_LAYER, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from "./hull.js";
 import { DamageEffect } from "./damage.js";
 import { inSight, lookFrom, score } from "./targeting.js";
@@ -881,8 +881,27 @@ export function trainOne(ships: Ships, bodies: Bodies, i: number): void {
         // time it arrives: an aim on the edge at long range is a likely miss, so
         // the cone narrows towards the middle as the flight grows, to nothing at
         // the gun's reach, which is where the two are equal (`reachAgainst`).
-        const jink = 0.5 * EVASION_ACCEL * flight * flight;
-        const cone = flight < 0 ? 0 : max(lethalRadius(mounts[t]!.gun, size) - jink, 0);
+        //
+        // What it can hit is the hull as it presents itself along the line of
+        // fire, not its bounding circle: a long thin ship seen end on is only its
+        // width, and its edges are not equally far from its middle. A shell's
+        // burst widens it either side. A ship stuck to another body keeps the
+        // circle about the modules it works.
+        const sight = atan2(ships.turrets.aimDy[ti]!, ships.turrets.aimDx[ti]!);
+        let near = -size;
+        let far = size;
+        if (!sharesBody(ships, target, tb)) {
+            aspectAlong(design, sight - bodies.angle[tb]!, aspect);
+            near = aspect.near;
+            far = aspect.far;
+        }
+        const margin = 0.5 * EVASION_ACCEL * flight * flight - (lethalRadius(mounts[t]!.gun, size) - size);
+        const open = flight >= 0 && far - near > 2 * margin;
+        const cone = open ? (far - near) / 2 - margin : 0;
+        // The cone is about the middle of what it presents, which is off the hull's middle for a lopsided ship.
+        const across = (near + far) / 2;
+        middleX -= sin(sight) * across;
+        middleY += cos(sight) * across;
         const careful = clingsToFriend(ships, i, target, tb);
         const slack = firingSlack(
             ships,
@@ -910,6 +929,9 @@ export function trainOne(ships: Ships, bodies: Bodies, i: number): void {
         );
     }
 }
+
+/** The presented aspect along a line of fire, filled by `aspectAlong`. */
+const aspect = { near: 0, far: 0 };
 
 /**
  * How far off its aim point a mount may fire and still do what its doctrine
