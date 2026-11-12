@@ -223,18 +223,23 @@ describe("rejecting a file that arrived from somewhere else", () => {
         const raw = file({
             modules: [
                 { kind: "core", x: 0, y: 0, length: 10, width: 4 },
-                { kind: "turret", x: 6, y: 0, angle: 0, length: 5, width: 4, barrelCalibres: 70 },
+                { kind: "turret", x: 6, y: 0, angle: 0, length: 5, width: 4, barrelCalibres: 70, bore: 1.5 },
                 { kind: "hullGun", x: -9, y: 0, angle: 180, length: 8, width: 4, barrelCalibres: 12 },
             ],
         }) as Record<string, unknown>;
         expect(blueprintFileProblem(raw)).toBeNull();
         const back = serialiseBlueprint(parseBlueprint(raw))["modules"] as Record<string, unknown>[];
-        expect(back[1]).toMatchObject({ barrelCalibres: 70 });
+        expect(back[1]).toMatchObject({ barrelCalibres: 70, bore: 1.5 });
         expect(back[2]).toMatchObject({ barrelCalibres: 12 });
+        expect(back[2]!["bore"]).toBeUndefined();
         // A laser has no barrel to set.
         keptAndWarned(
             file({ modules: [{ kind: "beamTurret", x: 0, y: 0, length: 5, width: 4, barrelCalibres: 30 }] }),
             /modules\[0\] has a key the game does not read, kept as written: barrelCalibres/,
+        );
+        keptAndWarned(
+            file({ modules: [{ kind: "beamTurret", x: 0, y: 0, length: 5, width: 4, bore: 2 }] }),
+            /modules\[0\] has a key the game does not read, kept as written: bore/,
         );
     });
 
