@@ -189,6 +189,12 @@ describe("the skirmish in a browser", () => {
         expect(await page.inputValue("#battlefieldPreset")).toBe("Small universe");
         await page.selectOption("#enemy", "ship:Corvette");
         expect(await page.inputValue("#enemyPreset")).toBe("");
+        expect(await page.textContent("#enemyHint")).toBe("Against Corvette, 1 ship a side at most");
+        // An enemy fielding more than the limit raises it, for both sides.
+        await page.selectOption("#enemy", "fleet:Line of Battle");
+        expect(await page.textContent("#enemyHint")).toBe(
+            "Against Line of Battle, 5 ships a side at most: raised from 1 to the ships it fields",
+        );
         expect(problems).toEqual([]);
     });
 
