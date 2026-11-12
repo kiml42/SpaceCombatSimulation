@@ -84,7 +84,8 @@ describe("a match of fleets", () => {
 
     it("races by the furthest ship, so a straggler costs nothing", () => {
         const fleet = (ships: Fleet["ships"]): Fleet => ({ name: "Straggler", designs: { Dinky: DINKY, Core: BARE_CORE }, ships });
-        const race = (entrant: Fleet): number => runMatch([entrant, CORVETTE], { ...SHORT, seed: 2 }).scores[0]!.race;
+        // Alone, so nothing but the course has a say in where the Dinky goes.
+        const race = (entrant: Fleet): number => runMatch([entrant], { ...SHORT, seed: 2 }).scores[0]!.race;
         const straggler = race(
             fleet([
                 { design: "Dinky", x: 0, y: 0 },

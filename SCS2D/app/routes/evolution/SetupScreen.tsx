@@ -7,6 +7,7 @@ import type { Blueprint, Fleet } from "~/sim/index";
 import { Button } from "~/ui/buttons/Button";
 import { coRun, fleetRun, MAP_FIELDS, RIVAL, rivalTexts, valueOf, type Goal, type SetupForm } from "./evolutionSetup";
 import { Fold } from "./Fold";
+import { EVOLUTION_PRESETS } from "./evolutionPresets";
 
 export const Cards = styled.div`
     column-gap: 1.6rem;
@@ -118,6 +119,10 @@ export const Buttons = styled.div`
         flex: 1;
         padding-inline: 0.3rem;
     }
+`;
+
+const Presets = styled(Buttons)`
+    flex-wrap: wrap;
 `;
 
 interface FieldProps {
@@ -333,6 +338,17 @@ export function SetupScreen({ hidden, form, onForm, ships, fleets, onExport, onI
                             }}
                         />
                     </Buttons>
+                    <Presets id="evolutionPresets">
+                        {EVOLUTION_PRESETS.map((preset) => (
+                            <Button
+                                key={preset.name}
+                                title={`${preset.hint}. Every other setting back to its default; the founders stay as chosen`}
+                                onClick={() => onForm(preset.apply(form))}
+                            >
+                                {preset.name}
+                            </Button>
+                        ))}
+                    </Presets>
                     <Note>A run is decided by its seed and these numbers, so the file is the whole of what was tried.</Note>
                 </Fold>
                 <Fold k="therun" title="The run">

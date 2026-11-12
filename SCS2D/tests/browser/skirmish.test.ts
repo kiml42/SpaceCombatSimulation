@@ -31,6 +31,12 @@ const skirmishPage = (skirmish?: Skirmish): string =>
 
 let browser: Browser;
 let page: Page;
+/** A round won, its next round's place already picked: the enemy answers at once. */
+const answering = (skirmish: Skirmish): Skirmish => {
+    const { ways: _ways, ...rest } = won(skirmish);
+    return rest;
+};
+
 const problems: string[] = [];
 
 beforeAll(async () => {
@@ -55,15 +61,24 @@ afterAll(async () => {
     await browser?.close();
 });
 
+/** Open the setup screen's advanced config, where the enemy, the budget and the settings are. */
+async function advanced(): Promise<void> {
+    if (!(await page.$eval("#advanced", (details) => (details as HTMLDetailsElement).open))) await page.click("#advanced > summary");
+}
+
 describe("the skirmish in a browser", () => {
     it("opens on choosing an enemy, without errors", async () => {
         expect(await page.isVisible("#setupScreen")).toBe(true);
         expect(await page.isVisible("#round")).toBe(false);
         expect(await page.textContent("#enemyBill")).toContain("metal");
+        // No battle controls until there is a round; import sits under Start.
+        expect(await page.locator("#play").count()).toBe(0);
+        expect(await page.isVisible("#importSkirmish")).toBe(true);
         expect(problems).toEqual([]);
     });
 
     it("will not fight with a fleet over budget", async () => {
+        await advanced();
         await page.selectOption("#enemy", "ship:Bare Core");
         await page.selectOption("#startFleet", "ship:Gunship");
         await page.click("#start");
@@ -74,10 +89,12 @@ describe("the skirmish in a browser", () => {
         expect(await page.textContent("#fleetNote")).toContain("over budget");
         expect(await page.locator("#budget tr.over").count()).toBeGreaterThan(0);
         await page.click("#abandon");
+        await page.click("#abandonConfirm");
         expect(await page.isVisible("#setupScreen")).toBe(true);
     });
 
     it("fights over the enemy's cost with a budget raised to fit, and matches the enemy again", async () => {
+        await advanced();
         await page.selectOption("#enemy", "ship:Bare Core");
         await page.selectOption("#startFleet", "ship:Gunship");
         const matched = await page.inputValue("#metalBudget");
@@ -87,6 +104,8 @@ describe("the skirmish in a browser", () => {
         const kept = await page.evaluate(() => JSON.parse(window.localStorage.getItem("scs2d.skirmish")!));
         expect(kept.budget.metal).toBe(100_000_000);
         await page.click("#abandon");
+        await page.click("#abandonConfirm");
+        await advanced();
         // A box set by hand stays when the enemy changes; one left alone follows it.
         await page.fill("#metalBudget", "1");
         const fuel = await page.inputValue("#fuelBudget");
@@ -107,10 +126,11 @@ describe("the skirmish in a browser", () => {
             await page.fill(`#${id}`, value);
             await page.dispatchEvent(`#${id}`, "change");
         };
+        await advanced();
         await set("quietTime", "45");
         await set("mutants", "2");
         await set("kindTank", "7");
-        await set("maxShips", "3");
+        await set("maxShips", "5");
         await set("gapSpread", "1000");
         await page.selectOption("#enemy", "ship:Gunship");
         await page.selectOption("#startFleet", "ship:Gunship");
@@ -119,22 +139,40 @@ describe("the skirmish in a browser", () => {
         expect(kept.settings.quietTime).toBe(45);
         expect(kept.settings.mutants).toBe(2);
         expect(kept.settings.breeding.kindTank).toBe(7);
-        expect(kept.settings.maxShips).toBe(3);
+        expect(kept.settings.maxShips).toBe(5);
         expect(kept.settings.gapSpread).toBe(1000);
         // Remembered for the next one, until reset.
         await page.click("#abandon");
+        await page.click("#abandonConfirm");
+        await advanced();
         expect(await page.inputValue("#quietTime")).toBe("45");
         await page.click("#resetSettings");
         expect(await page.inputValue("#quietTime")).toBe(String(DEFAULT_SKIRMISH_SETTINGS.quietTime));
         expect(await page.inputValue("#mutants")).toBe(String(DEFAULT_SKIRMISH_SETTINGS.mutants));
         expect(await page.inputValue("#kindTank")).toBe(String(DEFAULT_KINDS.tank));
-        expect(await page.inputValue("#maxShips")).toBe("20");
+        expect(await page.inputValue("#maxShips")).toBe("3");
         expect(await page.inputValue("#radius")).toBe("500");
         expect(await page.inputValue("#gapSpread")).toBe("0");
         expect(problems).toEqual([]);
     });
 
+    it("sets up the enemy and the battlefield from the presets, each leaving the other's settings", async () => {
+        await advanced();
+        await page.selectOption("#enemyPreset", "One big ship");
+        expect(await page.inputValue("#enemy")).toBe("ship:Gunship");
+        expect(await page.inputValue("#maxShips")).toBe("1");
+        await page.selectOption("#battlefieldPreset", "Small universe");
+        expect(await page.inputValue("#gap")).toBe("800");
+        expect(await page.inputValue("#timeCap")).toBe("400");
+        expect(await page.inputValue("#maxShips")).toBe("1");
+        await page.click("#resetSettings");
+        expect(await page.inputValue("#enemyPreset")).toBe("");
+        expect(await page.inputValue("#battlefieldPreset")).toBe("");
+        expect(problems).toEqual([]);
+    });
+
     it("fights a round with a fleet that fits", async () => {
+        await advanced();
         await page.selectOption("#enemy", "ship:Gunship");
         await page.selectOption("#startFleet", "ship:Gunship");
         await page.click("#start");
@@ -308,6 +346,7 @@ describe("the skirmish in a browser", () => {
 
         // And read back after giving the skirmish up, it is the same round with the same history.
         await page.click("#abandon");
+        await page.click("#abandonConfirm");
         await page.waitForSelector("#round", { state: "hidden" });
         await page.setInputFiles("#importSkirmishFile", await download.path());
         await page.waitForSelector("#round");
@@ -322,7 +361,7 @@ describe("the skirmish in a browser", () => {
 
     it("gives the history the battle's room while the search is not watched", async () => {
         // Bare cores take a long while to answer a Gunship, so the search is still going throughout.
-        const skirmish = won(newSkirmish(shipFleet(BARE_CORE), shipFleet(GUNSHIP), 25));
+        const skirmish = answering(newSkirmish(shipFleet(BARE_CORE), shipFleet(GUNSHIP), 25));
         await page.goto(skirmishPage(skirmish));
         await page.waitForSelector("#answering");
         expect(await page.isVisible("#wideHistory")).toBe(false);
@@ -342,7 +381,7 @@ describe("the skirmish in a browser", () => {
 
     it("watches the enemy evolve an answer to a round won, and goes on to the next round", async () => {
         // The player's Corvette beats the same Corvette on seed 25, and a mirror is answered in a generation or two.
-        const skirmish = won(newSkirmish(shipFleet(CORVETTE), shipFleet(CORVETTE), 25));
+        const skirmish = answering(newSkirmish(shipFleet(CORVETTE), shipFleet(CORVETTE), 25));
         await page.goto(skirmishPage(skirmish));
         await page.waitForSelector("#answering");
         // With cores to spare, the search deals its matches out to job workers beside its own.

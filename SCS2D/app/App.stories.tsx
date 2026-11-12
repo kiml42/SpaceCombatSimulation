@@ -4,8 +4,9 @@ import { expect, userEvent, waitFor, within } from "storybook/test";
 import { ObservedStorage, memoryStore } from "~/features/storage/observedStorage";
 import { SkirmishProvider } from "~/features/skirmish/SkirmishProvider";
 import { StorageProvider } from "~/features/storage/StorageProvider";
-import { BLUEPRINTS } from "~/scenarios/blueprints";
-import { serialiseBlueprint } from "~/sim/index";
+import { BLUEPRINTS, CORVETTE } from "~/scenarios/blueprints";
+import { newSkirmish, serialiseSkirmish, SKIRMISH_STORAGE_KEY } from "~/scenarios/skirmish";
+import { serialiseBlueprint, shipFleet } from "~/sim/index";
 import { ROUTES } from "./routes";
 
 /** The whole app at one path, with storage of its own. */
@@ -31,10 +32,41 @@ type Story = StoryObj<typeof meta>;
 export const Start: Story = {
     args: { path: "/" },
     play: async ({ canvas }) => {
+        // The menu is the way out, with no bar over it.
+        await expect(canvas.queryByRole("navigation", { name: "Main" })).toBeNull();
+        await expect(canvas.getByRole("link", { name: "Library" })).toHaveAttribute("href", "#/library");
+    },
+};
+
+export const Bar: Story = {
+    args: { path: "/effects" },
+    play: async ({ canvas }) => {
         const nav = canvas.getByRole("navigation", { name: "Main" });
         await userEvent.click(within(nav).getByRole("link", { name: "Library" }));
         await expect(await canvas.findByRole("heading", { name: "Ships" })).toBeVisible();
         await expect(within(nav).getByRole("link", { name: "Library" })).toHaveClass("active");
+    },
+};
+
+const kept = newSkirmish(shipFleet(CORVETTE), shipFleet(CORVETTE), 1, undefined, undefined, "Iron Tide");
+
+/** A skirmish kept: the menu offers it, and asks before giving it up for a new one. */
+export const StartContinuing: Story = {
+    args: { path: "/", saved: { [SKIRMISH_STORAGE_KEY]: JSON.stringify(serialiseSkirmish(kept)) } },
+    play: async ({ canvas }) => {
+        await expect(canvas.getByRole("link", { name: /^Continue: Iron Tide/ })).toHaveTextContent("Round 1");
+        await userEvent.click(canvas.getByRole("button", { name: "New skirmish" }));
+        const dialog = await canvas.findByRole("dialog", { name: "Start a new skirmish?" });
+        await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+        await expect(canvas.getByRole("link", { name: /^Continue: Iron Tide/ })).toBeVisible();
+        await userEvent.click(canvas.getByRole("button", { name: "New skirmish" }));
+        await userEvent.click(within(await canvas.findByRole("dialog")).getByRole("button", { name: "Start new" }));
+        await userEvent.click(await canvas.findByText("Advanced config"));
+        await expect(canvas.getByRole("combobox", { name: "Enemy" })).toBeVisible();
+        // On past the setup screen, as the Skirmish story is.
+        await userEvent.selectOptions(canvas.getByRole("combobox", { name: "Your fleet" }), "ship:Gunship");
+        await userEvent.click(canvas.getByRole("button", { name: "Start" }));
+        await expect(canvas.getByRole("heading", { name: "Round 1" })).toBeVisible();
     },
 };
 
@@ -133,6 +165,8 @@ export const Ship: Story = {
 export const Skirmish: Story = {
     args: { path: "/skirmish" },
     play: async ({ canvas }) => {
+        await expect(canvas.getByRole("combobox", { name: "Enemy" })).not.toBeVisible();
+        await userEvent.click(canvas.getByText("Advanced config"));
         await expect(canvas.getByRole("combobox", { name: "Enemy" })).toBeVisible();
         await waitFor(() => expect(canvas.getByRole("row", { name: /^metal/ })).toBeVisible());
         await userEvent.selectOptions(canvas.getByRole("combobox", { name: "Your fleet" }), "ship:Gunship");

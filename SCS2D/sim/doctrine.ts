@@ -426,10 +426,10 @@ export interface Approach extends SupplyPriorities, SupplyShares {
      */
     readonly burnWeight: number;
     /**
-     * How much it would rather keep its guns on target: all of it inside the
-     * band it holds, and falling away as the band's outer edge over its range
-     * beyond it, so a ship far off turns to its engines more readily than one
-     * already fighting.
+     * How much it would rather keep its guns on target: all of it within its
+     * main guns' reach, and falling away as that reach over its range beyond
+     * it, so a ship far off turns to its engines more readily than one already
+     * fighting. With nothing to fight, there is nothing to hold its guns on.
      */
     readonly rangeHold: number;
     /**

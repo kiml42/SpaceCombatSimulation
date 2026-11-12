@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { compileBlueprint, DEFAULT_DOCTRINE, isWeaponMount, math, Ships, World, type ShipDesign, type Targeting } from "../sim/index.js";
 import { CORVETTE } from "../scenarios/blueprints.js";
+import { aspectAlong } from "../sim/blueprint.js";
 import { TURRET_GUNSHIP } from "./fixtures.js";
 
 /**
@@ -50,6 +51,12 @@ interface Aim {
     bearing: number;
     /** Bearing from the gun to the target's centre. */
     toCentre: number;
+    /**
+     * Bearing to the middle of the target's hull as it presents itself to the
+     * gun: what a shot at the whole ship aims at, off its centre of mass for a
+     * lopsided ship.
+     */
+    toMiddle: number;
     /** Bearing to whichever engine of the target is nearest the gun. */
     toNearestEngine: number;
     /** Bearing to whichever of its mounts is nearest the gun. */
@@ -106,9 +113,15 @@ function aim(design: ShipDesign, seconds = 20): Aim {
         return { bearing, range: nearest };
     };
 
+    const sight = bearingTo(bodies.x[b]!, bodies.y[b]!);
+    const presented = { near: 0, far: 0 };
+    aspectAlong(gunship, sight - angle, presented);
+    const across = (presented.near + presented.far) / 2;
+
     return {
         bearing: ships.turrets.worldBearing(bodies, ships.turretIndexOf(shooter, 0)),
-        toCentre: bearingTo(bodies.x[b]!, bodies.y[b]!),
+        toCentre: sight,
+        toMiddle: bearingTo(bodies.x[b]! - Math.sin(sight) * across, bodies.y[b]! + Math.cos(sight) * across),
         toNearestEngine: nearestOf("engine").bearing,
         toNearestGun: nearestOf("turret").bearing,
         toCore: nearestOf("core").bearing,
@@ -155,9 +168,9 @@ describe("where a gun aims on a ship", () => {
 
     it("aims at the ship when its doctrine has opted out of picking parts", () => {
         const a = aim(indifferent);
-        expect(off(a.bearing, a.toCentre)).toBeLessThan(0.01);
+        expect(off(a.bearing, a.toMiddle)).toBeLessThan(0.01);
         // And the two really are different directions, or this proves nothing.
-        expect(off(a.toCentre, a.toNearestEngine)).toBeGreaterThan(0.03);
+        expect(off(a.toMiddle, a.toNearestEngine)).toBeGreaterThan(0.03);
     });
 
     it("aims at an engine when its doctrine says engines", () => {
@@ -245,6 +258,6 @@ describe("where a gun aims on a ship", () => {
         const shooter = 0;
         for (let i = 0; i < 600; i++) a.ships.command(DT, a.world);
         const bearing = a.ships.turrets.worldBearing(bodies, a.ships.turretIndexOf(shooter, 0));
-        expect(off(bearing, a.toCentre)).toBeLessThan(0.01);
+        expect(off(bearing, a.toMiddle)).toBeLessThan(0.01);
     });
 });

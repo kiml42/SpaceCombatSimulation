@@ -1,5 +1,5 @@
 import { Bodies } from "./bodies.js";
-import { reachAgainst, type DesignTurret, type ShipDesign } from "./blueprint.js";
+import { aspectAlong, EVASION_ACCEL, lethalRadius, reachAgainst, type DesignTurret, type ShipDesign } from "./blueprint.js";
 import { BOTH_LAYERS, HULL_LAYER, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from "./hull.js";
 import { DamageEffect } from "./damage.js";
 import { inSight, lookFrom, score } from "./targeting.js";
@@ -865,18 +865,49 @@ export function trainOne(ships: Ships, bodies: Bodies, i: number): void {
             sweepVx -= spin * ry;
             sweepVy += spin * rx;
         }
-        ships.turrets.aimAt(bodies, ti, x, y, bodies.vx[tb]!, bodies.vy[tb]!, sweepVx, sweepVy);
         // Sharing a body, the ship is the modules it works, not the body: one
         // stuck to a rock is a small thing on it, not the whole rock.
         let middleX = 0;
         let middleY = 0;
         let size = design.radius;
-        if (sharesBody(ships, target, tb)) {
+        const shared = sharesBody(ships, target, tb);
+        if (shared) {
             const at = ships.locate(bodies, target, tb, ships.sizeAt);
             middleX = at.x - bodies.x[tb]!;
             middleY = at.y - bodies.y[tb]!;
             size = at.radius;
         }
+        // What it can hit is the hull as it presents itself along the line of
+        // fire, not its bounding circle: a long thin ship seen end on is only its
+        // width, and its edges are not equally far from its centre of mass. A
+        // ship stuck to another body keeps the circle about the modules it works.
+        const sight = atan2(y - ships.gunPoint.y, x - ships.gunPoint.x);
+        let near = -size;
+        let far = size;
+        if (!shared) {
+            aspectAlong(design, sight - bodies.angle[tb]!, aspect);
+            near = aspect.near;
+            far = aspect.far;
+        }
+        // The middle of what it presents, off its centre of mass for a lopsided
+        // ship: what the cone is about, and what a gun aiming at the whole ship aims at.
+        const across = (near + far) / 2;
+        middleX -= sin(sight) * across;
+        middleY += cos(sight) * across;
+        if (part === WHOLE_SHIP && !shared) {
+            x += middleX;
+            y += middleY;
+            rx = middleX;
+            ry = middleY;
+        }
+        const flight = ships.turrets.aimAt(bodies, ti, x, y, bodies.vx[tb]!, bodies.vy[tb]!, sweepVx, sweepVy);
+        // Less how far the target may have jinked by the time the round arrives:
+        // an aim on the edge at long range is a likely miss, so the cone narrows
+        // towards the middle as the flight grows, to nothing at the gun's reach,
+        // which is where the two are equal (`reachAgainst`). A shell's burst
+        // widens it either side.
+        const margin = 0.5 * EVASION_ACCEL * flight * flight - (lethalRadius(mounts[t]!.gun, size) - size);
+        const cone = flight >= 0 && far - near > 2 * margin ? (far - near) / 2 - margin : 0;
         const careful = clingsToFriend(ships, i, target, tb);
         const slack = firingSlack(
             ships,
@@ -887,7 +918,7 @@ export function trainOne(ships: Ships, bodies: Bodies, i: number): void {
             ships.turrets.aimDy[ti]!,
             rx - middleX,
             ry - middleY,
-            size,
+            cone,
             careful,
         );
         // In reach of what it will fire on: the part it picked if it minds what
@@ -904,6 +935,9 @@ export function trainOne(ships: Ships, bodies: Bodies, i: number): void {
         );
     }
 }
+
+/** The presented aspect along a line of fire, filled by `aspectAlong`. */
+const aspect = { near: 0, far: 0 };
 
 /**
  * How far off its aim point a mount may fire and still do what its doctrine
@@ -924,8 +958,8 @@ export function trainOne(ships: Ships, bodies: Bodies, i: number): void {
  * that part is under the muzzle. A refusal therefore says two things at
  * once, and they are the same thing — *mind what you hit*.
  *
- * Where the ship will do, the cone is the whole ship's, `radius` about its
- * middle, which is `partX`, `partY` short of the part, whatever part the aim
+ * Where the ship will do, the cone is `radius` about the ship's middle (the
+ * caller's: what the round can hit, less how far the target may jink before it lands), which is `partX`, `partY` short of the part, whatever part the aim
  * is on: `slackOffset` says how far that middle is off the aim point. A gun
  * aiming at a wing fires once anywhere on the hull is under the muzzle.
  * `careful` is a target sharing a body with a friend: only its part will do.

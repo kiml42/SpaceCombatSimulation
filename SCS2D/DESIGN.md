@@ -298,7 +298,13 @@ inside any one file is not contiguous.
   out to the band and lists it. **It turns from its guns to its engines when doctrine says the push is
   worth more**: `burnWeight` scores the share of the change of velocity it wants that pointing the thrust
   axis along it makes before holding the guns on would, the turn included, against `rangeHold` for keeping the
-  guns on target, all of it inside the band it holds and falling away beyond. Neither side counts thrust past
+  guns on target, all of it within its main guns' reach and falling away beyond, so the further out it is the
+  longer it has to turn back; nothing for a ship with no main gun. **With nothing to point its guns at, where
+  its bow points is the helm's alone**, for its best push, wherever the change it wants is worth turning for:
+  on a waypoint or a course, escorting with no enemy about, or waiting. Small corrections it leaves to its
+  other engines, so a craft on station does not weave. Docking, landing and gripping still face as they must,
+  and an order with no target still holds its heading. A defender weighs turning to
+  its charge's attacker the same way, rather than only once on station. Neither side counts thrust past
   what the pilot asks for, so a ship whose guns-on thrust already gives that never turns, and when dodging is
   most of what it wants only what each makes before the near miss counts, so it sidesteps rather than flips.
   The more it wants to change, and the further out it is, the more readily it turns, held either way by a
@@ -375,7 +381,14 @@ inside any one file is not contiguous.
   has to be hit is the doctrine's own refusals rather than a setting beside them**: the question is whether
   the shot would land on something the weapon is allowed to shoot at, and a mount that has refused nothing
   is allowed to hit any part of that ship, so anywhere on the hull will do — the whole ship's cone, about
-  its middle, whatever part it is aiming at. Further off than that part is worth shooting at, it aims at
+  its middle, whatever part it is aiming at. What counts as the ship is **its hull as presented along the
+  line of fire** (`presentedAspect`, tabulated per design at 64 bearings), not its bounding circle: a long
+  thin ship seen end on is only its width, and a lopsided one's cone sits over its hull rather than its
+  centre of mass. **That cone narrows with the flight time**: it is what the
+  round can hit (that span, widened by a burst's reach for a shell) less how far the target may have jinked
+  before it arrives (`EVASION_ACCEL`, ½·a·t²), so close in anywhere on the hull will do, while at long range
+  a slow-firing sniper waits for the middle rather than spending a round on an edge it will likely miss,
+  and at the gun's reach, where the two are equal, only dead centre will do. Further off than that part is worth shooting at, it aims at
   the middle of the ship instead (or, for a mount whose solid shot would pass over the deck, the part
   nearest the middle; shells burst into both layers, so they count as reaching the hull). A mount that
   fires shells also takes on a ship flying only in the other layer — a fighter, to a hull gun, or a hull, to
@@ -1386,7 +1399,7 @@ inside any one file is not contiguous.
   clear of the ships (the Asteroid Field scene), and offered by the custom battle, evolution and the
   skirmish. Rock that meets rock slowly sticks, torn or not, and the two go on as one body: a minor onto a major rides its rail, and two majors never weld. A claw moors its ship to an asteroid, as a pad parks a fighter, and its robots cross onto the rock to mine it into one hold, ore as metal and ice as fuel, and a claw alone melts ice;
   scavenging goes for asteroids by what they hold (the Mining scene). An asteroid picked out in the
-  viewer shows what is left in it, and a right-click on one sends the picked ships with claws to mine it, and the rest to it.
+  viewer shows what is left in it, and while it is being taken how soon it will be mined out at that rate, and a right-click on one sends the picked ships with claws to mine it, and the rest to it.
   A claw ship closes jaws first, round asteroids in its way, at doctrine's `clawSpeed`, and passes over an
   asteroid an enemy has hold of. **It comes in square to the surface** (`chooseGrip`, `squareUp`): it
   picks a point on an outside face of its source facing it, preferring one wide enough for its jaws and
@@ -1417,7 +1430,10 @@ inside any one file is not contiguous.
   and go
   to the fleet editor, which shows the budget, and back between tries. A ship of a fleet opens in the ship
   editor from the fleet editor's *Edit* and goes back to the fleet, skirmish and all. A round won, the
-  enemy evolves an answer in a worker (`evolution/answer.ts`), which deals each generation's matches out to a
+  player picks where the next is fought from three changes drawn from its seed (`skirmish/destinations.ts`:
+  further apart or closer, more asteroids (no more than two majors, which orbit truly, unless the setup asked for more) or none, closing, crossing or from rest, a darker or brighter
+  light), kept in the skirmish's
+  settings from then on; then the enemy evolves an answer in a worker (`evolution/answer.ts`), which deals each generation's matches out to a
   job worker a spare core, coming out the same as fought in one, watched as each generation's best fights the
   round, and the answer — the best of the first generation with a mutant that beats the player's fleet on a
   new seed, picked as the round is won, to the round's own decision — is the next round's enemy, fought on that seed, so the fleet that
@@ -1437,7 +1453,9 @@ inside any one file is not contiguous.
   a skirmish starts: the round's quiet time, time cap, gap and starting speeds, the answer's mutants,
   matches, match length, growth and the margin it must win by, and the ship, fleet and doctrine mutation odds the enemy is bred with,
   remembered for the next skirmish, kept with this one so it is played out under those it started with,
-  and put back with *Reset to defaults*, which the evolution page has too. The mutation fields are written
+  and put back with *Reset to defaults*, which the evolution page has too. The screen leads with the name and two presets, one for the
+  enemy and the most ships a side, one for the battlefield (open space, an asteroid field, a small universe, a radiation field of fast
+  mutation and wide draws), with everything else under *Advanced config*. The mutation fields are written
   once (`evolution/mutationFields.ts`) and both pages draw them. *Export* saves the setup, the skirmish under way and its whole
   history as one `.skirmish.json`, to look into a run or ask about one, and *Import* reads one back in place of
   all three, asking first if a skirmish is under way. A skirmish can be named, on the setup screen or above
