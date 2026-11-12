@@ -23,6 +23,8 @@ import {
     instancePose,
     moduleAt,
     movePlacement,
+    shiftRepeatStep,
+    turnRepeatStep,
     positionHandle,
     reshapePlacement,
     resizePlacement,
@@ -82,6 +84,9 @@ const FIT_EASE = 0.15;
  * on any size of ship: an angle has no scale for the zoom to tell us about.
  */
 export const ANGLE_SNAP_DEGREES = 15;
+
+/** How far round from a row's second copy's +x its turning knob stands: off its side, clear of the next copy. */
+const STEP_KNOB_OFFSET = math.PI / 2;
 
 /** Where the selected copy's position is written, and in what frame. */
 export function selectedPosition(doc: EditorDocument): ReturnType<typeof positionHandle> | null {
@@ -173,6 +178,25 @@ type Drag =
           from: Blueprint;
           path: ModulePath;
           pose: InstancePose;
+          moved: boolean;
+      }
+    | {
+          /** The square on a repeated row's second copy, dragged to set the step. */
+          kind: "step";
+          from: Blueprint;
+          path: ModulePath;
+          first: InstancePose;
+          startX: number;
+          startY: number;
+          moved: boolean;
+      }
+    | {
+          /** The knob on a repeated row's second copy, dragged to turn the step. */
+          kind: "stepTurn";
+          from: Blueprint;
+          path: ModulePath;
+          first: InstancePose;
+          second: InstancePose;
           moved: boolean;
       }
     | {
@@ -286,12 +310,14 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
         return seam === null ? null : { a, b, seam };
     };
 
-    /** The selected assembly's pose, in the copy that was picked, and the modules it draws there. */
-    const selectedAssemblyPose = (): { path: ModulePath; pose: InstancePose; modules: ModuleSpec[] } | null => {
-        const path = doc.selectedAssemblyPath();
-        if (path === null) return null;
+    /** The selected assembly's pose in one drawn copy of it, the one picked unless `copy` says, and the modules it draws there. */
+    const selectedAssemblyPose = (copy?: number): { path: ModulePath; pose: InstancePose; modules: ModuleSpec[] } | null => {
+        const picked = doc.selectedAssemblyPath();
+        if (picked === null) return null;
+        const last = picked[picked.length - 1]!;
+        const path = copy === undefined ? picked : [...picked.slice(0, -1), { ...last, copy }];
         // The outlines are of every placement of the assembly; the ones that are
-        // this instance's are those whose modules it accounts for.
+        // this copy's are those whose modules it accounts for.
         const under = (drawn: number) => {
             const at = doc.view.origins[drawn]?.path;
             return at !== undefined && path.every((step, k) => step.index === at[k]?.index && step.copy === at[k]?.copy);
@@ -302,6 +328,36 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
         const pose = instancePose(doc.blueprint, path, near);
         if (pose === null) return null;
         return { path, pose, modules: (outline?.modules ?? []).map((i) => doc.view.modules[i]!) };
+    };
+
+    /** How many copies the selected assembly is placed as. */
+    const selectedRepeat = (): number => {
+        const path = doc.selectedAssemblyPath();
+        const placement = path === null ? null : placementAt(doc.blueprint, path);
+        return placement !== null && isInstance(placement) ? (placement.repeat ?? 1) : 1;
+    };
+
+    /**
+     * A selected assembly's knob, on its first copy when it repeats; and on a
+     * repeated row's second copy, a square to move it and a knob to turn it,
+     * which set the row's step.
+     */
+    const assemblyHandles = (): Handle[] | null => {
+        if (selectedRepeat() < 2) {
+            const assembly = selectedAssemblyPose();
+            return assembly === null ? null : [assemblyKnob(assembly.pose, assembly.modules, camera.scale)];
+        }
+        const first = selectedAssemblyPose(0);
+        const second = selectedAssemblyPose(1);
+        if (first === null || second === null) return null;
+        const row = Array.from({ length: selectedRepeat() }, (_, copy) => selectedAssemblyPose(copy)?.modules ?? []).flat();
+        // The row's knob reaches past every copy, and the second copy's stands off its side, so neither sits on a copy.
+        const side = { ...second.pose, rotation: second.pose.rotation + STEP_KNOB_OFFSET };
+        return [
+            assemblyKnob(first.pose, row, camera.scale),
+            { kind: "step", x: second.pose.x, y: second.pose.y, along: 0, across: 0, angle: second.pose.rotation },
+            { ...assemblyKnob(side, second.modules, camera.scale), turnsStep: true },
+        ];
     };
 
     /**
@@ -316,8 +372,8 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
         const seam = seamPair();
         if (seam !== null) return [seam.seam.handle];
         if (doc.selections.length !== 1) return [];
-        const assembly = selectedAssemblyPose();
-        if (assembly !== null) return [assemblyKnob(assembly.pose, assembly.modules, camera.scale)];
+        const assembly = assemblyHandles();
+        if (assembly !== null) return assembly;
         const drawn = doc.selectedLoose()[0];
         if (drawn === undefined) return [];
         const spec = doc.view.modules[drawn];
@@ -510,6 +566,33 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
             changed();
             return;
         }
+        if (drag.kind === "step" || drag.kind === "stepTurn") {
+            const world = worldAt(event);
+            let next: Blueprint | null;
+            if (drag.kind === "step") {
+                const step = event.altKey ? 0 : snapMetres();
+                const dx = snap(world.x - drag.startX, step);
+                const dy = snap(world.y - drag.startY, step);
+                if (dx === 0 && dy === 0 && !drag.moved) return;
+                next = shiftRepeatStep(drag.from, drag.path, drag.first, dx, dy);
+            } else {
+                const { second } = drag;
+                const bearing = facingTo(
+                    { kind: "structure", x: second.x, y: second.y, length: 0, width: 0 },
+                    world.x,
+                    world.y,
+                    event.altKey ? 0 : ANGLE_SNAP_DEGREES,
+                    anglesNow(),
+                );
+                next = turnRepeatStep(drag.from, drag.path, drag.first, bearing - STEP_KNOB_OFFSET);
+            }
+            if (next === null) return;
+            if (drag.moved) doc.amend(next);
+            else doc.apply(next);
+            drag = { ...drag, moved: true };
+            changed();
+            return;
+        }
         if (drag.kind === "seam") {
             const { a, b, seam } = drag.pair;
             const world = worldAt(event);
@@ -601,10 +684,34 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
             drag = { kind: "seam", from: doc.blueprint, pair, moved: false };
             return;
         }
-        const assembly = grabbed >= 0 ? selectedAssemblyPose() : null;
+        const repeated = selectedRepeat() >= 2;
+        const assembly = grabbed >= 0 ? selectedAssemblyPose(repeated ? 0 : undefined) : null;
         if (assembly !== null) {
             hooks.gestureEnded();
-            drag = { kind: "turn", from: doc.blueprint, path: assembly.path, pose: assembly.pose, moved: false };
+            const handle = handles[grabbed]!;
+            const second = repeated ? selectedAssemblyPose(1) : null;
+            if (second !== null && handle.kind === "step") {
+                drag = {
+                    kind: "step",
+                    from: doc.blueprint,
+                    path: assembly.path,
+                    first: assembly.pose,
+                    startX: world.x,
+                    startY: world.y,
+                    moved: false,
+                };
+            } else if (second !== null && handle.turnsStep === true) {
+                drag = {
+                    kind: "stepTurn",
+                    from: doc.blueprint,
+                    path: assembly.path,
+                    first: assembly.pose,
+                    second: second.pose,
+                    moved: false,
+                };
+            } else {
+                drag = { kind: "turn", from: doc.blueprint, path: assembly.path, pose: assembly.pose, moved: false };
+            }
             return;
         }
         const spec = doc.view.modules[doc.selectedLoose()[0] ?? -1];

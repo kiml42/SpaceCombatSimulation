@@ -48,9 +48,10 @@ export interface Handle {
      * corners, which moves that corner alone; the knob beyond the bow, which
      * turns it; the seam between two selected modules, which moves the face
      * they share; or the end of an engine's bell or a hull gun's barrel, which
-     * sets how far it reaches.
+     * sets how far it reaches; or the square on a repeated row's second copy,
+     * which moves it and so sets the row's step.
      */
-    kind: "size" | "vertex" | "rotate" | "seam" | "tip";
+    kind: "size" | "vertex" | "rotate" | "seam" | "tip" | "step";
     x: number;
     y: number;
     /**
@@ -63,6 +64,8 @@ export interface Handle {
     vertex?: number;
     /** Which way a seam runs, radians, so it can be drawn along it. */
     angle?: number;
+    /** A knob on a repeated row's second copy, which turns it and so the row's step. */
+    turnsStep?: boolean;
     /** Where a knob's arm starts, when that is not the selected module's middle. */
     fromX?: number;
     fromY?: number;

@@ -362,14 +362,15 @@ function drawHandles(ctx: CanvasRenderingContext2D, view: OverlayView, camera: C
     const lineWidth = HANDLE_EDGE_WIDTH_PX / camera.scale;
     const spec = view.modules[view.selected[0] ?? -1];
 
-    const knob = view.handles.find((handle) => handle.kind === "rotate");
-    const from =
-        knob?.fromX !== undefined && knob.fromY !== undefined
-            ? { x: knob.fromX, y: knob.fromY }
-            : spec === undefined
-              ? null
-              : blockCentre(spec);
-    if (knob !== undefined && from !== null) {
+    for (const knob of view.handles) {
+        if (knob.kind !== "rotate") continue;
+        const from =
+            knob.fromX !== undefined && knob.fromY !== undefined
+                ? { x: knob.fromX, y: knob.fromY }
+                : spec === undefined
+                  ? null
+                  : blockCentre(spec);
+        if (from === null) continue;
         ctx.save();
         ctx.strokeStyle = SELECTION;
         ctx.lineWidth = lineWidth;
@@ -389,6 +390,10 @@ function drawHandles(ctx: CanvasRenderingContext2D, view: OverlayView, camera: C
             ctx.translate(handle.x, handle.y);
             ctx.rotate(handle.angle ?? 0);
             ctx.rect(-radius * 2, -radius * 0.7, radius * 4, radius * 1.4);
+        } else if (handle.kind === "step") {
+            ctx.translate(handle.x, handle.y);
+            ctx.rotate(handle.angle ?? 0);
+            ctx.rect(-radius * 1.2, -radius * 1.2, radius * 2.4, radius * 2.4);
         } else if (handle.kind === "size" && (handle.along === 0 || handle.across === 0)) {
             const half = radius * 0.8;
             ctx.translate(handle.x, handle.y);
