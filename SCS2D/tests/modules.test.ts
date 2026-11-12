@@ -45,6 +45,7 @@ import {
     BEAM_STALK_SHARE,
     moduleProblem,
     moduleStats,
+    MAX_BORE,
     mountAccel,
     refitModule,
     traverseAccel,
@@ -620,6 +621,24 @@ describe("core scaling", () => {
 });
 
 describe("gun scaling", () => {
+    it("widens or narrows its bore by what the mount says, slowing its load as it does", () => {
+        const turret = (bore?: number) =>
+            moduleStats({ kind: "turret", x: 0, y: 0, length: 5, width: 4, ...(bore === undefined ? {} : { bore }) }).gun!;
+        expect(turret(2).calibre).toBeCloseTo(turret().calibre * 2, 12);
+        expect(turret(2).roundMass).toBeGreaterThan(turret().roundMass * 7);
+        expect(turret(2).cycleTime).toBeGreaterThan(turret().cycleTime);
+        expect(turret(0.5).calibre).toBeCloseTo(turret().calibre * 0.5, 12);
+        const hull = (bore?: number) =>
+            moduleStats({ kind: "hullGun", x: 0, y: 0, angle: 0, length: 8, width: 4, ...(bore === undefined ? {} : { bore }) }).gun!;
+        expect(hull(1.5).calibre).toBeCloseTo(hull().calibre * 1.5, 12);
+        // Only so far, and not at all on a kind without a bore.
+        expect(moduleProblem({ kind: "turret", x: 0, y: 0, length: 5, width: 4, bore: MAX_BORE + 1 })).toMatch(/bore/);
+        expect(moduleProblem({ kind: "turret", x: 0, y: 0, length: 5, width: 4, bore: 0 })).toMatch(/bore/);
+        expect(moduleStats({ kind: "beamTurret", x: 0, y: 0, length: 5, width: 4, bore: 2 }).gun!.calibre).toBe(
+            moduleStats({ kind: "beamTurret", x: 0, y: 0, length: 5, width: 4 }).gun!.calibre,
+        );
+    });
+
     it("takes its bore from the mount width and its barrel from the bore", () => {
         const gun = gunStats(40, 8);
         expect(gun.calibre).toBeCloseTo(8 * CALIBRE_FRACTION, 12);

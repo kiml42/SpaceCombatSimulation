@@ -11,6 +11,8 @@ import { mountAt, viewOf } from "~/render/picking";
 import { padHolds, placementOf, slipwayHolds, type DoctrinePart, type ShipView, type Snapshot } from "~/sim/index";
 import type { OrderState } from "./orderState";
 import { Button, ToggleButton } from "~/ui/buttons/Button";
+import { PresetPicker } from "~/features/doctrine/PresetPicker";
+import { presetFields } from "~/editor/doctrinePresets";
 
 const Panel = styled.aside`
     position: absolute;
@@ -172,6 +174,16 @@ export function DoctrinePanel({ view, state, shown }: DoctrinePanelProps) {
                     </ToggleButton>
                 ))}
             </Tabs>
+            {showing === "ship" && (
+                <Row>
+                    <span>Fight as</span>
+                    <PresetPicker
+                        onPick={(preset) => {
+                            for (const { field, value } of presetFields(preset)) issue(field, value);
+                        }}
+                    />
+                </Row>
+            )}
             {sections.map(({ section, groups }) => (
                 <div key={section.title}>
                     <h3>{section.title}</h3>

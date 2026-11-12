@@ -123,6 +123,33 @@ describe("a generation", () => {
         expect(bestChosen).toBeGreaterThan(worstChosen);
         expect(worstChosen).toBeGreaterThan(0);
     });
+
+    it("always takes the best it is told to keep, and draws for the rest", () => {
+        const generation = population(5);
+        for (let i = 0; i < 5; i++) award(generation, [i], [i]);
+        const rng = new Rng(11);
+        let bestChosen = 0;
+        let thirdChosen = 0;
+        for (let draw = 0; draw < 200; draw++) {
+            const winners = generation.winners(rng, 3, 2).map((individual) => individual.id);
+            expect(winners.slice(0, 2)).toEqual([4, 3]);
+            expect(new Set(winners).size).toEqual(3);
+            if (winners.includes(4)) bestChosen++;
+            if (winners.includes(2)) thirdChosen++;
+        }
+        expect(bestChosen).toEqual(200);
+        expect(thirdChosen).toBeGreaterThan(0);
+        expect(thirdChosen).toBeLessThan(200);
+        // Never more than there are places.
+        expect(generation.winners(new Rng(1), 2, 5).map((individual) => individual.id)).toEqual([4, 3]);
+    });
+
+    it("draws exactly as it did when it keeps none", () => {
+        const generation = population(5);
+        for (let i = 0; i < 5; i++) award(generation, [i], [i]);
+        const ids = (keep?: number) => generation.winners(new Rng(7), 2, keep).map((individual) => individual.id);
+        expect(ids(0)).toEqual(ids());
+    });
 });
 
 // Every test here fights whole generations, some twice: up to about 14 s each on a desktop,

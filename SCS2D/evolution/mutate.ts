@@ -32,8 +32,10 @@ import { canShape, isShaped, TRIANGLE_CORNERS, shapeOf, wedge } from "../sim/sha
 import { degreesToRadians, radiansToDegrees } from "../sim/blueprintFile.js";
 import {
     barrelCalibres,
+    boreScale,
     DEFAULT_NOZZLE_WIDTHS,
     MAX_BARREL_CALIBRES,
+    MAX_BORE,
     readsBarrelCalibres,
     isWeaponMount,
     canThicken,
@@ -761,6 +763,7 @@ type NumberKnob =
               | "reinforcement"
               | "nozzle"
               | "barrelCalibres"
+              | "bore"
               | "traverse"
               | "fuse"
               | "fragments"
@@ -1042,7 +1045,7 @@ function numbers(draft: Draft): NumberKnob[] {
         // What a gun fires: shells or solid shot, and for shells how they burst.
         if (readsFuse(spec.kind) && (spec.fragments ?? DEFAULT_FRAGMENTS) > 1) out.push({ at: "fragments", site });
         if (firesShells(spec)) out.push({ at: "fuse", site }, { at: "burstSpeed", site });
-        if (readsBarrelCalibres(spec.kind)) out.push({ at: "barrelCalibres", site });
+        if (readsBarrelCalibres(spec.kind)) out.push({ at: "barrelCalibres", site }, { at: "bore", site });
         if (spec.kind === "engine") out.push({ at: "nozzle", site });
     }
     return out;
@@ -1058,6 +1061,7 @@ function numberWeight(knob: NumberKnob, { doctrine, build }: MutationLimits): nu
             return doctrine.gunnery;
         case "nozzle":
         case "barrelCalibres":
+        case "bore":
             return build.fittings;
         default:
             return build.tuning;
@@ -1120,6 +1124,8 @@ function renumberModule(knob: Exclude<NumberKnob, { at: "doctrine" }>, jitter: J
             return rebell(knob.site, jitter);
         case "barrelCalibres":
             return relength(knob.site, jitter);
+        case "bore":
+            return rebore(knob.site, jitter);
         case "traverse":
             return retrain(knob.site, jitter);
         case "fuse":
@@ -1420,6 +1426,23 @@ function relength(site: ModuleSite, jitter: Jitter): string | null {
     site.spec.barrelCalibres = now;
     return `${site.where} ${site.spec.kind}: barrel ${was} → ${now} calibres`;
 }
+
+/**
+ * Widen or narrow a gun's bore, by a fraction of what it is, so a lineage can
+ * trade rate of fire for weight of shell on a mount of the same size. Back to
+ * saying nothing when it lands on the archetype's own.
+ */
+function rebore(site: ModuleSite, jitter: Jitter): string | null {
+    const was = boreScale(site.spec);
+    const now = tidy(clamp(was + jitter(was), MIN_BORE, MAX_BORE), 2);
+    if (now === was) return null;
+    if (now === 1) delete site.spec.bore;
+    else site.spec.bore = now;
+    return `${site.where} ${site.spec.kind}: bore ${was} → ${now}`;
+}
+
+/** The narrowest bore a nudge leaves, as a multiple of the archetype's. */
+const MIN_BORE = 0.25;
 
 /**
  * Widen or narrow the arc a weapon is built for.

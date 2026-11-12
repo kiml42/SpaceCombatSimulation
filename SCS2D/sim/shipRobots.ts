@@ -16,7 +16,7 @@ import {
     ROBOT_REFILL_TIME,
     ROBOT_REPAIR_RATE,
 } from "./modules.js";
-import { length, min } from "./math.js";
+import { ceil, length, max, min } from "./math.js";
 import { crawl, legLength, pathTo, RobotMode, walk, walkTime, type Robot } from "./robots.js";
 import type { World } from "./world.js";
 import type { Approach } from "./doctrine.js";
@@ -521,7 +521,8 @@ export function sendOnRock(ships: Ships, b: number, cb: number, robots: Robot[],
         // Wreckage lodged on it is all metal.
         const ore = rock ? (spec.ore ?? 0) : 1;
         const kept = ((metalRoom ? ore : 0) + (rock && fuelRoom ? (spec.ice ?? 0) : 0)) * (1 - DISASSEMBLY_WASTE);
-        const work = buildWork(shipRebuild.stripStep(ships, cb, rd, m).stats);
+        const step = shipRebuild.stripStep(ships, cb, rd, m);
+        const work = buildWork(step.stats);
         let kg = robot.charge / (work * REPAIR_ENERGY_PER_JOULE * MINING_POWER);
         if (kept > 0) kg = min(kg, room / kept);
         const time = 2 * walkTime(rd, prev, m, robot.tag) + (kg * work) / ROBOT_REPAIR_RATE;
@@ -529,7 +530,10 @@ export function sendOnRock(ships: Ships, b: number, cb: number, robots: Robot[],
         let crowd = 0;
         for (let k = 0; k < robots.length; k++)
             if (robots[k] !== robot && robots[k]!.away === robot.away && robots[k]!.target === m) crowd++;
-        const wreck = rd.modules[m]!.spec.kind !== "rock";
+        // Wreckage comes first only while it wants more hands than it has: as
+        // many loads as there is left of it, and one at least.
+        const left = (step.kg - ships.damage.unbuiltAt(cb, m)) * (kept > 0 ? kept : 1);
+        const wreck = rd.modules[m]!.spec.kind !== "rock" && crowd < max(1, ceil(left / ROBOT_LOAD));
         if (wreck !== bestWreck ? wreck : rate > bestRate || (rate === bestRate && crowd < bestCrowd)) {
             best = m;
             bestRate = rate;

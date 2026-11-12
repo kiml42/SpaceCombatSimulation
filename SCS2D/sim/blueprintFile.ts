@@ -108,6 +108,7 @@ const MODULE_KEYS: readonly string[] = [
     "barrels",
     "nozzle",
     "barrelCalibres",
+    "bore",
     "traverse",
     "fuse",
     "fragments",
@@ -279,6 +280,7 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
         optionalNumberProblem(value["barrels"], `${where}: barrels`) ??
         optionalNumberProblem(value["nozzle"], `${where}: nozzle`) ??
         optionalNumberProblem(value["barrelCalibres"], `${where}: barrelCalibres`) ??
+        optionalNumberProblem(value["bore"], `${where}: bore`) ??
         optionalNumberProblem(value["traverse"], `${where}: traverse`) ??
         optionalNumberProblem(value["fuse"], `${where}: fuse`) ??
         optionalNumberProblem(value["fragments"], `${where}: fragments`) ??
@@ -321,7 +323,7 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
 function moduleReads(kind: ModuleKind): readonly string[] {
     return MODULE_KEYS.filter((key) => {
         if (key === "nozzle") return readsNozzle(kind);
-        if (key === "barrelCalibres") return readsBarrelCalibres(kind);
+        if (key === "barrelCalibres" || key === "bore") return readsBarrelCalibres(kind);
         if (key === "barrels") return countsOutlets(kind);
         if (key === "traverse") return isWeaponMount(kind);
         if (key === "fuse" || key === "fragments" || key === "burstSpeed") return readsFuse(kind);
@@ -580,6 +582,7 @@ function toPlacements(raws: unknown[], whole: boolean): Placement[] {
         if (read("barrels")) spec.barrels = raw["barrels"] as number;
         if (read("nozzle")) spec.nozzle = raw["nozzle"] as number;
         if (read("barrelCalibres")) spec.barrelCalibres = raw["barrelCalibres"] as number;
+        if (read("bore")) spec.bore = raw["bore"] as number;
         // Degrees in the file and radians in the simulation, as every other angle.
         if (read("traverse")) spec.traverse = degreesToRadians(raw["traverse"] as number);
         if (read("fuse")) spec.fuse = raw["fuse"] as number;
@@ -784,6 +787,9 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
     }
     if (placement.barrelCalibres !== undefined && readsBarrelCalibres(placement.kind)) {
         raw["barrelCalibres"] = placement.barrelCalibres;
+    }
+    if (placement.bore !== undefined && readsBarrelCalibres(placement.kind)) {
+        raw["bore"] = placement.bore;
     }
     if (placement.traverse !== undefined && isWeaponMount(placement.kind)) {
         raw["traverse"] = radiansToDegrees(placement.traverse);
