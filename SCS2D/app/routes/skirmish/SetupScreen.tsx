@@ -114,10 +114,12 @@ export interface SetupScreenProps {
         budget: (cost: Budget) => Budget,
         name: string,
     ) => void;
+    /** Ask for a skirmish file to load in place of this setup. */
+    readonly onImport: () => void;
 }
 
 /** Choose an enemy, a budget, the settings and a fleet to start from, and start a skirmish. */
-export function SetupScreen({ onEnemy, enemyCost, read, onStart }: SetupScreenProps) {
+export function SetupScreen({ onEnemy, enemyCost, read, onStart, onImport }: SetupScreenProps) {
     const storage = useStorage();
     const { ships, fleets } = useLibrary();
     const [texts, setTexts] = useState(() => settingsTexts(keptSettings(storage)));
@@ -267,6 +269,15 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart }: SetupScreenPr
                     }}
                 >
                     Reset to defaults
+                </Button>
+            </Buttons>
+            <Buttons>
+                <Button
+                    id="importSkirmish"
+                    title="Load a skirmish file: its settings, and the skirmish and matches it holds, in place of these"
+                    onClick={onImport}
+                >
+                    Import
                 </Button>
             </Buttons>
             <p>The settings are kept with the skirmish, so one already going is played out under those it started with.</p>

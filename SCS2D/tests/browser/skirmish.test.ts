@@ -71,6 +71,9 @@ describe("the skirmish in a browser", () => {
         expect(await page.isVisible("#setupScreen")).toBe(true);
         expect(await page.isVisible("#round")).toBe(false);
         expect(await page.textContent("#enemyBill")).toContain("metal");
+        // No battle controls until there is a round; import sits under Start.
+        expect(await page.locator("#play").count()).toBe(0);
+        expect(await page.isVisible("#importSkirmish")).toBe(true);
         expect(problems).toEqual([]);
     });
 

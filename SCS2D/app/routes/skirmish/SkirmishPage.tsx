@@ -738,66 +738,68 @@ export function SkirmishPage() {
 
     return (
         <Main>
-            <Controls>
-                <Button id="play" disabled={!fightable} onClick={() => view?.setRunning(!running)}>
-                    {running ? "Pause" : decided !== null || ticked > 0 ? "Resume" : "Fight"}
-                </Button>
-                <Button id="fit" onClick={() => view?.fit()}>
-                    Fit
-                </Button>
-                <Scrub view={view} />
-                <Button
-                    id="exportSkirmish"
-                    title="Save the skirmish, its settings and every match played to a file, to look into or ask about"
-                    onClick={exportSkirmish}
-                >
-                    Export
-                </Button>
-                <Button
-                    id="importSkirmish"
-                    title="Load a skirmish file: its settings, and the skirmish and matches it holds, in place of these"
-                    onClick={() => document.getElementById("importSkirmishFile")?.click()}
-                >
-                    Import
-                </Button>
-                <input
-                    id="importSkirmishFile"
-                    type="file"
-                    accept="application/json,.json"
-                    hidden
-                    onChange={(event) => {
-                        const chosen = event.target.files?.[0];
-                        event.target.value = "";
-                        if (chosen !== undefined) void importSkirmish(chosen);
-                    }}
-                />
-                <label>
-                    speed
-                    <select
-                        id="speed"
-                        title="How fast the battle runs"
-                        value={settings.speed}
-                        onChange={(event) => {
-                            const speed = Number(event.target.value);
-                            keepView({ speed });
-                            view?.setSpeed(speed);
-                        }}
+            <input
+                id="importSkirmishFile"
+                type="file"
+                accept="application/json,.json"
+                hidden
+                onChange={(event) => {
+                    const chosen = event.target.files?.[0];
+                    event.target.value = "";
+                    if (chosen !== undefined) void importSkirmish(chosen);
+                }}
+            />
+            {skirmish !== null && (
+                <Controls>
+                    <Button id="play" disabled={!fightable} onClick={() => view?.setRunning(!running)}>
+                        {running ? "Pause" : decided !== null || ticked > 0 ? "Resume" : "Fight"}
+                    </Button>
+                    <Button id="fit" onClick={() => view?.fit()}>
+                        Fit
+                    </Button>
+                    <Scrub view={view} />
+                    <Button
+                        id="exportSkirmish"
+                        title="Save the skirmish, its settings and every match played to a file, to look into or ask about"
+                        onClick={exportSkirmish}
                     >
-                        {SPEEDS.map((speed) => (
-                            <option key={speed} value={speed}>
-                                {speed}x
-                            </option>
-                        ))}
-                    </select>
-                </label>
-                <Readout id="readout" aria-label="Battle time">
-                    {readout}
-                </Readout>
-                <FrameRate aria-label="Frame rate">{fps}</FrameRate>
-            </Controls>
+                        Export
+                    </Button>
+                    <label>
+                        speed
+                        <select
+                            id="speed"
+                            title="How fast the battle runs"
+                            value={settings.speed}
+                            onChange={(event) => {
+                                const speed = Number(event.target.value);
+                                keepView({ speed });
+                                view?.setSpeed(speed);
+                            }}
+                        >
+                            {SPEEDS.map((speed) => (
+                                <option key={speed} value={speed}>
+                                    {speed}x
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                    <Readout id="readout" aria-label="Battle time">
+                        {readout}
+                    </Readout>
+                    <FrameRate aria-label="Frame rate">{fps}</FrameRate>
+                </Controls>
+            )}
             <Body>
                 {skirmish === null && (
-                    <SetupScreen key={setupKey} read={read} enemyCost={enemyCost} onEnemy={previewEnemy} onStart={start} />
+                    <SetupScreen
+                        key={setupKey}
+                        read={read}
+                        enemyCost={enemyCost}
+                        onEnemy={previewEnemy}
+                        onStart={start}
+                        onImport={() => document.getElementById("importSkirmishFile")?.click()}
+                    />
                 )}
                 <BattleCanvas
                     id="view"
