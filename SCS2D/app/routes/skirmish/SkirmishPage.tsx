@@ -749,26 +749,29 @@ export function SkirmishPage() {
                 }}
             />
             <Controls>
-                <PauseMenu
-                    title={skirmish === null ? "Skirmish" : "Paused"}
-                    pause={pauseView(() => view)}
-                    actions={
-                        skirmish === null
-                            ? []
-                            : [
-                                  {
-                                      id: "exportSkirmish",
-                                      label: "Export skirmish",
-                                      title: "Save the skirmish, its settings and every match played to a file, to look into or ask about",
-                                      onSelect: exportSkirmish,
-                                  },
-                                  { id: "menuNewSkirmish", label: "New skirmish", onSelect: () => setAbandoning(true) },
-                              ]
-                    }
-                    settings={skirmish === null || view === null ? undefined : <LookFields view={view} />}
-                    keys={[...BATTLE_KEYS, ...ORDER_KEYS]}
-                    notes={NOTES}
-                />
+                {skirmish === null ? (
+                    // Setting one up, there is nothing to pause and nowhere to go but back.
+                    <Button id="menuButton" aria-label="Menu" title="Back to the main menu" onClick={() => void navigate("/")}>
+                        ◀ Menu
+                    </Button>
+                ) : (
+                    <PauseMenu
+                        title="Paused"
+                        pause={pauseView(() => view)}
+                        actions={[
+                            {
+                                id: "exportSkirmish",
+                                label: "Export skirmish",
+                                title: "Save the skirmish, its settings and every match played to a file, to look into or ask about",
+                                onSelect: exportSkirmish,
+                            },
+                            { id: "menuNewSkirmish", label: "New skirmish", onSelect: () => setAbandoning(true) },
+                        ]}
+                        settings={view === null ? undefined : <LookFields view={view} />}
+                        keys={[...BATTLE_KEYS, ...ORDER_KEYS]}
+                        notes={NOTES}
+                    />
+                )}
                 {skirmish !== null && (
                     <>
                         <Button id="play" disabled={!fightable} onClick={() => view?.setRunning(!running)}>

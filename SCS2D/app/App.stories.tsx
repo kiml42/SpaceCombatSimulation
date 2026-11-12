@@ -175,6 +175,16 @@ export const Skirmish: Story = {
     },
 };
 
+/** Setting a skirmish up, the menu button only goes back. */
+export const SkirmishSetupBack: Story = {
+    args: { path: "/skirmish" },
+    play: async ({ canvas }) => {
+        await userEvent.click(canvas.getByRole("button", { name: "Menu" }));
+        await expect(canvas.queryByRole("dialog")).toBeNull();
+        await expect(await canvas.findByRole("heading", { name: "Space Combat Simulation" })).toBeVisible();
+    },
+};
+
 export const Effects: Story = {
     args: { path: "/effects" },
     play: async ({ canvas }) => {
