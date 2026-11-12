@@ -5,6 +5,7 @@ import { BattleCanvas } from "~/features/battle/BattleCanvas";
 import { LookFields } from "~/features/battle/LookFields";
 import { pauseView } from "~/features/battle/pauseView";
 import { Playback } from "~/features/battle/Playback";
+import { BackToMenu } from "~/features/menu/BackToMenu";
 import { PauseMenu } from "~/features/menu/PauseMenu";
 import { Scrub } from "~/features/battle/Scrub";
 import { useSampled } from "~/features/battle/useSampled";
@@ -751,9 +752,7 @@ export function SkirmishPage() {
             <Controls>
                 {skirmish === null ? (
                     // Setting one up, there is nothing to pause and nowhere to go but back.
-                    <Button id="menuButton" aria-label="Menu" title="Back to the main menu" onClick={() => void navigate("/")}>
-                        ◀ Menu
-                    </Button>
+                    <BackToMenu />
                 ) : (
                     <PauseMenu
                         title="Paused"
