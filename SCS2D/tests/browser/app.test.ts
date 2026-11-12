@@ -141,14 +141,19 @@ it("runs a battle on its route, and lets go of it on leaving", async () => {
     await page.getByRole("combobox", { name: "speed" }).selectOption("4");
     expect(JSON.parse((await page.evaluate(() => localStorage.getItem("scs2d.view.viewer")))!)).toMatchObject({ speed: 4 });
 
-    await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Library" }).click();
+    // Through the menu, which pauses the battle, to the main menu and on.
+    await page.getByRole("button", { name: "Menu" }).click();
+    await page.getByRole("button", { name: "Main menu" }).click();
+    await page.getByRole("navigation", { name: "More" }).getByRole("link", { name: "Library" }).click();
     await page.getByRole("region", { name: "Ships" }).waitFor();
     const before = (await page.evaluate(() => Reflect.get(window, "framesAsked"))) as number;
     await page.waitForTimeout(400);
     expect(await page.evaluate(() => Reflect.get(window, "framesAsked"))).toBe(before);
     expect(await page.getByRole("toolbar").count()).toBe(0);
 
-    await page.getByRole("link", { name: "Battle" }).click();
+    await page.getByRole("button", { name: "Menu" }).click();
+    await page.getByRole("button", { name: "Main menu" }).click();
+    await page.locator('a[href="#/battle"]').click();
     expect(await page.getByRole("combobox", { name: "speed" }).inputValue()).toBe("4");
     await page.evaluate(() => localStorage.removeItem("scs2d.view.viewer"));
     expect(problems).toEqual([]);

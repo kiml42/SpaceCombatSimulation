@@ -1,6 +1,9 @@
 import { styled } from "@linaria/react";
 import { useEffect, useEffectEvent, useMemo, useReducer, useRef, useState } from "react";
 import { BattleCanvas } from "~/features/battle/BattleCanvas";
+import { LookFields } from "~/features/battle/LookFields";
+import { pauseView } from "~/features/battle/pauseView";
+import { PauseMenu } from "~/features/menu/PauseMenu";
 import { useStorage } from "~/features/storage/StorageContext";
 import { useLibrary } from "~/features/storage/useLibrary";
 import { useViewSettings } from "~/features/storage/useViewSettings";
@@ -18,7 +21,6 @@ import type { ViewSettings } from "~/host/viewSettings";
 import { sidesOf, teamColour } from "~/render/teams";
 import { serialiseBlueprint, serialiseFleet, type Blueprint, type Fleet } from "~/sim/index";
 import { Button, ToggleButton } from "~/ui/buttons/Button";
-import { KeyHelp } from "~/ui/dialogs/KeyHelp";
 import { Combatants, SCORE_COLUMNS } from "./Combatants";
 import {
     coevolutionOf,
@@ -221,11 +223,6 @@ const Scores = styled.div`
     .grnd {
         color: #e9c05f;
     }
-`;
-
-const Footer = styled.footer`
-    padding: 0.4rem 0.9rem;
-    border-top: 1px solid var(--colour-border);
 `;
 
 function download(name: string, text: string): void {
@@ -755,6 +752,13 @@ export function EvolutionPage() {
     return (
         <Main>
             <Controls>
+                <PauseMenu
+                    title="Paused"
+                    pause={pauseView(() => viewing.view)}
+                    settings={viewing.view === null ? undefined : <LookFields view={viewing.view} />}
+                    keys={KEYS}
+                    notes={NOTES}
+                />
                 <span>
                     <ToggleButton
                         id="toSetup"
@@ -1010,9 +1014,6 @@ export function EvolutionPage() {
                     grid={gridShown}
                 />
             </Body>
-            <Footer>
-                <KeyHelp rows={KEYS} notes={NOTES} />
-            </Footer>
         </Main>
     );
 }

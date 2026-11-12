@@ -5,9 +5,16 @@ import { EFFECTS_SCENES, STEP } from "~/host/effectsScene";
 import { effectsView, type EffectsView } from "~/host/effectsView";
 import { BUILDER_LIGHT, DEFAULT_LIGHT, type Light } from "~/render/light";
 import { LIGHTS } from "~/scenarios/lights";
+import { PauseMenu } from "~/features/menu/PauseMenu";
 import { Button } from "~/ui/buttons/Button";
 
 const SPEEDS = [1, 0.25, 0.1, 0.03];
+const KEYS = [
+    { keys: "Space", does: "Play, or pause" },
+    { keys: ", and .", does: "Step back and on, paused" },
+    { keys: "Drag", does: "Pan" },
+    { keys: "Scroll", does: "Zoom" },
+];
 /** No light at all: what is seen is only what the scene's own lights show. */
 const DARK: Light = { from: 0, colour: "#000000", ambient: 0 };
 const LIGHT_CHOICES: readonly (readonly [string, Light])[] = [
@@ -108,6 +115,15 @@ export function EffectsPage() {
     return (
         <Main>
             <Controls>
+                <PauseMenu
+                    title="Paused"
+                    pause={() => {
+                        const was = playing;
+                        setPlaying(false);
+                        return () => setPlaying(was);
+                    }}
+                    keys={KEYS}
+                />
                 <select id="effect" aria-label="Effect" value={scene} onChange={(event) => setScene(Number(event.target.value))}>
                     {EFFECTS_SCENES.map((each, k) => (
                         <option key={each.name} value={k}>

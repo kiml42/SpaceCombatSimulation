@@ -38,7 +38,7 @@ import {
     type ShipModuleKind,
 } from "~/sim/index";
 import { Button, ToggleButton } from "~/ui/buttons/Button";
-import { KeyHelp } from "~/ui/dialogs/KeyHelp";
+import { PauseMenu } from "~/features/menu/PauseMenu";
 import { LiveText } from "~/ui/fields/LiveText";
 import { fromLibrary } from "../fleet/fleetOptions";
 import { LibraryOptions } from "../fleet/LibraryOptions";
@@ -176,11 +176,6 @@ const Panel = styled.aside`
 const Note = styled.p`
     margin: 0.4rem 0 0;
     color: var(--colour-faint);
-`;
-
-const Footer = styled.footer`
-    padding: 0.4rem 0.9rem;
-    border-top: 1px solid var(--colour-border);
 `;
 
 function problemOf(error: unknown): string {
@@ -376,6 +371,13 @@ export function ShipPage() {
     return (
         <Main>
             <Bar>
+                <PauseMenu
+                    title="Ship designer"
+                    actions={[{ id: "menuSave", label: "Save", onSelect: () => library.save(doc.blueprint) }]}
+                    keys={KEYS}
+                    // A ship opened from a fleet goes back through it, not the library.
+                    unsaved={inFleet === null && (!listed || reverts) ? { what: name, save: () => library.save(doc.blueprint) } : null}
+                />
                 <select
                     id="ship"
                     aria-label="Ship"
@@ -719,9 +721,6 @@ export function ShipPage() {
                     </section>
                 </Panel>
             </Body>
-            <Footer>
-                <KeyHelp rows={KEYS} />
-            </Footer>
         </Main>
     );
 }

@@ -886,6 +886,9 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
             event.preventDefault();
             hooks.deleteSelected();
         } else if (event.key === "Escape") {
+            // Taken only with something to let go, so the page's menu opens on the next.
+            if (doc.selection === null) return;
+            event.preventDefault();
             doc.select(null);
             changed();
         }

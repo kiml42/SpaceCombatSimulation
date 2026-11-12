@@ -2,7 +2,6 @@ import { capture, compileBlueprint, NEUTRAL_TEAM, Snapshot, type Blueprint, type
 import { NO_TARGET, OrderCancelCondition } from "../sim/ships.js";
 import { Flashes } from "../render/flashes.js";
 import {
-    ARC_LABELS,
     ARCS_KEY,
     closeUps,
     draw,
@@ -21,7 +20,6 @@ import {
     type Arcs,
 } from "../render/canvas2d.js";
 import type { Strips } from "../render/fleetStrip.js";
-import { viewOptions } from "./viewOptions.js";
 import type { Inset } from "../render/inset.js";
 import {
     frame,
@@ -105,6 +103,9 @@ function pickedBounds(view: Snapshot, picked: readonly number[]): Bounds | null 
 /** How long the frame rate is counted over before it is read again. */
 const FPS_WINDOW_MS = 500;
 
+/** What a battle view draws besides the battle, set from its page's menu or by key. */
+export type Look = Pick<ViewSettings, "arcs" | "teamShots" | "strips">;
+
 export interface BattleView {
     /**
      * Show this battle from its start, running or held, and if `rewindable`,
@@ -131,6 +132,9 @@ export interface BattleView {
     fit(): void;
     /** Remember this page's arcs and shot colours between visits, leaving the speed to the page; `defaults` for a page with none kept. */
     keepView(page: string, defaults?: ViewSettings): void;
+    /** What the view draws besides the battle: the arcs, the shots' colours and the fleet strips. */
+    readonly look: Look;
+    setLook(next: Partial<Look>): void;
     /** Stop the clock and let go of the window, for a page that takes the view away. */
     dispose(): void;
     readonly camera: Readonly<Camera>;
@@ -296,34 +300,7 @@ export function battleView(
     /** Pixi's canvas, under this one, which draws the battle: this one holds only what is dragged or placed. */
     const stacked = pixiUnder(canvas);
     const layer: PixiView = stacked.view;
-    const options = viewOptions(canvas.parentElement ?? document.body, [
-        {
-            label: () => ARC_LABELS[arcs],
-            title: "Cycle the firing arcs drawn (Ctrl+A)",
-            press: () => {
-                arcs = nextArcs(arcs);
-                remember();
-            },
-        },
-        {
-            label: () => (teamShots ? "Shots: sides" : "Shots: light"),
-            title: "Draw rounds and beams as light, or in their side's colours (C)",
-            press: () => {
-                teamShots = !teamShots;
-                remember();
-            },
-        },
-        {
-            label: () => (strips ? "Fleets: shown" : "Fleets: hidden"),
-            title: "Show or hide each side's ships down the view's edges (T)",
-            press: () => {
-                strips = !strips;
-                remember();
-            },
-        },
-    ]);
     const remember = (): void => {
-        options.refresh();
         if (kept === null) return;
         // Over what is kept now, whose speed the page may have changed since.
         kept.settings = { ...loadView(kept.page, kept.settings), arcs, teamShots, strips };
@@ -553,6 +530,8 @@ export function battleView(
             event.preventDefault();
             nearest(event.ctrlKey || event.metaKey || event.shiftKey);
         } else if (event.key === "Escape") {
+            // Taken only when there was something to let go, so the page's menu opens on the next.
+            if (placing !== null || armed !== null || picked.length > 0) event.preventDefault();
             if (placing !== null) {
                 const ended = placing.ended;
                 placing = null;
@@ -895,13 +874,20 @@ export function battleView(
             arcs = settings.arcs;
             teamShots = settings.teamShots;
             strips = settings.strips;
-            options.refresh();
+        },
+        get look() {
+            return { arcs, teamShots, strips };
+        },
+        setLook(next) {
+            arcs = next.arcs ?? arcs;
+            teamShots = next.teamShots ?? teamShots;
+            strips = next.strips ?? strips;
+            remember();
         },
         dispose() {
             window.cancelAnimationFrame(frameRequest);
             resizing.disconnect();
             window.removeEventListener("keydown", onKey);
-            options.remove();
             stacked.remove();
             stripCanvas.remove();
             battle = null;
