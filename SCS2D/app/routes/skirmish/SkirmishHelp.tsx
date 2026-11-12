@@ -92,10 +92,10 @@ export function SkirmishHelp({ open, onClose, cardAfter, quietTime }: SkirmishHe
             }}
         >
             <h2 id="skirmishHelpTitle">How a skirmish works</h2>
-            <p>An arms race against an enemy that learns: every time you beat it, it evolves to beat you back.</p>
+            <p>An arms race against an enemy that adapts: every time you beat it, it evolves to counter your fleet.</p>
             <ol>
                 <li>
-                    <strong>Pick an enemy and a battlefield.</strong> What the enemy cost to build is your budget: metal, fuel and build
+                    <strong>Pick an enemy and a battlefield.</strong> What the enemy costs to build sets your budget: metal, fuel and build
                     time.
                 </li>
                 <li>
@@ -109,7 +109,7 @@ export function SkirmishHelp({ open, onClose, cardAfter, quietTime }: SkirmishHe
                     <strong>Lost? Change your fleet and try again.</strong> Each try of a round starts the same way, so you can work out
                     what beats it.
                     {cardAfter > 0 &&
-                        ` After ${cardAfter} losses in a row, each with a fleet that has not lost the round before, you are dealt upgrade cards to stretch your budget.`}
+                        ` After modifying your fleet ${cardAfter} times in a row without a victory, you can pick an upgrade card to increase your budget.`}
                 </li>
                 <li>
                     <strong>Won? The enemy evolves.</strong> Pick where the next round is fought, then watch the enemy breed variations on
@@ -121,7 +121,7 @@ export function SkirmishHelp({ open, onClose, cardAfter, quietTime }: SkirmishHe
                     main menu.
                 </li>
             </ol>
-            <p>The presets above set everything up; Customise and Advanced settings are there when you want more control.</p>
+            <p>The presets above set everything up; You can use Customise and Advanced settings for more control over the battlefield, or how the enemy evolves.</p>
             <Actions>
                 <Button id="skirmishHelpClose" variant="primary" autoFocus onClick={onClose}>
                     Got it
