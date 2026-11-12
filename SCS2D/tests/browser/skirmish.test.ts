@@ -86,6 +86,7 @@ describe("the skirmish in a browser", () => {
         expect(await page.textContent("#fleetNote")).toContain("over budget");
         expect(await page.locator("#budget tr.over").count()).toBeGreaterThan(0);
         await page.click("#abandon");
+        await page.click("#abandonConfirm");
         expect(await page.isVisible("#setupScreen")).toBe(true);
     });
 
@@ -100,6 +101,7 @@ describe("the skirmish in a browser", () => {
         const kept = await page.evaluate(() => JSON.parse(window.localStorage.getItem("scs2d.skirmish")!));
         expect(kept.budget.metal).toBe(100_000_000);
         await page.click("#abandon");
+        await page.click("#abandonConfirm");
         await advanced();
         // A box set by hand stays when the enemy changes; one left alone follows it.
         await page.fill("#metalBudget", "1");
@@ -138,6 +140,7 @@ describe("the skirmish in a browser", () => {
         expect(kept.settings.gapSpread).toBe(1000);
         // Remembered for the next one, until reset.
         await page.click("#abandon");
+        await page.click("#abandonConfirm");
         await advanced();
         expect(await page.inputValue("#quietTime")).toBe("45");
         await page.click("#resetSettings");
@@ -340,6 +343,7 @@ describe("the skirmish in a browser", () => {
 
         // And read back after giving the skirmish up, it is the same round with the same history.
         await page.click("#abandon");
+        await page.click("#abandonConfirm");
         await page.waitForSelector("#round", { state: "hidden" });
         await page.setInputFiles("#importSkirmishFile", await download.path());
         await page.waitForSelector("#round");
