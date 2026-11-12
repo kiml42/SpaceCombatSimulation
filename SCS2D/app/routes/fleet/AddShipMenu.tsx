@@ -110,7 +110,7 @@ export function AddShipMenu({ open, onOpen, roster, library, onAdd, onAddFile }:
                 >
                     Add ship ▾
                 </Button>
-                <Button id="addFromFile" title="Add a ship from a blueprint file" onClick={() => file.current?.click()}>
+                <Button id="addFromFile" title="Add a ship from a ship design file" onClick={() => file.current?.click()}>
                     Add from file…
                 </Button>
             </Pair>

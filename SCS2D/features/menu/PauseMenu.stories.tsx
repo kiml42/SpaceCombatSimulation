@@ -62,7 +62,7 @@ export const Keys: Story = {
 };
 
 export const AsksBeforeLeavingUnsaved: Story = {
-    args: { title: "Ship designer", pause: fn(() => resume), unsaved: { what: "Probe", save: fn() } },
+    args: { title: "Ship editor", pause: fn(() => resume), unsaved: { what: "Probe", save: fn() } },
     play: async ({ canvas, args }) => {
         await userEvent.click(canvas.getByRole("button", { name: "Menu" }));
         await userEvent.click(canvas.getByRole("button", { name: "Main menu" }));

@@ -642,7 +642,7 @@ function toPlacements(raws: unknown[], whole: boolean): Placement[] {
  */
 export function parseBlueprint(value: unknown): Blueprint {
     const problem = blueprintFileProblem(value);
-    if (problem !== null) throw new Error(`Invalid blueprint file — ${problem}`);
+    if (problem !== null) throw new Error(`Invalid ship design file — ${problem}`);
     return toBlueprint(value as Record<string, unknown>);
 }
 

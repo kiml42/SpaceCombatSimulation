@@ -187,7 +187,7 @@ export function OrderBar({ view, state, shown, doctrineOpen, onDoctrine }: Order
             </Button>
             <ToggleButton
                 id="doctrine"
-                title="How they fight, over what their blueprints say (P)"
+                title="How they fight, over what their designs say (P)"
                 pressed={doctrineOpen}
                 onPressedChange={onDoctrine}
             >

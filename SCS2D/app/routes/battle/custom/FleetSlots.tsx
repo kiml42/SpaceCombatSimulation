@@ -124,7 +124,7 @@ export function FleetSlots({ slots, onChange, onEdit, onProblem }: FleetSlotsPro
                     </select>
                     <EditButton
                         label={`Edit side ${i + 1}`}
-                        title={`Open it in the ${slot.source.kind === "ship" ? "ship" : "fleet"} editor; its Battle link brings it back here, with the rest of this setup`}
+                        title={`Open it in the ${slot.source.kind === "ship" ? "ship" : "fleet"} editor; its Test in Simulator link brings it back here, with the rest of this setup`}
                         onClick={() => onEdit(i)}
                     />
                     <Button
@@ -142,7 +142,7 @@ export function FleetSlots({ slots, onChange, onEdit, onProblem }: FleetSlotsPro
             </Button>{" "}
             <Button
                 id="fleetFromFile"
-                title="Another side from a fleet file, or a ship from a blueprint file"
+                title="Another side from a fleet file, or a ship from a ship design file"
                 onClick={() => files.current?.click()}
             >
                 From file…

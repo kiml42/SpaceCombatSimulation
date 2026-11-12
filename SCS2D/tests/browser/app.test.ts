@@ -74,7 +74,7 @@ it("opens an editor's fleet on the Battle route, from its link or an old one, pa
         await page.waitForFunction(() => document.querySelectorAll("#fleetSlots .slot").length === 1, null, { timeout: 10_000 });
         expect(await page.locator("#fleetSlots option:checked").textContent()).toMatch(/\(from the editor\)$/);
         expect(await page.textContent("#play")).toBe("Play");
-        expect(new URL(page.url()).hash).toBe("#/battle?scene=custom");
+        expect(new URL(page.url()).hash).toBe("#/simulator?scene=custom");
         expect(problems).toEqual([]);
         await page.close();
     }
@@ -122,7 +122,9 @@ it("runs a battle on its route, and lets go of it on leaving", async () => {
             return request(callback);
         };
     });
+    // The Simulator's old address, which links made before it was renamed still carry.
     await page.goto(`${pathToFileURL(appPage).href}#/battle`);
+    await expect.poll(() => new URL(page.url()).hash).toBe("#/simulator");
 
     const readout = page.getByLabel("Battle time");
     const step = async (): Promise<number> => Number(/step (\d+)/.exec((await readout.textContent()) ?? "")?.[1] ?? -1);
@@ -159,7 +161,7 @@ it("runs a battle on its route, and lets go of it on leaving", async () => {
 
     // The library's menu button goes straight back.
     await page.getByRole("button", { name: "Menu" }).click();
-    await page.locator('a[href="#/battle"]').click();
+    await page.locator('a[href="#/simulator"]').click();
     expect(await page.getByRole("combobox", { name: "speed" }).inputValue()).toBe("4");
     await page.evaluate(() => localStorage.removeItem("scs2d.view.viewer"));
     expect(problems).toEqual([]);
@@ -173,7 +175,7 @@ it("draws a battle with WebGL, leaving the 2D view clear", async () => {
         // Not the GPU driver's own notes, such as the stall reading the screenshot back causes.
         if ((message.type() === "error" || message.type() === "warning") && !driverNote(message.text())) problems.push(message.text());
     });
-    await page.goto(`${pathToFileURL(appPage).href}#/battle`);
+    await page.goto(`${pathToFileURL(appPage).href}#/simulator`);
     const readout = page.getByLabel("Battle time");
     // Slower to start than Canvas2D in a browser without a GPU, which draws WebGL in software.
     await expect
@@ -267,7 +269,7 @@ it("sets up a custom battle, from the library and from a battle file, and fights
     page.on("console", (message) => {
         if ((message.type() === "error" || message.type() === "warning") && !driverNote(message.text())) problems.push(message.text());
     });
-    await page.goto(`${pathToFileURL(appPage).href}#/battle`);
+    await page.goto(`${pathToFileURL(appPage).href}#/simulator`);
     const readout = page.getByLabel("Battle time");
     const step = async (): Promise<number> => Number(/step (\d+)/.exec((await readout.textContent()) ?? "")?.[1] ?? -1);
 
@@ -301,7 +303,7 @@ it("takes a side of a custom battle to its editor and back, keeping the rest of 
     const page = await browser.newPage();
     const problems: string[] = [];
     page.on("pageerror", (error) => problems.push(error.message));
-    await page.goto(`${pathToFileURL(appPage).href}#/battle`);
+    await page.goto(`${pathToFileURL(appPage).href}#/simulator`);
     const panel = page.getByRole("complementary", { name: "Custom battle" });
     const side = (n: number) => panel.getByRole("combobox", { name: `Side ${n}` });
 
@@ -340,7 +342,7 @@ it("gives orders, tells doctrine and adds ships on the Battle route", async () =
     page.on("console", (message) => {
         if ((message.type() === "error" || message.type() === "warning") && !driverNote(message.text())) problems.push(message.text());
     });
-    await page.goto(`${pathToFileURL(appPage).href}#/battle`);
+    await page.goto(`${pathToFileURL(appPage).href}#/simulator`);
     type Viewer = {
         screenOf(i: number): { x: number; y: number };
         orders: { command: { kind: string } }[];

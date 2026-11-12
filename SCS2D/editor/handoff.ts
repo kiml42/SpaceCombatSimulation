@@ -12,7 +12,7 @@ const param = (value: unknown): string => encodeURIComponent(JSON.stringify(valu
 
 /** The app's battle route, carrying this fleet as its first side. */
 export function battleRoute(fleet: Fleet): string {
-    return `/battle?fleet=${param(serialiseFleet(fleet))}`;
+    return `/simulator?fleet=${param(serialiseFleet(fleet))}`;
 }
 
 export { shipFleet };

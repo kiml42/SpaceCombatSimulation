@@ -394,7 +394,7 @@ export function FleetPage() {
                     <a
                         id="battleLink"
                         href={`#${battleRoute(doc.fleet)}`}
-                        title="Try this in a custom battle"
+                        title="Try this fleet in the Simulator"
                         aria-disabled={!flies}
                         onClick={(event) => {
                             event.preventDefault();
@@ -402,7 +402,7 @@ export function FleetPage() {
                             void navigate(battleRoute(doc.fleet));
                         }}
                     >
-                        Battle
+                        Test in Simulator
                     </a>
                 ) : (
                     <Back
@@ -422,7 +422,7 @@ export function FleetPage() {
                             void navigate("/skirmish");
                         }}
                     >
-                        Back to battle
+                        Back to Skirmish
                     </Back>
                 )}
             </Bar>

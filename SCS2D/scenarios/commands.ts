@@ -218,7 +218,7 @@ export function parseLog(value: unknown): Logged[] {
                 try {
                     return { step: step as number, command: { ...command, blueprint: parseBlueprint(raw) } as unknown as Command };
                 } catch (error) {
-                    return fail(`its blueprint: ${error instanceof Error ? error.message : String(error)}`);
+                    return fail(`its design: ${error instanceof Error ? error.message : String(error)}`);
                 }
             }
         } else if (command["kind"] === "spawn") {
@@ -232,7 +232,7 @@ export function parseLog(value: unknown): Logged[] {
                     command: { ...command, blueprint: parseBlueprint(command["blueprint"]) } as unknown as Command,
                 };
             } catch (error) {
-                return fail(`its blueprint: ${error instanceof Error ? error.message : String(error)}`);
+                return fail(`its design: ${error instanceof Error ? error.message : String(error)}`);
             }
         } else if (command["kind"] === "keep") {
             const keep = command["keep"];

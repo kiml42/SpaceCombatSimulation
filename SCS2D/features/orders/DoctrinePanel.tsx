@@ -208,7 +208,7 @@ export function DoctrinePanel({ view, state, shown }: DoctrinePanelProps) {
                 </>
             )}
             <Button
-                title="Take all of this back to what the blueprint says"
+                title="Take all of this back to what the design says"
                 onClick={() => view.issue({ kind: "resetDoctrine", ships: [...state.picked], part: showing })}
             >
                 ↺ Revert all
