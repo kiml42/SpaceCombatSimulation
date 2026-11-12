@@ -197,6 +197,21 @@ describe("breeding a fleet", () => {
         expect([...ratios].sort()).toEqual(["in", "out"]);
     });
 
+    it("breeds a fleet already past the cap, never larger than it was", () => {
+        // Line of Battle is five hulls: with a cap of three, no child of it would
+        // fit, and nothing but where its ships stand would ever change.
+        const most = fleetHulls(LINE_OF_BATTLE).length;
+        let changed = 0;
+        for (let seed = 0; seed < 20; seed++) {
+            const child = mutateFleet(LINE_OF_BATTLE, new Rng(seed), { maxShips: 3, move: 0 });
+            const hulls = fleetHulls(child.fleet).length;
+            expect(hulls).toBeLessThanOrEqual(most);
+            // Changed without first being cut down under the cap.
+            if (child.edits.length > 0 && hulls === most) changed++;
+        }
+        expect(changed).toBeGreaterThan(0);
+    });
+
     it("scales one design up or down, whole, by about a tenth", () => {
         const fleet = pair();
         // Every module's size, as the geometry is scaled exactly; what it compiles to follows the scaling laws.

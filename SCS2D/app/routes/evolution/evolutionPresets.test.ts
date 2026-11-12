@@ -31,4 +31,18 @@ test("a single group and a race are runs of one lineage", () => {
     const race = configOf(named("Race").apply(was));
     expect(race.match.weights).toEqual({ survival: 0, functional: 0, damage: 0, disabling: 0, race: 1 });
     expect(race.match.goal?.solid).toBe(false);
+    expect(race.match.course).toBeUndefined();
+});
+
+test("both races are one ship alone, a course's drawn for every match", () => {
+    for (const name of ["Race", "Race course"]) {
+        const config = configOf(named(name).apply(was));
+        expect(config.fleet.maxShips).toBe(1);
+        expect(config.group).toBe(1);
+        expect(config.keep).toBe(2);
+    }
+    const course = configOf(named("Race course").apply(was));
+    expect(course.match.weights?.race).toBe(1);
+    expect(course.match.course).toEqual({ goals: 5, leg: 800, legSpread: 300, turn: 90, turnSpread: 90 });
+    expect(course.match.goal).toMatchObject({ linger: 2, finalLinger: 15, solid: false });
 });

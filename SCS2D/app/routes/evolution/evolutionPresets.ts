@@ -17,6 +17,22 @@ function fresh(form: SetupForm, texts: Record<string, string>, rest: Partial<Set
     return { ...base, texts: { ...DEFAULT_TEXTS, configName: form.texts["configName"] ?? "", ...texts }, ...rest };
 }
 
+/**
+ * A race and nothing else: one ship to a match, scored only on the race, and
+ * the best two of each generation always kept, since a ship racing alone
+ * scores much the same every match and a draw would only lose ground.
+ */
+const RACE: Record<string, string> = {
+    survivalWeight: "0",
+    functionalWeight: "0",
+    damageWeight: "0",
+    disablingWeight: "0",
+    raceWeight: "1",
+    fleetShips: "1",
+    group: "1",
+    keep: "2",
+};
+
 export const EVOLUTION_PRESETS: readonly EvolutionPreset[] = [
     {
         name: "Co-evolution",
@@ -35,11 +51,26 @@ export const EVOLUTION_PRESETS: readonly EvolutionPreset[] = [
     },
     {
         name: "Race",
-        hint: "Scored only on ground gained towards a goal that cannot be hit",
+        hint: "One ship alone, scored only on getting to a goal in the middle that cannot be hit",
+        apply: (form) => fresh(form, RACE, { goal: "ghost" }),
+    },
+    {
+        name: "Race course",
+        hint: "One ship alone round five goals drawn afresh for every match, stopping briefly at each and holding the last, scored only on how far round it got",
         apply: (form) =>
             fresh(
                 form,
-                { survivalWeight: "0", functionalWeight: "0", damageWeight: "0", disablingWeight: "0", raceWeight: "1" },
+                {
+                    ...RACE,
+                    courseGoals: "5",
+                    courseLeg: "800",
+                    courseLegSpread: "300",
+                    courseTurn: "90",
+                    courseTurnSpread: "90",
+                    goalLinger: "2",
+                    goalFinalLinger: "15",
+                    duration: "240",
+                },
                 { goal: "ghost" },
             ),
     },

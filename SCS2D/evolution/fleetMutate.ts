@@ -110,7 +110,7 @@ export const DEFAULT_FLEET_LIMITS: FleetMutationLimits = {
     ship: {},
     budget: NO_BUDGET,
     radius: 500,
-    maxShips: 24,
+    maxShips: 5,
     size: 0.25,
     turn: PI / 12,
     move: 1,
@@ -149,11 +149,13 @@ export interface FleetMutant {
  * design is, so one bad draw does not cost the rest.
  */
 export function mutateFleet(parent: Fleet, rng: Rng, limits?: Partial<FleetMutationLimits>): FleetMutant {
-    const bounds: FleetMutationLimits = {
+    const given: FleetMutationLimits = {
         ...DEFAULT_FLEET_LIMITS,
         ...limits,
         operators: { ...DEFAULT_FLEET_LIMITS.operators, ...limits?.operators },
     };
+    // A fleet already past the cap may stay as large but grow no larger, or no child of it would fit.
+    const bounds = { ...given, maxShips: max(given.maxShips, fleetHulls(parent).length) };
     const draft = clone(parent);
     const edits: string[] = [];
     let attempts = 0;
