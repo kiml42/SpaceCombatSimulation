@@ -328,7 +328,10 @@ export function EvolutionPage() {
     const [mode, setModeState] = useState<"fleet" | "battle">("fleet");
     const [shown, setShown] = useState(-1);
     const [picked, setPicked] = useState(-1);
-    const [metric, setMetric] = useState<SizeMetric>("mass");
+    const [metric, setMetric] = useState<SizeMetric | "score">("score");
+    // Against a side that evolves too, the score says nothing over time, so it is not offered.
+    const showScore = !(coRun(form) && form.rivalEvolves);
+    const sizeMetric: SizeMetric = metric === "score" ? "mass" : metric;
     const [notice, setNotice] = useState({ text: "", warn: false });
     const [savedAs, setSavedAs] = useState<{ id: number; text: string } | null>(null);
     const [benchmark, setBenchmark] = useState(OWN_FINAL);
@@ -846,15 +849,15 @@ export function EvolutionPage() {
                         {!setupScreen && (
                             <RunCharts
                                 score={scoreSeries(run, points)}
-                                showScore={!(coRun(form) && form.rivalEvolves)}
-                                size={sizeSeries(run, metric)}
-                                metric={metric}
-                                onMetric={(next) => setMetric(next as SizeMetric)}
+                                showScore={showScore}
+                                size={sizeSeries(run, sizeMetric)}
+                                metric={showScore ? metric : sizeMetric}
+                                onMetric={(next) => setMetric(next as SizeMetric | "score")}
                                 doctrineLabel={(key) => {
                                     const moved = doctrineMoved(run, key);
                                     return Number.isFinite(moved) ? `${key} (${moved >= 0 ? "+" : ""}${moved.toPrecision(2)})` : key;
                                 }}
-                                sizeKey={sizeDigits(metric)}
+                                sizeKey={sizeDigits(sizeMetric)}
                                 picked={markedGeneration(run, shown)}
                                 label={(at) => pointLabel(run, at)}
                                 onSeek={(at) => viewing.seek(at)}

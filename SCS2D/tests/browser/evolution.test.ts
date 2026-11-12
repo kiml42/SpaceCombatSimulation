@@ -189,25 +189,29 @@ describe("the evolution route in a browser", () => {
         await page.waitForFunction(() => /\d+%|over/.test(document.getElementById("watching")?.textContent ?? ""));
     }, 180_000);
 
-    it("draws the run as lines rather than an empty box", async () => {
+    it("draws the run as lines rather than an empty box, one chart picked at a time", async () => {
+        // The score first.
+        expect(await page.inputValue("#chartMetric")).toBe("score");
         expect(await distinctColours(page, "chart")).toBeGreaterThan(4);
-        // And what each generation weighed, under it.
-        expect(await distinctColours(page, "massChart")).toBeGreaterThan(2);
+        // Or what each generation weighed.
+        await page.selectOption("#chartMetric", "mass");
+        expect(await page.textContent("#legend")).toMatch(/mean mass/);
+        expect(await distinctColours(page, "chart")).toBeGreaterThan(2);
         // Or what it was armed and driven with.
-        await page.selectOption("#sizeMetric", "fittings");
-        expect(await page.textContent("#massLegend")).toMatch(/mean weapons.*mean engines/);
-        expect(await distinctColours(page, "massChart")).toBeGreaterThan(2);
+        await page.selectOption("#chartMetric", "fittings");
+        expect(await page.textContent("#legend")).toMatch(/mean weapons.*mean engines/);
+        expect(await distinctColours(page, "chart")).toBeGreaterThan(2);
         // Or how far apart its scores were.
-        await page.selectOption("#sizeMetric", "spread");
-        expect(await page.textContent("#massLegend")).toMatch(/middle half.*best to worst.*tied/);
-        expect(await distinctColours(page, "massChart")).toBeGreaterThan(2);
+        await page.selectOption("#chartMetric", "spread");
+        expect(await page.textContent("#legend")).toMatch(/middle half.*best to worst.*tied/);
+        expect(await distinctColours(page, "chart")).toBeGreaterThan(2);
         // Or how a doctrine number moved, each option labelled with how far its mean went over the run.
-        await page.selectOption("#sizeMetric", "doctrine:approach.standoff");
-        expect(await page.textContent("#massLegend")).toMatch(/mean approach\.standoff.*best's approach\.standoff/);
-        expect(await distinctColours(page, "massChart")).toBeGreaterThan(2);
-        expect(await page.textContent('#sizeMetric option[value="doctrine:approach.standoff"]')).toMatch(/^approach\.standoff \([+-]/);
-        await page.selectOption("#sizeMetric", "mass");
-        expect(await page.textContent("#massLegend")).toMatch(/mean mass/);
+        await page.selectOption("#chartMetric", "doctrine:approach.standoff");
+        expect(await page.textContent("#legend")).toMatch(/mean approach\.standoff.*best's approach\.standoff/);
+        expect(await distinctColours(page, "chart")).toBeGreaterThan(2);
+        expect(await page.textContent('#chartMetric option[value="doctrine:approach.standoff"]')).toMatch(/^approach\.standoff \([+-]/);
+        await page.selectOption("#chartMetric", "score");
+        expect(await page.textContent("#legend")).toMatch(/best.*mean/);
     });
 
     it("lists what it bred, and what each generation fought", async () => {
@@ -889,14 +893,16 @@ describe("the evolution route in a browser", () => {
 
         await page.click("#start");
         await page.waitForFunction(() => document.getElementById("state")?.textContent === "finished", undefined, { timeout: 120_000 });
-        // On the run screen: the score chart is not drawn for a run scored against a moving opponent.
+        // On the run screen: the score is not offered for a run scored against a moving opponent.
         expect(await page.isVisible("#setupScreen")).toBe(false);
-        expect(await page.isVisible("#chart")).toBe(false);
-        expect(await page.isVisible("#legend")).toBe(false);
+        expect(await page.$$eval("#chartMetric option", (all) => all.map((option) => (option as HTMLOptionElement).value))).not.toContain(
+            "score",
+        );
+        expect(await page.inputValue("#chartMetric")).toBe("mass");
         // How far apart each side's scores are, in rounds.
-        await page.selectOption("#sizeMetric", "spread");
-        expect(await page.textContent("#massLegend")).toMatch(/A middle half.*B middle half/);
-        await page.selectOption("#sizeMetric", "mass");
+        await page.selectOption("#chartMetric", "spread");
+        expect(await page.textContent("#legend")).toMatch(/A middle half.*B middle half/);
+        await page.selectOption("#chartMetric", "mass");
         await page.selectOption("#mode", "fleet");
         // The last of four rounds, A then B in turn, was side B's.
         await page.waitForFunction(() =>
@@ -916,7 +922,7 @@ describe("the evolution route in a browser", () => {
         expect(tables[1]!.left).toBeGreaterThan(tables[0]!.left);
         const heights = await page.$$eval("#fleet tbody tr", (rows) => rows.map((tr) => tr.getBoundingClientRect().height));
         expect(Math.max(...heights) - Math.min(...heights)).toBeLessThan(1.5);
-        expect(await distinctColours(page, "massChart")).toBeGreaterThan(2);
+        expect(await distinctColours(page, "chart")).toBeGreaterThan(2);
         expect(await page.textContent("#championLine")).toMatch(/A #\d+.*B #\d+/);
         // Measured as a grid of each side's champions against the other's.
         await page.click("#measure");
@@ -949,7 +955,10 @@ describe("the evolution route in a browser", () => {
         expect(await page.isVisible("#b_population")).toBe(false);
         await page.click("#toRun");
         expect(await page.isVisible("#chart")).toBe(true);
-        expect(await page.isVisible("#legend")).toBe(true);
+        // A run of one lineage again, so the score is on offer again.
+        expect(await page.$$eval("#chartMetric option", (all) => all.map((option) => (option as HTMLOptionElement).value))).toContain(
+            "score",
+        );
         expect(problems).toEqual([]);
     }, 180_000);
 
