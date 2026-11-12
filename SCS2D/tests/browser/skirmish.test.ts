@@ -80,6 +80,18 @@ async function startWith(ship: Blueprint): Promise<void> {
 describe("the skirmish in a browser", () => {
     it("opens on choosing an enemy, without errors", async () => {
         expect(await page.isVisible("#setupScreen")).toBe(true);
+        // How a skirmish works, by itself the first time, then behind ? and its key.
+        expect(await page.isVisible("#skirmishHelp")).toBe(true);
+        await page.click("#skirmishHelpClose");
+        expect(await page.isVisible("#skirmishHelp")).toBe(false);
+        await page.click("#skirmishHelpOpen");
+        expect(await page.isVisible("#skirmishHelp")).toBe(true);
+        await page.keyboard.press("Escape");
+        expect(await page.isVisible("#skirmishHelp")).toBe(false);
+        await page.keyboard.press("?");
+        expect(await page.isVisible("#skirmishHelp")).toBe(true);
+        await page.keyboard.press("Escape");
+        expect(await page.evaluate(() => localStorage.getItem("scs2d.help.skirmish"))).toBe("seen");
         expect(await page.isVisible("#round")).toBe(false);
         expect(await page.textContent("#enemyBill")).toContain("metal");
         // No battle controls until there is a round; import sits under Start.

@@ -157,8 +157,11 @@ export const Ship: Story = {
     },
 };
 
+/** The setup screen, its help already seen. */
+const SEEN_HELP = { "scs2d.help.skirmish": "seen" };
+
 export const Skirmish: Story = {
-    args: { path: "/skirmish" },
+    args: { path: "/skirmish", saved: SEEN_HELP },
     play: async ({ canvas }) => {
         await expect(canvas.getByRole("combobox", { name: "Enemy fleet" })).not.toBeVisible();
         await expect(canvas.getByRole("combobox", { name: "Enemy" })).toHaveDisplayValue(/./);
@@ -169,9 +172,22 @@ export const Skirmish: Story = {
     },
 };
 
+/** The first time, how a skirmish works opens by itself; ? brings it back. */
+export const SkirmishHelp: Story = {
+    args: { path: "/skirmish" },
+    play: async ({ canvas }) => {
+        const help = await canvas.findByRole("dialog", { name: "How a skirmish works" });
+        await expect(help).toHaveTextContent("every time you beat it, it evolves to beat you back");
+        await userEvent.click(within(help).getByRole("button", { name: "Got it" }));
+        await expect(canvas.queryByRole("dialog")).toBeNull();
+        await userEvent.click(canvas.getByRole("button", { name: "How a skirmish works" }));
+        await expect(canvas.getByRole("dialog", { name: "How a skirmish works" })).toBeVisible();
+    },
+};
+
 /** Setting a skirmish up, the menu button only goes back. */
 export const SkirmishSetupBack: Story = {
-    args: { path: "/skirmish" },
+    args: { path: "/skirmish", saved: SEEN_HELP },
     play: async ({ canvas }) => {
         await userEvent.click(canvas.getByRole("button", { name: "Menu" }));
         await expect(canvas.queryByRole("dialog")).toBeNull();
