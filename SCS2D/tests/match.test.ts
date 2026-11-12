@@ -116,16 +116,16 @@ describe("match", () => {
         expect(new Set(result.winners.map((i) => teams[i]))).toHaveProperty("size", 1);
     });
 
-    it("plays on after the last kill while the goal still counts", () => {
+    it("plays on while the goal still counts, until every ship flown has reached it", () => {
         // The survivor still has the goal to fly: stopping would score it as
         // though it stayed wherever the last kill left it.
         const result = runMatch([GUNSHIP, CORVETTE], { seed: 11 });
-        expect(result.ending).toEqual("decided");
-        expect(result.elapsed).toBeCloseTo(DEFAULT_MATCH.duration, 9);
         const early = runMatch([GUNSHIP, CORVETTE], {
             seed: 11,
             weights: { survival: 1, functional: 1, damage: 1, disabling: 1, race: 0 },
         });
+        expect(result.ending).toEqual("decided");
+        expect(result.elapsed).toBeLessThan(DEFAULT_MATCH.duration);
         // The same fight up to the kill, then flown rather than frozen.
         const last = Math.max(...result.scores.map((score) => score.lifetime));
         const winner = result.scores.findIndex((score) => score.lifetime === last);
@@ -169,7 +169,7 @@ describe("match", () => {
     });
 
     it("flies a lone ship to the clock, as a test of piloting alone", () => {
-        const result = runMatch([CORVETTE], { seed: 5, duration: 20 });
+        const result = runMatch([CORVETTE], { seed: 5, duration: 20, goal: null });
         expect(result.ending).toEqual("timeout");
         expect(result.elapsed).toBeCloseTo(20, 9);
         expect(result.scores).toHaveLength(1);
@@ -192,8 +192,8 @@ describe("match", () => {
     });
 
     it("scores nothing for holding a position, however good it is", () => {
-        // A craft that starts on the goal and stays there has gained nothing, and
-        // nor has one that starts far off and stays there. The quantity is ground
+        // A craft that starts just short of the goal and stays there has gained
+        // nothing, and nor has one that starts far off and stays there. The quantity is ground
         // *gained*: what a design is credited with is what it did, not where it
         // happened to be put. Not told to go to the goal, which a race weighted at
         // nothing is not, and without the stock corvette's urge to escort.
@@ -201,7 +201,7 @@ describe("match", () => {
         const onIt = runMatch([holding], {
             seed: 17,
             duration: 20,
-            goal: { x: DEFAULT_MATCH.radius, y: 0, scale: 500, size: 12 },
+            goal: { x: DEFAULT_MATCH.radius + 300, y: 0, scale: 500, size: 12 },
             weights: UNRACED,
         });
         const milesOff = runMatch([holding], {

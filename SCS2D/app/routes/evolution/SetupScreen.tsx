@@ -407,6 +407,49 @@ export function SetupScreen({ hidden, form, onForm, ships, fleets, onExport, onI
                             <option value="none">none</option>
                         </select>
                     </Row>
+                    {field({
+                        id: "courseGoals",
+                        label: "goals",
+                        min: 1,
+                        title: "How many goals in the course, the first in the middle. Each ship is sent on to the next once it has reached one, and the match ends once every ship has reached the last. Drawn afresh for every match, from its seed",
+                    })}
+                    {field({
+                        id: "courseLeg",
+                        label: "leg m",
+                        step: 50,
+                        title: "How far each goal is from the one before",
+                        spread: { id: "courseLegSpread", title: "How far either side each leg is drawn, evenly. Zero holds it." },
+                    })}
+                    {field({
+                        id: "courseTurn",
+                        label: "turn °",
+                        max: 180,
+                        step: 15,
+                        title: "How far each leg turns from the one before, left or right as drawn: 0 straight on, 180 straight back",
+                        spread: {
+                            id: "courseTurnSpread",
+                            title: "How far either side each turn is drawn, evenly. 90 ± 90 is any turn at all.",
+                        },
+                    })}
+                    {field({
+                        id: "goalReach",
+                        label: "reach m",
+                        step: 10,
+                        title: "How close a ship must be to a goal to be at it, metres from its hull to the goal's",
+                    })}
+                    {field({
+                        id: "goalLinger",
+                        label: "linger s",
+                        step: 1,
+                        title: "How long a ship must stay at a goal, without leaving, for it to count as reached",
+                    })}
+                    {field({
+                        id: "goalFinalLinger",
+                        label: "last linger s",
+                        step: 5,
+                        placeholder: "as linger",
+                        title: "How long a ship must stay at the last goal: a station to be held. Empty for the same as every other goal",
+                    })}
                 </Fold>
                 <Fold k="asteroids" title="Asteroids" open={false}>
                     <Group fields={MAP_FIELDS} group="map" form={form} onForm={onForm} />
