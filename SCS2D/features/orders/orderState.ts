@@ -3,6 +3,7 @@ import { useSampled } from "~/features/battle/useSampled";
 import type { BattleView, Verb } from "~/host/battleView";
 import { teamName, type Sides } from "~/render/teams";
 import { viewOf } from "~/render/picking";
+import { Income } from "~/render/income";
 import type { OrderView, Snapshot } from "~/sim/index";
 
 /** What the order controls show, read off the battle: plain data, so it can be compared as text. */
@@ -63,6 +64,24 @@ function tonnes(kg: number): string {
     return `${t >= 100 ? Math.round(t).toLocaleString("en-GB") : t.toPrecision(3)} t`;
 }
 
+/** How fast each asteroid's rock is going, as income is measured: its mass falling rather than a hold's rising. */
+const rockTaken = new Income();
+
+/** A wait, in seconds, minutes, hours or days, roughly. */
+function roughly(seconds: number): string {
+    if (seconds < 120) return `${Math.round(seconds)} s`;
+    if (seconds < 120 * 60) return `${Math.round(seconds / 60)} min`;
+    if (seconds < 48 * 3600) return `${Math.round(seconds / 3600)} h`;
+    return `${Math.round(seconds / 86400)} days`;
+}
+
+/** What is left in an asteroid, and how soon it is mined out at the rate it is going, if it is going. */
+function asteroidText(body: number, time: number, rock: { rock: number; ore: number; ice: number }): string {
+    const left = `rock ${tonnes(rock.rock)} · ore ${tonnes(rock.ore)} · ice ${tonnes(rock.ice)}`;
+    const perMinute = rockTaken.note(body, time, -rock.rock);
+    return perMinute > 0 ? `${left} · mined out in ~${roughly((rock.rock / perMinute) * 60)}` : left;
+}
+
 export function orderState(view: BattleView, shown: Snapshot): OrderState {
     const picked = [...view.picked];
     const ships = picked.map((i) => viewOf(shown, i)).filter((ship) => ship !== null);
@@ -79,8 +98,7 @@ export function orderState(view: BattleView, shown: Snapshot): OrderState {
         designs: ships.map((ship) => (ship.blueprint ?? ship.currentStructure).name),
         crewed: ships.length > 0 && ships.every((ship) => (ship.crews ?? []).some((n) => n > 0)),
         speed: speeds.length > 0 && speeds.every((v) => v !== undefined && v === speeds[0]) ? String(speeds[0]) : "doctrine",
-        asteroid:
-            one?.rock === undefined ? null : `rock ${tonnes(one.rock.rock)} · ore ${tonnes(one.rock.ore)} · ice ${tonnes(one.rock.ice)}`,
+        asteroid: one?.rock === undefined ? null : asteroidText(one.body, shown.time, one.rock),
     };
 }
 

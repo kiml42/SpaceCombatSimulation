@@ -101,7 +101,7 @@ export interface ShipCanvas {
     readonly camera: Camera;
     /** The firing arcs drawn. The editor is where a mount's arcs are decided, so it starts showing them all. */
     readonly arcs: Arcs;
-    /** Whether a refit's built and taken-down modules are marked. */
+    /** Whether a refit's built and taken-down modules are marked. Off until toggled. */
     readonly showRefit: boolean;
     /**
      * The grid an edit snaps to, metres: a tenth of the grid on screen, so it
@@ -231,7 +231,8 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
     const demonstration = new Demonstration();
     let fitPending = true;
     let arcs: Arcs = "trigger";
-    let showRefit = true;
+    // Off until asked for: nothing opens the editor to refit a ship yet.
+    let showRefit = false;
     let easeFit = false;
     /** Wall time of the last animated frame, or 0 when nothing is animating. */
     let lastFrame = 0;

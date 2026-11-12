@@ -1,5 +1,5 @@
 import { styled } from "@linaria/react";
-import { NavLink, Outlet } from "react-router";
+import { NavLink, Outlet, useMatch } from "react-router";
 
 const Layout = styled.div`
     display: flex;
@@ -34,20 +34,23 @@ const Header = styled.header`
     }
 `;
 
-/** What every route is shown inside: the way between them, and the route itself. */
+/** What every route is shown inside: a bar of the way between them (but over the menu, which is that already), and the route itself. */
 export function Shell() {
+    const onMenu = useMatch({ path: "/", end: true }) !== null;
     return (
         <Layout>
-            <Header>
-                <NavLink to="/" end>
-                    Space Combat Simulation
-                </NavLink>
-                <nav aria-label="Main">
-                    <NavLink to="/battle">Battle</NavLink> <NavLink to="/fleet">Fleet</NavLink> <NavLink to="/ship">Ship</NavLink>{" "}
-                    <NavLink to="/skirmish">Skirmish</NavLink> <NavLink to="/evolution">Evolution</NavLink>{" "}
-                    <NavLink to="/library">Library</NavLink> <NavLink to="/effects">Effects</NavLink>
-                </nav>
-            </Header>
+            {!onMenu && (
+                <Header>
+                    <NavLink to="/" end>
+                        Space Combat Simulation
+                    </NavLink>
+                    <nav aria-label="Main">
+                        <NavLink to="/battle">Battle</NavLink> <NavLink to="/fleet">Fleet</NavLink> <NavLink to="/ship">Ship</NavLink>{" "}
+                        <NavLink to="/skirmish">Skirmish</NavLink> <NavLink to="/evolution">Evolution</NavLink>{" "}
+                        <NavLink to="/library">Library</NavLink> <NavLink to="/effects">Effects</NavLink>
+                    </nav>
+                </Header>
+            )}
             <Outlet />
         </Layout>
     );

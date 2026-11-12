@@ -9,7 +9,9 @@ import { DOCTRINE_KEY, DoctrinePanel } from "~/features/orders/DoctrinePanel";
 import { OrderBar } from "~/features/orders/OrderBar";
 import { useOrderState } from "~/features/orders/orderState";
 import { BudgetTable } from "~/features/skirmish/BudgetTable";
+import { AbandonDialog } from "~/features/skirmish/AbandonDialog";
 import { CardHand } from "~/features/skirmish/Cards";
+import { download, downloadSkirmish, skirmishStatus, skirmishTitle } from "~/features/skirmish/skirmishFile";
 import { useSkirmish } from "~/features/skirmish/SkirmishProvider";
 import { useStorage } from "~/features/storage/StorageContext";
 import { useLibrary } from "~/features/storage/useLibrary";
@@ -32,6 +34,7 @@ import {
     canFight,
     DEFAULT_SKIRMISH_SETTINGS,
     fleetFault,
+    goTo,
     lost,
     newSkirmish,
     nextRound,
@@ -40,14 +43,13 @@ import {
     parseSkirmishSettings,
     roundBattle,
     roundSetup,
-    serialiseSkirmish,
-    skirmishFileName,
     settingsOf,
     won,
     type Skirmish,
     type SkirmishSettings,
 } from "~/scenarios/skirmish";
 import type { Battle } from "~/scenarios/types";
+import { destinationById } from "~/skirmish/destinations";
 import { serialiseFleet, type Budget, type Fleet, type Snapshot } from "~/sim/index";
 import { Button } from "~/ui/buttons/Button";
 import { EditLink } from "~/ui/buttons/EditButton";
@@ -293,18 +295,9 @@ function enemyAlone(enemy: Fleet): CustomBattle {
     return customBattle({ ...DEFAULT_SETUP, fleets: [{ name: "", designs: {}, ships: [] }, enemy] });
 }
 
-/** A round's battle, seen in the light its seed draws. */
-function roundOn(setup: BattleSetup): CustomBattle {
-    return lit(customBattle(setup), roundLight(setup.seed));
-}
-
-function download(name: string, text: string): void {
-    const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = name;
-    link.click();
-    URL.revokeObjectURL(url);
+/** A round's battle, seen in the light its seed draws, as bright as the skirmish says. */
+function roundOn(setup: BattleSetup, light: number): CustomBattle {
+    return lit(customBattle(setup), roundLight(setup.seed, light));
 }
 
 /**
@@ -348,6 +341,7 @@ export function SkirmishPage() {
     const [watching, setWatching] = useState(true);
     const [enemyCost, setEnemyCost] = useState<Budget | null>(null);
     const [setupKey, setSetupKey] = useState(0);
+    const [abandoning, setAbandoning] = useState(false);
     const ticked = useSampled(() => (view === null ? 0 : (battle.current?.world.tick ?? 0) > 0 ? 1 : 0));
 
     /** A fleet, or a single ship as a fleet of one, from a list value. */
@@ -393,7 +387,7 @@ export function SkirmishPage() {
         const fits = canFight(current);
         setFightable(fits);
         if (fits) {
-            battle.current = roundOn(roundSetup(current));
+            battle.current = roundOn(roundSetup(current), settingsOf(current).light);
             // Your round alone takes orders, and can be wound back.
             on.allowOrders(0);
             on.show(battle.current, false, true);
@@ -415,9 +409,14 @@ export function SkirmishPage() {
         setReplaying(false);
         undecided();
         activity.current = newActivity();
-        battle.current = roundOn(roundBattle(current.player, current.enemy, current.won, settingsOf(current)));
-        setOutcome({ text: "The enemy as it stands against your fleet, evolving an answer.", kind: "" });
-        setEnemyLine(`Against ${current.enemy.name}, evolving.`);
+        battle.current = roundOn(roundBattle(current.player, current.enemy, current.won, settingsOf(current)), settingsOf(current).light);
+        if (current.ways !== undefined) {
+            setOutcome({ text: "Round won. Pick where the next round is fought.", kind: "won" });
+            setEnemyLine(`Against ${current.enemy.name}.`);
+        } else {
+            setOutcome({ text: "The enemy as it stands against your fleet, evolving an answer.", kind: "" });
+            setEnemyLine(`Against ${current.enemy.name}, evolving.`);
+        }
         setFightable(true);
         showOn(on, battle.current, watching);
     };
@@ -428,7 +427,7 @@ export function SkirmishPage() {
         mode.current = "watching";
         undecided();
         activity.current = newActivity();
-        battle.current = roundOn(roundBattle(current.player, now.best, current.won, settingsOf(current)));
+        battle.current = roundOn(roundBattle(current.player, now.best, current.won, settingsOf(current)), settingsOf(current).light);
         setOutcome({ text: `Generation ${now.generation}'s best enemy against your fleet.`, kind: "" });
         setEnemyLine(`Against ${now.best.name}, evolving.`);
         setFightable(true);
@@ -440,7 +439,7 @@ export function SkirmishPage() {
         mode.current = "answer";
         undecided();
         activity.current = newActivity();
-        battle.current = roundOn(roundBattle(current.player, enemy, current.won, settingsOf(current)));
+        battle.current = roundOn(roundBattle(current.player, enemy, current.won, settingsOf(current)), settingsOf(current).light);
         setOutcome({ text: "The enemy's answer.", kind: "lost" });
         setEnemyLine(`Against ${enemy.name}, the answer.`);
         setFightable(true);
@@ -466,7 +465,8 @@ export function SkirmishPage() {
         setRoundOver(true);
         undecided();
         activity.current = newActivity();
-        battle.current = roundOn(roundBattle(player, enemy, seed, skirmish === null ? DEFAULT_SKIRMISH_SETTINGS : settingsOf(skirmish)));
+        const settings = skirmish === null ? DEFAULT_SKIRMISH_SETTINGS : settingsOf(skirmish);
+        battle.current = roundOn(roundBattle(player, enemy, seed, settings), settings.light);
         setOutcome({ text: `Round ${round}, again.`, kind: "" });
         setFightable(true);
         setReplaying(true);
@@ -499,8 +499,15 @@ export function SkirmishPage() {
         setRoundOver(true);
         const at = `at ${result.time.toFixed(0)} s${given.length === 0 ? "" : ", with orders"}`;
         if (result.winner === 0) {
-            setOutcome({ text: `Victory ${at}. Wait while the enemy evolves an answer.`, kind: "won" });
-            skirmishes.setSkirmish(won(current));
+            const going = won(current);
+            setOutcome({
+                text:
+                    going.ways === undefined
+                        ? `Victory ${at}. Wait while the enemy evolves an answer.`
+                        : `Victory ${at}. Pick where the next round is fought.`,
+                kind: "won",
+            });
+            skirmishes.setSkirmish(going);
             skirmishes.answer();
         } else {
             setOutcome({
@@ -660,28 +667,15 @@ export function SkirmishPage() {
         if (flies && view !== null) showOn(view, enemyAlone(enemy), false);
     };
     const abandon = (): void => {
-        if (!window.confirm("Give up this skirmish and start another?")) return;
-        skirmishes.stopAnswer();
-        skirmishes.setSkirmish(null);
-        skirmishes.setHistory(EMPTY_HISTORY);
+        setAbandoning(false);
+        skirmishes.abandon();
         mode.current = "round";
         resume.current = null;
         setReplaying(false);
         undecided();
         setFightable(false);
     };
-    const exportSkirmish = (): void => {
-        const file = {
-            about:
-                "A skirmish exported from the Skirmish page: the settings on the setup screen, the skirmish under way " +
-                "(round, budget, both fleets and the settings it started with) if there is one, and the history of every " +
-                "match played, its fleets kept by id.",
-            setup: keptSettings(storage),
-            skirmish: skirmish === null ? null : serialiseSkirmish(skirmish),
-            history,
-        };
-        download(skirmishFileName(skirmish), `${JSON.stringify(file, null, 2)}\n`);
-    };
+    const exportSkirmish = (): void => downloadSkirmish(keptSettings(storage), skirmish, history);
     // An exported skirmish read back: its settings into the setup screen, and the skirmish and history it
     // holds in place of these. Checked whole first, so a bad file changes nothing.
     const importSkirmish = async (chosen: File): Promise<void> => {
@@ -941,45 +935,76 @@ export function SkirmishPage() {
                             </Outcome>
                             {answeringNow && (
                                 <div id="answering">
-                                    <h2>The enemy answers</h2>
-                                    <Waiting>
-                                        {found === null && <Spinner id="answerSpinner" aria-hidden="true" />}
-                                        <p id="answerProgress">
-                                            {found !== null
-                                                ? `Found in generation ${latest!.generation}: ${found.name}, which beats your fleet on the next round's seed.`
-                                                : latest === null
-                                                  ? "Wait while the enemy evolves an answer: fighting the first generation of mutants…"
-                                                  : `Generation ${latest.generation}: the best enemy so far won ${latest.wins} of its ${latest.seeds} matches. It holds ${latest.cards.length} upgrade ${latest.cards.length === 1 ? "card" : "cards"}.`}
-                                        </p>
-                                    </Waiting>
-                                    {found === null ? (
-                                        <Buttons>
-                                            <Button
-                                                id="watchAnswer"
-                                                title="Stop or start watching the best enemy so far fight your fleet"
-                                                onClick={() => {
-                                                    setWatching(!watching);
-                                                    if (!watching && latest !== null) watch(latest);
-                                                    else if (watching) view?.setRunning(false);
-                                                }}
-                                            >
-                                                {watching ? "Stop watching" : "Watch"}
-                                            </Button>
-                                        </Buttons>
+                                    {skirmish.ways !== undefined ? (
+                                        <>
+                                            <h2>Where next?</h2>
+                                            <Muted>The enemy then evolves its answer there.</Muted>
+                                            <Buttons id="ways">
+                                                {skirmish.ways.map((id) => {
+                                                    const way = destinationById(id);
+                                                    return (
+                                                        way !== null && (
+                                                            <Button
+                                                                key={id}
+                                                                data-way={id}
+                                                                title={way.hint}
+                                                                onClick={() => {
+                                                                    const going = goTo(skirmish, id);
+                                                                    skirmishes.setSkirmish(going);
+                                                                    skirmishes.answer();
+                                                                    if (view !== null) showOpened(going, view);
+                                                                }}
+                                                            >
+                                                                {way.name}
+                                                            </Button>
+                                                        )
+                                                    );
+                                                })}
+                                            </Buttons>
+                                        </>
                                     ) : (
-                                        <Buttons id="answered">
-                                            <Button
-                                                id="nextRound"
-                                                variant="primary"
-                                                onClick={() => {
-                                                    const going = nextRound(skirmish, skirmish.enemy);
-                                                    skirmishes.setSkirmish(going);
-                                                    showRound(going);
-                                                }}
-                                            >
-                                                Next round
-                                            </Button>
-                                        </Buttons>
+                                        <>
+                                            <h2>The enemy answers</h2>
+                                            <Waiting>
+                                                {found === null && <Spinner id="answerSpinner" aria-hidden="true" />}
+                                                <p id="answerProgress">
+                                                    {found !== null
+                                                        ? `Found in generation ${latest!.generation}: ${found.name}, which beats your fleet on the next round's seed.`
+                                                        : latest === null
+                                                          ? "Wait while the enemy evolves an answer: fighting the first generation of mutants…"
+                                                          : `Generation ${latest.generation}: the best enemy so far won ${latest.wins} of its ${latest.seeds} matches. It holds ${latest.cards.length} upgrade ${latest.cards.length === 1 ? "card" : "cards"}.`}
+                                                </p>
+                                            </Waiting>
+                                            {found === null ? (
+                                                <Buttons>
+                                                    <Button
+                                                        id="watchAnswer"
+                                                        title="Stop or start watching the best enemy so far fight your fleet"
+                                                        onClick={() => {
+                                                            setWatching(!watching);
+                                                            if (!watching && latest !== null) watch(latest);
+                                                            else if (watching) view?.setRunning(false);
+                                                        }}
+                                                    >
+                                                        {watching ? "Stop watching" : "Watch"}
+                                                    </Button>
+                                                </Buttons>
+                                            ) : (
+                                                <Buttons id="answered">
+                                                    <Button
+                                                        id="nextRound"
+                                                        variant="primary"
+                                                        onClick={() => {
+                                                            const going = nextRound(skirmish, skirmish.enemy);
+                                                            skirmishes.setSkirmish(going);
+                                                            showRound(going);
+                                                        }}
+                                                    >
+                                                        Next round
+                                                    </Button>
+                                                </Buttons>
+                                            )}
+                                        </>
                                     )}
                                 </div>
                             )}
@@ -996,7 +1021,7 @@ export function SkirmishPage() {
                                 ))}
                             </div>
                             <Buttons>
-                                <Button id="abandon" title="Give up this skirmish and start another" onClick={abandon}>
+                                <Button id="abandon" title="Give up this skirmish and start another" onClick={() => setAbandoning(true)}>
                                     New skirmish
                                 </Button>
                             </Buttons>
@@ -1031,6 +1056,16 @@ export function SkirmishPage() {
             <Footer>
                 <KeyHelp rows={[...BATTLE_KEYS, ...ORDER_KEYS]} notes={NOTES} />
             </Footer>
+            {skirmish !== null && (
+                <AbandonDialog
+                    open={abandoning}
+                    title={skirmishTitle(skirmish)}
+                    status={skirmishStatus(skirmish)}
+                    onExport={exportSkirmish}
+                    onAbandon={abandon}
+                    onCancel={() => setAbandoning(false)}
+                />
+            )}
         </Main>
     );
 }

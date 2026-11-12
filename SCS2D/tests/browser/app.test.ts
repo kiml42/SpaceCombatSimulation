@@ -83,7 +83,7 @@ it("routes by the hash from a file, and lists what browser storage holds", async
     const probe = JSON.stringify(serialiseBlueprint({ ...CORVETTE, name: "Probe" }));
     await page.evaluate((text) => localStorage.setItem("scs2d.blueprint.Probe", text), probe);
 
-    await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Library" }).click();
+    await page.getByRole("navigation", { name: "More" }).getByRole("link", { name: "Library" }).click();
     expect(new URL(page.url()).hash).toBe("#/library");
     const ships = page.getByRole("region", { name: "Ships" });
     await expect.poll(() => ships.textContent()).toContain("Probesaved");

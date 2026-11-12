@@ -1027,7 +1027,7 @@ const MAX_ASSEMBLY_DEPTH = 16;
  * (a corvette makes 4.4 m/s², a TIE 12.9), which is the cautious direction:
  * assume more dodge than there is and the gun holds its fire slightly early.
  */
-const EVASION_ACCEL = 10;
+export const EVASION_ACCEL = 10;
 
 /**
  * How far a beam is worth using, metres.
@@ -1355,6 +1355,7 @@ function place(
         if (placement.barrels !== undefined) spec.barrels = placement.barrels;
         if (placement.nozzle !== undefined) spec.nozzle = placement.nozzle;
         if (placement.barrelCalibres !== undefined) spec.barrelCalibres = placement.barrelCalibres;
+        if (placement.bore !== undefined) spec.bore = placement.bore;
         if (placement.traverse !== undefined) spec.traverse = placement.traverse;
         if (placement.fuse !== undefined) spec.fuse = placement.fuse;
         if (placement.fragments !== undefined) spec.fragments = placement.fragments;
@@ -1806,6 +1807,63 @@ export interface Footprint {
 }
 
 const footprints = new WeakMap<ShipDesign, Footprint>();
+
+/** How many lines of sight round a ship its presented aspect is tabulated at. */
+export const ASPECT_STEPS = 64;
+
+const aspects = new WeakMap<ShipDesign, Float64Array>();
+
+/**
+ * How far a ship's hull reaches either side of its centre of mass, seen along
+ * each of `ASPECT_STEPS` lines of sight: pairs `[near, far]`, metres across the
+ * line, for a line `k · 2π / ASPECT_STEPS` from the ship's bow, body frame.
+ * "Across" is the line of sight turned a quarter anticlockwise.
+ *
+ * What a shot at the whole ship has to land inside: a long thin ship seen end
+ * on is its width, not its length. Compiled once per design and kept, so a
+ * mount reads it rather than walking the modules. It knows nothing of modules
+ * shot away, which errs towards a wider target than is left.
+ */
+export function presentedAspect(design: ShipDesign): Float64Array {
+    const known = aspects.get(design);
+    if (known !== undefined) return known;
+    const table = new Float64Array(ASPECT_STEPS * 2);
+    const corners: number[] = [];
+    for (let k = 0; k < ASPECT_STEPS; k++) {
+        const angle = (k * TAU) / ASPECT_STEPS;
+        const nx = -sin(angle);
+        const ny = cos(angle);
+        let near = Infinity;
+        let far = -Infinity;
+        for (const module of design.modules) {
+            const n = moduleOutline(module.spec, corners) * 2;
+            for (let c = 0; c < n; c += 2) {
+                const across = (corners[c]! - design.centreOfMassX) * nx + (corners[c + 1]! - design.centreOfMassY) * ny;
+                near = min(near, across);
+                far = max(far, across);
+            }
+        }
+        table[2 * k] = near === Infinity ? 0 : near;
+        table[2 * k + 1] = far === -Infinity ? 0 : far;
+    }
+    aspects.set(design, table);
+    return table;
+}
+
+/**
+ * The presented aspect along a line of sight `bearing` radians from the ship's
+ * bow, body frame, interpolated into `out`, metres across the line.
+ */
+export function aspectAlong(design: ShipDesign, bearing: number, out: { near: number; far: number }): void {
+    const table = presentedAspect(design);
+    let at = (normalizeAngle(bearing) / TAU) * ASPECT_STEPS;
+    if (at < 0) at += ASPECT_STEPS;
+    const k = floor(at) % ASPECT_STEPS;
+    const next = (k + 1) % ASPECT_STEPS;
+    const f = at - floor(at);
+    out.near = table[2 * k]! * (1 - f) + table[2 * next]! * f;
+    out.far = table[2 * k + 1]! * (1 - f) + table[2 * next + 1]! * f;
+}
 
 export function footprintOf(design: ShipDesign): Footprint {
     const known = footprints.get(design);

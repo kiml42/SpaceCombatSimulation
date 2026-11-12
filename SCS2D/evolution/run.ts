@@ -47,6 +47,12 @@ export interface RunConfig {
     readonly population: number;
     /** How many are bred from at the end of a generation. */
     readonly winners: number;
+    /**
+     * How many of the winners are the generation's best by fitness, always,
+     * rather than drawn for: a lineage too good to lose to an unlucky draw.
+     * The rest are drawn as `Generation.winners` describes.
+     */
+    readonly keep: number;
     /** Designs in one match. */
     readonly group: number;
     /** Matches every design plays before the generation is called. */
@@ -72,6 +78,7 @@ export const DEFAULT_RUN: RunConfig = {
     seed: 1,
     population: 12,
     winners: 4,
+    keep: 0,
     group: 4,
     minMatches: 3,
     generations: 200,
@@ -629,6 +636,7 @@ export class Run {
             {
                 population: settings.population,
                 winners: settings.winners,
+                keep: settings.keep,
                 limits: mutationLimits(settings),
                 fleetLimits: fleetLimits(settings),
             },

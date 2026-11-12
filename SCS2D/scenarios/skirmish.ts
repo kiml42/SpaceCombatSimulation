@@ -25,6 +25,7 @@ import { fleetBlueprint, hangarClashes } from "../sim/fleetHangar.js";
 import { firstLivery, liveryRng, STOCK_BASES } from "../sim/liveryDrift.js";
 import { cardById, drawHand, withCards, type Limits } from "../skirmish/cards.js";
 import { fleetId } from "./history.js";
+import { destinationById, offerDestinations } from "../skirmish/destinations.js";
 
 /**
  * A skirmish: the player's fleet against an enemy, a round at a time
@@ -54,6 +55,12 @@ export interface Skirmish {
      * by the next round, which is fought on it.
      */
     won?: number;
+    /**
+     * Where the next round may be fought, by id (`skirmish/destinations.ts`):
+     * offered once the round is won, until one is picked. The enemy's answer
+     * waits for the pick, since it is bred on the round as it will be fought.
+     */
+    ways?: readonly string[];
     /** What it is played under; the defaults where it says nothing. */
     settings?: SkirmishSettings;
     /** The upgrade cards the player has picked, by id, in the order picked. */
@@ -115,6 +122,8 @@ export interface SkirmishSettings {
     readonly maxShips: number;
     /** How far from its origin any of either side's hulls may reach, unless the enemy already reaches further, metres. */
     readonly radius: number;
+    /** How bright each round's drawn light is, sun and shadows alike, as a multiple of what its seed draws: only seen, never fought. */
+    readonly light: number;
     /**
      * How the enemy is bred: the mutation odds by the names the settings pages
      * give them (`evolution/mutationFields.ts`), each missing one its default.
@@ -148,6 +157,7 @@ export const DEFAULT_SKIRMISH_SETTINGS: SkirmishSettings = {
     answerMargin: 0.2,
     maxShips: 20,
     radius: 500,
+    light: 1,
     breeding: {},
     map: {},
     mapSpread: {},
@@ -329,7 +339,17 @@ export function roundBattle(
 /** The round won: the enemy is to answer it on a new seed, the next round's. */
 export function won(skirmish: Skirmish): Skirmish {
     const { picked: _picked, streak: _streak, ...rest } = skirmish;
-    return { ...rest, won: new Rng(skirmish.seed).nextUint32() };
+    const seed = new Rng(skirmish.seed).nextUint32();
+    const ways = offerDestinations(settingsOf(skirmish), seed);
+    return { ...rest, won: seed, ...(ways.length === 0 ? {} : { ways }) };
+}
+
+/** The next round to be fought where `id` says, one of those offered; the enemy's answer can then start. */
+export function goTo(skirmish: Skirmish, id: string): Skirmish {
+    const { ways, ...rest } = skirmish;
+    const destination = destinationById(id);
+    if (ways === undefined || !ways.includes(id) || destination === null) return skirmish;
+    return { ...rest, settings: destination.apply(settingsOf(skirmish)) };
 }
 
 /**
@@ -367,7 +387,7 @@ export function pick(skirmish: Skirmish, id: string): Skirmish {
  * change to win. The budget is the player's and does not follow the enemy.
  */
 export function nextRound(skirmish: Skirmish, enemy: Fleet): Skirmish {
-    const { won, losing: _losing, streak: _streak, ...rest } = skirmish;
+    const { won, ways: _ways, losing: _losing, streak: _streak, ...rest } = skirmish;
     return { ...rest, enemy, round: skirmish.round + 1, tries: 0, seed: won ?? skirmish.seed };
 }
 
@@ -379,6 +399,7 @@ export function serialiseSkirmish(skirmish: Skirmish): Record<string, unknown> {
         tries: skirmish.tries,
         seed: skirmish.seed,
         ...(skirmish.won === undefined ? {} : { won: skirmish.won }),
+        ...(skirmish.ways === undefined ? {} : { ways: [...skirmish.ways] }),
         ...(skirmish.cards === undefined ? {} : { cards: [...skirmish.cards] }),
         ...(skirmish.enemyCards === undefined ? {} : { enemyCards: [...skirmish.enemyCards] }),
         ...(skirmish.hand === undefined ? {} : { hand: [...skirmish.hand] }),
@@ -476,6 +497,8 @@ export function parseSkirmish(value: unknown): Skirmish {
     const enemyCards = ids("enemyCards", true);
     const hand = ids("hand", true);
     const losing = ids("losing", false);
+    const ways = ids("ways", false);
+    if (ways?.some((id) => destinationById(id) === null)) fail("ways must be a list of destinations");
     const streak = file["streak"] === undefined ? undefined : whole("streak", 0);
     const picked = file["picked"];
     if (picked !== undefined && (typeof picked !== "string" || cardById(picked) === null)) fail("picked must be a card the deck has");
@@ -484,6 +507,7 @@ export function parseSkirmish(value: unknown): Skirmish {
     return {
         ...(typeof name === "string" && name.trim() !== "" ? { name: name.trim() } : {}),
         ...(wonSeed === undefined ? {} : { won: wonSeed }),
+        ...(wonSeed === undefined || ways === undefined ? {} : { ways }),
         ...(cards === undefined ? {} : { cards }),
         ...(enemyCards === undefined ? {} : { enemyCards }),
         ...(hand === undefined ? {} : { hand }),
