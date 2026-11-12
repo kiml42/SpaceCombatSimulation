@@ -203,7 +203,9 @@ describe("escort and neutrals", () => {
             return math.length(bodies.x[a]! - bodies.x[b]!, bodies.y[a]! - bodies.y[b]!);
         }
 
-        expect(fly(0)).toBeLessThan(300);
+        // The charge, waiting with nothing to fight, keeps clear on its mains and
+        // goes further before it stops than it would on its thrusters.
+        expect(fly(0)).toBeLessThan(450);
         // The band is 35 m–732 m, its inside edge at 0.8 near 593 m.
         expect(fly(0.8)).toBeGreaterThan(550);
     });

@@ -7,6 +7,7 @@ import { tanker } from "../scenarios/tanker.js";
 import { duel } from "../scenarios/duel.js";
 import { torpedoes } from "../scenarios/torpedoes.js";
 import { beamCarrier } from "../scenarios/beamCarrier.js";
+import { starWars } from "../scenarios/starWars.js";
 
 /** Every ship as the picture sees it at each step, until `seen` says enough. */
 function watch(battle: Battle, steps: number, seen: (ship: ShipView, view: Snapshot) => boolean): boolean {
@@ -57,8 +58,9 @@ describe("where a ship is flying to", () => {
     });
 
     it("shows a corner round what is in the way only while it makes for it", () => {
-        // Fighters going round the Beam Carrier's superstructure to land, and landed.
-        const battle = beamCarrier();
+        // Ships going round what stands between them and what they are after,
+        // among fighters parked on their carriers.
+        const battle = starWars();
         let cornered = false;
         const parkedWithCorner = watch(battle, 60 * 70, (ship) => {
             cornered ||= ship.routeX !== undefined;

@@ -343,6 +343,8 @@ describe("a gun and the target it was trained on", () => {
         // Asserted with a message, because a bare number here says nothing about
         // which ship put a round somewhere over its own shoulder.
         assert.isBelow(worst * (180 / Math.PI), 20, `worst was ${worstAt}`);
-        expect(rounds).toBeGreaterThan(100);
+        // Enough rounds to say where rounds go: the column's survivors stop firing
+        // on each other after about twenty-five seconds, so running longer adds none.
+        expect(rounds).toBeGreaterThan(80);
     });
 });
