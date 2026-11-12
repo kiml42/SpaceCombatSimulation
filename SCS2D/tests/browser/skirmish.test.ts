@@ -190,11 +190,9 @@ describe("the skirmish in a browser", () => {
         await page.selectOption("#enemy", "ship:Corvette");
         expect(await page.inputValue("#enemyPreset")).toBe("");
         expect(await page.textContent("#enemyHint")).toBe("Against Corvette, 1 ship a side at most");
-        // An enemy fielding more than the limit raises it, for both sides.
+        // An enemy fielding more than the limit keeps them; the player is held to it.
         await page.selectOption("#enemy", "fleet:Line of Battle");
-        expect(await page.textContent("#enemyHint")).toBe(
-            "Against Line of Battle, 5 ships a side at most: raised from 1 to the ships it fields",
-        );
+        expect(await page.textContent("#enemyHint")).toBe("Against Line of Battle, which keeps its 5 ships; you may field 1");
         expect(problems).toEqual([]);
     });
 

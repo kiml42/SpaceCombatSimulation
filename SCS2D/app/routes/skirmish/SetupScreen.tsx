@@ -251,9 +251,10 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart, onImport }: Set
     const enemyPreset = enemyPresetOf(enemy, settings);
     const battlefield = battlefieldOf(settings);
     const suggested = suggestedName(enemy, settings);
-    // Neither side is held to fewer ships than the enemy starts with (`startLimits`, `enemyLimits`).
+    // The enemy keeps every ship it starts with, past the limit (`enemyLimits`); the player is held to it.
     const enemyFleet = read(enemy);
-    const shipLimit = Math.max(settings.maxShips, enemyFleet === null ? 0 : fleetHulls(enemyFleet).length);
+    const enemyShips = enemyFleet === null ? 0 : fleetHulls(enemyFleet).length;
+    const shipCount = (n: number): string => `${n} ship${n === 1 ? "" : "s"}`;
 
     const keep = (next: Record<string, string>): void => {
         setTexts(next);
@@ -331,8 +332,9 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart, onImport }: Set
             </Field>
             <Hint id="enemyHint">
                 {enemyPreset?.hint ??
-                    `Against ${nameOf(enemy)}, ${shipLimit} ship${shipLimit === 1 ? "" : "s"} a side at most` +
-                        (shipLimit > settings.maxShips ? `: raised from ${settings.maxShips} to the ships it fields` : "")}
+                    (enemyShips > settings.maxShips
+                        ? `Against ${nameOf(enemy)}, which keeps its ${shipCount(enemyShips)}; you may field ${settings.maxShips}`
+                        : `Against ${nameOf(enemy)}, ${shipCount(settings.maxShips)} a side at most`)}
             </Hint>
             <Field>
                 Battlefield

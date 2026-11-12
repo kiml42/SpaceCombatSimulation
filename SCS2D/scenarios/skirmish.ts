@@ -220,15 +220,16 @@ export function fleetFault(fleet: Fleet): string | null {
 }
 
 /**
- * The player's limits before their cards: the skirmish's budget, and its ship
- * count and spread, each at least what the enemy fields.
+ * The player's limits before their cards: the skirmish's budget and ship
+ * count, and its spread, at least what the enemy fields. The ship count is not
+ * raised to the enemy's, as the enemy's is: the player builds to it after.
  */
 export function startLimits(skirmish: Skirmish): Limits {
     const settings = settingsOf(skirmish);
     const enemy = fleetHulls(skirmish.enemy);
     return {
         budget: skirmish.budget,
-        maxShips: math.max(settings.maxShips, enemy.length),
+        maxShips: settings.maxShips,
         radius: math.max(settings.radius, math.ceil(fleetReach(enemy))),
     };
 }
