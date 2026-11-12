@@ -454,7 +454,7 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart, onImport }: Set
             </Section>
             <Section id="evolutionSettings" data-key="evolution">
                 <summary>
-                    <h2>Evolution settings</h2>
+                    <h2>Advanced settings</h2>
                 </summary>
                 <p>
                     How the rounds are fought and how the enemy is bred, which the battlefield sets. They are kept with the skirmish, so one
