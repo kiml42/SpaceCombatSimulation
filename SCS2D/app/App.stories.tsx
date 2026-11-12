@@ -61,7 +61,8 @@ export const StartContinuing: Story = {
         await expect(canvas.getByRole("link", { name: /^Continue: Iron Tide/ })).toBeVisible();
         await userEvent.click(canvas.getByRole("button", { name: "New skirmish" }));
         await userEvent.click(within(await canvas.findByRole("dialog")).getByRole("button", { name: "Start new" }));
-        await expect(await canvas.findByRole("combobox", { name: "Enemy" })).toBeVisible();
+        await userEvent.click(await canvas.findByText("Advanced config"));
+        await expect(canvas.getByRole("combobox", { name: "Enemy" })).toBeVisible();
         // On past the setup screen, as the Skirmish story is.
         await userEvent.selectOptions(canvas.getByRole("combobox", { name: "Your fleet" }), "ship:Gunship");
         await userEvent.click(canvas.getByRole("button", { name: "Start" }));
@@ -164,6 +165,8 @@ export const Ship: Story = {
 export const Skirmish: Story = {
     args: { path: "/skirmish" },
     play: async ({ canvas }) => {
+        await expect(canvas.getByRole("combobox", { name: "Enemy" })).not.toBeVisible();
+        await userEvent.click(canvas.getByText("Advanced config"));
         await expect(canvas.getByRole("combobox", { name: "Enemy" })).toBeVisible();
         await waitFor(() => expect(canvas.getByRole("row", { name: /^metal/ })).toBeVisible());
         await userEvent.selectOptions(canvas.getByRole("combobox", { name: "Your fleet" }), "ship:Gunship");
