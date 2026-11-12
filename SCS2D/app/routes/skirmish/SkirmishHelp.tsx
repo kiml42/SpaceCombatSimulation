@@ -121,7 +121,7 @@ export function SkirmishHelp({ open, onClose, cardAfter, quietTime }: SkirmishHe
                     main menu.
                 </li>
             </ol>
-            <p>The presets above set everything up; Customise and Evolution settings are there when you want more control.</p>
+            <p>The presets above set everything up; Customise and Advanced settings are there when you want more control.</p>
             <Actions>
                 <Button id="skirmishHelpClose" variant="primary" autoFocus onClick={onClose}>
                     Got it

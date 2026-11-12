@@ -61,7 +61,7 @@ afterAll(async () => {
     await browser?.close();
 });
 
-/** Open the setup screen's Customise and Evolution settings, where the enemy, the budget and the settings are. */
+/** Open the setup screen's Customise and Advanced settings, where the enemy, the budget and the settings are. */
 async function advanced(): Promise<void> {
     for (const id of ["#advanced", "#evolutionSettings"]) {
         if (!(await page.$eval(id, (details) => (details as HTMLDetailsElement).open))) await page.click(`${id} > summary`);

@@ -1465,7 +1465,7 @@ inside any one file is not contiguous.
   the preset the settings match, its hint beneath, and *Custom* only once they match none; a first visit starts on the first of
   each. A skirmish left unnamed is named for them ("Small ships in an asteroid field"). *Start* always goes on to the fleet
   editor to build the player's fleet, within the budget it states. *Customise* holds any enemy from the library, the budget and
-  the limits; *Evolution settings* holds the rest. *How a skirmish works*, round by round, opens over the screen the first
+  the limits; *Advanced settings* holds the rest. *How a skirmish works*, round by round, opens over the screen the first
   time it is seen, and again from its ? button or the ? key. The mutation fields are written
   once (`evolution/mutationFields.ts`) and both pages draw them. *Export* saves the setup, the skirmish under way and its whole
   history as one `.skirmish.json`, to look into a run or ask about one, and *Import* reads one back in place of

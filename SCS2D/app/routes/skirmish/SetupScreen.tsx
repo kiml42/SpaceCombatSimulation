@@ -400,7 +400,7 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart, onImport }: Set
                     ))}
                 </select>
             </Field>
-            <Hint id="battlefieldHint">{battlefield?.hint ?? "Your own settings, under Evolution settings below"}</Hint>
+            <Hint id="battlefieldHint">{battlefield?.hint ?? "Your own settings, under Advanced settings below"}</Hint>
             <Field title="What the skirmish is called, which its exported files are named for">
                 Name
                 <input
