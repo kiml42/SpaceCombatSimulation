@@ -153,7 +153,7 @@ export const DEFAULT_SKIRMISH_SETTINGS: SkirmishSettings = {
     cardAfter: 3,
     stretchAfter: 4,
     answerMargin: 0.2,
-    maxShips: 20,
+    maxShips: 3,
     radius: 500,
     breeding: {},
     map: {},
