@@ -18,24 +18,29 @@ export const ENEMY_PRESETS: readonly EnemyPreset[] = [
 /** Where and how the rounds are fought, and how the enemy is bred: every setting but the enemy preset's. */
 export interface BattlefieldPreset {
     readonly name: string;
+    /** Where a skirmish fought on it is, as its name reads: "Small ships in an asteroid field". */
+    readonly place: string;
     readonly hint: string;
     readonly changes: Partial<SkirmishSettings>;
 }
 
 export const BATTLEFIELD_PRESETS: readonly BattlefieldPreset[] = [
-    { name: "Open space", hint: "No asteroids, ever", changes: {} },
+    { name: "Open space", place: "open space", hint: "No asteroids, ever", changes: {} },
     {
         name: "Asteroid field",
+        place: "an asteroid field",
         hint: "Rocks in nearly every round, sometimes a big one",
         changes: { map: { majors: 1, minors: 10 }, mapSpread: { majors: 1, minors: 10 } },
     },
     {
         name: "Small universe",
+        place: "a small universe",
         hint: "Only small rocks, 800 m apart, 400 s to win and 20 s quiet",
         changes: { gap: 800, timeCap: 400, quietTime: 20, map: { minors: 8 }, mapSpread: { minors: 4 } },
     },
     {
         name: "Radiation field",
+        place: "a radiation field",
         hint: "The enemy mutates fast, and every round is drawn far from the last",
         changes: {
             breeding: { magnitude: 0.3, structural: 0.9, geometry: 0.8, thrusters: 0.8 },

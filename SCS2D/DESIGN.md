@@ -1427,7 +1427,7 @@ inside any one file is not contiguous.
   Mining is built; what is left of it is in ROADMAP.md §12, for later.
   Alongside it, §8 step 5's skirmish: an endless loop against an enemy fleet that evolves to beat the
   player's, planned in ROADMAP.md §8. Evolution keeps the skirmish's sense of quiet, though it plays a match on until every side is quiet before naming a winner. Its loop is built without the evolving enemy (the Skirmish route,
-  `scenarios/skirmish.ts`): pick a stock enemy, whose bill is the budget unless the player sets their own, under a limit on ships and spread (20 and 500 m unless set, or what the enemy fields if more), each round's gap and starting speeds drawn from optional ± spreads on its seed; fight a fixed round, decided by
+  `scenarios/skirmish.ts`): pick a stock enemy, whose bill is the budget unless the player sets their own, under a limit on ships and spread (20 and 500 m unless set; the enemy keeps every ship and the spread it starts with, but the player is held to the limits, as they build after), each round's gap and starting speeds drawn from optional ± spreads on its seed; fight a fixed round, decided by
   `scenarios/decision.ts` once one side has fired or rammed in the last 30 s and the other has not, which
   counts only once both have fired, so slow ships closing from far off are not out before they are in range;
   ramming counts as firing only while the rammer gets closer to its target than it has been, so one that
@@ -1460,9 +1460,12 @@ inside any one file is not contiguous.
   a skirmish starts: the round's quiet time, time cap, gap and starting speeds, the answer's mutants,
   matches, match length, growth and the margin it must win by, and the ship, fleet and doctrine mutation odds the enemy is bred with,
   remembered for the next skirmish, kept with this one so it is played out under those it started with,
-  and put back with *Reset to defaults*, which the evolution page has too. The screen leads with the name and two presets, one for the
-  enemy and the most ships a side, one for the battlefield (open space, an asteroid field, a small universe, a radiation field of fast
-  mutation and wide draws), with everything else under *Advanced config*. The mutation fields are written
+  and put back by picking a preset. The screen leads with two presets, one for the enemy and the most ships a side, one for the
+  battlefield (open space, an asteroid field, a small universe, a radiation field of fast mutation and wide draws), each showing
+  the preset the settings match, its hint beneath, and *Custom* only once they match none; a first visit starts on the first of
+  each. A skirmish left unnamed is named for them ("Small ships in an asteroid field"). *Start* always goes on to the fleet
+  editor to build the player's fleet, within the budget it states. *Customise* holds any enemy from the library, the budget and
+  the limits; *Evolution settings* holds the rest. The mutation fields are written
   once (`evolution/mutationFields.ts`) and both pages draw them. *Export* saves the setup, the skirmish under way and its whole
   history as one `.skirmish.json`, to look into a run or ask about one, and *Import* reads one back in place of
   all three, asking first if a skirmish is under way. A skirmish can be named, on the setup screen or above

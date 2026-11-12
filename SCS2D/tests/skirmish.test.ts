@@ -223,7 +223,9 @@ describe("the skirmish", () => {
     });
 
     it("takes its budget from the enemy, so the enemy itself fits it", () => {
-        const skirmish = newSkirmish(LINE_OF_BATTLE, LINE_OF_BATTLE, 5);
+        // Ships enough for it: the player is held to the limit, however many the enemy fields.
+        const settings = { ...DEFAULT_SKIRMISH_SETTINGS, maxShips: fleetHulls(LINE_OF_BATTLE).length };
+        const skirmish = newSkirmish(LINE_OF_BATTLE, LINE_OF_BATTLE, 5, settings);
         expect(skirmish.budget).toEqual(billOfFleet(LINE_OF_BATTLE));
         expect(canFight(skirmish)).toBe(true);
     });
@@ -251,9 +253,11 @@ describe("the skirmish", () => {
         const far: Fleet = { ...gunship, ships: [{ design: GUNSHIP.name, x: 1000, y: 0 }] };
         expect(overLimit(newSkirmish(core, far, 5, undefined, budget))).toMatch(/beyond the 500 m allowed/);
         expect(canFight(newSkirmish(core, far, 5, { ...DEFAULT_SKIRMISH_SETTINGS, radius: 2000 }, budget))).toBe(true);
-        // Never less than the enemy fields.
-        expect(overLimit(newSkirmish(pair, pair, 5, one, budget))).toBeNull();
-        expect(overLimit(newSkirmish(far, far, 5, undefined, budget))).toBeNull();
+        // The enemy keeps the ships and spread it fields, but the player is held to the limits.
+        expect(overLimit(newSkirmish(pair, pair, 5, one, budget))).toMatch(/2 ships, more than the 1 allowed/);
+        expect(enemyLimits(newSkirmish(pair, pair, 5, one, budget)).maxShips).toBe(2);
+        expect(overLimit(newSkirmish(far, far, 5, undefined, budget))).toMatch(/beyond the 500 m allowed/);
+        expect(enemyLimits(newSkirmish(far, far, 5, undefined, budget)).radius).toBeGreaterThan(500);
     });
 
     it("will not fight with nothing, or over budget", () => {

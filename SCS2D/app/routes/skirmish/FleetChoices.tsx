@@ -9,18 +9,15 @@ export interface FleetChoicesProps {
     readonly label: string;
     readonly ships: Library<Blueprint>;
     readonly fleets: Library<Fleet>;
-    /** `fleet:` or `ship:` and a name, or `EMPTY`. */
+    /** `fleet:` or `ship:` and a name. */
     readonly value: string;
     readonly onChange: (value: string) => void;
-    /** Whether an empty fleet may be chosen. */
-    readonly empty?: boolean;
 }
 
 /** A fleet from the library, or a single ship as a fleet of one. */
-export function FleetChoices({ id, label, ships, fleets, value, onChange, empty = false }: FleetChoicesProps) {
+export function FleetChoices({ id, label, ships, fleets, value, onChange }: FleetChoicesProps) {
     return (
         <select id={id} aria-label={label} value={value} onChange={(event) => onChange(event.target.value)}>
-            {empty && <option value={EMPTY}>An empty fleet, to build</option>}
             <optgroup label="Fleets">
                 {[...new Set(fleets.list().map((entry) => entry.name))].map((name) => (
                     <option key={name} value={`fleet:${name}`}>
