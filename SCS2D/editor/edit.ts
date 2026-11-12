@@ -19,6 +19,7 @@ import {
     slipwayProblem,
     type Assembly,
     type AssemblyInstance,
+    type AssemblyStep,
     type Frame,
     type Blueprint,
     type ModuleOrigin,
@@ -488,26 +489,44 @@ export function movePlacement(blueprint: Blueprint, origin: ModuleOrigin, dx: nu
     }));
 }
 
+/** A repeated instance's step, or null unless `instance` names one that repeats. */
+function repeatedStep(blueprint: Blueprint, instance: ModulePath): AssemblyStep | null {
+    const placement = placementAt(blueprint, instance);
+    if (placement === null || !isInstance(placement) || (placement.repeat ?? 1) < 2) return null;
+    return placement.step ?? { x: 0, y: 0 };
+}
+
 /**
- * Drag the second copy of a repeated assembly to set the row's step, rather
- * than moving the whole row: `dx`/`dy` (blueprint frame) are added to the step
- * as the first copy's frame sees it, which is the frame a step is written in.
- * Null unless `origin` names copy 1 of an instance that repeats, so a caller
- * can move the placement instead.
+ * Move a row's second copy by `dx`/`dy` (blueprint frame), and every later one
+ * by as much again: the step, written in the first copy's frame, which `first`
+ * is the drawn pose of. Null unless `instance` repeats.
  */
-export function moveRepeatStep(blueprint: Blueprint, origin: ModuleOrigin, dx: number, dy: number): Blueprint | null {
-    const last = origin.path[origin.path.length - 1];
-    const placement = placementAt(blueprint, origin.path);
-    if (last?.copy !== 1 || placement === null || !isInstance(placement) || (placement.repeat ?? 1) < 2) return null;
-    // The first copy's frame: the list's, turned by the instance and reflected if the two disagree.
-    const own = placement.angle ?? 0;
-    const turned = origin.rotation + (origin.mirrored ? -own : own);
-    const flipped = origin.mirrored !== (placement.mirror ?? false);
-    const local = toPlacementFrame({ ...origin, rotation: turned, mirrored: flipped }, dx, dy);
-    return updatePlacement(blueprint, origin.path, (p) => {
-        const instance = p as AssemblyInstance;
-        const step = instance.step ?? { x: 0, y: 0 };
-        return { ...instance, step: { ...step, x: step.x + local.dx, y: step.y + local.dy } };
+export function shiftRepeatStep(blueprint: Blueprint, instance: ModulePath, first: Frame, dx: number, dy: number): Blueprint | null {
+    const step = repeatedStep(blueprint, instance);
+    if (step === null) return null;
+    const c = cos(-first.rotation);
+    const s = sin(-first.rotation);
+    const x = dx * c - dy * s;
+    const y = dx * s + dy * c;
+    return updatePlacement(blueprint, instance, (p) => ({
+        ...(p as AssemblyInstance),
+        step: { ...step, x: step.x + x, y: step.y + (first.mirrored ? -y : y) },
+    }));
+}
+
+/**
+ * Turn a row's second copy about its own origin so its +x points along
+ * `bearing` (blueprint frame), and the copies after it round the same arc: the
+ * step's angle, from the first copy's drawn pose. Null unless `instance` repeats.
+ */
+export function turnRepeatStep(blueprint: Blueprint, instance: ModulePath, first: Frame, bearing: number): Blueprint | null {
+    const step = repeatedStep(blueprint, instance);
+    if (step === null) return null;
+    const turn = bearing - first.rotation;
+    const angle = normalizeAngle(first.mirrored ? -turn : turn);
+    return updatePlacement(blueprint, instance, (p) => {
+        const { angle: _, ...rest } = step;
+        return { ...(p as AssemblyInstance), step: angle === 0 ? rest : { ...rest, angle } };
     });
 }
 

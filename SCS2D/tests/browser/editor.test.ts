@@ -1184,6 +1184,42 @@ describe("the editor in a browser", () => {
         expect(await page.inputValue("#assemblyAngle")).toBe("0");
     });
 
+    it("moves a repeated row whole by any copy, and sets its step by the square on the second", async () => {
+        const file = {
+            formatVersion: 2,
+            name: "Rib Row",
+            modules: [
+                { kind: "core", x: 0, y: 0, length: 4, width: 4 },
+                { use: "Rib", x: 4, y: 0, repeat: 3, step: { x: 3, y: 0 } },
+            ],
+            assemblies: { Rib: { modules: [{ kind: "structure", x: 1.5, y: 0, length: 3, width: 2 }] } },
+        };
+        await openWritten(page, "Rib Row", file);
+        const { at } = await framing(page, parseBlueprint(file));
+        const drag = async (from: { x: number; y: number }, to: { x: number; y: number }) => {
+            await page.mouse.move(from.x, from.y);
+            await page.mouse.down();
+            await page.mouse.move(to.x, to.y, { steps: 6 });
+            await page.mouse.up();
+        };
+        await page.mouse.click(at(8.5, 0).x, at(8.5, 0).y);
+        expect(await page.inputValue("#assemblyRepeat")).toBe("3");
+
+        // The second copy's body is the row's like any other copy's.
+        await drag(at(8.5, 0), at(8.5, 2));
+        expect(Number(await page.inputValue("#assemblyY"))).toBeGreaterThan(0);
+        expect(await page.inputValue("#assemblyStepY")).toBe("0");
+        await page.click("#undo");
+
+        // The square at its origin moves it alone, and the next copy as far again.
+        await drag(at(7, 0), at(7, 2));
+        expect(Number(await page.inputValue("#assemblyStepY"))).toBeGreaterThan(0);
+        expect(await page.inputValue("#assemblyX")).toBe("4");
+        expect(await page.inputValue("#assemblyY")).toBe("0");
+        await page.click("#undo");
+        expect(await page.inputValue("#assemblyStepY")).toBe("0");
+    });
+
     it("sets a hull gun's barrel in calibres by dragging its muzzle", async () => {
         await page.click("#newShip");
         await page.click('[data-add="hullGun"]');

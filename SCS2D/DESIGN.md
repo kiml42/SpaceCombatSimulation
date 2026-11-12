@@ -103,8 +103,8 @@ inside any one file is not contiguous.
   to build a symmetrical ship out of one side and a mirror of it — in one step with Mirror, which places the
   reflection across the frame it sits in, and on a module makes it a shared part with a reflected copy — and clicked, dragged
   and added to as one thing, carries a name of its own, and is placed in a row or round
-  an arc by a count and a step rather than by placing it again and again, the step set by dragging the
-  row's second copy;
+  an arc by a count and a step rather than by placing it again and again, the step set by a square and a
+  knob on the row's second copy, which move and turn it;
   every problem with the layout is listed rather than enforced — including a module
   that is attached to nothing, which a ship is checked for by tracing every module back
   to the first one through what it touches — and each module a problem names is drawn
