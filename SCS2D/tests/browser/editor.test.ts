@@ -10,7 +10,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import type { Browser, Page } from "playwright";
 import { launchChromium, shownPixels, type Pixels } from "./launch.js";
-import { ROTATE_ARM_PX } from "../../editor/handles.js";
+import { assemblyKnob, ROTATE_ARM_PX } from "../../editor/handles.js";
 import { EditorDocument } from "../../editor/document.js";
 import { previewSnapshot } from "../../editor/preview.js";
 import { frame, type Camera } from "../../render/camera.js";
@@ -148,7 +148,10 @@ const SNAPPING: Blueprint = parseBlueprint(SNAPPING_FILE);
  * Where a blueprint's own coordinates land on screen once the page has framed
  * it, and how many pixels a metre is worth there.
  */
-async function framing(p: Page, blueprint: Blueprint): Promise<{ at: (x: number, y: number) => { x: number; y: number }; scale: number }> {
+async function framing(
+    p: Page,
+    blueprint: Blueprint,
+): Promise<{ at: (x: number, y: number) => { x: number; y: number }; scale: number; pxScale: number }> {
     const box = await p.locator("#view").boundingBox();
     const size = await p.evaluate(() => {
         const canvas = document.getElementById("view") as HTMLCanvasElement;
@@ -166,6 +169,7 @@ async function framing(p: Page, blueprint: Blueprint): Promise<{ at: (x: number,
             y: box.y + (size.height / 2 - (y - camera.y) * camera.scale) * cssPerPx,
         }),
         scale: camera.scale * cssPerPx,
+        pxScale: camera.scale,
     };
 }
 
@@ -1182,6 +1186,52 @@ describe("the editor in a browser", () => {
 
         await page.click("#undo");
         expect(await page.inputValue("#assemblyAngle")).toBe("0");
+    });
+
+    it("moves a repeated row whole by any copy, and sets its step by the square on the second", async () => {
+        const file = {
+            formatVersion: 2,
+            name: "Rib Row",
+            modules: [
+                { kind: "core", x: 0, y: 0, length: 4, width: 4 },
+                { use: "Rib", x: 4, y: 0, repeat: 3, step: { x: 3, y: 0 } },
+            ],
+            assemblies: { Rib: { modules: [{ kind: "structure", x: 1.5, y: 0, length: 3, width: 2 }] } },
+        };
+        await openWritten(page, "Rib Row", file);
+        const { at, pxScale } = await framing(page, parseBlueprint(file));
+        const drag = async (from: { x: number; y: number }, to: { x: number; y: number }) => {
+            await page.mouse.move(from.x, from.y);
+            await page.mouse.down();
+            await page.mouse.move(to.x, to.y, { steps: 6 });
+            await page.mouse.up();
+        };
+        await page.mouse.click(at(8.5, 0).x, at(8.5, 0).y);
+        expect(await page.inputValue("#assemblyRepeat")).toBe("3");
+
+        // The second copy's body is the row's like any other copy's.
+        await drag(at(8.5, 0), at(8.5, 2));
+        expect(Number(await page.inputValue("#assemblyY"))).toBeGreaterThan(0);
+        expect(await page.inputValue("#assemblyStepY")).toBe("0");
+        await page.click("#undo");
+
+        // The square at its origin moves it alone, and the next copy as far again.
+        await drag(at(7, 0), at(7, 2));
+        expect(Number(await page.inputValue("#assemblyStepY"))).toBeGreaterThan(0);
+        expect(await page.inputValue("#assemblyX")).toBe("4");
+        expect(await page.inputValue("#assemblyY")).toBe("0");
+        await page.click("#undo");
+        expect(await page.inputValue("#assemblyStepY")).toBe("0");
+
+        // Its knob stands off its side, and turns it, and so the copies after it round an arc.
+        const rib = { kind: "structure" as const, x: 8.5, y: 0, length: 3, width: 2 };
+        const knob = assemblyKnob({ x: 7, y: 0, rotation: Math.PI / 2 }, [rib], pxScale);
+        const turned = (30 + 90) * (Math.PI / 180);
+        await drag(at(knob.x, knob.y), at(7 + 5 * Math.cos(turned), 5 * Math.sin(turned)));
+        expect(await page.inputValue("#assemblyStepAngle")).toBe("30");
+        expect(await page.inputValue("#assemblyAngle")).toBe("0");
+        await page.click("#undo");
+        expect(await page.inputValue("#assemblyStepAngle")).toBe("0");
     });
 
     it("sets a hull gun's barrel in calibres by dragging its muzzle", async () => {

@@ -1,6 +1,7 @@
 import {
     bodySpec,
     compileDraft,
+    degreesToRadians,
     expandWithOrigins,
     foldAngle,
     isInstance,
@@ -12,6 +13,7 @@ import {
     math,
     placementAt,
     pushNeighbours,
+    radiansToDegrees,
     padFighterNames,
     readsCraftAngle,
     readsDocked,
@@ -19,6 +21,7 @@ import {
     slipwayProblem,
     type Assembly,
     type AssemblyInstance,
+    type AssemblyStep,
     type Frame,
     type Blueprint,
     type ModuleOrigin,
@@ -486,6 +489,48 @@ export function movePlacement(blueprint: Blueprint, origin: ModuleOrigin, dx: nu
         x: placement.x + local.dx,
         y: placement.y + local.dy,
     }));
+}
+
+/** A repeated instance's step, or null unless `instance` names one that repeats. */
+function repeatedStep(blueprint: Blueprint, instance: ModulePath): AssemblyStep | null {
+    const placement = placementAt(blueprint, instance);
+    if (placement === null || !isInstance(placement) || (placement.repeat ?? 1) < 2) return null;
+    return placement.step ?? { x: 0, y: 0 };
+}
+
+/**
+ * Move a row's second copy by `dx`/`dy` (blueprint frame), and every later one
+ * by as much again: the step, written in the first copy's frame, which `first`
+ * is the drawn pose of. Null unless `instance` repeats.
+ */
+export function shiftRepeatStep(blueprint: Blueprint, instance: ModulePath, first: Frame, dx: number, dy: number): Blueprint | null {
+    const step = repeatedStep(blueprint, instance);
+    if (step === null) return null;
+    const c = cos(-first.rotation);
+    const s = sin(-first.rotation);
+    const x = dx * c - dy * s;
+    const y = dx * s + dy * c;
+    return updatePlacement(blueprint, instance, (p) => ({
+        ...(p as AssemblyInstance),
+        step: { ...step, x: step.x + x, y: step.y + (first.mirrored ? -y : y) },
+    }));
+}
+
+/**
+ * Turn a row's second copy about its own origin so its +x points along
+ * `bearing` (blueprint frame), and the copies after it round the same arc: the
+ * step's angle, from the first copy's drawn pose. Null unless `instance` repeats.
+ */
+export function turnRepeatStep(blueprint: Blueprint, instance: ModulePath, first: Frame, bearing: number): Blueprint | null {
+    const step = repeatedStep(blueprint, instance);
+    if (step === null) return null;
+    const turn = normalizeAngle(first.mirrored ? first.rotation - bearing : bearing - first.rotation);
+    // To a millionth of a degree, so a snapped turn reads back as the whole degrees it was snapped to.
+    const angle = degreesToRadians(round(radiansToDegrees(turn) * 1e6) / 1e6);
+    return updatePlacement(blueprint, instance, (p) => {
+        const { angle: _, ...rest } = step;
+        return { ...(p as AssemblyInstance), step: angle === 0 ? rest : { ...rest, angle } };
+    });
 }
 
 /**
