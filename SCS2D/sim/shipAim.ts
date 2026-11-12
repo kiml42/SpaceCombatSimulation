@@ -865,43 +865,49 @@ export function trainOne(ships: Ships, bodies: Bodies, i: number): void {
             sweepVx -= spin * ry;
             sweepVy += spin * rx;
         }
-        const flight = ships.turrets.aimAt(bodies, ti, x, y, bodies.vx[tb]!, bodies.vy[tb]!, sweepVx, sweepVy);
         // Sharing a body, the ship is the modules it works, not the body: one
         // stuck to a rock is a small thing on it, not the whole rock.
         let middleX = 0;
         let middleY = 0;
         let size = design.radius;
-        if (sharesBody(ships, target, tb)) {
+        const shared = sharesBody(ships, target, tb);
+        if (shared) {
             const at = ships.locate(bodies, target, tb, ships.sizeAt);
             middleX = at.x - bodies.x[tb]!;
             middleY = at.y - bodies.y[tb]!;
             size = at.radius;
         }
-        // What the round can hit, less how far the target may have jinked by the
-        // time it arrives: an aim on the edge at long range is a likely miss, so
-        // the cone narrows towards the middle as the flight grows, to nothing at
-        // the gun's reach, which is where the two are equal (`reachAgainst`).
-        //
         // What it can hit is the hull as it presents itself along the line of
         // fire, not its bounding circle: a long thin ship seen end on is only its
-        // width, and its edges are not equally far from its middle. A shell's
-        // burst widens it either side. A ship stuck to another body keeps the
-        // circle about the modules it works.
-        const sight = atan2(ships.turrets.aimDy[ti]!, ships.turrets.aimDx[ti]!);
+        // width, and its edges are not equally far from its centre of mass. A
+        // ship stuck to another body keeps the circle about the modules it works.
+        const sight = atan2(y - ships.gunPoint.y, x - ships.gunPoint.x);
         let near = -size;
         let far = size;
-        if (!sharesBody(ships, target, tb)) {
+        if (!shared) {
             aspectAlong(design, sight - bodies.angle[tb]!, aspect);
             near = aspect.near;
             far = aspect.far;
         }
-        const margin = 0.5 * EVASION_ACCEL * flight * flight - (lethalRadius(mounts[t]!.gun, size) - size);
-        const open = flight >= 0 && far - near > 2 * margin;
-        const cone = open ? (far - near) / 2 - margin : 0;
-        // The cone is about the middle of what it presents, which is off the hull's middle for a lopsided ship.
+        // The middle of what it presents, off its centre of mass for a lopsided
+        // ship: what the cone is about, and what a gun aiming at the whole ship aims at.
         const across = (near + far) / 2;
         middleX -= sin(sight) * across;
         middleY += cos(sight) * across;
+        if (part === WHOLE_SHIP && !shared) {
+            x += middleX;
+            y += middleY;
+            rx = middleX;
+            ry = middleY;
+        }
+        const flight = ships.turrets.aimAt(bodies, ti, x, y, bodies.vx[tb]!, bodies.vy[tb]!, sweepVx, sweepVy);
+        // Less how far the target may have jinked by the time the round arrives:
+        // an aim on the edge at long range is a likely miss, so the cone narrows
+        // towards the middle as the flight grows, to nothing at the gun's reach,
+        // which is where the two are equal (`reachAgainst`). A shell's burst
+        // widens it either side.
+        const margin = 0.5 * EVASION_ACCEL * flight * flight - (lethalRadius(mounts[t]!.gun, size) - size);
+        const cone = flight >= 0 && far - near > 2 * margin ? (far - near) / 2 - margin : 0;
         const careful = clingsToFriend(ships, i, target, tb);
         const slack = firingSlack(
             ships,
