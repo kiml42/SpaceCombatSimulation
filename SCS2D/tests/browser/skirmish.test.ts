@@ -401,12 +401,16 @@ describe("the skirmish in a browser", () => {
         // generation is kept in the history as it finishes, so one finished while away shows it went on.
         const history = (): Promise<string | null> => page.evaluate((key) => localStorage.getItem(key), HISTORY_STORAGE_KEY);
         const before = await history();
-        await page.getByRole("link", { name: "Library" }).click();
+        await page.getByRole("button", { name: "Menu" }).click();
+        await page.getByRole("button", { name: "Main menu" }).click();
+        await page.getByRole("navigation", { name: "More" }).getByRole("link", { name: "Library" }).click();
         await page.waitForSelector("section[aria-label='Ships']");
         await page.waitForFunction(([key, was]) => localStorage.getItem(key!) !== was, [HISTORY_STORAGE_KEY, before] as const, {
             timeout: 60_000,
         });
-        await page.getByRole("link", { name: "Skirmish", exact: true }).click();
+        await page.getByRole("button", { name: "Menu" }).click();
+        await page.getByRole("button", { name: "Main menu" }).click();
+        await page.getByRole("link", { name: /^Continue/ }).click();
         await page.waitForSelector("#answering, #answered");
         expect(await page.textContent("#answerProgress")).not.toMatch(/fighting the first generation/);
         await page.waitForSelector("#answered", { timeout: 90_000 });

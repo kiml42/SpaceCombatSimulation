@@ -1,4 +1,13 @@
-import { capture, compileBlueprint, NEUTRAL_TEAM, Snapshot, type Blueprint, type ImpactLog, type ShipView } from "../sim/index.js";
+import {
+    capture,
+    compileBlueprint,
+    NEUTRAL_TEAM,
+    Snapshot,
+    WAYPOINT_REACH,
+    type Blueprint,
+    type ImpactLog,
+    type ShipView,
+} from "../sim/index.js";
 import { NO_TARGET, OrderCancelCondition } from "../sim/ships.js";
 import { Flashes } from "../render/flashes.js";
 import {
@@ -424,11 +433,14 @@ export function battleView(
         const given: Order =
             verb === "attack"
                 ? { kind: "attack", target: target.ship, cancelOn, ...held }
-                : verb === "defend" || verb === "waypoint"
-                  ? { kind: verb, target: target.ship, ...held }
-                  : verb === "ram"
-                    ? { kind: "ram", target: target.ship, ...speed }
-                    : { kind: verb, target: target.ship };
+                : verb === "defend"
+                  ? { kind: "defend", target: target.ship, ...held }
+                  : verb === "waypoint"
+                    ? // Passed on from once reached, so waypoints queued one after another are a route.
+                      { kind: "waypoint", target: target.ship, ...held, reach: WAYPOINT_REACH }
+                    : verb === "ram"
+                      ? { kind: "ram", target: target.ship, ...speed }
+                      : { kind: verb, target: target.ship };
         issue({ kind: "order", ships, order: given, append });
     };
 

@@ -12,6 +12,8 @@ import * as math from "../sim/math.js";
  * ramming is out at once. Ramming counts as firing only while the rammer is
  * getting closer to what it is ramming and can still burn: one that circles
  * instead goes quiet, and one out of fuel is only drifting, so is out of it.
+ * While it closes, the side it is closing on is not quiet either: waiting for
+ * a rammer to come into reach is not giving up the battle to it.
  * A carrier that can still build an armed fighter is armed, and one
  * building a fighter is busy, though it is not firing: otherwise a carrier
  * with no gun of its own would be out before its first fighter was. A
@@ -237,6 +239,11 @@ export class Activity {
                 if (this.closing.update(i, target, ships.distanceBetween(i, target), this.landed[i] === 1)) {
                     this.lastActive[team] = now;
                     this.fired[team] = 1;
+                    // Nor is the side it is closing on quiet: waiting for a rammer to come
+                    // into reach is not giving up, and it would otherwise lose to a ship
+                    // that has not yet touched it.
+                    const rammed = target >= 0 ? ships.teamOf(target) : NEUTRAL_TEAM;
+                    if (rammed !== NEUTRAL_TEAM && rammed < this.sides) this.lastActive[rammed] = now;
                 }
             } else if (this.approach && ships.hasControl(i)) {
                 if (this.closing.update(i, NEAREST, ships.nearestEnemy(i), this.landed[i] === 1)) this.lastActive[team] = now;

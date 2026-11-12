@@ -77,8 +77,9 @@ function ram(distance: (time: number) => number, until: number, dry = Infinity):
 }
 
 describe("ramming as the skirmish rule sees it", () => {
-    it("keeps a rammer in the fight while it closes", () => {
-        expect(ram((t) => 1000 - 10 * t, 60)).toMatchObject({ winner: 0, reason: "quiet" });
+    it("keeps a rammer, and the side it closes on, in the fight while it closes", () => {
+        // Waiting for a rammer to come into reach is not giving up: neither side has gone quiet.
+        expect(ram((t) => 1000 - 10 * t, 60)).toBeNull();
     });
 
     it("lets a rammer that circles instead go quiet", () => {

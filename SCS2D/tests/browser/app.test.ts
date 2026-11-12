@@ -1,6 +1,6 @@
 /// <reference lib="dom" />
 
-import { afterAll, beforeAll, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, expect, it } from "vitest";
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -33,6 +33,12 @@ beforeAll(async () => {
     }
     expect(existsSync(appPage)).toBe(true);
     browser = await launchChromium();
+});
+
+// Every page a test opened, closed whether it passed or not: a battle left open
+// goes on running, and slowed the tests after it by three times and more.
+afterEach(async () => {
+    for (const context of browser?.contexts() ?? []) await context.close();
 });
 
 afterAll(async () => {
