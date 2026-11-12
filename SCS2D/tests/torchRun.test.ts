@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { compileBlueprint } from "../sim/index.js";
-import { LASER_FRIGATE } from "../scenarios/blueprints.js";
+import { LASER_FRIGATE, TORCH } from "../scenarios/blueprints.js";
 import { torchRun } from "../scenarios/torchRun.js";
 
 /**
@@ -13,10 +13,10 @@ describe("a torch run", () => {
     const bodies = battle.world.bodies;
     const { torches, target } = battle;
 
-    // Measured from the target's centre, so scaled by its size: a torch burning
-    // a long hull's flank is further from its middle than one at a short one's.
+    // In is where its flame lands on the hull: the target's radius, measured from
+    // its centre, and the torch's reach, which is its flame's.
     const radius = compileBlueprint(LASER_FRIGATE).radius;
-    const IN = radius + 50;
+    const IN = radius + compileBlueprint(TORCH).reach;
     const OUT = IN + 40;
     /** Separate passes each torch makes: in under IN metres, then out past OUT. */
     const passes = torches.map(() => 0);

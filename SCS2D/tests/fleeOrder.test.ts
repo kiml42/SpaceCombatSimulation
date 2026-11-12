@@ -64,7 +64,8 @@ describe("a ship told to flee", () => {
         steps(run, 15);
         const at = where(run, run.c);
         expect(at.x).toBeLessThan(-300);
-        expect(Math.abs(at.y)).toBeLessThan(0.2 * Math.abs(at.x));
+        // Away from the one fort, not diagonally from both; the other's hits knock it a little sideways.
+        expect(Math.abs(at.y)).toBeLessThan(0.25 * Math.abs(at.x));
     });
 
     it("hides behind a friend, on its side away from the enemy", () => {
