@@ -133,6 +133,8 @@ export const Ship: Story = {
 export const Skirmish: Story = {
     args: { path: "/skirmish" },
     play: async ({ canvas }) => {
+        await expect(canvas.getByRole("combobox", { name: "Enemy" })).not.toBeVisible();
+        await userEvent.click(canvas.getByText("Advanced config"));
         await expect(canvas.getByRole("combobox", { name: "Enemy" })).toBeVisible();
         await waitFor(() => expect(canvas.getByRole("row", { name: /^metal/ })).toBeVisible());
         await userEvent.selectOptions(canvas.getByRole("combobox", { name: "Your fleet" }), "ship:Gunship");
