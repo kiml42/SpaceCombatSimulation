@@ -177,7 +177,7 @@ export const SkirmishHelp: Story = {
     args: { path: "/skirmish" },
     play: async ({ canvas }) => {
         const help = await canvas.findByRole("dialog", { name: "How a skirmish works" });
-        await expect(help).toHaveTextContent("every time you beat it, it evolves to beat you back");
+        await expect(help).toHaveTextContent("every time you beat it, it evolves to counter your fleet");
         await userEvent.click(within(help).getByRole("button", { name: "Got it" }));
         await expect(canvas.queryByRole("dialog")).toBeNull();
         await userEvent.click(canvas.getByRole("button", { name: "How a skirmish works" }));
