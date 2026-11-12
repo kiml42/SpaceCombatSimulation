@@ -5,6 +5,7 @@ import { EFFECTS_SCENES, STEP } from "~/host/effectsScene";
 import { effectsView, type EffectsView } from "~/host/effectsView";
 import { BUILDER_LIGHT, DEFAULT_LIGHT, type Light } from "~/render/light";
 import { LIGHTS } from "~/scenarios/lights";
+import { Playback } from "~/features/battle/Playback";
 import { PauseMenu } from "~/features/menu/PauseMenu";
 import { Button } from "~/ui/buttons/Button";
 
@@ -134,32 +135,34 @@ export function EffectsPage() {
                 <Button id="play" onClick={() => setPlaying(!playing)}>
                     {playing ? "Pause" : "Play"}
                 </Button>
-                <label>
-                    speed
-                    <select id="speed" value={speed} onChange={(event) => setSpeed(Number(event.target.value))}>
-                        {SPEEDS.map((each) => (
-                            <option key={each} value={each}>
-                                {each}x
-                            </option>
-                        ))}
-                    </select>
-                </label>
-                <label>
-                    t
-                    <input
-                        id="time"
-                        type="range"
-                        min={0}
-                        max={loop}
-                        step={1 / 600}
-                        value={Math.min(time, loop)}
-                        onChange={(event) => {
-                            setPlaying(false);
-                            view?.seek(Number(event.target.value));
-                        }}
-                    />
-                    <output>{time.toFixed(3)} s</output>
-                </label>
+                <Playback>
+                    <label>
+                        t
+                        <input
+                            id="time"
+                            type="range"
+                            min={0}
+                            max={loop}
+                            step={1 / 600}
+                            value={Math.min(time, loop)}
+                            onChange={(event) => {
+                                setPlaying(false);
+                                view?.seek(Number(event.target.value));
+                            }}
+                        />
+                        <output>{time.toFixed(3)} s</output>
+                    </label>
+                    <label>
+                        speed
+                        <select id="speed" value={speed} onChange={(event) => setSpeed(Number(event.target.value))}>
+                            {SPEEDS.map((each) => (
+                                <option key={each} value={each}>
+                                    {each}x
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                </Playback>
                 <label>
                     light
                     <select id="light" value={light} onChange={(event) => setLight(Number(event.target.value))}>

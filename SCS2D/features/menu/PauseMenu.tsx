@@ -162,6 +162,13 @@ export function PauseMenu({ title, pause, actions = [], settings, keys, notes, u
                 ref={dialog}
                 aria-labelledby="menuTitle"
                 data-view={view ?? undefined}
+                // A click on the backdrop lands on the dialog itself, outside its box.
+                onClick={(event) => {
+                    const box = event.currentTarget.getBoundingClientRect();
+                    const outside =
+                        event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom;
+                    if (event.target === event.currentTarget && outside) close();
+                }}
                 onCancel={(event) => {
                     event.preventDefault();
                     back();

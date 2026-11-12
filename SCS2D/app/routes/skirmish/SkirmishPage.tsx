@@ -4,6 +4,7 @@ import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { BattleCanvas } from "~/features/battle/BattleCanvas";
 import { LookFields } from "~/features/battle/LookFields";
 import { pauseView } from "~/features/battle/pauseView";
+import { Playback } from "~/features/battle/Playback";
 import { PauseMenu } from "~/features/menu/PauseMenu";
 import { Scrub } from "~/features/battle/Scrub";
 import { useSampled } from "~/features/battle/useSampled";
@@ -755,7 +756,12 @@ export function SkirmishPage() {
                         skirmish === null
                             ? []
                             : [
-                                  { id: "menuExport", label: "Export skirmish", onSelect: exportSkirmish },
+                                  {
+                                      id: "exportSkirmish",
+                                      label: "Export skirmish",
+                                      title: "Save the skirmish, its settings and every match played to a file, to look into or ask about",
+                                      onSelect: exportSkirmish,
+                                  },
                                   { id: "menuNewSkirmish", label: "New skirmish", onSelect: () => setAbandoning(true) },
                               ]
                     }
@@ -771,33 +777,28 @@ export function SkirmishPage() {
                         <Button id="fit" onClick={() => view?.fit()}>
                             Fit
                         </Button>
-                        <Scrub view={view} />
-                        <Button
-                            id="exportSkirmish"
-                            title="Save the skirmish, its settings and every match played to a file, to look into or ask about"
-                            onClick={exportSkirmish}
-                        >
-                            Export
-                        </Button>
-                        <label>
-                            speed
-                            <select
-                                id="speed"
-                                title="How fast the battle runs"
-                                value={settings.speed}
-                                onChange={(event) => {
-                                    const speed = Number(event.target.value);
-                                    keepView({ speed });
-                                    view?.setSpeed(speed);
-                                }}
-                            >
-                                {SPEEDS.map((speed) => (
-                                    <option key={speed} value={speed}>
-                                        {speed}x
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
+                        <Playback>
+                            <Scrub view={view} />
+                            <label>
+                                speed
+                                <select
+                                    id="speed"
+                                    title="How fast the battle runs"
+                                    value={settings.speed}
+                                    onChange={(event) => {
+                                        const speed = Number(event.target.value);
+                                        keepView({ speed });
+                                        view?.setSpeed(speed);
+                                    }}
+                                >
+                                    {SPEEDS.map((speed) => (
+                                        <option key={speed} value={speed}>
+                                            {speed}x
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                        </Playback>
                         <Readout id="readout" aria-label="Battle time">
                             {readout}
                         </Readout>

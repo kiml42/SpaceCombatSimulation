@@ -323,6 +323,7 @@ describe("the skirmish in a browser", () => {
 
         // Exported, the skirmish carries what it would take to ask why the round went as it did.
         const saving = page.waitForEvent("download");
+        await page.click("#menuButton");
         await page.click("#exportSkirmish");
         const download = await saving;
         expect(download.suggestedFilename()).toBe("skirmish-round-1.skirmish.json");
@@ -341,6 +342,7 @@ describe("the skirmish in a browser", () => {
         await page.fill("#skirmishName", "Bare core test");
         await page.press("#skirmishName", "Enter");
         const savingNamed = page.waitForEvent("download");
+        await page.click("#menuButton");
         await page.click("#exportSkirmish");
         expect((await savingNamed).suggestedFilename()).toBe("Bare-core-test-round-1.skirmish.json");
 

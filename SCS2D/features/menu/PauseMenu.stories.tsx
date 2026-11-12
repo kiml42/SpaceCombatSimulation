@@ -73,3 +73,16 @@ export const AsksBeforeLeavingUnsaved: Story = {
         await expect(await canvas.findByRole("heading", { name: "Main menu" })).toBeVisible();
     },
 };
+
+export const ClickOutsideCloses: Story = {
+    play: async ({ canvas }) => {
+        await userEvent.click(canvas.getByRole("button", { name: "Menu" }));
+        const menu = canvas.getByRole("dialog", { name: "Paused" });
+        const box = menu.getBoundingClientRect();
+        // Inside its box, on its padding, it stays.
+        await userEvent.pointer({ keys: "[MouseLeft]", target: menu, coords: { clientX: box.left + 3, clientY: box.top + 3 } });
+        await expect(menu).toBeVisible();
+        await userEvent.pointer({ keys: "[MouseLeft]", target: menu, coords: { clientX: box.left - 20, clientY: box.top - 20 } });
+        await expect(canvas.queryByRole("dialog")).toBeNull();
+    },
+};

@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from "react-router";
 import { BattleCanvas } from "~/features/battle/BattleCanvas";
 import { LookFields } from "~/features/battle/LookFields";
 import { pauseView } from "~/features/battle/pauseView";
+import { Playback } from "~/features/battle/Playback";
 import { PauseMenu } from "~/features/menu/PauseMenu";
 import { useSampled } from "~/features/battle/useSampled";
 import { useStorage } from "~/features/storage/StorageContext";
@@ -291,25 +292,27 @@ export function BattlePage() {
                     Fit
                 </Button>
                 <AddShip view={view} />
-                <Scrub view={view} />
-                <label>
-                    speed
-                    <select
-                        id="speed"
-                        value={settings.speed}
-                        onChange={(event) => {
-                            const speed = Number(event.target.value);
-                            keep({ speed });
-                            view?.setSpeed(speed);
-                        }}
-                    >
-                        {SPEEDS.map((speed) => (
-                            <option key={speed} value={speed}>
-                                {speed}x
-                            </option>
-                        ))}
-                    </select>
-                </label>
+                <Playback>
+                    <Scrub view={view} />
+                    <label>
+                        speed
+                        <select
+                            id="speed"
+                            value={settings.speed}
+                            onChange={(event) => {
+                                const speed = Number(event.target.value);
+                                keep({ speed });
+                                view?.setSpeed(speed);
+                            }}
+                        >
+                            {SPEEDS.map((speed) => (
+                                <option key={speed} value={speed}>
+                                    {speed}x
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                </Playback>
                 <Readout id="readout" aria-label="Battle time">
                     {readout}
                 </Readout>
