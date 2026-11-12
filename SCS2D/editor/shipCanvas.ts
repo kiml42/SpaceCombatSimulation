@@ -85,6 +85,9 @@ const FIT_EASE = 0.15;
  */
 export const ANGLE_SNAP_DEGREES = 15;
 
+/** How far round from a row's second copy's +x its turning knob stands: off its side, clear of the next copy. */
+const STEP_KNOB_OFFSET = math.PI / 2;
+
 /** Where the selected copy's position is written, and in what frame. */
 export function selectedPosition(doc: EditorDocument): ReturnType<typeof positionHandle> | null {
     // A selected assembly is dragged as one thing, which is the point of having
@@ -347,10 +350,13 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
         const first = selectedAssemblyPose(0);
         const second = selectedAssemblyPose(1);
         if (first === null || second === null) return null;
+        const row = Array.from({ length: selectedRepeat() }, (_, copy) => selectedAssemblyPose(copy)?.modules ?? []).flat();
+        // The row's knob reaches past every copy, and the second copy's stands off its side, so neither sits on a copy.
+        const side = { ...second.pose, rotation: second.pose.rotation + STEP_KNOB_OFFSET };
         return [
-            assemblyKnob(first.pose, first.modules, camera.scale),
+            assemblyKnob(first.pose, row, camera.scale),
             { kind: "step", x: second.pose.x, y: second.pose.y, along: 0, across: 0, angle: second.pose.rotation },
-            { ...assemblyKnob(second.pose, second.modules, camera.scale), turnsStep: true },
+            { ...assemblyKnob(side, second.modules, camera.scale), turnsStep: true },
         ];
     };
 
@@ -578,7 +584,7 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
                     event.altKey ? 0 : ANGLE_SNAP_DEGREES,
                     anglesNow(),
                 );
-                next = turnRepeatStep(drag.from, drag.path, drag.first, bearing);
+                next = turnRepeatStep(drag.from, drag.path, drag.first, bearing - STEP_KNOB_OFFSET);
             }
             if (next === null) return;
             if (drag.moved) doc.amend(next);

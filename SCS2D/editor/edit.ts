@@ -1,6 +1,7 @@
 import {
     bodySpec,
     compileDraft,
+    degreesToRadians,
     expandWithOrigins,
     foldAngle,
     isInstance,
@@ -12,6 +13,7 @@ import {
     math,
     placementAt,
     pushNeighbours,
+    radiansToDegrees,
     padFighterNames,
     readsCraftAngle,
     readsDocked,
@@ -522,8 +524,9 @@ export function shiftRepeatStep(blueprint: Blueprint, instance: ModulePath, firs
 export function turnRepeatStep(blueprint: Blueprint, instance: ModulePath, first: Frame, bearing: number): Blueprint | null {
     const step = repeatedStep(blueprint, instance);
     if (step === null) return null;
-    const turn = bearing - first.rotation;
-    const angle = normalizeAngle(first.mirrored ? -turn : turn);
+    const turn = normalizeAngle(first.mirrored ? first.rotation - bearing : bearing - first.rotation);
+    // To a millionth of a degree, so a snapped turn reads back as the whole degrees it was snapped to.
+    const angle = degreesToRadians(round(radiansToDegrees(turn) * 1e6) / 1e6);
     return updatePlacement(blueprint, instance, (p) => {
         const { angle: _, ...rest } = step;
         return { ...(p as AssemblyInstance), step: angle === 0 ? rest : { ...rest, angle } };
