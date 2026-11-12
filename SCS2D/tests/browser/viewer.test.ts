@@ -390,7 +390,7 @@ describe("the viewer in a browser", () => {
         await page.click("#linkBattle");
         await page.waitForFunction(() => typeof (window as unknown as { copied?: string }).copied === "string");
         const href = await page.evaluate(() => (window as unknown as { copied: string }).copied);
-        expect(href).toMatch(/index\.html#\/battle\?battle=[\w-]+$/);
+        expect(href).toMatch(/index\.html#\/simulator\?battle=[\w-]+$/);
 
         const opened = await browser.newPage({ viewport: { width: 1000, height: 620 } });
         const errors: string[] = [];
