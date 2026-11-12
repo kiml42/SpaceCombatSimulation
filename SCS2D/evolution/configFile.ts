@@ -1,6 +1,14 @@
 import { PI } from "../sim/math.js";
 import { MODULE_KINDS } from "../sim/modules.js";
-import { DEFAULT_MATCH, SCORE_PARTS, type CoursePoint, type GoalSpec, type MatchConfig, type ScoreWeights } from "./match.js";
+import {
+    DEFAULT_COURSE,
+    DEFAULT_MATCH,
+    SCORE_PARTS,
+    type CourseSpec,
+    type GoalSpec,
+    type MatchConfig,
+    type ScoreWeights,
+} from "./match.js";
 import {
     DEFAULT_BUILD_WEIGHTS,
     DEFAULT_DOCTRINE_WEIGHTS,
@@ -162,7 +170,7 @@ const MATCH_KEYS: readonly string[] = [
 ];
 const GOAL_KEYS: readonly string[] = ["x", "y", "scale", "size"];
 const GOAL_OPTIONAL_KEYS: readonly string[] = ["solid", "reach", "linger", "finalLinger"];
-const POINT_KEYS: readonly string[] = ["x", "y"];
+const COURSE_KEYS: readonly (keyof CourseSpec)[] = ["goals", "leg", "legSpread", "turn", "turnSpread"];
 const WEIGHT_KEYS: readonly (keyof ScoreWeights)[] = SCORE_PARTS;
 
 /** The settings a run is given, as the object a file holds. */
@@ -214,7 +222,8 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
             ...(match.quietLimit > 0 ? { quietLimit: match.quietLimit } : {}),
             ...(match.map !== undefined && writeMap(match.map) !== undefined ? { map: writeMap(match.map) } : {}),
             goal: match.goal === null ? null : { ...match.goal },
-            ...((match.course ?? []).length > 0 ? { course: match.course!.map((point) => ({ x: point.x, y: point.y })) } : {}),
+            // Only where there is more than one goal, so a file with a single goal reads as it always did.
+            ...(match.course !== undefined && match.course.goals > 1 ? { course: { ...match.course } } : {}),
             weights: { ...match.weights },
         },
         ...(setup.versus == null ? {} : { versus: serialiseVersus(setup.versus) }),
@@ -467,9 +476,7 @@ export function parseRunConfig(value: unknown): RunSetup {
                         : match["goal"] === null
                           ? null
                           : ({ ...(match["goal"] as GoalSpec) } as GoalSpec),
-                ...(Array.isArray(match["course"])
-                    ? { course: (match["course"] as CoursePoint[]).map((point) => ({ x: point.x, y: point.y })) }
-                    : {}),
+                ...(isRecord(match["course"]) ? { course: { ...DEFAULT_COURSE, ...(match["course"] as Partial<CourseSpec>) } } : {}),
                 weights: { ...DEFAULT_MATCH.weights, ...(match["weights"] as Partial<ScoreWeights> | undefined) },
             },
         },
@@ -668,17 +675,16 @@ function matchProblem(value: unknown, warnings: string[]): string | null {
 
 function courseProblem(value: unknown, warnings: string[]): string | null {
     if (value === undefined) return null;
-    if (!Array.isArray(value)) return "match.course must be a list of points, as { x, y }";
-    for (const [n, point] of value.entries()) {
-        const name = `match.course[${n}]`;
-        if (!isRecord(point)) return `${name} must be a point, as { x, y }`;
-        unknownKeys(point, POINT_KEYS, name, warnings);
-        for (const key of POINT_KEYS) {
-            if (point[key] === undefined) return `${name} is missing ${key}`;
-            const problem = numberProblem(point[key], `${name}.${key}`);
-            if (problem !== null) return problem;
-        }
+    if (!isRecord(value)) return "match.course must be an object, as { goals, leg, legSpread, turn, turnSpread }";
+    unknownKeys(value, COURSE_KEYS, "match.course", warnings);
+    for (const key of COURSE_KEYS) {
+        if (value[key] === undefined) continue;
+        const problem = numberProblem(value[key], `match.course.${key}`);
+        if (problem !== null) return problem;
+        if ((value[key] as number) < 0) return `match.course.${key} must be nothing or more`;
     }
+    if (value["goals"] !== undefined && (!Number.isInteger(value["goals"]) || (value["goals"] as number) < 1))
+        return `match.course.goals must be a whole number of at least one, got ${JSON.stringify(value["goals"])}`;
     return null;
 }
 

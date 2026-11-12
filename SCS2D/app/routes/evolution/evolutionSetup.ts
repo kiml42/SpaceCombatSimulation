@@ -2,7 +2,7 @@ import { mapFields } from "~/host/mapFields";
 import { DEFAULT_COEVOLUTION, rivalSettings, type CoevolutionConfig, type SideSettings } from "~/evolution/coevolution";
 import type { RunSetup } from "~/evolution/configFile";
 import { DEFAULT_FLEET_LIMITS } from "~/evolution/fleetMutate";
-import { DEFAULT_MATCH, GOAL_REACH, isFleet, type Entrant, type MatchConfig } from "~/evolution/match";
+import { DEFAULT_COURSE, DEFAULT_MATCH, GOAL_REACH, isFleet, type Entrant, type MatchConfig } from "~/evolution/match";
 import { DEFAULT_BUILD_WEIGHTS, DEFAULT_KINDS, DEFAULT_LIMITS, doctrineWeights, type KindWeights } from "~/evolution/mutate";
 import { breeding, MUTATION_FIELDS } from "~/evolution/mutationFields";
 import { DEFAULT_RUN, type RunConfig } from "~/evolution/run";
@@ -104,7 +104,11 @@ export const DEFAULT_TEXTS: Texts = {
     closingSpread: String(DEFAULT_MATCH.closingSpread),
     crossingSpread: String(DEFAULT_MATCH.crossingSpread),
     quietLimit: String(DEFAULT_MATCH.quietLimit),
-    course: "",
+    courseGoals: String(DEFAULT_COURSE.goals),
+    courseLeg: String(DEFAULT_COURSE.leg),
+    courseLegSpread: String(DEFAULT_COURSE.legSpread),
+    courseTurn: String(DEFAULT_COURSE.turn),
+    courseTurnSpread: String(DEFAULT_COURSE.turnSpread),
     goalReach: String(GOAL_REACH),
     goalLinger: "0",
     goalFinalLinger: "",
@@ -237,10 +241,7 @@ function mapOf(texts: Texts): MatchConfig["map"] {
     return writeMap(out);
 }
 
-/**
- * The goal and the course after it, as the form says them: the course as
- * `x,y` points, one after another, separated by `;`, each a goal like the first.
- */
+/** The goal, and the course drawn for every match from it, as the form says them. */
 function goalsOf(form: SetupForm): Pick<MatchConfig, "goal" | "course"> {
     if (form.goal === "none" || DEFAULT_MATCH.goal === null) return { goal: null };
     const t = form.texts;
@@ -255,12 +256,16 @@ function goalsOf(form: SetupForm): Pick<MatchConfig, "goal" | "course"> {
         ...(linger === 0 ? {} : { linger }),
         ...finalLinger,
     };
-    const course = (t["course"] ?? "")
-        .split(";")
-        .map((point) => point.split(",").map((n) => Number(n.trim())))
-        .filter((point) => point.length === 2 && point.every(Number.isFinite))
-        .map(([x, y]) => ({ x: x!, y: y! }));
-    return course.length === 0 ? { goal } : { goal, course };
+    const goals = Math.max(1, Math.round(number(t["courseGoals"], DEFAULT_COURSE.goals)));
+    if (goals === 1) return { goal };
+    const course = {
+        goals,
+        leg: Math.max(0, number(t["courseLeg"], DEFAULT_COURSE.leg)),
+        legSpread: Math.max(0, number(t["courseLegSpread"], DEFAULT_COURSE.legSpread)),
+        turn: Math.max(0, number(t["courseTurn"], DEFAULT_COURSE.turn)),
+        turnSpread: Math.max(0, number(t["courseTurnSpread"], DEFAULT_COURSE.turnSpread)),
+    };
+    return { goal, course };
 }
 
 /** The run's settings, as the form says them. */
@@ -387,7 +392,11 @@ export function formOfSetup(setup: RunSetup, founders: readonly string[], versus
         closingSpread: String(match.closingSpread ?? DEFAULT_MATCH.closingSpread),
         crossingSpread: String(match.crossingSpread ?? DEFAULT_MATCH.crossingSpread),
         quietLimit: String(match.quietLimit ?? DEFAULT_MATCH.quietLimit),
-        course: (match.course ?? []).map((point) => `${point.x},${point.y}`).join("; "),
+        courseGoals: String(match.course?.goals ?? DEFAULT_COURSE.goals),
+        courseLeg: String(match.course?.leg ?? DEFAULT_COURSE.leg),
+        courseLegSpread: String(match.course?.legSpread ?? DEFAULT_COURSE.legSpread),
+        courseTurn: String(match.course?.turn ?? DEFAULT_COURSE.turn),
+        courseTurnSpread: String(match.course?.turnSpread ?? DEFAULT_COURSE.turnSpread),
         goalReach: String(match.goal?.reach ?? GOAL_REACH),
         goalLinger: String(match.goal?.linger ?? 0),
         goalFinalLinger: match.goal?.finalLinger === undefined ? "" : String(match.goal.finalLinger),

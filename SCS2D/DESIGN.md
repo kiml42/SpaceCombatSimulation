@@ -492,6 +492,10 @@ inside any one file is not contiguous.
   worth more than any progress towards one not reached, reaching it sooner a little more, and progress towards
   the next is the best a craft managed, measured from where it set out for it rather than against the goal
   outright, so standing still is nothing and any closing is something. Every goal of a course is set up as the first is.
+  **A course is drawn afresh for every match**, from its seed, as an asteroid field is: how many goals, the
+  first in the middle, then each a leg on from the one before (`leg`, metres) turned from the leg before it
+  (`turn`, degrees, left or right as drawn), each with a spread either side. So a run breeds for courses of
+  a kind rather than over-fitting one, and every entrant in a match races the same one.
   A goal is reached by staying within `reach` of it, skin to skin (100 m unless set), for `linger` seconds
   without leaving (none unless set), and for the last for `finalLinger`, so a course can end in a station to
   be held; staying counts towards it as getting there does. Reaching one sends a craft on to the next. Nearness falls away with distance

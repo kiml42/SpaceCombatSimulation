@@ -408,11 +408,28 @@ export function SetupScreen({ hidden, form, onForm, ships, fleets, onExport, onI
                         </select>
                     </Row>
                     {field({
-                        id: "course",
-                        label: "then",
-                        title: "Goals to reach after the first, in order, as x,y metres separated by ;, each like the first. Each ship is sent on to the next once it has reached one, and the match ends once every ship has reached the last.",
-                        text: true,
-                        placeholder: "none",
+                        id: "courseGoals",
+                        label: "goals",
+                        min: 1,
+                        title: "How many goals in the course, the first in the middle. Each ship is sent on to the next once it has reached one, and the match ends once every ship has reached the last. Drawn afresh for every match, from its seed",
+                    })}
+                    {field({
+                        id: "courseLeg",
+                        label: "leg m",
+                        step: 50,
+                        title: "How far each goal is from the one before",
+                        spread: { id: "courseLegSpread", title: "How far either side each leg is drawn, evenly. Zero holds it." },
+                    })}
+                    {field({
+                        id: "courseTurn",
+                        label: "turn °",
+                        max: 180,
+                        step: 15,
+                        title: "How far each leg turns from the one before, left or right as drawn: 0 straight on, 180 straight back",
+                        spread: {
+                            id: "courseTurnSpread",
+                            title: "How far either side each turn is drawn, evenly. 90 ± 90 is any turn at all.",
+                        },
                     })}
                     {field({
                         id: "goalReach",

@@ -109,11 +109,29 @@ export interface GoalSpec {
     readonly finalLinger?: number;
 }
 
-/** Where a goal of a course after the first is; the rest of it is as the first. */
-export interface CoursePoint {
-    readonly x: number;
-    readonly y: number;
+/**
+ * How a match's course is drawn, afresh for every match from its seed, so a
+ * run breeds for courses of a kind rather than one course. The first goal is
+ * `goal`, where every entrant starts the same distance from; each next is a
+ * leg on from the one before, turned from the leg before it. Every goal is
+ * otherwise as `goal` is.
+ */
+export interface CourseSpec {
+    /** How many goals in all, `goal` included. One is `goal` alone. */
+    readonly goals: number;
+    /** How long each leg is, metres, drawn evenly `legSpread` either side. */
+    readonly leg: number;
+    readonly legSpread: number;
+    /**
+     * How far each leg turns from the one before, degrees, left or right as
+     * drawn: 0 straight on, 180 straight back. Drawn evenly `turnSpread`
+     * either side, so 90 ± 90 is any turn at all.
+     */
+    readonly turn: number;
+    readonly turnSpread: number;
 }
+
+export const DEFAULT_COURSE: CourseSpec = { goals: 1, leg: 800, legSpread: 200, turn: 90, turnSpread: 90 };
 
 /** How close a ship must come to a goal to have reached it, metres skin to skin, where the goal does not say. */
 export const GOAL_REACH = 100;
@@ -176,12 +194,12 @@ export interface MatchConfig {
      */
     readonly goal: GoalSpec | null;
     /**
-     * Where the goals to reach after `goal` are, in order, each otherwise as
-     * `goal` is: a course. Each ship is told to make for the next once it
-     * reaches the one before, and the match ends once every ship still flown
-     * has reached the last. Ignored without a `goal`.
+     * The goals to reach after `goal`, in order: a course, drawn for each
+     * match. Each ship is told to make for the next once it reaches the one
+     * before, and the match ends once every ship still flown has reached the
+     * last. `goal` alone where left out, and ignored without a `goal`.
      */
-    readonly course?: readonly CoursePoint[];
+    readonly course?: CourseSpec;
     readonly weights: ScoreWeights;
     readonly wells: readonly WellSpec[];
     /**
@@ -1019,10 +1037,30 @@ function hullLeft(ships: Ships, ship: number, design: ShipDesign, body: number):
     return left;
 }
 
-/** The goals of a match's course, in order: none without a `goal`. */
-function courseOf(settings: MatchConfig): readonly GoalSpec[] {
+/**
+ * The goals of a match's course, in order, drawn from its seed: none without a
+ * `goal`. Its own generator, so drawing a course moves no other draw a match makes.
+ */
+export function courseOf(settings: MatchConfig): readonly GoalSpec[] {
     const goal = settings.goal;
-    return goal === null ? [] : [goal, ...(settings.course ?? []).map((point) => ({ ...goal, x: point.x, y: point.y }))];
+    if (goal === null) return [];
+    const course = settings.course ?? DEFAULT_COURSE;
+    const draw = new Rng(settings.seed ^ 0xc0ec5e);
+    const goals: GoalSpec[] = [goal];
+    let heading = draw.nextRange(-math.PI, math.PI);
+    let x = goal.x;
+    let y = goal.y;
+    for (let k = 1; k < math.round(course.goals); k++) {
+        // The same draws for every leg, the first's turn unused, so a setting changed moves no other.
+        const turn = math.min(180, math.abs(course.turn + course.turnSpread * draw.nextRange(-1, 1)));
+        const side = draw.nextFloat() < 0.5 ? -1 : 1;
+        const leg = math.max(0, course.leg + course.legSpread * draw.nextRange(-1, 1));
+        if (k > 1) heading += (side * turn * math.PI) / 180;
+        x += leg * math.cos(heading);
+        y += leg * math.sin(heading);
+        goals.push({ ...goal, x, y });
+    }
+    return goals;
 }
 
 /**
