@@ -38,13 +38,13 @@ export const Start: Story = {
     },
 };
 
-export const Bar: Story = {
+export const Menu: Story = {
     args: { path: "/effects" },
     play: async ({ canvas }) => {
-        const nav = canvas.getByRole("navigation", { name: "Main" });
-        await userEvent.click(within(nav).getByRole("link", { name: "Library" }));
-        await expect(await canvas.findByRole("heading", { name: "Ships" })).toBeVisible();
-        await expect(within(nav).getByRole("link", { name: "Library" })).toHaveClass("active");
+        await userEvent.click(canvas.getByRole("button", { name: "Menu" }));
+        const menu = await canvas.findByRole("dialog", { name: "Paused" });
+        await userEvent.click(within(menu).getByRole("button", { name: "Main menu" }));
+        await expect(await canvas.findByRole("heading", { name: "Space Combat Simulation" })).toBeVisible();
     },
 };
 
@@ -172,6 +172,16 @@ export const Skirmish: Story = {
         await userEvent.selectOptions(canvas.getByRole("combobox", { name: "Your fleet" }), "ship:Gunship");
         await userEvent.click(canvas.getByRole("button", { name: "Start" }));
         await expect(canvas.getByRole("heading", { name: "Round 1" })).toBeVisible();
+    },
+};
+
+/** Setting a skirmish up, the menu button only goes back. */
+export const SkirmishSetupBack: Story = {
+    args: { path: "/skirmish" },
+    play: async ({ canvas }) => {
+        await userEvent.click(canvas.getByRole("button", { name: "Menu" }));
+        await expect(canvas.queryByRole("dialog")).toBeNull();
+        await expect(await canvas.findByRole("heading", { name: "Space Combat Simulation" })).toBeVisible();
     },
 };
 

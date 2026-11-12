@@ -559,11 +559,16 @@ describe("the viewer in a browser", () => {
         await page.keyboard.press("Escape");
     });
 
-    it("lists its keys in a table behind a button, which keeps them from the battle while open", async () => {
+    it("lists its keys in its menu, which pauses the battle and keeps keys from it while open", async () => {
         await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-        expect(await page.getByRole("dialog", { name: "Keys and mouse" }).isVisible()).toBe(false);
+        const menu = page.getByRole("dialog", { name: "Paused" });
         const help = page.getByRole("dialog", { name: "Keys and mouse" });
-        await page.getByRole("button", { name: "Keys" }).click();
+        expect(await menu.isVisible()).toBe(false);
+        if ((await page.textContent("#play")) === "Play") await page.keyboard.press("Space");
+        await page.getByRole("button", { name: "Menu" }).click();
+        expect(await menu.isVisible()).toBe(true);
+        expect(await page.textContent("#play")).toBe("Play");
+        await menu.getByRole("button", { name: "Keys and mouse" }).click();
         expect(await help.isVisible()).toBe(true);
         const rows = await help
             .locator("tr")
@@ -574,16 +579,25 @@ describe("the viewer in a browser", () => {
                 ["T", "Hide or show each side's ships down the edges"],
             ]),
         );
-        // Space goes to the table, not the battle under it.
-        const playing = await page.textContent("#play");
-        await page.keyboard.press("Space");
-        expect(await page.textContent("#play")).toBe(playing);
+        // Keys go to the menu, not the battle under it.
+        await page.keyboard.press(".");
+        expect(await page.textContent("#play")).toBe("Play");
+        // Escape goes back, then out, and the battle plays on as it was.
         await page.keyboard.press("Escape");
-        expect(await help.isVisible()).toBe(false);
-        // And ? opens it again.
+        expect(await menu.isVisible()).toBe(true);
+        await page.keyboard.press("Escape");
+        expect(await menu.isVisible()).toBe(false);
+        expect(await page.textContent("#play")).toBe("Pause");
+        // ? opens it at the keys; Escape with nothing picked opens it too.
         await page.keyboard.press("?");
         expect(await help.isVisible()).toBe(true);
         await page.keyboard.press("Escape");
+        await page.keyboard.press("Escape");
+        await page.keyboard.press("Space");
+        await page.keyboard.press("Escape");
+        await expect.poll(() => menu.isVisible()).toBe(true);
+        await page.keyboard.press("Escape");
+        expect(await menu.isVisible()).toBe(false);
     });
 
     it("writes the range to a picked ship's target on the line between them", async () => {

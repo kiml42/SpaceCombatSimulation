@@ -2,6 +2,10 @@ import { styled } from "@linaria/react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { BattleCanvas } from "~/features/battle/BattleCanvas";
+import { LookFields } from "~/features/battle/LookFields";
+import { pauseView } from "~/features/battle/pauseView";
+import { Playback } from "~/features/battle/Playback";
+import { PauseMenu } from "~/features/menu/PauseMenu";
 import { useSampled } from "~/features/battle/useSampled";
 import { useStorage } from "~/features/storage/StorageContext";
 import { useLibrary } from "~/features/storage/useLibrary";
@@ -21,7 +25,6 @@ import { CustomPanel } from "./custom/CustomPanel";
 import { keepSetup, keptSetup, withReturned } from "./custom/keptSetup";
 import { CUSTOM, sceneIndex, sceneParam, variantIndex, variantParam } from "./sceneParam";
 import { DEFAULT_FIELDS, fieldsOf, setupOf, slotsOf, type SetupFields, type Slot } from "./custom/customSetup";
-import { KeyHelp } from "~/ui/dialogs/KeyHelp";
 import { AddShip } from "./orders/AddShip";
 import { AsteroidCard } from "~/features/battle/AsteroidCard";
 import { DOCTRINE_KEY, DoctrinePanel } from "~/features/orders/DoctrinePanel";
@@ -60,11 +63,6 @@ const Body = styled.div`
     display: flex;
     flex: 1;
     min-height: 0;
-`;
-
-const Footer = styled.footer`
-    padding: 0.4rem 0.9rem;
-    border-top: 1px solid var(--colour-border);
 `;
 
 const NOTES = [
@@ -234,6 +232,14 @@ export function BattlePage() {
     return (
         <Main>
             <Controls>
+                <PauseMenu
+                    title="Paused"
+                    pause={pauseView(() => view)}
+                    actions={[{ id: "menuRestart", label: "Restart", onSelect: () => show(view, scene, scene !== CUSTOM) }]}
+                    settings={view === null ? undefined : <LookFields view={view} />}
+                    keys={[...BATTLE_KEYS, ...ORDER_KEYS]}
+                    notes={NOTES}
+                />
                 <Button id="play" onClick={() => view?.setRunning(!running)}>
                     {running ? "Pause" : "Play"}
                 </Button>
@@ -286,25 +292,27 @@ export function BattlePage() {
                     Fit
                 </Button>
                 <AddShip view={view} />
-                <Scrub view={view} />
-                <label>
-                    speed
-                    <select
-                        id="speed"
-                        value={settings.speed}
-                        onChange={(event) => {
-                            const speed = Number(event.target.value);
-                            keep({ speed });
-                            view?.setSpeed(speed);
-                        }}
-                    >
-                        {SPEEDS.map((speed) => (
-                            <option key={speed} value={speed}>
-                                {speed}x
-                            </option>
-                        ))}
-                    </select>
-                </label>
+                <Playback>
+                    <Scrub view={view} />
+                    <label>
+                        speed
+                        <select
+                            id="speed"
+                            value={settings.speed}
+                            onChange={(event) => {
+                                const speed = Number(event.target.value);
+                                keep({ speed });
+                                view?.setSpeed(speed);
+                            }}
+                        >
+                            {SPEEDS.map((speed) => (
+                                <option key={speed} value={speed}>
+                                    {speed}x
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                </Playback>
                 <Readout id="readout" aria-label="Battle time">
                     {readout}
                 </Readout>
@@ -347,9 +355,6 @@ export function BattlePage() {
                     />
                 )}
             </Body>
-            <Footer>
-                <KeyHelp rows={[...BATTLE_KEYS, ...ORDER_KEYS]} notes={NOTES} />
-            </Footer>
         </Main>
     );
 }

@@ -15,7 +15,6 @@ import type { KeyRow } from "~/host/keyHelp";
 import { snapStep } from "~/render/camera";
 import { inSkirmish, pick, serialiseSkirmish, type Skirmish } from "~/scenarios/skirmish";
 import { parseBlueprint, parseFleet, serialiseFleet, type Blueprint, type Fleet } from "~/sim/index";
-import { KeyHelp } from "~/ui/dialogs/KeyHelp";
 import { CommitText } from "~/ui/fields/CommitText";
 import { LiveryPanel } from "~/features/livery/LiveryPanel";
 import { withLivery } from "~/editor/livery";
@@ -27,6 +26,7 @@ import { DesignList, FleetProblems, FleetStats } from "./FleetReport";
 import { SelectionPanel } from "./SelectionPanel";
 import { SkirmishCard, skirmishBlock } from "./SkirmishCard";
 import { Button } from "~/ui/buttons/Button";
+import { PauseMenu } from "~/features/menu/PauseMenu";
 
 const KEYS: readonly KeyRow[] = [
     { keys: "Add ship", does: "Add a ship to the fleet" },
@@ -124,11 +124,6 @@ const Panel = styled.aside`
         border-top: 1px solid var(--colour-border);
         border-left: none;
     }
-`;
-
-const Footer = styled.footer`
-    padding: 0.4rem 0.9rem;
-    border-top: 1px solid var(--colour-border);
 `;
 
 function problemOf(error: unknown): string {
@@ -261,10 +256,19 @@ export function FleetPage() {
     const name = doc.fleet.name;
     const taken = (): string[] => entries.map((entry) => entry.name);
     const listed = entries.some((entry) => entry.name === name);
+    const kept = listed ? fleets.load(name) : null;
+    const unsavedChanges = kept === null || JSON.stringify(serialiseFleet(kept)) !== JSON.stringify(serialiseFleet(doc.fleet));
 
     return (
         <Main>
             <Bar>
+                <PauseMenu
+                    title="Fleet editor"
+                    actions={[{ id: "menuSave", label: "Save", onSelect: () => fleets.save(doc.fleet) }]}
+                    keys={KEYS}
+                    // A skirmish keeps its fleet as it is edited.
+                    unsaved={skirmish === null && unsavedChanges ? { what: name, save: () => fleets.save(doc.fleet) } : null}
+                />
                 <select
                     id="fleet"
                     aria-label="Fleet"
@@ -529,9 +533,6 @@ export function FleetPage() {
                     </section>
                 </Panel>
             </Body>
-            <Footer>
-                <KeyHelp rows={KEYS} />
-            </Footer>
         </Main>
     );
 }

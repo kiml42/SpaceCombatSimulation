@@ -295,9 +295,14 @@ export function fleetCanvas(canvas: HTMLCanvasElement, doc: FleetDocument, hooks
             doc.apply(deleteEntries(doc.fleet, doc.selection));
             doc.select([]);
             changed();
-        } else if (event.key === "Escape" && hooks.escape?.() !== true) {
-            doc.select([]);
-            changed();
+        } else if (event.key === "Escape") {
+            // Taken only with something to let go, so the page's menu opens on the next.
+            if (hooks.escape?.() === true) event.preventDefault();
+            else if (doc.selection.length > 0) {
+                event.preventDefault();
+                doc.select([]);
+                changed();
+            }
         }
     };
 

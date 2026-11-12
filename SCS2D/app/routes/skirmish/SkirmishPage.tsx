@@ -2,6 +2,11 @@ import { styled } from "@linaria/react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { BattleCanvas } from "~/features/battle/BattleCanvas";
+import { LookFields } from "~/features/battle/LookFields";
+import { pauseView } from "~/features/battle/pauseView";
+import { Playback } from "~/features/battle/Playback";
+import { BackToMenu } from "~/features/menu/BackToMenu";
+import { PauseMenu } from "~/features/menu/PauseMenu";
 import { Scrub } from "~/features/battle/Scrub";
 import { useSampled } from "~/features/battle/useSampled";
 import { AsteroidCard } from "~/features/battle/AsteroidCard";
@@ -53,7 +58,6 @@ import { destinationById } from "~/skirmish/destinations";
 import { serialiseFleet, type Budget, type Fleet, type Snapshot } from "~/sim/index";
 import { Button } from "~/ui/buttons/Button";
 import { EditLink } from "~/ui/buttons/EditButton";
-import { KeyHelp } from "~/ui/dialogs/KeyHelp";
 import { EMPTY } from "./FleetChoices";
 import { keptSettings, SetupScreen } from "./SetupScreen";
 import { SETTINGS_KEY } from "./skirmishFields";
@@ -280,11 +284,6 @@ const Side = styled.div`
 const SideStats = styled.div`
     padding-left: 1.2rem;
     color: var(--colour-muted);
-`;
-
-const Footer = styled.footer`
-    padding: 0.4rem 0.9rem;
-    border-top: 1px solid var(--colour-border);
 `;
 
 /** What is on the screen: the round, the best enemy so far fighting it, the answer it found, or a match watched again. */
@@ -750,47 +749,65 @@ export function SkirmishPage() {
                     if (chosen !== undefined) void importSkirmish(chosen);
                 }}
             />
-            {skirmish !== null && (
-                <Controls>
-                    <Button id="play" disabled={!fightable} onClick={() => view?.setRunning(!running)}>
-                        {running ? "Pause" : decided !== null || ticked > 0 ? "Resume" : "Fight"}
-                    </Button>
-                    <Button id="fit" onClick={() => view?.fit()}>
-                        Fit
-                    </Button>
-                    <Scrub view={view} />
-                    <Button
-                        id="exportSkirmish"
-                        title="Save the skirmish, its settings and every match played to a file, to look into or ask about"
-                        onClick={exportSkirmish}
-                    >
-                        Export
-                    </Button>
-                    <label>
-                        speed
-                        <select
-                            id="speed"
-                            title="How fast the battle runs"
-                            value={settings.speed}
-                            onChange={(event) => {
-                                const speed = Number(event.target.value);
-                                keepView({ speed });
-                                view?.setSpeed(speed);
-                            }}
-                        >
-                            {SPEEDS.map((speed) => (
-                                <option key={speed} value={speed}>
-                                    {speed}x
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-                    <Readout id="readout" aria-label="Battle time">
-                        {readout}
-                    </Readout>
-                    <FrameRate aria-label="Frame rate">{fps}</FrameRate>
-                </Controls>
-            )}
+            <Controls>
+                {skirmish === null ? (
+                    // Setting one up, there is nothing to pause and nowhere to go but back.
+                    <BackToMenu />
+                ) : (
+                    <PauseMenu
+                        title="Paused"
+                        pause={pauseView(() => view)}
+                        actions={[
+                            {
+                                id: "exportSkirmish",
+                                label: "Export skirmish",
+                                title: "Save the skirmish, its settings and every match played to a file, to look into or ask about",
+                                onSelect: exportSkirmish,
+                            },
+                            { id: "menuNewSkirmish", label: "New skirmish", onSelect: () => setAbandoning(true) },
+                        ]}
+                        settings={view === null ? undefined : <LookFields view={view} />}
+                        keys={[...BATTLE_KEYS, ...ORDER_KEYS]}
+                        notes={NOTES}
+                    />
+                )}
+                {skirmish !== null && (
+                    <>
+                        <Button id="play" disabled={!fightable} onClick={() => view?.setRunning(!running)}>
+                            {running ? "Pause" : decided !== null || ticked > 0 ? "Resume" : "Fight"}
+                        </Button>
+                        <Button id="fit" onClick={() => view?.fit()}>
+                            Fit
+                        </Button>
+                        <Playback>
+                            <Scrub view={view} />
+                            <label>
+                                speed
+                                <select
+                                    id="speed"
+                                    title="How fast the battle runs"
+                                    value={settings.speed}
+                                    onChange={(event) => {
+                                        const speed = Number(event.target.value);
+                                        keepView({ speed });
+                                        view?.setSpeed(speed);
+                                    }}
+                                >
+                                    {SPEEDS.map((speed) => (
+                                        <option key={speed} value={speed}>
+                                            {speed}x
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                        </Playback>
+                        <Readout id="readout" aria-label="Battle time">
+                            {readout}
+                        </Readout>
+                        <FrameRate aria-label="Frame rate">{fps}</FrameRate>
+                    </>
+                )}
+            </Controls>
             <Body>
                 {skirmish === null && (
                     <SetupScreen
@@ -1055,9 +1072,6 @@ export function SkirmishPage() {
                     </Panel>
                 )}
             </Body>
-            <Footer>
-                <KeyHelp rows={[...BATTLE_KEYS, ...ORDER_KEYS]} notes={NOTES} />
-            </Footer>
             {skirmish !== null && (
                 <AbandonDialog
                     open={abandoning}

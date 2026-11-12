@@ -1,6 +1,7 @@
 import { styled } from "@linaria/react";
 import { useEffect, useEffectEvent, useMemo, useReducer, useRef, useState } from "react";
 import { BattleCanvas } from "~/features/battle/BattleCanvas";
+import { BackToMenu } from "~/features/menu/BackToMenu";
 import { useStorage } from "~/features/storage/StorageContext";
 import { useLibrary } from "~/features/storage/useLibrary";
 import { useViewSettings } from "~/features/storage/useViewSettings";
@@ -13,12 +14,10 @@ import { breedOpening } from "./openingWorker";
 import { latest, yardstickMatch } from "~/evolution/yardstick";
 import type { BattleView } from "~/host/battleView";
 import { designOf, LiveRun, type RunControl } from "~/host/evolutionRun";
-import { BATTLE_KEYS } from "~/host/keyHelp";
 import type { ViewSettings } from "~/host/viewSettings";
 import { sidesOf, teamColour } from "~/render/teams";
 import { serialiseBlueprint, serialiseFleet, type Blueprint, type Fleet } from "~/sim/index";
 import { Button, ToggleButton } from "~/ui/buttons/Button";
-import { KeyHelp } from "~/ui/dialogs/KeyHelp";
 import { Combatants, SCORE_COLUMNS } from "./Combatants";
 import {
     coevolutionOf,
@@ -67,10 +66,6 @@ const PAGE = "evolution";
 // Team colours on here and off on the viewer: a run is watched to see who is doing what.
 const DEFAULTS: ViewSettings = { arcs: "none", teamShots: true, strips: true, speed: 1 };
 const SPEEDS = [0.25, 0.5, 1, 2, 4, 8, 16];
-const KEYS = [...BATTLE_KEYS, { keys: "N", does: "Put another match on" }];
-const NOTES = [
-    "A run is decided entirely by its seed: the same settings give the same run, and any match in it can be fought again from the record.",
-];
 /** How long the settings must sit still before the preview is built again, ms. */
 const PREVIEW_DELAY_MS = 300;
 /** How often the panels are redrawn from the run, ms: they are a page of DOM, and the run is what the frame is for. */
@@ -221,11 +216,6 @@ const Scores = styled.div`
     .grnd {
         color: #e9c05f;
     }
-`;
-
-const Footer = styled.footer`
-    padding: 0.4rem 0.9rem;
-    border-top: 1px solid var(--colour-border);
 `;
 
 function download(name: string, text: string): void {
@@ -758,6 +748,7 @@ export function EvolutionPage() {
     return (
         <Main>
             <Controls>
+                <BackToMenu />
                 <span>
                     <ToggleButton
                         id="toSetup"
@@ -1013,9 +1004,6 @@ export function EvolutionPage() {
                     grid={gridShown}
                 />
             </Body>
-            <Footer>
-                <KeyHelp rows={KEYS} notes={NOTES} />
-            </Footer>
         </Main>
     );
 }

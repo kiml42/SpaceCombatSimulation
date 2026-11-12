@@ -323,6 +323,7 @@ describe("the skirmish in a browser", () => {
 
         // Exported, the skirmish carries what it would take to ask why the round went as it did.
         const saving = page.waitForEvent("download");
+        await page.click("#menuButton");
         await page.click("#exportSkirmish");
         const download = await saving;
         expect(download.suggestedFilename()).toBe("skirmish-round-1.skirmish.json");
@@ -341,6 +342,7 @@ describe("the skirmish in a browser", () => {
         await page.fill("#skirmishName", "Bare core test");
         await page.press("#skirmishName", "Enter");
         const savingNamed = page.waitForEvent("download");
+        await page.click("#menuButton");
         await page.click("#exportSkirmish");
         expect((await savingNamed).suggestedFilename()).toBe("Bare-core-test-round-1.skirmish.json");
 
@@ -401,12 +403,16 @@ describe("the skirmish in a browser", () => {
         // generation is kept in the history as it finishes, so one finished while away shows it went on.
         const history = (): Promise<string | null> => page.evaluate((key) => localStorage.getItem(key), HISTORY_STORAGE_KEY);
         const before = await history();
-        await page.getByRole("link", { name: "Library" }).click();
+        await page.getByRole("button", { name: "Menu" }).click();
+        await page.getByRole("button", { name: "Main menu" }).click();
+        await page.getByRole("navigation", { name: "More" }).getByRole("link", { name: "Library" }).click();
         await page.waitForSelector("section[aria-label='Ships']");
         await page.waitForFunction(([key, was]) => localStorage.getItem(key!) !== was, [HISTORY_STORAGE_KEY, before] as const, {
             timeout: 60_000,
         });
-        await page.getByRole("link", { name: "Skirmish", exact: true }).click();
+        // The library's menu button goes straight back.
+        await page.getByRole("button", { name: "Menu" }).click();
+        await page.getByRole("link", { name: /^Continue/ }).click();
         await page.waitForSelector("#answering, #answered");
         expect(await page.textContent("#answerProgress")).not.toMatch(/fighting the first generation/);
         await page.waitForSelector("#answered", { timeout: 90_000 });

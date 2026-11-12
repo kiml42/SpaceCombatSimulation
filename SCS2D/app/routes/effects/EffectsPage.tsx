@@ -5,9 +5,17 @@ import { EFFECTS_SCENES, STEP } from "~/host/effectsScene";
 import { effectsView, type EffectsView } from "~/host/effectsView";
 import { BUILDER_LIGHT, DEFAULT_LIGHT, type Light } from "~/render/light";
 import { LIGHTS } from "~/scenarios/lights";
+import { Playback } from "~/features/battle/Playback";
+import { PauseMenu } from "~/features/menu/PauseMenu";
 import { Button } from "~/ui/buttons/Button";
 
 const SPEEDS = [1, 0.25, 0.1, 0.03];
+const KEYS = [
+    { keys: "Space", does: "Play, or pause" },
+    { keys: ", and .", does: "Step back and on, paused" },
+    { keys: "Drag", does: "Pan" },
+    { keys: "Scroll", does: "Zoom" },
+];
 /** No light at all: what is seen is only what the scene's own lights show. */
 const DARK: Light = { from: 0, colour: "#000000", ambient: 0 };
 const LIGHT_CHOICES: readonly (readonly [string, Light])[] = [
@@ -108,6 +116,15 @@ export function EffectsPage() {
     return (
         <Main>
             <Controls>
+                <PauseMenu
+                    title="Paused"
+                    pause={() => {
+                        const was = playing;
+                        setPlaying(false);
+                        return () => setPlaying(was);
+                    }}
+                    keys={KEYS}
+                />
                 <select id="effect" aria-label="Effect" value={scene} onChange={(event) => setScene(Number(event.target.value))}>
                     {EFFECTS_SCENES.map((each, k) => (
                         <option key={each.name} value={k}>
@@ -118,32 +135,34 @@ export function EffectsPage() {
                 <Button id="play" onClick={() => setPlaying(!playing)}>
                     {playing ? "Pause" : "Play"}
                 </Button>
-                <label>
-                    speed
-                    <select id="speed" value={speed} onChange={(event) => setSpeed(Number(event.target.value))}>
-                        {SPEEDS.map((each) => (
-                            <option key={each} value={each}>
-                                {each}x
-                            </option>
-                        ))}
-                    </select>
-                </label>
-                <label>
-                    t
-                    <input
-                        id="time"
-                        type="range"
-                        min={0}
-                        max={loop}
-                        step={1 / 600}
-                        value={Math.min(time, loop)}
-                        onChange={(event) => {
-                            setPlaying(false);
-                            view?.seek(Number(event.target.value));
-                        }}
-                    />
-                    <output>{time.toFixed(3)} s</output>
-                </label>
+                <Playback>
+                    <label>
+                        t
+                        <input
+                            id="time"
+                            type="range"
+                            min={0}
+                            max={loop}
+                            step={1 / 600}
+                            value={Math.min(time, loop)}
+                            onChange={(event) => {
+                                setPlaying(false);
+                                view?.seek(Number(event.target.value));
+                            }}
+                        />
+                        <output>{time.toFixed(3)} s</output>
+                    </label>
+                    <label>
+                        speed
+                        <select id="speed" value={speed} onChange={(event) => setSpeed(Number(event.target.value))}>
+                            {SPEEDS.map((each) => (
+                                <option key={each} value={each}>
+                                    {each}x
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                </Playback>
                 <label>
                     light
                     <select id="light" value={light} onChange={(event) => setLight(Number(event.target.value))}>
