@@ -201,7 +201,9 @@ export interface RunChartsProps {
     readonly score: readonly Series[];
     /** Whether the score is worth a chart: against a side that moves too, it says nothing over time. */
     readonly showScore: boolean;
+    /** The chart picked, as `metric` says, when it is not the score. */
     readonly size: readonly Series[];
+    /** Which chart: `score`, or one of the sizes, the spread or a doctrine number. */
     readonly metric: string;
     readonly onMetric: (metric: string) => void;
     /** Each doctrine number's option, labelled with how far its mean has moved. */
@@ -212,34 +214,25 @@ export interface RunChartsProps {
     readonly onSeek: (at: number) => void;
 }
 
-/** The run's score over its generations, and under it how big its designs were, or how far apart their scores, or a doctrine number. */
+/**
+ * One chart of the run over its generations, picked from a list: its score,
+ * how big its designs were, how far apart their scores, or a doctrine number.
+ */
 export function RunCharts({ score, showScore, size, metric, onMetric, doctrineLabel, sizeKey, picked, label, onSeek }: RunChartsProps) {
     const [hover, setHover] = useState<number | null>(null);
+    const scored = showScore && metric === "score";
+    const series = scored ? score : size;
     return (
         <>
-            {showScore && (
-                <>
-                    <Chart
-                        id="chart"
-                        series={score}
-                        height={170}
-                        hover={hover}
-                        picked={picked}
-                        onHover={setHover}
-                        onSeek={onSeek}
-                        tip={label}
-                    />
-                    <Legend id="legend" series={score.length > 0 ? score : SCORE_KEY} hover={hover} digits={3} unit="" />
-                </>
-            )}
             <Metric>
                 chart{" "}
                 <select
-                    id="sizeMetric"
-                    value={metric}
+                    id="chartMetric"
+                    value={scored ? "score" : metric}
                     onChange={(event) => onMetric(event.target.value)}
-                    title="How far apart the scores are: the middle half and best to worst on the left, how many tied on the right. Narrow, or many tied, and selection can hardly tell the designs apart."
+                    title="What the chart shows over the generations. How far apart the scores are: the middle half and best to worst on the left, how many tied on the right. Narrow, or many tied, and selection can hardly tell the designs apart."
                 >
+                    {showScore && <option value="score">score</option>}
                     <option value="mass">size: mass and ships</option>
                     <option value="fittings">size: weapons and engines</option>
                     <option value="spread">how far apart the scores are</option>
@@ -252,8 +245,12 @@ export function RunCharts({ score, showScore, size, metric, onMetric, doctrineLa
                     </optgroup>
                 </select>
             </Metric>
-            <Chart id="massChart" series={size} height={100} hover={hover} picked={picked} onHover={setHover} onSeek={onSeek} />
-            <Legend id="massLegend" series={size} hover={hover} {...sizeKey} />
+            <Chart id="chart" series={series} height={170} hover={hover} picked={picked} onHover={setHover} onSeek={onSeek} tip={label} />
+            {scored ? (
+                <Legend id="legend" series={score.length > 0 ? score : SCORE_KEY} hover={hover} digits={3} unit="" />
+            ) : (
+                <Legend id="legend" series={size} hover={hover} {...sizeKey} />
+            )}
         </>
     );
 }
