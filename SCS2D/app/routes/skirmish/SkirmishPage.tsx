@@ -9,7 +9,9 @@ import { DOCTRINE_KEY, DoctrinePanel } from "~/features/orders/DoctrinePanel";
 import { OrderBar } from "~/features/orders/OrderBar";
 import { useOrderState } from "~/features/orders/orderState";
 import { BudgetTable } from "~/features/skirmish/BudgetTable";
+import { AbandonDialog } from "~/features/skirmish/AbandonDialog";
 import { CardHand } from "~/features/skirmish/Cards";
+import { download, downloadSkirmish, skirmishStatus, skirmishTitle } from "~/features/skirmish/skirmishFile";
 import { useSkirmish } from "~/features/skirmish/SkirmishProvider";
 import { useStorage } from "~/features/storage/StorageContext";
 import { useLibrary } from "~/features/storage/useLibrary";
@@ -41,8 +43,6 @@ import {
     parseSkirmishSettings,
     roundBattle,
     roundSetup,
-    serialiseSkirmish,
-    skirmishFileName,
     settingsOf,
     won,
     type Skirmish,
@@ -300,15 +300,6 @@ function roundOn(setup: BattleSetup): CustomBattle {
     return lit(customBattle(setup), roundLight(setup.seed));
 }
 
-function download(name: string, text: string): void {
-    const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = name;
-    link.click();
-    URL.revokeObjectURL(url);
-}
-
 /**
  * The skirmish: pick an enemy, fight it a round at a time, and go to the fleet
  * editor and back between tries; win, and watch the enemy evolve an answer,
@@ -350,6 +341,7 @@ export function SkirmishPage() {
     const [watching, setWatching] = useState(true);
     const [enemyCost, setEnemyCost] = useState<Budget | null>(null);
     const [setupKey, setSetupKey] = useState(0);
+    const [abandoning, setAbandoning] = useState(false);
     const ticked = useSampled(() => (view === null ? 0 : (battle.current?.world.tick ?? 0) > 0 ? 1 : 0));
 
     /** A fleet, or a single ship as a fleet of one, from a list value. */
@@ -674,28 +666,15 @@ export function SkirmishPage() {
         if (flies && view !== null) showOn(view, enemyAlone(enemy), false);
     };
     const abandon = (): void => {
-        if (!window.confirm("Give up this skirmish and start another?")) return;
-        skirmishes.stopAnswer();
-        skirmishes.setSkirmish(null);
-        skirmishes.setHistory(EMPTY_HISTORY);
+        setAbandoning(false);
+        skirmishes.abandon();
         mode.current = "round";
         resume.current = null;
         setReplaying(false);
         undecided();
         setFightable(false);
     };
-    const exportSkirmish = (): void => {
-        const file = {
-            about:
-                "A skirmish exported from the Skirmish page: the settings on the setup screen, the skirmish under way " +
-                "(round, budget, both fleets and the settings it started with) if there is one, and the history of every " +
-                "match played, its fleets kept by id.",
-            setup: keptSettings(storage),
-            skirmish: skirmish === null ? null : serialiseSkirmish(skirmish),
-            history,
-        };
-        download(skirmishFileName(skirmish), `${JSON.stringify(file, null, 2)}\n`);
-    };
+    const exportSkirmish = (): void => downloadSkirmish(keptSettings(storage), skirmish, history);
     // An exported skirmish read back: its settings into the setup screen, and the skirmish and history it
     // holds in place of these. Checked whole first, so a bad file changes nothing.
     const importSkirmish = async (chosen: File): Promise<void> => {
@@ -1041,7 +1020,7 @@ export function SkirmishPage() {
                                 ))}
                             </div>
                             <Buttons>
-                                <Button id="abandon" title="Give up this skirmish and start another" onClick={abandon}>
+                                <Button id="abandon" title="Give up this skirmish and start another" onClick={() => setAbandoning(true)}>
                                     New skirmish
                                 </Button>
                             </Buttons>
@@ -1076,6 +1055,16 @@ export function SkirmishPage() {
             <Footer>
                 <KeyHelp rows={[...BATTLE_KEYS, ...ORDER_KEYS]} notes={NOTES} />
             </Footer>
+            {skirmish !== null && (
+                <AbandonDialog
+                    open={abandoning}
+                    title={skirmishTitle(skirmish)}
+                    status={skirmishStatus(skirmish)}
+                    onExport={exportSkirmish}
+                    onAbandon={abandon}
+                    onCancel={() => setAbandoning(false)}
+                />
+            )}
         </Main>
     );
 }
