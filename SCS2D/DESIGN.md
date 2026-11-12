@@ -1431,7 +1431,9 @@ inside any one file is not contiguous.
   `scenarios/decision.ts` once one side has fired or rammed in the last 30 s and the other has not, which
   counts only once both have fired, so slow ships closing from far off are not out before they are in range;
   ramming counts as firing only while the rammer gets closer to its target than it has been, so one that
-  circles goes quiet, its mark following it out after the start or a hit it lands until it turns back;
+  circles goes quiet, its mark following it out after the start or a hit it lands until it turns back,
+  and while it closes the side it is closing on is not quiet either, so an unarmed rammer still on its way
+  in cannot win by outlasting a ship waiting for it to come into reach;
   and go
   to the fleet editor, which shows the budget, and back between tries. A ship of a fleet opens in the ship
   editor from the fleet editor's *Edit* and goes back to the fleet, skirmish and all. A round won, the
