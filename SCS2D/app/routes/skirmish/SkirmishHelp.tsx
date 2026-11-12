@@ -109,7 +109,7 @@ export function SkirmishHelp({ open, onClose, cardAfter, quietTime }: SkirmishHe
                     <strong>Lost? Change your fleet and try again.</strong> Each try of a round starts the same way, so you can work out
                     what beats it.
                     {cardAfter > 0 &&
-                        ` After modifying your fleet ${cardAfter} times in a row without a victory, you can pick an upgrade card to increase your budget.`}
+                        ` After trying ${cardAfter} modified versions of your fleet against the same enemy, you can pick an upgrade card to give you some different options.`}
                 </li>
                 <li>
                     <strong>Won? The enemy evolves.</strong> Pick where the next round is fought, then watch the enemy breed variations on
@@ -117,11 +117,11 @@ export function SkirmishHelp({ open, onClose, cardAfter, quietTime }: SkirmishHe
                     own.
                 </li>
                 <li>
-                    <strong>Keep going</strong> for as long as you can stay ahead. Your skirmish is saved as you play; carry on from the
+                    <strong>Keep going</strong> for as long as you can stay ahead. Your skirmish is saved as you play; Carry on from the
                     main menu.
                 </li>
             </ol>
-            <p>The presets above set everything up; You can use Customise and Advanced settings for more control over the battlefield, or how the enemy evolves.</p>
+            <p>The presets above set everything up; you can use Customise and Advanced settings for more control over the enemy, your budget, the battlefield and how the enemy evolves.</p>
             <Actions>
                 <Button id="skirmishHelpClose" variant="primary" autoFocus onClick={onClose}>
                     Got it
