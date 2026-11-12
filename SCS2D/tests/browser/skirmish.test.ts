@@ -410,8 +410,8 @@ describe("the skirmish in a browser", () => {
         await page.waitForFunction(([key, was]) => localStorage.getItem(key!) !== was, [HISTORY_STORAGE_KEY, before] as const, {
             timeout: 60_000,
         });
+        // The library's menu button goes straight back.
         await page.getByRole("button", { name: "Menu" }).click();
-        await page.getByRole("button", { name: "Main menu" }).click();
         await page.getByRole("link", { name: /^Continue/ }).click();
         await page.waitForSelector("#answering, #answered");
         expect(await page.textContent("#answerProgress")).not.toMatch(/fighting the first generation/);
