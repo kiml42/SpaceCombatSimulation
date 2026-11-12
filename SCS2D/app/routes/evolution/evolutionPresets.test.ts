@@ -44,5 +44,6 @@ test("both races are one ship alone, a course's drawn for every match", () => {
     const course = configOf(named("Race course").apply(was));
     expect(course.match.weights?.race).toBe(1);
     expect(course.match.course).toEqual({ goals: 5, leg: 800, legSpread: 300, turn: 90, turnSpread: 90 });
-    expect(course.match.goal).toMatchObject({ linger: 2, finalLinger: 15, solid: false });
+    expect(course.match.goal).toMatchObject({ finalLinger: 15, solid: false });
+    expect(course.match.goal?.linger).toBeUndefined();
 });

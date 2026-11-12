@@ -56,7 +56,7 @@ export const EVOLUTION_PRESETS: readonly EvolutionPreset[] = [
     },
     {
         name: "Race course",
-        hint: "One ship alone round five goals drawn afresh for every match, stopping briefly at each and holding the last, scored only on how far round it got",
+        hint: "One ship alone round five goals drawn afresh for every match, holding the last, scored only on how far round it got",
         apply: (form) =>
             fresh(
                 form,
@@ -67,7 +67,7 @@ export const EVOLUTION_PRESETS: readonly EvolutionPreset[] = [
                     courseLegSpread: "300",
                     courseTurn: "90",
                     courseTurnSpread: "90",
-                    goalLinger: "2",
+                    goalLinger: "0",
                     goalFinalLinger: "15",
                     duration: "240",
                 },
