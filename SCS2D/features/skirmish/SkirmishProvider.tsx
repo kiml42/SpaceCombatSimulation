@@ -25,6 +25,8 @@ export interface SkirmishState {
     recordMatch(played: Played): void;
     /** Replace the history, keeping it. */
     setHistory(next: History): void;
+    /** Give the skirmish up: stop the search and forget it and its history. */
+    abandon(): void;
     /** Set the enemy's search going against the player's fleet, from the enemy as it stands. */
     answer(): void;
     /** Stop the search, if it is running. */
@@ -146,6 +148,12 @@ export function SkirmishProvider({ children }: { readonly children: ReactNode })
         for (const listener of listeners.current) listener(progress);
     };
 
+    const abandon = (): void => {
+        stopAnswer();
+        setSkirmish(null);
+        setHistory(EMPTY_HISTORY);
+    };
+
     const answer = (): void => {
         const current = now.current.skirmish;
         // Waits for the player to pick where the next round is fought.
@@ -184,6 +192,7 @@ export function SkirmishProvider({ children }: { readonly children: ReactNode })
         setSkirmish,
         recordMatch,
         setHistory,
+        abandon,
         answer,
         stopAnswer,
         subscribe: (listener) => {
