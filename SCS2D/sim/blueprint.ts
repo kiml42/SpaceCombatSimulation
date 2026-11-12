@@ -1027,7 +1027,7 @@ const MAX_ASSEMBLY_DEPTH = 16;
  * (a corvette makes 4.4 m/s², a TIE 12.9), which is the cautious direction:
  * assume more dodge than there is and the gun holds its fire slightly early.
  */
-const EVASION_ACCEL = 10;
+export const EVASION_ACCEL = 10;
 
 /**
  * How far a beam is worth using, metres.
