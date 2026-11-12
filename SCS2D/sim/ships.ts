@@ -280,6 +280,15 @@ export interface Order {
      */
     waypoint?: boolean;
     /**
+     * A waypoint's reach, metres skin to skin: once the ship has stayed within it
+     * of its target for `linger` seconds, without leaving, the waypoint is done
+     * and the next order taken up. The last order of a queue is never done this
+     * way, so a ship holds the end of a route. Left out, a waypoint is held for good.
+     */
+    reach?: number;
+    /** Seconds a waypoint with `reach` must be stayed at to be done; none when left out. */
+    linger?: number;
+    /**
      * Something to fetch or give rather than a target to fight: `dock` takes on
      * all a friend's pad or port can give it, `scavenge` fills its claw from
      * what it grips, and `deliver` gives a friend all it can spare through its
@@ -693,6 +702,8 @@ export class Ships {
     readonly rearming: number[] = [];
     /** Whether each ship has been docked under the errand it is on, which then ends when the dock lets go. */
     readonly errandDocked: number[] = [];
+    /** Seconds each ship has been within reach of the waypoint at the head of its orders, without leaving. */
+    readonly lingered: number[] = [];
     /** Each ship's doctrine as its design has it, before anything it has been told over it. */
     readonly ownDoctrines: Doctrine[] = [];
     /** What each ship has been told over its doctrine, or undefined for nothing. */
@@ -1496,6 +1507,7 @@ export class Ships {
         this.hiding.push(NO_TARGET);
         this.rearming.push(0);
         this.errandDocked.push(0);
+        this.lingered.push(0);
         this.ownDoctrines.push(design.doctrine);
         this.overrides.push(undefined);
         this.mountDoctrines.push(null);
@@ -2058,8 +2070,8 @@ export class Ships {
         shipOrders.pushDefend(this, i, friend, distance, speed);
     }
 
-    pushWaypoint(i: number, target: number, distance?: number, speed?: number): void {
-        shipOrders.pushWaypoint(this, i, target, distance, speed);
+    pushWaypoint(i: number, target: number, distance?: number, speed?: number, reach?: number, linger?: number): void {
+        shipOrders.pushWaypoint(this, i, target, distance, speed, reach, linger);
     }
 
     pushDock(i: number, friend: number): boolean {
@@ -2216,6 +2228,7 @@ export class Ships {
                 continue;
             }
             shipOrders.removeInvalidOrders(this, i);
+            shipOrders.passWaypoint(this, bodies, dt, i);
             shipDecide.decide(this, world, bodies, i);
             shipForage.forage(this, world, bodies, i);
             shipAim.decideTurrets(this, world, bodies, i);

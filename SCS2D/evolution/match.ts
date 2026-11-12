@@ -6,6 +6,7 @@ import {
     DAMAGE_ENERGY_PER_KG,
     math,
     NEUTRAL_TEAM,
+    WAYPOINT_REACH,
     type Blueprint,
     type Fleet,
     type ShipDesign,
@@ -95,7 +96,49 @@ export interface GoalSpec {
     readonly size: number;
     /** False for a marker nothing can meet or move. Solid when left out. */
     readonly solid?: boolean;
+    /**
+     * How close counts as being at it, metres from the marker's skin to the
+     * ship's; `GOAL_REACH` when left out.
+     */
+    readonly reach?: number;
+    /**
+     * Seconds a ship must stay within `reach` of a goal, without leaving, for it
+     * to count as reached, which sends the ship on to the next; none when left out.
+     */
+    readonly linger?: number;
+    /** `linger` for the last goal of the course: a station to be held. `linger` when left out. */
+    readonly finalLinger?: number;
 }
+
+/**
+ * How a match's course is drawn, afresh for every match from its seed, so a
+ * run breeds for courses of a kind rather than one course. The first goal is
+ * `goal`, where every entrant starts the same distance from; each next is a
+ * leg on from the one before, turned from the leg before it. Every goal is
+ * otherwise as `goal` is.
+ */
+export interface CourseSpec {
+    /** How many goals in all, `goal` included. One is `goal` alone. */
+    readonly goals: number;
+    /** How long each leg is, metres, drawn evenly `legSpread` either side. */
+    readonly leg: number;
+    readonly legSpread: number;
+    /**
+     * How far each leg turns from the one before, degrees, left or right as
+     * drawn: 0 straight on, 180 straight back. Drawn evenly `turnSpread`
+     * either side, so 90 ± 90 is any turn at all.
+     */
+    readonly turn: number;
+    readonly turnSpread: number;
+}
+
+export const DEFAULT_COURSE: CourseSpec = { goals: 1, leg: 800, legSpread: 200, turn: 90, turnSpread: 90 };
+
+/** How close a ship must come to a goal to have reached it, metres skin to skin, where the goal does not say. */
+export const GOAL_REACH = WAYPOINT_REACH;
+
+/** Of a leg's worth, how much is for how early it was reached; the rest is for getting there at all. */
+const SPEED_SHARE = 0.1;
 
 /**
  * What each part of a score is worth, once each is expressed as a fraction of
@@ -145,12 +188,19 @@ export interface MatchConfig {
      *
      * At the middle of the ring by default, which is the one position every
      * entrant starts the same distance from — an objective off to one side
-     * would hand the match to whoever drew the nearest slot. It is worth half
-     * from the ring the entrants start on, so a craft that never moves scores
-     * the same half as every other craft that never moves — what selection sees
+     * would hand the match to whoever drew the nearest slot. What is scored is
+     * progress from where a craft started, so one that never moves scores
+     * nothing, as every other craft that never moves does — what selection sees
      * is which of them closed, and by how much.
      */
     readonly goal: GoalSpec | null;
+    /**
+     * The goals to reach after `goal`, in order: a course, drawn for each
+     * match. Each ship is told to make for the next once it reaches the one
+     * before, and the match ends once every ship still flown has reached the
+     * last. `goal` alone where left out, and ignored without a `goal`.
+     */
+    readonly course?: CourseSpec;
     readonly weights: ScoreWeights;
     readonly wells: readonly WellSpec[];
     /**
@@ -274,9 +324,10 @@ export interface Score {
     /** Fraction of the opposition's `functional` share this entrant took away. */
     readonly disabling: number;
     /**
-     * Ground gained on the goal over the match by the entrant's nearest ship, as
-     * a share of what there was to gain. Zero for a design that stayed where it was put, and negative for one
-     * that ended further off than it started.
+     * How far round the course the entrant's furthest ship got, from nothing to
+     * one: each goal reached is worth more than any progress towards one not
+     * reached, and reaching it sooner a little more. Zero for a design that
+     * stayed where it was put.
      */
     readonly race: number;
     /** The parts, weighted and added. */
@@ -287,8 +338,8 @@ export interface Score {
     readonly taken: number;
 }
 
-/** Why a match stopped: won, nobody left, every side quiet with nobody having won, or the clock. */
-export type Ending = "decided" | "annihilated" | "quiet" | "timeout";
+/** Why a match stopped: won, nobody left, every side quiet with nobody having won, every ship round the course, or the clock. */
+export type Ending = "decided" | "annihilated" | "quiet" | "finished" | "timeout";
 
 export interface MatchResult {
     readonly seed: number;
@@ -390,7 +441,7 @@ export function planned(plan: MatchPlan): Match {
  */
 export class Match {
     /** Every ship the entrants put on the field, and which entrant each belongs to. */
-    readonly battle: Battle & { slots: number[]; owners: number[]; marker: number };
+    readonly battle: Battle & { slots: number[]; owners: number[]; marker: number; markers: number[] };
     private readonly settings: MatchConfig;
     /** Per entrant: what its hulls could absorb between them. */
     private readonly capacities: number[];
@@ -401,13 +452,20 @@ export class Match {
     private readonly sideCount: number;
     private readonly fightingSide: Uint8Array;
     private readonly survival: Float64Array;
+    /** The course: `goal`, then `course`. */
+    private readonly goals: readonly GoalSpec[];
+    /**
+     * Per ship: the goal it is making for, its nearness to it when it set out,
+     * its best progress towards it, its early reaching so far, and how long it
+     * has been at it.
+     */
+    private readonly leg: Int32Array;
+    private readonly from: Float64Array;
+    private readonly toward: Float64Array;
+    private readonly early: Float64Array;
+    private readonly stay: Float64Array;
+    /** Per entrant: its furthest ship's `wayRound`. */
     private readonly race: Float64Array;
-    /** Per ship. */
-    private readonly nearness: Float64Array;
-    private readonly began: Float64Array;
-    /** Per entrant: its nearest ship's nearness at the start, and this step. */
-    private readonly start: Float64Array;
-    private readonly best: Float64Array;
     private readonly lifetime: Float64Array;
     private readonly dealt: Float64Array[];
     /** Per entrant, by effect: what it could do at the start, and this step. */
@@ -485,6 +543,7 @@ export class Match {
         const quiet = settings.quietLimit > 0 ? settings.quietLimit : QUIET_TIME;
         this.activity = this.sideCount > 1 ? new Activity(sides, Infinity, quiet, true) : null;
 
+        this.goals = courseOf(settings);
         this.battle = makeBattle(
             {
                 seed: settings.seed,
@@ -510,18 +569,17 @@ export class Match {
                 const turned = scatter.nextRange(-settings.scatter, settings.scatter);
                 const slots: number[] = [];
                 const owners: number[] = [];
-                const goal = settings.goal;
-                const marker =
-                    goal === null
-                        ? -1
-                        : ships.spawn(world, {
-                              design: compileBlueprint(markerHull(goal.size)),
-                              x: goal.x,
-                              y: goal.y,
-                              team: NEUTRAL_TEAM,
-                              invulnerable: true,
-                              ghost: goal.solid === false,
-                          });
+                const markers = this.goals.map((goal) =>
+                    ships.spawn(world, {
+                        design: compileBlueprint(markerHull(goal.size)),
+                        x: goal.x,
+                        y: goal.y,
+                        team: NEUTRAL_TEAM,
+                        invulnerable: true,
+                        ghost: goal.solid === false,
+                    }),
+                );
+                const marker = markers[0] ?? -1;
                 // Taking turns between entrants, so no side is always first to act.
                 const longest = placed.reduce((most, list) => math.max(most, list.length), 0);
                 for (let k = 0; k < longest; k++) {
@@ -557,12 +615,19 @@ export class Match {
                         owners.push(i);
                     }
                 }
-                return { slots, owners, marker };
+                return { slots, owners, marker, markers };
             },
         );
         // A race is told where it is to, rather than left for escorting to find.
-        if (this.battle.marker >= 0 && settings.weights.race !== 0) {
-            for (const ship of this.battle.slots) this.battle.ships.pushWaypoint(ship, this.battle.marker);
+        if (this.battle.marker >= 0 && this.told) {
+            // The whole course, one waypoint a goal, each passed on from once reached as it is scored.
+            const { ships, markers } = this.battle;
+            for (const ship of this.battle.slots) {
+                for (let g = 0; g < markers.length; g++) {
+                    const goal = this.goals[g]!;
+                    ships.pushWaypoint(ship, markers[g]!, undefined, undefined, goal.reach ?? GOAL_REACH, this.lingerOf(g));
+                }
+            }
         }
         // Each side drawn in the livery of its first entrant. Only drawn.
         Object.assign(this.battle, {
@@ -575,11 +640,12 @@ export class Match {
         // sentence saying these run from nothing to one.
         const fielded = this.battle.slots.length;
         this.survival = new Float64Array(count);
+        this.leg = new Int32Array(fielded);
+        this.from = new Float64Array(fielded);
+        this.toward = new Float64Array(fielded);
+        this.early = new Float64Array(fielded);
+        this.stay = new Float64Array(fielded);
         this.race = new Float64Array(count);
-        this.nearness = new Float64Array(fielded);
-        this.began = new Float64Array(fielded);
-        this.start = new Float64Array(count);
-        this.best = new Float64Array(count);
         this.lifetime = new Float64Array(count);
         this.fightingNow = new Uint8Array(count);
         this.dealt = [];
@@ -607,21 +673,105 @@ export class Match {
         // Where everyone began, taken before a single step so that nothing has had
         // a chance to shove anybody: a craft knocked off its mark by a neighbour in
         // the first instant would otherwise be scored from somewhere it never was.
-        const { ships, world } = this.battle;
-        const goal = settings.goal;
-        if (goal !== null && goal.scale > 0 && ships.isAlive(this.battle.marker)) {
-            const at = world.bodies.indexOf(ships.body(this.battle.marker));
-            for (let i = 0; i < fielded; i++) {
-                const body = world.bodies.indexOf(ships.body(this.battle.slots[i]!));
-                const dx = world.bodies.x[body]! - world.bodies.x[at]!;
-                const dy = world.bodies.y[body]! - world.bodies.y[at]!;
-                this.began[i] = goal.scale / (goal.scale + math.length(dx, dy));
-                this.nearness[i] = this.began[i]!;
-                const owner = this.battle.owners[i]!;
-                this.start[owner] = math.max(this.start[owner]!, this.began[i]!);
-            }
+        if (this.goals.length > 0 && this.goals.every((goal) => goal.scale > 0)) {
+            for (let k = 0; k < fielded; k++) this.from[k] = this.nearness(k, 0);
             this.measured = true;
         }
+    }
+
+    /** How near ship `k` is to goal `g`: one on it, a half at its `scale`, and never quite nothing however far off. */
+    private nearness(k: number, g: number): number {
+        const goal = this.goals[g]!;
+        return goal.scale / (goal.scale + this.gap(k, g));
+    }
+
+    /** How far ship `k` is from goal `g`, middle to middle, metres. */
+    private gap(k: number, g: number): number {
+        const { ships, world } = this.battle;
+        const b = world.bodies.indexOf(ships.body(this.battle.slots[k]!));
+        const at = world.bodies.indexOf(ships.body(this.battle.markers[g]!));
+        return math.length(world.bodies.x[b]! - world.bodies.x[at]!, world.bodies.y[b]! - world.bodies.y[at]!);
+    }
+
+    /** How far apart, middle to middle, ship `k` and goal `g` are once it has reached it. */
+    private reachOf(k: number, g: number): number {
+        const { ships } = this.battle;
+        const goal = this.goals[g]!;
+        return (goal.reach ?? GOAL_REACH) + ships.designs[this.battle.slots[k]!]!.radius + ships.designs[this.battle.markers[g]!]!.radius;
+    }
+
+    /** How long a ship must stay at goal `g` for it to count, seconds. */
+    private lingerOf(g: number): number {
+        const goal = this.goals[g]!;
+        return (g === this.goals.length - 1 ? goal.finalLinger : undefined) ?? goal.linger ?? 0;
+    }
+
+    /**
+     * Move ship `k` on round the course: past every goal it has reached, telling
+     * it to make for the next, and its best progress towards the one it has not.
+     */
+    private run(k: number): void {
+        const legs = this.goals.length;
+        // Only this step's time at the goal it was already making for.
+        let stepped = this.settings.dt;
+        while (this.leg[k]! < legs) {
+            const g = this.leg[k]!;
+            const reach = this.reachOf(k, g);
+            const linger = this.lingerOf(g);
+            // Getting there, then staying, half each where it must stay; never quite one.
+            let made: number;
+            if (this.gap(k, g) > reach) {
+                this.stay[k] = 0;
+                const goal = this.goals[g]!;
+                const edge = goal.scale / (goal.scale + reach);
+                const room = edge - this.from[k]!;
+                made = room > 0 ? (this.nearness(k, g) - this.from[k]!) / room : 0;
+            } else {
+                this.stay[k]! += stepped;
+                made = 1;
+            }
+            stepped = 0;
+            const stayed = linger > 0 ? math.min(1, this.stay[k]! / linger) : 1;
+            if (made < 1 || stayed < 1 - 1e-9) {
+                const share = linger > 0 ? (made + stayed) / 2 : made;
+                this.toward[k] = math.max(this.toward[k]!, math.min(share, 1 - 1e-9));
+                return;
+            }
+            this.early[k]! += 1 - this.step / this.total;
+            this.leg[k] = g + 1;
+            this.toward[k] = 0;
+            this.stay[k] = 0;
+            if (g + 1 < legs) this.from[k] = this.nearness(k, g + 1);
+        }
+    }
+
+    /**
+     * Ship `k`'s way round the course, from nothing to one: goals reached, then
+     * the best of its progress towards the next, each less than reaching it,
+     * then how early it reached them.
+     */
+    private wayRound(k: number): number {
+        const legs = this.goals.length;
+        return (this.leg[k]! + (1 - SPEED_SHARE) * this.toward[k]! + (SPEED_SHARE * this.early[k]!) / legs) / (legs + SPEED_SHARE);
+    }
+
+    /** Whether ships are told to make for the goals: where the race counts at all. */
+    private get told(): boolean {
+        return this.settings.weights.race !== 0;
+    }
+
+    /** Whether every ship still flown has reached the last goal. */
+    private get finished(): boolean {
+        if (!this.measured) return false;
+        const ships = this.battle.ships;
+        let flown = 0;
+        for (let k = 0; k < this.battle.slots.length; k++) {
+            const ship = this.battle.slots[k]!;
+            if (!ships.isAlive(ship) || !ships.hasControl(ship)) continue;
+            flown++;
+            if (this.leg[k]! < this.goals.length) return false;
+        }
+        return flown > 0;
     }
 
     /**
@@ -632,7 +782,8 @@ export class Match {
      */
     get done(): boolean {
         if (this.step >= this.total || this.ending === "annihilated") return true;
-        return this.settled && !(this.measured && this.settings.weights.race !== 0);
+        if (this.told && this.finished) return true;
+        return this.settled && !(this.measured && this.told);
     }
 
     /** How far through it is, from nothing to one. */
@@ -644,15 +795,12 @@ export class Match {
     advance(): void {
         if (this.done) return;
         const { ships, world } = this.battle;
-        const settings = this.settings;
         this.battle.step();
 
         this.entrantOf.clear();
         const fightingNow = this.fightingNow;
         fightingNow.fill(0);
         this.commandedSide.fill(0);
-        const best = this.best;
-        best.fill(0);
         this.capability.fill(0);
         this.lost.fill(0);
         for (let k = 0; k < this.battle.slots.length; k++) {
@@ -678,15 +826,10 @@ export class Match {
             addCapability(this.capability, i * EFFECTS, design, ships, body, ship);
             this.lifetime[i]! = this.step + 1;
 
-            const goal = settings.goal;
-            if (goal !== null && goal.scale > 0 && ships.isAlive(this.battle.marker)) {
-                const at = world.bodies.indexOf(ships.body(this.battle.marker));
-                const dx = world.bodies.x[body]! - world.bodies.x[at]!;
-                const dy = world.bodies.y[body]! - world.bodies.y[at]!;
-                // One at the goal, a half at `scale`, and never quite nothing however
-                // far off — so every metre closed is worth something.
-                this.nearness[k]! = goal.scale / (goal.scale + math.length(dx, dy));
-                best[i] = math.max(best[i]!, this.nearness[k]!);
+            // By its furthest ship: more ships help only by covering the one that gets there.
+            if (this.measured) {
+                this.run(k);
+                this.race[i] = math.max(this.race[i]!, this.wayRound(k));
             }
         }
         let fighting = 0;
@@ -694,8 +837,6 @@ export class Match {
         for (let i = 0; i < this.count; i++) {
             fighting += fightingNow[i]!;
             if (this.teams !== null && fightingNow[i] === 1) this.fightingSide[this.teams[i]!] = 1;
-            // By its nearest ship: more ships help only by covering the one that gets there.
-            if (fightingNow[i] === 1 && this.measured) this.race[i]! += best[i]! - this.start[i]!;
         }
 
         // Who hit whom, this step. A hit whose shooter or whose victim is not a
@@ -733,6 +874,12 @@ export class Match {
 
         this.step++;
         if (this.settled) return;
+        if (this.told && this.finished) {
+            if (this.activity === null) this.settled = true;
+            else this.settle("finished");
+            if (this.activity === null) this.ending = "finished";
+            return;
+        }
         if (fighting === 0) {
             this.ending = "annihilated";
             this.winners = [];
@@ -804,12 +951,9 @@ export class Match {
         // the way it was going.
         const survival = Float64Array.from(this.survival);
         const functional = Float64Array.from(this.functional);
-        const race = Float64Array.from(this.race);
         const left = this.total - this.step;
         if (left > 0) {
             for (let i = 0; i < count; i++) functional[i]! += this.working[i]! * left;
-            const best = new Float64Array(count);
-            const fighting = new Uint8Array(count);
             for (let k = 0; k < this.battle.slots.length; k++) {
                 const ship = this.battle.slots[k]!;
                 const i = this.battle.owners[k]!;
@@ -818,11 +962,6 @@ export class Match {
                 survival[i]! +=
                     (math.min(hullLeft(ships, ship, ships.currentStructure(ship), body), this.hullAtStart[k]!) / this.capacities[i]!) *
                     left;
-                best[i] = math.max(best[i]!, this.nearness[k]!);
-                fighting[i] = 1;
-            }
-            if (this.measured) {
-                for (let i = 0; i < count; i++) if (fighting[i] === 1) race[i]! += (best[i]! - this.start[i]!) * left;
             }
         }
 
@@ -851,8 +990,7 @@ export class Match {
                 functional: functional[i]! / this.total,
                 damage: hurt / opposition,
                 disabling: disabling / opposition,
-                // Signed, and bounded by how much ground there was to gain or lose.
-                race: this.measured ? race[i]! / this.total : 0,
+                race: this.measured ? this.race[i]! : 0,
             };
             scores.push({
                 ...parts,
@@ -898,6 +1036,32 @@ function hullLeft(ships: Ships, ship: number, design: ShipDesign, body: number):
         left += design.modules[m]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG * ships.damage.integrity(body, m);
     }
     return left;
+}
+
+/**
+ * The goals of a match's course, in order, drawn from its seed: none without a
+ * `goal`. Its own generator, so drawing a course moves no other draw a match makes.
+ */
+export function courseOf(settings: MatchConfig): readonly GoalSpec[] {
+    const goal = settings.goal;
+    if (goal === null) return [];
+    const course = settings.course ?? DEFAULT_COURSE;
+    const draw = new Rng(settings.seed ^ 0xc0ec5e);
+    const goals: GoalSpec[] = [goal];
+    let heading = draw.nextRange(-math.PI, math.PI);
+    let x = goal.x;
+    let y = goal.y;
+    for (let k = 1; k < math.round(course.goals); k++) {
+        // The same draws for every leg, the first's turn unused, so a setting changed moves no other.
+        const turn = math.min(180, math.abs(course.turn + course.turnSpread * draw.nextRange(-1, 1)));
+        const side = draw.nextFloat() < 0.5 ? -1 : 1;
+        const leg = math.max(0, course.leg + course.legSpread * draw.nextRange(-1, 1));
+        if (k > 1) heading += (side * turn * math.PI) / 180;
+        x += leg * math.cos(heading);
+        y += leg * math.sin(heading);
+        goals.push({ ...goal, x, y });
+    }
+    return goals;
 }
 
 /**

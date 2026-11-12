@@ -1,4 +1,6 @@
+import type { Bodies } from "./bodies.js";
 import { footprintOf } from "./blueprint.js";
+import { length } from "./math.js";
 import { holdBand } from "./doctrine.js";
 import * as shipForage from "./shipForage.js";
 import * as shipFlight from "./shipFlight.js";
@@ -237,10 +239,49 @@ export function pushDefend(ships: Ships, i: number, friend: number, distance?: n
 /**
  * Add an order to go close to `target` and stay there until it is gone: in
  * its escort band, or `distance` off its skin where told. Flown as a defence
- * is, but its fights are its doctrine's.
+ * is, but its fights are its doctrine's. With `reach`, it is passed on from to
+ * whatever order follows it once reached (`passWaypoint`), so a queue of them is a route.
  */
-export function pushWaypoint(ships: Ships, i: number, target: number, distance?: number, speed?: number): void {
+export function pushWaypoint(
+    ships: Ships,
+    i: number,
+    target: number,
+    distance?: number,
+    speed?: number,
+    reach?: number,
+    linger?: number,
+): void {
     pushStation(ships, i, target, true, distance, speed);
+    const order = ships.orders[i]!.at(-1)!;
+    if (reach !== undefined) order.reach = reach;
+    if (linger !== undefined && linger > 0) order.linger = linger;
+}
+
+/** How close a waypoint given in battle counts as reached, metres skin to skin. */
+export const WAYPOINT_REACH = 100;
+
+/**
+ * Done with the waypoint at the head of ship `i`'s orders, if it has a `reach`
+ * and an order follows it: once the ship has stayed within that of its
+ * target's skin for its `linger`, it takes up the next, and looks again at
+ * once rather than at its next rethink, so it sets off straight away.
+ */
+export function passWaypoint(ships: Ships, bodies: Bodies, dt: number, i: number): void {
+    const head = getCurrentOrder(ships, i);
+    if (head?.waypoint !== true || head.reach === undefined || ships.alive[head.target] !== 1) {
+        ships.lingered[i] = 0;
+        return;
+    }
+    const b = bodies.indexOf(ships.bodyIds[i]!);
+    const tb = bodies.indexOf(ships.bodyIds[head.target]!);
+    if (b < 0 || tb < 0) return;
+    const gap = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!);
+    const within = head.reach + ships.designs[i]!.radius + ships.designs[head.target]!.radius;
+    ships.lingered[i] = gap <= within ? ships.lingered[i]! + dt : 0;
+    if (orderCount(ships, i) < 2 || ships.lingered[i]! < (head.linger ?? 0) - 1e-9 || gap > within) return;
+    ships.lingered[i] = 0;
+    dropOrder(ships, i, 0);
+    ships.rethinkAt[i] = 0;
 }
 
 function pushStation(ships: Ships, i: number, friend: number, waypoint: boolean, distance?: number, speed?: number): void {

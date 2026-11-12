@@ -2,7 +2,7 @@ import { mapFields } from "~/host/mapFields";
 import { DEFAULT_COEVOLUTION, rivalSettings, type CoevolutionConfig, type SideSettings } from "~/evolution/coevolution";
 import type { RunSetup } from "~/evolution/configFile";
 import { DEFAULT_FLEET_LIMITS } from "~/evolution/fleetMutate";
-import { DEFAULT_MATCH, isFleet, type Entrant, type MatchConfig } from "~/evolution/match";
+import { DEFAULT_COURSE, DEFAULT_MATCH, GOAL_REACH, isFleet, type Entrant, type MatchConfig } from "~/evolution/match";
 import { DEFAULT_BUILD_WEIGHTS, DEFAULT_KINDS, DEFAULT_LIMITS, doctrineWeights, type KindWeights } from "~/evolution/mutate";
 import { breeding, MUTATION_FIELDS } from "~/evolution/mutationFields";
 import { DEFAULT_RUN, type RunConfig } from "~/evolution/run";
@@ -104,6 +104,14 @@ export const DEFAULT_TEXTS: Texts = {
     closingSpread: String(DEFAULT_MATCH.closingSpread),
     crossingSpread: String(DEFAULT_MATCH.crossingSpread),
     quietLimit: String(DEFAULT_MATCH.quietLimit),
+    courseGoals: String(DEFAULT_COURSE.goals),
+    courseLeg: String(DEFAULT_COURSE.leg),
+    courseLegSpread: String(DEFAULT_COURSE.legSpread),
+    courseTurn: String(DEFAULT_COURSE.turn),
+    courseTurnSpread: String(DEFAULT_COURSE.turnSpread),
+    goalReach: String(GOAL_REACH),
+    goalLinger: "0",
+    goalFinalLinger: "",
     survivalWeight: String(DEFAULT_MATCH.weights.survival),
     functionalWeight: String(DEFAULT_MATCH.weights.functional),
     damageWeight: String(DEFAULT_MATCH.weights.damage),
@@ -233,6 +241,33 @@ function mapOf(texts: Texts): MatchConfig["map"] {
     return writeMap(out);
 }
 
+/** The goal, and the course drawn for every match from it, as the form says them. */
+function goalsOf(form: SetupForm): Pick<MatchConfig, "goal" | "course"> {
+    if (form.goal === "none" || DEFAULT_MATCH.goal === null) return { goal: null };
+    const t = form.texts;
+    const finalLinger = (t["goalFinalLinger"] ?? "").trim() === "" ? {} : { finalLinger: Math.max(0, number(t["goalFinalLinger"], 0)) };
+    // Only what differs from the defaults, so a file that changes none of them reads as it always did.
+    const reach = Math.max(0, number(t["goalReach"], GOAL_REACH));
+    const linger = Math.max(0, number(t["goalLinger"], 0));
+    const goal = {
+        ...DEFAULT_MATCH.goal,
+        solid: form.goal !== "ghost",
+        ...(reach === GOAL_REACH ? {} : { reach }),
+        ...(linger === 0 ? {} : { linger }),
+        ...finalLinger,
+    };
+    const goals = Math.max(1, Math.round(number(t["courseGoals"], DEFAULT_COURSE.goals)));
+    if (goals === 1) return { goal };
+    const course = {
+        goals,
+        leg: Math.max(0, number(t["courseLeg"], DEFAULT_COURSE.leg)),
+        legSpread: Math.max(0, number(t["courseLegSpread"], DEFAULT_COURSE.legSpread)),
+        turn: Math.max(0, number(t["courseTurn"], DEFAULT_COURSE.turn)),
+        turnSpread: Math.max(0, number(t["courseTurnSpread"], DEFAULT_COURSE.turnSpread)),
+    };
+    return { goal, course };
+}
+
 /** The run's settings, as the form says them. */
 export function configOf(form: SetupForm): RunConfig {
     const t = form.texts;
@@ -254,7 +289,7 @@ export function configOf(form: SetupForm): RunConfig {
             crossingSpread: Math.max(0, number(t["crossingSpread"], DEFAULT_MATCH.crossingSpread)),
             quietLimit: Math.max(0, number(t["quietLimit"], DEFAULT_MATCH.quietLimit)),
             ...(map === undefined ? {} : { map }),
-            goal: form.goal === "none" || DEFAULT_MATCH.goal === null ? null : { ...DEFAULT_MATCH.goal, solid: form.goal !== "ghost" },
+            ...goalsOf(form),
             weights: {
                 survival: number(t["survivalWeight"], 1),
                 functional: number(t["functionalWeight"], 1),
@@ -357,6 +392,14 @@ export function formOfSetup(setup: RunSetup, founders: readonly string[], versus
         closingSpread: String(match.closingSpread ?? DEFAULT_MATCH.closingSpread),
         crossingSpread: String(match.crossingSpread ?? DEFAULT_MATCH.crossingSpread),
         quietLimit: String(match.quietLimit ?? DEFAULT_MATCH.quietLimit),
+        courseGoals: String(match.course?.goals ?? DEFAULT_COURSE.goals),
+        courseLeg: String(match.course?.leg ?? DEFAULT_COURSE.leg),
+        courseLegSpread: String(match.course?.legSpread ?? DEFAULT_COURSE.legSpread),
+        courseTurn: String(match.course?.turn ?? DEFAULT_COURSE.turn),
+        courseTurnSpread: String(match.course?.turnSpread ?? DEFAULT_COURSE.turnSpread),
+        goalReach: String(match.goal?.reach ?? GOAL_REACH),
+        goalLinger: String(match.goal?.linger ?? 0),
+        goalFinalLinger: match.goal?.finalLinger === undefined ? "" : String(match.goal.finalLinger),
         survivalWeight: String(match.weights.survival),
         functionalWeight: String(match.weights.functional),
         damageWeight: String(match.weights.damage),

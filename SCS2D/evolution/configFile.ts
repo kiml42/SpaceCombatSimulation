@@ -1,6 +1,14 @@
 import { PI } from "../sim/math.js";
 import { MODULE_KINDS } from "../sim/modules.js";
-import { DEFAULT_MATCH, SCORE_PARTS, type GoalSpec, type MatchConfig, type ScoreWeights } from "./match.js";
+import {
+    DEFAULT_COURSE,
+    DEFAULT_MATCH,
+    SCORE_PARTS,
+    type CourseSpec,
+    type GoalSpec,
+    type MatchConfig,
+    type ScoreWeights,
+} from "./match.js";
 import {
     DEFAULT_BUILD_WEIGHTS,
     DEFAULT_DOCTRINE_WEIGHTS,
@@ -157,10 +165,12 @@ const MATCH_KEYS: readonly string[] = [
     "quietLimit",
     "map",
     "goal",
+    "course",
     "weights",
 ];
 const GOAL_KEYS: readonly string[] = ["x", "y", "scale", "size"];
-const GOAL_OPTIONAL_KEYS: readonly string[] = ["solid"];
+const GOAL_OPTIONAL_KEYS: readonly string[] = ["solid", "reach", "linger", "finalLinger"];
+const COURSE_KEYS: readonly (keyof CourseSpec)[] = ["goals", "leg", "legSpread", "turn", "turnSpread"];
 const WEIGHT_KEYS: readonly (keyof ScoreWeights)[] = SCORE_PARTS;
 
 /** The settings a run is given, as the object a file holds. */
@@ -212,6 +222,8 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
             ...(match.quietLimit > 0 ? { quietLimit: match.quietLimit } : {}),
             ...(match.map !== undefined && writeMap(match.map) !== undefined ? { map: writeMap(match.map) } : {}),
             goal: match.goal === null ? null : { ...match.goal },
+            // Only where there is more than one goal, so a file with a single goal reads as it always did.
+            ...(match.course !== undefined && match.course.goals > 1 ? { course: { ...match.course } } : {}),
             weights: { ...match.weights },
         },
         ...(setup.versus == null ? {} : { versus: serialiseVersus(setup.versus) }),
@@ -464,6 +476,7 @@ export function parseRunConfig(value: unknown): RunSetup {
                         : match["goal"] === null
                           ? null
                           : ({ ...(match["goal"] as GoalSpec) } as GoalSpec),
+                ...(isRecord(match["course"]) ? { course: { ...DEFAULT_COURSE, ...(match["course"] as Partial<CourseSpec>) } } : {}),
                 weights: { ...DEFAULT_MATCH.weights, ...(match["weights"] as Partial<ScoreWeights> | undefined) },
             },
         },
@@ -657,23 +670,45 @@ function matchProblem(value: unknown, warnings: string[]): string | null {
         const map = mapProblem(value["map"], "match.map");
         if (map !== null) return map;
     }
-    return goalProblem(value["goal"], warnings) ?? weightsProblem(value["weights"], warnings);
+    return goalProblem(value["goal"], warnings) ?? courseProblem(value["course"], warnings) ?? weightsProblem(value["weights"], warnings);
+}
+
+function courseProblem(value: unknown, warnings: string[]): string | null {
+    if (value === undefined) return null;
+    if (!isRecord(value)) return "match.course must be an object, as { goals, leg, legSpread, turn, turnSpread }";
+    unknownKeys(value, COURSE_KEYS, "match.course", warnings);
+    for (const key of COURSE_KEYS) {
+        if (value[key] === undefined) continue;
+        const problem = numberProblem(value[key], `match.course.${key}`);
+        if (problem !== null) return problem;
+        if ((value[key] as number) < 0) return `match.course.${key} must be nothing or more`;
+    }
+    if (value["goals"] !== undefined && (!Number.isInteger(value["goals"]) || (value["goals"] as number) < 1))
+        return `match.course.goals must be a whole number of at least one, got ${JSON.stringify(value["goals"])}`;
+    return null;
 }
 
 function goalProblem(value: unknown, warnings: string[]): string | null {
+    const name = "match.goal";
     if (value === undefined || value === null) return null;
-    if (!isRecord(value)) return "match.goal must be an object, or null for a match that is only a fight";
-    unknownKeys(value, [...GOAL_KEYS, ...GOAL_OPTIONAL_KEYS], "match.goal", warnings);
+    if (!isRecord(value)) return `${name} must be an object, or null for a match that is only a fight`;
+    unknownKeys(value, [...GOAL_KEYS, ...GOAL_OPTIONAL_KEYS], name, warnings);
     if (value["solid"] !== undefined && typeof value["solid"] !== "boolean") {
-        return `match.goal.solid must be true or false, got ${JSON.stringify(value["solid"])}`;
+        return `${name}.solid must be true or false, got ${JSON.stringify(value["solid"])}`;
     }
     for (const key of GOAL_KEYS) {
-        if (value[key] === undefined) return `match.goal is missing ${key}`;
-        const problem = numberProblem(value[key], `match.goal.${key}`);
+        if (value[key] === undefined) return `${name} is missing ${key}`;
+        const problem = numberProblem(value[key], `${name}.${key}`);
         if (problem !== null) return problem;
     }
-    if ((value["scale"] as number) <= 0) return "match.goal.scale must be more than nothing";
-    if ((value["size"] as number) <= 0) return "match.goal.size must be more than nothing";
+    if ((value["scale"] as number) <= 0) return `${name}.scale must be more than nothing`;
+    if ((value["size"] as number) <= 0) return `${name}.size must be more than nothing`;
+    for (const key of ["reach", "linger", "finalLinger"]) {
+        if (value[key] === undefined) continue;
+        const problem = numberProblem(value[key], `${name}.${key}`);
+        if (problem !== null) return problem;
+        if ((value[key] as number) < 0) return `${name}.${key} must be nothing or more`;
+    }
     return null;
 }
 

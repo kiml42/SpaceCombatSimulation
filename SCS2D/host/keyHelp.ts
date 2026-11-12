@@ -21,7 +21,7 @@ export const ORDER_KEYS: readonly KeyRow[] = [
     },
     {
         keys: "Right-click an asteroid, wreck or marker",
-        does: "Order the picked ships with claws to mine or salvage it, and the rest to go close to it and stay there, at the hold and speed on the order bar; Ctrl to add to their orders",
+        does: "Order the picked ships with claws to mine or salvage it, and the rest to go close to it and stay there, at the hold and speed on the order bar; Ctrl to add to their orders, so waypoints one after another are a route, each passed on from within 100 m",
     },
     { keys: "K, D, R, H", does: "Attack, defend, ram or dock with the next ship clicked; Ctrl to add to their orders" },
     { keys: "G, U", does: "Scavenge from, or deliver to, the next ship clicked; an asteroid is scavenged too" },
