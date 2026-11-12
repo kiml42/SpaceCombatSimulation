@@ -6,6 +6,7 @@ import {
     DAMAGE_ENERGY_PER_KG,
     math,
     NEUTRAL_TEAM,
+    WAYPOINT_REACH,
     type Blueprint,
     type Fleet,
     type ShipDesign,
@@ -134,7 +135,7 @@ export interface CourseSpec {
 export const DEFAULT_COURSE: CourseSpec = { goals: 1, leg: 800, legSpread: 200, turn: 90, turnSpread: 90 };
 
 /** How close a ship must come to a goal to have reached it, metres skin to skin, where the goal does not say. */
-export const GOAL_REACH = 100;
+export const GOAL_REACH = WAYPOINT_REACH;
 
 /** Of a leg's worth, how much is for how early it was reached; the rest is for getting there at all. */
 const SPEED_SHARE = 0.1;
@@ -542,6 +543,7 @@ export class Match {
         const quiet = settings.quietLimit > 0 ? settings.quietLimit : QUIET_TIME;
         this.activity = this.sideCount > 1 ? new Activity(sides, Infinity, quiet, true) : null;
 
+        this.goals = courseOf(settings);
         this.battle = makeBattle(
             {
                 seed: settings.seed,
@@ -567,7 +569,7 @@ export class Match {
                 const turned = scatter.nextRange(-settings.scatter, settings.scatter);
                 const slots: number[] = [];
                 const owners: number[] = [];
-                const markers = courseOf(settings).map((goal) =>
+                const markers = this.goals.map((goal) =>
                     ships.spawn(world, {
                         design: compileBlueprint(markerHull(goal.size)),
                         x: goal.x,
@@ -618,7 +620,14 @@ export class Match {
         );
         // A race is told where it is to, rather than left for escorting to find.
         if (this.battle.marker >= 0 && this.told) {
-            for (const ship of this.battle.slots) this.battle.ships.pushWaypoint(ship, this.battle.marker);
+            // The whole course, one waypoint a goal, each passed on from once reached as it is scored.
+            const { ships, markers } = this.battle;
+            for (const ship of this.battle.slots) {
+                for (let g = 0; g < markers.length; g++) {
+                    const goal = this.goals[g]!;
+                    ships.pushWaypoint(ship, markers[g]!, undefined, undefined, goal.reach ?? GOAL_REACH, this.lingerOf(g));
+                }
+            }
         }
         // Each side drawn in the livery of its first entrant. Only drawn.
         Object.assign(this.battle, {
@@ -631,7 +640,6 @@ export class Match {
         // sentence saying these run from nothing to one.
         const fielded = this.battle.slots.length;
         this.survival = new Float64Array(count);
-        this.goals = courseOf(settings);
         this.leg = new Int32Array(fielded);
         this.from = new Float64Array(fielded);
         this.toward = new Float64Array(fielded);
@@ -733,14 +741,7 @@ export class Match {
             this.leg[k] = g + 1;
             this.toward[k] = 0;
             this.stay[k] = 0;
-            if (g + 1 < legs) {
-                this.from[k] = this.nearness(k, g + 1);
-                const ship = this.battle.slots[k]!;
-                if (this.told) {
-                    this.battle.ships.clearOrder(ship);
-                    this.battle.ships.pushWaypoint(ship, this.battle.markers[g + 1]!);
-                }
-            }
+            if (g + 1 < legs) this.from[k] = this.nearness(k, g + 1);
         }
     }
 

@@ -22,11 +22,21 @@ export interface Held {
     readonly speed?: number;
 }
 
+/**
+ * How a waypoint is passed on from: once within `reach` of its target, metres
+ * skin to skin, for `linger` seconds, if another order follows it. Without
+ * `reach`, it is held for good.
+ */
+export interface Route {
+    readonly reach?: number;
+    readonly linger?: number;
+}
+
 export type Order =
     | ({ readonly kind: "attack"; readonly target: number; readonly cancelOn: OrderCancelCondition } & Held)
     | ({ readonly kind: "defend"; readonly target: number } & Held)
     /** Go close to `target`, on any side, and stay there: its escort band, or `distance` off where told. */
-    | ({ readonly kind: "waypoint"; readonly target: number } & Held)
+    | ({ readonly kind: "waypoint"; readonly target: number } & Held & Route)
     | ({ readonly kind: "ram"; readonly target: number } & Pick<Held, "speed">)
     /** Take on all a friend's dock can give: at `target`, or wherever doctrine chooses for `NO_TARGET`. */
     | { readonly kind: "dock"; readonly target: number }
@@ -146,7 +156,7 @@ export function give(battle: Battle, command: Command): void {
         }
         if (order.kind === "waypoint") {
             if (!command.append) ships.clearOrder(i);
-            ships.pushWaypoint(i, order.target, order.distance, order.speed);
+            ships.pushWaypoint(i, order.target, order.distance, order.speed, order.reach, order.linger);
             continue;
         }
         // A friend is defended and an enemy attacked, whatever a hand-written log says.
@@ -243,6 +253,11 @@ export function parseLog(value: unknown): Logged[] {
                 fail("a distance wants an attack, defence or waypoint, and 0 or more");
             if (speed !== undefined && !((held || order!["kind"] === "ram") && typeof speed === "number" && speed > 0)) {
                 fail("a speed wants an attack, defence, waypoint or ram, and more than 0");
+            }
+            for (const key of ["reach", "linger"]) {
+                const value = order![key];
+                if (value !== undefined && !(order!["kind"] === "waypoint" && typeof value === "number" && value >= 0))
+                    fail(`a ${key} wants a waypoint, and 0 or more`);
             }
         } else fail(`unknown command ${String(command["kind"])}`);
         return { step: step as number, command: command as unknown as Command };

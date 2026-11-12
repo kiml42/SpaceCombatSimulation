@@ -1389,8 +1389,8 @@ inside any one file is not contiguous.
   (step 14), built in full: telling ships what to do mid-battle, from the paused battle. The viewer's battle
   can be wound back from checkpoints. Picked-out ships are told by right-click or an order bar, and the
   orders are logged so a rewind or a link replays them: attack, defend and ram, each with a distance and
-  speed over doctrine's if told; a waypoint, to go close to anything and stay there, which evolution gives every ship
-  for the goal of a race; dock, scavenge and deliver; and Flee (W, or Enter for every enemy), running
+  speed over doctrine's if told; a waypoint, to go close to anything and stay there, or, queued one after another, a route
+  passed on from goal by goal, which evolution gives every ship for the course of a race; dock, scavenge and deliver; and Flee (W, or Enter for every enemy), running
   from every armed enemy, from one, or hiding behind a friend or wreck until told otherwise. Doctrine, build
   counts and remodelling are settings beside them, from a doctrine panel and a design picker. Under doctrine
   a ship withdraws at `fleeArmed` of what it fights or works with, or with nothing to fight or work with
