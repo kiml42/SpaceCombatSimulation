@@ -117,11 +117,14 @@ export function SkirmishHelp({ open, onClose, cardAfter, quietTime }: SkirmishHe
                     own.
                 </li>
                 <li>
-                    <strong>Keep going</strong> for as long as you can stay ahead. Your skirmish is saved as you play; Carry on from the
+                    <strong>Keep going</strong> for as long as you can stay ahead. Your skirmish is saved as you play; carry on from the
                     main menu.
                 </li>
             </ol>
-            <p>The presets above set everything up; you can use Customise and Advanced settings for more control over the enemy, your budget, the battlefield and how the enemy evolves.</p>
+            <p>
+                The presets above set everything up; you can use Customise and Advanced settings for more control over the enemy, your
+                budget, the battlefield and how the enemy evolves.
+            </p>
             <Actions>
                 <Button id="skirmishHelpClose" variant="primary" autoFocus onClick={onClose}>
                     Got it
