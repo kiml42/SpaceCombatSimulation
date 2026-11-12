@@ -18,10 +18,10 @@ export const SANDBOX: readonly PageLink[] = [
     { href: "#/battle", name: "Battle", purpose: "Set up any battle and watch it play out" },
     { href: "#/fleet", name: "Fleet editor", purpose: "Lay out a fleet of ships" },
     { href: "#/ship", name: "Ship designer", purpose: "Design a ship, module by module" },
-    { href: "#/library", name: "Library", purpose: "The ships and fleets you have saved" },
 ];
 
 export const MORE: readonly PageLink[] = [
+    { href: "#/library", name: "Library", purpose: "The ships and fleets you have saved" },
     { href: "#/evolution", name: "Evolution", purpose: "Breed ships and fleets" },
     { href: "#/effects", name: "Effects", purpose: "See how hits, beams, flames and leaks are drawn" },
 ];

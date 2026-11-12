@@ -32,6 +32,15 @@ type Story = StoryObj<typeof meta>;
 export const Start: Story = {
     args: { path: "/" },
     play: async ({ canvas }) => {
+        // The menu is the way out, with no bar over it.
+        await expect(canvas.queryByRole("navigation", { name: "Main" })).toBeNull();
+        await expect(canvas.getByRole("link", { name: "Library" })).toHaveAttribute("href", "#/library");
+    },
+};
+
+export const Bar: Story = {
+    args: { path: "/effects" },
+    play: async ({ canvas }) => {
         const nav = canvas.getByRole("navigation", { name: "Main" });
         await userEvent.click(within(nav).getByRole("link", { name: "Library" }));
         await expect(await canvas.findByRole("heading", { name: "Ships" })).toBeVisible();
