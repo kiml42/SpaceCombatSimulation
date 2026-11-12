@@ -31,6 +31,12 @@ const skirmishPage = (skirmish?: Skirmish): string =>
 
 let browser: Browser;
 let page: Page;
+/** A round won, its next round's place already picked: the enemy answers at once. */
+const answering = (skirmish: Skirmish): Skirmish => {
+    const { ways: _ways, ...rest } = won(skirmish);
+    return rest;
+};
+
 const problems: string[] = [];
 
 beforeAll(async () => {
@@ -322,7 +328,7 @@ describe("the skirmish in a browser", () => {
 
     it("gives the history the battle's room while the search is not watched", async () => {
         // Bare cores take a long while to answer a Gunship, so the search is still going throughout.
-        const skirmish = won(newSkirmish(shipFleet(BARE_CORE), shipFleet(GUNSHIP), 25));
+        const skirmish = answering(newSkirmish(shipFleet(BARE_CORE), shipFleet(GUNSHIP), 25));
         await page.goto(skirmishPage(skirmish));
         await page.waitForSelector("#answering");
         expect(await page.isVisible("#wideHistory")).toBe(false);
@@ -342,7 +348,7 @@ describe("the skirmish in a browser", () => {
 
     it("watches the enemy evolve an answer to a round won, and goes on to the next round", async () => {
         // The player's Corvette beats the same Corvette on seed 25, and a mirror is answered in a generation or two.
-        const skirmish = won(newSkirmish(shipFleet(CORVETTE), shipFleet(CORVETTE), 25));
+        const skirmish = answering(newSkirmish(shipFleet(CORVETTE), shipFleet(CORVETTE), 25));
         await page.goto(skirmishPage(skirmish));
         await page.waitForSelector("#answering");
         // With cores to spare, the search deals its matches out to job workers beside its own.
