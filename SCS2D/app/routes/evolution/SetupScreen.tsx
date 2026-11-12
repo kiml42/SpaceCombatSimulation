@@ -533,6 +533,11 @@ export function SetupScreen({ hidden, form, onForm, ships, fleets, onExport, onI
                         {sided({ id: "population", label: "population", min: 2 })}
                         {sided({ id: "winners", label: "bred from", min: 1 })}
                         {sided({
+                            id: "keep",
+                            label: "best kept",
+                            title: "How many of those bred from are always the generation's best, rather than drawn for by standing, so a lineage cannot be lost to an unlucky draw",
+                        })}
+                        {sided({
                             id: "group",
                             label: "per match",
                             min: 1,

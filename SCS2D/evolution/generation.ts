@@ -159,25 +159,35 @@ export class Generation {
      * so designs that did equally well are equally likely — which sounds obvious
      * and is exactly what a naive ranking gets wrong, handing four designs that
      * scored identically chances of 0, 1, 4 and 12 per cent.
+     *
+     * **Unless told to `keep` the best.** Where a design's score barely varies
+     * from match to match, as in a race alone, the draw has nothing to forgive and
+     * only loses ground: the best `keep` take their places first, by fitness.
      */
-    winners(rng: Rng, count: number): Individual[] {
+    winners(rng: Rng, count: number, keep = 0): Individual[] {
         const n = this.individuals.length;
         const scores = this.individuals.map(fitness);
-        return this.individuals
-            .map((individual, i) => {
-                // How many it beat, and half of how many it drew with.
-                let below = 0;
-                let level = 0;
-                for (let j = 0; j < n; j++) {
-                    if (scores[j]! < scores[i]!) below++;
-                    else if (j !== i) level++;
-                }
-                const standing = n > 1 ? (below + level / 2) / (n - 1) : 1;
-                return { individual, weight: (SELECTION_FLOOR + standing) * rng.nextFloat() };
-            })
-            .sort((a, b) => b.weight - a.weight)
-            .slice(0, count)
-            .map((entry) => entry.individual);
+        const drawn = this.individuals.map((individual, i) => {
+            // How many it beat, and half of how many it drew with.
+            let below = 0;
+            let level = 0;
+            for (let j = 0; j < n; j++) {
+                if (scores[j]! < scores[i]!) below++;
+                else if (j !== i) level++;
+            }
+            const standing = n > 1 ? (below + level / 2) / (n - 1) : 1;
+            return { individual, weight: (SELECTION_FLOOR + standing) * rng.nextFloat() };
+        });
+        // The best `keep` win whatever they drew; the rest of the places are drawn for as ever.
+        const kept = this.ranked().slice(0, min(keep, count));
+        return [
+            ...kept,
+            ...drawn
+                .filter((entry) => !kept.includes(entry.individual))
+                .sort((a, b) => b.weight - a.weight)
+                .slice(0, count - kept.length)
+                .map((entry) => entry.individual),
+        ];
     }
 }
 
@@ -186,6 +196,8 @@ export interface BreedingConfig {
     readonly population: number;
     /** How many of them are bred from, the rest being their children. */
     readonly winners: number;
+    /** How many of the winners are the best of the generation, rather than drawn for. */
+    readonly keep?: number;
     readonly limits: Partial<MutationLimits>;
     /** How a fleet is bred; its ships' designs by `limits`. */
     readonly fleetLimits?: Partial<FleetMutationLimits>;
@@ -218,7 +230,7 @@ export function offspring(
  * — which also means a design that won on a lucky draw has to win again.
  */
 export function breed(generation: Generation, rng: Rng, config: BreedingConfig, nextId: () => number): Generation {
-    const winners = generation.winners(rng, min(config.winners, config.population));
+    const winners = generation.winners(rng, min(config.winners, config.population), config.keep ?? 0);
     const individuals: Individual[] = winners.map((winner) => blank(winner.id, winner.entrant, winner.parent, winner.edits));
 
     let parent = 0;

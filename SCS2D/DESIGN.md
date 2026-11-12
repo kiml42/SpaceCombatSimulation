@@ -39,7 +39,7 @@ inside any one file is not contiguous.
   viewer draws snapshots of all of it — ships, turret bearings, tracers and the wells
   bending them — with pause, single-step, a scrub bar to wind it back and on, a speed from a quarter to sixteen times, and zoom and pan over an
   auto-framing camera, by mouse or by touch (pinch to zoom). A ship clicked or tapped is picked out — ringed, a line to what it is fighting with how far off it is written upright on the line just past its ring — or, while it is shown in a window, just outside the window on the side facing its target, clear of the target's — so the figure stays with the ship and in frame while it is, every arc and
-  where its guns will fire drawn for it alone, whatever A is set to — until Escape or a tap on empty space; on the evolution page's battles too. Picking it moves the camera only while it is still fitted, never once it has been moved by hand: then Fit (F) does, framing it with what it is fighting and escorting, the asteroid or hulk it is scavenging, and what it is keeping clear of most. Where it or its target is off screen, or under 16 px across, it is shown close up in a window of its own over the view, sized by its ship at one zoom for every window — so the two are drawn to scale, a Gunship's about 150 px and a Corvette's under half that — between 64 and 240 px: over the ship if it is on screen, against the edge it is beyond if not, with a pointer towards it, the picked ship's window framed solid and its target's dashed, with how far the target is from it. Clicking a window picks its ship and frames it. Each side's ships are shown live down the view's edges, a tile each by a camera of its own — the even sides on the left, the odd on the right, and past five tiles an edge (`MOST_TILES`) a side's commonest design, fighter or not, sharing a tile that shows the least damaged of them, by the mass of what is left of each, and how many there are, then the next commonest, until five are left or every tile is a design of its own; smaller tiles and then a count of the rest when a side has more than fit — and a click on a tile picks and frames its ship, or every ship a shared tile stands for; T hides and shows them, remembered with A and C, and the view frames between them. Ships well out of a view are not drawn, so a window costs little. Rounds and beams are drawn as light, or with C in the colours of the side that
+  where its guns will fire drawn for it alone, whatever A is set to — until Escape or a tap on empty space; on the evolution page's battles too. Picking it moves the camera only while it is still fitted, never once it has been moved by hand: then Fit (F) does, framing it with what it is fighting and escorting, the asteroid or hulk it is scavenging, and what it is keeping clear of most. Where it or its target is off screen, or under 16 px across, it is shown close up in a window of its own over the view, sized by its ship at one zoom for every window — so the two are drawn to scale, a Gunship's about 150 px and a Corvette's under half that — between 64 and 240 px: over the ship if it is on screen, against the edge it is beyond if not, with a pointer towards it, the picked ship's window framed solid and its target's dashed, with how far the target is from it. Clicking a window picks its ship and frames it. Each side's ships are shown live down the view's edges, a tile each by a camera of its own — the even sides on the left, the odd on the right, and past five tiles an edge (`MOST_TILES`) a side's commonest design, fighter or not, sharing a tile that shows the least damaged of them, by the mass of what is left of each, and how many there are, then the next commonest, until five are left or every tile is a design of its own; smaller tiles and then a count of the rest when a side has more than fit — and a click on a tile picks and frames its ship, or every ship a shared tile stands for; a tile whose ships' robots are bringing in metal from rock or wreckage says how much a minute, over the last 20 s of battle (`render/income.ts`); T hides and shows them, remembered with A and C, and the view frames between them. Ships well out of a view are not drawn, so a window costs little. Rounds and beams are drawn as light, or with C in the colours of the side that
   fired them, which the evolution page starts with. A, C and the speed are remembered by each page between visits. Every page's keys and mouse are a table behind the Keys button in its footer, or `?`, rather than a paragraph there. **A core's name is painted on
   it when it is built, and never changes**: its builder's side and which of that side's ships the builder is,
   as "Red 5", numbered by which core of the builder's design it is where that design has more than one
@@ -125,7 +125,8 @@ inside any one file is not contiguous.
   if refitted to it, draws dashed where they stood what it would take down, and says how many of each, and
   whether it could be refitted at all, or never finished for want of a robot bay (`refitPlan`, matched as
   `Ships.refit` matches). A panel in the
-  view's bottom left says what the view draws over the ship: the refit, shown or hidden, and which firing
+  view's bottom left says what the view draws over the ship: the refit, shown or hidden — hidden to begin
+  with — and which firing
   arcs, cycled as A cycles them.
   **Doctrine is edited there too, and is meant to be ignorable**: a section that stays shut, on a weapon for
   what it shoots at and on a core for what its ship does, saying while it is shut only whether this is the
@@ -744,7 +745,9 @@ inside any one file is not contiguous.
   so the shell's mass) and how early; one fragment or fewer is solid shot, all metal and never bursting. A module is as deep as it is across, capped at a deck
   (3 m) unless it is thick. Shipped ships mark every engine wider than a deck thick, and the Corvette and
   Gunship carry their bow guns as hull guns. Every gun sets its barrel in calibres; past fifty it is
-  braced and drawn so, and a hundred is the cap (§4). A match is over when at most one side can
+  braced and drawn so, and a hundred is the cap (§4). A gun's `bore` multiplies the bore its mount's size
+  gives it, up to eight times (a turret's single barrel then about a third of its dome), within the caps in
+  metres that already hold it; a heavier shell loads slower, and evolution turns it like the barrel's length. A match is over when at most one side can
   still shoot or push, since most fleets can no longer destroy each other.
   **An engine has a nozzle rather than being one.** An engine is a machinery block with a bell out of the
   back, its length and width sizing the block and its bell measured in widths of its exit: a long bell keeps
@@ -1408,7 +1411,9 @@ inside any one file is not contiguous.
   and go
   to the fleet editor, which shows the budget, and back between tries. A ship of a fleet opens in the ship
   editor from the fleet editor's *Edit* and goes back to the fleet, skirmish and all. A round won, the
-  enemy evolves an answer in a worker (`evolution/answer.ts`), which deals each generation's matches out to a
+  player picks where the next is fought from three changes drawn from its seed (`skirmish/destinations.ts`:
+  further apart or closer, more asteroids (no more than two majors, which orbit truly, unless the setup asked for more) or none, closing, crossing or from rest), kept in the skirmish's
+  settings from then on; then the enemy evolves an answer in a worker (`evolution/answer.ts`), which deals each generation's matches out to a
   job worker a spare core, coming out the same as fought in one, watched as each generation's best fights the
   round, and the answer — the best of the first generation with a mutant that beats the player's fleet on a
   new seed, picked as the round is won, to the round's own decision — is the next round's enemy, fought on that seed, so the fleet that

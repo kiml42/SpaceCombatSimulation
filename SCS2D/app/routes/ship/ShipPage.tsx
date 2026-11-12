@@ -567,7 +567,7 @@ export function ShipPage() {
                             id="showRefit"
                             title="Show what refitting to the design this was opened from would build and take down"
                             disabled={doc.refit === null}
-                            pressed={engine?.showRefit ?? true}
+                            pressed={engine?.showRefit ?? false}
                             onPressedChange={() => {
                                 engine?.toggleRefit();
                                 changed();

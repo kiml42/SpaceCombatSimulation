@@ -31,6 +31,7 @@ const SETUP = {
     config: {
         ...DEFAULT_RUN,
         seed: 42,
+        keep: 2,
         generations: 25,
         budget: { metal: 12_000, fuel: 3_000, build: Infinity },
         mutation: {
@@ -118,6 +119,8 @@ describe("the run config file", () => {
             [{ formatVersion: 99 }, /formatVersion/],
             [{ population: 0 }, /at least one/],
             [{ population: 2.5 }, /whole number/],
+            [{ keep: -1 }, /keep must be/],
+            [{ versus: { keep: 1.5 } }, /versus.keep must be/],
             [{ seed: "one" }, /seed must be a finite number/],
             [{ massBudget: -1 }, /more than nothing/],
             [{ budget: { build: 0 } }, /budget.build must be more than nothing/],

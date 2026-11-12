@@ -32,6 +32,7 @@ import {
     canFight,
     DEFAULT_SKIRMISH_SETTINGS,
     fleetFault,
+    goTo,
     lost,
     newSkirmish,
     nextRound,
@@ -48,6 +49,7 @@ import {
     type SkirmishSettings,
 } from "~/scenarios/skirmish";
 import type { Battle } from "~/scenarios/types";
+import { destinationById } from "~/skirmish/destinations";
 import { serialiseFleet, type Budget, type Fleet, type Snapshot } from "~/sim/index";
 import { Button } from "~/ui/buttons/Button";
 import { EditLink } from "~/ui/buttons/EditButton";
@@ -416,8 +418,13 @@ export function SkirmishPage() {
         undecided();
         activity.current = newActivity();
         battle.current = roundOn(roundBattle(current.player, current.enemy, current.won, settingsOf(current)));
-        setOutcome({ text: "The enemy as it stands against your fleet, evolving an answer.", kind: "" });
-        setEnemyLine(`Against ${current.enemy.name}, evolving.`);
+        if (current.ways !== undefined) {
+            setOutcome({ text: "Round won. Pick where the next round is fought.", kind: "won" });
+            setEnemyLine(`Against ${current.enemy.name}.`);
+        } else {
+            setOutcome({ text: "The enemy as it stands against your fleet, evolving an answer.", kind: "" });
+            setEnemyLine(`Against ${current.enemy.name}, evolving.`);
+        }
         setFightable(true);
         showOn(on, battle.current, watching);
     };
@@ -499,8 +506,15 @@ export function SkirmishPage() {
         setRoundOver(true);
         const at = `at ${result.time.toFixed(0)} s${given.length === 0 ? "" : ", with orders"}`;
         if (result.winner === 0) {
-            setOutcome({ text: `Victory ${at}. Wait while the enemy evolves an answer.`, kind: "won" });
-            skirmishes.setSkirmish(won(current));
+            const going = won(current);
+            setOutcome({
+                text:
+                    going.ways === undefined
+                        ? `Victory ${at}. Wait while the enemy evolves an answer.`
+                        : `Victory ${at}. Pick where the next round is fought.`,
+                kind: "won",
+            });
+            skirmishes.setSkirmish(going);
             skirmishes.answer();
         } else {
             setOutcome({
@@ -941,45 +955,76 @@ export function SkirmishPage() {
                             </Outcome>
                             {answeringNow && (
                                 <div id="answering">
-                                    <h2>The enemy answers</h2>
-                                    <Waiting>
-                                        {found === null && <Spinner id="answerSpinner" aria-hidden="true" />}
-                                        <p id="answerProgress">
-                                            {found !== null
-                                                ? `Found in generation ${latest!.generation}: ${found.name}, which beats your fleet on the next round's seed.`
-                                                : latest === null
-                                                  ? "Wait while the enemy evolves an answer: fighting the first generation of mutants…"
-                                                  : `Generation ${latest.generation}: the best enemy so far won ${latest.wins} of its ${latest.seeds} matches. It holds ${latest.cards.length} upgrade ${latest.cards.length === 1 ? "card" : "cards"}.`}
-                                        </p>
-                                    </Waiting>
-                                    {found === null ? (
-                                        <Buttons>
-                                            <Button
-                                                id="watchAnswer"
-                                                title="Stop or start watching the best enemy so far fight your fleet"
-                                                onClick={() => {
-                                                    setWatching(!watching);
-                                                    if (!watching && latest !== null) watch(latest);
-                                                    else if (watching) view?.setRunning(false);
-                                                }}
-                                            >
-                                                {watching ? "Stop watching" : "Watch"}
-                                            </Button>
-                                        </Buttons>
+                                    {skirmish.ways !== undefined ? (
+                                        <>
+                                            <h2>Where next?</h2>
+                                            <Muted>The enemy then evolves its answer there.</Muted>
+                                            <Buttons id="ways">
+                                                {skirmish.ways.map((id) => {
+                                                    const way = destinationById(id);
+                                                    return (
+                                                        way !== null && (
+                                                            <Button
+                                                                key={id}
+                                                                data-way={id}
+                                                                title={way.hint}
+                                                                onClick={() => {
+                                                                    const going = goTo(skirmish, id);
+                                                                    skirmishes.setSkirmish(going);
+                                                                    skirmishes.answer();
+                                                                    if (view !== null) showOpened(going, view);
+                                                                }}
+                                                            >
+                                                                {way.name}
+                                                            </Button>
+                                                        )
+                                                    );
+                                                })}
+                                            </Buttons>
+                                        </>
                                     ) : (
-                                        <Buttons id="answered">
-                                            <Button
-                                                id="nextRound"
-                                                variant="primary"
-                                                onClick={() => {
-                                                    const going = nextRound(skirmish, skirmish.enemy);
-                                                    skirmishes.setSkirmish(going);
-                                                    showRound(going);
-                                                }}
-                                            >
-                                                Next round
-                                            </Button>
-                                        </Buttons>
+                                        <>
+                                            <h2>The enemy answers</h2>
+                                            <Waiting>
+                                                {found === null && <Spinner id="answerSpinner" aria-hidden="true" />}
+                                                <p id="answerProgress">
+                                                    {found !== null
+                                                        ? `Found in generation ${latest!.generation}: ${found.name}, which beats your fleet on the next round's seed.`
+                                                        : latest === null
+                                                          ? "Wait while the enemy evolves an answer: fighting the first generation of mutants…"
+                                                          : `Generation ${latest.generation}: the best enemy so far won ${latest.wins} of its ${latest.seeds} matches. It holds ${latest.cards.length} upgrade ${latest.cards.length === 1 ? "card" : "cards"}.`}
+                                                </p>
+                                            </Waiting>
+                                            {found === null ? (
+                                                <Buttons>
+                                                    <Button
+                                                        id="watchAnswer"
+                                                        title="Stop or start watching the best enemy so far fight your fleet"
+                                                        onClick={() => {
+                                                            setWatching(!watching);
+                                                            if (!watching && latest !== null) watch(latest);
+                                                            else if (watching) view?.setRunning(false);
+                                                        }}
+                                                    >
+                                                        {watching ? "Stop watching" : "Watch"}
+                                                    </Button>
+                                                </Buttons>
+                                            ) : (
+                                                <Buttons id="answered">
+                                                    <Button
+                                                        id="nextRound"
+                                                        variant="primary"
+                                                        onClick={() => {
+                                                            const going = nextRound(skirmish, skirmish.enemy);
+                                                            skirmishes.setSkirmish(going);
+                                                            showRound(going);
+                                                        }}
+                                                    >
+                                                        Next round
+                                                    </Button>
+                                                </Buttons>
+                                            )}
+                                        </>
                                     )}
                                 </div>
                             )}
