@@ -62,7 +62,9 @@ describe("where a ship is flying to", () => {
         // among fighters parked on their carriers.
         const battle = starWars();
         let cornered = false;
-        const parkedWithCorner = watch(battle, 60 * 70, (ship) => {
+        // Twenty-five seconds: the first corner is at about eleven, and longer is
+        // more than a slow runner's two minutes allow.
+        const parkedWithCorner = watch(battle, 60 * 25, (ship) => {
             cornered ||= ship.routeX !== undefined;
             // With what it goes round, the corner outside it.
             if (ship.routeX !== undefined) {
