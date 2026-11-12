@@ -31,6 +31,12 @@ const skirmishPage = (skirmish?: Skirmish): string =>
 
 let browser: Browser;
 let page: Page;
+/** A round won, its next round's place already picked: the enemy answers at once. */
+const answering = (skirmish: Skirmish): Skirmish => {
+    const { ways: _ways, ...rest } = won(skirmish);
+    return rest;
+};
+
 const problems: string[] = [];
 
 beforeAll(async () => {
@@ -74,6 +80,7 @@ describe("the skirmish in a browser", () => {
         expect(await page.textContent("#fleetNote")).toContain("over budget");
         expect(await page.locator("#budget tr.over").count()).toBeGreaterThan(0);
         await page.click("#abandon");
+        await page.click("#abandonConfirm");
         expect(await page.isVisible("#setupScreen")).toBe(true);
     });
 
@@ -87,6 +94,7 @@ describe("the skirmish in a browser", () => {
         const kept = await page.evaluate(() => JSON.parse(window.localStorage.getItem("scs2d.skirmish")!));
         expect(kept.budget.metal).toBe(100_000_000);
         await page.click("#abandon");
+        await page.click("#abandonConfirm");
         // A box set by hand stays when the enemy changes; one left alone follows it.
         await page.fill("#metalBudget", "1");
         const fuel = await page.inputValue("#fuelBudget");
@@ -123,6 +131,7 @@ describe("the skirmish in a browser", () => {
         expect(kept.settings.gapSpread).toBe(1000);
         // Remembered for the next one, until reset.
         await page.click("#abandon");
+        await page.click("#abandonConfirm");
         expect(await page.inputValue("#quietTime")).toBe("45");
         await page.click("#resetSettings");
         expect(await page.inputValue("#quietTime")).toBe(String(DEFAULT_SKIRMISH_SETTINGS.quietTime));
@@ -308,6 +317,7 @@ describe("the skirmish in a browser", () => {
 
         // And read back after giving the skirmish up, it is the same round with the same history.
         await page.click("#abandon");
+        await page.click("#abandonConfirm");
         await page.waitForSelector("#round", { state: "hidden" });
         await page.setInputFiles("#importSkirmishFile", await download.path());
         await page.waitForSelector("#round");
@@ -322,7 +332,7 @@ describe("the skirmish in a browser", () => {
 
     it("gives the history the battle's room while the search is not watched", async () => {
         // Bare cores take a long while to answer a Gunship, so the search is still going throughout.
-        const skirmish = won(newSkirmish(shipFleet(BARE_CORE), shipFleet(GUNSHIP), 25));
+        const skirmish = answering(newSkirmish(shipFleet(BARE_CORE), shipFleet(GUNSHIP), 25));
         await page.goto(skirmishPage(skirmish));
         await page.waitForSelector("#answering");
         expect(await page.isVisible("#wideHistory")).toBe(false);
@@ -342,7 +352,7 @@ describe("the skirmish in a browser", () => {
 
     it("watches the enemy evolve an answer to a round won, and goes on to the next round", async () => {
         // The player's Corvette beats the same Corvette on seed 25, and a mirror is answered in a generation or two.
-        const skirmish = won(newSkirmish(shipFleet(CORVETTE), shipFleet(CORVETTE), 25));
+        const skirmish = answering(newSkirmish(shipFleet(CORVETTE), shipFleet(CORVETTE), 25));
         await page.goto(skirmishPage(skirmish));
         await page.waitForSelector("#answering");
         // With cores to spare, the search deals its matches out to job workers beside its own.

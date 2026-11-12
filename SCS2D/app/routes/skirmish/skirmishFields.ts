@@ -83,6 +83,15 @@ export const SKIRMISH_FIELDS: readonly SettingField[] = [
         title: "Each fleet's starting speed across the line between them, to its left.",
     },
     {
+        name: "light",
+        group: "round",
+        label: "light ×",
+        step: 0.1,
+        min: 0,
+        value: D.light,
+        title: "How bright each round's sun and shadows are, as a multiple of what its seed draws. Only seen, never fought.",
+    },
+    {
         name: "gapSpread",
         group: "round",
         spreadOf: "gap",
