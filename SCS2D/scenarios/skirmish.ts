@@ -122,6 +122,8 @@ export interface SkirmishSettings {
     readonly maxShips: number;
     /** How far from its origin any of either side's hulls may reach, unless the enemy already reaches further, metres. */
     readonly radius: number;
+    /** How bright each round's drawn light is, sun and shadows alike, as a multiple of what its seed draws: only seen, never fought. */
+    readonly light: number;
     /**
      * How the enemy is bred: the mutation odds by the names the settings pages
      * give them (`evolution/mutationFields.ts`), each missing one its default.
@@ -155,6 +157,7 @@ export const DEFAULT_SKIRMISH_SETTINGS: SkirmishSettings = {
     answerMargin: 0.2,
     maxShips: 20,
     radius: 500,
+    light: 1,
     breeding: {},
     map: {},
     mapSpread: {},

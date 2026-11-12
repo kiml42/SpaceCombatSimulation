@@ -26,6 +26,9 @@ const SPEED_STEP = 40;
 const MOST_MAJORS = 2;
 /** The most minors a step brings a round up to. */
 const MOST_MINORS = 30;
+/** How much a step dims the light, and the dimmest it goes. */
+const DIMMING = 0.6;
+const DARKEST = 0.2;
 
 const majors = (s: SkirmishSettings): number => s.map.majors ?? DEFAULT_MAP.majors;
 const minors = (s: SkirmishSettings): number => s.map.minors ?? DEFAULT_MAP.minors;
@@ -87,7 +90,24 @@ export const DESTINATIONS: readonly Destination[] = [
         open: (s) => s.closingSpeed !== 0 || s.crossingSpeed !== 0,
         apply: (s) => ({ ...s, closingSpeed: 0, crossingSpeed: 0 }),
     },
+    {
+        id: "dark",
+        name: "Into the dark",
+        hint: "A dimmer sun and blacker shadows: what ships light themselves is most of what shows",
+        open: (s) => s.light > DARKEST,
+        apply: (s) => ({ ...s, light: math.max(DARKEST, tidy(s.light * DIMMING)) }),
+    },
+    {
+        id: "bright",
+        name: "Into the light",
+        hint: "A brighter sun and softer shadows",
+        open: (s) => s.light < 1,
+        apply: (s) => ({ ...s, light: math.min(1, tidy(s.light / DIMMING)) }),
+    },
 ];
+
+/** To two places, so a light dimmed and brightened again comes back to where it was. */
+const tidy = (n: number): number => math.round(n * 100) / 100;
 
 /** How many are offered. */
 export const OFFERED = 3;

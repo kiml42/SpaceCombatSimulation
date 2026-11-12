@@ -52,14 +52,15 @@ const LEAST_BRIGHTNESS = 0.55;
  * replayed looks as it did and each new one is somewhere else. Ambient is
  * drawn squared, so dark shadows are the more common.
  */
-export function roundLight(seed: number): Light {
+export function roundLight(seed: number, scale = 1): Light {
     const draw = new Rng(seed ^ 0x6c6974);
     const from = draw.nextRange(0, math.TAU);
     const hue = draw.nextRange(0, 6);
     const tint = draw.nextRange(0, MOST_TINT);
-    const ambient = MOST_AMBIENT * draw.nextRange(0, 1) ** 2;
-    const brightness = draw.nextRange(LEAST_BRIGHTNESS, 1);
-    return { from, colour: hsvHex(hue, tint, brightness), ambient };
+    // Drawn whatever the scale, so a scale leaves the rest of the draw as it was.
+    const ambient = MOST_AMBIENT * draw.nextRange(0, 1) ** 2 * scale;
+    const brightness = math.min(1, draw.nextRange(LEAST_BRIGHTNESS, 1) * scale);
+    return { from, colour: hsvHex(hue, tint, brightness), ambient: math.min(1, ambient) };
 }
 
 /** A colour of `hue` (0 to 6 round the wheel), `tint` saturation and `brightness` value, as CSS hex. */
