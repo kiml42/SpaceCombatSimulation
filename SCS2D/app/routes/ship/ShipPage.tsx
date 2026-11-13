@@ -135,7 +135,7 @@ const Overlays = styled.div`
 `;
 
 const Panel = styled.aside`
-    width: 22rem;
+    width: 17rem;
     max-width: 45vw;
     padding: 0.7rem 0.9rem 2rem;
     overflow-y: auto;
@@ -685,14 +685,14 @@ export function ShipPage() {
                             />
                         </Field>
                     </Naming>
+                    <section>
+                        <h2>Problems</h2>
+                        <ShipProblems doc={doc} envelope={engine?.envelope() ?? null} />
+                    </section>
                     {skirmishNow !== null && <SkirmishBudget skirmish={skirmishNow} flies={broken === undefined} enemy={false} />}
                     <section>
                         <h2>What it works out to</h2>
                         <ShipStats doc={doc} envelope={engine?.envelope() ?? null} />
-                    </section>
-                    <section>
-                        <h2>Problems</h2>
-                        <ShipProblems doc={doc} />
                     </section>
                     <ShipRefit doc={doc} />
                     <LiveryPanel

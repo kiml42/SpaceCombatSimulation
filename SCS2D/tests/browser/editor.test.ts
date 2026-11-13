@@ -221,7 +221,7 @@ beforeAll(async () => {
 
     browser = await launchChromium();
     // Wide enough for both sidebars to leave the view the size the positions below were worked out at.
-    page = await browser.newPage({ viewport: { width: 1520, height: 700 } });
+    page = await browser.newPage({ viewport: { width: 1440, height: 700 } });
     // Read off its 2D canvas.
     page.on("pageerror", (error) => problems.push(`pageerror: ${error.message}`));
     page.on("console", (message) => {
@@ -229,7 +229,7 @@ beforeAll(async () => {
     });
     await page.goto(shipRoute());
     try {
-        await page.waitForFunction(() => (document.getElementById("stats")?.textContent ?? "").includes("Endurance"));
+        await page.waitForFunction(() => (document.getElementById("stats")?.textContent ?? "").includes("Burn"));
     } catch (timeout) {
         if (problems.length > 0) throw new Error(`the page did not start:\n${problems.join("\n")}`, { cause: timeout });
         throw timeout;
@@ -277,13 +277,16 @@ describe("the editor in a browser", () => {
 
     it("shows what the layout works out to, and that it would fly", async () => {
         const stats = (await page.textContent("#stats")) ?? "";
-        expect(stats).toMatch(/Mass[\d.,]+ t, [\d.,]+ t of it fuel/);
-        expect(stats).toMatch(/Endurance[\d,]+ s flat out, [\d,]+ m\/s of Δv/);
-        // The holding curve is measured through the allocator, so its appearance
+        expect(stats).toMatch(/Mass[\d.,]+ t\s*fuel[\d.,]+ t/);
+        expect(stats).toMatch(/Burn[\d,]+ s/);
+        expect(stats).toMatch(/Δv\d+\.\d km\/s/);
+        expect(stats).toMatch(/Turn L \/ R[\d.]+ \/ [\d.]+ °\/s²/);
+        // It flies, though its thrust is off its centre of mass, so it pays to hold its heading: a
+        // warning rather than a problem. The holding curve is measured through the allocator, so this
         // is also the check that the allocator ran without throwing on load.
-        expect(stats).toMatch(/Heading cost/);
-        expect(stats).toMatch(/Closes to\s*\d[\d,]*–\d[\d,]* m/);
-        expect(await page.textContent("#problems")).toMatch(/No problems/);
+        const problems = (await page.textContent("#problems")) ?? "";
+        expect(problems).toMatch(/No problems/);
+        expect(problems).toMatch(/gives up to \d+% of its push to stop itself spinning/);
     });
 
     it("selects the module under the pointer", async () => {
@@ -1350,7 +1353,7 @@ describe("the editor in a browser", () => {
         await openShip(page, "Dinky");
         expect(new URL(page.url()).hash).toBe("#/ship?open=Dinky");
         await page.reload();
-        await page.waitForFunction(() => (document.getElementById("stats")?.textContent ?? "").includes("Endurance"));
+        await page.waitForFunction(() => (document.getElementById("stats")?.textContent ?? "").includes("Burn"));
         expect(await page.inputValue("#shipName")).toBe("Dinky");
         await openShip(page, "Corvette");
     });
@@ -1362,7 +1365,7 @@ describe("the editor in a browser", () => {
         // The draft is kept a moment after the edit.
         await page.waitForFunction(() => (localStorage.getItem("scs2d.shipDraft") ?? "").includes("work in progress"));
         await page.reload();
-        await page.waitForFunction(() => (document.getElementById("stats")?.textContent ?? "").includes("Endurance"));
+        await page.waitForFunction(() => (document.getElementById("stats")?.textContent ?? "").includes("Burn"));
         expect(await page.inputValue("#shipNotes")).toBe("work in progress");
 
         await fromMenu(page, "#revertShip");
@@ -1428,10 +1431,12 @@ describe("the editor in a browser", () => {
         });
         const panel = (await page.textContent("#problems")) ?? "";
         expect(panel).toMatch(/would fly/);
-        expect(panel).toMatch(/1 warning/);
+        // With no engines, it cannot hold a heading either.
+        expect(panel).toMatch(/2 warnings/);
         expect(panel).toMatch(/module 2 \(turret\) is out of every core's reach/);
+        expect(panel).toMatch(/cannot hold a heading/);
         await openShip(page, "Torch");
-        expect(await page.textContent("#problems")).not.toMatch(/warning/);
+        expect(await page.textContent("#problems")).not.toMatch(/out of every core's reach/);
     });
 
     it("pushes a neighbour with an edge, and moves the face two modules share", async () => {

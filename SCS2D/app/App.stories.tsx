@@ -148,7 +148,7 @@ export const Ship: Story = {
     args: { path: "/ship" },
     play: async ({ canvas }) => {
         await expect(canvas.getByRole("combobox", { name: "Ship" })).toHaveDisplayValue("Corvette");
-        await waitFor(() => expect(canvas.getByRole("row", { name: /^Endurance/ })).toBeVisible());
+        await waitFor(() => expect(canvas.getByRole("row", { name: /^Burn/ })).toBeVisible());
         await userEvent.click(canvas.getByRole("button", { name: "Tank" }));
         await expect(canvas.getByRole("heading", { name: "Selected module" })).toBeVisible();
         await expect(canvas.getByRole("combobox", { name: "kind" })).toHaveDisplayValue("tank");
