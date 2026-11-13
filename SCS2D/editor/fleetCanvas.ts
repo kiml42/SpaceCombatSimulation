@@ -31,6 +31,8 @@ export interface FleetCanvas {
     render(): void;
     /** Frame the whole fleet, at the next draw. */
     fit(): void;
+    /** Show how far from the origin the fleet may reach, and which ships reach past it; null for no limit. */
+    setSpread(radius: number | null): void;
     dispose(): void;
 }
 
@@ -68,6 +70,7 @@ export function fleetCanvas(canvas: HTMLCanvasElement, doc: FleetDocument, hooks
     const snapshot = new Snapshot();
     let fitPending = true;
     let arcs: Arcs = "none";
+    let spread: number | null = null;
     const viewBar = viewOptions(
         canvas.parentElement ?? document.body,
         [
@@ -125,6 +128,18 @@ export function fleetCanvas(canvas: HTMLCanvasElement, doc: FleetDocument, hooks
         return { ships, boxes };
     };
 
+    /** The ships reaching further from the origin than `radius`, as a skirmish measures it (`fleetReach`). */
+    const outsideOf = (radius: number): number[] => {
+        const out: number[] = [];
+        doc.view.ships.forEach((ship, i) => {
+            const design = doc.view.designs[i];
+            if (design == null) return;
+            const centre = centreOf(ship, design);
+            if (sqrt(centre.x * centre.x + centre.y * centre.y) + design.radius > radius) out.push(i);
+        });
+        return out;
+    };
+
     const render = (): void => withSides(sidesOf([doc.fleet.livery]), paint);
     const paint = (): void => {
         fleetSnapshot(doc.view, snapshot);
@@ -153,6 +168,8 @@ export function fleetCanvas(canvas: HTMLCanvasElement, doc: FleetDocument, hooks
                         return design == null ? null : { ...centreOf(ship, design), radius: design.radius };
                     }),
                     faulty: doc.view.faulty,
+                    spread,
+                    outside: spread === null ? [] : outsideOf(spread),
                     ...selectionMarks(),
                     knob: currentKnob(),
                 },
@@ -337,6 +354,10 @@ export function fleetCanvas(canvas: HTMLCanvasElement, doc: FleetDocument, hooks
         render,
         fit: () => {
             fitPending = true;
+            render();
+        },
+        setSpread: (radius) => {
+            spread = radius;
             render();
         },
         dispose: () => {

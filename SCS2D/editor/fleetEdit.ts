@@ -5,9 +5,11 @@ import {
     padReached,
     renamePadFighter,
     sameBlueprint,
+    stepsOf,
     type Blueprint,
     type Fleet,
     type FleetEntry,
+    type FleetStep,
 } from "../sim/index.js";
 import { nextName, unusedName } from "./library.js";
 
@@ -269,10 +271,14 @@ export function dissolveGroup(fleet: Fleet, path: EntryPath): { fleet: Fleet; pa
     if (group === undefined) return null;
     const flipped = use.mirror ?? false;
     const out: FleetEntry[] = [];
-    let x = use.x;
-    let y = use.y;
-    let angle = use.angle ?? 0;
-    for (let copy = 0; copy < (use.repeat ?? 1); copy++) {
+    const copies = use.repeat ?? 1;
+    const [uc, us] = exactTurn(use.angle ?? 0);
+    for (let copy = 0; copy < copies; copy++) {
+        // Each copy where the fleet's expansion puts it, either side of the use's position.
+        const off = copies > 1 && use.step !== undefined ? stepsOf(use.step, copy - (copies - 1) / 2, flipped) : { x: 0, y: 0, angle: 0 };
+        const x = use.x + off.x * uc - off.y * us;
+        const y = use.y + off.x * us + off.y * uc;
+        const angle = foldAngle((use.angle ?? 0) + off.angle);
         // As the fleet is expanded: reflect, then turn, then move.
         const [c, s] = exactTurn(angle);
         for (const inner of group.ships) {
@@ -293,13 +299,6 @@ export function dissolveGroup(fleet: Fleet, path: EntryPath): { fleet: Fleet; pa
             }
             out.push(entry);
         }
-        const step = use.step;
-        if (step === undefined) continue;
-        const [sc, ss] = exactTurn(angle);
-        const stepY = flipped ? -step.y : step.y;
-        x += step.x * sc - stepY * ss;
-        y += step.x * ss + stepY * sc;
-        angle = foldAngle(angle + (flipped ? -(step.angle ?? 0) : (step.angle ?? 0)));
     }
     const next = cloneFleet(fleet);
     const list = listOf(next, path)!;
@@ -343,4 +342,18 @@ function foldAngle(angle: number): number {
     while (a > Math.PI) a -= 2 * Math.PI;
     while (a <= -Math.PI) a += 2 * Math.PI;
     return a;
+}
+
+/**
+ * An entry repeated `copies` times. Its copies stand either side of its
+ * position, so that stays put; `step` is used where the entry has none yet.
+ */
+export function withCopies(entry: FleetEntry, copies: number, step: FleetStep): FleetEntry {
+    const next = { ...entry };
+    if (copies <= 1) delete next.repeat;
+    else {
+        next.repeat = copies;
+        next.step ??= step;
+    }
+    return next;
 }

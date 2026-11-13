@@ -424,6 +424,7 @@ export {
     MAX_FLEET_REPEAT,
     MAX_GROUP_DEPTH,
     shipFleet,
+    stepsOf,
     type Fleet,
     type FleetEntry,
     type FleetGroup,

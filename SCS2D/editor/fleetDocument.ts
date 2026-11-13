@@ -7,13 +7,16 @@ import {
     type Bill,
     compileDraft,
     expandBlueprint,
+    exactTurn,
     expandFleet,
     fleetWarnings,
     fleetProblem,
     centreOf,
     hullsOverlap,
+    isGroupUse,
     math,
     placeModules,
+    stepsOf,
     type Blueprint,
     type Fleet,
     type ModuleSpec,
@@ -360,12 +363,22 @@ export class FleetDocument {
         return first === undefined ? null : this.derived.ships[first]!;
     }
 
-    /** Where the framing copy of an entry stands, and the frame it is written in. */
+    /** Where an entry stands, the middle of its row if it has one, and the frame it is written in. */
     frameOf(path: EntryPath): EntryFrame | null {
         const ship = this.framingShip(path);
         const step = ship?.trail[path.length - 1];
         if (step === undefined) return null;
-        return { x: step.x, y: step.y, angle: step.angle, rotation: step.rotation, mirrored: step.mirrored };
+        const frame = { x: step.x, y: step.y, angle: step.angle, rotation: step.rotation, mirrored: step.mirrored };
+        // A row's frame is its middle, where the entry stands, whichever copy was picked.
+        const entry = entryAt(this.history.current, path);
+        const copies = entry?.repeat ?? 1;
+        if (entry === null || copies <= 1 || entry.step === undefined) return frame;
+        const flipped = isGroupUse(entry) ? step.mirrored !== (entry.mirror ?? false) : step.mirrored;
+        // The copy stands at its offset from the middle, so the middle is that offset undone.
+        const off = stepsOf(entry.step, step.copy - (copies - 1) / 2, flipped);
+        const angle = step.angle - off.angle;
+        const [c, s] = exactTurn(angle);
+        return { ...frame, x: step.x - (off.x * c - off.y * s), y: step.y - (off.x * s + off.y * c), angle };
     }
 
     /**

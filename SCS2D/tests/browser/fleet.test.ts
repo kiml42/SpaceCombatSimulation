@@ -194,6 +194,8 @@ describe("the fleet editor in a browser", () => {
         expect(await shipCount(page)).toBe("ships9");
         expect(await page.isVisible("#stepRow")).toBe(true);
         await page.fill("#stepY", "50");
+        // The copies stand either side of the entry, so its position stays as typed.
+        expect(await page.inputValue("#entryX")).toBe("-300");
         expect(await page.textContent("#problems")).toBe("None.");
         await page.fill("#repeatCount", "1");
         expect(await shipCount(page)).toBe("ships6");

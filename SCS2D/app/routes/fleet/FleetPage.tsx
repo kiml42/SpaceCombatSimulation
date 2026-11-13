@@ -13,7 +13,7 @@ import { emptyBlueprint, Library, nextName, SHIPS, unusedName } from "~/editor/l
 import { snap } from "~/editor/edit";
 import type { KeyRow } from "~/host/keyHelp";
 import { snapStep } from "~/render/camera";
-import { inSkirmish, pick, serialiseSkirmish, type Skirmish } from "~/scenarios/skirmish";
+import { inSkirmish, pick, playerLimits, serialiseSkirmish, type Skirmish } from "~/scenarios/skirmish";
 import { compileBlueprint, parseBlueprint, parseFleet, serialiseFleet, type Blueprint, type Fleet } from "~/sim/index";
 import { CommitText } from "~/ui/fields/CommitText";
 import { LiveryPanel } from "~/features/livery/LiveryPanel";
@@ -284,6 +284,10 @@ export function FleetPage() {
         const timer = setTimeout(remember, 300);
         return () => clearTimeout(timer);
     }, [skirmish, fleet]);
+
+    // In a skirmish, the spread the player's fleet must keep within, drawn round its origin.
+    const spreadLimit = now === null ? null : playerLimits(now).radius;
+    useEffect(() => engine?.setSpread(spreadLimit), [engine, spreadLimit]);
 
     const toDesign = (design: string): string =>
         `#${designRoute({ fleet: doc.fleet, design, ...(skirmish === null ? {} : { skirmish: { ...skirmish, player: doc.fleet } }) })}`;
