@@ -142,7 +142,8 @@ export function fleetCanvas(canvas: HTMLCanvasElement, doc: FleetDocument, hooks
 
     const render = (): void => withSides(sidesOf([doc.fleet.livery]), paint);
     const paint = (): void => {
-        fleetSnapshot(doc.view, snapshot);
+        // An empty skirmish fleet is framed by the area it is to be placed in.
+        fleetSnapshot(doc.view, snapshot, undefined, spread ?? undefined);
         if (fitPending) {
             // Measured now, as the page round it may have changed its size since.
             resize();
@@ -357,6 +358,7 @@ export function fleetCanvas(canvas: HTMLCanvasElement, doc: FleetDocument, hooks
             render();
         },
         setSpread: (radius) => {
+            if (radius !== spread && doc.view.ships.length === 0) fitPending = true;
             spread = radius;
             render();
         },
