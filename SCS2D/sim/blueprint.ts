@@ -1472,8 +1472,20 @@ export function contactWidth(spec: ModuleSpec, other: ModuleSpec): number {
     return weldedWidth(weldBox(spec), weldBox(other));
 }
 
+/**
+ * How much of the shorter of the two faces in contact the weld runs along,
+ * 0 to 1, or zero where `contactWidth` is.
+ */
+export function contactShare(spec: ModuleSpec, other: ModuleSpec): number {
+    const width = weldedWidth(weldBox(spec), weldBox(other), measured);
+    return width > 0 && measured.edge > 0 ? min(1, width / measured.edge) : 0;
+}
+
+/** The shorter face of the last pair measured with it, metres. */
+const measured = { edge: 0 };
+
 /** `contactWidth` between two modules' weld boxes (`weldBox`), for a check that asks it of every pair. */
-export function weldedWidth(a: ModuleSpec, b: ModuleSpec): number {
+export function weldedWidth(a: ModuleSpec, b: ModuleSpec, out?: { edge: number }): number {
     const half = ATTACHMENT_TOLERANCE * 0.5;
     // Two boxes are measured as extents either side of their centres, which is
     // the same figure the spans give and the one a box has always been measured
@@ -1503,6 +1515,10 @@ export function weldedWidth(a: ModuleSpec, b: ModuleSpec): number {
     const auy = sin(boxAngle(a));
     const bux = cos(boxAngle(b));
     const buy = sin(boxAngle(b));
+    // Two boxes not square to each other meet at most by a corner.
+    if (boxes) {
+        if (min(abs(aux * buy - auy * bux), abs(aux * bux + auy * buy)) > FACE_SKEW) return 0;
+    }
     const axes: number[] = [];
     let count: number;
     if (boxes) {
@@ -1558,6 +1574,7 @@ export function weldedWidth(a: ModuleSpec, b: ModuleSpec): number {
     if (boxes) {
         const ea = boxExtent(a.length * 0.5, a.width * 0.5, aux, auy, px, py);
         const eb = boxExtent(b.length * 0.5, b.width * 0.5, bux, buy, px, py);
+        if (out !== undefined) out.edge = min(ea, eb) * 2;
         return weldWidth(min(ea + eb - abs(dx * px + dy * py), min(ea, eb) * 2), min(ea, eb) * 2);
     }
     // A shape's extents overlap along the join wherever it touches, a corner
@@ -1566,7 +1583,7 @@ export function weldedWidth(a: ModuleSpec, b: ModuleSpec): number {
     const cb: number[] = [];
     const realA = moduleOutline(a, ca);
     const realB = moduleOutline(b, cb);
-    return faceContact(ca, realA, cb, realB);
+    return faceContact(ca, realA, cb, realB, out);
 }
 
 /**
@@ -1594,7 +1611,7 @@ function weldWidth(width: number, edge: number): number {
  * lies within the tolerance. Both outlines are wound anticlockwise
  * (`moduleOutline`), so two faces in contact run opposite ways.
  */
-function faceContact(ca: readonly number[], countA: number, cb: readonly number[], countB: number): number {
+function faceContact(ca: readonly number[], countA: number, cb: readonly number[], countB: number, out?: { edge: number }): number {
     let best = 0;
     for (let i = 0; i < countA; i++) {
         const px = ca[2 * i]!;
@@ -1635,7 +1652,10 @@ function faceContact(ca: readonly number[], countA: number, cb: readonly number[
             const from = s0 + (s1 - s0) * t0;
             const to = s0 + (s1 - s0) * t1;
             const along = weldWidth(min(span, max(from, to)) - max(0, min(from, to)), min(span, run));
-            if (along > best) best = along;
+            if (along > best) {
+                best = along;
+                if (out !== undefined) out.edge = min(span, run);
+            }
         }
     }
     return best;

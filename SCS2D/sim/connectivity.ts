@@ -1,6 +1,6 @@
-import { contactWidth, type ShipDesign } from "./blueprint.js";
-import { min } from "./math.js";
-import { ROCK_SEAM_THICKNESS } from "./modules.js";
+import { contactShare, contactWidth, WELD_SHARE, type ShipDesign } from "./blueprint.js";
+import { max, min } from "./math.js";
+import { DECK_HEIGHT, ROCK_SEAM_THICKNESS, type ModuleSpec } from "./modules.js";
 
 /**
  * Which modules of a hull hold which, and how well.
@@ -57,9 +57,9 @@ export interface Joint {
  * What a square metre of weld cross-section can carry, newton-seconds.
  *
  * A joint's section is the length of the faces in contact by the thinner of
- * the two walls meeting there, so a wing hung off a narrow neck comes away
- * long before the same wing welded along its whole root — which is the design
- * decision the graph exists to make possible.
+ * the two walls meeting there, scaled by `weldFactor`, so a wing hung off a
+ * narrow neck comes away long before the same wing welded along its whole
+ * root — which is the design decision the graph exists to make possible.
  *
  * Set so that an undamaged hull shrugs off the bumps of a crowded battle and
  * a real ram takes something off it, while a hull whose metal has been shot to
@@ -75,6 +75,27 @@ export const JOINT_IMPULSE_PER_AREA = 3.0e6;
 export function seamThickness(design: ShipDesign, module: number): number {
     const { spec, stats } = design.modules[module]!;
     return spec.kind === "rock" || spec.kind === "kernel" ? ROCK_SEAM_THICKNESS : stats.wallThickness;
+}
+
+/**
+ * What a weld's section is worth beyond its width and wall: nothing at
+ * `WELD_SHARE` of the shorter face, rising to all of it along the whole face,
+ * and in proportion to the shallower module's depth against a deck's. A part
+ * hung by a sliver of face, or a thin one, comes away first.
+ */
+export function weldFactor(share: number, depthA: number, depthB: number): number {
+    const ramp = max(0, min(1, (share - WELD_SHARE) / (1 - WELD_SHARE)));
+    return (ramp * min(depthA, depthB)) / DECK_HEIGHT;
+}
+
+/** A seam `width` wide's share of the shorter of two modules' narrower sides. */
+export function seamShare(a: ModuleSpec, b: ModuleSpec, width: number): number {
+    const edge = min(min(a.length, a.width), min(b.length, b.width));
+    return edge > 0 ? min(1, width / edge) : 0;
+}
+
+function jointFactor(design: ShipDesign, a: number, b: number, share: number): number {
+    return weldFactor(share, design.modules[a]!.stats.thickness, design.modules[b]!.stats.thickness);
 }
 
 /**
@@ -110,6 +131,7 @@ export function joints(design: ShipDesign): readonly Joint[] {
             // asks is exactly the geometry asked here.
             const width = contactWidth(design.modules[i]!.spec, design.modules[j]!.spec);
             if (width <= 0) continue;
+            const share = contactShare(design.modules[i]!.spec, design.modules[j]!.spec);
             // The thinner wall is what gives way, so it is what the section is cut
             // from: welding a light plate to a heavy one makes a light joint.
             const thickness = min(seamThickness(design, i), seamThickness(design, j));
@@ -123,7 +145,7 @@ export function joints(design: ShipDesign): readonly Joint[] {
                 width,
                 x,
                 y,
-                strength: width * thickness * JOINT_IMPULSE_PER_AREA,
+                strength: width * thickness * JOINT_IMPULSE_PER_AREA * jointFactor(design, i, j, share),
             });
         }
     }
@@ -138,7 +160,12 @@ export function joints(design: ShipDesign): readonly Joint[] {
             width: seam.width,
             x: (design.modules[lo]!.x + design.modules[hi]!.x) * 0.5,
             y: (design.modules[lo]!.y + design.modules[hi]!.y) * 0.5,
-            strength: seam.width * thickness * JOINT_IMPULSE_PER_AREA * (seam.dock !== undefined ? DOCK_HOLD : 1),
+            strength:
+                seam.width *
+                thickness *
+                JOINT_IMPULSE_PER_AREA *
+                jointFactor(design, lo, hi, seamShare(design.modules[lo]!.spec, design.modules[hi]!.spec, seam.width)) *
+                (seam.dock !== undefined ? DOCK_HOLD : 1),
             seam: true,
             ...(seam.dock !== undefined ? { dock: true } : {}),
         });

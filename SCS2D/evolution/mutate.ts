@@ -27,7 +27,7 @@ import {
     type Doctrine,
     type Targeting,
 } from "../sim/doctrine.js";
-import { abs, clamp, cos, floor, HALF_PI, max, min, PI, pow, round, sin, sqrt } from "../sim/math.js";
+import { abs, atan2, clamp, cos, floor, HALF_PI, max, min, normalizeAngle, PI, pow, round, sin, sqrt } from "../sim/math.js";
 import { canShape, isShaped, TRIANGLE_CORNERS, shapeOf, wedge } from "../sim/shape.js";
 import { degreesToRadians, radiansToDegrees } from "../sim/blueprintFile.js";
 import {
@@ -66,6 +66,8 @@ import {
     blockCentre,
     bodySpec,
     moduleCentre,
+    moduleOutline,
+    weldBox,
     refitModule,
     shapeModule,
     type ModuleKind,
@@ -125,8 +127,6 @@ export interface MutationLimits {
      * the ship's median module size (`shipScale`).
      */
     readonly size: number;
-    /** How far a module turns when it turns by less than a right angle, radians. */
-    readonly turn: number;
     /** Chance of also making one structural edit: a module added, removed or copied. */
     readonly structural: number;
     /**
@@ -298,7 +298,6 @@ export const DEFAULT_LIMITS: MutationLimits = {
     geometry: 0.4,
     switches: 0.05,
     size: 0.5,
-    turn: PI / 12,
     structural: 0.6,
     thrusters: 0.5,
     rename: 0.1,
@@ -904,7 +903,7 @@ function reshape(part: Part, draft: Draft, rng: Rng, bounds: MutationLimits, sca
         case "quarter":
             return quarterTurn(site, rng);
         case "angle":
-            return turnModule(site, rng, bounds, weight);
+            return reseat(site, rng);
         case "vertex":
             return moveVertex(site, rng, bounds, scale, weight);
     }
@@ -1703,14 +1702,84 @@ function keepReady(site: ModuleSite): string {
     return `${site.where} ${site.spec.kind}: ${was ? "charges on target" : "kept ready"}`;
 }
 
-function turnModule(site: ModuleSite, rng: Rng, bounds: MutationLimits, weight: number): string | null {
-    const was = site.spec.angle ?? 0;
-    const by = drift(rng, bounds, bounds.turn * weight);
-    if (by === 0) return null;
-    // Unrounded, for the reason `against` gives: a rounded right angle is a
-    // module tilted a fraction of a micron into its neighbour.
-    site.spec.angle = was + by;
-    return `${site.where} ${site.spec.kind}: turned ${degrees(was)}° → ${degrees(site.spec.angle)}°`;
+/**
+ * Lay a module flush against something it is welded to, by a face of its own
+ * drawn at random: turned so that face meets the neighbour's, and slid as
+ * little as it takes to sit along it as fully as either face allows.
+ *
+ * A turn by any other angle leaves a box hanging by a corner, which welds
+ * nothing (`contactWidth`), so this is the only turn a welded module has.
+ */
+function reseat(site: ModuleSite, rng: Rng): string | null {
+    const spec = site.spec;
+    const welded = site.list.filter((other): other is ModuleSpec => !isInstance(other) && other !== spec && contactWidth(spec, other) > 0);
+    if (welded.length === 0) return null;
+    const neighbour = welded[rng.nextInt(welded.length)]!;
+
+    const theirs: number[] = [];
+    const theirCount = moduleOutline(weldBox(neighbour), theirs);
+    const mine: number[] = [];
+    const centre = moduleCentre(spec);
+    // Theirs facing this module: the edge it lies furthest out beyond.
+    let face = 0;
+    let furthest = -Infinity;
+    for (let i = 0; i < theirCount; i++) {
+        const edge = edgeOf(theirs, theirCount, i);
+        const out = (centre.x - edge.x0) * edge.nx + (centre.y - edge.y0) * edge.ny;
+        if (out > furthest) {
+            furthest = out;
+            face = i;
+        }
+    }
+    const target = edgeOf(theirs, theirCount, face);
+
+    const was = { x: spec.x, y: spec.y, angle: spec.angle };
+    const ownCount = moduleOutline(weldBox(spec), mine);
+    const own = rng.nextInt(ownCount);
+    const before = edgeOf(mine, ownCount, own);
+    // Its outward normal turned to face straight back into theirs.
+    const turn = normalizeAngle(atan2(-target.ny, -target.nx) - atan2(before.ny, before.nx));
+    spec.angle = normalizeAngle((spec.angle ?? 0) + turn);
+    moduleOutline(weldBox(spec), mine);
+    const after = edgeOf(mine, ownCount, own);
+
+    // Onto their face's line, then along it by the least that seats it.
+    const tx = target.ny * -1;
+    const ty = target.nx;
+    const off = (after.x0 - target.x0) * target.nx + (after.y0 - target.y0) * target.ny;
+    const a0 = (after.x0 - target.x0) * tx + (after.y0 - target.y0) * ty;
+    const a1 = (after.x1 - target.x0) * tx + (after.y1 - target.y0) * ty;
+    const lo = min(a0, a1);
+    const hi = max(a0, a1);
+    const span = target.length;
+    let slide = 0;
+    if (hi - lo <= span) {
+        if (lo < 0) slide = -lo;
+        else if (hi > span) slide = span - hi;
+    } else if (lo > 0) slide = -lo;
+    else if (hi < span) slide = span - hi;
+    spec.x = tidy(spec.x - off * target.nx + slide * tx, 6);
+    spec.y = tidy(spec.y - off * target.ny + slide * ty, 6);
+
+    if (site.list.some((other) => !isInstance(other) && other !== spec && modulesOverlap(spec, other))) {
+        spec.x = was.x;
+        spec.y = was.y;
+        if (was.angle === undefined) delete spec.angle;
+        else spec.angle = was.angle;
+        return null;
+    }
+    return `${site.where} ${spec.kind}: reseated on a ${neighbour.kind}, turned ${degrees(was.angle ?? 0)}° → ${degrees(spec.angle)}°`;
+}
+
+/** Edge `i` of an anticlockwise outline: its ends, length and outward normal. */
+function edgeOf(corners: readonly number[], count: number, i: number) {
+    const k = (i + 1) % count;
+    const x0 = corners[2 * i]!;
+    const y0 = corners[2 * i + 1]!;
+    const x1 = corners[2 * k]!;
+    const y1 = corners[2 * k + 1]!;
+    const length = sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0));
+    return { x0, y0, x1, y1, length, nx: (y1 - y0) / length, ny: -(x1 - x0) / length };
 }
 
 /**
@@ -2895,7 +2964,8 @@ function against(
     // engines left an engine firing into the ship.
     if (copy && points(kind)) {
         const { notes: _notes, ...same } = anchor;
-        return { ...same, x: tidy(anchor.x + nx * anchor.width, 6), y: tidy(anchor.y + ny * anchor.width, 6) };
+        // Only the step rounded: rounding the sum, off an anchor not on the grid, lays the copy a hair into it.
+        return { ...same, x: anchor.x + tidy(nx * anchor.width, 6), y: anchor.y + tidy(ny * anchor.width, 6) };
     }
 
     // Which way a module has to face to be *held on* by this face is the

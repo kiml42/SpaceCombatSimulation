@@ -11,6 +11,8 @@ import {
     CLAW_PUMP_PER_METRE,
     type Blueprint,
     type Ships,
+    seamShare,
+    weldFactor,
 } from "../sim/index.js";
 import { makeBattle } from "../scenarios/battle.js";
 import { CORVETTE } from "../scenarios/blueprints.js";
@@ -111,7 +113,9 @@ describe("gripping a wreck", () => {
         const thickness = Math.min(design.modules[joint.a]!.stats.wallThickness, design.modules[joint.b]!.stats.wallThickness);
         // Across the whole jaw.
         expect(joint.width).toBe(leech.modules[CLAW]!.spec.width);
-        expect(joint.strength).toBeCloseTo(joint.width * thickness * JOINT_IMPULSE_PER_AREA * DOCK_HOLD, 3);
+        const [a, b] = [design.modules[joint.a]!, design.modules[joint.b]!];
+        const factor = weldFactor(seamShare(a.spec, b.spec, joint.width), a.stats.thickness, b.stats.thickness);
+        expect(joint.strength).toBeCloseTo(joint.width * thickness * JOINT_IMPULSE_PER_AREA * DOCK_HOLD * factor, 3);
     });
 
     it("pumps the wreck dry into its own tanks, the hull weighing the same, and lets go when full", () => {

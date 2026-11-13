@@ -1,6 +1,6 @@
 import { Bodies } from "./bodies.js";
 import type { ShipDesign } from "./blueprint.js";
-import { DOCK_HOLD, JOINT_IMPULSE_PER_AREA, seamThickness } from "./connectivity.js";
+import { DOCK_HOLD, JOINT_IMPULSE_PER_AREA, seamShare, seamThickness, weldFactor } from "./connectivity.js";
 import { DAMAGE_ENERGY_PER_KG, DamageEffect, DISASSEMBLY_WASTE } from "./damage.js";
 
 import { cos, exp, length, max, min, sin, sqrt } from "./math.js";
@@ -745,7 +745,13 @@ export function shakeLoose(ships: Ships, world: World, k: number): boolean {
     const claw = ships.mooredClaw[f]!;
     const thickness = min(seamThickness(fd, claw), seamThickness(rd, held));
     const grip = ships.damage.remaining(fb, claw, DamageEffect.Grip);
-    const strength = fd.modules[claw]!.spec.width * thickness * JOINT_IMPULSE_PER_AREA * DOCK_HOLD * grip;
+    const width = fd.modules[claw]!.spec.width;
+    const factor = weldFactor(
+        seamShare(fd.modules[claw]!.spec, rd.modules[held]!.spec, width),
+        fd.modules[claw]!.stats.thickness,
+        rd.modules[held]!.stats.thickness,
+    );
+    const strength = width * thickness * JOINT_IMPULSE_PER_AREA * DOCK_HOLD * grip * factor;
     const jx = ships.blowJx[k]!;
     const jy = ships.blowJy[k]!;
     const place = shipDocking.modulePlace(bodies, fb, fd, claw);
