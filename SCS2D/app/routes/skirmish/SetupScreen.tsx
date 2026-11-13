@@ -347,7 +347,7 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart, onImport }: Set
                     ?
                 </Button>
             </Header>
-            <SkirmishHelp open={helping} onClose={closeHelp} cardAfter={settings.cardAfter} quietTime={settings.quietTime} />
+            <SkirmishHelp open={helping} onClose={closeHelp} />
             <Intro>
                 Pick an enemy and a battlefield, then build a fleet within the budget that beats it. Win, and the enemy evolves to beat you
                 back.
