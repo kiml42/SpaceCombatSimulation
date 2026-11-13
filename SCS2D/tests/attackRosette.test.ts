@@ -43,10 +43,10 @@ describe("the guns the attack rosette turns", () => {
 });
 
 describe("the attack rosette", () => {
-    it("sits above the thrust rosette, and grows from its corner", () => {
-        // 54 px radius, its bottom 8 px gap and an 18 px caption above the thrust rosette's top.
-        const cx = 1000 - 54 - 16;
-        const cy = 600 - 16 - 32 - 108 - 8 - 18 - 54;
+    it("sits left of the thrust rosette, and grows from its corner", () => {
+        // 54 px radius, a 16 px gap left of the thrust rosette, an 18 px caption below.
+        const cx = 1000 - 16 - 108 - 16 - 54;
+        const cy = 600 - 54 - 16 - 18;
         expect(overAttack(1000, 600, cx, cy)).toBe(true);
         expect(overEnvelope(1000, 600, cx, cy)).toBe(false);
         expect(attackBearingAt(1000, 600, cx + 30, cy)).toBeCloseTo(0, 9);

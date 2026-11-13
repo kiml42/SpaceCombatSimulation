@@ -1,6 +1,6 @@
 import { blockCentre, bodySpec, math, moduleCentre, shapeOf, type ModuleSpec, type ShipDesign } from "../sim/index.js";
 import { describeStep, snapStep, type Camera } from "../render/camera.js";
-import { headingCost, type Envelopes } from "./stats.js";
+import type { Envelopes } from "./stats.js";
 import type { AssemblyOutline } from "./document.js";
 import { HANDLE_RADIUS_PX, type Handle } from "./handles.js";
 
@@ -96,8 +96,8 @@ const ENVELOPE_LABEL = "#7f93aa";
 const ENVELOPE_RADIUS_PX = 54;
 const ENVELOPE_EXPANDED_PX = 160;
 const ENVELOPE_MARGIN_PX = 16;
-/** Room kept below the rosette for its two caption lines, pixels. */
-const ENVELOPE_CAPTION_PX = 32;
+/** Room kept below each rosette for its caption, pixels. */
+const ENVELOPE_CAPTION_PX = 18;
 
 /**
  * The bearings that bring the most main guns to bear. A deep crimson rather
@@ -108,12 +108,11 @@ const ATTACK = "#e0305a";
 const ATTACK_FILL = "rgba(224, 48, 90, 0.38)";
 /** The bearing pointed at, light so it shows over the wedges. */
 const ATTACK_POINTED = "#f0f4f8";
-const ATTACK_HULL = "rgba(160, 176, 196, 0.55)";
-/** The attack rosette's one caption line, and the gap between it and the thrust rosette, pixels. */
-const ATTACK_CAPTION_PX = 18;
-const ROSETTE_GAP_PX = 8;
-/** The share of the attack rosette's radius the ship is drawn across. */
-const ATTACK_SHIP_SHARE = 0.5;
+/** The gap between the attack rosette and the thrust rosette, pixels. */
+const ROSETTE_GAP_PX = 16;
+/** The share of a rosette's radius the ship is drawn across. */
+const SILHOUETTE_SHARE = 0.5;
+const SILHOUETTE = "rgba(160, 176, 196, 0.55)";
 /** The narrowest a sector is drawn, radians, so a gun that does not train still shows. */
 const ATTACK_MIN_WEDGE = 0.04;
 
@@ -182,19 +181,19 @@ function envelopeCentre(widthPx: number, heightPx: number, radius: number): { x:
     };
 }
 
-/** Where the attack rosette's room ends at the bottom, device pixels: above the thrust rosette at rest. */
-function attackBottom(heightPx: number): number {
-    return heightPx - ENVELOPE_MARGIN_PX - ENVELOPE_CAPTION_PX - 2 * ENVELOPE_RADIUS_PX - ROSETTE_GAP_PX - ATTACK_CAPTION_PX;
+/** Where the attack rosette's room ends on the right, device pixels: left of the thrust rosette at rest. */
+function attackRight(widthPx: number): number {
+    return widthPx - ENVELOPE_MARGIN_PX - 2 * ENVELOPE_RADIUS_PX - ROSETTE_GAP_PX;
 }
 
 function attackRadius(widthPx: number, heightPx: number, expanded: boolean): number {
     if (!expanded) return ENVELOPE_RADIUS_PX;
-    const room = Math.min(widthPx - 2 * ENVELOPE_MARGIN_PX, attackBottom(heightPx) - ENVELOPE_MARGIN_PX) / 2;
+    const room = Math.min(attackRight(widthPx) - ENVELOPE_MARGIN_PX, heightPx - 2 * ENVELOPE_MARGIN_PX - ENVELOPE_CAPTION_PX) / 2;
     return Math.max(ENVELOPE_RADIUS_PX, Math.min(ENVELOPE_EXPANDED_PX, room));
 }
 
 function attackCentre(widthPx: number, heightPx: number, radius: number): { x: number; y: number } {
-    return { x: widthPx - radius - ENVELOPE_MARGIN_PX, y: attackBottom(heightPx) - radius };
+    return { x: attackRight(widthPx) - radius, y: heightPx - radius - ENVELOPE_MARGIN_PX - ENVELOPE_CAPTION_PX };
 }
 
 /** Whether a point is on the attack rosette, as drawn at that size. */
@@ -255,7 +254,7 @@ export function drawOverlay(ctx: CanvasRenderingContext2D, view: OverlayView, ca
     drawGridCaption(ctx, camera, heightPx);
     const thrust = (): void => {
         if (view.envelope !== null) {
-            drawEnvelope(ctx, view.envelope, widthPx, heightPx, view.envelopeBearing ?? null, view.envelopeExpanded === true);
+            drawEnvelope(ctx, view, view.envelope, widthPx, heightPx, view.envelopeBearing ?? null, view.envelopeExpanded === true);
         }
     };
     const attack = (): void => {
@@ -266,6 +265,26 @@ export function drawOverlay(ctx: CanvasRenderingContext2D, view: OverlayView, ca
     thrust();
     // The thrust rosette grows over this one, so it gives way while it does.
     if (view.envelopeExpanded !== true) attack();
+}
+
+/** The ship from above in a rosette, about its centre of mass, which the rosette's bearings are measured from. */
+function silhouette(ctx: CanvasRenderingContext2D, view: OverlayView, design: ShipDesign, cx: number, cy: number, radius: number): void {
+    const scale = (radius * SILHOUETTE_SHARE) / Math.max(design.radius, 1e-6);
+    ctx.save();
+    ctx.setTransform(scale, 0, 0, -scale, cx - scale * design.centreOfMassX, cy + scale * design.centreOfMassY);
+    ctx.fillStyle = SILHOUETTE;
+    for (const placed of view.modules) {
+        const spec = bodySpec(placed);
+        if (!(spec.length > 0) || !(spec.width > 0)) continue;
+        const mid = moduleCentre(spec);
+        ctx.save();
+        ctx.translate(mid.x, mid.y);
+        ctx.rotate(spec.angle ?? 0);
+        outline(ctx, spec);
+        ctx.fill();
+        ctx.restore();
+    }
+    ctx.restore();
 }
 
 /**
@@ -321,23 +340,7 @@ function drawAttack(
         ctx.stroke();
     }
 
-    // The ship from above, about its centre of mass, which the bearings are measured from.
-    const scale = (radius * ATTACK_SHIP_SHARE) / Math.max(design.radius, 1e-6);
-    ctx.save();
-    ctx.setTransform(scale, 0, 0, -scale, cx - scale * design.centreOfMassX, cy + scale * design.centreOfMassY);
-    ctx.fillStyle = ATTACK_HULL;
-    for (const placed of view.modules) {
-        const spec = bodySpec(placed);
-        if (!(spec.length > 0) || !(spec.width > 0)) continue;
-        const mid = moduleCentre(spec);
-        ctx.save();
-        ctx.translate(mid.x, mid.y);
-        ctx.rotate(spec.angle ?? 0);
-        outline(ctx, spec);
-        ctx.fill();
-        ctx.restore();
-    }
-    ctx.restore();
+    silhouette(ctx, view, design, cx, cy, radius);
     crosshair(ctx, cx, cy, 2.5, 1);
 
     const bearing = view.attackBearing ?? null;
@@ -354,11 +357,7 @@ function drawAttack(
     ctx.fillStyle = ENVELOPE_LABEL;
     ctx.font = "11px ui-monospace, monospace";
     ctx.textAlign = "right";
-    ctx.fillText(
-        attack.total > 0 ? `${most} of ${attack.total} main guns bear` : "no main guns",
-        widthPx - ENVELOPE_MARGIN_PX,
-        cy + radius + 14,
-    );
+    ctx.fillText(attack.total > 0 ? `${most} of ${attack.total} main guns bear` : "no main guns", cx + radius, cy + radius + 14);
     ctx.textAlign = "left";
     ctx.restore();
 }
@@ -705,6 +704,7 @@ function drawCentreOfMass(ctx: CanvasRenderingContext2D, design: ShipDesign, cam
  */
 function drawEnvelope(
     ctx: CanvasRenderingContext2D,
+    view: OverlayView,
     envelope: Envelopes,
     widthPx: number,
     heightPx: number,
@@ -721,6 +721,8 @@ function drawEnvelope(
 
     const radius = envelopeRadius(widthPx, heightPx, expanded);
     const { x: cx, y: cy } = envelopeCentre(widthPx, heightPx, radius);
+
+    if (view.design !== null) silhouette(ctx, view, view.design, cx, cy, radius);
 
     /** Trace one curve, scaled against the larger of the two so the gap is to scale. */
     const trace = (values: Float64Array): void => {
@@ -771,23 +773,10 @@ function drawEnvelope(
         ctx.stroke();
     }
 
-    // Right-aligned to the widget's own edge rather than centred under it, so a
-    // caption naming both curves has somewhere to go.
-    //
-    // The second line is the *worst* gap between the curves and not the gap
-    // between their peaks, which would be a different and much less useful
-    // number: a ship's best direction is usually its best under both curves, so
-    // comparing peaks reports a layout as balanced however badly it is trimmed
-    // abeam. The fractal is the case — 10.0 against 10.1 at the bow, and 72% of
-    // its beam thrust spent on not spinning.
+    // The most it can use, holding its heading; the heading cost is in the report.
     ctx.fillStyle = ENVELOPE_LABEL;
     ctx.font = "11px ui-monospace, monospace";
     ctx.textAlign = "right";
-    const right = widthPx - ENVELOPE_MARGIN_PX;
-    ctx.fillText(`${held.toFixed(1)} m/s² holding heading`, right, cy + radius + 14);
-    const cost = headingCost(envelope);
-    if (cost >= 0.005) {
-        ctx.fillText(`heading cost up to ${(cost * 100).toFixed(0)}%`, right, cy + radius + 28);
-    }
+    ctx.fillText(`max ${held.toFixed(1)} m/s²`, widthPx - ENVELOPE_MARGIN_PX, cy + radius + 14);
     ctx.textAlign = "left";
 }

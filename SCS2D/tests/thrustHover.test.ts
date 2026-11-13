@@ -38,7 +38,7 @@ describe("the throttles behind a point on the envelope", () => {
     it("is read off the widget only where the widget is", () => {
         // The rosette sits in the bottom right, 54 px across its radius.
         const cx = 1000 - 54 - 16;
-        const cy = 600 - 54 - 16 - 32;
+        const cy = 600 - 54 - 16 - 18;
         expect(envelopeBearingAt(1000, 600, cx + 30, cy)).toBeCloseTo(0, 9);
         expect(envelopeBearingAt(1000, 600, cx, cy - 30)).toBeCloseTo(Math.PI / 2, 9);
         expect(envelopeBearingAt(1000, 600, 100, 100)).toBeNull();
@@ -46,8 +46,8 @@ describe("the throttles behind a point on the envelope", () => {
 
     it("grows while pointed at, from its corner, and stays grown until the pointer leaves the larger one", () => {
         // At rest the rosette's centre is 70 px in from the right; grown to 160 px, 176.
-        const small = { x: 1000 - 54 - 16, y: 600 - 54 - 16 - 32 };
-        const large = { x: 1000 - 160 - 16, y: 600 - 160 - 16 - 32 };
+        const small = { x: 1000 - 54 - 16, y: 600 - 54 - 16 - 18 };
+        const large = { x: 1000 - 160 - 16, y: 600 - 160 - 16 - 18 };
         expect(overEnvelope(1000, 600, small.x, small.y)).toBe(true);
         // A point on the large one but off the small one keeps it large, and only then.
         const between = { x: large.x - 100, y: large.y };
@@ -55,8 +55,8 @@ describe("the throttles behind a point on the envelope", () => {
         expect(overEnvelope(1000, 600, between.x, between.y, true)).toBe(true);
         expect(envelopeBearingAt(1000, 600, large.x + 100, large.y, true)).toBeCloseTo(0, 9);
         // On a canvas too small for it, it grows only as far as there is room:
-        // here half of 260 less its margins and caption, 98 px, centred at (186, 114).
-        expect(overEnvelope(300, 260, 186, 114 + 97, true)).toBe(true);
-        expect(overEnvelope(300, 260, 186, 114 - 99, true)).toBe(false);
+        // here half of 260 less its margins and caption, 105 px, centred at (179, 121).
+        expect(overEnvelope(300, 260, 179, 121 + 104, true)).toBe(true);
+        expect(overEnvelope(300, 260, 179, 121 - 106, true)).toBe(false);
     });
 });
