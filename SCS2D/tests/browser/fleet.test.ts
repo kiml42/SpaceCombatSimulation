@@ -144,7 +144,7 @@ describe("the fleet editor in a browser", () => {
         expect(problems).toEqual([]);
     });
 
-    it("adds a ship from the library and lists it overlapping", async () => {
+    it("adds a ship from the library, clear of the rest", async () => {
         expect(await page.textContent("#designList")).toMatch(/Dinky2 at start/);
         await page.click("#addShip");
         // The fleet's own designs first, then the library.
@@ -159,7 +159,8 @@ describe("the fleet editor in a browser", () => {
         expect(await page.isVisible("#addMenu")).toBe(false);
         expect(await shipCount(page)).toBe("ships6");
         expect(await page.textContent("#designList")).toMatch(/Dinky3 at start/);
-        expect(await page.textContent("#problems")).toMatch(/Gunship#1 and Dinky#\d overlap at the start/);
+        // Placed beside the fleet, not on top of the ship in the middle of the view.
+        expect(await page.textContent("#problems")).not.toContain("overlap");
     });
 
     it("swaps the selected ship for another design, and undoes it", async () => {
@@ -261,6 +262,43 @@ describe("the fleet editor in a browser", () => {
         expect(await page.inputValue("#shipName")).toBe("Corvette");
         await page.click("#backToFleet");
         await page.waitForURL(/index\.html#\/fleet\?fleet=/);
+        expect(problems).toEqual([]);
+    });
+
+    it("starts a new design from New ship, highlighted while the fleet is empty, and places it", async () => {
+        await page.goto(fleetRoute());
+        await page.click("#newFleet");
+        expect(await page.getAttribute("#newDesign", "data-variant")).toBe("primary");
+        // Empty, it has no designs to list, and having no ships is a problem.
+        expect(await page.locator("#designList").count()).toBe(0);
+        expect(await page.textContent("#problems")).toContain("The fleet has no ships");
+        await page.click("#newDesign");
+        await page.waitForURL(/#\/ship\?design=/);
+        expect(await page.inputValue("#shipName")).toBe("Ship 1");
+        // A blank design: its core is the thing to add first.
+        const core = page.locator('[data-add="core"]');
+        expect(await core.getAttribute("data-variant")).toBe("primary");
+        await core.click();
+        expect(await core.getAttribute("data-variant")).toBe("plain");
+        await page.click("#backToFleet");
+        await page.waitForURL(/index\.html#\/fleet\?fleet=/);
+        await page.locator('#designList a[data-design="Ship 1"]').waitFor();
+        expect(await page.getAttribute("#newDesign", "data-variant")).toBe("plain");
+        expect(problems).toEqual([]);
+    });
+
+    it("places each ship added beside the others rather than on top of them", async () => {
+        await page.goto(fleetRoute());
+        await page.click("#newFleet");
+        for (let n = 0; n < 2; n++) {
+            await page.click("#addShip");
+            await page.getByRole("menuitem", { name: "Corvette" }).first().click();
+        }
+        expect(await page.textContent("#problems")).not.toContain("overlap");
+        // The view's settings sit in the corner, out of the way.
+        const bar = (await page.getByRole("toolbar", { name: "What the view shows" }).boundingBox())!;
+        const view = (await page.locator("#view").boundingBox())!;
+        expect(bar.y).toBeGreaterThan(view.y + view.height / 2);
         expect(problems).toEqual([]);
     });
 });

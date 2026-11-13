@@ -138,6 +138,8 @@ function derive(fleet: Fleet, lookup: LibraryLookup): FleetView {
             faulty.add(k);
         }
     }
+    // Nothing to fight with is as serious a problem as any.
+    if (ships.length === 0) problems.push("The fleet has no ships");
     problems.push(...hangarClashes(fleet));
     const faults = [...problems];
     for (const name of stale) problems.push(`${name} differs from the library's ${name}`);

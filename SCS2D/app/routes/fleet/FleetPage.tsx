@@ -6,15 +6,15 @@ import { useSkirmish } from "~/features/skirmish/SkirmishProvider";
 import { useStorage } from "~/features/storage/StorageContext";
 import type { FleetCanvas as Engine } from "~/editor/fleetCanvas";
 import { ANGLE_SNAP_DEGREES } from "~/editor/fleetCanvas";
-import { FleetDocument } from "~/editor/fleetDocument";
+import { centreOf, FleetDocument, type FleetView } from "~/editor/fleetDocument";
 import { addShip, distinctDesign, emptyFleet, refreshDesign } from "~/editor/fleetEdit";
 import { battleRoute, designRoute, handedToFleet } from "~/editor/handoff";
-import { Library, nextName, SHIPS, unusedName } from "~/editor/library";
+import { emptyBlueprint, Library, nextName, SHIPS, unusedName } from "~/editor/library";
 import { snap } from "~/editor/edit";
 import type { KeyRow } from "~/host/keyHelp";
 import { snapStep } from "~/render/camera";
 import { inSkirmish, pick, serialiseSkirmish, type Skirmish } from "~/scenarios/skirmish";
-import { parseBlueprint, parseFleet, serialiseFleet, type Blueprint, type Fleet } from "~/sim/index";
+import { compileBlueprint, parseBlueprint, parseFleet, serialiseFleet, type Blueprint, type Fleet } from "~/sim/index";
 import { CommitText } from "~/ui/fields/CommitText";
 import { LiveryPanel } from "~/features/livery/LiveryPanel";
 import { withLivery } from "~/editor/livery";
@@ -24,7 +24,7 @@ import { designOf, fromLibrary } from "./fleetOptions";
 import { LibraryOptions } from "./LibraryOptions";
 import { DesignList, FleetProblems, FleetStats } from "./FleetReport";
 import { SelectionPanel } from "./SelectionPanel";
-import { SkirmishCard, skirmishBlock } from "./SkirmishCard";
+import { skirmishBlock, SkirmishBudget, SkirmishCards, SkirmishTitle } from "./SkirmishCard";
 import { Button } from "~/ui/buttons/Button";
 import { PauseMenu } from "~/features/menu/PauseMenu";
 
@@ -92,6 +92,49 @@ const Body = styled.div`
     }
 `;
 
+/** Between a new ship and the ones beside it, metres. */
+const PLACING_GAP = 10;
+
+/** How far a design reaches from its centre; nothing, for one that will not compile yet, such as a blank one. */
+function footprint(blueprint: Blueprint): number {
+    try {
+        return compileBlueprint(blueprint).radius;
+    } catch {
+        return 0;
+    }
+}
+
+/**
+ * Where a ship of this reach goes beside the fleet's: abreast of them, just
+ * past the lowest, so it overlaps none; or null for an empty fleet, which
+ * takes it where the view is.
+ */
+function clearOf(view: FleetView, radius: number): { x: number; y: number } | null {
+    let lowest = Infinity;
+    let x = 0;
+    let n = 0;
+    view.ships.forEach((ship, i) => {
+        const design = view.designs[i];
+        if (design == null) return;
+        const centre = centreOf(ship, design);
+        lowest = Math.min(lowest, centre.y - design.radius);
+        x += centre.x;
+        n++;
+    });
+    return n === 0 ? null : { x: x / n, y: lowest - PLACING_GAP - radius };
+}
+
+/** The ways to add a ship: a new design first, across the panel, as the one to reach for. */
+const Adding = styled.section`
+    display: grid;
+    gap: 0.4rem;
+    margin-top: 1rem;
+
+    > button {
+        width: 100%;
+    }
+`;
+
 const Panel = styled.aside`
     width: 22rem;
     max-width: 45vw;
@@ -108,7 +151,9 @@ const Panel = styled.aside`
         text-transform: uppercase;
     }
 
-    > section:first-child h2 {
+    /* The first section's heading starts the panel, or follows a skirmish's heading closely. */
+    > section:first-child > h2:first-child,
+    > h2:first-child + section > h2:first-child {
         margin-top: 0;
     }
 
@@ -233,12 +278,28 @@ export function FleetPage() {
 
     const place = (blueprint: Blueprint): void => {
         const camera = engine?.camera ?? { x: 0, y: 0, scale: 1 };
-        // In the middle of the view, on the grid.
         const step = snapStep(camera.scale);
         const added = skirmish === null ? blueprint : inSkirmish(blueprint, skirmish);
-        doc.apply(addShip(doc.fleet, added, snap(camera.x, step), snap(camera.y, step)));
+        const at = clearOf(doc.view, footprint(added)) ?? camera;
+        doc.apply(addShip(doc.fleet, added, snap(at.x, step), snap(at.y, step)));
         doc.select([[doc.fleet.ships.length - 1]]);
         edited();
+    };
+
+    /** A blank design of its own, one ship of it placed, opened in the ship editor to be built. */
+    const newDesign = (): void => {
+        const taken = new Set([...Object.keys(doc.fleet.designs), ...ships.savedNames()]);
+        let n = 1;
+        while (taken.has(`Ship ${n}`)) n++;
+        place(emptyBlueprint(`Ship ${n}`));
+        keep();
+        void navigate(
+            designRoute({
+                fleet: doc.fleet,
+                design: `Ship ${n}`,
+                ...(skirmish === null ? {} : { skirmish: { ...skirmish, player: doc.fleet } }),
+            }),
+        );
     };
 
     const readFile = (file: File, then: (text: string) => void): void => {
@@ -439,8 +500,22 @@ export function FleetPage() {
                     }}
                 />
                 <Panel>
-                    <section>
-                        <h2>Add a ship</h2>
+                    {now !== null && <SkirmishTitle skirmish={now} />}
+                    {doc.fleet.ships.length > 0 && (
+                        <section>
+                            <h2>Designs</h2>
+                            <DesignList view={view} designHref={toDesign} onLeave={keep} />
+                        </section>
+                    )}
+                    <Adding>
+                        <Button
+                            id="newDesign"
+                            variant={doc.fleet.ships.length === 0 ? "primary" : "plain"}
+                            title="Design a new ship for this fleet: one of it is placed, and the ship editor opens on it"
+                            onClick={newDesign}
+                        >
+                            Add new ship
+                        </Button>
                         <AddShipMenu
                             open={adding}
                             onOpen={setAdding}
@@ -463,11 +538,7 @@ export function FleetPage() {
                                 })
                             }
                         />
-                    </section>
-                    <section>
-                        <h2>Designs</h2>
-                        <DesignList view={view} designHref={toDesign} onLeave={keep} />
-                    </section>
+                    </Adding>
                     <SelectionPanel
                         doc={doc}
                         scale={engine?.camera.scale ?? 1}
@@ -477,17 +548,18 @@ export function FleetPage() {
                         onLeave={keep}
                         onChanged={edited}
                     />
-                    {now !== null && (
-                        <SkirmishCard
-                            skirmish={now}
-                            flies={flies}
-                            onPick={(id) => setSkirmish((was) => (was === null ? was : pick(was, id)))}
-                        />
+                    {/* In a skirmish the budget says all the totals do that matters. */}
+                    {now === null ? (
+                        <section>
+                            <h2>What it works out to</h2>
+                            <FleetStats view={view} />
+                        </section>
+                    ) : (
+                        <>
+                            <SkirmishBudget skirmish={now} flies={flies} />
+                            <SkirmishCards skirmish={now} onPick={(id) => setSkirmish((was) => (was === null ? was : pick(was, id)))} />
+                        </>
                     )}
-                    <section>
-                        <h2>What it works out to</h2>
-                        <FleetStats view={view} />
-                    </section>
                     <section>
                         <h2>Problems</h2>
                         <FleetProblems
