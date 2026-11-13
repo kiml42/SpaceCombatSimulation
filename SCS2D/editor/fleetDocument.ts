@@ -374,9 +374,11 @@ export class FleetDocument {
         const copies = entry?.repeat ?? 1;
         if (entry === null || copies <= 1 || entry.step === undefined) return frame;
         const flipped = isGroupUse(entry) ? step.mirrored !== (entry.mirror ?? false) : step.mirrored;
-        const along = stepsOf(entry.step, (copies - 1) / 2 - step.copy, flipped);
-        const [c, s] = exactTurn(step.angle);
-        return { ...frame, x: step.x + along.x * c - along.y * s, y: step.y + along.x * s + along.y * c, angle: step.angle + along.angle };
+        // The copy stands at its offset from the middle, so the middle is that offset undone.
+        const off = stepsOf(entry.step, step.copy - (copies - 1) / 2, flipped);
+        const angle = step.angle - off.angle;
+        const [c, s] = exactTurn(angle);
+        return { ...frame, x: step.x - (off.x * c - off.y * s), y: step.y - (off.x * s + off.y * c), angle };
     }
 
     /**

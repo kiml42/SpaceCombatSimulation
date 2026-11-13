@@ -168,18 +168,21 @@ describe("flattening a fleet", () => {
         expect(ships[7]).toMatchObject({ x: -100, y: 40 });
     });
 
-    it("steps each copy of a repeat from the one before, in its own frame, the middle where the entry stands", () => {
+    it("curves a repeat alike either side of its middle, which stands where the entry does", () => {
         const arc = expandFleet(
-            parseFleet(file({ ships: [{ design: "Dinky", x: 0, y: 0, repeat: 3, step: { x: 10, y: 0, angle: 90 } }] })),
+            parseFleet(file({ ships: [{ design: "Dinky", x: 0, y: 0, repeat: 3, step: { x: 0, y: 10, angle: 45 } }] })),
         );
         expect(arc.map((s) => s.path)).toEqual(["Dinky#1", "Dinky#2", "Dinky#3"]);
-        expect(arc[0]!.x).toBeCloseTo(0, 9);
-        expect(arc[0]!.y).toBeCloseTo(10, 9);
-        expect(arc[0]!.angle).toBeCloseTo(-math.PI / 2, 9);
+        // Facing a whole step's turn either way, the chord to each half that, mirrored across the middle's heading.
+        const across = 10 * math.sin(math.PI / 8);
+        const ahead = 10 * math.cos(math.PI / 8);
+        expect(arc[0]!.x).toBeCloseTo(-across, 9);
+        expect(arc[0]!.y).toBeCloseTo(-ahead, 9);
+        expect(arc[0]!.angle).toBeCloseTo(-math.PI / 4, 9);
         expect(arc[1]).toMatchObject({ x: 0, y: 0, angle: 0 });
-        expect(arc[2]!.x).toBeCloseTo(10, 9);
-        expect(arc[2]!.y).toBeCloseTo(0, 9);
-        expect(arc[2]!.angle).toBeCloseTo(math.PI / 2, 9);
+        expect(arc[2]!.x).toBeCloseTo(-across, 9);
+        expect(arc[2]!.y).toBeCloseTo(ahead, 9);
+        expect(arc[2]!.angle).toBeCloseTo(math.PI / 4, 9);
         expect(arc[2]!.trail.map((step) => step.copy)).toEqual([2]);
     });
 

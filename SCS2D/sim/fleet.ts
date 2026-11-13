@@ -1,4 +1,4 @@
-import { cos, normalizeAngle, PI, sin, TAU } from "./math.js";
+import { abs, cos, normalizeAngle, PI, sin, TAU } from "./math.js";
 import type { Blueprint } from "./blueprint.js";
 import type { Livery, UnreadLivery } from "./livery.js";
 import type { UnreadKeys } from "./unread.js";
@@ -44,12 +44,16 @@ interface Placed {
     /** Radians here, degrees in the file. */
     angle?: number;
     /**
-     * Copies in a row or an arc, one `step` apart, either side of where the entry
-     * stands: the middle copy there for an odd count, the middle two half a step
-     * either side of it for an even one. One when absent.
+     * Copies either side of where the entry stands, symmetrically: the middle
+     * copy there for an odd count, the middle two half a step out for an even
+     * one. One when absent.
      */
     repeat?: number;
-    /** From each copy to the next, in that copy's own frame, as an assembly's step is. */
+    /**
+     * From one copy to the next, as an assembly's step is, except that the turn
+     * is taken half before the move and half after (`stepsOf`), so a row curves
+     * alike either side of its middle.
+     */
     step?: FleetStep;
     notes?: string;
     /** Keys its file carried that nothing reads, kept to be written back (`UnreadKeys`). */
@@ -183,15 +187,18 @@ function place(
         const copies = entry.repeat ?? 1;
         if (copies > MAX_FLEET_REPEAT) throw new Error(`${fleet.name}: ${name} asks for ${copies} copies, more than ${MAX_FLEET_REPEAT}`);
 
-        if (copies > 1 && entry.step !== undefined) {
-            const back = stepsOf(entry.step, -(copies - 1) / 2, flipped);
-            const [bc, bs] = exactTurn(angle);
-            x += back.x * bc - back.y * bs;
-            y += back.x * bs + back.y * bc;
-            angle = foldAngle(angle + back.angle);
-        }
+        const centreX = x;
+        const centreY = y;
+        const centreAngle = angle;
+        const [cc, cs] = exactTurn(centreAngle);
 
         for (let copy = 0; copy < copies; copy++) {
+            if (copies > 1 && entry.step !== undefined) {
+                const off = stepsOf(entry.step, copy - (copies - 1) / 2, flipped);
+                x = centreX + off.x * cc - off.y * cs;
+                y = centreY + off.x * cs + off.y * cc;
+                angle = foldAngle(centreAngle + off.angle);
+            }
             const count = (seen.get(name) ?? 0) + 1;
             seen.set(name, count);
             const path = `${prefix}${name}#${count}`;
@@ -219,36 +226,26 @@ function place(
                 within.pop();
             }
             trail.pop();
-
-            const step = entry.step;
-            if (step === undefined || copy + 1 >= copies) continue;
-            const [sc, ss] = exactTurn(angle);
-            const stepY = flipped ? -step.y : step.y;
-            const stepAngle = step.angle ?? 0;
-            x += step.x * sc - stepY * ss;
-            y += step.x * ss + stepY * sc;
-            angle = foldAngle(angle + (flipped ? -stepAngle : stepAngle));
         }
     }
 }
 
 /**
- * Where `times` steps take a copy, in its own frame: a step is a turn about a
- * fixed point (or a slide, with no turn), so a fraction of one turns by that
- * fraction about the same point. Negative goes back; a mirrored row's step is
- * reflected.
+ * Where the copy `times` steps out from the middle of a row stands, in the
+ * entry's frame. A step turns half its turn, moves, and turns the other half,
+ * so the copies swing about one centre on the line square to the step, and a
+ * sideways step that comes round in a full turn rings that centre bow-in.
+ * Negative is the other side, fractional the half steps of an even row; a
+ * mirrored row's step is reflected.
  */
 export function stepsOf(step: FleetStep, times: number, flipped: boolean): { x: number; y: number; angle: number } {
     const sy = flipped ? -step.y : step.y;
     const turn = flipped ? -(step.angle ?? 0) : (step.angle ?? 0);
-    const [c, s] = exactTurn(turn);
-    const det = 2 - 2 * c;
-    if (det < 1e-12) return { x: step.x * times, y: sy * times, angle: turn * times };
-    // The point the step turns about, then a turn of `times` as much about it.
-    const px = ((1 - c) * step.x - s * sy) / det;
-    const py = (s * step.x + (1 - c) * sy) / det;
-    const [tc, ts] = exactTurn(turn * times);
-    return { x: (1 - tc) * px + ts * py, y: -ts * px + (1 - tc) * py, angle: turn * times };
+    const half = exactTurn(turn / 2)[1];
+    const [c, s] = exactTurn((turn * times) / 2);
+    // How far along the chord, as a share of a step: `times` itself on a straight row.
+    const along = abs(half) < 1e-12 ? times : s / half;
+    return { x: along * (step.x * c - sy * s), y: along * (step.x * s + sy * c), angle: turn * times };
 }
 
 /**

@@ -134,22 +134,33 @@ export function drawFleetOverlay(ctx: CanvasRenderingContext2D, view: FleetOverl
     ctx.fillText(`snaps to ${describeStep(snapStep(camera.scale))} · arrow is forward`, 16, heightPx - 16);
 }
 
-/** The formation's centre, ringed, and an arrow from it along the fleet's own +x, the way it will face the enemy. */
+/**
+ * The formation's centre, ringed, and an arrow from it along the fleet's own +x,
+ * the way it will face the enemy. Its parts do not overlap, as a faint colour
+ * drawn twice is darker there.
+ */
 function drawForward(ctx: CanvasRenderingContext2D, px: number): void {
     const len = FORWARD_PX * px;
     const root = CENTRE_PX * px;
+    const line = FORWARD_LINE_PX * px;
+    const base = len * 0.7;
     ctx.strokeStyle = FORWARD;
-    ctx.lineWidth = FORWARD_LINE_PX * px;
-    ctx.lineCap = "round";
+    ctx.lineWidth = line;
     ctx.beginPath();
     ctx.arc(0, 0, root, 0, TAU);
-    ctx.moveTo(root, 0);
-    ctx.lineTo(len, 0);
-    ctx.moveTo(len * 0.75, len * 0.15);
-    ctx.lineTo(len, 0);
-    ctx.lineTo(len * 0.75, -len * 0.15);
+    ctx.closePath();
     ctx.stroke();
-    ctx.lineCap = "butt";
+    ctx.beginPath();
+    ctx.moveTo(root + line / 2, 0);
+    ctx.lineTo(base, 0);
+    ctx.stroke();
+    ctx.fillStyle = FORWARD;
+    ctx.beginPath();
+    ctx.moveTo(base, len * 0.16);
+    ctx.lineTo(len, 0);
+    ctx.lineTo(base, -len * 0.16);
+    ctx.closePath();
+    ctx.fill();
 }
 
 /** A ring round a ship too small on screen to see outlined, filled or stroked in the current style. */
