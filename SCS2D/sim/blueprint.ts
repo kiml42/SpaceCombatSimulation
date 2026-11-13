@@ -15,6 +15,7 @@ import {
     moduleThickness,
     isHullMount,
     inWeaponsLayer,
+    inheritsDepth,
     isThick,
     mountTraverse,
     hullMountGeometry,
@@ -2405,11 +2406,8 @@ function compileWith(blueprint: Blueprint, crafts: Crafts): ShipDesign {
 /**
  * Every module's figures, measured in the layout they sit in.
  *
- * Only one thing a module is makes it ask about its neighbours — thick
- * structure takes its depth from what it is welded to (`ModuleSpec.thick`) —
- * so a layout with no thick plate in it costs exactly what measuring each
- * module on its own costs, and one with a plate pays for the contact test the
- * connectivity graph already runs.
+ * Most modules take their depth from what they are welded to (`inheritsDepth`),
+ * so this pays for the contact test the connectivity graph also runs.
  */
 export function layoutStats(specs: readonly ModuleSpec[]): ModuleStats[] {
     const stats: ModuleStats[] = [];
@@ -2434,7 +2432,7 @@ export function statsInLayout(specs: readonly ModuleSpec[], i: number): ModuleSt
  */
 function touchingDepth(specs: readonly ModuleSpec[], i: number): number {
     const spec = specs[i]!;
-    if (spec.kind !== "structure" || !isThick(spec)) return 0;
+    if (!inheritsDepth(spec.kind)) return 0;
     let deepest = 0;
     for (let j = 0; j < specs.length; j++) {
         if (j === i) continue;

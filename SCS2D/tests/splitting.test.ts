@@ -20,8 +20,9 @@ describe("the Catamaran", () => {
         expect(catamaran.cores.length).toBe(2);
         expect(catamaran.turrets.length).toBe(2);
 
-        // The bridge is the line the ship is meant to come apart on, so nothing on
-        // it may be as strong as what holds a hull together.
+        // The bridge is the line the ship is meant to come apart on, so its weakest
+        // weld must be weaker than anything holding a hull together. Its ends stand
+        // as deep as the cores they join, so only the links between are that weak.
         const welds = joints(catamaran);
         const bridge = welds.filter((j) => {
             const a = catamaran.modules[j.a]!;
@@ -38,8 +39,8 @@ describe("the Catamaran", () => {
         // its back to a tank, parts nothing by letting go.
         const holding = cuts(catamaran);
         const weakestHull = Math.min(...welds.filter((j, k) => !bridge.includes(j) && holding[k] !== null).map((j) => j.strength));
-        const strongestBridge = Math.max(...bridge.map((j) => j.strength));
-        expect(strongestBridge).toBeLessThan(weakestHull);
+        const weakestBridge = Math.min(...bridge.map((j) => j.strength));
+        expect(weakestBridge).toBeLessThan(weakestHull);
     });
 });
 

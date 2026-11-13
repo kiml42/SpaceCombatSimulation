@@ -177,11 +177,11 @@ describe("thick structure takes its depth from what it is welded to", () => {
         expect(outer!.thickness).toBe(2);
     });
 
-    it("leaves a plate nobody marked exactly as it was", () => {
+    it("stands a plate nobody marked as high as what it covers, up to a deck", () => {
         const [plain] = layoutStats([plate(5, false), citadel]);
 
-        expect(plain!.thickness).toBe(2);
-        expect(plain!.mass).toBeCloseTo(moduleStats(plate(5, false)).mass, 9);
+        expect(plain!.thickness).toBe(DECK_HEIGHT);
+        expect(inWeaponsLayer(plate(5, false), plain!.thickness)).toBe(false);
     });
 
     it("is cover on a compiled ship only once it is standing", () => {
