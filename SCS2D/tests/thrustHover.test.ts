@@ -54,9 +54,14 @@ describe("the throttles behind a point on the envelope", () => {
         expect(overEnvelope(1000, 600, between.x, between.y, false)).toBe(false);
         expect(overEnvelope(1000, 600, between.x, between.y, true)).toBe(true);
         expect(envelopeBearingAt(1000, 600, large.x + 100, large.y, true)).toBeCloseTo(0, 9);
+        // Grown, it is held by its whole window, which covers the small disc it
+        // grew from: a pointer on the small one's bottom-right edge keeps it grown.
+        expect(overEnvelope(1000, 600, small.x + 38, small.y + 38, true)).toBe(true);
         // On a canvas too small for it, it grows only as far as there is room:
-        // here half of 260 less its margins and caption, 105 px, centred at (179, 121).
-        expect(overEnvelope(300, 260, 179, 121 + 104, true)).toBe(true);
-        expect(overEnvelope(300, 260, 179, 121 - 106, true)).toBe(false);
+        // here half of 260 less its margins, caption and pointed-at value, 96 px,
+        // centred at (188, 130), in a window reaching 8 px beyond that.
+        expect(overEnvelope(300, 260, 188, 130 + 95, true)).toBe(true);
+        expect(overEnvelope(300, 260, 188 - 96 - 7, 130, true)).toBe(true);
+        expect(overEnvelope(300, 260, 188 - 96 - 9, 130, true)).toBe(false);
     });
 });

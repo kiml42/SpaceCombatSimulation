@@ -114,10 +114,10 @@ const ATTACK_POINTED = "#f0f4f8";
 /** The gap between the attack rosette and the thrust rosette, pixels. */
 const ROSETTE_GAP_PX = 16;
 /** The share of a rosette's radius the ship is drawn across. */
-const SILHOUETTE_SHARE = 0.5;
+const SILHOUETTE_SHARE = 0.35;
 const SILHOUETTE = "rgba(160, 176, 196, 0.55)";
 /** The narrowest a sector is drawn, radians, so a gun that does not train still shows. */
-const ATTACK_MIN_WEDGE = 0.04;
+const ATTACK_MIN_WEDGE = 0.06;
 
 /** A stretch of bearings, body frame, and how many main guns bear in it. */
 export interface AttackSector {
@@ -179,19 +179,31 @@ export interface OverlayView {
     attackBearingGuns?: number;
 }
 
-/** The rosette's radius, device pixels: larger while pointed at, though never past the canvas. */
-function envelopeRadius(widthPx: number, heightPx: number, expanded: boolean): number {
+/** Room above a grown rosette for the value at the bearing pointed at, pixels. */
+const POINTED_LABEL_PX = 18;
+/** How far a grown rosette's window stands off what it holds, pixels. */
+const WINDOW_PAD_PX = 8;
+const WINDOW_FILL = "rgba(14, 17, 23, 0.82)";
+const WINDOW_EDGE = "rgba(127, 147, 170, 0.45)";
+
+/** A rosette as drawn: its centre and radius, device pixels. */
+interface Disc {
+    x: number;
+    y: number;
+    radius: number;
+}
+
+/** A rosette's radius: larger while pointed at, though never past `right` or the canvas. */
+function rosetteRadius(right: number, heightPx: number, expanded: boolean): number {
     if (!expanded) return ENVELOPE_RADIUS_PX;
-    const room = Math.min(widthPx - 2 * ENVELOPE_MARGIN_PX, heightPx - 2 * ENVELOPE_MARGIN_PX - ENVELOPE_CAPTION_PX) / 2;
+    const room = Math.min(right - ENVELOPE_MARGIN_PX, heightPx - 2 * ENVELOPE_MARGIN_PX - ENVELOPE_CAPTION_PX - POINTED_LABEL_PX) / 2;
     return Math.max(ENVELOPE_RADIUS_PX, Math.min(ENVELOPE_EXPANDED_PX, room));
 }
 
-/** Where the envelope rosette's centre is drawn, device pixels: its corner stays put as it grows. */
-function envelopeCentre(widthPx: number, heightPx: number, radius: number): { x: number; y: number } {
-    return {
-        x: widthPx - radius - ENVELOPE_MARGIN_PX,
-        y: heightPx - radius - ENVELOPE_MARGIN_PX - ENVELOPE_CAPTION_PX,
-    };
+/** A rosette whose bottom-right corner stays put at `right` as it grows. */
+function rosette(right: number, heightPx: number, expanded: boolean): Disc {
+    const radius = rosetteRadius(right, heightPx, expanded);
+    return { x: right - radius, y: heightPx - radius - ENVELOPE_MARGIN_PX - ENVELOPE_CAPTION_PX, radius };
 }
 
 /** Where the attack rosette's room ends on the right, device pixels: left of the thrust rosette at rest. */
@@ -199,53 +211,77 @@ function attackRight(widthPx: number): number {
     return widthPx - ENVELOPE_MARGIN_PX - 2 * ENVELOPE_RADIUS_PX - ROSETTE_GAP_PX;
 }
 
-function attackRadius(widthPx: number, heightPx: number, expanded: boolean): number {
-    if (!expanded) return ENVELOPE_RADIUS_PX;
-    const room = Math.min(attackRight(widthPx) - ENVELOPE_MARGIN_PX, heightPx - 2 * ENVELOPE_MARGIN_PX - ENVELOPE_CAPTION_PX) / 2;
-    return Math.max(ENVELOPE_RADIUS_PX, Math.min(ENVELOPE_EXPANDED_PX, room));
+function envelopeDisc(widthPx: number, heightPx: number, expanded: boolean): Disc {
+    return rosette(widthPx - ENVELOPE_MARGIN_PX, heightPx, expanded);
 }
 
-function attackCentre(widthPx: number, heightPx: number, radius: number): { x: number; y: number } {
-    return { x: attackRight(widthPx) - radius, y: heightPx - radius - ENVELOPE_MARGIN_PX - ENVELOPE_CAPTION_PX };
+function attackDisc(widthPx: number, heightPx: number, expanded: boolean): Disc {
+    return rosette(attackRight(widthPx), heightPx, expanded);
+}
+
+/** The window round a grown rosette: its disc, the value pointed at above it and its caption below. */
+function windowOf(disc: Disc): { left: number; top: number; right: number; bottom: number } {
+    return {
+        left: disc.x - disc.radius - WINDOW_PAD_PX,
+        top: disc.y - disc.radius - POINTED_LABEL_PX - WINDOW_PAD_PX,
+        right: disc.x + disc.radius + WINDOW_PAD_PX,
+        bottom: disc.y + disc.radius + ENVELOPE_CAPTION_PX + WINDOW_PAD_PX,
+    };
+}
+
+/**
+ * Whether a point is on a rosette: on its disc at rest, or anywhere in its
+ * window once grown, which holds the disc it grew from, so it cannot shrink
+ * back from under a pointer that has not moved.
+ */
+function over(disc: Disc, expanded: boolean, x: number, y: number): boolean {
+    if (!expanded) return Math.sqrt((x - disc.x) ** 2 + (disc.y - y) ** 2) <= disc.radius;
+    const box = windowOf(disc);
+    return x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
+}
+
+/** The bearing from a rosette's centre to a point on it, radians from the bow anticlockwise, or null. */
+function bearingOn(disc: Disc, expanded: boolean, x: number, y: number): number | null {
+    if (!over(disc, expanded, x, y)) return null;
+    const dx = x - disc.x;
+    const dy = disc.y - y;
+    if (Math.sqrt(dx * dx + dy * dy) < 2) return null;
+    return Math.atan2(dy, dx);
 }
 
 /** Whether a point is on the attack rosette, as drawn at that size. */
 export function overAttack(widthPx: number, heightPx: number, x: number, y: number, expanded = false): boolean {
-    const radius = attackRadius(widthPx, heightPx, expanded);
-    const centre = attackCentre(widthPx, heightPx, radius);
-    return Math.sqrt((x - centre.x) ** 2 + (centre.y - y) ** 2) <= radius;
+    return over(attackDisc(widthPx, heightPx, expanded), expanded, x, y);
 }
 
 /** The bearing on the attack rosette under a point, radians from the bow, or null when off it. */
 export function attackBearingAt(widthPx: number, heightPx: number, x: number, y: number, expanded = false): number | null {
-    const radius = attackRadius(widthPx, heightPx, expanded);
-    const centre = attackCentre(widthPx, heightPx, radius);
-    const dx = x - centre.x;
-    const dy = centre.y - y;
-    const r = Math.sqrt(dx * dx + dy * dy);
-    if (r > radius || r < 2) return null;
-    return Math.atan2(dy, dx);
+    return bearingOn(attackDisc(widthPx, heightPx, expanded), expanded, x, y);
 }
 
-/** Whether a point is on the rosette, as drawn at that size. */
+/** Whether a point is on the thrust rosette, as drawn at that size. */
 export function overEnvelope(widthPx: number, heightPx: number, x: number, y: number, expanded = false): boolean {
-    const radius = envelopeRadius(widthPx, heightPx, expanded);
-    const centre = envelopeCentre(widthPx, heightPx, radius);
-    return Math.sqrt((x - centre.x) ** 2 + (centre.y - y) ** 2) <= radius;
+    return over(envelopeDisc(widthPx, heightPx, expanded), expanded, x, y);
 }
 
 /**
- * The bearing on the envelope rosette under a point, radians from the bow
+ * The bearing on the thrust rosette under a point, radians from the bow
  * anticlockwise in the ship's frame, or null when the point is off it.
  */
 export function envelopeBearingAt(widthPx: number, heightPx: number, x: number, y: number, expanded = false): number | null {
-    const radius = envelopeRadius(widthPx, heightPx, expanded);
-    const centre = envelopeCentre(widthPx, heightPx, radius);
-    const dx = x - centre.x;
-    const dy = centre.y - y;
-    const r = Math.sqrt(dx * dx + dy * dy);
-    if (r > radius || r < 2) return null;
-    return Math.atan2(dy, dx);
+    return bearingOn(envelopeDisc(widthPx, heightPx, expanded), expanded, x, y);
+}
+
+/** The window a grown rosette is drawn in, over the ship. */
+function drawWindow(ctx: CanvasRenderingContext2D, disc: Disc): void {
+    const box = windowOf(disc);
+    ctx.fillStyle = WINDOW_FILL;
+    ctx.strokeStyle = WINDOW_EDGE;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(box.left, box.top, box.right - box.left, box.bottom - box.top, 6);
+    ctx.fill();
+    ctx.stroke();
 }
 
 /**
@@ -290,11 +326,6 @@ function pointedLabel(ctx: CanvasRenderingContext2D, text: string, right: number
     const y = Math.max(11, top - 6);
     ctx.font = "11px ui-monospace, monospace";
     ctx.textAlign = "right";
-    // Edged dark, so it reads over a lit hull or a plume.
-    ctx.strokeStyle = HANDLE_EDGE;
-    ctx.lineWidth = 3;
-    ctx.lineJoin = "round";
-    ctx.strokeText(text, right, y);
     ctx.fillStyle = ATTACK_POINTED;
     ctx.fillText(text, right, y);
 }
@@ -334,17 +365,11 @@ function drawAttack(
     heightPx: number,
 ): void {
     const expanded = view.attackExpanded === true;
-    const radius = attackRadius(widthPx, heightPx, expanded);
-    const { x: cx, y: cy } = attackCentre(widthPx, heightPx, radius);
+    const disc = attackDisc(widthPx, heightPx, expanded);
+    const { x: cx, y: cy, radius } = disc;
 
     ctx.save();
-    // A backing disc, so the wedges read over the ship's own guns' wedges when grown.
-    if (expanded) {
-        ctx.fillStyle = "rgba(14, 17, 23, 0.8)";
-        ctx.beginPath();
-        ctx.arc(cx, cy, radius, 0, TAU);
-        ctx.fill();
-    }
+    if (expanded) drawWindow(ctx, disc);
     ctx.strokeStyle = ENVELOPE_FREE;
     ctx.lineWidth = 1;
     ctx.setLineDash([3, 3]);
@@ -364,19 +389,17 @@ function drawAttack(
         ctx.closePath();
     };
     const most = attack.sectors.reduce((m, s) => max(m, s.guns), 0);
-    // Shaded by how many guns bear, then the best outlined over them.
+    // Shaded by how many guns bear. A gun that does not train bears on one
+    // bearing alone, so it is drawn a narrow wedge, outlined to show at all.
     for (const sector of attack.coverage) {
         if (!(sector.guns > 0) || !(most > 0)) continue;
         const share = Math.min(1, sector.guns / most);
         wedge(sector);
         ctx.fillStyle = `rgba(${ATTACK_RGB}, ${ATTACK_ALPHA_LEAST + (ATTACK_ALPHA_MOST - ATTACK_ALPHA_LEAST) * share})`;
         ctx.fill();
-    }
-    ctx.strokeStyle = ATTACK;
-    ctx.lineWidth = 1;
-    for (const sector of attack.sectors) {
-        if (!(sector.guns > 0)) continue;
-        wedge(sector);
+        if (sector.width > 0) continue;
+        ctx.strokeStyle = ATTACK;
+        ctx.lineWidth = 1;
         ctx.stroke();
     }
 
@@ -760,8 +783,9 @@ function drawEnvelope(
     }
     if (!(peak > 0)) return;
 
-    const radius = envelopeRadius(widthPx, heightPx, expanded);
-    const { x: cx, y: cy } = envelopeCentre(widthPx, heightPx, radius);
+    const disc = envelopeDisc(widthPx, heightPx, expanded);
+    const { x: cx, y: cy, radius } = disc;
+    if (expanded) drawWindow(ctx, disc);
 
     if (view.design !== null) silhouette(ctx, view, view.design, cx, cy, radius);
 
