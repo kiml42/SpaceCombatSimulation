@@ -247,6 +247,8 @@ export function ShipPage() {
     const [engine, setEngine] = useState<Engine | null>(null);
     const [doctrineOpen, setDoctrineOpen] = useState<DoctrineOpen>({ mount: false, ship: false });
     const [liveryOpen, setLiveryOpen] = useState(false);
+    // Whether Add a module is open below a selected module, kept for the next one picked.
+    const [adding, setAdding] = useState(false);
     // Whether the next edit continues the last: a drag or a held arrow key is one undo step, not hundreds.
     const gesture = useRef(false);
 
@@ -586,7 +588,17 @@ export function ShipPage() {
                             onDelete={deleteSelected}
                         />
                     )}
-                    {doc.selections.length === 0 && <Note id="nothingSelected">Select a module to change it.</Note>}
+                    {/* Into a selected assembly; beside a selected module, folded away until it is wanted. */}
+                    <AddModule
+                        into={target !== null && !isModuleSpec(target) ? (target as AssemblyInstance).use : null}
+                        fighter={asked}
+                        onAdd={add}
+                        suggest={doc.blueprint.modules.length === 0 ? "core" : null}
+                        {...(doc.selections.length > 0 && (target === null || isModuleSpec(target))
+                            ? { folded: { open: adding, onToggle: setAdding } }
+                            : {})}
+                    />
+                    {doc.selections.length === 0 && <Note id="nothingSelected">Or select a module to change it.</Note>}
                 </Inspector>
                 <ShipCanvas
                     doc={doc}
@@ -673,12 +685,6 @@ export function ShipPage() {
                             />
                         </Field>
                     </Naming>
-                    <AddModule
-                        into={target !== null && !isModuleSpec(target) ? (target as AssemblyInstance).use : null}
-                        fighter={asked}
-                        onAdd={add}
-                        suggest={doc.blueprint.modules.length === 0 ? "core" : null}
-                    />
                     {skirmishNow !== null && <SkirmishBudget skirmish={skirmishNow} flies={broken === undefined} enemy={false} />}
                     <section>
                         <h2>What it works out to</h2>
