@@ -11,6 +11,7 @@ import {
     renameGroup,
     swapDesign,
     updateEntry,
+    withCopies,
 } from "~/editor/fleetEdit";
 import type { Library, LibraryEntry } from "~/editor/library";
 import { snapStep } from "~/render/camera";
@@ -235,16 +236,12 @@ export function SelectionPanel({ doc, scale, ships, library, designHref, onLeave
                         {live(
                             "repeatCount",
                             entry.repeat ?? 1,
-                            (count, e) => {
-                                const next = { ...e };
-                                const copies = Math.max(1, Math.min(MAX_FLEET_REPEAT, Math.round(count)));
-                                if (copies === 1) delete next.repeat;
-                                else {
-                                    next.repeat = copies;
-                                    if (next.step === undefined) next.step = { x: 0, y: defaultStep() };
-                                }
-                                return next;
-                            },
+                            (count, e) =>
+                                // Kept centred where the copies stood, so the formation stays symmetrical.
+                                withCopies(e, Math.max(1, Math.min(MAX_FLEET_REPEAT, Math.round(count))), {
+                                    x: 0,
+                                    y: defaultStep(),
+                                }),
                             1,
                             1,
                         )}

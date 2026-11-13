@@ -268,7 +268,7 @@ export function overLimit(skirmish: Skirmish): string | null {
     const hulls = fleetHulls(skirmish.player);
     if (hulls.length > maxShips) return `${hulls.length} ships, more than the ${maxShips} allowed`;
     const reach = fleetReach(hulls);
-    if (reach > radius) return `reaches ${math.round(reach)} m from its origin, beyond the ${math.round(radius)} m allowed`;
+    if (reach > radius) return `a spread of ${math.round(reach)} m, beyond the ${math.round(radius)} m allowed`;
     return null;
 }
 

@@ -16,6 +16,8 @@ const GROUP_LINKED = "#7fd4ffcc";
 const GROUP_CONTEXT = "#7fd4ff66";
 const GROUP_BOX_MARGIN_PX = 7;
 const FAULT_FILL = "rgba(255, 107, 94, 0.32)";
+const FAULT_LINE = "rgba(255, 107, 94, 0.8)";
+const SPREAD = "#7f93aa99";
 const HANDLE_EDGE = "#1b1f27";
 const FORWARD = "#7fd6a0";
 const LABEL = "#7f93aa";
@@ -29,6 +31,10 @@ export interface FleetOverlayView {
     /** Each ship's centre and radius, null where it will not compile. */
     circles: readonly ({ x: number; y: number; radius: number } | null)[];
     faulty: readonly number[];
+    /** How far from the fleet's origin its ships may reach, as a skirmish limits it; null for no limit. */
+    spread: number | null;
+    /** Ships reaching past it. */
+    outside: readonly number[];
     /** Selected ships, one entry per drawn copy; the primary one is the copy an edit is framed by. */
     ships: readonly { ships: readonly number[]; primary: boolean }[];
     /**
@@ -50,7 +56,18 @@ export function knobFor(x: number, y: number, angle: number, reach: number, scal
 export function drawFleetOverlay(ctx: CanvasRenderingContext2D, view: FleetOverlayView, camera: Camera, heightPx: number): void {
     const px = 1 / camera.scale;
 
-    for (const i of view.faulty) {
+    if (view.spread !== null) {
+        ctx.save();
+        ctx.strokeStyle = view.outside.length > 0 ? FAULT_LINE : SPREAD;
+        ctx.lineWidth = LINE_PX * px;
+        ctx.setLineDash([6 * px, 6 * px]);
+        ctx.beginPath();
+        ctx.arc(0, 0, view.spread, 0, TAU);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    for (const i of new Set([...view.faulty, ...view.outside])) {
         for (const placed of view.hulls[i] ?? []) {
             const spec = bodySpec(placed);
             if (!(spec.length > 0) || !(spec.width > 0)) continue;
