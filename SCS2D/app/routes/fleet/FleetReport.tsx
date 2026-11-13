@@ -66,10 +66,13 @@ export function DesignList({
     view,
     designHref,
     onLeave,
+    onAddOne,
 }: {
     readonly view: FleetView;
     readonly designHref: (design: string) => string;
     readonly onLeave: () => void;
+    /** Place another ship of this design beside the fleet. */
+    readonly onAddOne: (design: string) => void;
 }) {
     return (
         <Designs id="designList">
@@ -84,6 +87,17 @@ export function DesignList({
                             <th>{line.name}</th>
                             <td title="Ships of it at the start, and how many more of it the fleet's pads and slipways build">
                                 {`${line.start} at start${line.builds > 0 ? `, builds ${line.builds}` : ""}`}
+                            </td>
+                            <td>
+                                <Button
+                                    variant="icon"
+                                    data-add-one={line.name}
+                                    aria-label={`Add another ${line.name}`}
+                                    title="Add another ship of this design, beside the fleet"
+                                    onClick={() => onAddOne(line.name)}
+                                >
+                                    +
+                                </Button>
                             </td>
                             <td>
                                 <EditLink

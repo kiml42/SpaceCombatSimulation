@@ -19,6 +19,19 @@ const Canvas = styled.canvas`
     cursor: crosshair;
 `;
 
+/** Just under the middle of the view, clear of the forward arrow there, and never in the way of the pointer. */
+const Hint = styled.p`
+    position: absolute;
+    top: calc(50% + 2.5rem);
+    left: 50%;
+    max-width: 80%;
+    margin: 0;
+    color: var(--colour-muted);
+    text-align: center;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+`;
+
 export interface FleetCanvasProps {
     readonly doc: FleetDocument;
     /** The engine once it exists, and null once it is gone. */
@@ -27,10 +40,12 @@ export interface FleetCanvasProps {
     readonly onChanged: () => void;
     /** Escape, before it selects nothing: true if the page took it. */
     readonly onEscape: () => boolean;
+    /** Said over the middle of the view, as when there is nothing in it yet. */
+    readonly hint?: string | undefined;
 }
 
 /** The fleet drawn, and the pointer and keys on it: a canvas React mounts and leaves to `fleetCanvas`. */
-export function FleetCanvas({ doc, onEngine, onChanged, onEscape }: FleetCanvasProps) {
+export function FleetCanvas({ doc, onEngine, onChanged, onEscape, hint }: FleetCanvasProps) {
     const canvas = useRef<HTMLCanvasElement>(null);
     const created = useEffectEvent((engine: Engine | null) => onEngine(engine));
     const changed = useEffectEvent(() => onChanged());
@@ -48,6 +63,7 @@ export function FleetCanvas({ doc, onEngine, onChanged, onEscape }: FleetCanvasP
     return (
         <Stage>
             <Canvas ref={canvas} id="view" aria-label="Fleet" />
+            {hint !== undefined && <Hint id="canvasHint">{hint}</Hint>}
         </Stage>
     );
 }

@@ -124,6 +124,13 @@ function clearOf(view: FleetView, radius: number): { x: number; y: number } | nu
     return n === 0 ? null : { x: x / n, y: lowest - PLACING_GAP - radius };
 }
 
+/** A labelled list in the menu, as its buttons are laid out. */
+const MenuField = styled.label`
+    display: grid;
+    gap: 0.25rem;
+    color: var(--colour-muted);
+`;
+
 /** The ways to add a ship: a new design first, across the panel, as the one to reach for. */
 const Adding = styled.section`
     display: grid;
@@ -302,6 +309,16 @@ export function FleetPage() {
         );
     };
 
+    const exportFleet = (): void => {
+        const text = `${JSON.stringify(serialiseFleet(doc.fleet), null, 2)}\n`;
+        const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${name.replace(/[^\w.-]+/g, "-").toLowerCase()}.fleet.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+    };
+
     const readFile = (file: File, then: (text: string) => void): void => {
         void file.text().then((text) => {
             try {
@@ -325,24 +342,86 @@ export function FleetPage() {
             <Bar>
                 <PauseMenu
                     title="Fleet editor"
-                    actions={[{ id: "menuSave", label: "Save", onSelect: () => fleets.save(doc.fleet) }]}
+                    actions={[
+                        ...(skirmish === null
+                            ? [
+                                  {
+                                      id: "newFleet",
+                                      label: "New fleet",
+                                      onSelect: () => open(emptyFleet(unusedName("New fleet", taken()))),
+                                  },
+                                  {
+                                      id: "duplicateFleet",
+                                      label: "Copy fleet",
+                                      title: "Start a copy of this fleet under a new name",
+                                      onSelect: () => {
+                                          doc.replace({ ...doc.fleet, name: unusedName(nextName(name), taken()) });
+                                          edited();
+                                      },
+                                  },
+                                  {
+                                      id: "deleteFleet",
+                                      label: "Delete saved copy",
+                                      disabled: !fleets.savedNames().includes(name),
+                                      onSelect: () => {
+                                          if (!window.confirm(`Delete the saved copy of ${name}?`)) return;
+                                          fleets.remove(name);
+                                          apply(
+                                              emptyFleet(
+                                                  unusedName(
+                                                      "New fleet",
+                                                      taken().filter((each) => each !== name),
+                                                  ),
+                                              ),
+                                          );
+                                      },
+                                  },
+                              ]
+                            : []),
+                        { id: "exportFleet", label: "Export fleet", onSelect: exportFleet },
+                        {
+                            id: "importTrigger",
+                            label: "Import fleet",
+                            onSelect: () => document.getElementById("importFleet")?.click(),
+                        },
+                    ]}
                     keys={KEYS}
                     // A skirmish keeps its fleet as it is edited.
                     unsaved={skirmish === null && unsavedChanges ? { what: name, save: () => fleets.save(doc.fleet) } : null}
-                />
-                <select
-                    id="fleet"
-                    aria-label="Fleet"
-                    title="Open a fleet"
-                    value={name}
-                    onChange={(event) => {
-                        const fleet = fromLibrary(fleets, event.target.value);
-                        if (fleet !== null) open(fleet);
-                    }}
                 >
-                    {!listed && <option value={name}>{`${name} (unsaved)`}</option>}
-                    <LibraryOptions entries={entries} />
-                </select>
+                    {/* In a skirmish, a saved fleet is one to fight with; outside it, the picker on the bar opens one. */}
+                    {skirmish !== null && (
+                        <MenuField>
+                            Load saved fleet
+                            <select
+                                id="loadFleet"
+                                value=""
+                                onChange={(event) => {
+                                    const fleet = fromLibrary(fleets, event.target.value);
+                                    if (fleet !== null) open(fleet);
+                                }}
+                            >
+                                <option value="">Choose a fleet…</option>
+                                <LibraryOptions entries={entries} />
+                            </select>
+                        </MenuField>
+                    )}
+                </PauseMenu>
+                {skirmish === null && (
+                    <select
+                        id="fleet"
+                        aria-label="Fleet"
+                        title="Open a fleet"
+                        value={name}
+                        onChange={(event) => {
+                            const fleet = fromLibrary(fleets, event.target.value);
+                            if (fleet !== null) open(fleet);
+                        }}
+                    >
+                        {!listed && <option value={name}>{`${name} (unsaved)`}</option>}
+                        <LibraryOptions entries={entries} />
+                    </select>
+                )}
                 <CommitText
                     id="fleetName"
                     aria-label="Fleet name"
@@ -355,56 +434,8 @@ export function FleetPage() {
                         apply({ ...doc.fleet, name: next });
                     }}
                 />
-                <Button id="newFleet" onClick={() => open(emptyFleet(unusedName("New fleet", taken())))}>
-                    New
-                </Button>
-                <Button
-                    id="duplicateFleet"
-                    title="Start a copy of this fleet under a new name"
-                    onClick={() => {
-                        doc.replace({ ...doc.fleet, name: unusedName(nextName(name), taken()) });
-                        edited();
-                    }}
-                >
-                    Copy
-                </Button>
                 <Button id="saveFleet" onClick={() => fleets.save(doc.fleet)}>
                     Save
-                </Button>
-                <Button
-                    id="deleteFleet"
-                    disabled={!fleets.savedNames().includes(name)}
-                    onClick={() => {
-                        if (!window.confirm(`Delete the saved copy of ${name}?`)) return;
-                        fleets.remove(name);
-                        apply(
-                            emptyFleet(
-                                unusedName(
-                                    "New fleet",
-                                    taken().filter((each) => each !== name),
-                                ),
-                            ),
-                        );
-                    }}
-                >
-                    Delete
-                </Button>
-                <Button
-                    id="exportFleet"
-                    onClick={() => {
-                        const text = `${JSON.stringify(serialiseFleet(doc.fleet), null, 2)}\n`;
-                        const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
-                        const link = document.createElement("a");
-                        link.href = url;
-                        link.download = `${name.replace(/[^\w.-]+/g, "-").toLowerCase()}.fleet.json`;
-                        link.click();
-                        URL.revokeObjectURL(url);
-                    }}
-                >
-                    Export
-                </Button>
-                <Button id="importTrigger" onClick={() => document.getElementById("importFleet")?.click()}>
-                    Import
                 </Button>
                 <input
                     id="importFleet"
@@ -490,6 +521,7 @@ export function FleetPage() {
             <Body>
                 <FleetCanvas
                     doc={doc}
+                    hint={doc.fleet.ships.length === 0 ? "Add new ship to design your first ship." : undefined}
                     onEngine={setEngine}
                     onChanged={changed}
                     onEscape={() => {
@@ -504,7 +536,15 @@ export function FleetPage() {
                     {doc.fleet.ships.length > 0 && (
                         <section>
                             <h2>Designs</h2>
-                            <DesignList view={view} designHref={toDesign} onLeave={keep} />
+                            <DesignList
+                                view={view}
+                                designHref={toDesign}
+                                onLeave={keep}
+                                onAddOne={(design) => {
+                                    const blueprint = doc.fleet.designs[design];
+                                    if (blueprint !== undefined) place(blueprint);
+                                }}
+                            />
                         </section>
                     )}
                     <Adding>

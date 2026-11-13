@@ -267,11 +267,13 @@ describe("the fleet editor in a browser", () => {
 
     it("starts a new design from New ship, highlighted while the fleet is empty, and places it", async () => {
         await page.goto(fleetRoute());
+        await page.click("#menuButton");
         await page.click("#newFleet");
         expect(await page.getAttribute("#newDesign", "data-variant")).toBe("primary");
         // Empty, it has no designs to list, and having no ships is a problem.
         expect(await page.locator("#designList").count()).toBe(0);
         expect(await page.textContent("#problems")).toContain("The fleet has no ships");
+        expect(await page.textContent("#canvasHint")).toContain("Add new ship");
         await page.click("#newDesign");
         await page.waitForURL(/#\/ship\?design=/);
         expect(await page.inputValue("#shipName")).toBe("Ship 1");
@@ -283,12 +285,18 @@ describe("the fleet editor in a browser", () => {
         await page.click("#backToFleet");
         await page.waitForURL(/index\.html#\/fleet\?fleet=/);
         await page.locator('#designList a[data-design="Ship 1"]').waitFor();
+        expect(await page.locator("#canvasHint").count()).toBe(0);
+        // Another of a design, from its row, beside the first.
+        await page.click('[data-add-one="Ship 1"]');
+        expect(await page.textContent("#designList")).toContain("2 at start");
+        expect(await page.textContent("#problems")).not.toContain("overlap");
         expect(await page.getAttribute("#newDesign", "data-variant")).toBe("plain");
         expect(problems).toEqual([]);
     });
 
     it("places each ship added beside the others rather than on top of them", async () => {
         await page.goto(fleetRoute());
+        await page.click("#menuButton");
         await page.click("#newFleet");
         for (let n = 0; n < 2; n++) {
             await page.click("#addShip");
