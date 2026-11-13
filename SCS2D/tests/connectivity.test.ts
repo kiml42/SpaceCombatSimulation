@@ -9,7 +9,6 @@ import {
     subDesign,
     type Blueprint,
     type ModuleSpec,
-    contactShare,
     weldFactor,
 } from "../sim/index.js";
 import { CORVETTE, FRACTAL, GUNSHIP } from "../scenarios/blueprints.js";
@@ -60,7 +59,7 @@ describe("deriving the joints", () => {
     it("prices a weld by its section, so the narrow join is the weak one", () => {
         const [a, b] = [design.modules[0]!, design.modules[2]!];
         const thinner = Math.min(a.stats.wallThickness, b.stats.wallThickness);
-        const factor = weldFactor(contactShare(a.spec, b.spec), a.stats.thickness, b.stats.thickness);
+        const factor = weldFactor(a, b);
         expect(found[1]!.strength).toBeCloseTo(2 * thinner * JOINT_IMPULSE_PER_AREA * factor, 6);
         expect(found[1]!.strength).toBeLessThan(found[0]!.strength);
     });
@@ -77,9 +76,8 @@ describe("deriving the joints", () => {
     it("weakens a weld along a sliver of face, and to a thin module", () => {
         const strength = (modules: ModuleSpec[]) => joints(compileBlueprint({ name: "Seat", modules }))[0]!.strength;
         const flush = strength([core(0, 0, 4, 4), structure(3, 0, 2, 2)]);
-        // A fifth of the face, against all of it: an eighth of the ramp.
-        expect(contactShare(structure(0, 0, 4, 4), structure(3, 2.6, 2, 2))).toBeCloseTo(0.2, 9);
-        expect(strength([core(0, 0, 4, 4), structure(3, 2.6, 2, 2)])).toBeCloseTo((flush * 0.2 * 0.1) / 0.9, 3);
+        // A fifth of the face in contact is a fifth of the weld.
+        expect(strength([core(0, 0, 4, 4), structure(3, 2.6, 2, 2)])).toBeCloseTo(flush * 0.2, 3);
         // A plate a quarter as deep is a quarter as strong, along the same width of face.
         expect(strength([core(0, 0, 4, 4), structure(2.25, 0, 0.5, 2)])).toBeCloseTo(flush / 4, 3);
     });

@@ -11,7 +11,6 @@ import {
     CLAW_PUMP_PER_METRE,
     type Blueprint,
     type Ships,
-    seamShare,
     weldFactor,
 } from "../sim/index.js";
 import { makeBattle } from "../scenarios/battle.js";
@@ -114,7 +113,7 @@ describe("gripping a wreck", () => {
         // Across the whole jaw.
         expect(joint.width).toBe(leech.modules[CLAW]!.spec.width);
         const [a, b] = [design.modules[joint.a]!, design.modules[joint.b]!];
-        const factor = weldFactor(seamShare(a.spec, b.spec, joint.width), a.stats.thickness, b.stats.thickness);
+        const factor = weldFactor(a, b);
         expect(joint.strength).toBeCloseTo(joint.width * thickness * JOINT_IMPULSE_PER_AREA * DOCK_HOLD * factor, 3);
     });
 
