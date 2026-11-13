@@ -106,8 +106,7 @@ function footprint(blueprint: Blueprint): number {
 
 /**
  * Where a ship of this reach goes beside the fleet's: abreast of them, just
- * past the lowest, so it overlaps none; or null for an empty fleet, which
- * takes it where the view is.
+ * past the lowest, so it overlaps none; or null for an empty fleet.
  */
 function clearOf(view: FleetView, radius: number): { x: number; y: number } | null {
     let lowest = Infinity;
@@ -290,13 +289,15 @@ export function FleetPage() {
         `#${designRoute({ fleet: doc.fleet, design, ...(skirmish === null ? {} : { skirmish: { ...skirmish, player: doc.fleet } }) })}`;
 
     const place = (blueprint: Blueprint): void => {
-        const camera = engine?.camera ?? { x: 0, y: 0, scale: 1 };
-        const step = snapStep(camera.scale);
+        const step = snapStep(engine?.camera.scale ?? 1);
         const added = skirmish === null ? blueprint : inSkirmish(blueprint, skirmish);
-        const at = clearOf(doc.view, footprint(added)) ?? camera;
+        // The first ship stands at the formation's centre, and the view comes to it.
+        const beside = clearOf(doc.view, footprint(added));
+        const at = beside ?? { x: 0, y: 0 };
         doc.apply(addShip(doc.fleet, added, snap(at.x, step), snap(at.y, step)));
         doc.select([[doc.fleet.ships.length - 1]]);
         edited();
+        if (beside === null) engine?.fit();
     };
 
     /** A blank design of its own, one ship of it placed, opened in the ship editor to be built. */

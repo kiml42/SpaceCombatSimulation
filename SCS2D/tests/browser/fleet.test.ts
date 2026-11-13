@@ -299,9 +299,20 @@ describe("the fleet editor in a browser", () => {
         await page.goto(fleetRoute());
         await page.click("#menuButton");
         await page.click("#newFleet");
+        // The hint sits under the fleet's origin, and moves with it.
+        const hint = async (): Promise<number> => (await page.locator("#canvasHint").boundingBox())!.x;
+        const before = await hint();
+        const box = (await page.locator("#view").boundingBox())!;
+        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+        await page.mouse.down();
+        await page.mouse.move(box.x + box.width / 2 + 120, box.y + box.height / 2, { steps: 4 });
+        await page.mouse.up();
+        expect((await hint()) - before).toBeCloseTo(120, -1);
         for (let n = 0; n < 2; n++) {
             await page.click("#addShip");
             await page.getByRole("menuitem", { name: "Corvette" }).first().click();
+            // The first at the formation's centre, wherever the view had gone.
+            if (n === 0) expect([await page.inputValue("#entryX"), await page.inputValue("#entryY")]).toEqual(["0", "0"]);
         }
         expect(await page.textContent("#problems")).not.toContain("overlap");
         // The view's settings sit in the corner, out of the way.
