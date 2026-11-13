@@ -193,6 +193,7 @@ export const FleetHelp: Story = {
         const help = await canvas.findByRole("dialog", { name: "Building your fleet" });
         await expect(help).toHaveTextContent("inside the dashed circle");
         await expect(help).toHaveTextContent("Stay within budget");
+        await expect(help).toHaveTextContent("Click Add new ship, which takes you to the ship editor");
         await userEvent.click(within(help).getByRole("button", { name: "Got it" }));
         await expect(canvas.queryByRole("dialog")).toBeNull();
         await userEvent.click(canvas.getByRole("button", { name: "Building your fleet" }));

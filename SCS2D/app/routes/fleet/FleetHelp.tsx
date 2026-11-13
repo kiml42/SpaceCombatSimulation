@@ -17,8 +17,8 @@ export function FleetHelp({ open, onClose, skirmish }: FleetHelpProps) {
         <HelpDialog id="fleetHelp" title={FLEET_HELP_LABEL} open={open} onClose={onClose}>
             <ol>
                 <li>
-                    <strong>Add ships.</strong> Add new ship designs one of your own; Add saved ship or Add from file brings in one you
-                    already have.
+                    <strong>Click Add new ship</strong>, which takes you to the ship editor to design it. You can also add one you already
+                    have, with Add saved ship or Add from file.
                 </li>
                 <li>
                     <strong>Arrange them{skirmish ? " inside the dashed circle" : ""}.</strong> Drag a ship to move it, or drag its knob to
