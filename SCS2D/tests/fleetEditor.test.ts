@@ -261,6 +261,12 @@ describe("FleetDocument", () => {
 });
 
 describe("fleetSnapshot", () => {
+    it("frames an empty fleet round its origin, or the area it is to be placed in", () => {
+        const empty = new FleetDocument({ name: "F", designs: {}, ships: [] }, noLibrary).view;
+        expect(fleetSnapshot(empty)).toMatchObject({ minX: -50, minY: -50, maxX: 50, maxY: 50 });
+        expect(fleetSnapshot(empty, undefined, undefined, 500)).toMatchObject({ minX: -500, minY: -500, maxX: 500, maxY: 500 });
+    });
+
     it("stands each ship where the fleet puts it, turned as it is", () => {
         const fleet: Fleet = { name: "F", designs: { Dinky: DINKY }, ships: [{ design: "Dinky", x: 100, y: 50, angle: math.HALF_PI }] };
         const doc = new FleetDocument(fleet, noLibrary);

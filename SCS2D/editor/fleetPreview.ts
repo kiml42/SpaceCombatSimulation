@@ -5,12 +5,22 @@ import { restingTriggers } from "./preview.js";
 /** The team a fleet is drawn as: a fleet is a side, so it wears one. */
 export const FLEET_TEAM = 0;
 
+/** How far round its origin an empty fleet is framed, when there is no area it must keep within. */
+const EMPTY_REACH = 50;
+
 /**
  * A fleet as a `Snapshot` the battle renderer can draw, at rest, with the
  * fleet's origin at the world origin, each carrier with the fighters it sets
- * out with on their pads. The fleet editor's `previewSnapshot`.
+ * out with on their pads. The fleet editor's `previewSnapshot`. An empty
+ * fleet's bounds are `empty` metres round its origin, so a view fitted to it
+ * shows that.
  */
-export function fleetSnapshot(view: Pick<FleetView, "ships" | "designs">, out: Snapshot = new Snapshot(), team = FLEET_TEAM): Snapshot {
+export function fleetSnapshot(
+    view: Pick<FleetView, "ships" | "designs">,
+    out: Snapshot = new Snapshot(),
+    team = FLEET_TEAM,
+    empty = EMPTY_REACH,
+): Snapshot {
     let count = 0;
     let minX = Infinity;
     let minY = Infinity;
@@ -64,11 +74,10 @@ export function fleetSnapshot(view: Pick<FleetView, "ships" | "designs">, out: S
     out.wells = [];
     out.projectileCount = 0;
     out.beamCount = 0;
-    // An empty fleet still frames its origin.
-    out.minX = count === 0 ? -50 : minX;
-    out.minY = count === 0 ? -50 : minY;
-    out.maxX = count === 0 ? 50 : maxX;
-    out.maxY = count === 0 ? 50 : maxY;
+    out.minX = count === 0 ? -empty : minX;
+    out.minY = count === 0 ? -empty : minY;
+    out.maxX = count === 0 ? empty : maxX;
+    out.maxY = count === 0 ? empty : maxY;
     return out;
 }
 
