@@ -62,8 +62,8 @@ const GOLDEN: Record<ScenarioName, string> = {
     standoff: "e57af10d",
     // ships=32 inFlight=0 p.fired=134 p.hits=569 b.fired=35 b.hits=2311 contacts=63 bumps=4 crashes=9 severed=24 culled=0 scrap=141.6t · 291.4 µs/step
     column: "10871d38",
-    // ships=5 inFlight=0 p.fired=5 p.hits=26 b.fired=0 b.hits=0 contacts=1075 bumps=7 crashes=1 severed=10 culled=4 scrap=44.4t · 113.1 µs/step
-    split: "0d4401f0",
+    // ships=5 inFlight=0 p.fired=5 p.hits=33 b.fired=0 b.hits=0 contacts=1062 bumps=7 crashes=1 severed=10 culled=4 scrap=44.8t · 124.1 µs/step
+    split: "28a70d2b",
     // ships=20 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=985 bumps=0 crashes=6 severed=4 culled=0 scrap=62476.8t · 1653.0 µs/step
     crash: "3a81def3",
     // ships=8 inFlight=0 p.fired=0 p.hits=0 b.fired=9 b.hits=1387 contacts=1697 bumps=2 crashes=2 severed=3 culled=0 scrap=23.0t · 262.2 µs/step
@@ -78,8 +78,8 @@ const GOLDEN: Record<ScenarioName, string> = {
     mending: "f63e907e",
     // ships=1 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=1.4t · 22.0 µs/step
     refitting: "35d04241",
-    // ships=2 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=144.1t · 87.6 µs/step
-    catamaranRefits: "2b1a25f3",
+    // ships=2 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=144.1t · 62.3 µs/step
+    catamaranRefits: "452aa874",
     // ships=5 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=46 bumps=1 crashes=2 severed=3 culled=0 scrap=108.3t · 56.4 µs/step
     scavenge: "daa190be",
     // ships=3 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=0.2t · 42.5 µs/step

@@ -52,7 +52,8 @@ describe("a Star Destroyer flown into a rock", () => {
     });
 
     it("drives on, slower each time, through layer after layer until it comes to rest", () => {
-        expect(layers.length).toBeGreaterThanOrEqual(3);
+        // Two at least: welds weak enough to tear shed the bow in pieces rather than crushing it layer by layer.
+        expect(layers.length).toBeGreaterThanOrEqual(2);
         for (let k = 1; k < layers.length; k++) expect(layers[k]!.closing).toBeLessThan(layers[k - 1]!.closing);
         expect(closing()).toBeLessThan(0.5);
     });

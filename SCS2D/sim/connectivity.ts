@@ -95,7 +95,13 @@ export function seamShare(a: ModuleSpec, b: ModuleSpec, width: number): number {
 }
 
 function jointFactor(design: ShipDesign, a: number, b: number, share: number): number {
-    return weldFactor(share, design.modules[a]!.stats.thickness, design.modules[b]!.stats.thickness);
+    return weldFactor(share, weldDepth(design, a), weldDepth(design, b));
+}
+
+/** A module's depth as a weld sees it: rock no deeper than a deck, so a seam is never stronger than a hull plate's. */
+function weldDepth(design: ShipDesign, module: number): number {
+    const { spec, stats } = design.modules[module]!;
+    return spec.kind === "rock" || spec.kind === "kernel" ? min(stats.thickness, DECK_HEIGHT) : stats.thickness;
 }
 
 /**
