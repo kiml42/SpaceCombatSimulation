@@ -22,6 +22,9 @@ const { atan2, max, sqrt } = math;
 
 export const ANGLE_SNAP_DEGREES = 15;
 
+/** The least a fitted view spans, in metres, so a tiny fleet is not blown up to fill it. */
+const FIT_LEAST_SPAN = 125;
+
 export interface FleetCanvas {
     readonly camera: Camera;
     /** Draw again, after the page changed the fleet or the selection. */
@@ -38,6 +41,8 @@ export interface FleetCanvasHooks {
     changed(): void;
     /** Escape, before it selects nothing: true if the page took it. */
     escape?(): boolean;
+    /** After each draw, with where the fleet's origin is, as a share of the view's width and height. */
+    drawn?(origin: { x: number; y: number }): void;
 }
 
 type Drag =
@@ -142,8 +147,10 @@ export function fleetCanvas(canvas: HTMLCanvasElement, doc: FleetDocument, hooks
             // Measured now, as the page round it may have changed its size since.
             resize();
             frame(camera, snapshot, canvas.width, canvas.height, 1);
+            camera.scale = Math.min(camera.scale, Math.min(canvas.width, canvas.height) / FIT_LEAST_SPAN);
             fitPending = false;
         }
+        hooks.drawn?.({ x: 0.5 - (camera.x * camera.scale) / canvas.width, y: 0.5 + (camera.y * camera.scale) / canvas.height });
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         // Nothing until Pixi has started, which draws it then.
