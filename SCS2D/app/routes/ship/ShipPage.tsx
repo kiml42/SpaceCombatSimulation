@@ -3,7 +3,6 @@ import { useEffect, useEffectEvent, useReducer, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useStorage } from "~/features/storage/StorageContext";
 import { useLibrary } from "~/features/storage/useLibrary";
-import { kg } from "~/editor/budget";
 import { EditorDocument } from "~/editor/document";
 import {
     addModule,
@@ -22,10 +21,9 @@ import { battleRoute, designRoute, fleetRoute, handedDesign, shipFleet, type Des
 import { draftOf, keepDraft, sameShip } from "~/editor/draft";
 import { emptyBlueprint, nextName, toFileText, UNCATEGORISED, unusedName } from "~/editor/library";
 import { ANGLE_SNAP_DEGREES, type ShipCanvas as Engine } from "~/editor/shipCanvas";
-import { buildTime } from "~/editor/stats";
 import type { KeyRow } from "~/host/keyHelp";
 import { ARC_LABELS } from "~/render/canvas2d";
-import { billOfFleet, canFight, fleetFault, inSkirmish, overLimit } from "~/scenarios/skirmish";
+import { inSkirmish } from "~/scenarios/skirmish";
 import {
     fighterProblem,
     parseBlueprint,
@@ -38,10 +36,11 @@ import {
     type ShipModuleKind,
 } from "~/sim/index";
 import { Button, ToggleButton } from "~/ui/buttons/Button";
-import { PauseMenu } from "~/features/menu/PauseMenu";
+import { PauseMenu, type MenuAction } from "~/features/menu/PauseMenu";
 import { LiveText } from "~/ui/fields/LiveText";
 import { fromLibrary } from "../fleet/fleetOptions";
 import { LibraryOptions } from "../fleet/LibraryOptions";
+import { SidebarTitle, SkirmishBudget } from "../fleet/SkirmishCard";
 import { AddModule } from "./AddModule";
 import { AssemblyPanel, SeveralSelected } from "./AssemblyPanels";
 import type { DoctrineOpen } from "./DoctrineDetails";
@@ -50,7 +49,7 @@ import { ShipCanvas } from "./ShipCanvas";
 import type { ShipEditing } from "./shipEditing";
 import { DEFAULTS, isModuleSpec } from "./shipFields";
 import { Field } from "./shipLayout";
-import { Figures, ShipProblems, ShipRefit, ShipStats } from "./ShipReport";
+import { ShipProblems, ShipRefit, ShipStats } from "./ShipReport";
 
 // Fixed text: the footer's height is part of the canvas's, so a line that grew and shrank would resize the view under the ship.
 const KEYS: readonly KeyRow[] = [
@@ -173,9 +172,29 @@ const Panel = styled.aside`
     }
 `;
 
+/** What is selected, on the other side of the view from the design as a whole. */
+const Inspector = styled(Panel)`
+    width: 20rem;
+    border-right: 1px solid var(--colour-border);
+    border-left: none;
+
+    @media (width <= 800px) {
+        border-top: none;
+        border-right: none;
+        border-bottom: 1px solid var(--colour-border);
+    }
+`;
+
+const Naming = styled.section`
+    > input {
+        width: 100%;
+        margin-bottom: 0.4rem;
+    }
+`;
+
 const Note = styled.p`
     margin: 0.4rem 0 0;
-    color: var(--colour-faint);
+    color: var(--colour-muted);
 `;
 
 function problemOf(error: unknown): string {
@@ -368,106 +387,95 @@ export function ShipPage() {
     const notFighter = asked && design !== null && !design.fighter ? fighterProblem(design.modules.map((m) => m.spec)) : null;
     const panelKey = JSON.stringify(doc.selection);
 
+    const exportShip = (): void => {
+        const url = URL.createObjectURL(new Blob([toFileText(doc.blueprint)], { type: "application/json" }));
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${name.replace(/[^\w.-]+/g, "-").toLowerCase()}.ship.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+    };
+    const save: MenuAction = { id: "saveShip", label: "Save to Library", onSelect: () => library.save(doc.blueprint) };
+    // On the undo stack too, so undo brings the changes back.
+    const revert: MenuAction = {
+        id: "revertShip",
+        label: "Revert to saved",
+        title: "Throw away the changes since this ship was last saved",
+        disabled: !reverts,
+        onSelect: () => saved !== null && editing.change(saved),
+    };
+    const exporting: MenuAction = { id: "exportShip", label: "Export ship", onSelect: exportShip };
+    // A design opened from a fleet is the fleet's: opening another here would leave it behind.
+    const actions: MenuAction[] =
+        inFleet !== null
+            ? [save, revert, exporting]
+            : [
+                  { id: "newShip", label: "New ship", onSelect: () => reopen(emptyBlueprint(unusedName("New ship", taken()))) },
+                  // Left unsaved, as a new ship is: how a stock hull becomes the start of the player's own without shadowing it.
+                  {
+                      id: "duplicateShip",
+                      label: "Copy ship",
+                      title: "Start a copy of this ship under a new name",
+                      onSelect: () => {
+                          doc.replace(renameShip(doc.blueprint, unusedName(nextName(name), taken())));
+                          gesture.current = false;
+                          refresh();
+                      },
+                  },
+                  save,
+                  revert,
+                  // On the undo stack, so undo brings the ship back and Save puts it in the library again.
+                  {
+                      id: "deleteShip",
+                      label: "Delete saved copy",
+                      disabled: !library.savedNames().includes(name),
+                      onSelect: () => {
+                          if (!window.confirm(`Delete the saved copy of ${name}?`)) return;
+                          library.remove(name);
+                          doc.apply(
+                              emptyBlueprint(
+                                  unusedName(
+                                      "New ship",
+                                      taken().filter((each) => each !== name),
+                                  ),
+                              ),
+                          );
+                          engine?.easeToNext();
+                          gesture.current = false;
+                          refresh();
+                      },
+                  },
+                  exporting,
+                  { id: "importTrigger", label: "Import ship", onSelect: () => document.getElementById("importShip")?.click() },
+              ];
+    const fleetNow = inFleet === null ? null : backToFleet(inFleet.fleet, inFleet.design, blueprint);
+    const skirmishNow = inFleet?.skirmish === undefined || fleetNow === null ? null : { ...inFleet.skirmish, player: fleetNow };
+
     return (
         <Main>
             <Bar>
                 <PauseMenu
                     title="Ship editor"
-                    actions={[{ id: "menuSave", label: "Save", onSelect: () => library.save(doc.blueprint) }]}
+                    actions={actions}
                     keys={KEYS}
                     // A ship opened from a fleet goes back through it, not the library.
                     unsaved={inFleet === null && (!listed || reverts) ? { what: name, save: () => library.save(doc.blueprint) } : null}
                 />
-                <select
-                    id="ship"
-                    aria-label="Ship"
-                    title="Open a ship"
-                    value={name}
-                    onChange={(event) => {
-                        const opened = fromLibrary(library, event.target.value);
-                        if (opened !== null) reopen(opened);
-                    }}
-                >
-                    {!listed && <option value={name}>{`${name} (unsaved)`}</option>}
-                    <LibraryOptions entries={entries} />
-                </select>
-                <LiveText
-                    id="shipName"
-                    aria-label="Ship name"
-                    size={12}
-                    title="The ship's name, which is its identity"
-                    value={name}
-                    onStart={editing.endGesture}
-                    onType={(typed) => {
-                        const next = typed.trim();
-                        if (next !== "") editing.change(renameShip(doc.blueprint, next), true);
-                    }}
-                />
-                <Button id="newShip" onClick={() => reopen(emptyBlueprint(unusedName("New ship", taken())))}>
-                    New
-                </Button>
-                {/* Left unsaved, as a new ship is: how a stock hull becomes the start of the player's own without shadowing it. */}
-                <Button
-                    id="duplicateShip"
-                    title="Start a copy of this ship under a new name"
-                    onClick={() => {
-                        doc.replace(renameShip(doc.blueprint, unusedName(nextName(name), taken())));
-                        gesture.current = false;
-                        refresh();
-                    }}
-                >
-                    Copy
-                </Button>
-                <Button id="saveShip" onClick={() => library.save(doc.blueprint)}>
-                    Save
-                </Button>
-                {/* On the undo stack too, so undo brings the changes back. */}
-                <Button
-                    id="revertShip"
-                    title="Throw away the changes since this ship was last saved"
-                    disabled={!reverts}
-                    onClick={() => saved !== null && editing.change(saved)}
-                >
-                    Revert
-                </Button>
-                {/* On the undo stack, so undo brings the ship back and Save puts it in the library again. */}
-                <Button
-                    id="deleteShip"
-                    disabled={!library.savedNames().includes(name)}
-                    onClick={() => {
-                        if (!window.confirm(`Delete the saved copy of ${name}?`)) return;
-                        library.remove(name);
-                        doc.apply(
-                            emptyBlueprint(
-                                unusedName(
-                                    "New ship",
-                                    taken().filter((each) => each !== name),
-                                ),
-                            ),
-                        );
-                        engine?.easeToNext();
-                        gesture.current = false;
-                        refresh();
-                    }}
-                >
-                    Delete
-                </Button>
-                <Button
-                    id="exportShip"
-                    onClick={() => {
-                        const url = URL.createObjectURL(new Blob([toFileText(doc.blueprint)], { type: "application/json" }));
-                        const link = document.createElement("a");
-                        link.href = url;
-                        link.download = `${name.replace(/[^\w.-]+/g, "-").toLowerCase()}.ship.json`;
-                        link.click();
-                        URL.revokeObjectURL(url);
-                    }}
-                >
-                    Export
-                </Button>
-                <Button id="importTrigger" onClick={() => document.getElementById("importShip")?.click()}>
-                    Import
-                </Button>
+                {inFleet === null && (
+                    <select
+                        id="ship"
+                        aria-label="Ship"
+                        title="Open a ship"
+                        value={name}
+                        onChange={(event) => {
+                            const opened = fromLibrary(library, event.target.value);
+                            if (opened !== null) reopen(opened);
+                        }}
+                    >
+                        {!listed && <option value={name}>{`${name} (unsaved)`}</option>}
+                        <LibraryOptions entries={entries} />
+                    </select>
+                )}
                 <input
                     id="importShip"
                     type="file"
@@ -553,6 +561,33 @@ export function ShipPage() {
                 )}
             </Bar>
             <Body>
+                {/* What is selected, apart from the design as a whole, so it is clear which a setting belongs to. */}
+                <Inspector id="selectionPanel" aria-label="Selected">
+                    {/* With several picked, only what can be done to a set: a panel editing one of them would edit whichever came first. */}
+                    {doc.selections.length >= 2 && <SeveralSelected editing={editing} />}
+                    {placement !== null && !isModuleSpec(placement) && (
+                        <AssemblyPanel
+                            key={panelKey}
+                            editing={editing}
+                            instance={placement as AssemblyInstance}
+                            onDelete={deleteSelected}
+                        />
+                    )}
+                    {placement !== null && isModuleSpec(placement) && (
+                        <ModulePanel
+                            key={panelKey}
+                            editing={editing}
+                            spec={placement}
+                            library={library}
+                            inFleet={inFleet}
+                            envelope={engine?.envelope() ?? null}
+                            doctrineOpen={doctrineOpen}
+                            onDoctrineOpen={setDoctrineOpen}
+                            onDelete={deleteSelected}
+                        />
+                    )}
+                    {doc.selections.length === 0 && <Note id="nothingSelected">Select a module to change it.</Note>}
+                </Inspector>
                 <ShipCanvas
                     doc={doc}
                     onEngine={setEngine}
@@ -590,47 +625,28 @@ export function ShipPage() {
                     </Overlays>
                 </ShipCanvas>
                 <Panel>
-                    {inFleet !== null && <InFleet inFleet={inFleet} blueprint={blueprint} />}
-                    <AddModule
-                        into={target !== null && !isModuleSpec(target) ? (target as AssemblyInstance).use : null}
-                        fighter={asked}
-                        onAdd={add}
-                        suggest={doc.blueprint.modules.length === 0 ? "core" : null}
-                    />
-                    {/* With several picked, only what can be done to a set: a panel editing one of them would edit whichever came first. */}
-                    {doc.selections.length >= 2 && <SeveralSelected editing={editing} />}
-                    {placement !== null && !isModuleSpec(placement) && (
-                        <AssemblyPanel
-                            key={panelKey}
-                            editing={editing}
-                            instance={placement as AssemblyInstance}
-                            onDelete={deleteSelected}
-                        />
+                    {inFleet !== null && (
+                        <SidebarTitle id="inFleetTitle">
+                            {inFleet.skirmish === undefined ? `In ${inFleet.fleet.name}` : `Skirmish — round ${inFleet.skirmish.round}`}
+                        </SidebarTitle>
                     )}
-                    {placement !== null && isModuleSpec(placement) && (
-                        <ModulePanel
-                            key={panelKey}
-                            editing={editing}
-                            spec={placement}
-                            library={library}
-                            inFleet={inFleet}
-                            envelope={engine?.envelope() ?? null}
-                            doctrineOpen={doctrineOpen}
-                            onDoctrineOpen={setDoctrineOpen}
-                            onDelete={deleteSelected}
-                        />
+                    {inFleet !== null && inFleet.skirmish === undefined && (
+                        <Note id="inFleetNote">Back to fleet takes this design back to every ship of it in the fleet.</Note>
                     )}
-                    <section>
-                        <h2>What it works out to</h2>
-                        <ShipStats doc={doc} envelope={engine?.envelope() ?? null} />
-                    </section>
-                    <section>
-                        <h2>Problems</h2>
-                        <ShipProblems doc={doc} />
-                    </section>
-                    <ShipRefit doc={doc} />
-                    <section>
-                        <h2>Role</h2>
+                    <Naming>
+                        <h2>
+                            <label htmlFor="shipName">Design name</label>
+                        </h2>
+                        <LiveText
+                            id="shipName"
+                            title="The design's name, which is its identity"
+                            value={name}
+                            onStart={editing.endGesture}
+                            onType={(typed) => {
+                                const next = typed.trim();
+                                if (next !== "") editing.change(renameShip(doc.blueprint, next), true);
+                            }}
+                        />
                         <Field>
                             <label
                                 htmlFor="shipFighter"
@@ -656,7 +672,23 @@ export function ShipPage() {
                                 }}
                             />
                         </Field>
+                    </Naming>
+                    <AddModule
+                        into={target !== null && !isModuleSpec(target) ? (target as AssemblyInstance).use : null}
+                        fighter={asked}
+                        onAdd={add}
+                        suggest={doc.blueprint.modules.length === 0 ? "core" : null}
+                    />
+                    {skirmishNow !== null && <SkirmishBudget skirmish={skirmishNow} flies={broken === undefined} enemy={false} />}
+                    <section>
+                        <h2>What it works out to</h2>
+                        <ShipStats doc={doc} envelope={engine?.envelope() ?? null} />
                     </section>
+                    <section>
+                        <h2>Problems</h2>
+                        <ShipProblems doc={doc} />
+                    </section>
+                    <ShipRefit doc={doc} />
                     <LiveryPanel
                         livery={blueprint.livery}
                         whose={inFleet === null ? "this ship's" : "the fleet's"}
@@ -734,49 +766,4 @@ function memberOf(doc: EditorDocument, instance: ModulePath): number {
     };
     const grabbed = doc.highlightedModules().find(own);
     return grabbed ?? doc.view.origins.findIndex((_, i) => own(i));
-}
-
-/** The fleet this design is one of: what taking it back means, and in a skirmish what it costs against the budget. */
-function InFleet({ inFleet, blueprint }: { readonly inFleet: DesignInFleet; readonly blueprint: Blueprint }) {
-    const fleet = backToFleet(inFleet.fleet, inFleet.design, blueprint);
-    const skirmish = inFleet.skirmish;
-    // A design that would not fly cannot be priced, and is an ordinary state to be editing in.
-    const fault = skirmish === undefined ? null : fleetFault(fleet);
-    const now = skirmish === undefined ? null : { ...skirmish, player: fleet };
-    const limit = now === null || fault !== null ? null : overLimit(now);
-    const bill = now === null || fault !== null ? null : billOfFleet(fleet);
-    return (
-        <section id="inFleet">
-            <h2 id="inFleetTitle">{skirmish === undefined ? `In ${fleet.name}` : `Skirmish — round ${skirmish.round}`}</h2>
-            <Note id="inFleetNote">
-                {now === null
-                    ? "Back to fleet takes this design back to every ship of it in the fleet."
-                    : fault !== null
-                      ? "Priced once the fleet would fly."
-                      : canFight(now)
-                        ? `The fleet with this design, against ${now.enemy.name}.`
-                        : limit !== null
-                          ? `The fleet with this design has ${limit}.`
-                          : "The fleet with this design is over budget."}
-            </Note>
-            <Figures id="inFleetBudget">
-                {bill !== null && now !== null && (
-                    <tbody>
-                        <tr data-over={bill.metal > now.budget.metal || undefined}>
-                            <th>metal</th>
-                            <td>{`${kg(bill.metal)} of ${kg(now.budget.metal)}`}</td>
-                        </tr>
-                        <tr data-over={bill.fuel > now.budget.fuel || undefined}>
-                            <th>fuel</th>
-                            <td>{`${kg(bill.fuel)} of ${kg(now.budget.fuel)}`}</td>
-                        </tr>
-                        <tr data-over={bill.build > now.budget.build || undefined}>
-                            <th>build</th>
-                            <td>{`${buildTime(bill.build)} of ${buildTime(now.budget.build)}`}</td>
-                        </tr>
-                    </tbody>
-                )}
-            </Figures>
-        </section>
-    );
 }

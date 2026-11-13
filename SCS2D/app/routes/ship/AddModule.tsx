@@ -18,11 +18,19 @@ const Group = styled.div`
     }
 `;
 
+/** The core alone, across the panel: a ship has to have one, so it is the first thing to know about. */
+const Core = styled.div`
+    margin-bottom: 0.4rem;
+
+    > button {
+        width: 100%;
+    }
+`;
+
 const GROUPS: readonly { title: string; kinds: readonly { kind: ShipModuleKind; label: string; title?: string }[] }[] = [
     {
         title: "Structural",
         kinds: [
-            { kind: "core", label: "Core" },
             { kind: "structure", label: "Structure" },
             { kind: "tank", label: "Tank" },
             { kind: "hold", label: "Hold", title: "A box of metal that the guns on its piece of hull load their rounds from" },
@@ -102,6 +110,16 @@ export function AddModule({ into, fighter, onAdd, suggest = null }: AddModulePro
     return (
         <section>
             <h2 id="addHeading">{into === null ? "Add a module" : `Add a module to ${into}`}</h2>
+            <Core>
+                <Button
+                    data-add="core"
+                    title="The ship's control compartment: every ship needs one"
+                    variant={suggest === "core" ? "primary" : "plain"}
+                    onClick={() => onAdd("core")}
+                >
+                    Core
+                </Button>
+            </Core>
             {GROUPS.map((group) => (
                 <Group key={group.title}>
                     <h3>{group.title}</h3>

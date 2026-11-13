@@ -451,6 +451,7 @@ export type { UnreadKeys } from "./unread.js";
 export {
     centreOf,
     firstOverlap,
+    fleetDraftHulls,
     fleetHulls,
     fleetMass,
     fleetBill,

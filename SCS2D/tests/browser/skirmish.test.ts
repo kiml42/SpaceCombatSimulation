@@ -317,7 +317,9 @@ describe("the skirmish in a browser", () => {
         expect(await page.isVisible("#backToFleet")).toBe(true);
         expect(await page.isVisible("#battleLink")).toBe(false);
         expect(await page.textContent("#inFleetTitle")).toBe("Skirmish — round 1");
-        expect(await page.textContent("#inFleetBudget")).toContain("metal");
+        // The budget the fleet editor shows, without the enemy's column, which a design does not change.
+        expect(await page.textContent("#skirmishBudget")).toContain("metal");
+        expect(await page.textContent("#skirmishBudget")).not.toContain("Enemy");
         await page.fill("#shipName", "Gunship Mk II");
         await page.click("#backToFleet");
         await page.waitForURL(/index\.html#\/fleet\?skirmish=/);
@@ -341,8 +343,9 @@ describe("the skirmish in a browser", () => {
         });
         await page.goto(`${pathToFileURL(join(root, "dist", "index.html")).href}#${route}`);
         await page.waitForSelector("#backToFleet");
-        expect(await page.textContent("#inFleetNote")).toBe("Priced once the fleet would fly.");
-        expect(await page.textContent("#inFleetBudget")).toBe("");
+        // Priced as it stands, so the figures move as it is built.
+        expect(await page.textContent("#skirmishBudget")).toMatch(/metal\s*[1-9]/);
+        expect(await page.textContent("#skirmishNote")).toBe("Fix the problems listed to fight.");
         // It cannot go back to the fleet, or into a battle, until it would fly.
         expect(await page.getAttribute("#backToFleet", "aria-disabled")).toBe("true");
         // Pressed anyway, it says why and stays.

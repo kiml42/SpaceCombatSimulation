@@ -154,6 +154,8 @@ export const Ship: Story = {
         await expect(canvas.getByRole("combobox", { name: "kind" })).toHaveDisplayValue("tank");
         await userEvent.click(canvas.getByRole("button", { name: "Undo" }));
         await expect(canvas.queryByRole("heading", { name: "Selected module" })).toBeNull();
+        // The selection has a sidebar of its own, apart from the design's.
+        await expect(canvas.getByText("Select a module to change it.")).toBeVisible();
     },
 };
 

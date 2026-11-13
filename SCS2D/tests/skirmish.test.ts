@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fleetHulls, fleetReach, NEUTRAL_TEAM, type Blueprint, type Fleet } from "../sim/index.js";
+import { fleetBill, fleetDraftHulls, fleetHulls, fleetReach, NEUTRAL_TEAM, type Blueprint, type Fleet } from "../sim/index.js";
 import { BARE_CORE, GUNSHIP } from "../scenarios/blueprints.js";
 import { LINE_OF_BATTLE } from "../scenarios/fleets.js";
 import { customBattle } from "../scenarios/customBattle.js";
@@ -111,6 +111,34 @@ function staged(dt = 1) {
         tick: () => world.tick,
     };
 }
+
+describe("pricing work in progress", () => {
+    it("prices a fleet that would fly as fighting would", () => {
+        expect(fleetBill(fleetDraftHulls(LINE_OF_BATTLE))).toEqual(fleetBill(fleetHulls(LINE_OF_BATTLE)));
+    });
+
+    it("prices a design that would not fly as it stands, and leaves out a blank one", () => {
+        const adrift: Blueprint = {
+            ...GUNSHIP,
+            name: "Adrift",
+            modules: [...GUNSHIP.modules, { kind: "engine", x: 0, y: 200, length: 3, width: 3 }],
+        };
+        const fleet: Fleet = {
+            name: "Building",
+            designs: { Adrift: adrift, Blank: { name: "Blank", modules: [] } },
+            ships: [
+                { design: "Adrift", x: 0, y: 0 },
+                { design: "Blank", x: 0, y: 100 },
+            ],
+        };
+        expect(() => fleetHulls(fleet)).toThrow();
+        const hulls = fleetDraftHulls(fleet);
+        expect(hulls.map((hull) => hull.ship.design)).toEqual(["Adrift"]);
+        expect(fleetBill(hulls).metal).toBeGreaterThan(
+            fleetBill(fleetHulls({ ...fleet, designs: { Adrift: GUNSHIP }, ships: [{ design: "Adrift", x: 0, y: 0 }] })).metal,
+        );
+    });
+});
 
 describe("deciding a skirmish battle", () => {
     it("gives it to the armed side at once against one with nothing to fight with", () => {

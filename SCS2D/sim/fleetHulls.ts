@@ -1,5 +1,13 @@
 import { addBills, billOf, NO_BILL, type Bill } from "./bill.js";
-import { budgetMass, compileBlueprint, expandBlueprint, modulesOverlap, type Blueprint, type ShipDesign } from "./blueprint.js";
+import {
+    budgetMass,
+    compileBlueprint,
+    compileDraft,
+    expandBlueprint,
+    modulesOverlap,
+    type Blueprint,
+    type ShipDesign,
+} from "./blueprint.js";
 import { byContent } from "./byContent.js";
 import { expandFleet, type Fleet, type PlacedShip } from "./fleet.js";
 import { cos, sin, sqrt } from "./math.js";
@@ -37,6 +45,31 @@ export function fleetHulls(fleet: Fleet): FleetHull[] {
         }
         return { ship, design: found.design, modules: placeModules(found.modules, ship) };
     });
+}
+
+/**
+ * Every ship of a fleet as its design would be built now, valid or not, as
+ * the editors price work in progress: a ship whose design has nothing that
+ * can be measured yet, such as a blank one, is left out. Throws only if the
+ * fleet cannot be laid out.
+ */
+export function fleetDraftHulls(fleet: Fleet): FleetHull[] {
+    const compiled = new Map<string, { design: ShipDesign; modules: readonly ModuleSpec[] } | null>();
+    const out: FleetHull[] = [];
+    for (const ship of expandFleet(fleet)) {
+        let found = compiled.get(ship.design);
+        if (found === undefined) {
+            const blueprint = fleetBlueprint(fleet, ship.design);
+            try {
+                found = { design: compileDraft(blueprint), modules: expandBlueprint(blueprint) };
+            } catch {
+                found = null;
+            }
+            compiled.set(ship.design, found);
+        }
+        if (found !== null) out.push({ ship, design: found.design, modules: placeModules(found.modules, ship) });
+    }
+    return out;
 }
 
 /** A design's modules, turned and moved to where this ship stands. */
