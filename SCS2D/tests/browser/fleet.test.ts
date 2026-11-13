@@ -263,4 +263,23 @@ describe("the fleet editor in a browser", () => {
         await page.waitForURL(/index\.html#\/fleet\?fleet=/);
         expect(problems).toEqual([]);
     });
+
+    it("starts a new design from New ship, highlighted while the fleet is empty, and places it", async () => {
+        await page.goto(fleetRoute());
+        await page.click("#newFleet");
+        expect(await page.getAttribute("#newDesign", "data-variant")).toBe("primary");
+        await page.click("#newDesign");
+        await page.waitForURL(/#\/ship\?design=/);
+        expect(await page.inputValue("#shipName")).toBe("Ship 1");
+        // A blank design: its core is the thing to add first.
+        const core = page.locator('[data-add="core"]');
+        expect(await core.getAttribute("data-variant")).toBe("primary");
+        await core.click();
+        expect(await core.getAttribute("data-variant")).toBe("plain");
+        await page.click("#backToFleet");
+        await page.waitForURL(/index\.html#\/fleet\?fleet=/);
+        await page.locator('#designList a[data-design="Ship 1"]').waitFor();
+        expect(await page.getAttribute("#newDesign", "data-variant")).toBe("plain");
+        expect(problems).toEqual([]);
+    });
 });

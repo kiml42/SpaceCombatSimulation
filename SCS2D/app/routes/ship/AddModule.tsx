@@ -93,10 +93,12 @@ export interface AddModuleProps {
     /** A fighter has no turrets. */
     readonly fighter: boolean;
     readonly onAdd: (kind: ShipModuleKind) => void;
+    /** The kind to add next, shown as the thing to do: a blank ship's core. */
+    readonly suggest?: ShipModuleKind | null;
 }
 
 /** A button for each kind of module, by what it is for. */
-export function AddModule({ into, fighter, onAdd }: AddModuleProps) {
+export function AddModule({ into, fighter, onAdd, suggest = null }: AddModuleProps) {
     return (
         <section>
             <h2 id="addHeading">{into === null ? "Add a module" : `Add a module to ${into}`}</h2>
@@ -108,6 +110,7 @@ export function AddModule({ into, fighter, onAdd }: AddModuleProps) {
                             key={kind}
                             data-add={kind}
                             title={title}
+                            variant={kind === suggest ? "primary" : "plain"}
                             disabled={fighter && (kind === "turret" || kind === "beamTurret")}
                             onClick={() => onAdd(kind)}
                         >

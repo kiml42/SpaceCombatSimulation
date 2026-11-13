@@ -595,6 +595,7 @@ export function ShipPage() {
                         into={target !== null && !isModuleSpec(target) ? (target as AssemblyInstance).use : null}
                         fighter={asked}
                         onAdd={add}
+                        suggest={doc.blueprint.modules.length === 0 ? "core" : null}
                     />
                     {/* With several picked, only what can be done to a set: a panel editing one of them would edit whichever came first. */}
                     {doc.selections.length >= 2 && <SeveralSelected editing={editing} />}

@@ -9,7 +9,7 @@ import { ANGLE_SNAP_DEGREES } from "~/editor/fleetCanvas";
 import { FleetDocument } from "~/editor/fleetDocument";
 import { addShip, distinctDesign, emptyFleet, refreshDesign } from "~/editor/fleetEdit";
 import { battleRoute, designRoute, handedToFleet } from "~/editor/handoff";
-import { Library, nextName, SHIPS, unusedName } from "~/editor/library";
+import { emptyBlueprint, Library, nextName, SHIPS, unusedName } from "~/editor/library";
 import { snap } from "~/editor/edit";
 import type { KeyRow } from "~/host/keyHelp";
 import { snapStep } from "~/render/camera";
@@ -241,6 +241,22 @@ export function FleetPage() {
         edited();
     };
 
+    /** A blank design of its own, one ship of it placed, opened in the ship editor to be built. */
+    const newDesign = (): void => {
+        const taken = new Set([...Object.keys(doc.fleet.designs), ...ships.savedNames()]);
+        let n = 1;
+        while (taken.has(`Ship ${n}`)) n++;
+        place(emptyBlueprint(`Ship ${n}`));
+        keep();
+        void navigate(
+            designRoute({
+                fleet: doc.fleet,
+                design: `Ship ${n}`,
+                ...(skirmish === null ? {} : { skirmish: { ...skirmish, player: doc.fleet } }),
+            }),
+        );
+    };
+
     const readFile = (file: File, then: (text: string) => void): void => {
         void file.text().then((text) => {
             try {
@@ -441,6 +457,14 @@ export function FleetPage() {
                 <Panel>
                     <section>
                         <h2>Add a ship</h2>
+                        <Button
+                            id="newDesign"
+                            variant={doc.fleet.ships.length === 0 ? "primary" : "plain"}
+                            title="Design a new ship for this fleet: one of it is placed, and the ship editor opens on it"
+                            onClick={newDesign}
+                        >
+                            New ship
+                        </Button>
                         <AddShipMenu
                             open={adding}
                             onOpen={setAdding}
