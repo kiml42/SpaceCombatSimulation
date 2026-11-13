@@ -723,6 +723,29 @@ export function envelopes(design: ShipDesign, samples: number = ENVELOPE_SAMPLES
     return { samples, free, holding };
 }
 
+/**
+ * What a burn at `throttles` costs: its effective specific impulse, the net
+ * thrust over the propellant it uses, so engines pushing against each other
+ * count as waste, s; and seconds the fuel it sets out with lasts at it.
+ */
+export function burnFigures(design: ShipDesign, throttles: ArrayLike<number>): { isp: number; endurance: number } {
+    let fx = 0;
+    let fy = 0;
+    let flow = 0;
+    design.engines.forEach((engine, t) => {
+        const force = (throttles[t] ?? 0) * engine.maxThrust;
+        const exhaust = design.modules[engine.module ?? -1]?.stats.exhaustVelocity ?? 0;
+        if (!(force > 0) || !(exhaust > 0)) return;
+        fx += engine.dirX * force;
+        fy += engine.dirY * force;
+        flow += force / exhaust;
+    });
+    let fuel = 0;
+    for (const module of design.modules) fuel += module.stats.fuel * fillOf(module.spec);
+    if (!(flow > 0)) return { isp: 0, endurance: Infinity };
+    return { isp: specificImpulse(Math.sqrt(fx * fx + fy * fy) / flow), endurance: fuel / flow };
+}
+
 /** The holding curve at `bearing`, radians from the bow, between its samples. */
 export function holdingAt(envelope: Envelopes, bearing: number): number {
     const at = ((((bearing / TAU) * envelope.samples) % envelope.samples) + envelope.samples) % envelope.samples;

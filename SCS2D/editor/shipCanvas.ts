@@ -73,7 +73,7 @@ import {
 } from "./snapping.js";
 import { aimAlong, attackRosette as measureAttack, gunsBearing, landOnSelf, lightSelfBurning, previewSnapshot } from "./preview.js";
 import type { Aim } from "./demonstrate.js";
-import { envelopes, holdingThrottles, pointedThrust, type Envelopes } from "./stats.js";
+import { burnFigures, envelopes, holdingThrottles, pointedThrust, type Envelopes } from "./stats.js";
 
 /**
  * The ship drawn, and the pointer and keys on it: select, move, size, shape
@@ -457,6 +457,7 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
         // Pointing at the envelope burns the engines the way the ship would to
         // push that way without turning, on top of whatever is selected.
         const shown = snapshot.ships[0];
+        let burn: { isp: number; endurance: number } | null = null;
         if (thrustBearing !== null && view.design !== null && shown !== undefined) {
             if (holdingFor === null || holdingFor.design !== view.design || holdingFor.bearing !== thrustBearing) {
                 holdingFor = { design: view.design, bearing: thrustBearing, throttles: holdingThrottles(view.design, thrustBearing) };
@@ -464,6 +465,7 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
             const measured = envelope();
             const share = measured === null ? 1 : pointedThrust(measured, thrustBearing, thrustReach).share;
             const burning = holdingFor.throttles.map((t) => t * share);
+            burn = burnFigures(view.design, burning);
             for (let t = 0; t < shown.throttles.length; t++) {
                 shown.throttles[t] = Math.max(shown.throttles[t] ?? 0, burning[t] ?? 0);
             }
@@ -514,6 +516,7 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
                     envelope: envelope(),
                     envelopeBearing: thrustBearing,
                     envelopeReach: thrustReach,
+                    envelopeBurn: burn,
                     envelopeExpanded: thrustExpanded,
                     attack: attackRosette(),
                     attackBearing,
