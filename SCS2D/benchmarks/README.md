@@ -67,6 +67,9 @@ measured. Leave the window alone while it runs: covering or minimising it slows 
 | `--paused` | off | Hold the battle at `--at`, so the time is drawing alone. |
 | `--strips` | `shown` | `hidden` hides the fleet strips down the edges, to see what they cost. |
 | `--pick` | | A ship to pick, by its index in the battle, once each scene reaches `--at`: a picked ship shows its close-ups and arcs. |
+| `--zoom` | | Zoom in and out while measuring: ten times in over this many seconds, then out as fast, over and over. |
+| `--zoom-by` | | Zoom in this many times before measuring, and hold it there (or sweep from there, with `--zoom`). |
+| `--zoom-at` | | The ship, by its index in the battle, to zoom about, in place of the view's middle. |
 | `--screenshots` | off | Save each scene as measured, beside the results, to check what was drawn. |
 | `--profile` | off | After measuring each scene, take a CPU profile of it for `--seconds` and print the 15 functions with the most self time; the `.cpuprofile` opens in DevTools' Performance panel (Firefox: below). Build with `pnpm exec vite build --minify false` first for readable names. |
 | `--vsync` | off | Hold the frame rate to the display's. Without it the rate is uncapped, so a fast machine shows how far over 60 it could go. |
