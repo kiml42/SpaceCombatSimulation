@@ -1,6 +1,7 @@
 import { styled } from "@linaria/react";
 import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
+import { HelpButton, type PageHelp } from "~/features/help/Help";
 import { Button } from "~/ui/buttons/Button";
 import { KeyTable, type KeyRow } from "~/ui/dialogs/KeyTable";
 
@@ -91,6 +92,8 @@ export interface PauseMenuProps {
     readonly notes?: readonly string[];
     /** Asked before leaving for the main menu; null when nothing would be lost. */
     readonly unsaved?: Unsaved | null;
+    /** The page's help, behind a ? beside the menu button and the ? key. */
+    readonly help?: PageHelp;
 }
 
 type View = "main" | "keys" | "leaving";
@@ -103,13 +106,15 @@ const typing = (): boolean =>
 /**
  * A page's menu, behind a button and Escape: Escape opens it only once the
  * page has nothing left to cancel, which a page says by calling
- * `preventDefault` on the Escape it takes. `?` opens it at the keys.
+ * `preventDefault` on the Escape it takes. `?` opens it at the keys, unless
+ * the page has help, which `?` is for then.
  */
-export function PauseMenu({ title, pause, actions = [], settings, keys, notes, unsaved = null, children }: PauseMenuProps) {
+export function PauseMenu({ title, pause, actions = [], settings, keys, notes, unsaved = null, help, children }: PauseMenuProps) {
     const dialog = useRef<HTMLDialogElement>(null);
     const resume = useRef<(() => void) | null>(null);
     const [view, setView] = useState<View | null>(null);
     const navigate = useNavigate();
+    const helped = help !== undefined;
 
     const open = (at: View): void => {
         if (view !== null) return;
@@ -139,14 +144,16 @@ export function PauseMenu({ title, pause, actions = [], settings, keys, notes, u
     useEffect(() => {
         const onKey = (event: KeyboardEvent): void => {
             if (typing()) return;
-            if (event.key === "?") openByKey(keys === undefined ? "main" : "keys");
+            if (event.key === "?") {
+                if (!helped) openByKey(keys === undefined ? "main" : "keys");
+            }
             // Once every other listener has had it, so one that took it can say so; and after the key is done,
             // or the browser hands this Escape to the menu just opened, and it closes again.
             else if (event.key === "Escape") setTimeout(() => !event.defaultPrevented && openByKey("main"));
         };
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
-    }, [keys]);
+    }, [keys, helped]);
 
     /** Escape: back to the menu from what it opened, or out of it. */
     const back = (): void => {
@@ -160,6 +167,7 @@ export function PauseMenu({ title, pause, actions = [], settings, keys, notes, u
             <Button id="menuButton" aria-label="Menu" title="Open the menu (Escape)" onClick={() => open("main")}>
                 ◀ Menu
             </Button>
+            {help !== undefined && <HelpButton help={help} />}
             <Dialog
                 ref={dialog}
                 aria-labelledby="menuTitle"

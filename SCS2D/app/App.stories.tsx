@@ -157,8 +157,8 @@ export const Ship: Story = {
     },
 };
 
-/** The setup screen, its help already seen. */
-const SEEN_HELP = { "scs2d.help.skirmish": "seen" };
+/** The setup screen and the fleet editor, their help already seen. */
+const SEEN_HELP = { "scs2d.help.skirmish": "seen", "scs2d.help.fleet": "seen" };
 
 export const Skirmish: Story = {
     args: { path: "/skirmish", saved: SEEN_HELP },
@@ -182,6 +182,21 @@ export const SkirmishHelp: Story = {
         await expect(canvas.queryByRole("dialog")).toBeNull();
         await userEvent.click(canvas.getByRole("button", { name: "How a skirmish works" }));
         await expect(canvas.getByRole("dialog", { name: "How a skirmish works" })).toBeVisible();
+    },
+};
+
+/** The first fleet of a skirmish: how to build one opens by itself; ? beside the menu brings it back. */
+export const FleetHelp: Story = {
+    args: { path: "/skirmish", saved: { "scs2d.help.skirmish": "seen" } },
+    play: async ({ canvas }) => {
+        await userEvent.click(canvas.getByRole("button", { name: "Start: build your fleet" }));
+        const help = await canvas.findByRole("dialog", { name: "Building your fleet" });
+        await expect(help).toHaveTextContent("inside the dashed circle");
+        await expect(help).toHaveTextContent("Stay within budget");
+        await userEvent.click(within(help).getByRole("button", { name: "Got it" }));
+        await expect(canvas.queryByRole("dialog")).toBeNull();
+        await userEvent.click(canvas.getByRole("button", { name: "Building your fleet" }));
+        await expect(canvas.getByRole("dialog", { name: "Building your fleet" })).toBeVisible();
     },
 };
 

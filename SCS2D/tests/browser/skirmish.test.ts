@@ -72,6 +72,9 @@ async function advanced(): Promise<void> {
 async function startWith(ship: Blueprint): Promise<void> {
     await page.click("#start");
     await page.waitForURL(/#\/fleet/);
+    await page.waitForSelector("#fleetName");
+    // How to build a fleet opens by itself the first time (checked where the fleet editor is).
+    if (await page.isVisible("#fleetHelp")) await page.click("#fleetHelpClose");
     const kept = parseSkirmish(JSON.parse((await page.evaluate(() => localStorage.getItem("scs2d.skirmish")))!));
     await page.goto(skirmishPage({ ...kept, player: shipFleet(ship) }));
     await page.waitForSelector("#round");
@@ -84,7 +87,7 @@ describe("the skirmish in a browser", () => {
         expect(await page.isVisible("#skirmishHelp")).toBe(true);
         await page.click("#skirmishHelpClose");
         expect(await page.isVisible("#skirmishHelp")).toBe(false);
-        await page.click("#skirmishHelpOpen");
+        await page.click("#helpOpen");
         expect(await page.isVisible("#skirmishHelp")).toBe(true);
         await page.keyboard.press("Escape");
         expect(await page.isVisible("#skirmishHelp")).toBe(false);
@@ -260,9 +263,24 @@ describe("the skirmish in a browser", () => {
     });
 
     it("goes to the fleet editor with the budget, and back to the round", async () => {
+        await page.evaluate(() => localStorage.removeItem("scs2d.help.fleet"));
         await page.click("#editFleet");
         await page.waitForURL(/index\.html#\/fleet\?skirmish=/);
         await page.waitForSelector("#fleetName");
+        // How to build a fleet, by itself the first time; Escape closes it without opening the menu.
+        expect(await page.isVisible("#fleetHelp")).toBe(true);
+        expect(await page.textContent("#fleetHelp")).toContain("inside the dashed circle");
+        await page.keyboard.press("Escape");
+        expect(await page.isVisible("#fleetHelp")).toBe(false);
+        expect(await page.isVisible("#menuTitle")).toBe(false);
+        expect(await page.evaluate(() => localStorage.getItem("scs2d.help.fleet"))).toBe("seen");
+        // ? brings it back, beside the menu button and on its key.
+        await page.click("#helpOpen");
+        expect(await page.isVisible("#fleetHelp")).toBe(true);
+        await page.click("#fleetHelpClose");
+        await page.keyboard.press("?");
+        expect(await page.isVisible("#fleetHelp")).toBe(true);
+        await page.click("#fleetHelpClose");
         expect(await page.isVisible("#skirmish")).toBe(true);
         expect(await page.textContent("#skirmishTitle")).toBe("Skirmish — round 1");
         expect(await page.textContent("#skirmishBudget")).toContain("metal");

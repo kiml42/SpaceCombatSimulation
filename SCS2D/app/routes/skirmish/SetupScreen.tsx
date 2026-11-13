@@ -11,7 +11,6 @@ import { Button } from "~/ui/buttons/Button";
 import { Figures } from "../ship/ShipReport";
 import { readSettings, SETTINGS_KEY, SETUP_FIELDS, settingsTexts } from "./skirmishFields";
 import { EMPTY, FleetChoices } from "./FleetChoices";
-import { SkirmishHelp } from "./SkirmishHelp";
 import {
     BATTLEFIELD_PRESETS,
     ENEMY_PRESETS,
@@ -63,13 +62,6 @@ const Screen = styled.section`
         border-right: none;
         border-bottom: 1px solid var(--colour-border);
     }
-`;
-
-const Header = styled.div`
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-    justify-content: space-between;
 `;
 
 const Intro = styled.p`
@@ -164,9 +156,6 @@ const BUDGET_ROWS: readonly { key: keyof Budget; label: string; title: string }[
 const shownCost = (cost: Budget | null, key: keyof Budget): string =>
     cost === null ? "" : String(Math.round((cost[key] / UNITS[key]) * 100) / 100);
 
-/** Where it is kept that the player has seen how a skirmish works, so it opens by itself only once. */
-export const HELP_SEEN_KEY = "scs2d.help.skirmish";
-
 /** The settings kept from the last skirmish set up, or the defaults. */
 export function keptSettings(storage: Pick<Storage, "getItem">): SkirmishSettings {
     try {
@@ -236,30 +225,6 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart, onImport }: Set
     const [texts, setTexts] = useState(() => settingsTexts(start.settings));
     const [enemy, setEnemy] = useState(start.enemy);
     const [name, setName] = useState("");
-    const [helping, setHelping] = useState(() => {
-        try {
-            return storage.getItem(HELP_SEEN_KEY) === null;
-        } catch {
-            return false;
-        }
-    });
-    const closeHelp = (): void => {
-        setHelping(false);
-        try {
-            storage.setItem(HELP_SEEN_KEY, "seen");
-        } catch {
-            // Not remembered: it opens again next time.
-        }
-    };
-    useEffect(() => {
-        const onKey = (event: KeyboardEvent): void => {
-            const focus = document.activeElement;
-            const typing = focus instanceof HTMLInputElement || focus instanceof HTMLTextAreaElement || focus instanceof HTMLSelectElement;
-            if (event.key === "?" && !typing) setHelping(true);
-        };
-        window.addEventListener("keydown", onKey);
-        return () => window.removeEventListener("keydown", onKey);
-    }, []);
     // Each box's text, and what was put in it from the enemy's cost: a box still showing that follows the enemy.
     const [budget, setBudget] = useState<Record<keyof Budget, string>>({ metal: "", fuel: "", build: "" });
     const [followed, setFollowed] = useState<Record<keyof Budget, string>>({ metal: "", fuel: "", build: "" });
@@ -336,18 +301,7 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart, onImport }: Set
 
     return (
         <Screen id="setupScreen">
-            <Header>
-                <h1>New skirmish</h1>
-                <Button
-                    id="skirmishHelpOpen"
-                    aria-label="How a skirmish works"
-                    title="How a skirmish works (?)"
-                    onClick={() => setHelping(true)}
-                >
-                    ?
-                </Button>
-            </Header>
-            <SkirmishHelp open={helping} onClose={closeHelp} />
+            <h1>New skirmish</h1>
             <Intro>
                 Pick an enemy and a battlefield, then build a fleet within the budget that beats it. Win, and the enemy evolves to beat you
                 back.
