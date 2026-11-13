@@ -53,7 +53,7 @@ work has to respect.
 | Step    | What                                       | State        |
 | ------- | ------------------------------------------ | ------------ |
 | Slice 0 | Two ships fight, deterministically         | Built        |
-| 1       | Blueprint editor                           | Built        |
+| 1       | Ship editor                                | Built        |
 | 2       | Terminal ballistics and the damage model   | Built        |
 | 3       | Doctrine and orders                        | Built        |
 | 4       | Headless evolution and analysis            | Built        |
@@ -673,7 +673,7 @@ that answers the question most likely to change the design.
 #### React UI (step 16)
 
 **The app is one page, `dist/index.html`, routed by the hash**, every screen a route; an old viewer link
-(`#battle=`, `#fleet=`) is rewritten to the Battle route as it opens. **The battle view is `BattleCanvas`,
+(`#battle=`, `#fleet=`) is rewritten to the Simulator's route as it opens, and so is the Simulator's own old `#/battle`. **The battle view is `BattleCanvas`,
 the seam step 17 puts Pixi behind**: a canvas React mounts and leaves to an engine, which owns the clock, the
 camera and the input; the editors' canvases are engines of the same kind. What else is settled:
 
@@ -755,7 +755,7 @@ mine in. What is left of it is in §12, for later.
   generator keeps clear of them. A plain evolution run draws a new map every match; the skirmish has
   one map per round, from its seed, the enemy bred on it, and each round's settings drawn from ranges
   the player sets.
-- **In the viewer** an asteroid is never framed automatically and gets no arrowhead or tile. Picking
+- **In the Simulator** an asteroid is never framed automatically and gets no arrowhead or tile. Picking
   one shows the metal, fuel and worthless rock left, and Fit frames it; with Scavenge armed a click gives
   the order. The kernel is drawn distinctly.
 - **Fit frames a picked ship with what it is about**: what it is fighting, escorting, and the asteroid
@@ -772,7 +772,7 @@ mine in. What is left of it is in §12, for later.
 - **Rewinding copies the whole battle** at checkpoints (`Rewind`, `cloneBattle`) and replays the command log
   from there, which costs one rule: nothing in a battle may be a closure over state that changes, since a
   copy would go on reaching into the original. Designs, and caches keyed on them, are shared, never changed.
-- **Add ship is a sandbox tool**, on the viewer only: no game mode offers it.
+- **Add ship is a sandbox tool**, in the Simulator only: no game mode offers it.
 - **The skirmish's enemy answers the player's fleet as doctrine flies it,** by `answerMargin`; orders are
   the player's edge over it, and a page that gives orders names the one side that may take them.
 
@@ -795,7 +795,7 @@ mine in. What is left of it is in §12, for later.
   history beside it (`scenarios/history.ts`): every match, each fleet kept once, the oldest runs' fleets
   let go when storage is full. Editing a ship in place within its fleet (#684) would merge the editors.
 - **The fleet file and a battle from fleets** are what the skirmish fights with: fleets or single ships
-  from the libraries, a file, or an editor's link, as the custom battle on the viewer also takes them, and
+  from the libraries, a file, or an editor's link, as the custom battle in the Simulator also takes them, and
   bred by fleet evolution with every operator's inverse. Not planned: per-ship doctrine overrides in a
   fleet (fork the design instead), and a group's own doctrine or lead, which waits for standing orders.
   Velocity stays out of the fleet file; the battle setup holds it.

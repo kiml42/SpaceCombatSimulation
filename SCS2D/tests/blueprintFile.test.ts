@@ -414,7 +414,7 @@ describe("rejecting a file that arrived from somewhere else", () => {
     });
 
     it("throws from parseBlueprint with the problem in the message", () => {
-        expect(() => parseBlueprint(file({ formatVersion: 99 }))).toThrow(/Invalid blueprint file/);
+        expect(() => parseBlueprint(file({ formatVersion: 99 }))).toThrow(/Invalid ship design file/);
         expect(() => parseBlueprint(file({ formatVersion: 99 }))).toThrow(/formatVersion must be 1/);
     });
 });

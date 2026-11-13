@@ -89,14 +89,14 @@ function Entries({ title, entries, edit, fleet }: EntriesProps) {
                                         onClick={() => void navigate(edit(value))}
                                     />
                                     <Button
-                                        aria-label={`Test ${named}`}
-                                        title="Fight it in a custom battle, as the first side"
+                                        aria-label={`Test in Simulator: ${named}`}
+                                        title="Fight it in the Simulator, as the first side"
                                         onClick={() => {
                                             const opened = fleet(value);
                                             if (opened !== null) void navigate(battleRoute(opened));
                                         }}
                                     >
-                                        Test
+                                        Test in Simulator
                                     </Button>
                                 </Item>
                             );

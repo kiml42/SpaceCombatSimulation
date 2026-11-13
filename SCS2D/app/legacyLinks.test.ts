@@ -4,11 +4,11 @@ import { battleRoute, shipFleet } from "~/editor/handoff";
 import { serialiseFleet } from "~/sim/index";
 import { routeOfLegacyHash } from "./legacyLinks";
 
-test("an old shared battle link opens the battle route, its battle unchanged", () => {
-    expect(routeOfLegacyHash("#battle=abc-_123")).toBe("#/battle?battle=abc-_123");
+test("an old shared battle link opens the Simulator, its battle unchanged", () => {
+    expect(routeOfLegacyHash("#battle=abc-_123")).toBe("#/simulator?battle=abc-_123");
 });
 
-test("an old handed fleet opens the battle route, and reads back as the fleet", () => {
+test("an old handed fleet opens the Simulator, and reads back as the fleet", () => {
     const fleet = shipFleet(Object.values(BLUEPRINTS)[0]!);
     const old = `#fleet=${encodeURIComponent(JSON.stringify(serialiseFleet(fleet)))}`;
     const route = routeOfLegacyHash(old)!;
@@ -16,10 +16,10 @@ test("an old handed fleet opens the battle route, and reads back as the fleet", 
     expect(JSON.parse(search.get("fleet")!)).toEqual(serialiseFleet(fleet));
 });
 
-test("an editor's Battle link opens the battle route directly", () => {
+test("an editor's Test in Simulator link opens the Simulator directly", () => {
     const fleet = shipFleet(Object.values(BLUEPRINTS)[0]!);
     const href = battleRoute(fleet);
-    expect(href.startsWith("/battle?fleet=")).toBe(true);
+    expect(href.startsWith("/simulator?fleet=")).toBe(true);
     expect(JSON.parse(new URLSearchParams(href.slice(href.indexOf("?"))).get("fleet")!)).toEqual(serialiseFleet(fleet));
 });
 

@@ -2290,7 +2290,7 @@ export function compileBlueprint(blueprint: Blueprint): ShipDesign {
     // One set for both, so what checking compiled is not compiled again.
     const crafts = new Crafts(blueprint);
     const problem = faultsWith(blueprint, crafts)[0]?.message;
-    if (problem !== undefined) throw new Error(`Invalid blueprint — ${problem}`);
+    if (problem !== undefined) throw new Error(`Invalid ship design — ${problem}`);
     return compileWith(blueprint, crafts);
 }
 

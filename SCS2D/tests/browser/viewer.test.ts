@@ -37,7 +37,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..", "..");
 const appPage = join(root, "dist", "index.html");
 /** The battle route of the app as built. */
-const battlePage = (): string => `${pathToFileURL(appPage).href}#/battle`;
+const battlePage = (): string => `${pathToFileURL(appPage).href}#/simulator`;
 
 let browser: Browser;
 let page: Page;
@@ -272,7 +272,7 @@ describe("the viewer in a browser", () => {
         expect(range).toBeGreaterThan(900);
         expect(range).toBeLessThan(1100);
         expect(await advanced(page)).toBeGreaterThan(0);
-        expect(new URL(page.url()).hash).toBe("#/battle?scene=Standoff");
+        expect(new URL(page.url()).hash).toBe("#/simulator?scene=Standoff");
     });
 
     it("opens the scene its address names, so a reload comes back to it", async () => {
@@ -390,7 +390,7 @@ describe("the viewer in a browser", () => {
         await page.click("#linkBattle");
         await page.waitForFunction(() => typeof (window as unknown as { copied?: string }).copied === "string");
         const href = await page.evaluate(() => (window as unknown as { copied: string }).copied);
-        expect(href).toMatch(/index\.html#\/battle\?battle=[\w-]+$/);
+        expect(href).toMatch(/index\.html#\/simulator\?battle=[\w-]+$/);
 
         const opened = await browser.newPage({ viewport: { width: 1000, height: 620 } });
         const errors: string[] = [];
@@ -403,7 +403,7 @@ describe("the viewer in a browser", () => {
         expect(await opened.inputValue("#battleRange")).toBe("1000");
         expect(await opened.textContent("#play")).toBe("Play");
         // The address is tidied, so a reload is the custom battle and not the hand-over again.
-        expect(new URL(opened.url()).hash).toBe("#/battle?scene=custom");
+        expect(new URL(opened.url()).hash).toBe("#/simulator?scene=custom");
         expect(errors).toEqual([]);
         await opened.close();
     });

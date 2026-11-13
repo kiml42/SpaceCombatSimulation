@@ -15,6 +15,7 @@ all three, so "§12" means the same section wherever it is written:
 | **[DESIGN.md](DESIGN.md)** | Status, §§1–7 and 9–11 | Deciding how something should behave |
 | **[ROADMAP.md](ROADMAP.md)** | §8 build order; §12 points at the open questions | Picking up work, or deferring a decision |
 | **[DECISIONS.md](DECISIONS.md)** | The Decision Log | Asking why something ended up the way it is |
+| **[GLOSSARY.md](GLOSSARY.md)** | What the game calls things on screen | Writing any label, tooltip, help or error a player reads |
 | **[GitHub issues](https://github.com/kiml42/SpaceCombatSimulation/issues)** | Bugs, ideas, work left and open questions | Picking up work |
 
 Ideas, bugs and open questions are issues, labelled as ROADMAP.md's "How this document is maintained"
@@ -159,6 +160,8 @@ inherited it.
 
 ## Conventions
 
+- **Words a player reads follow [GLOSSARY.md](GLOSSARY.md):** a place or thing is called what it says, and a
+  new one gets a row there before it gets a label.
 - **Every new part is open to evolution.** A new module kind gets a mutation weight above zero, and whatever
   it names or counts gets a knob or an operator, so a run can reach it. If it is no use, selection drops it;
   leaving it out means nobody ever finds out.

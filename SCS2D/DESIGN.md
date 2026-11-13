@@ -65,7 +65,7 @@ inside any one file is not contiguous.
   core and neither gun nor engine is still a ship, so it is framed and drawn in its own colours, where asking
   whether it could fight drew a whole generation of engineless craft as wreckage and left them out of shot.
   Grey, and framed only with the hulks, is for a core that is out, or for a ship that set out with a gun or
-  an engine and has lost them all, or the stores to use them. A severed piece gets no arrowhead at all, nor does a grey ship under 150 t (`HULK_ICON_MASS`, below an intact Y-wing), which is framed with the wreckage too, so a dead swarm of fighters and torpedoes stops reading as a live one; nor does a ship riding another's hull, or a fighter parked on its pad. An arrowhead points the way its ship's core does, which is not always its body's way: a ship that has docked with another keeps the frame of the hull they shared. A blueprint editor on a second page of its own draws a layout
+  an engine and has lost them all, or the stores to use them. A severed piece gets no arrowhead at all, nor does a grey ship under 150 t (`HULK_ICON_MASS`, below an intact Y-wing), which is framed with the wreckage too, so a dead swarm of fighters and torpedoes stops reading as a live one; nor does a ship riding another's hull, or a fighter parked on its pad. An arrowhead points the way its ship's core does, which is not always its body's way: a ship that has docked with another keeps the frame of the hull they shared. A ship editor on a second page of its own draws a layout
   through that same renderer and reports what it bought: mass, inertia, the
   acceleration available in each direction — as figures, and as a pair of
   envelope curves separating what a layout can project from what it can use
@@ -818,7 +818,7 @@ inside any one file is not contiguous.
   rather than enforces what is wrong: hulls overlapping at the start, a design that would not fly, and an
   embedded design that has drifted from the library's copy of the same name, which one button brings up to
   date. Fleets are saved to browser storage and exported and imported as fleet files.
-  **A custom battle** on the viewer sets fleets — or single ships, as fleets of one — round a ring at a
+  **A custom battle** in the Simulator sets fleets — or single ships, as fleets of one — round a ring at a
   chosen range, closing and crossing speed, rotation and seed — each but the seed with a spread either side
   that the seed draws from, so a battle file can stand for a family of battles — saved and loaded as a
   battle file, and carried
@@ -1396,7 +1396,7 @@ inside any one file is not contiguous.
   a ship withdraws at `fleeArmed` of what it fights or works with, or with nothing to fight or work with
   while an armed enemy is about, hiding within `hideRange` or fleeing. The skirmish's rounds take orders
   too, for the player's ships, and can be wound back; its enemy still answers the fleet as doctrine flies
-  it, by a margin. For trying things out, the viewer can also add a ship from the library to any side
+  it, by a margin. For trying things out, the Simulator can also add a ship from the library to any side
   mid-battle (Add ship: press where it goes, drag for how fast), a sandbox tool no game mode offers. What
   is left of orders is in ROADMAP.md §12. Mining (step 15) is begun: wells move on rails, and an asteroid's
   `kernel`, an indestructible convex polygon on no side, rides one on a pinned body (the Kernels scene); round it
@@ -1580,7 +1580,7 @@ Rules:
   *loadout choice* rather than a hard immunity — hard immunities frustrate players. The mechanism
   under that, and the engine split that decides how thoroughly a stripped ship is disabled, are in
   ROADMAP.md §12.
-- A **turret module includes the bit of hull it mounts to**, so the blueprint editor stays a single
+- A **turret module includes the bit of hull it mounts to**, so the ship editor stays a single
   2D view and "is this shootable by guns" is a property of the module you picked.
 - **A weapon may be let into the hull instead of sitting on it.** A hull gun and a hull beam are a
   block with a barrel or a lens out of the front of it, and the block is the only part other modules
@@ -2265,7 +2265,7 @@ SCS2D/
   background tabs to roughly 1 Hz and stop `requestAnimationFrame`, so a main-thread sim freezes
   when its tab is minimised. In a worker it keeps running.
 - **Multi-window is nearly free** given that boundary — every window is a view subscribing to
-  snapshots. Blueprint editor on one monitor, battle on another, evolution graphs on a third.
+  snapshots. Ship editor on one monitor, battle on another, evolution graphs on a third.
   (Fall back to a dedicated worker plus leader election if `SharedWorker` support is a problem.)
 - **`SharedArrayBuffer` requires cross-origin isolation** (`COOP: same-origin`,
   `COEP: require-corp`). **GitHub Pages cannot set those headers**; Netlify, Cloudflare Pages and
@@ -2299,7 +2299,7 @@ SCS2D/
 
 ### Why TypeScript rather than Godot or Unity
 
-- The dominant cost in this game is **application UI** — blueprint editor, internals view, order
+- The dominant cost in this game is **application UI** — ship editor, internals view, order
   layer, doctrine config, fleet management, evolution graphs — with a real-time canvas in the
   middle. The web platform is the best UI toolchain available.
 - Distribution by URL. Sharing a link matters for a project whose goal includes showing people.
@@ -2420,7 +2420,7 @@ Seven things, and deliberately nothing more:
 5. **Single-command headless runs** — `pnpm battle scenarios/duel.json`. Re-entry from a cold
    checkout should be one command.
 6. **A `CLAUDE.md`** for this project.
-7. **A GitHub Pages deploy of the viewer**, published from `ci.yml` on green master. The point of it is
+7. **A GitHub Pages deploy of the app**, published from `ci.yml` on green master. The point of it is
    the URL: the game is something to open on a phone or hand to someone, rather than something that needs a
    checkout and a toolchain. It is also the only honest way to try the real thing — worker boundary, host
    lifecycle, touch input — on a device that is not the development machine.

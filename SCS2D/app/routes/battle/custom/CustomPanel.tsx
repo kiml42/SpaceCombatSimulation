@@ -84,7 +84,7 @@ export function CustomPanel({ slots, fields, onChange, onEdit, onFight, current,
     // The whole battle in the address, for whoever it is sent to.
     const copyLink = async (): Promise<void> => {
         const fragment = await battleFragment(setupOf(slots, fields), orders());
-        const href = new URL(`index.html#/battle?battle=${fragment.slice("#battle=".length)}`, window.location.href).href;
+        const href = new URL(`index.html#/simulator?battle=${fragment.slice("#battle=".length)}`, window.location.href).href;
         try {
             await navigator.clipboard.writeText(href);
             setLinked(true);

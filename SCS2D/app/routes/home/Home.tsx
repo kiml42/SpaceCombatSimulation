@@ -15,9 +15,9 @@ export interface PageLink {
 
 /** The free-play tools: no skirmish, no enemy answering back. */
 export const SANDBOX: readonly PageLink[] = [
-    { href: "#/battle", name: "Battle", purpose: "Set up any battle and watch it play out" },
+    { href: "#/simulator", name: "Simulator", purpose: "Set up any battle and watch it play out" },
     { href: "#/fleet", name: "Fleet editor", purpose: "Lay out a fleet of ships" },
-    { href: "#/ship", name: "Ship designer", purpose: "Design a ship, module by module" },
+    { href: "#/ship", name: "Ship editor", purpose: "Design a ship, module by module" },
 ];
 
 export const MORE: readonly PageLink[] = [

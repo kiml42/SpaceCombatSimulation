@@ -372,7 +372,7 @@ export function ShipPage() {
         <Main>
             <Bar>
                 <PauseMenu
-                    title="Ship designer"
+                    title="Ship editor"
                     actions={[{ id: "menuSave", label: "Save", onSelect: () => library.save(doc.blueprint) }]}
                     keys={KEYS}
                     // A ship opened from a fleet goes back through it, not the library.
@@ -525,15 +525,15 @@ export function ShipPage() {
                 {inFleet?.skirmish === undefined && (
                     <a
                         id="battleLink"
-                        href={`#/battle`}
-                        title="Try this in a custom battle"
+                        href="#/simulator"
+                        title="Try this design in the Simulator"
                         aria-disabled={broken !== undefined}
                         onClick={(event) => {
                             event.preventDefault();
                             if (!refuseBroken(event)) void navigate(battleRoute(shipFleet(doc.blueprint)));
                         }}
                     >
-                        Battle
+                        Test in Simulator
                     </a>
                 )}
                 {inFleet !== null && (

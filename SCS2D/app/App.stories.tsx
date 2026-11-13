@@ -91,7 +91,7 @@ export const LibraryEdit: Story = {
 export const LibraryTest: Story = {
     args: Library.args,
     play: async ({ canvas, canvasElement }) => {
-        await userEvent.click(canvas.getByRole("button", { name: "Test Probe" }));
+        await userEvent.click(canvas.getByRole("button", { name: "Test in Simulator: Probe" }));
         await waitFor(() => expect(canvasElement.querySelector("#fleetSlots option:checked")?.textContent).toMatch(/^Probe/));
     },
 };
@@ -104,7 +104,7 @@ export const NotFound: Story = {
 };
 
 export const Battle: Story = {
-    args: { path: "/battle" },
+    args: { path: "/simulator" },
     play: async ({ canvas }) => {
         const readout = canvas.getByLabelText("Battle time");
         await waitFor(() => expect(readout).toHaveTextContent(/step [1-9]/));
@@ -118,7 +118,7 @@ export const Battle: Story = {
 };
 
 export const CustomBattle: Story = {
-    args: { path: "/battle" },
+    args: { path: "/simulator" },
     play: async ({ canvas }) => {
         await userEvent.click(canvas.getByRole("button", { name: "Custom" }));
         const panel = canvas.getByRole("complementary", { name: "Custom battle" });

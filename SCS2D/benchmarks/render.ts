@@ -273,7 +273,7 @@ try {
                 await context.addInitScript({ content: INSTRUMENT });
                 const page = await context.newPage();
                 page.on("pageerror", (error) => console.error(`page error: ${error.message}`));
-                await page.goto(`${pathToFileURL(app.path).href}#/battle`);
+                await page.goto(`${pathToFileURL(app.path).href}#/simulator`);
                 gpu = await page.evaluate(() => {
                     const gl = document.createElement("canvas").getContext("webgl");
                     const info = gl?.getExtension("WEBGL_debug_renderer_info");
@@ -372,7 +372,7 @@ function summariseGecko(geckoProfile: string): void {
         p.processes?.forEach(walk);
     };
     walk(root);
-    // As "drawScene (file:///…/index.html#/battle:59138:19)[55]".
+    // As "drawScene (file:///…/index.html#/simulator:59138:19)[55]".
     const app = /^(.*) \(file:.*\/[^/]*\.html[^:]*:(\d+):\d+\)(\[\d+\])?$/;
     for (const span of geckoSpans) {
         let best: Map<string, number> | null = null;

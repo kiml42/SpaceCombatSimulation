@@ -10,7 +10,7 @@ The Unity project in `../SpaceCombatSimulation/` is a 2017–2021 prototype, arc
 
 ## Playing it without a checkout
 
-Every green build of `master` publishes the viewer to GitHub Pages, so the current battle is one link away —
+Every green build of `master` publishes the app to GitHub Pages, so the current battle is one link away —
 no clone, no toolchain, and it works on a phone. The URL is on the repository's Pages settings, and under the
 `Publish to Pages` job of any CI run on master. [QUICKSTART.md](QUICKSTART.md) is a player's guide to the
 skirmish, for handing to anyone trying it.
@@ -28,7 +28,7 @@ pnpm install
 pnpm build
 ```
 
-Then open `dist/index.html` in a browser: the React app, with the battle viewer, the ship and fleet
+Then open `dist/index.html` in a browser: the React app, with the Simulator, the ship and fleet
 editors, the skirmish and evolution. It is one self-contained file, so there is no server to run and nothing
 external to fetch: double-clicking it works.
 
@@ -61,7 +61,7 @@ Almost everything worth changing is in one of these:
 | Colours, plumes, firing arcs | `render/canvas2d.ts` |
 | How the camera follows | `render/camera.ts` |
 | The clock, the camera and the keys | `host/battleView.ts` |
-| The viewer's controls | `app/routes/battle/` |
+| The Simulator's controls | `app/routes/battle/` |
 
 **Expect the golden tests to fail the moment you change anything in `sim/` or `scenarios/`.** That is them
 working: they pin the simulation's behaviour bit-for-bit, and a change in what a battle does is exactly what
