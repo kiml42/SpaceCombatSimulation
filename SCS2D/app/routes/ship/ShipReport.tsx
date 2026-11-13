@@ -1,9 +1,8 @@
 import { styled } from "@linaria/react";
 import type { EditorDocument } from "~/editor/document";
-import { attackBearings, doctrineBand } from "~/editor/preview";
 import { buildTime, designStats, megajoules, megawatts, type Envelopes } from "~/editor/stats";
-import { inReachDesign, radiansToDegrees } from "~/sim/index";
-import { controlReadout, numbers, reachWarnings } from "./shipFields";
+import { inReachDesign, moduleOutline, radiansToDegrees, type ShipDesign } from "~/sim/index";
+import { numbers, reachWarnings } from "./shipFields";
 
 export const Figures = styled.table`
     width: 100%;
@@ -21,6 +20,11 @@ export const Figures = styled.table`
         padding: 0.1rem 0;
         color: var(--colour-heading);
         text-align: right;
+    }
+
+    /* A part of the row above: its fuel and metal under the mass. */
+    tr.sub th {
+        padding-left: 1rem;
     }
 `;
 
@@ -49,7 +53,7 @@ const Warn = styled.div`
 `;
 
 const Note = styled.div`
-    color: var(--colour-faint);
+    color: var(--colour-muted);
 
     p {
         margin: 0.4rem 0 0;
@@ -66,7 +70,63 @@ const None = styled.p`
     color: var(--colour-muted);
 `;
 
-/** What the ship works out to: its mass, cost, endurance, power, handling and how it means to fight. */
+/** Above this share of its push given up to stop it spinning, a layout's balance is worth a warning. */
+const HEADING_COST_WARNING = 0.25;
+
+/** How long and wide the hull is along its bow and across it, metres. */
+function extent(design: ShipDesign): { length: number; width: number } {
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    const corners: number[] = [];
+    for (const module of design.modules) {
+        const count = moduleOutline(module.spec, corners);
+        for (let k = 0; k < count * 2; k += 2) {
+            minX = Math.min(minX, corners[k]!);
+            maxX = Math.max(maxX, corners[k]!);
+            minY = Math.min(minY, corners[k + 1]!);
+            maxY = Math.max(maxY, corners[k + 1]!);
+        }
+    }
+    return maxX >= minX ? { length: maxX - minX, width: maxY - minY } : { length: 0, width: 0 };
+}
+
+type Row = readonly [name: string, value: string, sub?: boolean];
+
+function Rows({ rows }: { readonly rows: readonly Row[] }) {
+    return (
+        <Figures>
+            <tbody>
+                {rows.map(([name, value, sub]) => (
+                    <tr key={name} className={sub === true ? "sub" : undefined}>
+                        <th>{name}</th>
+                        <td>{value}</td>
+                    </tr>
+                ))}
+            </tbody>
+        </Figures>
+    );
+}
+
+/** The ship's figures, short enough to keep each on one line. */
+const Stats = styled.div`
+    th,
+    td {
+        white-space: nowrap;
+    }
+`;
+
+const More = styled.details`
+    margin-top: 0.4rem;
+
+    > summary {
+        color: var(--colour-muted);
+        cursor: pointer;
+    }
+`;
+
+/** What the ship works out to, the figures a design is judged by first and the rest folded away. */
 export function ShipStats({ doc, envelope }: { readonly doc: EditorDocument; readonly envelope: Envelopes | null }) {
     const design = doc.view.design;
     if (design === null || envelope === null) {
@@ -77,77 +137,59 @@ export function ShipStats({ doc, envelope }: { readonly doc: EditorDocument; rea
         );
     }
     const s = designStats(inReachDesign(design), envelope);
-    const band = doctrineBand(design);
-    const rows: [string, string][] = [
-        ["Mass", `${numbers(s.mass / 1000, 2)} t, ${numbers(s.fuel / 1000, 2)} t of it fuel and ${numbers(s.metal / 1000, 2)} t metal`],
-        [
-            "Cost",
-            `${numbers(s.bill.metal / 1000, 2)} t of metal, ${numbers(s.bill.fuel / 1000, 2)} t of fuel and ${buildTime(s.bill.build)} for one robot to build` +
-                ((design.aboard?.length ?? 0) > 0 ? ", with the fighters it sets out with" : ""),
-        ],
-        [
-            "Endurance",
-            Number.isFinite(s.endurance) ? `${numbers(s.endurance, 0)} s flat out, ${numbers(s.deltaV, 0)} m/s of Δv` : "no engines",
-        ],
-        [
-            "Power",
-            s.generation > 0 || s.storage > 0
-                ? `${megawatts(s.generation)} generated, ${megajoules(s.storageAtStart)} stored` +
-                  (s.storageAtStart < s.storage ? ` of ${megajoules(s.storage)}` : "") +
-                  (s.discharge > 0 ? `, given out at up to ${megawatts(s.discharge)}` : "") +
-                  (s.beamDraw > 0 ? `; its beams draw ${megawatts(s.beamDraw)} firing flat out` : "")
-                : "no generators or batteries",
-        ],
-        [
-            "Ammunition",
-            s.mainRounds === null
-                ? "no guns that fire rounds"
-                : `${numbers(s.mainRounds.rounds, 0)} rounds of its ${numbers(s.mainRounds.roundMass, 1)} kg main gun`,
-        ],
+    const size = extent(design);
+    const turn = (rate: number): string => numbers(radiansToDegrees(rate), 1);
+    const main: Row[] = [
+        ["Mass", `${numbers(s.mass / 1000, 1)} t`],
+        ["fuel", `${numbers(s.fuel / 1000, 1)} t`, true],
+        ["hold metal", `${numbers(s.metal / 1000, 1)} t`, true],
+        ["Build", buildTime(s.bill.build)],
+        ["Burn", Number.isFinite(s.endurance) ? `${numbers(s.endurance, 0)} s` : "no engines"],
+        ["Δv", `${(s.deltaV / 1000).toFixed(1)} km/s`],
+        ["Rounds", s.mainRounds === null ? "none" : `${numbers(s.mainRounds.rounds, 0)} × ${numbers(s.mainRounds.roundMass, 1)} kg`],
+        ["Power", megawatts(s.generation)],
+        ["Stored", megajoules(s.storageAtStart)],
+        ["Turn L / R", `${turn(s.turnLeft)} / ${turn(s.turnRight)} °/s²`],
+    ];
+    const more: Row[] = [
         ["Inertia", `${numbers(s.inertia / 1000, 0)} t·m²`],
-        ["Modules", `${s.moduleCount} (${s.engineCount} engines)`],
-        ["Control", controlReadout(design)],
-        ["Radius", `${numbers(s.radius)} m`],
-        ["Accel fore / aft", `${numbers(s.accelFore, 2)} / ${numbers(s.accelAft, 2)} m/s²`],
-        ["Accel port / stbd", `${numbers(s.accelPort, 2)} / ${numbers(s.accelStarboard, 2)} m/s²`],
-        ["Turn left / right", `${numbers(radiansToDegrees(s.turnLeft), 2)} / ${numbers(radiansToDegrees(s.turnRight), 2)} °/s²`],
-        ["Authority", s.fullAuthority ? "full" : "incomplete — cannot hold a heading"],
-        // What a layout pays for its thrust not being balanced about its centre
-        // of mass: the acceleration it gives up to avoid spinning. The envelope
-        // shows which directions it is paid in.
-        ["Heading cost", s.headingCost < 0.005 ? "none — thrust is balanced" : `up to ${numbers(s.headingCost * 100)}%`],
-        // No turret rows: a gun's figures belong to the gun, and selecting it shows them.
-        ["Turrets", `${s.turrets.length}`],
-        // Against the enemy its own doctrine wants, as the band drawn round it is.
-        ["Closes to", `${numbers(band.min, 0)}–${numbers(band.max, 0)} m, centre to centre`],
-        // Positive is to port, as every bearing in the body frame is.
-        [
-            "Fights with target at",
-            attackBearings(design)
-                .map((r) => `${numbers(radiansToDegrees(r.bearing), 0)}° (${r.guns} of ${r.total} main guns)`)
-                .join(", "),
-        ],
+        ["Modules", `${s.moduleCount}`],
+        ["engines", `${s.engineCount}`, true],
+        ["weapons", `${s.turrets.length}`, true],
+        ["Size L × W", `${numbers(size.length, 1)} × ${numbers(size.width, 1)} m`],
+        ["Radius", `${numbers(s.radius, 1)} m`],
+        ["Accel F / A", `${numbers(s.accelFore, 2)} / ${numbers(s.accelAft, 2)} m/s²`],
+        ["Accel P / S", `${numbers(s.accelPort, 2)} / ${numbers(s.accelStarboard, 2)} m/s²`],
     ];
     return (
-        <div id="stats">
-            <Figures>
-                <tbody>
-                    {rows.map(([name, value]) => (
-                        <tr key={name}>
-                            <th>{name}</th>
-                            <td>{value}</td>
-                        </tr>
-                    ))}
-                </tbody>
-            </Figures>
-        </div>
+        <Stats id="stats">
+            <Rows rows={main} />
+            <More id="moreStats">
+                <summary>More</summary>
+                <Rows rows={more} />
+            </More>
+        </Stats>
     );
 }
 
+/** What flies but flies badly: no way to hold a heading, or a balance that costs much of its push. */
+function handlingWarnings(design: ShipDesign | null, envelope: Envelopes | null): string[] {
+    if (design === null || envelope === null) return [];
+    const s = designStats(inReachDesign(design), envelope);
+    const out: string[] = [];
+    if (!s.fullAuthority) out.push("its engines cannot push and turn it every way, so it cannot hold a heading while it moves");
+    if (s.headingCost > HEADING_COST_WARNING) {
+        out.push(
+            `its thrust is off its centre of mass: pushing some ways it gives up to ${numbers(s.headingCost * 100, 0)}% of its push to hold its heading`,
+        );
+    }
+    return out;
+}
+
 /** What is wrong with the layout, listed rather than refused; what flies but does nothing; and what a file carried that nothing reads. */
-export function ShipProblems({ doc }: { readonly doc: EditorDocument }) {
+export function ShipProblems({ doc, envelope }: { readonly doc: EditorDocument; readonly envelope: Envelopes | null }) {
     const { problems, warnings, design } = doc.view;
-    const reach = reachWarnings(design);
+    const reach = [...reachWarnings(design), ...handlingWarnings(design, envelope)];
     return (
         <div id="problems">
             {problems.length === 0 ? (
