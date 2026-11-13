@@ -131,6 +131,12 @@ const MenuField = styled.label`
     color: var(--colour-muted);
 `;
 
+const Naming = styled.section`
+    > input {
+        width: 100%;
+    }
+`;
+
 /** The ways to add a ship: a new design first, across the panel, as the one to reach for. */
 const Adding = styled.section`
     display: grid;
@@ -363,6 +369,16 @@ export function FleetPage() {
                                           edited();
                                       },
                                   },
+                              ]
+                            : []),
+                        {
+                            id: "saveFleet",
+                            label: "Save to Library",
+                            title: "Keep this fleet in the Library, to open or fight with later",
+                            onSelect: () => fleets.save(doc.fleet),
+                        },
+                        ...(skirmish === null
+                            ? [
                                   {
                                       id: "deleteFleet",
                                       label: "Delete saved copy",
@@ -426,21 +442,6 @@ export function FleetPage() {
                         <LibraryOptions entries={entries} />
                     </select>
                 )}
-                <CommitText
-                    id="fleetName"
-                    aria-label="Fleet name"
-                    size={12}
-                    title="The fleet's name, which is its identity"
-                    value={name}
-                    onCommit={(typed) => {
-                        const next = typed.trim();
-                        if (next === "" || next === name) return edited();
-                        apply({ ...doc.fleet, name: next });
-                    }}
-                />
-                <Button id="saveFleet" onClick={() => fleets.save(doc.fleet)}>
-                    Save
-                </Button>
                 <input
                     id="importFleet"
                     type="file"
@@ -537,6 +538,21 @@ export function FleetPage() {
                 />
                 <Panel>
                     {now !== null && <SkirmishTitle skirmish={now} />}
+                    <Naming>
+                        <h2>
+                            <label htmlFor="fleetName">Fleet name</label>
+                        </h2>
+                        <CommitText
+                            id="fleetName"
+                            title="The fleet's name, which is its identity"
+                            value={name}
+                            onCommit={(typed) => {
+                                const next = typed.trim();
+                                if (next === "" || next === name) return edited();
+                                apply({ ...doc.fleet, name: next });
+                            }}
+                        />
+                    </Naming>
                     {doc.fleet.ships.length > 0 && (
                         <section>
                             <h2>Designs</h2>
