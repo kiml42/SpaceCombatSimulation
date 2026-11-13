@@ -24,7 +24,7 @@ import { designOf, fromLibrary } from "./fleetOptions";
 import { LibraryOptions } from "./LibraryOptions";
 import { DesignList, FleetProblems, FleetStats } from "./FleetReport";
 import { SelectionPanel } from "./SelectionPanel";
-import { SkirmishCard, skirmishBlock } from "./SkirmishCard";
+import { skirmishBlock, SkirmishBudget, SkirmishCards, SkirmishTitle } from "./SkirmishCard";
 import { Button } from "~/ui/buttons/Button";
 import { PauseMenu } from "~/features/menu/PauseMenu";
 
@@ -119,7 +119,9 @@ const Panel = styled.aside`
         text-transform: uppercase;
     }
 
-    > section:first-child > h2:first-child {
+    /* The first section's heading starts the panel, or follows a skirmish's heading closely. */
+    > section:first-child > h2:first-child,
+    > h2:first-child + section > h2:first-child {
         margin-top: 0;
     }
 
@@ -466,13 +468,7 @@ export function FleetPage() {
                     }}
                 />
                 <Panel>
-                    {now !== null && (
-                        <SkirmishCard
-                            skirmish={now}
-                            flies={flies}
-                            onPick={(id) => setSkirmish((was) => (was === null ? was : pick(was, id)))}
-                        />
-                    )}
+                    {now !== null && <SkirmishTitle skirmish={now} />}
                     {doc.fleet.ships.length > 0 && (
                         <section>
                             <h2>Designs</h2>
@@ -520,12 +516,17 @@ export function FleetPage() {
                         onLeave={keep}
                         onChanged={edited}
                     />
-                    {/* In a skirmish the budget says all this does that matters. */}
-                    {now === null && (
+                    {/* In a skirmish the budget says all the totals do that matters. */}
+                    {now === null ? (
                         <section>
                             <h2>What it works out to</h2>
                             <FleetStats view={view} />
                         </section>
+                    ) : (
+                        <>
+                            <SkirmishBudget skirmish={now} flies={flies} />
+                            <SkirmishCards skirmish={now} onPick={(id) => setSkirmish((was) => (was === null ? was : pick(was, id)))} />
+                        </>
                     )}
                     <section>
                         <h2>Problems</h2>

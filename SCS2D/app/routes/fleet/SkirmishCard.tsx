@@ -45,23 +45,29 @@ const Pick = styled.div`
     }
 `;
 
-/**
- * The skirmish round this fleet is the player's in: what it costs against the
- * budget, the upgrade cards held, a hand to pick from, and whether it may fight.
- */
-export function SkirmishCard({
-    skirmish,
-    flies,
-    onPick,
-}: {
-    readonly skirmish: Skirmish;
-    readonly flies: boolean;
-    readonly onPick: (id: string) => void;
-}) {
+/** The sidebar's heading in a skirmish: which round the fleet is being made for. */
+export function SkirmishTitle({ skirmish }: { readonly skirmish: Skirmish }) {
+    return <Title id="skirmishTitle">{`Skirmish — round ${skirmish.round}`}</Title>;
+}
+
+/** What the fleet costs against the skirmish's budget, and what stops it fighting, if anything does. */
+export function SkirmishBudget({ skirmish, flies }: { readonly skirmish: Skirmish; readonly flies: boolean }) {
     const block = skirmishBlock(skirmish, flies);
     return (
         <section id="skirmish">
-            <Title id="skirmishTitle">{`Skirmish — round ${skirmish.round}`}</Title>
+            <h2>Budget</h2>
+            <BudgetTable id="skirmishBudget" skirmish={skirmish} />
+            {/* An empty fleet is the problems list's to say. */}
+            {block !== null && skirmish.player.ships.length > 0 && <Note id="skirmishNote">{block}</Note>}
+        </section>
+    );
+}
+
+/** The upgrade cards held, and a hand to pick one from when one is dealt. */
+export function SkirmishCards({ skirmish, onPick }: { readonly skirmish: Skirmish; readonly onPick: (id: string) => void }) {
+    return (
+        <section id="upgradeCards">
+            <h2>Upgrade cards</h2>
             {skirmish.hand !== undefined && (
                 <Pick>
                     <h3>Pick an upgrade card</h3>
@@ -69,11 +75,7 @@ export function SkirmishCard({
                     <CardPick hand={skirmish.hand} onPick={onPick} />
                 </Pick>
             )}
-            <BudgetTable id="skirmishBudget" skirmish={skirmish} />
-            <h2>Upgrade cards</h2>
             <CardHand id="heldCards" ids={skirmish.cards ?? []} empty="None yet" />
-            {/* An empty fleet is the problems list's to say; there is nothing to fight with yet. */}
-            {skirmish.player.ships.length > 0 && <Note id="skirmishNote">{block ?? `Against ${skirmish.enemy.name}.`}</Note>}
         </section>
     );
 }
