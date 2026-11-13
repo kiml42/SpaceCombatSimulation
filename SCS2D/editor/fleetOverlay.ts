@@ -19,10 +19,13 @@ const FAULT_FILL = "rgba(255, 107, 94, 0.32)";
 const FAULT_LINE = "rgba(255, 107, 94, 0.8)";
 const SPREAD = "#7f93aa99";
 const HANDLE_EDGE = "#1b1f27";
-const FORWARD = "#7fd6a0";
+const FORWARD = "#7f93aa55";
 const LABEL = "#7f93aa";
 const LINE_PX = 1.5;
 const FORWARD_PX = 40;
+const FORWARD_LINE_PX = 4;
+/** The ring at the formation's centre, the arrow's root. */
+const CENTRE_PX = 7;
 /** Below this on screen a hull outline is lost, so a ring is drawn round it too. */
 const RING_PX = 10;
 
@@ -55,6 +58,8 @@ export function knobFor(x: number, y: number, angle: number, reach: number, scal
 
 export function drawFleetOverlay(ctx: CanvasRenderingContext2D, view: FleetOverlayView, camera: Camera, heightPx: number): void {
     const px = 1 / camera.scale;
+    // Under the rest, which marks what is being worked on.
+    drawForward(ctx, px);
 
     if (view.spread !== null) {
         ctx.save();
@@ -122,23 +127,29 @@ export function drawFleetOverlay(ctx: CanvasRenderingContext2D, view: FleetOverl
         ctx.stroke();
     }
 
-    // The fleet's own +x, which is the way it will face the enemy.
-    const len = FORWARD_PX * px;
-    ctx.strokeStyle = FORWARD;
-    ctx.lineWidth = LINE_PX * px;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(len, 0);
-    ctx.moveTo(len * 0.75, len * 0.15);
-    ctx.lineTo(len, 0);
-    ctx.lineTo(len * 0.75, -len * 0.15);
-    ctx.stroke();
-
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = LABEL;
     ctx.font = "11px ui-monospace, monospace";
     ctx.textAlign = "left";
     ctx.fillText(`snaps to ${describeStep(snapStep(camera.scale))} · arrow is forward`, 16, heightPx - 16);
+}
+
+/** The formation's centre, ringed, and an arrow from it along the fleet's own +x, the way it will face the enemy. */
+function drawForward(ctx: CanvasRenderingContext2D, px: number): void {
+    const len = FORWARD_PX * px;
+    const root = CENTRE_PX * px;
+    ctx.strokeStyle = FORWARD;
+    ctx.lineWidth = FORWARD_LINE_PX * px;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.arc(0, 0, root, 0, TAU);
+    ctx.moveTo(root, 0);
+    ctx.lineTo(len, 0);
+    ctx.moveTo(len * 0.75, len * 0.15);
+    ctx.lineTo(len, 0);
+    ctx.lineTo(len * 0.75, -len * 0.15);
+    ctx.stroke();
+    ctx.lineCap = "butt";
 }
 
 /** A ring round a ship too small on screen to see outlined, filled or stroked in the current style. */

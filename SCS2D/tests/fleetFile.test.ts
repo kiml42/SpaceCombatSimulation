@@ -168,19 +168,22 @@ describe("flattening a fleet", () => {
         expect(ships[7]).toMatchObject({ x: -100, y: 40 });
     });
 
-    it("steps each copy of a repeat from the one before, in its own frame", () => {
+    it("steps each copy of a repeat from the one before, in its own frame, the middle where the entry stands", () => {
         const arc = expandFleet(
             parseFleet(file({ ships: [{ design: "Dinky", x: 0, y: 0, repeat: 3, step: { x: 10, y: 0, angle: 90 } }] })),
         );
         expect(arc.map((s) => s.path)).toEqual(["Dinky#1", "Dinky#2", "Dinky#3"]);
-        expect(arc[1]).toMatchObject({ x: 10, y: 0 });
+        expect(arc[0]!.x).toBeCloseTo(0, 9);
+        expect(arc[0]!.y).toBeCloseTo(10, 9);
+        expect(arc[0]!.angle).toBeCloseTo(-math.PI / 2, 9);
+        expect(arc[1]).toMatchObject({ x: 0, y: 0, angle: 0 });
         expect(arc[2]!.x).toBeCloseTo(10, 9);
-        expect(arc[2]!.y).toBeCloseTo(10, 9);
-        expect(arc[2]!.angle).toBeCloseTo(math.PI, 9);
+        expect(arc[2]!.y).toBeCloseTo(0, 9);
+        expect(arc[2]!.angle).toBeCloseTo(math.PI / 2, 9);
         expect(arc[2]!.trail.map((step) => step.copy)).toEqual([2]);
     });
 
-    it("runs a mirrored group’s repeat the other way", () => {
+    it("runs a mirrored group’s repeat the other way, half a step either side for two", () => {
         const rows = expandFleet(
             parseFleet(
                 file({
@@ -189,6 +192,9 @@ describe("flattening a fleet", () => {
                 }),
             ),
         );
-        expect(rows[1]).toMatchObject({ x: 0, y: -30 });
+        expect(rows.map((ship) => [ship.x, ship.y])).toEqual([
+            [0, 15],
+            [0, -15],
+        ]);
     });
 });

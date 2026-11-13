@@ -5,6 +5,7 @@ import {
     padReached,
     renamePadFighter,
     sameBlueprint,
+    stepsOf,
     type Blueprint,
     type Fleet,
     type FleetEntry,
@@ -273,7 +274,16 @@ export function dissolveGroup(fleet: Fleet, path: EntryPath): { fleet: Fleet; pa
     let x = use.x;
     let y = use.y;
     let angle = use.angle ?? 0;
-    for (let copy = 0; copy < (use.repeat ?? 1); copy++) {
+    const copies = use.repeat ?? 1;
+    if (copies > 1 && use.step !== undefined) {
+        // The row stands either side of the use's position, as the fleet is expanded.
+        const back = stepsOf(use.step, -(copies - 1) / 2, flipped);
+        const [bc, bs] = exactTurn(angle);
+        x += back.x * bc - back.y * bs;
+        y += back.x * bs + back.y * bc;
+        angle = foldAngle(angle + back.angle);
+    }
+    for (let copy = 0; copy < copies; copy++) {
         // As the fleet is expanded: reflect, then turn, then move.
         const [c, s] = exactTurn(angle);
         for (const inner of group.ships) {
@@ -347,11 +357,8 @@ function foldAngle(angle: number): number {
 }
 
 /**
- * An entry repeated `copies` times, moved so the middle of its row or arc
- * stays where it was: one copy to three puts one either side of the first,
- * and one to two moves the first back by half a step, which keeps a fleet
- * symmetrical and its spread no wider than it need be. `step` is used where
- * the entry has none yet.
+ * An entry repeated `copies` times. Its copies stand either side of its
+ * position, so that stays put; `step` is used where the entry has none yet.
  */
 export function withCopies(entry: FleetEntry, copies: number, step: FleetStep): FleetEntry {
     const next = { ...entry };
@@ -360,34 +367,5 @@ export function withCopies(entry: FleetEntry, copies: number, step: FleetStep): 
         next.repeat = copies;
         next.step ??= step;
     }
-    const was = middleOf(entry, entry.repeat ?? 1, entry.step ?? step);
-    const now = middleOf(next, next.repeat ?? 1, next.step ?? step);
-    next.x = entry.x + was.x - now.x;
-    next.y = entry.y + was.y - now.y;
     return next;
-}
-
-/**
- * The middle of an entry's copies, from where the first stands, in the frame
- * its position is written in: each copy a step on from the last in its own
- * frame, as `place` lays them out, a mirrored group stepping the other way.
- */
-function middleOf(entry: FleetEntry, copies: number, step: FleetStep): { x: number; y: number } {
-    const flip = isGroupUse(entry) && entry.mirror === true;
-    const stepY = flip ? -step.y : step.y;
-    const turn = flip ? -(step.angle ?? 0) : (step.angle ?? 0);
-    let x = 0;
-    let y = 0;
-    let angle = entry.angle ?? 0;
-    let sumX = 0;
-    let sumY = 0;
-    for (let copy = 0; copy < copies; copy++) {
-        sumX += x;
-        sumY += y;
-        const [c, s] = exactTurn(angle);
-        x += step.x * c - stepY * s;
-        y += step.x * s + stepY * c;
-        angle += turn;
-    }
-    return { x: sumX / copies, y: sumY / copies };
 }

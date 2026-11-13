@@ -237,7 +237,6 @@ export function SelectionPanel({ doc, scale, ships, library, designHref, onLeave
                             "repeatCount",
                             entry.repeat ?? 1,
                             (count, e) =>
-                                // Kept centred where the copies stood, so the formation stays symmetrical.
                                 withCopies(e, Math.max(1, Math.min(MAX_FLEET_REPEAT, Math.round(count))), {
                                     x: 0,
                                     y: defaultStep(),

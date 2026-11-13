@@ -145,12 +145,15 @@ describe("editing a fleet", () => {
         expect(fewer.designs["Dinky"]).toBeUndefined();
     });
 
-    it("keeps a repeat as a setting on the entry", () => {
+    it("keeps a repeat as a setting on the entry, its copies either side", () => {
         const fleet = updateEntry(addShip(emptyFleet("F"), DINKY, 0, 0), [0], (e) => ({ ...e, repeat: 3, step: { x: 0, y: 20 } }));
         const doc = new FleetDocument(fleet, noLibrary);
-        expect(doc.view.ships.map((s) => s.y)).toEqual([0, 20, 40]);
+        expect(doc.view.ships.map((s) => s.y)).toEqual([-20, 0, 20]);
         doc.apply(updateEntry(doc.fleet, [0], (e) => ({ ...e, step: { x: 0, y: 30 } })));
-        expect(doc.view.ships.map((s) => s.y)).toEqual([0, 30, 60]);
+        expect(doc.view.ships.map((s) => s.y)).toEqual([-30, 0, 30]);
+        // Turned and moved from its middle, whichever copy is picked.
+        doc.select([[0]], 2);
+        expect(doc.frameOf([0])).toMatchObject({ x: 0, y: 0, angle: 0 });
         // Every copy picks the one entry.
         expect(doc.resolveClick(2)).toEqual([0]);
     });

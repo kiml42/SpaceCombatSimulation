@@ -43,7 +43,11 @@ interface Placed {
     y: number;
     /** Radians here, degrees in the file. */
     angle?: number;
-    /** Copies in a row or an arc, one `step` apart. One when absent. */
+    /**
+     * Copies in a row or an arc, one `step` apart, either side of where the entry
+     * stands: the middle copy there for an odd count, the middle two half a step
+     * either side of it for an even one. One when absent.
+     */
     repeat?: number;
     /** From each copy to the next, in that copy's own frame, as an assembly's step is. */
     step?: FleetStep;
@@ -179,6 +183,14 @@ function place(
         const copies = entry.repeat ?? 1;
         if (copies > MAX_FLEET_REPEAT) throw new Error(`${fleet.name}: ${name} asks for ${copies} copies, more than ${MAX_FLEET_REPEAT}`);
 
+        if (copies > 1 && entry.step !== undefined) {
+            const back = stepsOf(entry.step, -(copies - 1) / 2, flipped);
+            const [bc, bs] = exactTurn(angle);
+            x += back.x * bc - back.y * bs;
+            y += back.x * bs + back.y * bc;
+            angle = foldAngle(angle + back.angle);
+        }
+
         for (let copy = 0; copy < copies; copy++) {
             const count = (seen.get(name) ?? 0) + 1;
             seen.set(name, count);
@@ -218,6 +230,25 @@ function place(
             angle = foldAngle(angle + (flipped ? -stepAngle : stepAngle));
         }
     }
+}
+
+/**
+ * Where `times` steps take a copy, in its own frame: a step is a turn about a
+ * fixed point (or a slide, with no turn), so a fraction of one turns by that
+ * fraction about the same point. Negative goes back; a mirrored row's step is
+ * reflected.
+ */
+export function stepsOf(step: FleetStep, times: number, flipped: boolean): { x: number; y: number; angle: number } {
+    const sy = flipped ? -step.y : step.y;
+    const turn = flipped ? -(step.angle ?? 0) : (step.angle ?? 0);
+    const [c, s] = exactTurn(turn);
+    const det = 2 - 2 * c;
+    if (det < 1e-12) return { x: step.x * times, y: sy * times, angle: turn * times };
+    // The point the step turns about, then a turn of `times` as much about it.
+    const px = ((1 - c) * step.x - s * sy) / det;
+    const py = (s * step.x + (1 - c) * sy) / det;
+    const [tc, ts] = exactTurn(turn * times);
+    return { x: (1 - tc) * px + ts * py, y: -ts * px + (1 - tc) * py, angle: turn * times };
 }
 
 /**
