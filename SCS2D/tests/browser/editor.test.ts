@@ -583,7 +583,8 @@ describe("the editor in a browser", () => {
         await page.keyboard.press("Escape");
         await page.waitForTimeout(1200);
         expect(await warmth()).toBeLessThan(burning / 2);
-    });
+        // Three pictures of the view, which software WebGL on CI takes most of the default allowance to give.
+    }, 60_000);
 
     it("swaps a module for another kind, keeping the way it faces", async () => {
         await fromMenu(page, "#newShip");
