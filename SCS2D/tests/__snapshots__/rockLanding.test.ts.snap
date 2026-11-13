@@ -36,17 +36,17 @@ exports[`Rock Landing > Raider,  one way, spins [4, 7, 10] 1`] = `
 
 exports[`Rock Landing > Raider, no main [2, 4] 1`] = `
 {
-  "bumps": 10,
-  "crashes": 7,
+  "bumps": 2,
+  "crashes": 3,
   "landed": [
     "not by 150 s",
-    "89.25 s",
-    "149.37 s",
+    "89.20 s",
+    "133.62 s",
     "81.27 s",
     "not by 150 s",
     "not by 150 s",
     "not by 150 s",
-    "not by 150 s",
+    "83.17 s",
   ],
 }
 `;

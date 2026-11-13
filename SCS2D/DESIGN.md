@@ -1727,7 +1727,7 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   where their faces touch — a face of one along a face of the other, for at least `WELD_SHARE` (a tenth)
   of the shorter of the two, never at a corner and never between faces out of parallel, boxes as much as
   a triangle or a rock's wedge — and the weld is worth its section — the contact by the thinner wall
-  meeting there — rated as an impulse, and scaled by the shallower module's depth against a deck's, so
+  meeting there — rated as an impulse, and scaled by the shallower module's depth against a metre (`WELD_DEPTH`), so
   a weld goes by the area in contact and a part hung by a sliver, or a thin one, comes away first. **Damage weakens a weld; a blow parts it**, and the load through a weld
   is the impulse that has to cross it: the far side's mass by the velocity change there. A weld cut
   through its section by rounds passing along it parts with no blow at all, since a cut weld is not a
