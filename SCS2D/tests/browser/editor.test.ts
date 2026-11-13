@@ -286,7 +286,7 @@ describe("the editor in a browser", () => {
         // is also the check that the allocator ran without throwing on load.
         const problems = (await page.textContent("#problems")) ?? "";
         expect(problems).toMatch(/No problems/);
-        expect(problems).toMatch(/gives up to \d+% of its push to stop itself spinning/);
+        expect(problems).toMatch(/gives up to \d+% of its push to hold its heading/);
     });
 
     it("selects the module under the pointer", async () => {

@@ -180,7 +180,7 @@ function handlingWarnings(design: ShipDesign | null, envelope: Envelopes | null)
     if (!s.fullAuthority) out.push("its engines cannot push and turn it every way, so it cannot hold a heading while it moves");
     if (s.headingCost > HEADING_COST_WARNING) {
         out.push(
-            `its thrust is off its centre of mass: pushing some ways it gives up to ${numbers(s.headingCost * 100, 0)}% of its push to stop itself spinning`,
+            `its thrust is off its centre of mass: pushing some ways it gives up to ${numbers(s.headingCost * 100, 0)}% of its push to hold its heading`,
         );
     }
     return out;
