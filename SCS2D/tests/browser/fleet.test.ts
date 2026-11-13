@@ -221,6 +221,7 @@ describe("the fleet editor in a browser", () => {
     it("saves a fleet to browser storage as a fleet file", async () => {
         await page.fill("#fleetName", "Saved Fleet");
         await page.press("#fleetName", "Enter");
+        await page.click("#menuButton");
         await page.click("#saveFleet");
         const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("scs2d.fleet.Saved Fleet") ?? "null"));
         expect(saved?.formatVersion).toBe(1);
@@ -267,11 +268,13 @@ describe("the fleet editor in a browser", () => {
 
     it("starts a new design from New ship, highlighted while the fleet is empty, and places it", async () => {
         await page.goto(fleetRoute());
+        await page.click("#menuButton");
         await page.click("#newFleet");
         expect(await page.getAttribute("#newDesign", "data-variant")).toBe("primary");
         // Empty, it has no designs to list, and having no ships is a problem.
         expect(await page.locator("#designList").count()).toBe(0);
         expect(await page.textContent("#problems")).toContain("The fleet has no ships");
+        expect(await page.textContent("#canvasHint")).toContain("Add new ship");
         await page.click("#newDesign");
         await page.waitForURL(/#\/ship\?design=/);
         expect(await page.inputValue("#shipName")).toBe("Ship 1");
@@ -283,16 +286,33 @@ describe("the fleet editor in a browser", () => {
         await page.click("#backToFleet");
         await page.waitForURL(/index\.html#\/fleet\?fleet=/);
         await page.locator('#designList a[data-design="Ship 1"]').waitFor();
+        expect(await page.locator("#canvasHint").count()).toBe(0);
+        // Another of a design, from its row, beside the first.
+        await page.click('[data-add-one="Ship 1"]');
+        expect(await page.textContent("#designList")).toContain("2 at start");
+        expect(await page.textContent("#problems")).not.toContain("overlap");
         expect(await page.getAttribute("#newDesign", "data-variant")).toBe("plain");
         expect(problems).toEqual([]);
     });
 
     it("places each ship added beside the others rather than on top of them", async () => {
         await page.goto(fleetRoute());
+        await page.click("#menuButton");
         await page.click("#newFleet");
+        // The hint sits under the fleet's origin, and moves with it.
+        const hint = async (): Promise<number> => (await page.locator("#canvasHint").boundingBox())!.x;
+        const before = await hint();
+        const box = (await page.locator("#view").boundingBox())!;
+        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+        await page.mouse.down();
+        await page.mouse.move(box.x + box.width / 2 + 120, box.y + box.height / 2, { steps: 4 });
+        await page.mouse.up();
+        expect((await hint()) - before).toBeCloseTo(120, -1);
         for (let n = 0; n < 2; n++) {
             await page.click("#addShip");
             await page.getByRole("menuitem", { name: "Corvette" }).first().click();
+            // The first at the formation's centre, wherever the view had gone.
+            if (n === 0) expect([await page.inputValue("#entryX"), await page.inputValue("#entryY")]).toEqual(["0", "0"]);
         }
         expect(await page.textContent("#problems")).not.toContain("overlap");
         // The view's settings sit in the corner, out of the way.

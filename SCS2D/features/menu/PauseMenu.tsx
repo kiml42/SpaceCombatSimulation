@@ -85,6 +85,8 @@ export interface PauseMenuProps {
     readonly actions?: readonly MenuAction[];
     /** What the page shows, set from the menu. */
     readonly settings?: ReactNode;
+    /** More of the page's own, after its actions: a list to choose from, where a button would not do. */
+    readonly children?: ReactNode;
     readonly keys?: readonly KeyRow[];
     readonly notes?: readonly string[];
     /** Asked before leaving for the main menu; null when nothing would be lost. */
@@ -103,7 +105,7 @@ const typing = (): boolean =>
  * page has nothing left to cancel, which a page says by calling
  * `preventDefault` on the Escape it takes. `?` opens it at the keys.
  */
-export function PauseMenu({ title, pause, actions = [], settings, keys, notes, unsaved = null }: PauseMenuProps) {
+export function PauseMenu({ title, pause, actions = [], settings, keys, notes, unsaved = null, children }: PauseMenuProps) {
     const dialog = useRef<HTMLDialogElement>(null);
     const resume = useRef<(() => void) | null>(null);
     const [view, setView] = useState<View | null>(null);
@@ -199,6 +201,7 @@ export function PauseMenu({ title, pause, actions = [], settings, keys, notes, u
                                     {action.label}
                                 </Button>
                             ))}
+                            {children}
                             {settings !== undefined && (
                                 <>
                                     <h3>View</h3>

@@ -168,7 +168,7 @@ export const Skirmish: Story = {
         await waitFor(() => expect(canvas.getByText(/^Next, build your fleet/)).toHaveTextContent("within a budget of"));
         // A fleet is built next, in the fleet editor.
         await userEvent.click(canvas.getByRole("button", { name: "Start: build your fleet" }));
-        await expect(await canvas.findByRole("combobox", { name: "Fleet" })).toBeVisible();
+        await expect(await canvas.findByRole("button", { name: "Add new ship" })).toBeVisible();
     },
 };
 
