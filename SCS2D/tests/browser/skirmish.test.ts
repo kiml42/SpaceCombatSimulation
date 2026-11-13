@@ -92,6 +92,9 @@ describe("the skirmish in a browser", () => {
         expect(await page.isVisible("#skirmishHelp")).toBe(true);
         await page.keyboard.press("Escape");
         expect(await page.evaluate(() => localStorage.getItem("scs2d.help.skirmish"))).toBe("seen");
+        // A first skirmish is against one corvette: a gunship is too much to begin with.
+        expect(await page.inputValue("#enemyPreset")).toBe("One small ship");
+        expect(await page.inputValue("#enemy")).toBe("ship:Corvette");
         expect(await page.isVisible("#round")).toBe(false);
         expect(await page.textContent("#enemyBill")).toContain("metal");
         // No battle controls until there is a round; import sits under Start.
@@ -131,7 +134,7 @@ describe("the skirmish in a browser", () => {
         await page.fill("#metalBudget", "1");
         const fuel = await page.inputValue("#fuelBudget");
         await page.fill("#fuelBudget", "");
-        await page.selectOption("#enemy", "ship:Corvette");
+        await page.selectOption("#enemy", "ship:Gunship");
         expect(await page.inputValue("#metalBudget")).toBe("1");
         expect(await page.inputValue("#fuelBudget")).not.toBe(fuel);
         expect(await page.inputValue("#fuelBudget")).not.toBe("");
@@ -199,9 +202,9 @@ describe("the skirmish in a browser", () => {
         await page.fill("#gap", "800");
         await page.dispatchEvent("#gap", "change");
         expect(await page.inputValue("#battlefieldPreset")).toBe("Small universe");
-        await page.selectOption("#enemy", "ship:Corvette");
+        await page.selectOption("#enemy", "ship:Bare Core");
         expect(await page.inputValue("#enemyPreset")).toBe("");
-        expect(await page.textContent("#enemyHint")).toBe("Against Corvette, 1 ship a side at most");
+        expect(await page.textContent("#enemyHint")).toBe("Against Bare Core, 1 ship a side at most");
         // An enemy fielding more than the limit keeps them; the player is held to it.
         await page.selectOption("#enemy", "fleet:Line of Battle");
         expect(await page.textContent("#enemyHint")).toBe("Against Line of Battle, which keeps its 5 ships; you may field 1");

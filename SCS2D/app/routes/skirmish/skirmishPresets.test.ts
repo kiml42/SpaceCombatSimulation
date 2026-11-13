@@ -1,13 +1,14 @@
 import { expect, test } from "vitest";
 import { BUILT_IN } from "~/editor/library";
+import { FLEETS } from "~/scenarios/fleets";
 import { DEFAULT_SKIRMISH_SETTINGS } from "~/scenarios/skirmish";
 import { BATTLEFIELD_PRESETS, ENEMY_PRESETS, withBattlefield, withEnemyPreset } from "./skirmishPresets";
 import { readSettings, settingsTexts } from "./skirmishFields";
 
 const battlefield = (name: string) => BATTLEFIELD_PRESETS.find((preset) => preset.name === name)!;
 
-test("every enemy preset is a stock ship, and its ship count survives the boxes", () => {
-    const stock = new Set(BUILT_IN.map((ship) => `ship:${ship.name}`));
+test("every enemy preset is a stock ship or fleet, and its ship count survives the boxes", () => {
+    const stock = new Set([...BUILT_IN.map((ship) => `ship:${ship.name}`), ...Object.keys(FLEETS).map((name) => `fleet:${name}`)]);
     for (const preset of ENEMY_PRESETS) {
         expect(stock).toContain(preset.enemy);
         const settings = withEnemyPreset(DEFAULT_SKIRMISH_SETTINGS, preset);
