@@ -99,6 +99,30 @@ const ENVELOPE_MARGIN_PX = 16;
 /** Room kept below the rosette for its two caption lines, pixels. */
 const ENVELOPE_CAPTION_PX = 32;
 
+/**
+ * The bearings that bring the most main guns to bear. A deep crimson rather
+ * than the orange-red of a trigger mask or a fault, which mean "would hit own
+ * ship" and "something is wrong".
+ */
+const ATTACK = "#e0305a";
+const ATTACK_FILL = "rgba(224, 48, 90, 0.38)";
+/** The bearing pointed at, light so it shows over the wedges. */
+const ATTACK_POINTED = "#f0f4f8";
+const ATTACK_HULL = "rgba(160, 176, 196, 0.55)";
+/** The attack rosette's one caption line, and the gap between it and the thrust rosette, pixels. */
+const ATTACK_CAPTION_PX = 18;
+const ROSETTE_GAP_PX = 8;
+/** The share of the attack rosette's radius the ship is drawn across. */
+const ATTACK_SHIP_SHARE = 0.5;
+/** The narrowest a sector is drawn, radians, so a gun that does not train still shows. */
+const ATTACK_MIN_WEDGE = 0.04;
+
+/** The sectors that bring the most main guns to bear, body frame, with how many of how many. */
+export interface AttackRosette {
+    sectors: readonly { from: number; width: number; guns: number }[];
+    total: number;
+}
+
 export interface OverlayView {
     design: ShipDesign | null;
     modules: readonly ModuleSpec[];
@@ -135,6 +159,12 @@ export interface OverlayView {
     envelopeBearing?: number | null;
     /** Whether the pointer is over the rosette, which is drawn larger while it is. */
     envelopeExpanded?: boolean;
+    /** The attack rosette, or null when there is no design. */
+    attack?: AttackRosette | null;
+    /** A bearing on the attack rosette being pointed at, radians from the bow, or null. */
+    attackBearing?: number | null;
+    /** Whether the pointer is over the attack rosette. */
+    attackExpanded?: boolean;
 }
 
 /** The rosette's radius, device pixels: larger while pointed at, though never past the canvas. */
@@ -150,6 +180,39 @@ function envelopeCentre(widthPx: number, heightPx: number, radius: number): { x:
         x: widthPx - radius - ENVELOPE_MARGIN_PX,
         y: heightPx - radius - ENVELOPE_MARGIN_PX - ENVELOPE_CAPTION_PX,
     };
+}
+
+/** Where the attack rosette's room ends at the bottom, device pixels: above the thrust rosette at rest. */
+function attackBottom(heightPx: number): number {
+    return heightPx - ENVELOPE_MARGIN_PX - ENVELOPE_CAPTION_PX - 2 * ENVELOPE_RADIUS_PX - ROSETTE_GAP_PX - ATTACK_CAPTION_PX;
+}
+
+function attackRadius(widthPx: number, heightPx: number, expanded: boolean): number {
+    if (!expanded) return ENVELOPE_RADIUS_PX;
+    const room = Math.min(widthPx - 2 * ENVELOPE_MARGIN_PX, attackBottom(heightPx) - ENVELOPE_MARGIN_PX) / 2;
+    return Math.max(ENVELOPE_RADIUS_PX, Math.min(ENVELOPE_EXPANDED_PX, room));
+}
+
+function attackCentre(widthPx: number, heightPx: number, radius: number): { x: number; y: number } {
+    return { x: widthPx - radius - ENVELOPE_MARGIN_PX, y: attackBottom(heightPx) - radius };
+}
+
+/** Whether a point is on the attack rosette, as drawn at that size. */
+export function overAttack(widthPx: number, heightPx: number, x: number, y: number, expanded = false): boolean {
+    const radius = attackRadius(widthPx, heightPx, expanded);
+    const centre = attackCentre(widthPx, heightPx, radius);
+    return Math.sqrt((x - centre.x) ** 2 + (centre.y - y) ** 2) <= radius;
+}
+
+/** The bearing on the attack rosette under a point, radians from the bow, or null when off it. */
+export function attackBearingAt(widthPx: number, heightPx: number, x: number, y: number, expanded = false): number | null {
+    const radius = attackRadius(widthPx, heightPx, expanded);
+    const centre = attackCentre(widthPx, heightPx, radius);
+    const dx = x - centre.x;
+    const dy = centre.y - y;
+    const r = Math.sqrt(dx * dx + dy * dy);
+    if (r > radius || r < 2) return null;
+    return Math.atan2(dy, dx);
 }
 
 /** Whether a point is on the rosette, as drawn at that size. */
@@ -190,9 +253,114 @@ export function drawOverlay(ctx: CanvasRenderingContext2D, view: OverlayView, ca
     // every label upside down.
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     drawGridCaption(ctx, camera, heightPx);
-    if (view.envelope !== null) {
-        drawEnvelope(ctx, view.envelope, widthPx, heightPx, view.envelopeBearing ?? null, view.envelopeExpanded === true);
+    const thrust = (): void => {
+        if (view.envelope !== null) {
+            drawEnvelope(ctx, view.envelope, widthPx, heightPx, view.envelopeBearing ?? null, view.envelopeExpanded === true);
+        }
+    };
+    const attack = (): void => {
+        if (view.attack != null && view.design !== null) {
+            drawAttack(ctx, view, view.design, view.attack, widthPx, heightPx);
+        }
+    };
+    thrust();
+    // The thrust rosette grows over this one, so it gives way while it does.
+    if (view.envelopeExpanded !== true) attack();
+}
+
+/**
+ * Which way round the ship fights, as red wedges round it seen from above:
+ * the sectors that bring the most main guns to bear (`bestAttackBearings`).
+ * In a corner rather than as lines across the ship, which a ship with several
+ * tied sectors covered.
+ */
+function drawAttack(
+    ctx: CanvasRenderingContext2D,
+    view: OverlayView,
+    design: ShipDesign,
+    attack: AttackRosette,
+    widthPx: number,
+    heightPx: number,
+): void {
+    const expanded = view.attackExpanded === true;
+    const radius = attackRadius(widthPx, heightPx, expanded);
+    const { x: cx, y: cy } = attackCentre(widthPx, heightPx, radius);
+
+    ctx.save();
+    // A backing disc, so the wedges read over the ship's own guns' wedges when grown.
+    if (expanded) {
+        ctx.fillStyle = "rgba(14, 17, 23, 0.8)";
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, TAU);
+        ctx.fill();
     }
+    ctx.strokeStyle = ENVELOPE_FREE;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, TAU);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Bearings run anticlockwise from the bow in the ship's frame; screen y is
+    // flipped, so a bearing a is drawn at -a.
+    for (const sector of attack.sectors) {
+        if (!(sector.guns > 0)) continue;
+        const pad = Math.max(0, ATTACK_MIN_WEDGE - sector.width) / 2;
+        const from = sector.from - pad;
+        const to = sector.from + sector.width + pad;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        if (sector.width >= TAU) ctx.arc(cx, cy, radius, 0, TAU);
+        else ctx.arc(cx, cy, radius, -from, -to, true);
+        ctx.closePath();
+        ctx.fillStyle = ATTACK_FILL;
+        ctx.fill();
+        ctx.strokeStyle = ATTACK;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+    }
+
+    // The ship from above, about its centre of mass, which the bearings are measured from.
+    const scale = (radius * ATTACK_SHIP_SHARE) / Math.max(design.radius, 1e-6);
+    ctx.save();
+    ctx.setTransform(scale, 0, 0, -scale, cx - scale * design.centreOfMassX, cy + scale * design.centreOfMassY);
+    ctx.fillStyle = ATTACK_HULL;
+    for (const placed of view.modules) {
+        const spec = bodySpec(placed);
+        if (!(spec.length > 0) || !(spec.width > 0)) continue;
+        const mid = moduleCentre(spec);
+        ctx.save();
+        ctx.translate(mid.x, mid.y);
+        ctx.rotate(spec.angle ?? 0);
+        outline(ctx, spec);
+        ctx.fill();
+        ctx.restore();
+    }
+    ctx.restore();
+    crosshair(ctx, cx, cy, 2.5, 1);
+
+    const bearing = view.attackBearing ?? null;
+    if (bearing !== null) {
+        ctx.strokeStyle = ATTACK_POINTED;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + cos(bearing) * radius, cy - sin(bearing) * radius);
+        ctx.stroke();
+    }
+
+    const most = attack.sectors.reduce((m, s) => max(m, s.guns), 0);
+    ctx.fillStyle = ENVELOPE_LABEL;
+    ctx.font = "11px ui-monospace, monospace";
+    ctx.textAlign = "right";
+    ctx.fillText(
+        attack.total > 0 ? `${most} of ${attack.total} main guns bear` : "no main guns",
+        widthPx - ENVELOPE_MARGIN_PX,
+        cy + radius + 14,
+    );
+    ctx.textAlign = "left";
+    ctx.restore();
 }
 
 /**

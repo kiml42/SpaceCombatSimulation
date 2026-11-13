@@ -22,7 +22,17 @@ export { Store } from "./store.js";
 export { Rng, type RngState } from "./rng.js";
 export { Bodies, NO_BODY, bodyIndex, bodyGeneration, type BodyId, type BodySpec } from "./bodies.js";
 export { World, type ForceProvider, type WorldOptions } from "./world.js";
-export { AttackArcs, AttackRegion, attackBearing, bestAttackBearings, designArcs } from "./attack.js";
+export {
+    addFlame,
+    addTurret,
+    AttackArcs,
+    AttackRegion,
+    attackBearing,
+    bears,
+    bestAttackBearings,
+    designArcs,
+    type BestSector,
+} from "./attack.js";
 export { gravityWell, wellPull, wellPotentialEnergy, type WellSpec } from "./gravity.js";
 export { asteroidBlueprint, bareKernel, circularSpeed, kernelModule, kernelOutline, rockModule, type AsteroidShape } from "./asteroid.js";
 export {

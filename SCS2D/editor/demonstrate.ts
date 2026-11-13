@@ -74,6 +74,12 @@ interface Beams {
     count: number;
 }
 
+/** Main guns turned to a bearing, body frame, by which turrets. */
+export interface Aim {
+    bearing: number;
+    turrets: readonly boolean[];
+}
+
 export class Demonstration {
     /** Throttle each of the design's engines is showing, 0 to 1. */
     private throttles = new Float64Array(0);
@@ -106,6 +112,8 @@ export class Demonstration {
     private clock = 0;
     /** Which barrel of each turret fires next, so a multi-barrel mount alternates. */
     private barrels = new Int32Array(0);
+    /** The bearing each turret fires along, body frame. */
+    private aims = new Float64Array(0);
     /** Muzzle flashes, drawn as a battle's are. */
     readonly flashes = new Flashes();
 
@@ -135,6 +143,7 @@ export class Demonstration {
         this.throttles = new Float64Array(0);
         this.cycles = new Float64Array(0);
         this.barrels = new Int32Array(0);
+        this.aims = new Float64Array(0);
         this.shown = new Uint8Array(0);
         this.clock = 0;
         this.rounds.count = 0;
@@ -144,13 +153,14 @@ export class Demonstration {
 
     /**
      * Advance by `dt` wall seconds, with `selected` the layout indices of the
-     * modules currently selected.
+     * modules currently selected, and `aim` the main guns turned to a bearing
+     * on the attack rosette, which fire along it.
      *
      * Wall seconds, not simulated ones: this is a picture of a module rather
      * than a state of the world, so there is nothing here that has to be
      * reproducible and nothing that a fixed step would buy.
      */
-    step(design: ShipDesign, selected: readonly number[], dt: number): void {
+    step(design: ShipDesign, selected: readonly number[], dt: number, aim: Aim | null = null): void {
         this.fit(design);
         let busy = false;
         this.clock += dt;
@@ -170,11 +180,13 @@ export class Demonstration {
             const turret = design.turrets[t]!;
             const module = design.modules[turret.module];
             this.shown[t] = 0;
-            if (module === undefined || !selected.includes(module.index)) {
+            const aimed = aim?.turrets[t] === true;
+            if (!aimed && (module === undefined || !selected.includes(module.index))) {
                 this.cycles[t] = 0;
                 continue;
             }
             this.shown[t] = 1;
+            this.aims[t] = aimed ? aim!.bearing : (turret.mount.restBearing ?? 0);
             const cycle = firingPeriod(turret.gun);
             if (!(cycle > 0)) continue;
             // A gun waiting out a long cycle is still being shown, even with nothing
@@ -291,6 +303,7 @@ export class Demonstration {
         if (this.cycles.length !== design.turrets.length) {
             this.cycles = new Float64Array(design.turrets.length);
             this.barrels = new Int32Array(design.turrets.length);
+            this.aims = new Float64Array(design.turrets.length);
             this.shown = new Uint8Array(design.turrets.length);
         }
     }
@@ -316,10 +329,10 @@ export class Demonstration {
 
         const mount = turret.mount;
 
-        // Resting, since nothing here is aiming at anything. The design places its
+        // Resting, or along the attack rosette's bearing. The design places its
         // modules about the centre of mass and the preview puts the body there, so
         // the ship's own frame is the world's.
-        const bearing = mount.restBearing ?? 0;
+        const bearing = this.aims[t]!;
         const dirX = cos(bearing);
         const dirY = sin(bearing);
 

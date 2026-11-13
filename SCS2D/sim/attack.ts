@@ -220,12 +220,20 @@ export function attackBearing(arcs: AttackArcs, current: number, bias: number, r
     return out;
 }
 
+/** A stretch of bearings that brings the most main guns to bear: where it starts, how wide, where to hold the target. */
+export interface BestSector {
+    from: number;
+    width: number;
+    bearing: number;
+    guns: number;
+}
+
 /**
- * Every bearing that brings the most main guns to bear, with how many: what
+ * Every sector that brings the most main guns to bear, with how many: what
  * the editor shows. Allocates; not for a running battle.
  */
-export function bestAttackBearings(arcs: AttackArcs, rest: number): { bearing: number; guns: number }[] {
-    const out: { bearing: number; guns: number }[] = [];
+export function bestAttackBearings(arcs: AttackArcs, rest: number): BestSector[] {
+    const out: BestSector[] = [];
     let most = 0;
     const region = new AttackRegion();
     for (let k = 0; k < arcs.count; k++) most = max(most, regionAt(arcs, k, rest, region).guns);
@@ -233,10 +241,17 @@ export function bestAttackBearings(arcs: AttackArcs, rest: number): { bearing: n
         regionAt(arcs, k, rest, region);
         if (region.guns < most) continue;
         if (out.some((r) => abs(angleDelta(r.bearing, region.aim)) < 1e-9)) continue;
-        out.push({ bearing: region.aim, guns: region.guns });
+        out.push({ from: region.from, width: region.width, bearing: region.aim, guns: region.guns });
     }
-    if (out.length === 0) out.push({ bearing: rest, guns: arcs.everywhere });
+    if (out.length === 0) out.push({ from: rest - PI, width: arcs.everywhere > 0 ? TAU : 0, bearing: rest, guns: arcs.everywhere });
     return out;
+}
+
+/** Whether any of the arcs covers `bearing`, body frame. */
+export function bears(arcs: AttackArcs, bearing: number): boolean {
+    if (arcs.everywhere > 0) return true;
+    for (let k = 0; k < arcs.count; k++) if (inside(bearing, arcs.start[k]!, arcs.width[k]!)) return true;
+    return false;
 }
 
 /**

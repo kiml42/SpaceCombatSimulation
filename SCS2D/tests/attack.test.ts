@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { AttackArcs, AttackRegion, attackBearing as choose, bestAttackBearings, compileBlueprint, designArcs } from "../sim/index.js";
+import {
+    AttackArcs,
+    AttackRegion,
+    attackBearing as choose,
+    bears,
+    bestAttackBearings,
+    compileBlueprint,
+    designArcs,
+} from "../sim/index.js";
 import { broadside } from "../scenarios/broadside.js";
 import { BARE_CORE, BROADSIDE, GUNSHIP, STAR_DESTROYER, TORCH } from "../scenarios/blueprints.js";
 import { makeBattle } from "../scenarios/battle.js";
@@ -130,6 +138,23 @@ describe("the attack bearing", () => {
         expect(best.length).toBe(1);
         expect(Math.abs(best[0]!.bearing)).toBeCloseTo(Math.PI, 9);
         expect(best[0]!.guns).toBe(1);
+    });
+
+    it("gives each sector's width, its bearing inside it", () => {
+        // Two guns overlapping from 20° to 40°.
+        const best = bestAttackBearings(arcs([0, 40], [60, 40]), 0);
+        expect(best.length).toBe(1);
+        expect(best[0]!.from).toBeCloseTo(deg(20), 9);
+        expect(best[0]!.width).toBeCloseTo(deg(20), 9);
+        expect(best[0]!.bearing).toBeCloseTo(deg(30), 9);
+    });
+
+    it("says which bearings an arc covers, across the wrap", () => {
+        const a = arcs([180, 20]);
+        expect(bears(a, deg(170))).toBe(true);
+        expect(bears(a, deg(-170))).toBe(true);
+        expect(bears(a, 0)).toBe(false);
+        expect(bears(arcs([0, 180]), deg(123))).toBe(true);
     });
 
     it("is beside the thrust axis on the Broadside", () => {

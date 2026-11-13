@@ -10,6 +10,7 @@ import {
     type ModuleOrigin,
     type ModulePath,
     type ModuleSpec,
+    type ShipDesign,
     isHullGun,
 } from "../sim/index.js";
 import { ARCS_KEY, draw, nextArcs, type Arcs } from "../render/canvas2d.js";
@@ -34,7 +35,7 @@ import {
     type InstancePose,
 } from "./edit.js";
 import { Demonstration } from "./demonstrate.js";
-import { drawOverlay, envelopeBearingAt, overEnvelope } from "./overlay.js";
+import { attackBearingAt, drawOverlay, envelopeBearingAt, overAttack, overEnvelope, type AttackRosette } from "./overlay.js";
 import {
     assemblyKnob,
     barrelCalibresTo,
@@ -62,7 +63,8 @@ import {
     tidyMetres,
     type SnapField,
 } from "./snapping.js";
-import { landOnSelf, lightSelfBurning, previewSnapshot } from "./preview.js";
+import { aimAlong, attackBearings, gunsBearing, landOnSelf, lightSelfBurning, previewSnapshot } from "./preview.js";
+import type { Aim } from "./demonstrate.js";
 import { envelopes, holdingThrottles, type Envelopes } from "./stats.js";
 
 /**
@@ -273,6 +275,17 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
         }
         return measuredEnvelope;
     };
+    let attackMeasured: unknown = undefined;
+    let measuredAttack: AttackRosette | null = null;
+    const attackRosette = (): AttackRosette | null => {
+        const design = doc.view.design;
+        if (design !== attackMeasured) {
+            attackMeasured = design;
+            const sectors = design === null ? [] : attackBearings(design);
+            measuredAttack = design === null ? null : { sectors, total: sectors[0]?.total ?? 0 };
+        }
+        return measuredAttack;
+    };
 
     const resize = (): void => {
         const ratio = window.devicePixelRatio || 1;
@@ -384,6 +397,18 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
     let thrustBearing: number | null = null;
     /** Whether the pointer is over the thrust rosette, which is drawn larger while it is. */
     let thrustExpanded = false;
+    /** The bearing on the attack rosette the pointer is over, and whether it is over it. */
+    let attackBearing: number | null = null;
+    let attackExpanded = false;
+    /** The main guns turned to `attackBearing`, and the weapon engines that bear on it. */
+    let attackAim: (Aim & { engines: readonly boolean[] }) | null = null;
+    let attackAimFor: ShipDesign | null = null;
+    const pointAttack = (bearing: number | null): void => {
+        attackBearing = bearing;
+        const design = doc.view.design;
+        attackAimFor = design;
+        attackAim = bearing === null || design === null ? null : { bearing, ...gunsBearing(design, bearing) };
+    };
 
     // In its livery where it has one, and grey where not, being on nobody's side.
     const render = (): void => {
@@ -427,6 +452,15 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
                 shown.throttles[t] = Math.max(shown.throttles[t] ?? 0, burning[t] ?? 0);
             }
         }
+        // Pointing at the attack rosette turns every main gun that bears that way
+        // to it, and fires them, weapon engines included.
+        if (attackBearing !== null && attackAimFor !== view.design) pointAttack(attackBearing);
+        if (attackAim !== null && view.design !== null && shown !== undefined) {
+            aimAlong(shown, attackAim.bearing, attackAim.turrets);
+            attackAim.engines.forEach((bears, t) => {
+                if (bears) shown.throttles[t] = 1;
+            });
+        }
         if (shown !== undefined && view.design !== null) landOnSelf(shown);
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -464,6 +498,9 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
                     envelope: envelope(),
                     envelopeBearing: thrustBearing,
                     envelopeExpanded: thrustExpanded,
+                    attack: attackRosette(),
+                    attackBearing,
+                    attackExpanded,
                 },
                 camera,
                 canvas.width,
@@ -491,7 +528,7 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
         }
         const dt = lastFrame === 0 ? 0 : Math.min((now - lastFrame) / 1000, 0.1);
         lastFrame = now;
-        demonstration.step(design, doc.selectedModules(), dt);
+        demonstration.step(design, doc.selectedModules(), dt, attackAim);
         render();
         if (demonstration.running) requestFrame();
         else lastFrame = 0;
@@ -778,6 +815,14 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
                 thrustExpanded = expanded;
                 render();
             }
+            const onAttack = !expanded && attackRosette() !== null && overAttack(canvas.width, canvas.height, x, y, attackExpanded);
+            const aimed = onAttack ? attackBearingAt(canvas.width, canvas.height, x, y, true) : null;
+            if (aimed !== attackBearing || onAttack !== attackExpanded) {
+                attackExpanded = onAttack;
+                pointAttack(aimed);
+                // Frames, for the guns firing.
+                redraw();
+            }
             return;
         }
         if (drag.kind === "pan") {
@@ -838,9 +883,11 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
     };
 
     const pointerLeave = (): void => {
-        if (thrustBearing === null && !thrustExpanded) return;
+        if (thrustBearing === null && !thrustExpanded && attackBearing === null && !attackExpanded) return;
         thrustBearing = null;
         thrustExpanded = false;
+        attackExpanded = false;
+        pointAttack(null);
         render();
     };
 

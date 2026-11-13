@@ -1,6 +1,9 @@
 import {
     aboardPose,
+    addFlame,
+    addTurret,
     AttackArcs,
+    bears,
     bestAttackBearings,
     designArcs,
     engineGeometry,
@@ -92,7 +95,8 @@ export function previewSnapshot(design: ShipDesign, out: Snapshot = new Snapshot
     for (let t = 0; t < design.engines.length; t++) view.throttles[t] = 0;
     lightSelfBurning(view);
     landOnSelf(view);
-    restingTriggers(view, design);
+    // Its attack bearings are the attack rosette's to show, not lines across the ship.
+    restingTriggers(view, design, false);
 
     // A design has taken nothing: the editor draws the ship as it would be built,
     // not as one that has been somewhere.
@@ -127,7 +131,7 @@ export function previewSnapshot(design: ShipDesign, out: Snapshot = new Snapshot
         rider.integrity.fill(1);
         rider.turretDisabled.length = fighter.turrets.length;
         rider.turretDisabled.fill(false);
-        restingTriggers(rider, fighter);
+        restingTriggers(rider, fighter, false);
     }
 
     return out;
@@ -195,11 +199,12 @@ export function landOnSelf(view: ShipView): void {
  * used as a weapon shows where it would burn at full throttle, as firing on
  * that enemy standing in it.
  */
-export function restingTriggers(view: ShipView, design: ShipDesign): void {
+export function restingTriggers(view: ShipView, design: ShipDesign, attackLines = true): void {
     const band = doctrineBand(design);
     view.holdMin = band.min;
     view.holdMax = band.max;
-    view.attackBearings = attackBearings(design).map((r) => r.bearing);
+    if (attackLines) view.attackBearings = attackBearings(design).map((r) => r.bearing);
+    else delete view.attackBearings;
 
     view.turretBearings.length = design.turrets.length;
     view.turretReady.length = design.turrets.length;
@@ -244,10 +249,40 @@ export function doctrineBand(design: ShipDesign): { min: number; max: number } {
     return holdBand(design.doctrine.approach, design.reach, enemy);
 }
 
-/** The bearings that bring the most of a design's main guns to bear, with how many of how many. */
-export function attackBearings(design: ShipDesign): { bearing: number; guns: number; total: number }[] {
+/** The sectors that bring the most of a design's main guns to bear, with how many of how many. */
+export function attackBearings(design: ShipDesign): { from: number; width: number; bearing: number; guns: number; total: number }[] {
     const arcs = designArcs(design, new AttackArcs());
     return bestAttackBearings(arcs, design.thrustBearing).map((r) => ({ ...r, total: arcs.total }));
+}
+
+/** Which of a design's main guns, and weapon engines, can fire on `bearing` (body frame), by the battle's own arcs and masks. */
+export function gunsBearing(design: ShipDesign, bearing: number): { turrets: boolean[]; engines: boolean[] } {
+    const arcs = new AttackArcs();
+    const turrets = design.turrets.map((turret) => {
+        if (!turret.main) return false;
+        arcs.clear();
+        addTurret(arcs, turret.mount);
+        return bears(arcs, bearing);
+    });
+    const engines = design.engines.map(() => false);
+    for (const t of design.mainWeaponEngines) {
+        arcs.clear();
+        addFlame(arcs, design, t);
+        engines[t] = bears(arcs, bearing);
+    }
+    return { turrets, engines };
+}
+
+/** Turn each of `turrets` to `bearing` (body frame), on target and ready to fire. */
+export function aimAlong(view: ShipView, bearing: number, turrets: readonly boolean[]): void {
+    const aim = (view.turretAim ??= []);
+    for (let t = 0; t < turrets.length; t++) {
+        if (!turrets[t]) continue;
+        view.turretBearings[t] = bearing + view.angle;
+        aim[t] = bearing + view.angle;
+        view.turretReady[t] = true;
+        if (view.turretFouled !== undefined) view.turretFouled[t] = false;
+    }
 }
 
 /** A preferred mass, or one where it says none. */
