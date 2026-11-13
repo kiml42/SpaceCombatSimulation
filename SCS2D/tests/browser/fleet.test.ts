@@ -221,6 +221,7 @@ describe("the fleet editor in a browser", () => {
     it("saves a fleet to browser storage as a fleet file", async () => {
         await page.fill("#fleetName", "Saved Fleet");
         await page.press("#fleetName", "Enter");
+        await page.click("#menuButton");
         await page.click("#saveFleet");
         const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("scs2d.fleet.Saved Fleet") ?? "null"));
         expect(saved?.formatVersion).toBe(1);

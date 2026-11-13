@@ -272,6 +272,7 @@ describe("the skirmish in a browser", () => {
         expect(await page.locator("#fleet").count()).toBe(0);
         await page.click("#menuButton");
         expect(await page.isVisible("#loadFleet")).toBe(true);
+        expect(await page.isVisible("#saveFleet")).toBe(true);
         expect(await page.locator("#newFleet").count()).toBe(0);
         await page.click("#resume");
         await page.click("#backToSkirmish");
