@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { compileBlueprint } from "../sim/index.js";
 import { CORVETTE } from "../scenarios/blueprints.js";
-import { envelopes, holdingThrottles } from "../editor/stats.js";
+import { envelopes, holdingAt, holdingThrottles, pointedThrust } from "../editor/stats.js";
 import { envelopeBearingAt, overEnvelope } from "../editor/overlay.js";
 
 describe("the throttles behind a point on the envelope", () => {
@@ -33,6 +33,25 @@ describe("the throttles behind a point on the envelope", () => {
                 expect(Math.abs(torque) / (force * corvette.radius)).toBeLessThan(0.02);
             }
         }
+    });
+
+    it("burns as hard as the point asks, up to what holds the heading", () => {
+        const curve = envelopes(corvette, 64);
+        const peak = Math.max(...curve.free);
+        const angle = Math.PI / 3;
+        const holding = holdingAt(curve, angle);
+        // A quarter of the way out asks for a quarter of the free curve's peak.
+        const gentle = pointedThrust(curve, angle, 0.25);
+        expect(gentle.acceleration).toBeCloseTo(Math.min(0.25 * peak, holding), 9);
+        // At or past the rim, as much as holds the heading, and no more.
+        expect(pointedThrust(curve, angle, 1).acceleration).toBeCloseTo(holding, 9);
+        expect(pointedThrust(curve, angle, 3).share).toBe(1);
+        // The throttles scaled by the share push that much, still without turning.
+        const full = holdingThrottles(corvette, angle);
+        const { fx, fy, torque } = wrench(full.map((t) => t * gentle.share));
+        const fullForce = Math.hypot(wrench(full).fx, wrench(full).fy);
+        expect(Math.hypot(fx, fy) / fullForce).toBeCloseTo(gentle.share, 9);
+        expect(Math.abs(torque) / (fullForce * corvette.radius)).toBeLessThan(0.02);
     });
 
     it("is read off the widget only where the widget is", () => {

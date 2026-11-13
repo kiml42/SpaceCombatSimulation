@@ -723,6 +723,32 @@ export function envelopes(design: ShipDesign, samples: number = ENVELOPE_SAMPLES
     return { samples, free, holding };
 }
 
+/** The holding curve at `bearing`, radians from the bow, between its samples. */
+export function holdingAt(envelope: Envelopes, bearing: number): number {
+    const at = ((((bearing / TAU) * envelope.samples) % envelope.samples) + envelope.samples) % envelope.samples;
+    const i = Math.floor(at);
+    const t = at - i;
+    return envelope.holding[i % envelope.samples]! * (1 - t) + envelope.holding[(i + 1) % envelope.samples]! * t;
+}
+
+/**
+ * The acceleration a point on the thrust rosette asks for: `reach` is its
+ * distance from the centre over the rosette's radius, which stands for the
+ * free curve's peak. As much as that, up to as much as holds the heading,
+ * and that as a share of the most that does, to scale the throttles by.
+ */
+export function pointedThrust(
+    envelope: Envelopes,
+    bearing: number,
+    reach: number,
+): { acceleration: number; holding: number; share: number } {
+    let peak = 0;
+    for (let i = 0; i < envelope.samples; i++) peak = max(peak, envelope.free[i]!);
+    const holding = holdingAt(envelope, bearing);
+    const acceleration = min(max(0, reach) * peak, holding);
+    return { acceleration, holding, share: holding > 0 ? acceleration / holding : 0 };
+}
+
 /** The worst fraction of its thrust a layout gives up in order not to spin. */
 export function headingCost(envelope: Envelopes): number {
     let worst = 0;
