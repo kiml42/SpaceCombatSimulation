@@ -28,6 +28,7 @@ export {
     AttackArcs,
     AttackRegion,
     attackBearing,
+    attackCoverage,
     bears,
     bestAttackBearings,
     designArcs,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { AttackArcs, addTurret, bears, compileBlueprint } from "../sim/index.js";
 import { CATAMARAN, CORVETTE } from "../scenarios/blueprints.js";
-import { aimAlong, attackBearings, gunsBearing, previewSnapshot } from "../editor/preview.js";
+import { aimAlong, attackBearings, attackRosette, gunsBearing, previewSnapshot } from "../editor/preview.js";
 import { attackBearingAt, overAttack, overEnvelope } from "../editor/overlay.js";
 
 describe("the guns the attack rosette turns", () => {
@@ -25,6 +25,17 @@ describe("the guns the attack rosette turns", () => {
         for (const sector of attackBearings(design)) {
             const { turrets, engines } = gunsBearing(design, sector.from + sector.width / 2);
             expect(turrets.filter(Boolean).length + engines.filter(Boolean).length).toBe(sector.guns);
+        }
+    });
+
+    it("are as many as the rosette's shading says, everywhere round", () => {
+        for (const blueprint of [CORVETTE, CATAMARAN]) {
+            const design = compileBlueprint(blueprint);
+            for (const stretch of attackRosette(design).coverage) {
+                if (!(stretch.width > 0)) continue;
+                const { turrets, engines } = gunsBearing(design, stretch.from + stretch.width / 2);
+                expect(turrets.filter(Boolean).length + engines.filter(Boolean).length).toBe(stretch.guns);
+            }
         }
     });
 

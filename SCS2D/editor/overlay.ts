@@ -105,7 +105,10 @@ const ENVELOPE_CAPTION_PX = 18;
  * ship" and "something is wrong".
  */
 const ATTACK = "#e0305a";
-const ATTACK_FILL = "rgba(224, 48, 90, 0.38)";
+/** A sector's fill, as `rgba(…, alpha)`: fuller the more of the most main guns that bear in it. */
+const ATTACK_RGB = "224, 48, 90";
+const ATTACK_ALPHA_MOST = 0.42;
+const ATTACK_ALPHA_LEAST = 0.08;
 /** The bearing pointed at, light so it shows over the wedges. */
 const ATTACK_POINTED = "#f0f4f8";
 /** The gap between the attack rosette and the thrust rosette, pixels. */
@@ -116,9 +119,17 @@ const SILHOUETTE = "rgba(160, 176, 196, 0.55)";
 /** The narrowest a sector is drawn, radians, so a gun that does not train still shows. */
 const ATTACK_MIN_WEDGE = 0.04;
 
-/** The sectors that bring the most main guns to bear, body frame, with how many of how many. */
+/** A stretch of bearings, body frame, and how many main guns bear in it. */
+export interface AttackSector {
+    from: number;
+    width: number;
+    guns: number;
+}
+
+/** What the attack rosette shows: where the most main guns bear, where any do, and how many it has. */
 export interface AttackRosette {
-    sectors: readonly { from: number; width: number; guns: number }[];
+    sectors: readonly AttackSector[];
+    coverage: readonly AttackSector[];
     total: number;
 }
 
@@ -164,6 +175,8 @@ export interface OverlayView {
     attackBearing?: number | null;
     /** Whether the pointer is over the attack rosette. */
     attackExpanded?: boolean;
+    /** How many main guns bear on `attackBearing`, as are shown firing. */
+    attackBearingGuns?: number;
 }
 
 /** The rosette's radius, device pixels: larger while pointed at, though never past the canvas. */
@@ -267,6 +280,25 @@ export function drawOverlay(ctx: CanvasRenderingContext2D, view: OverlayView, ca
     if (view.envelopeExpanded !== true) attack();
 }
 
+/** A bearing in whole degrees, positive to port, as the report gives them. */
+function degrees(bearing: number): string {
+    return `${Math.round((bearing * 180) / Math.PI)}°`;
+}
+
+/** The value at the bearing pointed at, above the rosette's right edge, in the pointer's colour. */
+function pointedLabel(ctx: CanvasRenderingContext2D, text: string, right: number, top: number): void {
+    const y = Math.max(11, top - 6);
+    ctx.font = "11px ui-monospace, monospace";
+    ctx.textAlign = "right";
+    // Edged dark, so it reads over a lit hull or a plume.
+    ctx.strokeStyle = HANDLE_EDGE;
+    ctx.lineWidth = 3;
+    ctx.lineJoin = "round";
+    ctx.strokeText(text, right, y);
+    ctx.fillStyle = ATTACK_POINTED;
+    ctx.fillText(text, right, y);
+}
+
 /** The ship from above in a rosette, about its centre of mass, which the rosette's bearings are measured from. */
 function silhouette(ctx: CanvasRenderingContext2D, view: OverlayView, design: ShipDesign, cx: number, cy: number, radius: number): void {
     const scale = (radius * SILHOUETTE_SHARE) / Math.max(design.radius, 1e-6);
@@ -323,20 +355,28 @@ function drawAttack(
 
     // Bearings run anticlockwise from the bow in the ship's frame; screen y is
     // flipped, so a bearing a is drawn at -a.
-    for (const sector of attack.sectors) {
-        if (!(sector.guns > 0)) continue;
+    const wedge = (sector: AttackSector): void => {
         const pad = Math.max(0, ATTACK_MIN_WEDGE - sector.width) / 2;
-        const from = sector.from - pad;
-        const to = sector.from + sector.width + pad;
         ctx.beginPath();
         ctx.moveTo(cx, cy);
         if (sector.width >= TAU) ctx.arc(cx, cy, radius, 0, TAU);
-        else ctx.arc(cx, cy, radius, -from, -to, true);
+        else ctx.arc(cx, cy, radius, -(sector.from - pad), -(sector.from + sector.width + pad), true);
         ctx.closePath();
-        ctx.fillStyle = ATTACK_FILL;
+    };
+    const most = attack.sectors.reduce((m, s) => max(m, s.guns), 0);
+    // Shaded by how many guns bear, then the best outlined over them.
+    for (const sector of attack.coverage) {
+        if (!(sector.guns > 0) || !(most > 0)) continue;
+        const share = Math.min(1, sector.guns / most);
+        wedge(sector);
+        ctx.fillStyle = `rgba(${ATTACK_RGB}, ${ATTACK_ALPHA_LEAST + (ATTACK_ALPHA_MOST - ATTACK_ALPHA_LEAST) * share})`;
         ctx.fill();
-        ctx.strokeStyle = ATTACK;
-        ctx.lineWidth = 1;
+    }
+    ctx.strokeStyle = ATTACK;
+    ctx.lineWidth = 1;
+    for (const sector of attack.sectors) {
+        if (!(sector.guns > 0)) continue;
+        wedge(sector);
         ctx.stroke();
     }
 
@@ -353,11 +393,12 @@ function drawAttack(
         ctx.stroke();
     }
 
-    const most = attack.sectors.reduce((m, s) => max(m, s.guns), 0);
     ctx.fillStyle = ENVELOPE_LABEL;
     ctx.font = "11px ui-monospace, monospace";
     ctx.textAlign = "right";
-    ctx.fillText(attack.total > 0 ? `${most} of ${attack.total} main guns bear` : "no main guns", cx + radius, cy + radius + 14);
+    ctx.fillText(attack.total > 0 ? `max ${most}/${attack.total} main guns` : "no main guns", cx + radius, cy + radius + 14);
+    if (bearing !== null)
+        pointedLabel(ctx, `${degrees(bearing)}: ${view.attackBearingGuns ?? 0}/${attack.total}`, cx + radius, cy - radius);
     ctx.textAlign = "left";
     ctx.restore();
 }
@@ -778,5 +819,10 @@ function drawEnvelope(
     ctx.font = "11px ui-monospace, monospace";
     ctx.textAlign = "right";
     ctx.fillText(`max ${held.toFixed(1)} m/s²`, widthPx - ENVELOPE_MARGIN_PX, cy + radius + 14);
+    if (bearing !== null) {
+        const i = Math.round((bearing / TAU) * envelope.samples);
+        const at = envelope.holding[((i % envelope.samples) + envelope.samples) % envelope.samples]!;
+        pointedLabel(ctx, `${degrees(bearing)}: ${at.toFixed(1)} m/s²`, widthPx - ENVELOPE_MARGIN_PX, cy - radius);
+    }
     ctx.textAlign = "left";
 }

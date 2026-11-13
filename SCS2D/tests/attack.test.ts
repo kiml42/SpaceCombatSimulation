@@ -3,6 +3,7 @@ import {
     AttackArcs,
     AttackRegion,
     attackBearing as choose,
+    attackCoverage,
     bears,
     bestAttackBearings,
     compileBlueprint,
@@ -19,6 +20,13 @@ const deg = (d: number): number => (d * Math.PI) / 180;
 function arcs(...mounts: ([number, number] | [number, number, number])[]): AttackArcs {
     const out = new AttackArcs();
     for (const [rest, half, speed] of mounts) out.addMount(deg(rest), deg(half), deg(half), speed ?? 1000);
+    return out;
+}
+
+/** One stretch as arcs, to ask whether it covers a bearing. */
+function oneArc(c: { from: number; width: number }): AttackArcs {
+    const out = new AttackArcs();
+    out.add(c.from, c.width, 1000);
     return out;
 }
 
@@ -147,6 +155,14 @@ describe("the attack bearing", () => {
         expect(best[0]!.from).toBeCloseTo(deg(20), 9);
         expect(best[0]!.width).toBeCloseTo(deg(20), 9);
         expect(best[0]!.bearing).toBeCloseTo(deg(30), 9);
+    });
+
+    it("covers every bearing any gun does, counting them", () => {
+        // 0° ± 40° and 60° ± 40°: one gun, then both from 20° to 40°, then one.
+        const cover = attackCoverage(arcs([0, 40], [60, 40]));
+        const at = (d: number): number => cover.find((c) => bears(oneArc(c), deg(d)))?.guns ?? 0;
+        expect([at(-30), at(30), at(80), at(180)]).toEqual([1, 2, 1, 0]);
+        expect(cover.reduce((w, c) => w + c.width, 0)).toBeCloseTo(deg(140), 9);
     });
 
     it("says which bearings an arc covers, across the wrap", () => {

@@ -3,6 +3,7 @@ import {
     addFlame,
     addTurret,
     AttackArcs,
+    attackCoverage,
     bears,
     bestAttackBearings,
     designArcs,
@@ -253,6 +254,16 @@ export function doctrineBand(design: ShipDesign): { min: number; max: number } {
 export function attackBearings(design: ShipDesign): { from: number; width: number; bearing: number; guns: number; total: number }[] {
     const arcs = designArcs(design, new AttackArcs());
     return bestAttackBearings(arcs, design.thrustBearing).map((r) => ({ ...r, total: arcs.total }));
+}
+
+/** What the attack rosette shows: where the most main guns bear, where any do, and how many there are. */
+export function attackRosette(design: ShipDesign): {
+    sectors: { from: number; width: number; guns: number }[];
+    coverage: { from: number; width: number; guns: number }[];
+    total: number;
+} {
+    const arcs = designArcs(design, new AttackArcs());
+    return { sectors: bestAttackBearings(arcs, design.thrustBearing), coverage: attackCoverage(arcs), total: arcs.total };
 }
 
 /** Which of a design's main guns, and weapon engines, can fire on `bearing` (body frame), by the battle's own arcs and masks. */

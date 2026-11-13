@@ -247,6 +247,38 @@ export function bestAttackBearings(arcs: AttackArcs, rest: number): BestSector[]
     return out;
 }
 
+/** How many of the arcs cover `bearing`, body frame, counting those that bear everywhere. */
+function countAt(arcs: AttackArcs, bearing: number): number {
+    let guns = arcs.everywhere;
+    for (let k = 0; k < arcs.count; k++) if (inside(bearing, arcs.start[k]!, arcs.width[k]!)) guns++;
+    return guns;
+}
+
+/**
+ * Every stretch of bearings at least one main gun covers, with how many, found
+ * by walking round through each arc's ends; and each arc too narrow to be a
+ * stretch, as one of no width. Allocates; not for a running battle.
+ */
+export function attackCoverage(arcs: AttackArcs): { from: number; width: number; guns: number }[] {
+    if (arcs.count === 0) return arcs.everywhere > 0 ? [{ from: -PI, width: TAU, guns: arcs.everywhere }] : [];
+    const ends: number[] = [];
+    for (let k = 0; k < arcs.count; k++) ends.push(arcs.start[k]!, normalizeAngle(arcs.start[k]! + arcs.width[k]!));
+    ends.sort((a, b) => a - b);
+    const out: { from: number; width: number; guns: number }[] = [];
+    for (let i = 0; i < ends.length; i++) {
+        const from = ends[i]!;
+        const width = sweep(from, ends[(i + 1) % ends.length]!);
+        if (!(width > 1e-9)) continue;
+        const guns = countAt(arcs, from + width / 2);
+        if (guns > 0) out.push({ from, width, guns });
+    }
+    for (let k = 0; k < arcs.count; k++) {
+        if (arcs.width[k]! > 1e-9) continue;
+        out.push({ from: arcs.start[k]!, width: 0, guns: countAt(arcs, arcs.start[k]!) });
+    }
+    return out;
+}
+
 /** Whether any of the arcs covers `bearing`, body frame. */
 export function bears(arcs: AttackArcs, bearing: number): boolean {
     if (arcs.everywhere > 0) return true;

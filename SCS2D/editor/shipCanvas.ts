@@ -63,7 +63,7 @@ import {
     tidyMetres,
     type SnapField,
 } from "./snapping.js";
-import { aimAlong, attackBearings, gunsBearing, landOnSelf, lightSelfBurning, previewSnapshot } from "./preview.js";
+import { aimAlong, attackRosette as measureAttack, gunsBearing, landOnSelf, lightSelfBurning, previewSnapshot } from "./preview.js";
 import type { Aim } from "./demonstrate.js";
 import { envelopes, holdingThrottles, type Envelopes } from "./stats.js";
 
@@ -281,8 +281,7 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
         const design = doc.view.design;
         if (design !== attackMeasured) {
             attackMeasured = design;
-            const sectors = design === null ? [] : attackBearings(design);
-            measuredAttack = design === null ? null : { sectors, total: sectors[0]?.total ?? 0 };
+            measuredAttack = design === null ? null : measureAttack(design);
         }
         return measuredAttack;
     };
@@ -501,6 +500,8 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
                     attack: attackRosette(),
                     attackBearing,
                     attackExpanded,
+                    attackBearingGuns:
+                        attackAim === null ? 0 : attackAim.turrets.filter(Boolean).length + attackAim.engines.filter(Boolean).length,
                 },
                 camera,
                 canvas.width,
