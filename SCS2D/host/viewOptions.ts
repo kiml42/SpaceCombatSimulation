@@ -17,7 +17,10 @@ export interface ViewOptions {
     remove(): void;
 }
 
-export function viewOptions(over: HTMLElement, options: readonly ViewOption[]): ViewOptions {
+/** Where the row sits: across the top, or in the bottom-left corner, out of the way of the view. */
+export type ViewOptionsPlace = "top" | "bottom-left";
+
+export function viewOptions(over: HTMLElement, options: readonly ViewOption[], place: ViewOptionsPlace = "top"): ViewOptions {
     const bar = document.createElement("div");
     bar.setAttribute("role", "toolbar");
     bar.setAttribute("aria-label", "What the view shows");
@@ -29,9 +32,10 @@ export function viewOptions(over: HTMLElement, options: readonly ViewOption[]): 
         background: "#0b0f16cc",
         border: "1px solid #1c2533",
         borderRadius: "6px",
-        top: "0.6rem",
-        left: "50%",
-        transform: "translateX(-50%)",
+        ...(place === "top"
+            ? { top: "0.6rem", left: "50%", transform: "translateX(-50%)" }
+            : // Above the canvas's own note in that corner.
+              { bottom: "2rem", left: "0.6rem" }),
     });
     const buttons = options.map((option) => {
         const button = document.createElement("button");

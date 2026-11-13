@@ -6,7 +6,7 @@ import { useSkirmish } from "~/features/skirmish/SkirmishProvider";
 import { useStorage } from "~/features/storage/StorageContext";
 import type { FleetCanvas as Engine } from "~/editor/fleetCanvas";
 import { ANGLE_SNAP_DEGREES } from "~/editor/fleetCanvas";
-import { FleetDocument } from "~/editor/fleetDocument";
+import { centreOf, FleetDocument, type FleetView } from "~/editor/fleetDocument";
 import { addShip, distinctDesign, emptyFleet, refreshDesign } from "~/editor/fleetEdit";
 import { battleRoute, designRoute, handedToFleet } from "~/editor/handoff";
 import { emptyBlueprint, Library, nextName, SHIPS, unusedName } from "~/editor/library";
@@ -14,7 +14,7 @@ import { snap } from "~/editor/edit";
 import type { KeyRow } from "~/host/keyHelp";
 import { snapStep } from "~/render/camera";
 import { inSkirmish, pick, serialiseSkirmish, type Skirmish } from "~/scenarios/skirmish";
-import { parseBlueprint, parseFleet, serialiseFleet, type Blueprint, type Fleet } from "~/sim/index";
+import { compileBlueprint, parseBlueprint, parseFleet, serialiseFleet, type Blueprint, type Fleet } from "~/sim/index";
 import { CommitText } from "~/ui/fields/CommitText";
 import { LiveryPanel } from "~/features/livery/LiveryPanel";
 import { withLivery } from "~/editor/livery";
@@ -91,6 +91,38 @@ const Body = styled.div`
         flex-direction: column;
     }
 `;
+
+/** Between a new ship and the ones beside it, metres. */
+const PLACING_GAP = 10;
+
+/** How far a design reaches from its centre; nothing, for one that will not compile yet, such as a blank one. */
+function footprint(blueprint: Blueprint): number {
+    try {
+        return compileBlueprint(blueprint).radius;
+    } catch {
+        return 0;
+    }
+}
+
+/**
+ * Where a ship of this reach goes beside the fleet's: abreast of them, just
+ * past the lowest, so it overlaps none; or null for an empty fleet, which
+ * takes it where the view is.
+ */
+function clearOf(view: FleetView, radius: number): { x: number; y: number } | null {
+    let lowest = Infinity;
+    let x = 0;
+    let n = 0;
+    view.ships.forEach((ship, i) => {
+        const design = view.designs[i];
+        if (design == null) return;
+        const centre = centreOf(ship, design);
+        lowest = Math.min(lowest, centre.y - design.radius);
+        x += centre.x;
+        n++;
+    });
+    return n === 0 ? null : { x: x / n, y: lowest - PLACING_GAP - radius };
+}
 
 /** The ways to add a ship: a new design first, across the panel, as the one to reach for. */
 const Adding = styled.section`
@@ -246,10 +278,10 @@ export function FleetPage() {
 
     const place = (blueprint: Blueprint): void => {
         const camera = engine?.camera ?? { x: 0, y: 0, scale: 1 };
-        // In the middle of the view, on the grid.
         const step = snapStep(camera.scale);
         const added = skirmish === null ? blueprint : inSkirmish(blueprint, skirmish);
-        doc.apply(addShip(doc.fleet, added, snap(camera.x, step), snap(camera.y, step)));
+        const at = clearOf(doc.view, footprint(added)) ?? camera;
+        doc.apply(addShip(doc.fleet, added, snap(at.x, step), snap(at.y, step)));
         doc.select([[doc.fleet.ships.length - 1]]);
         edited();
     };

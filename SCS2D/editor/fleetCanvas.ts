@@ -63,16 +63,20 @@ export function fleetCanvas(canvas: HTMLCanvasElement, doc: FleetDocument, hooks
     const snapshot = new Snapshot();
     let fitPending = true;
     let arcs: Arcs = "none";
-    const viewBar = viewOptions(canvas.parentElement ?? document.body, [
-        {
-            label: () => ARC_LABELS[arcs],
-            title: "Cycle the firing arcs drawn: none, where each gun may point, and where each will fire (A)",
-            press: () => {
-                arcs = nextArcs(arcs);
-                render();
+    const viewBar = viewOptions(
+        canvas.parentElement ?? document.body,
+        [
+            {
+                label: () => ARC_LABELS[arcs],
+                title: "Cycle the firing arcs drawn: none, where each gun may point, and where each will fire (A)",
+                press: () => {
+                    arcs = nextArcs(arcs);
+                    render();
+                },
             },
-        },
-    ]);
+        ],
+        "bottom-left",
+    );
 
     const resize = (): void => {
         const ratio = window.devicePixelRatio || 1;
