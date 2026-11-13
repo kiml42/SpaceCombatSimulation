@@ -319,9 +319,7 @@ describe("the evolution route in a browser", () => {
                 [...(document.getElementById("founders") as HTMLSelectElement).selectedOptions].map((o) => o.value).join() ===
                 "ship:Dinky 2",
         );
-        expect(await page.$$eval("#founders option", (options) => options.filter((o) => o.textContent?.startsWith("Dinky")).length)).toBe(
-            2,
-        );
+        expect(await page.$$eval("#founders option", (options) => options.filter((o) => o.value.startsWith("ship:Dinky")).length)).toBe(2);
         expect(problems).toEqual([]);
     }, 60_000);
 
