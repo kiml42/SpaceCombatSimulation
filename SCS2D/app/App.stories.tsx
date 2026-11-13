@@ -148,14 +148,14 @@ export const Ship: Story = {
     args: { path: "/ship" },
     play: async ({ canvas }) => {
         await expect(canvas.getByRole("combobox", { name: "Ship" })).toHaveDisplayValue("Corvette");
-        await waitFor(() => expect(canvas.getByRole("row", { name: /^Endurance/ })).toBeVisible());
+        await waitFor(() => expect(canvas.getByRole("row", { name: /^Burn/ })).toBeVisible());
         await userEvent.click(canvas.getByRole("button", { name: "Tank" }));
         await expect(canvas.getByRole("heading", { name: "Selected module" })).toBeVisible();
         await expect(canvas.getByRole("combobox", { name: "kind" })).toHaveDisplayValue("tank");
         await userEvent.click(canvas.getByRole("button", { name: "Undo" }));
         await expect(canvas.queryByRole("heading", { name: "Selected module" })).toBeNull();
-        // The selection has a sidebar of its own, apart from the design's.
-        await expect(canvas.getByText("Select a module to change it.")).toBeVisible();
+        // With nothing selected, the selection's sidebar offers modules to add.
+        await expect(canvas.getByText("Or select a module to change it.")).toBeVisible();
     },
 };
 

@@ -27,6 +27,26 @@ const Core = styled.div`
     }
 `;
 
+/** Shut beneath what is selected, its heading the way to open it. */
+const Fold = styled.details`
+    > summary {
+        cursor: pointer;
+        list-style: none;
+    }
+
+    > summary::-webkit-details-marker {
+        display: none;
+    }
+
+    > summary h2::before {
+        content: "▸ ";
+    }
+
+    &[open] > summary h2::before {
+        content: "▾ ";
+    }
+`;
+
 const GROUPS: readonly { title: string; kinds: readonly { kind: ShipModuleKind; label: string; title?: string }[] }[] = [
     {
         title: "Structural",
@@ -103,13 +123,15 @@ export interface AddModuleProps {
     readonly onAdd: (kind: ShipModuleKind) => void;
     /** The kind to add next, shown as the thing to do: a blank ship's core. */
     readonly suggest?: ShipModuleKind | null;
+    /** Folded under its heading, as below a selected module's settings, with whether it is open. */
+    readonly folded?: { readonly open: boolean; readonly onToggle: (open: boolean) => void };
 }
 
 /** A button for each kind of module, by what it is for. */
-export function AddModule({ into, fighter, onAdd, suggest = null }: AddModuleProps) {
-    return (
-        <section>
-            <h2 id="addHeading">{into === null ? "Add a module" : `Add a module to ${into}`}</h2>
+export function AddModule({ into, fighter, onAdd, suggest = null, folded }: AddModuleProps) {
+    const heading = <h2 id="addHeading">{into === null ? "Add a module" : `Add a module to ${into}`}</h2>;
+    const buttons = (
+        <>
             <Core>
                 <Button
                     data-add="core"
@@ -137,6 +159,19 @@ export function AddModule({ into, fighter, onAdd, suggest = null }: AddModulePro
                     ))}
                 </Group>
             ))}
-        </section>
+        </>
+    );
+    if (folded === undefined)
+        return (
+            <section>
+                {heading}
+                {buttons}
+            </section>
+        );
+    return (
+        <Fold id="addFolded" open={folded.open} onToggle={(event) => folded.onToggle(event.currentTarget.open)}>
+            <summary>{heading}</summary>
+            {buttons}
+        </Fold>
     );
 }
