@@ -19,6 +19,7 @@ import { CommitText } from "~/ui/fields/CommitText";
 import { LiveryPanel } from "~/features/livery/LiveryPanel";
 import { withLivery } from "~/editor/livery";
 import { AddShipMenu } from "./AddShipMenu";
+import { FLEET_HELP_KEY, FLEET_HELP_LABEL, FleetHelp } from "./FleetHelp";
 import { FleetCanvas } from "./FleetCanvas";
 import { designOf, fromLibrary } from "./fleetOptions";
 import { LibraryOptions } from "./LibraryOptions";
@@ -26,6 +27,7 @@ import { DesignList, FleetProblems, FleetStats } from "./FleetReport";
 import { SelectionPanel } from "./SelectionPanel";
 import { skirmishBlock, SkirmishBudget, SkirmishCards, SkirmishTitle } from "./SkirmishCard";
 import { Button } from "~/ui/buttons/Button";
+import { useHelp } from "~/features/help/Help";
 import { PauseMenu } from "~/features/menu/PauseMenu";
 
 const KEYS: readonly KeyRow[] = [
@@ -269,6 +271,8 @@ export function FleetPage() {
     const leaving = useEffectEvent(keep);
     useEffect(() => () => leaving(), []);
 
+    // By itself only in a skirmish, which is where a new player first builds a fleet.
+    const help = useHelp(FLEET_HELP_KEY, { auto: skirmish !== null });
     const now: Skirmish | null = skirmish === null ? null : { ...skirmish, player: doc.fleet };
     const view = doc.view;
     const flies = view.faults.length === 0;
@@ -407,6 +411,7 @@ export function FleetPage() {
                         },
                     ]}
                     keys={KEYS}
+                    help={{ label: FLEET_HELP_LABEL, show: help.show }}
                     // A skirmish keeps its fleet as it is edited.
                     unsaved={skirmish === null && unsavedChanges ? { what: name, save: () => fleets.save(doc.fleet) } : null}
                 >
@@ -524,6 +529,7 @@ export function FleetPage() {
                     </Back>
                 )}
             </Bar>
+            <FleetHelp open={help.open} onClose={help.close} skirmish={skirmish !== null} />
             <Body>
                 <FleetCanvas
                     doc={doc}

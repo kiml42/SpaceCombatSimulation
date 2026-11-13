@@ -5,6 +5,7 @@ import { BattleCanvas } from "~/features/battle/BattleCanvas";
 import { LookFields } from "~/features/battle/LookFields";
 import { pauseView } from "~/features/battle/pauseView";
 import { Playback } from "~/features/battle/Playback";
+import { useHelp } from "~/features/help/Help";
 import { BackToMenu } from "~/features/menu/BackToMenu";
 import { PauseMenu } from "~/features/menu/PauseMenu";
 import { Scrub } from "~/features/battle/Scrub";
@@ -60,6 +61,7 @@ import { Button } from "~/ui/buttons/Button";
 import { EditLink } from "~/ui/buttons/EditButton";
 import { EMPTY } from "./FleetChoices";
 import { keptSettings, SetupScreen } from "./SetupScreen";
+import { SKIRMISH_HELP_KEY, SKIRMISH_HELP_LABEL, SkirmishHelp } from "./SkirmishHelp";
 import { SETTINGS_KEY } from "./skirmishFields";
 import { Timeline } from "./Timeline";
 
@@ -308,6 +310,8 @@ function roundOn(setup: BattleSetup, light: number): CustomBattle {
 export function SkirmishPage() {
     const skirmishes = useSkirmish();
     const { skirmish, history, leading, answering } = skirmishes;
+    // How a skirmish works is the setup screen's: a skirmish under way has its keys behind ? instead.
+    const help = useHelp(SKIRMISH_HELP_KEY, { enabled: skirmish === null });
     const storage = useStorage();
     const { ships, fleets } = useLibrary();
     const navigate = useNavigate();
@@ -752,7 +756,7 @@ export function SkirmishPage() {
             <Controls>
                 {skirmish === null ? (
                     // Setting one up, there is nothing to pause and nowhere to go but back.
-                    <BackToMenu />
+                    <BackToMenu help={{ label: SKIRMISH_HELP_LABEL, show: help.show }} />
                 ) : (
                     <PauseMenu
                         title="Paused"
@@ -809,6 +813,7 @@ export function SkirmishPage() {
                 )}
             </Controls>
             <Body>
+                <SkirmishHelp open={help.open && skirmish === null} onClose={help.close} />
                 {skirmish === null && (
                     <SetupScreen
                         key={setupKey}
