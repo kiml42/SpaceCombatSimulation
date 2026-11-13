@@ -108,10 +108,10 @@ export function AddShipMenu({ open, onOpen, roster, library, onAdd, onAddFile }:
                     title="One of this fleet's designs, or a ship from the library; the fleet carries its own copy"
                     onClick={() => onOpen(!open)}
                 >
-                    Add ship ▾
+                    Add saved ship ▾
                 </Button>
                 <Button id="addFromFile" title="Add a ship from a ship design file" onClick={() => file.current?.click()}>
-                    Add from file…
+                    Add from file
                 </Button>
             </Pair>
             {open && (

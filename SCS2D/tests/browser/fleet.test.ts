@@ -268,6 +268,9 @@ describe("the fleet editor in a browser", () => {
         await page.goto(fleetRoute());
         await page.click("#newFleet");
         expect(await page.getAttribute("#newDesign", "data-variant")).toBe("primary");
+        // Empty, it has no designs to list, and having no ships is a problem.
+        expect(await page.locator("#designList").count()).toBe(0);
+        expect(await page.textContent("#problems")).toContain("The fleet has no ships");
         await page.click("#newDesign");
         await page.waitForURL(/#\/ship\?design=/);
         expect(await page.inputValue("#shipName")).toBe("Ship 1");

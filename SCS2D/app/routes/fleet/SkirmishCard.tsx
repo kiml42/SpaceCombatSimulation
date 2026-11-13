@@ -11,7 +11,6 @@ const Note = styled.p`
 /** Why the fleet cannot go back to the skirmish, or null if it can. */
 export function skirmishBlock(skirmish: Skirmish, flies: boolean): string | null {
     if (skirmish.hand !== undefined) return "Pick an upgrade card to fight again.";
-    if (skirmish.player.ships.length === 0) return "Add a ship to fight with.";
     const fault = fleetFault(skirmish.player);
     if (fault !== null) return "Priced once every design would fly.";
     if (!flies) return "Fix the problems listed to fight.";
@@ -19,6 +18,18 @@ export function skirmishBlock(skirmish: Skirmish, flies: boolean): string | null
     const limit = overLimit(skirmish);
     return limit !== null ? `The fleet has ${limit}.` : "Over budget: cut it down to fight.";
 }
+
+/** The sidebar's heading in a skirmish: which round the fleet is being made for. */
+const Title = styled.h2`
+    && {
+        margin: 0 0 0.6rem;
+        color: var(--colour-heading);
+        font-size: 1.05rem;
+        font-weight: 600;
+        letter-spacing: normal;
+        text-transform: none;
+    }
+`;
 
 const Pick = styled.div`
     margin: 0.5rem 0;
@@ -50,7 +61,7 @@ export function SkirmishCard({
     const block = skirmishBlock(skirmish, flies);
     return (
         <section id="skirmish">
-            <h2 id="skirmishTitle">{`Skirmish — round ${skirmish.round}`}</h2>
+            <Title id="skirmishTitle">{`Skirmish — round ${skirmish.round}`}</Title>
             {skirmish.hand !== undefined && (
                 <Pick>
                     <h3>Pick an upgrade card</h3>
@@ -59,8 +70,10 @@ export function SkirmishCard({
                 </Pick>
             )}
             <BudgetTable id="skirmishBudget" skirmish={skirmish} />
-            <CardHand id="heldCards" ids={skirmish.cards ?? []} caption="Your upgrade cards:" empty="No upgrade cards yet." />
-            <Note id="skirmishNote">{block ?? `Against ${skirmish.enemy.name}.`}</Note>
+            <h2>Upgrade cards</h2>
+            <CardHand id="heldCards" ids={skirmish.cards ?? []} empty="None yet" />
+            {/* An empty fleet is the problems list's to say; there is nothing to fight with yet. */}
+            {skirmish.player.ships.length > 0 && <Note id="skirmishNote">{block ?? `Against ${skirmish.enemy.name}.`}</Note>}
         </section>
     );
 }

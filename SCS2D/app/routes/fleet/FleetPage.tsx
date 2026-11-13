@@ -92,6 +92,17 @@ const Body = styled.div`
     }
 `;
 
+/** The ways to add a ship: a new design first, across the panel, as the one to reach for. */
+const Adding = styled.section`
+    display: grid;
+    gap: 0.4rem;
+    margin-top: 1rem;
+
+    > button {
+        width: 100%;
+    }
+`;
+
 const Panel = styled.aside`
     width: 22rem;
     max-width: 45vw;
@@ -108,7 +119,7 @@ const Panel = styled.aside`
         text-transform: uppercase;
     }
 
-    > section:first-child h2 {
+    > section:first-child > h2:first-child {
         margin-top: 0;
     }
 
@@ -455,15 +466,27 @@ export function FleetPage() {
                     }}
                 />
                 <Panel>
-                    <section>
-                        <h2>Add a ship</h2>
+                    {now !== null && (
+                        <SkirmishCard
+                            skirmish={now}
+                            flies={flies}
+                            onPick={(id) => setSkirmish((was) => (was === null ? was : pick(was, id)))}
+                        />
+                    )}
+                    {doc.fleet.ships.length > 0 && (
+                        <section>
+                            <h2>Designs</h2>
+                            <DesignList view={view} designHref={toDesign} onLeave={keep} />
+                        </section>
+                    )}
+                    <Adding>
                         <Button
                             id="newDesign"
                             variant={doc.fleet.ships.length === 0 ? "primary" : "plain"}
                             title="Design a new ship for this fleet: one of it is placed, and the ship editor opens on it"
                             onClick={newDesign}
                         >
-                            New ship
+                            Add new ship
                         </Button>
                         <AddShipMenu
                             open={adding}
@@ -487,11 +510,7 @@ export function FleetPage() {
                                 })
                             }
                         />
-                    </section>
-                    <section>
-                        <h2>Designs</h2>
-                        <DesignList view={view} designHref={toDesign} onLeave={keep} />
-                    </section>
+                    </Adding>
                     <SelectionPanel
                         doc={doc}
                         scale={engine?.camera.scale ?? 1}
@@ -501,17 +520,13 @@ export function FleetPage() {
                         onLeave={keep}
                         onChanged={edited}
                     />
-                    {now !== null && (
-                        <SkirmishCard
-                            skirmish={now}
-                            flies={flies}
-                            onPick={(id) => setSkirmish((was) => (was === null ? was : pick(was, id)))}
-                        />
+                    {/* In a skirmish the budget says all this does that matters. */}
+                    {now === null && (
+                        <section>
+                            <h2>What it works out to</h2>
+                            <FleetStats view={view} />
+                        </section>
                     )}
-                    <section>
-                        <h2>What it works out to</h2>
-                        <FleetStats view={view} />
-                    </section>
                     <section>
                         <h2>Problems</h2>
                         <FleetProblems
