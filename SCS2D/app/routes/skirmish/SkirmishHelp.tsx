@@ -58,14 +58,10 @@ const Actions = styled.div`
 export interface SkirmishHelpProps {
     readonly open: boolean;
     readonly onClose: () => void;
-    /** Losses in a row, each with a new fleet, before the player is dealt cards; 0 for never. */
-    readonly cardAfter: number;
-    /** Seconds a side may go without fighting before it is out. */
-    readonly quietTime: number;
 }
 
-/** How a skirmish plays out, round by round, for a player who has not played one. */
-export function SkirmishHelp({ open, onClose, cardAfter, quietTime }: SkirmishHelpProps) {
+/** What a skirmish is and how to start one: the rest is explained as it comes up in play. */
+export function SkirmishHelp({ open, onClose }: SkirmishHelpProps) {
     const dialog = useRef<HTMLDialogElement>(null);
     useEffect(() => {
         const element = dialog.current;
@@ -95,36 +91,13 @@ export function SkirmishHelp({ open, onClose, cardAfter, quietTime }: SkirmishHe
             <p>An arms race against an enemy that adapts: every time you beat it, it evolves to counter your fleet.</p>
             <ol>
                 <li>
-                    <strong>Pick an enemy and a battlefield.</strong> What the enemy costs to build sets your budget: metal, fuel and build
-                    time.
+                    <strong>Pick an enemy and a battlefield.</strong> What the enemy costs to build is your budget.
                 </li>
                 <li>
-                    <strong>Build a fleet within the budget</strong> in the fleet editor: design ships, or load ones you have saved.
-                </li>
-                <li>
-                    <strong>Fight the round.</strong> Your ships fight by themselves, and you can give them orders. A side that goes{" "}
-                    {quietTime} s without firing, hitting or closing in is out; a draw counts as a loss.
-                </li>
-                <li>
-                    <strong>Lost? Change your fleet and try again.</strong> Each try of a round starts the same way, so you can work out
-                    what beats it.
-                    {cardAfter > 0 &&
-                        ` After trying ${cardAfter} modified versions of your fleet against the same enemy, you can pick an upgrade card to give you some different options.`}
-                </li>
-                <li>
-                    <strong>Won? The enemy evolves.</strong> Pick where the next round is fought, then watch the enemy breed variations on
-                    its fleet until one beats yours there. That one is your next opponent. If it struggles, it draws upgrade cards of its
-                    own.
-                </li>
-                <li>
-                    <strong>Keep going</strong> for as long as you can stay ahead. Your skirmish is saved as you play; carry on from the
-                    main menu.
+                    <strong>Start, and build a fleet</strong> within that budget to beat it.
                 </li>
             </ol>
-            <p>
-                The presets above set everything up; you can use Customise and Advanced settings for more control over the enemy, your
-                budget, the battlefield and how the enemy evolves.
-            </p>
+            <p>You will pick up the rest as you play.</p>
             <Actions>
                 <Button id="skirmishHelpClose" variant="primary" autoFocus onClick={onClose}>
                     Got it
