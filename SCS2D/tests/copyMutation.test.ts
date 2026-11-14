@@ -4,10 +4,16 @@ import { Rng } from "../sim/rng.js";
 import { compileBlueprint, type Blueprint } from "../sim/index.js";
 import { BLUEPRINTS } from "../scenarios/blueprints.js";
 
-/** How many of a layout's engines have nothing of their own in their flame. */
+/**
+ * How many of a layout's engines have nothing of their own in their flame, near
+ * enough: a sliver from positions rounded to a tenth of a millimetre is not a copy
+ * stacked in front of one.
+ */
 function clear(blueprint: Blueprint): number {
-    return compileBlueprint(blueprint).engines.filter((t) => (t.escaping ?? 1) === 1).length;
+    return compileBlueprint(blueprint).engines.filter((t) => (t.escaping ?? 1) > CLEAR).length;
 }
+
+const CLEAR = 0.999;
 
 /**
  * Sensitive to what can mutate, as `mutation.test.ts` is: a new kind, knob or

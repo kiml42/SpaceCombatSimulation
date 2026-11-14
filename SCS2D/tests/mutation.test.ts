@@ -6,6 +6,7 @@ import {
     type Budget,
     MAX_BARREL_CALIBRES,
     blueprintProblem,
+    contactShare,
     compileDraft,
     expandBlueprint,
     isWeaponMount,
@@ -681,6 +682,35 @@ describe("mutation", () => {
             expect(blueprintProblem(child.blueprint)).toBeNull();
         }
         expect(stopped).toBeGreaterThan(0);
+    });
+
+    it("re-seats a module flush on a face of what it is welded to", () => {
+        const fixture: Blueprint = {
+            name: "Seated",
+            modules: [
+                { kind: "core", x: 0, y: 0, length: 4, width: 4 },
+                { kind: "engine", x: -2, y: 0, angle: Math.PI, length: 2, width: 1 },
+            ],
+        };
+        expect(blueprintProblem(fixture)).toBeNull();
+        const rng = new Rng(7);
+        let reseated = 0;
+        for (let i = 0; i < 300 && reseated < 5; i++) {
+            const child = mutate(fixture, rng, {
+                structural: 0,
+                switches: 0,
+                geometry: 1,
+                thrusters: 0,
+                build: { ...FROZEN, move: 1 },
+                doctrine: STILL,
+            });
+            if (!child.edits.some((edit) => /reseated/.test(edit))) continue;
+            reseated++;
+            expect(blueprintProblem(child.blueprint)).toBeNull();
+            const [hull, engine] = child.blueprint.modules as ModuleSpec[];
+            expect(contactShare(hull!, engine!)).toBeCloseTo(1, 6);
+        }
+        expect(reseated).toBeGreaterThan(0);
     });
 
     it("trades a face between two touching modules", () => {
