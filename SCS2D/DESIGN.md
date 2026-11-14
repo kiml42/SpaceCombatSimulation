@@ -1594,10 +1594,13 @@ Rules:
   box, the width for a hull weapon, and one nozzle's width for an engine. A module marked **thick** drops
   the deck cap, so a 60 m wide structure is 60 m deep. Marking one no more than a deck across changes
   nothing, and the editor disables it. Turrets are always held to a deck.
-- **Thick structure takes its depth from what it is welded to**, which is why structure alone may be
-  marked at any width. Held to its own, a strip of plating laid along a citadel would stand a fraction as
-  high as the thing it was meant to be covering and stop nothing aimed at it — so a thick plate is as deep
-  as the deepest module it touches, and no thinner than it would have been on its own. It is paid for at
+- **Most modules take their depth from what they are welded to** (`inheritsDepth`): as deep as the
+  deepest module they touch, up to a deck, and without that limit when marked thick, which is why such a
+  kind may be marked at any width. Engines (round), cores (sized for the ship), turrets (held to a deck)
+  and rock keep their own. Held to its own, a strip of plating laid along a citadel would stand a fraction
+  as high as the thing it was meant to be covering and stop nothing aimed at it, and a wedge angling an
+  engine would be a sliver welded on by a sliver — so each is as deep as the deepest module it touches,
+  and no thinner than it would have been on its own. It is paid for at
   that depth: a plate standing as high as a citadel has a citadel's area of wall to carry, so applique
   armour costs what the steel in it costs and the plate's narrowness buys only the deck space it saves.
   **Depth does not travel**: a neighbour offers the depth it has of its own and never one it borrowed, so a

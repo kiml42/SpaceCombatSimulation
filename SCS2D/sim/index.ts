@@ -151,6 +151,7 @@ export {
     isThick,
     moduleThickness,
     canThicken,
+    inheritsDepth,
     isWeaponMount,
     mountTraverse,
     FULL_TRAVERSE,

@@ -78,8 +78,10 @@ describe("deriving the joints", () => {
         const flush = strength([core(0, 0, 4, 4), structure(3, 0, 2, 2)]);
         // A fifth of the face in contact is a fifth of the weld.
         expect(strength([core(0, 0, 4, 4), structure(3, 2.6, 2, 2)])).toBeCloseTo(flush * 0.2, 3);
-        // A plate a quarter as deep is a quarter as strong, along the same width of face.
-        expect(strength([core(0, 0, 4, 4), structure(2.25, 0, 0.5, 2)])).toBeCloseTo(flush / 4, 3);
+        // A core a quarter as deep is a quarter as strong, along the same width of face;
+        // a core, since it does not take a neighbour's depth.
+        const deep = strength([core(0, 0, 2, 2), structure(2, 0, 2, 2)]);
+        expect(strength([core(0, 0, 0.5, 2), structure(1.25, 0, 2, 2)])).toBeCloseTo(deep / 4, 3);
     });
 
     it("counts a module within the attachment tolerance as welded", () => {
