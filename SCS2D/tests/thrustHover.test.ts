@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { compileBlueprint } from "../sim/index.js";
 import { CORVETTE, STAR_DESTROYER } from "../scenarios/blueprints.js";
-import { envelopes, holdingThrottles, inUnits } from "../editor/stats.js";
+import { burnFigures, envelopes, holdingAt, holdingThrottles, inUnits, pointedThrust } from "../editor/stats.js";
 import { envelopeBearingAt, overEnvelope } from "../editor/overlay.js";
 
 describe("the throttles behind a point on the envelope", () => {
@@ -33,6 +33,41 @@ describe("the throttles behind a point on the envelope", () => {
                 expect(Math.abs(torque) / (force * corvette.radius)).toBeLessThan(0.02);
             }
         }
+    });
+
+    it("burns the share of what holds the heading that the point is of the way out", () => {
+        const curve = envelopes(corvette, 64);
+        const angle = Math.PI / 3;
+        const holding = holdingAt(curve, angle);
+        // A quarter of the way out asks for a quarter of what that direction has,
+        // however weak it is beside the rosette's peak.
+        const gentle = pointedThrust(curve, angle, 0.25);
+        expect(gentle.share).toBe(0.25);
+        expect(gentle.acceleration).toBeCloseTo(0.25 * holding, 9);
+        const astern = pointedThrust(curve, Math.PI, 0.5);
+        expect(astern.acceleration).toBeCloseTo(0.5 * holdingAt(curve, Math.PI), 9);
+        // At or past the rim, as much as holds the heading, and no more.
+        expect(pointedThrust(curve, angle, 1).acceleration).toBeCloseTo(holding, 9);
+        expect(pointedThrust(curve, angle, 3).share).toBe(1);
+        // The throttles scaled by the share push that much, still without turning.
+        const full = holdingThrottles(corvette, angle);
+        const { fx, fy, torque } = wrench(full.map((t) => t * gentle.share));
+        const fullForce = Math.hypot(wrench(full).fx, wrench(full).fy);
+        expect(Math.hypot(fx, fy) / fullForce).toBeCloseTo(gentle.share, 9);
+        expect(Math.abs(torque) / (fullForce * corvette.radius)).toBeLessThan(0.02);
+    });
+
+    it("costs a burn at its engines' own specific impulse, and lasts twice as long at half throttle", () => {
+        const full = holdingThrottles(corvette, 0);
+        const flat = burnFigures(corvette, full);
+        const half = burnFigures(
+            corvette,
+            full.map((t) => t / 2),
+        );
+        expect(flat.isp).toBeGreaterThan(0);
+        expect(half.isp).toBeCloseTo(flat.isp, 9);
+        expect(half.endurance).toBeCloseTo(flat.endurance * 2, 6);
+        expect(burnFigures(corvette, new Float64Array(corvette.engines.length)).endurance).toBe(Infinity);
     });
 
     it("is read off the widget only where the widget is", () => {
