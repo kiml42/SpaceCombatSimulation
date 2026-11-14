@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { AttackArcs, addTurret, bears, compileBlueprint } from "../sim/index.js";
+import { AttackArcs, addTurret, bears, compileBlueprint, math } from "../sim/index.js";
+import { Demonstration } from "../editor/demonstrate.js";
+
+const { angleDelta } = math;
 import { CATAMARAN, CORVETTE } from "../scenarios/blueprints.js";
-import { aimAlong, attackBearings, attackRosette, gunsBearing, previewSnapshot } from "../editor/preview.js";
+import { attackBearings, attackRosette, gunsBearing, previewSnapshot } from "../editor/preview.js";
 import { attackBearingAt, overAttack, overEnvelope } from "../editor/overlay.js";
 
 describe("the guns the attack rosette turns", () => {
@@ -39,17 +42,56 @@ describe("the guns the attack rosette turns", () => {
         }
     });
 
-    it("turn to the bearing and are ready, leaving the rest at rest", () => {
+    it("slew round at their mounts' own rates, the trigger cone there at once, and fire once on it", () => {
         const design = compileBlueprint(CATAMARAN);
-        const view = previewSnapshot(design).ships[0]!;
-        expect(view.attackBearings).toBeUndefined();
-        const before = [...view.turretBearings];
-        const turrets = design.turrets.map((_, t) => t === 0);
-        aimAlong(view, 1, turrets);
-        expect(view.turretBearings[0]).toBe(1);
-        expect(view.turretAim?.[0]).toBe(1);
-        expect(view.turretReady[0]).toBe(true);
-        expect(view.turretBearings.slice(1)).toEqual(before.slice(1));
+        const demo = new Demonstration();
+        const snapshot = previewSnapshot(design);
+        const view = snapshot.ships[0]!;
+        const best = attackBearings(design)[0]!;
+        const bearing = best.from + best.width / 2;
+        const rest = design.turrets.map((turret) => turret.mount.restBearing ?? 0);
+        const dt = 1 / 60;
+
+        demo.step(design, [], dt, { bearing });
+        demo.writeInto(snapshot);
+        design.turrets.forEach((turret, t) => {
+            if (!turret.main) return;
+            // The cone is on the bearing; the barrel has gone no further than its rate allows.
+            expect(Math.abs(angleDelta(view.turretAim![t]!, bearing))).toBeLessThan(1e-9);
+            expect(Math.abs(angleDelta(rest[t]!, view.turretBearings[t]!))).toBeLessThanOrEqual(turret.mount.maxRate * dt + 1e-9);
+        });
+
+        let fired = 0;
+        for (let i = 0; i < 60 * 30; i++) {
+            demo.step(design, [], dt, { bearing });
+            fired = Math.max(fired, demo.flashes.count);
+        }
+        demo.writeInto(snapshot);
+        const { turrets } = gunsBearing(design, bearing);
+        design.turrets.forEach((_, t) => {
+            if (!turrets[t]) return;
+            expect(Math.abs(angleDelta(view.turretBearings[t]!, bearing))).toBeLessThan(1e-3);
+            expect(view.turretReady[t]).toBe(true);
+        });
+        expect(fired).toBeGreaterThan(0);
+    });
+
+    it("go as far as they can towards a bearing they cannot fire on, and hold fire", () => {
+        const design = compileBlueprint(CATAMARAN);
+        const demo = new Demonstration();
+        const snapshot = previewSnapshot(design);
+        const view = snapshot.ships[0]!;
+        for (let i = 0; i < 16; i++) {
+            const bearing = -Math.PI + (2 * Math.PI * i) / 16;
+            for (let k = 0; k < 60 * 30; k++) demo.step(design, [], 1 / 60, { bearing });
+            demo.writeInto(snapshot);
+            const { turrets } = gunsBearing(design, bearing);
+            design.turrets.forEach((turret, t) => {
+                if (!turret.main || turrets[t]) return;
+                expect(view.turretReady[t]).toBe(false);
+                expect(view.turretFouled![t] || Math.abs(angleDelta(view.turretBearings[t]!, bearing)) > 1e-3).toBe(true);
+            });
+        }
     });
 });
 
