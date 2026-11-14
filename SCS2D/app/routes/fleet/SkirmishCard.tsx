@@ -11,16 +11,14 @@ const Note = styled.p`
 /** Why the fleet cannot go back to the skirmish, or null if it can. */
 export function skirmishBlock(skirmish: Skirmish, flies: boolean): string | null {
     if (skirmish.hand !== undefined) return "Pick an upgrade card to fight again.";
-    const fault = fleetFault(skirmish.player);
-    if (fault !== null) return "Priced once every design would fly.";
-    if (!flies) return "Fix the problems listed to fight.";
+    if (!flies || fleetFault(skirmish.player) !== null) return "Fix the problems listed to fight.";
     if (canFight(skirmish)) return null;
     const limit = overLimit(skirmish);
     return limit !== null ? `The fleet has ${limit}.` : "Over budget: cut it down to fight.";
 }
 
-/** The sidebar's heading in a skirmish: which round the fleet is being made for. */
-const Title = styled.h2`
+/** A sidebar's heading: which skirmish round, or which fleet, the work is for. */
+export const SidebarTitle = styled.h2`
     && {
         margin: 0 0 0.6rem;
         color: var(--colour-heading);
@@ -47,16 +45,25 @@ const Pick = styled.div`
 
 /** The sidebar's heading in a skirmish: which round the fleet is being made for. */
 export function SkirmishTitle({ skirmish }: { readonly skirmish: Skirmish }) {
-    return <Title id="skirmishTitle">{`Skirmish — round ${skirmish.round}`}</Title>;
+    return <SidebarTitle id="skirmishTitle">{`Skirmish — round ${skirmish.round}`}</SidebarTitle>;
 }
 
 /** What the fleet costs against the skirmish's budget, and what stops it fighting, if anything does. */
-export function SkirmishBudget({ skirmish, flies }: { readonly skirmish: Skirmish; readonly flies: boolean }) {
+export function SkirmishBudget({
+    skirmish,
+    flies,
+    enemy = true,
+}: {
+    readonly skirmish: Skirmish;
+    readonly flies: boolean;
+    /** The enemy's column, for comparing fleets; the ship editor leaves it out. */
+    readonly enemy?: boolean;
+}) {
     const block = skirmishBlock(skirmish, flies);
     return (
         <section id="skirmish">
             <h2>Budget</h2>
-            <BudgetTable id="skirmishBudget" skirmish={skirmish} />
+            <BudgetTable id="skirmishBudget" skirmish={skirmish} enemy={enemy} />
             {/* An empty fleet is the problems list's to say. */}
             {block !== null && skirmish.player.ships.length > 0 && <Note id="skirmishNote">{block}</Note>}
         </section>
