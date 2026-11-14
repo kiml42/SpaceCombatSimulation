@@ -24,9 +24,10 @@ export const Field = styled.div`
     }
 `;
 
-/** A panel's actions, sharing its width. */
+/** A panel's actions, sharing its width, and wrapping to another row where they do not fit. */
 export const Buttons = styled.div`
     display: flex;
+    flex-wrap: wrap;
     gap: 0.4rem;
     margin-top: 0.6rem;
 

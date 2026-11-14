@@ -84,6 +84,26 @@ async function openShip(p: Page, name: string): Promise<void> {
     await p.keyboard.press("f");
 }
 
+/** Add a module of a kind, opening Add a module first where it is folded below what is selected. */
+async function addModule(p: Page, kind: string): Promise<void> {
+    if ((await p.locator("#addFolded:not([open])").count()) > 0) await p.click("#addFolded > summary");
+    await p.click(`[data-add="${kind}"]`);
+}
+
+/** Choose one of the menu's items. */
+async function fromMenu(p: Page, item: string): Promise<void> {
+    await p.click("#menuButton");
+    await p.click(item);
+}
+
+/** Whether one of the menu's items is offered, looked at with the menu open and closed again after. */
+async function menuDisabled(p: Page, item: string): Promise<boolean> {
+    await p.click("#menuButton");
+    const disabled = await p.isDisabled(item);
+    await p.click("#resume");
+    return disabled;
+}
+
 /** The middle of the canvas, where a framed ship's centre of mass sits. */
 async function canvasCentre(p: Page): Promise<{ x: number; y: number }> {
     const box = await p.locator("#view").boundingBox();
@@ -200,7 +220,8 @@ beforeAll(async () => {
     expect(existsSync(appPage)).toBe(true);
 
     browser = await launchChromium();
-    page = await browser.newPage({ viewport: { width: 1200, height: 700 } });
+    // Wide enough for both sidebars to leave the view the size the positions below were worked out at.
+    page = await browser.newPage({ viewport: { width: 1440, height: 700 } });
     // Read off its 2D canvas.
     page.on("pageerror", (error) => problems.push(`pageerror: ${error.message}`));
     page.on("console", (message) => {
@@ -208,7 +229,7 @@ beforeAll(async () => {
     });
     await page.goto(shipRoute());
     try {
-        await page.waitForFunction(() => (document.getElementById("stats")?.textContent ?? "").includes("Endurance"));
+        await page.waitForFunction(() => (document.getElementById("stats")?.textContent ?? "").includes("Burn"));
     } catch (timeout) {
         if (problems.length > 0) throw new Error(`the page did not start:\n${problems.join("\n")}`, { cause: timeout });
         throw timeout;
@@ -256,13 +277,16 @@ describe("the editor in a browser", () => {
 
     it("shows what the layout works out to, and that it would fly", async () => {
         const stats = (await page.textContent("#stats")) ?? "";
-        expect(stats).toMatch(/Mass[\d.,]+ t, [\d.,]+ t of it fuel/);
-        expect(stats).toMatch(/Endurance[\d,]+ s flat out, [\d,]+ m\/s of Δv/);
-        // The holding curve is measured through the allocator, so its appearance
+        expect(stats).toMatch(/Mass[\d.,]+ t\s*fuel[\d.,]+ t/);
+        expect(stats).toMatch(/Burn[\d,]+ s/);
+        expect(stats).toMatch(/Δv\d+\.\d km\/s/);
+        expect(stats).toMatch(/Turn L \/ R[\d.]+ \/ [\d.]+ °\/s²/);
+        // It flies, though its thrust is off its centre of mass, so it pays to hold its heading: a
+        // warning rather than a problem. The holding curve is measured through the allocator, so this
         // is also the check that the allocator ran without throwing on load.
-        expect(stats).toMatch(/Heading cost/);
-        expect(stats).toMatch(/Closes to\s*\d[\d,]*–\d[\d,]* m/);
-        expect(await page.textContent("#problems")).toMatch(/No problems/);
+        const problems = (await page.textContent("#problems")) ?? "";
+        expect(problems).toMatch(/No problems/);
+        expect(problems).toMatch(/gives up to \d+% of its push to hold its heading/);
     });
 
     it("selects the module under the pointer", async () => {
@@ -427,29 +451,29 @@ describe("the editor in a browser", () => {
     });
 
     it("offers a button for every kind of module, each adding one of that kind", async () => {
-        await page.click("#newShip");
+        await fromMenu(page, "#newShip");
         const kinds = [...MODULE_KINDS];
         const buttons = await page.$$eval("[data-add]", (found) => found.map((b) => (b as HTMLElement).dataset["add"]));
         expect([...buttons].sort()).toEqual([...kinds].sort());
         for (const kind of ["claw", "pad", "port", "railGun", "plasmaLance"]) {
-            await page.click(`[data-add="${kind}"]`);
+            await addModule(page, kind);
             expect(await page.inputValue("#propKind")).toBe(kind);
         }
     });
 
     it("says what a refit from the ship as it was opened would build, once it differs", async () => {
-        await page.click("#newShip");
+        await fromMenu(page, "#newShip");
         expect(await page.isVisible("#refitSection")).toBe(false);
-        await page.click('[data-add="tank"]');
+        await addModule(page, "tank");
         expect(await page.isVisible("#refitSection")).toBe(true);
         expect(await page.textContent("#refit")).toMatch(/1 built/);
     });
 
     it("hides and shows the refit from the panel over the view, which has nothing to toggle until there is one", async () => {
         const picture = (): Promise<Pixels> => shownPicture(page);
-        await page.click("#newShip");
+        await fromMenu(page, "#newShip");
         expect(await page.isDisabled("#showRefit")).toBe(true);
-        await page.click('[data-add="tank"]');
+        await addModule(page, "tank");
         expect(await page.isDisabled("#showRefit")).toBe(false);
         // Hidden to begin with.
         expect(await page.getAttribute("#showRefit", "aria-pressed")).toBe("false");
@@ -463,8 +487,8 @@ describe("the editor in a browser", () => {
     });
 
     it("sets a pad out with a fighter, marking those too big for it", async () => {
-        await page.click("#newShip");
-        await page.click('[data-add="pad"]');
+        await fromMenu(page, "#newShip");
+        await addModule(page, "pad");
         expect(await page.isVisible("#dockedRow")).toBe(true);
         const label = async (name: string): Promise<string> => (await page.textContent(`#propDocked option[value="${name}"]`)) ?? "";
         expect(await label("Dinky")).toBe("Dinky");
@@ -487,13 +511,13 @@ describe("the editor in a browser", () => {
         expect(await page.textContent("#problems")).toMatch(/Dinky .* too big for this pad/);
         await page.selectOption("#propDocked", "");
         expect(await page.textContent("#problems")).not.toMatch(/too big/);
-        await page.click('[data-add="tank"]');
+        await addModule(page, "tank");
         expect(await page.isVisible("#dockedRow")).toBe(false);
     });
 
     it("marks a ship a fighter, which rules out turrets and thick modules", async () => {
-        await page.click("#newShip");
-        await page.click('[data-add="structure"]');
+        await fromMenu(page, "#newShip");
+        await addModule(page, "structure");
         expect(await page.isDisabled("#propThick")).toBe(false);
         await page.check("#shipFighter");
         expect(await page.isDisabled('[data-add="turret"]')).toBe(true);
@@ -504,8 +528,8 @@ describe("the editor in a browser", () => {
     });
 
     it("offers a shell on a gun and not on a beam", async () => {
-        await page.click("#newShip");
-        await page.click('[data-add="turret"]');
+        await fromMenu(page, "#newShip");
+        await addModule(page, "turret");
         expect(await page.isVisible("#shellRow")).toBe(true);
         expect(Number(await page.inputValue("#propFuse"))).toBeCloseTo(0.02, 9);
         expect(Number(await page.inputValue("#propFragments"))).toBe(8);
@@ -514,13 +538,13 @@ describe("the editor in a browser", () => {
         await page.dispatchEvent("#propFragments", "change");
         expect(await page.isDisabled("#propFuse")).toBe(true);
         expect(await page.isDisabled("#propBurstSpeed")).toBe(true);
-        await page.click('[data-add="beamTurret"]');
+        await addModule(page, "beamTurret");
         expect(await page.isVisible("#shellRow")).toBe(false);
     });
 
     it("lets an engine be thick only once its nozzle is wider than a deck", async () => {
-        await page.click("#newShip");
-        await page.click('[data-add="engine"]');
+        await fromMenu(page, "#newShip");
+        await addModule(page, "engine");
         // The default is a deck wide, so already as deep as it is wide.
         expect(await page.isDisabled("#propThick")).toBe(true);
         expect(await page.getAttribute("#propThick", "title")).toMatch(/Too narrow/);
@@ -546,8 +570,8 @@ describe("the editor in a browser", () => {
             return warm;
         };
 
-        await page.click("#newShip");
-        await page.click('[data-add="engine"]');
+        await fromMenu(page, "#newShip");
+        await addModule(page, "engine");
         expect(await page.inputValue("#propKind")).toBe("engine");
         // Facing aft along its bell, so it pushes the ship forward.
         expect(await page.inputValue("#propAngle")).toBe("180");
@@ -568,11 +592,12 @@ describe("the editor in a browser", () => {
         await page.keyboard.press("Escape");
         await page.waitForTimeout(1200);
         expect(await warmth()).toBeLessThan(burning / 2);
-    });
+        // Three pictures of the view, which software WebGL on CI takes most of the default allowance to give.
+    }, 60_000);
 
     it("swaps a module for another kind, keeping the way it faces", async () => {
-        await page.click("#newShip");
-        await page.click('[data-add="hullGun"]');
+        await fromMenu(page, "#newShip");
+        await addModule(page, "hullGun");
         expect(await page.inputValue("#propAngle")).toBe("0");
         await page.selectOption("#propKind", "engine");
         expect(await page.inputValue("#propKind")).toBe("engine");
@@ -676,7 +701,7 @@ describe("the editor in a browser", () => {
         const name = await page.inputValue("#assemblyName");
         expect(await page.textContent("#addHeading")).toBe(`Add a module to ${name}`);
 
-        await page.click('[data-add="engine"]');
+        await addModule(page, "engine");
         expect(await page.inputValue("#propKind")).toBe("engine");
         // At the assembly's own origin, which is the first module picked.
         expect(await page.inputValue("#propX")).toBe("0");
@@ -921,8 +946,8 @@ describe("the editor in a browser", () => {
         // A beam is worse for having several — the aperture is divided between
         // them and only one fires at a time — which is a reason to say what it
         // costs rather than a reason to hide the field.
-        await page.click("#newShip");
-        await page.click('[data-add="beamTurret"]');
+        await fromMenu(page, "#newShip");
+        await addModule(page, "beamTurret");
         expect(await page.inputValue("#propKind")).toBe("beamTurret");
         expect(await page.isHidden("#barrelsRow")).toBe(false);
         // A beam has no barrel: what it has is the aperture the light leaves by.
@@ -1015,8 +1040,8 @@ describe("the editor in a browser", () => {
     });
 
     it("sizes a module about its middle when Shift is held", async () => {
-        await page.click("#newShip");
-        await page.click('[data-add="structure"]');
+        await fromMenu(page, "#newShip");
+        await addModule(page, "structure");
         await page.keyboard.press("f");
         const centre = await canvasCentre(page);
         await page.keyboard.down("Alt");
@@ -1048,8 +1073,8 @@ describe("the editor in a browser", () => {
         // the middle of the canvas and its handles can be worked out rather than
         // aimed at. Pixels per metre is measured here rather than assumed, since it
         // comes from a fit that depends on the canvas size.
-        await page.click("#newShip");
-        await page.click('[data-add="structure"]');
+        await fromMenu(page, "#newShip");
+        await addModule(page, "structure");
         await page.keyboard.press("f");
         const centre = await canvasCentre(page);
 
@@ -1124,7 +1149,7 @@ describe("the editor in a browser", () => {
 
     it("adds a module where the view is, at a size it can be seen at", async () => {
         await openShip(page, "Star Destroyer");
-        await page.click('[data-add="tank"]');
+        await addModule(page, "tank");
         // Framed on the whole ship, the origin is in view: a module goes there, and
         // a 6 m tank would be a speck on a kilometre of hull, so it is scaled up.
         expect(await page.inputValue("#propX")).toBe("0");
@@ -1135,13 +1160,13 @@ describe("the editor in a browser", () => {
         const box = (await page.locator("#view").boundingBox())!;
         await page.mouse.move(box.x + box.width * 0.05, box.y + box.height / 2);
         for (let i = 0; i < 6; i++) await page.mouse.wheel(0, -400);
-        await page.click('[data-add="tank"]');
+        await addModule(page, "tank");
         expect(Number(await page.inputValue("#propX"))).not.toBe(0);
     });
 
     it("turns a selected assembly by its knob, about its origin", async () => {
-        await page.click("#newShip");
-        await page.click('[data-add="structure"]');
+        await fromMenu(page, "#newShip");
+        await addModule(page, "structure");
         await page.click("#propDuplicate");
         await page.click("#propSelectAssembly");
         expect(await page.inputValue("#assemblyAngle")).toBe("0");
@@ -1235,8 +1260,8 @@ describe("the editor in a browser", () => {
     });
 
     it("sets a hull gun's barrel in calibres by dragging its muzzle", async () => {
-        await page.click("#newShip");
-        await page.click('[data-add="hullGun"]');
+        await fromMenu(page, "#newShip");
+        await addModule(page, "hullGun");
         expect(Number(await page.inputValue("#propBarrelCalibres"))).toBe(10);
         expect(await page.textContent("#barrelMetres")).toBe("= 4.00 m");
         await page.keyboard.press("f");
@@ -1291,12 +1316,12 @@ describe("the editor in a browser", () => {
 
     it("duplicates a ship under a counted name, leaving the original alone", async () => {
         await openShip(page, "Corvette");
-        await page.click("#duplicateShip");
+        await fromMenu(page, "#duplicateShip");
         expect(await page.inputValue("#shipName")).toBe("Corvette 2");
         // Unsaved until the player says so, like a new ship.
         expect(await page.textContent("#ship")).toMatch(/Corvette 2 \(unsaved\)/);
-        await page.click("#saveShip");
-        await page.click("#duplicateShip");
+        await fromMenu(page, "#saveShip");
+        await fromMenu(page, "#duplicateShip");
         expect(await page.inputValue("#shipName")).toBe("Corvette 3");
 
         // The one it was copied from is untouched and still opens.
@@ -1309,7 +1334,7 @@ describe("the editor in a browser", () => {
     it("keeps the shipped ship openable after one is saved over its name", async () => {
         await openShip(page, "Corvette");
         await page.fill("#shipNotes", "mine now");
-        await page.click("#saveShip");
+        await fromMenu(page, "#saveShip");
         expect(await page.textContent("#ship")).toMatch(/Corvette \(stock\)/);
 
         // The name opens the player's copy, and the shipped hull is still there
@@ -1328,24 +1353,24 @@ describe("the editor in a browser", () => {
         await openShip(page, "Dinky");
         expect(new URL(page.url()).hash).toBe("#/ship?open=Dinky");
         await page.reload();
-        await page.waitForFunction(() => (document.getElementById("stats")?.textContent ?? "").includes("Endurance"));
+        await page.waitForFunction(() => (document.getElementById("stats")?.textContent ?? "").includes("Burn"));
         expect(await page.inputValue("#shipName")).toBe("Dinky");
         await openShip(page, "Corvette");
     });
 
     it("keeps unsaved work through a reload, and throws it away on Revert", async () => {
         await openShip(page, "Corvette");
-        expect(await page.isDisabled("#revertShip")).toBe(true);
+        expect(await menuDisabled(page, "#revertShip")).toBe(true);
         await page.fill("#shipNotes", "work in progress");
         // The draft is kept a moment after the edit.
         await page.waitForFunction(() => (localStorage.getItem("scs2d.shipDraft") ?? "").includes("work in progress"));
         await page.reload();
-        await page.waitForFunction(() => (document.getElementById("stats")?.textContent ?? "").includes("Endurance"));
+        await page.waitForFunction(() => (document.getElementById("stats")?.textContent ?? "").includes("Burn"));
         expect(await page.inputValue("#shipNotes")).toBe("work in progress");
 
-        await page.click("#revertShip");
+        await fromMenu(page, "#revertShip");
         expect(await page.inputValue("#shipNotes")).not.toBe("work in progress");
-        expect(await page.isDisabled("#revertShip")).toBe(true);
+        expect(await menuDisabled(page, "#revertShip")).toBe(true);
         // On the undo stack, so undo brings the work back.
         await page.click("#undo");
         expect(await page.inputValue("#shipNotes")).toBe("work in progress");
@@ -1354,13 +1379,13 @@ describe("the editor in a browser", () => {
 
     it("clears the editor when a ship is deleted, and gives it back on undo", async () => {
         await openShip(page, "Corvette");
-        await page.click("#duplicateShip");
-        await page.click("#saveShip");
+        await fromMenu(page, "#duplicateShip");
+        await fromMenu(page, "#saveShip");
         const name = await page.inputValue("#shipName");
         const ship = (await page.textContent("#stats")) ?? "";
 
         page.once("dialog", (dialog) => void dialog.accept());
-        await page.click("#deleteShip");
+        await fromMenu(page, "#deleteShip");
         // Blank, and gone from the library: what is drawn and what the library
         // holds never disagree.
         expect(await page.inputValue("#shipName")).toMatch(/^New ship/);
@@ -1371,23 +1396,23 @@ describe("the editor in a browser", () => {
         await page.click("#undo");
         expect(await page.inputValue("#shipName")).toBe(name);
         expect(await page.textContent("#stats")).toBe(ship);
-        await page.click("#saveShip");
+        await fromMenu(page, "#saveShip");
         expect(await page.textContent("#ship")).toMatch(new RegExp(`${name}`));
 
         page.once("dialog", (dialog) => void dialog.accept());
-        await page.click("#deleteShip");
+        await fromMenu(page, "#deleteShip");
         await page.reload();
     });
 
     it("adds a module, and says what is now wrong with the layout", async () => {
         await openShip(page, "Corvette");
-        await page.click('[data-add="turret"]');
+        await addModule(page, "turret");
         // The new module lands at the middle of the view, which is inside the
         // hull — so the layout is invalid and the panel says so. It is still a
         // layout that can be saved and opened again: work in progress is the
         // normal state of one, and a ship that cannot be reopened cannot be fixed.
         expect(await page.textContent("#problems")).toMatch(/problem/);
-        expect(await page.isDisabled("#saveShip")).toBe(false);
+        expect(await menuDisabled(page, "#saveShip")).toBe(false);
 
         await page.click("#undo");
         expect(await page.textContent("#problems")).toMatch(/would fly/);
@@ -1406,10 +1431,12 @@ describe("the editor in a browser", () => {
         });
         const panel = (await page.textContent("#problems")) ?? "";
         expect(panel).toMatch(/would fly/);
-        expect(panel).toMatch(/1 warning/);
+        // With no engines, it cannot hold a heading either.
+        expect(panel).toMatch(/2 warnings/);
         expect(panel).toMatch(/module 2 \(turret\) is out of every core's reach/);
+        expect(panel).toMatch(/cannot hold a heading/);
         await openShip(page, "Torch");
-        expect(await page.textContent("#problems")).not.toMatch(/warning/);
+        expect(await page.textContent("#problems")).not.toMatch(/out of every core's reach/);
     });
 
     it("pushes a neighbour with an edge, and moves the face two modules share", async () => {
@@ -1685,7 +1712,7 @@ describe("the editor in a browser", () => {
         const problems = (await page.textContent("#problems")) ?? "";
         expect(problems).toMatch(/colour/);
         expect(problems).toMatch(/modules\[1\][^]*barrel/);
-        await page.click("#saveShip");
+        await fromMenu(page, "#saveShip");
         const saved = await page.evaluate(() => window.localStorage.getItem("scs2d.blueprint.Typo"));
         expect(JSON.parse(saved!)).toMatchObject({ colour: "red", modules: [{}, { barrel: 8 }] });
         await page.evaluate(() => window.localStorage.removeItem("scs2d.blueprint.Typo"));
