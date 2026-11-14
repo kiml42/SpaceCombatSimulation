@@ -1,6 +1,6 @@
 import { MAX_BEAM_LENGTH } from "../sim/beams.js";
 import { Bodies, IMPACT_MUZZLE, math, Turrets, type ShipDesign, type Snapshot } from "../sim/index.js";
-import { triggerHalfAngle } from "./preview.js";
+import { AIM_SLACK, triggerHalfAngle } from "./preview.js";
 import { GunType, firingPeriod } from "../sim/modules.js";
 import { Flashes } from "../render/flashes.js";
 
@@ -75,7 +75,7 @@ interface Beams {
     count: number;
 }
 
-/** A bearing, body frame, for every main gun to go for as it would an enemy there. */
+/** A bearing, body frame, for every gun to go for as it would an enemy there. */
 export interface Aim {
     bearing: number;
 }
@@ -124,6 +124,8 @@ export class Demonstration {
     /** Each turret's index in `mounts`. */
     private mountIndex: number[] = [];
     private reaction = new Float64Array(1);
+    /** Whether the guns are going for a bearing, so their cones are the ones they fire in. */
+    private aiming = false;
     /** Muzzle flashes, drawn as a battle's are. */
     readonly flashes = new Flashes();
 
@@ -164,7 +166,7 @@ export class Demonstration {
     /**
      * Advance by `dt` wall seconds, with `selected` the layout indices of the
      * modules currently selected, and `aim` a bearing on the attack rosette
-     * every main gun slews to, firing once it is on it.
+     * every gun slews to, firing once it is on it.
      *
      * Wall seconds, not simulated ones: this is a picture of a module rather
      * than a state of the world, so there is nothing here that has to be
@@ -189,14 +191,16 @@ export class Demonstration {
         // The trigger cone is on the bearing at once; the barrel comes round to it.
         for (let t = 0; t < design.turrets.length; t++) {
             const ti = this.mountIndex[t]!;
-            if (aim !== null && design.turrets[t]!.main) {
+            if (aim !== null) {
                 this.mounts.commandWorldBearing(this.body, ti, aim.bearing);
-                this.mounts.allowSlack(ti, triggerHalfAngle(design, t));
+                // At least the pointer's own slack, or a gun that does not train never meets it.
+                this.mounts.allowSlack(ti, max(triggerHalfAngle(design, t), AIM_SLACK));
             } else {
                 this.mounts.returnToRest(ti);
             }
         }
         this.mounts.step(dt, this.body, this.reaction);
+        this.aiming = aim !== null;
 
         for (let t = 0; t < design.turrets.length; t++) {
             const turret = design.turrets[t]!;
@@ -204,7 +208,7 @@ export class Demonstration {
             const ti = this.mountIndex[t]!;
             if (this.mounts.rate[ti] !== 0 || this.mounts.onTarget[ti] === 0) busy = true;
             this.shown[t] = 0;
-            const aimed = aim !== null && turret.main;
+            const aimed = aim !== null;
             // Aimed, it fires as the battle's would: only on target and clear of its own ship.
             const firing = aimed ? this.mounts.readyToFire(ti) : module !== undefined && selected.includes(module.index);
             if (aimed) busy = true;
@@ -276,12 +280,14 @@ export class Demonstration {
             const sparks = (view.turretSparks ??= []);
             load.length = reloading.length = sparks.length = view.currentStructure.turrets.length;
             const aim = (view.turretAim ??= []);
+            const trigger = (view.turretTrigger ??= []);
             const fouled = (view.turretFouled ??= []);
             for (let t = 0; t < load.length; t++) {
                 const ti = this.mountIndex[t];
                 if (ti !== undefined) {
                     view.turretBearings[t] = this.mounts.worldBearing(this.body, ti) + view.angle;
                     aim[t] = this.mounts.worldTrigger(this.body, ti) + view.angle;
+                    if (this.aiming) trigger[t] = this.mounts.triggerHalfAngle(ti);
                     fouled[t] = this.mounts.aimFouled(ti);
                     view.turretReady[t] = this.mounts.readyToFire(ti);
                 }

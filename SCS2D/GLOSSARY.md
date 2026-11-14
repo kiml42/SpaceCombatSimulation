@@ -28,6 +28,7 @@ sees. Code may keep its own names (`BattlePage`, `Blueprint`, `battleRoute`); th
 | **fleet file**, **skirmish file** | A fleet or a skirmish saved to a file | |
 | **round** | One stage of a skirmish, fought again until won | |
 | **upgrade card** | A change to a side's limits, picked from a hand | |
+| **main** guns, **secondary** guns | A ship's weapons it fights with, and the rest (point defence and the like): a weapon's *main* tick | main battery, primaries; secondaries is fine |
 
 ## How to write them
 

@@ -131,6 +131,8 @@ export interface AttackRosette {
     sectors: readonly AttackSector[];
     coverage: readonly AttackSector[];
     total: number;
+    /** Secondary turrets, which go for a bearing too but are not shaded. */
+    secondaries: number;
 }
 
 export interface OverlayView {
@@ -179,8 +181,9 @@ export interface OverlayView {
     attackBearing?: number | null;
     /** Whether the pointer is over the attack rosette. */
     attackExpanded?: boolean;
-    /** How many main guns bear on `attackBearing`, as are shown firing. */
+    /** How many main guns, and how many secondaries, bear on `attackBearing`. */
     attackBearingGuns?: number;
+    attackBearingSecondaries?: number;
 }
 
 /** Room above a grown rosette for the value at the bearing pointed at, pixels. */
@@ -440,8 +443,11 @@ function drawAttack(
     ctx.font = "11px ui-monospace, monospace";
     ctx.textAlign = "right";
     ctx.fillText(attack.total > 0 ? `max ${most}/${attack.total} main guns` : "no main guns", cx + radius, cy + radius + 14);
-    if (bearing !== null)
-        pointedLabel(ctx, [`${degrees(bearing)}: ${view.attackBearingGuns ?? 0}/${attack.total}`], cx + radius, cy - radius);
+    if (bearing !== null) {
+        const lines = [`${degrees(bearing)}: Main ${view.attackBearingGuns ?? 0}/${attack.total}`];
+        if (attack.secondaries > 0) lines.push(`Secondary ${view.attackBearingSecondaries ?? 0}/${attack.secondaries}`);
+        pointedLabel(ctx, lines, cx + radius, cy - radius);
+    }
     ctx.textAlign = "left";
     ctx.restore();
 }
