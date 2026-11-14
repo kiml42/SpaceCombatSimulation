@@ -8,7 +8,9 @@ const TENDER = 1;
 const FIGHTERS = [2, 3, 4, 5, 6, 7, 8, 9];
 
 describe("the Beam Carrier", () => {
-    const run = beamCarrier();
+    // Six raiders rather than eight, so its fighters keep them off the tender long
+    // enough for it to reach a wreck.
+    const run = beamCarrier(undefined, 6);
     const ships = run.ships;
     // Gripping a wreck rides it, so the tender's body is no longer its own: it
     // shares one with a wrecked Corvette, or grows by a piece of wreckage nobody
