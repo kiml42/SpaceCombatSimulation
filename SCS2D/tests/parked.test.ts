@@ -148,7 +148,8 @@ describe("a fighter built on a pad, under threat", () => {
     /** A Factory building one wary Dinky, an armed Corvette in reach, nobody flying; and the share of fuel it left with. */
     function leaves(launchFuel: number, factoryFuel = 1): number {
         const doctrine = compileBlueprint(DINKY).doctrine;
-        const wary = { ...DINKY, doctrine: { ...doctrine, approach: { ...doctrine.approach, dockDanger: 1, launchFuel } } };
+        // Wanting no metal, so only fuel holds it: a hold slower to fill than its tank would keep it longer.
+        const wary = { ...DINKY, doctrine: { ...doctrine, approach: { ...doctrine.approach, dockDanger: 1, launchFuel, launchMetal: 0 } } };
         const factory = compileBlueprint({
             ...FACTORY,
             modules: FACTORY.modules.map((m, i) => (i === 2 ? { ...m, keep: 1 } : m)),

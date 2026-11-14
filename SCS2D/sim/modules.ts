@@ -1498,7 +1498,8 @@ export interface ModuleSpec {
      * Whether this module is free of the deck's depth (`moduleThickness`):
      * as deep as it is across, rather than held to `DECK_HEIGHT`. Nothing to a
      * module no more than a deck across, which is as deep as it is wide either
-     * way (`canThicken`) — **except structure**, which may always be marked.
+     * way (`canThicken`) — **except a kind that `inheritsDepth`**, which may
+     * always be marked.
      *
      * What is thick stands up through the weapons layer as well as the hull
      * (`inWeaponsLayer`). Thick structure is cover: it stops turret fire at whatever
@@ -1507,7 +1508,8 @@ export interface ModuleSpec {
      * pays in wall, in turrets being able to reach it, and in the arcs of every
      * turret it stands in front of.
      *
-     * **Thick structure takes its depth from what it is welded to**, which is
+     * **Most modules take their depth from what they are welded to**
+     * (`inheritsDepth`), up to a deck, and a thick one without that limit, which is
      * the whole of why a plate narrower than a deck may be marked at all. Held
      * to its own width, a strip of plating laid along a thick module would stand
      * a third as high as the thing it was meant to be covering and stop nothing
@@ -2774,7 +2776,16 @@ export function isThick(spec: ModuleSpec): boolean {
  */
 export function canThicken(spec: ModuleSpec): boolean {
     if (!readsThick(spec.kind)) return false;
-    return spec.kind === "structure" || acrossOf(spec) > DECK_HEIGHT;
+    return inheritsDepth(spec.kind) || acrossOf(spec) > DECK_HEIGHT;
+}
+
+/**
+ * Whether a kind takes its depth from the deepest module it is welded to, where
+ * that is deeper than it is: everything but an engine, whose bells are round, a
+ * core, which is sized for its ship, a turret, held to a deck, and rock.
+ */
+export function inheritsDepth(kind: ModuleKind): boolean {
+    return kind !== "engine" && kind !== "core" && kind !== "turret" && kind !== "beamTurret" && kind !== "rock" && kind !== "kernel";
 }
 
 /**
@@ -2786,17 +2797,18 @@ export function canThicken(spec: ModuleSpec): boolean {
  * engine, so each bell is as deep as it is wide. A turret is held to a deck.
  *
  * `touching` is the depth of the deepest module this one is welded to, which
- * only thick structure reads — a plate stands as high as what it covers, and
- * falls back on its own width when nothing it touches is deeper. `layoutStats`
- * is what works that out, so a module asked about on its own is as deep as it
- * is across.
+ * every kind that `inheritsDepth` reads — a wedge or a plate stands as high as
+ * what it joins, up to a deck unless thick, and falls back on its own width
+ * when nothing it touches is deeper. `layoutStats` is what works that out, so
+ * a module asked about on its own is as deep as it is across.
  */
 export function moduleThickness(spec: ModuleSpec, touching = 0): number {
     const across = acrossOf(spec);
-    if (!isThick(spec)) return across < DECK_HEIGHT ? across : DECK_HEIGHT;
+    const deep = inheritsDepth(spec.kind) && touching > across ? touching : across;
+    if (!isThick(spec)) return deep < DECK_HEIGHT ? deep : DECK_HEIGHT;
     // An asteroid is a disc of rock rather than a ball: thick, but no deeper than this.
     if (spec.kind === "kernel" || spec.kind === "rock") return across < ASTEROID_DEPTH ? across : ASTEROID_DEPTH;
-    return across > touching ? across : touching;
+    return deep;
 }
 
 function acrossOf(spec: ModuleSpec): number {

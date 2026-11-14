@@ -9,6 +9,7 @@ import {
     subDesign,
     type Blueprint,
     type ModuleSpec,
+    weldFactor,
 } from "../sim/index.js";
 import { CORVETTE, FRACTAL, GUNSHIP } from "../scenarios/blueprints.js";
 
@@ -56,9 +57,31 @@ describe("deriving the joints", () => {
     });
 
     it("prices a weld by its section, so the narrow join is the weak one", () => {
-        const thinner = Math.min(design.modules[0]!.stats.wallThickness, design.modules[2]!.stats.wallThickness);
-        expect(found[1]!.strength).toBeCloseTo(2 * thinner * JOINT_IMPULSE_PER_AREA, 6);
+        const [a, b] = [design.modules[0]!, design.modules[2]!];
+        const thinner = Math.min(a.stats.wallThickness, b.stats.wallThickness);
+        const factor = weldFactor(a, b);
+        expect(found[1]!.strength).toBeCloseTo(2 * thinner * JOINT_IMPULSE_PER_AREA * factor, 6);
         expect(found[1]!.strength).toBeLessThan(found[0]!.strength);
+    });
+
+    it("finds no joint where a turned box touches a face by its corner", () => {
+        const base = structure(0, 0, 4, 4);
+        for (const angle of [0.1, Math.PI / 4]) {
+            const reach = Math.cos(angle) + Math.sin(angle);
+            expect(contactWidth(base, { ...structure(2 + reach, 0, 2, 2), angle })).toBe(0);
+        }
+        expect(contactWidth(base, { ...structure(3, 0, 2, 2), angle: Math.PI / 2 })).toBeCloseTo(2, 9);
+    });
+
+    it("weakens a weld along a sliver of face, and to a thin module", () => {
+        const strength = (modules: ModuleSpec[]) => joints(compileBlueprint({ name: "Seat", modules }))[0]!.strength;
+        const flush = strength([core(0, 0, 4, 4), structure(3, 0, 2, 2)]);
+        // A fifth of the face in contact is a fifth of the weld.
+        expect(strength([core(0, 0, 4, 4), structure(3, 2.6, 2, 2)])).toBeCloseTo(flush * 0.2, 3);
+        // A core a quarter as deep is a quarter as strong, along the same width of face;
+        // a core, since it does not take a neighbour's depth.
+        const deep = strength([core(0, 0, 2, 2), structure(2, 0, 2, 2)]);
+        expect(strength([core(0, 0, 0.5, 2), structure(1.25, 0, 2, 2)])).toBeCloseTo(deep / 4, 3);
     });
 
     it("counts a module within the attachment tolerance as welded", () => {

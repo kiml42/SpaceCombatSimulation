@@ -426,7 +426,9 @@ inside any one file is not contiguous.
   slide drifts by about half the median module, rounded to a tenth of that on the editor's 1-2-5 ladder,
   and a new module arrives a square that size, so a guess is cheap beside the hull it joins without being a
   dot on a large one. Turns are a quarter about a corner, so a module tucked into a corner can stay tucked,
-  or a small drift on a kind with a facing. Moving one face at a time keeps the opposite face against
+  or, on a kind with a facing, a re-seat: a face of its own drawn at random laid flush on the face of a
+  neighbour it is welded to, slid as little as it takes to sit along it fully, since any other angle leaves
+  it hanging by a corner. Moving one face at a time keeps the opposite face against
   whatever it was attached to; the face moved is one nothing is welded to where there is one, and it moves
   towards squaring the module up more often than away, the more so the less square it is (`1 − r/2`, `r`
   the short side over the long), so a sliver of a turret, whose bore its short side sets, grows across. A
@@ -1592,10 +1594,13 @@ Rules:
   box, the width for a hull weapon, and one nozzle's width for an engine. A module marked **thick** drops
   the deck cap, so a 60 m wide structure is 60 m deep. Marking one no more than a deck across changes
   nothing, and the editor disables it. Turrets are always held to a deck.
-- **Thick structure takes its depth from what it is welded to**, which is why structure alone may be
-  marked at any width. Held to its own, a strip of plating laid along a citadel would stand a fraction as
-  high as the thing it was meant to be covering and stop nothing aimed at it — so a thick plate is as deep
-  as the deepest module it touches, and no thinner than it would have been on its own. It is paid for at
+- **Most modules take their depth from what they are welded to** (`inheritsDepth`): as deep as the
+  deepest module they touch, up to a deck, and without that limit when marked thick, which is why such a
+  kind may be marked at any width. Engines (round), cores (sized for the ship), turrets (held to a deck)
+  and rock keep their own. Held to its own, a strip of plating laid along a citadel would stand a fraction
+  as high as the thing it was meant to be covering and stop nothing aimed at it, and a wedge angling an
+  engine would be a sliver welded on by a sliver — so each is as deep as the deepest module it touches,
+  and no thinner than it would have been on its own. It is paid for at
   that depth: a plate standing as high as a citadel has a citadel's area of wall to carry, so applique
   armour costs what the steel in it costs and the plate's narrowness buys only the deck space it saves.
   **Depth does not travel**: a neighbour offers the depth it has of its own and never one it borrowed, so a
@@ -1723,9 +1728,10 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
 
 - **Connectivity graph** per hull, and it is built (`sim/connectivity.ts`). Two modules are welded
   where their faces touch — a face of one along a face of the other, for at least `WELD_SHARE` (a tenth)
-  of the shorter of the two, never at a corner, however a triangle or a rock's wedge is turned — and the
-  weld is worth its section — the contact by the thinner wall meeting
-  there — rated as an impulse. **Damage weakens a weld; a blow parts it**, and the load through a weld
+  of the shorter of the two, never at a corner and never between faces out of parallel, boxes as much as
+  a triangle or a rock's wedge — and the weld is worth its section — the contact by the thinner wall
+  meeting there — rated as an impulse, and scaled by the shallower module's depth against a metre (`WELD_DEPTH`), so
+  a weld goes by the area in contact and a part hung by a sliver, or a thin one, comes away first. **Damage weakens a weld; a blow parts it**, and the load through a weld
   is the impulse that has to cross it: the far side's mass by the velocity change there. A weld cut
   through its section by rounds passing along it parts with no blow at all, since a cut weld is not a
   weak one but an absent one. When damage

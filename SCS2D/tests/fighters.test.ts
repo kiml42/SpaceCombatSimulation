@@ -265,6 +265,12 @@ describe("a fighter in battle", () => {
         const battle = customBattle({ ...DEFAULT_SETUP, range: 600, fleets: [fleet(fighter()), fleet(UNFLAGGED)] });
         const firstShot = [-1, -1];
         for (let step = 0; step < 60 * 30 && firstShot.includes(-1); step++) {
+            // Mended as they go, so neither is shot out of it before it fires: this is
+            // about whether each can reach the other's layer, not who wins.
+            for (let i = 0; i < 2; i++) {
+                const body = battle.world.bodies.indexOf(battle.ships.body(i));
+                for (let m = 0; m < battle.ships.currentStructure(i).modules.length; m++) battle.ships.damage.repair(body, m, 1e12);
+            }
             battle.step();
             const rounds = battle.projectiles;
             for (let i = 0; i < 2; i++) {
