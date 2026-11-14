@@ -288,6 +288,50 @@ describe("allocation", () => {
     });
 });
 
+describe("engines pointing off the force asked for", () => {
+    /**
+     * A Y-Wing's sideways push in miniature: two engines pushing +y, one ahead of
+     * the centre of mass and one behind at different arms, and a pair pushing ±x
+     * off the axis that can also trim the turn.
+     */
+    const sideways = new EngineLayout([
+        { x: 6, y: 0, dirX: 0, dirY: 1, maxThrust: 1000 },
+        { x: -3, y: 0, dirX: 0, dirY: 1, maxThrust: 1000 },
+        { x: -5, y: 4, dirX: 1, dirY: 0, maxThrust: 400 },
+        { x: -5, y: -4, dirX: -1, dirY: 0, maxThrust: 400 },
+    ]);
+
+    it("hold the heading with the engines pushing the right way while they can, barely touching the rest", () => {
+        const throttles = new Float64Array(4);
+        const out = new Allocation();
+        sideways.allocate(0, 600, 0, throttles, out);
+        expect(shortfall(0, 600, 0, out)).toBeLessThan(1e-9);
+        // Alone, the pair splits 600 N as 200 ahead and 400 behind.
+        expect(throttles[0]).toBeCloseTo(0.2, 2);
+        expect(throttles[1]).toBeCloseTo(0.4, 2);
+        expect(throttles[2]! + throttles[3]!).toBeLessThan(0.01);
+    });
+
+    it("bring them in where the right way alone cannot hold the heading", () => {
+        const throttles = new Float64Array(4);
+        const out = new Allocation();
+        // Alone the pair tops out at 1500 N, with the engine ahead at 500 and the one
+        // behind at its full 1000. Past that the off pair takes the turn: 600 N·m
+        // at 4 m each is 150 N between them.
+        sideways.allocate(0, 1600, 0, throttles, out);
+        expect(shortfall(0, 1600, 0, out)).toBeLessThan(1e-6);
+        expect(throttles[2]! + throttles[3]!).toBeCloseTo(0.375, 3);
+    });
+
+    it("scale with the demand, as the plain minimum did", () => {
+        const a = new Float64Array(4);
+        const b = new Float64Array(4);
+        sideways.allocate(0, 300, 0, a, new Allocation());
+        sideways.allocate(0, 600, 0, b, new Allocation());
+        a.forEach((u, i) => expect(b[i]).toBeCloseTo(2 * u, 9));
+    });
+});
+
 describe("engines that undo each other", () => {
     /**
      * A bow pair as a real ship carries one: two engines abreast at the nose,
