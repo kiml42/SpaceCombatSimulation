@@ -131,6 +131,8 @@ export interface AttackRosette {
     sectors: readonly AttackSector[];
     coverage: readonly AttackSector[];
     total: number;
+    /** Secondary turrets, which go for a bearing too but are not shaded. */
+    secondaries: number;
 }
 
 export interface OverlayView {
@@ -175,12 +177,15 @@ export interface OverlayView {
     attackBearing?: number | null;
     /** Whether the pointer is over the attack rosette. */
     attackExpanded?: boolean;
-    /** How many main guns bear on `attackBearing`, as are shown firing. */
+    /** How many main guns, and how many secondaries, bear on `attackBearing`. */
     attackBearingGuns?: number;
+    attackBearingSecondaries?: number;
 }
 
 /** Room above a grown rosette for the value at the bearing pointed at, pixels. */
-const POINTED_LABEL_PX = 18;
+const POINTED_LABEL_PX = 32;
+/** Between the lines of what is pointed at, pixels. */
+const POINTED_LINE_PX = 14;
 /** How far a grown rosette's window stands off what it holds, pixels. */
 const WINDOW_PAD_PX = 8;
 const WINDOW_FILL = "rgba(14, 17, 23, 0.82)";
@@ -322,12 +327,12 @@ function degrees(bearing: number): string {
 }
 
 /** The value at the bearing pointed at, above the rosette's right edge, in the pointer's colour. */
-function pointedLabel(ctx: CanvasRenderingContext2D, text: string, right: number, top: number): void {
-    const y = Math.max(11, top - 6);
+function pointedLabel(ctx: CanvasRenderingContext2D, lines: readonly string[], right: number, top: number): void {
+    const y = Math.max(11 + POINTED_LINE_PX * (lines.length - 1), top - 6);
     ctx.font = "11px ui-monospace, monospace";
     ctx.textAlign = "right";
     ctx.fillStyle = ATTACK_POINTED;
-    ctx.fillText(text, right, y);
+    lines.forEach((line, i) => ctx.fillText(line, right, y - POINTED_LINE_PX * (lines.length - 1 - i)));
 }
 
 /** The ship from above in a rosette, about its centre of mass, which the rosette's bearings are measured from. */
@@ -420,8 +425,11 @@ function drawAttack(
     ctx.font = "11px ui-monospace, monospace";
     ctx.textAlign = "right";
     ctx.fillText(attack.total > 0 ? `max ${most}/${attack.total} main guns` : "no main guns", cx + radius, cy + radius + 14);
-    if (bearing !== null)
-        pointedLabel(ctx, `${degrees(bearing)}: ${view.attackBearingGuns ?? 0}/${attack.total}`, cx + radius, cy - radius);
+    if (bearing !== null) {
+        const lines = [`${degrees(bearing)}: Main ${view.attackBearingGuns ?? 0}/${attack.total}`];
+        if (attack.secondaries > 0) lines.push(`Secondary ${view.attackBearingSecondaries ?? 0}/${attack.secondaries}`);
+        pointedLabel(ctx, lines, cx + radius, cy - radius);
+    }
     ctx.textAlign = "left";
     ctx.restore();
 }
@@ -846,7 +854,7 @@ function drawEnvelope(
     if (bearing !== null) {
         const i = Math.round((bearing / TAU) * envelope.samples);
         const at = envelope.holding[((i % envelope.samples) + envelope.samples) % envelope.samples]!;
-        pointedLabel(ctx, `${degrees(bearing)}: ${at.toFixed(1)} m/s²`, widthPx - ENVELOPE_MARGIN_PX, cy - radius);
+        pointedLabel(ctx, [`${degrees(bearing)}: ${at.toFixed(1)} m/s²`], widthPx - ENVELOPE_MARGIN_PX, cy - radius);
     }
     ctx.textAlign = "left";
 }

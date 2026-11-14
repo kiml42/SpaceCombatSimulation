@@ -279,10 +279,10 @@ export function attackCoverage(arcs: AttackArcs): { from: number; width: number;
     return out;
 }
 
-/** Whether any of the arcs covers `bearing`, body frame. */
-export function bears(arcs: AttackArcs, bearing: number): boolean {
+/** Whether any of the arcs covers `bearing`, body frame, or comes within `slack` of it. */
+export function bears(arcs: AttackArcs, bearing: number, slack = 0): boolean {
     if (arcs.everywhere > 0) return true;
-    for (let k = 0; k < arcs.count; k++) if (inside(bearing, arcs.start[k]!, arcs.width[k]!)) return true;
+    for (let k = 0; k < arcs.count; k++) if (inside(bearing, arcs.start[k]! - slack, arcs.width[k]! + 2 * slack)) return true;
     return false;
 }
 

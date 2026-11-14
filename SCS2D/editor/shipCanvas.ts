@@ -500,7 +500,14 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
                     attackBearing,
                     attackExpanded,
                     attackBearingGuns:
-                        attackAim === null ? 0 : attackAim.turrets.filter(Boolean).length + attackAim.engines.filter(Boolean).length,
+                        attackAim === null || view.design === null
+                            ? 0
+                            : attackAim.turrets.filter((bears, t) => bears && view.design!.turrets[t]!.main).length +
+                              attackAim.engines.filter(Boolean).length,
+                    attackBearingSecondaries:
+                        attackAim === null || view.design === null
+                            ? 0
+                            : attackAim.turrets.filter((bears, t) => bears && !view.design!.turrets[t]!.main).length,
                 },
                 camera,
                 canvas.width,

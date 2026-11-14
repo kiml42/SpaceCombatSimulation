@@ -254,33 +254,45 @@ export function attackBearings(design: ShipDesign): { from: number; width: numbe
     return bestAttackBearings(arcs, design.thrustBearing).map((r) => ({ ...r, total: arcs.total }));
 }
 
-/** What the attack rosette shows: where the most main guns bear, where any do, and how many there are. */
+/** What the attack rosette shows: where the most main guns bear, where any do, how many there are, and how many secondaries. */
 export function attackRosette(design: ShipDesign): {
     sectors: { from: number; width: number; guns: number }[];
     coverage: { from: number; width: number; guns: number }[];
     total: number;
+    secondaries: number;
 } {
     const arcs = designArcs(design, new AttackArcs());
-    return { sectors: bestAttackBearings(arcs, design.thrustBearing), coverage: attackCoverage(arcs), total: arcs.total };
+    return {
+        sectors: bestAttackBearings(arcs, design.thrustBearing),
+        coverage: attackCoverage(arcs),
+        total: arcs.total,
+        secondaries: design.turrets.filter((turret) => !turret.main).length,
+    };
 }
 
-/** Which of a design's main guns, and weapon engines, can fire on `bearing` (body frame), by the battle's own arcs and masks. */
-export function gunsBearing(design: ShipDesign, bearing: number): { turrets: boolean[]; engines: boolean[] } {
+/** Which of a design's guns, and main weapon engines, can fire on `bearing` (body frame), by the battle's own arcs and masks. */
+export function gunsBearing(design: ShipDesign, bearing: number, slack = AIM_SLACK): { turrets: boolean[]; engines: boolean[] } {
     const arcs = new AttackArcs();
     const turrets = design.turrets.map((turret) => {
-        if (!turret.main) return false;
         arcs.clear();
         addTurret(arcs, turret.mount);
-        return bears(arcs, bearing);
+        return bears(arcs, bearing, slack);
     });
     const engines = design.engines.map(() => false);
     for (const t of design.mainWeaponEngines) {
         arcs.clear();
         addFlame(arcs, design, t);
-        engines[t] = bears(arcs, bearing);
+        engines[t] = bears(arcs, bearing, slack);
     }
     return { turrets, engines };
 }
+
+/**
+ * How near a bearing pointed at on the attack rosette a gun counts as on it,
+ * radians: a pointer gives one exact bearing, and a gun that does not train
+ * one more, which would otherwise never meet.
+ */
+export const AIM_SLACK = math.PI / 180;
 
 /**
  * How far either side of its aim the `t`-th turret fires: the angular size,
