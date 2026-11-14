@@ -73,7 +73,7 @@ import {
 } from "./snapping.js";
 import { attackRosette as measureAttack, gunsBearing, landOnSelf, lightSelfBurning, previewSnapshot } from "./preview.js";
 import type { Aim } from "./demonstrate.js";
-import { burnFigures, envelopes, holdingThrottles, pointedThrust, type Envelopes } from "./stats.js";
+import { burnFigures, burnThrottles, envelopes, pointedThrust, type Envelopes } from "./stats.js";
 
 /**
  * The ship drawn, and the pointer and keys on it: select, move, size, shape
@@ -404,8 +404,8 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
     let thrustBearing: number | null = null;
     /** How far out on the envelope the pointer is, over its radius, which sets how hard the engines burn. */
     let thrustReach = 1;
-    /** The throttles that hold the heading at full holding thrust along `thrustBearing`, kept while it is. */
-    let holdingFor: { design: unknown; bearing: number; throttles: Float64Array } | null = null;
+    /** The throttles burning for `thrustBearing` and `thrustReach`, kept while neither changes. */
+    let burningFor: { design: unknown; bearing: number; reach: number; throttles: Float64Array } | null = null;
     /** Whether the pointer is over the thrust rosette, which is drawn larger while it is. */
     let thrustExpanded = false;
     /** The bearing on the attack rosette the pointer is over, and whether it is over it. */
@@ -459,12 +459,20 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
         const shown = snapshot.ships[0];
         let burn: { isp: number; endurance: number } | null = null;
         if (thrustBearing !== null && view.design !== null && shown !== undefined) {
-            if (holdingFor === null || holdingFor.design !== view.design || holdingFor.bearing !== thrustBearing) {
-                holdingFor = { design: view.design, bearing: thrustBearing, throttles: holdingThrottles(view.design, thrustBearing) };
-            }
             const measured = envelope();
-            const share = measured === null ? 1 : pointedThrust(measured, thrustBearing, thrustReach).share;
-            const burning = holdingFor.throttles.map((t) => t * share);
+            if (
+                measured !== null &&
+                (burningFor === null ||
+                    burningFor.design !== view.design ||
+                    burningFor.bearing !== thrustBearing ||
+                    burningFor.reach !== thrustReach)
+            ) {
+                // As the battle would allocate this push, not the full burn scaled down.
+                const pointed = pointedThrust(measured, thrustBearing, thrustReach);
+                const throttles = burnThrottles(view.design, thrustBearing, pointed.acceleration, pointed.holding);
+                burningFor = { design: view.design, bearing: thrustBearing, reach: thrustReach, throttles };
+            }
+            const burning = burningFor?.throttles ?? new Float64Array(0);
             burn = burnFigures(view.design, burning);
             for (let t = 0; t < shown.throttles.length; t++) {
                 shown.throttles[t] = Math.max(shown.throttles[t] ?? 0, burning[t] ?? 0);

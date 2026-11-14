@@ -696,6 +696,22 @@ export function holdingThrottles(design: ShipDesign, angle: number): Float64Arra
 }
 
 /**
+ * The throttles the battle would burn to accelerate at `acceleration` along
+ * `angle` without turning: its own allocation for that force, or, at the most
+ * that holds the heading (`holding`) or beyond, `holdingThrottles`. Not those
+ * scaled down: below its limits the allocator spreads a smaller push across
+ * the engines differently.
+ */
+export function burnThrottles(design: ShipDesign, angle: number, acceleration: number, holding: number): Float64Array {
+    if (!(acceleration < holding)) return holdingThrottles(design, angle);
+    const throttles = new Float64Array(design.engines.length);
+    if (!(acceleration > 0)) return throttles;
+    const force = acceleration * design.mass;
+    design.engineLayout.allocate(force * cos(angle), force * sin(angle), 0, throttles, new Allocation());
+    return throttles;
+}
+
+/**
  * Both curves: the acceleration available in every direction, and how much of
  * it survives the requirement not to spin.
  *
