@@ -35,14 +35,17 @@ describe("the throttles behind a point on the envelope", () => {
         }
     });
 
-    it("burns as hard as the point asks, up to what holds the heading", () => {
+    it("burns the share of what holds the heading that the point is of the way out", () => {
         const curve = envelopes(corvette, 64);
-        const peak = Math.max(...curve.free);
         const angle = Math.PI / 3;
         const holding = holdingAt(curve, angle);
-        // A quarter of the way out asks for a quarter of the free curve's peak.
+        // A quarter of the way out asks for a quarter of what that direction has,
+        // however weak it is beside the rosette's peak.
         const gentle = pointedThrust(curve, angle, 0.25);
-        expect(gentle.acceleration).toBeCloseTo(Math.min(0.25 * peak, holding), 9);
+        expect(gentle.share).toBe(0.25);
+        expect(gentle.acceleration).toBeCloseTo(0.25 * holding, 9);
+        const astern = pointedThrust(curve, Math.PI, 0.5);
+        expect(astern.acceleration).toBeCloseTo(0.5 * holdingAt(curve, Math.PI), 9);
         // At or past the rim, as much as holds the heading, and no more.
         expect(pointedThrust(curve, angle, 1).acceleration).toBeCloseTo(holding, 9);
         expect(pointedThrust(curve, angle, 3).share).toBe(1);

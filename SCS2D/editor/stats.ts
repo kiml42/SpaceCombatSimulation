@@ -756,20 +756,19 @@ export function holdingAt(envelope: Envelopes, bearing: number): number {
 
 /**
  * The acceleration a point on the thrust rosette asks for: `reach` is its
- * distance from the centre over the rosette's radius, which stands for the
- * free curve's peak. As much as that, up to as much as holds the heading,
- * and that as a share of the most that does, to scale the throttles by.
+ * distance from the centre over the rosette's radius, and that share of the
+ * most that holds the heading on `bearing`, up to all of it at the rim. A
+ * share of what that direction has rather than of the rosette's scale, so a
+ * weak direction is as finely controlled as a strong one.
  */
 export function pointedThrust(
     envelope: Envelopes,
     bearing: number,
     reach: number,
 ): { acceleration: number; holding: number; share: number } {
-    let peak = 0;
-    for (let i = 0; i < envelope.samples; i++) peak = max(peak, envelope.free[i]!);
     const holding = holdingAt(envelope, bearing);
-    const acceleration = min(max(0, reach) * peak, holding);
-    return { acceleration, holding, share: holding > 0 ? acceleration / holding : 0 };
+    const share = holding > 0 ? min(1, max(0, reach)) : 0;
+    return { acceleration: share * holding, holding, share };
 }
 
 /** The worst fraction of its thrust a layout gives up in order not to spin. */
