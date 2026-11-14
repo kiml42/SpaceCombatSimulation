@@ -252,6 +252,12 @@ describe("the fleet editor in a browser", () => {
         await page.waitForURL(/#\/ship\?design=/);
         expect(await page.textContent("#inFleetTitle")).toBe("In Line of Battle");
         expect(await page.inputValue("#shipName")).toBe("Gunship");
+        // The fleet's design: no other ship to open here, and nothing in the menu that would leave it behind.
+        expect(await page.locator("#ship").count()).toBe(0);
+        await page.click("#menuButton");
+        expect(await page.isVisible("#saveShip")).toBe(true);
+        expect(await page.locator("#newShip").count()).toBe(0);
+        await page.click("#resume");
         await page.click("#backToFleet");
         await page.waitForURL(/index\.html#\/fleet\?fleet=/);
         expect(await page.inputValue("#fleetName")).toBe("Line of Battle");
