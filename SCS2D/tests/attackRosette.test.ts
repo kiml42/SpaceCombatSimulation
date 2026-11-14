@@ -3,7 +3,7 @@ import { AttackArcs, addTurret, bears, compileBlueprint, math } from "../sim/ind
 import { Demonstration } from "../editor/demonstrate.js";
 
 const { angleDelta } = math;
-import { CATAMARAN, CORVETTE, RAIL_GUNSHIP } from "../scenarios/blueprints.js";
+import { BEAM_CATAMARAN, CATAMARAN, CORVETTE, RAIL_GUNSHIP } from "../scenarios/blueprints.js";
 import { AIM_SLACK, attackBearings, attackRosette, gunsBearing, previewSnapshot } from "../editor/preview.js";
 import { attackBearingAt, overAttack, overEnvelope } from "../editor/overlay.js";
 
@@ -123,6 +123,35 @@ describe("the guns the attack rosette turns", () => {
         demo.step(design, [], 1 / 60, { bearing: rest + 3 * AIM_SLACK });
         demo.writeInto(snapshot);
         expect(snapshot.ships[0]!.turretReady[fixed]).toBe(false);
+    });
+
+    it("turn a beam with the barrel it is burning from", () => {
+        const design = compileBlueprint(BEAM_CATAMARAN);
+        const demo = new Demonstration();
+        const snapshot = previewSnapshot(design);
+        const best = attackBearings(design)[0]!;
+        const bearing = best.from + best.width / 2;
+        const dt = 1 / 60;
+        let lit = false;
+        for (let i = 0; i < 60 * 30 && !lit; i++) {
+            demo.step(design, [], dt, { bearing });
+            demo.writeInto(snapshot);
+            lit = snapshot.beamCount > 0;
+        }
+        expect(lit).toBe(true);
+        // Swung while it burns: every beam still runs along its barrel.
+        let checked = 0;
+        for (let i = 0; i < 20 && snapshot.beamCount > 0; i++) {
+            demo.step(design, [], dt, { bearing: bearing + best.width / 4 });
+            demo.writeInto(snapshot);
+            for (let b = 0; b < snapshot.beamCount; b++) {
+                const along = Math.atan2(snapshot.beamEndY[b]! - snapshot.beamStartY[b]!, snapshot.beamEndX[b]! - snapshot.beamStartX[b]!);
+                const near = snapshot.ships[0]!.turretBearings.some((barrel) => Math.abs(angleDelta(barrel, along)) < 1e-9);
+                expect(near).toBe(true);
+                checked++;
+            }
+        }
+        expect(checked).toBeGreaterThan(0);
     });
 
     it("go as far as they can towards a bearing they cannot fire on, and hold fire", () => {
