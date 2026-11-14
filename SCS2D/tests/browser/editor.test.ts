@@ -289,6 +289,22 @@ describe("the editor in a browser", () => {
         expect(problems).toMatch(/gives up to \d+% of its push to hold its heading/);
     });
 
+    it("fits a large ship's figures within the sidebar", async () => {
+        await openShip(page, "Star Destroyer");
+        await page.click("#moreStats > summary");
+        const clipped = await page.evaluate(() => {
+            const panel = document.getElementById("stats")!.closest("aside")!;
+            const style = getComputedStyle(panel);
+            const right = panel.getBoundingClientRect().right - parseFloat(style.paddingRight) - parseFloat(style.borderRightWidth);
+            return [...panel.querySelectorAll("#stats td")]
+                .filter((cell) => cell.getBoundingClientRect().right > right + 0.5)
+                .map((cell) => cell.textContent);
+        });
+        await page.click("#moreStats > summary");
+        await openShip(page, "Corvette");
+        expect(clipped).toEqual([]);
+    });
+
     it("selects the module under the pointer", async () => {
         const core = await corvetteCore(page);
         await page.mouse.click(core.x, core.y);

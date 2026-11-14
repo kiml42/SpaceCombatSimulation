@@ -109,10 +109,9 @@ function Rows({ rows }: { readonly rows: readonly Row[] }) {
     );
 }
 
-/** The ship's figures, short enough to keep each on one line. */
+/** Names on one line; a value too long for the panel wraps at its spaces, as the fleet editor's do. */
 const Stats = styled.div`
-    th,
-    td {
+    th {
         white-space: nowrap;
     }
 `;
