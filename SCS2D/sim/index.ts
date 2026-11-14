@@ -332,11 +332,12 @@ export {
     type Targeting,
 } from "./doctrine.js";
 export { Choice, cohesionUrge, inSight, look, score, type Candidate } from "./targeting.js";
-export { JOINT_IMPULSE_PER_AREA, DOCK_HOLD, cuts, components, joints, type Cut, type Joint } from "./connectivity.js";
+export { JOINT_IMPULSE_PER_AREA, DOCK_HOLD, cuts, components, joints, weldFactor, type Cut, type Joint } from "./connectivity.js";
 export { Collisions, Contacts, RESTITUTION, findContacts, resolveContacts } from "./collision.js";
 export { BUMP_SHARE, CRASH_SHARE, ContactGrades, ENCOUNTER_GAP } from "./contactGrades.js";
 export {
     ATTACHMENT_TOLERANCE,
+    contactShare,
     contactWidth,
     WELD_SHARE,
     assemblyProblem,

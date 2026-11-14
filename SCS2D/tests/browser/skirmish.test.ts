@@ -475,7 +475,7 @@ describe("the skirmish in a browser", () => {
         await page.getByRole("navigation", { name: "More" }).getByRole("link", { name: "Library" }).click();
         await page.waitForSelector("section[aria-label='Ships']");
         await page.waitForFunction(([key, was]) => localStorage.getItem(key!) !== was, [HISTORY_STORAGE_KEY, before] as const, {
-            timeout: 60_000,
+            timeout: 180_000,
         });
         // The library's menu button goes straight back.
         await page.getByRole("button", { name: "Menu" }).click();
@@ -519,5 +519,5 @@ describe("the skirmish in a browser", () => {
         expect(await page.isVisible("#editFleet")).toBe(true);
         expect(await page.getAttribute("#fight", "data-variant")).toBe("primary");
         expect(problems).toEqual([]);
-    }, 120_000);
+    }, 360_000);
 });

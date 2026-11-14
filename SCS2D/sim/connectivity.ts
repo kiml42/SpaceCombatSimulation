@@ -1,6 +1,6 @@
 import { contactWidth, type ShipDesign } from "./blueprint.js";
 import { min } from "./math.js";
-import { ROCK_SEAM_THICKNESS } from "./modules.js";
+import { ROCK_SEAM_THICKNESS, type ModuleSpec } from "./modules.js";
 
 /**
  * Which modules of a hull hold which, and how well.
@@ -57,9 +57,9 @@ export interface Joint {
  * What a square metre of weld cross-section can carry, newton-seconds.
  *
  * A joint's section is the length of the faces in contact by the thinner of
- * the two walls meeting there, so a wing hung off a narrow neck comes away
- * long before the same wing welded along its whole root — which is the design
- * decision the graph exists to make possible.
+ * the two walls meeting there, scaled by depth (`weldFactor`), so a wing hung
+ * off a narrow neck comes away long before the same wing welded along its whole
+ * root — which is the design decision the graph exists to make possible.
  *
  * Set so that an undamaged hull shrugs off the bumps of a crowded battle and
  * a real ram takes something off it, while a hull whose metal has been shot to
@@ -75,6 +75,33 @@ export const JOINT_IMPULSE_PER_AREA = 3.0e6;
 export function seamThickness(design: ShipDesign, module: number): number {
     const { spec, stats } = design.modules[module]!;
     return spec.kind === "rock" || spec.kind === "kernel" ? ROCK_SEAM_THICKNESS : stats.wallThickness;
+}
+
+/**
+ * What a weld's section is worth beyond its width and wall: the shallower
+ * module's depth against `WELD_DEPTH`, so the weld goes by the area in contact
+ * and a thin module comes away first.
+ */
+export function weldFactor(a: WeldedModule, b: WeldedModule): number {
+    return min(weldDepth(a), weldDepth(b)) / WELD_DEPTH;
+}
+
+/**
+ * The depth a weld is rated at as it stands, metres: one deeper is stronger
+ * and one shallower weaker, in proportion. Not the deck height, so changing
+ * that leaves a hull thinner than it welded as it was.
+ */
+export const WELD_DEPTH = 1;
+
+/** What `weldFactor` reads of a module. */
+interface WeldedModule {
+    readonly spec: ModuleSpec;
+    readonly stats: { readonly thickness: number };
+}
+
+/** Rock no deeper than `WELD_DEPTH`, so a seam in it is never stronger than a hull plate's. */
+function weldDepth({ spec, stats }: WeldedModule): number {
+    return spec.kind === "rock" || spec.kind === "kernel" ? min(stats.thickness, WELD_DEPTH) : stats.thickness;
 }
 
 /**
@@ -123,7 +150,7 @@ export function joints(design: ShipDesign): readonly Joint[] {
                 width,
                 x,
                 y,
-                strength: width * thickness * JOINT_IMPULSE_PER_AREA,
+                strength: width * thickness * JOINT_IMPULSE_PER_AREA * weldFactor(design.modules[i]!, design.modules[j]!),
             });
         }
     }
@@ -138,7 +165,12 @@ export function joints(design: ShipDesign): readonly Joint[] {
             width: seam.width,
             x: (design.modules[lo]!.x + design.modules[hi]!.x) * 0.5,
             y: (design.modules[lo]!.y + design.modules[hi]!.y) * 0.5,
-            strength: seam.width * thickness * JOINT_IMPULSE_PER_AREA * (seam.dock !== undefined ? DOCK_HOLD : 1),
+            strength:
+                seam.width *
+                thickness *
+                JOINT_IMPULSE_PER_AREA *
+                weldFactor(design.modules[lo]!, design.modules[hi]!) *
+                (seam.dock !== undefined ? DOCK_HOLD : 1),
             seam: true,
             ...(seam.dock !== undefined ? { dock: true } : {}),
         });

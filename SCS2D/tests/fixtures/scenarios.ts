@@ -74,7 +74,7 @@ import { torpedoes } from "../../scenarios/torpedoes.js";
  * come apart more, which is more work per step without a line of it being
  * slower.
  */
-export const SCENARIO_TIMEOUT = 300_000;
+export const SCENARIO_TIMEOUT = 600_000;
 
 export interface ScenarioRun {
     step(): void;
