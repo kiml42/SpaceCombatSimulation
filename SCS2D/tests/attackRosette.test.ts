@@ -76,6 +76,25 @@ describe("the guns the attack rosette turns", () => {
         expect(fired).toBeGreaterThan(0);
     });
 
+    it("show a cone aimed into their own ship as fouled at once, before the barrel gets there", () => {
+        const design = compileBlueprint(CATAMARAN);
+        let checked = 0;
+        design.turrets.forEach((turret, t) => {
+            const mask = turret.mount.mask ?? [];
+            if (!turret.main || mask.length === 0) return;
+            const bearing = (turret.mount.restBearing ?? 0) + (mask[0]! + mask[1]!) / 2;
+            const demo = new Demonstration();
+            const snapshot = previewSnapshot(design);
+            demo.step(design, [], 1 / 60, { bearing });
+            demo.writeInto(snapshot);
+            const view = snapshot.ships[0]!;
+            expect(Math.abs(angleDelta(view.turretBearings[t]!, bearing))).toBeGreaterThan(0.1);
+            expect(view.turretFouled![t]).toBe(true);
+            checked++;
+        });
+        expect(checked).toBeGreaterThan(0);
+    });
+
     it("go as far as they can towards a bearing they cannot fire on, and hold fire", () => {
         const design = compileBlueprint(CATAMARAN);
         const demo = new Demonstration();

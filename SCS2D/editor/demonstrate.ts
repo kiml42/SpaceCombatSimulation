@@ -208,8 +208,10 @@ export class Demonstration {
             // Aimed, it fires as the battle's would: only on target and clear of its own ship.
             const firing = aimed ? this.mounts.readyToFire(ti) : module !== undefined && selected.includes(module.index);
             if (aimed) busy = true;
+            // The reload runs on whether or not it is firing, so moving the aim does not reload it.
             if (!firing) {
-                this.cycles[t] = 0;
+                this.cycles[t] = max(0, this.cycles[t]! - dt);
+                if (this.cycles[t]! > 0) busy = true;
                 continue;
             }
             this.shown[t] = 1;
@@ -280,7 +282,7 @@ export class Demonstration {
                 if (ti !== undefined) {
                     view.turretBearings[t] = this.mounts.worldBearing(this.body, ti) + view.angle;
                     aim[t] = this.mounts.worldTrigger(this.body, ti) + view.angle;
-                    fouled[t] = this.mounts.fouled(ti);
+                    fouled[t] = this.mounts.aimFouled(ti);
                     view.turretReady[t] = this.mounts.readyToFire(ti);
                 }
                 this.loadOf(view.currentStructure, t, load, reloading);

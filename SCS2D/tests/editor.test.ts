@@ -74,7 +74,7 @@ import {
 } from "../editor/library.js";
 import { Demonstration, ROUND_LIFETIME } from "../editor/demonstrate.js";
 import { MAX_BEAM_LENGTH } from "../sim/beams.js";
-import { GunType } from "../sim/modules.js";
+import { firingPeriod, GunType } from "../sim/modules.js";
 import {
     facingTo,
     handleAt,
@@ -1782,7 +1782,28 @@ describe("Demonstration", () => {
         for (let t = 0; t < dwell * 1.2; t += 1 / 240) demo.step(design, [], 1 / 240);
         demo.writeInto(snapshot);
         expect(snapshot.beamCount).toBe(0);
+        // Its reload runs on deselected, so reselecting does not fire it early; then it rests.
+        expect(demo.running).toBe(true);
+        for (let t = 0; t < firingPeriod(turret.gun); t += 1 / 240) demo.step(design, [], 1 / 240);
         expect(demo.running).toBe(false);
+    });
+
+    it("keeps reloading while it does not fire, rather than starting again", () => {
+        const design = popgun();
+        const turret = design.turrets[0]!;
+        const demo = new Demonstration();
+        const selected = [design.modules[turret.module]!.index];
+        const dt = 1 / 240;
+        demo.step(design, selected, dt);
+        expect(demo.flashes.count).toBe(1);
+        // Off and on again within the cycle: no second shot until the cycle is out.
+        for (let t = 0; t < firingPeriod(turret.gun) / 2; t += dt) demo.step(design, [], dt);
+        for (let t = 0; t < firingPeriod(turret.gun) / 4; t += dt) demo.step(design, selected, dt);
+        demo.flashes.clear();
+        for (let t = 0; t < firingPeriod(turret.gun) / 8; t += dt) demo.step(design, selected, dt);
+        expect(demo.flashes.count).toBe(0);
+        for (let t = 0; t < firingPeriod(turret.gun) / 4; t += dt) demo.step(design, selected, dt);
+        expect(demo.flashes.count).toBeGreaterThan(0);
     });
 
     it("alternates between the barrels of a multi-barrel mount", () => {

@@ -547,6 +547,18 @@ export class Turrets {
         return mask.length > 0 && masked(mask, angleDelta(this.restBearing[i]!, this.bearing[i]!));
     }
 
+    /**
+     * Whether what it is aiming at lies where its own ship is downrange, so it
+     * will not fire there however far it slews: true as soon as it is told to
+     * aim, not once the barrel has come round. A gun ready to fire is not.
+     */
+    aimFouled(i: number): boolean {
+        const mask = this.mask[i]!;
+        if (mask.length === 0 || this.readyToFire(i)) return false;
+        const centre = this.fireSlack[i]! > this.tolerance[i]! ? this.wanted[i]! + this.fireOffset[i]! : this.commanded[i]!;
+        return masked(mask, angleDelta(this.restBearing[i]!, centre));
+    }
+
     /** Give up and return to the idle bearing, and stop tracking. */
     returnToRest(i: number): void {
         this.setCommand(i, this.restBearing[i]!, 0);
