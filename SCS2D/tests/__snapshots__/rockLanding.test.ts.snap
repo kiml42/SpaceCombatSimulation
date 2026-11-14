@@ -39,14 +39,14 @@ exports[`Rock Landing > Raider, no main [2, 4] 1`] = `
   "bumps": 4,
   "crashes": 9,
   "landed": [
-    "not by 150 s",
+    "stopped at 56.42 s",
     "98.77 s",
     "105.45 s",
-    "not by 150 s",
-    "not by 150 s",
-    "not by 150 s",
-    "not by 150 s",
-    "not by 150 s",
+    "stopped at 111.82 s",
+    "stopped at 75.07 s",
+    "stopped at 54.38 s",
+    "stopped at 59.00 s",
+    "stopped at 54.43 s",
   ],
 }
 `;
