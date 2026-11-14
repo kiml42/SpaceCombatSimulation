@@ -219,10 +219,8 @@ export function restingTriggers(view: ShipView, design: ShipDesign, attackLines 
         const rest = (turret.mount.restBearing ?? 0) + view.angle;
         view.turretBearings[t] = rest;
         aim[t] = rest;
-        const reach = turret.reach;
-        const enemy = design.radius * math.sqrt(orOne(turret.targeting.preferredMass));
-        trigger[t] = reach > 0 ? math.atan2(enemy, reach) : 0;
-        triggerReach[t] = reach;
+        trigger[t] = triggerHalfAngle(design, t);
+        triggerReach[t] = turret.reach;
         const mask = turret.mount.mask;
         fouled[t] = mask !== undefined && mask.length > 0 && masked(mask, 0);
         view.turretReady[t] = !fouled[t];
@@ -284,16 +282,14 @@ export function gunsBearing(design: ShipDesign, bearing: number): { turrets: boo
     return { turrets, engines };
 }
 
-/** Turn each of `turrets` to `bearing` (body frame), on target and ready to fire. */
-export function aimAlong(view: ShipView, bearing: number, turrets: readonly boolean[]): void {
-    const aim = (view.turretAim ??= []);
-    for (let t = 0; t < turrets.length; t++) {
-        if (!turrets[t]) continue;
-        view.turretBearings[t] = bearing + view.angle;
-        aim[t] = bearing + view.angle;
-        view.turretReady[t] = true;
-        if (view.turretFouled !== undefined) view.turretFouled[t] = false;
-    }
+/**
+ * How far either side of its aim the `t`-th turret fires: the angular size,
+ * at the furthest it is worth shooting, of the enemy its doctrine prefers.
+ */
+export function triggerHalfAngle(design: ShipDesign, t: number): number {
+    const turret = design.turrets[t]!;
+    const enemy = design.radius * math.sqrt(orOne(turret.targeting.preferredMass));
+    return turret.reach > 0 ? math.atan2(enemy, turret.reach) : 0;
 }
 
 /** A preferred mass, or one where it says none. */

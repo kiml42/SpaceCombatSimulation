@@ -71,7 +71,7 @@ import {
     tidyMetres,
     type SnapField,
 } from "./snapping.js";
-import { aimAlong, attackRosette as measureAttack, gunsBearing, landOnSelf, lightSelfBurning, previewSnapshot } from "./preview.js";
+import { attackRosette as measureAttack, gunsBearing, landOnSelf, lightSelfBurning, previewSnapshot } from "./preview.js";
 import type { Aim } from "./demonstrate.js";
 import { burnFigures, envelopes, holdingThrottles, pointedThrust, type Envelopes } from "./stats.js";
 
@@ -412,7 +412,7 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
     let attackBearing: number | null = null;
     let attackExpanded = false;
     /** The main guns turned to `attackBearing`, and the weapon engines that bear on it. */
-    let attackAim: (Aim & { engines: readonly boolean[] }) | null = null;
+    let attackAim: (Aim & { turrets: readonly boolean[]; engines: readonly boolean[] }) | null = null;
     let attackAimFor: ShipDesign | null = null;
     const pointAttack = (bearing: number | null): void => {
         attackBearing = bearing;
@@ -470,11 +470,10 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
                 shown.throttles[t] = Math.max(shown.throttles[t] ?? 0, burning[t] ?? 0);
             }
         }
-        // Pointing at the attack rosette turns every main gun that bears that way
-        // to it, and fires them, weapon engines included.
+        // Pointing at the attack rosette burns the weapon engines that bear that
+        // way; the guns slew and fire in the demonstration.
         if (attackBearing !== null && attackAimFor !== view.design) pointAttack(attackBearing);
         if (attackAim !== null && view.design !== null && shown !== undefined) {
-            aimAlong(shown, attackAim.bearing, attackAim.turrets);
             attackAim.engines.forEach((bears, t) => {
                 if (bears) shown.throttles[t] = 1;
             });

@@ -1,5 +1,6 @@
 import { MAX_BEAM_LENGTH } from "../sim/beams.js";
-import { IMPACT_MUZZLE, math, type ShipDesign, type Snapshot } from "../sim/index.js";
+import { Bodies, IMPACT_MUZZLE, math, Turrets, type ShipDesign, type Snapshot } from "../sim/index.js";
+import { triggerHalfAngle } from "./preview.js";
 import { GunType, firingPeriod } from "../sim/modules.js";
 import { Flashes } from "../render/flashes.js";
 
@@ -74,10 +75,9 @@ interface Beams {
     count: number;
 }
 
-/** Main guns turned to a bearing, body frame, by which turrets. */
+/** A bearing, body frame, for every main gun to go for as it would an enemy there. */
 export interface Aim {
     bearing: number;
-    turrets: readonly boolean[];
 }
 
 export class Demonstration {
@@ -112,8 +112,18 @@ export class Demonstration {
     private clock = 0;
     /** Which barrel of each turret fires next, so a multi-barrel mount alternates. */
     private barrels = new Int32Array(0);
-    /** The bearing each turret fires along, body frame. */
-    private aims = new Float64Array(0);
+    /**
+     * The design's mounts as the battle's own `Turrets` slews them, on a body
+     * at the origin facing along +x, so body frame and world are one: each
+     * comes round at its rate, the way its arc allows, stops at an end, and
+     * will not fire into its own ship. Rebuilt for each design.
+     */
+    private mounts = new Turrets(8);
+    private body = new Bodies(1);
+    private mountsFor: ShipDesign | null = null;
+    /** Each turret's index in `mounts`. */
+    private mountIndex: number[] = [];
+    private reaction = new Float64Array(1);
     /** Muzzle flashes, drawn as a battle's are. */
     readonly flashes = new Flashes();
 
@@ -143,7 +153,7 @@ export class Demonstration {
         this.throttles = new Float64Array(0);
         this.cycles = new Float64Array(0);
         this.barrels = new Int32Array(0);
-        this.aims = new Float64Array(0);
+        this.mountsFor = null;
         this.shown = new Uint8Array(0);
         this.clock = 0;
         this.rounds.count = 0;
@@ -153,8 +163,8 @@ export class Demonstration {
 
     /**
      * Advance by `dt` wall seconds, with `selected` the layout indices of the
-     * modules currently selected, and `aim` the main guns turned to a bearing
-     * on the attack rosette, which fire along it.
+     * modules currently selected, and `aim` a bearing on the attack rosette
+     * every main gun slews to, firing once it is on it.
      *
      * Wall seconds, not simulated ones: this is a picture of a module rather
      * than a state of the world, so there is nothing here that has to be
@@ -176,17 +186,33 @@ export class Demonstration {
             if (wanted > 0 || this.throttles[t]! > 0) busy = true;
         }
 
+        // The trigger cone is on the bearing at once; the barrel comes round to it.
+        for (let t = 0; t < design.turrets.length; t++) {
+            const ti = this.mountIndex[t]!;
+            if (aim !== null && design.turrets[t]!.main) {
+                this.mounts.commandWorldBearing(this.body, ti, aim.bearing);
+                this.mounts.allowSlack(ti, triggerHalfAngle(design, t));
+            } else {
+                this.mounts.returnToRest(ti);
+            }
+        }
+        this.mounts.step(dt, this.body, this.reaction);
+
         for (let t = 0; t < design.turrets.length; t++) {
             const turret = design.turrets[t]!;
             const module = design.modules[turret.module];
+            const ti = this.mountIndex[t]!;
+            if (this.mounts.rate[ti] !== 0 || this.mounts.onTarget[ti] === 0) busy = true;
             this.shown[t] = 0;
-            const aimed = aim?.turrets[t] === true;
-            if (!aimed && (module === undefined || !selected.includes(module.index))) {
+            const aimed = aim !== null && turret.main;
+            // Aimed, it fires as the battle's would: only on target and clear of its own ship.
+            const firing = aimed ? this.mounts.readyToFire(ti) : module !== undefined && selected.includes(module.index);
+            if (aimed) busy = true;
+            if (!firing) {
                 this.cycles[t] = 0;
                 continue;
             }
             this.shown[t] = 1;
-            this.aims[t] = aimed ? aim!.bearing : (turret.mount.restBearing ?? 0);
             const cycle = firingPeriod(turret.gun);
             if (!(cycle > 0)) continue;
             // A gun waiting out a long cycle is still being shown, even with nothing
@@ -247,7 +273,16 @@ export class Demonstration {
             const reloading = (view.turretReloading ??= []);
             const sparks = (view.turretSparks ??= []);
             load.length = reloading.length = sparks.length = view.currentStructure.turrets.length;
+            const aim = (view.turretAim ??= []);
+            const fouled = (view.turretFouled ??= []);
             for (let t = 0; t < load.length; t++) {
+                const ti = this.mountIndex[t];
+                if (ti !== undefined) {
+                    view.turretBearings[t] = this.mounts.worldBearing(this.body, ti) + view.angle;
+                    aim[t] = this.mounts.worldTrigger(this.body, ti) + view.angle;
+                    fouled[t] = this.mounts.fouled(ti);
+                    view.turretReady[t] = this.mounts.readyToFire(ti);
+                }
                 this.loadOf(view.currentStructure, t, load, reloading);
                 // A lance shows its lightning only while it is being shown firing.
                 const lance = view.currentStructure.modules[view.currentStructure.turrets[t]!.module]?.spec.kind === "plasmaLance";
@@ -303,8 +338,21 @@ export class Demonstration {
         if (this.cycles.length !== design.turrets.length) {
             this.cycles = new Float64Array(design.turrets.length);
             this.barrels = new Int32Array(design.turrets.length);
-            this.aims = new Float64Array(design.turrets.length);
             this.shown = new Uint8Array(design.turrets.length);
+        }
+        if (this.mountsFor !== design) {
+            // Kept where they point when the design is only edited, so a change
+            // made while aiming does not snap every barrel back to rest.
+            const was = this.mountsFor;
+            const previous = this.mountIndex.map((ti) => this.mounts.bearing[ti]!);
+            this.mounts = new Turrets(Math.max(1, design.turrets.length));
+            this.body = new Bodies(1);
+            const owner = this.body.indexOf(this.body.create({ ghost: true }));
+            this.mountIndex = design.turrets.map((turret) => this.mounts.add({ ...turret.mount, owner }));
+            if (was !== null && was.turrets.length === design.turrets.length) {
+                this.mountIndex.forEach((ti, t) => (this.mounts.bearing[ti] = previous[t]!));
+            }
+            this.mountsFor = design;
         }
     }
 
@@ -332,7 +380,7 @@ export class Demonstration {
         // Resting, or along the attack rosette's bearing. The design places its
         // modules about the centre of mass and the preview puts the body there, so
         // the ship's own frame is the world's.
-        const bearing = this.aims[t]!;
+        const bearing = this.mounts.bearing[this.mountIndex[t]!]!;
         const dirX = cos(bearing);
         const dirY = sin(bearing);
 
