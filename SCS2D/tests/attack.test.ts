@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { AttackArcs, AttackRegion, attackBearing as choose, bestAttackBearings, compileBlueprint, designArcs } from "../sim/index.js";
+import {
+    AttackArcs,
+    AttackRegion,
+    attackBearing as choose,
+    attackCoverage,
+    bears,
+    bestAttackBearings,
+    compileBlueprint,
+    designArcs,
+} from "../sim/index.js";
 import { broadside } from "../scenarios/broadside.js";
 import { BARE_CORE, BROADSIDE, GUNSHIP, STAR_DESTROYER, TORCH } from "../scenarios/blueprints.js";
 import { makeBattle } from "../scenarios/battle.js";
@@ -11,6 +20,13 @@ const deg = (d: number): number => (d * Math.PI) / 180;
 function arcs(...mounts: ([number, number] | [number, number, number])[]): AttackArcs {
     const out = new AttackArcs();
     for (const [rest, half, speed] of mounts) out.addMount(deg(rest), deg(half), deg(half), speed ?? 1000);
+    return out;
+}
+
+/** One stretch as arcs, to ask whether it covers a bearing. */
+function oneArc(c: { from: number; width: number }): AttackArcs {
+    const out = new AttackArcs();
+    out.add(c.from, c.width, 1000);
     return out;
 }
 
@@ -130,6 +146,31 @@ describe("the attack bearing", () => {
         expect(best.length).toBe(1);
         expect(Math.abs(best[0]!.bearing)).toBeCloseTo(Math.PI, 9);
         expect(best[0]!.guns).toBe(1);
+    });
+
+    it("gives each sector's width, its bearing inside it", () => {
+        // Two guns overlapping from 20° to 40°.
+        const best = bestAttackBearings(arcs([0, 40], [60, 40]), 0);
+        expect(best.length).toBe(1);
+        expect(best[0]!.from).toBeCloseTo(deg(20), 9);
+        expect(best[0]!.width).toBeCloseTo(deg(20), 9);
+        expect(best[0]!.bearing).toBeCloseTo(deg(30), 9);
+    });
+
+    it("covers every bearing any gun does, counting them", () => {
+        // 0° ± 40° and 60° ± 40°: one gun, then both from 20° to 40°, then one.
+        const cover = attackCoverage(arcs([0, 40], [60, 40]));
+        const at = (d: number): number => cover.find((c) => bears(oneArc(c), deg(d)))?.guns ?? 0;
+        expect([at(-30), at(30), at(80), at(180)]).toEqual([1, 2, 1, 0]);
+        expect(cover.reduce((w, c) => w + c.width, 0)).toBeCloseTo(deg(140), 9);
+    });
+
+    it("says which bearings an arc covers, across the wrap", () => {
+        const a = arcs([180, 20]);
+        expect(bears(a, deg(170))).toBe(true);
+        expect(bears(a, deg(-170))).toBe(true);
+        expect(bears(a, 0)).toBe(false);
+        expect(bears(arcs([0, 180]), deg(123))).toBe(true);
     });
 
     it("is beside the thrust axis on the Broadside", () => {

@@ -159,7 +159,7 @@ export interface ShipView {
     turretAim?: number[];
     turretTrigger?: number[];
     turretTriggerReach?: number[];
-    /** Which turrets are pointing into their own ship, where they will not fire. */
+    /** Which turrets are aiming where their own ship is downrange, so will not fire there. */
     turretFouled?: boolean[];
     /**
      * How full each gun is, 0 to 1 (`Ships.loadOf`), and whether it is
@@ -748,7 +748,7 @@ export function capture(
             aim[t] = turrets.worldTrigger(bodies, ti);
             trigger[t] = turrets.triggerHalfAngle(ti);
             triggerReach[t] = ships.triggerReach(i, t);
-            fouled[t] = turrets.fouled(ti);
+            fouled[t] = turrets.aimFouled(ti);
             load[t] = ships.loadOf(i, t);
             reloading[t] = ships.isReloading(i, t);
             sparks[t] = design.modules[design.turrets[t]!.module]?.spec.kind === "plasmaLance" ? load[t]! : 0;

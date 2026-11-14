@@ -1,5 +1,6 @@
 import { MAX_BEAM_LENGTH } from "../sim/beams.js";
-import { IMPACT_MUZZLE, math, type ShipDesign, type Snapshot } from "../sim/index.js";
+import { Bodies, IMPACT_MUZZLE, math, Turrets, type ShipDesign, type Snapshot } from "../sim/index.js";
+import { AIM_SLACK, triggerHalfAngle } from "./preview.js";
 import { GunType, firingPeriod } from "../sim/modules.js";
 import { Flashes } from "../render/flashes.js";
 
@@ -71,7 +72,15 @@ interface Beams {
     plasma: Uint8Array<ArrayBuffer>;
     /** How far each was fired, metres. */
     reach: Float64Array<ArrayBuffer>;
+    /** Which turret, and how far across its mount the barrel it left is, metres: it turns with them. */
+    turret: Int32Array<ArrayBuffer>;
+    lateral: Float64Array<ArrayBuffer>;
     count: number;
+}
+
+/** A bearing, body frame, for every gun to go for as it would an enemy there. */
+export interface Aim {
+    bearing: number;
 }
 
 export class Demonstration {
@@ -98,6 +107,8 @@ export class Demonstration {
         remaining: new Float64Array(MAX_ROUNDS),
         plasma: new Uint8Array(MAX_ROUNDS),
         reach: new Float64Array(MAX_ROUNDS),
+        turret: new Int32Array(MAX_ROUNDS),
+        lateral: new Float64Array(MAX_ROUNDS),
         count: 0,
     };
     /** Whether each turret is being shown, for whether a lance's lightning is. */
@@ -106,6 +117,20 @@ export class Demonstration {
     private clock = 0;
     /** Which barrel of each turret fires next, so a multi-barrel mount alternates. */
     private barrels = new Int32Array(0);
+    /**
+     * The design's mounts as the battle's own `Turrets` slews them, on a body
+     * at the origin facing along +x, so body frame and world are one: each
+     * comes round at its rate, the way its arc allows, stops at an end, and
+     * will not fire into its own ship. Rebuilt for each design.
+     */
+    private mounts = new Turrets(8);
+    private body = new Bodies(1);
+    private mountsFor: ShipDesign | null = null;
+    /** Each turret's index in `mounts`. */
+    private mountIndex: number[] = [];
+    private reaction = new Float64Array(1);
+    /** Whether the guns are going for a bearing, so their cones are the ones they fire in. */
+    private aiming = false;
     /** Muzzle flashes, drawn as a battle's are. */
     readonly flashes = new Flashes();
 
@@ -135,6 +160,7 @@ export class Demonstration {
         this.throttles = new Float64Array(0);
         this.cycles = new Float64Array(0);
         this.barrels = new Int32Array(0);
+        this.mountsFor = null;
         this.shown = new Uint8Array(0);
         this.clock = 0;
         this.rounds.count = 0;
@@ -144,13 +170,14 @@ export class Demonstration {
 
     /**
      * Advance by `dt` wall seconds, with `selected` the layout indices of the
-     * modules currently selected.
+     * modules currently selected, and `aim` a bearing on the attack rosette
+     * every gun slews to, firing once it is on it.
      *
      * Wall seconds, not simulated ones: this is a picture of a module rather
      * than a state of the world, so there is nothing here that has to be
      * reproducible and nothing that a fixed step would buy.
      */
-    step(design: ShipDesign, selected: readonly number[], dt: number): void {
+    step(design: ShipDesign, selected: readonly number[], dt: number, aim: Aim | null = null): void {
         this.fit(design);
         let busy = false;
         this.clock += dt;
@@ -166,12 +193,41 @@ export class Demonstration {
             if (wanted > 0 || this.throttles[t]! > 0) busy = true;
         }
 
+        // The trigger cone is on the bearing at once; the barrel comes round to it.
+        for (let t = 0; t < design.turrets.length; t++) {
+            const ti = this.mountIndex[t]!;
+            if (aim !== null) {
+                this.mounts.commandWorldBearing(this.body, ti, aim.bearing);
+                // At least the pointer's own slack, or a gun that does not train never meets it.
+                this.mounts.allowSlack(ti, max(triggerHalfAngle(design, t), AIM_SLACK));
+            } else {
+                this.mounts.returnToRest(ti);
+            }
+        }
+        // A mount burning a beam is lit, so it stops at the edge of its own ship rather than sweep across it.
+        this.mounts.lit.fill(0);
+        for (let i = 0; i < this.beams.count; i++) {
+            const ti = this.mountIndex[this.beams.turret[i]!];
+            if (ti !== undefined) this.mounts.lit[ti] = 1;
+        }
+        this.mounts.step(dt, this.body, this.reaction);
+        for (let i = 0; i < this.beams.count; i++) this.placeBeam(design, i);
+        this.aiming = aim !== null;
+
         for (let t = 0; t < design.turrets.length; t++) {
             const turret = design.turrets[t]!;
             const module = design.modules[turret.module];
+            const ti = this.mountIndex[t]!;
+            if (this.mounts.rate[ti] !== 0 || this.mounts.onTarget[ti] === 0) busy = true;
             this.shown[t] = 0;
-            if (module === undefined || !selected.includes(module.index)) {
-                this.cycles[t] = 0;
+            const aimed = aim !== null;
+            // Aimed, it fires as the battle's would: only on target and clear of its own ship.
+            const firing = aimed ? this.mounts.readyToFire(ti) : module !== undefined && selected.includes(module.index);
+            if (aimed) busy = true;
+            // The reload runs on whether or not it is firing, so moving the aim does not reload it.
+            if (!firing) {
+                this.cycles[t] = max(0, this.cycles[t]! - dt);
+                if (this.cycles[t]! > 0) busy = true;
                 continue;
             }
             this.shown[t] = 1;
@@ -221,6 +277,8 @@ export class Demonstration {
             beams.remaining[i] = beams.remaining[last]!;
             beams.plasma[i] = beams.plasma[last]!;
             beams.reach[i] = beams.reach[last]!;
+            beams.turret[i] = beams.turret[last]!;
+            beams.lateral[i] = beams.lateral[last]!;
         }
 
         this.busy = busy || rounds.count > 0 || beams.count > 0 || this.flashes.count > 0;
@@ -235,7 +293,18 @@ export class Demonstration {
             const reloading = (view.turretReloading ??= []);
             const sparks = (view.turretSparks ??= []);
             load.length = reloading.length = sparks.length = view.currentStructure.turrets.length;
+            const aim = (view.turretAim ??= []);
+            const trigger = (view.turretTrigger ??= []);
+            const fouled = (view.turretFouled ??= []);
             for (let t = 0; t < load.length; t++) {
+                const ti = this.mountIndex[t];
+                if (ti !== undefined) {
+                    view.turretBearings[t] = this.mounts.worldBearing(this.body, ti) + view.angle;
+                    aim[t] = this.mounts.worldTrigger(this.body, ti) + view.angle;
+                    if (this.aiming) trigger[t] = this.mounts.triggerHalfAngle(ti);
+                    fouled[t] = this.mounts.aimFouled(ti);
+                    view.turretReady[t] = this.mounts.readyToFire(ti);
+                }
                 this.loadOf(view.currentStructure, t, load, reloading);
                 // A lance shows its lightning only while it is being shown firing.
                 const lance = view.currentStructure.modules[view.currentStructure.turrets[t]!.module]?.spec.kind === "plasmaLance";
@@ -293,6 +362,20 @@ export class Demonstration {
             this.barrels = new Int32Array(design.turrets.length);
             this.shown = new Uint8Array(design.turrets.length);
         }
+        if (this.mountsFor !== design) {
+            // Kept where they point when the design is only edited, so a change
+            // made while aiming does not snap every barrel back to rest.
+            const was = this.mountsFor;
+            const previous = this.mountIndex.map((ti) => this.mounts.bearing[ti]!);
+            this.mounts = new Turrets(Math.max(1, design.turrets.length));
+            this.body = new Bodies(1);
+            const owner = this.body.indexOf(this.body.create({ ghost: true }));
+            this.mountIndex = design.turrets.map((turret) => this.mounts.add({ ...turret.mount, owner }));
+            if (was !== null && was.turrets.length === design.turrets.length) {
+                this.mountIndex.forEach((ti, t) => (this.mounts.bearing[ti] = previous[t]!));
+            }
+            this.mountsFor = design;
+        }
     }
 
     /** Which module the `t`th engine is, the design listing them in module order. */
@@ -306,6 +389,29 @@ export class Demonstration {
         return -1;
     }
 
+    /** Lay the `i`-th beam along its barrel as the barrel now points. */
+    private placeBeam(design: ShipDesign, i: number): void {
+        const beams = this.beams;
+        const turret = design.turrets[beams.turret[i]!];
+        const ti = this.mountIndex[beams.turret[i]!];
+        if (turret === undefined || ti === undefined) return;
+        const bearing = this.mounts.bearing[ti]!;
+        const dirX = cos(bearing);
+        const dirY = sin(bearing);
+        const lateral = beams.lateral[i]!;
+        // A lance's pulse leaves from the back of the gap between its prongs, and
+        // reaches only as far as it holds together.
+        const muzzle = beams.plasma[i] === 1 ? (turret.mount.muzzleOffset ?? 0) : turret.gun.barrelLength;
+        const startX = design.centreOfMassX + turret.mount.x + dirX * muzzle - dirY * lateral;
+        const startY = design.centreOfMassY + turret.mount.y + dirY * muzzle + dirX * lateral;
+        beams.startX[i] = startX;
+        beams.startY[i] = startY;
+        // Both ends are positions. Writing the heading alone here would run the
+        // beam from the muzzle to a point measured from the world origin.
+        beams.endX[i] = startX + dirX * beams.reach[i]!;
+        beams.endY[i] = startY + dirY * beams.reach[i]!;
+    }
+
     /** Put one round in the air, leaving the next barrel at the gun's muzzle speed. */
     private fire(design: ShipDesign, t: number): void {
         const rounds = this.rounds;
@@ -316,10 +422,10 @@ export class Demonstration {
 
         const mount = turret.mount;
 
-        // Resting, since nothing here is aiming at anything. The design places its
+        // Resting, or along the attack rosette's bearing. The design places its
         // modules about the centre of mass and the preview puts the body there, so
         // the ship's own frame is the world's.
-        const bearing = mount.restBearing ?? 0;
+        const bearing = this.mounts.bearing[this.mountIndex[t]!]!;
         const dirX = cos(bearing);
         const dirY = sin(bearing);
 
@@ -339,21 +445,12 @@ export class Demonstration {
         } else {
             if (beams.count >= MAX_ROUNDS) return;
             const i = beams.count++;
-            // A lance's pulse leaves from the back of the gap between its prongs, and
-            // reaches only as far as it holds together.
             const plasma = gun.plasmaReach > 0;
-            const muzzle = plasma ? (mount.muzzleOffset ?? 0) : gun.barrelLength;
-            const startX = design.centreOfMassX + mount.x + dirX * muzzle - dirY * lateral;
-            const startY = design.centreOfMassY + mount.y + dirY * muzzle + dirX * lateral;
-            const length = plasma ? gun.plasmaReach : MAX_BEAM_LENGTH;
-            beams.startX[i] = startX;
-            beams.startY[i] = startY;
-            // Both ends are positions. Writing the heading alone here would run the
-            // beam from the muzzle to a point measured from the world origin.
-            beams.endX[i] = startX + dirX * length;
-            beams.endY[i] = startY + dirY * length;
+            beams.turret[i] = t;
+            beams.lateral[i] = lateral;
             beams.plasma[i] = plasma ? 1 : 0;
-            beams.reach[i] = length;
+            beams.reach[i] = plasma ? gun.plasmaReach : MAX_BEAM_LENGTH;
+            this.placeBeam(design, i);
             beams.width[i] = gun.calibre;
             beams.power[i] = gun.beamPower;
             // Lit for as long as the mount holds it, which is the figure the panel

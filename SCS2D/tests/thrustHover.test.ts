@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { compileBlueprint } from "../sim/index.js";
-import { CORVETTE } from "../scenarios/blueprints.js";
-import { envelopes, holdingThrottles } from "../editor/stats.js";
+import { CORVETTE, STAR_DESTROYER } from "../scenarios/blueprints.js";
+import { envelopes, holdingThrottles, inUnits } from "../editor/stats.js";
 import { envelopeBearingAt, overEnvelope } from "../editor/overlay.js";
 
 describe("the throttles behind a point on the envelope", () => {
@@ -38,7 +38,7 @@ describe("the throttles behind a point on the envelope", () => {
     it("is read off the widget only where the widget is", () => {
         // The rosette sits in the bottom right, 54 px across its radius.
         const cx = 1000 - 54 - 16;
-        const cy = 600 - 54 - 16 - 32;
+        const cy = 600 - 54 - 16 - 18;
         expect(envelopeBearingAt(1000, 600, cx + 30, cy)).toBeCloseTo(0, 9);
         expect(envelopeBearingAt(1000, 600, cx, cy - 30)).toBeCloseTo(Math.PI / 2, 9);
         expect(envelopeBearingAt(1000, 600, 100, 100)).toBeNull();
@@ -46,17 +46,41 @@ describe("the throttles behind a point on the envelope", () => {
 
     it("grows while pointed at, from its corner, and stays grown until the pointer leaves the larger one", () => {
         // At rest the rosette's centre is 70 px in from the right; grown to 160 px, 176.
-        const small = { x: 1000 - 54 - 16, y: 600 - 54 - 16 - 32 };
-        const large = { x: 1000 - 160 - 16, y: 600 - 160 - 16 - 32 };
+        const small = { x: 1000 - 54 - 16, y: 600 - 54 - 16 - 18 };
+        const large = { x: 1000 - 160 - 16, y: 600 - 160 - 16 - 18 };
         expect(overEnvelope(1000, 600, small.x, small.y)).toBe(true);
         // A point on the large one but off the small one keeps it large, and only then.
         const between = { x: large.x - 100, y: large.y };
         expect(overEnvelope(1000, 600, between.x, between.y, false)).toBe(false);
         expect(overEnvelope(1000, 600, between.x, between.y, true)).toBe(true);
         expect(envelopeBearingAt(1000, 600, large.x + 100, large.y, true)).toBeCloseTo(0, 9);
+        // Grown, it is held by its whole window, which covers the small disc it
+        // grew from: a pointer on the small one's bottom-right edge keeps it grown.
+        expect(overEnvelope(1000, 600, small.x + 38, small.y + 38, true)).toBe(true);
         // On a canvas too small for it, it grows only as far as there is room:
-        // here half of 260 less its margins and caption, 98 px, centred at (186, 114).
-        expect(overEnvelope(300, 260, 186, 114 + 97, true)).toBe(true);
-        expect(overEnvelope(300, 260, 186, 114 - 99, true)).toBe(false);
+        // here half of 260 less its margins, caption and pointed-at value, 89 px,
+        // centred at (195, 137), in a window reaching 8 px beyond that.
+        expect(overEnvelope(300, 260, 195, 137 + 88, true)).toBe(true);
+        expect(overEnvelope(300, 260, 195 - 89 - 7, 137, true)).toBe(true);
+        expect(overEnvelope(300, 260, 195 - 89 - 9, 137, true)).toBe(false);
+    });
+});
+
+describe("an acceleration as it is read out", () => {
+    it("takes the metric prefix that puts the largest figure between 1 and 1000", () => {
+        expect(inUnits([11.94], "m/s²")).toBe("11.9 m/s²");
+        expect(inUnits([2.6], "m/s²")).toBe("2.60 m/s²");
+        expect(inUnits([0.0031, 0.012], "m/s²")).toBe("3.1/12.0 mm/s²");
+        expect(inUnits([0.00042], "m/s²")).toBe("420 µm/s²");
+        expect(inUnits([1500], "m/s²")).toBe("1.50 km/s²");
+        expect(inUnits([0], "m/s²")).toBe("0 m/s²");
+    });
+
+    it("reads the Star Destroyer's push astern in a fraction of a metre, not as nought", () => {
+        const curve = envelopes(compileBlueprint(STAR_DESTROYER), 64);
+        const astern = curve.holding[32]!;
+        expect(astern).toBeGreaterThan(0);
+        expect(astern).toBeLessThan(1);
+        expect(inUnits([astern], "m/s²")).toMatch(new RegExp("^[1-9][0-9.]* (m|µ)m/s²$"));
     });
 });

@@ -177,6 +177,7 @@ const ESCORT_BAND: BandColours = { fill: "#7fd6c214", edge: "#7fd6c266" };
 /** Where a ship turns its target to, out to the band. */
 const ATTACK_LINE = "#7fd6c2b0";
 const ATTACK_DASH_PX = 6;
+const ATTACK_LINE_PX = 1.5;
 
 /** Where a gun's barrel is pointing now, along its wedge, in battle. */
 const BARREL_LINE = "#e6edf566";
@@ -896,6 +897,7 @@ function drawHull(
     if (whole && arcs === "trigger" && holdMax > 0) {
         drawBand(ctx, 0, 0, ship.holdMin ?? 0, holdMax, design.doctrine.approach.bandFade, metresToPx, ATTACK_BAND);
         ctx.strokeStyle = ATTACK_LINE;
+        ctx.lineWidth = ATTACK_LINE_PX / metresToPx;
         ctx.setLineDash([ATTACK_DASH_PX / metresToPx, ATTACK_DASH_PX / metresToPx]);
         for (const bearing of ship.attackBearings ?? []) {
             ctx.save();
