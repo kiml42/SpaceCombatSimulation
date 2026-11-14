@@ -1,6 +1,6 @@
 import { blockCentre, bodySpec, math, moduleCentre, shapeOf, type ModuleSpec, type ShipDesign } from "../sim/index.js";
 import { describeStep, snapStep, type Camera } from "../render/camera.js";
-import type { Envelopes } from "./stats.js";
+import { inUnits, type Envelopes } from "./stats.js";
 import type { AssemblyOutline } from "./document.js";
 import { HANDLE_RADIUS_PX, type Handle } from "./handles.js";
 
@@ -850,11 +850,11 @@ function drawEnvelope(
     ctx.fillStyle = ENVELOPE_LABEL;
     ctx.font = "11px ui-monospace, monospace";
     ctx.textAlign = "right";
-    ctx.fillText(`max ${held.toFixed(1)} m/s²`, widthPx - ENVELOPE_MARGIN_PX, cy + radius + 14);
+    ctx.fillText(`max ${inUnits([held], "m/s²")}`, widthPx - ENVELOPE_MARGIN_PX, cy + radius + 14);
     if (bearing !== null) {
         const i = Math.round((bearing / TAU) * envelope.samples);
         const at = envelope.holding[((i % envelope.samples) + envelope.samples) % envelope.samples]!;
-        pointedLabel(ctx, [`${degrees(bearing)}: ${at.toFixed(1)} m/s²`], widthPx - ENVELOPE_MARGIN_PX, cy - radius);
+        pointedLabel(ctx, [`${degrees(bearing)}: ${inUnits([at], "m/s²")}`], widthPx - ENVELOPE_MARGIN_PX, cy - radius);
     }
     ctx.textAlign = "left";
 }
