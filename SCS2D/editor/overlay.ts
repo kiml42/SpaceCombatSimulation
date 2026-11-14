@@ -1,6 +1,6 @@
 import { blockCentre, bodySpec, math, moduleCentre, shapeOf, type ModuleSpec, type ShipDesign } from "../sim/index.js";
 import { describeStep, snapStep, type Camera } from "../render/camera.js";
-import type { Envelopes } from "./stats.js";
+import { pointedThrust, type Envelopes } from "./stats.js";
 import type { AssemblyOutline } from "./document.js";
 import { HANDLE_RADIUS_PX, type Handle } from "./handles.js";
 
@@ -169,6 +169,10 @@ export interface OverlayView {
     envelopeBearing?: number | null;
     /** Whether the pointer is over the rosette, which is drawn larger while it is. */
     envelopeExpanded?: boolean;
+    /** How far out the pointer is on the envelope, over its radius (`envelopeReachAt`). */
+    envelopeReach?: number;
+    /** What the burn shown for the bearing pointed at costs (`burnFigures`), or null. */
+    envelopeBurn?: { isp: number; endurance: number } | null;
     /** The attack rosette, or null when there is no design. */
     attack?: AttackRosette | null;
     /** A bearing on the attack rosette being pointed at, radians from the bow, or null. */
@@ -180,7 +184,9 @@ export interface OverlayView {
 }
 
 /** Room above a grown rosette for the value at the bearing pointed at, pixels. */
-const POINTED_LABEL_PX = 18;
+const POINTED_LABEL_PX = 32;
+/** Between the lines of what is pointed at, pixels. */
+const POINTED_LINE_PX = 14;
 /** How far a grown rosette's window stands off what it holds, pixels. */
 const WINDOW_PAD_PX = 8;
 const WINDOW_FILL = "rgba(14, 17, 23, 0.82)";
@@ -272,6 +278,12 @@ export function envelopeBearingAt(widthPx: number, heightPx: number, x: number, 
     return bearingOn(envelopeDisc(widthPx, heightPx, expanded), expanded, x, y);
 }
 
+/** How far from the thrust rosette's centre a point is, over its radius: 1 at its rim, more past it. */
+export function envelopeReachAt(widthPx: number, heightPx: number, x: number, y: number, expanded = false): number {
+    const disc = envelopeDisc(widthPx, heightPx, expanded);
+    return Math.sqrt((x - disc.x) ** 2 + (disc.y - y) ** 2) / disc.radius;
+}
+
 /** The window a grown rosette is drawn in, over the ship. */
 function drawWindow(ctx: CanvasRenderingContext2D, disc: Disc): void {
     const box = windowOf(disc);
@@ -322,12 +334,20 @@ function degrees(bearing: number): string {
 }
 
 /** The value at the bearing pointed at, above the rosette's right edge, in the pointer's colour. */
-function pointedLabel(ctx: CanvasRenderingContext2D, text: string, right: number, top: number): void {
-    const y = Math.max(11, top - 6);
+function pointedLabel(ctx: CanvasRenderingContext2D, lines: readonly string[], right: number, top: number): void {
+    const y = Math.max(11 + POINTED_LINE_PX * (lines.length - 1), top - 6);
     ctx.font = "11px ui-monospace, monospace";
     ctx.textAlign = "right";
     ctx.fillStyle = ATTACK_POINTED;
-    ctx.fillText(text, right, y);
+    lines.forEach((line, i) => ctx.fillText(line, right, y - POINTED_LINE_PX * (lines.length - 1 - i)));
+}
+
+/** Seconds as a duration in its largest units, so it does not read as another figure in seconds. */
+function duration(seconds: number): string {
+    const s = Math.round(seconds);
+    if (s < 60) return `${s} s`;
+    if (s < 3600) return `${Math.floor(s / 60)} min ${s % 60} s`;
+    return `${Math.floor(s / 3600)} h ${Math.floor((s % 3600) / 60)} min`;
 }
 
 /** The ship from above in a rosette, about its centre of mass, which the rosette's bearings are measured from. */
@@ -421,7 +441,7 @@ function drawAttack(
     ctx.textAlign = "right";
     ctx.fillText(attack.total > 0 ? `max ${most}/${attack.total} main guns` : "no main guns", cx + radius, cy + radius + 14);
     if (bearing !== null)
-        pointedLabel(ctx, `${degrees(bearing)}: ${view.attackBearingGuns ?? 0}/${attack.total}`, cx + radius, cy - radius);
+        pointedLabel(ctx, [`${degrees(bearing)}: ${view.attackBearingGuns ?? 0}/${attack.total}`], cx + radius, cy - radius);
     ctx.textAlign = "left";
     ctx.restore();
 }
@@ -829,13 +849,20 @@ function drawEnvelope(
 
     // The direction being pointed at, out to the edge of the widget, while the
     // ship above burns its engines the way it would to push that way.
-    if (bearing !== null) {
+    // The acceleration the pointer asks for, as far as the holding curve allows.
+    const pointed = bearing === null ? null : pointedThrust(envelope, bearing, view.envelopeReach ?? 1);
+    if (bearing !== null && pointed !== null) {
         ctx.strokeStyle = ENVELOPE;
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(cx, cy);
         ctx.lineTo(cx + cos(bearing) * radius, cy - sin(bearing) * radius);
         ctx.stroke();
+        const r = (pointed.acceleration / peak) * radius;
+        ctx.fillStyle = ATTACK_POINTED;
+        ctx.beginPath();
+        ctx.arc(cx + cos(bearing) * r, cy - sin(bearing) * r, 3, 0, TAU);
+        ctx.fill();
     }
 
     // The most it can use, holding its heading; the heading cost is in the report.
@@ -843,10 +870,14 @@ function drawEnvelope(
     ctx.font = "11px ui-monospace, monospace";
     ctx.textAlign = "right";
     ctx.fillText(`max ${held.toFixed(1)} m/s²`, widthPx - ENVELOPE_MARGIN_PX, cy + radius + 14);
-    if (bearing !== null) {
-        const i = Math.round((bearing / TAU) * envelope.samples);
-        const at = envelope.holding[((i % envelope.samples) + envelope.samples) % envelope.samples]!;
-        pointedLabel(ctx, `${degrees(bearing)}: ${at.toFixed(1)} m/s²`, widthPx - ENVELOPE_MARGIN_PX, cy - radius);
+    if (bearing !== null && pointed !== null) {
+        const text = `${degrees(bearing)}: ${pointed.acceleration.toFixed(1)}/${pointed.holding.toFixed(1)} m/s²`;
+        const burn = view.envelopeBurn;
+        const lines =
+            burn != null && burn.isp > 0 && Number.isFinite(burn.endurance)
+                ? [text, `Isp ${burn.isp.toFixed(0)} s, burns ${duration(burn.endurance)}`]
+                : [text];
+        pointedLabel(ctx, lines, widthPx - ENVELOPE_MARGIN_PX, cy - radius);
     }
     ctx.textAlign = "left";
 }
