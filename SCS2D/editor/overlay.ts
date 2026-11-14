@@ -1,6 +1,6 @@
 import { blockCentre, bodySpec, math, moduleCentre, shapeOf, type ModuleSpec, type ShipDesign } from "../sim/index.js";
 import { describeStep, snapStep, type Camera } from "../render/camera.js";
-import { pointedThrust, type Envelopes } from "./stats.js";
+import { inUnits, pointedThrust, type Envelopes } from "./stats.js";
 import type { AssemblyOutline } from "./document.js";
 import { HANDLE_RADIUS_PX, type Handle } from "./handles.js";
 
@@ -875,9 +875,9 @@ function drawEnvelope(
     ctx.fillStyle = ENVELOPE_LABEL;
     ctx.font = "11px ui-monospace, monospace";
     ctx.textAlign = "right";
-    ctx.fillText(`max ${held.toFixed(1)} m/s²`, widthPx - ENVELOPE_MARGIN_PX, cy + radius + 14);
+    ctx.fillText(`max ${inUnits([held], "m/s²")}`, widthPx - ENVELOPE_MARGIN_PX, cy + radius + 14);
     if (bearing !== null && pointed !== null) {
-        const text = `${degrees(bearing)}: ${pointed.acceleration.toFixed(1)}/${pointed.holding.toFixed(1)} m/s²`;
+        const text = `${degrees(bearing)}: ${inUnits([pointed.acceleration, pointed.holding], "m/s²")}`;
         const burn = view.envelopeBurn;
         const lines =
             burn != null && burn.isp > 0 && Number.isFinite(burn.endurance)

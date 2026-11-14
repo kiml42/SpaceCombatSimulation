@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { compileBlueprint } from "../sim/index.js";
-import { CORVETTE } from "../scenarios/blueprints.js";
-import { burnFigures, envelopes, holdingAt, holdingThrottles, pointedThrust } from "../editor/stats.js";
+import { CORVETTE, STAR_DESTROYER } from "../scenarios/blueprints.js";
+import { burnFigures, envelopes, holdingAt, holdingThrottles, inUnits, pointedThrust } from "../editor/stats.js";
 import { envelopeBearingAt, overEnvelope } from "../editor/overlay.js";
 
 describe("the throttles behind a point on the envelope", () => {
@@ -95,5 +95,24 @@ describe("the throttles behind a point on the envelope", () => {
         expect(overEnvelope(300, 260, 195, 137 + 88, true)).toBe(true);
         expect(overEnvelope(300, 260, 195 - 89 - 7, 137, true)).toBe(true);
         expect(overEnvelope(300, 260, 195 - 89 - 9, 137, true)).toBe(false);
+    });
+});
+
+describe("an acceleration as it is read out", () => {
+    it("takes the metric prefix that puts the largest figure between 1 and 1000", () => {
+        expect(inUnits([11.94], "m/s²")).toBe("11.9 m/s²");
+        expect(inUnits([2.6], "m/s²")).toBe("2.60 m/s²");
+        expect(inUnits([0.0031, 0.012], "m/s²")).toBe("3.1/12.0 mm/s²");
+        expect(inUnits([0.00042], "m/s²")).toBe("420 µm/s²");
+        expect(inUnits([1500], "m/s²")).toBe("1.50 km/s²");
+        expect(inUnits([0], "m/s²")).toBe("0 m/s²");
+    });
+
+    it("reads the Star Destroyer's push astern in a fraction of a metre, not as nought", () => {
+        const curve = envelopes(compileBlueprint(STAR_DESTROYER), 64);
+        const astern = curve.holding[32]!;
+        expect(astern).toBeGreaterThan(0);
+        expect(astern).toBeLessThan(1);
+        expect(inUnits([astern], "m/s²")).toMatch(new RegExp("^[1-9][0-9.]* (m|µ)m/s²$"));
     });
 });

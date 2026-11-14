@@ -782,3 +782,25 @@ export function headingCost(envelope: Envelopes): number {
     }
     return worst;
 }
+
+/** Metric prefixes, largest first, with what each multiplies by. */
+const PREFIXES: readonly (readonly [string, number])[] = [
+    ["k", 1e3],
+    ["", 1],
+    ["m", 1e-3],
+    ["µ", 1e-6],
+    ["n", 1e-9],
+];
+
+/**
+ * Figures in one unit, with the metric prefix that puts the largest between 1
+ * and 1000, separated by "/": `inUnits([0.0031, 0.012], "m/s²")` is
+ * "3.1/12.0 mm/s²": three significant figures for the largest, and as many places for the rest.
+ */
+export function inUnits(values: readonly number[], unit: string): string {
+    const largest = values.reduce((m, v) => max(m, Math.abs(v)), 0);
+    const [prefix, scale] = !(largest > 0) ? PREFIXES[1]! : (PREFIXES.find(([, f]) => largest >= f) ?? PREFIXES[PREFIXES.length - 1]!);
+    const scaled = largest / scale;
+    const places = !(largest > 0) ? 0 : scaled >= 100 ? 0 : scaled >= 10 ? 1 : 2;
+    return `${values.map((v) => (v / scale).toFixed(places)).join("/")} ${prefix}${unit}`;
+}
