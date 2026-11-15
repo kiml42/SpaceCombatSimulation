@@ -3,12 +3,11 @@ import { originOf, type Seam, type ShipDesign } from "./blueprint.js";
 import { jointBetween, joints } from "./connectivity.js";
 import { DamageEffect, REPAIR_ENERGY_PER_JOULE, REPAIR_WASTE, repairWork } from "./damage.js";
 import { buildWork, SHELL_STEPS } from "./rebuild.js";
-import { Claim, mendClaim, priorityOf, Resource } from "./supply.js";
+import { Claim, Resource } from "./supply.js";
 import { length, max, min } from "./math.js";
 import type { Store } from "./store.js";
-import { DEFAULT_DOCTRINE, type Approach } from "./doctrine.js";
 import type { World } from "./world.js";
-import { DOCK_POWER_PER_METRE, PAD_REPAIR_PER_AREA, SLIPWAY_BUILD_PER_METRE } from "./modules.js";
+import { DOCK_POWER_PER_METRE, PAD_REPAIR_PER_AREA, SLIPWAY_BUILD_PER_METRE, partPriority } from "./modules.js";
 import * as shipRebuild from "./shipRebuild.js";
 import * as shipWeld from "./shipWeld.js";
 import { type Ships, short, repairTier, NO_TARGET } from "./ships.js";
@@ -291,11 +290,10 @@ export function padBuild(ships: Ships, bodies: Bodies, b: number, i: number, pay
     let best = -1;
     let bestBuild = -1;
     let bestTier = Infinity;
-    const approach = ships.doctrines[i]!.approach;
     for (let m = 0; m < design.modules.length; m++) {
         if (!ships.ownsAt(i, b, m)) continue;
         if (design.modules[m]!.shell === undefined && !(ships.damage.unbuiltAt(b, m) > 0)) continue;
-        const tier = originTier(approach, design, m);
+        const tier = originTier(design, m);
         if (tier < bestTier) {
             best = m;
             bestBuild = -1;
@@ -313,7 +311,7 @@ export function padBuild(ships: Ships, bodies: Bodies, b: number, i: number, pay
                 const m = rebuild.at[against]!;
                 if (rebuild.at[l]! >= 0 || m < 0 || !ships.ownsAt(i, b, m)) continue;
                 if (design.modules[m]!.shell !== undefined || originOf(design, m).design !== compiled) continue;
-                const tier = repairTier(approach, launch, l);
+                const tier = repairTier(launch, l);
                 if (tier < bestTier) {
                     best = m;
                     bestBuild = l;
@@ -375,7 +373,6 @@ export function padBuild(ships: Ships, bodies: Bodies, b: number, i: number, pay
 export function mend(ships: Ships, bodies: Bodies, b: number, i: number, from: number, joules: number, payB = b): boolean {
     shipBreakup.settleShed(ships, bodies);
     const design = ships.hullDesign[b]!;
-    const approach = ships.doctrines[i]!.approach;
     // What a step of it could use at most, for what its pads ask for.
     let wantMetal = 0;
     let hurt = false;
@@ -392,13 +389,9 @@ export function mend(ships: Ships, bodies: Bodies, b: number, i: number, from: n
     let usedMetal = 0;
     let usedCharge = 0;
     let left = false;
-    for (
-        let tier = firstMend(ships, approach, i, b, design, Infinity);
-        tier > -Infinity;
-        tier = firstMend(ships, approach, i, b, design, tier)
-    ) {
+    for (let tier = firstMend(ships, i, b, design, Infinity); tier > -Infinity; tier = firstMend(ships, i, b, design, tier)) {
         for (let m = 0; m < design.modules.length; m++) {
-            if (priorityOf(approach, mendClaim(design, m)) !== tier || !ships.ownsAt(i, b, m)) continue;
+            if (partPriority(design.modules[m]!.spec) !== tier || !ships.ownsAt(i, b, m)) continue;
             const absorbed = ships.damage.absorbedAt(b, m);
             if (!(absorbed > 0)) continue;
             const work = repairWork(design.modules[m]!.stats);
@@ -434,14 +427,14 @@ export function mend(ships: Ships, bodies: Bodies, b: number, i: number, from: n
 }
 
 /**
- * The highest priority below `below` that mending any of ship `i`'s damaged
- * modules on body `b` has by doctrine `approach`; -Infinity for none.
+ * The highest priority below `below` of any of ship `i`'s damaged modules on
+ * body `b`; -Infinity for none.
  */
-export function firstMend(ships: Ships, approach: Approach, i: number, b: number, design: ShipDesign, below: number): number {
+export function firstMend(ships: Ships, i: number, b: number, design: ShipDesign, below: number): number {
     let best = -Infinity;
     for (let m = 0; m < design.modules.length; m++) {
         if (!(ships.damage.absorbedAt(b, m) > 0) || !ships.ownsAt(i, b, m)) continue;
-        const p = priorityOf(approach, mendClaim(design, m));
+        const p = partPriority(design.modules[m]!.spec);
         if (p < below && p > best) best = p;
     }
     return best;
@@ -542,21 +535,17 @@ export function metalReserve(ships: Ships, b: number, m: number): number {
     return kept > 0 ? kept * (ships.metal.pieceHeld(b, m) + ships.metal.pieceRoom(b, m)) : 0;
 }
 
-/** The doctrine of whoever works module `m` of body `b`, or the default for nobody's. */
-export function approachAt(ships: Ships, b: number, m: number): Approach {
-    const owner = ships.pilotAt(b, m);
-    return owner < 0 ? DEFAULT_DOCTRINE.approach : ships.doctrines[owner]!.approach;
-}
-
 /**
- * How much `claim` may take of resource `r` now from module `m`'s piece of
- * body `b` (`Supply.allow`), wanting `want` in all. Ask once a step with
- * what it wants, and again with nothing to look again.
+ * How much module `m` of body `b`, drawing for `claim`, may take of resource
+ * `r` now from its piece (`Supply.allow`), wanting `want` in all, at its own
+ * priority unless given `priority`. Ask once a step with what it wants, and
+ * again with nothing to look again.
  */
-export function allowed(ships: Ships, r: Resource, b: number, m: number, claim: Claim, want: number): number {
+export function allowed(ships: Ships, r: Resource, b: number, m: number, claim: Claim, want: number, priority?: number): number {
     const reserve =
         r === Resource.Fuel ? fuelReserve(ships, b, m) : r === Resource.Metal ? metalReserve(ships, b, m) : chargeReserve(ships, b, m);
-    return ships.supply.allow(b, r, m, claim, want, reserve, approachAt(ships, b, m), ships.tick);
+    const at = priority ?? partPriority(ships.hullDesign[b]!.modules[m]!.spec);
+    return ships.supply.allow(b, r, m, claim, at, want, reserve, ships.tick);
 }
 
 /** Note what `claim` took (`Supply.took`). */

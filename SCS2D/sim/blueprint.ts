@@ -1371,6 +1371,7 @@ function place(
         if (placement.ice !== undefined) spec.ice = placement.ice;
         if (placement.sealing !== undefined) spec.sealing = placement.sealing;
         if (placement.drainPriority !== undefined) spec.drainPriority = placement.drainPriority;
+        if (placement.priority !== undefined) spec.priority = placement.priority;
         if (placement.fill !== undefined) spec.fill = placement.fill;
         if (placement.computing !== undefined) spec.computing = placement.computing;
         for (const key of CORE_SHARE_KEYS) if (placement[key] !== undefined) spec[key] = placement[key];
