@@ -486,7 +486,8 @@ export function battleView(
     canvas.addEventListener(
         "pointermove",
         (event) => {
-            if (placing === null) return;
+            // Until the press, a middle drag still pans.
+            if (placing?.from == null) return;
             event.stopImmediatePropagation();
             placing.to = worldAt(event);
         },
