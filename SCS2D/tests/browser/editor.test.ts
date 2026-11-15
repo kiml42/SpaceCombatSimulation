@@ -454,7 +454,7 @@ describe("the editor in a browser", () => {
         expect(module).not.toMatch(/Calibre/);
         // Armour under reinforce, and the arc under traverse.
         expect(await page.textContent("#reinforcementFigures")).toMatch(/armour\s*\d+ mm/);
-        expect(await page.textContent("#traverseFigures")).toMatch(/arc\s*\d+°R/);
+        expect(await page.textContent("#traverseFigures")).toMatch(/arc\s*[\d.]+°R/);
         expect(module).not.toMatch(/Armour|Arc/);
         // One figure a row; what tunes it is under More.
         expect(module).toMatch(/Rate\s*[\d.]+ rpm/);
