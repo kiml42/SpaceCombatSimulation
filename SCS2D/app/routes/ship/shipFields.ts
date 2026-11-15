@@ -15,11 +15,8 @@ import {
     DEFAULT_NOZZLE_WIDTHS,
     masksWholeArc,
     math,
-    moduleProblem,
-    moduleStats,
     mountTraverse,
     radiansToDegrees,
-    readsBarrelCalibres,
     type Blueprint,
     type ModuleKind,
     type ModuleSpec,
@@ -130,15 +127,6 @@ export function controlReadout(design: ShipDesign): string {
     const out = design.coveredBy?.filter((cores) => cores !== null && cores.length === 0).length ?? 0;
     const cores = reaches.length === 1 ? `its core reaches ${reaches[0]}` : `its cores reach ${reaches.join(", ")}`;
     return out === 0 ? cores : `${cores}; ${out} module${out === 1 ? "" : "s"} out of reach will not work`;
-}
-
-/** A gun's barrel in metres, and how much of it is braced. */
-export function barrelReadout(spec: ModuleSpec): string {
-    if (!readsBarrelCalibres(spec.kind) || moduleProblem(spec) !== null) return "";
-    const gun = moduleStats(spec).gun;
-    if (gun === null) return "";
-    const metres = `= ${gun.barrelLength.toFixed(2)} m`;
-    return gun.braceLength > 0 ? `${metres}, ${gun.braceLength.toFixed(2)} m braced` : metres;
 }
 
 /** What flies but does nothing: a module out of every core's reach, and a gun that can only point at its own ship. */
