@@ -1030,6 +1030,21 @@ describe("traverse limits", () => {
         expect(row.inertia).toBeCloseTo(((row.mass - barrelMass(row)) * (8 * 8 + 6 * 6)) / 12 + rodSpin + lateral, 6);
     });
 
+    it("swings a turret's dome and barrels, not its base", () => {
+        // The dome is the square the barrels sit across; the rest of a wide box,
+        // and the traverse gear, stay put.
+        const square = moduleStats({ kind: "turret", x: 0, y: 0, length: 6, width: 6 });
+        const wide = moduleStats({ kind: "turret", x: 0, y: 0, length: 6, width: 18 });
+        // A square one deck deep is all dome, so only the gear drops out.
+        expect(square.swingInertia).toBeCloseTo(square.inertia - (square.traverseMass * (6 * 6 + 6 * 6)) / 12, 6);
+        expect(wide.swingInertia / wide.inertia).toBeLessThan(0.5);
+        const accel = (length: number, width: number) => {
+            const spec: ModuleSpec = { kind: "turret", x: 0, y: 0, length, width };
+            return mountAccel(spec, moduleStats(spec));
+        };
+        expect(accel(6, 18)).toBeGreaterThan(accel(6, 6));
+    });
+
     it("swings bracing as a rod out from the barrel's root, where it is", () => {
         const stats = moduleStats({ kind: "turret", x: 0, y: 0, length: 12, width: 8, barrelCalibres: 80 });
         const gun = stats.gun!;
