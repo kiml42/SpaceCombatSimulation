@@ -76,9 +76,11 @@ const Shell = styled.fieldset`
     }
 `;
 
-const Readout = styled.span`
-    flex: 0 0 auto;
-    color: var(--colour-faint);
+/** What a box works out to, on its own line under it, so however long it is it cannot squeeze the box. */
+const Readout = styled.p`
+    margin: -0.15rem 0 0.4rem 6.9rem;
+    color: var(--colour-muted);
+    font-size: var(--font-size-small);
 `;
 
 const WarnLabel = styled.label`
@@ -319,9 +321,9 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                               },
                         (barrelCalibres) => patch({ barrelCalibres }),
                     )}
-                    <Readout id="barrelMetres">{barrelReadout(spec)}</Readout>
                 </Field>
             )}
+            {readsBarrelCalibres(spec.kind) && <Readout id="barrelMetres">{barrelReadout(spec)}</Readout>}
             {readsBarrelCalibres(spec.kind) && (
                 <Field id="boreRow">
                     <label htmlFor="propBore">bore ×</label>
