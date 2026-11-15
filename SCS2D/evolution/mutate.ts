@@ -49,6 +49,8 @@ import {
     readsReady,
     readsSealing,
     readsDrainPriority,
+    readsPriority,
+    partPriority,
     readsFill,
     readsComputing,
     CORE_SHARE_DEFAULTS,
@@ -187,7 +189,7 @@ export type DoctrineWeights = Readonly<Record<"targeting" | "approach" | "escort
  * - `fittings`: what would take real work on the craft to change — barrels,
  *   their length, nozzles and thickness.
  * - `tuning`: its loadout, which can change on a design someone drew —
- *   reinforcement, sealing, drain priority, traverse, fuses, fragments, burst speed, and an
+ *   reinforcement, sealing, drain priority, priority, traverse, fuses, fragments, burst speed, and an
  *   engine used as a weapon.
  * - `fighter`: whether the ship is a fighter, which changes how it is flown
  *   and how others target it.
@@ -794,6 +796,7 @@ type SwitchKnob =
               | "magnetic"
               | "ready"
               | "drainPriority"
+              | "priority"
               | "shape"
               | "solid"
               | "craftAngle"
@@ -934,6 +937,7 @@ function switches(draft: Draft): SwitchKnob[] {
         if (readsMagnetic(spec.kind)) out.push({ at: "magnetic", site });
         if (readsReady(spec.kind)) out.push({ at: "ready", site });
         if (readsDrainPriority(spec.kind)) out.push({ at: "drainPriority", site });
+        if (readsPriority(spec.kind)) out.push({ at: "priority", site });
         // The outlet count divides a hull mount's opening between more of them,
         // and an engine's are counted by the same field a gun's barrels are.
         if (countsOutlets(spec.kind)) out.push({ at: "barrels", site });
@@ -973,6 +977,7 @@ function switchWeight(knob: SwitchKnob, { build }: MutationLimits): number {
         case "main":
         case "ready":
         case "drainPriority":
+        case "priority":
         case "solid":
             return build.tuning;
         case "mirror":
@@ -998,6 +1003,8 @@ function flip(knob: SwitchKnob, draft: Draft, rng: Rng, bounds: MutationLimits):
             return keepReady(knob.site);
         case "drainPriority":
             return reprioritise(knob.site, rng);
+        case "priority":
+            return rerank(knob.site, rng);
         case "barrels":
             return rebarrel(knob.site, rng);
         case "main":
@@ -1522,6 +1529,14 @@ function reprioritise(site: ModuleSite, rng: Rng): string | null {
     const now = was + (rng.chance(0.5) ? 1 : -1);
     site.spec.drainPriority = now;
     return `${site.where} ${site.spec.kind}: drain priority ${was} → ${now}`;
+}
+
+/** Move a part one tier sooner or later in what its ship spends on, and mends, first. */
+function rerank(site: ModuleSite, rng: Rng): string {
+    const was = partPriority(site.spec);
+    const now = was + (rng.chance(0.5) ? 1 : -1);
+    site.spec.priority = now;
+    return `${site.where} ${site.spec.kind}: priority ${was} → ${now}`;
 }
 
 /** Have a pad or slipway build only while its ship is anchored, or anywhere. */

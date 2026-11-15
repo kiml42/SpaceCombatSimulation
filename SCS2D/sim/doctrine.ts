@@ -1,4 +1,3 @@
-import { CLAIMS, type ClaimName } from "./supply.js";
 import { unreadOf, type UnreadKeys } from "./unread.js";
 /**
  * What a craft does when nobody is telling it anything.
@@ -193,52 +192,7 @@ export interface Targeting {
 }
 
 /** How to fight it, once it has been chosen. */
-/**
- * For each claim on a ship's fuel, metal and charge (`sim/supply.ts`), how
- * soon it is served: a higher priority gets all it wants before a lower one
- * gets any. Taken as a whole number.
- */
-type SupplyPriorities = { readonly [C in ClaimName as `${C}Priority`]: number };
-/** And how much of what its priority gets it has against the others of that priority, by share. */
-type SupplyShares = { readonly [C in ClaimName as `${C}Share`]: number };
-
-/**
- * What each claim gets by default. A ship's engines and weapons, and mending
- * its cores and robot bays, come first; then mending its engines and
- * weapons; then its pads, ports, robots and the rest of its mending; its
- * slipways last.
- */
-const SUPPLY_PRIORITY: Readonly<Record<ClaimName, number>> = {
-    thrust: 3,
-    fire: 3,
-    mendCore: 3,
-    mendBays: 3,
-    mendEngines: 2,
-    mendMain: 2,
-    mendSecondary: 2,
-    pads: 1,
-    ports: 1,
-    robots: 1,
-    mendStores: 1,
-    mendGenerators: 1,
-    mendHangar: 1,
-    mendClaws: 1,
-    mendStructure: 1,
-    slipway: 0,
-};
-
-const SUPPLY_FIELDS = CLAIMS.flatMap((claim) => [`${claim}Priority`, `${claim}Share`] as const);
-
-function supplyDefaults(): SupplyPriorities & SupplyShares {
-    const out: Record<string, number> = {};
-    for (const claim of CLAIMS) {
-        out[`${claim}Priority`] = SUPPLY_PRIORITY[claim];
-        out[`${claim}Share`] = 1;
-    }
-    return out as unknown as SupplyPriorities & SupplyShares;
-}
-
-export interface Approach extends SupplyPriorities, SupplyShares {
+export interface Approach {
     /**
      * How close to get, in multiples of the target's own radius.
      *
@@ -694,7 +648,6 @@ export const DEFAULT_DOCTRINE: Doctrine = {
         launchFuel: 1,
         launchMetal: 1,
         launchCharge: 1,
-        ...supplyDefaults(),
     },
 };
 
@@ -926,7 +879,6 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
     "fuelReserve",
     "metalReserve",
     "chargeReserve",
-    ...SUPPLY_FIELDS,
 ];
 
 /** Fields that mean nothing below zero, though zero itself is a setting. */
@@ -935,7 +887,6 @@ export const NON_NEGATIVE_FIELDS: readonly string[] = [
     "escortInner",
     "spinResist",
     "bandFade",
-    ...CLAIMS.map((claim) => `${claim}Share`),
     "fuelReserve",
     "metalReserve",
     "chargeReserve",

@@ -36,6 +36,8 @@ import {
     readsCraftAngle,
     readsDocked,
     readsDrainPriority,
+    readsPriority,
+    defaultPriority,
     readsFill,
     readsFuse,
     readsSealing,
@@ -535,6 +537,24 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                             title: "How thick a self-sealing lining is inside the walls, millimetres. Thicker closes a hole faster, and closes wider ones; a hole wider than it can reach shrinks but stays open. It weighs, and takes room from the fuel. Zero never seals.",
                         },
                         (millimetres) => patch({ sealing: millimetres / 1000 }),
+                    )}
+                </Field>
+            )}
+            {readsPriority(spec.kind) && (
+                <Field id="priorityRow">
+                    <label htmlFor="propPriority">priority</label>
+                    {box(
+                        "priority",
+                        {
+                            step: 1,
+                            title: `How soon this part gets its ship's fuel, metal and charge when there is not enough to go round, and how soon it is mended: a higher number is served in full before a lower one gets any, and parts of the same number split what is left by what each wants. ${defaultPriority(spec.kind)} by default for this kind.`,
+                        },
+                        (priority) =>
+                            update((placement) => {
+                                const { priority: _, ...rest } = placement as ModuleSpec;
+                                const whole = Math.round(priority);
+                                return (whole === defaultPriority(spec.kind) ? rest : { ...rest, priority: whole }) as Placement;
+                            }, true),
                     )}
                 </Field>
             )}

@@ -15,7 +15,7 @@ export * as math from "./math.js";
 export { FEED_CUTOUT, Fuel } from "./fuel.js";
 export { Metal } from "./metal.js";
 export { Charge } from "./charge.js";
-export { CLAIMS, Claim, mendClaim, priorityOf, Resource, shareOf, Supply, type ClaimName } from "./supply.js";
+export { Claim, Resource, Supply } from "./supply.js";
 export { doorBetween, ROBOT_VIEW_STRIDE } from "./robots.js";
 export { SCAR_BURN, SCAR_GOUGE, SCAR_PEPPER, SCAR_ROUND, SCAR_VIEW_STRIDE } from "./scars.js";
 export { Store } from "./store.js";
@@ -187,6 +187,9 @@ export {
     SEAL_REACH,
     readsSealing,
     readsDrainPriority,
+    readsPriority,
+    partPriority,
+    defaultPriority,
     readsFill,
     readsComputing,
     readsTurning,

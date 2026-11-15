@@ -262,7 +262,6 @@ export function atFaceIndex(ships: Ships, b: number, f: number, slipway: number)
     const corners = ships.faceCorners;
     let best = -1;
     let bestTier = Infinity;
-    const approach = ships.doctrines[f]!.approach;
     for (let m = 0; m < design.modules.length; m++) {
         if (ships.pilotAt(b, m) !== f) continue;
         if (!(ships.damage.unbuiltAt(b, m) > 0) && !(ships.damage.absorbedAt(b, m) > 0)) continue;
@@ -270,7 +269,7 @@ export function atFaceIndex(ships: Ships, b: number, f: number, slipway: number)
         let near = Infinity;
         for (let v = 0; v < count; v++) near = min(near, (corners[v * 2]! - spec.x) * c + (corners[v * 2 + 1]! - spec.y) * s);
         if (near > face) continue;
-        const tier = repairTier(approach, design, m);
+        const tier = repairTier(design, m);
         if (tier < bestTier) {
             best = m;
             bestTier = tier;
