@@ -447,11 +447,21 @@ describe("the editor in a browser", () => {
         await page.mouse.click(centre.x + 168, centre.y);
         const module = (await page.textContent("#moduleStats")) ?? "";
         expect(module).toMatch(/Mass/);
-        expect(module).toMatch(/Hit points/);
-        expect(module).toMatch(/Gun/);
+        // A figure a player looks for is shown under the setting that tunes it, the calibre under the bore; detail such as
+        // hit points stays under More figures, wherever it belongs.
+        expect(await page.textContent("#moduleMore")).toMatch(/Hit points\s*[\d,]+/);
+        expect(await page.textContent("#boreFigures")).toMatch(/calibre\s*\d+ mm/);
+        expect(module).not.toMatch(/Calibre/);
+        // Armour under reinforce, and the arc under traverse.
+        expect(await page.textContent("#reinforcementFigures")).toMatch(/armour\s*\d+ mm/);
+        expect(await page.textContent("#traverseFigures")).toMatch(/arc\s*[\d.]+°R/);
+        expect(module).not.toMatch(/Armour|Arc/);
+        // One figure a row; what tunes it is under More.
+        expect(module).toMatch(/Rate\s*[\d.]+ rpm/);
+        expect(await page.locator("#moduleMore").getAttribute("open")).toBeNull();
         // A structure module has no gun and no thrust of its own.
         await page.mouse.click(centre.x, centre.y);
-        expect(await page.textContent("#moduleStats")).not.toMatch(/Gun/);
+        expect(await page.locator("#boreFigures").count()).toBe(0);
     });
 
     it("lets a core be thick, which costs it wall", async () => {
@@ -981,18 +991,17 @@ describe("the editor in a browser", () => {
         // A beam has no barrel: what it has is the aperture the light leaves by.
         expect(await page.textContent("#barrelsLabel")).toBe("emitters");
 
-        // Off the Gun row by name: the panel's other rows carry millimetres too,
-        // and the first of them is the thickness of the walls.
+        // Off the calibre, wherever the panel shows it: under the bore where there is one, else with the module's own figures.
         const bore = async (): Promise<number> => {
-            const stats = (await page.textContent("#moduleStats")) ?? "";
-            return Number(/Gun\s*(\d+) mm/.exec(stats)?.[1] ?? 0);
+            const panel = (await page.textContent("#properties")) ?? "";
+            return Number(/calibre\s*(\d+) mm/i.exec(panel)?.[1] ?? 0);
         };
         const one = await bore();
         expect(one).toBeGreaterThan(0);
 
         await page.fill("#propBarrels", "4");
         await page.dispatchEvent("#propBarrels", "input");
-        expect(await page.textContent("#moduleStats")).toMatch(/×4/);
+        expect(await page.textContent("#properties")).toMatch(/×4/);
         // Four apertures share the one the mount had, so each is half as wide.
         expect(await bore()).toBeLessThan(one);
     });
@@ -1291,7 +1300,7 @@ describe("the editor in a browser", () => {
         await fromMenu(page, "#newShip");
         await addModule(page, "hullGun");
         expect(Number(await page.inputValue("#propBarrelCalibres"))).toBe(10);
-        expect(await page.textContent("#barrelMetres")).toBe("= 4.00 m");
+        expect(await page.textContent("#barrelCalibresFigures")).toMatch(/barrel\s*4 m/);
         await page.keyboard.press("f");
         const { at } = await framing(page, {
             name: "New ship",

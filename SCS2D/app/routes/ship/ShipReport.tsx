@@ -142,7 +142,7 @@ export function ShipStats({ doc, envelope }: { readonly doc: EditorDocument; rea
         ["Mass", `${numbers(s.mass / 1000, 1)} t`],
         ["fuel", `${numbers(s.fuel / 1000, 1)} t`, true],
         ["hold metal", `${numbers(s.metal / 1000, 1)} t`, true],
-        ["Build", buildTime(s.bill.build)],
+        ["Build time", buildTime(s.bill.build)],
         ["Burn", Number.isFinite(s.endurance) ? `${numbers(s.endurance, 0)} s` : "no engines"],
         ["Δv", `${(s.deltaV / 1000).toFixed(1)} km/s`],
         ["Rounds", s.mainRounds === null ? "none" : `${numbers(s.mainRounds.rounds, 0)} × ${numbers(s.mainRounds.roundMass, 1)} kg`],

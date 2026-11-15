@@ -386,9 +386,10 @@ describe("a ship burning fuel", () => {
 describe("what the editor shows", () => {
     it("reads a tank its fuel and an engine its efficiency", () => {
         const tank = moduleReadout(TANKER.modules[BIG] as never);
-        expect(tank.rows.find(([k]) => k === "Fuel")?.[1]).toMatch(/t, counted in its mass/);
+        expect(tank.rows.find((row) => row.name === "Fuel")?.value).toMatch(/^[\d.,]+ t$/);
         const engine = moduleReadout(TANKER.modules[ENGINE] as never);
-        expect(engine.rows.find(([k]) => k === "Efficiency")?.[1]).toMatch(/s Isp, .* kg\/s flat out/);
+        expect(engine.rows.find((row) => row.name === "Isp")?.value).toMatch(/^[\d,]+ s$/);
+        expect(engine.rows.find((row) => row.name === "Fuel use")?.value).toMatch(/^[\d.,]+ kg\/s$/);
     });
 
     it("gives a ship its fuel, how long it lasts and what it buys", () => {

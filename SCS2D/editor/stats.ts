@@ -12,7 +12,6 @@ import {
     firingPeriod,
     shotFuel,
     barrelHalfWidth,
-    barrelCalibres,
     braceMass,
     readsBarrelCalibres,
     inWeaponsLayer,
@@ -30,7 +29,6 @@ import {
     hullMountGeometry,
     isHullMount,
     isWeaponMount,
-    mountTraverse,
     nozzleReach,
     weaponPlumeReach,
     plumeIntensity,
@@ -344,9 +342,22 @@ const MAGNITUDE_STEPS = 96;
 const TOLERANCE = 1e-6;
 
 /** What one module is, on its own, rather than what it contributes to a ship. */
+/** One figure about a module: one sort of thing, in units a player reads. */
+export interface ReadoutRow {
+    readonly name: string;
+    readonly value: string;
+    /** Detail for tuning rather than choosing, shown under More. */
+    readonly more?: boolean;
+    /** A part of the row above, as what a tank starts with is of what it holds. */
+    readonly sub?: boolean;
+    /** What the figure means, where its name alone does not say. */
+    readonly title?: string;
+    /** The setting it is most directly tuned by, under which the panel shows it where that setting is offered. */
+    readonly under?: string;
+}
+
 export interface ModuleReadout {
-    /** Rows to show, already worded and in units a player reads. */
-    rows: [string, string][];
+    rows: ReadoutRow[];
     /** The gun, when the module is a turret and its geometry makes one. */
     gun: TurretReadout | null;
 }
@@ -420,158 +431,130 @@ export function moduleReadout(spec: ModuleSpec, layout: readonly ModuleSpec[] = 
     // In the layout where there is one, since a thick plate's depth is its
     // neighbours' business; on its own otherwise.
     const stats = layout[index] === spec ? statsInLayout(layout, index) : moduleStats(spec);
-    const rows: [string, string][] = [
-        ["Mass", `${(stats.mass / 1000).toLocaleString("en-GB", { maximumFractionDigits: 2 })} t`],
-        // What the plan view cannot show, and what decides both the wall it
-        // carries and whether a turret can reach it.
-        ["Depth", `${stats.thickness.toLocaleString("en-GB", { maximumFractionDigits: 2 })} m`],
-        ["Capacity", `${stats.capacity.toLocaleString("en-GB", { maximumFractionDigits: 1 })} m²`],
-        ["Armour", `${(stats.wallThickness * 1000).toLocaleString("en-GB", { maximumFractionDigits: 0 })} mm`],
-        ["Hit points", stats.hitPoints.toLocaleString("en-GB", { maximumFractionDigits: 0 })],
-        ["Build", `${buildTime((buildWork(stats) * (stats.structureMass + fittingOf(stats))) / ROBOT_REPAIR_RATE)} for one robot`],
+    const n = (value: number, places: number): string => value.toLocaleString("en-GB", { maximumFractionDigits: places });
+    const tonnes = (kg: number): string => `${n(kg / 1000, 2)} t`;
+    const fill = fillOf(spec);
+    const carries = stats.fuel > 0 || stats.metal > 0 || stats.charge > 0;
+    const rows: ReadoutRow[] = [
+        { name: "Mass", value: tonnes(stats.mass), ...(carries ? { title: "With what it holds, full" } : {}) },
+        // Comparable only with other modules', which size and armour already show, so detail.
+        { name: "Hit points", under: "reinforcement", value: n(stats.hitPoints, 0), more: true },
+        { name: "Armour", under: "reinforcement", value: `${n(stats.wallThickness * 1000, 0)} mm` },
+        {
+            name: "Build time",
+            value: buildTime((buildWork(stats) * (stats.structureMass + fittingOf(stats))) / ROBOT_REPAIR_RATE),
+            title: "For one robot",
+        },
     ];
-    const tonnes = (kg: number): string => `${(kg / 1000).toLocaleString("en-GB", { maximumFractionDigits: 2 })} t`;
-    const load = (label: string, kg: number): void => {
-        if (!(kg > 0)) return;
-        const fill = fillOf(spec);
-        rows.push([
-            label,
-            fill < 1
-                ? `${tonnes(kg)} when full, starting with ${tonnes(kg * fill)}; the full load is counted in its mass`
-                : `${tonnes(kg)}, counted in its mass`,
-        ]);
-    };
-    load("Fuel", stats.fuel);
-    load("Metal", stats.metal);
-    if (stats.charge > 0) {
-        const fill = fillOf(spec);
-        rows.push([
-            "Charge",
-            `${megajoules(stats.charge)}${fill < 1 ? `, starting with ${megajoules(stats.charge * fill)}` : ""}, ` +
-                `passed in or out at up to ${megawatts(stats.chargeRate)}`,
-        ]);
-    }
-    if (stats.generation > 0) rows.push(["Generates", megawatts(stats.generation)]);
-    if (spec.kind === "robotBay") {
-        const berthed = stats.robots === 1 ? "1 berthed" : `${stats.robots} berthed`;
-        const moored = robotsKept(spec, stats, true);
-        rows.push(["Robots", moored > stats.robots ? `${berthed}, ${moored} while moored to a rock` : berthed]);
-    }
+    const add = (row: ReadoutRow): void => void rows.push(row);
+    // What the plan view cannot show, and what decides both the wall it carries and whether a turret can reach it.
+    add({ name: "Depth", under: "thick", value: `${n(stats.thickness, 2)} m`, more: true });
+    add({ name: "Capacity", value: `${n(stats.capacity, 1)} m²`, more: true });
     if (readsSealing(spec.kind)) {
-        rows.push([
-            "Sealing",
-            stats.lining > 0
-                ? `closes a hole up to ${(stats.lining * SEAL_REACH * 1000).toLocaleString("en-GB", { maximumFractionDigits: 0 })} mm across, ` +
-                  `${(stats.lining * SEAL_SPEED * 1000).toLocaleString("en-GB", { maximumFractionDigits: 0 })} mm a second`
-                : "none — a hole stays open",
-        ]);
+        if (stats.lining > 0) {
+            add({ name: "Seals holes to", under: "sealing", value: `${n(stats.lining * SEAL_REACH * 1000, 0)} mm`, more: true });
+            add({ name: "Seals at", under: "sealing", value: `${n(stats.lining * SEAL_SPEED * 1000, 0)} mm/s`, more: true });
+        } else add({ name: "Sealing", under: "sealing", value: "none", title: "A hole stays open", more: true });
+    }
+
+    // A core's stores are each bought by a share of its room; another module's by its size.
+    const core = spec.kind === "core";
+    const load = (name: string, held: number, show: (amount: number) => string, share: string): void => {
+        if (!(held > 0)) return;
+        add({ name, value: show(held), ...(core ? { under: share } : {}) });
+        if (fill < 1) add({ name: "starts with", value: show(held * fill), sub: true, under: "fill" });
+    };
+    load("Fuel", stats.fuel, tonnes, "fuelShare");
+    load("Metal", stats.metal, tonnes, "holdShare");
+    load("Charge", stats.charge, megajoules, "batteryShare");
+    if (stats.charge > 0) add({ name: "Charge rate", value: megawatts(stats.chargeRate), title: "In or out" });
+    if (stats.generation > 0) add({ name: "Generates", value: megawatts(stats.generation), ...(core ? { under: "generatorShare" } : {}) });
+    if (spec.kind === "robotBay") {
+        add({ name: "Robots", value: `${stats.robots}`, title: "Berthed" });
+        const moored = robotsKept(spec, stats, true);
+        if (moored > stats.robots) add({ name: "while moored", under: "robotsPerBerth", value: `${moored}`, sub: true });
     }
     if (stats.pumpRate > 0) {
-        const rate = `${stats.pumpRate.toLocaleString("en-GB", { maximumFractionDigits: 0 })} kg/s`;
         const across =
             spec.kind === "pad"
-                ? "into a fighter landed on it"
+                ? "Into a fighter landed on it"
                 : spec.kind === "port"
-                  ? "either way across a dock"
-                  : "from what its bow grips";
-        rows.push(["Pump", `${rate} ${across}`]);
+                  ? "Either way across a dock"
+                  : "From what its bow grips";
+        add({ name: "Pump", value: `${n(stats.pumpRate, 0)} kg/s`, title: across });
+    }
+
+    if (stats.thrust > 0) {
+        // An engine part-buried in its own hull hands that share of its momentum straight back, so the ship gets less
+        // than the nozzle throws. Worth saying here, because the envelope cannot say which engine is paying.
+        const escaping = index < 0 ? 1 : exhaustEscaping(layout, index, stats.thrust);
+        add({ name: "Thrust", value: `${n((stats.thrust * escaping) / 1e6, 2)} MN` });
+        if (escaping < 1) add({ name: "into the ship", value: `${n((stats.thrust * (1 - escaping)) / 1e6, 2)} MN`, sub: true });
     }
     if (stats.exhaustVelocity > 0) {
-        // What it costs to run, which the bell and the size of the throat decide.
-        rows.push([
-            "Efficiency",
-            `${specificImpulse(stats.exhaustVelocity).toLocaleString("en-GB", { maximumFractionDigits: 0 })} s Isp, ` +
-                `${(stats.thrust / stats.exhaustVelocity).toLocaleString("en-GB", { maximumFractionDigits: 1 })} kg/s flat out`,
-        ]);
-    }
-    if (stats.ringPower > 0) {
-        const bell = engineGeometry(spec).bellDivergence;
-        rows.push([
-            "Ring",
-            `${(stats.ringPower / 1e6).toLocaleString("en-GB", { maximumFractionDigits: 2 })} MW flat out; ` +
-                `unpowered, ${(bell * 100).toLocaleString("en-GB", { maximumFractionDigits: 0 })}% of its thrust`,
-        ]);
-    }
-    if (stats.thrust > 0) {
-        // What the nozzle throws, and — where some of it runs into the ship — what
-        // is left over to fly on. An engine part-buried in its own hull hands that
-        // share of its momentum straight back, so the two figures differ and the
-        // ship gets the second one. Worth saying here rather than only in the
-        // envelope, because the envelope cannot say *which* engine is paying.
-        const thrown = `${(stats.thrust / 1e6).toLocaleString("en-GB", { maximumFractionDigits: 2 })} MN`;
-        const escaping = index < 0 ? 1 : exhaustEscaping(layout, index, stats.thrust);
-        rows.push([
-            "Thrust",
-            escaping >= 1
-                ? thrown
-                : `${((stats.thrust * escaping) / 1e6).toLocaleString("en-GB", { maximumFractionDigits: 2 })} MN ` +
-                  `of ${thrown} — the rest fires into the ship`,
-        ]);
-    }
-    if (isHullMount(spec.kind)) {
-        // What the opening leaves it, and how much of the opening is already
-        // barrel — the two numbers a designer trades against each other when they
-        // decide how long a barrel to give it and how many.
-        const mount = hullMountGeometry(spec);
-        rows.push([
-            "Opening",
-            `${radiansToDegrees(mount.traverse).toLocaleString("en-GB", { maximumFractionDigits: 1 })}° ` +
-                `either way, with ${(((mount.outlets * mount.outletWidth) / spec.width) * 100).toLocaleString("en-GB", { maximumFractionDigits: 0 })}% ` +
-                `of the face filled`,
-        ]);
-    }
-    if (readsBarrelCalibres(spec.kind) && stats.gun !== null) {
-        // How long, and what being long has cost in bracing.
-        const gun = stats.gun;
-        const bracing = braceMass(gun);
-        rows.push([
-            "Barrel",
-            `${gun.barrelLength.toLocaleString("en-GB", { maximumFractionDigits: 2 })} m, ` +
-                `${barrelCalibres(spec).toLocaleString("en-GB", { maximumFractionDigits: 1 })} calibres` +
-                (bracing > 0
-                    ? `; ${gun.braceLength.toLocaleString("en-GB", { maximumFractionDigits: 2 })} m braced, ` +
-                      `${(bracing / 1000).toLocaleString("en-GB", { maximumFractionDigits: 2 })} t of bracing`
-                    : ""),
-        ]);
-    }
-    if (isWeaponMount(spec.kind)) {
-        // What it may train through and what that machine weighs — the second
-        // being the number a designer is trading when they narrow the first, and
-        // on a hull mount the reason to.
-        const gear = stats.traverseMass;
-        rows.push([
-            "Trains",
-            `${radiansToDegrees(mountTraverse(spec)).toLocaleString("en-GB", { maximumFractionDigits: 1 })}° ` +
-                `either way, on ${
-                    gear > 0 ? `${(gear / 1000).toLocaleString("en-GB", { maximumFractionDigits: 2 })} t of gear` : "no gear at all"
-                }`,
-        ]);
+        add({ name: "Isp", value: `${n(specificImpulse(stats.exhaustVelocity), 0)} s` });
+        add({ name: "Fuel use", value: `${n(stats.thrust / stats.exhaustVelocity, 1)} kg/s`, title: "Flat out" });
     }
     if (spec.kind === "engine") {
-        // What the bell is doing to the gas, which is the one number that says
-        // whether the nozzle is worth the length it takes up. A designer shrinking
-        // a bell sees the thrust fall before they see the ship fly worse.
         const engine = engineGeometry(spec);
-        rows.push([
-            "Bell",
-            `${radiansToDegrees(engine.halfAngle).toLocaleString("en-GB", { maximumFractionDigits: 0 })}° ` +
-                `half-angle, keeping ${(engine.divergence * 100).toLocaleString("en-GB", { maximumFractionDigits: 0 })}% ` +
-                `of the thrust${engine.nozzles > 1 ? ` across ${engine.nozzles} nozzles` : ""}`,
-        ]);
-        // How far it throws and how fiercely, at full throttle: the trade between
-        // one long flame and a cluster of short hot ones.
-        rows.push([
-            "Flame",
-            `${nozzleReach(engine, stats.thrust).toLocaleString("en-GB", { maximumFractionDigits: 0 })} m, ` +
-                `${(plumeIntensity(engine, stats.thrust) / 1000).toLocaleString("en-GB", { maximumFractionDigits: 1 })} kW/m²`,
-        ]);
         // Its firing wedge: the part of the flame worth lighting up for.
-        if (spec.weapon === true) {
-            rows.push([
-                "Fires within",
-                `${weaponPlumeReach(engine, stats.thrust).toLocaleString("en-GB", { maximumFractionDigits: 0 })} m of the nozzle`,
-            ]);
+        if (spec.weapon === true)
+            add({
+                name: "Fires within",
+                under: "weapon",
+                value: `${n(weaponPlumeReach(engine, stats.thrust), 0)} m`,
+                title: "Of the nozzle",
+            });
+        if (stats.ringPower > 0) {
+            add({ name: "Ring power", under: "magnetic", value: `${n(stats.ringPower / 1e6, 2)} MW`, title: "Flat out", more: true });
+            add({
+                name: "Unpowered",
+                under: "magnetic",
+                value: `${n(engine.bellDivergence * 100, 0)}%`,
+                title: "Of its thrust",
+                more: true,
+            });
         }
+        // What the bell is doing to the gas: whether the nozzle is worth the length it takes up.
+        add({ name: "Bell half-angle", under: "nozzle", value: `${n(radiansToDegrees(engine.halfAngle), 0)}°`, more: true });
+        add({ name: "Bell keeps", under: "nozzle", value: `${n(engine.divergence * 100, 0)}%`, title: "Of the thrust", more: true });
+        if (engine.nozzles > 1) add({ name: "Nozzles", under: "barrels", value: `${engine.nozzles}`, more: true });
+        // How far it throws and how fiercely: the trade between one long flame and a cluster of short hot ones.
+        add({ name: "Flame reach", under: "nozzle", value: `${n(nozzleReach(engine, stats.thrust), 0)} m`, title: "Flat out", more: true });
+        add({
+            name: "Flame heat",
+            under: "nozzle",
+            value: `${n(plumeIntensity(engine, stats.thrust) / 1000, 1)} kW/m²`,
+            title: "Flat out",
+            more: true,
+        });
+    }
+
+    if (readsBarrelCalibres(spec.kind) && stats.gun !== null) {
+        // How long, and what being long has cost in bracing.
+        const bracing = braceMass(stats.gun);
+        add({ name: "Barrel", under: "barrelCalibres", value: `${n(stats.gun.barrelLength, 2)} m` });
+        if (bracing > 0) {
+            add({ name: "Barrel braced", under: "barrelCalibres", value: `${n(stats.gun.braceLength, 2)} m`, more: true });
+            add({ name: "Barrel bracing", under: "barrelCalibres", value: tonnes(bracing), more: true });
+        }
+    }
+    if (isWeaponMount(spec.kind)) {
+        // What the machine that trains it weighs: what narrowing the traverse saves.
+        const gear = stats.traverseMass;
+        add({ name: "Training gear", under: "traverse", value: gear > 0 ? tonnes(gear) : "none", more: true });
+    }
+    if (isHullMount(spec.kind)) {
+        // What the opening leaves it, and how much of it is already barrel.
+        const mount = hullMountGeometry(spec);
+        add({ name: "Opening", under: "traverse", value: `${n(radiansToDegrees(mount.traverse), 1)}°`, title: "Either way", more: true });
+        add({
+            name: "face filled",
+            under: "traverse",
+            value: `${n(((mount.outlets * mount.outletWidth) / spec.width) * 100, 0)}%`,
+            sub: true,
+            more: true,
+        });
     }
     const gun = stats.gun;
     return {
