@@ -82,11 +82,6 @@ const Shell = styled.fieldset`
     }
 `;
 
-/** A module's notes, apart from its settings, below everything else. */
-const Notes = styled.div`
-    margin-top: 0.7rem;
-`;
-
 /** What the setting above works out to, one figure a line, under the box so however long it cannot squeeze it. */
 const Under = styled.div`
     margin: -0.15rem 0 0.45rem 6.9rem;
@@ -829,6 +824,26 @@ export function ModulePanel({
                         {notes("robotsPerBerth")}
                     </>
                 )}
+                <Field>
+                    <label htmlFor="propNotes">notes</label>
+                    <LiveText
+                        id="propNotes"
+                        multiline
+                        placeholder="why this module is here"
+                        value={spec.notes ?? ""}
+                        onStart={editing.endGesture}
+                        onDone={editing.endGesture}
+                        onType={(typed) => {
+                            const text = typed.trim();
+                            update((placement) => {
+                                const next = { ...placement };
+                                if (text === "") delete next.notes;
+                                else next.notes = text;
+                                return next;
+                            }, true);
+                        }}
+                    />
+                </Field>
             </More>
             <Stats id="moduleStats">
                 <FigureRows rows={general().filter((row) => row.more !== true)} />
@@ -881,29 +896,6 @@ export function ModulePanel({
                     Delete
                 </Button>
             </Buttons>
-            {/* Seldom used, so last. */}
-            <Notes>
-                <Field>
-                    <label htmlFor="propNotes">notes</label>
-                    <LiveText
-                        id="propNotes"
-                        multiline
-                        placeholder="why this module is here"
-                        value={spec.notes ?? ""}
-                        onStart={editing.endGesture}
-                        onDone={editing.endGesture}
-                        onType={(typed) => {
-                            const text = typed.trim();
-                            update((placement) => {
-                                const next = { ...placement };
-                                if (text === "") delete next.notes;
-                                else next.notes = text;
-                                return next;
-                            }, true);
-                        }}
-                    />
-                </Field>
-            </Notes>
         </section>
     );
 }
