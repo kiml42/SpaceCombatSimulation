@@ -5,6 +5,7 @@ import {
     blueprintProblem,
     compileDraft,
     CORE_COMPUTING_SHARE,
+    TRAVERSE_GEAR_FRACTION,
     CORE_SHARE_DEFAULTS,
     CORE_SHARE_KEYS,
     type CoreShareKey,
@@ -77,6 +78,7 @@ export type ModuleNumberField =
     | "barrelCalibres"
     | "bore"
     | "traverse"
+    | "turning"
     | "fuse"
     | "fragments"
     | "burstSpeed"
@@ -98,6 +100,7 @@ export function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
     // What the mount would do if the layout said nothing, so the box shows the
     // arc it actually has rather than a blank.
     if (key === "traverse") return radiansToDegrees(mountTraverse(spec));
+    if (key === "turning") return (spec.turning ?? TRAVERSE_GEAR_FRACTION) * 100;
     if (key === "fuse") return spec.fuse ?? DEFAULT_FUSE;
     if (key === "fragments") return spec.fragments ?? DEFAULT_FRAGMENTS;
     if (key === "burstSpeed") return spec.burstSpeed ?? DEFAULT_BURST_SPEED;

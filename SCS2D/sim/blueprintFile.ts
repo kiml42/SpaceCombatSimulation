@@ -22,6 +22,7 @@ import {
     readsDrainPriority,
     readsFill,
     readsComputing,
+    readsTurning,
     CORE_SHARE_KEYS,
     readsRobotsPerBerth,
     readsCraft,
@@ -110,6 +111,7 @@ const MODULE_KEYS: readonly string[] = [
     "barrelCalibres",
     "bore",
     "traverse",
+    "turning",
     "fuse",
     "fragments",
     "burstSpeed",
@@ -282,6 +284,7 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
         optionalNumberProblem(value["barrelCalibres"], `${where}: barrelCalibres`) ??
         optionalNumberProblem(value["bore"], `${where}: bore`) ??
         optionalNumberProblem(value["traverse"], `${where}: traverse`) ??
+        optionalNumberProblem(value["turning"], `${where}: turning`) ??
         optionalNumberProblem(value["fuse"], `${where}: fuse`) ??
         optionalNumberProblem(value["fragments"], `${where}: fragments`) ??
         optionalNumberProblem(value["burstSpeed"], `${where}: burstSpeed`) ??
@@ -326,6 +329,7 @@ function moduleReads(kind: ModuleKind): readonly string[] {
         if (key === "barrelCalibres" || key === "bore") return readsBarrelCalibres(kind);
         if (key === "barrels") return countsOutlets(kind);
         if (key === "traverse") return isWeaponMount(kind);
+        if (key === "turning") return readsTurning(kind);
         if (key === "fuse" || key === "fragments" || key === "burstSpeed") return readsFuse(kind);
         if (key === "weapon") return readsWeapon(kind);
         if (key === "main") return readsMain(kind);
@@ -585,6 +589,7 @@ function toPlacements(raws: unknown[], whole: boolean): Placement[] {
         if (read("bore")) spec.bore = raw["bore"] as number;
         // Degrees in the file and radians in the simulation, as every other angle.
         if (read("traverse")) spec.traverse = degreesToRadians(raw["traverse"] as number);
+        if (read("turning")) spec.turning = raw["turning"] as number;
         if (read("fuse")) spec.fuse = raw["fuse"] as number;
         if (read("fragments")) spec.fragments = raw["fragments"] as number;
         if (read("burstSpeed")) spec.burstSpeed = raw["burstSpeed"] as number;
@@ -794,6 +799,7 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
     if (placement.traverse !== undefined && isWeaponMount(placement.kind)) {
         raw["traverse"] = radiansToDegrees(placement.traverse);
     }
+    if (placement.turning !== undefined && readsTurning(placement.kind)) raw["turning"] = placement.turning;
     if (readsFuse(placement.kind)) {
         if (placement.fuse !== undefined) raw["fuse"] = placement.fuse;
         if (placement.fragments !== undefined) raw["fragments"] = placement.fragments;

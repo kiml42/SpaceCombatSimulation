@@ -60,6 +60,9 @@ import {
     readsCraftAngle,
     moduleProblem,
     mountTraverse,
+    readsTurning,
+    MAX_TURNING,
+    TRAVERSE_GEAR_FRACTION,
     isHullMount,
     countsOutlets,
     MODULE_KINDS,
@@ -764,6 +767,7 @@ type NumberKnob =
               | "barrelCalibres"
               | "bore"
               | "traverse"
+              | "turning"
               | "fuse"
               | "fragments"
               | "burstSpeed"
@@ -1039,6 +1043,8 @@ function numbers(draft: Draft): NumberKnob[] {
             // as well as coverage — a fixed gun carries no training gear, and
             // whether that trade is worth taking is exactly what a run is for.
             out.push({ at: "traverse", site });
+            // Swing against rate of fire: what a turret's gear takes from its loading.
+            if (readsTurning(spec.kind)) out.push({ at: "turning", site });
             for (const field of MOUNT_TARGETING_FIELDS) out.push({ at: "gunnery", site, field });
         }
         // What a gun fires: shells or solid shot, and for shells how they burst.
@@ -1127,6 +1133,8 @@ function renumberModule(knob: Exclude<NumberKnob, { at: "doctrine" }>, jitter: J
             return rebore(knob.site, jitter);
         case "traverse":
             return retrain(knob.site, jitter);
+        case "turning":
+            return regear(knob.site, jitter);
         case "fuse":
             return refuse(knob.site, jitter);
         case "fragments":
@@ -1460,6 +1468,22 @@ function retrain(site: ModuleSite, jitter: Jitter): string | null {
     site.spec.traverse = degreesToRadians(now);
     return `${site.where} ${site.spec.kind}: traverse ${asDegrees}° → ${now}°`;
 }
+
+/**
+ * Give a turret more traverse gear, swinging faster and loading slower, or
+ * less: by up to `magnitude` of its own share, held inside what is allowed.
+ */
+function regear(site: ModuleSite, jitter: Jitter): string | null {
+    const was = site.spec.turning ?? TRAVERSE_GEAR_FRACTION;
+    const now = tidy(clamp(was + jitter(was), MIN_TURNING, MAX_TURNING), 3);
+    if (now === was) return null;
+    if (now !== TRAVERSE_GEAR_FRACTION) site.spec.turning = now;
+    else delete site.spec.turning;
+    return `${site.where} ${site.spec.kind}: ${round(was * 100)}% turning gear → ${round(now * 100)}%`;
+}
+
+/** The least traverse gear a nudge leaves a turret, which still has to turn. */
+const MIN_TURNING = 0.01;
 
 /**
  * How often a newly added structure or tank arrives as a wedge rather than a

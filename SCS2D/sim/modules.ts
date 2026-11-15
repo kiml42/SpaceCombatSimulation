@@ -338,6 +338,11 @@ export function readsRobotsPerBerth(kind: ModuleKind): boolean {
     return kind === "robotBay";
 }
 
+/** Whether `turning` means anything on this kind: a turret, whose ring and drive are its own. */
+export function readsTurning(kind: ModuleKind): boolean {
+    return kind === "turret" || kind === "beamTurret";
+}
+
 /** Whether `computing` means anything on this kind. */
 export function readsComputing(kind: ModuleKind): boolean {
     return kind === "core";
@@ -548,6 +553,18 @@ export const HULL_APERTURE_FRACTION = 0.1;
  * and it is what makes a *fixed* one free.
  */
 export const TRAVERSE_GEAR_FRACTION = 0.1;
+
+/** The most of a turret `turning` may give to its traverse gear. */
+export const MAX_TURNING = 0.5;
+
+/**
+ * What a turret's loading gear, or a beam's bank, is left with for its
+ * `turning`, as a share of what it has at `TRAVERSE_GEAR_FRACTION`.
+ */
+export function loadingShare(spec: ModuleSpec): number {
+    const turning = readsTurning(spec.kind) ? (spec.turning ?? TRAVERSE_GEAR_FRACTION) : TRAVERSE_GEAR_FRACTION;
+    return (1 - turning) / (1 - TRAVERSE_GEAR_FRACTION);
+}
 
 /**
  * The traverse a full ring buys, radians either way: all the way round.
@@ -1191,6 +1208,14 @@ export const CONTROL_EXPONENT = 0.3;
 export const TRAVERSE_TORQUE_PER_KG = 2;
 
 /**
+ * Traverse torque per kilogram of a turret's traverse gear, N·m/kg. Its own
+ * gear is what a turret's drive is, so `turning` is what buys its torque.
+ * Set so that a turret at `TRAVERSE_GEAR_FRACTION` has `TRAVERSE_TORQUE_PER_KG`
+ * of its whole mass, as before the knob.
+ */
+export const TRAVERSE_TORQUE_PER_GEAR_KG = TRAVERSE_TORQUE_PER_KG * (1 + 1 / TRAVERSE_GEAR_FRACTION);
+
+/**
  * Traverse drive power per kilogram of turret, W/kg. With the torque above it
  * sets the drive's top rate, `power / torque`, which is the same for every
  * mount: both grow with the mass the drive is sized for, so a big mount is
@@ -1436,6 +1461,14 @@ export interface ModuleSpec {
      * how a very light hull carries a very large bore.
      */
     traverse?: number;
+    /**
+     * A turret's traverse gear, as a share of the rest of the mount
+     * (`TRAVERSE_GEAR_FRACTION` unless set). More gear is more torque, so a
+     * quicker swing, and it weighs what it is; it also takes room from the
+     * loading gear, or a beam's bank, so a gun reloads slower and a beam holds
+     * on for less. Turrets only.
+     */
+    turning?: number;
 
     /**
      * How long before it would reach its aim point a gun's round bursts,
@@ -1912,6 +1945,9 @@ export function moduleProblem(spec: ModuleSpec): string | null {
         // Dormant on a kind that does not train, as a bell is on a gun mount: only
         // the range applies there. See `isWeaponMount`.
         return `${spec.kind}: traverse must be at least 0, got ${spec.traverse}`;
+    }
+    if (spec.turning !== undefined && !(spec.turning > 0 && spec.turning <= MAX_TURNING)) {
+        return `${spec.kind}: turning must be above 0 and at most ${MAX_TURNING}, got ${spec.turning}`;
     }
     if (spec.fuse !== undefined && !(spec.fuse >= 0)) {
         return `${spec.kind}: fuse must be at least 0, got ${spec.fuse}`;
@@ -3513,10 +3549,17 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
         gun =
             spec.kind === "turret"
                 ? loaded(
-                      gunStats(spec.length, spec.width, spec.barrels, barrelCalibres(spec), turretDecks(spec, height), boreScale(spec)),
+                      gunStats(
+                          spec.length,
+                          spec.width,
+                          spec.barrels,
+                          barrelCalibres(spec),
+                          turretDecks(spec, height) * loadingShare(spec),
+                          boreScale(spec),
+                      ),
                       spec,
                   )
-                : beamGunStats(spec.length, spec.width, spec.barrels);
+                : beamGunStats(spec.length, spec.width, spec.barrels, loadingShare(spec));
 
         // What hangs off the front of the mount, per barrel or emitter. The two
         // archetypes differ in what that is and in almost nothing else: both are a
@@ -3555,7 +3598,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
         // is sized by the whole mount, since that is what turns, and a limit on
         // where it may point is programming rather than a simpler machine — so
         // unlike a hull mount's bed this does not shrink when the arc does.
-        traverseMass = (structureMass + fittingMass) * TRAVERSE_GEAR_FRACTION;
+        traverseMass = (structureMass + fittingMass) * (spec.turning ?? TRAVERSE_GEAR_FRACTION);
         fittingMass += traverseMass;
         // **Only the dome turns.** It is the square the barrels sit across, one deck
         // deep; the rest of the box, and every deck below, is the base — loading
@@ -3786,7 +3829,7 @@ function turretCycleTime(calibre: number, gear: number): number {
  * one until a mount can track more than one target, and if every design
  * settles on a single emitter that is the laws working rather than failing.
  */
-export function beamGunStats(mountLength: number, mountWidth: number, barrelCount: number = 1): GunStats {
+export function beamGunStats(mountLength: number, mountWidth: number, barrelCount: number = 1, bank: number = 1): GunStats {
     // One disc, or `n` discs dividing the same area between them.
     const face = mountWidth < mountLength ? mountWidth : mountLength;
     const wide = (face * BEAM_APERTURE_FRACTION) / sqrt(barrelCount);
@@ -3799,7 +3842,7 @@ export function beamGunStats(mountLength: number, mountWidth: number, barrelCoun
 
     // The bank fills the mount, and feeds one emitter at a time.
     const depth = face < DECK_HEIGHT ? face : DECK_HEIGHT;
-    const stored = BEAM_STORED_ENERGY_PER_VOLUME * mountLength * mountWidth * depth;
+    const stored = BEAM_STORED_ENERGY_PER_VOLUME * mountLength * mountWidth * depth * bank;
     const beamOnTime = stored / power;
 
     // No barrel: a housing round the optic, as deep as the optic is wide.
@@ -3862,8 +3905,8 @@ export function traverseAccel(mass: number, inertia: number): number {
 /**
  * How fast a weapon mount's drive can swing it, radians per second squared.
  *
- * A turret's drive is sized by the whole mount and swings only its dome and
- * barrels, so a wide turret, whose sides are base, trains briskly for its
+ * A turret's drive is its traverse gear (`turning`), and swings only its dome
+ * and barrels, so a wide turret, whose sides are base, trains briskly for its
  * size. A hull mount swings only its barrels, and its drive is sized by the weapon
  * it trains rather than the block it is welded into — so a deeper block,
  * which is more loading gear behind the same barrels, trains them no faster
@@ -3871,5 +3914,5 @@ export function traverseAccel(mass: number, inertia: number): number {
  */
 export function mountAccel(spec: ModuleSpec, stats: ModuleStats): number {
     if (isHullMount(spec.kind)) return traverseAccel(stats.fittingMass, stats.swingInertia);
-    return traverseAccel(stats.mass, stats.swingInertia);
+    return (TRAVERSE_TORQUE_PER_GEAR_KG * stats.traverseMass) / stats.swingInertia;
 }
