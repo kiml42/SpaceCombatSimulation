@@ -440,7 +440,7 @@ export function moduleReadout(spec: ModuleSpec, layout: readonly ModuleSpec[] = 
         { name: "Hit points", value: n(stats.hitPoints, 0), more: true },
         { name: "Armour", value: `${n(stats.wallThickness * 1000, 0)} mm` },
         {
-            name: "Build",
+            name: "Build time",
             value: buildTime((buildWork(stats) * (stats.structureMass + fittingOf(stats))) / ROBOT_REPAIR_RATE),
             title: "For one robot",
         },
