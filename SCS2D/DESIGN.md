@@ -1986,10 +1986,10 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
     reaction, rather than coasting on into the gap. Past the gap's middle the nearer end used to be the
     far one, so a barrel that overran far enough carried on round, holding its world bearing through the
     arc its traverse forbids while the ship spun beneath it.
-  - **Both limits come from one drive.** The mount ring delivers torque proportional to the turret's
-    mass, so acceleration is `torque / inertia`, and the rate limit is simply what that acceleration
-    reaches in a fixed spin-up time. They are one mechanism described twice, not two numbers to balance:
-    a mount cannot be sluggish off the mark and fast at the top end. A hull mount's drive is sized by
+  - **Both limits come from one drive.** The mount ring delivers torque and power proportional to the
+    turret's mass, so acceleration is `torque / inertia` and the top rate is `power / torque` — the same
+    for every mount, and reached only by the smallest. A big mount is slow because it is slow off the
+    mark, so the time to swing grows about as its size rather than as its size squared. A hull mount's drive is sized by
     the weapon it trains rather than the block it is welded into, and swings the barrels alone, so a
     deeper block behind the same barrels trains them neither faster nor slower.
     - What makes that discriminate between mounts is **inertia**, which counts each barrel as a rod

@@ -37,7 +37,8 @@ import {
     shortfall,
     engineGeometry,
     mountAccel,
-    traverseRate,
+    slewTime,
+    TRAVERSE_TOP_RATE,
     defaultTargeting,
     nominalReach,
     resolveTargeting,
@@ -96,8 +97,8 @@ export interface TurretReadout {
     /** How far the mount may train off its rest bearing, degrees. */
     arcLeft: number;
     arcRight: number;
-    /** Top training speed, degrees per second. */
-    traverseRate: number;
+    /** Seconds to train through half a turn from rest. */
+    halfTurn: number;
     /**
      * How far it will fire at the enemy its doctrine wants, metres, as its
      * firing wedge is drawn: null where the ship's size is not known.
@@ -310,7 +311,7 @@ export function designStats(design: ShipDesign, envelope: Envelopes): DesignStat
                 roundsPerMinute: firingPeriod(gun) > 0 ? 60 / firingPeriod(gun) : 0,
                 arcLeft: radiansToDegrees(mount.leftArc ?? math.PI),
                 arcRight: radiansToDegrees(mount.rightArc ?? math.PI),
-                traverseRate: radiansToDegrees(mount.maxRate ?? 0),
+                halfTurn: slewTime(math.PI, mount.maxRate ?? 0, mount.maxAccel ?? 0),
             };
         }),
     };
@@ -590,7 +591,7 @@ export function moduleReadout(spec: ModuleSpec, layout: readonly ModuleSpec[] = 
                       muzzleSpeed: gun.muzzleSpeed,
                       roundsPerMinute: firingPeriod(gun) > 0 ? 60 / firingPeriod(gun) : 0,
                       ...arcOf(layout, index, gun.barrelLength, barrelHalfWidth(gun)),
-                      traverseRate: radiansToDegrees(traverseRate(mountAccel(spec, stats))),
+                      halfTurn: slewTime(math.PI, TRAVERSE_TOP_RATE, mountAccel(spec, stats)),
                       // Against what its doctrine goes after, which is sized from the
                       // ship carrying it, so it needs the ship.
                       triggerRange: shipRadius > 0 ? fireRangeOf(spec, gun, shipRadius) : null,

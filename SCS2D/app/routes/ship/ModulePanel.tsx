@@ -663,7 +663,7 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                                 )}
                                 <tr>
                                     <th>Arc</th>
-                                    <td>{`${numbers(readout.gun.arcRight, 0)}°R–${numbers(readout.gun.arcLeft, 0)}°L, trains at ${numbers(readout.gun.traverseRate)} °/s`}</td>
+                                    <td>{`${numbers(readout.gun.arcRight, 0)}°R–${numbers(readout.gun.arcLeft, 0)}°L, half a turn in ${numbers(readout.gun.halfTurn)} s`}</td>
                                 </tr>
                                 {readout.gun.triggerRange != null && (
                                     <tr>

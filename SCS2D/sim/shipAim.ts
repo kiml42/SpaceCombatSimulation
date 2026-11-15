@@ -3,7 +3,7 @@ import { aspectAlong, EVASION_ACCEL, lethalRadius, reachAgainst, type DesignTurr
 import { BOTH_LAYERS, HULL_LAYER, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from "./hull.js";
 import { DamageEffect } from "./damage.js";
 import { inSight, lookFrom, score } from "./targeting.js";
-import { DEFAULT_FUSE, firesShells, moduleRadius, type ModuleSpec, GunType, type GunStats, type ModuleKind } from "./modules.js";
+import { DEFAULT_FUSE, firesShells, moduleRadius, slewTime, type ModuleSpec, GunType, type GunStats, type ModuleKind } from "./modules.js";
 import { atan2, angleDelta, PI, clamp, cos, length, max, round, sin, sqrt } from "./math.js";
 import { overriddenMount, placementOf, type Targeting } from "./doctrine.js";
 import type { World } from "./world.js";
@@ -784,8 +784,7 @@ export function noteRocks(ships: Ships, tick: number): void {
 /** How long this mount waits before reconsidering, in steps. */
 export function turretRethinkTicks(world: World, t: number, design: ShipDesign): number {
     const mount = design.turrets[t]!;
-    const rate = mount.mount.maxRate;
-    const sweep = rate > 0 ? PI / rate : TURRET_MAX_RETHINK;
+    const sweep = slewTime(PI, mount.mount.maxRate, mount.mount.maxAccel);
     const seconds = clamp(sweep + mount.gun.cycleTime, TURRET_MIN_RETHINK, TURRET_MAX_RETHINK);
     return max(1, round(seconds / world.dt));
 }
