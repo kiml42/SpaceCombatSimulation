@@ -14,8 +14,7 @@
       "rockWeight": 20,
       "tripWeight": 400,
       "fuelReserve": 0.2,
-      "chargeReserve": 0,
-      "padsShare": 3
+      "chargeReserve": 0
     }
   },
   "hangar": {
@@ -203,7 +202,8 @@
           "length": 8.674634452,
           "width": 7,
           "craft": "Dinky Raider",
-          "keep": 1
+          "keep": 1,
+          "priority": 2
         },
         {
           "id": 11,

@@ -313,6 +313,47 @@ export function readsDrainPriority(kind: ModuleKind): boolean {
     return readsSealing(kind);
 }
 
+/**
+ * How soon a part of each kind is served from its ship's stores, and mended,
+ * when it states no `priority`: engines, weapons and cores first, then robot
+ * bays, then the rest, slipways last.
+ */
+const DEFAULT_PRIORITY: Readonly<Record<ShipModuleKind, number>> = {
+    core: 3,
+    engine: 3,
+    turret: 3,
+    beamTurret: 3,
+    hullGun: 3,
+    railGun: 3,
+    hullBeam: 3,
+    plasmaLance: 3,
+    robotBay: 2,
+    structure: 1,
+    tank: 1,
+    hold: 1,
+    battery: 1,
+    generator: 1,
+    claw: 1,
+    pad: 1,
+    port: 1,
+    slipway: 0,
+};
+
+/** A part's priority (`ModuleSpec.priority`), or its kind's default. */
+export function partPriority(spec: ModuleSpec): number {
+    return spec.priority ?? DEFAULT_PRIORITY[spec.kind as ShipModuleKind] ?? 0;
+}
+
+/** Whether `priority` means anything on this kind: any part of a ship. */
+export function readsPriority(kind: ModuleKind): boolean {
+    return kind in DEFAULT_PRIORITY;
+}
+
+/** The priority a part of this kind has when it states none. */
+export function defaultPriority(kind: ModuleKind): number {
+    return DEFAULT_PRIORITY[kind as ShipModuleKind] ?? 0;
+}
+
 /** Whether `craft` and `keep` mean anything on this kind: what builds ships. */
 export function readsCraft(kind: ModuleKind): boolean {
     return kind === "pad" || kind === "slipway";
@@ -1589,6 +1630,14 @@ export interface ModuleSpec {
     drainPriority?: number;
 
     /**
+     * How soon this part gets its ship's fuel, metal and charge when there is
+     * not enough to go round, and how soon it is mended: a higher priority is
+     * served in full before a lower one gets any. A whole number; absent, its
+     * kind's (`partPriority`).
+     */
+    priority?: number;
+
+    /**
      * How full it starts, 0 to 1: all of it when absent. A tank or a core
      * only. A ship sent out part full weighs less, so it costs less of a budget,
      * and has to find the rest — from a wreck, or a carrier.
@@ -1970,6 +2019,9 @@ export function moduleProblem(spec: ModuleSpec): string | null {
     }
     if (spec.robotsPerBerth !== undefined && !(spec.robotsPerBerth >= 1 && Number.isFinite(spec.robotsPerBerth))) {
         return `${spec.kind}: robots per berth must be at least 1, got ${spec.robotsPerBerth}`;
+    }
+    if (spec.priority !== undefined && !Number.isInteger(spec.priority)) {
+        return `${spec.kind}: priority must be a whole number, got ${spec.priority}`;
     }
     if (spec.drainPriority !== undefined && !Number.isInteger(spec.drainPriority)) {
         return `${spec.kind}: drain priority must be a whole number, got ${spec.drainPriority}`;

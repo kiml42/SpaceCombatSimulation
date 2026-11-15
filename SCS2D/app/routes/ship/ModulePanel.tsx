@@ -37,6 +37,8 @@ import {
     readsCraftAngle,
     readsDocked,
     readsDrainPriority,
+    readsPriority,
+    defaultPriority,
     readsFill,
     readsFuse,
     readsSealing,
@@ -723,6 +725,24 @@ export function ModulePanel({
                         </Field>
                         {notes("sealing")}
                     </>
+                )}
+                {readsPriority(spec.kind) && (
+                    <Field id="priorityRow">
+                        <label htmlFor="propPriority">priority</label>
+                        {box(
+                            "priority",
+                            {
+                                step: 1,
+                                title: `How soon this part gets its ship's fuel, metal and charge when there is not enough to go round, and how soon it is mended: a higher number is served in full before a lower one gets any, and parts of the same number split what is left by what each wants. ${defaultPriority(spec.kind)} by default for this kind.`,
+                            },
+                            (priority) =>
+                                update((placement) => {
+                                    const { priority: _, ...rest } = placement as ModuleSpec;
+                                    const whole = Math.round(priority);
+                                    return (whole === defaultPriority(spec.kind) ? rest : { ...rest, priority: whole }) as Placement;
+                                }, true),
+                        )}
+                    </Field>
                 )}
                 {readsDrainPriority(spec.kind) && (
                     <Field id="drainPriorityRow">

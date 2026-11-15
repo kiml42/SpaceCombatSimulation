@@ -7,8 +7,8 @@ import { Damage, DamageEffect, type ImpactLog } from "./damage.js";
 import { Fuel, LEAK_HOLE_CALIBRES, leakChance } from "./fuel.js";
 import { Charge } from "./charge.js";
 import { Metal } from "./metal.js";
-import { mendClaim, priorityOf, Supply } from "./supply.js";
-import { SEAL_REACH, SEAL_SPEED } from "./modules.js";
+import { Supply } from "./supply.js";
+import { SEAL_REACH, SEAL_SPEED, partPriority } from "./modules.js";
 import type { Rng } from "./rng.js";
 import { geometryOf, landedIndex, landedLength, plumeLayers, Plumes, weaponPlumeReach } from "./exhaust.js";
 import { Choice } from "./targeting.js";
@@ -25,7 +25,6 @@ import {
     overriddenDoctrine,
     withOverride,
     withoutPart,
-    type Approach,
     type Doctrine,
     type DoctrineOverride,
     type DoctrinePart,
@@ -195,12 +194,9 @@ export function yardFor(design: ShipDesign): Yard | null {
     };
 }
 
-/**
- * How soon a module is mended or rebuilt, lowest first: by its doctrine's
- * priority for mending it (`mendCorePriority` and the rest).
- */
-export function repairTier(approach: Approach, design: ShipDesign, m: number): number {
-    return -priorityOf(approach, mendClaim(design, m));
+/** How soon a module is mended or rebuilt, lowest first: by its priority (`partPriority`). */
+export function repairTier(design: ShipDesign, m: number): number {
+    return -partPriority(design.modules[m]!.spec);
 }
 
 /** Whether body `b` holds less than `share` of a full load of `store` on module `m`'s piece, with room for more. */

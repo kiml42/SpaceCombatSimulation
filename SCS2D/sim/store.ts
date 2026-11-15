@@ -203,6 +203,11 @@ export class Store {
         return this.pieceHeld(bodyIndex, module);
     }
 
+    /** How many modules a body's stores were laid out for. */
+    modulesOf(bodyIndex: number): number {
+        return this.pieceOf[bodyIndex]?.length ?? 0;
+    }
+
     /** How many pieces of hull a body's stores are on. */
     piecesOf(bodyIndex: number): number {
         return this.stores[bodyIndex]?.length ?? 0;
