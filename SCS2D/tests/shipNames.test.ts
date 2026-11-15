@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compileBlueprint, Ships, World } from "../sim/index.js";
+import { compileBlueprint, DAMAGE_ENERGY_PER_KG, Ships, World } from "../sim/index.js";
 import { DINKY } from "../scenarios/blueprints.js";
 import { teamName } from "../render/teams.js";
 import { hooked } from "../scenarios/hooked.js";
@@ -19,6 +19,11 @@ describe("a ship's name", () => {
         const { ships } = run;
         const before = new Map<number, number>();
         for (let i = 0; i < ships.highWater; i++) if (ships.isAlive(i)) before.set(i, ships.serialOf(i));
+        // Broken a second in, where a shot would: module 18 holds pieces of the second
+        // corvette on, which come away.
+        for (let s = 0; s < 60; s++) run.step();
+        const body = run.world.bodies.indexOf(ships.body(0));
+        ships.damage.absorb(body, 18, ships.currentStructure(0).modules[18]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG);
         for (let s = 0; s < 3000 && run.totalSevered === 0; s++) run.step();
         expect(run.totalSevered).toBeGreaterThan(0);
         // Every ship there now, pieces included, carries a number its side was already using.
