@@ -1991,7 +1991,9 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
     for every mount, and reached only by the smallest. A big mount is slow because it is slow off the
     mark, so the time to swing grows about as its size rather than as its size squared. Only a turret's
     dome swings — the square its barrels sit across, one deck deep — while the rest of its box, the
-    decks below and the ring itself are base and stay put. A hull mount's drive is sized by
+    decks below and the ring itself are base and stay put. A turret's torque comes from its traverse
+    gear, and how much of the mount that is is a knob (`turning`): more swings faster, weighs more, and
+    takes room from the loading gear or the bank. A hull mount's drive is sized by
     the weapon it trains rather than the block it is welded into, and swings the barrels alone, so a
     deeper block behind the same barrels trains them neither faster nor slower.
     - What makes that discriminate between mounts is **inertia**, which counts each barrel as a rod

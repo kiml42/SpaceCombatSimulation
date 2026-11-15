@@ -1358,6 +1358,7 @@ function place(
         if (placement.barrelCalibres !== undefined) spec.barrelCalibres = placement.barrelCalibres;
         if (placement.bore !== undefined) spec.bore = placement.bore;
         if (placement.traverse !== undefined) spec.traverse = placement.traverse;
+        if (placement.turning !== undefined) spec.turning = placement.turning;
         if (placement.fuse !== undefined) spec.fuse = placement.fuse;
         if (placement.fragments !== undefined) spec.fragments = placement.fragments;
         if (placement.burstSpeed !== undefined) spec.burstSpeed = placement.burstSpeed;

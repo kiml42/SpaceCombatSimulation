@@ -281,6 +281,20 @@ describe("rejecting a file that arrived from somewhere else", () => {
         ).toEqual([{ kind: "structure", x: 0, y: 0, length: 10, width: 4 }]);
     });
 
+    it("carries a turret's turning gear out and back, and only a turret's", () => {
+        const raw = file({
+            modules: [
+                { kind: "core", x: 0, y: 0, length: 10, width: 4 },
+                { kind: "turret", x: 6, y: 0, angle: 0, length: 5, width: 4, barrels: 1, turning: 0.25 },
+            ],
+        });
+        expect(blueprintFileProblem(raw)).toBeNull();
+        const back = parseBlueprint(raw);
+        expect((back.modules[1] as ModuleSpec).turning).toBe(0.25);
+        expect(sansIds(serialiseBlueprint(back))).toEqual(raw);
+        keptAndWarned(file({ modules: [{ kind: "hullGun", x: 0, y: 0, length: 10, width: 4, turning: 0.25 }] }), /turning/);
+    });
+
     it("refuses a format version it does not understand", () => {
         expect(blueprintFileProblem(file({ formatVersion: 3 }))).toMatch(/formatVersion must be 1 or 2/);
         expect(blueprintFileProblem(file({ formatVersion: undefined }))).toMatch(/formatVersion must be 1 or 2/);

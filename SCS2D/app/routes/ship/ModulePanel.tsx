@@ -28,6 +28,9 @@ import {
     radiansToDegrees,
     readsBarrelCalibres,
     readsComputing,
+    readsTurning,
+    MAX_TURNING,
+    TRAVERSE_GEAR_FRACTION,
     readsRobotsPerBerth,
     readsCraft,
     readsCraftAngle,
@@ -147,10 +150,10 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
             return next;
         });
     /** A share, left unsaid when it is the default. */
-    const share = (key: "fill" | "computing", value: number, fallback: number): void =>
+    const share = (key: "fill" | "computing" | "turning", value: number, fallback: number, least = 0, most = 100): void =>
         update((placement) => {
             const { [key]: _, ...rest } = placement as ModuleSpec;
-            const part = Math.min(Math.max(value, 0), 100) / 100;
+            const part = Math.min(Math.max(value, least), most) / 100;
             return (part !== fallback ? { ...rest, [key]: part } : rest) as Placement;
         }, true);
 
@@ -355,6 +358,21 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                             title: "How far the weapon may train either way from its resting bearing. A limit only: the mount's own arc and whatever the ship is in the way of still apply. A turret's ring goes all the way round whatever it is told, so limiting one weighs the same; a hull weapon's bed is built for the arc it sweeps, so a narrower one is lighter and a fixed one carries no training gear at all.",
                         },
                         (degrees) => patch({ traverse: degreesToRadians(degrees) }),
+                    )}
+                </Field>
+            )}
+            {readsTurning(spec.kind) && (
+                <Field id="turningRow">
+                    <label htmlFor="propTurning">turning gear %</label>
+                    {box(
+                        "turning",
+                        {
+                            step: 5,
+                            min: 1,
+                            max: MAX_TURNING * 100,
+                            title: `How much of the turret is turning gear, the ring and drive that swing it, per cent of the rest of it. More swings it faster and weighs what it is, and takes room from the loading gear, so a gun reloads slower and a beam holds on for less. ${TRAVERSE_GEAR_FRACTION * 100} by default.`,
+                        },
+                        (percent) => share("turning", percent, TRAVERSE_GEAR_FRACTION, 1, MAX_TURNING * 100),
                     )}
                 </Field>
             )}

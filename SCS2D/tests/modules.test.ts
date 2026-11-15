@@ -53,6 +53,7 @@ import {
     TRAVERSE_POWER_PER_KG,
     TRAVERSE_TOP_RATE,
     TRAVERSE_TORQUE_PER_KG,
+    MAX_TURNING,
     type GunStats,
     type ModuleSpec,
     bellWallArea,
@@ -1043,6 +1044,31 @@ describe("traverse limits", () => {
             return mountAccel(spec, moduleStats(spec));
         };
         expect(accel(6, 18)).toBeGreaterThan(accel(6, 6));
+    });
+
+    it("trades a turret's rate of fire for its swing through its turning gear", () => {
+        const at = (kind: "turret" | "beamTurret", turning?: number) => {
+            const spec: ModuleSpec = { kind, x: 0, y: 0, length: 10, width: 10, ...(turning === undefined ? {} : { turning }) };
+            const stats = moduleStats(spec);
+            return { stats, accel: mountAccel(spec, stats) };
+        };
+        // The default is the drive a turret had before it could choose.
+        const plain = at("turret");
+        expect(plain.accel).toBeCloseTo(traverseAccel(plain.stats.mass, plain.stats.swingInertia), 9);
+        expect(at("turret", TRAVERSE_GEAR_FRACTION).stats).toEqual(plain.stats);
+
+        const geared = at("turret", 0.3);
+        expect(geared.accel).toBeGreaterThan(2 * plain.accel);
+        expect(geared.stats.mass).toBeGreaterThan(plain.stats.mass);
+        expect(geared.stats.gun!.cycleTime).toBeGreaterThan(plain.stats.gun!.cycleTime);
+
+        const beam = at("beamTurret");
+        const gearedBeam = at("beamTurret", 0.3);
+        expect(gearedBeam.accel).toBeGreaterThan(2 * beam.accel);
+        expect(gearedBeam.stats.gun!.beamOnTime).toBeLessThan(beam.stats.gun!.beamOnTime);
+
+        expect(moduleProblem({ kind: "turret", x: 0, y: 0, length: 4, width: 4, turning: 0 })).toMatch(/turning/);
+        expect(moduleProblem({ kind: "turret", x: 0, y: 0, length: 4, width: 4, turning: MAX_TURNING + 0.1 })).toMatch(/turning/);
     });
 
     it("swings bracing as a rod out from the barrel's root, where it is", () => {
