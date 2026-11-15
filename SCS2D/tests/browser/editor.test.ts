@@ -447,8 +447,10 @@ describe("the editor in a browser", () => {
         await page.mouse.click(centre.x + 168, centre.y);
         const module = (await page.textContent("#moduleStats")) ?? "";
         expect(module).toMatch(/Mass/);
-        // A figure tuned most directly by one setting is shown under it: hit points under reinforce, the calibre under the bore.
-        expect(await page.textContent("#reinforcementFigures")).toMatch(/hit points\s*[\d,]+/);
+        // A figure a player looks for is shown under the setting that tunes it, the calibre under the bore; detail such as
+        // hit points stays under More figures, wherever it belongs.
+        expect(await page.locator("#reinforcementFigures").count()).toBe(0);
+        expect(await page.textContent("#moduleMore")).toMatch(/Hit points\s*[\d,]+/);
         expect(await page.textContent("#boreFigures")).toMatch(/calibre\s*\d+ mm/);
         expect(module).not.toMatch(/Calibre/);
         // Armour comes of its size, thickness and reinforcement together, so it is the module's own.
