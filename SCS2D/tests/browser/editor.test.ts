@@ -449,12 +449,13 @@ describe("the editor in a browser", () => {
         expect(module).toMatch(/Mass/);
         // A figure a player looks for is shown under the setting that tunes it, the calibre under the bore; detail such as
         // hit points stays under More figures, wherever it belongs.
-        expect(await page.locator("#reinforcementFigures").count()).toBe(0);
         expect(await page.textContent("#moduleMore")).toMatch(/Hit points\s*[\d,]+/);
         expect(await page.textContent("#boreFigures")).toMatch(/calibre\s*\d+ mm/);
         expect(module).not.toMatch(/Calibre/);
-        // Armour comes of its size, thickness and reinforcement together, so it is the module's own.
-        expect(module).toMatch(/Armour\s*\d+ mm/);
+        // Armour under reinforce, and the arc under traverse.
+        expect(await page.textContent("#reinforcementFigures")).toMatch(/armour\s*\d+ mm/);
+        expect(await page.textContent("#traverseFigures")).toMatch(/arc\s*\d+°R/);
+        expect(module).not.toMatch(/Armour|Arc/);
         // One figure a row; what tunes it is under More.
         expect(module).toMatch(/Rate\s*[\d.]+ rpm/);
         expect(await page.locator("#moduleMore").getAttribute("open")).toBeNull();
