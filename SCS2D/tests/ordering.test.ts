@@ -14,6 +14,9 @@ import { ORDERINGS, soloOrdering } from "../scenarios/ordering.js";
 
 const STEPS = 3_000;
 
+/** Between the two passes at the mark, so neither is cut off part way through one. */
+const BETWEEN_PASSES = 2_800;
+
 interface Outcome {
     x: number;
     y: number;
@@ -21,13 +24,19 @@ interface Outcome {
     vx: number;
     vy: number;
     fired: number;
+    /** Rounds fired by `BETWEEN_PASSES`. */
+    firstPass: number;
     hits: number;
 }
 
 /** Fly one ordering in a battle of its own, and report how it went. */
 function flySolo(which: number): Outcome {
     const run = soloOrdering(which);
-    for (let i = 0; i < STEPS; i++) run.step();
+    let firstPass = 0;
+    for (let i = 0; i < STEPS; i++) {
+        run.step();
+        if (i === BETWEEN_PASSES) firstPass = run.totalProjectilesFired;
+    }
     const bodies = run.world.bodies;
     const body = bodies.indexOf(run.ships.body(run.contenders[0]!.ship));
     return {
@@ -37,6 +46,7 @@ function flySolo(which: number): Outcome {
         vx: bodies.vx[body]!,
         vy: bodies.vy[body]!,
         fired: run.totalProjectilesFired,
+        firstPass,
         hits: run.totalProjectileHits,
     };
 }
@@ -87,10 +97,10 @@ describe("module ordering, one battle each", () => {
         // The figures a battle is judged on are untouched, which is the claim that
         // outlives this scenario: these stay comparable once ships collide and
         // damage each other, where a distance between two of them does not. Fired
-        // to within the one round a gun may fire or not as the mark leaves its
-        // range: each shot of the two runs is on the same tick until then, and
-        // the last can fall a hair either side of the limit.
-        expect(Math.abs(kinds!.fired - control!.fired)).toBeLessThanOrEqual(1);
+        // over the first pass, so the run's end cuts neither off part way through
+        // the second, to within the one salvo the mounts may fire or not as the
+        // mark leaves their range.
+        expect(Math.abs(kinds!.firstPass - control!.firstPass)).toBeLessThanOrEqual(2);
         // Hits only nearly: a burst's fragment lands or misses an edge on a
         // micrometre, and the two runs part on one within seconds — sooner since
         // a secondary mount's first pick is staggered by its place in the list,
