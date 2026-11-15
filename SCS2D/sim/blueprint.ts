@@ -23,7 +23,7 @@ import {
     boxAngle,
     weldBox,
     mountAccel,
-    traverseRate,
+    TRAVERSE_TOP_RATE,
     fillOf,
     blockCentre,
     needsControl,
@@ -2874,7 +2874,7 @@ function designFrom(
                     restBearing: angle,
                     leftArc: min(arc.left, limit),
                     rightArc: min(arc.right, limit),
-                    maxRate: traverseRate(accel),
+                    maxRate: TRAVERSE_TOP_RATE,
                     maxAccel: accel,
                     inertia: s.swingInertia,
                     muzzleSpeed: gun.muzzleSpeed,
@@ -2906,8 +2906,6 @@ function designFrom(
             const arc = firingArc(specs, i, gun.barrelLength, raised, barrelHalfWidth(gun));
             const mask = triggerMask(specs, i, raised, shotSpread(gun));
 
-            // One drive, so one figure: the rate limit is what this acceleration
-            // reaches in the drive's spin-up time.
             const accel = mountAccel(spec, s);
 
             turrets.push({
@@ -2918,7 +2916,7 @@ function designFrom(
                     restBearing: angle,
                     leftArc: min(arc.left, mountTraverse(spec)),
                     rightArc: min(arc.right, mountTraverse(spec)),
-                    maxRate: traverseRate(accel),
+                    maxRate: TRAVERSE_TOP_RATE,
                     maxAccel: accel,
                     inertia: s.inertia,
                     muzzleSpeed: gun.muzzleSpeed,

@@ -49,8 +49,10 @@ import {
     mountAccel,
     refitModule,
     traverseAccel,
-    traverseRate,
-    TRAVERSE_SPINUP_TIME,
+    slewTime,
+    TRAVERSE_POWER_PER_KG,
+    TRAVERSE_TOP_RATE,
+    TRAVERSE_TORQUE_PER_KG,
     type GunStats,
     type ModuleSpec,
     bellWallArea,
@@ -975,7 +977,7 @@ describe("beam mount scaling", () => {
         ] as const) {
             const beam = moduleStats(box("beamTurret", length, width));
             const gun = moduleStats(box("turret", length, width));
-            const rate = (s: ReturnType<typeof moduleStats>) => traverseRate(traverseAccel(s.mass, s.inertia));
+            const rate = (s: ReturnType<typeof moduleStats>) => traverseAccel(s.mass, s.inertia);
 
             expect(beam.mass, `${length}x${width}`).toBeLessThan(gun.mass);
             expect(rate(beam), `${length}x${width}`).toBeGreaterThan(rate(gun));
@@ -984,11 +986,17 @@ describe("beam mount scaling", () => {
 });
 
 describe("traverse limits", () => {
-    it("ties the rate limit to the acceleration that reaches it", () => {
-        // Not two independent numbers: whatever the drive can accelerate, it is
-        // geared to run at after TRAVERSE_SPINUP_TIME of doing so.
-        expect(traverseRate(0.5)).toBeCloseTo(0.5 * TRAVERSE_SPINUP_TIME, 12);
-        expect(traverseRate(1)).toBeGreaterThan(traverseRate(0.5));
+    it("gives every mount the same top rate, from the drive's power over its torque", () => {
+        expect(TRAVERSE_TOP_RATE).toBeCloseTo(TRAVERSE_POWER_PER_KG / TRAVERSE_TORQUE_PER_KG, 12);
+    });
+
+    it("times a swing as accelerating, perhaps cruising, then braking", () => {
+        // Too short to reach the top rate: half the angle each way.
+        expect(slewTime(1, 10, 2)).toBeCloseTo(2 * Math.sqrt(1 / 2), 12);
+        // Long enough to cruise: the time at the top rate, plus a ramp at each end.
+        expect(slewTime(10, 1, 2)).toBeCloseTo(10 / 1 + 1 / 2, 12);
+        expect(slewTime(0, 1, 1)).toBe(0);
+        expect(slewTime(1, 0, 1)).toBe(Infinity);
     });
 
     it("gives a heavier mount more torque but no more agility for its inertia", () => {
@@ -1040,17 +1048,18 @@ describe("traverse limits", () => {
         expect(rate(16)).toBeCloseTo(rate(6), 9);
     });
 
-    it("makes a small mount quicker than a capital one, by a wide margin", () => {
-        // The point of the whole law. A point-defence mount has to hold a bearing
-        // against its own ship's manoeuvring; a 16" turret is allowed to need a
-        // steady platform.
-        const rate = (length: number, width: number, barrels = 1) => {
-            const s = moduleStats({ kind: "turret", x: 0, y: 0, length, width, barrels });
-            return traverseRate(traverseAccel(s.mass, s.inertia));
+    it("makes a small mount quicker than a capital one, without squaring the gap", () => {
+        // A point-defence mount has to hold a bearing against its own ship's
+        // manoeuvring; a capital turret may need a steady platform, but not
+        // minutes to come round.
+        const halfTurn = (size: number) => {
+            const spec: ModuleSpec = { kind: "turret", x: 0, y: 0, length: size, width: size };
+            return slewTime(Math.PI, TRAVERSE_TOP_RATE, mountAccel(spec, moduleStats(spec)));
         };
-        expect(rate(5, 4)).toBeGreaterThan(radians(35));
-        expect(rate(20, 14)).toBeLessThan(radians(5));
-        expect(rate(5, 4) / rate(20, 14)).toBeGreaterThan(10);
+        expect(halfTurn(5)).toBeLessThan(10);
+        expect(halfTurn(20) / halfTurn(5)).toBeGreaterThan(3);
+        // Four times the size, about four times the time: not sixteen.
+        expect(halfTurn(20) / halfTurn(5)).toBeLessThan(8);
     });
 });
 
@@ -1058,11 +1067,6 @@ describe("traverse limits", () => {
 function barrelMass(stats: ReturnType<typeof moduleStats>): number {
     const gun = stats.gun!;
     return stats.fittingMass - stats.traverseMass - MECHANISM_MASS_PER_CALIBRE * gun.calibre * gun.barrelCount;
-}
-
-/** Degrees per second as radians per second, for a legible expectation. */
-function radians(degrees: number): number {
-    return (degrees / 180) * Math.PI;
 }
 
 describe("refitModule", () => {

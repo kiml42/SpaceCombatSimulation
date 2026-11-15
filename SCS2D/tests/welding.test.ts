@@ -468,16 +468,16 @@ describe("a mount that breaks off", () => {
 
 describe("enemies hooked together", () => {
     it("both take the new design when wreckage hooks on to them", () => {
-        // Module 18, broken a second in where a shot would, leaves wreckage that welds
-        // back onto the pair within the 25 s run. A ship left on the old design is
-        // drawn, aimed and fired from a layout its body no longer has.
-        const run = hookedScenario();
+        // A hooked pair, and a wreck drifting into their side. A ship left on the
+        // old design is drawn, aimed and fired from a layout its body no longer has.
+        const run = drift(1, (ships, world, a, b) => {
+            for (const ship of [a, b]) tear(ships, world, ship);
+            const wreckage = ships.spawn(world, { design: corvette, x: 0, y: corvette.radius * 2 + 4, angle: Math.PI / 2, vy: -1 });
+            wreck(ships, world, wreckage);
+            tear(ships, world, wreckage);
+        });
         const { ships, world } = run;
-        for (let s = 0; s < 1500; s++) {
-            if (s === 60) {
-                const body = world.bodies.indexOf(ships.body(0));
-                ships.damage.absorb(body, 18, ships.currentStructure(0).modules[18]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG);
-            }
+        for (let s = 0; s < 60 * 60 && run.totalWelded < 2; s++) {
             run.step();
             const owners = new Map<number, number>();
             for (let i = 0; i < ships.highWater; i++) {
@@ -488,8 +488,11 @@ describe("enemies hooked together", () => {
                 else expect(ships.currentStructure(i)).toBe(ships.currentStructure(first));
             }
         }
-        // The pair's own weld, and at least one more.
-        expect(run.totalWelded).toBeGreaterThan(1);
+        // The pair's own weld, and the wreck's.
+        expect(run.totalWelded).toBe(2);
+        expect(ships.body(run.a)).toBe(ships.body(run.b));
+        expect(ships.currentStructure(run.a)).toBe(ships.currentStructure(run.b));
+        expect(ships.currentStructure(run.a).modules.length).toBe(3 * corvette.modules.length);
     });
 
     it("shoot each other across the body they share", () => {

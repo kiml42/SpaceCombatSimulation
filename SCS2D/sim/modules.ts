@@ -1191,17 +1191,20 @@ export const CONTROL_EXPONENT = 0.3;
 export const TRAVERSE_TORQUE_PER_KG = 2;
 
 /**
- * How long the traverse drive takes to wind a mount up from rest to its rate
- * limit, seconds. It is the whole of what sets that limit: a drive that can
- * accelerate briskly is geared to run fast, and one that cannot is not, so a
- * mount's top speed and its acceleration are the same fact stated twice.
+ * Traverse drive power per kilogram of turret, W/kg. With the torque above it
+ * sets the drive's top rate, `power / torque`, which is the same for every
+ * mount: both grow with the mass the drive is sized for, so a big mount is
+ * slower off the mark but not slower once going. What tells mounts apart is
+ * acceleration, which is why a heavy gun takes a long time to swing a long way
+ * — about as long again for twice the size, rather than four times.
  *
- * Two seconds puts a light mount at well over a hundred degrees a second and a
- * 16" turret at single figures — slow enough that a heavy gun needs a steady
- * platform, quick enough that a point-defence mount can hold a bearing against
- * a ship that is itself turning.
+ * 8 puts the top rate at four radians a second, a little over what a
+ * close-in weapon trains at; only the smallest mounts ever reach it.
  */
-export const TRAVERSE_SPINUP_TIME = 2;
+export const TRAVERSE_POWER_PER_KG = 8;
+
+/** The traverse drive's top rate, rad/s (`TRAVERSE_POWER_PER_KG`). */
+export const TRAVERSE_TOP_RATE = TRAVERSE_POWER_PER_KG / TRAVERSE_TORQUE_PER_KG;
 
 export type ModuleKind =
     | "structure"
@@ -3820,16 +3823,15 @@ export function beamGunStats(mountLength: number, mountWidth: number, barrelCoun
 }
 
 /**
- * Traverse rate limit, radians per second, for a mount whose drive accelerates
- * it at `accel`.
- *
- * The rate is not an independent property of the mount: it is however fast the
- * drive gets it going in `TRAVERSE_SPINUP_TIME`. So the same thing that makes a
- * turret slow to accelerate — a lot of mass held far from the pivot — makes it
- * slow at the top end, and a compact mount is quick at both.
+ * Seconds a mount at rest takes to swing through `angle` and stop, under the
+ * rate and acceleration limits — accelerating, perhaps cruising, then braking.
  */
-export function traverseRate(accel: number): number {
-    return accel * TRAVERSE_SPINUP_TIME;
+export function slewTime(angle: number, rate: number, accel: number): number {
+    if (!(angle > 0)) return 0;
+    if (!(rate > 0) || !(accel > 0)) return Infinity;
+    // Too short a swing to reach the top rate: half accelerating, half braking.
+    if (rate * rate >= angle * accel) return 2 * sqrt(angle / accel);
+    return angle / rate + rate / accel;
 }
 
 /**
