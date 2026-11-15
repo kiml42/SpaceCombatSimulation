@@ -350,12 +350,13 @@ export function ModulePanel({
     // A figure goes under the setting that tunes it most directly, where the panel offers that setting; the rest are the
     // module's own, below. Settings are laid out first, so by the time the figures are, it is known which were taken.
     const placed = new Set<string>();
+    // Detail stays under More figures wherever it belongs, so a setting shows only what a player looks for there.
     const notes = (key: string) => {
         placed.add(key);
-        const own = rows.filter((row) => row.under === key);
+        const own = rows.filter((row) => row.under === key && row.more !== true);
         return own.length === 0 ? null : <SettingFigures id={`${key}Figures`} rows={own} />;
     };
-    const general = (): ReadoutRow[] => rows.filter((row) => row.under === undefined || !placed.has(row.under));
+    const general = (): ReadoutRow[] => rows.filter((row) => row.more === true || row.under === undefined || !placed.has(row.under));
     // The copy just made is selected, not the one it was made from: it is the one about to be put somewhere.
     const placeCopy = (placed: { blueprint: Blueprint; path: ModulePath } | null): void => {
         if (placed === null) return;

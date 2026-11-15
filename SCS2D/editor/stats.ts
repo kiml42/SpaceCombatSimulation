@@ -533,10 +533,10 @@ export function moduleReadout(spec: ModuleSpec, layout: readonly ModuleSpec[] = 
     if (readsBarrelCalibres(spec.kind) && stats.gun !== null) {
         // How long, and what being long has cost in bracing.
         const bracing = braceMass(stats.gun);
-        add({ name: "Barrel", under: "barrelCalibres", value: `${n(stats.gun.barrelLength, 2)} m`, more: true });
+        add({ name: "Barrel", under: "barrelCalibres", value: `${n(stats.gun.barrelLength, 2)} m` });
         if (bracing > 0) {
-            add({ name: "braced", under: "barrelCalibres", value: `${n(stats.gun.braceLength, 2)} m`, sub: true, more: true });
-            add({ name: "bracing", under: "barrelCalibres", value: tonnes(bracing), sub: true, more: true });
+            add({ name: "Barrel braced", under: "barrelCalibres", value: `${n(stats.gun.braceLength, 2)} m`, more: true });
+            add({ name: "Barrel bracing", under: "barrelCalibres", value: tonnes(bracing), more: true });
         }
     }
     if (isWeaponMount(spec.kind)) {
