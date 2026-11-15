@@ -436,7 +436,8 @@ export function moduleReadout(spec: ModuleSpec, layout: readonly ModuleSpec[] = 
     const carries = stats.fuel > 0 || stats.metal > 0 || stats.charge > 0;
     const rows: ReadoutRow[] = [
         { name: "Mass", value: tonnes(stats.mass), ...(carries ? { title: "With what it holds, full" } : {}) },
-        { name: "Hit points", value: n(stats.hitPoints, 0) },
+        // Comparable only with other modules', which size and armour already show, so detail.
+        { name: "Hit points", value: n(stats.hitPoints, 0), more: true },
         { name: "Armour", value: `${n(stats.wallThickness * 1000, 0)} mm` },
         {
             name: "Build",
