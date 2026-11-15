@@ -26,7 +26,8 @@ describe("an order to defend", () => {
         let wrong = 0;
         for (let step = 0; step < 900; step++) {
             battle.step();
-            if (step < 60 || !battle.ships.isAlive(battle.attacker)) continue;
+            // Dead, or a hulk, it is no longer attacking anything.
+            if (step < 60 || !battle.ships.isAlive(battle.attacker) || !battle.ships.hasControl(battle.attacker)) continue;
             const target = battle.ships.fightingOf(battle.defender);
             if (target === battle.attacker) fought++;
             else wrong++;
