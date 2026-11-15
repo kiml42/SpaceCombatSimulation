@@ -410,6 +410,11 @@ export function ModulePanel({
                 <label htmlFor="propWidth">width m</label>
                 {size("width")}
             </Field>
+            <Field>
+                <label htmlFor="propReinforcement">reinforce</label>
+                {box("reinforcement", { step: 0.5, min: 1 }, (reinforcement) => patch({ reinforcement }))}
+            </Field>
+            {notes("reinforcement")}
             {barrels && (
                 <>
                     <Field id="barrelsRow">
@@ -631,11 +636,6 @@ export function ModulePanel({
             {/* What tunes it rather than what it is: folded away, open or shut as it was left for the last module. */}
             <More id="settingsMore" open={folds.settings} onToggle={(event) => onFolds({ ...folds, settings: event.currentTarget.open })}>
                 <summary>More settings</summary>
-                <Field>
-                    <label htmlFor="propReinforcement">reinforce</label>
-                    {box("reinforcement", { step: 0.5, min: 1 }, (reinforcement) => patch({ reinforcement }))}
-                </Field>
-                {notes("reinforcement")}
                 {readsTurning(spec.kind) && (
                     <>
                         <Field id="turningRow">
