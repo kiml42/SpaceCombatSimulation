@@ -49,6 +49,8 @@ import {
     readsReady,
     readsSealing,
     readsDrainPriority,
+    readsPriority,
+    partPriority,
     readsFill,
     readsComputing,
     CORE_SHARE_DEFAULTS,
@@ -187,7 +189,7 @@ export type DoctrineWeights = Readonly<Record<"targeting" | "approach" | "escort
  * - `fittings`: what would take real work on the craft to change — barrels,
  *   their length, nozzles and thickness.
  * - `tuning`: its loadout, which can change on a design someone drew —
- *   reinforcement, sealing, drain priority, traverse, fuses, fragments, burst speed, and an
+ *   reinforcement, sealing, drain priority, priority, traverse, fuses, fragments, burst speed, and an
  *   engine used as a weapon.
  * - `fighter`: whether the ship is a fighter, which changes how it is flown
  *   and how others target it.
@@ -794,6 +796,7 @@ type SwitchKnob =
               | "magnetic"
               | "ready"
               | "drainPriority"
+              | "priority"
               | "shape"
               | "solid"
               | "craftAngle"
@@ -934,6 +937,7 @@ function switches(draft: Draft): SwitchKnob[] {
         if (readsMagnetic(spec.kind)) out.push({ at: "magnetic", site });
         if (readsReady(spec.kind)) out.push({ at: "ready", site });
         if (readsDrainPriority(spec.kind)) out.push({ at: "drainPriority", site });
+        if (readsPriority(spec.kind)) out.push({ at: "priority", site });
         // The outlet count divides a hull mount's opening between more of them,
         // and an engine's are counted by the same field a gun's barrels are.
         if (countsOutlets(spec.kind)) out.push({ at: "barrels", site });
@@ -973,6 +977,7 @@ function switchWeight(knob: SwitchKnob, { build }: MutationLimits): number {
         case "main":
         case "ready":
         case "drainPriority":
+        case "priority":
         case "solid":
             return build.tuning;
         case "mirror":
@@ -998,6 +1003,8 @@ function flip(knob: SwitchKnob, draft: Draft, rng: Rng, bounds: MutationLimits):
             return keepReady(knob.site);
         case "drainPriority":
             return reprioritise(knob.site, rng);
+        case "priority":
+            return rerank(knob.site, rng);
         case "barrels":
             return rebarrel(knob.site, rng);
         case "main":
@@ -1522,6 +1529,14 @@ function reprioritise(site: ModuleSite, rng: Rng): string | null {
     const now = was + (rng.chance(0.5) ? 1 : -1);
     site.spec.drainPriority = now;
     return `${site.where} ${site.spec.kind}: drain priority ${was} → ${now}`;
+}
+
+/** Move a part one tier sooner or later in what its ship spends on, and mends, first. */
+function rerank(site: ModuleSite, rng: Rng): string {
+    const was = partPriority(site.spec);
+    const now = was + (rng.chance(0.5) ? 1 : -1);
+    site.spec.priority = now;
+    return `${site.where} ${site.spec.kind}: priority ${was} → ${now}`;
 }
 
 /** Have a pad or slipway build only while its ship is anchored, or anywhere. */
@@ -2775,6 +2790,8 @@ function addModule(draft: Draft, rng: Rng, bounds: MutationLimits, scale: Scale,
         // A copy of something that points goes beside it, never in front of it or
         // behind it, where one would fire into the other.
         const beside = copy && points(kind);
+        // Flames from other frames (the hull around an assembly) are only seen compiled.
+        const clearBefore = copy && kind === "engine" ? clearFlames(draft.blueprint) : null;
         for (const face of faces(anchor.spec, outward, rng)) {
             if (beside && face % 2 === 0) continue;
             for (const along of berths(anchor.spec, face, copy, scale, rng)) {
@@ -2783,6 +2800,13 @@ function addModule(draft: Draft, rng: Rng, bounds: MutationLimits, scale: Scale,
                 // A copy is meant to work as its original does, so not one that smothers another engine.
                 if (copy && neighbours.some((neighbour) => inFlame(added, neighbour))) continue;
                 anchor.list.placements.push(added);
+                if (clearBefore !== null) {
+                    const clearAfter = clearFlames(draft.blueprint);
+                    if (clearAfter !== null && clearAfter < clearBefore) {
+                        anchor.list.placements.pop();
+                        continue;
+                    }
+                }
                 // Said out loud, because a wedge and a box are the same line of the
                 // file otherwise and the changelog is what a run is read back through.
                 const shaped = isShaped(added) ? " as a wedge" : "";
@@ -2794,6 +2818,15 @@ function addModule(draft: Draft, rng: Rng, bounds: MutationLimits, scale: Scale,
         }
     }
     return null;
+}
+
+/** How much of an engine's exhaust must get away for its flame to count as clear. */
+const CLEAR_FLAME = 0.999;
+
+/** How many of a layout's engines have a clear flame; null if it is not a ship. */
+function clearFlames(blueprint: Blueprint): number | null {
+    if (blueprintProblem(blueprint) !== null) return null;
+    return compileDraft(blueprint).engines.filter((engine) => (engine.escaping ?? 1) > CLEAR_FLAME).length;
 }
 
 /** How far past an engine's exit a module counts as in its flame, in the engine's widths: past any flame's reach. */

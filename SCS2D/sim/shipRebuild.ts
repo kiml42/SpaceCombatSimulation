@@ -2,8 +2,8 @@ import { Bodies } from "./bodies.js";
 import { modulesOverlap, originOf, rebuiltDesign, sameOrigin, subDesign, type ShipDesign } from "./blueprint.js";
 import { DamageEffect, REPAIR_ENERGY_PER_JOULE, REPAIR_WASTE } from "./damage.js";
 import { faceToward, fittingOf, inFrame, SHELL_STEPS, shellOf } from "./rebuild.js";
-import { Claim, mendClaim, Resource } from "./supply.js";
-import { type ModuleSpec, type ModuleStats, ROBOT_REPAIR_RATE } from "./modules.js";
+import { Claim, Resource } from "./supply.js";
+import { type ModuleSpec, type ModuleStats, ROBOT_REPAIR_RATE, partPriority } from "./modules.js";
 import { abs, angleDelta, min } from "./math.js";
 import { neighbourOf, RobotMode, staysWhole } from "./robots.js";
 import type { World } from "./world.js";
@@ -173,8 +173,9 @@ export function grow(ships: Ships, world: World, i: number, l: number, from: num
         shipBreakup.discardFrom(ships, bodies, payB, carried, turning);
         return;
     }
-    const claim = mendClaim(origin.design, origin.module);
-    if (shipSupply.allowed(ships, Resource.Metal, b, payer, claim, cost) < cost) return;
+    const claim = Claim.Mend;
+    const priority = partPriority(origin.design.modules[origin.module]!.spec);
+    if (shipSupply.allowed(ships, Resource.Metal, b, payer, claim, cost, priority) < cost) return;
 
     shipBreakup.momentum(ships, bodies);
     const beforeX = ships.momentumX;

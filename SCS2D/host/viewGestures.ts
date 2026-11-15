@@ -6,8 +6,8 @@ const CLICK_SLOP_PX = 4;
 const TOUCH_SLOP_PX = 10;
 
 /**
- * Pan and zoom a battle view: drag to pan, wheel or pinch to zoom about the
- * pointer, and two fingers pan as they pinch.
+ * Pan and zoom a battle view: drag with the main or middle button to pan, wheel
+ * or pinch to zoom about the pointer, and two fingers pan as they pinch.
  *
  * `moved` is told whenever the camera is moved by hand. `tapped`, if given, is
  * told of a click or tap that did not pan, with the world point under it, how
@@ -87,9 +87,13 @@ export function viewGestures(
     }
 
     canvas.addEventListener("pointerdown", (event) => {
-        // Only the main button pans or picks: the other is for orders.
-        if (event.pointerType === "mouse" && event.button !== 0) return;
-        if (picking !== undefined && event.shiftKey && event.pointerType === "mouse") {
+        // The main button pans or picks, the middle only pans, as in the editors;
+        // the other is for orders.
+        const middle = event.pointerType === "mouse" && event.button === 1;
+        if (event.pointerType === "mouse" && event.button !== 0 && !middle) return;
+        // Not the browser's autoscroll.
+        if (middle) event.preventDefault();
+        if (picking !== undefined && event.shiftKey && event.pointerType === "mouse" && !middle) {
             canvas.setPointerCapture(event.pointerId);
             box = { x: event.clientX, y: event.clientY };
             press = { x: event.clientX, y: event.clientY, slop: CLICK_SLOP_PX, panned: false };
@@ -103,7 +107,8 @@ export function viewGestures(
                       x: event.clientX,
                       y: event.clientY,
                       slop: event.pointerType === "touch" ? TOUCH_SLOP_PX : CLICK_SLOP_PX,
-                      panned: false,
+                      // A middle press is never a tap.
+                      panned: middle,
                   }
                 : null;
     });

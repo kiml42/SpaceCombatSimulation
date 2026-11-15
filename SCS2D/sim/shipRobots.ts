@@ -3,7 +3,7 @@ import { originOf, type ShipDesign } from "./blueprint.js";
 import { joints } from "./connectivity.js";
 import { DAMAGE_ENERGY_PER_KG, DamageEffect, REPAIR_ENERGY_PER_JOULE, REPAIR_WASTE, repairWork, DISASSEMBLY_WASTE } from "./damage.js";
 import { buildWork, fittingOf, SHELL_STEPS } from "./rebuild.js";
-import { Claim, mendClaim, Resource } from "./supply.js";
+import { Claim, Resource } from "./supply.js";
 import {
     robotsOn,
     ROBOT_BUILD_ENERGY,
@@ -15,11 +15,11 @@ import {
     ROBOT_MASS,
     ROBOT_REFILL_TIME,
     ROBOT_REPAIR_RATE,
+    partPriority,
 } from "./modules.js";
 import { ceil, length, max, min } from "./math.js";
 import { crawl, legLength, pathTo, RobotMode, walk, walkTime, type Robot } from "./robots.js";
 import type { World } from "./world.js";
-import type { Approach } from "./doctrine.js";
 import * as shipRobotViews from "./shipRobotViews.js";
 import { type Ships, repairTier } from "./ships.js";
 import * as shipRebuild from "./shipRebuild.js";
@@ -36,9 +36,9 @@ import * as shipForage from "./shipForage.js";
 export const ROBOT_SPENT = 1e-6;
 
 /** The module of its compiled design a hull module is, for what tier rebuilding it falls in. */
-export function originTier(approach: Approach, design: ShipDesign, m: number): number {
+export function originTier(design: ShipDesign, m: number): number {
     const origin = originOf(design, m);
-    return repairTier(approach, origin.design, origin.module);
+    return repairTier(origin.design, origin.module);
 }
 
 /**
@@ -338,7 +338,7 @@ export function tendOne(ships: Ships, b: number, design: ShipDesign, robots: Rob
     let undo = min(step, robot.charge / (work * REPAIR_ENERGY_PER_JOULE));
     // Short of charge for a full step's work: this is its last.
     let short = undo < step;
-    const claim = mendClaim(design, m);
+    const claim = Claim.Mend;
     const whole = ships.damage.repairMetal(b, m, ships.damage.absorbedAt(b, m)) * (1 + REPAIR_WASTE);
     const spare = min(robot.metal, shipSupply.allowed(ships, Resource.Metal, b, m, claim, whole));
     const kg = ships.damage.repairMetal(b, m, undo) * (1 + REPAIR_WASTE);
@@ -385,9 +385,10 @@ export function buildOne(ships: Ships, b: number, design: ShipDesign, robots: Ro
     const waste = 1 + REPAIR_WASTE;
     let kg = min(step, min(robot.charge / charge, robot.metal / waste));
     let short = kg < step;
-    const claim = origin === null ? mendClaim(design, m) : mendClaim(origin.design, origin.module);
+    const claim = Claim.Mend;
+    const priority = partPriority(origin === null ? design.modules[m]!.spec : origin.design.modules[origin.module]!.spec);
     const wanted = rebuild === null ? ships.damage.unbuiltAt(b, m) * waste : (whole.structureMass / SHELL_STEPS) * waste;
-    const spare = shipSupply.allowed(ships, Resource.Metal, b, m, claim, wanted);
+    const spare = shipSupply.allowed(ships, Resource.Metal, b, m, claim, wanted, priority);
     let more: boolean;
     let put: number;
     if (rebuild === null) {
@@ -884,7 +885,6 @@ export function sendToBuild(
     let best = -1;
     let bestBuild = -1;
     let bestTier = Infinity;
-    const approach = ships.doctrines[owner]!.approach;
     let bestCrowd = Infinity;
     let bestDist = Infinity;
     // Refitted, what flies and works on the ship goes up first, to get more of the work going sooner.
@@ -905,7 +905,7 @@ export function sendToBuild(
         if (!Number.isFinite(dist[m]!) || !ships.ownsAt(owner, b, m) || shipRebuild.wreckage(ships, owner, b, m)) continue;
         // Building takes metal: a trip's worth not to be had, nothing to build with.
         if (!affords(ships, b, m, design, m, robot)) continue;
-        if (design.modules[m]!.shell !== undefined || ships.damage.unbuiltAt(b, m) > 0) consider(m, -1, originTier(approach, design, m));
+        if (design.modules[m]!.shell !== undefined || ships.damage.unbuiltAt(b, m) > 0) consider(m, -1, originTier(design, m));
     }
     if (rebuild.frame >= 0) {
         const compiled = originOf(design, rebuild.frame).design;
@@ -921,7 +921,7 @@ export function sendToBuild(
                 if (design.modules[m]!.shell !== undefined || originOf(design, m).design !== compiled) continue;
                 // Refitted, what is in the way comes down before this goes up.
                 if (ships.refitting[owner] === 1 && shipRebuild.inTheWay(design, rebuild, launch, l)) continue;
-                consider(m, l, repairTier(approach, launch, l));
+                consider(m, l, repairTier(launch, l));
             }
         }
     }
@@ -940,7 +940,7 @@ export function sendToBuild(
 export function affords(ships: Ships, b: number, m: number, of: ShipDesign, part: number, robot: Robot, needs = Infinity): boolean {
     const trip = min(robot.metal, needs);
     if (!(trip > ROBOT_SPENT)) return true;
-    return shipSupply.allowed(ships, Resource.Metal, b, m, mendClaim(of, part), 0) >= trip;
+    return shipSupply.allowed(ships, Resource.Metal, b, m, Claim.Mend, 0, partPriority(of.modules[part]!.spec)) >= trip;
 }
 
 /**
@@ -957,14 +957,13 @@ export function sendOut(ships: Ships, b: number, design: ShipDesign, robots: Rob
     let bestTier = Infinity;
     let bestCrowd = Infinity;
     let bestDist = Infinity;
-    const approach = ships.doctrines[owner]!.approach;
     for (let m = 0; m < n; m++) {
         if (!Number.isFinite(dist[m]!) || !(ships.damage.absorbedAt(b, m) > 0) || !ships.ownsAt(owner, b, m)) continue;
         if (shipRebuild.wreckage(ships, owner, b, m)) continue;
         // Nothing to mend it with: no sense walking there.
         const mendMetal = ships.damage.repairMetal(b, m, ships.damage.absorbedAt(b, m)) * (1 + REPAIR_WASTE);
         if (mendMetal > ROBOT_SPENT && !affords(ships, b, m, design, m, robot, mendMetal)) continue;
-        const tier = repairTier(approach, design, m);
+        const tier = repairTier(design, m);
         let crowd = 0;
         for (let k = 0; k < robots.length; k++) if (robots[k] !== robot && robots[k]!.target === m) crowd++;
         // No more on it than it has room for: the rest mend something else, or go mining.
