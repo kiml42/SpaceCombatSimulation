@@ -2790,6 +2790,8 @@ function addModule(draft: Draft, rng: Rng, bounds: MutationLimits, scale: Scale,
         // A copy of something that points goes beside it, never in front of it or
         // behind it, where one would fire into the other.
         const beside = copy && points(kind);
+        // Flames from other frames (the hull around an assembly) are only seen compiled.
+        const clearBefore = copy && kind === "engine" ? clearFlames(draft.blueprint) : null;
         for (const face of faces(anchor.spec, outward, rng)) {
             if (beside && face % 2 === 0) continue;
             for (const along of berths(anchor.spec, face, copy, scale, rng)) {
@@ -2798,6 +2800,13 @@ function addModule(draft: Draft, rng: Rng, bounds: MutationLimits, scale: Scale,
                 // A copy is meant to work as its original does, so not one that smothers another engine.
                 if (copy && neighbours.some((neighbour) => inFlame(added, neighbour))) continue;
                 anchor.list.placements.push(added);
+                if (clearBefore !== null) {
+                    const clearAfter = clearFlames(draft.blueprint);
+                    if (clearAfter !== null && clearAfter < clearBefore) {
+                        anchor.list.placements.pop();
+                        continue;
+                    }
+                }
                 // Said out loud, because a wedge and a box are the same line of the
                 // file otherwise and the changelog is what a run is read back through.
                 const shaped = isShaped(added) ? " as a wedge" : "";
@@ -2809,6 +2818,15 @@ function addModule(draft: Draft, rng: Rng, bounds: MutationLimits, scale: Scale,
         }
     }
     return null;
+}
+
+/** How much of an engine's exhaust must get away for its flame to count as clear. */
+const CLEAR_FLAME = 0.999;
+
+/** How many of a layout's engines have a clear flame; null if it is not a ship. */
+function clearFlames(blueprint: Blueprint): number | null {
+    if (blueprintProblem(blueprint) !== null) return null;
+    return compileDraft(blueprint).engines.filter((engine) => (engine.escaping ?? 1) > CLEAR_FLAME).length;
 }
 
 /** How far past an engine's exit a module counts as in its flame, in the engine's widths: past any flame's reach. */
