@@ -2918,7 +2918,7 @@ function designFrom(
                     rightArc: min(arc.right, mountTraverse(spec)),
                     maxRate: TRAVERSE_TOP_RATE,
                     maxAccel: accel,
-                    inertia: s.inertia,
+                    inertia: s.swingInertia,
                     muzzleSpeed: gun.muzzleSpeed,
                     muzzleOffset: gun.barrelLength,
                     mask,

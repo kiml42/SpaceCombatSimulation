@@ -1792,9 +1792,10 @@ export interface ModuleStats {
     traverseMass: number;
     /**
      * Moment the traverse drive has to swing, about the point it swings it,
-     * kg·m². The whole module for anything that turns bodily, and the barrels
-     * alone about their root for a hull mount — which is why a gun let into a
-     * hull trains briskly through the very little arc it has.
+     * kg·m². A turret's dome and barrels about its centre, a hull mount's
+     * barrels alone about their root — which is why a gun let into a hull
+     * trains briskly through the very little arc it has — and the whole module
+     * for anything else.
      */
     swingInertia: number;
     /** Fuel a claw, a pad or a port pumps across what it holds, kg/s. Zero for anything else. */
@@ -3354,9 +3355,11 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     let rodInertia = 0;
     let traverseMass = 0;
     // What the traverse drive actually has to swing, about the point it swings
-    // it. The same as the module for a turret, which turns bodily; the barrels
-    // alone for a hull mount, whose block is welded to the ship.
+    // it: a turret's dome and barrels, or a hull mount's barrels alone, whose
+    // block is welded to the ship.
     let swing = 0;
+    // The share of a turret's box, less its traverse gear, that is dome.
+    let domeShare = 0;
 
     if (spec.kind === "core") {
         // What flies the ship: a compartment of computing rather than a box with
@@ -3554,6 +3557,12 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
         // unlike a hull mount's bed this does not shrink when the arc does.
         traverseMass = (structureMass + fittingMass) * TRAVERSE_GEAR_FRACTION;
         fittingMass += traverseMass;
+        // **Only the dome turns.** It is the square the barrels sit across, one deck
+        // deep; the rest of the box, and every deck below, is the base — loading
+        // gear, the plant, and the ring and drive themselves — which stays put.
+        const dome = spec.length < spec.width ? spec.length : spec.width;
+        const share = (dome * dome) / (spec.length * spec.width) / turretDecks(spec, height);
+        domeShare = share < 1 ? share : 1;
         const spin = (protrudingMass * gun.barrelLength * gun.barrelLength) / 3 + braceInertia(gun, braced);
         const each = protrudingMass + braced;
         for (let barrel = 0; barrel < gun.barrelCount; barrel++) {
@@ -3582,6 +3591,11 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
                   (boxMass * polygonMomentOfArea(triangle)) / floor + rodInertia
                 : (boxMass * (spec.length * spec.length + spec.width * spec.width)) / 12 + rodInertia;
 
+    if (domeShare > 0) {
+        const dome = spec.length < spec.width ? spec.length : spec.width;
+        swing = ((boxMass - traverseMass) * domeShare * dome * dome) / 6 + rodInertia;
+    }
+
     return {
         thickness: height,
         wallThickness,
@@ -3601,7 +3615,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
         interior,
         gun,
         traverseMass,
-        swingInertia: mount === null ? inertia : swing,
+        swingInertia: mount === null && domeShare === 0 ? inertia : swing,
         pumpRate:
             spec.kind === "claw"
                 ? CLAW_PUMP_PER_METRE * width
@@ -3848,13 +3862,14 @@ export function traverseAccel(mass: number, inertia: number): number {
 /**
  * How fast a weapon mount's drive can swing it, radians per second squared.
  *
- * A turret turns bodily, so its drive is sized by and swings the whole mount.
- * A hull mount swings only its barrels, and its drive is sized by the weapon
+ * A turret's drive is sized by the whole mount and swings only its dome and
+ * barrels, so a wide turret, whose sides are base, trains briskly for its
+ * size. A hull mount swings only its barrels, and its drive is sized by the weapon
  * it trains rather than the block it is welded into — so a deeper block,
  * which is more loading gear behind the same barrels, trains them no faster
  * and no slower.
  */
 export function mountAccel(spec: ModuleSpec, stats: ModuleStats): number {
     if (isHullMount(spec.kind)) return traverseAccel(stats.fittingMass, stats.swingInertia);
-    return traverseAccel(stats.mass, stats.inertia);
+    return traverseAccel(stats.mass, stats.swingInertia);
 }
