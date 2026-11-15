@@ -1,4 +1,5 @@
 import { styled } from "@linaria/react";
+import { Fragment } from "react";
 import { kindName } from "~/editor/doctrine";
 import { dockFighter, duplicatePlacement, instanceOf, mirrorPlacement, reshapePlacement, updatePlacement } from "~/editor/edit";
 import type { DesignInFleet } from "~/editor/handoff";
@@ -58,7 +59,7 @@ import { TakeOut } from "./AssemblyPanels";
 import { DoctrineDetails, type DoctrineOpen } from "./DoctrineDetails";
 import { Figures } from "./ShipReport";
 import { Buttons, Field } from "./shipLayout";
-import { asCraft, barrelReadout, craftChoices, CRAFT_ANGLES, moduleField, numbers, type ModuleNumberField } from "./shipFields";
+import { asCraft, craftChoices, CRAFT_ANGLES, moduleField, numbers, type ModuleNumberField } from "./shipFields";
 import type { ShipEditing } from "./shipEditing";
 
 const { abs, PI } = math;
@@ -79,12 +80,40 @@ const Shell = styled.fieldset`
     }
 `;
 
-/** What a box works out to, on its own line under it, so however long it is it cannot squeeze the box. */
-const Readout = styled.p`
-    margin: -0.15rem 0 0.4rem 6.9rem;
-    color: var(--colour-muted);
+/** What the setting above works out to, one figure a line, under the box so however long it cannot squeeze it. */
+const Under = styled.div`
+    margin: -0.15rem 0 0.45rem 6.9rem;
     font-size: var(--font-size-small);
+
+    > div {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: space-between;
+        color: var(--colour-muted);
+    }
+
+    > div.sub {
+        padding-left: 0.8rem;
+    }
+
+    span:last-child {
+        color: var(--colour-heading);
+        white-space: nowrap;
+    }
 `;
+
+function SettingFigures({ id, rows }: { readonly id: string; readonly rows: readonly ReadoutRow[] }) {
+    return (
+        <Under id={id}>
+            {rows.map((row) => (
+                <div key={row.name} className={row.sub === true ? "sub" : undefined} title={row.title}>
+                    <span>{row.name.charAt(0).toLowerCase() + row.name.slice(1)}</span>
+                    <span>{row.value}</span>
+                </div>
+            ))}
+        </Under>
+    );
+}
 
 const WarnLabel = styled.label`
     &[data-warn="true"] {
@@ -137,10 +166,16 @@ function weaponRows(gun: ModuleReadout["gun"], rounds: number | null): ReadoutRo
                   { name: "Kick", value: `${numbers(gun.jetThrust / 1e3, 0)} kN`, more: true },
               ]
             : [
-                  { name: "Calibre", value: `${numbers(gun.calibre * 1000, 0)} mm${gun.barrels > 1 ? ` ×${gun.barrels}` : ""}` },
+                  {
+                      name: "Calibre",
+                      under: "bore",
+                      value: `${numbers(gun.calibre * 1000, 0)} mm${gun.barrels > 1 ? ` ×${gun.barrels}` : ""}`,
+                  },
                   { name: "Rate", value: `${numbers(gun.roundsPerMinute)} rpm` },
-                  ...(gun.muzzleSpeed > 0 ? [{ name: "Muzzle speed", value: `${numbers(gun.muzzleSpeed, 0)} m/s` }] : []),
-                  ...(gun.roundMass > 0 ? [{ name: "Shell", value: `${numbers(gun.roundMass, 1)} kg` }] : []),
+                  ...(gun.muzzleSpeed > 0
+                      ? [{ name: "Muzzle speed", under: "barrelCalibres", value: `${numbers(gun.muzzleSpeed, 0)} m/s` }]
+                      : []),
+                  ...(gun.roundMass > 0 ? [{ name: "Shell", under: "bore", value: `${numbers(gun.roundMass, 1)} kg` }] : []),
                   ...(gun.roundMass > 0 && rounds !== null
                       ? [
                             {
@@ -158,7 +193,7 @@ function weaponRows(gun: ModuleReadout["gun"], rounds: number | null): ReadoutRo
     if (gun.triggerRange != null) {
         out.push({ name: "Fires within", value: `${numbers(gun.triggerRange, 0)} m`, title: "Of what its doctrine wants" });
     }
-    out.push({ name: "Half turn", value: `${numbers(gun.halfTurn)} s`, more: true });
+    out.push({ name: "Half turn", value: `${numbers(gun.halfTurn)} s`, more: true, under: "turning" });
     return out;
 }
 
@@ -310,6 +345,15 @@ export function ModulePanel({
         ...readout.rows,
         ...weaponRows(readout.gun, design !== null && design.modules[index]?.spec.kind === spec.kind ? roundsAboard(design, index) : null),
     ];
+    // A figure goes under the setting that tunes it most directly, where the panel offers that setting; the rest are the
+    // module's own, below. Settings are laid out first, so by the time the figures are, it is known which were taken.
+    const placed = new Set<string>();
+    const notes = (key: string) => {
+        placed.add(key);
+        const own = rows.filter((row) => row.under === key);
+        return own.length === 0 ? null : <SettingFigures id={`${key}Figures`} rows={own} />;
+    };
+    const general = (): ReadoutRow[] => rows.filter((row) => row.under === undefined || !placed.has(row.under));
     // The copy just made is selected, not the one it was made from: it is the one about to be put somewhere.
     const placeCopy = (placed: { blueprint: Blueprint; path: ModulePath } | null): void => {
         if (placed === null) return;
@@ -364,100 +408,117 @@ export function ModulePanel({
                 {size("width")}
             </Field>
             {barrels && (
-                <Field id="barrelsRow">
-                    <label htmlFor="propBarrels" id="barrelsLabel">
-                        {nozzles ? "nozzles" : spec.kind === "beamTurret" ? "emitters" : "barrels"}
-                    </label>
-                    {box("barrels", { step: 1, min: 1 }, (value) => patch({ barrels: value }))}
-                </Field>
+                <>
+                    <Field id="barrelsRow">
+                        <label htmlFor="propBarrels" id="barrelsLabel">
+                            {nozzles ? "nozzles" : spec.kind === "beamTurret" ? "emitters" : "barrels"}
+                        </label>
+                        {box("barrels", { step: 1, min: 1 }, (value) => patch({ barrels: value }))}
+                    </Field>
+                    {notes("barrels")}
+                </>
             )}
             {nozzles && (
-                <Field id="nozzleRow">
-                    <label htmlFor="propNozzle" id="nozzleLabel">
-                        nozzle
-                    </label>
-                    {box(
-                        "nozzle",
-                        {
-                            step: 0.1,
-                            min: 0,
-                            title: "How long the bell is, in widths of its exit, reaching out beyond the block that length and width size. Longer wastes less thrust sideways, with little more to gain past a width or two, and is more engine to fit in and to be hit.",
-                        },
-                        (nozzle) => patch({ nozzle }),
-                    )}
-                </Field>
+                <>
+                    <Field id="nozzleRow">
+                        <label htmlFor="propNozzle" id="nozzleLabel">
+                            nozzle
+                        </label>
+                        {box(
+                            "nozzle",
+                            {
+                                step: 0.1,
+                                min: 0,
+                                title: "How long the bell is, in widths of its exit, reaching out beyond the block that length and width size. Longer wastes less thrust sideways, with little more to gain past a width or two, and is more engine to fit in and to be hit.",
+                            },
+                            (nozzle) => patch({ nozzle }),
+                        )}
+                    </Field>
+                    {notes("nozzle")}
+                </>
             )}
             {readsBarrelCalibres(spec.kind) && (
-                <Field id="barrelCalibresRow">
-                    <label htmlFor="propBarrelCalibres">{spec.kind === "railGun" ? "barrel extension cal" : "barrel cal"}</label>
-                    {box(
-                        "barrelCalibres",
-                        spec.kind === "railGun"
-                            ? {
-                                  step: 1,
-                                  min: 0,
-                                  max: 100,
-                                  title: "How far the rails reach out beyond the block, in calibres of the bore; zero keeps them on it. The rails run along the block too, from two calibres in from its back, and the whole run is the barrel: longer is a faster round, with diminishing returns. What reaches beyond the block is braced along its sides and carries the rails, so it is heavier than a powder gun's barrel.",
-                              }
-                            : {
-                                  step: 1,
-                                  min: 1,
-                                  max: 100,
-                                  title: "How long the barrels are, in calibres of the bore. Longer is a faster shell, with diminishing returns, and costs steel and traverse; on a hull gun it reaches out beyond the block that length and width size. Past 50 calibres a barrel needs bracing, which makes each calibre heavier, and nothing may be longer than 100.",
-                              },
-                        (barrelCalibres) => patch({ barrelCalibres }),
-                    )}
-                </Field>
+                <>
+                    <Field id="boreRow">
+                        <label htmlFor="propBore">bore ×</label>
+                        {box(
+                            "bore",
+                            {
+                                step: 0.1,
+                                min: 0.1,
+                                max: MAX_BORE,
+                                title: `A multiple of the bore this mount's size gives it, up to ${MAX_BORE}. Wider is a heavier shell, barrel and load: more weight of metal a shot, fewer shots. Several barrels share it.`,
+                            },
+                            // The archetype's own bore is not a statement, so the file stops carrying one.
+                            (bore) =>
+                                update((placement) => {
+                                    const next = { ...placement } as ModuleSpec;
+                                    if (bore === 1) delete next.bore;
+                                    else next.bore = bore;
+                                    return next as Placement;
+                                }, true),
+                        )}
+                    </Field>
+                    {notes("bore")}
+                </>
             )}
-            {readsBarrelCalibres(spec.kind) && <Readout id="barrelMetres">{barrelReadout(spec)}</Readout>}
             {readsBarrelCalibres(spec.kind) && (
-                <Field id="boreRow">
-                    <label htmlFor="propBore">bore ×</label>
-                    {box(
-                        "bore",
-                        {
-                            step: 0.1,
-                            min: 0.1,
-                            max: MAX_BORE,
-                            title: `A multiple of the bore this mount's size gives it, up to ${MAX_BORE}. Wider is a heavier shell, barrel and load: more weight of metal a shot, fewer shots. Several barrels share it.`,
-                        },
-                        // The archetype's own bore is not a statement, so the file stops carrying one.
-                        (bore) =>
-                            update((placement) => {
-                                const next = { ...placement } as ModuleSpec;
-                                if (bore === 1) delete next.bore;
-                                else next.bore = bore;
-                                return next as Placement;
-                            }, true),
-                    )}
-                </Field>
+                <>
+                    <Field id="barrelCalibresRow">
+                        <label htmlFor="propBarrelCalibres">{spec.kind === "railGun" ? "barrel extension cal" : "barrel cal"}</label>
+                        {box(
+                            "barrelCalibres",
+                            spec.kind === "railGun"
+                                ? {
+                                      step: 1,
+                                      min: 0,
+                                      max: 100,
+                                      title: "How far the rails reach out beyond the block, in calibres of the bore; zero keeps them on it. The rails run along the block too, from two calibres in from its back, and the whole run is the barrel: longer is a faster round, with diminishing returns. What reaches beyond the block is braced along its sides and carries the rails, so it is heavier than a powder gun's barrel.",
+                                  }
+                                : {
+                                      step: 1,
+                                      min: 1,
+                                      max: 100,
+                                      title: "How long the barrels are, in calibres of the bore. Longer is a faster shell, with diminishing returns, and costs steel and traverse; on a hull gun it reaches out beyond the block that length and width size. Past 50 calibres a barrel needs bracing, which makes each calibre heavier, and nothing may be longer than 100.",
+                                  },
+                            (barrelCalibres) => patch({ barrelCalibres }),
+                        )}
+                    </Field>
+                    {notes("barrelCalibres")}
+                </>
             )}
             {isWeaponMount(spec.kind) && spec.kind !== "railGun" && spec.kind !== "plasmaLance" && (
-                <Field id="traverseRow">
-                    <label htmlFor="propTraverse">traverse °</label>
-                    {box(
-                        "traverse",
-                        {
-                            step: 5,
-                            min: 0,
-                            title: "How far the weapon may train either way from its resting bearing. A limit only: the mount's own arc and whatever the ship is in the way of still apply. A turret's ring goes all the way round whatever it is told, so limiting one weighs the same; a hull weapon's bed is built for the arc it sweeps, so a narrower one is lighter and a fixed one carries no training gear at all.",
-                        },
-                        (degrees) => patch({ traverse: degreesToRadians(degrees) }),
-                    )}
-                </Field>
+                <>
+                    <Field id="traverseRow">
+                        <label htmlFor="propTraverse">traverse °</label>
+                        {box(
+                            "traverse",
+                            {
+                                step: 5,
+                                min: 0,
+                                title: "How far the weapon may train either way from its resting bearing. A limit only: the mount's own arc and whatever the ship is in the way of still apply. A turret's ring goes all the way round whatever it is told, so limiting one weighs the same; a hull weapon's bed is built for the arc it sweeps, so a narrower one is lighter and a fixed one carries no training gear at all.",
+                            },
+                            (degrees) => patch({ traverse: degreesToRadians(degrees) }),
+                        )}
+                    </Field>
+                    {notes("traverse")}
+                </>
             )}
             {/* Only an engine has a plume to point. */}
             {spec.kind === "engine" && (
-                <Field id="weaponRow">
-                    <label htmlFor="propWeapon">weapon</label>
-                    <input
-                        id="propWeapon"
-                        type="checkbox"
-                        title="Burn at an enemy that gets close behind this engine, whether or not thrust was wanted"
-                        checked={spec.weapon === true}
-                        onChange={(event) => flag("weapon", event.target.checked)}
-                    />
-                </Field>
+                <>
+                    <Field id="weaponRow">
+                        <label htmlFor="propWeapon">weapon</label>
+                        <input
+                            id="propWeapon"
+                            type="checkbox"
+                            title="Burn at an enemy that gets close behind this engine, whether or not thrust was wanted"
+                            checked={spec.weapon === true}
+                            onChange={(event) => flag("weapon", event.target.checked)}
+                        />
+                    </Field>
+                    {notes("weapon")}
+                </>
             )}
             {/* An engine is only a weapon once it is marked as one. */}
             {(isWeaponMount(spec.kind) || (spec.kind === "engine" && spec.weapon === true)) && (
@@ -504,53 +565,62 @@ export function ModulePanel({
                 </Field>
             )}
             {readsMagnetic(spec.kind) && (
-                <Field id="magneticRow">
-                    <label htmlFor="propMagnetic">magnetic nozzle</label>
-                    <input
-                        id="propMagnetic"
-                        type="checkbox"
-                        title="A ring at the end of the bell that, powered, holds the jet straight: more thrust and a longer flame from the same fuel, for power drawn as it burns. It takes the end of the bell, so unpowered the engine aims its jet a little worse."
-                        checked={isMagnetic(spec)}
-                        onChange={(event) => flag("magnetic", event.target.checked)}
-                    />
-                </Field>
+                <>
+                    <Field id="magneticRow">
+                        <label htmlFor="propMagnetic">magnetic nozzle</label>
+                        <input
+                            id="propMagnetic"
+                            type="checkbox"
+                            title="A ring at the end of the bell that, powered, holds the jet straight: more thrust and a longer flame from the same fuel, for power drawn as it burns. It takes the end of the bell, so unpowered the engine aims its jet a little worse."
+                            checked={isMagnetic(spec)}
+                            onChange={(event) => flag("magnetic", event.target.checked)}
+                        />
+                    </Field>
+                    {notes("magnetic")}
+                </>
             )}
             {readsThick(spec.kind) && (
-                <Field id="thickRow">
-                    <label htmlFor="propThick">thick</label>
-                    <input
-                        id="propThick"
-                        type="checkbox"
-                        disabled={!thickable}
-                        title={
-                            thickable
-                                ? THICK_TITLE
-                                : fighter && canThicken(spec)
-                                  ? "A fighter has nothing thick."
-                                  : spec.kind === "engine"
-                                    ? "Too narrow to be thick: each nozzle is no more than a deck wide, so already as deep as it is wide."
-                                    : "Too narrow to be thick: no more than a deck across, so already as deep as it is wide."
-                        }
-                        checked={isThick(spec)}
-                        onChange={(event) => flag("thick", event.target.checked)}
-                    />
-                </Field>
+                <>
+                    <Field id="thickRow">
+                        <label htmlFor="propThick">thick</label>
+                        <input
+                            id="propThick"
+                            type="checkbox"
+                            disabled={!thickable}
+                            title={
+                                thickable
+                                    ? THICK_TITLE
+                                    : fighter && canThicken(spec)
+                                      ? "A fighter has nothing thick."
+                                      : spec.kind === "engine"
+                                        ? "Too narrow to be thick: each nozzle is no more than a deck wide, so already as deep as it is wide."
+                                        : "Too narrow to be thick: no more than a deck across, so already as deep as it is wide."
+                            }
+                            checked={isThick(spec)}
+                            onChange={(event) => flag("thick", event.target.checked)}
+                        />
+                    </Field>
+                    {notes("thick")}
+                </>
             )}
             {readsFill(spec.kind) && (
-                <Field id="fillRow">
-                    <label htmlFor="propFill">starts full %</label>
-                    {box(
-                        "fill",
-                        {
-                            step: 10,
-                            min: 0,
-                            max: 100,
-                            title: "How full it starts, per cent. A ship sent out part full weighs less, so it costs less of a budget, and has to find the rest from a wreck or a carrier. 100 by default.",
-                        },
-                        // Full is what a tank is when nothing says otherwise, so it is left unsaid.
-                        (percent) => share("fill", percent, 1),
-                    )}
-                </Field>
+                <>
+                    <Field id="fillRow">
+                        <label htmlFor="propFill">starts full %</label>
+                        {box(
+                            "fill",
+                            {
+                                step: 10,
+                                min: 0,
+                                max: 100,
+                                title: "How full it starts, per cent. A ship sent out part full weighs less, so it costs less of a budget, and has to find the rest from a wreck or a carrier. 100 by default.",
+                            },
+                            // Full is what a tank is when nothing says otherwise, so it is left unsaid.
+                            (percent) => share("fill", percent, 1),
+                        )}
+                    </Field>
+                    {notes("fill")}
+                </>
             )}
             {readsCraft(spec.kind) && (
                 <CraftRows editing={editing} spec={spec} library={library} inFleet={inFleet} flag={flag} update={update} />
@@ -562,20 +632,24 @@ export function ModulePanel({
                     <label htmlFor="propReinforcement">reinforce</label>
                     {box("reinforcement", { step: 0.5, min: 1 }, (reinforcement) => patch({ reinforcement }))}
                 </Field>
+                {notes("reinforcement")}
                 {readsTurning(spec.kind) && (
-                    <Field id="turningRow">
-                        <label htmlFor="propTurning">turning gear %</label>
-                        {box(
-                            "turning",
-                            {
-                                step: 5,
-                                min: 1,
-                                max: MAX_TURNING * 100,
-                                title: `How much of the turret is turning gear, the ring and drive that swing it, per cent of the rest of it. More swings it faster and weighs what it is, and takes room from the loading gear, so a gun reloads slower and a beam holds on for less. ${TRAVERSE_GEAR_FRACTION * 100} by default.`,
-                            },
-                            (percent) => share("turning", percent, TRAVERSE_GEAR_FRACTION, 1, MAX_TURNING * 100),
-                        )}
-                    </Field>
+                    <>
+                        <Field id="turningRow">
+                            <label htmlFor="propTurning">turning gear %</label>
+                            {box(
+                                "turning",
+                                {
+                                    step: 5,
+                                    min: 1,
+                                    max: MAX_TURNING * 100,
+                                    title: `How much of the turret is turning gear, the ring and drive that swing it, per cent of the rest of it. More swings it faster and weighs what it is, and takes room from the loading gear, so a gun reloads slower and a beam holds on for less. ${TRAVERSE_GEAR_FRACTION * 100} by default.`,
+                                },
+                                (percent) => share("turning", percent, TRAVERSE_GEAR_FRACTION, 1, MAX_TURNING * 100),
+                            )}
+                        </Field>
+                        {notes("turning")}
+                    </>
                 )}
                 {readsFuse(spec.kind) && (
                     <Shell id="shellRow">
@@ -634,18 +708,21 @@ export function ModulePanel({
                     </Field>
                 )}
                 {readsSealing(spec.kind) && (
-                    <Field id="sealingRow">
-                        <label htmlFor="propSealing">sealing mm</label>
-                        {box(
-                            "sealing",
-                            {
-                                step: 5,
-                                min: 0,
-                                title: "How thick a self-sealing lining is inside the walls, millimetres. Thicker closes a hole faster, and closes wider ones; a hole wider than it can reach shrinks but stays open. It weighs, and takes room from the fuel. Zero never seals.",
-                            },
-                            (millimetres) => patch({ sealing: millimetres / 1000 }),
-                        )}
-                    </Field>
+                    <>
+                        <Field id="sealingRow">
+                            <label htmlFor="propSealing">sealing mm</label>
+                            {box(
+                                "sealing",
+                                {
+                                    step: 5,
+                                    min: 0,
+                                    title: "How thick a self-sealing lining is inside the walls, millimetres. Thicker closes a hole faster, and closes wider ones; a hole wider than it can reach shrinks but stays open. It weighs, and takes room from the fuel. Zero never seals.",
+                                },
+                                (millimetres) => patch({ sealing: millimetres / 1000 }),
+                            )}
+                        </Field>
+                        {notes("sealing")}
+                    </>
                 )}
                 {readsDrainPriority(spec.kind) && (
                     <Field id="drainPriorityRow">
@@ -677,48 +754,54 @@ export function ModulePanel({
                 )}
                 {readsComputing(spec.kind) &&
                     CORE_SHARE_KEYS.map((key, k) => (
-                        <Field id={`${key}Row`} key={key}>
-                            <label htmlFor={`prop${key[0]!.toUpperCase()}${key.slice(1)}`}>{CORE_SHARE_LABELS[k]}</label>
-                            {box(
-                                key,
-                                {
-                                    step: 0.05,
-                                    min: 0,
-                                    disabled: spec[key] === undefined,
-                                    title: `${CORE_SHARE_TITLES[k]} A weight against the core's other stores, scaled to fill its room past its computing; 0 leaves it out, and the core is simpler for it. Untick auto to set it.`,
-                                },
-                                (value) => storeShare(key, Math.max(0, value)),
-                            )}
-                            <label>
-                                <input
-                                    type="checkbox"
-                                    title="Stepped in by default once the core has room for a useful amount, in order: fuel, then a hold, a generator and a battery."
-                                    checked={spec[key] === undefined}
-                                    onChange={(event) => storeShare(key, event.target.checked ? undefined : CORE_SHARE_DEFAULTS[k]!)}
-                                />
-                                auto
-                            </label>
-                        </Field>
+                        <Fragment key={key}>
+                            <Field id={`${key}Row`}>
+                                <label htmlFor={`prop${key[0]!.toUpperCase()}${key.slice(1)}`}>{CORE_SHARE_LABELS[k]}</label>
+                                {box(
+                                    key,
+                                    {
+                                        step: 0.05,
+                                        min: 0,
+                                        disabled: spec[key] === undefined,
+                                        title: `${CORE_SHARE_TITLES[k]} A weight against the core's other stores, scaled to fill its room past its computing; 0 leaves it out, and the core is simpler for it. Untick auto to set it.`,
+                                    },
+                                    (value) => storeShare(key, Math.max(0, value)),
+                                )}
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        title="Stepped in by default once the core has room for a useful amount, in order: fuel, then a hold, a generator and a battery."
+                                        checked={spec[key] === undefined}
+                                        onChange={(event) => storeShare(key, event.target.checked ? undefined : CORE_SHARE_DEFAULTS[k]!)}
+                                    />
+                                    auto
+                                </label>
+                            </Field>
+                            {notes(key)}
+                        </Fragment>
                     ))}
                 {readsRobotsPerBerth(spec.kind) && (
-                    <Field id="robotsPerBerthRow">
-                        <label htmlFor="propRobotsPerBerth">robots per berth</label>
-                        {box(
-                            "robotsPerBerth",
-                            {
-                                step: 0.5,
-                                min: 1,
-                                title: "How many robots it keeps for each berth while its ship is moored to a rock. The extra work the rock and wait there for a berth to come home to, and are left on it when the ship casts off, for this ship or a friend to take aboard later. 1 by default.",
-                            },
-                            (value) =>
-                                update((placement) => {
-                                    const { robotsPerBerth: _, ...rest } = placement as ModuleSpec;
-                                    const per = Math.max(1, value);
-                                    // One to a berth is what a bay keeps when nothing says otherwise, so it is left unsaid.
-                                    return (per > 1 ? { ...rest, robotsPerBerth: per } : rest) as Placement;
-                                }, true),
-                        )}
-                    </Field>
+                    <>
+                        <Field id="robotsPerBerthRow">
+                            <label htmlFor="propRobotsPerBerth">robots per berth</label>
+                            {box(
+                                "robotsPerBerth",
+                                {
+                                    step: 0.5,
+                                    min: 1,
+                                    title: "How many robots it keeps for each berth while its ship is moored to a rock. The extra work the rock and wait there for a berth to come home to, and are left on it when the ship casts off, for this ship or a friend to take aboard later. 1 by default.",
+                                },
+                                (value) =>
+                                    update((placement) => {
+                                        const { robotsPerBerth: _, ...rest } = placement as ModuleSpec;
+                                        const per = Math.max(1, value);
+                                        // One to a berth is what a bay keeps when nothing says otherwise, so it is left unsaid.
+                                        return (per > 1 ? { ...rest, robotsPerBerth: per } : rest) as Placement;
+                                    }, true),
+                            )}
+                        </Field>
+                        {notes("robotsPerBerth")}
+                    </>
                 )}
                 <Field>
                     <label htmlFor="propNotes">notes</label>
@@ -742,10 +825,10 @@ export function ModulePanel({
                 </Field>
             </More>
             <Stats id="moduleStats">
-                <FigureRows rows={rows.filter((row) => row.more !== true)} />
+                <FigureRows rows={general().filter((row) => row.more !== true)} />
                 <More id="moduleMore" open={folds.figures} onToggle={(event) => onFolds({ ...folds, figures: event.currentTarget.open })}>
                     <summary>More figures</summary>
-                    <FigureRows rows={rows.filter((row) => row.more === true)} />
+                    <FigureRows rows={general().filter((row) => row.more === true)} />
                 </More>
             </Stats>
             <DoctrineDetails editing={editing} spec={spec} envelope={envelope} open={doctrineOpen} onOpen={onDoctrineOpen} />

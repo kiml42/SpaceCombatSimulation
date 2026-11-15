@@ -29,7 +29,6 @@ import {
     hullMountGeometry,
     isHullMount,
     isWeaponMount,
-    mountTraverse,
     nozzleReach,
     weaponPlumeReach,
     plumeIntensity,
@@ -353,6 +352,8 @@ export interface ReadoutRow {
     readonly sub?: boolean;
     /** What the figure means, where its name alone does not say. */
     readonly title?: string;
+    /** The setting it is most directly tuned by, under which the panel shows it where that setting is offered. */
+    readonly under?: string;
 }
 
 export interface ModuleReadout {
@@ -437,7 +438,7 @@ export function moduleReadout(spec: ModuleSpec, layout: readonly ModuleSpec[] = 
     const rows: ReadoutRow[] = [
         { name: "Mass", value: tonnes(stats.mass), ...(carries ? { title: "With what it holds, full" } : {}) },
         // Comparable only with other modules', which size and armour already show, so detail.
-        { name: "Hit points", value: n(stats.hitPoints, 0), more: true },
+        { name: "Hit points", under: "reinforcement", value: n(stats.hitPoints, 0), more: true },
         { name: "Armour", value: `${n(stats.wallThickness * 1000, 0)} mm` },
         {
             name: "Build time",
@@ -447,29 +448,31 @@ export function moduleReadout(spec: ModuleSpec, layout: readonly ModuleSpec[] = 
     ];
     const add = (row: ReadoutRow): void => void rows.push(row);
     // What the plan view cannot show, and what decides both the wall it carries and whether a turret can reach it.
-    add({ name: "Depth", value: `${n(stats.thickness, 2)} m`, more: true });
+    add({ name: "Depth", under: "thick", value: `${n(stats.thickness, 2)} m`, more: true });
     add({ name: "Capacity", value: `${n(stats.capacity, 1)} m²`, more: true });
     if (readsSealing(spec.kind)) {
         if (stats.lining > 0) {
-            add({ name: "Seals holes to", value: `${n(stats.lining * SEAL_REACH * 1000, 0)} mm`, more: true });
-            add({ name: "Seals at", value: `${n(stats.lining * SEAL_SPEED * 1000, 0)} mm/s`, more: true });
-        } else add({ name: "Sealing", value: "none", title: "A hole stays open", more: true });
+            add({ name: "Seals holes to", under: "sealing", value: `${n(stats.lining * SEAL_REACH * 1000, 0)} mm`, more: true });
+            add({ name: "Seals at", under: "sealing", value: `${n(stats.lining * SEAL_SPEED * 1000, 0)} mm/s`, more: true });
+        } else add({ name: "Sealing", under: "sealing", value: "none", title: "A hole stays open", more: true });
     }
 
-    const load = (name: string, held: number, show: (amount: number) => string): void => {
+    // A core's stores are each bought by a share of its room; another module's by its size.
+    const core = spec.kind === "core";
+    const load = (name: string, held: number, show: (amount: number) => string, share: string): void => {
         if (!(held > 0)) return;
-        add({ name, value: show(held) });
-        if (fill < 1) add({ name: "starts with", value: show(held * fill), sub: true });
+        add({ name, value: show(held), ...(core ? { under: share } : {}) });
+        if (fill < 1) add({ name: "starts with", value: show(held * fill), sub: true, under: "fill" });
     };
-    load("Fuel", stats.fuel, tonnes);
-    load("Metal", stats.metal, tonnes);
-    load("Charge", stats.charge, megajoules);
+    load("Fuel", stats.fuel, tonnes, "fuelShare");
+    load("Metal", stats.metal, tonnes, "holdShare");
+    load("Charge", stats.charge, megajoules, "batteryShare");
     if (stats.charge > 0) add({ name: "Charge rate", value: megawatts(stats.chargeRate), title: "In or out" });
-    if (stats.generation > 0) add({ name: "Generates", value: megawatts(stats.generation) });
+    if (stats.generation > 0) add({ name: "Generates", value: megawatts(stats.generation), ...(core ? { under: "generatorShare" } : {}) });
     if (spec.kind === "robotBay") {
         add({ name: "Robots", value: `${stats.robots}`, title: "Berthed" });
         const moored = robotsKept(spec, stats, true);
-        if (moored > stats.robots) add({ name: "while moored", value: `${moored}`, sub: true });
+        if (moored > stats.robots) add({ name: "while moored", under: "robotsPerBerth", value: `${moored}`, sub: true });
     }
     if (stats.pumpRate > 0) {
         const across =
@@ -496,40 +499,62 @@ export function moduleReadout(spec: ModuleSpec, layout: readonly ModuleSpec[] = 
         const engine = engineGeometry(spec);
         // Its firing wedge: the part of the flame worth lighting up for.
         if (spec.weapon === true)
-            add({ name: "Fires within", value: `${n(weaponPlumeReach(engine, stats.thrust), 0)} m`, title: "Of the nozzle" });
+            add({
+                name: "Fires within",
+                under: "weapon",
+                value: `${n(weaponPlumeReach(engine, stats.thrust), 0)} m`,
+                title: "Of the nozzle",
+            });
         if (stats.ringPower > 0) {
-            add({ name: "Ring power", value: `${n(stats.ringPower / 1e6, 2)} MW`, title: "Flat out", more: true });
-            add({ name: "Unpowered", value: `${n(engine.bellDivergence * 100, 0)}%`, title: "Of its thrust", more: true });
+            add({ name: "Ring power", under: "magnetic", value: `${n(stats.ringPower / 1e6, 2)} MW`, title: "Flat out", more: true });
+            add({
+                name: "Unpowered",
+                under: "magnetic",
+                value: `${n(engine.bellDivergence * 100, 0)}%`,
+                title: "Of its thrust",
+                more: true,
+            });
         }
         // What the bell is doing to the gas: whether the nozzle is worth the length it takes up.
-        add({ name: "Bell half-angle", value: `${n(radiansToDegrees(engine.halfAngle), 0)}°`, more: true });
-        add({ name: "Bell keeps", value: `${n(engine.divergence * 100, 0)}%`, title: "Of the thrust", more: true });
-        if (engine.nozzles > 1) add({ name: "Nozzles", value: `${engine.nozzles}`, more: true });
+        add({ name: "Bell half-angle", under: "nozzle", value: `${n(radiansToDegrees(engine.halfAngle), 0)}°`, more: true });
+        add({ name: "Bell keeps", under: "nozzle", value: `${n(engine.divergence * 100, 0)}%`, title: "Of the thrust", more: true });
+        if (engine.nozzles > 1) add({ name: "Nozzles", under: "barrels", value: `${engine.nozzles}`, more: true });
         // How far it throws and how fiercely: the trade between one long flame and a cluster of short hot ones.
-        add({ name: "Flame reach", value: `${n(nozzleReach(engine, stats.thrust), 0)} m`, title: "Flat out", more: true });
-        add({ name: "Flame heat", value: `${n(plumeIntensity(engine, stats.thrust) / 1000, 1)} kW/m²`, title: "Flat out", more: true });
+        add({ name: "Flame reach", under: "nozzle", value: `${n(nozzleReach(engine, stats.thrust), 0)} m`, title: "Flat out", more: true });
+        add({
+            name: "Flame heat",
+            under: "nozzle",
+            value: `${n(plumeIntensity(engine, stats.thrust) / 1000, 1)} kW/m²`,
+            title: "Flat out",
+            more: true,
+        });
     }
 
     if (readsBarrelCalibres(spec.kind) && stats.gun !== null) {
         // How long, and what being long has cost in bracing.
         const bracing = braceMass(stats.gun);
-        add({ name: "Barrel", value: `${n(stats.gun.barrelLength, 2)} m`, more: true });
+        add({ name: "Barrel", under: "barrelCalibres", value: `${n(stats.gun.barrelLength, 2)} m`, more: true });
         if (bracing > 0) {
-            add({ name: "braced", value: `${n(stats.gun.braceLength, 2)} m`, sub: true, more: true });
-            add({ name: "bracing", value: tonnes(bracing), sub: true, more: true });
+            add({ name: "braced", under: "barrelCalibres", value: `${n(stats.gun.braceLength, 2)} m`, sub: true, more: true });
+            add({ name: "bracing", under: "barrelCalibres", value: tonnes(bracing), sub: true, more: true });
         }
     }
     if (isWeaponMount(spec.kind)) {
-        // What it may train through and what that machine weighs: the number traded when the first is narrowed.
+        // What the machine that trains it weighs: what narrowing the traverse saves.
         const gear = stats.traverseMass;
-        add({ name: "Trains", value: `${n(radiansToDegrees(mountTraverse(spec)), 1)}°`, title: "Either way", more: true });
-        add({ name: "Training gear", value: gear > 0 ? tonnes(gear) : "none", more: true });
+        add({ name: "Training gear", under: "traverse", value: gear > 0 ? tonnes(gear) : "none", more: true });
     }
     if (isHullMount(spec.kind)) {
         // What the opening leaves it, and how much of it is already barrel.
         const mount = hullMountGeometry(spec);
-        add({ name: "Opening", value: `${n(radiansToDegrees(mount.traverse), 1)}°`, title: "Either way", more: true });
-        add({ name: "face filled", value: `${n(((mount.outlets * mount.outletWidth) / spec.width) * 100, 0)}%`, sub: true, more: true });
+        add({ name: "Opening", under: "traverse", value: `${n(radiansToDegrees(mount.traverse), 1)}°`, title: "Either way", more: true });
+        add({
+            name: "face filled",
+            under: "traverse",
+            value: `${n(((mount.outlets * mount.outletWidth) / spec.width) * 100, 0)}%`,
+            sub: true,
+            more: true,
+        });
     }
     const gun = stats.gun;
     return {
