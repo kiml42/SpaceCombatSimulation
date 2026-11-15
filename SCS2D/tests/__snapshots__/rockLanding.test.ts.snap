@@ -36,17 +36,17 @@ exports[`Rock Landing > Raider,  one way, spins [4, 7, 10] 1`] = `
 
 exports[`Rock Landing > Raider, no main [2, 4] 1`] = `
 {
-  "bumps": 4,
-  "crashes": 9,
+  "bumps": 3,
+  "crashes": 10,
   "landed": [
-    "stopped at 56.42 s",
-    "98.77 s",
-    "105.45 s",
-    "stopped at 111.82 s",
-    "stopped at 75.07 s",
-    "stopped at 54.38 s",
-    "stopped at 59.00 s",
-    "stopped at 54.43 s",
+    "stopped at 56.33 s",
+    "99.02 s",
+    "105.73 s",
+    "stopped at 110.52 s",
+    "stopped at 77.35 s",
+    "stopped at 112.98 s",
+    "stopped at 56.52 s",
+    "stopped at 93.75 s",
   ],
 }
 `;
@@ -57,13 +57,13 @@ exports[`Rock Landing > Raider, no main [4] 1`] = `
   "crashes": 0,
   "landed": [
     "72.50 s",
-    "66.90 s",
+    "66.63 s",
     "68.93 s",
-    "69.60 s",
+    "69.37 s",
     "72.37 s",
-    "70.58 s",
+    "70.33 s",
     "73.35 s",
-    "69.98 s",
+    "69.72 s",
   ],
 }
 `;
@@ -71,16 +71,16 @@ exports[`Rock Landing > Raider, no main [4] 1`] = `
 exports[`Rock Landing > Raider, one turn far weaker [1, 8] 1`] = `
 {
   "bumps": 0,
-  "crashes": 0,
+  "crashes": 3,
   "landed": [
-    "65.70 s",
-    "62.23 s",
-    "61.28 s",
-    "63.97 s",
-    "66.12 s",
-    "64.48 s",
-    "64.42 s",
-    "66.13 s",
+    "55.53 s",
+    "65.18 s",
+    "40.38 s",
+    "64.92 s",
+    "55.32 s",
+    "stopped at 73.13 s",
+    "53.37 s",
+    "65.32 s",
   ],
 }
 `;
@@ -90,14 +90,14 @@ exports[`Rock Landing > Raider, one turn far weaker [3, 7] 1`] = `
   "bumps": 0,
   "crashes": 0,
   "landed": [
-    "64.85 s",
-    "58.38 s",
-    "38.08 s",
-    "63.38 s",
-    "62.23 s",
-    "63.77 s",
-    "65.23 s",
-    "62.62 s",
+    "65.92 s",
+    "62.08 s",
+    "37.93 s",
+    "64.00 s",
+    "64.63 s",
+    "64.48 s",
+    "64.73 s",
+    "64.13 s",
   ],
 }
 `;
@@ -141,14 +141,14 @@ exports[`Rock Landing > Raider, undamaged 1`] = `
   "bumps": 0,
   "crashes": 0,
   "landed": [
-    "30.92 s",
-    "30.08 s",
-    "30.73 s",
-    "30.52 s",
-    "31.03 s",
-    "30.70 s",
-    "31.18 s",
-    "30.67 s",
+    "31.67 s",
+    "30.35 s",
+    "31.48 s",
+    "30.82 s",
+    "31.78 s",
+    "31.02 s",
+    "31.92 s",
+    "31.00 s",
   ],
 }
 `;

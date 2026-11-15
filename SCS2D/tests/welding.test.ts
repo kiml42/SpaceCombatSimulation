@@ -468,12 +468,16 @@ describe("a mount that breaks off", () => {
 
 describe("enemies hooked together", () => {
     it("both take the new design when wreckage hooks on to them", () => {
-        // A seed on which wreckage welds onto the pair within the 25 s run. A ship
-        // left on the old design is drawn, aimed and fired from a layout its body
-        // no longer has.
-        const run = hookedScenario(20260976);
+        // Module 18, broken a second in where a shot would, leaves wreckage that welds
+        // back onto the pair within the 25 s run. A ship left on the old design is
+        // drawn, aimed and fired from a layout its body no longer has.
+        const run = hookedScenario();
         const { ships, world } = run;
         for (let s = 0; s < 1500; s++) {
+            if (s === 60) {
+                const body = world.bodies.indexOf(ships.body(0));
+                ships.damage.absorb(body, 18, ships.currentStructure(0).modules[18]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG);
+            }
             run.step();
             const owners = new Map<number, number>();
             for (let i = 0; i < ships.highWater; i++) {
