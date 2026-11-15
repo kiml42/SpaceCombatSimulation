@@ -42,8 +42,11 @@ import { sqrt } from "./math.js";
  * the force and torque blocks contribute equally — makes the two commensurable
  * and the residual split sensible.
  *
- * **What is minimised is Σuᵢ², not propellant.** Least squares spreads demand
+ * **What is minimised is Σcᵢuᵢ², not propellant.** Least squares spreads demand
  * across the engines that can serve it, giving smooth, predictable control.
+ * Each engine's cost cᵢ grows with how far off the force asked for it points
+ * (`OFF_AXIS_COST`), so the engines pushing the right way share out the
+ * torque between them before one pushing the wrong way is spent on it.
  * Genuinely propellant-optimal allocation is a linear program whose solutions
  * sit on vertices, so it burns fewer engines harder and switches abruptly
  * between them as the demand rotates — cheaper in fuel, worse to fly and to
@@ -178,6 +181,16 @@ const OPPOSED_TOLERANCE = 1e-3;
  */
 const USEFUL_ARM_FRACTION = 0.01;
 
+/**
+ * How much a throttle on an engine pushing at right angles to the force asked
+ * for costs, in the allocation's Σcᵢuᵢ², over one pushing along it: 1 more
+ * than this, and one pushing straight against it 1 more than twice this.
+ * Large enough that an engine pointing the wrong way is spent only where the
+ * ones pointing the right way cannot hold the heading by themselves, so those
+ * share out the torque between them first (#989).
+ */
+export const OFF_AXIS_COST = 100;
+
 export class EngineLayout {
     readonly count: number;
 
@@ -206,8 +219,14 @@ export class EngineLayout {
     /** Reciprocal of that characteristic length. */
     readonly torqueScale: number;
 
-    /** Inverse normal equations over every engine, for the unsaturated case. */
+    /** Inverse normal equations over every engine, for the unsaturated case with no force asked for. */
     private readonly inv = new Float64Array(6);
+    /**
+     * One over each engine's cost in this call's Σcᵢuᵢ²: 1 for one pushing along
+     * the force asked for, less the further off it it points (`OFF_AXIS_COST`).
+     * Scratch, like `pinned`.
+     */
+    private readonly weight: Float64Array;
 
     /**
      * Scratch for `allocate`. Held here rather than allocated per call: this is
@@ -249,6 +268,7 @@ export class EngineLayout {
         this.wt = new Float64Array(n);
         this.wts = new Float64Array(n);
         this.pinned = new Uint8Array(n);
+        this.weight = new Float64Array(n).fill(1);
         this.freeIdx = new Int32Array(n);
         this.opposite = new Int32Array(n).fill(-1);
         this.size = new Float64Array(n);
@@ -335,8 +355,8 @@ export class EngineLayout {
     }
 
     /**
-     * Invert the normal equations `A Aᵀ + λI` over the engines not pinned this
-     * pass. `pass < 0` means "every engine", used for the precomputed case.
+     * Invert the normal equations `A W Aᵀ + λI` over the engines not pinned this
+     * pass, `W` being `weight`. `pass < 0` means "every engine".
      */
     private buildInverse(out: Float64Array, pass: number): void {
         let a = 0;
@@ -347,15 +367,16 @@ export class EngineLayout {
         let f = 0;
         for (let i = 0; i < this.count; i++) {
             if (pass >= 0 && this.pinned[i] === 1) continue;
+            const w = this.weight[i]!;
             const x = this.wfx[i];
             const y = this.wfy[i];
             const t = this.wts[i];
-            a += x * x;
-            b += x * y;
-            c += x * t;
-            d += y * y;
-            e += y * t;
-            f += t * t;
+            a += w * x * x;
+            b += w * x * y;
+            c += w * x * t;
+            d += w * y * y;
+            e += w * y * t;
+            f += w * t * t;
         }
 
         // The ridge is applied only if the matrix is actually singular, and it is
@@ -443,6 +464,7 @@ export class EngineLayout {
         let rx = demandFx;
         let ry = demandFy;
         let rt = demandTorque * this.torqueScale;
+        const uniform = this.weigh(rx, ry, rt);
 
         const passLimit = n + 1 < MAX_PASSES ? n + 1 : MAX_PASSES;
         for (let pass = 0; pass < passLimit; pass++) {
@@ -484,7 +506,7 @@ export class EngineLayout {
                 break;
             }
 
-            const usePrecomputed = pass === 0 && k === n;
+            const usePrecomputed = uniform && pass === 0 && k === n;
             const m = usePrecomputed ? this.inv : this.passInv;
             if (!usePrecomputed) this.buildInverse(this.passInv, pass);
 
@@ -504,7 +526,7 @@ export class EngineLayout {
 
             for (let i = 0; i < n; i++) {
                 if (this.pinned[i] === 1) continue;
-                const u = this.wfx[i] * y0 + this.wfy[i] * y1 + this.wts[i] * y2;
+                const u = this.weight[i]! * (this.wfx[i] * y0 + this.wfy[i] * y1 + this.wts[i] * y2);
                 throttles[i] = u;
                 if (u < 0) {
                     if (-u > worstAmount) {
@@ -568,6 +590,35 @@ export class EngineLayout {
         out.fx = fx;
         out.fy = fy;
         out.torque = torque;
+    }
+
+    /**
+     * Set each engine's `weight` for a demand, preconditioned, and say whether
+     * they are all 1.
+     *
+     * An engine's cost grows with how far off the force asked for it points,
+     * by `OFF_AXIS_COST`, and as a share of the demand that force is: a demand
+     * that is all torque has no direction to be off, so every engine costs the
+     * same and the answer is the plain minimum Σuᵢ² it always was. Depends on
+     * the direction of the demand alone, so the answer still scales with it.
+     */
+    private weigh(fx: number, fy: number, torque: number): boolean {
+        const n = this.count;
+        const force = sqrt(fx * fx + fy * fy);
+        const whole = force + (torque < 0 ? -torque : torque);
+        if (!(force > 0) || !(whole > 0)) {
+            for (let i = 0; i < n; i++) this.weight[i] = 1;
+            return true;
+        }
+        const share = force / whole;
+        const ux = fx / force;
+        const uy = fy / force;
+        for (let i = 0; i < n; i++) {
+            // 0 along the force, 1 at right angles, 2 against it.
+            const off = 1 - (this.dirX[i]! * ux + this.dirY[i]! * uy);
+            this.weight[i] = 1 / (1 + OFF_AXIS_COST * share * off);
+        }
+        return false;
     }
 
     /**
