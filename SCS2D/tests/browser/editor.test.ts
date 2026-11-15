@@ -943,6 +943,18 @@ describe("the editor in a browser", () => {
         await expect.poll(() => redPixels(page)).toBe(0);
     });
 
+    it("shows a worked-out default and a per cent as round numbers, not a float's tail", async () => {
+        await fromMenu(page, "#newShip");
+        await addModule(page, "hullGun");
+        // The traverse is worked out from the mount where the layout gives none, to a tenth of a degree.
+        expect(await page.inputValue("#propTraverse")).toMatch(/^\d+(\.\d)?$/);
+        // 7% is kept as 0.07, which is 7.000000000000001 back in per cent.
+        await addModule(page, "tank");
+        await page.fill("#propFill", "7");
+        await page.press("#propFill", "Tab");
+        expect(await page.inputValue("#propFill")).toBe("7");
+    });
+
     it("offers barrels on a gun and not on a hull", async () => {
         // A rule of the page's own outranks the browser's for [hidden], so a row
         // laid out by this stylesheet stays on screen when hidden unless the

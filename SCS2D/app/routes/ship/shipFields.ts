@@ -90,6 +90,11 @@ export type ModuleNumberField =
     | "robotsPerBerth"
     | "keep";
 
+/** A unit conversion without its floating-point tail: 7% stored as 0.07 shows as 7, not 7.000000000000001. */
+function tidy(value: number): number {
+    return Number(value.toPrecision(12));
+}
+
 /** A module's own value for a field, with the default the parser would have applied. */
 export function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
     if (key === "angle") return radiansToDegrees(spec.angle ?? 0);
@@ -99,17 +104,18 @@ export function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
     if (key === "bore") return spec.bore ?? 1;
     // What the mount would do if the layout said nothing, so the box shows the
     // arc it actually has rather than a blank.
-    if (key === "traverse") return radiansToDegrees(mountTraverse(spec));
-    if (key === "turning") return (spec.turning ?? TRAVERSE_GEAR_FRACTION) * 100;
+    // Worked out from the mount's shape where the layout gives none, so to a tenth of a degree.
+    if (key === "traverse") return Math.round(radiansToDegrees(mountTraverse(spec)) * 10) / 10;
+    if (key === "turning") return tidy((spec.turning ?? TRAVERSE_GEAR_FRACTION) * 100);
     if (key === "fuse") return spec.fuse ?? DEFAULT_FUSE;
     if (key === "fragments") return spec.fragments ?? DEFAULT_FRAGMENTS;
     if (key === "burstSpeed") return spec.burstSpeed ?? DEFAULT_BURST_SPEED;
     // Millimetres on the panel, metres in the layout.
-    if (key === "sealing") return (spec.sealing ?? 0) * 1000;
+    if (key === "sealing") return tidy((spec.sealing ?? 0) * 1000);
     if (key === "drainPriority") return spec.drainPriority ?? 0;
     // Per cent on the panel, a share in the layout.
-    if (key === "fill") return (spec.fill ?? 1) * 100;
-    if (key === "computing") return (spec.computing ?? CORE_COMPUTING_SHARE) * 100;
+    if (key === "fill") return tidy((spec.fill ?? 1) * 100);
+    if (key === "computing") return tidy((spec.computing ?? CORE_COMPUTING_SHARE) * 100);
     // What it is weighted at when it steps in by default.
     const store = (CORE_SHARE_KEYS as readonly string[]).indexOf(key);
     if (store >= 0) return spec[key as CoreShareKey] ?? CORE_SHARE_DEFAULTS[store]!;
