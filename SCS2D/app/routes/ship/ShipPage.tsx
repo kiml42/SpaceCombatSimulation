@@ -44,7 +44,7 @@ import { SidebarTitle, SkirmishBudget } from "../fleet/SkirmishCard";
 import { AddModule } from "./AddModule";
 import { AssemblyPanel, SeveralSelected } from "./AssemblyPanels";
 import type { DoctrineOpen } from "./DoctrineDetails";
-import { ModulePanel } from "./ModulePanel";
+import { ModulePanel, type ModuleFolds } from "./ModulePanel";
 import { ShipCanvas } from "./ShipCanvas";
 import type { ShipEditing } from "./shipEditing";
 import { DEFAULTS, isModuleSpec } from "./shipFields";
@@ -246,6 +246,7 @@ export function ShipPage() {
     const [, changed] = useReducer((n: number) => n + 1, 0);
     const [engine, setEngine] = useState<Engine | null>(null);
     const [doctrineOpen, setDoctrineOpen] = useState<DoctrineOpen>({ mount: false, ship: false });
+    const [folds, setFolds] = useState<ModuleFolds>({ settings: false, figures: false });
     const [liveryOpen, setLiveryOpen] = useState(false);
     // Whether Add a module is open below a selected module, kept for the next one picked.
     const [adding, setAdding] = useState(false);
@@ -585,6 +586,8 @@ export function ShipPage() {
                             envelope={engine?.envelope() ?? null}
                             doctrineOpen={doctrineOpen}
                             onDoctrineOpen={setDoctrineOpen}
+                            folds={folds}
+                            onFolds={setFolds}
                             onDelete={deleteSelected}
                         />
                     )}
