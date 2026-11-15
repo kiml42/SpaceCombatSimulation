@@ -447,10 +447,12 @@ describe("the editor in a browser", () => {
         await page.mouse.click(centre.x + 168, centre.y);
         const module = (await page.textContent("#moduleStats")) ?? "";
         expect(module).toMatch(/Mass/);
-        // A figure tuned most directly by one setting is shown under it: armour and hit points under reinforce, the calibre under the bore.
+        // A figure tuned most directly by one setting is shown under it: hit points under reinforce, the calibre under the bore.
         expect(await page.textContent("#reinforcementFigures")).toMatch(/hit points\s*[\d,]+/);
         expect(await page.textContent("#boreFigures")).toMatch(/calibre\s*\d+ mm/);
         expect(module).not.toMatch(/Calibre/);
+        // Armour comes of its size, thickness and reinforcement together, so it is the module's own.
+        expect(module).toMatch(/Armour\s*\d+ mm/);
         // One figure a row; what tunes it is under More.
         expect(module).toMatch(/Rate\s*[\d.]+ rpm/);
         expect(await page.locator("#moduleMore").getAttribute("open")).toBeNull();
