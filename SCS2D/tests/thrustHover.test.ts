@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { compileBlueprint } from "../sim/index.js";
-import { CORVETTE, STAR_DESTROYER } from "../scenarios/blueprints.js";
-import { burnFigures, envelopes, holdingAt, holdingThrottles, inUnits, pointedThrust } from "../editor/stats.js";
+import { Allocation, compileBlueprint } from "../sim/index.js";
+import { CORVETTE, STAR_DESTROYER, Y_WING } from "../scenarios/blueprints.js";
+import { burnFigures, burnThrottles, envelopes, holdingAt, holdingThrottles, inUnits, pointedThrust } from "../editor/stats.js";
 import { envelopeBearingAt, overEnvelope } from "../editor/overlay.js";
 
 describe("the throttles behind a point on the envelope", () => {
@@ -49,12 +49,28 @@ describe("the throttles behind a point on the envelope", () => {
         // At or past the rim, as much as holds the heading, and no more.
         expect(pointedThrust(curve, angle, 1).acceleration).toBeCloseTo(holding, 9);
         expect(pointedThrust(curve, angle, 3).share).toBe(1);
-        // The throttles scaled by the share push that much, still without turning.
-        const full = holdingThrottles(corvette, angle);
-        const { fx, fy, torque } = wrench(full.map((t) => t * gentle.share));
-        const fullForce = Math.hypot(wrench(full).fx, wrench(full).fy);
-        expect(Math.hypot(fx, fy) / fullForce).toBeCloseTo(gentle.share, 9);
-        expect(Math.abs(torque) / (fullForce * corvette.radius)).toBeLessThan(0.02);
+        // The throttles burned for it push that much, still without turning.
+        const { fx, fy, torque } = wrench(burnThrottles(corvette, angle, gentle.acceleration, gentle.holding));
+        const force = Math.hypot(fx, fy);
+        expect(force / corvette.mass).toBeCloseTo(gentle.acceleration, 6);
+        expect(Math.abs(torque) / (force * corvette.radius)).toBeLessThan(1e-6);
+    });
+
+    it("burns below the most that holds the heading as the battle allocates it, not the full burn scaled down", () => {
+        // A Y-Wing going sideways: one side engine ahead of its centre of mass and one behind.
+        const ywing = compileBlueprint(Y_WING);
+        const curve = envelopes(ywing, 64);
+        const angle = Math.PI / 2;
+        const part = pointedThrust(curve, angle, 0.28);
+        const burned = burnThrottles(ywing, angle, part.acceleration, part.holding);
+        const battle = new Float64Array(ywing.engines.length);
+        const force = part.acceleration * ywing.mass;
+        ywing.engineLayout.allocate(0, force, 0, battle, new Allocation());
+        battle.forEach((t, i) => expect(burned[i]).toBeCloseTo(t, 12));
+        const scaled = holdingThrottles(ywing, angle).map((t) => t * part.share);
+        expect(Array.from(burned)).not.toEqual(Array.from(scaled));
+        // At the rim it is the full holding burn.
+        expect(Array.from(burnThrottles(ywing, angle, part.holding, part.holding))).toEqual(Array.from(holdingThrottles(ywing, angle)));
     });
 
     it("costs a burn at its engines' own specific impulse, and lasts twice as long at half throttle", () => {
