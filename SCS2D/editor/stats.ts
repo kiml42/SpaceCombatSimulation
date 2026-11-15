@@ -439,7 +439,7 @@ export function moduleReadout(spec: ModuleSpec, layout: readonly ModuleSpec[] = 
         { name: "Mass", value: tonnes(stats.mass), ...(carries ? { title: "With what it holds, full" } : {}) },
         // Comparable only with other modules', which size and armour already show, so detail.
         { name: "Hit points", under: "reinforcement", value: n(stats.hitPoints, 0), more: true },
-        { name: "Armour", value: `${n(stats.wallThickness * 1000, 0)} mm` },
+        { name: "Armour", under: "reinforcement", value: `${n(stats.wallThickness * 1000, 0)} mm` },
         {
             name: "Build time",
             value: buildTime((buildWork(stats) * (stats.structureMass + fittingOf(stats))) / ROBOT_REPAIR_RATE),

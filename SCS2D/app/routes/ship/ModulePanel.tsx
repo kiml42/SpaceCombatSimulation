@@ -191,7 +191,7 @@ function weaponRows(gun: ModuleReadout["gun"], rounds: number | null): ReadoutRo
                       ? { name: "Energy a shot", value: `${numbers(gun.shotEnergy / 1e6, 1)} MJ`, more: true }
                       : { name: "Fuel a shot", value: `${numbers(gun.shotFuel, 1)} kg`, more: true },
               ];
-    out.push({ name: "Arc", value: `${numbers(gun.arcRight, 0)}°R / ${numbers(gun.arcLeft, 0)}°L` });
+    out.push({ name: "Arc", under: "traverse", value: `${numbers(gun.arcRight, 0)}°R / ${numbers(gun.arcLeft, 0)}°L` });
     if (gun.triggerRange != null) {
         out.push({ name: "Fires within", value: `${numbers(gun.triggerRange, 0)} m`, title: "Of what its doctrine wants" });
     }
