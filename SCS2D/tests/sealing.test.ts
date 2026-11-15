@@ -114,8 +114,9 @@ describe("a sealing lining", () => {
 
     it("is read out in the editor as what it can close and how fast", () => {
         const lined = moduleReadout({ kind: "tank", x: 0, y: 0, length: 6, width: 4, sealing: 0.02 });
-        expect(lined.rows.find(([k]) => k === "Sealing")?.[1]).toBe("closes a hole up to 200 mm across, 20 mm a second");
+        expect(lined.rows.find((row) => row.name === "Seals holes to")?.value).toBe("200 mm");
+        expect(lined.rows.find((row) => row.name === "Seals at")?.value).toBe("20 mm/s");
         const bare = moduleReadout({ kind: "tank", x: 0, y: 0, length: 6, width: 4 });
-        expect(bare.rows.find(([k]) => k === "Sealing")?.[1]).toMatch(/none/);
+        expect(bare.rows.find((row) => row.name === "Sealing")?.value).toBe("none");
     });
 });

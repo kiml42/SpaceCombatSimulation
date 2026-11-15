@@ -448,10 +448,13 @@ describe("the editor in a browser", () => {
         const module = (await page.textContent("#moduleStats")) ?? "";
         expect(module).toMatch(/Mass/);
         expect(module).toMatch(/Hit points/);
-        expect(module).toMatch(/Gun/);
+        expect(module).toMatch(/Calibre\s*\d+ mm/);
+        // One figure a row; what tunes it is under More.
+        expect(module).toMatch(/Rate\s*[\d.]+ rpm/);
+        expect(await page.locator("#moduleMore").getAttribute("open")).toBeNull();
         // A structure module has no gun and no thrust of its own.
         await page.mouse.click(centre.x, centre.y);
-        expect(await page.textContent("#moduleStats")).not.toMatch(/Gun/);
+        expect(await page.textContent("#moduleStats")).not.toMatch(/Calibre/);
     });
 
     it("lets a core be thick, which costs it wall", async () => {
@@ -969,11 +972,11 @@ describe("the editor in a browser", () => {
         // A beam has no barrel: what it has is the aperture the light leaves by.
         expect(await page.textContent("#barrelsLabel")).toBe("emitters");
 
-        // Off the Gun row by name: the panel's other rows carry millimetres too,
+        // Off the Calibre row by name: the panel's other rows carry millimetres too,
         // and the first of them is the thickness of the walls.
         const bore = async (): Promise<number> => {
             const stats = (await page.textContent("#moduleStats")) ?? "";
-            return Number(/Gun\s*(\d+) mm/.exec(stats)?.[1] ?? 0);
+            return Number(/Calibre\s*(\d+) mm/.exec(stats)?.[1] ?? 0);
         };
         const one = await bore();
         expect(one).toBeGreaterThan(0);

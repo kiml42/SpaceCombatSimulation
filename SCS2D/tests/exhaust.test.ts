@@ -645,15 +645,17 @@ describe("the plume the renderer draws", () => {
 describe("what the editor says about a buried engine", () => {
     it("reports what a clear engine throws, and nothing about the ship", () => {
         const layout = tug(30);
-        const row = moduleReadout(layout[0]!, layout, 0).rows.find(([k]) => k === "Thrust");
-        expect(row?.[1]).not.toMatch(/fires into the ship/);
+        const rows = moduleReadout(layout[0]!, layout, 0).rows;
+        expect(rows.find((row) => row.name === "Thrust")).toBeDefined();
+        expect(rows.some((row) => row.name === "into the ship")).toBe(false);
     });
 
     it("reports what a blocked one actually delivers, and says why", () => {
         // The feedback the envelope cannot give: which engine is paying.
         const layout = tug(1);
-        const row = moduleReadout(layout[0]!, layout, 0).rows.find(([k]) => k === "Thrust");
-        expect(row?.[1]).toMatch(/of .* MN — the rest fires into the ship/);
+        const rows = moduleReadout(layout[0]!, layout, 0).rows;
+        expect(rows.find((row) => row.name === "Thrust")?.value).toMatch(/MN$/);
+        expect(rows.find((row) => row.name === "into the ship" && row.sub === true)?.value).toMatch(/MN$/);
     });
 });
 

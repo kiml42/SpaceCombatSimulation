@@ -4,7 +4,7 @@ import { dockFighter, duplicatePlacement, instanceOf, mirrorPlacement, reshapePl
 import type { DesignInFleet } from "~/editor/handoff";
 import { byCategory, type Library } from "~/editor/library";
 import { selectedPosition } from "~/editor/shipCanvas";
-import { moduleReadout, roundsAboard, type Envelopes } from "~/editor/stats";
+import { moduleReadout, roundsAboard, type Envelopes, type ModuleReadout, type ReadoutRow } from "~/editor/stats";
 import {
     canShape,
     canThicken,
@@ -97,6 +97,70 @@ const Stats = styled.div`
     padding-top: 0.6rem;
     border-top: 1px solid var(--colour-border);
 `;
+
+const More = styled.details`
+    margin-top: 0.4rem;
+
+    > summary {
+        color: var(--colour-muted);
+        cursor: pointer;
+    }
+`;
+
+/** One figure a row, its meaning on its name where the name alone does not say. */
+function FigureRows({ rows }: { readonly rows: readonly ReadoutRow[] }) {
+    return (
+        <Figures>
+            <tbody>
+                {rows.map((row) => (
+                    <tr key={row.name} className={row.sub === true ? "sub" : undefined}>
+                        <th title={row.title}>{row.name}</th>
+                        <td>{row.value}</td>
+                    </tr>
+                ))}
+            </tbody>
+        </Figures>
+    );
+}
+
+/** A weapon's figures: what it throws, how often and how far it trains, the first few what a weapon is chosen by. */
+function weaponRows(gun: ModuleReadout["gun"], rounds: number | null): ReadoutRow[] {
+    if (gun === null) return [];
+    const out: ReadoutRow[] =
+        gun.plasmaReach > 0
+            ? [
+                  { name: "Pulse power", value: `${numbers(gun.beamPower / 1e6, 1)} MW` },
+                  { name: "Reach", value: `${numbers(gun.plasmaReach, 0)} m` },
+                  { name: "Rate", value: `${numbers(gun.roundsPerMinute)} /min` },
+                  { name: "Energy a pulse", value: `${numbers(gun.shotEnergy / 1e6, 1)} MJ` },
+                  { name: "Fuel a pulse", value: `${numbers(gun.shotFuel, 1)} kg` },
+                  { name: "Kick", value: `${numbers(gun.jetThrust / 1e3, 0)} kN`, more: true },
+              ]
+            : [
+                  { name: "Calibre", value: `${numbers(gun.calibre * 1000, 0)} mm${gun.barrels > 1 ? ` ×${gun.barrels}` : ""}` },
+                  { name: "Rate", value: `${numbers(gun.roundsPerMinute)} rpm` },
+                  ...(gun.muzzleSpeed > 0 ? [{ name: "Muzzle speed", value: `${numbers(gun.muzzleSpeed, 0)} m/s` }] : []),
+                  ...(gun.roundMass > 0 ? [{ name: "Shell", value: `${numbers(gun.roundMass, 1)} kg` }] : []),
+                  ...(gun.roundMass > 0 && rounds !== null
+                      ? [
+                            {
+                                name: "Rounds",
+                                value: numbers(rounds, 0),
+                                title: "From the metal its piece of hull sets out with, shared with every gun there",
+                            },
+                        ]
+                      : []),
+                  gun.shotEnergy > 0
+                      ? { name: "Energy a shot", value: `${numbers(gun.shotEnergy / 1e6, 1)} MJ`, more: true }
+                      : { name: "Fuel a shot", value: `${numbers(gun.shotFuel, 1)} kg`, more: true },
+              ];
+    out.push({ name: "Arc", value: `${numbers(gun.arcRight, 0)}°R / ${numbers(gun.arcLeft, 0)}°L` });
+    if (gun.triggerRange != null) {
+        out.push({ name: "Fires within", value: `${numbers(gun.triggerRange, 0)} m`, title: "Of what its doctrine wants" });
+    }
+    out.push({ name: "Half turn", value: `${numbers(gun.halfTurn)} s`, more: true });
+    return out;
+}
 
 const THICK_TITLE =
     "As deep as it is across, rather than a deck. Stands up into the weapons layer: cover for turrets and in their arcs, and in their reach. A bigger barrel or nozzle, and heavier walls. Structure of any width may be marked, and stands as high as the deepest module it is welded to.";
@@ -223,6 +287,10 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
     const index = doc.selectedModules()[0] ?? -1;
     const readout = moduleReadout(spec, doc.view.modules, index, doc.view.design?.radius ?? 0);
     const design = doc.view.design;
+    const rows = [
+        ...readout.rows,
+        ...weaponRows(readout.gun, design !== null && design.modules[index]?.spec.kind === spec.kind ? roundsAboard(design, index) : null),
+    ];
     // The copy just made is selected, not the one it was made from: it is the one about to be put somewhere.
     const placeCopy = (placed: { blueprint: Blueprint; path: ModulePath } | null): void => {
         if (placed === null) return;
@@ -651,50 +719,11 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                 />
             </Field>
             <Stats id="moduleStats">
-                <Figures>
-                    <tbody>
-                        {readout.rows.map(([name, value]) => (
-                            <tr key={name}>
-                                <th>{name}</th>
-                                <td>{value}</td>
-                            </tr>
-                        ))}
-                        {readout.gun !== null && (
-                            <>
-                                <tr>
-                                    <th>Gun</th>
-                                    <td>
-                                        {readout.gun.plasmaReach > 0
-                                            ? `${numbers(readout.gun.beamPower / 1e6, 1)} MW pulses to ${numbers(readout.gun.plasmaReach, 0)} m, ` +
-                                              `${numbers(readout.gun.roundsPerMinute)} a minute, ${numbers(readout.gun.shotFuel, 1)} kg fuel and ` +
-                                              `${numbers(readout.gun.shotEnergy / 1e6, 1)} MJ a pulse, ${numbers(readout.gun.jetThrust / 1e3, 0)} kN kick`
-                                            : `${numbers(readout.gun.calibre * 1000, 0)} mm${readout.gun.barrels > 1 ? ` ×${readout.gun.barrels}` : ""}, ` +
-                                              `${numbers(readout.gun.roundsPerMinute)} rpm, ${numbers(readout.gun.muzzleSpeed, 0)} m/s, ${numbers(readout.gun.roundMass, 1)} kg shell, ` +
-                                              (readout.gun.shotEnergy > 0
-                                                  ? `${numbers(readout.gun.shotEnergy / 1e6, 1)} MJ a shot`
-                                                  : `${numbers(readout.gun.shotFuel, 1)} kg fuel a shot`)}
-                                    </td>
-                                </tr>
-                                {design !== null && readout.gun.roundMass > 0 && design.modules[index]?.spec.kind === spec.kind && (
-                                    <tr>
-                                        <th>Rounds</th>
-                                        <td>{`${numbers(roundsAboard(design, index), 0)} from the metal its piece of hull sets out with, shared with every gun there`}</td>
-                                    </tr>
-                                )}
-                                <tr>
-                                    <th>Arc</th>
-                                    <td>{`${numbers(readout.gun.arcRight, 0)}°R–${numbers(readout.gun.arcLeft, 0)}°L, half a turn in ${numbers(readout.gun.halfTurn)} s`}</td>
-                                </tr>
-                                {readout.gun.triggerRange != null && (
-                                    <tr>
-                                        <th>Fires within</th>
-                                        <td>{`${numbers(readout.gun.triggerRange, 0)} m of what its doctrine wants`}</td>
-                                    </tr>
-                                )}
-                            </>
-                        )}
-                    </tbody>
-                </Figures>
+                <FigureRows rows={rows.filter((row) => row.more !== true)} />
+                <More id="moduleMore">
+                    <summary>More</summary>
+                    <FigureRows rows={rows.filter((row) => row.more === true)} />
+                </More>
             </Stats>
             <DoctrineDetails editing={editing} spec={spec} envelope={envelope} open={doctrineOpen} onOpen={onDoctrineOpen} />
             <Buttons>

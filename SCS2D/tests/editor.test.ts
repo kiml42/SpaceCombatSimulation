@@ -1430,7 +1430,7 @@ describe("moduleReadout", () => {
         const spec: ModuleSpec = { kind: "turret", x: 0, y: 0, length: 6, width: 4, barrels: 2 };
         const readout = moduleReadout(spec);
         const stats = moduleStats(spec);
-        const mass = readout.rows.find(([k]) => k === "Mass")![1];
+        const mass = readout.rows.find((row) => row.name === "Mass")!.value;
         expect(mass).toBe(`${(stats.mass / 1000).toLocaleString("en-GB", { maximumFractionDigits: 2 })} t`);
         expect(readout.gun!.barrels).toBe(2);
         expect(readout.gun!.calibre).toBe(stats.gun!.calibre);
@@ -1438,10 +1438,10 @@ describe("moduleReadout", () => {
 
     it("gives an engine a thrust row and a structure module none", () => {
         const engine = moduleReadout({ kind: "engine", angle: Math.PI, x: 0, y: 0, length: 3, width: 3 });
-        expect(engine.rows.some(([k]) => k === "Thrust")).toBe(true);
+        expect(engine.rows.some((row) => row.name === "Thrust")).toBe(true);
         expect(engine.gun).toBeNull();
         const structure = moduleReadout({ kind: "structure", x: 0, y: 0, length: 3, width: 3 });
-        expect(structure.rows.some(([k]) => k === "Thrust")).toBe(false);
+        expect(structure.rows.some((row) => row.name === "Thrust")).toBe(false);
     });
 });
 
@@ -1571,7 +1571,7 @@ describe("a weapon engine in the editor", () => {
 
     it("says how far that is", () => {
         const rows = doc.view.modules
-            .map((m, i) => moduleReadout(m, doc.view.modules, i, design.radius).rows.find(([k]) => k === "Fires within"))
+            .map((m, i) => moduleReadout(m, doc.view.modules, i, design.radius).rows.find((row) => row.name === "Fires within"))
             .filter((r) => r !== undefined);
         expect(rows.length).toBe(design.weaponEngines.length);
     });
