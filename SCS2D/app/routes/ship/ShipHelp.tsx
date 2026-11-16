@@ -43,7 +43,7 @@ export function ShipHelp({ open, onClose, onTutorial, noTutorial }: ShipHelpProp
 }
 
 /** The tutorial's steps, each done when the design shows it: a first ship from a blank one. */
-export function shipTutorial(doc: EditorDocument): TourStep[] {
+export function shipTutorial(doc: EditorDocument, inFleet = false): TourStep[] {
     const modules = doc.view.modules;
     const design = doc.view.design;
     const core = modules.find((spec) => spec.kind === "core");
@@ -105,16 +105,28 @@ export function shipTutorial(doc: EditorDocument): TourStep[] {
             // Placed where it fits, too: a weapon dropped on the hull is a problem.
             goal: { label: "It has a weapon, and nothing is wrong", done: modules.some((spec) => isWeaponMount(spec.kind)) && clear },
         },
-        {
-            id: "save",
-            title: "Save it, or try it",
-            body: (
-                <p>
-                    <strong>Save</strong> keeps it in your library under My ships. <strong>Test in Simulator</strong> shows it fighting.
-                </p>
-            ),
-            targets: ["#saveShip"],
-        },
+        inFleet
+            ? {
+                  id: "back",
+                  title: "Take it back to the fleet",
+                  body: (
+                      <p>
+                          <strong>Back to fleet</strong> puts it in your fleet, where you can place more ships of it.
+                      </p>
+                  ),
+                  targets: ["#backToFleet"],
+              }
+            : {
+                  id: "save",
+                  title: "Save it, or try it",
+                  body: (
+                      <p>
+                          <strong>Save</strong> keeps it in your library under My ships. <strong>Test in Simulator</strong> shows it
+                          fighting.
+                      </p>
+                  ),
+                  targets: ["#saveShip"],
+              },
     ];
 }
 

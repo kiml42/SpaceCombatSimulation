@@ -470,12 +470,18 @@ export function ShipPage() {
                   exporting,
                   { id: "importTrigger", label: "Import ship", onSelect: () => document.getElementById("importShip")?.click() },
               ];
-    // On a blank ship of its own, so every step starts from where it says.
+    // On a blank ship, so every step starts from where it says: a new one, or a fleet's design while it is still blank.
+    const blank = (doc.blueprint.modules ?? []).length === 0;
     const startTutorial = (): void => {
-        reopen(emptyBlueprint(unusedName("New ship", taken())));
+        if (inFleet === null) reopen(emptyBlueprint(unusedName("New ship", taken())));
+        else if (!blank) return;
         setTour(0);
     };
-    const tourSteps = tour === null ? null : shipTutorial(doc);
+    const noTutorial =
+        inFleet === null || blank
+            ? undefined
+            : "The tutorial builds a ship from nothing: Add new ship in the fleet editor starts a blank design to take it on";
+    const tourSteps = tour === null ? null : shipTutorial(doc, inFleet !== null);
     const tourSuggests = tourSteps === null ? null : tutorialSuggests(tourSteps[tour!]);
     const fleetNow = inFleet === null ? null : backToFleet(inFleet.fleet, inFleet.design, blueprint);
     const skirmishNow = inFleet?.skirmish === undefined || fleetNow === null ? null : { ...inFleet.skirmish, player: fleetNow };
@@ -807,7 +813,7 @@ export function ShipPage() {
                 open={help.open}
                 onClose={help.close}
                 onTutorial={startTutorial}
-                {...(inFleet === null ? {} : { noTutorial: "The tutorial starts a new ship, so it is not offered for a fleet's design" })}
+                {...(noTutorial === undefined ? {} : { noTutorial })}
             />
             {tourSteps !== null && <Tour id="shipTour" steps={tourSteps} at={tour!} onAt={setTour} onEnd={() => setTour(null)} />}
         </Main>
