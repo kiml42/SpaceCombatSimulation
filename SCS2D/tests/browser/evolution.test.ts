@@ -175,26 +175,21 @@ describe("the evolution route in a browser", () => {
         expect(problems).toEqual([]);
     });
 
-    it(
-        "fights a run and finishes it, without the page going away",
-        () =>
-            withoutView(page, async () => {
-                // Started with a battle showing, which has nothing to show until the
-                // first match is over and must then put it on.
-                await page.selectOption("#mode", "battle");
-                await page.click("#start");
-                // The frame loop is what advances the run, so a page that blocked would
-                // fail here rather than merely being slow: `waitForFunction` is polled
-                // through the same event loop the run is being sliced into.
-                await page.waitForFunction(() => document.getElementById("state")?.textContent === "finished", undefined, {
-                    timeout: 120_000,
-                });
-                expect(problems).toEqual([]);
-                expect(await page.textContent("#readout")).toMatch(/matches fought/);
-                await page.waitForFunction(() => /\d+%|over/.test(document.getElementById("watching")?.textContent ?? ""));
-            }),
-        180_000,
-    );
+    it("fights a run and finishes it, without the page going away", async () => {
+        // Started with a battle showing, which has nothing to show until the
+        // first match is over and must then put it on.
+        await page.selectOption("#mode", "battle");
+        await page.click("#start");
+        // The frame loop is what advances the run, so a page that blocked would
+        // fail here rather than merely being slow: `waitForFunction` is polled
+        // through the same event loop the run is being sliced into.
+        await page.waitForFunction(() => document.getElementById("state")?.textContent === "finished", undefined, {
+            timeout: 120_000,
+        });
+        expect(problems).toEqual([]);
+        expect(await page.textContent("#readout")).toMatch(/matches fought/);
+        await page.waitForFunction(() => /\d+%|over/.test(document.getElementById("watching")?.textContent ?? ""));
+    }, 180_000);
 
     it("draws the run as lines rather than an empty box, one chart picked at a time", () =>
         withoutView(page, async () => {
