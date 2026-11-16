@@ -406,7 +406,24 @@ export function ShipPage() {
         link.click();
         URL.revokeObjectURL(url);
     };
-    const save: MenuAction = { id: "saveShip", label: "Save to Library", onSelect: () => library.save(doc.blueprint) };
+    const save = (): void => library.save(doc.blueprint);
+    const newShip = (): void => reopen(emptyBlueprint(unusedName("New ship", taken())));
+    // On the undo stack, so undo brings the ship back and Save puts it in the library again.
+    const deleteShip = (): void => {
+        if (!window.confirm(`Delete the saved copy of ${name}?`)) return;
+        library.remove(name);
+        doc.apply(
+            emptyBlueprint(
+                unusedName(
+                    "New ship",
+                    taken().filter((each) => each !== name),
+                ),
+            ),
+        );
+        engine?.easeToNext();
+        gesture.current = false;
+        refresh();
+    };
     // On the undo stack too, so undo brings the changes back.
     const revert: MenuAction = {
         id: "revertShip",
@@ -419,9 +436,8 @@ export function ShipPage() {
     // A design opened from a fleet is the fleet's: opening another here would leave it behind.
     const actions: MenuAction[] =
         inFleet !== null
-            ? [save, revert, exporting]
+            ? [revert, exporting]
             : [
-                  { id: "newShip", label: "New ship", onSelect: () => reopen(emptyBlueprint(unusedName("New ship", taken()))) },
                   // Left unsaved, as a new ship is: how a stock hull becomes the start of the player's own without shadowing it.
                   {
                       id: "duplicateShip",
@@ -433,29 +449,7 @@ export function ShipPage() {
                           refresh();
                       },
                   },
-                  save,
                   revert,
-                  // On the undo stack, so undo brings the ship back and Save puts it in the library again.
-                  {
-                      id: "deleteShip",
-                      label: "Delete saved copy",
-                      disabled: !library.savedNames().includes(name),
-                      onSelect: () => {
-                          if (!window.confirm(`Delete the saved copy of ${name}?`)) return;
-                          library.remove(name);
-                          doc.apply(
-                              emptyBlueprint(
-                                  unusedName(
-                                      "New ship",
-                                      taken().filter((each) => each !== name),
-                                  ),
-                              ),
-                          );
-                          engine?.easeToNext();
-                          gesture.current = false;
-                          refresh();
-                      },
-                  },
                   exporting,
                   { id: "importTrigger", label: "Import ship", onSelect: () => document.getElementById("importShip")?.click() },
               ];
@@ -470,7 +464,7 @@ export function ShipPage() {
                     actions={actions}
                     keys={KEYS}
                     // A ship opened from a fleet goes back through it, not the library.
-                    unsaved={inFleet === null && (!listed || reverts) ? { what: name, save: () => library.save(doc.blueprint) } : null}
+                    unsaved={inFleet === null && (!listed || reverts) ? { what: name, save } : null}
                 />
                 {inFleet === null && (
                     <select
@@ -486,6 +480,24 @@ export function ShipPage() {
                         {!listed && <option value={name}>{`${name} (unsaved)`}</option>}
                         <LibraryOptions entries={entries} />
                     </select>
+                )}
+                {inFleet === null && (
+                    <Button id="newShip" onClick={newShip}>
+                        New ship
+                    </Button>
+                )}
+                <Button id="saveShip" title="Save this ship to the library" onClick={save}>
+                    Save
+                </Button>
+                {inFleet === null && (
+                    <Button
+                        id="deleteShip"
+                        title="Delete this ship's saved copy"
+                        disabled={!library.savedNames().includes(name)}
+                        onClick={deleteShip}
+                    >
+                        Delete
+                    </Button>
                 )}
                 <input
                     id="importShip"
