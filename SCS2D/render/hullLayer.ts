@@ -36,7 +36,7 @@ import { pushLitBevel } from "./bevelLighting.js";
 import { MIN_SCAR_PX, scarShapes, scarWidth, type Bounds, type ScarShape } from "./scars.js";
 import { SCAR_VIEW_STRIDE } from "../sim/index.js";
 import { holeMarkWidth, leakHoleShapes, scratchShows } from "./leakHoles.js";
-import { SOOT, SOOT_ALPHA, wearLevel, wearShows, wearTile, wearTransform } from "./wear.js";
+import { SOOT, SOOT_ALPHA, wearLevel, wearSeed, wearShows, wearTile, wearTransform } from "./wear.js";
 import { shipColours, teamLivery, type Palette } from "./teams.js";
 
 /**
@@ -228,7 +228,7 @@ export class HullLayer {
                     continue;
                 }
                 // A piece hooked on from another ship keeps that ship's colours.
-                const fill = contextFor(design, i, paintedSide(ship, i), ship.integrity?.[i] ?? 1, worn);
+                const fill = contextFor(design, i, paintedSide(ship, i), ship.integrity?.[i] ?? 1, worn ? wearSeed(ship) : null);
                 const kind = m.spec.kind;
                 // A turret's block is hull; its dome stands on it, drawn with the turrets.
                 const domed = isDomed(kind);
@@ -574,17 +574,17 @@ const fills: Fill[] = [];
  * Module `i`'s fills on side `side`, built the first time they are asked for:
  * shared by every module of its spec, unless its side's livery has a pattern
  * or it is worn, either of which falls on each module of a design differently.
- * `worn` says whether wear would show at this zoom; a destroyed module's soot
- * shows at any.
+ * `seed` is the ship's (`wearSeed`), null where wear would not show at this
+ * zoom; a destroyed module's soot shows at any.
  */
-function contextFor(design: ShipDesign, i: number, side: number, integrity: number, worn = true): GraphicsContext {
+function contextFor(design: ShipDesign, i: number, side: number, integrity: number, seed: number | null): GraphicsContext {
     const m = design.modules[i]!;
     const spec = m.spec;
     const ground = spec.kind === "rock" || spec.kind === "kernel";
     const livery = ground ? undefined : teamLivery(side);
-    const level = ground || !worn ? 0 : wearLevel(integrity);
+    const level = ground || seed === null ? 0 : wearLevel(integrity);
     const burnt = !ground && integrity <= 0;
-    if (level > 0 || burnt) return wornContext(design, i, side, integrity, livery, level, burnt);
+    if (level > 0 || burnt) return wornContext(design, i, side, integrity, livery, level, burnt, seed ?? 0);
     if (livery !== undefined && livery.pattern !== "none") return patternedContext(design, i, side, integrity, livery);
     return plainContext(spec, side, integrity, drawnMounts(design, i));
 }
@@ -812,6 +812,7 @@ function wornContext(
     livery: Livery | undefined,
     level: number,
     burnt: boolean,
+    seed: number,
 ): GraphicsContext {
     const m = design.modules[i]!;
     const colours = shipColours(side);
@@ -823,7 +824,7 @@ function wornContext(
     // A shell is its own shape, smaller each step it goes up or comes down.
     const key =
         `${origin.module}|${shell === undefined ? "" : `${shell.face}|${shell.share}`}|${mounts.key}|` +
-        `${colour}|${colours.hull}${colours.trim}${colours.pivot}${colours.highlight}|${level}|${burnt}|` +
+        `${colour}|${colours.hull}${colours.trim}${colours.pivot}${colours.highlight}|${level}|${burnt}|${level > 0 ? seed : ""}|` +
         (pattern === undefined
             ? ""
             : `${tileKey(pattern, "")}|${pattern.size}|${pattern.spacing}|${pattern.offset}|${pattern.lateral}|${pattern.angle}`);
@@ -845,7 +846,7 @@ function wornContext(
             if (texture !== null) context.poly(fill.points).fill({ texture, matrix: matrix!, textureSpace: "global" });
         }
         markPad(context, m.spec, colours);
-        const w = wearTransform(design, i);
+        const w = wearTransform(design, i, seed);
         const wearMatrix = new Matrix(w.a, w.b, w.c, w.d, w.e, w.f);
         const wear = level > 0 ? wearTexture(level) : null;
         for (const fill of fills) {
