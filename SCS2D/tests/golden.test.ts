@@ -5,10 +5,15 @@ import { SCENARIO_TIMEOUT, SCENARIOS, type ScenarioName } from "./fixtures/scena
 /**
  * Golden tests: the simulation's behaviour, pinned.
  *
- * The determinism tests prove the simulation is reproducible. These prove it
- * still does the *same thing* it did before — which is the check that makes it
- * safe to refactor the physics after months away. Run `npm test` from a cold
- * checkout: if these pass, the simulation is intact.
+ * These prove the simulation still does the *same thing* it did before — the
+ * check that makes it safe to refactor the physics after months away. Run
+ * `npm test` from a cold checkout: if these pass, the simulation is intact.
+ *
+ * Each scenario is also fought a second time in the same process, and must
+ * reach the same state halfway and at the end. That needs no recorded value,
+ * so re-recording cannot "fix" it, and it catches state leaking from one run
+ * into the next. It is here rather than in `determinism.test.ts` so that each
+ * scenario is fought twice rather than four times.
  *
  * WHEN ONE FAILS, that means simulated behaviour changed. Either:
  *
@@ -100,16 +105,37 @@ const GOLDEN: Record<ScenarioName, string> = {
     circling: "f11c5210",
 };
 
+/** A scenario's checksums halfway through and at the end. */
+function fight(name: ScenarioName): { half: number; end: number } {
+    const scenario = SCENARIOS[name];
+    const run = scenario.build();
+    const halfway = Math.floor(scenario.steps / 2);
+    for (let i = 0; i < halfway; i++) run.step();
+    const half = run.checksum();
+    for (let i = halfway; i < scenario.steps; i++) run.step();
+    return { half, end: run.checksum() };
+}
+
 describe("golden scenarios", () => {
     for (const name of Object.keys(GOLDEN) as ScenarioName[]) {
         const scenario = SCENARIOS[name];
+        // Kept for the rerun, which fights it itself if this test was filtered out.
+        let first: { half: number; end: number } | undefined;
 
         it(
             `${name} matches its recorded checksum after ${scenario.steps} steps`,
             () => {
-                const run = scenario.build();
-                for (let i = 0; i < scenario.steps; i++) run.step();
-                expect(formatChecksum(run.checksum())).toBe(GOLDEN[name]);
+                first = fight(name);
+                expect(formatChecksum(first.end)).toBe(GOLDEN[name]);
+            },
+            SCENARIO_TIMEOUT,
+        );
+
+        it(
+            `${name} reaches the same state halfway and at the end on a rerun`,
+            () => {
+                const was = first ?? fight(name);
+                expect(fight(name)).toEqual(was);
             },
             SCENARIO_TIMEOUT,
         );
