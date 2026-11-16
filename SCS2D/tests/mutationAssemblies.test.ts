@@ -288,18 +288,17 @@ describe("breeding the grouping", () => {
         }
     });
 
-    // Breeds long lines of an already large ship, which grow as they go, so it
-    // is slow by nature — near a minute on a desktop, depending on how big the
-    // lines happen to grow.
-    it("keeps every generation a ship, and a file the parser accepts", { timeout: 240_000 }, () => {
+    it("keeps every generation a ship, and a file the parser accepts", { timeout: 120_000 }, () => {
         // The catamaran is the founder with assemblies already, so these operators
         // are working on a grouping somebody else wrote rather than their own.
         // Several seeds, since each reaches dissolving and absorbing triangles at
-        // a different generation.
-        for (const seed of [1, 3, 11, 17]) {
+        // a different generation. Eight lines of 80 draw about as many of each
+        // grouping edit as four of 200, at a quarter of the cost, since a line's
+        // ships grow as it goes.
+        for (const seed of [1, 3, 11, 17, 21, 23, 29, 31]) {
             const rng = new Rng(seed);
             let held: Blueprint = CATAMARAN;
-            for (let i = 0; i < 200; i++) {
+            for (let i = 0; i < 80; i++) {
                 held = mutate(held, rng, { structural: 1 }).blueprint;
                 const file = serialiseBlueprint(held);
                 const where = `seed ${seed}, generation ${i}`;
@@ -309,17 +308,21 @@ describe("breeding the grouping", () => {
         }
     });
 
-    it("never leaves a definition nothing places", { timeout: 240_000 }, () => {
+    it("never leaves a definition nothing places", { timeout: 120_000 }, () => {
         // A part no instance uses is dead weight in the file that every later
         // generation still walks past, and an operator picking one to grow or
-        // place would be working on something the ship does not have.
-        const rng = new Rng(13);
-        let held: Blueprint = DINKY;
-        for (let i = 0; i < 300; i++) {
-            held = mutate(held, rng, { structural: 1 }).blueprint;
-            const placing = uses(held);
-            for (const name of Object.keys(held.assemblies ?? {})) {
-                expect(placing.get(name) ?? 0, `generation ${i}: ${name}`).toBeGreaterThan(0);
+        // place would be working on something the ship does not have. Six lines
+        // of 80 draw more of each grouping edit than one of 300, at a seventh of
+        // the cost.
+        for (const seed of [13, 14, 15, 16, 17, 18]) {
+            const rng = new Rng(seed);
+            let held: Blueprint = DINKY;
+            for (let i = 0; i < 80; i++) {
+                held = mutate(held, rng, { structural: 1 }).blueprint;
+                const placing = uses(held);
+                for (const name of Object.keys(held.assemblies ?? {})) {
+                    expect(placing.get(name) ?? 0, `seed ${seed}, generation ${i}: ${name}`).toBeGreaterThan(0);
+                }
             }
         }
     });
