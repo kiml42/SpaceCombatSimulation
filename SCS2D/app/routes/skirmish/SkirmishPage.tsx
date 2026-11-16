@@ -210,6 +210,18 @@ const Muted = styled.p`
     color: var(--colour-muted);
 `;
 
+const NameField = styled.label`
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    color: var(--colour-muted);
+
+    input {
+        flex: 1;
+        min-width: 0;
+    }
+`;
+
 const Outcome = styled.p`
     margin: 0.8rem 0 0.3rem !important;
     font-size: 15px;
@@ -869,20 +881,21 @@ export function SkirmishPage() {
                 {skirmish !== null && (
                     <Panel>
                         <section id="round">
-                            <CommitText
-                                id="skirmishName"
-                                aria-label="Skirmish name"
-                                title="What this skirmish is called, which its exported files are named for"
-                                placeholder="Name this skirmish"
-                                value={skirmish.name ?? ""}
-                                onCommit={(typed) => {
-                                    const current = skirmishes.skirmish;
-                                    if (current === null) return;
-                                    const { name: _old, ...rest } = current;
-                                    const name = typed.trim();
-                                    skirmishes.setSkirmish(name === "" ? rest : { ...rest, name });
-                                }}
-                            />
+                            <NameField title="What this skirmish is called, which its exported files are named for">
+                                Name
+                                <CommitText
+                                    id="skirmishName"
+                                    placeholder="Name this skirmish"
+                                    value={skirmish.name ?? ""}
+                                    onCommit={(typed) => {
+                                        const current = skirmishes.skirmish;
+                                        if (current === null) return;
+                                        const { name: _old, ...rest } = current;
+                                        const name = typed.trim();
+                                        skirmishes.setSkirmish(name === "" ? rest : { ...rest, name });
+                                    }}
+                                />
+                            </NameField>
                             <h2 id="roundTitle">
                                 {`Round ${skirmish.round}` + (skirmish.tries > 0 ? ` · try ${skirmish.tries + 1}` : "")}
                             </h2>
@@ -1044,11 +1057,6 @@ export function SkirmishPage() {
                                     </div>
                                 ))}
                             </div>
-                            <Buttons>
-                                <Button id="abandon" title="Give up this skirmish and start another" onClick={() => setAbandoning(true)}>
-                                    New skirmish
-                                </Button>
-                            </Buttons>
                         </section>
                         {!wideHistory && (
                             <HistoryBox id="history">

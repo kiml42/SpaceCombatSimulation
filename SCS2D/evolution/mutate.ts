@@ -438,6 +438,9 @@ export function driftName(name: string, rng: Rng): string {
 function vary(draft: Draft, rng: Rng, bounds: MutationLimits, scale: Scale, edits: string[]): void {
     for (const part of parts(draft)) {
         if (!rng.chance(bounds.geometry)) continue;
+        // Nothing `reshape` could do, which it would find before drawing anything:
+        // no need to take a snapshot to undo it.
+        if (!reshapeable(part, bounds)) continue;
         const edit = attempt(draft, bounds, () => reshape(part, draft, rng, bounds, scale));
         if (edit !== null) edits.push(edit);
     }
@@ -516,6 +519,7 @@ function restore(draft: Draft, snapshot: Snapshot): void {
     draft.lists.forEach((list, i) => {
         list.placements.forEach((placement, j) => {
             const was = snapshot.placements[i]![j]!;
+            if (same(placement, was)) return;
             for (const key of Object.keys(placement)) delete (placement as unknown as Record<string, unknown>)[key];
             Object.assign(placement, was);
         });
@@ -524,6 +528,18 @@ function restore(draft: Draft, snapshot: Snapshot): void {
     Object.assign(draft.doctrine.approach, snapshot.approach);
     if (snapshot.fighter) draft.blueprint.fighter = true;
     else delete draft.blueprint.fighter;
+}
+
+/** Whether two placements hold the same values under the same keys, in the same order. */
+function same(a: object, b: object): boolean {
+    const ka = Object.keys(a);
+    const kb = Object.keys(b);
+    if (ka.length !== kb.length) return false;
+    for (let k = 0; k < ka.length; k++) {
+        const key = ka[k]!;
+        if (key !== kb[k] || (a as Record<string, unknown>)[key] !== (b as Record<string, unknown>)[key]) return false;
+    }
+    return true;
 }
 
 // -- Drawing ---------------------------------------------------------------
@@ -878,6 +894,12 @@ function reshapeWeight(reshape: Reshape, { build }: MutationLimits): number {
         case "vertex":
             return build.shape;
     }
+}
+
+/** Whether `reshape` has any way open to change this part. */
+function reshapeable(part: Part, bounds: MutationLimits): boolean {
+    if ("instance" in part) return bounds.build.move > 0;
+    return reshapes(part.module.spec).some((way) => reshapeWeight(way, bounds) > 0);
 }
 
 /** Change one placement's geometry, by one of the ways open to it, drawn by weight. */

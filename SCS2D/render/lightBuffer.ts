@@ -180,6 +180,19 @@ class Surface {
     }
 }
 
+/** Whether anything reads a surface's light, and which way it comes from, this frame. */
+export interface SurfaceWanted {
+    readonly light: boolean;
+    readonly direction: boolean;
+}
+
+/** The buffers something reads this frame: one nothing reads is not drawn. */
+export interface LightsWanted {
+    readonly deck: SurfaceWanted;
+    readonly thick: SurfaceWanted;
+    readonly middle: SurfaceWanted;
+}
+
 export class LightBuffer {
     /** Lighting the thin hull, and rock: a light shining down on the deck. */
     private readonly deck: Surface;
@@ -243,10 +256,10 @@ export class LightBuffer {
 
     /**
      * Draw `lights`, in canvas pixels on a canvas `widthPx` by `heightPx` at
-     * `scale` pixels to the metre, into the buffers: false, drawing nothing,
-     * where there are none.
+     * `scale` pixels to the metre, into the buffers `wanted` names: false,
+     * drawing nothing, where there are none.
      */
-    update(renderer: Renderer, lights: Lights, widthPx: number, heightPx: number, scale: number): boolean {
+    update(renderer: Renderer, lights: Lights, widthPx: number, heightPx: number, scale: number, wanted: LightsWanted): boolean {
         if (lights.count === 0) return false;
         const width = Math.max(1, Math.ceil(widthPx * LIGHT_RESOLUTION));
         const height = Math.max(1, Math.ceil(heightPx * LIGHT_RESOLUTION));
@@ -260,18 +273,23 @@ export class LightBuffer {
         screen[1] = heightPx;
         if (!this.fill(lights)) return false;
         this.root.scale.set(LIGHT_RESOLUTION);
-        const draw = (surface: Surface, height: number): void => {
+        // Each pass lights every pixel a light reaches, which in software WebGL is most of a frame's cost.
+        const draw = (surface: Surface, height: number, want: SurfaceWanted): void => {
             this.surface.uniforms.uSurface = height;
-            this.surface.uniforms.uDirection = 0;
-            this.surface.update();
-            renderer.render({ container: this.root, target: surface.texture, clear: true, clearColor: [0, 0, 0, 1] });
-            this.surface.uniforms.uDirection = 1;
-            this.surface.update();
-            renderer.render({ container: this.root, target: surface.direction, clear: true, clearColor: [0, 0, 0, 0] });
+            if (want.light) {
+                this.surface.uniforms.uDirection = 0;
+                this.surface.update();
+                renderer.render({ container: this.root, target: surface.texture, clear: true, clearColor: [0, 0, 0, 1] });
+            }
+            if (want.direction) {
+                this.surface.uniforms.uDirection = 1;
+                this.surface.update();
+                renderer.render({ container: this.root, target: surface.direction, clear: true, clearColor: [0, 0, 0, 0] });
+            }
         };
-        draw(this.deck, 0);
-        draw(this.thick, THICK_SHADOW_M * scale);
-        draw(this.middle, (THICK_SHADOW_M / 2) * scale);
+        draw(this.deck, 0, wanted.deck);
+        draw(this.thick, THICK_SHADOW_M * scale, wanted.thick);
+        draw(this.middle, (THICK_SHADOW_M / 2) * scale, wanted.middle);
         return true;
     }
 
