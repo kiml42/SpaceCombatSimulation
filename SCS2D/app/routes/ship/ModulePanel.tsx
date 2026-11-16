@@ -359,13 +359,17 @@ export function ModulePanel({
         return own.length === 0 ? null : <SettingFigures id={`${key}Figures`} rows={own} />;
     };
     const general = (): ReadoutRow[] => rows.filter((row) => row.more === true || row.under === undefined || !placed.has(row.under));
-    // The copy just made is selected, not the one it was made from: it is the one about to be put somewhere.
+    // The copy just made is selected, not the one it was made from, and as its assembly: it is the one about to be put
+    // somewhere and turned, and a copy is moved and turned by its assembly.
     const placeCopy = (placed: { blueprint: Blueprint; path: ModulePath } | null): void => {
         if (placed === null) return;
         doc.apply(placed.blueprint);
         doc.select(placed.path);
         const drawn = doc.selectedModules();
-        if (drawn.length > 0) doc.selectModule(drawn[drawn.length - 1]!);
+        const made = drawn[drawn.length - 1];
+        const instance = instanceOf({ path: placed.path, rotation: 0, mirrored: false, instanceFrame: null });
+        if (made !== undefined && instance !== null) doc.selectAt(made, instance);
+        else if (made !== undefined) doc.selectModule(made);
         editing.endGesture();
         editing.refresh();
     };
@@ -374,7 +378,7 @@ export function ModulePanel({
         <section id="properties">
             <h2>Selected module</h2>
             {copies > 1 && (
-                <Linked id="linked">{`Shared: drawn ${copies} times. Size, facing and notes change every copy; position moves this one.`}</Linked>
+                <Linked id="linked">{`Shared: drawn ${copies} times. Changes here change every copy; select the assembly to move or turn this copy.`}</Linked>
             )}
             <Field>
                 <label htmlFor="propKind">kind</label>

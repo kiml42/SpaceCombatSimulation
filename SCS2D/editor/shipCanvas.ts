@@ -107,8 +107,9 @@ export function selectedPosition(doc: EditorDocument): ReturnType<typeof positio
         const handle = instanceHandle(doc.view.origins, assembly);
         return handle === null ? null : { origin: handle, perCopy: true };
     }
+    // A module moves itself, within its assembly where it is in one, so every copy alike.
     const origin = doc.selectedOrigin();
-    return origin === null ? null : positionHandle(doc.blueprint, origin);
+    return origin === null ? null : { origin, perCopy: false };
 }
 
 export interface ShipCanvas {

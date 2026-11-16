@@ -389,19 +389,17 @@ describe("the editor in a browser", () => {
         expect(await width()).toBe(before);
     });
 
-    it("duplicates a module into a shared part, and moves one copy at a time", async () => {
+    it("duplicates a module into a shared part, selecting the copy's assembly to move or turn", async () => {
         await openShip(page, "Corvette");
         const centre = await canvasCentre(page);
         await page.mouse.click(centre.x + 168, centre.y);
         expect(await page.inputValue("#propKind")).toBe("hullGun");
 
+        // The new copy is selected as its assembly, ready to be turned or put somewhere.
         await page.click("#propDuplicate");
-        expect(await page.textContent("#linked")).toMatch(/drawn 2 times/);
-        // The panel shows where *this copy* is, not where the shared module sits
-        // inside its assembly, which is the origin.
-        expect(await page.inputValue("#propX")).not.toBe("0");
-
-        const before = await page.inputValue("#propY");
+        expect(await page.isVisible("#assemblyAngle")).toBe(true);
+        expect(await page.isVisible("#properties")).toBe(false);
+        const before = await page.inputValue("#assemblyY");
         // The middle of the new copy rather than its edge. Where a module lands on
         // screen depends on how the camera framed the ship, which depends on the
         // canvas size, which depends on how many lines the hint below it wraps to —
@@ -411,9 +409,14 @@ describe("the editor in a browser", () => {
         await page.mouse.down();
         await page.mouse.move(centre.x + 250, centre.y - 130, { steps: 6 });
         await page.mouse.up();
-        expect(await page.inputValue("#propY")).not.toBe(before);
-        // Still two, still linked: moving a copy is not unlinking it.
+        expect(await page.inputValue("#assemblyY")).not.toBe(before);
+
+        // Clicked into, the module is the shared part, written at its assembly's origin: moving it moves every copy.
+        await page.mouse.click(centre.x + 168, centre.y);
+        await page.mouse.click(centre.x + 168, centre.y);
         expect(await page.textContent("#linked")).toMatch(/drawn 2 times/);
+        expect(await page.inputValue("#propX")).toBe("0");
+        expect(await page.inputValue("#propY")).toBe("0");
     });
 
     it("mirrors a module into a shared part, and an assembly into a reflected copy", async () => {
@@ -423,11 +426,8 @@ describe("the editor in a browser", () => {
         expect(await page.inputValue("#propKind")).toBe("hullGun");
 
         await page.click("#propMirrorCopy");
-        expect(await page.textContent("#linked")).toMatch(/drawn 2 times/);
-        // The bow gun is on the centreline, so its reflection is too.
-        expect(Number(await page.inputValue("#propY"))).toBe(0);
-
-        await page.click("#propSelectAssembly");
+        // The bow gun is on the centreline, so its reflection is too; the copy is selected as its assembly.
+        expect(Number(await page.inputValue("#assemblyY"))).toBe(0);
         const plain = await page.isChecked("#assemblyMirror");
         await page.click("#assemblyMirrorCopy");
         // The new copy is selected, reflected the other way from the one it was made from.
@@ -443,6 +443,9 @@ describe("the editor in a browser", () => {
         const centre = await canvasCentre(page);
         await page.mouse.click(centre.x, centre.y);
         await page.click("#propDuplicate");
+        // The copy's assembly is selected; the original's module is a click and another into it.
+        await page.mouse.click(centre.x, centre.y);
+        await page.mouse.click(centre.x, centre.y);
         expect(await page.textContent("#linked")).toMatch(/drawn 2 times/);
         const mass = (await page.textContent("#stats"))?.match(/[\d,.]+ t/)?.[0];
 
@@ -1280,7 +1283,6 @@ describe("the editor in a browser", () => {
         await page.click("#newShip");
         await addModule(page, "structure");
         await page.click("#propDuplicate");
-        await page.click("#propSelectAssembly");
         expect(await page.inputValue("#assemblyAngle")).toBe("0");
         const x = await page.inputValue("#assemblyX");
         const y = await page.inputValue("#assemblyY");
@@ -1409,7 +1411,6 @@ describe("the editor in a browser", () => {
         // row, and then selected as the assembly rather than as the module.
         await page.mouse.click(centre.x, centre.y);
         await page.click("#propDuplicate");
-        await page.click("#propSelectAssembly");
         expect(await page.inputValue("#assemblyRepeat")).toBe("1");
         // A step means nothing with one copy, so its boxes are not offered.
         expect(await page.isHidden("#assemblyStepRow")).toBe(true);
