@@ -202,6 +202,11 @@ function weaponRows(gun: ModuleReadout["gun"], rounds: number | null): ReadoutRo
 const THICK_TITLE =
     "As deep as it is across, rather than a deck. Stands up into the weapons layer: cover for turrets and in their arcs, and in their reach. A bigger barrel or nozzle, and heavier walls. Structure of any width may be marked, and stands as high as the deepest module it is welded to.";
 
+export interface ModuleFolds {
+    readonly settings: boolean;
+    readonly figures: boolean;
+}
+
 export interface ModulePanelProps {
     readonly editing: ShipEditing;
     readonly spec: ModuleSpec;
@@ -210,6 +215,9 @@ export interface ModulePanelProps {
     readonly envelope: Envelopes | null;
     readonly doctrineOpen: DoctrineOpen;
     readonly onDoctrineOpen: (open: DoctrineOpen) => void;
+    /** Which of its More sections are open, kept by the page so the next module picked opens as this one was left. */
+    readonly folds: ModuleFolds;
+    readonly onFolds: (folds: ModuleFolds) => void;
     readonly onDelete: () => void;
 }
 
@@ -223,7 +231,18 @@ const CORE_SHARE_TITLES = [
     "How much of the core's room is a battery.",
 ] as const;
 
-export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrineOpen, onDoctrineOpen, onDelete }: ModulePanelProps) {
+export function ModulePanel({
+    editing,
+    spec,
+    library,
+    inFleet,
+    envelope,
+    doctrineOpen,
+    onDoctrineOpen,
+    folds,
+    onFolds,
+    onDelete,
+}: ModulePanelProps) {
     const { doc } = editing;
     const path = doc.selection;
     const copies = doc.selectedModules().length;
@@ -493,68 +512,6 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                     {notes("traverse")}
                 </>
             )}
-            {readsTurning(spec.kind) && (
-                <>
-                    <Field id="turningRow">
-                        <label htmlFor="propTurning">turning gear %</label>
-                        {box(
-                            "turning",
-                            {
-                                step: 5,
-                                min: 1,
-                                max: MAX_TURNING * 100,
-                                title: `How much of the turret is turning gear, the ring and drive that swing it, per cent of the rest of it. More swings it faster and weighs what it is, and takes room from the loading gear, so a gun reloads slower and a beam holds on for less. ${TRAVERSE_GEAR_FRACTION * 100} by default.`,
-                            },
-                            (percent) => share("turning", percent, TRAVERSE_GEAR_FRACTION, 1, MAX_TURNING * 100),
-                        )}
-                    </Field>
-                    {notes("turning")}
-                </>
-            )}
-            {readsFuse(spec.kind) && (
-                <Shell id="shellRow">
-                    <legend>shell</legend>
-                    <Field>
-                        <label htmlFor="propFragments">fragments</label>
-                        {box(
-                            "fragments",
-                            {
-                                step: 1,
-                                min: 0,
-                                max: 64,
-                                title: "How many fragments the round bursts into. Fragments meet every module, deck included, which is how a turret reaches a hull. One or fewer fires solid shot: all metal, never bursting.",
-                            },
-                            (fragments) => patch({ fragments }),
-                        )}
-                    </Field>
-                    <Field>
-                        <label htmlFor="propBurstSpeed">burst m/s</label>
-                        {box(
-                            "burstSpeed",
-                            {
-                                step: 10,
-                                min: 1,
-                                disabled: !shells,
-                                title: "How fast the fragments leave the burst. Faster spreads them wider, and needs more of the shell to be charge, so a lighter shell that leaves the barrel faster.",
-                            },
-                            (burstSpeed) => patch({ burstSpeed }),
-                        )}
-                    </Field>
-                    <Field>
-                        <label htmlFor="propFuse">fuse s</label>
-                        {box(
-                            "fuse",
-                            {
-                                step: 0.05,
-                                min: 0,
-                                disabled: !shells,
-                                title: "How long before its round would reach what it is aimed at it bursts, seconds. Longer spreads the fragments wider and thinner. Zero bursts at the aim point, which still counts on a miss or on what is behind the target.",
-                            },
-                            (fuse) => patch({ fuse }),
-                        )}
-                    </Field>
-                </Shell>
-            )}
             {/* Only an engine has a plume to point. */}
             {spec.kind === "engine" && (
                 <>
@@ -630,18 +587,6 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                     {notes("magnetic")}
                 </>
             )}
-            {readsReady(spec.kind) && (
-                <Field id="readyRow">
-                    <label htmlFor="propReady">keep charged</label>
-                    <input
-                        id="propReady"
-                        type="checkbox"
-                        title="Kept charged and ready to fire the moment it bears, leaking a tenth of a pulse's power and fuel a second while it waits. Unticked, it charges only once it is on target, and may lose the target before it is ready."
-                        checked={spec.ready === true}
-                        onChange={(event) => flag("ready", event.target.checked)}
-                    />
-                </Field>
-            )}
             {readsThick(spec.kind) && (
                 <>
                     <Field id="thickRow">
@@ -666,54 +611,6 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                     {notes("thick")}
                 </>
             )}
-            {readsSealing(spec.kind) && (
-                <>
-                    <Field id="sealingRow">
-                        <label htmlFor="propSealing">sealing mm</label>
-                        {box(
-                            "sealing",
-                            {
-                                step: 5,
-                                min: 0,
-                                title: "How thick a self-sealing lining is inside the walls, millimetres. Thicker closes a hole faster, and closes wider ones; a hole wider than it can reach shrinks but stays open. It weighs, and takes room from the fuel. Zero never seals.",
-                            },
-                            (millimetres) => patch({ sealing: millimetres / 1000 }),
-                        )}
-                    </Field>
-                    {notes("sealing")}
-                </>
-            )}
-            {readsPriority(spec.kind) && (
-                <Field id="priorityRow">
-                    <label htmlFor="propPriority">priority</label>
-                    {box(
-                        "priority",
-                        {
-                            step: 1,
-                            title: `How soon this part gets its ship's fuel, metal and charge when there is not enough to go round, and how soon it is mended: a higher number is served in full before a lower one gets any, and parts of the same number split what is left by what each wants. ${defaultPriority(spec.kind)} by default for this kind.`,
-                        },
-                        (priority) =>
-                            update((placement) => {
-                                const { priority: _, ...rest } = placement as ModuleSpec;
-                                const whole = Math.round(priority);
-                                return (whole === defaultPriority(spec.kind) ? rest : { ...rest, priority: whole }) as Placement;
-                            }, true),
-                    )}
-                </Field>
-            )}
-            {readsDrainPriority(spec.kind) && (
-                <Field id="drainPriorityRow">
-                    <label htmlFor="propDrainPriority">drain priority</label>
-                    {box(
-                        "drainPriority",
-                        {
-                            step: 1,
-                            title: "Which tanks an engine burns from first: the highest priority it is connected to, then the next once those are dry. Tanks of the same priority drain together. Zero by default.",
-                        },
-                        (drainPriority) => patch({ drainPriority }),
-                    )}
-                </Field>
-            )}
             {readsFill(spec.kind) && (
                 <>
                     <Field id="fillRow">
@@ -733,99 +630,225 @@ export function ModulePanel({ editing, spec, library, inFleet, envelope, doctrin
                     {notes("fill")}
                 </>
             )}
-            {readsComputing(spec.kind) && (
-                <Field id="computingRow">
-                    <label htmlFor="propComputing">computing %</label>
-                    {box(
-                        "computing",
-                        {
-                            step: 5,
-                            min: 0,
-                            max: 100,
-                            title: "How much of the core computes rather than holding fuel, metal and charge, per cent. More reaches modules further away; the circle it reaches is drawn round it. A core of 0.5 m³ or less is all computing. 10 by default.",
-                        },
-                        (percent) => share("computing", percent, CORE_COMPUTING_SHARE),
-                    )}
-                </Field>
-            )}
-            {readsComputing(spec.kind) &&
-                CORE_SHARE_KEYS.map((key, k) => (
-                    <Fragment key={key}>
-                        <Field id={`${key}Row`}>
-                            <label htmlFor={`prop${key[0]!.toUpperCase()}${key.slice(1)}`}>{CORE_SHARE_LABELS[k]}</label>
-                            {box(
-                                key,
-                                {
-                                    step: 0.05,
-                                    min: 0,
-                                    disabled: spec[key] === undefined,
-                                    title: `${CORE_SHARE_TITLES[k]} A weight against the core's other stores, scaled to fill its room past its computing; 0 leaves it out, and the core is simpler for it. Untick auto to set it.`,
-                                },
-                                (value) => storeShare(key, Math.max(0, value)),
-                            )}
-                            <label>
-                                <input
-                                    type="checkbox"
-                                    title="Stepped in by default once the core has room for a useful amount, in order: fuel, then a hold, a generator and a battery."
-                                    checked={spec[key] === undefined}
-                                    onChange={(event) => storeShare(key, event.target.checked ? undefined : CORE_SHARE_DEFAULTS[k]!)}
-                                />
-                                auto
-                            </label>
-                        </Field>
-                        {notes(key)}
-                    </Fragment>
-                ))}
-            {readsRobotsPerBerth(spec.kind) && (
-                <>
-                    <Field id="robotsPerBerthRow">
-                        <label htmlFor="propRobotsPerBerth">robots per berth</label>
-                        {box(
-                            "robotsPerBerth",
-                            {
-                                step: 0.5,
-                                min: 1,
-                                title: "How many robots it keeps for each berth while its ship is moored to a rock. The extra work the rock and wait there for a berth to come home to, and are left on it when the ship casts off, for this ship or a friend to take aboard later. 1 by default.",
-                            },
-                            (value) =>
-                                update((placement) => {
-                                    const { robotsPerBerth: _, ...rest } = placement as ModuleSpec;
-                                    const per = Math.max(1, value);
-                                    // One to a berth is what a bay keeps when nothing says otherwise, so it is left unsaid.
-                                    return (per > 1 ? { ...rest, robotsPerBerth: per } : rest) as Placement;
-                                }, true),
-                        )}
-                    </Field>
-                    {notes("robotsPerBerth")}
-                </>
-            )}
             {readsCraft(spec.kind) && (
                 <CraftRows editing={editing} spec={spec} library={library} inFleet={inFleet} flag={flag} update={update} />
             )}
-            <Field>
-                <label htmlFor="propNotes">notes</label>
-                <LiveText
-                    id="propNotes"
-                    multiline
-                    placeholder="why this module is here"
-                    value={spec.notes ?? ""}
-                    onStart={editing.endGesture}
-                    onDone={editing.endGesture}
-                    onType={(typed) => {
-                        const text = typed.trim();
-                        update((placement) => {
-                            const next = { ...placement };
-                            if (text === "") delete next.notes;
-                            else next.notes = text;
-                            return next;
-                        }, true);
-                    }}
-                />
-            </Field>
+            {/* What tunes it rather than what it is: folded away, open or shut as it was left for the last module. */}
+            <More id="settingsMore" open={folds.settings} onToggle={(event) => onFolds({ ...folds, settings: event.currentTarget.open })}>
+                <summary>More settings</summary>
+                {readsTurning(spec.kind) && (
+                    <>
+                        <Field id="turningRow">
+                            <label htmlFor="propTurning">turning gear %</label>
+                            {box(
+                                "turning",
+                                {
+                                    step: 5,
+                                    min: 1,
+                                    max: MAX_TURNING * 100,
+                                    title: `How much of the turret is turning gear, the ring and drive that swing it, per cent of the rest of it. More swings it faster and weighs what it is, and takes room from the loading gear, so a gun reloads slower and a beam holds on for less. ${TRAVERSE_GEAR_FRACTION * 100} by default.`,
+                                },
+                                (percent) => share("turning", percent, TRAVERSE_GEAR_FRACTION, 1, MAX_TURNING * 100),
+                            )}
+                        </Field>
+                        {notes("turning")}
+                    </>
+                )}
+                {readsFuse(spec.kind) && (
+                    <Shell id="shellRow">
+                        <legend>shell</legend>
+                        <Field>
+                            <label htmlFor="propFragments">fragments</label>
+                            {box(
+                                "fragments",
+                                {
+                                    step: 1,
+                                    min: 0,
+                                    max: 64,
+                                    title: "How many fragments the round bursts into. Fragments meet every module, deck included, which is how a turret reaches a hull. One or fewer fires solid shot: all metal, never bursting.",
+                                },
+                                (fragments) => patch({ fragments }),
+                            )}
+                        </Field>
+                        <Field>
+                            <label htmlFor="propBurstSpeed">burst m/s</label>
+                            {box(
+                                "burstSpeed",
+                                {
+                                    step: 10,
+                                    min: 1,
+                                    disabled: !shells,
+                                    title: "How fast the fragments leave the burst. Faster spreads them wider, and needs more of the shell to be charge, so a lighter shell that leaves the barrel faster.",
+                                },
+                                (burstSpeed) => patch({ burstSpeed }),
+                            )}
+                        </Field>
+                        <Field>
+                            <label htmlFor="propFuse">fuse s</label>
+                            {box(
+                                "fuse",
+                                {
+                                    step: 0.05,
+                                    min: 0,
+                                    disabled: !shells,
+                                    title: "How long before its round would reach what it is aimed at it bursts, seconds. Longer spreads the fragments wider and thinner. Zero bursts at the aim point, which still counts on a miss or on what is behind the target.",
+                                },
+                                (fuse) => patch({ fuse }),
+                            )}
+                        </Field>
+                    </Shell>
+                )}
+                {readsReady(spec.kind) && (
+                    <Field id="readyRow">
+                        <label htmlFor="propReady">keep charged</label>
+                        <input
+                            id="propReady"
+                            type="checkbox"
+                            title="Kept charged and ready to fire the moment it bears, leaking a tenth of a pulse's power and fuel a second while it waits. Unticked, it charges only once it is on target, and may lose the target before it is ready."
+                            checked={spec.ready === true}
+                            onChange={(event) => flag("ready", event.target.checked)}
+                        />
+                    </Field>
+                )}
+                {readsSealing(spec.kind) && (
+                    <>
+                        <Field id="sealingRow">
+                            <label htmlFor="propSealing">sealing mm</label>
+                            {box(
+                                "sealing",
+                                {
+                                    step: 5,
+                                    min: 0,
+                                    title: "How thick a self-sealing lining is inside the walls, millimetres. Thicker closes a hole faster, and closes wider ones; a hole wider than it can reach shrinks but stays open. It weighs, and takes room from the fuel. Zero never seals.",
+                                },
+                                (millimetres) => patch({ sealing: millimetres / 1000 }),
+                            )}
+                        </Field>
+                        {notes("sealing")}
+                    </>
+                )}
+                {readsPriority(spec.kind) && (
+                    <Field id="priorityRow">
+                        <label htmlFor="propPriority">priority</label>
+                        {box(
+                            "priority",
+                            {
+                                step: 1,
+                                title: `How soon this part gets its ship's fuel, metal and charge when there is not enough to go round, and how soon it is mended: a higher number is served in full before a lower one gets any, and parts of the same number split what is left by what each wants. ${defaultPriority(spec.kind)} by default for this kind.`,
+                            },
+                            (priority) =>
+                                update((placement) => {
+                                    const { priority: _, ...rest } = placement as ModuleSpec;
+                                    const whole = Math.round(priority);
+                                    return (whole === defaultPriority(spec.kind) ? rest : { ...rest, priority: whole }) as Placement;
+                                }, true),
+                        )}
+                    </Field>
+                )}
+                {readsDrainPriority(spec.kind) && (
+                    <Field id="drainPriorityRow">
+                        <label htmlFor="propDrainPriority">drain priority</label>
+                        {box(
+                            "drainPriority",
+                            {
+                                step: 1,
+                                title: "Which tanks an engine burns from first: the highest priority it is connected to, then the next once those are dry. Tanks of the same priority drain together. Zero by default.",
+                            },
+                            (drainPriority) => patch({ drainPriority }),
+                        )}
+                    </Field>
+                )}
+                {readsComputing(spec.kind) && (
+                    <Field id="computingRow">
+                        <label htmlFor="propComputing">computing %</label>
+                        {box(
+                            "computing",
+                            {
+                                step: 5,
+                                min: 0,
+                                max: 100,
+                                title: "How much of the core computes rather than holding fuel, metal and charge, per cent. More reaches modules further away; the circle it reaches is drawn round it. A core of 0.5 m³ or less is all computing. 10 by default.",
+                            },
+                            (percent) => share("computing", percent, CORE_COMPUTING_SHARE),
+                        )}
+                    </Field>
+                )}
+                {readsComputing(spec.kind) &&
+                    CORE_SHARE_KEYS.map((key, k) => (
+                        <Fragment key={key}>
+                            <Field id={`${key}Row`}>
+                                <label htmlFor={`prop${key[0]!.toUpperCase()}${key.slice(1)}`}>{CORE_SHARE_LABELS[k]}</label>
+                                {box(
+                                    key,
+                                    {
+                                        step: 0.05,
+                                        min: 0,
+                                        disabled: spec[key] === undefined,
+                                        title: `${CORE_SHARE_TITLES[k]} A weight against the core's other stores, scaled to fill its room past its computing; 0 leaves it out, and the core is simpler for it. Untick auto to set it.`,
+                                    },
+                                    (value) => storeShare(key, Math.max(0, value)),
+                                )}
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        title="Stepped in by default once the core has room for a useful amount, in order: fuel, then a hold, a generator and a battery."
+                                        checked={spec[key] === undefined}
+                                        onChange={(event) => storeShare(key, event.target.checked ? undefined : CORE_SHARE_DEFAULTS[k]!)}
+                                    />
+                                    auto
+                                </label>
+                            </Field>
+                            {notes(key)}
+                        </Fragment>
+                    ))}
+                {readsRobotsPerBerth(spec.kind) && (
+                    <>
+                        <Field id="robotsPerBerthRow">
+                            <label htmlFor="propRobotsPerBerth">robots per berth</label>
+                            {box(
+                                "robotsPerBerth",
+                                {
+                                    step: 0.5,
+                                    min: 1,
+                                    title: "How many robots it keeps for each berth while its ship is moored to a rock. The extra work the rock and wait there for a berth to come home to, and are left on it when the ship casts off, for this ship or a friend to take aboard later. 1 by default.",
+                                },
+                                (value) =>
+                                    update((placement) => {
+                                        const { robotsPerBerth: _, ...rest } = placement as ModuleSpec;
+                                        const per = Math.max(1, value);
+                                        // One to a berth is what a bay keeps when nothing says otherwise, so it is left unsaid.
+                                        return (per > 1 ? { ...rest, robotsPerBerth: per } : rest) as Placement;
+                                    }, true),
+                            )}
+                        </Field>
+                        {notes("robotsPerBerth")}
+                    </>
+                )}
+                <Field>
+                    <label htmlFor="propNotes">notes</label>
+                    <LiveText
+                        id="propNotes"
+                        multiline
+                        placeholder="why this module is here"
+                        value={spec.notes ?? ""}
+                        onStart={editing.endGesture}
+                        onDone={editing.endGesture}
+                        onType={(typed) => {
+                            const text = typed.trim();
+                            update((placement) => {
+                                const next = { ...placement };
+                                if (text === "") delete next.notes;
+                                else next.notes = text;
+                                return next;
+                            }, true);
+                        }}
+                    />
+                </Field>
+            </More>
             <Stats id="moduleStats">
                 <FigureRows rows={general().filter((row) => row.more !== true)} />
-                <More id="moduleMore">
-                    <summary>More</summary>
+                <More id="moduleMore" open={folds.figures} onToggle={(event) => onFolds({ ...folds, figures: event.currentTarget.open })}>
+                    <summary>More figures</summary>
                     <FigureRows rows={general().filter((row) => row.more === true)} />
                 </More>
             </Stats>

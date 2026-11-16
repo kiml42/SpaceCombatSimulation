@@ -556,6 +556,9 @@ describe("the editor in a browser", () => {
     it("offers a shell on a gun and not on a beam", async () => {
         await fromMenu(page, "#newShip");
         await addModule(page, "turret");
+        // A shell's settings tune it, so they are under More settings.
+        expect(await page.isVisible("#shellRow")).toBe(false);
+        await page.click("#settingsMore > summary");
         expect(await page.isVisible("#shellRow")).toBe(true);
         expect(Number(await page.inputValue("#propFuse"))).toBeCloseTo(0.02, 9);
         expect(Number(await page.inputValue("#propFragments"))).toBe(8);
@@ -565,6 +568,8 @@ describe("the editor in a browser", () => {
         expect(await page.isDisabled("#propFuse")).toBe(true);
         expect(await page.isDisabled("#propBurstSpeed")).toBe(true);
         await addModule(page, "beamTurret");
+        // Left open for the next module picked.
+        expect(await page.locator("#settingsMore").getAttribute("open")).not.toBeNull();
         expect(await page.isVisible("#shellRow")).toBe(false);
     });
 
