@@ -106,7 +106,7 @@ Keep these working — they are the cold-start re-entry path:
   and `ui/`, imports flow one way, app → features → ui, and `ui/` imports nothing above it; a boundary error
   means the file is in the wrong layer, so move it rather than disable the rule. There, import across folders
   through `~/`, and no barrel `index.ts` files
-- `pnpm golden` — after a *deliberate* behaviour change, write the new golden checksums into `tests/golden.test.ts`,
+- `pnpm golden` — after a *deliberate* behaviour change, write the new golden checksums into `tests/golden.ts`,
   with each battle's outcome and time per step as the baseline the next run is reported against; `pnpm golden
   <scenario> …` for only those
 - `pnpm evolve` — fight a headless evolution run and write it to `runs/`, rewritten after every generation; `--from <stock ships or blueprint files>`, `--fleet <stock fleet

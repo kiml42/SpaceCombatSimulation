@@ -184,7 +184,7 @@ describe("the platform subset", () => {
     const HOST = /from "node:(fs|path|os|child_process)"|process\.platform/;
 
     it("runs the golden checksums", () => {
-        expect(script).toContain("tests/golden.test.ts");
+        expect(script).toMatch(/tests\/golden /);
     });
 
     it("runs every test that touches the host", () => {

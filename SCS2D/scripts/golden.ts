@@ -1,5 +1,5 @@
 /**
- * Runs the golden scenarios and writes their checksums into tests/golden.test.ts.
+ * Runs the golden scenarios and writes their checksums into tests/golden.ts.
  *
  *   pnpm golden               every scenario
  *   pnpm golden split duel    only those
@@ -18,8 +18,8 @@ import { fileURLToPath } from "node:url";
 import { formatChecksum } from "../sim/checksum.js";
 import { SCENARIOS, type ScenarioName } from "../tests/fixtures/scenarios.js";
 
-const FILE = fileURLToPath(new URL("../tests/golden.test.ts", import.meta.url));
-const OPEN = "const GOLDEN: Record<ScenarioName, string> = {\n";
+const FILE = fileURLToPath(new URL("../tests/golden.ts", import.meta.url));
+const OPEN = "export const GOLDEN: Record<ScenarioName, string> = {\n";
 const CLOSE = "\n};";
 
 interface Entry {
@@ -30,7 +30,7 @@ interface Entry {
     perStep?: number | undefined;
 }
 
-/** What tests/golden.test.ts records now, by scenario. */
+/** What tests/golden.ts records now, by scenario. */
 function recorded(source: string): Map<string, Entry> {
     const start = source.indexOf(OPEN);
     const end = source.indexOf(CLOSE, start);
