@@ -307,6 +307,7 @@ export function ModulePanel({
     const position = (key: "x" | "y") => (
         <LiveNumber
             id={key === "x" ? "propX" : "propY"}
+            aria-label={`position ${key}`}
             value={positioned === null ? 0 : positioned[key]}
             step={step}
             onStart={editing.endGesture}
