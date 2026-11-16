@@ -98,7 +98,7 @@ import { stripsFor, stripTileAt, stripTileUnder, type StripColumn, type StripShi
 import { fighterColours, markerOf, NEUTRAL, shipColours, teamLivery, teamName } from "./teams.js";
 import { RESOURCE_COLOURS } from "./resources.js";
 import { patternColour, patternTile, patternTransform, tileKey } from "./livery.js";
-import { SOOT, SOOT_ALPHA, wearLevel, wearSeed, wearTile, wearTransform } from "./wear.js";
+import { SOOT, SOOT_ALPHA, turretWearLie, turretWearTransform, wearLevel, wearSeed, wearShows, wearTile, wearTransform } from "./wear.js";
 
 export { teamColour } from "./teams.js";
 import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth, plumeAlpha, tracerAlpha } from "./strokes.js";
@@ -665,6 +665,7 @@ function drawShip(
             });
             // Drawn over the hull's lit fill, so taking all its light: outside the picture, which is kept.
             rounded?.dome(ctx.getTransform(), 0, 0, face * 0.5, rgba(mountColour), 0, turretLevel(ship));
+            if (wearShows(design.radius, metresToPx)) wearDome(ctx, ship, module, bearing, face * 0.5);
             ctx.restore();
         } else if (beamLenses) {
             // Each lens on a disc of its own that it turns on, as wide as the lens
@@ -2012,9 +2013,6 @@ function fillModule(ctx: CanvasRenderingContext2D, ship: ShipView, i: number): v
         ctx.strokeRect(mark.x, mark.y, mark.width, mark.height);
     }
     if (!burnt && wear === null) return;
-    const soot = `${SOOT}${Math.round(SOOT_ALPHA * 255)
-        .toString(16)
-        .padStart(2, "0")}`;
     for (const fill of fills) {
         const points = fill.points;
         ctx.beginPath();
@@ -2022,7 +2020,7 @@ function fillModule(ctx: CanvasRenderingContext2D, ship: ShipView, i: number): v
         for (let v = 2; v < points.length; v += 2) ctx.lineTo(points[v]!, points[v + 1]!);
         ctx.closePath();
         if (burnt) {
-            ctx.fillStyle = soot;
+            ctx.fillStyle = SOOT_FILL;
             ctx.fill();
         }
         if (wear !== null) {
@@ -2030,6 +2028,40 @@ function fillModule(ctx: CanvasRenderingContext2D, ship: ShipView, i: number): v
             ctx.fill();
         }
     }
+}
+
+const SOOT_FILL = `${SOOT}${Math.round(SOOT_ALPHA * 255)
+    .toString(16)
+    .padStart(2, "0")}`;
+
+/**
+ * A turret's dome worn as its module is, and sooted if it is destroyed: in
+ * its own turned frame, at the pivot, so the wear turns with it.
+ */
+function wearDome(ctx: CanvasRenderingContext2D, ship: ShipView, module: number, bearing: number, radius: number): void {
+    const design = ship.currentStructure;
+    const integrity = ship.integrity?.[module] ?? 1;
+    const level = wearLevel(integrity);
+    if (level === 0) return;
+    const tile = wearTile(level);
+    if (tile === null) return;
+    const burnt = integrity <= 0;
+    const built = originOf(design, module).design.radius;
+    const lie = turretWearLie(design, module, wearSeed(ship));
+    ctx.rotate(bearing);
+    keep(ctx, `dome wear ${radius} ${built} ${level} ${burnt} ${lie}`, () => {
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, TAU);
+        if (burnt) {
+            ctx.fillStyle = SOOT_FILL;
+            ctx.fill();
+        }
+        const pattern = ctx.createPattern(tile as HTMLCanvasElement, "repeat");
+        if (pattern === null) return;
+        pattern.setTransform(turretWearTransform(built, lie));
+        ctx.fillStyle = pattern;
+        ctx.fill();
+    });
 }
 
 /** Wear `level` laid on module `i` (`render/wear.ts`), or null for none. */
