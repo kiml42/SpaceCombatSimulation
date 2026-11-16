@@ -47,6 +47,7 @@ import {
     overLimit,
     parseSkirmish,
     parseSkirmishSettings,
+    playerLimits,
     roundBattle,
     roundSetup,
     settingsOf,
@@ -146,6 +147,18 @@ const Decided = styled.div`
     span {
         color: var(--colour-muted);
     }
+`;
+
+/** A button's label with what to fix under it. */
+const Labelled = styled.span`
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+`;
+
+const Fix = styled.span`
+    font-size: var(--font-size-small);
+    font-weight: normal;
 `;
 
 const NotReady = styled.div`
@@ -324,6 +337,14 @@ const SideStats = styled.div`
 type Mode = "round" | "watching" | "answer" | "replay";
 
 /** The enemy where it will stand, in its colour, with nobody yet on the other side. */
+/** The things a skirmish's fleet is over budget on, as "metal and build". */
+function overBudget(skirmish: Skirmish): string {
+    const bill = billOfFleet(skirmish.player);
+    const budget = playerLimits(skirmish).budget;
+    const over = (["metal", "fuel", "build"] as const).filter((what) => bill[what] > budget[what]);
+    return over.length < 2 ? (over[0] ?? "budget") : `${over.slice(0, -1).join(", ")} and ${over.at(-1)}`;
+}
+
 function enemyAlone(enemy: Fleet): CustomBattle {
     return customBattle({ ...DEFAULT_SETUP, fleets: [{ name: "", designs: {}, ships: [] }, enemy] });
 }
@@ -456,10 +477,10 @@ export function SkirmishPage() {
         battle.current = roundOn(roundBattle(current.player, current.enemy, current.won, settingsOf(current)), settingsOf(current).light);
         if (current.ways !== undefined) {
             setOutcome({ text: "Round won. Pick where the next round is fought.", kind: "won" });
-            setEnemyLine(`Against ${current.enemy.name}.`);
+            setEnemyLine(current.enemy.name);
         } else {
             setOutcome({ text: "The enemy as it stands against your fleet, evolving an answer.", kind: "" });
-            setEnemyLine(`Against ${current.enemy.name}, evolving.`);
+            setEnemyLine(`${current.enemy.name}, evolving`);
         }
         setFightable(true);
         showOn(on, battle.current, watching);
@@ -473,7 +494,7 @@ export function SkirmishPage() {
         activity.current = newActivity();
         battle.current = roundOn(roundBattle(current.player, now.best, current.won, settingsOf(current)), settingsOf(current).light);
         setOutcome({ text: `Generation ${now.generation}'s best enemy against your fleet.`, kind: "" });
-        setEnemyLine(`Against ${now.best.name}, evolving.`);
+        setEnemyLine(`${now.best.name}, evolving`);
         setFightable(true);
         showOn(view, battle.current, true);
     };
@@ -485,7 +506,7 @@ export function SkirmishPage() {
         activity.current = newActivity();
         battle.current = roundOn(roundBattle(current.player, enemy, current.won, settingsOf(current)), settingsOf(current).light);
         setOutcome({ text: "The enemy's answer.", kind: "lost" });
-        setEnemyLine(`Against ${enemy.name}, the answer.`);
+        setEnemyLine(`${enemy.name}, the answer`);
         setFightable(true);
         showOn(view, battle.current, true);
     };
@@ -757,6 +778,19 @@ export function SkirmishPage() {
     const fault = skirmish === null ? null : fleetFault(skirmish.player);
     const fits = skirmish !== null && canFight(skirmish);
     const limit = skirmish === null || fault !== null ? null : overLimit(skirmish);
+    // What to fix in your fleet, in a few words for the Edit fleet button.
+    const fix =
+        skirmish === null || fits
+            ? null
+            : skirmish.hand !== undefined
+              ? "pick an upgrade card"
+              : skirmish.player.ships.length === 0
+                ? "add some ships"
+                : fault !== null
+                  ? "a design won't fly"
+                  : limit !== null
+                    ? limit
+                    : `over budget on ${overBudget(skirmish)}`;
     // Why your fleet cannot fight the round, if it cannot.
     const fleetProblem =
         skirmish === null || fits
@@ -958,14 +992,15 @@ export function SkirmishPage() {
                             <h2 id="roundTitle">
                                 {`Round ${skirmish.round}` + (skirmish.tries > 0 ? ` · try ${skirmish.tries + 1}` : "")}
                             </h2>
-                            <p id="enemyName">{enemyLine ?? `Against ${skirmish.enemy.name}.`}</p>
+                            <h2>Enemy</h2>
+                            <p id="enemyName">{enemyLine ?? skirmish.enemy.name}</p>
                             <CardHand
                                 id="enemyCards"
                                 ids={skirmish.enemyCards ?? []}
                                 caption="The enemy's upgrade cards:"
                                 empty="The enemy holds no upgrade cards yet."
                             />
-                            <h2>Your fleet</h2>
+                            <h2>You</h2>
                             <p id="playerName">{skirmish.player.name}</p>
                             <BudgetTable id="budget" skirmish={skirmish} />
                             <CardHand
@@ -974,7 +1009,6 @@ export function SkirmishPage() {
                                 caption="Your upgrade cards:"
                                 empty="You hold no upgrade cards yet."
                             />
-                            <Muted id="fleetNote">{fleetProblem ?? ""}</Muted>
                             {!answeringNow && (
                                 <Buttons>
                                     {!roundOver && (
@@ -999,7 +1033,10 @@ export function SkirmishPage() {
                                             void navigate(fleetRoute(skirmish.player, skirmish));
                                         }}
                                     >
-                                        Edit fleet
+                                        <Labelled>
+                                            Edit fleet
+                                            {fix !== null && <Fix id="editFleetWhy">{fix}</Fix>}
+                                        </Labelled>
                                     </EditLink>
                                     {started && (
                                         <Button
