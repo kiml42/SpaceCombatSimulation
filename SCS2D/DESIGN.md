@@ -1643,9 +1643,10 @@ Rules:
   Whether to commit is a doctrine choice: to ram, or (not yet built) to dock on another ship's side.
 
   **A strike craft is a ship flagged as a fighter.** The flag rules
-  out turrets and thick modules, which is what keeps a craft small enough to skim a deck, and puts the
-  ship in the weapons layer for the battle. A ship that evolves either one flies as an ordinary ship, its
-  flag ignored. It commits when it rams, by its doctrine's decision or by a ram order, but not until it is
+  out turrets and thick modules, which is what keeps a craft small enough to skim a deck, and a
+  mothership's modules — a robot bay, claw, pad, port or slipway — whose work it leaves to the pad it comes
+  home to; and puts the ship in the weapons layer for the battle. A ship that evolves any of them flies as
+  an ordinary ship, its flag ignored. It commits when it rams, by its doctrine's decision or by a ram order, but not until it is
   due to strike within `approach.ramCommit` seconds (two by default): until then it flies the ram in the
   weapons layer, over the hulls in its way, and goes back to it if it misses. Any ship's doctrine
   can decide to ram: `approach.ramRadii` is how close its target's edge has to be, in the target's own

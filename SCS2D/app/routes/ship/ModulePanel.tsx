@@ -54,6 +54,7 @@ import {
     type ModulePath,
     type ModuleSpec,
     type Placement,
+    fighterBarred,
 } from "~/sim/index";
 import { Button } from "~/ui/buttons/Button";
 import { LiveNumber, LiveText } from "~/ui/fields/LiveText";
@@ -387,7 +388,7 @@ export function ModulePanel({
                     }}
                 >
                     {MODULE_KINDS.map((kind) => (
-                        <option key={kind} value={kind} disabled={fighter && (kind === "turret" || kind === "beamTurret")}>
+                        <option key={kind} value={kind} disabled={fighter && fighterBarred(kind) !== null}>
                             {kindName(kind)}
                         </option>
                     ))}
