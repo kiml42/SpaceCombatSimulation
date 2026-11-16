@@ -69,6 +69,13 @@ async function advanced(): Promise<void> {
 }
 
 /** Start the skirmish set up, which goes to the fleet editor, and come back to its round with this ship for a fleet. */
+/** Give the skirmish up for a new one, from the menu. */
+async function giveUp(): Promise<void> {
+    await page.click("#menuButton");
+    await page.click("#menuNewSkirmish");
+    await page.click("#abandonConfirm");
+}
+
 async function startWith(ship: Blueprint): Promise<void> {
     await page.click("#start");
     await page.waitForURL(/#\/fleet/);
@@ -117,8 +124,7 @@ describe("the skirmish in a browser", () => {
             expect(await page.getAttribute("#editFleet", "data-variant")).toBe("primary");
             expect(await page.textContent("#fleetNote")).toContain("over budget");
             expect(await page.locator("#budget tr.over").count()).toBeGreaterThan(0);
-            await page.click("#abandon");
-            await page.click("#abandonConfirm");
+            await giveUp();
             expect(await page.isVisible("#setupScreen")).toBe(true);
         }));
 
@@ -132,8 +138,7 @@ describe("the skirmish in a browser", () => {
             expect(await page.isDisabled("#play")).toBe(false);
             const kept = await page.evaluate(() => JSON.parse(window.localStorage.getItem("scs2d.skirmish")!));
             expect(kept.budget.metal).toBe(100_000_000);
-            await page.click("#abandon");
-            await page.click("#abandonConfirm");
+            await giveUp();
             await advanced();
             // A box set by hand stays when the enemy changes; one left alone follows it.
             await page.fill("#metalBudget", "1");
@@ -171,8 +176,7 @@ describe("the skirmish in a browser", () => {
             expect(kept.settings.maxShips).toBe(5);
             expect(kept.settings.gapSpread).toBe(1000);
             // Remembered for the next one, until a preset puts them back.
-            await page.click("#abandon");
-            await page.click("#abandonConfirm");
+            await giveUp();
             await advanced();
             expect(await page.inputValue("#quietTime")).toBe("45");
             expect(await page.inputValue("#battlefieldPreset")).toBe("");
@@ -419,8 +423,7 @@ describe("the skirmish in a browser", () => {
         expect((await savingNamed).suggestedFilename()).toBe("Bare-core-test-round-1.skirmish.json");
 
         // And read back after giving the skirmish up, it is the same round with the same history.
-        await page.click("#abandon");
-        await page.click("#abandonConfirm");
+        await giveUp();
         await page.waitForSelector("#round", { state: "hidden" });
         await page.setInputFiles("#importSkirmishFile", await download.path());
         await page.waitForSelector("#round");
