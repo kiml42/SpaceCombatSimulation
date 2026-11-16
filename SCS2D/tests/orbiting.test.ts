@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { wellPull } from "../sim/index.js";
+import { escortBand } from "../sim/shipDecide.js";
 import { ORBITING_VARIANTS, orbiting, type Orbiting } from "../scenarios/orbiting.js";
 import { SCENARIO_TIMEOUT } from "./fixtures/scenarios.js";
 
@@ -24,6 +25,19 @@ function fuelOf(battle: Orbiting, s: number): number {
     let fuel = 0;
     for (let m = 0; m < battle.ships.designs[s]!.modules.length; m++) fuel += battle.ships.fuel.held(b, m);
     return fuel;
+}
+
+/** How far past its station an escort may stray, as a share of the station. */
+const STRAY = 0.25;
+
+/** The speed round a well's middle, as a share of the circular speed where it is. */
+function roundShare(battle: Orbiting, sb: number): number {
+    const b = battle.world.bodies;
+    const well = battle.wells[0]!;
+    const x = b.x[sb]! - well.x;
+    const y = b.y[sb]! - well.y;
+    const r = Math.sqrt(x * x + y * y);
+    return Math.abs(x * b.vy[sb]! - y * b.vx[sb]!) / r / (Math.sqrt(wellPull(well, b.x[sb]!, b.y[sb]!)) * r);
 }
 
 // The 200 Dinkies are for watching; these two are enough to show it.
@@ -72,3 +86,32 @@ describe.each(ORBITING_VARIANTS.slice(0, 2))("Orbiting: $name", (variant) => {
         SCENARIO_TIMEOUT,
     );
 });
+
+it(
+    "keeps a Gunship's escorts on station round it as it orbits",
+    () => {
+        const variant = ORBITING_VARIANTS.find((v) => v.escorts !== undefined)!;
+        const battle = orbiting(undefined, variant);
+        const b = battle.world.bodies;
+        const ships = battle.ships;
+        const gunship = battle.fleet[0]!;
+        for (let t = 0; t < SETTLE / battle.dt; t++) battle.step();
+
+        let speed = 0;
+        const steps = Math.round((2 * COAST) / battle.dt);
+        for (let t = 0; t < steps; t++) {
+            battle.step();
+            const gb = b.indexOf(ships.body(gunship));
+            speed += roundShare(battle, gb) / steps;
+            for (const e of battle.escorts) {
+                expect(ships.consort[e]).toBe(gunship);
+                const eb = b.indexOf(ships.body(e));
+                const gap = Math.hypot(b.x[eb]! - b.x[gb]!, b.y[eb]! - b.y[gb]!);
+                expect(gap).toBeLessThan(escortBand(ships, e, ships.designs[e]!, gunship) * (1 + STRAY));
+            }
+        }
+        expect(Math.abs(speed - 1)).toBeLessThan(CIRCULAR);
+        expect(battle.totalContacts).toBe(0);
+    },
+    SCENARIO_TIMEOUT,
+);

@@ -87,6 +87,15 @@ jobs:
         env:
           JOB_LABEL: ${{ github.job }} ${{ matrix.os || runner.os }} ${{ matrix.node }}
 
+      # Each file's time from earlier runs, so Vitest starts the slowest first.
+      # Without it, it starts the largest, which put a three-line file fighting
+      # Super Swarm last. Saved by every run and restored from the latest.
+      - uses: actions/cache@v6
+        with:
+          path: SCS2D/node_modules/.vite/vitest
+          key: vitest-results-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: vitest-results-
+
       - run: pnpm test
 
   # Everywhere else, only what can differ between platforms: the golden
