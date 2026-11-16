@@ -11,7 +11,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import type { Browser, Page } from "playwright";
-import { launchChromium, shownPixels } from "./launch.js";
+import { launchChromium, shownPixels, withoutView } from "./launch.js";
 import { serialiseBlueprint } from "../../sim/index.js";
 import { DINKY } from "../../scenarios/blueprints.js";
 import { REFITTED } from "../../scenarios/mending.js";
@@ -168,77 +168,82 @@ describe("the viewer in a browser", () => {
         expect(await step(page)).toBeGreaterThan(before);
     });
 
-    it("pauses, and stays paused", async () => {
-        await page.click("#play");
-        await painted(page);
-        const paused = await step(page);
-        await page.waitForTimeout(300);
-        expect(await step(page)).toBe(paused);
-        expect(await page.textContent("#play")).toBe("Play");
-    });
-
-    it("single-steps by exactly one step while paused", async () => {
-        const before = await step(page);
-        await page.click("#step");
-        await painted(page);
-        expect(await step(page)).toBe(before + 1);
-    });
-
-    it("takes the keyboard shortcuts", async () => {
-        const before = await step(page);
-        await page.keyboard.press(".");
-        await painted(page);
-        expect(await step(page)).toBe(before + 1);
-
-        await page.keyboard.press(" ");
-        expect(await page.textContent("#play")).toBe("Pause");
-        await page.waitForTimeout(200);
-        expect(await step(page)).toBeGreaterThan(before + 1);
-    });
-
-    it("resets back to the start of the battle", async () => {
-        await page.waitForTimeout(200);
-        const before = await step(page);
-        expect(before).toBeGreaterThan(10);
-        await page.click("#reset");
-        await painted(page);
-        // The battle restarts and runs on while it is read, by as many frames as
-        // a slow runner takes, so this is a "back towards the beginning" check
-        // rather than an exact zero.
-        expect(await step(page)).toBeLessThan(before);
-    });
-
-    it("winds back and on along the scrub bar, and a step back with the comma", async () => {
-        await advanced(page, 60);
-        await page.click("#play");
-        await painted(page);
-        const reached = await step(page);
-        const scrubTo = async (value: number): Promise<void> => {
-            await page.$eval(
-                "#scrub",
-                (input, v) => {
-                    // Through the input's own setter, which React does not watch, so the event reads as a change.
-                    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, String(v));
-                    input.dispatchEvent(new Event("input", { bubbles: true }));
-                },
-                value,
-            );
+    it("pauses, and stays paused", () =>
+        withoutView(page, async () => {
+            await page.click("#play");
             await painted(page);
-        };
+            const paused = await step(page);
+            await page.waitForTimeout(300);
+            expect(await step(page)).toBe(paused);
+            expect(await page.textContent("#play")).toBe("Play");
+        }));
 
-        // The bar lands on a checkpoint; the comma then steps back exactly.
-        await scrubTo(20);
-        const landed = await step(page);
-        expect(landed).toBeLessThan(reached);
-        expect(Number(await page.getAttribute("#scrub", "max"))).toBe(reached);
-        await scrubTo(reached);
-        expect(await step(page)).toBe(reached);
-        await page.keyboard.press(",");
-        await painted(page);
-        expect(await step(page)).toBe(reached - 1);
+    it("single-steps by exactly one step while paused", () =>
+        withoutView(page, async () => {
+            const before = await step(page);
+            await page.click("#step");
+            await painted(page);
+            expect(await step(page)).toBe(before + 1);
+        }));
 
-        await page.click("#play");
-    });
+    it("takes the keyboard shortcuts", () =>
+        withoutView(page, async () => {
+            const before = await step(page);
+            await page.keyboard.press(".");
+            await painted(page);
+            expect(await step(page)).toBe(before + 1);
+
+            await page.keyboard.press(" ");
+            expect(await page.textContent("#play")).toBe("Pause");
+            await page.waitForTimeout(200);
+            expect(await step(page)).toBeGreaterThan(before + 1);
+        }));
+
+    it("resets back to the start of the battle", () =>
+        withoutView(page, async () => {
+            await page.waitForTimeout(200);
+            const before = await step(page);
+            expect(before).toBeGreaterThan(10);
+            await page.click("#reset");
+            await painted(page);
+            // The battle restarts and runs on while it is read, by as many frames as
+            // a slow runner takes, so this is a "back towards the beginning" check
+            // rather than an exact zero.
+            expect(await step(page)).toBeLessThan(before);
+        }));
+
+    it("winds back and on along the scrub bar, and a step back with the comma", () =>
+        withoutView(page, async () => {
+            await advanced(page, 60);
+            await page.click("#play");
+            await painted(page);
+            const reached = await step(page);
+            const scrubTo = async (value: number): Promise<void> => {
+                await page.$eval(
+                    "#scrub",
+                    (input, v) => {
+                        // Through the input's own setter, which React does not watch, so the event reads as a change.
+                        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, String(v));
+                        input.dispatchEvent(new Event("input", { bubbles: true }));
+                    },
+                    value,
+                );
+                await painted(page);
+            };
+
+            // The bar lands on a checkpoint; the comma then steps back exactly.
+            await scrubTo(20);
+            const landed = await step(page);
+            expect(landed).toBeLessThan(reached);
+            expect(Number(await page.getAttribute("#scrub", "max"))).toBe(reached);
+            await scrubTo(reached);
+            expect(await step(page)).toBe(reached);
+            await page.keyboard.press(",");
+            await painted(page);
+            expect(await step(page)).toBe(reached - 1);
+
+            await page.click("#play");
+        }));
 
     it("holds the battle while the scrub bar is held, and resumes on letting go", async () => {
         await advanced(page, 30);
@@ -255,25 +260,26 @@ describe("the viewer in a browser", () => {
         expect(await advanced(page, held)).toBeGreaterThan(held);
     });
 
-    it("lists every scene by name, and plays the one that is picked", async () => {
-        // A dropdown rather than a button that cycles: the list is long enough
-        // that finding a scene by pressing "next" repeatedly is a poor way in.
-        const names = await page.$$eval("#scene option", (o) => o.map((n) => n.textContent));
-        expect(names.length).toBeGreaterThan(5);
-        expect(names).toContain("Standoff");
+    it("lists every scene by name, and plays the one that is picked", () =>
+        withoutView(page, async () => {
+            // A dropdown rather than a button that cycles: the list is long enough
+            // that finding a scene by pressing "next" repeatedly is a poor way in.
+            const names = await page.$$eval("#scene option", (o) => o.map((n) => n.textContent));
+            expect(names.length).toBeGreaterThan(5);
+            expect(names).toContain("Standoff");
 
-        await page.selectOption("#scene", { label: "Standoff" });
-        await painted(page);
-        // The standoff's two lines start exactly a kilometre apart, which no
-        // other scene does — so this says the page is running the scene that was
-        // picked rather than merely showing its name in the box.
-        const metrics = (await page.textContent("#metrics")) ?? "";
-        const range = Number(/range (\d+)/.exec(metrics)?.[1] ?? 0);
-        expect(range).toBeGreaterThan(900);
-        expect(range).toBeLessThan(1100);
-        expect(await advanced(page)).toBeGreaterThan(0);
-        expect(new URL(page.url()).hash).toBe("#/simulator?scene=Standoff");
-    });
+            await page.selectOption("#scene", { label: "Standoff" });
+            await painted(page);
+            // The standoff's two lines start exactly a kilometre apart, which no
+            // other scene does — so this says the page is running the scene that was
+            // picked rather than merely showing its name in the box.
+            const metrics = (await page.textContent("#metrics")) ?? "";
+            const range = Number(/range (\d+)/.exec(metrics)?.[1] ?? 0);
+            expect(range).toBeGreaterThan(900);
+            expect(range).toBeLessThan(1100);
+            expect(await advanced(page)).toBeGreaterThan(0);
+            expect(new URL(page.url()).hash).toBe("#/simulator?scene=Standoff");
+        }));
 
     it("opens the scene its address names, so a reload comes back to it", async () => {
         const opened = await browser.newPage({ viewport: { width: 1000, height: 620 } });
@@ -283,99 +289,103 @@ describe("the viewer in a browser", () => {
         await opened.close();
     });
 
-    it("stays paused through a reset or a change of scene", async () => {
-        await page.click("#play");
-        expect(await page.textContent("#play")).toBe("Play");
+    it("stays paused through a reset or a change of scene", () =>
+        withoutView(page, async () => {
+            await page.click("#play");
+            expect(await page.textContent("#play")).toBe("Play");
 
-        await page.click("#reset");
-        await painted(page);
-        const reset = await step(page);
-        await page.waitForTimeout(200);
-        expect(await step(page)).toBe(reset);
+            await page.click("#reset");
+            await painted(page);
+            const reset = await step(page);
+            await page.waitForTimeout(200);
+            expect(await step(page)).toBe(reset);
 
-        await page.selectOption("#scene", { label: "Duel" });
-        await painted(page);
-        expect(await step(page)).toBe(0);
-        await page.waitForTimeout(200);
-        expect(await step(page)).toBe(0);
-        expect(await page.textContent("#play")).toBe("Play");
+            await page.selectOption("#scene", { label: "Duel" });
+            await painted(page);
+            expect(await step(page)).toBe(0);
+            await page.waitForTimeout(200);
+            expect(await step(page)).toBe(0);
+            expect(await page.textContent("#play")).toBe("Play");
 
-        await page.click("#play");
-    });
+            await page.click("#play");
+        }));
 
-    it("sets up a custom battle paused, live, and fights it without stopping at the end", async () => {
-        expect(await page.isHidden("#custom")).toBe(true);
-        await page.click("#customBattle");
-        expect(await page.isVisible("#custom")).toBe(true);
-        // Blank, held at the first step, and not ready to fight.
-        expect(await page.locator("#fleetSlots .slot").count()).toBe(0);
-        expect(await page.textContent("#play")).toBe("Play");
-        expect(await page.isDisabled("#fight")).toBe(true);
+    it("sets up a custom battle paused, live, and fights it without stopping at the end", () =>
+        withoutView(page, async () => {
+            expect(await page.isHidden("#custom")).toBe(true);
+            await page.click("#customBattle");
+            expect(await page.isVisible("#custom")).toBe(true);
+            // Blank, held at the first step, and not ready to fight.
+            expect(await page.locator("#fleetSlots .slot").count()).toBe(0);
+            expect(await page.textContent("#play")).toBe("Play");
+            expect(await page.isDisabled("#fight")).toBe(true);
 
-        await page.click("#addFleet");
-        // One side is enough to start.
-        expect(await page.isDisabled("#fight")).toBe(false);
-        // A single ship can be a side too.
-        await page.locator("#fleetSlots select").first().selectOption("ship:Star Wars/Star Destroyer");
-        // The table is redrawn on the next frame, so wait for it rather than racing it.
-        await page.waitForFunction(() => /Star Destroyer.*1\/1 ships/.test(document.getElementById("sides")?.textContent ?? ""));
-        await page.locator("#fleetSlots select").first().selectOption("fleet:Line of Battle");
-        // Another side starts as a copy of the last, and its list makes it anything.
-        await page.click("#addFleet");
-        expect(await page.locator("#fleetSlots select").nth(1).inputValue()).toBe("fleet:Line of Battle");
-        // A blueprint file is a side of one ship too.
-        await page.setInputFiles("#fleetFile", {
-            name: "dinky.json",
-            mimeType: "application/json",
-            buffer: Buffer.from(JSON.stringify(serialiseBlueprint(DINKY))),
-        });
-        await page.waitForFunction(() => document.querySelectorAll("#fleetSlots .slot").length === 3);
-        expect(await page.locator("#fleetSlots select").nth(2).locator("option:checked").textContent()).toBe("Dinky (file)");
-        await page
-            .locator("#fleetSlots .slot")
-            .nth(2)
-            .getByRole("button", { name: /^Take side/ })
-            .click();
-        await page
-            .locator("#fleetSlots .slot")
-            .nth(1)
-            .getByRole("button", { name: /^Take side/ })
-            .click();
-        // A lone fighter from a file against the stock line: decided in seconds.
-        const lone = {
-            formatVersion: 1,
-            name: "Lone",
-            designs: { Dinky: serialiseBlueprint(DINKY) },
-            ships: [{ design: "Dinky", x: 0, y: 0 }],
-        };
-        await page.setInputFiles("#fleetFile", {
-            name: "lone.json",
-            mimeType: "application/json",
-            buffer: Buffer.from(JSON.stringify(lone)),
-        });
-        await page.waitForFunction(() => document.querySelectorAll("#fleetSlots .slot").length === 2);
-        expect(await page.locator("#fleetSlots select").nth(1).locator("option:checked").textContent()).toBe("Lone (file)");
+            await page.click("#addFleet");
+            // One side is enough to start.
+            expect(await page.isDisabled("#fight")).toBe(false);
+            // A single ship can be a side too.
+            await page.locator("#fleetSlots select").first().selectOption("ship:Star Wars/Star Destroyer");
+            // The table is redrawn on the next frame, so wait for it rather than racing it.
+            await page.waitForFunction(() => /Star Destroyer.*1\/1 ships/.test(document.getElementById("sides")?.textContent ?? ""));
+            await page.locator("#fleetSlots select").first().selectOption("fleet:Line of Battle");
+            // Another side starts as a copy of the last, and its list makes it anything.
+            await page.click("#addFleet");
+            expect(await page.locator("#fleetSlots select").nth(1).inputValue()).toBe("fleet:Line of Battle");
+            // A blueprint file is a side of one ship too.
+            await page.setInputFiles("#fleetFile", {
+                name: "dinky.json",
+                mimeType: "application/json",
+                buffer: Buffer.from(JSON.stringify(serialiseBlueprint(DINKY))),
+            });
+            await page.waitForFunction(() => document.querySelectorAll("#fleetSlots .slot").length === 3);
+            expect(await page.locator("#fleetSlots select").nth(2).locator("option:checked").textContent()).toBe("Dinky (file)");
+            await page
+                .locator("#fleetSlots .slot")
+                .nth(2)
+                .getByRole("button", { name: /^Take side/ })
+                .click();
+            await page
+                .locator("#fleetSlots .slot")
+                .nth(1)
+                .getByRole("button", { name: /^Take side/ })
+                .click();
+            // A lone fighter from a file against the stock line: decided in seconds.
+            const lone = {
+                formatVersion: 1,
+                name: "Lone",
+                designs: { Dinky: serialiseBlueprint(DINKY) },
+                ships: [{ design: "Dinky", x: 0, y: 0 }],
+            };
+            await page.setInputFiles("#fleetFile", {
+                name: "lone.json",
+                mimeType: "application/json",
+                buffer: Buffer.from(JSON.stringify(lone)),
+            });
+            await page.waitForFunction(() => document.querySelectorAll("#fleetSlots .slot").length === 2);
+            expect(await page.locator("#fleetSlots select").nth(1).locator("option:checked").textContent()).toBe("Lone (file)");
 
-        // Changing the setup rebuilds it where it stands, still paused at step 0.
-        await page.fill("#battleRange", "1000");
-        await page.waitForFunction(() => /range 1000 m/.test(document.getElementById("metrics")?.textContent ?? ""));
-        expect(await step(page)).toBe(0);
-        expect(await page.textContent("#play")).toBe("Play");
-        await page.waitForFunction(() => /Lone.*1\/1 ships · 1 armed · 1 mobile/.test(document.getElementById("sides")?.textContent ?? ""));
+            // Changing the setup rebuilds it where it stands, still paused at step 0.
+            await page.fill("#battleRange", "1000");
+            await page.waitForFunction(() => /range 1000 m/.test(document.getElementById("metrics")?.textContent ?? ""));
+            expect(await step(page)).toBe(0);
+            expect(await page.textContent("#play")).toBe("Play");
+            await page.waitForFunction(() =>
+                /Lone.*1\/1 ships · 1 armed · 1 mobile/.test(document.getElementById("sides")?.textContent ?? ""),
+            );
 
-        await page.click("#fight");
-        await page.selectOption("#speed", "8");
-        await page.waitForFunction(() => (document.getElementById("outcome")?.textContent ?? "") !== "", null, {
-            timeout: 20_000,
-        });
-        // Named by its livery's colour, whatever that is.
-        expect(await page.textContent("#outcome")).toMatch(/^Line of Battle \([a-z]+\) wins at/);
-        // The battle goes on after it is decided.
-        expect(await page.textContent("#play")).toBe("Pause");
-        const decidedAt = await step(page);
-        expect(await advanced(page, decidedAt)).toBeGreaterThan(decidedAt);
-        await page.selectOption("#speed", "1");
-    });
+            await page.click("#fight");
+            await page.selectOption("#speed", "8");
+            await page.waitForFunction(() => (document.getElementById("outcome")?.textContent ?? "") !== "", null, {
+                timeout: 20_000,
+            });
+            // Named by its livery's colour, whatever that is.
+            expect(await page.textContent("#outcome")).toMatch(/^Line of Battle \([a-z]+\) wins at/);
+            // The battle goes on after it is decided.
+            expect(await page.textContent("#play")).toBe("Pause");
+            const decidedAt = await step(page);
+            expect(await advanced(page, decidedAt)).toBeGreaterThan(decidedAt);
+            await page.selectOption("#speed", "1");
+        }));
 
     it("copies a link that opens the same battle, paused at its start", async () => {
         await page.fill("#battleSeed", "4321");
@@ -802,47 +812,52 @@ describe("the viewer in a browser", () => {
         await page.keyboard.press("Escape");
     }, 60_000);
 
-    it("shows what a ship is built to, and remodels it only on Remodel", async () => {
-        // Something in the library its refit would take, whatever the stock ships are: itself less its last module.
-        const variant = { ...REFITTED, name: "Refitted Rebuilder, trimmed", modules: REFITTED.modules.slice(0, -1) };
-        await page.evaluate(
-            ([key, text]) => window.localStorage.setItem(key!, text!),
-            [`scs2d.ship.My ships/${variant.name}`, JSON.stringify(serialiseBlueprint(variant))],
-        );
-        await page.selectOption("#scene", { label: "Refitting" });
-        if ((await page.textContent("#play")) === "Pause") await page.click("#play");
-        await painted(page);
-        // The scenario's one ship, by its side rather than by where it is drawn.
-        const pick = async (): Promise<void> => {
-            // Not into the drop-down, whose letters pick its options.
-            await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-            await page.keyboard.press("a");
-            await painted(page);
-            expect(await page.evaluate(() => (window as unknown as { viewer: { picked: number[] } }).viewer.picked)).toEqual([0]);
-        };
-        const orders = (): Promise<number> =>
-            page.evaluate(() => (window as unknown as { viewer: { orders: unknown[] } }).viewer.orders.length);
-        await pick();
-        expect(await page.isEnabled("#remodelTo")).toBe(true);
-        const built = await page.locator("#remodelTo option:checked").textContent();
-        expect(await page.isEnabled("#remodel")).toBe(false);
-        await page.selectOption("#remodelTo", { index: 1 });
-        expect(await page.isEnabled("#remodel")).toBe(true);
-        // Chosen but not given: let go and picked again, it shows what it is built to.
-        const before = await orders();
-        await page.keyboard.press("Escape");
-        await painted(page);
-        await pick();
-        expect(await page.locator("#remodelTo option:checked").textContent()).toBe(built);
-        expect(await orders()).toBe(before);
-        await page.selectOption("#remodelTo", { index: 1 });
-        await page.click("#remodel");
-        await painted(page);
-        expect(await orders()).toBe(before + 1);
-        expect(await page.locator("#remodelTo option:checked").textContent()).not.toBe(built);
-        await page.keyboard.press("Escape");
-        await page.evaluate((key) => window.localStorage.removeItem(key), `scs2d.ship.My ships/${variant.name}`);
-    }, 60_000);
+    it(
+        "shows what a ship is built to, and remodels it only on Remodel",
+        () =>
+            withoutView(page, async () => {
+                // Something in the library its refit would take, whatever the stock ships are: itself less its last module.
+                const variant = { ...REFITTED, name: "Refitted Rebuilder, trimmed", modules: REFITTED.modules.slice(0, -1) };
+                await page.evaluate(
+                    ([key, text]) => window.localStorage.setItem(key!, text!),
+                    [`scs2d.ship.My ships/${variant.name}`, JSON.stringify(serialiseBlueprint(variant))],
+                );
+                await page.selectOption("#scene", { label: "Refitting" });
+                if ((await page.textContent("#play")) === "Pause") await page.click("#play");
+                await painted(page);
+                // The scenario's one ship, by its side rather than by where it is drawn.
+                const pick = async (): Promise<void> => {
+                    // Not into the drop-down, whose letters pick its options.
+                    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+                    await page.keyboard.press("a");
+                    await painted(page);
+                    expect(await page.evaluate(() => (window as unknown as { viewer: { picked: number[] } }).viewer.picked)).toEqual([0]);
+                };
+                const orders = (): Promise<number> =>
+                    page.evaluate(() => (window as unknown as { viewer: { orders: unknown[] } }).viewer.orders.length);
+                await pick();
+                expect(await page.isEnabled("#remodelTo")).toBe(true);
+                const built = await page.locator("#remodelTo option:checked").textContent();
+                expect(await page.isEnabled("#remodel")).toBe(false);
+                await page.selectOption("#remodelTo", { index: 1 });
+                expect(await page.isEnabled("#remodel")).toBe(true);
+                // Chosen but not given: let go and picked again, it shows what it is built to.
+                const before = await orders();
+                await page.keyboard.press("Escape");
+                await painted(page);
+                await pick();
+                expect(await page.locator("#remodelTo option:checked").textContent()).toBe(built);
+                expect(await orders()).toBe(before);
+                await page.selectOption("#remodelTo", { index: 1 });
+                await page.click("#remodel");
+                await painted(page);
+                expect(await orders()).toBe(before + 1);
+                expect(await page.locator("#remodelTo option:checked").textContent()).not.toBe(built);
+                await page.keyboard.press("Escape");
+                await page.evaluate((key) => window.localStorage.removeItem(key), `scs2d.ship.My ships/${variant.name}`);
+            }),
+        60_000,
+    );
 
     it("adds a chosen ship for a chosen side where it is pressed, as fast as it is dragged", async () => {
         await page.selectOption("#scene", { label: "Duel" });

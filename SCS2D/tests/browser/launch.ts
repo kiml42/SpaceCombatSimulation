@@ -123,13 +123,15 @@ export function driverNote(text: string): boolean {
 /**
  * Run `body` with the page's `#view` taken out, for a test that never looks at it.
  *
- * A ship view animates while anything is selected, and drawing it in software
- * WebGL holds up every step. Out of the layout, its canvases shrink to a pixel
- * and cost nothing. Hiding them is not enough: they are still drawn, unseen and
- * so unthrottled, and the backlog stalls whatever next waits on the GPU.
+ * A battle, or a ship editor with something selected, draws every frame, and
+ * in software WebGL that holds up every step. Out of the layout, the view's
+ * canvases shrink to nothing and cost nothing. Hiding them is not enough: they
+ * are still drawn, unseen and so unthrottled, and the backlog stalls whatever
+ * next waits on the GPU.
  *
- * The camera frames that pixel meanwhile, so a module added is sized for it:
- * not for a test that minds a new module's size. F frames the view again after.
+ * The camera frames that empty view meanwhile, so the editor sizes a module
+ * added for it: not for a test that minds a new module's size. F frames the
+ * view again after, in either.
  */
 export async function withoutView<T>(page: Page, body: () => Promise<T>): Promise<T> {
     await page.evaluate(() => {
