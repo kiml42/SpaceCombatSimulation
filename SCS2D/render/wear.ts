@@ -1,4 +1,4 @@
-import { moduleCentre, originOf, shellOf, type ShipDesign } from "../sim/index.js";
+import { isThick, moduleCentre, originOf, shellOf, type ShipDesign } from "../sim/index.js";
 import type { Affine } from "./livery.js";
 
 /**
@@ -126,9 +126,10 @@ export function wearTile(level: number): HTMLCanvasElement | OffscreenCanvas | n
 /**
  * From a wear tile's texels to module `m`'s own frame: laid in the frame of
  * the design it was built in, `WEAR_OF_RADIUS` of that design's radius across,
- * and moved and turned by which module it is there, so two modules hurt alike
- * look different and a piece cut away keeps its wear. A shell's frame is
- * centred on what of its module stands, so its wear stays where it was.
+ * one lie for the hull layer and another for what is thick, so the pattern
+ * runs on unbroken across a layer and only its depth steps at a seam. A piece
+ * cut away keeps its wear. A shell's frame is centred on what of its module
+ * stands, so its wear stays where it was.
  */
 export function wearTransform(design: ShipDesign, m: number): Affine {
     const origin = originOf(design, m);
@@ -142,9 +143,10 @@ export function wearTransform(design: ShipDesign, m: number): Affine {
         module = { x: whole.x + part.x - centre.x, y: whole.y + part.y - centre.y, angle: whole.angle };
     }
     const s = (WEAR_OF_RADIUS * built.radius) / WEAR_TILE;
-    const turn = hash(origin.module, 0, 6) * 2 * Math.PI;
-    const shiftX = hash(origin.module, 1, 7) * WEAR_TILE * s;
-    const shiftY = hash(origin.module, 2, 8) * WEAR_TILE * s;
+    const layer = isThick(whole.spec) ? 1 : 0;
+    const turn = hash(layer, 0, 6) * 2 * Math.PI;
+    const shiftX = hash(layer, 1, 7) * WEAR_TILE * s;
+    const shiftY = hash(layer, 2, 8) * WEAR_TILE * s;
     const ct = Math.cos(turn);
     const st = Math.sin(turn);
     // Texels to the design's frame, then back from the module's place and turned by its angle.
