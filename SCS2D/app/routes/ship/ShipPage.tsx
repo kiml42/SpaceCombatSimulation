@@ -47,7 +47,7 @@ import type { DoctrineOpen } from "./DoctrineDetails";
 import { ModulePanel, type ModuleFolds } from "./ModulePanel";
 import { ShipCanvas } from "./ShipCanvas";
 import type { ShipEditing } from "./shipEditing";
-import { DEFAULTS, isModuleSpec } from "./shipFields";
+import { DEFAULTS, isModuleSpec, sentence } from "./shipFields";
 import { Field } from "./shipLayout";
 import { ShipProblems, ShipRefit, ShipStats } from "./ShipReport";
 
@@ -388,6 +388,14 @@ export function ShipPage() {
     const asked = blueprint.fighter === true;
     const design = doc.view.design;
     const notFighter = asked && design !== null && !design.fighter ? fighterProblem(design.modules.map((m) => m.spec)) : null;
+    // Offered only to a layout a fighter could be; one already asked for stays, to be taken off.
+    const barred = asked ? null : fighterProblem(doc.view.modules);
+    const fighterTitle =
+        barred !== null
+            ? `${sentence(barred)}.`
+            : notFighter !== null
+              ? `Flies as an ordinary ship: ${notFighter}.`
+              : "A strike craft: no turrets, robot bay, claw, pad, port or slipway, and nothing thick. It flies in the weapons layer, and drops into the hull layer as well only when its doctrine commits it to ram.";
     const panelKey = JSON.stringify(doc.selection);
 
     const exportShip = (): void => {
@@ -675,21 +683,14 @@ export function ShipPage() {
                             }}
                         />
                         <Field>
-                            <label
-                                htmlFor="shipFighter"
-                                id="shipFighterLabel"
-                                data-warn={notFighter !== null}
-                                title={
-                                    notFighter !== null
-                                        ? `Flies as an ordinary ship: ${notFighter}.`
-                                        : "A strike craft: no turrets and nothing thick. It flies in the weapons layer, and drops into the hull layer as well only when its doctrine commits it, to ram or dock."
-                                }
-                            >
+                            <label htmlFor="shipFighter" id="shipFighterLabel" data-warn={notFighter !== null} title={fighterTitle}>
                                 fighter
                             </label>
                             <input
                                 id="shipFighter"
                                 type="checkbox"
+                                title={fighterTitle}
+                                disabled={barred !== null}
                                 checked={asked}
                                 onChange={(event) => {
                                     const next = { ...doc.blueprint };

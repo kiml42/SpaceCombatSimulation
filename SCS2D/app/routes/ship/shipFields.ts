@@ -217,3 +217,8 @@ export function craftChoices(
     }
     return choices;
 }
+
+/** A reason as a sentence's start: "a fighter cannot…" to "A fighter cannot…". */
+export function sentence(text: string): string {
+    return text.charAt(0).toUpperCase() + text.slice(1);
+}

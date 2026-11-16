@@ -367,6 +367,7 @@ export {
     compileBlueprint,
     nominalReach,
     lethalRadius,
+    fighterBarred,
     fighterProblem,
     compileDraft,
     layoutStats,

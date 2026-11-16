@@ -1,6 +1,7 @@
 import { styled } from "@linaria/react";
-import type { ShipModuleKind } from "~/sim/index";
+import { fighterBarred, type ShipModuleKind } from "~/sim/index";
 import { Button } from "~/ui/buttons/Button";
+import { sentence } from "./shipFields";
 
 const Group = styled.div`
     display: flex;
@@ -149,9 +150,9 @@ export function AddModule({ into, fighter, onAdd, suggest = null, folded }: AddM
                         <Button
                             key={kind}
                             data-add={kind}
-                            title={title}
+                            title={fighter && fighterBarred(kind) !== null ? `${sentence(fighterBarred(kind)!)}.` : title}
                             variant={kind === suggest ? "primary" : "plain"}
-                            disabled={fighter && (kind === "turret" || kind === "beamTurret")}
+                            disabled={fighter && fighterBarred(kind) !== null}
                             onClick={() => onAdd(kind)}
                         >
                             {label}
