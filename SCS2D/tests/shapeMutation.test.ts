@@ -72,9 +72,12 @@ function breedLine(parent: Blueprint, seed: number, generations: number, limits?
     return steps;
 }
 
-const GENERATIONS = 600;
-const corvette = breedLine(CORVETTE, 11, GENERATIONS);
-const catamaran = breedLine(CATAMARAN, 11, GENERATIONS);
+// Eight lines of 100 a founder, not one of 600: as many shape draws of each
+// kind turn up (5 wedges, 42 cuts, 61 walks), at a tenth of the cost, since a
+// line's ships, and its every check, grow as it goes.
+const SEEDS = [11, 12, 13, 14, 15, 16, 17, 18];
+const corvette = SEEDS.flatMap((seed) => breedLine(CORVETTE, seed, 100));
+const catamaran = SEEDS.flatMap((seed) => breedLine(CATAMARAN, seed, 100));
 const both = [...corvette, ...catamaran];
 
 const matching = (steps: readonly Step[], what: RegExp): Step[] => steps.filter((step) => step.edits.some((edit) => what.test(edit)));
