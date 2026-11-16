@@ -40,6 +40,7 @@ import { split } from "../../scenarios/split.js";
 import { crash } from "../../scenarios/crash.js";
 import { swarm } from "../../scenarios/swarm.js";
 import { torpedoes } from "../../scenarios/torpedoes.js";
+import { orbiting } from "../../scenarios/orbiting.js";
 
 /**
  * Scenarios shared by the determinism tests, the integrator tests and the
@@ -440,6 +441,16 @@ export function swarmScenario(seed = 20260905, corvetteCount = 20): ScenarioRun 
     };
 }
 
+/** A few Corvettes, low on fuel, putting themselves into orbit round a rock with nothing else to do. */
+export function orbitingScenario(seed = 20260905): ScenarioRun {
+    const run = orbiting(seed);
+    return {
+        step: () => run.step(),
+        checksum: () => checksumDamage(run.ships.damage, checksumWorld(run.world)),
+        describe: () => describeBattle(run),
+    };
+}
+
 export function standoffScenario(seed = 20260905): ScenarioRun {
     const run = standoff(seed);
     return {
@@ -708,6 +719,8 @@ export const SCENARIOS = {
     // Long enough for the Dinky to make three passes, and the Y-wing to settle into its circle.
     passes: { steps: 6_000, build: () => passesScenario() },
     circling: { steps: 6_000, build: () => circlingScenario() },
+    // Long enough to get into orbit and coast a good way round.
+    orbiting: { steps: 9_000, build: () => orbitingScenario() },
 } satisfies Record<string, Scenario>;
 
 export type ScenarioName = keyof typeof SCENARIOS;

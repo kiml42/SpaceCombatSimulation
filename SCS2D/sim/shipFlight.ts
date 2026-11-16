@@ -321,13 +321,15 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
                 fighting = ab;
             }
         }
+        // With no station of its own, it coasts round whatever is pulling on it, less as a charge holds it.
+        if (target === NO_TARGET && ships.urgeWeight < URGE_REFERENCE) settle(ships, bodies, b, URGE_REFERENCE - ships.urgeWeight);
         // Clear of what it is covering, as of anything else: a charge is
         // stationed on, never flown into.
         avoid(ships, bodies, i, b, target, covering);
     }
 
-    // Nothing to want is a want of its own: a craft with no orders, no charge
-    // and nothing in its way kills its drift and waits.
+    // Nothing to want is a want of its own: a craft with no orders, no charge,
+    // no well's pull and nothing in its way kills its drift and waits.
     const wantVx = ships.urgeWeight > 0 ? ships.urgeVx / ships.urgeWeight : 0;
     const wantVy = ships.urgeWeight > 0 ? ships.urgeVy / ships.urgeWeight : 0;
     // What it wants to speed up by, less what the wells' pull does for it: wanting to keep on as it is
@@ -897,6 +899,38 @@ export function orbit(ships: Ships, bodies: Bodies, i: number, b: number, at: Sp
         ships.partAt.x,
         ships.partAt.y,
     );
+}
+
+/**
+ * Coast on a circular orbit of the well pulling hardest on body `b`, at its
+ * present height and the way it already goes round: holding still against
+ * the pull would burn its tanks dry and then drop it. Nothing in no pull.
+ */
+export function settle(ships: Ships, bodies: Bodies, b: number, weight: number): void {
+    const x = bodies.x[b]!;
+    const y = bodies.y[b]!;
+    let best = -1;
+    let strongest = 0;
+    for (let w = 0; w < ships.wells.length; w++) {
+        const well = ships.wells[w]!;
+        const pull = wellPull(well, x, y) * length(well.x - x, well.y - y);
+        if (pull > strongest) {
+            strongest = pull;
+            best = w;
+        }
+    }
+    if (best < 0) return;
+    const well = ships.wells[best]!;
+    const ox = x - well.x;
+    const oy = y - well.y;
+    const r = length(ox, oy);
+    if (!(r > 0)) return;
+    const speed = sqrt(strongest * r);
+    const ux = ox / r;
+    const uy = oy / r;
+    const sense = ox * (bodies.vy[b]! - (well.vy ?? 0)) - oy * (bodies.vx[b]! - (well.vx ?? 0)) >= 0 ? 1 : -1;
+    pullAt(ships, x, y);
+    urge(ships, weight, (well.vx ?? 0) - sense * uy * speed, (well.vy ?? 0) + sense * ux * speed, PULL.x, PULL.y);
 }
 
 /**
@@ -1522,8 +1556,8 @@ export function avoid(
         if (deck && !nearestRaised(ships, bodies, t, ob, OWN_CIRCLE, THEIR_CIRCLE)) continue;
         if (!(OWN_CIRCLE.r > 0) || !(THEIR_CIRCLE.r > 0)) continue;
         const touching = OWN_CIRCLE.r + THEIR_CIRCLE.r;
-        // Clear by its own size, not the other's, which would keep it a rock's or a carrier's breadth off.
-        let room = (ramming ? mine : touching) * approach.separationRadii;
+        // Clear of a rock, or of what it rams, by its own size, not by theirs, which would keep it a rock's breadth off.
+        let room = (ramming || rock ? mine : touching) * approach.separationRadii;
         // From a neighbour on the rock only by its own size, or it could never grip the face beside it.
         if (neighbour) room = mine;
         // From another coming down on the same deck, only from touching: neighbouring pads are closer than the clearance.
