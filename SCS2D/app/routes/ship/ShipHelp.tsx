@@ -11,19 +11,17 @@ export interface ShipHelpProps {
     readonly open: boolean;
     readonly onClose: () => void;
     readonly onTutorial: () => void;
-    /** Why the tutorial cannot start here, if it cannot: a design opened from a fleet is the fleet's. */
-    readonly noTutorial?: string;
 }
 
 /** What the editor is, in brief, and the way into the tutorial that builds a first ship. */
-export function ShipHelp({ open, onClose, onTutorial, noTutorial }: ShipHelpProps) {
+export function ShipHelp({ open, onClose, onTutorial }: ShipHelpProps) {
     return (
         <HelpDialog
             id="shipHelp"
             title={SHIP_HELP_LABEL}
             open={open}
             onClose={onClose}
-            tutorial={{ label: "Start the tutorial", onStart: onTutorial, ...(noTutorial === undefined ? {} : { disabled: noTutorial }) }}
+            tutorial={{ label: "Start the tutorial", onStart: onTutorial }}
         >
             <ol>
                 <li>
@@ -43,7 +41,7 @@ export function ShipHelp({ open, onClose, onTutorial, noTutorial }: ShipHelpProp
 }
 
 /** The tutorial's steps, each done when the design shows it: a first ship from a blank one. */
-export function shipTutorial(doc: EditorDocument): TourStep[] {
+export function shipTutorial(doc: EditorDocument, inFleet = false): TourStep[] {
     const modules = doc.view.modules;
     const design = doc.view.design;
     const core = modules.find((spec) => spec.kind === "core");
@@ -105,16 +103,28 @@ export function shipTutorial(doc: EditorDocument): TourStep[] {
             // Placed where it fits, too: a weapon dropped on the hull is a problem.
             goal: { label: "It has a weapon, and nothing is wrong", done: modules.some((spec) => isWeaponMount(spec.kind)) && clear },
         },
-        {
-            id: "save",
-            title: "Save it, or try it",
-            body: (
-                <p>
-                    <strong>Save</strong> keeps it in your library under My ships. <strong>Test in Simulator</strong> shows it fighting.
-                </p>
-            ),
-            targets: ["#saveShip"],
-        },
+        inFleet
+            ? {
+                  id: "back",
+                  title: "Take it back to the fleet",
+                  body: (
+                      <p>
+                          <strong>Back to fleet</strong> puts it in your fleet, where you can place more ships of it.
+                      </p>
+                  ),
+                  targets: ["#backToFleet"],
+              }
+            : {
+                  id: "save",
+                  title: "Save it, or try it",
+                  body: (
+                      <p>
+                          <strong>Save</strong> keeps it in your library under My ships. <strong>Test in Simulator</strong> shows it
+                          fighting.
+                      </p>
+                  ),
+                  targets: ["#saveShip"],
+              },
     ];
 }
 

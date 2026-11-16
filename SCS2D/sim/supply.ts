@@ -80,7 +80,8 @@ interface Books {
  * then; it is served by its priority from the next.
  */
 export class Supply {
-    private readonly books: (Books | null)[] = [];
+    /** By resource, then body: each store is laid out on its own, so each keeps its own books. */
+    private readonly books: (Books | null)[][] = [[], [], []];
 
     constructor(private readonly stores: readonly [Store, Store, Store]) {}
 
@@ -91,7 +92,7 @@ export class Supply {
      */
     allow(b: number, r: Resource, m: number, claim: Claim, priority: number, want: number, reserve: number, tick: number): number {
         const store = this.stores[r];
-        const books = this.booksOf(b, store);
+        const books = this.booksOf(b, r, store);
         if (books === null) return 0;
         const piece = store.pieceAt(b, m);
         const slot = 2 * m + (claim === Claim.Mend ? 1 : 0);
@@ -131,7 +132,7 @@ export class Supply {
 
     /** Note that module `m` of body `b`, drawing for `claim`, took `amount` of resource `r`. */
     took(b: number, r: Resource, m: number, claim: Claim, amount: number): void {
-        const books = this.books[b];
+        const books = this.books[r]![b];
         if (books === null || books === undefined || !(amount > 0)) return;
         const slot = 2 * m + (claim === Claim.Mend ? 1 : 0);
         if (slot >= books.slots) return;
@@ -141,13 +142,13 @@ export class Supply {
     }
 
     forget(b: number): void {
-        this.books[b] = null;
+        for (const byBody of this.books) byBody[b] = null;
     }
 
-    private booksOf(b: number, store: Store): Books | null {
+    private booksOf(b: number, r: Resource, store: Store): Books | null {
         const layout = store.layoutOf(b);
         if (layout === null) return null;
-        const books = this.books[b];
+        const books = this.books[r]![b];
         if (books !== null && books !== undefined && books.layout === layout) return books;
         const lists = store.piecesOf(b) * RESOURCES;
         const slots = 2 * store.modulesOf(b);
@@ -167,7 +168,7 @@ export class Supply {
             head: new Int32Array(lists).fill(-1),
             next: new Int32Array(lines).fill(-1),
         };
-        this.books[b] = fresh;
+        this.books[r]![b] = fresh;
         return fresh;
     }
 

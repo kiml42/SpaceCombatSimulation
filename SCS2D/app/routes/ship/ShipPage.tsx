@@ -470,12 +470,12 @@ export function ShipPage() {
                   exporting,
                   { id: "importTrigger", label: "Import ship", onSelect: () => document.getElementById("importShip")?.click() },
               ];
-    // On a blank ship of its own, so every step starts from where it says.
+    // On a blank ship of its own; a fleet's design is the fleet's, so on that as it stands, its goals met so far ticked.
     const startTutorial = (): void => {
-        reopen(emptyBlueprint(unusedName("New ship", taken())));
+        if (inFleet === null) reopen(emptyBlueprint(unusedName("New ship", taken())));
         setTour(0);
     };
-    const tourSteps = tour === null ? null : shipTutorial(doc);
+    const tourSteps = tour === null ? null : shipTutorial(doc, inFleet !== null);
     const tourSuggests = tourSteps === null ? null : tutorialSuggests(tourSteps[tour!]);
     const fleetNow = inFleet === null ? null : backToFleet(inFleet.fleet, inFleet.design, blueprint);
     const skirmishNow = inFleet?.skirmish === undefined || fleetNow === null ? null : { ...inFleet.skirmish, player: fleetNow };
@@ -803,12 +803,7 @@ export function ShipPage() {
                     </section>
                 </Panel>
             </Body>
-            <ShipHelp
-                open={help.open}
-                onClose={help.close}
-                onTutorial={startTutorial}
-                {...(inFleet === null ? {} : { noTutorial: "The tutorial starts a new ship, so it is not offered for a fleet's design" })}
-            />
+            <ShipHelp open={help.open} onClose={help.close} onTutorial={startTutorial} />
             {tourSteps !== null && <Tour id="shipTour" steps={tourSteps} at={tour!} onAt={setTour} onEnd={() => setTour(null)} />}
         </Main>
     );
