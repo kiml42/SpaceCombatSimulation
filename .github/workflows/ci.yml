@@ -82,6 +82,11 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # The hardware this job got, to compare slow runs against.
+      - run: node ../.github/runner-info.mjs
+        env:
+          JOB_LABEL: ${{ github.job }} ${{ matrix.os || runner.os }} ${{ matrix.node }}
+
       - run: pnpm test
 
   # Everywhere else, only what can differ between platforms: the golden
@@ -132,6 +137,11 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # The hardware this job got, to compare slow runs against.
+      - run: node ../.github/runner-info.mjs
+        env:
+          JOB_LABEL: ${{ github.job }} ${{ matrix.os || runner.os }} ${{ matrix.node }}
+
       - run: pnpm test:platform
 
   viewer:
@@ -156,6 +166,11 @@ jobs:
           cache-dependency-path: SCS2D/pnpm-lock.yaml
 
       - run: pnpm install --frozen-lockfile
+
+      # The hardware this job got, to compare slow runs against.
+      - run: node ../.github/runner-info.mjs
+        env:
+          JOB_LABEL: ${{ github.job }} ${{ matrix.os || runner.os }} ${{ matrix.node }}
 
       # Chromium only: the pages are a canvas and a handful of controls, and a
       # second engine would double the install for no coverage worth having.
