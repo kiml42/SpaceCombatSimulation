@@ -291,7 +291,7 @@ describe("the fleet editor in a browser", () => {
         await page.click("#newDesign");
         await page.waitForURL(/#\/ship\?design=/);
         expect(await page.inputValue("#shipName")).toBe("Ship 1");
-        // Blank, it can take the tutorial, as a new player's first ship does.
+        // A fleet's design can take the tutorial, as a new player's first ship does.
         await page.click("#helpOpen");
         expect(await page.isDisabled("#shipHelpTutorial")).toBe(false);
         await page.click("#shipHelpClose");

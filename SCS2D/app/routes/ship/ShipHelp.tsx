@@ -11,19 +11,17 @@ export interface ShipHelpProps {
     readonly open: boolean;
     readonly onClose: () => void;
     readonly onTutorial: () => void;
-    /** Why the tutorial cannot start here, if it cannot: a design opened from a fleet is the fleet's. */
-    readonly noTutorial?: string;
 }
 
 /** What the editor is, in brief, and the way into the tutorial that builds a first ship. */
-export function ShipHelp({ open, onClose, onTutorial, noTutorial }: ShipHelpProps) {
+export function ShipHelp({ open, onClose, onTutorial }: ShipHelpProps) {
     return (
         <HelpDialog
             id="shipHelp"
             title={SHIP_HELP_LABEL}
             open={open}
             onClose={onClose}
-            tutorial={{ label: "Start the tutorial", onStart: onTutorial, ...(noTutorial === undefined ? {} : { disabled: noTutorial }) }}
+            tutorial={{ label: "Start the tutorial", onStart: onTutorial }}
         >
             <ol>
                 <li>
