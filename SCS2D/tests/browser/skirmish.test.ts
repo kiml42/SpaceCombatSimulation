@@ -8,7 +8,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import type { Browser, Page } from "playwright";
-import { launchChromium } from "./launch.js";
+import { launchChromium, withoutView } from "./launch.js";
 import { shipFleet, type Blueprint } from "../../sim/index.js";
 import { BARE_CORE, CORVETTE, GUNSHIP } from "../../scenarios/blueprints.js";
 import { HISTORY_STORAGE_KEY } from "../../scenarios/history.js";
@@ -106,85 +106,88 @@ describe("the skirmish in a browser", () => {
         expect(problems).toEqual([]);
     });
 
-    it("will not fight with a fleet over budget", async () => {
-        await advanced();
-        await page.selectOption("#enemy", "ship:Stock/Bare Core");
-        await startWith(GUNSHIP);
-        expect(await page.isVisible("#round")).toBe(true);
-        expect(await page.isDisabled("#play")).toBe(true);
-        expect(await page.isDisabled("#fight")).toBe(true);
-        expect(await page.getAttribute("#editFleet", "data-variant")).toBe("primary");
-        expect(await page.textContent("#fleetNote")).toContain("over budget");
-        expect(await page.locator("#budget tr.over").count()).toBeGreaterThan(0);
-        await page.click("#abandon");
-        await page.click("#abandonConfirm");
-        expect(await page.isVisible("#setupScreen")).toBe(true);
-    });
+    it("will not fight with a fleet over budget", () =>
+        withoutView(page, async () => {
+            await advanced();
+            await page.selectOption("#enemy", "ship:Stock/Bare Core");
+            await startWith(GUNSHIP);
+            expect(await page.isVisible("#round")).toBe(true);
+            expect(await page.isDisabled("#play")).toBe(true);
+            expect(await page.isDisabled("#fight")).toBe(true);
+            expect(await page.getAttribute("#editFleet", "data-variant")).toBe("primary");
+            expect(await page.textContent("#fleetNote")).toContain("over budget");
+            expect(await page.locator("#budget tr.over").count()).toBeGreaterThan(0);
+            await page.click("#abandon");
+            await page.click("#abandonConfirm");
+            expect(await page.isVisible("#setupScreen")).toBe(true);
+        }));
 
-    it("fights over the enemy's cost with a budget raised to fit, and matches the enemy again", async () => {
-        await advanced();
-        await page.selectOption("#enemy", "ship:Stock/Bare Core");
-        const matched = await page.inputValue("#metalBudget");
-        for (const id of ["metalBudget", "fuelBudget", "buildBudget"]) await page.fill(`#${id}`, "100000");
-        await startWith(GUNSHIP);
-        expect(await page.isDisabled("#play")).toBe(false);
-        const kept = await page.evaluate(() => JSON.parse(window.localStorage.getItem("scs2d.skirmish")!));
-        expect(kept.budget.metal).toBe(100_000_000);
-        await page.click("#abandon");
-        await page.click("#abandonConfirm");
-        await advanced();
-        // A box set by hand stays when the enemy changes; one left alone follows it.
-        await page.fill("#metalBudget", "1");
-        const fuel = await page.inputValue("#fuelBudget");
-        await page.fill("#fuelBudget", "");
-        await page.selectOption("#enemy", "ship:Stock/Gunship");
-        expect(await page.inputValue("#metalBudget")).toBe("1");
-        expect(await page.inputValue("#fuelBudget")).not.toBe(fuel);
-        expect(await page.inputValue("#fuelBudget")).not.toBe("");
-        await page.selectOption("#enemy", "ship:Stock/Bare Core");
-        expect(await page.inputValue("#metalBudget")).toBe("1");
-        await page.click("#matchEnemy");
-        expect(await page.inputValue("#metalBudget")).toBe(matched);
-        expect(problems).toEqual([]);
-    });
+    it("fights over the enemy's cost with a budget raised to fit, and matches the enemy again", () =>
+        withoutView(page, async () => {
+            await advanced();
+            await page.selectOption("#enemy", "ship:Stock/Bare Core");
+            const matched = await page.inputValue("#metalBudget");
+            for (const id of ["metalBudget", "fuelBudget", "buildBudget"]) await page.fill(`#${id}`, "100000");
+            await startWith(GUNSHIP);
+            expect(await page.isDisabled("#play")).toBe(false);
+            const kept = await page.evaluate(() => JSON.parse(window.localStorage.getItem("scs2d.skirmish")!));
+            expect(kept.budget.metal).toBe(100_000_000);
+            await page.click("#abandon");
+            await page.click("#abandonConfirm");
+            await advanced();
+            // A box set by hand stays when the enemy changes; one left alone follows it.
+            await page.fill("#metalBudget", "1");
+            const fuel = await page.inputValue("#fuelBudget");
+            await page.fill("#fuelBudget", "");
+            await page.selectOption("#enemy", "ship:Stock/Gunship");
+            expect(await page.inputValue("#metalBudget")).toBe("1");
+            expect(await page.inputValue("#fuelBudget")).not.toBe(fuel);
+            expect(await page.inputValue("#fuelBudget")).not.toBe("");
+            await page.selectOption("#enemy", "ship:Stock/Bare Core");
+            expect(await page.inputValue("#metalBudget")).toBe("1");
+            await page.click("#matchEnemy");
+            expect(await page.inputValue("#metalBudget")).toBe(matched);
+            expect(problems).toEqual([]);
+        }));
 
-    it("keeps the settings chosen with the skirmish, and puts them back to their defaults", async () => {
-        const set = async (id: string, value: string): Promise<void> => {
-            await page.fill(`#${id}`, value);
-            await page.dispatchEvent(`#${id}`, "change");
-        };
-        await advanced();
-        await set("quietTime", "45");
-        await set("mutants", "2");
-        await set("kindTank", "7");
-        await set("maxShips", "5");
-        await set("gapSpread", "1000");
-        await page.selectOption("#enemy", "ship:Stock/Gunship");
-        await startWith(GUNSHIP);
-        const kept = await page.evaluate(() => JSON.parse(window.localStorage.getItem("scs2d.skirmish")!));
-        expect(kept.settings.quietTime).toBe(45);
-        expect(kept.settings.mutants).toBe(2);
-        expect(kept.settings.breeding.kindTank).toBe(7);
-        expect(kept.settings.maxShips).toBe(5);
-        expect(kept.settings.gapSpread).toBe(1000);
-        // Remembered for the next one, until a preset puts them back.
-        await page.click("#abandon");
-        await page.click("#abandonConfirm");
-        await advanced();
-        expect(await page.inputValue("#quietTime")).toBe("45");
-        expect(await page.inputValue("#battlefieldPreset")).toBe("");
-        await page.selectOption("#battlefieldPreset", "Open space");
-        expect(await page.inputValue("#quietTime")).toBe(String(DEFAULT_SKIRMISH_SETTINGS.quietTime));
-        expect(await page.inputValue("#mutants")).toBe(String(DEFAULT_SKIRMISH_SETTINGS.mutants));
-        expect(await page.inputValue("#kindTank")).toBe(String(DEFAULT_KINDS.tank));
-        expect(await page.inputValue("#gapSpread")).toBe("0");
-        // The battlefield leaves the enemy's settings; the enemy's preset puts those back.
-        expect(await page.inputValue("#maxShips")).toBe("5");
-        await page.selectOption("#enemyPreset", "Bare core");
-        expect(await page.inputValue("#maxShips")).toBe("3");
-        expect(await page.inputValue("#radius")).toBe("500");
-        expect(problems).toEqual([]);
-    });
+    it("keeps the settings chosen with the skirmish, and puts them back to their defaults", () =>
+        withoutView(page, async () => {
+            const set = async (id: string, value: string): Promise<void> => {
+                await page.fill(`#${id}`, value);
+                await page.dispatchEvent(`#${id}`, "change");
+            };
+            await advanced();
+            await set("quietTime", "45");
+            await set("mutants", "2");
+            await set("kindTank", "7");
+            await set("maxShips", "5");
+            await set("gapSpread", "1000");
+            await page.selectOption("#enemy", "ship:Stock/Gunship");
+            await startWith(GUNSHIP);
+            const kept = await page.evaluate(() => JSON.parse(window.localStorage.getItem("scs2d.skirmish")!));
+            expect(kept.settings.quietTime).toBe(45);
+            expect(kept.settings.mutants).toBe(2);
+            expect(kept.settings.breeding.kindTank).toBe(7);
+            expect(kept.settings.maxShips).toBe(5);
+            expect(kept.settings.gapSpread).toBe(1000);
+            // Remembered for the next one, until a preset puts them back.
+            await page.click("#abandon");
+            await page.click("#abandonConfirm");
+            await advanced();
+            expect(await page.inputValue("#quietTime")).toBe("45");
+            expect(await page.inputValue("#battlefieldPreset")).toBe("");
+            await page.selectOption("#battlefieldPreset", "Open space");
+            expect(await page.inputValue("#quietTime")).toBe(String(DEFAULT_SKIRMISH_SETTINGS.quietTime));
+            expect(await page.inputValue("#mutants")).toBe(String(DEFAULT_SKIRMISH_SETTINGS.mutants));
+            expect(await page.inputValue("#kindTank")).toBe(String(DEFAULT_KINDS.tank));
+            expect(await page.inputValue("#gapSpread")).toBe("0");
+            // The battlefield leaves the enemy's settings; the enemy's preset puts those back.
+            expect(await page.inputValue("#maxShips")).toBe("5");
+            await page.selectOption("#enemyPreset", "Bare core");
+            expect(await page.inputValue("#maxShips")).toBe("3");
+            expect(await page.inputValue("#radius")).toBe("500");
+            expect(problems).toEqual([]);
+        }));
 
     it("sets up the enemy and the battlefield from the presets, each leaving the other's settings", async () => {
         await advanced();
@@ -214,29 +217,30 @@ describe("the skirmish in a browser", () => {
         expect(problems).toEqual([]);
     });
 
-    it("fights a round with a fleet that fits", async () => {
-        await advanced();
-        await page.selectOption("#enemy", "ship:Stock/Gunship");
-        await startWith(GUNSHIP);
-        expect(await page.isDisabled("#play")).toBe(false);
-        expect(await page.textContent("#roundTitle")).toBe("Round 1");
-        expect(await page.getAttribute("#fight", "data-variant")).toBe("primary");
-        expect(await page.getAttribute("#editFleet", "data-variant")).not.toBe("primary");
-        await page.click("#fight");
-        // It waits on the battle; pausing is the header's.
-        expect(await page.textContent("#fight")).toBe("Fighting…");
-        expect(await page.isDisabled("#fight")).toBe(true);
-        expect(await page.textContent("#play")).toBe("Pause");
-        // Paused once it has moved, or there is nothing yet to resume.
-        await page.waitForFunction(() => /t [1-9]/.test(document.getElementById("readout")?.textContent ?? ""));
-        await page.click("#play");
-        expect(await page.textContent("#fight")).toBe("Resume");
-        expect(await page.isDisabled("#fight")).toBe(false);
-        await page.click("#fight");
-        await page.waitForFunction(() => /t [1-9]/.test(document.getElementById("readout")?.textContent ?? ""));
-        expect(await page.textContent("#sides")).toContain("You");
-        expect(problems).toEqual([]);
-    });
+    it("fights a round with a fleet that fits", () =>
+        withoutView(page, async () => {
+            await advanced();
+            await page.selectOption("#enemy", "ship:Stock/Gunship");
+            await startWith(GUNSHIP);
+            expect(await page.isDisabled("#play")).toBe(false);
+            expect(await page.textContent("#roundTitle")).toBe("Round 1");
+            expect(await page.getAttribute("#fight", "data-variant")).toBe("primary");
+            expect(await page.getAttribute("#editFleet", "data-variant")).not.toBe("primary");
+            await page.click("#fight");
+            // It waits on the battle; pausing is the header's.
+            expect(await page.textContent("#fight")).toBe("Fighting…");
+            expect(await page.isDisabled("#fight")).toBe(true);
+            expect(await page.textContent("#play")).toBe("Pause");
+            // Paused once it has moved, or there is nothing yet to resume.
+            await page.waitForFunction(() => /t [1-9]/.test(document.getElementById("readout")?.textContent ?? ""));
+            await page.click("#play");
+            expect(await page.textContent("#fight")).toBe("Resume");
+            expect(await page.isDisabled("#fight")).toBe(false);
+            await page.click("#fight");
+            await page.waitForFunction(() => /t [1-9]/.test(document.getElementById("readout")?.textContent ?? ""));
+            expect(await page.textContent("#sides")).toContain("You");
+            expect(problems).toEqual([]);
+        }));
 
     it("takes orders for your ships alone, and winds back", async () => {
         // The round from the last test, paused part way.
@@ -262,45 +266,46 @@ describe("the skirmish in a browser", () => {
         expect(problems).toEqual([]);
     });
 
-    it("goes to the fleet editor with the budget, and back to the round", async () => {
-        await page.evaluate(() => localStorage.removeItem("scs2d.help.fleet"));
-        await page.click("#editFleet");
-        await page.waitForURL(/index\.html#\/fleet\?skirmish=/);
-        await page.waitForSelector("#fleetName");
-        // How to build a fleet, by itself the first time; Escape closes it without opening the menu.
-        expect(await page.isVisible("#fleetHelp")).toBe(true);
-        expect(await page.textContent("#fleetHelp")).toContain("inside the dashed circle");
-        await page.keyboard.press("Escape");
-        expect(await page.isVisible("#fleetHelp")).toBe(false);
-        expect(await page.isVisible("#menuTitle")).toBe(false);
-        expect(await page.evaluate(() => localStorage.getItem("scs2d.help.fleet"))).toBe("seen");
-        // ? brings it back, beside the menu button and on its key.
-        await page.click("#helpOpen");
-        expect(await page.isVisible("#fleetHelp")).toBe(true);
-        await page.click("#fleetHelpClose");
-        await page.keyboard.press("?");
-        expect(await page.isVisible("#fleetHelp")).toBe(true);
-        await page.click("#fleetHelpClose");
-        expect(await page.isVisible("#skirmish")).toBe(true);
-        expect(await page.textContent("#skirmishTitle")).toBe("Skirmish — round 1");
-        expect(await page.textContent("#skirmishBudget")).toContain("metal");
-        expect(await page.inputValue("#fleetName")).toBe("Gunship");
-        expect(await page.isVisible("#battleLink")).toBe(false);
-        // A saved fleet is loaded from the menu here, not opened from the bar.
-        expect(await page.locator("#fleet").count()).toBe(0);
-        await page.click("#menuButton");
-        expect(await page.isVisible("#loadFleet")).toBe(true);
-        expect(await page.isVisible("#saveFleet")).toBe(true);
-        expect(await page.locator("#newFleet").count()).toBe(0);
-        await page.click("#resume");
-        await page.click("#backToSkirmish");
-        await page.waitForURL(/#\/skirmish/);
-        await page.waitForSelector("#round");
-        expect(await page.textContent("#playerName")).toBe("Gunship");
-        // Leaving the editor by a link saved the fleet.
-        expect(await page.evaluate(() => window.localStorage.getItem("scs2d.fleet.Gunship") !== null)).toBe(true);
-        expect(problems).toEqual([]);
-    });
+    it("goes to the fleet editor with the budget, and back to the round", () =>
+        withoutView(page, async () => {
+            await page.evaluate(() => localStorage.removeItem("scs2d.help.fleet"));
+            await page.click("#editFleet");
+            await page.waitForURL(/index\.html#\/fleet\?skirmish=/);
+            await page.waitForSelector("#fleetName");
+            // How to build a fleet, by itself the first time; Escape closes it without opening the menu.
+            expect(await page.isVisible("#fleetHelp")).toBe(true);
+            expect(await page.textContent("#fleetHelp")).toContain("inside the dashed circle");
+            await page.keyboard.press("Escape");
+            expect(await page.isVisible("#fleetHelp")).toBe(false);
+            expect(await page.isVisible("#menuTitle")).toBe(false);
+            expect(await page.evaluate(() => localStorage.getItem("scs2d.help.fleet"))).toBe("seen");
+            // ? brings it back, beside the menu button and on its key.
+            await page.click("#helpOpen");
+            expect(await page.isVisible("#fleetHelp")).toBe(true);
+            await page.click("#fleetHelpClose");
+            await page.keyboard.press("?");
+            expect(await page.isVisible("#fleetHelp")).toBe(true);
+            await page.click("#fleetHelpClose");
+            expect(await page.isVisible("#skirmish")).toBe(true);
+            expect(await page.textContent("#skirmishTitle")).toBe("Skirmish — round 1");
+            expect(await page.textContent("#skirmishBudget")).toContain("metal");
+            expect(await page.inputValue("#fleetName")).toBe("Gunship");
+            expect(await page.isVisible("#battleLink")).toBe(false);
+            // A saved fleet is loaded from the menu here, not opened from the bar.
+            expect(await page.locator("#fleet").count()).toBe(0);
+            await page.click("#menuButton");
+            expect(await page.isVisible("#loadFleet")).toBe(true);
+            expect(await page.isVisible("#saveFleet")).toBe(true);
+            expect(await page.locator("#newFleet").count()).toBe(0);
+            await page.click("#resume");
+            await page.click("#backToSkirmish");
+            await page.waitForURL(/#\/skirmish/);
+            await page.waitForSelector("#round");
+            expect(await page.textContent("#playerName")).toBe("Gunship");
+            // Leaving the editor by a link saved the fleet.
+            expect(await page.evaluate(() => window.localStorage.getItem("scs2d.fleet.Gunship") !== null)).toBe(true);
+            expect(problems).toEqual([]);
+        }));
 
     it("opens a ship of the fleet in the ship editor, and takes it back renamed", async () => {
         await page.click("#editFleet");

@@ -291,6 +291,10 @@ describe("the fleet editor in a browser", () => {
         await page.click("#newDesign");
         await page.waitForURL(/#\/ship\?design=/);
         expect(await page.inputValue("#shipName")).toBe("Ship 1");
+        // A fleet's design can take the tutorial, as a new player's first ship does.
+        await page.click("#helpOpen");
+        expect(await page.isDisabled("#shipHelpTutorial")).toBe(false);
+        await page.click("#shipHelpClose");
         // A blank design: its core is the thing to add first.
         const core = page.locator('[data-add="core"]');
         expect(await core.getAttribute("data-variant")).toBe("primary");

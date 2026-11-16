@@ -61,6 +61,23 @@ function cutOf(craft: ShipDesign, slipway: ModuleSpec, depth: number): { ax: num
  * unless that would reach back past it: then it waits until it is whole.
  */
 export function printedCraft(craft: ShipDesign, slipway: ModuleSpec, depth: number): Print | null {
+    let bySlipway = printed.get(craft);
+    if (bySlipway === undefined) printed.set(craft, (bySlipway = new WeakMap()));
+    let byDepth = bySlipway.get(slipway);
+    if (byDepth === undefined) bySlipway.set(slipway, (byDepth = new Map()));
+    let print = byDepth.get(depth);
+    if (print === undefined) byDepth.set(depth, (print = printAt(craft, slipway, depth)));
+    return print;
+}
+
+/**
+ * Each print already worked out, by craft, slipway and depth. A slipway asks
+ * for the same two every step until a slice is built, and working one out
+ * means assembling a design.
+ */
+const printed = new WeakMap<ShipDesign, WeakMap<ModuleSpec, Map<number, Print | null>>>();
+
+function printAt(craft: ShipDesign, slipway: ModuleSpec, depth: number): Print | null {
     const { ax, ay, cut, mid } = cutOf(craft, slipway, depth);
     const parts: PartOf[] = [];
     const modules: number[] = [];
