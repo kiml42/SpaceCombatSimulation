@@ -98,7 +98,7 @@ import { stripsFor, stripTileAt, stripTileUnder, type StripColumn, type StripShi
 import { fighterColours, markerOf, NEUTRAL, shipColours, teamLivery, teamName } from "./teams.js";
 import { RESOURCE_COLOURS } from "./resources.js";
 import { patternColour, patternTile, patternTransform, tileKey } from "./livery.js";
-import { SOOT, SOOT_ALPHA, wearLevel, wearTile, wearTransform } from "./wear.js";
+import { SOOT, SOOT_ALPHA, wearLevel, wearSeed, wearTile, wearTransform } from "./wear.js";
 
 export { teamColour } from "./teams.js";
 import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth, plumeAlpha, tracerAlpha } from "./strokes.js";
@@ -794,7 +794,10 @@ function paletteKey(team: number | undefined): string {
     return `${hull}${trim}${pivot}${liveryKey(teamLivery(team))}`;
 }
 
-/** Everything `drawHull` draws from, rounded to `PICTURE_STEPS`, with the picture's size in pixels. */
+/**
+ * Everything `drawHull` draws from, rounded to `PICTURE_STEPS`, with the
+ * picture's size in pixels. Not `wearSeed`: this small, wear is under a pixel.
+ */
 function pictureKey(ship: ShipView, fighters: boolean, filled: boolean, size: number): string {
     const step = (v: number | undefined): number => (v === undefined ? -1 : Math.round(v * PICTURE_STEPS));
     let key = `${size} ${paletteKey(ship.team)} ${fighters ? 1 : 0}${filled ? 1 : 0}`;
@@ -1966,7 +1969,7 @@ function keptFill(ctx: CanvasRenderingContext2D, ship: ShipView, i: number): voi
     const colour = fillColour(m.spec, colours);
     keep(
         ctx,
-        `fill ${idOf(m.spec)} ${idOf(colours)} ${colour} ${integrity} ${patternKey(design, i, side)} ${drawnMounts(design, i).key}`,
+        `fill ${idOf(m.spec)} ${idOf(colours)} ${colour} ${integrity} ${integrity < 1 ? wearSeed(ship) : ""} ${patternKey(design, i, side)} ${drawnMounts(design, i).key}`,
         () => fillModule(ctx, ship, i),
     );
 }
@@ -1986,7 +1989,7 @@ function fillModule(ctx: CanvasRenderingContext2D, ship: ShipView, i: number): v
     const pattern = patternOf(ctx, design, i, side);
     const ground = spec.kind === "rock" || spec.kind === "kernel";
     const burnt = !ground && integrity <= 0;
-    const wear = ground ? null : wearPattern(ctx, design, i, wearLevel(integrity));
+    const wear = ground ? null : wearPattern(ctx, design, i, wearLevel(integrity), wearSeed(ship));
     for (const fill of fills) {
         const points = fill.points;
         ctx.fillStyle = fill.colour;
@@ -2030,11 +2033,11 @@ function fillModule(ctx: CanvasRenderingContext2D, ship: ShipView, i: number): v
 }
 
 /** Wear `level` laid on module `i` (`render/wear.ts`), or null for none. */
-function wearPattern(ctx: CanvasRenderingContext2D, design: ShipDesign, i: number, level: number): CanvasPattern | null {
+function wearPattern(ctx: CanvasRenderingContext2D, design: ShipDesign, i: number, level: number, seed: number): CanvasPattern | null {
     const tile = level > 0 ? wearTile(level) : null;
     const pattern = tile === null ? null : ctx.createPattern(tile as HTMLCanvasElement, "repeat");
     if (pattern === null) return null;
-    const t = wearTransform(design, i);
+    const t = wearTransform(design, i, seed);
     pattern.setTransform({ a: t.a, b: t.b, c: t.c, d: t.d, e: t.e, f: t.f });
     return pattern;
 }

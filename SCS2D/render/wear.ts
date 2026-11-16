@@ -34,6 +34,14 @@ export function wearShows(radius: number, scale: number): boolean {
     return ((WEAR_OF_RADIUS * radius) / WEAR_TILE) * scale >= MIN_WEAR_TEXEL_PX;
 }
 
+/**
+ * Which ship's wear this is, for `wearTransform`: by its side and serial,
+ * which a piece broken off keeps, so its wear stays where it was.
+ */
+export function wearSeed(ship: { readonly team: number; readonly serial: number }): number {
+    return Math.floor(hash(ship.team, ship.serial, 11) * 0x7fffffff);
+}
+
 /** A small, fixed hash of two integers to [0, 1). */
 function hash(x: number, y: number, seed: number): number {
     let h = Math.imul(x, 374761393) ^ Math.imul(y, 668265263) ^ Math.imul(seed, 2147483647);
@@ -127,11 +135,12 @@ export function wearTile(level: number): HTMLCanvasElement | OffscreenCanvas | n
  * From a wear tile's texels to module `m`'s own frame: laid in the frame of
  * the design it was built in, `WEAR_OF_RADIUS` of that design's radius across,
  * one lie for the hull layer and another for what is thick, so the pattern
- * runs on unbroken across a layer and only its depth steps at a seam. A piece
- * cut away keeps its wear. A shell's frame is centred on what of its module
- * stands, so its wear stays where it was.
+ * runs on unbroken across a layer and only its depth steps at a seam. `ship`
+ * (`wearSeed`) moves it too, so two ships of a design hurt alike look
+ * different. A piece cut away keeps its wear. A shell's frame is centred on
+ * what of its module stands, so its wear stays where it was.
  */
-export function wearTransform(design: ShipDesign, m: number): Affine {
+export function wearTransform(design: ShipDesign, m: number, ship = 0): Affine {
     const origin = originOf(design, m);
     const built = origin.design;
     const whole = built.modules[origin.module]!;
@@ -144,9 +153,9 @@ export function wearTransform(design: ShipDesign, m: number): Affine {
     }
     const s = (WEAR_OF_RADIUS * built.radius) / WEAR_TILE;
     const layer = isThick(whole.spec) ? 1 : 0;
-    const turn = hash(layer, 0, 6) * 2 * Math.PI;
-    const shiftX = hash(layer, 1, 7) * WEAR_TILE * s;
-    const shiftY = hash(layer, 2, 8) * WEAR_TILE * s;
+    const turn = hash(layer, ship, 6) * 2 * Math.PI;
+    const shiftX = hash(layer, ship, 7) * WEAR_TILE * s;
+    const shiftY = hash(layer, ship, 8) * WEAR_TILE * s;
     const ct = Math.cos(turn);
     const st = Math.sin(turn);
     // Texels to the design's frame, then back from the module's place and turned by its angle.

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { compileBlueprint, isThick, originOf, shellOf, type ShipDesign } from "../sim/index.js";
 import { rebuiltDesign } from "../sim/blueprint.js";
 import { CORVETTE } from "../scenarios/blueprints.js";
-import { WEAR_LEVELS, wearField, wearLevel, wearShows, wearTransform } from "../render/wear.js";
+import { WEAR_LEVELS, wearField, wearLevel, wearSeed, wearShows, wearTransform } from "../render/wear.js";
 
 describe("wear", () => {
     it("shows none on a whole module and all of it on a destroyed one", () => {
@@ -46,6 +46,21 @@ describe("wear", () => {
             }
         }
         expect(at(thick[0]!, 40, 70)[0]).not.toBeCloseTo(at(hull[0]!, 40, 70)[0], 3);
+    });
+
+    it("lies differently on each ship, and the same on a piece of one", () => {
+        const corvette = compileBlueprint(CORVETTE);
+        const one = wearSeed({ team: 0, serial: 1 });
+        const two = wearSeed({ team: 0, serial: 2 });
+        const other = wearSeed({ team: 1, serial: 1 });
+        expect(new Set([one, two, other]).size).toBe(3);
+        const at = (seed: number): number[] => {
+            const t = wearTransform(corvette, 0, seed);
+            return [t.e, t.f];
+        };
+        expect(at(one)).not.toEqual(at(two));
+        expect(at(one)).not.toEqual(at(other));
+        expect(at(wearSeed({ team: 0, serial: 1 }))).toEqual(at(one));
     });
 
     it("stays where it was on a module part taken down", () => {
