@@ -26,6 +26,7 @@ import {
     type ShipDesign,
     settleIds,
     EngineLayout,
+    isPressureFed,
 } from "../sim/index.js";
 import { CORVETTE, GUNSHIP, RAIL_CORVETTE, TORCH, X_WING } from "../scenarios/blueprints.js";
 import { EditorDocument } from "../editor/document.js";
@@ -1502,6 +1503,20 @@ describe("moduleReadout", () => {
         expect(engine.gun).toBeNull();
         const structure = moduleReadout({ kind: "structure", x: 0, y: 0, length: 3, width: 3 });
         expect(structure.rows.some((row) => row.name === "Thrust")).toBe(false);
+    });
+
+    it("says under an engine's Isp whether it is pumped or pressure-fed, and why", () => {
+        const feed = (spec: ModuleSpec) => moduleReadout(spec).rows.find((row) => row.name === "feed");
+        const big: ModuleSpec = { kind: "engine", angle: Math.PI, x: 0, y: 0, length: 3, width: 3 };
+        const small: ModuleSpec = { kind: "engine", angle: Math.PI, x: 0, y: 0, length: 0.6, width: 0.3 };
+        expect(isPressureFed(engineGeometry(big))).toBe(false);
+        expect(isPressureFed(engineGeometry(small))).toBe(true);
+        expect(feed(big)).toMatchObject({ value: "pumped", sub: true });
+        expect(feed(small)).toMatchObject({ value: "pressure-fed", sub: true });
+        expect(feed(small)!.title).toMatch(/No room for pumps/);
+        const rows = moduleReadout(big).rows.map((row) => row.name);
+        expect(rows.indexOf("feed")).toBe(rows.indexOf("Isp") + 1);
+        expect(moduleReadout({ kind: "structure", x: 0, y: 0, length: 3, width: 3 }).rows.some((row) => row.name === "feed")).toBe(false);
     });
 });
 
