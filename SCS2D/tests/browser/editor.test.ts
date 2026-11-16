@@ -555,42 +555,48 @@ describe("the editor in a browser", () => {
     });
 
     it("explains itself the first time, and builds a first ship step by step from there", async () => {
-        // Reached by its hash, which does not run the script that marks the help seen.
-        await page.evaluate(() => localStorage.removeItem("scs2d.help.ship"));
-        await page.evaluate(() => (location.hash = "#/"));
-        await page.evaluate(() => (location.hash = "#/ship"));
-        await page.waitForSelector("#shipHelp[open]");
-        await page.click("#shipHelpTutorial");
-        expect(await page.isVisible("#shipHelp")).toBe(false);
-        expect(await page.inputValue("#shipName")).toMatch(/^New ship/);
-        expect(await page.getAttribute("#shipTour", "data-step")).toBe("core");
-        expect(await page.isVisible("#shipTourRing")).toBe(true);
+        // The view hidden, so nothing is drawn: a selected module animates, and drawing
+        // it in software WebGL holds up every step. The tour points at nothing in the view.
+        const hidden = await page.addStyleTag({ content: "#view { display: none }" });
+        try {
+            // Reached by its hash, which does not run the script that marks the help seen.
+            await page.evaluate(() => localStorage.removeItem("scs2d.help.ship"));
+            await page.evaluate(() => (location.hash = "#/"));
+            await page.evaluate(() => (location.hash = "#/ship"));
+            await page.waitForSelector("#shipHelp[open]");
+            await page.click("#shipHelpTutorial");
+            expect(await page.isVisible("#shipHelp")).toBe(false);
+            expect(await page.inputValue("#shipName")).toMatch(/^New ship/);
+            expect(await page.getAttribute("#shipTour", "data-step")).toBe("core");
+            expect(await page.isVisible("#shipTourRing")).toBe(true);
 
-        // Each step is ticked off as it is done, and waits for Next.
-        expect(await page.textContent("#shipTourNext")).toBe("Skip");
-        await page.click('[data-add="core"]');
-        expect(await page.getAttribute("#shipTour", "data-step")).toBe("core");
-        expect(await page.isChecked("#shipTourGoal")).toBe(true);
-        expect(await page.textContent("#shipTourNext")).toBe("Next");
-        await page.click("#shipTourNext");
-        await page.click('[data-add="engine"]');
-        await page.click("#shipTourNext");
-        expect(await page.getAttribute("#shipTour", "data-step")).toBe("aft");
-        // Unticked again when it stops being true: the new engine sits on the core.
-        expect(await page.isChecked("#shipTourGoal")).toBe(false);
-        await page.click("#shipTourBack");
-        expect(await page.getAttribute("#shipTour", "data-step")).toBe("engine");
-        await page.click("#shipTourEnd");
-        expect(await page.isVisible("#shipTour")).toBe(false);
+            // Each step is ticked off as it is done, and waits for Next.
+            expect(await page.textContent("#shipTourNext")).toBe("Skip");
+            await page.click('[data-add="core"]');
+            expect(await page.getAttribute("#shipTour", "data-step")).toBe("core");
+            expect(await page.isChecked("#shipTourGoal")).toBe(true);
+            expect(await page.textContent("#shipTourNext")).toBe("Next");
+            await page.click("#shipTourNext");
+            await page.click('[data-add="engine"]');
+            await page.click("#shipTourNext");
+            expect(await page.getAttribute("#shipTour", "data-step")).toBe("aft");
+            // Unticked again when it stops being true: the new engine sits on the core.
+            expect(await page.isChecked("#shipTourGoal")).toBe(false);
+            await page.click("#shipTourBack");
+            expect(await page.getAttribute("#shipTour", "data-step")).toBe("engine");
+            await page.click("#shipTourEnd");
+            expect(await page.isVisible("#shipTour")).toBe(false);
 
-        // Seen once, it stays shut; ? brings it back.
-        expect(await page.evaluate(() => localStorage.getItem("scs2d.help.ship"))).toBe("seen");
-        await page.click("#helpOpen");
-        expect(await page.isVisible("#shipHelp")).toBe(true);
-        await page.click("#shipHelpClose");
-        await page.click("#newShip");
-        // A dozen clicks on a drawn ship, each taking seconds where CI draws WebGL in software.
-    }, 60_000);
+            // Seen once, it stays shut; ? brings it back.
+            expect(await page.evaluate(() => localStorage.getItem("scs2d.help.ship"))).toBe("seen");
+            await page.click("#helpOpen");
+            expect(await page.isVisible("#shipHelp")).toBe(true);
+            await page.click("#shipHelpClose");
+            await page.click("#newShip");
+        } finally {
+            await hidden.evaluate((style) => (style as HTMLStyleElement).remove());
+        }
+    });
 
     it("marks a ship a fighter, which rules out turrets and thick modules", async () => {
         await page.click("#newShip");
