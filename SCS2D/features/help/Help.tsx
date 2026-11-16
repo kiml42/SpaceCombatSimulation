@@ -70,7 +70,7 @@ export interface HelpDialogProps {
     readonly open: boolean;
     readonly onClose: () => void;
     /** A way into a tutorial, offered beside Got it; closing the dialog leaves the player to find their own way. */
-    readonly tutorial?: { readonly label: string; readonly onStart: () => void; readonly disabled?: string };
+    readonly tutorial?: { readonly label: string; readonly onStart: () => void };
     readonly children: ReactNode;
 }
 
@@ -115,9 +115,7 @@ export function HelpDialog({ id, title, open, onClose, tutorial, children }: Hel
                     <Button
                         id={`${id}Tutorial`}
                         variant="primary"
-                        autoFocus={tutorial.disabled === undefined}
-                        disabled={tutorial.disabled !== undefined}
-                        title={tutorial.disabled}
+                        autoFocus
                         onClick={() => {
                             onClose();
                             tutorial.onStart();
@@ -129,7 +127,7 @@ export function HelpDialog({ id, title, open, onClose, tutorial, children }: Hel
                 <Button
                     id={`${id}Close`}
                     variant={tutorial === undefined ? "primary" : "plain"}
-                    autoFocus={tutorial === undefined || tutorial.disabled !== undefined}
+                    autoFocus={tutorial === undefined}
                     onClick={onClose}
                 >
                     Got it
