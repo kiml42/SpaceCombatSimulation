@@ -13,7 +13,7 @@ import {
     updateEntry,
     withCopies,
 } from "~/editor/fleetEdit";
-import type { Library, LibraryEntry } from "~/editor/library";
+import { byName, type Library, type LibraryEntry } from "~/editor/library";
 import { snapStep } from "~/render/camera";
 import {
     degreesToRadians,
@@ -129,7 +129,7 @@ export function SelectionPanel({ doc, scale, ships, library, designHref, onLeave
     // A new row starts a ship's width apart, plus a margin, so its copies do not stack on the first.
     const defaultStep = (): number => Math.max(snapStep(scale), Math.ceil(doc.reachOf(path) * 2.5));
 
-    const carried = Object.keys(doc.fleet.designs).sort((a, b) => a.localeCompare(b));
+    const carried = Object.keys(doc.fleet.designs).sort(byName);
     const others = library.filter((each) => !carried.includes(each.name));
 
     return (

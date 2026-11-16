@@ -292,7 +292,7 @@ export function EvolutionPage() {
         const kept = formOfHeld(storage.getItem(SETUP_KEY));
         const exists = (value: string): boolean => loadChoice(value, ships, fleets) !== null;
         const founders = kept.founders.filter(exists);
-        const first = ships.list()[0];
+        const first = ships.first();
         return {
             ...kept,
             founders: founders.length > 0 || first === undefined ? founders : [valueOf("ship", first.name)],

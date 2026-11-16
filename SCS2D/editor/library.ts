@@ -72,6 +72,11 @@ export interface LibraryEntry {
     category?: string;
 }
 
+/** Alphabetical, ignoring case and reading digits as numbers, so "Mk 2" comes before "Mk 10". */
+export function byName(a: string, b: string): number {
+    return a.localeCompare(b, undefined, { sensitivity: "base", numeric: true });
+}
+
 /** What a ship with no category of its own is grouped under. */
 export const UNCATEGORISED = "Uncategorised";
 
@@ -97,6 +102,16 @@ export class Library<T extends { name: string } = Blueprint> {
         this.kind = kind ?? (SHIPS as unknown as LibraryKind<T>);
     }
 
+    /** Everything openable, by name: a saved ship just before the stock one it shadows. */
+    list(): LibraryEntry[] {
+        return this.entries().sort((a, b) => byName(a.name, b.name));
+    }
+
+    /** What opens when nothing is asked for: the first shipped entry, as its name opens it. */
+    first(): LibraryEntry | undefined {
+        return this.entries()[0];
+    }
+
     /**
      * Everything openable: the shipped ships first, then the saved ones.
      *
@@ -107,7 +122,7 @@ export class Library<T extends { name: string } = Blueprint> {
      * often started from, and reaching it by deleting an afternoon's work is no
      * way to offer it.
      */
-    list(): LibraryEntry[] {
+    private entries(): LibraryEntry[] {
         const saved = this.savedNames();
         const out: LibraryEntry[] = [];
         for (const blueprint of this.kind.builtIn) {

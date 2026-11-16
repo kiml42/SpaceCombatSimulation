@@ -1093,6 +1093,16 @@ describe("Library", () => {
         expect(names).toContain(GUNSHIP.name);
     });
 
+    it("lists by name, ignoring case, while opening the first shipped ship by default", () => {
+        const library = new Library(fakeStore());
+        library.save({ ...CORVETTE, name: "aardvark" });
+        library.save({ ...CORVETTE, name: "Zebra" });
+        const names = library.list().map((e) => e.name);
+        expect(names.at(-1)).toBe("Zebra");
+        expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base", numeric: true })));
+        expect(library.first()?.name).not.toBe("aardvark");
+    });
+
     it("round-trips a saved ship through the file format", () => {
         const library = new Library(fakeStore());
         const edited = { ...CORVETTE, name: "Corvette II" };
