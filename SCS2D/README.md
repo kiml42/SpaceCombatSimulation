@@ -83,6 +83,7 @@ understanding it turns a regression into the new expected behaviour, permanently
 | `pnpm golden` | Re-derive the golden checksums after a *deliberate* change |
 | `pnpm evolve` | Fight a headless evolution run and write it to `runs/`, to open on the Evolution route with Open run; its flags are in CLAUDE.md |
 | `pnpm yardstick` | Measure a finished run against a ship that does not evolve |
+| `pnpm test:platform` | Only what can differ between platforms: the golden checksums and the tests that touch the host. What CI runs on its other Node versions and Windows |
 | `pnpm test:browser` | Drive the built app, and every story, in Chromium — `pnpm exec playwright install chromium` once first |
 
 ## Opening it from disk

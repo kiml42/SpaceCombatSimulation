@@ -1,13 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { checksumWorld } from "../sim/checksum.js";
 import { World } from "../sim/index.js";
-import { orbitScenario, SCENARIO_TIMEOUT, SCENARIOS, tumbleScenario } from "./fixtures/scenarios.js";
-
-function runSteps(scenario: (typeof SCENARIOS)[keyof typeof SCENARIOS], steps: number): number {
-    const run = scenario.build();
-    for (let i = 0; i < steps; i++) run.step();
-    return run.checksum();
-}
+import { orbitScenario, SCENARIOS, tumbleScenario } from "./fixtures/scenarios.js";
 
 /**
  * Self-checking determinism: these need no baked constants, so they cannot be
@@ -15,29 +9,12 @@ function runSteps(scenario: (typeof SCENARIOS)[keyof typeof SCENARIOS], steps: n
  * the simulation is a pure function of its inputs.
  *
  * The golden tests, which do bake constants, catch a different thing:
- * behaviour changing when it was not meant to.
+ * behaviour changing when it was not meant to. They also fight each scenario
+ * twice and compare the two, which is this file's check made where the
+ * scenarios are already being fought.
  */
 
 describe("determinism", () => {
-    for (const [name, scenario] of Object.entries(SCENARIOS)) {
-        it(
-            `${name} produces an identical result on a rerun`,
-            () => {
-                expect(runSteps(scenario, scenario.steps)).toBe(runSteps(scenario, scenario.steps));
-            },
-            SCENARIO_TIMEOUT,
-        );
-
-        it(
-            `${name} reaches the same state part way through, twice`,
-            () => {
-                const half = Math.floor(scenario.steps / 2);
-                expect(runSteps(scenario, half)).toBe(runSteps(scenario, half));
-            },
-            SCENARIO_TIMEOUT,
-        );
-    }
-
     it("the gunnery scenario actually fires and connects", () => {
         // A determinism suite over a scenario that silently does nothing would
         // pass forever while testing nothing.

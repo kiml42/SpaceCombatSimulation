@@ -61,16 +61,39 @@ jobs:
       # The React app: ESLint, including the import boundaries, and Stylelint.
       - run: pnpm lint
 
+  # The whole suite, once. Named as the matrix row it replaced, so the check
+  # names stay as they were.
   test:
+    name: Test (ubuntu-latest, Node 26)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # The version comes from `packageManager` in SCS2D/package.json.
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: SCS2D/package.json
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: pnpm
+          cache-dependency-path: SCS2D/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm test
+
+  # Everywhere else, only what can differ between platforms: the golden
+  # checksums and the tests that touch the host (`pnpm test:platform`;
+  # architecture.test.ts fails if a test touching the host is left out).
+  platform:
     name: Test (${{ matrix.os }}, Node ${{ matrix.node }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
-      # A deliberately sparse matrix: full coverage of the Node axis on Linux,
-      # one Windows row for a bit of coverage in the other direction. Matrix
-      # rows run in parallel, so extra rows cost concurrency rather than
-      # wall-clock, and this is a public repository so runner minutes are free.
-      # No macOS row: see SCS2D/DECISIONS.md, 2026-11-04.
+      # A deliberately sparse matrix: the rest of the Node axis on Linux, and
+      # one Windows row. No macOS row: see SCS2D/DECISIONS.md, 2026-11-04.
       #
       # Why several Node versions: the golden tests pin exact checksums, so
       # passing them on three V8 versions is what actually verifies the
@@ -91,8 +114,6 @@ jobs:
             node: 22
           - os: ubuntu-latest
             node: 24
-          - os: ubuntu-latest
-            node: 26
           - os: windows-latest
             node: 26
     steps:
@@ -111,7 +132,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm test
+      - run: pnpm test:platform
 
   viewer:
     name: Viewer (browser)
@@ -149,7 +170,7 @@ jobs:
     # own tests. A pull request builds the viewer through the browser job
     # already, so there is nothing to publish from one.
     if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
-    needs: [typecheck, test, viewer]
+    needs: [typecheck, test, platform, viewer]
     runs-on: ubuntu-latest
 
     permissions:
