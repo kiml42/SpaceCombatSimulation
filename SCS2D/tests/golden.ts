@@ -64,8 +64,8 @@ export const GOLDEN: Record<ScenarioName, string> = {
     superSwarm: "be2c7726",
     // ships=11 inFlight=0 p.fired=0 p.hits=0 b.fired=10 b.hits=796 contacts=58 bumps=0 crashes=9 severed=0 culled=0 scrap=21.6t · 115.5 µs/step
     torpedoes: "dc007fa0",
-    // ships=2 inFlight=0 p.fired=24 p.hits=132 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=1.8t · 51.6 µs/step
-    ordering: "24c44768",
+    // ships=2 inFlight=10 p.fired=51 p.hits=182 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=2.7t · 60.4 µs/step
+    ordering: "21985a2e",
     // ships=10 inFlight=1 p.fired=100 p.hits=390 b.fired=16 b.hits=1096 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=104.7t · 188.0 µs/step
     standoff: "781456ad",
     // ships=18 inFlight=0 p.fired=136 p.hits=541 b.fired=37 b.hits=2512 contacts=58 bumps=2 crashes=4 severed=10 culled=0 scrap=117.5t · 177.3 µs/step

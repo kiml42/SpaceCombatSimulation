@@ -321,8 +321,8 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
                 fighting = ab;
             }
         }
-        // With no station of its own, it coasts round whatever is pulling on it, less as a charge holds it.
-        if (target === NO_TARGET && ships.urgeWeight < URGE_REFERENCE) settle(ships, bodies, b, URGE_REFERENCE - ships.urgeWeight);
+        // With no orders, it coasts round whatever is pulling on it, less as a charge holds it. Told to hold, it holds.
+        if (order === undefined && ships.urgeWeight < URGE_REFERENCE) settle(ships, bodies, b, URGE_REFERENCE - ships.urgeWeight);
         // Clear of what it is covering, as of anything else: a charge is
         // stationed on, never flown into.
         avoid(ships, bodies, i, b, target, covering);
