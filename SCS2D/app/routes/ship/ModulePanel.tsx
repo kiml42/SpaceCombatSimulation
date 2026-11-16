@@ -54,6 +54,7 @@ import {
     type ModulePath,
     type ModuleSpec,
     type Placement,
+    fighterBarred,
 } from "~/sim/index";
 import { Button } from "~/ui/buttons/Button";
 import { LiveNumber, LiveText } from "~/ui/fields/LiveText";
@@ -387,7 +388,7 @@ export function ModulePanel({
                     }}
                 >
                     {MODULE_KINDS.map((kind) => (
-                        <option key={kind} value={kind} disabled={fighter && (kind === "turret" || kind === "beamTurret")}>
+                        <option key={kind} value={kind} disabled={fighter && fighterBarred(kind) !== null}>
                             {kindName(kind)}
                         </option>
                     ))}
@@ -599,7 +600,7 @@ export function ModulePanel({
                                 thickable
                                     ? THICK_TITLE
                                     : fighter && canThicken(spec)
-                                      ? "A fighter has nothing thick."
+                                      ? "A fighter cannot have anything thick."
                                       : spec.kind === "engine"
                                         ? "Too narrow to be thick: each nozzle is no more than a deck wide, so already as deep as it is wide."
                                         : "Too narrow to be thick: no more than a deck across, so already as deep as it is wide."
