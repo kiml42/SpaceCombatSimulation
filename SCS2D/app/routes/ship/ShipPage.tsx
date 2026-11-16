@@ -395,7 +395,7 @@ export function ShipPage() {
             ? `It cannot be a fighter: ${barred}.`
             : notFighter !== null
               ? `Flies as an ordinary ship: ${notFighter}.`
-              : "A strike craft: no turrets, robot bay, claw, pad, port or slipway, and nothing thick. It flies in the weapons layer, and drops into the hull layer as well only when its doctrine commits it, to ram or dock.";
+              : "A strike craft: no turrets, robot bay, claw, pad, port or slipway, and nothing thick. It flies in the weapons layer, and drops into the hull layer as well only when its doctrine commits it to ram.";
     const panelKey = JSON.stringify(doc.selection);
 
     const exportShip = (): void => {
