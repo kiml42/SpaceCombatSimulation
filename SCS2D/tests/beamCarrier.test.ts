@@ -65,7 +65,11 @@ describe("the Beam Carrier", () => {
         // the step it fills, which the stores can no longer be read through the
         // carrier to see: then the last reading aboard must be short of full by no
         // more than that step's flow.
-        const full = (): boolean => ships.power.pieceRoom(body(landed), m) < 0.05 * design.modules[m]!.stats.charge && fuelRoom() < 0.5;
+        // A battery wrecked aboard has no room and holds nothing until its pad mends it, which is not full.
+        const full = (): boolean =>
+            ships.power.held(body(landed), m) > 0 &&
+            ships.power.pieceRoom(body(landed), m) < 0.05 * design.modules[m]!.stats.charge &&
+            fuelRoom() < 0.5;
         let room = fuelRoom();
         let flow = Infinity;
         let topped = false;
