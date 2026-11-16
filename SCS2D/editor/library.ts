@@ -33,10 +33,12 @@ export interface LibraryKind<T extends { name: string }> {
     readonly prefix: string;
     /**
      * Whether it is known by its category and name together, rather than its
-     * name alone. Then the categories its built-in ones use are the game's, and
-     * one saved under none of its own, or under one of those, goes under `MY_SHIPS`.
+     * name alone. Then one saved under no category of its own, or a `reserved`
+     * one, goes under `MY_SHIPS`.
      */
     readonly categorised?: boolean;
+    /** Categories kept for the built-in ones, so a player can always tell them apart. */
+    readonly reserved?: readonly string[];
     /** Where saves kept before it was categorised are, to be moved under `prefix`. */
     readonly formerPrefix?: string;
     readonly builtIn: readonly T[];
@@ -50,6 +52,7 @@ export const BUILT_IN: readonly Blueprint[] = Object.values(BLUEPRINTS);
 export const SHIPS: LibraryKind<Blueprint> = {
     prefix: "scs2d.ship.",
     categorised: true,
+    reserved: ["Stock"],
     formerPrefix: "scs2d.blueprint.",
     builtIn: BUILT_IN,
     parse: parseBlueprint,
@@ -125,10 +128,9 @@ export class Library<T extends { name: string; category?: string } = Blueprint> 
         this.kind = kind ?? (SHIPS as unknown as LibraryKind<T>);
     }
 
-    /** The categories the game's own use, which a player's are never filed under. */
+    /** The categories kept for the game's own, which a player's are never filed under. */
     reserved(): Set<string> {
-        if (this.kind.categorised !== true) return new Set();
-        return new Set(this.kind.builtIn.map((item) => categoryIn(item) ?? UNCATEGORISED));
+        return new Set(this.kind.categorised === true ? this.kind.reserved : []);
     }
 
     /** `value` as a save files it: under a category of the player's, if it is known by one. */
@@ -163,11 +165,11 @@ export class Library<T extends { name: string; category?: string } = Blueprint> 
     /**
      * Everything openable: the shipped ones first, then the saved ones.
      *
-     * Where a name alone is the key, a saved one named after a shipped one
-     * **shadows it for `load` and is listed beside it**, rather than taking its
-     * place, so the shipped one stays reachable without deleting the player's.
-     * Where a category is part of the key, nothing shadows anything: a player's
-     * is never filed under a category of the game's.
+     * A saved one under a shipped one's key **shadows it for `load` and is
+     * listed beside it**, rather than taking its place, so the shipped one stays
+     * reachable without deleting the player's. Where a category is part of the
+     * key, that happens only in a category the player shares with the game, as
+     * Star Wars: never in a reserved one.
      */
     private entries(): LibraryEntry[] {
         this.migrate();

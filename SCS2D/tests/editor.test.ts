@@ -1128,16 +1128,16 @@ describe("Library", () => {
         expect(library.load(CORVETTE.name)).toEqual(CORVETTE);
     });
 
-    it("keeps the game's categories for the game's ships", () => {
+    it("keeps Stock for the game's ships, and shares the rest", () => {
         const library = new Library(fakeStore());
-        expect([...library.reserved()].sort()).toEqual(["Star Wars", "Stock"]);
-        expect(library.save({ ...CORVETTE, name: "Mine", category: "Star Wars" }).category).toBe(MY_SHIPS);
+        expect([...library.reserved()]).toEqual(["Stock"]);
+        expect(library.save({ ...CORVETTE, name: "Mine", category: "Star Wars" }).category).toBe("Star Wars");
         expect(library.save({ name: "Loose", modules: [] }).category).toBe(MY_SHIPS);
         expect(library.save({ name: "Own", modules: [], category: "Skirmish one" }).category).toBe("Skirmish one");
         const category = (name: string) => library.list().find((e) => e.name === name)?.category;
         expect(category(CORVETTE.name)).toBe("Stock");
         expect(category("X Wing")).toBe("Star Wars");
-        expect(category("Mine")).toBe(MY_SHIPS);
+        expect(category("Mine")).toBe("Star Wars");
         expect(category("Own")).toBe("Skirmish one");
     });
 
@@ -1148,6 +1148,16 @@ describe("Library", () => {
         const probe = library.load("My ships/Probe")!;
         expect(probe.category).toBe(MY_SHIPS);
         expect(library.keyOf(probe)).toBe("My ships/Probe");
+    });
+
+    it("lists a stock ship beside a saved one of its key in a shared category", () => {
+        const library = new Library(fakeStore());
+        const stock = library.load("Star Wars/X Wing")!;
+        library.save({ ...stock, notes: "mine now" });
+        const both = library.list().filter((e) => e.name === "X Wing");
+        expect(both.map((e) => e.key)).toEqual(["Star Wars/X Wing", "stock:Star Wars/X Wing"]);
+        expect(library.load("Star Wars/X Wing")?.notes).toBe("mine now");
+        expect(library.load("stock:Star Wars/X Wing")).toEqual(stock);
     });
 
     it("lets two ships share a name in different categories", () => {
