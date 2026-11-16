@@ -551,6 +551,13 @@ describe("the editor in a browser", () => {
         expect(await page.isDisabled("#propThick")).toBe(true);
         await page.uncheck("#shipFighter");
         expect(await page.isDisabled('[data-add="turret"]')).toBe(false);
+
+        // Something thick rules a fighter out in turn, and says why.
+        await page.check("#propThick");
+        expect(await page.isDisabled("#shipFighter")).toBe(true);
+        expect(await page.getAttribute("#shipFighterLabel", "title")).toMatch(/cannot be a fighter: a fighter has nothing thick/);
+        await page.uncheck("#propThick");
+        expect(await page.isDisabled("#shipFighter")).toBe(false);
     });
 
     it("offers a shell on a gun and not on a beam", async () => {
