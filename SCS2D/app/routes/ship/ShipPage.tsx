@@ -37,6 +37,9 @@ import {
 } from "~/sim/index";
 import { Button, ToggleButton } from "~/ui/buttons/Button";
 import { PauseMenu, type MenuAction } from "~/features/menu/PauseMenu";
+import { useHelp } from "~/features/help/Help";
+import { Tour } from "~/features/help/Tour";
+import { SHIP_HELP_KEY, SHIP_HELP_LABEL, ShipHelp, shipTutorial, tutorialSuggests } from "./ShipHelp";
 import { LiveText } from "~/ui/fields/LiveText";
 import { fromLibrary } from "../fleet/fleetOptions";
 import { LibraryOptions } from "../fleet/LibraryOptions";
@@ -253,6 +256,9 @@ export function ShipPage() {
     const [adding, setAdding] = useState(false);
     // Whether the next edit continues the last: a drag or a held arrow key is one undo step, not hundreds.
     const gesture = useRef(false);
+    const help = useHelp(SHIP_HELP_KEY);
+    // The tutorial's step, while it runs.
+    const [tour, setTour] = useState<number | null>(null);
 
     const refresh = (): void => {
         changed();
@@ -464,6 +470,13 @@ export function ShipPage() {
                   exporting,
                   { id: "importTrigger", label: "Import ship", onSelect: () => document.getElementById("importShip")?.click() },
               ];
+    // On a blank ship of its own, so every step starts from where it says.
+    const startTutorial = (): void => {
+        reopen(emptyBlueprint(unusedName("New ship", taken())));
+        setTour(0);
+    };
+    const tourSteps = tour === null ? null : shipTutorial(doc);
+    const tourSuggests = tourSteps === null ? null : tutorialSuggests(tourSteps[tour!]);
     const fleetNow = inFleet === null ? null : backToFleet(inFleet.fleet, inFleet.design, blueprint);
     const skirmishNow = inFleet?.skirmish === undefined || fleetNow === null ? null : { ...inFleet.skirmish, player: fleetNow };
 
@@ -476,6 +489,7 @@ export function ShipPage() {
                     keys={KEYS}
                     // A ship opened from a fleet goes back through it, not the library.
                     unsaved={inFleet === null && (!listed || reverts) ? { what: name, save } : null}
+                    help={{ label: SHIP_HELP_LABEL, show: help.show }}
                 />
                 {inFleet === null && (
                     <select
@@ -623,9 +637,10 @@ export function ShipPage() {
                         into={target !== null && !isModuleSpec(target) ? (target as AssemblyInstance).use : null}
                         fighter={asked}
                         onAdd={add}
-                        suggest={doc.blueprint.modules.length === 0 ? "core" : null}
+                        suggest={tourSteps === null ? (doc.blueprint.modules.length === 0 ? "core" : null) : tourSuggests}
                         {...(doc.selections.length > 0 && (target === null || isModuleSpec(target))
-                            ? { folded: { open: adding, onToggle: setAdding } }
+                            ? // Open while the tutorial asks for a module, so what it points at is there to click.
+                              { folded: { open: adding || tourSuggests !== null, onToggle: setAdding } }
                             : {})}
                     />
                     {doc.selections.length === 0 && <Note id="nothingSelected">Or select a module to change it.</Note>}
@@ -788,6 +803,13 @@ export function ShipPage() {
                     </section>
                 </Panel>
             </Body>
+            <ShipHelp
+                open={help.open}
+                onClose={help.close}
+                onTutorial={startTutorial}
+                {...(inFleet === null ? {} : { noTutorial: "The tutorial starts a new ship, so it is not offered for a fleet's design" })}
+            />
+            {tourSteps !== null && <Tour id="shipTour" steps={tourSteps} at={tour!} onAt={setTour} onEnd={() => setTour(null)} />}
         </Main>
     );
 }

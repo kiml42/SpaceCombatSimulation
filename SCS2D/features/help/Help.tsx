@@ -58,6 +58,7 @@ const Dialog = styled.dialog`
 
 const Actions = styled.div`
     display: flex;
+    gap: 0.5rem;
     justify-content: flex-end;
     margin-top: 1rem;
 `;
@@ -68,11 +69,13 @@ export interface HelpDialogProps {
     readonly title: string;
     readonly open: boolean;
     readonly onClose: () => void;
+    /** A way into a tutorial, offered beside Got it; closing the dialog leaves the player to find their own way. */
+    readonly tutorial?: { readonly label: string; readonly onStart: () => void; readonly disabled?: string };
     readonly children: ReactNode;
 }
 
 /** What a player needs the first time on a page, closed by its button, Escape or a click outside. */
-export function HelpDialog({ id, title, open, onClose, children }: HelpDialogProps) {
+export function HelpDialog({ id, title, open, onClose, tutorial, children }: HelpDialogProps) {
     const dialog = useRef<HTMLDialogElement>(null);
     useEffect(() => {
         const element = dialog.current;
@@ -108,7 +111,27 @@ export function HelpDialog({ id, title, open, onClose, children }: HelpDialogPro
             <h2 id={`${id}Title`}>{title}</h2>
             {children}
             <Actions>
-                <Button id={`${id}Close`} variant="primary" autoFocus onClick={onClose}>
+                {tutorial !== undefined && (
+                    <Button
+                        id={`${id}Tutorial`}
+                        variant="primary"
+                        autoFocus={tutorial.disabled === undefined}
+                        disabled={tutorial.disabled !== undefined}
+                        title={tutorial.disabled}
+                        onClick={() => {
+                            onClose();
+                            tutorial.onStart();
+                        }}
+                    >
+                        {tutorial.label}
+                    </Button>
+                )}
+                <Button
+                    id={`${id}Close`}
+                    variant={tutorial === undefined ? "primary" : "plain"}
+                    autoFocus={tutorial === undefined || tutorial.disabled !== undefined}
+                    onClick={onClose}
+                >
                     Got it
                 </Button>
             </Actions>
