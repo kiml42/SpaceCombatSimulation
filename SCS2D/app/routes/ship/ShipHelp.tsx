@@ -1,0 +1,127 @@
+import type { EditorDocument } from "~/editor/document";
+import { HelpDialog } from "~/features/help/Help";
+import type { TourStep } from "~/features/help/Tour";
+import { isWeaponMount, type ShipModuleKind } from "~/sim/index";
+
+/** Where it is kept that the player has seen what the ship editor is, so it opens by itself only once. */
+export const SHIP_HELP_KEY = "scs2d.help.ship";
+export const SHIP_HELP_LABEL = "Designing a ship";
+
+export interface ShipHelpProps {
+    readonly open: boolean;
+    readonly onClose: () => void;
+    readonly onTutorial: () => void;
+    /** Why the tutorial cannot start here, if it cannot: a design opened from a fleet is the fleet's. */
+    readonly noTutorial?: string;
+}
+
+/** What the editor is, in brief, and the way into the tutorial that builds a first ship. */
+export function ShipHelp({ open, onClose, onTutorial, noTutorial }: ShipHelpProps) {
+    return (
+        <HelpDialog
+            id="shipHelp"
+            title={SHIP_HELP_LABEL}
+            open={open}
+            onClose={onClose}
+            tutorial={{ label: "Start the tutorial", onStart: onTutorial, ...(noTutorial === undefined ? {} : { disabled: noTutorial }) }}
+        >
+            <ol>
+                <li>
+                    <strong>A ship is built from modules.</strong> Add them from the left, and drag them into place on the drawing. Select
+                    one to change it.
+                </li>
+                <li>
+                    <strong>The right shows the design as a whole:</strong> what it works out to, and anything that stops it flying.
+                </li>
+                <li>
+                    <strong>Save it, or Test in Simulator</strong> to see it fight.
+                </li>
+            </ol>
+            <p>The tutorial builds a first ship with you, one step at a time. You can start it again from ? whenever you like.</p>
+        </HelpDialog>
+    );
+}
+
+/** The tutorial's steps, each done when the design shows it: a first ship from a blank one. */
+export function shipTutorial(doc: EditorDocument): TourStep[] {
+    const modules = doc.view.modules;
+    const design = doc.view.design;
+    const core = modules.find((spec) => spec.kind === "core");
+    const engines = modules.filter((spec) => spec.kind === "engine");
+    const flies = design !== null && doc.view.problems.length === 0 && design.engineLayout.hasFullAuthority();
+    return [
+        {
+            id: "core",
+            title: "Add a core",
+            body: <p>The core is the ship&apos;s brain: everything it controls has to be within its reach.</p>,
+            targets: ['[data-add="core"]'],
+            beside: "#selectionPanel",
+            done: core !== undefined,
+        },
+        {
+            id: "engine",
+            title: "Add an engine",
+            body: <p>An engine pushes the ship the way its flame points away from.</p>,
+            targets: ['[data-add="engine"]', "#addFolded > summary"],
+            beside: "#selectionPanel",
+            done: engines.length > 0,
+        },
+        {
+            id: "aft",
+            title: "Drag the engine behind the core",
+            body: (
+                <p>
+                    Drag it on the drawing until it sits behind the core, touching it. The thrust diagram in the corner shows which way the
+                    ship can push.
+                </p>
+            ),
+            // Behind it, and fitting: overlapping or adrift is a problem.
+            done: core !== undefined && engines.some((engine) => engine.x < core.x) && doc.view.problems.length === 0,
+        },
+        {
+            id: "fly",
+            title: "Make it able to fly",
+            body: (
+                <p>
+                    A ship has to push every way and turn both ways. Add more engines, and turn them by their knobs, until Problems says
+                    nothing stops it.
+                </p>
+            ),
+            targets: ["#problems"],
+            done: flies,
+        },
+        {
+            id: "weapon",
+            title: "Add a weapon",
+            body: <p>A turret is a good start. Arcs, on the drawing, shows where each gun can point and where it will fire.</p>,
+            targets: ['[data-add="turret"]', "#addFolded > summary"],
+            beside: "#selectionPanel",
+            done: modules.some((spec) => isWeaponMount(spec.kind)),
+        },
+        {
+            id: "save",
+            title: "Save it, or try it",
+            body: (
+                <p>
+                    <strong>Save</strong> keeps it in your library under My ships. <strong>Test in Simulator</strong> shows it fighting.
+                </p>
+            ),
+            targets: ["#saveShip"],
+        },
+    ];
+}
+
+/** The module a tutorial step asks for, to be picked out in Add a module. */
+export function tutorialSuggests(step: TourStep | undefined): ShipModuleKind | null {
+    switch (step?.id) {
+        case "core":
+            return "core";
+        case "engine":
+        case "fly":
+            return "engine";
+        case "weapon":
+            return "turret";
+        default:
+            return null;
+    }
+}

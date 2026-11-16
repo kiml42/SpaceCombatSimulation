@@ -554,6 +554,38 @@ describe("the editor in a browser", () => {
         expect(await page.isVisible("#dockedRow")).toBe(false);
     });
 
+    it("explains itself the first time, and builds a first ship step by step from there", async () => {
+        // Reached by its hash, which does not run the script that marks the help seen.
+        await page.evaluate(() => localStorage.removeItem("scs2d.help.ship"));
+        await page.evaluate(() => (location.hash = "#/"));
+        await page.evaluate(() => (location.hash = "#/ship"));
+        await page.waitForSelector("#shipHelp[open]");
+        await page.click("#shipHelpTutorial");
+        expect(await page.isVisible("#shipHelp")).toBe(false);
+        expect(await page.inputValue("#shipName")).toMatch(/^New ship/);
+        expect(await page.getAttribute("#shipTour", "data-step")).toBe("core");
+        expect(await page.isVisible("#shipTourRing")).toBe(true);
+
+        // Each step goes on as it is done.
+        await page.click('[data-add="core"]');
+        expect(await page.getAttribute("#shipTour", "data-step")).toBe("engine");
+        await page.click('[data-add="engine"]');
+        expect(await page.getAttribute("#shipTour", "data-step")).toBe("aft");
+        // Back to one already done waits for Next rather than bouncing on.
+        await page.click("#shipTourBack");
+        expect(await page.getAttribute("#shipTour", "data-step")).toBe("engine");
+        expect(await page.textContent("#shipTourNext")).toBe("Next");
+        await page.click("#shipTourEnd");
+        expect(await page.isVisible("#shipTour")).toBe(false);
+
+        // Seen once, it stays shut; ? brings it back.
+        expect(await page.evaluate(() => localStorage.getItem("scs2d.help.ship"))).toBe("seen");
+        await page.click("#helpOpen");
+        expect(await page.isVisible("#shipHelp")).toBe(true);
+        await page.click("#shipHelpClose");
+        await page.click("#newShip");
+    });
+
     it("marks a ship a fighter, which rules out turrets and thick modules", async () => {
         await page.click("#newShip");
         await addModule(page, "structure");

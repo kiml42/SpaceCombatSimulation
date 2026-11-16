@@ -17,6 +17,34 @@ import { chromium, type Browser, type Locator } from "playwright";
  * stops running.
  */
 export async function launchChromium(): Promise<Browser> {
+    return quietHelp(await launchAny());
+}
+
+/** Help seen once already on every page, so a first visit's dialog stands over nothing a test clicks. */
+const SEEN_HELP = ["scs2d.help.ship"] as const;
+
+/**
+ * Every page the browser opens has the ship editor's help already seen. A test
+ * of that help takes the key away and reaches the editor by its hash, which
+ * does not run the script again.
+ */
+function quietHelp(browser: Browser): Browser {
+    const newPage = browser.newPage.bind(browser);
+    browser.newPage = async (options) => {
+        const page = await newPage(options);
+        await page.addInitScript((keys) => {
+            try {
+                for (const key of keys) if (localStorage.getItem(key) === null) localStorage.setItem(key, "seen");
+            } catch {
+                // Storage refused: nothing to keep.
+            }
+        }, SEEN_HELP);
+        return page;
+    };
+    return browser;
+}
+
+async function launchAny(): Promise<Browser> {
     try {
         return await chromium.launch();
     } catch (bundled) {

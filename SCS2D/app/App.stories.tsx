@@ -70,7 +70,10 @@ const [stock] = Object.values(BLUEPRINTS);
 export const Library: Story = {
     args: {
         path: "/library",
-        saved: { "scs2d.ship.My ships/Probe": JSON.stringify(serialiseBlueprint({ ...stock!, name: "Probe" })) },
+        saved: {
+            "scs2d.ship.My ships/Probe": JSON.stringify(serialiseBlueprint({ ...stock!, name: "Probe" })),
+            "scs2d.help.ship": "seen",
+        },
     },
     play: async ({ canvas }) => {
         const ships = canvas.getByRole("region", { name: "Ships" });
@@ -145,7 +148,7 @@ export const Fleet: Story = {
 };
 
 export const Ship: Story = {
-    args: { path: "/ship" },
+    args: { path: "/ship", saved: { "scs2d.help.ship": "seen" } },
     play: async ({ canvas }) => {
         await expect(canvas.getByRole("combobox", { name: "Ship" })).toHaveDisplayValue("Corvette");
         await waitFor(() => expect(canvas.getByRole("row", { name: /^Burn/ })).toBeVisible());
@@ -159,8 +162,24 @@ export const Ship: Story = {
     },
 };
 
+/** The ship editor the first time: what it is, and the tutorial that starts from it on a blank ship. */
+export const ShipTutorial: Story = {
+    args: { path: "/ship" },
+    play: async ({ canvas }) => {
+        const help = await canvas.findByRole("dialog", { name: "Designing a ship" });
+        await userEvent.click(within(help).getByRole("button", { name: "Start the tutorial" }));
+        const step = await canvas.findByRole("dialog", { name: "Add a core" });
+        await expect(step).toHaveTextContent("Step 1 of 6");
+        await expect(canvas.getByRole("combobox", { name: "Ship" })).toHaveDisplayValue(/^New ship/);
+        await userEvent.click(canvas.getByRole("button", { name: "Core" }));
+        await expect(await canvas.findByRole("dialog", { name: "Add an engine" })).toHaveTextContent("Step 2 of 6");
+        await userEvent.click(canvas.getByRole("button", { name: "End" }));
+        await expect(canvas.queryByRole("dialog", { name: "Add an engine" })).toBeNull();
+    },
+};
+
 /** The setup screen and the fleet editor, their help already seen. */
-const SEEN_HELP = { "scs2d.help.skirmish": "seen", "scs2d.help.fleet": "seen" };
+const SEEN_HELP = { "scs2d.help.skirmish": "seen", "scs2d.help.fleet": "seen", "scs2d.help.ship": "seen" };
 
 export const Skirmish: Story = {
     args: { path: "/skirmish", saved: SEEN_HELP },
