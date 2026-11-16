@@ -1,6 +1,6 @@
 import { styled } from "@linaria/react";
 import { useRef, type ReactNode } from "react";
-import { BUILT_IN, byCategory, FLEET_FILES, type Library, type LibraryEntry } from "~/editor/library";
+import { byCategory, type Library, type LibraryEntry } from "~/editor/library";
 import { MUTATION_FIELDS } from "~/evolution/mutationFields";
 import type { SettingField } from "~/host/settingsFields";
 import type { Blueprint, Fleet } from "~/sim/index";
@@ -241,8 +241,6 @@ function Heads({ form }: { readonly form: SetupForm }) {
 }
 
 /** Chosen by name, and a name opens one layout: the player's copy where there is one. */
-const STOCK_SHIPS = new Set(BUILT_IN.map((blueprint) => blueprint.name));
-const STOCK_FLEETS = new Set(FLEET_FILES.builtIn.map((fleet) => fleet.name));
 
 /** The ships and fleets to pick from, a group each. */
 export function EntrantOptions({
@@ -256,20 +254,20 @@ export function EntrantOptions({
 }) {
     // The editors list a shadowed stock design beside the player's copy, as something to open; a founder picked by name is not.
     const listed = (library: Library<Blueprint> | Library<Fleet>) => library.list().filter((entry) => !(entry.stock && entry.saved));
-    const options = (kind: "ship" | "fleet", entries: readonly LibraryEntry[], stock: ReadonlySet<string>) =>
+    const options = (kind: "ship" | "fleet", entries: readonly LibraryEntry[]) =>
         entries.map((entry) => (
-            <option key={entry.name} value={valueOf(kind, entry.name)}>
-                {label(stock.has(entry.name), entry.name)}
+            <option key={entry.key} value={valueOf(kind, entry.key)}>
+                {label(entry.stock, entry.name)}
             </option>
         ));
     return (
         <>
             {byCategory(listed(ships), (entry) => entry.category).map(([category, entries]) => (
                 <optgroup key={category} label={`Ships: ${category}`}>
-                    {options("ship", entries, STOCK_SHIPS)}
+                    {options("ship", entries)}
                 </optgroup>
             ))}
-            <optgroup label="Fleets">{options("fleet", listed(fleets), STOCK_FLEETS)}</optgroup>
+            <optgroup label="Fleets">{options("fleet", listed(fleets))}</optgroup>
         </>
     );
 }

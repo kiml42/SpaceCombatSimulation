@@ -42,7 +42,7 @@ export const EVOLUTION_PRESETS: readonly EvolutionPreset[] = [
     {
         name: "Boss",
         hint: "The founders bred to beat a gunship that does not evolve",
-        apply: (form) => fresh(form, {}, { versus: ["ship:Gunship"], rivalEvolves: false }),
+        apply: (form) => fresh(form, {}, { versus: ["ship:Stock/Gunship"], rivalEvolves: false }),
     },
     {
         name: "Single group",

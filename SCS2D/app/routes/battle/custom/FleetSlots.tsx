@@ -1,7 +1,7 @@
 import { styled } from "@linaria/react";
 import { useRef } from "react";
 import { shipFleet } from "~/editor/handoff";
-import { namesByCategory } from "~/editor/library";
+import { openedByCategory } from "~/editor/library";
 import { useLibrary } from "~/features/storage/useLibrary";
 import { sidesOf, teamColour } from "~/render/teams";
 import { fleetWarnings, parseBlueprint, parseFleet, type Fleet } from "~/sim/index";
@@ -97,7 +97,7 @@ export function FleetSlots({ slots, onChange, onEdit, onProblem }: FleetSlotsPro
 
     const sides = sidesOf(slots.map((slot) => slot.fleet.livery));
     const fleetNames = names(fleets.list());
-    const shipGroups = namesByCategory(ships.list());
+    const shipGroups = openedByCategory(ships.list());
     return (
         <section id="fleetSlots" aria-label="Fleets">
             {slots.map((slot, i) => (
@@ -112,11 +112,11 @@ export function FleetSlots({ slots, onChange, onEdit, onProblem }: FleetSlotsPro
                                 </option>
                             ))}
                         </optgroup>
-                        {shipGroups.map(([category, names]) => (
+                        {shipGroups.map(([category, entries]) => (
                             <optgroup key={category} label={`Single ships: ${category}`}>
-                                {names.map((name) => (
-                                    <option key={name} value={`ship:${name}`}>
-                                        {name}
+                                {entries.map((entry) => (
+                                    <option key={entry.key} value={`ship:${entry.key}`}>
+                                        {entry.name}
                                     </option>
                                 ))}
                             </optgroup>

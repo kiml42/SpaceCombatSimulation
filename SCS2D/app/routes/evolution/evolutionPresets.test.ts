@@ -20,7 +20,7 @@ test("a preset keeps the founders and the name, and puts the rest back to the de
 test("co-evolution breeds the founders against themselves, and a boss against a gunship that stays put", () => {
     expect(named("Co-evolution").apply(was).versus).toEqual(["ship:Dinky"]);
     const boss = named("Boss").apply(was);
-    expect(boss.versus).toEqual(["ship:Gunship"]);
+    expect(boss.versus).toEqual(["ship:Stock/Gunship"]);
     expect(boss.rivalEvolves).toBe(false);
 });
 

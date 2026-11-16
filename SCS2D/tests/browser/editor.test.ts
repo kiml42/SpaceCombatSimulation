@@ -78,8 +78,21 @@ async function redPixels(p: Page): Promise<number> {
  * few frames, and a test that clicks at a worked-out point cannot wait for it.
  * The list is left first, since F in a focused list picks an entry by letter.
  */
+/** Open a ship by its key, or by its name: the player's of that name before the stock one. */
 async function openShip(p: Page, name: string): Promise<void> {
-    await p.selectOption("#ship", name);
+    const key = await p.$eval(
+        "#ship",
+        (select, wanted) => {
+            const values = [...(select as HTMLSelectElement).options].map((option) => option.value);
+            return values.includes(wanted)
+                ? wanted
+                : (values.find((value) => value === `My ships/${wanted}`) ??
+                      values.find((value) => value.endsWith(`/${wanted}`)) ??
+                      wanted);
+        },
+        name,
+    );
+    await p.selectOption("#ship", key);
     await p.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     await p.keyboard.press("f");
 }
@@ -196,7 +209,7 @@ async function framing(
 /** Put a ship's file in the library and open it. */
 async function openWritten(p: Page, name: string, file: unknown): Promise<void> {
     await p.evaluate(
-        ([ship, written]) => window.localStorage.setItem(`scs2d.blueprint.${ship}`, written as string),
+        ([ship, written]) => window.localStorage.setItem(`scs2d.ship.My ships/${ship}`, written as string),
         [name, JSON.stringify(file)],
     );
     await p.reload();
@@ -1369,31 +1382,33 @@ describe("the editor in a browser", () => {
         // The one it was copied from is untouched and still opens.
         await openShip(page, "Corvette");
         expect(await page.inputValue("#shipName")).toBe("Corvette");
-        await page.evaluate(() => window.localStorage.removeItem("scs2d.blueprint.Corvette 2"));
+        await page.evaluate(() => window.localStorage.removeItem("scs2d.ship.My ships/Corvette 2"));
         await page.reload();
     });
 
-    it("keeps the shipped ship openable after one is saved over its name", async () => {
-        await openShip(page, "Corvette");
+    it("files a changed stock ship under My ships, beside the stock one", async () => {
+        await openShip(page, "Stock/Corvette");
+        expect(await page.isVisible("#reservedCategory")).toBe(false);
         await page.fill("#shipNotes", "mine now");
+        expect(await page.textContent("#reservedCategory")).toMatch(/goes under My ships/);
         await page.click("#saveShip");
-        expect(await page.textContent("#ship")).toMatch(/Corvette \(stock\)/);
+        expect(await page.inputValue("#shipCategory")).toBe("My ships");
+        expect(await page.inputValue("#ship")).toBe("My ships/Corvette");
 
-        // The name opens the player's copy, and the shipped hull is still there
-        // to start from rather than buried under it.
-        await openShip(page, "stock:Corvette");
+        // The shipped hull is still there to start from rather than buried under it.
+        await openShip(page, "Stock/Corvette");
         expect(await page.inputValue("#shipNotes")).not.toBe("mine now");
-        await openShip(page, "Corvette");
+        await openShip(page, "My ships/Corvette");
         expect(await page.inputValue("#shipNotes")).toBe("mine now");
 
-        await page.evaluate(() => window.localStorage.removeItem("scs2d.blueprint.Corvette"));
+        await page.evaluate(() => window.localStorage.removeItem("scs2d.ship.My ships/Corvette"));
         await page.reload();
-        expect(await page.textContent("#ship")).not.toMatch(/\(stock\)/);
+        expect(await page.locator('#ship option[value="My ships/Corvette"]').count()).toBe(0);
     });
 
     it("reopens the ship it had open after a reload, as it was saved", async () => {
         await openShip(page, "Dinky");
-        expect(new URL(page.url()).hash).toBe("#/ship?open=Dinky");
+        expect(new URL(page.url()).hash).toBe("#/ship?open=Stock%2FDinky");
         await page.reload();
         await page.waitForFunction(() => (document.getElementById("stats")?.textContent ?? "").includes("Burn"));
         expect(await page.inputValue("#shipName")).toBe("Dinky");
@@ -1493,7 +1508,7 @@ describe("the editor in a browser", () => {
                     { kind: "structure", x: 2, y: 0, length: 4, width: 4 },
                 ],
             };
-            window.localStorage.setItem("scs2d.blueprint.Pair", JSON.stringify(pair));
+            window.localStorage.setItem("scs2d.ship.My ships/Pair", JSON.stringify(pair));
         });
         await page.reload();
         await openShip(page, "Pair");
@@ -1550,14 +1565,14 @@ describe("the editor in a browser", () => {
         // One drag, one undo.
         await page.click("#undo");
         expect(await xOf(2)).toEqual([2, 4]);
-        await page.evaluate(() => window.localStorage.removeItem("scs2d.blueprint.Pair"));
+        await page.evaluate(() => window.localStorage.removeItem("scs2d.ship.My ships/Pair"));
     });
 
     it("shapes a module into a wedge, and drags one corner of it", async () => {
         // One block on its own, so the fit centres the canvas on its middle.
         await page.evaluate(
             (written) => {
-                window.localStorage.setItem("scs2d.blueprint.Plate", written);
+                window.localStorage.setItem("scs2d.ship.My ships/Plate", written);
             },
             JSON.stringify({ formatVersion: 1, ...PLATE }),
         );
@@ -1613,7 +1628,7 @@ describe("the editor in a browser", () => {
         await page.uncheck("#propShape");
         expect(Number(await page.inputValue("#propLength"))).toBe(6);
         expect(Number(await page.inputValue("#propX"))).toBeCloseTo(1, 3);
-        await page.evaluate(() => window.localStorage.removeItem("scs2d.blueprint.Plate"));
+        await page.evaluate(() => window.localStorage.removeItem("scs2d.ship.My ships/Plate"));
     });
 
     it("lands a dragged module flush against what is already there", async () => {
@@ -1724,14 +1739,14 @@ describe("the editor in a browser", () => {
                     { kind: "engine", x: -20, y: 0, angle: 0, length: 3, width: 3 },
                 ],
             };
-            window.localStorage.setItem("scs2d.blueprint.Adrift", JSON.stringify(broken));
+            window.localStorage.setItem("scs2d.ship.My ships/Adrift", JSON.stringify(broken));
         });
         await page.reload();
         await openShip(page, "Adrift");
         expect(await page.textContent("#problems")).toMatch(/touches nothing/);
         // Drawn, not merely complained about: the ship is on the canvas to drag.
         expect(await page.textContent("#stats")).toMatch(/Modules/);
-        await page.evaluate(() => window.localStorage.removeItem("scs2d.blueprint.Adrift"));
+        await page.evaluate(() => window.localStorage.removeItem("scs2d.ship.My ships/Adrift"));
     });
 
     it("imports a ship with a key it does not read, says so, and saves the key back", async () => {
@@ -1755,9 +1770,9 @@ describe("the editor in a browser", () => {
         expect(problems).toMatch(/colour/);
         expect(problems).toMatch(/modules\[1\][^]*barrel/);
         await page.click("#saveShip");
-        const saved = await page.evaluate(() => window.localStorage.getItem("scs2d.blueprint.Typo"));
+        const saved = await page.evaluate(() => window.localStorage.getItem("scs2d.ship.My ships/Typo"));
         expect(JSON.parse(saved!)).toMatchObject({ colour: "red", modules: [{}, { barrel: 8 }] });
-        await page.evaluate(() => window.localStorage.removeItem("scs2d.blueprint.Typo"));
+        await page.evaluate(() => window.localStorage.removeItem("scs2d.ship.My ships/Typo"));
     });
 
     it("hands the ship being edited to a custom battle as a fleet of one", async () => {

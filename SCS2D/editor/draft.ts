@@ -1,5 +1,5 @@
 import { parseBlueprint, serialiseBlueprint, type Blueprint } from "../sim/index.js";
-import type { KeyValueStore } from "./library.js";
+import { MY_SHIPS, shipKey, type KeyValueStore } from "./library.js";
 
 /**
  * The ship being edited, kept as it is after every edit, so a reload reopens
@@ -17,7 +17,7 @@ export function keepDraft(store: KeyValueStore, blueprint: Blueprint): void {
     }
 }
 
-/** The draft, if there is one and it reads; when `named`, only if it is that ship. */
+/** The draft, if there is one and it reads; when `named`, only if it is that ship, by its key or name. */
 export function draftOf(store: KeyValueStore, named: string | null): Blueprint | null {
     let draft: Blueprint;
     try {
@@ -27,7 +27,7 @@ export function draftOf(store: KeyValueStore, named: string | null): Blueprint |
     } catch {
         return null;
     }
-    return named === null || draft.name === named ? draft : null;
+    return named === null || draft.name === named || shipKey(draft.category ?? MY_SHIPS, draft.name) === named ? draft : null;
 }
 
 /** Whether two blueprints would be written the same: a draft that has nothing a saved copy has not. */

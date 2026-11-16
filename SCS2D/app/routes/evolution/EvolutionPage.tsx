@@ -248,6 +248,17 @@ function loadChoice(value: string, ships: Library<Blueprint>, fleets: Library<Fl
     }
 }
 
+/** A ship's value by its key, where it named one by its name alone, as settings kept before keys did. */
+function canonical(value: string, ships: Library<Blueprint>): string {
+    const { kind, name } = pickOf(value);
+    if (kind === "fleet") return value;
+    const entries = ships.list();
+    if (entries.some((entry) => entry.key === name)) return value;
+    const named = entries.filter((entry) => entry.name === name);
+    const entry = named.find((each) => !each.stock) ?? named[0];
+    return entry === undefined ? value : valueOf("ship", entry.key);
+}
+
 /**
  * A founder from a settings file, as the library holds it: the copy under its
  * name if that is the same design, else saved, under the next free name if its
@@ -256,16 +267,28 @@ function loadChoice(value: string, ships: Library<Blueprint>, fleets: Library<Fl
 function adopt(entrant: Entrant, ships: Library<Blueprint>, fleets: Library<Fleet>, renamed: string[]): string {
     const fleet = isFleet(entrant);
     const text = (e: Entrant): string => JSON.stringify(isFleet(e) ? serialiseFleet(e) : serialiseBlueprint(e));
+    // The very ship this browser holds under its own key, a stock one say, is that one.
+    if (!isFleet(entrant)) {
+        try {
+            const own = ships.load(ships.keyOf(entrant));
+            if (own !== null && text(own) === text(entrant)) return valueOf("ship", ships.keyOf(entrant));
+        } catch {
+            // Unreadable: not the same.
+        }
+    }
     let name = entrant.name;
+    let key: string;
+    let named: Entrant;
     for (;;) {
+        named = isFleet(entrant) ? { ...entrant, name } : ships.filed({ ...entrant, name });
+        key = isFleet(named) ? name : ships.keyOf(named);
         let kept: Entrant | null | undefined;
         try {
-            kept = fleet ? fleets.load(name) : ships.load(name);
+            kept = fleet ? fleets.load(key) : ships.load(key);
         } catch {
             // Unreadable: taken, and not to be saved over.
             kept = undefined;
         }
-        const named = { ...entrant, name };
         if (kept === null) {
             if (isFleet(named)) fleets.save(named);
             else ships.save(named);
@@ -274,8 +297,11 @@ function adopt(entrant: Entrant, ships: Library<Blueprint>, fleets: Library<Flee
         if (kept !== undefined && text(kept) === text(named)) break;
         name = nextName(name);
     }
-    if (name !== entrant.name) renamed.push(`"${entrant.name}" as "${name}"`);
-    return valueOf(fleet ? "fleet" : "ship", name);
+    const filedAs: Entrant = named;
+    const category = isFleet(filedAs) || isFleet(entrant) || filedAs.category === entrant.category ? null : filedAs.category;
+    const as = name === entrant.name ? "" : ` as "${name}"`;
+    if (as !== "" || category !== null) renamed.push(`"${entrant.name}"${as}${category === null ? "" : ` in ${category}`}`);
+    return valueOf(fleet ? "fleet" : "ship", key);
 }
 
 /**
@@ -291,12 +317,12 @@ export function EvolutionPage() {
     const [form, setFormState] = useState<SetupForm>(() => {
         const kept = formOfHeld(storage.getItem(SETUP_KEY));
         const exists = (value: string): boolean => loadChoice(value, ships, fleets) !== null;
-        const founders = kept.founders.filter(exists);
+        const founders = kept.founders.filter(exists).map((value) => canonical(value, ships));
         const first = ships.first();
         return {
             ...kept,
-            founders: founders.length > 0 || first === undefined ? founders : [valueOf("ship", first.name)],
-            versus: kept.versus.filter(exists),
+            founders: founders.length > 0 || first === undefined ? founders : [valueOf("ship", first.key)],
+            versus: kept.versus.filter(exists).map((value) => canonical(value, ships)),
         };
     });
     const formNow = useRef(form);
@@ -586,7 +612,7 @@ export function EvolutionPage() {
             text:
                 "Settings read from a file. Press Start when you are ready." +
                 (renamed.length > 0
-                    ? ` Founders that differ from the ones of the same name here are kept under other names: ${renamed.join(", ")}.`
+                    ? ` Founders that differ from the ones of the same name here are kept beside them: ${renamed.join(", ")}.`
                     : "") +
                 (warnings.length > 0 ? ` Not read: ${warnings.join("; ")}.` : ""),
             warn: warnings.length > 0,

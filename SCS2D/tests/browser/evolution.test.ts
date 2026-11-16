@@ -299,7 +299,7 @@ describe("the evolution route in a browser", () => {
         expect(await page.inputValue("#kindTurret")).toEqual("0");
         expect(
             await page.evaluate(() => [...(document.getElementById("founders") as HTMLSelectElement).selectedOptions].map((o) => o.value)),
-        ).toEqual(["ship:Dinky"]);
+        ).toEqual(["ship:Stock/Dinky"]);
 
         // A founder this browser holds a different design under is saved beside
         // it rather than over it, and chosen.
@@ -307,22 +307,22 @@ describe("the evolution route in a browser", () => {
         const elsewhere = `${written}.altered.json`;
         await writeFile(elsewhere, JSON.stringify(altered));
         await page.setInputFiles("#importConfigFile", elsewhere);
-        await page.waitForFunction(() => document.getElementById("readout")?.textContent?.includes('"Dinky" as "Dinky 2"') === true);
+        await page.waitForFunction(() => document.getElementById("readout")?.textContent?.includes('"Dinky" in My ships') === true);
         expect(
             await page.evaluate(() => [...(document.getElementById("founders") as HTMLSelectElement).selectedOptions].map((o) => o.value)),
-        ).toEqual(["ship:Dinky 2"]);
+        ).toEqual(["ship:My ships/Dinky"]);
         // Read again, it is the copy already saved rather than another.
         await choose(page, "#founders", ["Corvette"]);
         await page.setInputFiles("#importConfigFile", elsewhere);
         await page.waitForFunction(
             () =>
                 [...(document.getElementById("founders") as HTMLSelectElement).selectedOptions].map((o) => o.value).join() ===
-                "ship:Dinky 2",
+                "ship:My ships/Dinky",
         );
         expect(
             await page.$$eval(
                 "#founders option",
-                (options) => (options as HTMLOptionElement[]).filter((o) => o.value.startsWith("ship:Dinky")).length,
+                (options) => (options as HTMLOptionElement[]).filter((o) => o.value.endsWith("/Dinky")).length,
             ),
         ).toBe(2);
         expect(problems).toEqual([]);
@@ -588,7 +588,7 @@ describe("the evolution route in a browser", () => {
     it("hands the best of it to the editor", async () => {
         await page.click("#saveChampion");
         expect(await page.textContent("#championLine")).toMatch(/saved as/);
-        const saved = await page.evaluate(() => Object.keys(window.localStorage).filter((key) => key.startsWith("scs2d.blueprint.")));
+        const saved = await page.evaluate(() => Object.keys(window.localStorage).filter((key) => key.startsWith("scs2d.ship.")));
         expect(saved.length).toBeGreaterThan(0);
     });
     it("draws every ship in a generation at one scale, so sizes compare", async () => {

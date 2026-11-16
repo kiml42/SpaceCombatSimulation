@@ -15,9 +15,9 @@ export function choices(library: Library<Blueprint> = new Library(window.localSt
     const out: Choice[] = [];
     for (const entry of library.list()) {
         try {
-            const blueprint = entry.stock ? library.loadStock(entry.name) : library.load(entry.name);
+            const blueprint = library.load(entry.key);
             if (blueprint === null) continue;
-            const cacheKey = `${entry.stock ? "stock" : "saved"}:${entry.name}`;
+            const cacheKey = `${entry.stock ? "stock" : "saved"}:${entry.key}`;
             let design = compiledChoices.get(cacheKey);
             if (design === undefined || design.blueprint !== blueprint) {
                 design = { blueprint, design: compileBlueprint(blueprint) };

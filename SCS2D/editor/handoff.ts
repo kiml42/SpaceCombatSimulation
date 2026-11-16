@@ -26,7 +26,7 @@ export interface DesignInFleet {
     skirmish?: Skirmish;
 }
 
-/** The ship route, opening a ship from the library by its entry: its name, or `stock:` and its name for the stock copy. */
+/** The ship route, opening a ship from the library by its entry's key. */
 export function openShipRoute(entry: string): string {
     return `/ship?open=${encodeURIComponent(entry)}`;
 }

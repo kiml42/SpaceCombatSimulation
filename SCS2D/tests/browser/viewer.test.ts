@@ -316,7 +316,7 @@ describe("the viewer in a browser", () => {
         // One side is enough to start.
         expect(await page.isDisabled("#fight")).toBe(false);
         // A single ship can be a side too.
-        await page.locator("#fleetSlots select").first().selectOption("ship:Star Destroyer");
+        await page.locator("#fleetSlots select").first().selectOption("ship:Star Wars/Star Destroyer");
         // The table is redrawn on the next frame, so wait for it rather than racing it.
         await page.waitForFunction(() => /Star Destroyer.*1\/1 ships/.test(document.getElementById("sides")?.textContent ?? ""));
         await page.locator("#fleetSlots select").first().selectOption("fleet:Line of Battle");
@@ -807,7 +807,7 @@ describe("the viewer in a browser", () => {
         const variant = { ...REFITTED, name: "Refitted Rebuilder, trimmed", modules: REFITTED.modules.slice(0, -1) };
         await page.evaluate(
             ([key, text]) => window.localStorage.setItem(key!, text!),
-            [`scs2d.blueprint.${variant.name}`, JSON.stringify(serialiseBlueprint(variant))],
+            [`scs2d.ship.My ships/${variant.name}`, JSON.stringify(serialiseBlueprint(variant))],
         );
         await page.selectOption("#scene", { label: "Refitting" });
         if ((await page.textContent("#play")) === "Pause") await page.click("#play");
@@ -841,7 +841,7 @@ describe("the viewer in a browser", () => {
         expect(await orders()).toBe(before + 1);
         expect(await page.locator("#remodelTo option:checked").textContent()).not.toBe(built);
         await page.keyboard.press("Escape");
-        await page.evaluate((key) => window.localStorage.removeItem(key), `scs2d.blueprint.${variant.name}`);
+        await page.evaluate((key) => window.localStorage.removeItem(key), `scs2d.ship.My ships/${variant.name}`);
     }, 60_000);
 
     it("adds a chosen ship for a chosen side where it is pressed, as fast as it is dragged", async () => {

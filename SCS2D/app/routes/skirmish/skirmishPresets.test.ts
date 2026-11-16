@@ -8,7 +8,10 @@ import { readSettings, settingsTexts } from "./skirmishFields";
 const battlefield = (name: string) => BATTLEFIELD_PRESETS.find((preset) => preset.name === name)!;
 
 test("every enemy preset is a stock ship or fleet, and its ship count survives the boxes", () => {
-    const stock = new Set([...BUILT_IN.map((ship) => `ship:${ship.name}`), ...Object.keys(FLEETS).map((name) => `fleet:${name}`)]);
+    const stock = new Set([
+        ...BUILT_IN.map((ship) => `ship:${ship.category ?? ""}/${ship.name}`),
+        ...Object.keys(FLEETS).map((name) => `fleet:${name}`),
+    ]);
     for (const preset of ENEMY_PRESETS) {
         expect(stock).toContain(preset.enemy);
         const settings = withEnemyPreset(DEFAULT_SKIRMISH_SETTINGS, preset);

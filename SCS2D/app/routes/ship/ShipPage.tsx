@@ -19,7 +19,7 @@ import { backToFleet, wearingFleets, withLivery } from "~/editor/livery";
 import { LiveryPanel } from "~/features/livery/LiveryPanel";
 import { battleRoute, designRoute, fleetRoute, handedDesign, shipFleet, type DesignInFleet } from "~/editor/handoff";
 import { draftOf, keepDraft, sameShip } from "~/editor/draft";
-import { emptyBlueprint, nextName, toFileText, UNCATEGORISED, unusedName } from "~/editor/library";
+import { emptyBlueprint, MY_SHIPS, nextName, toFileText, unusedName } from "~/editor/library";
 import { ANGLE_SNAP_DEGREES, type ShipCanvas as Engine } from "~/editor/shipCanvas";
 import type { KeyRow } from "~/host/keyHelp";
 import { ARC_LABELS } from "~/render/canvas2d";
@@ -186,7 +186,8 @@ const Inspector = styled(Panel)`
 `;
 
 const Naming = styled.section`
-    > input {
+    > input,
+    > p {
         width: 100%;
         margin-bottom: 0.4rem;
     }
@@ -234,7 +235,7 @@ export function ShipPage() {
         const named = search.get("open");
         // The work as it was left, before the saved copy of the same ship.
         const read = (): Blueprint | null =>
-            draftOf(storage, named) ?? (named === null ? null : fromLibrary(library, named)) ?? fromLibrary(library, "Corvette");
+            draftOf(storage, named) ?? (named === null ? null : fromLibrary(library, named)) ?? fromLibrary(library, "Stock/Corvette");
         // As it flies in its fleet, carrying the fleet's fighters for its pads.
         const opened =
             inFleet === null
@@ -323,10 +324,11 @@ export function ShipPage() {
         return () => clearTimeout(timer);
     }, [inFleet, blueprint]);
     const name = blueprint.name;
+    const key = library.keyOf(blueprint);
     const named = useEffectEvent(() => {
-        if (inFleet === null && search.get("open") !== name) setSearch({ open: name }, { replace: true });
+        if (inFleet === null && search.get("open") !== key) setSearch({ open: key }, { replace: true });
     });
-    useEffect(() => named(), [name]);
+    useEffect(() => named(), [key]);
 
     const add = (kind: ShipModuleKind): void => {
         const spec: ModuleSpec = { ...DEFAULTS[kind], x: 0, y: 0 };
@@ -363,12 +365,14 @@ export function ShipPage() {
     };
 
     const entries = library.list();
-    const taken = (): string[] => entries.map((entry) => entry.name);
-    const listed = entries.some((entry) => entry.name === name);
+    // Names are a category's own: a new ship or a copy goes under the player's.
+    const taken = (): string[] => entries.filter((entry) => entry.category === MY_SHIPS).map((entry) => entry.name);
+    const listed = entries.some((entry) => entry.key === key);
+    const reserved = library.reserved();
     // What Revert goes back to: the saved copy, where the work differs from it.
     let saved: Blueprint | null = null;
     try {
-        saved = listed ? library.load(name) : null;
+        saved = listed ? library.load(key) : null;
     } catch {
         // Unreadable: nothing to go back to.
     }
@@ -398,12 +402,19 @@ export function ShipPage() {
         link.click();
         URL.revokeObjectURL(url);
     };
-    const save = (): void => library.save(doc.blueprint);
+    // Filed under the player's own category, which the editor then shows.
+    const save = (): void => {
+        const filed = library.save(doc.blueprint);
+        if (filed === doc.blueprint) return;
+        doc.apply(filed);
+        gesture.current = false;
+        refresh();
+    };
     const newShip = (): void => reopen(emptyBlueprint(unusedName("New ship", taken())));
     // On the undo stack, so undo brings the ship back and Save puts it in the library again.
     const deleteShip = (): void => {
         if (!window.confirm(`Delete the saved copy of ${name}?`)) return;
-        library.remove(name);
+        library.remove(key);
         doc.apply(
             emptyBlueprint(
                 unusedName(
@@ -436,7 +447,7 @@ export function ShipPage() {
                       label: "Copy ship",
                       title: "Start a copy of this ship under a new name",
                       onSelect: () => {
-                          doc.replace(renameShip(doc.blueprint, unusedName(nextName(name), taken())));
+                          doc.replace(library.filed(renameShip(doc.blueprint, unusedName(nextName(name), taken()))));
                           gesture.current = false;
                           refresh();
                       },
@@ -463,13 +474,13 @@ export function ShipPage() {
                         id="ship"
                         aria-label="Ship"
                         title="Open a ship"
-                        value={name}
+                        value={key}
                         onChange={(event) => {
                             const opened = fromLibrary(library, event.target.value);
                             if (opened !== null) reopen(opened);
                         }}
                     >
-                        {!listed && <option value={name}>{`${name} (unsaved)`}</option>}
+                        {!listed && <option value={key}>{`${name} (unsaved)`}</option>}
                         <LibraryOptions entries={entries} />
                     </select>
                 )}
@@ -482,12 +493,7 @@ export function ShipPage() {
                     Save
                 </Button>
                 {inFleet === null && (
-                    <Button
-                        id="deleteShip"
-                        title="Delete this ship's saved copy"
-                        disabled={!library.savedNames().includes(name)}
-                        onClick={deleteShip}
-                    >
+                    <Button id="deleteShip" title="Delete this ship's saved copy" disabled={!library.isSaved(key)} onClick={deleteShip}>
                         Delete
                     </Button>
                 )}
@@ -509,9 +515,10 @@ export function ShipPage() {
                                 return;
                             }
                             // A name is identity, and a clash is what a friend's updated ship looks like: so ask.
-                            if (library.savedNames().includes(imported.name)) {
+                            imported = library.filed(imported);
+                            if (library.isSaved(library.keyOf(imported))) {
                                 const answer = window.prompt(
-                                    `You already have a saved ship called ${imported.name}. Give this one a different name, or keep the name to replace yours.`,
+                                    `You already have a saved ship called ${imported.name} in ${imported.category ?? MY_SHIPS}. Give this one a different name, or keep the name to replace yours.`,
                                     imported.name,
                                 );
                                 if (answer === null) return;
@@ -674,6 +681,40 @@ export function ShipPage() {
                                 if (next !== "") editing.change(renameShip(doc.blueprint, next), true);
                             }}
                         />
+                        <h2>
+                            <label htmlFor="shipCategory">Category</label>
+                        </h2>
+                        <LiveText
+                            id="shipCategory"
+                            list="shipCategories"
+                            disabled={inFleet?.skirmish !== undefined}
+                            title={
+                                inFleet?.skirmish === undefined
+                                    ? "What it is grouped under wherever ships are chosen. With its name, what it is known by: two ships can share a name in different categories"
+                                    : "Filed under the skirmish it is made for"
+                            }
+                            placeholder={MY_SHIPS}
+                            value={blueprint.category ?? ""}
+                            onStart={editing.endGesture}
+                            onType={(typed) => {
+                                const text = typed.trim();
+                                const next = { ...doc.blueprint };
+                                if (text === "") delete next.category;
+                                else next.category = text;
+                                editing.change(next, true);
+                            }}
+                        />
+                        <datalist id="shipCategories">
+                            {[...new Set([MY_SHIPS, ...entries.flatMap((entry) => entry.category ?? [])])]
+                                .filter((category) => !reserved.has(category))
+                                .sort()
+                                .map((category) => (
+                                    <option key={category} value={category} />
+                                ))}
+                        </datalist>
+                        {inFleet === null && reserved.has(blueprint.category ?? "") && (!listed || reverts) && (
+                            <Note id="reservedCategory">{`${blueprint.category} is for the game's own ships: saved, this goes under ${MY_SHIPS}.`}</Note>
+                        )}
                         <Field>
                             <label
                                 htmlFor="shipFighter"
@@ -726,35 +767,6 @@ export function ShipPage() {
                         }}
                         onEnd={editing.endGesture}
                     />
-                    <section>
-                        <h2>Category</h2>
-                        <LiveText
-                            id="shipCategory"
-                            aria-label="Category"
-                            list="shipCategories"
-                            disabled={inFleet?.skirmish !== undefined}
-                            title={
-                                inFleet?.skirmish === undefined
-                                    ? "What it is grouped under wherever ships are chosen"
-                                    : "Filed under the skirmish it is made for"
-                            }
-                            placeholder={UNCATEGORISED}
-                            value={blueprint.category ?? ""}
-                            onStart={editing.endGesture}
-                            onType={(typed) => {
-                                const text = typed.trim();
-                                const next = { ...doc.blueprint };
-                                if (text === "") delete next.category;
-                                else next.category = text;
-                                editing.change(next, true);
-                            }}
-                        />
-                        <datalist id="shipCategories">
-                            {[...new Set(entries.flatMap((entry) => entry.category ?? []))].sort().map((category) => (
-                                <option key={category} value={category} />
-                            ))}
-                        </datalist>
-                    </section>
                     <section>
                         <h2>Ship notes</h2>
                         <LiveText

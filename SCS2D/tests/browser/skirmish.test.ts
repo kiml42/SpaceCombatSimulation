@@ -97,7 +97,7 @@ describe("the skirmish in a browser", () => {
         expect(await page.evaluate(() => localStorage.getItem("scs2d.help.skirmish"))).toBe("seen");
         // A first skirmish is against one corvette: a gunship is too much to begin with.
         expect(await page.inputValue("#enemyPreset")).toBe("One small ship");
-        expect(await page.inputValue("#enemy")).toBe("ship:Corvette");
+        expect(await page.inputValue("#enemy")).toBe("ship:Stock/Corvette");
         expect(await page.isVisible("#round")).toBe(false);
         expect(await page.textContent("#enemyBill")).toContain("metal");
         // No battle controls until there is a round; import sits under Start.
@@ -108,7 +108,7 @@ describe("the skirmish in a browser", () => {
 
     it("will not fight with a fleet over budget", async () => {
         await advanced();
-        await page.selectOption("#enemy", "ship:Bare Core");
+        await page.selectOption("#enemy", "ship:Stock/Bare Core");
         await startWith(GUNSHIP);
         expect(await page.isVisible("#round")).toBe(true);
         expect(await page.isDisabled("#play")).toBe(true);
@@ -123,7 +123,7 @@ describe("the skirmish in a browser", () => {
 
     it("fights over the enemy's cost with a budget raised to fit, and matches the enemy again", async () => {
         await advanced();
-        await page.selectOption("#enemy", "ship:Bare Core");
+        await page.selectOption("#enemy", "ship:Stock/Bare Core");
         const matched = await page.inputValue("#metalBudget");
         for (const id of ["metalBudget", "fuelBudget", "buildBudget"]) await page.fill(`#${id}`, "100000");
         await startWith(GUNSHIP);
@@ -137,11 +137,11 @@ describe("the skirmish in a browser", () => {
         await page.fill("#metalBudget", "1");
         const fuel = await page.inputValue("#fuelBudget");
         await page.fill("#fuelBudget", "");
-        await page.selectOption("#enemy", "ship:Gunship");
+        await page.selectOption("#enemy", "ship:Stock/Gunship");
         expect(await page.inputValue("#metalBudget")).toBe("1");
         expect(await page.inputValue("#fuelBudget")).not.toBe(fuel);
         expect(await page.inputValue("#fuelBudget")).not.toBe("");
-        await page.selectOption("#enemy", "ship:Bare Core");
+        await page.selectOption("#enemy", "ship:Stock/Bare Core");
         expect(await page.inputValue("#metalBudget")).toBe("1");
         await page.click("#matchEnemy");
         expect(await page.inputValue("#metalBudget")).toBe(matched);
@@ -159,7 +159,7 @@ describe("the skirmish in a browser", () => {
         await set("kindTank", "7");
         await set("maxShips", "5");
         await set("gapSpread", "1000");
-        await page.selectOption("#enemy", "ship:Gunship");
+        await page.selectOption("#enemy", "ship:Stock/Gunship");
         await startWith(GUNSHIP);
         const kept = await page.evaluate(() => JSON.parse(window.localStorage.getItem("scs2d.skirmish")!));
         expect(kept.settings.quietTime).toBe(45);
@@ -189,7 +189,7 @@ describe("the skirmish in a browser", () => {
     it("sets up the enemy and the battlefield from the presets, each leaving the other's settings", async () => {
         await advanced();
         await page.selectOption("#enemyPreset", "One big ship");
-        expect(await page.inputValue("#enemy")).toBe("ship:Gunship");
+        expect(await page.inputValue("#enemy")).toBe("ship:Stock/Gunship");
         expect(await page.inputValue("#maxShips")).toBe("1");
         await page.selectOption("#battlefieldPreset", "Small universe");
         expect(await page.inputValue("#gap")).toBe("800");
@@ -205,7 +205,7 @@ describe("the skirmish in a browser", () => {
         await page.fill("#gap", "800");
         await page.dispatchEvent("#gap", "change");
         expect(await page.inputValue("#battlefieldPreset")).toBe("Small universe");
-        await page.selectOption("#enemy", "ship:Bare Core");
+        await page.selectOption("#enemy", "ship:Stock/Bare Core");
         expect(await page.inputValue("#enemyPreset")).toBe("");
         expect(await page.textContent("#enemyHint")).toBe("Against Bare Core, 1 ship a side at most");
         // An enemy fielding more than the limit keeps them; the player is held to it.
@@ -216,7 +216,7 @@ describe("the skirmish in a browser", () => {
 
     it("fights a round with a fleet that fits", async () => {
         await advanced();
-        await page.selectOption("#enemy", "ship:Gunship");
+        await page.selectOption("#enemy", "ship:Stock/Gunship");
         await startWith(GUNSHIP);
         expect(await page.isDisabled("#play")).toBe(false);
         expect(await page.textContent("#roundTitle")).toBe("Round 1");
