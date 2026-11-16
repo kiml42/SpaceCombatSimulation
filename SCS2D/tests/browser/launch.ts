@@ -121,22 +121,30 @@ export function driverNote(text: string): boolean {
 }
 
 /**
- * Run `body` with the page's view, and the WebGL canvas under it, hidden, for a
- * test that never looks at them. A ship view animates while anything is
- * selected, and putting each frame on screen in software WebGL holds up every
- * step. Hidden rather than removed, so the canvases keep their size and the
- * camera frames as it would.
+ * Run `body` with the page's `#view` taken out, for a test that never looks at it.
+ *
+ * A ship view animates while anything is selected, and drawing it in software
+ * WebGL holds up every step. Out of the layout, its canvases shrink to a pixel
+ * and cost nothing. Hiding them is not enough: they are still drawn, unseen and
+ * so unthrottled, and the backlog stalls whatever next waits on the GPU.
+ *
+ * The camera frames that pixel meanwhile, so a module added is sized for it:
+ * not for a test that minds a new module's size. F frames the view again after.
  */
 export async function withoutView<T>(page: Page, body: () => Promise<T>): Promise<T> {
     await page.evaluate(() => {
         const style = document.createElement("style");
         style.id = "withoutView";
-        style.textContent = "#view, canvas:has(+ #view) { visibility: hidden }";
+        style.textContent = "#view { display: none }";
         document.head.append(style);
     });
     try {
         return await body();
     } finally {
-        await page.evaluate(() => document.getElementById("withoutView")?.remove());
+        await page.evaluate(() => {
+            document.getElementById("withoutView")?.remove();
+            (document.activeElement as HTMLElement | null)?.blur();
+        });
+        await page.keyboard.press("f");
     }
 }

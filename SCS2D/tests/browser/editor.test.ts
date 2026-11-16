@@ -303,22 +303,21 @@ describe("the editor in a browser", () => {
             expect(problems).not.toMatch(/push to hold its heading/);
         }));
 
-    it("fits a large ship's figures within the sidebar", () =>
-        withoutView(page, async () => {
-            await openShip(page, "Star Destroyer");
-            await page.click("#moreStats > summary");
-            const clipped = await page.evaluate(() => {
-                const panel = document.getElementById("stats")!.closest("aside")!;
-                const style = getComputedStyle(panel);
-                const right = panel.getBoundingClientRect().right - parseFloat(style.paddingRight) - parseFloat(style.borderRightWidth);
-                return [...panel.querySelectorAll("#stats td")]
-                    .filter((cell) => cell.getBoundingClientRect().right > right + 0.5)
-                    .map((cell) => cell.textContent);
-            });
-            await page.click("#moreStats > summary");
-            await openShip(page, "Corvette");
-            expect(clipped).toEqual([]);
-        }));
+    it("fits a large ship's figures within the sidebar", async () => {
+        await openShip(page, "Star Destroyer");
+        await page.click("#moreStats > summary");
+        const clipped = await page.evaluate(() => {
+            const panel = document.getElementById("stats")!.closest("aside")!;
+            const style = getComputedStyle(panel);
+            const right = panel.getBoundingClientRect().right - parseFloat(style.paddingRight) - parseFloat(style.borderRightWidth);
+            return [...panel.querySelectorAll("#stats td")]
+                .filter((cell) => cell.getBoundingClientRect().right > right + 0.5)
+                .map((cell) => cell.textContent);
+        });
+        await page.click("#moreStats > summary");
+        await openShip(page, "Corvette");
+        expect(clipped).toEqual([]);
+    });
 
     it("selects the module under the pointer", async () => {
         const core = await corvetteCore(page);
@@ -529,72 +528,76 @@ describe("the editor in a browser", () => {
         expect(await page.getAttribute("#showRefit", "aria-pressed")).toBe("false");
     });
 
-    it("sets a pad out with a fighter, marking those too big for it", () =>
-        withoutView(page, async () => {
-            await page.click("#newShip");
-            await addModule(page, "pad");
-            expect(await page.isVisible("#dockedRow")).toBe(true);
-            const label = async (name: string): Promise<string> => (await page.textContent(`#propDocked option[value="${name}"]`)) ?? "";
-            expect(await label("Dinky")).toBe("Dinky");
-            expect(await page.isVisible("#keepRow")).toBe(false);
-            await page.selectOption("#propDocked", "Dinky");
-            expect(await page.inputValue("#propDocked")).toBe("Dinky");
-            expect(await page.textContent("#problems")).not.toMatch(/too big/);
-            // Given a fighter, it sets out with it docked, and keeps none until told.
-            expect(await page.isChecked("#propPadDocked")).toBe(true);
-            expect(await page.inputValue("#propKeep")).toBe("0");
-            await page.fill("#propKeep", "3");
-            await page.dispatchEvent("#propKeep", "change");
-            expect(await page.inputValue("#propKeep")).toBe("3");
-            await page.uncheck("#propPadDocked");
-            expect(await page.isChecked("#propPadDocked")).toBe(false);
-            // Shrunk under it, the fighter no longer fits and the layout says so.
-            await page.fill("#propLength", "2");
-            await page.dispatchEvent("#propLength", "change");
-            expect(await label("Dinky")).toMatch(/✗ too big/);
-            expect(await page.textContent("#problems")).toMatch(/Dinky .* too big for this pad/);
-            await page.selectOption("#propDocked", "");
-            expect(await page.textContent("#problems")).not.toMatch(/too big/);
-            await addModule(page, "tank");
-            expect(await page.isVisible("#dockedRow")).toBe(false);
-        }));
+    it("sets a pad out with a fighter, marking those too big for it", async () => {
+        await page.click("#newShip");
+        await addModule(page, "pad");
+        expect(await page.isVisible("#dockedRow")).toBe(true);
+        const label = async (name: string): Promise<string> => (await page.textContent(`#propDocked option[value="${name}"]`)) ?? "";
+        expect(await label("Dinky")).toBe("Dinky");
+        expect(await page.isVisible("#keepRow")).toBe(false);
+        await page.selectOption("#propDocked", "Dinky");
+        expect(await page.inputValue("#propDocked")).toBe("Dinky");
+        expect(await page.textContent("#problems")).not.toMatch(/too big/);
+        // Given a fighter, it sets out with it docked, and keeps none until told.
+        expect(await page.isChecked("#propPadDocked")).toBe(true);
+        expect(await page.inputValue("#propKeep")).toBe("0");
+        await page.fill("#propKeep", "3");
+        await page.dispatchEvent("#propKeep", "change");
+        expect(await page.inputValue("#propKeep")).toBe("3");
+        await page.uncheck("#propPadDocked");
+        expect(await page.isChecked("#propPadDocked")).toBe(false);
+        // Shrunk under it, the fighter no longer fits and the layout says so.
+        await page.fill("#propLength", "2");
+        await page.dispatchEvent("#propLength", "change");
+        expect(await label("Dinky")).toMatch(/✗ too big/);
+        expect(await page.textContent("#problems")).toMatch(/Dinky .* too big for this pad/);
+        await page.selectOption("#propDocked", "");
+        expect(await page.textContent("#problems")).not.toMatch(/too big/);
+        await addModule(page, "tank");
+        expect(await page.isVisible("#dockedRow")).toBe(false);
+    });
 
     it("explains itself the first time, and builds a first ship step by step from there", () =>
         withoutView(page, async () => {
-            // Reached by its hash, which does not run the script that marks the help seen.
-            await page.evaluate(() => localStorage.removeItem("scs2d.help.ship"));
-            await page.evaluate(() => (location.hash = "#/"));
-            await page.evaluate(() => (location.hash = "#/ship"));
-            await page.waitForSelector("#shipHelp[open]");
-            await page.click("#shipHelpTutorial");
-            expect(await page.isVisible("#shipHelp")).toBe(false);
-            expect(await page.inputValue("#shipName")).toMatch(/^New ship/);
-            expect(await page.getAttribute("#shipTour", "data-step")).toBe("core");
-            expect(await page.isVisible("#shipTourRing")).toBe(true);
+            try {
+                // Reached by its hash, which does not run the script that marks the help seen.
+                await page.evaluate(() => localStorage.removeItem("scs2d.help.ship"));
+                await page.evaluate(() => (location.hash = "#/"));
+                await page.evaluate(() => (location.hash = "#/ship"));
+                await page.waitForSelector("#shipHelp[open]");
+                await page.click("#shipHelpTutorial");
+                expect(await page.isVisible("#shipHelp")).toBe(false);
+                expect(await page.inputValue("#shipName")).toMatch(/^New ship/);
+                expect(await page.getAttribute("#shipTour", "data-step")).toBe("core");
+                expect(await page.isVisible("#shipTourRing")).toBe(true);
 
-            // Each step is ticked off as it is done, and waits for Next.
-            expect(await page.textContent("#shipTourNext")).toBe("Skip");
-            await page.click('[data-add="core"]');
-            expect(await page.getAttribute("#shipTour", "data-step")).toBe("core");
-            expect(await page.isChecked("#shipTourGoal")).toBe(true);
-            expect(await page.textContent("#shipTourNext")).toBe("Next");
-            await page.click("#shipTourNext");
-            await page.click('[data-add="engine"]');
-            await page.click("#shipTourNext");
-            expect(await page.getAttribute("#shipTour", "data-step")).toBe("aft");
-            // Unticked again when it stops being true: the new engine sits on the core.
-            expect(await page.isChecked("#shipTourGoal")).toBe(false);
-            await page.click("#shipTourBack");
-            expect(await page.getAttribute("#shipTour", "data-step")).toBe("engine");
-            await page.click("#shipTourEnd");
-            expect(await page.isVisible("#shipTour")).toBe(false);
+                // Each step is ticked off as it is done, and waits for Next.
+                expect(await page.textContent("#shipTourNext")).toBe("Skip");
+                await page.click('[data-add="core"]');
+                expect(await page.getAttribute("#shipTour", "data-step")).toBe("core");
+                expect(await page.isChecked("#shipTourGoal")).toBe(true);
+                expect(await page.textContent("#shipTourNext")).toBe("Next");
+                await page.click("#shipTourNext");
+                await page.click('[data-add="engine"]');
+                await page.click("#shipTourNext");
+                expect(await page.getAttribute("#shipTour", "data-step")).toBe("aft");
+                // Unticked again when it stops being true: the new engine sits on the core.
+                expect(await page.isChecked("#shipTourGoal")).toBe(false);
+                await page.click("#shipTourBack");
+                expect(await page.getAttribute("#shipTour", "data-step")).toBe("engine");
+                await page.click("#shipTourEnd");
+                expect(await page.isVisible("#shipTour")).toBe(false);
 
-            // Seen once, it stays shut; ? brings it back.
-            expect(await page.evaluate(() => localStorage.getItem("scs2d.help.ship"))).toBe("seen");
-            await page.click("#helpOpen");
-            expect(await page.isVisible("#shipHelp")).toBe(true);
-            await page.click("#shipHelpClose");
-            await page.click("#newShip");
+                // Seen once, it stays shut; ? brings it back.
+                expect(await page.evaluate(() => localStorage.getItem("scs2d.help.ship"))).toBe("seen");
+                await page.click("#helpOpen");
+                expect(await page.isVisible("#shipHelp")).toBe(true);
+                await page.click("#shipHelpClose");
+                await page.click("#newShip");
+            } finally {
+                // Marked seen again, so a failure here cannot leave the help over every later reload.
+                await page.evaluate(() => localStorage.setItem("scs2d.help.ship", "seen"));
+            }
         }));
 
     it("marks a ship a fighter, which rules out turrets and thick modules", () =>
@@ -638,19 +641,18 @@ describe("the editor in a browser", () => {
             expect(await page.isVisible("#shellRow")).toBe(false);
         }));
 
-    it("lets an engine be thick only once its nozzle is wider than a deck", () =>
-        withoutView(page, async () => {
-            await page.click("#newShip");
-            await addModule(page, "engine");
-            // The default is a deck wide, so already as deep as it is wide.
-            expect(await page.isDisabled("#propThick")).toBe(true);
-            expect(await page.getAttribute("#propThick", "title")).toMatch(/Too narrow/);
-            await page.fill("#propWidth", "6");
-            await page.dispatchEvent("#propWidth", "change");
-            expect(await page.isDisabled("#propThick")).toBe(false);
-            await page.check("#propThick");
-            expect(await page.isChecked("#propThick")).toBe(true);
-        }));
+    it("lets an engine be thick only once its nozzle is wider than a deck", async () => {
+        await page.click("#newShip");
+        await addModule(page, "engine");
+        // The default is a deck wide, so already as deep as it is wide.
+        expect(await page.isDisabled("#propThick")).toBe(true);
+        expect(await page.getAttribute("#propThick", "title")).toMatch(/Too narrow/);
+        await page.fill("#propWidth", "6");
+        await page.dispatchEvent("#propWidth", "change");
+        expect(await page.isDisabled("#propThick")).toBe(false);
+        await page.check("#propThick");
+        expect(await page.isChecked("#propThick")).toBe(true);
+    });
 
     it("burns a selected engine, and lets it die down again", async () => {
         // How much warm colour is on the canvas. Exhaust is the only large warm
