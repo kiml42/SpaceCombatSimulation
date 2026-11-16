@@ -139,14 +139,14 @@ const More = styled.details`
     }
 `;
 
-/** One figure a row, its meaning on its name where the name alone does not say. */
+/** One figure a row, its meaning on the whole row, name and value, where the name alone does not say. */
 function FigureRows({ rows }: { readonly rows: readonly ReadoutRow[] }) {
     return (
         <Figures>
             <tbody>
                 {rows.map((row) => (
-                    <tr key={row.name} className={row.sub === true ? "sub" : undefined}>
-                        <th title={row.title}>{row.name}</th>
+                    <tr key={row.name} className={row.sub === true ? "sub" : undefined} title={row.title}>
+                        <th>{row.name}</th>
                         <td>{row.value}</td>
                     </tr>
                 ))}
