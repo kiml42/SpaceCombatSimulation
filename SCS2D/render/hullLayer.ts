@@ -554,6 +554,11 @@ export class Pool {
         for (let k = this.used; k < this.items.length; k++) this.items[k]!.visible = false;
     }
 
+    /** How many were placed in the last frame. */
+    get count(): number {
+        return this.used;
+    }
+
     /** What was placed in the last frame. */
     shown(): Graphics[] {
         return this.items.slice(0, this.used);
