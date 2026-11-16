@@ -1282,7 +1282,10 @@ describe("the editor in a browser", () => {
     it("turns a selected assembly by its knob, about its origin", async () => {
         await page.click("#newShip");
         await addModule(page, "structure");
+        const original = await page.inputValue("#propY");
         await page.click("#propDuplicate");
+        // The copy is selected, set beside the original, not the original's own assembly.
+        expect(await page.inputValue("#assemblyY")).not.toBe(original);
         expect(await page.inputValue("#assemblyAngle")).toBe("0");
         const x = await page.inputValue("#assemblyX");
         const y = await page.inputValue("#assemblyY");

@@ -1,7 +1,15 @@
 import { styled } from "@linaria/react";
 import { Fragment } from "react";
 import { kindName } from "~/editor/doctrine";
-import { dockFighter, duplicatePlacement, instanceOf, mirrorPlacement, reshapePlacement, updatePlacement } from "~/editor/edit";
+import {
+    dockFighter,
+    duplicatePlacement,
+    instanceOf,
+    mirrorPlacement,
+    newestInstance,
+    reshapePlacement,
+    updatePlacement,
+} from "~/editor/edit";
 import type { DesignInFleet } from "~/editor/handoff";
 import { byCategory, byName, type Library } from "~/editor/library";
 import { selectedPosition } from "~/editor/shipCanvas";
@@ -364,12 +372,19 @@ export function ModulePanel({
     const placeCopy = (placed: { blueprint: Blueprint; path: ModulePath } | null): void => {
         if (placed === null) return;
         doc.apply(placed.blueprint);
-        doc.select(placed.path);
-        const drawn = doc.selectedModules();
-        const made = drawn[drawn.length - 1];
-        const instance = instanceOf({ path: placed.path, rotation: 0, mirrored: false, instanceFrame: null });
-        if (made !== undefined && instance !== null) doc.selectAt(made, instance);
-        else if (made !== undefined) doc.selectModule(made);
+        const within = instanceOf({ path: placed.path, rotation: 0, mirrored: false, instanceFrame: null });
+        const instance = within === null ? null : newestInstance(placed.blueprint, within);
+        // Drawn under the new instance: its first module, by which the copy is picked.
+        const made =
+            instance === null
+                ? -1
+                : doc.view.origins.findIndex((origin) => instance.every((step, k) => step.index === origin.path[k]?.index));
+        if (instance !== null && made >= 0) doc.selectAt(made, instance);
+        else {
+            doc.select(placed.path);
+            const drawn = doc.selectedModules();
+            if (drawn.length > 0) doc.selectModule(drawn[drawn.length - 1]!);
+        }
         editing.endGesture();
         editing.refresh();
     };

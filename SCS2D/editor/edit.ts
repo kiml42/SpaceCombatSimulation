@@ -680,6 +680,18 @@ function writtenIn(path: ModulePath): { root: string; direct: boolean } {
     return { root: entered?.step.assembly ?? "", direct: path.length - from === 1 };
 }
 
+/** The last instance beside `instance` of the assembly it places: the copy Duplicate or Mirror just appended. */
+export function newestInstance(blueprint: Blueprint, instance: ModulePath): ModulePath | null {
+    const found = containing(blueprint as unknown as MutableBlueprint, instance);
+    const placed = found?.list[found.index];
+    if (found === null || placed === undefined || !isInstance(placed)) return null;
+    for (let i = found.list.length - 1; i >= 0; i--) {
+        const each = found.list[i]!;
+        if (isInstance(each) && each.use === placed.use) return [...instance.slice(0, -1), { index: i, copy: instance.at(-1)!.copy }];
+    }
+    return null;
+}
+
 /** The path naming a placement's parent list, which a sibling is appended to. */
 function siblingOf(path: ModulePath, index: number): ModulePath {
     return [...path.slice(0, -1), { index, copy: 0 }];
