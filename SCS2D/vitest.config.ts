@@ -22,6 +22,10 @@ export default defineConfig({
                     // machine, so a CI runner half as fast failed whichever ran over. A test
                     // that needs longer still says so itself.
                     testTimeout: 60_000,
+                    // Files share each worker's modules rather than loading the sim afresh,
+                    // which halves the quick files' time. Safe while the sim keeps no state
+                    // between battles beyond caches, which the golden reruns check.
+                    isolate: false,
                 },
             },
             {
