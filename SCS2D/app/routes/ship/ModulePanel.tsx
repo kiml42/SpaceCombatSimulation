@@ -1,7 +1,15 @@
 import { styled } from "@linaria/react";
 import { Fragment } from "react";
 import { kindName } from "~/editor/doctrine";
-import { dockFighter, duplicatePlacement, instanceOf, mirrorPlacement, reshapePlacement, updatePlacement } from "~/editor/edit";
+import {
+    dockFighter,
+    duplicatePlacement,
+    instanceOf,
+    mirrorPlacement,
+    newestInstance,
+    reshapePlacement,
+    updatePlacement,
+} from "~/editor/edit";
 import type { DesignInFleet } from "~/editor/handoff";
 import { byCategory, byName, type Library } from "~/editor/library";
 import { selectedPosition } from "~/editor/shipCanvas";
@@ -359,13 +367,24 @@ export function ModulePanel({
         return own.length === 0 ? null : <SettingFigures id={`${key}Figures`} rows={own} />;
     };
     const general = (): ReadoutRow[] => rows.filter((row) => row.more === true || row.under === undefined || !placed.has(row.under));
-    // The copy just made is selected, not the one it was made from: it is the one about to be put somewhere.
+    // The copy just made is selected, not the one it was made from, and as its assembly: it is the one about to be put
+    // somewhere and turned, and a copy is moved and turned by its assembly.
     const placeCopy = (placed: { blueprint: Blueprint; path: ModulePath } | null): void => {
         if (placed === null) return;
         doc.apply(placed.blueprint);
-        doc.select(placed.path);
-        const drawn = doc.selectedModules();
-        if (drawn.length > 0) doc.selectModule(drawn[drawn.length - 1]!);
+        const within = instanceOf({ path: placed.path, rotation: 0, mirrored: false, instanceFrame: null });
+        const instance = within === null ? null : newestInstance(placed.blueprint, within);
+        // Drawn under the new instance: its first module, by which the copy is picked.
+        const made =
+            instance === null
+                ? -1
+                : doc.view.origins.findIndex((origin) => instance.every((step, k) => step.index === origin.path[k]?.index));
+        if (instance !== null && made >= 0) doc.selectAt(made, instance);
+        else {
+            doc.select(placed.path);
+            const drawn = doc.selectedModules();
+            if (drawn.length > 0) doc.selectModule(drawn[drawn.length - 1]!);
+        }
         editing.endGesture();
         editing.refresh();
     };
@@ -374,7 +393,7 @@ export function ModulePanel({
         <section id="properties">
             <h2>Selected module</h2>
             {copies > 1 && (
-                <Linked id="linked">{`Shared: drawn ${copies} times. Size, facing and notes change every copy; position moves this one.`}</Linked>
+                <Linked id="linked">{`Shared: drawn ${copies} times. Changes here change every copy; select the assembly to move or turn this copy.`}</Linked>
             )}
             <Field>
                 <label htmlFor="propKind">kind</label>

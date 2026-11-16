@@ -75,13 +75,12 @@ function enteredAssembly(path: ModulePath): { step: PathStep; at: number } | nul
  * Usually the module itself. But when a module is the whole of an assembly —
  * which is what a shared part is, and what duplicating one produces — the
  * module sits at its assembly's origin and each instance carries a position of
- * its own. Moving one copy then means moving the instance, and moving the
- * module would shift every copy at once, which is almost never the intent.
+ * its own, so the unit on the ship is the copy. Deleting, duplicating and
+ * mirroring it act on the copy, and resizing it pushes the copy's neighbours.
  *
- * So position belongs to the copy and everything else — size, facing,
- * reinforcement, barrels, notes — stays shared. That is the split the format
- * already describes, since an instance may carry a pose and nothing else; this
- * is the editor agreeing with it.
+ * Moving does not: a selected module moves within its assembly, so every copy
+ * alike, and a copy is moved and turned by selecting its assembly, which
+ * Duplicate and Mirror leave selected.
  */
 export interface PositionHandle {
     /** Addressed as an origin, so the same move and edit functions work on it. */
@@ -679,6 +678,18 @@ function writtenIn(path: ModulePath): { root: string; direct: boolean } {
     const entered = enteredAssembly(path);
     const from = entered === null ? 0 : entered.at + 1;
     return { root: entered?.step.assembly ?? "", direct: path.length - from === 1 };
+}
+
+/** The last instance beside `instance` of the assembly it places: the copy Duplicate or Mirror just appended. */
+export function newestInstance(blueprint: Blueprint, instance: ModulePath): ModulePath | null {
+    const found = containing(blueprint as unknown as MutableBlueprint, instance);
+    const placed = found?.list[found.index];
+    if (found === null || placed === undefined || !isInstance(placed)) return null;
+    for (let i = found.list.length - 1; i >= 0; i--) {
+        const each = found.list[i]!;
+        if (isInstance(each) && each.use === placed.use) return [...instance.slice(0, -1), { index: i, copy: instance.at(-1)!.copy }];
+    }
+    return null;
 }
 
 /** The path naming a placement's parent list, which a sibling is appended to. */
