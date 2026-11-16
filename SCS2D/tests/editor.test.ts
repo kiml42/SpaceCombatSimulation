@@ -1141,6 +1141,15 @@ describe("Library", () => {
         expect(category("Own")).toBe("Skirmish one");
     });
 
+    it("opens a saved ship under the category it is kept under, whatever its file says", () => {
+        const store = fakeStore();
+        store.setItem("scs2d.ship.My ships/Probe", JSON.stringify(serialiseBlueprint({ ...CORVETTE, name: "Probe" })));
+        const library = new Library(store);
+        const probe = library.load("My ships/Probe")!;
+        expect(probe.category).toBe(MY_SHIPS);
+        expect(library.keyOf(probe)).toBe("My ships/Probe");
+    });
+
     it("lets two ships share a name in different categories", () => {
         const library = new Library(fakeStore());
         library.save({ name: "Scout", modules: [], category: "Fast" });

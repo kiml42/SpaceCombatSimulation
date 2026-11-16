@@ -236,7 +236,13 @@ export class Library<T extends { name: string; category?: string } = Blueprint> 
         if (key.startsWith(STOCK)) return this.loadStock(key.slice(STOCK.length));
         this.migrate();
         const raw = this.store.getItem(this.kind.prefix + key);
-        if (raw !== null) return this.kind.parse(JSON.parse(raw));
+        if (raw !== null) {
+            const value = this.kind.parse(JSON.parse(raw));
+            if (this.kind.categorised !== true) return value;
+            // Where it is kept is what it is known by, whatever the file inside says.
+            const category = this.savedEntry(key).category;
+            return value.category === category ? value : { ...value, category };
+        }
         const stock = this.loadStock(key);
         if (stock !== null || this.kind.categorised !== true) return stock;
         const named = this.list().filter((entry) => entry.name === key);
