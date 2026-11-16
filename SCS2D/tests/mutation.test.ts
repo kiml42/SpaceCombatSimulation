@@ -177,39 +177,37 @@ describe("mutation", () => {
         expect(grew).toBe(true);
     });
 
-    // 2,400 generations of a growing ship, which is the sample the ratio needs
-    // to be stable. How long depends on how big the three lines happen to grow,
-    // which any new knob reshuffles: 45 s on a desktop on one set of lines, past
-    // 240 s on a loaded CI runner on another, 560 s alone once a core's
-    // store shares made one line grow to 126 modules, and 650 s alone, past
-    // 900 s on a loaded CI runner, once lances became powered weapons, so the
-    // budget is wide rather than close.
-    it("adds as much as it takes away", { timeout: 1_800_000 }, () => {
+    // Ten lines of 800 generations, about 25 s on a desktop. Geometry and switch
+    // edits are off: they are not counted here, and each one costs a layout
+    // check that grows with the ship, which made three lines with them take
+    // 8–28 minutes on CI.
+    it("adds as much as it takes away", { timeout: 300_000 }, () => {
         // The operator is neutral about how big a ship is; selection is what
         // decides that. An imbalance here is invisible in any one child and
         // fatal over a run — a lineage that loses a module every time it gains
         // one ends up as a hull that cannot shoot, whatever the fitness says.
-        // Over several lines rather than one. A single line of 800 generations
-        // measured anywhere between 1.3 and 1.9, so a bound pinned to whichever
-        // one was run first is a test that fails on a change that did nothing —
-        // the same trap the structural-delivery test above fell into.
+        // Over several lines rather than one, since single lines vary widely.
         //
         // The bound is asymmetric because the two failures are not alike. A ratio
         // well under one is the fatal one: a lineage that loses a module whenever
         // it gains one erodes until it cannot shoot, and nothing stops it. Above
         // one a lineage grows, which the mass budget already bounds, so the upper
-        // bound only has to catch a runaway: single lines from seeds 37–46 range
-        // 1.4–2.3, and these three pooled have read 1.7 and 2.1 on changes to the
-        // operator set that barely moved the ten-line mean (1.80 → 1.93).
+        // bound only has to catch a runaway. Single lines from these seeds read
+        // 1.24–1.95, and 1.53 pooled.
         let added = 0;
         let removed = 0;
         const budget = compileDraft(GUNSHIP).mass * 2;
-        for (const seed of [37, 38, 39]) {
+        for (let seed = 37; seed <= 46; seed++) {
             const rng = new Rng(seed);
             let held: Blueprint = GUNSHIP;
             for (let i = 0; i < 800; i++) {
                 // Without thrusters, which only ever add, and on purpose (`addThrusters`).
-                const child = mutate(held, rng, { budget: { ...NO_BUDGET, metal: budget }, thrusters: 0 });
+                const child = mutate(held, rng, {
+                    budget: { ...NO_BUDGET, metal: budget },
+                    thrusters: 0,
+                    geometry: 0,
+                    switches: 0,
+                });
                 held = child.blueprint;
                 for (const edit of child.edits) {
                     if (/removed/.test(edit)) removed++;
