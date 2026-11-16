@@ -9,6 +9,7 @@ import { seenLights, seenRounded } from "./canvas2d.js";
 import { LightBuffer } from "./lightBuffer.js";
 import { LitBevels } from "./litBevels.js";
 import { LitRounded } from "./litRounded.js";
+import { drawnInSoftware } from "./softwareGl.js";
 
 /**
  * The battle drawn with PixiJS, on a canvas under the Canvas2D one, which is
@@ -65,7 +66,7 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
         // Pixi's own Canvas2D where WebGL is missing, which does without filters and so lighting.
         preference: ["webgl", "canvas"],
         background: BACKGROUND,
-        antialias: true,
+        antialias: !drawnInSoftware(),
         width: canvas.width,
         height: canvas.height,
         resolution: 1,
