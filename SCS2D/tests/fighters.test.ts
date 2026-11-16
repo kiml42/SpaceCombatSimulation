@@ -3,6 +3,7 @@ import {
     BOTH_LAYERS,
     compileBlueprint,
     DEFAULT_DOCTRINE,
+    fighterBarred,
     fighterProblem,
     HULL_LAYER,
     parseBlueprint,
@@ -64,13 +65,27 @@ describe("a fighter flag", () => {
             modules: [...HULK.modules, { kind: "turret", x: -3.5, y: 0, length: 3, width: 3 }],
         };
         expect(compileBlueprint(turret).fighter).toBe(false);
-        expect(fighterProblem(compileBlueprint(turret).modules.map((m) => m.spec))).toMatch(/no turrets/);
+        expect(fighterProblem(compileBlueprint(turret).modules.map((m) => m.spec))).toBe("a fighter cannot carry a turret");
         const thick: Blueprint = {
             ...HULK,
             fighter: true,
             modules: [HULK.modules[0]!, { kind: "structure", x: 6, y: 0, length: 8, width: 8, thick: true }],
         };
         expect(compileBlueprint(thick).fighter).toBe(false);
+    });
+
+    it("is ignored on a ship that carries a mothership's module", () => {
+        for (const kind of ["robotBay", "claw", "pad", "port", "slipway"] as const) {
+            expect(fighterBarred(kind)).not.toBeNull();
+            const carrying: Blueprint = {
+                ...HULK,
+                fighter: true,
+                modules: [...HULK.modules, { kind, x: -3.5, y: 0, length: 3, width: 3 }],
+            };
+            expect(fighterProblem(compileBlueprint(carrying).modules.map((m) => m.spec))).toBe(fighterBarred(kind));
+            expect(compileBlueprint(carrying).fighter).toBe(false);
+        }
+        expect(fighterBarred("engine")).toBeNull();
     });
 
     it("is kept in a file", () => {

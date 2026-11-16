@@ -28,6 +28,7 @@ import {
     blockCentre,
     needsControl,
     type GunStats,
+    type ModuleKind,
     type ModuleSpec,
     type ModuleStats,
     CORE_SHARE_KEYS,
@@ -460,7 +461,7 @@ export interface Blueprint {
     /**
      * A strike craft (DESIGN.md §3): it flies in the weapons layer, and takes
      * the hull layer as well only when its doctrine commits it. Ignored on a
-     * ship with a turret or anything thick (`fighterProblem`).
+     * ship with a turret, a mothership's module or anything thick (`fighterProblem`).
      */
     fighter?: boolean;
     /**
@@ -2446,13 +2447,36 @@ function touchingDepth(specs: readonly ModuleSpec[], i: number): number {
 }
 
 /**
- * Why these modules cannot fly as a fighter, or null. A turret or anything
- * thick stands up out of the deck a strike craft skims (DESIGN.md §3).
+ * Why a fighter cannot carry a module of this kind, or null. A turret stands
+ * up out of the deck a strike craft skims (DESIGN.md §3); the rest are a
+ * mothership's work, which a fighter leaves to the pad it comes home to.
  */
+export function fighterBarred(kind: ModuleKind): string | null {
+    switch (kind) {
+        case "turret":
+        case "beamTurret":
+            return "a fighter cannot carry a turret";
+        case "robotBay":
+            return "a fighter cannot carry a robot bay: fighters are mended on larger ships' pads";
+        case "claw":
+            return "a fighter cannot carry a claw: fighters do not mine or scavenge";
+        case "pad":
+            return "a fighter cannot carry a pad: fighters cannot dock other fighters";
+        case "port":
+            return "a fighter cannot carry a port: fighters dock only on larger ships' pads";
+        case "slipway":
+            return "a fighter cannot carry a slipway: fighters do not build ships";
+        default:
+            return null;
+    }
+}
+
+/** Why these modules cannot fly as a fighter, or null: a kind it may not carry, or anything thick. */
 export function fighterProblem(specs: readonly ModuleSpec[]): string | null {
     for (const spec of specs) {
-        if (spec.kind === "turret" || spec.kind === "beamTurret") return "a fighter carries no turrets";
-        if (isThick(spec)) return "a fighter has nothing thick";
+        const barred = fighterBarred(spec.kind);
+        if (barred !== null) return barred;
+        if (isThick(spec)) return "a fighter cannot have anything thick";
     }
     return null;
 }
