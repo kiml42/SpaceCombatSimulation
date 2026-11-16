@@ -555,7 +555,7 @@ describe("the editor in a browser", () => {
         // Something thick rules a fighter out in turn, and says why.
         await page.check("#propThick");
         expect(await page.isDisabled("#shipFighter")).toBe(true);
-        expect(await page.getAttribute("#shipFighterLabel", "title")).toMatch(/cannot be a fighter: a fighter has nothing thick/);
+        expect(await page.getAttribute("#shipFighterLabel", "title")).toBe("A fighter cannot have anything thick.");
         await page.uncheck("#propThick");
         expect(await page.isDisabled("#shipFighter")).toBe(false);
     });

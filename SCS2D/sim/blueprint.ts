@@ -2455,17 +2455,17 @@ export function fighterBarred(kind: ModuleKind): string | null {
     switch (kind) {
         case "turret":
         case "beamTurret":
-            return "a fighter carries no turrets";
+            return "a fighter cannot carry a turret";
         case "robotBay":
-            return "a fighter carries no robot bay: the pad it lands on mends it";
+            return "a fighter cannot carry a robot bay: fighters are mended on larger ships' pads";
         case "claw":
-            return "a fighter carries no claw: it neither mines nor scavenges";
+            return "a fighter cannot carry a claw: fighters do not mine or scavenge";
         case "pad":
-            return "a fighter carries no pad: it docks no fighters";
+            return "a fighter cannot carry a pad: fighters cannot dock other fighters";
         case "port":
-            return "a fighter carries no port: it docks only on another ship's pad";
+            return "a fighter cannot carry a port: fighters dock only on larger ships' pads";
         case "slipway":
-            return "a fighter carries no slipway: it builds no ships";
+            return "a fighter cannot carry a slipway: fighters do not build ships";
         default:
             return null;
     }
@@ -2476,7 +2476,7 @@ export function fighterProblem(specs: readonly ModuleSpec[]): string | null {
     for (const spec of specs) {
         const barred = fighterBarred(spec.kind);
         if (barred !== null) return barred;
-        if (isThick(spec)) return "a fighter has nothing thick";
+        if (isThick(spec)) return "a fighter cannot have anything thick";
     }
     return null;
 }

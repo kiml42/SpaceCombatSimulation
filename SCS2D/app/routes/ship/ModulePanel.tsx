@@ -600,7 +600,7 @@ export function ModulePanel({
                                 thickable
                                     ? THICK_TITLE
                                     : fighter && canThicken(spec)
-                                      ? "A fighter has nothing thick."
+                                      ? "A fighter cannot have anything thick."
                                       : spec.kind === "engine"
                                         ? "Too narrow to be thick: each nozzle is no more than a deck wide, so already as deep as it is wide."
                                         : "Too narrow to be thick: no more than a deck across, so already as deep as it is wide."

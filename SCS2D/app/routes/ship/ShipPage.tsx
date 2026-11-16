@@ -47,7 +47,7 @@ import type { DoctrineOpen } from "./DoctrineDetails";
 import { ModulePanel, type ModuleFolds } from "./ModulePanel";
 import { ShipCanvas } from "./ShipCanvas";
 import type { ShipEditing } from "./shipEditing";
-import { DEFAULTS, isModuleSpec } from "./shipFields";
+import { DEFAULTS, isModuleSpec, sentence } from "./shipFields";
 import { Field } from "./shipLayout";
 import { ShipProblems, ShipRefit, ShipStats } from "./ShipReport";
 
@@ -392,7 +392,7 @@ export function ShipPage() {
     const barred = asked ? null : fighterProblem(doc.view.modules);
     const fighterTitle =
         barred !== null
-            ? `It cannot be a fighter: ${barred}.`
+            ? `${sentence(barred)}.`
             : notFighter !== null
               ? `Flies as an ordinary ship: ${notFighter}.`
               : "A strike craft: no turrets, robot bay, claw, pad, port or slipway, and nothing thick. It flies in the weapons layer, and drops into the hull layer as well only when its doctrine commits it to ram.";

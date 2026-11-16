@@ -65,7 +65,7 @@ describe("a fighter flag", () => {
             modules: [...HULK.modules, { kind: "turret", x: -3.5, y: 0, length: 3, width: 3 }],
         };
         expect(compileBlueprint(turret).fighter).toBe(false);
-        expect(fighterProblem(compileBlueprint(turret).modules.map((m) => m.spec))).toMatch(/no turrets/);
+        expect(fighterProblem(compileBlueprint(turret).modules.map((m) => m.spec))).toBe("a fighter cannot carry a turret");
         const thick: Blueprint = {
             ...HULK,
             fighter: true,
