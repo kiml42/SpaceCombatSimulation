@@ -590,7 +590,9 @@ inside any one file is not contiguous.
   is at its closest and how much room that will leave, since a bubble cannot tell a consort holding station
   a hull's width away from something crossing at two hundred metres a second. How soon is how long until
   they would touch, where they would: for anything large that is far sooner than their middles' closest. A
-  ram keeps clear of rocks and of its own side's ships, at its own size, and of nothing else. **Its charge is
+  ram keeps clear of rocks and of its own side's ships, at its own size, and of nothing else; **every craft
+  keeps clear of a rock at its own size**, never the rock's, which kept it a rock's breadth off and flung one
+  starting nearer than that out of the well. **Its charge is
   kept clear of with a soft edge**, since covering pulls the two together: inside its clearance and drawing
   closer too slowly to matter within the look-ahead, or not at all, the pair is answered as it stands, and
   asked to open at a speed that grows with how deep inside it is, less what it is opening at already and no
@@ -609,6 +611,11 @@ inside any one file is not contiguous.
   ram does, rather than keep its guns on target. So a slow capital looks further ahead than a fighter. Not
   while closing to grip or land, when it is among rocks on purpose. Across sixty seeds of the asteroid field,
   ships ran into rocks 6 times where they had 51.
+  **A craft with nothing to do in a well's pull orbits.** With no orders and no charge holding it, it wants
+  the circular orbit of the well pulling hardest, at the height it is at and the way it already goes round,
+  and leaves the pull to bend it there, so it coasts rather than burns to hover until its tanks are dry and it
+  falls. As a charge's hold on it grows that want gives way, all of it at an order's weight. Out of any pull
+  it kills its drift as before, and so does one told to hold with an order that names no target. The Orbiting scene shows it, and `tests/orbiting.test.ts` checks it (#1020).
   **Generations are bred and run.** A population is seeded from the ships a run is started with and mutants
   of them; matches are drawn until every design has had its hearing — fewest meetings with whoever is
   already in the match, then fewest matches played, then the draw, since a design that has only ever met one
