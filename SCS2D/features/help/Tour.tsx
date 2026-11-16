@@ -1,5 +1,5 @@
 import { styled } from "@linaria/react";
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Button } from "~/ui/buttons/Button";
 
 /** One step of a tour: what to do, where, and whether it has been done. */
@@ -9,14 +9,14 @@ export interface TourStep {
     readonly body: ReactNode;
     /** What it is about, as selectors: the first one showing is outlined and the step sits beside it. */
     readonly targets?: readonly string[];
-    /** What the step sits beside instead, at the target's height, so it covers nothing the target sits among. */
+    /** What the step sits beside instead, at the target's height, or at the foot of the view with no target. */
     readonly beside?: string;
-    /** Whether the player has done it: a step that becomes done while showing moves the tour on. */
-    readonly done?: boolean;
+    /** What having done it looks like, ticked off while it is true: the step waits for Next either way. */
+    readonly goal?: { readonly label: string; readonly done: boolean };
 }
 
 export interface TourProps {
-    /** The callout's id; its title, buttons and outline are this with `Title`, `Back`, `Next`, `End` and `Ring` on the end. */
+    /** The callout's id; its title, goal, buttons and outline are this with `Title`, `Goal`, `Back`, `Next`, `End` and `Ring` on the end. */
     readonly id: string;
     readonly steps: readonly TourStep[];
     readonly at: number;
@@ -66,9 +66,20 @@ const Count = styled.div`
     font-size: 0.8rem;
 `;
 
-const Done = styled.p`
-    && {
+const Goal = styled.label`
+    display: flex;
+    gap: 0.45rem;
+    align-items: baseline;
+    margin-top: 0.2rem;
+    color: var(--colour-muted);
+
+    &[data-done="true"] {
         color: var(--colour-ok);
+    }
+
+    input {
+        margin: 0;
+        accent-color: var(--colour-ok);
     }
 `;
 
@@ -131,9 +142,10 @@ function placed(target: Box | null, height: number): { left: number; top: number
 
 /**
  * A step-by-step tour that points at what each step is about, beside the page
- * rather than over it, so the player does each thing as it asks. A step that
- * becomes done goes on to the next by itself; one already done when it is
- * reached waits for Next, so Back never bounces.
+ * rather than over it, so the player does each thing as it asks. Its goal is
+ * ticked off as it comes true and unticked if it stops, and the player goes on
+ * when they are ready: Next once it is done, Skip before, so a goal met while
+ * reading, or by playing about ahead of the tour, takes nothing away.
  */
 export function Tour({ id, steps, at, onAt, onEnd }: TourProps) {
     const step = steps[at];
@@ -141,16 +153,7 @@ export function Tour({ id, steps, at, onAt, onEnd }: TourProps) {
     const [target, setTarget] = useState<Box | null>(null);
     const [side, setSide] = useState<Box | null>(null);
     const [height, setHeight] = useState(0);
-    const done = step?.done === true;
-    // Whether this step was done already when it was reached, noted as it is reached.
-    const [arrived, setArrived] = useState({ at, done });
-    if (arrived.at !== at) setArrived({ at, done });
-    const entered = arrived.at === at ? arrived.done : done;
-
-    useEffect(() => {
-        if (step === undefined || !done || entered) return;
-        if (at + 1 < steps.length) onAt(at + 1);
-    }, [step, done, entered, at, steps.length, onAt]);
+    const done = step?.goal === undefined || step.goal.done;
 
     // Followed every frame: the target moves with the layout, folds and the canvas, and nothing says when.
     useLayoutEffect(() => {
@@ -164,7 +167,7 @@ export function Tour({ id, steps, at, onAt, onEnd }: TourProps) {
                 last = now;
                 setTarget(now);
             }
-            const region = now === null || step.beside === undefined ? null : showing([step.beside]);
+            const region = step.beside === undefined ? null : showing([step.beside]);
             if (lastSide === undefined || !same(region, lastSide)) {
                 lastSide = region;
                 setSide(region);
@@ -179,7 +182,10 @@ export function Tour({ id, steps, at, onAt, onEnd }: TourProps) {
 
     if (step === undefined) return null;
     const last = at === steps.length - 1;
-    const where = placed(target === null || side === null ? target : { ...side, top: target.top, height: target.height }, height);
+    const where =
+        target === null && side !== null
+            ? { left: side.left + side.width + GAP, top: window.innerHeight - height - 4 * MARGIN }
+            : placed(target === null || side === null ? target : { ...side, top: target.top, height: target.height }, height);
     return (
         <>
             {target !== null && (
@@ -199,7 +205,12 @@ export function Tour({ id, steps, at, onAt, onEnd }: TourProps) {
                 <Count>{`Step ${at + 1} of ${steps.length}`}</Count>
                 <h2 id={`${id}Title`}>{step.title}</h2>
                 {step.body}
-                {done && !last && <Done>Done — on to the next step.</Done>}
+                {step.goal !== undefined && (
+                    <Goal data-done={step.goal.done}>
+                        <input id={`${id}Goal`} type="checkbox" checked={step.goal.done} readOnly tabIndex={-1} />
+                        {step.goal.label}
+                    </Goal>
+                )}
                 <Actions>
                     <Button id={`${id}End`} variant="plain" title="End the tutorial" onClick={onEnd}>
                         End
@@ -207,8 +218,13 @@ export function Tour({ id, steps, at, onAt, onEnd }: TourProps) {
                     <Button id={`${id}Back`} disabled={at === 0} onClick={() => onAt(at - 1)}>
                         Back
                     </Button>
-                    <Button id={`${id}Next`} variant="primary" onClick={() => (last ? onEnd() : onAt(at + 1))}>
-                        {last ? "Finish" : done ? "Next" : "Skip"}
+                    <Button
+                        id={`${id}Next`}
+                        variant={done ? "primary" : "plain"}
+                        {...(done ? {} : { title: "On to the next step without doing this one" })}
+                        onClick={() => (last ? onEnd() : onAt(at + 1))}
+                    >
+                        {done ? (last ? "Finish" : "Next") : "Skip"}
                     </Button>
                 </Actions>
             </Callout>

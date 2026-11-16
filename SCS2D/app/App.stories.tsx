@@ -172,6 +172,9 @@ export const ShipTutorial: Story = {
         await expect(step).toHaveTextContent("Step 1 of 6");
         await expect(canvas.getByRole("combobox", { name: "Ship" })).toHaveDisplayValue(/^New ship/);
         await userEvent.click(canvas.getByRole("button", { name: "Core" }));
+        // Ticked off, and waiting for Next rather than moving on.
+        await expect(canvas.getByRole("checkbox", { name: "It has a core" })).toBeChecked();
+        await userEvent.click(within(step).getByRole("button", { name: "Next" }));
         await expect(await canvas.findByRole("dialog", { name: "Add an engine" })).toHaveTextContent("Step 2 of 6");
         await userEvent.click(canvas.getByRole("button", { name: "End" }));
         await expect(canvas.queryByRole("dialog", { name: "Add an engine" })).toBeNull();

@@ -566,15 +566,20 @@ describe("the editor in a browser", () => {
         expect(await page.getAttribute("#shipTour", "data-step")).toBe("core");
         expect(await page.isVisible("#shipTourRing")).toBe(true);
 
-        // Each step goes on as it is done.
+        // Each step is ticked off as it is done, and waits for Next.
+        expect(await page.textContent("#shipTourNext")).toBe("Skip");
         await page.click('[data-add="core"]');
-        expect(await page.getAttribute("#shipTour", "data-step")).toBe("engine");
+        expect(await page.getAttribute("#shipTour", "data-step")).toBe("core");
+        expect(await page.isChecked("#shipTourGoal")).toBe(true);
+        expect(await page.textContent("#shipTourNext")).toBe("Next");
+        await page.click("#shipTourNext");
         await page.click('[data-add="engine"]');
+        await page.click("#shipTourNext");
         expect(await page.getAttribute("#shipTour", "data-step")).toBe("aft");
-        // Back to one already done waits for Next rather than bouncing on.
+        // Unticked again when it stops being true: the new engine sits on the core.
+        expect(await page.isChecked("#shipTourGoal")).toBe(false);
         await page.click("#shipTourBack");
         expect(await page.getAttribute("#shipTour", "data-step")).toBe("engine");
-        expect(await page.textContent("#shipTourNext")).toBe("Next");
         await page.click("#shipTourEnd");
         expect(await page.isVisible("#shipTour")).toBe(false);
 
