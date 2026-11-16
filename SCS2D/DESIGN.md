@@ -611,11 +611,11 @@ inside any one file is not contiguous.
   ram does, rather than keep its guns on target. So a slow capital looks further ahead than a fighter. Not
   while closing to grip or land, when it is among rocks on purpose. Across sixty seeds of the asteroid field,
   ships ran into rocks 6 times where they had 51.
-  **A craft with nothing to do in a well's pull orbits.** With no target and no charge holding it, it wants
+  **A craft with nothing to do in a well's pull orbits.** With no orders and no charge holding it, it wants
   the circular orbit of the well pulling hardest, at the height it is at and the way it already goes round,
   and leaves the pull to bend it there, so it coasts rather than burns to hover until its tanks are dry and it
   falls. As a charge's hold on it grows that want gives way, all of it at an order's weight. Out of any pull
-  it kills its drift as before. The Orbiting scene shows it, and `tests/orbiting.test.ts` checks it (#1020).
+  it kills its drift as before, and so does one told to hold with an order that names no target. The Orbiting scene shows it, and `tests/orbiting.test.ts` checks it (#1020).
   **Generations are bred and run.** A population is seeded from the ships a run is started with and mutants
   of them; matches are drawn until every design has had its hearing — fewest meetings with whoever is
   already in the match, then fewest matches played, then the draw, since a design that has only ever met one
