@@ -34,6 +34,11 @@ import {
     plumeIntensity,
     shortfall,
     engineGeometry,
+    isPressureFed,
+    PRESSURE_FED_BLOCK,
+    PRESSURE_FED_EXHAUST,
+    PRESSURE_FED_FLOW,
+    PRESSURE_FED_THROAT,
     mountAccel,
     slewTime,
     TRAVERSE_TOP_RATE,
@@ -414,6 +419,25 @@ export function assemblyMass(layout: readonly ModuleSpec[], picked: readonly num
     return total;
 }
 
+/** How an engine's fuel reaches its chamber, which is most of why its Isp is what it is. */
+function feedRow(spec: ModuleSpec): ReadoutRow {
+    const engine = engineGeometry(spec);
+    if (!isPressureFed(engine)) {
+        return { name: "feed", value: "pumped", sub: true, title: "Pumps drive its fuel into the chamber, for the full flow and Isp" };
+    }
+    const why =
+        engine.throatWidth < PRESSURE_FED_THROAT
+            ? `its throat is under ${PRESSURE_FED_THROAT} m across`
+            : `its machinery is under ${PRESSURE_FED_BLOCK} m long`;
+    const share = (fraction: number): string => `${Math.round(fraction * 100)}%`;
+    return {
+        name: "feed",
+        value: "pressure-fed",
+        sub: true,
+        title: `No room for pumps, as ${why}: tank pressure pushes the fuel through, for ${share(PRESSURE_FED_FLOW)} of the flow and ${share(PRESSURE_FED_EXHAUST)} of the Isp, but far simpler to build`,
+    };
+}
+
 /**
  * The selected module's own figures.
  *
@@ -494,6 +518,7 @@ export function moduleReadout(spec: ModuleSpec, layout: readonly ModuleSpec[] = 
     }
     if (stats.exhaustVelocity > 0) {
         add({ name: "Isp", value: `${n(specificImpulse(stats.exhaustVelocity), 0)} s` });
+        if (spec.kind === "engine") add(feedRow(spec));
         add({ name: "Fuel use", value: `${n(stats.thrust / stats.exhaustVelocity, 1)} kg/s`, title: "Flat out" });
     }
     if (spec.kind === "engine") {

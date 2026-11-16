@@ -35,7 +35,7 @@ import {
 } from "./modules.js";
 import { DEFAULT_DOCTRINE, defaultTargeting, resolveTargeting, type Doctrine, type Targeting } from "./doctrine.js";
 import { EngineLayout, type EngineSpec } from "./engines.js";
-import { distanceToOutline, isShaped, outlineAxes, projectOutline } from "./shape.js";
+import { distanceToOutline, isShaped, outlineAxes, projectOutline, shapeOf, signedArea2, TRIANGLE_CORNERS } from "./shape.js";
 import { HullPath, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from "./hull.js";
 import { exhaustObstruction, weaponPlumeReach, type PlumeSlice } from "./exhaust.js";
 import type { TurretSpec } from "./turrets.js";
@@ -1506,6 +1506,12 @@ export function weldedWidth(a: ModuleSpec, b: ModuleSpec, out?: { edge: number }
         const reach = (sqrt(a.length * a.length + a.width * a.width) + sqrt(b.length * b.length + b.width * b.width)) * 0.5 + 2 * half;
         if (dx * dx + dy * dy > reach * reach * 1.0001 + 1e-6) return 0;
     }
+    // Out of reach of each other, for a pair with a shape in it: the same quick
+    // rejection, by circles that hold each grown outline.
+    if (!boxes) {
+        const reach = grownReach(a, half) + grownReach(b, half);
+        if (dx * dx + dy * dy > reach * reach * 1.0001 + 1e-6) return 0;
+    }
     // Each grown by half the tolerance on its own faces, which is what "within
     // a hundredth of touching counts as touching" means geometrically — and
     // leaves a triangle's corners sharp rather than rounding them into
@@ -1588,6 +1594,38 @@ export function weldedWidth(a: ModuleSpec, b: ModuleSpec, out?: { edge: number }
     const realA = moduleOutline(a, ca);
     const realB = moduleOutline(b, cb);
     return faceContact(ca, realA, cb, realB, out);
+}
+
+/**
+ * How far from its centre (`moduleCentre`) a module's outline reaches once
+ * grown by `margin` (`grownOutline`), metres, or infinity where that is not
+ * cheaply bounded.
+ *
+ * A triangle grown on every face is the same triangle scaled about its
+ * incentre by (r + margin) / r, r its inradius, which moves no corner further
+ * than twice the reach of the triangle times margin / r.
+ */
+function grownReach(spec: ModuleSpec, margin: number): number {
+    const shape = shapeOf(spec);
+    if (shape === null) {
+        const hl = spec.length * 0.5 + margin;
+        const hw = spec.width * 0.5 + margin;
+        return sqrt(hl * hl + hw * hw);
+    }
+    if (shape.length !== TRIANGLE_CORNERS * 2) return Infinity;
+    let reach = 0;
+    let perimeter = 0;
+    for (let i = 0; i < shape.length; i += 2) {
+        const x = shape[i]!;
+        const y = shape[i + 1]!;
+        reach = max(reach, sqrt(x * x + y * y));
+        const ex = shape[(i + 2) % shape.length]! - x;
+        const ey = shape[(i + 3) % shape.length]! - y;
+        perimeter += sqrt(ex * ex + ey * ey);
+    }
+    const area = abs(signedArea2(shape)) * 0.5;
+    if (!(area > 0)) return Infinity;
+    return reach * (1 + (2 * margin * perimeter) / (2 * area));
 }
 
 /**
@@ -2414,7 +2452,9 @@ function compileWith(blueprint: Blueprint, crafts: Crafts): ShipDesign {
  */
 export function layoutStats(specs: readonly ModuleSpec[]): ModuleStats[] {
     const stats: ModuleStats[] = [];
-    for (let i = 0; i < specs.length; i++) stats.push(statsInLayout(specs, i));
+    const welds = specs.map((spec) => weldBox(spec));
+    const thickness = specs.map((spec) => moduleThickness(spec));
+    for (let i = 0; i < specs.length; i++) stats.push(moduleStats(specs[i]!, touchingDepth(specs, i, welds, thickness)));
     return stats;
 }
 
@@ -2425,7 +2465,8 @@ export function statsInLayout(specs: readonly ModuleSpec[], i: number): ModuleSt
 
 /**
  * The depth of the deepest module this one is welded to, or zero where nothing
- * reads it.
+ * reads it. `welds` and `thickness` are every module's `weldBox` and
+ * `moduleThickness`, for a caller that asks this of every module.
  *
  * What a neighbour offers is the depth it has of its *own* — `moduleThickness`
  * with nothing borrowed — and never one it borrowed itself. That is what stops
@@ -2433,15 +2474,15 @@ export function statsInLayout(specs: readonly ModuleSpec[], i: number): ModuleSt
  * module under them rather than passing the best one along the run, and the
  * answer cannot depend on the order the modules happen to be written in.
  */
-function touchingDepth(specs: readonly ModuleSpec[], i: number): number {
-    const spec = specs[i]!;
-    if (!inheritsDepth(spec.kind)) return 0;
+function touchingDepth(specs: readonly ModuleSpec[], i: number, welds?: readonly ModuleSpec[], thickness?: readonly number[]): number {
+    if (!inheritsDepth(specs[i]!.kind)) return 0;
+    const weld = welds?.[i] ?? weldBox(specs[i]!);
     let deepest = 0;
     for (let j = 0; j < specs.length; j++) {
         if (j === i) continue;
-        const offered = moduleThickness(specs[j]!);
+        const offered = thickness?.[j] ?? moduleThickness(specs[j]!);
         if (offered <= deepest) continue;
-        if (contactWidth(spec, specs[j]!) > 0) deepest = offered;
+        if (weldedWidth(weld, welds?.[j] ?? weldBox(specs[j]!)) > 0) deepest = offered;
     }
     return deepest;
 }
