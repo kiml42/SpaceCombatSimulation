@@ -124,6 +124,11 @@ describe("the skirmish in a browser", () => {
             expect(await page.locator("#scrub").count()).toBe(0);
             expect(await page.locator("#retry").count()).toBe(0);
             expect(await page.isDisabled("#fight")).toBe(true);
+            // Laid out to look at, and said to be unready on the field, but not to be run.
+            expect(await page.textContent("#notReady")).toMatch(/Not ready to fight\. Your fleet is over budget/);
+            await page.focus("#view");
+            await page.keyboard.press(" ");
+            expect(await page.locator("#play").count()).toBe(0);
             expect(await page.getAttribute("#editFleet", "data-variant")).toBe("primary");
             expect(await page.textContent("#fleetNote")).toContain("over budget");
             expect(await page.locator("#budget tr.over").count()).toBeGreaterThan(0);
