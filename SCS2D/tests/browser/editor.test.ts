@@ -288,20 +288,19 @@ describe("the editor in a browser", () => {
         expect(alike(await picture(), before)).toBe(true);
     });
 
-    it("shows what the layout works out to, and that it would fly", () =>
-        withoutView(page, async () => {
-            const stats = (await page.textContent("#stats")) ?? "";
-            expect(stats).toMatch(/Mass[\d.,]+ t\s*fuel[\d.,]+ t/);
-            expect(stats).toMatch(/Burn[\d,]+ s/);
-            expect(stats).toMatch(/Δv\d+\.\d km\/s/);
-            expect(stats).toMatch(/Turn L \/ R[\d.]+ \/ [\d.]+ °\/s²/);
-            // It flies, balanced enough not to be warned about holding its heading. The warning is read
-            // from the holding curve, measured through the allocator, so this is also the check that the
-            // allocator ran without throwing on load.
-            const problems = (await page.textContent("#problems")) ?? "";
-            expect(problems).toMatch(/No problems/);
-            expect(problems).not.toMatch(/push to hold its heading/);
-        }));
+    it("shows what the layout works out to, and that it would fly", async () => {
+        const stats = (await page.textContent("#stats")) ?? "";
+        expect(stats).toMatch(/Mass[\d.,]+ t\s*fuel[\d.,]+ t/);
+        expect(stats).toMatch(/Burn[\d,]+ s/);
+        expect(stats).toMatch(/Δv\d+\.\d km\/s/);
+        expect(stats).toMatch(/Turn L \/ R[\d.]+ \/ [\d.]+ °\/s²/);
+        // It flies, balanced enough not to be warned about holding its heading. The warning is read
+        // from the holding curve, measured through the allocator, so this is also the check that the
+        // allocator ran without throwing on load.
+        const problems = (await page.textContent("#problems")) ?? "";
+        expect(problems).toMatch(/No problems/);
+        expect(problems).not.toMatch(/push to hold its heading/);
+    });
 
     it("fits a large ship's figures within the sidebar", async () => {
         await openShip(page, "Star Destroyer");
