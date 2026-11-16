@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compileBlueprint, originOf, shellOf, type ShipDesign } from "../sim/index.js";
+import { compileBlueprint, isThick, originOf, shellOf, type ShipDesign } from "../sim/index.js";
 import { rebuiltDesign } from "../sim/blueprint.js";
 import { CORVETTE } from "../scenarios/blueprints.js";
 import { WEAR_LEVELS, wearField, wearLevel, wearShows, wearTransform } from "../render/wear.js";
@@ -22,12 +22,30 @@ describe("wear", () => {
         expect(shown(WEAR_LEVELS)).toBeGreaterThan(field.length * 0.8);
     });
 
-    it("lies differently on each module", () => {
+    it("runs on unbroken across a layer, and lies differently on the thick one", () => {
         const corvette = compileBlueprint(CORVETTE);
-        const a = wearTransform(corvette, 0);
-        const b = wearTransform(corvette, 1);
-        expect([a.e, a.f]).not.toEqual([b.e, b.f]);
-        expect(wearTransform(corvette, 0)).toEqual(a);
+        // Where texel (u, v) lies in the design's frame, as module i lays it.
+        const at = (i: number, u: number, v: number): [number, number] => {
+            const t = wearTransform(corvette, i);
+            const m = corvette.modules[i]!;
+            const x = t.a * u + t.c * v + t.e;
+            const y = t.b * u + t.d * v + t.f;
+            const c = Math.cos(m.angle);
+            const s = Math.sin(m.angle);
+            return [m.x + x * c - y * s, m.y + x * s + y * c];
+        };
+        const thick = corvette.modules.flatMap((m, i) => (isThick(m.spec) ? [i] : []));
+        const hull = corvette.modules.flatMap((m, i) => (isThick(m.spec) ? [] : [i]));
+        expect(thick.length).toBeGreaterThan(0);
+        expect(hull.length).toBeGreaterThan(1);
+        for (const layer of [hull, thick]) {
+            const [x, y] = at(layer[0]!, 40, 70);
+            for (const i of layer) {
+                expect(at(i, 40, 70)[0]).toBeCloseTo(x, 6);
+                expect(at(i, 40, 70)[1]).toBeCloseTo(y, 6);
+            }
+        }
+        expect(at(thick[0]!, 40, 70)[0]).not.toBeCloseTo(at(hull[0]!, 40, 70)[0], 3);
     });
 
     it("stays where it was on a module part taken down", () => {
