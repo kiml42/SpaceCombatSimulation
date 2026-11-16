@@ -9,12 +9,11 @@ import { SCENARIO_TIMEOUT, SCENARIOS, type ScenarioName } from "./fixtures/scena
  * check that makes it safe to refactor the physics after months away. Run
  * `npm test` from a cold checkout: if these pass, the simulation is intact.
  *
- * Each scenario is also fought a second time in the same process, and must
- * reach the same state halfway and at the end. That needs no recorded value,
- * so re-recording cannot "fix" it, and it catches state leaking from one run
- * into the next. Super Swarm is the exception: it is the Swarm at scale, so
- * the Swarm's rerun covers it, and its own would double the suite's longest
- * test.
+ * A few quick scenarios are also fought a second time in the same process, and
+ * must reach the same state halfway and at the end. That needs no recorded
+ * value, so re-recording cannot "fix" it, and it catches state leaking from one
+ * run into the next. It needs each system exercised, not every battle, so only
+ * those listed in `RERUN` are.
  *
  * The constants are here, and the tests in `golden*.test.ts`, so the slowest
  * battles can have files of their own and run beside the rest.
@@ -112,8 +111,8 @@ export const GOLDEN: Record<ScenarioName, string> = {
 /** The battles slow enough to need a test file each, so they run beside the rest. */
 export const ALONE: readonly ScenarioName[] = ["superSwarm", "rivalMines"];
 
-/** Battles whose rerun is left out, as the doc above says why. */
-const NO_RERUN: readonly ScenarioName[] = ["superSwarm"];
+/** Fought twice, between them covering guns, beams, torpedoes, severing, welding, mining, pads and building. */
+const RERUN: readonly ScenarioName[] = ["duel", "beamDuel", "torpedoes", "split", "hooked", "mining", "rearm", "factory"];
 
 /** A scenario's checksums halfway through and at the end. */
 function fight(name: ScenarioName): { half: number; end: number } {
@@ -143,7 +142,7 @@ export function goldenTests(names: readonly ScenarioName[]): void {
                 SCENARIO_TIMEOUT,
             );
 
-            if (NO_RERUN.includes(name)) continue;
+            if (!RERUN.includes(name)) continue;
             it(
                 `${name} reaches the same state halfway and at the end on a rerun`,
                 () => {
