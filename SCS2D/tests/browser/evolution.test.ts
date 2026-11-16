@@ -10,7 +10,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import type { Browser, Page } from "playwright";
-import { launchChromium, shownPixels } from "./launch.js";
+import { launchChromium, shownPixels, withoutView } from "./launch.js";
 import { DEFAULT_KINDS } from "../../evolution/mutate.js";
 import { DEFAULT_RUN, runEvolution } from "../../evolution/run.js";
 import { runCoevolution } from "../../evolution/coevolution.js";
@@ -175,44 +175,52 @@ describe("the evolution route in a browser", () => {
         expect(problems).toEqual([]);
     });
 
-    it("fights a run and finishes it, without the page going away", async () => {
-        // Started with a battle showing, which has nothing to show until the
-        // first match is over and must then put it on.
-        await page.selectOption("#mode", "battle");
-        await page.click("#start");
-        // The frame loop is what advances the run, so a page that blocked would
-        // fail here rather than merely being slow: `waitForFunction` is polled
-        // through the same event loop the run is being sliced into.
-        await page.waitForFunction(() => document.getElementById("state")?.textContent === "finished", undefined, { timeout: 120_000 });
-        expect(problems).toEqual([]);
-        expect(await page.textContent("#readout")).toMatch(/matches fought/);
-        await page.waitForFunction(() => /\d+%|over/.test(document.getElementById("watching")?.textContent ?? ""));
-    }, 180_000);
+    it(
+        "fights a run and finishes it, without the page going away",
+        () =>
+            withoutView(page, async () => {
+                // Started with a battle showing, which has nothing to show until the
+                // first match is over and must then put it on.
+                await page.selectOption("#mode", "battle");
+                await page.click("#start");
+                // The frame loop is what advances the run, so a page that blocked would
+                // fail here rather than merely being slow: `waitForFunction` is polled
+                // through the same event loop the run is being sliced into.
+                await page.waitForFunction(() => document.getElementById("state")?.textContent === "finished", undefined, {
+                    timeout: 120_000,
+                });
+                expect(problems).toEqual([]);
+                expect(await page.textContent("#readout")).toMatch(/matches fought/);
+                await page.waitForFunction(() => /\d+%|over/.test(document.getElementById("watching")?.textContent ?? ""));
+            }),
+        180_000,
+    );
 
-    it("draws the run as lines rather than an empty box, one chart picked at a time", async () => {
-        // The score first.
-        expect(await page.inputValue("#chartMetric")).toBe("score");
-        expect(await distinctColours(page, "chart")).toBeGreaterThan(4);
-        // Or what each generation weighed.
-        await page.selectOption("#chartMetric", "mass");
-        expect(await page.textContent("#legend")).toMatch(/mean mass/);
-        expect(await distinctColours(page, "chart")).toBeGreaterThan(2);
-        // Or what it was armed and driven with.
-        await page.selectOption("#chartMetric", "fittings");
-        expect(await page.textContent("#legend")).toMatch(/mean weapons.*mean engines/);
-        expect(await distinctColours(page, "chart")).toBeGreaterThan(2);
-        // Or how far apart its scores were.
-        await page.selectOption("#chartMetric", "spread");
-        expect(await page.textContent("#legend")).toMatch(/middle half.*best to worst.*tied/);
-        expect(await distinctColours(page, "chart")).toBeGreaterThan(2);
-        // Or how a doctrine number moved, each option labelled with how far its mean went over the run.
-        await page.selectOption("#chartMetric", "doctrine:approach.standoff");
-        expect(await page.textContent("#legend")).toMatch(/mean approach\.standoff.*best's approach\.standoff/);
-        expect(await distinctColours(page, "chart")).toBeGreaterThan(2);
-        expect(await page.textContent('#chartMetric option[value="doctrine:approach.standoff"]')).toMatch(/^approach\.standoff \([+-]/);
-        await page.selectOption("#chartMetric", "score");
-        expect(await page.textContent("#legend")).toMatch(/best.*mean/);
-    });
+    it("draws the run as lines rather than an empty box, one chart picked at a time", () =>
+        withoutView(page, async () => {
+            // The score first.
+            expect(await page.inputValue("#chartMetric")).toBe("score");
+            expect(await distinctColours(page, "chart")).toBeGreaterThan(4);
+            // Or what each generation weighed.
+            await page.selectOption("#chartMetric", "mass");
+            expect(await page.textContent("#legend")).toMatch(/mean mass/);
+            expect(await distinctColours(page, "chart")).toBeGreaterThan(2);
+            // Or what it was armed and driven with.
+            await page.selectOption("#chartMetric", "fittings");
+            expect(await page.textContent("#legend")).toMatch(/mean weapons.*mean engines/);
+            expect(await distinctColours(page, "chart")).toBeGreaterThan(2);
+            // Or how far apart its scores were.
+            await page.selectOption("#chartMetric", "spread");
+            expect(await page.textContent("#legend")).toMatch(/middle half.*best to worst.*tied/);
+            expect(await distinctColours(page, "chart")).toBeGreaterThan(2);
+            // Or how a doctrine number moved, each option labelled with how far its mean went over the run.
+            await page.selectOption("#chartMetric", "doctrine:approach.standoff");
+            expect(await page.textContent("#legend")).toMatch(/mean approach\.standoff.*best's approach\.standoff/);
+            expect(await distinctColours(page, "chart")).toBeGreaterThan(2);
+            expect(await page.textContent('#chartMetric option[value="doctrine:approach.standoff"]')).toMatch(/^approach\.standoff \([+-]/);
+            await page.selectOption("#chartMetric", "score");
+            expect(await page.textContent("#legend")).toMatch(/best.*mean/);
+        }));
 
     it("lists what it bred, and what each generation fought", async () => {
         // Every combatant and everything known about it is a row of the
@@ -272,112 +280,123 @@ describe("the evolution route in a browser", () => {
         expect(problems).toEqual([]);
     }, 60_000);
 
-    it("writes its settings to a file and reads them back", async () => {
-        // The settings are the experiment, so what matters is that the file is a
-        // faithful copy of the form and that reading one puts the form back where
-        // it was — including the founders, which live in a list rather than a box.
-        await set(page, "seed", "4242");
-        await set(page, "kindTurret", "0");
-        const saving = page.waitForEvent("download");
-        await press(page, "#exportConfig");
-        const written = await (await saving).path();
-        const file = JSON.parse(await readFile(written, "utf8")) as Record<string, unknown>;
-        expect(file["seed"]).toEqual(4242);
-        expect((file["kinds"] as Record<string, number>)["turret"]).toEqual(0);
-        // Whole, so the file can be fought headlessly or on another browser.
-        expect((file["founders"] as { name: string; modules: unknown[] }[]).map((ship) => ship.name)).toEqual(["Dinky"]);
-        expect((file["founders"] as { modules: unknown[] }[])[0]!.modules.length).toBeGreaterThan(0);
+    it(
+        "writes its settings to a file and reads them back",
+        () =>
+            withoutView(page, async () => {
+                // The settings are the experiment, so what matters is that the file is a
+                // faithful copy of the form and that reading one puts the form back where
+                // it was — including the founders, which live in a list rather than a box.
+                await set(page, "seed", "4242");
+                await set(page, "kindTurret", "0");
+                const saving = page.waitForEvent("download");
+                await press(page, "#exportConfig");
+                const written = await (await saving).path();
+                const file = JSON.parse(await readFile(written, "utf8")) as Record<string, unknown>;
+                expect(file["seed"]).toEqual(4242);
+                expect((file["kinds"] as Record<string, number>)["turret"]).toEqual(0);
+                // Whole, so the file can be fought headlessly or on another browser.
+                expect((file["founders"] as { name: string; modules: unknown[] }[]).map((ship) => ship.name)).toEqual(["Dinky"]);
+                expect((file["founders"] as { modules: unknown[] }[])[0]!.modules.length).toBeGreaterThan(0);
 
-        // Changed underneath, then read back: the import has to put every one of
-        // these back rather than only the boxes somebody remembered to wire up.
-        await set(page, "seed", "1");
-        await set(page, "kindTurret", "9");
-        await choose(page, "#founders", ["Corvette"]);
-        await page.setInputFiles("#importConfigFile", written);
-        await page.waitForFunction(() => document.getElementById("readout")?.textContent?.includes("read from a file") === true);
-        expect(await page.inputValue("#seed")).toEqual("4242");
-        expect(await page.inputValue("#kindTurret")).toEqual("0");
-        expect(
-            await page.evaluate(() => [...(document.getElementById("founders") as HTMLSelectElement).selectedOptions].map((o) => o.value)),
-        ).toEqual(["ship:Stock/Dinky"]);
+                // Changed underneath, then read back: the import has to put every one of
+                // these back rather than only the boxes somebody remembered to wire up.
+                await set(page, "seed", "1");
+                await set(page, "kindTurret", "9");
+                await choose(page, "#founders", ["Corvette"]);
+                await page.setInputFiles("#importConfigFile", written);
+                await page.waitForFunction(() => document.getElementById("readout")?.textContent?.includes("read from a file") === true);
+                expect(await page.inputValue("#seed")).toEqual("4242");
+                expect(await page.inputValue("#kindTurret")).toEqual("0");
+                expect(
+                    await page.evaluate(() =>
+                        [...(document.getElementById("founders") as HTMLSelectElement).selectedOptions].map((o) => o.value),
+                    ),
+                ).toEqual(["ship:Stock/Dinky"]);
 
-        // A founder this browser holds a different design under is saved beside
-        // it rather than over it, and chosen.
-        const altered = { ...file, founders: [{ ...(file["founders"] as object[])[0], notes: "not the stock one" }] };
-        const elsewhere = `${written}.altered.json`;
-        await writeFile(elsewhere, JSON.stringify(altered));
-        await page.setInputFiles("#importConfigFile", elsewhere);
-        await page.waitForFunction(() => document.getElementById("readout")?.textContent?.includes('"Dinky" in My ships') === true);
-        expect(
-            await page.evaluate(() => [...(document.getElementById("founders") as HTMLSelectElement).selectedOptions].map((o) => o.value)),
-        ).toEqual(["ship:My ships/Dinky"]);
-        // Read again, it is the copy already saved rather than another.
-        await choose(page, "#founders", ["Corvette"]);
-        await page.setInputFiles("#importConfigFile", elsewhere);
-        await page.waitForFunction(
-            () =>
-                [...(document.getElementById("founders") as HTMLSelectElement).selectedOptions].map((o) => o.value).join() ===
-                "ship:My ships/Dinky",
-        );
-        expect(
-            await page.$$eval(
-                "#founders option",
-                (options) => (options as HTMLOptionElement[]).filter((o) => o.value.endsWith("/Dinky")).length,
-            ),
-        ).toBe(2);
-        expect(problems).toEqual([]);
-    }, 60_000);
+                // A founder this browser holds a different design under is saved beside
+                // it rather than over it, and chosen.
+                const altered = { ...file, founders: [{ ...(file["founders"] as object[])[0], notes: "not the stock one" }] };
+                const elsewhere = `${written}.altered.json`;
+                await writeFile(elsewhere, JSON.stringify(altered));
+                await page.setInputFiles("#importConfigFile", elsewhere);
+                await page.waitForFunction(() => document.getElementById("readout")?.textContent?.includes('"Dinky" in My ships') === true);
+                expect(
+                    await page.evaluate(() =>
+                        [...(document.getElementById("founders") as HTMLSelectElement).selectedOptions].map((o) => o.value),
+                    ),
+                ).toEqual(["ship:My ships/Dinky"]);
+                // Read again, it is the copy already saved rather than another.
+                await choose(page, "#founders", ["Corvette"]);
+                await page.setInputFiles("#importConfigFile", elsewhere);
+                await page.waitForFunction(
+                    () =>
+                        [...(document.getElementById("founders") as HTMLSelectElement).selectedOptions].map((o) => o.value).join() ===
+                        "ship:My ships/Dinky",
+                );
+                expect(
+                    await page.$$eval(
+                        "#founders option",
+                        (options) => (options as HTMLOptionElement[]).filter((o) => o.value.endsWith("/Dinky")).length,
+                    ),
+                ).toBe(2);
+                expect(problems).toEqual([]);
+            }),
+        60_000,
+    );
 
-    it("folds a section away, and writes the doctrine weights with the rest", async () => {
-        await toSetup(page);
-        await page.click('details[data-key="therun"] > summary');
-        expect(await page.isVisible("#generations")).toBe(false);
-        await page.click('details[data-key="therun"] > summary');
-        expect(await page.isVisible("#generations")).toBe(true);
+    it("folds a section away, and writes the doctrine weights with the rest", () =>
+        withoutView(page, async () => {
+            await toSetup(page);
+            await page.click('details[data-key="therun"] > summary');
+            expect(await page.isVisible("#generations")).toBe(false);
+            await page.click('details[data-key="therun"] > summary');
+            expect(await page.isVisible("#generations")).toBe(true);
 
-        await set(page, "doctrineApproach", "0");
-        const saving = page.waitForEvent("download");
-        await press(page, "#exportConfig");
-        const file = JSON.parse(await readFile(await (await saving).path(), "utf8")) as Record<string, unknown>;
-        expect(file["doctrine"]).toEqual({ targeting: 1, approach: 0, escort: 1, avoidance: 1, gunnery: 1 });
-        await set(page, "doctrineApproach", "1");
-        expect(problems).toEqual([]);
-    });
+            await set(page, "doctrineApproach", "0");
+            const saving = page.waitForEvent("download");
+            await press(page, "#exportConfig");
+            const file = JSON.parse(await readFile(await (await saving).path(), "utf8")) as Record<string, unknown>;
+            expect(file["doctrine"]).toEqual({ targeting: 1, approach: 0, escort: 1, avoidance: 1, gunnery: 1 });
+            await set(page, "doctrineApproach", "1");
+            expect(problems).toEqual([]);
+        }));
 
-    it("names the exported file after the settings, and keeps the build weights", async () => {
-        await set(page, "configName", "Star Wars tuning");
-        await set(page, "structural", "0");
-        await set(page, "buildMove", "0");
-        // The shape weight is the switch a run uses to keep every module a box, so
-        // it has to survive the round trip like any other.
-        await set(page, "buildShape", "0");
-        const saving = page.waitForEvent("download");
-        await press(page, "#exportConfig");
-        const download = await saving;
-        expect(download.suggestedFilename()).toEqual("Star_Wars_tuning.evo.json");
-        const written = await download.path();
-        const file = JSON.parse(await readFile(written, "utf8")) as Record<string, unknown>;
-        expect(file["name"]).toEqual("Star Wars tuning");
-        expect(file["structural"]).toEqual(0);
-        expect((file["build"] as Record<string, number>)["move"]).toEqual(0);
-        expect((file["build"] as Record<string, number>)["shape"]).toEqual(0);
+    it("names the exported file after the settings, and keeps the build weights", () =>
+        withoutView(page, async () => {
+            await set(page, "configName", "Star Wars tuning");
+            await set(page, "structural", "0");
+            await set(page, "buildMove", "0");
+            // The shape weight is the switch a run uses to keep every module a box, so
+            // it has to survive the round trip like any other.
+            await set(page, "buildShape", "0");
+            const saving = page.waitForEvent("download");
+            await press(page, "#exportConfig");
+            const download = await saving;
+            expect(download.suggestedFilename()).toEqual("Star_Wars_tuning.evo.json");
+            const written = await download.path();
+            const file = JSON.parse(await readFile(written, "utf8")) as Record<string, unknown>;
+            expect(file["name"]).toEqual("Star Wars tuning");
+            expect(file["structural"]).toEqual(0);
+            expect((file["build"] as Record<string, number>)["move"]).toEqual(0);
+            expect((file["build"] as Record<string, number>)["shape"]).toEqual(0);
 
-        await set(page, "configName", "");
-        await set(page, "structural", "0.3");
-        await set(page, "buildMove", "1");
-        await set(page, "buildShape", "1");
-        await page.setInputFiles("#importConfigFile", written);
-        await page.waitForFunction(() => (document.getElementById("configName") as HTMLInputElement).value !== "");
-        expect(await page.inputValue("#configName")).toEqual("Star Wars tuning");
-        expect(await page.inputValue("#structural")).toEqual("0");
-        expect(await page.inputValue("#buildMove")).toEqual("0");
-        expect(await page.inputValue("#buildShape")).toEqual("0");
-        await set(page, "configName", "");
-        await set(page, "structural", "0.3");
-        await set(page, "buildMove", "1");
-        await set(page, "buildShape", "1");
-        expect(problems).toEqual([]);
-    });
+            await set(page, "configName", "");
+            await set(page, "structural", "0.3");
+            await set(page, "buildMove", "1");
+            await set(page, "buildShape", "1");
+            await page.setInputFiles("#importConfigFile", written);
+            await page.waitForFunction(() => (document.getElementById("configName") as HTMLInputElement).value !== "");
+            expect(await page.inputValue("#configName")).toEqual("Star Wars tuning");
+            expect(await page.inputValue("#structural")).toEqual("0");
+            expect(await page.inputValue("#buildMove")).toEqual("0");
+            expect(await page.inputValue("#buildShape")).toEqual("0");
+            await set(page, "configName", "");
+            await set(page, "structural", "0.3");
+            await set(page, "buildMove", "1");
+            await set(page, "buildShape", "1");
+            expect(problems).toEqual([]);
+        }));
 
     it("draws a third and fourth side in colours of their own", async () => {
         // A match is a free-for-all, so four entrants are four sides, each painted
@@ -665,32 +684,41 @@ describe("the evolution route in a browser", () => {
         expect(drawn.litFormations).toBe(drawn.rows);
         expect(problems).toEqual([]);
     }, 60_000);
-    it("skips a match nobody wants to watch, and puts another on", async () => {
-        // Most of what a run fights is not worth watching — two ships that
-        // cannot steer drifting apart until the clock runs out — and the page
-        // otherwise had no way out of one but to sit through it.
-        if (await page.isEnabled("#stop")) await page.click("#stop");
-        await choose(page, "#founders", ["Dinky"]);
-        await set(page, "group", "2");
-        await set(page, "minMatches", "2");
-        await set(page, "generations", "1");
-        await page.click("#start");
-        await page.waitForFunction(() => document.querySelectorAll("#matches tr:not(.pad)").length > 1);
-        await page.selectOption("#mode", "battle");
-        await page.click("#matches tr");
-        const who = async (): Promise<string> => ((await page.textContent("#watching")) ?? "").split(" \u00b7 ")[0] ?? "";
-        await page.waitForFunction(() => /%/.test(document.getElementById("watching")?.textContent ?? ""));
-        const first = await who();
+    it(
+        "skips a match nobody wants to watch, and puts another on",
+        () =>
+            withoutView(page, async () => {
+                // Most of what a run fights is not worth watching — two ships that
+                // cannot steer drifting apart until the clock runs out — and the page
+                // otherwise had no way out of one but to sit through it.
+                if (await page.isEnabled("#stop")) await page.click("#stop");
+                await choose(page, "#founders", ["Dinky"]);
+                await set(page, "group", "2");
+                await set(page, "minMatches", "2");
+                await set(page, "generations", "1");
+                await page.click("#start");
+                await page.waitForFunction(() => document.querySelectorAll("#matches tr:not(.pad)").length > 1);
+                await page.selectOption("#mode", "battle");
+                await page.click("#matches tr");
+                const who = async (): Promise<string> => ((await page.textContent("#watching")) ?? "").split(" \u00b7 ")[0] ?? "";
+                await page.waitForFunction(() => /%/.test(document.getElementById("watching")?.textContent ?? ""));
+                const first = await who();
 
-        await page.click("#skip");
-        await page.waitForFunction((was) => (document.getElementById("watching")?.textContent ?? "").split(" \u00b7 ")[0] !== was, first, {
-            timeout: 30_000,
-        });
-        expect(await who()).not.toBe(first);
-        await set(page, "group", "4");
-        await set(page, "minMatches", "1");
-        expect(problems).toEqual([]);
-    }, 60_000);
+                await page.click("#skip");
+                await page.waitForFunction(
+                    (was) => (document.getElementById("watching")?.textContent ?? "").split(" \u00b7 ")[0] !== was,
+                    first,
+                    {
+                        timeout: 30_000,
+                    },
+                );
+                expect(await who()).not.toBe(first);
+                await set(page, "group", "4");
+                await set(page, "minMatches", "1");
+                expect(problems).toEqual([]);
+            }),
+        60_000,
+    );
 
     it("drives a battle from the keyboard, as the viewer does", async () => {
         // The same keys as the viewer page, because it is the same battle in the
@@ -800,225 +828,253 @@ describe("the evolution route in a browser", () => {
         expect(problems).toEqual([]);
     }, 60_000);
 
-    it("replays a match of one ship", async () => {
-        if (await page.isEnabled("#stop")) await page.click("#stop");
-        await choose(page, "#founders", ["Dinky"]);
-        await set(page, "group", "1");
-        await set(page, "generations", "1");
-        await page.click("#start");
-        await page.waitForFunction(() => document.querySelectorAll("#matches tr:not(.pad)").length > 0);
-        await page.selectOption("#mode", "battle");
-        await page.click("#matches tr");
-        // A match being watched says who is in it and how far through it is.
-        await page.waitForFunction(() => /%/.test(document.getElementById("watching")?.textContent ?? ""));
-        expect(await page.textContent("#watching")).not.toMatch(/pick a match/);
-        await set(page, "group", "4");
-        expect(problems).toEqual([]);
-    }, 60_000);
+    it(
+        "replays a match of one ship",
+        () =>
+            withoutView(page, async () => {
+                if (await page.isEnabled("#stop")) await page.click("#stop");
+                await choose(page, "#founders", ["Dinky"]);
+                await set(page, "group", "1");
+                await set(page, "generations", "1");
+                await page.click("#start");
+                await page.waitForFunction(() => document.querySelectorAll("#matches tr:not(.pad)").length > 0);
+                await page.selectOption("#mode", "battle");
+                await page.click("#matches tr");
+                // A match being watched says who is in it and how far through it is.
+                await page.waitForFunction(() => /%/.test(document.getElementById("watching")?.textContent ?? ""));
+                expect(await page.textContent("#watching")).not.toMatch(/pick a match/);
+                await set(page, "group", "4");
+                expect(problems).toEqual([]);
+            }),
+        60_000,
+    );
 
-    it("runs from a fleet, with its limits, and replays a match of fleets", async () => {
-        if (await page.isEnabled("#stop")) await page.click("#stop");
-        // A ship limited to one ship stays a ship; allowed more, it may grow into a fleet.
-        await choose(page, "#founders", ["Dinky"]);
-        expect(await page.isVisible("#fleetRadius")).toBe(false);
-        expect(await page.isVisible("#opAdd")).toBe(false);
-        await set(page, "fleetShips", "2");
-        expect(await page.isVisible("#opAdd")).toBe(true);
-        await set(page, "fleetShips", "1");
-        // So does picking a fleet, whatever the limit.
-        await choose(page, "#founders", [{ label: "Line of Battle" }]);
-        expect(await page.isVisible("#fleetRadius")).toBe(true);
-        expect(await page.isVisible("#opAdd")).toBe(true);
-        await set(page, "fleetRadius", "400");
-        await set(page, "fleetShips", "8");
-        await set(page, "opAdd", "3");
-        await set(page, "group", "2");
-        await set(page, "generations", "1");
+    it(
+        "runs from a fleet, with its limits, and replays a match of fleets",
+        () =>
+            withoutView(page, async () => {
+                if (await page.isEnabled("#stop")) await page.click("#stop");
+                // A ship limited to one ship stays a ship; allowed more, it may grow into a fleet.
+                await choose(page, "#founders", ["Dinky"]);
+                expect(await page.isVisible("#fleetRadius")).toBe(false);
+                expect(await page.isVisible("#opAdd")).toBe(false);
+                await set(page, "fleetShips", "2");
+                expect(await page.isVisible("#opAdd")).toBe(true);
+                await set(page, "fleetShips", "1");
+                // So does picking a fleet, whatever the limit.
+                await choose(page, "#founders", [{ label: "Line of Battle" }]);
+                expect(await page.isVisible("#fleetRadius")).toBe(true);
+                expect(await page.isVisible("#opAdd")).toBe(true);
+                await set(page, "fleetRadius", "400");
+                await set(page, "fleetShips", "8");
+                await set(page, "opAdd", "3");
+                await set(page, "group", "2");
+                await set(page, "generations", "1");
 
-        const saving = page.waitForEvent("download");
-        await press(page, "#exportConfig");
-        const file = JSON.parse(await readFile(await (await saving).path(), "utf8")) as Record<string, unknown>;
-        expect((file["fleets"] as { name: string }[]).map((fleet) => fleet.name)).toEqual(["Line of Battle"]);
-        expect(file["fleet"]).toMatchObject({ radius: 400, maxShips: 8, operators: { add: 3 } });
+                const saving = page.waitForEvent("download");
+                await press(page, "#exportConfig");
+                const file = JSON.parse(await readFile(await (await saving).path(), "utf8")) as Record<string, unknown>;
+                expect((file["fleets"] as { name: string }[]).map((fleet) => fleet.name)).toEqual(["Line of Battle"]);
+                expect(file["fleet"]).toMatchObject({ radius: 400, maxShips: 8, operators: { add: 3 } });
 
-        await page.click("#start");
-        await page.selectOption("#mode", "fleet");
-        // The composition, which is what a fleet run is shown by: several kinds
-        // of ship on one row, rather than one picture of the whole fleet.
-        await page.waitForFunction(() =>
-            [...document.querySelectorAll("#fleet tbody tr")].some((tr) => tr.querySelectorAll(".kind").length > 1),
-        );
-        await page.waitForFunction(() => document.querySelectorAll("#matches tr:not(.pad)").length > 0, undefined, { timeout: 60_000 });
-        await page.selectOption("#mode", "battle");
-        await page.click("#matches tr");
-        await page.waitForFunction(() => /%/.test(document.getElementById("watching")?.textContent ?? ""));
-        await set(page, "group", "4");
-        expect(problems).toEqual([]);
-    }, 120_000);
-    it("co-evolves two lineages against each other, and shows both", async () => {
-        if (await page.isEnabled("#stop")) await page.click("#stop");
-        await choose(page, "#founders", ["Dinky"]);
-        await set(page, "fleetShips", "1");
-        await set(page, "generations", "4");
-        await set(page, "population", "4");
-        await set(page, "minMatches", "2");
-        await set(page, "group", "2");
-        await choose(page, "#versus", ["Dinky"]);
-        // A generation a round, so each side takes two turns.
-        await set(page, "phaseCap", "1");
-        await set(page, "shieldedDrills", "0");
-        await set(page, "bareCoreDrills", "0");
-        // A goal is still there to set, as something to close on for its own sake.
-        expect(await page.isVisible("#goal")).toBe(true);
-        // None here, so its matches stop when the fighting does rather than playing on for the race.
-        await page.selectOption("#goal", "none");
-        // Side B has a column of settings of its own, starting as a copy of side A's.
-        expect(await page.isVisible("#b_population")).toBe(true);
-        expect(await page.inputValue("#b_population")).toBe("4");
-        await set(page, "b_population", "6");
-        // Two of side A against one of side B each match.
-        expect(await page.inputValue("#b_group")).toBe("2");
-        await set(page, "b_group", "1");
+                await page.click("#start");
+                await page.selectOption("#mode", "fleet");
+                // The composition, which is what a fleet run is shown by: several kinds
+                // of ship on one row, rather than one picture of the whole fleet.
+                await page.waitForFunction(() =>
+                    [...document.querySelectorAll("#fleet tbody tr")].some((tr) => tr.querySelectorAll(".kind").length > 1),
+                );
+                await page.waitForFunction(() => document.querySelectorAll("#matches tr:not(.pad)").length > 0, undefined, {
+                    timeout: 60_000,
+                });
+                await page.selectOption("#mode", "battle");
+                await page.click("#matches tr");
+                await page.waitForFunction(() => /%/.test(document.getElementById("watching")?.textContent ?? ""));
+                await set(page, "group", "4");
+                expect(problems).toEqual([]);
+            }),
+        120_000,
+    );
+    it(
+        "co-evolves two lineages against each other, and shows both",
+        () =>
+            withoutView(page, async () => {
+                if (await page.isEnabled("#stop")) await page.click("#stop");
+                await choose(page, "#founders", ["Dinky"]);
+                await set(page, "fleetShips", "1");
+                await set(page, "generations", "4");
+                await set(page, "population", "4");
+                await set(page, "minMatches", "2");
+                await set(page, "group", "2");
+                await choose(page, "#versus", ["Dinky"]);
+                // A generation a round, so each side takes two turns.
+                await set(page, "phaseCap", "1");
+                await set(page, "shieldedDrills", "0");
+                await set(page, "bareCoreDrills", "0");
+                // A goal is still there to set, as something to close on for its own sake.
+                expect(await page.isVisible("#goal")).toBe(true);
+                // None here, so its matches stop when the fighting does rather than playing on for the race.
+                await page.selectOption("#goal", "none");
+                // Side B has a column of settings of its own, starting as a copy of side A's.
+                expect(await page.isVisible("#b_population")).toBe(true);
+                expect(await page.inputValue("#b_population")).toBe("4");
+                await set(page, "b_population", "6");
+                // Two of side A against one of side B each match.
+                expect(await page.inputValue("#b_group")).toBe("2");
+                await set(page, "b_group", "1");
 
-        const saving = page.waitForEvent("download");
-        await press(page, "#exportConfig");
-        const file = JSON.parse(await readFile(await (await saving).path(), "utf8")) as Record<string, unknown>;
-        expect(file["versus"]).toMatchObject({ founders: [{ name: "Dinky" }], population: 6, group: 1 });
+                const saving = page.waitForEvent("download");
+                await press(page, "#exportConfig");
+                const file = JSON.parse(await readFile(await (await saving).path(), "utf8")) as Record<string, unknown>;
+                expect(file["versus"]).toMatchObject({ founders: [{ name: "Dinky" }], population: 6, group: 1 });
 
-        // Side B fixed is side A bred against an opponent that does not change.
-        await toSetup(page);
-        await page.uncheck("#rivalEvolves");
-        const fixing = page.waitForEvent("download");
-        await press(page, "#exportConfig");
-        const fixed = JSON.parse(await readFile(await (await fixing).path(), "utf8")) as Record<string, unknown>;
-        expect(fixed["versus"]).toMatchObject({ evolves: false });
-        await page.check("#rivalEvolves");
+                // Side B fixed is side A bred against an opponent that does not change.
+                await toSetup(page);
+                await page.uncheck("#rivalEvolves");
+                const fixing = page.waitForEvent("download");
+                await press(page, "#exportConfig");
+                const fixed = JSON.parse(await readFile(await (await fixing).path(), "utf8")) as Record<string, unknown>;
+                expect(fixed["versus"]).toMatchObject({ evolves: false });
+                await page.check("#rivalEvolves");
 
-        await page.click("#start");
-        await page.waitForFunction(() => document.getElementById("state")?.textContent === "finished", undefined, { timeout: 120_000 });
-        // On the run screen: the score is not offered for a run scored against a moving opponent.
-        expect(await page.isVisible("#setupScreen")).toBe(false);
-        expect(await page.$$eval("#chartMetric option", (all) => all.map((option) => (option as HTMLOptionElement).value))).not.toContain(
-            "score",
-        );
-        expect(await page.inputValue("#chartMetric")).toBe("mass");
-        // How far apart each side's scores are, in rounds.
-        await page.selectOption("#chartMetric", "spread");
-        expect(await page.textContent("#legend")).toMatch(/A middle half.*B middle half/);
-        await page.selectOption("#chartMetric", "mass");
-        await page.selectOption("#mode", "fleet");
-        // The last of four rounds, A then B in turn, was side B's.
-        await page.waitForFunction(() =>
-            /generation 4 · round 4, side B evolving$/.test(document.getElementById("watching")?.textContent ?? ""),
-        );
-        const sides = await page.$$eval("#fleet tbody td.who .side", (tags) => tags.map((tag) => tag.textContent?.trim()));
-        expect(sides.filter((side) => side === "A")).toHaveLength(4);
-        expect(sides.filter((side) => side === "B")).toHaveLength(6);
-        // A's table on the left, B's on the right, and every row one height whatever is in it.
-        const tables = await page.$$eval("#fleet table", (all) =>
-            all.map((table) => ({
-                left: table.getBoundingClientRect().left,
-                side: table.querySelector("td.who .side")?.textContent?.trim(),
-            })),
-        );
-        expect(tables.map((table) => table.side)).toEqual(["A", "B"]);
-        expect(tables[1]!.left).toBeGreaterThan(tables[0]!.left);
-        const heights = await page.$$eval("#fleet tbody tr", (rows) => rows.map((tr) => tr.getBoundingClientRect().height));
-        expect(Math.max(...heights) - Math.min(...heights)).toBeLessThan(1.5);
-        expect(await distinctColours(page, "chart")).toBeGreaterThan(2);
-        expect(await page.textContent("#championLine")).toMatch(/A #\d+.*B #\d+/);
-        // Measured as a grid of each side's champions against the other's.
-        await page.click("#measure");
-        await page.waitForFunction(
-            () => /matches, \d+ a cell/.test(document.getElementById("yardstickLine")?.textContent ?? ""),
-            undefined,
-            {
-                timeout: 60_000,
-            },
-        );
-        expect(await page.isVisible("#grid")).toBe(true);
-        expect(await page.$$eval("#grid td", (cells) => cells.map((td) => td.textContent))).toEqual(
-            expect.arrayContaining([expect.stringMatching(/^\d\/3$/)]),
-        );
-        expect(await page.locator("#grid td").count()).toBe(4);
+                await page.click("#start");
+                await page.waitForFunction(() => document.getElementById("state")?.textContent === "finished", undefined, {
+                    timeout: 120_000,
+                });
+                // On the run screen: the score is not offered for a run scored against a moving opponent.
+                expect(await page.isVisible("#setupScreen")).toBe(false);
+                expect(
+                    await page.$$eval("#chartMetric option", (all) => all.map((option) => (option as HTMLOptionElement).value)),
+                ).not.toContain("score");
+                expect(await page.inputValue("#chartMetric")).toBe("mass");
+                // How far apart each side's scores are, in rounds.
+                await page.selectOption("#chartMetric", "spread");
+                expect(await page.textContent("#legend")).toMatch(/A middle half.*B middle half/);
+                await page.selectOption("#chartMetric", "mass");
+                await page.selectOption("#mode", "fleet");
+                // The last of four rounds, A then B in turn, was side B's.
+                await page.waitForFunction(() =>
+                    /generation 4 · round 4, side B evolving$/.test(document.getElementById("watching")?.textContent ?? ""),
+                );
+                const sides = await page.$$eval("#fleet tbody td.who .side", (tags) => tags.map((tag) => tag.textContent?.trim()));
+                expect(sides.filter((side) => side === "A")).toHaveLength(4);
+                expect(sides.filter((side) => side === "B")).toHaveLength(6);
+                // A's table on the left, B's on the right, and every row one height whatever is in it.
+                const tables = await page.$$eval("#fleet table", (all) =>
+                    all.map((table) => ({
+                        left: table.getBoundingClientRect().left,
+                        side: table.querySelector("td.who .side")?.textContent?.trim(),
+                    })),
+                );
+                expect(tables.map((table) => table.side)).toEqual(["A", "B"]);
+                expect(tables[1]!.left).toBeGreaterThan(tables[0]!.left);
+                const heights = await page.$$eval("#fleet tbody tr", (rows) => rows.map((tr) => tr.getBoundingClientRect().height));
+                expect(Math.max(...heights) - Math.min(...heights)).toBeLessThan(1.5);
+                expect(await distinctColours(page, "chart")).toBeGreaterThan(2);
+                expect(await page.textContent("#championLine")).toMatch(/A #\d+.*B #\d+/);
+                // Measured as a grid of each side's champions against the other's.
+                await page.click("#measure");
+                await page.waitForFunction(
+                    () => /matches, \d+ a cell/.test(document.getElementById("yardstickLine")?.textContent ?? ""),
+                    undefined,
+                    {
+                        timeout: 60_000,
+                    },
+                );
+                expect(await page.isVisible("#grid")).toBe(true);
+                expect(await page.$$eval("#grid td", (cells) => cells.map((td) => td.textContent))).toEqual(
+                    expect.arrayContaining([expect.stringMatching(/^\d\/3$/)]),
+                );
+                expect(await page.locator("#grid td").count()).toBe(4);
 
-        await page.selectOption("#mode", "battle");
-        // Two of A against one of B, each side by its letter, and who won it if it was decided.
-        expect(await page.textContent("#matches tr")).toMatch(/^1A \d+ \d+ v B \d+(decided|A won|B won|annihilated|quiet|timeout)/);
-        const endings = await page.$$eval("#matches tr td:nth-child(3)", (cells) => cells.map((td) => td.textContent));
-        expect(
-            endings.every(
-                (text) => text === "A won" || text === "B won" || text === "annihilated" || text === "quiet" || text === "timeout",
-            ),
-        ).toBe(true);
-        await page.click("#matches tr");
-        await page.waitForFunction(() => /%/.test(document.getElementById("watching")?.textContent ?? ""));
+                await page.selectOption("#mode", "battle");
+                // Two of A against one of B, each side by its letter, and who won it if it was decided.
+                expect(await page.textContent("#matches tr")).toMatch(/^1A \d+ \d+ v B \d+(decided|A won|B won|annihilated|quiet|timeout)/);
+                const endings = await page.$$eval("#matches tr td:nth-child(3)", (cells) => cells.map((td) => td.textContent));
+                expect(
+                    endings.every(
+                        (text) => text === "A won" || text === "B won" || text === "annihilated" || text === "quiet" || text === "timeout",
+                    ),
+                ).toBe(true);
+                await page.click("#matches tr");
+                await page.waitForFunction(() => /%/.test(document.getElementById("watching")?.textContent ?? ""));
 
-        await press(page, "#clearVersus");
-        expect(await page.isVisible("#b_population")).toBe(false);
-        await page.click("#toRun");
-        expect(await page.isVisible("#chart")).toBe(true);
-        // A run of one lineage again, so the score is on offer again.
-        expect(await page.$$eval("#chartMetric option", (all) => all.map((option) => (option as HTMLOptionElement).value))).toContain(
-            "score",
-        );
-        expect(problems).toEqual([]);
-    }, 180_000);
+                await press(page, "#clearVersus");
+                expect(await page.isVisible("#b_population")).toBe(false);
+                await page.click("#toRun");
+                expect(await page.isVisible("#chart")).toBe(true);
+                // A run of one lineage again, so the score is on offer again.
+                expect(
+                    await page.$$eval("#chartMetric option", (all) => all.map((option) => (option as HTMLOptionElement).value)),
+                ).toContain("score");
+                expect(problems).toEqual([]);
+            }),
+        180_000,
+    );
 
-    it("puts every setting back to its default, for both sides, keeping what was picked", async () => {
-        // Side B's boxes are there while there is a side B.
-        await choose(page, "#versus", ["Dinky"]);
-        await set(page, "kindTank", "7");
-        await set(page, "b_kindTank", "5");
-        await set(page, "generations", "3");
-        const founders = await page.$$eval("#founders option:checked", (options) => options.map((o) => (o as HTMLOptionElement).value));
-        await press(page, "#resetConfig");
-        expect(await page.inputValue("#kindTank")).toBe(String(DEFAULT_KINDS.tank));
-        expect(await page.inputValue("#b_kindTank")).toBe(String(DEFAULT_KINDS.tank));
-        await press(page, "#clearVersus");
-        expect(await page.inputValue("#generations")).toBe(String(DEFAULT_RUN.generations));
-        expect(await page.$$eval("#founders option:checked", (options) => options.map((o) => (o as HTMLOptionElement).value))).toEqual(
-            founders,
-        );
-        expect(problems).toEqual([]);
-    });
-    it("opens a run fought headlessly, shows who won what, and fights its matches again", async () => {
-        const settings = {
-            seed: 5,
-            generations: 2,
-            population: 4,
-            winners: 2,
-            group: 2,
-            minMatches: 1,
-            fleet: { maxShips: 1 },
-            match: { duration: 8, goal: null },
-        };
-        const folder = await mkdtemp(join(tmpdir(), "scs2d-run-"));
-        const single = join(folder, "dinky.run.json");
-        await writeFile(single, JSON.stringify(runEvolution([DINKY], settings)));
-        await page.setInputFiles("#openRunFile", single);
-        await page.waitForFunction(() =>
-            /dinky\.run\.json: 2 of 2 generations/.test(document.getElementById("readout")?.textContent ?? ""),
-        );
-        expect(await page.isVisible("#results")).toBe(true);
-        expect(await page.textContent("#state")).toBe("from a file");
-        expect(await page.isEnabled("#pause")).toBe(false);
-        await page.selectOption("#mode", "fleet");
-        await page.waitForFunction(() => document.querySelectorAll("#fleet tbody tr").length === 4);
-        const counts = await page.$$eval("#fleet td.score .count", (cells) => cells.map((cell) => cell.textContent));
-        expect(counts.every((text) => /^won \d+\/\d+$/.test(text ?? ""))).toBe(true);
-        expect(await rows(page, "matches")).toBeGreaterThan(0);
-        await page.click("#matches tr");
-        await page.waitForFunction(() => /\d+%/.test(document.getElementById("watching")?.textContent ?? ""));
+    it("puts every setting back to its default, for both sides, keeping what was picked", () =>
+        withoutView(page, async () => {
+            // Side B's boxes are there while there is a side B.
+            await choose(page, "#versus", ["Dinky"]);
+            await set(page, "kindTank", "7");
+            await set(page, "b_kindTank", "5");
+            await set(page, "generations", "3");
+            const founders = await page.$$eval("#founders option:checked", (options) => options.map((o) => (o as HTMLOptionElement).value));
+            await press(page, "#resetConfig");
+            expect(await page.inputValue("#kindTank")).toBe(String(DEFAULT_KINDS.tank));
+            expect(await page.inputValue("#b_kindTank")).toBe(String(DEFAULT_KINDS.tank));
+            await press(page, "#clearVersus");
+            expect(await page.inputValue("#generations")).toBe(String(DEFAULT_RUN.generations));
+            expect(await page.$$eval("#founders option:checked", (options) => options.map((o) => (o as HTMLOptionElement).value))).toEqual(
+                founders,
+            );
+            expect(problems).toEqual([]);
+        }));
+    it(
+        "opens a run fought headlessly, shows who won what, and fights its matches again",
+        () =>
+            withoutView(page, async () => {
+                const settings = {
+                    seed: 5,
+                    generations: 2,
+                    population: 4,
+                    winners: 2,
+                    group: 2,
+                    minMatches: 1,
+                    fleet: { maxShips: 1 },
+                    match: { duration: 8, goal: null },
+                };
+                const folder = await mkdtemp(join(tmpdir(), "scs2d-run-"));
+                const single = join(folder, "dinky.run.json");
+                await writeFile(single, JSON.stringify(runEvolution([DINKY], settings)));
+                await page.setInputFiles("#openRunFile", single);
+                await page.waitForFunction(() =>
+                    /dinky\.run\.json: 2 of 2 generations/.test(document.getElementById("readout")?.textContent ?? ""),
+                );
+                expect(await page.isVisible("#results")).toBe(true);
+                expect(await page.textContent("#state")).toBe("from a file");
+                expect(await page.isEnabled("#pause")).toBe(false);
+                await page.selectOption("#mode", "fleet");
+                await page.waitForFunction(() => document.querySelectorAll("#fleet tbody tr").length === 4);
+                const counts = await page.$$eval("#fleet td.score .count", (cells) => cells.map((cell) => cell.textContent));
+                expect(counts.every((text) => /^won \d+\/\d+$/.test(text ?? ""))).toBe(true);
+                expect(await rows(page, "matches")).toBeGreaterThan(0);
+                await page.click("#matches tr");
+                await page.waitForFunction(() => /\d+%/.test(document.getElementById("watching")?.textContent ?? ""));
 
-        // Both sides of a co-evolution run, each in its own table.
-        const both = join(folder, "both.run.json");
-        await writeFile(both, JSON.stringify(runCoevolution([DINKY], [GUNSHIP], { ...settings, group: 1 }, { hall: 1, phaseCap: 1 })));
-        await page.setInputFiles("#openRunFile", both);
-        await page.waitForFunction(() => /both\.run\.json/.test(document.getElementById("readout")?.textContent ?? ""));
-        await page.selectOption("#mode", "fleet");
-        await page.waitForFunction(() => document.querySelectorAll("#fleet table:not([hidden])").length === 2);
-        expect(await page.textContent("#championLine")).toMatch(/A #\d+.*B #\d+/);
-        expect(problems).toEqual([]);
-    }, 60_000);
+                // Both sides of a co-evolution run, each in its own table.
+                const both = join(folder, "both.run.json");
+                await writeFile(
+                    both,
+                    JSON.stringify(runCoevolution([DINKY], [GUNSHIP], { ...settings, group: 1 }, { hall: 1, phaseCap: 1 })),
+                );
+                await page.setInputFiles("#openRunFile", both);
+                await page.waitForFunction(() => /both\.run\.json/.test(document.getElementById("readout")?.textContent ?? ""));
+                await page.selectOption("#mode", "fleet");
+                await page.waitForFunction(() => document.querySelectorAll("#fleet table:not([hidden])").length === 2);
+                expect(await page.textContent("#championLine")).toMatch(/A #\d+.*B #\d+/);
+                expect(problems).toEqual([]);
+            }),
+        60_000,
+    );
 });
