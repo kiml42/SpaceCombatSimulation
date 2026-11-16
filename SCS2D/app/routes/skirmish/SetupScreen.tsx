@@ -194,8 +194,11 @@ function battlefieldOf(settings: SkirmishSettings): BattlefieldPreset | undefine
     return BATTLEFIELD_PRESETS.find((preset) => JSON.stringify(settingsTexts(withBattlefield(settings, preset))) === now);
 }
 
-/** A fleet's name, from its value in the list of fleets: "fleet:Line of Battle" is Line of Battle. */
-const nameOf = (value: string): string => value.slice(value.indexOf(":") + 1);
+/** A fleet's or ship's name, from its value in the list: "fleet:Line of Battle" is Line of Battle, "ship:Stock/Corvette" Corvette. */
+function nameOf(value: string): string {
+    const rest = value.slice(value.indexOf(":") + 1);
+    return value.startsWith("ship:") && rest.includes("/") ? rest.slice(rest.indexOf("/") + 1) : rest;
+}
 
 /** What a skirmish set up so is called until the player names it: "Small ships in an asteroid field". */
 function suggestedName(enemy: string, settings: SkirmishSettings): string {

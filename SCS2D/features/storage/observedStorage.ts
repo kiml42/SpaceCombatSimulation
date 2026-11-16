@@ -1,4 +1,4 @@
-import type { KeyValueStore } from "~/editor/library";
+import { Library, SHIPS, type KeyValueStore } from "~/editor/library";
 
 /**
  * Browser storage that says when it has changed, so React can re-render on a
@@ -75,7 +75,13 @@ export function browserStorage(): ObservedStorage {
     } catch {
         store = memoryStore();
     }
+    // Ships saved by name alone are moved to their keys before anything renders, rather than while it does.
+    const settle = (): void => void new Library(store, SHIPS).savedKeys();
+    settle();
     const observed = new ObservedStorage(store);
-    window.addEventListener("storage", () => observed.changed());
+    window.addEventListener("storage", () => {
+        settle();
+        observed.changed();
+    });
     return observed;
 }

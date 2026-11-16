@@ -24,6 +24,7 @@ sees. Code may keep its own names (`BattlePage`, `Blueprint`, `battleRoute`); th
 | **design** | What the ship editor makes, and what a fleet places copies of | blueprint |
 | **ship** | One built from a design, in a fleet or a battle | |
 | **fleet** | Ships laid out together, each from a design | |
+| **category** | What a design is grouped under; with its name, what it is known by. **Stock** is the game's alone, and **My ships** is where a player's goes with none of its own | folder, group |
 | **ship design file** | A design saved to a file (`.ship.json`) | blueprint file |
 | **fleet file**, **skirmish file** | A fleet or a skirmish saved to a file | |
 | **round** | One stage of a skirmish, fought again until won | |

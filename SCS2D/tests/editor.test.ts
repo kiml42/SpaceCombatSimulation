@@ -70,6 +70,7 @@ import {
     nextName,
     toFileText,
     UNCATEGORISED,
+    MY_SHIPS,
     unusedName,
     type KeyValueStore,
 } from "../editor/library.js";
@@ -1124,60 +1125,90 @@ describe("Library", () => {
 
     it("round-trips a saved ship through the file format", () => {
         const library = new Library(fakeStore());
-        const edited = { ...CORVETTE, name: "Corvette II" };
+        const edited = { ...CORVETTE, name: "Corvette II", category: "Mine" };
         library.save(edited);
-        expect(library.load("Corvette II")).toEqual(edited);
+        expect(library.load("Mine/Corvette II")).toEqual(edited);
     });
 
-    it("shadows a built-in ship rather than replacing it", () => {
+    it("files a stock ship's copy under My ships, beside the stock one rather than over it", () => {
         const library = new Library(fakeStore());
-        const edited = { ...CORVETTE, notes: "mine now" };
-        library.save(edited);
-        expect(library.load(CORVETTE.name)).toEqual(edited);
-        library.remove(CORVETTE.name);
+        const filed = library.save({ ...CORVETTE, notes: "mine now" });
+        expect(filed.category).toBe(MY_SHIPS);
+        expect(library.load("My ships/Corvette")).toEqual(filed);
+        expect(library.load("Stock/Corvette")).toEqual(CORVETTE);
+        // A bare name, as older links hold, opens the player's.
+        expect(library.load(CORVETTE.name)).toEqual(filed);
+        const both = library.list().filter((e) => e.name === CORVETTE.name);
+        expect(both.map((e) => [e.key, e.stock])).toEqual([
+            ["Stock/Corvette", true],
+            ["My ships/Corvette", false],
+        ]);
+        library.remove("My ships/Corvette");
         expect(library.load(CORVETTE.name)).toEqual(CORVETTE);
     });
 
-    it("saves on leaving only what differs from what its name opens", () => {
+    it("keeps Stock for the game's ships, and shares the rest", () => {
         const library = new Library(fakeStore());
-        expect(library.saveIfChanged(CORVETTE)).toBe(false);
-        expect(library.savedNames()).toEqual([]);
-        const edited = { ...CORVETTE, notes: "mine now" };
-        expect(library.saveIfChanged(edited)).toBe(true);
-        expect(library.saveIfChanged(edited)).toBe(false);
-        expect(library.load(CORVETTE.name)).toEqual(edited);
-    });
-
-    it("lists a shadowed ship twice, so the shipped one stays openable", () => {
-        // The whole point of shadowing rather than replacing: a ship saved over a
-        // shipped name must not make the shipped hull unreachable, since that is
-        // what a new ship is most often started from — and reaching it by
-        // deleting the saved copy is no way to offer it.
-        const library = new Library(fakeStore());
-        library.save({ ...CORVETTE, notes: "mine now" });
-        const both = library.list().filter((e) => e.name === CORVETTE.name);
-        expect(both.map((e) => e.stock)).toEqual([false, true]);
-        expect(library.loadStock(CORVETTE.name)).toEqual(CORVETTE);
-        expect(library.load(CORVETTE.name)).not.toEqual(CORVETTE);
-    });
-
-    it("lists a ship once while nothing shadows it", () => {
-        const library = new Library(fakeStore());
-        expect(library.list().filter((e) => e.name === CORVETTE.name)).toHaveLength(1);
-        library.save({ ...CORVETTE, name: "Mine" });
-        expect(library.list().filter((e) => e.name === "Mine")).toEqual([{ name: "Mine", stock: false, saved: true, category: "Stock" }]);
-        expect(library.loadStock("Mine")).toBeNull();
-    });
-
-    it("lists each ship under its category", () => {
-        const library = new Library(fakeStore());
-        library.save({ ...CORVETTE, name: "Mine", category: "Skirmish one" });
-        library.save({ name: "Loose", modules: [] });
+        expect([...library.reserved()]).toEqual(["Stock"]);
+        expect(library.save({ ...CORVETTE, name: "Mine", category: "Star Wars" }).category).toBe("Star Wars");
+        expect(library.save({ name: "Loose", modules: [] }).category).toBe(MY_SHIPS);
+        expect(library.save({ name: "Own", modules: [], category: "Skirmish one" }).category).toBe("Skirmish one");
         const category = (name: string) => library.list().find((e) => e.name === name)?.category;
         expect(category(CORVETTE.name)).toBe("Stock");
         expect(category("X Wing")).toBe("Star Wars");
-        expect(category("Mine")).toBe("Skirmish one");
-        expect(category("Loose")).toBeUndefined();
+        expect(category("Mine")).toBe("Star Wars");
+        expect(category("Own")).toBe("Skirmish one");
+    });
+
+    it("opens a saved ship under the category it is kept under, whatever its file says", () => {
+        const store = fakeStore();
+        store.setItem("scs2d.ship.My ships/Probe", JSON.stringify(serialiseBlueprint({ ...CORVETTE, name: "Probe" })));
+        const library = new Library(store);
+        const probe = library.load("My ships/Probe")!;
+        expect(probe.category).toBe(MY_SHIPS);
+        expect(library.keyOf(probe)).toBe("My ships/Probe");
+    });
+
+    it("lists a stock ship beside a saved one of its key in a shared category", () => {
+        const library = new Library(fakeStore());
+        const stock = library.load("Star Wars/X Wing")!;
+        library.save({ ...stock, notes: "mine now" });
+        const both = library.list().filter((e) => e.name === "X Wing");
+        expect(both.map((e) => e.key)).toEqual(["Star Wars/X Wing", "stock:Star Wars/X Wing"]);
+        expect(library.load("Star Wars/X Wing")?.notes).toBe("mine now");
+        expect(library.load("stock:Star Wars/X Wing")).toEqual(stock);
+    });
+
+    it("lets two ships share a name in different categories", () => {
+        const library = new Library(fakeStore());
+        library.save({ name: "Scout", modules: [], category: "Fast" });
+        library.save({ name: "Scout", modules: [], category: "Slow" });
+        expect(
+            library
+                .list()
+                .filter((e) => e.name === "Scout")
+                .map((e) => e.key),
+        ).toEqual(["Fast/Scout", "Slow/Scout"]);
+    });
+
+    it("saves on leaving only what differs from what its key opens", () => {
+        const library = new Library(fakeStore());
+        expect(library.saveIfChanged(CORVETTE)).toBe(false);
+        expect(library.savedKeys()).toEqual([]);
+        const edited = { ...CORVETTE, notes: "mine now" };
+        expect(library.saveIfChanged(edited)).toBe(true);
+        expect(library.saveIfChanged(edited)).toBe(false);
+        expect(library.savedKeys()).toEqual(["My ships/Corvette"]);
+    });
+
+    it("moves ships saved by name alone under a category of the player's", () => {
+        const store = fakeStore();
+        store.setItem("scs2d.blueprint.Corvette", JSON.stringify(serialiseBlueprint({ ...CORVETTE, notes: "mine" })));
+        store.setItem("scs2d.blueprint.Own", JSON.stringify(serialiseBlueprint({ name: "Own", modules: [], category: "Mine" })));
+        const library = new Library(store);
+        expect(library.savedKeys()).toEqual(["Mine/Own", "My ships/Corvette"]);
+        expect(library.load("My ships/Corvette")?.notes).toBe("mine");
+        expect(store.getItem("scs2d.blueprint.Corvette")).toBeNull();
     });
 
     it("groups by category in alphabetical order, keeping the order within each", () => {
@@ -1218,7 +1249,7 @@ describe("Library", () => {
         };
         library.save(adrift);
         // Read back with an id on each placement, as every file is.
-        expect(library.load("Adrift")).toEqual(settleIds(adrift));
+        expect(library.load("Adrift")).toEqual(settleIds({ ...adrift, category: MY_SHIPS }));
         expect(blueprintProblem(adrift)).toMatch(/touches nothing/);
     });
 

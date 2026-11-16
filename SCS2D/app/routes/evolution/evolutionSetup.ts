@@ -128,11 +128,11 @@ export const DEFAULT_TEXTS: Texts = {
 const sideOf = (texts: Texts): Texts => Object.fromEntries(SIDE_FIELDS.map((name) => [name, texts[name] ?? DEFAULT_TEXTS[name]!]));
 
 /** Every setting at its default, both sides; the founders and versus as given. */
-export function defaultForm(founders: readonly string[] = ["ship:Corvette"], versus: readonly string[] = []): SetupForm {
+export function defaultForm(founders: readonly string[] = ["ship:Stock/Corvette"], versus: readonly string[] = []): SetupForm {
     return { texts: DEFAULT_TEXTS, rival: sideOf(DEFAULT_TEXTS), rivalOwn: false, rivalEvolves: true, goal: "solid", founders, versus };
 }
 
-/** A founder or benchmark in a list, as its option's value: `ship:Name` or `fleet:Name`. */
+/** A founder or benchmark in a list, as its option's value: `ship:` and a ship's key, or `fleet:Name`. */
 export interface Choice {
     readonly kind: "ship" | "fleet";
     readonly name: string;
@@ -181,7 +181,7 @@ export function formOfHeld(raw: string | null): SetupForm {
         rivalOwn,
         rivalEvolves: held["rivalEvolves"] !== "",
         goal: goal === "ghost" || goal === "none" ? goal : "solid",
-        founders: (held["founders"] ?? "Corvette").split("\n").map((value) => {
+        founders: (held["founders"] ?? "Stock/Corvette").split("\n").map((value) => {
             const { kind, name } = pickOf(value);
             return valueOf(kind, name);
         }),

@@ -31,10 +31,10 @@ test("reads nothing it cannot use as no setup at all", () => {
 test("puts what an editor hands back in the place of the side that went to it", () => {
     const back = { ...shipFleet(one!), name: "Renamed" };
     const kept = { slots, fields: DEFAULT_FIELDS, editing: 0 };
-    const saved = withReturned(kept, back, (kind, name) => kind === "ship" && name === "Renamed");
-    expect(saved[0]).toEqual({ fleet: back, source: { kind: "ship", name: "Renamed" } });
+    const saved = withReturned(kept, back, (kind, name) => (kind === "ship" && name === "Renamed" ? "My ships/Renamed" : null));
+    expect(saved[0]).toEqual({ fleet: back, source: { kind: "ship", name: "My ships/Renamed" } });
     expect(saved[1]).toBe(slots[1]);
     // Not in the library under its name: shown as handed back.
-    const unsaved = withReturned(kept, back, () => false);
+    const unsaved = withReturned(kept, back, () => null);
     expect(unsaved[0]!.source).toEqual({ kind: "other", label: "Renamed (from the editor)" });
 });

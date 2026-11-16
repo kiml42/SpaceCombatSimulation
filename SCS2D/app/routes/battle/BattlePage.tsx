@@ -154,8 +154,11 @@ export function BattlePage() {
                 const fleet = parseFleet(JSON.parse(fleetText));
                 // Back from editing a side: in that side's place, the rest of the setup as it was.
                 if (kept !== null && kept.editing !== null) {
-                    const saved = (kind: "fleet" | "ship", name: string): boolean =>
-                        (kind === "fleet" ? fleets : ships).list().some((entry) => entry.name === name);
+                    // The player's of that name before a stock one.
+                    const saved = (kind: "fleet" | "ship", name: string): string | null => {
+                        const named = (kind === "fleet" ? fleets : ships).list().filter((entry) => entry.name === name);
+                        return (named.find((entry) => !entry.stock) ?? named[0])?.key ?? null;
+                    };
                     openWith(next, withReturned({ ...kept, editing: kept.editing }, fleet, saved), kept.fields);
                 } else openWith(next, [{ fleet, source: { kind: "other", label: `${fleet.name} (from the editor)` } }], fields);
                 return true;

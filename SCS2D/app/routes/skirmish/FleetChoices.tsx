@@ -1,4 +1,4 @@
-import { namesByCategory, type Library } from "~/editor/library";
+import { openedByCategory, type Library } from "~/editor/library";
 import type { Blueprint, Fleet } from "~/sim/index";
 
 /** The list value of an empty fleet, to build from nothing. */
@@ -9,7 +9,7 @@ export interface FleetChoicesProps {
     readonly label: string;
     readonly ships: Library<Blueprint>;
     readonly fleets: Library<Fleet>;
-    /** `fleet:` or `ship:` and a name. */
+    /** `fleet:` and a name, or `ship:` and a ship's key. */
     readonly value: string;
     readonly onChange: (value: string) => void;
 }
@@ -25,11 +25,11 @@ export function FleetChoices({ id, label, ships, fleets, value, onChange }: Flee
                     </option>
                 ))}
             </optgroup>
-            {namesByCategory(ships.list()).map(([category, names]) => (
+            {openedByCategory(ships.list()).map(([category, entries]) => (
                 <optgroup key={category} label={`Single ships: ${category}`}>
-                    {names.map((name) => (
-                        <option key={name} value={`ship:${name}`}>
-                            {name}
+                    {entries.map((entry) => (
+                        <option key={entry.key} value={`ship:${entry.key}`}>
+                            {entry.name}
                         </option>
                     ))}
                 </optgroup>

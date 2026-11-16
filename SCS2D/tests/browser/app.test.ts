@@ -87,7 +87,7 @@ it("routes by the hash from a file, and lists what browser storage holds", async
     await page.goto(pathToFileURL(appPage).href);
 
     const probe = JSON.stringify(serialiseBlueprint({ ...CORVETTE, name: "Probe" }));
-    await page.evaluate((text) => localStorage.setItem("scs2d.blueprint.Probe", text), probe);
+    await page.evaluate((text) => localStorage.setItem("scs2d.ship.My ships/Probe", text), probe);
 
     await page.getByRole("navigation", { name: "More" }).getByRole("link", { name: "Library" }).click();
     expect(new URL(page.url()).hash).toBe("#/library");
@@ -102,7 +102,7 @@ it("routes by the hash from a file, and lists what browser storage holds", async
     await page.getByRole("button", { name: "Edit Line of Battle" }).click();
     await page.waitForSelector("#fleetName");
     expect(await page.inputValue("#fleetName")).toBe("Line of Battle");
-    await page.evaluate(() => localStorage.removeItem("scs2d.blueprint.Probe"));
+    await page.evaluate(() => localStorage.removeItem("scs2d.ship.My ships/Probe"));
     expect(problems).toEqual([]);
 });
 
@@ -278,7 +278,7 @@ it("sets up a custom battle, from the library and from a battle file, and fights
     await expect.poll(() => panel.getByRole("button", { name: "Fight" }).isDisabled()).toBe(true);
     await panel.getByRole("button", { name: "Add fleet" }).click();
     await panel.getByRole("button", { name: "Add fleet" }).click();
-    await panel.getByRole("combobox", { name: "Side 2" }).selectOption("ship:Corvette");
+    await panel.getByRole("combobox", { name: "Side 2" }).selectOption("ship:Stock/Corvette");
 
     // Set up, it waits at its first step to be looked over.
     await expect.poll(step).toBe(0);
@@ -310,7 +310,7 @@ it("takes a side of a custom battle to its editor and back, keeping the rest of 
     await page.getByRole("button", { name: "Custom", exact: true }).click();
     await panel.getByRole("button", { name: "Add fleet" }).click();
     await panel.getByRole("button", { name: "Add fleet" }).click();
-    await side(2).selectOption("ship:Corvette");
+    await side(2).selectOption("ship:Stock/Corvette");
     await panel.getByLabel("range m", { exact: true }).fill("2500");
     const first = await side(1).inputValue();
 
@@ -320,7 +320,7 @@ it("takes a side of a custom battle to its editor and back, keeping the rest of 
     expect(await page.inputValue("#shipName")).toBe("Corvette");
     await page.fill("#shipName", "Corvette Mk II");
     await page.click("#battleLink");
-    await expect.poll(() => side(2).inputValue()).toBe("ship:Corvette Mk II");
+    await expect.poll(() => side(2).inputValue()).toBe("ship:My ships/Corvette Mk II");
     expect(await side(1).inputValue()).toBe(first);
     expect(await panel.getByLabel("range m", { exact: true }).inputValue()).toBe("2500");
 
@@ -330,7 +330,7 @@ it("takes a side of a custom battle to its editor and back, keeping the rest of 
     expect(`fleet:${await page.inputValue("#fleetName")}`).toBe(first);
     await page.click("#battleLink");
     await expect.poll(() => side(1).inputValue()).toBe(first);
-    expect(await side(2).inputValue()).toBe("ship:Corvette Mk II");
+    expect(await side(2).inputValue()).toBe("ship:My ships/Corvette Mk II");
     expect(await panel.getByLabel("range m", { exact: true }).inputValue()).toBe("2500");
     expect(problems).toEqual([]);
 });

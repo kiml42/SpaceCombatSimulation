@@ -1,13 +1,11 @@
 import type { Library, LibraryEntry } from "~/editor/library";
 import type { Blueprint, Fleet } from "~/sim/index";
 
-/** A stock entry shadowed by a saved one, told apart as the ship editor does. */
-export const STOCK = "stock:";
 /** A design the fleet already carries, told apart from a library entry of the same name. */
 export const CARRIED = "fleet:";
 
 export function optionValue(entry: LibraryEntry): string {
-    return entry.stock && entry.saved ? STOCK + entry.name : entry.name;
+    return entry.key;
 }
 
 /** Its name, marked "(stock)" where a saved one shadows it, and "•" where it is the player's. */
@@ -25,10 +23,8 @@ function reading<T>(name: string, read: () => T | null): T | null {
 }
 
 /** The library entry an option names, or null after saying why it could not be read. */
-export function fromLibrary<T extends { name: string }>(library: Library<T>, value: string): T | null {
-    const stock = value.startsWith(STOCK);
-    const name = stock ? value.slice(STOCK.length) : value;
-    return reading(name, () => (stock ? library.loadStock(name) : library.load(name)));
+export function fromLibrary<T extends { name: string; category?: string }>(library: Library<T>, value: string): T | null {
+    return reading(value, () => library.load(value));
 }
 
 /** The design an option names: one the fleet carries, or one from the library. */

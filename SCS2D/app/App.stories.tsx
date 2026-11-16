@@ -70,7 +70,7 @@ const [stock] = Object.values(BLUEPRINTS);
 export const Library: Story = {
     args: {
         path: "/library",
-        saved: { "scs2d.blueprint.Probe": JSON.stringify(serialiseBlueprint({ ...stock!, name: "Probe" })) },
+        saved: { "scs2d.ship.My ships/Probe": JSON.stringify(serialiseBlueprint({ ...stock!, name: "Probe" })) },
     },
     play: async ({ canvas }) => {
         const ships = canvas.getByRole("region", { name: "Ships" });

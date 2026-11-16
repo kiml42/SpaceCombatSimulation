@@ -218,7 +218,7 @@ export function FleetPage() {
         const named = search.get("open");
         let opened: Fleet | null = start?.fleet ?? (named === null ? null : fromLibrary(fleets, named));
         if (opened === null && first !== undefined) {
-            opened = fromLibrary(fleets, first.stock && first.saved ? `stock:${first.name}` : first.name);
+            opened = fromLibrary(fleets, first.key);
         }
         // Read when asked, so a design saved since is what it is compared with.
         return new FleetDocument(opened ?? emptyFleet("New fleet"), (name) => {

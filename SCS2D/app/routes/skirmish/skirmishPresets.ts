@@ -10,10 +10,10 @@ export interface EnemyPreset {
 }
 
 export const ENEMY_PRESETS: readonly EnemyPreset[] = [
-    { name: "One small ship", hint: "Against a corvette, one ship a side", enemy: "ship:Corvette", maxShips: 1 },
-    { name: "One big ship", hint: "Against a gunship, one ship a side", enemy: "ship:Gunship", maxShips: 1 },
+    { name: "One small ship", hint: "Against a corvette, one ship a side", enemy: "ship:Stock/Corvette", maxShips: 1 },
+    { name: "One big ship", hint: "Against a gunship, one ship a side", enemy: "ship:Stock/Gunship", maxShips: 1 },
     { name: "Small ships", hint: "Against a pair of Dinkies, with room for the fleets to grow", enemy: "fleet:Dinky Pair", maxShips: 5 },
-    { name: "Bare core", hint: "Against a bare core, on its tiny budget", enemy: "ship:Bare Core", maxShips: 3 },
+    { name: "Bare core", hint: "Against a bare core, on its tiny budget", enemy: "ship:Stock/Bare Core", maxShips: 3 },
 ];
 
 /** Where and how the rounds are fought, and how the enemy is bred: every setting but the enemy preset's. */

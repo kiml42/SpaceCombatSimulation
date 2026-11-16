@@ -206,7 +206,7 @@ export function craftChoices(
         if (choices.has(entry.name)) continue;
         let saved: Blueprint | null;
         try {
-            saved = library.load(entry.name);
+            saved = library.load(entry.key);
         } catch {
             continue;
         }

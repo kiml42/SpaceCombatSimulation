@@ -206,12 +206,12 @@ describe("the fleet editor in a browser", () => {
     it("offers to update a design that differs from the library copy", async () => {
         await page.evaluate(() => {
             localStorage.setItem(
-                "scs2d.blueprint.Dinky",
+                "scs2d.ship.My ships/Dinky",
                 JSON.stringify({ formatVersion: 1, name: "Dinky", modules: [{ kind: "core", x: 0, y: 0, length: 2, width: 2 }] }),
             );
         });
         // Written behind the page's back, as another tab would, which the browser tells it of.
-        await page.evaluate(() => window.dispatchEvent(new StorageEvent("storage", { key: "scs2d.blueprint.Dinky" })));
+        await page.evaluate(() => window.dispatchEvent(new StorageEvent("storage", { key: "scs2d.ship.My ships/Dinky" })));
         expect(await page.textContent("#problems")).toMatch(/Dinky differs from the library's Dinky/);
         await page.click('button[data-refresh="Dinky"]');
         expect(await page.textContent("#problems")).not.toMatch(/differs/);

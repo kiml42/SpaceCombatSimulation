@@ -46,17 +46,17 @@ export function keptSetup(store: KeyValueStore): KeptSetup | null {
 /**
  * The setup an editor hands a fleet back to: the side that went to it replaced
  * by what came back, named from the library where it is there by that name,
- * as the editors keep what they had on leaving.
+ * as the editors keep what they had on leaving. `saved` gives the key it is
+ * kept under, or null.
  */
 export function withReturned(
     kept: KeptSetup & { editing: number },
     fleet: Fleet,
-    saved: (kind: "fleet" | "ship", name: string) => boolean,
+    saved: (kind: "fleet" | "ship", name: string) => string | null,
 ): Slot[] {
     const went = kept.slots[kept.editing]!.source;
     const kind = went.kind === "ship" ? "ship" : "fleet";
-    const source: Slot["source"] = saved(kind, fleet.name)
-        ? { kind, name: fleet.name }
-        : { kind: "other", label: `${fleet.name} (from the editor)` };
+    const key = saved(kind, fleet.name);
+    const source: Slot["source"] = key !== null ? { kind, name: key } : { kind: "other", label: `${fleet.name} (from the editor)` };
     return kept.slots.map((slot, i) => (i === kept.editing ? { fleet, source } : slot));
 }
