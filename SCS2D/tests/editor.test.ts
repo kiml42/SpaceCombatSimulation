@@ -25,8 +25,9 @@ import {
     type Placement,
     type ShipDesign,
     settleIds,
+    EngineLayout,
 } from "../sim/index.js";
-import { CORVETTE, GUNSHIP, RAIL_CORVETTE, TORCH } from "../scenarios/blueprints.js";
+import { CORVETTE, GUNSHIP, RAIL_CORVETTE, TORCH, X_WING } from "../scenarios/blueprints.js";
 import { EditorDocument } from "../editor/document.js";
 import {
     addModule,
@@ -92,7 +93,7 @@ import {
     type Handle,
 } from "../editor/handles.js";
 import { doctrineBand, previewSnapshot } from "../editor/preview.js";
-import { designStats, envelopes, assemblyMass, headingCost, moduleReadout, roundsAboard } from "../editor/stats.js";
+import { designStats, envelopes, assemblyMass, headingCost, moduleReadout, pushAlong, roundsAboard } from "../editor/stats.js";
 
 /**
  * The editor's half: what an edit does to a layout, and what the page reads
@@ -1021,6 +1022,24 @@ describe("the manoeuvring envelopes", () => {
         const envelope = envelopes(design, 8);
         expect(envelope.free[2]!).toBeGreaterThan(0);
         expect(envelope.holding[2]).toBeCloseTo(envelope.free[2]!, 6);
+    });
+
+    it("pushes along a diagonal only as hard as its weaker axis lets it", () => {
+        // A big drive ahead and a small thruster abeam: at 45° the drive can only
+        // match the thruster, however much more it has along that bearing.
+        const layout = new EngineLayout([
+            { x: -5, y: 0, dirX: 1, dirY: 0, maxThrust: 10 },
+            { x: 0, y: 0, dirX: 0, dirY: 1, maxThrust: 1 },
+        ]);
+        const d = Math.SQRT1_2;
+        expect(pushAlong(layout, d, d)).toBeCloseTo(Math.SQRT2, 9);
+        expect(pushAlong(layout, 1, 0)).toBeCloseTo(10, 9);
+        expect(pushAlong(layout, -1, 0)).toBe(0);
+    });
+
+    it("costs a ship symmetrical about its keel little to hold its heading", () => {
+        const envelope = envelopes(new EditorDocument(X_WING).view.design!);
+        expect(headingCost(envelope)).toBeLessThan(0.15);
     });
 
     it("gives up everything in a direction it can only push by spinning", () => {
