@@ -169,3 +169,23 @@ export function wearTransform(design: ShipDesign, m: number, ship = 0): Affine {
     const f = shiftY - module.y;
     return { a: cm * a - sm * b, b: sm * a + cm * b, c: cm * c - sm * d, d: sm * c + cm * d, e: cm * e - sm * f, f: sm * e + cm * f };
 }
+
+/** How many ways a turret's wear may lie: few, so worn turrets share what is kept of them. */
+const TURRET_WEAR_LIES = 8;
+
+/** Which of `TURRET_WEAR_LIES` the turret on module `m` wears, on the ship `ship` seeds (`wearSeed`). */
+export function turretWearLie(design: ShipDesign, m: number, ship: number): number {
+    return Math.floor(hash(originOf(design, m).module, ship, 12) * TURRET_WEAR_LIES);
+}
+
+/**
+ * From a wear tile's texels to a turret's frame, centred on its pivot and
+ * turned with it, so its wear turns with it: as large as its ship's (`wearTransform`).
+ */
+export function turretWearTransform(radius: number, lie: number): Affine {
+    const s = (WEAR_OF_RADIUS * radius) / WEAR_TILE;
+    const turn = hash(lie, 0, 13) * 2 * Math.PI;
+    const ct = Math.cos(turn);
+    const st = Math.sin(turn);
+    return { a: s * ct, b: s * st, c: -s * st, d: s * ct, e: hash(lie, 1, 14) * WEAR_TILE * s, f: hash(lie, 2, 15) * WEAR_TILE * s };
+}

@@ -2,7 +2,16 @@ import { describe, expect, it } from "vitest";
 import { compileBlueprint, isThick, originOf, shellOf, type ShipDesign } from "../sim/index.js";
 import { rebuiltDesign } from "../sim/blueprint.js";
 import { CORVETTE } from "../scenarios/blueprints.js";
-import { WEAR_LEVELS, wearField, wearLevel, wearSeed, wearShows, wearTransform } from "../render/wear.js";
+import {
+    turretWearLie,
+    turretWearTransform,
+    WEAR_LEVELS,
+    wearField,
+    wearLevel,
+    wearSeed,
+    wearShows,
+    wearTransform,
+} from "../render/wear.js";
 
 describe("wear", () => {
     it("shows none on a whole module and all of it on a destroyed one", () => {
@@ -91,6 +100,22 @@ describe("wear", () => {
             expect(sx).toBeCloseTo(wx, 6);
             expect(sy).toBeCloseTo(wy, 6);
         }
+    });
+
+    it("lies on a turret as one of a few ways, which differ, at the ship's scale", () => {
+        const corvette = compileBlueprint(CORVETTE);
+        const module = corvette.turrets[0]!.module;
+        const lies = new Set<number>();
+        for (let serial = 1; serial <= 40; serial++) {
+            const lie = turretWearLie(corvette, module, wearSeed({ team: 0, serial }));
+            expect(Number.isInteger(lie) && lie >= 0 && lie < 8).toBe(true);
+            lies.add(lie);
+        }
+        expect(lies.size).toBeGreaterThan(4);
+        const a = turretWearTransform(corvette.radius, 0);
+        const b = turretWearTransform(corvette.radius, 1);
+        expect([a.e, a.f]).not.toEqual([b.e, b.f]);
+        expect(Math.hypot(a.a, a.b)).toBeCloseTo(Math.hypot(wearTransform(corvette, 0).a, wearTransform(corvette, 0).b), 9);
     });
 
     it("is left out where it would be under a pixel", () => {
