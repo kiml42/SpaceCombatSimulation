@@ -43,6 +43,7 @@ import {
     billOf,
     ROBOT_REPAIR_RATE,
     type Bill,
+    type EngineLayout,
     type GunStats,
     type ModuleSpec,
     type ShipDesign,
@@ -616,8 +617,7 @@ export interface Envelopes {
     readonly samples: number;
     /**
      * The most acceleration a direction can be given, whatever that does to the
-     * heading, m/s². Exact rather than searched: the achievable wrenches are a
-     * zonotope, so `EngineLayout.support` is a supporting plane of it.
+     * heading, m/s². Exact rather than searched: see `pushAlong`.
      */
     readonly free: Float64Array;
     /** What the ship can actually use while holding its heading, m/s². */
@@ -717,10 +717,35 @@ export function envelopes(design: ShipDesign, samples: number = ENVELOPE_SAMPLES
         const angle = (TAU * i) / samples;
         const dirX = cos(angle);
         const dirY = sin(angle);
-        free[i] = layout.support(dirX, dirY, 0) / design.mass;
+        free[i] = pushAlong(layout, dirX, dirY) / design.mass;
         holding[i] = trim(dirX, dirY);
     }
     return { samples, free, holding };
+}
+
+/**
+ * The greatest force a layout gives exactly along a unit direction, torque
+ * aside: how far that ray runs inside the zonogon of achievable forces. Not
+ * `EngineLayout.support`, which is the most force has *along* it whatever it
+ * has across it, so on a diagonal it counts the main drive and a thruster
+ * abeam at full together, and holding the heading looks to cost what is
+ * really the push across.
+ *
+ * Each edge of the zonogon is parallel to an engine's force, so the ray is cut
+ * by the nearest of the lines normal to one at that normal's support.
+ */
+export function pushAlong(layout: EngineLayout, dirX: number, dirY: number): number {
+    let reach = layout.support(dirX, dirY, 0);
+    for (let i = 0; i < layout.count; i++) {
+        for (let sense = 1; sense >= -1; sense -= 2) {
+            const nx = -layout.wfy[i]! * sense;
+            const ny = layout.wfx[i]! * sense;
+            const across = nx * dirX + ny * dirY;
+            if (!(across > 1e-9 * Math.sqrt(nx * nx + ny * ny))) continue;
+            reach = min(reach, layout.support(nx, ny, 0) / across);
+        }
+    }
+    return reach;
 }
 
 /**

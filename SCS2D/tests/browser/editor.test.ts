@@ -281,12 +281,12 @@ describe("the editor in a browser", () => {
         expect(stats).toMatch(/Burn[\d,]+ s/);
         expect(stats).toMatch(/Δv\d+\.\d km\/s/);
         expect(stats).toMatch(/Turn L \/ R[\d.]+ \/ [\d.]+ °\/s²/);
-        // It flies, though its thrust is off its centre of mass, so it pays to hold its heading: a
-        // warning rather than a problem. The holding curve is measured through the allocator, so this
-        // is also the check that the allocator ran without throwing on load.
+        // It flies, balanced enough not to be warned about holding its heading. The warning is read
+        // from the holding curve, measured through the allocator, so this is also the check that the
+        // allocator ran without throwing on load.
         const problems = (await page.textContent("#problems")) ?? "";
         expect(problems).toMatch(/No problems/);
-        expect(problems).toMatch(/gives up to \d+% of its push to hold its heading/);
+        expect(problems).not.toMatch(/push to hold its heading/);
     });
 
     it("fits a large ship's figures within the sidebar", async () => {
