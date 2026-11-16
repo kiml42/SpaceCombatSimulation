@@ -69,7 +69,7 @@ export function FleetSlots({ slots, onChange, onEdit, onProblem }: FleetSlotsPro
     const add = (): void => {
         const last = slots[slots.length - 1];
         if (last !== undefined) return onChange([...slots, last]);
-        const name = fleets.list()[0]?.name;
+        const name = fleets.first()?.name;
         const fleet = name === undefined ? null : read("fleet", name);
         if (fleet !== null && name !== undefined) onChange([{ fleet, source: { kind: "fleet", name } }]);
     };

@@ -214,7 +214,7 @@ export function FleetPage() {
     // Changed here only by picking an upgrade card; the fleet is the document's.
     const [skirmish, setSkirmish] = useState(start?.skirmish ?? null);
     const [doc] = useState(() => {
-        const first = fleets.list()[0];
+        const first = fleets.first();
         const named = search.get("open");
         let opened: Fleet | null = start?.fleet ?? (named === null ? null : fromLibrary(fleets, named));
         if (opened === null && first !== undefined) {

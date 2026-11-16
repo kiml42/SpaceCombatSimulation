@@ -3,7 +3,7 @@ import { Fragment } from "react";
 import { kindName } from "~/editor/doctrine";
 import { dockFighter, duplicatePlacement, instanceOf, mirrorPlacement, reshapePlacement, updatePlacement } from "~/editor/edit";
 import type { DesignInFleet } from "~/editor/handoff";
-import { byCategory, type Library } from "~/editor/library";
+import { byCategory, byName, type Library } from "~/editor/library";
 import { selectedPosition } from "~/editor/shipCanvas";
 import { moduleReadout, roundsAboard, type Envelopes, type ModuleReadout, type ReadoutRow } from "~/editor/stats";
 import {
@@ -938,6 +938,7 @@ function CraftRows({
     if (spec.craft !== undefined && !choices.has(spec.craft)) {
         options.push({ name: spec.craft, category: undefined, label: `${spec.craft} ✗ missing` });
     }
+    options.sort((a, b) => byName(a.name, b.name));
     const chosen = options.find((option) => option.name === spec.craft);
     const named = spec.craft !== undefined;
     const turn = spec.craftAngle ?? 0;
