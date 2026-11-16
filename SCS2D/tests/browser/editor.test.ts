@@ -589,7 +589,8 @@ describe("the editor in a browser", () => {
         expect(await page.isVisible("#shipHelp")).toBe(true);
         await page.click("#shipHelpClose");
         await page.click("#newShip");
-    });
+        // A dozen clicks on a drawn ship, each taking seconds where CI draws WebGL in software.
+    }, 60_000);
 
     it("marks a ship a fighter, which rules out turrets and thick modules", async () => {
         await page.click("#newShip");
