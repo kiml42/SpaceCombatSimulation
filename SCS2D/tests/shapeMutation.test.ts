@@ -123,19 +123,24 @@ describe("breeding a shape", () => {
         expect(walks).toBeGreaterThan(0);
     });
 
-    // Breeds a long line: slow on a loaded CI runner.
-    it("keeps every module a box when shape is weighted out", { timeout: 480_000 }, () => {
+    it("keeps every module a box when shape is weighted out", { timeout: 120_000 }, () => {
         // The off switch a long run reaches for: a hull with wedges in it compiles
         // about half as dear again, so a run that does not want them should not
         // pay for them.
-        const rng = new Rng(11);
-        let held: Blueprint = CORVETTE;
-        for (let i = 0; i < GENERATIONS; i++) {
-            const child = mutate(held, rng, { build: { ...DEFAULT_BUILD_WEIGHTS, shape: 0 } });
-            expect(child.edits.some((edit) => ARRIVED.test(edit) || CUT.test(edit) || WALKED.test(edit))).toBe(false);
-            held = child.blueprint;
+        //
+        // Ten short lines rather than one long one: a wedge would come in with a
+        // module added, and these draw more of those (640 against 355) at a tenth
+        // of the cost, since a line's ships, and its every check, grow as it goes.
+        for (let seed = 11; seed <= 20; seed++) {
+            const rng = new Rng(seed);
+            let held: Blueprint = CORVETTE;
+            for (let i = 0; i < 100; i++) {
+                const child = mutate(held, rng, { build: { ...DEFAULT_BUILD_WEIGHTS, shape: 0 } });
+                expect(child.edits.some((edit) => ARRIVED.test(edit) || CUT.test(edit) || WALKED.test(edit))).toBe(false);
+                held = child.blueprint;
+            }
+            expect(modulesOf(held).some(isShaped)).toBe(false);
         }
-        expect(modulesOf(held).some(isShaped)).toBe(false);
     });
 
     it("only cuts a corner where nothing was welded, so every weld survives", { timeout: 30_000 }, () => {
