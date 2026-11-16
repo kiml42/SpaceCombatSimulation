@@ -9,7 +9,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import type { Browser, Page } from "playwright";
-import { launchChromium, shownPixels, type Pixels } from "./launch.js";
+import { launchChromium, shownPixels, withoutView, type Pixels } from "./launch.js";
 import { assemblyKnob, ROTATE_ARM_PX } from "../../editor/handles.js";
 import { EditorDocument } from "../../editor/document.js";
 import { previewSnapshot } from "../../editor/preview.js";
@@ -288,35 +288,37 @@ describe("the editor in a browser", () => {
         expect(alike(await picture(), before)).toBe(true);
     });
 
-    it("shows what the layout works out to, and that it would fly", async () => {
-        const stats = (await page.textContent("#stats")) ?? "";
-        expect(stats).toMatch(/Mass[\d.,]+ t\s*fuel[\d.,]+ t/);
-        expect(stats).toMatch(/Burn[\d,]+ s/);
-        expect(stats).toMatch(/Δv\d+\.\d km\/s/);
-        expect(stats).toMatch(/Turn L \/ R[\d.]+ \/ [\d.]+ °\/s²/);
-        // It flies, balanced enough not to be warned about holding its heading. The warning is read
-        // from the holding curve, measured through the allocator, so this is also the check that the
-        // allocator ran without throwing on load.
-        const problems = (await page.textContent("#problems")) ?? "";
-        expect(problems).toMatch(/No problems/);
-        expect(problems).not.toMatch(/push to hold its heading/);
-    });
+    it("shows what the layout works out to, and that it would fly", () =>
+        withoutView(page, async () => {
+            const stats = (await page.textContent("#stats")) ?? "";
+            expect(stats).toMatch(/Mass[\d.,]+ t\s*fuel[\d.,]+ t/);
+            expect(stats).toMatch(/Burn[\d,]+ s/);
+            expect(stats).toMatch(/Δv\d+\.\d km\/s/);
+            expect(stats).toMatch(/Turn L \/ R[\d.]+ \/ [\d.]+ °\/s²/);
+            // It flies, balanced enough not to be warned about holding its heading. The warning is read
+            // from the holding curve, measured through the allocator, so this is also the check that the
+            // allocator ran without throwing on load.
+            const problems = (await page.textContent("#problems")) ?? "";
+            expect(problems).toMatch(/No problems/);
+            expect(problems).not.toMatch(/push to hold its heading/);
+        }));
 
-    it("fits a large ship's figures within the sidebar", async () => {
-        await openShip(page, "Star Destroyer");
-        await page.click("#moreStats > summary");
-        const clipped = await page.evaluate(() => {
-            const panel = document.getElementById("stats")!.closest("aside")!;
-            const style = getComputedStyle(panel);
-            const right = panel.getBoundingClientRect().right - parseFloat(style.paddingRight) - parseFloat(style.borderRightWidth);
-            return [...panel.querySelectorAll("#stats td")]
-                .filter((cell) => cell.getBoundingClientRect().right > right + 0.5)
-                .map((cell) => cell.textContent);
-        });
-        await page.click("#moreStats > summary");
-        await openShip(page, "Corvette");
-        expect(clipped).toEqual([]);
-    });
+    it("fits a large ship's figures within the sidebar", () =>
+        withoutView(page, async () => {
+            await openShip(page, "Star Destroyer");
+            await page.click("#moreStats > summary");
+            const clipped = await page.evaluate(() => {
+                const panel = document.getElementById("stats")!.closest("aside")!;
+                const style = getComputedStyle(panel);
+                const right = panel.getBoundingClientRect().right - parseFloat(style.paddingRight) - parseFloat(style.borderRightWidth);
+                return [...panel.querySelectorAll("#stats td")]
+                    .filter((cell) => cell.getBoundingClientRect().right > right + 0.5)
+                    .map((cell) => cell.textContent);
+            });
+            await page.click("#moreStats > summary");
+            await openShip(page, "Corvette");
+            expect(clipped).toEqual([]);
+        }));
 
     it("selects the module under the pointer", async () => {
         const core = await corvetteCore(page);
@@ -489,24 +491,26 @@ describe("the editor in a browser", () => {
         expect((await page.textContent("#stats"))?.match(/[\d,.]+ t/)?.[0]).not.toBe(mass);
     });
 
-    it("offers a button for every kind of module, each adding one of that kind", async () => {
-        await page.click("#newShip");
-        const kinds = [...MODULE_KINDS];
-        const buttons = await page.$$eval("[data-add]", (found) => found.map((b) => (b as HTMLElement).dataset["add"]));
-        expect([...buttons].sort()).toEqual([...kinds].sort());
-        for (const kind of ["claw", "pad", "port", "railGun", "plasmaLance"]) {
-            await addModule(page, kind);
-            expect(await page.inputValue("#propKind")).toBe(kind);
-        }
-    });
+    it("offers a button for every kind of module, each adding one of that kind", () =>
+        withoutView(page, async () => {
+            await page.click("#newShip");
+            const kinds = [...MODULE_KINDS];
+            const buttons = await page.$$eval("[data-add]", (found) => found.map((b) => (b as HTMLElement).dataset["add"]));
+            expect([...buttons].sort()).toEqual([...kinds].sort());
+            for (const kind of ["claw", "pad", "port", "railGun", "plasmaLance"]) {
+                await addModule(page, kind);
+                expect(await page.inputValue("#propKind")).toBe(kind);
+            }
+        }));
 
-    it("says what a refit from the ship as it was opened would build, once it differs", async () => {
-        await page.click("#newShip");
-        expect(await page.isVisible("#refitSection")).toBe(false);
-        await addModule(page, "tank");
-        expect(await page.isVisible("#refitSection")).toBe(true);
-        expect(await page.textContent("#refit")).toMatch(/1 built/);
-    });
+    it("says what a refit from the ship as it was opened would build, once it differs", () =>
+        withoutView(page, async () => {
+            await page.click("#newShip");
+            expect(await page.isVisible("#refitSection")).toBe(false);
+            await addModule(page, "tank");
+            expect(await page.isVisible("#refitSection")).toBe(true);
+            expect(await page.textContent("#refit")).toMatch(/1 built/);
+        }));
 
     it("hides and shows the refit from the panel over the view, which has nothing to toggle until there is one", async () => {
         const picture = (): Promise<Pixels> => shownPicture(page);
@@ -525,40 +529,38 @@ describe("the editor in a browser", () => {
         expect(await page.getAttribute("#showRefit", "aria-pressed")).toBe("false");
     });
 
-    it("sets a pad out with a fighter, marking those too big for it", async () => {
-        await page.click("#newShip");
-        await addModule(page, "pad");
-        expect(await page.isVisible("#dockedRow")).toBe(true);
-        const label = async (name: string): Promise<string> => (await page.textContent(`#propDocked option[value="${name}"]`)) ?? "";
-        expect(await label("Dinky")).toBe("Dinky");
-        expect(await page.isVisible("#keepRow")).toBe(false);
-        await page.selectOption("#propDocked", "Dinky");
-        expect(await page.inputValue("#propDocked")).toBe("Dinky");
-        expect(await page.textContent("#problems")).not.toMatch(/too big/);
-        // Given a fighter, it sets out with it docked, and keeps none until told.
-        expect(await page.isChecked("#propPadDocked")).toBe(true);
-        expect(await page.inputValue("#propKeep")).toBe("0");
-        await page.fill("#propKeep", "3");
-        await page.dispatchEvent("#propKeep", "change");
-        expect(await page.inputValue("#propKeep")).toBe("3");
-        await page.uncheck("#propPadDocked");
-        expect(await page.isChecked("#propPadDocked")).toBe(false);
-        // Shrunk under it, the fighter no longer fits and the layout says so.
-        await page.fill("#propLength", "2");
-        await page.dispatchEvent("#propLength", "change");
-        expect(await label("Dinky")).toMatch(/✗ too big/);
-        expect(await page.textContent("#problems")).toMatch(/Dinky .* too big for this pad/);
-        await page.selectOption("#propDocked", "");
-        expect(await page.textContent("#problems")).not.toMatch(/too big/);
-        await addModule(page, "tank");
-        expect(await page.isVisible("#dockedRow")).toBe(false);
-    });
+    it("sets a pad out with a fighter, marking those too big for it", () =>
+        withoutView(page, async () => {
+            await page.click("#newShip");
+            await addModule(page, "pad");
+            expect(await page.isVisible("#dockedRow")).toBe(true);
+            const label = async (name: string): Promise<string> => (await page.textContent(`#propDocked option[value="${name}"]`)) ?? "";
+            expect(await label("Dinky")).toBe("Dinky");
+            expect(await page.isVisible("#keepRow")).toBe(false);
+            await page.selectOption("#propDocked", "Dinky");
+            expect(await page.inputValue("#propDocked")).toBe("Dinky");
+            expect(await page.textContent("#problems")).not.toMatch(/too big/);
+            // Given a fighter, it sets out with it docked, and keeps none until told.
+            expect(await page.isChecked("#propPadDocked")).toBe(true);
+            expect(await page.inputValue("#propKeep")).toBe("0");
+            await page.fill("#propKeep", "3");
+            await page.dispatchEvent("#propKeep", "change");
+            expect(await page.inputValue("#propKeep")).toBe("3");
+            await page.uncheck("#propPadDocked");
+            expect(await page.isChecked("#propPadDocked")).toBe(false);
+            // Shrunk under it, the fighter no longer fits and the layout says so.
+            await page.fill("#propLength", "2");
+            await page.dispatchEvent("#propLength", "change");
+            expect(await label("Dinky")).toMatch(/✗ too big/);
+            expect(await page.textContent("#problems")).toMatch(/Dinky .* too big for this pad/);
+            await page.selectOption("#propDocked", "");
+            expect(await page.textContent("#problems")).not.toMatch(/too big/);
+            await addModule(page, "tank");
+            expect(await page.isVisible("#dockedRow")).toBe(false);
+        }));
 
-    it("explains itself the first time, and builds a first ship step by step from there", async () => {
-        // The view hidden, so nothing is drawn: a selected module animates, and drawing
-        // it in software WebGL holds up every step. The tour points at nothing in the view.
-        const hidden = await page.addStyleTag({ content: "#view { display: none }" });
-        try {
+    it("explains itself the first time, and builds a first ship step by step from there", () =>
+        withoutView(page, async () => {
             // Reached by its hash, which does not run the script that marks the help seen.
             await page.evaluate(() => localStorage.removeItem("scs2d.help.ship"));
             await page.evaluate(() => (location.hash = "#/"));
@@ -593,62 +595,62 @@ describe("the editor in a browser", () => {
             expect(await page.isVisible("#shipHelp")).toBe(true);
             await page.click("#shipHelpClose");
             await page.click("#newShip");
-        } finally {
-            await hidden.evaluate((style) => (style as HTMLStyleElement).remove());
-        }
-    });
+        }));
 
-    it("marks a ship a fighter, which rules out turrets and thick modules", async () => {
-        await page.click("#newShip");
-        await addModule(page, "structure");
-        expect(await page.isDisabled("#propThick")).toBe(false);
-        await page.check("#shipFighter");
-        expect(await page.isDisabled('[data-add="turret"]')).toBe(true);
-        expect(await page.isDisabled('[data-add="beamTurret"]')).toBe(true);
-        expect(await page.isDisabled("#propThick")).toBe(true);
-        await page.uncheck("#shipFighter");
-        expect(await page.isDisabled('[data-add="turret"]')).toBe(false);
+    it("marks a ship a fighter, which rules out turrets and thick modules", () =>
+        withoutView(page, async () => {
+            await page.click("#newShip");
+            await addModule(page, "structure");
+            expect(await page.isDisabled("#propThick")).toBe(false);
+            await page.check("#shipFighter");
+            expect(await page.isDisabled('[data-add="turret"]')).toBe(true);
+            expect(await page.isDisabled('[data-add="beamTurret"]')).toBe(true);
+            expect(await page.isDisabled("#propThick")).toBe(true);
+            await page.uncheck("#shipFighter");
+            expect(await page.isDisabled('[data-add="turret"]')).toBe(false);
 
-        // Something thick rules a fighter out in turn, and says why.
-        await page.check("#propThick");
-        expect(await page.isDisabled("#shipFighter")).toBe(true);
-        expect(await page.getAttribute("#shipFighterLabel", "title")).toBe("A fighter cannot have anything thick.");
-        await page.uncheck("#propThick");
-        expect(await page.isDisabled("#shipFighter")).toBe(false);
-    });
+            // Something thick rules a fighter out in turn, and says why.
+            await page.check("#propThick");
+            expect(await page.isDisabled("#shipFighter")).toBe(true);
+            expect(await page.getAttribute("#shipFighterLabel", "title")).toBe("A fighter cannot have anything thick.");
+            await page.uncheck("#propThick");
+            expect(await page.isDisabled("#shipFighter")).toBe(false);
+        }));
 
-    it("offers a shell on a gun and not on a beam", async () => {
-        await page.click("#newShip");
-        await addModule(page, "turret");
-        // A shell's settings tune it, so they are under More settings.
-        expect(await page.isVisible("#shellRow")).toBe(false);
-        await page.click("#settingsMore > summary");
-        expect(await page.isVisible("#shellRow")).toBe(true);
-        expect(Number(await page.inputValue("#propFuse"))).toBeCloseTo(0.02, 9);
-        expect(Number(await page.inputValue("#propFragments"))).toBe(8);
-        // One fragment is solid shot, with no burst to time or size.
-        await page.fill("#propFragments", "1");
-        await page.dispatchEvent("#propFragments", "change");
-        expect(await page.isDisabled("#propFuse")).toBe(true);
-        expect(await page.isDisabled("#propBurstSpeed")).toBe(true);
-        await addModule(page, "beamTurret");
-        // Left open for the next module picked.
-        expect(await page.locator("#settingsMore").getAttribute("open")).not.toBeNull();
-        expect(await page.isVisible("#shellRow")).toBe(false);
-    });
+    it("offers a shell on a gun and not on a beam", () =>
+        withoutView(page, async () => {
+            await page.click("#newShip");
+            await addModule(page, "turret");
+            // A shell's settings tune it, so they are under More settings.
+            expect(await page.isVisible("#shellRow")).toBe(false);
+            await page.click("#settingsMore > summary");
+            expect(await page.isVisible("#shellRow")).toBe(true);
+            expect(Number(await page.inputValue("#propFuse"))).toBeCloseTo(0.02, 9);
+            expect(Number(await page.inputValue("#propFragments"))).toBe(8);
+            // One fragment is solid shot, with no burst to time or size.
+            await page.fill("#propFragments", "1");
+            await page.dispatchEvent("#propFragments", "change");
+            expect(await page.isDisabled("#propFuse")).toBe(true);
+            expect(await page.isDisabled("#propBurstSpeed")).toBe(true);
+            await addModule(page, "beamTurret");
+            // Left open for the next module picked.
+            expect(await page.locator("#settingsMore").getAttribute("open")).not.toBeNull();
+            expect(await page.isVisible("#shellRow")).toBe(false);
+        }));
 
-    it("lets an engine be thick only once its nozzle is wider than a deck", async () => {
-        await page.click("#newShip");
-        await addModule(page, "engine");
-        // The default is a deck wide, so already as deep as it is wide.
-        expect(await page.isDisabled("#propThick")).toBe(true);
-        expect(await page.getAttribute("#propThick", "title")).toMatch(/Too narrow/);
-        await page.fill("#propWidth", "6");
-        await page.dispatchEvent("#propWidth", "change");
-        expect(await page.isDisabled("#propThick")).toBe(false);
-        await page.check("#propThick");
-        expect(await page.isChecked("#propThick")).toBe(true);
-    });
+    it("lets an engine be thick only once its nozzle is wider than a deck", () =>
+        withoutView(page, async () => {
+            await page.click("#newShip");
+            await addModule(page, "engine");
+            // The default is a deck wide, so already as deep as it is wide.
+            expect(await page.isDisabled("#propThick")).toBe(true);
+            expect(await page.getAttribute("#propThick", "title")).toMatch(/Too narrow/);
+            await page.fill("#propWidth", "6");
+            await page.dispatchEvent("#propWidth", "change");
+            expect(await page.isDisabled("#propThick")).toBe(false);
+            await page.check("#propThick");
+            expect(await page.isChecked("#propThick")).toBe(true);
+        }));
 
     it("burns a selected engine, and lets it die down again", async () => {
         // How much warm colour is on the canvas. Exhaust is the only large warm
@@ -690,17 +692,18 @@ describe("the editor in a browser", () => {
         // Three pictures of the view, which software WebGL on CI takes most of the default allowance to give.
     }, 60_000);
 
-    it("swaps a module for another kind, keeping the way it faces", async () => {
-        await page.click("#newShip");
-        await addModule(page, "hullGun");
-        expect(await page.inputValue("#propAngle")).toBe("0");
-        await page.selectOption("#propKind", "engine");
-        expect(await page.inputValue("#propKind")).toBe("engine");
-        // Its bell where the barrel was.
-        expect(await page.inputValue("#propAngle")).toBe("0");
-        await page.click("#undo");
-        expect(await page.inputValue("#propKind")).toBe("hullGun");
-    });
+    it("swaps a module for another kind, keeping the way it faces", () =>
+        withoutView(page, async () => {
+            await page.click("#newShip");
+            await addModule(page, "hullGun");
+            expect(await page.inputValue("#propAngle")).toBe("0");
+            await page.selectOption("#propKind", "engine");
+            expect(await page.inputValue("#propKind")).toBe("engine");
+            // Its bell where the barrel was.
+            expect(await page.inputValue("#propAngle")).toBe("0");
+            await page.click("#undo");
+            expect(await page.inputValue("#propKind")).toBe("hullGun");
+        }));
 
     it("makes an assembly of two modules, places it again, and mirrors the copy", async () => {
         // The whole reason assembling exists, driven the way a person would: this is
@@ -1019,17 +1022,18 @@ describe("the editor in a browser", () => {
         await expect.poll(() => redPixels(page)).toBe(0);
     });
 
-    it("shows a worked-out default and a per cent as round numbers, not a float's tail", async () => {
-        await page.click("#newShip");
-        await addModule(page, "hullGun");
-        // The traverse is worked out from the mount where the layout gives none, to a tenth of a degree.
-        expect(await page.inputValue("#propTraverse")).toMatch(/^\d+(\.\d)?$/);
-        // 7% is kept as 0.07, which is 7.000000000000001 back in per cent.
-        await addModule(page, "tank");
-        await page.fill("#propFill", "7");
-        await page.press("#propFill", "Tab");
-        expect(await page.inputValue("#propFill")).toBe("7");
-    });
+    it("shows a worked-out default and a per cent as round numbers, not a float's tail", () =>
+        withoutView(page, async () => {
+            await page.click("#newShip");
+            await addModule(page, "hullGun");
+            // The traverse is worked out from the mount where the layout gives none, to a tenth of a degree.
+            expect(await page.inputValue("#propTraverse")).toMatch(/^\d+(\.\d)?$/);
+            // 7% is kept as 0.07, which is 7.000000000000001 back in per cent.
+            await addModule(page, "tank");
+            await page.fill("#propFill", "7");
+            await page.press("#propFill", "Tab");
+            expect(await page.inputValue("#propFill")).toBe("7");
+        }));
 
     it("offers barrels on a gun and not on a hull", async () => {
         // A rule of the page's own outranks the browser's for [hidden], so a row
@@ -1049,31 +1053,32 @@ describe("the editor in a browser", () => {
         expect(await page.textContent("#barrelsLabel")).toBe("barrels");
     });
 
-    it("offers barrels on a beam mount too, and charges for them", async () => {
-        // A beam is worse for having several — the aperture is divided between
-        // them and only one fires at a time — which is a reason to say what it
-        // costs rather than a reason to hide the field.
-        await page.click("#newShip");
-        await addModule(page, "beamTurret");
-        expect(await page.inputValue("#propKind")).toBe("beamTurret");
-        expect(await page.isHidden("#barrelsRow")).toBe(false);
-        // A beam has no barrel: what it has is the aperture the light leaves by.
-        expect(await page.textContent("#barrelsLabel")).toBe("emitters");
+    it("offers barrels on a beam mount too, and charges for them", () =>
+        withoutView(page, async () => {
+            // A beam is worse for having several — the aperture is divided between
+            // them and only one fires at a time — which is a reason to say what it
+            // costs rather than a reason to hide the field.
+            await page.click("#newShip");
+            await addModule(page, "beamTurret");
+            expect(await page.inputValue("#propKind")).toBe("beamTurret");
+            expect(await page.isHidden("#barrelsRow")).toBe(false);
+            // A beam has no barrel: what it has is the aperture the light leaves by.
+            expect(await page.textContent("#barrelsLabel")).toBe("emitters");
 
-        // Off the calibre, wherever the panel shows it: under the bore where there is one, else with the module's own figures.
-        const bore = async (): Promise<number> => {
-            const panel = (await page.textContent("#properties")) ?? "";
-            return Number(/calibre\s*(\d+) mm/i.exec(panel)?.[1] ?? 0);
-        };
-        const one = await bore();
-        expect(one).toBeGreaterThan(0);
+            // Off the calibre, wherever the panel shows it: under the bore where there is one, else with the module's own figures.
+            const bore = async (): Promise<number> => {
+                const panel = (await page.textContent("#properties")) ?? "";
+                return Number(/calibre\s*(\d+) mm/i.exec(panel)?.[1] ?? 0);
+            };
+            const one = await bore();
+            expect(one).toBeGreaterThan(0);
 
-        await page.fill("#propBarrels", "4");
-        await page.dispatchEvent("#propBarrels", "input");
-        expect(await page.textContent("#properties")).toMatch(/×4/);
-        // Four apertures share the one the mount had, so each is half as wide.
-        expect(await bore()).toBeLessThan(one);
-    });
+            await page.fill("#propBarrels", "4");
+            await page.dispatchEvent("#propBarrels", "input");
+            expect(await page.textContent("#properties")).toMatch(/×4/);
+            // Four apertures share the one the mount had, so each is half as wide.
+            expect(await bore()).toBeLessThan(one);
+        }));
 
     it("keeps doctrine shut and out of the way until it is asked for", async () => {
         // The feature is meant to be ignorable: a ship can be drawn without this
@@ -1512,19 +1517,20 @@ describe("the editor in a browser", () => {
         await page.reload();
     });
 
-    it("adds a module, and says what is now wrong with the layout", async () => {
-        await openShip(page, "Corvette");
-        await addModule(page, "turret");
-        // The new module lands at the middle of the view, which is inside the
-        // hull — so the layout is invalid and the panel says so. It is still a
-        // layout that can be saved and opened again: work in progress is the
-        // normal state of one, and a ship that cannot be reopened cannot be fixed.
-        expect(await page.textContent("#problems")).toMatch(/problem/);
-        expect(await page.isDisabled("#saveShip")).toBe(false);
+    it("adds a module, and says what is now wrong with the layout", () =>
+        withoutView(page, async () => {
+            await openShip(page, "Corvette");
+            await addModule(page, "turret");
+            // The new module lands at the middle of the view, which is inside the
+            // hull — so the layout is invalid and the panel says so. It is still a
+            // layout that can be saved and opened again: work in progress is the
+            // normal state of one, and a ship that cannot be reopened cannot be fixed.
+            expect(await page.textContent("#problems")).toMatch(/problem/);
+            expect(await page.isDisabled("#saveShip")).toBe(false);
 
-        await page.click("#undo");
-        expect(await page.textContent("#problems")).toMatch(/would fly/);
-    });
+            await page.click("#undo");
+            expect(await page.textContent("#problems")).toMatch(/would fly/);
+        }));
 
     it("warns of each module out of every core's reach, and flies the ship anyway", async () => {
         // A gun 30 m down a spine from a core that reaches 15 m.
@@ -1800,31 +1806,32 @@ describe("the editor in a browser", () => {
         await page.evaluate(() => window.localStorage.removeItem("scs2d.ship.My ships/Adrift"));
     });
 
-    it("imports a ship with a key it does not read, says so, and saves the key back", async () => {
-        // A hand-edited file with a typo opens rather than being refused.
-        const typo = {
-            formatVersion: 1,
-            name: "Typo",
-            colour: "red",
-            modules: [
-                { kind: "core", x: 0, y: 0, length: 4, width: 4 },
-                { kind: "turret", x: 3, y: 0, length: 2, width: 2, barrel: 8 },
-            ],
-        };
-        await page.setInputFiles("#importShip", {
-            name: "typo.json",
-            mimeType: "application/json",
-            buffer: Buffer.from(JSON.stringify(typo)),
-        });
-        await page.waitForFunction(() => /Kept as written/.test(document.getElementById("problems")?.textContent ?? ""));
-        const problems = (await page.textContent("#problems")) ?? "";
-        expect(problems).toMatch(/colour/);
-        expect(problems).toMatch(/modules\[1\][^]*barrel/);
-        await page.click("#saveShip");
-        const saved = await page.evaluate(() => window.localStorage.getItem("scs2d.ship.My ships/Typo"));
-        expect(JSON.parse(saved!)).toMatchObject({ colour: "red", modules: [{}, { barrel: 8 }] });
-        await page.evaluate(() => window.localStorage.removeItem("scs2d.ship.My ships/Typo"));
-    });
+    it("imports a ship with a key it does not read, says so, and saves the key back", () =>
+        withoutView(page, async () => {
+            // A hand-edited file with a typo opens rather than being refused.
+            const typo = {
+                formatVersion: 1,
+                name: "Typo",
+                colour: "red",
+                modules: [
+                    { kind: "core", x: 0, y: 0, length: 4, width: 4 },
+                    { kind: "turret", x: 3, y: 0, length: 2, width: 2, barrel: 8 },
+                ],
+            };
+            await page.setInputFiles("#importShip", {
+                name: "typo.json",
+                mimeType: "application/json",
+                buffer: Buffer.from(JSON.stringify(typo)),
+            });
+            await page.waitForFunction(() => /Kept as written/.test(document.getElementById("problems")?.textContent ?? ""));
+            const problems = (await page.textContent("#problems")) ?? "";
+            expect(problems).toMatch(/colour/);
+            expect(problems).toMatch(/modules\[1\][^]*barrel/);
+            await page.click("#saveShip");
+            const saved = await page.evaluate(() => window.localStorage.getItem("scs2d.ship.My ships/Typo"));
+            expect(JSON.parse(saved!)).toMatchObject({ colour: "red", modules: [{}, { barrel: 8 }] });
+            await page.evaluate(() => window.localStorage.removeItem("scs2d.ship.My ships/Typo"));
+        }));
 
     it("hands the ship being edited to a custom battle as a fleet of one", async () => {
         await openShip(page, "Corvette");

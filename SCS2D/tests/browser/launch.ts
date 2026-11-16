@@ -1,6 +1,6 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { chromium, type Browser, type Locator } from "playwright";
+import { chromium, type Browser, type Locator, type Page } from "playwright";
 
 /**
  * Launch Chromium, preferring the one Playwright installed for itself.
@@ -118,4 +118,25 @@ const CANVASES_ONLY = "*:not(canvas) { visibility: hidden !important; } canvas {
 /** Whether a console message is the GPU driver's own note, as drawing WebGL in software gives, rather than the page's. */
 export function driverNote(text: string): boolean {
     return text.includes("GL Driver Message") || text.includes("GPU stall");
+}
+
+/**
+ * Run `body` with the page's view, and the WebGL canvas under it, hidden, for a
+ * test that never looks at them. A ship view animates while anything is
+ * selected, and putting each frame on screen in software WebGL holds up every
+ * step. Hidden rather than removed, so the canvases keep their size and the
+ * camera frames as it would.
+ */
+export async function withoutView<T>(page: Page, body: () => Promise<T>): Promise<T> {
+    await page.evaluate(() => {
+        const style = document.createElement("style");
+        style.id = "withoutView";
+        style.textContent = "#view, canvas:has(+ #view) { visibility: hidden }";
+        document.head.append(style);
+    });
+    try {
+        return await body();
+    } finally {
+        await page.evaluate(() => document.getElementById("withoutView")?.remove());
+    }
 }
