@@ -24,21 +24,31 @@ export async function launchChromium(): Promise<Browser> {
 const SEEN_HELP = ["scs2d.help.ship"] as const;
 
 /**
- * Every page the browser opens has the ship editor's help already seen. A test
- * of that help takes the key away and reaches the editor by its hash, which
- * does not run the script again.
+ * Every page the browser opens has the ship editor's help marked seen as it
+ * first loads, and is loaded again if the help had already opened. Marked once
+ * rather than by an init script on every load, which left tests that reload
+ * the editor timing out; a test of the help takes the key away itself.
  */
 function quietHelp(browser: Browser): Browser {
     const newPage = browser.newPage.bind(browser);
     browser.newPage = async (options) => {
         const page = await newPage(options);
-        await page.addInitScript((keys) => {
-            try {
-                for (const key of keys) if (localStorage.getItem(key) === null) localStorage.setItem(key, "seen");
-            } catch {
-                // Storage refused: nothing to keep.
-            }
-        }, SEEN_HELP);
+        const goto = page.goto.bind(page);
+        let marked = false;
+        page.goto = async (url, gotoOptions) => {
+            const response = await goto(url, gotoOptions);
+            if (marked) return response;
+            marked = true;
+            const opened = await page.evaluate((keys) => {
+                try {
+                    for (const key of keys) if (localStorage.getItem(key) === null) localStorage.setItem(key, "seen");
+                } catch {
+                    // Storage refused: nothing to keep.
+                }
+                return document.querySelector("#shipHelp[open]") !== null;
+            }, SEEN_HELP);
+            return opened ? page.reload(gotoOptions) : response;
+        };
         return page;
     };
     return browser;
