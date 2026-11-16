@@ -51,7 +51,7 @@ locally costs more than a red CI run does. Run only the test files that bear on 
 run tests/<file>.test.ts`), the typecheck and `pnpm format:check`; then push, and fix whatever CI finds.
 
 **`pnpm golden` is the exception.** After a change to simulation behaviour, run it whole rather than waiting for
-CI to say which goldens moved. It writes the new checksums into `tests/golden.test.ts` itself, and reports each
+CI to say which goldens moved. It writes the new checksums into `tests/golden.ts` itself, and reports each
 battle's outcome and time per step against the baseline recorded beside its checksum, which shows what the change
 did to the battles and to performance. Read that before committing what it wrote.
 

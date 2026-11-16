@@ -66,7 +66,7 @@ Almost everything worth changing is in one of these:
 **Expect the golden tests to fail the moment you change anything in `sim/` or `scenarios/`.** That is them
 working: they pin the simulation's behaviour bit-for-bit, and a change in what a battle does is exactly what
 they exist to report. Run `pnpm golden` to print the new checksums and paste them into
-`tests/golden.test.ts` — but only once you know what moved and why. Copying a value out of a failure without
+`tests/golden.ts` — but only once you know what moved and why. Copying a value out of a failure without
 understanding it turns a regression into the new expected behaviour, permanently.
 
 ## Commands

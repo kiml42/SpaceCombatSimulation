@@ -12,7 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:browser": "vitest run --config vitest.browser.config.ts",
-    "test:platform": "vitest run --project unit tests/golden.test.ts -t \"recorded checksum\" && vitest run --project unit tests/architecture.test.ts tests/exhaust.test.ts tests/blueprintFile.test.ts tests/fleetFile.test.ts tests/mooredClawCut.test.ts",
+    "test:platform": "vitest run --project unit tests/golden -t \"recorded checksum\" && vitest run --project unit tests/architecture.test.ts tests/exhaust.test.ts tests/blueprintFile.test.ts tests/fleetFile.test.ts tests/mooredClawCut.test.ts",
     "typecheck": "node node_modules/typescript7/bin/tsc -p sim && node node_modules/typescript7/bin/tsc -p . && node node_modules/typescript7/bin/tsc -p tsconfig.web.json && node node_modules/typescript7/bin/tsc -p tsconfig.app.json",
     "format": "prettier --write \"**/*.{ts,tsx,js,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,css}\"",
