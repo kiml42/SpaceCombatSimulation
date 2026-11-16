@@ -170,3 +170,29 @@ describe("simulation purity", () => {
         expect(offenders).toEqual([]);
     });
 });
+
+/**
+ * CI runs only `pnpm test:platform` on most of its Node versions and on
+ * Windows: the golden checksums, and the tests that touch the host. A test
+ * reaching for the file system or the platform is one that can pass on Linux
+ * and fail elsewhere, so it has to be among them.
+ */
+describe("the platform subset", () => {
+    const TESTS = fileURLToPath(new URL(".", import.meta.url));
+    const PACKAGE = fileURLToPath(new URL("../package.json", import.meta.url));
+    const script: string = JSON.parse(readFileSync(PACKAGE, "utf8")).scripts["test:platform"];
+    const HOST = /from "node:(fs|path|os|child_process)"|process\.platform/;
+
+    it("runs the golden checksums", () => {
+        expect(script).toContain("tests/golden.test.ts");
+    });
+
+    it("runs every test that touches the host", () => {
+        const touching = sourceFiles(TESTS)
+            .map((path) => relative(TESTS, path).replace(/\\/g, "/"))
+            .filter((name) => name.endsWith(".test.ts") && !name.startsWith("browser/"))
+            .filter((name) => HOST.test(stripComments(readFileSync(join(TESTS, name), "utf8"))));
+        expect(touching).toContain("architecture.test.ts");
+        expect(touching.filter((name) => !script.includes(`tests/${name}`))).toEqual([]);
+    });
+});

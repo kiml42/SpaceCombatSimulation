@@ -125,6 +125,9 @@ Keep these working — they are the cold-start re-entry path:
   and whenever a blueprint is saved
 - `pnpm storybook` — every component's stories, at `localhost:6006`; `pnpm build-storybook` builds it
 - `pnpm sync-fleets` — copy each stock blueprint into the stock fleets that embed a design of the same name
+- `pnpm test:platform` — the golden checksums and the tests that touch the host, which is all CI runs on Node 22,
+  Node 24 and Windows; the whole suite runs once, on Linux with Node 26. A test using `node:fs`, `node:path`,
+  `node:os` or `process.platform` must be named in it (architecture.test.ts checks)
 - `pnpm test:browser` — drive that bundle in Chromium, and run every story there with its `play`
   function and an accessibility check; needs `pnpm exec playwright install chromium` first
 
