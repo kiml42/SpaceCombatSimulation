@@ -217,7 +217,11 @@ describe("the fleet editor in a browser", () => {
         expect(await page.textContent("#problems")).not.toMatch(/differs/);
         await page.click("#undo");
         expect(await page.textContent("#problems")).toMatch(/differs/);
-        await page.evaluate(() => localStorage.clear());
+        // Cleared, but for the ship editor's help, which the tests after this would find standing over it.
+        await page.evaluate(() => {
+            localStorage.clear();
+            localStorage.setItem("scs2d.help.ship", "seen");
+        });
     });
 
     it("saves a fleet to browser storage as a fleet file", async () => {
