@@ -20,7 +20,8 @@ them in a second list beside the first, and the address names the one picked (`?
 | A big capital ship with many modules | **Star Wars** (Star Destroyer, about 174 modules) |
 | Many small ships | **Swarm: 300 fighters** (302 ships), Swarm: 20 fighters (22) |
 | Gravity wells | Duel, Beam Duel, Rail Duel, Lance Duel, Binary (moving wells), Kernels, Asteroid Field, Mining, Rival Mines, Orbiting |
-| Ships putting themselves into orbit | **Orbiting** (`tests/orbiting.test.ts` runs the first two variants) |
+| Ships putting themselves into orbit | **Orbiting** (`tests/orbiting.test.ts` runs all but the 200 Dinkies) |
+| Escorts covering a ship | Orbiting: Gunship escorted by 8 Dinkies |
 | Asteroids | Asteroid Field, Kernels, Mining, Rival Mines |
 | A ship breaking in two | Split |
 | Engines as weapons | Torch Run |
@@ -82,4 +83,4 @@ them in a second list beside the first, and the address names the one picked (`?
 | Circling | ice | The same, with a Y-Wing circling | As Passes |
 | Crippled Landing | gold | 8 carriers, each with a fighter low on fuel and damaged as the variant says, coming in from its own eighth of the way round | Landing with thrusters or a main shot away; `tests/crippledLanding.test.ts` runs every variant |
 | Rock Landing | daylight | 4 Replicators moored by their claws round one unbreakable asteroid, under its pull, building nothing and with no robots, and a Raider low on fuel for each of their 8 pads, from a circular orbit 700 m out, damaged as the variant says | Landing on carriers anchored to a rock, against its pull |
-| Orbiting | dusk | One side, escorting nobody and low on fuel, round an unbreakable asteroid with 3 m/s² at its surface, 450–900 m out: 3 Corvettes from rest, or 60 or 200 Dinkies drifting every way | Ships with nothing to do getting into orbit and coasting; the crowds keeping clear of those going round the other way. The golden is the 3 Corvettes |
+| Orbiting | dusk | One side, low on fuel, round an unbreakable asteroid with 3 m/s² at its surface, 450–900 m out: 3 Corvettes from rest, 60 or 200 Dinkies drifting every way, or a Gunship with 8 Dinkies covering it | Ships with nothing to do getting into orbit and coasting; the crowds keeping clear of those going round the other way; escorts holding station on a ship in orbit. The golden is the 3 Corvettes |

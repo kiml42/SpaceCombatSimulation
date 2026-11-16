@@ -597,7 +597,10 @@ inside any one file is not contiguous.
   closer too slowly to matter within the look-ahead, or not at all, the pair is answered as it stands, and
   asked to open at a speed that grows with how deep inside it is, less what it is opening at already and no
   faster than it can stop from by the edge, so the two come to rest where covering and keeping clear
-  balance. Anything else is dodged flat out as before, and so is a rock even when it is its charge, since it
+  balance. **So, from the other side, is an escort by its charge**, which keeps clear of it no further out
+  than its station, or a charge ran from its own escorts as long as they held it, and they chased it; **and so
+  are two escorts of the same charge by each other**, both pulled to it, which dodged each other flat out as
+  the ring drifted round and came back to station kilometres later. Anything else is dodged flat out as before, and so is a rock even when it is its charge, since it
   will not move: applied to every pair, the soft edge pushed moored
   neighbours, a scavenger and the friend it was drinking from, and a tender coming home apart. It is never applied to the
   thing a craft is flying at — where it wants to be relative to *that* is already decided, and a second

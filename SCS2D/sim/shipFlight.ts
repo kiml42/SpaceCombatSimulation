@@ -1567,6 +1567,11 @@ export function avoid(
         // Its charge no further out than its station, or the two wants fight:
         // covering pulls it in to where keeping clear pushes it out.
         if (t === covering) room = min(room, max(0, shipDecide.escortBand(ships, i, ships.designs[i]!, t) - touching));
+        // And one covering it no further out than that one's station, or it runs from its own escort.
+        const escort = ships.consort[t] === i && ships.hasControl(t);
+        // Two covering the same charge are both pulled to it, as an escort and its charge are.
+        const fellow = covering !== NO_TARGET && ships.consort[t] === covering && ships.hasControl(t);
+        if (escort) room = min(room, max(0, shipDecide.escortBand(ships, t, ships.designs[t]!, i) - touching));
         const dx = THEIR_CIRCLE.x - OWN_CIRCLE.x;
         const dy = THEIR_CIRCLE.y - OWN_CIRCLE.y;
         const rvx = THEIR_CIRCLE.vx - OWN_CIRCLE.vx;
@@ -1590,10 +1595,10 @@ export function avoid(
         // far later than that for anything large.
         let when = miss < touching && speedSq > 0 ? max(0, closest - sqrt((touching * touching - miss * miss) / speedSq)) : closest;
         // Its charge, which covering pulls it towards, is kept clear of with a
-        // soft edge, so the two settle where they balance; anything else is
-        // dodged flat out, since nothing pulls it back, and so is a rock, which
-        // will not move.
-        const soft = t === covering && !rock;
+        // soft edge, so the two settle where they balance, and so are its escort
+        // and those covering the same charge; anything else is dodged flat out,
+        // since nothing pulls it back, and so is a rock, which will not move.
+        const soft = (t === covering || escort || fellow) && !rock;
         // Its charge already too close, and drawing closer too slowly to matter
         // within the look-ahead: answered as it stands now, or a pair drifting
         // together at a crawl, or at rest, would never be kept apart at all.
