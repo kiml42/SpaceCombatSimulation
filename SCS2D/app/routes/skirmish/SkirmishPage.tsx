@@ -993,7 +993,7 @@ export function SkirmishPage() {
                             </span>
                             {hand !== undefined && decided.winner !== 0 && pickButton("pickFromDecided")}
                             {ways !== undefined && decided.winner === 0 && pickButton("pickWayFromDecided", "way")}
-                            {hand === undefined && decided.winner !== 0 && mode.current === "round" && (
+                            {hand === undefined && decided.winner !== 0 && !replaying && !answeringNow && (
                                 <>
                                     {repeatLoss && (
                                         <CardProgress id="repeatLoss">
