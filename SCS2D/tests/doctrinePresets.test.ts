@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { APPROACH_FIELDS, DEFAULT_DOCTRINE, SHIP_TARGETING_FIELDS } from "../sim/index.js";
 import { DOCTRINE_PRESETS, presetDoctrine, presetFields } from "../editor/doctrinePresets.js";
+import { TORPEDO } from "../scenarios/blueprints.js";
 
 const named = (name: string) => DOCTRINE_PRESETS.find((preset) => preset.name === name)!;
 
@@ -34,5 +35,13 @@ describe("doctrine presets", () => {
     it("include a tender and an escort", () => {
         expect(presetDoctrine(named("Tender"))!.approach.deliverFuelAbove).toBeGreaterThan(0);
         expect(presetDoctrine(named("Escort"))!.targeting.escortWeight).toBeGreaterThan(0);
+    });
+
+    // From a few radii out at 150 m/s, a salvo loitered under the guns: 6 of 72 landed, against 49 for the stock torpedo.
+    it("ram as the stock torpedo does", () => {
+        const preset = presetDoctrine(named("Torpedo"))!.approach;
+        const stock = TORPEDO.doctrine!.approach!;
+        expect(preset.ramRadii).toBe(stock.ramRadii);
+        expect(preset.approachSpeed).toBe(stock.approachSpeed);
     });
 });

@@ -78,7 +78,7 @@ export const DOCTRINE_PRESETS: readonly DoctrinePreset[] = [
         name: "Torpedo",
         hint: "Goes for the biggest thing there is and rams it",
         targeting: { preferredMass: 20, ramMass: 20, massWeight: 100 },
-        approach: { ramRadii: 3, ramArmed: 1, approachSpeed: 150 },
+        approach: { ramRadii: 1000, ramArmed: 1, approachSpeed: 900 },
     },
 ];
 
