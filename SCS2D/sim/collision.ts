@@ -585,6 +585,13 @@ let sweepLeft = new Float64Array(64);
 let sweepRight = new Float64Array(64);
 let sweepOrder = new Int32Array(64);
 let candidates = new Int32Array(256);
+/**
+ * The least two modules must move across each other in a step to be swept,
+ * metres: 15 m/s at 60 steps a second. Slower is landing, grinding or sinking
+ * into rock, which may be deep by design, and nothing that slow gets through a
+ * hull.
+ */
+const SWEEP_FLOOR = 0.25;
 /** Slack on the sweep, metres: far more than rounding, so it only ever lets extra pairs through. */
 const SWEEP_SLACK = 1e-3;
 const axes = new Float64Array(MOST_CORNERS * 2 * 2);
@@ -814,10 +821,10 @@ function circleAgainst(c: Box, o: Box): number {
  * long enough to need it.
  *
  * **Given the step `dt`, a pair moving fast across each other is swept**: two
- * modules that close by more than half the thinner one in a step are tested
- * along the way rather than only where they ended, since past halfway the
- * shallowest way out is the far side, and past both they never overlap at
- * all. Where that has happened — the pair not found, found coming apart while
+ * modules that close by more than half the thinner one in a step, and by more
+ * than `SWEEP_FLOOR`, are tested along the way rather than only where they
+ * ended, since past halfway the shallowest way out is the far side, and past
+ * both they never overlap at all. Where that has happened — the pair not found, found coming apart while
  * it was closing, or found past halfway and pushed out well off the way it
  * came — the first touch along the way is the contact, and `Contacts.rewindX`
  * and `rewindY` say how far to take the pair back to it. Otherwise where they
@@ -920,7 +927,7 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts, 
                         const half = 0.5 * min(thinOf(boxA), thinOf(boxB));
                         if (consider(found, overlap(boxA, boxB), boxA, boxB, ma, mb, outlet)) found.half = half;
                         // Slow enough that where they ended says which way they met.
-                        if (!(move > half)) continue;
+                        if (!(move > half) || !(move > SWEEP_FLOOR)) continue;
                         // Already touching as the step began: met before it.
                         shifted(boxB, -moveX, -moveY, sweptB);
                         if (overlap(boxA, sweptB) > 0) continue;

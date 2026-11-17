@@ -2047,7 +2047,8 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   say which pairs *could* have met, module boxes say whether they did. **A pair closing faster than half
   the thinner module in a step is swept**, the modules tested along the way in strides of that half, since
   tested only where it ended a fast hull is found past the middle of what it hit, pushed out the far
-  side, or never inside it at all. Where that has happened — no contact, one coming apart, or one past
+  side, or never inside it at all; under `SWEEP_FLOOR` (15 m/s) nothing is swept, since landing, grinding
+  and rock's give are slower and nothing that slow gets through a hull. Where that has happened — no contact, one coming apart, or one past
   halfway pushing out well off the way they came — the first touch is the contact, and the pair is taken
   back to it, shared by their masses so their centre of mass stays put; otherwise where they ended
   stands. Rotation over the step is not swept. Three approximations, all of
