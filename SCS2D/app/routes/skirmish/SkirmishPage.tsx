@@ -148,16 +148,11 @@ const Decided = styled.div`
     }
 `;
 
-/** A button's label with what to fix under it. */
-const Labelled = styled.span`
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-`;
-
-const Fix = styled.span`
+/** What stands between the fleet and a fight, under the buttons that would fix it. */
+const Fix = styled.p`
+    margin: 0.4rem 0 0;
+    color: var(--colour-warning);
     font-size: var(--font-size-small);
-    font-weight: normal;
 `;
 
 const NotReady = styled.div`
@@ -777,7 +772,7 @@ export function SkirmishPage() {
     const fault = skirmish === null ? null : fleetFault(skirmish.player);
     const fits = skirmish !== null && canFight(skirmish);
     const limit = skirmish === null || fault !== null ? null : overLimit(skirmish);
-    // What to fix in your fleet, in a few words for the Edit fleet button.
+    // What to fix in your fleet, in a few words under the buttons.
     const fix =
         skirmish === null || fits
             ? null
@@ -1021,10 +1016,7 @@ export function SkirmishPage() {
                                             void navigate(fleetRoute(skirmish.player, skirmish));
                                         }}
                                     >
-                                        <Labelled>
-                                            Edit fleet
-                                            {fix !== null && <Fix id="editFleetWhy">{fix}</Fix>}
-                                        </Labelled>
+                                        Edit fleet
                                     </EditLink>
                                     {started && (
                                         <Button
@@ -1041,6 +1033,7 @@ export function SkirmishPage() {
                                     )}
                                 </Buttons>
                             )}
+                            {!answeringNow && fix !== null && <Fix id="editFleetWhy">Edit fleet to fight: {fix}.</Fix>}
                             <Outcome id="outcome" className={outcome.kind}>
                                 {outcome.text}
                             </Outcome>
