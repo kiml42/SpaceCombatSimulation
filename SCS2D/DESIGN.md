@@ -2047,8 +2047,10 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   say which pairs *could* have met, module boxes say whether they did. **A pair closing faster than half
   the thinner module in a step is swept**, the modules tested along the way in strides of that half, since
   tested only where it ended a fast hull is found past the middle of what it hit, pushed out the far
-  side, or never inside it at all; the first touch is the contact, and the pair is taken back to it,
-  shared by their masses so their centre of mass stays put. Rotation over the step is not swept. Three approximations, all of
+  side, or never inside it at all. Where that has happened — no contact, one coming apart, or one past
+  halfway pushing out well off the way they came — the first touch is the contact, and the pair is taken
+  back to it, shared by their masses so their centre of mass stays put; otherwise where they ended
+  stands. Rotation over the step is not swept. Three approximations, all of
   them affordable because a collision here is a rare violent event rather than a pile of resting
   bodies: **one contact per pair of hulls**, the deepest module against the deepest module, where a
   manifold of two points would be needed to hold two hulls flat together; the contact acts through the

@@ -817,8 +817,11 @@ function circleAgainst(c: Box, o: Box): number {
  * modules that close by more than half the thinner one in a step are tested
  * along the way rather than only where they ended, since past halfway the
  * shallowest way out is the far side, and past both they never overlap at
- * all. The first touch along the way is the contact, and `Contacts.rewindX`
- * and `rewindY` say how far to take the pair back to it.
+ * all. Where that has happened — the pair not found, found coming apart while
+ * it was closing, or found past halfway and pushed out well off the way it
+ * came — the first touch along the way is the contact, and `Contacts.rewindX`
+ * and `rewindY` say how far to take the pair back to it. Otherwise where they
+ * ended stands, as for any other pair.
  */
 export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts, dt = 0): void {
     out.clear();
@@ -915,17 +918,12 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts, 
 
                         const outlet = (pa < firstA ? 0 : OUTLET_A) | (pb < firstB ? 0 : OUTLET_B);
                         const half = 0.5 * min(thinOf(boxA), thinOf(boxB));
+                        if (consider(found, overlap(boxA, boxB), boxA, boxB, ma, mb, outlet)) found.half = half;
                         // Slow enough that where they ended says which way they met.
-                        if (!(move > half)) {
-                            consider(found, overlap(boxA, boxB), boxA, boxB, ma, mb, outlet);
-                            continue;
-                        }
-                        // Already touching as the step began: met before it, so judged as any other.
+                        if (!(move > half)) continue;
+                        // Already touching as the step began: met before it.
                         shifted(boxB, -moveX, -moveY, sweptB);
-                        if (overlap(boxA, sweptB) > 0) {
-                            consider(found, overlap(boxA, boxB), boxA, boxB, ma, mb, outlet);
-                            continue;
-                        }
+                        if (overlap(boxA, sweptB) > 0) continue;
                         // In strides of half the thinner, so the first overlap is a shallow one.
                         const strides = ceil(move / half);
                         for (let k = 1; k <= strides; k++) {
@@ -946,12 +944,18 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts, 
             }
         }
 
-        // The first touch along the way, if they met partway, else the deepest where they ended.
-        const contact = met.when < 1 ? met : found;
+        // Where they ended says which way they met unless it misses them, has them
+        // coming apart while they were closing, or is past halfway through what it
+        // found and pushing them out more than 60° off the way they came: then the
+        // first touch along the way.
+        const along = found.nx * moveX + found.ny * moveY;
+        const wrong = !(found.depth > 0) || along >= 0 || (found.depth >= found.half && along > -0.5 * move);
+        const swept = met.when < 1 && wrong;
+        const contact = swept ? met : found;
         if (contact.depth > 0) {
             out.push(i, j, contact.x, contact.y, contact.nx, contact.ny, contact.depth, contact.moduleA, contact.moduleB);
             out.outlet[out.count - 1] = contact.outlet;
-            if (met.when < 1) {
+            if (swept) {
                 out.rewindX[out.count - 1] = moveX * (1 - met.when);
                 out.rewindY[out.count - 1] = moveY * (1 - met.when);
             }
@@ -970,18 +974,20 @@ interface Found {
     moduleB: number;
     outlet: number;
     when: number;
+    /** Half the thinner of the two modules that met there: past that, the shallowest way out is the far side. */
+    half: number;
 }
 
-const blankFound = (): Found => ({ depth: 0, x: 0, y: 0, nx: 0, ny: 0, moduleA: -1, moduleB: -1, outlet: 0, when: 1 });
+const blankFound = (): Found => ({ depth: 0, x: 0, y: 0, nx: 0, ny: 0, moduleA: -1, moduleB: -1, outlet: 0, when: 1, half: 0 });
 /** The deepest overlap where the hulls ended the step. */
 const found = blankFound();
 /** The earliest a fast pair touched partway through it. */
 const met = blankFound();
 const sweptB = blankBox();
 
-/** Keep `depth`, the overlap `overlap` just found between `a` and `b`, in `into` if it is deeper than what is there. */
-function consider(into: Found, depth: number, a: Box, b: Box, moduleA: number, moduleB: number, outlet: number): void {
-    if (!(depth > into.depth)) return;
+/** Keep `depth`, the overlap `overlap` just found between `a` and `b`, in `into` if it is deeper than what is there, and say whether it was. */
+function consider(into: Found, depth: number, a: Box, b: Box, moduleA: number, moduleB: number, outlet: number): boolean {
+    if (!(depth > into.depth)) return false;
     const nx = axes[0]!;
     const ny = axes[1]!;
     // A circle's contact is found with its overlap.
@@ -994,6 +1000,7 @@ function consider(into: Found, depth: number, a: Box, b: Box, moduleA: number, m
     into.moduleA = moduleA;
     into.moduleB = moduleB;
     into.outlet = outlet;
+    return true;
 }
 
 /** Whether a point at `x`, `y` that got there by moving `moveX`, `moveY` came within `reach` of the origin on the way. */

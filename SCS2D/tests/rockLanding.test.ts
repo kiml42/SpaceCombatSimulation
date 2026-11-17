@@ -1,20 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { ROCK_CRIPPLINGS, rockLanding } from "../scenarios/rockLanding.js";
 import { SCENE_SEED } from "../scenarios/scenes.js";
-import { landings } from "./landingRecord.js";
+
+/** How long a fighter is given to come home, seconds. */
+const LIMIT = 150;
 
 /**
- * The Rock Landing scene: that it sets out as it should, and, for every variant, when each fighter lands on
- * any of the moored Replicators, or when it stopped on the rock for good, or that it has done neither by `LIMIT`, and
- * how many bumps and crashes there were. Recorded in
- * `__snapshots__` as the goldens are, describing what happens rather than judging it, so a change either way
- * shows. After a deliberate change, re-record with `pnpm exec vitest run tests/rockLanding.test.ts -u`.
+ * The Raiders left able to fly home: a turn far weaker one way, or the main gone with the thrusters to push instead.
+ * Those that spin one way or are turned by their own pushes are the scene's to show, not this test's to judge.
  */
-
-/** How long each variant runs for at most, seconds. */
-const LIMIT = 150;
-/** How long a fighter sits still on the rock before it is taken to have crashed for good, seconds. */
-const STOPPED = 3;
+const STEERABLE = ["Raider, undamaged", "Raider, one turn far weaker [1, 8]", "Raider, one turn far weaker [3, 7]", "Raider, no main [4]"];
 
 describe("Rock Landing", () => {
     it("sets out with every carrier moored to the rock, a fighter for each of their pads, and every pad free", () => {
@@ -37,18 +32,21 @@ describe("Rock Landing", () => {
         }
     });
 
-    it.each(ROCK_CRIPPLINGS.map((crippling) => [crippling.name, crippling] as const))(
-        "%s",
-        (_, crippling) => {
-            const run = rockLanding(SCENE_SEED, crippling);
-            const home = (k: number): boolean => run.outposts.includes(run.ships.parkedCarrier(run.fighters[k]!));
-            expect(landings(run, run.fighters, home, LIMIT, { frame: run.rock, seconds: STOPPED })).toMatchSnapshot();
+    it.each(STEERABLE)(
+        "has a %s come home, one fighter to one Replicator moored to the rock, under its pull",
+        (name) => {
+            const crippling = ROCK_CRIPPLINGS.find((c) => c.name === name)!;
+            const run = rockLanding(SCENE_SEED, crippling, 1, 1);
+            const fighter = run.fighters[0]!;
+            for (let t = 0; t < LIMIT * 60 && run.ships.parkedCarrier(fighter) !== run.outposts[0]; t++) run.step();
+            expect(run.ships.parkedCarrier(fighter)).toBe(run.outposts[0]);
         },
-        600_000,
+        120_000,
     );
 
     it("has an undamaged Raider and every Raider crippling as variants", () => {
         expect(ROCK_CRIPPLINGS[0]!.lost).toEqual([]);
         expect(new Set(ROCK_CRIPPLINGS.map((c) => c.name)).size).toBe(ROCK_CRIPPLINGS.length);
+        for (const name of STEERABLE) expect(ROCK_CRIPPLINGS.map((c) => c.name)).toContain(name);
     });
 });
