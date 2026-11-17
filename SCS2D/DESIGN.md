@@ -1771,6 +1771,11 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   reaches it. Gunfire and beams shatter modules too and throw nothing: their energy already goes through
   armour into the internals. This is what makes a torpedo's spent nose a spray of shrapnel into its
   target, a step towards the warhead §2 promises.
+- **A piece broken off too small to keep flies on as shrapnel** (`throwShrapnel`): under 2 t with
+  nothing to fly it, it is never made a body, but its metal is still going where its hull was. It flies
+  on as one round of its mass, as wide as its own footprint, at the velocity it broke off with, through
+  the hull it came off and for as long as a fragment. So a torpedo cut apart on its way in, or torn
+  apart on its target, still strikes it, and a fighter shot to pieces beside a carrier sprays it.
 - **How hard a contact was is the share of the weaker module it met that its lost energy would take**
   (`sim/contactGrades.ts`), which is what a check on piloting counts rather than raw contacts: a
   millionth or less is a touch, hulls resting or rocking together, and counts as nothing; from

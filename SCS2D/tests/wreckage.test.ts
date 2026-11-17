@@ -1,5 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
-import { compileBlueprint, ROUND_WRECKAGE, throwWreckage, type Blueprint, type ProjectileSpec } from "../sim/index.js";
+import {
+    compileBlueprint,
+    joints,
+    Projectiles,
+    ROUND_SHRAPNEL,
+    ROUND_WRECKAGE,
+    Ships,
+    throwShrapnel,
+    throwWreckage,
+    World,
+    type Blueprint,
+    type ProjectileSpec,
+} from "../sim/index.js";
 import { makeBattle } from "../scenarios/battle.js";
 import { CORVETTE, TORPEDO } from "../scenarios/blueprints.js";
 
@@ -81,5 +93,68 @@ describe("a module shattered in a collision", () => {
         const nose = 0;
         run.ships.damage.absorb(torpedoBody, nose, 10 * run.ships.damage.capacityOf(torpedoBody, nose));
         expect(throwWreckage(run.ships, run.world.bodies, run.projectiles, run.collisions.contacts, run.world.rng)).toBe(0);
+    });
+});
+
+/** A core with a plate on its end under the 2 t a piece is kept at, under way and turning. */
+const ARM = compileBlueprint({
+    name: "Arm",
+    modules: [
+        { kind: "core", x: -4, y: 0, length: 4, width: 4 },
+        { kind: "structure", x: -1.7, y: 0, length: 0.6, width: 0.6 },
+    ],
+});
+
+describe("a piece broken off too small to keep", () => {
+    /** The arm with its plate's weld cut and severed, and what it threw; with the world's momentum before and after. */
+    const breakOff = () => {
+        const world = new World({ dt: 1 / 60, seed: 3 });
+        const ships = new Ships();
+        const ship = ships.spawn(world, { design: ARM, x: 0, y: 0, vx: 50, vy: -20, angularVel: 0.5, team: 0 });
+        const body = world.bodies.indexOf(ships.body(ship));
+        const momentum = (projectiles?: Projectiles): { x: number; y: number } => {
+            const b = world.bodies;
+            let x = ships.discardedPx;
+            let y = ships.discardedPy;
+            for (let i = 0; i < b.highWater; i++) {
+                if (b.alive[i] === 0) continue;
+                x += b.mass[i]! * b.vx[i]!;
+                y += b.mass[i]! * b.vy[i]!;
+            }
+            for (let i = 0; projectiles !== undefined && i < projectiles.highWater; i++) {
+                if (projectiles.alive[i] === 0) continue;
+                x += projectiles.mass[i]! * projectiles.vx[i]!;
+                y += projectiles.mass[i]! * projectiles.vy[i]!;
+            }
+            return { x, y };
+        };
+        const before = momentum();
+        const all = joints(ships.currentStructure(ship));
+        ships.damage.cutWeld(body, 0, all[0]!.width);
+        ships.sever(world);
+        const projectiles = new Projectiles(16);
+        const thrown = throwShrapnel(ships, projectiles);
+        return { ships, body, projectiles, thrown, before, after: momentum(projectiles) };
+    };
+
+    it("flies on as shrapnel, through the hull it came off", () => {
+        const { projectiles, thrown, body } = breakOff();
+        expect(thrown).toBe(1);
+        const i = Array.from({ length: projectiles.highWater }, (_, k) => k).find((k) => projectiles.alive[k] === 1)!;
+        expect(projectiles.kind[i]).toBe(ROUND_SHRAPNEL);
+        expect(projectiles.owner[i]).toBe(body);
+        expect(projectiles.mass[i]).toBeGreaterThan(0);
+    });
+
+    it("keeps the momentum it broke off with, and is not counted discarded as well", () => {
+        const { before, after, ships } = breakOff();
+        expect(after.x).toBeCloseTo(before.x, 6);
+        expect(after.y).toBeCloseTo(before.y, 6);
+        expect(ships.discarded).toBeCloseTo(0, 6);
+    });
+
+    it("is thrown once", () => {
+        const { ships, projectiles } = breakOff();
+        expect(throwShrapnel(ships, projectiles)).toBe(0);
     });
 });

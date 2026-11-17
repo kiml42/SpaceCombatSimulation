@@ -10,6 +10,7 @@ import { clamp, cos, length, max, min, round, sin, sqrt } from "./math.js";
 import type { Robot } from "./robots.js";
 import { overriddenDoctrine } from "./doctrine.js";
 import type { World } from "./world.js";
+import { BOTH_LAYERS, OWN_LAYERS } from "./hull.js";
 import { fixed } from "./fixed.js";
 import type { Contacts } from "./collision.js";
 import { type Ships, NO_TARGET, WHOLE_SHIP } from "./ships.js";
@@ -325,6 +326,18 @@ export function heldMass(ships: Ships, b: number, design: ShipDesign, m: number)
             (stats.metal - ships.metal.held(b, m) - ships.metal.loadedAt(b, m)) -
             ships.damage.shedAt(b, m),
     );
+}
+
+/** The layers a piece of a body in `layers` flies on in: every one, where each module had its own. */
+function reachOfLayers(layers: number): number {
+    return layers === OWN_LAYERS ? BOTH_LAYERS : layers;
+}
+
+/** The side of a square as big as a design's modules together, metres: how wide a piece meets a plate. */
+function footprint(design: ShipDesign): number {
+    let area = 0;
+    for (const m of design.modules) area += m.spec.length * m.spec.width;
+    return sqrt(area);
 }
 
 /**
@@ -908,6 +921,19 @@ export function detach(ships: Ships, world: World, i: number, design: ShipDesign
         if (mass > 0) for (const m of keep) breakUpModule(ships, bodies, i, b, design, m, true);
         ships.discardedPx += mass * vx;
         ships.discardedPy += mass * vy;
+        // And flies on, as shrapnel, in what it was flying in.
+        if (mass > 0) {
+            const s = ships.shrapnel;
+            const k = s.count++;
+            s.x[k] = bodies.x[b]! + offset.x;
+            s.y[k] = bodies.y[b]! + offset.y;
+            s.vx[k] = vx;
+            s.vy[k] = vy;
+            s.mass[k] = mass;
+            s.size[k] = footprint(chunk);
+            s.owner[k] = b;
+            s.layers[k] = reachOfLayers(ships.layersOf(b));
+        }
         // Its inertia taken as its full design's, scaled to what it weighs.
         ships.discardedL +=
             ((chunk.inertia * mass) / chunk.mass) * spin + mass * ((bodies.x[b]! + offset.x) * vy - (bodies.y[b]! + offset.y) * vx);

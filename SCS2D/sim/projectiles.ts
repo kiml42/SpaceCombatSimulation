@@ -59,6 +59,8 @@ import { BOTH_LAYERS, HULL_LAYER, WEAPONS_LAYER, type Hulls } from "./hull.js";
 
 /** `kind` of a piece of a shattered module flying on (`wreckage.ts`): cold metal, drawn as wreckage, not as a tracer. */
 export const ROUND_WRECKAGE = 1;
+/** `kind` of a piece broken off too small to keep, flying on (`throwShrapnel`): drawn as wreckage too. */
+export const ROUND_SHRAPNEL = 2;
 
 /** A projectile with no firing ship to pass through. */
 export const NO_OWNER = -1;

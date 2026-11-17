@@ -478,6 +478,22 @@ export class Ships {
     readonly shatterBlows = new Map<number, readonly number[]>();
     /** Each module shattered in a collision this step that has flown on as wreckage, by `blowKey`. Empty between steps. */
     readonly thrown = new Set<number>();
+    /**
+     * Pieces broken off this step too small to keep (`detach`), waiting to fly on
+     * as shrapnel (`throwShrapnel`): where, how fast, what they weigh, how big,
+     * the body they came off and the layers it was in. Empty between steps.
+     */
+    readonly shrapnel = {
+        x: [] as number[],
+        y: [] as number[],
+        vx: [] as number[],
+        vy: [] as number[],
+        mass: [] as number[],
+        size: [] as number[],
+        owner: [] as number[],
+        layers: [] as number[],
+        count: 0,
+    };
 
     /**
      * The same, for beams and plumes, which get through what they have already

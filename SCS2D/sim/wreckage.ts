@@ -3,7 +3,7 @@ import type { Contacts } from "./collision.js";
 import { SHATTER } from "./damage.js";
 import { moduleLayers } from "./hull.js";
 import { cos, log, max, min, pow, sin, sqrt, TAU } from "./math.js";
-import { ROUND_WRECKAGE, type Projectiles } from "./projectiles.js";
+import { ROUND_SHRAPNEL, ROUND_WRECKAGE, type Projectiles } from "./projectiles.js";
 import type { Rng } from "./rng.js";
 import { blowKey, heldMass } from "./shipBreakup.js";
 import type { Ships } from "./ships.js";
@@ -184,5 +184,46 @@ export function throwWreckage(ships: Ships, bodies: Bodies, projectiles: Project
         ships.discardedL -= mass * (mx * postY - my * postX);
         thrown += count;
     }
+    return thrown;
+}
+
+/**
+ * Throw on as shrapnel every piece broken off this step too small to keep
+ * (`detach`), into `projectiles`, and say how many. Call after severing.
+ *
+ * Such a piece is never put in the world as a body, but its metal is still
+ * going where its hull was going: a torpedo cut apart on its way in, or torn
+ * apart on its target, goes on into it. Each flies on as one round of its own
+ * mass, as wide as its footprint, at the velocity it broke off with, through
+ * the hull it came off and for `WRECKAGE_LIFE`. It was counted discarded as
+ * it broke off, and is taken back out of that account here.
+ */
+export function throwShrapnel(ships: Ships, projectiles: Projectiles): number {
+    const s = ships.shrapnel;
+    for (let k = 0; k < s.count; k++) {
+        const mass = s.mass[k]!;
+        const x = s.x[k]!;
+        const y = s.y[k]!;
+        const vx = s.vx[k]!;
+        const vy = s.vy[k]!;
+        projectiles.spawn({
+            x,
+            y,
+            vx,
+            vy,
+            width: s.size[k]!,
+            ttl: WRECKAGE_LIFE,
+            mass,
+            owner: s.owner[k]!,
+            layers: s.layers[k]!,
+            kind: ROUND_SHRAPNEL,
+        });
+        ships.discarded -= mass;
+        ships.discardedPx -= mass * vx;
+        ships.discardedPy -= mass * vy;
+        ships.discardedL -= mass * (x * vy - y * vx);
+    }
+    const thrown = s.count;
+    s.count = 0;
     return thrown;
 }
