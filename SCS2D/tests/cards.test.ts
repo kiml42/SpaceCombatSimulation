@@ -10,7 +10,7 @@ describe("the upgrade card deck", () => {
         expect(DECK).toEqual(parseDeck(deckFile));
         expect(new Set(DECK.map((card) => card.id)).size).toBe(DECK.length);
         expect(DECK.filter(isSimple).map((card) => card.id)).toEqual(["metal", "fuel", "build", "ship", "spread"]);
-        expect(DECK.length).toBe(13);
+        expect(DECK.length).toBe(15);
     });
 
     it("refuses a card it cannot use", () => {
@@ -55,6 +55,20 @@ describe("cards held", () => {
         const cut = withCards(START, Array<string>(10).fill("ship-for-metal"));
         expect(cut.maxShips).toBe(2);
         expect(withCards({ ...START, maxShips: 1 }, ["ship-for-metal"]).maxShips).toBe(1);
+    });
+
+    it("trade metal for many more ships, or ships and fuel for much more metal", () => {
+        const swarm = withCards(START, ["metal-for-ships"]);
+        expect(swarm.maxShips).toBe(14);
+        expect(swarm.budget.metal).toBeCloseTo(700);
+        const iron = withCards(START, ["ship-fuel-for-metal"]);
+        expect(iron.maxShips).toBe(2);
+        expect(iron.budget.fuel).toBeCloseTo(90);
+        expect(iron.budget.metal).toBeCloseTo(1400);
+        // Not for a side already at its fewest ships, unless a swarm has made room.
+        const ironclads = DECK.find((c) => c.id === "ship-fuel-for-metal")!;
+        expect(fits(START, ["ship-fuel-for-metal"], ironclads)).toBe(false);
+        expect(fits(START, ["metal-for-ships", "ship-fuel-for-metal"], ironclads)).toBe(true);
     });
 
     it("are drawn only where they would not cut a limit past its floor", () => {
