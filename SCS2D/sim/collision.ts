@@ -143,6 +143,8 @@ export class Contacts {
     lost = new Float64Array(64);
     /** The share of `lost` that `a`'s hull takes, the side that crumples taking more; `b`'s takes the rest. */
     shareA = new Float64Array(64);
+    /** 1 where a front gave way before the impulse could stop the two, so they go on closing. */
+    crumpled = new Uint8Array(64);
     count = 0;
 
     clear(): void {
@@ -171,6 +173,7 @@ export class Contacts {
         this.spareB[i] = 0;
         this.lost[i] = NaN;
         this.shareA[i] = 0.5;
+        this.crumpled[i] = 0;
     }
 
     private grow(): void {
@@ -210,6 +213,9 @@ export class Contacts {
         shareA.set(this.shareA);
         this.lost = lost;
         this.shareA = shareA;
+        const crumpled = new Uint8Array(size);
+        crumpled.set(this.crumpled);
+        this.crumpled = crumpled;
         a.set(this.a);
         b.set(this.b);
         x.set(this.x);
@@ -999,6 +1005,13 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts, 
         const wrong = !(found.depth > 0) || along >= 0 || (found.depth >= found.half && along > -0.5 * move);
         const swept = met.when < 1 && wrong;
         const contact = swept ? met : found;
+        // Wrong with no first touch to go back to — deep in, crumpling as it goes —
+        // they are met the way they are closing.
+        const closingWay = !swept && wrong && found.depth > 0 && move > SWEEP_FLOOR;
+        if (closingWay) {
+            found.nx = -moveX / move;
+            found.ny = -moveY / move;
+        }
         if (contact.depth > 0) {
             out.push(i, j, contact.x, contact.y, contact.nx, contact.ny, contact.depth, contact.moduleA, contact.moduleB);
             out.outlet[out.count - 1] = contact.outlet;
@@ -1329,6 +1342,7 @@ export function resolveContacts(bodies: Bodies, contacts: Contacts, hulls?: Hull
                 const c = -vn;
                 impulse = (c - sqrt(max(0, c * c - 2 * invMassSum * most))) / invMassSum;
                 contacts.lost[k] = most;
+                contacts.crumpled[k] = 1;
                 crumpled = true;
             }
         }

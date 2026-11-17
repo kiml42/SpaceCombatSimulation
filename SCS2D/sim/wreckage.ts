@@ -114,7 +114,8 @@ export function throwWreckage(ships: Ships, bodies: Bodies, projectiles: Project
         if (!(-sign * (relX * contacts.nx[k]! + relY * contacts.ny[k]!) > 0)) continue;
         const speed = sqrt(relX * relX + relY * relY);
 
-        const mass = WRECKAGE_SHARE * heldMass(ships, b, design, m);
+        // All of it where its front gave way and its hull went on, which nothing stopped.
+        const mass = (contacts.crumpled[k] === 1 ? 1 : WRECKAGE_SHARE) * heldMass(ships, b, design, m);
         const count = min(MOST_FRAGMENTS, max(1, (mass / LEAST_FRAGMENT) | 0), 2 + ((rng.nextFloat() * (MOST_FRAGMENTS - 1)) | 0));
         if (!(mass > 0)) continue;
 
