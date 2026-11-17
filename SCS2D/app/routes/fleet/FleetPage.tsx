@@ -13,7 +13,7 @@ import { emptyBlueprint, Library, nextName, SHIPS, unusedName } from "~/editor/l
 import { snap } from "~/editor/edit";
 import type { KeyRow } from "~/host/keyHelp";
 import { snapStep } from "~/render/camera";
-import { inSkirmish, pick, playerLimits, serialiseSkirmish, type Skirmish } from "~/scenarios/skirmish";
+import { inSkirmish, playerLimits, serialiseSkirmish, type Skirmish } from "~/scenarios/skirmish";
 import { compileBlueprint, parseBlueprint, parseFleet, serialiseFleet, type Blueprint, type Fleet } from "~/sim/index";
 import { CommitText } from "~/ui/fields/CommitText";
 import { LiveryPanel } from "~/features/livery/LiveryPanel";
@@ -25,7 +25,7 @@ import { designOf, fromLibrary } from "./fleetOptions";
 import { LibraryOptions } from "./LibraryOptions";
 import { DesignList, FleetProblems, FleetStats } from "./FleetReport";
 import { SelectionPanel } from "./SelectionPanel";
-import { skirmishBlock, SkirmishBudget, SkirmishCards, SkirmishTitle } from "./SkirmishCard";
+import { backBlock, SkirmishBudget, SkirmishCards, SkirmishTitle } from "./SkirmishCard";
 import { Button } from "~/ui/buttons/Button";
 import { useHelp } from "~/features/help/Help";
 import { PauseMenu } from "~/features/menu/PauseMenu";
@@ -211,8 +211,8 @@ export function FleetPage() {
     const [search, setSearch] = useSearchParams();
     const navigate = useNavigate();
     const [start] = useState(() => handed(search));
-    // Changed here only by picking an upgrade card; the fleet is the document's.
-    const [skirmish, setSkirmish] = useState(start?.skirmish ?? null);
+    // Not changed here: the fleet is the document's.
+    const [skirmish] = useState(start?.skirmish ?? null);
     const [doc] = useState(() => {
         const first = fleets.first();
         const named = search.get("open");
@@ -512,9 +512,9 @@ export function FleetPage() {
                         id="backToSkirmish"
                         href="#/skirmish"
                         title="Fight the skirmish round with this fleet"
-                        aria-disabled={skirmishBlock(now, flies) !== null}
+                        aria-disabled={backBlock(now, flies) !== null}
                         onClick={(event) => {
-                            const block = skirmishBlock(now, flies);
+                            const block = backBlock(now, flies);
                             if (block !== null) {
                                 event.preventDefault();
                                 window.alert(flies ? block : `Fix the fleet first: ${view.faults[0]}`);
@@ -624,7 +624,7 @@ export function FleetPage() {
                     ) : (
                         <>
                             <SkirmishBudget skirmish={now} flies={flies} />
-                            <SkirmishCards skirmish={now} onPick={(id) => setSkirmish((was) => (was === null ? was : pick(was, id)))} />
+                            <SkirmishCards skirmish={now} />
                         </>
                     )}
                     <section>

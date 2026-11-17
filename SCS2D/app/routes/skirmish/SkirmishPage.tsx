@@ -15,6 +15,7 @@ import { DOCTRINE_KEY, DoctrinePanel } from "~/features/orders/DoctrinePanel";
 import { OrderBar } from "~/features/orders/OrderBar";
 import { useOrderState } from "~/features/orders/orderState";
 import { BudgetTable } from "~/features/skirmish/BudgetTable";
+import { EarnedCard } from "~/features/skirmish/EarnedCard";
 import { AbandonDialog } from "~/features/skirmish/AbandonDialog";
 import { download, downloadSkirmish, skirmishStatus, skirmishTitle } from "~/features/skirmish/skirmishFile";
 import { useSkirmish } from "~/features/skirmish/SkirmishProvider";
@@ -46,6 +47,7 @@ import {
     overLimit,
     parseSkirmish,
     parseSkirmishSettings,
+    pick,
     playerLimits,
     roundBattle,
     roundSetup,
@@ -133,6 +135,12 @@ const Decided = styled.div`
     strong {
         display: block;
         font-size: 15px;
+    }
+
+    button {
+        display: block;
+        margin-top: 0.45rem;
+        pointer-events: auto;
     }
 
     &.won strong {
@@ -390,6 +398,9 @@ export function SkirmishPage() {
     const [fightable, setFightable] = useState(false);
     const [roundOver, setRoundOver] = useState(false);
     const [begun, setBegun] = useState(false);
+    // Whether the hand dealt is open to pick from, and whether the battle was running when it was opened.
+    const [picking, setPicking] = useState(false);
+    const resumeAfterPick = useRef(false);
     const [replaying, setReplaying] = useState(false);
     const [watching, setWatching] = useState(true);
     const [enemyCost, setEnemyCost] = useState<Budget | null>(null);
@@ -571,16 +582,18 @@ export function SkirmishPage() {
             skirmishes.setSkirmish(going);
             skirmishes.answer();
         } else {
+            const after = lost(current);
+            const then = after.hand !== undefined ? "You have earned an upgrade card." : "Edit your fleet and try again.";
             setOutcome({
                 text:
                     result.winner < 0
                         ? result.reason === "time"
-                            ? `Stalemate ${at}: a draw is a loss. Edit your fleet and try again.`
-                            : `Neither side can fight on ${at}: a draw is a loss. Edit your fleet and try again.`
-                        : `Defeat ${at}. Edit your fleet and try again.`,
+                            ? `Stalemate ${at}: a draw is a loss. ${then}`
+                            : `Neither side can fight on ${at}: a draw is a loss. ${then}`
+                        : `Defeat ${at}. ${then}`,
                 kind: "lost",
             });
-            skirmishes.setSkirmish(lost(current));
+            skirmishes.setSkirmish(after);
         }
     };
 
@@ -776,30 +789,27 @@ export function SkirmishPage() {
     const limit = skirmish === null || fault !== null ? null : overLimit(skirmish);
     // What to fix in your fleet, in a few words under the buttons.
     const fix =
-        skirmish === null || fits
+        skirmish === null || fits || skirmish.hand !== undefined
             ? null
-            : skirmish.hand !== undefined
-              ? "pick an upgrade card"
-              : skirmish.player.ships.length === 0
-                ? "add some ships"
-                : fault !== null
-                  ? "a design won't fly"
-                  : limit !== null
-                    ? limit
-                    : `over budget on ${overBudget(skirmish)}`;
+            : skirmish.player.ships.length === 0
+              ? "add some ships"
+              : fault !== null
+                ? "a design won't fly"
+                : limit !== null
+                  ? limit
+                  : `over budget on ${overBudget(skirmish)}`;
     // Why your fleet cannot fight the round, if it cannot.
+    // A hand dealt is offered over the battle instead.
     const fleetProblem =
-        skirmish === null || fits
+        skirmish === null || fits || skirmish.hand !== undefined
             ? null
-            : skirmish.hand !== undefined
-              ? "You have earned an upgrade card: edit your fleet to pick one."
-              : skirmish.player.ships.length === 0
-                ? "Your fleet has no ships: edit it to add some."
-                : fault !== null
-                  ? `Your fleet would not fly: ${fault}. Edit it to fix that.`
-                  : limit !== null
-                    ? `Your fleet has ${limit}: edit it to fit.`
-                    : "Your fleet is over budget: edit it to cut it down.";
+            : skirmish.player.ships.length === 0
+              ? "Your fleet has no ships: edit it to add some."
+              : fault !== null
+                ? `Your fleet would not fly: ${fault}. Edit it to fix that.`
+                : limit !== null
+                  ? `Your fleet has ${limit}: edit it to fit.`
+                  : "Your fleet is over budget: edit it to cut it down.";
     const answeringNow = skirmish?.won !== undefined;
     // Not watching the search, the history has the battle's room, the two sides of each match side by side.
     const wideHistory = answeringNow && !watching && !replaying && answering.latest?.found == null;
@@ -820,7 +830,18 @@ export function SkirmishPage() {
     const found = answering.latest?.found ?? null;
     const latest = answering.latest;
     // The one thing to press next in the round's buttons.
-    const next = answeringNow ? null : fits && !roundOver ? "fight" : "edit";
+    const hand = answeringNow ? undefined : skirmish?.hand;
+    const openPicker = (): void => {
+        resumeAfterPick.current = running;
+        view?.setRunning(false);
+        setPicking(true);
+    };
+    const pickButton = (id: string) => (
+        <Button id={id} variant="primary" onClick={openPicker}>
+            Pick your upgrade card
+        </Button>
+    );
+    const next = answeringNow || hand !== undefined ? null : fits && !roundOver ? "fight" : "edit";
     const fightLabel = running ? "Fighting…" : ticked > 0 ? "Resume" : "Fight";
     // Before the first step there is nothing to pause, wind back or restart: the panel's Fight starts it. Once it
     // has run it stays begun, wound back to its start or not, until the round is shown afresh.
@@ -946,12 +967,28 @@ export function SkirmishPage() {
                                           : `${decided.winner === 0 ? "The enemy" : "Your fleet"} has nothing left to fight with.`
                                       : `${decided.winner === 0 ? "The enemy" : "Your fleet"} went ${(skirmish === null ? DEFAULT_SKIRMISH_SETTINGS : settingsOf(skirmish)).quietTime} s without firing.`}
                             </span>
+                            {hand !== undefined && decided.winner !== 0 && pickButton("pickFromDecided")}
                         </Decided>
                     )}
                     {fleetProblem !== null && !answeringNow && decided === null && !replaying && (
                         <NotReady id="notReady">
                             <strong>Not ready to fight.</strong> {fleetProblem}
                         </NotReady>
+                    )}
+                    {hand !== undefined && skirmish !== null && picking && (
+                        <EarnedCard
+                            hand={hand}
+                            onLater={() => {
+                                setPicking(false);
+                                if (resumeAfterPick.current) view?.setRunning(true);
+                            }}
+                            onPick={(id) => {
+                                const picked = pick(skirmish, id);
+                                setPicking(false);
+                                skirmishes.setSkirmish(picked);
+                                showRound(picked);
+                            }}
+                        />
                     )}
                     <AsteroidCard contents={orders.asteroid} />
                     {view !== null && doctrineOpen && orders.side !== null && (
@@ -994,7 +1031,9 @@ export function SkirmishPage() {
                                 names={{ player: skirmish.player.name, enemy: enemyLine ?? skirmish.enemy.name }}
                                 cards={{ player: skirmish.cards ?? [], enemy: skirmish.enemyCards ?? [] }}
                             />
-                            {!answeringNow && (
+                            {/* A hand dealt is what to do next: it stands in for the buttons that wait on it. */}
+                            {hand !== undefined && <Buttons>{pickButton("pickCard")}</Buttons>}
+                            {!answeringNow && hand === undefined && (
                                 <Buttons>
                                     {!roundOver && (
                                         <Button
