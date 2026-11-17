@@ -16,7 +16,6 @@ import { OrderBar } from "~/features/orders/OrderBar";
 import { useOrderState } from "~/features/orders/orderState";
 import { BudgetTable } from "~/features/skirmish/BudgetTable";
 import { AbandonDialog } from "~/features/skirmish/AbandonDialog";
-import { CardHand } from "~/features/skirmish/Cards";
 import { download, downloadSkirmish, skirmishStatus, skirmishTitle } from "~/features/skirmish/skirmishFile";
 import { useSkirmish } from "~/features/skirmish/SkirmishProvider";
 import { useStorage } from "~/features/storage/StorageContext";
@@ -992,22 +991,11 @@ export function SkirmishPage() {
                             <h2 id="roundTitle">
                                 {`Round ${skirmish.round}` + (skirmish.tries > 0 ? ` · try ${skirmish.tries + 1}` : "")}
                             </h2>
-                            <h2>Enemy</h2>
-                            <p id="enemyName">{enemyLine ?? skirmish.enemy.name}</p>
-                            <CardHand
-                                id="enemyCards"
-                                ids={skirmish.enemyCards ?? []}
-                                caption="The enemy's upgrade cards:"
-                                empty="The enemy holds no upgrade cards yet."
-                            />
-                            <h2>You</h2>
-                            <p id="playerName">{skirmish.player.name}</p>
-                            <BudgetTable id="budget" skirmish={skirmish} />
-                            <CardHand
-                                id="playerCards"
-                                ids={skirmish.cards ?? []}
-                                caption="Your upgrade cards:"
-                                empty="You hold no upgrade cards yet."
+                            <BudgetTable
+                                id="budget"
+                                skirmish={skirmish}
+                                names={{ player: skirmish.player.name, enemy: enemyLine ?? skirmish.enemy.name }}
+                                cards={{ player: skirmish.cards ?? [], enemy: skirmish.enemyCards ?? [] }}
                             />
                             {!answeringNow && (
                                 <Buttons>
