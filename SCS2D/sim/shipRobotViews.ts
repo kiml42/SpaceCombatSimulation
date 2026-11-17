@@ -7,7 +7,7 @@ import * as shipForage from "./shipForage.js";
 
 /**
  * Where each ship's robots are and what they are doing, as the renderer and the
- * inspector read them: berthed, docked, crewing, and each one's spot on the hull.
+ * inspector read them: berthed, docked, at work, and each one's spot on the hull.
  */
 
 /**
@@ -63,21 +63,21 @@ export function robotsDocked(ships: Ships, i: number, out: number[]): void {
 
 /**
  * For each module of ship `i`'s hull, how many robots it is the bay of,
- * home or out, into `crews`, and how many of those are aboard, holding a
+ * home or out, into `bayRobots`, and how many of those are aboard, holding a
  * berth, into `aboard`; and each robot a bay is building, as its bay and how
  * far it is through, 0 to 1, into `builds`, two numbers apiece, the most
  * nearly finished of a bay first. Nothing unless `i` is the ship that flies the body.
  */
-export function robotCrews(ships: Ships, i: number, crews: number[], aboard: number[], builds: number[]): void {
+export function robotsByBay(ships: Ships, i: number, bayRobots: number[], aboard: number[], builds: number[]): void {
     const b = ships.bodyStore === null ? -1 : ships.bodyStore.indexOf(ships.bodyIds[i]!);
     const design = b >= 0 ? ships.hullDesign[b] : null;
-    crews.length = aboard.length = design?.modules.length ?? 0;
+    bayRobots.length = aboard.length = design?.modules.length ?? 0;
     builds.length = 0;
-    crews.fill(0);
+    bayRobots.fill(0);
     aboard.fill(0);
     if (b < 0 || ships.shipByBody[b] !== i) return;
     for (const robot of ships.robots.on(b) ?? []) {
-        crews[robot.bay] = (crews[robot.bay] ?? 0) + 1;
+        bayRobots[robot.bay] = (bayRobots[robot.bay] ?? 0) + 1;
         if (robot.away < 0) aboard[robot.bay] = (aboard[robot.bay] ?? 0) + 1;
     }
     const making = ships.robots.buildingOn(b);

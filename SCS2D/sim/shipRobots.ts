@@ -189,22 +189,22 @@ export function buildRobots(ships: Ships, b: number, design: ShipDesign, robots:
         const working = ships.left(owner, b, m, DamageEffect.Tending);
         if (!(working > 0)) continue;
         const making = building[m]!;
-        let crew = making.length;
+        let assigned = making.length;
         let aboard = making.length;
         for (let r = 0; r < robots.length; r++) {
             if (robots[r]!.bay !== m) continue;
-            crew++;
+            assigned++;
             if (robots[r]!.away < 0) aboard++;
         }
         const kept = robotsKept(design.modules[m]!.spec, design.modules[m]!.stats, ships.isMoored(owner));
-        const missing = min(kept - crew, berths - aboard);
+        const missing = min(kept - assigned, berths - aboard);
         let metal = missing > 0 ? shipSupply.allowed(ships, Resource.Metal, b, m, Claim.Robots, missing * cost) : 0;
-        while (crew < kept && aboard < berths && metal >= cost) {
+        while (assigned < kept && aboard < berths && metal >= cost) {
             ships.metal.drain(b, m, cost);
             shipSupply.took(ships, Resource.Metal, b, m, Claim.Robots, cost);
             metal -= cost;
             ships.robots.start(b, m);
-            crew++;
+            assigned++;
             aboard++;
             changed = true;
         }
@@ -737,9 +737,9 @@ export function makeRoomFor(ships: Ships, fb: number, f: number, bay: number): v
     const design = ships.hullDesign[fb];
     const robots = ships.robots.on(fb);
     if (design === null || design === undefined || robots === null) return;
-    let crew = ships.robots.buildingOn(fb)?.[bay]?.length ?? 0;
-    for (let r = 0; r < robots.length; r++) if (robots[r]!.bay === bay) crew++;
-    if (crew > robotsKept(design.modules[bay]!.spec, design.modules[bay]!.stats, ships.isMoored(f)) && ships.robots.cancel(fb, bay)) {
+    let assigned = ships.robots.buildingOn(fb)?.[bay]?.length ?? 0;
+    for (let r = 0; r < robots.length; r++) if (robots[r]!.bay === bay) assigned++;
+    if (assigned > robotsKept(design.modules[bay]!.spec, design.modules[bay]!.stats, ships.isMoored(f)) && ships.robots.cancel(fb, bay)) {
         ships.metal.add(fb, bay, ROBOT_MASS);
     }
 }
@@ -754,9 +754,9 @@ export function freeBerth(ships: Ships, bodies: Bodies, f: number): number {
         const berths = design.modules[m]!.stats.robots;
         if (!(berths > 0) || ships.pilotAt(fb, m) !== f) continue;
         // Not counting those it is building: one it takes aboard takes the place of one of them.
-        let crew = 0;
-        for (let r = 0; r < robots.length; r++) if (robots[r]!.bay === m) crew++;
-        if (crew < robotsKept(design.modules[m]!.spec, design.modules[m]!.stats, ships.isMoored(f))) return m;
+        let assigned = 0;
+        for (let r = 0; r < robots.length; r++) if (robots[r]!.bay === m) assigned++;
+        if (assigned < robotsKept(design.modules[m]!.spec, design.modules[m]!.stats, ships.isMoored(f))) return m;
     }
     return -1;
 }

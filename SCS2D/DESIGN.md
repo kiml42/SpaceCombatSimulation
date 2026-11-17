@@ -1556,6 +1556,7 @@ so decisions are never under time pressure.
 
 | Aspect | Decision |
 | --- | --- |
+| Crews | **None: every ship is automated** unless something says otherwise. Its core flies and fights it, and robots build, mend, refit and forage for it. Nobody is aboard, so there is no crew or life support to design around — a ship may turn, burn and be thrown away as hard as its hull allows. |
 | Capitals | ≤ 10, including the mothership. Each one precious; losing one always hurts. |
 | Strike craft | Up to ~100. No hard distinction between fighter and guided torpedo — one has a gun, the other a warhead. |
 | Production | Edit a blueprint and *future* production uses it. Fleets transition gradually, so design changes are visible as a shifting mix rather than a step change. |
