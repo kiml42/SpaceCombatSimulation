@@ -499,6 +499,7 @@ export { UNPAINTED } from "./debris.js";
 export { DE_MARRE_K, RICOCHET_ANGLE, Terminal, deflected, incidenceAngle, strike, type Strike } from "./ballistics.js";
 export {
     Credit,
+    Crumple,
     DAMAGE_ENERGY_PER_KG,
     RAGGED_INTEGRITY,
     SHED_AT_BREAK,

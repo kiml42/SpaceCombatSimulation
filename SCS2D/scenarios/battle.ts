@@ -8,6 +8,7 @@ import {
     Collisions,
     ContactGrades,
     Credit,
+    Crumple,
     gravityWell,
     Impacts,
     math,
@@ -189,6 +190,8 @@ export function makeBattle<Extra extends object = Record<never, never>>(
     const beamHits = new BeamHits();
     const impacts = new Impacts();
     const collisions = new Collisions();
+    // A contact is no harder than the fronts that met can stand.
+    collisions.crumple = new Crumple(ships, ships.damage);
     const credit = new Credit();
 
     const run: Battle & Extra = {

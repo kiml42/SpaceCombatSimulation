@@ -16,9 +16,11 @@ import type { Ships } from "./ships.js";
  * hull could stop it. So a share of it (`WRECKAGE_SHARE`) carries on as
  * fragments at the velocity its place on the hull had before the impulse,
  * spin and all, and the hull it struck gives back the momentum it spent
- * stopping them. Their energy against that hull is at most what the crush
- * could not spend on their side (`Contacts.spareA`/`spareB`): energy that was
- * thrown away goes on as wreckage instead, and none is made.
+ * stopping them. What energy they carry over going on with their hull is at
+ * most what the crush could not spend on their side (`Contacts.spareA`/
+ * `spareB`): energy that was thrown away goes on as wreckage instead, and none
+ * is made. Where the front crumpled rather than stopping its hull, the hull is
+ * still going, and so are they.
  *
  * The module is still discarded whole when it goes; what flew on is taken back
  * out of that account as it is thrown, at the velocity it had then.
@@ -86,8 +88,7 @@ export function throwWreckage(ships: Ships, bodies: Bodies, projectiles: Project
         if (k < 0) continue;
         const isA = contacts.a[k] === b;
         const o = isA ? contacts.b[k]! : contacts.a[k]!;
-        const spare = isA ? contacts.spareA[k]! : contacts.spareB[k]!;
-        if (!(spare > 0)) continue;
+        const spare = max(0, isA ? contacts.spareA[k]! : contacts.spareB[k]!);
 
         // Its velocity now, and before the contact's impulse: `a` took it against the normal.
         const spin = bodies.angularVel[b]!;
@@ -135,14 +136,23 @@ export function throwWreckage(ships: Ships, bodies: Bodies, projectiles: Project
             meanX += masses[f]! * cos(angle) * stray;
             meanY += masses[f]! * sin(angle) * stray;
         }
-        let energy = 0;
+        // Against what they would have had going on with the hull, `a`, by `d` each:
+        // the energy over that is `B·λ + A·λ²` for a share `λ` of `d`.
+        const aX = postX - otherX;
+        const aY = postY - otherY;
+        let quadratic = 0;
+        let linear = 0;
         for (let f = 0; f < count; f++) {
-            fvx[f] = fvx[f]! - meanX / mass;
-            fvy[f] = fvy[f]! - meanY / mass;
-            energy += 0.5 * masses[f]! * (fvx[f]! * fvx[f]! + fvy[f]! * fvy[f]!);
+            fvx[f] = fvx[f]! - meanX / mass - aX;
+            fvy[f] = fvy[f]! - meanY / mass - aY;
+            quadratic += 0.5 * masses[f]! * (fvx[f]! * fvx[f]! + fvy[f]! * fvy[f]!);
+            linear += masses[f]! * (aX * fvx[f]! + aY * fvy[f]!);
         }
-        // No more energy against it than the crush threw away on this side.
-        const scale = energy > spare ? sqrt(spare / energy) : 1;
+        // No more energy over that than the crush threw away on this side.
+        const share =
+            linear + quadratic <= spare || !(quadratic > 0)
+                ? 1
+                : (-linear + sqrt(linear * linear + 4 * quadratic * spare)) / (2 * quadratic);
 
         const ux = relX / speed;
         const uy = relY / speed;
@@ -150,8 +160,8 @@ export function throwWreckage(ships: Ships, bodies: Bodies, projectiles: Project
         let px = 0;
         let py = 0;
         for (let f = 0; f < count; f++) {
-            const vx = otherX + fvx[f]! * scale;
-            const vy = otherY + fvy[f]! * scale;
+            const vx = postX + fvx[f]! * share;
+            const vy = postY + fvy[f]! * share;
             px += masses[f]! * (vx - postX);
             py += masses[f]! * (vy - postY);
             // From somewhere across the module, behind its middle as it was going.

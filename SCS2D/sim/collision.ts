@@ -136,6 +136,13 @@ export class Contacts {
      */
     spareA = new Float64Array(64);
     spareB = new Float64Array(64);
+    /**
+     * Joules the contact lost, for the crush to spend, or NaN where the solver
+     * left that to `RESTITUTION`'s share of the closing (rock's give, a claw).
+     */
+    lost = new Float64Array(64);
+    /** The share of `lost` that `a`'s hull takes, the side that crumples taking more; `b`'s takes the rest. */
+    shareA = new Float64Array(64);
     count = 0;
 
     clear(): void {
@@ -162,6 +169,8 @@ export class Contacts {
         this.rewindY[i] = 0;
         this.spareA[i] = 0;
         this.spareB[i] = 0;
+        this.lost[i] = NaN;
+        this.shareA[i] = 0.5;
     }
 
     private grow(): void {
@@ -195,6 +204,12 @@ export class Contacts {
         spareB.set(this.spareB);
         this.spareA = spareA;
         this.spareB = spareB;
+        const lost = new Float64Array(size);
+        const shareA = new Float64Array(size);
+        lost.set(this.lost);
+        shareA.set(this.shareA);
+        this.lost = lost;
+        this.shareA = shareA;
         a.set(this.a);
         b.set(this.b);
         x.set(this.x);
@@ -218,6 +233,16 @@ export class Contacts {
         this.moduleB = moduleB;
         this.closing = closing;
     }
+}
+
+/**
+ * How much a hull's front can take at a contact before it is gone: the joules
+ * its crush could spend there, up to shattering what it meets and as far in as
+ * each module passes it on, and `Infinity` for one that cannot be crumpled.
+ * The damage model knows; the solver asks it (`Crumple` in damage.ts).
+ */
+export interface CrumpleStrength {
+    strength(bodies: Bodies, contacts: Contacts, k: number, sideA: boolean): number;
 }
 
 /**
@@ -1177,7 +1202,7 @@ export function moduleOverlapsHull(
  * second contact on the same hull in the same step is already the rare case,
  * and a third is a pile-up that does not happen without gravity to make one.
  */
-export function resolveContacts(bodies: Bodies, contacts: Contacts, hulls?: HullDesigns, dt = 0): void {
+export function resolveContacts(bodies: Bodies, contacts: Contacts, hulls?: HullDesigns, dt = 0, crumple?: CrumpleStrength): void {
     for (let k = 0; k < contacts.count; k++) {
         // A fighter parked on a pad cannot move, so its carrier moves for it.
         const parkedA = hulls?.carrierOf?.(contacts.a[k]!) ?? -1;
@@ -1289,10 +1314,28 @@ export function resolveContacts(bodies: Bodies, contacts: Contacts, hulls?: Hull
         if (vn >= 0) continue;
         contacts.closing[k] = -vn;
 
-        const impulse = (-(1 + RESTITUTION) * vn) / invMassSum;
+        let impulse = (-(1 + RESTITUTION) * vn) / invMassSum;
+        contacts.lost[k] = 0.5 * (1 - RESTITUTION) * -vn * impulse;
+        // No harder than the fronts that met can stand: past what the weaker can
+        // take it is gone, and the two go on closing into where it was.
+        let crumpled = false;
+        if (crumple !== undefined) {
+            const strengthA = crumple.strength(bodies, contacts, k, true);
+            const strengthB = crumple.strength(bodies, contacts, k, false);
+            contacts.shareA[k] = crumpleShare(strengthA, strengthB);
+            const most = crumpleLimit(strengthA, strengthB);
+            if (contacts.lost[k]! > most) {
+                // The impulse that loses `most` from the closing: j·c - j²·k/2 = most.
+                const c = -vn;
+                impulse = (c - sqrt(max(0, c * c - 2 * invMassSum * most))) / invMassSum;
+                contacts.lost[k] = most;
+                crumpled = true;
+            }
+        }
         contacts.impulse[k] = impulse;
         push(bodies, a, b, impulse * nx, impulse * ny, crossA * impulse, crossB * impulse);
         if (rough) rub(bodies, a, b, nx, ny, rax, ray, rbx, rby, impulse, depth);
+        if (crumpled) continue;
 
         // And out of each other, or a fast hull meeting a heavy one sinks into it
         // faster than the impulse can carry it back out. What gives is left in.
@@ -1308,6 +1351,26 @@ export function resolveContacts(bodies: Bodies, contacts: Contacts, hulls?: Hull
 function facing(bodies: Bodies, body: number, turn: number, nx: number, ny: number): number {
     const angle = bodies.angle[body]! + turn;
     return nx * cos(angle) + ny * sin(angle);
+}
+
+/**
+ * The share of a contact's loss `a`'s hull takes, given what each front can
+ * stand: inversely as its strength, so the side that crumples takes it, two
+ * alike take half each, and one that cannot be crumpled takes none.
+ */
+export function crumpleShare(strengthA: number, strengthB: number): number {
+    if (strengthA === Infinity) return strengthB === Infinity ? 0.5 : 0;
+    if (strengthB === Infinity) return 1;
+    const total = strengthA + strengthB;
+    return total > 0 ? strengthB / total : 0.5;
+}
+
+/** The most a contact can lose before one front is gone: the loss at which either side's share is all it can take. */
+export function crumpleLimit(strengthA: number, strengthB: number): number {
+    const shareA = crumpleShare(strengthA, strengthB);
+    const a = shareA > 0 ? strengthA / shareA : Infinity;
+    const b = shareA < 1 ? strengthB / (1 - shareA) : Infinity;
+    return min(a, b);
 }
 
 /** Whether a module is the ground of an asteroid: rock, or its kernel. */
@@ -1381,9 +1444,11 @@ function push(bodies: Bodies, a: number, b: number, jx: number, jy: number, ta: 
  */
 export class Collisions {
     readonly contacts = new Contacts();
+    /** What limits a contact's impulse to what its fronts can stand; none, and every contact is rigid. */
+    crumple: CrumpleStrength | undefined;
 
     step(bodies: Bodies, hulls: HullDesigns, dt = 0): void {
         findContacts(bodies, hulls, this.contacts, dt);
-        resolveContacts(bodies, this.contacts, hulls, dt);
+        resolveContacts(bodies, this.contacts, hulls, dt, this.crumple);
     }
 }

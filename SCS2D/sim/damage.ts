@@ -8,7 +8,7 @@ import { fixed } from "./fixed.js";
 import { NOT_INSIDE, type ProjectileHits, type Projectiles } from "./projectiles.js";
 import type { BeamHits, Beams } from "./beams.js";
 import type { Rng } from "./rng.js";
-import { RESTITUTION, type Contacts } from "./collision.js";
+import { RESTITUTION, type Contacts, type CrumpleStrength } from "./collision.js";
 import { cos, exp, max, min, PI, sin, sqrt } from "./math.js";
 import { SCAR_BURN, SCAR_GOUGE, SCAR_PEPPER, SCAR_ROUND, SCAR_SHARE, Scars } from "./scars.js";
 import { COMPLEXITY_WORK, EXPLOSIVE_YIELD, FUEL_DENSITY, FUEL_DRAG_COEFFICIENT, type ModuleSpec, type ModuleStats } from "./modules.js";
@@ -900,6 +900,8 @@ export function resolveCollision(
     /** The other hull's velocity across this one at the contact, world frame: the way a gouge runs. */
     slideX = 0,
     slideY = 0,
+    /** Spend it, or only say what would be spent: `Infinity` where the crush reaches a kernel, which nothing crumples. */
+    spend = true,
 ): number {
     if (!(energy > 0)) return 0;
 
@@ -937,7 +939,10 @@ export function resolveCollision(
         if (path.exit[k]! <= reach) continue;
         const module = path.module[k]!;
         // A kernel takes nothing and is not crumpled: the crush stops at it.
-        if (damage.kindAt(bodyIndex, module) === "kernel") break;
+        if (damage.kindAt(bodyIndex, module) === "kernel") {
+            if (!spend) return Infinity;
+            break;
+        }
         const whole = damage.capacityOf(bodyIndex, module);
         // What it can still absorb, then what it cannot pass on, crumpling it, as
         // far as shattering it: no module carries more on inward than it could
@@ -945,7 +950,8 @@ export function resolveCollision(
         let take = min(damage.capacityLeft(bodyIndex, module), left);
         const through = min(left - take, CRUSH_PASS * whole);
         take += min(left - take - through, max(0, SHATTER * whole - take));
-        if (take > 0) {
+        if (take > 0 && !spend) spent += take;
+        else if (take > 0) {
             damage.absorb(bodyIndex, module, take);
             // Where the crush reached it: the contact, or its face if deeper in.
             const at = max(path.entry[k]!, reach) - reach;
@@ -956,6 +962,35 @@ export function resolveCollision(
         left = through;
     }
     return spent;
+}
+
+/**
+ * What a hull's front can stand at a contact, for the solver to limit the
+ * impulse by (`CrumpleStrength`): what its crush could spend there, as
+ * `resolveCollision` would, up to shattering. `Infinity` for a hull with no
+ * design, one that is protected, or a crush that reaches a kernel.
+ */
+export class Crumple implements CrumpleStrength {
+    private readonly path = new HullPath();
+
+    constructor(
+        private readonly designs: HullDesigns,
+        private readonly damage: Damage,
+    ) {}
+
+    strength(bodies: Bodies, contacts: Contacts, k: number, sideA: boolean): number {
+        const body = sideA ? contacts.a[k]! : contacts.b[k]!;
+        const design = this.designs.designOf(body);
+        if (design === null || this.damage.isProtected(body)) return Infinity;
+        // The normal runs from `a` towards `b`, so it points into `b`.
+        const into = sideA ? -1 : 1;
+        const x = contacts.x[k]!;
+        const y = contacts.y[k]!;
+        const nx = into * contacts.nx[k]!;
+        const ny = into * contacts.ny[k]!;
+        const most = resolveCollision(design, this.damage, bodies, body, this.path, x, y, nx, ny, Infinity, 0, 0, false);
+        return most > 0 ? most : Infinity;
+    }
 }
 
 /**
@@ -1928,9 +1963,9 @@ export class Impacts {
      *
      * A bounce gives back only part of the closing speed (`RESTITUTION`); the
      * rest of the energy went into folding metal, and this is where it lands.
-     * **Half to each hull**, which needs no rule about which is the harder: a
-     * module's capacity already goes with its mass, so the same energy that
-     * merely dents a capital ship destroys the fighter that flew into it.
+     * **The side that crumples takes it** (`Contacts.shareA`, `crumpleShare`):
+     * both feel the same force, and the weaker gives way, so a thruster that
+     * meets armour takes nearly all of it and the armour nearly none.
      *
      * Call it with the contacts from this step's collision pass, before
      * severing: what a ram breaks off should be broken off a hull that has
@@ -1956,11 +1991,14 @@ export class Impacts {
             const impulse = contacts.impulse[k]!;
             if (!(impulse > 0)) continue;
             // The energy a collision loses, from what the solver already worked out:
-            // the impulse is `(1 + e)` times the closing momentum, and what does not
-            // come back out is `(1 - e)` of it.
-            const energy = 0.5 * (1 - RESTITUTION) * contacts.closing[k]! * impulse;
+            // what the solver says it lost where it says, and else (rock's give, a claw)
+            // the `(1 - e)` share.
+            const lost = contacts.lost[k]!;
+            const energy = lost === lost ? lost : 0.5 * (1 - RESTITUTION) * contacts.closing[k]! * impulse;
             if (!(energy > 0)) continue;
-            const half = energy * 0.5;
+            // The side that crumples takes it (`crumpleShare`).
+            const shareA = energy * contacts.shareA[k]!;
+            const shareB = energy - shareA;
             const x = contacts.x[k]!;
             const y = contacts.y[k]!;
             const nx = contacts.nx[k]!;
@@ -1982,15 +2020,15 @@ export class Impacts {
             const closing = sx * nx + sy * ny;
             sx -= closing * nx;
             sy -= closing * ny;
-            const spentA = this.crush(designs, damage, bodies, a, x, y, -nx, -ny, half, sx, sy);
-            const spentB = this.crush(designs, damage, bodies, b, x, y, nx, ny, half, -sx, -sy);
+            const spentA = this.crush(designs, damage, bodies, a, x, y, -nx, -ny, shareA, sx, sy);
+            const spentB = this.crush(designs, damage, bodies, b, x, y, nx, ny, shareB, -sx, -sy);
             if (spentA >= 0) {
-                credit?.push(b, a, half, ma, mb);
-                contacts.spareA[k] = half - spentA;
+                credit?.push(b, a, shareA, ma, mb);
+                contacts.spareA[k] = shareA - spentA;
             }
             if (spentB >= 0) {
-                credit?.push(a, b, half, mb, ma);
-                contacts.spareB[k] = half - spentB;
+                credit?.push(a, b, shareB, mb, ma);
+                contacts.spareB[k] = shareB - spentB;
             }
             // With how `b` slid across `a`, the normal between them and how fast they closed, for what breaks off.
             this.log.push(x, y, energy, IMPACT_COLLISION, bodies, a, 0, 0, 0, sx, sy, nx, ny, contacts.closing[k]!);
