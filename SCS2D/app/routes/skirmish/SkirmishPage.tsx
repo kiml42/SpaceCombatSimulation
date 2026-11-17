@@ -148,6 +148,21 @@ const Decided = styled.div`
     }
 `;
 
+const NotReady = styled.div`
+    position: absolute;
+    top: 0.7rem;
+    left: 50%;
+    max-width: 26rem;
+    padding: 0.45rem 0.7rem;
+    border: 1px solid var(--colour-warning);
+    border-radius: 4px;
+    background: rgb(11 15 22 / 85%);
+    color: var(--colour-warning);
+    text-align: center;
+    transform: translateX(-50%);
+    pointer-events: none;
+`;
+
 const Panel = styled.aside`
     display: flex;
     flex-direction: column;
@@ -414,8 +429,15 @@ export function SkirmishPage() {
             on.allowOrders(0);
             on.show(battle.current, false, true);
         } else {
+            // Your fleet laid out against the enemy's as the round would be, to see, but not to fight.
             battle.current = null;
-            showOn(on, enemyAlone(current.enemy), false);
+            let preview: Battle;
+            try {
+                preview = roundOn(roundSetup(current), settingsOf(current).light);
+            } catch {
+                preview = enemyAlone(current.enemy);
+            }
+            showOn(on, preview, false);
         }
     };
 
@@ -735,6 +757,19 @@ export function SkirmishPage() {
     const fault = skirmish === null ? null : fleetFault(skirmish.player);
     const fits = skirmish !== null && canFight(skirmish);
     const limit = skirmish === null || fault !== null ? null : overLimit(skirmish);
+    // Why your fleet cannot fight the round, if it cannot.
+    const fleetProblem =
+        skirmish === null || fits
+            ? null
+            : skirmish.hand !== undefined
+              ? "You have earned an upgrade card: edit your fleet to pick one."
+              : skirmish.player.ships.length === 0
+                ? "Your fleet has no ships: edit it to add some."
+                : fault !== null
+                  ? `Your fleet would not fly: ${fault}. Edit it to fix that.`
+                  : limit !== null
+                    ? `Your fleet has ${limit}: edit it to fit.`
+                    : "Your fleet is over budget: edit it to cut it down.";
     const answeringNow = skirmish?.won !== undefined;
     // Not watching the search, the history has the battle's room, the two sides of each match side by side.
     const wideHistory = answeringNow && !watching && !replaying && answering.latest?.found == null;
@@ -856,7 +891,11 @@ export function SkirmishPage() {
                     onView={onView}
                     onStepped={stepped}
                     onDrawn={(at) => (shown.current = at)}
-                    onRunningChanged={setRunning}
+                    onRunningChanged={(now) => {
+                        // A round your fleet cannot fight is there to look at: Space does not start it.
+                        if (now && mode.current === "round" && battle.current === null) view?.setRunning(false);
+                        else setRunning(now);
+                    }}
                     onRewound={(rewound) => (battle.current = rewound as CustomBattle)}
                 >
                     {wideHistory && (
@@ -878,6 +917,11 @@ export function SkirmishPage() {
                                       : `${decided.winner === 0 ? "The enemy" : "Your fleet"} went ${(skirmish === null ? DEFAULT_SKIRMISH_SETTINGS : settingsOf(skirmish)).quietTime} s without firing.`}
                             </span>
                         </Decided>
+                    )}
+                    {fleetProblem !== null && !answeringNow && decided === null && !replaying && (
+                        <NotReady id="notReady">
+                            <strong>Not ready to fight.</strong> {fleetProblem}
+                        </NotReady>
                     )}
                     <AsteroidCard contents={orders.asteroid} />
                     {view !== null && doctrineOpen && orders.side !== null && (
@@ -930,19 +974,7 @@ export function SkirmishPage() {
                                 caption="Your upgrade cards:"
                                 empty="You hold no upgrade cards yet."
                             />
-                            <Muted id="fleetNote">
-                                {fits
-                                    ? ""
-                                    : skirmish.hand !== undefined
-                                      ? "You have earned an upgrade card: edit your fleet to pick one."
-                                      : skirmish.player.ships.length === 0
-                                        ? "Your fleet has no ships: edit it to add some."
-                                        : fault !== null
-                                          ? `Your fleet would not fly: ${fault}. Edit it to fix that.`
-                                          : limit !== null
-                                            ? `Your fleet has ${limit}: edit it to fit.`
-                                            : "Your fleet is over budget: edit it to cut it down."}
-                            </Muted>
+                            <Muted id="fleetNote">{fleetProblem ?? ""}</Muted>
                             {!answeringNow && (
                                 <Buttons>
                                     {!roundOver && (
