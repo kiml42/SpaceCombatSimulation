@@ -481,17 +481,19 @@ describe("the skirmish in a browser", () => {
         const skirmish = answering(newSkirmish(shipFleet(BARE_CORE), shipFleet(GUNSHIP), 25));
         await page.goto(skirmishPage(skirmish));
         await page.waitForSelector("#answering");
+        // Not watched at first: the history has the room, under a banner saying the enemy is evolving.
+        expect(await page.isVisible("#wideHistory")).toBe(true);
+        expect(await page.isVisible("#history")).toBe(false);
+        expect(await page.locator("#wideHistory #timeline.wide").count()).toBe(1);
+        expect(await page.textContent("#evolving strong")).toBe("The enemy is evolving an answer");
+
+        await page.click("#watchEvolving");
         expect(await page.isVisible("#wideHistory")).toBe(false);
-        expect(await page.isVisible("#history")).toBe(true);
+        expect(await page.isVisible("#history #timeline")).toBe(true);
 
         await page.click("#watchAnswer");
         expect(await page.isVisible("#wideHistory")).toBe(true);
         expect(await page.isVisible("#history")).toBe(false);
-        expect(await page.locator("#wideHistory #timeline.wide").count()).toBe(1);
-
-        await page.click("#watchAnswer");
-        expect(await page.isVisible("#wideHistory")).toBe(false);
-        expect(await page.isVisible("#history #timeline")).toBe(true);
         expect(problems).toEqual([]);
         await page.goto("about:blank");
     }, 60_000);
@@ -510,7 +512,9 @@ describe("the skirmish in a browser", () => {
         await page.click("#pickWay");
         await page.click('[data-way="rocks"]');
         expect(await page.locator("#wayPick").count()).toBe(0);
-        await page.waitForSelector("#answerProgress");
+        // Straight to its evolving, saying where.
+        await page.waitForSelector("#evolving");
+        expect(await page.textContent("#headedTo")).toBe("Next round: Asteroid field, major asteroids 0 → 1, minor 0 → 6.");
         await giveUp();
         await page.goto("about:blank");
         expect(problems).toEqual([]);

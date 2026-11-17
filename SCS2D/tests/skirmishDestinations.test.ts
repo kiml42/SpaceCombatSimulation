@@ -75,5 +75,9 @@ describe("where the next round is fought", () => {
         expect(going.won).toBe(skirmish.won);
         expect(settingsOf(going)).toEqual(destinationById(id)!.apply(DEFAULT_SKIRMISH_SETTINGS));
         expect(settingsOf(nextRound(going, gunship))).toEqual(settingsOf(going));
+        // Where it is headed is kept, as it was said then, while the enemy answers; and gone once the next round starts.
+        expect(going.headed).toEqual({ way: id, change: destinationById(id)!.change(DEFAULT_SKIRMISH_SETTINGS) });
+        expect(parseSkirmish(JSON.parse(JSON.stringify(serialiseSkirmish(going)))).headed).toEqual(going.headed);
+        expect(nextRound(going, gunship).headed).toBeUndefined();
     });
 });
