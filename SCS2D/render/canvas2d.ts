@@ -151,6 +151,8 @@ const { cos, floor, sin, length, max, min, PI, sqrt, TAU } = math;
  */
 const TRACER = "#ffe6a8";
 const TRACER_GLOW = "#ffb2a888";
+/** A shattered module's fragments, flying on: unlit steel. */
+const WRECKAGE = "#8a8f94";
 /**
  * A round passing through a hull, drawn as though seen through it. Null hides
  * that part, leaving only the flashes along its path.
@@ -4237,7 +4239,10 @@ function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, came
         const glowPass = pass === 0;
         for (let i = 0; i < snapshot.projectileCount; i++) {
             const inside = snapshot.projectileInside[i] === 1;
-            const colour = tracerColour(snapshot.projectileTeam[i]!, teamShots, glowPass, inside);
+            // Wreckage is cold metal: no glow, and its own dull colour whoever threw it.
+            const wreckage = snapshot.projectileWreckage[i] === 1;
+            if (wreckage && glowPass) continue;
+            const colour = wreckage ? WRECKAGE : tracerColour(snapshot.projectileTeam[i]!, teamShots, glowPass, inside);
             if (colour === null) continue;
             const image = sprite(glowPass ? "glowStreak" : "streak", colour);
             if (image === null) continue;

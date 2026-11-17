@@ -1760,6 +1760,17 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   shattered, so a blow far past what the front can stand takes the front away and spares what is behind
   it. A capital ship driven into a rock loses its bow at the first contact, slows, and drives on through
   the next layer and the next until it comes to rest, rather than bouncing off dented.
+- **A module a collision shatters flies on as wreckage** (`sim/wreckage.ts`): it broke before the rest of
+  its hull could stop it, so half of it (`WRECKAGE_SHARE`) carries on as fragments of random sizes at the
+  velocity its place on the hull had before the impulse, spin and all, and what it struck gives back the
+  momentum it spent stopping them. Their energy against what they struck is at most what the crush could
+  not spend on their side, so energy the front threw away goes on as wreckage, and none is made. They are
+  rounds, which armour stops as it stops any round of their mass and calibre, passing through their own
+  hull and flying half a second; cold, they are drawn as wreckage rather than tracer. Both hulls' shattered
+  modules are thrown, the struck one's at its own velocity, so only what was going into the other hull
+  reaches it. Gunfire and beams shatter modules too and throw nothing: their energy already goes through
+  armour into the internals. This is what makes a torpedo's spent nose a spray of shrapnel into its
+  target, a step towards the warhead §2 promises.
 - **How hard a contact was is the share of the weaker module it met that its lost energy would take**
   (`sim/contactGrades.ts`), which is what a check on piloting counts rather than raw contacts: a
   millionth or less is a touch, hulls resting or rocking together, and counts as nothing; from

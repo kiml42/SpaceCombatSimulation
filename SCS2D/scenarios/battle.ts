@@ -15,6 +15,7 @@ import {
     ProjectileHits,
     Ships,
     SpatialGrid,
+    throwWreckage,
     World,
     generateMap,
     hasAsteroids,
@@ -228,6 +229,8 @@ export function makeBattle<Extra extends object = Record<never, never>>(
             collisions.step(world.bodies, ships, world.dt);
             this.totalContacts += collisions.contacts.count;
             impacts.collisions(ships, ships.damage, world.bodies, collisions.contacts, credit);
+            // What those blows shattered flies on into what it struck.
+            throwWreckage(ships, world.bodies, projectiles, collisions.contacts, world.rng);
             this.contactGrades.tally(collisions.contacts, ships.damage, dt);
             // A slow contact onto torn metal hooks the two into one, once the crush
             // has decided what is torn.

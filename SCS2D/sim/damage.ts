@@ -883,7 +883,8 @@ function shove(bodies: Bodies, body: number, jx: number, jy: number, px: number,
  * folding it. So a blow the front can hold reaches a little deeper, and one
  * far past it takes the front away and spares the rest of the ship.
  *
- * `(nx, ny)` points **into** the hull being crushed, world frame.
+ * `(nx, ny)` points **into** the hull being crushed, world frame. Returns the
+ * joules spent, short of `energy` by what no module could take or pass on.
  */
 export function resolveCollision(
     design: ShipDesign,
@@ -1981,8 +1982,16 @@ export class Impacts {
             const closing = sx * nx + sy * ny;
             sx -= closing * nx;
             sy -= closing * ny;
-            if (this.crush(designs, damage, bodies, a, x, y, -nx, -ny, half, sx, sy)) credit?.push(b, a, half, ma, mb);
-            if (this.crush(designs, damage, bodies, b, x, y, nx, ny, half, -sx, -sy)) credit?.push(a, b, half, mb, ma);
+            const spentA = this.crush(designs, damage, bodies, a, x, y, -nx, -ny, half, sx, sy);
+            const spentB = this.crush(designs, damage, bodies, b, x, y, nx, ny, half, -sx, -sy);
+            if (spentA >= 0) {
+                credit?.push(b, a, half, ma, mb);
+                contacts.spareA[k] = half - spentA;
+            }
+            if (spentB >= 0) {
+                credit?.push(a, b, half, mb, ma);
+                contacts.spareB[k] = half - spentB;
+            }
             // With how `b` slid across `a`, the normal between them and how fast they closed, for what breaks off.
             this.log.push(x, y, energy, IMPACT_COLLISION, bodies, a, 0, 0, 0, sx, sy, nx, ny, contacts.closing[k]!);
         }
@@ -2000,11 +2009,10 @@ export class Impacts {
         energy: number,
         slideX: number,
         slideY: number,
-    ): boolean {
+    ): number {
         const design = designs.designOf(body);
-        if (design === null) return false;
-        resolveCollision(design, damage, bodies, body, this.path, x, y, nx, ny, energy, slideX, slideY);
-        return true;
+        if (design === null) return -1;
+        return resolveCollision(design, damage, bodies, body, this.path, x, y, nx, ny, energy, slideX, slideY);
     }
 
     private burnSeams(damage: Damage, designs: HullDesigns, bodies: Bodies, beams: Beams, hits: BeamHits, i: number, energy: number): void {

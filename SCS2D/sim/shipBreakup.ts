@@ -107,7 +107,7 @@ const LOOSE_PERIOD = 1;
 const MINIMUM_BATTLE_RADIUS = 2000;
 
 /** A module of a body, as one number. */
-function blowKey(body: number, module: number): number {
+export function blowKey(body: number, module: number): number {
     return body * 65536 + module;
 }
 
@@ -222,7 +222,10 @@ export function shatter(ships: Ships, world: World): number {
         );
     }
     damage.clearStep();
-    if (lost === null) return 0;
+    if (lost === null) {
+        ships.thrown.clear();
+        return 0;
+    }
 
     for (const [b, shattered] of lost) {
         const i = ships.shipByBody[b]!;
@@ -249,6 +252,7 @@ export function shatter(ships: Ships, world: World): number {
         world.destroy(ships.bodyIds[i]!);
     }
     ships.shatterBlows.clear();
+    ships.thrown.clear();
     return pieces;
 }
 
@@ -311,6 +315,18 @@ export function breakUpModule(
     }
 }
 
+/** What module `m` of `design`, on body `b`, weighs now, kg: less what it has burnt, spent or shed. */
+export function heldMass(ships: Ships, b: number, design: ShipDesign, m: number): number {
+    const { stats } = design.modules[m]!;
+    return max(
+        0,
+        stats.mass -
+            (stats.fuel - ships.fuel.held(b, m)) -
+            (stats.metal - ships.metal.held(b, m) - ships.metal.loadedAt(b, m)) -
+            ships.damage.shedAt(b, m),
+    );
+}
+
 /**
  * Count module `m` of ship `i`, built to `design`, as discarded, with what
  * it holds and the velocity its place on the hull has, and break it into
@@ -320,14 +336,7 @@ export function discardModule(ships: Ships, world: World, i: number, design: Shi
     const bodies = world.bodies;
     const b = bodies.indexOf(ships.bodyIds[i]!);
     const placed = design.modules[m]!;
-    const { stats } = placed;
-    const mass = max(
-        0,
-        stats.mass -
-            (stats.fuel - ships.fuel.held(b, m)) -
-            (stats.metal - ships.metal.held(b, m) - ships.metal.loadedAt(b, m)) -
-            ships.damage.shedAt(b, m),
-    );
+    const mass = heldMass(ships, b, design, m);
     const angle = bodies.angle[b]!;
     const c = cos(angle);
     const sn = sin(angle);
