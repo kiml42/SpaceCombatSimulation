@@ -4,7 +4,7 @@
         { "id": "metal", "name": "Foundry", "effects": [{ "limit": "metal", "share": 0.1 }] },
         { "id": "fuel", "name": "Deep Tanks", "effects": [{ "limit": "fuel", "share": 0.1 }] },
         { "id": "build", "name": "Night Shift", "effects": [{ "limit": "build", "share": 0.1 }] },
-        { "id": "ship", "name": "Reinforcements", "effects": [{ "limit": "ships", "step": 1 }] },
+        { "id": "ship", "name": "Strength in Numbers", "effects": [{ "limit": "ships", "step": 1 }] },
         { "id": "spread", "name": "Wide Deployment", "effects": [{ "limit": "spread", "step": 100 }] },
         {
             "id": "fuel-for-metal",
@@ -60,6 +60,23 @@
             "effects": [
                 { "limit": "ships", "step": -1 },
                 { "limit": "metal", "share": 0.2 }
+            ]
+        },
+        {
+            "id": "metal-for-ship",
+            "name": "Swarm",
+            "effects": [
+                { "limit": "metal", "share": -0.3 },
+                { "limit": "ships", "step": 10 }
+            ]
+        },
+        {
+            "id": "ship-fuel-for-metal",
+            "name": "Ironclads",
+            "effects": [
+                { "limit": "ships", "step": -2 },
+                { "limit": "fuel", "share": -0.1 },
+                { "limit": "metal", "share": 0.4 }
             ]
         },
         {
