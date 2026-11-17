@@ -39,6 +39,9 @@ sees. Code may keep its own names (`BattlePage`, `Blueprint`, `battleRoute`); th
   one game of the mode is an ordinary noun: "New skirmish", "Start a skirmish".
 - **The editors are described, not named,** so they stay lower case in a sentence ("in the fleet editor") and
   take sentence case only where a label starts with them ("Fleet editor" in the main menu).
+- **Ships are automated, with nobody aboard,** unless something says otherwise (DESIGN.md §2). A ship is flown by
+  its core and worked on by its robots, so never write crew, crewed, manned or anyone aboard, on screen or in the
+  docs, and don't name code after them either. "Pilot" means the core's flying logic, not a person.
 - **A button that goes somewhere says where:** "Test in Simulator", "Back to fleet", "Back to Skirmish".
 
 A new place or thing gets a row here before it gets a label, so the next screen calls it the same.

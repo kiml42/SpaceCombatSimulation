@@ -2325,8 +2325,8 @@ export class Ships {
         shipRobotViews.robotsDocked(this, i, out);
     }
 
-    robotCrews(i: number, crews: number[], aboard: number[], builds: number[]): void {
-        shipRobotViews.robotCrews(this, i, crews, aboard, builds);
+    robotsByBay(i: number, bayRobots: number[], aboard: number[], builds: number[]): void {
+        shipRobotViews.robotsByBay(this, i, bayRobots, aboard, builds);
     }
 
     robotViews(i: number, out: number[]): void {

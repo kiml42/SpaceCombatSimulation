@@ -16,7 +16,7 @@ export interface OrderState {
     readonly queue: { readonly ship: number; readonly orders: readonly string[] } | null;
     /** What the picked ships are built to, and whether all have robots to rebuild themselves. */
     readonly designs: readonly string[];
-    readonly crewed: boolean;
+    readonly hasRobots: boolean;
     /** The approach speed they share, as the hold speed's placeholder. */
     readonly speed: string;
     /** What is left in an asteroid picked out alone, or null. */
@@ -29,7 +29,7 @@ export const NO_ORDERS: OrderState = {
     armed: null,
     queue: null,
     designs: [],
-    crewed: false,
+    hasRobots: false,
     speed: "doctrine",
     asteroid: null,
 };
@@ -96,7 +96,7 @@ export function orderState(view: BattleView, shown: Snapshot): OrderState {
                 ? null
                 : { ship: one.ship, orders: (one.orders ?? []).map((order) => describe(order, shown, view.sides)) },
         designs: ships.map((ship) => (ship.blueprint ?? ship.currentStructure).name),
-        crewed: ships.length > 0 && ships.every((ship) => (ship.crews ?? []).some((n) => n > 0)),
+        hasRobots: ships.length > 0 && ships.every((ship) => (ship.bayRobots ?? []).some((n) => n > 0)),
         speed: speeds.length > 0 && speeds.every((v) => v !== undefined && v === speeds[0]) ? String(speeds[0]) : "doctrine",
         asteroid: one?.rock === undefined ? null : asteroidText(one.body, shown.time, one.rock),
     };
