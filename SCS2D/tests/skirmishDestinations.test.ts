@@ -11,7 +11,7 @@ import {
     settingsOf,
     won,
 } from "../scenarios/skirmish.js";
-import { DESTINATIONS, destinationById, OFFERED, offerDestinations } from "../skirmish/destinations.js";
+import { describeArena, DESTINATIONS, destinationById, OFFERED, offerDestinations } from "../skirmish/destinations.js";
 
 const gunship = shipFleet(GUNSHIP);
 
@@ -27,6 +27,12 @@ describe("where the next round is fought", () => {
             expect(ids).not.toContain("clear");
             expect(ids).not.toContain("still");
         }
+    });
+
+    it("says what a round is like as its settings set it out", () => {
+        expect(describeArena(DEFAULT_SKIRMISH_SETTINGS)).toBe("Open space, 1,500 m apart, from rest");
+        const busy = ["rocks", "rocks", "headOn", "dark"].reduce((s, id) => destinationById(id)!.apply(s), DEFAULT_SKIRMISH_SETTINGS);
+        expect(describeArena(busy)).toBe("2 major and 12 minor asteroids, 1,500 m apart, closing at 40 m/s, 60% sunlight");
     });
 
     it("says what each changes, from what to what, and what that means", () => {
@@ -75,8 +81,8 @@ describe("where the next round is fought", () => {
         expect(going.won).toBe(skirmish.won);
         expect(settingsOf(going)).toEqual(destinationById(id)!.apply(DEFAULT_SKIRMISH_SETTINGS));
         expect(settingsOf(nextRound(going, gunship))).toEqual(settingsOf(going));
-        // Where it is headed is kept, as it was said then, while the enemy answers; and gone once the next round starts.
-        expect(going.headed).toEqual({ way: id, change: destinationById(id)!.change(DEFAULT_SKIRMISH_SETTINGS) });
+        // Where it is headed is kept while the enemy answers, and gone once the next round starts.
+        expect(going.headed).toBe(id);
         expect(parseSkirmish(JSON.parse(JSON.stringify(serialiseSkirmish(going)))).headed).toEqual(going.headed);
         expect(nextRound(going, gunship).headed).toBeUndefined();
     });

@@ -133,6 +133,20 @@ const percent = (share: number): string => `${math.round(share * 100)}%`;
 /** To two places, so a light dimmed and brightened again comes back to where it was. */
 const tidy = (n: number): number => math.round(n * 100) / 100;
 
+/** A round as its settings set it out, in a few words: "1 major and 6 minor asteroids, 1,500 m apart, closing at 40 m/s". */
+export function describeArena(s: SkirmishSettings): string {
+    const rock = [...(majors(s) > 0 ? [`${majors(s)} major`] : []), ...(minors(s) > 0 ? [`${minors(s)} minor`] : [])];
+    const parts = [
+        rock.length === 0 ? "open space" : `${rock.join(" and ")} ${majors(s) + minors(s) === 1 ? "asteroid" : "asteroids"}`,
+        s.gap > 0 ? `${metres(s.gap)} apart` : "at touching range",
+        ...(s.closingSpeed !== 0 ? [`closing at ${s.closingSpeed} m/s`] : []),
+        ...(s.crossingSpeed !== 0 ? [`crossing at ${s.crossingSpeed} m/s`] : []),
+        ...(s.closingSpeed === 0 && s.crossingSpeed === 0 ? ["from rest"] : []),
+        ...(s.light < 1 ? [`${percent(s.light)} sunlight`] : []),
+    ];
+    return parts.join(", ").replace(/^./, (c) => c.toUpperCase());
+}
+
 /** How many are offered. */
 export const OFFERED = 3;
 
