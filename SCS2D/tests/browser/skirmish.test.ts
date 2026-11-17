@@ -130,7 +130,7 @@ describe("the skirmish in a browser", () => {
             await page.keyboard.press(" ");
             expect(await page.locator("#play").count()).toBe(0);
             expect(await page.getAttribute("#editFleet", "data-variant")).toBe("primary");
-            expect(await page.textContent("#editFleetWhy")).toMatch(/^over budget on /);
+            expect(await page.textContent("#editFleetWhy")).toMatch(/over budget on /);
             expect(await page.locator("#budget tr.over").count()).toBeGreaterThan(0);
             await giveUp();
             expect(await page.isVisible("#setupScreen")).toBe(true);

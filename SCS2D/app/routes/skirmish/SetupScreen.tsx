@@ -151,7 +151,7 @@ const UNITS: Record<keyof Budget, number> = { metal: 1000, fuel: 1000, build: 36
 const BUDGET_ROWS: readonly { key: keyof Budget; label: string; title: string }[] = [
     { key: "metal", label: "metal t", title: "Hull, fittings and the metal in its holds" },
     { key: "fuel", label: "fuel t", title: "The fuel in its tanks as it sets out" },
-    { key: "build", label: "build h", title: "How long one robot would take to build every module" },
+    { key: "build", label: "build time h", title: "How long one robot would take to build every module" },
 ];
 const shownCost = (cost: Budget | null, key: keyof Budget): string =>
     cost === null ? "" : String(Math.round((cost[key] / UNITS[key]) * 100) / 100);
@@ -380,7 +380,7 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart, onImport }: Set
                     Next, build your fleet in the fleet editor
                     {shownBudget === null
                         ? "."
-                        : ` within a budget of ${kg(shownBudget.metal)} metal, ${kg(shownBudget.fuel)} fuel and ${buildTime(shownBudget.build)} of building.`}{" "}
+                        : ` within a budget of ${kg(shownBudget.metal)} metal, ${kg(shownBudget.fuel)} fuel and ${buildTime(shownBudget.build)} of build time.`}{" "}
                     The enemy, {nameOf(enemy)}, is shown on the right.
                 </p>
             </Start>
@@ -423,7 +423,7 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart, onImport }: Set
                                 <td>{kg(enemyCost.fuel)}</td>
                             </tr>
                             <tr>
-                                <th>build</th>
+                                <th>build time</th>
                                 <td>{buildTime(enemyCost.build)}</td>
                             </tr>
                         </tbody>

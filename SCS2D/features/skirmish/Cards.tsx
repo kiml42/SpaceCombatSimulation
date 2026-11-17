@@ -84,6 +84,6 @@ export function CardPick({ hand, onPick }: { readonly hand: readonly string[]; r
 }
 
 /** A cost's name in its colour, as the cards write it. */
-export function ResourceWord({ resource }: { readonly resource: keyof typeof RESOURCE_COLOURS }) {
-    return <span style={{ color: RESOURCE_COLOURS[resource] }}>{resource}</span>;
+export function ResourceWord({ resource, long = false }: { readonly resource: keyof typeof RESOURCE_COLOURS; readonly long?: boolean }) {
+    return <span style={{ color: RESOURCE_COLOURS[resource] }}>{long && resource === "build" ? "build time" : resource}</span>;
 }

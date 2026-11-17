@@ -13,7 +13,7 @@ export function budgetRows(bill: Bill, budget: Budget): string {
     return (
         row("metal", kg(bill.metal), kg(budget.metal), bill.metal > budget.metal) +
         row("fuel", kg(bill.fuel), kg(budget.fuel), bill.fuel > budget.fuel) +
-        row("build", buildTime(bill.build), buildTime(budget.build), bill.build > budget.build)
+        row("build time", buildTime(bill.build), buildTime(budget.build), bill.build > budget.build)
     );
 }
 
