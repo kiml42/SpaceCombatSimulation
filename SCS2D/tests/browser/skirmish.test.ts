@@ -400,15 +400,19 @@ describe("the skirmish in a browser", () => {
         expect(await page.textContent("#skirmishNote")).toBe("Pick your upgrade card back in Skirmish to fight again.");
         expect(await page.locator("#cardPick").count()).toBe(0);
         await page.click("#backToSkirmish");
+        await page.waitForSelector("#round");
+        // Offered in place of Fight and Edit fleet, and opened only when asked for.
+        expect(await page.locator("#earnedCard").count()).toBe(0);
+        expect(await page.locator("#fight").count()).toBe(0);
+        await page.click("#pickCard");
         await page.waitForSelector("#earnedCard");
-        expect(await page.isDisabled("#fight")).toBe(true);
-        // Put off to watch the battle, and taken up again.
+        // Put off to go on watching, and taken up again.
         await page.click("#earnedCardLater");
         expect(await page.locator("#earnedCard").count()).toBe(0);
-        await page.click("#pickLater");
+        await page.click("#pickCard");
         await page.click('[data-pick="metal"]');
         expect(await page.locator("#earnedCard").count()).toBe(0);
-        expect(await page.locator("#pickLater").count()).toBe(0);
+        expect(await page.locator("#pickCard").count()).toBe(0);
         expect(await page.locator('#playerCards [data-card="metal"]').count()).toBeGreaterThan(0);
         expect(await page.isDisabled("#fight")).toBe(false);
         await giveUp();

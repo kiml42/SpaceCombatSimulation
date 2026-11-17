@@ -34,7 +34,7 @@ const Box = styled.div`
     }
 `;
 
-/** Three losses with different fleets have dealt a hand: pick one, over the battle that earned it. */
+/** Three losses with different fleets have dealt a hand: pick one, over the battle that earned it, paused. */
 export function EarnedCard({
     hand,
     onPick,
@@ -50,7 +50,7 @@ export function EarnedCard({
             <p>Three different fleets have lost this round, so you get an upgrade card. Pick one to take into your next fight.</p>
             <CardPick hand={hand} onPick={onPick} />
             <Button id="earnedCardLater" onClick={onLater}>
-                Watch the battle first
+                Continue watching
             </Button>
         </Box>
     );
