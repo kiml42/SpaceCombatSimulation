@@ -1,19 +1,29 @@
 import { styled } from "@linaria/react";
-import { kg } from "~/editor/budget";
-import { buildTime } from "~/editor/stats";
+import type { ReactNode } from "react";
 import { enemyLimits, playerLimits, type Skirmish } from "~/scenarios/skirmish";
 import { fleetBill, fleetDraftHulls, fleetReach, math, type Fleet } from "~/sim/index";
 import type { Limits } from "~/skirmish/cards";
-import { ResourceWord } from "./Cards";
+import { CardHand, ResourceWord } from "./Cards";
 
 const Table = styled.table`
     width: 100%;
     border-collapse: collapse;
 
+    /* The sides share what the labels leave equally, whatever their figures. */
+    table-layout: fixed;
+
+    col.labels {
+        width: 3.2rem;
+    }
+
+    &.alone col.labels {
+        width: 4.6rem;
+    }
+
     th,
     td {
         padding: 0.1rem 0 0.1rem 0.6rem;
-        vertical-align: top;
+        vertical-align: baseline;
     }
 
     thead th {
@@ -22,9 +32,11 @@ const Table = styled.table`
         text-align: right;
     }
 
+    /* Small: read the first few times, then known by place. */
     tbody th {
         padding-left: 0;
         color: var(--colour-muted);
+        font-size: 0.8em;
         font-weight: 400;
         text-align: left;
     }
@@ -48,6 +60,32 @@ const Table = styled.table`
     tr.over td.player {
         color: var(--colour-danger);
     }
+
+    tr.names td {
+        padding-bottom: 0.3rem;
+        overflow-wrap: anywhere;
+    }
+
+    /* A side's cards wrap within its own column, from its right edge like the figures above. */
+    tr.cards th,
+    tr.cards td {
+        padding-top: 0.3rem;
+        vertical-align: top;
+    }
+
+    /* The label's smaller text, dropped to sit level with "none" or a card's top. */
+    tr.cards th {
+        padding-top: calc(0.3rem + 0.15em);
+    }
+
+    tr.cards [role="group"] {
+        justify-content: flex-end;
+        margin: 0;
+    }
+
+    tr.cards p {
+        margin: 0;
+    }
 `;
 
 /** What a fleet uses of each limit, or null for one that cannot be priced. */
@@ -69,12 +107,27 @@ function usedBy(fleet: Fleet): Used | null {
     }
 }
 
+type Show = (n: number) => string;
+
+/** Figures in `size`s of `unit`: whole ones, or to a tenth, or two places below one so a small figure is not shown as 0. */
+function inUnit(size: number, unit: string, whole = size === 1): Show {
+    return (n) => {
+        const v = n / size;
+        if (whole) return `${math.round(v)} ${unit}`;
+        return `${v.toLocaleString("en-GB", { maximumFractionDigits: v !== 0 && math.abs(v) < 1 ? 2 : 1 })} ${unit}`;
+    };
+}
+
+/** One unit for a row, picked by its largest figure, so the two sides and their limits read alike. */
+const mass = (largest: number): Show => (largest >= 1000 ? inUnit(1000, "t") : inUnit(1, "kg"));
+const time = (largest: number): Show => (largest < 90 ? inUnit(1, "s") : largest < 5400 ? inUnit(60, "min", true) : inUnit(3600, "h"));
+
 const ROWS = [
-    { key: "metal", show: kg },
-    { key: "fuel", show: kg },
-    { key: "build", show: buildTime },
-    { key: "ships", show: (n: number) => String(n) },
-    { key: "spread", show: (m: number) => `${math.round(m)} m` },
+    { key: "metal", unit: mass },
+    { key: "fuel", unit: mass },
+    { key: "build", unit: time },
+    { key: "ships", unit: (): Show => (n) => String(n) },
+    { key: "spread", unit: (): Show => inUnit(1, "m") },
 ] as const;
 
 function limitOf(limits: Limits, key: (typeof ROWS)[number]["key"]): number {
@@ -87,13 +140,22 @@ export interface BudgetTableProps {
     readonly id?: string;
     /** The enemy's column beside the player's, where comparing the two helps. */
     readonly enemy?: boolean;
+    /** Each side's name, in a row above its figures. */
+    readonly names?: { readonly player: ReactNode; readonly enemy: ReactNode };
+    /** Each side's upgrade cards, in a row below its figures. */
+    readonly cards?: { readonly player: readonly string[]; readonly enemy: readonly string[] };
 }
 
-export function BudgetTable({ skirmish, id, enemy = true }: BudgetTableProps) {
+export function BudgetTable({ skirmish, id, enemy = true, names, cards }: BudgetTableProps) {
     const player = { side: "player", used: usedBy(skirmish.player), limits: playerLimits(skirmish) } as const;
     const sides = enemy ? [player, { side: "enemy", used: usedBy(skirmish.enemy), limits: enemyLimits(skirmish) } as const] : [player];
     return (
-        <Table id={id}>
+        <Table id={id} className={enemy ? undefined : "alone"}>
+            <colgroup>
+                <col className="labels" />
+                <col />
+                {enemy && <col />}
+            </colgroup>
             <thead>
                 <tr>
                     <td />
@@ -102,12 +164,20 @@ export function BudgetTable({ skirmish, id, enemy = true }: BudgetTableProps) {
                 </tr>
             </thead>
             <tbody>
-                {ROWS.map(({ key, show }) => {
+                {names !== undefined && (
+                    <tr className="names">
+                        <th scope="row">fleet</th>
+                        <td id="playerName">{names.player}</td>
+                        {enemy && <td id="enemyName">{names.enemy}</td>}
+                    </tr>
+                )}
+                {ROWS.map(({ key, unit }) => {
+                    const show = unit(math.max(...sides.flatMap(({ used, limits }) => [used?.[key] ?? 0, limitOf(limits, key)])));
                     const over = player.used !== null && player.used[key] > limitOf(player.limits, key) + 1e-9;
                     return (
                         <tr key={key} className={over ? "over" : undefined} data-over={over || undefined}>
                             <th scope="row">
-                                {key === "metal" || key === "fuel" || key === "build" ? <ResourceWord resource={key} /> : key}
+                                {key === "metal" || key === "fuel" || key === "build" ? <ResourceWord resource={key} long={!enemy} /> : key}
                             </th>
                             {sides.map(({ side, used, limits }) => (
                                 <td key={side} className={side}>
@@ -117,6 +187,19 @@ export function BudgetTable({ skirmish, id, enemy = true }: BudgetTableProps) {
                         </tr>
                     );
                 })}
+                {cards !== undefined && (
+                    <tr className="cards">
+                        <th scope="row">cards</th>
+                        <td>
+                            <CardHand id="playerCards" ids={cards.player} empty="none" />
+                        </td>
+                        {enemy && (
+                            <td>
+                                <CardHand id="enemyCards" ids={cards.enemy} empty="none" />
+                            </td>
+                        )}
+                    </tr>
+                )}
             </tbody>
         </Table>
     );

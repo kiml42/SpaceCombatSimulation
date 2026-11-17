@@ -16,7 +16,6 @@ import { OrderBar } from "~/features/orders/OrderBar";
 import { useOrderState } from "~/features/orders/orderState";
 import { BudgetTable } from "~/features/skirmish/BudgetTable";
 import { AbandonDialog } from "~/features/skirmish/AbandonDialog";
-import { CardHand } from "~/features/skirmish/Cards";
 import { download, downloadSkirmish, skirmishStatus, skirmishTitle } from "~/features/skirmish/skirmishFile";
 import { useSkirmish } from "~/features/skirmish/SkirmishProvider";
 import { useStorage } from "~/features/storage/StorageContext";
@@ -149,16 +148,11 @@ const Decided = styled.div`
     }
 `;
 
-/** A button's label with what to fix under it. */
-const Labelled = styled.span`
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-`;
-
-const Fix = styled.span`
+/** What stands between the fleet and a fight, under the buttons that would fix it. */
+const Fix = styled.p`
+    margin: 0.4rem 0 0;
+    color: var(--colour-warning);
     font-size: var(--font-size-small);
-    font-weight: normal;
 `;
 
 const NotReady = styled.div`
@@ -337,11 +331,13 @@ const SideStats = styled.div`
 type Mode = "round" | "watching" | "answer" | "replay";
 
 /** The enemy where it will stand, in its colour, with nobody yet on the other side. */
-/** The things a skirmish's fleet is over budget on, as "metal and build". */
+/** The things a skirmish's fleet is over budget on, as "metal and build time". */
 function overBudget(skirmish: Skirmish): string {
     const bill = billOfFleet(skirmish.player);
     const budget = playerLimits(skirmish).budget;
-    const over = (["metal", "fuel", "build"] as const).filter((what) => bill[what] > budget[what]);
+    const over = (["metal", "fuel", "build"] as const)
+        .filter((what) => bill[what] > budget[what])
+        .map((what) => (what === "build" ? "build time" : what));
     return over.length < 2 ? (over[0] ?? "budget") : `${over.slice(0, -1).join(", ")} and ${over.at(-1)}`;
 }
 
@@ -778,7 +774,7 @@ export function SkirmishPage() {
     const fault = skirmish === null ? null : fleetFault(skirmish.player);
     const fits = skirmish !== null && canFight(skirmish);
     const limit = skirmish === null || fault !== null ? null : overLimit(skirmish);
-    // What to fix in your fleet, in a few words for the Edit fleet button.
+    // What to fix in your fleet, in a few words under the buttons.
     const fix =
         skirmish === null || fits
             ? null
@@ -992,22 +988,11 @@ export function SkirmishPage() {
                             <h2 id="roundTitle">
                                 {`Round ${skirmish.round}` + (skirmish.tries > 0 ? ` · try ${skirmish.tries + 1}` : "")}
                             </h2>
-                            <h2>Enemy</h2>
-                            <p id="enemyName">{enemyLine ?? skirmish.enemy.name}</p>
-                            <CardHand
-                                id="enemyCards"
-                                ids={skirmish.enemyCards ?? []}
-                                caption="The enemy's upgrade cards:"
-                                empty="The enemy holds no upgrade cards yet."
-                            />
-                            <h2>You</h2>
-                            <p id="playerName">{skirmish.player.name}</p>
-                            <BudgetTable id="budget" skirmish={skirmish} />
-                            <CardHand
-                                id="playerCards"
-                                ids={skirmish.cards ?? []}
-                                caption="Your upgrade cards:"
-                                empty="You hold no upgrade cards yet."
+                            <BudgetTable
+                                id="budget"
+                                skirmish={skirmish}
+                                names={{ player: skirmish.player.name, enemy: enemyLine ?? skirmish.enemy.name }}
+                                cards={{ player: skirmish.cards ?? [], enemy: skirmish.enemyCards ?? [] }}
                             />
                             {!answeringNow && (
                                 <Buttons>
@@ -1033,10 +1018,7 @@ export function SkirmishPage() {
                                             void navigate(fleetRoute(skirmish.player, skirmish));
                                         }}
                                     >
-                                        <Labelled>
-                                            Edit fleet
-                                            {fix !== null && <Fix id="editFleetWhy">{fix}</Fix>}
-                                        </Labelled>
+                                        Edit fleet
                                     </EditLink>
                                     {started && (
                                         <Button
@@ -1053,6 +1035,7 @@ export function SkirmishPage() {
                                     )}
                                 </Buttons>
                             )}
+                            {!answeringNow && fix !== null && <Fix id="editFleetWhy">Edit fleet to fight: {fix}.</Fix>}
                             <Outcome id="outcome" className={outcome.kind}>
                                 {outcome.text}
                             </Outcome>
