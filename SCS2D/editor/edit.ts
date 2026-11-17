@@ -1,4 +1,5 @@
 import {
+    blockCentre,
     bodySpec,
     compileDraft,
     degreesToRadians,
@@ -8,6 +9,7 @@ import {
     insideOutline,
     moduleCentre,
     moduleOutline,
+    moduleProblem,
     triangleBounds,
     samePlacement,
     math,
@@ -1433,6 +1435,28 @@ export function snap(value: number, step: number): number {
     return round(round(value / step) * step * unit) / unit;
 }
 
+/** How far out a module left out of the ship is marked and picked, pixels. */
+export const LEFT_OUT_RADIUS_PX = 8;
+
+/**
+ * Whether a module is one `compileDraft` leaves out — shrunk to nothing, say —
+ * and so has no body on the canvas to click.
+ */
+export function leftOut(spec: ModuleSpec): boolean {
+    return moduleProblem(spec) !== null;
+}
+
+/** The last module left out of the ship whose marker, `reach` around its middle, covers a point, or -1. */
+function leftOutAt(modules: readonly ModuleSpec[], x: number, y: number, reach: number): number {
+    for (let i = modules.length - 1; i >= 0; i--) {
+        const m = modules[i]!;
+        if (!leftOut(m)) continue;
+        const mid = blockCentre(m);
+        if ((x - mid.x) ** 2 + (y - mid.y) ** 2 <= reach * reach) return i;
+    }
+    return -1;
+}
+
 /**
  * Which drawn module is under a point in the blueprint's frame, or -1.
  *
@@ -1440,8 +1464,13 @@ export function snap(value: number, step: number): number {
  * one picked. Modules are not meant to overlap, but a layout being worked on
  * routinely has some that do, and picking the one underneath in that moment
  * would make the overlap impossible to undo by dragging.
+ *
+ * A module left out of the ship is picked first, anywhere within `reach` of
+ * its middle, as that marker is all there is of it to click.
  */
-export function moduleAt(modules: readonly ModuleSpec[], x: number, y: number): number {
+export function moduleAt(modules: readonly ModuleSpec[], x: number, y: number, reach = 0): number {
+    const left = leftOutAt(modules, x, y, reach);
+    if (left >= 0) return left;
     const corners: number[] = [];
     for (let i = modules.length - 1; i >= 0; i--) {
         const m = modules[i]!;

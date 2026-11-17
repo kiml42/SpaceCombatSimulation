@@ -22,6 +22,7 @@ import type { EditorDocument } from "./document.js";
 import {
     instanceHandle,
     instancePose,
+    LEFT_OUT_RADIUS_PX,
     moduleAt,
     movePlacement,
     shiftRepeatStep,
@@ -801,7 +802,7 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
             };
             return;
         }
-        const hit = moduleAt(doc.view.modules, world.x, world.y);
+        const hit = moduleAt(doc.view.modules, world.x, world.y, LEFT_OUT_RADIUS_PX / camera.scale);
         // Shift over a module adds it to the selection; shift over empty space
         // still pans, as does the middle button and a plain drag on empty space.
         // The one gesture this costs is panning by shift-dragging *from* a module,
