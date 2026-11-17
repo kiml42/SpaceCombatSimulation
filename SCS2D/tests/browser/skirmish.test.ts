@@ -390,6 +390,31 @@ describe("the skirmish in a browser", () => {
         expect(problems).toEqual([]);
     });
 
+    it("offers an upgrade card earned over the battle, not in the fleet editor", async () => {
+        const fleet = shipFleet(GUNSHIP);
+        const dealt = { ...newSkirmish(fleet, fleet, 3), player: fleet, hand: ["metal", "fuel", "build"] };
+        // The fleet editor sends you back to pick it, and lets you go. Loaded afresh, not as a change of hash.
+        await page.goto("about:blank");
+        await page.goto(`${pathToFileURL(appPage).href}#${fleetRoute(dealt.player, dealt)}`);
+        await page.waitForSelector("#backToSkirmish");
+        expect(await page.textContent("#skirmishNote")).toBe("Pick your upgrade card back in Skirmish to fight again.");
+        expect(await page.locator("#cardPick").count()).toBe(0);
+        await page.click("#backToSkirmish");
+        await page.waitForSelector("#earnedCard");
+        expect(await page.isDisabled("#fight")).toBe(true);
+        // Put off to watch the battle, and taken up again.
+        await page.click("#earnedCardLater");
+        expect(await page.locator("#earnedCard").count()).toBe(0);
+        await page.click("#pickLater");
+        await page.click('[data-pick="metal"]');
+        expect(await page.locator("#earnedCard").count()).toBe(0);
+        expect(await page.locator("#pickLater").count()).toBe(0);
+        expect(await page.locator('#playerCards [data-card="metal"]').count()).toBeGreaterThan(0);
+        expect(await page.isDisabled("#fight")).toBe(false);
+        await giveUp();
+        expect(problems).toEqual([]);
+    });
+
     it("makes editing the fleet the thing to do next once a round is lost", async () => {
         // A bare core cannot fire back, so it is out once the quiet time has passed.
         const skirmish = newSkirmish(shipFleet(GUNSHIP), shipFleet(BARE_CORE), 7, undefined, { metal: 1e9, fuel: 1e9, build: 1e9 });
