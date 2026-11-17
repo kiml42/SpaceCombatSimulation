@@ -954,6 +954,9 @@ export function detach(ships: Ships, world: World, i: number, design: ShipDesign
     });
     ships.partedAt[j] = world.tick;
     ships.couldFight[j] = ships.couldFight[side]!;
+    // In the layers its hull was in: occupancy changes only clear of every hull (DESIGN.md §3),
+    // so a piece of a fighter that had dropped to the deck stays there.
+    ships.committed[j] = ships.committed[i]!;
     if (flies) {
         ships.orders[j] = ships.orders[side]!.map((order) => ({ ...order }));
         // And what it was told of how to fight.

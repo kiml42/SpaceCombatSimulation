@@ -3,7 +3,7 @@ import { Bodies, type BodyId } from "./bodies.js";
 import { aboardPose, padHolds, sameOrigin, slipwayHolds, type DesignTurret, type ShipDesign } from "./blueprint.js";
 import { components, joints } from "./connectivity.js";
 import { BOTH_LAYERS, HULL_LAYER, Hulls, OWN_LAYERS, WEAPONS_LAYER } from "./hull.js";
-import { Damage, DamageEffect, type Credit, type ImpactLog } from "./damage.js";
+import { Damage, DamageEffect, SHATTER, type Credit, type ImpactLog } from "./damage.js";
 import { Fuel, LEAK_HOLE_CALIBRES, leakChance } from "./fuel.js";
 import { Charge } from "./charge.js";
 import { Metal } from "./metal.js";
@@ -2439,15 +2439,22 @@ export class Ships {
      * primary when nobody does or no module is named. -1 for no ship.
      */
     /**
-     * Whether this body is a fighter committed to a ram, flown alone: a hard
-     * contact spends it as rounds (`spendRams`). A grapple is not a ram, and a
-     * torpedo spent on the way in is still armed.
+     * Joules a body's hull can take in one blow before it is destroyed outright
+     * (`spendHulls`): `SHATTER` times every module's capacity, which is what
+     * shatters each of them, whatever it has taken already. `Infinity` for a
+     * hull that is protected, has a kernel, or is shared between ships.
      */
-    ramsAsRounds(bodyIndex: number): boolean {
+    toughness(bodyIndex: number): number {
         const i = this.shipByBody[bodyIndex];
-        if (i === undefined || i < 0 || this.pilots[bodyIndex] != null) return false;
-        if (this.committed[i] !== 1 || this.designs[i]?.fighter !== true) return false;
-        return shipOrders.effectiveOrder(this, i)?.grapple !== true;
+        if (i === undefined || i < 0 || this.pilots[bodyIndex] != null || this.damage.isProtected(bodyIndex)) return Infinity;
+        const design = this.designs[i];
+        if (design == null) return Infinity;
+        let total = 0;
+        for (let m = 0; m < design.modules.length; m++) {
+            if (this.damage.kindAt(bodyIndex, m) === "kernel") return Infinity;
+            total += this.damage.capacityOf(bodyIndex, m);
+        }
+        return SHATTER * total;
     }
 
     /** The ship credit entry `h` credits: the one it names, if any, else whoever flies the module that did it. */

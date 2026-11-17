@@ -1693,14 +1693,15 @@ Rules:
   This is what makes "a torpedo is a fighter that crashes into things" literal — the crash is how a
   craft reaches the hull layer — so a pure kinetic-kill vehicle needs no warhead at all.
 
-  **A ram is spent as rounds** (`spendRams`). A fighter committed to a ram that meets a hull closing faster
-  than `RAM_ROUND_SPEED` (20 m/s) does not bounce off it: every module goes on as a round of its mass, at
-  the velocity its place on the hull had, as wide as it is across the way it is going, from just outside
-  what it struck. The nose meets the plate first and the tail after it, each by the law any round meets
-  armour by, so a dense, narrow nose penetrates and a hollow body piles up on the plate; what gets through
-  walks on into the internals. The rounds carry the ship's mass and momentum, and are credited to it
-  though it is gone (`Credit.attackerShip`). A grapple is not a ram, and a torpedo spent on the way in is
-  still armed.
+  **A hull a collision would destroy outright goes on as rounds** (`spendHulls`), whatever it was doing:
+  where its half of what a bounce would lose is more than its `toughness`, `SHATTER` times all its
+  modules' capacity, it is not bounced. Every module goes on as a round of its mass, at the velocity its
+  place on the hull had, as wide as it is across the way it is going, from just outside what it struck.
+  The nose meets the plate first and the tail after it, each by the law any round meets armour by, so a
+  dense, narrow nose penetrates and a hollow body piles up on the plate; what gets through walks on into
+  the internals. The rounds carry the hull's mass and momentum, and are credited to its ship though it is
+  gone (`Credit.attackerShip`). A torpedo at 150 m/s goes this way; two capitals that bump do not. A piece
+  broken off a fighter that had dropped to the deck stays there, as occupancy changes only clear of a hull.
 
   **Ram versus dock is a closing speed**: under the §4 weld threshold a craft has landed, over it the
   craft has rammed. What it lands *with* is a pad, a port or a claw, each with rules of its own (ROADMAP.md

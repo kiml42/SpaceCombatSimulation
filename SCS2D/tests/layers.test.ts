@@ -7,6 +7,7 @@ import {
     compileBlueprint,
     firingArc,
     inWeaponsLayer,
+    joints,
     layoutStats,
     isThick,
     masked,
@@ -26,6 +27,7 @@ import {
     type Blueprint,
     type ModuleSpec,
 } from "../sim/index.js";
+import { BOTH_LAYERS, WEAPONS_LAYER } from "../sim/hull.js";
 
 /**
  * The two layers (DESIGN.md §3): the deck and below, and what stands up above
@@ -366,5 +368,37 @@ describe("a round", () => {
         expect(hits.count).toBe(1);
         expect(hits.body[0]).toBe(body);
         expect(hits.module[0]).toBe(right);
+    });
+});
+
+describe("a piece broken off a fighter", () => {
+    /** A fighter of a core and a plate heavy enough to be kept, committed or not, with its plate cut off; the piece's body. */
+    const breakOff = (committed: boolean) => {
+        const design = compileBlueprint({
+            name: "Lump",
+            fighter: true,
+            modules: [
+                { kind: "core", x: -4, y: 0, length: 4, width: 4 },
+                { kind: "structure", x: -1, y: 0, length: 2, width: 2 },
+            ],
+        });
+        const world = new World({ dt: 1 / 60, seed: 3 });
+        const ships = new Ships();
+        const ship = ships.spawn(world, { design, x: 0, y: 0, vx: 100, team: 0 });
+        (ships.committed as number[])[ship] = committed ? 1 : 0;
+        const body = world.bodies.indexOf(ships.body(ship));
+        ships.damage.cutWeld(body, 0, joints(ships.currentStructure(ship))[0]!.width);
+        ships.sever(world);
+        const piece = world.bodies.highWater - 1;
+        expect(piece).not.toBe(body);
+        return ships.layersOf(piece);
+    };
+
+    it("stays down on the deck with its hull, if that had dropped there to ram", () => {
+        expect(breakOff(true)).toBe(BOTH_LAYERS);
+    });
+
+    it("stays above it otherwise", () => {
+        expect(breakOff(false)).toBe(WEAPONS_LAYER);
     });
 });

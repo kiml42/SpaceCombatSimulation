@@ -611,8 +611,8 @@ export interface HullDesigns {
     carrierOf?(bodyIndex: number): number;
     /** Where turret `turret` of this body's design points now, radians in the hull's frame; NaN where unknown. */
     mountBearing?(bodyIndex: number, turret: number): number;
-    /** Whether this body is a fighter committed to a ram, to be spent as rounds on what it meets hard. */
-    ramsAsRounds?(bodyIndex: number): boolean;
+    /** Joules this body's hull can take before a blow destroys it outright, `Infinity` for one nothing can (`spendHulls`). */
+    toughness?(bodyIndex: number): number;
     /** How much of a module's interior is fuel, 0 to 1, for what a round has to get through. */
     fuelDepth?(bodyIndex: number, module: number): number;
     /**

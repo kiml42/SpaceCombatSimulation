@@ -21,7 +21,7 @@ const DRY: Blueprint = {
     modules: TORPEDO.modules.map((m) => ("kind" in m && (m.kind === "tank" || m.kind === "core") ? { ...m, fill: 0 } : m)),
 };
 
-/** The same, not a fighter: a hull it meets is met as hulls meet, rather than rammed as rounds. */
+/** The same, not a fighter, so it meets the deck without dropping to it. */
 const HULL: Blueprint = { ...DRY, fighter: false };
 
 /** A still Corvette, and a dry Torpedo (or `design`) 60 m off its side closing at `speed`. */
@@ -67,16 +67,16 @@ function untilWreckage(run: ReturnType<typeof ram>["run"], limit = 120): Fragmen
 
 describe("a module shattered in a collision", () => {
     it("flies on as fragments of mixed sizes, still going into what it struck", () => {
-        const { run, torpedoBody } = ram(300, HULL);
+        const { run, torpedoBody } = ram(80, HULL);
         const thrown = untilWreckage(run).filter((f) => f.owner === torpedoBody);
         expect(thrown.length).toBeGreaterThan(1);
         expect(new Set(thrown.map((f) => f.mass)).size).toBe(thrown.length);
         // Into the corvette's side, which is up the screen from where the torpedo came.
-        for (const f of thrown) expect(f.vy).toBeGreaterThan(100);
+        for (const f of thrown) expect(f.vy).toBeGreaterThan(50);
     });
 
     it("carries no more energy against what it struck than the crush could not spend", () => {
-        const { run, torpedoBody } = ram(300, HULL);
+        const { run, torpedoBody } = ram(80, HULL);
         const thrown = untilWreckage(run).filter((f) => f.owner === torpedoBody);
         const c = run.collisions.contacts;
         let spare = 0;
@@ -162,8 +162,8 @@ describe("a piece broken off too small to keep", () => {
     });
 });
 
-describe("a fighter committed to a ram, meeting a hull hard", () => {
-    /** Step `run` until the torpedo is spent, or `limit` steps pass, keeping it committed; the rounds it became. */
+describe("a hull a collision would destroy outright", () => {
+    /** Step `run` until the torpedo is spent, or `limit` steps pass, keeping it on the deck; the rounds it became. */
     const untilSpent = (run: ReturnType<typeof ram>["run"], limit = 120): ProjectileSpec[] => {
         const rounds: ProjectileSpec[] = [];
         const spawn = run.projectiles.spawn.bind(run.projectiles);
@@ -208,9 +208,15 @@ describe("a fighter committed to a ram, meeting a hull hard", () => {
         expect(run.ships.isAlive(run.torpedo)).toBe(true);
     });
 
-    it("is not spent unless committed", () => {
-        const { run } = ram(150);
-        for (let t = 0; t < 120; t++) run.step();
+    it("is spent whatever it was doing: a hull that is no fighter, flown into it as hard", () => {
+        const { run } = ram(150, HULL);
+        expect(untilSpent(run).length).toBe(compileBlueprint(HULL).modules.length);
+        expect(run.ships.isAlive(run.torpedo)).toBe(false);
+    });
+
+    it("is not spent by a blow that only breaks part of it", () => {
+        const { run } = ram(80, HULL);
+        expect(untilSpent(run)).toHaveLength(0);
         expect(run.ships.isAlive(run.torpedo)).toBe(true);
     });
 });

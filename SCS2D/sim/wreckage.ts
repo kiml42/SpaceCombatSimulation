@@ -232,11 +232,12 @@ export function throwShrapnel(ships: Ships, projectiles: Projectiles): number {
 }
 
 /**
- * Spend every fighter this step's collisions found ramming (`Contacts.rammed`)
- * on what it rammed, as rounds, and say how many it spent.
+ * Spend every hull this step's collisions would destroy outright
+ * (`Contacts.spent`) on what it met, as rounds, and say how many it spent.
  *
- * A ram is a hull flown into another so hard that it cannot bounce: what it
- * does is what each part of it does, arriving. So every module goes on as a
+ * A hull that meets another so hard that its share of the blow is more than
+ * all of it can stand does not bounce: it comes apart, and what it does is
+ * what each part of it does, arriving. So every module goes on as a
  * round of its mass, at the velocity its place on the hull had, as wide as it
  * is across the way it is going, from where it was, taken back out of what
  * it struck. The nose meets the plate first and the tail after it, each by
@@ -244,13 +245,13 @@ export function throwShrapnel(ships: Ships, projectiles: Projectiles): number {
  * internals, and what stops spends all it has there. The rounds carry the
  * ship's mass and momentum between them, and are credited to it.
  */
-export function spendRams(ships: Ships, world: World, projectiles: Projectiles, contacts: Contacts): number {
+export function spendHulls(ships: Ships, world: World, projectiles: Projectiles, contacts: Contacts): number {
     const bodies = world.bodies;
     let spent = 0;
     for (let k = 0; k < contacts.count; k++) {
-        const rams = contacts.rammed[k]!;
+        const sides = contacts.spent[k]!;
         for (const side of [OUTLET_A, OUTLET_B]) {
-            if ((rams & side) === 0) continue;
+            if ((sides & side) === 0) continue;
             const r = side === OUTLET_A ? contacts.a[k]! : contacts.b[k]!;
             const o = side === OUTLET_A ? contacts.b[k]! : contacts.a[k]!;
             const i = ships.shipByBody[r] ?? -1;

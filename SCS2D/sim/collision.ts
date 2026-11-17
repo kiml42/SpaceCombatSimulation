@@ -24,13 +24,6 @@ import { BEAM_STALK_WIDTH, isHullBeam, isHullMount, lensDiscRadius, mountGeometr
  * target — is not a shape anything can hit.
  */
 
-/**
- * The closing speed above which a fighter committed to a ram is spent as
- * rounds on what it meets, m/s: far past any landing or weld, and short of
- * any ram worth the name.
- */
-export const RAM_ROUND_SPEED = 20;
-
 /** How much of the closing speed is given back. Ships are not billiard balls. */
 export const RESTITUTION = 0.15;
 
@@ -143,8 +136,8 @@ export class Contacts {
      */
     spareA = new Float64Array(64);
     spareB = new Float64Array(64);
-    /** Which side is a ram spent on the other as rounds (`spendRams`): `OUTLET_A`, `OUTLET_B`, both or neither. */
-    rammed = new Uint8Array(64);
+    /** Which side the contact would destroy outright, spent on the other as rounds (`spendHulls`): `OUTLET_A`, `OUTLET_B`, both or neither. */
+    spent = new Uint8Array(64);
     count = 0;
 
     clear(): void {
@@ -171,7 +164,7 @@ export class Contacts {
         this.rewindY[i] = 0;
         this.spareA[i] = 0;
         this.spareB[i] = 0;
-        this.rammed[i] = 0;
+        this.spent[i] = 0;
     }
 
     private grow(): void {
@@ -205,9 +198,9 @@ export class Contacts {
         spareB.set(this.spareB);
         this.spareA = spareA;
         this.spareB = spareB;
-        const rammed = new Uint8Array(size);
-        rammed.set(this.rammed);
-        this.rammed = rammed;
+        const spent = new Uint8Array(size);
+        spent.set(this.spent);
+        this.spent = spent;
         a.set(this.a);
         b.set(this.b);
         x.set(this.x);
@@ -1241,13 +1234,14 @@ export function resolveContacts(bodies: Bodies, contacts: Contacts, hulls?: Hull
         // Two immovable objects. Neither can give, so nothing happens to either.
         if (!(invMassSum > 0)) continue;
 
-        // A fighter committed to a ram, meeting a hull hard, is spent on it as
-        // rounds (`spendRams`) rather than bouncing off it.
-        if (-vn > RAM_ROUND_SPEED && hulls?.ramsAsRounds !== undefined) {
-            const rams = (hulls.ramsAsRounds(contacts.a[k]!) ? OUTLET_A : 0) | (hulls.ramsAsRounds(contacts.b[k]!) ? OUTLET_B : 0);
-            if (rams !== 0) {
+        // A hull whose half of what a bounce would lose is more than all of it can
+        // stand is not bounced: it is destroyed, and goes on as rounds (`spendHulls`).
+        if (vn < 0 && hulls?.toughness !== undefined) {
+            const half = 0.25 * (1 - RESTITUTION * RESTITUTION) * ((vn * vn) / invMassSum);
+            const spent = (half > hulls.toughness(contacts.a[k]!) ? OUTLET_A : 0) | (half > hulls.toughness(contacts.b[k]!) ? OUTLET_B : 0);
+            if (spent !== 0) {
                 contacts.closing[k] = -vn;
-                contacts.rammed[k] = rams;
+                contacts.spent[k] = spent;
                 continue;
             }
         }
