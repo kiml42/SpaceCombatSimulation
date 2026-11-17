@@ -14,7 +14,7 @@ const BASE_PX = 12;
 
 /** The scales a card is shown at: to pick one, and held. */
 export const PICK_SCALE = 1.4;
-export const HELD_SCALE = 0.7;
+export const HELD_SCALE = 0.6;
 
 /** Copies drawn behind a pile's top card, however many it holds. */
 const MOST_BEHIND = 3;
