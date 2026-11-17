@@ -582,7 +582,7 @@ export function ShipPage() {
                         aria-disabled={broken !== undefined}
                         onClick={(event) => {
                             event.preventDefault();
-                            if (!refuseBroken(event)) void navigate(battleRoute(shipFleet(doc.blueprint)));
+                            if (!refuseBroken(event)) void navigate(battleRoute(shipFleet(doc.blueprint), true));
                         }}
                     >
                         Test in Simulator

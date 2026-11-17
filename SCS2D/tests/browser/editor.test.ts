@@ -1838,11 +1838,13 @@ describe("the editor in a browser", () => {
             await page.evaluate(() => window.localStorage.removeItem("scs2d.ship.My ships/Typo"));
         }));
 
-    it("hands the ship being edited to a custom battle as a fleet of one", async () => {
+    it("hands the ship being edited to a custom battle as a fleet of one, against an opponent", async () => {
         await openShip(page, "Corvette");
         await page.click("#battleLink");
         await page.waitForFunction(() => document.getElementById("custom")?.hidden === false);
         expect(await page.locator("#fleetSlots select option:checked").first().textContent()).toBe("Corvette (from the editor)");
+        // Its last opponent if it has fought before, else a stock ship of its mass.
+        expect(await page.locator("#fleetSlots select").count()).toBeGreaterThanOrEqual(2);
         await page.waitForFunction(() => /Corvette.*1\/1 ships/.test(document.getElementById("sides")?.textContent ?? ""));
         await page.goBack();
     });

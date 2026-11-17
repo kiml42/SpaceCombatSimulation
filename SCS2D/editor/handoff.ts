@@ -10,9 +10,9 @@ import { parseSkirmish, serialiseSkirmish, type Skirmish } from "../scenarios/sk
 
 const param = (value: unknown): string => encodeURIComponent(JSON.stringify(value));
 
-/** The app's battle route, carrying this fleet as its first side. */
-export function battleRoute(fleet: Fleet): string {
-    return `/simulator?fleet=${param(serialiseFleet(fleet))}`;
+/** The app's battle route, carrying this fleet as its first side; `tested` when a ship editor is trying its ship. */
+export function battleRoute(fleet: Fleet, tested = false): string {
+    return `/simulator?fleet=${param(serialiseFleet(fleet))}${tested ? "&tested" : ""}`;
 }
 
 export { shipFleet };
