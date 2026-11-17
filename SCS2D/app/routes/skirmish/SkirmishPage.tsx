@@ -15,6 +15,7 @@ import { DOCTRINE_KEY, DoctrinePanel } from "~/features/orders/DoctrinePanel";
 import { OrderBar } from "~/features/orders/OrderBar";
 import { useOrderState } from "~/features/orders/orderState";
 import { BudgetTable } from "~/features/skirmish/BudgetTable";
+import { describeArena, destinationById } from "~/skirmish/destinations";
 import { DestinationPick } from "~/features/skirmish/DestinationPick";
 import { EarnedCard } from "~/features/skirmish/EarnedCard";
 import { AbandonDialog } from "~/features/skirmish/AbandonDialog";
@@ -233,6 +234,37 @@ const HistoryBox = styled.section`
     }
 `;
 
+/** What the wide history is waiting on, said so it cannot be missed. */
+const Evolving = styled.div`
+    display: flex;
+    gap: 0.9rem;
+    align-items: center;
+    margin-bottom: 0.6rem;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--colour-primary-border);
+    border-radius: 6px;
+    background: var(--colour-surface);
+
+    > div {
+        flex: 1;
+    }
+
+    strong {
+        display: block;
+        color: var(--colour-heading);
+        font-size: 1.15rem;
+    }
+
+    p {
+        margin: 0.25rem 0 0;
+        color: var(--colour-muted);
+    }
+
+    b {
+        color: var(--colour-heading);
+    }
+`;
+
 /** The history over the battle view, which it covers while the search is not being watched. */
 const WideHistory = styled.section`
     position: absolute;
@@ -409,7 +441,8 @@ export function SkirmishPage() {
     const [repeatLoss, setRepeatLoss] = useState(false);
     const resumeAfterPick = useRef(false);
     const [replaying, setReplaying] = useState(false);
-    const [watching, setWatching] = useState(true);
+    // Whether the enemy's search is shown fighting your fleet; not at first, so its evolving is what you see.
+    const [watching, setWatching] = useState(false);
     const [enemyCost, setEnemyCost] = useState<Budget | null>(null);
     const [setupKey, setSetupKey] = useState(0);
     const [abandoning, setAbandoning] = useState(false);
@@ -481,7 +514,7 @@ export function SkirmishPage() {
      * stands fighting your fleet on the round it is answering — not the round
      * already won, which the search has left behind.
      */
-    const showOpened = (current: Skirmish, on: BattleView): void => {
+    const showOpened = (current: Skirmish, on: BattleView, run: boolean = watching): void => {
         if (current.won === undefined) return showRound(current, on);
         mode.current = "watching";
         resume.current = null;
@@ -497,7 +530,7 @@ export function SkirmishPage() {
             setEnemyLine(`${current.enemy.name}, evolving`);
         }
         setFightable(true);
-        showOn(on, battle.current, watching);
+        showOn(on, battle.current, run);
     };
 
     /** Show the best enemy so far fighting the round, if the player is watching. */
@@ -820,7 +853,7 @@ export function SkirmishPage() {
                   : "Your fleet is over budget: edit it to cut it down.";
     const answeringNow = skirmish?.won !== undefined;
     // Not watching the search, the history has the battle's room, the two sides of each match side by side.
-    const wideHistory = answeringNow && !watching && !replaying && answering.latest?.found == null;
+    const wideHistory = answeringNow && skirmish.ways === undefined && !watching && !replaying && answering.latest?.found == null;
     const timeline = (
         <Timeline
             history={history}
@@ -835,8 +868,20 @@ export function SkirmishPage() {
             exportFleet={(fleet) => download(`${fleet.name}.fleet.json`, `${JSON.stringify(serialiseFleet(fleet), null, 2)}\n`)}
         />
     );
-    const found = answering.latest?.found ?? null;
     const latest = answering.latest;
+    const found = answering.latest?.found ?? null;
+    const answerText =
+        found !== null
+            ? `Found in generation ${latest!.generation}: ${found.name}, which beats your fleet on the next round's seed.`
+            : latest === null
+              ? "Wait while the enemy evolves an answer: fighting the first generation of mutants…"
+              : `Generation ${latest.generation}: the best enemy so far won ${latest.wins} of its ${latest.seeds} matches. It holds ${latest.cards.length} upgrade ${latest.cards.length === 1 ? "card" : "cards"}.`;
+    const toggleWatching = (): void => {
+        setWatching(!watching);
+        if (!watching && latest !== null) watch(latest);
+        else if (watching) view?.setRunning(false);
+    };
+    const headedTo = skirmish?.headed === undefined ? null : destinationById(skirmish.headed);
     // The one thing to press next in the round's buttons.
     const hand = answeringNow ? undefined : skirmish?.hand;
     const ways = answeringNow ? skirmish?.ways : undefined;
@@ -975,6 +1020,21 @@ export function SkirmishPage() {
                 >
                     {wideHistory && (
                         <WideHistory id="wideHistory">
+                            <Evolving id="evolving">
+                                <Spinner aria-hidden="true" />
+                                <div>
+                                    <strong>The enemy is evolving an answer</strong>
+                                    <p id="evolvingProgress">{answerText}</p>
+                                    {headedTo !== null && skirmish !== null && (
+                                        <p id="headedTo">
+                                            Next round: <b>{headedTo.name}</b>. {describeArena(settingsOf(skirmish))}.
+                                        </p>
+                                    )}
+                                </div>
+                                <Button id="watchEvolving" variant="primary" onClick={toggleWatching}>
+                                    Watch the best so far
+                                </Button>
+                            </Evolving>
                             <h2>History</h2>
                             {timeline}
                         </WideHistory>
@@ -1031,9 +1091,11 @@ export function SkirmishPage() {
                             onPick={(id) => {
                                 const going = goTo(skirmish, id);
                                 setPicking(null);
+                                // Its evolving is what to see next, not another battle much like the one just won.
+                                setWatching(false);
                                 skirmishes.setSkirmish(going);
                                 skirmishes.answer();
-                                if (view !== null) showOpened(going, view);
+                                if (view !== null) showOpened(going, view, false);
                             }}
                         />
                     )}
@@ -1135,26 +1197,16 @@ export function SkirmishPage() {
                                             <h2>The enemy answers</h2>
                                             <Waiting>
                                                 {found === null && <Spinner id="answerSpinner" aria-hidden="true" />}
-                                                <p id="answerProgress">
-                                                    {found !== null
-                                                        ? `Found in generation ${latest!.generation}: ${found.name}, which beats your fleet on the next round's seed.`
-                                                        : latest === null
-                                                          ? "Wait while the enemy evolves an answer: fighting the first generation of mutants…"
-                                                          : `Generation ${latest.generation}: the best enemy so far won ${latest.wins} of its ${latest.seeds} matches. It holds ${latest.cards.length} upgrade ${latest.cards.length === 1 ? "card" : "cards"}.`}
-                                                </p>
+                                                <p id="answerProgress">{answerText}</p>
                                             </Waiting>
                                             {found === null ? (
                                                 <Buttons>
                                                     <Button
                                                         id="watchAnswer"
                                                         title="Stop or start watching the best enemy so far fight your fleet"
-                                                        onClick={() => {
-                                                            setWatching(!watching);
-                                                            if (!watching && latest !== null) watch(latest);
-                                                            else if (watching) view?.setRunning(false);
-                                                        }}
+                                                        onClick={toggleWatching}
                                                     >
-                                                        {watching ? "Stop watching" : "Watch"}
+                                                        {watching ? "Stop watching" : "Watch the best so far"}
                                                     </Button>
                                                 </Buttons>
                                             ) : (
