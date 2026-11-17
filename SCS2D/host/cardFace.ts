@@ -106,7 +106,6 @@ export function cardPile(id: string, scale: number, count = 1): HTMLElement {
     const behind = Math.min(MOST_BEHIND, count - 1);
     const pile = document.createElement("div");
     pile.className = "card-pile";
-    pile.title = count > 1 ? `${card.name}, ×${count}` : card.name;
     const drawn = Math.max(scale, PICK_SCALE);
     Object.assign(pile.style, {
         position: "relative",
@@ -157,13 +156,17 @@ function shrunk(pile: HTMLElement, ratio: number, behind: number): HTMLElement {
         height: `${(HEIGHT + behind * OFFSET) * em}px`,
     });
     const rest = `scale(${ratio})`;
+    const still = reducedMotion();
+    let grown = false;
     Object.assign(pile.style, {
         position: "absolute",
         top: "0",
         left: "0",
         transformOrigin: "0 0",
+        // Hovered by where it rests, so a grown card does not keep the pointer from its neighbours.
+        pointerEvents: "none",
         transform: rest,
-        transition: reducedMotion() ? "none" : `transform ${GROW_MS}ms ease-out`,
+        transition: still ? "none" : `transform ${GROW_MS}ms ease-out`,
     });
     box.append(pile);
     box.addEventListener("pointerenter", () => {
@@ -174,12 +177,18 @@ function shrunk(pile: HTMLElement, ratio: number, behind: number): HTMLElement {
         // Grown about its centre, kept inside what can be seen of whatever scrolls it.
         const x = clamp(at.left - (w - at.width) / 2, room.left, room.right - w) - at.left;
         const y = clamp(at.top - (h - at.height) / 2, room.top, room.bottom - h) - at.top;
+        grown = true;
         pile.style.zIndex = "10";
         pile.style.transform = `translate(${x}px, ${y}px) scale(1)`;
     });
     box.addEventListener("pointerleave", () => {
+        grown = false;
         pile.style.transform = rest;
-        pile.style.zIndex = "";
+        // Still over its neighbours while it shrinks, under one growing.
+        pile.style.zIndex = still ? "" : "5";
+    });
+    pile.addEventListener("transitionend", () => {
+        if (!grown) pile.style.zIndex = "";
     });
     return box;
 }
