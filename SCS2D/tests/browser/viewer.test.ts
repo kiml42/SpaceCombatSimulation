@@ -633,9 +633,9 @@ describe("the viewer in a browser", () => {
             page.evaluate(() => (window as unknown as { written: string[] }).written.filter((text) => /^12px .*\|[\d.]+ k?m$/.test(text)));
         await painted(page);
         expect(await ranges()).toEqual([]);
+        // Picked from its tile in the fleets down the edge, as the strips' own test picks one.
         const box = (await page.locator("#view").boundingBox())!;
-        const at = await brightest(page);
-        await page.mouse.click(box.x + at.x, box.y + at.y);
+        await page.mouse.click(box.x + 40, box.y + 40);
         await painted(page);
         expect((await ranges()).length).toBeGreaterThan(0);
         await page.keyboard.press("Escape");
