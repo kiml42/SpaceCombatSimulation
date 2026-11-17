@@ -23,6 +23,7 @@ import type { Battle } from "~/scenarios/types";
 import { math, parseFleet, type Snapshot } from "~/sim/index";
 import { CustomPanel } from "./custom/CustomPanel";
 import { keepSetup, keptSetup, withReturned } from "./custom/keptSetup";
+import { rememberShipSetups, testSetup } from "./custom/shipSetups";
 import { CUSTOM, sceneIndex, sceneParam, variantIndex, variantParam } from "./sceneParam";
 import { DEFAULT_FIELDS, fieldsOf, setupOf, slotsOf, type SetupFields, type Slot } from "./custom/customSetup";
 import { AddShip } from "./orders/AddShip";
@@ -104,7 +105,10 @@ export function BattlePage() {
     const [kept] = useState(() => keptSetup(storage));
     const [slots, setSlots] = useState<readonly Slot[]>(kept?.slots ?? []);
     const [fields, setFields] = useState<SetupFields>(kept?.fields ?? DEFAULT_FIELDS);
-    useEffect(() => keepSetup(storage, slots, fields), [storage, slots, fields]);
+    useEffect(() => {
+        keepSetup(storage, slots, fields);
+        rememberShipSetups(storage, slots, fields);
+    }, [storage, slots, fields]);
     const orders = useOrderState(view, () => shown.current);
     const [doctrineOpen, setDoctrineOpen] = useState(false);
 
@@ -147,6 +151,7 @@ export function BattlePage() {
     const takeHandOver = (next: BattleView): boolean => {
         const fleetText = search.get("fleet");
         const battleText = search.get("battle");
+        const tested = search.has("tested");
         if (fleetText === null && battleText === null) return false;
         setSearch({}, { replace: true });
         if (fleetText !== null) {
@@ -160,6 +165,13 @@ export function BattlePage() {
                         return (named.find((entry) => !entry.stock) ?? named[0])?.key ?? null;
                     };
                     openWith(next, withReturned({ ...kept, editing: kept.editing }, fleet, saved), kept.fields);
+                } else if (tested) {
+                    // A ship tested from its editor: its last battle, or one against a stock ship of its mass.
+                    const stockKey = (name: string): string =>
+                        ships.list().find((entry) => entry.stock && entry.name === name)?.key ?? name;
+                    const slot: Slot = { fleet, source: { kind: "other", label: `${fleet.name} (from the editor)` } };
+                    const setup = testSetup(storage, slot, fields, stockKey);
+                    openWith(next, setup.slots, setup.fields);
                 } else openWith(next, [{ fleet, source: { kind: "other", label: `${fleet.name} (from the editor)` } }], fields);
                 return true;
             } catch (error) {

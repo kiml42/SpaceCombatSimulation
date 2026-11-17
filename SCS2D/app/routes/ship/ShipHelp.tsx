@@ -120,7 +120,7 @@ export function shipTutorial(doc: EditorDocument, inFleet = false): TourStep[] {
                   body: (
                       <p>
                           <strong>Save</strong> keeps it in your library under My ships. <strong>Test in Simulator</strong> shows it
-                          fighting.
+                          fighting what it fought last time or, the first time, a stock ship of about its mass.
                       </p>
                   ),
                   targets: ["#saveShip"],
