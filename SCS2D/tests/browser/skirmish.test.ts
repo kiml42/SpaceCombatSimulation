@@ -514,7 +514,9 @@ describe("the skirmish in a browser", () => {
         expect(await page.locator("#wayPick").count()).toBe(0);
         // Straight to its evolving, saying where.
         await page.waitForSelector("#evolving");
-        expect(await page.textContent("#headedTo")).toBe("Next round: Asteroid field, major asteroids 0 → 1, minor 0 → 6.");
+        expect(await page.textContent("#headedTo")).toBe(
+            "Next round: Asteroid field. 1 major and 6 minor asteroids, 1,500 m apart, from rest.",
+        );
         await giveUp();
         await page.goto("about:blank");
         expect(problems).toEqual([]);

@@ -15,7 +15,7 @@ import { DOCTRINE_KEY, DoctrinePanel } from "~/features/orders/DoctrinePanel";
 import { OrderBar } from "~/features/orders/OrderBar";
 import { useOrderState } from "~/features/orders/orderState";
 import { BudgetTable } from "~/features/skirmish/BudgetTable";
-import { destinationById } from "~/skirmish/destinations";
+import { describeArena, destinationById } from "~/skirmish/destinations";
 import { DestinationPick } from "~/features/skirmish/DestinationPick";
 import { EarnedCard } from "~/features/skirmish/EarnedCard";
 import { AbandonDialog } from "~/features/skirmish/AbandonDialog";
@@ -881,7 +881,7 @@ export function SkirmishPage() {
         if (!watching && latest !== null) watch(latest);
         else if (watching) view?.setRunning(false);
     };
-    const headedTo = skirmish?.headed === undefined ? null : destinationById(skirmish.headed.way);
+    const headedTo = skirmish?.headed === undefined ? null : destinationById(skirmish.headed);
     // The one thing to press next in the round's buttons.
     const hand = answeringNow ? undefined : skirmish?.hand;
     const ways = answeringNow ? skirmish?.ways : undefined;
@@ -1025,15 +1025,14 @@ export function SkirmishPage() {
                                 <div>
                                     <strong>The enemy is evolving an answer</strong>
                                     <p id="evolvingProgress">{answerText}</p>
-                                    {headedTo !== null && skirmish?.headed !== undefined && (
+                                    {headedTo !== null && skirmish !== null && (
                                         <p id="headedTo">
-                                            Next round: <b>{headedTo.name}</b>,{" "}
-                                            {skirmish.headed.change.replace(/^./, (c) => c.toLowerCase())}.
+                                            Next round: <b>{headedTo.name}</b>. {describeArena(settingsOf(skirmish))}.
                                         </p>
                                     )}
                                 </div>
                                 <Button id="watchEvolving" variant="primary" onClick={toggleWatching}>
-                                    Watch the enemy evolve
+                                    Watch the best so far
                                 </Button>
                             </Evolving>
                             <h2>History</h2>
@@ -1207,7 +1206,7 @@ export function SkirmishPage() {
                                                         title="Stop or start watching the best enemy so far fight your fleet"
                                                         onClick={toggleWatching}
                                                     >
-                                                        {watching ? "Stop watching" : "Watch the enemy evolve"}
+                                                        {watching ? "Stop watching" : "Watch the best so far"}
                                                     </Button>
                                                 </Buttons>
                                             ) : (
