@@ -3,6 +3,7 @@ import { describeStep, snapStep, type Camera } from "../render/camera.js";
 import { inUnits, pointedThrust, type Envelopes } from "./stats.js";
 import type { AssemblyOutline } from "./document.js";
 import { HANDLE_RADIUS_PX, type Handle } from "./handles.js";
+import { LEFT_OUT_RADIUS_PX, leftOut } from "./edit.js";
 
 const { cos, sin, max, TAU } = math;
 
@@ -67,6 +68,9 @@ const GROUP_BOX_MARGIN_PX = 7;
  * metres and so wrong at every zoom but one.
  */
 const FAULT_FILL = "rgba(255, 107, 94, 0.32)";
+/** The marker of a module too small to be part of the ship (`drawLeftOut`). */
+const LEFT_OUT = "rgb(255, 107, 94)";
+const LEFT_OUT_DASH_PX = 3;
 /**
  * A refit from the design as it was opened (`refitPlan`): what would be built
  * tinted green over its own shape, and what would be taken down drawn where
@@ -306,6 +310,7 @@ function drawWindow(ctx: CanvasRenderingContext2D, disc: Disc): void {
 export function drawOverlay(ctx: CanvasRenderingContext2D, view: OverlayView, camera: Camera, widthPx: number, heightPx: number): void {
     drawRefit(ctx, view, camera);
     drawFaults(ctx, view);
+    drawLeftOut(ctx, view, camera);
     if (view.design !== null) drawControl(ctx, view.design, camera);
     drawSelection(ctx, view, camera);
     drawHandles(ctx, view, camera);
@@ -508,8 +513,7 @@ function drawFaults(ctx: CanvasRenderingContext2D, view: OverlayView): void {
         if (placed === undefined) continue;
         // The whole body, barrel and bell included, as it is in the way.
         const spec = bodySpec(placed);
-        // A module with no interior is one of the things complained about, and it
-        // has no box to tint. It is named in the list instead.
+        // A module with no interior has no box to tint; `drawLeftOut` marks it.
         if (!(spec.length > 0) || !(spec.width > 0)) continue;
         const mid = moduleCentre(spec);
         ctx.save();
@@ -520,6 +524,36 @@ function drawFaults(ctx: CanvasRenderingContext2D, view: OverlayView): void {
         ctx.fill();
         ctx.restore();
     }
+}
+
+/**
+ * A dashed ring with a cross in it where each module the ship leaves out sits,
+ * the same size at any zoom, since the module itself is drawn as nothing and
+ * this is what there is to click to select it again.
+ */
+function drawLeftOut(ctx: CanvasRenderingContext2D, view: OverlayView, camera: Camera): void {
+    const r = LEFT_OUT_RADIUS_PX / camera.scale;
+    const dash = LEFT_OUT_DASH_PX / camera.scale;
+    ctx.save();
+    ctx.strokeStyle = LEFT_OUT;
+    ctx.lineWidth = SELECTION_WIDTH_PX / camera.scale;
+    for (const spec of view.modules) {
+        if (!leftOut(spec)) continue;
+        const at = blockCentre(spec);
+        const d = r * 0.5;
+        ctx.setLineDash([dash, dash]);
+        ctx.beginPath();
+        ctx.arc(at.x, at.y, r, 0, TAU);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(at.x - d, at.y - d);
+        ctx.lineTo(at.x + d, at.y + d);
+        ctx.moveTo(at.x - d, at.y + d);
+        ctx.lineTo(at.x + d, at.y - d);
+        ctx.stroke();
+    }
+    ctx.restore();
 }
 
 /**

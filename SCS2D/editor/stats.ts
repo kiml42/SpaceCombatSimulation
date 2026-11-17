@@ -23,6 +23,7 @@ import {
     bodySpec,
     moduleCentre,
     moduleStats,
+    moduleProblem,
     layoutStats,
     statsInLayout,
     radiansToDegrees,
@@ -415,8 +416,25 @@ export function assemblyMass(layout: readonly ModuleSpec[], picked: readonly num
     // Measured in the layout rather than on their own, since a thick plate takes
     // its depth — and so its mass — from what it is welded to, which may be a
     // module outside the assembly.
-    for (const index of picked) total += statsInLayout(layout, index).mass;
+    const kept = measured(layout, picked);
+    for (const index of kept.indices) if (index >= 0) total += statsInLayout(kept.layout, index).mass;
     return total;
+}
+
+/**
+ * The layout with what `compileDraft` leaves out left out — modules too small
+ * to measure — and where each of `indices` is in it, -1 for one left out.
+ */
+function measured(layout: readonly ModuleSpec[], indices: readonly number[]): { layout: readonly ModuleSpec[]; indices: number[] } {
+    if (layout.every((placed) => moduleProblem(placed) === null)) return { layout, indices: [...indices] };
+    const at: number[] = [];
+    const kept: ModuleSpec[] = [];
+    for (const placed of layout) {
+        const measurable = moduleProblem(placed) === null;
+        at.push(measurable ? kept.length : -1);
+        if (measurable) kept.push(placed);
+    }
+    return { layout: kept, indices: indices.map((index) => at[index] ?? -1) };
 }
 
 /** How an engine's fuel reaches its chamber, which is most of why its Isp is what it is. */
@@ -453,6 +471,11 @@ function feedRow(spec: ModuleSpec): ReadoutRow {
  * measure.
  */
 export function moduleReadout(spec: ModuleSpec, layout: readonly ModuleSpec[] = [], index = -1, shipRadius = 0): ModuleReadout {
+    // Shrunk past measuring, it has no figures; the problem list says why.
+    if (moduleProblem(spec) !== null) return { rows: [], gun: null };
+    const kept = measured(layout, [layout[index] === spec ? index : -1]);
+    layout = kept.layout;
+    index = kept.indices[0]!;
     // In the layout where there is one, since a thick plate's depth is its
     // neighbours' business; on its own otherwise.
     const stats = layout[index] === spec ? statsInLayout(layout, index) : moduleStats(spec);

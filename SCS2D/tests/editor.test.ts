@@ -1486,6 +1486,33 @@ describe("taking a module out of its assembly", () => {
     });
 });
 
+describe("a module shrunk past measuring", () => {
+    // Too thin for an engine's walls: `compileDraft` leaves it out of the ship.
+    const sliver: ModuleSpec = { kind: "engine", angle: Math.PI / 2, x: 0, y: 0, length: 0.01, width: 0.1 };
+    const layout: ModuleSpec[] = [
+        { kind: "core", x: 0, y: 0, length: 2, width: 2 },
+        { ...sliver, x: 5 },
+        { kind: "turret", x: 0, y: 3, length: 2, width: 2 },
+        { kind: "engine", angle: Math.PI, x: -1, y: 0, length: 2, width: 2 },
+    ];
+
+    it("has a readout with nothing in it, and does not spoil the others'", () => {
+        expect(moduleReadout(layout[1]!, layout, 1)).toEqual({ rows: [], gun: null });
+        // Each measured among its neighbours: a turret's arc, an engine's exhaust.
+        expect(moduleReadout(layout[2]!, layout, 2).gun).not.toBeNull();
+        expect(moduleReadout(layout[3]!, layout, 3).rows.length).toBeGreaterThan(0);
+    });
+
+    it("adds nothing to an assembly's mass", () => {
+        expect(assemblyMass(layout, [0, 1])).toBe(assemblyMass([layout[0]!], [0]));
+    });
+
+    it("is picked by its marker, which reaches past its own box", () => {
+        expect(moduleAt(layout, 5.5, 0)).toBe(-1);
+        expect(moduleAt(layout, 5.5, 0, 1)).toBe(1);
+    });
+});
+
 describe("moduleReadout", () => {
     it("reports the module rather than the ship", () => {
         const spec: ModuleSpec = { kind: "turret", x: 0, y: 0, length: 6, width: 4, barrels: 2 };
