@@ -470,6 +470,49 @@ export function partPoint(ships: Ships, bodies: Bodies, tb: number, design: Ship
 }
 
 /**
+ * The module of `target`, on body `tb`, that ship `i`, on body `b`, rams: by
+ * its doctrine's aim weights as a mount picks one, the nearest of the best
+ * still standing; `WHOLE_SHIP` for a doctrine with no opinion about parts,
+ * which goes for the middle of what is left.
+ */
+export function ramPart(ships: Ships, bodies: Bodies, i: number, b: number, target: number, tb: number): number {
+    const doctrine = ships.doctrines[i]!.targeting;
+    if (!picksParts(doctrine)) return WHOLE_SHIP;
+    const design = ships.designs[target]!;
+    const c = cos(bodies.angle[tb]!);
+    const s = sin(bodies.angle[tb]!);
+    let best = WHOLE_SHIP;
+    let bestWeight = 0;
+    let bestRange = 0;
+    for (let k = 0; k < design.modules.length; k++) {
+        if (ships.damage.spent(tb, k) || !ships.ownsAt(target, tb, k)) continue;
+        const weight = partWeight(doctrine, design.modules[k]!.spec.kind);
+        if (weight <= 0) continue;
+        const module = design.modules[k]!;
+        const range = length(
+            bodies.x[tb]! + module.x * c - module.y * s - bodies.x[b]!,
+            bodies.y[tb]! + module.x * s + module.y * c - bodies.y[b]!,
+        );
+        if (best !== WHOLE_SHIP && (weight < bestWeight || (weight === bestWeight && range >= bestRange))) continue;
+        best = k;
+        bestWeight = weight;
+        bestRange = range;
+    }
+    return best;
+}
+
+/**
+ * Whether ship `i` is ramming a part of `target` that stands up into the
+ * weapons layer: a turret, a thick engine. It meets that there, so it does
+ * not drop to the deck, and nothing thin between is in its way.
+ */
+export function ramsFromAbove(ships: Ships, i: number, target: number): boolean {
+    const part = ships.ramPart[i]!;
+    const module = part >= 0 ? ships.designs[target]?.modules[part] : undefined;
+    return module !== undefined && module.weaponsLayer;
+}
+
+/**
  * Whether a round from this mount could land on module `k` of a target:
  * still standing, still the target's, and in a layer the mount fires in.
  */

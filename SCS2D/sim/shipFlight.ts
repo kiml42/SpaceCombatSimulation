@@ -287,7 +287,21 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
                 fighting = tb;
             }
             if (order.ram) {
-                // For the view: no part is picked, so the middle of what is left of it.
+                // The part its doctrine goes for, as it moves and turns; else the middle of what is left of it.
+                const part = shipAim.ramPart(ships, bodies, i, b, target, tb);
+                ships.ramPart[i] = part;
+                if (part >= 0) {
+                    const module = ships.designs[target]!.modules[part]!;
+                    const c = cos(bodies.angle[tb]!);
+                    const s = sin(bodies.angle[tb]!);
+                    const rx = module.x * c - module.y * s;
+                    const ry = module.x * s + module.y * c;
+                    at.x = bodies.x[tb]! + rx;
+                    at.y = bodies.y[tb]! + ry;
+                    at.vx = bodies.vx[tb]! - bodies.angularVel[tb]! * ry;
+                    at.vy = bodies.vy[tb]! + bodies.angularVel[tb]! * rx;
+                    wantAngle = atan2(at.y - bodies.y[b]!, at.x - bodies.x[b]!);
+                }
                 ships.destX[i] = at.x;
                 ships.destY[i] = at.y;
                 charge(ships, bodies, i, b, at, order.approachSpeed, tb);
