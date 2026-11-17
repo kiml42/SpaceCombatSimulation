@@ -57,6 +57,9 @@ import { BOTH_LAYERS, HULL_LAYER, WEAPONS_LAYER, type Hulls } from "./hull.js";
  * read straight from the store by index, so there is no second copy to diverge.
  */
 
+/** `kind` of a piece of a shattered module flying on (`wreckage.ts`): cold metal, drawn as wreckage, not as a tracer. */
+export const ROUND_WRECKAGE = 1;
+
 /** A projectile with no firing ship to pass through. */
 export const NO_OWNER = -1;
 /** A projectile in open flight rather than passing through a hull. */
@@ -257,6 +260,9 @@ export class Projectiles {
     insideCount = 0;
     /** One past the highest slot ever used; loops may stop here. */
     highWater = 0;
+    /** The momentum rounds took with them by running out of time, kg·m/s, so it can be counted back in. */
+    expiredPx = 0;
+    expiredPy = 0;
 
     private free: number[] = [];
     private readonly hit = new RayHit();
@@ -522,8 +528,11 @@ export class Projectiles {
 
             if (this.cast(i, this.vx[i] * dt, this.vy[i] * dt, 0, 1, bodies, grid, hits, hulls)) continue;
             this.ttl[i] -= dt;
-            if (this.ttl[i] <= 0) this.kill(i);
-            else if ((this.fuse[i] -= dt) <= 0 && rng !== undefined && this.fragments[i] > 1) bursting.push(i);
+            if (this.ttl[i] <= 0) {
+                this.expiredPx += this.mass[i] * this.vx[i];
+                this.expiredPy += this.mass[i] * this.vy[i];
+                this.kill(i);
+            } else if ((this.fuse[i] -= dt) <= 0 && rng !== undefined && this.fragments[i] > 1) bursting.push(i);
         }
         // After the walk, so no fragment is flown in the step it was made.
         for (let k = 0; k < bursting.length; k++) this.burst(bursting[k]!, rng!);

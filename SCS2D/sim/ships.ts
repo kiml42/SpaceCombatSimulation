@@ -476,6 +476,8 @@ export class Ships {
      * hull's frame. Empty between steps.
      */
     readonly shatterBlows = new Map<number, readonly number[]>();
+    /** Each module shattered in a collision this step that has flown on as wreckage, by `blowKey`. Empty between steps. */
+    readonly thrown = new Set<number>();
 
     /**
      * The same, for beams and plumes, which get through what they have already

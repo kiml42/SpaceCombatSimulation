@@ -129,6 +129,13 @@ export class Contacts {
      */
     rewindX = new Float64Array(64);
     rewindY = new Float64Array(64);
+    /**
+     * Joules of each hull's share of what the contact lost that its crush could
+     * not spend, `a`'s and `b`'s: past what its modules could take or pass on.
+     * What a module shattered there throws on as wreckage is no more than this.
+     */
+    spareA = new Float64Array(64);
+    spareB = new Float64Array(64);
     count = 0;
 
     clear(): void {
@@ -153,6 +160,8 @@ export class Contacts {
         this.outlet[i] = 0;
         this.rewindX[i] = 0;
         this.rewindY[i] = 0;
+        this.spareA[i] = 0;
+        this.spareB[i] = 0;
     }
 
     private grow(): void {
@@ -180,6 +189,12 @@ export class Contacts {
         rewindY.set(this.rewindY);
         this.rewindX = rewindX;
         this.rewindY = rewindY;
+        const spareA = new Float64Array(size);
+        const spareB = new Float64Array(size);
+        spareA.set(this.spareA);
+        spareB.set(this.spareB);
+        this.spareA = spareA;
+        this.spareB = spareB;
         a.set(this.a);
         b.set(this.b);
         x.set(this.x);

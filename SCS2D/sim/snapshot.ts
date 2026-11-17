@@ -3,7 +3,7 @@ import { originOf, type ShipDesign } from "./blueprint.js";
 import type { WellSpec } from "./gravity.js";
 import type { Doctrine, DoctrineOverride } from "./doctrine.js";
 import { leakSpeed } from "./fuel.js";
-import { NOT_INSIDE, type Projectiles } from "./projectiles.js";
+import { NOT_INSIDE, ROUND_WRECKAGE, type Projectiles } from "./projectiles.js";
 import { BEAM_PLASMA, type Beams } from "./beams.js";
 import { MOST_CLOUDS, type Debris } from "./debris.js";
 import type { ImpactLog } from "./damage.js";
@@ -343,6 +343,8 @@ export class Snapshot {
     projectileInside = new Uint8Array(0);
     /** The side whose ship fired it, or -1 where that ship is gone. */
     projectileTeam = new Int16Array(0);
+    /** 1 for a piece of a shattered module flying on (`ROUND_WRECKAGE`): cold, so drawn as wreckage rather than a tracer. */
+    projectileWreckage = new Uint8Array(0);
     projectileCount = 0;
 
     /** Beams in flight, as flat pairs so a renderer can loop without objects. */
@@ -455,6 +457,7 @@ function growProjectiles(snapshot: Snapshot, needed: number): void {
     snapshot.projectileWidth = new Float64Array(size);
     snapshot.projectileInside = new Uint8Array(size);
     snapshot.projectileTeam = new Int16Array(size);
+    snapshot.projectileWreckage = new Uint8Array(size);
 }
 
 function growBeams(snapshot: Snapshot, needed: number): void {
@@ -914,6 +917,7 @@ export function capture(
         out.projectileWidth[p] = projectiles.width[i]!;
         out.projectileInside[p] = projectiles.inside[i] === NOT_INSIDE ? 0 : 1;
         out.projectileTeam[p] = bodyTeam[projectiles.owner[i]!] ?? -1;
+        out.projectileWreckage[p] = projectiles.kind[i] === ROUND_WRECKAGE ? 1 : 0;
         p++;
     }
     out.projectileCount = p;

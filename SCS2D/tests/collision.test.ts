@@ -352,11 +352,18 @@ describe("a battle of nothing but collisions", () => {
 
         // Plus what the world stopped tracking: scrap too small to be worth
         // keeping is not created, and it takes its momentum with it, so the books
-        // balance only when that is counted back in.
+        // balance only when that is counted back in. So is wreckage still flying,
+        // and what of it flew out of time.
         const after = momentum(run.world.bodies);
+        const p = run.projectiles;
+        for (let i = 0; i < p.highWater; i++) {
+            if (p.alive[i] === 0) continue;
+            after.x += p.mass[i]! * p.vx[i]!;
+            after.y += p.mass[i]! * p.vy[i]!;
+        }
         expect(run.totalContacts).toBeGreaterThan(0);
-        expect(after.x + run.ships.discardedPx).toBeCloseTo(before.x, 6);
-        expect(after.y + run.ships.discardedPy).toBeCloseTo(before.y, 6);
+        expect(after.x + run.ships.discardedPx + p.expiredPx).toBeCloseTo(before.x, 6);
+        expect(after.y + run.ships.discardedPy + p.expiredPy).toBeCloseTo(before.y, 6);
     });
 
     it("connects every attacker", () => {

@@ -492,6 +492,7 @@ function round(snapshot: Snapshot, x: number, y: number, vx: number, vy: number,
     snapshot.projectileWidth[i] = width;
     snapshot.projectileInside[i] = 0;
     snapshot.projectileTeam[i] = 0;
+    snapshot.projectileWreckage[i] = 0;
 }
 
 /** A beam's flashes where it lands: one a step for as long as it is burning. */
@@ -520,6 +521,7 @@ function room(snapshot: Snapshot, n: number): void {
         snapshot.projectileWidth = new Float64Array(n);
         snapshot.projectileInside = new Uint8Array(n);
         snapshot.projectileTeam = new Int16Array(n);
+        snapshot.projectileWreckage = new Uint8Array(n);
     }
 }
 
