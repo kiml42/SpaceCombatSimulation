@@ -40,7 +40,16 @@ export const ROCK_CRIPPLINGS: readonly Crippling[] = [
 
 export type RockLanding = Battle & { readonly rock: number; readonly outposts: readonly number[]; readonly fighters: readonly number[] };
 
-export function rockLanding(seed = 20260905, crippling: Crippling = ROCK_CRIPPLINGS[0]!): RockLanding {
+/**
+ * The scene, with `outposts` Replicators round the rock and, by default, a fighter for every pad; with `fighters`, only
+ * that many, coming in from where the first of them would.
+ */
+export function rockLanding(
+    seed = 20260905,
+    crippling: Crippling = ROCK_CRIPPLINGS[0]!,
+    outposts = OUTPOSTS,
+    fighters?: number,
+): RockLanding {
     return makeBattle({ seed, wells: [majorWell(ROCK_RADIUS, SURFACE_GRAVITY)] }, (ships, world, wells) => {
         const well = wells[0]!;
         const bodies = world.bodies;
@@ -87,9 +96,9 @@ export function rockLanding(seed = 20260905, crippling: Crippling = ROCK_CRIPPLI
                 for (let t = 0; t < steps; t++) hull.push(ax + ((bx - ax) * t) / steps, ay + ((by - ay) * t) / steps);
             }
         }
-        const outposts: number[] = [];
-        for (let k = 0; k < OUTPOSTS; k++) {
-            const bearing = (k * 2 * math.PI) / OUTPOSTS;
+        const moored: number[] = [];
+        for (let k = 0; k < outposts; k++) {
+            const bearing = (k * 2 * math.PI) / outposts;
             const ux = math.cos(bearing);
             const uy = math.sin(bearing);
             // Bow down on the rock, as near as it comes with nothing of it inside the rock: each point of its hull is
@@ -107,14 +116,14 @@ export function rockLanding(seed = 20260905, crippling: Crippling = ROCK_CRIPPLI
             // Its claw grips the rock where its line meets the surface.
             const grip = surface(bearing, 0);
             moor(ships, bodies, o, rock, claw, bodies.x[rb]! + ux * grip, bodies.y[rb]! + uy * grip);
-            outposts.push(o);
+            moored.push(o);
         }
 
         // A fighter for every pad, each coming in from its own place round the rock.
         const fighter = crippledDesign(crippling);
-        const fighters: number[] = [];
-        const count = OUTPOSTS * outpost.modules.filter((m) => m.spec.kind === "pad").length;
-        for (let k = 0; k < count; k++) {
+        const flying: number[] = [];
+        const count = outposts * outpost.modules.filter((m) => m.spec.kind === "pad").length;
+        for (let k = 0; k < (fighters ?? count); k++) {
             const bearing = ((k + 0.5) * 2 * math.PI) / count;
             const speed = circularSpeed(well.gm, START);
             const f = ships.spawn(world, {
@@ -127,8 +136,8 @@ export function rockLanding(seed = 20260905, crippling: Crippling = ROCK_CRIPPLI
                 team: 0,
             });
             cripple(ships, world, f, crippling);
-            fighters.push(f);
+            flying.push(f);
         }
-        return { rock, outposts, fighters };
+        return { rock, outposts: moored, fighters: flying };
     });
 }

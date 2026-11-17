@@ -297,6 +297,49 @@ describe("what gives", () => {
     });
 });
 
+describe("a hull crossing another in a step", () => {
+    const DT = 1 / 60;
+
+    /** A Dinky flown across a still corvette at `speed`, its contacts each step; whether it ends up back on its own side. */
+    const flyAcross = (speed: number): { met: number; bounced: boolean } => {
+        const w = world({ design: corvette, x: 0, y: 0 }, { design: dinky, x: 0, y: -60, angle: Math.PI / 2, vy: speed });
+        const collisions = new Collisions();
+        let met = 0;
+        for (let step = 0; step < 120; step++) {
+            for (let i = 0; i < 2; i++) {
+                w.bodies.x[i]! += w.bodies.vx[i]! * DT;
+                w.bodies.y[i]! += w.bodies.vy[i]! * DT;
+            }
+            collisions.step(w.bodies, w.hulls, DT);
+            met += collisions.contacts.count;
+        }
+        return { met, bounced: w.bodies.y[1]! < 0 };
+    };
+
+    it("meets it, however fast, rather than passing through", () => {
+        // At 2 km/s the Dinky moves 33 m a step, twice the corvette's beam, so it is never inside it at a step's end.
+        for (const speed of [100, 600, 2000]) {
+            const { met, bounced } = flyAcross(speed);
+            expect(met).toBeGreaterThan(0);
+            expect(bounced).toBe(true);
+        }
+    });
+
+    it("is met where it first touched, and taken back there", () => {
+        // Its nose 3 m into the corvette's side at the step's end, having come 10 m in it.
+        const w = world({ design: corvette, x: 0, y: 0 }, { design: dinky, x: 0, y: -8, angle: Math.PI / 2, vy: 600 });
+        findContacts(w.bodies, w.hulls, w.contacts, DT);
+        expect(w.contacts.count).toBe(1);
+        // The normal runs from the corvette towards where the Dinky came from.
+        expect(w.contacts.ny[0]!).toBeLessThan(-0.9);
+        expect(w.contacts.rewindY[0]!).toBeGreaterThan(0);
+        const before = momentum(w.bodies);
+        resolveContacts(w.bodies, w.contacts, w.hulls, DT);
+        expect(w.bodies.vy[1]!).toBeLessThan(0);
+        expect(momentum(w.bodies).y).toBeCloseTo(before.y, 6);
+    });
+});
+
 describe("a battle of nothing but collisions", () => {
     it("trades momentum between hulls without creating any", () => {
         // The `ram` scenario has no wells and no pilot, so nothing but the contact

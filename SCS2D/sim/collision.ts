@@ -1,7 +1,7 @@
 import type { Bodies } from "./bodies.js";
 import type { ShipDesign } from "./blueprint.js";
 import { BOTH_LAYERS, HULL_LAYER, moduleLayers, OWN_LAYERS, type HullDesigns } from "./hull.js";
-import { abs, cos, max, min, sin, sqrt } from "./math.js";
+import { abs, ceil, cos, max, min, sin, sqrt } from "./math.js";
 import { domeRadius, isDomed, MOST_CORNERS, shapeOf } from "./shape.js";
 import { BEAM_STALK_WIDTH, isHullBeam, isHullMount, lensDiscRadius, mountGeometryOf, type ModuleSpec } from "./modules.js";
 
@@ -122,6 +122,13 @@ export class Contacts {
     stab = new Uint8Array(64);
     /** Which side met a hull mount's barrel or lens rather than its block: `OUTLET_A`, `OUTLET_B`, both or neither. */
     outlet = new Uint8Array(64);
+    /**
+     * How far `b` overshot `a` this step, metres, for a pair met partway
+     * through it: the solver takes them back that far before it resolves them,
+     * as their masses share it. Zero for a contact found where they ended.
+     */
+    rewindX = new Float64Array(64);
+    rewindY = new Float64Array(64);
     count = 0;
 
     clear(): void {
@@ -144,6 +151,8 @@ export class Contacts {
         this.impulse[i] = 0;
         this.stab[i] = Stab.None;
         this.outlet[i] = 0;
+        this.rewindX[i] = 0;
+        this.rewindY[i] = 0;
     }
 
     private grow(): void {
@@ -165,6 +174,12 @@ export class Contacts {
         const outlet = new Uint8Array(size);
         outlet.set(this.outlet);
         this.outlet = outlet;
+        const rewindX = new Float64Array(size);
+        const rewindY = new Float64Array(size);
+        rewindX.set(this.rewindX);
+        rewindY.set(this.rewindY);
+        this.rewindX = rewindX;
+        this.rewindY = rewindY;
         a.set(this.a);
         b.set(this.b);
         x.set(this.x);
@@ -567,6 +582,7 @@ const point = { x: 0, y: 0 };
  * never shrunk, so a step allocates nothing.
  */
 let sweepLeft = new Float64Array(64);
+let sweepRight = new Float64Array(64);
 let sweepOrder = new Int32Array(64);
 let candidates = new Int32Array(256);
 /** Slack on the sweep, metres: far more than rounding, so it only ever lets extra pairs through. */
@@ -796,8 +812,18 @@ function circleAgainst(c: Box, o: Box): number {
  * is the approximation this makes. A manifold of two points would hold two
  * hulls flat against each other; nothing in space presses them together for
  * long enough to need it.
+ *
+ * **Given the step `dt`, a pair moving fast across each other is swept**: two
+ * modules that close by more than half the thinner one in a step are tested
+ * along the way rather than only where they ended, since past halfway the
+ * shallowest way out is the far side, and past both they never overlap at
+ * all. Where that has happened — the pair not found, found coming apart while
+ * it was closing, or found past halfway and pushed out well off the way it
+ * came — the first touch along the way is the contact, and `Contacts.rewindX`
+ * and `rewindY` say how far to take the pair back to it. Otherwise where they
+ * ended stands, as for any other pair.
  */
-export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts): void {
+export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts, dt = 0): void {
     out.clear();
 
     // The hulls, once. Asking which body has which design inside the pair loop
@@ -817,7 +843,7 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts):
         solidLayers.push(hulls.layersOf?.(i) ?? OWN_LAYERS);
     }
 
-    const pairs = sweep(bodies);
+    const pairs = sweep(bodies, dt);
     let a = -1;
     // Built on the first pair that gets past the circles, and not at all for a
     // ship nothing is near — which is most of them, most of the time.
@@ -841,11 +867,15 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts):
         const carrierB = solidCarriers[b]!;
         if (carrierA === j || carrierB === i || (carrierA >= 0 && carrierA === carrierB)) continue;
 
-        // Could they have met at all? Bounding circles, as the broad phase.
+        // Could they have met at all? Bounding circles, as the broad phase,
+        // anywhere along how far `j` moved against `i` this step.
         const dx = bodies.x[j]! - bodies.x[i]!;
         const dy = bodies.y[j]! - bodies.y[i]!;
         const reach = bodies.radius[i]! + bodies.radius[j]!;
-        if (dx * dx + dy * dy > reach * reach) continue;
+        const moveX = (bodies.vx[j]! - bodies.vx[i]!) * dt;
+        const moveY = (bodies.vy[j]! - bodies.vy[i]!) * dt;
+        const move = sqrt(moveX * moveX + moveY * moveY);
+        if (!closestApproach(dx, dy, moveX, moveY, reach)) continue;
 
         if (!builtA) {
             boxesOf(designA, bodies.x[i]!, bodies.y[i]!, bodies.angle[i]!, boxesA);
@@ -857,14 +887,8 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts):
         markSeams(boxesB, designB.modules.length);
         partsOf(designB, j, bodies.angle[j]!, hulls, boxesB, partsB);
 
-        let deepest = 0;
-        let deepestX = 0;
-        let deepestY = 0;
-        let deepestNx = 0;
-        let deepestNy = 0;
-        let moduleA = -1;
-        let moduleB = -1;
-        let outlet = 0;
+        found.depth = 0;
+        met.when = 1;
 
         for (let ma = 0; ma < designA.modules.length; ma++) {
             const inA = moduleLayers(designA.modules[ma]!, layersA);
@@ -889,35 +913,136 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts):
                         const boxB = pb < firstB ? blockB : partsB.boxes[pb]!;
                         // Corner circles first: most module pairs on two hulls that are
                         // touching somewhere are nowhere near each other.
-                        const mx = boxB.x - boxA.x;
-                        const my = boxB.y - boxA.y;
                         const corners = boxA.radius + boxB.radius;
-                        if (mx * mx + my * my > corners * corners) continue;
+                        if (!closestApproach(boxB.x - boxA.x, boxB.y - boxA.y, moveX, moveY, corners)) continue;
 
-                        const depth = overlap(boxA, boxB);
-                        if (!(depth > deepest)) continue;
-
-                        const nx = axes[0]!;
-                        const ny = axes[1]!;
-                        // A circle's contact is found with its overlap.
-                        if (!boxA.round && !boxB.round) contactPoint(boxA, boxB, nx, ny);
-                        deepest = depth;
-                        deepestNx = nx;
-                        deepestNy = ny;
-                        deepestX = point.x;
-                        deepestY = point.y;
-                        moduleA = ma;
-                        moduleB = mb;
-                        outlet = (pa < firstA ? 0 : OUTLET_A) | (pb < firstB ? 0 : OUTLET_B);
+                        const outlet = (pa < firstA ? 0 : OUTLET_A) | (pb < firstB ? 0 : OUTLET_B);
+                        const half = 0.5 * min(thinOf(boxA), thinOf(boxB));
+                        if (consider(found, overlap(boxA, boxB), boxA, boxB, ma, mb, outlet)) found.half = half;
+                        // Slow enough that where they ended says which way they met.
+                        if (!(move > half)) continue;
+                        // Already touching as the step began: met before it.
+                        shifted(boxB, -moveX, -moveY, sweptB);
+                        if (overlap(boxA, sweptB) > 0) continue;
+                        // In strides of half the thinner, so the first overlap is a shallow one.
+                        const strides = ceil(move / half);
+                        for (let k = 1; k <= strides; k++) {
+                            const when = k / strides;
+                            if (!(when < met.when)) break;
+                            const back = 1 - when;
+                            shifted(boxB, -moveX * back, -moveY * back, sweptB);
+                            const depth = overlap(boxA, sweptB);
+                            if (depth > 0) {
+                                met.depth = 0;
+                                consider(met, depth, boxA, sweptB, ma, mb, outlet);
+                                met.when = when;
+                                break;
+                            }
+                        }
                     }
                 }
             }
         }
 
-        if (deepest > 0) {
-            out.push(i, j, deepestX, deepestY, deepestNx, deepestNy, deepest, moduleA, moduleB);
-            out.outlet[out.count - 1] = outlet;
+        // Where they ended says which way they met unless it misses them, has them
+        // coming apart while they were closing, or is past halfway through what it
+        // found and pushing them out more than 60° off the way they came: then the
+        // first touch along the way.
+        const along = found.nx * moveX + found.ny * moveY;
+        const wrong = !(found.depth > 0) || along >= 0 || (found.depth >= found.half && along > -0.5 * move);
+        const swept = met.when < 1 && wrong;
+        const contact = swept ? met : found;
+        if (contact.depth > 0) {
+            out.push(i, j, contact.x, contact.y, contact.nx, contact.ny, contact.depth, contact.moduleA, contact.moduleB);
+            out.outlet[out.count - 1] = contact.outlet;
+            if (swept) {
+                out.rewindX[out.count - 1] = moveX * (1 - met.when);
+                out.rewindY[out.count - 1] = moveY * (1 - met.when);
+            }
         }
+    }
+}
+
+/** The best contact a pair of hulls has offered so far, and when along the step they met there. */
+interface Found {
+    depth: number;
+    x: number;
+    y: number;
+    nx: number;
+    ny: number;
+    moduleA: number;
+    moduleB: number;
+    outlet: number;
+    when: number;
+    /** Half the thinner of the two modules that met there: past that, the shallowest way out is the far side. */
+    half: number;
+}
+
+const blankFound = (): Found => ({ depth: 0, x: 0, y: 0, nx: 0, ny: 0, moduleA: -1, moduleB: -1, outlet: 0, when: 1, half: 0 });
+/** The deepest overlap where the hulls ended the step. */
+const found = blankFound();
+/** The earliest a fast pair touched partway through it. */
+const met = blankFound();
+const sweptB = blankBox();
+
+/** Keep `depth`, the overlap `overlap` just found between `a` and `b`, in `into` if it is deeper than what is there, and say whether it was. */
+function consider(into: Found, depth: number, a: Box, b: Box, moduleA: number, moduleB: number, outlet: number): boolean {
+    if (!(depth > into.depth)) return false;
+    const nx = axes[0]!;
+    const ny = axes[1]!;
+    // A circle's contact is found with its overlap.
+    if (!a.round && !b.round) contactPoint(a, b, nx, ny);
+    into.depth = depth;
+    into.nx = nx;
+    into.ny = ny;
+    into.x = point.x;
+    into.y = point.y;
+    into.moduleA = moduleA;
+    into.moduleB = moduleB;
+    into.outlet = outlet;
+    return true;
+}
+
+/** Whether a point at `x`, `y` that got there by moving `moveX`, `moveY` came within `reach` of the origin on the way. */
+function closestApproach(x: number, y: number, moveX: number, moveY: number, reach: number): boolean {
+    const length = moveX * moveX + moveY * moveY;
+    // From where it started, back along the move, to the nearest point of it.
+    let along = length > 0 ? (x * moveX + y * moveY) / length : 0;
+    along = max(0, min(1, along));
+    const cx = x - moveX * along;
+    const cy = y - moveY * along;
+    return cx * cx + cy * cy <= reach * reach;
+}
+
+/** The narrowest an outline is across any direction, metres. */
+function thinOf(box: Box): number {
+    if (box.round) return 2 * box.radius;
+    if (box.count === 0) return 2 * min(box.halfLength, box.halfWidth);
+    // A convex outline is narrowest across one of its own edges.
+    let thinnest = Infinity;
+    const count = axesOf(box, axes, 0) * 2;
+    for (let k = 0; k < count; k += 2) {
+        project(box, axes[k]!, axes[k + 1]!, spanA);
+        thinnest = min(thinnest, spanA.hi - spanA.lo);
+    }
+    return thinnest;
+}
+
+/** `box` moved by `dx`, `dy`, into `out`. */
+function shifted(box: Box, dx: number, dy: number, out: Box): void {
+    out.x = box.x + dx;
+    out.y = box.y + dy;
+    out.ux = box.ux;
+    out.uy = box.uy;
+    out.halfLength = box.halfLength;
+    out.halfWidth = box.halfWidth;
+    out.radius = box.radius;
+    out.count = box.count;
+    out.round = box.round;
+    out.seams = box.seams;
+    for (let k = 0; k < box.count * 2; k += 2) {
+        out.corners[k] = box.corners[k]! + dx;
+        out.corners[k + 1] = box.corners[k + 1]! + dy;
     }
 }
 
@@ -926,22 +1051,26 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts):
  * the order the pair loop always took them, and how many. Sorted along x so
  * each body is held against only its neighbours there, rather than everything.
  */
-function sweep(bodies: Bodies): number {
+function sweep(bodies: Bodies, dt: number): number {
     const n = solid.length;
     if (sweepLeft.length < n) {
         sweepLeft = new Float64Array(2 * n);
+        sweepRight = new Float64Array(2 * n);
         sweepOrder = new Int32Array(2 * n);
     }
     for (let a = 0; a < n; a++) {
         const i = solid[a]!;
-        sweepLeft[a] = bodies.x[i]! - bodies.radius[i]!;
+        // Its span over the whole step, from where it was to where it is.
+        const was = bodies.x[i]! - bodies.vx[i]! * dt;
+        sweepLeft[a] = min(was, bodies.x[i]!) - bodies.radius[i]!;
+        sweepRight[a] = max(was, bodies.x[i]!) + bodies.radius[i]!;
         sweepOrder[a] = a;
     }
     sweepOrder.subarray(0, n).sort(byLeft);
     let count = 0;
     for (let s = 0; s < n; s++) {
         const p = sweepOrder[s]!;
-        const right = bodies.x[solid[p]!]! + bodies.radius[solid[p]!]! + SWEEP_SLACK;
+        const right = sweepRight[p]! + SWEEP_SLACK;
         for (let t = s + 1; t < n; t++) {
             const q = sweepOrder[t]!;
             if (!(sweepLeft[q]! <= right)) break;
@@ -1036,6 +1165,25 @@ export function resolveContacts(bodies: Bodies, contacts: Contacts, hulls?: Hull
         const nx = contacts.nx[k]!;
         const ny = contacts.ny[k]!;
         const depth = contacts.depth[k]!;
+
+        // Met partway through the step: back to where they touched, each as far as
+        // its mass lets it, so the pair's centre of mass stays where it was.
+        const rewindX = contacts.rewindX[k]!;
+        const rewindY = contacts.rewindY[k]!;
+        if (rewindX !== 0 || rewindY !== 0) {
+            const free = bodies.invMass[a]! + bodies.invMass[b]!;
+            if (free > 0) {
+                const shareA = bodies.invMass[a]! / free;
+                const shareB = bodies.invMass[b]! / free;
+                bodies.x[a]! += rewindX * shareA;
+                bodies.y[a]! += rewindY * shareA;
+                bodies.x[b]! -= rewindX * shareB;
+                bodies.y[b]! -= rewindY * shareB;
+                // Found with `a` where it ended, so the point goes back with it.
+                contacts.x[k]! += rewindX * shareA;
+                contacts.y[k]! += rewindY * shareA;
+            }
+        }
 
         // Arms from each centre of mass to the contact, which is what turns a
         // glancing hit into a spin.
@@ -1213,7 +1361,7 @@ export class Collisions {
     readonly contacts = new Contacts();
 
     step(bodies: Bodies, hulls: HullDesigns, dt = 0): void {
-        findContacts(bodies, hulls, this.contacts);
+        findContacts(bodies, hulls, this.contacts, dt);
         resolveContacts(bodies, this.contacts, hulls, dt);
     }
 }

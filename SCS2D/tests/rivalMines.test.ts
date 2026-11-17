@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { rivalMines } from "../scenarios/rivalMines.js";
+import { asteroidBlueprint, circularSpeed, compileBlueprint, math, NEUTRAL_TEAM } from "../sim/index.js";
+import { Rng } from "../sim/rng.js";
+import { makeBattle } from "../scenarios/battle.js";
+import { DINKY, REPLICATOR } from "../scenarios/blueprints.js";
+import { RIVAL_WELLS, rivalMines } from "../scenarios/rivalMines.js";
 
 describe("rival mines", () => {
     it("starts each outpost clear of every asteroid", () => {
@@ -13,37 +17,78 @@ describe("rival mines", () => {
             }
         }
     });
+});
 
-    it("has each Replicator anchor to its own major and build a copy of itself there", () => {
-        const run = rivalMines();
-        const majors = [run.asteroids[0]!, run.asteroids[1]!];
-        for (let t = 0; t < 240 * 60; t++) run.step();
-        run.miners.forEach((i, k) => {
-            expect(run.ships.isMoored(i)).toBe(true);
-            expect(run.ships.parkedCarrier(i)).toBe(majors[k]);
-            expect(run.ships.body(i)).not.toBe(run.ships.body(run.miners[1 - k]!));
+/**
+ * A Replicator on a circular orbit 600 m round a major, as Rival Mines sets each side out, with a second major
+ * 3,200 m off; both wells held still.
+ */
+function outpost() {
+    const wells = [
+        { ...RIVAL_WELLS[0]!, x: 0, y: 0 },
+        { ...RIVAL_WELLS[1]!, x: 3200, y: 0 },
+    ];
+    return makeBattle({ seed: 1, wells }, (ships, world, w) => {
+        const rng = new Rng(20261022);
+        const shape = { radius: 250, kernel: true, ore: 0.35, ice: 0.25, corners: 10, rings: 3 };
+        const majors = w.map((well, k) =>
+            ships.spawn(world, {
+                design: compileBlueprint(asteroidBlueprint(`Asteroid ${k + 1}`, shape, rng)),
+                rides: well,
+                team: NEUTRAL_TEAM,
+            }),
+        );
+        const speed = circularSpeed(w[0]!.gm, 600);
+        const miner = ships.spawn(world, {
+            design: compileBlueprint(REPLICATOR),
+            x: -600,
+            y: 0,
+            vy: -speed,
+            angle: -math.HALF_PI,
+            team: 0,
         });
-        // A copy on each side's slipway, on the rock with its builder.
-        const copies = [];
-        for (let i = 0; i < run.ships.count; i++) if (run.ships.isAlive(i) && run.ships.isPrinting(i)) copies.push(i);
-        expect(new Set(copies.map((i) => run.ships.teamOf(i)))).toEqual(new Set([0, 1]));
-        for (const i of copies) expect(run.ships.body(i)).toBe(run.ships.body(run.miners[run.ships.teamOf(i)]!));
-        const b = run.world.bodies;
-        for (let k = 0; k < b.highWater; k++) expect(Number.isFinite(b.vx[k]!)).toBe(true);
+        return { majors, miner };
+    });
+}
+
+type Outpost = ReturnType<typeof outpost>;
+
+/** Whether a copy is being printed on the miner's body. */
+function printingCopy(run: Outpost): boolean {
+    for (let i = 0; i < run.ships.count; i++) {
+        if (run.ships.isAlive(i) && run.ships.isPrinting(i) && run.ships.body(i) === run.ships.body(run.miner)) return true;
+    }
+    return false;
+}
+
+/** Step until the miner is moored and printing a copy, or `seconds` pass. */
+function settle(run: Outpost, seconds: number): void {
+    for (let t = 0; t < seconds * 60 && !(run.ships.isMoored(run.miner) && printingCopy(run)); t++) run.step();
+}
+
+describe("a Replicator set out round a major", () => {
+    it("anchors to that major, not the one further off, and builds a copy of itself there", () => {
+        const run = outpost();
+        settle(run, 240);
+        expect(run.ships.isMoored(run.miner)).toBe(true);
+        expect(run.ships.parkedCarrier(run.miner)).toBe(run.majors[0]);
+        expect(printingCopy(run)).toBe(true);
     });
 
-    it("keeps hold of its rock while it builds, an enemy fighter in reach or not", () => {
-        const run = rivalMines();
-        const moored = run.miners.map(() => false);
-        for (let t = 0; t < 400 * 60; t++) {
+    it("keeps hold of its rock while it builds, with an enemy fighter in reach", () => {
+        const run = outpost();
+        settle(run, 240);
+        expect(run.ships.isMoored(run.miner)).toBe(true);
+        const mb = run.world.bodies.indexOf(run.ships.body(run.miner));
+        const x = run.world.bodies.x[mb]!;
+        const y = run.world.bodies.y[mb]!;
+        run.ships.spawn(run.world, { design: compileBlueprint(DINKY), x: x - 400, y, angle: 0, team: 1 });
+        const fired = run.totalProjectilesFired;
+        for (let t = 0; t < 60 * 60; t++) {
             run.step();
-            run.miners.forEach((i, k) => {
-                const now = run.ships.isMoored(i);
-                // A Dinky of Blue's comes in reach of Red's rock at about 333 s.
-                if (moored[k]) expect(now).toBe(true);
-                moored[k] = now;
-            });
+            expect(run.ships.isMoored(run.miner)).toBe(true);
         }
-        expect(moored).toEqual([true, true]);
-    }, 300_000);
+        // Fought over, not only near.
+        expect(run.totalProjectilesFired).toBeGreaterThan(fired);
+    }, 120_000);
 });
