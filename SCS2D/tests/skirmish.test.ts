@@ -27,6 +27,7 @@ import {
     won,
 } from "../scenarios/skirmish.js";
 import { handedSkirmish, skirmishRoute } from "../editor/handoff.js";
+import { cardById, isSimple } from "../skirmish/cards.js";
 
 /** A skirmish carried in the skirmish route's address, and read back. */
 const viaLink = (skirmish: Skirmish) => {
@@ -416,7 +417,8 @@ describe("the skirmish", () => {
         expect(other.hand).toEqual(skirmish.hand);
         // No fighting until one is picked.
         expect(canFight(skirmish)).toBe(false);
-        const card = skirmish.hand![1]!;
+        // One that only adds, so a fleet spending its whole budget still fits.
+        const card = skirmish.hand!.find((id) => isSimple(cardById(id)!))!;
         const picked = pick(skirmish, card);
         expect(picked.hand).toBeUndefined();
         expect(picked.cards).toEqual([card]);
