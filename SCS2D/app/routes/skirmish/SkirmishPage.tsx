@@ -15,6 +15,7 @@ import { DOCTRINE_KEY, DoctrinePanel } from "~/features/orders/DoctrinePanel";
 import { OrderBar } from "~/features/orders/OrderBar";
 import { useOrderState } from "~/features/orders/orderState";
 import { BudgetTable } from "~/features/skirmish/BudgetTable";
+import { DestinationPick } from "~/features/skirmish/DestinationPick";
 import { EarnedCard } from "~/features/skirmish/EarnedCard";
 import { AbandonDialog } from "~/features/skirmish/AbandonDialog";
 import { download, downloadSkirmish, skirmishStatus, skirmishTitle } from "~/features/skirmish/skirmishFile";
@@ -58,7 +59,6 @@ import {
     type SkirmishSettings,
 } from "~/scenarios/skirmish";
 import type { Battle } from "~/scenarios/types";
-import { destinationById } from "~/skirmish/destinations";
 import { serialiseFleet, type Budget, type Fleet, type Snapshot } from "~/sim/index";
 import { Button } from "~/ui/buttons/Button";
 import { EditLink } from "~/ui/buttons/EditButton";
@@ -250,10 +250,6 @@ const WideHistory = styled.section`
     }
 `;
 
-const Muted = styled.p`
-    color: var(--colour-muted);
-`;
-
 const NameField = styled.label`
     display: flex;
     gap: 0.6rem;
@@ -407,8 +403,8 @@ export function SkirmishPage() {
     const [fightable, setFightable] = useState(false);
     const [roundOver, setRoundOver] = useState(false);
     const [begun, setBegun] = useState(false);
-    // Whether the hand dealt is open to pick from, and whether the battle was running when it was opened.
-    const [picking, setPicking] = useState(false);
+    // Which choice is open over the battle, a hand dealt or where to go next, and whether the battle was running when it opened.
+    const [picking, setPicking] = useState<"card" | "way" | null>(null);
     // Whether the last loss was with a fleet that had already lost the round, and so did not count towards a card.
     const [repeatLoss, setRepeatLoss] = useState(false);
     const resumeAfterPick = useRef(false);
@@ -843,10 +839,15 @@ export function SkirmishPage() {
     const latest = answering.latest;
     // The one thing to press next in the round's buttons.
     const hand = answeringNow ? undefined : skirmish?.hand;
-    const openPicker = (): void => {
+    const ways = answeringNow ? skirmish?.ways : undefined;
+    const openPicker = (kind: "card" | "way"): void => {
         resumeAfterPick.current = running;
         view?.setRunning(false);
-        setPicking(true);
+        setPicking(kind);
+    };
+    const closePicker = (): void => {
+        setPicking(null);
+        if (resumeAfterPick.current) view?.setRunning(true);
     };
     const progress = answeringNow || skirmish === null ? null : cardProgress(skirmish);
     const progressLine = (id: string) =>
@@ -859,9 +860,9 @@ export function SkirmishPage() {
                 {`${progress.lost} of ${progress.of} different fleets lost towards an upgrade card`}
             </CardProgress>
         );
-    const pickButton = (id: string) => (
-        <Button id={id} variant="primary" onClick={openPicker}>
-            Pick your upgrade card
+    const pickButton = (id: string, kind: "card" | "way" = "card") => (
+        <Button id={id} variant="primary" onClick={() => openPicker(kind)}>
+            {kind === "card" ? "Pick your upgrade card" : "Pick where to fight next"}
         </Button>
     );
     const next = answeringNow || hand !== undefined ? null : fits && !roundOver ? "fight" : "edit";
@@ -991,6 +992,7 @@ export function SkirmishPage() {
                                       : `${decided.winner === 0 ? "The enemy" : "Your fleet"} went ${(skirmish === null ? DEFAULT_SKIRMISH_SETTINGS : settingsOf(skirmish)).quietTime} s without firing.`}
                             </span>
                             {hand !== undefined && decided.winner !== 0 && pickButton("pickFromDecided")}
+                            {ways !== undefined && decided.winner === 0 && pickButton("pickWayFromDecided", "way")}
                             {hand === undefined && decided.winner !== 0 && mode.current === "round" && (
                                 <>
                                     {repeatLoss && (
@@ -1008,19 +1010,30 @@ export function SkirmishPage() {
                             <strong>Not ready to fight.</strong> {fleetProblem}
                         </NotReady>
                     )}
-                    {hand !== undefined && skirmish !== null && picking && (
+                    {hand !== undefined && skirmish !== null && picking === "card" && (
                         <EarnedCard
                             hand={hand}
                             of={settingsOf(skirmish).cardAfter}
-                            onLater={() => {
-                                setPicking(false);
-                                if (resumeAfterPick.current) view?.setRunning(true);
-                            }}
+                            onLater={closePicker}
                             onPick={(id) => {
                                 const picked = pick(skirmish, id);
-                                setPicking(false);
+                                setPicking(null);
                                 skirmishes.setSkirmish(picked);
                                 showRound(picked);
+                            }}
+                        />
+                    )}
+                    {ways !== undefined && skirmish !== null && picking === "way" && (
+                        <DestinationPick
+                            ways={ways}
+                            settings={settingsOf(skirmish)}
+                            onLater={closePicker}
+                            onPick={(id) => {
+                                const going = goTo(skirmish, id);
+                                setPicking(null);
+                                skirmishes.setSkirmish(going);
+                                skirmishes.answer();
+                                if (view !== null) showOpened(going, view);
                             }}
                         />
                     )}
@@ -1116,32 +1129,7 @@ export function SkirmishPage() {
                             {answeringNow && (
                                 <div id="answering">
                                     {skirmish.ways !== undefined ? (
-                                        <>
-                                            <h2>Where next?</h2>
-                                            <Muted>The enemy then evolves its answer there.</Muted>
-                                            <Buttons id="ways">
-                                                {skirmish.ways.map((id) => {
-                                                    const way = destinationById(id);
-                                                    return (
-                                                        way !== null && (
-                                                            <Button
-                                                                key={id}
-                                                                data-way={id}
-                                                                title={way.hint}
-                                                                onClick={() => {
-                                                                    const going = goTo(skirmish, id);
-                                                                    skirmishes.setSkirmish(going);
-                                                                    skirmishes.answer();
-                                                                    if (view !== null) showOpened(going, view);
-                                                                }}
-                                                            >
-                                                                {way.name}
-                                                            </Button>
-                                                        )
-                                                    );
-                                                })}
-                                            </Buttons>
-                                        </>
+                                        <Buttons id="ways">{pickButton("pickWay", "way")}</Buttons>
                                     ) : (
                                         <>
                                             <h2>The enemy answers</h2>

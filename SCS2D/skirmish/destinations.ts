@@ -10,7 +10,10 @@ import type { SkirmishSettings } from "../scenarios/skirmish.js";
 export interface Destination {
     readonly id: string;
     readonly name: string;
-    readonly hint: string;
+    /** What it changes under these settings, from what to what. */
+    readonly change: (settings: SkirmishSettings) => string;
+    /** What that means for a fight. */
+    readonly means: string;
     /** Whether it would change anything under these settings. */
     readonly open: (settings: SkirmishSettings) => boolean;
     readonly apply: (settings: SkirmishSettings) => SkirmishSettings;
@@ -37,21 +40,27 @@ export const DESTINATIONS: readonly Destination[] = [
     {
         id: "further",
         name: "Long range",
-        hint: `The fleets start ${GAP_STEP} m further apart`,
+        change: (s) => `Fleets start ${metres(s.gap)} → ${metres(s.gap + GAP_STEP)} apart`,
+        means: "More time before the guns bear: long reach and speed get the first word.",
         open: () => true,
         apply: (s) => ({ ...s, gap: s.gap + GAP_STEP }),
     },
     {
         id: "closer",
         name: "Close quarters",
-        hint: `The fleets start ${GAP_STEP} m closer, or touching range`,
+        change: (s) => `Fleets start ${metres(s.gap)} → ${metres(math.max(0, s.gap - GAP_STEP))} apart`,
+        means: "Guns are in reach almost at once: armour and weight of fire count for more than speed.",
         open: (s) => s.gap > 0,
         apply: (s) => ({ ...s, gap: math.max(0, s.gap - GAP_STEP) }),
     },
     {
         id: "rocks",
         name: "Asteroid field",
-        hint: "More rock to fight among: a scatter of minor asteroids, and another major while there are fewer than two",
+        change: (s) =>
+            majors(s) < MOST_MAJORS
+                ? `Major asteroids ${majors(s)} → ${majors(s) + 1}, minor ${minors(s)} → ${math.min(MOST_MINORS, minors(s) + 6)}`
+                : `Minor asteroids ${minors(s)} → ${math.min(MOST_MINORS, minors(s) + 6)}`,
+        means: "Rock to hide behind and to fight around: lines of fire break, and a major's pull drags at anything slow.",
         open: (s) => majors(s) < MOST_MAJORS || minors(s) < MOST_MINORS,
         apply: (s) => ({
             ...s,
@@ -65,46 +74,55 @@ export const DESTINATIONS: readonly Destination[] = [
     {
         id: "clear",
         name: "Open space",
-        hint: "No asteroids at all",
+        change: (s) => `Asteroids ${majors(s) + minors(s)} → none`,
+        means: "Nothing to hide behind or steer round: it comes down to the ships and their guns.",
         open: (s) => majors(s) > 0 || minors(s) > 0,
         apply: (s) => ({ ...s, map: { ...s.map, majors: 0, minors: 0 }, mapSpread: { ...s.mapSpread, majors: 0, minors: 0 } }),
     },
     {
         id: "headOn",
         name: "Head on",
-        hint: `The fleets start closing at ${SPEED_STEP} m/s more`,
+        change: (s) => `Closing speed ${s.closingSpeed} → ${s.closingSpeed + SPEED_STEP} m/s`,
+        means: "The fleets meet fast: a short, sharp first pass, then a long turn to come back.",
         open: () => true,
         apply: (s) => ({ ...s, closingSpeed: s.closingSpeed + SPEED_STEP }),
     },
     {
         id: "passing",
         name: "Passing",
-        hint: `The fleets start crossing each other's path at ${SPEED_STEP} m/s more`,
+        change: (s) => `Crossing speed ${s.crossingSpeed} → ${s.crossingSpeed + SPEED_STEP} m/s`,
+        means: "The fleets slide past each other: guns that can track across matter more than fixed ones.",
         open: () => true,
         apply: (s) => ({ ...s, crossingSpeed: s.crossingSpeed + SPEED_STEP }),
     },
     {
         id: "still",
         name: "From rest",
-        hint: "The fleets start still",
+        change: (s) => `Closing ${s.closingSpeed} → 0 m/s, crossing ${s.crossingSpeed} → 0 m/s`,
+        means: "No momentum carrying anyone in: each side chooses when, and whether, to close.",
         open: (s) => s.closingSpeed !== 0 || s.crossingSpeed !== 0,
         apply: (s) => ({ ...s, closingSpeed: 0, crossingSpeed: 0 }),
     },
     {
         id: "dark",
         name: "Into the dark",
-        hint: "A dimmer sun and blacker shadows: what ships light themselves is most of what shows",
+        change: (s) => `Sunlight ${percent(s.light)} → ${percent(math.max(DARKEST, tidy(s.light * DIMMING)))}`,
+        means: "Harder to watch, as what ships light themselves is most of what shows; the fight itself is the same.",
         open: (s) => s.light > DARKEST,
         apply: (s) => ({ ...s, light: math.max(DARKEST, tidy(s.light * DIMMING)) }),
     },
     {
         id: "bright",
         name: "Into the light",
-        hint: "A brighter sun and softer shadows",
+        change: (s) => `Sunlight ${percent(s.light)} → ${percent(math.min(1, tidy(s.light / DIMMING)))}`,
+        means: "A brighter sun and softer shadows: easier to watch; the fight itself is the same.",
         open: (s) => s.light < 1,
         apply: (s) => ({ ...s, light: math.min(1, tidy(s.light / DIMMING)) }),
     },
 ];
+
+const metres = (m: number): string => `${math.round(m).toLocaleString("en-GB")} m`;
+const percent = (share: number): string => `${math.round(share * 100)}%`;
 
 /** To two places, so a light dimmed and brightened again comes back to where it was. */
 const tidy = (n: number): number => math.round(n * 100) / 100;

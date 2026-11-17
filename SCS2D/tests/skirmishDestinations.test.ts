@@ -29,6 +29,14 @@ describe("where the next round is fought", () => {
         }
     });
 
+    it("says what each changes, from what to what, and what that means", () => {
+        expect(destinationById("further")!.change(DEFAULT_SKIRMISH_SETTINGS)).toBe("Fleets start 1,500 m → 3,000 m apart");
+        expect(destinationById("closer")!.change(DEFAULT_SKIRMISH_SETTINGS)).toBe("Fleets start 1,500 m → 0 m apart");
+        expect(destinationById("rocks")!.change(DEFAULT_SKIRMISH_SETTINGS)).toBe("Major asteroids 0 → 1, minor 0 → 6");
+        expect(destinationById("dark")!.change(DEFAULT_SKIRMISH_SETTINGS)).toBe("Sunlight 100% → 60%");
+        for (const destination of DESTINATIONS) expect(destination.means.length).toBeGreaterThan(0);
+    });
+
     it("each changes the settings it says it does", () => {
         // Rock, speed and a dim light: somewhere every one of them is open.
         const busy = ["rocks", "headOn", "dark"].reduce((s, id) => destinationById(id)!.apply(s), DEFAULT_SKIRMISH_SETTINGS);

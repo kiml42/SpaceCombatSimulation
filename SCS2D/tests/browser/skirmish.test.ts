@@ -496,6 +496,26 @@ describe("the skirmish in a browser", () => {
         await page.goto("about:blank");
     }, 60_000);
 
+    it("offers where to fight next over the round won, saying what each would change", async () => {
+        const skirmish = { ...won(newSkirmish(shipFleet(CORVETTE), shipFleet(CORVETTE), 25)), ways: ["further", "rocks", "headOn"] };
+        await page.goto("about:blank");
+        await page.goto(skirmishPage(skirmish));
+        await page.waitForSelector("#pickWay");
+        expect(await page.locator("#wayPick").count()).toBe(0);
+        await page.click("#pickWay");
+        expect(await page.textContent('[data-way="further"]')).toContain("Fleets start 1,500 m → 3,000 m apart");
+        // Put off, and taken up again.
+        await page.click("#wayPickLater");
+        expect(await page.locator("#wayPick").count()).toBe(0);
+        await page.click("#pickWay");
+        await page.click('[data-way="rocks"]');
+        expect(await page.locator("#wayPick").count()).toBe(0);
+        await page.waitForSelector("#answerProgress");
+        await giveUp();
+        await page.goto("about:blank");
+        expect(problems).toEqual([]);
+    });
+
     it("watches the enemy evolve an answer to a round won, and goes on to the next round", async () => {
         // The player's Corvette beats the same Corvette on seed 25, and a mirror is answered in a generation or two.
         const skirmish = answering(newSkirmish(shipFleet(CORVETTE), shipFleet(CORVETTE), 25));
