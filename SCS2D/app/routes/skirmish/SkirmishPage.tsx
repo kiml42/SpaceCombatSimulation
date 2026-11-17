@@ -38,6 +38,7 @@ import { EMPTY_HISTORY, parseHistory, type History, type WrittenLog } from "~/sc
 import {
     billOfFleet,
     canFight,
+    cardProgress,
     DEFAULT_SKIRMISH_SETTINGS,
     fleetFault,
     goTo,
@@ -160,6 +161,14 @@ const Decided = styled.div`
 const Fix = styled.p`
     margin: 0.4rem 0 0;
     color: var(--colour-warning);
+    font-size: var(--font-size-small);
+`;
+
+/** How near the player is to an upgrade card. */
+const CardProgress = styled.span`
+    display: block;
+    margin-top: 0.35rem;
+    color: var(--colour-muted);
     font-size: var(--font-size-small);
 `;
 
@@ -400,6 +409,8 @@ export function SkirmishPage() {
     const [begun, setBegun] = useState(false);
     // Whether the hand dealt is open to pick from, and whether the battle was running when it was opened.
     const [picking, setPicking] = useState(false);
+    // Whether the last loss was with a fleet that had already lost the round, and so did not count towards a card.
+    const [repeatLoss, setRepeatLoss] = useState(false);
     const resumeAfterPick = useRef(false);
     const [replaying, setReplaying] = useState(false);
     const [watching, setWatching] = useState(true);
@@ -583,6 +594,7 @@ export function SkirmishPage() {
             skirmishes.answer();
         } else {
             const after = lost(current);
+            setRepeatLoss((after.streak ?? 0) === (current.streak ?? 0) && after.hand === undefined);
             const then = after.hand !== undefined ? "You have earned an upgrade card." : "Edit your fleet and try again.";
             setOutcome({
                 text:
@@ -836,6 +848,17 @@ export function SkirmishPage() {
         view?.setRunning(false);
         setPicking(true);
     };
+    const progress = answeringNow || skirmish === null ? null : cardProgress(skirmish);
+    const progressLine = (id: string) =>
+        progress !== null &&
+        progress.lost > 0 && (
+            <CardProgress
+                id={id}
+                title={`Each fleet that loses this round counts once: when ${progress.of} have, you earn an upgrade card.`}
+            >
+                {`${progress.lost} of ${progress.of} different fleets lost towards an upgrade card`}
+            </CardProgress>
+        );
     const pickButton = (id: string) => (
         <Button id={id} variant="primary" onClick={openPicker}>
             Pick your upgrade card
@@ -968,6 +991,16 @@ export function SkirmishPage() {
                                       : `${decided.winner === 0 ? "The enemy" : "Your fleet"} went ${(skirmish === null ? DEFAULT_SKIRMISH_SETTINGS : settingsOf(skirmish)).quietTime} s without firing.`}
                             </span>
                             {hand !== undefined && decided.winner !== 0 && pickButton("pickFromDecided")}
+                            {hand === undefined && decided.winner !== 0 && mode.current === "round" && (
+                                <>
+                                    {repeatLoss && (
+                                        <CardProgress id="repeatLoss">
+                                            This fleet had already lost this round, so it does not count again.
+                                        </CardProgress>
+                                    )}
+                                    {progressLine("decidedProgress")}
+                                </>
+                            )}
                         </Decided>
                     )}
                     {fleetProblem !== null && !answeringNow && decided === null && !replaying && (
@@ -978,6 +1011,7 @@ export function SkirmishPage() {
                     {hand !== undefined && skirmish !== null && picking && (
                         <EarnedCard
                             hand={hand}
+                            of={settingsOf(skirmish).cardAfter}
                             onLater={() => {
                                 setPicking(false);
                                 if (resumeAfterPick.current) view?.setRunning(true);
@@ -1075,6 +1109,7 @@ export function SkirmishPage() {
                                 </Buttons>
                             )}
                             {!answeringNow && fix !== null && <Fix id="editFleetWhy">Edit fleet to fight: {fix}.</Fix>}
+                            {hand === undefined && progressLine("cardProgress")}
                             <Outcome id="outcome" className={outcome.kind}>
                                 {outcome.text}
                             </Outcome>

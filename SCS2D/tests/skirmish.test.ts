@@ -7,6 +7,7 @@ import { Activity, QUIET_TIME, TIME_CAP, type Decision } from "../scenarios/deci
 import {
     billOfFleet,
     canFight,
+    cardProgress,
     DEFAULT_SKIRMISH_SETTINGS,
     fleetFault,
     inSkirmish,
@@ -415,6 +416,9 @@ describe("the skirmish", () => {
         // Drawn from the round, so the same losses in another order draw the same hand.
         const other = lost({ ...lost({ ...lost({ ...start, player: core }), player: gunship }), player: lone("Two", GUNSHIP) });
         expect(other.hand).toEqual(skirmish.hand);
+        // No progress to show while a hand waits to be picked.
+        expect(cardProgress(skirmish)).toBeNull();
+        expect(cardProgress(start)).toEqual({ lost: 0, of: 3 });
         // No fighting until one is picked.
         expect(canFight(skirmish)).toBe(false);
         // One that only adds, so a fleet spending its whole budget still fits.
