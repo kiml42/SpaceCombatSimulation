@@ -58,7 +58,7 @@ describe("cards held", () => {
     });
 
     it("trade metal for many more ships, or ships and fuel for much more metal", () => {
-        const swarm = withCards(START, ["metal-for-ship"]);
+        const swarm = withCards(START, ["metal-for-ships"]);
         expect(swarm.maxShips).toBe(14);
         expect(swarm.budget.metal).toBeCloseTo(700);
         const iron = withCards(START, ["ship-fuel-for-metal"]);
@@ -68,7 +68,7 @@ describe("cards held", () => {
         // Not for a side already at its fewest ships, unless a swarm has made room.
         const ironclads = DECK.find((c) => c.id === "ship-fuel-for-metal")!;
         expect(fits(START, ["ship-fuel-for-metal"], ironclads)).toBe(false);
-        expect(fits(START, ["metal-for-ship", "ship-fuel-for-metal"], ironclads)).toBe(true);
+        expect(fits(START, ["metal-for-ships", "ship-fuel-for-metal"], ironclads)).toBe(true);
     });
 
     it("are drawn only where they would not cut a limit past its floor", () => {

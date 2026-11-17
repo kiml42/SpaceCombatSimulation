@@ -63,7 +63,7 @@
             ]
         },
         {
-            "id": "metal-for-ship",
+            "id": "metal-for-ships",
             "name": "Swarm",
             "effects": [
                 { "limit": "metal", "share": -0.3 },
