@@ -515,6 +515,8 @@ describe("the skirmish in a browser", () => {
         // Straight to its evolving, saying where.
         await page.waitForSelector("#evolving");
         expect(await page.textContent("#headedTo")).toBe("Next round: Asteroid field, major asteroids 0 → 1, minor 0 → 6.");
+        // And a still of it, as it will be set out.
+        expect(await page.isVisible("#evolving #arenaPicture")).toBe(true);
         await giveUp();
         await page.goto("about:blank");
         expect(problems).toEqual([]);
