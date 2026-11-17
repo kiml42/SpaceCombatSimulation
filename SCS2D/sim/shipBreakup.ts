@@ -932,6 +932,7 @@ export function detach(ships: Ships, world: World, i: number, design: ShipDesign
             s.mass[k] = mass;
             s.size[k] = footprint(chunk);
             s.owner[k] = b;
+            s.ship[k] = i;
             s.layers[k] = reachOfLayers(ships.layersOf(b));
         }
         // Its inertia taken as its full design's, scaled to what it weighs.

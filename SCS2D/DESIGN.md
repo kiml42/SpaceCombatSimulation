@@ -1693,6 +1693,15 @@ Rules:
   This is what makes "a torpedo is a fighter that crashes into things" literal — the crash is how a
   craft reaches the hull layer — so a pure kinetic-kill vehicle needs no warhead at all.
 
+  **A ram is spent as rounds** (`spendRams`). A fighter committed to a ram that meets a hull closing faster
+  than `RAM_ROUND_SPEED` (20 m/s) does not bounce off it: every module goes on as a round of its mass, at
+  the velocity its place on the hull had, as wide as it is across the way it is going, from just outside
+  what it struck. The nose meets the plate first and the tail after it, each by the law any round meets
+  armour by, so a dense, narrow nose penetrates and a hollow body piles up on the plate; what gets through
+  walks on into the internals. The rounds carry the ship's mass and momentum, and are credited to it
+  though it is gone (`Credit.attackerShip`). A grapple is not a ram, and a torpedo spent on the way in is
+  still armed.
+
   **Ram versus dock is a closing speed**: under the §4 weld threshold a craft has landed, over it the
   craft has rammed. What it lands *with* is a pad, a port or a claw, each with rules of its own (ROADMAP.md
   §8 step 9); the weld built so far hooks only torn metal, so a sound craft just bounces. **A fighter lands

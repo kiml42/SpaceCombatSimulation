@@ -454,7 +454,7 @@ export function damageDealt(battle: CustomBattle): number {
     const { ships, credit } = battle;
     let dealt = 0;
     for (let h = 0; h < credit.count; h++) {
-        const attacker = ships.pilotAt(credit.attacker[h]!, credit.attackerModule[h]!);
+        const attacker = ships.attackerOf(credit, h);
         const victim = ships.pilotAt(credit.victim[h]!, credit.module[h]!);
         if (attacker < 0 || victim < 0 || ships.teamOf(attacker) !== 1 || ships.teamOf(victim) !== 0) continue;
         const kind = ships.damage.kindAt(credit.victim[h]!, credit.module[h]!);

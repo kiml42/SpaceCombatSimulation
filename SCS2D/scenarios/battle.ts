@@ -15,6 +15,7 @@ import {
     ProjectileHits,
     Ships,
     SpatialGrid,
+    spendRams,
     throwShrapnel,
     throwWreckage,
     World,
@@ -236,6 +237,8 @@ export function makeBattle<Extra extends object = Record<never, never>>(
             // A slow contact onto torn metal hooks the two into one, once the crush
             // has decided what is torn.
             this.totalWelded += ships.weld(world, collisions.contacts);
+            // A ram that met its target hard is spent on it, as rounds.
+            spendRams(ships, world, projectiles, collisions.contacts);
             // What claws hold is pumped aboard, what pads hold is filled, and a dock
             // done with it lets go; then fighters settled onto pads are taken aboard.
             ships.pump(world);

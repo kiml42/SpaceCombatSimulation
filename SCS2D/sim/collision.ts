@@ -24,6 +24,13 @@ import { BEAM_STALK_WIDTH, isHullBeam, isHullMount, lensDiscRadius, mountGeometr
  * target — is not a shape anything can hit.
  */
 
+/**
+ * The closing speed above which a fighter committed to a ram is spent as
+ * rounds on what it meets, m/s: far past any landing or weld, and short of
+ * any ram worth the name.
+ */
+export const RAM_ROUND_SPEED = 20;
+
 /** How much of the closing speed is given back. Ships are not billiard balls. */
 export const RESTITUTION = 0.15;
 
@@ -136,6 +143,8 @@ export class Contacts {
      */
     spareA = new Float64Array(64);
     spareB = new Float64Array(64);
+    /** Which side is a ram spent on the other as rounds (`spendRams`): `OUTLET_A`, `OUTLET_B`, both or neither. */
+    rammed = new Uint8Array(64);
     count = 0;
 
     clear(): void {
@@ -162,6 +171,7 @@ export class Contacts {
         this.rewindY[i] = 0;
         this.spareA[i] = 0;
         this.spareB[i] = 0;
+        this.rammed[i] = 0;
     }
 
     private grow(): void {
@@ -195,6 +205,9 @@ export class Contacts {
         spareB.set(this.spareB);
         this.spareA = spareA;
         this.spareB = spareB;
+        const rammed = new Uint8Array(size);
+        rammed.set(this.rammed);
+        this.rammed = rammed;
         a.set(this.a);
         b.set(this.b);
         x.set(this.x);
@@ -1227,6 +1240,17 @@ export function resolveContacts(bodies: Bodies, contacts: Contacts, hulls?: Hull
             bodies.invMass[a]! + bodies.invMass[b]! + crossA * crossA * bodies.invInertia[a]! + crossB * crossB * bodies.invInertia[b]!;
         // Two immovable objects. Neither can give, so nothing happens to either.
         if (!(invMassSum > 0)) continue;
+
+        // A fighter committed to a ram, meeting a hull hard, is spent on it as
+        // rounds (`spendRams`) rather than bouncing off it.
+        if (-vn > RAM_ROUND_SPEED && hulls?.ramsAsRounds !== undefined) {
+            const rams = (hulls.ramsAsRounds(contacts.a[k]!) ? OUTLET_A : 0) | (hulls.ramsAsRounds(contacts.b[k]!) ? OUTLET_B : 0);
+            if (rams !== 0) {
+                contacts.closing[k] = -vn;
+                contacts.rammed[k] = rams;
+                continue;
+            }
+        }
 
         // What met: a claw square on stabs in, and rock gives.
         let give = 0;
