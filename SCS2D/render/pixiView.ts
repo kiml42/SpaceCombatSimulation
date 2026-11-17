@@ -6,9 +6,10 @@ import { HullLayer } from "./hullLayer.js";
 import type { Light } from "./light.js";
 import { PixiCanvas } from "./pixiCanvas.js";
 import { seenLights, seenRounded } from "./canvas2d.js";
-import { LightBuffer } from "./lightBuffer.js";
+import { LightBuffer, type LightsWanted } from "./lightBuffer.js";
 import { LitBevels } from "./litBevels.js";
 import { LitRounded } from "./litRounded.js";
+import { drawnInSoftware } from "./softwareGl.js";
 
 /**
  * The battle drawn with PixiJS, on a canvas under the Canvas2D one, which is
@@ -65,7 +66,7 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
         // Pixi's own Canvas2D where WebGL is missing, which does without filters and so lighting.
         preference: ["webgl", "canvas"],
         background: BACKGROUND,
-        antialias: true,
+        antialias: !drawnInSoftware(),
         width: canvas.width,
         height: canvas.height,
         resolution: 1,
@@ -99,6 +100,16 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
             return false;
         },
     );
+
+    /** The light buffers this frame reads: the deck's always, the rest only where something stands at that height. */
+    const wanted = (): LightsWanted => {
+        const thickSides = hulls.litBevelsThick.length > 0 || seenRounded.thick.length > 0;
+        return {
+            deck: { light: true, direction: hulls.litBevelsThin.length > 0 || seenRounded.deck.length > 0 },
+            thick: { light: thickSides || hulls.litThick.count > 0, direction: thickSides },
+            middle: { light: seenRounded.middle.length > 0, direction: seenRounded.middle.length > 0 },
+        };
+    };
 
     const stroke = (colour: string): void => {
         const { data, count } = segments;
@@ -140,7 +151,7 @@ export function pixiView(canvas: HTMLCanvasElement): PixiView {
             context.end();
             if (renderer === null) return;
             // Lit only while there is something to light it.
-            hulls.litLayer.visible = lightBuffer?.update(renderer, seenLights, size.width, size.height, scale) ?? false;
+            hulls.litLayer.visible = lightBuffer?.update(renderer, seenLights, size.width, size.height, scale, wanted()) ?? false;
             if (hulls.litLayer.visible && bevels !== null) {
                 bevels.thin.set(hulls.litBevelsThin, size.width, size.height);
                 bevels.thick.set(hulls.litBevelsThick, size.width, size.height);
