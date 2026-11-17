@@ -1,4 +1,5 @@
 import {
+    capture,
     compileBlueprint,
     expandFleet,
     shipFleet,
@@ -17,6 +18,7 @@ import { NO_TEAM } from "../editor/preview.js";
 import { fleetSnapshot } from "../editor/fleetPreview.js";
 import type { FleetView } from "../editor/fleetDocument.js";
 import { fleetBlueprint } from "../sim/fleetHangar.js";
+import type { Battle } from "../scenarios/types.js";
 
 /**
  * A fleet drawn small, two ways, as the Evolution route and the skirmish's
@@ -102,10 +104,42 @@ export function formationSnapshot(picture: Picture, into: Snapshot, turned = fal
  * fills a snapshot with, so it can be made again once Pixi has started.
  */
 export function drawCentred(canvas: HTMLCanvasElement, make: (into: Snapshot) => Snapshot, scale: number, livery?: Livery): void {
-    withSides(sidesOf([livery]), () => drawNow(canvas, make, scale, livery));
+    withSides(sidesOf([livery]), () => drawNow(canvas, make, scale, [livery]));
 }
 
-function drawNow(canvas: HTMLCanvasElement, make: (into: Snapshot) => Snapshot, scale: number, livery: Livery | undefined): void {
+/** A battle as it is set out, before a step is run: every hull and rock in it, fitted to the canvas. */
+export function drawArena(canvas: HTMLCanvasElement, battle: Battle): void {
+    const make = (into: Snapshot): Snapshot => {
+        const shot = capture(into, battle.world, battle.ships, battle.projectiles, battle.beams, battle.wells);
+        // Framed on everything, rock and all, not only the ships still fighting.
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+        for (let i = 0; i < shot.shipCount; i++) {
+            const view = shot.ships[i]!;
+            const r = view.currentStructure.radius;
+            minX = Math.min(minX, view.x - r);
+            minY = Math.min(minY, view.y - r);
+            maxX = Math.max(maxX, view.x + r);
+            maxY = Math.max(maxY, view.y + r);
+        }
+        if (minX <= maxX) Object.assign(shot, { minX, minY, maxX, maxY });
+        return shot;
+    };
+    const shot = make(new Snapshot());
+    const margin = 1.1;
+    const scale = Math.min(canvas.width / ((shot.maxX - shot.minX) * margin || 1), canvas.height / ((shot.maxY - shot.minY) * margin || 1));
+    const liveries = battle.liveries ?? [];
+    withSides(sidesOf(liveries), () => drawNow(canvas, make, scale, liveries));
+}
+
+function drawNow(
+    canvas: HTMLCanvasElement,
+    make: (into: Snapshot) => Snapshot,
+    scale: number,
+    liveries: readonly (Livery | undefined)[],
+): void {
     const shot = make(scratch);
     const view = sharedView();
     if (view?.ready === true && drawnWith(view, canvas, shot, scale)) {
@@ -120,11 +154,11 @@ function drawNow(canvas: HTMLCanvasElement, make: (into: Snapshot) => Snapshot, 
             if (!started) return;
             for (const [each, drawing] of all) {
                 if (each.isConnected)
-                    withSides(sidesOf([drawing.livery]), () => drawnWith(view, each, drawing.make(scratch), drawing.scale));
+                    withSides(sidesOf(drawing.liveries), () => drawnWith(view, each, drawing.make(scratch), drawing.scale));
             }
         });
     }
-    waiting.set(canvas, { make, scale, livery });
+    waiting.set(canvas, { make, scale, liveries });
 }
 
 const scratch = new Snapshot();
@@ -135,7 +169,10 @@ const scratch = new Snapshot();
  */
 let shared: PixiView | null = null;
 /** Pictures asked for while it starts, to draw once it has. */
-const waiting = new Map<HTMLCanvasElement, { make: (into: Snapshot) => Snapshot; scale: number; livery: Livery | undefined }>();
+const waiting = new Map<
+    HTMLCanvasElement,
+    { make: (into: Snapshot) => Snapshot; scale: number; liveries: readonly (Livery | undefined)[] }
+>();
 
 function sharedView(): PixiView | null {
     shared ??= pixiView(document.createElement("canvas"));

@@ -14,6 +14,7 @@ import { AsteroidCard } from "~/features/battle/AsteroidCard";
 import { DOCTRINE_KEY, DoctrinePanel } from "~/features/orders/DoctrinePanel";
 import { OrderBar } from "~/features/orders/OrderBar";
 import { useOrderState } from "~/features/orders/orderState";
+import { ArenaPicture } from "~/features/skirmish/ArenaPicture";
 import { BudgetTable } from "~/features/skirmish/BudgetTable";
 import { describeArena, destinationById } from "~/skirmish/destinations";
 import { DestinationPick } from "~/features/skirmish/DestinationPick";
@@ -1031,6 +1032,7 @@ export function SkirmishPage() {
                                         </p>
                                     )}
                                 </div>
+                                {skirmish !== null && <ArenaPicture skirmish={skirmish} />}
                                 <Button id="watchEvolving" variant="primary" onClick={toggleWatching}>
                                     Watch the best so far
                                 </Button>

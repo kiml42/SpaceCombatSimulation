@@ -517,6 +517,8 @@ describe("the skirmish in a browser", () => {
         expect(await page.textContent("#headedTo")).toBe(
             "Next round: Asteroid field. 1 major and 6 minor asteroids, 1,500 m apart, from rest.",
         );
+        // And a still of it, as it will be set out.
+        expect(await page.isVisible("#evolving #arenaPicture")).toBe(true);
         await giveUp();
         await page.goto("about:blank");
         expect(problems).toEqual([]);
