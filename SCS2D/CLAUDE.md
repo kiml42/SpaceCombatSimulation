@@ -165,6 +165,8 @@ inherited it.
 
 - **Words a player reads follow [GLOSSARY.md](GLOSSARY.md):** a place or thing is called what it says, and a
   new one gets a row there before it gets a label.
+- **Ships are automated: nobody is aboard** unless something says otherwise. Its core flies it and robots work
+  on it, so nothing — on screen, in the docs or in code — speaks of a crew (DESIGN.md §2).
 - **Every new part is open to evolution.** A new module kind gets a mutation weight above zero, and whatever
   it names or counts gets a knob or an operator, so a run can reach it. If it is no use, selection drops it;
   leaving it out means nobody ever finds out.

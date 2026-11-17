@@ -194,7 +194,7 @@ export function OrderBar({ view, state, shown, doctrineOpen, onDoctrine }: Order
                 Doctrine
             </ToggleButton>
             {/* Put back to what they are whenever the picking changes. */}
-            <RemodelPicker key={JSON.stringify([state.picked, state.designs, state.crewed])} view={view} state={state} shown={shown} />
+            <RemodelPicker key={JSON.stringify([state.picked, state.designs, state.hasRobots])} view={view} state={state} shown={shown} />
             {armed !== null && <Warn>{`click a ship to ${armed} · Ctrl to queue · Esc${optional ? " · or" : ""}`}</Warn>}
             {optional && (
                 <Button
@@ -243,7 +243,7 @@ function RemodelPicker({
     const [chosen, setChosen] = useState("");
     const offered = useMemo<Remodel[]>(() => {
         const at = shown();
-        if (!state.crewed || at === null) return [];
+        if (!state.hasRobots || at === null) return [];
         return remodels(
             state.picked.map((i) => viewOf(at, i)).filter((ship) => ship !== null),
             choices(library),
@@ -276,7 +276,7 @@ function RemodelPicker({
                     </optgroup>
                 ))}
             </select>
-            {state.crewed && (
+            {state.hasRobots && (
                 <Button
                     id="remodel"
                     title="Refit them to the design chosen"

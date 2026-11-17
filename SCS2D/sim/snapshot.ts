@@ -231,7 +231,7 @@ export interface ShipView {
     /** Each robot home, four numbers apiece: its bay, the share of its charge and of its metal it has, and its berth. Optional. */
     docked?: number[];
     /** How many robots each module is the bay of, home or out, by module. Optional. */
-    crews?: number[];
+    bayRobots?: number[];
     /** How many of those are aboard, each holding a berth, by module. Optional. */
     aboard?: number[];
     /**
@@ -772,7 +772,7 @@ export function capture(
         ships.robotViews(i, (view.robots ??= []));
         ships.robotsBerthed(i, (view.berthed ??= []));
         ships.robotsDocked(i, (view.docked ??= []));
-        ships.robotCrews(i, (view.crews ??= []), (view.aboard ??= []), (view.builds ??= []));
+        ships.robotsByBay(i, (view.bayRobots ??= []), (view.aboard ??= []), (view.builds ??= []));
         view.landed.length = rays.length;
         for (let r = 0; r < rays.length; r++) view.landed[r] = rays[r]!;
 

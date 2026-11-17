@@ -30,7 +30,7 @@ function field(): Battle & { readonly miner: number } {
 }
 
 /** The robots on ship `i`'s body, and how many are out on its rock. */
-function crew(run: Battle, i: number): { all: number; away: number } {
+function robotCount(run: Battle, i: number): { all: number; away: number } {
     const robots = (run.ships as unknown as { robots: { on(b: number): { away: number }[] | null } }).robots.on(
         run.world.bodies.indexOf(run.ships.body(i)),
     )!;
@@ -45,7 +45,7 @@ describe("a robot bay keeping more robots than it has berths", () => {
         for (let t = 0; t < 240 * 60; t++) {
             run.step();
             if (t % 60 !== 0) continue;
-            const { all, away } = crew(run, miner);
+            const { all, away } = robotCount(run, miner);
             most = Math.max(most, all);
             expect(all - away).toBeLessThanOrEqual(BERTHS);
         }
@@ -59,12 +59,12 @@ describe("a robot bay keeping more robots than it has berths", () => {
         const miner = run.miner;
         for (let t = 0; t < 240 * 60; t++) run.step();
         const rock = run.ships.parkedCarrier(miner);
-        const before = crew(run, miner);
+        const before = robotCount(run, miner);
         expect(before.all).toBeGreaterThan(BERTHS);
         unpark(run.ships, run.world.bodies, miner, run.world.tick);
         run.step();
         run.step();
-        expect(crew(run, miner).all).toBeLessThanOrEqual(BERTHS);
+        expect(robotCount(run, miner).all).toBeLessThanOrEqual(BERTHS);
         expect(run.ships.strandedOn(rock)).toBe(before.away);
     });
 
@@ -72,11 +72,11 @@ describe("a robot bay keeping more robots than it has berths", () => {
         const run = field();
         const miner = run.miner;
         for (let t = 0; t < 240 * 60; t++) run.step();
-        expect(crew(run, miner).all).toBeGreaterThan(BERTHS);
+        expect(robotCount(run, miner).all).toBeGreaterThan(BERTHS);
         give(run, { kind: "order", ships: [miner], order: { kind: "flee", target: NO_TARGET }, append: false });
         for (let t = 0; t < 180 * 60 && run.ships.isMoored(miner); t++) run.step();
         expect(run.ships.isMoored(miner)).toBe(false);
-        expect(crew(run, miner).all).toBeLessThanOrEqual(BERTHS);
+        expect(robotCount(run, miner).all).toBeLessThanOrEqual(BERTHS);
     }, 120_000);
 
     it("goes when sent to scavenge something other than its rock", () => {
@@ -96,6 +96,6 @@ describe("a robot bay keeping more robots than it has berths", () => {
             ship: ships.spawn(world, { design: compileBlueprint(SALVAGER_X3), x: 0, y: 0, team: 0 }),
         }));
         for (let t = 0; t < 120 * 60; t++) run.step();
-        expect(crew(run, run.ship).all).toBe(BERTHS);
+        expect(robotCount(run, run.ship).all).toBe(BERTHS);
     });
 });

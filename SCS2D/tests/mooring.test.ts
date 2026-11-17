@@ -6,7 +6,7 @@ import { moor } from "../sim/shipForage.js";
 import { capture, Snapshot } from "../sim/snapshot.js";
 
 /** The robots on ship `i`'s body, and how many are out on its rock. */
-function crew(run: ReturnType<typeof mining>, i: number): { all: number; away: number } {
+function robotCount(run: ReturnType<typeof mining>, i: number): { all: number; away: number } {
     const robots = (run.ships as unknown as { robots: { on(b: number): { away: number }[] | null } }).robots.on(
         run.world.bodies.indexOf(run.ships.body(i)),
     )!;
@@ -65,12 +65,12 @@ describe("a ship moored to an asteroid", () => {
 
     it("reads its robots in its bays, those out on the rock among them, and the rock reads none", () => {
         const { run, miner, rock } = moored();
-        const { all, away } = crew(run, miner);
+        const { all, away } = robotCount(run, miner);
         expect(away).toBeGreaterThan(0);
         const shown = capture(new Snapshot(), run.world, run.ships, run.projectiles, run.beams);
-        const crews = (i: number) => (shown.ships.find((v) => v.ship === i)!.crews ?? []).reduce((n, c) => n + c, 0);
-        expect(crews(miner)).toBe(all);
-        expect(crews(rock)).toBe(0);
+        const shownRobots = (i: number) => (shown.ships.find((v) => v.ship === i)!.bayRobots ?? []).reduce((n, c) => n + c, 0);
+        expect(shownRobots(miner)).toBe(all);
+        expect(shownRobots(rock)).toBe(0);
     });
 
     it("shows a robot home with ore emptying its load into the holds, not filling up", () => {
@@ -100,12 +100,12 @@ describe("a ship moored to an asteroid", () => {
         const b = run.world.bodies;
         const robots = () =>
             (run.ships as unknown as { robots: { on(b: number): unknown[] | null } }).robots.on(b.indexOf(run.ships.body(miner)))!.length;
-        const crew = robots();
+        const count = robots();
         const other = run.miners.find((i) => i !== miner)!;
         give(run, { kind: "order", ships: [miner], order: { kind: "defend", target: other }, append: false });
         for (let t = 0; t < 120 * 60 && run.ships.isMoored(miner); t++) run.step();
         expect(run.ships.isMoored(miner)).toBe(false);
-        expect(robots()).toBe(crew);
+        expect(robots()).toBe(count);
     });
 
     it("holds on through a blow its claw can take, and is knocked off by one it cannot", () => {
@@ -130,12 +130,12 @@ describe("a ship moored to an asteroid", () => {
 
     it("leaves its robots stranded on the rock when parted from it, and takes them back when it moors there again", () => {
         const { run, miner, rock } = moored();
-        const before = crew(run, miner);
+        const before = robotCount(run, miner);
         expect(before.away).toBeGreaterThan(0);
         knockOff(run, miner);
         run.step();
         expect(run.ships.strandedOn(rock)).toBe(before.away);
-        expect(crew(run, miner).all).toBe(before.all - before.away);
+        expect(robotCount(run, miner).all).toBe(before.all - before.away);
         // Back where it was, it takes them aboard, and they walk home across its claw.
         const b = run.world.bodies;
         const claw = run.ships.currentStructure(miner).modules.findIndex((m) => m.spec.kind === "claw");
@@ -143,14 +143,14 @@ describe("a ship moored to an asteroid", () => {
         moor(run.ships, b, miner, rock, claw, b.x[body]!, b.y[body]!);
         run.step();
         expect(run.ships.strandedOn(rock)).toBe(0);
-        expect(crew(run, miner).all).toBe(before.all);
-        for (let t = 0; t < 120 * 60 && crew(run, miner).away > 0; t++) run.step();
-        expect(crew(run, miner).away).toBe(0);
+        expect(robotCount(run, miner).all).toBe(before.all);
+        for (let t = 0; t < 120 * 60 && robotCount(run, miner).away > 0; t++) run.step();
+        expect(robotCount(run, miner).away).toBe(0);
     });
 
     it("gives stranded robots to a friend moored to the rock with a berth for them", () => {
         const { run, miner, rock } = moored();
-        const lost = crew(run, miner).away;
+        const lost = robotCount(run, miner).away;
         knockOff(run, miner);
         run.step();
         const friend = run.miners.find((i) => i !== miner)!;
