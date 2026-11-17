@@ -15,6 +15,7 @@ import {
     ProjectileHits,
     Ships,
     SpatialGrid,
+    throwShrapnel,
     throwWreckage,
     World,
     generateMap,
@@ -266,6 +267,8 @@ export function makeBattle<Extra extends object = Record<never, never>>(
             this.totalProjectileHits += hits.count;
             impacts.beams(ships.damage, beams, beamHits, dt, world.bodies, ships, credit);
             this.totalSevered += ships.sever(world, collisions.contacts);
+            // What broke off too small to keep goes on as shrapnel.
+            throwShrapnel(ships, projectiles);
             this.totalCulled += ships.cull(world);
         },
     };

@@ -54,14 +54,21 @@ describe("hulls hooking and parting at length", () => {
         it(`keeps its books, seed ${seed}${pilots ? ", flown" : ""}`, { timeout: 30_000 }, () => {
             const { run, rand } = soak(seed, pilots);
             const { ships, world } = run;
+            // With what is flying off as shrapnel, and what of it ran out of time.
             const momentum = (): [number, number] => {
                 const b = world.bodies;
-                let x = ships.discardedPx;
-                let y = ships.discardedPy;
+                const p = run.projectiles;
+                let x = ships.discardedPx + p.expiredPx;
+                let y = ships.discardedPy + p.expiredPy;
                 for (let i = 0; i < b.highWater; i++) {
                     if (b.alive[i] === 0) continue;
                     x += b.mass[i]! * b.vx[i]!;
                     y += b.mass[i]! * b.vy[i]!;
+                }
+                for (let i = 0; i < p.highWater; i++) {
+                    if (p.alive[i] === 0) continue;
+                    x += p.mass[i]! * p.vx[i]!;
+                    y += p.mass[i]! * p.vy[i]!;
                 }
                 return [x, y];
             };

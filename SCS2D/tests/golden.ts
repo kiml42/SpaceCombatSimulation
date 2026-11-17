@@ -56,18 +56,18 @@ export const GOLDEN: Record<ScenarioName, string> = {
     asteroidField: "0a6d95b0",
     // ships=7 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=2 bumps=2 crashes=0 severed=0 culled=0 scrap=-25.1t · 38.6 µs/step
     mining: "0095f392",
-    // ships=17 inFlight=0 p.fired=852 p.hits=2247 b.fired=0 b.hits=0 contacts=1471 bumps=4 crashes=6 severed=3 culled=2 scrap=100.6t · 344.8 µs/step
-    rivalMines: "4fb8a682",
-    // ships=22 inFlight=81 p.fired=100 p.hits=63 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=4.2t · 412.8 µs/step
-    swarm: "0dda63da",
-    // ships=302 inFlight=203 p.fired=621 p.hits=743 b.fired=0 b.hits=0 contacts=23 bumps=0 crashes=9 severed=5 culled=5 scrap=34.8t · 13806.4 µs/step
-    superSwarm: "eeef527f",
-    // ships=8 inFlight=0 p.fired=0 p.hits=77 b.fired=9 b.hits=754 contacts=80 bumps=0 crashes=11 severed=1 culled=0 scrap=26.1t · 70.9 µs/step
-    torpedoes: "47ca7571",
+    // ships=16 inFlight=0 p.fired=871 p.hits=2340 b.fired=0 b.hits=0 contacts=1375 bumps=4 crashes=7 severed=3 culled=2 scrap=88.2t · 406.9 µs/step
+    rivalMines: "bb3ac504",
+    // ships=22 inFlight=81 p.fired=100 p.hits=63 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=3.3t · 342.8 µs/step
+    swarm: "a546273e",
+    // ships=303 inFlight=184 p.fired=518 p.hits=694 b.fired=0 b.hits=0 contacts=47 bumps=0 crashes=13 severed=9 culled=8 scrap=37.7t · 14408.9 µs/step
+    superSwarm: "07b7b993",
+    // ships=9 inFlight=0 p.fired=0 p.hits=84 b.fired=6 b.hits=613 contacts=300 bumps=1 crashes=11 severed=2 culled=0 scrap=26.8t · 74.9 µs/step
+    torpedoes: "d282cf48",
     // ships=2 inFlight=10 p.fired=51 p.hits=182 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=2.7t · 60.4 µs/step
     ordering: "21985a2e",
-    // ships=10 inFlight=1 p.fired=100 p.hits=390 b.fired=16 b.hits=1096 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=104.7t · 188.0 µs/step
-    standoff: "781456ad",
+    // ships=10 inFlight=1 p.fired=100 p.hits=390 b.fired=16 b.hits=1096 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=104.6t · 130.7 µs/step
+    standoff: "badb7401",
     // ships=18 inFlight=0 p.fired=136 p.hits=541 b.fired=36 b.hits=2491 contacts=59 bumps=2 crashes=4 severed=10 culled=0 scrap=115.4t · 120.0 µs/step
     column: "8ed56b35",
     // ships=4 inFlight=0 p.fired=11 p.hits=75 b.fired=0 b.hits=0 contacts=60 bumps=3 crashes=1 severed=6 culled=4 scrap=54.4t · 59.9 µs/step
