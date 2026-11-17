@@ -98,7 +98,13 @@ export const DESTINATIONS: readonly Destination[] = [
     {
         id: "still",
         name: "From rest",
-        change: (s) => `Closing ${s.closingSpeed} → 0 m/s, crossing ${s.crossingSpeed} → 0 m/s`,
+        change: (s) =>
+            [
+                ...(s.closingSpeed !== 0 ? [`Closing ${s.closingSpeed} → 0 m/s`] : []),
+                ...(s.crossingSpeed !== 0 ? [`crossing ${s.crossingSpeed} → 0 m/s`] : []),
+            ]
+                .join(", ")
+                .replace(/^c/, "C"),
         means: "No momentum carrying anyone in: each side chooses when, and whether, to close.",
         open: (s) => s.closingSpeed !== 0 || s.crossingSpeed !== 0,
         apply: (s) => ({ ...s, closingSpeed: 0, crossingSpeed: 0 }),

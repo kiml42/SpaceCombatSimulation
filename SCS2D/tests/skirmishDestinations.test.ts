@@ -34,6 +34,8 @@ describe("where the next round is fought", () => {
         expect(destinationById("closer")!.change(DEFAULT_SKIRMISH_SETTINGS)).toBe("Fleets start 1,500 m → 0 m apart");
         expect(destinationById("rocks")!.change(DEFAULT_SKIRMISH_SETTINGS)).toBe("Major asteroids 0 → 1, minor 0 → 6");
         expect(destinationById("dark")!.change(DEFAULT_SKIRMISH_SETTINGS)).toBe("Sunlight 100% → 60%");
+        // Only the speeds it stops.
+        expect(destinationById("still")!.change({ ...DEFAULT_SKIRMISH_SETTINGS, crossingSpeed: 40 })).toBe("Crossing 40 → 0 m/s");
         for (const destination of DESTINATIONS) expect(destination.means.length).toBeGreaterThan(0);
     });
 
