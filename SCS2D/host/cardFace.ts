@@ -163,8 +163,6 @@ function shrunk(pile: HTMLElement, ratio: number, behind: number): HTMLElement {
         top: "0",
         left: "0",
         transformOrigin: "0 0",
-        // Hovered by where it rests, so a grown card does not keep the pointer from its neighbours.
-        pointerEvents: "none",
         transform: rest,
         transition: still ? "none" : `transform ${GROW_MS}ms ease-out`,
     });
