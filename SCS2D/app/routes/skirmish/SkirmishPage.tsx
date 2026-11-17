@@ -331,11 +331,13 @@ const SideStats = styled.div`
 type Mode = "round" | "watching" | "answer" | "replay";
 
 /** The enemy where it will stand, in its colour, with nobody yet on the other side. */
-/** The things a skirmish's fleet is over budget on, as "metal and build". */
+/** The things a skirmish's fleet is over budget on, as "metal and build time". */
 function overBudget(skirmish: Skirmish): string {
     const bill = billOfFleet(skirmish.player);
     const budget = playerLimits(skirmish).budget;
-    const over = (["metal", "fuel", "build"] as const).filter((what) => bill[what] > budget[what]);
+    const over = (["metal", "fuel", "build"] as const)
+        .filter((what) => bill[what] > budget[what])
+        .map((what) => (what === "build" ? "build time" : what));
     return over.length < 2 ? (over[0] ?? "budget") : `${over.slice(0, -1).join(", ")} and ${over.at(-1)}`;
 }
 

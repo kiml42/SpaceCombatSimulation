@@ -16,6 +16,10 @@ const Table = styled.table`
         width: 3.2rem;
     }
 
+    &.alone col.labels {
+        width: 4.6rem;
+    }
+
     th,
     td {
         padding: 0.1rem 0 0.1rem 0.6rem;
@@ -106,17 +110,17 @@ function usedBy(fleet: Fleet): Used | null {
 type Show = (n: number) => string;
 
 /** Figures in `size`s of `unit`: whole ones, or to a tenth, or two places below one so a small figure is not shown as 0. */
-function inUnit(size: number, unit: string): Show {
+function inUnit(size: number, unit: string, whole = size === 1): Show {
     return (n) => {
         const v = n / size;
-        if (size === 1) return `${math.round(v)} ${unit}`;
+        if (whole) return `${math.round(v)} ${unit}`;
         return `${v.toLocaleString("en-GB", { maximumFractionDigits: v !== 0 && math.abs(v) < 1 ? 2 : 1 })} ${unit}`;
     };
 }
 
 /** One unit for a row, picked by its largest figure, so the two sides and their limits read alike. */
 const mass = (largest: number): Show => (largest >= 1000 ? inUnit(1000, "t") : inUnit(1, "kg"));
-const time = (largest: number): Show => (largest < 90 ? inUnit(1, "s") : largest < 5400 ? inUnit(60, "min") : inUnit(3600, "h"));
+const time = (largest: number): Show => (largest < 90 ? inUnit(1, "s") : largest < 5400 ? inUnit(60, "min", true) : inUnit(3600, "h"));
 
 const ROWS = [
     { key: "metal", unit: mass },
@@ -146,7 +150,7 @@ export function BudgetTable({ skirmish, id, enemy = true, names, cards }: Budget
     const player = { side: "player", used: usedBy(skirmish.player), limits: playerLimits(skirmish) } as const;
     const sides = enemy ? [player, { side: "enemy", used: usedBy(skirmish.enemy), limits: enemyLimits(skirmish) } as const] : [player];
     return (
-        <Table id={id}>
+        <Table id={id} className={enemy ? undefined : "alone"}>
             <colgroup>
                 <col className="labels" />
                 <col />
@@ -173,7 +177,7 @@ export function BudgetTable({ skirmish, id, enemy = true, names, cards }: Budget
                     return (
                         <tr key={key} className={over ? "over" : undefined} data-over={over || undefined}>
                             <th scope="row">
-                                {key === "metal" || key === "fuel" || key === "build" ? <ResourceWord resource={key} /> : key}
+                                {key === "metal" || key === "fuel" || key === "build" ? <ResourceWord resource={key} long={!enemy} /> : key}
                             </th>
                             {sides.map(({ side, used, limits }) => (
                                 <td key={side} className={side}>
