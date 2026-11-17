@@ -991,7 +991,7 @@ export function SkirmishPage() {
                                       : `${decided.winner === 0 ? "The enemy" : "Your fleet"} went ${(skirmish === null ? DEFAULT_SKIRMISH_SETTINGS : settingsOf(skirmish)).quietTime} s without firing.`}
                             </span>
                             {hand !== undefined && decided.winner !== 0 && pickButton("pickFromDecided")}
-                            {hand === undefined && decided.winner !== 0 && mode.current === "round" && (
+                            {hand === undefined && decided.winner !== 0 && !replaying && !answeringNow && (
                                 <>
                                     {repeatLoss && (
                                         <CardProgress id="repeatLoss">
