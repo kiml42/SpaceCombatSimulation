@@ -530,3 +530,4 @@ export {
 export { checksumWorld, checksumProjectiles, checksumBeams, checksumDamage, formatChecksum } from "./checksum.js";
 export { addBills, affords, billOf, isLimited, NO_BILL, NO_BUDGET, type Bill, type Budget } from "./bill.js";
 export { printedCraft, printFrame, printLength, SLIPWAY_STEP, type Print } from "./slipway.js";
+export { repairBlueprint, repairFleet, type Repaired, type RepairedFleet } from "./repair.js";

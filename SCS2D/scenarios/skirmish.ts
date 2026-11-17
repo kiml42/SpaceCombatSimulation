@@ -22,6 +22,7 @@ import {
 import type { BattleSetup } from "./customBattle.js";
 import { QUIET_TIME, TIME_CAP } from "./decision.js";
 import { fleetBlueprint, hangarClashes } from "../sim/fleetHangar.js";
+import { repairFleet } from "../sim/repair.js";
 import { firstLivery, liveryRng, STOCK_BASES } from "../sim/liveryDrift.js";
 import { cardById, drawHand, withCards, type Limits } from "../skirmish/cards.js";
 import { fleetId } from "./history.js";
@@ -474,11 +475,14 @@ export function parseSkirmish(value: unknown): Skirmish {
         if (raw !== undefined && Array.isArray(raw["ships"]) && raw["ships"].length === 0) {
             return { name: typeof raw["name"] === "string" ? raw["name"] : "My fleet", designs: {}, ships: [] };
         }
+        let parsed: Fleet;
         try {
-            return parseFleet(raw);
+            parsed = parseFleet(raw);
         } catch (error) {
             return fail(`${key}: ${(error as Error).message}`);
         }
+        // Rules tighten after a fleet is saved; most of a ship beats a skirmish that cannot be opened.
+        return repairFleet(parsed).fleet;
     };
     const wonSeed = file["won"] === undefined ? undefined : whole("won", 0);
     // Cards the deck has, by id; a skirmish from before cards, which kept a budget multiplier instead, holds none.

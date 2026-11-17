@@ -1,4 +1,4 @@
-import { expandFleet, math, parseFleet, serialiseFleet, type Fleet } from "../sim/index.js";
+import { expandFleet, math, parseFleet, repairFleet, serialiseFleet, type Fleet } from "../sim/index.js";
 
 /**
  * Every match of a skirmish, in order: each round the player fought, the best
@@ -148,7 +148,7 @@ export function fleetOf(history: History, id: string | null): Fleet | null {
     const file = history.fleets[id];
     if (file === undefined) return null;
     try {
-        return parseFleet(file);
+        return repairFleet(parseFleet(file)).fleet;
     } catch {
         return null;
     }

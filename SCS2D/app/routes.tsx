@@ -9,6 +9,7 @@ import { SkirmishRoute } from "./routes/skirmish/SkirmishPage";
 import { Home } from "./routes/home/Home";
 import { LibraryPage } from "./routes/library/LibraryPage";
 import { NotFound } from "./routes/NotFound";
+import { RouteError } from "./routes/RouteError";
 
 /** The Simulator, keeping whatever battle or fleet the address hands it. */
 function ToSimulator() {
@@ -24,6 +25,7 @@ function ToSimulator() {
 export const ROUTES: RouteObject[] = [
     {
         element: <Shell />,
+        errorElement: <RouteError />,
         children: [
             { index: true, element: <Home /> },
             { path: "simulator", element: <BattlePage /> },
