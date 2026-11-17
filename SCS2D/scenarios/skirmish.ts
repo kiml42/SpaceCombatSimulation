@@ -366,6 +366,12 @@ export function lost(skirmish: Skirmish): Skirmish {
     return hand.length === 0 ? next : { ...next, streak: 0, hand };
 }
 
+/** How many different fleets have lost this round towards a hand of cards, and how many it takes; null with none to earn. */
+export function cardProgress(skirmish: Skirmish): { readonly lost: number; readonly of: number } | null {
+    const of = settingsOf(skirmish).cardAfter;
+    return of < 1 || skirmish.hand !== undefined ? null : { lost: skirmish.streak ?? 0, of };
+}
+
 /** The draw for the player's next hand: from the round's seed and the cards held, so a reload draws the same. */
 function handRng(skirmish: Skirmish): Rng {
     return new Rng((skirmish.seed ^ 0x63617264 ^ math.imul(skirmish.cards?.length ?? 0, 0x9e3779b9)) >>> 0);

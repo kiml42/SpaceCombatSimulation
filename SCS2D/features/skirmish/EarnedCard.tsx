@@ -34,20 +34,27 @@ const Box = styled.div`
     }
 `;
 
-/** Three losses with different fleets have dealt a hand: pick one, over the battle that earned it, paused. */
+const WORDS = ["No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"];
+
+/** `of` losses with different fleets have dealt a hand: pick one, over the battle that earned it, paused. */
 export function EarnedCard({
     hand,
+    of,
     onPick,
     onLater,
 }: {
     readonly hand: readonly string[];
+    /** How many different fleets had to lose for it. */
+    readonly of: number;
     readonly onPick: (id: string) => void;
     readonly onLater: () => void;
 }) {
     return (
         <Box id="earnedCard" role="dialog" aria-labelledby="earnedCardTitle">
             <h2 id="earnedCardTitle">Upgrade card earned</h2>
-            <p>Three different fleets have lost this round, so you get an upgrade card. Pick one to take into your next fight.</p>
+            <p>
+                {`${WORDS[of] ?? of} different ${of === 1 ? "fleet has" : "fleets have"} lost this round, so you get an upgrade card. Pick one to take into your next fight.`}
+            </p>
             <CardPick hand={hand} onPick={onPick} />
             <Button id="earnedCardLater" onClick={onLater}>
                 Continue watching

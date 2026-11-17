@@ -431,6 +431,9 @@ describe("the skirmish in a browser", () => {
         expect(await page.isVisible("#decided.lost")).toBe(true);
         expect(await page.textContent("#decidedTitle")).toMatch(/^Defeat at \d+ s$/);
         expect(await page.textContent("#decidedReason")).toBe("Your fleet has nothing left to fight with.");
+        // And how near the loss has brought an upgrade card, there and under the buttons.
+        expect(await page.textContent("#decidedProgress")).toBe("1 of 3 different fleets lost towards an upgrade card");
+        expect(await page.textContent("#cardProgress")).toBe("1 of 3 different fleets lost towards an upgrade card");
         expect(await page.getAttribute("#editFleet", "data-variant")).toBe("primary");
         expect(await page.isVisible("#fight")).toBe(false);
 
