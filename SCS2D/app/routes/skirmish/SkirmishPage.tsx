@@ -102,6 +102,11 @@ const Readout = styled.output`
 const FrameRate = styled.output`
     margin-left: 1.5em;
     color: var(--colour-muted);
+
+    /* At the right without a readout before it. */
+    &:first-of-type {
+        margin-left: auto;
+    }
 `;
 
 const Body = styled.div`
@@ -352,6 +357,7 @@ export function SkirmishPage() {
     const [enemyLine, setEnemyLine] = useState<string | null>(null);
     const [fightable, setFightable] = useState(false);
     const [roundOver, setRoundOver] = useState(false);
+    const [begun, setBegun] = useState(false);
     const [replaying, setReplaying] = useState(false);
     const [watching, setWatching] = useState(true);
     const [enemyCost, setEnemyCost] = useState<Budget | null>(null);
@@ -391,6 +397,7 @@ export function SkirmishPage() {
 
     const showRound = (current: Skirmish | null = skirmishes.skirmish, on: BattleView | null = view): void => {
         if (current === null || on === null) return;
+        setBegun(false);
         mode.current = "round";
         resume.current = null;
         setReplaying(false);
@@ -750,6 +757,10 @@ export function SkirmishPage() {
     // The one thing to press next in the round's buttons.
     const next = answeringNow ? null : fits && !roundOver ? "fight" : "edit";
     const fightLabel = running ? "Fighting…" : ticked > 0 ? "Resume" : "Fight";
+    // Before the first step there is nothing to pause, wind back or restart: the panel's Fight starts it. Once it
+    // has run it stays begun, wound back to its start or not, until the round is shown afresh.
+    if (!begun && (running || ticked > 0 || decided !== null)) setBegun(true);
+    const started = begun || running || ticked > 0 || decided !== null;
     const parsedSides = sides === "" ? [] : (JSON.parse(sides) as { name: string; ships: string; colour: string }[]);
 
     return (
@@ -789,14 +800,16 @@ export function SkirmishPage() {
                 )}
                 {skirmish !== null && (
                     <>
-                        <Button id="play" disabled={!fightable} onClick={() => view?.setRunning(!running)}>
-                            {running ? "Pause" : decided !== null || ticked > 0 ? "Resume" : "Fight"}
-                        </Button>
+                        {started && (
+                            <Button id="play" disabled={!fightable} onClick={() => view?.setRunning(!running)}>
+                                {running ? "Pause" : "Resume"}
+                            </Button>
+                        )}
                         <Button id="fit" onClick={() => view?.fit()}>
                             Fit
                         </Button>
                         <Playback>
-                            <Scrub view={view} />
+                            {started && <Scrub view={view} />}
                             <label>
                                 speed
                                 <select
@@ -817,9 +830,11 @@ export function SkirmishPage() {
                                 </select>
                             </label>
                         </Playback>
-                        <Readout id="readout" aria-label="Battle time">
-                            {readout}
-                        </Readout>
+                        {started && (
+                            <Readout id="readout" aria-label="Battle time">
+                                {readout}
+                            </Readout>
+                        )}
                         <FrameRate aria-label="Frame rate">{fps}</FrameRate>
                     </>
                 )}
@@ -954,17 +969,19 @@ export function SkirmishPage() {
                                     >
                                         Edit fleet
                                     </EditLink>
-                                    <Button
-                                        id="retry"
-                                        title="Fight this round again from the start"
-                                        disabled={!fits}
-                                        onClick={() => {
-                                            showRound();
-                                            view?.setRunning(true);
-                                        }}
-                                    >
-                                        Restart
-                                    </Button>
+                                    {started && (
+                                        <Button
+                                            id="retry"
+                                            title="Fight this round again from the start"
+                                            disabled={!fits}
+                                            onClick={() => {
+                                                showRound();
+                                                view?.setRunning(true);
+                                            }}
+                                        >
+                                            Restart
+                                        </Button>
+                                    )}
                                 </Buttons>
                             )}
                             <Outcome id="outcome" className={outcome.kind}>
@@ -1045,7 +1062,7 @@ export function SkirmishPage() {
                                     )}
                                 </div>
                             )}
-                            <h2>Sides</h2>
+                            {parsedSides.length > 0 && <h2>Sides</h2>}
                             <div id="sides">
                                 {parsedSides.map((side, i) => (
                                     <div key={i}>

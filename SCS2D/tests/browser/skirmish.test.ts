@@ -119,7 +119,10 @@ describe("the skirmish in a browser", () => {
             await page.selectOption("#enemy", "ship:Stock/Bare Core");
             await startWith(GUNSHIP);
             expect(await page.isVisible("#round")).toBe(true);
-            expect(await page.isDisabled("#play")).toBe(true);
+            // Nothing to pause, wind back or restart before the first fight.
+            expect(await page.locator("#play").count()).toBe(0);
+            expect(await page.locator("#scrub").count()).toBe(0);
+            expect(await page.locator("#retry").count()).toBe(0);
             expect(await page.isDisabled("#fight")).toBe(true);
             expect(await page.getAttribute("#editFleet", "data-variant")).toBe("primary");
             expect(await page.textContent("#fleetNote")).toContain("over budget");
@@ -135,7 +138,7 @@ describe("the skirmish in a browser", () => {
             const matched = await page.inputValue("#metalBudget");
             for (const id of ["metalBudget", "fuelBudget", "buildBudget"]) await page.fill(`#${id}`, "100000");
             await startWith(GUNSHIP);
-            expect(await page.isDisabled("#play")).toBe(false);
+            expect(await page.isDisabled("#fight")).toBe(false);
             const kept = await page.evaluate(() => JSON.parse(window.localStorage.getItem("scs2d.skirmish")!));
             expect(kept.budget.metal).toBe(100_000_000);
             await giveUp();
@@ -226,7 +229,7 @@ describe("the skirmish in a browser", () => {
             await advanced();
             await page.selectOption("#enemy", "ship:Stock/Gunship");
             await startWith(GUNSHIP);
-            expect(await page.isDisabled("#play")).toBe(false);
+            expect(await page.isDisabled("#fight")).toBe(false);
             expect(await page.textContent("#roundTitle")).toBe("Round 1");
             expect(await page.getAttribute("#fight", "data-variant")).toBe("primary");
             expect(await page.getAttribute("#editFleet", "data-variant")).not.toBe("primary");
