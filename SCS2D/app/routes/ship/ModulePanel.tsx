@@ -1,5 +1,5 @@
 import { styled } from "@linaria/react";
-import { Fragment } from "react";
+import { Fragment, type ReactNode } from "react";
 import { kindName } from "~/editor/doctrine";
 import {
     dockFighter,
@@ -351,8 +351,13 @@ export function ModulePanel({
     const origin = doc.selectedOrigin();
     const within = origin === null ? null : instanceOf(origin);
     const index = doc.selectedModules()[0] ?? -1;
-    const readout = moduleReadout(spec, doc.view.modules, index, doc.view.design?.radius ?? 0);
     const design = doc.view.design;
+    // What it builds, where the design it compiled to still lines up with the layout.
+    const builds =
+        design !== null && design.modules[index]?.spec.kind === spec.kind
+            ? (design.builds?.find((b) => b.pad === index)?.design ?? null)
+            : null;
+    const readout = moduleReadout(spec, doc.view.modules, index, design?.radius ?? 0, builds);
     const rows = [
         ...readout.rows,
         ...weaponRows(readout.gun, design !== null && design.modules[index]?.spec.kind === spec.kind ? roundsAboard(design, index) : null),
@@ -652,7 +657,15 @@ export function ModulePanel({
                 </>
             )}
             {readsCraft(spec.kind) && (
-                <CraftRows editing={editing} spec={spec} library={library} inFleet={inFleet} flag={flag} update={update} />
+                <CraftRows
+                    editing={editing}
+                    spec={spec}
+                    library={library}
+                    inFleet={inFleet}
+                    flag={flag}
+                    update={update}
+                    keepNotes={notes("keep")}
+                />
             )}
             {/* What tunes it rather than what it is: folded away, open or shut as it was left for the last module. */}
             <More id="settingsMore" open={folds.settings} onToggle={(event) => onFolds({ ...folds, settings: event.currentTarget.open })}>
@@ -929,6 +942,7 @@ function CraftRows({
     inFleet,
     flag,
     update,
+    keepNotes,
 }: {
     readonly editing: ShipEditing;
     readonly spec: ModuleSpec;
@@ -936,6 +950,8 @@ function CraftRows({
     readonly inFleet: DesignInFleet | null;
     readonly flag: (key: "docked" | "buildAnchored", on: boolean) => void;
     readonly update: (change: (placement: Placement) => Placement, continues?: boolean) => void;
+    /** The figures that go under how many it keeps. */
+    readonly keepNotes: ReactNode;
 }) {
     const { doc } = editing;
     const choices = craftChoices(doc.blueprint, spec.kind, library, inFleet);
@@ -1041,6 +1057,7 @@ function CraftRows({
                     />
                 </Field>
             )}
+            {named && keepNotes}
             {named && readsCraftAngle(spec.kind) && (
                 <Field id="craftAngleRow">
                     <label htmlFor="propCraftAngle">lies</label>

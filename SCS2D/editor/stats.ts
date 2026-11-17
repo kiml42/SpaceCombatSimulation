@@ -47,6 +47,7 @@ import {
     nominalReach,
     resolveTargeting,
     billOf,
+    PAD_REPAIR_PER_AREA,
     ROBOT_REPAIR_RATE,
     type Bill,
     type EngineLayout,
@@ -457,6 +458,14 @@ function feedRow(spec: ModuleSpec): ReadoutRow {
 }
 
 /**
+ * How long a pad takes to build one of `fighter`, s: its whole build bill at the
+ * pad's rate, which goes by its deck, given the metal and charge to build with.
+ */
+export function padBuildTime(pad: ModuleSpec, fighter: ShipDesign): number {
+    return (billOf(fighter).build * ROBOT_REPAIR_RATE) / (PAD_REPAIR_PER_AREA * pad.length * pad.width);
+}
+
+/**
  * The selected module's own figures.
  *
  * Read from `moduleStats`, which is the same derivation the ship totals are
@@ -470,7 +479,14 @@ function feedRow(spec: ModuleSpec): ReadoutRow {
  * layout index onto a design that may have dropped modules it could not
  * measure.
  */
-export function moduleReadout(spec: ModuleSpec, layout: readonly ModuleSpec[] = [], index = -1, shipRadius = 0): ModuleReadout {
+export function moduleReadout(
+    spec: ModuleSpec,
+    layout: readonly ModuleSpec[] = [],
+    index = -1,
+    shipRadius = 0,
+    /** What a pad is set to build, if it builds any. */
+    builds: ShipDesign | null = null,
+): ModuleReadout {
     // Shrunk past measuring, it has no figures; the problem list says why.
     if (moduleProblem(spec) !== null) return { rows: [], gun: null };
     const kept = measured(layout, [layout[index] === spec ? index : -1]);
@@ -530,6 +546,14 @@ export function moduleReadout(spec: ModuleSpec, layout: readonly ModuleSpec[] = 
                   ? "Either way across a dock"
                   : "From what its bow grips";
         add({ name: "Pump", value: `${n(stats.pumpRate, 0)} kg/s`, title: across });
+    }
+    if (spec.kind === "pad" && builds !== null) {
+        add({
+            name: "Builds one in",
+            under: "keep",
+            value: buildTime(padBuildTime(spec, builds)),
+            title: "A whole fighter, given the metal and charge: a bigger deck builds faster",
+        });
     }
 
     if (stats.thrust > 0) {
