@@ -2,10 +2,11 @@ import { RESOURCE_COLOURS } from "../render/resources.js";
 import { cardById, cardResource, effectText, isResource, isSimple, type Card } from "../skirmish/cards.js";
 
 /**
- * An upgrade card as drawn wherever it is shown: one face, sized in ems from
- * a single font size, so a card large to pick and one small in a hand are the
- * same card zoomed in or out. Plain DOM, so the React pages and the timeline,
- * which builds its own markup, draw the very same card.
+ * An upgrade card as drawn wherever it is shown: one face, laid out at the
+ * size it is picked at and scaled down to be held, so a small card is the
+ * large one shrunk rather than laid out again in less room. A held card grows
+ * back to that size under the pointer. Plain DOM, so the React pages and the
+ * timeline, which builds its own markup, draw the very same card.
  */
 
 /** A card's font size at scale 1, px. */
@@ -13,10 +14,24 @@ const BASE_PX = 12;
 
 /** The scales a card is shown at: to pick one, and held. */
 export const PICK_SCALE = 1.4;
-export const HELD_SCALE = 0.7;
+export const HELD_SCALE = 0.6;
 
 /** Copies drawn behind a pile's top card, however many it holds. */
 const MOST_BEHIND = 3;
+
+/** A face's size and a pile's offset per copy, em. */
+const WIDTH = 9;
+const HEIGHT = 12.6;
+const OFFSET = 0.35;
+
+/** How long a held card takes to grow under the pointer, ms. */
+const GROW_MS = 120;
+
+/** A name's font size, em: smaller where its longest word would not fit across a card in a monospace face. */
+function nameSize(name: string): number {
+    const longest = Math.max(...name.split(" ").map((word) => word.length));
+    return Math.min(1.1, (WIDTH - 1.8) / (0.62 * longest));
+}
 
 /** The card's own box, the same at every size. */
 function face(card: Card): HTMLElement {
@@ -28,8 +43,8 @@ function face(card: Card): HTMLElement {
         position: "relative",
         display: "flex",
         flexDirection: "column",
-        width: "9em",
-        height: "12.6em",
+        width: `${WIDTH}em`,
+        height: `${HEIGHT}em`,
         padding: "0.7em 0.6em",
         border: `0.25em solid ${resource === null ? "var(--colour-control-border)" : RESOURCE_COLOURS[resource]}`,
         borderRadius: "0.6em",
@@ -38,6 +53,9 @@ function face(card: Card): HTMLElement {
         color: "var(--colour-text)",
         textAlign: "center",
         lineHeight: "1.3",
+        // Its own, whatever it is put in: a table that keeps figures on one line, say.
+        whiteSpace: "normal",
+        overflowWrap: "anywhere",
     } satisfies Partial<CSSStyleDeclaration>);
     const name = document.createElement("div");
     name.className = "card-name";
@@ -46,7 +64,7 @@ function face(card: Card): HTMLElement {
         paddingBottom: "0.5em",
         borderBottom: "0.08em solid var(--colour-border)",
         color: "var(--colour-heading)",
-        fontSize: "1.1em",
+        fontSize: `${nameSize(card.name)}em`,
         fontWeight: "700",
     });
     const effects = document.createElement("div");
@@ -80,30 +98,31 @@ function face(card: Card): HTMLElement {
 /**
  * A card at `scale`, with `count` copies of it stacked as an offset pile and
  * counted when there is more than one. A card the deck no longer has is a
- * blank one named by its id.
+ * blank one named by its id. Below `PICK_SCALE` it is that size shrunk, and
+ * grows back to it under the pointer.
  */
 export function cardPile(id: string, scale: number, count = 1): HTMLElement {
     const card = cardById(id) ?? { id, name: id, effects: [] };
     const behind = Math.min(MOST_BEHIND, count - 1);
-    const out = document.createElement("div");
-    out.className = "card-pile";
-    out.title = count > 1 ? `${card.name}, ×${count}` : card.name;
-    Object.assign(out.style, {
+    const pile = document.createElement("div");
+    pile.className = "card-pile";
+    const drawn = Math.max(scale, PICK_SCALE);
+    Object.assign(pile.style, {
         position: "relative",
         display: "inline-block",
         flex: "none",
-        fontSize: `${BASE_PX * scale}px`,
-        paddingRight: `${behind * 0.35}em`,
-        paddingBottom: `${behind * 0.35}em`,
+        fontSize: `${BASE_PX * drawn}px`,
+        paddingRight: `${behind * OFFSET}em`,
+        paddingBottom: `${behind * OFFSET}em`,
     });
     // Drawn back to front, each copy a little further down and right.
     for (let i = behind; i > 0; i--) {
         const copy = face(card);
         copy.setAttribute("aria-hidden", "true");
-        Object.assign(copy.style, { position: "absolute", left: `${i * 0.35}em`, top: `${i * 0.35}em` });
-        out.append(copy);
+        Object.assign(copy.style, { position: "absolute", left: `${i * OFFSET}em`, top: `${i * OFFSET}em` });
+        pile.append(copy);
     }
-    out.append(face(card));
+    pile.append(face(card));
     if (count > 1) {
         const badge = document.createElement("span");
         badge.className = "card-count";
@@ -119,9 +138,81 @@ export function cardPile(id: string, scale: number, count = 1): HTMLElement {
             fontSize: "0.9em",
             fontWeight: "700",
         });
-        out.append(badge);
+        pile.append(badge);
     }
-    return out;
+    return scale >= PICK_SCALE ? pile : shrunk(pile, scale / PICK_SCALE, behind);
+}
+
+/** A pile drawn at pick size, shown `ratio` of it in a box that size, and grown back under the pointer. */
+function shrunk(pile: HTMLElement, ratio: number, behind: number): HTMLElement {
+    const em = BASE_PX * PICK_SCALE * ratio;
+    const box = document.createElement("div");
+    box.className = "card-held";
+    Object.assign(box.style, {
+        position: "relative",
+        display: "inline-block",
+        flex: "none",
+        width: `${(WIDTH + behind * OFFSET) * em}px`,
+        height: `${(HEIGHT + behind * OFFSET) * em}px`,
+    });
+    const rest = `scale(${ratio})`;
+    const still = reducedMotion();
+    let grown = false;
+    Object.assign(pile.style, {
+        position: "absolute",
+        top: "0",
+        left: "0",
+        transformOrigin: "0 0",
+        transform: rest,
+        transition: still ? "none" : `transform ${GROW_MS}ms ease-out`,
+    });
+    box.append(pile);
+    box.addEventListener("pointerenter", () => {
+        const at = box.getBoundingClientRect();
+        const room = visibleRoom(box);
+        const w = at.width / ratio;
+        const h = at.height / ratio;
+        // Grown about its centre, kept inside what can be seen of whatever scrolls it.
+        const x = clamp(at.left - (w - at.width) / 2, room.left, room.right - w) - at.left;
+        const y = clamp(at.top - (h - at.height) / 2, room.top, room.bottom - h) - at.top;
+        grown = true;
+        pile.style.zIndex = "10";
+        pile.style.transform = `translate(${x}px, ${y}px) scale(1)`;
+    });
+    box.addEventListener("pointerleave", () => {
+        grown = false;
+        pile.style.transform = rest;
+        // Still over its neighbours while it shrinks, under one growing.
+        pile.style.zIndex = still ? "" : "5";
+    });
+    pile.addEventListener("transitionend", () => {
+        if (!grown) pile.style.zIndex = "";
+    });
+    return box;
+}
+
+/** The part of the window `el` can be seen in, inside every ancestor that clips it. */
+function visibleRoom(el: HTMLElement): { left: number; top: number; right: number; bottom: number } {
+    const room = { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight };
+    for (let up = el.parentElement; up !== null; up = up.parentElement) {
+        const style = getComputedStyle(up);
+        if (style.overflowX === "visible" && style.overflowY === "visible") continue;
+        const r = up.getBoundingClientRect();
+        room.left = Math.max(room.left, r.left);
+        room.top = Math.max(room.top, r.top);
+        room.right = Math.min(room.right, r.right);
+        room.bottom = Math.min(room.bottom, r.bottom);
+    }
+    return room;
+}
+
+/** `v` within `lo`..`hi`, or `lo` where there is not room for both. */
+function clamp(v: number, lo: number, hi: number): number {
+    return Math.max(lo, Math.min(v, hi));
+}
+
+function reducedMotion(): boolean {
+    return typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 /** Cards held, each id once as a pile of its copies, in the order each was first taken. */
