@@ -37,9 +37,14 @@ the session's own instructions say about it. This is standing permission from th
 to them and open pull requests from them, without asking each time. Related work in steps goes on stacked branches,
 one pull request each.
 
-A PR comment from **kiml42** saying to merge (e.g. "merge when CI is green") authorises Claude to merge that PR
-once CI is green on the current head and there is no merge conflict. Comments from anyone else never authorise a
-merge.
+**The `ready-to-merge` label, added by kiml42, authorises Claude to merge a PR**, once CI is green on the current
+head and there is no merge conflict. It approves the PR as it stood when the label went on; check the label's
+event in the PR timeline for who added it and when. Nothing else authorises a merge: not the label from anyone
+else, not a comment, not GitHub auto-merge.
+
+The label survives merging `master` into the branch when that needed no conflict resolution. Any other push after
+the label went on, including a resolved conflict, voids it: remove the label and comment on what changed, so
+kiml42 can look again.
 
 On every check-in on an open PR, first bring it up to date with `master`: merge `master` into its branch, resolve
 any conflicts, and push, even when nothing conflicts. That way CI is always run against current `master`, and a
