@@ -9,18 +9,32 @@ import { NEUTRAL_TEAM, type ShipView, type Snapshot } from "../sim/index.js";
  * DOM-free arithmetic over a snapshot, like the camera, so it is unit-tested.
  */
 
-/** The ship under a world point, nearest first, or null. */
+/**
+ * The ship under a world point, or null: the nearest whose hull circle, or
+ * `reach` round its centre when it is drawn smaller than that, holds the point.
+ * A ship drawn narrower than the reach is passed over for a wider one that also
+ * holds the point, so a click on a carrier does not pick out a fighter on its deck.
+ */
 export function shipViewAt(snapshot: Snapshot, x: number, y: number, reach: number): ShipView | null {
-    let best: ShipView | null = null;
-    let nearest = Infinity;
+    let nearest: ShipView | null = null;
+    let nearestSeen: ShipView | null = null;
+    let d = Infinity;
+    let dSeen = Infinity;
     for (let i = 0; i < snapshot.shipCount; i++) {
         const ship = snapshot.ships[i]!;
-        const d = Math.hypot(ship.x - x, ship.y - y);
-        if (d > Math.max(ship.currentStructure.radius, reach) || d >= nearest) continue;
-        nearest = d;
-        best = ship;
+        const radius = ship.currentStructure.radius;
+        const at = Math.hypot(ship.x - x, ship.y - y);
+        if (at > Math.max(radius, reach)) continue;
+        if (at < d) {
+            d = at;
+            nearest = ship;
+        }
+        if (2 * radius >= reach && at < dSeen) {
+            dSeen = at;
+            nearestSeen = ship;
+        }
     }
-    return best;
+    return nearestSeen ?? nearest;
 }
 
 /** The side a selection is of, or null for none or for a neutral looked at alone. */
