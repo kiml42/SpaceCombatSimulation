@@ -42,6 +42,20 @@ describe("picking ships out", () => {
         expect(shipViewAt(picture, 150, 0, 1)).toBeNull();
     });
 
+    it("reaches a ship drawn too small to hit, but prefers one large enough to see", () => {
+        const carrier = ship(0, 0, 0);
+        const fighter = { ...ship(1, 0, 15), currentStructure: { radius: 2 } } as ShipView;
+        const alone = { ...ship(2, 0, 300), currentStructure: { radius: 2 } } as ShipView;
+        const scene = snapshotOf([carrier, fighter, alone]);
+        // Zoomed out, the fighter is a speck on the carrier's deck.
+        expect(shipViewAt(scene, 15, 0, 10)?.ship).toBe(0);
+        // Zoomed in far enough to see it, it can be picked.
+        expect(shipViewAt(scene, 15, 0, 4)?.ship).toBe(1);
+        // Alone, a speck is picked anywhere within the reach, and not beyond it.
+        expect(shipViewAt(scene, 308, 0, 10)?.ship).toBe(2);
+        expect(shipViewAt(scene, 308, 0, 4)).toBeNull();
+    });
+
     it("picks one with a click, and with Shift adds or takes away, keeping to one side", () => {
         let picked = clicked(picture, [], ships[0]!, false);
         expect(picked).toEqual([0]);
