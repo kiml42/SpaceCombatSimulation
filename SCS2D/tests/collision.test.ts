@@ -3,7 +3,7 @@ import { Bodies } from "../sim/bodies.js";
 import { Collisions, Contacts, OUTLET_A, RESTITUTION, ROCK_DAMPING, Stab, findContacts, resolveContacts } from "../sim/collision.js";
 import { bodySpec, compileBlueprint, hullMountGeometry, rockModule, type ShipDesign } from "../sim/index.js";
 import { OWN_LAYERS, WEAPONS_LAYER, type HullDesigns } from "../sim/hull.js";
-import { CORVETTE, DINKY, SALVAGER } from "../scenarios/blueprints.js";
+import { CORVETTE, DINKY, RAIL_CORVETTE, SALVAGER } from "../scenarios/blueprints.js";
 import { ram } from "../scenarios/ram.js";
 
 /**
@@ -556,5 +556,25 @@ describe("a hull deep in rock", () => {
         expect(w.contacts.depth[0]).toBeCloseTo(6, 6);
         expect(w.contacts.nx[0]).toBeCloseTo(0, 6);
         expect(w.contacts.ny[0]).toBeCloseTo(1, 6);
+    });
+});
+
+describe("a part with no thickness", () => {
+    it("is not swept, so a fast pass over a barrel of no calibre ends", () => {
+        // Swept in strides of half the thinner part: for a barrel of no length, never ending.
+        const noBarrel = compileBlueprint({
+            ...RAIL_CORVETTE,
+            modules: RAIL_CORVETTE.modules.map((m) => ("kind" in m && m.kind === "railGun" ? { ...m, barrelCalibres: 0 } : m)),
+        });
+        const plate = compileBlueprint({ name: "Plate", modules: [{ kind: "core", x: 0, y: 0, length: 2, width: 2 }] });
+        let found = 0;
+        for (let x = 8; x <= 26; x += 1) {
+            for (let y = -3; y <= 3; y += 1) {
+                const w = world({ design: noBarrel, x: 0, y: 0 }, { design: plate, x, y, vy: -300 });
+                findContacts(w.bodies, w.hulls, w.contacts, 1 / 60);
+                found += w.contacts.count;
+            }
+        }
+        expect(found).toBeGreaterThan(0);
     });
 });

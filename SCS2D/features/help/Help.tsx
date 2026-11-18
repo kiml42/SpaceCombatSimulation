@@ -151,10 +151,12 @@ export interface HelpOptions {
     readonly enabled?: boolean;
     /** Whether it opens by itself, the first time the page is like this. */
     readonly auto?: boolean;
+    /** Whether ? brings it up; not where something else on the page answers ?. */
+    readonly key?: boolean;
 }
 
 /** A page's help: open by itself until it has been seen once, and on ? whenever the page offers it. */
-export function useHelp(seenKey: string, { enabled = true, auto = true }: HelpOptions = {}) {
+export function useHelp(seenKey: string, { enabled = true, auto = true, key = true }: HelpOptions = {}) {
     const storage = useStorage();
     const [asked, setAsked] = useState(false);
     const [seen, setSeen] = useState(() => {
@@ -168,7 +170,7 @@ export function useHelp(seenKey: string, { enabled = true, auto = true }: HelpOp
 
     const show = useEffectEvent(() => setAsked(true));
     useEffect(() => {
-        if (!enabled) return;
+        if (!enabled || !key) return;
         const onKey = (event: KeyboardEvent): void => {
             const focus = document.activeElement;
             const typing = focus instanceof HTMLInputElement || focus instanceof HTMLTextAreaElement || focus instanceof HTMLSelectElement;
@@ -176,7 +178,7 @@ export function useHelp(seenKey: string, { enabled = true, auto = true }: HelpOp
         };
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
-    }, [enabled]);
+    }, [enabled, key]);
 
     const close = (): void => {
         setAsked(false);
