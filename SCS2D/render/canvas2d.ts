@@ -2856,17 +2856,22 @@ function drawScene(
     // World to screen: metres up, y flipped so +y is up as the maths intends.
     ctx.translate(widthPx / 2, heightPx / 2);
     ctx.scale(camera.scale, -camera.scale);
+    const turn = camera.turn ?? 0;
+    if (turn !== 0) ctx.rotate(turn);
     ctx.translate(-camera.x, -camera.y);
+    // Turned, the world the view takes in is the box round its corners.
+    const reachW = turn === 0 ? widthPx : Math.hypot(widthPx, heightPx);
+    const reachH = turn === 0 ? heightPx : reachW;
 
     if (!underneath) {
-        drawGrid(ctx, camera, widthPx, heightPx);
+        drawGrid(ctx, camera, reachW, reachH);
         drawWells(ctx, snapshot, camera);
     }
 
     // A ship nowhere near the view is not drawn: a close-up draws the whole
     // battle again for one ship. One with its arcs showing is, since they reach.
-    const halfW = (widthPx / 2 + CULL_PAD_PX) / camera.scale;
-    const halfH = (heightPx / 2 + CULL_PAD_PX) / camera.scale;
+    const halfW = (reachW / 2 + CULL_PAD_PX) / camera.scale;
+    const halfH = (reachH / 2 + CULL_PAD_PX) / camera.scale;
     shownBox.x = camera.x;
     shownBox.y = camera.y;
     shownBox.halfW = halfW;
@@ -3195,6 +3200,7 @@ export function fleetStrips(snapshot: Snapshot, widthPx: number, heightPx: numbe
             vx: ship.vx,
             vy: ship.vy,
             radius: ship.currentStructure.radius,
+            heading: ship.heading ?? ship.angle,
             design,
             intact: intactMass(ship),
         });

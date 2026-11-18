@@ -19,6 +19,8 @@ export interface StripShip {
     readonly vy: number;
     /** Hull radius, m. */
     readonly radius: number;
+    /** Which way it points, radians: its tile turns so it faces in from its edge of the view, towards the other side. Never turned when absent. */
+    readonly heading?: number;
     /** Its design, the same for every ship of that design; absent for one never grouped. */
     readonly design?: number;
     /** How much of it is left, kg, so a shared tile shows the least damaged. */
@@ -139,7 +141,15 @@ function column(entries: readonly StripShip[], widthPx: number, heightPx: number
             x,
             y: margin + k * (size + gap),
             size,
-            camera: { x: ship.x, y: ship.y, scale: (half * FILL) / Math.max(ship.radius, 0.1), vx: ship.vx, vy: ship.vy },
+            camera: {
+                x: ship.x,
+                y: ship.y,
+                scale: (half * FILL) / Math.max(ship.radius, 0.1),
+                vx: ship.vx,
+                vy: ship.vy,
+                // Facing right down the left edge and left down the right, towards the fight.
+                turn: ship.heading === undefined ? 0 : (fromLeft ? 0 : Math.PI) - ship.heading,
+            },
         };
     });
     const hidden = ships.slice(shown).reduce((sum, entry) => sum + entry.bodies.length, 0);
