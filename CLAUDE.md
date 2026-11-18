@@ -40,20 +40,19 @@ one pull request each.
 **Watch every PR you open.** Straight after creating it, subscribe to its activity (`subscribe_pr_activity`)
 without asking, and fix what CI and review comments raise until it merges or closes.
 
-**The `ready-to-merge` label, added by kiml42, authorises Claude to merge a PR**, once CI is green on the current
-head and there is no merge conflict. It approves the PR as it stood when the label went on; check the label's
-event in the PR timeline for who added it and when. Nothing else authorises a merge: not the label from anyone
-else, not a comment, not GitHub auto-merge.
+**A comment from kiml42 reading just `RTM` (any case) authorises Claude to merge a PR**, once CI is green on the
+current head and there is no merge conflict. It may be a normal comment or a review comment. It approves the
+commits before it in the PR timeline, not later ones. Nothing else authorises a merge: not `RTM` from anyone else
+or inside a longer comment, not a label or reaction (neither wakes a session), not GitHub auto-merge.
 
-The label survives merging `master` into the branch when that needed no conflict resolution. Any other push after
-the label went on, including a resolved conflict, voids it: remove the label and comment on what changed, so
-kiml42 can look again.
+A clean merge of `master` after the `RTM` keeps it. Any other push after it, including a resolved conflict, voids
+it: say so in a comment listing what changed, so kiml42 can look again and comment `RTM` anew.
 
 On every check-in on an open PR, first bring it up to date with `master`: merge `master` into its branch, resolve
 any conflicts, and push, even when nothing conflicts. That way CI is always run against current `master`, and a
 branch never drifts far behind it.
 
-The exception is a PR that is ready to merge (labelled, CI green), where a push would only wait on CI again.
+The exception is a PR that is ready to merge (`RTM`, CI green), where a push would only wait on CI again.
 Merge `master` into it locally, without pushing. If `master`'s new commits touch no file the PR changes and `pnpm
 typecheck` passes on the result, merge the PR as it stands. Otherwise push the merge and wait for CI as usual.
 
