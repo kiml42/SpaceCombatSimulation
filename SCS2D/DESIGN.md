@@ -541,11 +541,16 @@ inside any one file is not contiguous.
   flown as a defence is, in its escort band on the goal, fighting whatever its doctrine picks from there.
   Left to doctrine, ships of a fleet escorting the goal escorted each other instead. It can instead be a **ghost**, a ship still there to be escorted and scored against
   that nothing collides with, shoots through or moves, so ships either side of it can still fight across it. What takes a ship there without being told is **escorting**: a weight saying how
-  firmly a craft holds by something it will never shoot at. **Escorting and fighting are a choice, not a
-  blend:** while an enemy is within its own reach of its station, a craft stays and fights the nearest from
-  there; while none is, it leaves its charge and goes to the fight it chose, further off. Weighed against each other, the two
-  settled halfway, and an escort trailed an enemy moving away from its charge at half its speed, staying with
-  neither. The choice is by threat, not by score, so the trap below does not apply to it.
+  firmly a craft holds by something it will never shoot at. **Escorting and fighting are a choice of which
+  comes first, not a blend:** while an enemy is within `guardRange` of its own reach of its charge, a craft
+  **screens first**, stationing at the place on its band nearest where it would fight that enemy from, held as
+  firmly as an order so it burns there; while none is, it **fights first**, going to the fight it chose and
+  making for its band only across the line to its enemy, keeping whole what it wants along that line, so a
+  group bunches up as it attacks without slowing its closing. Weighed against each other as plain wants, the
+  two settled halfway, and an escort trailed an enemy moving away from its charge at half its speed, staying
+  with neither. Of two covering each other, the nearer the enemy fights first: both screening, each matched
+  the other's velocity and neither the enemy's, and the pair drifted off on what they set out with. The
+  choice is by threat, not by score, so the trap below does not apply to it.
   A craft escorting stations on its charge and fights on with whatever its mounts can reach, since where the
   hull goes and what the guns do are different questions, and it holds a band of its own rather than the
   gunnery standoff — where you sit to *shoot* at something being the wrong answer by an order of magnitude
