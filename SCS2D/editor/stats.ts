@@ -177,6 +177,12 @@ export interface DesignStats {
     turnLeft: number;
     turnRight: number;
     /**
+     * Seconds to turn about from rest and stop again, on full torque one way and
+     * then the other, which is the same either way round. Infinity when it
+     * cannot turn both ways.
+     */
+    turnAbout: number;
+    /**
      * Whether the layout can push both ways on both axes and turn both ways. A
      * ship without it cannot hold a heading while translating, which is a design
      * error worth finding at the drawing board rather than in a battle.
@@ -220,6 +226,16 @@ export function roundsAboard(design: ShipDesign, module: number): number {
     }
     // A whisker under a whole round is still a whole round, not round-off short of one.
     return Math.floor(metal / casing + 1e-9);
+}
+
+/**
+ * Seconds to turn `angle` from rest and stop, speeding up at `start` and
+ * slowing at `stop`: the swing splits where the two meet, at a top rate of
+ * √(2θ·a₁a₂/(a₁+a₂)).
+ */
+export function turnTime(angle: number, start: number, stop: number): number {
+    if (!(start > 0) || !(stop > 0)) return Infinity;
+    return Math.sqrt((2 * angle * (start + stop)) / (start * stop));
 }
 
 /** The main battery's heaviest gun, and how many of its rounds the ship sets out with. */
@@ -298,6 +314,7 @@ export function designStats(design: ShipDesign, envelope: Envelopes): DesignStat
         brakeTurned: trim(math.cos(design.thrustBearing), math.sin(design.thrustBearing)),
         turnLeft: layout.maxTorque(1) / inertia,
         turnRight: layout.maxTorque(-1) / inertia,
+        turnAbout: turnTime(math.PI, layout.maxTorque(1) / inertia, layout.maxTorque(-1) / inertia),
         fullAuthority: layout.hasFullAuthority(),
         headingCost: headingCost(envelope),
         mainRounds: mainRounds(design),
