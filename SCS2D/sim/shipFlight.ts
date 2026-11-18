@@ -1287,6 +1287,37 @@ export function accelerationAlong(ships: Ships, bodies: Bodies, i: number, b: nu
     return force / movable(bodies.mass[b]!);
 }
 
+/** Where a craft covering first stations, filled by `guardStation`. */
+const GUARD_AT = { x: 0, y: 0, vx: 0, vy: 0, radius: 0 };
+/** Scratch for where the enemy it guards against is. */
+const GUARDED = { x: 0, y: 0, vx: 0, vy: 0, radius: 0 };
+
+/**
+ * The place on ship `i`'s band round `charge`, from `inner` to `station` out,
+ * nearest the range it would fight its chosen enemy from, into `GUARD_AT`,
+ * moving with its charge; false with no enemy to place it by.
+ */
+function guardStation(ships: Ships, bodies: Bodies, i: number, charge: Spot, inner: number, station: number): boolean {
+    const enemy = ships.chosen[i]!;
+    const eb = enemy === NO_TARGET ? -1 : bodies.indexOf(ships.bodyIds[enemy]!);
+    const order = shipOrders.effectiveOrder(ships, i);
+    if (eb < 0 || order === undefined) return false;
+    const at = ships.locate(bodies, enemy, eb, GUARDED);
+    const dx = at.x - charge.x;
+    const dy = at.y - charge.y;
+    const apart = length(dx, dy);
+    if (!(apart > 0)) return false;
+    // Along the line to the enemy, by as much as the charge is off the middle of
+    // its fighting band, within the band; never inside its inside edge.
+    let along = clamp(apart - (order.minRange + order.maxRange) / 2, -station, station);
+    if (abs(along) < inner) along = along < 0 ? -inner : inner;
+    GUARD_AT.x = charge.x + (dx / apart) * along;
+    GUARD_AT.y = charge.y + (dy / apart) * along;
+    GUARD_AT.vx = charge.vx;
+    GUARD_AT.vy = charge.vy;
+    return true;
+}
+
 /**
  * Stay with what this craft is covering, and say what that is.
  *
@@ -1304,6 +1335,26 @@ export function cover(ships: Ships, bodies: Bodies, i: number, b: number): numbe
     const design = ships.designs[i]!;
     const station = shipDecide.escortBand(ships, i, design, consort);
     const inner = shipDecide.escortInnerEdge(ships, i, design, consort, station);
+    const charge = ships.locate(bodies, consort, cb, ships.coverAt);
+    if (ships.guarding[i] === 1 && guardStation(ships, bodies, i, charge, inner, station)) {
+        // Covering first: for the place on its band nearest where it would fight
+        // from, as firmly as an order, so it burns there rather than sidling.
+        const told = shipOrders.effectiveOrder(ships, i);
+        hold(
+            ships,
+            bodies,
+            i,
+            b,
+            GUARD_AT,
+            0,
+            (station - inner) / 2,
+            told?.approachSpeed ?? ships.doctrines[i]!.approach.approachSpeed,
+            URGE_REFERENCE,
+            undefined,
+            consort,
+        );
+        return consort;
+    }
     const gap = length(bodies.x[cb]! - bodies.x[b]!, bodies.y[cb]! - bodies.y[b]!);
     // Told to, it holds the band as firmly as it would a station.
     const weight =
@@ -1312,19 +1363,7 @@ export function cover(ships: Ships, bodies: Bodies, i: number, b: number): numbe
             : cohesionUrge(ships.doctrines[i]!.targeting, gap, station, ships.doctrines[i]!.approach.bandFade, inner);
     const told = ships.getCurrentOrder(i);
     const speed = told?.defend === true && told.target === consort ? told.speed : undefined;
-    hold(
-        ships,
-        bodies,
-        i,
-        b,
-        ships.locate(bodies, consort, cb, ships.coverAt),
-        inner,
-        station,
-        speed ?? ships.doctrines[i]!.approach.approachSpeed,
-        weight,
-        undefined,
-        consort,
-    );
+    hold(ships, bodies, i, b, charge, inner, station, speed ?? ships.doctrines[i]!.approach.approachSpeed, weight, undefined, consort);
     return consort;
 }
 

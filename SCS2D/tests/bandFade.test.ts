@@ -25,8 +25,8 @@ describe("the fade at a band's edge", () => {
     });
 });
 
-describe("a ship covering another the same size, and keeping clear of it", () => {
-    it("settles where the two cancel, never past the soft edge of its station", () => {
+describe("two ships covering each other and keeping clear of each other", () => {
+    it("settle in their band, without flying apart past their station", () => {
         const design = compileBlueprint(CATAMARAN);
         const run = makeBattle({ seed: 1, projectiles: 16, beams: 4 }, (ships, world) => {
             ships.spawn(world, { design, x: 0, y: 0, angle: math.PI / 2, team: 0 });
@@ -39,18 +39,17 @@ describe("a ship covering another the same size, and keeping clear of it", () =>
             return Math.hypot(bodies.x[a]! - bodies.x[b]!, bodies.y[a]! - bodies.y[b]!);
         };
         const station = run.ships.coverBandOf(0, 1);
-        // Pulled back in fully only `bandFade` past it.
-        const edge = station * (1 + DEFAULT_DOCTRINE.approach.bandFade);
         let widest = 0;
         for (let s = 0; s < 60 * 60; s++) {
             run.step();
             widest = Math.max(widest, gap());
         }
-        expect(widest).toBeLessThan(edge);
+        expect(widest).toBeLessThan(station);
         const settled = gap();
         for (let s = 0; s < 10 * 60; s++) run.step();
         expect(Math.abs(gap() - settled)).toBeLessThan(1);
-        expect(settled).toBeGreaterThan(0.9 * station);
+        // Each keeps clear of its escort only inside the band's inside edge, where the escort keeps itself.
+        expect(settled).toBeGreaterThan(run.ships.coverInnerOf(0, 1));
     });
 });
 

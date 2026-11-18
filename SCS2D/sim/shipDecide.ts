@@ -183,9 +183,6 @@ export function decide(ships: Ships, world: World, bodies: Bodies, i: number): v
         if (ships.hulk(t) && !ships.mending(bodies, t)) continue;
         // Nor is a rock: neutral, but scenery rather than an objective.
         if (ships.rockFlag[t] === 1) continue;
-        // Nor one covering it: two covering each other are tied to nothing,
-        // and drift off together from the fight. The first to choose leads.
-        if (ships.consort[t] === i) continue;
         // Nor is a friend too small for it to bother covering. A neutral is an
         // objective rather than a ship to look after, and is gone to whatever
         // its size: a goal is a marker far smaller than anything racing to it.
@@ -264,7 +261,19 @@ function guard(ships: Ships, bodies: Bodies, i: number, b: number, wasGuarding: 
         return;
     }
     ships.chosen[i] = nearest;
+    // Two covering each other, both stationed on the other, hold neither to
+    // the fight and drift off on what they had: the nearer the enemy fights,
+    // and the other covers it. It still keeps it as a consort, for the pull.
+    if (ships.consort[consort] === i && nearer(ships, bodies, b, cb, nearest, i, consort)) return;
     ships.guarding[i] = 1;
+}
+
+/** Whether body `b`, ship `i`, is nearer enemy `t` than body `cb`, ship `c`: the lower index if level. */
+function nearer(ships: Ships, bodies: Bodies, b: number, cb: number, t: number, i: number, c: number): boolean {
+    const tb = bodies.indexOf(ships.bodyIds[t]!);
+    const mine = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!);
+    const theirs = length(bodies.x[tb]! - bodies.x[cb]!, bodies.y[tb]! - bodies.y[cb]!);
+    return mine < theirs || (mine === theirs && i < c);
 }
 
 /**
