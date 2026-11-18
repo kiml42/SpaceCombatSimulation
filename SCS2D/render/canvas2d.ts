@@ -1,5 +1,6 @@
 import {
     approachesOf,
+    DECK_HEIGHT,
     approachTurn,
     hullMountGeometry,
     BEAM_STALK_WIDTH,
@@ -115,6 +116,7 @@ import { eachCloudPuff, eachPuff, type Cloud, type Hole, type Pose, type Puff } 
 import { Poses } from "./poses.js";
 import { bit, bitCount, seedOf, spark, sparkColour, sparkCount, sparkFade, sprayOf, type Bit, type Spark } from "./particles.js";
 import type { PixiCanvas } from "./pixiCanvas.js";
+import type { Solid3D } from "./solid3d.js";
 import { iconAlpha, ICON_OUTLINE, ICON_PX, isWreckage } from "./icons.js";
 
 const { cos, floor, sin, length, max, min, PI, sqrt, TAU } = math;
@@ -1724,6 +1726,7 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light
             );
             // The sprite's core is its brightest, its edge a little dimmer.
             ctx.globalAlpha = outer * brightness;
+            fx?.along(root, across, root - reach, across, fx.shipLift(ship));
             // A magnetic nozzle's jet runs straight from its bell through its ring,
             // as the flame's own base does: its last column, stretched over the gap.
             if (gap > 0) ctx.drawImage(image, image.width - 1, 0, 1, image.height, root, across - half, gap, 2 * half);
@@ -1754,6 +1757,7 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light
                     );
                 }
             }
+            fx?.flat();
             ctx.globalAlpha = outer;
             // The ring stands across the jet, in front of it and of its glow: drawn
             // once the glows are (`drawJetRings`), so the jet's light does not fall on it.
@@ -2642,6 +2646,7 @@ export function draw(
     rounded = seenRounded;
     // A context that draws ships as solid models leaves their hulls to them.
     solid = (ctx as Partial<{ solidShips: boolean }>).solidShips === true;
+    fx = (ctx as Partial<{ solid3d: Solid3D | null }>).solid3d ?? null;
     drawScene(
         ctx,
         snapshot,
@@ -2662,6 +2667,7 @@ export function draw(
     );
     rounded = null;
     solid = false;
+    fx = null;
     field.clear();
     const kept = last ?? { lights: new Lights(), camera: { x: 0, y: 0, scale: 1 }, widthPx, heightPx };
     kept.lights.clear();
@@ -2759,6 +2765,8 @@ export const seenLights = new Lights();
 export const seenRounded = new RoundedParts();
 /** Whether the main view's ships are drawn as solid models by the context, so only what is over them is drawn here. */
 let solid = false;
+/** Where the main view is drawn in 3D, how to stand flames, rounds and flashes up at their heights. */
+let fx: Solid3D | null = null;
 /** Where rounded parts are recorded while the main view is drawn, and nowhere otherwise. */
 let rounded: RoundedParts | null = null;
 /** A barrel's colour, as its channels. */
@@ -3815,6 +3823,15 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
             const shine = flashFade(age, lifetime) * WEDGE_GLOW * MUZZLE_TIP_BRIGHTNESS;
             lights.line(base, at.x, at.y, at.x, at.y, tip, glow, shine, false, true, false, height);
         }
+        // In 3D, a muzzle's at its nearest gun's barrels, and a hit on the hull's top.
+        const lift =
+            fx === null
+                ? 0
+                : anchor === null
+                  ? fx.roundLift()
+                  : kind === IMPACT_MUZZLE
+                    ? muzzleLift(fx, anchor, at.x, at.y)
+                    : fx.shipLift(anchor) + DECK_HEIGHT / 2;
         for (let k = 0; k < n; k++) {
             const u = n === 1 ? 0.5 : (k + 0.5) / n;
             const weight = (n === 1 ? 1 : shutterWeight(u)) / (total * overlapping);
@@ -3826,6 +3843,7 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
             const y = at.y + rvy * ahead;
             if (pointing) {
                 ctx.setTransform(base);
+                fx?.along(x, y, x + dirX, y + dirY, lift);
                 drawWedge(
                     ctx,
                     base,
@@ -3843,12 +3861,14 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
                     false,
                     height,
                 );
+                fx?.flat();
                 continue;
             }
             if (cone) {
                 // A hot spot where it struck, and the cone opening from it.
                 const spot = max(flashExtent(start, growth, t, lifetime) * HIT_SPOT_SHARE, floor);
                 ctx.setTransform(base);
+                fx?.along(x, y, x + sprayed.x, y + sprayed.y, lift);
                 ctx.globalAlpha = min(1, 0.9 * fade * weight);
                 ctx.drawImage(core, x - spot, y - spot, 2 * spot, 2 * spot);
                 drawWedge(
@@ -3868,6 +3888,7 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
                     true,
                     height,
                 );
+                fx?.flat();
                 continue;
             }
             // Floored on screen, so a hit is visible from far enough out to see the
@@ -3878,11 +3899,31 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
             ctx.setTransform(base);
             lights.point(base, x, y, g, glow, 0.5 * boost * fade * weight, height);
             ctx.globalAlpha = min(1, 0.9 * boost * fade * weight);
+            fx?.along(x, y, x, y, lift);
             ctx.drawImage(core, x - r, y - r, 2 * r, 2 * r);
+            fx?.flat();
         }
     }
     ctx.restore();
     drawThrown(ctx, snapshot, flashes, camera, light);
+}
+
+/** How high the barrels of `ship`'s turret nearest world point `(x, y)` are: where its muzzle flash is. */
+function muzzleLift(fx: Solid3D, ship: ShipView, x: number, y: number): number {
+    const design = ship.currentStructure;
+    const c = cos(ship.angle);
+    const s = sin(ship.angle);
+    let best = -1;
+    let nearest = Infinity;
+    for (let t = 0; t < design.turrets.length; t++) {
+        const mount = design.turrets[t]!.mount;
+        const d = (ship.x + mount.x * c - mount.y * s - x) ** 2 + (ship.y + mount.x * s + mount.y * c - y) ** 2;
+        if (d < nearest) {
+            nearest = d;
+            best = t;
+        }
+    }
+    return best < 0 ? fx.shipLift(ship) : fx.barrelLift(ship, best);
 }
 
 /**
@@ -4279,7 +4320,9 @@ function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, came
                 ? legibleWidth(GLOW_CALIBRES * calibre, MIN_GLOW_PX, camera.scale) * exposure
                 : legibleWidth(calibre, MIN_TRACER_PX, camera.scale);
             ctx.globalAlpha = glowPass ? 1 : exposure;
+            fx?.along(ends.x0, ends.y0, ends.x1, ends.y1, fx.roundLift());
             drawStreak(ctx, base, image, ends.x0, ends.y0, ends.x1, ends.y1, width, vx, vy);
+            fx?.flat();
         }
     }
     ctx.restore();
@@ -4341,6 +4384,7 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
         const span = length(dx, dy);
         const flame = snapshot.beamPlasma[i] === 1 && span > 0 ? flameSprite(PULSE, PULSE_CORE) : null;
         const rod = flame === null && width * camera.scale >= MIN_ROD_PX && span > 0 ? sprite("rod", colour) : null;
+        fx?.along(x0, y0, x0 + dx, y0 + dy, fx.roundLift());
         if (flame !== null) {
             // Hot gas rather than light: brightest at the prongs, gone at its reach,
             // and cut off where it lands, as a flame is, rather than drawn whole into
@@ -4366,6 +4410,7 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
             ctx.lineTo(x0 + dx, y0 + dy);
             ctx.stroke();
         }
+        fx?.flat();
         // A pulse of hot gas lights what is round it as a flame does, not as an emitter.
         if (flame !== null) continue;
         const halo = BEAM_GLOW_WIDTHS * calibre;

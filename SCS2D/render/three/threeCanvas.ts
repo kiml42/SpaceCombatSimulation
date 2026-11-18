@@ -30,6 +30,7 @@ import {
     screenRect,
     type Clip,
 } from "../pixiCanvas.js";
+import type { Solid3D } from "../solid3d.js";
 
 /**
  * The parts of a Canvas2D context that canvas2d.ts draws with, drawn with
@@ -89,6 +90,9 @@ const MITER_LIMIT = 4;
 const KEEP_STEPS = 4;
 const KEPT_MOST = 4000;
 
+/** The effect what is being drawn is part of (`ThreeCanvas.along`), or -1. */
+let effectNow = -1;
+
 /** Triangles of one kind, drawn in one call. */
 export class Batch {
     textured = false;
@@ -101,6 +105,8 @@ export class Batch {
     pos = new Float32Array(3 * 1024);
     col = new Float32Array(4 * 1024);
     uv = new Float32Array(2 * 1024);
+    /** Which of its canvas's `effects` each vertex is part of, or -1. */
+    fx = new Int32Array(1024);
     count = 0;
 
     reset(textured: boolean, texture: Texture | null, additive: boolean, scissor: Box | null): void {
@@ -124,6 +130,9 @@ export class Batch {
         this.pos = grow(this.pos, 3);
         this.col = grow(this.col, 4);
         this.uv = grow(this.uv, 2);
+        const fx = new Int32Array(size);
+        fx.set(this.fx.subarray(0, this.count));
+        this.fx = fx;
     }
 
     vertex(x: number, y: number, r: number, g: number, b: number, a: number, u = 0, v = 0): void {
@@ -138,6 +147,7 @@ export class Batch {
         this.col[4 * i + 3] = a;
         this.uv[2 * i] = u;
         this.uv[2 * i + 1] = v;
+        this.fx[i] = effectNow;
     }
 }
 
@@ -254,6 +264,27 @@ export class ThreeCanvas {
     solidShips = false;
     /** Whether deck-height drawing has somewhere of its own to go. */
     deck = true;
+    /** What canvas2d.ts stands up in 3D through, where the view draws in 3D (render/solid3d.ts). */
+    solid3d: Solid3D | null = null;
+    /** Each effect's axis, canvas pixels, and height, metres: x0, y0, x1, y1, height. */
+    readonly effects: number[] = [];
+
+    /** What is drawn from here on is an effect along this axis, in the current transform, at `height` (`Solid3D.along`). */
+    along(x0: number, y0: number, x1: number, y1: number, height: number): void {
+        const m = this.state.m;
+        effectNow = this.effects.length / 5;
+        this.effects.push(
+            m.a * x0 + m.c * y0 + m.e,
+            m.b * x0 + m.d * y0 + m.f,
+            m.a * x1 + m.c * y1 + m.e,
+            m.b * x1 + m.d * y1 + m.f,
+            height,
+        );
+    }
+
+    flat(): void {
+        effectNow = -1;
+    }
 
     private static fresh(): State {
         return {
@@ -284,6 +315,8 @@ export class ThreeCanvas {
     }
 
     begin(): void {
+        this.effects.length = 0;
+        effectNow = -1;
         this.onScreen = false;
         this.used = 0;
         this.batches.length = 0;

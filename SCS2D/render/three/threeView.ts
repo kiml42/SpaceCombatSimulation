@@ -21,10 +21,10 @@ import type { Light } from "../light.js";
 import { seenLights } from "../canvas2d.js";
 import { LIGHT_GAIN, LIGHT_HEADROOM } from "../lightField.js";
 import type { LayerView, Projection } from "../layerView.js";
-import { BatchMeshes, pixelsToMetres, ThreeCanvas, type Box } from "./threeCanvas.js";
+import { Batch, BatchMeshes, pixelsToMetres, ThreeCanvas, type Box } from "./threeCanvas.js";
 import { ThreeHulls } from "./threeHulls.js";
 import { ThreeLights } from "./threeLights.js";
-import { Ships3D, type DeckBox, type Depths } from "./ships3d.js";
+import { barrelLift, liftOf, Ships3D, type DeckBox, type Depths } from "./ships3d.js";
 import type { ViewAngle } from "./viewAngle.js";
 
 // Colours as they are given, as Pixi and a Canvas2D take them: no conversion to linear and back.
@@ -61,6 +61,15 @@ export function threeView(canvas: HTMLCanvasElement, depths: Depths | null = nul
     const context = new ThreeCanvas();
     context.solidShips = depths !== null;
     const ships = depths !== null && renderer !== null ? new Ships3D(renderer) : null;
+    if (ships !== null && depths !== null) {
+        context.solid3d = {
+            along: (x0, y0, x1, y1, height) => context.along(x0, y0, x1, y1, height),
+            flat: () => context.flat(),
+            shipLift: (ship) => liftOf(ship, depths),
+            barrelLift: (ship, t) => barrelLift(ship, t, depths),
+            roundLift: () => ships.roundLift,
+        };
+    }
     const screen = new Group();
     screen.matrixAutoUpdate = false;
     const screenMeshes = new BatchMeshes();
@@ -144,16 +153,26 @@ export function threeView(canvas: HTMLCanvasElement, depths: Depths | null = nul
                 group.clear();
                 // In 3D, what is drawn flat lies on the deck's top, where what is drawn on a hull belongs.
                 group.matrix.copy(
-                    group === root && ships !== null ? pixelsToMetres(new Matrix4(), size.width, size.height, scale, DECK_TOP) : toMetres,
+                    ships === null || group === screen
+                        ? toMetres
+                        : group === deck
+                          ? pixelsToMetres(new Matrix4(), size.width, size.height, scale, DECK_TOP)
+                          : new Matrix4(),
                 );
                 group.matrixWorldNeedsUpdate = true;
             }
             rootMeshes.begin();
             deckMeshes.begin();
             screenMeshes.begin();
-            context.batches.forEach((batch, k) =>
-                batch.screen ? screenMeshes.add(batch, screen, k, scissor) : rootMeshes.add(batch, root, k, scissor),
-            );
+            if (ships !== null) eye.updateMatrixWorld();
+            context.batches.forEach((batch, k) => {
+                if (batch.screen) screenMeshes.add(batch, screen, k, scissor);
+                else if (ships === null) rootMeshes.add(batch, root, k, scissor);
+                else {
+                    standUp(batch, context.effects, eye, size.width, size.height, scale);
+                    rootMeshes.add(batch, root, k, noScissor);
+                }
+            });
             context.deckBatches.forEach((batch, k) => deckMeshes.add(batch, deck, k, scissor));
             if (ships !== null) {
                 ships.shed(seenLights, size.width, size.height, scale);
@@ -253,6 +272,92 @@ export function deckProjection(eye: PerspectiveCamera, widthPx: number, heightPx
             return { px: (point.x * widthPx) / 2, py: (-point.y * heightPx) / 2 };
         },
     };
+}
+
+const noScissor = (): void => {};
+
+/**
+ * `batch`'s corners, canvas pixels, as metres from the camera's point in 3D:
+ * on the deck's top, or, for an effect, along its axis at its height and
+ * turned about that axis to face `eye`, or about its middle, where its axis
+ * has no length, to face it square on.
+ */
+function standUp(batch: Batch, effects: readonly number[], eye: ThreeCamera, widthPx: number, heightPx: number, scale: number): void {
+    const pos = batch.pos;
+    const fx = batch.fx;
+    const e = eye.matrixWorld.elements;
+    // The camera's right, up and where it is.
+    const [rx, ry, rz, ux, uy, uz, ex, ey, ez] = [e[0]!, e[1]!, e[2]!, e[4]!, e[5]!, e[6]!, e[12]!, e[13]!, e[14]!];
+    const x = (px: number): number => (px - widthPx / 2) / scale;
+    const y = (py: number): number => -(py - heightPx / 2) / scale;
+    let last = -1;
+    // The effect's foot, along, across on the deck and across as it stands.
+    let ox = 0;
+    let oy = 0;
+    let oz = 0;
+    let ax = 0;
+    let ay = 0;
+    let nx = 0;
+    let ny = 0;
+    let wx = 0;
+    let wy = 0;
+    let wz = 0;
+    let point = false;
+    for (let v = 0; v < batch.count; v++) {
+        const px = x(pos[3 * v]!);
+        const py = y(pos[3 * v + 1]!);
+        const f = fx[v]!;
+        if (f < 0) {
+            pos[3 * v] = px;
+            pos[3 * v + 1] = py;
+            pos[3 * v + 2] = DECK_TOP;
+            continue;
+        }
+        if (f !== last) {
+            last = f;
+            ox = x(effects[5 * f]!);
+            oy = y(effects[5 * f + 1]!);
+            oz = effects[5 * f + 4]!;
+            const dx = x(effects[5 * f + 2]!) - ox;
+            const dy = y(effects[5 * f + 3]!) - oy;
+            const l = Math.hypot(dx, dy);
+            point = !(l > 1e-9);
+            if (!point) {
+                ax = dx / l;
+                ay = dy / l;
+                nx = -ay;
+                ny = ax;
+                // Across the axis and across the way to the eye: the way it stands to face it.
+                const vx = ex - ox;
+                const vy = ey - oy;
+                const vz = ez - oz;
+                wx = ay * vz;
+                wy = -ax * vz;
+                wz = ax * vy - ay * vx;
+                const wl = Math.hypot(wx, wy, wz);
+                if (wl < 1e-9) [wx, wy, wz] = [nx, ny, 0];
+                else {
+                    const flip = wx * nx + wy * ny < 0 ? -1 : 1;
+                    wx = (flip * wx) / wl;
+                    wy = (flip * wy) / wl;
+                    wz = (flip * wz) / wl;
+                }
+            }
+        }
+        const dx = px - ox;
+        const dy = py - oy;
+        if (point) {
+            pos[3 * v] = ox + dx * rx + dy * ux;
+            pos[3 * v + 1] = oy + dx * ry + dy * uy;
+            pos[3 * v + 2] = oz + dx * rz + dy * uz;
+        } else {
+            const along = dx * ax + dy * ay;
+            const across = dx * nx + dy * ny;
+            pos[3 * v] = ox + ax * along + wx * across;
+            pos[3 * v + 1] = oy + ay * along + wy * across;
+            pos[3 * v + 2] = oz + wz * across;
+        }
+    }
 }
 
 /** The box on the deck the corners of the view land in, metres from the camera's point, out to `most` either way. */
