@@ -35,13 +35,15 @@ export interface BattleCanvasProps {
     readonly onRewound?: (battle: Battle) => void;
     /** Drawn over the battle, placed absolutely within it. */
     readonly children?: ReactNode;
+    /** Whether the battle answers the keyboard; not for one only to be looked at. */
+    readonly keys?: boolean;
 }
 
 /**
  * A battle drawn and run on the wall clock: a canvas React mounts and then
  * leaves to `battleView`, which owns the clock, the camera and the input.
  */
-export function BattleCanvas({ id, onView, onStepped, onDrawn, onRunningChanged, onRewound, children }: BattleCanvasProps) {
+export function BattleCanvas({ id, onView, onStepped, onDrawn, onRunningChanged, onRewound, children, keys = true }: BattleCanvasProps) {
     const canvas = useRef<HTMLCanvasElement>(null);
     const created = useEffectEvent((view: BattleView | null) => onView(view));
     const stepped = useEffectEvent((battle: Battle) => onStepped?.(battle));
@@ -50,12 +52,14 @@ export function BattleCanvas({ id, onView, onStepped, onDrawn, onRunningChanged,
     const rewound = useEffectEvent((battle: Battle) => onRewound?.(battle));
 
     useEffect(() => {
-        const view = battleView(canvas.current!, stepped, drawn, runningChanged, rewound);
+        const view = battleView(canvas.current!, stepped, drawn, runningChanged, rewound, keys);
         created(view);
         return () => {
             view.dispose();
             created(null);
         };
+        // Whether it takes the keyboard is settled for as long as the view lives.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return (
