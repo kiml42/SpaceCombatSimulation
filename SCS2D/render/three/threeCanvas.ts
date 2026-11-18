@@ -272,7 +272,17 @@ export class ThreeCanvas {
         };
     }
 
+    /** Where in `batches` what is drawn over the scene on screen starts, after `endScene`. */
+    screenFrom = Infinity;
+
+    /** What is drawn from here on is over the scene, on the screen, rather than in the battle: close-ups and the like. */
+    endScene(): void {
+        this.screenFrom = this.batches.length;
+        this.open = null;
+    }
+
     begin(): void {
+        this.screenFrom = Infinity;
         this.used = 0;
         this.batches.length = 0;
         this.deckBatches.length = 0;

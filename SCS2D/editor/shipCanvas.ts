@@ -243,7 +243,7 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
     const ctx = canvas.getContext("2d");
     if (ctx === null) throw new Error("no 2d context");
     // Drawn with Pixi underneath, as the battle is.
-    const stacked = layerUnder(canvas);
+    const stacked = layerUnder(canvas, true);
     const camera: Camera = { x: 0, y: 0, scale: 8 };
     const snapMetres = (): number => snapStep(camera.scale);
     /**

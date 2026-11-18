@@ -176,7 +176,7 @@ const waiting = new Map<
 
 function sharedView(): LayerView | null {
     if (shared === null) {
-        shared = viewOf(document.createElement("canvas"));
+        shared = viewOf(document.createElement("canvas"), undefined, true);
         // Made again with the new renderer the next time a picture is drawn.
         const stop = onRendererChange(() => {
             stop();

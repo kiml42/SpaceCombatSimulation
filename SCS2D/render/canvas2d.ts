@@ -516,7 +516,9 @@ function drawShip(
     const whole = design.fighter === fighters;
     if (!whole && (!fighters || design.fighterPieces === undefined)) return;
 
-    if (!drawPicture(ctx, ship, metresToPx, arcs, fighters, whole, filled))
+    // Solid, only what is on its hull, as though it were filled already.
+    if (solid) drawHull(ctx, ship, metresToPx, arcs, fighters, whole, true, light);
+    else if (!drawPicture(ctx, ship, metresToPx, arcs, fighters, whole, filled))
         drawHull(ctx, ship, metresToPx, arcs, fighters, whole, filled, light);
 
     // Turrets are drawn in world space: a turret's bearing is a world bearing, so
@@ -631,6 +633,10 @@ function drawShip(
         }
 
         const bearing = ship.turretBearings[t] ?? 0;
+        if (solid) {
+            drawLoad(ctx, ship, t, mx, my, bearing);
+            continue;
+        }
         const dirX = cos(bearing);
         const dirY = sin(bearing);
         const gun = design.turrets[t]!.gun;
@@ -966,7 +972,8 @@ function drawHull(
         // Unless Pixi underneath has filled it already (render/pixiView.ts).
         if (!filled) keptFill(ctx, ship, i);
         // Rounded parts' shading, in the battle's light: its highlights are that light.
-        if (spec.kind === "engine" && light !== undefined) {
+        // A solid model's engines and ports are round already.
+        if (spec.kind === "engine" && light !== undefined && !solid) {
             inLight(ctx, light);
             shadeEngine(
                 ctx,
@@ -981,7 +988,7 @@ function drawHull(
             );
             ctx.restore();
         }
-        if (spec.kind === "port" && light !== undefined) {
+        if (spec.kind === "port" && light !== undefined && !solid) {
             inLight(ctx, light);
             shadePort(ctx, spec, ship.angle + m.angle, light, rgba(fillColour(spec, colours)), fighters);
             ctx.restore();
@@ -2633,6 +2640,8 @@ export function draw(
     seenLights.clear();
     seenRounded.clear();
     rounded = seenRounded;
+    // A context that draws ships as solid models leaves their hulls to them.
+    solid = (ctx as Partial<{ solidShips: boolean }>).solidShips === true;
     drawScene(
         ctx,
         snapshot,
@@ -2652,6 +2661,8 @@ export function draw(
         seenLights,
     );
     rounded = null;
+    solid = false;
+    (ctx as Partial<{ endScene(): void }>).endScene?.();
     field.clear();
     const kept = last ?? { lights: new Lights(), camera: { x: 0, y: 0, scale: 1 }, widthPx, heightPx };
     kept.lights.clear();
@@ -2747,6 +2758,8 @@ function lightFighter(ctx: CanvasRenderingContext2D, ship: ShipView, fighters: b
 export const seenLights = new Lights();
 /** The rounded parts the last view `draw` drew, for the dynamic lights to light by which way they face (`render/litRounded.ts`). Not a close-up's. */
 export const seenRounded = new RoundedParts();
+/** Whether the main view's ships are drawn as solid models by the context, so only what is over them is drawn here. */
+let solid = false;
 /** Where rounded parts are recorded while the main view is drawn, and nowhere otherwise. */
 let rounded: RoundedParts | null = null;
 /** A barrel's colour, as its channels. */

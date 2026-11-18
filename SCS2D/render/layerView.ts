@@ -3,6 +3,7 @@ import type { Camera } from "./camera.js";
 import type { Light } from "./light.js";
 import { pixiView } from "./pixiView.js";
 import { threeView } from "./three/threeView.js";
+import { EDITOR_ANGLE, setViewAngle, viewAngle } from "./three/viewAngle.js";
 
 /**
  * What draws a battle on a canvas of its own: Pixi (render/pixiView.ts) or
@@ -20,12 +21,19 @@ export interface LayerView {
 }
 
 /** Which renderer draws the battle. */
-export type RendererChoice = "pixi" | "three";
+export type RendererChoice = "pixi" | "three" | "three-layers" | "three-stats";
 
 export const RENDERER_CHOICES: readonly { readonly value: RendererChoice; readonly label: string }[] = [
     { value: "pixi", label: "Pixi" },
     { value: "three", label: "Three (flat)" },
+    { value: "three-layers", label: "Three (3D, by layer)" },
+    { value: "three-stats", label: "Three (3D, by stats)" },
 ];
+
+/** Whether `choice` draws ships as solid models. */
+export function isSolid(choice: RendererChoice): boolean {
+    return choice === "three-layers" || choice === "three-stats";
+}
 
 const KEY = "scs2d.renderer";
 const EVENT = "scs2d-renderer";
@@ -50,10 +58,11 @@ export function setRendererChoice(choice: RendererChoice): void {
     window.dispatchEvent(new CustomEvent(EVENT, { detail: choice }));
 }
 
-/** A view drawn with `choice`, on `canvas`. */
-export function viewOf(canvas: HTMLCanvasElement, choice: RendererChoice = rendererChoice()): LayerView {
+/** A view drawn with `choice`, on `canvas`: an editor's, in 3D, from a fixed angle rather than the one the menu sets. */
+export function viewOf(canvas: HTMLCanvasElement, choice: RendererChoice = rendererChoice(), editor = false): LayerView {
     if (choice === "pixi") return pixiView(canvas) as unknown as LayerView;
-    return threeView(canvas);
+    if (choice === "three") return threeView(canvas);
+    return threeView(canvas, choice === "three-layers" ? "layers" : "stats", editor ? () => EDITOR_ANGLE : viewAngle);
 }
 
 /**
@@ -62,7 +71,10 @@ export function viewOf(canvas: HTMLCanvasElement, choice: RendererChoice = rende
  * changed, the view is made again with the new one and `onChange` is called
  * once it has started, to draw it.
  */
-export function layerUnder(over: HTMLCanvasElement): {
+export function layerUnder(
+    over: HTMLCanvasElement,
+    editor = false,
+): {
     readonly view: LayerView;
     readonly canvas: HTMLCanvasElement;
     onChange(redraw: () => void): void;
@@ -76,7 +88,7 @@ export function layerUnder(over: HTMLCanvasElement): {
         canvas.height = over.height;
         over.style.position = "relative";
         over.before(canvas);
-        return { view: viewOf(canvas, choice), canvas };
+        return { view: viewOf(canvas, choice, editor), canvas };
     };
     let made = make(rendererChoice());
     const redraws: (() => void)[] = [];
@@ -90,6 +102,26 @@ export function layerUnder(over: HTMLCanvasElement): {
         });
     };
     window.addEventListener(EVENT, swap);
+    // In 3D, Alt-drag or a middle-button drag turns and tilts the camera, before the view's own handlers see it.
+    let swinging: { x: number; y: number } | null = null;
+    const down = (event: PointerEvent): void => {
+        if (editor || !isSolid(rendererChoice()) || !(event.altKey || event.button === 1)) return;
+        event.stopImmediatePropagation();
+        event.preventDefault();
+        swinging = { x: event.clientX, y: event.clientY };
+    };
+    const move = (event: PointerEvent): void => {
+        if (swinging === null) return;
+        const at = viewAngle();
+        setViewAngle({ turn: at.turn - (event.clientX - swinging.x) * 0.4, tilt: at.tilt - (event.clientY - swinging.y) * 0.3 });
+        swinging = { x: event.clientX, y: event.clientY };
+    };
+    const up = (): void => {
+        swinging = null;
+    };
+    over.addEventListener("pointerdown", down, { capture: true });
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
     const view: LayerView = {
         get ready() {
             return made.view.ready;
@@ -117,6 +149,9 @@ export function layerUnder(over: HTMLCanvasElement): {
         },
         remove() {
             window.removeEventListener(EVENT, swap);
+            over.removeEventListener("pointerdown", down, { capture: true });
+            window.removeEventListener("pointermove", move);
+            window.removeEventListener("pointerup", up);
             made.view.dispose();
             made.canvas.remove();
         },
