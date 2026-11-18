@@ -64,7 +64,7 @@ export const SCENES: readonly Scene[] = [
     {
         name: "Disarm",
         variants: DISARMERS.map((d) => d.name),
-        create: (variant = 0) => lit(disarm(SCENE_SEED, DISARMERS[variant]!.blueprint), LIGHTS.noon),
+        create: (variant = 0) => lit(disarm(SCENE_SEED, DISARMERS[variant]!.blueprint, DISARMERS[variant]!.count), LIGHTS.noon),
     },
     { name: "Standoff", create: () => lit(standoff(SCENE_SEED), LIGHTS.ice) },
     { name: "Line Ahead", create: () => lit(column(SCENE_SEED), LIGHTS.gold) },

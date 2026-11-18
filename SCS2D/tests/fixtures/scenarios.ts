@@ -434,8 +434,8 @@ export function torpedoesScenario(seed = 20260905, target?: Blueprint): Scenario
     };
 }
 
-export function disarmScenario(seed = 20260905, attacker?: Blueprint): ScenarioRun {
-    const run = disarm(seed, attacker);
+export function disarmScenario(seed = 20260905, attacker?: Blueprint, count?: number): ScenarioRun {
+    const run = disarm(seed, attacker, count);
     return {
         step: () => run.step(),
         checksum: () =>
@@ -701,8 +701,8 @@ export const SCENARIOS = {
     torpedoes: { steps: 3_000, build: () => torpedoesScenario() },
     torpedoesGunPlatform: { steps: 3_000, build: () => torpedoesScenario(20260905, GUN_PLATFORM) },
     disarm: { steps: 3_000, build: () => disarmScenario() },
-    disarmBeams: { steps: 3_000, build: () => disarmScenario(20260905, BEAM_CORVETTE) },
-    disarmRails: { steps: 3_000, build: () => disarmScenario(20260905, RAIL_CORVETTE) },
+    disarmBeams: { steps: 3_000, build: () => disarmScenario(20260905, BEAM_CORVETTE, 2) },
+    disarmRails: { steps: 3_000, build: () => disarmScenario(20260905, RAIL_CORVETTE, 2) },
     ordering: { steps: 3_000, build: () => orderingScenario() },
     standoff: { steps: 3_000, build: () => standoffScenario() },
     column: { steps: 3_000, build: () => columnScenario() },
