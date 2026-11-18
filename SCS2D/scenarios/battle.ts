@@ -237,8 +237,6 @@ export function makeBattle<Extra extends object = Record<never, never>>(
             // A slow contact onto torn metal hooks the two into one, once the crush
             // has decided what is torn.
             this.totalWelded += ships.weld(world, collisions.contacts);
-            // A hull a collision destroyed outright goes on into what it met, as rounds.
-            spendHulls(ships, world, projectiles, collisions.contacts);
             // What claws hold is pumped aboard, what pads hold is filled, and a dock
             // done with it lets go; then fighters settled onto pads are taken aboard.
             ships.pump(world);
@@ -273,6 +271,9 @@ export function makeBattle<Extra extends object = Record<never, never>>(
             // What broke off too small to keep goes on as shrapnel.
             throwShrapnel(ships, projectiles);
             this.totalCulled += ships.cull(world);
+            // A hull a collision destroyed outright goes on into what it met, as rounds: last, so
+            // nothing made later in the step takes its body's place while its contact is still read.
+            spendHulls(ships, world, projectiles, collisions.contacts);
         },
     };
 
