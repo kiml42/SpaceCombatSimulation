@@ -99,8 +99,6 @@ const ENVELOPE_LABEL = "#7f93aa";
 const ENVELOPE_EFFICIENCY = "rgba(214, 178, 91, 0.85)";
 /** The same at the part thrust the pointer asks for. */
 const ENVELOPE_PART_EFFICIENCY = "rgba(232, 128, 80, 0.9)";
-/** Over a grown rosette's window outside its rim, where the pointer asks for full thrust. */
-const ENVELOPE_FULL_TINT = "rgba(128, 128, 128, 0.28)";
 
 /** The last part-thrust efficiency curve worked out, kept while the design and the share stay put. */
 let partCurve: { design: ShipDesign; envelope: Envelopes; share: number; values: Float64Array } | null = null;
@@ -221,7 +219,12 @@ interface Disc {
     x: number;
     y: number;
     radius: number;
+    /** How much further its window reaches either side than above and below, pixels. */
+    side?: number;
 }
+
+/** How much wider the grown thrust rosette's window is either side, so a push straight ahead or astern is easy to point at past the rim. */
+const ENVELOPE_SIDE_PX = 40;
 
 /** A rosette's radius: larger while pointed at, though never past `right` or the canvas. */
 function rosetteRadius(right: number, heightPx: number, expanded: boolean): number {
@@ -242,7 +245,8 @@ function attackRight(widthPx: number): number {
 }
 
 function envelopeDisc(widthPx: number, heightPx: number, expanded: boolean): Disc {
-    return rosette(widthPx - ENVELOPE_MARGIN_PX, heightPx, expanded);
+    if (!expanded) return rosette(widthPx - ENVELOPE_MARGIN_PX, heightPx, false);
+    return { ...rosette(widthPx - ENVELOPE_MARGIN_PX - ENVELOPE_SIDE_PX, heightPx, true), side: ENVELOPE_SIDE_PX };
 }
 
 function attackDisc(widthPx: number, heightPx: number, expanded: boolean): Disc {
@@ -252,9 +256,9 @@ function attackDisc(widthPx: number, heightPx: number, expanded: boolean): Disc 
 /** The window round a grown rosette: its disc, the value pointed at above it and its caption below. */
 function windowOf(disc: Disc): { left: number; top: number; right: number; bottom: number } {
     return {
-        left: disc.x - disc.radius - WINDOW_PAD_PX,
+        left: disc.x - disc.radius - WINDOW_PAD_PX - (disc.side ?? 0),
         top: disc.y - disc.radius - POINTED_LABEL_PX - WINDOW_PAD_PX,
-        right: disc.x + disc.radius + WINDOW_PAD_PX,
+        right: disc.x + disc.radius + WINDOW_PAD_PX + (disc.side ?? 0),
         bottom: disc.y + disc.radius + ENVELOPE_CAPTION_PX + WINDOW_PAD_PX,
     };
 }
@@ -880,20 +884,7 @@ function drawEnvelope(
     const { x: cx, y: cy, radius } = disc;
     if (expanded) {
         drawWindow(ctx, disc);
-        // Pointing anywhere out here asks for full thrust; inside the rim, for part of it.
-        // Cut out by an even-odd clip rather than filled even-odd, which the Pixi context does not do.
-        const box = windowOf(disc);
-        ctx.save();
-        ctx.beginPath();
-        ctx.roundRect(box.left, box.top, box.right - box.left, box.bottom - box.top, 6);
-        ctx.moveTo(cx + radius, cy);
-        ctx.arc(cx, cy, radius, 0, TAU);
-        ctx.clip("evenodd");
-        ctx.beginPath();
-        ctx.roundRect(box.left, box.top, box.right - box.left, box.bottom - box.top, 6);
-        ctx.fillStyle = ENVELOPE_FULL_TINT;
-        ctx.fill();
-        ctx.restore();
+        // The rim, inside which pointing asks for part of the thrust and beyond which all of it.
         ctx.beginPath();
         ctx.arc(cx, cy, radius, 0, TAU);
         ctx.strokeStyle = WINDOW_EDGE;
