@@ -55,7 +55,7 @@ them in a second list beside the first, and the address names the one picked (`?
 | Star Wars | noon | Star Destroyer (18 TIE pads, 2 robot bays) and 10 TIEs against the Ghost, the Quasar (4 X-Wing pads) and 20 X-, Y- and A-Wings, 5 km apart | A capital ship of about 174 modules; guns, beams, fighters; about 32 ships |
 | Swarm: 20 fighters | dusk | 20 Dinkies against 2 Gunships | Small ships, guns |
 | Swarm: 300 fighters | red dwarf | 300 Dinkies against 2 Gunships | Ship and module count (about 3,300 Dinky modules) |
-| Torpedoes | violet | 12 Torpedoes rammed at a Beam Gunship from 1500 m | Ramming, beam turrets shooting down craft. Short |
+| Torpedoes | violet | 12 Torpedoes rammed from 1500 m at a Beam Gunship, or, as its second variant, at a Gun Platform | Ramming, beam turrets shooting down craft; against the Gun Platform, a target whose guns cannot follow them. Short |
 | Standoff | ice | Two lines of Gunship, Corvette, Beam Corvette and 2 Dinkies, 1 km apart | Fighting from the first frame; doctrine without orders |
 | Line Ahead | gold | Two columns of 4, nose to tail | Shooting past friendly ships |
 | Split | nebula | A Catamaran rammed by a Bare Core at 30 m/s; a Corvette arrives later | A ship breaking into two working ships |

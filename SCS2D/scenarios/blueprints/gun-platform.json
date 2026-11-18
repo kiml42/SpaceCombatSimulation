@@ -1,0 +1,157 @@
+{
+    "formatVersion": 2,
+    "name": "Gun Platform",
+    "category": "Stock",
+    "notes": "From the author: a heavily armoured platform with a turret on each flank, and the target the torpedo salvo has a variant against.",
+    "assemblies": {
+        "engine": {
+            "modules": [
+                {
+                    "id": 7,
+                    "kind": "engine",
+                    "x": 0,
+                    "y": 0,
+                    "angle": 180,
+                    "length": 1.5,
+                    "width": 3.5,
+                    "reinforcement": 2
+                }
+            ]
+        },
+        "Side": {
+            "modules": [
+                {
+                    "id": 2,
+                    "kind": "turret",
+                    "x": -5,
+                    "y": -4.75,
+                    "angle": 90,
+                    "length": 5,
+                    "width": 5,
+                    "reinforcement": 2,
+                    "barrels": 1
+                },
+                {
+                    "id": 6,
+                    "kind": "structure",
+                    "x": -6,
+                    "y": -0.25,
+                    "length": 13,
+                    "width": 4,
+                    "reinforcement": 3
+                },
+                {
+                    "id": 8,
+                    "use": "engine",
+                    "x": -12.5,
+                    "y": 0
+                },
+                {
+                    "id": 9,
+                    "use": "engine",
+                    "x": 0.5,
+                    "y": 0,
+                    "angle": -180,
+                    "mirror": true
+                },
+                {
+                    "id": 17,
+                    "use": "engine2",
+                    "x": -11.25,
+                    "y": 1.75
+                },
+                {
+                    "id": 18,
+                    "use": "engine2",
+                    "x": -0.75,
+                    "y": 1.75
+                }
+            ]
+        },
+        "engine2": {
+            "modules": [
+                {
+                    "id": 11,
+                    "kind": "engine",
+                    "x": 0,
+                    "y": 0,
+                    "angle": 90,
+                    "length": 1,
+                    "width": 2.5,
+                    "reinforcement": 2,
+                    "nozzle": 0.5
+                }
+            ]
+        }
+    },
+    "modules": [
+        {
+            "id": 1,
+            "kind": "core",
+            "x": 0,
+            "y": 0,
+            "length": 3,
+            "width": 3,
+            "computing": 0.05,
+            "generatorShare": 0,
+            "batteryShare": 0
+        },
+        {
+            "id": 3,
+            "kind": "tank",
+            "x": -2.5,
+            "y": 0,
+            "length": 2,
+            "width": 3
+        },
+        {
+            "id": 4,
+            "kind": "hold",
+            "x": 3,
+            "y": 0,
+            "length": 3,
+            "width": 13,
+            "reinforcement": 3
+        },
+        {
+            "id": 5,
+            "kind": "tank",
+            "x": -6,
+            "y": 0,
+            "length": 5,
+            "width": 13,
+            "reinforcement": 3
+        },
+        {
+            "id": 13,
+            "use": "Side",
+            "x": 4,
+            "y": 8.75
+        },
+        {
+            "id": 14,
+            "use": "Side",
+            "x": 4,
+            "y": -8.75,
+            "mirror": true
+        },
+        {
+            "id": 15,
+            "kind": "structure",
+            "x": 6.5,
+            "y": 0,
+            "length": 4,
+            "width": 14,
+            "reinforcement": 3
+        },
+        {
+            "id": 16,
+            "kind": "structure",
+            "x": -10,
+            "y": 0,
+            "length": 3,
+            "width": 14,
+            "reinforcement": 3
+        }
+    ]
+}
