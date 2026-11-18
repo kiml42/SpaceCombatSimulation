@@ -10,12 +10,12 @@ const Card = styled.div`
     background: #0b0f16d9;
 `;
 
-/** What is left in an asteroid picked out alone. */
-export function AsteroidCard({ contents }: { readonly contents: string | null }) {
+/** What is left in an asteroid picked out alone, or in the one the ship picked out alone is mining. */
+export function AsteroidCard({ contents, mining = false }: { readonly contents: string | null; readonly mining?: boolean }) {
     if (contents === null) return null;
     return (
         <Card id="asteroidCard" role="status" aria-label="Asteroid">
-            Asteroid {contents}
+            {mining ? "Mining asteroid" : "Asteroid"} {contents}
         </Card>
     );
 }
