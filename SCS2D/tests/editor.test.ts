@@ -95,7 +95,7 @@ import {
     type Handle,
 } from "../editor/handles.js";
 import { doctrineBand, previewSnapshot } from "../editor/preview.js";
-import { designStats, envelopes, assemblyMass, headingCost, moduleReadout, pushAlong, roundsAboard } from "../editor/stats.js";
+import { designStats, envelopes, assemblyMass, headingCost, moduleReadout, pushAlong, roundsAboard, turnTime } from "../editor/stats.js";
 
 /**
  * The editor's half: what an edit does to a layout, and what the page reads
@@ -921,6 +921,15 @@ describe("previewSnapshot", () => {
 });
 
 describe("designStats", () => {
+    it("times a turn about on full torque one way, then the other", () => {
+        // Even torque: half the swing speeding up, half slowing, 2√(θ/a).
+        expect(turnTime(Math.PI, 2, 2)).toBeCloseTo(2 * Math.sqrt(Math.PI / 2), 12);
+        // Uneven, the same whichever way round.
+        expect(turnTime(Math.PI, 1, 3)).toBeCloseTo(turnTime(Math.PI, 3, 1), 12);
+        expect(turnTime(Math.PI, 1, 3)).toBeGreaterThan(turnTime(Math.PI, 2, 2));
+        expect(turnTime(Math.PI, 0, 3)).toBe(Infinity);
+    });
+
     it("reads the design rather than working anything out again", () => {
         const design = new EditorDocument(CORVETTE).view.design!;
         const stats = designStats(design, envelopes(design));
