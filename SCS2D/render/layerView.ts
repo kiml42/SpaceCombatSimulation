@@ -17,7 +17,66 @@ export interface LayerView {
     readonly started: Promise<boolean>;
     begin(snapshot: Snapshot, camera: Camera, widthPx: number, heightPx: number, light?: Light): CanvasRenderingContext2D | null;
     end(): void;
+    /**
+     * How canvas points map to the battle through `camera` on a `widthPx` by
+     * `heightPx` canvas, where that is not as the 2D view has it; null where it is.
+     */
+    projection?(camera: Camera, widthPx: number, heightPx: number): Projection | null;
     dispose(): void;
+}
+
+/** Canvas pixels from the middle of the view (y down) to metres from the camera's point (y up), and back. */
+export interface Projection {
+    toWorld(px: number, py: number): { x: number; y: number };
+    toCanvas(x: number, y: number): { px: number; py: number };
+}
+
+/** Each canvas taking input over a view, and the view under it. */
+const under = new WeakMap<HTMLCanvasElement, () => LayerView>();
+
+function projectionOf(canvas: HTMLCanvasElement, camera: Camera): Projection | null {
+    return under.get(canvas)?.().projection?.(camera, canvas.width, canvas.height) ?? null;
+}
+
+/** The world point under `px`, `py` canvas pixels from the middle of `canvas`, through whatever view is under it. */
+export function worldAt(canvas: HTMLCanvasElement, camera: Camera, px: number, py: number): { x: number; y: number } {
+    const projection = projectionOf(canvas, camera);
+    if (projection === null) return { x: camera.x + px / camera.scale, y: camera.y - py / camera.scale };
+    const at = projection.toWorld(px, py);
+    return { x: camera.x + at.x, y: camera.y + at.y };
+}
+
+/** Where world point `x`, `y` is drawn on `canvas`, canvas pixels from its middle. */
+export function canvasAt(canvas: HTMLCanvasElement, camera: Camera, x: number, y: number): { px: number; py: number } {
+    const projection = projectionOf(canvas, camera);
+    if (projection === null) return { px: (x - camera.x) * camera.scale, py: (camera.y - y) * camera.scale };
+    return projection.toCanvas(x - camera.x, y - camera.y);
+}
+
+/** Scale the view by `factor`, keeping what is under `px`, `py` canvas pixels from the middle there. */
+export function zoomAbout(canvas: HTMLCanvasElement, camera: Camera, px: number, py: number, factor: number): void {
+    const before = worldAt(canvas, camera, px, py);
+    camera.scale *= factor;
+    const after = worldAt(canvas, camera, px, py);
+    camera.x += before.x - after.x;
+    camera.y += before.y - after.y;
+}
+
+/** Move the view so what was under one canvas point, pixels from the middle, is under another. */
+export function panBetween(canvas: HTMLCanvasElement, camera: Camera, fromPx: number, fromPy: number, toPx: number, toPy: number): void {
+    const before = worldAt(canvas, camera, fromPx, fromPy);
+    const after = worldAt(canvas, camera, toPx, toPy);
+    camera.x += before.x - after.x;
+    camera.y += before.y - after.y;
+}
+
+/** A client point as canvas pixels from the middle of `canvas`. */
+export function fromMiddle(canvas: HTMLCanvasElement, clientX: number, clientY: number): { px: number; py: number } {
+    const rect = canvas.getBoundingClientRect();
+    return {
+        px: ((clientX - rect.left) * canvas.width) / rect.width - canvas.width / 2,
+        py: ((clientY - rect.top) * canvas.height) / rect.height - canvas.height / 2,
+    };
 }
 
 /** Which renderer draws the battle. */
@@ -91,6 +150,7 @@ export function layerUnder(
         return { view: viewOf(canvas, choice, editor), canvas };
     };
     let made = make(rendererChoice());
+    under.set(over, () => made.view);
     const redraws: (() => void)[] = [];
     const swap = (event: Event): void => {
         const choice = (event as CustomEvent<RendererChoice>).detail;
@@ -137,6 +197,7 @@ export function layerUnder(
         },
         begin: (...args) => made.view.begin(...args),
         end: () => made.view.end(),
+        projection: (...args) => made.view.projection?.(...args) ?? null,
         dispose: () => made.view.dispose(),
     };
     return {

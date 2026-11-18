@@ -1,11 +1,8 @@
 /**
- * How the 3D views look at the battle: tilted from straight down by `tilt`,
- * from the side `turn` says, through a lens `fov` wide.
- *
- * `orbit` false keeps the ship plane exactly where the 2D view has it, by
- * moving the eye and shearing the frustum to match (an off-axis projection),
- * so clicks and everything drawn flat still line up. True swings a camera
- * round the plane, which looks more like 3D but leaves input where it was.
+ * How the 3D views look at the battle: a camera swung round the point the
+ * 2D camera is on, tilted from straight down by `tilt`, from the side `turn`
+ * says, through a lens `fov` wide. Clicks are found on the deck through it
+ * (`worldAt` in render/layerView.ts).
  */
 export interface ViewAngle {
     /** Degrees from straight down, 0 to `MOST_TILT`. */
@@ -14,15 +11,14 @@ export interface ViewAngle {
     readonly turn: number;
     /** Degrees of the lens, top to bottom. */
     readonly fov: number;
-    readonly orbit: boolean;
 }
 
 export const MOST_TILT = 75;
 
-export const DEFAULT_ANGLE: ViewAngle = { tilt: 0, turn: 0, fov: 50, orbit: false };
+export const DEFAULT_ANGLE: ViewAngle = { tilt: 0, turn: 0, fov: 50 };
 
 /** What the editors are seen from: a little tilted, through a long lens, so depth shows without leaning far. */
-export const EDITOR_ANGLE: ViewAngle = { tilt: 25, turn: 0, fov: 12, orbit: false };
+export const EDITOR_ANGLE: ViewAngle = { tilt: 25, turn: 0, fov: 12 };
 
 const KEY = "scs2d.viewAngle";
 const EVENT = "scs2d-view-angle";
@@ -33,7 +29,7 @@ export function viewAngle(): ViewAngle {
     if (current !== null) return current;
     try {
         const kept = JSON.parse(localStorage.getItem(KEY) ?? "null") as Partial<ViewAngle> | null;
-        current = { ...DEFAULT_ANGLE, ...(kept ?? {}) };
+        current = { tilt: kept?.tilt ?? DEFAULT_ANGLE.tilt, turn: kept?.turn ?? DEFAULT_ANGLE.turn, fov: kept?.fov ?? DEFAULT_ANGLE.fov };
     } catch {
         current = DEFAULT_ANGLE;
     }

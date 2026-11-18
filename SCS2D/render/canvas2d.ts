@@ -2662,7 +2662,6 @@ export function draw(
     );
     rounded = null;
     solid = false;
-    (ctx as Partial<{ endScene(): void }>).endScene?.();
     field.clear();
     const kept = last ?? { lights: new Lights(), camera: { x: 0, y: 0, scale: 1 }, widthPx, heightPx };
     kept.lights.clear();
@@ -3052,6 +3051,9 @@ export function drawCloseUps(
     teamShots = false,
     marked: Marked | null = null,
 ): void {
+    // On the screen, over the battle, however the context lays the battle out.
+    const onScreen = (ctx as Partial<{ screenSpace(on: boolean): void }>).screenSpace?.bind(ctx);
+    onScreen?.(true);
     for (const inset of insets) {
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -3091,6 +3093,7 @@ export function drawCloseUps(
         }
         ctx.restore();
     }
+    onScreen?.(false);
 }
 
 /** Size of the range to a picked ship's target, CSS pixels, and its clearances. */

@@ -47,7 +47,7 @@ import { Rewind } from "../scenarios/rewind.js";
 import { viewGestures } from "./viewGestures.js";
 import { DEFAULT_LIGHT } from "../render/light.js";
 import { sidesOf, STOCK, withSides, type Sides } from "../render/teams.js";
-import { layerUnder, type LayerView } from "../render/layerView.js";
+import { canvasAt, fromMiddle, layerUnder, worldAt as worldUnder, type LayerView } from "../render/layerView.js";
 import { loadView, saveView, type ViewSettings } from "./viewSettings.js";
 
 /**
@@ -353,9 +353,14 @@ export function battleView(
             autoFrame = false;
         },
         (x, y, reach, shift, queue) => {
+            // The overlays are found on screen as the 2D view lays the battle out, so the point is
+            // handed to them as that view would have it, which in 3D is not where it lands on the deck.
+            const p = canvasAt(canvas, camera, x, y);
+            const sx = camera.x + p.px / camera.scale;
+            const sy = camera.y - p.py / camera.scale;
             // A tile or close-up first: it is drawn over whatever is under it. Not
             // with Shift, which adds the ship under the pointer in the battle itself.
-            const shown = shift ? -1 : overlayAt(shownStrips, shownInsets, camera, canvas.width, canvas.height, x, y);
+            const shown = shift ? -1 : overlayAt(shownStrips, shownInsets, camera, canvas.width, canvas.height, sx, sy);
             const ship = shown >= 0 ? viewByBody(snapshot, shown) : shipViewAt(snapshot, x, y, reach);
             if (armed !== null && ship !== null) {
                 order(armed, ship, queue, armedCancel);
@@ -363,11 +368,12 @@ export function battleView(
                 return;
             }
             if (partPicker !== null && ship !== null && !shift) {
-                const at = viewPoint(shownInsets, camera, canvas.width, canvas.height, x, y);
+                const inset = viewPoint(shownInsets, camera, canvas.width, canvas.height, sx, sy);
+                const at = inset.x === sx && inset.y === sy ? { x, y } : inset;
                 if (partPicker(ship, at.x, at.y)) return;
             }
             // A tile standing for several ships picks them all.
-            const tile = shift ? null : overlayTileAt(shownStrips, shownInsets, camera, canvas.width, canvas.height, x, y);
+            const tile = shift ? null : overlayTileAt(shownStrips, shownInsets, camera, canvas.width, canvas.height, sx, sy);
             picked =
                 tile !== null && tile.count > 1
                     ? tile.bodies.flatMap((body) => viewByBody(snapshot, body)?.ship ?? [])
@@ -465,11 +471,8 @@ export function battleView(
         to: { x: number; y: number };
     } | null = null;
     const worldAt = (event: PointerEvent): { x: number; y: number } => {
-        const rect = canvas.getBoundingClientRect();
-        const ratio = canvas.width / rect.width;
-        const px = (event.clientX - rect.left) * ratio - canvas.width / 2;
-        const py = (event.clientY - rect.top) * ratio - canvas.height / 2;
-        return { x: camera.x + px / camera.scale, y: camera.y - py / camera.scale };
+        const at = fromMiddle(canvas, event.clientX, event.clientY);
+        return worldUnder(canvas, camera, at.px, at.py);
     };
     // Ahead of panning and picking, which a press placing a ship is neither.
     canvas.addEventListener(
@@ -754,10 +757,10 @@ export function battleView(
         }
         if (placing?.from != null) {
             // The new ship's hull as a ring where it will be put, and the line it will travel in `PLACE_SECONDS`.
-            const toCanvas = (p: { x: number; y: number }): [number, number] => [
-                (p.x - camera.x) * camera.scale + canvas.width / 2,
-                (camera.y - p.y) * camera.scale + canvas.height / 2,
-            ];
+            const toCanvas = (p: { x: number; y: number }): [number, number] => {
+                const at = canvasAt(canvas, camera, p.x, p.y);
+                return [at.px + canvas.width / 2, at.py + canvas.height / 2];
+            };
             const [fx, fy] = toCanvas(placing.from);
             const [tx, ty] = toCanvas(placing.to);
             ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -861,10 +864,8 @@ export function battleView(
             const seen = viewOf(snapshot, ship);
             if (seen === null) return null;
             const r = canvas.getBoundingClientRect().width / canvas.width;
-            return {
-                x: ((seen.x - camera.x) * camera.scale + canvas.width / 2) * r,
-                y: (-(seen.y - camera.y) * camera.scale + canvas.height / 2) * r,
-            };
+            const at = canvasAt(canvas, camera, seen.x, seen.y);
+            return { x: (at.px + canvas.width / 2) * r, y: (at.py + canvas.height / 2) * r };
         },
         setRunning,
         step() {

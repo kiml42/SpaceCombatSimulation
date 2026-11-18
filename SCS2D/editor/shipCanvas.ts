@@ -16,7 +16,7 @@ import {
 import { ARCS_KEY, draw, nextArcs, type Arcs } from "../render/canvas2d.js";
 import { sidesOf, withSides } from "../render/teams.js";
 import { BUILDER_LIGHT } from "../render/light.js";
-import { layerUnder } from "../render/layerView.js";
+import { fromMiddle, layerUnder, panBetween, worldAt as worldUnder } from "../render/layerView.js";
 import { easeScale, fitScale, frame, snapStep, type Camera } from "../render/camera.js";
 import type { EditorDocument } from "./document.js";
 import {
@@ -589,10 +589,8 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
     };
 
     const worldAt = (event: PointerEvent | WheelEvent): { x: number; y: number } => {
-        const rect = canvas.getBoundingClientRect();
-        const px = ((event.clientX - rect.left) * canvas.width) / rect.width - canvas.width / 2;
-        const py = ((event.clientY - rect.top) * canvas.height) / rect.height - canvas.height / 2;
-        return { x: camera.x + px / camera.scale, y: camera.y - py / camera.scale };
+        const at = fromMiddle(canvas, event.clientX, event.clientY);
+        return worldUnder(canvas, camera, at.px, at.py);
     };
 
     let drag: Drag | null = null;
@@ -867,9 +865,9 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
         }
         if (drag.kind === "pan") {
             if (event.clientX === drag.x && event.clientY === drag.y) return;
-            const ratio = canvas.width / canvas.getBoundingClientRect().width;
-            camera.x -= ((event.clientX - drag.x) * ratio) / camera.scale;
-            camera.y += ((event.clientY - drag.y) * ratio) / camera.scale;
+            const from = fromMiddle(canvas, drag.x, drag.y);
+            const to = fromMiddle(canvas, event.clientX, event.clientY);
+            panBetween(canvas, camera, from.px, from.py, to.px, to.py);
             drag = { kind: "pan", x: event.clientX, y: event.clientY, deselect: false };
             easeFit = false;
             render();

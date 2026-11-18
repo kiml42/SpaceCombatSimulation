@@ -81,15 +81,6 @@ export function RendererField() {
                             onChange={(event) => change({ fov: Number(event.target.value) })}
                         />
                     </label>
-                    <label>
-                        <input
-                            id="viewOrbit"
-                            type="checkbox"
-                            checked={angle.orbit}
-                            onChange={(event) => change({ orbit: event.target.checked })}
-                        />
-                        Swing the camera round (clicks no longer line up)
-                    </label>
                 </>
             )}
         </Fields>

@@ -4,7 +4,7 @@ import { sidesOf, withSides } from "../render/teams.js";
 import { frame, snapStep, type Camera } from "../render/camera.js";
 import { viewOptions } from "../host/viewOptions.js";
 import { BUILDER_LIGHT } from "../render/light.js";
-import { layerUnder } from "../render/layerView.js";
+import { fromMiddle, layerUnder, panBetween, worldAt as worldUnder } from "../render/layerView.js";
 import { snap } from "./edit.js";
 import { deleteEntries, entryAt, moveEntries, samePath, updateEntry, type EntryPath } from "./fleetEdit.js";
 import { centreOf, toFrame, toFrameAngle, type EntryFrame, type FleetDocument } from "./fleetDocument.js";
@@ -186,10 +186,8 @@ export function fleetCanvas(canvas: HTMLCanvasElement, doc: FleetDocument, hooks
     };
 
     const worldAt = (event: PointerEvent | WheelEvent): { x: number; y: number } => {
-        const rect = canvas.getBoundingClientRect();
-        const px = ((event.clientX - rect.left) * canvas.width) / rect.width - canvas.width / 2;
-        const py = ((event.clientY - rect.top) * canvas.height) / rect.height - canvas.height / 2;
-        return { x: camera.x + px / camera.scale, y: camera.y - py / camera.scale };
+        const at = fromMiddle(canvas, event.clientX, event.clientY);
+        return worldUnder(canvas, camera, at.px, at.py);
     };
 
     let drag: Drag | null = null;
@@ -241,9 +239,9 @@ export function fleetCanvas(canvas: HTMLCanvasElement, doc: FleetDocument, hooks
         if (drag === null) return;
         if (drag.kind === "pan") {
             if (event.clientX === drag.x && event.clientY === drag.y) return;
-            const ratio = canvas.width / canvas.getBoundingClientRect().width;
-            camera.x -= ((event.clientX - drag.x) * ratio) / camera.scale;
-            camera.y += ((event.clientY - drag.y) * ratio) / camera.scale;
+            const from = fromMiddle(canvas, drag.x, drag.y);
+            const to = fromMiddle(canvas, event.clientX, event.clientY);
+            panBetween(canvas, camera, from.px, from.py, to.px, to.py);
             drag = { kind: "pan", x: event.clientX, y: event.clientY, deselect: false };
             render();
             return;

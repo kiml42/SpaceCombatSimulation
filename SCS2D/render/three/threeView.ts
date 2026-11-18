@@ -10,7 +10,6 @@ import {
     type Object3D,
     OrthographicCamera,
     PerspectiveCamera,
-    Camera as BareCamera,
     Vector3,
     WebGLRenderer,
     type Camera as ThreeCamera,
@@ -21,11 +20,11 @@ import type { Camera } from "../camera.js";
 import type { Light } from "../light.js";
 import { seenLights } from "../canvas2d.js";
 import { LIGHT_GAIN, LIGHT_HEADROOM } from "../lightField.js";
-import type { LayerView } from "../layerView.js";
+import type { LayerView, Projection } from "../layerView.js";
 import { BatchMeshes, pixelsToMetres, ThreeCanvas, type Box } from "./threeCanvas.js";
 import { ThreeHulls } from "./threeHulls.js";
 import { ThreeLights } from "./threeLights.js";
-import { Ships3D, type Depths } from "./ships3d.js";
+import { Ships3D, type DeckBox, type Depths } from "./ships3d.js";
 import type { ViewAngle } from "./viewAngle.js";
 
 // Colours as they are given, as Pixi and a Canvas2D take them: no conversion to linear and back.
@@ -55,8 +54,9 @@ export function threeView(canvas: HTMLCanvasElement, depths: Depths | null = nul
         failed = true;
     }
     const camera = new OrthographicCamera(-1, 1, 1, -1, -1000, 1000);
-    const sheared = new BareCamera();
     const orbiting = new PerspectiveCamera();
+    /** For working out where a point on the canvas is, apart from the one drawn with. */
+    const asking = new PerspectiveCamera();
     let eye: ThreeCamera = camera;
     const context = new ThreeCanvas();
     context.solidShips = depths !== null;
@@ -113,14 +113,25 @@ export function threeView(canvas: HTMLCanvasElement, depths: Depths | null = nul
             camera.top = heightPx / 2 / scale;
             camera.bottom = -heightPx / 2 / scale;
             camera.updateProjectionMatrix();
-            eye = ships === null ? camera : look(sheared, orbiting, angle(), widthPx / 2 / scale, heightPx / 2 / scale);
+            eye = ships === null ? camera : look(orbiting, angle(), widthPx / 2 / scale, heightPx / 2 / scale);
+            // What of the deck is in view, metres from the camera's point: tilted, more than the 2D view's box.
+            const seen =
+                ships === null
+                    ? { minX: -widthPx / 2 / scale, maxX: widthPx / 2 / scale, minY: -heightPx / 2 / scale, maxY: heightPx / 2 / scale }
+                    : deckSeen(deckProjection(orbiting, widthPx, heightPx), widthPx, heightPx, Math.max(widthPx, heightPx) / scale);
             segments.clear();
-            gridSegments(segments, view, widthPx, heightPx);
+            // The grid over all of it, laid as the 2D view's would be over a view that size.
+            const middle = { x: view.x + (seen.minX + seen.maxX) / 2, y: view.y + (seen.minY + seen.maxY) / 2, scale };
+            gridSegments(segments, middle, (seen.maxX - seen.minX) * scale, (seen.maxY - seen.minY) * scale);
+            for (let k = 0; k < segments.count * 4; k += 2) {
+                segments.data[k] = segments.data[k]! + middle.x - view.x;
+                segments.data[k + 1] = segments.data[k + 1]! + middle.y - view.y;
+            }
             grid.set(segments);
             segments.clear();
             wellSegments(segments, snapshot, view);
             wells.set(segments);
-            if (ships !== null && depths !== null) ships.update(snapshot, view, widthPx / 2 / scale, heightPx / 2 / scale, depths, light);
+            if (ships !== null && depths !== null) ships.update(snapshot, view, seen, depths, light);
             else hulls.update(snapshot, view, widthPx, heightPx, light);
             context.begin();
             return context as unknown as CanvasRenderingContext2D;
@@ -141,7 +152,7 @@ export function threeView(canvas: HTMLCanvasElement, depths: Depths | null = nul
             deckMeshes.begin();
             screenMeshes.begin();
             context.batches.forEach((batch, k) =>
-                k < context.screenFrom ? rootMeshes.add(batch, root, k, scissor) : screenMeshes.add(batch, screen, k, scissor),
+                batch.screen ? screenMeshes.add(batch, screen, k, scissor) : rootMeshes.add(batch, root, k, scissor),
             );
             context.deckBatches.forEach((batch, k) => deckMeshes.add(batch, deck, k, scissor));
             if (ships !== null) {
@@ -178,6 +189,10 @@ export function threeView(canvas: HTMLCanvasElement, depths: Depths | null = nul
             draw(root);
             draw(screen);
         },
+        projection(view: Camera, widthPx: number, heightPx: number) {
+            if (ships === null) return null;
+            return deckProjection(look(asking, angle(), widthPx / 2 / view.scale, heightPx / 2 / view.scale), widthPx, heightPx);
+        },
         dispose() {
             lights.dispose();
             ships?.dispose();
@@ -187,47 +202,83 @@ export function threeView(canvas: HTMLCanvasElement, depths: Depths | null = nul
     };
 }
 
-/** The camera for the 3D view, `halfW` by `halfH` metres either side of the middle of the plane. */
-function look(sheared: BareCamera, orbiting: PerspectiveCamera, at: ViewAngle, halfW: number, halfH: number): ThreeCamera {
+/**
+ * The camera for the 3D view, `halfW` by `halfH` metres either side of the
+ * middle of the deck: swung round the point the 2D camera is on, `tilt` from
+ * straight down, far enough off that at no tilt the deck fills the view as
+ * the 2D view's does.
+ */
+function look(eye: PerspectiveCamera, at: ViewAngle, halfW: number, halfH: number): PerspectiveCamera {
     const fov = (Math.max(5, Math.min(120, at.fov)) * Math.PI) / 180;
     const tilt = (at.tilt * Math.PI) / 180;
     const turn = (at.turn * Math.PI) / 180;
-    // Far enough off that the plane fills the lens top to bottom.
     const distance = halfH / Math.tan(fov / 2);
-    const near = distance * 0.02;
-    const far = distance * 6;
-    if (!at.orbit) {
-        // The eye moved off to the side, and the frustum sheared back over the same window on the plane.
-        const off = distance * Math.tan(tilt);
-        const ex = off * Math.sin(turn);
-        const ey = -off * Math.cos(turn);
-        sheared.position.set(ex, ey, DECK_TOP + distance);
-        sheared.updateMatrixWorld();
-        const k = near / distance;
-        sheared.projectionMatrix.makePerspective((-halfW - ex) * k, (halfW - ex) * k, (halfH - ey) * k, (-halfH - ey) * k, near, far);
-        sheared.projectionMatrixInverse.copy(sheared.projectionMatrix).invert();
-        return sheared;
-    }
-    orbiting.fov = (fov * 180) / Math.PI;
-    orbiting.aspect = halfW / halfH;
-    orbiting.near = near;
-    orbiting.far = far;
-    orbiting.updateProjectionMatrix();
-    orbiting.position.set(
+    eye.fov = (fov * 180) / Math.PI;
+    eye.aspect = halfW / halfH;
+    eye.near = distance * 0.02;
+    eye.far = distance * 20;
+    eye.updateProjectionMatrix();
+    eye.position.set(
         distance * Math.sin(tilt) * Math.sin(turn),
         -distance * Math.sin(tilt) * Math.cos(turn),
         DECK_TOP + distance * Math.cos(tilt),
     );
-    orbiting.up.set(-Math.sin(turn), Math.cos(turn), 0);
-    orbiting.lookAt(new Vector3(0, 0, DECK_TOP));
-    orbiting.updateMatrixWorld();
-    return orbiting;
+    // Up the screen is away from the eye, so at no tilt north is up, as in 2D.
+    eye.up.set(-Math.sin(turn), Math.cos(turn), 0);
+    eye.lookAt(0, 0, DECK_TOP);
+    eye.updateMatrixWorld();
+    return eye;
+}
+
+/**
+ * Where on the deck's top a point `px`, `py` canvas pixels from the middle of
+ * a `widthPx` by `heightPx` view is, metres from the camera's point, and back:
+ * what a click on the 3D view lands on. A point above the horizon is taken as
+ * far off along it.
+ */
+export function deckProjection(eye: PerspectiveCamera, widthPx: number, heightPx: number): Projection {
+    const ray = new Vector3();
+    const point = new Vector3();
+    return {
+        toWorld(px, py) {
+            ray.set(px / (widthPx / 2), -py / (heightPx / 2), 0.5)
+                .unproject(eye)
+                .sub(eye.position)
+                .normalize();
+            const t = ray.z < -1e-3 ? (DECK_TOP - eye.position.z) / ray.z : eye.far;
+            return { x: eye.position.x + ray.x * t, y: eye.position.y + ray.y * t };
+        },
+        toCanvas(x, y) {
+            point.set(x, y, DECK_TOP).project(eye);
+            return { px: (point.x * widthPx) / 2, py: (-point.y * heightPx) / 2 };
+        },
+    };
+}
+
+/** The box on the deck the corners of the view land in, metres from the camera's point, out to `most` either way. */
+function deckSeen(projection: Projection, widthPx: number, heightPx: number, most: number): DeckBox {
+    const box = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
+    for (const [px, py] of [
+        [-1, -1],
+        [1, -1],
+        [1, 1],
+        [-1, 1],
+    ] as const) {
+        const at = projection.toWorld((px * widthPx) / 2, (py * heightPx) / 2);
+        const x = Math.max(-most, Math.min(most, at.x));
+        const y = Math.max(-most, Math.min(most, at.y));
+        box.minX = Math.min(box.minX, x);
+        box.maxX = Math.max(box.maxX, x);
+        box.minY = Math.min(box.minY, y);
+        box.maxY = Math.max(box.maxY, y);
+    }
+    return box;
 }
 
 /** The top of the thin hull, which the 3D view's flat drawing lies on and its sheared camera keeps where the 2D view has it. */
 const DECK_TOP = DECK_HEIGHT / 2;
 
-const FLAT: ViewAngle = { tilt: 0, turn: 0, fov: 50, orbit: false };
+const FLAT: ViewAngle = { tilt: 0, turn: 0, fov: 50 };
 
 /** Lines a pixel wide, as Pixi's `pixelLine` strokes are: what WebGL draws a line as. */
 function lineLayer(colour: string): { lines: LineSegments; set(segments: Segments): void } {

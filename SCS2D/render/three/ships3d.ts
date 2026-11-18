@@ -41,6 +41,14 @@ import { triangulate } from "./threeCanvas.js";
 /** How deep a module is drawn: by its layer, thin 3 m and thick 9 m, or by the depth its stats were worked out with. */
 export type Depths = "layers" | "stats";
 
+/** A box on the deck, metres from the camera's point. */
+export interface DeckBox {
+    readonly minX: number;
+    readonly maxX: number;
+    readonly minY: number;
+    readonly maxY: number;
+}
+
 /** Thin and thick, in the layers' reading: a thick module stands a deck above and below the thin hull. */
 const THIN = DECK_HEIGHT;
 const THICK = 3 * DECK_HEIGHT;
@@ -357,9 +365,9 @@ export class Ships3D {
     }
 
     /** Place every ship in view, its barrels, and the lights, for a view `halfW` by `halfH` metres either side of the camera. */
-    update(snapshot: Snapshot, camera: Camera, halfW: number, halfH: number, depths: Depths, light: Light = DEFAULT_LIGHT): void {
-        this.light(light, Math.max(halfW, halfH));
-        const seen = new Set<number>();
+    update(snapshot: Snapshot, camera: Camera, seen: DeckBox, depths: Depths, light: Light = DEFAULT_LIGHT): void {
+        this.light(light, seen);
+        const shown = new Set<number>();
         let barrels = 0;
         const ends: number[] = [];
         for (let s = 0; s < snapshot.shipCount; s++) {
@@ -368,8 +376,8 @@ export class Ships3D {
             const dx = ship.x - camera.x;
             const dy = ship.y - camera.y;
             const reach = design.radius * 1.5 + 10;
-            if (Math.abs(dx) - reach > halfW * 1.5 || Math.abs(dy) - reach > halfH * 1.5) continue;
-            seen.add(ship.body);
+            if (dx + reach < seen.minX || dx - reach > seen.maxX || dy + reach < seen.minY || dy - reach > seen.maxY) continue;
+            shown.add(ship.body);
             const key = keyOf(ship, depths);
             let kept = this.kept.get(ship.body);
             if (kept === undefined || kept.key !== key) {
@@ -429,7 +437,7 @@ export class Ships3D {
         this.barrels.count = barrels;
         this.barrels.instanceMatrix.needsUpdate = true;
         for (const [body, kept] of this.kept) {
-            if (seen.has(body)) continue;
+            if (shown.has(body)) continue;
             // Gone, or out of view: let it go once it has been out of view a while.
             kept.mesh.visible = false;
             if (!snapshot.ships.slice(0, snapshot.shipCount).some((ship) => ship.body === body)) {
@@ -441,7 +449,7 @@ export class Ships3D {
     }
 
     /** The battle's light as the sun, and the brightest dynamic lights, given in canvas pixels, as point lights. */
-    private light(light: Light, reach: number): void {
+    private light(light: Light, seen: DeckBox): void {
         const slant = light.slant ?? 1;
         const toward = new Vector3(Math.cos(light.from) * slant, Math.sin(light.from) * slant, 1).normalize();
         this.sun.color = new Color(light.colour);
@@ -449,15 +457,23 @@ export class Ships3D {
         this.sun.intensity = (Math.PI * (1 - light.ambient)) / toward.z;
         this.ambient.color = new Color(light.colour);
         this.ambient.intensity = Math.PI * light.ambient;
-        this.sun.position.copy(toward).multiplyScalar(reach * 4);
-        this.sun.target.position.set(0, 0, 0);
+        // The shadows' map over what is in view, square on to the light.
+        const cx = (seen.minX + seen.maxX) / 2;
+        const cy = (seen.minY + seen.maxY) / 2;
+        const reach = Math.hypot(seen.maxX - seen.minX, seen.maxY - seen.minY) / 2 + 20;
+        this.sun.position
+            .copy(toward)
+            .multiplyScalar(reach * 2)
+            .add(new Vector3(cx, cy, 0));
+        this.sun.target.position.set(cx, cy, 0);
+        this.sun.target.updateMatrixWorld();
         const shadow = this.sun.shadow.camera;
-        shadow.left = -reach * 1.5;
-        shadow.right = reach * 1.5;
-        shadow.top = reach * 1.5;
-        shadow.bottom = -reach * 1.5;
+        shadow.left = -reach;
+        shadow.right = reach;
+        shadow.top = reach;
+        shadow.bottom = -reach;
         shadow.near = 0.1;
-        shadow.far = reach * 8;
+        shadow.far = reach * 4;
         shadow.updateProjectionMatrix();
     }
 

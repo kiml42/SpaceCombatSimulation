@@ -95,6 +95,8 @@ export class Batch {
     texture: Texture | null = null;
     additive = false;
     scissor: Box | null = null;
+    /** Drawn on the screen over the battle, rather than in it. */
+    screen = false;
     /** Vertices: x, y; r, g, b, a; u, v. */
     pos = new Float32Array(3 * 1024);
     col = new Float32Array(4 * 1024);
@@ -272,17 +274,17 @@ export class ThreeCanvas {
         };
     }
 
-    /** Where in `batches` what is drawn over the scene on screen starts, after `endScene`. */
-    screenFrom = Infinity;
+    /** Whether what is drawn now is over the battle on the screen, as a close-up is, rather than in it. */
+    private onScreen = false;
 
-    /** What is drawn from here on is over the scene, on the screen, rather than in the battle: close-ups and the like. */
-    endScene(): void {
-        this.screenFrom = this.batches.length;
+    /** Draw on the screen from here, over the battle rather than in it, until called with false. */
+    screenSpace(on: boolean): void {
+        this.onScreen = on;
         this.open = null;
     }
 
     begin(): void {
-        this.screenFrom = Infinity;
+        this.onScreen = false;
         this.used = 0;
         this.batches.length = 0;
         this.deckBatches.length = 0;
@@ -770,6 +772,7 @@ export class ThreeCanvas {
         }
         this.used++;
         batch.reset(textured, texture, additive, this.state.scissor === null ? null : { ...this.state.scissor });
+        batch.screen = this.onScreen;
         (onDeck && this.deck ? this.deckBatches : this.batches).push(batch);
         return batch;
     }

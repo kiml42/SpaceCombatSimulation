@@ -1,4 +1,5 @@
-import { PICK_PX, TOUCH_PICK_PX, zoomAt, type Camera } from "../render/camera.js";
+import { PICK_PX, TOUCH_PICK_PX, type Camera } from "../render/camera.js";
+import { panBetween, worldAt, zoomAbout } from "../render/layerView.js";
 
 /** How far a pointer travels before a press is a pan rather than a click, CSS pixels. */
 const CLICK_SLOP_PX = 4;
@@ -35,7 +36,7 @@ export function viewGestures(
         (event) => {
             event.preventDefault();
             const at = offset(event.clientX, event.clientY);
-            zoomAt(camera, at.x, at.y, Math.exp(-event.deltaY * 0.0015));
+            zoomAbout(canvas, camera, at.x, at.y, Math.exp(-event.deltaY * 0.0015));
             moved();
         },
         { passive: false },
@@ -66,10 +67,16 @@ export function viewGestures(
     /** World point under a client point. */
     const world = (clientX: number, clientY: number): { x: number; y: number } => {
         const at = offset(clientX, clientY);
-        return { x: camera.x + at.x / camera.scale, y: camera.y - at.y / camera.scale };
+        return worldAt(canvas, camera, at.x, at.y);
     };
-    const reachOf = (event: PointerEvent | MouseEvent): number =>
-        (("pointerType" in event && event.pointerType === "touch" ? TOUCH_PICK_PX : PICK_PX) * ratio()) / camera.scale;
+    /** How far a ship may be from where a pick lands, metres: as far as that many pixels go on the deck there. */
+    const reachOf = (event: PointerEvent | MouseEvent): number => {
+        const px = ("pointerType" in event && event.pointerType === "touch" ? TOUCH_PICK_PX : PICK_PX) * ratio();
+        const at = offset(event.clientX, event.clientY);
+        const here = worldAt(canvas, camera, at.x, at.y);
+        const there = worldAt(canvas, camera, at.x + px, at.y);
+        return Math.hypot(there.x - here.x, there.y - here.y);
+    };
 
     /** A Shift-drag drawing a box, from where it started, in client pixels. */
     let box: { x: number; y: number } | null = null;
@@ -138,13 +145,10 @@ export function viewGestures(
         pointer.x = event.clientX;
         pointer.y = event.clientY;
         const after = spread();
-        const r = ratio();
-        camera.x -= ((after.x - before.x) * r) / camera.scale;
-        camera.y += ((after.y - before.y) * r) / camera.scale;
-        if (pointers.size > 1 && before.size > 0) {
-            const at = offset(after.x, after.y);
-            zoomAt(camera, at.x, at.y, after.size / before.size);
-        }
+        const from = offset(before.x, before.y);
+        const to = offset(after.x, after.y);
+        panBetween(canvas, camera, from.x, from.y, to.x, to.y);
+        if (pointers.size > 1 && before.size > 0) zoomAbout(canvas, camera, to.x, to.y, after.size / before.size);
         moved();
     });
     canvas.addEventListener("pointerup", (event) => {
