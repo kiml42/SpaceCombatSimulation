@@ -1567,11 +1567,15 @@ export function avoid(
         // Its charge no further out than its station, or the two wants fight:
         // covering pulls it in to where keeping clear pushes it out.
         if (t === covering) room = min(room, max(0, shipDecide.escortBand(ships, i, ships.designs[i]!, t) - touching));
-        // And one covering it no further out than that one's station, or it runs from its own escort.
+        // And one covering it only inside the inside of that one's band, where it
+        // keeps itself, or it runs from its own escort settling in the band.
         const escort = ships.consort[t] === i && ships.hasControl(t);
         // Two covering the same charge are both pulled to it, as an escort and its charge are.
         const fellow = covering !== NO_TARGET && ships.consort[t] === covering && ships.hasControl(t);
-        if (escort) room = min(room, max(0, shipDecide.escortBand(ships, t, ships.designs[t]!, i) - touching));
+        if (escort) {
+            const band = shipDecide.escortBand(ships, t, ships.designs[t]!, i);
+            room = min(room, max(0, shipDecide.escortInnerEdge(ships, t, ships.designs[t]!, i, band) - touching));
+        }
         const dx = THEIR_CIRCLE.x - OWN_CIRCLE.x;
         const dy = THEIR_CIRCLE.y - OWN_CIRCLE.y;
         const rvx = THEIR_CIRCLE.vx - OWN_CIRCLE.vx;

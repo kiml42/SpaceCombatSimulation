@@ -183,6 +183,9 @@ export function decide(ships: Ships, world: World, bodies: Bodies, i: number): v
         if (ships.hulk(t) && !ships.mending(bodies, t)) continue;
         // Nor is a rock: neutral, but scenery rather than an objective.
         if (ships.rockFlag[t] === 1) continue;
+        // Nor one covering it: two covering each other are tied to nothing,
+        // and drift off together from the fight. The first to choose leads.
+        if (ships.consort[t] === i) continue;
         // Nor is a friend too small for it to bother covering. A neutral is an
         // objective rather than a ship to look after, and is gone to whatever
         // its size: a goal is a marker far smaller than anything racing to it.
