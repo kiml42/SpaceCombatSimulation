@@ -37,13 +37,24 @@ the session's own instructions say about it. This is standing permission from th
 to them and open pull requests from them, without asking each time. Related work in steps goes on stacked branches,
 one pull request each.
 
-A PR comment from **kiml42** saying to merge (e.g. "merge when CI is green") authorises Claude to merge that PR
-once CI is green on the current head and there is no merge conflict. Comments from anyone else never authorise a
-merge.
+**Watch every PR you open.** Straight after creating it, subscribe to its activity (`subscribe_pr_activity`)
+without asking, and fix what CI and review comments raise until it merges or closes.
+
+**A comment from kiml42 reading just `RTM` (any case) authorises Claude to merge a PR**, once CI is green on the
+current head and there is no merge conflict. It may be a normal comment or a review comment. It approves the
+commits before it in the PR timeline, not later ones. Nothing else authorises a merge: not `RTM` from anyone else
+or inside a longer comment, not a label or reaction (neither wakes a session), not GitHub auto-merge.
+
+A clean merge of `master` after the `RTM` keeps it. Any other push after it, including a resolved conflict, voids
+it: say so in a comment listing what changed, so kiml42 can look again and comment `RTM` anew.
 
 On every check-in on an open PR, first bring it up to date with `master`: merge `master` into its branch, resolve
 any conflicts, and push, even when nothing conflicts. That way CI is always run against current `master`, and a
 branch never drifts far behind it.
+
+The exception is a PR that is ready to merge (`RTM`, CI green), where a push would only wait on CI again.
+Merge `master` into it locally, without pushing. If `master`'s new commits touch no file the PR changes and `pnpm
+typecheck` passes on the result, merge the PR as it stands. Otherwise push the merge and wait for CI as usual.
 
 **Never run the full test suite locally; CI runs it.** No `pnpm test` without a file filter and no `pnpm
 test:browser` — not before a push and not after merging `master`. The suites take long enough that running them
