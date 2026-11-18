@@ -160,7 +160,8 @@ export interface Targeting {
      * A round that misses the part chosen lands near it, so a part among
      * others worth hitting is the better aim, and one beside something the
      * doctrine minds hitting (an aim weight below zero) the worse. Zero picks
-     * by the part alone.
+     * by the part alone. Half by default: at a hundred, three engines side by
+     * side outrank a core.
      */
     readonly clusterWeight: number;
     /**
@@ -599,7 +600,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
         engineWeight: 80,
         gunWeight: 100,
         structureWeight: 0,
-        clusterWeight: 0,
+        clusterWeight: 50,
         escortWeight: 0,
         fireRange: 1,
     },

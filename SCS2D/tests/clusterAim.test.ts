@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compileBlueprint, DEFAULT_DOCTRINE, Ships, World, type Blueprint, type Targeting } from "../sim/index.js";
+import { compileBlueprint, DEFAULT_DOCTRINE, Ships, World, type Blueprint, type DesignTurret, type Targeting } from "../sim/index.js";
 import { BOTH_LAYERS } from "../sim/hull.js";
 import { aimModule } from "../sim/shipAim.js";
 
@@ -30,15 +30,23 @@ const SHOOTER: Blueprint = {
     ],
 };
 
-/** The module the shooter's turret picks on `design`, 300 m off its side and nearest its last turret. */
-function pick(targeting: Partial<Targeting>, design = BANK): number {
+/**
+ * The module the shooter's turret picks on `design`, 300 m off its side and nearest its last turret;
+ * holding `held` of it already, if given.
+ */
+function pick(targeting: Partial<Targeting>, design = BANK, held?: number): number {
     const world = new World({ dt: 1 / 60, seed: 1 });
     const ships = new Ships();
     const shooterDesign = compileBlueprint(SHOOTER);
     const mount = { ...shooterDesign.turrets[0]!, targeting: { ...DEFAULT_DOCTRINE.targeting, ...targeting } };
+    (shooterDesign.turrets as DesignTurret[])[0] = mount;
     const shooter = ships.spawn(world, { design: shooterDesign, x: 40, y: 300, angle: 0, team: 0 });
     const target = ships.spawn(world, { design: compileBlueprint(design), x: 0, y: 0, angle: 0, team: 1 });
     ships.bodyStore = world.bodies;
+    if (held !== undefined) {
+        ships.turretTarget[shooter]![0] = target;
+        ships.turretAimModule[shooter]![0] = held;
+    }
     return aimModule(ships, world.bodies, shooter, mount, BOTH_LAYERS, target, 40, 300);
 }
 
@@ -51,6 +59,13 @@ describe("a mount that counts what lies around a part", () => {
 
     it("takes the middle of a bank, where a miss lands on the next one", () => {
         expect(pick({ ...GUNS, clusterWeight: 100 })).toBe(SECOND);
+    });
+
+    it("keeps the part it holds over one only a little better", () => {
+        expect(pick({ ...GUNS, clusterWeight: 50 })).toBe(SECOND);
+        expect(pick({ ...GUNS, clusterWeight: 50 }, BANK, THIRD)).toBe(THIRD);
+        // But not over one much better.
+        expect(pick({ ...GUNS, clusterWeight: 200 }, BANK, THIRD)).toBe(SECOND);
     });
 
     it("keeps off a part beside something it would rather not hit", () => {

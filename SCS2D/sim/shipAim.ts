@@ -356,6 +356,10 @@ export function aimModule(
     const c = cos(angle);
     const s = sin(angle);
 
+    // Counting neighbours, the ranking shifts as the ships move, so the part
+    // it already holds keeps a margin: one barely better is not worth retraining for.
+    const t = doctrine.clusterWeight === 0 ? -1 : ships.designs[i]!.turrets.indexOf(mount);
+    const held = t >= 0 && ships.turretTarget[i]![t] === target ? ships.turretAimModule[i]![t]! : -1;
     let best = WHOLE_SHIP;
     let bestWeight = 0;
     let bestRange = 0;
@@ -373,7 +377,8 @@ export function aimModule(
             doctrine.clusterWeight === 0
                 ? own
                 : own +
-                  (doctrine.clusterWeight / 100) * neighbours(ships, bodies, layers, target, tb, k, fromX, fromY, mount.gun, doctrine);
+                  (doctrine.clusterWeight / 100) * neighbours(ships, bodies, layers, target, tb, k, fromX, fromY, mount.gun, doctrine) +
+                  (k === held ? HELD_PART_MARGIN * own : 0);
         if (best !== WHOLE_SHIP && (weight < bestWeight || (weight === bestWeight && range >= bestRange))) {
             continue;
         }
@@ -386,6 +391,9 @@ export function aimModule(
     // it has just passed over.
     return best === WHOLE_SHIP ? NOTHING_AIMABLE : best;
 }
+
+/** The share of its own aim weight a held part is preferred by, counting neighbours. */
+const HELD_PART_MARGIN = 0.25;
 
 /**
  * What a miss at module `k` of `target`, on body `tb`, from a gun at

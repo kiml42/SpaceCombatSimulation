@@ -39,12 +39,13 @@ function armed(targeting?: Partial<Targeting>): ShipDesign {
 
 /**
  * A corvette that puts engines above the guns the default shoots at first, and
- * one that has opted out of picking parts altogether.
+ * one that has opted out of picking parts altogether. Neighbours are left out
+ * where a test is about which kind of part it picks.
  */
-const sniper = armed({ engineWeight: 150 });
+const sniper = armed({ engineWeight: 150, clusterWeight: 0 });
 const indifferent = armed({ coreWeight: 0, engineWeight: 0, gunWeight: 0, structureWeight: 0 });
 /** A corvette that would rather cripple a ship than go for what flies it. */
-const crippler = armed({ coreWeight: 0 });
+const crippler = armed({ coreWeight: 0, clusterWeight: 0 });
 
 interface Aim {
     /** Where the gun ends up pointing, world frame. */
