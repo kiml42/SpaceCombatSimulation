@@ -387,12 +387,14 @@ function pointedLabel(ctx: CanvasRenderingContext2D, lines: readonly (string | R
     });
 }
 
-/** Seconds as a duration in its largest units, so it does not read as another figure in seconds. */
-function duration(seconds: number): string {
+/**
+ * Seconds as a clock, hours:minutes:seconds, each field always its full width,
+ * so in a monospace font the digits keep their places as the figure changes.
+ */
+function clock(seconds: number): string {
     const s = Math.round(seconds);
-    if (s < 60) return `${s} s`;
-    if (s < 3600) return `${Math.floor(s / 60)} min ${s % 60} s`;
-    return `${Math.floor(s / 3600)} h ${Math.floor((s % 3600) / 60)} min`;
+    const two = (n: number): string => String(n).padStart(2, "0");
+    return `${two(Math.floor(s / 3600))}:${two(Math.floor((s % 3600) / 60))}:${two(s % 60)}`;
 }
 
 /** The ship from above in a rosette, about its centre of mass, which the rosette's bearings are measured from. */
@@ -999,7 +1001,7 @@ function drawEnvelope(
         ];
         // How long the fuel lasts at the burn pointed at.
         const burn = view.envelopeBurn;
-        if (burn != null && Number.isFinite(burn.endurance)) lines.push(`Burns for ${duration(burn.endurance)}`);
+        if (burn != null && Number.isFinite(burn.endurance)) lines.push(`Burns for ${clock(burn.endurance)}`);
         pointedLabel(ctx, lines, widthPx - ENVELOPE_MARGIN_PX, cy - radius);
     }
     ctx.textAlign = "left";
