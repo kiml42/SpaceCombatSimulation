@@ -29,7 +29,9 @@ describe("what a ship is escorting", () => {
         const corvettes = ships.filter((ship) => ship.currentStructure.name === "Corvette");
         expect(corvettes).toHaveLength(2);
         // One covers the other, which leads: two covering each other are tied to nothing.
-        const [escort, lead] = corvettes[0]!.covering >= 0 ? [corvettes[0]!, corvettes[1]!] : [corvettes[1]!, corvettes[0]!];
+        const first = (corvettes[0]!.covering ?? -1) >= 0;
+        const escort = first ? corvettes[0]! : corvettes[1]!;
+        const lead = first ? corvettes[1]! : corvettes[0]!;
         expect(escort.covering).toBe(lead.body);
         expect(lead.covering).toBe(-1);
         expect(ships.find((ship) => ship.currentStructure.name === "Gunship")!.covering).toBe(-1);
