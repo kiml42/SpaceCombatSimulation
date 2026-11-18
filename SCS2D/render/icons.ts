@@ -14,6 +14,7 @@
  * saying the icons pop.
  */
 
+import type { ShipDesign } from "../sim/blueprint.js";
 import type { ShipView } from "../sim/snapshot.js";
 
 /** Nose-to-tail length of an icon on screen, pixels. */
@@ -93,3 +94,75 @@ export const ICON_OUTLINE: readonly (readonly [number, number])[] = [
     [-0.24, 0],
     [-0.5, -0.42],
 ];
+
+/**
+ * A ship's icon: a pointed bow on a body about as long as it is wide, with a
+ * shallower notch at its tail than the arrowhead's, so the two read as kin and
+ * this one as the heavier. In the arrowhead's frame, moved back so the ship's
+ * position is at the middle of its area, as a hull's centre of mass is, rather
+ * than at the middle of its length.
+ */
+export const LONG_ICON_OUTLINE: readonly (readonly [number, number])[] = aboutCentroid([
+    [0.38, 0],
+    [0.14, 0.22],
+    [-0.32, 0.22],
+    [-0.22, 0],
+    [-0.32, -0.22],
+    [0.14, -0.22],
+]);
+
+/** How much larger than the arrowhead a ship's icon is drawn, so a ship stands out among fighters. */
+export const LONG_ICON_SCALE = 1.4;
+
+/** Half the side of a square icon, in the arrowhead's frame. */
+export const SQUARE_ICON_HALF = 0.3;
+
+/**
+ * What an icon says about a ship: `square` that it pushes much alike every
+ * way, `arrow` that it is a fighter, and `long` that it is any other ship.
+ */
+export type IconShape = "arrow" | "square" | "long";
+
+/**
+ * The least share of its strongest push a layout must have along each of its
+ * four axes for its thrust to count as symmetrical.
+ */
+export const SQUARE_THRUST_SHARE = 0.5;
+
+const shapes = new WeakMap<ShipDesign, IconShape>();
+
+/** `square` for a ship that pushes much alike every way, else `arrow` for a fighter and `long` for any other. Worked out once per design. */
+export function iconShape(design: ShipDesign): IconShape {
+    let shape = shapes.get(design);
+    if (shape !== undefined) return shape;
+    const layout = design.engineLayout;
+    let most = 0;
+    let least = Infinity;
+    for (let k = 0; k < 4; k++) {
+        const along = layout.maxThrustAlong(k === 0 ? 1 : k === 2 ? -1 : 0, k === 1 ? 1 : k === 3 ? -1 : 0);
+        most = Math.max(most, along);
+        least = Math.min(least, along);
+    }
+    const even = !(most > 0) || least >= SQUARE_THRUST_SHARE * most;
+    shape = even ? "square" : design.fighter ? "arrow" : "long";
+    shapes.set(design, shape);
+    return shape;
+}
+
+/** A polygon moved so its area's centroid is at the origin. */
+function aboutCentroid(points: readonly (readonly [number, number])[]): (readonly [number, number])[] {
+    let area = 0;
+    let cx = 0;
+    let cy = 0;
+    for (let k = 0; k < points.length; k++) {
+        const [x0, y0] = points[k]!;
+        const [x1, y1] = points[(k + 1) % points.length]!;
+        const cross = x0 * y1 - x1 * y0;
+        area += cross;
+        cx += (x0 + x1) * cross;
+        cy += (y0 + y1) * cross;
+    }
+    cx /= 3 * area;
+    cy /= 3 * area;
+    return points.map(([x, y]) => [x - cx, y - cy] as const);
+}
