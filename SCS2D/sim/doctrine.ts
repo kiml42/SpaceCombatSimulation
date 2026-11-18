@@ -155,6 +155,15 @@ export interface Targeting {
     readonly gunWeight: number;
     readonly structureWeight: number;
     /**
+     * How much a part's neighbours count towards picking it, per hundred: at
+     * 100 a neighbour right beside it counts for as much as the part itself.
+     * A round that misses the part chosen lands near it, so a part among
+     * others worth hitting is the better aim, and one beside something the
+     * doctrine minds hitting (an aim weight below zero) the worse. Zero picks
+     * by the part alone.
+     */
+    readonly clusterWeight: number;
+    /**
      * How firmly a ship holds by something it will never shoot at.
      *
      * What a craft escorts is anything not hostile to it — one of its own, or
@@ -590,6 +599,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
         engineWeight: 80,
         gunWeight: 100,
         structureWeight: 0,
+        clusterWeight: 0,
         escortWeight: 0,
         fireRange: 1,
     },
@@ -784,6 +794,7 @@ export const TARGETING_FIELDS: readonly (keyof Targeting)[] = [
     "engineWeight",
     "gunWeight",
     "structureWeight",
+    "clusterWeight",
     "escortWeight",
     "fireRange",
 ];
@@ -821,6 +832,7 @@ export const SHIP_TARGETING_FIELDS: readonly (keyof Targeting)[] = TARGETING_FIE
         field !== "engineWeight" &&
         field !== "gunWeight" &&
         field !== "structureWeight" &&
+        field !== "clusterWeight" &&
         field !== "fireRange",
 );
 

@@ -4,7 +4,7 @@ import { BOTH_LAYERS, HULL_LAYER, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from
 import { DamageEffect } from "./damage.js";
 import { inSight, lookFrom, score } from "./targeting.js";
 import { DEFAULT_FUSE, firesShells, moduleRadius, slewTime, type ModuleSpec, GunType, type GunStats, type ModuleKind } from "./modules.js";
-import { atan2, angleDelta, PI, clamp, cos, length, max, round, sin, sqrt } from "./math.js";
+import { abs, atan2, angleDelta, PI, clamp, cos, length, max, round, sin, sqrt } from "./math.js";
 import { overriddenMount, placementOf, type Targeting } from "./doctrine.js";
 import type { World } from "./world.js";
 import type { SpatialGrid } from "./index.js";
@@ -361,14 +361,19 @@ export function aimModule(
     let bestRange = 0;
     for (let k = 0; k < design.modules.length; k++) {
         if (!reaches(ships, layers, design, tb, target, k)) continue;
-        const weight = anyPart ? 1 : partWeight(doctrine, design.modules[k]!.spec.kind);
+        const own = anyPart ? 1 : partWeight(doctrine, design.modules[k]!.spec.kind);
         // Only what this doctrine wants destroyed. Zero is not a poor ranking
         // but a different statement — *not worth a shot* — and the best of a
         // bad list would otherwise still be chosen however bad the list is.
-        if (weight <= 0) continue;
+        if (own <= 0) continue;
         const mx = bodies.x[tb]! + design.modules[k]!.x * c - design.modules[k]!.y * s;
         const my = bodies.y[tb]! + design.modules[k]!.x * s + design.modules[k]!.y * c;
         const range = length(mx - fromX, my - fromY);
+        const weight =
+            doctrine.clusterWeight === 0
+                ? own
+                : own +
+                  (doctrine.clusterWeight / 100) * neighbours(ships, bodies, layers, target, tb, k, fromX, fromY, mount.gun, doctrine);
         if (best !== WHOLE_SHIP && (weight < bestWeight || (weight === bestWeight && range >= bestRange))) {
             continue;
         }
@@ -380,6 +385,53 @@ export function aimModule(
     // here to shoot at — not the hull either, since the hull is the modules
     // it has just passed over.
     return best === WHOLE_SHIP ? NOTHING_AIMABLE : best;
+}
+
+/**
+ * What a miss at module `k` of `target`, on body `tb`, from a gun at
+ * `(fromX, fromY)`, is likely to land on instead: the aim weight of each
+ * other module it can reach, by how near it is across the line of fire,
+ * falling to nothing a likely miss's width past touching it. That width is
+ * the part's own size close in, and how far the target may jink in the
+ * flight time further out. Modules the doctrine minds hitting count against.
+ */
+function neighbours(
+    ships: Ships,
+    bodies: Bodies,
+    layers: number,
+    target: number,
+    tb: number,
+    k: number,
+    fromX: number,
+    fromY: number,
+    gun: GunStats,
+    doctrine: Targeting,
+): number {
+    const design = ships.designs[target]!;
+    const anyPart = !picksParts(doctrine);
+    const c = cos(bodies.angle[tb]!);
+    const s = sin(bodies.angle[tb]!);
+    const mx = bodies.x[tb]! + design.modules[k]!.x * c - design.modules[k]!.y * s;
+    const my = bodies.y[tb]! + design.modules[k]!.x * s + design.modules[k]!.y * c;
+    const range = length(mx - fromX, my - fromY);
+    if (!(range > 0)) return 0;
+    const dx = (mx - fromX) / range;
+    const dy = (my - fromY) / range;
+    const flight = gun.type === GunType.Beam || !(gun.muzzleSpeed > 0) ? 0 : range / gun.muzzleSpeed;
+    const miss = moduleRadius(design.modules[k]!.spec) + 0.5 * EVASION_ACCEL * flight * flight;
+    let total = 0;
+    for (let m = 0; m < design.modules.length; m++) {
+        if (m === k || !reaches(ships, layers, design, tb, target, m)) continue;
+        const module = design.modules[m]!;
+        const weight = anyPart ? 1 : partWeight(doctrine, module.spec.kind);
+        if (weight === 0) continue;
+        const ox = bodies.x[tb]! + module.x * c - module.y * s - mx;
+        const oy = bodies.y[tb]! + module.x * s + module.y * c - my;
+        const across = abs(ox * dy - oy * dx);
+        const reach = miss + moduleRadius(module.spec);
+        if (across < reach) total += weight * (1 - across / reach);
+    }
+    return total;
 }
 
 /**

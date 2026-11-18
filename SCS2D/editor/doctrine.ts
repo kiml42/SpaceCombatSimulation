@@ -88,6 +88,12 @@ const TARGETING_ROWS: readonly DoctrineRow[] = [
     { field: "engineWeight", label: "aim: engines", hint: "How much it would rather hit an engine. Below zero is never", step: 10 },
     { field: "gunWeight", label: "aim: guns", hint: "How much it would rather hit a gun. Below zero is never", step: 10 },
     {
+        field: "clusterWeight",
+        label: "aim: among others",
+        hint: "How much a part's neighbours count towards aiming at it, per hundred: a miss lands near the part aimed at, so among others worth hitting is the better aim, and beside something it would rather not hit the worse. 0 picks by the part alone",
+        step: 10,
+    },
+    {
         field: "fireRange",
         label: "fires within",
         hint: "How far out it fires, as a multiple of how far its shot is worth taking: above 1 spends shells on long odds, below 1 saves them for a sure thing",
@@ -819,7 +825,7 @@ export const MOUNT_SECTIONS: readonly DoctrineSection[] = [
         groups: [
             {
                 title: "Where it aims",
-                entries: preferences("mount", ["coreWeight", "engineWeight", "gunWeight", "structureWeight"]),
+                entries: preferences("mount", ["coreWeight", "engineWeight", "gunWeight", "structureWeight", "clusterWeight"]),
             },
         ],
     },
@@ -845,7 +851,13 @@ export function sectionEntries(sections: readonly DoctrineSection[]): DoctrineEn
 }
 
 function isAimField(field: string): boolean {
-    return field === "coreWeight" || field === "engineWeight" || field === "gunWeight" || field === "structureWeight";
+    return (
+        field === "coreWeight" ||
+        field === "engineWeight" ||
+        field === "gunWeight" ||
+        field === "structureWeight" ||
+        field === "clusterWeight"
+    );
 }
 
 /** What to call an archetype where a person is reading it rather than a file. */
