@@ -29,6 +29,8 @@ export interface Camera {
      */
     vx?: number;
     vy?: number;
+    /** How far the view is turned anticlockwise, radians: a bearing of `−turn` points right. None when absent. */
+    turn?: number;
 }
 
 /** What framing reads of a picture: the box everything in it fits inside. */
@@ -435,24 +437,6 @@ export function zoomAt(camera: Camera, px: number, py: number, factor: number): 
 export const PICK_PX = 12;
 /** The same for a tap, which a fingertip makes far less precise. */
 export const TOUCH_PICK_PX = 28;
-
-/**
- * The body of the ship under a point, or -1: the nearest whose hull circle, or
- * a few pixels round its centre when it is drawn smaller than that, holds the
- * point.
- */
-export function shipAt(snapshot: Snapshot, x: number, y: number, reach: number): number {
-    let best = -1;
-    let nearest = Infinity;
-    for (let i = 0; i < snapshot.shipCount; i++) {
-        const ship = snapshot.ships[i]!;
-        const d = Math.hypot(ship.x - x, ship.y - y);
-        if (d > Math.max(ship.currentStructure.radius, reach) || d >= nearest) continue;
-        nearest = d;
-        best = ship.body;
-    }
-    return best;
-}
 
 /**
  * The bounds of the picked-out ship, what it is fighting and what it is

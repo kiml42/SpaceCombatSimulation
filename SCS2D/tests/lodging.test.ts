@@ -121,6 +121,14 @@ describe("wreckage on rock", () => {
         expect(run.ships.isAlive(w)).toBe(false);
         expect(rockModules()).toBeLessThan(lodged);
     }, 300_000);
+
+    it("does not keep a ship off the rock it is lodged on, which moors and takes it apart", () => {
+        const run = scene(true);
+        for (let t = 0; t < 120 * 60 && !run.ships.isMoored(run.m); t++) run.step();
+        expect(run.ships.isMoored(run.m)).toBe(true);
+        for (let t = 0; t < 900 * 60 && run.ships.isAlive(run.w); t++) run.step();
+        expect(run.ships.isAlive(run.w)).toBe(false);
+    }, 300_000);
 });
 
 describe("a ship stuck on rock", () => {

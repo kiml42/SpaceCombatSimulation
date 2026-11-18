@@ -95,7 +95,7 @@ import {
     type Handle,
 } from "../editor/handles.js";
 import { doctrineBand, previewSnapshot } from "../editor/preview.js";
-import { designStats, envelopes, assemblyMass, headingCost, moduleReadout, pushAlong, roundsAboard } from "../editor/stats.js";
+import { designStats, envelopes, assemblyMass, headingCost, moduleReadout, pushAlong, roundsAboard, turnTime } from "../editor/stats.js";
 
 /**
  * The editor's half: what an edit does to a layout, and what the page reads
@@ -921,6 +921,15 @@ describe("previewSnapshot", () => {
 });
 
 describe("designStats", () => {
+    it("times a turn about on full torque one way, then the other", () => {
+        // Even torque: half the swing speeding up, half slowing, 2√(θ/a).
+        expect(turnTime(Math.PI, 2, 2)).toBeCloseTo(2 * Math.sqrt(Math.PI / 2), 12);
+        // Uneven, the same whichever way round.
+        expect(turnTime(Math.PI, 1, 3)).toBeCloseTo(turnTime(Math.PI, 3, 1), 12);
+        expect(turnTime(Math.PI, 1, 3)).toBeGreaterThan(turnTime(Math.PI, 2, 2));
+        expect(turnTime(Math.PI, 0, 3)).toBe(Infinity);
+    });
+
     it("reads the design rather than working anything out again", () => {
         const design = new EditorDocument(CORVETTE).view.design!;
         const stats = designStats(design, envelopes(design));
@@ -939,6 +948,19 @@ describe("designStats", () => {
         expect(stats.accelFore).toBeCloseTo(design.engineLayout.maxThrustAlong(1, 0) / design.mass, 2);
         expect(stats.accelPort).toBeLessThan((design.engineLayout.maxThrustAlong(0, 1) / design.mass) * 0.99);
         expect(stats.accelPort).toBeCloseTo(envelopes(design, 4).holding[1]!, 9);
+    });
+
+    it("says how well each push uses its fuel: best straight out on the main drive, worse on a diagonal", () => {
+        const design = new EditorDocument(CORVETTE).view.design!;
+        const { efficiency, samples } = envelopes(design, 8);
+        expect(efficiency.length).toBe(samples);
+        for (const share of efficiency) {
+            expect(share).toBeGreaterThanOrEqual(0);
+            expect(share).toBeLessThanOrEqual(1 + 1e-9);
+        }
+        expect(efficiency[0]).toBeCloseTo(1, 2);
+        // Thrust adds as vectors, propellant as numbers.
+        expect(efficiency[1]!).toBeLessThan(efficiency[0]! * 0.8);
     });
 
     it("reports a gun in the figures a player compares", () => {
