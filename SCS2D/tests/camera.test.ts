@@ -10,7 +10,6 @@ import {
     moveAcrossJump,
     moveWithVisibleShips,
     selectionBounds,
-    shipAt,
     snapStep,
     zoomAt,
     type Camera,
@@ -435,16 +434,6 @@ describe("picking out a ship", () => {
         const c = { ...ship(0, 300), body: 9 };
         return snapshotOf([a, b, c]);
     };
-
-    it("finds the ship whose hull holds the point, or the nearest within a reach for one too small to hit", () => {
-        const scene = picked();
-        expect(shipAt(scene, 10, 5, 0)).toBe(3);
-        expect(shipAt(scene, 495, 0, 0)).toBe(7);
-        expect(shipAt(scene, 250, 0, 0)).toBe(-1);
-        // Twenty metres of hull, but a reach of forty from far out.
-        expect(shipAt(scene, 0, 270, 0)).toBe(-1);
-        expect(shipAt(scene, 0, 270, 40)).toBe(9);
-    });
 
     it("frames the ship and what it is fighting, and nothing else", () => {
         const bounds = selectionBounds(picked(), 3)!;

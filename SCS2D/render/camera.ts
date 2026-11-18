@@ -437,24 +437,6 @@ export const PICK_PX = 12;
 export const TOUCH_PICK_PX = 28;
 
 /**
- * The body of the ship under a point, or -1: the nearest whose hull circle, or
- * a few pixels round its centre when it is drawn smaller than that, holds the
- * point.
- */
-export function shipAt(snapshot: Snapshot, x: number, y: number, reach: number): number {
-    let best = -1;
-    let nearest = Infinity;
-    for (let i = 0; i < snapshot.shipCount; i++) {
-        const ship = snapshot.ships[i]!;
-        const d = Math.hypot(ship.x - x, ship.y - y);
-        if (d > Math.max(ship.currentStructure.radius, reach) || d >= nearest) continue;
-        nearest = d;
-        best = ship.body;
-    }
-    return best;
-}
-
-/**
  * The bounds of the picked-out ship, what it is fighting and what it is
  * escorting, the asteroid or hulk it is scavenging, the ship it is docking
  * or landing on and what it is keeping clear of most, to frame on; null when
