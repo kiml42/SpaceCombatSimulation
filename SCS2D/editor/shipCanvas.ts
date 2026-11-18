@@ -16,7 +16,7 @@ import {
 import { ARCS_KEY, draw, nextArcs, type Arcs } from "../render/canvas2d.js";
 import { sidesOf, withSides } from "../render/teams.js";
 import { BUILDER_LIGHT } from "../render/light.js";
-import { pixiUnder } from "../render/pixiView.js";
+import { layerUnder } from "../render/layerView.js";
 import { easeScale, fitScale, frame, snapStep, type Camera } from "../render/camera.js";
 import type { EditorDocument } from "./document.js";
 import {
@@ -243,7 +243,7 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
     const ctx = canvas.getContext("2d");
     if (ctx === null) throw new Error("no 2d context");
     // Drawn with Pixi underneath, as the battle is.
-    const stacked = pixiUnder(canvas);
+    const stacked = layerUnder(canvas);
     const camera: Camera = { x: 0, y: 0, scale: 8 };
     const snapMetres = (): number => snapStep(camera.scale);
     /**
@@ -996,6 +996,7 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
     resized.observe(canvas);
     // Drawn once Pixi has started.
     void stacked.view.started.then((started) => started && render());
+    stacked.onChange(render);
 
     return {
         camera,

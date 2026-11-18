@@ -13,7 +13,7 @@ import { sidesOf, withSides } from "../render/teams.js";
 import { draw } from "../render/canvas2d.js";
 import type { Camera } from "../render/camera.js";
 import { BUILDER_LIGHT } from "../render/light.js";
-import { pixiView, type PixiView } from "../render/pixiView.js";
+import { onRendererChange, viewOf, type LayerView } from "../render/layerView.js";
 import { NO_TEAM } from "../editor/preview.js";
 import { fleetSnapshot } from "../editor/fleetPreview.js";
 import type { FleetView } from "../editor/fleetDocument.js";
@@ -167,15 +167,23 @@ const scratch = new Snapshot();
  * One renderer for every picture, drawn on a canvas of its own and copied out,
  * since a page may hold only about sixteen WebGL contexts.
  */
-let shared: PixiView | null = null;
+let shared: LayerView | null = null;
 /** Pictures asked for while it starts, to draw once it has. */
 const waiting = new Map<
     HTMLCanvasElement,
     { make: (into: Snapshot) => Snapshot; scale: number; liveries: readonly (Livery | undefined)[] }
 >();
 
-function sharedView(): PixiView | null {
-    shared ??= pixiView(document.createElement("canvas"));
+function sharedView(): LayerView | null {
+    if (shared === null) {
+        shared = viewOf(document.createElement("canvas"));
+        // Made again with the new renderer the next time a picture is drawn.
+        const stop = onRendererChange(() => {
+            stop();
+            shared?.dispose();
+            shared = null;
+        });
+    }
     return shared.failed ? null : shared;
 }
 
@@ -183,7 +191,7 @@ function eyeOn(shot: Snapshot, scale: number): Camera {
     return { x: (shot.minX + shot.maxX) / 2, y: (shot.minY + shot.maxY) / 2, scale };
 }
 
-function drawnWith(view: PixiView, canvas: HTMLCanvasElement, shot: Snapshot, scale: number): boolean {
+function drawnWith(view: LayerView, canvas: HTMLCanvasElement, shot: Snapshot, scale: number): boolean {
     const ctx = canvas.getContext("2d");
     if (ctx === null) return true;
     const { width, height } = canvas;

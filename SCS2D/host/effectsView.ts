@@ -3,7 +3,7 @@ import { frame, type Camera } from "../render/camera.js";
 import { draw } from "../render/canvas2d.js";
 import { Flashes } from "../render/flashes.js";
 import { DEFAULT_LIGHT, type Light } from "../render/light.js";
-import { pixiUnder } from "../render/pixiView.js";
+import { layerUnder } from "../render/layerView.js";
 import { EFFECTS_SCENES } from "./effectsScene.js";
 
 /**
@@ -26,7 +26,7 @@ export interface EffectsView {
 }
 
 export function effectsView(canvas: HTMLCanvasElement): EffectsView {
-    const stacked = pixiUnder(canvas);
+    const stacked = layerUnder(canvas);
     const camera: Camera = { x: 0, y: 0, scale: 8 };
     const snapshot = new Snapshot();
     const flashes = new Flashes();

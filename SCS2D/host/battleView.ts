@@ -47,7 +47,7 @@ import { Rewind } from "../scenarios/rewind.js";
 import { viewGestures } from "./viewGestures.js";
 import { DEFAULT_LIGHT } from "../render/light.js";
 import { sidesOf, STOCK, withSides, type Sides } from "../render/teams.js";
-import { pixiUnder, type PixiView } from "../render/pixiView.js";
+import { layerUnder, type LayerView } from "../render/layerView.js";
 import { loadView, saveView, type ViewSettings } from "./viewSettings.js";
 
 /**
@@ -307,8 +307,8 @@ export function battleView(
     /** Where the view's settings are kept, once a page has asked for them to be. */
     let kept: { page: string; settings: ViewSettings } | null = null;
     /** Pixi's canvas, under this one, which draws the battle: this one holds only what is dragged or placed. */
-    const stacked = pixiUnder(canvas);
-    const layer: PixiView = stacked.view;
+    const stacked = layerUnder(canvas);
+    const layer: LayerView = stacked.view;
     const remember = (): void => {
         if (kept === null) return;
         // Over what is kept now, whose speed the page may have changed since.

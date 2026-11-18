@@ -31,7 +31,7 @@ interface SubPath {
 }
 
 /** Where drawing may go: inside one of `polys` (a union), or outside the one. */
-interface Clip {
+export interface Clip {
     readonly inside: boolean;
     readonly polys: number[][];
 }
@@ -835,7 +835,7 @@ export function clipToConvex(points: number[], clip: number[]): number[] | null 
 }
 
 /** A filled polygon's pieces within every clip. The outside of a shape is not cut from a fill. */
-function clipPolygon(points: number[], clips: readonly Clip[]): number[][] {
+export function clipPolygon(points: number[], clips: readonly Clip[]): number[][] {
     let pieces = [points];
     for (const clip of clips) {
         if (!clip.inside) continue;
@@ -978,19 +978,19 @@ export function parseColour(colour: string): [number, number] {
     return parsed;
 }
 
-function fontSize(font: string): number {
+export function fontSize(font: string): number {
     return Number(/(\d+(?:\.\d+)?)px/.exec(font)?.[1] ?? 10);
 }
 
-function fontFamily(font: string): string {
+export function fontFamily(font: string): string {
     return /px\s+(.+)$/.exec(font)?.[1] ?? "sans-serif";
 }
 
-function anchorX(align: string): number {
+export function anchorX(align: string): number {
     return align === "center" ? 0.5 : align === "right" || align === "end" ? 1 : 0;
 }
 
-function anchorY(baseline: string): number {
+export function anchorY(baseline: string): number {
     return baseline === "middle"
         ? 0.5
         : baseline === "bottom" || baseline === "ideographic"

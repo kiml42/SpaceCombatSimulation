@@ -4,7 +4,7 @@ import { sidesOf, withSides } from "../render/teams.js";
 import { frame, snapStep, type Camera } from "../render/camera.js";
 import { viewOptions } from "../host/viewOptions.js";
 import { BUILDER_LIGHT } from "../render/light.js";
-import { pixiUnder } from "../render/pixiView.js";
+import { layerUnder } from "../render/layerView.js";
 import { snap } from "./edit.js";
 import { deleteEntries, entryAt, moveEntries, samePath, updateEntry, type EntryPath } from "./fleetEdit.js";
 import { centreOf, toFrame, toFrameAngle, type EntryFrame, type FleetDocument } from "./fleetDocument.js";
@@ -65,7 +65,7 @@ export function fleetCanvas(canvas: HTMLCanvasElement, doc: FleetDocument, hooks
     const ctx = canvas.getContext("2d");
     if (ctx === null) throw new Error("no 2d context");
     // Drawn with Pixi underneath, as the battle is.
-    const stacked = pixiUnder(canvas);
+    const stacked = layerUnder(canvas);
     const camera: Camera = { x: 0, y: 0, scale: 1 };
     const snapshot = new Snapshot();
     let fitPending = true;
@@ -349,6 +349,7 @@ export function fleetCanvas(canvas: HTMLCanvasElement, doc: FleetDocument, hooks
     resized.observe(canvas);
     // Drawn once Pixi has started.
     void stacked.view.started.then((started) => started && render());
+    stacked.onChange(render);
 
     return {
         camera,
