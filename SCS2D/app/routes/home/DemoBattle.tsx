@@ -5,14 +5,14 @@ import type { BattleView } from "~/host/battleView";
 import { SCENES } from "~/scenarios/scenes";
 
 /** The scenes the menu shows in turn, by name: fleets in action, light enough not to slow the menu, each a minute. */
-export const DEMO_SCENES = ["Beam Carrier", "Lance Duel", "Line Ahead", "Standoff", "Swarm"] as const;
-export const DEMO_SECONDS = 60;
+export const DEMO_SCENES = ["Beam Carrier", "Lance Duel", "Standoff", "Swarm"] as const;
+export const DEMO_SECONDS = 90;
 
 /** Dimmed, so it is behind the menu rather than competing with it. */
 const Dim = styled.div`
     display: flex;
     height: 100%;
-    opacity: 0.2;
+    opacity: 0.8;
 `;
 
 function reducedMotion(): boolean {
