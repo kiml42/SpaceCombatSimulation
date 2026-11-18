@@ -1422,10 +1422,12 @@ export class Credit {
     module = new Int32Array(64);
     /** The attacker's module that did it, or -1: known for a collision, not for fire. */
     attackerModule = new Int32Array(64);
+    /** The ship that did it, where known whatever has become of its body (wreckage, a spent ram), or -1 (`Ships.attackerOf`). */
+    attackerShip = new Int32Array(64);
     count = 0;
 
-    push(attacker: number, victim: number, energy: number, module = -1, attackerModule = -1): void {
-        if (attacker < 0 || !(energy > 0)) return;
+    push(attacker: number, victim: number, energy: number, module = -1, attackerModule = -1, attackerShip = -1): void {
+        if ((attacker < 0 && attackerShip < 0) || !(energy > 0)) return;
         if (this.count === this.attacker.length) this.grow();
         const i = this.count++;
         this.attacker[i] = attacker;
@@ -1433,6 +1435,7 @@ export class Credit {
         this.energy[i] = energy;
         this.module[i] = module;
         this.attackerModule[i] = attackerModule;
+        this.attackerShip[i] = attackerShip;
     }
 
     clear(): void {
@@ -1456,6 +1459,9 @@ export class Credit {
         const attackerModule = new Int32Array(size);
         attackerModule.set(this.attackerModule);
         this.attackerModule = attackerModule;
+        const attackerShip = new Int32Array(size);
+        attackerShip.set(this.attackerShip);
+        this.attackerShip = attackerShip;
     }
 }
 
@@ -1840,7 +1846,7 @@ export class Impacts {
                     nx * s + ny * c,
                 );
             }
-            credit?.push(projectiles.owner[round]!, body, out.energy, out.first);
+            credit?.push(projectiles.owner[round]!, body, out.energy, out.first, -1, projectiles.ship[round]!);
             // The momentum the round lost is the momentum the ship gained, which is
             // a shove and — where it lands — a blow the hull has to hold together
             // under.

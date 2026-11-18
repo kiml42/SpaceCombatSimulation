@@ -96,6 +96,8 @@ export interface ProjectileSpec {
     layers?: number;
     /** Caller-defined classification (AP, HE, and so on). Uninterpreted here. */
     kind?: number;
+    /** The ship to credit what it does to, whatever becomes of `owner`'s body. */
+    ship?: number;
     /** Seconds until it bursts into `fragments`. Never when absent. */
     fuse?: number;
     /** How many fragments it bursts into. */
@@ -213,6 +215,8 @@ export class Projectiles {
     /** The layers it is in, as a `HULL_LAYER` / `WEAPONS_LAYER` mask. */
     layers!: Uint8Array;
     kind!: Int32Array;
+    /** The ship it is credited to whatever becomes of `owner`'s body, or -1 to credit whoever flies that (`Credit.attackerShip`). */
+    ship!: Int32Array;
     /** Seconds until it bursts; `Infinity` for a round that never does. */
     fuse!: Float64Array;
     /** The most a fragment's speed differs from the round's, m/s. */
@@ -301,6 +305,7 @@ export class Projectiles {
         if (this.layers) layer.set(this.layers);
         this.layers = layer;
         this.kind = i32(this.kind);
+        this.ship = i32(this.ship);
         this.fuse = f64(this.fuse);
         this.spread = f64(this.spread);
         this.fragmentLife = f64(this.fragmentLife);
@@ -381,6 +386,7 @@ export class Projectiles {
         this.fromModule[i] = fromModule;
         this.layers[i] = layers;
         this.kind[i] = kind;
+        this.ship[i] = -1;
         this.fuse[i] = fuse;
         this.spread[i] = spread;
         this.fragmentLife[i] = fragmentLife;
@@ -397,7 +403,7 @@ export class Projectiles {
 
     /** `spawnRaw` with named fields and defaults, for setup code and tests. */
     spawn(spec: ProjectileSpec): number {
-        return this.spawnRaw(
+        const i = this.spawnRaw(
             spec.x,
             spec.y,
             spec.vx,
@@ -418,6 +424,8 @@ export class Projectiles {
             spec.casing ?? spec.mass ?? 1,
             spec.metal ?? 1,
         );
+        this.ship[i] = spec.ship ?? -1;
+        return i;
     }
 
     /**

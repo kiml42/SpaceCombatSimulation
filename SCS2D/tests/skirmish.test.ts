@@ -75,6 +75,7 @@ function staged(dt = 1) {
         isDisarmed: (i: number) => disarmed[i]!,
         lastFired: (i: number) => fired[i]!,
         pilotAt: (body: number) => body,
+        attackerOf: (credit: { attacker: Int32Array }, h: number) => credit.attacker[h]!,
         canBuildArmed: () => false,
         lastBuilt: () => -1,
     };

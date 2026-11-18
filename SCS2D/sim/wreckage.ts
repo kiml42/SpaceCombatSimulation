@@ -1,12 +1,13 @@
 import type { Bodies } from "./bodies.js";
-import type { Contacts } from "./collision.js";
+import { OUTLET_A, OUTLET_B, type Contacts } from "./collision.js";
 import { SHATTER } from "./damage.js";
-import { moduleLayers } from "./hull.js";
-import { cos, log, max, min, pow, sin, sqrt, TAU } from "./math.js";
+import { BOTH_LAYERS, moduleLayers } from "./hull.js";
+import { abs, cos, log, max, min, pow, sin, sqrt, TAU } from "./math.js";
 import { ROUND_SHRAPNEL, ROUND_WRECKAGE, type Projectiles } from "./projectiles.js";
 import type { Rng } from "./rng.js";
 import { blowKey, heldMass } from "./shipBreakup.js";
 import type { Ships } from "./ships.js";
+import type { World } from "./world.js";
 
 /**
  * A module shattered in a collision flies on as wreckage.
@@ -166,6 +167,7 @@ export function throwWreckage(ships: Ships, bodies: Bodies, projectiles: Project
                 ttl: WRECKAGE_LIFE,
                 mass: masses[f]!,
                 owner: b,
+                ship: ships.shipByBody[b]!,
                 layers,
                 kind: ROUND_WRECKAGE,
             });
@@ -215,6 +217,7 @@ export function throwShrapnel(ships: Ships, projectiles: Projectiles): number {
             ttl: WRECKAGE_LIFE,
             mass,
             owner: s.owner[k]!,
+            ship: s.ship[k]!,
             layers: s.layers[k]!,
             kind: ROUND_SHRAPNEL,
         });
@@ -226,4 +229,91 @@ export function throwShrapnel(ships: Ships, projectiles: Projectiles): number {
     const thrown = s.count;
     s.count = 0;
     return thrown;
+}
+
+/**
+ * Spend every hull this step's collisions would destroy outright
+ * (`Contacts.spent`) on what it met, as rounds, and say how many it spent.
+ *
+ * A hull that meets another so hard that its share of the blow is more than
+ * all of it can stand does not bounce: it comes apart, and what it does is
+ * what each part of it does, arriving. So every module goes on as a
+ * round of its mass, at the velocity its place on the hull had, as wide as it
+ * is across the way it is going, from where it was, taken back out of what
+ * it struck. The nose meets the plate first and the tail after it, each by
+ * the law any round meets armour by: what gets through goes on into the
+ * internals, and what stops spends all it has there. The rounds carry the
+ * ship's mass and momentum between them, and are credited to it.
+ */
+export function spendHulls(ships: Ships, world: World, projectiles: Projectiles, contacts: Contacts): number {
+    const bodies = world.bodies;
+    let spent = 0;
+    for (let k = 0; k < contacts.count; k++) {
+        const sides = contacts.spent[k]!;
+        for (const side of [OUTLET_A, OUTLET_B]) {
+            if ((sides & side) === 0) continue;
+            const r = side === OUTLET_A ? contacts.a[k]! : contacts.b[k]!;
+            const o = side === OUTLET_A ? contacts.b[k]! : contacts.a[k]!;
+            const i = ships.shipByBody[r] ?? -1;
+            if (i < 0 || bodies.alive[r] === 0 || ships.alive[i] === 0) continue;
+            const design = ships.designs[i]!;
+
+            // The way it is going into what it struck, at the contact.
+            const ox = contacts.x[k]! - bodies.x[o]!;
+            const oy = contacts.y[k]! - bodies.y[o]!;
+            const relX = bodies.vx[r]! - (bodies.vx[o]! - bodies.angularVel[o]! * oy);
+            const relY = bodies.vy[r]! - (bodies.vy[o]! + bodies.angularVel[o]! * ox);
+            const speed = sqrt(relX * relX + relY * relY);
+            if (!(speed > 0)) continue;
+            const ux = relX / speed;
+            const uy = relY / speed;
+            // Back out of what it struck: as deep as it is in, along the way it came.
+            const square = abs(ux * contacts.nx[k]! + uy * contacts.ny[k]!);
+            const back = contacts.depth[k]! / max(0.2, square) + 0.05;
+
+            let held = 0;
+            for (let m = 0; m < design.modules.length; m++) held += heldMass(ships, r, design, m);
+            if (!(held > 0)) continue;
+            // So the rounds weigh what the body does, to the gram.
+            const scale = bodies.mass[r]! / held;
+            const c = cos(bodies.angle[r]!);
+            const s = sin(bodies.angle[r]!);
+            const spin = bodies.angularVel[r]!;
+            for (let m = 0; m < design.modules.length; m++) {
+                const mass = heldMass(ships, r, design, m) * scale;
+                if (!(mass > 0)) continue;
+                const placed = design.modules[m]!;
+                const rx = placed.x * c - placed.y * s;
+                const ry = placed.x * s + placed.y * c;
+                // Its extent across the way it is going.
+                const along = bodies.angle[r]! + placed.angle;
+                const ax = cos(along);
+                const ay = sin(along);
+                const across = abs(placed.spec.length * (-ax * uy + ay * ux)) + abs(placed.spec.width * (ay * uy + ax * ux));
+                projectiles.spawn({
+                    x: bodies.x[r]! + rx - ux * back,
+                    y: bodies.y[r]! + ry - uy * back,
+                    vx: bodies.vx[r]! - spin * ry,
+                    vy: bodies.vy[r]! + spin * rx,
+                    width: max(across, 0.01),
+                    ttl: WRECKAGE_LIFE,
+                    mass,
+                    ship: i,
+                    layers: BOTH_LAYERS,
+                    kind: ROUND_WRECKAGE,
+                });
+            }
+
+            ships.damage.forget(r);
+            ships.fuel.forget(r);
+            ships.metal.forget(r);
+            ships.power.forget(r);
+            ships.robots.forget(r);
+            ships.shipByBody[r] = -1;
+            ships.remove(i);
+            world.destroy(ships.bodyIds[i]!);
+            spent++;
+        }
+    }
+    return spent;
 }

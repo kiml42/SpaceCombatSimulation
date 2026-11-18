@@ -176,7 +176,10 @@ describe("a contact, end to end", () => {
         let rammed = 0;
         for (let i = 0; i < 1200 && rammed === 0; i++) {
             battle.step();
-            for (let h = 0; h < battle.credit.count; h++) if (battle.credit.attackerModule[h]! >= 0) rammed++;
+            // By the module that struck, or by the ship a ram destroyed outright, gone on as rounds.
+            for (let h = 0; h < battle.credit.count; h++) {
+                if (battle.credit.attackerModule[h]! >= 0 || battle.credit.attackerShip[h]! >= 0) rammed++;
+            }
         }
         expect(rammed).toBeGreaterThan(0);
     });

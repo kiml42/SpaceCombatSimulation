@@ -47,6 +47,7 @@ export interface Watched {
         | "isDisarmed"
         | "lastFired"
         | "pilotAt"
+        | "attackerOf"
         | "canBuildArmed"
         | "lastBuilt"
         | "ramTarget"
@@ -54,7 +55,7 @@ export interface Watched {
         | "nearestEnemy"
     >;
     readonly world: { readonly tick: number; readonly dt: number };
-    readonly credit: Pick<Credit, "count" | "attacker" | "attackerModule" | "victim" | "module">;
+    readonly credit: Pick<Credit, "count" | "attacker" | "attackerModule" | "attackerShip" | "victim" | "module">;
 }
 
 /** How much closer than its best a ship must come to count as closing, m: drift and wobble are not an approach. */
@@ -208,7 +209,7 @@ export class Activity {
         if (this.landed.length < ships.highWater) this.landed = new Uint8Array(ships.highWater * 2);
         else this.landed.fill(0);
         for (let h = 0; h < credit.count; h++) {
-            const attacker = ships.pilotAt(credit.attacker[h]!, credit.attackerModule[h]!);
+            const attacker = ships.attackerOf(credit, h);
             const victim = ships.pilotAt(credit.victim[h]!, credit.module[h]!);
             if (attacker < 0) continue;
             const team = ships.teamOf(attacker);

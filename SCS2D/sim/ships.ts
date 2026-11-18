@@ -3,7 +3,7 @@ import { Bodies, type BodyId } from "./bodies.js";
 import { aboardPose, padHolds, sameOrigin, slipwayHolds, type DesignTurret, type ShipDesign } from "./blueprint.js";
 import { components, joints } from "./connectivity.js";
 import { BOTH_LAYERS, HULL_LAYER, Hulls, OWN_LAYERS, WEAPONS_LAYER } from "./hull.js";
-import { Damage, DamageEffect, type ImpactLog } from "./damage.js";
+import { Damage, DamageEffect, SHATTER, type Credit, type ImpactLog } from "./damage.js";
 import { Fuel, LEAK_HOLE_CALIBRES, leakChance } from "./fuel.js";
 import { Charge } from "./charge.js";
 import { Metal } from "./metal.js";
@@ -481,7 +481,7 @@ export class Ships {
     /**
      * Pieces broken off this step too small to keep (`detach`), waiting to fly on
      * as shrapnel (`throwShrapnel`): where, how fast, what they weigh, how big,
-     * the body they came off and the layers it was in. Empty between steps.
+     * the body and ship they came off and the layers it was in. Empty between steps.
      */
     readonly shrapnel = {
         x: [] as number[],
@@ -491,6 +491,7 @@ export class Ships {
         mass: [] as number[],
         size: [] as number[],
         owner: [] as number[],
+        ship: [] as number[],
         layers: [] as number[],
         count: 0,
     };
@@ -2437,6 +2438,31 @@ export class Ships {
      * The ship answering for a module of a body: whoever works it, or the body's
      * primary when nobody does or no module is named. -1 for no ship.
      */
+    /**
+     * Joules a body's hull can take in one blow before it is destroyed outright
+     * (`spendHulls`): `SHATTER` times every module's capacity, which is what
+     * shatters each of them, whatever it has taken already. `Infinity` for a
+     * hull that is protected, has a kernel, or is shared between ships.
+     */
+    toughness(bodyIndex: number): number {
+        const i = this.shipByBody[bodyIndex];
+        if (i === undefined || i < 0 || this.pilots[bodyIndex] != null || this.damage.isProtected(bodyIndex)) return Infinity;
+        const design = this.designs[i];
+        if (design == null) return Infinity;
+        let total = 0;
+        for (let m = 0; m < design.modules.length; m++) {
+            if (this.damage.kindAt(bodyIndex, m) === "kernel") return Infinity;
+            total += this.damage.capacityOf(bodyIndex, m);
+        }
+        return SHATTER * total;
+    }
+
+    /** The ship credit entry `h` credits: the one it names, if any, else whoever flies the module that did it. */
+    attackerOf(credit: Pick<Credit, "attacker" | "attackerModule" | "attackerShip">, h: number): number {
+        const ship = credit.attackerShip[h]!;
+        return ship >= 0 ? ship : this.pilotAt(credit.attacker[h]!, credit.attackerModule[h]!);
+    }
+
     pilotAt(bodyIndex: number, module = -1): number {
         const bodies = this.bodyStore;
         if (bodies === null) return -1;

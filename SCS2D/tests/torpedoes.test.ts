@@ -30,12 +30,11 @@ describe("a salvo of torpedoes", () => {
         const downed = new Set<number>();
         for (let i = 0; i < 3000; i++) {
             battle.step();
-            const contacts = battle.collisions.contacts;
-            for (let k = 0; k < contacts.count; k++) {
-                for (const body of [contacts.a[k]!, contacts.b[k]!]) {
-                    const pilot = ships.pilotAt(body);
-                    if (salvo.includes(pilot) && !downed.has(pilot)) hit.add(pilot);
-                }
+            // Landed if it dealt the gunship anything, which a torpedo spent on it as rounds still does, though gone.
+            const credit = battle.credit;
+            for (let h = 0; h < credit.count; h++) {
+                const pilot = ships.attackerOf(credit, h);
+                if (salvo.includes(pilot) && !downed.has(pilot) && ships.pilotAt(credit.victim[h]!) === 0) hit.add(pilot);
             }
             for (const t of salvo) if (!hit.has(t) && (!ships.isAlive(t) || !ships.hasControl(t))) downed.add(t);
         }
@@ -70,6 +69,11 @@ describe("a torpedo's last seconds", () => {
                     const pilot = other < 0 ? -1 : ships.pilotAt(other);
                     // A torpedo, not a piece cut off something else.
                     if (pilot > 0 && pilot <= 12) reached.add(pilot);
+                }
+                // Or spent on it as rounds, gone by the time its contact is read, but credited.
+                for (let h = 0; h < battle.credit.count; h++) {
+                    const pilot = ships.attackerOf(battle.credit, h);
+                    if (pilot > 0 && pilot <= 12 && battle.credit.victim[h] === gunship) reached.add(pilot);
                 }
             }
             hit += reached.size;

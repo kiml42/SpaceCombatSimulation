@@ -15,6 +15,7 @@ import {
     ProjectileHits,
     Ships,
     SpatialGrid,
+    spendHulls,
     throwShrapnel,
     throwWreckage,
     World,
@@ -270,6 +271,9 @@ export function makeBattle<Extra extends object = Record<never, never>>(
             // What broke off too small to keep goes on as shrapnel.
             throwShrapnel(ships, projectiles);
             this.totalCulled += ships.cull(world);
+            // A hull a collision destroyed outright goes on into what it met, as rounds: last, so
+            // nothing made later in the step takes its body's place while its contact is still read.
+            spendHulls(ships, world, projectiles, collisions.contacts);
         },
     };
 

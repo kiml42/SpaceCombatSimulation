@@ -222,6 +222,7 @@ describe("the damage an enemy does", () => {
         ({
             ships: {
                 pilotAt: (body: number) => body,
+                attackerOf: (credit: { attacker: number[] }, h: number) => credit.attacker[h]!,
                 teamOf: (ship: number) => ship,
                 damage: { kindAt: (_body: number, module: number) => (module === 0 ? "structure" : "hullGun") },
             },

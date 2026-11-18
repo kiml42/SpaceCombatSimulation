@@ -21,11 +21,14 @@ const DRY: Blueprint = {
     modules: TORPEDO.modules.map((m) => ("kind" in m && (m.kind === "tank" || m.kind === "core") ? { ...m, fill: 0 } : m)),
 };
 
-/** A still Corvette, and a dry Torpedo 60 m off its side closing at `speed`, committed so it meets the deck. */
-function ram(speed: number) {
+/** The same, not a fighter, so it meets the deck without dropping to it. */
+const HULL: Blueprint = { ...DRY, fighter: false };
+
+/** A still Corvette, and a dry Torpedo (or `design`) 60 m off its side closing at `speed`. */
+function ram(speed: number, design: Blueprint = DRY) {
     const run = makeBattle({ seed: 1 }, (ships, world) => {
         const corvette = ships.spawn(world, { design: compileBlueprint(CORVETTE), x: 0, y: 0, angle: 0, team: 1 });
-        const torpedo = ships.spawn(world, { design: compileBlueprint(DRY), x: 0, y: -60, angle: Math.PI / 2, vy: speed, team: 0 });
+        const torpedo = ships.spawn(world, { design: compileBlueprint(design), x: 0, y: -60, angle: Math.PI / 2, vy: speed, team: 0 });
         return { corvette, torpedo };
     });
     const torpedoBody = run.world.bodies.indexOf(run.ships.body(run.torpedo));
@@ -64,16 +67,16 @@ function untilWreckage(run: ReturnType<typeof ram>["run"], limit = 120): Fragmen
 
 describe("a module shattered in a collision", () => {
     it("flies on as fragments of mixed sizes, still going into what it struck", () => {
-        const { run, torpedoBody } = ram(300);
+        const { run, torpedoBody } = ram(80, HULL);
         const thrown = untilWreckage(run).filter((f) => f.owner === torpedoBody);
         expect(thrown.length).toBeGreaterThan(1);
         expect(new Set(thrown.map((f) => f.mass)).size).toBe(thrown.length);
         // Into the corvette's side, which is up the screen from where the torpedo came.
-        for (const f of thrown) expect(f.vy).toBeGreaterThan(100);
+        for (const f of thrown) expect(f.vy).toBeGreaterThan(50);
     });
 
     it("carries no more energy against what it struck than the crush could not spend", () => {
-        const { run, torpedoBody } = ram(300);
+        const { run, torpedoBody } = ram(80, HULL);
         const thrown = untilWreckage(run).filter((f) => f.owner === torpedoBody);
         const c = run.collisions.contacts;
         let spare = 0;
@@ -84,12 +87,12 @@ describe("a module shattered in a collision", () => {
     });
 
     it("throws nothing from a blow too soft to shatter anything", () => {
-        const { run } = ram(10);
+        const { run } = ram(10, HULL);
         expect(untilWreckage(run, 600)).toHaveLength(0);
     });
 
     it("throws nothing from a module shattered by anything but a collision", () => {
-        const { run, torpedoBody } = ram(0);
+        const { run, torpedoBody } = ram(0, HULL);
         const nose = 0;
         run.ships.damage.absorb(torpedoBody, nose, 10 * run.ships.damage.capacityOf(torpedoBody, nose));
         expect(throwWreckage(run.ships, run.world.bodies, run.projectiles, run.collisions.contacts, run.world.rng)).toBe(0);
@@ -156,5 +159,64 @@ describe("a piece broken off too small to keep", () => {
     it("is thrown once", () => {
         const { ships, projectiles } = breakOff();
         expect(throwShrapnel(ships, projectiles)).toBe(0);
+    });
+});
+
+describe("a hull a collision would destroy outright", () => {
+    /** Step `run` until the torpedo is spent, or `limit` steps pass, keeping it on the deck; the rounds it became. */
+    const untilSpent = (run: ReturnType<typeof ram>["run"], limit = 120): ProjectileSpec[] => {
+        const rounds: ProjectileSpec[] = [];
+        const spawn = run.projectiles.spawn.bind(run.projectiles);
+        vi.spyOn(run.projectiles, "spawn").mockImplementation((spec: ProjectileSpec) => {
+            if (spec.kind === ROUND_WRECKAGE && spec.owner === undefined) rounds.push(spec);
+            return spawn(spec);
+        });
+        for (let t = 0; t < limit && rounds.length === 0; t++) {
+            if (run.ships.isAlive(run.torpedo)) (run.ships.committed as number[])[run.torpedo] = 1;
+            run.step();
+        }
+        return rounds;
+    };
+
+    it("is spent on it as rounds that carry its mass and momentum, credited to it", () => {
+        const { run, torpedoBody } = ram(150);
+        const mass = run.world.bodies.mass[torpedoBody]!;
+        const rounds = untilSpent(run);
+        expect(run.ships.isAlive(run.torpedo)).toBe(false);
+        expect(rounds.length).toBe(compileBlueprint(DRY).modules.length);
+        expect(rounds.reduce((m, r) => m + r.mass!, 0)).toBeCloseTo(mass, 6);
+        // Still going into the corvette's side, which is up the screen.
+        expect(rounds.reduce((p, r) => p + r.mass! * r.vy, 0) / mass).toBeGreaterThan(140);
+        for (const r of rounds) expect(r.ship).toBe(run.torpedo);
+    });
+
+    it("deals what its rounds do to its own account, though it is gone", () => {
+        const { run } = ram(150);
+        untilSpent(run);
+        let dealt = 0;
+        for (let t = 0; t < 30; t++) {
+            run.step();
+            for (let h = 0; h < run.credit.count; h++)
+                if (run.ships.attackerOf(run.credit, h) === run.torpedo) dealt += run.credit.energy[h]!;
+        }
+        expect(dealt).toBeGreaterThan(0);
+    });
+
+    it("is not spent by a slow contact", () => {
+        const { run } = ram(10);
+        expect(untilSpent(run, 600)).toHaveLength(0);
+        expect(run.ships.isAlive(run.torpedo)).toBe(true);
+    });
+
+    it("is spent whatever it was doing: a hull that is no fighter, flown into it as hard", () => {
+        const { run } = ram(150, HULL);
+        expect(untilSpent(run).length).toBe(compileBlueprint(HULL).modules.length);
+        expect(run.ships.isAlive(run.torpedo)).toBe(false);
+    });
+
+    it("is not spent by a blow that only breaks part of it", () => {
+        const { run } = ram(80, HULL);
+        expect(untilSpent(run)).toHaveLength(0);
+        expect(run.ships.isAlive(run.torpedo)).toBe(true);
     });
 });
