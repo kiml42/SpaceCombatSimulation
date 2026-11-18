@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { ShipView } from "../sim/index.js";
+import { compileBlueprint, type ShipView } from "../sim/index.js";
+import { BLUEPRINTS } from "../scenarios/blueprints.js";
 import {
     HULK_ICON_MASS,
     iconAlpha,
@@ -7,6 +8,7 @@ import {
     ICON_FADE_START_PX,
     ICON_MAX_ALPHA,
     ICON_OUTLINE,
+    iconShape,
     isWreckage,
 } from "../render/icons.js";
 
@@ -107,5 +109,26 @@ describe("wreckage", () => {
 
     it("is a severed piece whatever it weighs", () => {
         expect(isWreckage(view(big, false, false, true))).toBe(true);
+    });
+});
+
+describe("icon shape", () => {
+    const shape = (name: keyof typeof BLUEPRINTS) => iconShape(compileBlueprint(BLUEPRINTS[name]));
+
+    it("is an arrowhead for a ship that fights and pushes one way", () => {
+        expect(shape("corvette")).toBe("arrow");
+        expect(shape("xWing")).toBe("arrow");
+        expect(shape("torpedo")).toBe("arrow");
+    });
+
+    it("is round for one that pushes alike every way and whose guns train right round", () => {
+        expect(shape("salvager")).toBe("round");
+        expect(shape("gunPlatform")).toBe("round");
+        expect(shape("beamCarrier")).toBe("round");
+    });
+
+    it("is a pointed hull for a capital ship with a front", () => {
+        expect(shape("starDestroyer")).toBe("long");
+        expect(shape("quasar")).toBe("long");
     });
 });

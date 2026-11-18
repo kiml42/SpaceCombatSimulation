@@ -14,6 +14,7 @@
  * saying the icons pop.
  */
 
+import type { ShipDesign } from "../sim/blueprint.js";
 import type { ShipView } from "../sim/snapshot.js";
 
 /** Nose-to-tail length of an icon on screen, pixels. */
@@ -93,3 +94,61 @@ export const ICON_OUTLINE: readonly (readonly [number, number])[] = [
     [-0.24, 0],
     [-0.5, -0.42],
 ];
+
+/**
+ * A capital ship's icon: a hull with a pointed bow, in the same frame as the
+ * arrowhead, so it reads as a ship with a front rather than as a dart.
+ */
+export const LONG_ICON_OUTLINE: readonly (readonly [number, number])[] = [
+    [0.5, 0],
+    [0.22, 0.2],
+    [-0.5, 0.2],
+    [-0.5, -0.2],
+    [0.22, -0.2],
+];
+
+/** A round icon's radius, in the arrowhead's frame. */
+export const ROUND_ICON_RADIUS = 0.32;
+
+/**
+ * What an icon says about a ship: `arrow` that it fights and pushes one way,
+ * `round` that it has no front, and `long` that it has one and is a capital ship.
+ */
+export type IconShape = "arrow" | "round" | "long";
+
+/** The bounding radius, metres, at and above which a ship with a front is drawn `long`. */
+export const LONG_ICON_RADIUS = 50;
+
+/**
+ * The least share of its strongest push a layout must have along each of its
+ * four axes for the ship to have no front by its engines.
+ */
+export const ROUND_THRUST_SHARE = 0.5;
+
+/** The least arc, radians, every main gun must train through for the ship to have no front by its guns. */
+export const ROUND_GUN_ARC = 1.5 * Math.PI;
+
+const shapes = new WeakMap<ShipDesign, IconShape>();
+
+/**
+ * `round` for a ship that pushes much alike every way and whose main guns
+ * (if any) all train most of the way round; otherwise `long` from
+ * `LONG_ICON_RADIUS` up, and `arrow` below it. Worked out once per design.
+ */
+export function iconShape(design: ShipDesign): IconShape {
+    let shape = shapes.get(design);
+    if (shape !== undefined) return shape;
+    const layout = design.engineLayout;
+    let most = 0;
+    let least = Infinity;
+    for (let k = 0; k < 4; k++) {
+        const along = layout.maxThrustAlong(k === 0 ? 1 : k === 2 ? -1 : 0, k === 1 ? 1 : k === 3 ? -1 : 0);
+        most = Math.max(most, along);
+        least = Math.min(least, along);
+    }
+    const evenPush = !(most > 0) || least >= ROUND_THRUST_SHARE * most;
+    const evenGuns = design.turrets.every((t) => !t.main || (t.mount.leftArc ?? Math.PI) + (t.mount.rightArc ?? Math.PI) >= ROUND_GUN_ARC);
+    shape = evenPush && evenGuns ? "round" : design.radius >= LONG_ICON_RADIUS ? "long" : "arrow";
+    shapes.set(design, shape);
+    return shape;
+}

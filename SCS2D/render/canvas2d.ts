@@ -115,7 +115,7 @@ import { eachCloudPuff, eachPuff, type Cloud, type Hole, type Pose, type Puff } 
 import { Poses } from "./poses.js";
 import { bit, bitCount, seedOf, spark, sparkColour, sparkCount, sparkFade, sprayOf, type Bit, type Spark } from "./particles.js";
 import type { PixiCanvas } from "./pixiCanvas.js";
-import { iconAlpha, ICON_OUTLINE, ICON_PX, isWreckage } from "./icons.js";
+import { iconAlpha, ICON_OUTLINE, ICON_PX, iconShape, isWreckage, LONG_ICON_OUTLINE, ROUND_ICON_RADIUS } from "./icons.js";
 
 const { cos, floor, sin, length, max, min, PI, sqrt, TAU } = math;
 
@@ -2437,6 +2437,9 @@ function eachNozzle(
  * the way that would otherwise vanish at this zoom. A ship riding another's
  * body, as a fighter on its pad, has none: the hull's own stands for it.
  *
+ * Its shape is the design's (`iconShape`): an arrowhead, a circle for a ship with
+ * no front, or a pointed hull for a capital ship.
+ *
  * It points the way the ship does (`ShipView.heading`), which is not always
  * its body's angle: a fighter launched from a pad keeps the carrier's frame.
  */
@@ -2454,9 +2457,13 @@ function drawIcon(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     ctx.scale(size, size);
     ctx.globalAlpha = alpha;
     ctx.beginPath();
-    ctx.moveTo(ICON_OUTLINE[0]![0], ICON_OUTLINE[0]![1]);
-    for (let i = 1; i < ICON_OUTLINE.length; i++) {
-        ctx.lineTo(ICON_OUTLINE[i]![0], ICON_OUTLINE[i]![1]);
+    const shape = iconShape(ship.currentStructure);
+    if (shape === "round") {
+        ctx.arc(0, 0, ROUND_ICON_RADIUS, 0, 2 * Math.PI);
+    } else {
+        const outline = shape === "long" ? LONG_ICON_OUTLINE : ICON_OUTLINE;
+        ctx.moveTo(outline[0]![0], outline[0]![1]);
+        for (let i = 1; i < outline.length; i++) ctx.lineTo(outline[i]![0], outline[i]![1]);
     }
     ctx.closePath();
     ctx.fillStyle = colours.hull;
