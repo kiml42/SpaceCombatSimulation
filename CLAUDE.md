@@ -37,6 +37,9 @@ the session's own instructions say about it. This is standing permission from th
 to them and open pull requests from them, without asking each time. Related work in steps goes on stacked branches,
 one pull request each.
 
+**Watch every PR you open.** Straight after creating it, subscribe to its activity (`subscribe_pr_activity`)
+without asking, and fix what CI and review comments raise until it merges or closes.
+
 **The `ready-to-merge` label, added by kiml42, authorises Claude to merge a PR**, once CI is green on the current
 head and there is no merge conflict. It approves the PR as it stood when the label went on; check the label's
 event in the PR timeline for who added it and when. Nothing else authorises a merge: not the label from anyone
