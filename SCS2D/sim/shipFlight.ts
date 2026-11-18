@@ -1618,6 +1618,8 @@ export function avoid(
         const ob = bodies.indexOf(ships.bodyIds[t]!);
         // Nothing to keep clear of in something that cannot be hit.
         if (ob < 0 || ob === b || bodies.ghost[ob] === 1 || !ships.meets(b, ob)) continue;
+        // Wreckage lodged on the rock it closes on is part of that rock, for its robots to clear.
+        if (hulksOnly && !neighbour && ob === flyingBody) continue;
         // Coming in to grip or land, it is among rocks on purpose, and keeps clear of them as of anything.
         const rock = ships.rockFlag[t] === 1 && !hulksOnly && !landing;
         // Landing, nothing riding the hull it lands on: a copy on its carrier's slipway is that hull.
