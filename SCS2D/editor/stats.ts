@@ -840,6 +840,11 @@ export function efficiencyAtShare(design: ShipDesign, envelope: Envelopes, share
     return out;
 }
 
+/** An `Envelopes.efficiency` figure as the specific impulse it stands for, s. */
+export function efficiencyIsp(design: ShipDesign, efficiency: number): number {
+    return specificImpulse(efficiency * bestExhaust(design));
+}
+
 /** The fastest exhaust of any engine it has, m/s; 0 with none. */
 function bestExhaust(design: ShipDesign): number {
     let best = 0;

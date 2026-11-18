@@ -1,6 +1,6 @@
 import { blockCentre, bodySpec, math, moduleCentre, shapeOf, type ModuleSpec, type ShipDesign } from "../sim/index.js";
 import { describeStep, snapStep, type Camera } from "../render/camera.js";
-import { curveAt, efficiencyAtShare, inUnits, pointedThrust, type Envelopes } from "./stats.js";
+import { curveAt, efficiencyAtShare, efficiencyIsp, inUnits, pointedThrust, type Envelopes } from "./stats.js";
 import type { AssemblyOutline } from "./document.js";
 import { HANDLE_RADIUS_PX, type Handle } from "./handles.js";
 import { LEFT_OUT_RADIUS_PX, leftOut } from "./edit.js";
@@ -194,6 +194,8 @@ export interface OverlayView {
     envelopeExpanded?: boolean;
     /** How far out the pointer is on the envelope, over its radius (`envelopeReachAt`). */
     envelopeReach?: number;
+    /** What the burn shown for the bearing pointed at costs (`burnFigures`), or null. */
+    envelopeBurn?: { isp: number; endurance: number } | null;
     /** The attack rosette, or null when there is no design. */
     attack?: AttackRosette | null;
     /** A bearing on the attack rosette being pointed at, radians from the bow, or null. */
@@ -206,7 +208,7 @@ export interface OverlayView {
 }
 
 /** Room above a grown rosette for the value at the bearing pointed at, pixels. */
-const POINTED_LABEL_PX = 46;
+const POINTED_LABEL_PX = 60;
 /** Between the lines of what is pointed at, pixels. */
 const POINTED_LINE_PX = 14;
 /** How far a grown rosette's window stands off what it holds, pixels. */
@@ -357,19 +359,36 @@ function degrees(bearing: number): string {
 }
 
 /** The value at the bearing pointed at, above the rosette's right edge, in the pointer's colour. */
-function pointedLabel(
-    ctx: CanvasRenderingContext2D,
-    lines: readonly (string | { readonly text: string; readonly colour: string })[],
-    right: number,
-    top: number,
-): void {
+/** A run of a label's line in a colour of its own. */
+type Run = { readonly text: string; readonly colour: string };
+
+/** Lines right-aligned above a rosette, each plain, in one colour, or in runs of several. */
+function pointedLabel(ctx: CanvasRenderingContext2D, lines: readonly (string | Run | readonly Run[])[], right: number, top: number): void {
     const y = Math.max(11 + POINTED_LINE_PX * (lines.length - 1), top - 6);
     ctx.font = "11px ui-monospace, monospace";
     ctx.textAlign = "right";
     lines.forEach((line, i) => {
-        ctx.fillStyle = typeof line === "string" ? ATTACK_POINTED : line.colour;
-        ctx.fillText(typeof line === "string" ? line : line.text, right, y - POINTED_LINE_PX * (lines.length - 1 - i));
+        const runs: readonly Run[] = typeof line === "string" ? [{ text: line, colour: ATTACK_POINTED }] : "text" in line ? [line] : line;
+        // From the right, the last run first.
+        let x = right;
+        for (let k = runs.length - 1; k >= 0; k--) {
+            const text = runs[k]!.text;
+            // Pixi's text drops trailing spaces, so they are left out and stepped over instead.
+            const drawn = text.trimEnd();
+            const width = ctx.measureText(text).width;
+            ctx.fillStyle = runs[k]!.colour;
+            ctx.fillText(drawn, x - (width - ctx.measureText(drawn).width), y - POINTED_LINE_PX * (lines.length - 1 - i));
+            x -= width;
+        }
     });
+}
+
+/** Seconds as a duration in its largest units, so it does not read as another figure in seconds. */
+function duration(seconds: number): string {
+    const s = Math.round(seconds);
+    if (s < 60) return `${s} s`;
+    if (s < 3600) return `${Math.floor(s / 60)} min ${s % 60} s`;
+    return `${Math.floor(s / 3600)} h ${Math.floor((s % 3600) / 60)} min`;
 }
 
 /** The ship from above in a rosette, about its centre of mass, which the rosette's bearings are measured from. */
@@ -972,13 +991,24 @@ function drawEnvelope(
         const thrustText = full
             ? inUnits([pointed.holding], "m/s²")
             : inUnits([pointed.acceleration, pointed.holding], "m/s²").replace("/", " / ");
-        const best = curveAt(envelope.efficiency, bearing);
-        const asked = part ? curveAt(partEfficiency(view.design!, envelope, share), bearing) : best;
-        const lines = [
+        // Efficiency as the specific impulse it amounts to, the part-thrust figure in its own curve's colour.
+        const isp = (efficiency: number): string => `${Math.round(view.design === null ? 0 : efficiencyIsp(view.design, efficiency))}`;
+        const best = isp(curveAt(envelope.efficiency, bearing));
+        const efficiency: Run[] = full
+            ? [{ text: `Efficiency: ${best} s`, colour: ENVELOPE_EFFICIENCY }]
+            : [
+                  { text: "Efficiency: ", colour: ENVELOPE_EFFICIENCY },
+                  { text: isp(curveAt(partEfficiency(view.design!, envelope, share), bearing)), colour: ENVELOPE_PART_EFFICIENCY },
+                  { text: ` / ${best} s`, colour: ENVELOPE_EFFICIENCY },
+              ];
+        const lines: (string | Run | readonly Run[])[] = [
             `${degrees(bearing)}: ${pair(percent(share), "max")}`,
             { text: `Available thrust: ${thrustText}`, colour: ENVELOPE },
-            { text: `Efficiency: ${pair(percent(asked), percent(best))}`, colour: ENVELOPE_EFFICIENCY },
+            efficiency,
         ];
+        // How long the fuel lasts at the burn pointed at.
+        const burn = view.envelopeBurn;
+        if (burn != null && Number.isFinite(burn.endurance)) lines.push(`Burns for ${duration(burn.endurance)}`);
         pointedLabel(ctx, lines, widthPx - ENVELOPE_MARGIN_PX, cy - radius);
     }
     ctx.textAlign = "left";
