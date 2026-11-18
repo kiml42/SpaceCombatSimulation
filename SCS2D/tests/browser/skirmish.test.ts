@@ -399,6 +399,8 @@ describe("the skirmish in a browser", () => {
         await page.waitForSelector("#backToSkirmish");
         expect(await page.textContent("#skirmishNote")).toBe("Pick your upgrade card back in Skirmish to fight again.");
         expect(await page.locator("#cardPick").count()).toBe(0);
+        // Not yet told what a card is.
+        await page.evaluate(() => localStorage.removeItem("scs2d.help.skirmishCard"));
         await page.click("#backToSkirmish");
         await page.waitForSelector("#round");
         // Offered in place of Fight and Edit fleet, and opened only when asked for.
@@ -406,6 +408,10 @@ describe("the skirmish in a browser", () => {
         expect(await page.locator("#fight").count()).toBe(0);
         await page.click("#pickCard");
         await page.waitForSelector("#earnedCard");
+        // Told, the first time, over the hand.
+        await page.waitForSelector("#skirmishCardHelp[open]");
+        await page.click("#skirmishCardHelpClose");
+        expect(await page.evaluate(() => localStorage.getItem("scs2d.help.skirmishCard"))).toBe("seen");
         // Put off to go on watching, and taken up again.
         await page.click("#earnedCardLater");
         expect(await page.locator("#earnedCard").count()).toBe(0);
@@ -422,11 +428,17 @@ describe("the skirmish in a browser", () => {
     it("makes editing the fleet the thing to do next once a round is lost", async () => {
         // A bare core cannot fire back, so it is out once the quiet time has passed.
         const skirmish = newSkirmish(shipFleet(GUNSHIP), shipFleet(BARE_CORE), 7, undefined, { metal: 1e9, fuel: 1e9, build: 1e9 });
+        // Not yet told what a loss means, and loaded afresh so the page reads that.
+        await page.evaluate(() => localStorage.removeItem("scs2d.help.skirmishLoss"));
+        await page.goto("about:blank");
         await page.goto(skirmishPage(skirmish));
         await page.waitForSelector("#round");
         await page.selectOption("#speed", "16");
         await page.click("#fight");
         await page.waitForSelector("#outcome.lost", { timeout: 60_000 });
+        // Told, the first time.
+        await page.waitForSelector("#skirmishLossHelp[open]");
+        await page.click("#skirmishLossHelpClose");
         // The corner of the battle says when and why.
         expect(await page.isVisible("#decided.lost")).toBe(true);
         expect(await page.textContent("#decidedTitle")).toMatch(/^Defeat at \d+ s$/);

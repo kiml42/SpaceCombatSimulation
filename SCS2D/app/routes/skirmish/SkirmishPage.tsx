@@ -66,7 +66,17 @@ import { Button } from "~/ui/buttons/Button";
 import { EditLink } from "~/ui/buttons/EditButton";
 import { EMPTY } from "./FleetChoices";
 import { keptSettings, SetupScreen } from "./SetupScreen";
-import { SKIRMISH_HELP_KEY, SKIRMISH_HELP_LABEL, SkirmishHelp } from "./SkirmishHelp";
+import {
+    SKIRMISH_CARD_HELP_KEY,
+    SKIRMISH_HELP_KEY,
+    SKIRMISH_HELP_LABEL,
+    SKIRMISH_LOSS_HELP_KEY,
+    SKIRMISH_WIN_HELP_KEY,
+    SkirmishCardHelp,
+    SkirmishHelp,
+    SkirmishLossHelp,
+    SkirmishWinHelp,
+} from "./SkirmishHelp";
 import { SETTINGS_KEY } from "./skirmishFields";
 import { Timeline } from "./Timeline";
 
@@ -445,6 +455,11 @@ export function SkirmishPage() {
     // Whether the enemy's search is shown fighting your fleet; not at first, so its evolving is what you see.
     const [watching, setWatching] = useState(false);
     const [enemyCost, setEnemyCost] = useState<Budget | null>(null);
+    // What a round's end means, told once each; ? stays the pause menu's keys.
+    const told = roundOver && !replaying && picking === null;
+    const lossHelp = useHelp(SKIRMISH_LOSS_HELP_KEY, { enabled: told && outcome.kind === "lost", key: false });
+    const winHelp = useHelp(SKIRMISH_WIN_HELP_KEY, { enabled: told && outcome.kind === "won", key: false });
+    const cardHelp = useHelp(SKIRMISH_CARD_HELP_KEY, { enabled: picking === "card", key: false });
     const [setupKey, setSetupKey] = useState(0);
     const [abandoning, setAbandoning] = useState(false);
     const ticked = useSampled(() => (view === null ? 0 : (battle.current?.world.tick ?? 0) > 0 ? 1 : 0));
@@ -997,6 +1012,9 @@ export function SkirmishPage() {
             </Controls>
             <Body>
                 <SkirmishHelp open={help.open && skirmish === null} onClose={help.close} />
+                <SkirmishLossHelp open={lossHelp.open} onClose={lossHelp.close} />
+                <SkirmishWinHelp open={winHelp.open} onClose={winHelp.close} />
+                <SkirmishCardHelp open={cardHelp.open} onClose={cardHelp.close} />
                 {skirmish === null && (
                     <SetupScreen
                         key={setupKey}
