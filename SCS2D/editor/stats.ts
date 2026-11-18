@@ -177,6 +177,12 @@ export interface DesignStats {
     turnLeft: number;
     turnRight: number;
     /**
+     * Seconds to turn about from rest and stop again, on full torque one way and
+     * then the other, which is the same either way round. Infinity when it
+     * cannot turn both ways.
+     */
+    turnAbout: number;
+    /**
      * Whether the layout can push both ways on both axes and turn both ways. A
      * ship without it cannot hold a heading while translating, which is a design
      * error worth finding at the drawing board rather than in a battle.
@@ -220,6 +226,16 @@ export function roundsAboard(design: ShipDesign, module: number): number {
     }
     // A whisker under a whole round is still a whole round, not round-off short of one.
     return Math.floor(metal / casing + 1e-9);
+}
+
+/**
+ * Seconds to turn `angle` from rest and stop, speeding up at `start` and
+ * slowing at `stop`: the swing splits where the two meet, at a top rate of
+ * √(2θ·a₁a₂/(a₁+a₂)).
+ */
+export function turnTime(angle: number, start: number, stop: number): number {
+    if (!(start > 0) || !(stop > 0)) return Infinity;
+    return Math.sqrt((2 * angle * (start + stop)) / (start * stop));
 }
 
 /** The main battery's heaviest gun, and how many of its rounds the ship sets out with. */
@@ -298,6 +314,7 @@ export function designStats(design: ShipDesign, envelope: Envelopes): DesignStat
         brakeTurned: trim(math.cos(design.thrustBearing), math.sin(design.thrustBearing)),
         turnLeft: layout.maxTorque(1) / inertia,
         turnRight: layout.maxTorque(-1) / inertia,
+        turnAbout: turnTime(math.PI, layout.maxTorque(1) / inertia, layout.maxTorque(-1) / inertia),
         fullAuthority: layout.hasFullAuthority(),
         headingCost: headingCost(envelope),
         mainRounds: mainRounds(design),
@@ -694,6 +711,13 @@ export interface Envelopes {
     readonly free: Float64Array;
     /** What the ship can actually use while holding its heading, m/s². */
     readonly holding: Float64Array;
+    /**
+     * How much of its propellant's worth that push gets, 0 to 1: its effective
+     * exhaust velocity, net thrust over propellant burnt, over its best engine's.
+     * Below 1 where engines push across or against each other to hold the
+     * heading, or where weaker engines carry it.
+     */
+    readonly efficiency: Float64Array;
 }
 
 /**
@@ -707,9 +731,8 @@ export interface Envelopes {
  * the allocator as well as about the layout — which is what ROADMAP.md §12
  * says it is waiting for before replacing it.
  */
-function trimmer(design: ShipDesign): (dirX: number, dirY: number) => number {
+function trimmer(design: ShipDesign, throttles = new Float64Array(design.engines.length)): (dirX: number, dirY: number) => number {
     const layout = design.engineLayout;
-    const throttles = new Float64Array(design.engines.length);
     const result = new Allocation();
 
     return (dirX, dirY) => {
@@ -768,8 +791,8 @@ export function burnThrottles(design: ShipDesign, angle: number, acceleration: n
 }
 
 /**
- * Both curves: the acceleration available in every direction, and how much of
- * it survives the requirement not to spin.
+ * The curves: the acceleration available in every direction, how much of it
+ * survives the requirement not to spin, and how well that push uses its fuel.
  *
  * Four numbers on a panel say a ship accelerates hard forwards and poorly
  * sideways; only the curve shows which diagonal it is worst in, and whether a
@@ -782,17 +805,73 @@ export function burnThrottles(design: ShipDesign, angle: number, acceleration: n
  */
 export function envelopes(design: ShipDesign, samples: number = ENVELOPE_SAMPLES): Envelopes {
     const layout = design.engineLayout;
-    const trim = trimmer(design);
+    const throttles = new Float64Array(design.engines.length);
+    const trim = trimmer(design, throttles);
     const free = new Float64Array(samples);
     const holding = new Float64Array(samples);
+    const efficiency = new Float64Array(samples);
+    const best = bestExhaust(design);
     for (let i = 0; i < samples; i++) {
         const angle = (TAU * i) / samples;
         const dirX = cos(angle);
         const dirY = sin(angle);
         free[i] = pushAlong(layout, dirX, dirY) / design.mass;
         holding[i] = trim(dirX, dirY);
+        efficiency[i] = holding[i]! > 0 && best > 0 ? effectiveExhaust(design, throttles) / best : 0;
     }
-    return { samples, free, holding };
+    return { samples, free, holding, efficiency };
+}
+
+/**
+ * `Envelopes.efficiency` at `share` of the holding push in every direction
+ * rather than all of it: the allocator spreads a smaller push across the
+ * engines differently, so a ship can be thriftier, or less so, at part thrust.
+ */
+export function efficiencyAtShare(design: ShipDesign, envelope: Envelopes, share: number): Float64Array {
+    const out = new Float64Array(envelope.samples);
+    const best = bestExhaust(design);
+    if (!(best > 0) || !(share > 0)) return out;
+    for (let i = 0; i < envelope.samples; i++) {
+        const holding = envelope.holding[i]!;
+        if (!(holding > 0)) continue;
+        const throttles = burnThrottles(design, (TAU * i) / envelope.samples, share * holding, holding);
+        out[i] = effectiveExhaust(design, throttles) / best;
+    }
+    return out;
+}
+
+/** An `Envelopes.efficiency` figure as the specific impulse it stands for, s. */
+export function efficiencyIsp(design: ShipDesign, efficiency: number): number {
+    return specificImpulse(efficiency * bestExhaust(design));
+}
+
+/** The fastest exhaust of any engine it has, m/s; 0 with none. */
+function bestExhaust(design: ShipDesign): number {
+    let best = 0;
+    for (const engine of design.engines) best = max(best, design.modules[engine.module ?? -1]?.stats.exhaustVelocity ?? 0);
+    return best;
+}
+
+/** Net thrust over propellant burnt at `throttles`, m/s, so engines pushing against each other count as waste; 0 burning nothing. */
+function effectiveExhaust(design: ShipDesign, throttles: ArrayLike<number>): number {
+    const { fx, fy, flow } = burnFlow(design, throttles);
+    return flow > 0 ? Math.sqrt(fx * fx + fy * fy) / flow : 0;
+}
+
+/** The net force a burn at `throttles` makes, N, and the propellant it burns, kg/s. */
+function burnFlow(design: ShipDesign, throttles: ArrayLike<number>): { fx: number; fy: number; flow: number } {
+    let fx = 0;
+    let fy = 0;
+    let flow = 0;
+    design.engines.forEach((engine, t) => {
+        const force = (throttles[t] ?? 0) * engine.maxThrust;
+        const exhaust = design.modules[engine.module ?? -1]?.stats.exhaustVelocity ?? 0;
+        if (!(force > 0) || !(exhaust > 0)) return;
+        fx += engine.dirX * force;
+        fy += engine.dirY * force;
+        flow += force / exhaust;
+    });
+    return { fx, fy, flow };
 }
 
 /**
@@ -826,17 +905,7 @@ export function pushAlong(layout: EngineLayout, dirX: number, dirY: number): num
  * count as waste, s; and seconds the fuel it sets out with lasts at it.
  */
 export function burnFigures(design: ShipDesign, throttles: ArrayLike<number>): { isp: number; endurance: number } {
-    let fx = 0;
-    let fy = 0;
-    let flow = 0;
-    design.engines.forEach((engine, t) => {
-        const force = (throttles[t] ?? 0) * engine.maxThrust;
-        const exhaust = design.modules[engine.module ?? -1]?.stats.exhaustVelocity ?? 0;
-        if (!(force > 0) || !(exhaust > 0)) return;
-        fx += engine.dirX * force;
-        fy += engine.dirY * force;
-        flow += force / exhaust;
-    });
+    const { fx, fy, flow } = burnFlow(design, throttles);
     let fuel = 0;
     for (const module of design.modules) fuel += module.stats.fuel * fillOf(module.spec);
     if (!(flow > 0)) return { isp: 0, endurance: Infinity };
@@ -845,10 +914,16 @@ export function burnFigures(design: ShipDesign, throttles: ArrayLike<number>): {
 
 /** The holding curve at `bearing`, radians from the bow, between its samples. */
 export function holdingAt(envelope: Envelopes, bearing: number): number {
-    const at = ((((bearing / TAU) * envelope.samples) % envelope.samples) + envelope.samples) % envelope.samples;
+    return curveAt(envelope.holding, bearing);
+}
+
+/** A curve sampled evenly round the circle from the bow, at `bearing`, between its samples. */
+export function curveAt(values: Float64Array, bearing: number): number {
+    const samples = values.length;
+    const at = ((((bearing / TAU) * samples) % samples) + samples) % samples;
     const i = Math.floor(at);
     const t = at - i;
-    return envelope.holding[i % envelope.samples]! * (1 - t) + envelope.holding[(i + 1) % envelope.samples]! * t;
+    return values[i % samples]! * (1 - t) + values[(i + 1) % samples]! * t;
 }
 
 /**

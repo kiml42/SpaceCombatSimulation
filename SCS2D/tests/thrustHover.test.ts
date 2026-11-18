@@ -98,7 +98,8 @@ describe("the throttles behind a point on the envelope", () => {
     it("grows while pointed at, from its corner, and stays grown until the pointer leaves the larger one", () => {
         // At rest the rosette's centre is 70 px in from the right; grown to 160 px, 176.
         const small = { x: 1000 - 54 - 16, y: 600 - 54 - 16 - 18 };
-        const large = { x: 1000 - 160 - 16, y: 600 - 160 - 16 - 18 };
+        // Grown, it moves in by the extra width its window has either side, 40 px.
+        const large = { x: 1000 - 160 - 16 - 40, y: 600 - 160 - 16 - 18 };
         expect(overEnvelope(1000, 600, small.x, small.y)).toBe(true);
         // A point on the large one but off the small one keeps it large, and only then.
         const between = { x: large.x - 100, y: large.y };
@@ -109,11 +110,11 @@ describe("the throttles behind a point on the envelope", () => {
         // grew from: a pointer on the small one's bottom-right edge keeps it grown.
         expect(overEnvelope(1000, 600, small.x + 38, small.y + 38, true)).toBe(true);
         // On a canvas too small for it, it grows only as far as there is room:
-        // here half of 260 less its margins, caption and pointed-at value, 89 px,
-        // centred at (195, 137), in a window reaching 8 px beyond that.
-        expect(overEnvelope(300, 260, 195, 137 + 88, true)).toBe(true);
-        expect(overEnvelope(300, 260, 195 - 89 - 7, 137, true)).toBe(true);
-        expect(overEnvelope(300, 260, 195 - 89 - 9, 137, true)).toBe(false);
+        // here half of 260 less its margins, caption and pointed-at value, 75 px,
+        // centred at (169, 151), in a window reaching 8 px beyond that, and 40 more either side.
+        expect(overEnvelope(300, 260, 169, 151 + 74, true)).toBe(true);
+        expect(overEnvelope(300, 260, 169 - 75 - 40 - 7, 151, true)).toBe(true);
+        expect(overEnvelope(300, 260, 169 - 75 - 40 - 9, 151, true)).toBe(false);
     });
 });
 
