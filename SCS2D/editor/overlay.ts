@@ -1,6 +1,6 @@
 import { blockCentre, bodySpec, math, moduleCentre, shapeOf, type ModuleSpec, type ShipDesign } from "../sim/index.js";
 import { describeStep, snapStep, type Camera } from "../render/camera.js";
-import { inUnits, pointedThrust, type Envelopes } from "./stats.js";
+import { efficiencyAtShare, inUnits, pointedThrust, type Envelopes } from "./stats.js";
 import type { AssemblyOutline } from "./document.js";
 import { HANDLE_RADIUS_PX, type Handle } from "./handles.js";
 import { LEFT_OUT_RADIUS_PX, leftOut } from "./edit.js";
@@ -97,6 +97,19 @@ const ENVELOPE_FREE = "rgba(91, 141, 214, 0.55)";
 const ENVELOPE_LABEL = "#7f93aa";
 /** How well each push uses its fuel, on a scale of its own: the rim is every engine at its best exhaust. */
 const ENVELOPE_EFFICIENCY = "rgba(214, 178, 91, 0.85)";
+/** The same at the part thrust the pointer asks for. */
+const ENVELOPE_PART_EFFICIENCY = "rgba(232, 128, 80, 0.9)";
+
+/** The last part-thrust efficiency curve worked out, kept while the design and the share stay put. */
+let partCurve: { design: ShipDesign; envelope: Envelopes; share: number; values: Float64Array } | null = null;
+
+/** `efficiencyAtShare`, worked out again only when the design or the share moves. */
+function partEfficiency(design: ShipDesign, envelope: Envelopes, share: number): Float64Array {
+    if (partCurve === null || partCurve.design !== design || partCurve.envelope !== envelope || partCurve.share !== share) {
+        partCurve = { design, envelope, share, values: efficiencyAtShare(design, envelope, share) };
+    }
+    return partCurve.values;
+}
 
 /** Radius of the envelope rosette on screen, pixels, and while the pointer is over it. */
 const ENVELOPE_RADIUS_PX = 54;
@@ -344,12 +357,19 @@ function degrees(bearing: number): string {
 }
 
 /** The value at the bearing pointed at, above the rosette's right edge, in the pointer's colour. */
-function pointedLabel(ctx: CanvasRenderingContext2D, lines: readonly string[], right: number, top: number): void {
+function pointedLabel(
+    ctx: CanvasRenderingContext2D,
+    lines: readonly (string | { readonly text: string; readonly colour: string })[],
+    right: number,
+    top: number,
+): void {
     const y = Math.max(11 + POINTED_LINE_PX * (lines.length - 1), top - 6);
     ctx.font = "11px ui-monospace, monospace";
     ctx.textAlign = "right";
-    ctx.fillStyle = ATTACK_POINTED;
-    lines.forEach((line, i) => ctx.fillText(line, right, y - POINTED_LINE_PX * (lines.length - 1 - i)));
+    lines.forEach((line, i) => {
+        ctx.fillStyle = typeof line === "string" ? ATTACK_POINTED : line.colour;
+        ctx.fillText(typeof line === "string" ? line : line.text, right, y - POINTED_LINE_PX * (lines.length - 1 - i));
+    });
 }
 
 /** Seconds as a duration in its largest units, so it does not read as another figure in seconds. */
@@ -913,6 +933,17 @@ function drawEnvelope(
         ctx.arc(cx + cos(bearing) * r, cy - sin(bearing) * r, 3, 0, TAU);
         ctx.fill();
     }
+    // And at the part thrust the pointer asks for, rounded so a twitch of the pointer does not work it out again.
+    const share = pointed === null ? 1 : Math.round(pointed.share * 50) / 50;
+    const part = expanded && view.design !== null && share > 0 && share < 1;
+    if (part) {
+        trace(partEfficiency(view.design!, envelope, share), 1);
+        ctx.strokeStyle = ENVELOPE_PART_EFFICIENCY;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([2, 2]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
 
     // The most it can use, holding its heading; the heading cost is in the report.
     ctx.fillStyle = ENVELOPE_LABEL;
@@ -922,10 +953,16 @@ function drawEnvelope(
     if (bearing !== null && pointed !== null) {
         const text = `${degrees(bearing)}: ${inUnits([pointed.acceleration, pointed.holding], "m/s²")}`;
         const burn = view.envelopeBurn;
-        const lines =
+        const lines: (string | { text: string; colour: string })[] =
             burn != null && burn.isp > 0 && Number.isFinite(burn.endurance)
                 ? [text, `Isp ${burn.isp.toFixed(0)} s, burns ${duration(burn.endurance)}`]
                 : [text];
+        // What each curve is, beside the figures, while the rosette is open to read.
+        if (expanded) {
+            lines.push({ text: "blue: thrust it can use", colour: ENVELOPE });
+            lines.push({ text: "amber: fuel efficiency, full thrust", colour: ENVELOPE_EFFICIENCY });
+            if (part) lines.push({ text: `orange: fuel efficiency, ${Math.round(share * 100)}% thrust`, colour: ENVELOPE_PART_EFFICIENCY });
+        }
         pointedLabel(ctx, lines, widthPx - ENVELOPE_MARGIN_PX, cy - radius);
     }
     ctx.textAlign = "left";

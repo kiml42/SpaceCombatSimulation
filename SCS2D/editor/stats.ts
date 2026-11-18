@@ -822,6 +822,24 @@ export function envelopes(design: ShipDesign, samples: number = ENVELOPE_SAMPLES
     return { samples, free, holding, efficiency };
 }
 
+/**
+ * `Envelopes.efficiency` at `share` of the holding push in every direction
+ * rather than all of it: the allocator spreads a smaller push across the
+ * engines differently, so a ship can be thriftier, or less so, at part thrust.
+ */
+export function efficiencyAtShare(design: ShipDesign, envelope: Envelopes, share: number): Float64Array {
+    const out = new Float64Array(envelope.samples);
+    const best = bestExhaust(design);
+    if (!(best > 0) || !(share > 0)) return out;
+    for (let i = 0; i < envelope.samples; i++) {
+        const holding = envelope.holding[i]!;
+        if (!(holding > 0)) continue;
+        const throttles = burnThrottles(design, (TAU * i) / envelope.samples, share * holding, holding);
+        out[i] = effectiveExhaust(design, throttles) / best;
+    }
+    return out;
+}
+
 /** The fastest exhaust of any engine it has, m/s; 0 with none. */
 function bestExhaust(design: ShipDesign): number {
     let best = 0;
