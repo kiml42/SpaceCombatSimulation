@@ -19,7 +19,7 @@ export interface StripShip {
     readonly vy: number;
     /** Hull radius, m. */
     readonly radius: number;
-    /** Which way it points, radians: its tile turns so this is always up. Never turned when absent. */
+    /** Which way it points, radians: its tile turns so it faces in from its edge of the view, towards the other side. Never turned when absent. */
     readonly heading?: number;
     /** Its design, the same for every ship of that design; absent for one never grouped. */
     readonly design?: number;
@@ -147,7 +147,8 @@ function column(entries: readonly StripShip[], widthPx: number, heightPx: number
                 scale: (half * FILL) / Math.max(ship.radius, 0.1),
                 vx: ship.vx,
                 vy: ship.vy,
-                turn: ship.heading === undefined ? 0 : Math.PI / 2 - ship.heading,
+                // Facing right down the left edge and left down the right, towards the fight.
+                turn: ship.heading === undefined ? 0 : (fromLeft ? 0 : Math.PI) - ship.heading,
             },
         };
     });

@@ -22,10 +22,12 @@ describe("the fleets down the edges", () => {
         expect(strips.right.tiles[0]!.x + strips.right.tiles[0]!.size).toBe(W - SETTINGS.margin);
     });
 
-    it("turns each tile so its ship points up", () => {
-        const [turned, still] = stripsFor([{ ...ship(1, 0), heading: 0.3 }, ship(2, 0)], W, H, SETTINGS).left.tiles;
-        expect(0.3 + turned!.camera.turn!).toBeCloseTo(Math.PI / 2, 12);
+    it("turns each tile so its ship faces in from its edge: right on the left, left on the right", () => {
+        const strips = stripsFor([{ ...ship(1, 0), heading: 0.3 }, ship(2, 0), { ...ship(3, 1), heading: 0.3 }], W, H, SETTINGS);
+        const [turned, still] = strips.left.tiles;
+        expect(0.3 + turned!.camera.turn!).toBeCloseTo(0, 12);
         expect(still!.camera.turn).toBe(0);
+        expect(0.3 + strips.right.tiles[0]!.camera.turn!).toBeCloseTo(Math.PI, 12);
     });
 
     it("stacks a column down from the top, at its largest when few", () => {

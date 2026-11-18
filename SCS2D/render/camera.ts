@@ -29,7 +29,7 @@ export interface Camera {
      */
     vx?: number;
     vy?: number;
-    /** How far the view is turned anticlockwise, radians: a bearing of `π/2 − turn` points up. None when absent. */
+    /** How far the view is turned anticlockwise, radians: a bearing of `−turn` points right. None when absent. */
     turn?: number;
 }
 
