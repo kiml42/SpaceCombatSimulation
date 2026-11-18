@@ -4,7 +4,7 @@ import { BOTH_LAYERS, HULL_LAYER, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from
 import { DamageEffect } from "./damage.js";
 import { inSight, lookFrom, score } from "./targeting.js";
 import { DEFAULT_FUSE, firesShells, moduleRadius, slewTime, type ModuleSpec, GunType, type GunStats, type ModuleKind } from "./modules.js";
-import { atan2, angleDelta, PI, clamp, cos, length, max, round, sin, sqrt } from "./math.js";
+import { abs, atan2, angleDelta, PI, clamp, cos, length, max, round, sin, sqrt } from "./math.js";
 import { overriddenMount, placementOf, type Targeting } from "./doctrine.js";
 import type { World } from "./world.js";
 import type { SpatialGrid } from "./index.js";
@@ -460,6 +460,37 @@ function crossesFriend(ships: Ships, bodies: Bodies, i: number, target: number, 
     }
     return false;
 }
+
+/**
+ * The most a hull may turn before a shot or a ram reaches one of its parts
+ * for that turn to be led, radians. Within it, the part is led round the
+ * circle it swings on, which can never put it further from the centre of
+ * mass than it is; past it, where the part will have got to is anyone's
+ * guess, and only the hull's own motion is led.
+ */
+export const PART_TURN_LEAD = 0.5;
+
+/**
+ * Where module `module` of the hull on body `tb` will sit off the hull's
+ * centre of mass `time` seconds from now, into `out`: turned with the hull
+ * if it turns no more than `PART_TURN_LEAD` by then, and where it is now if
+ * further. Leading the hull's own velocity on top of it is the caller's.
+ */
+export function partOffset(
+    bodies: Bodies,
+    tb: number,
+    module: { x: number; y: number },
+    time: number,
+    out: { x: number; y: number },
+): void {
+    const turn = bodies.angularVel[tb]! * max(0, time);
+    const angle = bodies.angle[tb]! + (abs(turn) <= PART_TURN_LEAD ? turn : 0);
+    out.x = module.x * cos(angle) - module.y * sin(angle);
+    out.y = module.x * sin(angle) + module.y * cos(angle);
+}
+
+/** Scratch for `partOffset`. */
+const turned = { x: 0, y: 0 };
 
 /** Where module `part` of a body is in the world, into `partAt`. */
 export function partPoint(ships: Ships, bodies: Bodies, tb: number, design: ShipDesign, part: number): void {
@@ -1008,7 +1039,19 @@ export function trainOne(ships: Ships, bodies: Bodies, i: number): void {
             rx = middleX;
             ry = middleY;
         }
-        const flight = ships.turrets.aimAt(bodies, ti, x, y, bodies.vx[tb]!, bodies.vy[tb]!, sweepVx, sweepVy);
+        let flight = ships.turrets.aimAt(bodies, ti, x, y, bodies.vx[tb]!, bodies.vy[tb]!, sweepVx, sweepVy);
+        // And where the part will have swung to by the time the round gets there, as far as that can be known.
+        if (part !== WHOLE_SHIP && flight > 0) {
+            partOffset(bodies, tb, design.modules[part]!, flight, turned);
+            x += turned.x - rx;
+            y += turned.y - ry;
+            const spin = bodies.angularVel[tb]!;
+            sweepVx += spin * (ry - turned.y);
+            sweepVy += spin * (turned.x - rx);
+            rx = turned.x;
+            ry = turned.y;
+            flight = ships.turrets.aimAt(bodies, ti, x, y, bodies.vx[tb]!, bodies.vy[tb]!, sweepVx, sweepVy);
+        }
         // Less how far the target may have jinked by the time the round arrives:
         // an aim on the edge at long range is a likely miss, so the cone narrows
         // towards the middle as the flight grows, to nothing at the gun's reach,

@@ -294,10 +294,14 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
                 ships.ramPart[i] = part;
                 if (part >= 0) {
                     const module = ships.designs[target]!.modules[part]!;
-                    const c = cos(bodies.angle[tb]!);
-                    const s = sin(bodies.angle[tb]!);
-                    at.x = bodies.x[tb]! + module.x * c - module.y * s;
-                    at.y = bodies.y[tb]! + module.x * s + module.y * c;
+                    // Swung round as far as it will have by the time the ram gets there, as far as that can be known.
+                    const dx = bodies.x[tb]! - bodies.x[b]!;
+                    const dy = bodies.y[tb]! - bodies.y[b]!;
+                    const range = length(dx, dy);
+                    const closing = range > 0 ? ((bodies.vx[b]! - bodies.vx[tb]!) * dx + (bodies.vy[b]! - bodies.vy[tb]!) * dy) / range : 0;
+                    shipAim.partOffset(bodies, tb, module, closing > 0 ? range / closing : 0, swung);
+                    at.x = bodies.x[tb]! + swung.x;
+                    at.y = bodies.y[tb]! + swung.y;
                     at.vx = bodies.vx[tb]!;
                     at.vy = bodies.vy[tb]!;
                     wantAngle = atan2(at.y - bodies.y[b]!, at.x - bodies.x[b]!);
@@ -946,6 +950,9 @@ export function settle(ships: Ships, bodies: Bodies, b: number, weight: number):
     pullAt(ships, x, y);
     urge(ships, weight, (well.vx ?? 0) - sense * uy * speed, (well.vy ?? 0) + sense * ux * speed, PULL.x, PULL.y);
 }
+
+/** Scratch for where a rammed part will have swung to. */
+const swung = { x: 0, y: 0 };
 
 /**
  * Close on `at` at `speed`, cancelling any sideways drift on the way: far
