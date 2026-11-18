@@ -96,45 +96,40 @@ export const ICON_OUTLINE: readonly (readonly [number, number])[] = [
 ];
 
 /**
- * A capital ship's icon: a hull with a pointed bow, in the same frame as the
+ * A ship's icon: a hull with a pointed bow, in the same frame as the
  * arrowhead, so it reads as a ship with a front rather than as a dart.
+ * Moved back so the ship's position is at the middle of its area, as a hull's
+ * centre of mass is, rather than at the middle of its length.
  */
-export const LONG_ICON_OUTLINE: readonly (readonly [number, number])[] = [
+export const LONG_ICON_OUTLINE: readonly (readonly [number, number])[] = aboutCentroid([
     [0.5, 0],
     [0.22, 0.2],
     [-0.5, 0.2],
     [-0.5, -0.2],
     [0.22, -0.2],
-];
+]);
 
-/** A round icon's radius, in the arrowhead's frame. */
-export const ROUND_ICON_RADIUS = 0.32;
+/** How much larger than the arrowhead a ship's long icon is drawn, so a ship stands out among fighters. */
+export const LONG_ICON_SCALE = 1.3;
+
+/** Half the side of a square icon, in the arrowhead's frame. */
+export const SQUARE_ICON_HALF = 0.3;
 
 /**
- * What an icon says about a ship: `arrow` that it fights and pushes one way,
- * `round` that it has no front, and `long` that it has one and is a capital ship.
+ * What an icon says about a ship: `square` that it pushes much alike every
+ * way, `arrow` that it is a fighter, and `long` that it is any other ship.
  */
-export type IconShape = "arrow" | "round" | "long";
-
-/** The bounding radius, metres, at and above which a ship with a front is drawn `long`. */
-export const LONG_ICON_RADIUS = 50;
+export type IconShape = "arrow" | "square" | "long";
 
 /**
  * The least share of its strongest push a layout must have along each of its
- * four axes for the ship to have no front by its engines.
+ * four axes for its thrust to count as symmetrical.
  */
-export const ROUND_THRUST_SHARE = 0.5;
-
-/** The least arc, radians, every main gun must train through for the ship to have no front by its guns. */
-export const ROUND_GUN_ARC = 1.5 * Math.PI;
+export const SQUARE_THRUST_SHARE = 0.5;
 
 const shapes = new WeakMap<ShipDesign, IconShape>();
 
-/**
- * `round` for a ship that pushes much alike every way and whose main guns
- * (if any) all train most of the way round; otherwise `long` from
- * `LONG_ICON_RADIUS` up, and `arrow` below it. Worked out once per design.
- */
+/** `square` for a ship that pushes much alike every way, else `arrow` for a fighter and `long` for any other. Worked out once per design. */
 export function iconShape(design: ShipDesign): IconShape {
     let shape = shapes.get(design);
     if (shape !== undefined) return shape;
@@ -146,9 +141,26 @@ export function iconShape(design: ShipDesign): IconShape {
         most = Math.max(most, along);
         least = Math.min(least, along);
     }
-    const evenPush = !(most > 0) || least >= ROUND_THRUST_SHARE * most;
-    const evenGuns = design.turrets.every((t) => !t.main || (t.mount.leftArc ?? Math.PI) + (t.mount.rightArc ?? Math.PI) >= ROUND_GUN_ARC);
-    shape = evenPush && evenGuns ? "round" : design.radius >= LONG_ICON_RADIUS ? "long" : "arrow";
+    const even = !(most > 0) || least >= SQUARE_THRUST_SHARE * most;
+    shape = even ? "square" : design.fighter ? "arrow" : "long";
     shapes.set(design, shape);
     return shape;
+}
+
+/** A polygon moved so its area's centroid is at the origin. */
+function aboutCentroid(points: readonly (readonly [number, number])[]): (readonly [number, number])[] {
+    let area = 0;
+    let cx = 0;
+    let cy = 0;
+    for (let k = 0; k < points.length; k++) {
+        const [x0, y0] = points[k]!;
+        const [x1, y1] = points[(k + 1) % points.length]!;
+        const cross = x0 * y1 - x1 * y0;
+        area += cross;
+        cx += (x0 + x1) * cross;
+        cy += (y0 + y1) * cross;
+    }
+    cx /= 3 * area;
+    cy /= 3 * area;
+    return points.map(([x, y]) => [x - cx, y - cy] as const);
 }

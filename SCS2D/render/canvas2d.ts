@@ -115,7 +115,7 @@ import { eachCloudPuff, eachPuff, type Cloud, type Hole, type Pose, type Puff } 
 import { Poses } from "./poses.js";
 import { bit, bitCount, seedOf, spark, sparkColour, sparkCount, sparkFade, sprayOf, type Bit, type Spark } from "./particles.js";
 import type { PixiCanvas } from "./pixiCanvas.js";
-import { iconAlpha, ICON_OUTLINE, ICON_PX, iconShape, isWreckage, LONG_ICON_OUTLINE, ROUND_ICON_RADIUS } from "./icons.js";
+import { iconAlpha, ICON_OUTLINE, ICON_PX, iconShape, isWreckage, LONG_ICON_OUTLINE, LONG_ICON_SCALE, SQUARE_ICON_HALF } from "./icons.js";
 
 const { cos, floor, sin, length, max, min, PI, sqrt, TAU } = math;
 
@@ -2437,8 +2437,9 @@ function eachNozzle(
  * the way that would otherwise vanish at this zoom. A ship riding another's
  * body, as a fighter on its pad, has none: the hull's own stands for it.
  *
- * Its shape is the design's (`iconShape`): an arrowhead, a circle for a ship with
- * no front, or a pointed hull for a capital ship.
+ * Its shape is the design's (`iconShape`): an arrowhead for a fighter, a square
+ * for a ship that pushes much alike every way, or a pointed hull, a little larger,
+ * for any other ship.
  *
  * It points the way the ship does (`ShipView.heading`), which is not always
  * its body's angle: a fighter launched from a pad keeps the carrier's frame.
@@ -2449,7 +2450,8 @@ function drawIcon(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     if (alpha <= 0) return;
     const palette = ship.currentStructure.fighter ? fighterColours : shipColours;
     const colours = markerOf(palette(ship.hasControl && !ship.isMissionKilled ? ship.team : -1));
-    const size = ICON_PX / metresToPx;
+    const shape = iconShape(ship.currentStructure);
+    const size = ((shape === "long" ? LONG_ICON_SCALE : 1) * ICON_PX) / metresToPx;
 
     ctx.save();
     ctx.translate(ship.x, ship.y);
@@ -2457,9 +2459,8 @@ function drawIcon(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     ctx.scale(size, size);
     ctx.globalAlpha = alpha;
     ctx.beginPath();
-    const shape = iconShape(ship.currentStructure);
-    if (shape === "round") {
-        ctx.arc(0, 0, ROUND_ICON_RADIUS, 0, 2 * Math.PI);
+    if (shape === "square") {
+        ctx.rect(-SQUARE_ICON_HALF, -SQUARE_ICON_HALF, 2 * SQUARE_ICON_HALF, 2 * SQUARE_ICON_HALF);
     } else {
         const outline = shape === "long" ? LONG_ICON_OUTLINE : ICON_OUTLINE;
         ctx.moveTo(outline[0]![0], outline[0]![1]);
@@ -2471,7 +2472,7 @@ function drawIcon(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     // An outline in the lighter of the same two colours, so the arrowhead holds
     // its shape against the hull it is sitting on as well as against the field.
     ctx.strokeStyle = colours.trim;
-    ctx.lineWidth = 1 / ICON_PX;
+    ctx.lineWidth = 1 / (size * metresToPx);
     ctx.stroke();
     ctx.restore();
 }

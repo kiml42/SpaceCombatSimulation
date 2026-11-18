@@ -10,6 +10,7 @@ import {
     ICON_OUTLINE,
     iconShape,
     isWreckage,
+    LONG_ICON_OUTLINE,
 } from "../render/icons.js";
 
 /**
@@ -115,20 +116,27 @@ describe("wreckage", () => {
 describe("icon shape", () => {
     const shape = (name: keyof typeof BLUEPRINTS) => iconShape(compileBlueprint(BLUEPRINTS[name]));
 
-    it("is an arrowhead for a ship that fights and pushes one way", () => {
-        expect(shape("corvette")).toBe("arrow");
+    it("is an arrowhead for a fighter", () => {
         expect(shape("xWing")).toBe("arrow");
-        expect(shape("torpedo")).toBe("arrow");
+        expect(shape("tie")).toBe("arrow");
     });
 
-    it("is round for one that pushes alike every way and whose guns train right round", () => {
-        expect(shape("salvager")).toBe("round");
-        expect(shape("gunPlatform")).toBe("round");
-        expect(shape("beamCarrier")).toBe("round");
+    it("is a square for a ship that pushes alike every way", () => {
+        expect(shape("salvager")).toBe("square");
+        expect(shape("gunPlatform")).toBe("square");
+        expect(shape("beamCarrier")).toBe("square");
     });
 
-    it("is a pointed hull for a capital ship with a front", () => {
+    it("is a pointed hull for any other ship, large or small", () => {
+        expect(shape("corvette")).toBe("long");
         expect(shape("starDestroyer")).toBe("long");
-        expect(shape("quasar")).toBe("long");
+    });
+
+    it("puts the ship at the middle of the pointed hull's area, behind the middle of its length", () => {
+        const xs = LONG_ICON_OUTLINE.map(([x]) => x);
+        const nose = Math.max(...xs);
+        const tail = Math.min(...xs);
+        expect(nose + tail).toBeGreaterThan(0.05);
+        expect(nose - tail).toBeCloseTo(1, 9);
     });
 });
