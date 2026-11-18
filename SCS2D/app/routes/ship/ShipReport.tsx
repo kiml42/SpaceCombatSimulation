@@ -148,7 +148,7 @@ export function ShipStats({ doc, envelope }: { readonly doc: EditorDocument; rea
         ["Rounds", s.mainRounds === null ? "none" : `${numbers(s.mainRounds.rounds, 0)} × ${numbers(s.mainRounds.roundMass, 1)} kg`],
         ["Power", megawatts(s.generation)],
         ["Stored", megajoules(s.storageAtStart)],
-        ["Turn about", Number.isFinite(s.turnAbout) ? `${numbers(s.turnAbout, 1)} s` : "cannot"],
+        ["Turn 180°", Number.isFinite(s.turnAbout) ? `${numbers(s.turnAbout, 1)} s` : "cannot"],
     ];
     const more: Row[] = [
         ["Turn L / R", `${turn(s.turnLeft)} / ${turn(s.turnRight)} °/s²`],
