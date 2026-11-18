@@ -459,7 +459,11 @@ export function SkirmishPage() {
     const [enemyCost, setEnemyCost] = useState<Budget | null>(null);
     // What a round's end means, told once each; ? stays the pause menu's keys.
     const told = roundOver && !replaying && picking === null;
-    const lossHelp = useHelp(SKIRMISH_LOSS_HELP_KEY, { enabled: told && outcome.kind === "lost", key: false });
+    // Not over the enemy's answer to a round won, which is shown as a loss too.
+    const lossHelp = useHelp(SKIRMISH_LOSS_HELP_KEY, {
+        enabled: told && outcome.kind === "lost" && skirmish?.won === undefined,
+        key: false,
+    });
     const winHelp = useHelp(SKIRMISH_WIN_HELP_KEY, { enabled: told && outcome.kind === "won", key: false });
     const cardHelp = useHelp(SKIRMISH_CARD_HELP_KEY, { enabled: picking === "card", key: false });
     const roundHelp = useHelp(SKIRMISH_ROUND_HELP_KEY, {
