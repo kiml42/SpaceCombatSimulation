@@ -1130,7 +1130,7 @@ export function SkirmishPage() {
                             }}
                         />
                     )}
-                    <AsteroidCard contents={orders.asteroid} />
+                    <AsteroidCard contents={orders.asteroid} mining={orders.mining} />
                     {view !== null && doctrineOpen && orders.side !== null && (
                         <DoctrinePanel view={view} state={orders} shown={() => shown.current} />
                     )}
