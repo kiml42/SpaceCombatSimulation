@@ -1319,6 +1319,41 @@ function guardStation(ships: Ships, bodies: Bodies, i: number, charge: Spot, inn
 }
 
 /**
+ * Fighting first, make for its band round `charge` only across the line to
+ * its enemy, as firmly as the fight: what it already wants along that line is
+ * kept as it is, so it holds its range and its guns on target while it closes
+ * up. False with no enemy, or nothing wanted yet to keep.
+ */
+function sideways(ships: Ships, bodies: Bodies, i: number, b: number, charge: Spot, inner: number, station: number): boolean {
+    const enemy = ships.chosen[i]!;
+    const eb = enemy === NO_TARGET ? -1 : bodies.indexOf(ships.bodyIds[enemy]!);
+    if (eb < 0 || !(ships.urgeWeight > 0)) return false;
+    const at = ships.locate(bodies, enemy, eb, GUARDED);
+    const ex = bodies.x[b]! - at.x;
+    const ey = bodies.y[b]! - at.y;
+    const range = length(ex, ey);
+    const cx = bodies.x[b]! - charge.x;
+    const cy = bodies.y[b]! - charge.y;
+    const gap = length(cx, cy);
+    if (!(range > 0) || !(gap > 0)) return false;
+    const ux = ex / range;
+    const uy = ey / range;
+    // Towards the nearest place on its band, or with its charge once there.
+    const off = clamp(gap, inner, station) - gap;
+    let vx = charge.vx;
+    let vy = charge.vy;
+    if (abs(off) > (station - inner) / 2) {
+        const speed = (off > 0 ? 1 : -1) * ships.doctrines[i]!.approach.approachSpeed;
+        vx += (cx * speed) / gap;
+        vy += (cy * speed) / gap;
+    }
+    const across = vx * ux + vy * uy;
+    const along = (ships.urgeVx * ux + ships.urgeVy * uy) / ships.urgeWeight;
+    urge(ships, URGE_REFERENCE, vx - across * ux + along * ux, vy - across * uy + along * uy);
+    return true;
+}
+
+/**
  * Stay with what this craft is covering, and say what that is.
  *
  * The pull fades to nothing as the gap closes (`cohesionUrge`), so a craft
@@ -1355,6 +1390,7 @@ export function cover(ships: Ships, bodies: Bodies, i: number, b: number): numbe
         );
         return consort;
     }
+    if (ships.guarding[i] !== 1 && sideways(ships, bodies, i, b, charge, inner, station)) return consort;
     const gap = length(bodies.x[cb]! - bodies.x[b]!, bodies.y[cb]! - bodies.y[b]!);
     // Told to, it holds the band as firmly as it would a station.
     const weight =

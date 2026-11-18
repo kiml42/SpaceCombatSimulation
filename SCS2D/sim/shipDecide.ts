@@ -243,7 +243,9 @@ function guard(ships: Ships, bodies: Bodies, i: number, b: number, wasGuarding: 
     if (consort === NO_TARGET || ships.chosen[i] === NO_TARGET) return;
     const cb = bodies.indexOf(ships.bodyIds[consort]!);
     if (cb < 0) return;
-    const reach = (shipSupply.fightReach(ships, i) + escortBand(ships, i, ships.designs[i]!, consort)) * (wasGuarding ? GUARD_LEAVE : 1);
+    const reach =
+        (shipSupply.fightReach(ships, i) * ships.doctrines[i]!.approach.guardRange + escortBand(ships, i, ships.designs[i]!, consort)) *
+        (wasGuarding ? GUARD_LEAVE : 1);
     let nearest = NO_TARGET;
     let best = reach;
     for (let t = 0; t < ships.alive.length; t++) {
