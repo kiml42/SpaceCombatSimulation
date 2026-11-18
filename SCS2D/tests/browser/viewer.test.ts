@@ -636,8 +636,8 @@ describe("the viewer in a browser", () => {
         // Picked from its tile in the fleets down the edge, as the strips' own test picks one.
         const box = (await page.locator("#view").boundingBox())!;
         await page.mouse.click(box.x + 40, box.y + 40);
-        await painted(page);
-        expect((await ranges()).length).toBeGreaterThan(0);
+        // Asked until it shows, not once: on a slow runner a pick can take longer to reach the canvas than `painted` waits.
+        await expect.poll(async () => (await ranges()).length).toBeGreaterThan(0);
         await page.keyboard.press("Escape");
     });
 
