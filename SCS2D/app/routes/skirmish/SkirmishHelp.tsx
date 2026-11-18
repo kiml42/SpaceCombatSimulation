@@ -58,10 +58,10 @@ export function SkirmishRoundHelp({ open, onClose }: SkirmishHelpProps) {
     );
 }
 
-/** What losing a round means, the first time. */
+/** What a defeat means, the first time: a round is never lost, only fought again. */
 export function SkirmishLossHelp({ open, onClose }: SkirmishHelpProps) {
     return (
-        <HelpDialog id="skirmishLossHelp" title="Round lost" open={open} onClose={onClose}>
+        <HelpDialog id="skirmishLossHelp" title="You were defeated" open={open} onClose={onClose}>
             <p>A round is fought until you win it, as many times as it takes. A draw counts as a loss.</p>
             <ul>
                 <li>
