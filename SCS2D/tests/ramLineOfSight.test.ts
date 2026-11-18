@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { asteroidBlueprint, compileBlueprint, NEUTRAL_TEAM, type ShipDesign } from "../sim/index.js";
+import { asteroidBlueprint, compileBlueprint, DEFAULT_DOCTRINE, NEUTRAL_TEAM, type Blueprint, type ShipDesign } from "../sim/index.js";
 import { Rng } from "../sim/rng.js";
 import { makeBattle } from "../scenarios/battle.js";
 import { GUNSHIP, TORPEDO } from "../scenarios/blueprints.js";
@@ -57,11 +57,37 @@ it("does not speed up at a friend's hull in the way, unless it is a fighter, whi
     expect(speed(true, true)).toBeGreaterThan(150);
 });
 
-it("rams in the weapons layer, dropping to the hull layer only just before it strikes", () => {
-    const run = makeBattle({ seed: 1 }, (ships, world) => {
+/** The Torpedo, its doctrine's aim weights set to `weights` (core, engine, gun, structure), and its tanks to `fill`. */
+function torpedoWith(weights: readonly [number, number, number, number], fill = 1): Blueprint {
+    const [coreWeight, engineWeight, gunWeight, structureWeight] = weights;
+    return {
+        ...TORPEDO,
+        doctrine: {
+            approach: { ...DEFAULT_DOCTRINE.approach, ...TORPEDO.doctrine?.approach },
+            targeting: {
+                ...DEFAULT_DOCTRINE.targeting,
+                ...TORPEDO.doctrine?.targeting,
+                coreWeight,
+                engineWeight,
+                gunWeight,
+                structureWeight,
+            },
+        },
+        modules: TORPEDO.modules.map((m) => ("kind" in m && m.kind === "tank" ? { ...m, fill } : m)),
+    };
+}
+
+/** A Torpedo built to `torpedo` 1500 m off a Gunship, closing on it. */
+function rammingGunship(torpedo: Blueprint) {
+    return makeBattle({ seed: 1 }, (ships, world) => {
         const target = ships.spawn(world, { design: compileBlueprint(GUNSHIP), x: 1500, y: 0, team: 1 });
-        return { target, torpedo: ships.spawn(world, { design: compileBlueprint(TORPEDO), x: -1500, y: 0, angle: 0, team: 0 }) };
+        return { target, torpedo: ships.spawn(world, { design: compileBlueprint(torpedo), x: -1500, y: 0, angle: 0, team: 0 }) };
     });
+}
+
+it("rams the middle in the weapons layer, dropping to the hull layer only just before it strikes", () => {
+    // No opinion about parts: the middle of the ship, which is deck.
+    const run = rammingGunship(torpedoWith([0, 0, 0, 0]));
     const b = run.world.bodies;
     const window = compileBlueprint(TORPEDO).doctrine.approach.ramCommit;
     let ramming = false;
@@ -81,4 +107,28 @@ it("rams in the weapons layer, dropping to the hull layer only just before it st
     expect(ramming).toBe(true);
     expect(committedAt).toBeLessThanOrEqual(window);
     expect(committedAt).toBeGreaterThan(window / 2);
+});
+
+it("rams a gun standing up out of the deck from the weapons layer, never dropping to the deck", () => {
+    const run = rammingGunship(torpedoWith([0, 0, 100, 0]));
+    let aimed = false;
+    for (let t = 0; t < 60 * 60 && run.ships.isAlive(run.torpedo); t++) {
+        run.step();
+        if (!run.ships.isAlive(run.torpedo)) break;
+        aimed ||= run.ships.ramPart[run.torpedo]! >= 0;
+        expect(run.ships.isCommitted(run.torpedo)).toBe(false);
+    }
+    expect(aimed).toBe(true);
+});
+
+it("goes for the deck instead once too low on fuel to come round for a gun", () => {
+    const tall = (fill: number): boolean => {
+        const run = rammingGunship(torpedoWith([0, 0, 100, 50], fill));
+        for (let t = 0; t < 120; t++) run.step();
+        const part = run.ships.ramPart[run.torpedo]!;
+        expect(part).toBeGreaterThanOrEqual(0);
+        return run.ships.designs[run.target]!.modules[part]!.weaponsLayer;
+    };
+    expect(tall(1)).toBe(true);
+    expect(tall(0.1)).toBe(false);
 });
