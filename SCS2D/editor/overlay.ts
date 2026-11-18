@@ -95,6 +95,8 @@ const ENVELOPE_FILL = "rgba(91, 141, 214, 0.22)";
 /** The outer curve is a reference rather than a capability, so it is drawn as one. */
 const ENVELOPE_FREE = "rgba(91, 141, 214, 0.55)";
 const ENVELOPE_LABEL = "#7f93aa";
+/** How well each push uses its fuel, on a scale of its own: the rim is every engine at its best exhaust. */
+const ENVELOPE_EFFICIENCY = "rgba(214, 178, 91, 0.85)";
 
 /** Radius of the envelope rosette on screen, pixels, and while the pointer is over it. */
 const ENVELOPE_RADIUS_PX = 54;
@@ -820,11 +822,11 @@ function drawCentreOfMass(ctx: CanvasRenderingContext2D, design: ShipDesign, cam
  * on, and turning the widget by a right angle turns that agreement into an
  * apparent contradiction.
  *
- * Both curves are *thrust*. A propellant model would make the third curve
- * possible — how much delta-v a direction costs, on which a diagonal does
- * worse than either axis it splits, since thrust adds vectorially and
- * propellant adds scalar — and drawing it before that model exists would be
- * inventing an efficiency the simulation does not have.
+ * Those two are *thrust*. The third, dotted, is how much of its fuel's worth
+ * the holding push gets (`Envelopes.efficiency`), with the rim at every engine
+ * burning at its best: a diagonal does worse than either axis it splits, since
+ * thrust adds as vectors and propellant as numbers, and so does any direction
+ * held by engines pushing against each other.
  */
 function drawEnvelope(
     ctx: CanvasRenderingContext2D,
@@ -849,15 +851,15 @@ function drawEnvelope(
 
     if (view.design !== null) silhouette(ctx, view, view.design, cx, cy, radius);
 
-    /** Trace one curve, scaled against the larger of the two so the gap is to scale. */
-    const trace = (values: Float64Array): void => {
+    /** Trace one curve, scaled against the larger of the thrust curves so the gap is to scale, or against `scale`. */
+    const trace = (values: Float64Array, scale = peak): void => {
         ctx.beginPath();
         for (let i = 0; i < envelope.samples; i++) {
             // Samples run anticlockwise from the bow in the ship's frame. Screen y
             // grows downward where the world's grows up, so only y is negated —
             // which is the same flip `draw` applies to the deck plan.
             const angle = (TAU * i) / envelope.samples;
-            const r = (values[i]! / peak) * radius;
+            const r = (values[i]! / scale) * radius;
             const x = cx + cos(angle) * r;
             const y = cy - sin(angle) * r;
             if (i === 0) ctx.moveTo(x, y);
@@ -881,6 +883,13 @@ function drawEnvelope(
     ctx.strokeStyle = ENVELOPE;
     ctx.lineWidth = 1.5;
     ctx.stroke();
+
+    trace(envelope.efficiency, 1);
+    ctx.strokeStyle = ENVELOPE_EFFICIENCY;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([1, 2]);
+    ctx.stroke();
+    ctx.setLineDash([]);
 
     // The origin, marked as what it is: the ship's centre of mass, with every
     // radius an acceleration of it. Without it the curve has no zero, and a

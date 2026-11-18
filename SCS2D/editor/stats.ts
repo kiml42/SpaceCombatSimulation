@@ -694,6 +694,13 @@ export interface Envelopes {
     readonly free: Float64Array;
     /** What the ship can actually use while holding its heading, m/s². */
     readonly holding: Float64Array;
+    /**
+     * How much of its propellant's worth that push gets, 0 to 1: its effective
+     * exhaust velocity, net thrust over propellant burnt, over its best engine's.
+     * Below 1 where engines push across or against each other to hold the
+     * heading, or where weaker engines carry it.
+     */
+    readonly efficiency: Float64Array;
 }
 
 /**
@@ -707,9 +714,8 @@ export interface Envelopes {
  * the allocator as well as about the layout — which is what ROADMAP.md §12
  * says it is waiting for before replacing it.
  */
-function trimmer(design: ShipDesign): (dirX: number, dirY: number) => number {
+function trimmer(design: ShipDesign, throttles = new Float64Array(design.engines.length)): (dirX: number, dirY: number) => number {
     const layout = design.engineLayout;
-    const throttles = new Float64Array(design.engines.length);
     const result = new Allocation();
 
     return (dirX, dirY) => {
@@ -768,8 +774,8 @@ export function burnThrottles(design: ShipDesign, angle: number, acceleration: n
 }
 
 /**
- * Both curves: the acceleration available in every direction, and how much of
- * it survives the requirement not to spin.
+ * The curves: the acceleration available in every direction, how much of it
+ * survives the requirement not to spin, and how well that push uses its fuel.
  *
  * Four numbers on a panel say a ship accelerates hard forwards and poorly
  * sideways; only the curve shows which diagonal it is worst in, and whether a
@@ -782,17 +788,50 @@ export function burnThrottles(design: ShipDesign, angle: number, acceleration: n
  */
 export function envelopes(design: ShipDesign, samples: number = ENVELOPE_SAMPLES): Envelopes {
     const layout = design.engineLayout;
-    const trim = trimmer(design);
+    const throttles = new Float64Array(design.engines.length);
+    const trim = trimmer(design, throttles);
     const free = new Float64Array(samples);
     const holding = new Float64Array(samples);
+    const efficiency = new Float64Array(samples);
+    const best = bestExhaust(design);
     for (let i = 0; i < samples; i++) {
         const angle = (TAU * i) / samples;
         const dirX = cos(angle);
         const dirY = sin(angle);
         free[i] = pushAlong(layout, dirX, dirY) / design.mass;
         holding[i] = trim(dirX, dirY);
+        efficiency[i] = holding[i]! > 0 && best > 0 ? effectiveExhaust(design, throttles) / best : 0;
     }
-    return { samples, free, holding };
+    return { samples, free, holding, efficiency };
+}
+
+/** The fastest exhaust of any engine it has, m/s; 0 with none. */
+function bestExhaust(design: ShipDesign): number {
+    let best = 0;
+    for (const engine of design.engines) best = max(best, design.modules[engine.module ?? -1]?.stats.exhaustVelocity ?? 0);
+    return best;
+}
+
+/** Net thrust over propellant burnt at `throttles`, m/s, so engines pushing against each other count as waste; 0 burning nothing. */
+function effectiveExhaust(design: ShipDesign, throttles: ArrayLike<number>): number {
+    const { fx, fy, flow } = burnFlow(design, throttles);
+    return flow > 0 ? Math.sqrt(fx * fx + fy * fy) / flow : 0;
+}
+
+/** The net force a burn at `throttles` makes, N, and the propellant it burns, kg/s. */
+function burnFlow(design: ShipDesign, throttles: ArrayLike<number>): { fx: number; fy: number; flow: number } {
+    let fx = 0;
+    let fy = 0;
+    let flow = 0;
+    design.engines.forEach((engine, t) => {
+        const force = (throttles[t] ?? 0) * engine.maxThrust;
+        const exhaust = design.modules[engine.module ?? -1]?.stats.exhaustVelocity ?? 0;
+        if (!(force > 0) || !(exhaust > 0)) return;
+        fx += engine.dirX * force;
+        fy += engine.dirY * force;
+        flow += force / exhaust;
+    });
+    return { fx, fy, flow };
 }
 
 /**
@@ -826,17 +865,7 @@ export function pushAlong(layout: EngineLayout, dirX: number, dirY: number): num
  * count as waste, s; and seconds the fuel it sets out with lasts at it.
  */
 export function burnFigures(design: ShipDesign, throttles: ArrayLike<number>): { isp: number; endurance: number } {
-    let fx = 0;
-    let fy = 0;
-    let flow = 0;
-    design.engines.forEach((engine, t) => {
-        const force = (throttles[t] ?? 0) * engine.maxThrust;
-        const exhaust = design.modules[engine.module ?? -1]?.stats.exhaustVelocity ?? 0;
-        if (!(force > 0) || !(exhaust > 0)) return;
-        fx += engine.dirX * force;
-        fy += engine.dirY * force;
-        flow += force / exhaust;
-    });
+    const { fx, fy, flow } = burnFlow(design, throttles);
     let fuel = 0;
     for (const module of design.modules) fuel += module.stats.fuel * fillOf(module.spec);
     if (!(flow > 0)) return { isp: 0, endurance: Infinity };
