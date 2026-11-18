@@ -115,7 +115,7 @@ import { eachCloudPuff, eachPuff, type Cloud, type Hole, type Pose, type Puff } 
 import { Poses } from "./poses.js";
 import { bit, bitCount, seedOf, spark, sparkColour, sparkCount, sparkFade, sprayOf, type Bit, type Spark } from "./particles.js";
 import type { PixiCanvas } from "./pixiCanvas.js";
-import { iconAlpha, ICON_OUTLINE, ICON_PX, isWreckage } from "./icons.js";
+import { iconAlpha, ICON_OUTLINE, ICON_PX, iconShape, isWreckage, LONG_ICON_OUTLINE, LONG_ICON_SCALE, SQUARE_ICON_HALF } from "./icons.js";
 
 const { cos, floor, sin, length, max, min, PI, sqrt, TAU } = math;
 
@@ -2437,6 +2437,10 @@ function eachNozzle(
  * the way that would otherwise vanish at this zoom. A ship riding another's
  * body, as a fighter on its pad, has none: the hull's own stands for it.
  *
+ * Its shape is the design's (`iconShape`): an arrowhead for a fighter, a square
+ * for a ship that pushes much alike every way, or a pointed hull, a little larger,
+ * for any other ship.
+ *
  * It points the way the ship does (`ShipView.heading`), which is not always
  * its body's angle: a fighter launched from a pad keeps the carrier's frame.
  */
@@ -2446,7 +2450,8 @@ function drawIcon(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     if (alpha <= 0) return;
     const palette = ship.currentStructure.fighter ? fighterColours : shipColours;
     const colours = markerOf(palette(ship.hasControl && !ship.isMissionKilled ? ship.team : -1));
-    const size = ICON_PX / metresToPx;
+    const shape = iconShape(ship.currentStructure);
+    const size = ((shape === "long" ? LONG_ICON_SCALE : 1) * ICON_PX) / metresToPx;
 
     ctx.save();
     ctx.translate(ship.x, ship.y);
@@ -2454,9 +2459,12 @@ function drawIcon(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     ctx.scale(size, size);
     ctx.globalAlpha = alpha;
     ctx.beginPath();
-    ctx.moveTo(ICON_OUTLINE[0]![0], ICON_OUTLINE[0]![1]);
-    for (let i = 1; i < ICON_OUTLINE.length; i++) {
-        ctx.lineTo(ICON_OUTLINE[i]![0], ICON_OUTLINE[i]![1]);
+    if (shape === "square") {
+        ctx.rect(-SQUARE_ICON_HALF, -SQUARE_ICON_HALF, 2 * SQUARE_ICON_HALF, 2 * SQUARE_ICON_HALF);
+    } else {
+        const outline = shape === "long" ? LONG_ICON_OUTLINE : ICON_OUTLINE;
+        ctx.moveTo(outline[0]![0], outline[0]![1]);
+        for (let i = 1; i < outline.length; i++) ctx.lineTo(outline[i]![0], outline[i]![1]);
     }
     ctx.closePath();
     ctx.fillStyle = colours.hull;
@@ -2464,7 +2472,7 @@ function drawIcon(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     // An outline in the lighter of the same two colours, so the arrowhead holds
     // its shape against the hull it is sitting on as well as against the field.
     ctx.strokeStyle = colours.trim;
-    ctx.lineWidth = 1 / ICON_PX;
+    ctx.lineWidth = 1 / (size * metresToPx);
     ctx.stroke();
     ctx.restore();
 }
@@ -2848,17 +2856,22 @@ function drawScene(
     // World to screen: metres up, y flipped so +y is up as the maths intends.
     ctx.translate(widthPx / 2, heightPx / 2);
     ctx.scale(camera.scale, -camera.scale);
+    const turn = camera.turn ?? 0;
+    if (turn !== 0) ctx.rotate(turn);
     ctx.translate(-camera.x, -camera.y);
+    // Turned, the world the view takes in is the box round its corners.
+    const reachW = turn === 0 ? widthPx : Math.hypot(widthPx, heightPx);
+    const reachH = turn === 0 ? heightPx : reachW;
 
     if (!underneath) {
-        drawGrid(ctx, camera, widthPx, heightPx);
+        drawGrid(ctx, camera, reachW, reachH);
         drawWells(ctx, snapshot, camera);
     }
 
     // A ship nowhere near the view is not drawn: a close-up draws the whole
     // battle again for one ship. One with its arcs showing is, since they reach.
-    const halfW = (widthPx / 2 + CULL_PAD_PX) / camera.scale;
-    const halfH = (heightPx / 2 + CULL_PAD_PX) / camera.scale;
+    const halfW = (reachW / 2 + CULL_PAD_PX) / camera.scale;
+    const halfH = (reachH / 2 + CULL_PAD_PX) / camera.scale;
     shownBox.x = camera.x;
     shownBox.y = camera.y;
     shownBox.halfW = halfW;
@@ -3187,6 +3200,7 @@ export function fleetStrips(snapshot: Snapshot, widthPx: number, heightPx: numbe
             vx: ship.vx,
             vy: ship.vy,
             radius: ship.currentStructure.radius,
+            heading: ship.heading ?? ship.angle,
             design,
             intact: intactMass(ship),
         });

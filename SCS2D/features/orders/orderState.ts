@@ -19,8 +19,10 @@ export interface OrderState {
     readonly hasRobots: boolean;
     /** The approach speed they share, as the hold speed's placeholder. */
     readonly speed: string;
-    /** What is left in an asteroid picked out alone, or null. */
+    /** What is left in an asteroid picked out alone, or in the one a ship picked out alone is mining, or null. */
     readonly asteroid: string | null;
+    /** Whether that asteroid is the one the picked ship is mining, rather than itself picked. */
+    readonly mining: boolean;
 }
 
 export const NO_ORDERS: OrderState = {
@@ -32,6 +34,7 @@ export const NO_ORDERS: OrderState = {
     hasRobots: false,
     speed: "doctrine",
     asteroid: null,
+    mining: false,
 };
 
 /** An order as the queue lists it: what, against whom, and how far off and how fast where told. */
@@ -86,6 +89,8 @@ export function orderState(view: BattleView, shown: Snapshot): OrderState {
     const picked = [...view.picked];
     const ships = picked.map((i) => viewOf(shown, i)).filter((ship) => ship !== null);
     const one = picked.length === 1 ? ships[0] : undefined;
+    const mined = one?.doing === "scavenge" ? shown.ships.slice(0, shown.shipCount).find((ship) => ship.body === one.doingTo) : undefined;
+    const asteroid = one?.rock !== undefined ? one : mined?.rock !== undefined ? mined : undefined;
     const speeds = ships.map((ship) => ship.doctrine?.approach.approachSpeed);
     return {
         side: view.orderSide(shown),
@@ -98,7 +103,8 @@ export function orderState(view: BattleView, shown: Snapshot): OrderState {
         designs: ships.map((ship) => (ship.blueprint ?? ship.currentStructure).name),
         hasRobots: ships.length > 0 && ships.every((ship) => (ship.bayRobots ?? []).some((n) => n > 0)),
         speed: speeds.length > 0 && speeds.every((v) => v !== undefined && v === speeds[0]) ? String(speeds[0]) : "doctrine",
-        asteroid: one?.rock === undefined ? null : asteroidText(one.body, shown.time, one.rock),
+        asteroid: asteroid?.rock === undefined ? null : asteroidText(asteroid.body, shown.time, asteroid.rock),
+        mining: asteroid !== undefined && asteroid !== one,
     };
 }
 

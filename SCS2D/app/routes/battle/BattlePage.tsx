@@ -344,7 +344,7 @@ export function BattlePage() {
                     onRunningChanged={setRunning}
                     onRewound={(rewound) => (battle.current = rewound)}
                 >
-                    <AsteroidCard contents={orders.asteroid} />
+                    <AsteroidCard contents={orders.asteroid} mining={orders.mining} />
                     {view !== null && doctrineOpen && orders.side !== null && (
                         <DoctrinePanel view={view} state={orders} shown={() => shown.current} />
                     )}
