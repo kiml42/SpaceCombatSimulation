@@ -71,10 +71,12 @@ import {
     SKIRMISH_HELP_KEY,
     SKIRMISH_HELP_LABEL,
     SKIRMISH_LOSS_HELP_KEY,
+    SKIRMISH_ROUND_HELP_KEY,
     SKIRMISH_WIN_HELP_KEY,
     SkirmishCardHelp,
     SkirmishHelp,
     SkirmishLossHelp,
+    SkirmishRoundHelp,
     SkirmishWinHelp,
 } from "./SkirmishHelp";
 import { SETTINGS_KEY } from "./skirmishFields";
@@ -460,6 +462,10 @@ export function SkirmishPage() {
     const lossHelp = useHelp(SKIRMISH_LOSS_HELP_KEY, { enabled: told && outcome.kind === "lost", key: false });
     const winHelp = useHelp(SKIRMISH_WIN_HELP_KEY, { enabled: told && outcome.kind === "won", key: false });
     const cardHelp = useHelp(SKIRMISH_CARD_HELP_KEY, { enabled: picking === "card", key: false });
+    const roundHelp = useHelp(SKIRMISH_ROUND_HELP_KEY, {
+        enabled: skirmish !== null && skirmish.won === undefined && skirmish.hand === undefined && !roundOver && !replaying,
+        key: false,
+    });
     const [setupKey, setSetupKey] = useState(0);
     const [abandoning, setAbandoning] = useState(false);
     const ticked = useSampled(() => (view === null ? 0 : (battle.current?.world.tick ?? 0) > 0 ? 1 : 0));
@@ -1012,6 +1018,7 @@ export function SkirmishPage() {
             </Controls>
             <Body>
                 <SkirmishHelp open={help.open && skirmish === null} onClose={help.close} />
+                <SkirmishRoundHelp open={roundHelp.open} onClose={roundHelp.close} />
                 <SkirmishLossHelp open={lossHelp.open} onClose={lossHelp.close} />
                 <SkirmishWinHelp open={winHelp.open} onClose={winHelp.close} />
                 <SkirmishCardHelp open={cardHelp.open} onClose={cardHelp.close} />

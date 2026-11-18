@@ -1476,8 +1476,8 @@ inside any one file is not contiguous.
   each. A skirmish left unnamed is named for them ("Small ships in an asteroid field"). *Start* always goes on to the fleet
   editor to build the player's fleet, within the budget it states. *Customise* holds any enemy from the library, the budget and
   the limits; *Advanced settings* holds the rest. *How a skirmish works*, just what it is and how to start one, opens over the screen the first
-  time it is seen, and again from its ? button or the ? key; the first round lost, the first round won and the first
-  hand of upgrade cards each open a note of their own once, saying what it means and what to do next. The mutation fields are written
+  time it is seen, and again from its ? button or the ? key; the first round shown, the first round lost, the first round won and the
+  first hand of upgrade cards each open a note of their own once, saying what it means and what to do next. The mutation fields are written
   once (`evolution/mutationFields.ts`) and both pages draw them. *Export* saves the setup, the skirmish under way and its whole
   history as one `.skirmish.json`, to look into a run or ask about one, and *Import* reads one back in place of
   all three, asking first if a skirmish is under way. A skirmish can be named, on the setup screen or above
