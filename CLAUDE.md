@@ -53,6 +53,10 @@ On every check-in on an open PR, first bring it up to date with `master`: merge 
 any conflicts, and push, even when nothing conflicts. That way CI is always run against current `master`, and a
 branch never drifts far behind it.
 
+The exception is a PR that is ready to merge (labelled, CI green), where a push would only wait on CI again.
+Merge `master` into it locally, without pushing. If `master`'s new commits touch no file the PR changes and `pnpm
+typecheck` passes on the result, merge the PR as it stands. Otherwise push the merge and wait for CI as usual.
+
 **Never run the full test suite locally; CI runs it.** No `pnpm test` without a file filter and no `pnpm
 test:browser` — not before a push and not after merging `master`. The suites take long enough that running them
 locally costs more than a red CI run does. Run only the test files that bear on what changed (`pnpm exec vitest
