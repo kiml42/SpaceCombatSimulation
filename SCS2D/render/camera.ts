@@ -29,6 +29,8 @@ export interface Camera {
      */
     vx?: number;
     vy?: number;
+    /** How far the view is turned anticlockwise, radians: a bearing of `π/2 − turn` points up. None when absent. */
+    turn?: number;
 }
 
 /** What framing reads of a picture: the box everything in it fits inside. */
