@@ -364,6 +364,13 @@ export interface Approach {
      */
     readonly ramCommit: number;
     /**
+     * The share of a full tank below which a fighter ramming goes for the deck
+     * rather than a part standing up from it: a pass over the hull that misses
+     * such a part has to come round again, and without the fuel to, it is
+     * better spent on whatever it meets. Zero always goes for the part.
+     */
+    readonly ramAboveFuel: number;
+    /**
      * What a half turn costs in choosing which way round to fight, as a share
      * of its main battery. A ship weighs each bearing its main guns can bear on
      * by the share of them that do, less this for every half turn away from
@@ -620,6 +627,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
         ramArmed: 0,
         ramSettle: 3,
         ramCommit: 2,
+        ramAboveFuel: 0.3,
         turnBias: 0.5,
         burnWeight: 2,
         rangeHold: 1,
@@ -846,6 +854,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
     "ramArmed",
     "ramSettle",
     "ramCommit",
+    "ramAboveFuel",
     "turnBias",
     "burnWeight",
     "rangeHold",
@@ -884,6 +893,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
 /** Fields that mean nothing below zero, though zero itself is a setting. */
 export const NON_NEGATIVE_FIELDS: readonly string[] = [
     "ramSettle",
+    "ramAboveFuel",
     "escortInner",
     "spinResist",
     "bandFade",

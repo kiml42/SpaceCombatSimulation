@@ -396,6 +396,12 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
         step: 0.5,
     },
     {
+        field: "ramAboveFuel",
+        label: "goes for the deck below",
+        hint: "A fighter's ram: the share of a full tank below which it rams the deck rather than a part standing up from it, which a miss would have to come round for",
+        step: 0.05,
+    },
+    {
         field: "ramCommit",
         label: "drops to the deck",
         hint: "A fighter's ram: seconds before it would strike that it takes the hull layer as well, flying past hulls in the weapons layer until then",
@@ -636,6 +642,13 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                     }),
                     entry("approach", "ramSettle", { shown: (v) => v.approach.ramRadii > 0 }),
                     entry("approach", "ramCommit", { shown: (v) => v.approach.ramRadii > 0 }),
+                    entry("approach", "ramAboveFuel", {
+                        shown: (v) => v.approach.ramRadii > 0,
+                        absolute: (v) =>
+                            v.approach.ramAboveFuel > 0
+                                ? `below ${Math.round(v.approach.ramAboveFuel * 100)}% full`
+                                : "never: always the part",
+                    }),
                     entry("targeting", "ramMass", {
                         shown: (v) => v.approach.ramRadii > 0,
                         absolute: (v, ship) =>
