@@ -9,8 +9,10 @@ import {
     Projectiles,
     SpatialGrid,
     World,
+    type Blueprint,
     type WellSpec,
 } from "../../sim/index.js";
+import { GUN_PLATFORM } from "../../scenarios/blueprints.js";
 import { duel } from "../../scenarios/duel.js";
 import { binary } from "../../scenarios/binary.js";
 import { kernels } from "../../scenarios/kernels.js";
@@ -421,8 +423,8 @@ export function beamDuelScenario(seed = 20260905): ScenarioRun {
     };
 }
 
-export function torpedoesScenario(seed = 20260905): ScenarioRun {
-    const run = torpedoes(seed);
+export function torpedoesScenario(seed = 20260905, target?: Blueprint): ScenarioRun {
+    const run = torpedoes(seed, undefined, target);
     return {
         step: () => run.step(),
         checksum: () =>
@@ -686,6 +688,7 @@ export const SCENARIOS = {
     swarm: { steps: 3_000, build: () => swarmScenario() },
     superSwarm: { steps: 3_000, build: () => swarmScenario(undefined, 300) },
     torpedoes: { steps: 3_000, build: () => torpedoesScenario() },
+    torpedoesGunPlatform: { steps: 3_000, build: () => torpedoesScenario(20260905, GUN_PLATFORM) },
     ordering: { steps: 3_000, build: () => orderingScenario() },
     standoff: { steps: 3_000, build: () => standoffScenario() },
     column: { steps: 3_000, build: () => columnScenario() },

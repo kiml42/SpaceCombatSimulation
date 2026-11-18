@@ -7,6 +7,7 @@ import lanceCorvetteFile from "./blueprints/lance-corvette.json" with { type: "j
 import lanceGunshipFile from "./blueprints/lance-gunship.json" with { type: "json" };
 import gunshipFile from "./blueprints/gunship.json" with { type: "json" };
 import beamGunshipFile from "./blueprints/beam-gunship.json" with { type: "json" };
+import gunPlatformFile from "./blueprints/gun-platform.json" with { type: "json" };
 import fractalFile from "./blueprints/fractal.json" with { type: "json" };
 import dinkyFile from "./blueprints/dinky.json" with { type: "json" };
 import catamaranFile from "./blueprints/catamaran.json" with { type: "json" };
@@ -60,6 +61,7 @@ export const LANCE_CORVETTE: Blueprint = parseBlueprint(lanceCorvetteFile);
 export const LANCE_GUNSHIP: Blueprint = parseBlueprint(lanceGunshipFile);
 export const GUNSHIP: Blueprint = parseBlueprint(gunshipFile);
 export const BEAM_GUNSHIP: Blueprint = parseBlueprint(beamGunshipFile);
+export const GUN_PLATFORM: Blueprint = parseBlueprint(gunPlatformFile);
 export const FRACTAL: Blueprint = parseBlueprint(fractalFile);
 export const DINKY: Blueprint = parseBlueprint(dinkyFile);
 export const CATAMARAN: Blueprint = parseBlueprint(catamaranFile);
@@ -92,6 +94,7 @@ export const BLUEPRINTS = {
     lanceCorvette: LANCE_CORVETTE,
     lanceGunship: LANCE_GUNSHIP,
     beamGunship: BEAM_GUNSHIP,
+    gunPlatform: GUN_PLATFORM,
     fractal: FRACTAL,
     dinky: DINKY,
     catamaran: CATAMARAN,

@@ -6,6 +6,7 @@ import { lanceDuel } from "./lanceDuel.js";
 import { beamDuel } from "./beamDuel.js";
 import { swarm } from "./swarm.js";
 import { torpedoes } from "./torpedoes.js";
+import { BEAM_GUNSHIP, GUN_PLATFORM } from "./blueprints.js";
 import { starWars } from "./starWars.js";
 import { standoff } from "./standoff.js";
 import { column } from "./column.js";
@@ -54,7 +55,11 @@ export const SCENES: readonly Scene[] = [
         variants: ["20 fighters", "300 fighters"],
         create: (variant = 0) => (variant === 1 ? lit(swarm(SCENE_SEED, 300), LIGHTS.redDwarf) : lit(swarm(SCENE_SEED), LIGHTS.dusk)),
     },
-    { name: "Torpedoes", create: () => lit(torpedoes(SCENE_SEED), LIGHTS.violet) },
+    {
+        name: "Torpedoes",
+        variants: ["Beam Gunship", "Gun Platform"],
+        create: (variant = 0) => lit(torpedoes(SCENE_SEED, undefined, variant === 1 ? GUN_PLATFORM : BEAM_GUNSHIP), LIGHTS.violet),
+    },
     { name: "Standoff", create: () => lit(standoff(SCENE_SEED), LIGHTS.ice) },
     { name: "Line Ahead", create: () => lit(column(SCENE_SEED), LIGHTS.gold) },
     { name: "Split", create: () => lit(split(SCENE_SEED), LIGHTS.nebula) },
