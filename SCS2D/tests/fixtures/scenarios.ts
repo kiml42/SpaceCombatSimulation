@@ -12,7 +12,7 @@ import {
     type Blueprint,
     type WellSpec,
 } from "../../sim/index.js";
-import { GUN_PLATFORM } from "../../scenarios/blueprints.js";
+import { BEAM_CORVETTE, GUN_PLATFORM, RAIL_CORVETTE } from "../../scenarios/blueprints.js";
 import { duel } from "../../scenarios/duel.js";
 import { binary } from "../../scenarios/binary.js";
 import { kernels } from "../../scenarios/kernels.js";
@@ -42,6 +42,7 @@ import { split } from "../../scenarios/split.js";
 import { crash } from "../../scenarios/crash.js";
 import { swarm } from "../../scenarios/swarm.js";
 import { torpedoes } from "../../scenarios/torpedoes.js";
+import { disarm } from "../../scenarios/disarm.js";
 import { orbiting } from "../../scenarios/orbiting.js";
 
 /**
@@ -433,6 +434,16 @@ export function torpedoesScenario(seed = 20260905, target?: Blueprint): Scenario
     };
 }
 
+export function disarmScenario(seed = 20260905, attacker?: Blueprint): ScenarioRun {
+    const run = disarm(seed, attacker);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
+}
+
 export function swarmScenario(seed = 20260905, corvetteCount = 20): ScenarioRun {
     const run = swarm(seed, corvetteCount);
     return {
@@ -689,6 +700,9 @@ export const SCENARIOS = {
     superSwarm: { steps: 3_000, build: () => swarmScenario(undefined, 300) },
     torpedoes: { steps: 3_000, build: () => torpedoesScenario() },
     torpedoesGunPlatform: { steps: 3_000, build: () => torpedoesScenario(20260905, GUN_PLATFORM) },
+    disarm: { steps: 3_000, build: () => disarmScenario() },
+    disarmBeams: { steps: 3_000, build: () => disarmScenario(20260905, BEAM_CORVETTE) },
+    disarmRails: { steps: 3_000, build: () => disarmScenario(20260905, RAIL_CORVETTE) },
     ordering: { steps: 3_000, build: () => orderingScenario() },
     standoff: { steps: 3_000, build: () => standoffScenario() },
     column: { steps: 3_000, build: () => columnScenario() },
