@@ -293,6 +293,7 @@ describe("the editor in a browser", () => {
         expect(stats).toMatch(/Mass[\d.,]+ t\s*fuel[\d.,]+ t/);
         expect(stats).toMatch(/Burn[\d,]+ s/);
         expect(stats).toMatch(/Δv\d+\.\d km\/s/);
+        expect(stats).toMatch(/Turn about[\d.,]+ s/);
         expect(stats).toMatch(/Turn L \/ R[\d.]+ \/ [\d.]+ °\/s²/);
         // It flies, balanced enough not to be warned about holding its heading. The warning is read
         // from the holding curve, measured through the allocator, so this is also the check that the
