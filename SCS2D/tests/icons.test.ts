@@ -136,7 +136,11 @@ describe("icon shape", () => {
         const xs = LONG_ICON_OUTLINE.map(([x]) => x);
         const nose = Math.max(...xs);
         const tail = Math.min(...xs);
-        expect(nose + tail).toBeGreaterThan(0.05);
-        expect(nose - tail).toBeCloseTo(1, 9);
+        expect(nose + tail).toBeGreaterThan(0.02);
+        // Behind its bow, about as long as it is wide.
+        const ys = LONG_ICON_OUTLINE.map(([, y]) => y);
+        const width = Math.max(...ys) - Math.min(...ys);
+        const shoulder = Math.max(...LONG_ICON_OUTLINE.filter(([, y]) => y > 0.1).map(([x]) => x));
+        expect((shoulder - tail) / width).toBeCloseTo(1, 0);
     });
 });

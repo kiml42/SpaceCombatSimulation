@@ -96,21 +96,23 @@ export const ICON_OUTLINE: readonly (readonly [number, number])[] = [
 ];
 
 /**
- * A ship's icon: a hull with a pointed bow, in the same frame as the
- * arrowhead, so it reads as a ship with a front rather than as a dart.
- * Moved back so the ship's position is at the middle of its area, as a hull's
- * centre of mass is, rather than at the middle of its length.
+ * A ship's icon: a pointed bow on a body about as long as it is wide, with a
+ * shallower notch at its tail than the arrowhead's, so the two read as kin and
+ * this one as the heavier. In the arrowhead's frame, moved back so the ship's
+ * position is at the middle of its area, as a hull's centre of mass is, rather
+ * than at the middle of its length.
  */
 export const LONG_ICON_OUTLINE: readonly (readonly [number, number])[] = aboutCentroid([
-    [0.5, 0],
-    [0.22, 0.2],
-    [-0.5, 0.2],
-    [-0.5, -0.2],
-    [0.22, -0.2],
+    [0.38, 0],
+    [0.14, 0.22],
+    [-0.32, 0.22],
+    [-0.22, 0],
+    [-0.32, -0.22],
+    [0.14, -0.22],
 ]);
 
-/** How much larger than the arrowhead a ship's long icon is drawn, so a ship stands out among fighters. */
-export const LONG_ICON_SCALE = 1.3;
+/** How much larger than the arrowhead a ship's icon is drawn, so a ship stands out among fighters. */
+export const LONG_ICON_SCALE = 1.4;
 
 /** Half the side of a square icon, in the arrowhead's frame. */
 export const SQUARE_ICON_HALF = 0.3;
