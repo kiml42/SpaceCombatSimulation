@@ -909,10 +909,16 @@ export function burnFigures(design: ShipDesign, throttles: ArrayLike<number>): {
 
 /** The holding curve at `bearing`, radians from the bow, between its samples. */
 export function holdingAt(envelope: Envelopes, bearing: number): number {
-    const at = ((((bearing / TAU) * envelope.samples) % envelope.samples) + envelope.samples) % envelope.samples;
+    return curveAt(envelope.holding, bearing);
+}
+
+/** A curve sampled evenly round the circle from the bow, at `bearing`, between its samples. */
+export function curveAt(values: Float64Array, bearing: number): number {
+    const samples = values.length;
+    const at = ((((bearing / TAU) * samples) % samples) + samples) % samples;
     const i = Math.floor(at);
     const t = at - i;
-    return envelope.holding[i % envelope.samples]! * (1 - t) + envelope.holding[(i + 1) % envelope.samples]! * t;
+    return values[i % samples]! * (1 - t) + values[(i + 1) % samples]! * t;
 }
 
 /**

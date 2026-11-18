@@ -1,6 +1,6 @@
 import { blockCentre, bodySpec, math, moduleCentre, shapeOf, type ModuleSpec, type ShipDesign } from "../sim/index.js";
 import { describeStep, snapStep, type Camera } from "../render/camera.js";
-import { efficiencyAtShare, inUnits, pointedThrust, type Envelopes } from "./stats.js";
+import { curveAt, efficiencyAtShare, inUnits, pointedThrust, type Envelopes } from "./stats.js";
 import type { AssemblyOutline } from "./document.js";
 import { HANDLE_RADIUS_PX, type Handle } from "./handles.js";
 import { LEFT_OUT_RADIUS_PX, leftOut } from "./edit.js";
@@ -99,6 +99,8 @@ const ENVELOPE_LABEL = "#7f93aa";
 const ENVELOPE_EFFICIENCY = "rgba(214, 178, 91, 0.85)";
 /** The same at the part thrust the pointer asks for. */
 const ENVELOPE_PART_EFFICIENCY = "rgba(232, 128, 80, 0.9)";
+/** Over a grown rosette's window outside its rim, where the pointer asks for full thrust. */
+const ENVELOPE_FULL_TINT = "rgba(128, 128, 128, 0.28)";
 
 /** The last part-thrust efficiency curve worked out, kept while the design and the share stay put. */
 let partCurve: { design: ShipDesign; envelope: Envelopes; share: number; values: Float64Array } | null = null;
@@ -192,8 +194,6 @@ export interface OverlayView {
     envelopeExpanded?: boolean;
     /** How far out the pointer is on the envelope, over its radius (`envelopeReachAt`). */
     envelopeReach?: number;
-    /** What the burn shown for the bearing pointed at costs (`burnFigures`), or null. */
-    envelopeBurn?: { isp: number; endurance: number } | null;
     /** The attack rosette, or null when there is no design. */
     attack?: AttackRosette | null;
     /** A bearing on the attack rosette being pointed at, radians from the bow, or null. */
@@ -206,7 +206,7 @@ export interface OverlayView {
 }
 
 /** Room above a grown rosette for the value at the bearing pointed at, pixels. */
-const POINTED_LABEL_PX = 32;
+const POINTED_LABEL_PX = 46;
 /** Between the lines of what is pointed at, pixels. */
 const POINTED_LINE_PX = 14;
 /** How far a grown rosette's window stands off what it holds, pixels. */
@@ -370,14 +370,6 @@ function pointedLabel(
         ctx.fillStyle = typeof line === "string" ? ATTACK_POINTED : line.colour;
         ctx.fillText(typeof line === "string" ? line : line.text, right, y - POINTED_LINE_PX * (lines.length - 1 - i));
     });
-}
-
-/** Seconds as a duration in its largest units, so it does not read as another figure in seconds. */
-function duration(seconds: number): string {
-    const s = Math.round(seconds);
-    if (s < 60) return `${s} s`;
-    if (s < 3600) return `${Math.floor(s / 60)} min ${s % 60} s`;
-    return `${Math.floor(s / 3600)} h ${Math.floor((s % 3600) / 60)} min`;
 }
 
 /** The ship from above in a rosette, about its centre of mass, which the rosette's bearings are measured from. */
@@ -867,7 +859,28 @@ function drawEnvelope(
 
     const disc = envelopeDisc(widthPx, heightPx, expanded);
     const { x: cx, y: cy, radius } = disc;
-    if (expanded) drawWindow(ctx, disc);
+    if (expanded) {
+        drawWindow(ctx, disc);
+        // Pointing anywhere out here asks for full thrust; inside the rim, for part of it.
+        // Cut out by an even-odd clip rather than filled even-odd, which the Pixi context does not do.
+        const box = windowOf(disc);
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(box.left, box.top, box.right - box.left, box.bottom - box.top, 6);
+        ctx.moveTo(cx + radius, cy);
+        ctx.arc(cx, cy, radius, 0, TAU);
+        ctx.clip("evenodd");
+        ctx.beginPath();
+        ctx.roundRect(box.left, box.top, box.right - box.left, box.bottom - box.top, 6);
+        ctx.fillStyle = ENVELOPE_FULL_TINT;
+        ctx.fill();
+        ctx.restore();
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, TAU);
+        ctx.strokeStyle = WINDOW_EDGE;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+    }
 
     if (view.design !== null) silhouette(ctx, view, view.design, cx, cy, radius);
 
@@ -951,18 +964,21 @@ function drawEnvelope(
     ctx.textAlign = "right";
     ctx.fillText(`max ${inUnits([held], "m/s²")}`, widthPx - ENVELOPE_MARGIN_PX, cy + radius + 14);
     if (bearing !== null && pointed !== null) {
-        const text = `${degrees(bearing)}: ${inUnits([pointed.acceleration, pointed.holding], "m/s²")}`;
-        const burn = view.envelopeBurn;
-        const lines: (string | { text: string; colour: string })[] =
-            burn != null && burn.isp > 0 && Number.isFinite(burn.endurance)
-                ? [text, `Isp ${burn.isp.toFixed(0)} s, burns ${duration(burn.endurance)}`]
-                : [text];
-        // What each curve is, beside the figures, while the rosette is open to read.
-        if (expanded) {
-            lines.push({ text: "blue: thrust it can use", colour: ENVELOPE });
-            lines.push({ text: "amber: fuel efficiency, full thrust", colour: ENVELOPE_EFFICIENCY });
-            if (part) lines.push({ text: `orange: fuel efficiency, ${Math.round(share * 100)}% thrust`, colour: ENVELOPE_PART_EFFICIENCY });
-        }
+        // Each as what is asked for over the most there is, or the most alone at full thrust.
+        const full = !part;
+        const pair = (asked: string, most: string): string => (full ? most : `${asked} / ${most}`);
+        const percent = (share: number): string => `${Math.round(share * 100)}%`;
+        // The first slash only: the second is the unit's.
+        const thrustText = full
+            ? inUnits([pointed.holding], "m/s²")
+            : inUnits([pointed.acceleration, pointed.holding], "m/s²").replace("/", " / ");
+        const best = curveAt(envelope.efficiency, bearing);
+        const asked = part ? curveAt(partEfficiency(view.design!, envelope, share), bearing) : best;
+        const lines = [
+            `${degrees(bearing)}: ${pair(percent(share), "max")}`,
+            { text: `Available thrust: ${thrustText}`, colour: ENVELOPE },
+            { text: `Efficiency: ${pair(percent(asked), percent(best))}`, colour: ENVELOPE_EFFICIENCY },
+        ];
         pointedLabel(ctx, lines, widthPx - ENVELOPE_MARGIN_PX, cy - radius);
     }
     ctx.textAlign = "left";

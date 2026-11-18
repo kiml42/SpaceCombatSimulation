@@ -74,7 +74,7 @@ import {
 } from "./snapping.js";
 import { attackRosette as measureAttack, gunsBearing, landOnSelf, lightSelfBurning, previewSnapshot } from "./preview.js";
 import type { Aim } from "./demonstrate.js";
-import { burnFigures, burnThrottles, envelopes, pointedThrust, type Envelopes } from "./stats.js";
+import { burnThrottles, envelopes, pointedThrust, type Envelopes } from "./stats.js";
 
 /**
  * The ship drawn, and the pointer and keys on it: select, move, size, shape
@@ -459,7 +459,6 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
         // Pointing at the envelope burns the engines the way the ship would to
         // push that way without turning, on top of whatever is selected.
         const shown = snapshot.ships[0];
-        let burn: { isp: number; endurance: number } | null = null;
         if (thrustBearing !== null && view.design !== null && shown !== undefined) {
             const measured = envelope();
             if (
@@ -475,7 +474,6 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
                 burningFor = { design: view.design, bearing: thrustBearing, reach: thrustReach, throttles };
             }
             const burning = burningFor?.throttles ?? new Float64Array(0);
-            burn = burnFigures(view.design, burning);
             for (let t = 0; t < shown.throttles.length; t++) {
                 shown.throttles[t] = Math.max(shown.throttles[t] ?? 0, burning[t] ?? 0);
             }
@@ -525,7 +523,6 @@ export function shipCanvas(canvas: HTMLCanvasElement, doc: EditorDocument, hooks
                     envelope: envelope(),
                     envelopeBearing: thrustBearing,
                     envelopeReach: thrustReach,
-                    envelopeBurn: burn,
                     envelopeExpanded: thrustExpanded,
                     attack: attackRosette(),
                     attackBearing,
