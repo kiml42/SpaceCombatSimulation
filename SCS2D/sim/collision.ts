@@ -947,8 +947,9 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts, 
                         const outlet = (pa < firstA ? 0 : OUTLET_A) | (pb < firstB ? 0 : OUTLET_B);
                         const half = 0.5 * min(thinOf(boxA), thinOf(boxB));
                         if (consider(found, overlap(boxA, boxB), boxA, boxB, ma, mb, outlet)) found.half = half;
-                        // Slow enough that where they ended says which way they met.
-                        if (!(move > half) || !(move > SWEEP_FLOOR)) continue;
+                        // Slow enough that where they ended says which way they met; or one
+                        // has no thickness (a barrel of no calibre), which nothing passes through.
+                        if (!(half > 0) || !(move > half) || !(move > SWEEP_FLOOR)) continue;
                         // Already touching as the step began: met before it.
                         shifted(boxB, -moveX, -moveY, sweptB);
                         if (overlap(boxA, sweptB) > 0) continue;
