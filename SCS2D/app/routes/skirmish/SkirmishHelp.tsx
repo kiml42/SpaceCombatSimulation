@@ -31,6 +31,32 @@ export function SkirmishHelp({ open, onClose }: SkirmishHelpProps) {
 export const SKIRMISH_LOSS_HELP_KEY = "scs2d.help.skirmishLoss";
 export const SKIRMISH_WIN_HELP_KEY = "scs2d.help.skirmishWin";
 export const SKIRMISH_CARD_HELP_KEY = "scs2d.help.skirmishCard";
+export const SKIRMISH_ROUND_HELP_KEY = "scs2d.help.skirmishRound";
+
+/** How a round is fought, the first time one is shown. */
+export function SkirmishRoundHelp({ open, onClose }: SkirmishHelpProps) {
+    return (
+        <HelpDialog id="skirmishRoundHelp" title="Fighting a round" open={open} onClose={onClose}>
+            <p>Your fleet against the enemy's. The panel shows what each costs against the budget.</p>
+            <ul>
+                <li>
+                    <strong>Fight</strong> starts the battle. Your ships fight by their doctrine on their own.
+                </li>
+                <li>
+                    You can also give orders: click one of your ships to pick it, then right-click an enemy to attack it. The menu (◀ Menu,
+                    or Escape) lists every key.
+                </li>
+                <li>
+                    You win once the enemy has nothing left to fight with, or goes too long without firing. Running out of time is a draw,
+                    and a draw counts as a loss.
+                </li>
+                <li>
+                    <strong>Edit fleet</strong> changes your ships and their designs, within the budget.
+                </li>
+            </ul>
+        </HelpDialog>
+    );
+}
 
 /** What a defeat means, the first time: a round is never lost, only fought again. */
 export function SkirmishLossHelp({ open, onClose }: SkirmishHelpProps) {
