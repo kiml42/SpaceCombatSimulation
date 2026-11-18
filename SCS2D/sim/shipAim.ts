@@ -471,9 +471,15 @@ export function partPoint(ships: Ships, bodies: Bodies, tb: number, design: Ship
 
 /**
  * The module of `target`, on body `tb`, that ship `i`, on body `b`, rams: by
- * its doctrine's aim weights as a mount picks one, the nearest of the best
- * still standing; `WHOLE_SHIP` for a doctrine with no opinion about parts,
- * which goes for the middle of what is left.
+ * its doctrine's aim weights as a mount picks one, still standing; `WHOLE_SHIP`
+ * for a doctrine with no opinion about parts, which goes for the middle.
+ *
+ * A part that stands up into the weapons layer is rammed from there, over the
+ * deck, so it is worth going for only along a line no other such part of the
+ * target stands across: a turret behind another is no turret to go for, and
+ * passing over the hull to try again beats being spent on the wrong thing.
+ * So the best of those with a clear line, nearest first; and only if none has
+ * one, the best of the rest, held above the deck until a line opens.
  */
 export function ramPart(ships: Ships, bodies: Bodies, i: number, b: number, target: number, tb: number): number {
     const doctrine = ships.doctrines[i]!.targeting;
@@ -481,24 +487,70 @@ export function ramPart(ships: Ships, bodies: Bodies, i: number, b: number, targ
     const design = ships.designs[target]!;
     const c = cos(bodies.angle[tb]!);
     const s = sin(bodies.angle[tb]!);
+    const layers = shipLayers(ships, target);
     let best = WHOLE_SHIP;
-    let bestWeight = 0;
+    let bestRank = 0;
     let bestRange = 0;
     for (let k = 0; k < design.modules.length; k++) {
         if (ships.damage.spent(tb, k) || !ships.ownsAt(target, tb, k)) continue;
-        const weight = partWeight(doctrine, design.modules[k]!.spec.kind);
-        if (weight <= 0) continue;
         const module = design.modules[k]!;
-        const range = length(
-            bodies.x[tb]! + module.x * c - module.y * s - bodies.x[b]!,
-            bodies.y[tb]! + module.x * s + module.y * c - bodies.y[b]!,
-        );
-        if (best !== WHOLE_SHIP && (weight < bestWeight || (weight === bestWeight && range >= bestRange))) continue;
+        const weight = partWeight(doctrine, module.spec.kind);
+        if (weight <= 0) continue;
+        const mx = bodies.x[tb]! + module.x * c - module.y * s;
+        const my = bodies.y[tb]! + module.x * s + module.y * c;
+        const tall = (moduleLayers(module, layers) & WEAPONS_LAYER) !== 0;
+        // A clear line ranks above any blocked one, and then by weight.
+        const blocked = tall && tallBetween(ships, bodies, b, tb, design, layers, k, mx, my);
+        const rank = (blocked ? 0 : 1e9) + weight;
+        const range = length(mx - bodies.x[b]!, my - bodies.y[b]!);
+        if (best !== WHOLE_SHIP && (rank < bestRank || (rank === bestRank && range >= bestRange))) continue;
         best = k;
-        bestWeight = weight;
+        bestRank = rank;
         bestRange = range;
     }
     return best;
+}
+
+/**
+ * Whether a module of `design`, on body `tb`, other than `k`, stands up into
+ * the weapons layer across the line from body `b` to `(x, y)`, within the
+ * rammer's own radius of it.
+ */
+function tallBetween(
+    ships: Ships,
+    bodies: Bodies,
+    b: number,
+    tb: number,
+    design: ShipDesign,
+    layers: number,
+    k: number,
+    x: number,
+    y: number,
+): boolean {
+    const fromX = bodies.x[b]!;
+    const fromY = bodies.y[b]!;
+    const dx = x - fromX;
+    const dy = y - fromY;
+    const span = dx * dx + dy * dy;
+    if (!(span > 0)) return false;
+    const c = cos(bodies.angle[tb]!);
+    const s = sin(bodies.angle[tb]!);
+    const own = bodies.radius[b]!;
+    for (let m = 0; m < design.modules.length; m++) {
+        if (m === k || ships.damage.spent(tb, m)) continue;
+        const module = design.modules[m]!;
+        if ((moduleLayers(module, layers) & WEAPONS_LAYER) === 0) continue;
+        const mx = bodies.x[tb]! + module.x * c - module.y * s;
+        const my = bodies.y[tb]! + module.x * s + module.y * c;
+        // Nearest point of the line to it, and only short of the part aimed at.
+        const along = ((mx - fromX) * dx + (my - fromY) * dy) / span;
+        if (!(along > 0 && along < 1)) continue;
+        const reach = moduleRadius(module.spec) + own;
+        const ox = fromX + dx * along - mx;
+        const oy = fromY + dy * along - my;
+        if (ox * ox + oy * oy < reach * reach) return true;
+    }
+    return false;
 }
 
 /**
