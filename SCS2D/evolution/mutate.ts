@@ -1423,6 +1423,8 @@ function refit(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | nul
  * for, and a cap here would hide it.
  */
 function rebarrel(site: ModuleSite, rng: Rng): string | null {
+    // Refitted earlier in the same mutation as a kind that has one outlet whatever it is given.
+    if (!countsOutlets(site.spec.kind)) return null;
     const was = site.spec.barrels ?? 1;
     const now = max(1, was + (rng.chance(0.5) ? 1 : -1));
     if (now === was) return null;
