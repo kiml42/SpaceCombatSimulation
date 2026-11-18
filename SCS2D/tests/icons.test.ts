@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { ShipView } from "../sim/index.js";
+import { compileBlueprint, type ShipView } from "../sim/index.js";
+import { BLUEPRINTS } from "../scenarios/blueprints.js";
 import {
     HULK_ICON_MASS,
     iconAlpha,
@@ -7,7 +8,9 @@ import {
     ICON_FADE_START_PX,
     ICON_MAX_ALPHA,
     ICON_OUTLINE,
+    iconShape,
     isWreckage,
+    LONG_ICON_OUTLINE,
 } from "../render/icons.js";
 
 /**
@@ -107,5 +110,37 @@ describe("wreckage", () => {
 
     it("is a severed piece whatever it weighs", () => {
         expect(isWreckage(view(big, false, false, true))).toBe(true);
+    });
+});
+
+describe("icon shape", () => {
+    const shape = (name: keyof typeof BLUEPRINTS) => iconShape(compileBlueprint(BLUEPRINTS[name]));
+
+    it("is an arrowhead for a fighter", () => {
+        expect(shape("xWing")).toBe("arrow");
+        expect(shape("tie")).toBe("arrow");
+    });
+
+    it("is a square for a ship that pushes alike every way", () => {
+        expect(shape("salvager")).toBe("square");
+        expect(shape("gunPlatform")).toBe("square");
+        expect(shape("beamCarrier")).toBe("square");
+    });
+
+    it("is a pointed hull for any other ship, large or small", () => {
+        expect(shape("corvette")).toBe("long");
+        expect(shape("starDestroyer")).toBe("long");
+    });
+
+    it("puts the ship at the middle of the pointed hull's area, behind the middle of its length", () => {
+        const xs = LONG_ICON_OUTLINE.map(([x]) => x);
+        const nose = Math.max(...xs);
+        const tail = Math.min(...xs);
+        expect(nose + tail).toBeGreaterThan(0.02);
+        // Behind its bow, about as long as it is wide.
+        const ys = LONG_ICON_OUTLINE.map(([, y]) => y);
+        const width = Math.max(...ys) - Math.min(...ys);
+        const shoulder = Math.max(...LONG_ICON_OUTLINE.filter(([, y]) => y > 0.1).map(([x]) => x));
+        expect((shoulder - tail) / width).toBeCloseTo(1, 0);
     });
 });
