@@ -39,8 +39,8 @@ inside any one file is not contiguous.
   viewer draws snapshots of all of it — ships, turret bearings, tracers and the wells
   bending them — with pause, single-step, a scrub bar to wind it back and on, a speed from a quarter to sixteen times, and zoom and pan over an
   auto-framing camera, by mouse or by touch (pinch to zoom). A ship clicked or tapped is picked out — the larger of two under the click while the smaller is drawn too small to see, so a click on a carrier does not pick out a fighter on its deck — ringed, a line to what it is fighting with how far off it is written upright on the line just past its ring — or, while it is shown in a window, just outside the window on the side facing its target, clear of the target's — so the figure stays with the ship and in frame while it is, every arc and
-  where its guns will fire drawn for it alone, whatever A is set to — until Escape or a tap on empty space; on the evolution page's battles too. Picking it moves the camera only while it is still fitted, never once it has been moved by hand: then Fit (F) does, framing it with what it is fighting and escorting, the asteroid or hulk it is scavenging, and what it is keeping clear of most. Where it or its target is off screen, or under 16 px across, it is shown close up in a window of its own over the view, sized by its ship at one zoom for every window — so the two are drawn to scale, a Gunship's about 150 px and a Corvette's under half that — between 64 and 240 px: over the ship if it is on screen, against the edge it is beyond if not, with a pointer towards it, the picked ship's window framed solid and its target's dashed, with how far the target is from it. Clicking a window picks its ship and frames it. Each side's ships are shown live down the view's edges, a tile each by a camera of its own — the even sides on the left, the odd on the right, and past five tiles an edge (`MOST_TILES`) a side's commonest design, fighter or not, sharing a tile that shows the least damaged of them, by the mass of what is left of each, and how many there are, then the next commonest, until five are left or every tile is a design of its own; smaller tiles and then a count of the rest when a side has more than fit — and a click on a tile picks and frames its ship, or every ship a shared tile stands for; a tile whose ships' robots are bringing in metal from rock or wreckage says how much a minute, over the last 20 s of battle (`render/income.ts`); T hides and shows them, remembered with A and C, and the view frames between them. Ships well out of a view are not drawn, so a window costs little. Rounds and beams are drawn as light, or with C in the colours of the side that
-  fired them, which the evolution page starts with. A, C and the speed are remembered by each page between visits. Every page has a ◀ Menu button. Where a page has something to pause or offer, it and Escape (once there is nothing picked to let go) open a menu, which pauses a battle while open and holds the way back to the main menu, asking first over unsaved work, its keys and mouse table (`?` opens it there), and on a battle the arcs, shot colours and fleet strips; on the Evolution and Library pages and the skirmish's setup screen it goes straight back to the main menu. The landing page is the main menu, and there is no bar across the top. **A core's name is painted on
+  where its guns will fire drawn for it alone, whatever A is set to — until Escape or a tap on empty space; on the evolution page's battles too. Picking it moves the camera only while it is still fitted, never once it has been moved by hand: then Fit (F) does, framing it with what it is fighting and escorting, the asteroid or hulk it is scavenging, and what it is keeping clear of most. Where it or its target is off screen, or under 16 px across, it is shown close up in a window of its own over the view, sized by its ship at one zoom for every window — so the two are drawn to scale, a Gunship's about 150 px and a Corvette's under half that — between 64 and 240 px: over the ship if it is on screen, against the edge it is beyond if not, with a pointer towards it, the picked ship's window framed solid and its target's dashed, with how far the target is from it. Clicking a window picks its ship and frames it. Each side's ships are shown live down the view's edges, a tile each by a camera of its own, turned with its ship so the ship always faces in from its edge, right on the left and left on the right — the even sides on the left, the odd on the right, and past five tiles an edge (`MOST_TILES`) a side's commonest design, fighter or not, sharing a tile that shows the least damaged of them, by the mass of what is left of each, and how many there are, then the next commonest, until five are left or every tile is a design of its own; smaller tiles and then a count of the rest when a side has more than fit — and a click on a tile picks and frames its ship, or every ship a shared tile stands for; a tile whose ships' robots are bringing in metal from rock or wreckage says how much a minute, over the last 20 s of battle (`render/income.ts`); T hides and shows them, remembered with A and C, and the view frames between them. Ships well out of a view are not drawn, so a window costs little. Rounds and beams are drawn as light, or with C in the colours of the side that
+  fired them, which the evolution page starts with. A, C and the speed are remembered by each page between visits. Every page has a ◀ Menu button. Where a page has something to pause or offer, it and Escape (once there is nothing picked to let go) open a menu, which pauses a battle while open and holds the way back to the main menu, asking first over unsaved work, its keys and mouse table (`?` opens it there), and on a battle the arcs, shot colours and fleet strips; on the Evolution and Library pages and the skirmish's setup screen it goes straight back to the main menu. Behind the main menu a battle plays, dimmed and deaf to the keyboard, a stock scene a minute in turn (`DEMO_SCENES`), unless the browser asks for reduced motion. The landing page is the main menu, and there is no bar across the top. **A core's name is painted on
   it when it is built, and never changes**: its builder's side and which of that side's ships the builder is,
   as "Red 5", numbered by which core of the builder's design it is where that design has more than one
   ("Red 5.1", "Red 5.2"). Being paint, it turns and grows with the hull, is written once the core is big
@@ -58,7 +58,9 @@ inside any one file is not contiguous.
   camera matches it — how far out a ship sits being measured to the nearest part of its hull,
   so that a ship wider than the view is held still wherever on it the camera has been zoomed. Each ship also carries an arrowhead in its team's colour, which
   fades in as its hull becomes too small on screen to read, so that zooming out to see a
-  battle does not lose the small ships in it or which way they are facing. A fighter, hull and arrowhead,
+  battle does not lose the small ships in it or which way they are facing — the arrowhead for a fighter,
+  a square for a ship that pushes much alike every way, and for any other ship a hull with a pointed bow,
+  a little larger, placed with the ship at the middle of its area (`iconShape`). A fighter, hull and arrowhead,
   is drawn a shade darker than its side's ships, aboard a carrier or not, so it stands out on the pad and
   hull it lands on, which are in its side's own tones. **What the picture asks
   about a ship is whether it is still in the fight, not whether it was built to fight**: a hull with a sound
@@ -70,7 +72,7 @@ inside any one file is not contiguous.
   about from rest on full torque, the acceleration available in each direction — as figures, and as a pair of
   envelope curves separating what a layout can project from what it can use
   while holding a heading, the ship burning its engines as it would to push whichever way the pointer is
-  over them — and each turret's calibre, rate of fire, muzzle
+  over them, with a dotted third curve for how much of its fuel's worth each push gets — and each turret's calibre, rate of fire, muzzle
   speed and arc. A module is added at the layout's origin while that is on screen and in the middle of
   the view when it is not, at its usual size unless the zoom would make that a speck or fill the view,
   when it arrives an eighth of the view across. Modules are
@@ -541,11 +543,16 @@ inside any one file is not contiguous.
   flown as a defence is, in its escort band on the goal, fighting whatever its doctrine picks from there.
   Left to doctrine, ships of a fleet escorting the goal escorted each other instead. It can instead be a **ghost**, a ship still there to be escorted and scored against
   that nothing collides with, shoots through or moves, so ships either side of it can still fight across it. What takes a ship there without being told is **escorting**: a weight saying how
-  firmly a craft holds by something it will never shoot at. **Escorting and fighting are a choice, not a
-  blend:** while an enemy is within its own reach of its station, a craft stays and fights the nearest from
-  there; while none is, it leaves its charge and goes to the fight it chose, further off. Weighed against each other, the two
-  settled halfway, and an escort trailed an enemy moving away from its charge at half its speed, staying with
-  neither. The choice is by threat, not by score, so the trap below does not apply to it.
+  firmly a craft holds by something it will never shoot at. **Escorting and fighting are a choice of which
+  comes first, not a blend:** while an enemy is within `guardRange` of its own reach of its charge, a craft
+  **screens first**, stationing at the place on its band nearest where it would fight that enemy from, held as
+  firmly as an order so it burns there; while none is, it **fights first**, going to the fight it chose and
+  making for its band only across the line to its enemy, keeping whole what it wants along that line, so a
+  group bunches up as it attacks without slowing its closing. Weighed against each other as plain wants, the
+  two settled halfway, and an escort trailed an enemy moving away from its charge at half its speed, staying
+  with neither. Of two covering each other, the nearer the enemy fights first: both screening, each matched
+  the other's velocity and neither the enemy's, and the pair drifted off on what they set out with. The
+  choice is by threat, not by score, so the trap below does not apply to it.
   A craft escorting stations on its charge and fights on with whatever its mounts can reach, since where the
   hull goes and what the guns do are different questions, and it holds a band of its own rather than the
   gunnery standoff — where you sit to *shoot* at something being the wrong answer by an order of magnitude
@@ -1476,7 +1483,8 @@ inside any one file is not contiguous.
   each. A skirmish left unnamed is named for them ("Small ships in an asteroid field"). *Start* always goes on to the fleet
   editor to build the player's fleet, within the budget it states. *Customise* holds any enemy from the library, the budget and
   the limits; *Advanced settings* holds the rest. *How a skirmish works*, just what it is and how to start one, opens over the screen the first
-  time it is seen, and again from its ? button or the ? key. The mutation fields are written
+  time it is seen, and again from its ? button or the ? key; the first round shown, the first defeat, the first round won and the
+  first hand of upgrade cards each open a note of their own once, saying what it means and what to do next. The mutation fields are written
   once (`evolution/mutationFields.ts`) and both pages draw them. *Export* saves the setup, the skirmish under way and its whole
   history as one `.skirmish.json`, to look into a run or ask about one, and *Import* reads one back in place of
   all three, asking first if a skirmish is under way. A skirmish can be named, on the setup screen or above

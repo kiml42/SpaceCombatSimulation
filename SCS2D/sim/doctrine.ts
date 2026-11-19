@@ -155,6 +155,16 @@ export interface Targeting {
     readonly gunWeight: number;
     readonly structureWeight: number;
     /**
+     * How much a part's neighbours count towards picking it, per hundred: at
+     * 100 a neighbour right beside it counts for as much as the part itself.
+     * A round that misses the part chosen lands near it, so a part among
+     * others worth hitting is the better aim, and one beside something the
+     * doctrine minds hitting (an aim weight below zero) the worse. Zero picks
+     * by the part alone. Half by default: at a hundred, three engines side by
+     * side outrank a core.
+     */
+    readonly clusterWeight: number;
+    /**
      * How firmly a ship holds by something it will never shoot at.
      *
      * What a craft escorts is anything not hostile to it — one of its own, or
@@ -246,6 +256,14 @@ export interface Approach {
      * neutral objective is gone to whatever its size.
      */
     readonly escortMinRadii: number;
+    /**
+     * How far from its charge an enemy has to be, as a share of its own reach
+     * from there, for it to fight first rather than cover first. Covering
+     * first, it stations on its band where it would fight from, as a screen;
+     * fighting first, it holds its fight and makes for its charge only
+     * sideways to it, so a group bunches up as it attacks. One by default.
+     */
+    readonly guardRange: number;
     /**
      * How much a craft wants to keep out of everybody's way.
      *
@@ -363,6 +381,13 @@ export interface Approach {
      * already inside.
      */
     readonly ramCommit: number;
+    /**
+     * The share of a full tank above which a ship ramming goes for a part its
+     * doctrine picks, and below which for the whole ship, whatever it meets:
+     * a pass that misses a part has to come round again, and without the fuel
+     * to, it is better spent on the ship. Zero always goes for the part.
+     */
+    readonly ramSelectiveFuel: number;
     /**
      * What a half turn costs in choosing which way round to fight, as a share
      * of its main battery. A ship weighs each bearing its main guns can bear on
@@ -590,6 +615,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
         engineWeight: 80,
         gunWeight: 100,
         structureWeight: 0,
+        clusterWeight: 50,
         escortWeight: 0,
         fireRange: 1,
     },
@@ -600,6 +626,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
         escort: 0.15,
         escortInner: 0.5,
         escortMinRadii: 1,
+        guardRange: 1,
         separation: 300,
         separationRadii: 3,
         avoidHorizon: 6,
@@ -620,6 +647,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
         ramArmed: 0,
         ramSettle: 3,
         ramCommit: 2,
+        ramSelectiveFuel: 0.3,
         turnBias: 0.5,
         burnWeight: 2,
         rangeHold: 1,
@@ -784,6 +812,7 @@ export const TARGETING_FIELDS: readonly (keyof Targeting)[] = [
     "engineWeight",
     "gunWeight",
     "structureWeight",
+    "clusterWeight",
     "escortWeight",
     "fireRange",
 ];
@@ -821,6 +850,7 @@ export const SHIP_TARGETING_FIELDS: readonly (keyof Targeting)[] = TARGETING_FIE
         field !== "engineWeight" &&
         field !== "gunWeight" &&
         field !== "structureWeight" &&
+        field !== "clusterWeight" &&
         field !== "fireRange",
 );
 
@@ -831,6 +861,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
     "escort",
     "escortInner",
     "escortMinRadii",
+    "guardRange",
     "separation",
     "separationRadii",
     "avoidHorizon",
@@ -846,6 +877,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
     "ramArmed",
     "ramSettle",
     "ramCommit",
+    "ramSelectiveFuel",
     "turnBias",
     "burnWeight",
     "rangeHold",
@@ -883,7 +915,9 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
 
 /** Fields that mean nothing below zero, though zero itself is a setting. */
 export const NON_NEGATIVE_FIELDS: readonly string[] = [
+    "guardRange",
     "ramSettle",
+    "ramSelectiveFuel",
     "escortInner",
     "spinResist",
     "bandFade",

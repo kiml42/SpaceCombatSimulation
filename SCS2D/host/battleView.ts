@@ -244,6 +244,8 @@ export function battleView(
     drawn: (view: Snapshot) => void,
     runningChanged: (running: boolean) => void,
     rewound: (battle: Battle) => void = () => {},
+    /** Whether it answers the keyboard; not for a battle only to be looked at. */
+    keys = true,
 ): BattleView {
     const ctx = canvas.getContext("2d");
     if (ctx === null) throw new Error("no 2d context");
@@ -584,7 +586,7 @@ export function battleView(
             remember();
         }
     };
-    window.addEventListener("keydown", onKey);
+    if (keys) window.addEventListener("keydown", onKey);
 
     /** What a step hit, into the flashes, as `capture` hands it over. */
     const drain = (log: ImpactLog): void => {

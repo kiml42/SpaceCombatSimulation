@@ -950,6 +950,19 @@ describe("designStats", () => {
         expect(stats.accelPort).toBeCloseTo(envelopes(design, 4).holding[1]!, 9);
     });
 
+    it("says how well each push uses its fuel: best straight out on the main drive, worse on a diagonal", () => {
+        const design = new EditorDocument(CORVETTE).view.design!;
+        const { efficiency, samples } = envelopes(design, 8);
+        expect(efficiency.length).toBe(samples);
+        for (const share of efficiency) {
+            expect(share).toBeGreaterThanOrEqual(0);
+            expect(share).toBeLessThanOrEqual(1 + 1e-9);
+        }
+        expect(efficiency[0]).toBeCloseTo(1, 2);
+        // Thrust adds as vectors, propellant as numbers.
+        expect(efficiency[1]!).toBeLessThan(efficiency[0]! * 0.8);
+    });
+
     it("reports a gun in the figures a player compares", () => {
         const design = new EditorDocument(GUNSHIP).view.design!;
         const turret = designStats(design, envelopes(design)).turrets[0]!;

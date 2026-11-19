@@ -4,7 +4,7 @@ import { BOTH_LAYERS, HULL_LAYER, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from
 import { DamageEffect } from "./damage.js";
 import { inSight, lookFrom, score } from "./targeting.js";
 import { DEFAULT_FUSE, firesShells, moduleRadius, slewTime, type ModuleSpec, GunType, type GunStats, type ModuleKind } from "./modules.js";
-import { atan2, angleDelta, PI, clamp, cos, length, max, round, sin, sqrt } from "./math.js";
+import { abs, atan2, angleDelta, PI, clamp, cos, length, max, round, sin, sqrt } from "./math.js";
 import { overriddenMount, placementOf, type Targeting } from "./doctrine.js";
 import type { World } from "./world.js";
 import type { SpatialGrid } from "./index.js";
@@ -356,19 +356,29 @@ export function aimModule(
     const c = cos(angle);
     const s = sin(angle);
 
+    // Counting neighbours, the ranking shifts as the ships move, so the part
+    // it already holds keeps a margin: one barely better is not worth retraining for.
+    const t = doctrine.clusterWeight === 0 ? -1 : ships.designs[i]!.turrets.indexOf(mount);
+    const held = t >= 0 && ships.turretTarget[i]![t] === target ? ships.turretAimModule[i]![t]! : -1;
     let best = WHOLE_SHIP;
     let bestWeight = 0;
     let bestRange = 0;
     for (let k = 0; k < design.modules.length; k++) {
         if (!reaches(ships, layers, design, tb, target, k)) continue;
-        const weight = anyPart ? 1 : partWeight(doctrine, design.modules[k]!.spec.kind);
+        const own = anyPart ? 1 : partWeight(doctrine, design.modules[k]!.spec.kind);
         // Only what this doctrine wants destroyed. Zero is not a poor ranking
         // but a different statement — *not worth a shot* — and the best of a
         // bad list would otherwise still be chosen however bad the list is.
-        if (weight <= 0) continue;
+        if (own <= 0) continue;
         const mx = bodies.x[tb]! + design.modules[k]!.x * c - design.modules[k]!.y * s;
         const my = bodies.y[tb]! + design.modules[k]!.x * s + design.modules[k]!.y * c;
         const range = length(mx - fromX, my - fromY);
+        const weight =
+            doctrine.clusterWeight === 0
+                ? own
+                : own +
+                  (doctrine.clusterWeight / 100) * neighbours(ships, bodies, layers, target, tb, k, fromX, fromY, mount.gun, doctrine) +
+                  (k === held ? HELD_PART_MARGIN * own : 0);
         if (best !== WHOLE_SHIP && (weight < bestWeight || (weight === bestWeight && range >= bestRange))) {
             continue;
         }
@@ -380,6 +390,56 @@ export function aimModule(
     // here to shoot at — not the hull either, since the hull is the modules
     // it has just passed over.
     return best === WHOLE_SHIP ? NOTHING_AIMABLE : best;
+}
+
+/** The share of its own aim weight a held part is preferred by, counting neighbours. */
+const HELD_PART_MARGIN = 0.25;
+
+/**
+ * What a miss at module `k` of `target`, on body `tb`, from a gun at
+ * `(fromX, fromY)`, is likely to land on instead: the aim weight of each
+ * other module it can reach, by how near it is across the line of fire,
+ * falling to nothing a likely miss's width past touching it. That width is
+ * the part's own size close in, and how far the target may jink in the
+ * flight time further out. Modules the doctrine minds hitting count against.
+ */
+function neighbours(
+    ships: Ships,
+    bodies: Bodies,
+    layers: number,
+    target: number,
+    tb: number,
+    k: number,
+    fromX: number,
+    fromY: number,
+    gun: GunStats,
+    doctrine: Targeting,
+): number {
+    const design = ships.designs[target]!;
+    const anyPart = !picksParts(doctrine);
+    const c = cos(bodies.angle[tb]!);
+    const s = sin(bodies.angle[tb]!);
+    const mx = bodies.x[tb]! + design.modules[k]!.x * c - design.modules[k]!.y * s;
+    const my = bodies.y[tb]! + design.modules[k]!.x * s + design.modules[k]!.y * c;
+    const range = length(mx - fromX, my - fromY);
+    if (!(range > 0)) return 0;
+    const dx = (mx - fromX) / range;
+    const dy = (my - fromY) / range;
+    const flight = gun.type === GunType.Beam || !(gun.muzzleSpeed > 0) ? 0 : range / gun.muzzleSpeed;
+    const miss = moduleRadius(design.modules[k]!.spec) + 0.5 * EVASION_ACCEL * flight * flight;
+    let total = 0;
+    for (let m = 0; m < design.modules.length; m++) {
+        if (m === k || !reaches(ships, layers, design, tb, target, m)) continue;
+        const module = design.modules[m]!;
+        const weight = anyPart ? 1 : partWeight(doctrine, module.spec.kind);
+        if (weight === 0) continue;
+        const ox = bodies.x[tb]! + module.x * c - module.y * s - mx;
+        const oy = bodies.y[tb]! + module.x * s + module.y * c - my;
+        const across = abs(ox * dy - oy * dx);
+        const reach = miss + moduleRadius(module.spec);
+        if (across < reach) total += weight * (1 - across / reach);
+    }
+    return total;
 }
 
 /**
@@ -467,6 +527,114 @@ export function partPoint(ships: Ships, bodies: Bodies, tb: number, design: Ship
     const module = design.modules[part]!;
     ships.partAt.x = bodies.x[tb]! + module.x * cos(angle) - module.y * sin(angle);
     ships.partAt.y = bodies.y[tb]! + module.x * sin(angle) + module.y * cos(angle);
+}
+
+/**
+ * The module of `target`, on body `tb`, that ship `i`, on body `b`, rams: by
+ * its doctrine's aim weights as a mount picks one, still standing; `WHOLE_SHIP`
+ * for a doctrine with no opinion about parts, which goes for the middle.
+ *
+ * A part that stands up into the weapons layer is rammed from there, over the
+ * deck, so it is worth going for only along a line no other such part of the
+ * target stands across: a turret behind another is no turret to go for, and
+ * passing over the hull to try again beats being spent on the wrong thing.
+ * So the best of those with a clear line, nearest first; and only if none has
+ * one, the best of the rest, held above the deck until a line opens. Below
+ * its doctrine's `ramSelectiveFuel` it has not the fuel to come round for a
+ * miss, and goes for the whole ship.
+ */
+export function ramPart(ships: Ships, bodies: Bodies, i: number, b: number, target: number, tb: number): number {
+    const doctrine = ships.doctrines[i]!.targeting;
+    if (!picksParts(doctrine)) return WHOLE_SHIP;
+    const design = ships.designs[target]!;
+    const c = cos(bodies.angle[tb]!);
+    const s = sin(bodies.angle[tb]!);
+    if (lowForAPass(ships, i, b)) return WHOLE_SHIP;
+    const layers = shipLayers(ships, target);
+    let best = WHOLE_SHIP;
+    let bestRank = 0;
+    let bestRange = 0;
+    for (let k = 0; k < design.modules.length; k++) {
+        if (ships.damage.spent(tb, k) || !ships.ownsAt(target, tb, k)) continue;
+        const module = design.modules[k]!;
+        const weight = partWeight(doctrine, module.spec.kind);
+        if (weight <= 0) continue;
+        const mx = bodies.x[tb]! + module.x * c - module.y * s;
+        const my = bodies.y[tb]! + module.x * s + module.y * c;
+        const tall = (moduleLayers(module, layers) & WEAPONS_LAYER) !== 0;
+        // A clear line ranks above any blocked one, and then by weight.
+        const blocked = tall && tallBetween(ships, bodies, b, tb, design, layers, k, mx, my);
+        const rank = (blocked ? 0 : 1e9) + weight;
+        const range = length(mx - bodies.x[b]!, my - bodies.y[b]!);
+        if (best !== WHOLE_SHIP && (rank < bestRank || (rank === bestRank && range >= bestRange))) continue;
+        best = k;
+        bestRank = rank;
+        bestRange = range;
+    }
+    return best;
+}
+
+/** Whether ship `i`, on body `b`, is down to its doctrine's `ramSelectiveFuel` of a full tank. */
+function lowForAPass(ships: Ships, i: number, b: number): boolean {
+    const share = ships.doctrines[i]!.approach.ramSelectiveFuel;
+    const core = ships.designs[i]!.cores[0];
+    if (!(share > 0) || core === undefined) return false;
+    const held = ships.fuel.pieceHeld(b, core);
+    const room = ships.fuel.pieceRoom(b, core);
+    return held + room > 0 && held < share * (held + room);
+}
+
+/**
+ * Whether a module of `design`, on body `tb`, other than `k`, stands up into
+ * the weapons layer across the line from body `b` to `(x, y)`, within the
+ * rammer's own radius of it.
+ */
+function tallBetween(
+    ships: Ships,
+    bodies: Bodies,
+    b: number,
+    tb: number,
+    design: ShipDesign,
+    layers: number,
+    k: number,
+    x: number,
+    y: number,
+): boolean {
+    const fromX = bodies.x[b]!;
+    const fromY = bodies.y[b]!;
+    const dx = x - fromX;
+    const dy = y - fromY;
+    const span = dx * dx + dy * dy;
+    if (!(span > 0)) return false;
+    const c = cos(bodies.angle[tb]!);
+    const s = sin(bodies.angle[tb]!);
+    const own = bodies.radius[b]!;
+    for (let m = 0; m < design.modules.length; m++) {
+        if (m === k || ships.damage.spent(tb, m)) continue;
+        const module = design.modules[m]!;
+        if ((moduleLayers(module, layers) & WEAPONS_LAYER) === 0) continue;
+        const mx = bodies.x[tb]! + module.x * c - module.y * s;
+        const my = bodies.y[tb]! + module.x * s + module.y * c;
+        // Nearest point of the line to it, and only short of the part aimed at.
+        const along = ((mx - fromX) * dx + (my - fromY) * dy) / span;
+        if (!(along > 0 && along < 1)) continue;
+        const reach = moduleRadius(module.spec) + own;
+        const ox = fromX + dx * along - mx;
+        const oy = fromY + dy * along - my;
+        if (ox * ox + oy * oy < reach * reach) return true;
+    }
+    return false;
+}
+
+/**
+ * Whether ship `i` is ramming a part of `target` that stands up into the
+ * weapons layer: a turret, a thick engine. It meets that there, so it does
+ * not drop to the deck, and nothing thin between is in its way.
+ */
+export function ramsFromAbove(ships: Ships, i: number, target: number): boolean {
+    const part = ships.ramPart[i]!;
+    const module = part >= 0 ? ships.designs[target]?.modules[part] : undefined;
+    return module !== undefined && module.weaponsLayer;
 }
 
 /**

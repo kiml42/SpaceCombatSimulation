@@ -88,6 +88,12 @@ const TARGETING_ROWS: readonly DoctrineRow[] = [
     { field: "engineWeight", label: "aim: engines", hint: "How much it would rather hit an engine. Below zero is never", step: 10 },
     { field: "gunWeight", label: "aim: guns", hint: "How much it would rather hit a gun. Below zero is never", step: 10 },
     {
+        field: "clusterWeight",
+        label: "aim: among others",
+        hint: "How much a part's neighbours count towards aiming at it, per hundred: a miss lands near the part aimed at, so among others worth hitting is the better aim, and beside something it would rather not hit the worse. 0 picks by the part alone",
+        step: 10,
+    },
+    {
         field: "fireRange",
         label: "fires within",
         hint: "How far out it fires, as a multiple of how far its shot is worth taking: above 1 spends shells on long odds, below 1 saves them for a sure thing",
@@ -124,6 +130,12 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
         field: "escortMinRadii",
         label: "smallest covered",
         hint: "The smallest friend it will cover, in multiples of its own radius: 1 only what is at least its own size, 0 anything. A neutral objective is gone to whatever its size",
+        step: 0.1,
+    },
+    {
+        field: "guardRange",
+        label: "screens within",
+        hint: "How near its charge an enemy must be, as a share of its reach from there, for it to screen its charge first rather than fight first. Screening, it stations on its band where it would fight from; fighting, it keeps its range and closes on its charge only sideways",
         step: 0.1,
     },
     {
@@ -396,6 +408,12 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
         step: 0.5,
     },
     {
+        field: "ramSelectiveFuel",
+        label: "ram selective above fuel",
+        hint: "The share of a full tank above which a ram goes for a part its aim weights pick, and below which for the whole ship, whatever it meets: a miss at a part would have to come round again",
+        step: 0.05,
+    },
+    {
         field: "ramCommit",
         label: "drops to the deck",
         hint: "A fighter's ram: seconds before it would strike that it takes the hull layer as well, flying past hulls in the weapons layer until then",
@@ -589,7 +607,7 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                 title: "Escorting",
                 entries: [
                     entry("targeting", "escortWeight"),
-                    ...(["escortMinRadii", "escortRadii", "escort", "escortInner"] as const).map((field) =>
+                    ...(["escortMinRadii", "escortRadii", "escort", "escortInner", "guardRange"] as const).map((field) =>
                         entry("approach", field, {
                             // Nothing about escorting matters to a ship that never escorts.
                             shown: (v) => v.targeting.escortWeight > 0,
@@ -600,13 +618,17 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                                         : "covers friends of any size"
                                     : field === "escortRadii"
                                       ? `${metres(v.approach.escortRadii * ship.radius)} off the skin of a consort its own size`
-                                      : field === "escortInner"
-                                        ? v.approach.escortInner > 0
-                                            ? `${Math.round(Math.min(1, v.approach.escortInner) * 100)}% of the way out across its band`
-                                            : "no inside edge: as close as keeping clear lets it"
-                                        : ship.reach > 0
-                                          ? `no further than ${metres(v.approach.escort * ship.reach)}`
-                                          : "no cap: it has no guns",
+                                      : field === "guardRange"
+                                        ? ship.reach > 0
+                                            ? `screens while an enemy is within ${metres(v.approach.guardRange * ship.reach)} of its charge`
+                                            : "always screens: it has no guns"
+                                        : field === "escortInner"
+                                          ? v.approach.escortInner > 0
+                                              ? `${Math.round(Math.min(1, v.approach.escortInner) * 100)}% of the way out across its band`
+                                              : "no inside edge: as close as keeping clear lets it"
+                                          : ship.reach > 0
+                                            ? `no further than ${metres(v.approach.escort * ship.reach)}`
+                                            : "no cap: it has no guns",
                         }),
                     ),
                 ],
@@ -636,6 +658,13 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                     }),
                     entry("approach", "ramSettle", { shown: (v) => v.approach.ramRadii > 0 }),
                     entry("approach", "ramCommit", { shown: (v) => v.approach.ramRadii > 0 }),
+                    entry("approach", "ramSelectiveFuel", {
+                        shown: (v) => v.approach.ramRadii > 0,
+                        absolute: (v) =>
+                            v.approach.ramSelectiveFuel > 0
+                                ? `goes for a part above ${Math.round(v.approach.ramSelectiveFuel * 100)}% full, the whole ship below`
+                                : "always goes for a part",
+                    }),
                     entry("targeting", "ramMass", {
                         shown: (v) => v.approach.ramRadii > 0,
                         absolute: (v, ship) =>
@@ -819,7 +848,7 @@ export const MOUNT_SECTIONS: readonly DoctrineSection[] = [
         groups: [
             {
                 title: "Where it aims",
-                entries: preferences("mount", ["coreWeight", "engineWeight", "gunWeight", "structureWeight"]),
+                entries: preferences("mount", ["coreWeight", "engineWeight", "gunWeight", "structureWeight", "clusterWeight"]),
             },
         ],
     },
@@ -845,7 +874,13 @@ export function sectionEntries(sections: readonly DoctrineSection[]): DoctrineEn
 }
 
 function isAimField(field: string): boolean {
-    return field === "coreWeight" || field === "engineWeight" || field === "gunWeight" || field === "structureWeight";
+    return (
+        field === "coreWeight" ||
+        field === "engineWeight" ||
+        field === "gunWeight" ||
+        field === "structureWeight" ||
+        field === "clusterWeight"
+    );
 }
 
 /** What to call an archetype where a person is reading it rather than a file. */
