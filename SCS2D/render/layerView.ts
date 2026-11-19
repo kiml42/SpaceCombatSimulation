@@ -83,18 +83,17 @@ export function fromMiddle(canvas: HTMLCanvasElement, clientX: number, clientY: 
 }
 
 /** Which renderer draws the battle. */
-export type RendererChoice = "pixi" | "three" | "three-layers" | "three-stats";
+export type RendererChoice = "pixi" | "three" | "three-3d";
 
 export const RENDERER_CHOICES: readonly { readonly value: RendererChoice; readonly label: string }[] = [
     { value: "pixi", label: "Pixi" },
     { value: "three", label: "Three (flat)" },
-    { value: "three-layers", label: "Three (3D, by layer)" },
-    { value: "three-stats", label: "Three (3D, by stats)" },
+    { value: "three-3d", label: "Three (3D)" },
 ];
 
 /** Whether `choice` draws ships as solid models. */
 export function isSolid(choice: RendererChoice): boolean {
-    return choice === "three-layers" || choice === "three-stats";
+    return choice === "three-3d";
 }
 
 const KEY = "scs2d.renderer";
@@ -102,7 +101,9 @@ const EVENT = "scs2d-renderer";
 
 export function rendererChoice(): RendererChoice {
     try {
-        const kept = localStorage.getItem(KEY);
+        let kept = localStorage.getItem(KEY);
+        // The 3D views' depths were once chosen here.
+        if (kept === "three-layers" || kept === "three-stats") kept = "three-3d";
         if (RENDERER_CHOICES.some((c) => c.value === kept)) return kept as RendererChoice;
     } catch {
         // Storage may be blocked; the default stands.
@@ -128,7 +129,7 @@ export function viewOf(canvas: HTMLCanvasElement, choice: RendererChoice = rende
     if (choice === "pixi") return pixiView(canvas) as unknown as LayerView;
     if (choice === "three") return threeView(canvas);
     const set = (): ViewAngle => (editor ? EDITOR_ANGLE : viewAngle());
-    return threeView(canvas, choice === "three-layers" ? "layers" : "stats", swing === undefined ? set : () => swing.shown(set()));
+    return threeView(canvas, true, swing === undefined ? set : () => swing.shown(set()));
 }
 
 /**

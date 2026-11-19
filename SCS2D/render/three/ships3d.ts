@@ -20,22 +20,23 @@ import {
     Vector3,
     type WebGLRenderer,
 } from "three";
-import { DECK_HEIGHT, domeRadius, isDomed, isHullMount, originOf, type ShipDesign, type ShipView, type Snapshot } from "../../sim/index.js";
+import {
+    DECK_HEIGHT,
+    domeRadius,
+    HULL_LAYER,
+    isDomed,
+    originOf,
+    WEAPONS_LAYER,
+    type ShipDesign,
+    type ShipView,
+    type Snapshot,
+} from "../../sim/index.js";
 import { BEVEL_OF_RADIUS, BEVEL_STRIDE, bevelQuad, drawnBevels, drawnMounts, isBevelled } from "../bevels.js";
 import { barrelLines } from "../barrels.js";
 import type { Camera } from "../camera.js";
 import { engineLayout } from "../engineLayout.js";
 import type { Lights } from "../glows.js";
-import {
-    DEFAULT_LIGHT,
-    FIGHTER_SHADOW_M,
-    fighterHeight,
-    KERNEL_RISE,
-    LANDED_SHADOW_M,
-    rockHeight,
-    THICK_ROCK_RISE,
-    type Light,
-} from "../light.js";
+import { DEFAULT_LIGHT, FIGHTER_SHADOW_M, fighterHeight, LANDED_SHADOW_M, type Light } from "../light.js";
 import { BARREL, fillColour, isFighterModule, moduleFills, paintedSide, type Fill } from "../moduleFills.js";
 import { parseColour } from "../pixiCanvas.js";
 import { fighterColours, shipColours, teamLivery } from "../teams.js";
@@ -53,7 +54,6 @@ import { triangulate } from "./threeCanvas.js";
  */
 
 /** How deep a module is drawn: by its layer, thin 3 m and thick 9 m, or by the depth its stats were worked out with. */
-export type Depths = "layers" | "stats";
 
 /** A box on the deck, metres from the camera's point. */
 export interface DeckBox {
@@ -64,8 +64,19 @@ export interface DeckBox {
 }
 
 /** Thin and thick, in the layers' reading: a thick module stands a deck above and below the thin hull. */
+/**
+ * The layers' heights (DESIGN.md §3), metres from the plane between them: the
+ * hull's middle below it, where thin modules and their guns are; the weapons
+ * layer's above, where fighters fly and turrets fire; and between them, a thick
+ * module's middle and its guns', which meet both. The plane is the thin hull's
+ * top and the deck's, which a pad's top is.
+ */
 const THIN = DECK_HEIGHT;
-const THICK = 3 * DECK_HEIGHT;
+export const HULL_HEIGHT = -THIN / 2;
+export const FIGHTER_HEIGHT = THIN / 2;
+export const DECK_TOP = 0;
+/** The least a thick module is deep: through both layers. */
+const THICK_LEAST = 2 * THIN;
 /** How much higher each fill of a module stands than the one under it, so their tops do not fight. */
 const STACK = 0.02;
 /** Corners round a cylinder, dome or cone. */
@@ -482,17 +493,38 @@ function rgbOf(colour: string): readonly number[] {
 const SOOT_SHARE = 0.25;
 const fills: Fill[] = [];
 
-/** How deep module `i` is drawn. */
-export function moduleDepth(design: ShipDesign, i: number, depths: Depths): number {
+/**
+ * How deep module `i` is drawn: as deep as its stats take it, within its
+ * layer, and a thick one at least through both.
+ */
+export function moduleDepth(design: ShipDesign, i: number): number {
     const m = design.modules[i]!;
     const kind = m.spec.kind;
-    if (kind === "rock" || kind === "kernel") {
-        const rock = rockHeight(design.radius) * 2;
-        if (depths === "stats") return m.stats.thickness;
-        return kind === "kernel" ? rock * KERNEL_RISE : m.weaponsLayer ? rock * THICK_ROCK_RISE : rock;
-    }
-    if (depths === "stats") return isDomed(kind) ? Math.min(m.stats.thickness, THIN) : m.stats.thickness;
-    return m.weaponsLayer && !isDomed(kind) ? THICK : THIN;
+    const stats = m.stats.thickness;
+    if (kind === "rock" || kind === "kernel") return stats;
+    if (isThick(design, i)) return Math.max(stats, THICK_LEAST);
+    return Math.min(stats, THIN);
+}
+
+/** Whether module `i` stands through both layers. A turret's is hull, and a fighter's flies in the weapons layer alone. */
+function isThick(design: ShipDesign, i: number): boolean {
+    const m = design.modules[i]!;
+    return m.weaponsLayer && !isDomed(m.spec.kind) && !isFighterModule(design, i);
+}
+
+/** How high module `i`'s middle is in its ship's frame: in its layer, or a fighter's piece parked aboard sitting on the deck. */
+function moduleMiddle(design: ShipDesign, i: number): number {
+    const kind = design.modules[i]!.spec.kind;
+    if (kind === "rock" || kind === "kernel" || design.fighter) return 0;
+    if (isFighterModule(design, i)) return DECK_TOP + moduleDepth(design, i) / 2;
+    return isThick(design, i) ? 0 : HULL_HEIGHT;
+}
+
+/** How high what flies in `layers` (a `HULL_LAYER` / `WEAPONS_LAYER` mask) is drawn: in its layer, or between them in both. */
+export function layerHeight(layers: number): number {
+    const hull = (layers & HULL_LAYER) !== 0;
+    const weapons = (layers & WEAPONS_LAYER) !== 0;
+    return hull && weapons ? 0 : weapons ? FIGHTER_HEIGHT : HULL_HEIGHT;
 }
 
 /** A livery's pattern over the fills it is laid on, in one colour, as a model. */
@@ -507,7 +539,7 @@ interface Patterned {
  * worn modules again, a model a level of wear; and its liveries' patterns, a
  * model a tile.
  */
-function build(ship: ShipView, depths: Depths): { model: BufferGeometry; worn: Map<number, BufferGeometry>; patterned: Patterned[] } {
+function build(ship: ShipView): { model: BufferGeometry; worn: Map<number, BufferGeometry>; patterned: Patterned[] } {
     const design = ship.currentStructure;
     const base = new Builder();
     const wear = new Map<number, Builder>();
@@ -520,14 +552,12 @@ function build(ship: ShipView, depths: Depths): { model: BufferGeometry; worn: M
         const integrity = ship.integrity?.[i] ?? 1;
         /** The module into `b`: all of it, or only fill `only`. */
         const emit = (b: Builder, only = -1): void => {
-            const fighterPart = isFighterModule(design, i) && !design.fighter;
             const side = paintedSide(ship, i);
             const colours = isFighterModule(design, i) ? fighterColours(side) : shipColours(side);
             const burnt = integrity <= 0 && spec.kind !== "rock" && spec.kind !== "kernel";
             const shade = (rgb: readonly number[]): readonly number[] => (burnt ? rgb.map((v) => v * SOOT_SHARE) : rgb);
-            const depth = moduleDepth(design, i, depths);
-            // A fighter parked aboard sits on the deck it is parked on.
-            b.place(m.x, m.y, m.angle, fighterPart ? THIN / 2 + depth / 2 : 0);
+            const depth = moduleDepth(design, i);
+            b.place(m.x, m.y, m.angle, moduleMiddle(design, i));
             moduleFills(spec, fillColour(spec, colours), colours, integrity, fills, drawnMounts(design, i).polygons);
             const half = depth / 2;
             if (spec.kind === "engine") {
@@ -656,7 +686,14 @@ function build(ship: ShipView, depths: Depths): { model: BufferGeometry; worn: M
                 if (k === 0 && bevels.length > 0) b.bevelled(fill.points, bevels, width, -half, half, shade(rgbOf(fill.colour)));
                 else b.prism(fill.points, -half - k * STACK, half + k * STACK, shade(rgbOf(fill.colour)));
             });
-            if (only < 0 && isDomed(spec.kind)) b.dome(0, 0, half, domeRadius(spec), shade(rgbOf(colours.highlight ?? colours.pivot)));
+            if (only < 0 && isDomed(spec.kind)) {
+                // Raised on a pedestal where it is too low to bring its barrels up to where they fire from.
+                const r = domeRadius(spec);
+                const rgb = shade(rgbOf(colours.highlight ?? colours.pivot));
+                const base = Math.max(half, firingHeight(design, i) - moduleMiddle(design, i) - r * BARREL_ON_DOME);
+                if (base > half + 1e-6) b.prism(disc(r * PEDESTAL), half, base, rgb);
+                b.dome(0, 0, base, r, rgb);
+            }
         };
         emit(base);
         const level = spec.kind === "rock" || spec.kind === "kernel" ? 0 : wearLevel(integrity);
@@ -720,55 +757,67 @@ function wearUv(t: Affine): (x: number, y: number, z: number, nx: number, ny: nu
     };
 }
 
-/** How far above the deck's top a flying fighter's underside is: low enough to look as though it could hit a turret. */
-const FLYING_CLEARANCE = 1;
-/** The top of the thin hull, which a pad's top is. */
-export const DECK_TOP = THIN / 2;
+/** How far up a turret's dome its barrels are, in its radii. */
+const BARREL_ON_DOME = 0.55;
+/** How wide a turret's pedestal is, in its dome's radii. */
+const PEDESTAL = 0.6;
 
-const halfDepths = new WeakMap<ShipDesign, Map<Depths, number>>();
+/** A circle `r` across round the module's middle, as corners. */
+function disc(r: number): number[] {
+    const out: number[] = [];
+    for (let k = 0; k < ROUND; k++) out.push(Math.cos((k / ROUND) * 2 * Math.PI) * r, Math.sin((k / ROUND) * 2 * Math.PI) * r);
+    return out;
+}
+
+const halfDepths = new WeakMap<ShipDesign, number>();
 /** Half the depth of the deepest module of a fighter: how far its middle stands above what it sits on. */
-function halfDepthOf(design: ShipDesign, depths: Depths): number {
-    let by = halfDepths.get(design);
-    if (by === undefined) halfDepths.set(design, (by = new Map()));
-    let half = by.get(depths);
+function halfDepthOf(design: ShipDesign): number {
+    let half = halfDepths.get(design);
     if (half === undefined) {
         half = 0;
-        for (let i = 0; i < design.modules.length; i++) half = Math.max(half, moduleDepth(design, i, depths) / 2);
-        by.set(depths, half);
+        for (let i = 0; i < design.modules.length; i++) half = Math.max(half, moduleDepth(design, i) / 2);
+        halfDepths.set(design, half);
     }
     return half;
 }
 
 /**
- * How high above the deck's middle a ship's middle is: a capital ship on it,
- * a fighter sitting on a pad's top when landed, and a little above the deck
- * when flying, as it is lowered on to a pad from one to the other.
+ * How high a ship's middle is: a capital ship's at the plane between the
+ * layers; a fighter's in the weapons layer flying, sitting on a pad's top when
+ * landed, and lowered from one to the other.
  */
-export function liftOf(ship: ShipView, depths: Depths): number {
+export function liftOf(ship: ShipView): number {
     const design = ship.currentStructure;
     if (!design.fighter) return 0;
-    const landed = DECK_TOP + halfDepthOf(design, depths);
+    const landed = DECK_TOP + halfDepthOf(design);
     const up = (fighterHeight(ship.riding, ship.lowered) - LANDED_SHADOW_M) / (FIGHTER_SHADOW_M - LANDED_SHADOW_M);
-    return landed + Math.max(0, Math.min(1, up)) * FLYING_CLEARANCE;
+    return landed + Math.max(0, Math.min(1, up)) * (FIGHTER_HEIGHT - landed);
 }
 
-/** How high above the deck's middle module `i`'s top is. */
-export function moduleTop(ship: ShipView, i: number, depths: Depths): number {
-    const design = ship.currentStructure;
-    const depth = moduleDepth(design, i, depths);
-    const parked = isFighterModule(design, i) && !design.fighter;
-    return liftOf(ship, depths) + (parked ? THIN / 2 + depth : depth / 2);
+/** How high module `i`'s middle is. */
+export function moduleLift(ship: ShipView, i: number): number {
+    return liftOf(ship) + moduleMiddle(ship.currentStructure, i);
 }
 
-/** How high above the deck's middle turret `t`'s barrels are: on top of its dome, or along a hull mount's middle. */
-export function barrelLift(ship: ShipView, t: number, depths: Depths): number {
-    const design = ship.currentStructure;
-    const module = design.turrets[t]!.module;
-    const m = design.modules[module]!;
-    const depth = moduleDepth(design, module, depths);
-    const parked = isFighterModule(design, module) && !design.fighter;
-    const own = isDomed(m.spec.kind) ? depth / 2 + domeRadius(m.spec) * 0.55 : isHullMount(m.spec.kind) ? 0 : depth / 2;
-    return liftOf(ship, depths) + (parked ? THIN / 2 + depth / 2 : 0) + own;
+/** How high module `i`'s top is. */
+export function moduleTop(ship: ShipView, i: number): number {
+    return moduleLift(ship, i) + moduleDepth(ship.currentStructure, i) / 2;
+}
+
+/**
+ * How high a gun on module `i` fires from, in its ship's frame: in the layer
+ * its rounds fly in; a fighter's, and a turret's, the weapons layer's.
+ */
+function firingHeight(design: ShipDesign, i: number): number {
+    if (design.fighter) return 0;
+    if (isFighterModule(design, i)) return moduleMiddle(design, i);
+    if (isDomed(design.modules[i]!.spec.kind)) return FIGHTER_HEIGHT;
+    return moduleMiddle(design, i);
+}
+
+/** How high turret `t`'s barrels are: where its rounds fly. */
+export function barrelLift(ship: ShipView, t: number): number {
+    return liftOf(ship) + firingHeight(ship.currentStructure, ship.currentStructure.turrets[t]!.module);
 }
 
 interface Kept {
@@ -813,8 +862,6 @@ export class Ships3D {
         this.barrels = this.makeBarrels(256);
     }
 
-    /** How high rounds fly: the barrels' height in view, on average, from the last update. */
-    roundLift = DECK_TOP + 1;
     /** How many barrels the instanced mesh has room for, whatever it is drawing this frame. */
     private barrelRoom = 0;
 
@@ -829,12 +876,10 @@ export class Ships3D {
     }
 
     /** Place every ship in view, its barrels, and the lights, for a view `halfW` by `halfH` metres either side of the camera. */
-    update(snapshot: Snapshot, camera: Camera, seen: DeckBox, depths: Depths, light: Light = DEFAULT_LIGHT): void {
+    update(snapshot: Snapshot, camera: Camera, seen: DeckBox, light: Light = DEFAULT_LIGHT): void {
         this.light(light, seen);
         const shown = new Set<number>();
         let barrels = 0;
-        let lifts = 0;
-        let lifted = 0;
         const ends: number[] = [];
         for (let s = 0; s < snapshot.shipCount; s++) {
             const ship = snapshot.ships[s]!;
@@ -844,7 +889,7 @@ export class Ships3D {
             const reach = design.radius * 1.5 + 10;
             if (dx + reach < seen.minX || dx - reach > seen.maxX || dy + reach < seen.minY || dy - reach > seen.maxY) continue;
             shown.add(ship.body);
-            const key = keyOf(ship, depths);
+            const key = keyOf(ship);
             let kept = this.kept.get(ship.body);
             if (kept === undefined || kept.key !== key) {
                 if (kept === undefined) {
@@ -857,10 +902,10 @@ export class Ships3D {
                     kept = { key, group, model, worn: [] };
                     this.kept.set(ship.body, kept);
                 }
-                this.fill(kept, ship, depths);
+                this.fill(kept, ship);
                 kept.key = key;
             }
-            const z = liftOf(ship, depths);
+            const z = liftOf(ship);
             kept.group.position.set(dx, dy, z);
             kept.group.rotation.set(0, 0, ship.angle);
             kept.group.visible = true;
@@ -868,9 +913,7 @@ export class Ships3D {
             for (let t = 0; t < design.turrets.length; t++) {
                 const module = design.turrets[t]!.module;
                 if (ship.drawn?.[module] === false) continue;
-                const lift = barrelLift(ship, t, depths);
-                lifts += lift;
-                lifted++;
+                const lift = barrelLift(ship, t);
                 ends.length = 0;
                 const width = barrelLines(ship, t, (x0, y0, x1, y1) =>
                     ends.push(x0 - camera.x, y0 - camera.y, x1 - camera.x, y1 - camera.y),
@@ -895,7 +938,6 @@ export class Ships3D {
                 }
             }
         }
-        if (lifted > 0) this.roundLift = lifts / lifted;
         this.barrels.count = barrels;
         this.barrels.instanceMatrix.needsUpdate = true;
         for (const [body, kept] of this.kept) {
@@ -963,9 +1005,9 @@ export class Ships3D {
     }
 
     /** Build `ship`'s model and its wear afresh into `kept`. */
-    private fill(kept: Kept, ship: ShipView, depths: Depths): void {
+    private fill(kept: Kept, ship: ShipView): void {
         this.empty(kept);
-        const built = build(ship, depths);
+        const built = build(ship);
         kept.model.geometry = built.model;
         // Over the model's own faces: a livery, then wear over that.
         for (const { geometry, key, tile } of built.patterned) {
@@ -1055,9 +1097,9 @@ export class Ships3D {
 }
 
 /** What a ship's model is built from, which changes as it is damaged or built. */
-function keyOf(ship: ShipView, depths: Depths): string {
+function keyOf(ship: ShipView): string {
     const design = ship.currentStructure;
-    let key = `${depths}|${ship.team}|`;
+    let key = `${ship.team}|`;
     for (let i = 0; i < design.modules.length; i++) {
         const drawn = ship.drawn?.[i] !== false;
         const burnt = (ship.integrity?.[i] ?? 1) <= 0;

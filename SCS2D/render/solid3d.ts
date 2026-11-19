@@ -15,10 +15,12 @@ export interface Solid3D {
     flat(): void;
     /** How high module `i`'s top is. */
     moduleTop(ship: ShipView, i: number): number;
+    /** How high module `i`'s middle is. */
+    moduleLift(ship: ShipView, i: number): number;
     /** How high a ship's middle is. */
     shipLift(ship: ShipView): number;
     /** How high turret `t`'s barrels are. */
     barrelLift(ship: ShipView, t: number): number;
-    /** How high a round flies: as high as the barrels in view, on average. */
-    roundLift(): number;
+    /** How high what flies in `layers` (a `HULL_LAYER` / `WEAPONS_LAYER` mask) is. */
+    layerHeight(layers: number): number;
 }

@@ -14,7 +14,7 @@ import {
     WebGLRenderer,
     type Camera as ThreeCamera,
 } from "three";
-import { DECK_HEIGHT, type Snapshot } from "../../sim/index.js";
+import type { Snapshot } from "../../sim/index.js";
 import { BACKGROUND, GRID, gridSegments, Segments, WELL, wellSegments } from "../backdrop.js";
 import type { Camera } from "../camera.js";
 import type { Light } from "../light.js";
@@ -24,7 +24,7 @@ import type { LayerView, Projection } from "../layerView.js";
 import { Batch, BatchMeshes, EFFECT_STRIDE, pixelsToMetres, ThreeCanvas, type Box } from "./threeCanvas.js";
 import { ThreeHulls } from "./threeHulls.js";
 import { ThreeLights } from "./threeLights.js";
-import { barrelLift, liftOf, moduleTop, Ships3D, type DeckBox, type Depths } from "./ships3d.js";
+import { barrelLift, DECK_TOP, layerHeight, liftOf, moduleLift, moduleTop, Ships3D, type DeckBox } from "./ships3d.js";
 import type { ViewAngle } from "./viewAngle.js";
 
 // Colours as they are given, as Pixi and a Canvas2D take them: no conversion to linear and back.
@@ -37,11 +37,11 @@ ColorManagement.enabled = false;
  * them. Everything is placed in metres from the camera, y up, and seen through
  * an orthographic camera straight down.
  *
- * With `depths`, ships are solid models instead (`Ships3D`), seen in
+ * With `solid`, ships are solid models instead (`Ships3D`), seen in
  * perspective from the angle `angle` gives each frame, and canvas2d.ts draws
  * only what is over them, flat on the ship plane.
  */
-export function threeView(canvas: HTMLCanvasElement, depths: Depths | null = null, angle: () => ViewAngle = () => FLAT): LayerView {
+export function threeView(canvas: HTMLCanvasElement, solid = false, angle: () => ViewAngle = () => FLAT): LayerView {
     let renderer: WebGLRenderer | null = null;
     let failed = false;
     try {
@@ -59,17 +59,18 @@ export function threeView(canvas: HTMLCanvasElement, depths: Depths | null = nul
     const asking = new PerspectiveCamera();
     let eye: ThreeCamera = camera;
     const context = new ThreeCanvas();
-    context.solidShips = depths !== null;
-    const ships = depths !== null && renderer !== null ? new Ships3D(renderer) : null;
-    if (ships !== null && depths !== null) {
+    context.solidShips = solid;
+    const ships = solid && renderer !== null ? new Ships3D(renderer) : null;
+    if (ships !== null) {
         context.solid3d = {
             along: (x0, y0, x1, y1, height) => context.along(x0, y0, x1, y1, height),
             on: (height) => context.on(height),
             flat: () => context.flat(),
-            moduleTop: (ship, i) => moduleTop(ship, i, depths),
-            shipLift: (ship) => liftOf(ship, depths),
-            barrelLift: (ship, t) => barrelLift(ship, t, depths),
-            roundLift: () => ships.roundLift,
+            moduleTop,
+            moduleLift,
+            shipLift: liftOf,
+            barrelLift,
+            layerHeight,
         };
     }
     const screen = new Group();
@@ -142,7 +143,7 @@ export function threeView(canvas: HTMLCanvasElement, depths: Depths | null = nul
             segments.clear();
             wellSegments(segments, snapshot, view);
             wells.set(segments);
-            if (ships !== null && depths !== null) ships.update(snapshot, view, seen, depths, light);
+            if (ships !== null) ships.update(snapshot, view, seen, light);
             else hulls.update(snapshot, view, widthPx, heightPx, light);
             context.begin();
             return context as unknown as CanvasRenderingContext2D;
@@ -387,9 +388,6 @@ function deckSeen(projection: Projection, widthPx: number, heightPx: number, mos
     }
     return box;
 }
-
-/** The top of the thin hull, which the 3D view's flat drawing lies on and its sheared camera keeps where the 2D view has it. */
-const DECK_TOP = DECK_HEIGHT / 2;
 
 const FLAT: ViewAngle = { tilt: 0, turn: 0, fov: 50 };
 
