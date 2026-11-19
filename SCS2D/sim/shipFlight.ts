@@ -432,7 +432,16 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
     // would swing the hull into a neighbour is not started, and one already
     // under way is stopped.
     const touching = order !== undefined && (order.ram || order.grapple || order.land || order.dock) ? target : NO_TARGET;
-    if (wantRate !== 0 && turnBlocked(ships, bodies, i, b, layout, wantRate > 0 ? 1 : -1, touching)) wantRate = 0;
+    if (wantRate !== 0 && turnBlocked(ships, bodies, i, b, layout, wantRate > 0 ? 1 : -1, touching)) {
+        // The long way round, if that is clear: pressed against a rock, the short
+        // way swings an end into it, and a ship hurrying, which burns only as it
+        // comes round, would otherwise sit there until its way in cleared.
+        const back = error >= 0 ? error - 2 * PI : error + 2 * PI;
+        const sense = back >= 0 ? 1 : -1;
+        const alpha = inertia > 0 ? layout.maxTorque(-sense) / inertia : 0;
+        const longWay = min(brakingRate(back, alpha, dt), (back >= 0 ? back : -back) / HEADING_SETTLE_TIME);
+        wantRate = spin === 0 && !turnBlocked(ships, bodies, i, b, layout, sense, touching) ? sense * longWay : 0;
+    }
     const localTorque = dt > 0 ? (inertia * (wantRate - bodies.angularVel[b]!)) / dt : 0;
 
     // Engines the designer meant as weapons, lit because something worth
