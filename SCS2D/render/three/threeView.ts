@@ -219,6 +219,8 @@ export function threeView(canvas: HTMLCanvasElement, solid = false, angle: () =>
             lights.dispose();
             ships?.dispose();
             renderer?.dispose();
+            // dispose() keeps the WebGL context until the canvas is collected; browsers cap how many stay live.
+            renderer?.forceContextLoss();
             renderer = null;
         },
     };
