@@ -345,6 +345,8 @@ export class Snapshot {
     projectileTeam = new Int16Array(0);
     /** 1 for a piece of a shattered module or of shrapnel flying on (`ROUND_WRECKAGE`, `ROUND_SHRAPNEL`): cold, so drawn as wreckage rather than a tracer. */
     projectileWreckage = new Uint8Array(0);
+    /** The layers each flies in, as a `HULL_LAYER` / `WEAPONS_LAYER` mask. */
+    projectileLayers = new Uint8Array(0);
     projectileCount = 0;
 
     /** Beams in flight, as flat pairs so a renderer can loop without objects. */
@@ -360,6 +362,8 @@ export class Snapshot {
     beamPlasma = new Uint8Array(0);
     /** How far each was fired, metres, before anything stopped it short. */
     beamReach = new Float64Array(0);
+    /** The layers each is in, as a `HULL_LAYER` / `WEAPONS_LAYER` mask. */
+    beamLayers = new Uint8Array(0);
     beamCount = 0;
 
     /** Each body's side while a picture is taken, so a shot can be told whose it is. */
@@ -458,6 +462,7 @@ function growProjectiles(snapshot: Snapshot, needed: number): void {
     snapshot.projectileInside = new Uint8Array(size);
     snapshot.projectileTeam = new Int16Array(size);
     snapshot.projectileWreckage = new Uint8Array(size);
+    snapshot.projectileLayers = new Uint8Array(size);
 }
 
 function growBeams(snapshot: Snapshot, needed: number): void {
@@ -472,6 +477,7 @@ function growBeams(snapshot: Snapshot, needed: number): void {
     snapshot.beamTeam = new Int16Array(size);
     snapshot.beamPlasma = new Uint8Array(size);
     snapshot.beamReach = new Float64Array(size);
+    snapshot.beamLayers = new Uint8Array(size);
 }
 
 function growImpacts(snapshot: Snapshot, needed: number): void {
@@ -918,6 +924,7 @@ export function capture(
         out.projectileInside[p] = projectiles.inside[i] === NOT_INSIDE ? 0 : 1;
         out.projectileTeam[p] = bodyTeam[projectiles.owner[i]!] ?? -1;
         out.projectileWreckage[p] = projectiles.kind[i] === ROUND_WRECKAGE || projectiles.kind[i] === ROUND_SHRAPNEL ? 1 : 0;
+        out.projectileLayers[p] = projectiles.layers[i]!;
         p++;
     }
     out.projectileCount = p;
@@ -935,6 +942,7 @@ export function capture(
         out.beamTeam[b] = bodyTeam[beams.owner[i]!] ?? -1;
         out.beamPlasma[b] = beams.kind[i] === BEAM_PLASMA ? 1 : 0;
         out.beamReach[b] = beams.reach[i]!;
+        out.beamLayers[b] = beams.layers[i]!;
         b++;
     }
     out.beamCount = b;

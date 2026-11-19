@@ -4,6 +4,7 @@ import { useNavigate } from "react-router";
 import { HelpButton, type PageHelp } from "~/features/help/Help";
 import { Button } from "~/ui/buttons/Button";
 import { KeyTable, type KeyRow } from "~/ui/dialogs/KeyTable";
+import { RendererField } from "./RendererField";
 
 const Dialog = styled.dialog`
     width: min(24rem, 92vw);
@@ -210,12 +211,9 @@ export function PauseMenu({ title, pause, actions = [], settings, keys, notes, u
                                 </Button>
                             ))}
                             {children}
-                            {settings !== undefined && (
-                                <>
-                                    <h3>View</h3>
-                                    {settings}
-                                </>
-                            )}
+                            <h3>View</h3>
+                            {settings}
+                            <RendererField />
                             {keys !== undefined && (
                                 <Button id="menuKeys" onClick={() => setView("keys")}>
                                     Keys and mouse

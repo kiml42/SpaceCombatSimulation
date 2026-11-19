@@ -115,6 +115,7 @@ import { eachCloudPuff, eachPuff, type Cloud, type Hole, type Pose, type Puff } 
 import { Poses } from "./poses.js";
 import { bit, bitCount, seedOf, spark, sparkColour, sparkCount, sparkFade, sprayOf, type Bit, type Spark } from "./particles.js";
 import type { PixiCanvas } from "./pixiCanvas.js";
+import type { Solid3D } from "./solid3d.js";
 import { iconAlpha, ICON_OUTLINE, ICON_PX, iconShape, isWreckage, LONG_ICON_OUTLINE, LONG_ICON_SCALE, SQUARE_ICON_HALF } from "./icons.js";
 
 const { cos, floor, sin, length, max, min, PI, sqrt, TAU } = math;
@@ -516,7 +517,9 @@ function drawShip(
     const whole = design.fighter === fighters;
     if (!whole && (!fighters || design.fighterPieces === undefined)) return;
 
-    if (!drawPicture(ctx, ship, metresToPx, arcs, fighters, whole, filled))
+    // Solid, only what is on its hull, as though it were filled already.
+    if (solid) drawHull(ctx, ship, metresToPx, arcs, fighters, whole, true, light);
+    else if (!drawPicture(ctx, ship, metresToPx, arcs, fighters, whole, filled))
         drawHull(ctx, ship, metresToPx, arcs, fighters, whole, filled, light);
 
     // Turrets are drawn in world space: a turret's bearing is a world bearing, so
@@ -631,6 +634,11 @@ function drawShip(
         }
 
         const bearing = ship.turretBearings[t] ?? 0;
+        if (solid) {
+            if (spec.kind === "plasmaLance") drawSparks(ctx, ship, t, design.modules[module]!);
+            drawLoad(ctx, ship, t, mx, my, bearing);
+            continue;
+        }
         const dirX = cos(bearing);
         const dirY = sin(bearing);
         const gun = design.turrets[t]!.gun;
@@ -951,6 +959,7 @@ function drawHull(
         ctx.save();
         ctx.translate(m.x, m.y);
         ctx.rotate(m.angle);
+        fx?.on(fx.moduleTop(ship, i) + ON_TOP);
         // Wreckage: still there, still stopping shells, no longer doing its job.
         // Drawn as what it is rather than removed, which is what §4 means by
         // conserving matter — and it is the only way to see a ship being killed
@@ -966,7 +975,8 @@ function drawHull(
         // Unless Pixi underneath has filled it already (render/pixiView.ts).
         if (!filled) keptFill(ctx, ship, i);
         // Rounded parts' shading, in the battle's light: its highlights are that light.
-        if (spec.kind === "engine" && light !== undefined) {
+        // A solid model's engines and ports are round already.
+        if (spec.kind === "engine" && light !== undefined && !solid) {
             inLight(ctx, light);
             shadeEngine(
                 ctx,
@@ -981,7 +991,7 @@ function drawHull(
             );
             ctx.restore();
         }
-        if (spec.kind === "port" && light !== undefined) {
+        if (spec.kind === "port" && light !== undefined && !solid) {
             inLight(ctx, light);
             shadePort(ctx, spec, ship.angle + m.angle, light, rgba(fillColour(spec, colours)), fighters);
             ctx.restore();
@@ -1210,6 +1220,7 @@ function drawHull(
                 });
             }
         }
+        fx?.flat();
         ctx.restore();
     }
     // Over the hull, since fighters come in over it.
@@ -1683,7 +1694,7 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light
     eachNozzle(
         ctx,
         ship,
-        (engine, force, reach, across, landed, split) => {
+        (engine, force, reach, across, landed, split, module) => {
             // One flame per nozzle, the same triangles the burn samples its rays
             // across. How hot it burns is its opacity, and it fades to nothing at its
             // tip the way its share of the power does, so the brightest part of the
@@ -1704,6 +1715,7 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light
             const g = half * NOZZLE_GLOW_REACH * (0.5 + 0.5 * grown);
             const shown = landed[1]! > 0 ? (1 - landed[1]!) * reach : reach;
             // A magnetic nozzle's jet glows from its bell, through the gap to its ring.
+            lights.standAt = fx === null ? NaN : fx.moduleLift(ship, module);
             lights.coneOf(
                 ctx.getTransform(),
                 root + gap,
@@ -1716,7 +1728,9 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light
                 heightOf(ship),
             );
             // The sprite's core is its brightest, its edge a little dimmer.
+            lights.standAt = NaN;
             ctx.globalAlpha = outer * brightness;
+            fx?.along(root, across, root - reach, across, fx.moduleLift(ship, module));
             // A magnetic nozzle's jet runs straight from its bell through its ring,
             // as the flame's own base does: its last column, stretched over the gap.
             if (gap > 0) ctx.drawImage(image, image.width - 1, 0, 1, image.height, root, across - half, gap, 2 * half);
@@ -1747,6 +1761,7 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light
                     );
                 }
             }
+            fx?.flat();
             ctx.globalAlpha = outer;
             // The ring stands across the jet, in front of it and of its glow: drawn
             // once the glows are (`drawJetRings`), so the jet's light does not fall on it.
@@ -2364,7 +2379,7 @@ interface Engine {
 function eachNozzle(
     ctx: CanvasRenderingContext2D,
     ship: ShipView,
-    visit: (engine: Engine, force: number, reach: number, across: number, landed: readonly number[], split: number) => void,
+    visit: (engine: Engine, force: number, reach: number, across: number, landed: readonly number[], split: number, module: number) => void,
     /** Only the nozzles whose plume, with its glow, reaches the box being drawn. */
     onlyShown = false,
 ): void {
@@ -2408,6 +2423,7 @@ function eachNozzle(
                     nozzleOffset(geometry, n),
                     landed,
                     split,
+                    i,
                 );
             }
         }
@@ -2564,7 +2580,9 @@ function drawName(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
         // Null for another ship's on the same hull, which writes its own.
         const side = ship.sides?.[core] ?? ship.team;
         if (painted === null || painted === undefined || side < 0) continue;
+        fx?.on(fx.moduleTop(ship, core) + ON_TOP);
         drawLabel(ctx, ship, core, `${teamName(side)} ${painted}`, side, metresToPx);
+        fx?.flat();
     }
 }
 
@@ -2641,6 +2659,9 @@ export function draw(
     seenLights.clear();
     seenRounded.clear();
     rounded = seenRounded;
+    // A context that draws ships as solid models leaves their hulls to them.
+    solid = (ctx as Partial<{ solidShips: boolean }>).solidShips === true;
+    fx = (ctx as Partial<{ solid3d: Solid3D | null }>).solid3d ?? null;
     drawScene(
         ctx,
         snapshot,
@@ -2660,6 +2681,8 @@ export function draw(
         seenLights,
     );
     rounded = null;
+    solid = false;
+    fx = null;
     field.clear();
     const kept = last ?? { lights: new Lights(), camera: { x: 0, y: 0, scale: 1 }, widthPx, heightPx };
     kept.lights.clear();
@@ -2755,6 +2778,12 @@ function lightFighter(ctx: CanvasRenderingContext2D, ship: ShipView, fighters: b
 export const seenLights = new Lights();
 /** The rounded parts the last view `draw` drew, for the dynamic lights to light by which way they face (`render/litRounded.ts`). Not a close-up's. */
 export const seenRounded = new RoundedParts();
+/** Whether the main view's ships are drawn as solid models by the context, so only what is over them is drawn here. */
+let solid = false;
+/** Where the main view is drawn in 3D, how to stand flames, rounds and flashes up at their heights. */
+let fx: Solid3D | null = null;
+/** How far above a module's top what is drawn on it lies in 3D, metres, so the top does not hide it. */
+const ON_TOP = 0.05;
 /** Where rounded parts are recorded while the main view is drawn, and nowhere otherwise. */
 let rounded: RoundedParts | null = null;
 /** A barrel's colour, as its channels. */
@@ -2927,14 +2956,14 @@ function drawScene(
     // their colour; their emitters' glows and the flashes where they land over
     // them, so those lighten them rather than being cut by them.
     beamLights(ctx, snapshot, camera, teamShots);
-    drawGlows(ctx, lights);
+    drawGlows(ctx, lights, fx);
     inScene = false;
     drawJetRings(ctx);
     seen?.add(lights);
     lights.clear();
     drawBeams(ctx, snapshot, camera, teamShots);
     if (flashes !== undefined) drawFlashes(ctx, snapshot, flashes, camera, light);
-    drawGlows(ctx, lights);
+    drawGlows(ctx, lights, fx);
     seen?.add(lights);
     lights.clear();
     shownBox.halfW = Infinity;
@@ -3052,6 +3081,9 @@ export function drawCloseUps(
     teamShots = false,
     marked: Marked | null = null,
 ): void {
+    // On the screen, over the battle, however the context lays the battle out.
+    const onScreen = (ctx as Partial<{ screenSpace(on: boolean): void }>).screenSpace?.bind(ctx);
+    onScreen?.(true);
     for (const inset of insets) {
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -3091,6 +3123,7 @@ export function drawCloseUps(
         }
         ctx.restore();
     }
+    onScreen?.(false);
 }
 
 /** Size of the range to a picked ship's target, CSS pixels, and its clearances. */
@@ -3735,6 +3768,7 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
     for (let i = 0; i < flashes.count; i++) {
+        lights.standAt = NaN;
         const kind = flashes.kind[i]!;
         const glow = kind === IMPACT_BEAM ? BEAM_FLASH_GLOW : kind === IMPACT_BURST ? BURST_FLASH_GLOW : FLASH_GLOW;
         // A burst or a muzzle is a blast of gas rather than a spot of hot metal, so
@@ -3808,6 +3842,8 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
         // its wedge's glow, so it reaches back along the barrel to the gun's own
         // block, furthest as the flash leaves and less as it fades. Unseen: the
         // wedge is how it looks, and lights nothing itself.
+        const lift = flashLift(snapshot, flashes, i);
+        if (fx !== null) lights.standAt = lift;
         if (pointing) {
             const tip = max(muzzleWedge(radius, age, lifetime).backWidth * MUZZLE_GLOW_SHARE, floor);
             const shine = flashFade(age, lifetime) * WEDGE_GLOW * MUZZLE_TIP_BRIGHTNESS;
@@ -3824,6 +3860,7 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
             const y = at.y + rvy * ahead;
             if (pointing) {
                 ctx.setTransform(base);
+                fx?.along(x, y, x + dirX, y + dirY, lift);
                 drawWedge(
                     ctx,
                     base,
@@ -3841,12 +3878,14 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
                     false,
                     height,
                 );
+                fx?.flat();
                 continue;
             }
             if (cone) {
                 // A hot spot where it struck, and the cone opening from it.
                 const spot = max(flashExtent(start, growth, t, lifetime) * HIT_SPOT_SHARE, floor);
                 ctx.setTransform(base);
+                fx?.along(x, y, x + sprayed.x, y + sprayed.y, lift);
                 ctx.globalAlpha = min(1, 0.9 * fade * weight);
                 ctx.drawImage(core, x - spot, y - spot, 2 * spot, 2 * spot);
                 drawWedge(
@@ -3866,6 +3905,7 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
                     true,
                     height,
                 );
+                fx?.flat();
                 continue;
             }
             // Floored on screen, so a hit is visible from far enough out to see the
@@ -3876,11 +3916,62 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
             ctx.setTransform(base);
             lights.point(base, x, y, g, glow, 0.5 * boost * fade * weight, height);
             ctx.globalAlpha = min(1, 0.9 * boost * fade * weight);
+            fx?.along(x, y, x, y, lift);
             ctx.drawImage(core, x - r, y - r, 2 * r, 2 * r);
+            fx?.flat();
         }
     }
+    lights.standAt = NaN;
     ctx.restore();
     drawThrown(ctx, snapshot, flashes, camera, light);
+}
+
+/**
+ * How high flash `i` is in 3D: a muzzle's at its nearest gun's barrels, a hit
+ * at the middle of the module it landed nearest, and one on nothing between
+ * the layers.
+ */
+function flashLift(snapshot: Snapshot, flashes: Flashes, i: number): number {
+    if (fx === null) return 0;
+    const anchor = shipByBody(snapshot, flashes.body[i]!);
+    if (anchor === null) return 0;
+    const at = flashPosition(flashes.localX[i]!, flashes.localY[i]!, anchor);
+    if (flashes.kind[i] === IMPACT_MUZZLE) return muzzleLift(fx, anchor, at.x, at.y);
+    const design = anchor.currentStructure;
+    const c = cos(anchor.angle);
+    const s = sin(anchor.angle);
+    const lx = (at.x - anchor.x) * c + (at.y - anchor.y) * s;
+    const ly = -(at.x - anchor.x) * s + (at.y - anchor.y) * c;
+    let best = -1;
+    let nearest = Infinity;
+    for (let m = 0; m < design.modules.length; m++) {
+        if (anchor.drawn?.[m] === false) continue;
+        const module = design.modules[m]!;
+        const d = (module.x - lx) ** 2 + (module.y - ly) ** 2;
+        if (d < nearest) {
+            nearest = d;
+            best = m;
+        }
+    }
+    return best < 0 ? fx.shipLift(anchor) : fx.moduleLift(anchor, best);
+}
+
+/** How high the barrels of `ship`'s turret nearest world point `(x, y)` are: where its muzzle flash is. */
+function muzzleLift(fx: Solid3D, ship: ShipView, x: number, y: number): number {
+    const design = ship.currentStructure;
+    const c = cos(ship.angle);
+    const s = sin(ship.angle);
+    let best = -1;
+    let nearest = Infinity;
+    for (let t = 0; t < design.turrets.length; t++) {
+        const mount = design.turrets[t]!.mount;
+        const d = (ship.x + mount.x * c - mount.y * s - x) ** 2 + (ship.y + mount.x * s + mount.y * c - y) ** 2;
+        if (d < nearest) {
+            nearest = d;
+            best = t;
+        }
+    }
+    return best < 0 ? fx.shipLift(ship) : fx.barrelLift(ship, best);
 }
 
 /**
@@ -3903,6 +3994,7 @@ function drawThrown(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes: 
         const seed = seedOf(flashes.x[i]!, flashes.y[i]!, flashes.energy[i]!, kind, flashes.born[i]!);
         const n = sparkCount(kind, flashes.energy[i]!, seed);
         if (n === 0) continue;
+        const lift = flashLift(snapshot, flashes, i);
         for (let j = 0; j < n; j++) {
             if (!spark(flashes, i, j, seed, flashes.age[i]!, thrown)) continue;
             // As a step's exposure sees it, as a tracer is: drawn out along its way past the camera.
@@ -3915,9 +4007,11 @@ function drawThrown(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes: 
             batch ??= batches.call(ctx, image, true);
             const dirX = speed > 0 ? rvx / speed : 1;
             const dirY = speed > 0 ? rvy / speed : 0;
+            fx?.along(thrown.x - dirX, thrown.y - dirY, thrown.x + dirX, thrown.y + dirY, lift);
             batch.add(thrown.x, thrown.y, dirX, dirY, streak, max(thrown.width, pixel), sparkColour(thrown.t), sparkFade(thrown.t));
         }
     }
+    fx?.flat();
     batch?.end();
 
     let metal: ReturnType<PixiCanvas["particles"]> | null = null;
@@ -3925,6 +4019,7 @@ function drawThrown(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes: 
     for (let i = 0; i < flashes.count; i++) {
         const n = bitCount(flashes.kind[i]!, flashes.energy[i]!);
         if (n === 0) continue;
+        const lift = flashLift(snapshot, flashes, i);
         const seed = seedOf(flashes.x[i]!, flashes.y[i]!, flashes.energy[i]!, flashes.kind[i]!, flashes.born[i]!);
         for (let j = 0; j < n; j++) {
             if (!bit(flashes, i, j, seed, flashes.age[i]!, broken)) continue;
@@ -3934,9 +4029,11 @@ function drawThrown(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes: 
             const shine = broken.glint ** 6;
             const tint = lightUp(mixRgb(BIT_COLOUR, lit, shine), BIT_COLOUR, broken.x, broken.y);
             const fade = min(1, (1 - broken.t) / 0.3);
+            fx?.along(broken.x, broken.y, broken.x + cos(broken.angle), broken.y + sin(broken.angle), lift);
             metal.add(broken.x, broken.y, cos(broken.angle), sin(broken.angle), broken.length, max(broken.width, pixel), tint, fade);
         }
     }
+    fx?.flat();
     metal?.end();
 }
 
@@ -3970,6 +4067,7 @@ function drawDebris(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: C
             if (halo !== null) {
                 glows ??= batches.call(ctx, halo, true);
                 const reach = max(length * HOT_REACH, pixel);
+                fx?.along(x, y, x, y, 0);
                 glows.add(x, y, 1, 0, reach, reach, mixRgb(HOT_COOL, HOT_FRESH, heat), heat * heat);
             }
         }
@@ -3990,8 +4088,10 @@ function drawDebris(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: C
         const shine = Math.abs(cos(angle * 1.7 + (seed >>> 8))) ** 6;
         let tint = lightUp(mixRgb(base, lit, shine * (painted ? PAINT_SHINE : 1)), base, x, y);
         if (heat > 0) tint = mixRgb(unpack(tint), HOT_FRESH, heat);
+        fx?.along(x, y, x + cos(angle), y + sin(angle), 0);
         batch.add(x, y, cos(angle), sin(angle), length, max(length * across, pixel), tint, fade);
     }
+    fx?.flat();
     for (const batch of debrisBatches) batch?.end();
     glows?.end();
 }
@@ -4277,7 +4377,13 @@ function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, came
                 ? legibleWidth(GLOW_CALIBRES * calibre, MIN_GLOW_PX, camera.scale) * exposure
                 : legibleWidth(calibre, MIN_TRACER_PX, camera.scale);
             ctx.globalAlpha = glowPass ? 1 : exposure;
+            if (fx !== null) {
+                // In the world's frame: the last streak left the context in its own.
+                ctx.setTransform(base);
+                fx.along(ends.x0, ends.y0, ends.x1, ends.y1, fx.layerHeight(snapshot.projectileLayers[i] ?? 0));
+            }
             drawStreak(ctx, base, image, ends.x0, ends.y0, ends.x1, ends.y1, width, vx, vy);
+            fx?.flat();
         }
     }
     ctx.restore();
@@ -4290,7 +4396,9 @@ function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, came
 function beamLights(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Camera, teamShots: boolean): void {
     const team = (i: number): number => (teamShots ? snapshot.beamTeam[i]! : -1);
     const base = ctx.getTransform();
+    const layers = fx === null ? null : beamLayers(snapshot);
     for (let i = 0; i < snapshot.beamCount; i++) {
+        lights.standAt = fx === null ? NaN : fx.layerHeight(layers![i]!);
         if (!nearShown(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!, snapshot.beamEndX[i]!, snapshot.beamEndY[i]!)) continue;
         const halo = BEAM_GLOW_WIDTHS * snapshot.beamWidth[i]!;
         lights.line(
@@ -4309,7 +4417,31 @@ function beamLights(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: C
             THICK_SHADOW_M,
         );
     }
+    lights.standAt = NaN;
 }
+
+/**
+ * Each beam's layers as drawn in 3D: a thick mount's pair, one a layer from
+ * the same point (sim/shipFire.ts), as the both of them it was fired in.
+ */
+function beamLayers(snapshot: Snapshot): Uint8Array {
+    const out = (drawnLayers = drawnLayers.length >= snapshot.beamCount ? drawnLayers : new Uint8Array(snapshot.beamCount * 2));
+    const hull = startsOf;
+    hull.clear();
+    for (let i = 0; i < snapshot.beamCount; i++) {
+        out[i] = snapshot.beamLayers[i]!;
+        if (out[i] === HULL_LAYER) hull.set(`${snapshot.beamStartX[i]},${snapshot.beamStartY[i]}`, i);
+    }
+    for (let i = 0; i < snapshot.beamCount; i++) {
+        if (out[i] !== WEAPONS_LAYER) continue;
+        const pair = hull.get(`${snapshot.beamStartX[i]},${snapshot.beamStartY[i]}`);
+        if (pair === undefined) continue;
+        out[i] = out[pair] = HULL_LAYER | WEAPONS_LAYER;
+    }
+    return out;
+}
+let drawnLayers = new Uint8Array(0);
+const startsOf = new Map<string, number>();
 
 /**
  * Beams' cores, each lit across as a rod is, and a small glow where it leaves
@@ -4320,6 +4452,7 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
     ctx.lineCap = "butt";
     const team = (i: number): number => (teamShots ? snapshot.beamTeam[i]! : -1);
     const base = ctx.getTransform();
+    const layers = fx === null ? null : beamLayers(snapshot);
     // A pass per beam, because each carries its own width and its own opacity.
     // Cheap at the beam counts a battle reaches; if that ever stops being true,
     // bucket by width rather than reaching for a single average.
@@ -4339,6 +4472,7 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
         const span = length(dx, dy);
         const flame = snapshot.beamPlasma[i] === 1 && span > 0 ? flameSprite(PULSE, PULSE_CORE) : null;
         const rod = flame === null && width * camera.scale >= MIN_ROD_PX && span > 0 ? sprite("rod", colour) : null;
+        if (fx !== null) fx.along(x0, y0, x0 + dx, y0 + dy, fx.layerHeight(layers![i]!));
         if (flame !== null) {
             // Hot gas rather than light: brightest at the prongs, gone at its reach,
             // and cut off where it lands, as a flame is, rather than drawn whole into
@@ -4364,9 +4498,11 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
             ctx.lineTo(x0 + dx, y0 + dy);
             ctx.stroke();
         }
+        fx?.flat();
         // A pulse of hot gas lights what is round it as a flame does, not as an emitter.
         if (flame !== null) continue;
         const halo = BEAM_GLOW_WIDTHS * calibre;
+        if (fx !== null) lights.standAt = fx.layerHeight(layers![i]!);
         lights.point(
             base,
             x0,
@@ -4377,6 +4513,7 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
             THICK_SHADOW_M,
         );
     }
+    lights.standAt = NaN;
 
     // Beams are drawn last, and nothing restores the context between frames:
     // leaving the final beam's opacity set would tint the next frame's grid and
