@@ -13,13 +13,13 @@ import {
     compileBlueprint,
     doctrineProblem,
     doctrineUnread,
-    inSight,
     look,
     parseBlueprint,
     score,
     serialiseBlueprint,
     serialiseDoctrine,
     toDoctrine,
+    visibility,
     type Blueprint,
     type Candidate,
     type Doctrine,
@@ -45,7 +45,7 @@ const candidate = (over: Partial<Candidate> = {}): Candidate => ({
     armed: true,
     mobile: true,
     facing: 1,
-    clear: true,
+    sight: 1,
     ...over,
 });
 
@@ -272,11 +272,14 @@ describe("what a ship is worth shooting at", () => {
         expect(score(facing, abeam, REACH, 100_000, -1) - score(facing, astern, REACH, 100_000, -1)).toBeCloseTo(50);
     });
 
-    it("prefers a clear line, when told to", () => {
+    it("prefers a clear line by how much of the target can be seen, when told to", () => {
         const clear = candidate();
-        const blocked = candidate({ clear: false });
-        expect(score(doctrine, clear, REACH, 100_000, -1)).toBe(score(doctrine, blocked, REACH, 100_000, -1));
+        const half = candidate({ sight: 0.5 });
+        const blocked = candidate({ sight: 0 });
+        const blind = { ...doctrine, sightWeight: 0 };
+        expect(score(blind, clear, REACH, 100_000, -1)).toBe(score(blind, blocked, REACH, 100_000, -1));
         const sighted = { ...doctrine, sightWeight: 50 };
+        expect(score(sighted, clear, REACH, 100_000, -1) - score(sighted, half, REACH, 100_000, -1)).toBeCloseTo(25);
         expect(score(sighted, clear, REACH, 100_000, -1) - score(sighted, blocked, REACH, 100_000, -1)).toBeCloseTo(50);
     });
 
@@ -284,17 +287,49 @@ describe("what a ship is worth shooting at", () => {
         const bodies = new Bodies();
         const from = bodies.indexOf(bodies.create({ x: 0, y: 0, radius: 5 }));
         const to = bodies.indexOf(bodies.create({ x: 100, y: 0, radius: 5 }));
-        expect(inSight(bodies, 0, 0, from, to)).toBe(true);
+        expect(visibility(bodies, 0, 0, from, to)).toBe(1);
         // Behind the chooser, beyond the target, and off to one side: none of them in the way.
         bodies.create({ x: -20, y: 0, radius: 10 });
         bodies.create({ x: 120, y: 0, radius: 10 });
         bodies.create({ x: 50, y: 20, radius: 10 });
-        expect(inSight(bodies, 0, 0, from, to)).toBe(true);
+        expect(visibility(bodies, 0, 0, from, to)).toBe(1);
         // A ghost is somewhere to be, not something to shoot through.
         bodies.create({ x: 50, y: 0, radius: 10, ghost: true });
-        expect(inSight(bodies, 0, 0, from, to)).toBe(true);
+        expect(visibility(bodies, 0, 0, from, to)).toBe(1);
         bodies.create({ x: 50, y: 5, radius: 10 });
-        expect(inSight(bodies, 0, 0, from, to)).toBe(false);
+        expect(visibility(bodies, 0, 0, from, to)).toBeLessThan(0);
+    });
+
+    it("sees more of a target behind something small than behind something big", () => {
+        const behind = (radius: number, at = 500): number => {
+            const bodies = new Bodies();
+            const from = bodies.indexOf(bodies.create({ x: 0, y: 0, radius: 5 }));
+            const to = bodies.indexOf(bodies.create({ x: 1000, y: 0, radius: 40 }));
+            bodies.create({ x: at, y: 0, radius });
+            return visibility(bodies, 0, 0, from, to);
+        };
+        // Half-way, a hull looks twice its size against the target: 5 m covers a quarter of an 80 m one, 10 m half.
+        expect(behind(5)).toBeCloseTo(0.75);
+        expect(behind(10)).toBeCloseTo(0.5);
+        // Covered just whole, it can only just not be seen.
+        expect(behind(20)).toBeCloseTo(0);
+        // Hidden deeper, by how far the cover overhangs it: 40 m either side, then 760.
+        expect(behind(40)).toBeCloseTo(-Math.log(1.5));
+        expect(behind(400)).toBeCloseTo(-Math.log(10.5));
+    });
+
+    it("finds a fighter behind a gunship easier to get at than one behind a rock", () => {
+        const behind = (radius: number): number => {
+            const bodies = new Bodies();
+            const from = bodies.indexOf(bodies.create({ x: 0, y: 0, radius: 40 }));
+            const to = bodies.indexOf(bodies.create({ x: 2000, y: 0, radius: 5 }));
+            bodies.create({ x: 1950, y: 0, radius });
+            return visibility(bodies, 0, 0, from, to);
+        };
+        const gunship = behind(40);
+        const rock = behind(800);
+        expect(gunship).toBeLessThan(0);
+        expect(rock).toBeLessThan(gunship);
     });
 
     it("measures facing along the hull it is asked from", () => {
@@ -311,7 +346,7 @@ describe("what a ship is worth shooting at", () => {
     it("scores a target beyond its reach against, so a ship closes", () => {
         expect(
             score(
-                { ...doctrine, massWeight: 0, closingWeight: 0, armedWeight: 0, mobileWeight: 0 },
+                { ...doctrine, massWeight: 0, closingWeight: 0, armedWeight: 0, mobileWeight: 0, sightWeight: 0 },
                 candidate({ range: REACH * 2 }),
                 REACH,
                 100_000,

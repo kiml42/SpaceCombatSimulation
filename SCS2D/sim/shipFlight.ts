@@ -6,7 +6,7 @@ import { leakRate, leakSpeed } from "./fuel.js";
 import { Claim, Resource } from "./supply.js";
 import { geometryOf, plumeLayers, plumeRays, WEAPON_PLUME_SHARE } from "./exhaust.js";
 import { cohesionUrge } from "./targeting.js";
-import { abs, atan2, angleDelta, PI, brakingRate, clamp, cos, length, max, min, sin, sqrt } from "./math.js";
+import { abs, atan2, angleDelta, PI, brakingRate, clamp, cos, distanceToSegment, length, max, min, sin, sqrt } from "./math.js";
 import { EngineLayout } from "./engines.js";
 import { wellPull } from "./gravity.js";
 import {
@@ -1530,6 +1530,41 @@ export function flee(ships: Ships, bodies: Bodies, i: number, b: number, order: 
     return false;
 }
 
+/** How far from the centre of cover of radius `cover` a ship of radius `own` hides, metres: its avoidance distance off the cover's skin. */
+export function hidingDistance(own: number, cover: number, separationRadii: number): number {
+    return cover + own * (1 + max(0, separationRadii));
+}
+
+/**
+ * Whether the spot ship `i` would hide at behind cover `cb` is open to an
+ * armed enemy: in its reach, with the cover's bounding circle not across the
+ * line between them. The spot is the one `hide` makes for from the threats
+ * to the cover; with none, nothing can reach it. Threats on every side leave
+ * no spot behind it at all.
+ */
+export function exposedBehind(ships: Ships, bodies: Bodies, i: number, b: number, cb: number): boolean {
+    const cx = bodies.x[cb]!;
+    const cy = bodies.y[cb]!;
+    if (!(threats(ships, bodies, i, b, cx, cy, NO_TARGET) > 0)) return false;
+    const toward = length(ships.threatX, ships.threatY);
+    if (!(toward > 0)) return true;
+    const mine = ships.designs[i]!.radius;
+    const cover = bodies.radius[cb]!;
+    const off = hidingDistance(mine, cover, ships.doctrines[i]!.approach.separationRadii);
+    const sx = cx - (ships.threatX / toward) * off;
+    const sy = cy - (ships.threatY / toward) * off;
+    for (let e = 0; e < ships.alive.length; e++) {
+        if (!ships.hostile(i, e) || !armed(ships, e)) continue;
+        const eb = bodies.indexOf(ships.bodyIds[e]!);
+        if (eb < 0 || eb === b || eb === cb) continue;
+        const ex = bodies.x[eb]!;
+        const ey = bodies.y[eb]!;
+        if (length(ex - sx, ey - sy) > shipSupply.fightReach(ships, e) + mine) continue;
+        if (distanceToSegment(cx, cy, ex, ey, sx, sy) >= cover) return true;
+    }
+    return false;
+}
+
 /** Fly round behind cover `cb`, from the threats to it, or the nearest armed enemy when none is in reach of it. */
 export function hide(ships: Ships, bodies: Bodies, i: number, b: number, cb: number): boolean {
     const approach = ships.doctrines[i]!.approach;
@@ -1569,7 +1604,7 @@ export function hide(ships: Ships, bodies: Bodies, i: number, b: number, cb: num
         }
     }
     const touching = ships.designs[i]!.radius + bodies.radius[cb]!;
-    const off = touching * (1 + max(0, approach.separationRadii));
+    const off = hidingDistance(ships.designs[i]!.radius, bodies.radius[cb]!, approach.separationRadii);
     // The spot, and the way to it.
     const dx = cx - sx * off - bodies.x[b]!;
     const dy = cy - sy * off - bodies.y[b]!;

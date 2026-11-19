@@ -1,13 +1,12 @@
 import { Bodies } from "./bodies.js";
 import { footprintOf, type Footprint, type ShipDesign } from "./blueprint.js";
 import { DamageEffect } from "./damage.js";
-import { inSight, look, score } from "./targeting.js";
+import { look, score, visibility } from "./targeting.js";
 import type { ModuleSpec } from "./modules.js";
 import { length, max, min } from "./math.js";
 import type { World } from "./world.js";
 import { hullsOverlap } from "./collision.js";
 import * as shipSupply from "./shipSupply.js";
-import * as shipForage from "./shipForage.js";
 import * as shipClaw from "./shipClaw.js";
 import * as shipFlight from "./shipFlight.js";
 import * as shipAim from "./shipAim.js";
@@ -100,7 +99,6 @@ export function decide(ships: Ships, world: World, bodies: Bodies, i: number): v
             }
         }
         ships.choice.begin();
-        ships.maskedChoice.begin();
         // Facing is judged along the line to what it is already fighting, not
         // along its nose: turned away to burn, a hull's nose says nothing of
         // what it would rather fight, and judged by it a craft on a pass
@@ -137,16 +135,11 @@ export function decide(ships: Ships, world: World, bodies: Bodies, i: number): v
                 const cl = length(cx, cy);
                 seen = { ...seen, facing: cl > 0 ? (cx * lx + cy * ly) / (cl * ll) : 1 };
             }
-            // Behind an asteroid, it is gone for only when nothing in sight is there to fight.
-            const hidden = shipAim.rockBetween(ships, bodies, bodies.x[b]!, bodies.y[b]!, at.x, at.y, b, tb);
-            const candidate =
-                doctrine.sightWeight !== 0 && !inSight(bodies, bodies.x[b]!, bodies.y[b]!, b, tb) ? { ...seen, clear: false } : seen;
-            (hidden ? ships.maskedChoice : ships.choice).offer(
-                candidate,
-                score(doctrine, candidate, reach, design.mass, loyalTo, -1, wanted),
-            );
+            // Behind a rock or another ship, it is as well hidden as it is covered: `sightWeight` says how much that counts.
+            const candidate = doctrine.sightWeight !== 0 ? { ...seen, sight: visibility(bodies, bodies.x[b]!, bodies.y[b]!, b, tb) } : seen;
+            ships.choice.offer(candidate, score(doctrine, candidate, reach, design.mass, loyalTo, -1, wanted));
         }
-        fighting = ships.choice.ship !== NO_TARGET ? ships.choice.ship : ships.maskedChoice.ship;
+        fighting = ships.choice.ship;
     }
     // What it would rather be with. Offered at all only when the doctrine
     // says escorting is worth something, since every weight here may be
@@ -361,9 +354,10 @@ export function withdraws(ships: Ships, i: number, b: number, fighting: number):
 /**
  * Cover for withdrawing ship `i` to hide behind: what it hides behind
  * already while that still serves, or the nearest friend or body on no
- * side, a wreck included, within `hideRange` of its radii, at least
- * `hideSize` of its radius, and no armed enemy's reach on it. `NO_TARGET`
- * for none, to flee instead.
+ * side, a wreck included, within `hideRange` of its radii of the cover's
+ * edge, at least `hideSize` of its radius, and with the spot behind it out
+ * of every armed enemy's reach or shadowed from it (`exposedBehind`).
+ * `NO_TARGET` for none, to flee instead.
  */
 export function coverFor(ships: Ships, bodies: Bodies, i: number, b: number, lift = Infinity): number {
     const approach = ships.doctrines[i]!.approach;
@@ -374,8 +368,8 @@ export function coverFor(ships: Ships, bodies: Bodies, i: number, b: number, lif
         if (t === i || ships.alive[t] !== 1 || (ships.derelict[t] === 0 && ships.hostile(i, t))) return -1;
         const tb = bodies.indexOf(ships.bodyIds[t]!);
         if (tb < 0 || tb === b || bodies.ghost[tb] === 1 || bodies.radius[tb]! < approach.hideSize * mine) return -1;
-        const d = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!);
-        if (d > range || shipForage.dangerNear(ships, bodies, i, tb) > 0) return -1;
+        const d = max(0, length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!) - bodies.radius[tb]!);
+        if (d > range || shipFlight.exposedBehind(ships, bodies, i, b, tb)) return -1;
         if (!within(ships, bodies, lift, t, bodies.x[tb]!, bodies.y[tb]!, bodies.x[b]!, bodies.y[b]!, bodies.radius[tb]! + mine)) return -1;
         return d;
     };

@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { asteroidBlueprint, compileBlueprint, math, NEUTRAL_TEAM } from "../sim/index.js";
+import { asteroidBlueprint, compileBlueprint, DEFAULT_DOCTRINE, math, NEUTRAL_TEAM } from "../sim/index.js";
 import { Rng } from "../sim/rng.js";
 import { makeBattle } from "../scenarios/battle.js";
 import { RIVAL_WELLS } from "../scenarios/rivalMines.js";
@@ -55,16 +55,24 @@ it("holds fire on a target behind a rock, however far past the muzzle the rock i
     expect(duel(true)).toBe(0);
 });
 
-it("goes for an enemy in sight over a nearer one behind a rock", () => {
-    const run = makeBattle({ seed: 1 }, (ships, world) => {
-        ships.spawn(world, { design: rock(), x: 0, y: 0, team: NEUTRAL_TEAM });
-        const hunter = ships.spawn(world, { design: compileBlueprint(GUNSHIP), x: -700, y: 0, team: 0 });
-        ships.spawn(world, { design: compileBlueprint(GUNSHIP), x: 700, y: 0, angle: math.PI, team: 1 });
-        const open = ships.spawn(world, { design: compileBlueprint(GUNSHIP), x: -700, y: 1600, angle: -math.HALF_PI, team: 1 });
-        return { hunter, open };
-    });
-    for (let t = 0; t < 60; t++) run.step();
-    expect(run.ships.fightingOf(run.hunter)).toBe(run.open);
+it("goes for an enemy in sight over a nearer one behind a rock, by as much as its doctrine minds sight", () => {
+    // The Gunship's own doctrine minds a clear line little; the default minds it a lot.
+    const chosen = (sightWeight: number): { open: boolean; hidden: boolean } => {
+        const base = compileBlueprint(GUNSHIP).doctrine;
+        const hunterDesign = compileBlueprint({ ...GUNSHIP, doctrine: { ...base, targeting: { ...base.targeting, sightWeight } } });
+        const run = makeBattle({ seed: 1 }, (ships, world) => {
+            ships.spawn(world, { design: rock(), x: 0, y: 0, team: NEUTRAL_TEAM });
+            const hunter = ships.spawn(world, { design: hunterDesign, x: -700, y: 0, team: 0 });
+            const hidden = ships.spawn(world, { design: compileBlueprint(GUNSHIP), x: 700, y: 0, angle: math.PI, team: 1 });
+            const open = ships.spawn(world, { design: compileBlueprint(GUNSHIP), x: -700, y: 1600, angle: -math.HALF_PI, team: 1 });
+            return { hunter, hidden, open };
+        });
+        for (let t = 0; t < 60; t++) run.step();
+        const fighting = run.ships.fightingOf(run.hunter);
+        return { open: fighting === run.open, hidden: fighting === run.hidden };
+    };
+    expect(chosen(DEFAULT_DOCTRINE.targeting.sightWeight).open).toBe(true);
+    expect(chosen(0).hidden).toBe(true);
 });
 
 it("orbits a rock hiding its target, getting round where flying at it does not", () => {

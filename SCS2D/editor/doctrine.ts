@@ -64,7 +64,7 @@ const TARGETING_ROWS: readonly DoctrineRow[] = [
     {
         field: "sightWeight",
         label: "clear shot",
-        hint: "Prefer what nothing else is in the way of: a friend, a wreck, or another enemy",
+        hint: "Prefer what nothing else is in the way of, by how much of it can be seen, and what is hidden by how far it would have to move to be seen: a ship behind a friend is easier to get at than one deep behind a rock",
         step: 10,
     },
     {
@@ -374,7 +374,7 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
     {
         field: "hideRange",
         label: "hides within",
-        hint: "How far off cover can be for it to hide behind when it withdraws, in its own radii. 0 never hides, and flees instead",
+        hint: "How far off the edge of cover it can be to hide behind it when it withdraws, in its own radii. 0 never hides, and flees instead",
         step: 1,
     },
     {
@@ -696,7 +696,9 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                     }),
                     entry("approach", "hideRange", {
                         absolute: (v, ship) =>
-                            v.approach.hideRange > 0 ? `cover within ${metres(v.approach.hideRange * ship.radius)}` : "never hides",
+                            v.approach.hideRange > 0
+                                ? `cover with its edge within ${metres(v.approach.hideRange * ship.radius)}`
+                                : "never hides",
                     }),
                     entry("approach", "hideSize", {
                         shown: (v) => v.approach.hideRange > 0,

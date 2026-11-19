@@ -392,6 +392,15 @@ export function distanceSq(ax: number, ay: number, bx: number, by: number): numb
     return dx * dx + dy * dy;
 }
 
+/** How far point (`x`, `y`) is from the segment from (`px`, `py`) to (`qx`, `qy`). */
+export function distanceToSegment(x: number, y: number, px: number, py: number, qx: number, qy: number): number {
+    const dx = qx - px;
+    const dy = qy - py;
+    const span = dx * dx + dy * dy;
+    const t = span > 0 ? max(0, min(1, ((x - px) * dx + (y - py) * dy) / span)) : 0;
+    return length(px + dx * t - x, py + dy * t - y);
+}
+
 export function dot(ax: number, ay: number, bx: number, by: number): number {
     return ax * bx + ay * by;
 }
