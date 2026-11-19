@@ -257,6 +257,14 @@ export interface Approach {
      */
     readonly escortMinRadii: number;
     /**
+     * How far from its charge an enemy has to be, as a share of its own reach
+     * from there, for it to fight first rather than cover first. Covering
+     * first, it stations on its band where it would fight from, as a screen;
+     * fighting first, it holds its fight and makes for its charge only
+     * sideways to it, so a group bunches up as it attacks. One by default.
+     */
+    readonly guardRange: number;
+    /**
      * How much a craft wants to keep out of everybody's way.
      *
      * Weighed against holding its station like every other urge, and against
@@ -618,6 +626,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
         escort: 0.15,
         escortInner: 0.5,
         escortMinRadii: 1,
+        guardRange: 1,
         separation: 300,
         separationRadii: 3,
         avoidHorizon: 6,
@@ -852,6 +861,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
     "escort",
     "escortInner",
     "escortMinRadii",
+    "guardRange",
     "separation",
     "separationRadii",
     "avoidHorizon",
@@ -905,6 +915,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
 
 /** Fields that mean nothing below zero, though zero itself is a setting. */
 export const NON_NEGATIVE_FIELDS: readonly string[] = [
+    "guardRange",
     "ramSettle",
     "ramSelectiveFuel",
     "escortInner",

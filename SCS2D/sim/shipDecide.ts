@@ -243,7 +243,9 @@ function guard(ships: Ships, bodies: Bodies, i: number, b: number, wasGuarding: 
     if (consort === NO_TARGET || ships.chosen[i] === NO_TARGET) return;
     const cb = bodies.indexOf(ships.bodyIds[consort]!);
     if (cb < 0) return;
-    const reach = (shipSupply.fightReach(ships, i) + escortBand(ships, i, ships.designs[i]!, consort)) * (wasGuarding ? GUARD_LEAVE : 1);
+    const reach =
+        (shipSupply.fightReach(ships, i) * ships.doctrines[i]!.approach.guardRange + escortBand(ships, i, ships.designs[i]!, consort)) *
+        (wasGuarding ? GUARD_LEAVE : 1);
     let nearest = NO_TARGET;
     let best = reach;
     for (let t = 0; t < ships.alive.length; t++) {
@@ -261,7 +263,19 @@ function guard(ships: Ships, bodies: Bodies, i: number, b: number, wasGuarding: 
         return;
     }
     ships.chosen[i] = nearest;
+    // Two covering each other, both stationed on the other, hold neither to
+    // the fight and drift off on what they had: the nearer the enemy fights,
+    // and the other covers it. It still keeps it as a consort, for the pull.
+    if (ships.consort[consort] === i && nearer(ships, bodies, b, cb, nearest, i, consort)) return;
     ships.guarding[i] = 1;
+}
+
+/** Whether body `b`, ship `i`, is nearer enemy `t` than body `cb`, ship `c`: the lower index if level. */
+function nearer(ships: Ships, bodies: Bodies, b: number, cb: number, t: number, i: number, c: number): boolean {
+    const tb = bodies.indexOf(ships.bodyIds[t]!);
+    const mine = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!);
+    const theirs = length(bodies.x[tb]! - bodies.x[cb]!, bodies.y[tb]! - bodies.y[cb]!);
+    return mine < theirs || (mine === theirs && i < c);
 }
 
 /**

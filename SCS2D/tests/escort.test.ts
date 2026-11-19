@@ -425,3 +425,26 @@ describe("the halves of a cut Catamaran covering each other", () => {
         }
     });
 });
+
+describe("two ships covering each other", () => {
+    it("never both hold station on the other with an enemy about: the nearer it fights, and they close on it", () => {
+        const corvette = compileBlueprint(escorting(CORVETTE, 5));
+        const run = makeBattle({ seed: 1 }, (ships, world) => ({
+            a: ships.spawn(world, { design: corvette, x: 0, y: 0, angle: 0, team: 0 }),
+            b: ships.spawn(world, { design: corvette, x: -1500, y: 200, angle: 0, team: 0 }),
+            enemy: ships.spawn(world, { design: compileBlueprint(MOBILE_MARKER), x: 2000, y: 0, team: 1 }),
+        }));
+        const bodies = run.world.bodies;
+        const apart = (i: number): number => {
+            const s = bodies.indexOf(run.ships.body(i));
+            const e = bodies.indexOf(run.ships.body(run.enemy));
+            return Math.hypot(bodies.x[s]! - bodies.x[e]!, bodies.y[s]! - bodies.y[e]!);
+        };
+        const start = Math.max(apart(run.a), apart(run.b));
+        for (let s = 0; s < 30 * 60; s++) {
+            run.step();
+            expect(run.ships.guarding[run.a] === 1 && run.ships.guarding[run.b] === 1).toBe(false);
+        }
+        expect(Math.max(apart(run.a), apart(run.b))).toBeLessThan(start);
+    });
+});
