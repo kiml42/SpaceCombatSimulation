@@ -481,7 +481,9 @@ export function commitOne(ships: Ships, bodies: Bodies, i: number): void {
     const order = shipOrders.effectiveOrder(ships, i);
     // Parked, it meets nothing of its carrier, so would look clear on the pad and drop into its hull when let go.
     const ramming = order !== undefined && order.target !== NO_TARGET && (order.ram || order.grapple) && ships.parkedOn[i]! < 0;
-    const want = ramming && (order.grapple || strikesWithin(ships, bodies, i, b, order.target)) ? 1 : 0;
+    // A part standing up into the weapons layer is met there, so it stays up.
+    const above = ramming && !order.grapple && shipAim.ramsFromAbove(ships, i, order.target);
+    const want = ramming && !above && (order.grapple || strikesWithin(ships, bodies, i, b, order.target)) ? 1 : 0;
     if (want === ships.committed[i] || !clearOfHulls(ships, bodies, b)) return;
     ships.committed[i] = want;
 }
