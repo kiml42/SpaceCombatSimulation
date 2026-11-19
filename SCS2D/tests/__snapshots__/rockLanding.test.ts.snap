@@ -36,17 +36,17 @@ exports[`Rock Landing > Raider,  one way, spins [4, 7, 10] 1`] = `
 
 exports[`Rock Landing > Raider, no main [2, 4] 1`] = `
 {
-  "bumps": 0,
-  "crashes": 9,
+  "bumps": 1,
+  "crashes": 8,
   "landed": [
-    "stopped at 56.22 s",
-    "99.43 s",
-    "132.67 s",
-    "stopped at 64.30 s",
+    "stopped at 56.40 s",
     "not by 150 s",
-    "stopped at 111.55 s",
-    "stopped at 55.95 s",
-    "stopped at 111.75 s",
+    "104.95 s",
+    "stopped at 65.85 s",
+    "stopped at 125.18 s",
+    "stopped at 111.67 s",
+    "stopped at 56.63 s",
+    "stopped at 108.28 s",
   ],
 }
 `;
@@ -79,7 +79,7 @@ exports[`Rock Landing > Raider, one turn far weaker [1, 8] 1`] = `
     "67.30 s",
     "55.93 s",
     "stopped at 61.13 s",
-    "54.40 s",
+    "54.87 s",
     "67.58 s",
   ],
 }
