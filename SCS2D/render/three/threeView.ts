@@ -21,10 +21,10 @@ import type { Light } from "../light.js";
 import { seenLights } from "../canvas2d.js";
 import { LIGHT_GAIN, LIGHT_HEADROOM } from "../lightField.js";
 import type { LayerView, Projection } from "../layerView.js";
-import { Batch, BatchMeshes, pixelsToMetres, ThreeCanvas, type Box } from "./threeCanvas.js";
+import { Batch, BatchMeshes, EFFECT_STRIDE, pixelsToMetres, ThreeCanvas, type Box } from "./threeCanvas.js";
 import { ThreeHulls } from "./threeHulls.js";
 import { ThreeLights } from "./threeLights.js";
-import { barrelLift, liftOf, Ships3D, type DeckBox, type Depths } from "./ships3d.js";
+import { barrelLift, liftOf, moduleTop, Ships3D, type DeckBox, type Depths } from "./ships3d.js";
 import type { ViewAngle } from "./viewAngle.js";
 
 // Colours as they are given, as Pixi and a Canvas2D take them: no conversion to linear and back.
@@ -64,7 +64,9 @@ export function threeView(canvas: HTMLCanvasElement, depths: Depths | null = nul
     if (ships !== null && depths !== null) {
         context.solid3d = {
             along: (x0, y0, x1, y1, height) => context.along(x0, y0, x1, y1, height),
+            on: (height) => context.on(height),
             flat: () => context.flat(),
+            moduleTop: (ship, i) => moduleTop(ship, i, depths),
             shipLift: (ship) => liftOf(ship, depths),
             barrelLift: (ship, t) => barrelLift(ship, t, depths),
             roundLift: () => ships.roundLift,
@@ -278,7 +280,7 @@ const noScissor = (): void => {};
 
 /**
  * `batch`'s corners, canvas pixels, as metres from the camera's point in 3D:
- * on the deck's top, or, for an effect, along its axis at its height and
+ * on the deck's top, flat at a height of its own, or, for an effect, along its axis at its height and
  * turned about that axis to face `eye`, or about its middle, where its axis
  * has no length, to face it square on.
  */
@@ -307,6 +309,12 @@ function standUp(batch: Batch, effects: readonly number[], eye: ThreeCamera, wid
         const px = x(pos[3 * v]!);
         const py = y(pos[3 * v + 1]!);
         const f = fx[v]!;
+        if (f >= 0 && effects[EFFECT_STRIDE * f + 5] === 1) {
+            pos[3 * v] = px;
+            pos[3 * v + 1] = py;
+            pos[3 * v + 2] = effects[EFFECT_STRIDE * f + 4]!;
+            continue;
+        }
         if (f < 0) {
             pos[3 * v] = px;
             pos[3 * v + 1] = py;
@@ -315,11 +323,11 @@ function standUp(batch: Batch, effects: readonly number[], eye: ThreeCamera, wid
         }
         if (f !== last) {
             last = f;
-            ox = x(effects[5 * f]!);
-            oy = y(effects[5 * f + 1]!);
-            oz = effects[5 * f + 4]!;
-            const dx = x(effects[5 * f + 2]!) - ox;
-            const dy = y(effects[5 * f + 3]!) - oy;
+            ox = x(effects[EFFECT_STRIDE * f]!);
+            oy = y(effects[EFFECT_STRIDE * f + 1]!);
+            oz = effects[EFFECT_STRIDE * f + 4]!;
+            const dx = x(effects[EFFECT_STRIDE * f + 2]!) - ox;
+            const dy = y(effects[EFFECT_STRIDE * f + 3]!) - oy;
             const l = Math.hypot(dx, dy);
             point = !(l > 1e-9);
             if (!point) {

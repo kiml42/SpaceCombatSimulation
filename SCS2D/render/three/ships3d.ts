@@ -393,6 +393,14 @@ export function liftOf(ship: ShipView, depths: Depths): number {
     return landed + Math.max(0, Math.min(1, up)) * FLYING_CLEARANCE;
 }
 
+/** How high above the deck's middle module `i`'s top is. */
+export function moduleTop(ship: ShipView, i: number, depths: Depths): number {
+    const design = ship.currentStructure;
+    const depth = moduleDepth(design, i, depths);
+    const parked = isFighterModule(design, i) && !design.fighter;
+    return liftOf(ship, depths) + (parked ? THIN / 2 + depth : depth / 2);
+}
+
 /** How high above the deck's middle turret `t`'s barrels are: on top of its dome, or along a hull mount's middle. */
 export function barrelLift(ship: ShipView, t: number, depths: Depths): number {
     const design = ship.currentStructure;

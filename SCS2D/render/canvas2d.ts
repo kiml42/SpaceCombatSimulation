@@ -959,6 +959,7 @@ function drawHull(
         ctx.save();
         ctx.translate(m.x, m.y);
         ctx.rotate(m.angle);
+        fx?.on(fx.moduleTop(ship, i) + ON_TOP);
         // Wreckage: still there, still stopping shells, no longer doing its job.
         // Drawn as what it is rather than removed, which is what §4 means by
         // conserving matter — and it is the only way to see a ship being killed
@@ -1219,6 +1220,7 @@ function drawHull(
                 });
             }
         }
+        fx?.flat();
         ctx.restore();
     }
     // Over the hull, since fighters come in over it.
@@ -2575,7 +2577,9 @@ function drawName(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
         // Null for another ship's on the same hull, which writes its own.
         const side = ship.sides?.[core] ?? ship.team;
         if (painted === null || painted === undefined || side < 0) continue;
+        fx?.on(fx.moduleTop(ship, core) + ON_TOP);
         drawLabel(ctx, ship, core, `${teamName(side)} ${painted}`, side, metresToPx);
+        fx?.flat();
     }
 }
 
@@ -2775,6 +2779,8 @@ export const seenRounded = new RoundedParts();
 let solid = false;
 /** Where the main view is drawn in 3D, how to stand flames, rounds and flashes up at their heights. */
 let fx: Solid3D | null = null;
+/** How far above a module's top what is drawn on it lies in 3D, metres, so the top does not hide it. */
+const ON_TOP = 0.05;
 /** Where rounded parts are recorded while the main view is drawn, and nowhere otherwise. */
 let rounded: RoundedParts | null = null;
 /** A barrel's colour, as its channels. */

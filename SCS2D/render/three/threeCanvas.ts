@@ -88,10 +88,14 @@ const ARC_CHORD_PX = 2.5;
 const ARC_LEAST_CHORDS = 6;
 const MITER_LIMIT = 4;
 const KEEP_STEPS = 4;
+/** Numbers an effect takes in `ThreeCanvas.effects`. */
+export const EFFECT_STRIDE = 6;
 const KEPT_MOST = 4000;
 
 /** The effect what is being drawn is part of (`ThreeCanvas.along`), or -1. */
 let effectNow = -1;
+/** Whether what is being drawn is hidden by what is in front of it (`ThreeCanvas.on`). */
+let behindNow = false;
 
 /** Triangles of one kind, drawn in one call. */
 export class Batch {
@@ -101,6 +105,8 @@ export class Batch {
     scissor: Box | null = null;
     /** Drawn on the screen over the battle, rather than in it. */
     screen = false;
+    /** Hidden by the models in front of it. */
+    behind = false;
     /** Vertices: x, y; r, g, b, a; u, v. */
     pos = new Float32Array(3 * 1024);
     col = new Float32Array(4 * 1024);
@@ -114,6 +120,7 @@ export class Batch {
         this.texture = texture;
         this.additive = additive;
         this.scissor = scissor;
+        this.behind = behindNow;
         this.count = 0;
     }
 
@@ -266,24 +273,34 @@ export class ThreeCanvas {
     deck = true;
     /** What canvas2d.ts stands up in 3D through, where the view draws in 3D (render/solid3d.ts). */
     solid3d: Solid3D | null = null;
-    /** Each effect's axis, canvas pixels, and height, metres: x0, y0, x1, y1, height. */
+    /** Each effect's axis, canvas pixels, height, metres, and whether it lies flat: x0, y0, x1, y1, height, lying. */
     readonly effects: number[] = [];
 
     /** What is drawn from here on is an effect along this axis, in the current transform, at `height` (`Solid3D.along`). */
     along(x0: number, y0: number, x1: number, y1: number, height: number): void {
         const m = this.state.m;
-        effectNow = this.effects.length / 5;
+        effectNow = this.effects.length / EFFECT_STRIDE;
+        behindNow = false;
         this.effects.push(
             m.a * x0 + m.c * y0 + m.e,
             m.b * x0 + m.d * y0 + m.f,
             m.a * x1 + m.c * y1 + m.e,
             m.b * x1 + m.d * y1 + m.f,
             height,
+            0,
         );
+    }
+
+    /** What is drawn from here on lies flat at `height`, hidden by what is in front of it (`Solid3D.on`). */
+    on(height: number): void {
+        effectNow = this.effects.length / EFFECT_STRIDE;
+        behindNow = true;
+        this.effects.push(0, 0, 0, 0, height, 1);
     }
 
     flat(): void {
         effectNow = -1;
+        behindNow = false;
     }
 
     private static fresh(): State {
@@ -317,6 +334,7 @@ export class ThreeCanvas {
     begin(): void {
         this.effects.length = 0;
         effectNow = -1;
+        behindNow = false;
         this.onScreen = false;
         this.used = 0;
         this.batches.length = 0;
@@ -784,6 +802,7 @@ export class ThreeCanvas {
             open.textured === textured &&
             open.texture === texture &&
             open.additive === additive &&
+            open.behind === behindNow &&
             sameBox(open.scissor, scissor)
         ) {
             return open;
@@ -1143,13 +1162,13 @@ export class BatchMeshes {
     }
 
     private material(batch: Batch): MeshBasicMaterial {
-        const key = `${batch.textured ? batch.texture!.id : "-"}|${batch.additive}`;
+        const key = `${batch.textured ? batch.texture!.id : "-"}|${batch.additive}|${batch.behind}`;
         let material = this.materials.get(key);
         if (material === undefined) {
             material = new MeshBasicMaterial({
                 vertexColors: true,
                 transparent: true,
-                depthTest: false,
+                depthTest: batch.behind,
                 depthWrite: false,
                 side: DoubleSide,
                 map: batch.textured ? batch.texture : null,

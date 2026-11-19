@@ -9,8 +9,12 @@ import type { ShipView } from "../sim/index.js";
 export interface Solid3D {
     /** What is drawn from here on lies along `(x0, y0)` to `(x1, y1)`, in the current transform, `height` metres above the deck's middle. */
     along(x0: number, y0: number, x1: number, y1: number, height: number): void;
+    /** What is drawn from here on lies flat `height` metres above the deck's middle, hidden by what is in front of it. */
+    on(height: number): void;
     /** What is drawn from here on lies flat on the deck again. */
     flat(): void;
+    /** How high module `i`'s top is. */
+    moduleTop(ship: ShipView, i: number): number;
     /** How high a ship's middle is. */
     shipLift(ship: ShipView): number;
     /** How high turret `t`'s barrels are. */
