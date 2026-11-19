@@ -158,7 +158,8 @@ export function threeView(canvas: HTMLCanvasElement, angle: () => ViewAngle): La
                     rootMeshes.add(batch, root, k, noScissor);
                 }
             });
-            context.deckBatches.forEach((batch, k) => deckMeshes.add(batch, deck, k, scissor));
+            // A scissor is a box on the screen, which is no longer the same box on a tilted deck.
+            context.deckBatches.forEach((batch, k) => deckMeshes.add(batch, deck, k, noScissor));
             ships.shed(seenLights, size.width, size.height, scale);
             renderer.setRenderTarget(null);
             renderer.clear(true, true, true);
