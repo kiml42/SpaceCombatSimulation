@@ -5,7 +5,7 @@
 **Active development is in `SCS2D/`, a TypeScript rewrite. Start at [SCS2D/DESIGN.md](SCS2D/DESIGN.md) and
 [SCS2D/CLAUDE.md](SCS2D/CLAUDE.md).** The design is split three ways: `DESIGN.md` (what the game is),
 `ROADMAP.md` (the build order) and `DECISIONS.md` (why things are as they are); what is not built or not settled is
-in [Linear](https://linear.app/space-combat-simulation/team/SPA/all) (team `SPA`).
+in [Linear](https://linear.app/space-combat-simulation/team/SCS/all) (team `SCS`).
 
 The Unity project in `SpaceCombatSimulation/` is a 2017–2021 prototype, kept for reference and occasional
 tinkering. Do not modify it, do not upgrade it, and do not attempt to port it incrementally — the rewrite changes
@@ -30,7 +30,7 @@ revert.
 
 Ask before pushing directly, unless the author has already said to for that particular change.
 
-**A PR for a Linear issue names it.** Prefix the title with the issue ID in brackets (`[SPA-169] Warhead
+**A PR for a Linear issue names it.** Prefix the title with the issue ID in brackets (`[SCS-169] Warhead
 module`), and start the description with a link to the issue. A PR covering several issues lists them all.
 
 **Every piece of work goes on its own branch, named for the feature and prefixed `claude/`**

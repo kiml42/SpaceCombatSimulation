@@ -9,7 +9,7 @@ convention existed. Left as it is rather than re-sorted, since the dates are on 
 history to look tidier is its own small dishonesty.
 
 The design itself is in [DESIGN.md](DESIGN.md), the build order is in [ROADMAP.md](ROADMAP.md), and what is still open is in
-[Linear](https://linear.app/space-combat-simulation/team/SPA/all).
+[Linear](https://linear.app/space-combat-simulation/team/SCS/all).
 
 **Three documents, split by why you would read them.** Section numbers are global and stable across all
 three, so a reference such as "§12" means the same section wherever it is written — which is why the numbering
