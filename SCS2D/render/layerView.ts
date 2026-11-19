@@ -3,7 +3,7 @@ import type { Camera } from "./camera.js";
 import type { Light } from "./light.js";
 import { pixiView } from "./pixiView.js";
 import { threeView } from "./three/threeView.js";
-import { EDITOR_ANGLE, letGo, setViewAngle, shownAngle, swingBy, viewAngle } from "./three/viewAngle.js";
+import { EDITOR_ANGLE, setViewAngle, Swing, viewAngle, type ViewAngle } from "./three/viewAngle.js";
 
 /**
  * What draws a battle on a canvas of its own: Pixi (render/pixiView.ts) or
@@ -120,11 +120,15 @@ export function setRendererChoice(choice: RendererChoice): void {
     window.dispatchEvent(new CustomEvent(EVENT, { detail: choice }));
 }
 
-/** A view drawn with `choice`, on `canvas`: an editor's, in 3D, from a fixed angle rather than the one the menu sets. */
-export function viewOf(canvas: HTMLCanvasElement, choice: RendererChoice = rendererChoice(), editor = false): LayerView {
+/**
+ * A view drawn with `choice`, on `canvas`: an editor's, in 3D, from a fixed
+ * angle rather than the one the menu sets; either swung by `swing`, if given.
+ */
+export function viewOf(canvas: HTMLCanvasElement, choice: RendererChoice = rendererChoice(), editor = false, swing?: Swing): LayerView {
     if (choice === "pixi") return pixiView(canvas) as unknown as LayerView;
     if (choice === "three") return threeView(canvas);
-    return threeView(canvas, choice === "three-layers" ? "layers" : "stats", editor ? () => EDITOR_ANGLE : shownAngle);
+    const set = (): ViewAngle => (editor ? EDITOR_ANGLE : viewAngle());
+    return threeView(canvas, choice === "three-layers" ? "layers" : "stats", swing === undefined ? set : () => swing.shown(set()));
 }
 
 /**
@@ -142,6 +146,9 @@ export function layerUnder(
     onChange(redraw: () => void): void;
     remove(): void;
 } {
+    const redraws: (() => void)[] = [];
+    // An editor draws only when asked, so is asked each time its swing moves.
+    const swing = new Swing(editor ? () => redraws.forEach((redraw) => redraw()) : undefined);
     const make = (choice: RendererChoice): { view: LayerView; canvas: HTMLCanvasElement } => {
         const canvas = document.createElement("canvas");
         canvas.setAttribute("aria-hidden", "true");
@@ -150,11 +157,10 @@ export function layerUnder(
         canvas.height = over.height;
         over.style.position = "relative";
         over.before(canvas);
-        return { view: viewOf(canvas, choice, editor), canvas };
+        return { view: viewOf(canvas, choice, editor, swing), canvas };
     };
     let made = make(rendererChoice());
     under.set(over, () => made.view);
-    const redraws: (() => void)[] = [];
     const swap = (event: Event): void => {
         const choice = (event as CustomEvent<RendererChoice>).detail;
         made.view.dispose();
@@ -167,15 +173,17 @@ export function layerUnder(
     window.addEventListener(EVENT, swap);
     // In 3D, Alt-drag or a middle-button drag up and down tilts the camera, before the view's own handlers see it.
     // A right-button drag swings it for as long as it is held; a right-click without one is still an order.
+    // An editor's angle is fixed, and it has no use for the right button, so takes it here.
     let swinging: { x: number; y: number } | null = null;
     let right: { x: number; y: number; swung: boolean } | null = null;
     const down = (event: PointerEvent): void => {
-        if (editor || !isSolid(rendererChoice())) return;
+        if (!isSolid(rendererChoice())) return;
         if (event.pointerType === "mouse" && event.button === 2) {
             right = { x: event.clientX, y: event.clientY, swung: false };
+            if (editor) event.stopImmediatePropagation();
             return;
         }
-        if (!(event.altKey || event.button === 1)) return;
+        if (editor || !(event.altKey || event.button === 1)) return;
         event.stopImmediatePropagation();
         event.preventDefault();
         swinging = { x: event.clientX, y: event.clientY };
@@ -184,7 +192,7 @@ export function layerUnder(
         if (right !== null) {
             if (!right.swung && Math.hypot(event.clientX - right.x, event.clientY - right.y) <= RIGHT_SLOP_PX) return;
             right.swung = true;
-            swingBy(-(event.clientY - right.y) * 0.3, -(event.clientX - right.x) * 0.4);
+            swing.by(-(event.clientY - right.y) * 0.3, -(event.clientX - right.x) * 0.4, editor ? EDITOR_ANGLE : viewAngle());
             right.x = event.clientX;
             right.y = event.clientY;
             return;
@@ -197,11 +205,15 @@ export function layerUnder(
     const up = (event: PointerEvent): void => {
         swinging = null;
         if (right !== null && event.button === 2) {
-            if (right.swung) letGo();
+            if (right.swung) swing.letGo();
             right = null;
         }
     };
+    const menu = (event: Event): void => {
+        if (editor && isSolid(rendererChoice())) event.preventDefault();
+    };
     over.addEventListener("pointerdown", down, { capture: true });
+    over.addEventListener("contextmenu", menu);
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
     const view: LayerView = {
@@ -233,6 +245,8 @@ export function layerUnder(
         remove() {
             window.removeEventListener(EVENT, swap);
             over.removeEventListener("pointerdown", down, { capture: true });
+            over.removeEventListener("contextmenu", menu);
+            swing.dispose();
             window.removeEventListener("pointermove", move);
             window.removeEventListener("pointerup", up);
             made.view.dispose();
