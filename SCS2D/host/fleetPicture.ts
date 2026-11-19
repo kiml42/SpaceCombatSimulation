@@ -147,18 +147,27 @@ function drawNow(
         return;
     }
     if (view === null) return;
-    if (waiting.size === 0) {
-        void view.started.then((started) => {
-            const all = [...waiting];
-            waiting.clear();
-            if (!started) return;
-            for (const [each, drawing] of all) {
-                if (each.isConnected)
-                    withSides(sidesOf(drawing.liveries), () => drawnWith(view, each, drawing.make(scratch), drawing.scale));
-            }
-        });
-    }
     waiting.set(canvas, { make, scale, liveries });
+    drainOnceStarted(view);
+}
+
+/** The view `waiting` is drawn with once it starts. */
+let draining: LayerView | null = null;
+
+function drainOnceStarted(view: LayerView): void {
+    if (draining === view) return;
+    draining = view;
+    void view.started.then((started) => {
+        // Replaced by a view with another renderer, which draws them instead.
+        if (draining !== view) return;
+        draining = null;
+        const all = [...waiting];
+        waiting.clear();
+        if (!started) return;
+        for (const [each, drawing] of all) {
+            if (each.isConnected) withSides(sidesOf(drawing.liveries), () => drawnWith(view, each, drawing.make(scratch), drawing.scale));
+        }
+    });
 }
 
 const scratch = new Snapshot();
@@ -182,6 +191,10 @@ function sharedView(): LayerView | null {
             stop();
             shared?.dispose();
             shared = null;
+            // Pictures still waiting on the old one are drawn with the new.
+            const next = waiting.size > 0 ? sharedView() : null;
+            if (next !== null) drainOnceStarted(next);
+            else draining = null;
         });
     }
     return shared.failed ? null : shared;

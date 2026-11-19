@@ -1,5 +1,5 @@
 import { PICK_PX, TOUCH_PICK_PX, type Camera } from "../render/camera.js";
-import { panBetween, worldAt, zoomAbout } from "../render/layerView.js";
+import { isSolid, panBetween, rendererChoice, worldAt, zoomAbout } from "../render/layerView.js";
 
 /** How far a pointer travels before a press is a pan rather than a click, CSS pixels. */
 const CLICK_SLOP_PX = 4;
@@ -82,8 +82,8 @@ export function viewGestures(
     let box: { x: number; y: number } | null = null;
 
     /**
-     * A mouse right-press, which gives its order when let go without dragging
-     * (a drag may swing the camera, render/layerView.ts), and when it last ended.
+     * A mouse right-press, which gives its order when let go, unless it was
+     * dragged in 3D, which swings the camera (render/layerView.ts); and when it last ended.
      */
     let order: { x: number; y: number; dragged: boolean } | null = null;
     let orderEnded = -Infinity;
@@ -104,12 +104,17 @@ export function viewGestures(
         canvas.addEventListener("pointermove", (event) => {
             if (order !== null && Math.hypot(event.clientX - order.x, event.clientY - order.y) > CLICK_SLOP_PX) order.dragged = true;
         });
+        const dropOrder = (): void => {
+            order = null;
+        };
+        canvas.addEventListener("pointercancel", dropOrder);
+        canvas.addEventListener("lostpointercapture", dropOrder);
         canvas.addEventListener("pointerup", (event) => {
             if (order === null || event.button !== 2) return;
-            const dragged = order.dragged;
+            const swung = order.dragged && isSolid(rendererChoice());
             order = null;
             orderEnded = performance.now();
-            if (dragged) return;
+            if (swung) return;
             const at = world(event.clientX, event.clientY);
             picking.commanded(at.x, at.y, reachOf(event), queued(event));
         });
