@@ -20,8 +20,8 @@ import {
     Vector3,
     type WebGLRenderer,
 } from "three";
-import { DECK_HEIGHT, domeRadius, isDomed, isHullMount, type ShipDesign, type ShipView, type Snapshot } from "../../sim/index.js";
-import { BEVEL_STRIDE, drawnBevels, drawnMounts } from "../bevels.js";
+import { DECK_HEIGHT, domeRadius, isDomed, isHullMount, originOf, type ShipDesign, type ShipView, type Snapshot } from "../../sim/index.js";
+import { BEVEL_OF_RADIUS, BEVEL_STRIDE, bevelQuad, drawnBevels, drawnMounts, isBevelled } from "../bevels.js";
 import { barrelLines } from "../barrels.js";
 import type { Camera } from "../camera.js";
 import { engineLayout } from "../engineLayout.js";
@@ -168,6 +168,110 @@ class Builder {
             this.tri(a0, b0, b1, rgb);
             this.tri(a0, b1, a1, rgb);
         }
+    }
+
+    /**
+     * Polygon `points` stood up from `bottom` to `top`, its top edges cut at 45°
+     * along each of `bevels` (`Bevels`) on its outline, `width` deep at most,
+     * mitred where two meet as Pixi draws them.
+     */
+    bevelled(
+        points: readonly number[],
+        bevels: readonly number[],
+        width: number,
+        bottom: number,
+        top: number,
+        rgb: readonly number[],
+    ): void {
+        const n = points.length / 2;
+        let area = 0;
+        for (let k = 0; k < n; k++) {
+            const j = (k + 1) % n;
+            area += points[2 * k]! * points[2 * j + 1]! - points[2 * j]! * points[2 * k + 1]!;
+        }
+        // Anticlockwise, as the bevels' outline is.
+        const p: number[] = [];
+        if (area >= 0) p.push(...points);
+        else for (let k = n - 1; k >= 0; k--) p.push(points[2 * k]!, points[2 * k + 1]!);
+        const quad = [0, 0, 0, 0, 0, 0, 0, 0];
+        const cap: number[] = [];
+        const near = (ax: number, ay: number, bx: number, by: number): boolean => Math.abs(ax - bx) + Math.abs(ay - by) < 1e-6;
+        for (let k = 0; k < n; k++) {
+            const j = (k + 1) % n;
+            const [ax, ay, bx, by] = [p[2 * k]!, p[2 * k + 1]!, p[2 * j]!, p[2 * j + 1]!];
+            const ex = bx - ax;
+            const ey = by - ay;
+            const span = Math.hypot(ex, ey);
+            if (!(span > 0)) continue;
+            // The stretches of this edge that are bevelled, in order along it.
+            const on = (x: number, y: number): number =>
+                Math.abs((x - ax) * ey - (y - ay) * ex) / span < 1e-4 ? ((x - ax) * ex + (y - ay) * ey) / (span * span) : NaN;
+            const runs: { t: number; e: number }[] = [];
+            for (let e = 0; e < bevels.length; e += BEVEL_STRIDE) {
+                const t0 = on(bevels[e]!, bevels[e + 1]!);
+                const t1 = on(bevels[e + 2]!, bevels[e + 3]!);
+                if (t0 >= -1e-6 && t1 <= 1 + 1e-6 && t1 > t0) runs.push({ t: t0, e });
+            }
+            runs.sort((r, q) => r.t - q.t);
+            cap.push(ax, ay);
+            let from = [ax, ay];
+            for (const { e } of runs) {
+                bevelQuad(bevels, e, width, quad);
+                const deep = Math.min(width, bevels[e + 6]!);
+                const low = top - deep;
+                const [px, py, qx, qy, iqx, iqy, ipx, ipy] = quad as [number, number, number, number, number, number, number, number];
+                this.wall(from[0]!, from[1]!, px, py, bottom, top, rgb);
+                this.wall(px, py, qx, qy, bottom, low, rgb);
+                this.tri([px, py, low], [qx, qy, low], [iqx, iqy, top], rgb);
+                this.tri([px, py, low], [iqx, iqy, top], [ipx, ipy, top], rgb);
+                // An end meeting no other bevel stops square.
+                if (!(bevels[e + 9]! > 0)) this.tri([px, py, low], [ipx, ipy, top], [px, py, top], rgb);
+                if (!(bevels[e + 12]! > 0)) this.tri([qx, qy, low], [qx, qy, top], [iqx, iqy, top], rgb);
+                cap.push(px, py, ipx, ipy, iqx, iqy, qx, qy);
+                from = [qx, qy];
+            }
+            this.wall(from[0]!, from[1]!, bx, by, bottom, top, rgb);
+        }
+        // The top inside the bevels: where two meet at a corner, the corner itself is cut away.
+        let changed = true;
+        while (changed && cap.length > 6) {
+            changed = false;
+            const m = cap.length / 2;
+            for (let k = 0; k < m; k++) {
+                const j = (k + 1) % m;
+                const h = (k + m - 1) % m;
+                if (near(cap[2 * k]!, cap[2 * k + 1]!, cap[2 * j]!, cap[2 * j + 1]!)) {
+                    cap.splice(2 * k, 2);
+                    changed = true;
+                    break;
+                }
+                if (near(cap[2 * h]!, cap[2 * h + 1]!, cap[2 * j]!, cap[2 * j + 1]!)) {
+                    // A spike out to the corner and back.
+                    cap.splice(2 * k, 2);
+                    changed = true;
+                    break;
+                }
+            }
+        }
+        const flat = (outline: readonly number[], z: number, up: boolean): void => {
+            const tris: number[] = [];
+            triangulate(outline, (x, y) => tris.push(x, y));
+            for (let k = 0; k < tris.length; k += 6) {
+                const [ax, ay, bx, by, cx, cy] = tris.slice(k, k + 6) as [number, number, number, number, number, number];
+                const ccw = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax) >= 0;
+                if (ccw === up) this.tri([ax, ay, z], [bx, by, z], [cx, cy, z], rgb);
+                else this.tri([ax, ay, z], [cx, cy, z], [bx, by, z], rgb);
+            }
+        };
+        flat(cap, top, true);
+        flat(p, bottom, false);
+    }
+
+    /** A wall up the outline from `(ax, ay)` to `(bx, by)`, anticlockwise, between `bottom` and `top`. */
+    private wall(ax: number, ay: number, bx: number, by: number, bottom: number, top: number, rgb: readonly number[]): void {
+        if (Math.abs(ax - bx) + Math.abs(ay - by) < 1e-9) return;
+        this.tri([ax, ay, bottom], [bx, by, bottom], [bx, by, top], rgb);
+        this.tri([ax, ay, bottom], [bx, by, top], [ax, ay, top], rgb);
     }
 
     /**
@@ -544,8 +648,13 @@ function build(ship: ShipView, depths: Depths): { model: BufferGeometry; worn: M
                 fills.slice(1).forEach((fill) => b.prism(fill.points, half - STACK, half + STACK, shade(rgbOf(fill.colour))));
                 return;
             }
+            // The body is chamfered where Pixi bevels it, as wide as its bevels.
+            const bevels = isBevelled(spec) ? drawnBevels(design, i) : [];
+            const width = BEVEL_OF_RADIUS * originOf(design, i).design.radius;
             fills.forEach((fill, k) => {
-                if (only < 0 || only === k) b.prism(fill.points, -half - k * STACK, half + k * STACK, shade(rgbOf(fill.colour)));
+                if (only >= 0 && only !== k) return;
+                if (k === 0 && bevels.length > 0) b.bevelled(fill.points, bevels, width, -half, half, shade(rgbOf(fill.colour)));
+                else b.prism(fill.points, -half - k * STACK, half + k * STACK, shade(rgbOf(fill.colour)));
             });
             if (only < 0 && isDomed(spec.kind)) b.dome(0, 0, half, domeRadius(spec), shade(rgbOf(colours.highlight ?? colours.pivot)));
         };
