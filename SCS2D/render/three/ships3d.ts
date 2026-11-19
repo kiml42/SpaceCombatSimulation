@@ -70,6 +70,12 @@ const THICK = 3 * DECK_HEIGHT;
 const STACK = 0.02;
 /** Corners round a cylinder, dome or cone. */
 const ROUND = 20;
+/** How much narrower an engine bell is inside than outside at its throat, as a share of the throat. */
+const BELL_WALL = 0.25;
+/** An engine's throat, looking up its bell: black, whatever lights it. */
+const THROAT = [0, 0, 0] as const;
+/** How far a livery's band stands proud of the pump it goes round, as a share of its radius. */
+const BAND_PROUD = 1.02;
 /** Dynamic lights shed as point lights: the brightest this many. */
 const POINT_LIGHTS = 8;
 
@@ -171,22 +177,57 @@ class Builder {
         squash: number,
         rgb: readonly number[],
         capped = true,
+        inward = false,
     ): void {
+        this.lathe([x0, r0, x1, r1], y, z, squash, rgb, capped, inward);
+    }
+
+    /**
+     * `profile`, pairs of x and radius, turned round the module's x at `y`, `z`,
+     * `squash` as deep as it is wide; capped flat at its ends, and facing in if `inward`.
+     */
+    lathe(profile: readonly number[], y: number, z: number, squash: number, rgb: readonly number[], capped = true, inward = false): void {
+        const p: number[] = [];
+        // Along +x, so the winding faces out.
+        if (profile[0]! <= profile[profile.length - 2]!) p.push(...profile);
+        else for (let k = profile.length - 2; k >= 0; k -= 2) p.push(profile[k]!, profile[k + 1]!);
         const ring = (x: number, r: number, k: number): number[] => {
             const a = (k / ROUND) * 2 * Math.PI;
             return [x, y + Math.cos(a) * r, z + Math.sin(a) * r * squash];
         };
+        const last = p.length - 2;
         for (let k = 0; k < ROUND; k++) {
-            const a0 = ring(x0, r0, k);
-            const a1 = ring(x0, r0, k + 1);
-            const b0 = ring(x1, r1, k);
-            const b1 = ring(x1, r1, k + 1);
-            this.tri(a0, b1, b0, rgb);
-            this.tri(a0, a1, b1, rgb);
-            if (capped) {
-                this.tri([x0, y, z], a1, a0, rgb);
-                this.tri([x1, y, z], b0, b1, rgb);
+            for (let j = 0; j < last; j += 2) {
+                const a0 = ring(p[j]!, p[j + 1]!, k);
+                const a1 = ring(p[j]!, p[j + 1]!, k + 1);
+                const b0 = ring(p[j + 2]!, p[j + 3]!, k);
+                const b1 = ring(p[j + 2]!, p[j + 3]!, k + 1);
+                if (inward) {
+                    this.tri(a0, b0, b1, rgb);
+                    this.tri(a0, b1, a1, rgb);
+                } else {
+                    this.tri(a0, b1, b0, rgb);
+                    this.tri(a0, a1, b1, rgb);
+                }
             }
+            if (capped) {
+                this.tri([p[0]!, y, z], ring(p[0]!, p[1]!, k + 1), ring(p[0]!, p[1]!, k), rgb);
+                this.tri([p[last]!, y, z], ring(p[last]!, p[last + 1]!, k), ring(p[last]!, p[last + 1]!, k + 1), rgb);
+            }
+        }
+    }
+
+    /** A disc `r` across at `x`, round `y`, `z`, `squash` as deep as it is wide, facing -x. */
+    disc(x: number, y: number, z: number, r: number, squash: number, rgb: readonly number[]): void {
+        for (let k = 0; k < ROUND; k++) {
+            const a0 = (k / ROUND) * 2 * Math.PI;
+            const a1 = ((k + 1) / ROUND) * 2 * Math.PI;
+            this.tri(
+                [x, y, z],
+                [x, y + Math.cos(a1) * r, z + Math.sin(a1) * r * squash],
+                [x, y + Math.cos(a0) * r, z + Math.sin(a0) * r * squash],
+                rgb,
+            );
         }
     }
 
@@ -283,8 +324,16 @@ function build(ship: ShipView, depths: Depths): { model: BufferGeometry; worn: M
             const half = depth / 2;
             if (spec.kind === "engine") {
                 const layout = engineLayout(spec);
+                const l = spec.length / 2;
+                const w = spec.width / 2;
+                const near = (a: number, b: number): boolean => Math.abs(a - b) < 1e-6;
+                // Every chamber has the same outline, moved across.
+                const chamberTop: number[] = [];
+                for (let v = 0; v < layout.chamber.length; v += 2)
+                    if (layout.chamber[v + 1]! >= 0) chamberTop.push(layout.chamber[v]!, layout.chamber[v + 1]!);
                 fills.forEach((fill, k) => {
                     const p = fill.points;
+                    const rgb = shade(rgbOf(fill.colour));
                     let x0 = Infinity;
                     let x1 = -Infinity;
                     let y0 = Infinity;
@@ -295,19 +344,38 @@ function build(ship: ShipView, depths: Depths): { model: BufferGeometry; worn: M
                         y0 = Math.min(y0, p[v + 1]!);
                         y1 = Math.max(y1, p[v + 1]!);
                     }
-                    // A bell, behind the block: a cone, from its throat out to its exit.
+                    const y = (y0 + y1) / 2;
+                    // A bell, behind the block: a cone from its exit to its throat, its inside
+                    // a shallower one thickening towards the throat, which is black.
                     if (x1 <= layout.mouth + 1e-6 && p.length >= 6) {
-                        const y = (y0 + y1) / 2;
                         const widthAt = (x: number): number => {
                             let most = 0;
                             for (let v = 0; v < p.length; v += 2)
                                 if (Math.abs(p[v]! - x) < (x1 - x0) * 0.05 + 1e-6) most = Math.max(most, Math.abs(p[v + 1]! - y));
                             return most;
                         };
-                        const r0 = Math.max(widthAt(x0), 0.05);
-                        const r1 = Math.max(widthAt(x1), 0.05);
-                        b.lying(x0, x1, y, 0, r0, r1, Math.min(1, half / Math.max(r0, r1, 1e-6)), shade(rgbOf(fill.colour)), false);
-                    } else b.prism(p, -half - k * STACK, half + k * STACK, shade(rgbOf(fill.colour)));
+                        const exit = Math.max(widthAt(x0), 0.05);
+                        const throat = Math.max(widthAt(x1), 0.05);
+                        const squash = Math.min(1, half / Math.max(exit, throat, 1e-6));
+                        const inner = throat * (1 - BELL_WALL);
+                        b.lying(x0, x1, y, 0, exit, throat, squash, rgb, false);
+                        b.lying(x0, x1, y, 0, exit, inner, squash, rgb, false, true);
+                        // Just out of the chamber's flat end, so they do not fight.
+                        b.disc(x1 - STACK, y, 0, inner, squash, THROAT);
+                        return;
+                    }
+                    // A chamber: a sphere, cut flat where it meets the throat and the pump.
+                    if (p.length === layout.chamber.length && near(p[0]!, layout.chamber[0]!) && layout.radius > 0) {
+                        b.lathe(chamberTop, p[1]! - layout.chamber[1]!, 0, Math.min(1, half / layout.radius), rgb);
+                        return;
+                    }
+                    // The pump, and a livery's band round it: a cylinder along the thrust.
+                    if (p.length === 8 && near(y0, -w) && near(y1, w) && near(x1, l) && x0 >= layout.pumpAft - 1e-6) {
+                        const r = near(x0, layout.pumpAft) ? w : w * BAND_PROUD;
+                        b.lying(x0, x1, 0, 0, r, r, Math.min(1, half / w), rgb);
+                        return;
+                    }
+                    b.prism(p, -half - k * STACK, half + k * STACK, rgb);
                 });
                 return;
             }
