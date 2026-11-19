@@ -73,7 +73,7 @@ describe("which numbers the panel offers", () => {
             "ramArmed",
             "ramSettle",
             "ramCommit",
-            "ramAboveFuel",
+            "ramSelectiveFuel",
             "ramMass",
         ]);
     });

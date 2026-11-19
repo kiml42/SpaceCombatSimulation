@@ -6,6 +6,7 @@ import { downloadSkirmish, skirmishStatus, skirmishTitle } from "~/features/skir
 import { useSkirmish } from "~/features/skirmish/SkirmishProvider";
 import { useStorage } from "~/features/storage/StorageContext";
 import { keptSettings } from "../skirmish/SetupScreen";
+import { DemoBattle } from "./DemoBattle";
 
 export interface PageLink {
     readonly href: string;
@@ -239,7 +240,7 @@ export function Home() {
 
     return (
         <>
-            <MainMenu current={current} onNewSkirmish={() => setAsking(true)} />
+            <MainMenu current={current} onNewSkirmish={() => setAsking(true)} backdrop={<DemoBattle />} />
             {current !== null && (
                 <AbandonDialog
                     open={asking}

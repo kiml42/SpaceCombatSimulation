@@ -3,6 +3,7 @@ import { asteroidBlueprint, compileBlueprint, DEFAULT_DOCTRINE, NEUTRAL_TEAM, ty
 import { Rng } from "../sim/rng.js";
 import { makeBattle } from "../scenarios/battle.js";
 import { GUNSHIP, TORPEDO } from "../scenarios/blueprints.js";
+import { WHOLE_SHIP } from "../sim/ships.js";
 
 function rock(): ShipDesign {
     return compileBlueprint(asteroidBlueprint("Rock", { radius: 250, kernel: false, ore: 0.35, ice: 0.25 }, new Rng(5)));
@@ -121,14 +122,12 @@ it("rams a gun standing up out of the deck from the weapons layer, never droppin
     expect(aimed).toBe(true);
 });
 
-it("goes for the deck instead once too low on fuel to come round for a gun", () => {
-    const tall = (fill: number): boolean => {
+it("goes for the whole ship instead once too low on fuel to come round for a miss", () => {
+    const part = (fill: number): number => {
         const run = rammingGunship(torpedoWith([0, 0, 100, 50], fill));
         for (let t = 0; t < 120; t++) run.step();
-        const part = run.ships.ramPart[run.torpedo]!;
-        expect(part).toBeGreaterThanOrEqual(0);
-        return run.ships.designs[run.target]!.modules[part]!.weaponsLayer;
+        return run.ships.ramPart[run.torpedo]!;
     };
-    expect(tall(1)).toBe(true);
-    expect(tall(0.1)).toBe(false);
+    expect(part(1)).toBeGreaterThanOrEqual(0);
+    expect(part(0.1)).toBe(WHOLE_SHIP);
 });
