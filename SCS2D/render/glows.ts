@@ -1,3 +1,4 @@
+import type { Solid3D } from "./solid3d.js";
 import { coneSprite, sprite } from "./sprites.js";
 
 /**
@@ -46,6 +47,10 @@ export class Lights {
      * little above that (`lightHeight`).
      */
     height = new Float64Array(64);
+    /** Where a 3D view stands each glow, metres above the plane between the layers (`Solid3D`); NaN to lie flat. */
+    standing = new Float64Array(64);
+    /** What `standing` the lights recorded from here on take. */
+    standAt = NaN;
     colour: string[] = [];
 
     clear(): void {
@@ -67,6 +72,7 @@ export class Lights {
             this.unseen[i] = from.unseen[k]!;
             this.lightless[i] = from.lightless[k]!;
             this.height[i] = from.height[k]!;
+            this.standing[i] = from.standing[k]!;
             this.colour[i] = from.colour[k]!;
         }
     }
@@ -108,6 +114,7 @@ export class Lights {
         this.cone[k] = cone ? 1 : 0;
         this.unseen[k] = unseen ? 1 : 0;
         this.lightless[k] = lightless ? 1 : 0;
+        this.standing[k] = this.standAt;
         this.colour[k] = colour;
     }
 
@@ -139,6 +146,7 @@ export class Lights {
         this.radius = more(this.radius);
         this.brightness = more(this.brightness);
         this.height = more(this.height);
+        this.standing = more(this.standing);
         const cone = new Uint8Array(this.cone.length * 2);
         cone.set(this.cone);
         this.cone = cone;
@@ -169,12 +177,19 @@ export interface Transform {
  * it capped with a halo's halves, so the two meet without a seam. Additive, and
  * drawn in canvas pixels, so it leaves the context's transform at the identity.
  */
-export function drawGlows(ctx: CanvasRenderingContext2D, lights: Lights): void {
+export function drawGlows(ctx: CanvasRenderingContext2D, lights: Lights, solid: Solid3D | null = null): void {
     if (lights.count === 0) return;
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
     for (let k = 0; k < lights.count; k++) {
         if (lights.unseen[k] === 1) continue;
+        if (solid !== null) {
+            // Stood where it was given off, along its line, or facing the camera square on.
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            const at = lights.standing[k]!;
+            if (Number.isNaN(at)) solid.flat();
+            else solid.along(lights.x0[k]!, lights.y0[k]!, lights.x1[k]!, lights.y1[k]!, at);
+        }
         const colour = lights.colour[k]!;
         const r = lights.radius[k]!;
         const x0 = lights.x0[k]!;
@@ -216,5 +231,6 @@ export function drawGlows(ctx: CanvasRenderingContext2D, lights: Lights): void {
         ctx.setTransform(-c, -s, s, -c, x0, y0);
         ctx.drawImage(cap, 0, -r, r, 2 * r);
     }
+    solid?.flat();
     ctx.restore();
 }

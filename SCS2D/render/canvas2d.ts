@@ -1714,6 +1714,7 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light
             const g = half * NOZZLE_GLOW_REACH * (0.5 + 0.5 * grown);
             const shown = landed[1]! > 0 ? (1 - landed[1]!) * reach : reach;
             // A magnetic nozzle's jet glows from its bell, through the gap to its ring.
+            lights.standAt = fx === null ? NaN : fx.moduleLift(ship, module);
             lights.coneOf(
                 ctx.getTransform(),
                 root + gap,
@@ -1726,6 +1727,7 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light
                 heightOf(ship),
             );
             // The sprite's core is its brightest, its edge a little dimmer.
+            lights.standAt = NaN;
             ctx.globalAlpha = outer * brightness;
             fx?.along(root, across, root - reach, across, fx.moduleLift(ship, module));
             // A magnetic nozzle's jet runs straight from its bell through its ring,
@@ -2953,14 +2955,14 @@ function drawScene(
     // their colour; their emitters' glows and the flashes where they land over
     // them, so those lighten them rather than being cut by them.
     beamLights(ctx, snapshot, camera, teamShots);
-    drawGlows(ctx, lights);
+    drawGlows(ctx, lights, fx);
     inScene = false;
     drawJetRings(ctx);
     seen?.add(lights);
     lights.clear();
     drawBeams(ctx, snapshot, camera, teamShots);
     if (flashes !== undefined) drawFlashes(ctx, snapshot, flashes, camera, light);
-    drawGlows(ctx, lights);
+    drawGlows(ctx, lights, fx);
     seen?.add(lights);
     lights.clear();
     shownBox.halfW = Infinity;
@@ -3765,6 +3767,7 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
     for (let i = 0; i < flashes.count; i++) {
+        lights.standAt = NaN;
         const kind = flashes.kind[i]!;
         const glow = kind === IMPACT_BEAM ? BEAM_FLASH_GLOW : kind === IMPACT_BURST ? BURST_FLASH_GLOW : FLASH_GLOW;
         // A burst or a muzzle is a blast of gas rather than a spot of hot metal, so
@@ -3838,14 +3841,13 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
         // its wedge's glow, so it reaches back along the barrel to the gun's own
         // block, furthest as the flash leaves and less as it fades. Unseen: the
         // wedge is how it looks, and lights nothing itself.
+        const lift = flashLift(snapshot, flashes, i);
+        if (fx !== null) lights.standAt = lift;
         if (pointing) {
             const tip = max(muzzleWedge(radius, age, lifetime).backWidth * MUZZLE_GLOW_SHARE, floor);
             const shine = flashFade(age, lifetime) * WEDGE_GLOW * MUZZLE_TIP_BRIGHTNESS;
             lights.line(base, at.x, at.y, at.x, at.y, tip, glow, shine, false, true, false, height);
         }
-        // In 3D, a muzzle's at its nearest gun's barrels, and a hit on the hull's top.
-        const lift =
-            fx === null ? 0 : anchor === null ? 0 : kind === IMPACT_MUZZLE ? muzzleLift(fx, anchor, at.x, at.y) : fx.shipLift(anchor);
         for (let k = 0; k < n; k++) {
             const u = n === 1 ? 0.5 : (k + 0.5) / n;
             const weight = (n === 1 ? 1 : shutterWeight(u)) / (total * overlapping);
@@ -3918,8 +3920,39 @@ function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes:
             fx?.flat();
         }
     }
+    lights.standAt = NaN;
     ctx.restore();
     drawThrown(ctx, snapshot, flashes, camera, light);
+}
+
+/**
+ * How high flash `i` is in 3D: a muzzle's at its nearest gun's barrels, a hit
+ * at the middle of the module it landed nearest, and one on nothing between
+ * the layers.
+ */
+function flashLift(snapshot: Snapshot, flashes: Flashes, i: number): number {
+    if (fx === null) return 0;
+    const anchor = shipByBody(snapshot, flashes.body[i]!);
+    if (anchor === null) return 0;
+    const at = flashPosition(flashes.localX[i]!, flashes.localY[i]!, anchor);
+    if (flashes.kind[i] === IMPACT_MUZZLE) return muzzleLift(fx, anchor, at.x, at.y);
+    const design = anchor.currentStructure;
+    const c = cos(anchor.angle);
+    const s = sin(anchor.angle);
+    const lx = (at.x - anchor.x) * c + (at.y - anchor.y) * s;
+    const ly = -(at.x - anchor.x) * s + (at.y - anchor.y) * c;
+    let best = -1;
+    let nearest = Infinity;
+    for (let m = 0; m < design.modules.length; m++) {
+        if (anchor.drawn?.[m] === false) continue;
+        const module = design.modules[m]!;
+        const d = (module.x - lx) ** 2 + (module.y - ly) ** 2;
+        if (d < nearest) {
+            nearest = d;
+            best = m;
+        }
+    }
+    return best < 0 ? fx.shipLift(anchor) : fx.moduleLift(anchor, best);
 }
 
 /** How high the barrels of `ship`'s turret nearest world point `(x, y)` are: where its muzzle flash is. */
@@ -3960,6 +3993,7 @@ function drawThrown(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes: 
         const seed = seedOf(flashes.x[i]!, flashes.y[i]!, flashes.energy[i]!, kind, flashes.born[i]!);
         const n = sparkCount(kind, flashes.energy[i]!, seed);
         if (n === 0) continue;
+        const lift = flashLift(snapshot, flashes, i);
         for (let j = 0; j < n; j++) {
             if (!spark(flashes, i, j, seed, flashes.age[i]!, thrown)) continue;
             // As a step's exposure sees it, as a tracer is: drawn out along its way past the camera.
@@ -3972,9 +4006,11 @@ function drawThrown(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes: 
             batch ??= batches.call(ctx, image, true);
             const dirX = speed > 0 ? rvx / speed : 1;
             const dirY = speed > 0 ? rvy / speed : 0;
+            fx?.along(thrown.x - dirX, thrown.y - dirY, thrown.x + dirX, thrown.y + dirY, lift);
             batch.add(thrown.x, thrown.y, dirX, dirY, streak, max(thrown.width, pixel), sparkColour(thrown.t), sparkFade(thrown.t));
         }
     }
+    fx?.flat();
     batch?.end();
 
     let metal: ReturnType<PixiCanvas["particles"]> | null = null;
@@ -3982,6 +4018,7 @@ function drawThrown(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes: 
     for (let i = 0; i < flashes.count; i++) {
         const n = bitCount(flashes.kind[i]!, flashes.energy[i]!);
         if (n === 0) continue;
+        const lift = flashLift(snapshot, flashes, i);
         const seed = seedOf(flashes.x[i]!, flashes.y[i]!, flashes.energy[i]!, flashes.kind[i]!, flashes.born[i]!);
         for (let j = 0; j < n; j++) {
             if (!bit(flashes, i, j, seed, flashes.age[i]!, broken)) continue;
@@ -3991,9 +4028,11 @@ function drawThrown(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes: 
             const shine = broken.glint ** 6;
             const tint = lightUp(mixRgb(BIT_COLOUR, lit, shine), BIT_COLOUR, broken.x, broken.y);
             const fade = min(1, (1 - broken.t) / 0.3);
+            fx?.along(broken.x, broken.y, broken.x + cos(broken.angle), broken.y + sin(broken.angle), lift);
             metal.add(broken.x, broken.y, cos(broken.angle), sin(broken.angle), broken.length, max(broken.width, pixel), tint, fade);
         }
     }
+    fx?.flat();
     metal?.end();
 }
 
@@ -4027,6 +4066,7 @@ function drawDebris(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: C
             if (halo !== null) {
                 glows ??= batches.call(ctx, halo, true);
                 const reach = max(length * HOT_REACH, pixel);
+                fx?.along(x, y, x, y, 0);
                 glows.add(x, y, 1, 0, reach, reach, mixRgb(HOT_COOL, HOT_FRESH, heat), heat * heat);
             }
         }
@@ -4047,8 +4087,10 @@ function drawDebris(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: C
         const shine = Math.abs(cos(angle * 1.7 + (seed >>> 8))) ** 6;
         let tint = lightUp(mixRgb(base, lit, shine * (painted ? PAINT_SHINE : 1)), base, x, y);
         if (heat > 0) tint = mixRgb(unpack(tint), HOT_FRESH, heat);
+        fx?.along(x, y, x + cos(angle), y + sin(angle), 0);
         batch.add(x, y, cos(angle), sin(angle), length, max(length * across, pixel), tint, fade);
     }
+    fx?.flat();
     for (const batch of debrisBatches) batch?.end();
     glows?.end();
 }
@@ -4349,7 +4391,9 @@ function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, came
 function beamLights(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Camera, teamShots: boolean): void {
     const team = (i: number): number => (teamShots ? snapshot.beamTeam[i]! : -1);
     const base = ctx.getTransform();
+    const layers = fx === null ? null : beamLayers(snapshot);
     for (let i = 0; i < snapshot.beamCount; i++) {
+        lights.standAt = fx === null ? NaN : fx.layerHeight(layers![i]!);
         if (!nearShown(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!, snapshot.beamEndX[i]!, snapshot.beamEndY[i]!)) continue;
         const halo = BEAM_GLOW_WIDTHS * snapshot.beamWidth[i]!;
         lights.line(
@@ -4368,6 +4412,7 @@ function beamLights(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: C
             THICK_SHADOW_M,
         );
     }
+    lights.standAt = NaN;
 }
 
 /**
@@ -4452,6 +4497,7 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
         // A pulse of hot gas lights what is round it as a flame does, not as an emitter.
         if (flame !== null) continue;
         const halo = BEAM_GLOW_WIDTHS * calibre;
+        if (fx !== null) lights.standAt = fx.layerHeight(layers![i]!);
         lights.point(
             base,
             x0,
@@ -4462,6 +4508,7 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
             THICK_SHADOW_M,
         );
     }
+    lights.standAt = NaN;
 
     // Beams are drawn last, and nothing restores the context between frames:
     // leaving the final beam's opacity set would tint the next frame's grid and
