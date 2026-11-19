@@ -7,7 +7,6 @@ import { length, max, min } from "./math.js";
 import type { World } from "./world.js";
 import { hullsOverlap } from "./collision.js";
 import * as shipSupply from "./shipSupply.js";
-import * as shipForage from "./shipForage.js";
 import * as shipClaw from "./shipClaw.js";
 import * as shipFlight from "./shipFlight.js";
 import * as shipAim from "./shipAim.js";
@@ -361,9 +360,10 @@ export function withdraws(ships: Ships, i: number, b: number, fighting: number):
 /**
  * Cover for withdrawing ship `i` to hide behind: what it hides behind
  * already while that still serves, or the nearest friend or body on no
- * side, a wreck included, within `hideRange` of its radii, at least
- * `hideSize` of its radius, and no armed enemy's reach on it. `NO_TARGET`
- * for none, to flee instead.
+ * side, a wreck included, within `hideRange` of its radii of the cover's
+ * edge, at least `hideSize` of its radius, and with the spot behind it out
+ * of every armed enemy's reach or shadowed from it (`exposedBehind`).
+ * `NO_TARGET` for none, to flee instead.
  */
 export function coverFor(ships: Ships, bodies: Bodies, i: number, b: number, lift = Infinity): number {
     const approach = ships.doctrines[i]!.approach;
@@ -374,8 +374,8 @@ export function coverFor(ships: Ships, bodies: Bodies, i: number, b: number, lif
         if (t === i || ships.alive[t] !== 1 || (ships.derelict[t] === 0 && ships.hostile(i, t))) return -1;
         const tb = bodies.indexOf(ships.bodyIds[t]!);
         if (tb < 0 || tb === b || bodies.ghost[tb] === 1 || bodies.radius[tb]! < approach.hideSize * mine) return -1;
-        const d = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!);
-        if (d > range || shipForage.dangerNear(ships, bodies, i, tb) > 0) return -1;
+        const d = max(0, length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!) - bodies.radius[tb]!);
+        if (d > range || shipFlight.exposedBehind(ships, bodies, i, b, tb)) return -1;
         if (!within(ships, bodies, lift, t, bodies.x[tb]!, bodies.y[tb]!, bodies.x[b]!, bodies.y[b]!, bodies.radius[tb]! + mine)) return -1;
         return d;
     };

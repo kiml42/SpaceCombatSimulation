@@ -12,9 +12,9 @@ const ROCK_RADIUS = 800;
  * A Torpedo Boat behind a big rock, building torpedoes on its pad, against a
  * Gunship on the far side whose bow gun is made for capital ships. The Gunship
  * is ordered to attack the boat, so it does not chase the torpedoes instead.
- * The boat is told to hide behind the rock, so the Gunship has to come round
- * it to shoot, and the torpedoes are built out of its sight. It starts where
- * hiding puts it, so it does not burn for there at once.
+ * The boat has no gun, so its doctrine has it hide behind the rock, and the
+ * Gunship has to come round it to shoot; the torpedoes are built out of its
+ * sight. It starts where hiding puts it, so it does not burn for there at once.
  */
 export function torpedoBoat(seed = 20260905): Battle {
     return makeBattle({ seed, projectiles: 512, beams: 16 }, (ships, world) => {
@@ -27,9 +27,8 @@ export function torpedoBoat(seed = 20260905): Battle {
         const boatDesign = compileBlueprint(TORPEDO_BOAT);
         // Where hiding holds it, on the side away from the Gunship.
         const hidden = hidingDistance(boatDesign.radius, rockDesign.radius, boatDesign.doctrine.approach.separationRadii);
-        const cover = ships.spawn(world, { design: rockDesign, x: 0, y: 0, team: NEUTRAL_TEAM });
+        ships.spawn(world, { design: rockDesign, x: 0, y: 0, team: NEUTRAL_TEAM });
         const boat = ships.spawn(world, { design: boatDesign, x: -hidden, y: 0, angle: math.PI, team: 0 });
-        ships.pushFlee(boat, cover);
         const gunship = ships.spawn(world, { design: compileBlueprint(GUNSHIP), x: 3000, y: 0, angle: math.PI, team: 1 });
         // After the boat, not its torpedoes: its turrets still pick their own targets.
         ships.pushAttack(gunship, boat, OrderCancelCondition.CompletelyDead);
