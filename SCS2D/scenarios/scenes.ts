@@ -6,6 +6,7 @@ import { lanceDuel } from "./lanceDuel.js";
 import { beamDuel } from "./beamDuel.js";
 import { swarm } from "./swarm.js";
 import { torpedoes } from "./torpedoes.js";
+import { torpedoBoat } from "./torpedoBoat.js";
 import { DISARMERS, disarm } from "./disarm.js";
 import { BEAM_GUNSHIP, GUN_PLATFORM } from "./blueprints.js";
 import { starWars } from "./starWars.js";
@@ -61,6 +62,7 @@ export const SCENES: readonly Scene[] = [
         variants: ["Beam Gunship", "Gun Platform"],
         create: (variant = 0) => lit(torpedoes(SCENE_SEED, undefined, variant === 1 ? GUN_PLATFORM : BEAM_GUNSHIP), LIGHTS.violet),
     },
+    { name: "Torpedo Boat", create: () => lit(torpedoBoat(SCENE_SEED), LIGHTS.dusk) },
     {
         name: "Disarm",
         variants: DISARMERS.map((d) => d.name),

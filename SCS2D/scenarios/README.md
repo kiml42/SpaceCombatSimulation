@@ -11,7 +11,7 @@ them in a second list beside the first, and the address names the one picked (`?
 | --- | --- |
 | Robots: bays, berths, robots out on a hull | **Rival Mines** (two bays a ship, big on screen), Mending, Refitting |
 | Mining and ore into holds | Mining (no fighting), Rival Mines |
-| Building: pads, slipways, refits | Factory (pad), Shipyard (slipway), Refitting, Catamaran Refits, Pad Rebuild |
+| Building: pads, slipways, refits | Factory (pad), Torpedo Boat (pad, under fire), Shipyard (slipway), Refitting, Catamaran Refits, Pad Rebuild |
 | Fighters launching, landing, rearming | Beam Carrier, Rearm, Pad Rebuild, Crippled Landing (damaged), Rock Landing (on a rock) |
 | Docking, claws, ports, fuel and metal moving | Tanker (ports), Scavenge, Salvage Run (claws), Hooked (welded) |
 | Beams on their own | Beam Duel |
@@ -25,7 +25,7 @@ them in a second list beside the first, and the address names the one picked (`?
 | Asteroids | Asteroid Field, Kernels, Mining, Rival Mines |
 | A ship breaking in two | Split |
 | Engines as weapons | Torch Run |
-| Ramming | Torpedoes, Split, Crash |
+| Ramming | Torpedoes, Torpedo Boat, Split, Crash |
 | Disarming a ship, sparing the rest | Disarm |
 | Modules shattered, lingering debris | Crash |
 | Shooting past friends | Line Ahead |
@@ -57,6 +57,7 @@ them in a second list beside the first, and the address names the one picked (`?
 | Swarm: 20 fighters | dusk | 20 Dinkies against 2 Gunships | Small ships, guns |
 | Swarm: 300 fighters | red dwarf | 300 Dinkies against 2 Gunships | Ship and module count (about 3,300 Dinky modules) |
 | Torpedoes | violet | 12 Torpedoes rammed from 1500 m at a Beam Gunship, or, as its second variant, at a Gun Platform | Ramming, beam turrets shooting down craft; against the Gun Platform, a target whose guns cannot follow them. Short |
+| Torpedo Boat | dusk | A Torpedo Boat hiding behind an 800 m rock, one Torpedo docked on its pad, against a Gunship 3 km off on the far side | Building torpedoes on a pad under fire; hiding behind cover; torpedoes coming round a rock at a ship whose guns are made for capitals |
 | Disarm | noon | 3 Corvettes, or 2 Beam Corvettes or Rail Corvettes, as Duel, told to break the Gunship's guns and mind not to hit its core, engines or plating, and not to ram | Aim weights below zero: holding fire for a clean shot, and how cleanly each weapon takes guns off a ship |
 | Standoff | ice | Two lines of Gunship, Corvette, Beam Corvette and 2 Dinkies, 1 km apart | Fighting from the first frame; doctrine without orders |
 | Line Ahead | gold | Two columns of 4, nose to tail | Shooting past friendly ships |
