@@ -1,7 +1,7 @@
 import { Bodies } from "./bodies.js";
 import { footprintOf, type Footprint, type ShipDesign } from "./blueprint.js";
 import { DamageEffect } from "./damage.js";
-import { inSight, look, score } from "./targeting.js";
+import { look, score, visibility } from "./targeting.js";
 import type { ModuleSpec } from "./modules.js";
 import { length, max, min } from "./math.js";
 import type { World } from "./world.js";
@@ -99,7 +99,6 @@ export function decide(ships: Ships, world: World, bodies: Bodies, i: number): v
             }
         }
         ships.choice.begin();
-        ships.maskedChoice.begin();
         // Facing is judged along the line to what it is already fighting, not
         // along its nose: turned away to burn, a hull's nose says nothing of
         // what it would rather fight, and judged by it a craft on a pass
@@ -136,16 +135,11 @@ export function decide(ships: Ships, world: World, bodies: Bodies, i: number): v
                 const cl = length(cx, cy);
                 seen = { ...seen, facing: cl > 0 ? (cx * lx + cy * ly) / (cl * ll) : 1 };
             }
-            // Behind an asteroid, it is gone for only when nothing in sight is there to fight.
-            const hidden = shipAim.rockBetween(ships, bodies, bodies.x[b]!, bodies.y[b]!, at.x, at.y, b, tb);
-            const candidate =
-                doctrine.sightWeight !== 0 && !inSight(bodies, bodies.x[b]!, bodies.y[b]!, b, tb) ? { ...seen, clear: false } : seen;
-            (hidden ? ships.maskedChoice : ships.choice).offer(
-                candidate,
-                score(doctrine, candidate, reach, design.mass, loyalTo, -1, wanted),
-            );
+            // Behind a rock or another ship, it is as well hidden as it is covered: `sightWeight` says how much that counts.
+            const candidate = doctrine.sightWeight !== 0 ? { ...seen, sight: visibility(bodies, bodies.x[b]!, bodies.y[b]!, b, tb) } : seen;
+            ships.choice.offer(candidate, score(doctrine, candidate, reach, design.mass, loyalTo, -1, wanted));
         }
-        fighting = ships.choice.ship !== NO_TARGET ? ships.choice.ship : ships.maskedChoice.ship;
+        fighting = ships.choice.ship;
     }
     // What it would rather be with. Offered at all only when the doctrine
     // says escorting is worth something, since every weight here may be

@@ -1,6 +1,6 @@
 import type { Bodies } from "./bodies.js";
 import type { Targeting } from "./doctrine.js";
-import { abs, cos, length, log, max, sin } from "./math.js";
+import { abs, cos, length, log, max, min, sin, sqrt } from "./math.js";
 
 /**
  * Choosing what to shoot at.
@@ -39,10 +39,11 @@ export interface Candidate {
      */
     readonly facing: number;
     /**
-     * Whether the line to it passes clear of every other solid body. Only
-     * looked for when a doctrine weighs it, and true otherwise.
+     * How much of it can be seen, from nothing behind a rock to one with
+     * nothing in the way (`visibility`). Only looked for when a doctrine
+     * weighs it, and one otherwise.
      */
-    readonly clear: boolean;
+    readonly sight: number;
 }
 
 /** A hundred metres a second, so `closingWeight` is per ramming speed. */
@@ -97,7 +98,7 @@ export function score(
     if (candidate.armed) total += doctrine.armedWeight;
     if (candidate.mobile) total += doctrine.mobileWeight;
     total += doctrine.facingWeight * candidate.facing;
-    if (candidate.clear) total += doctrine.sightWeight;
+    total += doctrine.sightWeight * candidate.sight;
     return total;
 }
 
@@ -192,32 +193,43 @@ export class Choice {
 }
 
 /**
- * Whether the straight line from a point to body `to` passes clear of every
- * solid body but `from` and `to`, by their bounding circles.
+ * How much of body `to` can be seen from a point, from 0 to 1: the share of
+ * its width, as seen from there, that no solid body but `from` and `to`
+ * covers. Each body between is projected onto the target by similar
+ * triangles, so a hull partly in the way covers part of it and a rock
+ * bigger than it, nearer, covers all of it. Several are taken as covering
+ * independently, which can overcount where they overlap.
  *
- * Bounding circles, so a long thin hull blocks more than it should: this is
- * a preference, and erring towards "in the way" costs a mount a target it
- * could have had rather than a round in a friend. Only what lies between the
- * two counts — a body behind the chooser or beyond the target is not in the
- * way of anything.
+ * Bounding circles, so a long thin hull covers more than it should, and a
+ * rock that is not round a little more than it does. Only what lies between
+ * the two counts: a body behind the chooser or beyond the target is not in
+ * the way of anything.
  */
-export function inSight(bodies: Bodies, fromX: number, fromY: number, from: number, to: number): boolean {
+export function visibility(bodies: Bodies, fromX: number, fromY: number, from: number, to: number): number {
     const dx = bodies.x[to]! - fromX;
     const dy = bodies.y[to]! - fromY;
     const lengthSq = dx * dx + dy * dy;
-    if (!(lengthSq > 0)) return true;
-    for (let k = 0; k < bodies.count; k++) {
+    if (!(lengthSq > 0)) return 1;
+    const span = sqrt(lengthSq);
+    const half = bodies.radius[to]!;
+    let seen = 1;
+    for (let k = 0; k < bodies.count && seen > 0; k++) {
         if (k === from || k === to || bodies.ghost[k] === 1) continue;
         const ox = bodies.x[k]! - fromX;
         const oy = bodies.y[k]! - fromY;
         const along = (ox * dx + oy * dy) / lengthSq;
         if (along <= 0 || along >= 1) continue;
-        const px = ox - along * dx;
-        const py = oy - along * dy;
-        const r = bodies.radius[k]!;
-        if (px * px + py * py < r * r) return false;
+        // Its centre and radius as they fall across the target, from the chooser's eye.
+        const centre = (dx * oy - dy * ox) / span / along;
+        const reach = bodies.radius[k]! / along;
+        if (!(half > 0)) {
+            if (abs(centre) < reach) return 0;
+            continue;
+        }
+        const covered = min(half, centre + reach) - max(-half, centre - reach);
+        if (covered > 0) seen *= 1 - min(1, covered / (2 * half));
     }
-    return true;
+    return seen;
 }
 
 /** Fill in what the pickers need to know about a target, from the bodies. */
@@ -275,5 +287,5 @@ export function lookFrom(
         const dvy = bodies.vy[to]! - fromVy;
         closing = -(dvx * dx + dvy * dy) / range;
     }
-    return { ship, range, closing, mass, armed, mobile, facing, clear: true };
+    return { ship, range, closing, mass, armed, mobile, facing, sight: 1 };
 }

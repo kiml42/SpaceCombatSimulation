@@ -2,7 +2,7 @@ import { Bodies } from "./bodies.js";
 import { aspectAlong, EVASION_ACCEL, lethalRadius, reachAgainst, type DesignTurret, type ShipDesign } from "./blueprint.js";
 import { BOTH_LAYERS, HULL_LAYER, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from "./hull.js";
 import { DamageEffect } from "./damage.js";
-import { inSight, lookFrom, score } from "./targeting.js";
+import { lookFrom, score, visibility } from "./targeting.js";
 import { DEFAULT_FUSE, firesShells, moduleRadius, slewTime, type ModuleSpec, GunType, type GunStats, type ModuleKind } from "./modules.js";
 import { abs, atan2, angleDelta, PI, clamp, cos, length, max, round, sin, sqrt } from "./math.js";
 import { overriddenMount, placementOf, type Targeting } from "./doctrine.js";
@@ -219,12 +219,10 @@ export function decideTurrets(ships: Ships, world: World, bodies: Bodies, i: num
             );
             // A hooked target is alongside, with nothing between to look past.
             const judged =
-                !hooked && doctrine.sightWeight !== 0 && !inSight(bodies, gunX, gunY, b, tb) ? { ...candidate, clear: false } : candidate;
-            // Behind an asteroid is as good as out of its arc: tracked, for when it comes out.
-            const open = clear && (hooked || !rockBetween(ships, bodies, gunX, gunY, tx, ty, b, tb));
-            (candidate.range > against ? ships.farChoice : open ? ships.choice : ships.maskedChoice).offer(
+                !hooked && doctrine.sightWeight !== 0 ? { ...candidate, sight: visibility(bodies, gunX, gunY, b, tb) } : candidate;
+            (candidate.range > against ? ships.farChoice : clear ? ships.choice : ships.maskedChoice).offer(
                 judged,
-                score(doctrine, candidate, against, design.mass, targets[t]!, mount.main ? focus : ownFocus),
+                score(doctrine, judged, against, design.mass, targets[t]!, mount.main ? focus : ownFocus),
             );
         }
         // Something it can fire at first; then what is in reach but behind its
