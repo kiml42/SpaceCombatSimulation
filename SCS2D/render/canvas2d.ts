@@ -635,6 +635,7 @@ function drawShip(
 
         const bearing = ship.turretBearings[t] ?? 0;
         if (solid) {
+            if (spec.kind === "plasmaLance") drawSparks(ctx, ship, t, design.modules[module]!);
             drawLoad(ctx, ship, t, mx, my, bearing);
             continue;
         }

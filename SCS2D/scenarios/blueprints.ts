@@ -17,6 +17,7 @@ import torchFile from "./blueprints/torch.json" with { type: "json" };
 import laserFrigateFile from "./blueprints/laser-frigate.json" with { type: "json" };
 import broadsideFile from "./blueprints/broadside.json" with { type: "json" };
 import torpedoFile from "./blueprints/torpedo.json" with { type: "json" };
+import torpedoBoatFile from "./blueprints/torpedo-boat.json" with { type: "json" };
 import scavengerFile from "./blueprints/scavenger.json" with { type: "json" };
 import salvagerFile from "./blueprints/salvager.json" with { type: "json" };
 import replicatorFile from "./blueprints/replicator.json" with { type: "json" };
@@ -70,6 +71,7 @@ export const BARE_CORE: Blueprint = parseBlueprint(bareCoreFile);
 export const TORCH: Blueprint = parseBlueprint(torchFile);
 export const LASER_FRIGATE: Blueprint = parseBlueprint(laserFrigateFile);
 export const TORPEDO: Blueprint = parseBlueprint(torpedoFile);
+export const TORPEDO_BOAT: Blueprint = parseBlueprint(torpedoBoatFile);
 export const BROADSIDE: Blueprint = parseBlueprint(broadsideFile);
 export const SCAVENGER: Blueprint = parseBlueprint(scavengerFile);
 export const SALVAGER: Blueprint = parseBlueprint(salvagerFile);
@@ -103,6 +105,7 @@ export const BLUEPRINTS = {
     torch: TORCH,
     laserFrigate: LASER_FRIGATE,
     torpedo: TORPEDO,
+    torpedoBoat: TORPEDO_BOAT,
     broadside: BROADSIDE,
     scavenger: SCAVENGER,
     salvager: SALVAGER,

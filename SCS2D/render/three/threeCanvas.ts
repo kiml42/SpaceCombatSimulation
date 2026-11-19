@@ -267,8 +267,8 @@ export class ThreeCanvas {
     private readonly repeating = new WeakMap<object, Texture>();
     private readonly atlases = new Map<string, GlyphAtlas>();
     private measurer: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null | undefined;
-    /** Whether this view draws ships as solid models itself, so canvas2d.ts leaves their hulls out. */
-    solidShips = false;
+    /** This view draws ships as solid models itself, so canvas2d.ts leaves their hulls out. */
+    readonly solidShips = true;
     /** Whether deck-height drawing has somewhere of its own to go. */
     deck = true;
     /** What canvas2d.ts stands up in 3D through, where the view draws in 3D (render/solid3d.ts). */

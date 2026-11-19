@@ -19,11 +19,8 @@ import { BACKGROUND, GRID, gridSegments, Segments, WELL, wellSegments } from "..
 import type { Camera } from "../camera.js";
 import type { Light } from "../light.js";
 import { seenLights } from "../canvas2d.js";
-import { LIGHT_GAIN, LIGHT_HEADROOM } from "../lightField.js";
 import type { LayerView, Projection } from "../layerView.js";
 import { Batch, BatchMeshes, EFFECT_STRIDE, pixelsToMetres, ThreeCanvas, type Box } from "./threeCanvas.js";
-import { ThreeHulls } from "./threeHulls.js";
-import { ThreeLights } from "./threeLights.js";
 import { barrelLift, DECK_TOP, layerHeight, liftOf, moduleLift, moduleTop, Ships3D, type DeckBox } from "./ships3d.js";
 import type { ViewAngle } from "./viewAngle.js";
 
@@ -31,17 +28,13 @@ import type { ViewAngle } from "./viewAngle.js";
 ColorManagement.enabled = false;
 
 /**
- * The battle drawn with three.js, as `pixiView` draws it with Pixi: the
- * backdrop and the capital ships' fills are three.js's own (`ThreeHulls`), and
- * the rest is canvas2d.ts drawing into `ThreeCanvas`, in its true order over
- * them. Everything is placed in metres from the camera, y up, and seen through
- * an orthographic camera straight down.
- *
- * With `solid`, ships are solid models instead (`Ships3D`), seen in
- * perspective from the angle `angle` gives each frame, and canvas2d.ts draws
- * only what is over them, flat on the ship plane.
+ * The battle drawn in 3D with three.js: the backdrop and the ships as solid
+ * models (`Ships3D`) are three.js's own, seen in perspective from the angle
+ * `angle` gives each frame, and canvas2d.ts draws only what is over them into
+ * `ThreeCanvas`, flat on the deck's top. Everything is placed in metres from
+ * the camera's point, y up.
  */
-export function threeView(canvas: HTMLCanvasElement, solid = false, angle: () => ViewAngle = () => FLAT): LayerView {
+export function threeView(canvas: HTMLCanvasElement, angle: () => ViewAngle): LayerView {
     let renderer: WebGLRenderer | null = null;
     let failed = false;
     try {
@@ -53,32 +46,26 @@ export function threeView(canvas: HTMLCanvasElement, solid = false, angle: () =>
     } catch {
         failed = true;
     }
+    /** Straight down, for what is drawn on the screen rather than the deck. */
     const camera = new OrthographicCamera(-1, 1, 1, -1, -1000, 1000);
-    const orbiting = new PerspectiveCamera();
+    const eye = new PerspectiveCamera();
     /** For working out where a point on the canvas is, apart from the one drawn with. */
     const asking = new PerspectiveCamera();
-    let eye: ThreeCamera = camera;
     const context = new ThreeCanvas();
-    context.solidShips = solid;
-    const ships = solid && renderer !== null ? new Ships3D(renderer) : null;
-    if (ships !== null) {
-        context.solid3d = {
-            along: (x0, y0, x1, y1, height) => context.along(x0, y0, x1, y1, height),
-            on: (height) => context.on(height),
-            flat: () => context.flat(),
-            moduleTop,
-            moduleLift,
-            shipLift: liftOf,
-            barrelLift,
-            layerHeight,
-        };
-    }
+    const ships = renderer !== null ? new Ships3D(renderer) : null;
+    context.solid3d = {
+        along: (x0, y0, x1, y1, height) => context.along(x0, y0, x1, y1, height),
+        on: (height) => context.on(height),
+        flat: () => context.flat(),
+        moduleTop,
+        moduleLift,
+        shipLift: liftOf,
+        barrelLift,
+        layerHeight,
+    };
     const screen = new Group();
     screen.matrixAutoUpdate = false;
     const screenMeshes = new BatchMeshes();
-    const hulls = new ThreeHulls();
-    hulls.lighting = renderer !== null;
-    const lights = new ThreeLights();
     const root = new Group();
     const deck = new Group();
     for (const group of [root, deck]) group.matrixAutoUpdate = false;
@@ -113,7 +100,7 @@ export function threeView(canvas: HTMLCanvasElement, solid = false, angle: () =>
         canvas,
         started: Promise.resolve(!failed),
         begin(snapshot: Snapshot, view: Camera, widthPx: number, heightPx: number, light?: Light) {
-            if (renderer === null) return null;
+            if (renderer === null || ships === null) return null;
             // Others may size the canvas itself, which leaves the renderer's viewport as it was.
             if (size.width !== widthPx || size.height !== heightPx || canvas.width !== widthPx || canvas.height !== heightPx) {
                 renderer.setSize(widthPx, heightPx, false);
@@ -125,12 +112,9 @@ export function threeView(canvas: HTMLCanvasElement, solid = false, angle: () =>
             camera.top = heightPx / 2 / scale;
             camera.bottom = -heightPx / 2 / scale;
             camera.updateProjectionMatrix();
-            eye = ships === null ? camera : look(orbiting, angle(), widthPx / 2 / scale, heightPx / 2 / scale);
+            look(eye, angle(), widthPx / 2 / scale, heightPx / 2 / scale);
             // What of the deck is in view, metres from the camera's point: tilted, more than the 2D view's box.
-            const seen =
-                ships === null
-                    ? { minX: -widthPx / 2 / scale, maxX: widthPx / 2 / scale, minY: -heightPx / 2 / scale, maxY: heightPx / 2 / scale }
-                    : deckSeen(deckProjection(orbiting, widthPx, heightPx), widthPx, heightPx, Math.max(widthPx, heightPx) / scale);
+            const seen = deckSeen(deckProjection(eye, widthPx, heightPx), widthPx, heightPx, Math.max(widthPx, heightPx) / scale);
             segments.clear();
             // The grid over all of it, laid as the 2D view's would be over a view that size.
             const middle = { x: view.x + (seen.minX + seen.maxX) / 2, y: view.y + (seen.minY + seen.maxY) / 2, scale };
@@ -143,20 +127,19 @@ export function threeView(canvas: HTMLCanvasElement, solid = false, angle: () =>
             segments.clear();
             wellSegments(segments, snapshot, view);
             wells.set(segments);
-            if (ships !== null) ships.update(snapshot, view, seen, light);
-            else hulls.update(snapshot, view, widthPx, heightPx, light);
+            ships.update(snapshot, view, seen, light);
             context.begin();
             return context as unknown as CanvasRenderingContext2D;
         },
         end() {
             context.end();
-            if (renderer === null) return;
+            if (renderer === null || ships === null) return;
             const toMetres = pixelsToMetres(new Matrix4(), size.width, size.height, scale);
             for (const group of [root, deck, screen]) {
                 group.clear();
-                // In 3D, what is drawn flat lies on the deck's top, where what is drawn on a hull belongs.
+                // What is drawn flat lies on the deck's top, where what is drawn on a hull belongs.
                 group.matrix.copy(
-                    ships === null || group === screen
+                    group === screen
                         ? toMetres
                         : group === deck
                           ? pixelsToMetres(new Matrix4(), size.width, size.height, scale, DECK_TOP)
@@ -167,48 +150,24 @@ export function threeView(canvas: HTMLCanvasElement, solid = false, angle: () =>
             rootMeshes.begin();
             deckMeshes.begin();
             screenMeshes.begin();
-            if (ships !== null) eye.updateMatrixWorld();
+            eye.updateMatrixWorld();
             context.batches.forEach((batch, k) => {
                 if (batch.screen) screenMeshes.add(batch, screen, k, scissor);
-                else if (ships === null) rootMeshes.add(batch, root, k, scissor);
                 else {
                     standUp(batch, context.effects, eye, size.width, size.height, scale);
                     rootMeshes.add(batch, root, k, noScissor);
                 }
             });
-            context.deckBatches.forEach((batch, k) => deckMeshes.add(batch, deck, k, scissor));
-            if (ships !== null) {
-                ships.shed(seenLights, size.width, size.height, scale);
-                renderer.setRenderTarget(null);
-                renderer.clear(true, true, true);
-                draw(grid.lines, eye);
-                draw(wells.lines, eye);
-                draw(deck, eye);
-                renderer.render(ships.scene, eye);
-                draw(root, eye);
-                draw(screen);
-                return;
-            }
-            const lit = lights.update(renderer, seenLights, size.width, size.height, scale, hulls.litThickCount > 0);
-            for (const material of [hulls.deckLit, hulls.thickLit]) {
-                material.uniforms.uScreen!.value = [size.width, size.height];
-                material.uniforms.uGain!.value = LIGHT_GAIN;
-                material.uniforms.uHeadroom!.value = LIGHT_HEADROOM;
-            }
-            hulls.deckLit.uniforms.uLight!.value = lights.deck.texture;
-            hulls.thickLit.uniforms.uLight!.value = lights.thick.texture;
+            // A scissor is a box on the screen, which is no longer the same box on a tilted deck.
+            context.deckBatches.forEach((batch, k) => deckMeshes.add(batch, deck, k, noScissor));
+            ships.shed(seenLights, size.width, size.height, scale);
             renderer.setRenderTarget(null);
             renderer.clear(true, true, true);
-            draw(grid.lines);
-            draw(wells.lines);
-            for (const pass of hulls.passes) {
-                if ("clearStencil" in pass) renderer.clearStencil();
-                else if ("deck" in pass) draw(deck);
-                else if ("lit" in pass) {
-                    if (lit) draw(pass.draw);
-                } else draw(pass.draw);
-            }
-            draw(root);
+            draw(grid.lines, eye);
+            draw(wells.lines, eye);
+            draw(deck, eye);
+            renderer.render(ships.scene, eye);
+            draw(root, eye);
             draw(screen);
         },
         projection(view: Camera, widthPx: number, heightPx: number) {
@@ -216,7 +175,6 @@ export function threeView(canvas: HTMLCanvasElement, solid = false, angle: () =>
             return deckProjection(look(asking, angle(), widthPx / 2 / view.scale, heightPx / 2 / view.scale), widthPx, heightPx);
         },
         dispose() {
-            lights.dispose();
             ships?.dispose();
             renderer?.dispose();
             // dispose() keeps the WebGL context until the canvas is collected; browsers cap how many stay live.
@@ -390,8 +348,6 @@ function deckSeen(projection: Projection, widthPx: number, heightPx: number, mos
     }
     return box;
 }
-
-const FLAT: ViewAngle = { tilt: 0, turn: 0, fov: 50 };
 
 /** Lines a pixel wide, as Pixi's `pixelLine` strokes are: what WebGL draws a line as. */
 function lineLayer(colour: string): { lines: LineSegments; set(segments: Segments): void } {

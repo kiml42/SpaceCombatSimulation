@@ -6,8 +6,8 @@ import { threeView } from "./three/threeView.js";
 import { EDITOR_ANGLE, setViewAngle, Swing, viewAngle, type ViewAngle } from "./three/viewAngle.js";
 
 /**
- * What draws a battle on a canvas of its own: Pixi (render/pixiView.ts) or
- * three.js (render/three/threeView.ts), chosen by `rendererChoice`. Both hand
+ * What draws a battle on a canvas of its own: Pixi (render/pixiView.ts) in 2D,
+ * or three.js (render/three/threeView.ts) in 3D, chosen by `rendererChoice`. Both hand
  * back a context canvas2d.ts draws the rest of the frame into, as a canvas.
  */
 export interface LayerView {
@@ -83,12 +83,11 @@ export function fromMiddle(canvas: HTMLCanvasElement, clientX: number, clientY: 
 }
 
 /** Which renderer draws the battle. */
-export type RendererChoice = "pixi" | "three" | "three-3d";
+export type RendererChoice = "pixi" | "three-3d";
 
 export const RENDERER_CHOICES: readonly { readonly value: RendererChoice; readonly label: string }[] = [
-    { value: "pixi", label: "Pixi" },
-    { value: "three", label: "Three (flat)" },
-    { value: "three-3d", label: "Three (3D)" },
+    { value: "pixi", label: "2D (Pixi)" },
+    { value: "three-3d", label: "3D (three.js)" },
 ];
 
 /** Whether `choice` draws ships as solid models. */
@@ -99,7 +98,11 @@ export function isSolid(choice: RendererChoice): boolean {
 const KEY = "scs2d.renderer";
 const EVENT = "scs2d-renderer";
 
+/** The choice made on this page, which stands where storage is blocked. */
+let chosen: RendererChoice | null = null;
+
 export function rendererChoice(): RendererChoice {
+    if (chosen !== null) return chosen;
     try {
         let kept = localStorage.getItem(KEY);
         // The 3D views' depths were once chosen here.
@@ -113,6 +116,7 @@ export function rendererChoice(): RendererChoice {
 
 /** Draw every view with `choice` from now on, those already open as well. */
 export function setRendererChoice(choice: RendererChoice): void {
+    chosen = choice;
     try {
         localStorage.setItem(KEY, choice);
     } catch {
@@ -127,9 +131,8 @@ export function setRendererChoice(choice: RendererChoice): void {
  */
 export function viewOf(canvas: HTMLCanvasElement, choice: RendererChoice = rendererChoice(), editor = false, swing?: Swing): LayerView {
     if (choice === "pixi") return pixiView(canvas) as unknown as LayerView;
-    if (choice === "three") return threeView(canvas);
     const set = (): ViewAngle => (editor ? EDITOR_ANGLE : viewAngle());
-    return threeView(canvas, true, swing === undefined ? set : () => swing.shown(set()));
+    return threeView(canvas, swing === undefined ? set : () => swing.shown(set()));
 }
 
 /**
@@ -172,7 +175,7 @@ export function layerUnder(
         });
     };
     window.addEventListener(EVENT, swap);
-    // In 3D, Alt-drag or a middle-button drag up and down tilts the camera, before the view's own handlers see it.
+    // In 3D, Alt-drag up and down tilts the camera, before the view's own handlers see it; a middle drag still pans.
     // A right-button drag swings it for as long as it is held; a right-click without one is still an order.
     // An editor's angle is fixed, and it has no use for the right button, so takes it here.
     let swinging: { x: number; y: number } | null = null;
@@ -184,7 +187,7 @@ export function layerUnder(
             if (editor) event.stopImmediatePropagation();
             return;
         }
-        if (editor || !(event.altKey || event.button === 1)) return;
+        if (editor || !event.altKey) return;
         event.stopImmediatePropagation();
         event.preventDefault();
         swinging = { x: event.clientX, y: event.clientY };
@@ -210,13 +213,22 @@ export function layerUnder(
             right = null;
         }
     };
+    // Stops a swing whose release never comes, as when the window loses focus.
+    const cancel = (): void => {
+        swinging = null;
+        if (right?.swung === true) swing.letGo();
+        right = null;
+    };
+    // The browser's menu would take the release that ends a swing.
     const menu = (event: Event): void => {
-        if (editor && isSolid(rendererChoice())) event.preventDefault();
+        if (isSolid(rendererChoice())) event.preventDefault();
     };
     over.addEventListener("pointerdown", down, { capture: true });
     over.addEventListener("contextmenu", menu);
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", cancel);
+    window.addEventListener("blur", cancel);
     const view: LayerView = {
         get ready() {
             return made.view.ready;
@@ -250,6 +262,8 @@ export function layerUnder(
             swing.dispose();
             window.removeEventListener("pointermove", move);
             window.removeEventListener("pointerup", up);
+            window.removeEventListener("pointercancel", cancel);
+            window.removeEventListener("blur", cancel);
             made.view.dispose();
             made.canvas.remove();
         },

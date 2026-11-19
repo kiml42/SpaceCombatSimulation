@@ -63,7 +63,6 @@ export interface DeckBox {
     readonly maxY: number;
 }
 
-/** Thin and thick, in the layers' reading: a thick module stands a deck above and below the thin hull. */
 /**
  * The layers' heights (DESIGN.md §3), metres from the plane between them: the
  * hull's middle below it, where thin modules and their guns are; the weapons
@@ -875,7 +874,7 @@ export class Ships3D {
         return mesh;
     }
 
-    /** Place every ship in view, its barrels, and the lights, for a view `halfW` by `halfH` metres either side of the camera. */
+    /** Place every ship over the deck `seen`, its barrels, and the lights. */
     update(snapshot: Snapshot, camera: Camera, seen: DeckBox, light: Light = DEFAULT_LIGHT): void {
         this.light(light, seen);
         const shown = new Set<number>();
@@ -920,11 +919,11 @@ export class Ships3D {
                 );
                 for (let k = 0; k < ends.length; k += 4) {
                     if (barrels >= this.barrelRoom) {
-                        this.scene.remove(this.barrels);
-                        this.barrels.dispose();
+                        const old = this.barrels;
                         this.barrels = this.makeBarrels(this.barrelRoom * 2);
-                        // Placed again from the start next frame; this one shows those it had room for.
-                        break;
+                        this.barrels.instanceMatrix.array.set(old.instanceMatrix.array);
+                        this.scene.remove(old);
+                        old.dispose();
                     }
                     const [x0, y0, x1, y1] = [ends[k]!, ends[k + 1]!, ends[k + 2]!, ends[k + 3]!];
                     this.along.set(x1 - x0, y1 - y0, 0);
@@ -942,7 +941,7 @@ export class Ships3D {
         this.barrels.instanceMatrix.needsUpdate = true;
         for (const [body, kept] of this.kept) {
             if (shown.has(body)) continue;
-            // Gone, or out of view: let it go once it has been out of view a while.
+            // Out of view: hidden, and let go once its ship is gone.
             kept.group.visible = false;
             if (!snapshot.ships.slice(0, snapshot.shipCount).some((ship) => ship.body === body)) {
                 this.empty(kept);
@@ -996,7 +995,9 @@ export class Ships3D {
             const x = ((lights.x0[k]! + lights.x1[k]!) / 2 - widthPx / 2) / scale;
             const y = -((lights.y0[k]! + lights.y1[k]!) / 2 - heightPx / 2) / scale;
             const reach = (lights.radius[k]! * 3) / scale;
-            point.position.set(x, y, lights.height[k]! / scale + reach * 0.15);
+            const standing = lights.standing[k]!;
+            const z = Number.isNaN(standing) ? lights.height[k]! / scale : standing;
+            point.position.set(x, y, z + reach * 0.15);
             point.color = new Color(lights.colour[k]!);
             point.distance = reach;
             point.decay = 1;
@@ -1093,6 +1094,14 @@ export class Ships3D {
         this.kept.clear();
         this.barrels.dispose();
         this.material.dispose();
+        this.unitBarrel.dispose();
+        this.barrelMaterial.dispose();
+        for (const material of [...this.patternMaterials.values(), ...this.wearMaterials.values()]) {
+            material.map?.dispose();
+            material.dispose();
+        }
+        this.patternMaterials.clear();
+        this.wearMaterials.clear();
     }
 }
 

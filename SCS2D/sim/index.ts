@@ -356,7 +356,7 @@ export {
     type DoctrinePart,
     type Targeting,
 } from "./doctrine.js";
-export { Choice, cohesionUrge, inSight, look, score, type Candidate } from "./targeting.js";
+export { Choice, cohesionUrge, look, score, visibility, type Candidate } from "./targeting.js";
 export { JOINT_IMPULSE_PER_AREA, DOCK_HOLD, cuts, components, joints, weldFactor, type Cut, type Joint } from "./connectivity.js";
 export { Collisions, Contacts, RESTITUTION, findContacts, resolveContacts } from "./collision.js";
 export { BUMP_SHARE, CRASH_SHARE, ContactGrades, ENCOUNTER_GAP } from "./contactGrades.js";
@@ -488,6 +488,7 @@ export {
     type FleetHull,
 } from "./fleetHulls.js";
 export { Turrets, FiringSolution, interceptTime, masked, masksWholeArc, type TurretSpec } from "./turrets.js";
+export { hidingDistance } from "./shipFlight.js";
 export { Ships, NEUTRAL_TEAM, slotKey, NO_TARGET, CLAW_RETRY, type Order, type ShipSpec } from "./ships.js";
 export { WAYPOINT_REACH } from "./shipOrders.js";
 export { CLAW_BITE, CLAW_GRIP_CHANCE, clawChance } from "./shipWeld.js";
