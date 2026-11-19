@@ -595,6 +595,8 @@ export class Ships {
     readonly couldFight: number[] = [];
     /** 1 for a fighter its doctrine has taken down into the hull layer as well. */
     readonly committed: number[] = [];
+    /** The module of its target a ramming ship goes for, or `WHOLE_SHIP` for the middle of it (`shipAim.ramPart`). */
+    readonly ramPart: number[] = [];
     /** Whether each ship has turned its main engines along its want rather than its guns to its target. */
     readonly burning: number[] = [];
     /** Whether each ship is on the run out of an attacking pass or back in, where its guns wait for its mains. */
@@ -1501,6 +1503,7 @@ export class Ships {
         this.derelict.push(0);
         this.couldFight.push(design.turrets.some((t) => t.main) || design.engines.length > 0 ? 1 : 0);
         this.committed.push(0);
+        this.ramPart.push(WHOLE_SHIP);
         this.burning.push(0);
         this.running.push(0);
         this.passSide.push(0);
