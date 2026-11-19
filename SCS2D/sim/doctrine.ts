@@ -94,7 +94,7 @@ export interface Targeting {
      * Prefer what nothing else is in the way of — a rock, a friend, a
      * neutral, a wreck or another enemy — by how much of it can be seen
      * (`visibility`): a ship partly behind a hull counts for more than one
-     * behind a rock. For a mount, a shot at something behind a friend is a
+     * wholly behind it, and that for more than one deep behind a rock. For a mount, a shot at something behind a friend is a
      * shot at the friend; for a hull, it is a fight it would have to go
      * round something to have.
      */

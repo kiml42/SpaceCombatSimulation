@@ -297,22 +297,39 @@ describe("what a ship is worth shooting at", () => {
         bodies.create({ x: 50, y: 0, radius: 10, ghost: true });
         expect(visibility(bodies, 0, 0, from, to)).toBe(1);
         bodies.create({ x: 50, y: 5, radius: 10 });
-        expect(visibility(bodies, 0, 0, from, to)).toBe(0);
+        expect(visibility(bodies, 0, 0, from, to)).toBeLessThan(0);
     });
 
     it("sees more of a target behind something small than behind something big", () => {
-        const behind = (radius: number): number => {
+        const behind = (radius: number, at = 500): number => {
             const bodies = new Bodies();
             const from = bodies.indexOf(bodies.create({ x: 0, y: 0, radius: 5 }));
             const to = bodies.indexOf(bodies.create({ x: 1000, y: 0, radius: 40 }));
-            bodies.create({ x: 500, y: 0, radius });
+            bodies.create({ x: at, y: 0, radius });
             return visibility(bodies, 0, 0, from, to);
         };
-        // Half-way, a hull looks twice its size against the target: 5 m covers a quarter of a 40 m one, 10 m half.
+        // Half-way, a hull looks twice its size against the target: 5 m covers a quarter of an 80 m one, 10 m half.
         expect(behind(5)).toBeCloseTo(0.75);
         expect(behind(10)).toBeCloseTo(0.5);
-        // A rock wider than it, nearer, covers all of it.
-        expect(behind(300)).toBe(0);
+        // Covered just whole, it can only just not be seen.
+        expect(behind(20)).toBeCloseTo(0);
+        // Hidden deeper, by how far the cover overhangs it: 40 m either side, then 760.
+        expect(behind(40)).toBeCloseTo(-Math.log(1.5));
+        expect(behind(400)).toBeCloseTo(-Math.log(10.5));
+    });
+
+    it("finds a fighter behind a gunship easier to get at than one behind a rock", () => {
+        const behind = (radius: number): number => {
+            const bodies = new Bodies();
+            const from = bodies.indexOf(bodies.create({ x: 0, y: 0, radius: 40 }));
+            const to = bodies.indexOf(bodies.create({ x: 2000, y: 0, radius: 5 }));
+            bodies.create({ x: 1950, y: 0, radius });
+            return visibility(bodies, 0, 0, from, to);
+        };
+        const gunship = behind(40);
+        const rock = behind(800);
+        expect(gunship).toBeLessThan(0);
+        expect(rock).toBeLessThan(gunship);
     });
 
     it("measures facing along the hull it is asked from", () => {
