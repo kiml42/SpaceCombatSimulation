@@ -30,6 +30,9 @@ revert.
 
 Ask before pushing directly, unless the author has already said to for that particular change.
 
+**A PR for a Linear issue names it.** Prefix the title with the issue ID in brackets (`[SPA-169] Warhead
+module`), and start the description with a link to the issue. A PR covering several issues lists them all.
+
 **Every piece of work goes on its own branch, named for the feature and prefixed `claude/`**
 (`claude/react-foundation`, `claude/weld-face-contact`), so Claude's branches stand apart from the author's. Cut it
 from an up-to-date `master`, and never use the branch a session was started on (`claude/<random-words>`), whatever
