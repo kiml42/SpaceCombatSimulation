@@ -17,7 +17,8 @@
       "fighter": true,
       "doctrine": {
         "targeting": {
-          "preferredMass": 30
+          "preferredMass": 30,
+          "sightWeight": 20
         },
         "approach": {
           "approachSpeed": 900,
