@@ -67,6 +67,8 @@ measured. Leave the window alone while it runs: covering or minimising it slows 
 | `--paused` | off | Hold the battle at `--at`, so the time is drawing alone. |
 | `--strips` | `shown` | `hidden` hides the fleet strips down the edges, to see what they cost. |
 | `--pick` | | A ship to pick, by its index in the battle, once each scene reaches `--at`: a picked ship shows its close-ups and arcs. |
+| `--renderers` | `pixi` | Which to measure, each in a page of its own: `pixi`, `three` (flat) or `three-3d`, as the Renderer field picks them. |
+| `--tilt` | `0` | Degrees `three-3d`'s camera leans over from straight down. |
 | `--screenshots` | off | Save each scene as measured, beside the results, to check what was drawn. |
 | `--profile` | off | After measuring each scene, take a CPU profile of it for `--seconds` and print the 15 functions with the most self time; the `.cpuprofile` opens in DevTools' Performance panel (Firefox: below). Build with `pnpm exec vite build --minify false` first for readable names. |
 | `--vsync` | off | Hold the frame rate to the display's. Without it the rate is uncapped, so a fast machine shows how far over 60 it could go. |
