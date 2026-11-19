@@ -1,4 +1,4 @@
-import { asteroidBlueprint, compileBlueprint, math, NEUTRAL_TEAM } from "../sim/index.js";
+import { asteroidBlueprint, compileBlueprint, hidingDistance, math, NEUTRAL_TEAM } from "../sim/index.js";
 import { OrderCancelCondition } from "../sim/ships.js";
 import { Rng } from "../sim/rng.js";
 import type { Battle } from "./types.js";
@@ -25,8 +25,8 @@ export function torpedoBoat(seed = 20260905): Battle {
         );
         const rockDesign = compileBlueprint(rock);
         const boatDesign = compileBlueprint(TORPEDO_BOAT);
-        // Where `hide` holds it: this far from the rock's centre, on the side away from the Gunship.
-        const hidden = (rockDesign.radius + boatDesign.radius) * (1 + boatDesign.doctrine.approach.separationRadii);
+        // Where hiding holds it, on the side away from the Gunship.
+        const hidden = hidingDistance(boatDesign.radius, rockDesign.radius, boatDesign.doctrine.approach.separationRadii);
         const cover = ships.spawn(world, { design: rockDesign, x: 0, y: 0, team: NEUTRAL_TEAM });
         const boat = ships.spawn(world, { design: boatDesign, x: -hidden, y: 0, angle: math.PI, team: 0 });
         ships.pushFlee(boat, cover);

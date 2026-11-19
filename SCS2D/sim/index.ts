@@ -488,6 +488,7 @@ export {
     type FleetHull,
 } from "./fleetHulls.js";
 export { Turrets, FiringSolution, interceptTime, masked, masksWholeArc, type TurretSpec } from "./turrets.js";
+export { hidingDistance } from "./shipFlight.js";
 export { Ships, NEUTRAL_TEAM, slotKey, NO_TARGET, CLAW_RETRY, type Order, type ShipSpec } from "./ships.js";
 export { WAYPOINT_REACH } from "./shipOrders.js";
 export { CLAW_BITE, CLAW_GRIP_CHANCE, clawChance } from "./shipWeld.js";

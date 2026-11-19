@@ -1530,6 +1530,11 @@ export function flee(ships: Ships, bodies: Bodies, i: number, b: number, order: 
     return false;
 }
 
+/** How far from the centre of cover of radius `cover` a ship of radius `own` hides, metres: its avoidance distance off the cover's skin. */
+export function hidingDistance(own: number, cover: number, separationRadii: number): number {
+    return cover + own * (1 + max(0, separationRadii));
+}
+
 /** Fly round behind cover `cb`, from the threats to it, or the nearest armed enemy when none is in reach of it. */
 export function hide(ships: Ships, bodies: Bodies, i: number, b: number, cb: number): boolean {
     const approach = ships.doctrines[i]!.approach;
@@ -1569,7 +1574,7 @@ export function hide(ships: Ships, bodies: Bodies, i: number, b: number, cb: num
         }
     }
     const touching = ships.designs[i]!.radius + bodies.radius[cb]!;
-    const off = touching * (1 + max(0, approach.separationRadii));
+    const off = hidingDistance(ships.designs[i]!.radius, bodies.radius[cb]!, approach.separationRadii);
     // The spot, and the way to it.
     const dx = cx - sx * off - bodies.x[b]!;
     const dy = cy - sy * off - bodies.y[b]!;
