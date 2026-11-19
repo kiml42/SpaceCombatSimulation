@@ -196,18 +196,60 @@ class Builder {
             return [x, y + Math.cos(a) * r, z + Math.sin(a) * r * squash];
         };
         const last = p.length - 2;
+        // The way along the profile at each of its points, the two stretches either side of it averaged, so it is shaded smooth.
+        const along: number[] = [];
+        for (let j = 0; j <= last; j += 2) {
+            let dx = 0;
+            let dr = 0;
+            for (const [from, to] of [
+                [j - 2, j],
+                [j, j + 2],
+            ] as const) {
+                if (from < 0 || to > last) continue;
+                const ex = p[to]! - p[from]!;
+                const er = p[to + 1]! - p[from + 1]!;
+                const l = Math.hypot(ex, er);
+                if (l > 1e-9) {
+                    dx += ex / l;
+                    dr += er / l;
+                }
+            }
+            along.push(dx, dr);
+        }
+        const r = rgb[0]!;
+        const g = rgb[1]!;
+        const bl = rgb[2]!;
+        // Point `j` of the profile `k`th of the way round, with the surface's normal there.
+        const put = (j: number, k: number): void => {
+            const a = (k / ROUND) * 2 * Math.PI;
+            const [dx, dr] = [along[j]!, along[j + 1]!];
+            let nx = -squash * dr;
+            let ny = squash * dx * Math.cos(a);
+            let nz = dx * Math.sin(a);
+            const n = (inward ? -1 : 1) / (Math.hypot(nx, ny, nz) || 1);
+            nx *= n;
+            ny *= n;
+            nz *= n;
+            const at = ring(p[j]!, p[j + 1]!, k);
+            this.vertex(at[0]!, at[1]!, at[2]!, nx, ny, nz, r, g, bl);
+        };
         for (let k = 0; k < ROUND; k++) {
             for (let j = 0; j < last; j += 2) {
-                const a0 = ring(p[j]!, p[j + 1]!, k);
-                const a1 = ring(p[j]!, p[j + 1]!, k + 1);
-                const b0 = ring(p[j + 2]!, p[j + 3]!, k);
-                const b1 = ring(p[j + 2]!, p[j + 3]!, k + 1);
+                if (Math.abs(p[j]! - p[j + 2]!) + Math.abs(p[j + 1]! - p[j + 3]!) < 1e-9) continue;
                 if (inward) {
-                    this.tri(a0, b0, b1, rgb);
-                    this.tri(a0, b1, a1, rgb);
+                    put(j, k);
+                    put(j + 2, k);
+                    put(j + 2, k + 1);
+                    put(j, k);
+                    put(j + 2, k + 1);
+                    put(j, k + 1);
                 } else {
-                    this.tri(a0, b1, b0, rgb);
-                    this.tri(a0, a1, b1, rgb);
+                    put(j, k);
+                    put(j + 2, k + 1);
+                    put(j + 2, k);
+                    put(j, k);
+                    put(j, k + 1);
+                    put(j + 2, k + 1);
                 }
             }
             if (capped) {
