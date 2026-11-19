@@ -81,9 +81,35 @@ export function viewGestures(
     /** A Shift-drag drawing a box, from where it started, in client pixels. */
     let box: { x: number; y: number } | null = null;
 
+    /**
+     * A mouse right-press, which gives its order when let go without dragging
+     * (a drag may swing the camera, render/layerView.ts), and when it last ended.
+     */
+    let order: { x: number; y: number; dragged: boolean } | null = null;
+    let orderEnded = -Infinity;
+
     if (picking !== undefined) {
         canvas.addEventListener("contextmenu", (event) => {
             event.preventDefault();
+            // A mouse's right-click orders as it is let go; this is a long press.
+            if (order !== null || performance.now() - orderEnded < 500) return;
+            const at = world(event.clientX, event.clientY);
+            picking.commanded(at.x, at.y, reachOf(event), queued(event));
+        });
+        canvas.addEventListener("pointerdown", (event) => {
+            if (event.pointerType !== "mouse" || event.button !== 2) return;
+            canvas.setPointerCapture(event.pointerId);
+            order = { x: event.clientX, y: event.clientY, dragged: false };
+        });
+        canvas.addEventListener("pointermove", (event) => {
+            if (order !== null && Math.hypot(event.clientX - order.x, event.clientY - order.y) > CLICK_SLOP_PX) order.dragged = true;
+        });
+        canvas.addEventListener("pointerup", (event) => {
+            if (order === null || event.button !== 2) return;
+            const dragged = order.dragged;
+            order = null;
+            orderEnded = performance.now();
+            if (dragged) return;
             const at = world(event.clientX, event.clientY);
             picking.commanded(at.x, at.y, reachOf(event), queued(event));
         });

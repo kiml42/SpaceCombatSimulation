@@ -3,7 +3,7 @@ import type { Camera } from "./camera.js";
 import type { Light } from "./light.js";
 import { pixiView } from "./pixiView.js";
 import { threeView } from "./three/threeView.js";
-import { EDITOR_ANGLE, setViewAngle, viewAngle } from "./three/viewAngle.js";
+import { EDITOR_ANGLE, letGo, setViewAngle, shownAngle, swingBy, viewAngle } from "./three/viewAngle.js";
 
 /**
  * What draws a battle on a canvas of its own: Pixi (render/pixiView.ts) or
@@ -30,6 +30,9 @@ export interface Projection {
     toWorld(px: number, py: number): { x: number; y: number };
     toCanvas(x: number, y: number): { px: number; py: number };
 }
+
+/** How far a right-button press moves before it swings the camera rather than giving an order, CSS pixels. */
+export const RIGHT_SLOP_PX = 4;
 
 /** Each canvas taking input over a view, and the view under it. */
 const under = new WeakMap<HTMLCanvasElement, () => LayerView>();
@@ -121,7 +124,7 @@ export function setRendererChoice(choice: RendererChoice): void {
 export function viewOf(canvas: HTMLCanvasElement, choice: RendererChoice = rendererChoice(), editor = false): LayerView {
     if (choice === "pixi") return pixiView(canvas) as unknown as LayerView;
     if (choice === "three") return threeView(canvas);
-    return threeView(canvas, choice === "three-layers" ? "layers" : "stats", editor ? () => EDITOR_ANGLE : viewAngle);
+    return threeView(canvas, choice === "three-layers" ? "layers" : "stats", editor ? () => EDITOR_ANGLE : shownAngle);
 }
 
 /**
@@ -163,21 +166,40 @@ export function layerUnder(
     };
     window.addEventListener(EVENT, swap);
     // In 3D, Alt-drag or a middle-button drag turns and tilts the camera, before the view's own handlers see it.
+    // A right-button drag swings it for as long as it is held; a right-click without one is still an order.
     let swinging: { x: number; y: number } | null = null;
+    let right: { x: number; y: number; swung: boolean } | null = null;
     const down = (event: PointerEvent): void => {
-        if (editor || !isSolid(rendererChoice()) || !(event.altKey || event.button === 1)) return;
+        if (editor || !isSolid(rendererChoice())) return;
+        if (event.pointerType === "mouse" && event.button === 2) {
+            right = { x: event.clientX, y: event.clientY, swung: false };
+            return;
+        }
+        if (!(event.altKey || event.button === 1)) return;
         event.stopImmediatePropagation();
         event.preventDefault();
         swinging = { x: event.clientX, y: event.clientY };
     };
     const move = (event: PointerEvent): void => {
+        if (right !== null) {
+            if (!right.swung && Math.hypot(event.clientX - right.x, event.clientY - right.y) <= RIGHT_SLOP_PX) return;
+            right.swung = true;
+            swingBy(-(event.clientY - right.y) * 0.3, -(event.clientX - right.x) * 0.4);
+            right.x = event.clientX;
+            right.y = event.clientY;
+            return;
+        }
         if (swinging === null) return;
         const at = viewAngle();
         setViewAngle({ turn: at.turn - (event.clientX - swinging.x) * 0.4, tilt: at.tilt - (event.clientY - swinging.y) * 0.3 });
         swinging = { x: event.clientX, y: event.clientY };
     };
-    const up = (): void => {
+    const up = (event: PointerEvent): void => {
         swinging = null;
+        if (right !== null && event.button === 2) {
+            if (right.swung) letGo();
+            right = null;
+        }
     };
     over.addEventListener("pointerdown", down, { capture: true });
     window.addEventListener("pointermove", move);
