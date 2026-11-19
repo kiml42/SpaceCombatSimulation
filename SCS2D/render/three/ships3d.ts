@@ -38,8 +38,8 @@ import {
 } from "../light.js";
 import { BARREL, fillColour, isFighterModule, moduleFills, paintedSide, type Fill } from "../moduleFills.js";
 import { parseColour } from "../pixiCanvas.js";
-import { fighterColours, shipColours } from "../teams.js";
-import type { Affine } from "../livery.js";
+import { fighterColours, shipColours, teamLivery } from "../teams.js";
+import { patternColour, patternTile, patternTransform, tileKey, type Affine } from "../livery.js";
 import { WEAR_TILE, wearLevel, wearSeed, wearTile, wearTransform } from "../wear.js";
 import { triangulate } from "./threeCanvas.js";
 
@@ -92,20 +92,28 @@ class Builder {
     c = 1;
     s = 0;
     z = 0;
+    /** How far what is built is turned from the module's frame, which a texture is laid in. */
+    private tc = 1;
+    private ts = 0;
 
-    place(x: number, y: number, angle: number, z: number): void {
+    place(x: number, y: number, angle: number, z: number, turn = 0): void {
         this.x = x;
         this.y = y;
         this.c = Math.cos(angle);
         this.s = Math.sin(angle);
         this.z = z;
+        this.tc = Math.cos(turn);
+        this.ts = Math.sin(turn);
     }
 
     private vertex(px: number, py: number, pz: number, nx: number, ny: number, nz: number, r: number, g: number, b: number): void {
         this.pos.push(this.x + px * this.c - py * this.s, this.y + px * this.s + py * this.c, this.z + pz);
         this.nor.push(nx * this.c - ny * this.s, nx * this.s + ny * this.c, nz);
         this.col.push(r, g, b);
-        if (this.uvMap !== null) this.uv.push(...this.uvMap(px, py, pz, nx, ny, nz));
+        if (this.uvMap !== null) {
+            const [c, s] = [this.tc, this.ts];
+            this.uv.push(...this.uvMap(px * c - py * s, px * s + py * c, pz, nx * c - ny * s, nx * s + ny * c, nz));
+        }
     }
 
     /** A triangle in the module's frame, its normal worked out from its corners. */
@@ -383,18 +391,31 @@ export function moduleDepth(design: ShipDesign, i: number, depths: Depths): numb
     return m.weaponsLayer && !isDomed(kind) ? THICK : THIN;
 }
 
-/** A ship's modules as one model, in its own frame, its middle at the deck, and its worn modules again, a model a level of wear. */
-function build(ship: ShipView, depths: Depths): { model: BufferGeometry; worn: Map<number, BufferGeometry> } {
+/** A livery's pattern over the fills it is laid on, in one colour, as a model. */
+interface Patterned {
+    readonly geometry: BufferGeometry;
+    readonly key: string;
+    readonly tile: HTMLCanvasElement | OffscreenCanvas;
+}
+
+/**
+ * A ship's modules as one model, in its own frame, its middle at the deck; its
+ * worn modules again, a model a level of wear; and its liveries' patterns, a
+ * model a tile.
+ */
+function build(ship: ShipView, depths: Depths): { model: BufferGeometry; worn: Map<number, BufferGeometry>; patterned: Patterned[] } {
     const design = ship.currentStructure;
     const base = new Builder();
     const wear = new Map<number, Builder>();
+    const patterns = new Map<string, { builder: Builder; tile: HTMLCanvasElement | OffscreenCanvas }>();
     const seed = wearSeed(ship);
     for (let i = 0; i < design.modules.length; i++) {
         if (ship.drawn?.[i] === false) continue;
         const m = design.modules[i]!;
         const spec = m.spec;
         const integrity = ship.integrity?.[i] ?? 1;
-        const emit = (b: Builder): void => {
+        /** The module into `b`: all of it, or only fill `only`. */
+        const emit = (b: Builder, only = -1): void => {
             const fighterPart = isFighterModule(design, i) && !design.fighter;
             const side = paintedSide(ship, i);
             const colours = isFighterModule(design, i) ? fighterColours(side) : shipColours(side);
@@ -406,6 +427,7 @@ function build(ship: ShipView, depths: Depths): { model: BufferGeometry; worn: M
             moduleFills(spec, fillColour(spec, colours), colours, integrity, fills, drawnMounts(design, i).polygons);
             const half = depth / 2;
             if (spec.kind === "engine") {
+                if (only >= 0) return;
                 const layout = engineLayout(spec);
                 const l = spec.length / 2;
                 const w = spec.width / 2;
@@ -504,7 +526,12 @@ function build(ship: ShipView, depths: Depths): { model: BufferGeometry; worn: M
                         if (t > -l && t < l) cuts.push(t);
                     }
                 cuts.sort((a, c) => a - c);
-                if (!long) b.place(m.x, m.y, m.angle + Math.PI / 2, z);
+                if (only > 0) {
+                    const fill = fills[only]!;
+                    b.prism(fill.points, half - STACK, half + STACK, shade(rgbOf(fill.colour)));
+                    return;
+                }
+                if (!long) b.place(m.x, m.y, m.angle + Math.PI / 2, z, Math.PI / 2);
                 for (let c = 0; c + 1 < cuts.length; c++) {
                     const x0 = cuts[c]!;
                     const x1 = cuts[c + 1]!;
@@ -513,11 +540,14 @@ function build(ship: ShipView, depths: Depths): { model: BufferGeometry; worn: M
                     b.bar(x0, x1, across, half, open(mid, 1), open(mid, -1), rgb);
                 }
                 if (!long) b.place(m.x, m.y, m.angle, z);
+                if (only === 0) return;
                 fills.slice(1).forEach((fill) => b.prism(fill.points, half - STACK, half + STACK, shade(rgbOf(fill.colour))));
                 return;
             }
-            fills.forEach((fill, k) => b.prism(fill.points, -half - k * STACK, half + k * STACK, shade(rgbOf(fill.colour))));
-            if (isDomed(spec.kind)) b.dome(0, 0, half, domeRadius(spec), shade(rgbOf(colours.highlight ?? colours.pivot)));
+            fills.forEach((fill, k) => {
+                if (only < 0 || only === k) b.prism(fill.points, -half - k * STACK, half + k * STACK, shade(rgbOf(fill.colour)));
+            });
+            if (only < 0 && isDomed(spec.kind)) b.dome(0, 0, half, domeRadius(spec), shade(rgbOf(colours.highlight ?? colours.pivot)));
         };
         emit(base);
         const level = spec.kind === "rock" || spec.kind === "kernel" ? 0 : wearLevel(integrity);
@@ -527,10 +557,40 @@ function build(ship: ShipView, depths: Depths): { model: BufferGeometry; worn: M
             worn.uvMap = wearUv(wearTransform(design, i, seed));
             emit(worn);
         }
+        // A livery's pattern over each fill in the hull's tones, as Pixi lays it (canvas2d.ts's `fillModule`), unless it is burnt.
+        const side = paintedSide(ship, i);
+        const livery = spec.kind === "rock" || spec.kind === "kernel" || integrity <= 0 ? undefined : teamLivery(side);
+        if (livery !== undefined && livery.pattern !== "none") {
+            const colours = isFighterModule(design, i) ? fighterColours(side) : shipColours(side);
+            moduleFills(spec, fillColour(spec, colours), colours, integrity, fills, drawnMounts(design, i).polygons);
+            const overs = fills.map((fill) => patternColour(spec.kind, fill.colour, colours));
+            const t = patternTransform(livery, design, i);
+            overs.forEach((over, k) => {
+                if (over === null) return;
+                const tile = patternTile(livery, over);
+                if (tile === null) return;
+                const key = tileKey(livery, over);
+                let pattern = patterns.get(key);
+                if (pattern === undefined) patterns.set(key, (pattern = { builder: new Builder(), tile }));
+                pattern.builder.uvMap = tileUv(t, tile.width, tile.height);
+                emit(pattern.builder, k);
+            });
+        }
     }
     const worn = new Map<number, BufferGeometry>();
     for (const [level, b] of wear) worn.set(level, b.geometry());
-    return { model: base.geometry(), worn };
+    const patterned = [...patterns].map(([key, { builder, tile }]) => ({ geometry: builder.geometry(), key, tile }));
+    return { model: base.geometry(), worn, patterned };
+}
+
+/** Where on a tile laid through `t` (tile pixels to the module's frame) a point is, seen from above: down a side, as on its top. */
+function tileUv(t: Affine, width: number, height: number): (x: number, y: number) => readonly [number, number] {
+    const det = t.a * t.d - t.b * t.c;
+    return (x, y) => {
+        const dx = x - t.e;
+        const dy = y - t.f;
+        return [(t.d * dx - t.c * dy) / det / width, (-t.b * dx + t.a * dy) / det / height];
+    };
 }
 
 /**
@@ -798,11 +858,18 @@ export class Ships3D {
         this.empty(kept);
         const built = build(ship, depths);
         kept.model.geometry = built.model;
+        // Over the model's own faces: a livery, then wear over that.
+        for (const { geometry, key, tile } of built.patterned) {
+            const mesh = new Mesh(geometry, this.patternMaterial(key, tile));
+            mesh.receiveShadow = true;
+            mesh.renderOrder = 1;
+            kept.group.add(mesh);
+            kept.worn.push(mesh);
+        }
         for (const [level, geometry] of built.worn) {
             const mesh = new Mesh(geometry, this.wearMaterial(level));
             mesh.receiveShadow = true;
-            // Over the model's own faces.
-            mesh.renderOrder = 1;
+            mesh.renderOrder = 2;
             kept.group.add(mesh);
             kept.worn.push(mesh);
         }
@@ -815,6 +882,31 @@ export class Ships3D {
             kept.group.remove(mesh);
         }
         kept.worn.length = 0;
+    }
+
+    private readonly patternMaterials = new Map<string, MeshLambertMaterial>();
+
+    /** A livery's tile, repeating, the right way up, lit as the hull is and laid just over it. */
+    private patternMaterial(key: string, tile: HTMLCanvasElement | OffscreenCanvas): MeshLambertMaterial {
+        let material = this.patternMaterials.get(key);
+        if (material === undefined) {
+            const map = new CanvasTexture(tile as HTMLCanvasElement);
+            map.colorSpace = NoColorSpace;
+            map.wrapS = RepeatWrapping;
+            map.wrapT = RepeatWrapping;
+            map.flipY = false;
+            map.anisotropy = 4;
+            material = new MeshLambertMaterial({
+                map,
+                transparent: true,
+                depthWrite: false,
+                polygonOffset: true,
+                polygonOffsetFactor: -1,
+                polygonOffsetUnits: -4,
+            });
+            this.patternMaterials.set(key, material);
+        }
+        return material;
     }
 
     private readonly wearMaterials = new Map<number, MeshLambertMaterial>();
@@ -863,7 +955,20 @@ function keyOf(ship: ShipView, depths: Depths): string {
         const worn = wearLevel(ship.integrity?.[i] ?? 1).toString(17);
         key += drawn ? (burnt ? "x" : `${ship.sides?.[i] ?? ship.team}${worn}`) : "-";
     }
+    // Each side's colours and livery, so a change to either is seen.
+    for (let side = -1; side < SIDES_KEYED; side++) key += `|${idOf(shipColours(side))}.${idOf(teamLivery(side))}`;
     return key + designId(design);
+}
+
+/** Sides whose colours a model's key follows; enough for any battle's. */
+const SIDES_KEYED = 8;
+const ids = new WeakMap<object, number>();
+let nextId = 0;
+function idOf(thing: object | undefined): number {
+    if (thing === undefined) return -1;
+    let id = ids.get(thing);
+    if (id === undefined) ids.set(thing, (id = nextId++));
+    return id;
 }
 
 const designIds = new WeakMap<ShipDesign, number>();
