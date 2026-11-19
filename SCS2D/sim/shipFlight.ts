@@ -306,7 +306,8 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
                 ships.destY[i] = at.y;
                 // Round whatever stands between it and what it rams, by a corner (`shipRoute`), then straight in.
                 if (shipRoute.route(ships, bodies, i, b, at.x, at.y, target, shipRoute.GOAL_CLEAR, ROUTE)) {
-                    seek(ships, bodies, b, ROUTE, order.approachSpeed, URGE_REFERENCE);
+                    const fast = min(order.approachSpeed, cornerSpeed(ships, bodies, i, b, ROUTE, at.x, at.y));
+                    seek(ships, bodies, b, ROUTE, fast, URGE_REFERENCE);
                     wantAngle = atan2(ROUTE.y - bodies.y[b]!, ROUTE.x - bodies.x[b]!);
                 } else charge(ships, bodies, i, b, at, order.approachSpeed, tb);
                 ships.intent = HURRY;
@@ -970,7 +971,9 @@ export function charge(ships: Ships, bodies: Bodies, i: number, b: number, at: S
     }
     const ux = dx / range;
     const uy = dy / range;
-    const closing = (bodies.vx[b]! - at.vx) * ux + (bodies.vy[b]! - at.vy) * uy;
+    const rvx = bodies.vx[b]! - at.vx;
+    const rvy = bodies.vy[b]! - at.vy;
+    const closing = rvx * ux + rvy * uy;
     const settle = ships.doctrines[i]!.approach.ramSettle;
     const toGo = closing > 0 ? range / closing : Infinity;
     const share = settle > 0 ? clamp((toGo - settle) / settle, 0, 1) : 1;
@@ -980,8 +983,40 @@ export function charge(ships: Ships, bodies: Bodies, i: number, b: number, at: S
     const friend = !ships.designs[i]!.fighter && shipAim.friendBetween(ships, bodies, i, b, at.x, at.y, tb);
     const blocked = friend || shipAim.blockingRock(ships, bodies, x, y, at.x, at.y, b, tb) >= 0;
     // Never kept faster than it was told to hit at.
-    const want = blocked ? min(speed, max(0, closing)) : min(speed, closing + (speed - closing) * share);
+    let want = blocked ? min(speed, max(0, closing)) : min(speed, closing + (speed - closing) * share);
+    // Drifting across the line by more than the target is wide in the time it
+    // will take to arrive, it misses unless it takes the drift out first. Its
+    // push goes along the change of velocity it asks for, so the more of that
+    // is speeding up the less goes into the drift: it speeds up only by what
+    // still leaves enough across to take the drift out in the time it has,
+    // and holds its speed if none would. A ram that sped up at where the
+    // target was put a sliver of its push into the drift and flew past.
+    const drift = abs(rvx * uy - rvy * ux);
+    const push = pushAbility(ships, bodies, i, b);
+    if (push > 0 && drift * range > bodies.radius[tb]! * max(0, closing) && closing > 0) {
+        const spare = push * (range / closing - ships.pushDelay);
+        want = min(want, closing + (spare > drift ? sqrt(spare * spare - drift * drift) : 0));
+    }
     urge(ships, URGE_REFERENCE, at.vx + ux * want, at.vy + uy * want);
+}
+
+/**
+ * How fast ship `i` may make for corner `corner` on its way to (`gx`, `gy`),
+ * m/s, so the turn there is one it can make on its push: the change of
+ * velocity the turn asks, twice the speed by the sine of half the angle, in
+ * the time it has to the corner.
+ */
+function cornerSpeed(ships: Ships, bodies: Bodies, i: number, b: number, corner: Spot, gx: number, gy: number): number {
+    const ax = corner.x - bodies.x[b]!;
+    const ay = corner.y - bodies.y[b]!;
+    const bx = gx - corner.x;
+    const by = gy - corner.y;
+    const la = length(ax, ay);
+    const lb = length(bx, by);
+    const push = pushAbility(ships, bodies, i, b);
+    if (!(la > 0) || !(lb > 0) || !(push > 0)) return Infinity;
+    const halfSine = sqrt(max(0, (1 - (ax * bx + ay * by) / (la * lb)) / 2));
+    return sqrt((push * la) / max(2 * halfSine, CORNER_FLOOR));
 }
 
 export function hold(
@@ -1814,6 +1849,9 @@ export interface HitCircle {
 }
 const OWN_CIRCLE: HitCircle = { x: 0, y: 0, vx: 0, vy: 0, r: 0 };
 const THEIR_CIRCLE: HitCircle = { x: 0, y: 0, vx: 0, vy: 0, r: 0 };
+
+/** The least turn `cornerSpeed` plans for at a corner, as twice the sine of half its angle: about six degrees. */
+const CORNER_FLOOR = 0.1;
 
 /** The corner a ship closing on its target makes for, when it has one. */
 const ROUTE: Spot = { x: 0, y: 0, vx: 0, vy: 0, radius: 0 };
