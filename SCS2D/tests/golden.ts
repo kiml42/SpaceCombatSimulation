@@ -40,54 +40,54 @@ export const GOLDEN: Record<ScenarioName, string> = {
     tumble: "52118178",
     // bodies=9 inFlight=65 projectilesPending=0 projectileHits=1688 · 14.7 µs/step
     gunnery: "b2054d50",
-    // ships=3 inFlight=23 p.fired=117 p.hits=392 b.fired=0 b.hits=0 contacts=120 bumps=1 crashes=0 severed=1 culled=0 scrap=31.2t · 288.8 µs/step
-    duel: "71bc5a0f",
-    // ships=5 inFlight=2 p.fired=46 p.hits=178 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=2 culled=0 scrap=103.4t · 111.3 µs/step
-    railDuel: "5decbede",
-    // ships=4 inFlight=9 p.fired=146 p.hits=438 b.fired=2 b.hits=241 contacts=121 bumps=1 crashes=0 severed=3 culled=0 scrap=134.9t · 99.3 µs/step
-    lanceDuel: "78c2fdba",
-    // ships=7 inFlight=0 p.fired=0 p.hits=3 b.fired=40 b.hits=3520 contacts=70 bumps=2 crashes=7 severed=4 culled=0 scrap=46.1t · 137.1 µs/step
-    beamDuel: "f894969e",
-    // ships=2 inFlight=22 p.fired=42 p.hits=137 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=10.7t · 64.6 µs/step
+    // ships=4 inFlight=21 p.fired=138 p.hits=467 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=1 culled=0 scrap=44.3t · 298.5 µs/step
+    duel: "54ff3479",
+    // ships=3 inFlight=2 p.fired=45 p.hits=178 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=41.6t · 131.0 µs/step
+    railDuel: "238b85f9",
+    // ships=4 inFlight=7 p.fired=144 p.hits=413 b.fired=2 b.hits=243 contacts=248 bumps=0 crashes=0 severed=3 culled=0 scrap=132.1t · 148.5 µs/step
+    lanceDuel: "81d0f1c6",
+    // ships=7 inFlight=0 p.fired=0 p.hits=193 b.fired=41 b.hits=4233 contacts=131 bumps=1 crashes=3 severed=4 culled=0 scrap=55.3t · 193.9 µs/step
+    beamDuel: "7f8dd784",
+    // ships=2 inFlight=22 p.fired=42 p.hits=137 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=10.7t · 80.1 µs/step
     binary: "453f6c07",
-    // ships=5 inFlight=0 p.fired=131 p.hits=584 b.fired=0 b.hits=0 contacts=4 bumps=1 crashes=0 severed=1 culled=0 scrap=27.8t · 58.2 µs/step
-    kernels: "602bcd5e",
-    // ships=19 inFlight=0 p.fired=178 p.hits=723 b.fired=0 b.hits=0 contacts=1043 bumps=6 crashes=7 severed=10 culled=0 scrap=47.8t · 76.5 µs/step
+    // ships=4 inFlight=5 p.fired=193 p.hits=838 b.fired=0 b.hits=0 contacts=240 bumps=2 crashes=0 severed=2 culled=0 scrap=48.9t · 103.7 µs/step
+    kernels: "be7f823f",
+    // ships=19 inFlight=0 p.fired=178 p.hits=723 b.fired=0 b.hits=0 contacts=1043 bumps=6 crashes=7 severed=10 culled=0 scrap=47.8t · 81.9 µs/step
     asteroidField: "0b120949",
     // ships=7 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=2 bumps=2 crashes=0 severed=0 culled=0 scrap=-25.1t · 38.6 µs/step
     mining: "0095f392",
-    // ships=18 inFlight=0 p.fired=743 p.hits=2000 b.fired=0 b.hits=0 contacts=56 bumps=3 crashes=5 severed=1 culled=1 scrap=129.6t · 589.1 µs/step
-    rivalMines: "64c77bd0",
-    // ships=22 inFlight=29 p.fired=61 p.hits=49 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=0.6t · 515.2 µs/step
+    // ships=15 inFlight=0 p.fired=449 p.hits=1295 b.fired=0 b.hits=0 contacts=1519 bumps=4 crashes=6 severed=2 culled=2 scrap=103.1t · 682.4 µs/step
+    rivalMines: "8ce92dff",
+    // ships=22 inFlight=29 p.fired=61 p.hits=49 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=0.6t · 527.3 µs/step
     swarm: "b698fdf7",
-    // ships=302 inFlight=70 p.fired=366 p.hits=480 b.fired=0 b.hits=0 contacts=41 bumps=0 crashes=9 severed=4 culled=4 scrap=22.0t · 20421.4 µs/step
-    superSwarm: "90ca100b",
-    // ships=11 inFlight=0 p.fired=0 p.hits=62 b.fired=7 b.hits=744 contacts=204 bumps=3 crashes=6 severed=3 culled=0 scrap=27.2t · 129.1 µs/step
-    torpedoes: "d46e4789",
-    // ships=7 inFlight=0 p.fired=5 p.hits=85 b.fired=0 b.hits=0 contacts=114 bumps=0 crashes=5 severed=2 culled=0 scrap=32.9t · 113.5 µs/step
-    torpedoesGunPlatform: "a8c9b915",
-    // ships=4 inFlight=11 p.fired=102 p.hits=315 b.fired=0 b.hits=0 contacts=6 bumps=1 crashes=0 severed=2 culled=0 scrap=72.0t · 84.2 µs/step
-    disarm: "ac4c3d64",
-    // ships=3 inFlight=10 p.fired=88 p.hits=260 b.fired=43 b.hits=2279 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=48.3t · 97.3 µs/step
-    disarmBeams: "20b06932",
-    // ships=4 inFlight=1 p.fired=80 p.hits=312 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=1 culled=0 scrap=40.2t · 68.0 µs/step
-    disarmRails: "00faa5ce",
-    // ships=2 inFlight=10 p.fired=51 p.hits=182 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=2.7t · 72.3 µs/step
+    // ships=302 inFlight=80 p.fired=369 p.hits=480 b.fired=0 b.hits=0 contacts=41 bumps=0 crashes=9 severed=4 culled=4 scrap=22.0t · 23853.8 µs/step
+    superSwarm: "e9dd346d",
+    // ships=8 inFlight=0 p.fired=0 p.hits=70 b.fired=5 b.hits=656 contacts=53 bumps=0 crashes=4 severed=2 culled=0 scrap=30.4t · 95.0 µs/step
+    torpedoes: "5bd7a2c6",
+    // ships=5 inFlight=0 p.fired=5 p.hits=74 b.fired=0 b.hits=0 contacts=9 bumps=0 crashes=1 severed=0 culled=0 scrap=27.8t · 140.4 µs/step
+    torpedoesGunPlatform: "9d0a74c8",
+    // ships=5 inFlight=11 p.fired=124 p.hits=445 b.fired=0 b.hits=0 contacts=365 bumps=1 crashes=0 severed=3 culled=0 scrap=31.3t · 112.8 µs/step
+    disarm: "bedc6ad6",
+    // ships=4 inFlight=0 p.fired=50 p.hits=151 b.fired=37 b.hits=1716 contacts=0 bumps=0 crashes=0 severed=1 culled=0 scrap=51.7t · 101.4 µs/step
+    disarmBeams: "0f42fc9f",
+    // ships=3 inFlight=0 p.fired=79 p.hits=312 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=33.2t · 74.1 µs/step
+    disarmRails: "f7c58420",
+    // ships=2 inFlight=10 p.fired=51 p.hits=182 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=2.7t · 63.2 µs/step
     ordering: "47bd1f83",
-    // ships=10 inFlight=1 p.fired=61 p.hits=214 b.fired=22 b.hits=1816 contacts=5 bumps=0 crashes=1 severed=2 culled=2 scrap=83.5t · 212.3 µs/step
-    standoff: "ff51d0df",
-    // ships=22 inFlight=0 p.fired=215 p.hits=889 b.fired=15 b.hits=1410 contacts=1616 bumps=15 crashes=9 severed=28 culled=1 scrap=283.8t · 198.5 µs/step
-    column: "60c8ad0a",
-    // ships=4 inFlight=1 p.fired=16 p.hits=114 b.fired=0 b.hits=0 contacts=1 bumps=0 crashes=0 severed=2 culled=0 scrap=30.1t · 96.0 µs/step
-    split: "b12a18c6",
+    // ships=15 inFlight=0 p.fired=128 p.hits=451 b.fired=19 b.hits=1120 contacts=379 bumps=0 crashes=3 severed=8 culled=3 scrap=159.0t · 234.0 µs/step
+    standoff: "dddaced7",
+    // ships=23 inFlight=0 p.fired=222 p.hits=876 b.fired=15 b.hits=1400 contacts=1658 bumps=23 crashes=13 severed=31 culled=1 scrap=326.0t · 221.5 µs/step
+    column: "6b0cc081",
+    // ships=6 inFlight=1 p.fired=15 p.hits=106 b.fired=0 b.hits=0 contacts=1 bumps=0 crashes=0 severed=4 culled=0 scrap=34.3t · 91.6 µs/step
+    split: "b0e9a72f",
     // ships=20 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=25 bumps=0 crashes=3 severed=0 culled=0 scrap=74679.6t · 1660.5 µs/step
     crash: "0be427e9",
-    // ships=15 inFlight=0 p.fired=0 p.hits=28 b.fired=7 b.hits=2326 contacts=664 bumps=1 crashes=17 severed=10 culled=0 scrap=306.0t · 214.2 µs/step
-    torchRun: "db5cc0b7",
-    // ships=4 inFlight=43 p.fired=138 p.hits=418 b.fired=0 b.hits=0 contacts=31 bumps=3 crashes=0 severed=2 culled=0 scrap=26.3t · 104.2 µs/step
-    hooked: "c736aff8",
-    // ships=2 inFlight=0 p.fired=43 p.hits=294 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=8.8t · 46.1 µs/step
-    broadside: "103918d3",
+    // ships=7 inFlight=0 p.fired=0 p.hits=0 b.fired=8 b.hits=2163 contacts=74 bumps=2 crashes=1 severed=2 culled=0 scrap=36.1t · 207.8 µs/step
+    torchRun: "edb44525",
+    // ships=4 inFlight=53 p.fired=142 p.hits=473 b.fired=0 b.hits=0 contacts=44 bumps=2 crashes=0 severed=1 culled=0 scrap=21.1t · 118.6 µs/step
+    hooked: "5301961a",
+    // ships=2 inFlight=0 p.fired=43 p.hits=296 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=8.8t · 64.5 µs/step
+    broadside: "66bec2e2",
     // ships=3 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=1 bumps=1 crashes=0 severed=0 culled=0 scrap=5.1t · 36.1 µs/step
     salvageRun: "4d767312",
     // ships=1 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=0 severed=0 culled=0 scrap=6.0t · 20.2 µs/step
@@ -108,12 +108,12 @@ export const GOLDEN: Record<ScenarioName, string> = {
     rearm: "acc32eb0",
     // ships=3 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=4 bumps=2 crashes=0 severed=2 culled=0 scrap=0.1t · 85.5 µs/step
     tanker: "cbe039d9",
-    // ships=20 inFlight=0 p.fired=19 p.hits=65 b.fired=185 b.hits=6844 contacts=72 bumps=2 crashes=3 severed=1 culled=0 scrap=9.7t · 554.5 µs/step
-    beamCarrier: "be85d7ff",
-    // ships=2 inFlight=0 p.fired=58 p.hits=203 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=9.3t · 32.2 µs/step
-    passes: "9e0152cf",
-    // ships=2 inFlight=0 p.fired=2 p.hits=20 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=9.3t · 37.6 µs/step
-    circling: "fa60265c",
+    // ships=20 inFlight=0 p.fired=13 p.hits=96 b.fired=174 b.hits=6071 contacts=87 bumps=1 crashes=10 severed=2 culled=1 scrap=11.0t · 604.4 µs/step
+    beamCarrier: "41e6e4a3",
+    // ships=2 inFlight=0 p.fired=58 p.hits=218 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=9.3t · 29.9 µs/step
+    passes: "6b1e1b07",
+    // ships=2 inFlight=0 p.fired=2 p.hits=17 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=9.3t · 38.6 µs/step
+    circling: "8765d243",
     // ships=4 inFlight=0 p.fired=0 p.hits=0 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=0.0t · 42.5 µs/step
     orbiting: "a8e4bbbf",
 };
