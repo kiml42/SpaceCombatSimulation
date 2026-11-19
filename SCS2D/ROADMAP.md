@@ -18,8 +18,8 @@ inside any one file is not contiguous.
 
 ## How this document is maintained
 
-**Work items and open questions are GitHub issues**, not entries here: ideas, bugs, the pieces left of a
-step, and every open question. This file keeps the build order and what a finished step settled that later
+**Work items and open questions are [Linear](https://linear.app/space-combat-simulation/team/SPA/all) issues** (team `SPA`), not entries here: ideas, bugs, the pieces left of a
+step, and every open question. References written `#n` are GitHub issues, from before the move. This file keeps the build order and what a finished step settled that later
 work has to respect.
 
 - **Labels.** One type: `bug`, `feature`, `balance`, `refactor`, `perf` or `question`. Any number of
@@ -32,8 +32,8 @@ work has to respect.
   still to settle. `priority:high` with `size:small` is the quick win.
 - **A step in progress is a parent issue**, what is left of it its sub-issues.
 - **A `question` closes with its answer in DECISIONS.md**, in the same change that settles it; the PR says
-  `Closes #n`. An open issue reads as still open, so a settled one left open invites it to be re-litigated.
-- **An idea that will not be done is closed as "not planned"**, so it stays findable rather than being
+  `Closes SPA-n`, and the issue is closed when it merges. An open issue reads as still open, so a settled one left open invites it to be re-litigated.
+- **An idea that will not be done is moved to Canceled**, so it stays findable rather than being
   proposed again.
 
 **§8 is kept in three parts, so that what to build next is the first thing you read.**
@@ -936,7 +936,7 @@ What is left of the step should follow the shape already there:
 
 ## 12. Open questions
 
-**Open questions are [issues labelled `question`](https://github.com/kiml42/SpaceCombatSimulation/issues?q=is%3Aissue+is%3Aopen+label%3Aquestion).** Deliberately unresolved; decide when they
+**Open questions are Linear issues labelled `question`.** Deliberately unresolved; decide when they
 block something. Each kept the title it had here, so a reference such as "§12, 'Ambient occlusion'"
 finds its issue by title. Answering one is a decision: record it in DECISIONS.md and close the issue in
 the same change.

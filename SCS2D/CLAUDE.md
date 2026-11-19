@@ -16,10 +16,15 @@ all three, so "§12" means the same section wherever it is written:
 | **[ROADMAP.md](ROADMAP.md)** | §8 build order; §12 points at the open questions | Picking up work, or deferring a decision |
 | **[DECISIONS.md](DECISIONS.md)** | The Decision Log | Asking why something ended up the way it is |
 | **[GLOSSARY.md](GLOSSARY.md)** | What the game calls things on screen | Writing any label, tooltip, help or error a player reads |
-| **[GitHub issues](https://github.com/kiml42/SpaceCombatSimulation/issues)** | Bugs, ideas, work left and open questions | Picking up work |
+| **[Linear](https://linear.app/space-combat-simulation/team/SPA/all)** | Bugs, ideas, work left and open questions | Picking up work |
 
 Ideas, bugs and open questions are issues, labelled as ROADMAP.md's "How this document is maintained"
 describes. A `question` issue is closed by the change that records its answer in DECISIONS.md.
+
+Linear is reached through its GraphQL API (`https://api.linear.app/graphql`) with the key in
+`SCS_LINEAR_API_KEY`, sent as the `Authorization` header. The Linear MCP connector, where present, is a
+different workspace: don't file this project's issues through it. Issues are in team `SPA`. References
+written `#n` are GitHub issues from before the move.
 
 Before proposing a change that reverses a design decision, check **DESIGN.md §11 Rejected alternatives**.
 Those were settled deliberately with reasons recorded. Reopen one only with new information, and if it is
