@@ -304,7 +304,11 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
                 }
                 ships.destX[i] = at.x;
                 ships.destY[i] = at.y;
-                charge(ships, bodies, i, b, at, order.approachSpeed, tb);
+                // Round whatever stands between it and what it rams, by a corner (`shipRoute`), then straight in.
+                if (shipRoute.route(ships, bodies, i, b, at.x, at.y, target, shipRoute.GOAL_CLEAR, ROUTE)) {
+                    seek(ships, bodies, b, ROUTE, order.approachSpeed, URGE_REFERENCE);
+                    wantAngle = atan2(ROUTE.y - bodies.y[b]!, ROUTE.x - bodies.x[b]!);
+                } else charge(ships, bodies, i, b, at, order.approachSpeed, tb);
                 ships.intent = HURRY;
             } else if (ships.guarding[i] !== 1) {
                 hold(ships, bodies, i, b, at, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE, wantAngle, target);
