@@ -348,8 +348,8 @@ try {
                 });
                 // WebGL starts a moment after the page does.
                 await page.waitForTimeout(1000);
-                const fleets = page.getByRole("button", { name: /^Fleets:/ });
-                if ((await fleets.textContent()) !== `Fleets: ${values.strips}`) await fleets.click();
+                // Shown unless kept hidden, which the strips key turns (host/battleView.ts).
+                if (values.strips === "hidden") await page.keyboard.press("t");
                 for (const scene of group) {
                     // Whether a new scene plays depends on the last; each is played to the same moment, so every run shows the same frame.
                     // "Scene:Variant" picks a variant too.
