@@ -21,7 +21,13 @@ export async function launchChromium(): Promise<Browser> {
 }
 
 /** Help seen once already on every page, so a first visit's dialog stands over nothing a test clicks. */
-const SEEN_HELP = ["scs2d.help.ship"] as const;
+const SEEN_HELP = [
+    "scs2d.help.ship",
+    "scs2d.help.skirmishLoss",
+    "scs2d.help.skirmishWin",
+    "scs2d.help.skirmishCard",
+    "scs2d.help.skirmishRound",
+] as const;
 
 /**
  * Every page the browser opens has the ship editor's help marked seen as it
