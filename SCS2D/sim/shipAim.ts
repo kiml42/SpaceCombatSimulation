@@ -480,8 +480,8 @@ export function partPoint(ships: Ships, bodies: Bodies, tb: number, design: Ship
  * passing over the hull to try again beats being spent on the wrong thing.
  * So the best of those with a clear line, nearest first; and only if none has
  * one, the best of the rest, held above the deck until a line opens. Below
- * its doctrine's `ramAboveFuel` it has not the fuel to come round, and goes
- * for the best of what lies on the deck instead.
+ * its doctrine's `ramSelectiveFuel` it has not the fuel to come round for a
+ * miss, and goes for the whole ship.
  */
 export function ramPart(ships: Ships, bodies: Bodies, i: number, b: number, target: number, tb: number): number {
     const doctrine = ships.doctrines[i]!.targeting;
@@ -489,8 +489,8 @@ export function ramPart(ships: Ships, bodies: Bodies, i: number, b: number, targ
     const design = ships.designs[target]!;
     const c = cos(bodies.angle[tb]!);
     const s = sin(bodies.angle[tb]!);
+    if (lowForAPass(ships, i, b)) return WHOLE_SHIP;
     const layers = shipLayers(ships, target);
-    const low = lowForAPass(ships, i, b);
     let best = WHOLE_SHIP;
     let bestRank = 0;
     let bestRange = 0;
@@ -502,7 +502,6 @@ export function ramPart(ships: Ships, bodies: Bodies, i: number, b: number, targ
         const mx = bodies.x[tb]! + module.x * c - module.y * s;
         const my = bodies.y[tb]! + module.x * s + module.y * c;
         const tall = (moduleLayers(module, layers) & WEAPONS_LAYER) !== 0;
-        if (tall && low) continue;
         // A clear line ranks above any blocked one, and then by weight.
         const blocked = tall && tallBetween(ships, bodies, b, tb, design, layers, k, mx, my);
         const rank = (blocked ? 0 : 1e9) + weight;
@@ -515,9 +514,9 @@ export function ramPart(ships: Ships, bodies: Bodies, i: number, b: number, targ
     return best;
 }
 
-/** Whether ship `i`, on body `b`, is down to its doctrine's `ramAboveFuel` of a full tank. */
+/** Whether ship `i`, on body `b`, is down to its doctrine's `ramSelectiveFuel` of a full tank. */
 function lowForAPass(ships: Ships, i: number, b: number): boolean {
-    const share = ships.doctrines[i]!.approach.ramAboveFuel;
+    const share = ships.doctrines[i]!.approach.ramSelectiveFuel;
     const core = ships.designs[i]!.cores[0];
     if (!(share > 0) || core === undefined) return false;
     const held = ships.fuel.pieceHeld(b, core);
