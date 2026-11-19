@@ -25,7 +25,8 @@ import { addFlame, addTurret, attackBearing } from "./attack.js";
 import { interceptTime } from "./turrets.js";
 import { edgeFade } from "./doctrine.js";
 import type { SpatialGrid } from "./index.js";
-import { moduleRadius, SLIPWAY_CLEAR_TIME } from "./modules.js";
+import { moduleOutline, moduleRadius, SLIPWAY_CLEAR_TIME } from "./modules.js";
+import { distanceToOutline, shapeOf } from "./shape.js";
 import * as shipSupply from "./shipSupply.js";
 import * as shipBreakup from "./shipBreakup.js";
 import * as shipForage from "./shipForage.js";
@@ -432,16 +433,7 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
     // would swing the hull into a neighbour is not started, and one already
     // under way is stopped.
     const touching = order !== undefined && (order.ram || order.grapple || order.land || order.dock) ? target : NO_TARGET;
-    if (wantRate !== 0 && turnBlocked(ships, bodies, i, b, layout, wantRate > 0 ? 1 : -1, touching)) {
-        // The long way round, if that is clear: pressed against a rock, the short
-        // way swings an end into it, and a ship hurrying, which burns only as it
-        // comes round, would otherwise sit there until its way in cleared.
-        const back = error >= 0 ? error - 2 * PI : error + 2 * PI;
-        const sense = back >= 0 ? 1 : -1;
-        const alpha = inertia > 0 ? layout.maxTorque(-sense) / inertia : 0;
-        const longWay = min(brakingRate(back, alpha, dt), (back >= 0 ? back : -back) / HEADING_SETTLE_TIME);
-        wantRate = spin === 0 && !turnBlocked(ships, bodies, i, b, layout, sense, touching) ? sense * longWay : 0;
-    }
+    if (wantRate !== 0 && turnBlocked(ships, bodies, i, b, layout, wantRate > 0 ? 1 : -1, touching)) wantRate = 0;
     const localTorque = dt > 0 ? (inertia * (wantRate - bodies.angularVel[b]!)) / dt : 0;
 
     // Engines the designer meant as weapons, lit because something worth
@@ -690,6 +682,12 @@ export function burnOrFight(
  * hull needs to stop turning that way, from the rate it has, plus
  * `TURN_CLEARANCE_RADII`.
  */
+/** Spin below which a body's modules are measured by their outlines in `turnBlocked`, rad/s. */
+const STILL_SPIN = 1e-3;
+
+/** Scratch for a module's outline, for `turnBlocked`. */
+const OUTLINE: number[] = [];
+
 export function turnBlocked(
     ships: Ships,
     bodies: Bodies,
@@ -756,7 +754,16 @@ export function turnBlocked(
                 if (dx * dx + dy * dy > reach * reach * (1 + 1e-9) + 1e-9) continue;
                 // Anticlockwise carries this module along (-ry, rx).
                 if (!(sense * (-ry * dx + rx * dy) > 0)) continue;
-                if (length(dx, dy) - size - sizes[q]! < room) return true;
+                if (!(length(dx, dy) - size - sizes[q]! < room)) continue;
+                // A wedge of a rock is far smaller than the circle round it, which
+                // reaches hundreds of metres past its face: so by its own outline,
+                // unless it is spinning, when its faces sweep the circle anyway.
+                if (shapeOf(n.spec) === null || abs(bodies.angularVel[ob]!) > STILL_SPIN) return true;
+                const px = x + rx - ox;
+                const py = y + ry - oy;
+                const count = moduleOutline(n.spec, OUTLINE);
+                const at = distanceToOutline(OUTLINE, count, px * oc + py * os - n.x + n.spec.x, -px * os + py * oc - n.y + n.spec.y);
+                if (at - size < room) return true;
             }
         }
     }
