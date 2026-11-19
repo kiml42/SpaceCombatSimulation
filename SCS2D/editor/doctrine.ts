@@ -64,7 +64,7 @@ const TARGETING_ROWS: readonly DoctrineRow[] = [
     {
         field: "sightWeight",
         label: "clear shot",
-        hint: "Prefer what nothing else is in the way of: a friend, a wreck, or another enemy",
+        hint: "Prefer what nothing else is in the way of, by how much of it can be seen, and what is hidden by how far it would have to move to be seen: a ship behind a friend is easier to get at than one deep behind a rock",
         step: 10,
     },
     {

@@ -29,8 +29,8 @@ export const DOCTRINE_PRESETS: readonly DoctrinePreset[] = [
     },
     {
         name: "Sniper",
-        hint: "Holds at the edge of its reach, however big the target, and keeps away from anything that closes",
-        targeting: { closingWeight: 30 },
+        hint: "Holds at the edge of its reach, however big the target, keeps away from anything that closes, and goes for what it can see",
+        targeting: { closingWeight: 30, sightWeight: 400 },
         approach: { standoffRadii: 10000, standoff: 0.95, tolerance: 0.05, fleeMargin: 2 },
     },
     {
@@ -76,8 +76,8 @@ export const DOCTRINE_PRESETS: readonly DoctrinePreset[] = [
     },
     {
         name: "Torpedo",
-        hint: "Goes for the biggest thing there is and rams it",
-        targeting: { preferredMass: 20, ramMass: 20, massWeight: 100 },
+        hint: "Goes for the biggest thing there is, behind a rock or not, and rams it",
+        targeting: { preferredMass: 20, ramMass: 20, massWeight: 100, sightWeight: 20 },
         approach: { ramRadii: 1000, ramArmed: 1, approachSpeed: 900 },
     },
 ];
