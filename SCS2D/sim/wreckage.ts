@@ -1,7 +1,7 @@
 import type { Bodies } from "./bodies.js";
 import { OUTLET_A, OUTLET_B, type Contacts } from "./collision.js";
 import { SHATTER } from "./damage.js";
-import { BOTH_LAYERS, moduleLayers } from "./hull.js";
+import { moduleLayers } from "./hull.js";
 import { abs, cos, log, max, min, pow, sin, sqrt, TAU } from "./math.js";
 import { ROUND_SHRAPNEL, ROUND_WRECKAGE, type Projectiles } from "./projectiles.js";
 import type { Rng } from "./rng.js";
@@ -299,7 +299,8 @@ export function spendHulls(ships: Ships, world: World, projectiles: Projectiles,
                     ttl: WRECKAGE_LIFE,
                     mass,
                     ship: i,
-                    layers: BOTH_LAYERS,
+                    // In what it was flying in: a fighter above the deck meets only what stands up out of it.
+                    layers: moduleLayers(placed, ships.layersOf(r)),
                     kind: ROUND_WRECKAGE,
                 });
             }

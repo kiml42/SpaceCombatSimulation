@@ -46,7 +46,7 @@ describe("the skirmish enemy's answer", () => {
     it("finds an enemy that beats the player on that seed, to the skirmish decision", { timeout: 120_000 }, () => {
         // A near mirror the player won is the quickest to answer: a Gunship is a long way past a Corvette.
         expect(decide(steady, slow, MIRROR_WON).winner).toBe(0);
-        const answering = new EnemySearch(steady, slow, MIRROR_WON, 11);
+        const answering = new EnemySearch(steady, slow, MIRROR_WON, 7);
         for (let slice = 0; slice < 200 && !answering.advance(5000); slice++);
         const found = answering.progress.found;
         expect(found).not.toBeNull();
@@ -56,11 +56,11 @@ describe("the skirmish enemy's answer", () => {
     // Two searches and a battle: the slowest test here.
     it("wins the round by its margin, or is no answer", { timeout: 240_000 }, () => {
         // Finishing more than all of itself ahead of the player cannot be done.
-        const answering = new EnemySearch(steady, slow, MIRROR_WON, 11, { answerMargin: 1.01 });
+        const answering = new EnemySearch(steady, slow, MIRROR_WON, 7, { answerMargin: 1.01 });
         for (let slice = 0; slice < 40 && !answering.advance(5000); slice++);
         expect(answering.progress.found).toBeNull();
         // The answer found by default finishes the round at least that far ahead.
-        const found = new EnemySearch(steady, slow, MIRROR_WON, 11);
+        const found = new EnemySearch(steady, slow, MIRROR_WON, 7);
         for (let slice = 0; slice < 200 && !found.advance(5000); slice++);
         const battle = customBattle(roundBattle(steady, found.progress.found!, MIRROR_WON));
         const activity = new Activity(2);
