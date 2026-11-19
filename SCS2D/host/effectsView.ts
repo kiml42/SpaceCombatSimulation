@@ -3,7 +3,7 @@ import { frame, type Camera } from "../render/camera.js";
 import { draw } from "../render/canvas2d.js";
 import { Flashes } from "../render/flashes.js";
 import { DEFAULT_LIGHT, type Light } from "../render/light.js";
-import { pixiUnder } from "../render/pixiView.js";
+import { fromMiddle, layerUnder, panBetween, worldAt as worldUnder } from "../render/layerView.js";
 import { EFFECTS_SCENES } from "./effectsScene.js";
 
 /**
@@ -26,7 +26,7 @@ export interface EffectsView {
 }
 
 export function effectsView(canvas: HTMLCanvasElement): EffectsView {
-    const stacked = pixiUnder(canvas);
+    const stacked = layerUnder(canvas);
     const camera: Camera = { x: 0, y: 0, scale: 8 };
     const snapshot = new Snapshot();
     const flashes = new Flashes();
@@ -90,13 +90,9 @@ export function effectsView(canvas: HTMLCanvasElement): EffectsView {
     const resized = new ResizeObserver(resize);
     resized.observe(canvas);
 
-    /** Canvas pixels per CSS pixel, for turning a pointer's movement into the camera's. */
-    const ratio = (): number => canvas.width / Math.max(1, canvas.getBoundingClientRect().width);
     const worldAt = (event: PointerEvent | WheelEvent): { x: number; y: number } => {
-        const rect = canvas.getBoundingClientRect();
-        const px = (event.clientX - rect.left) * ratio() - canvas.width / 2;
-        const py = (event.clientY - rect.top) * ratio() - canvas.height / 2;
-        return { x: camera.x + px / camera.scale, y: camera.y - py / camera.scale };
+        const at = fromMiddle(canvas, event.clientX, event.clientY);
+        return worldUnder(canvas, camera, at.px, at.py);
     };
     const wheel = (event: WheelEvent): void => {
         event.preventDefault();
@@ -112,8 +108,9 @@ export function effectsView(canvas: HTMLCanvasElement): EffectsView {
     };
     const move = (event: PointerEvent): void => {
         if (drag === null) return;
-        camera.x -= ((event.clientX - drag.x) * ratio()) / camera.scale;
-        camera.y += ((event.clientY - drag.y) * ratio()) / camera.scale;
+        const from = fromMiddle(canvas, drag.x, drag.y);
+        const to = fromMiddle(canvas, event.clientX, event.clientY);
+        panBetween(canvas, camera, from.px, from.py, to.px, to.py);
         drag = { x: event.clientX, y: event.clientY };
     };
     const up = (): void => {
