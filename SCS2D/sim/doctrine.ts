@@ -500,7 +500,7 @@ export interface Approach {
      * to fight or work with at all it withdraws whatever this says.
      */
     readonly fleeArmed: number;
-    /** How far off cover can be for a withdrawing ship to hide behind it, in its own radii. Zero never hides. */
+    /** How far off cover's edge it can be for a withdrawing ship to hide behind it, in its own radii. Zero never hides. */
     readonly hideRange: number;
     /** How big cover must be to hide behind, as a multiple of its own radius. */
     readonly hideSize: number;

@@ -3,6 +3,11 @@
   "name": "Torpedo Boat",
   "category": "Stock",
   "notes": "The Corvette with its bow gun swapped for a hold and a pad that builds torpedoes. It has no gun of its own, so it hides behind whatever cover it can find and leaves the fighting to what it builds.",
+  "doctrine": {
+    "approach": {
+      "hideRange": 40
+    }
+  },
   "hangar": {
     "Torpedo": {
       "formatVersion": 2,

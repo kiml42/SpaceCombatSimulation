@@ -1,5 +1,5 @@
 import type { Bodies } from "./bodies.js";
-import { cos, length, max, min, sin, sqrt } from "./math.js";
+import { cos, distanceToSegment, length, max, min, sin, sqrt } from "./math.js";
 import { moduleRadius } from "./modules.js";
 import * as shipFlight from "./shipFlight.js";
 import { type Ships, NO_TARGET, type Spot } from "./ships.js";
@@ -319,12 +319,4 @@ function add(x: number, y: number, r: number, ship: number, body: number, hull =
     oShip[obstacles] = ship;
     oBody[obstacles] = body;
     obstacles++;
-}
-
-function distanceToSegment(x: number, y: number, px: number, py: number, qx: number, qy: number): number {
-    const dx = qx - px;
-    const dy = qy - py;
-    const span = dx * dx + dy * dy;
-    const t = span > 0 ? max(0, min(1, ((x - px) * dx + (y - py) * dy) / span)) : 0;
-    return length(px + dx * t - x, py + dy * t - y);
 }
