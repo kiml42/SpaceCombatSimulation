@@ -18,8 +18,9 @@ all three, so "§12" means the same section wherever it is written:
 | **[GLOSSARY.md](GLOSSARY.md)** | What the game calls things on screen | Writing any label, tooltip, help or error a player reads |
 | **[Linear](https://linear.app/space-combat-simulation/team/SPA/all)** | Bugs, ideas, work left and open questions | Picking up work |
 
-Ideas, bugs and open questions are issues, labelled as ROADMAP.md's "How this document is maintained"
-describes. A `question` issue is closed by the change that records its answer in DECISIONS.md.
+Ideas, bugs and open questions are issues, with statuses, labels, priority and estimate as ROADMAP.md's "How
+this document is maintained" describes. A Question is closed by the change that records its answer in
+DECISIONS.md.
 
 Linear is reached through its GraphQL API (`https://api.linear.app/graphql`) with the key in
 `SCS_LINEAR_API_KEY`, sent as the `Authorization` header. The Linear MCP connector, where present, is a

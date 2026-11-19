@@ -19,19 +19,21 @@ inside any one file is not contiguous.
 ## How this document is maintained
 
 **Work items and open questions are [Linear](https://linear.app/space-combat-simulation/team/SPA/all) issues** (team `SPA`), not entries here: ideas, bugs, the pieces left of a
-step, and every open question. References written `#n` are GitHub issues, from before the move. This file keeps the build order and what a finished step settled that later
-work has to respect.
+step, and every open question. This file keeps the build order and what a finished step settled that later
+work has to respect. References written `#n` are GitHub issues from before the move; each one moved is
+closed there, labelled `moved-to-linear`, with a comment linking its Linear issue.
 
-- **Labels.** One type: `bug`, `feature`, `balance`, `refactor`, `perf` or `question`. Any number of
+- **Status.** `Idea` is recorded but not committed to; `Question` is an open design question; then
+  `Todo`, `In Progress` and `Done`.
+- **Labels.** At most one Type: `Feature`, `Bug`, `Balance`, `Refactor` or `Perf`. Any number of
   `area:` labels (`sim`, `weapons`, `pilot`, `doctrine`, `economy`, `evolution`, `editor`, `fleet-editor`,
-  `battle-ui`, `render`, `livery`, `skirmish`, `campaign`). `idea` marks something recorded but not
-  committed to.
-- **Priority and size**, at most one of each; none means not yet judged. `priority:high`, `priority:medium`
-  or `priority:low` is how much it matters, judged on its own. `size:small` is a session's work in one
-  area, `size:medium` a pull request or two, and `size:large` several, or new mechanism with design
-  still to settle. `priority:high` with `size:small` is the quick win.
+  `battle-ui`, `render`, `livery`, `skirmish`, `campaign`).
+- **Priority and estimate** are Linear's own fields; none means not yet judged. Priority (High, Medium,
+  Low) is how much it matters, judged on its own. Estimate S is a session's work in one area, M a pull
+  request or two, and L several, or new mechanism with design still to settle. High with S is the quick
+  win.
 - **A step in progress is a parent issue**, what is left of it its sub-issues.
-- **A `question` closes with its answer in DECISIONS.md**, in the same change that settles it; the PR says
+- **A Question closes with its answer in DECISIONS.md**, in the same change that settles it; the PR says
   `Closes SPA-n`, and the issue is closed when it merges. An open issue reads as still open, so a settled one left open invites it to be re-litigated.
 - **An idea that will not be done is moved to Canceled**, so it stays findable rather than being
   proposed again.
@@ -936,7 +938,7 @@ What is left of the step should follow the shape already there:
 
 ## 12. Open questions
 
-**Open questions are Linear issues labelled `question`.** Deliberately unresolved; decide when they
+**Open questions are Linear issues in the `Question` status.** Deliberately unresolved; decide when they
 block something. Each kept the title it had here, so a reference such as "§12, 'Ambient occlusion'"
 finds its issue by title. Answering one is a decision: record it in DECISIONS.md and close the issue in
 the same change.
