@@ -60,17 +60,6 @@ export function RendererField() {
                         />
                     </label>
                     <label>
-                        Turn {Math.round(angle.turn)}°
-                        <input
-                            id="viewTurn"
-                            type="range"
-                            min={0}
-                            max={359}
-                            value={angle.turn}
-                            onChange={(event) => change({ turn: Number(event.target.value) })}
-                        />
-                    </label>
-                    <label>
                         Lens {Math.round(angle.fov)}°
                         <input
                             id="viewFov"

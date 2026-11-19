@@ -1,7 +1,8 @@
 /**
  * How the 3D views look at the battle: a camera swung round the point the
  * 2D camera is on, tilted from straight down by `tilt`, from the side `turn`
- * says, through a lens `fov` wide. Clicks are found on the deck through it
+ * says, through a lens `fov` wide. Tilt and lens are settings; turn is only
+ * ever a right-drag's swing. Clicks are found on the deck through it
  * (`worldAt` in render/layerView.ts).
  */
 export interface ViewAngle {
@@ -29,18 +30,18 @@ export function viewAngle(): ViewAngle {
     if (current !== null) return current;
     try {
         const kept = JSON.parse(localStorage.getItem(KEY) ?? "null") as Partial<ViewAngle> | null;
-        current = { tilt: kept?.tilt ?? DEFAULT_ANGLE.tilt, turn: kept?.turn ?? DEFAULT_ANGLE.turn, fov: kept?.fov ?? DEFAULT_ANGLE.fov };
+        current = { tilt: kept?.tilt ?? DEFAULT_ANGLE.tilt, turn: 0, fov: kept?.fov ?? DEFAULT_ANGLE.fov };
     } catch {
         current = DEFAULT_ANGLE;
     }
     return current;
 }
 
-export function setViewAngle(change: Partial<ViewAngle>): void {
+export function setViewAngle(change: Partial<Omit<ViewAngle, "turn">>): void {
     const next = { ...viewAngle(), ...change };
-    current = { ...next, tilt: Math.max(0, Math.min(MOST_TILT, next.tilt)), turn: ((next.turn % 360) + 360) % 360 };
+    current = { ...next, tilt: Math.max(0, Math.min(MOST_TILT, next.tilt)) };
     try {
-        localStorage.setItem(KEY, JSON.stringify(current));
+        localStorage.setItem(KEY, JSON.stringify({ tilt: current.tilt, fov: current.fov }));
     } catch {
         // Kept for this page only.
     }
