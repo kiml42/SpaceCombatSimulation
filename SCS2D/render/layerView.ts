@@ -175,7 +175,7 @@ export function layerUnder(
         });
     };
     window.addEventListener(EVENT, swap);
-    // In 3D, Alt-drag or a middle-button drag up and down tilts the camera, before the view's own handlers see it.
+    // In 3D, Alt-drag up and down tilts the camera, before the view's own handlers see it; a middle drag still pans.
     // A right-button drag swings it for as long as it is held; a right-click without one is still an order.
     // An editor's angle is fixed, and it has no use for the right button, so takes it here.
     let swinging: { x: number; y: number } | null = null;
@@ -187,7 +187,7 @@ export function layerUnder(
             if (editor) event.stopImmediatePropagation();
             return;
         }
-        if (editor || !(event.altKey || event.button === 1)) return;
+        if (editor || !event.altKey) return;
         event.stopImmediatePropagation();
         event.preventDefault();
         swinging = { x: event.clientX, y: event.clientY };
