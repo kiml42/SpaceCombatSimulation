@@ -4376,7 +4376,11 @@ function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, came
                 ? legibleWidth(GLOW_CALIBRES * calibre, MIN_GLOW_PX, camera.scale) * exposure
                 : legibleWidth(calibre, MIN_TRACER_PX, camera.scale);
             ctx.globalAlpha = glowPass ? 1 : exposure;
-            fx?.along(ends.x0, ends.y0, ends.x1, ends.y1, fx.layerHeight(snapshot.projectileLayers[i] ?? 0));
+            if (fx !== null) {
+                // In the world's frame: the last streak left the context in its own.
+                ctx.setTransform(base);
+                fx.along(ends.x0, ends.y0, ends.x1, ends.y1, fx.layerHeight(snapshot.projectileLayers[i] ?? 0));
+            }
             drawStreak(ctx, base, image, ends.x0, ends.y0, ends.x1, ends.y1, width, vx, vy);
             fx?.flat();
         }
