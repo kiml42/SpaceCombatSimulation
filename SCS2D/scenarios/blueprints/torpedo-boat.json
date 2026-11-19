@@ -202,7 +202,7 @@
       "length": 5,
       "width": 6,
       "nozzle": 0.8333,
-      "thick": true
+      "barrels": 2
     },
     {
       "id": 5,
