@@ -327,6 +327,10 @@ function build(ship: ShipView, depths: Depths): { model: BufferGeometry; worn: M
                 const l = spec.length / 2;
                 const w = spec.width / 2;
                 const near = (a: number, b: number): boolean => Math.abs(a - b) < 1e-6;
+                const mounts = drawnMounts(design, i);
+                // What joins it to its neighbours is half its depth, and runs into it.
+                const joint = half / 2;
+                const firstMount = fills.length - mounts.polygons.length;
                 // Every chamber has the same outline, moved across.
                 const chamberTop: number[] = [];
                 for (let v = 0; v < layout.chamber.length; v += 2)
@@ -345,6 +349,10 @@ function build(ship: ShipView, depths: Depths): { model: BufferGeometry; worn: M
                         y1 = Math.max(y1, p[v + 1]!);
                     }
                     const y = (y0 + y1) / 2;
+                    if (k >= firstMount) {
+                        b.prism(p, -joint - k * STACK, joint + k * STACK, rgb);
+                        return;
+                    }
                     // A bell, behind the block: a cone from its exit to its throat, its inside
                     // a shallower one thickening towards the throat, which is black.
                     if (x1 <= layout.mouth + 1e-6 && p.length >= 6) {
@@ -371,8 +379,11 @@ function build(ship: ShipView, depths: Depths): { model: BufferGeometry; worn: M
                     }
                     // The pump, and a livery's band round it: a cylinder along the thrust.
                     if (p.length === 8 && near(y0, -w) && near(y1, w) && near(x1, l) && x0 >= layout.pumpAft - 1e-6) {
-                        const r = near(x0, layout.pumpAft) ? w : w * BAND_PROUD;
+                        const pump = near(x0, layout.pumpAft);
+                        const r = pump ? w : w * BAND_PROUD;
                         b.lying(x0, x1, 0, 0, r, r, Math.min(1, half / w), rgb);
+                        // Against something beside it, a block across it holds it there.
+                        if (pump && !mounts.round) b.prism(p, -joint, joint, rgb);
                         return;
                     }
                     b.prism(p, -half - k * STACK, half + k * STACK, rgb);
