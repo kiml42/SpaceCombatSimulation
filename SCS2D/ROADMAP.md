@@ -18,7 +18,7 @@ inside any one file is not contiguous.
 
 ## How this document is maintained
 
-**Work items and open questions are [Linear](https://linear.app/space-combat-simulation/team/SPA/all) issues** (team `SPA`), not entries here: ideas, bugs, the pieces left of a
+**Work items and open questions are [Linear](https://linear.app/space-combat-simulation/team/SCS/all) issues** (team `SCS`), not entries here: ideas, bugs, the pieces left of a
 step, and every open question. This file keeps the build order and what a finished step settled that later
 work has to respect. References written `#n` are GitHub issues from before the move; each one moved is
 closed there, labelled `moved-to-linear`, with a comment linking its Linear issue.
@@ -34,7 +34,7 @@ closed there, labelled `moved-to-linear`, with a comment linking its Linear issu
   win.
 - **A step in progress is a parent issue**, what is left of it its sub-issues.
 - **A Question closes with its answer in DECISIONS.md**, in the same change that settles it; the PR says
-  `Closes SPA-n`, and the issue is closed when it merges. An open issue reads as still open, so a settled one left open invites it to be re-litigated.
+  `Closes SCS-n`, and the issue is closed when it merges. An open issue reads as still open, so a settled one left open invites it to be re-litigated.
 - **An idea that will not be done is moved to Canceled**, so it stays findable rather than being
   proposed again.
 
