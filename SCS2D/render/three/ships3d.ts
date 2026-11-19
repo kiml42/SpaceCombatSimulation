@@ -21,7 +21,7 @@ import {
     type WebGLRenderer,
 } from "three";
 import { DECK_HEIGHT, domeRadius, isDomed, isHullMount, type ShipDesign, type ShipView, type Snapshot } from "../../sim/index.js";
-import { drawnMounts } from "../bevels.js";
+import { BEVEL_STRIDE, drawnBevels, drawnMounts } from "../bevels.js";
 import { barrelLines } from "../barrels.js";
 import type { Camera } from "../camera.js";
 import { engineLayout } from "../engineLayout.js";
@@ -217,6 +217,47 @@ class Builder {
         }
     }
 
+    /**
+     * A bar along x from `x0` to `x1`, `w` either side of it and `h` above and
+     * below, its long sides at +y and -y rounded where `roundPlus` and
+     * `roundMinus` say: each corner there part of a cylinder as deep as the bar,
+     * or as wide as it allows.
+     */
+    bar(x0: number, x1: number, w: number, h: number, roundPlus: boolean, roundMinus: boolean, rgb: readonly number[]): void {
+        const most = roundPlus && roundMinus ? w : 2 * w;
+        const rPlus = roundPlus ? Math.min(h, most) : 0;
+        const rMinus = roundMinus ? Math.min(h, most) : 0;
+        // Round it anticlockwise in y and z, from the +y side up: where, and which way out.
+        const ring: number[] = [];
+        const corner = (cy: number, cz: number, r: number, from: number): void => {
+            const steps = r > 0 ? ROUND / 4 : 1;
+            for (let k = 0; k <= steps; k++) {
+                const a = from + (k / steps) * (Math.PI / 2);
+                ring.push(cy + Math.cos(a) * r, cz + Math.sin(a) * r, Math.cos(a), Math.sin(a));
+            }
+        };
+        corner(w - rPlus, h - rPlus, rPlus, 0);
+        corner(-w + rMinus, h - rMinus, rMinus, Math.PI / 2);
+        corner(-w + rMinus, -h + rMinus, rMinus, Math.PI);
+        corner(w - rPlus, -h + rPlus, rPlus, (3 * Math.PI) / 2);
+        const n = ring.length / 4;
+        const [r, g, bl] = [rgb[0]!, rgb[1]!, rgb[2]!];
+        for (let k = 0; k < n; k++) {
+            const j = (k + 1) % n;
+            const [ay, az, any, anz] = ring.slice(4 * k, 4 * k + 4) as [number, number, number, number];
+            const [by, bz, bny, bnz] = ring.slice(4 * j, 4 * j + 4) as [number, number, number, number];
+            if (Math.abs(ay - by) + Math.abs(az - bz) < 1e-9) continue;
+            this.vertex(x0, ay, az, 0, any, anz, r, g, bl);
+            this.vertex(x1, by, bz, 0, bny, bnz, r, g, bl);
+            this.vertex(x1, ay, az, 0, any, anz, r, g, bl);
+            this.vertex(x0, ay, az, 0, any, anz, r, g, bl);
+            this.vertex(x0, by, bz, 0, bny, bnz, r, g, bl);
+            this.vertex(x1, by, bz, 0, bny, bnz, r, g, bl);
+            this.tri([x0, 0, 0], [x0, by, bz], [x0, ay, az], rgb);
+            this.tri([x1, 0, 0], [x1, ay, az], [x1, by, bz], rgb);
+        }
+    }
+
     /** A disc `r` across at `x`, round `y`, `z`, `squash` as deep as it is wide, facing -x. */
     disc(x: number, y: number, z: number, r: number, squash: number, rgb: readonly number[]): void {
         for (let k = 0; k < ROUND; k++) {
@@ -391,17 +432,45 @@ function build(ship: ShipView, depths: Depths): { model: BufferGeometry; worn: M
                 return;
             }
             if (spec.kind === "tank" && fills.length > 0 && fills[0]!.points.length === 8) {
-                // A tank: a cylinder along its length, as deep as the module.
+                // A tank: a bar along its length, rounded as a cylinder on each long side
+                // with nothing beside it, as Pixi bevels it there, and square where it is joined.
                 const long = spec.length >= spec.width;
-                const r = (long ? spec.width : spec.length) / 2;
+                const across = (long ? spec.width : spec.length) / 2;
                 const l = (long ? spec.length : spec.width) / 2;
                 const rgb = shade(rgbOf(fills[0]!.colour));
-                if (long) b.lying(-l, l, 0, 0, r, r, half / r, rgb);
-                else {
-                    b.place(m.x, m.y, m.angle + Math.PI / 2, 0);
-                    b.lying(-l, l, 0, 0, r, r, half / r, rgb);
-                    b.place(m.x, m.y, m.angle, 0);
+                const z = b.z;
+                const bevels = drawnBevels(design, i);
+                // Whether the side facing `side` across the bar is open at `t` along it, in the module's frame.
+                const open = (t: number, side: number): boolean => {
+                    const [px, py, nx, ny] = long ? [t, side * across, 0, side] : [-side * across, t, -side, 0];
+                    for (let e = 0; e < bevels.length; e += BEVEL_STRIDE) {
+                        if (bevels[e + 4]! * nx + bevels[e + 5]! * ny < 0.9) continue;
+                        const ax = bevels[e]!;
+                        const ay = bevels[e + 1]!;
+                        const ex = bevels[e + 2]! - ax;
+                        const ey = bevels[e + 3]! - ay;
+                        const u = ((px - ax) * ex + (py - ay) * ey) / (ex * ex + ey * ey || 1);
+                        if (u >= 0 && u <= 1 && Math.abs((px - ax) * ey - (py - ay) * ex) / Math.hypot(ex, ey) < 1e-3) return true;
+                    }
+                    return false;
+                };
+                // Where along it a side opens or closes.
+                const cuts = [-l, l];
+                for (let e = 0; e < bevels.length; e += BEVEL_STRIDE)
+                    for (const v of [0, 2]) {
+                        const t = long ? bevels[e + v]! : bevels[e + v + 1]!;
+                        if (t > -l && t < l) cuts.push(t);
+                    }
+                cuts.sort((a, c) => a - c);
+                if (!long) b.place(m.x, m.y, m.angle + Math.PI / 2, z);
+                for (let c = 0; c + 1 < cuts.length; c++) {
+                    const x0 = cuts[c]!;
+                    const x1 = cuts[c + 1]!;
+                    if (x1 - x0 < 1e-6) continue;
+                    const mid = (x0 + x1) / 2;
+                    b.bar(x0, x1, across, half, open(mid, 1), open(mid, -1), rgb);
                 }
+                if (!long) b.place(m.x, m.y, m.angle, z);
                 fills.slice(1).forEach((fill) => b.prism(fill.points, half - STACK, half + STACK, shade(rgbOf(fill.colour))));
                 return;
             }
