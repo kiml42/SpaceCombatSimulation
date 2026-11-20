@@ -67,6 +67,8 @@ measured. Leave the window alone while it runs: covering or minimising it slows 
 | `--paused` | off | Hold the battle at `--at`, so the time is drawing alone. |
 | `--strips` | `shown` | `hidden` hides the fleet strips down the edges, to see what they cost. |
 | `--pick` | | A ship to pick, by its index in the battle, once each scene reaches `--at`: a picked ship shows its close-ups and arcs. |
+| `--renderers` | `pixi` | Which to measure, each in a page of its own: `pixi`, `three` (flat) or `three-3d`, as the Renderer field picks them. |
+| `--tilt` | `0` | Degrees `three-3d`'s camera leans over from straight down. |
 | `--zoom` | | Zoom in and out while measuring: ten times in over this many seconds, then out as fast, over and over. |
 | `--zoom-by` | | Zoom in this many times before measuring, and hold it there (or sweep from there, with `--zoom`). |
 | `--zoom-at` | | The ship, by its index in the battle, to zoom about, in place of the view's middle. |
