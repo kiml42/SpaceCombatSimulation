@@ -76,6 +76,7 @@
       "y": 0,
       "length": 0.2,
       "width": 0.6,
+      "landingGear": false,
       "notes": "Half a metre square of computing is a whole control centre, which is the only reason a fighter this size can be flown at all."
     },
     {

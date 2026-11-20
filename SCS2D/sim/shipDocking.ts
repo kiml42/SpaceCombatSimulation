@@ -127,6 +127,20 @@ export function padFree(ships: Ships, bodies: Bodies, t: number, pad: number): b
 }
 
 /**
+ * Whether ship `i`, on body `b`, can land on a pad: not a fighter, which lands
+ * on none and docks by port instead, or a fighter with a working core that
+ * has its landing gear (`ModuleSpec.landingGear`).
+ */
+export function hasLandingGear(ships: Ships, i: number, b: number): boolean {
+    const design = ships.designs[i]!;
+    if (!design.fighter) return true;
+    for (const core of design.cores) {
+        if (design.modules[core]!.spec.landingGear !== false && ships.ownsAt(i, b, core) && !ships.damage.spent(b, core)) return true;
+    }
+    return false;
+}
+
+/**
  * The best friend's pad to land on of those it fits, by the fuel, metal and
  * charge its ship can spare for the time it would take to get there and be
  * filled, put off by armed enemies near it by its `dockDanger`, and by every
@@ -149,6 +163,8 @@ export function pickPad(
     ships.landingPad[i] = -1;
     ships.dockPort[i] = -1;
     if (!(approach.approachSpeed > 0)) return;
+    // A fighter with no landing gear left never comes down onto a pad.
+    if (!hasLandingGear(ships, i, b)) return;
     // One that has lost all its turn cannot bring its mains round to steer in, and would
     // hang by its carrier for good; one still being built has yet to get it. One that
     // can turn one way spins in (`spinWay`).

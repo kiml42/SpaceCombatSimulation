@@ -807,6 +807,32 @@ export function ModulePanel({
                         )}
                     </Field>
                 )}
+                {readsComputing(spec.kind) && (
+                    <>
+                        <Field id="landingGearRow">
+                            <label htmlFor="propLandingGear">landing gear</label>
+                            <input
+                                id="propLandingGear"
+                                type="checkbox"
+                                disabled={!fighter}
+                                title={
+                                    fighter
+                                        ? "Whether this core can bring the fighter down onto a friend's pad to be refuelled, rearmed or mended. Without it on any core, the fighter never lands, though it is still built on a pad and launched from one, and the core is simpler to build."
+                                        : "Only a fighter lands on a pad."
+                                }
+                                checked={!fighter || spec.landingGear !== false}
+                                onChange={(event) =>
+                                    update((placement) => {
+                                        const { landingGear: _, ...rest } = placement as ModuleSpec;
+                                        // Absent when it has it, so a file only ever says the unusual thing.
+                                        return (event.target.checked ? rest : { ...rest, landingGear: false }) as Placement;
+                                    })
+                                }
+                            />
+                        </Field>
+                        {notes("landingGear")}
+                    </>
+                )}
                 {readsComputing(spec.kind) &&
                     CORE_SHARE_KEYS.map((key, k) => (
                         <Fragment key={key}>

@@ -1659,6 +1659,15 @@ export interface ModuleSpec {
      * set is kept however small, and 0 leaves it out, with its complexity. A core only.
      */
     fuelShare?: number;
+    /**
+     * Whether a core can bring its fighter down onto a friend's pad, to be
+     * filled or mended there. True when absent. A fighter none of whose working
+     * cores has it never lands, and its core is simpler by
+     * `LANDING_GEAR_COMPLEXITY`; it is still built on a pad and launched from
+     * one. A core only, and only on a fighter: on any other ship it is dropped
+     * when the design is compiled, since nothing else lands on a pad.
+     */
+    landingGear?: boolean;
     holdShare?: number;
     generatorShare?: number;
     batteryShare?: number;
@@ -3339,6 +3348,9 @@ const KIND_COMPLEXITY: Record<ModuleKind, number> = {
 const CORE_COMPUTING_COMPLEXITY = 8;
 const CORE_PART_COMPLEXITY = [1, 1, 4, 2] as const;
 
+/** What a core's landing gear adds to its complexity: the part of its computing that brings a fighter down onto a pad. */
+export const LANDING_GEAR_COMPLEXITY = 2;
+
 /** What a self-sealing lining adds to a tank's complexity. */
 const LINING_COMPLEXITY = 2;
 
@@ -3348,8 +3360,8 @@ const OUTLET_COMPLEXITY = 1;
 /**
  * How intricate a module is to make or mend, in units of `COMPLEXITY_WORK`:
  * its kind's, a pressure-fed engine's, or a core's by the stores it holds
- * (`layout`, all of them if not given), plus a self-sealing lining and every
- * outlet past the first.
+ * (`layout`, all of them if not given) less its landing gear if it has none,
+ * plus a self-sealing lining and every outlet past the first.
  */
 export function complexityOf(spec: ModuleSpec, layout?: CoreLayout): number {
     let units = spec.kind === "engine" && isPressureFed(engineGeometry(spec)) ? PRESSURE_FED_COMPLEXITY : KIND_COMPLEXITY[spec.kind];
@@ -3358,6 +3370,7 @@ export function complexityOf(spec: ModuleSpec, layout?: CoreLayout): number {
         units = CORE_COMPUTING_COMPLEXITY;
         for (let k = 0; k < 4; k++) if (held[k]! > 0) units += CORE_PART_COMPLEXITY[k]!;
     }
+    if (spec.kind === "core" && spec.landingGear === false) units -= LANDING_GEAR_COMPLEXITY;
     if (liningOf(spec) > 0) units += LINING_COMPLEXITY;
     if (countsOutlets(spec.kind)) units += ((spec.barrels ?? 1) - 1) * OUTLET_COMPLEXITY;
     return units;

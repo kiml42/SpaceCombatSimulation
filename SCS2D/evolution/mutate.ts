@@ -809,6 +809,7 @@ type SwitchKnob =
               | "weapon"
               | "main"
               | "thick"
+              | "landingGear"
               | "magnetic"
               | "ready"
               | "drainPriority"
@@ -956,6 +957,8 @@ function switches(draft: Draft): SwitchKnob[] {
         // A box with two free faces can lose the corner between them.
         if (canShape(spec.kind) && !isShaped(spec)) out.push({ at: "shape", site });
         if (canThicken(spec)) out.push({ at: "thick", site });
+        // Only a fighter lands on a pad, so only a fighter's core can do without landing gear.
+        if (readsComputing(spec.kind) && draft.blueprint.fighter === true) out.push({ at: "landingGear", site });
         if (readsMagnetic(spec.kind)) out.push({ at: "magnetic", site });
         if (readsReady(spec.kind)) out.push({ at: "ready", site });
         if (readsDrainPriority(spec.kind)) out.push({ at: "drainPriority", site });
@@ -991,6 +994,7 @@ function switchWeight(knob: SwitchKnob, { build }: MutationLimits): number {
             return build.shape;
         case "barrels":
         case "thick":
+        case "landingGear":
         case "magnetic":
         case "craftAngle":
         case "buildAnchored":
@@ -1019,6 +1023,8 @@ function flip(knob: SwitchKnob, draft: Draft, rng: Rng, bounds: MutationLimits):
             return cutCorner(knob.site);
         case "thick":
             return thicken(knob.site);
+        case "landingGear":
+            return landingGear(knob.site);
         case "magnetic":
             return magnetise(knob.site);
         case "ready":
@@ -1747,6 +1753,17 @@ function thicken(site: ModuleSite): string {
     if (was) delete site.spec.thick;
     else site.spec.thick = true;
     return `${site.where} ${site.spec.kind}: made ${was ? "thin" : "thick"}`;
+}
+
+/**
+ * Take a fighter core's landing gear away, or put it back. Without it on any
+ * core the fighter never lands to be filled or mended, and is quicker to build.
+ */
+function landingGear(site: ModuleSite): string {
+    const had = site.spec.landingGear !== false;
+    if (had) site.spec.landingGear = false;
+    else delete site.spec.landingGear;
+    return `${site.where} core: landing gear ${had ? "taken off" : "put back"}`;
 }
 
 /** Give an engine a magnetic nozzle, or take it away. */
