@@ -188,6 +188,7 @@ export function DoctrineDetails({
         const design = doc.view.design;
         if (design === null || envelope === null) return null;
         const stats = designStats(inReachDesign(design), envelope);
+        const count = (kind: string): number => design.modules.filter((m) => m.spec.kind === kind).length;
         return {
             mass: design.mass,
             radius: design.radius,
@@ -199,6 +200,11 @@ export function DoctrineDetails({
             guns: design.turrets.filter((turret) => turret.main).length,
             fireRange,
             lands: !design.fighter || design.cores.some((core) => design.modules[core]!.spec.landingGear !== false),
+            fighter: design.fighter,
+            ports: count("port"),
+            claws: count("claw"),
+            robots: count("robotBay"),
+            gives: count("robotBay") + count("slipway") + count("pad") + count("port") > 0,
         };
     };
     /** An empty box takes the statement back out, rather than writing a zero. */
