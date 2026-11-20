@@ -1376,6 +1376,7 @@ function place(
         if (placement.fill !== undefined) spec.fill = placement.fill;
         if (placement.computing !== undefined) spec.computing = placement.computing;
         for (const key of CORE_SHARE_KEYS) if (placement[key] !== undefined) spec[key] = placement[key];
+        if (placement.landingGear !== undefined) spec.landingGear = placement.landingGear;
         if (placement.robotsPerBerth !== undefined) spec.robotsPerBerth = placement.robotsPerBerth;
         if (placement.craft !== undefined) spec.craft = placement.craft;
         if (placement.docked !== undefined) spec.docked = placement.docked;
@@ -2391,6 +2392,10 @@ function compileWith(blueprint: Blueprint, crafts: Crafts): ShipDesign {
     if (own !== undefined) return own;
     const expanded = expandBlueprint(blueprint);
     if (expanded.length === 0) throw new Error(`${blueprint.name}: a ship needs at least one module`);
+    // Only a fighter lands on a pad, so only a fighter's core can do without landing gear.
+    if (!(blueprint.fighter === true && fighterProblem(expanded) === null)) {
+        for (const spec of expanded) if (spec.landingGear === false) delete (spec as { landingGear?: boolean }).landingGear;
+    }
     const specs = expanded.filter((spec) => moduleProblem(spec) === null);
     if (specs.length === 0) {
         throw new Error(`${blueprint.name}: no module has geometry that can be measured`);

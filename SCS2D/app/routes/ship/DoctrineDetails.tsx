@@ -130,7 +130,7 @@ function DoctrineBoxes({
                     {/* A section of one group says it once. */}
                     {group.title !== section.title && <h4>{group.title}</h4>}
                     {group.entries
-                        .filter((row) => row.shown === undefined || row.shown(values))
+                        .filter((row) => row.shown === undefined || row.shown(values, context))
                         .map((row) => {
                             const id = `doctrine-${row.half}-${row.field}`;
                             const value = held(row);
@@ -198,6 +198,7 @@ export function DoctrineDetails({
             brakeTurned: stats.brakeTurned,
             guns: design.turrets.filter((turret) => turret.main).length,
             fireRange,
+            lands: !design.fighter || design.cores.some((core) => design.modules[core]!.spec.landingGear !== false),
         };
     };
     /** An empty box takes the statement back out, rather than writing a zero. */

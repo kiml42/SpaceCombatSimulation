@@ -450,6 +450,8 @@ export interface DoctrineContext {
     readonly guns: number;
     /** A mount's: how far it fires at the enemy it wants, metres. */
     readonly fireRange?: number | null;
+    /** Whether it can land on a pad: false for a fighter none of whose cores has landing gear. */
+    readonly lands?: boolean;
 }
 
 /**
@@ -458,8 +460,8 @@ export interface DoctrineContext {
  */
 export interface DoctrineEntry extends DoctrineRow {
     readonly half: "targeting" | "approach" | "mount";
-    /** Whether it means anything, given the rest; shown always when absent. */
-    readonly shown?: (values: DoctrineValues) => boolean;
+    /** Whether it means anything, given the rest and the ship where known; shown always when absent. */
+    readonly shown?: (values: DoctrineValues, ship?: DoctrineContext | null) => boolean;
     /** What it comes to for this ship, or null where there is nothing to say. */
     readonly absolute?: (values: DoctrineValues, ship: DoctrineContext) => string | null;
 }
@@ -731,6 +733,7 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                         absolute: (v) => `${v.approach.fuelPerMetal} kg of fuel for a kilogram of metal`,
                     }),
                     entry("approach", "rearmBelow", {
+                        shown: (_v, ship) => ship?.lands !== false,
                         absolute: (v) =>
                             v.approach.rearmBelow < 0
                                 ? "never"
@@ -739,10 +742,12 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                                   : "once it cannot load a round, on a pad",
                     }),
                     entry("approach", "repairBelow", {
+                        shown: (_v, ship) => ship?.lands !== false,
                         absolute: (v) =>
                             v.approach.repairBelow > 0 ? `below ${Math.round(v.approach.repairBelow * 100)}% whole, on a pad` : "never",
                     }),
                     entry("approach", "repairArmed", {
+                        shown: (_v, ship) => ship?.lands !== false,
                         absolute: (v) =>
                             v.approach.repairArmed < 0
                                 ? "never"
@@ -766,12 +771,14 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                         shown: (v) => v.approach.scavengeFuelBelow > 0 || v.approach.scavengeMetalBelow > 0,
                     }),
                     entry("approach", "refuelBelow", {
+                        shown: (_v, ship) => ship?.lands !== false,
                         absolute: (v) =>
                             v.approach.refuelBelow > 0
                                 ? `below ${Math.round(v.approach.refuelBelow * 100)}% full, at a friend’s pad or port`
                                 : "never",
                     }),
                     entry("approach", "rechargeBelow", {
+                        shown: (_v, ship) => ship?.lands !== false,
                         absolute: (v) =>
                             v.approach.rechargeBelow > 0
                                 ? `below ${Math.round(v.approach.rechargeBelow * 100)}% charged, on a pad`
@@ -787,12 +794,13 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                                 : "never",
                     }),
                     entry("approach", "dockDanger", {
-                        shown: (v) =>
-                            v.approach.refuelBelow > 0 ||
-                            v.approach.rechargeBelow > 0 ||
-                            v.approach.rearmBelow >= 0 ||
-                            v.approach.repairBelow > 0 ||
-                            v.approach.repairArmed >= 0,
+                        shown: (v, ship) =>
+                            ship?.lands !== false &&
+                            (v.approach.refuelBelow > 0 ||
+                                v.approach.rechargeBelow > 0 ||
+                                v.approach.rearmBelow >= 0 ||
+                                v.approach.repairBelow > 0 ||
+                                v.approach.repairArmed >= 0),
                     }),
                     entry("approach", "sortieRange", {
                         absolute: (v, ship) =>

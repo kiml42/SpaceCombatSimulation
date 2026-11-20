@@ -8,6 +8,7 @@ import type { World } from "./world.js";
 import { hullsOverlap } from "./collision.js";
 import * as shipSupply from "./shipSupply.js";
 import * as shipClaw from "./shipClaw.js";
+import * as shipDocking from "./shipDocking.js";
 import * as shipFlight from "./shipFlight.js";
 import * as shipAim from "./shipAim.js";
 import * as shipOrders from "./shipOrders.js";
@@ -425,7 +426,7 @@ export function armedShare(ships: Ships, i: number, b: number, stores: boolean):
 export function canRestock(ships: Ships, bodies: Bodies, i: number, b: number): boolean {
     const design = ships.designs[i]!;
     const approach = ships.doctrines[i]!.approach;
-    if (!design.fighter || !(approach.approachSpeed > 0)) return false;
+    if (!design.fighter || !(approach.approachSpeed > 0) || !shipDocking.hasLandingGear(ships, i, b)) return false;
     if (approach.scavengeFuelBelow > 0 && shipClaw.workingClaw(ships, i, b) >= 0) return false;
     const own = design.cores[0] ?? 0;
     const metalRoom = approach.rearmBelow >= 0 ? ships.metal.pieceRoom(b, own) : 0;
