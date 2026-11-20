@@ -78,6 +78,7 @@ describe("landing gear", () => {
             brakeHolding: 10,
             brakeTurned: 10,
             guns: 1,
+            fighter: true,
             lands,
         });
         for (const field of ["refuelBelow", "rechargeBelow", "rearmBelow", "repairBelow", "repairArmed", "dockDanger"]) {

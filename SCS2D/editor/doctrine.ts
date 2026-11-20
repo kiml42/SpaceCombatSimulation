@@ -452,6 +452,14 @@ export interface DoctrineContext {
     readonly fireRange?: number | null;
     /** Whether it can land on a pad: false for a fighter none of whose cores has landing gear. */
     readonly lands?: boolean;
+    /** Whether it is a fighter, and so lands on pads rather than docking by port. */
+    readonly fighter?: boolean;
+    /** How many ports, claws and robot bays it has. */
+    readonly ports?: number;
+    readonly claws?: number;
+    readonly robots?: number;
+    /** Whether anything of its takes from its own stores or gives them away: robots, a slipway, a pad or a port. */
+    readonly gives?: boolean;
 }
 
 /**
@@ -477,6 +485,20 @@ export interface DoctrineSection {
     readonly title: string;
     readonly groups: readonly DoctrineGroup[];
 }
+
+/**
+ * Whether the ship has what a setting needs. A ship not known, or a part it
+ * does not say, has it, so the panel hides only what is certainly moot.
+ */
+const has = (ship: DoctrineContext | null | undefined, test: (ship: DoctrineContext) => boolean): boolean =>
+    ship === null || ship === undefined || test(ship);
+const armed = (ship: DoctrineContext): boolean => ship.guns > 0;
+const clawed = (ship: DoctrineContext): boolean => ship.claws !== 0;
+const mines = (ship: DoctrineContext): boolean => ship.claws !== 0 && ship.robots !== 0;
+/** Lands on a pad, as a fighter with landing gear does. */
+const lands = (ship: DoctrineContext): boolean => ship.fighter !== false && ship.lands !== false;
+/** Can be filled by a friend: on a pad as a fighter, or through a port. */
+const docks = (ship: DoctrineContext): boolean => (ship.fighter === true ? ship.lands !== false : ship.ports !== 0);
 
 const metres = (value: number): string => `${Math.round(value).toLocaleString("en-GB")} m`;
 
@@ -575,9 +597,9 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
             {
                 title: "Which way round",
                 entries: [
-                    entry("approach", "turnBias"),
+                    entry("approach", "turnBias", { shown: (_v, ship) => has(ship, armed) }),
                     entry("approach", "burnWeight"),
-                    entry("approach", "rangeHold", { shown: (v) => v.approach.burnWeight > 0 }),
+                    entry("approach", "rangeHold", { shown: (v, ship) => v.approach.burnWeight > 0 && has(ship, armed) }),
                 ],
             },
             {
@@ -650,7 +672,7 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                                 : "never rams",
                     }),
                     entry("approach", "ramArmed", {
-                        shown: (v) => v.approach.ramRadii > 0,
+                        shown: (v, ship) => v.approach.ramRadii > 0 && has(ship, armed),
                         absolute: (v, ship) => {
                             if (ship.guns === 0) return "it has no guns";
                             const working = Math.floor(v.approach.ramArmed * ship.guns + 1e-9);
@@ -717,23 +739,25 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                 title: "Refuelling, rearming and repair",
                 entries: [
                     entry("approach", "scavengeFuelBelow", {
+                        shown: (_v, ship) => has(ship, clawed),
                         absolute: (v) =>
                             v.approach.scavengeFuelBelow > 0
                                 ? `below ${Math.round(v.approach.scavengeFuelBelow * 100)}% full, with a claw`
                                 : "never",
                     }),
                     entry("approach", "scavengeMetalBelow", {
+                        shown: (_v, ship) => has(ship, mines),
                         absolute: (v) =>
                             v.approach.scavengeMetalBelow > 0
                                 ? `below ${Math.round(v.approach.scavengeMetalBelow * 100)}% full, with a claw and robots`
                                 : "never",
                     }),
                     entry("approach", "fuelPerMetal", {
-                        shown: (v) => v.approach.scavengeMetalBelow > 0,
+                        shown: (v, ship) => v.approach.scavengeMetalBelow > 0 && has(ship, mines),
                         absolute: (v) => `${v.approach.fuelPerMetal} kg of fuel for a kilogram of metal`,
                     }),
                     entry("approach", "rearmBelow", {
-                        shown: (_v, ship) => ship?.lands !== false,
+                        shown: (_v, ship) => has(ship, lands),
                         absolute: (v) =>
                             v.approach.rearmBelow < 0
                                 ? "never"
@@ -742,12 +766,12 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                                   : "once it cannot load a round, on a pad",
                     }),
                     entry("approach", "repairBelow", {
-                        shown: (_v, ship) => ship?.lands !== false,
+                        shown: (_v, ship) => has(ship, lands),
                         absolute: (v) =>
                             v.approach.repairBelow > 0 ? `below ${Math.round(v.approach.repairBelow * 100)}% whole, on a pad` : "never",
                     }),
                     entry("approach", "repairArmed", {
-                        shown: (_v, ship) => ship?.lands !== false,
+                        shown: (_v, ship) => has(ship, (s) => lands(s) && armed(s)),
                         absolute: (v) =>
                             v.approach.repairArmed < 0
                                 ? "never"
@@ -761,33 +785,36 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                         }),
                     ),
                     entry("approach", "scavengeDanger", {
-                        shown: (v) => v.approach.scavengeFuelBelow > 0 || v.approach.scavengeMetalBelow > 0,
+                        shown: (v, ship) => (v.approach.scavengeFuelBelow > 0 || v.approach.scavengeMetalBelow > 0) && has(ship, clawed),
                     }),
                     entry("approach", "rockWeight", {
-                        shown: (v) => v.approach.scavengeFuelBelow > 0 || v.approach.scavengeMetalBelow > 0,
+                        shown: (v, ship) => (v.approach.scavengeFuelBelow > 0 || v.approach.scavengeMetalBelow > 0) && has(ship, clawed),
                     }),
-                    entry("approach", "clawSpeed", { shown: (v) => v.approach.scavengeFuelBelow > 0 || v.approach.scavengeMetalBelow > 0 }),
+                    entry("approach", "clawSpeed", {
+                        shown: (v, ship) => (v.approach.scavengeFuelBelow > 0 || v.approach.scavengeMetalBelow > 0) && has(ship, clawed),
+                    }),
                     entry("approach", "tripWeight", {
-                        shown: (v) => v.approach.scavengeFuelBelow > 0 || v.approach.scavengeMetalBelow > 0,
+                        shown: (v, ship) => (v.approach.scavengeFuelBelow > 0 || v.approach.scavengeMetalBelow > 0) && has(ship, clawed),
                     }),
                     entry("approach", "refuelBelow", {
-                        shown: (_v, ship) => ship?.lands !== false,
+                        shown: (_v, ship) => has(ship, docks),
                         absolute: (v) =>
                             v.approach.refuelBelow > 0
                                 ? `below ${Math.round(v.approach.refuelBelow * 100)}% full, at a friend’s pad or port`
                                 : "never",
                     }),
                     entry("approach", "rechargeBelow", {
-                        shown: (_v, ship) => ship?.lands !== false,
+                        shown: (_v, ship) => has(ship, lands),
                         absolute: (v) =>
                             v.approach.rechargeBelow > 0
                                 ? `below ${Math.round(v.approach.rechargeBelow * 100)}% charged, on a pad`
                                 : "never",
                     }),
-                    entry("approach", "fuelReserve"),
-                    entry("approach", "metalReserve"),
-                    entry("approach", "chargeReserve"),
+                    entry("approach", "fuelReserve", { shown: (_v, ship) => has(ship, (s) => s.gives !== false) }),
+                    entry("approach", "metalReserve", { shown: (_v, ship) => has(ship, (s) => s.gives !== false) }),
+                    entry("approach", "chargeReserve", { shown: (_v, ship) => has(ship, (s) => s.gives !== false) }),
                     entry("approach", "deliverFuelAbove", {
+                        shown: (_v, ship) => has(ship, (s) => s.ports !== 0),
                         absolute: (v) =>
                             v.approach.deliverFuelAbove > 0
                                 ? `what it holds over ${Math.round(v.approach.deliverFuelAbove * 100)}%, to a friend’s port`
@@ -795,7 +822,7 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                     }),
                     entry("approach", "dockDanger", {
                         shown: (v, ship) =>
-                            ship?.lands !== false &&
+                            has(ship, docks) &&
                             (v.approach.refuelBelow > 0 ||
                                 v.approach.rechargeBelow > 0 ||
                                 v.approach.rearmBelow >= 0 ||
@@ -803,6 +830,7 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                                 v.approach.repairArmed >= 0),
                     }),
                     entry("approach", "sortieRange", {
+                        shown: (_v, ship) => has(ship, (s) => s.fighter !== false),
                         absolute: (v, ship) =>
                             ship.reach > 0 ? `leaves a pad for a target within ${metres(v.approach.sortieRange * ship.reach)}` : null,
                     }),
