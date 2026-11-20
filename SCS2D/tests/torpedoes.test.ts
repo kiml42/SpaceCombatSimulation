@@ -88,7 +88,9 @@ describe("a torpedo's last seconds", () => {
         // As a share of those the guns spared, so better guns sparing fewer does not move it.
         const missRate = (r: { hit: number; missed: number }): number => r.missed / (r.hit + r.missed);
         expect(missRate(lining)).toBeLessThan(missRate(flatOut));
-        expect(lining.hit).toBeGreaterThan(flatOut.hit);
+        // Even flat out, a ram speeds up only by what leaves its drift time to come out: before it
+        // did, about three in ten of those the guns spared flew past.
+        expect(missRate(flatOut)).toBeLessThan(0.15);
     });
 });
 

@@ -26,6 +26,8 @@ it.each([0, 300])("rams round a rock dead ahead rather than into it, launched at
     for (let t = 0; t < 40 * 60; t++) {
         run.step();
         const tb = b.indexOf(run.ships.body(run.torpedo));
+        // Spent on the gunship, round the rock.
+        if (tb < 0) break;
         const rb = b.indexOf(run.ships.body(run.obstacle));
         closest = Math.min(closest, Math.hypot(b.x[tb]! - b.x[rb]!, b.y[tb]! - b.y[rb]!) - b.radius[rb]!);
     }
@@ -33,29 +35,42 @@ it.each([0, 300])("rams round a rock dead ahead rather than into it, launched at
     expect(closest).toBeGreaterThan(50);
 });
 
-it("does not speed up at a friend's hull in the way, unless it is a fighter, which flies over it", () => {
-    const speed = (friend: boolean, fighter = false): number => {
-        const run = makeBattle({ seed: 1 }, (ships, world) => {
-            if (friend) ships.spawn(world, { design: compileBlueprint(GUNSHIP), x: 0, y: 0, team: 0 });
+it("goes round a friend's hull in the way at speed rather than into it, as a fighter overflying it does", () => {
+    const run = (fighter: boolean): { speed: number; touches: number; closest: number } => {
+        const battle = makeBattle({ seed: 1 }, (ships, world) => {
+            const friend = ships.spawn(world, { design: compileBlueprint(GUNSHIP), x: 0, y: 0, team: 0 });
             ships.spawn(world, { design: compileBlueprint(GUNSHIP), x: 3000, y: 0, team: 1 });
-            return {
-                torpedo: ships.spawn(world, {
-                    design: compileBlueprint({ ...TORPEDO, fighter }),
-                    x: -3000,
-                    y: 0,
-                    angle: 0,
-                    vx: 100,
-                    team: 0,
-                }),
-            };
+            const torpedo = ships.spawn(world, {
+                design: compileBlueprint({ ...TORPEDO, fighter }),
+                x: -3000,
+                y: 0,
+                angle: 0,
+                vx: 100,
+                team: 0,
+            });
+            return { friend, torpedo };
         });
-        for (let t = 0; t < 5 * 60; t++) run.step();
-        const tb = run.world.bodies.indexOf(run.ships.body(run.torpedo));
-        return run.world.bodies.vx[tb]!;
+        const b = battle.world.bodies;
+        let speed = 0;
+        let touches = 0;
+        let closest = Infinity;
+        for (let t = 0; t < 30 * 60; t++) {
+            battle.step();
+            const tb = b.indexOf(battle.ships.body(battle.torpedo));
+            const fb = b.indexOf(battle.ships.body(battle.friend));
+            if (tb < 0) break;
+            if (t === 5 * 60) speed = b.vx[tb]!;
+            closest = Math.min(closest, Math.hypot(b.x[tb]! - b.x[fb]!, b.y[tb]! - b.y[fb]!) - b.radius[fb]!);
+            const c = battle.collisions.contacts;
+            for (let k = 0; k < c.count; k++) if ((c.a[k] === tb && c.b[k] === fb) || (c.b[k] === tb && c.a[k] === fb)) touches++;
+        }
+        return { speed, touches, closest };
     };
-    expect(speed(false)).toBeGreaterThan(150);
-    expect(speed(true)).toBeLessThan(110);
-    expect(speed(true, true)).toBeGreaterThan(150);
+    const torpedo = run(false);
+    expect(torpedo.speed).toBeGreaterThan(150);
+    expect(torpedo.touches).toBe(0);
+    expect(torpedo.closest).toBeGreaterThan(50);
+    expect(run(true).speed).toBeGreaterThan(150);
 });
 
 /** The Torpedo, its doctrine's aim weights set to `weights` (core, engine, gun, structure), and its tanks to `fill`. */
