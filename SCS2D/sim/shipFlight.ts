@@ -969,13 +969,10 @@ export function settle(ships: Ships, bodies: Bodies, b: number, weight: number):
 }
 
 /**
- * Close on `at` at `speed`, cancelling any sideways drift on the way: far
- * out, speeding up matters as much as drift does; within `ramSettle` seconds
- * of impact only the drift does, easing over as long again before that, so
- * a ram coming in fast spends its last seconds lining up rather than
- * speeding up past a miss. With a rock or a friend's hull across the line to
- * body `tb`, it keeps the speed it has rather than adding to it, which leaves
- * keeping clear and going round the time they need.
+ * Close on `at` at `speed`, cancelling any sideways drift on the way. With a
+ * rock or a friend's hull across the line to body `tb`, it keeps the speed it
+ * has rather than adding to it, which leaves keeping clear and going round the
+ * time they need.
  */
 export function charge(ships: Ships, bodies: Bodies, i: number, b: number, at: Spot, speed: number, tb: number): void {
     const dx = at.x - bodies.x[b]!;
@@ -990,16 +987,13 @@ export function charge(ships: Ships, bodies: Bodies, i: number, b: number, at: S
     const rvx = bodies.vx[b]! - at.vx;
     const rvy = bodies.vy[b]! - at.vy;
     const closing = rvx * ux + rvy * uy;
-    const settle = ships.doctrines[i]!.approach.ramSettle;
-    const toGo = closing > 0 ? range / closing : Infinity;
-    const share = settle > 0 ? clamp((toGo - settle) / settle, 0, 1) : 1;
     const x = bodies.x[b]!;
     const y = bodies.y[b]!;
     // A fighter overflies a friend's hull until it commits, which is not until it is about to strike (`commitOne`).
     const friend = !ships.designs[i]!.fighter && shipAim.friendBetween(ships, bodies, i, b, at.x, at.y, tb);
     const blocked = friend || shipAim.blockingRock(ships, bodies, x, y, at.x, at.y, b, tb) >= 0;
     // Never kept faster than it was told to hit at.
-    let want = blocked ? min(speed, max(0, closing)) : min(speed, closing + (speed - closing) * share);
+    let want = blocked ? min(speed, max(0, closing)) : speed;
     // Drifting across the line by more than the target is wide in the time it
     // will take to arrive, it misses unless it takes the drift out first. Its
     // push goes along the change of velocity it asks for, so the more of that
