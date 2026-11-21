@@ -11,6 +11,9 @@ import {
     type CoreShareKey,
     DEFAULT_BURST_SPEED,
     DEFAULT_FRAGMENTS,
+    DEFAULT_STANDOFF,
+    DEFAULT_WARHEAD_FRAGMENTS,
+    DEFAULT_WARHEAD_SPREAD,
     DEFAULT_FUSE,
     DEFAULT_NOZZLE_WIDTHS,
     masksWholeArc,
@@ -60,6 +63,8 @@ export const DEFAULTS: Record<ShipModuleKind, Omit<ModuleSpec, "x" | "y">> = {
     // Long enough for its field to reach a fight's width, and a deck wide.
     plasmaLance: { kind: "plasmaLance", angle: 0, length: 6, width: 3 },
     claw: { kind: "claw", angle: 0, length: 2, width: 2 },
+    // A torpedo's nose, throwing its fragments ahead of it.
+    warhead: { kind: "warhead", angle: 0, length: 1, width: 0.5 },
     // Room for a fighter to sit on, wholly inside it.
     pad: { kind: "pad", length: 12, width: 10 },
     // Facing out of the hull it is bolted to, its face the side that mates.
@@ -80,6 +85,8 @@ export type ModuleNumberField =
     | "fuse"
     | "fragments"
     | "burstSpeed"
+    | "spread"
+    | "standoff"
     | "sealing"
     | "drainPriority"
     | "priority"
@@ -107,7 +114,9 @@ export function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
     if (key === "traverse") return Math.round(radiansToDegrees(mountTraverse(spec)) * 10) / 10;
     if (key === "turning") return tidy((spec.turning ?? TRAVERSE_GEAR_FRACTION) * 100);
     if (key === "fuse") return spec.fuse ?? DEFAULT_FUSE;
-    if (key === "fragments") return spec.fragments ?? DEFAULT_FRAGMENTS;
+    if (key === "fragments") return spec.fragments ?? (spec.kind === "warhead" ? DEFAULT_WARHEAD_FRAGMENTS : DEFAULT_FRAGMENTS);
+    if (key === "spread") return tidy(radiansToDegrees(spec.spread ?? DEFAULT_WARHEAD_SPREAD));
+    if (key === "standoff") return spec.standoff ?? DEFAULT_STANDOFF;
     if (key === "burstSpeed") return spec.burstSpeed ?? DEFAULT_BURST_SPEED;
     // Millimetres on the panel, metres in the layout.
     if (key === "sealing") return tidy((spec.sealing ?? 0) * 1000);

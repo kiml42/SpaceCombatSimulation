@@ -212,6 +212,14 @@ export const MUTATION_FIELDS: readonly MutationField[] = [
         title: "Odds that a new or refitted module is a claw: jaws and a pump on the bow, which drink from wrecks for a doctrine that refuels.",
     },
     {
+        name: "kindWarhead",
+        group: "kinds",
+        label: "warheads",
+        step: 0.5,
+        value: DEFAULT_KINDS.warhead,
+        title: "Odds that a new or refitted module is a warhead: a charge that blows itself apart when an enemy comes close, throwing its casing as fragments. It pays only on a craft that gets that close.",
+    },
+    {
         name: "kindPad",
         group: "kinds",
         label: "pads",

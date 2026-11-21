@@ -10,7 +10,7 @@ import { buildWork, fittingOf } from "./rebuild.js";
 export interface Bill {
     /** Its hull, fittings and the metal in its holds, kg. */
     readonly metal: number;
-    /** The fuel in its tanks, kg. */
+    /** The fuel in its tanks and warheads, kg. */
     readonly fuel: number;
     /** How long one robot would take to build every module, s, travel aside. */
     readonly build: number;
@@ -27,7 +27,8 @@ export function billOf(design: ShipDesign): Bill {
     let fuel = 0;
     let work = 0;
     for (const module of design.modules) {
-        fuel += module.stats.fuel * fillOf(module.spec);
+        // A warhead's charge is fuel, sealed in when it is built.
+        fuel += module.stats.fuel * fillOf(module.spec) + module.stats.explosive;
         work += buildWork(module.stats) * (module.stats.structureMass + fittingOf(module.stats));
     }
     const own: Bill = { metal: design.launchMass - fuel, fuel, build: work / ROBOT_REPAIR_RATE };

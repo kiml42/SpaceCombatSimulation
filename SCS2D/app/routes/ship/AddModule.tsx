@@ -95,6 +95,11 @@ const GROUPS: readonly { title: string; kinds: readonly { kind: ShipModuleKind; 
                 label: "Plasma lance",
                 title: "Two prongs that throw a pulse of fuel, white hot, a short way and hard. Wider hits harder on more fuel; longer reaches further on more power. It kicks back as it fires",
             },
+            {
+                kind: "warhead",
+                label: "Warhead",
+                title: "A sealed charge of fuel in a steel casing, set off when an enemy comes within its standoff. Its casing flies out as fragments across its spread, and what the charge does not throw into them goes into the ship carrying it",
+            },
         ],
     },
     {

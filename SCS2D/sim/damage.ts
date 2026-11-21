@@ -140,6 +140,8 @@ export enum DamageEffect {
     Discharge = 6,
     /** How well a robot bay refills its robots and sends them out. */
     Tending = 7,
+    /** Whether a warhead's fuze can still set it off. */
+    Fuze = 8,
 }
 
 /**
@@ -222,6 +224,7 @@ export const DAMAGE_RESPONSES: Readonly<Record<ModuleSpec["kind"], readonly Dama
     // A slipway's cradle and feed lines, the same.
     slipway: [{ effect: DamageEffect.Grip, remaining: fadesOutAt(THRUST_CUTOUT) }],
     hold: [],
+    warhead: [],
     // Racks and chargers are machinery too.
     robotBay: [{ effect: DamageEffect.Tending, remaining: fadesOutAt(THRUST_CUTOUT) }],
     // A plant gives out as an engine does.

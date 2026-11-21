@@ -365,6 +365,7 @@ describe("mutation", () => {
                     generator: 0,
                     robotBay: 0,
                     slipway: 0,
+                    warhead: 0,
                 },
             });
             held = child.blueprint;
@@ -405,6 +406,7 @@ describe("mutation", () => {
             generator: 0,
             robotBay: 0,
             slipway: 0,
+            warhead: 0,
         };
         let seen = 0;
         for (let i = 0; i < 400 && seen < 3; i++) {
@@ -537,6 +539,7 @@ describe("mutation", () => {
                     generator: 0,
                     robotBay: 0,
                     slipway: 0,
+                    warhead: 0,
                 },
             });
             held = child.blueprint;
@@ -751,6 +754,7 @@ describe("mutation", () => {
                     generator: 0,
                     robotBay: 0,
                     slipway: 0,
+                    warhead: 0,
                 },
             });
             expect(child.edits.length, `child ${i}`).toBeGreaterThan(0);
