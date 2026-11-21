@@ -352,6 +352,12 @@ export function SetupScreen({ hidden, form, onForm, ships, fleets, onExport, onI
                 <Fold k="therun" title="The run">
                     {field({ id: "generations", label: "generations", min: 1 })}
                     {field({ id: "minMatches", label: "matches each", min: 1 })}
+                    {field({
+                        id: "robots",
+                        label: "robots",
+                        min: 1,
+                        title: "How many robots build each side's ships in its build budget; what is left is the ships' time to load and charge",
+                    })}
                     {field({ id: "seed", label: "seed", min: null })}
                     {field({ id: "effort", label: "ms per frame", min: 1, max: 200 })}
                     <Note>
@@ -600,7 +606,7 @@ export function SetupScreen({ hidden, form, onForm, ships, fleets, onExport, onI
                             id: "buildBudget",
                             label: "build budget min",
                             placeholder: "none",
-                            title: "How long one robot would take to build every module",
+                            title: "The time before each match its ships are built and readied in, by the run's robots",
                         })}
                         {sided({ id: "fleetShips", label: "most ships", min: 1, title: "One keeps a run of ships breeding ships" })}
                         {fleet &&

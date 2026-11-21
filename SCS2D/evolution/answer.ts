@@ -1,4 +1,15 @@
-import { DAMAGE_ENERGY_PER_KG, fleetBill, fleetHulls, fleetReach, math, Rng, shipFleet, type Budget, type Fleet } from "../sim/index.js";
+import {
+    DAMAGE_ENERGY_PER_KG,
+    fleetBill,
+    fleetHulls,
+    fleetReach,
+    math,
+    Rng,
+    shipFleet,
+    type Budget,
+    type Fleet,
+    type Yard,
+} from "../sim/index.js";
 import { BARE_CORE } from "../scenarios/blueprints.js";
 import { customBattle, tally, type CustomBattle } from "../scenarios/customBattle.js";
 import { Activity } from "../scenarios/decision.js";
@@ -79,10 +90,14 @@ export interface Progress {
  * match on another seed, or a drill. So pieces can be fought anywhere, in any
  * order, and give the same results.
  */
-export type AnswerJob =
+export type AnswerJob = (
     | { readonly kind: "round"; readonly enemy: Fleet }
     | { readonly kind: "match"; readonly enemy: Fleet; readonly seed: number }
-    | { readonly kind: "drill"; readonly enemy: Fleet; readonly drill: Drill };
+    | { readonly kind: "drill"; readonly enemy: Fleet; readonly drill: Drill }
+) & {
+    /** What builds the player's fleet and the enemy's before the battle; ready for anything where not given. */
+    readonly yards?: readonly [Yard, Yard];
+};
 
 /** What a piece of work adds to its enemy's standing. */
 export interface JobResult {
@@ -133,6 +148,8 @@ export class EnemySearch {
         /** The skirmish's starting budget, which the enemy's cards move; what the enemy cost where not given. */
         private readonly playerBudget?: Budget,
         cards: readonly string[] = [],
+        /** The time before the battle the player's fleet is built in, its cards and all; ready for anything where not given. */
+        private readonly playerDeadline?: number,
     ) {
         this.cards = cards;
         this.rng = new Rng(seed);
@@ -227,12 +244,23 @@ export class EnemySearch {
         this.handed++;
         const enemy = this.standings[math.floor(index / each)]!.enemy;
         const match = index % each;
-        const job: AnswerJob =
+        const fight: AnswerJob =
             match === 0
                 ? { kind: "round", enemy }
                 : match <= this.seeds.length
                   ? { kind: "match", enemy, seed: this.seeds[match - 1]! }
                   : { kind: "drill", enemy, drill: this.drills[match - 1 - this.seeds.length]! };
+        // Built to the enemy's limits as they stand, its cards and all.
+        const job: AnswerJob =
+            this.playerDeadline === undefined
+                ? fight
+                : {
+                      ...fight,
+                      yards: [
+                          { deadline: this.playerDeadline, robots: 1 },
+                          { deadline: atLeast(withCards(this.start, this.cards), enemy).budget.build, robots: 1 },
+                      ],
+                  };
         return { epoch: this.epoch, index, job };
     }
 
@@ -354,11 +382,11 @@ export class JobRunner {
         wonSeed: number,
     ) {
         if (job.kind === "drill") {
-            this.battle = drillBattle(job.drill, player, job.enemy, settings, wonSeed);
+            this.battle = drillBattle(job.drill, player, job.enemy, settings, wonSeed, job.yards);
         } else {
             // On the round's map whatever the seed, so the enemy is bred for the place it answers in.
             const seed = job.kind === "round" ? wonSeed : job.seed;
-            this.battle = customBattle(roundBattle(player, job.enemy, seed, settings, wonSeed));
+            this.battle = customBattle(roundBattle(player, job.enemy, seed, settings, wonSeed, job.yards));
             // Under the round's own rule for a side gone quiet, or the search breeds enemies that
             // hang back, lose a little less than the player, and are put out of every round they answer.
             this.activity = new Activity(2, settings.timeCap, settings.quietTime);
@@ -470,9 +498,16 @@ export interface Drill {
 }
 
 /** A drill's battle: the enemy against a bare core, or invincible against the player's fleet. */
-export function drillBattle(drill: Drill, player: Fleet, enemy: Fleet, settings: AnswerSettings, mapSeed = drill.seed): CustomBattle {
-    if (drill.kind === "bareCore") return customBattle(roundBattle(shipFleet(BARE_CORE), enemy, drill.seed, settings, mapSeed));
-    const battle = customBattle(roundBattle(player, enemy, drill.seed, settings, mapSeed));
+export function drillBattle(
+    drill: Drill,
+    player: Fleet,
+    enemy: Fleet,
+    settings: AnswerSettings,
+    mapSeed = drill.seed,
+    yards?: readonly [Yard, Yard],
+): CustomBattle {
+    if (drill.kind === "bareCore") return customBattle(roundBattle(shipFleet(BARE_CORE), enemy, drill.seed, settings, mapSeed, yards));
+    const battle = customBattle(roundBattle(player, enemy, drill.seed, settings, mapSeed, yards));
     const { ships, world } = battle;
     for (let i = 0; i < ships.highWater; i++) {
         if (ships.isAlive(i) && ships.teamOf(i) === 1) ships.damage.protect(world.bodies.indexOf(ships.body(i)));

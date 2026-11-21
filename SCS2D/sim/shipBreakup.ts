@@ -951,6 +951,7 @@ export function detach(ships: Ships, world: World, i: number, design: ShipDesign
         angularVel: spin,
         team: ships.team[side]!,
         serial: ships.serial[side]!,
+        madeInBattle: true,
     });
     ships.partedAt[j] = world.tick;
     ships.couldFight[j] = ships.couldFight[side]!;
@@ -1142,6 +1143,7 @@ export function adopt(
     const states = new Uint8Array(design.turrets.length);
     const barrels = new Int32Array(design.turrets.length);
     const bank = new Float64Array(design.turrets.length);
+    const primed = new Float64Array(design.turrets.length);
     const targets = new Int32Array(design.turrets.length).fill(NO_TARGET);
     const aiming = new Int32Array(design.turrets.length).fill(NO_TARGET);
     const aims = new Int32Array(design.turrets.length).fill(WHOLE_SHIP);
@@ -1179,6 +1181,7 @@ export function adopt(
         states[t] = ships.turretStates[ship]![before]!;
         barrels[t] = ships.nextBarrelToFire[ship]![before]!;
         bank[t] = ships.bank[ship]![before]!;
+        primed[t] = ships.primed[ship]![before]!;
         targets[t] = ships.turretTarget[ship]![before]!;
         // Not what it was aiming at: a weld lands between aiming and firing, so
         // it holds fire until the next `command` has aimed it from the new hull.
@@ -1199,6 +1202,7 @@ export function adopt(
     ships.turretStates[i] = states;
     ships.nextBarrelToFire[i] = barrels;
     ships.bank[i] = bank;
+    ships.primed[i] = primed;
     ships.turretTarget[i] = targets;
     ships.turretAiming[i] = aiming;
     ships.turretAimModule[i] = aims;

@@ -90,6 +90,7 @@ export {
     firingPeriod,
     volleyCharge,
     shotFuel,
+    shotMetal,
     shotCharge,
     moduleCentre,
     boxAngle,
@@ -532,5 +533,17 @@ export {
 } from "./damage.js";
 export { checksumWorld, checksumProjectiles, checksumBeams, checksumDamage, formatChecksum } from "./checksum.js";
 export { addBills, affords, billOf, isLimited, NO_BILL, NO_BUDGET, type Bill, type Budget } from "./bill.js";
+export {
+    buildOrder,
+    FULLY_READY,
+    NO_YARD,
+    readied,
+    readyingTime,
+    schedule,
+    YARD_POWER,
+    type Readied,
+    type Ready,
+    type Yard,
+} from "./readying.js";
 export { printedCraft, printFrame, printLength, SLIPWAY_STEP, type Print } from "./slipway.js";
 export { repairBlueprint, repairFleet, type Repaired, type RepairedFleet } from "./repair.js";

@@ -687,10 +687,15 @@ inside any one file is not contiguous.
   page saves any founder the library lacks, beside a different design of the same name rather than over it. Every field is optional
   and anything left out is the default, angles are degrees as they are in a blueprint file, and no limit is
   `null` because JSON has no infinity.
-  **A budget is the three things a ship costs** (`sim/bill.ts`, §2): **metal**, its hull and fittings and the
-  metal in its holds, and **fuel**, both as it sets out, so what a tank or hold starts without is saved; and
-  **build time**, how long one robot would take to build every module at `ROBOT_REPAIR_RATE`, its mass and
-  complexity alike, travel aside. Charge is left out: batteries set out full and cost nothing. Each has a limit
+  **A budget is the three things a ship costs** (`sim/bill.ts`, §2): **metal**, its hull and fittings, the
+  metal in its holds and its guns' first rounds, and **fuel**, in its tanks and its first rounds, both as it
+  sets out, so what a tank or hold starts without is saved; and **build time**, how long one robot would take
+  to build every module at `ROBOT_REPAIR_RATE`, its mass and complexity alike, travel aside. **The build-time
+  limit is the time before the battle**, which a run's `robots` (one unless set) build in at once, a ship at a
+  time, the slowest to ready first; **what the build leaves is each ship's time to ready itself**
+  (`sim/readying.ts`): its guns reload, and its generators charge its guns, then its robots, then its
+  batteries, and once the whole fleet is built the yard's robots charge its batteries at `YARD_POWER` each.
+  Charge is in no budget: it is paid for in that time. A ship short of time sets out part loaded. Each has a limit
   of its own, none by default, so a run can make fuel scarce and metal plentiful; a mutant over any is refused.
   A ship's bill is its own and its fighters', a fleet's every ship's. `--budget` sets each to that many times
   the dearest founder's; a settings file's `budget` holds the three, and an older file's `massBudget` is read
@@ -1324,7 +1329,8 @@ inside any one file is not contiguous.
   own piece of hull, as an engine draws fuel from its tanks, before it reloads, and waits empty, its reload not
   begun, while they have less than a round's casing. **Fuel is a gun's propellant and a shell's bursting charge**: a gun draws its next
   round's from the tanks on its piece of hull as it reloads, as a beam draws its charge, so it reloads only as
-  fast as they supply it, first come first served against the engines, and starts a battle loaded. The
+  fast as they supply it, first come first served against the engines, and starts a battle as far through its
+  first reload as the time before it allowed, the budget having paid for that round's metal and fuel. The
   propellant is the muzzle energy at `PROPELLANT_ENERGY`, 1.2 MJ/kg (the 16"/50's 297 kg charge), so it goes
   with the square of muzzle speed: about a fifth of the round's mass at 700 m/s, nearly all of it at 1500,
   which is what a long barrel costs a shot. Its gas recoils too, leaving `GAS_RECOIL` (1.5) times as fast as
