@@ -55,7 +55,7 @@ import {
     type ModuleSpec,
     type ShipDesign,
 } from "../sim/index.js";
-import { GunType } from "../sim/modules.js";
+import { GunType, warheadBurst } from "../sim/modules.js";
 import { buildWork, fittingOf } from "../sim/rebuild.js";
 
 /** A build time, in seconds, minutes or hours as reads best. */
@@ -548,6 +548,17 @@ export function moduleReadout(
     load("Fuel", stats.fuel, tonnes, "fuelShare");
     load("Metal", stats.metal, tonnes, "holdShare");
     load("Charge", stats.charge, megajoules, "batteryShare");
+    if (spec.kind === "warhead") {
+        const burst = warheadBurst(spec, stats);
+        add({ name: "Yield", value: megajoules(burst.energy), title: "Full: it is the fuel it holds" });
+        add({
+            name: "Fragments at",
+            under: "spread",
+            value: `${n(burst.speed, 0)} m/s`,
+            title: `Taking ${n(burst.focus * 100, 0)}% of the yield; the rest goes into the ship carrying it`,
+        });
+        add({ name: "Each", under: "fragments", value: `${n(burst.casing / burst.fragments, 1)} kg`, sub: true });
+    }
     if (stats.charge > 0) add({ name: "Charge rate", value: megawatts(stats.chargeRate), title: "In or out" });
     if (stats.generation > 0) add({ name: "Generates", value: megawatts(stats.generation), ...(core ? { under: "generatorShare" } : {}) });
     if (spec.kind === "robotBay") {

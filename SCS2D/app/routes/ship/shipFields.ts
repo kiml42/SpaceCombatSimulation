@@ -11,6 +11,10 @@ import {
     type CoreShareKey,
     DEFAULT_BURST_SPEED,
     DEFAULT_FRAGMENTS,
+    drainPriorityOf,
+    DEFAULT_STANDOFF,
+    DEFAULT_WARHEAD_FRAGMENTS,
+    DEFAULT_WARHEAD_SPREAD,
     DEFAULT_FUSE,
     DEFAULT_NOZZLE_WIDTHS,
     masksWholeArc,
@@ -39,6 +43,80 @@ export const CRAFT_ANGLES: readonly { degrees: number; label: string }[] = [
     { degrees: 180, label: "stern first" },
 ];
 
+/** The kinds a ship is built of, but its core, in the groups the editor offers them in. */
+export const MODULE_GROUPS: readonly { title: string; kinds: readonly { kind: ShipModuleKind; label: string; title?: string }[] }[] = [
+    {
+        title: "Structural",
+        kinds: [
+            { kind: "structure", label: "Structure" },
+            { kind: "tank", label: "Tank" },
+            { kind: "hold", label: "Hold", title: "A box of metal that the guns on its piece of hull load their rounds from" },
+        ],
+    },
+    {
+        title: "Power",
+        kinds: [
+            {
+                kind: "generator",
+                label: "Generator",
+                title: "A plant that makes power for as long as it works, filling the batteries on its piece of hull",
+            },
+            {
+                kind: "battery",
+                label: "Battery",
+                title: "A store of charge, filled by generators and drawn on by beams. Holds more the bigger it is, and passes power faster the more edge it has",
+            },
+            {
+                kind: "robotBay",
+                label: "Robot bay",
+                title: "Berths for robots that crawl the hull mending damage, carrying out metal and charge from this piece of hull and coming back for more. Berths more the bigger it is",
+            },
+        ],
+    },
+    { title: "Propulsion", kinds: [{ kind: "engine", label: "Engine" }] },
+    {
+        title: "Weapons",
+        kinds: [
+            { kind: "turret", label: "Turret" },
+            { kind: "beamTurret", label: "Beam turret" },
+            { kind: "hullGun", label: "Hull gun" },
+            {
+                kind: "railGun",
+                label: "Rail gun",
+                title: "A hull gun whose rails throw solid shot twice as fast, on power rather than fuel. It does not train: the hull aims it",
+            },
+            { kind: "hullBeam", label: "Hull beam" },
+            {
+                kind: "plasmaLance",
+                label: "Plasma lance",
+                title: "Two prongs that throw a pulse of fuel, white hot, a short way and hard. Wider hits harder on more fuel; longer reaches further on more power. It kicks back as it fires",
+            },
+            {
+                kind: "warhead",
+                label: "Warhead",
+                title: "A tank in a steel casing, its fuel the charge and burnt only once every other tank is dry, set off when an enemy comes within its standoff. Its casing flies out as fragments across its spread, and what the charge does not throw into them goes into the ship carrying it, throwing what it shatters",
+            },
+        ],
+    },
+    {
+        title: "Docking",
+        kinds: [
+            { kind: "claw", label: "Claw", title: "Jaws and a pump on the bow, to drink from wrecks and disarmed enemies" },
+            { kind: "pad", label: "Pad", title: "A deck a friendly fighter lands on, to be filled from this ship's tanks" },
+            {
+                kind: "port",
+                label: "Port",
+                title: "A coupling on the hull's side, to dock face to face with a friend's port and share fuel",
+            },
+            {
+                kind: "slipway",
+                label: "Slipway",
+                title: "A shipyard in the hull, building the ship it names bow first out of its face, from this ship's metal and charge",
+            },
+        ],
+    },
+];
+
 /** What a freshly added module of each kind starts as, metres. */
 export const DEFAULTS: Record<ShipModuleKind, Omit<ModuleSpec, "x" | "y">> = {
     structure: { kind: "structure", length: 8, width: 5 },
@@ -60,6 +138,8 @@ export const DEFAULTS: Record<ShipModuleKind, Omit<ModuleSpec, "x" | "y">> = {
     // Long enough for its field to reach a fight's width, and a deck wide.
     plasmaLance: { kind: "plasmaLance", angle: 0, length: 6, width: 3 },
     claw: { kind: "claw", angle: 0, length: 2, width: 2 },
+    // A torpedo's nose, throwing its fragments ahead of it.
+    warhead: { kind: "warhead", angle: 0, length: 1, width: 0.5 },
     // Room for a fighter to sit on, wholly inside it.
     pad: { kind: "pad", length: 12, width: 10 },
     // Facing out of the hull it is bolted to, its face the side that mates.
@@ -80,6 +160,8 @@ export type ModuleNumberField =
     | "fuse"
     | "fragments"
     | "burstSpeed"
+    | "spread"
+    | "standoff"
     | "sealing"
     | "drainPriority"
     | "priority"
@@ -107,11 +189,13 @@ export function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
     if (key === "traverse") return Math.round(radiansToDegrees(mountTraverse(spec)) * 10) / 10;
     if (key === "turning") return tidy((spec.turning ?? TRAVERSE_GEAR_FRACTION) * 100);
     if (key === "fuse") return spec.fuse ?? DEFAULT_FUSE;
-    if (key === "fragments") return spec.fragments ?? DEFAULT_FRAGMENTS;
+    if (key === "fragments") return spec.fragments ?? (spec.kind === "warhead" ? DEFAULT_WARHEAD_FRAGMENTS : DEFAULT_FRAGMENTS);
+    if (key === "spread") return tidy(radiansToDegrees(spec.spread ?? DEFAULT_WARHEAD_SPREAD));
+    if (key === "standoff") return spec.standoff ?? DEFAULT_STANDOFF;
     if (key === "burstSpeed") return spec.burstSpeed ?? DEFAULT_BURST_SPEED;
     // Millimetres on the panel, metres in the layout.
     if (key === "sealing") return tidy((spec.sealing ?? 0) * 1000);
-    if (key === "drainPriority") return spec.drainPriority ?? 0;
+    if (key === "drainPriority") return drainPriorityOf(spec);
     if (key === "priority") return partPriority(spec);
     // Per cent on the panel, a share in the layout.
     if (key === "fill") return tidy((spec.fill ?? 1) * 100);
