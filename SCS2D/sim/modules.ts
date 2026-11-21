@@ -310,7 +310,19 @@ export function readsSealing(kind: ModuleKind): boolean {
 
 /** Whether `drainPriority` means anything on this kind: what holds fuel. */
 export function readsDrainPriority(kind: ModuleKind): boolean {
-    return readsSealing(kind);
+    return readsSealing(kind) || kind === "warhead";
+}
+
+/**
+ * The drain priority a warhead has when it states none: below any tank's, so
+ * its ship burns its charge only once every other tank on its piece is dry,
+ * and refuelling fills it first.
+ */
+export const WARHEAD_DRAIN_PRIORITY = -100;
+
+/** A store's drain priority (`ModuleSpec.drainPriority`), or its kind's default. */
+export function drainPriorityOf(spec: ModuleSpec): number {
+    return spec.drainPriority ?? (spec.kind === "warhead" ? WARHEAD_DRAIN_PRIORITY : 0);
 }
 
 /**
@@ -372,7 +384,7 @@ export function readsCraftAngle(kind: ModuleKind): boolean {
 
 /** Whether `fill` means anything on this kind: what holds fuel, metal or charge. */
 export function readsFill(kind: ModuleKind): boolean {
-    return readsSealing(kind) || kind === "hold" || kind === "battery";
+    return readsSealing(kind) || kind === "hold" || kind === "battery" || kind === "warhead";
 }
 
 /** Whether `robotsPerBerth` means anything on this kind. */
@@ -1883,8 +1895,6 @@ export interface ModuleStats {
     fuel: number;
     /** Metal the module holds when full, kg, counted in `mass`. Zero unless it is a hold. */
     metal: number;
-    /** A warhead's charge, kg of fuel sealed in it, counted in `mass`. Zero for anything else. */
-    explosive: number;
     /** Self-sealing lining inside the walls, metres; zero for none. */
     lining: number;
     /** Volume inside the walls and the lining, m³. */
@@ -3319,7 +3329,7 @@ export interface WarheadBurst {
     spread: number;
     /** The share of the charge's energy the fragments take (`WARHEAD_FOCUS`). */
     focus: number;
-    /** The charge's energy, J. */
+    /** The charge's energy, J: what it holds of fuel. */
     energy: number;
     /** The casing, kg: its walls, which the fragments share. */
     casing: number;
@@ -3327,14 +3337,17 @@ export interface WarheadBurst {
     speed: number;
 }
 
-/** What a warhead with `casing` kg of walls left throws, by the Gurney balance `½ m v² = focus E`. */
-export function warheadBurst(spec: ModuleSpec, stats: ModuleStats, casing = stats.structureMass): WarheadBurst {
+/**
+ * What a warhead with `casing` kg of walls left and `charge` kg of fuel in it
+ * throws, by the Gurney balance `½ m v² = focus E`. Full, undamaged, when not said.
+ */
+export function warheadBurst(spec: ModuleSpec, stats: ModuleStats, casing = stats.structureMass, charge = stats.fuel): WarheadBurst {
     const asked = spec.fragments ?? DEFAULT_WARHEAD_FRAGMENTS;
     const fragments = asked > 1 ? asked : 1;
     const spread = spec.spread ?? DEFAULT_WARHEAD_SPREAD;
     const share = spread / TAU;
     const focus = share > WARHEAD_FOCUS ? share : WARHEAD_FOCUS;
-    const energy = stats.explosive * EXPLOSIVE_YIELD;
+    const energy = charge * EXPLOSIVE_YIELD;
     const speed = casing > 0 ? sqrt((2 * focus * energy) / casing) : 0;
     return { fragments, spread, focus, energy, casing, speed };
 }
@@ -3516,7 +3529,6 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     let ringPower = 0;
     let fuel = 0;
     let metal = 0;
-    let explosive = 0;
     let charge = 0;
     let chargeRate = 0;
     let generation = 0;
@@ -3570,8 +3582,8 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
         fittingMass = liningMass;
         fuel = interior * FUEL_DENSITY;
     } else if (spec.kind === "warhead") {
-        // A tank sealed shut: its walls are the casing and its fuel the charge.
-        explosive = interior * FUEL_DENSITY;
+        // A tank whose walls are the casing and whose fuel is the charge.
+        fuel = interior * FUEL_DENSITY;
     } else if (spec.kind === "hold") {
         // A box whose whole interior is metal, as a tank's is fuel.
         metal = interior * METAL_DENSITY;
@@ -3756,7 +3768,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
         }
     }
 
-    const mass = structureMass + fittingMass + fuel + metal + explosive;
+    const mass = structureMass + fittingMass + fuel + metal;
     // Everything but the barrels rotates as the box it is: walls, and machinery
     // packed inside them.
     const boxMass = mass - rodMass;
@@ -3796,7 +3808,6 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
         ringPower,
         fuel,
         metal,
-        explosive,
         lining,
         interior,
         gun,

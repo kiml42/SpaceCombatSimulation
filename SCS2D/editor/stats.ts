@@ -550,8 +550,7 @@ export function moduleReadout(
     load("Charge", stats.charge, megajoules, "batteryShare");
     if (spec.kind === "warhead") {
         const burst = warheadBurst(spec, stats);
-        add({ name: "Explosive", value: `${n(stats.explosive, 1)} kg`, title: "Fuel, sealed in" });
-        add({ name: "Yield", value: megajoules(burst.energy) });
+        add({ name: "Yield", value: megajoules(burst.energy), title: "Full: it is the fuel it holds" });
         add({
             name: "Fragments at",
             under: "spread",

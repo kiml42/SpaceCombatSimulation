@@ -50,6 +50,7 @@ import {
     readsFill,
     readsFuse,
     readsSealing,
+    WARHEAD_DRAIN_PRIORITY,
     WARHEAD_FOCUS,
     readsThick,
     readsMagnetic,
@@ -830,7 +831,7 @@ export function ModulePanel({
                             "drainPriority",
                             {
                                 step: 1,
-                                title: "Which tanks an engine burns from first: the highest priority it is connected to, then the next once those are dry. Tanks of the same priority drain together. Zero by default.",
+                                title: `Which tanks an engine burns from first: the highest priority it is connected to, then the next once those are dry. Tanks of the same priority drain together, and refuelling fills the lowest first. Zero by default; a warhead's ${WARHEAD_DRAIN_PRIORITY}, so it is burnt last.`,
                             },
                             (drainPriority) => patch({ drainPriority }),
                         )}

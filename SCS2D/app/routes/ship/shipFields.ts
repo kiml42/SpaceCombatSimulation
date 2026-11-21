@@ -11,6 +11,7 @@ import {
     type CoreShareKey,
     DEFAULT_BURST_SPEED,
     DEFAULT_FRAGMENTS,
+    drainPriorityOf,
     DEFAULT_STANDOFF,
     DEFAULT_WARHEAD_FRAGMENTS,
     DEFAULT_WARHEAD_SPREAD,
@@ -120,7 +121,7 @@ export function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
     if (key === "burstSpeed") return spec.burstSpeed ?? DEFAULT_BURST_SPEED;
     // Millimetres on the panel, metres in the layout.
     if (key === "sealing") return tidy((spec.sealing ?? 0) * 1000);
-    if (key === "drainPriority") return spec.drainPriority ?? 0;
+    if (key === "drainPriority") return drainPriorityOf(spec);
     if (key === "priority") return partPriority(spec);
     // Per cent on the panel, a share in the layout.
     if (key === "fill") return tidy((spec.fill ?? 1) * 100);

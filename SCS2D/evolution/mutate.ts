@@ -41,6 +41,7 @@ import {
     canThicken,
     DEFAULT_BURST_SPEED,
     DEFAULT_FRAGMENTS,
+    drainPriorityOf,
     DEFAULT_STANDOFF,
     DEFAULT_WARHEAD_FRAGMENTS,
     DEFAULT_WARHEAD_SPREAD,
@@ -1572,7 +1573,7 @@ function reseal(site: ModuleSite, jitter: Jitter): string | null {
 
 /** Move a tank one place earlier or later in the order its ship drains them. */
 function reprioritise(site: ModuleSite, rng: Rng): string | null {
-    const was = site.spec.drainPriority ?? 0;
+    const was = drainPriorityOf(site.spec);
     const now = was + (rng.chance(0.5) ? 1 : -1);
     site.spec.drainPriority = now;
     return `${site.where} ${site.spec.kind}: drain priority ${was} → ${now}`;

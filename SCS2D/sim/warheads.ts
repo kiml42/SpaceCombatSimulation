@@ -2,9 +2,12 @@ import type { Bodies } from "./bodies.js";
 import type { ShipDesign } from "./blueprint.js";
 import { DamageEffect, IMPACT_BURST, SHATTER, type ImpactLog } from "./damage.js";
 import { BOTH_LAYERS } from "./hull.js";
-import { abs, angleDelta, asin, atan2, cos, max, min, pow, sin, sqrt, TAU } from "./math.js";
+import { moduleLayers } from "./hull.js";
+import { abs, angleDelta, asin, atan2, cos, log, max, min, pow, sin, sqrt, TAU } from "./math.js";
 import { DEFAULT_STANDOFF, DEFAULT_WARHEAD_SPREAD, warheadBurst } from "./modules.js";
-import type { Projectiles } from "./projectiles.js";
+import { ROUND_WRECKAGE, type Projectiles } from "./projectiles.js";
+import { blowKey, discardFrom, heldMass, settleMass } from "./shipBreakup.js";
+import { MOST_FRAGMENTS, WRECKAGE_LIFE, WRECKAGE_SHARE } from "./wreckage.js";
 import { IndexBuffer, type SpatialGrid } from "./spatialGrid.js";
 import type { Ships } from "./ships.js";
 import type { World } from "./world.js";
@@ -12,8 +15,10 @@ import type { World } from "./world.js";
 /**
  * Warheads: a hull weapon that fires by destroying itself.
  *
- * A warhead is a sealed tank whose walls are the casing and whose fuel is the
- * charge. Its fuze sets it off when the edge of an enemy hull inside its
+ * A warhead is a tank whose walls are the casing and whose fuel is the charge,
+ * so what it yields is what it holds. Its ship burns it last
+ * (`WARHEAD_DRAIN_PRIORITY`), and it tops itself up from the tanks drawn
+ * before it, so one rebuilt or holed fills again. Its fuze sets it off when the edge of an enemy hull inside its
  * spread comes within its `standoff`, unless a friend inside the spread is
  * nearer. A collision does not: a ram is still a ram.
  *
@@ -24,6 +29,11 @@ import type { World } from "./world.js";
  * the share of the turn it fills as seen from the warhead, and what none of
  * them fills goes off into space. The hull keeps the momentum the fragments
  * leave with, the other way, and the warhead itself is shattered.
+ *
+ * A module the blast shatters flies on as wreckage, as one a collision
+ * shatters does: `WRECKAGE_SHARE` of it, away from the warhead, with half the
+ * energy it took. The charge's gas takes their momentum the other way. So a
+ * warhead is dangerous all round its carrier, not only across its spread.
  */
 
 /** Seconds a warhead's fragment flies: as long as a shattered module's. */
@@ -37,6 +47,18 @@ const FUZE_CLOSING = 5000;
 
 /** Steel, which sizes a fragment's calibre from its mass. */
 const FRAGMENT_DENSITY = 7800;
+
+/** How fast a warhead tops itself up from its ship's tanks, kg/s. */
+export const WARHEAD_FILL_RATE = 20;
+
+/** The share of what a module shattered by a blast took that throws its wreckage. */
+const BLAST_THROW = 0.5;
+
+/** The least a piece of it weighs, kg, so a light module breaks into fewer. */
+const LEAST_PIECE = 1;
+
+/** How far a piece strays from straight out from the warhead, radians either way. */
+const BLAST_STRAY = 0.3;
 
 const warheadCache = new WeakMap<ShipDesign, readonly number[]>();
 
@@ -69,6 +91,7 @@ export function detonateWarheads(ships: Ships, world: World, projectiles: Projec
         const b = bodies.indexOf(ships.bodyIds[i]!);
         // Not while it rides another's hull, or carries another on its own.
         if (b < 0 || ships.shipByBody[b] !== i || ships.pilots[b] != null) continue;
+        for (const m of heads) ships.fuel.topUp(b, m, WARHEAD_FILL_RATE * world.dt);
         for (const m of heads) {
             if (ships.left(i, b, m, DamageEffect.Fuze) <= 0) continue;
             if (!tripped(ships, bodies, grid, i, b, design, m, world.dt)) continue;
@@ -197,7 +220,14 @@ export function detonate(
     const damage = ships.damage;
     const placed = design.modules[m]!;
     const casing = max(0, placed.stats.structureMass - damage.shedAt(b, m));
-    const burst = warheadBurst(placed.spec, placed.stats, casing);
+    const burst = warheadBurst(placed.spec, placed.stats, casing, ships.fuel.held(b, m));
+
+    // The charge goes to gas, at its hull's velocity.
+    const mass = bodies.mass[b]!;
+    const inertia = bodies.inertia[b]!;
+    ships.fuel.empty(b, m);
+    settleMass(ships, bodies, b);
+    discardFrom(ships, bodies, b, mass, inertia);
 
     const angle = bodies.angle[b]!;
     const c = cos(angle);
@@ -259,5 +289,94 @@ export function detonate(
     }
     // And the warhead is gone.
     damage.absorb(b, m, SHATTER * damage.capacityOf(b, m) * 2);
+    ships.thrown.add(blowKey(b, m));
+    throwBlasted(ships, bodies, projectiles, rng, i, b, design, m);
     log?.push(wx, wy, burst.energy, IMPACT_BURST, undefined, -1, vx, vy, burst.speed);
+}
+
+const masses: number[] = [];
+
+/** Throw on as wreckage every module of ship `i`'s hull a blast from its warhead `m` shattered this step. */
+function throwBlasted(
+    ships: Ships,
+    bodies: Bodies,
+    projectiles: Projectiles,
+    rng: World["rng"],
+    i: number,
+    b: number,
+    design: ShipDesign,
+    m: number,
+): void {
+    const damage = ships.damage;
+    const placed = design.modules[m]!;
+    const angle = bodies.angle[b]!;
+    const c = cos(angle);
+    const s = sin(angle);
+    const spin = bodies.angularVel[b]!;
+    const layers = ships.layersOf(b);
+    let gasX = 0;
+    let gasY = 0;
+    let gasL = 0;
+    for (let e = 0; e < damage.stepCount; e++) {
+        if (damage.stepBody[e] !== b) continue;
+        const k = damage.stepModule[e]!;
+        const capacity = damage.capacityOf(b, k);
+        if (k === m || !(capacity > 0) || damage.stepJoules[e]! < SHATTER * capacity) continue;
+        if (ships.thrown.has(blowKey(b, k))) continue;
+        ships.thrown.add(blowKey(b, k));
+        const other = design.modules[k]!;
+        const mass = WRECKAGE_SHARE * heldMass(ships, b, design, k);
+        if (!(mass > 0)) continue;
+        const speed = sqrt((2 * BLAST_THROW * damage.stepJoules[e]!) / mass);
+        // Where it is and how it was moving, in the world.
+        const rx = other.x * c - other.y * s;
+        const ry = other.x * s + other.y * c;
+        const mx = bodies.x[b]! + rx;
+        const my = bodies.y[b]! + ry;
+        const vx = bodies.vx[b]! - spin * ry;
+        const vy = bodies.vy[b]! + spin * rx;
+        // Straight out from the warhead.
+        const out = atan2(other.y - placed.y, other.x - placed.x) + angle;
+
+        const count = min(MOST_FRAGMENTS, max(1, (mass / LEAST_PIECE) | 0), 2 + ((rng.nextFloat() * (MOST_FRAGMENTS - 1)) | 0));
+        let total = 0;
+        for (let f = 0; f < count; f++) {
+            masses[f] = -log(1 - rng.nextFloat() * 0.999999);
+            total += masses[f]!;
+        }
+        for (let f = 0; f < count; f++) {
+            const piece = (mass * masses[f]!) / total;
+            const heading = out + (rng.nextFloat() * 2 - 1) * BLAST_STRAY;
+            const ux = cos(heading) * speed;
+            const uy = sin(heading) * speed;
+            const across = (rng.nextFloat() - 0.5) * other.spec.width;
+            const x = mx - s * across;
+            const y = my + c * across;
+            gasX += piece * ux;
+            gasY += piece * uy;
+            gasL += piece * (x * uy - y * ux);
+            // Counted discarded whole when its module goes; it is counted here instead.
+            ships.discardedL -= piece * (x * vy - y * vx);
+            projectiles.spawn({
+                x,
+                y,
+                vx: vx + ux,
+                vy: vy + uy,
+                width: pow(piece / FRAGMENT_DENSITY, 1 / 3),
+                ttl: WRECKAGE_LIFE,
+                mass: piece,
+                owner: b,
+                ship: i,
+                layers: moduleLayers(other, layers),
+                kind: ROUND_WRECKAGE,
+            });
+        }
+        ships.discarded -= mass;
+        ships.discardedPx -= mass * vx;
+        ships.discardedPy -= mass * vy;
+    }
+    // The gas went the other way.
+    ships.discardedPx -= gasX;
+    ships.discardedPy -= gasY;
+    ships.discardedL -= gasL;
 }

@@ -98,7 +98,7 @@ const GROUPS: readonly { title: string; kinds: readonly { kind: ShipModuleKind; 
             {
                 kind: "warhead",
                 label: "Warhead",
-                title: "A sealed charge of fuel in a steel casing, set off when an enemy comes within its standoff. Its casing flies out as fragments across its spread, and what the charge does not throw into them goes into the ship carrying it",
+                title: "A tank in a steel casing, its fuel the charge and burnt only once every other tank is dry, set off when an enemy comes within its standoff. Its casing flies out as fragments across its spread, and what the charge does not throw into them goes into the ship carrying it, throwing what it shatters",
             },
         ],
     },

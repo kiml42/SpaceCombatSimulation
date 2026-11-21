@@ -7,6 +7,7 @@ import {
     moduleStats,
     parseBlueprint,
     Projectiles,
+    ROUND_WRECKAGE,
     serialiseBlueprint,
     Ships,
     SpatialGrid,
@@ -15,7 +16,7 @@ import {
     type Blueprint,
     type ModuleSpec,
 } from "../sim/index.js";
-import { detonateWarheads, tripped } from "../sim/warheads.js";
+import { detonateWarheads, tripped, WARHEAD_FILL_RATE } from "../sim/warheads.js";
 
 /**
  * A warhead is a sealed tank that fires by blowing itself apart: its walls fly
@@ -86,22 +87,47 @@ function momentum(s: ReturnType<typeof scene>): [number, number, number] {
 }
 
 describe("warhead", () => {
-    it("is a tank sealed shut: walls for casing, fuel for charge, billed as fuel", () => {
+    it("is a tank: walls for casing, fuel for charge, billed as fuel", () => {
         const stats = moduleStats(HEAD);
-        expect(stats.fuel).toBe(0);
-        expect(stats.explosive).toBeCloseTo(stats.interior * FUEL_DENSITY, 9);
-        expect(stats.mass).toBeCloseTo(stats.structureMass + stats.explosive, 9);
+        expect(stats.fuel).toBeCloseTo(stats.interior * FUEL_DENSITY, 9);
+        expect(stats.mass).toBeCloseTo(stats.structureMass + stats.fuel, 9);
         const design = compileBlueprint(CARRIER);
         const placed = design.modules.find((m) => m.spec.kind === "warhead")!;
         const without = billOf(compileBlueprint({ ...CARRIER, modules: CARRIER.modules.slice(0, 2) }));
-        expect(billOf(design).fuel - without.fuel).toBeCloseTo(placed.stats.explosive, 6);
+        expect(billOf(design).fuel - without.fuel).toBeCloseTo(placed.stats.fuel, 6);
+    });
+
+    it("is drawn on last, and refuelling fills it first", () => {
+        const s = scene(500);
+        const core = s.design.modules.findIndex((m) => m.spec.kind === "core");
+        const full = s.ships.fuel.held(s.b, s.head);
+        const elsewhere = s.ships.fuel.held(s.b, core);
+        expect(full).toBeGreaterThan(0);
+        expect(elsewhere).toBeGreaterThan(0);
+        s.ships.fuel.drain(s.b, core, elsewhere / 2);
+        expect(s.ships.fuel.held(s.b, s.head)).toBe(full);
+        s.ships.fuel.drain(s.b, core, elsewhere / 2 + full / 2);
+        expect(s.ships.fuel.held(s.b, s.head)).toBeCloseTo(full / 2, 6);
+        s.ships.fuel.add(s.b, core, full / 2);
+        expect(s.ships.fuel.held(s.b, s.head)).toBeCloseTo(full, 6);
+        expect(s.ships.fuel.held(s.b, core)).toBeCloseTo(0, 6);
+    });
+
+    it("tops itself up from the tanks drawn before it", () => {
+        const s = scene(500);
+        const spent = s.ships.fuel.empty(s.b, s.head);
+        expect(spent).toBeGreaterThan(0);
+        detonateWarheads(s.ships, s.world, s.projectiles, s.grid);
+        expect(s.ships.fuel.held(s.b, s.head)).toBeCloseTo(WARHEAD_FILL_RATE * s.world.dt, 9);
     });
 
     it("gives its fragments the share of its yield its spread takes, no less than a shaped liner's", () => {
         const stats = moduleStats(HEAD);
         const narrow = warheadBurst(HEAD, stats);
         expect(narrow.focus).toBe(0.2);
-        expect(narrow.energy).toBeCloseTo(stats.explosive * EXPLOSIVE_YIELD, 3);
+        expect(narrow.energy).toBeCloseTo(stats.fuel * EXPLOSIVE_YIELD, 3);
+        // What it yields is what it holds.
+        expect(warheadBurst(HEAD, stats, stats.structureMass, stats.fuel / 2).energy).toBeCloseTo(narrow.energy / 2, 3);
         expect(0.5 * narrow.casing * narrow.speed ** 2).toBeCloseTo(narrow.focus * narrow.energy, 0);
         const round = warheadBurst({ ...HEAD, spread: 2 * Math.PI }, stats);
         expect(round.focus).toBe(1);
@@ -137,17 +163,19 @@ describe("warhead", () => {
         const before = momentum(s);
         const casing = s.design.modules[s.head]!.stats.structureMass;
         expect(detonateWarheads(s.ships, s.world, s.projectiles, s.grid)).toBe(1);
-        expect(s.projectiles.count).toBe(8);
         // All ahead, inside the cone, as seen from the carrier.
         const vx = s.world.bodies.vx[s.b]!;
         const vy = s.world.bodies.vy[s.b]!;
         let mass = 0;
+        let count = 0;
         for (let i = 0; i < s.projectiles.highWater; i++) {
-            if (s.projectiles.alive[i] === 0) continue;
+            if (s.projectiles.alive[i] === 0 || s.projectiles.kind[i] === ROUND_WRECKAGE) continue;
+            count++;
             mass += s.projectiles.mass[i]!;
             const bearing = Math.atan2(s.projectiles.vy[i]! - vy, s.projectiles.vx[i]! - vx);
             expect(Math.abs(bearing)).toBeLessThan(Math.PI / 6 + 0.05);
         }
+        expect(count).toBe(8);
         expect(mass).toBeCloseTo(casing, 6);
         // Pushed back by what it threw.
         expect(vx).toBeLessThan(300);
@@ -165,6 +193,20 @@ describe("warhead", () => {
         expect(s.ships.damage.integrity(s.b, core)).toBe(1);
         detonateWarheads(s.ships, s.world, s.projectiles, s.grid);
         expect(s.ships.damage.integrity(s.b, core)).toBeLessThan(1);
+    });
+
+    it("throws what it shatters of its carrier as wreckage, away from it", () => {
+        const s = scene(1.5 + 2 + 15);
+        detonateWarheads(s.ships, s.world, s.projectiles, s.grid);
+        const vx = s.world.bodies.vx[s.b]!;
+        let thrown = 0;
+        for (let i = 0; i < s.projectiles.highWater; i++) {
+            if (s.projectiles.alive[i] === 0 || s.projectiles.kind[i] !== ROUND_WRECKAGE) continue;
+            thrown++;
+            // Everything else on the carrier is behind its warhead.
+            expect(s.projectiles.vx[i]!).toBeLessThan(vx);
+        }
+        expect(thrown).toBeGreaterThan(0);
     });
 
     it("does nothing with nobody in reach", () => {
