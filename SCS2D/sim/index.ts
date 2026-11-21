@@ -54,7 +54,7 @@ export {
 export { eccentricAnomaly, orbitPeriod, orbitState, Railway, systemGm, type Orbit, type Rails, type System } from "./rails.js";
 export { SpatialGrid, IndexBuffer, RayHit, segmentCircleT, type RayNarrowPhase } from "./spatialGrid.js";
 export { Projectiles, ProjectileHits, NO_OWNER, NOT_INSIDE, ROUND_SHRAPNEL, ROUND_WRECKAGE, type ProjectileSpec } from "./projectiles.js";
-export { detonateWarheads, WARHEAD_FRAGMENT_LIFE } from "./warheads.js";
+export { detonateWarheads } from "./warheads.js";
 export { spendHulls, throwShrapnel, throwWreckage, WRECKAGE_LIFE, WRECKAGE_SHARE } from "./wreckage.js";
 export {
     Beams,
@@ -126,7 +126,8 @@ export {
     chargeShare,
     DEFAULT_BURST_SPEED,
     DEFAULT_FRAGMENTS,
-    DEFAULT_STANDOFF,
+    WARHEAD_FRAGMENT_LIFE,
+    warheadReach,
     DEFAULT_WARHEAD_FRAGMENTS,
     DEFAULT_WARHEAD_SPREAD,
     WARHEAD_DRAIN_PRIORITY,
@@ -514,6 +515,7 @@ export {
     Credit,
     DAMAGE_ENERGY_PER_KG,
     RAGGED_INTEGRITY,
+    DUD_INTEGRITY,
     SHED_AT_BREAK,
     SHATTER,
     SHED_FLOOR,

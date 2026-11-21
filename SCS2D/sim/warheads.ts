@@ -3,7 +3,7 @@ import type { ShipDesign } from "./blueprint.js";
 import { DamageEffect, IMPACT_BURST, resolveCollision, SHATTER, type ImpactLog } from "./damage.js";
 import { BOTH_LAYERS, HullPath, moduleLayers } from "./hull.js";
 import { abs, angleDelta, asin, atan2, cos, log, max, min, pow, sin, sqrt, TAU } from "./math.js";
-import { DEFAULT_STANDOFF, DEFAULT_WARHEAD_SPREAD, warheadBurst } from "./modules.js";
+import { DEFAULT_WARHEAD_SPREAD, WARHEAD_FRAGMENT_LIFE, warheadBurst } from "./modules.js";
 import { ROUND_WRECKAGE, type Projectiles } from "./projectiles.js";
 import * as shipDocking from "./shipDocking.js";
 import { blowKey, discardFrom, heldMass, settleMass } from "./shipBreakup.js";
@@ -19,8 +19,10 @@ import type { World } from "./world.js";
  * so what it yields is what it holds. Its ship burns it last
  * (`WARHEAD_DRAIN_PRIORITY`), and it tops itself up from the tanks drawn
  * before it, so one rebuilt or holed fills again. Its fuze sets it off when
- * the edge of an enemy hull inside its spread comes within its `standoff`,
- * unless a friend inside the spread is nearer. A collision does not: a ram is still a ram.
+ * the edge of an enemy hull inside its spread comes within its reach, which
+ * its mount's doctrine sets as a gun's does (`DesignWarhead.reach`), unless a
+ * friend inside the spread is nearer. A collision does not: a ram is still a
+ * ram.
  *
  * Going off, the casing flies out across the spread as fragments, which are
  * rounds like any other and pass through nothing of the ship that threw them
@@ -37,12 +39,9 @@ import type { World } from "./world.js";
  * warhead is dangerous all round its carrier, not only across its spread.
  */
 
-/** Seconds a warhead's fragment flies: as long as a shattered module's. */
-export const WARHEAD_FRAGMENT_LIFE = 0.5;
-
 /**
  * The fastest a hull can close and still be caught before it touches, m/s:
- * how far beyond its standoff a fuze looks for one, a step's travel at this.
+ * how far beyond its reach a fuze looks for one, a step's travel at this.
  */
 const FUZE_CLOSING = 5000;
 
@@ -164,7 +163,7 @@ export function cookOff(ships: Ships, world: World, projectiles: Projectiles, lo
 
 /**
  * Whether warhead `m` of ship `i`, on body `b`, would go off now: an enemy
- * module's nearest point inside its spread and within its standoff, or
+ * module's nearest point inside its spread and within its reach, or
  * within a step of it, and no friend's nearer inside the spread.
  */
 export function tripped(
@@ -179,7 +178,8 @@ export function tripped(
 ): boolean {
     const placed = design.modules[m]!;
     const spec = placed.spec;
-    const standoff = spec.standoff ?? DEFAULT_STANDOFF;
+    // How far out it goes off, as its mount's doctrine says (`DesignWarhead.reach`).
+    const reach = design.warheads.find((head) => head.module === m)?.reach ?? 0;
     const spread = spec.spread ?? DEFAULT_WARHEAD_SPREAD;
     const half = spread >= TAU ? Infinity : 0.5 * spread;
     const angle = bodies.angle[b]!;
@@ -194,7 +194,7 @@ export function tripped(
 
     let enemy = Infinity;
     let friend = Infinity;
-    grid.queryCircle(bodies, wx, wy, standoff + FUZE_CLOSING * dt, near);
+    grid.queryCircle(bodies, wx, wy, reach + FUZE_CLOSING * dt, near);
     for (let q = 0; q < near.count; q++) {
         const tb = near.data[q]!;
         if (tb === b) continue;
@@ -225,7 +225,7 @@ export function tripped(
             if (!hostile && ships.team[owner] !== ships.team[i]) continue;
             const d = boxDistance(theirs, k, lx, ly);
             if (!(d >= 0)) continue;
-            if (d > standoff + slack) continue;
+            if (d > reach + slack) continue;
             if (!inSpread(theirs, k, lx, ly, lf, half, d)) continue;
             if (hostile) enemy = min(enemy, d);
             else friend = min(friend, d);

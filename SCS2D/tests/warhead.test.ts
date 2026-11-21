@@ -12,6 +12,7 @@ import {
     Ships,
     SpatialGrid,
     warheadBurst,
+    warheadReach,
     World,
     type Blueprint,
     type ModuleSpec,
@@ -21,7 +22,7 @@ import { COOK_OFF_CHANCE, cookOff, cookOffChance, detonateWarheads, tripped, WAR
 
 /**
  * A warhead is a sealed tank that fires by blowing itself apart: its walls fly
- * out as fragments across its spread when an enemy comes within its standoff.
+ * out as fragments across its spread when an enemy comes within its reach.
  */
 
 const HEAD: ModuleSpec = {
@@ -33,7 +34,6 @@ const HEAD: ModuleSpec = {
     width: 0.6,
     fragments: 8,
     spread: Math.PI / 3,
-    standoff: 20,
 };
 
 const CARRIER: Blueprint = {
@@ -139,18 +139,37 @@ describe("warhead", () => {
         const file = serialiseBlueprint(CARRIER);
         const raw = (file["modules"] as Record<string, unknown>[])[2]!;
         expect(raw["spread"]).toBeCloseTo(60, 9);
-        expect(raw["standoff"]).toBe(20);
         const back = parseBlueprint(file).modules[2] as ModuleSpec;
         expect(back.spread).toBeCloseTo(Math.PI / 3, 12);
         expect(back.fragments).toBe(8);
     });
 
-    it("trips on an enemy ahead within its standoff, and on nothing else", () => {
+    it("reaches as far as its fragments are worth throwing at the size it wants, by its fire range", () => {
+        const design = compileBlueprint(CARRIER);
+        const head = design.warheads[0]!;
+        const placed = design.modules[head.module]!;
+        const wanted = design.radius * Math.sqrt(head.targeting.preferredMass > 0 ? head.targeting.preferredMass : 1);
+        expect(head.reach).toBeCloseTo(warheadReach(placed.spec, placed.stats, wanted) * head.targeting.fireRange, 9);
+        expect(head.reach).toBeGreaterThan(15);
+        // Its doctrine's fire range takes its share, as a gun's does.
+        const halved = compileBlueprint({
+            ...CARRIER,
+            modules: [...CARRIER.modules.slice(0, 2), { ...HEAD, targeting: { fireRange: 0.5 } }],
+        });
+        expect(halved.warheads[0]!.reach).toBeCloseTo(head.reach / 2, 9);
+        // A main one is what the ship closes to, as a main gun is.
+        expect(design.reach).toBeGreaterThan(0);
+        const spare = compileBlueprint({ ...CARRIER, modules: [...CARRIER.modules.slice(0, 2), { ...HEAD, main: false }] });
+        expect(spare.reach).toBe(0);
+    });
+
+    it("trips on an enemy ahead within its reach, and on nothing else", () => {
         const fuzed = (s: ReturnType<typeof scene>) =>
             tripped(s.ships, s.world.bodies, s.grid, s.carrier, s.b, s.design, s.head, s.world.dt);
+        const reach = compileBlueprint(CARRIER).warheads[0]!.reach;
         // The target's core reaches 2 m back from its centre; the warhead's centre is 1.5 m ahead of the carrier's.
         expect(fuzed(scene(1.5 + 2 + 15))).toBe(true);
-        expect(fuzed(scene(1.5 + 2 + 40))).toBe(false);
+        expect(fuzed(scene(1.5 + 2 + reach + 20))).toBe(false);
         // Behind it, close.
         expect(fuzed(scene(-15))).toBe(false);
         // Off to the side, outside a 60° cone.
@@ -202,7 +221,7 @@ describe("warhead", () => {
         const row = compileBlueprint({
             name: "Row",
             modules: [
-                { ...HEAD, x: 2, standoff: 20 },
+                { ...HEAD, x: 2 },
                 { kind: "structure", x: 1, y: 0, length: 1, width: 1, reinforcement: 4 },
                 { kind: "structure", x: 0, y: 0, length: 1, width: 1, reinforcement: 4 },
                 { kind: "core", x: -1.5, y: 0, length: 2, width: 2 },

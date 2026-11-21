@@ -697,18 +697,6 @@ export function ModulePanel({
                             (degrees) => patch({ spread: degreesToRadians(Math.min(Math.max(degrees, 1), 360)) }),
                         )}
                     </Field>
-                    <Field>
-                        <label htmlFor="propStandoff">standoff m</label>
-                        {box(
-                            "standoff",
-                            {
-                                step: 5,
-                                min: 0,
-                                title: "How close the edge of an enemy hull inside its spread comes before its fuze sets it off, metres. Further spreads the fragments wider and thinner.",
-                            },
-                            (standoff) => patch({ standoff: Math.max(standoff, 0) }),
-                        )}
-                    </Field>
                 </Shell>
             )}
             {readsCraft(spec.kind) && (

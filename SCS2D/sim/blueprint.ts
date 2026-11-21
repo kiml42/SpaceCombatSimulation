@@ -18,6 +18,8 @@ import {
     inheritsDepth,
     isThick,
     mountTraverse,
+    warheadBurst,
+    warheadReach,
     hullMountGeometry,
     engineGeometry,
     boxAngle,
@@ -589,6 +591,22 @@ export interface DesignTurret {
     readonly main: boolean;
 }
 
+/**
+ * A warhead, as a weapon: what it goes after and how far out it goes off, as a
+ * gun's mount says what it shoots at and how far out it fires.
+ */
+export interface DesignWarhead {
+    /** Index into the design's modules. */
+    readonly module: number;
+    /** How wide it throws its fragments, radians, about its facing. */
+    readonly spread: number;
+    /** How close the enemy it wants comes before it goes off, metres (`warheadReach` by `fireRange`). */
+    readonly reach: number;
+    readonly targeting: Targeting;
+    /** Part of the main battery (`ModuleSpec.main`). */
+    readonly main: boolean;
+}
+
 export interface ShipDesign {
     readonly name: string;
     readonly modules: readonly DesignModule[];
@@ -630,6 +648,8 @@ export interface ShipDesign {
      */
     readonly thrustBearing: number;
     readonly turrets: readonly DesignTurret[];
+    /** Its warheads, which go off rather than fire, so are none of its `turrets`. */
+    readonly warheads: readonly DesignWarhead[];
     /**
      * The modules that fly this ship, as indices into `modules`.
      *
@@ -1364,7 +1384,6 @@ function place(
         if (placement.fragments !== undefined) spec.fragments = placement.fragments;
         if (placement.burstSpeed !== undefined) spec.burstSpeed = placement.burstSpeed;
         if (placement.spread !== undefined) spec.spread = placement.spread;
-        if (placement.standoff !== undefined) spec.standoff = placement.standoff;
         if (placement.weapon !== undefined) spec.weapon = placement.weapon;
         if (placement.main !== undefined) spec.main = placement.main;
         if (placement.thick !== undefined) spec.thick = placement.thick;
@@ -2857,6 +2876,7 @@ function designFrom(
     const modules: DesignModule[] = [];
     const engines: EngineSpec[] = [];
     const turrets: DesignTurret[] = [];
+    const warheads: DesignWarhead[] = [];
     const cores: number[] = [];
     let inertia = 0;
     let radius = 0;
@@ -2906,6 +2926,15 @@ function designFrom(
 
         if (spec.kind === "core") {
             cores.push(modules.length - 1);
+        } else if (spec.kind === "warhead") {
+            warheads.push({
+                module: modules.length - 1,
+                spread: warheadBurst(spec, s).spread,
+                // Filled once the hull's radius is final, as a mount's reach is.
+                reach: 0,
+                targeting: resolveTargeting(spec.targeting, defaultTargeting(spec.kind)),
+                main: spec.main !== false,
+            });
         } else if (spec.kind === "engine") {
             engines.push({
                 x,
@@ -3032,6 +3061,15 @@ function designFrom(
     for (const turret of turrets) {
         if (turret.main) reach = max(reach, expects(doctrine.targeting.preferredMass, turret));
     }
+    const goesOff = (preferredMass: number, head: DesignWarhead): number => {
+        const placed = modules[head.module]!;
+        return warheadReach(placed.spec, placed.stats, radius * sqrt(preferredMass > 0 ? preferredMass : 1)) * head.targeting.fireRange;
+    };
+    for (let w = 0; w < warheads.length; w++) {
+        const head = warheads[w]!;
+        warheads[w] = { ...head, reach: goesOff(head.targeting.preferredMass, head) };
+        if (head.main) reach = max(reach, goesOff(doctrine.targeting.preferredMass, head));
+    }
 
     const weaponEngines: number[] = [];
     const mainWeaponEngines: number[] = [];
@@ -3093,6 +3131,7 @@ function designFrom(
         engineLayout: layout,
         thrustBearing: thrustBearing(engines, layout),
         turrets,
+        warheads,
         cores,
         coveredBy: coverage(specs, stats, cores),
         ...(joins === undefined ? {} : { pieces: joins.pieces, seams: joins.seams }),

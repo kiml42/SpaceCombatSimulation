@@ -1551,11 +1551,6 @@ export interface ModuleSpec {
      * absent. A warhead only.
      */
     spread?: number;
-    /**
-     * How close an enemy hull's edge comes before a warhead's fuze sets it off,
-     * metres. `DEFAULT_STANDOFF` when absent. A warhead only.
-     */
-    standoff?: number;
 
     /**
      * What this mount goes after, where it differs from its archetype's default.
@@ -2063,9 +2058,6 @@ export function moduleProblem(spec: ModuleSpec): string | null {
     }
     if (spec.spread !== undefined && !(spec.spread > 0 && spec.spread <= TAU)) {
         return `${spec.kind}: spread must be more than 0 and at most a full turn, got ${spec.spread}`;
-    }
-    if (spec.standoff !== undefined && !(spec.standoff >= 0)) {
-        return `${spec.kind}: standoff must be at least 0, got ${spec.standoff}`;
     }
     if (spec.burstSpeed !== undefined && !(spec.burstSpeed > 0)) {
         return `${spec.kind}: burst speed must be more than 0, got ${spec.burstSpeed}`;
@@ -2864,7 +2856,7 @@ export function readsWeapon(kind: ModuleKind): boolean {
 
 /** Whether `main` means anything on this kind: a weapon mount, or an engine that may be one. */
 export function readsMain(kind: ModuleKind): boolean {
-    return isWeaponMount(kind) || kind === "engine";
+    return isWeaponMount(kind) || kind === "engine" || kind === "warhead";
 }
 
 /**
@@ -3311,8 +3303,8 @@ export const DEFAULT_WARHEAD_FRAGMENTS = 16;
 /** How wide a warhead throws them when it does not say, radians: a cone ahead of it. */
 export const DEFAULT_WARHEAD_SPREAD = PI / 3;
 
-/** How close an enemy comes before a warhead goes off when it does not say, metres. */
-export const DEFAULT_STANDOFF = 20;
+/** Seconds a warhead's fragment flies: as long as a shattered module's. */
+export const WARHEAD_FRAGMENT_LIFE = 0.5;
 
 /**
  * The least share of a warhead's charge that goes into its fragments, however
@@ -3350,6 +3342,19 @@ export function warheadBurst(spec: ModuleSpec, stats: ModuleStats, casing = stat
     const energy = charge * EXPLOSIVE_YIELD;
     const speed = casing > 0 ? sqrt((2 * focus * energy) / casing) : 0;
     return { fragments, spread, focus, energy, casing, speed };
+}
+
+/**
+ * How far a warhead's fragments are worth throwing at something `targetRadius`
+ * across, metres, as a gun's reach is how far its rounds are: until the gap
+ * between them at the edge of its spread is as wide as that, and no further
+ * than they fly. Its mount's `fireRange` takes a share of this, as a gun's does.
+ */
+export function warheadReach(spec: ModuleSpec, stats: ModuleStats, targetRadius: number): number {
+    const burst = warheadBurst(spec, stats);
+    const flight = burst.speed * WARHEAD_FRAGMENT_LIFE;
+    const spaced = burst.spread > 0 ? (2 * targetRadius * burst.fragments) / burst.spread : Infinity;
+    return spaced < flight ? spaced : flight;
 }
 
 /** Inertia about a barrel's root of `mass` of bracing running out from it. */

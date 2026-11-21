@@ -47,6 +47,7 @@ import {
     type ModuleStats,
     berthGrid,
     edgeFade,
+    DUD_INTEGRITY,
 } from "../sim/index.js";
 import { BACKGROUND, GRID, WELL, WELL_ARM_PX, WELL_PULLS } from "./backdrop.js";
 import { barrelLines, MIN_BARREL_PX } from "./barrels.js";
@@ -742,7 +743,10 @@ function drawShip(
     }
 
     if (!whole) return;
-    if (arcs === "trigger") drawEngineTriggers(ctx, ship, metresToPx);
+    if (arcs === "trigger") {
+        drawEngineTriggers(ctx, ship, metresToPx);
+        drawWarheadTriggers(ctx, ship, metresToPx);
+    }
     drawPlumes(ctx, ship, light);
     drawLeaks(ctx, ship, light);
 }
@@ -1536,6 +1540,34 @@ function drawLoad(ctx: CanvasRenderingContext2D, ship: ShipView, t: number, mx: 
             ctx.stroke();
         }
     });
+    ctx.restore();
+}
+
+/**
+ * Where each warhead will go off at: its spread, out to its reach, as a gun's
+ * wedge is drawn; fouled once its fuze is dead (`DUD_INTEGRITY`).
+ */
+function drawWarheadTriggers(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
+    const design = ship.currentStructure;
+    if (design.warheads.length === 0) return;
+    ctx.save();
+    ctx.translate(ship.x, ship.y);
+    ctx.rotate(ship.angle);
+    ctx.lineWidth = legibleWidth(0, MIN_TRIGGER_PX, metresToPx);
+    for (const head of design.warheads) {
+        const module = design.modules[head.module];
+        if (module === undefined || !(head.reach > 0)) continue;
+        const tint = (ship.integrity[head.module] ?? 1) <= DUD_INTEGRITY ? TRIGGER_FOULED : TRIGGER_OFF;
+        const half = head.spread >= TAU ? PI : head.spread / 2;
+        ctx.fillStyle = tint;
+        ctx.strokeStyle = tint;
+        ctx.beginPath();
+        ctx.moveTo(module.x, module.y);
+        ctx.arc(module.x, module.y, head.reach, module.angle - half, module.angle + half);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    }
     ctx.restore();
 }
 

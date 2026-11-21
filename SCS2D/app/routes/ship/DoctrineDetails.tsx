@@ -4,6 +4,7 @@ import {
     mountDefault,
     mountSummary,
     MOUNT_SECTIONS,
+    WARHEAD_SECTIONS,
     shipDefault,
     shipSummary,
     SHIP_SECTIONS,
@@ -179,7 +180,7 @@ export function DoctrineDetails({
     readonly onOpen: (open: DoctrineOpen) => void;
 }) {
     const { doc } = editing;
-    const weapon = isWeaponMount(spec.kind);
+    const weapon = isWeaponMount(spec.kind) || spec.kind === "warhead";
     const core = spec.kind === "core";
     if (!weapon && !core) return null;
 
@@ -217,7 +218,12 @@ export function DoctrineDetails({
     if (weapon) {
         const held = (spec.targeting ?? {}) as Record<string, number | undefined>;
         const index = doc.selectedModules()[0] ?? -1;
-        const fireRange = moduleReadout(spec, doc.view.modules, index, doc.view.design?.radius ?? 0).gun?.triggerRange ?? null;
+        const design = doc.view.design;
+        // A warhead's is its compiled reach, which its doctrine's fire range already takes its share of.
+        const fireRange =
+            spec.kind === "warhead"
+                ? (design?.warheads.find((head) => design.modules[head.module]!.index === index)?.reach ?? null)
+                : (moduleReadout(spec, doc.view.modules, index, design?.radius ?? 0).gun?.triggerRange ?? null);
         return (
             <Details id="mountDoctrine" open={open.mount} onToggle={(event) => onOpen({ ...open, mount: event.currentTarget.open })}>
                 <summary>
@@ -225,7 +231,7 @@ export function DoctrineDetails({
                 </summary>
                 <div id="mountDoctrineFields">
                     <DoctrineBoxes
-                        sections={MOUNT_SECTIONS}
+                        sections={spec.kind === "warhead" ? WARHEAD_SECTIONS : MOUNT_SECTIONS}
                         values={{
                             targeting: resolveTargeting(spec.targeting, defaultTargeting(spec.kind)),
                             approach: (doc.blueprint.doctrine ?? DEFAULT_DOCTRINE).approach,
