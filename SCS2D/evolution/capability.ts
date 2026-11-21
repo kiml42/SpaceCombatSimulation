@@ -33,8 +33,7 @@ function rating(stats: ModuleStats, effect: DamageEffect): number {
         case DamageEffect.Storage:
         case DamageEffect.Discharge:
         case DamageEffect.Tending: // Mending is no part of it either, today: what it gives back is counted when it has.
-        // A warhead is a weapon once, so it has no rate to count.
-        case DamageEffect.Fuze:
+        case DamageEffect.Fuze: // A warhead fires once, so it has no rate to count.
             return 0;
     }
 }
