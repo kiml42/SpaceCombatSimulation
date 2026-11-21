@@ -5,6 +5,7 @@ import { BOTH_LAYERS, HullPath, moduleLayers } from "./hull.js";
 import { abs, angleDelta, asin, atan2, cos, log, max, min, pow, sin, sqrt, TAU } from "./math.js";
 import { DEFAULT_STANDOFF, DEFAULT_WARHEAD_SPREAD, warheadBurst } from "./modules.js";
 import { ROUND_WRECKAGE, type Projectiles } from "./projectiles.js";
+import * as shipDocking from "./shipDocking.js";
 import { blowKey, discardFrom, heldMass, settleMass } from "./shipBreakup.js";
 import { MOST_FRAGMENTS, WRECKAGE_LIFE, WRECKAGE_SHARE } from "./wreckage.js";
 import { IndexBuffer, type SpatialGrid } from "./spatialGrid.js";
@@ -77,6 +78,7 @@ export function cookOffChance(integrity: number): number {
 export const BLAST_LINES = 64;
 
 const path = new HullPath();
+const escaped = { left: 0 };
 
 const warheadCache = new WeakMap<ShipDesign, readonly number[]>();
 
@@ -132,7 +134,10 @@ export function detonateWarheads(ships: Ships, world: World, projectiles: Projec
  * can set off another on the same hull. Call after the step's hits and before
  * severing, which forgets them.
  *
- * Not on a hull more than one ship rides, which severing does not break up.
+ * A craft parked on a pad is let off it first, so it goes as a free hull
+ * does, and its blast goes on into the carrier's hull from where it leaves
+ * the craft's. Not on a hull more than one ship rides, which severing does not
+ * break up.
  */
 export function cookOff(ships: Ships, world: World, projectiles: Projectiles, log?: ImpactLog): number {
     const damage = ships.damage;
@@ -148,7 +153,10 @@ export function cookOff(ships: Ships, world: World, projectiles: Projectiles, lo
         if (!(ships.fuel.held(b, m) > 0)) continue;
         const shattered = damage.stepJoules[e]! >= SHATTER * damage.capacityOf(b, m);
         if (!shattered && !(world.rng.nextFloat() < cookOffChance(damage.integrity(b, m)))) continue;
-        detonate(ships, world, projectiles, i, b, ships.designs[i]!, m, log);
+        // Off its pad first, so it goes as a free hull does, into the one it sat on.
+        const carrier = ships.parkedOn[i]! >= 0 ? ships.carrierBodyOf(bodies, i) : -1;
+        if (ships.parkedOn[i]! >= 0) shipDocking.unpark(ships, bodies, i, world.tick);
+        detonate(ships, world, projectiles, i, b, ships.designs[i]!, m, log, carrier);
         count++;
     }
     return count;
@@ -263,6 +271,8 @@ export function detonate(
     design: ShipDesign,
     m: number,
     log?: ImpactLog,
+    /** The body of the hull it was parked on, which its blast goes on into; -1 for none. */
+    carrier = -1,
 ): void {
     const bodies = world.bodies;
     const rng = world.rng;
@@ -329,19 +339,31 @@ export function detonate(
     if (blast > 0 && arc > 0) {
         for (let k = 0; k < BLAST_LINES; k++) {
             const heading = facing + 0.5 * burst.spread + ((k + 0.5) * arc) / BLAST_LINES;
-            resolveCollision(design, damage, bodies, b, path, wx, wy, cos(heading), sin(heading), blast / BLAST_LINES, 0, 0, m);
+            const ux = cos(heading);
+            const uy = sin(heading);
+            resolveCollision(design, damage, bodies, b, path, wx, wy, ux, uy, blast / BLAST_LINES, 0, 0, m, escaped);
+            // What came out of its own hull goes on into the one it sat on.
+            const under = carrier >= 0 && escaped.left > 0 ? ships.designOf(carrier) : null;
+            if (under !== null) resolveCollision(under, damage, bodies, carrier, path, wx, wy, ux, uy, escaped.left);
         }
     }
     // And the warhead is gone.
     damage.absorb(b, m, SHATTER * damage.capacityOf(b, m) * 2);
     ships.thrown.add(blowKey(b, m));
-    throwBlasted(ships, bodies, projectiles, rng, i, b, design, m);
+    throwBlasted(ships, bodies, projectiles, rng, i, b, design, m, wx, wy);
+    const under = carrier >= 0 ? ships.designOf(carrier) : null;
+    if (under !== null && (ships.shipByBody[carrier] ?? -1) >= 0 && ships.pilots[carrier] == null) {
+        throwBlasted(ships, bodies, projectiles, rng, i, carrier, under, -1, wx, wy);
+    }
     log?.push(wx, wy, burst.energy, IMPACT_BURST, undefined, -1, vx, vy, burst.speed);
 }
 
 const masses: number[] = [];
 
-/** Throw on as wreckage every module of ship `i`'s hull a blast from its warhead `m` shattered this step. */
+/**
+ * Throw on as wreckage every module of the hull on body `b` this step's blows
+ * shattered, but `m`, away from a blast at (`wx`, `wy`), credited to ship `i`.
+ */
 function throwBlasted(
     ships: Ships,
     bodies: Bodies,
@@ -351,9 +373,10 @@ function throwBlasted(
     b: number,
     design: ShipDesign,
     m: number,
+    wx: number,
+    wy: number,
 ): void {
     const damage = ships.damage;
-    const placed = design.modules[m]!;
     const angle = bodies.angle[b]!;
     const c = cos(angle);
     const s = sin(angle);
@@ -381,7 +404,7 @@ function throwBlasted(
         const vx = bodies.vx[b]! - spin * ry;
         const vy = bodies.vy[b]! + spin * rx;
         // Straight out from the warhead.
-        const out = atan2(other.y - placed.y, other.x - placed.x) + angle;
+        const out = atan2(my - wy, mx - wx);
 
         const count = min(MOST_FRAGMENTS, max(1, (mass / LEAST_PIECE) | 0), 2 + ((rng.nextFloat() * (MOST_FRAGMENTS - 1)) | 0));
         let total = 0;
