@@ -50,6 +50,8 @@ import {
     readsFill,
     readsFuse,
     readsSealing,
+    WARHEAD_DRAIN_PRIORITY,
+    WARHEAD_FOCUS,
     readsThick,
     readsMagnetic,
     readsReady,
@@ -70,7 +72,7 @@ import { TakeOut } from "./AssemblyPanels";
 import { DoctrineDetails, type DoctrineOpen } from "./DoctrineDetails";
 import { Figures } from "./ShipReport";
 import { Buttons, Field } from "./shipLayout";
-import { asCraft, craftChoices, CRAFT_ANGLES, moduleField, numbers, type ModuleNumberField } from "./shipFields";
+import { asCraft, craftChoices, CRAFT_ANGLES, MODULE_GROUPS, moduleField, numbers, type ModuleNumberField } from "./shipFields";
 import type { ShipEditing } from "./shipEditing";
 
 const { abs, PI } = math;
@@ -294,6 +296,12 @@ export function ModulePanel({
             return (value === undefined ? rest : { ...rest, [key]: value }) as Placement;
         }, true);
 
+    const kindOption = (kind: ModuleKind) => (
+        <option key={kind} value={kind} disabled={fighter && fighterBarred(kind) !== null}>
+            {kindName(kind)}
+        </option>
+    );
+
     const box = (
         key: ModuleNumberField,
         props: { step: number; min?: number; max?: number; title?: string; disabled?: boolean },
@@ -412,10 +420,14 @@ export function ModulePanel({
                         update((placement) => ("kind" in placement ? refitModule(placement, to) : placement));
                     }}
                 >
-                    {MODULE_KINDS.map((kind) => (
-                        <option key={kind} value={kind} disabled={fighter && fighterBarred(kind) !== null}>
-                            {kindName(kind)}
-                        </option>
+                    {/* The core alone, then the rest grouped as Add Module groups them. */}
+                    {MODULE_KINDS.filter((kind) => !MODULE_GROUPS.some((group) => group.kinds.some((k) => k.kind === kind))).map(
+                        kindOption,
+                    )}
+                    {MODULE_GROUPS.map((group) => (
+                        <optgroup key={group.title} label={group.title}>
+                            {group.kinds.map((k) => kindOption(k.kind))}
+                        </optgroup>
                     ))}
                 </select>
             </Field>
@@ -656,6 +668,49 @@ export function ModulePanel({
                     {notes("fill")}
                 </>
             )}
+            {spec.kind === "warhead" && (
+                <Shell id="warheadRow">
+                    <legend>warhead</legend>
+                    <Field>
+                        <label htmlFor="propFragments">fragments</label>
+                        {box(
+                            "fragments",
+                            {
+                                step: 1,
+                                min: 1,
+                                max: 64,
+                                title: "How many pieces its casing flies out as. One is a single slug, a shaped charge's, which goes through armour; many spray a wider area.",
+                            },
+                            (fragments) => patch({ fragments }),
+                        )}
+                    </Field>
+                    <Field>
+                        <label htmlFor="propSpread">spread °</label>
+                        {box(
+                            "spread",
+                            {
+                                step: 5,
+                                min: 1,
+                                max: 360,
+                                title: `How wide it throws them, degrees, centred on its facing. Narrower puts less of the charge into the fragments and more into the ship carrying it, down to ${WARHEAD_FOCUS * 100}%; 360 throws them all round.`,
+                            },
+                            (degrees) => patch({ spread: degreesToRadians(Math.min(Math.max(degrees, 1), 360)) }),
+                        )}
+                    </Field>
+                    <Field>
+                        <label htmlFor="propStandoff">standoff m</label>
+                        {box(
+                            "standoff",
+                            {
+                                step: 5,
+                                min: 0,
+                                title: "How close the edge of an enemy hull inside its spread comes before its fuze sets it off, metres. Further spreads the fragments wider and thinner.",
+                            },
+                            (standoff) => patch({ standoff: Math.max(standoff, 0) }),
+                        )}
+                    </Field>
+                </Shell>
+            )}
             {readsCraft(spec.kind) && (
                 <CraftRows
                     editing={editing}
@@ -786,7 +841,7 @@ export function ModulePanel({
                             "drainPriority",
                             {
                                 step: 1,
-                                title: "Which tanks an engine burns from first: the highest priority it is connected to, then the next once those are dry. Tanks of the same priority drain together. Zero by default.",
+                                title: `Which tanks an engine burns from first: the highest priority it is connected to, then the next once those are dry. Tanks of the same priority drain together, and refuelling fills the lowest first. Zero by default; a warhead's ${WARHEAD_DRAIN_PRIORITY}, so it is burnt last.`,
                             },
                             (drainPriority) => patch({ drainPriority }),
                         )}

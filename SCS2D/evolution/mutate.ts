@@ -27,7 +27,7 @@ import {
     type Doctrine,
     type Targeting,
 } from "../sim/doctrine.js";
-import { abs, atan2, clamp, cos, floor, HALF_PI, max, min, normalizeAngle, PI, pow, round, sin, sqrt } from "../sim/math.js";
+import { abs, atan2, clamp, cos, floor, HALF_PI, max, min, normalizeAngle, PI, pow, round, sin, sqrt, TAU } from "../sim/math.js";
 import { canShape, isShaped, TRIANGLE_CORNERS, shapeOf, wedge } from "../sim/shape.js";
 import { degreesToRadians, radiansToDegrees } from "../sim/blueprintFile.js";
 import {
@@ -41,6 +41,10 @@ import {
     canThicken,
     DEFAULT_BURST_SPEED,
     DEFAULT_FRAGMENTS,
+    drainPriorityOf,
+    DEFAULT_STANDOFF,
+    DEFAULT_WARHEAD_FRAGMENTS,
+    DEFAULT_WARHEAD_SPREAD,
     DEFAULT_FUSE,
     firesShells,
     MAX_FRAGMENTS,
@@ -270,6 +274,9 @@ export const DEFAULT_KINDS: KindWeights = {
     // Rare: worth anything only to a doctrine that goes after wrecks, which a
     // lineage has to find as well.
     claw: 1,
+    // Worth anything only to a craft that gets close enough to set it off,
+    // which a lineage has to find as well.
+    warhead: 0.5,
     // A pad serves other ships, so it pays only in a fleet that carries
     // fighters, and a port only with another ship's to meet it: a small chance
     // each, since selection throws out one that does not pay.
@@ -789,6 +796,8 @@ type NumberKnob =
               | "fuse"
               | "fragments"
               | "burstSpeed"
+              | "spread"
+              | "standoff"
               | "sealing"
               | "fill"
               | "computing"
@@ -1085,6 +1094,8 @@ function numbers(draft: Draft): NumberKnob[] {
         // What a gun fires: shells or solid shot, and for shells how they burst.
         if (readsFuse(spec.kind) && (spec.fragments ?? DEFAULT_FRAGMENTS) > 1) out.push({ at: "fragments", site });
         if (firesShells(spec)) out.push({ at: "fuse", site }, { at: "burstSpeed", site });
+        // How a warhead throws its casing, and how close it waits to.
+        if (spec.kind === "warhead") out.push({ at: "fragments", site }, { at: "spread", site }, { at: "standoff", site });
         if (readsBarrelCalibres(spec.kind)) out.push({ at: "barrelCalibres", site }, { at: "bore", site });
         if (spec.kind === "engine") out.push({ at: "nozzle", site });
     }
@@ -1176,6 +1187,10 @@ function renumberModule(knob: Exclude<NumberKnob, { at: "doctrine" }>, jitter: J
             return refragment(knob.site, jitter);
         case "burstSpeed":
             return recharge(knob.site, jitter);
+        case "spread":
+            return respread(knob.site, jitter);
+        case "standoff":
+            return restandoff(knob.site, jitter);
         case "sealing":
             return reseal(knob.site, jitter);
         case "fill":
@@ -1538,6 +1553,9 @@ const COUNT_SCALE = 20;
 /** The slowest burst a nudge leaves, m/s. */
 const MIN_BURST_SPEED = 1;
 
+/** The narrowest a warhead's spread drifts to, radians: a degree. */
+const MIN_SPREAD = PI / 180;
+
 /** The least a sealing lining is nudged by, metres, so an unlined tank can start one. */
 const SEALING_STEP = 0.01;
 
@@ -1555,7 +1573,7 @@ function reseal(site: ModuleSite, jitter: Jitter): string | null {
 
 /** Move a tank one place earlier or later in the order its ship drains them. */
 function reprioritise(site: ModuleSite, rng: Rng): string | null {
-    const was = site.spec.drainPriority ?? 0;
+    const was = drainPriorityOf(site.spec);
     const now = was + (rng.chance(0.5) ? 1 : -1);
     site.spec.drainPriority = now;
     return `${site.where} ${site.spec.kind}: drain priority ${was} → ${now}`;
@@ -1686,8 +1704,10 @@ function refuse(site: ModuleSite, jitter: Jitter): string | null {
  * solid shot, which is a decision rather than a quantity.
  */
 function refragment(site: ModuleSite, jitter: Jitter): string | null {
-    const was = site.spec.fragments ?? DEFAULT_FRAGMENTS;
-    const now = min(MAX_FRAGMENTS, max(2, round(was + jitter(max(was, COUNT_SCALE)))));
+    // A warhead may come down to one, a shaped charge's slug; a shell to solid shot only by `reload`.
+    const warhead = site.spec.kind === "warhead";
+    const was = site.spec.fragments ?? (warhead ? DEFAULT_WARHEAD_FRAGMENTS : DEFAULT_FRAGMENTS);
+    const now = min(MAX_FRAGMENTS, max(warhead ? 1 : 2, round(was + jitter(max(was, COUNT_SCALE)))));
     if (now === was) return null;
     site.spec.fragments = now;
     return `${site.where} ${site.spec.kind}: fragments ${was} → ${now}`;
@@ -1704,6 +1724,24 @@ function reload(site: ModuleSite): string {
     }
     site.spec.fragments = 1;
     return `${site.where} ${site.spec.kind}: solid shot`;
+}
+
+/** Widen or narrow a warhead's spread, in proportion to it, up to all round. */
+function respread(site: ModuleSite, jitter: Jitter): string | null {
+    const was = site.spec.spread ?? DEFAULT_WARHEAD_SPREAD;
+    const now = min(TAU, max(MIN_SPREAD, tidy(was + jitter(was), 4)));
+    if (now === was) return null;
+    site.spec.spread = now;
+    return `${site.where} warhead: spread ${tidy(radiansToDegrees(was), 1)}° → ${tidy(radiansToDegrees(now), 1)}°`;
+}
+
+/** Move a warhead's standoff out or in, by a share of it. */
+function restandoff(site: ModuleSite, jitter: Jitter): string | null {
+    const was = site.spec.standoff ?? DEFAULT_STANDOFF;
+    const now = max(0, tidy(was + jitter(max(was, DEFAULT_STANDOFF)), 1));
+    if (now === was) return null;
+    site.spec.standoff = now;
+    return `${site.where} warhead: standoff ${was} m → ${now} m`;
 }
 
 /** Re-size a shell's charge by how fast it bursts, in proportion to that speed. */
