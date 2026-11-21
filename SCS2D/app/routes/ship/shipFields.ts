@@ -12,9 +12,8 @@ import {
     DEFAULT_BURST_SPEED,
     DEFAULT_FRAGMENTS,
     drainPriorityOf,
-    DEFAULT_STANDOFF,
     DEFAULT_WARHEAD_FRAGMENTS,
-    DEFAULT_WARHEAD_SPREAD,
+    warheadSpread,
     DEFAULT_FUSE,
     DEFAULT_NOZZLE_WIDTHS,
     masksWholeArc,
@@ -94,7 +93,7 @@ export const MODULE_GROUPS: readonly { title: string; kinds: readonly { kind: Sh
             {
                 kind: "warhead",
                 label: "Warhead",
-                title: "A tank in a steel casing, its fuel the charge and burnt only once every other tank is dry, set off when an enemy comes within its standoff. Its casing flies out as fragments across its spread, and what the charge does not throw into them goes into the ship carrying it, throwing what it shatters",
+                title: "A tank in a steel casing, its fuel the charge and burnt only once every other tank is dry, set off when an enemy comes within its fire range. Its casing flies out as fragments across its spread, and what the charge does not throw into them goes into the ship carrying it, throwing what it shatters",
             },
         ],
     },
@@ -161,7 +160,6 @@ export type ModuleNumberField =
     | "fragments"
     | "burstSpeed"
     | "spread"
-    | "standoff"
     | "sealing"
     | "drainPriority"
     | "priority"
@@ -190,8 +188,8 @@ export function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
     if (key === "turning") return tidy((spec.turning ?? TRAVERSE_GEAR_FRACTION) * 100);
     if (key === "fuse") return spec.fuse ?? DEFAULT_FUSE;
     if (key === "fragments") return spec.fragments ?? (spec.kind === "warhead" ? DEFAULT_WARHEAD_FRAGMENTS : DEFAULT_FRAGMENTS);
-    if (key === "spread") return tidy(radiansToDegrees(spec.spread ?? DEFAULT_WARHEAD_SPREAD));
-    if (key === "standoff") return spec.standoff ?? DEFAULT_STANDOFF;
+    // What it throws at, which a slug or a crowd of fragments may override.
+    if (key === "spread") return tidy(radiansToDegrees(warheadSpread(spec)));
     if (key === "burstSpeed") return spec.burstSpeed ?? DEFAULT_BURST_SPEED;
     // Millimetres on the panel, metres in the layout.
     if (key === "sealing") return tidy((spec.sealing ?? 0) * 1000);

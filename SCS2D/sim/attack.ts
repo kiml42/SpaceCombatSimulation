@@ -1,5 +1,5 @@
 import { abs, angleDelta, atan2, max, min, normalizeAngle, PI, TAU } from "./math.js";
-import type { ShipDesign } from "./blueprint.js";
+import type { DesignWarhead, ShipDesign } from "./blueprint.js";
 
 /**
  * Which way round a ship fights: the bearing off its bow it wants its target
@@ -296,7 +296,17 @@ export function designArcs(design: ShipDesign, out: AttackArcs): AttackArcs {
         if (turret.main) addTurret(out, turret.mount);
     }
     for (const t of design.mainWeaponEngines) addFlame(out, design, t);
+    for (const head of design.warheads) if (head.main) addWarhead(out, design, head);
     return out;
+}
+
+/** The narrowest a warhead bears through, radians: a single slug's, which goes straight ahead. */
+const SLUG_ARC = (2 * PI) / 180;
+
+/** A warhead's spread about its facing, as wide as a slug's at least. */
+export function addWarhead(out: AttackArcs, design: ShipDesign, head: DesignWarhead): void {
+    const width = head.spread > SLUG_ARC ? head.spread : SLUG_ARC;
+    out.add(design.modules[head.module]!.angle - width / 2, width, 0);
 }
 
 /** A mount's arc, as its spec gives it, less its trigger mask: right round when it gives none. */

@@ -42,9 +42,8 @@ import {
     DEFAULT_BURST_SPEED,
     DEFAULT_FRAGMENTS,
     drainPriorityOf,
-    DEFAULT_STANDOFF,
     DEFAULT_WARHEAD_FRAGMENTS,
-    DEFAULT_WARHEAD_SPREAD,
+    warheadSpread,
     DEFAULT_FUSE,
     firesShells,
     MAX_FRAGMENTS,
@@ -797,7 +796,6 @@ type NumberKnob =
               | "fragments"
               | "burstSpeed"
               | "spread"
-              | "standoff"
               | "sealing"
               | "fill"
               | "computing"
@@ -1095,7 +1093,13 @@ function numbers(draft: Draft): NumberKnob[] {
         if (readsFuse(spec.kind) && (spec.fragments ?? DEFAULT_FRAGMENTS) > 1) out.push({ at: "fragments", site });
         if (firesShells(spec)) out.push({ at: "fuse", site }, { at: "burstSpeed", site });
         // How a warhead throws its casing, and how close it waits to.
-        if (spec.kind === "warhead") out.push({ at: "fragments", site }, { at: "spread", site }, { at: "standoff", site });
+        if (spec.kind === "warhead") {
+            out.push({ at: "fragments", site });
+            // A single slug goes straight ahead, so has no spread to drift.
+            if ((spec.fragments ?? DEFAULT_WARHEAD_FRAGMENTS) > 1) out.push({ at: "spread", site });
+            // What size it is for and how far out it goes off: the rest of a mount's doctrine picks targets, which a fuze does not.
+            for (const field of WARHEAD_TARGETING_FIELDS) out.push({ at: "gunnery", site, field });
+        }
         if (readsBarrelCalibres(spec.kind)) out.push({ at: "barrelCalibres", site }, { at: "bore", site });
         if (spec.kind === "engine") out.push({ at: "nozzle", site });
     }
@@ -1189,8 +1193,6 @@ function renumberModule(knob: Exclude<NumberKnob, { at: "doctrine" }>, jitter: J
             return recharge(knob.site, jitter);
         case "spread":
             return respread(knob.site, jitter);
-        case "standoff":
-            return restandoff(knob.site, jitter);
         case "sealing":
             return reseal(knob.site, jitter);
         case "fill":
@@ -1553,6 +1555,9 @@ const COUNT_SCALE = 20;
 /** The slowest burst a nudge leaves, m/s. */
 const MIN_BURST_SPEED = 1;
 
+/** The fields of a warhead's mount doctrine that change what it does. */
+const WARHEAD_TARGETING_FIELDS: readonly string[] = ["preferredMass", "fireRange"];
+
 /** The narrowest a warhead's spread drifts to, radians: a degree. */
 const MIN_SPREAD = PI / 180;
 
@@ -1728,20 +1733,11 @@ function reload(site: ModuleSite): string {
 
 /** Widen or narrow a warhead's spread, in proportion to it, up to all round. */
 function respread(site: ModuleSite, jitter: Jitter): string | null {
-    const was = site.spec.spread ?? DEFAULT_WARHEAD_SPREAD;
+    const was = warheadSpread(site.spec);
     const now = min(TAU, max(MIN_SPREAD, tidy(was + jitter(was), 4)));
     if (now === was) return null;
     site.spec.spread = now;
     return `${site.where} warhead: spread ${tidy(radiansToDegrees(was), 1)}° → ${tidy(radiansToDegrees(now), 1)}°`;
-}
-
-/** Move a warhead's standoff out or in, by a share of it. */
-function restandoff(site: ModuleSite, jitter: Jitter): string | null {
-    const was = site.spec.standoff ?? DEFAULT_STANDOFF;
-    const now = max(0, tidy(was + jitter(max(was, DEFAULT_STANDOFF)), 1));
-    if (now === was) return null;
-    site.spec.standoff = now;
-    return `${site.where} warhead: standoff ${was} m → ${now} m`;
 }
 
 /** Re-size a shell's charge by how fast it bursts, in proportion to that speed. */

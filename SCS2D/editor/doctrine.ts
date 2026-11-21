@@ -903,6 +903,37 @@ export const MOUNT_SECTIONS: readonly DoctrineSection[] = [
     },
 ];
 
+/**
+ * A warhead's: what size it is for and how far out it goes off, which set its
+ * reach as a gun's do. The rest of a mount's picks one target, and a fuze
+ * goes off at any enemy inside its spread.
+ */
+export const WARHEAD_SECTIONS: readonly DoctrineSection[] = [
+    {
+        title: "What it goes off at",
+        groups: [
+            {
+                title: "What size",
+                entries: [
+                    entry("mount", "preferredMass", {
+                        absolute: (v, ship) =>
+                            `≈ ${((ship.mass * v.targeting.preferredMass) / 1000).toLocaleString("en-GB", { maximumFractionDigits: 1 })} t`,
+                    }),
+                ],
+            },
+            {
+                title: "How far out it goes off",
+                entries: [
+                    entry("mount", "fireRange", {
+                        absolute: (_v, ship) =>
+                            ship.fireRange == null ? null : `goes off within ${metres(ship.fireRange)} of the size it wants`,
+                    }),
+                ],
+            },
+        ],
+    },
+];
+
 /** Every box a set of sections lays out, in order. */
 export function sectionEntries(sections: readonly DoctrineSection[]): DoctrineEntry[] {
     return sections.flatMap((section) => section.groups.flatMap((group) => group.entries));

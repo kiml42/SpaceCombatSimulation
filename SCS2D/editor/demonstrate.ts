@@ -1,7 +1,7 @@
 import { MAX_BEAM_LENGTH } from "../sim/beams.js";
-import { Bodies, IMPACT_MUZZLE, math, Turrets, type ShipDesign, type Snapshot } from "../sim/index.js";
-import { AIM_SLACK, triggerHalfAngle } from "./preview.js";
-import { GunType, firingPeriod } from "../sim/modules.js";
+import { Bodies, IMPACT_BURST, IMPACT_MUZZLE, math, Turrets, type DesignWarhead, type ShipDesign, type Snapshot } from "../sim/index.js";
+import { AIM_SLACK, gunsBearing, triggerHalfAngle } from "./preview.js";
+import { GunType, firingPeriod, warheadBurst } from "../sim/modules.js";
 import { Flashes } from "../render/flashes.js";
 
 const { cos, sin, min, max } = math;
@@ -32,6 +32,9 @@ export const ROUND_LIFETIME = 2.5;
 
 /** Most rounds held at once, so a fast gun cannot grow the buffer without end. */
 const MAX_ROUNDS = 256;
+
+/** Steel, which sizes a warhead's fragment from its mass. */
+const FRAGMENT_DENSITY = 7800;
 
 /** Seconds for a selected engine to come up to full throttle, and to fall back. */
 const SPOOL_TIME = 0.8;
@@ -133,6 +136,12 @@ export class Demonstration {
     private aiming = false;
     /** Muzzle flashes, drawn as a battle's are. */
     readonly flashes = new Flashes();
+    /**
+     * The modules of warheads that have gone off at the rosette's bearing, not
+     * drawn until it lets go. Never for one only selected, which would leave
+     * nothing to edit.
+     */
+    private gone = new Set<number>();
 
     /**
      * Whether there is anything to keep drawing for.
@@ -166,6 +175,7 @@ export class Demonstration {
         this.rounds.count = 0;
         this.beams.count = 0;
         this.flashes.clear();
+        this.gone.clear();
     }
 
     /**
@@ -246,6 +256,18 @@ export class Demonstration {
             }
         }
 
+        // A warhead the aim falls inside goes off, once, and is gone until the aim lets go.
+        if (aim === null) this.gone.clear();
+        else {
+            const bearing = gunsBearing(design, aim.bearing).warheads;
+            design.warheads.forEach((head, w) => {
+                if (bearing[w] !== true || this.gone.has(head.module)) return;
+                this.gone.add(head.module);
+                this.burst(design, head);
+                busy = true;
+            });
+        }
+
         const rounds = this.rounds;
         for (let i = rounds.count - 1; i >= 0; i--) {
             rounds.x[i] = rounds.x[i]! + rounds.vx[i]! * dt;
@@ -311,6 +333,13 @@ export class Demonstration {
                 sparks[t] = lance && this.shown[t] === 1 ? load[t]! : 0;
             }
             view.sparkClock = this.clock;
+            if (this.gone.size === 0) delete view.drawn;
+            else {
+                const drawn = (view.drawn ??= []);
+                drawn.length = view.currentStructure.modules.length;
+                drawn.fill(true);
+                for (const m of this.gone) drawn[m] = false;
+            }
         }
         const rounds = this.rounds;
         snapshot.projectileX = rounds.x;
@@ -410,6 +439,29 @@ export class Demonstration {
         // beam from the muzzle to a point measured from the world origin.
         beams.endX[i] = startX + dirX * beams.reach[i]!;
         beams.endY[i] = startY + dirY * beams.reach[i]!;
+    }
+
+    /** Set off a warhead: its fragments out across its spread at the speed they leave at, and its flash. */
+    private burst(design: ShipDesign, head: DesignWarhead): void {
+        const rounds = this.rounds;
+        const placed = design.modules[head.module]!;
+        const burst = warheadBurst(placed.spec, placed.stats);
+        const x = design.centreOfMassX + placed.x;
+        const y = design.centreOfMassY + placed.y;
+        const all = burst.spread >= math.TAU;
+        const width = Math.cbrt(burst.casing / burst.fragments / FRAGMENT_DENSITY);
+        for (let k = 0; k < burst.fragments && rounds.count < MAX_ROUNDS; k++) {
+            const slice = (k + 0.5) / burst.fragments;
+            const heading = placed.angle + (all ? slice * math.TAU : (slice - 0.5) * burst.spread);
+            const i = rounds.count++;
+            rounds.x[i] = x;
+            rounds.y[i] = y;
+            rounds.vx[i] = cos(heading) * burst.speed;
+            rounds.vy[i] = sin(heading) * burst.speed;
+            rounds.width[i] = width;
+            rounds.age[i] = 0;
+        }
+        this.flashes.add(x, y, burst.energy, IMPACT_BURST, -1, 0, 0, 0, 0, burst.speed);
     }
 
     /** Put one round in the air, leaving the next barrel at the gun's muzzle speed. */

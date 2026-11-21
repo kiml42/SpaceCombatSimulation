@@ -47,6 +47,7 @@ import {
     type ModuleStats,
     berthGrid,
     edgeFade,
+    DUD_INTEGRITY,
 } from "../sim/index.js";
 import { BACKGROUND, GRID, WELL, WELL_ARM_PX, WELL_PULLS } from "./backdrop.js";
 import { barrelLines, MIN_BARREL_PX } from "./barrels.js";
@@ -82,6 +83,7 @@ import {
     ringBars,
     ringThickness,
     type Fill,
+    warheadRim,
 } from "./moduleFills.js";
 import {
     describeRange,
@@ -263,6 +265,8 @@ const MIN_FLASH_PX = 1;
 
 /** A tank's wall as drawn round the fuel in it, as a share of its smaller side. */
 const TANK_INSET = 0.15;
+/** The hull showing between a warhead's frame and its gauge, as a share of its shorter side. */
+const WARHEAD_GAUGE_GAP = 0.05;
 /** A store's gauge: its whole capacity in this, and what it holds over it. */
 const FUEL_TRACK = "#1a1d22";
 /**
@@ -742,7 +746,10 @@ function drawShip(
     }
 
     if (!whole) return;
-    if (arcs === "trigger") drawEngineTriggers(ctx, ship, metresToPx);
+    if (arcs === "trigger") {
+        drawEngineTriggers(ctx, ship, metresToPx);
+        drawWarheadTriggers(ctx, ship, metresToPx);
+    }
     drawPlumes(ctx, ship, light);
     drawLeaks(ctx, ship, light);
 }
@@ -1013,7 +1020,11 @@ function drawHull(
                 // moves as far as it can: from the aft end, or the -y one. Drawn at full
                 // strength however torn the store, since a wreck's load is still there
                 // for a claw to take.
-                const inset = min(spec.length, spec.width) * TANK_INSET;
+                // A warhead's gauge is its charge, inside however thick a casing its frame shows.
+                const inset =
+                    spec.kind === "warhead"
+                        ? warheadRim(spec) + min(spec.length, spec.width) * WARHEAD_GAUGE_GAP
+                        : min(spec.length, spec.width) * TANK_INSET;
                 const share = gaugeStep(
                     (spec.kind === "tank" || spec.kind === "warhead"
                         ? ship.fuel?.[i]
@@ -1536,6 +1547,38 @@ function drawLoad(ctx: CanvasRenderingContext2D, ship: ShipView, t: number, mx: 
             ctx.stroke();
         }
     });
+    ctx.restore();
+}
+
+/**
+ * Where each warhead will go off at: its spread, out to its reach, as a gun's
+ * wedge is drawn; fouled once its fuze is dead (`DUD_INTEGRITY`).
+ */
+function drawWarheadTriggers(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
+    const design = ship.currentStructure;
+    if (design.warheads.length === 0) return;
+    ctx.save();
+    ctx.translate(ship.x, ship.y);
+    ctx.rotate(ship.angle);
+    ctx.lineWidth = legibleWidth(0, MIN_TRIGGER_PX, metresToPx);
+    for (const head of design.warheads) {
+        const module = design.modules[head.module];
+        if (module === undefined || !(head.reach > 0)) continue;
+        const tint = (ship.integrity[head.module] ?? 1) <= DUD_INTEGRITY ? TRIGGER_FOULED : TRIGGER_OFF;
+        ctx.fillStyle = tint;
+        ctx.strokeStyle = tint;
+        ctx.beginPath();
+        // All round, a ring with no edges to draw; else a wedge from the warhead.
+        if (head.spread >= TAU) ctx.arc(module.x, module.y, head.reach, 0, TAU);
+        else {
+            const half = head.spread / 2;
+            ctx.moveTo(module.x, module.y);
+            ctx.arc(module.x, module.y, head.reach, module.angle - half, module.angle + half);
+            ctx.closePath();
+        }
+        ctx.fill();
+        ctx.stroke();
+    }
     ctx.restore();
 }
 

@@ -55,7 +55,7 @@ import {
     type ModuleSpec,
     type ShipDesign,
 } from "../sim/index.js";
-import { GunType, warheadBurst } from "../sim/modules.js";
+import { GunType, warheadBurst, warheadReach } from "../sim/modules.js";
 import { buildWork, fittingOf } from "../sim/rebuild.js";
 
 /** A build time, in seconds, minutes or hours as reads best. */
@@ -558,6 +558,12 @@ export function moduleReadout(
             title: `Taking ${n(burst.focus * 100, 0)}% of the yield; the rest goes into the ship carrying it`,
         });
         add({ name: "Each", under: "fragments", value: `${n(burst.casing / burst.fragments, 1)} kg`, sub: true });
+        if (shipRadius > 0) {
+            // As a gun's "Fires within": against the size its mount wants, as far as its doctrine goes off.
+            const targeting = resolveTargeting(spec.targeting, defaultTargeting(spec.kind));
+            const reach = warheadReach(spec, stats, shipRadius * Math.sqrt(targeting.preferredMass > 0 ? targeting.preferredMass : 1));
+            add({ name: "Goes off within", value: `${n(reach * targeting.fireRange, 0)} m`, title: "Of what its doctrine wants" });
+        }
     }
     if (stats.charge > 0) add({ name: "Charge rate", value: megawatts(stats.chargeRate), title: "In or out" });
     if (stats.generation > 0) add({ name: "Generates", value: megawatts(stats.generation), ...(core ? { under: "generatorShare" } : {}) });

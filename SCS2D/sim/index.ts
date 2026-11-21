@@ -25,6 +25,7 @@ export { World, type ForceProvider, type WorldOptions } from "./world.js";
 export {
     addFlame,
     addTurret,
+    addWarhead,
     AttackArcs,
     AttackRegion,
     attackBearing,
@@ -54,7 +55,7 @@ export {
 export { eccentricAnomaly, orbitPeriod, orbitState, Railway, systemGm, type Orbit, type Rails, type System } from "./rails.js";
 export { SpatialGrid, IndexBuffer, RayHit, segmentCircleT, type RayNarrowPhase } from "./spatialGrid.js";
 export { Projectiles, ProjectileHits, NO_OWNER, NOT_INSIDE, ROUND_SHRAPNEL, ROUND_WRECKAGE, type ProjectileSpec } from "./projectiles.js";
-export { detonateWarheads, WARHEAD_FRAGMENT_LIFE } from "./warheads.js";
+export { detonateWarheads } from "./warheads.js";
 export { spendHulls, throwShrapnel, throwWreckage, WRECKAGE_LIFE, WRECKAGE_SHARE } from "./wreckage.js";
 export {
     Beams,
@@ -127,9 +128,12 @@ export {
     chargeShare,
     DEFAULT_BURST_SPEED,
     DEFAULT_FRAGMENTS,
-    DEFAULT_STANDOFF,
+    WARHEAD_FRAGMENT_LIFE,
+    warheadReach,
     DEFAULT_WARHEAD_FRAGMENTS,
     DEFAULT_WARHEAD_SPREAD,
+    SPREAD_PER_FRAGMENT,
+    warheadSpread,
     WARHEAD_DRAIN_PRIORITY,
     WARHEAD_FOCUS,
     drainPriorityOf,
@@ -443,6 +447,7 @@ export {
     type Placement,
     type DesignModule,
     type DesignTurret,
+    type DesignWarhead,
     type ShipDesign,
 } from "./blueprint.js";
 export { padApproaches, type PadApproach } from "./padApproach.js";
@@ -516,6 +521,7 @@ export {
     Credit,
     DAMAGE_ENERGY_PER_KG,
     RAGGED_INTEGRITY,
+    DUD_INTEGRITY,
     SHED_AT_BREAK,
     SHATTER,
     SHED_FLOOR,

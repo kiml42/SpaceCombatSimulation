@@ -2,6 +2,7 @@ import {
     aboardPose,
     addFlame,
     addTurret,
+    addWarhead,
     AttackArcs,
     attackCoverage,
     bears,
@@ -266,12 +267,16 @@ export function attackRosette(design: ShipDesign): {
         sectors: bestAttackBearings(arcs, design.thrustBearing),
         coverage: attackCoverage(arcs),
         total: arcs.total,
-        secondaries: design.turrets.filter((turret) => !turret.main).length,
+        secondaries: design.turrets.filter((turret) => !turret.main).length + design.warheads.filter((head) => !head.main).length,
     };
 }
 
 /** Which of a design's guns, and main weapon engines, can fire on `bearing` (body frame), by the battle's own arcs and masks. */
-export function gunsBearing(design: ShipDesign, bearing: number, slack = AIM_SLACK): { turrets: boolean[]; engines: boolean[] } {
+export function gunsBearing(
+    design: ShipDesign,
+    bearing: number,
+    slack = AIM_SLACK,
+): { turrets: boolean[]; engines: boolean[]; warheads: boolean[] } {
     const arcs = new AttackArcs();
     const turrets = design.turrets.map((turret) => {
         arcs.clear();
@@ -284,7 +289,12 @@ export function gunsBearing(design: ShipDesign, bearing: number, slack = AIM_SLA
         addFlame(arcs, design, t);
         engines[t] = bears(arcs, bearing, slack);
     }
-    return { turrets, engines };
+    const warheads = design.warheads.map((head) => {
+        arcs.clear();
+        addWarhead(arcs, design, head);
+        return bears(arcs, bearing, slack);
+    });
+    return { turrets, engines, warheads };
 }
 
 /**
