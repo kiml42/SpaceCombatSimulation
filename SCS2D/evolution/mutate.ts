@@ -1249,7 +1249,6 @@ const STEP_SCALE: Readonly<Record<string, number>> = {
     ramMass: 1,
     ramRadii: 2,
     ramArmed: 0.5,
-    ramSettle: 1,
     scavengeFuelBelow: 0.5,
     scavengeMetalBelow: 0.5,
     deliverFuelAbove: 0.5,

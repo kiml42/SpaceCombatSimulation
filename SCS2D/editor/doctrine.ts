@@ -402,12 +402,6 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
         step: 0.1,
     },
     {
-        field: "ramSettle",
-        label: "lines up for",
-        hint: "Seconds before impact in which a ram stops closing faster and only cancels its sideways drift, eased in over as long again",
-        step: 0.5,
-    },
-    {
         field: "ramSelectiveFuel",
         label: "ram selective above fuel",
         hint: "The share of a full tank above which a ram goes for a part its aim weights pick, and below which for the whole ship, whatever it meets: a miss at a part would have to come round again",
@@ -680,7 +674,6 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                             return working === 0 ? `only once none of its ${guns} works` : `with ${working} of ${guns} working, or fewer`;
                         },
                     }),
-                    entry("approach", "ramSettle", { shown: (v) => v.approach.ramRadii > 0 }),
                     entry("approach", "ramCommit", { shown: (v) => v.approach.ramRadii > 0 }),
                     entry("approach", "ramSelectiveFuel", {
                         shown: (v) => v.approach.ramRadii > 0,
