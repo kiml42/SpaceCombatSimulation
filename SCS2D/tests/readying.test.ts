@@ -6,6 +6,7 @@ import {
     compileBlueprint,
     FULLY_READY,
     readied,
+    readyDeadline,
     readyingTime,
     schedule,
     Ships,
@@ -95,6 +96,21 @@ describe("a yard", () => {
         const [ready] = schedule([corvette], { deadline: work + left, robots: 1 });
         const room = batteries(corvette) - sum(readied(corvette, { spare: left, yard: 0 }).charge);
         expect(ready!.yard).toBeCloseTo(Math.min(1, (YARD_POWER * left) / room), 9);
+    });
+
+    it("gives a fleet time enough to ready everything it can, and no more than it needs", () => {
+        const fleet = [corvette, rail, dinky];
+        const deadline = readyDeadline(fleet);
+        const work = fleet.reduce((sum, d) => sum + billOf(d).build, 0);
+        expect(deadline).toBeGreaterThan(work);
+        const full = (at: number): boolean =>
+            schedule(fleet, { deadline: at, robots: 1 }).every((ready, i) => {
+                const got = readied(fleet[i]!, ready);
+                const best = readied(fleet[i]!, FULLY_READY);
+                return sum(got.charge) >= sum(best.charge) * (1 - 1e-6) && Array.from(got.reload).every((r) => r < 1e-6);
+            });
+        expect(full(deadline)).toBe(true);
+        expect(full(deadline - 1)).toBe(false);
     });
 
     it("can afford the work of as many robots as it has", () => {

@@ -538,6 +538,7 @@ export {
     FULLY_READY,
     NO_YARD,
     readied,
+    readyDeadline,
     readyingTime,
     schedule,
     YARD_POWER,

@@ -13,7 +13,7 @@ import {
 import { BARE_CORE } from "../scenarios/blueprints.js";
 import { customBattle, tally, type CustomBattle } from "../scenarios/customBattle.js";
 import { Activity } from "../scenarios/decision.js";
-import { atLeast, DEFAULT_SKIRMISH_SETTINGS, roundBattle, type SkirmishSettings } from "../scenarios/skirmish.js";
+import { atLeast, DEFAULT_SKIRMISH_SETTINGS, roundBattle, startingBudget, type SkirmishSettings } from "../scenarios/skirmish.js";
 import { drawHand, isSimple, neediest, shareOf, withCards, type Limits } from "../skirmish/cards.js";
 import { breeding, type Breeding } from "./mutationFields.js";
 import { mutateFleet } from "./fleetMutate.js";
@@ -190,7 +190,7 @@ export class EnemySearch {
     /** The enemy's limits before its cards: the skirmish's budget, ship count and spread. */
     private get start(): Limits {
         return {
-            budget: this.playerBudget ?? fleetBill(fleetHulls(this.startEnemy)),
+            budget: this.playerBudget ?? startingBudget(this.startEnemy),
             maxShips: this.settings.maxShips,
             radius: this.settings.radius,
         };

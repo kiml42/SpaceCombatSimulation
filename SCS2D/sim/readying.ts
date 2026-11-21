@@ -168,6 +168,11 @@ class Charging {
 
 /** What `design` has done of its readying given `ready`. */
 export function readied(design: ShipDesign, ready: Ready): Readied {
+    return readiedBy(design, ready, ready.spare === Infinity);
+}
+
+/** `readied`, everything simply full for no deadline where `full`, or as far as its generators would ever get it. */
+function readiedBy(design: ShipDesign, ready: Ready, full: boolean): Readied {
     const turrets = design.turrets;
     const reload = new Float64Array(turrets.length);
     const bank = new Float64Array(turrets.length);
@@ -175,7 +180,6 @@ export function readied(design: ShipDesign, ready: Ready): Readied {
     const bays = robotBays(design);
     const robots = new Float64Array(bays.length);
     const charge = new Float64Array(design.modules.length);
-    const full = ready.spare === Infinity;
     const charging = full ? null : new Charging(design, ready.spare);
 
     for (let t = 0; t < turrets.length; t++) {
@@ -278,4 +282,45 @@ export function schedule(designs: readonly ShipDesign[], yard: Yard): Ready[] {
     });
     const share = room > 0 ? min(1, pool / room) : 1;
     return spares.map((spare) => ({ spare, yard: share }));
+}
+
+/** Whether `got` is as ready as `best`, near enough. */
+function asReady(got: Readied, best: Readied): boolean {
+    const close = (a: number, b: number): boolean => a >= b - 1e-6 * (b > 1 ? b : 1);
+    for (let k = 0; k < best.reload.length; k++) if (!close(best.reload[k]!, got.reload[k]!)) return false;
+    for (const key of ["bank", "robots", "charge"] as const) {
+        for (let k = 0; k < best[key].length; k++) if (!close(got[key][k]!, best[key][k]!)) return false;
+    }
+    return true;
+}
+
+/**
+ * The least time before the battle, s, in which `robots` robots build a fleet
+ * and it readies itself as far as it ever could: every gun its generators can
+ * load loaded, and every robot and battery charged. What a skirmish's budget
+ * starts at, so neither side sets out short.
+ */
+export function readyDeadline(designs: readonly ShipDesign[], robots = 1): number {
+    const crew = max(1, robots);
+    let work = 0;
+    for (const design of designs) work += billOf(design).build;
+    const all = (design: ShipDesign): ShipDesign[] => [design, ...(design.aboard ?? []).map((aboard) => aboard.design)];
+    const best = designs.map((design) => all(design).map((d) => readiedBy(d, { spare: Infinity, yard: 1 }, false)));
+    const ok = (deadline: number): boolean =>
+        schedule(designs, { deadline, robots: crew }).every((ready, i) =>
+            all(designs[i]!).every((d, k) => asReady(readiedBy(d, ready, false), best[i]![k]!)),
+        );
+    let low = work / crew;
+    if (ok(low)) return low;
+    let high = low + 1;
+    for (let k = 0; k < 64 && !ok(high); k++) {
+        low = high;
+        high = low + (high - work / crew) * 2;
+    }
+    for (let k = 0; k < 48 && high - low > 0.01; k++) {
+        const mid = (low + high) / 2;
+        if (ok(mid)) high = mid;
+        else low = mid;
+    }
+    return high;
 }

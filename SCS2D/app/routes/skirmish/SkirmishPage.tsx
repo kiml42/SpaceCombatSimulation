@@ -55,6 +55,7 @@ import {
     playerLimits,
     roundBattle,
     roundYards,
+    startingBudget,
     roundSetup,
     settingsOf,
     won,
@@ -806,7 +807,7 @@ export function SkirmishPage() {
         const player = playerValue === EMPTY ? { name: "My fleet", designs: {}, ships: [] } : read(playerValue);
         if (player === null) return;
         // The page's own randomness, not the battle's: it only picks which battle.
-        const begun = newSkirmish(enemy, player, Math.floor(Math.random() * 2 ** 32), chosen, budgetOf(billOfFleet(enemy)), name);
+        const begun = newSkirmish(enemy, player, Math.floor(Math.random() * 2 ** 32), chosen, budgetOf(startingBudget(enemy)), name);
         skirmishes.setSkirmish(begun);
         // Nothing to fight with yet: straight to the editor to build it.
         if (player.ships.length === 0) void navigate(fleetRoute(begun.player, begun));
@@ -815,7 +816,7 @@ export function SkirmishPage() {
     const previewEnemy = (enemy: Fleet | null): void => {
         const flies = enemy !== null && fleetFault(enemy) === null;
         previewed.current = flies ? enemy : null;
-        setEnemyCost(flies ? billOfFleet(enemy) : null);
+        setEnemyCost(flies ? startingBudget(enemy) : null);
         battle.current = null;
         undecided();
         if (flies && view !== null) showOn(view, enemyAlone(enemy), false);

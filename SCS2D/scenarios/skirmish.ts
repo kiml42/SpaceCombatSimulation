@@ -4,6 +4,7 @@ import {
     expandFleet,
     fleetBill,
     fleetHulls,
+    readyDeadline,
     fleetProblem,
     fleetReach,
     math,
@@ -185,6 +186,22 @@ export function billOfFleet(fleet: Fleet): Bill {
     return fleetBill(fleetHulls(fleet));
 }
 
+/**
+ * The budget a skirmish against `enemy` starts at: what it costs, with build
+ * time enough for one robot to build it and for it to load and charge
+ * everything it can before the battle.
+ */
+export function startingBudget(enemy: Fleet): Budget {
+    const hulls = fleetHulls(enemy);
+    return {
+        ...fleetBill(hulls),
+        build: readyDeadline(
+            hulls.map((hull) => hull.design),
+            1,
+        ),
+    };
+}
+
 /** A skirmish against `enemy`, the player's budget what it cost unless given. */
 export function newSkirmish(
     enemy: Fleet,
@@ -201,7 +218,7 @@ export function newSkirmish(
         ...(name === undefined || name.trim() === "" ? {} : { name: name.trim() }),
         enemy: painted,
         player,
-        budget: budget === undefined ? billOfFleet(enemy) : { ...budget },
+        budget: budget === undefined ? startingBudget(enemy) : { ...budget },
         round: 1,
         tries: 0,
         seed: seed >>> 0,
