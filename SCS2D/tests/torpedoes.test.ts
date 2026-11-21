@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compileBlueprint, DEFAULT_DOCTRINE, type Blueprint } from "../sim/index.js";
+import { compileBlueprint, type Blueprint } from "../sim/index.js";
 import { torpedoes } from "../scenarios/torpedoes.js";
 import { makeBattle } from "../scenarios/battle.js";
 import { CORVETTE, TORPEDO } from "../scenarios/blueprints.js";
@@ -44,20 +44,12 @@ describe("a salvo of torpedoes", () => {
 });
 
 describe("a torpedo's last seconds", () => {
-    /** Over fifteen salvoes, how many torpedoes reach the gunship, and how many are still flying having missed it. */
-    const salvoes = (ramSettle: number): { hit: number; missed: number } => {
-        const torpedo: Blueprint = {
-            ...TORPEDO,
-            doctrine: {
-                targeting: { ...DEFAULT_DOCTRINE.targeting, ...TORPEDO.doctrine?.targeting },
-                approach: { ...DEFAULT_DOCTRINE.approach, ...TORPEDO.doctrine?.approach, ramSettle },
-            },
-        };
+    it("take out its drift as it closes, so few that the guns spare fly past", () => {
         let hit = 0;
         let missed = 0;
         // Enough seeds that the margin does not hang on a handful of salvoes.
         for (const seed of [20260905, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]) {
-            const battle = torpedoes(seed, 12, undefined, torpedo);
+            const battle = torpedoes(seed, 12);
             const ships = battle.ships;
             const reached = new Set<number>();
             for (let i = 0; i < 60 * 60; i++) {
@@ -79,19 +71,9 @@ describe("a torpedo's last seconds", () => {
             hit += reached.size;
             for (let t = 1; t <= 12; t++) if (!reached.has(t) && ships.isAlive(t) && ships.hasControl(t)) missed++;
         }
-        return { hit, missed };
-    };
-
-    it("are spent cancelling its drift rather than closing faster when told to settle, so fewer that the guns spare miss", () => {
-        expect(compileBlueprint(TORPEDO).doctrine.approach.ramSettle).toBe(0);
-        const lining = salvoes(3);
-        const flatOut = salvoes(0);
-        // As a share of those the guns spared, so better guns sparing fewer does not move it.
-        const missRate = (r: { hit: number; missed: number }): number => r.missed / (r.hit + r.missed);
-        expect(missRate(lining)).toBeLessThan(missRate(flatOut));
-        // Even flat out, a ram speeds up only by what leaves its drift time to come out: before it
-        // did, about three in ten of those the guns spared flew past.
-        expect(missRate(flatOut)).toBeLessThan(0.15);
+        // As a share of those the guns spared, so better guns sparing fewer does not move it. Speeding
+        // up at where the target was, before drift was taken out, about three in ten of those flew past.
+        expect(missed / (hit + missed)).toBeLessThan(0.15);
     });
 });
 

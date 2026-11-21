@@ -371,14 +371,6 @@ export interface Approach {
      */
     readonly ramArmed: number;
     /**
-     * Seconds before impact within which a ram cares only for cancelling its
-     * sideways drift, not for closing any faster, easing in over as long again
-     * before that. Zero, the default, speeds up all the way in, drift being
-     * taken out as it closes whenever it would miss (`charge`); settling buys a
-     * few more hits for far less damage, impact going with the square of speed.
-     */
-    readonly ramSettle: number;
-    /**
      * Seconds before it would strike that a fighter ramming drops to the hull
      * layer (DESIGN.md §3). Until then it flies in the weapons layer, clear of
      * the hulls it passes; too late, and it cannot drop through a hull it is
@@ -649,7 +641,6 @@ export const DEFAULT_DOCTRINE: Doctrine = {
         brake: 0.8,
         ramRadii: 0,
         ramArmed: 0,
-        ramSettle: 0,
         ramCommit: 2,
         ramSelectiveFuel: 0.3,
         turnBias: 0.5,
@@ -879,7 +870,6 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
     "brake",
     "ramRadii",
     "ramArmed",
-    "ramSettle",
     "ramCommit",
     "ramSelectiveFuel",
     "turnBias",
@@ -920,7 +910,6 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
 /** Fields that mean nothing below zero, though zero itself is a setting. */
 export const NON_NEGATIVE_FIELDS: readonly string[] = [
     "guardRange",
-    "ramSettle",
     "ramSelectiveFuel",
     "escortInner",
     "spinResist",

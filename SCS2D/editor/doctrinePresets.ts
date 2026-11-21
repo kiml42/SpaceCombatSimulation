@@ -76,9 +76,9 @@ export const DOCTRINE_PRESETS: readonly DoctrinePreset[] = [
     },
     {
         name: "Torpedo",
-        hint: "Goes for the biggest thing there is, behind a rock or not, and rams it",
-        targeting: { preferredMass: 20, ramMass: 20, massWeight: 100, sightWeight: 20 },
-        approach: { ramRadii: 1000, ramArmed: 1, approachSpeed: 900 },
+        hint: "Goes for the biggest armed thing it can see, and rams it",
+        targeting: { preferredMass: 20, ramMass: 20, massWeight: 100, sightWeight: 80, armedWeight: 130 },
+        approach: { ramRadii: 1000, ramArmed: 1, approachSpeed: 900, ramSelectiveFuel: 0.1 },
     },
 ];
 

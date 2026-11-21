@@ -6,13 +6,17 @@
   "fighter": true,
   "doctrine": {
     "targeting": {
-      "preferredMass": 30,
-      "sightWeight": 20
+      "preferredMass": 20,
+      "ramMass": 20,
+      "massWeight": 100,
+      "sightWeight": 80,
+      "armedWeight": 130
     },
     "approach": {
-      "approachSpeed": 900,
       "ramRadii": 1000,
-      "ramArmed": 1
+      "ramArmed": 1,
+      "approachSpeed": 900,
+      "ramSelectiveFuel": 0.1
     }
   },
   "assemblies": {
