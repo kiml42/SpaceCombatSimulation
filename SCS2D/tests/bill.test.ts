@@ -59,7 +59,7 @@ describe("a bill", () => {
         expect(billOf(design).build).toBeCloseTo(work / ROBOT_REPAIR_RATE, 6);
     });
 
-    it("includes the fighters a carrier sets out with", () => {
+    it("includes the metal and fuel of the fighters a carrier sets out with, but not their build, which is their pads'", () => {
         const blueprint: Blueprint = {
             name: "Carrier",
             modules: [
@@ -78,6 +78,6 @@ describe("a bill", () => {
         const laden = billOf(compileBlueprint(blueprint));
         expect(laden.metal).toBeCloseTo(bare.metal + dinky.metal, 6);
         expect(laden.fuel).toBeCloseTo(bare.fuel + dinky.fuel, 6);
-        expect(laden.build).toBeCloseTo(bare.build + dinky.build, 6);
+        expect(laden.build).toBeCloseTo(bare.build, 6);
     });
 });
