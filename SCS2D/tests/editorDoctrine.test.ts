@@ -72,7 +72,6 @@ describe("which numbers the panel offers", () => {
         expect(sectionEntries([section("Ramming")]).map((e) => e.field)).toEqual([
             "ramRadii",
             "ramArmed",
-            "ramSettle",
             "ramCommit",
             "ramSelectiveFuel",
             "ramMass",
