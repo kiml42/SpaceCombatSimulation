@@ -373,7 +373,9 @@ export interface Approach {
     /**
      * Seconds before impact within which a ram cares only for cancelling its
      * sideways drift, not for closing any faster, easing in over as long again
-     * before that. Zero speeds up all the way in.
+     * before that. Zero, the default, speeds up all the way in, drift being
+     * taken out as it closes whenever it would miss (`charge`); settling buys a
+     * few more hits for far less damage, impact going with the square of speed.
      */
     readonly ramSettle: number;
     /**
@@ -647,7 +649,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
         brake: 0.8,
         ramRadii: 0,
         ramArmed: 0,
-        ramSettle: 3,
+        ramSettle: 0,
         ramCommit: 2,
         ramSelectiveFuel: 0.3,
         turnBias: 0.5,
