@@ -2,6 +2,7 @@ import { Debris } from "./debris.js";
 import { Bodies, type BodyId } from "./bodies.js";
 import { aboardPose, padHolds, sameOrigin, slipwayHolds, type DesignTurret, type ShipDesign } from "./blueprint.js";
 import { FULLY_READY, readied, type Ready } from "./readying.js";
+import { billOf } from "./bill.js";
 import { components, joints } from "./connectivity.js";
 import { BOTH_LAYERS, HULL_LAYER, Hulls, OWN_LAYERS, WEAPONS_LAYER } from "./hull.js";
 import { Damage, DamageEffect, SHATTER, type Credit, type ImpactLog } from "./damage.js";
@@ -1666,9 +1667,21 @@ export class Ships {
                 at = this.dockAtPorts(world, i);
                 this.spawning--;
             }
-            for (const aboard of design.aboard ?? []) {
+            const aboardList = design.aboard ?? [];
+            for (let a = 0; a < aboardList.length; a++) {
+                const aboard = aboardList[a]!;
                 if (at(aboard.pad) < 0) continue;
-                const f = this.launchAboard(world, i, spec, at(aboard.pad), aboard.design);
+                // One its pad did not finish before the battle leaves what it was to be made of
+                // in the carrier's stores, as far as they have room.
+                const spare = ready === null ? Infinity : ready.fighters[a]!;
+                if (spare < 0) {
+                    const bill = billOf(aboard.design);
+                    this.metal.add(bodyIdx, at(aboard.pad), bill.metal);
+                    this.fuel.add(bodyIdx, at(aboard.pad), bill.fuel);
+                    shipBreakup.settleMass(this, world.bodies, bodyIdx);
+                    continue;
+                }
+                const f = this.launchAboard(world, i, spec, at(aboard.pad), aboard.design, { spare, yard: spec.ready?.yard ?? 1 });
                 // The one it sets out with is one of those it keeps.
                 const k = builds.findIndex((build) => build.pad === aboard.pad);
                 if (k >= 0) this.broods[i]!.fighters[k]!.push(f);
@@ -1724,7 +1737,7 @@ export class Ships {
      * the middle of it and moving with it, then taken aboard as one that had
      * landed there is.
      */
-    private launchAboard(world: World, i: number, spec: ShipSpec, pad: number, fighter: ShipDesign): number {
+    private launchAboard(world: World, i: number, spec: ShipSpec, pad: number, fighter: ShipDesign, ready: Ready): number {
         const bodies = world.bodies;
         const b = bodies.indexOf(this.bodyIds[i]!);
         const pose = aboardPose(this.designs[i]!, { pad, design: fighter });
@@ -1745,7 +1758,7 @@ export class Ships {
             angularVel: spin,
             team: spec.team ?? 0,
             ...(spec.invulnerable === true ? { invulnerable: true } : {}),
-            ...(spec.ready === undefined ? {} : { ready: spec.ready }),
+            ready,
         });
         this.landedReach[f] = shipSupply.fightReach(this, f);
         shipDocking.park(this, bodies, i, f, pad);

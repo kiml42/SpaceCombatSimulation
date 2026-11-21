@@ -909,6 +909,8 @@ export function resolveCollision(
     slideY = 0,
     /** A module the crush passes through untouched: a warhead whose blast this is. */
     skip = -1,
+    /** Given, told what the crush still had as it left the hull: nothing if it ran out or met a kernel. */
+    exit?: { left: number },
 ): number {
     if (!(energy > 0)) return 0;
 
@@ -940,6 +942,7 @@ export function resolveCollision(
 
     let left = energy;
     let spent = 0;
+    let stopped = false;
     for (let k = 0; k < path.count && left > 0; k++) {
         // Only what lies at or beyond the contact: the crush goes inward, and the
         // metal the cast crossed on its way in is on the other side of the ship.
@@ -947,7 +950,10 @@ export function resolveCollision(
         const module = path.module[k]!;
         if (module === skip) continue;
         // A kernel takes nothing and is not crumpled: the crush stops at it.
-        if (damage.kindAt(bodyIndex, module) === "kernel") break;
+        if (damage.kindAt(bodyIndex, module) === "kernel") {
+            stopped = true;
+            break;
+        }
         const whole = damage.capacityOf(bodyIndex, module);
         // What it can still absorb, then what it cannot pass on, crumpling it, as
         // far as shattering it: no module carries more on inward than it could
@@ -965,6 +971,7 @@ export function resolveCollision(
         }
         left = through;
     }
+    if (exit !== undefined) exit.left = stopped ? 0 : left;
     return spent;
 }
 

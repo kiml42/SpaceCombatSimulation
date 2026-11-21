@@ -26,7 +26,7 @@ export type Budget = Bill;
 export const NO_BUDGET: Budget = { metal: Infinity, fuel: Infinity, build: Infinity };
 export const NO_BILL: Bill = { metal: 0, fuel: 0, build: 0 };
 
-/** What a design costs as it sets out, every fighter it carries included. */
+/** What a design costs as it sets out: the metal and fuel of every fighter it carries too, but not their build. */
 export function billOf(design: ShipDesign): Bill {
     let fuel = 0;
     let work = 0;
@@ -37,8 +37,9 @@ export function billOf(design: ShipDesign): Bill {
     let rounds = 0;
     for (const mount of design.turrets) rounds += shotFuel(mount.gun);
     const own: Bill = { metal: design.launchMass - fuel, fuel: fuel + rounds, build: work / ROBOT_REPAIR_RATE };
+    // A fighter it sets out with is its pad's to build, in the time before the battle (`readying.ts`).
     let bill = own;
-    for (const aboard of design.aboard ?? []) bill = addBills(bill, billOf(aboard.design));
+    for (const aboard of design.aboard ?? []) bill = addBills(bill, { ...billOf(aboard.design), build: 0 });
     return bill;
 }
 

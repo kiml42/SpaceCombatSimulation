@@ -16,6 +16,7 @@ import {
     type ShipDesign,
 } from "../sim/index.js";
 import { CORVETTE, DINKY, RAIL_CORVETTE } from "../scenarios/blueprints.js";
+import type { Blueprint } from "../sim/index.js";
 
 /** Readying a fleet in the time its build leaves before the battle (DECISIONS.md, 2026-11-21). */
 
@@ -146,5 +147,40 @@ describe("a ship set out readied", () => {
         for (let k = 0; k < 600 && ships.isReloading(i, 0); k++) ships.command(1 / 60, world);
         expect(ships.isReloading(i, 0)).toBe(false);
         expect(ships.fuel.spentMass(b)).toBeCloseTo(before, 6);
+    });
+});
+
+describe("a carrier readied", () => {
+    const carrier = compileBlueprint({
+        name: "Carrier",
+        modules: [
+            { kind: "core", x: 0, y: 0, length: 6, width: 6 },
+            { kind: "pad", x: 13, y: 0, length: 20, width: 20, craft: "Dinky", docked: true },
+        ],
+        hangar: { Dinky: DINKY },
+    } as Blueprint);
+
+    it("has its pads build the fighters it sets out with, on its own power", () => {
+        expect(readied(carrier, { spare: 0, yard: 0 }).fighters[0]).toBe(-1);
+        const built = readyingTime(carrier);
+        expect(built).toBeGreaterThan(0);
+        const late = readied(carrier, { spare: built + 10, yard: 0 }).fighters[0]!;
+        expect(late).toBeGreaterThan(9);
+        expect(readied(carrier, FULLY_READY).fighters[0]).toBe(Infinity);
+    });
+
+    it("sets out without a fighter its pad did not finish", () => {
+        const world = new World({ dt: 1 / 60, seed: 1 });
+        const ships = new Ships();
+        ships.spawn(world, { design: carrier, ready: { spare: 0, yard: 0 } });
+        expect(ships.highWater).toBe(1);
+        const ready = new Ships();
+        ready.spawn(new World({ dt: 1 / 60, seed: 1 }), { design: carrier, ready: { spare: readyingTime(carrier) + 1, yard: 0 } });
+        expect(ready.highWater).toBe(2);
+    });
+
+    it("gives the yard none of its fighters' build", () => {
+        expect(billOf(carrier).build).toBeLessThan(billOf(dinky).build + billOf(carrier).build);
+        expect(readyDeadline([carrier])).toBeGreaterThan(billOf(carrier).build + readyingTime(carrier) - 1);
     });
 });
