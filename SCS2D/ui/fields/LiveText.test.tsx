@@ -4,9 +4,9 @@ import { expect, test } from "vitest";
 import { LiveNumber, LiveText } from "./LiveText";
 import { NumberField } from "./NumberField";
 
-function Held({ min, max }: { readonly min?: number; readonly max?: number }) {
+function Held({ min, max }: { readonly min: number; readonly max: number }) {
     const [value, setValue] = useState(5);
-    return <LiveNumber aria-label="box" value={value} onEdit={setValue} step={1} {...{ min, max }} />;
+    return <LiveNumber aria-label="box" value={value} onEdit={setValue} step={1} min={min} max={max} />;
 }
 
 test("a number typed past its range is brought to the end it passed when the box is left", () => {
