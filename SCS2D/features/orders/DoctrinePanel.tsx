@@ -2,7 +2,7 @@ import { styled } from "@linaria/react";
 import { useEffect, useState } from "react";
 import { useSampled } from "~/features/battle/useSampled";
 import { useLibrary } from "~/features/storage/useLibrary";
-import { MOUNT_SECTIONS, SHIP_SECTIONS, type DoctrineEntry } from "~/editor/doctrine";
+import { fieldMin, MOUNT_SECTIONS, SHIP_SECTIONS, type DoctrineEntry } from "~/editor/doctrine";
 import { keyOf, mountsOf, shared, slotsOf, told, valuesOf, type BuildSlot } from "~/editor/doctrineParts";
 import type { BattleView } from "~/host/battleView";
 import { choices, type Choice } from "~/host/designChoices";
@@ -11,6 +11,7 @@ import { mountAt, viewOf } from "~/render/picking";
 import { padHolds, placementOf, slipwayHolds, type DoctrinePart, type ShipView, type Snapshot } from "~/sim/index";
 import type { OrderState } from "./orderState";
 import { Button, ToggleButton } from "~/ui/buttons/Button";
+import { clampedText } from "~/ui/fields/clamp";
 import { PresetPicker } from "~/features/doctrine/PresetPicker";
 import { presetFields } from "~/editor/doctrinePresets";
 
@@ -229,7 +230,7 @@ function CommitBox({
 }: {
     readonly value: number | undefined;
     readonly step: number;
-    readonly min?: number;
+    readonly min?: number | undefined;
     readonly onCommit: (typed: string) => void;
     readonly label: string;
     /** The doctrine field it tells, where it tells one. */
@@ -237,6 +238,7 @@ function CommitBox({
 }) {
     const shown = value === undefined ? "" : String(value);
     const commit = (input: HTMLInputElement): void => {
+        input.value = clampedText(input) ?? input.value;
         if (input.value.trim() !== shown) onCommit(input.value.trim());
     };
     return (
@@ -288,6 +290,7 @@ function DoctrineBox({
                 field={row.field}
                 value={value}
                 step={row.step}
+                min={fieldMin(row.field)}
                 onCommit={(typed) => onIssue(row.field, typed === "" ? null : Number(typed))}
             />
         </Row>

@@ -1,4 +1,5 @@
-import { useState, type ComponentPropsWithoutRef } from "react";
+import { useRef, useState, type ComponentPropsWithoutRef } from "react";
+import { clampedText } from "./clamp";
 
 export interface LiveTextProps extends Omit<
     ComponentPropsWithoutRef<"input">,
@@ -10,10 +11,12 @@ export interface LiveTextProps extends Omit<
     readonly onType: (typed: string) => void;
     /** The box is entered: what is typed next is a new edit. */
     readonly onStart?: () => void;
-    /** The box is left, or Enter pressed: the edit is finished. */
+    /** The box is left, or Enter pressed: the edit is finished, a number beyond its range brought to the end it passed. */
     readonly onDone?: () => void;
     /** A box of several lines. */
     readonly multiline?: boolean;
+    /** What an empty number box's arrows step from, rather than the browser's 0. */
+    readonly stepFrom?: number;
 }
 
 /**
@@ -21,9 +24,25 @@ export interface LiveTextProps extends Omit<
  * what was typed, half-finished or not, until it is left — then shows what the
  * page made of it.
  */
-export function LiveText({ value, onType, onStart, onDone, multiline = false, ...rest }: LiveTextProps) {
+export function LiveText({ value, onType, onStart, onDone, multiline = false, stepFrom, ...rest }: LiveTextProps) {
     const [typed, setTyped] = useState<string | null>(null);
+    const stepping = useRef(false);
     const shown = typed ?? value;
+    // An arrow on an empty box steps from 0 (up past it, down to it or below), so the step is moved onto stepFrom.
+    const read = (raw: string): string => {
+        if (stepFrom === undefined || !stepping.current || shown !== "" || raw === "") return raw;
+        const step = Number(rest.step ?? 1) || 1;
+        const next = Number((stepFrom + (Number(raw) > 0 ? step : -step)).toPrecision(12));
+        const min = rest.min === undefined ? -Infinity : Number(rest.min);
+        const max = rest.max === undefined ? Infinity : Number(rest.max);
+        return String(Math.min(max, Math.max(min, next)));
+    };
+    const clamp = (input: HTMLInputElement): void => {
+        const clamped = clampedText(input);
+        if (clamped === null) return;
+        setTyped(clamped);
+        onType(clamped);
+    };
     const start = (): void => {
         setTyped(value);
         onStart?.();
@@ -58,13 +77,24 @@ export function LiveText({ value, onType, onStart, onDone, multiline = false, ..
             value={shown}
             onFocus={start}
             onChange={(event) => {
-                setTyped(event.target.value);
-                onType(event.target.value);
+                const next = read(event.target.value);
+                setTyped(next);
+                onType(next);
             }}
-            onBlur={done}
+            onBlur={(event) => {
+                clamp(event.currentTarget);
+                done();
+            }}
+            onPointerDown={() => (stepping.current = true)}
+            onPointerUp={() => (stepping.current = false)}
+            onPointerCancel={() => (stepping.current = false)}
             onKeyDown={(event) => {
-                if (event.key === "Enter") onDone?.();
+                stepping.current = event.key === "ArrowUp" || event.key === "ArrowDown";
+                if (event.key !== "Enter") return;
+                clamp(event.currentTarget);
+                onDone?.();
             }}
+            onKeyUp={() => (stepping.current = false)}
         />
     );
 }

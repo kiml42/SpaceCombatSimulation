@@ -9,6 +9,7 @@ import type { Snapshot } from "~/sim/index";
 import { OrderCancelCondition } from "~/sim/ships";
 import type { OrderState } from "./orderState";
 import { Button, ToggleButton } from "~/ui/buttons/Button";
+import { clampOnBlur } from "~/ui/fields/clamp";
 
 // Over the battle rather than beside it, so picking a ship out never resizes the view under the pointer.
 const Bar = styled.div`
@@ -158,6 +159,10 @@ export function OrderBar({ view, state, shown, doctrineOpen, onDoctrine }: Order
                         setDistance(event.target.value);
                         hold(event.target.value, speed);
                     }}
+                    onBlur={clampOnBlur((value) => {
+                        setDistance(value);
+                        hold(value, speed);
+                    })}
                 />
                 m
             </label>
@@ -175,6 +180,10 @@ export function OrderBar({ view, state, shown, doctrineOpen, onDoctrine }: Order
                         setSpeed(event.target.value);
                         hold(distance, event.target.value);
                     }}
+                    onBlur={clampOnBlur((value) => {
+                        setSpeed(value);
+                        hold(distance, value);
+                    })}
                 />
                 m/s
             </label>

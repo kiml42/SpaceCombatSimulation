@@ -8,6 +8,7 @@ import { buildTime } from "~/editor/stats";
 import { DEFAULT_SKIRMISH_SETTINGS, parseSkirmishSettings, type SkirmishSettings } from "~/scenarios/skirmish";
 import { fleetHulls, type Budget, type Fleet } from "~/sim/index";
 import { Button } from "~/ui/buttons/Button";
+import { clampOnBlur } from "~/ui/fields/clamp";
 import { Figures } from "../ship/ShipReport";
 import { readSettings, SETTINGS_KEY, SETUP_FIELDS, settingsTexts } from "./skirmishFields";
 import { EMPTY, FleetChoices } from "./FleetChoices";
@@ -440,6 +441,7 @@ export function SetupScreen({ onEnemy, enemyCost, read, onStart, onImport }: Set
                             step="any"
                             value={budget[key]}
                             onChange={(event) => setBudget({ ...budget, [key]: event.target.value })}
+                            onBlur={clampOnBlur((value) => setBudget({ ...budget, [key]: value }))}
                         />
                     </Field>
                 ))}
