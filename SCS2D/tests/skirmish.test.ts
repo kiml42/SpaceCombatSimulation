@@ -7,6 +7,8 @@ import { Activity, QUIET_TIME, TIME_CAP, type Decision } from "../scenarios/deci
 import {
     billOfFleet,
     startingBudget,
+    roundYards,
+    unreadyDesigns,
     canFight,
     cardProgress,
     DEFAULT_SKIRMISH_SETTINGS,
@@ -262,6 +264,19 @@ describe("the skirmish", () => {
         expect(skirmish.budget).toEqual(startingBudget(LINE_OF_BATTLE));
         expect(skirmish.budget.build).toBeGreaterThan(billOfFleet(LINE_OF_BATTLE).build);
         expect(canFight(skirmish)).toBe(true);
+    });
+
+    it("builds a fleet with as many robots as its cards give it, in its build time", () => {
+        const settings = { ...DEFAULT_SKIRMISH_SETTINGS, maxShips: fleetHulls(LINE_OF_BATTLE).length };
+        const start = newSkirmish(LINE_OF_BATTLE, LINE_OF_BATTLE, 5, settings);
+        const tight = { ...start, budget: { ...start.budget, build: billOfFleet(LINE_OF_BATTLE).build / 2 } };
+        expect(canFight(tight)).toBe(false);
+        const helped = { ...tight, cards: ["robot"] };
+        expect(canFight(helped)).toBe(true);
+        expect(roundYards(helped)[0]).toEqual({ deadline: tight.budget.build, robots: 2 });
+        // Built in all of it by two robots, nothing is left to ready the fleet in.
+        expect(unreadyDesigns(helped).length).toBeGreaterThan(0);
+        expect(unreadyDesigns(start)).toEqual([]);
     });
 
     it("takes a budget it is given instead", () => {

@@ -5,6 +5,7 @@ import {
     fleetBill,
     fleetHulls,
     readyDeadline,
+    unready,
     fleetProblem,
     fleetReach,
     math,
@@ -263,11 +264,41 @@ export function atLeast(limits: Limits, fleet: Fleet): Limits {
         budget: {
             metal: math.max(bill.metal, limits.budget.metal),
             fuel: math.max(bill.fuel, limits.budget.fuel),
-            build: math.max(bill.build, limits.budget.build),
+            build: math.max(bill.build / robotsOf(limits), limits.budget.build),
         },
         maxShips: math.max(hulls.length, limits.maxShips),
         radius: math.max(fleetReach(hulls), limits.radius),
+        robots: robotsOf(limits),
     };
+}
+
+/**
+ * The designs of the player's fleet that its robots leave short of ready by
+ * the battle, each named once; none for a fleet that cannot be laid out.
+ */
+export function unreadyDesigns(skirmish: Skirmish): string[] {
+    let hulls;
+    try {
+        hulls = fleetHulls(skirmish.player);
+    } catch {
+        return [];
+    }
+    const [yard] = roundYards(skirmish);
+    const short = unready(
+        hulls.map((hull) => hull.design),
+        yard,
+    );
+    return [...new Set(hulls.filter((_, i) => short[i]).map((hull) => hull.ship.design))];
+}
+
+/** How many robots build a side's fleet. */
+export function robotsOf(limits: Limits): number {
+    return limits.robots ?? 1;
+}
+
+/** What a side's fleet may cost, its build in robot-seconds: its robots build their number of times its build time. */
+export function workLimit(limits: Limits): Budget {
+    return { ...limits.budget, build: limits.budget.build * robotsOf(limits) };
 }
 
 /**
@@ -304,7 +335,7 @@ export function canFight(skirmish: Skirmish): boolean {
         player.ships.length > 0 &&
         fleetFault(player) === null &&
         overLimit(skirmish) === null &&
-        affords(playerLimits(skirmish).budget, billOfFleet(player))
+        affords(workLimit(playerLimits(skirmish)), billOfFleet(player))
     );
 }
 
@@ -314,16 +345,17 @@ export function roundSetup(skirmish: Skirmish): BattleSetup {
 }
 
 /**
- * What builds each side before a round, the player's first: one robot, with
- * each side's build-time limit as the time before the battle. An enemy other
+ * What builds each side before a round, the player's first: each side's
+ * robots, in its build-time limit as the time before the battle. An enemy other
  * than the skirmish's own, as an answer found for it, is held to its cards.
  */
 export function roundYards(skirmish: Skirmish, enemy: Fleet = skirmish.enemy, cards = skirmish.enemyCards ?? []): [Yard, Yard] {
     const start = startLimits(skirmish);
     const theirs = atLeast(withCards(start, cards), enemy);
+    const mine = playerLimits(skirmish);
     return [
-        { deadline: playerLimits(skirmish).budget.build, robots: 1 },
-        { deadline: theirs.budget.build, robots: 1 },
+        { deadline: mine.budget.build, robots: robotsOf(mine) },
+        { deadline: theirs.budget.build, robots: robotsOf(theirs) },
     ];
 }
 
