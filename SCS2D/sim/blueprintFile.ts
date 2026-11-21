@@ -32,6 +32,7 @@ import {
     readsThick,
     readsMagnetic,
     readsReady,
+    readsFragments,
     readsFuse,
     readsWeapon,
     readsMain,
@@ -116,6 +117,8 @@ const MODULE_KEYS: readonly string[] = [
     "fuse",
     "fragments",
     "burstSpeed",
+    "spread",
+    "standoff",
     "weapon",
     "main",
     "thick",
@@ -291,6 +294,8 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
         optionalNumberProblem(value["fuse"], `${where}: fuse`) ??
         optionalNumberProblem(value["fragments"], `${where}: fragments`) ??
         optionalNumberProblem(value["burstSpeed"], `${where}: burstSpeed`) ??
+        optionalNumberProblem(value["spread"], `${where}: spread`) ??
+        optionalNumberProblem(value["standoff"], `${where}: standoff`) ??
         optionalBooleanProblem(value["weapon"], `${where}: weapon`) ??
         optionalBooleanProblem(value["main"], `${where}: main`) ??
         optionalBooleanProblem(value["thick"], `${where}: thick`) ??
@@ -335,7 +340,9 @@ function moduleReads(kind: ModuleKind): readonly string[] {
         if (key === "barrels") return countsOutlets(kind);
         if (key === "traverse") return isWeaponMount(kind);
         if (key === "turning") return readsTurning(kind);
-        if (key === "fuse" || key === "fragments" || key === "burstSpeed") return readsFuse(kind);
+        if (key === "fragments") return readsFragments(kind);
+        if (key === "fuse" || key === "burstSpeed") return readsFuse(kind);
+        if (key === "spread" || key === "standoff") return kind === "warhead";
         if (key === "weapon") return readsWeapon(kind);
         if (key === "main") return readsMain(kind);
         if (key === "thick") return readsThick(kind);
@@ -600,6 +607,8 @@ function toPlacements(raws: unknown[], whole: boolean): Placement[] {
         if (read("fuse")) spec.fuse = raw["fuse"] as number;
         if (read("fragments")) spec.fragments = raw["fragments"] as number;
         if (read("burstSpeed")) spec.burstSpeed = raw["burstSpeed"] as number;
+        if (read("spread")) spec.spread = degreesToRadians(raw["spread"] as number);
+        if (read("standoff")) spec.standoff = raw["standoff"] as number;
         if (read("weapon")) spec.weapon = raw["weapon"] as boolean;
         if (read("main")) spec.main = raw["main"] as boolean;
         if (read("thick")) spec.thick = raw["thick"] as boolean;
@@ -813,6 +822,11 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
         if (placement.fuse !== undefined) raw["fuse"] = placement.fuse;
         if (placement.fragments !== undefined) raw["fragments"] = placement.fragments;
         if (placement.burstSpeed !== undefined) raw["burstSpeed"] = placement.burstSpeed;
+    }
+    if (placement.kind === "warhead") {
+        if (placement.fragments !== undefined) raw["fragments"] = placement.fragments;
+        if (placement.spread !== undefined) raw["spread"] = radiansToDegrees(placement.spread);
+        if (placement.standoff !== undefined) raw["standoff"] = placement.standoff;
     }
     if (placement.weapon !== undefined && readsWeapon(placement.kind)) {
         raw["weapon"] = placement.weapon;

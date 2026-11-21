@@ -1,6 +1,6 @@
 import type { UnreadKeys } from "./unread.js";
 import type { Targeting } from "./doctrine.js";
-import { abs, asin, atan2, cos, floor as roundDown, max, PI, pow, round, sin, sqrt } from "./math.js";
+import { abs, asin, atan2, cos, floor as roundDown, max, PI, pow, round, sin, sqrt, TAU } from "./math.js";
 import {
     canShape,
     cornersAllowed,
@@ -310,7 +310,19 @@ export function readsSealing(kind: ModuleKind): boolean {
 
 /** Whether `drainPriority` means anything on this kind: what holds fuel. */
 export function readsDrainPriority(kind: ModuleKind): boolean {
-    return readsSealing(kind);
+    return readsSealing(kind) || kind === "warhead";
+}
+
+/**
+ * The drain priority a warhead has when it states none: below any tank's, so
+ * its ship burns its charge only once every other tank on its piece is dry,
+ * and refuelling fills it first.
+ */
+export const WARHEAD_DRAIN_PRIORITY = -100;
+
+/** A store's drain priority (`ModuleSpec.drainPriority`), or its kind's default. */
+export function drainPriorityOf(spec: ModuleSpec): number {
+    return spec.drainPriority ?? (spec.kind === "warhead" ? WARHEAD_DRAIN_PRIORITY : 0);
 }
 
 /**
@@ -327,6 +339,7 @@ const DEFAULT_PRIORITY: Readonly<Record<ShipModuleKind, number>> = {
     railGun: 3,
     hullBeam: 3,
     plasmaLance: 3,
+    warhead: 3,
     robotBay: 2,
     structure: 1,
     tank: 1,
@@ -371,7 +384,7 @@ export function readsCraftAngle(kind: ModuleKind): boolean {
 
 /** Whether `fill` means anything on this kind: what holds fuel, metal or charge. */
 export function readsFill(kind: ModuleKind): boolean {
-    return readsSealing(kind) || kind === "hold" || kind === "battery";
+    return readsSealing(kind) || kind === "hold" || kind === "battery" || kind === "warhead";
 }
 
 /** Whether `robotsPerBerth` means anything on this kind. */
@@ -1284,6 +1297,7 @@ export type ModuleKind =
     | "hullBeam"
     | "plasmaLance"
     | "claw"
+    | "warhead"
     | "pad"
     | "port"
     | "hold"
@@ -1350,6 +1364,7 @@ export const MODULE_KINDS: readonly ShipModuleKind[] = [
     "generator",
     "robotBay",
     "slipway",
+    "warhead",
 ];
 
 /**
@@ -1530,6 +1545,17 @@ export interface ModuleSpec {
      * A shell only.
      */
     burstSpeed?: number;
+    /**
+     * How wide a warhead throws its fragments, radians, centred on its facing:
+     * `TAU` all round, down to a narrow cone. `DEFAULT_WARHEAD_SPREAD` when
+     * absent. A warhead only.
+     */
+    spread?: number;
+    /**
+     * How close an enemy hull's edge comes before a warhead's fuze sets it off,
+     * metres. `DEFAULT_STANDOFF` when absent. A warhead only.
+     */
+    standoff?: number;
 
     /**
      * What this mount goes after, where it differs from its archetype's default.
@@ -2034,6 +2060,12 @@ export function moduleProblem(spec: ModuleSpec): string | null {
     }
     if (spec.drainPriority !== undefined && !Number.isInteger(spec.drainPriority)) {
         return `${spec.kind}: drain priority must be a whole number, got ${spec.drainPriority}`;
+    }
+    if (spec.spread !== undefined && !(spec.spread > 0 && spec.spread <= TAU)) {
+        return `${spec.kind}: spread must be more than 0 and at most a full turn, got ${spec.spread}`;
+    }
+    if (spec.standoff !== undefined && !(spec.standoff >= 0)) {
+        return `${spec.kind}: standoff must be at least 0, got ${spec.standoff}`;
     }
     if (spec.burstSpeed !== undefined && !(spec.burstSpeed > 0)) {
         return `${spec.kind}: burst speed must be more than 0, got ${spec.burstSpeed}`;
@@ -3268,6 +3300,58 @@ export function casingMass(spec: ModuleSpec, roundMass: number): number {
     return (roundMass * casing) / (casing + share * EXPLOSIVE_DENSITY);
 }
 
+/** Whether `fragments` means anything on this kind: a gun that fires rounds, or a warhead. */
+export function readsFragments(kind: ModuleKind): boolean {
+    return readsFuse(kind) || kind === "warhead";
+}
+
+/** Fragments a warhead throws when it does not say. One is a single slug, a shaped charge's. */
+export const DEFAULT_WARHEAD_FRAGMENTS = 16;
+
+/** How wide a warhead throws them when it does not say, radians: a cone ahead of it. */
+export const DEFAULT_WARHEAD_SPREAD = PI / 3;
+
+/** How close an enemy comes before a warhead goes off when it does not say, metres. */
+export const DEFAULT_STANDOFF = 20;
+
+/**
+ * The least share of a warhead's charge that goes into its fragments, however
+ * narrow its cone: what a shaped liner focuses. A wider spread takes its own
+ * share of the turn, all of it for a burst all round. The rest goes into the
+ * hull carrying it.
+ */
+export const WARHEAD_FOCUS = 0.2;
+
+/** What a warhead throws when it goes off. */
+export interface WarheadBurst {
+    fragments: number;
+    /** How wide, radians, centred on its facing. */
+    spread: number;
+    /** The share of the charge's energy the fragments take (`WARHEAD_FOCUS`). */
+    focus: number;
+    /** The charge's energy, J: what it holds of fuel. */
+    energy: number;
+    /** The casing, kg: its walls, which the fragments share. */
+    casing: number;
+    /** How fast they leave it, m/s: the casing given `focus` of the energy. */
+    speed: number;
+}
+
+/**
+ * What a warhead with `casing` kg of walls left and `charge` kg of fuel in it
+ * throws, by the Gurney balance `½ m v² = focus E`. Full, undamaged, when not said.
+ */
+export function warheadBurst(spec: ModuleSpec, stats: ModuleStats, casing = stats.structureMass, charge = stats.fuel): WarheadBurst {
+    const asked = spec.fragments ?? DEFAULT_WARHEAD_FRAGMENTS;
+    const fragments = asked > 1 ? asked : 1;
+    const spread = spec.spread ?? DEFAULT_WARHEAD_SPREAD;
+    const share = spread / TAU;
+    const focus = share > WARHEAD_FOCUS ? share : WARHEAD_FOCUS;
+    const energy = charge * EXPLOSIVE_YIELD;
+    const speed = casing > 0 ? sqrt((2 * focus * energy) / casing) : 0;
+    return { fragments, spread, focus, energy, casing, speed };
+}
+
 /** Inertia about a barrel's root of `mass` of bracing running out from it. */
 function braceInertia(gun: GunStats, mass: number): number {
     return (mass * gun.braceLength * gun.braceLength) / 3;
@@ -3337,6 +3421,8 @@ const KIND_COMPLEXITY: Record<ModuleKind, number> = {
     hullBeam: 4,
     // Its field and the plumbing that feeds it fuel, on top of a hull beam's.
     plasmaLance: 5,
+    // A sealed tank with a fuze.
+    warhead: 2,
     turret: 7,
     beamTurret: 7,
     generator: 6,
@@ -3494,6 +3580,9 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
         // A box whose whole interior is fuel. It packs the box as the box formula
         // assumes, so the inertia below already holds it.
         fittingMass = liningMass;
+        fuel = interior * FUEL_DENSITY;
+    } else if (spec.kind === "warhead") {
+        // A tank whose walls are the casing and whose fuel is the charge.
         fuel = interior * FUEL_DENSITY;
     } else if (spec.kind === "hold") {
         // A box whose whole interior is metal, as a tank's is fuel.

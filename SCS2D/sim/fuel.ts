@@ -1,7 +1,7 @@
 import type { ShipDesign } from "./blueprint.js";
 import type { Damage } from "./damage.js";
 import { sqrt } from "./math.js";
-import { FUEL_DENSITY } from "./modules.js";
+import { drainPriorityOf, FUEL_DENSITY } from "./modules.js";
 import { Store } from "./store.js";
 
 /**
@@ -101,10 +101,7 @@ export class Fuel extends Store {
     private readonly cutOffAt: number[] = [];
 
     constructor() {
-        super(
-            (stats) => stats.fuel,
-            (spec) => spec.drainPriority ?? 0,
-        );
+        super((stats) => stats.fuel, drainPriorityOf);
     }
 
     override register(bodyIndex: number, design: ShipDesign, carried?: readonly number[], leaks?: readonly Leak[]): void {

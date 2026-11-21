@@ -1363,6 +1363,8 @@ function place(
         if (placement.fuse !== undefined) spec.fuse = placement.fuse;
         if (placement.fragments !== undefined) spec.fragments = placement.fragments;
         if (placement.burstSpeed !== undefined) spec.burstSpeed = placement.burstSpeed;
+        if (placement.spread !== undefined) spec.spread = placement.spread;
+        if (placement.standoff !== undefined) spec.standoff = placement.standoff;
         if (placement.weapon !== undefined) spec.weapon = placement.weapon;
         if (placement.main !== undefined) spec.main = placement.main;
         if (placement.thick !== undefined) spec.thick = placement.thick;
