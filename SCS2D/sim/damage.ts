@@ -903,6 +903,8 @@ export function resolveCollision(
     /** The other hull's velocity across this one at the contact, world frame: the way a gouge runs. */
     slideX = 0,
     slideY = 0,
+    /** A module the crush passes through untouched: a warhead whose blast this is. */
+    skip = -1,
 ): number {
     if (!(energy > 0)) return 0;
 
@@ -939,6 +941,7 @@ export function resolveCollision(
         // metal the cast crossed on its way in is on the other side of the ship.
         if (path.exit[k]! <= reach) continue;
         const module = path.module[k]!;
+        if (module === skip) continue;
         // A kernel takes nothing and is not crumpled: the crush stops at it.
         if (damage.kindAt(bodyIndex, module) === "kernel") break;
         const whole = damage.capacityOf(bodyIndex, module);

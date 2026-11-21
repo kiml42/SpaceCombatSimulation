@@ -1,8 +1,7 @@
 import type { Bodies } from "./bodies.js";
 import type { ShipDesign } from "./blueprint.js";
-import { DamageEffect, IMPACT_BURST, SHATTER, type ImpactLog } from "./damage.js";
-import { BOTH_LAYERS } from "./hull.js";
-import { moduleLayers } from "./hull.js";
+import { DamageEffect, IMPACT_BURST, resolveCollision, SHATTER, type ImpactLog } from "./damage.js";
+import { BOTH_LAYERS, HullPath, moduleLayers } from "./hull.js";
 import { abs, angleDelta, asin, atan2, cos, log, max, min, pow, sin, sqrt, TAU } from "./math.js";
 import { DEFAULT_STANDOFF, DEFAULT_WARHEAD_SPREAD, warheadBurst } from "./modules.js";
 import { ROUND_WRECKAGE, type Projectiles } from "./projectiles.js";
@@ -18,16 +17,17 @@ import type { World } from "./world.js";
  * A warhead is a tank whose walls are the casing and whose fuel is the charge,
  * so what it yields is what it holds. Its ship burns it last
  * (`WARHEAD_DRAIN_PRIORITY`), and it tops itself up from the tanks drawn
- * before it, so one rebuilt or holed fills again. Its fuze sets it off when the edge of an enemy hull inside its
- * spread comes within its `standoff`, unless a friend inside the spread is
- * nearer. A collision does not: a ram is still a ram.
+ * before it, so one rebuilt or holed fills again. Its fuze sets it off when
+ * the edge of an enemy hull inside its spread comes within its `standoff`,
+ * unless a friend inside the spread is nearer. A collision does not: a ram is still a ram.
  *
  * Going off, the casing flies out across the spread as fragments, which are
  * rounds like any other and pass through nothing of the ship that threw them
  * but the warhead itself. The fragments take `focus` of the charge's energy
- * (`warheadBurst`); the rest goes into the carrier's own modules, each taking
- * the share of the turn it fills as seen from the warhead, and what none of
- * them fills goes off into space. The hull keeps the momentum the fragments
+ * (`warheadBurst`); the rest crushes the carrier outward from the warhead, as a
+ * collision crushes a hull inward, along `BLAST_LINES` lines spread evenly over
+ * the turn outside the spread. So what is behind a module is shielded by it,
+ * and what a line meets nothing of goes off into space. The hull keeps the momentum the fragments
  * leave with, the other way, and the warhead itself is shattered.
  *
  * A module the blast shatters flies on as wreckage, as one a collision
@@ -59,6 +59,11 @@ const LEAST_PIECE = 1;
 
 /** How far a piece strays from straight out from the warhead, radians either way. */
 const BLAST_STRAY = 0.3;
+
+/** How many lines a blast crushes its carrier along, each with an even share of it. */
+export const BLAST_LINES = 64;
+
+const path = new HullPath();
 
 const warheadCache = new WeakMap<ShipDesign, readonly number[]>();
 
@@ -273,19 +278,15 @@ export function detonate(
     ships.discardedPy -= casing * vy;
     ships.discardedL -= casing * (wx * vy - wy * vx);
 
-    // What the fragments did not take, into the rest of the hull.
+    // What the fragments did not take, into the rest of the hull: a crush out
+    // along each of `BLAST_LINES` lines across the turn outside the spread.
     const blast = (1 - burst.focus) * burst.energy;
-    const own = 0.5 * (placed.spec.length + placed.spec.width);
-    for (let k = 0; k < design.modules.length; k++) {
-        if (k === m) continue;
-        const other = design.modules[k]!;
-        const dx = other.x - placed.x;
-        const dy = other.y - placed.y;
-        const size = 0.5 * (other.spec.length + other.spec.width);
-        const d = max(sqrt(dx * dx + dy * dy), 0.5 * (own + size));
-        const joules = blast * min(1, size / (TAU * d));
-        damage.absorb(b, k, joules);
-        damage.struck(b, k, other.x, other.y, dx / d, dy / d, joules);
+    const arc = TAU - burst.spread;
+    if (blast > 0 && arc > 0) {
+        for (let k = 0; k < BLAST_LINES; k++) {
+            const heading = facing + 0.5 * burst.spread + ((k + 0.5) * arc) / BLAST_LINES;
+            resolveCollision(design, damage, bodies, b, path, wx, wy, cos(heading), sin(heading), blast / BLAST_LINES, 0, 0, m);
+        }
     }
     // And the warhead is gone.
     damage.absorb(b, m, SHATTER * damage.capacityOf(b, m) * 2);

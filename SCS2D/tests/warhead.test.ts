@@ -195,6 +195,35 @@ describe("warhead", () => {
         expect(s.ships.damage.integrity(s.b, core)).toBeLessThan(1);
     });
 
+    it("crushes its carrier outward from it, so a module shields what is behind it", () => {
+        const world = new World({ dt: 1 / 60, seed: 5 });
+        const ships = new Ships();
+        const row = compileBlueprint({
+            name: "Row",
+            modules: [
+                { ...HEAD, x: 2, standoff: 20 },
+                { kind: "structure", x: 1, y: 0, length: 1, width: 1, reinforcement: 4 },
+                { kind: "structure", x: 0, y: 0, length: 1, width: 1, reinforcement: 4 },
+                { kind: "core", x: -1.5, y: 0, length: 2, width: 2 },
+            ],
+        });
+        const carrier = ships.spawn(world, { design: row, team: 1 });
+        ships.spawn(world, { design: compileBlueprint(TARGET), x: 2 + 2 + 15, team: 2 });
+        const grid = new SpatialGrid(64);
+        grid.rebuild(world.bodies);
+        const b = world.bodies.indexOf(ships.body(carrier));
+        // Modules are reordered by kind when compiled: find them by where they are from the warhead.
+        const head = row.modules.find((m) => m.spec.kind === "warhead")!;
+        const at = (x: number) => row.modules.findIndex((m) => m.spec.kind === "structure" && Math.abs(m.x - head.x + 2 - x) < 1e-6);
+        expect(at(1)).toBeGreaterThanOrEqual(0);
+        expect(at(0)).toBeGreaterThanOrEqual(0);
+        expect(detonateWarheads(ships, world, new Projectiles(), grid)).toBe(1);
+        const front = ships.damage.absorbedAt(b, at(1));
+        const behind = ships.damage.absorbedAt(b, at(0));
+        expect(front).toBeGreaterThan(0);
+        expect(behind).toBeLessThan(front);
+    });
+
     it("throws what it shatters of its carrier as wreckage, away from it", () => {
         const s = scene(1.5 + 2 + 15);
         detonateWarheads(s.ships, s.world, s.projectiles, s.grid);
