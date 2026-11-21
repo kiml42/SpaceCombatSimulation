@@ -16,6 +16,7 @@ import {
     type Blueprint,
     type ModuleSpec,
 } from "../sim/index.js";
+import * as shipDocking from "../sim/shipDocking.js";
 import { COOK_OFF_CHANCE, cookOff, cookOffChance, detonateWarheads, tripped, WARHEAD_FILL_RATE } from "../sim/warheads.js";
 
 /**
@@ -277,6 +278,33 @@ describe("warhead", () => {
         s.ships.fuel.empty(s.b, s.head);
         s.ships.damage.absorb(s.b, s.head, 3.5 * s.ships.damage.capacityOf(s.b, s.head));
         expect(cookOff(s.ships, s.world, s.projectiles)).toBe(0);
+    });
+
+    it("does not go off parked on a pad", () => {
+        const world = new World({ dt: 1 / 60, seed: 5 });
+        const ships = new Ships();
+        const deck = compileBlueprint({
+            name: "Deck",
+            modules: [
+                { kind: "core", x: -3, y: 0, length: 4, width: 4 },
+                // Small enough that the warhead overhangs it, so it is no friend in the way.
+                { kind: "pad", x: 0, y: 0, length: 2, width: 2 },
+            ],
+        });
+        const pad = deck.modules.findIndex((m) => m.spec.kind === "pad");
+        // With its pad under the craft.
+        const carrier = ships.spawn(world, { design: deck, x: -deck.modules[pad]!.x, team: 1 });
+        const craft = ships.spawn(world, { design: compileBlueprint(CARRIER), x: 0, y: 0, team: 1 });
+        expect(shipDocking.park(ships, world.bodies, carrier, craft, pad)).toBe(true);
+        ships.spawn(world, { design: compileBlueprint(TARGET), x: 1.5 + 2 + 15, team: 2 });
+        const grid = new SpatialGrid(64);
+        grid.rebuild(world.bodies);
+        const b = world.bodies.indexOf(ships.body(craft));
+        const design = ships.designs[craft]!;
+        const head = design.modules.findIndex((m) => m.spec.kind === "warhead");
+        // It would, free.
+        expect(tripped(ships, world.bodies, grid, craft, b, design, head, world.dt)).toBe(true);
+        expect(detonateWarheads(ships, world, new Projectiles(), grid)).toBe(0);
     });
 
     it("does nothing with nobody in reach", () => {

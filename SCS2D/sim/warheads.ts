@@ -110,6 +110,8 @@ export function detonateWarheads(ships: Ships, world: World, projectiles: Projec
         // Not while it rides another's hull, or carries another on its own.
         if (b < 0 || ships.shipByBody[b] !== i || ships.pilots[b] != null) continue;
         for (const m of heads) ships.fuel.topUp(b, m, WARHEAD_FILL_RATE * world.dt);
+        // Not on a pad, over its own carrier.
+        if (ships.parkedOn[i]! >= 0) continue;
         for (const m of heads) {
             if (ships.left(i, b, m, DamageEffect.Fuze) <= 0) continue;
             if (!tripped(ships, bodies, grid, i, b, design, m, world.dt)) continue;
