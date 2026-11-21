@@ -1,4 +1,4 @@
-import { parseFleet, serialiseFleet, type Budget, type Fleet } from "../sim/index.js";
+import { parseFleet, serialiseFleet, type Budget, type Fleet, type Yard } from "../sim/index.js";
 import { EnemySearch, JobRunner, type AnswerJob, type Drill, type JobResult, type Standing } from "../evolution/answer.js";
 import type { SkirmishSettings } from "../scenarios/skirmish.js";
 
@@ -20,8 +20,8 @@ export interface AnswerInput {
     /** The skirmish's starting budget, and the cards the enemy holds, which move it. */
     budget: Budget;
     cards: readonly string[];
-    /** The time before the battle the player's fleet is built in, its cards and all. */
-    playerDeadline?: number;
+    /** What builds the player's fleet before the battle, its cards and all. */
+    playerYard?: Yard;
 }
 
 export interface AnswerProgress {
@@ -90,7 +90,7 @@ export function startAnswer(
         settings: input.settings,
         budget: input.budget,
         cards: input.cards,
-        ...(input.playerDeadline === undefined ? {} : { playerDeadline: input.playerDeadline }),
+        ...(input.playerYard === undefined ? {} : { playerYard: input.playerYard }),
     };
     try {
         if (worker === undefined) throw new Error("no worker");
@@ -154,7 +154,7 @@ export interface SearchInput {
     settings: SkirmishSettings;
     budget: Budget;
     cards: readonly string[];
-    playerDeadline?: number;
+    playerYard?: Yard;
 }
 
 function searchOf(input: SearchInput): EnemySearch {
@@ -166,7 +166,7 @@ function searchOf(input: SearchInput): EnemySearch {
         input.settings,
         input.budget,
         input.cards,
-        input.playerDeadline,
+        input.playerYard,
     );
 }
 

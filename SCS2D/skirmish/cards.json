@@ -6,6 +6,7 @@
         { "id": "build", "name": "Night Shift", "effects": [{ "limit": "build", "share": 0.1 }] },
         { "id": "ship", "name": "Strength in Numbers", "effects": [{ "limit": "ships", "step": 1 }] },
         { "id": "spread", "name": "Wide Deployment", "effects": [{ "limit": "spread", "step": 100 }] },
+        { "id": "robot", "name": "Extra Robot", "effects": [{ "limit": "robots", "step": 1 }] },
         {
             "id": "fuel-for-metal",
             "name": "Heavy Plating",

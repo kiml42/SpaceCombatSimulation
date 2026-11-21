@@ -29,6 +29,9 @@ sees. Code may keep its own names (`BattlePage`, `Blueprint`, `battleRoute`); th
 | **fleet file**, **skirmish file** | A fleet or a skirmish saved to a file | |
 | **round** | One stage of a skirmish, fought again until won | |
 | **upgrade card** | A change to a side's limits, picked from a hand | |
+| **build time** | A side's limit on the time before the battle: its robots build its fleet in it, and its ships load and charge in what is left | build budget |
+| **robots**, in a budget | How many build a side's fleet at once in its build time | builders, workers |
+| **not ready in time** | A ship the build time leaves short of loaded or charged when the battle starts | unready |
 | **main** guns, **secondary** guns | A ship's weapons it fights with, and the rest (point defence and the like): a weapon's *main* tick | main battery, primaries; secondaries is fine |
 | **priority** | How soon a part gets its ship's fuel, metal and charge when there is not enough, and how soon it is mended: higher first | claim, tier |
 | **turning gear** | The share of a turret given to the ring and drive that swing it, which reloading gives up | traverse gear, training gear |
