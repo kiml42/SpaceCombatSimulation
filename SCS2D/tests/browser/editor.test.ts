@@ -1137,9 +1137,11 @@ describe("the editor in a browser", () => {
         await openShip(page, "Corvette");
         const gun = await corvetteGun(page);
         await page.mouse.click(gun.x, gun.y);
-        await page.click("#mountDoctrine > summary");
+        // Still open from the test before, which the panel remembers.
+        if (await page.isHidden("#mountDoctrineFields")) await page.click("#mountDoctrine > summary");
         const box = page.locator("#doctrine-mount-focusWeight");
         expect(await box.getAttribute("placeholder")).toBe("300");
+        expect(await box.isVisible()).toBe(true);
 
         await box.focus();
         await page.keyboard.press("ArrowUp");
