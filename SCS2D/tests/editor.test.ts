@@ -933,7 +933,7 @@ describe("designStats", () => {
     it("reads the design rather than working anything out again", () => {
         const design = new EditorDocument(CORVETTE).view.design!;
         const stats = designStats(design, envelopes(design));
-        expect(stats.mass).toBe(design.mass);
+        expect(stats.mass).toBe(design.launchMass);
         expect(stats.inertia).toBe(design.inertia);
         expect(stats.moduleCount).toBe(design.modules.length);
         expect(stats.fullAuthority).toBe(design.engineLayout.hasFullAuthority());

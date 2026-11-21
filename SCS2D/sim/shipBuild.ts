@@ -427,6 +427,7 @@ export function layKeel(
         vy: bodies.vy[b]! + spin * (x - bodies.x[b]!),
         angularVel: spin,
         team: ships.team[i]!,
+        madeInBattle: true,
     });
     ships.launched[f] = craft;
     buildsFor(ships, f, craft);
@@ -645,6 +646,7 @@ export function layDown(
         vy: bodies.vy[b]! + spin * (x - bodies.x[b]!),
         angularVel: spin,
         team: ships.team[i]!,
+        madeInBattle: true,
     });
     // It is building towards the whole fighter, and is one in all but its parts.
     ships.launched[f] = fighter;

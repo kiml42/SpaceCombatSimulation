@@ -348,7 +348,8 @@ export function scorch(ships: Ships, world: World, grid: SpatialGrid, dt: number
  * How much of a step's reload a gun gets through, 0 to 1: the share of the
  * step's draw its piece of hull could supply. A beam or a rail gun refills
  * from power over its reload; a powder gun draws its next round's fuel from
- * the tanks. A gun starts a battle loaded, as a beam starts it charged.
+ * the tanks. How far through its first reload a gun sets out is what it
+ * readied before the battle (`readying.ts`).
  */
 export function recharged(ships: Ships, b: number, i: number, t: number, dt: number): number {
     if (ships.turretStates[i]![t] !== TurretState.Reloading) return 1;
@@ -360,18 +361,25 @@ export function recharged(ships: Ships, b: number, i: number, t: number, dt: num
     // A lance not kept ready charges only while it is on target.
     if (waitsForTarget(ships, i, t) && !onTarget(ships, i, t)) return 0;
     const scale = (ships.damage.remaining(b, mount.module, DamageEffect.FireRate) * dt) / gun.cycleTime;
-    return drawShare(ships, b, mount.module, gun, scale);
+    return drawShare(ships, b, mount.module, gun, scale, ships.primed[i]!, t);
 }
 
-/** Draw `scale` of a shot's fuel and charge for the mount at `module`, and say what share of it there was. */
-function drawShare(ships: Ships, b: number, module: number, gun: GunStats, scale: number): number {
+/**
+ * Draw `scale` of a shot's fuel and charge for the mount at `module`, and say
+ * what share of it there was; fuel from what mount `t` has `primed` first.
+ */
+function drawShare(ships: Ships, b: number, module: number, gun: GunStats, scale: number, primed?: Float64Array, t = -1): number {
     let share = 1;
-    const fuel = shotFuel(gun) * scale;
+    const want = shotFuel(gun) * scale;
+    const paid = primed === undefined || t < 0 ? 0 : primed[t]!;
+    const used = paid < want ? paid : want;
+    if (used > 0) primed![t] = paid - used;
+    const fuel = want - used;
     if (fuel > 0) {
         const allowed = shipSupply.allowed(ships, Resource.Fuel, b, module, Claim.Fire, fuel);
         const got = ships.fuel.feed(b, module, fuel < allowed ? fuel : allowed, ships.damage);
         shipSupply.took(ships, Resource.Fuel, b, module, Claim.Fire, got);
-        share = got / fuel;
+        share = (used + got) / want;
     }
     const charge = shotCharge(gun) * scale;
     if (charge > 0) {

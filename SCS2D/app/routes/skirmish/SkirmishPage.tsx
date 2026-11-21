@@ -54,6 +54,8 @@ import {
     pick,
     playerLimits,
     roundBattle,
+    roundYards,
+    startingBudget,
     roundSetup,
     settingsOf,
     won,
@@ -547,7 +549,10 @@ export function SkirmishPage() {
         setReplaying(false);
         undecided();
         activity.current = newActivity();
-        battle.current = roundOn(roundBattle(current.player, current.enemy, current.won, settingsOf(current)), settingsOf(current).light);
+        battle.current = roundOn(
+            roundBattle(current.player, current.enemy, current.won, settingsOf(current), current.won, roundYards(current)),
+            settingsOf(current).light,
+        );
         if (current.ways !== undefined) {
             setOutcome({ text: "Round won. Pick where the next round is fought.", kind: "won" });
             setEnemyLine(current.enemy.name);
@@ -565,7 +570,10 @@ export function SkirmishPage() {
         mode.current = "watching";
         undecided();
         activity.current = newActivity();
-        battle.current = roundOn(roundBattle(current.player, now.best, current.won, settingsOf(current)), settingsOf(current).light);
+        battle.current = roundOn(
+            roundBattle(current.player, now.best, current.won, settingsOf(current), current.won, roundYards(current, now.best, now.cards)),
+            settingsOf(current).light,
+        );
         setOutcome({ text: `Generation ${now.generation}'s best enemy against your fleet.`, kind: "" });
         setEnemyLine(`${now.best.name}, evolving`);
         setFightable(true);
@@ -577,7 +585,10 @@ export function SkirmishPage() {
         mode.current = "answer";
         undecided();
         activity.current = newActivity();
-        battle.current = roundOn(roundBattle(current.player, enemy, current.won, settingsOf(current)), settingsOf(current).light);
+        battle.current = roundOn(
+            roundBattle(current.player, enemy, current.won, settingsOf(current), current.won, roundYards(current, enemy)),
+            settingsOf(current).light,
+        );
         setOutcome({ text: "The enemy's answer.", kind: "lost" });
         setEnemyLine(`${enemy.name}, the answer`);
         setFightable(true);
@@ -604,7 +615,10 @@ export function SkirmishPage() {
         undecided();
         activity.current = newActivity();
         const settings = skirmish === null ? DEFAULT_SKIRMISH_SETTINGS : settingsOf(skirmish);
-        battle.current = roundOn(roundBattle(player, enemy, seed, settings), settings.light);
+        battle.current = roundOn(
+            roundBattle(player, enemy, seed, settings, seed, skirmish === null ? undefined : roundYards(skirmish, enemy)),
+            settings.light,
+        );
         setOutcome({ text: `Round ${round}, again.`, kind: "" });
         setFightable(true);
         setReplaying(true);
@@ -793,7 +807,7 @@ export function SkirmishPage() {
         const player = playerValue === EMPTY ? { name: "My fleet", designs: {}, ships: [] } : read(playerValue);
         if (player === null) return;
         // The page's own randomness, not the battle's: it only picks which battle.
-        const begun = newSkirmish(enemy, player, Math.floor(Math.random() * 2 ** 32), chosen, budgetOf(billOfFleet(enemy)), name);
+        const begun = newSkirmish(enemy, player, Math.floor(Math.random() * 2 ** 32), chosen, budgetOf(startingBudget(enemy)), name);
         skirmishes.setSkirmish(begun);
         // Nothing to fight with yet: straight to the editor to build it.
         if (player.ships.length === 0) void navigate(fleetRoute(begun.player, begun));
@@ -802,7 +816,7 @@ export function SkirmishPage() {
     const previewEnemy = (enemy: Fleet | null): void => {
         const flies = enemy !== null && fleetFault(enemy) === null;
         previewed.current = flies ? enemy : null;
-        setEnemyCost(flies ? billOfFleet(enemy) : null);
+        setEnemyCost(flies ? startingBudget(enemy) : null);
         battle.current = null;
         undecided();
         if (flies && view !== null) showOn(view, enemyAlone(enemy), false);

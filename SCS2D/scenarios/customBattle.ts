@@ -11,6 +11,7 @@ import {
     writeMap,
     type Fleet,
     type MapSettings,
+    type Yard,
 } from "../sim/index.js";
 import { fleetBattle } from "./fleetBattle.js";
 import type { Battle } from "./types.js";
@@ -46,6 +47,8 @@ export interface BattleSetup {
     map?: MapSettings;
     /** The seed the map is drawn from, where it is not `seed`: a skirmish's search shares its round's. */
     mapSeed?: number;
+    /** What builds each fleet before the battle, by fleet; ready for anything where not given. Not kept in a file. */
+    yards?: readonly Yard[];
 }
 
 export interface BattleSpread {
@@ -233,6 +236,7 @@ export function customBattle(setup: BattleSetup): CustomBattle {
         crossingSpeed: drawn.crossingSpeed,
         rotation: drawn.rotation,
         ...(hasAsteroids(setup.map) ? { map: setup.map!, ...(setup.mapSeed === undefined ? {} : { mapSeed: setup.mapSeed }) } : {}),
+        ...(setup.yards === undefined ? {} : { yards: setup.yards }),
         projectiles: 1024,
         beams: 256,
     });

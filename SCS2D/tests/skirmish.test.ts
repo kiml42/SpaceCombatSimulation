@@ -6,6 +6,7 @@ import { customBattle } from "../scenarios/customBattle.js";
 import { Activity, QUIET_TIME, TIME_CAP, type Decision } from "../scenarios/decision.js";
 import {
     billOfFleet,
+    startingBudget,
     canFight,
     cardProgress,
     DEFAULT_SKIRMISH_SETTINGS,
@@ -257,7 +258,9 @@ describe("the skirmish", () => {
         // Ships enough for it: the player is held to the limit, however many the enemy fields.
         const settings = { ...DEFAULT_SKIRMISH_SETTINGS, maxShips: fleetHulls(LINE_OF_BATTLE).length };
         const skirmish = newSkirmish(LINE_OF_BATTLE, LINE_OF_BATTLE, 5, settings);
-        expect(skirmish.budget).toEqual(billOfFleet(LINE_OF_BATTLE));
+        // Its cost, with the build time to ready it as well as build it.
+        expect(skirmish.budget).toEqual(startingBudget(LINE_OF_BATTLE));
+        expect(skirmish.budget.build).toBeGreaterThan(billOfFleet(LINE_OF_BATTLE).build);
         expect(canFight(skirmish)).toBe(true);
     });
 

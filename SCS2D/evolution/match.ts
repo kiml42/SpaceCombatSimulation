@@ -12,6 +12,8 @@ import {
     type ShipDesign,
     type WellSpec,
     type MapSettings,
+    schedule,
+    type Yard,
 } from "../sim/index.js";
 import { addCapability, EFFECTS, workingShare } from "./capability.js";
 import { makeBattle } from "../scenarios/battle.js";
@@ -237,6 +239,12 @@ export interface MatchConfig {
      */
     readonly closingSpeed: number;
     readonly crossingSpeed: number;
+    /**
+     * What builds each side's ships before the match (`schedule`), by side: an
+     * entrant's team, or the entrant where there are none; the first for any
+     * side not given. Ready for anything where there are none.
+     */
+    readonly yards?: readonly Yard[];
     /**
      * How far each match's `radius`, `closingSpeed` and `crossingSpeed` may be
      * drawn either side of the figure set, evenly; zero holds it exactly.
@@ -526,6 +534,16 @@ export class Match {
             return expandFleet(entrant).map((ship) => ({ x: ship.x, y: ship.y, angle: ship.angle, design: compiled.get(ship.design)! }));
         });
         this.capacities = placed.map((ships) => ships.reduce((sum, ship) => sum + hullCapacity(ship.design), 0));
+        const yards = settings.yards;
+        const readies = placed.map((ships, i) => {
+            const yard = yards === undefined || yards.length === 0 ? undefined : (yards[sided === null ? i : sided[i]!] ?? yards[0]!);
+            return yard === undefined
+                ? null
+                : schedule(
+                      ships.map((ship) => ship.design),
+                      yard,
+                  );
+        });
         const count = entrants.length;
         this.count = count;
         this.sideCount = sided === null ? count : new Set(sided).size;
@@ -611,6 +629,7 @@ export class Match {
                                 angle: ship.angle === 0 ? heading : heading + ship.angle,
                                 team: sided === null ? i : sided[i]!,
                                 ...(invulnerable.includes(i) ? { invulnerable: true } : {}),
+                                ...(readies[i] === null ? {} : { ready: readies[i]![k]! }),
                                 ...(vx !== 0 || vy !== 0 ? { vx, vy } : {}),
                             }),
                         );
