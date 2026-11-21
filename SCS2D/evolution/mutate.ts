@@ -695,7 +695,7 @@ function cloneBlueprint(parent: Blueprint): Draft {
     };
     if (parent.notes !== undefined) blueprint.notes = parent.notes;
     if (parent.fighter === true) blueprint.fighter = true;
-    // Its fighters ride along unbred, as the fleet's designs do.
+    // Its craft are bred apart from it, by `mutateHangar`, as a fleet breeds its designs.
     if (parent.hangar !== undefined) blueprint.hangar = parent.hangar;
     if (Object.keys(assemblies).length > 0) blueprint.assemblies = assemblies;
 
