@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { compileBlueprint, type Blueprint } from "../sim/index.js";
 import { torpedoes } from "../scenarios/torpedoes.js";
 import { makeBattle } from "../scenarios/battle.js";
-import { CORVETTE, TORPEDO } from "../scenarios/blueprints.js";
+import { CORVETTE, KKV } from "../scenarios/blueprints.js";
 import { NO_TARGET } from "../sim/ships.js";
 
 /**
@@ -12,7 +12,7 @@ import { NO_TARGET } from "../sim/ships.js";
 
 describe("a torpedo", () => {
     it("is a fighter with no weapons and a ram doctrine", () => {
-        const design = compileBlueprint(TORPEDO);
+        const design = compileBlueprint(KKV);
         expect(design.fighter).toBe(true);
         expect(design.turrets).toHaveLength(0);
         expect(design.reach).toBe(0);
@@ -81,8 +81,8 @@ describe("a spent torpedo", () => {
     /** A torpedo with tanks of `fill` and the corvette it would ram, a kilometre off; how many steps it has a target in its first 10 s. */
     const steps = (fill: number): number => {
         const dry: Blueprint = {
-            ...TORPEDO,
-            modules: TORPEDO.modules.map((m) => ("kind" in m && (m.kind === "tank" || m.kind === "core") ? { ...m, fill } : m)),
+            ...KKV,
+            modules: KKV.modules.map((m) => ("kind" in m && (m.kind === "tank" || m.kind === "core") ? { ...m, fill } : m)),
         };
         const battle = makeBattle({ seed: 4 }, (ships, world) => {
             ships.spawn(world, { design: compileBlueprint(CORVETTE), x: 0, y: 0, team: 0 });

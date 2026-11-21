@@ -45,9 +45,9 @@ describe("a ship bred on its own", () => {
         for (let seed = 1; seed <= 20 && !bred; seed++) {
             const child = offspring(TORPEDO_BOAT, new Rng(seed), {});
             const blueprint = child.entrant as typeof TORPEDO_BOAT;
-            bred = child.edits.some((edit) => edit.startsWith("Torpedo:"));
+            bred = child.edits.some((edit) => edit.startsWith("KKV:"));
             expect(Object.keys(blueprint.hangar ?? {})).toEqual(Object.keys(TORPEDO_BOAT.hangar!));
-            expect(blueprint.hangar!["Torpedo"]!.name).toBe("Torpedo");
+            expect(blueprint.hangar!["KKV"]!.name).toBe("KKV");
         }
         expect(bred).toBe(true);
     });

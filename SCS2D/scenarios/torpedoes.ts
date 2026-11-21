@@ -1,7 +1,7 @@
 import { compileBlueprint, math, type Blueprint } from "../sim/index.js";
 import { type Battle } from "./types.js";
 import { CROSSING, makeBattle } from "./battle.js";
-import { BEAM_GUNSHIP, TORPEDO } from "./blueprints.js";
+import { BEAM_GUNSHIP, KKV } from "./blueprints.js";
 import { Rng } from "../sim/rng.js";
 
 /**
@@ -15,7 +15,7 @@ import { Rng } from "../sim/rng.js";
 /** How far off the gunship the salvo is launched, metres. */
 const LAUNCH_RANGE = 1500;
 
-export function torpedoes(seed = 20260905, count = 12, target: Blueprint = BEAM_GUNSHIP, launched: Blueprint = TORPEDO): Battle {
+export function torpedoes(seed = 20260905, count = 12, target: Blueprint = BEAM_GUNSHIP, launched: Blueprint = KKV): Battle {
     return makeBattle({ seed }, (ships, world) => {
         const torpedo = compileBlueprint(launched);
         ships.spawn(world, { design: compileBlueprint(target), ...CROSSING.east, team: 1 });

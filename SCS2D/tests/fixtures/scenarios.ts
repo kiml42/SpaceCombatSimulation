@@ -12,7 +12,7 @@ import {
     type Blueprint,
     type WellSpec,
 } from "../../sim/index.js";
-import { BEAM_CORVETTE, GUN_PLATFORM, RAIL_CORVETTE } from "../../scenarios/blueprints.js";
+import { BEAM_CORVETTE, GUN_PLATFORM, RAIL_CORVETTE, SHAPED_TORPEDO, TORPEDO } from "../../scenarios/blueprints.js";
 import { duel } from "../../scenarios/duel.js";
 import { binary } from "../../scenarios/binary.js";
 import { kernels } from "../../scenarios/kernels.js";
@@ -42,6 +42,7 @@ import { split } from "../../scenarios/split.js";
 import { crash } from "../../scenarios/crash.js";
 import { swarm } from "../../scenarios/swarm.js";
 import { torpedoes } from "../../scenarios/torpedoes.js";
+import { torpedoBoat } from "../../scenarios/torpedoBoat.js";
 import { disarm } from "../../scenarios/disarm.js";
 import { orbiting } from "../../scenarios/orbiting.js";
 
@@ -424,8 +425,18 @@ export function beamDuelScenario(seed = 20260905): ScenarioRun {
     };
 }
 
-export function torpedoesScenario(seed = 20260905, target?: Blueprint): ScenarioRun {
-    const run = torpedoes(seed, undefined, target);
+export function torpedoesScenario(seed = 20260905, target?: Blueprint, launched?: Blueprint): ScenarioRun {
+    const run = torpedoes(seed, undefined, target, launched);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
+}
+
+export function torpedoBoatScenario(seed = 20260905, craft?: Blueprint): ScenarioRun {
+    const run = torpedoBoat(seed, craft);
     return {
         step: () => run.step(),
         checksum: () =>
@@ -700,6 +711,9 @@ export const SCENARIOS = {
     superSwarm: { steps: 3_000, build: () => swarmScenario(undefined, 300) },
     torpedoes: { steps: 3_000, build: () => torpedoesScenario() },
     torpedoesGunPlatform: { steps: 3_000, build: () => torpedoesScenario(20260905, GUN_PLATFORM) },
+    torpedoesWarhead: { steps: 3_000, build: () => torpedoesScenario(20260905, undefined, TORPEDO) },
+    torpedoesShaped: { steps: 3_000, build: () => torpedoesScenario(20260905, undefined, SHAPED_TORPEDO) },
+    torpedoBoatTorpedoes: { steps: 9_000, build: () => torpedoBoatScenario(20260905, TORPEDO) },
     disarm: { steps: 3_000, build: () => disarmScenario() },
     disarmBeams: { steps: 3_000, build: () => disarmScenario(20260905, BEAM_CORVETTE, 2) },
     disarmRails: { steps: 3_000, build: () => disarmScenario(20260905, RAIL_CORVETTE, 2) },

@@ -1,3 +1,4 @@
+import type { Approach } from "./doctrine.js";
 import { Bodies } from "./bodies.js";
 import { originOf, type Seam, type ShipDesign } from "./blueprint.js";
 import { jointBetween, joints } from "./connectivity.js";
@@ -220,7 +221,7 @@ export function tendParked(ships: Ships, world: World, f: number): boolean {
             // Its reach as the fighter it now is, for whether it waits aboard.
             const whole = ships.launched[f]!;
             const approach = ships.doctrines[f]!.approach;
-            ships.landedReach[f] = whole.reach > 0 ? whole.reach : approach.ramRadii > 0 ? approach.approachSpeed * RAM_HORIZON : 0;
+            ships.landedReach[f] = reachOf(whole.reach, approach);
         }
         return true;
     }
@@ -478,11 +479,21 @@ export function hulkBearingDown(ships: Ships, bodies: Bodies, i: number, b: numb
     return false;
 }
 
-/** How far ship `i` fights from, metres: its guns' reach, or a ram's run if it has none. */
+/** How far ship `i` fights from, metres (`reachOf`). */
 export function fightReach(ships: Ships, i: number): number {
-    const reach = ships.designs[i]!.reach;
-    const approach = ships.doctrines[i]!.approach;
-    return reach > 0 ? reach : approach.ramRadii > 0 ? approach.approachSpeed * RAM_HORIZON : 0;
+    return reachOf(ships.designs[i]!.reach, ships.doctrines[i]!.approach);
+}
+
+/**
+ * How far a ship with weapons that reach `reach` fights from, metres: that,
+ * or a ram's run if it has none. One that rams whatever it carries
+ * (`ramArmed` of one), as a torpedo does, fights from its ram's run however
+ * close its warhead goes off.
+ */
+export function reachOf(reach: number, approach: Approach): number {
+    const run = approach.ramRadii > 0 ? approach.approachSpeed * RAM_HORIZON : 0;
+    if (approach.ramArmed >= 1) return reach > run ? reach : run;
+    return reach > 0 ? reach : run;
 }
 
 /**

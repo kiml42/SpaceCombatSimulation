@@ -426,8 +426,8 @@ closed there, labelled `moved-to-linear`, with a comment linking its Linear issu
           Built like scars, into a context over the thin hull and one over the thick modules, rebuilt only
           when a hole narrows, fades, comes or goes. Not settled: the scratches' reach and fade, by eye.
     6. **Particles and glows.** Render-only throughout: nothing in `sim/` changes and no golden moves.
-        - **The only explosions are shells bursting**, a cosmetic flash over the fragments that do the
-          damage, and muzzle flashes are their kin. Both already look good; worth a look at whether WebGL
+        - **The only explosions are shells bursting and warheads going off**, a cosmetic flash over the
+          fragments that do the damage, and muzzle flashes are their kin. Both already look good; worth a look at whether WebGL
           draws them better or more cheaply, and both should light what is near them once there are
           dynamic lights. Modules exploding is a separate piece of work, sim and render together.
         - **One list of light sources a frame — built** (`render/glows.ts`): points and lines in canvas

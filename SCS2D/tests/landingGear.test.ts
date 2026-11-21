@@ -10,7 +10,7 @@ import {
 import { Rng } from "../sim/rng.js";
 import { makeBattle } from "../scenarios/battle.js";
 import { WORKSHOP } from "../scenarios/carrier.js";
-import { CORVETTE, DINKY, TORPEDO } from "../scenarios/blueprints.js";
+import { CORVETTE, DINKY, KKV } from "../scenarios/blueprints.js";
 import { sectionEntries, SHIP_SECTIONS, type DoctrineContext } from "../editor/doctrine.js";
 import { mutate } from "../evolution/mutate.js";
 
@@ -41,8 +41,8 @@ describe("landing gear", () => {
         expect(coreComplexity(parseBlueprint(JSON.parse(file)))).toBe(coreComplexity(withoutGear(DINKY)));
     });
 
-    it("is off on the stock Torpedo, which never comes back to a pad", () => {
-        const design = compileBlueprint(TORPEDO);
+    it("is off on the stock KKV, which never comes back to a pad", () => {
+        const design = compileBlueprint(KKV);
         expect(design.cores.every((core) => design.modules[core]!.spec.landingGear === false)).toBe(true);
     });
 

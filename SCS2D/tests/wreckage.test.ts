@@ -13,18 +13,18 @@ import {
     type ProjectileSpec,
 } from "../sim/index.js";
 import { makeBattle } from "../scenarios/battle.js";
-import { CORVETTE, TORPEDO } from "../scenarios/blueprints.js";
+import { CORVETTE, KKV } from "../scenarios/blueprints.js";
 
-/** A Torpedo with its tanks dry, so it coasts rather than steering. */
+/** A KKV with its tanks dry, so it coasts rather than steering. */
 const DRY: Blueprint = {
-    ...TORPEDO,
-    modules: TORPEDO.modules.map((m) => ("kind" in m && (m.kind === "tank" || m.kind === "core") ? { ...m, fill: 0 } : m)),
+    ...KKV,
+    modules: KKV.modules.map((m) => ("kind" in m && (m.kind === "tank" || m.kind === "core") ? { ...m, fill: 0 } : m)),
 };
 
 /** The same, not a fighter, so it meets the deck without dropping to it. */
 const HULL: Blueprint = { ...DRY, fighter: false };
 
-/** A still Corvette, and a dry Torpedo (or `design`) 60 m off its side closing at `speed`. */
+/** A still Corvette, and a dry KKV (or `design`) 60 m off its side closing at `speed`. */
 function ram(speed: number, design: Blueprint = DRY) {
     const run = makeBattle({ seed: 1 }, (ships, world) => {
         const corvette = ships.spawn(world, { design: compileBlueprint(CORVETTE), x: 0, y: 0, angle: 0, team: 1 });
