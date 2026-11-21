@@ -487,6 +487,8 @@ export class Match {
     /** Which sides still have a ship under control this step, whether or not it can fight. */
     private readonly commandedSide: Uint8Array;
     private readonly entrantOf = new Map<number, number>();
+    /** Craft built during the match, by the entrant whose carrier built it, fixed once seen. */
+    private readonly builtFor = new Map<number, number>();
     private readonly total: number;
     private measured = false;
     private step = 0;
@@ -792,6 +794,29 @@ export class Match {
     }
 
     /** Advance one step of the simulation and score what happened in it. */
+    /**
+     * The entrant a ship's hits count for: its own, or for a craft a pad or
+     * slipway built, the entrant whose carrier built it. Ships are never
+     * renumbered, so the answer is kept once found.
+     */
+    private creditedTo(ship: number): number | undefined {
+        const own = this.entrantOf.get(ship) ?? this.builtFor.get(ship);
+        if (own !== undefined || ship < 0) return own;
+        // Up a chain of carriers, a few deep at most; the carrier counted though it has since died.
+        let at = ship;
+        for (let depth = 0; depth < 8; depth++) {
+            at = this.battle.ships.home[at] ?? -1;
+            if (at < 0) return undefined;
+            const slot = this.battle.slots.indexOf(at);
+            const builder = slot >= 0 ? this.battle.owners[slot] : this.builtFor.get(at);
+            if (builder !== undefined) {
+                this.builtFor.set(ship, builder);
+                return builder;
+            }
+        }
+        return undefined;
+    }
+
     advance(): void {
         if (this.done) return;
         const { ships, world } = this.battle;
@@ -847,7 +872,7 @@ export class Match {
         this.delivered.fill(0);
         for (let h = 0; h < credit.count; h++) {
             // By ship rather than body, since two ships hooked together share one.
-            const attacker = this.entrantOf.get(ships.attackerOf(credit, h));
+            const attacker = this.creditedTo(ships.attackerOf(credit, h));
             const victim = this.entrantOf.get(ships.pilotAt(credit.victim[h]!, credit.module[h]!));
             if (attacker === undefined || victim === undefined) continue;
             this.delivered[attacker * count + victim]! += credit.energy[h]!;
