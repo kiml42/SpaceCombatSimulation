@@ -72,7 +72,7 @@ import { TakeOut } from "./AssemblyPanels";
 import { DoctrineDetails, type DoctrineOpen } from "./DoctrineDetails";
 import { Figures } from "./ShipReport";
 import { Buttons, Field } from "./shipLayout";
-import { asCraft, craftChoices, CRAFT_ANGLES, moduleField, numbers, type ModuleNumberField } from "./shipFields";
+import { asCraft, craftChoices, CRAFT_ANGLES, MODULE_GROUPS, moduleField, numbers, type ModuleNumberField } from "./shipFields";
 import type { ShipEditing } from "./shipEditing";
 
 const { abs, PI } = math;
@@ -296,6 +296,12 @@ export function ModulePanel({
             return (value === undefined ? rest : { ...rest, [key]: value }) as Placement;
         }, true);
 
+    const kindOption = (kind: ModuleKind) => (
+        <option key={kind} value={kind} disabled={fighter && fighterBarred(kind) !== null}>
+            {kindName(kind)}
+        </option>
+    );
+
     const box = (
         key: ModuleNumberField,
         props: { step: number; min?: number; max?: number; title?: string; disabled?: boolean },
@@ -414,10 +420,14 @@ export function ModulePanel({
                         update((placement) => ("kind" in placement ? refitModule(placement, to) : placement));
                     }}
                 >
-                    {MODULE_KINDS.map((kind) => (
-                        <option key={kind} value={kind} disabled={fighter && fighterBarred(kind) !== null}>
-                            {kindName(kind)}
-                        </option>
+                    {/* The core alone, then the rest grouped as Add Module groups them. */}
+                    {MODULE_KINDS.filter((kind) => !MODULE_GROUPS.some((group) => group.kinds.some((k) => k.kind === kind))).map(
+                        kindOption,
+                    )}
+                    {MODULE_GROUPS.map((group) => (
+                        <optgroup key={group.title} label={group.title}>
+                            {group.kinds.map((k) => kindOption(k.kind))}
+                        </optgroup>
                     ))}
                 </select>
             </Field>
