@@ -16,7 +16,7 @@ import {
     type Blueprint,
     type ModuleSpec,
 } from "../sim/index.js";
-import { detonateWarheads, tripped, WARHEAD_FILL_RATE } from "../sim/warheads.js";
+import { COOK_OFF_CHANCE, cookOff, cookOffChance, detonateWarheads, tripped, WARHEAD_FILL_RATE } from "../sim/warheads.js";
 
 /**
  * A warhead is a sealed tank that fires by blowing itself apart: its walls fly
@@ -48,8 +48,8 @@ const TARGET: Blueprint = {
     ],
 };
 
-function scene(targetX: number, targetY = 0, team = 2) {
-    const world = new World({ dt: 1 / 60, seed: 5 });
+function scene(targetX: number, targetY = 0, team = 2, seed = 5) {
+    const world = new World({ dt: 1 / 60, seed });
     const ships = new Ships();
     const carrier = ships.spawn(world, { design: compileBlueprint(CARRIER), x: 0, y: 0, vx: 300, vy: 20, angularVel: 0.2, team: 1 });
     const target = ships.spawn(world, { design: compileBlueprint(TARGET), x: targetX, y: targetY, team });
@@ -236,6 +236,47 @@ describe("warhead", () => {
             expect(s.projectiles.vx[i]!).toBeLessThan(vx);
         }
         expect(thrown).toBeGreaterThan(0);
+    });
+
+    it("is a dud once it is down to half its integrity", () => {
+        const s = scene(1.5 + 2 + 15);
+        s.ships.damage.absorb(s.b, s.head, 0.51 * s.ships.damage.capacityOf(s.b, s.head));
+        s.ships.damage.clearStep();
+        expect(detonateWarheads(s.ships, s.world, s.projectiles, s.grid)).toBe(0);
+        expect(s.projectiles.count).toBe(0);
+    });
+
+    it("always goes off when shattered, wherever it points", () => {
+        // Nobody in reach, and pointing nowhere in particular.
+        const s = scene(500);
+        s.ships.damage.absorb(s.b, s.head, 3.5 * s.ships.damage.capacityOf(s.b, s.head));
+        expect(cookOff(s.ships, s.world, s.projectiles)).toBe(1);
+        expect(s.ships.fuel.held(s.b, s.head)).toBe(0);
+        expect(s.projectiles.count).toBeGreaterThanOrEqual(8);
+    });
+
+    it("cooks off, damaged, by a chance that rises as its integrity falls", () => {
+        expect(cookOffChance(1)).toBe(COOK_OFF_CHANCE);
+        expect(cookOffChance(0.5)).toBeCloseTo(COOK_OFF_CHANCE + (1 - COOK_OFF_CHANCE) / 2, 12);
+        expect(cookOffChance(0)).toBe(1);
+        let went = 0;
+        const trials = 400;
+        for (let seed = 0; seed < trials; seed++) {
+            const s = scene(500, 0, 2, seed);
+            // A light blow, which leaves it nearly whole.
+            s.ships.damage.absorb(s.b, s.head, 0.01 * s.ships.damage.capacityOf(s.b, s.head));
+            went += cookOff(s.ships, s.world, s.projectiles);
+        }
+        expect(went / trials).toBeGreaterThan(0.02);
+        expect(went / trials).toBeLessThan(0.1);
+    });
+
+    it("does not cook off undamaged, or with no charge in it", () => {
+        const s = scene(500);
+        expect(cookOff(s.ships, s.world, s.projectiles)).toBe(0);
+        s.ships.fuel.empty(s.b, s.head);
+        s.ships.damage.absorb(s.b, s.head, 3.5 * s.ships.damage.capacityOf(s.b, s.head));
+        expect(cookOff(s.ships, s.world, s.projectiles)).toBe(0);
     });
 
     it("does nothing with nobody in reach", () => {
