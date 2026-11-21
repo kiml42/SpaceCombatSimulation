@@ -128,9 +128,14 @@ const ROWS = [
     { key: "build", unit: time },
     { key: "ships", unit: (): Show => (n) => String(n) },
     { key: "spread", unit: (): Show => inUnit(1, "m") },
+    { key: "robots", unit: (): Show => (n) => String(n) },
 ] as const;
 
+/** A side's limit on a row; build time as the work its robots get through in it, which is what a fleet's build is. */
 function limitOf(limits: Limits, key: (typeof ROWS)[number]["key"]): number {
+    const robots = limits.robots ?? 1;
+    if (key === "robots") return robots;
+    if (key === "build") return limits.budget.build * robots;
     return key === "ships" ? limits.maxShips : key === "spread" ? limits.radius : limits.budget[key];
 }
 
@@ -172,8 +177,11 @@ export function BudgetTable({ skirmish, id, enemy = true, names, cards }: Budget
                     </tr>
                 )}
                 {ROWS.map(({ key, unit }) => {
-                    const show = unit(math.max(...sides.flatMap(({ used, limits }) => [used?.[key] ?? 0, limitOf(limits, key)])));
-                    const over = player.used !== null && player.used[key] > limitOf(player.limits, key) + 1e-9;
+                    // How many robots build it is a limit only, nothing a fleet uses.
+                    const usedOf = (used: Used | null): number | null => (key === "robots" || used === null ? null : used[key]);
+                    const show = unit(math.max(...sides.flatMap(({ used, limits }) => [usedOf(used) ?? 0, limitOf(limits, key)])));
+                    const mine = usedOf(player.used);
+                    const over = mine !== null && mine > limitOf(player.limits, key) + 1e-9;
                     return (
                         <tr key={key} className={over ? "over" : undefined} data-over={over || undefined}>
                             <th scope="row">
@@ -181,7 +189,14 @@ export function BudgetTable({ skirmish, id, enemy = true, names, cards }: Budget
                             </th>
                             {sides.map(({ side, used, limits }) => (
                                 <td key={side} className={side}>
-                                    <span>{used === null ? "—" : show(used[key])}</span> <small>{`/ ${show(limitOf(limits, key))}`}</small>
+                                    {key === "robots" ? (
+                                        <span>{show(limitOf(limits, key))}</span>
+                                    ) : (
+                                        <>
+                                            <span>{used === null ? "—" : show(usedOf(used)!)}</span>{" "}
+                                            <small>{`/ ${show(limitOf(limits, key))}`}</small>
+                                        </>
+                                    )}
                                 </td>
                             ))}
                         </tr>

@@ -318,6 +318,35 @@ function asReady(got: Readied, best: Readied): boolean {
     return true;
 }
 
+/** What a design and its fighters would get to with all the time in the world. */
+function bestOf(design: ShipDesign): { own: Readied; aboard: Readied[] } {
+    return {
+        own: readiedBy(design, { spare: Infinity, yard: 1 }, false),
+        aboard: (design.aboard ?? []).map((aboard) => readiedBy(aboard.design, { spare: Infinity, yard: 1 }, false)),
+    };
+}
+
+/** Whether a design set out `ready` is as ready as it could ever be, every fighter its pads could build included. */
+function readyAsCould(design: ShipDesign, ready: Ready, best: { own: Readied; aboard: Readied[] }): boolean {
+    const got = readiedBy(design, ready, false);
+    if (!asReady(got, best.own)) return false;
+    return (design.aboard ?? []).every((aboard, k) => {
+        if (best.own.fighters[k]! < 0) return true;
+        const spare = got.fighters[k]!;
+        return spare >= 0 && asReady(readiedBy(aboard.design, { spare, yard: ready.yard }, false), best.aboard[k]!);
+    });
+}
+
+/**
+ * Which of a fleet's ships, built by `yard`, set out short of what they could
+ * be: a gun not loaded, a robot or battery not charged, or a fighter not
+ * built or readied, that more time would have seen to.
+ */
+export function unready(designs: readonly ShipDesign[], yard: Yard): boolean[] {
+    if (yard.deadline === Infinity) return designs.map(() => false);
+    return schedule(designs, yard).map((ready, i) => !readyAsCould(designs[i]!, ready, bestOf(designs[i]!)));
+}
+
 /**
  * The least time before the battle, s, in which `robots` robots build a fleet
  * and it readies itself as far as it ever could: every gun its generators can
@@ -329,22 +358,9 @@ export function readyDeadline(designs: readonly ShipDesign[], robots = 1): numbe
     const crew = max(1, robots);
     let work = 0;
     for (const design of designs) work += billOf(design).build;
-    const best = designs.map((design) => readiedBy(design, { spare: Infinity, yard: 1 }, false));
-    const bestAboard = designs.map((design) =>
-        (design.aboard ?? []).map((aboard) => readiedBy(aboard.design, { spare: Infinity, yard: 1 }, false)),
-    );
+    const bests = designs.map(bestOf);
     const ok = (deadline: number): boolean =>
-        schedule(designs, { deadline, robots: crew }).every((ready, i) => {
-            const design = designs[i]!;
-            const got = readiedBy(design, ready, false);
-            if (!asReady(got, best[i]!)) return false;
-            // Every fighter its pad could ever build, built and readied.
-            return (design.aboard ?? []).every((aboard, k) => {
-                if (best[i]!.fighters[k]! < 0) return true;
-                const spare = got.fighters[k]!;
-                return spare >= 0 && asReady(readiedBy(aboard.design, { spare, yard: ready.yard }, false), bestAboard[i]![k]!);
-            });
-        });
+        schedule(designs, { deadline, robots: crew }).every((ready, i) => readyAsCould(designs[i]!, ready, bests[i]!));
     let low = work / crew;
     if (ok(low)) return low;
     let high = low + 1;
