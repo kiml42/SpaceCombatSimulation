@@ -1,5 +1,5 @@
 import type { Bodies } from "./bodies.js";
-import { cos, distanceToSegment, length, max, min, sin, sqrt } from "./math.js";
+import { asin, atan2, cos, distanceToSegment, length, max, min, PI, sin, sqrt } from "./math.js";
 import { moduleRadius } from "./modules.js";
 import * as shipFlight from "./shipFlight.js";
 import { type Ships, NO_TARGET, type Spot } from "./ships.js";
@@ -26,8 +26,10 @@ export const GOAL_SOLID = 2;
 export const REPLAN_TICKS = 30;
 /** Hulls this many times a ship's radius or more are planned round; smaller ones are only kept clear of. */
 const BIG_HULL = 2;
-/** How far outside an obstacle's clearance a corner is put, as a fraction of it, so the legs clear it. */
+/** How far outside an obstacle's clearance a corner's legs pass, as a fraction of it, so they clear it. */
 const CORNER_SLACK = 1.15;
+/** The most of the way round an obstacle a corner takes a side, radians: past it, a corner at a time. */
+const CORNER_TURN = PI / 4;
 /** Seconds the change of velocity a first leg asks for is worth, as distance at that speed. */
 const DV_SECONDS = 2;
 /** How far out an obstacle with the ship or its goal inside its circle reaches, as a share of the way to the nearer. */
@@ -201,16 +203,57 @@ function plan(ships: Ships, bodies: Bodies, i: number, b: number, gx: number, gy
 let cornerX = 0;
 let cornerY = 0;
 
-/** A corner beside obstacle `k`, on side `side` of the line from (`px`, `py`) to (`qx`, `qy`), into `cornerX`, `cornerY`. */
+/**
+ * A corner round obstacle `k` on the way from (`px`, `py`) to (`qx`, `qy`), on
+ * side `side` of the line between them, into `cornerX`, `cornerY`.
+ *
+ * Where the tangent from the start meets the tangent from the goal, on a
+ * circle `CORNER_SLACK` outside the obstacle's clearance, so neither leg cuts
+ * into it. A single corner perpendicular to the way cut through it whenever
+ * the way round was long, as for a ship hugging a rock with its goal on the
+ * far side, and keeping clear pushed it straight back. A way round longer than
+ * `CORNER_TURN` a side is taken a corner at a time, the corner on the start's
+ * tangent, and the rest planned from there as the ship replans.
+ */
 function corner(px: number, py: number, qx: number, qy: number, k: number, side: number): void {
     const dx = qx - px;
     const dy = qy - py;
     const d = length(dx, dy);
     const ux = d > 0 ? dx / d : 1;
     const uy = d > 0 ? dy / d : 0;
+    // The side it goes round, as a direction from the obstacle's middle.
+    const nx = -uy * side;
+    const ny = ux * side;
     const r = or[k]! * CORNER_SLACK;
-    cornerX = ox[k]! - uy * side * r;
-    cornerY = oy[k]! + ux * side * r;
+    const from = tangentAngle(px, py, k, r, nx, ny);
+    const to = tangentAngle(qx, qy, k, r, nx, ny);
+    // Swept from the start's tangent towards the side it goes round, and on to the goal's.
+    const sweep = cos(from) * ny - sin(from) * nx >= 0 ? 1 : -1;
+    let arc = (to - from) * sweep;
+    while (arc < 0) arc += 2 * PI;
+    while (arc >= 2 * PI) arc -= 2 * PI;
+    const half = min(arc / 2, CORNER_TURN);
+    const at = from + sweep * half;
+    const out = r / cos(half);
+    cornerX = ox[k]! + cos(at) * out;
+    cornerY = oy[k]! + sin(at) * out;
+}
+
+/**
+ * The angle round obstacle `k`, from its middle, at which the line from
+ * (`x`, `y`) touches the circle of radius `r` about it, on the side nearer
+ * (`nx`, `ny`); straight out from the middle for a point inside the circle.
+ */
+function tangentAngle(x: number, y: number, k: number, r: number, nx: number, ny: number): number {
+    const dx = x - ox[k]!;
+    const dy = y - oy[k]!;
+    const d = length(dx, dy);
+    const a = atan2(dy, dx);
+    // The tangent sits off the line to the middle by the angle whose cosine is r / d.
+    const spread = d > r ? PI / 2 - asin(r / d) : 0;
+    const left = a + spread;
+    const right = a - spread;
+    return cos(left) * nx + sin(left) * ny >= cos(right) * nx + sin(right) * ny ? left : right;
 }
 
 /** The obstacle the segment from (`px`, `py`) to (`qx`, `qy`) first enters, but `skip`; -1 for none. */
