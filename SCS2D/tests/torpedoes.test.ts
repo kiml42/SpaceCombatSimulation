@@ -82,8 +82,9 @@ describe("a torpedo's last seconds", () => {
         return { hit, missed };
     };
 
-    it("are spent cancelling its drift rather than closing faster, so fewer that the guns spare miss", () => {
-        const lining = salvoes(compileBlueprint(TORPEDO).doctrine.approach.ramSettle);
+    it("are spent cancelling its drift rather than closing faster when told to settle, so fewer that the guns spare miss", () => {
+        expect(compileBlueprint(TORPEDO).doctrine.approach.ramSettle).toBe(0);
+        const lining = salvoes(3);
         const flatOut = salvoes(0);
         // As a share of those the guns spared, so better guns sparing fewer does not move it.
         const missRate = (r: { hit: number; missed: number }): number => r.missed / (r.hit + r.missed);
