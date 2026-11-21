@@ -697,7 +697,8 @@ inside any one file is not contiguous.
   batteries, and once the whole fleet is built the yard's robots charge its batteries at `YARD_POWER` each.
   Charge is in no budget: it is paid for in that time. A ship short of time sets out part loaded. Each has a limit
   of its own, none by default, so a run can make fuel scarce and metal plentiful; a mutant over any is refused.
-  A ship's bill is its own and its fighters', a fleet's every ship's. `--budget` sets each to that many times
+  A ship's bill is its own and its fighters' metal and fuel, their build being their pads' in the time before the
+  battle, after which they ready themselves; a fighter not built by then does not set out. A fleet's is every ship's. `--budget` sets each to that many times
   the dearest founder's; a settings file's `budget` holds the three, and an older file's `massBudget` is read
   as its metal. A run records each design's bill beside its mass. The editor shows a ship's bill as its Cost
   and each module's build time, and the fleet editor a fleet's. Evolution nudges how full a tank, core or hold

@@ -2,14 +2,16 @@ import type { ShipDesign } from "./blueprint.js";
 import { billOf } from "./bill.js";
 import { REPAIR_ENERGY_PER_JOULE } from "./damage.js";
 import { max, min } from "./math.js";
-import { fillOf, ROBOT_CHARGE, ROBOT_REFILL_TIME, ROBOT_REPAIR_RATE, shotCharge, shotFuel } from "./modules.js";
+import { fillOf, PAD_REPAIR_PER_AREA, ROBOT_CHARGE, ROBOT_REFILL_TIME, ROBOT_REPAIR_RATE, shotCharge, shotFuel } from "./modules.js";
 
 /**
  * Readying a fleet in the time its build leaves before a battle.
  *
  * The yard's robots build the ships one at a time, all on one together, the
  * slowest to ready first. A finished ship then has until the deadline to load
- * its guns, its generators charging them, then its robots, then its batteries.
+ * its guns, its generators charging them, then its pads as they build the
+ * fighters it sets out with, then its robots, then its batteries. A fighter
+ * readies itself once its pad has built it.
  * Once the whole fleet is built the robots' own power charges its batteries.
  * Nothing sets out loaded or charged for nothing; the first round's metal and
  * fuel are on the bill (`billOf`), so holds and tanks set out full.
@@ -41,6 +43,8 @@ export interface Readied {
     readonly robots: Float64Array;
     /** What each module's batteries hold, J. */
     readonly charge: Float64Array;
+    /** Seconds each fighter it sets out with (`ShipDesign.aboard`) has to ready itself once built; -1 for one its pad did not finish. */
+    readonly fighters: Float64Array;
 }
 
 /** A lance charged only once it is on target, which sets out uncharged whatever the time. */
@@ -67,7 +71,7 @@ function batteryOf(design: ShipDesign, m: number): number {
 /**
  * What a design's generators load and charge in `spare` seconds, and when
  * each load is done: every module that draws charge before the battle, in
- * order (the main battery's mounts, the other mounts, robots, batteries), each
+ * order (the main battery's mounts, the other mounts, pads, robots, batteries), each
  * taking what its piece of hull makes as fast as it can, what is left going on.
  */
 class Charging {
@@ -78,8 +82,9 @@ class Charging {
     /** When each load was done, s; Infinity if it never was. */
     readonly done: number[] = [];
     private readonly piece: number[] = [];
-    /** Which load each mount's charge is, and each robot's, and each battery module's; -1 for none. */
+    /** Which load each mount's charge is, each fighter's pad's, each robot's and each battery module's; -1 for none. */
     readonly mountLoad: number[] = [];
+    readonly padLoad: number[] = [];
     readonly robotLoad: number[] = [];
     readonly batteryLoad: number[] = [];
 
@@ -98,6 +103,13 @@ class Charging {
                 const rate = bank ? gun.bankPower : gun.cycleTime > 0 ? need / gun.cycleTime : Infinity;
                 this.mountLoad[t] = this.add(need, rate, pieceOf(mount.module));
             }
+        }
+        // A pad builds its fighter at the rate and price it mends at.
+        for (const aboard of design.aboard ?? []) {
+            const deck = design.modules[aboard.pad]!.spec;
+            const rate = PAD_REPAIR_PER_AREA * deck.length * deck.width * REPAIR_ENERGY_PER_JOULE;
+            const need = billOf(aboard.design).build * ROBOT_REPAIR_RATE * REPAIR_ENERGY_PER_JOULE;
+            this.padLoad.push(this.add(need, rate, pieceOf(aboard.pad)));
         }
         for (const bay of robotBays(design)) this.robotLoad.push(this.add(ROBOT_CHARGE, ROBOT_CHARGE / ROBOT_REFILL_TIME, pieceOf(bay)));
         for (let m = 0; m < design.modules.length; m++) {
@@ -181,6 +193,11 @@ function readiedBy(design: ShipDesign, ready: Ready, full: boolean): Readied {
     const robots = new Float64Array(bays.length);
     const charge = new Float64Array(design.modules.length);
     const charging = full ? null : new Charging(design, ready.spare);
+    const fighters = new Float64Array(design.aboard?.length ?? 0);
+    for (let k = 0; k < fighters.length; k++) {
+        const done = charging === null ? 0 : charging.done[charging.padLoad[k]!]!;
+        fighters[k] = done <= ready.spare ? ready.spare - done : -1;
+    }
 
     for (let t = 0; t < turrets.length; t++) {
         const gun = turrets[t]!.gun;
@@ -208,7 +225,7 @@ function readiedBy(design: ShipDesign, ready: Ready, full: boolean): Readied {
         const own = charging === null ? most : charging.got[charging.batteryLoad[m]!]!;
         charge[m] = own + (most - own) * ready.yard;
     }
-    return { reload, bank, primed, robots, charge };
+    return { reload, bank, primed, robots, charge, fighters };
 }
 
 /** Room its generators leave in a design's batteries after `spare` seconds, J. */
@@ -236,7 +253,11 @@ export function readyingTime(design: ShipDesign): number {
         const time = gun.bankEnergy > 0 || load < 0 ? max(gun.cycleTime, charged) : charged;
         if (time !== Infinity && time > most) most = time;
     }
-    for (const aboard of design.aboard ?? []) most = max(most, readyingTime(aboard.design));
+    // A fighter once its pad has built it, if it ever does.
+    (design.aboard ?? []).forEach((aboard, k) => {
+        const built = charging.done[charging.padLoad[k]!]!;
+        if (built !== Infinity) most = max(most, built + readyingTime(aboard.design));
+    });
     return most;
 }
 
@@ -278,7 +299,10 @@ export function schedule(designs: readonly ShipDesign[], yard: Yard): Ready[] {
     let room = 0;
     designs.forEach((design, i) => {
         room += batteryRoom(design, spares[i]!);
-        for (const aboard of design.aboard ?? []) room += batteryRoom(aboard.design, spares[i]!);
+        const fighters = readied(design, { spare: spares[i]!, yard: 0 }).fighters;
+        (design.aboard ?? []).forEach((aboard, k) => {
+            if (fighters[k]! >= 0) room += batteryRoom(aboard.design, fighters[k]!);
+        });
     });
     const share = room > 0 ? min(1, pool / room) : 1;
     return spares.map((spare) => ({ spare, yard: share }));
@@ -297,19 +321,30 @@ function asReady(got: Readied, best: Readied): boolean {
 /**
  * The least time before the battle, s, in which `robots` robots build a fleet
  * and it readies itself as far as it ever could: every gun its generators can
- * load loaded, and every robot and battery charged. What a skirmish's budget
+ * load loaded, every fighter its pads can build built and readied, and every
+ * robot and battery charged. What a skirmish's budget
  * starts at, so neither side sets out short.
  */
 export function readyDeadline(designs: readonly ShipDesign[], robots = 1): number {
     const crew = max(1, robots);
     let work = 0;
     for (const design of designs) work += billOf(design).build;
-    const all = (design: ShipDesign): ShipDesign[] => [design, ...(design.aboard ?? []).map((aboard) => aboard.design)];
-    const best = designs.map((design) => all(design).map((d) => readiedBy(d, { spare: Infinity, yard: 1 }, false)));
+    const best = designs.map((design) => readiedBy(design, { spare: Infinity, yard: 1 }, false));
+    const bestAboard = designs.map((design) =>
+        (design.aboard ?? []).map((aboard) => readiedBy(aboard.design, { spare: Infinity, yard: 1 }, false)),
+    );
     const ok = (deadline: number): boolean =>
-        schedule(designs, { deadline, robots: crew }).every((ready, i) =>
-            all(designs[i]!).every((d, k) => asReady(readiedBy(d, ready, false), best[i]![k]!)),
-        );
+        schedule(designs, { deadline, robots: crew }).every((ready, i) => {
+            const design = designs[i]!;
+            const got = readiedBy(design, ready, false);
+            if (!asReady(got, best[i]!)) return false;
+            // Every fighter its pad could ever build, built and readied.
+            return (design.aboard ?? []).every((aboard, k) => {
+                if (best[i]!.fighters[k]! < 0) return true;
+                const spare = got.fighters[k]!;
+                return spare >= 0 && asReady(readiedBy(aboard.design, { spare, yard: ready.yard }, false), bestAboard[i]![k]!);
+            });
+        });
     let low = work / crew;
     if (ok(low)) return low;
     let high = low + 1;
