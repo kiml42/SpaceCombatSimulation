@@ -7,15 +7,16 @@ import deckFile from "./cards.json" with { type: "json" };
  * the limits a side builds its fleet to. The deck is data, in `cards.json`.
  */
 
-/** What a card can move: the three costs, the ship count and how far a fleet may spread. */
-export type Limit = "metal" | "fuel" | "build" | "ships" | "spread";
+/** What a card can move: the three costs, the ship count, how far a fleet may spread and the robots that build it. */
+export type Limit = "metal" | "fuel" | "build" | "ships" | "spread" | "robots";
 
 /** The three costs, which a card moves by a share of where the skirmish started them. */
 export const RESOURCES = ["metal", "fuel", "build"] as const;
 export type Resource = (typeof RESOURCES)[number];
 
-/** One change a card makes: a share of the starting value for a cost, a whole step for ships and spread. */
-export type Effect = { readonly limit: Resource; readonly share: number } | { readonly limit: "ships" | "spread"; readonly step: number };
+/** One change a card makes: a share of the starting value for a cost, a whole step for ships, spread and robots. */
+export type Effect =
+    { readonly limit: Resource; readonly share: number } | { readonly limit: "ships" | "spread" | "robots"; readonly step: number };
 
 export interface Card {
     readonly id: string;
@@ -29,6 +30,8 @@ export interface Limits {
     readonly maxShips: number;
     /** How far from its origin any hull may reach, metres. */
     readonly radius: number;
+    /** How many robots build the fleet in its build time (`Yard`); one where not given. */
+    readonly robots?: number;
 }
 
 /** No limit falls below this share of where it started. */
@@ -67,6 +70,7 @@ export function effectText(effect: Effect): { readonly amount: string; readonly 
         return { amount: `${sign}${math.round(size * 1000) / 10}%`, limit: effect.limit, word };
     }
     if (effect.limit === "ships") return { amount: `${sign}${size}`, limit: "ships", word: size === 1 ? "ship" : "ships" };
+    if (effect.limit === "robots") return { amount: `${sign}${size}`, limit: "robots", word: size === 1 ? "robot" : "robots" };
     return { amount: `${sign}${size} m`, limit: "spread", word: "spread" };
 }
 
@@ -106,10 +110,11 @@ export function parseDeck(value: unknown): Card[] {
                         return fail(`${id}: ${limit} needs a share, not zero, above −${FLOOR}`);
                     return { limit, share };
                 }
-                if (limit === "ships" || limit === "spread") {
+                if (limit === "ships" || limit === "spread" || limit === "robots") {
                     const step = effect["step"];
-                    if (typeof step !== "number" || !Number.isFinite(step) || step === 0 || (limit === "ships" && !Number.isInteger(step)))
-                        return fail(`${id}: ${limit} needs a step, not zero${limit === "ships" ? ", and whole" : ""}`);
+                    const whole = limit !== "spread";
+                    if (typeof step !== "number" || !Number.isFinite(step) || step === 0 || (whole && !Number.isInteger(step)))
+                        return fail(`${id}: ${limit} needs a step, not zero${whole ? ", and whole" : ""}`);
                     return { limit, step };
                 }
                 return fail(`${id} moves ${limit}, which is not a limit`);
@@ -135,7 +140,7 @@ export function cardsOf(ids: readonly string[]): Card[] {
 
 /** How far every limit has been moved by these cards: shares summed for costs, steps for ships and spread. */
 function moved(cards: readonly Card[]): Record<Limit, number> {
-    const out: Record<Limit, number> = { metal: 0, fuel: 0, build: 0, ships: 0, spread: 0 };
+    const out: Record<Limit, number> = { metal: 0, fuel: 0, build: 0, ships: 0, spread: 0, robots: 0 };
     for (const card of cards) for (const effect of card.effects) out[effect.limit] += amountOf(effect);
     return out;
 }
@@ -157,6 +162,7 @@ export function withCards(start: Limits, ids: readonly string[]): Limits {
         budget: { metal: cost("metal"), fuel: cost("fuel"), build: cost("build") },
         maxShips: math.max(shipFloor(start.maxShips), start.maxShips + by.ships),
         radius: math.max(start.radius * FLOOR, start.radius + by.spread),
+        robots: math.max(1, (start.robots ?? 1) + by.robots),
     };
 }
 
@@ -169,6 +175,7 @@ export function fits(start: Limits, held: readonly string[], card: Card): boolea
         if (isResource(limit) && 1 + by[limit] < FLOOR) return false;
         if (limit === "ships" && start.maxShips + by.ships < shipFloor(start.maxShips)) return false;
         if (limit === "spread" && start.radius + by.spread < start.radius * FLOOR) return false;
+        if (limit === "robots" && (start.robots ?? 1) + by.robots < 1) return false;
     }
     return true;
 }

@@ -1,7 +1,7 @@
 import { styled } from "@linaria/react";
 import { BudgetTable } from "~/features/skirmish/BudgetTable";
 import { CardHand } from "~/features/skirmish/Cards";
-import { canFight, fleetFault, overLimit, type Skirmish } from "~/scenarios/skirmish";
+import { canFight, fleetFault, overLimit, unreadyDesigns, type Skirmish } from "~/scenarios/skirmish";
 
 const Note = styled.p`
     margin: 0.4rem 0 0;
@@ -51,12 +51,18 @@ export function SkirmishBudget({
     readonly enemy?: boolean;
 }) {
     const block = skirmishBlock(skirmish, flies);
+    const short = block === null ? unreadyDesigns(skirmish) : [];
     return (
         <section id="skirmish">
             <h2>Budget</h2>
             <BudgetTable id="skirmishBudget" skirmish={skirmish} enemy={enemy} />
             {/* An empty fleet is the problems list's to say. */}
             {block !== null && skirmish.player.ships.length > 0 && <Note id="skirmishNote">{block}</Note>}
+            {short.length > 0 && (
+                <Note id="unreadyNote">
+                    {`Not ready in time: ${short.join(", ")}. The build leaves too little time to load and charge everything, so ${short.length === 1 ? "it sets" : "they set"} out short.`}
+                </Note>
+            )}
         </section>
     );
 }

@@ -56,6 +56,7 @@ import {
     roundBattle,
     roundYards,
     startingBudget,
+    workLimit,
     roundSetup,
     settingsOf,
     won,
@@ -394,7 +395,7 @@ type Mode = "round" | "watching" | "answer" | "replay";
 /** The things a skirmish's fleet is over budget on, as "metal and build time". */
 function overBudget(skirmish: Skirmish): string {
     const bill = billOfFleet(skirmish.player);
-    const budget = playerLimits(skirmish).budget;
+    const budget = workLimit(playerLimits(skirmish));
     const over = (["metal", "fuel", "build"] as const)
         .filter((what) => bill[what] > budget[what])
         .map((what) => (what === "build" ? "build time" : what));
