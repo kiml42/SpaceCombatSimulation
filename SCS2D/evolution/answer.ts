@@ -13,7 +13,20 @@ import {
 import { BARE_CORE } from "../scenarios/blueprints.js";
 import { customBattle, tally, type CustomBattle } from "../scenarios/customBattle.js";
 import { Activity } from "../scenarios/decision.js";
-import { atLeast, DEFAULT_SKIRMISH_SETTINGS, roundBattle, startingBudget, type SkirmishSettings } from "../scenarios/skirmish.js";
+import {
+    atLeast,
+    DEFAULT_SKIRMISH_SETTINGS,
+    robotsOf,
+    roundBattle,
+    startingBudget,
+    workLimit,
+    type SkirmishSettings,
+} from "../scenarios/skirmish.js";
+
+/** What builds a side to `limits` before a battle. */
+function yardOf(limits: Limits): Yard {
+    return { deadline: limits.budget.build, robots: robotsOf(limits) };
+}
 import { drawHand, isSimple, neediest, shareOf, withCards, type Limits } from "../skirmish/cards.js";
 import { breeding, type Breeding } from "./mutationFields.js";
 import { mutateFleet } from "./fleetMutate.js";
@@ -148,8 +161,8 @@ export class EnemySearch {
         /** The skirmish's starting budget, which the enemy's cards move; what the enemy cost where not given. */
         private readonly playerBudget?: Budget,
         cards: readonly string[] = [],
-        /** The time before the battle the player's fleet is built in, its cards and all; ready for anything where not given. */
-        private readonly playerDeadline?: number,
+        /** What builds the player's fleet before the battle, its cards and all; ready for anything where not given. */
+        private readonly playerYard?: Yard,
     ) {
         this.cards = cards;
         this.rng = new Rng(seed);
@@ -252,14 +265,11 @@ export class EnemySearch {
                   : { kind: "drill", enemy, drill: this.drills[match - 1 - this.seeds.length]! };
         // Built to the enemy's limits as they stand, its cards and all.
         const job: AnswerJob =
-            this.playerDeadline === undefined
+            this.playerYard === undefined
                 ? fight
                 : {
                       ...fight,
-                      yards: [
-                          { deadline: this.playerDeadline, robots: 1 },
-                          { deadline: atLeast(withCards(this.start, this.cards), enemy).budget.build, robots: 1 },
-                      ],
+                      yards: [this.playerYard, yardOf(atLeast(withCards(this.start, this.cards), enemy))],
                   };
         return { epoch: this.epoch, index, job };
     }
@@ -279,9 +289,9 @@ export class EnemySearch {
     private begin(): void {
         const parent = this.best.enemy;
         this.standings = [{ enemy: parent, wins: 0, onRound: false, margin: 0 }];
-        const { budget, maxShips, radius } = this.limits;
+        const { maxShips, radius } = this.limits;
         const limits = {
-            budget,
+            budget: workLimit(this.limits),
             maxShips,
             ...this.bred.fleet,
             radius,
@@ -351,13 +361,17 @@ export class EnemySearch {
         const hand = drawHand(this.cardRng, this.start, this.cards, isSimple);
         const hulls = fleetHulls(this.best.enemy);
         const bill = fleetBill(hulls);
-        const { budget, maxShips, radius } = this.limits;
+        const { maxShips, radius } = this.limits;
+        const budget = workLimit(this.limits);
+        const build = shareOf(bill.build, budget.build);
         const kept = neediest(hand, {
             metal: shareOf(bill.metal, budget.metal),
             fuel: shareOf(bill.fuel, budget.fuel),
-            build: shareOf(bill.build, budget.build),
+            build,
             ships: shareOf(hulls.length, maxShips),
             spread: shareOf(fleetReach(hulls), radius),
+            // Another robot is more build time by another name.
+            robots: build,
         });
         if (kept !== null) this.cards = [...this.cards, kept];
     }

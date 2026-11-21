@@ -9,8 +9,8 @@ describe("the upgrade card deck", () => {
     it("reads, every card named once, with simple cards and trade-offs both", () => {
         expect(DECK).toEqual(parseDeck(deckFile));
         expect(new Set(DECK.map((card) => card.id)).size).toBe(DECK.length);
-        expect(DECK.filter(isSimple).map((card) => card.id)).toEqual(["metal", "fuel", "build", "ship", "spread"]);
-        expect(DECK.length).toBe(15);
+        expect(DECK.filter(isSimple).map((card) => card.id)).toEqual(["metal", "fuel", "build", "ship", "spread", "robot"]);
+        expect(DECK.length).toBe(16);
     });
 
     it("refuses a card it cannot use", () => {
@@ -18,6 +18,7 @@ describe("the upgrade card deck", () => {
         expect(() => parseDeck(card([]))).toThrow(/effect/);
         expect(() => parseDeck(card([{ limit: "metal", step: 1 }]))).toThrow(/share/);
         expect(() => parseDeck(card([{ limit: "ships", step: 0.5 }]))).toThrow(/whole/);
+        expect(() => parseDeck(card([{ limit: "robots", step: 0.5 }]))).toThrow(/whole/);
         expect(() => parseDeck(card([{ limit: "armour", share: 0.1 }]))).toThrow(/not a limit/);
         expect(() =>
             parseDeck(
@@ -55,6 +56,9 @@ describe("cards held", () => {
         const cut = withCards(START, Array<string>(10).fill("ship-for-metal"));
         expect(cut.maxShips).toBe(2);
         expect(withCards({ ...START, maxShips: 1 }, ["ship-for-metal"]).maxShips).toBe(1);
+        // A robot a card, starting from one.
+        expect(withCards(START, ["robot", "robot"]).robots).toBe(3);
+        expect(withCards(START, []).robots).toBe(1);
     });
 
     it("trade metal for many more ships, or ships and fuel for much more metal", () => {
@@ -88,7 +92,7 @@ describe("cards held", () => {
     });
 
     it("go to the enemy for what it presses hardest, the first drawn on a tie", () => {
-        const usage = { metal: 0.9, fuel: 0.3, build: 0.95, ships: 0.5, spread: 0.2 };
+        const usage = { metal: 0.9, fuel: 0.3, build: 0.95, ships: 0.5, spread: 0.2, robots: 0.95 };
         expect(neediest(["fuel", "metal", "build"], usage)).toBe("build");
         expect(neediest(["fuel", "metal", "ship"], usage)).toBe("metal");
         expect(neediest(["spread", "fuel"], { ...usage, spread: 0.3 })).toBe("spread");
