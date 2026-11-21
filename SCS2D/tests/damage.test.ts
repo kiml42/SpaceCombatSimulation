@@ -357,6 +357,7 @@ describe("what a hit logs to be drawn", () => {
         const hits = new ProjectileHits();
         const grid = new SpatialGrid(64);
         grid.rebuild(bodies);
+        const weight = bodies.mass[body]!;
         const mass = 90;
         const speed = 900;
         projectiles.spawn({ x: -corvette.radius * 2, y: 0, vx: speed, vy: 0, width: 0.16, ttl: 5, mass });
@@ -369,7 +370,7 @@ describe("what a hit logs to be drawn", () => {
         // Whatever the round kept, the ship took the rest — head on, so all of it
         // is along the round's own heading.
         const left = projectiles.alive[0] === 1 ? projectiles.vx[0]! : 0;
-        expect(bodies.vx[body]).toBeCloseTo((mass * (speed - left)) / corvette.mass, 9);
+        expect(bodies.vx[body]).toBeCloseTo((mass * (speed - left)) / weight, 9);
         expect(bodies.vx[body]!).toBeGreaterThan(0);
     });
 });
