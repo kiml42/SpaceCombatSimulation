@@ -1133,6 +1133,22 @@ describe("the editor in a browser", () => {
         expect(await page.textContent("#mountDoctrineSummary")).toBe("hull gun, 3 changes");
     });
 
+    it("steps an empty doctrine box from its default rather than from zero", async () => {
+        await openShip(page, "Corvette");
+        const gun = await corvetteGun(page);
+        await page.mouse.click(gun.x, gun.y);
+        await page.click("#mountDoctrine > summary");
+        const box = page.locator("#doctrine-mount-focusWeight");
+        expect(await box.getAttribute("placeholder")).toBe("300");
+
+        await box.focus();
+        await page.keyboard.press("ArrowUp");
+        expect(await box.inputValue()).toBe("310");
+        await page.keyboard.press("ArrowDown");
+        await page.keyboard.press("ArrowDown");
+        expect(await box.inputValue()).toBe("290");
+    });
+
     it("edits the ship’s own doctrine from its core", async () => {
         await openShip(page, "Corvette");
         const core = await corvetteCore(page);

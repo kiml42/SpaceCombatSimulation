@@ -145,6 +145,7 @@ function DoctrineBoxes({
                                         step={row.step}
                                         title={row.hint}
                                         placeholder={String(fallback(row))}
+                                        stepFrom={fallback(row)}
                                         data-stated={shown !== ""}
                                         value={shown}
                                         onStart={onStart}

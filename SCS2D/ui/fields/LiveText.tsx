@@ -1,4 +1,4 @@
-import { useState, type ComponentPropsWithoutRef } from "react";
+import { useRef, useState, type ComponentPropsWithoutRef } from "react";
 
 export interface LiveTextProps extends Omit<
     ComponentPropsWithoutRef<"input">,
@@ -14,6 +14,8 @@ export interface LiveTextProps extends Omit<
     readonly onDone?: () => void;
     /** A box of several lines. */
     readonly multiline?: boolean;
+    /** What an empty number box's arrows step from, rather than the browser's 0. */
+    readonly stepFrom?: number;
 }
 
 /**
@@ -21,9 +23,16 @@ export interface LiveTextProps extends Omit<
  * what was typed, half-finished or not, until it is left — then shows what the
  * page made of it.
  */
-export function LiveText({ value, onType, onStart, onDone, multiline = false, ...rest }: LiveTextProps) {
+export function LiveText({ value, onType, onStart, onDone, multiline = false, stepFrom, ...rest }: LiveTextProps) {
     const [typed, setTyped] = useState<string | null>(null);
+    const stepping = useRef(false);
     const shown = typed ?? value;
+    // An arrow on an empty box steps from 0, so the step is moved onto stepFrom.
+    const read = (raw: string): string => {
+        const delta = Number(raw);
+        if (stepFrom === undefined || !stepping.current || shown !== "" || raw === "" || delta === 0) return raw;
+        return String(Number((stepFrom + delta).toPrecision(12)));
+    };
     const start = (): void => {
         setTyped(value);
         onStart?.();
@@ -58,13 +67,19 @@ export function LiveText({ value, onType, onStart, onDone, multiline = false, ..
             value={shown}
             onFocus={start}
             onChange={(event) => {
-                setTyped(event.target.value);
-                onType(event.target.value);
+                const next = read(event.target.value);
+                setTyped(next);
+                onType(next);
             }}
             onBlur={done}
+            onPointerDown={() => (stepping.current = true)}
+            onPointerUp={() => (stepping.current = false)}
+            onPointerCancel={() => (stepping.current = false)}
             onKeyDown={(event) => {
+                stepping.current = event.key === "ArrowUp" || event.key === "ArrowDown";
                 if (event.key === "Enter") onDone?.();
             }}
+            onKeyUp={() => (stepping.current = false)}
         />
     );
 }
