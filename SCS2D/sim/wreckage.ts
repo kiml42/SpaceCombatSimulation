@@ -62,6 +62,8 @@ export function throwWreckage(ships: Ships, bodies: Bodies, projectiles: Project
         if (!(capacity > 0) || damage.stepJoules[e]! < SHATTER * capacity) continue;
         if (bodies.alive[b] === 0 || (ships.shipByBody[b] ?? -1) < 0 || ships.pilots[b] != null) continue;
         if (ships.thrown.has(blowKey(b, m))) continue;
+        // A warhead with charge in it goes off instead (`cookOff`).
+        if (damage.kindAt(b, m) === "warhead" && ships.fuel.held(b, m) > 0) continue;
         const design = ships.designs[ships.shipByBody[b]!]!;
         const placed = design.modules[m]!;
 

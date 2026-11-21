@@ -60,6 +60,19 @@ const LEAST_PIECE = 1;
 /** How far a piece strays from straight out from the warhead, radians either way. */
 const BLAST_STRAY = 0.3;
 
+/**
+ * The chance a warhead holding charge goes off in a step it is damaged in,
+ * while sound. It rises to certain as its integrity falls to nothing, and one
+ * the step shatters always goes off.
+ */
+export const COOK_OFF_CHANCE = 0.05;
+
+/** The chance a warhead this whole goes off, damaged. */
+export function cookOffChance(integrity: number): number {
+    const worn = integrity < 0 ? 1 : integrity > 1 ? 0 : 1 - integrity;
+    return COOK_OFF_CHANCE + (1 - COOK_OFF_CHANCE) * worn;
+}
+
 /** How many lines a blast crushes its carrier along, each with an even share of it. */
 export const BLAST_LINES = 64;
 
@@ -108,6 +121,35 @@ export function detonateWarheads(ships: Ships, world: World, projectiles: Projec
             // The hull is not the shape it was: any other waits for the next step.
             break;
         }
+    }
+    return count;
+}
+
+/**
+ * Set off every warhead holding charge that this step's blows have damaged,
+ * by `cookOffChance`, or certainly if they shattered it, and say how many went
+ * off. Wherever it points, fuze or no fuze, and whoever is near. One going off
+ * can set off another on the same hull. Call after the step's hits and before
+ * severing, which forgets them.
+ *
+ * Not on a hull more than one ship rides, which severing does not break up.
+ */
+export function cookOff(ships: Ships, world: World, projectiles: Projectiles, log?: ImpactLog): number {
+    const damage = ships.damage;
+    const bodies = world.bodies;
+    let count = 0;
+    // A blast adds entries as it goes, which is how one sets off another.
+    for (let e = 0; e < damage.stepCount; e++) {
+        const b = damage.stepBody[e]!;
+        const m = damage.stepModule[e]!;
+        if (damage.kindAt(b, m) !== "warhead" || !(damage.stepJoules[e]! > 0)) continue;
+        const i = ships.shipByBody[b] ?? -1;
+        if (i < 0 || ships.alive[i] === 0 || bodies.alive[b] === 0 || ships.pilots[b] != null) continue;
+        if (!(ships.fuel.held(b, m) > 0)) continue;
+        const shattered = damage.stepJoules[e]! >= SHATTER * damage.capacityOf(b, m);
+        if (!shattered && !(world.rng.nextFloat() < cookOffChance(damage.integrity(b, m)))) continue;
+        detonate(ships, world, projectiles, i, b, ships.designs[i]!, m, log);
+        count++;
     }
     return count;
 }
