@@ -1,5 +1,6 @@
 import { styled } from "@linaria/react";
 import { useId } from "react";
+import { clampOnBlur } from "./clamp";
 
 const Row = styled.div`
     display: grid;
@@ -72,6 +73,7 @@ export function NumberField({ id: given, label, title, value, onChange, step, mi
                 min={min ?? undefined}
                 max={max}
                 onChange={(event) => onChange(event.target.value)}
+                onBlur={clampOnBlur(onChange)}
             />
             {spread !== undefined && (
                 <>
@@ -85,6 +87,7 @@ export function NumberField({ id: given, label, title, value, onChange, step, mi
                         step={step}
                         min={0}
                         onChange={(event) => spread.onChange(event.target.value)}
+                        onBlur={clampOnBlur(spread.onChange)}
                     />
                 </>
             )}

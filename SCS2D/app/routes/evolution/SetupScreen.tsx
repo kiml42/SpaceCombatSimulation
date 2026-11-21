@@ -5,6 +5,7 @@ import { MUTATION_FIELDS } from "~/evolution/mutationFields";
 import type { SettingField } from "~/host/settingsFields";
 import type { Blueprint, Fleet } from "~/sim/index";
 import { Button } from "~/ui/buttons/Button";
+import { clampOnBlur } from "~/ui/fields/clamp";
 import { coRun, fleetRun, MAP_FIELDS, RIVAL, rivalTexts, valueOf, type Goal, type SetupForm } from "./evolutionSetup";
 import { Fold } from "./Fold";
 import { EVOLUTION_PRESETS } from "./evolutionPresets";
@@ -157,6 +158,7 @@ function Field({ id, label, title, step, min = 0, max, placeholder, text = false
                 placeholder={placeholder}
                 {...(text ? {} : { step: step ?? 1, min: min ?? undefined, max })}
                 onChange={(event) => set(id, event.target.value)}
+                onBlur={clampOnBlur((value) => set(id, value))}
             />
             {spread !== undefined && (
                 <>
@@ -169,6 +171,7 @@ function Field({ id, label, title, step, min = 0, max, placeholder, text = false
                         title={spread.title}
                         value={form.texts[spread.id] ?? ""}
                         onChange={(event) => set(spread.id, event.target.value)}
+                        onBlur={clampOnBlur((value) => set(spread.id, value))}
                     />
                 </>
             )}
@@ -185,6 +188,7 @@ function Field({ id, label, title, step, min = 0, max, placeholder, text = false
                     style={form.rivalEvolves ? undefined : { visibility: "hidden" }}
                     value={rivalTexts(form)[id] ?? ""}
                     onChange={(event) => onForm({ ...form, rivalOwn: true, rival: { ...rivalTexts(form), [id]: event.target.value } })}
+                    onBlur={clampOnBlur((value) => onForm({ ...form, rivalOwn: true, rival: { ...rivalTexts(form), [id]: value } }))}
                 />
             )}
         </Row>

@@ -3,6 +3,7 @@ import {
     DEFAULT_DOCTRINE,
     defaultTargeting,
     holdBand,
+    NON_NEGATIVE_FIELDS,
     TARGETING_FIELDS,
     type Approach,
     type Doctrine,
@@ -35,6 +36,9 @@ export interface DoctrineRow {
     /** How much an arrow key moves it, which differs by two orders of magnitude. */
     readonly step: number;
 }
+
+/** The least a field's box takes, where it has one. */
+export const fieldMin = (field: string): number | undefined => (NON_NEGATIVE_FIELDS.includes(field) ? 0 : undefined);
 
 const TARGETING_ROWS: readonly DoctrineRow[] = [
     { field: "proximityWeight", label: "near", hint: "Prefer what is close, measured against its own reach", step: 10 },

@@ -1,5 +1,6 @@
 import { styled } from "@linaria/react";
 import {
+    fieldMin,
     kindName,
     mountDefault,
     mountSummary,
@@ -143,8 +144,10 @@ function DoctrineBoxes({
                                         id={id}
                                         type="number"
                                         step={row.step}
+                                        min={fieldMin(row.field)}
                                         title={row.hint}
                                         placeholder={String(fallback(row))}
+                                        stepFrom={fallback(row)}
                                         data-stated={shown !== ""}
                                         value={shown}
                                         onStart={onStart}
