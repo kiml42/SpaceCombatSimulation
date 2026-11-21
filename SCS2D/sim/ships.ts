@@ -2338,6 +2338,11 @@ export class Ships {
         return report;
     }
 
+    /** Set off what this step's blows have done to warheads (`warheads.cookOff`). Before `sever`. */
+    cookOff(world: World, projectiles: Projectiles, log?: ImpactLog): number {
+        return warheads.cookOff(this, world, projectiles, log);
+    }
+
     scorch(world: World, grid: SpatialGrid, dt: number): void {
         shipFire.scorch(this, world, grid, dt);
     }

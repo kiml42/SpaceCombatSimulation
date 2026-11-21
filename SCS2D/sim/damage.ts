@@ -184,6 +184,9 @@ const FIRE_RATE_CUTOUT = 0.15;
  */
 const CONTROL_CUTOUT = 0.4;
 
+/** Integrity at or below which a warhead's fuze is dead: a dud, though it can still cook off. */
+export const DUD_INTEGRITY = 0.5;
+
 /**
  * Integrity at or below which a module is **ragged**: torn open enough to
  * hook on whatever it is pushed against slowly (`Ships.weld`), and too broken
@@ -224,7 +227,8 @@ export const DAMAGE_RESPONSES: Readonly<Record<ModuleSpec["kind"], readonly Dama
     // A slipway's cradle and feed lines, the same.
     slipway: [{ effect: DamageEffect.Grip, remaining: fadesOutAt(THRUST_CUTOUT) }],
     hold: [],
-    warhead: [],
+    // Its fuze is what goes first; the charge goes off however broken it is (`cookOff`).
+    warhead: [{ effect: DamageEffect.Fuze, remaining: fadesOutAt(DUD_INTEGRITY) }],
     // Racks and chargers are machinery too.
     robotBay: [{ effect: DamageEffect.Tending, remaining: fadesOutAt(THRUST_CUTOUT) }],
     // A plant gives out as an engine does.
