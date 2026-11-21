@@ -177,6 +177,44 @@ export class Store {
         return moved;
     }
 
+    /** Empty one module, its contents counted spent, and say how much it held. */
+    empty(bodyIndex: number, module: number): number {
+        const contents = this.contents[bodyIndex];
+        const held = contents?.[module] ?? 0;
+        if (!(held > 0)) return 0;
+        contents![module] = 0;
+        this.spent[bodyIndex] = this.spent[bodyIndex]! + held;
+        this.spentSpin[bodyIndex] = this.spentSpin[bodyIndex]! + held * this.spin[bodyIndex]![module]!;
+        return held;
+    }
+
+    /**
+     * Move up to `kg` into module `module` from the stores on its piece of hull
+     * drawn before it, as a draw takes it, and say how much went: none from its
+     * own tier or any after it, so a store is never filled from one that would
+     * be drawn on first.
+     */
+    topUp(bodyIndex: number, module: number, kg: number): number {
+        const pieceOf = this.pieceOf[bodyIndex];
+        if (pieceOf === null || pieceOf === undefined || !(kg > 0)) return 0;
+        const piece = pieceOf[module] ?? 0;
+        const stores = this.stores[bodyIndex]![piece];
+        if (stores === undefined) return 0;
+        const ends = this.tierEnds[bodyIndex]![piece]!;
+        const at = stores.indexOf(module);
+        if (at < 0) return 0;
+        let tier = 0;
+        while (ends[tier]! <= at) tier++;
+        const contents = this.contents[bodyIndex]!;
+        const space = this.ceiling(bodyIndex)[module]! - contents[module]!;
+        if (!(space > 0) || tier === 0) return 0;
+        const moved = this.take(bodyIndex, piece, kg < space ? kg : space, null, tier);
+        contents[module] = contents[module]! + moved;
+        this.spent[bodyIndex] = this.spent[bodyIndex]! - moved;
+        this.spentSpin[bodyIndex] = this.spentSpin[bodyIndex]! - moved * this.spin[bodyIndex]![module]!;
+        return moved;
+    }
+
     /** Which piece of hull a module is on, or -1 for a body with no record. */
     pieceAt(bodyIndex: number, module: number): number {
         return this.pieceOf[bodyIndex]?.[module] ?? -1;
@@ -241,8 +279,11 @@ export class Store {
         return room;
     }
 
-    /** Take up to `kg` from one piece's stores, highest tier first, and say how much there was; none from those `skip` marks. */
-    private take(bodyIndex: number, piece: number, kg: number, skip: Uint8Array | null = null): number {
+    /**
+     * Take up to `kg` from one piece's stores, highest tier first, and say how
+     * much there was; none from those `skip` marks, nor from tier `tiers` on.
+     */
+    private take(bodyIndex: number, piece: number, kg: number, skip: Uint8Array | null = null, tiers = Infinity): number {
         const stores = this.stores[bodyIndex]![piece];
         if (stores === undefined || !(kg > 0)) return 0;
         const contents = this.contents[bodyIndex]!;
@@ -252,7 +293,7 @@ export class Store {
 
         let wanted = kg;
         let start = 0;
-        for (let tier = 0; tier < ends.length && wanted > 0; tier++) {
+        for (let tier = 0; tier < ends.length && tier < tiers && wanted > 0; tier++) {
             const end = ends[tier]!;
             // In proportion to size, among the stores with anything left. One that
             // empties before its share is met passes the rest to the others, so this

@@ -1007,7 +1007,7 @@ function drawHull(
             spec.kind !== "claw"
         ) {
             const triangle = shapeOf(spec);
-            if (spec.kind === "tank" || spec.kind === "hold" || spec.kind === "battery") {
+            if (spec.kind === "tank" || spec.kind === "hold" || spec.kind === "battery" || spec.kind === "warhead") {
                 // A gauge, like a gun's load: the whole capacity as a track inside the
                 // walls, and what is left in it filling along its longer side, so it
                 // moves as far as it can: from the aft end, or the -y one. Drawn at full
@@ -1015,9 +1015,13 @@ function drawHull(
                 // for a claw to take.
                 const inset = min(spec.length, spec.width) * TANK_INSET;
                 const share = gaugeStep(
-                    (spec.kind === "tank" ? ship.fuel?.[i] : spec.kind === "hold" ? ship.metal?.[i] : ship.charge?.[i]) ?? fillOf(spec),
+                    (spec.kind === "tank" || spec.kind === "warhead"
+                        ? ship.fuel?.[i]
+                        : spec.kind === "hold"
+                          ? ship.metal?.[i]
+                          : ship.charge?.[i]) ?? fillOf(spec),
                 );
-                const content = spec.kind === "tank" ? FUEL : spec.kind === "hold" ? METAL : CHARGE;
+                const content = spec.kind === "tank" || spec.kind === "warhead" ? FUEL : spec.kind === "hold" ? METAL : CHARGE;
                 ctx.globalAlpha = 1;
                 keep(ctx, `gauge ${idOf(spec)} ${content} ${share}`, () => {
                     if (triangle !== null) {

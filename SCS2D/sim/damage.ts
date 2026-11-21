@@ -140,6 +140,8 @@ export enum DamageEffect {
     Discharge = 6,
     /** How well a robot bay refills its robots and sends them out. */
     Tending = 7,
+    /** Whether a warhead's fuze can still set it off. */
+    Fuze = 8,
 }
 
 /**
@@ -222,6 +224,7 @@ export const DAMAGE_RESPONSES: Readonly<Record<ModuleSpec["kind"], readonly Dama
     // A slipway's cradle and feed lines, the same.
     slipway: [{ effect: DamageEffect.Grip, remaining: fadesOutAt(THRUST_CUTOUT) }],
     hold: [],
+    warhead: [],
     // Racks and chargers are machinery too.
     robotBay: [{ effect: DamageEffect.Tending, remaining: fadesOutAt(THRUST_CUTOUT) }],
     // A plant gives out as an engine does.
@@ -900,6 +903,8 @@ export function resolveCollision(
     /** The other hull's velocity across this one at the contact, world frame: the way a gouge runs. */
     slideX = 0,
     slideY = 0,
+    /** A module the crush passes through untouched: a warhead whose blast this is. */
+    skip = -1,
 ): number {
     if (!(energy > 0)) return 0;
 
@@ -936,6 +941,7 @@ export function resolveCollision(
         // metal the cast crossed on its way in is on the other side of the ship.
         if (path.exit[k]! <= reach) continue;
         const module = path.module[k]!;
+        if (module === skip) continue;
         // A kernel takes nothing and is not crumpled: the crush stops at it.
         if (damage.kindAt(bodyIndex, module) === "kernel") break;
         const whole = damage.capacityOf(bodyIndex, module);

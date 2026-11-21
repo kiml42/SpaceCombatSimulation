@@ -35,6 +35,7 @@ sees. Code may keep its own names (`BattlePage`, `Blueprint`, `battleRoute`); th
 | **main** guns, **secondary** guns | A ship's weapons it fights with, and the rest (point defence and the like): a weapon's *main* tick | main battery, primaries; secondaries is fine |
 | **priority** | How soon a part gets its ship's fuel, metal and charge when there is not enough, and how soon it is mended: higher first | claim, tier |
 | **turning gear** | The share of a turret given to the ring and drive that swing it, which reloading gives up | traverse gear, training gear |
+| **warhead** | A part that fires by blowing itself apart: a tank whose fuel is its charge, burnt last, and whose casing flies out as fragments when an enemy comes within its **standoff**, across its **spread** | bomb, explosive, payload |
 | **landing gear** | What lets a fighter's core bring it down onto a friend's pad to be refuelled, rearmed or mended. Without it on any core, a fighter is still built on a pad and launched from one, but never lands again, and its core is simpler to build | docking gear |
 
 ## How to write them

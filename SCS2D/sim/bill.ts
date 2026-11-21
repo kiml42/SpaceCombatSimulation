@@ -10,7 +10,7 @@ import { buildWork, fittingOf } from "./rebuild.js";
 export interface Bill {
     /** Its hull, fittings, the metal in its holds and its guns' first rounds, kg. */
     readonly metal: number;
-    /** The fuel in its tanks and its guns' first rounds, kg. */
+    /** The fuel in its tanks, a warhead's charge included, and its guns' first rounds, kg. */
     readonly fuel: number;
     /** How long one robot would take to build every module, s, travel aside. */
     readonly build: number;

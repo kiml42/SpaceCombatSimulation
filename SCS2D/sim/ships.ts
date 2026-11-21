@@ -55,6 +55,7 @@ import * as shipAim from "./shipAim.js";
 import * as shipOrders from "./shipOrders.js";
 import * as shipDecide from "./shipDecide.js";
 import * as shipFire from "./shipFire.js";
+import * as warheads from "./warheads.js";
 
 /**
  * Ships: a compiled design bound to a body, flying itself and shooting.
@@ -2332,7 +2333,9 @@ export class Ships {
     }
 
     fire(world: World, projectiles: Projectiles, beams: Beams, grid: SpatialGrid, beamHits: BeamHits, log?: ImpactLog): FireReport {
-        return shipFire.fire(this, world, projectiles, beams, grid, beamHits, log);
+        const report = shipFire.fire(this, world, projectiles, beams, grid, beamHits, log);
+        warheads.detonateWarheads(this, world, projectiles, grid, log);
+        return report;
     }
 
     scorch(world: World, grid: SpatialGrid, dt: number): void {
