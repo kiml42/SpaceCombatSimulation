@@ -1212,7 +1212,9 @@ inside any one file is not contiguous.
   fleet lacks lifted into it and one it has the same dropped, and one it has differently left behind as a
   fleet problem. Opened in the ship editor, a fleet's carrier carries the fleet's fighters again and is
   offered them first; renamed, a fighter is followed by every pad that keeps it, and one that only a pad
-  keeps is not dropped as unflown.
+  keeps is not dropped as unflown. **Bred on its own, a ship's craft are bred with it** (`mutateHangar`), each with
+  the chance a fleet's designs are, keeping its name, so a carrier evolved alone does not build its founder's
+  craft for ever.
   **A pad builds the fighters it keeps** (`keep`, none by default): short of them, counting the one it set
   out with, it lays a fighter's core down where a docked one would lie, as a shell's first step from the
   face nearest the carrier's middle, once it has put that step's walls' work in at its mending rate and

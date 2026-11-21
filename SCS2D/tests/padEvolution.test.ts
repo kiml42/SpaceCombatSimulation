@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { NO_BUDGET, padFighterNames, Rng, type Fleet } from "../sim/index.js";
 import { mutate } from "../evolution/mutate.js";
-import { fleetFits, mutateFleet, type FleetMutationLimits, type FleetOperator } from "../evolution/fleetMutate.js";
-import { BARE_CORE, DINKY } from "../scenarios/blueprints.js";
+import { fleetFits, mutateFleet, mutateHangar, type FleetMutationLimits, type FleetOperator } from "../evolution/fleetMutate.js";
+import { BARE_CORE, DINKY, TORPEDO_BOAT } from "../scenarios/blueprints.js";
+import { offspring } from "../evolution/generation.js";
 import { SHIPYARD } from "../scenarios/shipyard.js";
 import { FACTORY } from "../scenarios/carrier.js";
 import { addShip, emptyFleet } from "../editor/fleetEdit.js";
@@ -35,6 +36,25 @@ describe("a pad bred", () => {
             for (const m of child.blueprint.modules) if ("kind" in m && m.kind === "pad") expect(m.keep ?? 0).toBeGreaterThanOrEqual(0);
         }
         expect(nudged).toBeGreaterThan(0);
+    });
+});
+
+describe("a ship bred on its own", () => {
+    it("breeds the craft its pad builds, under the name the pad knows it by", () => {
+        let bred = false;
+        for (let seed = 1; seed <= 20 && !bred; seed++) {
+            const child = offspring(TORPEDO_BOAT, new Rng(seed), {});
+            const blueprint = child.entrant as typeof TORPEDO_BOAT;
+            bred = child.edits.some((edit) => edit.startsWith("Torpedo:"));
+            expect(Object.keys(blueprint.hangar ?? {})).toEqual(Object.keys(TORPEDO_BOAT.hangar!));
+            expect(blueprint.hangar!["Torpedo"]!.name).toBe("Torpedo");
+        }
+        expect(bred).toBe(true);
+    });
+
+    it("leaves its craft alone when told to, and a ship with none as it was", () => {
+        expect(mutateHangar(TORPEDO_BOAT, new Rng(1), {}, 0).edits).toEqual([]);
+        expect(mutateHangar(DINKY, new Rng(1), {}).blueprint).toBe(DINKY);
     });
 });
 

@@ -260,6 +260,37 @@ function mutateDesign(fleet: Fleet, name: string, rng: Rng, bounds: FleetMutatio
 }
 
 /**
+ * Breed the craft a ship's pads and slipways build, as a fleet breeds the
+ * fighters its ships' pads keep: each with chance `design`, by the ship's own
+ * limits, keeping its name so the pads still find it. Without this a ship bred
+ * on its own builds its founder's craft for ever.
+ */
+export function mutateHangar(
+    ship: Blueprint,
+    rng: Rng,
+    limits: Partial<MutationLimits>,
+    design = DEFAULT_FLEET_LIMITS.design,
+): { blueprint: Blueprint; edits: string[] } {
+    if (ship.hangar === undefined) return { blueprint: ship, edits: [] };
+    const { hangar, ...bare } = ship;
+    const fleet: Fleet = { name: ship.name, designs: { ...hangar, [ship.name]: bare }, ships: [] };
+    const edits: string[] = [];
+    for (const name of padReached(fleet, [ship.name])) {
+        if (name !== ship.name && rng.chance(design))
+            edits.push(
+                ...mutateDesign(fleet, name, rng, {
+                    ...DEFAULT_FLEET_LIMITS,
+                    ship: limits,
+                    budget: limits.budget ?? DEFAULT_FLEET_LIMITS.budget,
+                }),
+            );
+    }
+    if (edits.length === 0) return { blueprint: ship, edits };
+    const { [ship.name]: _, ...bred } = fleet.designs;
+    return { blueprint: { ...ship, hangar: bred }, edits };
+}
+
+/**
  * Move and turn every one of the fleet's own entries, by a drift with no dead
  * zone whose spread is `move` times `size` of its own radius and `turn`.
  *
