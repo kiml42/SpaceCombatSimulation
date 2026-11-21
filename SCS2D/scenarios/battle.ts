@@ -267,6 +267,8 @@ export function makeBattle<Extra extends object = Record<never, never>>(
             // After, so that a round going on from one hull into the next counts.
             this.totalProjectileHits += hits.count;
             impacts.beams(ships.damage, beams, beamHits, dt, world.bodies, ships, credit);
+            // A warhead those blows damaged may go off, and one they shattered does.
+            ships.cookOff(world, projectiles, impacts.log);
             this.totalSevered += ships.sever(world, collisions.contacts);
             // What broke off too small to keep goes on as shrapnel.
             throwShrapnel(ships, projectiles);
