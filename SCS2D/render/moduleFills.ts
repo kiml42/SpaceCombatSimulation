@@ -35,6 +35,9 @@ const LANCE_NUBS = 6;
 /** A gun's barrels, and a lance's nubs, the same bronze across the weapons. */
 export const BARREL = "#8f6f25";
 
+/** How wide a warhead's bronze frame is, as a share of its shorter side: inside it, short of its gauge. */
+const WARHEAD_RIM_SHARE = 0.08;
+
 /** How much of a slipway's width each side rail takes, and of its length the feed block aft. */
 const SLIPWAY_RAIL_SHARE = 0.12;
 const SLIPWAY_FEED_SHARE = 0.25;
@@ -88,7 +91,8 @@ export function fillColour(spec: ModuleSpec, colours: Palette): string {
     if (spec.kind === "rock") return rockColour(spec.ore ?? 0, spec.ice ?? 0);
     // Structure is drawn in the hull's colour, thick or thin: its bevels and its
     // shadow say which it is.
-    if (spec.kind === "structure" || spec.kind === "tank" || spec.kind === "hold" || spec.kind === "battery") return colours.hull;
+    if (spec.kind === "structure" || spec.kind === "tank" || spec.kind === "hold" || spec.kind === "battery" || spec.kind === "warhead")
+        return colours.hull;
     if (spec.kind === "core") return colours.pivot;
     // A deck, as a pad is, for its berth pads to stand out on.
     if (spec.kind === "robotBay") return colours.hull;
@@ -204,6 +208,14 @@ export function moduleFills(
         box(-l, -w, -l + feed, w, trim);
         box(-l, -w, l, -w + rail, trim);
         box(-l, w - rail, l, w, trim);
+    } else if (spec.kind === "warhead") {
+        // A tank, its gauge drawn over it as a tank's is, framed in the weapons' bronze.
+        const rim = Math.min(spec.length, spec.width) * WARHEAD_RIM_SHARE;
+        box(-l, -w, l, w);
+        box(-l, -w, l, -w + rim, BARREL);
+        box(-l, w - rim, l, w, BARREL);
+        box(-l, -w + rim, -l + rim, w - rim, BARREL);
+        box(l - rim, -w + rim, l, w - rim, BARREL);
     } else if (spec.kind === "claw") {
         // The pump aft, and two jaws reaching out of the bow face it grips with.
         const jaw = spec.width * CLAW_JAW_SHARE;
