@@ -307,6 +307,53 @@ describe("warhead", () => {
         expect(detonateWarheads(ships, world, new Projectiles(), grid)).toBe(0);
     });
 
+    it("cooks off parked on a pad: off it first, and into the carrier it sat on", () => {
+        const world = new World({ dt: 1 / 60, seed: 5 });
+        const ships = new Ships();
+        const deck = compileBlueprint({
+            name: "Deck",
+            modules: [
+                { kind: "core", x: -5, y: 0, length: 4, width: 4 },
+                { kind: "pad", x: 0, y: 0, length: 6, width: 4 },
+            ],
+        });
+        const pad = deck.modules.findIndex((m) => m.spec.kind === "pad");
+        const carrier = ships.spawn(world, { design: deck, x: -deck.modules[pad]!.x, vx: 40, vy: -7, team: 1 });
+        const craft = ships.spawn(world, { design: compileBlueprint(CARRIER), x: 0, y: 0, vx: 40, vy: -7, team: 1 });
+        expect(shipDocking.park(ships, world.bodies, carrier, craft, pad)).toBe(true);
+        const projectiles = new Projectiles();
+        const bodies = world.bodies;
+        const total = (): [number, number] => {
+            let px = ships.discardedPx;
+            let py = ships.discardedPy;
+            for (let i = 0; i < bodies.highWater; i++) {
+                if (bodies.alive[i] === 0) continue;
+                // A parked craft's mass is counted in its carrier's.
+                if (i === bodies.indexOf(ships.body(craft)) && ships.parkedOn[craft]! >= 0) continue;
+                px += bodies.mass[i]! * bodies.vx[i]!;
+                py += bodies.mass[i]! * bodies.vy[i]!;
+            }
+            for (let i = 0; i < projectiles.highWater; i++) {
+                if (projectiles.alive[i] === 0) continue;
+                px += projectiles.mass[i]! * projectiles.vx[i]!;
+                py += projectiles.mass[i]! * projectiles.vy[i]!;
+            }
+            return [px, py];
+        };
+        const before = total();
+        const b = bodies.indexOf(ships.body(craft));
+        const cb = bodies.indexOf(ships.body(carrier));
+        const head = ships.designs[craft]!.modules.findIndex((m) => m.spec.kind === "warhead");
+        ships.damage.absorb(b, head, 3.5 * ships.damage.capacityOf(b, head));
+        expect(cookOff(ships, world, projectiles)).toBe(1);
+        expect(ships.parkedOn[craft]).toBe(-1);
+        // Only the blast's crush has reached it: no round has flown yet.
+        expect(ships.damage.absorbedAt(cb, pad)).toBeGreaterThan(0);
+        const after = total();
+        expect(after[0]).toBeCloseTo(before[0], 3);
+        expect(after[1]).toBeCloseTo(before[1], 3);
+    });
+
     it("does nothing with nobody in reach", () => {
         const s = scene(500);
         expect(detonateWarheads(s.ships, s.world, s.projectiles, s.grid)).toBe(0);
