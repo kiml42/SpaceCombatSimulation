@@ -12,6 +12,7 @@ import {
     type ShipDesign,
     isWeaponMount,
     type Budget,
+    type Yard,
     parseBlueprint,
     parseFleet,
     Rng,
@@ -68,6 +69,8 @@ export interface RunConfig {
      * and how long it takes to make (DESIGN.md §2).
      */
     readonly budget: Budget;
+    /** How many robots build a side before each match, in the time its budget's `build` gives (`Yard`). */
+    readonly robots: number;
     readonly mutation: Partial<MutationLimits>;
     /** How fleets are bred, in a run started from one. The budget above is the whole fleet's. */
     readonly fleet: Partial<FleetMutationLimits>;
@@ -83,6 +86,7 @@ export const DEFAULT_RUN: RunConfig = {
     minMatches: 3,
     generations: 200,
     budget: NO_BUDGET,
+    robots: 1,
     mutation: {},
     fleet: {},
     match: {},
@@ -440,11 +444,29 @@ export function isFleetRun(founders: readonly Entrant[], config: Pick<RunConfig,
 
 /** How a ship is bred. In a run of fleets the budget is the fleet's, so it is not applied to one ship. */
 export function mutationLimits(config: RunConfig): Partial<MutationLimits> {
-    return { budget: config.budget, ...config.mutation };
+    return { budget: workBudget(config), ...config.mutation };
 }
 
 export function fleetLimits(config: RunConfig): Partial<FleetMutationLimits> {
-    return { budget: config.budget, ...config.fleet };
+    return { budget: workBudget(config), ...config.fleet };
+}
+
+/** A side's budget as what it may cost: its robots build their number of times its `build` in it. */
+export function workBudget(config: Pick<RunConfig, "budget" | "robots">): Budget {
+    return { ...config.budget, build: config.budget.build * robotsOf(config) };
+}
+
+function robotsOf(config: Pick<RunConfig, "robots">): number {
+    return config.robots === undefined || !(config.robots >= 1) ? 1 : config.robots;
+}
+
+/**
+ * What a match's sides are built by, side A's first: each its budget's build
+ * time and the run's robots. None where no side's build time is limited.
+ */
+export function matchYards(...sides: readonly Pick<RunConfig, "budget" | "robots">[]): { yards?: readonly Yard[] } {
+    if (sides.every((side) => side.budget.build === Infinity)) return {};
+    return { yards: sides.map((side) => ({ deadline: side.budget.build, robots: robotsOf(side) })) };
 }
 
 /**
@@ -581,7 +603,7 @@ export class Run {
         }
         for (const founder of founders) if (!drawn.includes(founder)) drawn.push(founder);
         const entrants = this.competitors.map((_, k) => drawn[k % drawn.length]!.entrant);
-        return { entrants, config: { ...this.config.match, seed: this.seed } };
+        return { entrants, config: { ...this.config.match, seed: this.seed, ...matchYards(this.config) } };
     }
 
     /** Draw the next match, or close the generation if it has had enough. */
@@ -602,7 +624,7 @@ export class Run {
         this.seed = this.rng.nextUint32();
         this.match = new Match(
             competitors.map((c) => this.generation.individuals[c]!.entrant),
-            { ...settings.match, seed: this.seed },
+            { ...settings.match, seed: this.seed, ...matchYards(settings) },
         );
     }
 

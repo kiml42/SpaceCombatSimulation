@@ -7,6 +7,7 @@ import {
     DEFAULT_RUN,
     describe,
     fleetLimits,
+    matchYards,
     mutationLimits,
     seedPopulation,
     type GenerationRecord,
@@ -319,7 +320,7 @@ export class Coevolution {
     }
 
     private matchConfig(): Partial<RunConfig["match"]> {
-        return { ...this.config.match, seed: this.seed };
+        return { ...this.config.match, seed: this.seed, ...matchYards(this.sides[0].config, this.sides[1].config) };
     }
 
     /** The entrants made invincible: the side being bred's, in a shielded drill. */

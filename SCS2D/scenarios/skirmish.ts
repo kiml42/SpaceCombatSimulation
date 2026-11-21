@@ -4,6 +4,7 @@ import {
     expandFleet,
     fleetBill,
     fleetHulls,
+    readyDeadline,
     fleetProblem,
     fleetReach,
     math,
@@ -13,6 +14,7 @@ import {
     type Bill,
     type Blueprint,
     type Budget,
+    type Yard,
     type Fleet,
     drawnMap,
     hasAsteroids,
@@ -184,6 +186,22 @@ export function billOfFleet(fleet: Fleet): Bill {
     return fleetBill(fleetHulls(fleet));
 }
 
+/**
+ * The budget a skirmish against `enemy` starts at: what it costs, with build
+ * time enough for one robot to build it and for it to load and charge
+ * everything it can before the battle.
+ */
+export function startingBudget(enemy: Fleet): Budget {
+    const hulls = fleetHulls(enemy);
+    return {
+        ...fleetBill(hulls),
+        build: readyDeadline(
+            hulls.map((hull) => hull.design),
+            1,
+        ),
+    };
+}
+
 /** A skirmish against `enemy`, the player's budget what it cost unless given. */
 export function newSkirmish(
     enemy: Fleet,
@@ -200,7 +218,7 @@ export function newSkirmish(
         ...(name === undefined || name.trim() === "" ? {} : { name: name.trim() }),
         enemy: painted,
         player,
-        budget: budget === undefined ? billOfFleet(enemy) : { ...budget },
+        budget: budget === undefined ? startingBudget(enemy) : { ...budget },
         round: 1,
         tries: 0,
         seed: seed >>> 0,
@@ -292,7 +310,21 @@ export function canFight(skirmish: Skirmish): boolean {
 
 /** The battle a round is: the player's fleet first, so it is blue. */
 export function roundSetup(skirmish: Skirmish): BattleSetup {
-    return roundBattle(skirmish.player, skirmish.enemy, skirmish.seed, settingsOf(skirmish));
+    return roundBattle(skirmish.player, skirmish.enemy, skirmish.seed, settingsOf(skirmish), skirmish.seed, roundYards(skirmish));
+}
+
+/**
+ * What builds each side before a round, the player's first: one robot, with
+ * each side's build-time limit as the time before the battle. An enemy other
+ * than the skirmish's own, as an answer found for it, is held to its cards.
+ */
+export function roundYards(skirmish: Skirmish, enemy: Fleet = skirmish.enemy, cards = skirmish.enemyCards ?? []): [Yard, Yard] {
+    const start = startLimits(skirmish);
+    const theirs = atLeast(withCards(start, cards), enemy);
+    return [
+        { deadline: playerLimits(skirmish).budget.build, robots: 1 },
+        { deadline: theirs.budget.build, robots: 1 },
+    ];
 }
 
 type Opening = Pick<
@@ -316,6 +348,7 @@ export function roundBattle(
     seed: number,
     settings: Opening = DEFAULT_SKIRMISH_SETTINGS,
     mapSeed = seed,
+    yards?: readonly [Yard, Yard],
 ): BattleSetup {
     // Always all three, in this order, so that widening one spread does not move the others.
     const draw = new Rng(seed ^ 0x5b4ead);
@@ -332,6 +365,7 @@ export function roundBattle(
         rotation: 0,
         seed,
         ...(hasAsteroids(map) ? { map, mapSeed } : {}),
+        ...(yards === undefined ? {} : { yards }),
     };
 }
 

@@ -346,6 +346,18 @@ export class Store {
         return this.contents[bodyIndex]?.[module] ?? 0;
     }
 
+    /** Set what one module holds, kg, as far as it holds when full: what it set out with. */
+    setHeld(bodyIndex: number, module: number, kg: number): void {
+        const contents = this.contents[bodyIndex];
+        if (contents === null || contents === undefined) return;
+        const full = this.full[bodyIndex]![module]!;
+        const now = kg < 0 ? 0 : kg > full ? full : kg;
+        const less = contents[module]! - now;
+        contents[module] = now;
+        this.spent[bodyIndex] = this.spent[bodyIndex]! + less;
+        this.spentSpin[bodyIndex] = this.spentSpin[bodyIndex]! + less * this.spin[bodyIndex]![module]!;
+    }
+
     /** What each module holds now, for a body made from this one. Null if it has no record. */
     contentsOf(bodyIndex: number): Float64Array | null {
         return this.contents[bodyIndex] ?? null;

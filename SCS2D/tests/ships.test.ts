@@ -103,8 +103,9 @@ describe("spawning", () => {
         const s = r.ships.spawn(r.world, { design: corvette, x: 10, y: -4 });
         const b = bodyOf(r, s);
 
-        expect(r.world.bodies.mass[b]).toBe(corvette.mass);
-        expect(r.world.bodies.inertia[b]).toBe(corvette.inertia);
+        // Its first rounds loaded on top of full holds.
+        expect(r.world.bodies.mass[b]).toBeCloseTo(corvette.launchMass, 6);
+        expect(r.world.bodies.inertia[b]).toBeGreaterThan(corvette.inertia);
         expect(r.world.bodies.radius[b]).toBe(corvette.radius);
         expect(r.world.bodies.x[b]).toBe(10);
     });

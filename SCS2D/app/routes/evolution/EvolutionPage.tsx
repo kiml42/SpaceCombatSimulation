@@ -9,7 +9,8 @@ import { nextName, toFileText, type Library } from "~/editor/library";
 import { parseRunConfig, runConfigWarnings, serialiseRunConfig, type RunSetup } from "~/evolution/configFile";
 import { isFleet, Match, planned, type Entrant } from "~/evolution/match";
 import { parseRunRecord, RecordedRun, winsIn } from "~/evolution/recorded";
-import type { MatchRecord } from "~/evolution/run";
+import { matchYards, type MatchRecord } from "~/evolution/run";
+import { rivalSettings } from "~/evolution/coevolution";
 import { breedOpening } from "./openingWorker";
 import { latest, yardstickMatch } from "~/evolution/yardstick";
 import type { BattleView } from "~/host/battleView";
@@ -435,7 +436,9 @@ export function EvolutionPage() {
             return;
         }
         const teams = record.teams !== undefined && record.teams.length === entrants.length ? record.teams : null;
-        const match = new Match(entrants, { ...run.config.match, seed: record.seed }, teams, record.invulnerable ?? []);
+        // Built for the match as each side's budget built it.
+        const yards = twoSided(run) ? matchYards(run.config, rivalSettings(run.config, run.coevolution.rival)) : matchYards(run.config);
+        const match = new Match(entrants, { ...run.config.match, seed: record.seed, ...yards }, teams, record.invulnerable ?? []);
         watchReplay({ match, record, ids: record.competitors, vs: null });
     };
 
