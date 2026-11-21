@@ -1,4 +1,4 @@
-import { compileBlueprint, exactTurn, expandFleet, math, type Fleet, type ShipDesign } from "../sim/index.js";
+import { compileBlueprint, exactTurn, expandFleet, math, schedule, type Fleet, type ShipDesign, type Yard } from "../sim/index.js";
 import { type Battle } from "./types.js";
 import { makeBattle, type BattleOptions } from "./battle.js";
 import { withFleetFighters } from "../sim/fleetHangar.js";
@@ -16,6 +16,8 @@ export interface FleetBattleOptions extends BattleOptions {
      * speeds above do not.
      */
     readonly rotation?: number;
+    /** What builds each fleet before the battle, by fleet; ready for anything where not given (`schedule`). */
+    readonly yards?: readonly Yard[];
 }
 
 /**
@@ -41,6 +43,15 @@ export function fleetBattle(
                 designs.set(name, compileBlueprint(withFleetFighters(blueprint, fleet.designs)));
             return expandFleet(fleet).map((ship) => ({ ...ship, compiled: designs.get(ship.design)! }));
         });
+        const readies = placed.map((list, team) => {
+            const yard = options.yards?.[team];
+            return yard === undefined
+                ? null
+                : schedule(
+                      list.map((ship) => ship.compiled),
+                      yard,
+                  );
+        });
 
         const slots: number[][] = fleets.map(() => []);
         const longest = placed.reduce((most, list) => math.max(most, list.length), 0);
@@ -62,6 +73,7 @@ export function fleetBattle(
                         angle: foldAngle(facing + ship.angle),
                         team,
                         ...(vx !== 0 || vy !== 0 ? { vx, vy } : {}),
+                        ...(readies[team] === null ? {} : { ready: readies[team]![k]! }),
                     }),
                 );
             }

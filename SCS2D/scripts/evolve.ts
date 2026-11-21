@@ -196,6 +196,10 @@ function parse(argv: readonly string[]): Options {
             case "--budget":
                 budget = Number(value());
                 break;
+            // How many robots build a side before each match, in its budget's build time.
+            case "--robots":
+                config["robots"] = Number(value());
+                break;
             case "--duration":
                 match["duration"] = Number(value());
                 break;

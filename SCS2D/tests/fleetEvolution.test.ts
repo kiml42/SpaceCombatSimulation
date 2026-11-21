@@ -496,7 +496,7 @@ describe("a run of fleets", () => {
         const founder = run.generations[0]!.individuals.find((i) => i.id === 1)!;
         const fleet = entrantOf(founder) as Fleet;
         expect(fleet.ships).toHaveLength(1);
-        expect(fleetMass(fleetHulls(fleet))).toBeCloseTo(compileBlueprint(CORVETTE).mass);
+        expect(fleetMass(fleetHulls(fleet))).toBeCloseTo(compileBlueprint(CORVETTE).launchMass);
     });
 
     it("lets a ship founder grow into a fleet", () => {

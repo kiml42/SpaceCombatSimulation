@@ -34,6 +34,7 @@ import {
     type ModuleSpec,
     type ModuleStats,
     CORE_SHARE_KEYS,
+    shotMetal,
 } from "./modules.js";
 import { DEFAULT_DOCTRINE, defaultTargeting, resolveTargeting, type Doctrine, type Targeting } from "./doctrine.js";
 import { EngineLayout, type EngineSpec } from "./engines.js";
@@ -612,7 +613,10 @@ export interface ShipDesign {
     readonly modules: readonly DesignModule[];
     /** Total mass with every store full, kg: what a body's mass is measured down from as it spends. */
     readonly mass: number;
-    /** Mass as it sets out, kg: less what its stores start without (`ModuleSpec.fill`). What a budget counts. */
+    /**
+     * Mass as it sets out, kg: less what its stores start without (`ModuleSpec.fill`),
+     * and with its guns' first rounds (`firstRounds`). What a budget counts.
+     */
     readonly launchMass: number;
     /** Moment of inertia about the centre of mass, kg·m². */
     readonly inertia: number;
@@ -2223,6 +2227,13 @@ export function aboardPose(carrier: ShipDesign, aboard: Aboard): { x: number; y:
     return { x: pad.x - (bx * c - by * s), y: pad.y - (bx * s + by * c), angle: pad.angle };
 }
 
+/** Metal loaded into a design's guns as it sets out, kg: a round each, paid for by the budget rather than its holds. */
+export function firstRounds(turrets: readonly DesignTurret[]): number {
+    let kg = 0;
+    for (const mount of turrets) kg += shotMetal(mount.gun);
+    return kg;
+}
+
 /** What a design costs a budget, kg: its launch mass and every fighter it sets out with. */
 export function budgetMass(design: ShipDesign): number {
     let mass = design.launchMass;
@@ -3119,7 +3130,7 @@ function designFrom(
         doctrine,
         fighter,
         mass,
-        launchMass: mass - unfilled,
+        launchMass: mass - unfilled + firstRounds(turrets),
         inertia,
         radius,
         ...raisedCircle(raisedPoints),

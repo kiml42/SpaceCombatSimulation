@@ -43,7 +43,7 @@ describe("a hull taking damage", () => {
         const body = run.world.bodies.indexOf(run.ships.body(run.a));
         const shed = run.ships.damage.shedAt(body, largest);
         expect(shed).toBeCloseTo(SHED_AT_BREAK * dry, 6);
-        expect(run.world.bodies.mass[body]).toBeCloseTo(corvette.mass - shed, 6);
+        expect(run.world.bodies.mass[body]).toBeCloseTo(corvette.launchMass - shed, 6);
         expect(run.ships.discarded).toBeCloseTo(shed, 6);
         expect(run.ships.discardedPx).toBeCloseTo(shed * 3, 6);
     });
@@ -52,7 +52,7 @@ describe("a hull taking damage", () => {
         const run = hit(largest, 100);
         const body = run.world.bodies.indexOf(run.ships.body(run.a));
         expect(run.ships.damage.shedAt(body, largest)).toBeCloseTo(SHED_FLOOR * dry, 6);
-        expect(run.world.bodies.mass[body]).toBeCloseTo(corvette.mass - SHED_FLOOR * dry, 6);
+        expect(run.world.bodies.mass[body]).toBeCloseTo(corvette.launchMass - SHED_FLOOR * dry, 6);
     });
 
     it("is lighter to turn as well as to push", () => {

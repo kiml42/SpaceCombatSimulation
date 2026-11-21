@@ -4,7 +4,7 @@ import { fleetFits } from "../evolution/fleetMutate.js";
 import { CORVETTE, GUNSHIP } from "../scenarios/blueprints.js";
 import { customBattle, tally } from "../scenarios/customBattle.js";
 import { Activity, type Decision } from "../scenarios/decision.js";
-import { DEFAULT_SKIRMISH_SETTINGS, roundBattle } from "../scenarios/skirmish.js";
+import { DEFAULT_SKIRMISH_SETTINGS, roundBattle, startingBudget } from "../scenarios/skirmish.js";
 import { cardById, isSimple } from "../skirmish/cards.js";
 import { better, damageDealt, damageScale, drillBattle, EnemySearch, JobRunner, share } from "../evolution/answer.js";
 
@@ -152,8 +152,8 @@ describe("how far an answer may grow", () => {
         for (const key of ["metal", "fuel", "build"] as const)
             expect(running.limits.budget[key]).toBeGreaterThanOrEqual(bill[key] * (1 - 1e-12));
         expect(running.limits.maxShips).toBe(1);
-        // Without the player's budget, the enemy's own cost at 1×.
-        expect(new EnemySearch(gunship, corvette, WON, 5).limits.budget).toEqual(bill);
+        // Without the player's budget, what a skirmish against it starts at.
+        expect(new EnemySearch(gunship, corvette, WON, 5).limits.budget).toEqual(startingBudget(corvette));
     });
 
     it("keeps every enemy it breeds within that", () => {

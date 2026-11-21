@@ -6,6 +6,7 @@ import {
     COMPLEXITY_WORK,
     DAMAGE_ENERGY_PER_KG,
     ROBOT_REPAIR_RATE,
+    shotFuel,
     type Blueprint,
 } from "../sim/index.js";
 import { CORVETTE, DINKY } from "../scenarios/blueprints.js";
@@ -30,7 +31,9 @@ describe("a bill", () => {
         for (const blueprint of [CORVETTE, DINKY, depot(0.3, 0.6)]) {
             const design = compileBlueprint(blueprint);
             const bill = billOf(design);
-            expect(bill.metal + bill.fuel).toBeCloseTo(budgetMass(design), 6);
+            // And the fuel of its first rounds, which is not aboard until it reloads.
+            const rounds = design.turrets.reduce((sum, t) => sum + shotFuel(t.gun), 0);
+            expect(bill.metal + bill.fuel).toBeCloseTo(budgetMass(design) + rounds, 6);
             expect(bill.fuel).toBeGreaterThan(0);
         }
     });
@@ -56,7 +59,7 @@ describe("a bill", () => {
         expect(billOf(design).build).toBeCloseTo(work / ROBOT_REPAIR_RATE, 6);
     });
 
-    it("includes the fighters a carrier sets out with", () => {
+    it("includes the metal and fuel of the fighters a carrier sets out with, but not their build, which is their pads'", () => {
         const blueprint: Blueprint = {
             name: "Carrier",
             modules: [
@@ -75,6 +78,6 @@ describe("a bill", () => {
         const laden = billOf(compileBlueprint(blueprint));
         expect(laden.metal).toBeCloseTo(bare.metal + dinky.metal, 6);
         expect(laden.fuel).toBeCloseTo(bare.fuel + dinky.fuel, 6);
-        expect(laden.build).toBeCloseTo(bare.build + dinky.build, 6);
+        expect(laden.build).toBeCloseTo(bare.build, 6);
     });
 });

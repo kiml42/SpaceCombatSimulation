@@ -14,6 +14,7 @@ import {
     compileBlueprint,
     moduleStats,
     shotFuel,
+    shotMetal,
     type Blueprint,
     type ShipDesign,
 } from "../sim/index.js";
@@ -137,9 +138,12 @@ describe("a ship out of metal", () => {
 });
 
 describe("a gun firing", () => {
-    it("holds its fire with nothing to load", () => {
-        expect(firing(corvette, 20).rounds).toBeGreaterThan(0);
-        expect(firing(compileBlueprint(emptied(TURRET_CORVETTE)), 20).rounds).toBe(0);
+    it("fires only the rounds the budget loaded it with, with nothing in its holds", () => {
+        const empty = compileBlueprint(emptied(TURRET_CORVETTE));
+        const s = firing(empty, 20);
+        expect(s.rounds).toBeGreaterThan(0);
+        expect(s.rounds).toBeLessThanOrEqual(empty.turrets.length);
+        expect(firing(corvette, 20).rounds).toBeGreaterThan(s.rounds);
     });
 
     it("fires the round it set out loaded with, and no more, with no fuel to reload", () => {
@@ -187,7 +191,8 @@ describe("a gun firing", () => {
         expect(s.rounds).toBeGreaterThan(0);
         // Every gun on the corvette is the same bore, so every round weighs the same.
         for (const t of corvette.turrets) if (t.gun.casing > 0) expect(t.gun.casing).toBe(casing);
-        expect(s.ships.metal.spentMass(s.body)).toBeCloseTo(s.rounds * casing, 6);
+        // Its first rounds were loaded on top of full holds.
+        expect(s.ships.metal.spentMass(s.body)).toBeCloseTo((s.rounds - corvette.turrets.length) * casing, 6);
         expect(s.world.bodies.mass[s.body]).toBeCloseTo(
             corvette.mass - s.ships.fuel.spentMass(s.body) - s.ships.metal.spentMass(s.body),
             6,
@@ -214,7 +219,8 @@ describe("a gun firing", () => {
         expect(Math.hypot(s.gasX, s.gasY)).toBeGreaterThan(carried);
         // A shell's bursting charge left the tanks as fuel and the muzzle as part of the round.
         const charges = s.rounds * (gun.roundMass - gun.casing);
-        expect(Math.abs(px - (corvette.mass - s.ships.fuel.spentMass(s.body) + charges) * vx)).toBeLessThan(carried / 10);
+        const first = corvette.turrets.reduce((sum, t) => sum + shotMetal(t.gun), 0);
+        expect(Math.abs(px - (corvette.mass + first - s.ships.fuel.spentMass(s.body) + charges) * vx)).toBeLessThan(carried / 10);
         expect(Math.abs(py)).toBeLessThan(carried / 10);
     });
 });

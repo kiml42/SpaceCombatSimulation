@@ -1,6 +1,8 @@
 import { Debris } from "./debris.js";
 import { Bodies, type BodyId } from "./bodies.js";
 import { aboardPose, padHolds, sameOrigin, slipwayHolds, type DesignTurret, type ShipDesign } from "./blueprint.js";
+import { FULLY_READY, readied, type Ready } from "./readying.js";
+import { billOf } from "./bill.js";
 import { components, joints } from "./connectivity.js";
 import { BOTH_LAYERS, HULL_LAYER, Hulls, OWN_LAYERS, WEAPONS_LAYER } from "./hull.js";
 import { Damage, DamageEffect, SHATTER, type Credit, type ImpactLog } from "./damage.js";
@@ -391,6 +393,16 @@ export interface ShipSpec {
      * spun. Its `x`, `y`, `vx` and `vy` are the well's, and not given.
      */
     rides?: WellSpec;
+    /**
+     * How far it readied itself before the battle (`readying.ts`), and the
+     * fighters it sets out with as far as it did; fully, when not given.
+     */
+    ready?: Ready;
+    /**
+     * Made during the battle, out of what is aboard: its guns load from its
+     * own holds, and its stores, banks and robots are as it was built.
+     */
+    madeInBattle?: boolean;
 }
 
 export interface FireReport {
@@ -541,8 +553,10 @@ export class Ships {
     readonly cooldown: Float64Array[] = [];
     readonly turretStates: Uint8Array[] = [];
     readonly nextBarrelToFire: Int32Array[] = [];
-    /** What each rail gun's capacitor bank holds, J; it starts a battle full. */
+    /** What each rail gun's capacitor bank holds, J. */
     readonly bank: Float64Array[] = [];
+    /** Fuel each mount has in hand for its reload, kg: what the budget paid for a first round not loaded by the battle. */
+    readonly primed: Float64Array[] = [];
     /**
      * What each mount has picked to shoot at, and the step it will think about
      * that again.
@@ -1444,13 +1458,27 @@ export class Ships {
         this.hullBody[bodyIdx] = id;
         this.damage.register(bodyIdx, design);
         this.fuel.register(bodyIdx, design);
-        this.metal.register(bodyIdx, design);
-        // A gun starts a battle loaded, with its first round's metal from the holds.
-        for (const mount of design.turrets) this.metal.load(bodyIdx, mount.module, shotMetal(mount.gun));
+        const made = spec.madeInBattle === true;
+        const ready = made ? null : readied(design, spec.ready ?? FULLY_READY);
+        if (made) {
+            this.metal.register(bodyIdx, design);
+            for (const mount of design.turrets) this.metal.load(bodyIdx, mount.module, shotMetal(mount.gun));
+        } else {
+            // Its first rounds paid for by the budget, on top of full holds.
+            const loaded = new Array<number>(design.modules.length).fill(0);
+            for (const mount of design.turrets) loaded[mount.module] = loaded[mount.module]! + shotMetal(mount.gun);
+            this.metal.register(bodyIdx, design, undefined, loaded);
+        }
         this.power.register(bodyIdx, design);
         this.robots.register(bodyIdx, design);
-        // Set out with stores part full, it weighs only what it carries.
-        if (this.fuel.spentMass(bodyIdx) > 0 || this.metal.spentMass(bodyIdx) > 0) shipBreakup.settleMass(this, world.bodies, bodyIdx);
+        if (ready !== null) {
+            for (let m = 0; m < design.modules.length; m++)
+                if (design.modules[m]!.stats.charge > 0) this.power.setHeld(bodyIdx, m, ready.charge[m]!);
+            const robots = this.robots.on(bodyIdx) ?? [];
+            for (let r = 0; r < robots.length && r < ready.robots.length; r++) robots[r]!.charge = ready.robots[r]!;
+        }
+        // Set out with stores part full, or more in its guns, it weighs only what it carries.
+        if (this.fuel.spentMass(bodyIdx) !== 0 || this.metal.spentMass(bodyIdx) !== 0) shipBreakup.settleMass(this, world.bodies, bodyIdx);
         if (spec.invulnerable === true) this.damage.protect(bodyIdx);
         const mounts = design.turrets;
         const indices = new Int32Array(mounts.length);
@@ -1470,19 +1498,22 @@ export class Ships {
         this.turretIndex.push(fixed(indices));
         const cooldown = new Float64Array(mounts.length);
         const states = new Uint8Array(mounts.length);
-        // A lance charged only on target sets out uncharged.
+        const bank = new Float64Array(mounts.length);
+        const primed = new Float64Array(mounts.length);
         for (let t = 0; t < mounts.length; t++) {
+            // A lance charged only on target sets out uncharged whatever the time.
             const spec = design.modules[mounts[t]!.module]?.spec;
-            if (spec === undefined || spec.kind !== "plasmaLance" || spec.ready === true) continue;
-            states[t] = TurretState.Reloading;
-            cooldown[t] = mounts[t]!.gun.cycleTime;
+            const waits = spec !== undefined && spec.kind === "plasmaLance" && spec.ready !== true;
+            cooldown[t] = ready !== null ? ready.reload[t]! : waits ? mounts[t]!.gun.cycleTime : 0;
+            if (cooldown[t]! > 0) states[t] = TurretState.Reloading;
+            bank[t] = ready !== null ? ready.bank[t]! : mounts[t]!.gun.bankEnergy;
+            primed[t] = ready !== null ? ready.primed[t]! : 0;
         }
         this.cooldown.push(cooldown);
         this.turretStates.push(states);
         this.nextBarrelToFire.push(new Int32Array(mounts.length));
-        const bank = new Float64Array(mounts.length);
-        for (let t = 0; t < mounts.length; t++) bank[t] = mounts[t]!.gun.bankEnergy;
         this.bank.push(bank);
+        this.primed.push(primed);
         const chosenBy = new Int32Array(mounts.length).fill(NO_TARGET);
         this.turretTarget.push(chosenBy);
         this.turretAiming.push(new Int32Array(mounts.length).fill(NO_TARGET));
@@ -1636,9 +1667,21 @@ export class Ships {
                 at = this.dockAtPorts(world, i);
                 this.spawning--;
             }
-            for (const aboard of design.aboard ?? []) {
+            const aboardList = design.aboard ?? [];
+            for (let a = 0; a < aboardList.length; a++) {
+                const aboard = aboardList[a]!;
                 if (at(aboard.pad) < 0) continue;
-                const f = this.launchAboard(world, i, spec, at(aboard.pad), aboard.design);
+                // One its pad did not finish before the battle leaves what it was to be made of
+                // in the carrier's stores, as far as they have room.
+                const spare = ready === null ? Infinity : ready.fighters[a]!;
+                if (spare < 0) {
+                    const bill = billOf(aboard.design);
+                    this.metal.add(bodyIdx, at(aboard.pad), bill.metal);
+                    this.fuel.add(bodyIdx, at(aboard.pad), bill.fuel);
+                    shipBreakup.settleMass(this, world.bodies, bodyIdx);
+                    continue;
+                }
+                const f = this.launchAboard(world, i, spec, at(aboard.pad), aboard.design, { spare, yard: spec.ready?.yard ?? 1 });
                 // The one it sets out with is one of those it keeps.
                 const k = builds.findIndex((build) => build.pad === aboard.pad);
                 if (k >= 0) this.broods[i]!.fighters[k]!.push(f);
@@ -1694,7 +1737,7 @@ export class Ships {
      * the middle of it and moving with it, then taken aboard as one that had
      * landed there is.
      */
-    private launchAboard(world: World, i: number, spec: ShipSpec, pad: number, fighter: ShipDesign): number {
+    private launchAboard(world: World, i: number, spec: ShipSpec, pad: number, fighter: ShipDesign, ready: Ready): number {
         const bodies = world.bodies;
         const b = bodies.indexOf(this.bodyIds[i]!);
         const pose = aboardPose(this.designs[i]!, { pad, design: fighter });
@@ -1715,6 +1758,7 @@ export class Ships {
             angularVel: spin,
             team: spec.team ?? 0,
             ...(spec.invulnerable === true ? { invulnerable: true } : {}),
+            ready,
         });
         this.landedReach[f] = shipSupply.fightReach(this, f);
         shipDocking.park(this, bodies, i, f, pad);
@@ -2504,6 +2548,7 @@ export class Ships {
         this.turretStates[r] = this.turretStates[p]!;
         this.nextBarrelToFire[r] = this.nextBarrelToFire[p]!;
         this.bank[r] = this.bank[p]!;
+        this.primed[r] = this.primed[p]!;
         this.turretTarget[r] = this.turretTarget[p]!;
         this.turretAiming[r] = this.turretAiming[p]!;
         this.turretAimModule[r] = this.turretAimModule[p]!;

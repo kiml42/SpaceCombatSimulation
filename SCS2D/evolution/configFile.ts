@@ -61,8 +61,8 @@ import {
  * - **No limit on a budget is `null`**, since JSON has no infinity and a
  *   file that said `metal: null` was going to be written by somebody sooner
  *   or later anyway. The budget is three, `metal` and `fuel` in kg and
- *   `build` in robot-seconds; an older file's `massBudget` is read as its
- *   metal.
+ *   `build` in seconds before the battle, which `robots` robots build in;
+ *   an older file's `massBudget` is read as its metal.
  *
  * Every field is optional: what a file leaves out is whatever the defaults
  * say, so "the defaults but with beam turrets shut out" is three lines rather
@@ -111,6 +111,7 @@ const FILE_KEYS: readonly string[] = [
     "minMatches",
     "budget",
     "massBudget",
+    "robots",
     "magnitude",
     "structural",
     "geometry",
@@ -191,6 +192,8 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
         group: config.group,
         minMatches: config.minMatches,
         budget: serialiseBudget(config.budget),
+        // Only where more than one, so a file that says nothing builds with one.
+        ...(config.robots > 1 ? { robots: config.robots } : {}),
         magnitude: config.mutation.magnitude ?? DEFAULT_LIMITS.magnitude,
         structural: config.mutation.structural ?? DEFAULT_LIMITS.structural,
         geometry: config.mutation.geometry ?? DEFAULT_LIMITS.geometry,
@@ -290,6 +293,7 @@ export function runConfigFileProblem(value: unknown, warnings: string[] = []): s
         numberProblem(value["seed"], "seed") ??
         budgetProblem(value["budget"], "budget", warnings) ??
         limitProblem(value["massBudget"], "massBudget") ??
+        countProblem(value["robots"], "robots") ??
         weightProblem(value["magnitude"], "magnitude") ??
         chanceProblem(value["structural"], "structural") ??
         chanceProblem(value["geometry"], "geometry") ??
@@ -437,6 +441,7 @@ export function parseRunConfig(value: unknown): RunSetup {
             group: read(file["group"], DEFAULT_RUN.group),
             minMatches: read(file["minMatches"], DEFAULT_RUN.minMatches),
             budget: readBudget(file["budget"], file["massBudget"]) ?? NO_BUDGET,
+            robots: read(file["robots"], DEFAULT_RUN.robots),
             mutation: {
                 magnitude: read(file["magnitude"], DEFAULT_LIMITS.magnitude),
                 structural: read(file["structural"], DEFAULT_LIMITS.structural),
