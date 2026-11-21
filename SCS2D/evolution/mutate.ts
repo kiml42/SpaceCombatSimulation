@@ -43,7 +43,7 @@ import {
     DEFAULT_FRAGMENTS,
     drainPriorityOf,
     DEFAULT_WARHEAD_FRAGMENTS,
-    DEFAULT_WARHEAD_SPREAD,
+    warheadSpread,
     DEFAULT_FUSE,
     firesShells,
     MAX_FRAGMENTS,
@@ -1094,7 +1094,9 @@ function numbers(draft: Draft): NumberKnob[] {
         if (firesShells(spec)) out.push({ at: "fuse", site }, { at: "burstSpeed", site });
         // How a warhead throws its casing, and how close it waits to.
         if (spec.kind === "warhead") {
-            out.push({ at: "fragments", site }, { at: "spread", site });
+            out.push({ at: "fragments", site });
+            // A single slug goes straight ahead, so has no spread to drift.
+            if ((spec.fragments ?? DEFAULT_WARHEAD_FRAGMENTS) > 1) out.push({ at: "spread", site });
             // What size it is for and how far out it goes off: the rest of a mount's doctrine picks targets, which a fuze does not.
             for (const field of WARHEAD_TARGETING_FIELDS) out.push({ at: "gunnery", site, field });
         }
@@ -1731,7 +1733,7 @@ function reload(site: ModuleSite): string {
 
 /** Widen or narrow a warhead's spread, in proportion to it, up to all round. */
 function respread(site: ModuleSite, jitter: Jitter): string | null {
-    const was = site.spec.spread ?? DEFAULT_WARHEAD_SPREAD;
+    const was = warheadSpread(site.spec);
     const now = min(TAU, max(MIN_SPREAD, tidy(was + jitter(was), 4)));
     if (now === was) return null;
     site.spec.spread = now;

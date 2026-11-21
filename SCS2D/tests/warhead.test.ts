@@ -13,11 +13,15 @@ import {
     SpatialGrid,
     warheadBurst,
     warheadReach,
+    warheadSpread,
+    SPREAD_PER_FRAGMENT,
     World,
     type Blueprint,
     type ModuleSpec,
 } from "../sim/index.js";
 import * as shipDocking from "../sim/shipDocking.js";
+import { Demonstration } from "../editor/demonstrate.js";
+import { attackRosette, gunsBearing, previewSnapshot } from "../editor/preview.js";
 import { COOK_OFF_CHANCE, cookOff, cookOffChance, detonateWarheads, tripped, WARHEAD_FILL_RATE } from "../sim/warheads.js";
 
 /**
@@ -133,6 +137,51 @@ describe("warhead", () => {
         const round = warheadBurst({ ...HEAD, spread: 2 * Math.PI }, stats);
         expect(round.focus).toBe(1);
         expect(round.speed).toBeGreaterThan(narrow.speed);
+    });
+
+    it("throws a single slug straight ahead, and a crowd of fragments no narrower than they need", () => {
+        expect(warheadSpread({ ...HEAD, fragments: 1, spread: Math.PI })).toBe(0);
+        expect(warheadSpread({ ...HEAD, fragments: 64, spread: 0 })).toBeCloseTo((10 * Math.PI) / 180, 12);
+        expect(warheadSpread({ ...HEAD, fragments: 2, spread: 0 })).toBeCloseTo(SPREAD_PER_FRAGMENT, 12);
+        expect(warheadSpread({ ...HEAD, fragments: 8, spread: 2 * Math.PI })).toBe(2 * Math.PI);
+        // A slug's share of its yield is a shaped liner's.
+        expect(warheadBurst({ ...HEAD, fragments: 1 }, moduleStats(HEAD)).focus).toBe(0.2);
+    });
+
+    it("bears on the attack rosette across its spread, as a main weapon", () => {
+        const design = compileBlueprint(CARRIER);
+        expect(gunsBearing(design, 0).warheads).toEqual([true]);
+        expect(gunsBearing(design, Math.PI / 4).warheads).toEqual([false]);
+        expect(attackRosette(design).total).toBe(1);
+        const spare = compileBlueprint({ ...CARRIER, modules: [...CARRIER.modules.slice(0, 2), { ...HEAD, main: false }] });
+        expect(attackRosette(spare).total).toBe(0);
+        expect(attackRosette(spare).secondaries).toBe(1);
+    });
+
+    it("goes off in the editor once the rosette's aim is inside its spread, and is back once it lets go", () => {
+        const design = compileBlueprint(CARRIER);
+        const head = design.warheads[0]!.module;
+        const demo = new Demonstration();
+        const snapshot = previewSnapshot(design);
+        demo.step(design, [], 1 / 60, { bearing: Math.PI / 2 });
+        demo.writeInto(snapshot);
+        expect(snapshot.ships[0]!.drawn?.[head]).not.toBe(false);
+        expect(snapshot.projectileCount).toBe(0);
+        demo.step(design, [], 1 / 60, { bearing: 0 });
+        demo.writeInto(snapshot);
+        expect(snapshot.ships[0]!.drawn?.[head]).toBe(false);
+        expect(snapshot.projectileCount).toBe(8);
+        // Not again while the aim holds.
+        demo.step(design, [], 1 / 60, { bearing: 0.1 });
+        demo.writeInto(snapshot);
+        expect(snapshot.projectileCount).toBe(8);
+        demo.step(design, [], 1 / 60, null);
+        demo.writeInto(snapshot);
+        expect(snapshot.ships[0]!.drawn?.[head]).not.toBe(false);
+        // Selecting it does not set it off.
+        demo.step(design, [design.modules[head]!.index], 1 / 60, null);
+        demo.writeInto(snapshot);
+        expect(snapshot.ships[0]!.drawn?.[head]).not.toBe(false);
     });
 
     it("keeps its spread in degrees in a file", () => {

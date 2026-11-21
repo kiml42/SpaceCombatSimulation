@@ -13,7 +13,7 @@ import {
     DEFAULT_FRAGMENTS,
     drainPriorityOf,
     DEFAULT_WARHEAD_FRAGMENTS,
-    DEFAULT_WARHEAD_SPREAD,
+    warheadSpread,
     DEFAULT_FUSE,
     DEFAULT_NOZZLE_WIDTHS,
     masksWholeArc,
@@ -188,7 +188,8 @@ export function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
     if (key === "turning") return tidy((spec.turning ?? TRAVERSE_GEAR_FRACTION) * 100);
     if (key === "fuse") return spec.fuse ?? DEFAULT_FUSE;
     if (key === "fragments") return spec.fragments ?? (spec.kind === "warhead" ? DEFAULT_WARHEAD_FRAGMENTS : DEFAULT_FRAGMENTS);
-    if (key === "spread") return tidy(radiansToDegrees(spec.spread ?? DEFAULT_WARHEAD_SPREAD));
+    // What it throws at, which a slug or a crowd of fragments may override.
+    if (key === "spread") return tidy(radiansToDegrees(warheadSpread(spec)));
     if (key === "burstSpeed") return spec.burstSpeed ?? DEFAULT_BURST_SPEED;
     // Millimetres on the panel, metres in the layout.
     if (key === "sealing") return tidy((spec.sealing ?? 0) * 1000);

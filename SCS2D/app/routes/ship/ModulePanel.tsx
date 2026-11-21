@@ -52,6 +52,8 @@ import {
     readsSealing,
     WARHEAD_DRAIN_PRIORITY,
     WARHEAD_FOCUS,
+    SPREAD_PER_FRAGMENT,
+    DEFAULT_WARHEAD_FRAGMENTS,
     readsThick,
     readsMagnetic,
     readsReady,
@@ -567,7 +569,7 @@ export function ModulePanel({
                 </>
             )}
             {/* An engine is only a weapon once it is marked as one. */}
-            {(isWeaponMount(spec.kind) || (spec.kind === "engine" && spec.weapon === true)) && (
+            {(isWeaponMount(spec.kind) || spec.kind === "warhead" || (spec.kind === "engine" && spec.weapon === true)) && (
                 <Field id="mainRow">
                     <label htmlFor="propMain">main</label>
                     <input
@@ -690,11 +692,12 @@ export function ModulePanel({
                             "spread",
                             {
                                 step: 5,
-                                min: 1,
+                                min: 0,
                                 max: 360,
-                                title: `How wide it throws them, degrees, centred on its facing. Narrower puts less of the charge into the fragments and more into the ship carrying it, down to ${WARHEAD_FOCUS * 100}%; 360 throws them all round.`,
+                                disabled: (spec.fragments ?? DEFAULT_WARHEAD_FRAGMENTS) <= 1,
+                                title: `How wide it throws them, degrees, centred on its facing. Narrower puts less of the charge into the fragments and more into the ship carrying it, down to ${WARHEAD_FOCUS * 100}%; 360 throws them all round. Never narrower than its fragments need, ${radiansToDegrees(SPREAD_PER_FRAGMENT).toFixed(2)}° for each past the first, and none for a single slug, which goes straight ahead.`,
                             },
-                            (degrees) => patch({ spread: degreesToRadians(Math.min(Math.max(degrees, 1), 360)) }),
+                            (degrees) => patch({ spread: degreesToRadians(Math.min(Math.max(degrees, 0), 360)) }),
                         )}
                     </Field>
                 </Shell>

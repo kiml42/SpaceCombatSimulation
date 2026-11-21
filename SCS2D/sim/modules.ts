@@ -2056,8 +2056,8 @@ export function moduleProblem(spec: ModuleSpec): string | null {
     if (spec.drainPriority !== undefined && !Number.isInteger(spec.drainPriority)) {
         return `${spec.kind}: drain priority must be a whole number, got ${spec.drainPriority}`;
     }
-    if (spec.spread !== undefined && !(spec.spread > 0 && spec.spread <= TAU)) {
-        return `${spec.kind}: spread must be more than 0 and at most a full turn, got ${spec.spread}`;
+    if (spec.spread !== undefined && !(spec.spread >= 0 && spec.spread <= TAU)) {
+        return `${spec.kind}: spread must be from 0 to a full turn, got ${spec.spread}`;
     }
     if (spec.burstSpeed !== undefined && !(spec.burstSpeed > 0)) {
         return `${spec.kind}: burst speed must be more than 0, got ${spec.burstSpeed}`;
@@ -3303,6 +3303,26 @@ export const DEFAULT_WARHEAD_FRAGMENTS = 16;
 /** How wide a warhead throws them when it does not say, radians: a cone ahead of it. */
 export const DEFAULT_WARHEAD_SPREAD = PI / 3;
 
+/**
+ * The least spread each fragment past the first needs, radians: so 64 thrown
+ * at once take at least 10°, rather than leaving as one thick slug.
+ */
+export const SPREAD_PER_FRAGMENT = (10 * PI) / 180 / (MAX_FRAGMENTS - 1);
+
+/**
+ * The spread a warhead throws at, radians: none for a single slug, which goes
+ * straight ahead, and never narrower than its fragments need
+ * (`SPREAD_PER_FRAGMENT`), whatever it asks for.
+ */
+export function warheadSpread(spec: ModuleSpec): number {
+    const fragments = spec.fragments ?? DEFAULT_WARHEAD_FRAGMENTS;
+    if (fragments <= 1) return 0;
+    const asked = spec.spread ?? DEFAULT_WARHEAD_SPREAD;
+    const least = (fragments - 1) * SPREAD_PER_FRAGMENT;
+    const spread = asked > least ? asked : least;
+    return spread < TAU ? spread : TAU;
+}
+
 /** Seconds a warhead's fragment flies: as long as a shattered module's. */
 export const WARHEAD_FRAGMENT_LIFE = 0.5;
 
@@ -3336,7 +3356,7 @@ export interface WarheadBurst {
 export function warheadBurst(spec: ModuleSpec, stats: ModuleStats, casing = stats.structureMass, charge = stats.fuel): WarheadBurst {
     const asked = spec.fragments ?? DEFAULT_WARHEAD_FRAGMENTS;
     const fragments = asked > 1 ? asked : 1;
-    const spread = spec.spread ?? DEFAULT_WARHEAD_SPREAD;
+    const spread = warheadSpread(spec);
     const share = spread / TAU;
     const focus = share > WARHEAD_FOCUS ? share : WARHEAD_FOCUS;
     const energy = charge * EXPLOSIVE_YIELD;

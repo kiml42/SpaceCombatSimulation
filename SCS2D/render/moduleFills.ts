@@ -35,8 +35,19 @@ const LANCE_NUBS = 6;
 /** A gun's barrels, and a lance's nubs, the same bronze across the weapons. */
 export const BARREL = "#8f6f25";
 
-/** How wide a warhead's bronze frame is, as a share of its shorter side: inside it, short of its gauge. */
-const WARHEAD_RIM_SHARE = 0.08;
+/**
+ * How wide a warhead's bronze frame is at reinforcement 1, as a share of its
+ * shorter side. It thickens with its walls, which are its casing, so how much
+ * of it is fragments and how much charge shows; never past this share.
+ */
+const WARHEAD_RIM_SHARE = 0.06;
+const WARHEAD_RIM_MOST = 0.35;
+
+/** How wide a warhead's bronze frame is drawn, metres. */
+export function warheadRim(spec: ModuleSpec): number {
+    const share = WARHEAD_RIM_SHARE * (spec.reinforcement ?? 1);
+    return Math.min(spec.length, spec.width) * (share < WARHEAD_RIM_MOST ? share : WARHEAD_RIM_MOST);
+}
 
 /** How much of a slipway's width each side rail takes, and of its length the feed block aft. */
 const SLIPWAY_RAIL_SHARE = 0.12;
@@ -210,7 +221,7 @@ export function moduleFills(
         box(-l, w - rail, l, w, trim);
     } else if (spec.kind === "warhead") {
         // A tank, its gauge drawn over it as a tank's is, framed in the weapons' bronze.
-        const rim = Math.min(spec.length, spec.width) * WARHEAD_RIM_SHARE;
+        const rim = warheadRim(spec);
         box(-l, -w, l, w);
         box(-l, -w, l, -w + rim, BARREL);
         box(-l, w - rim, l, w, BARREL);

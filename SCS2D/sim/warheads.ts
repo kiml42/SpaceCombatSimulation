@@ -3,7 +3,7 @@ import type { ShipDesign } from "./blueprint.js";
 import { DamageEffect, IMPACT_BURST, resolveCollision, SHATTER, type ImpactLog } from "./damage.js";
 import { BOTH_LAYERS, HullPath, moduleLayers } from "./hull.js";
 import { abs, angleDelta, asin, atan2, cos, log, max, min, pow, sin, sqrt, TAU } from "./math.js";
-import { DEFAULT_WARHEAD_SPREAD, WARHEAD_FRAGMENT_LIFE, warheadBurst } from "./modules.js";
+import { WARHEAD_FRAGMENT_LIFE, warheadBurst, warheadSpread } from "./modules.js";
 import { ROUND_WRECKAGE, type Projectiles } from "./projectiles.js";
 import * as shipDocking from "./shipDocking.js";
 import { blowKey, discardFrom, heldMass, settleMass } from "./shipBreakup.js";
@@ -180,7 +180,7 @@ export function tripped(
     const spec = placed.spec;
     // How far out it goes off, as its mount's doctrine says (`DesignWarhead.reach`).
     const reach = design.warheads.find((head) => head.module === m)?.reach ?? 0;
-    const spread = spec.spread ?? DEFAULT_WARHEAD_SPREAD;
+    const spread = warheadSpread(spec);
     const half = spread >= TAU ? Infinity : 0.5 * spread;
     const angle = bodies.angle[b]!;
     const c = cos(angle);

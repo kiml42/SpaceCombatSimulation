@@ -25,6 +25,7 @@ export { World, type ForceProvider, type WorldOptions } from "./world.js";
 export {
     addFlame,
     addTurret,
+    addWarhead,
     AttackArcs,
     AttackRegion,
     attackBearing,
@@ -131,6 +132,8 @@ export {
     warheadReach,
     DEFAULT_WARHEAD_FRAGMENTS,
     DEFAULT_WARHEAD_SPREAD,
+    SPREAD_PER_FRAGMENT,
+    warheadSpread,
     WARHEAD_DRAIN_PRIORITY,
     WARHEAD_FOCUS,
     drainPriorityOf,
@@ -443,6 +446,7 @@ export {
     type Placement,
     type DesignModule,
     type DesignTurret,
+    type DesignWarhead,
     type ShipDesign,
 } from "./blueprint.js";
 export { padApproaches, type PadApproach } from "./padApproach.js";
