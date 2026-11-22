@@ -22,7 +22,18 @@ import {
 import * as shipDocking from "../sim/shipDocking.js";
 import { Demonstration } from "../editor/demonstrate.js";
 import { attackRosette, gunsBearing, previewSnapshot } from "../editor/preview.js";
-import { COOK_OFF_CHANCE, cookOff, cookOffChance, detonateWarheads, tripped, WARHEAD_FILL_RATE } from "../sim/warheads.js";
+import {
+    COOK_OFF_CHANCE,
+    cookOff,
+    cookOffChance,
+    detonateWarheads,
+    fragmentCone,
+    tripped,
+    WARHEAD_FILL_RATE,
+    warheadCone,
+    type FragmentCone,
+} from "../sim/warheads.js";
+import { Beams, capture, Snapshot } from "../sim/index.js";
 
 /**
  * A warhead is a sealed tank that fires by blowing itself apart: its walls fly
@@ -225,6 +236,75 @@ describe("warhead", () => {
         expect(fuzed(scene(5, 15))).toBe(false);
         // A friend ahead is no target.
         expect(fuzed(scene(1.5 + 2 + 15, 0, 1))).toBe(false);
+    });
+
+    it("throws its cone as a shotgun does from a moving hull: narrower, swung the way it closes, and further", () => {
+        const design = compileBlueprint(CARRIER);
+        const head = design.warheads[0]!;
+        const placed = design.modules[head.module]!;
+        const speed = warheadBurst(placed.spec, placed.stats).speed;
+        const cone = (rvx: number, rvy: number, facing = 0): FragmentCone =>
+            fragmentCone(speed, head.spread, 8, facing, rvx, rvy, head.targetRadius, head.targeting.fireRange, {
+                centre: 0,
+                half: 0,
+                reach: 0,
+            });
+        // At rest, its own spread and reach.
+        const still = cone(0, 0);
+        expect(still.centre).toBeCloseTo(0, 9);
+        expect(still.half).toBeCloseTo(head.spread / 2, 9);
+        expect(still.reach).toBeCloseTo(head.reach, 6);
+        // Closing head on at twice its burst speed: a third as wide, as far as the gaps allow.
+        const closing = cone(2 * speed, 0);
+        expect(closing.centre).toBeCloseTo(0, 9);
+        expect(closing.half).toBeLessThan(still.half / 2);
+        expect(closing.reach).toBeGreaterThan(still.reach * 1.5);
+        // Pointed 45° off the way it closes: the cone swings most of the way back, 5° to 23° off.
+        const skewed = cone(2 * speed, 0, Math.PI / 4);
+        expect(skewed.centre - skewed.half).toBeCloseTo(Math.atan2(Math.sin(Math.PI / 12), 2 + Math.cos(Math.PI / 12)), 2);
+        expect(skewed.centre + skewed.half).toBeCloseTo(Math.atan2(Math.sin((5 * Math.PI) / 12), 2 + Math.cos((5 * Math.PI) / 12)), 2);
+        // All round, and slower than its burst: still all round.
+        const ring = fragmentCone(speed, Math.PI * 2, 8, 0, speed / 2, 0, 1, 1, { centre: 0, half: 0, reach: 0 });
+        expect(ring.half).toBe(Infinity);
+        // All round, but faster than its burst: only the way it closes.
+        expect(fragmentCone(speed, Math.PI * 2, 8, 0, 2 * speed, 0, 1, 1, { centre: 0, half: 0, reach: 0 }).half).toBeLessThan(Math.PI / 4);
+    });
+
+    it("trips on what its fragments would hit, closing fast with its nose off to one side", () => {
+        // Pointed 45° right of a hull dead ahead, away from its second module, closing on it at twice its burst speed.
+        const design = compileBlueprint(CARRIER);
+        const placed = design.modules[design.warheads[0]!.module]!;
+        const speed = warheadBurst(placed.spec, placed.stats).speed;
+        const fuzed = (vx: number): boolean => {
+            const world = new World({ dt: 1 / 60, seed: 5 });
+            const ships = new Ships();
+            const carrier = ships.spawn(world, { design, x: 0, y: 0, angle: -Math.PI / 4, vx, team: 1 });
+            ships.spawn(world, { design: compileBlueprint(TARGET), x: 1.5 + 2 + 15, y: 0, team: 2 });
+            const grid = new SpatialGrid(64);
+            grid.rebuild(world.bodies);
+            const b = world.bodies.indexOf(ships.body(carrier));
+            return tripped(ships, world.bodies, grid, carrier, b, design, design.warheads[0]!.module, world.dt);
+        };
+        // Still, the hull is outside its 60° cone; closing, its fragments go that way.
+        expect(fuzed(0)).toBe(false);
+        expect(fuzed(2 * speed)).toBe(true);
+    });
+
+    it("shows its cone at what it is going for, and at rest with nothing", () => {
+        const s = scene(1.5 + 2 + 200, 0);
+        const cone = { centre: 0, half: 0, reach: 0 };
+        const head = s.design.warheads[0]!;
+        // Nothing chosen yet: its own cone, the way it points.
+        warheadCone(s.ships, s.world.bodies, s.carrier, s.b, 0, cone);
+        expect(cone.centre).toBeCloseTo(s.world.bodies.angle[s.b]!, 9);
+        expect(cone.half).toBeCloseTo(head.spread / 2, 9);
+        s.ships.pushOrder(s.carrier, s.target, 0, 50, 10);
+        warheadCone(s.ships, s.world.bodies, s.carrier, s.b, 0, cone);
+        // Closing at 300 m/s, a little way to the side: narrower.
+        expect(cone.half).toBeLessThan(head.spread / 2);
+        const view = capture(new Snapshot(), s.world, s.ships, s.projectiles, new Beams(4));
+        const shown = view.ships.find((ship) => ship.warheadCones !== undefined && ship.warheadCones.length > 0)!;
+        expect(shown.warheadCones).toEqual([cone.centre, cone.half, cone.reach]);
     });
 
     it("throws its casing ahead, keeps the momentum balanced, and is gone", () => {

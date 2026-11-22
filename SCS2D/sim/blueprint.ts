@@ -601,8 +601,10 @@ export interface DesignWarhead {
     readonly module: number;
     /** How wide it throws its fragments, radians, about its facing. */
     readonly spread: number;
-    /** How close the enemy it wants comes before it goes off, metres (`warheadReach` by `fireRange`). */
+    /** How close the enemy it wants comes before it goes off, metres (`warheadReach` by `fireRange`), both at rest. */
     readonly reach: number;
+    /** How big the enemy it wants is, metres: what its fragments must not leave a gap wider than. */
+    readonly targetRadius: number;
     readonly targeting: Targeting;
     /** Part of the main battery (`ModuleSpec.main`). */
     readonly main: boolean;
@@ -2943,6 +2945,7 @@ function designFrom(
                 spread: warheadBurst(spec, s).spread,
                 // Filled once the hull's radius is final, as a mount's reach is.
                 reach: 0,
+                targetRadius: 0,
                 targeting: resolveTargeting(spec.targeting, defaultTargeting(spec.kind)),
                 main: spec.main !== false,
             });
@@ -3072,13 +3075,14 @@ function designFrom(
     for (const turret of turrets) {
         if (turret.main) reach = max(reach, expects(doctrine.targeting.preferredMass, turret));
     }
+    const wants = (preferredMass: number): number => radius * sqrt(preferredMass > 0 ? preferredMass : 1);
     const goesOff = (preferredMass: number, head: DesignWarhead): number => {
         const placed = modules[head.module]!;
-        return warheadReach(placed.spec, placed.stats, radius * sqrt(preferredMass > 0 ? preferredMass : 1)) * head.targeting.fireRange;
+        return warheadReach(placed.spec, placed.stats, wants(preferredMass)) * head.targeting.fireRange;
     };
     for (let w = 0; w < warheads.length; w++) {
         const head = warheads[w]!;
-        warheads[w] = { ...head, reach: goesOff(head.targeting.preferredMass, head) };
+        warheads[w] = { ...head, reach: goesOff(head.targeting.preferredMass, head), targetRadius: wants(head.targeting.preferredMass) };
         if (head.main) reach = max(reach, goesOff(doctrine.targeting.preferredMass, head));
     }
 

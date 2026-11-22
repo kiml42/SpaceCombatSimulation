@@ -783,9 +783,11 @@ inside any one file is not contiguous.
   gun's mount** (`DesignWarhead`, beside rather than among `design.turrets`, which are guns): its mount's doctrine
   says what size it is for, its reach is how far its fragments are worth throwing at that, until the gap
   between them at the edge of its spread is as wide (`warheadReach`), its `fireRange` takes its share as a
-  gun's does, and a main warhead counts towards its ship's reach and its attack rosette. **Its fuze** goes off
-  when the nearest point of an enemy module inside its spread is within that reach, unless a friend's is as
-  near; not while its craft is parked on a pad, and never on a collision, so a ram is still a ram. **Going
+  gun's does, and a main warhead counts towards its ship's reach and its attack rosette. **Its fuze** leads
+  as a shotgun fired from a moving hull would: against each hull near it, its fragments fly at their burst
+  speed plus its own velocity less that hull's, so closing fast throws a narrower cone, swung the way it
+  closes, that reaches further (`fragmentCone`). It goes off when the nearest point of an enemy module inside
+  that cone is within its reach, unless a friend's is as near; not while its craft is parked on a pad, and never on a collision, so a ram is still a ram. **Going
   off**, the charge is burnt; the fragments pass through nothing of their ship but the warhead; the hull keeps
   their momentum the other way; and what the fragments did not take crushes the carrier outward from the
   warhead, as a collision crushes a hull inward, along 64 lines over the turn outside the spread

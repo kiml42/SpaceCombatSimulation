@@ -1551,32 +1551,46 @@ function drawLoad(ctx: CanvasRenderingContext2D, ship: ShipView, t: number, mx: 
 }
 
 /**
- * Where each warhead will go off at: its spread, out to its reach, as a gun's
- * wedge is drawn; fouled once its fuze is dead (`DUD_INTEGRITY`).
+ * Where each warhead will go off at: the cone its fragments fly in at what it
+ * is going for, its own velocity added, out to their reach, as a gun's wedge
+ * is drawn; and a line the way it points. Fouled once its fuze is dead
+ * (`DUD_INTEGRITY`).
  */
 function drawWarheadTriggers(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
     const design = ship.currentStructure;
     if (design.warheads.length === 0) return;
+    const cones = ship.warheadCones;
+    const c = cos(ship.angle);
+    const s = sin(ship.angle);
     ctx.save();
-    ctx.translate(ship.x, ship.y);
-    ctx.rotate(ship.angle);
     ctx.lineWidth = legibleWidth(0, MIN_TRIGGER_PX, metresToPx);
-    for (const head of design.warheads) {
+    for (let w = 0; w < design.warheads.length; w++) {
+        const head = design.warheads[w]!;
         const module = design.modules[head.module];
-        if (module === undefined || !(head.reach > 0)) continue;
+        if (module === undefined) continue;
+        const facing = ship.angle + module.angle;
+        const centre = cones?.[3 * w] ?? facing;
+        const half = cones?.[3 * w + 1] ?? (head.spread >= TAU ? Infinity : head.spread / 2);
+        const reach = cones?.[3 * w + 2] ?? head.reach;
+        if (!(reach > 0)) continue;
+        const x = ship.x + module.x * c - module.y * s;
+        const y = ship.y + module.x * s + module.y * c;
         const tint = (ship.integrity[head.module] ?? 1) <= DUD_INTEGRITY ? TRIGGER_FOULED : TRIGGER_OFF;
         ctx.fillStyle = tint;
         ctx.strokeStyle = tint;
         ctx.beginPath();
         // All round, a ring with no edges to draw; else a wedge from the warhead.
-        if (head.spread >= TAU) ctx.arc(module.x, module.y, head.reach, 0, TAU);
+        if (half === Infinity) ctx.arc(x, y, reach, 0, TAU);
         else {
-            const half = head.spread / 2;
-            ctx.moveTo(module.x, module.y);
-            ctx.arc(module.x, module.y, head.reach, module.angle - half, module.angle + half);
+            ctx.moveTo(x, y);
+            ctx.arc(x, y, reach, centre - half, centre + half);
             ctx.closePath();
         }
         ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + cos(facing) * reach, y + sin(facing) * reach);
         ctx.stroke();
     }
     ctx.restore();

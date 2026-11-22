@@ -2,10 +2,11 @@ import type { Bodies } from "./bodies.js";
 import type { ShipDesign } from "./blueprint.js";
 import { DamageEffect, IMPACT_BURST, resolveCollision, SHATTER, type ImpactLog } from "./damage.js";
 import { BOTH_LAYERS, HullPath, moduleLayers } from "./hull.js";
-import { abs, angleDelta, asin, atan2, cos, log, max, min, pow, sin, sqrt, TAU } from "./math.js";
-import { WARHEAD_FRAGMENT_LIFE, warheadBurst, warheadSpread } from "./modules.js";
+import { abs, angleDelta, asin, atan2, cos, log, max, min, PI, pow, sin, sqrt, TAU } from "./math.js";
+import { WARHEAD_FRAGMENT_LIFE, warheadBurst, warheadBurstSpeed, warheadSpread } from "./modules.js";
 import { ROUND_WRECKAGE, type Projectiles } from "./projectiles.js";
 import * as shipDocking from "./shipDocking.js";
+import * as shipOrders from "./shipOrders.js";
 import { blowKey, discardFrom, heldMass, settleMass } from "./shipBreakup.js";
 import { MOST_FRAGMENTS, WRECKAGE_LIFE, WRECKAGE_SHARE } from "./wreckage.js";
 import { IndexBuffer, type SpatialGrid } from "./spatialGrid.js";
@@ -19,10 +20,11 @@ import type { World } from "./world.js";
  * so what it yields is what it holds. Its ship burns it last
  * (`WARHEAD_DRAIN_PRIORITY`), and it tops itself up from the tanks drawn
  * before it, so one rebuilt or holed fills again. Its fuze sets it off when
- * the edge of an enemy hull inside its spread comes within its reach, which
- * its mount's doctrine sets as a gun's does (`DesignWarhead.reach`), unless a
- * friend inside the spread is nearer. A collision does not: a ram is still a
- * ram.
+ * the edge of an enemy hull comes inside the cone its fragments would fly in
+ * relative to that hull, its own velocity added as a shotgun's is
+ * (`fragmentCone`), and within their reach, which its mount's doctrine sets as
+ * a gun's does; unless a friend inside it is nearer. A collision does not: a
+ * ram is still a ram.
  *
  * Going off, the casing flies out across the spread as fragments, which are
  * rounds like any other and pass through nothing of the ship that threw them
@@ -44,6 +46,77 @@ import type { World } from "./world.js";
  * how far beyond its reach a fuze looks for one, a step's travel at this.
  */
 const FUZE_CLOSING = 5000;
+
+/** How many bearings each side of its facing a burst's cone is traced through (`fragmentCone`). */
+const CONE_STEPS = 12;
+
+/** The way a burst's fragments go as seen from what they are thrown at (`fragmentCone`). */
+export interface FragmentCone {
+    /** The bearing down its middle, radians, in the world. */
+    centre: number;
+    /** Half its width, radians: infinite all round. */
+    half: number;
+    /** How far it is worth going off at, metres: as `warheadReach`, at the speeds the fragments close at. */
+    reach: number;
+}
+
+/**
+ * Where a burst's fragments go relative to a hull, as a shotgun's pellets do
+ * from a moving hull: each leaves at the burst's `speed` along its bearing in
+ * the `spread` about `facing`, plus (`rvx`, `rvy`), the warhead's velocity
+ * less the hull's. So a warhead closing fast throws a narrower cone, swung
+ * towards the way it closes, and further, since its fragments close faster.
+ * Traced bearing by bearing (`CONE_STEPS`), so a cone that swings past a half
+ * turn stays one cone.
+ */
+export function fragmentCone(
+    speed: number,
+    spread: number,
+    fragments: number,
+    facing: number,
+    rvx: number,
+    rvy: number,
+    targetRadius: number,
+    fireRange: number,
+    out: FragmentCone,
+): FragmentCone {
+    const drift = sqrt(rvx * rvx + rvy * rvy);
+    const ring = spread >= TAU;
+    const half = ring ? PI : 0.5 * spread;
+    const mid = atan2(rvy + speed * sin(facing), rvx + speed * cos(facing));
+    let lo = 0;
+    let hi = 0;
+    let slowest = length2(rvx + speed * cos(facing), rvy + speed * sin(facing));
+    for (let side = -1; side <= 1; side += 2) {
+        let previous = mid;
+        let turned = 0;
+        for (let k = 1; k <= CONE_STEPS && half > 0; k++) {
+            const bearing = facing + (side * half * k) / CONE_STEPS;
+            const fx = rvx + speed * cos(bearing);
+            const fy = rvy + speed * sin(bearing);
+            const heading = atan2(fy, fx);
+            turned += angleDelta(previous, heading);
+            previous = heading;
+            if (turned < lo) lo = turned;
+            if (turned > hi) hi = turned;
+            const fast = length2(fx, fy);
+            if (fast < slowest) slowest = fast;
+        }
+    }
+    // All round, and slower than the burst: some go every way.
+    const round = ring && drift < speed;
+    out.centre = round ? facing : mid + 0.5 * (lo + hi);
+    out.half = round || hi - lo >= TAU ? Infinity : 0.5 * (hi - lo);
+    const width = out.half === Infinity ? TAU : 2 * out.half;
+    const flight = slowest * WARHEAD_FRAGMENT_LIFE;
+    const spaced = width > 0 && fragments > 1 ? (2 * targetRadius * fragments) / width : Infinity;
+    out.reach = (spaced < flight ? spaced : flight) * fireRange;
+    return out;
+}
+
+function length2(x: number, y: number): number {
+    return sqrt(x * x + y * y);
+}
 
 /** Steel, which sizes a fragment's calibre from its mass. */
 const FRAGMENT_DENSITY = 7800;
@@ -163,8 +236,9 @@ export function cookOff(ships: Ships, world: World, projectiles: Projectiles, lo
 
 /**
  * Whether warhead `m` of ship `i`, on body `b`, would go off now: an enemy
- * module's nearest point inside its spread and within its reach, or
- * within a step of it, and no friend's nearer inside the spread.
+ * module's nearest point inside its fragments' cone as that hull sees them
+ * come (`fragmentCone`) and within its reach, or within a step of it, and no
+ * friend's nearer inside it.
  */
 export function tripped(
     ships: Ships,
@@ -178,10 +252,11 @@ export function tripped(
 ): boolean {
     const placed = design.modules[m]!;
     const spec = placed.spec;
-    // How far out it goes off, as its mount's doctrine says (`DesignWarhead.reach`).
-    const reach = design.warheads.find((head) => head.module === m)?.reach ?? 0;
+    const head = design.warheads.find((h) => h.module === m);
+    if (head === undefined) return false;
+    const speed = warheadBurstSpeed(spec, max(0, placed.stats.structureMass - ships.damage.shedAt(b, m)), ships.fuel.held(b, m));
+    const fragments = spec.fragments !== undefined && spec.fragments > 1 ? spec.fragments : 1;
     const spread = warheadSpread(spec);
-    const half = spread >= TAU ? Infinity : 0.5 * spread;
     const angle = bodies.angle[b]!;
     const c = cos(angle);
     const s = sin(angle);
@@ -191,10 +266,12 @@ export function tripped(
     const spin = bodies.angularVel[b]!;
     const wvx = bodies.vx[b]! - spin * (wy - bodies.y[b]!);
     const wvy = bodies.vy[b]! + spin * (wx - bodies.x[b]!);
+    // Nothing closing faster than `FUZE_CLOSING` is reached further than this.
+    const furthest = (speed + FUZE_CLOSING) * WARHEAD_FRAGMENT_LIFE * head.targeting.fireRange;
 
     let enemy = Infinity;
     let friend = Infinity;
-    grid.queryCircle(bodies, wx, wy, reach + FUZE_CLOSING * dt, near);
+    grid.queryCircle(bodies, wx, wy, furthest + FUZE_CLOSING * dt, near);
     for (let q = 0; q < near.count; q++) {
         const tb = near.data[q]!;
         if (tb === b) continue;
@@ -202,6 +279,10 @@ export function tripped(
         if (t < 0 || ships.alive[t] === 0) continue;
         const theirs = ships.designs[t]!;
         const pilots = ships.pilots[tb];
+        // The fragments as that hull sees them come.
+        const tvx = bodies.vx[tb]!;
+        const tvy = bodies.vy[tb]!;
+        fragmentCone(speed, spread, fragments, facing, wvx - tvx, wvy - tvy, head.targetRadius, head.targeting.fireRange, CONE);
         // Into the other hull's frame, once.
         const ta = bodies.angle[tb]!;
         const tc = cos(ta);
@@ -210,10 +291,8 @@ export function tripped(
         const ry = wy - bodies.y[tb]!;
         const lx = rx * tc + ry * ts;
         const ly = -rx * ts + ry * tc;
-        const lf = facing - ta;
+        const lf = CONE.centre - ta;
         // How fast the two close, along the line between their centres.
-        const tvx = bodies.vx[tb]!;
-        const tvy = bodies.vy[tb]!;
         const run = sqrt(rx * rx + ry * ry);
         const closing = run > 0 ? ((wvx - tvx) * -rx + (wvy - tvy) * -ry) / run : 0;
         const slack = closing > 0 ? closing * dt : 0;
@@ -225,13 +304,60 @@ export function tripped(
             if (!hostile && ships.team[owner] !== ships.team[i]) continue;
             const d = boxDistance(theirs, k, lx, ly);
             if (!(d >= 0)) continue;
-            if (d > reach + slack) continue;
-            if (!inSpread(theirs, k, lx, ly, lf, half, d)) continue;
+            if (d > CONE.reach + slack) continue;
+            if (!inSpread(theirs, k, lx, ly, lf, CONE.half, d)) continue;
             if (hostile) enemy = min(enemy, d);
             else friend = min(friend, d);
         }
     }
     return enemy < Infinity && !(friend <= enemy);
+}
+
+const CONE: FragmentCone = { centre: 0, half: 0, reach: 0 };
+
+/**
+ * The cone warhead `w` of ship `i`, on body `b`, would throw its fragments in
+ * at what it is going for: its order's target, a ram's among them, else the
+ * one its doctrine chose, else at rest. What the fuze looks along, for drawing.
+ */
+export function warheadCone(ships: Ships, bodies: Bodies, i: number, b: number, w: number, out: FragmentCone): FragmentCone {
+    const design = ships.designs[i]!;
+    const head = design.warheads[w]!;
+    const placed = design.modules[head.module]!;
+    const spec = placed.spec;
+    const speed = warheadBurstSpeed(
+        spec,
+        max(0, placed.stats.structureMass - ships.damage.shedAt(b, head.module)),
+        ships.fuel.held(b, head.module),
+    );
+    const fragments = spec.fragments !== undefined && spec.fragments > 1 ? spec.fragments : 1;
+    const angle = bodies.angle[b]!;
+    const ox = placed.x * cos(angle) - placed.y * sin(angle);
+    const oy = placed.x * sin(angle) + placed.y * cos(angle);
+    const spin = bodies.angularVel[b]!;
+    let rvx = bodies.vx[b]! - spin * oy;
+    let rvy = bodies.vy[b]! + spin * ox;
+    const ordered = shipOrders.effectiveOrder(ships, i)?.target ?? -1;
+    const target = ordered >= 0 ? ordered : ships.chosenOf(i);
+    const tb = target >= 0 && ships.alive[target] === 1 ? bodies.indexOf(ships.bodyIds[target]!) : -1;
+    if (tb >= 0) {
+        rvx -= bodies.vx[tb]!;
+        rvy -= bodies.vy[tb]!;
+    } else {
+        rvx = 0;
+        rvy = 0;
+    }
+    return fragmentCone(
+        speed,
+        warheadSpread(spec),
+        fragments,
+        angle + placed.angle,
+        rvx,
+        rvy,
+        head.targetRadius,
+        head.targeting.fireRange,
+        out,
+    );
 }
 
 /** How far `(lx, ly)`, in the design's frame, is from module `k`'s box, metres: 0 inside it. */
