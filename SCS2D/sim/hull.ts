@@ -331,7 +331,7 @@ function hullMountAlong(
             discAlong(cx, cy, disc, x0, y0, ux, uy, length);
             partAlong(cx - c * stalk, cy - s * stalk, c, s, stalk, mount.outletWidth * BEAM_STALK_WIDTH * 0.5, x0, y0, ux, uy, length);
         }
-    } else {
+    } else if (mount.barrelLength > 0) {
         let dx = c;
         let dy = s;
         if (hulls?.mountBearing !== undefined && body >= 0 && design.turrets !== undefined) {
