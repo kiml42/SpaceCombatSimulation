@@ -315,6 +315,77 @@ export function tripped(
 
 const CONE: FragmentCone = { centre: 0, half: 0, reach: 0 };
 
+/** Where a ship ramming points to throw its warhead at what it rams (`warheadLead`). */
+export interface WarheadLead {
+    /** The hull's heading that leads the warhead onto it, radians. */
+    heading: number;
+    /** How far the warhead goes off at, so pointed, metres (`fragmentCone`). */
+    reach: number;
+}
+
+/**
+ * The heading ship `i`, on body `b`, holds to throw its first working main
+ * warhead at (`ax`, `ay`) moving at (`avx`, `avy`), as a turret leads a shot:
+ * at its burst speed from a hull moving as the warhead does, so the middle of
+ * its fragments goes straight at it. False with no main warhead whose fuze
+ * works and holds charge, or when its drift across the line, or away along
+ * it, is more than its burst can take out: then pointing it is no use.
+ */
+export function warheadLead(
+    ships: Ships,
+    bodies: Bodies,
+    i: number,
+    b: number,
+    ax: number,
+    ay: number,
+    avx: number,
+    avy: number,
+    out: WarheadLead,
+): boolean {
+    const design = ships.designs[i]!;
+    for (const head of design.warheads) {
+        if (!head.main || ships.left(i, b, head.module, DamageEffect.Fuze) <= 0) continue;
+        const charge = ships.fuel.held(b, head.module);
+        if (!(charge > 0)) continue;
+        const placed = design.modules[head.module]!;
+        const speed = warheadBurstSpeed(placed.spec, max(0, placed.stats.structureMass - ships.damage.shedAt(b, head.module)), charge);
+        const angle = bodies.angle[b]!;
+        const ox = placed.x * cos(angle) - placed.y * sin(angle);
+        const oy = placed.x * sin(angle) + placed.y * cos(angle);
+        const spin = bodies.angularVel[b]!;
+        const vx = bodies.vx[b]! - spin * oy - avx;
+        const vy = bodies.vy[b]! + spin * ox - avy;
+        const dx = ax - bodies.x[b]! - ox;
+        const dy = ay - bodies.y[b]! - oy;
+        const range = length2(dx, dy);
+        if (!(range > 0) || !(speed > 0)) return false;
+        const ux = dx / range;
+        const uy = dy / range;
+        // Its burst plus its drift, along the line: the burst takes out the drift across it, and the rest goes along.
+        const along = vx * ux + vy * uy;
+        const across = vx * uy - vy * ux;
+        if (abs(across) >= speed) return false;
+        const closing = along + sqrt(speed * speed - across * across);
+        if (!(closing > 0)) return false;
+        const facing = atan2(closing * uy - vy, closing * ux - vx);
+        out.heading = facing - placed.angle;
+        const fragments = placed.spec.fragments !== undefined && placed.spec.fragments > 1 ? placed.spec.fragments : 1;
+        out.reach = fragmentCone(
+            speed,
+            warheadSpread(placed.spec),
+            fragments,
+            facing,
+            vx,
+            vy,
+            head.targetRadius,
+            head.targeting.fireRange,
+            CONE,
+        ).reach;
+        return true;
+    }
+    return false;
+}
+
 /**
  * The cone warhead `w` of ship `i`, on body `b`, would throw its fragments in
  * at what it is going for: its order's target, a ram's among them, else the

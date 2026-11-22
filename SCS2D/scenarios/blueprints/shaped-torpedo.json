@@ -16,7 +16,8 @@
             "ramRadii": 1000,
             "ramArmed": 1,
             "approachSpeed": 900,
-            "ramSelectiveFuel": 0.1
+            "ramSelectiveFuel": 0.1,
+            "rangeHold": 4
         }
     },
     "assemblies": {
