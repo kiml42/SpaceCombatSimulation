@@ -801,8 +801,11 @@ inside any one file is not contiguous.
   break up, and does not cook off. In the editor it is a tank framed in barrel bronze, the frame as thick as
   its casing; its spread is drawn as its trigger cone; and the attack rosette sets it off, hiding it until
   the pointer leaves. The KKV is the stock torpedo with an armoured nose and no warhead, which rams; the
-  Torpedo has a 16-fragment, 60° warhead in its nose, and the Shaped Torpedo a slug, both still flying the
-  KKV's ram, so one whose fuze is dead rams. A craft that rams whatever it carries fights from its ram's run
+  Torpedo has a 16-fragment, 120° warhead in its nose, and the Shaped Torpedo a slug, both still flying the
+  KKV's ram, so one whose fuze is dead rams. **A ram with a working warhead turns it on at the end**: it
+  burns as any ram does until its drift will not carry it wide of what it rams in the time left, and that
+  time is no more than a quarter turn of its hull, then holds the heading that leads the warhead's middle
+  fragment onto its target as a gun leads a shot (`warheadLead`), flying the same ram. A craft that rams whatever it carries fights from its ram's run
   however close its warhead goes off (`reachOf`), so it sorties as a KKV does.
   **Two layers** (§3). Every module is in the hull layer. Turrets and anything marked _thick_ stand up into
   the weapons layer as well; a turret only by its dome, a circle as wide as the mount, on a block in the

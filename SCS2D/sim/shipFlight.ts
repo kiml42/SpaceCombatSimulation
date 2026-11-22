@@ -190,8 +190,6 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
     let wantAngle = bodies.angle[b]!;
     // The body of what it is fighting, if anything.
     let fighting = -1;
-    // How far its main weapons reach what it is fighting, where not its design's.
-    let aimReach = -1;
 
     // Of two ships docked by their ports, the smaller idles and the larger
     // flies the pair: two pilots on one body would pull it apart.
@@ -316,17 +314,10 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
                     ships.intent = HURRY;
                 } else {
                     charge(ships, bodies, i, b, at, order.approachSpeed, tb);
-                    // With a warhead that works, it points it as an attacker points its guns, weighing that
-                    // against turning to burn; flying where the ram takes it either way. Without, it burns.
-                    if (warheadLead(ships, bodies, i, b, at.x, at.y, at.vx, at.vy, LEAD)) {
+                    // Its drift taken out and the hit sure, in its last quarter turn it turns its warhead
+                    // on, leading it as a gun leads a shot. Until then, or with none that works, it burns.
+                    if (aimsWarhead(ships, bodies, i, b, at, tb) && warheadLead(ships, bodies, i, b, at.x, at.y, at.vx, at.vy, LEAD)) {
                         wantAngle = LEAD.heading;
-                        fighting = tb;
-                        // Further by what it closes in a quarter turn, so turning back from a burn across
-                        // the line is done by the time it goes off.
-                        const quarter = quarterTurn(ships, bodies, i, b);
-                        const lead = quarter < Infinity ? quarter + ships.doctrines[i]!.approach.responseTime : 0;
-                        aimReach = LEAD.reach + max(0, closingOn(bodies, b, at)) * lead;
-                        ships.brakingOnMains[i] = 0;
                     } else ships.intent = HURRY;
                 }
             } else if (ships.guarding[i] !== 1) {
@@ -378,9 +369,7 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
     leadAy -= PULL.y;
 
     if (fighting < 0) ships.brakingOnMains[i] = 0;
-    if (fighting >= 0) wantAngle = burnOrFight(ships, i, b, ships.fightAt, bodies, wantAngle, wantVx, wantVy, aimReach);
-    // A ram that turns to burn burns flat out, as one with nothing to aim does.
-    if (aimReach >= 0 && ships.burning[i] === 1) ships.intent = HURRY;
+    if (fighting >= 0) wantAngle = burnOrFight(ships, i, b, ships.fightAt, bodies, wantAngle, wantVx, wantVy);
     else ships.burning[i] = 0;
     // With nothing to point its guns at, where its bow points is the helm's, for
     // its best push: making for a waypoint, with a charge, or waiting. Not where
@@ -636,8 +625,6 @@ export function burnOrFight(
     attack: number,
     wantVx: number,
     wantVy: number,
-    /** How far its main weapons reach, where not its design's: a warhead's at the speed it closes. */
-    aimReach = -1,
 ): number {
     const approach = ships.doctrines[i]!.approach;
     const layout = ships.layoutOf(i);
@@ -666,7 +653,7 @@ export function burnOrFight(
     }
 
     const range = length(at.x - bodies.x[b]!, at.y - bodies.y[b]!);
-    const reach = aimReach >= 0 ? aimReach : ships.designs[i]!.reach;
+    const reach = ships.designs[i]!.reach;
     // On the run out of a pass or back in, its guns wait for its push.
     const near = ships.running[i] === 1 || !(reach > 0) ? 0 : range > reach ? reach / range : 1;
     // Worth less the further into its band's fade it is: the last of the
@@ -1031,12 +1018,26 @@ export function charge(ships: Ships, bodies: Bodies, i: number, b: number, at: S
     urge(ships, URGE_REFERENCE, at.vx + ux * want, at.vy + uy * want);
 }
 
-/** How fast body `b` closes on `at`, m/s, along the line between them. */
-function closingOn(bodies: Bodies, b: number, at: Spot): number {
+/**
+ * Whether ship `i`, on body `b`, ramming `at` on body `tb`, is sure to hit
+ * and near enough to turn its warhead on: what it drifts across the line in
+ * the time left is less than the target's radius, and that time is no more
+ * than a quarter turn and its response take.
+ */
+function aimsWarhead(ships: Ships, bodies: Bodies, i: number, b: number, at: Spot, tb: number): boolean {
     const dx = at.x - bodies.x[b]!;
     const dy = at.y - bodies.y[b]!;
     const range = length(dx, dy);
-    return range > 0 ? ((bodies.vx[b]! - at.vx) * dx + (bodies.vy[b]! - at.vy) * dy) / range : 0;
+    if (!(range > 0)) return false;
+    const rvx = bodies.vx[b]! - at.vx;
+    const rvy = bodies.vy[b]! - at.vy;
+    const closing = (rvx * dx + rvy * dy) / range;
+    if (!(closing > 0)) return false;
+    const left = max(0, range - bodies.radius[tb]!) / closing;
+    const across = abs(rvx * dy - rvy * dx) / range;
+    if (across * left > bodies.radius[tb]!) return false;
+    const quarter = quarterTurn(ships, bodies, i, b);
+    return quarter < Infinity && left <= quarter + ships.doctrines[i]!.approach.responseTime;
 }
 
 /** How long ship `i`, on body `b`, takes to turn a quarter turn from rest to rest, s: speeding up half way and slowing the rest. */

@@ -2,7 +2,7 @@
     "formatVersion": 2,
     "name": "Torpedo",
     "category": "Stock",
-    "notes": "The KKV's frame with its armoured nose swapped for a warhead: sixteen fragments thrown across a 60\u00b0 cone ahead, its fuze set by the size of ship it hunts. It still flies the KKV's ram, so one whose fuze is dead goes on to ram.",
+    "notes": "The KKV's frame with its armoured nose swapped for a warhead: sixteen fragments thrown across a 120\u00b0 cone ahead, its fuze set by the size of ship it hunts. It still flies the KKV's ram, so one whose fuze is dead goes on to ram.",
     "fighter": true,
     "doctrine": {
         "targeting": {
@@ -16,8 +16,7 @@
             "ramRadii": 1000,
             "ramArmed": 1,
             "approachSpeed": 900,
-            "ramSelectiveFuel": 0.1,
-            "rangeHold": 4
+            "ramSelectiveFuel": 0.1
         }
     },
     "assemblies": {
@@ -94,7 +93,7 @@
             "width": 0.3,
             "reinforcement": 1,
             "fragments": 16,
-            "spread": 60,
+            "spread": 120,
             "targeting": {
                 "preferredMass": 20,
                 "fireRange": 0.3

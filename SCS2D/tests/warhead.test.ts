@@ -31,6 +31,7 @@ import {
     tripped,
     WARHEAD_FILL_RATE,
     warheadCone,
+    warheadLead,
     type FragmentCone,
 } from "../sim/warheads.js";
 import { Beams, capture, Snapshot } from "../sim/index.js";
@@ -305,6 +306,29 @@ describe("warhead", () => {
         const view = capture(new Snapshot(), s.world, s.ships, s.projectiles, new Beams(4));
         const shown = view.ships.find((ship) => ship.warheadCones !== undefined && ship.warheadCones.length > 0)!;
         expect(shown.warheadCones).toEqual([cone.centre, cone.half, cone.reach]);
+    });
+
+    it("leads its warhead onto a target as a gun leads a shot, and gives up where it cannot", () => {
+        const design = compileBlueprint(CARRIER);
+        const placed = design.modules[design.warheads[0]!.module]!;
+        const speed = warheadBurst(placed.spec, placed.stats).speed;
+        // From still, with the target 100 m ahead moving across at `across`.
+        const lead = (across: number, dud = false): number | null => {
+            const world = new World({ dt: 1 / 60, seed: 5 });
+            const ships = new Ships();
+            const i = ships.spawn(world, { design, x: 0, y: 0, team: 1 });
+            const b = world.bodies.indexOf(ships.body(i));
+            if (dud) ships.damage.absorb(b, design.warheads[0]!.module, 0.51 * ships.damage.capacityOf(b, design.warheads[0]!.module));
+            const out = { heading: 0, reach: 0 };
+            return warheadLead(ships, world.bodies, i, b, 101.5, 0, 0, across, out) ? out.heading : null;
+        };
+        expect(lead(0)).toBeCloseTo(0, 6);
+        // Moving across, it throws ahead of it: the middle fragment's sideways speed matches the target's.
+        expect(Math.sin(lead(speed / 2)!) * speed).toBeCloseTo(speed / 2, 6);
+        // Faster across than its burst, no aim helps.
+        expect(lead(speed * 1.1)).toBeNull();
+        // A dead fuze has nothing to aim.
+        expect(lead(0, true)).toBeNull();
     });
 
     it("throws its casing ahead, keeps the momentum balanced, and is gone", () => {
