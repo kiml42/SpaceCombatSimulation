@@ -770,6 +770,38 @@ inside any one file is not contiguous.
   target, holding a bigger ship in its sights long enough, and the Lance Gunship the Gunship with a heavy
   one kept ready to strike a small ship the moment it bears; both close to knife range. The
   Lance Duel sets two Lance Corvettes against a Lance Gunship, head on and at rest 1.2 km apart.
+  **A warhead** (`warhead`, `sim/warheads.ts`) is a weapon that fires by blowing itself apart. It is a tank:
+  its walls are its casing and the fuel it holds is its charge, at a drain priority below any tank's
+  (`WARHEAD_DRAIN_PRIORITY`), so its ship burns it only once every other tank on its piece is dry, refuelling
+  fills it first, and it tops itself up from the tanks drawn before it, one rebuilt or holed included. **What
+  it yields is what it holds** (`EXPLOSIVE_YIELD` a kilogram), so a torpedo that has burnt into its warhead hits
+  weaker. It throws its casing as `fragments` rounds across its `spread` about its facing: one is a single
+  slug, a shaped charge's, straight ahead; more are never narrower than they need (`SPREAD_PER_FRAGMENT`,
+  10° for 64). Its fragments take the share of the yield its spread takes of the turn, never less than a
+  shaped liner's fifth (`WARHEAD_FOCUS`), and leave at the speed that energy gives the casing
+  (`warheadBurst`), so `reinforcement`, which sets the casing, trades speed for weight. **It is a weapon like a
+  gun's mount** (`DesignWarhead`, beside rather than among `design.turrets`, which are guns): its mount's doctrine
+  says what size it is for, its reach is how far its fragments are worth throwing at that, until the gap
+  between them at the edge of its spread is as wide (`warheadReach`), its `fireRange` takes its share as a
+  gun's does, and a main warhead counts towards its ship's reach and its attack rosette. **Its fuze** goes off
+  when the nearest point of an enemy module inside its spread is within that reach, unless a friend's is as
+  near; not while its craft is parked on a pad, and never on a collision, so a ram is still a ram. **Going
+  off**, the charge is burnt; the fragments pass through nothing of their ship but the warhead; the hull keeps
+  their momentum the other way; and what the fragments did not take crushes the carrier outward from the
+  warhead, as a collision crushes a hull inward, along 64 lines over the turn outside the spread
+  (`BLAST_LINES`), so a module shields what is behind it and a line that meets nothing carries its share into
+  space. What that shatters of the carrier flies on as wreckage, away from the warhead, the charge's gas
+  taking its momentum, so a warhead is dangerous all round its carrier. **Damage**: its fuze is dead at half
+  its integrity (`DUD_INTEGRITY`); any damage to one holding charge may set it off wherever it points
+  (`cookOff`, 5% while sound, certain as it is destroyed and always if a blow shatters it), one setting off
+  another; and one parked on a pad is let off it first, its blast going on into its carrier from where it
+  leaves the craft. One docked port to port or by a claw shares its carrier's hull, which severing does not
+  break up, and does not cook off. In the editor it is a tank framed in barrel bronze, the frame as thick as
+  its casing; its spread is drawn as its trigger cone; and the attack rosette sets it off, hiding it until
+  the pointer leaves. The KKV is the stock torpedo with an armoured nose and no warhead, which rams; the
+  Torpedo has a 16-fragment, 60° warhead in its nose, and the Shaped Torpedo a slug, both still flying the
+  KKV's ram, so one whose fuze is dead rams. A craft that rams whatever it carries fights from its ram's run
+  however close its warhead goes off (`reachOf`), so it sorties as a KKV does.
   **Two layers** (§3). Every module is in the hull layer. Turrets and anything marked _thick_ stand up into
   the weapons layer as well; a turret only by its dome, a circle as wide as the mount, on a block in the
   hull layer. A turret's rounds and beams meet only what is in the weapons layer, so they strip
@@ -1796,8 +1828,8 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   hull and flying half a second; cold, they are drawn as wreckage rather than tracer. Both hulls' shattered
   modules are thrown, the struck one's at its own velocity, so only what was going into the other hull
   reaches it. Gunfire and beams shatter modules too and throw nothing: their energy already goes through
-  armour into the internals. This is what makes a torpedo's spent nose a spray of shrapnel into its
-  target, a step towards the warhead §2 promises.
+  armour into the internals. This is what makes a KKV's spent nose a spray of shrapnel into its
+  target; a warhead (Status) throws its own casing.
 - **A piece broken off too small to keep flies on as shrapnel** (`throwShrapnel`): under 2 t with
   nothing to fly it, it is never made a body, but its metal is still going where its hull was. It flies
   on as one round of its mass, as wide as its own footprint, at the velocity it broke off with, through

@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import { asteroidBlueprint, compileBlueprint, DEFAULT_DOCTRINE, NEUTRAL_TEAM, type Blueprint, type ShipDesign } from "../sim/index.js";
 import { Rng } from "../sim/rng.js";
 import { makeBattle } from "../scenarios/battle.js";
-import { GUNSHIP, TORPEDO } from "../scenarios/blueprints.js";
+import { GUNSHIP, KKV } from "../scenarios/blueprints.js";
 import { WHOLE_SHIP } from "../sim/ships.js";
 
 function rock(): ShipDesign {
@@ -14,7 +14,7 @@ function charge(between: ShipDesign, vx: number) {
     return makeBattle({ seed: 1 }, (ships, world) => {
         const obstacle = ships.spawn(world, { design: between, x: 0, y: 0, team: NEUTRAL_TEAM });
         const target = ships.spawn(world, { design: compileBlueprint(GUNSHIP), x: 1500, y: 0, team: 1 });
-        const torpedo = ships.spawn(world, { design: compileBlueprint(TORPEDO), x: -3000, y: 0, angle: 0, vx, team: 0 });
+        const torpedo = ships.spawn(world, { design: compileBlueprint(KKV), x: -3000, y: 0, angle: 0, vx, team: 0 });
         return { obstacle, target, torpedo };
     });
 }
@@ -41,7 +41,7 @@ it("goes round a friend's hull in the way at speed rather than into it, as a fig
             const friend = ships.spawn(world, { design: compileBlueprint(GUNSHIP), x: 0, y: 0, team: 0 });
             ships.spawn(world, { design: compileBlueprint(GUNSHIP), x: 3000, y: 0, team: 1 });
             const torpedo = ships.spawn(world, {
-                design: compileBlueprint({ ...TORPEDO, fighter }),
+                design: compileBlueprint({ ...KKV, fighter }),
                 x: -3000,
                 y: 0,
                 angle: 0,
@@ -73,27 +73,27 @@ it("goes round a friend's hull in the way at speed rather than into it, as a fig
     expect(run(true).speed).toBeGreaterThan(150);
 });
 
-/** The Torpedo, its doctrine's aim weights set to `weights` (core, engine, gun, structure), and its tanks to `fill`. */
+/** The KKV, its doctrine's aim weights set to `weights` (core, engine, gun, structure), and its tanks to `fill`. */
 function torpedoWith(weights: readonly [number, number, number, number], fill = 1): Blueprint {
     const [coreWeight, engineWeight, gunWeight, structureWeight] = weights;
     return {
-        ...TORPEDO,
+        ...KKV,
         doctrine: {
-            approach: { ...DEFAULT_DOCTRINE.approach, ...TORPEDO.doctrine?.approach },
+            approach: { ...DEFAULT_DOCTRINE.approach, ...KKV.doctrine?.approach },
             targeting: {
                 ...DEFAULT_DOCTRINE.targeting,
-                ...TORPEDO.doctrine?.targeting,
+                ...KKV.doctrine?.targeting,
                 coreWeight,
                 engineWeight,
                 gunWeight,
                 structureWeight,
             },
         },
-        modules: TORPEDO.modules.map((m) => ("kind" in m && m.kind === "tank" ? { ...m, fill } : m)),
+        modules: KKV.modules.map((m) => ("kind" in m && m.kind === "tank" ? { ...m, fill } : m)),
     };
 }
 
-/** A Torpedo built to `torpedo` 1500 m off a Gunship, closing on it. */
+/** A KKV built to `torpedo` 1500 m off a Gunship, closing on it. */
 function rammingGunship(torpedo: Blueprint) {
     return makeBattle({ seed: 1 }, (ships, world) => {
         const target = ships.spawn(world, { design: compileBlueprint(GUNSHIP), x: 1500, y: 0, team: 1 });
@@ -105,7 +105,7 @@ it("rams the middle in the weapons layer, dropping to the hull layer only just b
     // No opinion about parts: the middle of the ship, which is deck.
     const run = rammingGunship(torpedoWith([0, 0, 0, 0]));
     const b = run.world.bodies;
-    const window = compileBlueprint(TORPEDO).doctrine.approach.ramCommit;
+    const window = compileBlueprint(KKV).doctrine.approach.ramCommit;
     let ramming = false;
     let committedAt = Infinity;
     for (let t = 0; t < 60 * 60 && committedAt === Infinity; t++) {

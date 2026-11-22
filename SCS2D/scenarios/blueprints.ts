@@ -16,7 +16,9 @@ import bareCoreFile from "./blueprints/bare-core.json" with { type: "json" };
 import torchFile from "./blueprints/torch.json" with { type: "json" };
 import laserFrigateFile from "./blueprints/laser-frigate.json" with { type: "json" };
 import broadsideFile from "./blueprints/broadside.json" with { type: "json" };
+import kkvFile from "./blueprints/kkv.json" with { type: "json" };
 import torpedoFile from "./blueprints/torpedo.json" with { type: "json" };
+import shapedTorpedoFile from "./blueprints/shaped-torpedo.json" with { type: "json" };
 import torpedoBoatFile from "./blueprints/torpedo-boat.json" with { type: "json" };
 import scavengerFile from "./blueprints/scavenger.json" with { type: "json" };
 import salvagerFile from "./blueprints/salvager.json" with { type: "json" };
@@ -70,7 +72,12 @@ export const BEAM_CATAMARAN: Blueprint = parseBlueprint(beamCatamaranFile);
 export const BARE_CORE: Blueprint = parseBlueprint(bareCoreFile);
 export const TORCH: Blueprint = parseBlueprint(torchFile);
 export const LASER_FRIGATE: Blueprint = parseBlueprint(laserFrigateFile);
+/** A torpedo with no warhead: the kinetic kill vehicle, which rams. */
+export const KKV: Blueprint = parseBlueprint(kkvFile);
+/** The KKV's frame with a fragmenting warhead in its nose. */
 export const TORPEDO: Blueprint = parseBlueprint(torpedoFile);
+/** The KKV's frame with a shaped charge, one slug, in its nose. */
+export const SHAPED_TORPEDO: Blueprint = parseBlueprint(shapedTorpedoFile);
 export const TORPEDO_BOAT: Blueprint = parseBlueprint(torpedoBoatFile);
 export const BROADSIDE: Blueprint = parseBlueprint(broadsideFile);
 export const SCAVENGER: Blueprint = parseBlueprint(scavengerFile);
@@ -104,7 +111,9 @@ export const BLUEPRINTS = {
     bareCore: BARE_CORE,
     torch: TORCH,
     laserFrigate: LASER_FRIGATE,
+    kkv: KKV,
     torpedo: TORPEDO,
+    shapedTorpedo: SHAPED_TORPEDO,
     torpedoBoat: TORPEDO_BOAT,
     broadside: BROADSIDE,
     scavenger: SCAVENGER,

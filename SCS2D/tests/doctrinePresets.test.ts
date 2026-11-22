@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { APPROACH_FIELDS, compileBlueprint, DEFAULT_DOCTRINE, SHIP_TARGETING_FIELDS } from "../sim/index.js";
 import { DOCTRINE_PRESETS, presetDoctrine, presetFields } from "../editor/doctrinePresets.js";
-import { TORPEDO } from "../scenarios/blueprints.js";
+import { KKV } from "../scenarios/blueprints.js";
 
 const named = (name: string) => DOCTRINE_PRESETS.find((preset) => preset.name === name)!;
 
@@ -38,9 +38,9 @@ describe("doctrine presets", () => {
     });
 
     // The stock torpedo is the preset: a player starting a torpedo of their own from it gets the one that is tested.
-    it("are what the stock torpedo flies by, as the Torpedo", () => {
+    it("are what the stock KKV flies by, as the Torpedo", () => {
         const preset = presetDoctrine(named("Torpedo"))!;
-        const stock = compileBlueprint(TORPEDO).doctrine;
+        const stock = compileBlueprint(KKV).doctrine;
         for (const field of SHIP_TARGETING_FIELDS) expect(stock.targeting[field], field).toBe(preset.targeting[field]);
         for (const field of APPROACH_FIELDS) expect(stock.approach[field], field).toBe(preset.approach[field]);
     });

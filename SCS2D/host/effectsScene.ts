@@ -26,7 +26,7 @@ import {
 } from "../sim/index.js";
 import { leakRate, leakSpeed, PATCH_SPEED } from "../sim/fuel.js";
 import { DECK_HEIGHT, DEFAULT_BURST_SPEED, DEFAULT_FRAGMENTS, EXPLOSIVE_YIELD } from "../sim/modules.js";
-import { CORVETTE, DINKY, TORCH, TORPEDO, Y_WING } from "../scenarios/blueprints.js";
+import { CORVETTE, DINKY, TORCH, KKV, Y_WING } from "../scenarios/blueprints.js";
 import { makeBattle } from "../scenarios/battle.js";
 import { Debris } from "../sim/debris.js";
 import { barrelLines } from "../render/barrels.js";
@@ -68,7 +68,7 @@ function kept(name: string, make: () => ShipDesign): ShipDesign {
 }
 const corvetteDesign = (): ShipDesign => kept("corvette", () => compileBlueprint(CORVETTE));
 const torchDesign = (): ShipDesign => kept("torch", () => compileBlueprint(TORCH));
-const torpedoDesign = (): ShipDesign => kept("torpedo", () => compileBlueprint(TORPEDO));
+const torpedoDesign = (): ShipDesign => kept("torpedo", () => compileBlueprint(KKV));
 const yWingDesign = (): ShipDesign => kept("y-wing", () => compileBlueprint(Y_WING));
 const dinkyDesign = (): ShipDesign => kept("dinky", () => compileBlueprint(DINKY));
 

@@ -26,6 +26,7 @@ them in a second list beside the first, and the address names the one picked (`?
 | A ship breaking in two | Split |
 | Engines as weapons | Torch Run |
 | Ramming | Torpedoes, Torpedo Boat, Split, Crash |
+| Warheads: fuzes, fragments, cook-off | Torpedoes (Torpedoes and Shaped Torpedoes variants), Torpedo Boat (Torpedoes variant) |
 | Disarming a ship, sparing the rest | Disarm |
 | Modules shattered, lingering debris | Crash |
 | Shooting past friends | Line Ahead |
@@ -56,8 +57,8 @@ them in a second list beside the first, and the address names the one picked (`?
 | Star Wars | noon | Star Destroyer (18 TIE pads, 2 robot bays) and 10 TIEs against the Ghost, the Quasar (4 X-Wing pads) and 20 X-, Y- and A-Wings, 5 km apart | A capital ship of about 174 modules; guns, beams, fighters; about 32 ships |
 | Swarm: 20 fighters | dusk | 20 Dinkies against 2 Gunships | Small ships, guns |
 | Swarm: 300 fighters | red dwarf | 300 Dinkies against 2 Gunships | Ship and module count (about 3,300 Dinky modules) |
-| Torpedoes | violet | 12 Torpedoes rammed from 1500 m at a Beam Gunship, or, as its second variant, at a Gun Platform | Ramming, beam turrets shooting down craft; against the Gun Platform, a target whose guns cannot follow them. Short |
-| Torpedo Boat | dusk | A Torpedo Boat just off the far side of an 800 m rock, hiding behind it by doctrine, one Torpedo docked on its pad, against a Gunship 3 km off on the far side | Building torpedoes on a pad under fire; a withdrawing ship hiding behind a rock; torpedoes coming round a rock at a ship whose guns are made for capitals |
+| Torpedoes | violet | 12 KKVs rammed from 1500 m at a Beam Gunship, or, as its second variant, at a Gun Platform; or 12 Torpedoes, or 12 Shaped Torpedoes, at the Beam Gunship | Ramming, beam turrets shooting down craft; against the Gun Platform, a target whose guns cannot follow them; warheads going off at their fire range, a spray or a slug, and cooking off when shot. Short |
+| Torpedo Boat | dusk | A Torpedo Boat just off the far side of an 800 m rock, hiding behind it by doctrine, one KKV docked on its pad, against a Gunship 3 km off on the far side; or, as its second variant, building Torpedoes | Building torpedoes on a pad under fire; a withdrawing ship hiding behind a rock; torpedoes coming round a rock at a ship whose guns are made for capitals; warheads filled from the boat's tanks |
 | Disarm | noon | 3 Corvettes, or 2 Beam Corvettes or Rail Corvettes, as Duel, told to break the Gunship's guns and mind not to hit its core, engines or plating, and not to ram | Aim weights below zero: holding fire for a clean shot, and how cleanly each weapon takes guns off a ship |
 | Standoff | ice | Two lines of Gunship, Corvette, Beam Corvette and 2 Dinkies, 1 km apart | Fighting from the first frame; doctrine without orders |
 | Line Ahead | gold | Two columns of 4, nose to tail | Shooting past friendly ships |

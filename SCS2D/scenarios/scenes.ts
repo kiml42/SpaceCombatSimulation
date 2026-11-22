@@ -8,7 +8,7 @@ import { swarm } from "./swarm.js";
 import { torpedoes } from "./torpedoes.js";
 import { torpedoBoat } from "./torpedoBoat.js";
 import { DISARMERS, disarm } from "./disarm.js";
-import { BEAM_GUNSHIP, GUN_PLATFORM } from "./blueprints.js";
+import { BEAM_GUNSHIP, GUN_PLATFORM, KKV, SHAPED_TORPEDO, TORPEDO } from "./blueprints.js";
 import { starWars } from "./starWars.js";
 import { standoff } from "./standoff.js";
 import { column } from "./column.js";
@@ -59,10 +59,18 @@ export const SCENES: readonly Scene[] = [
     },
     {
         name: "Torpedoes",
-        variants: ["Beam Gunship", "Gun Platform"],
-        create: (variant = 0) => lit(torpedoes(SCENE_SEED, undefined, variant === 1 ? GUN_PLATFORM : BEAM_GUNSHIP), LIGHTS.violet),
+        variants: ["KKVs, Beam Gunship", "KKVs, Gun Platform", "Torpedoes, Beam Gunship", "Shaped Torpedoes, Beam Gunship"],
+        create: (variant = 0) =>
+            lit(
+                torpedoes(SCENE_SEED, undefined, variant === 1 ? GUN_PLATFORM : BEAM_GUNSHIP, [KKV, KKV, TORPEDO, SHAPED_TORPEDO][variant]),
+                LIGHTS.violet,
+            ),
     },
-    { name: "Torpedo Boat", create: () => lit(torpedoBoat(SCENE_SEED), LIGHTS.dusk) },
+    {
+        name: "Torpedo Boat",
+        variants: ["KKVs", "Torpedoes"],
+        create: (variant = 0) => lit(torpedoBoat(SCENE_SEED, variant === 1 ? TORPEDO : undefined), LIGHTS.dusk),
+    },
     {
         name: "Disarm",
         variants: DISARMERS.map((d) => d.name),
