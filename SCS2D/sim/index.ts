@@ -54,7 +54,17 @@ export {
 } from "./map.js";
 export { eccentricAnomaly, orbitPeriod, orbitState, Railway, systemGm, type Orbit, type Rails, type System } from "./rails.js";
 export { SpatialGrid, IndexBuffer, RayHit, segmentCircleT, type RayNarrowPhase } from "./spatialGrid.js";
-export { Projectiles, ProjectileHits, NO_OWNER, NOT_INSIDE, ROUND_SHRAPNEL, ROUND_WRECKAGE, type ProjectileSpec } from "./projectiles.js";
+export {
+    Projectiles,
+    ProjectileHits,
+    FRAGMENT_STAYS,
+    fragmentLayer,
+    NO_OWNER,
+    NOT_INSIDE,
+    ROUND_SHRAPNEL,
+    ROUND_WRECKAGE,
+    type ProjectileSpec,
+} from "./projectiles.js";
 export { detonateWarheads } from "./warheads.js";
 export { spendHulls, throwShrapnel, throwWreckage, WRECKAGE_LIFE, WRECKAGE_SHARE } from "./wreckage.js";
 export {
@@ -71,6 +81,7 @@ export {
 } from "./beams.js";
 export { EngineLayout, Allocation, applyAllocation, shortfall, type EngineSpec } from "./engines.js";
 export {
+    BOTH_LAYERS_CALIBRE,
     DECK_HEIGHT,
     BASE_WALL_THICKNESS,
     DEFAULT_NOZZLE_WIDTHS,

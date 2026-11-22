@@ -67,6 +67,20 @@ export const NO_OWNER = -1;
 /** A projectile in open flight rather than passing through a hull. */
 export const NOT_INSIDE = -1;
 
+/** The chance a fragment lands in the layer its round was in, rather than the other. */
+export const FRAGMENT_STAYS = 0.75;
+
+/**
+ * The one layer a fragment of a round in `home` flies in: its round's three
+ * times in four, else the other. A round in both picks either evenly, and a
+ * `lone` fragment, the whole of its round, stays in its round's layer.
+ */
+export function fragmentLayer(home: number, rng: Rng, lone = false): number {
+    if (home === BOTH_LAYERS) return rng.nextFloat() < 0.5 ? HULL_LAYER : WEAPONS_LAYER;
+    if (lone || rng.nextFloat() < FRAGMENT_STAYS) return home;
+    return home ^ BOTH_LAYERS;
+}
+
 export interface ProjectileSpec {
     x: number;
     y: number;
@@ -567,8 +581,8 @@ export class Projectiles {
      * Each leaves with the round's velocity plus a kick in a random direction,
      * spread evenly over a disc, and its twin with the opposite kick, so the
      * casing carries on with its own momentum; an odd one out takes none. The
-     * charge is gone to gas. Fragments fly in both layers, so they meet every
-     * module, and do not burst again.
+     * charge is gone to gas. Each fragment lands in one layer (`fragmentLayer`),
+     * and does not burst again.
      */
     private burst(i: number, rng: Rng): void {
         const n = this.fragments[i]!;
@@ -593,17 +607,53 @@ export class Projectiles {
         const kind = this.kind[i]!;
         const from = this.fromModule[i]!;
         const spread = this.spread[i]!;
+        const home = this.layers[i]!;
+        const lone = n === 1;
         this.kill(i);
         for (let k = 0; k + 1 < n; k += 2) {
             const angle = rng.nextFloat() * TAU;
             const speed = spread * sqrt(rng.nextFloat());
             const kx = cos(angle) * speed;
             const ky = sin(angle) * speed;
-            this.fragment[this.spawnRaw(x, y, vx + kx, vy + ky, width, ttl, mass, damage, penetration, owner, kind, from, BOTH_LAYERS)] = 1;
-            this.fragment[this.spawnRaw(x, y, vx - kx, vy - ky, width, ttl, mass, damage, penetration, owner, kind, from, BOTH_LAYERS)] = 1;
+            this.fragment[
+                this.spawnRaw(
+                    x,
+                    y,
+                    vx + kx,
+                    vy + ky,
+                    width,
+                    ttl,
+                    mass,
+                    damage,
+                    penetration,
+                    owner,
+                    kind,
+                    from,
+                    fragmentLayer(home, rng, lone),
+                )
+            ] = 1;
+            this.fragment[
+                this.spawnRaw(
+                    x,
+                    y,
+                    vx - kx,
+                    vy - ky,
+                    width,
+                    ttl,
+                    mass,
+                    damage,
+                    penetration,
+                    owner,
+                    kind,
+                    from,
+                    fragmentLayer(home, rng, lone),
+                )
+            ] = 1;
         }
         if (n % 2 === 1) {
-            this.fragment[this.spawnRaw(x, y, vx, vy, width, ttl, mass, damage, penetration, owner, kind, from, BOTH_LAYERS)] = 1;
+            this.fragment[
+                this.spawnRaw(x, y, vx, vy, width, ttl, mass, damage, penetration, owner, kind, from, fragmentLayer(home, rng, lone))
+            ] = 1;
         }
     }
 

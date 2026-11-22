@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
     BOTH_LAYERS,
+    FRAGMENT_STAYS,
+    fragmentLayer,
+    HULL_LAYER,
+    WEAPONS_LAYER,
     chargeShare,
     DEFAULT_BURST_SPEED,
     EXPLOSIVE_DENSITY,
@@ -146,16 +150,25 @@ describe("a fused round", () => {
         expect(live(burstOne(0.5, 50, 1).rounds)).toHaveLength(1);
     });
 
-    it("spreads them no faster than its spread, in both layers", () => {
+    it("spreads them no faster than its spread, each in one layer", () => {
         const { rounds } = burstOne(0.5, 50);
         for (const i of live(rounds)) {
             expect(Math.hypot(rounds.vx[i]! - 600, rounds.vy[i]! - 40)).toBeLessThanOrEqual(50 + 1e-9);
-            expect(rounds.layers[i]).toBe(BOTH_LAYERS);
+            expect([HULL_LAYER, WEAPONS_LAYER]).toContain(rounds.layers[i]);
             expect(rounds.fuse[i]).toBe(Infinity);
             // Its own short life, less the step it has flown since.
             expect(rounds.ttl[i]).toBeGreaterThan(1 - 2 * DT);
             expect(rounds.ttl[i]).toBeLessThanOrEqual(1);
         }
+    });
+
+    it("keeps most of its fragments in its own layer, and puts the rest in the other", () => {
+        const { rounds } = burstOne(0.5, 50, 64);
+        const fragments = live(rounds);
+        const home = fragments.filter((i) => rounds.layers[i] === WEAPONS_LAYER).length;
+        expect(fragments).toHaveLength(64);
+        expect(home).toBeGreaterThan(64 * 0.6);
+        expect(home).toBeLessThan(64);
     });
 
     it("flies on whole with no fuse", () => {
@@ -166,6 +179,29 @@ describe("a fused round", () => {
         rounds.spawn({ x: 0, y: 0, vx: 600, vy: 0, width: 0.4, ttl: 30 });
         for (let s = 0; s < 120; s++) rounds.step(DT, bodies, grid, new ProjectileHits(), undefined, undefined, new Rng(1));
         expect(live(rounds)).toHaveLength(1);
+    });
+});
+
+describe("a fragment's layer", () => {
+    function share(home: number, lone = false): number {
+        const rng = new Rng(3);
+        let hull = 0;
+        for (let k = 0; k < 4000; k++) if (fragmentLayer(home, rng, lone) === HULL_LAYER) hull++;
+        return hull / 4000;
+    }
+
+    it("is its round's three times in four", () => {
+        expect(share(HULL_LAYER)).toBeCloseTo(FRAGMENT_STAYS, 1);
+        expect(1 - share(WEAPONS_LAYER)).toBeCloseTo(FRAGMENT_STAYS, 1);
+    });
+
+    it("is either, evenly, for a round in both", () => {
+        expect(share(BOTH_LAYERS)).toBeCloseTo(0.5, 1);
+    });
+
+    it("is always its round's for a lone fragment", () => {
+        expect(share(HULL_LAYER, true)).toBe(1);
+        expect(share(WEAPONS_LAYER, true)).toBe(0);
     });
 });
 
