@@ -400,6 +400,8 @@ function partsOf(design: ShipDesign, body: number, angle: number, hulls: HullDes
             dx = cos(angle + bearing);
             dy = sin(angle + bearing);
         }
+        // Rails that end at the block stand out of it not at all.
+        if (!(mount.barrelLength > 0)) continue;
         const half = mount.barrelLength * 0.5;
         for (let o = 0; o < count; o++) {
             const lat = count > 1 ? (o - (count - 1) * 0.5) * spacing : 0;
@@ -948,7 +950,7 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts, 
                         const half = 0.5 * min(thinOf(boxA), thinOf(boxB));
                         if (consider(found, overlap(boxA, boxB), boxA, boxB, ma, mb, outlet)) found.half = half;
                         // Slow enough that where they ended says which way they met; or one
-                        // has no thickness (a barrel of no calibre), which nothing passes through.
+                        // has no thickness, which nothing passes through.
                         if (!(half > 0) || !(move > half) || !(move > SWEEP_FLOOR)) continue;
                         // Already touching as the step began: met before it.
                         shifted(boxB, -moveX, -moveY, sweptB);
