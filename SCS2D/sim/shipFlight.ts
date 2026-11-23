@@ -294,11 +294,12 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
                 const part = shipAim.ramPart(ships, bodies, i, b, target, tb);
                 ships.ramPart[i] = part;
                 if (part >= 0) {
-                    const module = ships.designs[target]!.modules[part]!;
+                    // Where it meets the part: a hull weapon's block, not the sky between its barrels.
+                    shipAim.aimSpot(ships.designs[target]!, part, AIM_SPOT);
                     const c = cos(bodies.angle[tb]!);
                     const s = sin(bodies.angle[tb]!);
-                    at.x = bodies.x[tb]! + module.x * c - module.y * s;
-                    at.y = bodies.y[tb]! + module.x * s + module.y * c;
+                    at.x = bodies.x[tb]! + AIM_SPOT.x * c - AIM_SPOT.y * s;
+                    at.y = bodies.y[tb]! + AIM_SPOT.x * s + AIM_SPOT.y * c;
                     at.vx = bodies.vx[tb]!;
                     at.vy = bodies.vy[tb]!;
                     wantAngle = atan2(at.y - bodies.y[b]!, at.x - bodies.x[b]!);
