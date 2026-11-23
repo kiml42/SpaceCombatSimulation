@@ -167,6 +167,22 @@ describe("how thick a leak's vapour is", () => {
         expect(low).toBeLessThan(full * 0.2);
     });
 
+    it("fans out wider the slower it left, up to a limit", () => {
+        const fanning = (fill: number): number => {
+            let most = 0;
+            const puff: Puff = { x: 0, y: 0, radius: 0, dirX: 1, dirY: 0, length: 0, alpha: 0 };
+            // Out along x from the origin, so x is how far it has gone.
+            eachPuff(open, 0, 0, 1, 0, 1, { now: fill, offset: 0 }, puff, (p) => {
+                if (p.x > 0.5) most = Math.max(most, (p.radius - 0.1) / p.x);
+            });
+            return most;
+        };
+        expect(fanning(1)).toBeCloseTo(0.3, 6);
+        // Half as fast, twice as wide a metre.
+        expect(fanning(0.25)).toBeCloseTo(0.6, 6);
+        expect(fanning(0.0001)).toBeCloseTo(0.9, 6);
+    });
+
     it("thins as its hole pinches shut, though what leaves goes as fast", () => {
         const pinching: Hole = { opened: 0.2, closing: 0.1, floor: 0, patched: -1 };
         const shut = holeClosedAt(pinching);
