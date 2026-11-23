@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
     BeamHits,
     Beams,
+    BOTH_LAYERS,
+    BOTH_LAYERS_CALIBRE,
     HULL_LAYER,
     Projectiles,
     Ships,
@@ -11,6 +13,9 @@ import {
     compileBlueprint,
     type Blueprint,
 } from "../sim/index.js";
+import { mountLayers } from "../sim/shipAim.js";
+import { GunType } from "../sim/modules.js";
+import { GUNSHIP, RAIL_GUNSHIP, TIE } from "../scenarios/blueprints.js";
 import { TURRET_CORVETTE } from "./fixtures.js";
 
 /** A thick hull beam fires a beam in each layer, each with half its power. */
@@ -66,5 +71,35 @@ describe("a thick hull beam", () => {
     it("where a thin one fires one, in the hull layer, with all of it", () => {
         const power = compileBlueprint(beamer(false)).turrets[0]!.gun.beamPower;
         expect(firstShot(false)).toEqual([{ layers: HULL_LAYER, power }]);
+    });
+});
+
+describe("a hull gun's slugs", () => {
+    function layersOf(blueprint: Blueprint, committed = false): number {
+        const world = new World({ dt: DT, seed: 1 });
+        const ships = new Ships();
+        const i = ships.spawn(world, { design: compileBlueprint(blueprint), x: 0, y: 0, team: 0 });
+        if (committed) ships.committed[i] = 1;
+        const design = ships.designs[i]!;
+        return mountLayers(
+            ships,
+            i,
+            design.turrets.find((t) => t.hullLayer && t.gun.type !== GunType.Beam)!,
+        );
+    }
+
+    it("fly in both layers from a thick gun at least half a metre across", () => {
+        expect(compileBlueprint(RAIL_GUNSHIP).turrets.some((t) => t.gun.calibre >= BOTH_LAYERS_CALIBRE)).toBe(true);
+        expect(layersOf(RAIL_GUNSHIP)).toBe(BOTH_LAYERS);
+    });
+
+    it("fly along the deck from a smaller thick gun", () => {
+        expect(compileBlueprint(GUNSHIP).turrets.every((t) => t.gun.calibre < BOTH_LAYERS_CALIBRE)).toBe(true);
+        expect(layersOf(GUNSHIP)).toBe(HULL_LAYER);
+    });
+
+    it("fly in a fighter's layer, and in the hull layer once it has committed to ram", () => {
+        expect(layersOf(TIE)).toBe(WEAPONS_LAYER);
+        expect(layersOf(TIE, true)).toBe(HULL_LAYER);
     });
 });

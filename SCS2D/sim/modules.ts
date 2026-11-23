@@ -66,6 +66,9 @@ import {
  */
 export const DECK_HEIGHT = 3;
 
+/** The narrowest bore a thick hull gun fires slugs in both layers from; anything smaller shoots along the deck. */
+export const BOTH_LAYERS_CALIBRE = 0.5;
+
 /** Structural material density, kg/m³. Steel. */
 export const HULL_DENSITY = 7800;
 

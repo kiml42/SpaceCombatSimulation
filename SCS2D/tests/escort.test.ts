@@ -163,12 +163,12 @@ describe("escort and neutrals", () => {
             expect(consort.radius).toBeLessThan(escort.radius);
             const enemy = compileBlueprint(GUNSHIP);
             const battle = makeBattle({ seed: 5, projectiles: 512 }, (ships, world) => {
-                const covering = ships.spawn(world, { design: escort, x: 0, y: 0, angle: 0, team: 0 });
+                // Unhurt, so where it goes is its choice and not where the gunship's first shells landed.
+                const covering = ships.spawn(world, { design: escort, x: 0, y: 0, angle: 0, team: 0, invulnerable: true });
                 const charge = ships.spawn(world, { design: consort, x: 0, y: 300, team: 0 });
                 ships.spawn(world, { design: enemy, x: 1500, y: 0, angle: math.PI, team: 1 });
                 return { covering, charge };
             });
-            // Before the gunship arrives and takes the escort apart.
             for (let step = 0; step < 1200; step++) battle.step();
             const bodies = battle.world.bodies;
             const a = bodies.indexOf(battle.ships.body(battle.covering));
@@ -222,7 +222,8 @@ describe("escort and neutrals", () => {
             });
             const enemy = compileBlueprint(GUNSHIP);
             const battle = makeBattle({ seed: 5, projectiles: 512 }, (ships, world) => {
-                const covering = ships.spawn(world, { design: escort, x: 0, y: 0, angle: 0, team: 0 });
+                // Unhurt, so where it goes is its choice and not where the gunship's first shells landed.
+                const covering = ships.spawn(world, { design: escort, x: 0, y: 0, angle: 0, team: 0, invulnerable: true });
                 const charge = ships.spawn(world, { design: consort, x: 0, y: 300, team: 0 });
                 ships.spawn(world, { design: enemy, x: 1500, y: 0, angle: math.PI, team: 1 });
                 return { covering, charge };
@@ -235,7 +236,6 @@ describe("escort and neutrals", () => {
                 while (battle.ships.hasControl(battle.charge)) battle.ships.damage.absorb(b, 0, blow);
                 expect(battle.ships.damage.spent(b, 0)).toBe(false);
             }
-            // Before the gunship arrives and takes the escort apart.
             for (let step = 0; step < 1200; step++) battle.step();
             const a = bodies.indexOf(battle.ships.body(battle.covering));
             const b = bodies.indexOf(battle.ships.body(battle.charge));

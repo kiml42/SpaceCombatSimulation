@@ -3,7 +3,17 @@ import { aspectAlong, EVASION_ACCEL, lethalRadius, reachAgainst, type DesignTurr
 import { BOTH_LAYERS, HULL_LAYER, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from "./hull.js";
 import { DamageEffect } from "./damage.js";
 import { lookFrom, score, visibility } from "./targeting.js";
-import { DEFAULT_FUSE, firesShells, moduleRadius, slewTime, type ModuleSpec, GunType, type GunStats, type ModuleKind } from "./modules.js";
+import {
+    BOTH_LAYERS_CALIBRE,
+    DEFAULT_FUSE,
+    firesShells,
+    moduleRadius,
+    slewTime,
+    type ModuleSpec,
+    GunType,
+    type GunStats,
+    type ModuleKind,
+} from "./modules.js";
 import { abs, atan2, angleDelta, PI, clamp, cos, length, max, round, sin, sqrt } from "./math.js";
 import { overriddenMount, placementOf, type Targeting } from "./doctrine.js";
 import type { World } from "./world.js";
@@ -119,7 +129,7 @@ export function decideTurrets(ships: Ships, world: World, bodies: Bodies, i: num
         if (world.tick < schedule[t]!) continue;
         const mount = design.turrets[t]!;
         const layers = mountLayers(ships, i, mount);
-        // A shell's fragments fly in both layers, so it can hurt a ship its own
+        // A shell's fragments may land in either layer, so it can hurt a ship its own
         // layer would pass by.
         const hurts = firesShellsFrom(ships, i, mount) ? BOTH_LAYERS : layers;
         schedule[t] = world.tick + turretRethinkTicks(world, t, design);
@@ -442,7 +452,7 @@ function neighbours(
 
 /**
  * `aimModule` for ship `i`'s mount, looking past its own layer when that has
- * nothing to offer and it fires shells, whose fragments fly in both.
+ * nothing to offer and it fires shells, whose fragments may land in either.
  */
 export function aimFor(
     ships: Ships,
@@ -660,16 +670,29 @@ export function shipLayers(ships: Ships, i: number): number {
     return ships.committed[i] === 1 ? BOTH_LAYERS : WEAPONS_LAYER;
 }
 
-/** The layers this mount's shots fly in: a fighter's guns fire in whatever it occupies. */
+/**
+ * The layers this mount's shots fly in. A fighter's fire in the layer it flies
+ * in, or once committed in the hull layer, where it meets what it rams.
+ */
 export function mountLayers(ships: Ships, i: number, mount: DesignTurret): number {
     const whole = shipLayers(ships, i);
-    if (whole !== OWN_LAYERS) return whole;
+    if (whole !== OWN_LAYERS) return whole === BOTH_LAYERS ? HULL_LAYER : whole;
     if (!mount.hullLayer) return WEAPONS_LAYER;
-    // A thick hull beam stands in both, and fires a beam in each.
-    return mount.gun.type === GunType.Beam && ships.designs[i]!.modules[mount.module]!.weaponsLayer ? BOTH_LAYERS : HULL_LAYER;
+    if (!ships.designs[i]!.modules[mount.module]!.weaponsLayer) return HULL_LAYER;
+    // A thick hull beam fires a beam in each; a thick hull gun's slug is in both if it is big enough.
+    return mount.gun.type === GunType.Beam || mount.gun.calibre >= BOTH_LAYERS_CALIBRE ? BOTH_LAYERS : HULL_LAYER;
 }
 
-/** Whether this ship's mount fires shells, whose fragments fly in both layers. */
+/**
+ * The layers what ship `i` throws from module `m` on body `b` starts in: the
+ * module's own, but a committed fighter's in the hull layer, as its shots are.
+ */
+export function firedLayers(ships: Ships, i: number, b: number, design: ShipDesign, m: number): number {
+    const layers = moduleLayers(design.modules[m]!, ships.pieceLayers(i, b, design, m));
+    return layers === BOTH_LAYERS && design.fighter && ships.committed[i] === 1 ? HULL_LAYER : layers;
+}
+
+/** Whether this ship's mount fires shells, whose fragments may land in either layer. */
 export function firesShellsFrom(ships: Ships, i: number, mount: DesignTurret): boolean {
     return firesShells(ships.designs[i]!.modules[mount.module]!.spec);
 }
