@@ -3360,11 +3360,20 @@ export function warheadBurst(spec: ModuleSpec, stats: ModuleStats, casing = stat
     const asked = spec.fragments ?? DEFAULT_WARHEAD_FRAGMENTS;
     const fragments = asked > 1 ? asked : 1;
     const spread = warheadSpread(spec);
-    const share = spread / TAU;
-    const focus = share > WARHEAD_FOCUS ? share : WARHEAD_FOCUS;
+    const focus = warheadFocus(spread);
     const energy = charge * EXPLOSIVE_YIELD;
-    const speed = casing > 0 ? sqrt((2 * focus * energy) / casing) : 0;
-    return { fragments, spread, focus, energy, casing, speed };
+    return { fragments, spread, focus, energy, casing, speed: warheadBurstSpeed(spec, casing, charge) };
+}
+
+/** The share of its yield a warhead's spread gives its fragments: its share of a turn, no less than a shaped liner's. */
+function warheadFocus(spread: number): number {
+    const share = spread / TAU;
+    return share > WARHEAD_FOCUS ? share : WARHEAD_FOCUS;
+}
+
+/** How fast `warheadBurst`'s fragments leave, m/s, without building the rest of it. */
+export function warheadBurstSpeed(spec: ModuleSpec, casing: number, charge: number): number {
+    return casing > 0 ? sqrt((2 * warheadFocus(warheadSpread(spec)) * charge * EXPLOSIVE_YIELD) / casing) : 0;
 }
 
 /**
