@@ -805,8 +805,10 @@ inside any one file is not contiguous.
   (`cookOff`, 5% while sound, certain as it is destroyed and always if a blow shatters it), one setting off
   another; and one parked on a pad is let off it first, its blast going on into its carrier from where it
   leaves the craft. One docked port to port or by a claw shares its carrier's hull, which severing does not
-  break up, and does not cook off. In the editor it is a tank framed in barrel bronze, the frame as thick as
-  its casing; its spread is drawn as its trigger cone; and the attack rosette sets it off, hiding it until
+  break up, and does not cook off. It is drawn as a tank with bronze rods, a gun barrel's colour, laid
+  over its gauge from near its edge towards its middle along the bearings its fragments fly: one down its
+  centre line for a slug, the outer two at a fan's edges, spokes for an all-round burst, each as thick as its
+  casing; in the editor its spread is drawn as its trigger cone; and the attack rosette sets it off, hiding it until
   the pointer leaves. The KKV is the stock torpedo with an armoured nose and no warhead, which rams; the
   Torpedo has a 16-fragment, 60° warhead in its nose, and the Shaped Torpedo a slug, both still flying the
   KKV's ram, so one whose fuze is dead rams. A craft that rams whatever it carries fights from its ram's run

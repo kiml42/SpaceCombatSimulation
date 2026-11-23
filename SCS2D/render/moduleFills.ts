@@ -1,4 +1,5 @@
 import {
+    DEFAULT_WARHEAD_FRAGMENTS,
     engineGeometry,
     hullMountGeometry,
     isHullMount,
@@ -9,6 +10,7 @@ import {
     type ModuleSpec,
     type ShipDesign,
     type ShipView,
+    warheadSpread,
 } from "../sim/index.js";
 import { engineLayout } from "./engineLayout.js";
 import { BARE_TEAM, type Palette } from "./teams.js";
@@ -36,17 +38,49 @@ const LANCE_NUBS = 6;
 export const BARREL = "#8f6f25";
 
 /**
- * How wide a warhead's bronze frame is at reinforcement 1, as a share of its
- * shorter side. It thickens with its walls, which are its casing, so how much
- * of it is fragments and how much charge shows; never past this share.
+ * How wide a warhead's fragment lines are at reinforcement 1, as a share of its
+ * shorter side. They thicken with its walls, which are its casing, so how much
+ * of it is fragments and how much charge shows; never past `WARHEAD_LINE_MOST`.
  */
-const WARHEAD_RIM_SHARE = 0.06;
-const WARHEAD_RIM_MOST = 0.35;
+const WARHEAD_LINE_SHARE = 0.12;
+const WARHEAD_LINE_MOST = 0.3;
+/** The most lines a fan of fragments is drawn as, and an all-round burst. */
+const WARHEAD_FAN_LINES = 5;
+const WARHEAD_RING_LINES = 6;
+/** How far short of the middle the lines stop, as a share of the shorter half side. */
+const WARHEAD_LINE_HUB = 0.2;
+/** The hull left between a line's end and the module's edge, as a share of the line's width. */
+const WARHEAD_LINE_GAP = 0.5;
 
-/** How wide a warhead's bronze frame is drawn, metres. */
-export function warheadRim(spec: ModuleSpec): number {
-    const share = WARHEAD_RIM_SHARE * (spec.reinforcement ?? 1);
-    return Math.min(spec.length, spec.width) * (share < WARHEAD_RIM_MOST ? share : WARHEAD_RIM_MOST);
+/**
+ * A warhead's bronze lines, in its own frame: one along each of a few of the
+ * bearings its fragments fly at, from near its edge in towards its middle, the
+ * outer two at the edges of its spread, and a single slug's down its centre line.
+ * `ends` holds x0, y0 (outer), x1, y1 (inner) for each; `width` is each line's.
+ */
+export function warheadLines(spec: ModuleSpec): { width: number; ends: number[] } {
+    const fragments = spec.fragments ?? DEFAULT_WARHEAD_FRAGMENTS;
+    const spread = warheadSpread(spec);
+    const l = spec.length / 2;
+    const w = spec.width / 2;
+    const short = Math.min(l, w);
+    const share = WARHEAD_LINE_SHARE * (spec.reinforcement ?? 1);
+    const width = 2 * short * (share < WARHEAD_LINE_MOST ? share : WARHEAD_LINE_MOST);
+    const ring = spread >= 2 * Math.PI;
+    const most = ring ? WARHEAD_RING_LINES : WARHEAD_FAN_LINES;
+    const count = spread > 0 ? Math.max(1, Math.min(fragments, most)) : 1;
+    const hub = Math.max(short * WARHEAD_LINE_HUB, width / 2);
+    const ends: number[] = [];
+    for (let k = 0; k < count; k++) {
+        const bearing = ring ? (k / count) * 2 * Math.PI : count === 1 ? 0 : (k / (count - 1) - 0.5) * spread;
+        const ux = Math.cos(bearing);
+        const uy = Math.sin(bearing);
+        // To the box's edge along it, less the line's round end and a gap.
+        const edge = Math.min(Math.abs(ux) > 1e-9 ? l / Math.abs(ux) : Infinity, Math.abs(uy) > 1e-9 ? w / Math.abs(uy) : Infinity);
+        const outer = Math.max(hub, edge - width / 2 - width * WARHEAD_LINE_GAP);
+        ends.push(ux * outer, uy * outer, ux * hub, uy * hub);
+    }
+    return { width, ends };
 }
 
 /** How much of a slipway's width each side rail takes, and of its length the feed block aft. */
@@ -219,14 +253,6 @@ export function moduleFills(
         box(-l, -w, -l + feed, w, trim);
         box(-l, -w, l, -w + rail, trim);
         box(-l, w - rail, l, w, trim);
-    } else if (spec.kind === "warhead") {
-        // A tank, its gauge drawn over it as a tank's is, framed in the weapons' bronze.
-        const rim = warheadRim(spec);
-        box(-l, -w, l, w);
-        box(-l, -w, l, -w + rim, BARREL);
-        box(-l, w - rim, l, w, BARREL);
-        box(-l, -w + rim, -l + rim, w - rim, BARREL);
-        box(l - rim, -w + rim, l, w - rim, BARREL);
     } else if (spec.kind === "claw") {
         // The pump aft, and two jaws reaching out of the bow face it grips with.
         const jaw = spec.width * CLAW_JAW_SHARE;
