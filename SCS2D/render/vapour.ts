@@ -30,6 +30,8 @@ const PUFF_SPEED_SPREAD = 0.15;
 const VAPOUR_ALPHA = 0.6;
 /** Most puffs one moment's leaving makes, for the widest hole. */
 const MOST_PUFFS = 4;
+/** Fuel out of a hole, kg/s, below which its vapour thins towards nothing, as a hole does pinching shut. */
+const VAPOUR_LEAST_RATE = 1;
 
 /** What a hole has been, as the snapshot carries it, for working out how wide it was at any age. */
 export interface Hole {
@@ -160,6 +162,8 @@ export function eachPuff(
         const reach = vapourLength(width, rate);
         const since = age - born;
         const puffs = Math.min(MOST_PUFFS, 1 + Math.round(Math.cbrt(rate) / 3));
+        // Fainter the less is pushing it out, or the less is coming out: so a tank running dry or a hole pinching shut fades out.
+        const faint = Math.sqrt(fill) * Math.min(1, Math.sqrt(rate / VAPOUR_LEAST_RATE));
         for (let m = 0; m < puffs; m++) {
             const fast = 1 + (unit(seed, n * MOST_PUFFS + m, 0) * 2 - 1) * PUFF_SPEED_SPREAD;
             const gone = speed * fast * since;
@@ -195,7 +199,7 @@ export function eachPuff(
             // Its share of the vapour's opacity, thinning as it spreads out, and
             // shared with the next where drawn out over it.
             const spread = Math.min(1, Math.max(2 * out.radius, gap) / out.length);
-            out.alpha = (VAPOUR_ALPHA / Math.sqrt(puffs)) * (1 - through) ** 2 * spread;
+            out.alpha = (VAPOUR_ALPHA / Math.sqrt(puffs)) * faint * (1 - through) ** 2 * spread;
             visit(out);
         }
     }
