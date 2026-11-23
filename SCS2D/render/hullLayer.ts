@@ -905,7 +905,7 @@ function outlineFor(spec: ModuleSpec, mounts: Mounts): GraphicsContext {
 const bounds = new WeakMap<ModuleSpec, Bounds>();
 
 /** The box `spec`'s fills lie in: an engine's block alone, as a scar held to a bell's box would hang off it. */
-function boundsOf(spec: ModuleSpec): Bounds {
+export function boundsOf(spec: ModuleSpec): Bounds {
     let box = bounds.get(spec);
     if (box === undefined) {
         let x0 = Infinity;

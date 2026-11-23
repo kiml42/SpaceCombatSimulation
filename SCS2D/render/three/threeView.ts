@@ -142,7 +142,7 @@ export function threeView(canvas: HTMLCanvasElement, angle: () => ViewAngle): La
                     group === screen
                         ? toMetres
                         : group === deck
-                          ? pixelsToMetres(new Matrix4(), size.width, size.height, scale, DECK_TOP)
+                          ? pixelsToMetres(new Matrix4(), size.width, size.height, scale, DECK_TOP + ABOVE_DECK)
                           : new Matrix4(),
                 );
                 group.matrixWorldNeedsUpdate = true;
@@ -238,6 +238,9 @@ export function deckProjection(eye: PerspectiveCamera, widthPx: number, heightPx
 }
 
 const noScissor = (): void => {};
+
+/** How far above the deck's top what is drawn at deck height lies, metres: clear of the thin hull's fills, which stand a little proud of it. */
+const ABOVE_DECK = 0.1;
 
 /**
  * `batch`'s corners, canvas pixels, as metres from the camera's point in 3D:

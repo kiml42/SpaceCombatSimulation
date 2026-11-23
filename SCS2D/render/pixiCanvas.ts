@@ -1000,6 +1000,9 @@ export function anchorY(baseline: string): number {
             : 0.8;
 }
 
+/** The least a particle is drawn across or along, canvas pixels. */
+export const LEAST_PARTICLE_PX = 1;
+
 /**
  * Particles of one texture, in one draw: each placed in the frame the batch
  * was started under, and drawn in canvas pixels.
@@ -1042,10 +1045,22 @@ export class ParticleBatch {
         p.x = m.a * x + m.c * y + m.e;
         p.y = m.b * x + m.d * y + m.f;
         p.rotation = Math.atan2(m.b * dirX + m.d * dirY, m.a * dirX + m.c * dirY);
-        p.scaleX = (length * this.scale) / this.texture.width;
-        p.scaleY = (width * this.scale) / this.texture.height;
+        // Below a pixel either way, drawn a pixel and as much fainter, so it fades rather than drops out or shimmers.
+        let lengthPx = length * this.scale;
+        let widthPx = width * this.scale;
+        let fade = 1;
+        if (lengthPx < LEAST_PARTICLE_PX) {
+            fade *= lengthPx / LEAST_PARTICLE_PX;
+            lengthPx = LEAST_PARTICLE_PX;
+        }
+        if (widthPx < LEAST_PARTICLE_PX) {
+            fade *= widthPx / LEAST_PARTICLE_PX;
+            widthPx = LEAST_PARTICLE_PX;
+        }
+        p.scaleX = lengthPx / this.texture.width;
+        p.scaleY = widthPx / this.texture.height;
         p.tint = tint;
-        p.alpha = alpha * this.alpha;
+        p.alpha = alpha * this.alpha * fade;
     }
 
     /** Hand what was added this frame to the container, which draws only those. */
