@@ -24,7 +24,7 @@ import {
     type ShipDesign,
     type ShipView,
 } from "../sim/index.js";
-import { leakRate, leakSpeed, PATCH_SPEED } from "../sim/fuel.js";
+import { leakRate, PATCH_SPEED } from "../sim/fuel.js";
 import { DECK_HEIGHT, DEFAULT_BURST_SPEED, DEFAULT_FRAGMENTS, EXPLOSIVE_YIELD } from "../sim/modules.js";
 import { CORVETTE, DINKY, TORCH, KKV, Y_WING } from "../scenarios/blueprints.js";
 import { makeBattle } from "../scenarios/battle.js";
@@ -338,7 +338,6 @@ function place(snapshot: Snapshot, design: ShipDesign, x: number, y: number, ang
     view.leakWidth = [];
     view.leakRate = [];
     view.leakAge = [];
-    view.leakSpeed = [];
     view.leakOpened = [];
     view.leakClosing = [];
     view.leakFloor = [];
@@ -455,7 +454,6 @@ function punch(
         ship.leakWidth!.push(open);
         ship.leakRate!.push(leakRate((Math.PI * open * open) / 4, 1));
         ship.leakAge!.push(age);
-        ship.leakSpeed!.push(leakSpeed(1));
         ship.leakOpened!.push(history.opened);
         ship.leakClosing!.push(history.closing);
         ship.leakFloor!.push(history.floor);
@@ -785,7 +783,6 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
             ship.leakRate!.push(leakRate((Math.PI * width * width) / 4, 1));
             // Open long enough before the loop starts for its vapour to have reached its end.
             ship.leakAge!.push(t + 10);
-            ship.leakSpeed!.push(leakSpeed(1));
             ship.leakOpened!.push(width);
             ship.leakClosing!.push(0);
             ship.leakFloor!.push(width);
@@ -813,7 +810,6 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
             ship.leakRate!.push(leakRate((Math.PI * width * width) / 4, 1));
             // Open long enough before the loop starts for its vapour to have reached its end.
             ship.leakAge!.push(t + 10);
-            ship.leakSpeed!.push(leakSpeed(1));
             ship.leakOpened!.push(width);
             ship.leakClosing!.push(0);
             ship.leakFloor!.push(width);

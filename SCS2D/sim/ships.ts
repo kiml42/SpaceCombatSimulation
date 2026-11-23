@@ -6,7 +6,7 @@ import { billOf } from "./bill.js";
 import { components, joints } from "./connectivity.js";
 import { BOTH_LAYERS, HULL_LAYER, Hulls, OWN_LAYERS, WEAPONS_LAYER } from "./hull.js";
 import { Damage, DamageEffect, SHATTER, type Credit, type ImpactLog } from "./damage.js";
-import { Fuel, LEAK_HOLE_CALIBRES, leakChance } from "./fuel.js";
+import { Fuel, fillsFrom, LEAK_HOLE_CALIBRES, leakChance } from "./fuel.js";
 import { Charge } from "./charge.js";
 import { Metal } from "./metal.js";
 import { Supply } from "./supply.js";
@@ -1100,6 +1100,8 @@ export class Ships {
             liningFloor: max(0, width - lining * SEAL_REACH),
             patched: -1,
             closed: -1,
+            lastOut: -1,
+            fills: fillsFrom(this.fuel.fill(bodyIndex, module)),
         });
     }
 

@@ -1,17 +1,17 @@
 import type { Snapshot } from "../sim/index.js";
 import type { Pose } from "./vapour.js";
 
-/** How many poses a ship keeps: more than a few seconds of frames, for the longest-lived vapour. */
-const KEPT = 512;
-/** Seconds of poses kept, past which a ship's oldest are let go. */
+/** How many poses a ship keeps: enough frames for the longest-lived vapour (`LEAK_LINGER`). */
+const KEPT = 1024;
+/** Seconds without a pose after which a ship's are let go. */
 const KEPT_FOR = 4;
 
 /**
  * Where each leaking ship has been lately, frame by frame on the battle's
  * clock, so vapour can set out from where its hole was when it left. Kept by
  * the renderer as it draws, and cut back when the battle is wound back, so a
- * scrub shows what was there; a moment older than what is kept falls back on
- * the oldest kept.
+ * scrub shows what was there; a moment older than what is kept is taken as
+ * the oldest kept, moved back along its velocity.
  */
 export class Poses {
     private readonly ships = new Map<number, Track>();
@@ -88,7 +88,13 @@ class Track {
         let lo = 0;
         let hi = this.count - 1;
         const time = (k: number): number => this.t[(this.start + k) % KEPT]!;
-        if (t <= time(0)) return this.copy(0, 0, 0, into);
+        if (t <= time(0)) {
+            // Back from the oldest at its velocity, so what left before it sets out from there, not strung along it.
+            this.copy(0, 0, 0, into);
+            into.x -= into.vx * (time(0) - t);
+            into.y -= into.vy * (time(0) - t);
+            return true;
+        }
         if (t >= time(hi)) return this.copy(hi, hi, 0, into);
         while (hi - lo > 1) {
             const mid = (lo + hi) >> 1;
