@@ -331,6 +331,8 @@ describe("warhead", () => {
         expect(lead(speed * 1.1)).toBeNull();
         // A dead fuze has nothing to aim.
         expect(lead(0, true)).toBeNull();
+    });
+
     it("shows a slug's trigger as wide as its target looks, wider as it closes", () => {
         const half = (gap: number): number => {
             const slug = compileBlueprint({ ...CARRIER, modules: [...CARRIER.modules.slice(0, 2), { ...HEAD, fragments: 1 }] });
