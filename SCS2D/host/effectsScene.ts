@@ -311,7 +311,8 @@ function place(snapshot: Snapshot, design: ShipDesign, x: number, y: number, ang
         turretDisabled: [],
     });
     view.currentStructure = design;
-    view.body = -1;
+    // No body, as a preview has none, but each its own: the renderer keeps a hull's drawings by its body.
+    view.body = -1 - k;
     view.team = 0;
     view.serial = k;
     view.x = x;
@@ -347,6 +348,7 @@ function place(snapshot: Snapshot, design: ShipDesign, x: number, y: number, ang
     view.leakClosed = [];
     view.leakLastOut = [];
     delete view.leakFills;
+    delete view.fuel;
     return view;
 }
 
@@ -499,6 +501,48 @@ function spunBy(age: number): number {
     // ω = spin · (1 - (1 - a/T)³), and its integral.
     const turned = spin * (a - (T / 4) * (1 - (1 - a / T) ** 4));
     return turned + spin * Math.max(0, age - T);
+}
+
+/** How far apart the two tanks of "Leaking dry" are, centre to centre, metres. */
+const DRY_APART = 60;
+
+/**
+ * A tank leaking from one hole, near the far end of its side, `t` seconds after
+ * it opened, as full as `fill` and spun up by its jet; nothing left once
+ * `fill` is nought, and nothing more out once its hole has shut.
+ */
+function leakingTank(
+    snapshot: Snapshot,
+    design: ShipDesign,
+    x: number,
+    t: number,
+    hole: Hole,
+    fill: number,
+    fills: number[] | undefined,
+    lastOut: number,
+): void {
+    const tank = design.modules[1]!;
+    // Pushed back against its jet, out of the side near the far end: turned the other way.
+    const ship = place(snapshot, design, x, 0, -spunBy(t));
+    ship.fuel = design.modules.map((_, m) => (m === 1 ? fill : 1));
+    const width = holeWidth(hole, t);
+    ship.leakX!.push(tank.x + tank.spec.length / 2 - 1);
+    ship.leakY!.push(tank.y + tank.spec.width / 2);
+    ship.leakDirX!.push(0);
+    ship.leakDirY!.push(1);
+    ship.leakWidth!.push(width);
+    ship.leakRate!.push(leakRate((Math.PI * width * width) / 4, fill));
+    ship.leakAge!.push(t);
+    ship.leakOpened!.push(hole.opened);
+    ship.leakClosing!.push(hole.closing);
+    ship.leakFloor!.push(hole.floor);
+    ship.leakPatched!.push(hole.patched);
+    ship.leakFill!.push(fill);
+    if (fills !== undefined) ship.leakFills = fills;
+    ship.leakModule!.push(1);
+    const closed = holeClosedAt(hole);
+    ship.leakClosed!.push(closed >= 0 && t >= closed ? closed : -1);
+    ship.leakLastOut!.push(lastOut);
 }
 
 /** How fast each torpedo meets the slab, m/s. */
@@ -828,34 +872,32 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
     },
     {
         name: "Leaking dry",
-        about: `A tank holed 20 cm wide near one end of its side, leaking 390 kg/s at first, slower and slower as it empties, and dry ${DRY_AFTER} s on. The jet's push spins it up from still, less as the push falls off, to a turn every ${DRY_TURN} s, at which it turns on once dry: faster than a jet that size would spin a tank that heavy, to be seen. Fuel leaves a fuller tank faster, so each puff goes as far as the tank was full when it left; once it is dry, nothing more leaves and what is out drifts off.`,
+        about: `Two tanks, each holed 20 cm wide near one end of its side, leaking 390 kg/s at first. The left one has no lining: the hole stays open and the tank empties through it, slower and slower as it does, dry ${DRY_AFTER} s on, faster than a tank that big would, to be seen. Fuel leaves a fuller tank faster, so each puff goes as far as the tank was full when it left, and the vapour thins as the push behind it falls off. The right one's lining pinches the hole shut over the same ${DRY_AFTER} s, its tank barely drained: what leaves goes as fast to the end, but less of it, the jet narrowing and shortening and thinning out as it closes. Each tank's jet spins it up from still, less as its push falls off, to a turn every ${DRY_TURN} s, at which it turns on once the push stops: faster than a jet that size would spin a tank that heavy, again to be seen. Once nothing more leaves, what is out drifts off.`,
         loop: 10,
         build(t, snapshot, flashes) {
             const width = 0.2;
             const design = tankDesign(12);
-            const tank = design.modules[1]!;
             const reach = vapourLength(width, leakRate((Math.PI * width * width) / 4, 1));
-            begin(snapshot, flashes, t, -reach - 10, -reach - 10, reach + 10, reach + 10);
-            // Pushed back against its jet, out of the side near the far end: turned the other way.
-            const ship = place(snapshot, design, 0, 0, -spunBy(t));
-            const fill = drained(t);
-            const rate = leakRate((Math.PI * width * width) / 4, fill);
-            ship.leakX!.push(tank.x + tank.spec.length / 2 - 1);
-            ship.leakY!.push(tank.y + tank.spec.width / 2);
-            ship.leakDirX!.push(0);
-            ship.leakDirY!.push(1);
-            ship.leakWidth!.push(width);
-            ship.leakRate!.push(rate);
-            ship.leakAge!.push(t);
-            ship.leakOpened!.push(width);
-            ship.leakClosing!.push(0);
-            ship.leakFloor!.push(width);
-            ship.leakPatched!.push(-1);
-            ship.leakFill!.push(fill);
-            ship.leakFills = drainedFills(t);
-            ship.leakModule!.push(1);
-            ship.leakClosed!.push(-1);
-            ship.leakLastOut!.push(Math.min(t, DRY_AFTER));
+            const apart = DRY_APART / 2;
+            begin(snapshot, flashes, t, -apart - reach - 10, -reach - 10, apart + reach + 10, reach + 10);
+            // Run dry, through a hole that stays as it opened.
+            const dry = drained(t);
+            leakingTank(
+                snapshot,
+                design,
+                -apart,
+                t,
+                { opened: width, closing: 0, floor: width, patched: -1 },
+                dry,
+                drainedFills(t),
+                Math.min(t, DRY_AFTER),
+            );
+            // Pinched shut by its lining, still all but full.
+            const pinched: Hole = { opened: width, closing: width / DRY_AFTER, floor: 0, patched: -1 };
+            // What it lets out, narrowing as the hole's area does, `∫(1 - t/T)²`, of what it holds.
+            const out = (leakRate((Math.PI * width * width) / 4, 1) * DRY_AFTER) / 3;
+            const full = 1 - (out / design.modules[1]!.stats.fuel) * (1 - (1 - Math.min(t, DRY_AFTER) / DRY_AFTER) ** 3);
+            leakingTank(snapshot, design, apart, t, pinched, full, undefined, Math.min(t, DRY_AFTER));
         },
     },
     {
