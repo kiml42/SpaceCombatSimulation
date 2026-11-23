@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Beams, Projectiles, Ships, Snapshot, World, capture, compileBlueprint, type Blueprint, type Rng } from "../sim/index.js";
 import { LEAK_LINGER, LEAK_SCRATCH_FADE } from "../sim/snapshot.js";
+import { FILL_EVERY, FILL_KEPT } from "../sim/fuel.js";
 import {
     CLOUD_REACH,
     CLOUD_SEEN,
@@ -9,6 +10,7 @@ import {
     holeClosedAt,
     holeWidth,
     type Cloud,
+    type Fills,
     type Hole,
     type Puff,
 } from "../render/vapour.js";
@@ -110,7 +112,7 @@ describe("a leak's vapour", () => {
         const nearest = (age: number): number => {
             let least = Infinity;
             const puff: Puff = { x: 0, y: 0, radius: 0, dirX: 1, dirY: 0, length: 0, alpha: 0 };
-            eachPuff(hole, 0, 0, 1, 0, age, 1, 49, puff, (p) => {
+            eachPuff(hole, 0, 0, 1, 0, age, { now: 1, offset: 0 }, puff, (p) => {
                 least = Math.min(least, p.x);
             });
             return least;
@@ -119,6 +121,57 @@ describe("a leak's vapour", () => {
         expect(nearest(0.4)).toBeLessThan(1);
         // Shut a moment ago: what is left is all some way off.
         expect(nearest(shut + 0.1)).toBeGreaterThan(3);
+    });
+    it("goes on as it left once its tank runs dry, rather than drawing back or vanishing", () => {
+        const hole: Hole = { opened: 0.1, closing: 0, floor: 0.1, patched: -1 };
+        const age = 2;
+        const dryAt = 1.8;
+        const full: Fills = { now: 1, offset: 0, ring: new Array<number>(FILL_KEPT).fill(1) };
+        const ring = new Array<number>(FILL_KEPT).fill(0);
+        for (let n = 0; (n + 1) * FILL_EVERY <= dryAt + 1e-9; n++) ring[n] = 1;
+        const dry: Fills = { now: 0, offset: 0, ring };
+        const reach = (fills: Fills): [number, number] => {
+            let least = Infinity;
+            let most = -Infinity;
+            const puff: Puff = { x: 0, y: 0, radius: 0, dirX: 1, dirY: 0, length: 0, alpha: 0 };
+            eachPuff(hole, 0, 0, 1, 0, age, fills, puff, (p) => {
+                least = Math.min(least, p.x);
+                most = Math.max(most, p.x);
+            });
+            return [least, most];
+        };
+        const [fullLeast, fullMost] = reach(full);
+        const [dryLeast, dryMost] = reach(dry);
+        // What left while it was full is where it would have been anyway.
+        expect(dryMost).toBeCloseTo(fullMost, 9);
+        // Nothing new at the hole.
+        expect(fullLeast).toBeLessThan(0.5);
+        expect(dryLeast).toBeGreaterThan(1);
+    });
+});
+
+describe("how thick a leak's vapour is", () => {
+    const thickest = (hole: Hole, age: number, fills: Fills): number => {
+        let most = 0;
+        const puff: Puff = { x: 0, y: 0, radius: 0, dirX: 1, dirY: 0, length: 0, alpha: 0 };
+        eachPuff(hole, 0, 0, 1, 0, age, fills, puff, (p) => {
+            most = Math.max(most, p.alpha);
+        });
+        return most;
+    };
+    const open: Hole = { opened: 0.2, closing: 0, floor: 0.2, patched: -1 };
+
+    it("thins as its tank empties, to nothing as it runs dry", () => {
+        const full = thickest(open, 2, { now: 1, offset: 0 });
+        const low = thickest(open, 2, { now: 0.01, offset: 0 });
+        expect(low).toBeLessThan(full * 0.2);
+    });
+
+    it("thins as its hole pinches shut, though what leaves goes as fast", () => {
+        const pinching: Hole = { opened: 0.2, closing: 0.1, floor: 0, patched: -1 };
+        const shut = holeClosedAt(pinching);
+        const wide = thickest(open, shut - 0.01, { now: 1, offset: 0 });
+        expect(thickest(pinching, shut - 0.01, { now: 1, offset: 0 })).toBeLessThan(wide * 0.2);
     });
 });
 

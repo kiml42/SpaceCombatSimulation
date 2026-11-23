@@ -24,7 +24,7 @@ import {
     type ShipDesign,
     type ShipView,
 } from "../sim/index.js";
-import { leakRate, leakSpeed, PATCH_SPEED } from "../sim/fuel.js";
+import { FILL_EVERY, FILL_KEPT, leakRate, PATCH_SPEED } from "../sim/fuel.js";
 import { DECK_HEIGHT, DEFAULT_BURST_SPEED, DEFAULT_FRAGMENTS, EXPLOSIVE_YIELD } from "../sim/modules.js";
 import { CORVETTE, DINKY, TORCH, KKV, Y_WING } from "../scenarios/blueprints.js";
 import { makeBattle } from "../scenarios/battle.js";
@@ -338,7 +338,6 @@ function place(snapshot: Snapshot, design: ShipDesign, x: number, y: number, ang
     view.leakWidth = [];
     view.leakRate = [];
     view.leakAge = [];
-    view.leakSpeed = [];
     view.leakOpened = [];
     view.leakClosing = [];
     view.leakFloor = [];
@@ -346,6 +345,8 @@ function place(snapshot: Snapshot, design: ShipDesign, x: number, y: number, ang
     view.leakFill = [];
     view.leakModule = [];
     view.leakClosed = [];
+    view.leakLastOut = [];
+    delete view.leakFills;
     return view;
 }
 
@@ -455,7 +456,6 @@ function punch(
         ship.leakWidth!.push(open);
         ship.leakRate!.push(leakRate((Math.PI * open * open) / 4, 1));
         ship.leakAge!.push(age);
-        ship.leakSpeed!.push(leakSpeed(1));
         ship.leakOpened!.push(history.opened);
         ship.leakClosing!.push(history.closing);
         ship.leakFloor!.push(history.floor);
@@ -465,6 +465,40 @@ function punch(
         const closed = holeClosedAt(history);
         ship.leakClosed!.push(closed >= 0 && age >= closed ? closed : -1);
     });
+}
+
+/** Seconds a tank holed in "Leaking dry" takes to run dry. */
+const DRY_AFTER = 5;
+
+/** How full that tank is `age` seconds after it is holed: through a hole that stays open, it empties as `(1 - age / DRY_AFTER)²`. */
+function drained(age: number): number {
+    const left = Math.max(0, 1 - age / DRY_AFTER);
+    return left * left;
+}
+
+/** That tank's `Leak.fills`, `age` seconds after it is holed, as the sim would have noted them. */
+function drainedFills(age: number): number[] {
+    const fills = new Array<number>(FILL_KEPT).fill(1);
+    const latest = Math.floor(age / FILL_EVERY);
+    for (let n = Math.max(0, latest - FILL_KEPT + 1); n <= latest; n++) fills[n % FILL_KEPT] = drained(Math.min((n + 1) * FILL_EVERY, age));
+    return fills;
+}
+
+/** Seconds a turn takes that tank once its jet has spun it up and it has run dry. */
+const DRY_TURN = 6;
+
+/**
+ * How far that tank has turned `age` seconds after it is holed, from still.
+ * Its jet's push goes as how full it is, so it spins up as `∫ drained`, to a
+ * turn every `DRY_TURN` once dry, and turns on at that.
+ */
+function spunBy(age: number): number {
+    const spin = (2 * Math.PI) / DRY_TURN;
+    const T = DRY_AFTER;
+    const a = Math.min(age, T);
+    // ω = spin · (1 - (1 - a/T)³), and its integral.
+    const turned = spin * (a - (T / 4) * (1 - (1 - a / T) ** 4));
+    return turned + spin * Math.max(0, age - T);
 }
 
 /** How fast each torpedo meets the slab, m/s. */
@@ -785,12 +819,43 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
             ship.leakRate!.push(leakRate((Math.PI * width * width) / 4, 1));
             // Open long enough before the loop starts for its vapour to have reached its end.
             ship.leakAge!.push(t + 10);
-            ship.leakSpeed!.push(leakSpeed(1));
             ship.leakOpened!.push(width);
             ship.leakClosing!.push(0);
             ship.leakFloor!.push(width);
             ship.leakPatched!.push(-1);
             ship.leakFill!.push(1);
+        },
+    },
+    {
+        name: "Leaking dry",
+        about: `A tank holed 20 cm wide near one end of its side, leaking 390 kg/s at first, slower and slower as it empties, and dry ${DRY_AFTER} s on. The jet's push spins it up from still, less as the push falls off, to a turn every ${DRY_TURN} s, at which it turns on once dry: faster than a jet that size would spin a tank that heavy, to be seen. Fuel leaves a fuller tank faster, so each puff goes as far as the tank was full when it left; once it is dry, nothing more leaves and what is out drifts off.`,
+        loop: 10,
+        build(t, snapshot, flashes) {
+            const width = 0.2;
+            const design = tankDesign(12);
+            const tank = design.modules[1]!;
+            const reach = vapourLength(width, leakRate((Math.PI * width * width) / 4, 1));
+            begin(snapshot, flashes, t, -reach - 10, -reach - 10, reach + 10, reach + 10);
+            // Pushed back against its jet, out of the side near the far end: turned the other way.
+            const ship = place(snapshot, design, 0, 0, -spunBy(t));
+            const fill = drained(t);
+            const rate = leakRate((Math.PI * width * width) / 4, fill);
+            ship.leakX!.push(tank.x + tank.spec.length / 2 - 1);
+            ship.leakY!.push(tank.y + tank.spec.width / 2);
+            ship.leakDirX!.push(0);
+            ship.leakDirY!.push(1);
+            ship.leakWidth!.push(width);
+            ship.leakRate!.push(rate);
+            ship.leakAge!.push(t);
+            ship.leakOpened!.push(width);
+            ship.leakClosing!.push(0);
+            ship.leakFloor!.push(width);
+            ship.leakPatched!.push(-1);
+            ship.leakFill!.push(fill);
+            ship.leakFills = drainedFills(t);
+            ship.leakModule!.push(1);
+            ship.leakClosed!.push(-1);
+            ship.leakLastOut!.push(Math.min(t, DRY_AFTER));
         },
     },
     {
@@ -813,7 +878,6 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
             ship.leakRate!.push(leakRate((Math.PI * width * width) / 4, 1));
             // Open long enough before the loop starts for its vapour to have reached its end.
             ship.leakAge!.push(t + 10);
-            ship.leakSpeed!.push(leakSpeed(1));
             ship.leakOpened!.push(width);
             ship.leakClosing!.push(0);
             ship.leakFloor!.push(width);

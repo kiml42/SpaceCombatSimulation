@@ -1267,7 +1267,8 @@ export function leaksInto(ships: Ships, n: number, from: (module: number) => { b
     const out: Leak[] = [];
     for (let m = 0; m < n; m++) {
         const { body, module } = from(m);
-        for (const leak of ships.fuel.leaksOf(body)) if (leak.module === module) out.push({ ...leak, module: m });
+        for (const leak of ships.fuel.leaksOf(body))
+            if (leak.module === module) out.push({ ...leak, module: m, fills: leak.fills.slice() });
     }
     return out;
 }

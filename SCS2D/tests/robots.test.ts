@@ -24,7 +24,7 @@ import {
     type Blueprint,
 } from "../sim/index.js";
 import { makeBattle } from "../scenarios/battle.js";
-import { PATCH_SPEED } from "../sim/fuel.js";
+import { fillsFrom, PATCH_SPEED } from "../sim/fuel.js";
 import { mending } from "../scenarios/mending.js";
 
 /** Robots crawling a hull from their bay to mend it (ROADMAP.md §8, repair stage 3). */
@@ -348,6 +348,8 @@ describe("robots", () => {
                 liningFloor: 0.5,
                 patched: -1,
                 closed: -1,
+                lastOut: -1,
+                fills: fillsFrom(1),
             });
             ships.damage.absorb(b, tank, tanked.modules[tank]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG * 0.2);
             return { a };

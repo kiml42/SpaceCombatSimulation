@@ -783,11 +783,17 @@ inside any one file is not contiguous.
   gun's mount** (`DesignWarhead`, beside rather than among `design.turrets`, which are guns): its mount's doctrine
   says what size it is for, its reach is how far its fragments are worth throwing at that, until the gap
   between them at the edge of its spread is as wide (`warheadReach`), its `fireRange` takes its share as a
-  gun's does, and a main warhead counts towards its ship's reach and its attack rosette. **Its fuze** leads
-  as a shotgun fired from a moving hull would: against each hull near it, its fragments fly at their burst
-  speed plus its own velocity less that hull's, so closing fast throws a narrower cone, swung the way it
-  closes, that reaches further (`fragmentCone`). It goes off when the nearest point of an enemy module inside
-  that cone is within its reach, unless a friend's is as near; not while its craft is parked on a pad, and never on a collision, so a ram is still a ram. **Going
+  gun's does, and a main warhead counts towards its ship's reach and its attack rosette. **Its fuze** is a hull
+  gun's trigger, in the same code (`warheadTrigger`): a hull mount whose muzzle speed is its burst and whose
+  barrel is its nose. It goes for its order's target, a ram's among them, else the one its doctrine chose,
+  and the part it rams; leads it as a gun leads a shot from a moving hull (`solveLead`); and takes the cone a
+  gun would fire in (`aimPoint`, `fireCone`), widened by how far its fragments spread across the target,
+  measured in noses, since at a burst no faster than it closes a turn of the nose moves its fragments less
+  (`noseCone`). It goes off when its nose is inside that cone, within the reach its fragments are worth
+  throwing at the speed they close (`fragmentCone`), and no friend is across its line (`friendAlong`). Only
+  what its fragments' layers can reach counts, as for a gun, so one ramming a part on the deck waits until it
+  has dropped to it, and one ramming a turret or thick module goes off from above. Not while its craft is
+  parked on a pad, and never on a collision, so a ram is still a ram. **Going
   off**, the charge is burnt; its fragments land in layers as a shell's do, from the warhead's own layer (a
   committed craft's is the hull layer, where it rams), and a lone one always in that layer; they pass through nothing of their ship but the warhead; the hull keeps
   their momentum the other way; and what the fragments did not take crushes the carrier outward from the
@@ -802,11 +808,12 @@ inside any one file is not contiguous.
   break up, and does not cook off. In the editor it is a tank framed in barrel bronze, the frame as thick as
   its casing; its spread is drawn as its trigger cone; and the attack rosette sets it off, hiding it until
   the pointer leaves. The KKV is the stock torpedo with an armoured nose and no warhead, which rams; the
-  Torpedo has a 16-fragment, 120° warhead in its nose, and the Shaped Torpedo a slug, both still flying the
+  Torpedo has a 16-fragment, 60° warhead in its nose, and the Shaped Torpedo a slug, both still flying the
   KKV's ram, so one whose fuze is dead rams. **A ram with a working warhead turns it on at the end**: it
   burns as any ram does until its drift will not carry it wide of what it rams in the time left, and that
-  time is no more than a quarter turn of its hull, then holds the heading that leads the warhead's middle
-  fragment onto its target as a gun leads a shot (`warheadLead`), flying the same ram. A craft that rams whatever it carries fights from its ram's run
+  time is no more than a quarter turn of its hull, then holds its nose on the middle of the cone its
+  warhead's trigger would go off in, as a gun's barrel holds on its lead (`warheadTrigger`), flying the same
+  ram. A craft that rams whatever it carries fights from its ram's run
   however close its warhead goes off (`reachOf`), so it sorties as a KKV does.
   **Two layers** (§3). Every module is in the hull layer. Turrets and anything marked _thick_ stand up into
   the weapons layer as well; a turret only by its dome, a circle as wide as the mount, on a block in the

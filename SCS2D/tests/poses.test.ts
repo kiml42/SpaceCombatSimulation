@@ -21,9 +21,10 @@ describe("where a leaking ship has been", () => {
         expect(poses.at(3, 1, 0.5, pose)).toBe(true);
         expect(pose.x).toBeCloseTo(5, 9);
         expect(pose.angle).toBeCloseTo(0.25, 9);
-        // Older than anything kept: the oldest.
+        // Older than anything kept: the oldest, moved back along its velocity.
         poses.at(3, 1, 5, pose);
-        expect(pose.x).toBe(0);
+        expect(pose.x).toBeCloseTo(-40, 9);
+        expect(pose.angle).toBe(0);
     });
 
     it("turns the shorter way round between two frames", () => {

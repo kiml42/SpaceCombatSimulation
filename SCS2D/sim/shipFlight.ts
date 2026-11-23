@@ -2,7 +2,7 @@ import { Bodies } from "./bodies.js";
 import type { ShipDesign } from "./blueprint.js";
 import { HULL_LAYER, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from "./hull.js";
 import { DamageEffect } from "./damage.js";
-import { leakRate, leakSpeed } from "./fuel.js";
+import { leakRate, leakSpeed, noteFill } from "./fuel.js";
 import { Claim, Resource } from "./supply.js";
 import { geometryOf, plumeLayers, plumeRays, WEAPON_PLUME_SHARE } from "./exhaust.js";
 import { cohesionUrge } from "./targeting.js";
@@ -22,7 +22,7 @@ import {
     turnTime,
 } from "./helm.js";
 import { addFlame, addTurret, attackBearing } from "./attack.js";
-import { warheadLead, type WarheadLead } from "./warheads.js";
+import { warheadTrigger, type WarheadTrigger } from "./warheads.js";
 import { interceptTime } from "./turrets.js";
 import { edgeFade } from "./doctrine.js";
 import type { SpatialGrid } from "./index.js";
@@ -316,8 +316,10 @@ export function flyOne(ships: Ships, dt: number, bodies: Bodies, i: number, grid
                     charge(ships, bodies, i, b, at, order.approachSpeed, tb);
                     // Its drift taken out and the hit sure, in its last quarter turn it turns its warhead
                     // on, leading it as a gun leads a shot. Until then, or with none that works, it burns.
-                    if (aimsWarhead(ships, bodies, i, b, at, tb) && warheadLead(ships, bodies, i, b, at.x, at.y, at.vx, at.vy, LEAD)) {
-                        wantAngle = LEAD.heading;
+                    const head = aimsWarhead(ships, bodies, i, b, at, tb) ? mainWarhead(ships, i, b) : -1;
+                    if (head >= 0 && warheadTrigger(ships, bodies, i, b, head, AIM) && AIM.half > 0) {
+                        // Its nose on the middle of the cone its trigger would go off in, as a gun's barrel on its lead.
+                        wantAngle = AIM.centre - ships.designs[i]!.modules[ships.designs[i]!.warheads[head]!.module]!.angle;
                     } else ships.intent = HURRY;
                 }
             } else if (ships.guarding[i] !== 1) {
@@ -1016,6 +1018,16 @@ export function charge(ships: Ships, bodies: Bodies, i: number, b: number, at: S
         want = min(want, closing + (spare > drift ? sqrt(spare * spare - drift * drift) : 0));
     }
     urge(ships, URGE_REFERENCE, at.vx + ux * want, at.vy + uy * want);
+}
+
+/** Ship `i`'s first main warhead whose fuze works and that holds charge, by its place in `design.warheads`; -1 for none. */
+function mainWarhead(ships: Ships, i: number, b: number): number {
+    const heads = ships.designs[i]!.warheads;
+    for (let w = 0; w < heads.length; w++) {
+        const m = heads[w]!.module;
+        if (heads[w]!.main && ships.left(i, b, m, DamageEffect.Fuze) > 0 && ships.fuel.held(b, m) > 0) return w;
+    }
+    return -1;
 }
 
 /**
@@ -1902,8 +1914,8 @@ const CORNER_FLOOR = 0.1;
 
 /** The corner a ship closing on its target makes for, when it has one. */
 const ROUTE: Spot = { x: 0, y: 0, vx: 0, vy: 0, radius: 0 };
-/** Scratch for where a ram points its warhead (`warheadLead`). */
-const LEAD: WarheadLead = { heading: 0, reach: 0 };
+/** Scratch for where a ram points its warhead (`warheadTrigger`). */
+const AIM: WarheadTrigger = { target: -1, x: 0, y: 0, facing: 0, centre: 0, half: 0, range: 0, reach: 0, closing: 0, layers: 0 };
 
 /** Fly body `b` through `at` at `speed` relative to it, not stopping there, wanting it by `weight`. */
 function seek(ships: Ships, bodies: Bodies, b: number, at: Spot, speed: number, weight: number): void {
@@ -2112,10 +2124,12 @@ export function leak(ships: Ships, dt: number, bodies: Bodies, i: number): void 
             if (!(leak.width > 0) && leak.closed < 0) leak.closed = leak.age;
         }
         const fill = ships.fuel.fill(b, leak.module);
+        noteFill(leak, fill);
         const taken = ships.fuel.vent(b, leak.module, leakRate(PI * 0.25 * leak.width * leak.width, fill) * dt);
         leak.rate = taken / dt;
         if (!(taken > 0)) continue;
         vented = true;
+        leak.lastOut = leak.age;
         const m = design.modules[leak.module]!;
         const c = cos(m.angle);
         const s = sin(m.angle);

@@ -111,9 +111,9 @@ import { drawGlows, Lights, type Transform } from "./glows.js";
 import { Overshadowed } from "./blocks.js";
 import { Income, incomeText } from "./income.js";
 import { LIGHT_GAIN, LightField, type Seen } from "./lightField.js";
-import { leakSpeed } from "../sim/fuel.js";
+import { FILL_KEPT } from "../sim/fuel.js";
 import { LEAK_LINGER } from "../sim/snapshot.js";
-import { eachCloudPuff, eachPuff, type Cloud, type Hole, type Pose, type Puff } from "./vapour.js";
+import { eachCloudPuff, eachPuff, type Cloud, type Fills, type Hole, type Pose, type Puff } from "./vapour.js";
 import { Poses } from "./poses.js";
 import { bit, bitCount, seedOf, spark, sparkColour, sparkCount, sparkFade, sprayOf, type Bit, type Spark } from "./particles.js";
 import type { PixiCanvas } from "./pixiCanvas.js";
@@ -1406,16 +1406,17 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
     for (let k = 0; k < xs.length; k++) {
         const width = ship.leakWidth![k]!;
         const age = ship.leakAge?.[k] ?? LONG_OPEN;
-        // Shut, or with nothing left behind it, long enough for its vapour to have drifted off: only its mark is left.
-        const closed = ship.leakClosed?.[k];
-        if (closed !== undefined && !(ship.leakRate![k]! > 0) && !(closed >= 0 && age - closed < LEAK_LINGER)) continue;
+        // Shut or run dry, or with nothing left behind it, long enough for its vapour to have drifted off: only its mark is left.
+        const stopped = ship.leakLastOut?.[k] ?? ship.leakClosed?.[k];
+        if (stopped !== undefined && !(ship.leakRate![k]! > 0) && !(stopped >= 0 && age - stopped < LEAK_LINGER)) continue;
         // What the hole has been, or, for a picture that does not say, as it is now and always was.
         hole.opened = ship.leakOpened?.[k] ?? width;
         hole.closing = ship.leakClosing?.[k] ?? 0;
         hole.floor = ship.leakFloor?.[k] ?? width;
         hole.patched = ship.leakPatched?.[k] ?? -1;
-        const fill = ship.leakFill?.[k] ?? 1;
-        const speed = ship.leakSpeed?.[k] ?? leakSpeed(fill);
+        tankFills.now = ship.leakFill?.[k] ?? 1;
+        tankFills.ring = ship.leakFills;
+        tankFills.offset = k * FILL_KEPT;
         const dx = ship.leakDirX![k]!;
         const dy = ship.leakDirY![k]!;
         // At deck height, so under the thick modules standing over it.
@@ -1428,8 +1429,7 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
             dx,
             dy,
             age,
-            fill,
-            speed,
+            tankFills,
             puff,
             (p) => {
                 const base = shaded && inShadow(p) ? shadowTint : tint;
@@ -1447,6 +1447,7 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
 
 /** Scratch for drawing a leak, so drawing one allocates nothing. */
 const hole: Hole = { opened: 0, closing: 0, floor: 0, patched: -1 };
+const tankFills: Fills = { now: 1, offset: 0 };
 const puff: Puff = { x: 0, y: 0, radius: 0, dirX: 1, dirY: 0, length: 0, alpha: 0 };
 const pose: Pose = { x: 0, y: 0, angle: 0, vx: 0, vy: 0 };
 /** Whether a puff is in its own ship's shadows. */
