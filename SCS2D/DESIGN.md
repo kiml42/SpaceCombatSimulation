@@ -779,11 +779,13 @@ inside any one file is not contiguous.
   weaker. **It always throws both ways, and all round.** A spray throws its casing as `fragments` rounds
   across its `spread` about its facing and as many the same way behind it, never narrower than they need
   (`SPREAD_PER_FRAGMENT`, 10° for 64); a slug, one fragment, a shaped charge's, goes straight ahead, and a
-  backblast of 8 (`WARHEAD_BACKBLAST_FRAGMENTS`) over 60° behind it carries the opposite of its momentum.
-  Between the arcs, 32 more (`WARHEAD_SIDE_FRAGMENTS`) go round the turn, each as heavy and as fast as an
-  arc's edge fragment, a slug's backblast piece, times a grade that eases from one there to a quarter
-  broadside (`warheadSideGrade`, `WARHEAD_SIDE_FLOOR`), as though the casing thinned and the blast weakened
-  towards the sides, with no step where the arcs end. The casing and the yield are shared over all of it by
+  backblast of 16 (`WARHEAD_BACKBLAST_FRAGMENTS`) over 60° behind it, a spray's lobe, with the slug's
+  energy. Outside the arcs, 32 more (`WARHEAD_SIDE_FRAGMENTS`) go round the turn, each as heavy and as
+  fast as an arc's edge fragment, a slug's backblast piece, times a grade that eases from one there to a
+  quarter broadside (`warheadSideGrade`, `WARHEAD_SIDE_FLOOR`), as though the casing thinned and the blast
+  weakened towards the sides, with no step where the arcs end. A slug's go on down ahead of broadside to a
+  quarter of that beside the slug (`WARHEAD_SLUG_FORE`), since a shaped charge throws little forward but
+  its slug, which takes up the momentum of all the rest. The casing and the yield are shared over all of it by
   the Gurney balance (`warheadBurst`); a 60° spray of 16 puts nearly three quarters of its yield into its
   arcs. So `reinforcement`, which sets the casing, trades speed for weight, and a warhead
   mounted sideways still harms its carrier. **It is a weapon like a
@@ -798,7 +800,9 @@ inside any one file is not contiguous.
   measured in noses, since at a burst no faster than it closes a turn of the nose moves its fragments less
   (`noseCone`). It goes off when its nose is inside that cone, within the reach its fragments are worth
   throwing at the speed they close (`fragmentCone`), and no friend is across its line (`friendAlong`). A spray has the same trigger behind it, and goes off on
-  either; a slug's backblast has none. Only
+  either: a fragment thrown at the target flies the same whichever end throws it, so the battle view draws
+  that trigger where its nose must point, the one ahead turned half round, with one line along its nose. A
+  slug's backblast has none. Only
   what its fragments' layers can reach counts, as for a gun, so one ramming a part on the deck waits until it
   has dropped to it, and one ramming a turret or thick module goes off from above. Not while its craft is
   parked on a pad, and never on a collision, so a ram is still a ram. **Going

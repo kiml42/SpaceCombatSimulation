@@ -200,7 +200,7 @@ export interface ShipView {
     /**
      * Each warhead's cones at what it is going for (`warheadCone`), ahead and
      * behind, six numbers a warhead in the design's order: for each, its
-     * middle as a bearing in the world, half its width (infinite all round)
+     * middle as a bearing in the world (live, where its nose must point), half its width (infinite all round)
      * and its reach, metres, 0 for none.
      */
     warheadCones?: number[];

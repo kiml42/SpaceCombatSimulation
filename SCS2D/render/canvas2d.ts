@@ -1575,10 +1575,11 @@ function drawLoad(ctx: CanvasRenderingContext2D, ship: ShipView, t: number, mx: 
 }
 
 /**
- * Where each warhead will go off at: the cone its fragments fly in at what it
- * is going for, its own velocity added, out to their reach, as a gun's wedge
- * is drawn; and a line the way it points. Ahead, and behind for a spray, which
- * throws the same both ways. Fouled once its fuze is dead (`DUD_INTEGRITY`).
+ * Where each warhead will go off: the bearings its nose may point along at
+ * what it is going for, out to its fragments' reach, as a gun's wedge is
+ * drawn, and a line the way it points; for a spray, the same turned half
+ * round, for its tail. At rest, its lobes ahead and behind. Fouled once its
+ * fuze is dead (`DUD_INTEGRITY`).
  */
 function drawWarheadTriggers(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
     const design = ship.currentStructure;
@@ -1614,9 +1615,14 @@ function drawWarheadTriggers(ctx: CanvasRenderingContext2D, ship: ShipView, metr
             }
             ctx.fill();
             ctx.stroke();
+        }
+        // Its nose: in either wedge, it goes off.
+        const nose = ship.angle + module.angle;
+        const reach = Math.max(cones?.[6 * w + 2] ?? head.reach, cones?.[6 * w + 5] ?? 0);
+        if (reach > 0) {
             ctx.beginPath();
             ctx.moveTo(x, y);
-            ctx.lineTo(x + cos(facing) * reach, y + sin(facing) * reach);
+            ctx.lineTo(x + cos(nose) * reach, y + sin(nose) * reach);
             ctx.stroke();
         }
     }

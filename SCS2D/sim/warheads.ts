@@ -8,7 +8,7 @@ import {
     WARHEAD_BACKBLAST_FRAGMENTS,
     WARHEAD_FRAGMENT_LIFE,
     WARHEAD_SIDE_FRAGMENTS,
-    warheadArcHalf,
+    warheadSideBearing,
     warheadSideGrade,
     warheadBurst,
     warheadBurstSpeed,
@@ -414,14 +414,16 @@ function within(speed: number, rvx: number, rvy: number, nose: number, centre: n
 
 /**
  * The trigger warhead `w` of ship `i`, on body `b`, draws ahead, or behind
- * (`rear`), as a gun's wedge is drawn: about the bearing its lead says to
- * point it along, as wide as it may go off off that, out to its reach
- * (`warheadTrigger`). With nothing to go off at, its own spread the way it
- * points; a slug's backblast, none.
+ * (`rear`), as a gun's wedge is drawn: the bearings its nose may point along
+ * to go off, as wide as it may go off off its lead, out to its reach
+ * (`warheadTrigger`). Fragments thrown at the target fly the same whichever
+ * end throws them, so the one behind is the one ahead turned half round.
+ * With nothing to go off at, its own spread each way it throws; a slug's
+ * backblast, none.
  */
 export function warheadCone(ships: Ships, bodies: Bodies, i: number, b: number, w: number, out: FragmentCone, rear = false): FragmentCone {
     if (warheadTrigger(ships, bodies, i, b, w, TRIGGER, rear)) {
-        out.centre = TRIGGER.centre;
+        out.centre = TRIGGER.centre + (rear ? PI : 0);
         out.half = TRIGGER.half;
         out.reach = TRIGGER.reach;
         return out;
@@ -484,7 +486,7 @@ export function detonate(
         // A slug ahead, and a backblast behind with the opposite of its momentum.
         throwOne(projectiles, rng, i, b, m, facing, burst.speed, burst.each, true);
         for (let k = 0; k < WARHEAD_BACKBLAST_FRAGMENTS; k++) {
-            throwOne(projectiles, rng, i, b, m, facing + PI + backblastBearing(k), burst.backSpeed, burst.backEach, false);
+            throwOne(projectiles, rng, i, b, m, facing + PI + backblastBearing(k, rng.nextFloat()), burst.backSpeed, burst.backEach, false);
         }
     } else {
         // Across the spread ahead, each in its own slice of it, and its mirror behind.
@@ -496,16 +498,23 @@ export function detonate(
             throwOne(projectiles, rng, i, b, m, heading + PI, burst.backSpeed, burst.backEach, false);
         }
     }
-    // Across the gap each side between the arcs, and the opposite way, lighter and slower towards broadside.
+    // Outside the arcs, lighter and slower away from them: a spray's twinned across the hull, a slug's across its axis.
     if (burst.sideEach > 0) {
-        const half = warheadArcHalf(n, burst.spread);
-        const gap = PI - 2 * half;
-        const pairs = WARHEAD_SIDE_FRAGMENTS / 2;
-        for (let k = 0; k < pairs; k++) {
-            const heading = facing + half + ((k + rng.nextFloat()) / pairs) * gap;
-            const g = warheadSideGrade(k);
-            throwOne(projectiles, rng, i, b, m, heading, g * burst.sideSpeed, g * burst.sideEach, false);
-            throwOne(projectiles, rng, i, b, m, heading + PI, g * burst.sideSpeed, g * burst.sideEach, false);
+        for (let k = 0; k < WARHEAD_SIDE_FRAGMENTS / 2; k++) {
+            const bearing = warheadSideBearing(n, burst.spread, k, rng.nextFloat());
+            const g = warheadSideGrade(n, k);
+            throwOne(projectiles, rng, i, b, m, facing + bearing, g * burst.sideSpeed, g * burst.sideEach, false);
+            throwOne(
+                projectiles,
+                rng,
+                i,
+                b,
+                m,
+                facing + (n === 1 ? -bearing : bearing + PI),
+                g * burst.sideSpeed,
+                g * burst.sideEach,
+                false,
+            );
         }
     }
 

@@ -7,7 +7,7 @@ import {
     firingPeriod,
     WARHEAD_BACKBLAST_FRAGMENTS,
     WARHEAD_SIDE_FRAGMENTS,
-    warheadArcHalf,
+    warheadSideBearing,
     warheadSideGrade,
     warheadBurst,
 } from "../sim/modules.js";
@@ -476,13 +476,11 @@ export class Demonstration {
             }
         }
         if (burst.sideEach > 0) {
-            const half = warheadArcHalf(n, burst.spread);
-            const pairs = WARHEAD_SIDE_FRAGMENTS / 2;
-            for (let k = 0; k < pairs; k++) {
-                const heading = facing + half + ((k + 0.5) / pairs) * (math.PI - 2 * half);
-                const g = warheadSideGrade(k);
-                this.throwOne(x, y, heading, g * burst.sideSpeed, g * burst.sideEach);
-                this.throwOne(x, y, heading + math.PI, g * burst.sideSpeed, g * burst.sideEach);
+            for (let k = 0; k < WARHEAD_SIDE_FRAGMENTS / 2; k++) {
+                const bearing = warheadSideBearing(n, burst.spread, k);
+                const g = warheadSideGrade(n, k);
+                this.throwOne(x, y, facing + bearing, g * burst.sideSpeed, g * burst.sideEach);
+                this.throwOne(x, y, facing + (n === 1 ? -bearing : bearing + math.PI), g * burst.sideSpeed, g * burst.sideEach);
             }
         }
         this.flashes.add(x, y, burst.energy, IMPACT_BURST, -1, 0, 0, 0, 0, burst.speed);

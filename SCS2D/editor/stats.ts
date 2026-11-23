@@ -55,7 +55,14 @@ import {
     type ModuleSpec,
     type ShipDesign,
 } from "../sim/index.js";
-import { GunType, WARHEAD_SIDE_FLOOR, warheadBurst, warheadReach } from "../sim/modules.js";
+import { GunType, WARHEAD_SIDE_FRAGMENTS, warheadBurst, warheadReach, warheadSideGrade } from "../sim/modules.js";
+
+/** The least grade among a warhead's side fragments: the slowest of them, as a share of the fastest. */
+function leastSideGrade(fragments: number): number {
+    let least = 1;
+    for (let k = 0; k < WARHEAD_SIDE_FRAGMENTS / 2; k++) least = Math.min(least, warheadSideGrade(fragments, k));
+    return least;
+}
 import { buildWork, fittingOf } from "../sim/rebuild.js";
 
 /** A build time, in seconds, minutes or hours as reads best. */
@@ -561,8 +568,8 @@ export function moduleReadout(
         if (burst.sideEach > 0) {
             add({
                 name: "All round at",
-                value: `${n(burst.sideSpeed * WARHEAD_SIDE_FLOOR, 0)}–${n(burst.sideSpeed, 0)} m/s`,
-                title: "The rest of the yield, between its arcs, lighter and slower towards broadside, into whatever is near, its own ship included",
+                value: `${n(burst.sideSpeed * leastSideGrade(burst.fragments), 0)}–${n(burst.sideSpeed, 0)} m/s`,
+                title: "The rest of the yield, outside its arcs, lighter and slower away from them, into whatever is near, its own ship included",
             });
         }
         if (shipRadius > 0) {

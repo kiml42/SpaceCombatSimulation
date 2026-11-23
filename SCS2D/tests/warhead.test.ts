@@ -26,6 +26,8 @@ import {
     WARHEAD_BACKBLAST_FRAGMENTS,
     WARHEAD_SIDE_FLOOR,
     WARHEAD_SIDE_FRAGMENTS,
+    WARHEAD_SLUG_FORE,
+    warheadSideBearing,
     warheadSideGrade,
 } from "../sim/modules.js";
 import { makeBattle } from "../scenarios/battle.js";
@@ -148,16 +150,21 @@ describe("warhead", () => {
         expect(s.ships.fuel.held(s.b, s.head)).toBeCloseTo(WARHEAD_FILL_RATE * s.world.dt, 9);
     });
 
-    /** Summed over the side fragments, graded from the arcs' edge: their mass and energy. */
-    function sides(burst: ReturnType<typeof warheadBurst>): { mass: number; energy: number } {
+    /** Summed over the side fragments, graded from the arcs' edge: their mass, energy and momentum along the axis. */
+    function sides(burst: ReturnType<typeof warheadBurst>): { mass: number; energy: number; along: number } {
         let mass = 0;
         let energy = 0;
+        let along = 0;
         for (let k = 0; k < WARHEAD_SIDE_FRAGMENTS / 2; k++) {
-            const g = warheadSideGrade(k);
-            mass += 2 * g * burst.sideEach;
-            energy += g * burst.sideEach * (g * burst.sideSpeed) ** 2;
+            const g = warheadSideGrade(burst.fragments, k);
+            const each = g * burst.sideEach;
+            const speed = g * burst.sideSpeed;
+            mass += 2 * each;
+            energy += each * speed ** 2;
+            // A slug's twin is mirrored across its axis, so both go the same way along it; a spray's goes opposite.
+            if (burst.fragments === 1) along += 2 * each * speed * Math.cos(warheadSideBearing(1, 0, k));
         }
-        return { mass, energy };
+        return { mass, energy, along };
     }
 
     it("shares its yield and casing ahead, behind and all round, by the Gurney balance", () => {
@@ -175,26 +182,32 @@ describe("warhead", () => {
         // The sides start as an arc's fragment does and ease down to the floor broadside, never faster.
         expect(burst.sideEach).toBe(burst.each);
         expect(burst.sideSpeed).toBe(burst.speed);
-        expect(warheadSideGrade(0)).toBeGreaterThan(0.95);
-        expect(warheadSideGrade(WARHEAD_SIDE_FRAGMENTS / 4)).toBeLessThan(WARHEAD_SIDE_FLOOR + 0.05);
-        for (let k = 0; k < WARHEAD_SIDE_FRAGMENTS / 2; k++) expect(warheadSideGrade(k)).toBeLessThanOrEqual(1);
+        expect(warheadSideGrade(n, 0)).toBeGreaterThan(0.95);
+        expect(warheadSideGrade(n, WARHEAD_SIDE_FRAGMENTS / 4)).toBeLessThan(WARHEAD_SIDE_FLOOR + 0.05);
+        for (let k = 0; k < WARHEAD_SIDE_FRAGMENTS / 2; k++) expect(warheadSideGrade(n, k)).toBeLessThanOrEqual(1);
         // Arcs meeting all round throw nothing to the sides.
         const round = warheadBurst({ ...HEAD, spread: Math.PI }, stats);
         expect(round.focus).toBe(1);
         expect(round.sideEach).toBe(0);
     });
 
-    it("throws a slug's backblast with the slug's energy and the opposite of its momentum", () => {
+    it("throws a slug ahead, a backblast with its energy behind, and little else forward", () => {
         const stats = moduleStats({ ...HEAD, fragments: 1 });
         const slug = warheadBurst({ ...HEAD, fragments: 1 }, stats);
         let along = 0;
         for (let k = 0; k < WARHEAD_BACKBLAST_FRAGMENTS; k++) along += Math.cos(backblastBearing(k));
-        expect(slug.backEach * slug.backSpeed * along).toBeCloseTo(slug.each * slug.speed, 6);
-        expect(0.5 * WARHEAD_BACKBLAST_FRAGMENTS * slug.backEach * slug.backSpeed ** 2).toBeCloseTo(0.5 * slug.each * slug.speed ** 2, 3);
-        // Its sides grade down from a backblast piece, and it all adds up.
         const side = sides(slug);
+        // The slug takes up the momentum of the backblast and the sides together, with the backblast's energy.
+        expect(slug.each * slug.speed + side.along).toBeCloseTo(slug.backEach * slug.backSpeed * along, 6);
+        expect(0.5 * WARHEAD_BACKBLAST_FRAGMENTS * slug.backEach * slug.backSpeed ** 2).toBeCloseTo(0.5 * slug.each * slug.speed ** 2, 3);
         expect(slug.each + WARHEAD_BACKBLAST_FRAGMENTS * slug.backEach + side.mass).toBeCloseTo(slug.casing, 9);
         expect(slug.each * slug.speed ** 2 + side.energy).toBeCloseTo(slug.energy, 0);
+        // Its sides grade down from a backblast piece; ahead of broadside, below a spray's broadside, least beside the slug.
+        expect(warheadSideGrade(1, 0)).toBeGreaterThan(0.95);
+        for (let k = 0; k < WARHEAD_SIDE_FRAGMENTS / 2; k++) {
+            if (warheadSideBearing(1, 0, k) < Math.PI / 2) expect(warheadSideGrade(1, k)).toBeLessThanOrEqual(WARHEAD_SIDE_FLOOR);
+        }
+        expect(warheadSideGrade(1, WARHEAD_SIDE_FRAGMENTS / 2 - 1)).toBeLessThan(WARHEAD_SIDE_FLOOR * WARHEAD_SLUG_FORE + 0.01);
     });
 
     it("throws a single slug straight ahead, and a crowd of fragments no narrower than they need", () => {

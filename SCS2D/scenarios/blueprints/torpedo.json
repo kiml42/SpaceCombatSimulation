@@ -96,7 +96,7 @@
             "spread": 60,
             "targeting": {
                 "preferredMass": 20,
-                "fireRange": 0.3
+                "fireRange": 0.1
             },
             "notes": "Its casing is its fragments and its fuel its charge; burnt last, so it holds until the tank behind it is dry."
         },
