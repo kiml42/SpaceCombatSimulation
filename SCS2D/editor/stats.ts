@@ -55,7 +55,7 @@ import {
     type ModuleSpec,
     type ShipDesign,
 } from "../sim/index.js";
-import { GunType, warheadBurst, warheadReach } from "../sim/modules.js";
+import { GunType, WARHEAD_SIDE_FLOOR, warheadBurst, warheadReach } from "../sim/modules.js";
 import { buildWork, fittingOf } from "../sim/rebuild.js";
 
 /** A build time, in seconds, minutes or hours as reads best. */
@@ -561,8 +561,8 @@ export function moduleReadout(
         if (burst.sideEach > 0) {
             add({
                 name: "All round at",
-                value: `${n(burst.sideSpeed, 0)} m/s`,
-                title: "The rest of the yield, outside its arcs, into whatever is near, its own ship included",
+                value: `${n(burst.sideSpeed * WARHEAD_SIDE_FLOOR, 0)}–${n(burst.sideSpeed, 0)} m/s`,
+                title: "The rest of the yield, between its arcs, lighter and slower towards broadside, into whatever is near, its own ship included",
             });
         }
         if (shipRadius > 0) {

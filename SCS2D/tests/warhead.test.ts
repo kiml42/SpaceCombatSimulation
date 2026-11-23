@@ -21,7 +21,13 @@ import {
     type ModuleSpec,
 } from "../sim/index.js";
 import * as shipDocking from "../sim/shipDocking.js";
-import { backblastBearing, WARHEAD_BACKBLAST_FRAGMENTS, WARHEAD_FOCUS, WARHEAD_SIDE_FRAGMENTS } from "../sim/modules.js";
+import {
+    backblastBearing,
+    WARHEAD_BACKBLAST_FRAGMENTS,
+    WARHEAD_SIDE_FLOOR,
+    WARHEAD_SIDE_FRAGMENTS,
+    warheadSideGrade,
+} from "../sim/modules.js";
 import { makeBattle } from "../scenarios/battle.js";
 import { Demonstration } from "../editor/demonstrate.js";
 import { attackRosette, gunsBearing, previewSnapshot } from "../editor/preview.js";
@@ -142,23 +148,37 @@ describe("warhead", () => {
         expect(s.ships.fuel.held(s.b, s.head)).toBeCloseTo(WARHEAD_FILL_RATE * s.world.dt, 9);
     });
 
+    /** Summed over the side fragments, graded from the arcs' edge: their mass and energy. */
+    function sides(burst: ReturnType<typeof warheadBurst>): { mass: number; energy: number } {
+        let mass = 0;
+        let energy = 0;
+        for (let k = 0; k < WARHEAD_SIDE_FRAGMENTS / 2; k++) {
+            const g = warheadSideGrade(k);
+            mass += 2 * g * burst.sideEach;
+            energy += g * burst.sideEach * (g * burst.sideSpeed) ** 2;
+        }
+        return { mass, energy };
+    }
+
     it("shares its yield and casing ahead, behind and all round, by the Gurney balance", () => {
         const stats = moduleStats(HEAD);
         const burst = warheadBurst(HEAD, stats);
-        // Two 60° arcs, ahead and behind, are a third of the turn.
-        expect(burst.focus).toBeCloseTo(1 / 3, 9);
         expect(burst.energy).toBeCloseTo(stats.fuel * EXPLOSIVE_YIELD, 3);
         // What it yields is what it holds.
         expect(warheadBurst(HEAD, stats, stats.structureMass, stats.fuel / 2).energy).toBeCloseTo(burst.energy / 2, 3);
         // Every kilogram of its casing and every joule of its charge, ahead and behind and all round.
         const n = burst.fragments;
-        expect(2 * n * burst.each + WARHEAD_SIDE_FRAGMENTS * burst.sideEach).toBeCloseTo(burst.casing, 9);
+        const side = sides(burst);
+        expect(2 * n * burst.each + side.mass).toBeCloseTo(burst.casing, 9);
+        expect(n * burst.each * burst.speed ** 2 + side.energy).toBeCloseTo(burst.energy, 0);
         expect(n * burst.each * burst.speed ** 2).toBeCloseTo(burst.focus * burst.energy, 0);
-        expect(0.5 * WARHEAD_SIDE_FRAGMENTS * burst.sideEach * burst.sideSpeed ** 2).toBeCloseTo((1 - burst.focus) * burst.energy, 0);
-        // Lighter all round.
-        expect(burst.sideEach).toBeLessThan(burst.each);
-        // A narrow pair of arcs takes a shaped liner's share; arcs meeting all round, all of it.
-        expect(warheadBurst({ ...HEAD, spread: 0.1 }, stats).focus).toBe(WARHEAD_FOCUS);
+        // The sides start as an arc's fragment does and ease down to the floor broadside, never faster.
+        expect(burst.sideEach).toBe(burst.each);
+        expect(burst.sideSpeed).toBe(burst.speed);
+        expect(warheadSideGrade(0)).toBeGreaterThan(0.95);
+        expect(warheadSideGrade(WARHEAD_SIDE_FRAGMENTS / 4)).toBeLessThan(WARHEAD_SIDE_FLOOR + 0.05);
+        for (let k = 0; k < WARHEAD_SIDE_FRAGMENTS / 2; k++) expect(warheadSideGrade(k)).toBeLessThanOrEqual(1);
+        // Arcs meeting all round throw nothing to the sides.
         const round = warheadBurst({ ...HEAD, spread: Math.PI }, stats);
         expect(round.focus).toBe(1);
         expect(round.sideEach).toBe(0);
@@ -171,6 +191,10 @@ describe("warhead", () => {
         for (let k = 0; k < WARHEAD_BACKBLAST_FRAGMENTS; k++) along += Math.cos(backblastBearing(k));
         expect(slug.backEach * slug.backSpeed * along).toBeCloseTo(slug.each * slug.speed, 6);
         expect(0.5 * WARHEAD_BACKBLAST_FRAGMENTS * slug.backEach * slug.backSpeed ** 2).toBeCloseTo(0.5 * slug.each * slug.speed ** 2, 3);
+        // Its sides grade down from a backblast piece, and it all adds up.
+        const side = sides(slug);
+        expect(slug.each + WARHEAD_BACKBLAST_FRAGMENTS * slug.backEach + side.mass).toBeCloseTo(slug.casing, 9);
+        expect(slug.each * slug.speed ** 2 + side.energy).toBeCloseTo(slug.energy, 0);
     });
 
     it("throws a single slug straight ahead, and a crowd of fragments no narrower than they need", () => {
@@ -178,8 +202,6 @@ describe("warhead", () => {
         expect(warheadSpread({ ...HEAD, fragments: 64, spread: 0 })).toBeCloseTo((10 * Math.PI) / 180, 12);
         expect(warheadSpread({ ...HEAD, fragments: 2, spread: 0 })).toBeCloseTo(SPREAD_PER_FRAGMENT, 12);
         expect(warheadSpread({ ...HEAD, fragments: 8, spread: 2 * Math.PI })).toBe(2 * Math.PI);
-        // A slug's share of its yield is a shaped liner's.
-        expect(warheadBurst({ ...HEAD, fragments: 1 }, moduleStats(HEAD)).focus).toBe(0.2);
     });
 
     it("bears on the attack rosette across its spread, as a main weapon", () => {

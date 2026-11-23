@@ -780,11 +780,12 @@ inside any one file is not contiguous.
   across its `spread` about its facing and as many the same way behind it, never narrower than they need
   (`SPREAD_PER_FRAGMENT`, 10° for 64); a slug, one fragment, a shaped charge's, goes straight ahead, and a
   backblast of 8 (`WARHEAD_BACKBLAST_FRAGMENTS`) over 60° behind it carries the opposite of its momentum.
-  The two arcs take the share of the yield their spreads take of the turn, never less than a shaped liner's
-  fifth (`WARHEAD_FOCUS`), and leave at the speed that energy gives three quarters of the casing; the rest
-  of the yield throws the other quarter (`WARHEAD_SIDE_CASING`) as 32 lighter, slower fragments spread
-  round the turn outside the arcs (`WARHEAD_SIDE_FRAGMENTS`), a casing thinner at the sides
-  (`warheadBurst`). So `reinforcement`, which sets the casing, trades speed for weight, and a warhead
+  Between the arcs, 32 more (`WARHEAD_SIDE_FRAGMENTS`) go round the turn, each as heavy and as fast as an
+  arc's edge fragment, a slug's backblast piece, times a grade that eases from one there to a quarter
+  broadside (`warheadSideGrade`, `WARHEAD_SIDE_FLOOR`), as though the casing thinned and the blast weakened
+  towards the sides, with no step where the arcs end. The casing and the yield are shared over all of it by
+  the Gurney balance (`warheadBurst`); a 60° spray of 16 puts nearly three quarters of its yield into its
+  arcs. So `reinforcement`, which sets the casing, trades speed for weight, and a warhead
   mounted sideways still harms its carrier. **It is a weapon like a
   gun's mount** (`DesignWarhead`, beside rather than among `design.turrets`, which are guns): its mount's doctrine
   says what size it is for, its reach is how far its fragments are worth throwing at that, until the gap

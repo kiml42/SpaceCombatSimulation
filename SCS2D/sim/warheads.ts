@@ -8,6 +8,8 @@ import {
     WARHEAD_BACKBLAST_FRAGMENTS,
     WARHEAD_FRAGMENT_LIFE,
     WARHEAD_SIDE_FRAGMENTS,
+    warheadArcHalf,
+    warheadSideGrade,
     warheadBurst,
     warheadBurstSpeed,
     warheadFragments,
@@ -494,15 +496,16 @@ export function detonate(
             throwOne(projectiles, rng, i, b, m, heading + PI, burst.backSpeed, burst.backEach, false);
         }
     }
-    // All round outside the arcs, lighter and slower: across the gap each side, and the opposite way.
+    // Across the gap each side between the arcs, and the opposite way, lighter and slower towards broadside.
     if (burst.sideEach > 0) {
-        const half = n === 1 ? 0 : 0.5 * burst.spread;
+        const half = warheadArcHalf(n, burst.spread);
         const gap = PI - 2 * half;
         const pairs = WARHEAD_SIDE_FRAGMENTS / 2;
         for (let k = 0; k < pairs; k++) {
             const heading = facing + half + ((k + rng.nextFloat()) / pairs) * gap;
-            throwOne(projectiles, rng, i, b, m, heading, burst.sideSpeed, burst.sideEach, false);
-            throwOne(projectiles, rng, i, b, m, heading + PI, burst.sideSpeed, burst.sideEach, false);
+            const g = warheadSideGrade(k);
+            throwOne(projectiles, rng, i, b, m, heading, g * burst.sideSpeed, g * burst.sideEach, false);
+            throwOne(projectiles, rng, i, b, m, heading + PI, g * burst.sideSpeed, g * burst.sideEach, false);
         }
     }
 
