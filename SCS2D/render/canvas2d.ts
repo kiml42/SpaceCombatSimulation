@@ -1079,7 +1079,8 @@ function drawHull(
                     }
                 });
             }
-            if (spec.kind === "warhead") drawWarheadLines(ctx, spec, ship.angle + m.angle, solid ? undefined : light, fighters);
+            // A solid model has them as rods of its own.
+            if (spec.kind === "warhead" && !solid) drawWarheadLines(ctx, spec, ship.angle + m.angle, light, fighters);
             if (spec.kind === "robotBay") {
                 // A round pad for each berth, all one size, spread evenly over the
                 // bay in the grid its berths make (`berthGrid`), dark once it can no

@@ -27,6 +27,7 @@ import {
     isDomed,
     originOf,
     WEAPONS_LAYER,
+    type ModuleSpec,
     type ShipDesign,
     type ShipView,
     type Snapshot,
@@ -37,7 +38,7 @@ import type { Camera } from "../camera.js";
 import { engineLayout } from "../engineLayout.js";
 import type { Lights } from "../glows.js";
 import { DEFAULT_LIGHT, FIGHTER_SHADOW_M, fighterHeight, LANDED_SHADOW_M, type Light } from "../light.js";
-import { BARREL, fillColour, isFighterModule, moduleFills, paintedSide, type Fill } from "../moduleFills.js";
+import { BARREL, fillColour, isFighterModule, moduleFills, paintedSide, warheadLines, type Fill } from "../moduleFills.js";
 import { parseColour } from "../pixiCanvas.js";
 import { fighterColours, shipColours, teamLivery } from "../teams.js";
 import { patternColour, patternTile, patternTransform, tileKey, type Affine } from "../livery.js";
@@ -685,6 +686,7 @@ function build(ship: ShipView): { model: BufferGeometry; worn: Map<number, Buffe
                 if (k === 0 && bevels.length > 0) b.bevelled(fill.points, bevels, width, -half, half, shade(rgbOf(fill.colour)));
                 else b.prism(fill.points, -half - k * STACK, half + k * STACK, shade(rgbOf(fill.colour)));
             });
+            if (only < 0 && spec.kind === "warhead") warheadRods(b, m, half, shade(rgbOf(BARREL)));
             if (only < 0 && isDomed(spec.kind)) {
                 // Raised on a pedestal where it is too low to bring its barrels up to where they fire from.
                 const r = domeRadius(spec);
@@ -726,6 +728,42 @@ function build(ship: ShipView): { model: BufferGeometry; worn: Map<number, Buffe
     for (const [level, b] of wear) worn.set(level, b.geometry());
     const patterned = [...patterns].map(([key, { builder, tile }]) => ({ geometry: builder.geometry(), key, tile }));
     return { model: base.geometry(), worn, patterned };
+}
+
+/** How far a warhead's rods stand clear of its top at least: as high as canvas2d.ts lays its gauge, so they show over it. */
+const ROD_LIFT = 0.05;
+/** Steps round each of a rod's round ends. */
+const ROD_END_STEPS = 6;
+
+/** A warhead's rods (`warheadLines`) as capsules lying on top of its block, `half` its depth. */
+function warheadRods(b: Builder, m: { x: number; y: number; angle: number; spec: ModuleSpec }, half: number, rgb: readonly number[]): void {
+    const { width, ends } = warheadLines(m.spec);
+    const r = width / 2;
+    const z = b.z;
+    const c = Math.cos(m.angle);
+    const s = Math.sin(m.angle);
+    // A profile of x and radius: a half circle at each end of a straight run.
+    const profile = (span: number): number[] => {
+        const p: number[] = [];
+        for (let k = 0; k <= ROD_END_STEPS; k++) {
+            const a = (k / ROD_END_STEPS) * (Math.PI / 2);
+            p.push(-r * Math.cos(a), r * Math.sin(a));
+        }
+        for (let k = ROD_END_STEPS; k >= 0; k--) {
+            const a = (k / ROD_END_STEPS) * (Math.PI / 2);
+            p.push(span + r * Math.cos(a), r * Math.sin(a));
+        }
+        return p;
+    };
+    for (let k = 0; k < ends.length; k += 4) {
+        const x0 = ends[k]!;
+        const y0 = ends[k + 1]!;
+        const dx = ends[k + 2]! - x0;
+        const dy = ends[k + 3]! - y0;
+        b.place(m.x + x0 * c - y0 * s, m.y + x0 * s + y0 * c, m.angle + Math.atan2(dy, dx), z);
+        b.lathe(profile(Math.hypot(dx, dy)), 0, half + Math.max(r, ROD_LIFT), 1, rgb, false);
+    }
+    b.place(m.x, m.y, m.angle, z);
 }
 
 /** Where on a tile laid through `t` (tile pixels to the module's frame) a point is, seen from above: down a side, as on its top. */
