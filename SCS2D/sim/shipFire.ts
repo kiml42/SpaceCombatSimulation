@@ -1,5 +1,5 @@
 import { Bodies } from "./bodies.js";
-import { BOTH_LAYERS, HULL_LAYER, OWN_LAYERS, WEAPONS_LAYER } from "./hull.js";
+import { BOTH_LAYERS, HULL_LAYER, WEAPONS_LAYER } from "./hull.js";
 import { DamageEffect, IMPACT_MUZZLE, type ImpactLog } from "./damage.js";
 import { Claim, Resource } from "./supply.js";
 import {
@@ -251,8 +251,7 @@ export function fire(
                 // module takes both, and what is in one layer only takes its half
                 // and lets the other go on past it, as a thick engine's flame does.
                 const layers = shipAim.mountLayers(ships, i, design.turrets[t]!);
-                // A craft in both layers to ram or dock fires as it is, in both at once.
-                const split = layers === BOTH_LAYERS && shipAim.shipLayers(ships, i) === OWN_LAYERS;
+                const split = layers === BOTH_LAYERS;
                 for (let k = 0; k < (split ? 2 : 1); k++) {
                     const layer = split ? (k === 0 ? HULL_LAYER : WEAPONS_LAYER) : layers;
                     beams.fireFrom(

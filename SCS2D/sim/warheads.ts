@@ -1,10 +1,11 @@
 import type { Bodies } from "./bodies.js";
 import type { ShipDesign } from "./blueprint.js";
 import { DamageEffect, IMPACT_BURST, resolveCollision, SHATTER, type ImpactLog } from "./damage.js";
-import { BOTH_LAYERS, HullPath, moduleLayers } from "./hull.js";
+import { HullPath, moduleLayers } from "./hull.js";
 import { abs, angleDelta, asin, atan2, cos, log, max, min, PI, pow, sin, sqrt, TAU } from "./math.js";
 import { WARHEAD_FRAGMENT_LIFE, warheadBurst, warheadBurstSpeed, warheadSpread } from "./modules.js";
-import { ROUND_WRECKAGE, type Projectiles } from "./projectiles.js";
+import { fragmentLayer, ROUND_WRECKAGE, type Projectiles } from "./projectiles.js";
+import * as shipAim from "./shipAim.js";
 import * as shipDocking from "./shipDocking.js";
 import * as shipOrders from "./shipOrders.js";
 import { blowKey, discardFrom, heldMass, settleMass } from "./shipBreakup.js";
@@ -499,6 +500,7 @@ export function detonate(
 
     // The casing, out across the spread: each fragment in its own slice of it.
     const n = burst.fragments;
+    const home = shipAim.firedLayers(ships, i, b, design, m);
     const each = casing / n;
     const width = pow(each / FRAGMENT_DENSITY, 1 / 3);
     const all = burst.spread >= TAU;
@@ -510,7 +512,21 @@ export function detonate(
             const heading = facing + (all ? slice * TAU : (slice - 0.5) * burst.spread);
             const ux = cos(heading) * burst.speed;
             const uy = sin(heading) * burst.speed;
-            const round = projectiles.spawnRaw(wx, wy, vx + ux, vy + uy, width, WARHEAD_FRAGMENT_LIFE, each, 0, 0, b, 0, m, BOTH_LAYERS);
+            const round = projectiles.spawnRaw(
+                wx,
+                wy,
+                vx + ux,
+                vy + uy,
+                width,
+                WARHEAD_FRAGMENT_LIFE,
+                each,
+                0,
+                0,
+                b,
+                0,
+                m,
+                fragmentLayer(home, rng, n === 1),
+            );
             projectiles.ship[round] = i;
             projectiles.fragment[round] = 1;
             px += each * ux;

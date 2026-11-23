@@ -4,6 +4,7 @@ import {
     compileBlueprint,
     EXPLOSIVE_YIELD,
     FUEL_DENSITY,
+    HULL_LAYER,
     moduleStats,
     parseBlueprint,
     Projectiles,
@@ -15,6 +16,7 @@ import {
     warheadReach,
     warheadSpread,
     SPREAD_PER_FRAGMENT,
+    WEAPONS_LAYER,
     World,
     type Blueprint,
     type ModuleSpec,
@@ -358,6 +360,30 @@ describe("warhead", () => {
         expect(after[2]).toBeCloseTo(before[2], 3);
         s.ships.sever(s.world);
         expect(s.ships.alive[s.carrier] === 0 || !s.ships.designs[s.carrier]!.modules.some((m) => m.spec.kind === "warhead")).toBe(true);
+    });
+
+    it("puts a lone fragment in its own layer: a fighter's, or once committed to ram, the hull layer", () => {
+        const layer = (fighter: boolean, committed: boolean): number[] => {
+            const head = { ...HEAD, fragments: 1 };
+            const design = compileBlueprint({ ...CARRIER, fighter, modules: [...CARRIER.modules.slice(0, 2), head] });
+            const world = new World({ dt: 1 / 60, seed: 5 });
+            const ships = new Ships();
+            const i = ships.spawn(world, { design, x: 0, y: 0, team: 1 });
+            ships.spawn(world, { design: compileBlueprint(TARGET), x: 1.5 + 2 + 5, y: 0, team: 2 });
+            if (committed) ships.committed[i] = 1;
+            const grid = new SpatialGrid(64);
+            grid.rebuild(world.bodies);
+            const projectiles = new Projectiles();
+            expect(detonateWarheads(ships, world, projectiles, grid)).toBe(1);
+            const layers: number[] = [];
+            for (let k = 0; k < projectiles.highWater; k++)
+                if (projectiles.alive[k] === 1 && projectiles.kind[k] !== ROUND_WRECKAGE) layers.push(projectiles.layers[k]!);
+            return layers;
+        };
+        expect(compileBlueprint({ ...CARRIER, fighter: true }).fighter).toBe(true);
+        expect(layer(false, false)).toEqual([HULL_LAYER]);
+        expect(layer(true, false)).toEqual([WEAPONS_LAYER]);
+        expect(layer(true, true)).toEqual([HULL_LAYER]);
     });
 
     it("puts what its fragments do not take into the hull carrying it", () => {
