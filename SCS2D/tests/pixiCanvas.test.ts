@@ -10,6 +10,7 @@ import {
     convexHullOrder,
     dashed,
     parseColour,
+    LEAST_PARTICLE_PX,
     ParticleBatch,
     PixiCanvas,
     screenRect,
@@ -156,6 +157,21 @@ describe("a batch of particles", () => {
         batch.end();
         expect(batch.container.texture.width).toBe(8);
         expect(batch.container.blendMode).toBe("normal");
+    });
+
+    it("draws one under a pixel a pixel across and as much fainter, so it fades rather than drops out", () => {
+        const batch = new ParticleBatch();
+        batch.start(new Texture({ source: new TextureSource({ width: 8, height: 8 }) }), { a: 2, b: 0, c: 0, d: 2, e: 0, f: 0 }, false, 1);
+        // 4 px long, a quarter of a pixel wide, at twice the scale.
+        batch.add(0, 0, 1, 0, 2, 0.125, 0xffffff, 0.8);
+        batch.add(0, 0, 1, 0, 2, 2, 0xffffff, 0.8);
+        batch.end();
+        const [thin, wide] = batch.container.particleChildren as unknown as { scaleX: number; scaleY: number; alpha: number }[];
+        expect(thin!.scaleX * 8).toBeCloseTo(4, 9);
+        expect(thin!.scaleY * 8).toBeCloseTo(LEAST_PARTICLE_PX, 9);
+        expect(thin!.alpha).toBeCloseTo(0.8 * 0.25, 9);
+        expect(wide!.scaleY * 8).toBeCloseTo(4, 9);
+        expect(wide!.alpha).toBeCloseTo(0.8, 9);
     });
 
     it("goes with what is at deck height when asked to, under the thick modules, and is cleared from there each frame", () => {

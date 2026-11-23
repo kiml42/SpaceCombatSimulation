@@ -636,11 +636,6 @@ function drawShip(
         }
 
         const bearing = ship.turretBearings[t] ?? 0;
-        if (solid) {
-            if (spec.kind === "plasmaLance") drawSparks(ctx, ship, t, design.modules[module]!);
-            drawLoad(ctx, ship, t, mx, my, bearing);
-            continue;
-        }
         const dirX = cos(bearing);
         const dirY = sin(bearing);
         const gun = design.turrets[t]!.gun;
@@ -648,6 +643,20 @@ function drawShip(
         const spacing = gun.barrelSpacing;
         const hull = isHullMount(spec.kind) ? hullMountGeometry(spec) : null;
         const beamLenses = spec.kind === "hullBeam";
+        // A solid model has its own turret and barrels: what is left is what it does not model.
+        if (solid) {
+            if (spec.kind === "plasmaLance") drawSparks(ctx, ship, t, design.modules[module]!);
+            if (beamLenses && hull !== null) {
+                fx?.on(fx.barrelLift(ship, t) - ON_TOP);
+                if (light !== undefined) inLight(ctx, light);
+                ctx.fillStyle = colours.highlight ?? colours.pivot;
+                lensMounts(ctx, hull, count, spacing, mx, my, rest);
+                if (light !== undefined) ctx.restore();
+                fx?.flat();
+            }
+            drawLoad(ctx, ship, t, mx, my, bearing);
+            continue;
+        }
 
         // A lance has no mount to draw over its module, only the field it is charging.
         if (spec.kind === "plasmaLance") {
@@ -680,25 +689,7 @@ function drawShip(
             if (wearShows(design.radius, metresToPx)) wearDome(ctx, ship, module, bearing, face * 0.5);
             ctx.restore();
         } else if (beamLenses) {
-            // Each lens on a disc of its own that it turns on, as wide as the lens
-            // sweeps, and a stalk back from it to the block's face.
-            const back = hull.trains - hull.pivot;
-            const radius = lensDiscRadius(hull);
-            const restX = cos(rest);
-            const restY = sin(rest);
-            for (let k = 0; k < count; k++) {
-                const lat = count > 1 ? (k - (count - 1) * 0.5) * spacing : 0;
-                const cx = mx - restY * lat;
-                const cy = my + restX * lat;
-                ctx.beginPath();
-                ctx.arc(cx, cy, radius, 0, TAU);
-                ctx.fill();
-                ctx.save();
-                ctx.translate(cx, cy);
-                ctx.rotate(rest);
-                ctx.fillRect(-back, -hull.outletWidth * BEAM_STALK_WIDTH * 0.5, back, hull.outletWidth * BEAM_STALK_WIDTH);
-                ctx.restore();
-            }
+            lensMounts(ctx, hull, count, spacing, mx, my, rest);
         }
 
         ctx.strokeStyle = BARREL;
@@ -750,6 +741,38 @@ function drawShip(
     }
     drawPlumes(ctx, ship, light);
     drawLeaks(ctx, ship, light);
+}
+
+/**
+ * Each of a hull beam's lenses on a disc of its own that it turns on, as wide
+ * as the lens sweeps, and a stalk back from it to the block's face.
+ */
+function lensMounts(
+    ctx: CanvasRenderingContext2D,
+    hull: ReturnType<typeof hullMountGeometry>,
+    count: number,
+    spacing: number,
+    mx: number,
+    my: number,
+    rest: number,
+): void {
+    const back = hull.trains - hull.pivot;
+    const radius = lensDiscRadius(hull);
+    const restX = cos(rest);
+    const restY = sin(rest);
+    for (let k = 0; k < count; k++) {
+        const lat = count > 1 ? (k - (count - 1) * 0.5) * spacing : 0;
+        const cx = mx - restY * lat;
+        const cy = my + restX * lat;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, TAU);
+        ctx.fill();
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(rest);
+        ctx.fillRect(-back, -hull.outletWidth * BEAM_STALK_WIDTH * 0.5, back, hull.outletWidth * BEAM_STALK_WIDTH);
+        ctx.restore();
+    }
 }
 
 /** Steps a gauge's level is drawn in: each a picture kept between frames (`keep`), so it is redrawn only as it moves a step. */
@@ -1414,9 +1437,12 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
         tankFills.offset = k * FILL_KEPT;
         const dx = ship.leakDirX![k]!;
         const dy = ship.leakDirY![k]!;
-        // At deck height, so under the thick modules standing over it.
-        batch ??= batches.call(ctx, image, false, true);
+        // At deck height, so under the thick modules standing over it; in 3D, at its module's height,
+        // so it hides what is behind it and is hidden by what is in front.
+        batch ??= batches.call(ctx, image, false, fx === null);
         const into = batch;
+        const module = ship.leakModule?.[k] ?? -1;
+        fx?.on(module >= 0 ? fx.moduleLift(ship, module) : fx.shipLift(ship));
         eachPuff(
             hole,
             xs[k]!,
@@ -1436,6 +1462,7 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
             poseAgo,
         );
     }
+    fx?.flat();
     batch?.end();
     ctx.restore();
 }

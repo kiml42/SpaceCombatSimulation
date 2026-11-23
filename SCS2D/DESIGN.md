@@ -399,7 +399,8 @@ inside any one file is not contiguous.
   is sure only of the part it picked, and holds until that is under the muzzle. So a refusal says _mind
   what you hit_ in both senses at once, and a beam — which refuses plating — is selective without being
   told twice. It is the trigger and not the aim, so a weapon that fires freely still walks its fire onto
-  what its doctrine wanted.
+  what its doctrine wanted. A part is aimed at where a shot meets it: a hull weapon at its block, sized by
+  it, since the front of its box is barrels or lenses with sky between them (`aimSpot`, `aimRadius`).
   **A ship is flown from a core** (§4), and one whose cores have been shot out is a hulk with sound
   engines and sound guns, all of which fail safe: its engines cut out and its turrets brake to a stop, and
   it drifts — so a mission kill is a place on the hull rather than a tally of mounts, and a

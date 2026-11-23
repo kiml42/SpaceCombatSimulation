@@ -1,9 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { Beams, Projectiles, Ships, Snapshot, World, capture, compileBlueprint, type Blueprint, type Rng } from "../sim/index.js";
 import { LEAK_LINGER, LEAK_SCRATCH_FADE } from "../sim/snapshot.js";
-import { FILL_EVERY, FILL_KEPT } from "../sim/fuel.js";
+import { FILL_EVERY, FILL_KEPT, leakSpeed } from "../sim/fuel.js";
 import {
-    CLOUD_REACH,
     CLOUD_SEEN,
     eachCloudPuff,
     eachPuff,
@@ -167,6 +166,22 @@ describe("how thick a leak's vapour is", () => {
         expect(low).toBeLessThan(full * 0.2);
     });
 
+    it("fans out wider the slower it left, up to a limit", () => {
+        const fanning = (fill: number): number => {
+            let most = 0;
+            const puff: Puff = { x: 0, y: 0, radius: 0, dirX: 1, dirY: 0, length: 0, alpha: 0 };
+            // Out along x from the origin, so x is how far it has gone.
+            eachPuff(open, 0, 0, 1, 0, 1, { now: fill, offset: 0 }, puff, (p) => {
+                if (p.x > 0.5) most = Math.max(most, (p.radius - 0.1) / p.x);
+            });
+            return most;
+        };
+        expect(fanning(1)).toBeCloseTo(0.3, 6);
+        // Half as fast, twice as wide a metre.
+        expect(fanning(0.25)).toBeCloseTo(0.6, 6);
+        expect(fanning(0.0001)).toBeCloseTo(0.9, 6);
+    });
+
     it("thins as its hole pinches shut, though what leaves goes as fast", () => {
         const pinching: Hole = { opened: 0.2, closing: 0.1, floor: 0, patched: -1 };
         const shut = holeClosedAt(pinching);
@@ -183,12 +198,21 @@ describe("a cloud of fuel let out at once", () => {
         return seen;
     };
 
-    it("goes out every way from the module, no further than its reach past it", () => {
+    it("goes out every way from the module, none faster than its tank sends it", () => {
         const seen = puffs(0.5);
         expect(seen.length).toBeGreaterThan(8);
         const quarters = new Set(seen.map((p) => (p.x > 5 ? 1 : 0) + (p.y > -3 ? 2 : 0)));
         expect(quarters.size).toBe(4);
-        for (const p of seen) expect(Math.hypot(p.x - 5, p.y + 3)).toBeLessThan(2 + CLOUD_REACH * 10);
+        for (const p of seen) expect(Math.hypot(p.x - 5, p.y + 3)).toBeLessThanOrEqual(2 + leakSpeed(0.5) * 0.5);
+    });
+
+    it("goes on spreading as fast, nothing in space to slow it, and fills in from the middle", () => {
+        const far = (age: number): number => Math.max(...puffs(age).map((p) => Math.hypot(p.x - 5, p.y + 3)));
+        // As far again from 1 s to 2 s as from 0 to 1 s, less where it started from.
+        expect(far(2) - far(1)).toBeCloseTo(far(1) - 2, 0);
+        // Its middle covered: some puff over the very centre.
+        const seen = puffs(1);
+        expect(seen.some((p) => Math.hypot(p.x - 5, p.y + 3) < p.radius / 2)).toBe(true);
     });
 
     it("spreads and thins as it goes, and is gone once seen long enough", () => {
