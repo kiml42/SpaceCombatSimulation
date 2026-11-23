@@ -151,6 +151,81 @@ export class FiringSolution {
     vy = 0;
 }
 
+/** Where a shot must be aimed to meet its target, from `solveLead`. */
+export interface Lead {
+    /** The aim point, relative to the mount, metres. */
+    x: number;
+    y: number;
+    /** Its flight time, s: 0 for one that arrives at once, negative for no solution. */
+    t: number;
+    /** How fast the muzzle it leaves is moving, m/s. */
+    shooterVx: number;
+    shooterVy: number;
+}
+
+const LEAD: Lead = { x: 0, y: 0, t: 0, shooterVx: 0, shooterVy: 0 };
+
+/**
+ * The lead for a shot at `speed` from a mount at (`mountX`, `mountY`) on body
+ * `b`, its barrel on world bearing `barrel` and its muzzle `muzzleOffset` out
+ * along it, at a target at (`targetX`, `targetY`) moving at (`targetVx`,
+ * `targetVy`). A turret's (`Turrets.aimAt`) and a warhead's, which is a hull
+ * mount whose muzzle speed is its burst.
+ *
+ * What the shot is fired *from* is the muzzle, and on a turning ship the
+ * muzzle is moving: the hull's velocity plus `ω × r` about the centre of
+ * mass. Solving the lead from the hull's velocity instead biases every shot
+ * the same way rather than scattering them, because the mount's tangential
+ * motion is the same on every trigger pull. The muzzle is placed from the
+ * bearing the barrel holds *now* rather than the one being solved for, which
+ * would be circular: stale by at most a step of slew, far smaller than the
+ * term it corrects.
+ */
+export function solveLead(
+    bodies: Bodies,
+    b: number,
+    mountX: number,
+    mountY: number,
+    barrel: number,
+    muzzleOffset: number,
+    speed: number,
+    targetX: number,
+    targetY: number,
+    targetVx: number,
+    targetVy: number,
+    out: Lead,
+): Lead {
+    const angle = bodies.angle[b]!;
+    const c = cos(angle);
+    const s = sin(angle);
+    const mx = bodies.x[b]! + mountX * c - mountY * s;
+    const my = bodies.y[b]! + mountX * s + mountY * c;
+    const dx = targetX - mx;
+    const dy = targetY - my;
+    const w = bodies.angularVel[b]!;
+    const muzzleX = mx + cos(barrel) * muzzleOffset;
+    const muzzleY = my + sin(barrel) * muzzleOffset;
+    const shooterVx = bodies.vx[b]! - w * (muzzleY - bodies.y[b]!);
+    const shooterVy = bodies.vy[b]! + w * (muzzleX - bodies.x[b]!);
+    let aimX = dx;
+    let aimY = dy;
+    // Negative muzzle speed marks a weapon that arrives instantaneously.
+    let t = speed < 0 ? 0 : -1;
+    if (speed > 0) {
+        t = interceptTime(dx, dy, targetVx - shooterVx, targetVy - shooterVy, speed);
+        if (t > 0) {
+            aimX = dx + (targetVx - shooterVx) * t;
+            aimY = dy + (targetVy - shooterVy) * t;
+        }
+    }
+    out.x = aimX;
+    out.y = aimY;
+    out.t = t;
+    out.shooterVx = shooterVx;
+    out.shooterVy = shooterVy;
+    return out;
+}
+
 /**
  * Time for a projectile leaving now at `speed` to meet a target moving at a
  * constant velocity, or -1 if it never can.
@@ -621,46 +696,25 @@ export class Turrets {
         sweepVy = targetVy,
     ): number {
         const b = this.owner[i];
-        const angle = bodies.angle[b]!;
-        const c = cos(angle);
-        const s = sin(angle);
-        // Mount position in world coordinates.
-        const mx = bodies.x[b]! + this.mountX[i]! * c - this.mountY[i]! * s;
-        const my = bodies.y[b]! + this.mountX[i]! * s + this.mountY[i]! * c;
-
-        const dx = targetX - mx;
-        const dy = targetY - my;
-        const speed = this.muzzleSpeed[i]!;
-
-        // What the shot is fired *from* is the muzzle, and on a turning ship the
-        // muzzle is moving: the hull's velocity plus `ω × r` about the centre of
-        // mass. Solving the lead from the hull's velocity instead biases every
-        // shot the same way rather than scattering them, because the mount's
-        // tangential motion is the same on every trigger pull.
-        //
-        // The muzzle is placed from the bearing the barrel holds *now* rather than
-        // the one being solved for, which would be circular. That is stale by at
-        // most one step of slew — far smaller than the term it is correcting, and
-        // it keeps the barrel's own length in the answer, which using the mount
-        // alone would drop.
-        const w = bodies.angularVel[b]!;
-        const barrel = normalizeAngle(this.bearing[i]! + angle);
-        const muzzleX = mx + cos(barrel) * this.muzzleOffset[i]!;
-        const muzzleY = my + sin(barrel) * this.muzzleOffset[i]!;
-        const shooterVx = bodies.vx[b]! - w * (muzzleY - bodies.y[b]!);
-        const shooterVy = bodies.vy[b]! + w * (muzzleX - bodies.x[b]!);
-
-        let aimX = dx;
-        let aimY = dy;
-        // Negative muzzle speed marks a weapon that arrives instantaneously.
-        let t = speed < 0 ? 0 : -1;
-        if (speed > 0) {
-            t = interceptTime(dx, dy, targetVx - shooterVx, targetVy - shooterVy, speed);
-            if (t > 0) {
-                aimX = dx + (targetVx - shooterVx) * t;
-                aimY = dy + (targetVy - shooterVy) * t;
-            }
-        }
+        const lead = solveLead(
+            bodies,
+            b,
+            this.mountX[i]!,
+            this.mountY[i]!,
+            normalizeAngle(this.bearing[i]! + bodies.angle[b]!),
+            this.muzzleOffset[i]!,
+            this.muzzleSpeed[i]!,
+            targetX,
+            targetY,
+            targetVx,
+            targetVy,
+            LEAD,
+        );
+        const aimX = lead.x;
+        const aimY = lead.y;
+        const t = lead.t;
+        const shooterVx = lead.shooterVx;
+        const shooterVy = lead.shooterVy;
 
         // Angular rate of the aim point about the mount: the transverse component
         // of relative velocity over range. This is the feed-forward term, and it is

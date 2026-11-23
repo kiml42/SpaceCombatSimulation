@@ -1,8 +1,8 @@
 import type { Bodies } from "./bodies.js";
 import type { ShipDesign } from "./blueprint.js";
 import { DamageEffect, IMPACT_BURST, resolveCollision, SHATTER, type ImpactLog } from "./damage.js";
-import { HullPath, moduleLayers } from "./hull.js";
-import { abs, angleDelta, asin, atan2, cos, log, max, min, PI, pow, sin, sqrt, TAU } from "./math.js";
+import { BOTH_LAYERS, HullPath, moduleLayers } from "./hull.js";
+import { abs, angleDelta, atan2, cos, log, max, min, PI, pow, sin, sqrt, TAU } from "./math.js";
 import { WARHEAD_FRAGMENT_LIFE, warheadBurst, warheadBurstSpeed, warheadSpread } from "./modules.js";
 import { fragmentLayer, ROUND_WRECKAGE, type Projectiles } from "./projectiles.js";
 import * as shipAim from "./shipAim.js";
@@ -10,8 +10,9 @@ import * as shipDocking from "./shipDocking.js";
 import * as shipOrders from "./shipOrders.js";
 import { blowKey, discardFrom, heldMass, settleMass } from "./shipBreakup.js";
 import { MOST_FRAGMENTS, WRECKAGE_LIFE, WRECKAGE_SHARE } from "./wreckage.js";
-import { IndexBuffer, type SpatialGrid } from "./spatialGrid.js";
-import type { Ships } from "./ships.js";
+import type { SpatialGrid } from "./spatialGrid.js";
+import { WHOLE_SHIP, type Ships } from "./ships.js";
+import { solveLead, type Lead } from "./turrets.js";
 import type { World } from "./world.js";
 
 /**
@@ -41,12 +42,6 @@ import type { World } from "./world.js";
  * energy it took. The charge's gas takes their momentum the other way. So a
  * warhead is dangerous all round its carrier, not only across its spread.
  */
-
-/**
- * The fastest a hull can close and still be caught before it touches, m/s:
- * how far beyond its reach a fuze looks for one, a step's travel at this.
- */
-const FUZE_CLOSING = 5000;
 
 /** How many bearings each side of its facing a burst's cone is traced through (`fragmentCone`). */
 const CONE_STEPS = 12;
@@ -167,8 +162,6 @@ function warheadsOf(design: ShipDesign): readonly number[] {
     return found;
 }
 
-const near = new IndexBuffer();
-
 /**
  * Set off every warhead whose fuze is tripped, one a hull a step, and say how
  * many went off. Call after the index has been rebuilt and before rounds fly.
@@ -236,10 +229,10 @@ export function cookOff(ships: Ships, world: World, projectiles: Projectiles, lo
 }
 
 /**
- * Whether warhead `m` of ship `i`, on body `b`, would go off now: an enemy
- * module's nearest point inside its fragments' cone as that hull sees them
- * come (`fragmentCone`) and within its reach, or within a step of it, and no
- * friend's nearer inside it.
+ * Whether warhead `m` of ship `i`, on body `b`, would go off now: as a hull
+ * gun fires (`warheadTrigger`), when its nose is inside the cone its lead
+ * allows on what it is going for, and that is within its reach; and no
+ * friend's module is across its line.
  */
 export function tripped(
     ships: Ships,
@@ -251,140 +244,189 @@ export function tripped(
     m: number,
     dt: number,
 ): boolean {
-    const placed = design.modules[m]!;
-    const spec = placed.spec;
-    const head = design.warheads.find((h) => h.module === m);
-    if (head === undefined) return false;
-    const speed = warheadBurstSpeed(spec, max(0, placed.stats.structureMass - ships.damage.shedAt(b, m)), ships.fuel.held(b, m));
-    const fragments = spec.fragments !== undefined && spec.fragments > 1 ? spec.fragments : 1;
-    const spread = warheadSpread(spec);
-    const angle = bodies.angle[b]!;
-    const c = cos(angle);
-    const s = sin(angle);
-    const wx = bodies.x[b]! + placed.x * c - placed.y * s;
-    const wy = bodies.y[b]! + placed.x * s + placed.y * c;
-    const facing = angle + placed.angle;
-    const spin = bodies.angularVel[b]!;
-    const wvx = bodies.vx[b]! - spin * (wy - bodies.y[b]!);
-    const wvy = bodies.vy[b]! + spin * (wx - bodies.x[b]!);
-    // Nothing closing faster than `FUZE_CLOSING` is reached further than this.
-    const furthest = (speed + FUZE_CLOSING) * WARHEAD_FRAGMENT_LIFE * head.targeting.fireRange;
-
-    let enemy = Infinity;
-    let friend = Infinity;
-    grid.queryCircle(bodies, wx, wy, furthest + FUZE_CLOSING * dt, near);
-    for (let q = 0; q < near.count; q++) {
-        const tb = near.data[q]!;
-        if (tb === b) continue;
-        const t = ships.shipByBody[tb] ?? -1;
-        if (t < 0 || ships.alive[t] === 0) continue;
-        const theirs = ships.designs[t]!;
-        const pilots = ships.pilots[tb];
-        // The fragments as that hull sees them come.
-        const tvx = bodies.vx[tb]!;
-        const tvy = bodies.vy[tb]!;
-        fragmentCone(speed, spread, fragments, facing, wvx - tvx, wvy - tvy, head.targetRadius, head.targeting.fireRange, CONE);
-        // Into the other hull's frame, once.
-        const ta = bodies.angle[tb]!;
-        const tc = cos(ta);
-        const ts = sin(ta);
-        const rx = wx - bodies.x[tb]!;
-        const ry = wy - bodies.y[tb]!;
-        const lx = rx * tc + ry * ts;
-        const ly = -rx * ts + ry * tc;
-        const lf = CONE.centre - ta;
-        // How fast the two close, along the line between their centres.
-        const run = sqrt(rx * rx + ry * ry);
-        const closing = run > 0 ? ((wvx - tvx) * -rx + (wvy - tvy) * -ry) / run : 0;
-        const slack = closing > 0 ? closing * dt : 0;
-        for (let k = 0; k < theirs.modules.length; k++) {
-            const owner = pilots == null ? t : pilots[k]!;
-            if (owner < 0) continue;
-            const hostile = ships.hostile(i, owner) && ships.derelict[owner] !== 1;
-            // Neither side's: a rock, say, or a wreck nobody works.
-            if (!hostile && ships.team[owner] !== ships.team[i]) continue;
-            const d = boxDistance(theirs, k, lx, ly);
-            if (!(d >= 0)) continue;
-            if (d > CONE.reach + slack) continue;
-            if (!inSpread(theirs, k, lx, ly, lf, CONE.half, d)) continue;
-            if (hostile) enemy = min(enemy, d);
-            else friend = min(friend, d);
-        }
-    }
-    return enemy < Infinity && !(friend <= enemy);
+    const w = design.warheads.findIndex((head) => head.module === m);
+    if (w < 0 || !warheadTrigger(ships, bodies, i, b, w, TRIGGER)) return false;
+    // Within a step of its reach, at the speed the two close.
+    if (TRIGGER.range > TRIGGER.reach + max(0, TRIGGER.closing) * dt) return false;
+    if (TRIGGER.half !== Infinity && abs(angleDelta(TRIGGER.facing, TRIGGER.centre)) > TRIGGER.half) return false;
+    ships.solution.x = TRIGGER.x;
+    ships.solution.y = TRIGGER.y;
+    ships.solution.dirX = cos(TRIGGER.facing);
+    ships.solution.dirY = sin(TRIGGER.facing);
+    return !shipAim.friendAlong(ships, bodies, grid, i, b, TRIGGER.reach, TRIGGER.target, TRIGGER.layers);
 }
 
-const CONE: FragmentCone = { centre: 0, half: 0, reach: 0 };
+/** Where and how a warhead would go off at what it is going for (`warheadTrigger`). */
+export interface WarheadTrigger {
+    /** What it is going for. */
+    target: number;
+    /** Where the warhead is, world metres. */
+    x: number;
+    y: number;
+    /** The way its nose points, a world bearing. */
+    facing: number;
+    /** The bearing its lead says to point it along, and how far off that it may go off, radians. */
+    centre: number;
+    half: number;
+    /** How far off what it goes off at is, and how far it is worth going off at, metres. */
+    range: number;
+    reach: number;
+    /** How fast the two close, m/s. */
+    closing: number;
+    /** The layers its fragments are in: what it can hit. */
+    layers: number;
+}
+
+const TRIGGER: WarheadTrigger = { target: -1, x: 0, y: 0, facing: 0, centre: 0, half: 0, range: 0, reach: 0, closing: 0, layers: 0 };
+const POINT: shipAim.AimPoint = { x: 0, y: 0, sweepVx: 0, sweepVy: 0, rx: 0, ry: 0, middleX: 0, middleY: 0, near: 0, far: 0, size: 0 };
+const LEAD: Lead = { x: 0, y: 0, t: 0, shooterVx: 0, shooterVy: 0 };
 
 /**
- * The cone warhead `w` of ship `i`, on body `b`, would throw its fragments in
- * at what it is going for: its order's target, a ram's among them, else the
- * one its doctrine chose, else at rest. Widened by the target's size as seen
- * from the warhead, so it shows where the fuze would go off, for drawing.
+ * Warhead `w` of ship `i`, on body `b`, as a hull gun whose muzzle speed is
+ * its burst: what it is going for (its order's target, a ram's among them,
+ * else the one its doctrine chose), the part (the one it rams, else the
+ * ship), the lead to it (`solveLead`), and the cone and range a gun would
+ * fire in (`aimPoint`, `fireCone`, `fireRangeTo`), widened by how far its
+ * fragments spread across the target. Its reach is how far they are worth
+ * throwing at the speed they close (`fragmentCone`). False with nothing to go
+ * off at in the layers its fragments are in: one ramming a part on the deck
+ * waits until it has dropped to it.
  */
-export function warheadCone(ships: Ships, bodies: Bodies, i: number, b: number, w: number, out: FragmentCone): FragmentCone {
+export function warheadTrigger(ships: Ships, bodies: Bodies, i: number, b: number, w: number, out: WarheadTrigger): boolean {
     const design = ships.designs[i]!;
     const head = design.warheads[w]!;
     const placed = design.modules[head.module]!;
     const spec = placed.spec;
+    const angle = bodies.angle[b]!;
+    const ox = placed.x * cos(angle) - placed.y * sin(angle);
+    const oy = placed.x * sin(angle) + placed.y * cos(angle);
+    const spin = bodies.angularVel[b]!;
+    out.x = bodies.x[b]! + ox;
+    out.y = bodies.y[b]! + oy;
+    out.facing = angle + placed.angle;
+    out.target = -1;
+    const order = shipOrders.effectiveOrder(ships, i);
+    const target = order !== undefined && order.target >= 0 ? order.target : ships.chosenOf(i);
+    if (target < 0 || ships.alive[target] !== 1 || !ships.hostile(i, target)) return false;
+    const tb = bodies.indexOf(ships.bodyIds[target]!);
+    if (tb < 0 || tb === b) return false;
+    const theirs = ships.designs[target]!;
+    // The part it rams, while it is there.
+    const rammed = order?.ram === true ? ships.ramPart[i]! : WHOLE_SHIP;
+    const part = rammed >= 0 && rammed < theirs.modules.length && !ships.damage.spent(tb, rammed) ? rammed : WHOLE_SHIP;
+    const fragments = spec.fragments !== undefined && spec.fragments > 1 ? spec.fragments : 1;
+    // A lone slug is in its warhead's layer; a spray lands in either, as a shell's does.
+    const layers = fragments > 1 ? BOTH_LAYERS : shipAim.firedLayers(ships, i, b, design, head.module);
+    if (part >= 0 ? !shipAim.reaches(ships, layers, theirs, tb, target, part) : !shipAim.meetsWhole(ships, layers, target)) return false;
+    out.layers = layers;
     const speed = warheadBurstSpeed(
         spec,
         max(0, placed.stats.structureMass - ships.damage.shedAt(b, head.module)),
         ships.fuel.held(b, head.module),
     );
-    const fragments = spec.fragments !== undefined && spec.fragments > 1 ? spec.fragments : 1;
-    const angle = bodies.angle[b]!;
-    const ox = placed.x * cos(angle) - placed.y * sin(angle);
-    const oy = placed.x * sin(angle) + placed.y * cos(angle);
-    const spin = bodies.angularVel[b]!;
-    let rvx = bodies.vx[b]! - spin * oy;
-    let rvy = bodies.vy[b]! + spin * ox;
-    const ordered = shipOrders.effectiveOrder(ships, i)?.target ?? -1;
-    const target = ordered >= 0 ? ordered : ships.chosenOf(i);
-    const tb = target >= 0 && ships.alive[target] === 1 ? bodies.indexOf(ships.bodyIds[target]!) : -1;
-    if (tb >= 0) {
-        rvx -= bodies.vx[tb]!;
-        rvy -= bodies.vy[tb]!;
+    ships.gunPoint.x = out.x;
+    ships.gunPoint.y = out.y;
+    ships.gunPoint.vx = bodies.vx[b]! - spin * oy;
+    ships.gunPoint.vy = bodies.vy[b]! + spin * ox;
+    const point = shipAim.aimPoint(ships, bodies, target, tb, part, out.x, out.y, POINT);
+    const lead = solveLead(bodies, b, placed.x, placed.y, out.facing, 0, speed, point.x, point.y, bodies.vx[tb]!, bodies.vy[tb]!, LEAD);
+    const toward = atan2(lead.y, lead.x);
+    // Its fragments, about its lead as the target sees them come: how wide they spread, and how far they are worth throwing.
+    const rvx = ships.gunPoint.vx - bodies.vx[tb]!;
+    const rvy = ships.gunPoint.vy - bodies.vy[tb]!;
+    fragmentCone(speed, warheadSpread(spec), fragments, toward, rvx, rvy, head.targetRadius, head.targeting.fireRange, CONE);
+    // Above the deck, the ship's middle is deck it passes over: only the part counts, as for a careful gun.
+    const careful = shipAim.clingsToFriend(ships, i, target, tb) || (part >= 0 && !shipAim.meetsWhole(ships, layers, target));
+    const range = shipAim.fireRangeTo(ships, head.targeting, part, point, careful);
+    const spreads = CONE.half === Infinity ? range : range * sin(min(CONE.half, 0.5 * PI));
+    out.target = target;
+    if (warheadSpread(spec) >= TAU) {
+        out.half = Infinity;
+        out.centre = toward;
     } else {
-        rvx = 0;
-        rvy = 0;
+        const slack = shipAim.fireCone(ships, head.targeting, target, part, point, lead.x, lead.y, lead.t, spreads, careful);
+        // That cone is where its fragments go as the target sees them come; its nose is
+        // what turns, and at a burst no faster than it closes, a turn of the nose moves them less.
+        const sight = atan2(point.y - out.y, point.x - out.x);
+        noseCone(speed, rvx, rvy, toward, sight + ships.slackOffset, slack > 0 ? slack : 0, out);
     }
-    fragmentCone(speed, warheadSpread(spec), fragments, angle + placed.angle, rvx, rvy, head.targetRadius, head.targeting.fireRange, out);
-    // Widened by how wide the target looks from here, as the fuze counts a module anywhere in it: wider as it closes.
-    if (tb >= 0 && out.half < Infinity) {
-        const range = length2(bodies.x[tb]! - bodies.x[b]! - ox, bodies.y[tb]! - bodies.y[b]! - oy);
-        const size = bodies.radius[tb]!;
-        out.half = range > size ? out.half + asin(size / range) : Infinity;
-        if (out.half >= PI) out.half = Infinity;
+    out.range = range;
+    out.reach = CONE.reach;
+    const run = length2(point.x - out.x, point.y - out.y);
+    out.closing = run > 0 ? (rvx * (point.x - out.x) + rvy * (point.y - out.y)) / run : 0;
+    return true;
+}
+
+const CONE: FragmentCone = { centre: 0, half: 0, reach: 0 };
+
+/** How many steps each way `noseCone` looks for the edge of the cone in, over a half turn. */
+const NOSE_STEPS = 32;
+
+/**
+ * The nose bearings, about `lead`, whose middle fragment, leaving at `speed`
+ * from a warhead moving at (`rvx`, `rvy`) relative to its target, goes
+ * within `half` of `centre` as the target sees it: a gun's cone, measured
+ * where the barrel turns. Into `out.centre` and `out.half`. Stepped out each
+ * way to where it leaves, then halved down to the edge.
+ */
+function noseCone(speed: number, rvx: number, rvy: number, lead: number, centre: number, half: number, out: WarheadTrigger): void {
+    let edges = 0;
+    let lo = 0;
+    let hi = 0;
+    for (let side = -1; side <= 1; side += 2) {
+        let inside = 0;
+        let outside = PI;
+        for (let k = 1; k <= NOSE_STEPS; k++) {
+            const turn = (PI * k) / NOSE_STEPS;
+            if (!within(speed, rvx, rvy, lead + side * turn, centre, half)) {
+                outside = turn;
+                break;
+            }
+            inside = turn;
+        }
+        for (let k = 0; k < 12 && outside < PI; k++) {
+            const mid = 0.5 * (inside + outside);
+            if (within(speed, rvx, rvy, lead + side * mid, centre, half)) inside = mid;
+            else outside = mid;
+        }
+        if (inside >= PI) edges++;
+        if (side < 0) lo = -inside;
+        else hi = inside;
     }
+    // Every way it could point, its middle fragment hits.
+    if (edges === 2) {
+        out.centre = lead;
+        out.half = Infinity;
+        return;
+    }
+    out.centre = lead + 0.5 * (lo + hi);
+    out.half = within(speed, rvx, rvy, lead, centre, half) ? 0.5 * (hi - lo) : 0;
+}
+
+/** Whether the middle fragment of a burst pointed along `nose` goes within `half` of `centre`, as its target sees it. */
+function within(speed: number, rvx: number, rvy: number, nose: number, centre: number, half: number): boolean {
+    return abs(angleDelta(centre, atan2(rvy + speed * sin(nose), rvx + speed * cos(nose)))) <= half;
+}
+
+/**
+ * The trigger warhead `w` of ship `i`, on body `b`, draws, as a gun's wedge
+ * is drawn: about the bearing its lead says to point it along, as wide as it
+ * may go off off that, out to its reach (`warheadTrigger`). With nothing to go
+ * off at, its own spread the way it points.
+ */
+export function warheadCone(ships: Ships, bodies: Bodies, i: number, b: number, w: number, out: FragmentCone): FragmentCone {
+    if (warheadTrigger(ships, bodies, i, b, w, TRIGGER)) {
+        out.centre = TRIGGER.centre;
+        out.half = TRIGGER.half;
+        out.reach = TRIGGER.reach;
+        return out;
+    }
+    const design = ships.designs[i]!;
+    const head = design.warheads[w]!;
+    out.centre = bodies.angle[b]! + design.modules[head.module]!.angle;
+    out.half = head.spread >= TAU ? Infinity : head.spread / 2;
+    out.reach = head.reach;
     return out;
-}
-
-/** How far `(lx, ly)`, in the design's frame, is from module `k`'s box, metres: 0 inside it. */
-function boxDistance(design: ShipDesign, k: number, lx: number, ly: number): number {
-    const placed = design.modules[k]!;
-    const c = cos(placed.angle);
-    const s = sin(placed.angle);
-    const dx = lx - placed.x;
-    const dy = ly - placed.y;
-    const along = abs(dx * c + dy * s) - 0.5 * placed.spec.length;
-    const across = abs(-dx * s + dy * c) - 0.5 * placed.spec.width;
-    const ox = along > 0 ? along : 0;
-    const oy = across > 0 ? across : 0;
-    return sqrt(ox * ox + oy * oy);
-}
-
-/** Whether module `k` of `design` lies at all inside the spread `half` either side of `facing`, from `(lx, ly)` `d` from it. */
-function inSpread(design: ShipDesign, k: number, lx: number, ly: number, facing: number, half: number, d: number): boolean {
-    if (half === Infinity || !(d > 0)) return true;
-    const placed = design.modules[k]!;
-    const dx = placed.x - lx;
-    const dy = placed.y - ly;
-    const centre = sqrt(dx * dx + dy * dy);
-    // As wide as the module looks from here.
-    const size = 0.5 * sqrt(placed.spec.length * placed.spec.length + placed.spec.width * placed.spec.width);
-    const across = centre > size ? asin(size / centre) : Infinity;
-    return abs(angleDelta(facing, atan2(dy, dx))) <= half + across;
 }
 
 /** Set off warhead `m` of ship `i`, on body `b`. */
