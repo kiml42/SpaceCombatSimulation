@@ -1,6 +1,6 @@
 import type { ShipDesign } from "./blueprint.js";
 import type { Damage } from "./damage.js";
-import { sqrt } from "./math.js";
+import { floor, sqrt } from "./math.js";
 import { drainPriorityOf, FUEL_DENSITY } from "./modules.js";
 import { Store } from "./store.js";
 
@@ -106,7 +106,7 @@ export function fillsFrom(fill: number): number[] {
 
 /** Note how full a hole's tank is, at its age now. */
 export function noteFill(leak: Leak, fill: number): void {
-    leak.fills[Math.floor(leak.age / FILL_EVERY) % FILL_KEPT] = fill;
+    leak.fills[floor(leak.age / FILL_EVERY) % FILL_KEPT] = fill;
 }
 
 /**
