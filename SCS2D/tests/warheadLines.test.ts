@@ -27,11 +27,18 @@ describe("a warhead's fragment lines", () => {
     });
 
     it("puts a fan's outer lines at the edges of its spread", () => {
-        const fan = lines(warhead({ fragments: 16, spread: Math.PI / 3 }));
+        const fan = lines(warhead({ fragments: 16, spread: (2 * Math.PI) / 3, length: 4, width: 4 }));
         expect(fan).toHaveLength(5);
-        expect(fan[0]!.bearing).toBeCloseTo(-30);
+        expect(fan[0]!.bearing).toBeCloseTo(-60);
         expect(fan[2]!.bearing).toBeCloseTo(0);
-        expect(fan[4]!.bearing).toBeCloseTo(30);
+        expect(fan[4]!.bearing).toBeCloseTo(60);
+    });
+
+    it("draws fewer lines where they would not fit", () => {
+        const fan = lines(warhead({ fragments: 16, spread: Math.PI / 3 }));
+        expect(fan.length).toBeLessThan(5);
+        expect(fan[0]!.bearing).toBeCloseTo(-30);
+        expect(fan.at(-1)!.bearing).toBeCloseTo(30);
     });
 
     it("draws no more lines than fragments", () => {
@@ -50,6 +57,16 @@ describe("a warhead's fragment lines", () => {
         for (let k = 0; k < ends.length; k += 2) {
             expect(Math.abs(ends[k]!) + width / 2).toBeLessThanOrEqual(spec.length / 2);
             expect(Math.abs(ends[k + 1]!) + width / 2).toBeLessThanOrEqual(spec.width / 2);
+        }
+    });
+
+    it("keeps neighbouring lines apart, a narrow fan's by narrowing them", () => {
+        for (const spread of [Math.PI / 3, Math.PI / 18, 2 * Math.PI]) {
+            const { width, ends } = warheadLines(warhead({ fragments: 16, spread, reinforcement: 2 }));
+            for (let k = 4; k < ends.length; k += 4) {
+                const apart = Math.hypot(ends[k + 2]! - ends[k - 2]!, ends[k + 3]! - ends[k - 1]!);
+                expect(apart).toBeGreaterThan(width);
+            }
         }
     });
 

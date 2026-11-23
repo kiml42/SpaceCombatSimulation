@@ -44,13 +44,21 @@ export const BARREL = "#8f6f25";
  */
 const WARHEAD_LINE_SHARE = 0.12;
 const WARHEAD_LINE_MOST = 0.3;
-/** The most lines a fan of fragments is drawn as, and an all-round burst. */
+/** The most lines a fan of fragments is drawn as, and an all-round burst: fewer where they would not fit. */
 const WARHEAD_FAN_LINES = 5;
 const WARHEAD_RING_LINES = 6;
-/** How far short of the middle the lines stop, as a share of the shorter half side. */
+/** How far short of the middle a lone line stops, as a share of the shorter half side. */
 const WARHEAD_LINE_HUB = 0.2;
 /** The hull left between a line's end and the module's edge, as a share of the line's width. */
 const WARHEAD_LINE_GAP = 0.5;
+/** Where there are several, how much further in from the edge they start, as a share of the shorter half side. */
+const WARHEAD_LINES_INSET = 0.12;
+/** The hull left between neighbouring lines where they come closest, as a share of their width. */
+const WARHEAD_LINES_APART = 0.4;
+/** How far towards the edge the lines may stop to keep apart before they narrow instead, as a share of the shorter half side. */
+const WARHEAD_LINES_HUB_MOST = 0.6;
+/** The narrowest the lines are drawn to keep apart, as a share of their width, before there are fewer of them. */
+const WARHEAD_LINES_THINNEST = 0.6;
 
 /**
  * A warhead's bronze lines, in its own frame: one along each of a few of the
@@ -65,11 +73,27 @@ export function warheadLines(spec: ModuleSpec): { width: number; ends: number[] 
     const w = spec.width / 2;
     const short = Math.min(l, w);
     const share = WARHEAD_LINE_SHARE * (spec.reinforcement ?? 1);
-    const width = 2 * short * (share < WARHEAD_LINE_MOST ? share : WARHEAD_LINE_MOST);
     const ring = spread >= 2 * Math.PI;
-    const most = ring ? WARHEAD_RING_LINES : WARHEAD_FAN_LINES;
-    const count = spread > 0 ? Math.max(1, Math.min(fragments, most)) : 1;
-    const hub = Math.max(short * WARHEAD_LINE_HUB, width / 2);
+    const full = 2 * short * (share < WARHEAD_LINE_MOST ? share : WARHEAD_LINE_MOST);
+    let count = spread > 0 ? Math.max(1, Math.min(fragments, ring ? WARHEAD_RING_LINES : WARHEAD_FAN_LINES)) : 1;
+    let width = full;
+    let hub = Math.max(short * WARHEAD_LINE_HUB, width / 2);
+    let inset = 0;
+    if (count > 1) {
+        // Stopping far enough out that neighbours' round ends keep apart; narrower where that is too far,
+        // and fewer where they would narrow past `WARHEAD_LINES_THINNEST`.
+        const far = short * WARHEAD_LINES_HUB_MOST;
+        for (; ; count--) {
+            const step = ring ? (2 * Math.PI) / count : spread / (count - 1);
+            const chord = 2 * Math.sin(Math.min(step, Math.PI) / 2);
+            width = Math.min(full, (far * chord) / (1 + WARHEAD_LINES_APART));
+            if (width >= full * WARHEAD_LINES_THINNEST || count === 2) {
+                hub = Math.max(hub, Math.min((width * (1 + WARHEAD_LINES_APART)) / chord, far));
+                break;
+            }
+        }
+        inset = short * WARHEAD_LINES_INSET;
+    }
     const ends: number[] = [];
     for (let k = 0; k < count; k++) {
         const bearing = ring ? (k / count) * 2 * Math.PI : count === 1 ? 0 : (k / (count - 1) - 0.5) * spread;
@@ -77,7 +101,7 @@ export function warheadLines(spec: ModuleSpec): { width: number; ends: number[] 
         const uy = Math.sin(bearing);
         // To the box's edge along it, less the line's round end and a gap.
         const edge = Math.min(Math.abs(ux) > 1e-9 ? l / Math.abs(ux) : Infinity, Math.abs(uy) > 1e-9 ? w / Math.abs(uy) : Infinity);
-        const outer = Math.max(hub, edge - width / 2 - width * WARHEAD_LINE_GAP);
+        const outer = Math.max(hub, edge - width / 2 - width * WARHEAD_LINE_GAP - inset);
         ends.push(ux * outer, uy * outer, ux * hub, uy * hub);
     }
     return { width, ends };

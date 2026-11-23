@@ -2271,7 +2271,6 @@ function drawWarheadLines(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle
     const { width, ends } = warheadLines(spec);
     const r = width / 2;
     const slope = light === undefined ? null : lightSlope(light);
-    const dome = slope === null ? null : domeShade(slope.across, slope.up);
     const level: Level = thick ? "thick" : "deck";
     ctx.globalAlpha = 1;
     // Each whole before the next, so one crossing another lies over it.
@@ -2294,18 +2293,13 @@ function drawWarheadLines(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle
             const turn = light.from - angle - along;
             const body = cylinderShade(slope.across * sin(turn), slope.up);
             if (body !== null && span > 0) ctx.drawImage(body, 0, -r, span, width);
-            // Each end a half dome, beyond the body.
-            if (dome !== null) {
-                for (const at of [0, span]) {
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.rect(at === 0 ? -r : span, -r, r, width);
-                    ctx.clip();
-                    ctx.translate(at, 0);
-                    ctx.rotate(turn);
-                    ctx.drawImage(dome, -r, -r, width, width);
-                    ctx.restore();
-                }
+            // Each end a half sphere, beyond the body: cut to shape already, as Pixi does not clip pictures.
+            for (const [x, from, to] of [
+                [0, -1, 0],
+                [span, 0, 1],
+            ] as const) {
+                const end = sphereShade(turn, slope.across, slope.up, from, to);
+                if (end !== null) ctx.drawImage(end, x + from * r, -r, r, width);
             }
             const m = ctx.getTransform();
             if (span > 0) rounded?.tube(m, 0, 0, span, r, 1, BARREL_RGB, 1, level);
