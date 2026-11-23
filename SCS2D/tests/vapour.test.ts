@@ -150,6 +150,31 @@ describe("a leak's vapour", () => {
     });
 });
 
+describe("how thick a leak's vapour is", () => {
+    const thickest = (hole: Hole, age: number, fills: Fills): number => {
+        let most = 0;
+        const puff: Puff = { x: 0, y: 0, radius: 0, dirX: 1, dirY: 0, length: 0, alpha: 0 };
+        eachPuff(hole, 0, 0, 1, 0, age, fills, puff, (p) => {
+            most = Math.max(most, p.alpha);
+        });
+        return most;
+    };
+    const open: Hole = { opened: 0.2, closing: 0, floor: 0.2, patched: -1 };
+
+    it("thins as its tank empties, to nothing as it runs dry", () => {
+        const full = thickest(open, 2, { now: 1, offset: 0 });
+        const low = thickest(open, 2, { now: 0.01, offset: 0 });
+        expect(low).toBeLessThan(full * 0.2);
+    });
+
+    it("thins as its hole pinches shut, though what leaves goes as fast", () => {
+        const pinching: Hole = { opened: 0.2, closing: 0.1, floor: 0, patched: -1 };
+        const shut = holeClosedAt(pinching);
+        const wide = thickest(open, shut - 0.01, { now: 1, offset: 0 });
+        expect(thickest(pinching, shut - 0.01, { now: 1, offset: 0 })).toBeLessThan(wide * 0.2);
+    });
+});
+
 describe("a cloud of fuel let out at once", () => {
     const cloud = (age: number): Cloud => ({ x: 5, y: -3, age, fuel: 1000, fill: 0.5, size: 4, seed: 7 });
     const puffs = (age: number): Puff[] => {
