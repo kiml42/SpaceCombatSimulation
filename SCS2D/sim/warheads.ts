@@ -390,7 +390,8 @@ export function warheadLead(
 /**
  * The cone warhead `w` of ship `i`, on body `b`, would throw its fragments in
  * at what it is going for: its order's target, a ram's among them, else the
- * one its doctrine chose, else at rest. What the fuze looks along, for drawing.
+ * one its doctrine chose, else at rest. Widened by the target's size as seen
+ * from the warhead, so it shows where the fuze would go off, for drawing.
  */
 export function warheadCone(ships: Ships, bodies: Bodies, i: number, b: number, w: number, out: FragmentCone): FragmentCone {
     const design = ships.designs[i]!;
@@ -419,17 +420,15 @@ export function warheadCone(ships: Ships, bodies: Bodies, i: number, b: number, 
         rvx = 0;
         rvy = 0;
     }
-    return fragmentCone(
-        speed,
-        warheadSpread(spec),
-        fragments,
-        angle + placed.angle,
-        rvx,
-        rvy,
-        head.targetRadius,
-        head.targeting.fireRange,
-        out,
-    );
+    fragmentCone(speed, warheadSpread(spec), fragments, angle + placed.angle, rvx, rvy, head.targetRadius, head.targeting.fireRange, out);
+    // Widened by how wide the target looks from here, as the fuze counts a module anywhere in it: wider as it closes.
+    if (tb >= 0 && out.half < Infinity) {
+        const range = length2(bodies.x[tb]! - bodies.x[b]! - ox, bodies.y[tb]! - bodies.y[b]! - oy);
+        const size = bodies.radius[tb]!;
+        out.half = range > size ? out.half + asin(size / range) : Infinity;
+        if (out.half >= PI) out.half = Infinity;
+    }
+    return out;
 }
 
 /** How far `(lx, ly)`, in the design's frame, is from module `k`'s box, metres: 0 inside it. */
