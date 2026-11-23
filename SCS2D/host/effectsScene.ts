@@ -24,7 +24,7 @@ import {
     type ShipDesign,
     type ShipView,
 } from "../sim/index.js";
-import { leakRate, PATCH_SPEED } from "../sim/fuel.js";
+import { FILL_EVERY, FILL_KEPT, leakRate, PATCH_SPEED } from "../sim/fuel.js";
 import { DECK_HEIGHT, DEFAULT_BURST_SPEED, DEFAULT_FRAGMENTS, EXPLOSIVE_YIELD } from "../sim/modules.js";
 import { CORVETTE, DINKY, TORCH, KKV, Y_WING } from "../scenarios/blueprints.js";
 import { makeBattle } from "../scenarios/battle.js";
@@ -345,6 +345,8 @@ function place(snapshot: Snapshot, design: ShipDesign, x: number, y: number, ang
     view.leakFill = [];
     view.leakModule = [];
     view.leakClosed = [];
+    view.leakLastOut = [];
+    delete view.leakFills;
     return view;
 }
 
@@ -472,6 +474,14 @@ const DRY_AFTER = 5;
 function drained(age: number): number {
     const left = Math.max(0, 1 - age / DRY_AFTER);
     return left * left;
+}
+
+/** That tank's `Leak.fills`, `age` seconds after it is holed, as the sim would have noted them. */
+function drainedFills(age: number): number[] {
+    const fills = new Array<number>(FILL_KEPT).fill(1);
+    const latest = Math.floor(age / FILL_EVERY);
+    for (let n = Math.max(0, latest - FILL_KEPT + 1); n <= latest; n++) fills[n % FILL_KEPT] = drained(Math.min((n + 1) * FILL_EVERY, age));
+    return fills;
 }
 
 /** How fast each torpedo meets the slab, m/s. */
@@ -819,14 +829,15 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
             ship.leakWidth!.push(width);
             ship.leakRate!.push(rate);
             ship.leakAge!.push(t);
-            ship.leakSpeed!.push(leakSpeed(fill));
             ship.leakOpened!.push(width);
             ship.leakClosing!.push(0);
             ship.leakFloor!.push(width);
             ship.leakPatched!.push(-1);
             ship.leakFill!.push(fill);
+            ship.leakFills = drainedFills(t);
             ship.leakModule!.push(1);
             ship.leakClosed!.push(-1);
+            ship.leakLastOut!.push(Math.min(t, DRY_AFTER));
         },
     },
     {
