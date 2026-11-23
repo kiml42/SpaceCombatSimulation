@@ -555,9 +555,16 @@ export function moduleReadout(
             name: "Fragments at",
             under: "spread",
             value: `${n(burst.speed, 0)} m/s`,
-            title: `Taking ${n(burst.focus * 100, 0)}% of the yield; the rest goes into the ship carrying it`,
+            title: `Ahead and the same behind, taking ${n(burst.focus * 100, 0)}% of the yield between them`,
         });
-        add({ name: "Each", under: "fragments", value: `${n(burst.casing / burst.fragments, 1)} kg`, sub: true });
+        add({ name: "Each", under: "fragments", value: `${n(burst.each, 1)} kg`, sub: true });
+        if (burst.sideEach > 0) {
+            add({
+                name: "All round at",
+                value: `${n(burst.sideSpeed, 0)} m/s`,
+                title: "The rest of the yield, outside its arcs, into whatever is near, its own ship included",
+            });
+        }
         if (shipRadius > 0) {
             // As a gun's "Fires within": against the size its mount wants, as far as its doctrine goes off.
             const targeting = resolveTargeting(spec.targeting, defaultTargeting(spec.kind));

@@ -22,6 +22,7 @@ import {
     math,
     Snapshot,
     weaponPlumeReach,
+    warheadFragments,
     type ShipDesign,
     type ShipView,
 } from "../sim/index.js";
@@ -238,14 +239,18 @@ export function restingTriggers(view: ShipView, design: ShipDesign, attackLines 
         engineFiring[t] = true;
     }
 
-    // At rest against it, so the cone is the warhead's own.
+    // At rest against it, so the cones are the warhead's own, ahead and, for a spray, behind.
     const cones = (view.warheadCones ??= []);
-    cones.length = 3 * design.warheads.length;
+    cones.length = 6 * design.warheads.length;
     for (let w = 0; w < design.warheads.length; w++) {
         const head = design.warheads[w]!;
-        cones[3 * w] = view.angle + design.modules[head.module]!.angle;
-        cones[3 * w + 1] = head.spread >= math.TAU ? Infinity : head.spread / 2;
-        cones[3 * w + 2] = head.reach;
+        const spec = design.modules[head.module]!.spec;
+        const spray = warheadFragments(spec) > 1;
+        for (let side = 0; side < 2; side++) {
+            cones[6 * w + 3 * side] = view.angle + design.modules[head.module]!.angle + side * math.PI;
+            cones[6 * w + 3 * side + 1] = head.spread >= math.TAU ? Infinity : head.spread / 2;
+            cones[6 * w + 3 * side + 2] = side === 1 && !spray ? 0 : head.reach;
+        }
     }
 }
 

@@ -3,7 +3,7 @@ import { OUTLET_A, OUTLET_B, type Contacts } from "./collision.js";
 import { SHATTER } from "./damage.js";
 import { moduleLayers } from "./hull.js";
 import { abs, cos, log, max, min, pow, sin, sqrt, TAU } from "./math.js";
-import { ROUND_SHRAPNEL, ROUND_WRECKAGE, type Projectiles } from "./projectiles.js";
+import { ROUND_SHRAPNEL, ROUND_WRECKAGE, SPARES_NONE, type Projectiles } from "./projectiles.js";
 import type { Rng } from "./rng.js";
 import { blowKey, heldMass } from "./shipBreakup.js";
 import type { Ships } from "./ships.js";
@@ -169,6 +169,8 @@ export function throwWreckage(ships: Ships, bodies: Bodies, projectiles: Project
                 ttl: WRECKAGE_LIFE,
                 mass: masses[f]!,
                 owner: b,
+                // Out of the module that broke, into whatever of its own ship is in the way.
+                fromModule: m,
                 ship: ships.shipByBody[b]!,
                 layers,
                 kind: ROUND_WRECKAGE,
@@ -198,8 +200,8 @@ export function throwWreckage(ships: Ships, bodies: Bodies, projectiles: Project
  * Such a piece is never put in the world as a body, but its metal is still
  * going where its hull was going: a torpedo cut apart on its way in, or torn
  * apart on its target, goes on into it. Each flies on as one round of its own
- * mass, as wide as its footprint, at the velocity it broke off with, through
- * the hull it came off and for `WRECKAGE_LIFE`. It was counted discarded as
+ * mass, as wide as its footprint, at the velocity it broke off with, for
+ * `WRECKAGE_LIFE`, and into the hull it came off as into anything else. It was counted discarded as
  * it broke off, and is taken back out of that account here.
  */
 export function throwShrapnel(ships: Ships, projectiles: Projectiles): number {
@@ -219,6 +221,8 @@ export function throwShrapnel(ships: Ships, projectiles: Projectiles): number {
             ttl: WRECKAGE_LIFE,
             mass,
             owner: s.owner[k]!,
+            // No part of the hull it came off any more, so into it as into anything.
+            fromModule: SPARES_NONE,
             ship: s.ship[k]!,
             layers: s.layers[k]!,
             kind: ROUND_SHRAPNEL,
