@@ -392,7 +392,7 @@ inside any one file is not contiguous.
   a slow-firing sniper waits for the middle rather than spending a round on an edge it will likely miss,
   and at the gun's reach, where the two are equal, only dead centre will do. Further off than that part is worth shooting at, it aims at
   the middle of the ship instead (or, for a mount whose solid shot would pass over the deck, the part
-  nearest the middle; shells burst into both layers, so they count as reaching the hull). A mount that
+  nearest the middle; a shell's fragments land in either layer, so they count as reaching the hull). A mount that
   fires shells also takes on a ship flying only in the other layer — a fighter, to a hull gun, or a hull, to
   a fighter's gun — since its fragments reach what its own shot would pass by. Within that
   range it picks a part just as it would anyway, and walks onto it as it closes. One that has refused something
@@ -788,7 +788,8 @@ inside any one file is not contiguous.
   speed plus its own velocity less that hull's, so closing fast throws a narrower cone, swung the way it
   closes, that reaches further (`fragmentCone`). It goes off when the nearest point of an enemy module inside
   that cone is within its reach, unless a friend's is as near; not while its craft is parked on a pad, and never on a collision, so a ram is still a ram. **Going
-  off**, the charge is burnt; the fragments pass through nothing of their ship but the warhead; the hull keeps
+  off**, the charge is burnt; its fragments land in layers as a shell's do, from the warhead's own layer (a
+  committed craft's is the hull layer, where it rams), and a lone one always in that layer; they pass through nothing of their ship but the warhead; the hull keeps
   their momentum the other way; and what the fragments did not take crushes the carrier outward from the
   warhead, as a collision crushes a hull inward, along 64 lines over the turn outside the spread
   (`BLAST_LINES`), so a module shields what is behind it and a line that meets nothing carries its share into
@@ -819,7 +820,9 @@ inside any one file is not contiguous.
   on a masked bearing with its trigger held, so it is on target as the ship turns. A lit beam's drive stops at the edge of a masked sector rather than
   sweep across its own ship. A shot may land on its own ship, but never on the mount that fired it, so
   two enemies hooked together shoot each other. **A gun's rounds burst** just short of their aim point,
-  into fragments that fly in both layers, which is how a turret reaches below the deck; a beam has no
+  into fragments, **each in one layer**: the shell's own three times in four (`FRAGMENT_STAYS`), else the
+  other, and either evenly from a shell in both (`fragmentLayer`). That is how a turret reaches below the
+  deck, with a quarter of its fragments; a beam has no
   fuse, so it never does. **An engine's plume stays in its engine's layers** as a beam does: a deck
   engine's flame passes under a fighter, and a fighter's passes over a deck it flies above until it drops
   into the hull layer. One in both layers (a thick engine, or a committed fighter's) is two flames, half the
@@ -1673,8 +1676,9 @@ Rules:
   weapons can strip it, and a craft built entirely of modules under a deck across is out of turrets' reach
   altogether: the Dinky is. Thick structure is cover
   for the turrets behind it and pays in wall, in being within reach of turrets, and in the arcs of every
-  turret it stands in front of. A thick core is in turrets' reach. A thick hull gun still fires at deck
-  height; **a thick hull beam fires a beam in each layer, with half its power each**, as a thick engine's
+  turret it stands in front of. A thick core is in turrets' reach. A thick hull gun fires at deck height
+  unless its bore is at least half a metre (`BOTH_LAYERS_CALIBRE`), when its slug is in both layers, the only
+  round that is; **a thick hull beam fires a beam in each layer, with half its power each**, as a thick engine's
   flame burns in each: a thick module stands in both and takes all of it, while a deck-level module or a
   fighter takes its half and the other half goes on past it.
 - **A barrel or nozzle is never wider than the module is deep.** A turret's tubes (and a beam's housing)
@@ -1700,7 +1704,8 @@ Rules:
   strafing run skims the deck, so its gunfire stays in the weapons layer and can only strip mounts and
   protruding modules.
 
-    A craft that **commits** drops to deck height and occupies _both_ layers, so it can strike hull.
+    A craft that **commits** drops to deck height and occupies _both_ layers, so it can strike hull. What
+    it fires goes in the hull layer, where it meets what it rams, not in both.
     Whether to commit is a doctrine choice: to ram, or (not yet built) to dock on another ship's side.
 
     **A strike craft is a ship flagged as a fighter.** The flag rules
