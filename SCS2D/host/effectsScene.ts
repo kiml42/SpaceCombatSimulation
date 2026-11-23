@@ -476,6 +476,23 @@ function drained(age: number): number {
     return left * left;
 }
 
+/** Seconds a turn takes that tank once its jet has spun it up and it has run dry. */
+const DRY_TURN = 6;
+
+/**
+ * How far that tank has turned `age` seconds after it is holed, from still.
+ * Its jet's push goes as how full it is, so it spins up as `∫ drained`, to a
+ * turn every `DRY_TURN` once dry, and turns on at that.
+ */
+function spunBy(age: number): number {
+    const spin = (2 * Math.PI) / DRY_TURN;
+    const T = DRY_AFTER;
+    const a = Math.min(age, T);
+    // ω = spin · (1 - (1 - a/T)³), and its integral.
+    const turned = spin * (a - (T / 4) * (1 - (1 - a / T) ** 4));
+    return turned + spin * Math.max(0, age - T);
+}
+
 /** How fast each torpedo meets the slab, m/s. */
 const COLLISION_SPEEDS = [10, 30, 100, 300, 1000];
 
@@ -804,7 +821,7 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
     },
     {
         name: "Leaking dry",
-        about: `A tank holed 20 cm wide, turning once every eight seconds, with about a tonne of fuel in it: leaking 390 kg/s at first, slower and slower as it empties, and dry ${DRY_AFTER} s on. Fuel leaves a fuller tank faster, so each puff goes as far as the tank was full when it left; once it is dry, nothing more leaves and what is out drifts off.`,
+        about: `A tank holed 20 cm wide near one end of its side, leaking 390 kg/s at first, slower and slower as it empties, and dry ${DRY_AFTER} s on. The jet's push spins it up from still, less as the push falls off, to a turn every ${DRY_TURN} s, at which it turns on once dry: faster than a jet that size would spin a tank that heavy, to be seen. Fuel leaves a fuller tank faster, so each puff goes as far as the tank was full when it left; once it is dry, nothing more leaves and what is out drifts off.`,
         loop: 10,
         build(t, snapshot, flashes) {
             const width = 0.2;
@@ -812,10 +829,11 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
             const tank = design.modules[1]!;
             const reach = vapourLength(width, leakRate((Math.PI * width * width) / 4, 1));
             begin(snapshot, flashes, t, -reach - 10, -reach - 10, reach + 10, reach + 10);
-            const ship = place(snapshot, design, 0, 0, (2 * Math.PI * t) / 8);
+            // Pushed back against its jet, out of the side near the far end: turned the other way.
+            const ship = place(snapshot, design, 0, 0, -spunBy(t));
             const fill = drained(t);
             const rate = leakRate((Math.PI * width * width) / 4, fill);
-            ship.leakX!.push(tank.x);
+            ship.leakX!.push(tank.x + tank.spec.length / 2 - 1);
             ship.leakY!.push(tank.y + tank.spec.width / 2);
             ship.leakDirX!.push(0);
             ship.leakDirY!.push(1);
