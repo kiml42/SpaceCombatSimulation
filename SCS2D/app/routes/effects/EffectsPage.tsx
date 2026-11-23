@@ -8,6 +8,8 @@ import { LIGHTS } from "~/scenarios/lights";
 import { Playback } from "~/features/battle/Playback";
 import { PauseMenu } from "~/features/menu/PauseMenu";
 import { Button } from "~/ui/buttons/Button";
+import { useStorage } from "~/features/storage/StorageContext";
+import { keepEffects, keptEffects, type KeptEffects } from "./keptEffects";
 
 const SPEEDS = [1, 0.25, 0.1, 0.03];
 const KEYS = [
@@ -16,6 +18,8 @@ const KEYS = [
     { keys: "Drag", does: "Pan" },
     { keys: "Scroll", does: "Zoom" },
 ];
+/** How the page starts where nothing was kept. */
+const DEFAULTS: KeptEffects = { scene: EFFECTS_SCENES[0]!.name, speed: 0.25, light: "battle default", time: 0, playing: true };
 /** No light at all: what is seen is only what the scene's own lights show. */
 const DARK: Light = { from: 0, colour: "#000000", ambient: 0 };
 const LIGHT_CHOICES: readonly (readonly [string, Light])[] = [
@@ -75,20 +79,61 @@ const Canvas = styled.canvas`
 export function EffectsPage() {
     const canvas = useRef<HTMLCanvasElement>(null);
     const [view, setView] = useState<EffectsView | null>(null);
-    const [scene, setScene] = useState(0);
-    const [playing, setPlaying] = useState(true);
-    const [speed, setSpeed] = useState(0.25);
-    const [light, setLight] = useState(0);
+    const storage = useStorage();
+    // As the page was left, so a reload comes back to the same scene, moment and settings.
+    const [kept] = useState(() => keptEffects(storage, DEFAULTS));
+    const [scene, setScene] = useState(() =>
+        Math.max(
+            0,
+            EFFECTS_SCENES.findIndex((each) => each.name === kept.scene),
+        ),
+    );
+    const [playing, setPlaying] = useState(kept.playing);
+    const [speed, setSpeed] = useState(kept.speed);
+    const [light, setLight] = useState(() =>
+        Math.max(
+            0,
+            LIGHT_CHOICES.findIndex(([name]) => name === kept.light),
+        ),
+    );
     const time = useSampled(() => view?.time ?? 0);
 
     useEffect(() => {
         const made = effectsView(canvas.current!);
+        // All of it before its first frame, or a paused moment would play on a step.
+        made.show(scene);
+        made.setPlaying(playing);
+        made.setSpeed(speed);
+        made.setLight(LIGHT_CHOICES[light]![1]);
+        made.seek(kept.time);
         setView(made);
         return () => {
             made.dispose();
             setView(null);
         };
+        // Once, from what was kept: later changes reach the view through the effects below.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+    // While paused, each step or scrub is kept too.
+    const pausedAt = playing ? 0 : time;
+    useEffect(() => {
+        if (view === null) return;
+        const keep = (): void =>
+            keepEffects(storage, {
+                scene: EFFECTS_SCENES[scene]!.name,
+                speed,
+                light: LIGHT_CHOICES[light]![0],
+                time: view.time,
+                playing,
+            });
+        keep();
+        // Where it had got to while playing, kept as the page goes rather than every frame.
+        window.addEventListener("pagehide", keep);
+        return () => {
+            window.removeEventListener("pagehide", keep);
+            keep();
+        };
+    }, [view, storage, scene, speed, light, playing, pausedAt]);
     useEffect(() => {
         if (view === null) return;
         // As the battle's: Space plays and pauses, `.` steps on and `,` back, a step at a time.
