@@ -799,10 +799,9 @@ inside any one file is not contiguous.
   gun would fire in (`aimPoint`, `fireCone`), widened by how far its fragments spread across the target,
   measured in noses, since at a burst no faster than it closes a turn of the nose moves its fragments less
   (`noseCone`). It goes off when its nose is inside that cone, within the reach its fragments are worth
-  throwing at the speed they close (`fragmentCone`), and no friend is across its line (`friendAlong`). A spray has the same trigger behind it, and goes off on
-  either: a fragment thrown at the target flies the same whichever end throws it, so the battle view draws
-  that trigger where its nose must point, the one ahead turned half round, with one line along its nose. A
-  slug's backblast has none. Only
+  throwing at the speed they close (`fragmentCone`), and no friend is across its line (`friendAlong`). A spray goes off with either end that way, since a fragment thrown at the target flies the same
+  whichever end throws it: the battle view draws the one cone, with a line along its nose and one along its
+  tail. A slug's backblast has no trigger. Only
   what its fragments' layers can reach counts, as for a gun, so one ramming a part on the deck waits until it
   has dropped to it, and one ramming a turret or thick module goes off from above. Not while its craft is
   parked on a pad, and never on a collision, so a ram is still a ram. **Going

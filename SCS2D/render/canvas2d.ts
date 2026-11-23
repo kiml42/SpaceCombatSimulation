@@ -1579,11 +1579,11 @@ function drawLoad(ctx: CanvasRenderingContext2D, ship: ShipView, t: number, mx: 
 }
 
 /**
- * Where each warhead will go off: the bearings its nose may point along at
- * what it is going for, out to its fragments' reach, as a gun's wedge is
- * drawn, and a line the way it points; for a spray, the same turned half
- * round, for its tail. At rest, its lobes ahead and behind. Fouled once its
- * fuze is dead (`DUD_INTEGRITY`).
+ * Where each warhead will go off: the cone its fragments must be thrown in at
+ * what it is going for, out to their reach, as a gun's wedge is drawn, and a
+ * line the way its nose points; for a spray, which throws both ways, one the
+ * way its tail points too, and it goes off with either in the cone. At rest,
+ * its spread each way it throws. Fouled once its fuze is dead (`DUD_INTEGRITY`).
  */
 function drawWarheadTriggers(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
     const design = ship.currentStructure;
@@ -1602,31 +1602,30 @@ function drawWarheadTriggers(ctx: CanvasRenderingContext2D, ship: ShipView, metr
         const tint = (ship.integrity[head.module] ?? 1) <= DUD_INTEGRITY ? TRIGGER_FOULED : TRIGGER_OFF;
         ctx.fillStyle = tint;
         ctx.strokeStyle = tint;
-        for (let side = 0; side < 2; side++) {
-            const facing = ship.angle + module.angle + side * PI;
-            const k = 6 * w + 3 * side;
-            const centre = cones?.[k] ?? facing;
-            const half = cones?.[k + 1] ?? (head.spread >= TAU ? Infinity : head.spread / 2);
-            const reach = cones?.[k + 2] ?? (side === 0 ? head.reach : 0);
-            if (!(reach > 0)) continue;
+        const nose = ship.angle + module.angle;
+        const centre = cones?.[4 * w] ?? nose;
+        const half = cones?.[4 * w + 1] ?? (head.spread >= TAU ? Infinity : head.spread / 2);
+        const reach = cones?.[4 * w + 2] ?? head.reach;
+        const live = cones?.[4 * w + 3] === 1;
+        const spray = head.spread > 0;
+        if (!(reach > 0)) continue;
+        for (let side = 0; side < (spray && !live ? 2 : 1); side++) {
             ctx.beginPath();
             // All round, a ring with no edges to draw; else a wedge from the warhead.
             if (half === Infinity) ctx.arc(x, y, reach, 0, TAU);
             else {
                 ctx.moveTo(x, y);
-                ctx.arc(x, y, reach, centre - half, centre + half);
+                ctx.arc(x, y, reach, centre + side * PI - half, centre + side * PI + half);
                 ctx.closePath();
             }
             ctx.fill();
             ctx.stroke();
         }
-        // Its nose: in either wedge, it goes off.
-        const nose = ship.angle + module.angle;
-        const reach = Math.max(cones?.[6 * w + 2] ?? head.reach, cones?.[6 * w + 5] ?? 0);
-        if (reach > 0) {
+        for (let side = 0; side < (spray ? 2 : 1); side++) {
+            const along = nose + side * PI;
             ctx.beginPath();
             ctx.moveTo(x, y);
-            ctx.lineTo(x + cos(nose) * reach, y + sin(nose) * reach);
+            ctx.lineTo(x + cos(along) * reach, y + sin(along) * reach);
             ctx.stroke();
         }
     }

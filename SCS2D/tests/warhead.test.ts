@@ -362,9 +362,7 @@ describe("warhead", () => {
         expect(cone.half).toBeGreaterThan(head.spread / 2);
         const view = capture(new Snapshot(), s.world, s.ships, s.projectiles, new Beams(4));
         const shown = view.ships.find((ship) => ship.warheadCones !== undefined && ship.warheadCones.length > 0)!;
-        // Ahead, then behind.
-        expect(shown.warheadCones!.slice(0, 3)).toEqual([cone.centre, cone.half, cone.reach]);
-        expect(shown.warheadCones).toHaveLength(6);
+        expect(shown.warheadCones).toEqual([cone.centre, cone.half, cone.reach, 1]);
     });
 
     it("shows a slug's trigger as wide as its target looks, wider as it closes", () => {
@@ -376,7 +374,9 @@ describe("warhead", () => {
             const target = ships.spawn(world, { design: compileBlueprint(TARGET), x: gap, y: 0, team: 2 });
             ships.pushOrder(i, target, 0, 50, 10);
             const b = world.bodies.indexOf(ships.body(i));
-            return warheadCone(ships, world.bodies, i, b, 0, { centre: 0, half: 0, reach: 0 }).half;
+            const cone = { centre: 0, half: 0, reach: 0 };
+            warheadCone(ships, world.bodies, i, b, 0, cone);
+            return cone.half;
         };
         expect(half(200)).toBeGreaterThan(0);
         expect(half(50)).toBeGreaterThan(half(200) * 3);

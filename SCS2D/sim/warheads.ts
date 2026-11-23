@@ -413,29 +413,26 @@ function within(speed: number, rvx: number, rvy: number, nose: number, centre: n
 }
 
 /**
- * The trigger warhead `w` of ship `i`, on body `b`, draws ahead, or behind
- * (`rear`), as a gun's wedge is drawn: the bearings its nose may point along
- * to go off, as wide as it may go off off its lead, out to its reach
- * (`warheadTrigger`). Fragments thrown at the target fly the same whichever
- * end throws them, so the one behind is the one ahead turned half round.
- * With nothing to go off at, its own spread each way it throws; a slug's
- * backblast, none.
+ * The trigger warhead `w` of ship `i`, on body `b`, draws, as a gun's wedge is
+ * drawn: about the bearing its lead says to throw along, as wide as it may go
+ * off off that, out to its reach (`warheadTrigger`). A spray goes off with
+ * either end that way, since a fragment thrown at the target flies the same
+ * from either. With nothing to go off at, its own spread the way it points.
+ * Returns whether it is going for something.
  */
-export function warheadCone(ships: Ships, bodies: Bodies, i: number, b: number, w: number, out: FragmentCone, rear = false): FragmentCone {
-    if (warheadTrigger(ships, bodies, i, b, w, TRIGGER, rear)) {
-        out.centre = TRIGGER.centre + (rear ? PI : 0);
+export function warheadCone(ships: Ships, bodies: Bodies, i: number, b: number, w: number, out: FragmentCone): boolean {
+    if (warheadTrigger(ships, bodies, i, b, w, TRIGGER)) {
+        out.centre = TRIGGER.centre;
         out.half = TRIGGER.half;
         out.reach = TRIGGER.reach;
-        return out;
+        return true;
     }
     const design = ships.designs[i]!;
     const head = design.warheads[w]!;
-    const spec = design.modules[head.module]!.spec;
-    out.centre = bodies.angle[b]! + design.modules[head.module]!.angle + (rear ? PI : 0);
+    out.centre = bodies.angle[b]! + design.modules[head.module]!.angle;
     out.half = head.spread >= TAU ? Infinity : head.spread / 2;
-    // A slug's backblast draws no trigger.
-    out.reach = rear && warheadFragments(spec) === 1 ? 0 : head.reach;
-    return out;
+    out.reach = head.reach;
+    return false;
 }
 
 /**
