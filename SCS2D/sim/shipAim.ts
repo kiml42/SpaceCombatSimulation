@@ -836,7 +836,26 @@ export function friendlyInTheWay(
     const tb = target === NO_TARGET ? -1 : bodies.indexOf(ships.bodyIds[target]!);
     const shared = tb >= 0 && sharesBody(ships, target, tb);
     const lookahead = gun.type === GunType.Beam ? MAX_BEAM_LENGTH : shared ? reach : gun.muzzleSpeed * FRIENDLY_LOOKAHEAD;
-    const range = lookahead < reach ? lookahead : reach;
+    return friendAlong(ships, bodies, grid, i, bodyIdx, lookahead < reach ? lookahead : reach, target, layers);
+}
+
+/**
+ * Whether a friend's module is across the line `ships.solution` gives, out to
+ * `range`, in `layers`: `friendlyInTheWay`'s test once it knows how far a shot
+ * goes, and a warhead's.
+ */
+export function friendAlong(
+    ships: Ships,
+    bodies: Bodies,
+    grid: SpatialGrid,
+    i: number,
+    bodyIdx: number,
+    range: number,
+    target: number,
+    layers: number,
+): boolean {
+    const tb = target === NO_TARGET ? -1 : bodies.indexOf(ships.bodyIds[target]!);
+    const shared = tb >= 0 && sharesBody(ships, target, tb);
     if (!(range > 0)) return false;
     // Clinging to a friend, a miss or a shell's spray lands on what lies behind: the friend must not.
     if (shared && clingsToFriend(ships, i, target, tb) && crossesFriend(ships, bodies, i, target, tb, range)) return true;
@@ -1046,96 +1065,175 @@ export function trainOne(ships: Ships, bodies: Bodies, i: number): void {
             continue;
         }
         aiming[t] = target;
-        const design = ships.designs[target]!;
-        let x = bodies.x[tb]!;
-        let y = bodies.y[tb]!;
-        // What the barrel has to keep up with is the part's own motion, ω × r
-        // and all: that is how fast the sky it sits in is moving. Only the lead
-        // is the hull's.
-        let sweepVx = bodies.vx[tb]!;
-        let sweepVy = bodies.vy[tb]!;
-        let rx = 0;
-        let ry = 0;
-        if (part !== WHOLE_SHIP) {
-            const angle = bodies.angle[tb]!;
-            aimSpot(design, part, SPOT);
-            rx = SPOT.x * cos(angle) - SPOT.y * sin(angle);
-            ry = SPOT.x * sin(angle) + SPOT.y * cos(angle);
-            const spin = bodies.angularVel[tb]!;
-            x += rx;
-            y += ry;
-            sweepVx -= spin * ry;
-            sweepVy += spin * rx;
-        }
-        // Sharing a body, the ship is the modules it works, not the body: one
-        // stuck to a rock is a small thing on it, not the whole rock.
-        let middleX = 0;
-        let middleY = 0;
-        let size = design.radius;
-        const shared = sharesBody(ships, target, tb);
-        if (shared) {
-            const at = ships.locate(bodies, target, tb, ships.sizeAt);
-            middleX = at.x - bodies.x[tb]!;
-            middleY = at.y - bodies.y[tb]!;
-            size = at.radius;
-        }
-        // What it can hit is the hull as it presents itself along the line of
-        // fire, not its bounding circle: a long thin ship seen end on is only its
-        // width, and its edges are not equally far from its centre of mass. A
-        // ship stuck to another body keeps the circle about the modules it works.
-        const sight = atan2(y - ships.gunPoint.y, x - ships.gunPoint.x);
-        let near = -size;
-        let far = size;
-        if (!shared) {
-            aspectAlong(design, sight - bodies.angle[tb]!, aspect);
-            near = aspect.near;
-            far = aspect.far;
-        }
-        // The middle of what it presents, off its centre of mass for a lopsided
-        // ship: what the cone is about, and what a gun aiming at the whole ship aims at.
-        const across = (near + far) / 2;
-        middleX -= sin(sight) * across;
-        middleY += cos(sight) * across;
-        if (part === WHOLE_SHIP && !shared) {
-            x += middleX;
-            y += middleY;
-            rx = middleX;
-            ry = middleY;
-        }
-        const flight = ships.turrets.aimAt(bodies, ti, x, y, bodies.vx[tb]!, bodies.vy[tb]!, sweepVx, sweepVy);
-        // Less how far the target may have jinked by the time the round arrives:
-        // an aim on the edge at long range is a likely miss, so the cone narrows
-        // towards the middle as the flight grows, to nothing at the gun's reach,
-        // which is where the two are equal (`reachAgainst`). A shell's burst
-        // widens it either side.
-        const margin = 0.5 * EVASION_ACCEL * flight * flight - (lethalRadius(mounts[t]!.gun, size) - size);
-        const cone = flight >= 0 && far - near > 2 * margin ? (far - near) / 2 - margin : 0;
+        const point = aimPoint(ships, bodies, target, tb, part, ships.gunPoint.x, ships.gunPoint.y, POINT);
+        const flight = ships.turrets.aimAt(bodies, ti, point.x, point.y, bodies.vx[tb]!, bodies.vy[tb]!, point.sweepVx, point.sweepVy);
         const careful = clingsToFriend(ships, i, target, tb);
-        const slack = firingSlack(
+        const doctrine = aimDoctrine(ships, i, mounts[t]!);
+        const slack = fireCone(
             ships,
-            aimDoctrine(ships, i, mounts[t]!),
+            doctrine,
             target,
             part,
+            point,
             ships.turrets.aimDx[ti]!,
             ships.turrets.aimDy[ti]!,
-            rx - middleX,
-            ry - middleY,
-            cone,
+            flight,
+            lethalRadius(mounts[t]!.gun, point.size) - point.size,
             careful,
         );
-        // In reach of what it will fire on: the part it picked if it minds what
-        // it hits, and otherwise the ship, from its middle.
-        const selective = (careful || refusesAnything(aimDoctrine(ships, i, mounts[t]!))) && part !== WHOLE_SHIP;
         ships.turrets.allowSlack(
             ti,
             slack,
             ships.slackOffset,
             reachOn(ships, i, mounts[t]!, target, part),
-            selective
-                ? length(x - ships.gunPoint.x, y - ships.gunPoint.y)
-                : length(x - rx + middleX - ships.gunPoint.x, y - ry + middleY - ships.gunPoint.y),
+            fireRangeTo(ships, doctrine, part, point, careful),
         );
     }
+}
+
+/** What a mount aims at on a target, from `aimPoint`: world coordinates and metres. */
+export interface AimPoint {
+    /** The point it leads: the part, or the middle of what the ship presents. */
+    x: number;
+    y: number;
+    /** How fast that point sweeps the sky, ω × r and all. */
+    sweepVx: number;
+    sweepVy: number;
+    /** The point, and the middle of what the ship presents, from its centre of mass. */
+    rx: number;
+    ry: number;
+    middleX: number;
+    middleY: number;
+    /** How far either side of its centre of mass it presents along the line, and its size. */
+    near: number;
+    far: number;
+    size: number;
+}
+
+const POINT: AimPoint = { x: 0, y: 0, sweepVx: 0, sweepVy: 0, rx: 0, ry: 0, middleX: 0, middleY: 0, near: 0, far: 0, size: 0 };
+
+/**
+ * Where a mount at (`fromX`, `fromY`) aims on `target`, on body `tb`: at
+ * `part`, or the ship's middle as it presents along the line of fire.
+ *
+ * **The part's position, the hull's velocity.** A part does not travel in
+ * the straight line a firing solution assumes: it goes round the centre of
+ * mass, so extrapolating the ω × r it has right now sends the aim point off on
+ * a tangent that grows with the square of the flight time. Leading the *hull*
+ * instead is wrong by at most how far the part sits from the centre of mass.
+ * What the barrel has to keep up with is the part's own motion (`sweep`).
+ */
+export function aimPoint(
+    ships: Ships,
+    bodies: Bodies,
+    target: number,
+    tb: number,
+    part: number,
+    fromX: number,
+    fromY: number,
+    out: AimPoint,
+): AimPoint {
+    const design = ships.designs[target]!;
+    let x = bodies.x[tb]!;
+    let y = bodies.y[tb]!;
+    let sweepVx = bodies.vx[tb]!;
+    let sweepVy = bodies.vy[tb]!;
+    let rx = 0;
+    let ry = 0;
+    if (part !== WHOLE_SHIP) {
+        const angle = bodies.angle[tb]!;
+        aimSpot(design, part, SPOT);
+        rx = SPOT.x * cos(angle) - SPOT.y * sin(angle);
+        ry = SPOT.x * sin(angle) + SPOT.y * cos(angle);
+        const spin = bodies.angularVel[tb]!;
+        x += rx;
+        y += ry;
+        sweepVx -= spin * ry;
+        sweepVy += spin * rx;
+    }
+    // Sharing a body, the ship is the modules it works, not the body: one
+    // stuck to a rock is a small thing on it, not the whole rock.
+    let middleX = 0;
+    let middleY = 0;
+    let size = design.radius;
+    const shared = sharesBody(ships, target, tb);
+    if (shared) {
+        const at = ships.locate(bodies, target, tb, ships.sizeAt);
+        middleX = at.x - bodies.x[tb]!;
+        middleY = at.y - bodies.y[tb]!;
+        size = at.radius;
+    }
+    // What it can hit is the hull as it presents itself along the line of
+    // fire, not its bounding circle: a long thin ship seen end on is only its
+    // width, and its edges are not equally far from its centre of mass.
+    const sight = atan2(y - fromY, x - fromX);
+    let near = -size;
+    let far = size;
+    if (!shared) {
+        aspectAlong(design, sight - bodies.angle[tb]!, aspect);
+        near = aspect.near;
+        far = aspect.far;
+    }
+    // The middle of what it presents, off its centre of mass for a lopsided
+    // ship: what the cone is about, and what a gun aiming at the whole ship aims at.
+    const across = (near + far) / 2;
+    middleX -= sin(sight) * across;
+    middleY += cos(sight) * across;
+    if (part === WHOLE_SHIP && !shared) {
+        x += middleX;
+        y += middleY;
+        rx = middleX;
+        ry = middleY;
+    }
+    out.x = x;
+    out.y = y;
+    out.sweepVx = sweepVx;
+    out.sweepVy = sweepVy;
+    out.rx = rx;
+    out.ry = ry;
+    out.middleX = middleX;
+    out.middleY = middleY;
+    out.near = near;
+    out.far = far;
+    out.size = size;
+    return out;
+}
+
+/**
+ * How far off its lead (`aimX`, `aimY`) a mount aimed at `point` may fire,
+ * radians, with `ships.slackOffset` its offset: what the target presents,
+ * less how far it may have jinked by the time the shot arrives after
+ * `flight`, so an aim on the edge at long range is a likely miss and the cone
+ * narrows towards the middle as the flight grows. A burst `widens` it by that
+ * many metres either side.
+ */
+export function fireCone(
+    ships: Ships,
+    doctrine: Targeting,
+    target: number,
+    part: number,
+    point: AimPoint,
+    aimX: number,
+    aimY: number,
+    flight: number,
+    widens: number,
+    careful: boolean,
+): number {
+    const margin = 0.5 * EVASION_ACCEL * flight * flight - widens;
+    const cone = flight >= 0 && point.far - point.near > 2 * margin ? (point.far - point.near) / 2 - margin : 0;
+    return firingSlack(ships, doctrine, target, part, aimX, aimY, point.rx - point.middleX, point.ry - point.middleY, cone, careful);
+}
+
+/**
+ * How far off what a mount will fire on is: the part it picked if it minds
+ * what it hits, and otherwise the ship, from its middle. Measured from
+ * `ships.gunPoint`.
+ */
+export function fireRangeTo(ships: Ships, doctrine: Targeting, part: number, point: AimPoint, careful: boolean): number {
+    const selective = (careful || refusesAnything(doctrine)) && part !== WHOLE_SHIP;
+    return selective
+        ? length(point.x - ships.gunPoint.x, point.y - ships.gunPoint.y)
+        : length(point.x - point.rx + point.middleX - ships.gunPoint.x, point.y - point.ry + point.middleY - ships.gunPoint.y);
 }
 
 /** The presented aspect along a line of fire, filled by `aspectAlong`. */

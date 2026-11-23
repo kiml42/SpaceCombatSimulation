@@ -1,12 +1,15 @@
-import { leakRate, leakSpeed, PATCH_SPEED } from "../sim/fuel.js";
+import { FILL_EVERY, FILL_KEPT, leakRate, leakSpeed, PATCH_SPEED } from "../sim/fuel.js";
+import { LEAK_LINGER } from "../sim/snapshot.js";
 
 /**
  * Fuel leaking from a hole, as puffs of vapour worked out afresh each frame
  * from the hole's own history: when each left, and how wide the hole was then.
  * Puffs leave on a fixed grid of times since the hole opened, so the same
  * moment is the same picture, and pausing, stepping and scrubbing need
- * nothing of their own. A hole narrowing or closed sends out less or nothing,
- * while what already left drifts on and thins.
+ * nothing of their own. Each goes as fast and as far as its tank was full
+ * when it left (`Fills`), so a tank running dry sends out less and slower
+ * while what already left drifts on and thins, as it does from a hole
+ * narrowing or closed.
  *
  * Placed by where the hull was when each puff left, given its pose then
  * (`Pose`), so the stream trails behind a ship that turns or speeds up; or,
@@ -27,6 +30,8 @@ const PUFF_SPEED_SPREAD = 0.15;
 const VAPOUR_ALPHA = 0.6;
 /** Most puffs one moment's leaving makes, for the widest hole. */
 const MOST_PUFFS = 4;
+/** Fuel out of a hole, kg/s, below which its vapour thins towards nothing, as a hole does pinching shut. */
+const VAPOUR_LEAST_RATE = 1;
 
 /** What a hole has been, as the snapshot carries it, for working out how wide it was at any age. */
 export interface Hole {
@@ -37,6 +42,33 @@ export interface Hole {
     floor: number;
     /** How old it was when it was patched, or below nought if it has not been. */
     patched: number;
+}
+
+/** How full a hole's tank has been, as the snapshot carries it (`Leak.fills`). */
+export interface Fills {
+    /** How full it is now. */
+    now: number;
+    /** The ring of how full it was, `FILL_KEPT` from `offset`; absent, it was always as full as it is now. */
+    ring?: readonly number[] | undefined;
+    offset: number;
+}
+
+/** How full the tank was `born` seconds into the life of a hole `age` old now. */
+export function fillAt(fills: Fills, age: number, born: number): number {
+    const ring = fills.ring;
+    if (ring === undefined) return fills.now;
+    // Each slice's note was made at its end, or now for the one still going.
+    const latest = Math.floor(age / FILL_EVERY);
+    const oldest = Math.max(0, latest - FILL_KEPT + 1);
+    const slice = Math.floor(born / FILL_EVERY) - 1;
+    if (slice < oldest) return ring[fills.offset + (oldest % FILL_KEPT)]!;
+    if (slice >= latest) return fills.now;
+    const from = (slice + 1) * FILL_EVERY;
+    const to = Math.min((slice + 2) * FILL_EVERY, age);
+    const u = to > from ? Math.min(1, Math.max(0, (born - from) / (to - from))) : 1;
+    const a = ring[fills.offset + (slice % FILL_KEPT)]!;
+    const b = slice + 1 >= latest ? fills.now : ring[fills.offset + ((slice + 1) % FILL_KEPT)]!;
+    return a + (b - a) * u;
 }
 
 /** How wide a hole was at `age`: narrowing as its lining closes it, and closing all the way once patched. */
@@ -83,9 +115,19 @@ export interface Puff {
 /** How far along its way a puff is drawn, as a share of the gap to the next one out of the hole: enough to meet it. */
 const PUFF_OVERLAP = 1.6;
 
+/** The longest any puff is seen, seconds, however slowly it left: within what a hole's `Fills` keep. */
+const VAPOUR_LONGEST = Math.min(LEAK_LINGER, (FILL_KEPT - 1) * FILL_EVERY);
+
+/** How long a puff from a hole this wide, from a tank this full, is seen. */
+function puffLife(width: number, fill: number): number {
+    const speed = leakSpeed(fill);
+    if (!(speed > 0)) return 0;
+    return Math.min(VAPOUR_LONGEST, vapourLength(width, leakRate((Math.PI * width * width) / 4, fill)) / speed);
+}
+
 /**
  * Every puff from a hole at `(x, y)` in the hull's frame, leaving along
- * `(dirX, dirY)` at `speed` from a tank `fill` full, `age` seconds after it
+ * `(dirX, dirY)` from a tank as full as `fills` says, `age` seconds after it
  * opened; `visit` sees each, in `out`.
  */
 export function eachPuff(
@@ -95,17 +137,17 @@ export function eachPuff(
     dirX: number,
     dirY: number,
     age: number,
-    fill: number,
-    speed: number,
+    fills: Fills,
     out: Puff,
     visit: (puff: Puff) => void,
     /** Where the hull was `ago` seconds before now, into `into`; false where that is not known. */
     poseAgo?: (ago: number, into: Pose) => boolean,
 ): void {
-    if (!(speed > 0) || !(age >= 0)) return;
-    // Back as far as the longest-lived puff could have left, which is from the hole at its widest.
-    const longest =
-        vapourLength(hole.opened, leakRate((Math.PI * hole.opened * hole.opened) / 4, fill)) / (speed * (1 - PUFF_SPEED_SPREAD));
+    if (!(age >= 0)) return;
+    // Back as far as the longest-lived puff could have left: from the hole at its widest, the tank at its emptiest.
+    let emptiest = fills.now;
+    if (fills.ring !== undefined) for (let f = 0; f < FILL_KEPT; f++) emptiest = Math.min(emptiest, fills.ring[fills.offset + f]!);
+    const longest = puffLife(hole.opened, Math.max(emptiest, 1e-6)) * (1 + PUFF_SPEED_SPREAD);
     const first = Math.max(0, Math.ceil((age - longest) / PUFF_EVERY));
     const last = Math.floor(age / PUFF_EVERY);
     const seed = Math.imul(Math.round(x * 1024) ^ Math.imul(Math.round(y * 1024), 0x9e3779b1), 0x85ebca6b);
@@ -113,17 +155,20 @@ export function eachPuff(
         const born = n * PUFF_EVERY;
         const width = holeWidth(hole, born);
         if (!(width > 0)) continue;
+        const fill = fillAt(fills, age, born);
+        const speed = leakSpeed(fill);
+        if (!(speed > 0)) continue;
         const rate = leakRate((Math.PI * width * width) / 4, fill);
         const reach = vapourLength(width, rate);
-        const life = reach / speed;
         const since = age - born;
-        if (since >= life * (1 + PUFF_SPEED_SPREAD)) continue;
         const puffs = Math.min(MOST_PUFFS, 1 + Math.round(Math.cbrt(rate) / 3));
+        // Fainter the less is pushing it out, or the less is coming out: so a tank running dry or a hole pinching shut fades out.
+        const faint = Math.sqrt(fill) * Math.min(1, Math.sqrt(rate / VAPOUR_LEAST_RATE));
         for (let m = 0; m < puffs; m++) {
             const fast = 1 + (unit(seed, n * MOST_PUFFS + m, 0) * 2 - 1) * PUFF_SPEED_SPREAD;
             const gone = speed * fast * since;
-            // Gone past the end of the vapour: thinned to nothing.
-            const through = gone / reach;
+            // Gone past the end of the vapour, or seen as long as any is: thinned to nothing.
+            const through = Math.max(gone / reach, since / VAPOUR_LONGEST);
             if (through >= 1) continue;
             const across = (unit(seed, n * MOST_PUFFS + m, 1) * 2 - 1) * VAPOUR_SPREAD * gone;
             // In the hull's frame, from the hole.
@@ -154,7 +199,7 @@ export function eachPuff(
             // Its share of the vapour's opacity, thinning as it spreads out, and
             // shared with the next where drawn out over it.
             const spread = Math.min(1, Math.max(2 * out.radius, gap) / out.length);
-            out.alpha = (VAPOUR_ALPHA / Math.sqrt(puffs)) * (1 - through) ** 2 * spread;
+            out.alpha = (VAPOUR_ALPHA / Math.sqrt(puffs)) * faint * (1 - through) ** 2 * spread;
             visit(out);
         }
     }

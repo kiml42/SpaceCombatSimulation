@@ -2,7 +2,7 @@ import { Bodies } from "./bodies.js";
 import type { ShipDesign } from "./blueprint.js";
 import { HULL_LAYER, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from "./hull.js";
 import { DamageEffect } from "./damage.js";
-import { leakRate, leakSpeed } from "./fuel.js";
+import { leakRate, leakSpeed, noteFill } from "./fuel.js";
 import { Claim, Resource } from "./supply.js";
 import { geometryOf, plumeLayers, plumeRays, WEAPON_PLUME_SHARE } from "./exhaust.js";
 import { cohesionUrge } from "./targeting.js";
@@ -2076,10 +2076,12 @@ export function leak(ships: Ships, dt: number, bodies: Bodies, i: number): void 
             if (!(leak.width > 0) && leak.closed < 0) leak.closed = leak.age;
         }
         const fill = ships.fuel.fill(b, leak.module);
+        noteFill(leak, fill);
         const taken = ships.fuel.vent(b, leak.module, leakRate(PI * 0.25 * leak.width * leak.width, fill) * dt);
         leak.rate = taken / dt;
         if (!(taken > 0)) continue;
         vented = true;
+        leak.lastOut = leak.age;
         const m = design.modules[leak.module]!;
         const c = cos(m.angle);
         const s = sin(m.angle);

@@ -784,9 +784,17 @@ inside any one file is not contiguous.
   gun's mount** (`DesignWarhead`, beside rather than among `design.turrets`, which are guns): its mount's doctrine
   says what size it is for, its reach is how far its fragments are worth throwing at that, until the gap
   between them at the edge of its spread is as wide (`warheadReach`), its `fireRange` takes its share as a
-  gun's does, and a main warhead counts towards its ship's reach and its attack rosette. **Its fuze** goes off
-  when the nearest point of an enemy module inside its spread is within that reach, unless a friend's is as
-  near; not while its craft is parked on a pad, and never on a collision, so a ram is still a ram. **Going
+  gun's does, and a main warhead counts towards its ship's reach and its attack rosette. **Its fuze** is a hull
+  gun's trigger, in the same code (`warheadTrigger`): a hull mount whose muzzle speed is its burst and whose
+  barrel is its nose. It goes for its order's target, a ram's among them, else the one its doctrine chose,
+  and the part it rams; leads it as a gun leads a shot from a moving hull (`solveLead`); and takes the cone a
+  gun would fire in (`aimPoint`, `fireCone`), widened by how far its fragments spread across the target,
+  measured in noses, since at a burst no faster than it closes a turn of the nose moves its fragments less
+  (`noseCone`). It goes off when its nose is inside that cone, within the reach its fragments are worth
+  throwing at the speed they close (`fragmentCone`), and no friend is across its line (`friendAlong`). Only
+  what its fragments' layers can reach counts, as for a gun, so one ramming a part on the deck waits until it
+  has dropped to it, and one ramming a turret or thick module goes off from above. Not while its craft is
+  parked on a pad, and never on a collision, so a ram is still a ram. **Going
   off**, the charge is burnt; its fragments land in layers as a shell's do, from the warhead's own layer (a
   committed craft's is the hull layer, where it rams), and a lone one always in that layer; they pass through nothing of their ship but the warhead; the hull keeps
   their momentum the other way; and what the fragments did not take crushes the carrier outward from the

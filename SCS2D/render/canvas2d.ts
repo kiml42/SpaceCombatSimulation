@@ -111,9 +111,9 @@ import { drawGlows, Lights, type Transform } from "./glows.js";
 import { Overshadowed } from "./blocks.js";
 import { Income, incomeText } from "./income.js";
 import { LIGHT_GAIN, LightField, type Seen } from "./lightField.js";
-import { leakSpeed } from "../sim/fuel.js";
+import { FILL_KEPT } from "../sim/fuel.js";
 import { LEAK_LINGER } from "../sim/snapshot.js";
-import { eachCloudPuff, eachPuff, type Cloud, type Hole, type Pose, type Puff } from "./vapour.js";
+import { eachCloudPuff, eachPuff, type Cloud, type Fills, type Hole, type Pose, type Puff } from "./vapour.js";
 import { Poses } from "./poses.js";
 import { bit, bitCount, seedOf, spark, sparkColour, sparkCount, sparkFade, sprayOf, type Bit, type Spark } from "./particles.js";
 import type { PixiCanvas } from "./pixiCanvas.js";
@@ -1406,16 +1406,17 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
     for (let k = 0; k < xs.length; k++) {
         const width = ship.leakWidth![k]!;
         const age = ship.leakAge?.[k] ?? LONG_OPEN;
-        // Shut, or with nothing left behind it, long enough for its vapour to have drifted off: only its mark is left.
-        const closed = ship.leakClosed?.[k];
-        if (closed !== undefined && !(ship.leakRate![k]! > 0) && !(closed >= 0 && age - closed < LEAK_LINGER)) continue;
+        // Shut or run dry, or with nothing left behind it, long enough for its vapour to have drifted off: only its mark is left.
+        const stopped = ship.leakLastOut?.[k] ?? ship.leakClosed?.[k];
+        if (stopped !== undefined && !(ship.leakRate![k]! > 0) && !(stopped >= 0 && age - stopped < LEAK_LINGER)) continue;
         // What the hole has been, or, for a picture that does not say, as it is now and always was.
         hole.opened = ship.leakOpened?.[k] ?? width;
         hole.closing = ship.leakClosing?.[k] ?? 0;
         hole.floor = ship.leakFloor?.[k] ?? width;
         hole.patched = ship.leakPatched?.[k] ?? -1;
-        const fill = ship.leakFill?.[k] ?? 1;
-        const speed = ship.leakSpeed?.[k] ?? leakSpeed(fill);
+        tankFills.now = ship.leakFill?.[k] ?? 1;
+        tankFills.ring = ship.leakFills;
+        tankFills.offset = k * FILL_KEPT;
         const dx = ship.leakDirX![k]!;
         const dy = ship.leakDirY![k]!;
         // At deck height, so under the thick modules standing over it.
@@ -1428,8 +1429,7 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
             dx,
             dy,
             age,
-            fill,
-            speed,
+            tankFills,
             puff,
             (p) => {
                 const base = shaded && inShadow(p) ? shadowTint : tint;
@@ -1447,6 +1447,7 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
 
 /** Scratch for drawing a leak, so drawing one allocates nothing. */
 const hole: Hole = { opened: 0, closing: 0, floor: 0, patched: -1 };
+const tankFills: Fills = { now: 1, offset: 0 };
 const puff: Puff = { x: 0, y: 0, radius: 0, dirX: 1, dirY: 0, length: 0, alpha: 0 };
 const pose: Pose = { x: 0, y: 0, angle: 0, vx: 0, vy: 0 };
 /** Whether a puff is in its own ship's shadows. */
@@ -1551,32 +1552,46 @@ function drawLoad(ctx: CanvasRenderingContext2D, ship: ShipView, t: number, mx: 
 }
 
 /**
- * Where each warhead will go off at: its spread, out to its reach, as a gun's
- * wedge is drawn; fouled once its fuze is dead (`DUD_INTEGRITY`).
+ * Where each warhead will go off at: the cone its fragments fly in at what it
+ * is going for, its own velocity added, out to their reach, as a gun's wedge
+ * is drawn; and a line the way it points. Fouled once its fuze is dead
+ * (`DUD_INTEGRITY`).
  */
 function drawWarheadTriggers(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
     const design = ship.currentStructure;
     if (design.warheads.length === 0) return;
+    const cones = ship.warheadCones;
+    const c = cos(ship.angle);
+    const s = sin(ship.angle);
     ctx.save();
-    ctx.translate(ship.x, ship.y);
-    ctx.rotate(ship.angle);
     ctx.lineWidth = legibleWidth(0, MIN_TRIGGER_PX, metresToPx);
-    for (const head of design.warheads) {
+    for (let w = 0; w < design.warheads.length; w++) {
+        const head = design.warheads[w]!;
         const module = design.modules[head.module];
-        if (module === undefined || !(head.reach > 0)) continue;
+        if (module === undefined) continue;
+        const facing = ship.angle + module.angle;
+        const centre = cones?.[3 * w] ?? facing;
+        const half = cones?.[3 * w + 1] ?? (head.spread >= TAU ? Infinity : head.spread / 2);
+        const reach = cones?.[3 * w + 2] ?? head.reach;
+        if (!(reach > 0)) continue;
+        const x = ship.x + module.x * c - module.y * s;
+        const y = ship.y + module.x * s + module.y * c;
         const tint = (ship.integrity[head.module] ?? 1) <= DUD_INTEGRITY ? TRIGGER_FOULED : TRIGGER_OFF;
         ctx.fillStyle = tint;
         ctx.strokeStyle = tint;
         ctx.beginPath();
         // All round, a ring with no edges to draw; else a wedge from the warhead.
-        if (head.spread >= TAU) ctx.arc(module.x, module.y, head.reach, 0, TAU);
+        if (half === Infinity) ctx.arc(x, y, reach, 0, TAU);
         else {
-            const half = head.spread / 2;
-            ctx.moveTo(module.x, module.y);
-            ctx.arc(module.x, module.y, head.reach, module.angle - half, module.angle + half);
+            ctx.moveTo(x, y);
+            ctx.arc(x, y, reach, centre - half, centre + half);
             ctx.closePath();
         }
         ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + cos(facing) * reach, y + sin(facing) * reach);
         ctx.stroke();
     }
     ctx.restore();

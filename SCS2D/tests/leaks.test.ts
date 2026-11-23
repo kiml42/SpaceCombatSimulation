@@ -13,7 +13,7 @@ import {
     type Blueprint,
     type Rng,
 } from "../sim/index.js";
-import { LEAK_CHANCE, leakChance, leakRate, leakSpeed, PATCH_SPEED, type Leak } from "../sim/fuel.js";
+import { FILL_KEPT, LEAK_CHANCE, leakChance, leakRate, leakSpeed, PATCH_SPEED, type Leak } from "../sim/fuel.js";
 
 /** A core and a tank ahead of it, and nothing to fly with: what moves it is the leak. */
 const DRUM: Blueprint = {
@@ -84,7 +84,10 @@ describe("a holed tank", () => {
         expect(s.ships.fuel.leaksOf(s.body)[0]!.age).toBeCloseTo(0.5, 9);
         const view = capture(new Snapshot(), s.world, s.ships, new Projectiles(), new Beams()).ships[0]!;
         expect(view.leakAge).toEqual([s.ships.fuel.leaksOf(s.body)[0]!.age]);
-        expect(view.leakSpeed![0]).toBeCloseTo(leakSpeed(s.ships.fuel.fill(s.body, TANK)), 9);
+        // How full its tank was over that time, for how fast each of its puffs left.
+        expect(view.leakFills).toHaveLength(FILL_KEPT);
+        expect(view.leakFills![0]).toBeGreaterThan(view.leakFills![4]!);
+        expect(view.leakFills![4]).toBeGreaterThan(view.leakFill![0]!);
     });
 
     it("narrows to nothing once patched, however wide, at the speed a patch closes it", () => {

@@ -16,7 +16,6 @@ import {
     warheadReach,
     warheadSpread,
     SPREAD_PER_FRAGMENT,
-    WEAPONS_LAYER,
     World,
     type Blueprint,
     type ModuleSpec,
@@ -24,7 +23,18 @@ import {
 import * as shipDocking from "../sim/shipDocking.js";
 import { Demonstration } from "../editor/demonstrate.js";
 import { attackRosette, gunsBearing, previewSnapshot } from "../editor/preview.js";
-import { COOK_OFF_CHANCE, cookOff, cookOffChance, detonateWarheads, tripped, WARHEAD_FILL_RATE } from "../sim/warheads.js";
+import {
+    COOK_OFF_CHANCE,
+    cookOff,
+    cookOffChance,
+    detonateWarheads,
+    fragmentCone,
+    tripped,
+    WARHEAD_FILL_RATE,
+    warheadCone,
+    type FragmentCone,
+} from "../sim/warheads.js";
+import { Beams, capture, Snapshot } from "../sim/index.js";
 
 /**
  * A warhead is a sealed tank that fires by blowing itself apart: its walls fly
@@ -55,11 +65,13 @@ const TARGET: Blueprint = {
     ],
 };
 
-function scene(targetX: number, targetY = 0, team = 2, seed = 5) {
+function scene(targetX: number, targetY = 0, team = 2, seed = 5, ordered = true) {
     const world = new World({ dt: 1 / 60, seed });
     const ships = new Ships();
     const carrier = ships.spawn(world, { design: compileBlueprint(CARRIER), x: 0, y: 0, vx: 300, vy: 20, angularVel: 0.2, team: 1 });
     const target = ships.spawn(world, { design: compileBlueprint(TARGET), x: targetX, y: targetY, team });
+    // Going for it, as a gun aims at what it is told to.
+    if (ordered) ships.pushOrder(carrier, target, 0, 50, 10);
     const grid = new SpatialGrid(64);
     grid.rebuild(world.bodies);
     const projectiles = new Projectiles();
@@ -229,6 +241,90 @@ describe("warhead", () => {
         expect(fuzed(scene(1.5 + 2 + 15, 0, 1))).toBe(false);
     });
 
+    it("throws its cone as a shotgun does from a moving hull: narrower, swung the way it closes, and further", () => {
+        const design = compileBlueprint(CARRIER);
+        const head = design.warheads[0]!;
+        const placed = design.modules[head.module]!;
+        const speed = warheadBurst(placed.spec, placed.stats).speed;
+        const cone = (rvx: number, rvy: number, facing = 0): FragmentCone =>
+            fragmentCone(speed, head.spread, 8, facing, rvx, rvy, head.targetRadius, head.targeting.fireRange, {
+                centre: 0,
+                half: 0,
+                reach: 0,
+            });
+        // At rest, its own spread and reach.
+        const still = cone(0, 0);
+        expect(still.centre).toBeCloseTo(0, 9);
+        expect(still.half).toBeCloseTo(head.spread / 2, 9);
+        expect(still.reach).toBeCloseTo(head.reach, 6);
+        // Closing head on at twice its burst speed: a third as wide, as far as the gaps allow.
+        const closing = cone(2 * speed, 0);
+        expect(closing.centre).toBeCloseTo(0, 9);
+        expect(closing.half).toBeLessThan(still.half / 2);
+        expect(closing.reach).toBeGreaterThan(still.reach * 1.5);
+        // Pointed 45° off the way it closes: the cone swings most of the way back, 5° to 23° off.
+        const skewed = cone(2 * speed, 0, Math.PI / 4);
+        expect(skewed.centre - skewed.half).toBeCloseTo(Math.atan2(Math.sin(Math.PI / 12), 2 + Math.cos(Math.PI / 12)), 2);
+        expect(skewed.centre + skewed.half).toBeCloseTo(Math.atan2(Math.sin((5 * Math.PI) / 12), 2 + Math.cos((5 * Math.PI) / 12)), 2);
+        // All round, and slower than its burst: still all round.
+        const ring = fragmentCone(speed, Math.PI * 2, 8, 0, speed / 2, 0, 1, 1, { centre: 0, half: 0, reach: 0 });
+        expect(ring.half).toBe(Infinity);
+        // All round, but faster than its burst: only the way it closes.
+        expect(fragmentCone(speed, Math.PI * 2, 8, 0, 2 * speed, 0, 1, 1, { centre: 0, half: 0, reach: 0 }).half).toBeLessThan(Math.PI / 4);
+    });
+
+    it("trips on what its fragments would hit, closing fast with its nose off to one side", () => {
+        // Pointed 45° right of a hull dead ahead, away from its second module, closing on it at twice its burst speed.
+        const design = compileBlueprint(CARRIER);
+        const placed = design.modules[design.warheads[0]!.module]!;
+        const speed = warheadBurst(placed.spec, placed.stats).speed;
+        const fuzed = (vx: number): boolean => {
+            const world = new World({ dt: 1 / 60, seed: 5 });
+            const ships = new Ships();
+            const carrier = ships.spawn(world, { design, x: 0, y: 0, angle: -Math.PI / 4, vx, team: 1 });
+            ships.pushOrder(carrier, ships.spawn(world, { design: compileBlueprint(TARGET), x: 1.5 + 2 + 15, y: 0, team: 2 }), 0, 50, 10);
+            const grid = new SpatialGrid(64);
+            grid.rebuild(world.bodies);
+            const b = world.bodies.indexOf(ships.body(carrier));
+            return tripped(ships, world.bodies, grid, carrier, b, design, design.warheads[0]!.module, world.dt);
+        };
+        // Still, the hull is outside its 60° cone; closing, its fragments go that way.
+        expect(fuzed(0)).toBe(false);
+        expect(fuzed(2 * speed)).toBe(true);
+    });
+
+    it("shows its cone at what it is going for, and at rest with nothing", () => {
+        const s = scene(1.5 + 2 + 200, 0, 2, 5, false);
+        const cone = { centre: 0, half: 0, reach: 0 };
+        const head = s.design.warheads[0]!;
+        // Nothing chosen yet: its own cone, the way it points.
+        warheadCone(s.ships, s.world.bodies, s.carrier, s.b, 0, cone);
+        expect(cone.centre).toBeCloseTo(s.world.bodies.angle[s.b]!, 9);
+        expect(cone.half).toBeCloseTo(head.spread / 2, 9);
+        s.ships.pushOrder(s.carrier, s.target, 0, 50, 10);
+        warheadCone(s.ships, s.world.bodies, s.carrier, s.b, 0, cone);
+        // Going for it, about its lead, in noses: closing at 300 m/s, a turn of the nose moves its fragments less.
+        expect(cone.half).toBeGreaterThan(head.spread / 2);
+        const view = capture(new Snapshot(), s.world, s.ships, s.projectiles, new Beams(4));
+        const shown = view.ships.find((ship) => ship.warheadCones !== undefined && ship.warheadCones.length > 0)!;
+        expect(shown.warheadCones).toEqual([cone.centre, cone.half, cone.reach]);
+    });
+
+    it("shows a slug's trigger as wide as its target looks, wider as it closes", () => {
+        const half = (gap: number): number => {
+            const slug = compileBlueprint({ ...CARRIER, modules: [...CARRIER.modules.slice(0, 2), { ...HEAD, fragments: 1 }] });
+            const world = new World({ dt: 1 / 60, seed: 5 });
+            const ships = new Ships();
+            const i = ships.spawn(world, { design: slug, x: 0, y: 0, team: 1 });
+            const target = ships.spawn(world, { design: compileBlueprint(TARGET), x: gap, y: 0, team: 2 });
+            ships.pushOrder(i, target, 0, 50, 10);
+            const b = world.bodies.indexOf(ships.body(i));
+            return warheadCone(ships, world.bodies, i, b, 0, { centre: 0, half: 0, reach: 0 }).half;
+        };
+        expect(half(200)).toBeGreaterThan(0);
+        expect(half(50)).toBeGreaterThan(half(200) * 3);
+    });
+
     it("throws its casing ahead, keeps the momentum balanced, and is gone", () => {
         const s = scene(1.5 + 2 + 15);
         const before = momentum(s);
@@ -258,19 +354,19 @@ describe("warhead", () => {
         expect(s.ships.alive[s.carrier] === 0 || !s.ships.designs[s.carrier]!.modules.some((m) => m.spec.kind === "warhead")).toBe(true);
     });
 
-    it("puts a lone fragment in its own layer: a fighter's, or once committed to ram, the hull layer", () => {
+    it("puts a lone fragment in its own layer, and holds one above the deck for a target on it", () => {
         const layer = (fighter: boolean, committed: boolean): number[] => {
             const head = { ...HEAD, fragments: 1 };
             const design = compileBlueprint({ ...CARRIER, fighter, modules: [...CARRIER.modules.slice(0, 2), head] });
             const world = new World({ dt: 1 / 60, seed: 5 });
             const ships = new Ships();
             const i = ships.spawn(world, { design, x: 0, y: 0, team: 1 });
-            ships.spawn(world, { design: compileBlueprint(TARGET), x: 1.5 + 2 + 5, y: 0, team: 2 });
+            ships.pushOrder(i, ships.spawn(world, { design: compileBlueprint(TARGET), x: 1.5 + 2 + 5, y: 0, team: 2 }), 0, 50, 10);
             if (committed) ships.committed[i] = 1;
             const grid = new SpatialGrid(64);
             grid.rebuild(world.bodies);
             const projectiles = new Projectiles();
-            expect(detonateWarheads(ships, world, projectiles, grid)).toBe(1);
+            detonateWarheads(ships, world, projectiles, grid);
             const layers: number[] = [];
             for (let k = 0; k < projectiles.highWater; k++)
                 if (projectiles.alive[k] === 1 && projectiles.kind[k] !== ROUND_WRECKAGE) layers.push(projectiles.layers[k]!);
@@ -278,7 +374,8 @@ describe("warhead", () => {
         };
         expect(compileBlueprint({ ...CARRIER, fighter: true }).fighter).toBe(true);
         expect(layer(false, false)).toEqual([HULL_LAYER]);
-        expect(layer(true, false)).toEqual([WEAPONS_LAYER]);
+        // A fighter not yet down on the deck it rams has nothing there its slug would meet.
+        expect(layer(true, false)).toEqual([]);
         expect(layer(true, true)).toEqual([HULL_LAYER]);
     });
 
@@ -303,7 +400,7 @@ describe("warhead", () => {
             ],
         });
         const carrier = ships.spawn(world, { design: row, team: 1 });
-        ships.spawn(world, { design: compileBlueprint(TARGET), x: 2 + 2 + 15, team: 2 });
+        ships.pushOrder(carrier, ships.spawn(world, { design: compileBlueprint(TARGET), x: 2 + 2 + 15, team: 2 }), 0, 50, 10);
         const grid = new SpatialGrid(64);
         grid.rebuild(world.bodies);
         const b = world.bodies.indexOf(ships.body(carrier));
@@ -390,7 +487,7 @@ describe("warhead", () => {
         const carrier = ships.spawn(world, { design: deck, x: -deck.modules[pad]!.x, team: 1 });
         const craft = ships.spawn(world, { design: compileBlueprint(CARRIER), x: 0, y: 0, team: 1 });
         expect(shipDocking.park(ships, world.bodies, carrier, craft, pad)).toBe(true);
-        ships.spawn(world, { design: compileBlueprint(TARGET), x: 1.5 + 2 + 15, team: 2 });
+        ships.pushOrder(craft, ships.spawn(world, { design: compileBlueprint(TARGET), x: 1.5 + 2 + 15, team: 2 }), 0, 50, 10);
         const grid = new SpatialGrid(64);
         grid.rebuild(world.bodies);
         const b = world.bodies.indexOf(ships.body(craft));
