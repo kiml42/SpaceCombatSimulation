@@ -22,8 +22,14 @@ export const PUFF_EVERY = 1 / 40;
 /** How long a leak's vapour is drawn, metres per √(kg/s) going out of it, and at least, in the hole's widths. */
 export const VAPOUR_LENGTH = 1.5;
 const VAPOUR_LEAST_LENGTH = 8;
-/** How far the vapour has spread to either side by the end of it, as a share of how far it has gone. */
+/** How far the vapour has spread to either side by the end of it, as a share of how far it has gone, from a full tank. */
 const VAPOUR_SPREAD = 0.3;
+/**
+ * The most a slower jet's vapour spreads beyond a full tank's, per metre it
+ * goes. It spreads sideways about as fast whatever pushes it out, so a jet
+ * half as fast fans out twice as wide, up to this.
+ */
+const MOST_SLOW_SPREAD = 3;
 /** How much faster or slower than the rest a puff may leave, as a share. */
 const PUFF_SPEED_SPREAD = 0.15;
 /** How opaque the vapour is, all its puffs over each other, where it leaves the hole. */
@@ -162,7 +168,10 @@ export function eachPuff(
         const reach = vapourLength(width, rate);
         const since = age - born;
         const puffs = Math.min(MOST_PUFFS, 1 + Math.round(Math.cbrt(rate) / 3));
-        // Fainter the less is pushing it out, or the less is coming out: so a tank running dry or a hole pinching shut fades out.
+        // Wider the slower it left.
+        const fans = Math.min(MOST_SLOW_SPREAD, FULL_SPEED / speed);
+        // Fainter as slow, √fill, being as much more spread out, and fainter still the less is coming out:
+        // so a tank running dry or a hole pinching shut fades out.
         const faint = Math.sqrt(fill) * Math.min(1, Math.sqrt(rate / VAPOUR_LEAST_RATE));
         for (let m = 0; m < puffs; m++) {
             const fast = 1 + (unit(seed, n * MOST_PUFFS + m, 0) * 2 - 1) * PUFF_SPEED_SPREAD;
@@ -170,7 +179,8 @@ export function eachPuff(
             // Gone past the end of the vapour, or seen as long as any is: thinned to nothing.
             const through = Math.max(gone / reach, since / VAPOUR_LONGEST);
             if (through >= 1) continue;
-            const across = (unit(seed, n * MOST_PUFFS + m, 1) * 2 - 1) * VAPOUR_SPREAD * gone;
+            const spreads = VAPOUR_SPREAD * fans * gone;
+            const across = (unit(seed, n * MOST_PUFFS + m, 1) * 2 - 1) * spreads;
             // In the hull's frame, from the hole.
             const bx = x + dirX * gone - dirY * across;
             const by = y + dirY * gone + dirX * across;
@@ -187,7 +197,7 @@ export function eachPuff(
                 out.x = bx;
                 out.y = by;
             }
-            out.radius = width / 2 + VAPOUR_SPREAD * gone;
+            out.radius = width / 2 + spreads;
             // Drawn out along its way to meet the next, where it is narrower than
             // the gap between them: a small leak's puffs then run together into a
             // plume, as a big one's already do by being wide.
@@ -204,6 +214,9 @@ export function eachPuff(
         }
     }
 }
+
+/** How fast fuel leaves a full tank, m/s: what a slower jet's spread is measured against. */
+const FULL_SPEED = leakSpeed(1);
 
 /** How far a cloud of fuel spreads, metres per ∛kg let out, past the module it came from. */
 export const CLOUD_REACH = 1.5;

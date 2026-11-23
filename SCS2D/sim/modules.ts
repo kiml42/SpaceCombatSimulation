@@ -2768,6 +2768,22 @@ export function mountTraverse(spec: ModuleSpec): number {
 /** Whether this kind is a weapon let into the hull rather than a turret on it. */
 const mountGeometries = new WeakMap<ModuleSpec, HullMountGeometry>();
 
+/**
+ * How far along its own axis from its centre a shot meant for a module is aimed,
+ * metres: a hull weapon's block, the front of its box being barrels or lenses
+ * with sky between them (`hullMountAlong`); anything else, its centre.
+ */
+export function aimOffset(spec: ModuleSpec): number {
+    return isHullMount(spec.kind) ? -0.5 * mountGeometryOf(spec).reach : 0;
+}
+
+/** How far either side of where it is aimed (`aimOffset`) a shot still meets a module, metres. */
+export function aimRadius(spec: ModuleSpec): number {
+    if (!isHullMount(spec.kind)) return moduleRadius(spec);
+    const block = mountGeometryOf(spec).blockLength;
+    return 0.5 * sqrt(block * block + spec.width * spec.width);
+}
+
 /** `hullMountGeometry`, worked out once for each spec. */
 export function mountGeometryOf(spec: ModuleSpec): HullMountGeometry {
     let geometry = mountGeometries.get(spec);

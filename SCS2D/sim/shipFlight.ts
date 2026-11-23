@@ -556,10 +556,11 @@ export function attackHeading(
     let avy = at.vy;
     const part = tb >= 0 ? aimedPart(ships, i, target, tb) : -1;
     if (part >= 0) {
-        const module = ships.designs[target]!.modules[part]!;
+        // Where a shot meant for it goes: a hull weapon's block, not its barrels' sky.
+        shipAim.aimSpot(ships.designs[target]!, part, AIM_SPOT);
         const angle = bodies.angle[tb]!;
-        const rx = module.x * cos(angle) - module.y * sin(angle);
-        const ry = module.x * sin(angle) + module.y * cos(angle);
+        const rx = AIM_SPOT.x * cos(angle) - AIM_SPOT.y * sin(angle);
+        const ry = AIM_SPOT.x * sin(angle) + AIM_SPOT.y * cos(angle);
         const spin = bodies.angularVel[tb]!;
         ax = bodies.x[tb]! + rx;
         ay = bodies.y[tb]! + ry;
@@ -1916,6 +1917,8 @@ const CORNER_FLOOR = 0.1;
 const ROUTE: Spot = { x: 0, y: 0, vx: 0, vy: 0, radius: 0 };
 /** Scratch for where a ram points its warhead (`warheadTrigger`). */
 const AIM: WarheadTrigger = { target: -1, x: 0, y: 0, facing: 0, centre: 0, half: 0, range: 0, reach: 0, closing: 0, layers: 0 };
+/** Scratch for where a hull points at a part (`shipAim.aimSpot`). */
+const AIM_SPOT = { x: 0, y: 0 };
 
 /** Fly body `b` through `at` at `speed` relative to it, not stopping there, wanting it by `weight`. */
 function seek(ships: Ships, bodies: Bodies, b: number, at: Spot, speed: number, weight: number): void {
