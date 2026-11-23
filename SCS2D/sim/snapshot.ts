@@ -2,7 +2,7 @@ import type { Bodies } from "./bodies.js";
 import { originOf, type ShipDesign } from "./blueprint.js";
 import type { WellSpec } from "./gravity.js";
 import type { Doctrine, DoctrineOverride } from "./doctrine.js";
-import { leakSpeed } from "./fuel.js";
+import { FILL_KEPT } from "./fuel.js";
 import { NOT_INSIDE, ROUND_SHRAPNEL, ROUND_WRECKAGE, type Projectiles } from "./projectiles.js";
 import { BEAM_PLASMA, type Beams } from "./beams.js";
 import { MOST_CLOUDS, type Debris } from "./debris.js";
@@ -14,14 +14,14 @@ import { cos, sin } from "./math.js";
 import * as shipRoute from "./shipRoute.js";
 import { fittingOf } from "./rebuild.js";
 
-/** Seconds a closed hole is still pictured, for the vapour it let out to drift off. */
-export const LEAK_LINGER = 2;
+/** Seconds a hole is still pictured once it stops letting fuel out, for the vapour it let out to drift off: the longest any is seen. */
+export const LEAK_LINGER = 6;
 /** Seconds the scratches round a patched hole take to fade. A hole its lining sealed keeps them. */
 export const LEAK_SCRATCH_FADE = 3;
 
 /** Leaking, or closed so lately that what it let out is still drifting off. */
-function venting(leak: { rate: number; age: number; closed: number }): boolean {
-    return leak.rate > 0 || (leak.closed >= 0 && leak.age - leak.closed < LEAK_LINGER);
+function venting(leak: { rate: number; age: number; lastOut: number }): boolean {
+    return leak.rate > 0 || (leak.lastOut >= 0 && leak.age - leak.lastOut < LEAK_LINGER);
 }
 
 /**
@@ -262,18 +262,20 @@ export interface ShipView {
     leakDirY?: number[];
     leakWidth?: number[];
     leakRate?: number[];
-    /** How long each hole has been open, s, and how fast its fuel leaves, m/s: how far its vapour has got. */
+    /** How long each hole has been open, s: how far its vapour has got. */
     leakAge?: number[];
-    leakSpeed?: number[];
     /** What each hole has been (`Leak`), for how wide it was when each puff left, and how full its tank is. */
     leakOpened?: number[];
     leakClosing?: number[];
     leakFloor?: number[];
     leakPatched?: number[];
     leakFill?: number[];
-    /** The module each hole is in, and how old it was when it closed (below nought while open). */
+    /** How full each hole's tank has lately been (`Leak.fills`), `FILL_KEPT` a hole, for how fast each puff left. */
+    leakFills?: number[];
+    /** The module each hole is in, and how old it was when it closed, and when it last let fuel out (below nought if not). */
     leakModule?: number[];
     leakClosed?: number[];
+    leakLastOut?: number[];
     /**
      * Whether the ship still has a core with control in it (§4).
      *
@@ -830,7 +832,6 @@ export function capture(
         const lw = (view.leakWidth ??= []);
         const lr = (view.leakRate ??= []);
         const la = (view.leakAge ??= []);
-        const ls = (view.leakSpeed ??= []);
         const lo = (view.leakOpened ??= []);
         const lc = (view.leakClosing ??= []);
         const lf = (view.leakFloor ??= []);
@@ -838,8 +839,10 @@ export function capture(
         const lq = (view.leakFill ??= []);
         const lm = (view.leakModule ??= []);
         const lz = (view.leakClosed ??= []);
-        lx.length = ly.length = ldx.length = ldy.length = lw.length = lr.length = la.length = ls.length = 0;
-        lo.length = lc.length = lf.length = lp.length = lq.length = lm.length = lz.length = 0;
+        const lt = (view.leakLastOut ??= []);
+        const lh = (view.leakFills ??= []);
+        lx.length = ly.length = ldx.length = ldy.length = lw.length = lr.length = la.length = 0;
+        lo.length = lc.length = lf.length = lp.length = lq.length = lm.length = lz.length = lt.length = lh.length = 0;
         if (ships.ownsBody(i)) {
             for (const leak of ships.fuel.leaksOf(b)) {
                 // Until its scratches have faded, once patched; for good, if not.
@@ -856,7 +859,6 @@ export function capture(
                 lr.push(leak.rate);
                 la.push(leak.age);
                 const fill = ships.fuel.fill(b, leak.module);
-                ls.push(leakSpeed(fill));
                 lo.push(leak.opened);
                 lc.push(leak.liningClosing);
                 lf.push(leak.liningFloor);
@@ -864,6 +866,8 @@ export function capture(
                 lq.push(fill);
                 lm.push(leak.module);
                 lz.push(leak.closed);
+                lt.push(leak.lastOut);
+                for (let f = 0; f < FILL_KEPT; f++) lh.push(leak.fills[f]!);
             }
         }
         const drawn = (view.drawn ??= []);

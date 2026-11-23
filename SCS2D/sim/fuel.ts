@@ -1,6 +1,6 @@
 import type { ShipDesign } from "./blueprint.js";
 import type { Damage } from "./damage.js";
-import { sqrt } from "./math.js";
+import { floor, sqrt } from "./math.js";
 import { drainPriorityOf, FUEL_DENSITY } from "./modules.js";
 import { Store } from "./store.js";
 
@@ -85,6 +85,28 @@ export interface Leak {
     liningFloor: number;
     patched: number;
     closed: number;
+    /** How old it was when it last let fuel out, or below nought if it never has: closed, or its tank run dry. */
+    lastOut: number;
+    /**
+     * How full its tank was over the last `FILL_KEPT` slices of `FILL_EVERY`
+     * of its age, in a ring by slice: what its fuel left at, for a renderer.
+     */
+    fills: number[];
+}
+
+/** Seconds of a hole's age each of its `fills` covers. */
+export const FILL_EVERY = 0.1;
+/** How many of them a hole keeps: longer than any of its vapour is seen. */
+export const FILL_KEPT = 64;
+
+/** A hole's `fills`, as it opens in a tank this full. */
+export function fillsFrom(fill: number): number[] {
+    return new Array<number>(FILL_KEPT).fill(fill);
+}
+
+/** Note how full a hole's tank is, at its age now. */
+export function noteFill(leak: Leak, fill: number): void {
+    leak.fills[floor(leak.age / FILL_EVERY) % FILL_KEPT] = fill;
 }
 
 /**
@@ -106,7 +128,7 @@ export class Fuel extends Store {
 
     override register(bodyIndex: number, design: ShipDesign, carried?: readonly number[], leaks?: readonly Leak[]): void {
         super.register(bodyIndex, design, carried);
-        this.leaks[bodyIndex] = leaks === undefined ? [] : leaks.map((leak) => ({ ...leak }));
+        this.leaks[bodyIndex] = leaks === undefined ? [] : leaks.map((leak) => ({ ...leak, fills: leak.fills.slice() }));
         this.cutOff[bodyIndex] = new Uint8Array(design.modules.length);
         this.cutOffAt[bodyIndex] = -1;
     }
