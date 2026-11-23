@@ -309,6 +309,21 @@ describe("warhead", () => {
         expect(shown.warheadCones).toEqual([cone.centre, cone.half, cone.reach]);
     });
 
+    it("shows a slug's trigger as wide as its target looks, wider as it closes", () => {
+        const half = (gap: number): number => {
+            const slug = compileBlueprint({ ...CARRIER, modules: [...CARRIER.modules.slice(0, 2), { ...HEAD, fragments: 1 }] });
+            const world = new World({ dt: 1 / 60, seed: 5 });
+            const ships = new Ships();
+            const i = ships.spawn(world, { design: slug, x: 0, y: 0, team: 1 });
+            const target = ships.spawn(world, { design: compileBlueprint(TARGET), x: gap, y: 0, team: 2 });
+            ships.pushOrder(i, target, 0, 50, 10);
+            const b = world.bodies.indexOf(ships.body(i));
+            return warheadCone(ships, world.bodies, i, b, 0, { centre: 0, half: 0, reach: 0 }).half;
+        };
+        expect(half(200)).toBeGreaterThan(0);
+        expect(half(50)).toBeGreaterThan(half(200) * 3);
+    });
+
     it("throws its casing ahead, keeps the momentum balanced, and is gone", () => {
         const s = scene(1.5 + 2 + 15);
         const before = momentum(s);
