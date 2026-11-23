@@ -1442,9 +1442,12 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
         tankFills.offset = k * FILL_KEPT;
         const dx = ship.leakDirX![k]!;
         const dy = ship.leakDirY![k]!;
-        // At deck height, so under the thick modules standing over it.
-        batch ??= batches.call(ctx, image, false, true);
+        // At deck height, so under the thick modules standing over it; in 3D, at its module's height,
+        // so it hides what is behind it and is hidden by what is in front.
+        batch ??= batches.call(ctx, image, false, fx === null);
         const into = batch;
+        const module = ship.leakModule?.[k] ?? -1;
+        fx?.on(module >= 0 ? fx.moduleLift(ship, module) : fx.shipLift(ship));
         eachPuff(
             hole,
             xs[k]!,
@@ -1464,6 +1467,7 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
             poseAgo,
         );
     }
+    fx?.flat();
     batch?.end();
     ctx.restore();
 }
