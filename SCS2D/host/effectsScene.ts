@@ -467,6 +467,15 @@ function punch(
     });
 }
 
+/** Seconds a tank holed in "Leaking dry" takes to run dry. */
+const DRY_AFTER = 5;
+
+/** How full that tank is `age` seconds after it is holed: through a hole that stays open, it empties as `(1 - age / DRY_AFTER)²`. */
+function drained(age: number): number {
+    const left = Math.max(0, 1 - age / DRY_AFTER);
+    return left * left;
+}
+
 /** How fast each torpedo meets the slab, m/s. */
 const COLLISION_SPEEDS = [10, 30, 100, 300, 1000];
 
@@ -791,6 +800,36 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
             ship.leakFloor!.push(width);
             ship.leakPatched!.push(-1);
             ship.leakFill!.push(1);
+        },
+    },
+    {
+        name: "Leaking dry",
+        about: `A tank holed 20 cm wide, turning once every eight seconds, with about a tonne of fuel in it: leaking 390 kg/s at first, slower and slower as it empties, and dry ${DRY_AFTER} s on. Fuel leaves a fuller tank faster, so each puff goes as far as the tank was full when it left; once it is dry, nothing more leaves and what is out drifts off.`,
+        loop: 10,
+        build(t, snapshot, flashes) {
+            const width = 0.2;
+            const design = tankDesign(12);
+            const tank = design.modules[1]!;
+            const reach = vapourLength(width, leakRate((Math.PI * width * width) / 4, 1));
+            begin(snapshot, flashes, t, -reach - 10, -reach - 10, reach + 10, reach + 10);
+            const ship = place(snapshot, design, 0, 0, (2 * Math.PI * t) / 8);
+            const fill = drained(t);
+            const rate = leakRate((Math.PI * width * width) / 4, fill);
+            ship.leakX!.push(tank.x);
+            ship.leakY!.push(tank.y + tank.spec.width / 2);
+            ship.leakDirX!.push(0);
+            ship.leakDirY!.push(1);
+            ship.leakWidth!.push(width);
+            ship.leakRate!.push(rate);
+            ship.leakAge!.push(t);
+            ship.leakSpeed!.push(leakSpeed(fill));
+            ship.leakOpened!.push(width);
+            ship.leakClosing!.push(0);
+            ship.leakFloor!.push(width);
+            ship.leakPatched!.push(-1);
+            ship.leakFill!.push(fill);
+            ship.leakModule!.push(1);
+            ship.leakClosed!.push(-1);
         },
     },
     {
