@@ -4,6 +4,8 @@ import { BOTH_LAYERS, HULL_LAYER, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from
 import { DamageEffect } from "./damage.js";
 import { lookFrom, score, visibility } from "./targeting.js";
 import {
+    aimOffset,
+    aimRadius,
     BOTH_LAYERS_CALIBRE,
     DEFAULT_FUSE,
     firesShells,
@@ -280,7 +282,7 @@ export function choosePart(
     const design = ships.designs[target]!;
     partPoint(ships, bodies, tb, design, part);
     const range = length(ships.partAt.x - gunX, ships.partAt.y - gunY);
-    if (range <= reachFor(ships, i, mount, moduleRadius(design.modules[part]!.spec))) return part;
+    if (range <= reachFor(ships, i, mount, aimRadius(design.modules[part]!.spec))) return part;
     if (meetsWhole(ships, shells ? layers | HULL_LAYER : layers, target)) return WHOLE_SHIP;
     let middle = part;
     let nearest = Infinity;
@@ -304,7 +306,7 @@ export function choosePart(
 export function reachOn(ships: Ships, i: number, mount: DesignTurret, target: number, part: number): number {
     const design = ships.designs[target]!;
     const selective = refusesAnything(aimDoctrine(ships, i, mount)) && part >= 0 && part < design.modules.length;
-    return reachFor(ships, i, mount, selective ? moduleRadius(design.modules[part]!.spec) : sizeOf(ships, target));
+    return reachFor(ships, i, mount, selective ? aimRadius(design.modules[part]!.spec) : sizeOf(ships, target));
 }
 
 /** How far a mount will fire at something of this radius, metres. */
@@ -427,24 +429,26 @@ function neighbours(
     const anyPart = !picksParts(doctrine);
     const c = cos(bodies.angle[tb]!);
     const s = sin(bodies.angle[tb]!);
-    const mx = bodies.x[tb]! + design.modules[k]!.x * c - design.modules[k]!.y * s;
-    const my = bodies.y[tb]! + design.modules[k]!.x * s + design.modules[k]!.y * c;
+    aimSpot(design, k, SPOT);
+    const mx = bodies.x[tb]! + SPOT.x * c - SPOT.y * s;
+    const my = bodies.y[tb]! + SPOT.x * s + SPOT.y * c;
     const range = length(mx - fromX, my - fromY);
     if (!(range > 0)) return 0;
     const dx = (mx - fromX) / range;
     const dy = (my - fromY) / range;
     const flight = gun.type === GunType.Beam || !(gun.muzzleSpeed > 0) ? 0 : range / gun.muzzleSpeed;
-    const miss = moduleRadius(design.modules[k]!.spec) + 0.5 * EVASION_ACCEL * flight * flight;
+    const miss = aimRadius(design.modules[k]!.spec) + 0.5 * EVASION_ACCEL * flight * flight;
     let total = 0;
     for (let m = 0; m < design.modules.length; m++) {
         if (m === k || !reaches(ships, layers, design, tb, target, m)) continue;
         const module = design.modules[m]!;
         const weight = anyPart ? 1 : partWeight(doctrine, module.spec.kind);
         if (weight === 0) continue;
-        const ox = bodies.x[tb]! + module.x * c - module.y * s - mx;
-        const oy = bodies.y[tb]! + module.x * s + module.y * c - my;
+        aimSpot(design, m, SPOT);
+        const ox = bodies.x[tb]! + SPOT.x * c - SPOT.y * s - mx;
+        const oy = bodies.y[tb]! + SPOT.x * s + SPOT.y * c - my;
         const across = abs(ox * dy - oy * dx);
-        const reach = miss + moduleRadius(module.spec);
+        const reach = miss + aimRadius(module.spec);
         if (across < reach) total += weight * (1 - across / reach);
     }
     return total;
@@ -523,19 +527,29 @@ function crossesFriend(ships: Ships, bodies: Bodies, i: number, target: number, 
         const along = ox * dx + oy * dy;
         if (along < 0 || along > range) continue;
         const across = ox * dy - oy * dx;
-        const r = moduleRadius(design.modules[k]!.spec);
+        const r = aimRadius(design.modules[k]!.spec);
         if (across * across < r * r) return true;
     }
     return false;
 }
 
-/** Where module `part` of a body is in the world, into `partAt`. */
+/** Where a shot meant for module `part` of a body is aimed, in the world, into `partAt` (`aimSpot`). */
 export function partPoint(ships: Ships, bodies: Bodies, tb: number, design: ShipDesign, part: number): void {
     const angle = bodies.angle[tb]!;
-    const module = design.modules[part]!;
-    ships.partAt.x = bodies.x[tb]! + module.x * cos(angle) - module.y * sin(angle);
-    ships.partAt.y = bodies.y[tb]! + module.x * sin(angle) + module.y * cos(angle);
+    aimSpot(design, part, SPOT);
+    ships.partAt.x = bodies.x[tb]! + SPOT.x * cos(angle) - SPOT.y * sin(angle);
+    ships.partAt.y = bodies.y[tb]! + SPOT.x * sin(angle) + SPOT.y * cos(angle);
 }
+
+/** Where a shot meant for module `k` is aimed, in the design's frame, into `out`: its centre, or a hull weapon's block (`aimOffset`). */
+export function aimSpot(design: ShipDesign, k: number, out: { x: number; y: number }): void {
+    const module = design.modules[k]!;
+    const back = aimOffset(module.spec);
+    out.x = module.x + cos(module.angle) * back;
+    out.y = module.y + sin(module.angle) * back;
+}
+
+const SPOT = { x: 0, y: 0 };
 
 /**
  * The module of `target`, on body `tb`, that ship `i`, on body `b`, rams: by
@@ -1044,9 +1058,9 @@ export function trainOne(ships: Ships, bodies: Bodies, i: number): void {
         let ry = 0;
         if (part !== WHOLE_SHIP) {
             const angle = bodies.angle[tb]!;
-            const module = design.modules[part]!;
-            rx = module.x * cos(angle) - module.y * sin(angle);
-            ry = module.x * sin(angle) + module.y * cos(angle);
+            aimSpot(design, part, SPOT);
+            rx = SPOT.x * cos(angle) - SPOT.y * sin(angle);
+            ry = SPOT.x * sin(angle) + SPOT.y * cos(angle);
             const spin = bodies.angularVel[tb]!;
             x += rx;
             y += ry;
@@ -1179,7 +1193,7 @@ export function firingSlack(
 
     // Selective, or clinging to a friend, so the part it picked is the whole of what it will accept.
     if ((careful || refusesAnything(doctrine)) && part !== WHOLE_SHIP) {
-        return atan2(moduleRadius(design.modules[part]!.spec), range);
+        return atan2(aimRadius(design.modules[part]!.spec), range);
     }
 
     // Otherwise the whole ship's cone, about its middle: where the aim is,
