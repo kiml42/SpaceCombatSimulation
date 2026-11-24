@@ -18,11 +18,11 @@ function reinforced(from: Blueprint, reinforcement: number): Blueprint {
 export const ARMOUR_LEVELS: readonly number[] = [1, 3, 6, 12, 24];
 
 /** Each kind of corvette, in the order the Armour scene's variants take them. */
-export const ARMOUR_CORVETTES: readonly (readonly [string, Blueprint])[] = [
-    ["Corvettes", CORVETTE],
-    ["Beam Corvettes", BEAM_CORVETTE],
-    ["Rail Corvettes", RAIL_CORVETTE],
-    ["Lance Corvettes", LANCE_CORVETTE],
+export const ARMOUR_CORVETTE: readonly (readonly [string, Blueprint])[] = [
+    ["Corvette", CORVETTE],
+    ["Beam Corvette", BEAM_CORVETTE],
+    ["Rail Corvette", RAIL_CORVETTE],
+    ["Lance Corvette", LANCE_CORVETTE],
 ];
 
 /** How far off the platform's bow plate the corvette starts: inside every corvette's reach, the lance's included. */
@@ -38,7 +38,7 @@ const ARMOUR_RANGE = 250;
  */
 export function armour(seed = 20260905, corvette = 0, reinforcement = 6): Battle {
     return makeBattle({ seed }, (ships, world) => {
-        const attacker = compileBlueprint(ARMOUR_CORVETTES[corvette]![1]);
+        const attacker = compileBlueprint(ARMOUR_CORVETTE[corvette]![1]);
         const target = compileBlueprint(reinforced(GUN_PLATFORM, reinforcement));
 
         ships.spawn(world, { design: attacker, x: -ARMOUR_RANGE, y: 0, angle: 0, team: 0 });
