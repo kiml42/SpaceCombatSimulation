@@ -7,8 +7,17 @@ import {
     LANCE_PRONG_SHARE,
     shapeOf,
     type ModuleSpec,
+    type ModuleStats,
     type ShipDesign,
     type ShipView,
+    WARHEAD_BACKBLAST_FRAGMENTS,
+    WARHEAD_BACKBLAST_SPREAD,
+    WARHEAD_SIDE_FRAGMENTS,
+    warheadBurst,
+    warheadFragments,
+    warheadSideBearing,
+    warheadSideGrade,
+    warheadSpread,
 } from "../sim/index.js";
 import { engineLayout } from "./engineLayout.js";
 import { BARE_TEAM, type Palette } from "./teams.js";
@@ -36,17 +45,160 @@ const LANCE_NUBS = 6;
 export const BARREL = "#8f6f25";
 
 /**
- * How wide a warhead's bronze frame is at reinforcement 1, as a share of its
- * shorter side. It thickens with its walls, which are its casing, so how much
- * of it is fragments and how much charge shows; never past this share.
+ * How wide a warhead's fragment lines are at reinforcement 1, as a share of its
+ * shorter side. They thicken with its walls, which are its casing, so how much
+ * of it is fragments and how much charge shows; never past `WARHEAD_LINE_MOST`.
  */
-const WARHEAD_RIM_SHARE = 0.06;
-const WARHEAD_RIM_MOST = 0.35;
+const WARHEAD_LINE_SHARE = 0.06;
+const WARHEAD_LINE_MOST = 0.15;
+/** The most lines each arc is drawn as, and an all-round burst: fewer where they would not fit. */
+const WARHEAD_FAN_LINES = 10;
+const WARHEAD_RING_LINES = 12;
+/** Lines down each side, outside the arcs. */
+const WARHEAD_SIDE_LINES = 4;
+/** How far short of the middle the lines start at least, as a share of the shorter half side. */
+const WARHEAD_LINE_HUB = 0.2;
+/** The hull left between a line's end and the module's edge, as a share of the line's width. */
+const WARHEAD_LINE_GAP = 0.5;
+/** How much further in from the edge the longest stops, as a share of the shorter half side. */
+const WARHEAD_LINES_INSET = 0.12;
+/** The hull left between neighbouring lines where they come closest, as a share of their width. */
+const WARHEAD_LINES_APART = 0.4;
+/** How far towards the edge the lines may stop to keep apart before they narrow instead, as a share of the shorter half side. */
+const WARHEAD_LINES_HUB_MOST = 0.6;
+/** The narrowest an arc's lines may be drawn to keep apart, as a share of their width, before there are fewer of them. */
+const WARHEAD_LINES_THINNEST = 0.6;
 
-/** How wide a warhead's bronze frame is drawn, metres. */
-export function warheadRim(spec: ModuleSpec): number {
-    const share = WARHEAD_RIM_SHARE * (spec.reinforcement ?? 1);
-    return Math.min(spec.length, spec.width) * (share < WARHEAD_RIM_MOST ? share : WARHEAD_RIM_MOST);
+/** A warhead's lines (`warheadLines`): x0, y0 (outer), x1, y1 (inner) for each in `ends`, and each one's width. */
+export interface WarheadLines {
+    ends: number[];
+    widths: number[];
+}
+
+/** Stand-in stats for `warheadBurst`, whose shares and ratios are all the lines need. */
+const UNIT_STATS = { structureMass: 1, fuel: 1 } as ModuleStats;
+
+/**
+ * A warhead's bronze lines, in its own frame, out from near its middle along a
+ * few of the bearings its fragments fly at, as it throws them (`warheadBurst`):
+ * a spray's arc ahead and its mirror behind, their outer lines at the arcs'
+ * edges; a slug's slug down its centre line, its jet in front of it, and its back plate's arc behind; and down
+ * each side, outside the arcs (`warheadSideGrade`). A spray whose arcs meet is
+ * drawn as spokes all round. Each is as long as its fragments are fast and as
+ * thick as their calibre, the cube root of their mass, the thickest as thick as
+ * its casing, so the lines show how hard it throws each way.
+ */
+export function warheadLines(spec: ModuleSpec): WarheadLines {
+    const fragments = warheadFragments(spec);
+    const spread = warheadSpread(spec);
+    const burst = warheadBurst(spec, UNIT_STATS, 1, 1);
+    const l = spec.length / 2;
+    const w = spec.width / 2;
+    const short = Math.min(l, w);
+    const share = WARHEAD_LINE_SHARE * (spec.reinforcement ?? 1);
+    const full = 2 * short * (share < WARHEAD_LINE_MOST ? share : WARHEAD_LINE_MOST);
+    const far = short * WARHEAD_LINES_HUB_MOST;
+    const slug = fragments === 1;
+    // Bearing, calibre and speed of each.
+    const lines: [number, number, number][] = [];
+    if (!slug && spread >= Math.PI) {
+        const count = Math.min(fragments * 2, WARHEAD_RING_LINES);
+        for (let k = 0; k < count; k++) lines.push([(k / count) * 2 * Math.PI, Math.cbrt(burst.each), burst.speed]);
+    } else {
+        // The arcs: a spray's both ways, or a slug's back plate behind it and its slug ahead.
+        const arc = slug ? WARHEAD_BACKBLAST_SPREAD : spread;
+        const behind = slug ? WARHEAD_BACKBLAST_FRAGMENTS : fragments;
+        const calibre = Math.cbrt(burst.backEach);
+        const most = Math.max(calibre, Math.cbrt(slug ? burst.slugEach : burst.each));
+        let count = Math.max(1, Math.min(behind, WARHEAD_FAN_LINES));
+        // Fewer where they would crowd at `far` so much they would narrow past `WARHEAD_LINES_THINNEST`.
+        for (; count > 2; count--) {
+            const chord = 2 * Math.sin(arc / (count - 1) / 2);
+            const width = (full * calibre) / most;
+            if ((far * chord) / (1 + WARHEAD_LINES_APART) >= width * WARHEAD_LINES_THINNEST) break;
+        }
+        for (let k = 0; k < count; k++) {
+            const off = count === 1 ? 0 : (k / (count - 1) - 0.5) * arc;
+            lines.push([Math.PI + off, calibre, burst.backSpeed]);
+            if (!slug) lines.push([off, calibre, burst.speed]);
+        }
+        if (slug) lines.push([0, Math.cbrt(burst.slugEach), burst.slugSpeed]);
+        // The sides, each as heavy and as fast as an arc's edge fragment times its grade.
+        const slots = WARHEAD_SIDE_FRAGMENTS / 2;
+        for (let j = 0; j < WARHEAD_SIDE_LINES && burst.sideEach > 0; j++) {
+            // Evenly along the run, not at whole slots, so the lines mirror as the blast does.
+            const k = ((j + 0.5) / WARHEAD_SIDE_LINES) * slots - 0.5;
+            const bearing = warheadSideBearing(fragments, spread, k);
+            const grade = warheadSideGrade(fragments, k);
+            const side: [number, number] = [Math.cbrt(burst.sideEach * grade), burst.sideSpeed * grade];
+            // A spray's twin is opposite it; a slug's, mirrored across its axis.
+            lines.push([bearing, ...side], [slug ? -bearing : bearing + Math.PI, ...side]);
+        }
+    }
+    // A slug's jet, in front of its slug.
+    let jet = slug ? Math.cbrt(burst.each) : 0;
+    let thickest = jet;
+    for (const [, calibre] of lines) thickest = Math.max(thickest, calibre);
+    for (const line of lines) line[1] = thickest > 0 ? (full * line[1]) / thickest : full;
+    jet = thickest > 0 ? (full * jet) / thickest : full;
+    // Stopping far enough out that neighbours' round ends keep apart, or all narrower where that is too far.
+    lines.sort((p, q) => norm(p[0]) - norm(q[0]));
+    let hub = short * WARHEAD_LINE_HUB;
+    for (const [, width] of lines) hub = Math.max(hub, width / 2);
+    for (let i = 0; lines.length > 1 && i < lines.length; i++) {
+        const [b0, w0] = lines[i]!;
+        const [b1, w1] = lines[(i + 1) % lines.length]!;
+        const gap = norm(b1 - b0) || 2 * Math.PI;
+        const chord = 2 * Math.sin(Math.min(gap, Math.PI) / 2);
+        hub = Math.max(hub, (((w0 + w1) / 2) * (1 + WARHEAD_LINES_APART)) / chord);
+    }
+    const narrow = hub > far ? far / hub : 1;
+    if (narrow < 1) hub = far;
+    const inset = short * WARHEAD_LINES_INSET;
+    // One scale of speed to length for them all, as long as the tightest fits.
+    let scale = Infinity;
+    for (const [bearing, wide, speed] of lines) {
+        if (!(speed > 0)) continue;
+        const width = wide * narrow;
+        const room = edgeAlong(bearing, l, w) - width / 2 - width * WARHEAD_LINE_GAP - inset - hub;
+        scale = Math.min(scale, Math.max(0, room) / speed);
+    }
+    // A slug's slug and its jet end to end, a gap between their round ends.
+    const lead = slug ? lines.find(([bearing]) => bearing === 0)! : null;
+    const between = lead === null ? 0 : (lead[1] * narrow) / 2 + jet * narrow * (0.5 + WARHEAD_LINES_APART);
+    if (lead !== null) {
+        const room = l - jet * narrow * (0.5 + WARHEAD_LINE_GAP) - inset - hub - between;
+        scale = Math.min(scale, Math.max(0, room) / (lead[2] + burst.speed));
+    }
+    if (!Number.isFinite(scale)) scale = 0;
+    const ends: number[] = [];
+    const widths: number[] = [];
+    for (const [bearing, wide, speed] of lines) {
+        const ux = Math.cos(bearing);
+        const uy = Math.sin(bearing);
+        const outer = hub + speed * scale;
+        ends.push(ux * outer, uy * outer, ux * hub, uy * hub);
+        widths.push(wide * narrow);
+    }
+    if (lead !== null) {
+        const from = hub + lead[2] * scale + between;
+        ends.push(from + burst.speed * scale, 0, from, 0);
+        widths.push(jet * narrow);
+    }
+    return { ends, widths };
+}
+
+/** How far from the middle of an `l` by `w` half-sided box its edge is along `bearing`. */
+function edgeAlong(bearing: number, l: number, w: number): number {
+    const ux = Math.abs(Math.cos(bearing));
+    const uy = Math.abs(Math.sin(bearing));
+    return Math.min(ux > 1e-9 ? l / ux : Infinity, uy > 1e-9 ? w / uy : Infinity);
+}
+
+/** An angle brought into [0, 2π). */
+function norm(angle: number): number {
+    const turn = 2 * Math.PI;
+    return ((angle % turn) + turn) % turn;
 }
 
 /** How much of a slipway's width each side rail takes, and of its length the feed block aft. */
@@ -219,14 +371,6 @@ export function moduleFills(
         box(-l, -w, -l + feed, w, trim);
         box(-l, -w, l, -w + rail, trim);
         box(-l, w - rail, l, w, trim);
-    } else if (spec.kind === "warhead") {
-        // A tank, its gauge drawn over it as a tank's is, framed in the weapons' bronze.
-        const rim = warheadRim(spec);
-        box(-l, -w, l, w);
-        box(-l, -w, l, -w + rim, BARREL);
-        box(-l, w - rim, l, w, BARREL);
-        box(-l, -w + rim, -l + rim, w - rim, BARREL);
-        box(l - rim, -w + rim, l, w - rim, BARREL);
     } else if (spec.kind === "claw") {
         // The pump aft, and two jaws reaching out of the bow face it grips with.
         const jaw = spec.width * CLAW_JAW_SHARE;
