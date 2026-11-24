@@ -17,7 +17,7 @@ function reinforced(from: Blueprint, reinforcement: number): Blueprint {
 /** The reinforcement the Armour scene's Gun Platform is built to, from none to extreme: its stock plates are 3. */
 export const ARMOUR_LEVELS: readonly number[] = [1, 3, 6, 12, 24];
 
-/** Each kind of corvette, in the order the Armour scene's variants take them. */
+/** Each attacker, in the order the Armour scene's variants take them. */
 export const ARMOUR_ATTACKERS: readonly (readonly [string, Blueprint])[] = [
     ["Corvette", CORVETTE],
     ["Beam Corvette", BEAM_CORVETTE],
@@ -28,23 +28,23 @@ export const ARMOUR_ATTACKERS: readonly (readonly [string, Blueprint])[] = [
     ["Shaped Torpedo", SHAPED_TORPEDO],
 ];
 
-/** How far off the platform's bow plate the corvette starts: inside every corvette's reach, the lance's included. */
+/** How far off the platform's bow plate the attacker starts: inside every corvette's reach, the lance's included. */
 const ARMOUR_RANGE = 250;
 
 /**
- * One corvette of a kind against the Gun Platform, its broad structure plates
+ * One attacker of a kind against the Gun Platform, its broad structure plates
  * and every other module reinforced to `reinforcement`: what each kind of
  * weapon does to armour plating, and what gets through.
  *
- * No well, and the corvette starting in range at rest, its bow on the
+ * No well, and the attacker starting in range at rest, its bow on the
  * platform's bow plate, so every setting fights the same fight.
  */
-export function armour(seed = 20260905, corvette = 0, reinforcement = 6): Battle {
+export function armour(seed = 20260905, attacker = 0, reinforcement = 6): Battle {
     return makeBattle({ seed }, (ships, world) => {
-        const attacker = compileBlueprint(ARMOUR_ATTACKERS[corvette]![1]);
+        const design = compileBlueprint(ARMOUR_ATTACKERS[attacker]![1]);
         const target = compileBlueprint(reinforced(GUN_PLATFORM, reinforcement));
 
-        ships.spawn(world, { design: attacker, x: -ARMOUR_RANGE, y: 0, angle: 0, team: 0 });
+        ships.spawn(world, { design, x: -ARMOUR_RANGE, y: 0, angle: 0, team: 0 });
         ships.spawn(world, { design: target, x: 0, y: 0, angle: math.PI, team: 1 });
     });
 }

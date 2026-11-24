@@ -54,7 +54,7 @@ export const SCENES: readonly Scene[] = [
     { name: "Lance Duel", create: () => lit(lanceDuel(SCENE_SEED), LIGHTS.redDwarf) },
     {
         name: "Armour",
-        // Each kind of corvette against the Gun Platform's plating, at each reinforcement from none to heavy.
+        // Each attacker against the Gun Platform's plating, at each reinforcement from none to extreme.
         variants: ARMOUR_ATTACKERS.flatMap(([name]) => ARMOUR_LEVELS.map((level) => `${name}, reinforced ${level}`)),
         create: (variant = 0) =>
             lit(
