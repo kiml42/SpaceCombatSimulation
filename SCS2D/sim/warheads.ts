@@ -11,6 +11,7 @@ import {
     WARHEAD_GAS_PARCELS,
     WARHEAD_GAS_LIFE,
     gasBearing,
+    sprayBearing,
     warheadSideBearing,
     warheadSideGrade,
     warheadBurst,
@@ -493,7 +494,7 @@ export function detonate(
         // Across the spread ahead, each in its own slice of it, and its mirror behind: all round at a half turn.
         for (let k = 0; k < n; k++) {
             const slice = (k + rng.nextFloat()) / n;
-            const heading = facing + (slice - 0.5) * burst.spread;
+            const heading = facing + sprayBearing(slice, burst.spread);
             throwOne(projectiles, rng, i, b, m, heading, burst.speed, burst.each, false);
             throwOne(projectiles, rng, i, b, m, heading + PI, burst.backSpeed, burst.backEach, false);
         }

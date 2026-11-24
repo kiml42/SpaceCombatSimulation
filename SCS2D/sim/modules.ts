@@ -3329,6 +3329,17 @@ export const DEFAULT_WARHEAD_SPREAD = PI / 3;
 export const SPREAD_PER_FRAGMENT = (10 * PI) / 180 / (MAX_FRAGMENTS - 1);
 
 /**
+ * The bearing off its facing of a spray's fragment `u` of the way through its
+ * lobe, radians: densest in the middle and thinning to none at the edges, as
+ * a directed charge's fragments do, rather than even across it. Triangular,
+ * so a lobe `spread` wide is still that wide.
+ */
+export function sprayBearing(u: number, spread: number): number {
+    const x = u < 0.5 ? sqrt(2 * u) - 1 : 1 - sqrt(2 * (1 - u));
+    return 0.5 * x * spread;
+}
+
+/**
  * The spread a warhead throws at, radians: none for a single slug, which goes
  * straight ahead, and never narrower than its fragments need
  * (`SPREAD_PER_FRAGMENT`), whatever it asks for. A half turn at most: it throws

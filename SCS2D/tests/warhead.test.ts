@@ -23,6 +23,7 @@ import {
 import * as shipDocking from "../sim/shipDocking.js";
 import {
     backblastBearing,
+    sprayBearing,
     WARHEAD_BACKBLAST_FRAGMENTS,
     WARHEAD_SIDE_FLOOR,
     WARHEAD_SIDE_FRAGMENTS,
@@ -227,6 +228,21 @@ describe("warhead", () => {
             if (warheadSideBearing(1, 0, k) < Math.PI / 2) expect(warheadSideGrade(1, k)).toBeLessThanOrEqual(WARHEAD_SIDE_FLOOR);
         }
         expect(warheadSideGrade(1, WARHEAD_SIDE_FRAGMENTS / 2 - 1)).toBeLessThan(WARHEAD_SIDE_FLOOR * WARHEAD_SLUG_FORE + 0.01);
+    });
+
+    it("throws a spray's fragments densest in the middle of each lobe, thinning to none at its edges", () => {
+        const spread = Math.PI / 2;
+        const n = 64;
+        const bearings = Array.from({ length: n }, (_, k) => sprayBearing((k + 0.5) / n, spread));
+        // Within the lobe, centred on the facing, in order.
+        for (const b of bearings) expect(Math.abs(b)).toBeLessThan(spread / 2);
+        expect(sprayBearing(0, spread)).toBeCloseTo(-spread / 2, 12);
+        expect(sprayBearing(0.5, spread)).toBeCloseTo(0, 12);
+        expect(sprayBearing(1, spread)).toBeCloseTo(spread / 2, 12);
+        for (let k = 1; k < n; k++) expect(bearings[k]!).toBeGreaterThan(bearings[k - 1]!);
+        // Three quarters of them in the middle half, where an even spread puts half.
+        const middle = bearings.filter((b) => Math.abs(b) < spread / 4).length;
+        expect(middle / n).toBeCloseTo(0.75, 1);
     });
 
     it("throws a single slug straight ahead, and a crowd of fragments no narrower than they need", () => {
