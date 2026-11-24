@@ -82,12 +82,11 @@ const UNIT_STATS = { structureMass: 1, fuel: 1 } as ModuleStats;
  * A warhead's bronze lines, in its own frame, out from near its middle along a
  * few of the bearings its fragments fly at, as it throws them (`warheadBurst`):
  * a spray's arc ahead and its mirror behind, their outer lines at the arcs'
- * edges; a slug down its centre line and its back plate's arc behind; and down
+ * edges; a slug's slug down its centre line, its jet in front of it, and its back plate's arc behind; and down
  * each side, outside the arcs (`warheadSideGrade`). A spray whose arcs meet is
  * drawn as spokes all round. Each is as long as its fragments are fast and as
  * thick as their calibre, the cube root of their mass, the thickest as thick as
- * its casing, so the lines show how hard it throws each way; a slug's as fast
- * as its jet and as thick as the slug following it.
+ * its casing, so the lines show how hard it throws each way.
  */
 export function warheadLines(spec: ModuleSpec): WarheadLines {
     const fragments = warheadFragments(spec);
@@ -123,7 +122,7 @@ export function warheadLines(spec: ModuleSpec): WarheadLines {
             lines.push([Math.PI + off, calibre, burst.backSpeed]);
             if (!slug) lines.push([off, calibre, burst.speed]);
         }
-        if (slug) lines.push([0, Math.cbrt(burst.slugEach), burst.speed]);
+        if (slug) lines.push([0, Math.cbrt(burst.slugEach), burst.slugSpeed]);
         // The sides, each as heavy and as fast as an arc's edge fragment times its grade.
         const slots = WARHEAD_SIDE_FRAGMENTS / 2;
         for (let j = 0; j < WARHEAD_SIDE_LINES && burst.sideEach > 0; j++) {
@@ -136,13 +135,12 @@ export function warheadLines(spec: ModuleSpec): WarheadLines {
             lines.push([bearing, ...side], [slug ? -bearing : bearing + Math.PI, ...side]);
         }
     }
-    let thickest = 0;
-    let fastest = 0;
-    for (const [, calibre, speed] of lines) {
-        thickest = Math.max(thickest, calibre);
-        fastest = Math.max(fastest, speed);
-    }
+    // A slug's jet, in front of its slug.
+    let jet = slug ? Math.cbrt(burst.each) : 0;
+    let thickest = jet;
+    for (const [, calibre] of lines) thickest = Math.max(thickest, calibre);
     for (const line of lines) line[1] = thickest > 0 ? (full * line[1]) / thickest : full;
+    jet = thickest > 0 ? (full * jet) / thickest : full;
     // Stopping far enough out that neighbours' round ends keep apart, or all narrower where that is too far.
     lines.sort((p, q) => norm(p[0]) - norm(q[0]));
     let hub = short * WARHEAD_LINE_HUB;
@@ -165,6 +163,13 @@ export function warheadLines(spec: ModuleSpec): WarheadLines {
         const room = edgeAlong(bearing, l, w) - width / 2 - width * WARHEAD_LINE_GAP - inset - hub;
         scale = Math.min(scale, Math.max(0, room) / speed);
     }
+    // A slug's slug and its jet end to end, a gap between their round ends.
+    const lead = slug ? lines.find(([bearing]) => bearing === 0)! : null;
+    const between = lead === null ? 0 : (lead[1] * narrow) / 2 + jet * narrow * (0.5 + WARHEAD_LINES_APART);
+    if (lead !== null) {
+        const room = l - jet * narrow * (0.5 + WARHEAD_LINE_GAP) - inset - hub - between;
+        scale = Math.min(scale, Math.max(0, room) / (lead[2] + burst.speed));
+    }
     if (!Number.isFinite(scale)) scale = 0;
     const ends: number[] = [];
     const widths: number[] = [];
@@ -174,6 +179,11 @@ export function warheadLines(spec: ModuleSpec): WarheadLines {
         const outer = hub + speed * scale;
         ends.push(ux * outer, uy * outer, ux * hub, uy * hub);
         widths.push(wide * narrow);
+    }
+    if (lead !== null) {
+        const from = hub + lead[2] * scale + between;
+        ends.push(from + burst.speed * scale, 0, from, 0);
+        widths.push(jet * narrow);
     }
     return { ends, widths };
 }
