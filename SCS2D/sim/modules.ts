@@ -3329,6 +3329,24 @@ export const DEFAULT_WARHEAD_SPREAD = PI / 3;
 export const SPREAD_PER_FRAGMENT = (10 * PI) / 180 / (MAX_FRAGMENTS - 1);
 
 /**
+ * How far a spray's fragments' speeds stray either side of what the Gurney
+ * balance gives them, as a share: the gas does not push every part of a
+ * casing alike. Each pair going opposite ways strays together, so their
+ * momentum still cancels.
+ */
+export const WARHEAD_SPEED_SPREAD = 0.1;
+
+/**
+ * A spray pair's speed as a share of the Gurney speed, `t` of the way across
+ * `WARHEAD_SPEED_SPREAD` either side: scaled so its square averages one, and
+ * the yield is right on average.
+ */
+export function spraySpeedShare(t: number): number {
+    const a = WARHEAD_SPEED_SPREAD;
+    return (1 + a * (2 * t - 1)) / sqrt(1 + (a * a) / 3);
+}
+
+/**
  * The bearing off its facing of a spray's fragment `u` of the way through its
  * lobe, radians: densest in the middle and thinning to none at the edges, as
  * a directed charge's fragments do, rather than even across it. Triangular,

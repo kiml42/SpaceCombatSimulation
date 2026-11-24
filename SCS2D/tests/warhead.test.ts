@@ -24,11 +24,13 @@ import * as shipDocking from "../sim/shipDocking.js";
 import {
     backblastBearing,
     sprayBearing,
+    spraySpeedShare,
     WARHEAD_BACKBLAST_FRAGMENTS,
     WARHEAD_SIDE_FLOOR,
     WARHEAD_SIDE_FRAGMENTS,
     WARHEAD_GAS_PARCELS,
     WARHEAD_SLUG_FORE,
+    WARHEAD_SPEED_SPREAD,
     gasBearing,
     warheadSideBearing,
     warheadSideGrade,
@@ -228,6 +230,16 @@ describe("warhead", () => {
             if (warheadSideBearing(1, 0, k) < Math.PI / 2) expect(warheadSideGrade(1, k)).toBeLessThanOrEqual(WARHEAD_SIDE_FLOOR);
         }
         expect(warheadSideGrade(1, WARHEAD_SIDE_FRAGMENTS / 2 - 1)).toBeLessThan(WARHEAD_SIDE_FLOOR * WARHEAD_SLUG_FORE + 0.01);
+    });
+
+    it("strays a spray pair's speed a tenth either way, its energy right on average", () => {
+        expect(spraySpeedShare(0.5)).toBeCloseTo(1 / Math.sqrt(1 + WARHEAD_SPEED_SPREAD ** 2 / 3), 12);
+        expect(spraySpeedShare(0) / spraySpeedShare(0.5)).toBeCloseTo(1 - WARHEAD_SPEED_SPREAD, 12);
+        expect(spraySpeedShare(1) / spraySpeedShare(0.5)).toBeCloseTo(1 + WARHEAD_SPEED_SPREAD, 12);
+        let squares = 0;
+        const n = 10000;
+        for (let k = 0; k < n; k++) squares += spraySpeedShare((k + 0.5) / n) ** 2;
+        expect(squares / n).toBeCloseTo(1, 6);
     });
 
     it("throws a spray's fragments densest in the middle of each lobe, thinning to none at its edges", () => {
@@ -449,6 +461,14 @@ describe("warhead", () => {
         expect(count).toBe(2 * 8 + WARHEAD_SIDE_FRAGMENTS);
         expect(ahead).toBe(8);
         expect(behind).toBe(8);
+        // Each leaves within a tenth either way of the Gurney speed, not all at once.
+        const speeds: number[] = [];
+        for (let i = 0; i < s.projectiles.highWater; i++) {
+            if (s.projectiles.alive[i] === 0 || Math.abs(s.projectiles.mass[i]! - burst.each) > 1e-9) continue;
+            speeds.push(Math.hypot(s.projectiles.vx[i]! - wvx, s.projectiles.vy[i]! - wvy) / burst.speed);
+        }
+        for (const v of speeds) expect(Math.abs(v - 1)).toBeLessThan(WARHEAD_SPEED_SPREAD + 0.01);
+        expect(Math.max(...speeds) - Math.min(...speeds)).toBeGreaterThan(0.02);
         expect(mass).toBeCloseTo(placed.stats.structureMass, 6);
         // What it threw carries no momentum off: the hull goes on as it was.
         expect(bodies.vx[s.b]!).toBeCloseTo(300, 6);
