@@ -7,6 +7,7 @@ import {
     firingPeriod,
     WARHEAD_BACKBLAST_FRAGMENTS,
     WARHEAD_SIDE_FRAGMENTS,
+    sprayBearing,
     warheadSideBearing,
     warheadSideGrade,
     warheadBurst,
@@ -470,7 +471,7 @@ export class Demonstration {
         } else {
             for (let k = 0; k < n; k++) {
                 const slice = (k + 0.5) / n;
-                const heading = facing + (slice - 0.5) * burst.spread;
+                const heading = facing + sprayBearing(slice, burst.spread);
                 this.throwOne(x, y, heading, burst.speed, burst.each);
                 this.throwOne(x, y, heading + math.PI, burst.backSpeed, burst.backEach);
             }
