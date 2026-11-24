@@ -1762,6 +1762,8 @@ export class Impacts {
             // absorbed where it stopped: there is nothing else to spend it on.
             if (design === null || !(speed > 0)) {
                 this.log.push(x, y, 0.5 * projectiles.mass[round]! * speed * speed, IMPACT_ROUND, bodies, body);
+                const mass = projectiles.mass[round]!;
+                shove(bodies, body, mass * projectiles.vx[round]!, mass * projectiles.vy[round]!, x, y);
                 projectiles.kill(round);
                 continue;
             }
@@ -1889,6 +1891,8 @@ export class Impacts {
         }
         this.walking[round] = null;
         if (out.speed <= 0) {
+            // Stopped in the hull, it is moving with it: that momentum is the hull's too.
+            shove(bodies, body, mass * projectiles.vx[round]!, mass * projectiles.vy[round]!, projectiles.x[round]!, projectiles.y[round]!);
             projectiles.kill(round);
             return;
         }
