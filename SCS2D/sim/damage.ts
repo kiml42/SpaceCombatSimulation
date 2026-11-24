@@ -9,7 +9,7 @@ import { NOT_INSIDE, type ProjectileHits, type Projectiles } from "./projectiles
 import type { BeamHits, Beams } from "./beams.js";
 import type { Rng } from "./rng.js";
 import { RESTITUTION, type Contacts } from "./collision.js";
-import { cos, exp, max, min, PI, sin, sqrt } from "./math.js";
+import { cos, exp, floor, max, min, PI, round as nearest, sin, sqrt } from "./math.js";
 import { SCAR_BURN, SCAR_GOUGE, SCAR_PEPPER, SCAR_ROUND, SCAR_SHARE, Scars } from "./scars.js";
 import { COMPLEXITY_WORK, EXPLOSIVE_YIELD, FUEL_DENSITY, FUEL_DRAG_COEFFICIENT, type ModuleSpec, type ModuleStats } from "./modules.js";
 
@@ -1008,8 +1008,12 @@ export interface RoundOutcome {
     firstY: number;
     /** Still inside the hull, having run out of time to get further. */
     inside: boolean;
-    /** Seconds left over after it came out of the far side. */
+    /** Seconds left over after it came out of the far side, or after it broke up. */
     time: number;
+    /** Whether it broke up coming out of the module it went through (`breakUp`), at `along`. */
+    broke: boolean;
+    /** The share of the speed it struck that module with that it kept, when it broke up. */
+    overmatch: number;
     /**
      * Where it met a surface that can be seen, in the hull's frame: going into
      * the hull or up a step from thin to thick, or out of it or down a step.
@@ -1051,6 +1055,8 @@ export function roundOutcome(): RoundOutcome {
         firstY: 0,
         inside: false,
         time: 0,
+        broke: false,
+        overmatch: 0,
         faces: 0,
         faceX: new Float64Array(MAX_FACES),
         faceY: new Float64Array(MAX_FACES),
@@ -1149,8 +1155,11 @@ function walkRound(
     rng?: Rng,
     /** What scar it leaves (`SCAR_ROUND` or `SCAR_PEPPER`), or 0 for none: a walk only asked about leaves none. */
     scarKind = 0,
+    /** Whether it stops at the far side of the first module it goes through, to break up there. */
+    breakUp = false,
 ): RoundOutcome {
     out.outcome = Terminal.Perforate;
+    out.broke = false;
     out.skidded = false;
     out.energy = 0;
     out.crossed = 0;
@@ -1214,6 +1223,7 @@ function walkRound(
             const ny = path.ny[k]!;
             const incidence = nx === 0 && ny === 0 ? 0 : incidenceAngle(ux, uy, nx, ny);
             const before = rng === undefined ? 1 : damage.integrity(bodyIndex, module);
+            const arrived = carried;
             const hit = strike(mass, calibre, carried, design.modules[module]!.stats.wallThickness, incidence);
 
             damage.absorb(bodyIndex, module, hit.energy);
@@ -1281,6 +1291,15 @@ function walkRound(
             if (hit.outcome === Terminal.Perforate)
                 carried = throughFuel(fuel, damage, bodyIndex, module, path.exit[k]! - path.entry[k]!, mass, calibre, carried, out);
             out.speed = carried;
+            // Through it with speed to spare: it breaks up at the far side, for the caller to throw on.
+            if (breakUp && hit.outcome === Terminal.Perforate && carried > 0) {
+                out.broke = true;
+                out.overmatch = carried / arrived;
+                out.along = path.exit[k]! - reach;
+                out.crossing = k + 1;
+                out.time = left;
+                return out;
+            }
 
             if (hit.outcome === Terminal.Embed) {
                 out.along = at;
@@ -1826,6 +1845,7 @@ export class Impacts {
             this.designs,
             this.rng,
             projectiles.fragment[round] === 1 ? SCAR_PEPPER : SCAR_ROUND,
+            projectiles.broken[round] === 0 && mass >= 2 * DEBRIS_LEAST,
         );
 
         const angle = bodies.angle[body]!;
@@ -1883,6 +1903,12 @@ export class Impacts {
             shocks?.blow(body, out.first, jx, jy, px, py);
         }
 
+        if (out.broke) {
+            this.walking[round] = null;
+            projectiles.leave(round);
+            this.breakUp(design, bodies, projectiles, round, body, hvx, hvy, out);
+            return;
+        }
         if (out.inside) {
             if (out.skidded) projectiles.enter(round, body, out.ox, out.oy, out.ux, out.uy);
             projectiles.along[round] = out.along;
@@ -1898,6 +1924,79 @@ export class Impacts {
         }
         projectiles.leave(round);
         this.flyOn(bodies, projectiles, round, body, out.time);
+    }
+
+    /**
+     * Round `round`, come out of a module of body `b` moving at (`hvx`, `hvy`)
+     * there, breaks up into debris and is gone: what is left of it, its mass
+     * shared between the pieces, going on in a cone from the far face. The more
+     * it overmatched what it went through, the more pieces and the wider the
+     * cone; the hull takes the momentum the cone does not carry on. The pieces
+     * are walked on through the hull from there, as the round was.
+     */
+    private breakUp(
+        design: ShipDesign,
+        bodies: Bodies,
+        projectiles: Projectiles,
+        round: number,
+        b: number,
+        hvx: number,
+        hvy: number,
+        out: RoundOutcome,
+    ): void {
+        const mass = projectiles.mass[round]!;
+        const x = projectiles.x[round]!;
+        const y = projectiles.y[round]!;
+        const speed = out.speed;
+        const most = min(DEBRIS_PIECES, floor(mass / DEBRIS_LEAST));
+        const n = max(2, min(most, nearest(out.overmatch * DEBRIS_PIECES)));
+        const half = DEBRIS_CONE * out.overmatch;
+        const each = mass / n;
+        const width = projectiles.width[round]! / sqrt(n);
+        const ttl = min(projectiles.ttl[round]!, DEBRIS_LIFE);
+        // From the far face, in the hull's frame.
+        const lx = out.ox + out.ux * out.along;
+        const ly = out.oy + out.uy * out.along;
+        const angle = bodies.angle[b]!;
+        const ca = cos(angle);
+        const sa = sin(angle);
+        let px = 0;
+        let py = 0;
+        for (let k = 0; k < n; k++) {
+            const t = this.rng === undefined ? 0.5 : this.rng.nextFloat();
+            const turn = (-1 + (2 * (k + t)) / n) * half;
+            const c = cos(turn);
+            const s = sin(turn);
+            const ux = out.ux * c - out.uy * s;
+            const uy = out.ux * s + out.uy * c;
+            const vx = hvx + (ux * ca - uy * sa) * speed;
+            const vy = hvy + (ux * sa + uy * ca) * speed;
+            const piece = projectiles.spawnRaw(
+                x,
+                y,
+                vx,
+                vy,
+                width,
+                ttl,
+                each,
+                projectiles.damage[round]! / n,
+                projectiles.penetration[round]!,
+                projectiles.owner[round]!,
+                projectiles.kind[round]!,
+                projectiles.fromModule[round]!,
+                projectiles.layers[round]!,
+            );
+            projectiles.ship[piece] = projectiles.ship[round]!;
+            projectiles.fragment[piece] = 1;
+            projectiles.broken[piece] = 1;
+            projectiles.enter(piece, b, lx, ly, ux, uy);
+            this.walking[piece] = design;
+            px += each * vx;
+            py += each * vy;
+        }
+        // What the cone does not carry on, the hull takes.
+        shove(bodies, b, mass * projectiles.vx[round]! - px, mass * projectiles.vy[round]! - py, x, y);
+        projectiles.kill(round);
     }
 
     /** Cast a round that came out of a hull on for the `time` left in the step. */
@@ -2106,3 +2205,11 @@ function hullVelocityAt(bodies: Bodies, b: number, x: number, y: number, out: { 
 }
 
 const HULL_V = { x: 0, y: 0 };
+
+/** The most pieces a round breaks up into behind what it went through, and how wide their cone may be either side, radians. */
+export const DEBRIS_PIECES = 6;
+export const DEBRIS_CONE = PI / 4;
+/** The least a piece of debris weighs, kg: a round lighter than two of them goes on whole. */
+export const DEBRIS_LEAST = 0.05;
+/** Seconds debris flies at most: it is spent close behind what it came through. */
+export const DEBRIS_LIFE = 0.5;

@@ -156,7 +156,13 @@ inside any one file is not contiguous.
   its path, each taking the energy its armour stopped, until it embeds, skids
   off or comes out the far side — at the speed it moves against that hull, the hull's own
   velocity and spin where it meets it taken away, so crossing a long hull takes time and a round
-  overtaking a hull strikes softly; a beam pours its power into what it is burning
+  overtaking a hull strikes softly. **A round that goes through a module breaks up behind it** (`breakUp`):
+  out of the far face it goes on as debris, its mass shared between the pieces, in a cone about the way it
+  was going, and the pieces are walked on through the hull from there. The more of its speed it kept, the
+  more pieces, up to 6 (`DEBRIS_PIECES`), and the wider the cone, up to 45° either side (`DEBRIS_CONE`);
+  each piece is lighter and narrower, so it is stopped sooner, and what got through does its harm just
+  behind what it beat rather than passing clean through the hull. Debris does not break up again, nor does a
+  round lighter than two pieces of 50 g (`DEBRIS_LEAST`), and it is spent within half a second; a beam pours its power into what it is burning
   through, a fifth of it taken in and the rest reflected or radiated away (`BEAM_ABSORBED_SHARE`, a stand-in
   for heat). **The outer face of each hull it meets reflects some of what it stops**, a tenth head on
   (`BEAM_REFLECTANCE`) rising to all it does not take in at grazing, as a dimmer beam of its own that can

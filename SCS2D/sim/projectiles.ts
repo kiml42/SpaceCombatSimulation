@@ -251,6 +251,8 @@ export class Projectiles {
     metal!: Float64Array;
     /** 1 for a fragment of a burst, rather than a round a gun fired. */
     fragment!: Uint8Array;
+    /** 1 for debris of a round that broke up behind what it went through: it does not break up again. */
+    broken!: Uint8Array;
     alive!: Uint8Array;
     /**
      * Set on impact. A pending round is stopped at the point of contact and is
@@ -335,6 +337,9 @@ export class Projectiles {
         const fragment = new Uint8Array(capacity);
         if (this.fragment) fragment.set(this.fragment);
         this.fragment = fragment;
+        const broken = new Uint8Array(capacity);
+        if (this.broken) broken.set(this.broken);
+        this.broken = broken;
 
         const alive = new Uint8Array(capacity);
         if (this.alive) alive.set(this.alive);
@@ -414,6 +419,7 @@ export class Projectiles {
         this.casing[i] = casing;
         this.metal[i] = metal;
         this.fragment[i] = 0;
+        this.broken[i] = 0;
         this.alive[i] = 1;
         this.pending[i] = 0;
         this.inside[i] = NOT_INSIDE;

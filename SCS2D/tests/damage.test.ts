@@ -25,6 +25,7 @@ import {
 import { BARE_CORE, STAR_DESTROYER } from "../scenarios/blueprints.js";
 import { TURRET_CORVETTE } from "./fixtures.js";
 import { joints } from "../sim/connectivity.js";
+import { DEBRIS_CONE, DEBRIS_PIECES } from "../sim/damage.js";
 
 /**
  * What a hit does to the ship it landed on.
@@ -303,8 +304,9 @@ describe("what a hit logs to be drawn", () => {
         const hits = new ProjectileHits();
         const grid = new SpatialGrid(64);
         grid.rebuild(bodies);
-        // Across the ship, heavy enough to go through.
+        // Across the ship, heavy enough to go through, and going on whole as debris does.
         projectiles.spawn({ x: 0, y: -corvette.radius * 2, vx: 0, vy: 1500, width: 0.3, ttl: 5, mass: 400 });
+        projectiles.broken[0] = 1;
         for (let i = 0; i < 60 && hits.count === 0; i++) {
             projectiles.step(1 / 60, bodies, grid, hits, undefined, ships.hulls);
             if (hits.count > 0) impacts.rounds(ships, ships.damage, bodies, projectiles, hits);
@@ -367,10 +369,16 @@ describe("what a hit logs to be drawn", () => {
         }
         expect(hits.count).toBe(1);
 
-        // Whatever the round kept, the ship took the rest — head on, so all of it
-        // is along the round's own heading.
-        const left = projectiles.alive[0] === 1 ? projectiles.vx[0]! : 0;
-        expect(bodies.vx[body]).toBeCloseTo((mass * (speed - left)) / weight, 9);
+        // Whatever the round and what it broke into kept, the ship took the rest.
+        let px = 0;
+        let py = 0;
+        for (let i = 0; i < projectiles.highWater; i++) {
+            if (projectiles.alive[i] === 0) continue;
+            px += projectiles.mass[i]! * projectiles.vx[i]!;
+            py += projectiles.mass[i]! * projectiles.vy[i]!;
+        }
+        expect(bodies.vx[body]! * weight + px).toBeCloseTo(mass * speed, 6);
+        expect(bodies.vy[body]! * weight + py).toBeCloseTo(0, 6);
         expect(bodies.vx[body]!).toBeGreaterThan(0);
     });
 });
@@ -389,6 +397,8 @@ describe("a round taking time to cross a hull", () => {
         grid.rebuild(bodies);
         const projectiles = new Projectiles(8);
         projectiles.spawn({ x: -destroyer.radius - 10, y: 0, vx: 3000, vy: 0, width: 0.5, ttl: 10, mass: 20000 });
+        // Going on whole, as debris does, to follow one round the length of the hull.
+        projectiles.broken[0] = 1;
         return { world, ships, bodies, body, grid, projectiles, hits: new ProjectileHits(), impacts: new Impacts() };
     }
 
@@ -472,6 +482,7 @@ describe("a round taking time to cross a hull", () => {
         const hits = new ProjectileHits();
         const impacts = new Impacts();
         projectiles.spawn({ x: minX - 5, y: 0, vx: 3000, vy: 0, width: 0.3, ttl: 5, mass: 2000 });
+        projectiles.broken[0] = 1;
 
         const struck = new Set<number>();
         for (let step = 0; step < 30; step++) {
@@ -534,6 +545,70 @@ describe("a round taking time to cross a hull", () => {
                 1e-5 * once.absorbedAt(0, m) + 1e-3,
             );
         }
+    });
+});
+
+describe("a round breaking up behind what it goes through", () => {
+    /** The corvette, and a round fired across it from below, whole or not. */
+    function across(whole: boolean) {
+        const world = new World({ dt: 1 / 60, seed: 3 });
+        const ships = new Ships();
+        const body = world.bodies.indexOf(ships.body(ships.spawn(world, { design: corvette, x: 0, y: 0, angle: 0, team: 0 })));
+        const grid = new SpatialGrid(64);
+        grid.rebuild(world.bodies);
+        const projectiles = new Projectiles(8);
+        projectiles.spawn({ x: 0, y: -corvette.radius * 2, vx: 0, vy: 1500, width: 0.3, ttl: 5, mass: 400 });
+        if (whole) projectiles.broken[0] = 1;
+        return { world, ships, body, grid, projectiles, hits: new ProjectileHits(), impacts: new Impacts() };
+    }
+
+    function step(r: ReturnType<typeof across>): void {
+        r.projectiles.step(1 / 60, r.world.bodies, r.grid, r.hits, undefined, r.ships.hulls);
+        r.impacts.rounds(r.ships, r.ships.damage, r.world.bodies, r.projectiles, r.hits, r.ships, undefined, 1 / 60, r.grid, r.ships.hulls);
+    }
+
+    it("goes on as a cone of debris that carries its mass and momentum on, and does not break up again", () => {
+        const r = across(false);
+        for (let i = 0; i < 60 && r.hits.count === 0; i++) step(r);
+        expect(r.hits.count).toBe(1);
+        expect(r.projectiles.alive[0]).toBe(0);
+        const weight = r.world.bodies.mass[r.body]!;
+        let pieces = 0;
+        let mass = 0;
+        let py = r.world.bodies.vy[r.body]! * weight;
+        let px = r.world.bodies.vx[r.body]! * weight;
+        for (let i = 1; i < r.projectiles.highWater; i++) {
+            if (r.projectiles.alive[i] === 0) continue;
+            pieces++;
+            mass += r.projectiles.mass[i]!;
+            px += r.projectiles.mass[i]! * r.projectiles.vx[i]!;
+            py += r.projectiles.mass[i]! * r.projectiles.vy[i]!;
+            expect(r.projectiles.broken[i]).toBe(1);
+            // On up the screen, within its cone.
+            const off = Math.atan2(r.projectiles.vx[i]!, r.projectiles.vy[i]!);
+            expect(Math.abs(off)).toBeLessThanOrEqual(DEBRIS_CONE + 1e-9);
+        }
+        expect(pieces).toBeGreaterThanOrEqual(2);
+        expect(pieces).toBeLessThanOrEqual(DEBRIS_PIECES);
+        expect(mass).toBeCloseTo(400, 9);
+        expect(px).toBeCloseTo(0, 6);
+        expect(py).toBeCloseTo(400 * 1500, 6);
+        // Broken once, it goes no further apart however much more it goes through.
+        for (let i = 0; i < 60; i++) step(r);
+        let alive = 0;
+        for (let i = 0; i < r.projectiles.highWater; i++) if (r.projectiles.alive[i] === 1) alive++;
+        expect(alive).toBeLessThanOrEqual(pieces);
+    });
+
+    it("leaves more of what it carried in the ship than a round going straight through", () => {
+        const hurt = (whole: boolean): number => {
+            const r = across(whole);
+            for (let i = 0; i < 120; i++) step(r);
+            let total = 0;
+            for (let m = 0; m < corvette.modules.length; m++) total += r.ships.damage.absorbedAt(r.body, m);
+            return total;
+        };
+        expect(hurt(false)).toBeGreaterThan(hurt(true));
     });
 });
 
