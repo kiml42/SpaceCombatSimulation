@@ -3,7 +3,7 @@ import { LIGHTS, lit } from "./lights.js";
 import { duel } from "./duel.js";
 import { railDuel } from "./railDuel.js";
 import { lanceDuel } from "./lanceDuel.js";
-import { armour, ARMOUR_CORVETTE, ARMOUR_LEVELS } from "./armour.js";
+import { armour, ARMOUR_ATTACKERS, ARMOUR_LEVELS } from "./armour.js";
 import { beamDuel } from "./beamDuel.js";
 import { swarm } from "./swarm.js";
 import { torpedoes } from "./torpedoes.js";
@@ -55,13 +55,13 @@ export const SCENES: readonly Scene[] = [
     {
         name: "Armour",
         // Each kind of corvette against the Gun Platform's plating, at each reinforcement from none to heavy.
-        variants: ARMOUR_CORVETTE.flatMap(([name]) => ARMOUR_LEVELS.map((level) => `${name}, reinforced ${level}`)),
+        variants: ARMOUR_ATTACKERS.flatMap(([name]) => ARMOUR_LEVELS.map((level) => `${name}, reinforced ${level}`)),
         create: (variant = 0) =>
             lit(
                 armour(
                     SCENE_SEED,
-                    variant % ARMOUR_CORVETTE.length,
-                    ARMOUR_LEVELS[(variant - (variant % ARMOUR_CORVETTE.length)) / ARMOUR_CORVETTE.length]!,
+                    (variant - (variant % ARMOUR_LEVELS.length)) / ARMOUR_LEVELS.length,
+                    ARMOUR_LEVELS[variant % ARMOUR_LEVELS.length]!,
                 ),
                 LIGHTS.daylight,
             ),
