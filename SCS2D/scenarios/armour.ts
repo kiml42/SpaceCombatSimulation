@@ -9,7 +9,7 @@ const ARMOUR = 4;
 /** `from` with every module's walls reinforced `times` over: the same ship, far better armoured and heavier. */
 function armoured(from: Blueprint, times: number, name: string): Blueprint {
     const thicken = (modules: readonly Placement[]): Placement[] =>
-        modules.map((m) => ("kind" in m ? { ...m, reinforcement: Math.max(1, m.reinforcement ?? 1) * times } : m));
+        modules.map((m) => ("kind" in m ? { ...m, reinforcement: math.max(1, m.reinforcement ?? 1) * times } : m));
     return {
         ...from,
         name,
