@@ -1753,8 +1753,10 @@ export class Impacts {
             const y = hits.y[i]!;
             const design = designs.designOf(body);
 
-            const vx = projectiles.vx[round]!;
-            const vy = projectiles.vy[round]!;
+            // How it moves against the hull where it meets it, which is what it strikes with.
+            hullVelocityAt(bodies, body, x, y, HULL_V);
+            const vx = projectiles.vx[round]! - HULL_V.x;
+            const vy = projectiles.vy[round]! - HULL_V.y;
             const speed = sqrt(vx * vx + vy * vy);
             // A round with no design to walk, or no speed left to walk it with, is
             // absorbed where it stopped: there is nothing else to spend it on.
@@ -1791,8 +1793,14 @@ export class Impacts {
     ): void {
         const body = projectiles.inside[round]!;
         const mass = projectiles.mass[round]!;
-        const vx = projectiles.vx[round]!;
-        const vy = projectiles.vy[round]!;
+        // It walks the hull at the speed it moves against it.
+        hullVelocityAt(bodies, body, projectiles.x[round]!, projectiles.y[round]!, HULL_V);
+        const hvx = HULL_V.x;
+        const hvy = HULL_V.y;
+        const wx = projectiles.vx[round]!;
+        const wy = projectiles.vy[round]!;
+        const vx = wx - hvx;
+        const vy = wy - hvy;
         const speed = sqrt(vx * vx + vy * vy);
         const out = walkRound(
             design,
@@ -1830,11 +1838,11 @@ export class Impacts {
         projectiles.y[round] = by + lx * s + ly * c;
 
         if (out.first >= 0) {
-            // It keeps flying the way it was in the world, unless it skidded.
-            const dirX = out.skidded ? out.ux * c - out.uy * s : vx / speed;
-            const dirY = out.skidded ? out.ux * s + out.uy * c : vy / speed;
-            projectiles.vx[round] = dirX * out.speed;
-            projectiles.vy[round] = dirY * out.speed;
+            // It keeps going the way it was against the hull, unless it skidded, and moves with the hull besides.
+            const dirX = out.skidded ? out.ux * c - out.uy * s : speed > 0 ? vx / speed : 0;
+            const dirY = out.skidded ? out.ux * s + out.uy * c : speed > 0 ? vy / speed : 0;
+            projectiles.vx[round] = hvx + dirX * out.speed;
+            projectiles.vy[round] = hvy + dirY * out.speed;
 
             const px = bx + out.firstX * c - out.firstY * s;
             const py = by + out.firstX * s + out.firstY * c;
@@ -1867,8 +1875,8 @@ export class Impacts {
             // The momentum the round lost is the momentum the ship gained, which is
             // a shove and — where it lands — a blow the hull has to hold together
             // under.
-            const jx = mass * (vx - projectiles.vx[round]!);
-            const jy = mass * (vy - projectiles.vy[round]!);
+            const jx = mass * (wx - projectiles.vx[round]!);
+            const jy = mass * (wy - projectiles.vy[round]!);
             shove(bodies, body, jx, jy, px, py);
             shocks?.blow(body, out.first, jx, jy, px, py);
         }
@@ -2085,3 +2093,12 @@ export class Impacts {
         }
     }
 }
+
+/** The velocity of body `b`'s hull at world point (`x`, `y`): its own, and its spin's there. */
+function hullVelocityAt(bodies: Bodies, b: number, x: number, y: number, out: { x: number; y: number }): void {
+    const spin = bodies.angularVel[b]!;
+    out.x = bodies.vx[b]! - spin * (y - bodies.y[b]!);
+    out.y = bodies.vy[b]! + spin * (x - bodies.x[b]!);
+}
+
+const HULL_V = { x: 0, y: 0 };
