@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { WARHEAD_BACKBLAST_SPREAD, type ModuleSpec } from "../sim/index.js";
+import { WARHEAD_BACKBLAST_SPREAD, warheadBurst, type ModuleSpec, type ModuleStats } from "../sim/index.js";
 import { warheadLines } from "../render/moduleFills.js";
 
 const warhead = (extra: Partial<ModuleSpec>): ModuleSpec => ({ kind: "warhead", length: 2, width: 1, ...extra }) as ModuleSpec;
@@ -98,6 +98,29 @@ describe("a warhead's fragment lines", () => {
                     expect(apart).toBeGreaterThan((widths[i]! + widths[j]!) / 2);
                 }
         }
+    });
+
+    it("draws each as long as its fragments are fast, whatever room the box has that way", () => {
+        const spec = warhead({ fragments: 16, spread: Math.PI / 3, length: 2, width: 1 });
+        const burst = warheadBurst(spec, { structureMass: 1, fuel: 1 } as ModuleStats, 1, 1);
+        const { ends } = warheadLines(spec);
+        const span = (k: number): number => Math.hypot(ends[k]! - ends[k + 2]!, ends[k + 1]! - ends[k + 3]!);
+        const along = (k: number): number => (Math.atan2(ends[k + 1]!, ends[k]!) * 180) / Math.PI;
+        const arcs: number[] = [];
+        for (let k = 0; k < ends.length; k += 4) if (Math.abs(along(k)) <= 30.001 || Math.abs(along(k)) >= 149.999) arcs.push(span(k));
+        for (const a of arcs) expect(a).toBeCloseTo(arcs[0]!, 9);
+        for (let k = 0; k < ends.length; k += 4) expect(span(k)).toBeLessThanOrEqual(arcs[0]! + 1e-9);
+        expect(burst.sideSpeed).toBeGreaterThan(0);
+    });
+
+    it("draws a slug's jet longest, and its slug thickest", () => {
+        const slug = warheadLines(warhead({ fragments: 1 }));
+        const spans: number[] = [];
+        for (let k = 0; k < slug.ends.length; k += 4)
+            spans.push(Math.hypot(slug.ends[k]! - slug.ends[k + 2]!, slug.ends[k + 1]! - slug.ends[k + 3]!));
+        const ahead = lines(warhead({ fragments: 1 })).findIndex((l) => l.bearing === 0);
+        expect(Math.max(...spans)).toBe(spans[ahead]);
+        expect(Math.max(...slug.widths)).toBe(slug.widths[ahead]);
     });
 
     it("thickens with the casing", () => {
