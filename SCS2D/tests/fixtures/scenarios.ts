@@ -352,7 +352,7 @@ export function railDuelScenario(seed = 20260905): ScenarioRun {
     };
 }
 
-/** Two of a kind of corvette against the Armoured Gunship: what pins armour against each weapon. */
+/** Two of a kind of corvette against the Gun Platform reinforced 6: what pins armour plating against each weapon. */
 export function armourScenario(corvette: number, seed = 20260905): ScenarioRun {
     const run = armour(seed, corvette);
     return {

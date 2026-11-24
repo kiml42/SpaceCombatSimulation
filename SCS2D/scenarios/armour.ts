@@ -1,27 +1,21 @@
 import { compileBlueprint, math, type Blueprint, type Placement } from "../sim/index.js";
 import type { Battle } from "./types.js";
 import { CROSSING, SIDE_WELL, makeBattle } from "./battle.js";
-import { BEAM_CORVETTE, CORVETTE, GUNSHIP, LANCE_CORVETTE, RAIL_CORVETTE } from "./blueprints.js";
+import { BEAM_CORVETTE, CORVETTE, GUN_PLATFORM, LANCE_CORVETTE, RAIL_CORVETTE } from "./blueprints.js";
 
-/** How many times over the Armoured Gunship's walls are reinforced. */
-const ARMOUR = 4;
-
-/** `from` with every module's walls reinforced `times` over: the same ship, far better armoured and heavier. */
-function armoured(from: Blueprint, times: number, name: string): Blueprint {
-    const thicken = (modules: readonly Placement[]): Placement[] =>
-        modules.map((m) => ("kind" in m ? { ...m, reinforcement: math.max(1, m.reinforcement ?? 1) * times } : m));
+/** `from` with every module's walls reinforced `reinforcement` times: its armour plates and all the rest. */
+function reinforced(from: Blueprint, reinforcement: number): Blueprint {
+    const set = (modules: readonly Placement[]): Placement[] => modules.map((m) => ("kind" in m ? { ...m, reinforcement } : m));
     return {
         ...from,
-        name,
-        modules: thicken(from.modules),
-        assemblies: Object.fromEntries(
-            Object.entries(from.assemblies ?? {}).map(([key, a]) => [key, { ...a, modules: thicken(a.modules) }]),
-        ),
+        name: `${from.name}, reinforced ${reinforcement}`,
+        modules: set(from.modules),
+        assemblies: Object.fromEntries(Object.entries(from.assemblies ?? {}).map(([key, a]) => [key, { ...a, modules: set(a.modules) }])),
     };
 }
 
-/** The Gunship with its walls four times as thick. */
-export const ARMOURED_GUNSHIP: Blueprint = armoured(GUNSHIP, ARMOUR, "Armoured Gunship");
+/** The reinforcement the Armour scene's Gun Platform is built to, from none to heavy: its stock plates are 3. */
+export const ARMOUR_LEVELS: readonly number[] = [1, 3, 6];
 
 /** Each kind of corvette, in the order the Armour scene's variants take them. */
 export const ARMOUR_CORVETTES: readonly (readonly [string, Blueprint])[] = [
@@ -32,14 +26,14 @@ export const ARMOUR_CORVETTES: readonly (readonly [string, Blueprint])[] = [
 ];
 
 /**
- * Two corvettes of one kind against a heavily armoured gunship, or against the
- * same gunship unarmoured, laid out as the duel is: what armour stops of each
- * kind of weapon, and what gets through.
+ * Two corvettes of one kind against the Gun Platform, its broad structure
+ * plates and every other module reinforced to `reinforcement`, laid out as the
+ * duel is: what each kind of weapon does to armour plating, and what gets through.
  */
-export function armour(seed = 20260905, corvette = 0, armouredGunship = true): Battle {
+export function armour(seed = 20260905, corvette = 0, reinforcement = 6): Battle {
     return makeBattle({ seed, wells: [SIDE_WELL] }, (ships, world) => {
         const attacker = compileBlueprint(ARMOUR_CORVETTES[corvette]![1]);
-        const target = compileBlueprint(armouredGunship ? ARMOURED_GUNSHIP : GUNSHIP);
+        const target = compileBlueprint(reinforced(GUN_PLATFORM, reinforcement));
 
         ships.spawn(world, { design: attacker, ...CROSSING.west, team: 0 });
         ships.spawn(world, { design: attacker, x: 2000, y: -740, angle: math.HALF_PI / 2, vx: 0, vy: 90, team: 0 });

@@ -3,7 +3,7 @@ import { LIGHTS, lit } from "./lights.js";
 import { duel } from "./duel.js";
 import { railDuel } from "./railDuel.js";
 import { lanceDuel } from "./lanceDuel.js";
-import { armour, ARMOUR_CORVETTES } from "./armour.js";
+import { armour, ARMOUR_CORVETTES, ARMOUR_LEVELS } from "./armour.js";
 import { beamDuel } from "./beamDuel.js";
 import { swarm } from "./swarm.js";
 import { torpedoes } from "./torpedoes.js";
@@ -54,13 +54,17 @@ export const SCENES: readonly Scene[] = [
     { name: "Lance Duel", create: () => lit(lanceDuel(SCENE_SEED), LIGHTS.redDwarf) },
     {
         name: "Armour",
-        // Each kind of corvette against the Armoured Gunship, then against the plain one to compare.
-        variants: [
-            ...ARMOUR_CORVETTES.map(([name]) => `${name}, Armoured Gunship`),
-            ...ARMOUR_CORVETTES.map(([name]) => `${name}, Gunship`),
-        ],
+        // Each kind of corvette against the Gun Platform's plating, at each reinforcement from none to heavy.
+        variants: ARMOUR_LEVELS.flatMap((level) => ARMOUR_CORVETTES.map(([name]) => `${name}, reinforced ${level}`)),
         create: (variant = 0) =>
-            lit(armour(SCENE_SEED, variant % ARMOUR_CORVETTES.length, variant < ARMOUR_CORVETTES.length), LIGHTS.daylight),
+            lit(
+                armour(
+                    SCENE_SEED,
+                    variant % ARMOUR_CORVETTES.length,
+                    ARMOUR_LEVELS[(variant - (variant % ARMOUR_CORVETTES.length)) / ARMOUR_CORVETTES.length]!,
+                ),
+                LIGHTS.daylight,
+            ),
     },
     { name: "Star Wars", create: () => lit(starWars(SCENE_SEED), LIGHTS.noon) },
     {
