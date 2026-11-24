@@ -3362,7 +3362,19 @@ export const WARHEAD_SIDE_FLOOR = 0.25;
  */
 export const WARHEAD_SLUG_FORE = 0.25;
 
-/** How many pieces a slug's warhead throws back the other way, across how wide a cone, radians: a spray's lobe. */
+/**
+ * A slug's warhead, a shaped charge: the share of its casing that is its
+ * liner, of which the share that collapses into the jet, the fastest thing
+ * it throws; the rest of the liner follows as a heavy slug, at this share of
+ * the jet's speed. The rest of its casing bursts at this share of the jet's
+ * speed, as its back plate behind it and its sides.
+ */
+export const WARHEAD_LINER_SHARE = 0.4;
+export const WARHEAD_JET_SHARE = 0.25;
+export const WARHEAD_SLUG_SPEED = 0.1;
+export const WARHEAD_CASING_SPEED = 0.2;
+
+/** How many pieces a slug's warhead throws back the other way as its back plate, across how wide a cone, radians. */
 export const WARHEAD_BACKBLAST_FRAGMENTS = 16;
 export const WARHEAD_BACKBLAST_SPREAD = PI / 3;
 
@@ -3436,54 +3448,76 @@ const [SPRAY_SIDE_MASS, SPRAY_SIDE_ENERGY] = sideSums(2);
 const [SLUG_SIDE_MASS, SLUG_SIDE_ENERGY, SLUG_SIDE_ALONG] = sideSums(1);
 
 /**
- * What a warhead throws when it goes off, carrying no momentum away from its hull.
+ * What a warhead throws when it goes off. The charge goes to gas, which
+ * carries off whatever momentum the fragments do not balance, at the cost of
+ * the energy that takes, as in the Gurney balance.
  *
  * A spray throws `fragments` across `spread` ahead and their mirror behind. A
- * slug throws one ahead and a backblast behind, `WARHEAD_BACKBLAST_FRAGMENTS`
- * across `WARHEAD_BACKBLAST_SPREAD`, with the slug's energy, the slug taking up
- * the momentum of all the rest. Outside its arcs it throws
+ * slug, a shaped charge, throws its liner ahead as a light, fast jet and a
+ * heavy, slow slug, and its back plate behind, `WARHEAD_BACKBLAST_FRAGMENTS`
+ * across `WARHEAD_BACKBLAST_SPREAD`. Outside its arcs it throws
  * `WARHEAD_SIDE_FRAGMENTS`, each as heavy and as fast as one at the arcs' edge
- * times its `warheadSideGrade`.
+ * (a back plate piece) times its `warheadSideGrade`.
  */
 export interface WarheadBurst {
     /** How many ahead: one is a slug. */
     fragments: number;
     /** How wide, radians, centred on its facing, and the same behind. */
     spread: number;
-    /** The share of the charge's energy that goes ahead and behind; the rest goes to the sides. */
+    /** The share of the charge's energy that goes ahead and behind; the rest goes to the sides and the gas. */
     focus: number;
     /** The charge's energy, J: what it holds of fuel. */
     energy: number;
+    /** The charge, kg, which goes to gas. */
+    charge: number;
     /** The casing, kg: its walls, which all the fragments share. */
     casing: number;
-    /** How fast the ones ahead leave it, m/s, and what each weighs, kg. */
+    /** How fast the ones ahead leave it, m/s, and what each weighs, kg: a slug's jet. */
     speed: number;
     each: number;
-    /** The same for those behind: a spray's mirror, or a slug's backblast. */
+    /** A shaped charge's slug, following its jet; 0 for a spray. */
+    slugSpeed: number;
+    slugEach: number;
+    /** The same for those behind: a spray's mirror, or a slug's back plate. */
     backSpeed: number;
     backEach: number;
     /** The same for a side fragment at an arc's edge, which its grade scales; 0 once a spray's arcs meet. */
     sideSpeed: number;
     sideEach: number;
+    /** The momentum the gas carries off along its facing, kg m/s. */
+    gas: number;
 }
 
-/** A burst's speed ahead and its pieces' masses, filled by `burstOf` without allocating. */
-const BURST = { speed: 0, each: 0, back: 0, backSpeed: 0, focus: 0, sides: false };
+/** A burst's speeds and its pieces' masses, filled by `burstOf` without allocating. */
+const BURST = { speed: 0, each: 0, slugSpeed: 0, slugEach: 0, back: 0, backSpeed: 0, focus: 0, sides: false, gas: 0 };
 
-function burstOf(fragments: number, spread: number, casing: number, energy: number): typeof BURST {
+function burstOf(fragments: number, spread: number, casing: number, charge: number): typeof BURST {
+    const energy = charge * EXPLOSIVE_YIELD;
     if (fragments === 1) {
-        // Slug and backblast take equal energy, and the slug the opposite of the momentum of everything
-        // else: spread across its cone, the backblast is heavier and slower than the slug.
+        // Every mass is set by its share, and every speed is a share of the jet's: the yield, less what the
+        // gas carrying off the momentum along the axis takes, decides that.
+        const liner = WARHEAD_LINER_SHARE * casing;
+        const jet = WARHEAD_JET_SHARE * liner;
+        const slug = liner - jet;
         const n = WARHEAD_BACKBLAST_FRAGMENTS;
-        const along = n * BACKBLAST_ALONG - SLUG_SIDE_ALONG;
-        const back = casing / ((along * along) / n + n + SLUG_SIDE_MASS);
-        const backSpeed = back > 0 ? sqrt((2 * energy) / (back * (2 * n + SLUG_SIDE_ENERGY))) : 0;
+        const back = (casing - liner) / (n + SLUG_SIDE_MASS);
+        const k = WARHEAD_CASING_SPEED;
+        const s = WARHEAD_SLUG_SPEED;
+        const backEnergy = back * k * k * (n + SLUG_SIDE_ENERGY);
+        const along = jet + slug * s - back * k * (n * BACKBLAST_ALONG - SLUG_SIDE_ALONG);
+        const gasEnergy = charge > 0 ? (along * along) / charge : 0;
+        const ahead = jet + slug * s * s;
+        const total = ahead + backEnergy + gasEnergy;
+        const speed = total > 0 && charge > 0 ? sqrt((2 * energy) / total) : 0;
+        BURST.speed = speed;
+        BURST.each = jet;
+        BURST.slugSpeed = s * speed;
+        BURST.slugEach = slug;
         BURST.back = back;
-        BURST.backSpeed = backSpeed;
-        BURST.each = (back * along * along) / n;
-        BURST.speed = along > 0 ? (n * backSpeed) / along : 0;
-        BURST.focus = (2 * n) / (2 * n + SLUG_SIDE_ENERGY);
+        BURST.backSpeed = k * speed;
+        BURST.focus = total > 0 ? ahead / total : 0;
         BURST.sides = true;
+        BURST.gas = -along * speed;
         return BURST;
     }
     const sides = spread / 2 < PI / 2;
@@ -3492,35 +3526,42 @@ function burstOf(fragments: number, spread: number, casing: number, energy: numb
     const arcs = 2 * fragments;
     const each = casing / (arcs + sideMass);
     BURST.each = each;
+    BURST.slugSpeed = 0;
+    BURST.slugEach = 0;
     BURST.back = each;
     BURST.speed = each > 0 ? sqrt((2 * energy) / (each * (arcs + sideEnergy))) : 0;
     BURST.backSpeed = BURST.speed;
     BURST.focus = arcs / (arcs + sideEnergy);
     BURST.sides = sides;
+    BURST.gas = 0;
     return BURST;
 }
 
 /**
  * What a warhead with `casing` kg of walls left and `charge` kg of fuel in it
- * throws, by the Gurney balance `½ m v² = E` over all of it. Full, undamaged, when not said.
+ * throws, by the Gurney balance `½ m v² = E` over all of it, the gas included.
+ * Full, undamaged, when not said.
  */
 export function warheadBurst(spec: ModuleSpec, stats: ModuleStats, casing = stats.structureMass, charge = stats.fuel): WarheadBurst {
     const fragments = warheadFragments(spec);
     const spread = warheadSpread(spec);
-    const energy = charge * EXPLOSIVE_YIELD;
-    const burst = burstOf(fragments, spread, casing, energy);
+    const burst = burstOf(fragments, spread, casing, charge);
     return {
         fragments,
         spread,
         focus: burst.focus,
-        energy,
+        energy: charge * EXPLOSIVE_YIELD,
+        charge,
         casing,
         speed: burst.speed,
         each: burst.each,
+        slugSpeed: burst.slugSpeed,
+        slugEach: burst.slugEach,
         backSpeed: burst.backSpeed,
         backEach: burst.back,
         sideSpeed: burst.sides ? burst.backSpeed : 0,
         sideEach: burst.sides ? burst.back : 0,
+        gas: burst.gas,
     };
 }
 
@@ -3533,7 +3574,7 @@ export function warheadFragments(spec: ModuleSpec): number {
 /** How fast `warheadBurst`'s fragments ahead leave, m/s, without building the rest of it. */
 export function warheadBurstSpeed(spec: ModuleSpec, casing: number, charge: number): number {
     if (!(casing > 0)) return 0;
-    return burstOf(warheadFragments(spec), warheadSpread(spec), casing, charge * EXPLOSIVE_YIELD).speed;
+    return burstOf(warheadFragments(spec), warheadSpread(spec), casing, charge).speed;
 }
 
 /**

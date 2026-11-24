@@ -778,15 +778,19 @@ inside any one file is not contiguous.
   it yields is what it holds** (`EXPLOSIVE_YIELD` a kilogram), so a torpedo that has burnt into its warhead hits
   weaker. **It always throws both ways, and all round.** A spray throws its casing as `fragments` rounds
   across its `spread` about its facing and as many the same way behind it, never narrower than they need
-  (`SPREAD_PER_FRAGMENT`, 10° for 64); a slug, one fragment, a shaped charge's, goes straight ahead, and a
-  backblast of 16 (`WARHEAD_BACKBLAST_FRAGMENTS`) over 60° behind it, a spray's lobe, with the slug's
-  energy. Outside the arcs, 32 more (`WARHEAD_SIDE_FRAGMENTS`) go round the turn, each as heavy and as
-  fast as an arc's edge fragment, a slug's backblast piece, times a grade that eases from one there to a
+  (`SPREAD_PER_FRAGMENT`, 10° for 64); a slug, one fragment, is a shaped charge: two fifths of its casing is its liner
+  (`WARHEAD_LINER_SHARE`), a quarter of which goes straight ahead as a jet, the fastest thing it throws
+  (`WARHEAD_JET_SHARE`), and the rest after it as a heavy slug at a tenth of the jet's speed
+  (`WARHEAD_SLUG_SPEED`); the rest of its casing bursts at a fifth of the jet's speed
+  (`WARHEAD_CASING_SPEED`), as a back plate of 16 (`WARHEAD_BACKBLAST_FRAGMENTS`) over 60° behind it and its
+  sides. Outside the arcs, 32 more (`WARHEAD_SIDE_FRAGMENTS`) go round the turn, each as heavy and as
+  fast as an arc's edge fragment, a slug's back plate piece, times a grade that eases from one there to a
   quarter broadside (`warheadSideGrade`, `WARHEAD_SIDE_FLOOR`), as though the casing thinned and the blast
   weakened towards the sides, with no step where the arcs end. A slug's go on down ahead of broadside to a
   quarter of that beside the slug (`WARHEAD_SLUG_FORE`), since a shaped charge throws little forward but
-  its slug, which takes up the momentum of all the rest. The casing and the yield are shared over all of it by
-  the Gurney balance (`warheadBurst`); a 60° spray of 16 puts nearly three quarters of its yield into its
+  its liner. **The charge goes to gas**, which carries off whatever momentum the fragments do not balance,
+  backwards from a shaped charge, and the yield pays for that as well as for the fragments, by the Gurney
+  balance (`warheadBurst`); a 60° spray of 16 puts nearly three quarters of its yield into its
   arcs. So `reinforcement`, which sets the casing, trades speed for weight, and a warhead
   mounted sideways still harms its carrier. **It is a weapon like a
   gun's mount** (`DesignWarhead`, beside rather than among `design.turrets`, which are guns): its mount's doctrine
@@ -808,8 +812,8 @@ inside any one file is not contiguous.
   off**, the charge is burnt; its fragments land in layers as a shell's do, from the warhead's own layer (a
   committed craft's is the hull layer, where it rams), and a lone one always in that layer. **All the harm it
   does is its fragments**, and they strike its own ship as they strike anything, sparing only the warhead
-  they came out of: a module shields what is behind it, and one mounted inside a hull wrecks it. Thrown
-  both ways, they carry off no momentum the hull must keep. No friend check spares a ship beside it, so a
+  they came out of: a module shields what is behind it, and one mounted inside a hull wrecks it. What
+  they and the gas carry off balances, so the hull keeps none of it. No friend check spares a ship beside it, so a
   torpedo is dangerous to be near. **Damage**: its fuze is dead at half
   its integrity (`DUD_INTEGRITY`); any damage to one holding charge may set it off wherever it points
   (`cookOff`, 5% while sound, certain as it is destroyed and always if a blow shatters it), one setting off

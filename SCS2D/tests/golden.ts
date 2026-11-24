@@ -66,12 +66,12 @@ export const GOLDEN: Record<ScenarioName, string> = {
     torpedoes: "7f76a9ef",
     // ships=3 inFlight=0 p.fired=2 p.hits=94 b.fired=0 b.hits=0 contacts=12 bumps=0 crashes=2 severed=0 culled=0 scrap=72.6t · 63.5 µs/step
     torpedoesGunPlatform: "8cd9d223",
-    // ships=8 inFlight=0 p.fired=0 p.hits=260 b.fired=7 b.hits=29 contacts=3 bumps=0 crashes=2 severed=0 culled=0 scrap=23.5t · 133.0 µs/step
-    torpedoesWarhead: "cd58fce1",
-    // ships=6 inFlight=0 p.fired=0 p.hits=193 b.fired=6 b.hits=53 contacts=5 bumps=0 crashes=1 severed=0 culled=0 scrap=13.6t · 100.2 µs/step
-    torpedoesShaped: "3829a32a",
-    // ships=6 inFlight=0 p.fired=21 p.hits=227 b.fired=0 b.hits=0 contacts=44 bumps=0 crashes=2 severed=0 culled=0 scrap=23.2t · 171.7 µs/step
-    torpedoBoatTorpedoes: "a45dd312",
+    // ships=8 inFlight=0 p.fired=0 p.hits=260 b.fired=7 b.hits=29 contacts=3 bumps=0 crashes=2 severed=0 culled=0 scrap=23.5t · 138.9 µs/step
+    torpedoesWarhead: "fd6fe40e",
+    // ships=10 inFlight=0 p.fired=0 p.hits=159 b.fired=7 b.hits=170 contacts=3 bumps=0 crashes=2 severed=0 culled=0 scrap=7.0t · 115.7 µs/step
+    torpedoesShaped: "e2e50950",
+    // ships=6 inFlight=0 p.fired=21 p.hits=227 b.fired=0 b.hits=0 contacts=44 bumps=0 crashes=2 severed=0 culled=0 scrap=23.2t · 166.3 µs/step
+    torpedoBoatTorpedoes: "5abaa3e2",
     // ships=5 inFlight=12 p.fired=134 p.hits=221 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=1 culled=0 scrap=21.3t · 77.4 µs/step
     disarm: "54a930fd",
     // ships=3 inFlight=0 p.fired=46 p.hits=40 b.fired=37 b.hits=1945 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=50.0t · 75.0 µs/step

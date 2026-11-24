@@ -558,13 +558,25 @@ export function moduleReadout(
     if (spec.kind === "warhead") {
         const burst = warheadBurst(spec, stats);
         add({ name: "Yield", value: megajoules(burst.energy), title: "Full: it is the fuel it holds" });
-        add({
-            name: "Fragments at",
-            under: "spread",
-            value: `${n(burst.speed, 0)} m/s`,
-            title: `Ahead and the same behind, taking ${n(burst.focus * 100, 0)}% of the yield between them`,
-        });
-        add({ name: "Each", under: "fragments", value: `${n(burst.each, 1)} kg`, sub: true });
+        if (burst.slugEach > 0) {
+            add({
+                name: "Jet at",
+                under: "fragments",
+                value: `${n(burst.speed, 0)} m/s`,
+                title: `Its liner's fastest part, taking ${n(burst.focus * 100, 0)}% of the yield with its slug`,
+            });
+            add({ name: "Each", value: `${n(burst.each, 1)} kg`, sub: true });
+            add({ name: "Slug at", value: `${n(burst.slugSpeed, 0)} m/s`, title: "The rest of its liner, following the jet" });
+            add({ name: "Each", value: `${n(burst.slugEach, 1)} kg`, sub: true });
+        } else {
+            add({
+                name: "Fragments at",
+                under: "spread",
+                value: `${n(burst.speed, 0)} m/s`,
+                title: `Ahead and the same behind, taking ${n(burst.focus * 100, 0)}% of the yield between them`,
+            });
+            add({ name: "Each", under: "fragments", value: `${n(burst.each, 1)} kg`, sub: true });
+        }
         if (burst.sideEach > 0) {
             add({
                 name: "All round at",

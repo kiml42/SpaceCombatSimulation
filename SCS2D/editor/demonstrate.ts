@@ -464,6 +464,7 @@ export class Demonstration {
         const n = burst.fragments;
         if (n === 1) {
             this.throwOne(x, y, facing, burst.speed, burst.each);
+            this.throwOne(x, y, facing, burst.slugSpeed, burst.slugEach);
             for (let k = 0; k < WARHEAD_BACKBLAST_FRAGMENTS; k++)
                 this.throwOne(x, y, facing + math.PI + backblastBearing(k), burst.backSpeed, burst.backEach);
         } else {

@@ -480,8 +480,9 @@ export function detonate(
     const n = burst.fragments;
 
     if (n === 1) {
-        // A slug ahead, and a backblast behind with the opposite of its momentum.
+        // Its liner ahead, as a jet and the slug following it, and its back plate behind.
         throwOne(projectiles, rng, i, b, m, facing, burst.speed, burst.each, true);
+        throwOne(projectiles, rng, i, b, m, facing, burst.slugSpeed, burst.slugEach, true);
         for (let k = 0; k < WARHEAD_BACKBLAST_FRAGMENTS; k++) {
             throwOne(projectiles, rng, i, b, m, facing + PI + backblastBearing(k, rng.nextFloat()), burst.backSpeed, burst.backEach, false);
         }
@@ -515,10 +516,10 @@ export function detonate(
         }
     }
 
-    // What little their momentum does not cancel to, the hull keeps the other way.
-    bodies.vx[b] = bodies.vx[b]! - BLAST.px * bodies.invMass[b]!;
-    bodies.vy[b] = bodies.vy[b]! - BLAST.py * bodies.invMass[b]!;
-    bodies.angularVel[b] = bodies.angularVel[b]! - (ox * BLAST.py - oy * BLAST.px) * bodies.invInertia[b]!;
+    // What their momentum does not cancel to, the gas carries off the other way.
+    ships.discardedPx -= BLAST.px;
+    ships.discardedPy -= BLAST.py;
+    ships.discardedL -= BLAST.x * BLAST.py - BLAST.y * BLAST.px;
     // The warhead is counted discarded when it goes, at its hull's velocity then;
     // its casing flew on, and is counted here instead, as it was before it flew.
     ships.discarded -= casing;

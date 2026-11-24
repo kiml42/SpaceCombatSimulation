@@ -191,18 +191,28 @@ describe("warhead", () => {
         expect(round.sideEach).toBe(0);
     });
 
-    it("throws a slug ahead, a backblast with its energy behind, and little else forward", () => {
+    it("throws a shaped charge's liner ahead as a light, fast jet and a heavy, slow slug, its gas taking up the momentum", () => {
         const stats = moduleStats({ ...HEAD, fragments: 1 });
-        const slug = warheadBurst({ ...HEAD, fragments: 1 }, stats);
-        let along = 0;
-        for (let k = 0; k < WARHEAD_BACKBLAST_FRAGMENTS; k++) along += Math.cos(backblastBearing(k));
-        const side = sides(slug);
-        // The slug takes up the momentum of the backblast and the sides together, with the backblast's energy.
-        expect(slug.each * slug.speed + side.along).toBeCloseTo(slug.backEach * slug.backSpeed * along, 6);
-        expect(0.5 * WARHEAD_BACKBLAST_FRAGMENTS * slug.backEach * slug.backSpeed ** 2).toBeCloseTo(0.5 * slug.each * slug.speed ** 2, 3);
-        expect(slug.each + WARHEAD_BACKBLAST_FRAGMENTS * slug.backEach + side.mass).toBeCloseTo(slug.casing, 9);
-        expect(slug.each * slug.speed ** 2 + side.energy).toBeCloseTo(slug.energy, 0);
-        // Its sides grade down from a backblast piece; ahead of broadside, below a spray's broadside, least beside the slug.
+        const burst = warheadBurst({ ...HEAD, fragments: 1 }, stats);
+        let back = 0;
+        for (let k = 0; k < WARHEAD_BACKBLAST_FRAGMENTS; k++) back += Math.cos(backblastBearing(k));
+        const side = sides(burst);
+        // Every kilogram of its casing.
+        expect(burst.each + burst.slugEach + WARHEAD_BACKBLAST_FRAGMENTS * burst.backEach + side.mass).toBeCloseTo(burst.casing, 9);
+        // Momentum along its facing: what the fragments do not balance, the gas carries off.
+        const along = burst.each * burst.speed + burst.slugEach * burst.slugSpeed - burst.backEach * burst.backSpeed * back + side.along;
+        expect(along + burst.gas).toBeCloseTo(0, 6);
+        // Every joule: the fragments', and the gas's in carrying that.
+        const fragments =
+            burst.each * burst.speed ** 2 +
+            burst.slugEach * burst.slugSpeed ** 2 +
+            WARHEAD_BACKBLAST_FRAGMENTS * burst.backEach * burst.backSpeed ** 2;
+        expect(0.5 * fragments + side.energy + burst.gas ** 2 / (2 * burst.charge)).toBeCloseTo(burst.energy, 0);
+        // The jet is the fastest thing it throws, and lighter than the slug behind it.
+        expect(burst.speed).toBeGreaterThan(burst.backSpeed);
+        expect(burst.slugSpeed).toBeLessThan(burst.speed);
+        expect(burst.each).toBeLessThan(burst.slugEach);
+        // Its sides grade down from a back plate piece; ahead of broadside, below a spray's broadside, least beside the slug.
         expect(warheadSideGrade(1, 0)).toBeGreaterThan(0.95);
         for (let k = 0; k < WARHEAD_SIDE_FRAGMENTS / 2; k++) {
             if (warheadSideBearing(1, 0, k) < Math.PI / 2) expect(warheadSideGrade(1, k)).toBeLessThanOrEqual(WARHEAD_SIDE_FLOOR);
