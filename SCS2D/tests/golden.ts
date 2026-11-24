@@ -64,13 +64,17 @@ export const GOLDEN: Record<ScenarioName, string> = {
     superSwarm: "1e64d1ee",
     // ships=9 inFlight=0 p.fired=0 p.hits=756 b.fired=4 b.hits=784 contacts=334 bumps=1 crashes=4 severed=4 culled=0 scrap=62.2t · 137.7 µs/step
     torpedoes: "26145575",
+    // ships=9 inFlight=0 p.fired=0 p.hits=278 b.fired=3 b.hits=23 contacts=6 bumps=0 crashes=4 severed=0 culled=0 scrap=23.2t · 164.5 µs/step
+    torpedoesWarhead: "4006ebdb",
+    // ships=7 inFlight=0 p.fired=0 p.hits=365 b.fired=6 b.hits=74 contacts=5 bumps=0 crashes=0 severed=0 culled=0 scrap=18.7t · 117.7 µs/step
+    torpedoesShaped: "54ac0ae0",
     // ships=4 inFlight=0 p.fired=3 p.hits=89 b.fired=0 b.hits=0 contacts=19 bumps=0 crashes=3 severed=1 culled=0 scrap=60.8t · 104.4 µs/step
     torpedoesGunPlatform: "21c429f8",
-    // ships=9 inFlight=0 p.fired=0 p.hits=278 b.fired=3 b.hits=23 contacts=6 bumps=0 crashes=4 severed=0 culled=0 scrap=23.2t · 114.0 µs/step
-    torpedoesWarhead: "4006ebdb",
-    // ships=7 inFlight=0 p.fired=0 p.hits=365 b.fired=6 b.hits=74 contacts=5 bumps=0 crashes=0 severed=0 culled=0 scrap=18.7t · 102.8 µs/step
-    torpedoesShaped: "54ac0ae0",
-    // ships=6 inFlight=0 p.fired=22 p.hits=155 b.fired=0 b.hits=0 contacts=37 bumps=0 crashes=1 severed=0 culled=0 scrap=17.0t · 156.0 µs/step
+    // ships=3 inFlight=0 p.fired=1 p.hits=356 b.fired=0 b.hits=0 contacts=203 bumps=1 crashes=1 severed=1 culled=0 scrap=68.3t · 121.5 µs/step
+    torpedoesWarheadGunPlatform: "2fa5910c",
+    // ships=10 inFlight=0 p.fired=2 p.hits=114 b.fired=0 b.hits=0 contacts=5 bumps=0 crashes=1 severed=0 culled=0 scrap=27.1t · 144.7 µs/step
+    torpedoesShapedGunPlatform: "7121cd95",
+    // ships=6 inFlight=0 p.fired=22 p.hits=155 b.fired=0 b.hits=0 contacts=37 bumps=0 crashes=1 severed=0 culled=0 scrap=17.0t · 175.6 µs/step
     torpedoBoatTorpedoes: "a9225e16",
     // ships=5 inFlight=21 p.fired=144 p.hits=260 b.fired=0 b.hits=0 contacts=1 bumps=0 crashes=0 severed=1 culled=0 scrap=57.4t · 95.6 µs/step
     disarm: "376182d9",
