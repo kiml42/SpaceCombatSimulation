@@ -297,7 +297,7 @@ describe("warhead", () => {
         // Left to its kind's default, it goes off close.
         const { targeting: _, ...plain } = HEAD;
         const close = compileBlueprint({ ...CARRIER, modules: [...CARRIER.modules.slice(0, 2), plain] });
-        expect(close.warheads[0]!.targeting.fireRange).toBe(0.05);
+        expect(close.warheads[0]!.targeting.fireRange).toBe(0.1);
         // A main one is what the ship closes to, as a main gun is.
         expect(design.reach).toBeGreaterThan(0);
         const spare = compileBlueprint({ ...CARRIER, modules: [...CARRIER.modules.slice(0, 2), { ...HEAD, main: false }] });
