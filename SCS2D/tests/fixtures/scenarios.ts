@@ -22,6 +22,7 @@ import { rivalMines } from "../../scenarios/rivalMines.js";
 import type { Battle } from "../../scenarios/types.js";
 import { beamDuel } from "../../scenarios/beamDuel.js";
 import { railDuel } from "../../scenarios/railDuel.js";
+import { armour } from "../../scenarios/armour.js";
 import { lanceDuel } from "../../scenarios/lanceDuel.js";
 import { soloOrdering } from "../../scenarios/ordering.js";
 import { hooked } from "../../scenarios/hooked.js";
@@ -343,6 +344,17 @@ export function duelScenario(seed = 20260905): ScenarioRun {
 /** The duel with rail guns on the corvettes: what pins a rail gun's charging, flight and hits. */
 export function railDuelScenario(seed = 20260905): ScenarioRun {
     const run = railDuel(seed);
+    return {
+        step: () => run.step(),
+        checksum: () =>
+            checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+        describe: () => describeBattle(run),
+    };
+}
+
+/** One corvette of each kind against the Gun Platform reinforced 6: what pins armour plating against each weapon. */
+export function armourScenario(corvette: number, seed = 20260905): ScenarioRun {
+    const run = armour(seed, corvette);
     return {
         step: () => run.step(),
         checksum: () =>
@@ -698,6 +710,10 @@ export const SCENARIOS = {
     gunnery: { steps: 3_000, build: () => gunneryScenario() },
     duel: { steps: 3_000, build: () => duelScenario() },
     railDuel: { steps: 3_000, build: () => railDuelScenario() },
+    armourCorvettes: { steps: 3_000, build: () => armourScenario(0) },
+    armourBeamCorvettes: { steps: 3_000, build: () => armourScenario(1) },
+    armourRailCorvettes: { steps: 3_000, build: () => armourScenario(2) },
+    armourLanceCorvettes: { steps: 3_000, build: () => armourScenario(3) },
     lanceDuel: { steps: 3_000, build: () => lanceDuelScenario() },
     beamDuel: { steps: 3_000, build: () => beamDuelScenario() },
     binary: { steps: 3_000, build: () => binaryScenario() },

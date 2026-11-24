@@ -59,7 +59,7 @@ describe("module ordering, one battle each", () => {
         // Few rounds, but each bursts into fragments that hit as well.
         for (const outcome of [control!, kinds!, assembled!]) {
             expect(outcome.fired).toBeGreaterThan(40);
-            expect(outcome.hits).toBeGreaterThan(100);
+            expect(outcome.hits).toBeGreaterThan(80);
             // Started at (-1800, -240): a ship that never manoeuvred could not be a
             // kilometre and a half from there. Distance rather than a crossing of
             // the origin, because how far it has to *close* is a consequence of how
