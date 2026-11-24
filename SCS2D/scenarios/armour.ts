@@ -1,6 +1,6 @@
 import { compileBlueprint, math, type Blueprint, type Placement } from "../sim/index.js";
 import type { Battle } from "./types.js";
-import { CROSSING, SIDE_WELL, makeBattle } from "./battle.js";
+import { makeBattle } from "./battle.js";
 import { BEAM_CORVETTE, CORVETTE, GUN_PLATFORM, LANCE_CORVETTE, RAIL_CORVETTE } from "./blueprints.js";
 
 /** `from` with every module's walls reinforced `reinforcement` times: its armour plates and all the rest. */
@@ -25,18 +25,23 @@ export const ARMOUR_CORVETTES: readonly (readonly [string, Blueprint])[] = [
     ["Lance Corvettes", LANCE_CORVETTE],
 ];
 
+/** How far off the platform's bow plate the corvette starts: inside every corvette's reach, the lance's included. */
+const ARMOUR_RANGE = 250;
+
 /**
- * Two corvettes of one kind against the Gun Platform, its broad structure
- * plates and every other module reinforced to `reinforcement`, laid out as the
- * duel is: what each kind of weapon does to armour plating, and what gets through.
+ * One corvette of a kind against the Gun Platform, its broad structure plates
+ * and every other module reinforced to `reinforcement`: what each kind of
+ * weapon does to armour plating, and what gets through.
+ *
+ * No well, and the corvette starting in range at rest, its bow on the
+ * platform's bow plate, so every setting fights the same fight.
  */
 export function armour(seed = 20260905, corvette = 0, reinforcement = 6): Battle {
-    return makeBattle({ seed, wells: [SIDE_WELL] }, (ships, world) => {
+    return makeBattle({ seed }, (ships, world) => {
         const attacker = compileBlueprint(ARMOUR_CORVETTES[corvette]![1]);
         const target = compileBlueprint(reinforced(GUN_PLATFORM, reinforcement));
 
-        ships.spawn(world, { design: attacker, ...CROSSING.west, team: 0 });
-        ships.spawn(world, { design: attacker, x: 2000, y: -740, angle: math.HALF_PI / 2, vx: 0, vy: 90, team: 0 });
-        ships.spawn(world, { design: target, ...CROSSING.east, team: 1 });
+        ships.spawn(world, { design: attacker, x: -ARMOUR_RANGE, y: 0, angle: 0, team: 0 });
+        ships.spawn(world, { design: target, x: 0, y: 0, angle: math.PI, team: 1 });
     });
 }

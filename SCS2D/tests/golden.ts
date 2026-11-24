@@ -44,14 +44,14 @@ export const GOLDEN: Record<ScenarioName, string> = {
     duel: "f4f697cf",
     // ships=3 inFlight=2 p.fired=45 p.hits=87 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=69.5t · 120.4 µs/step
     railDuel: "7717e9cf",
-    // ships=3 inFlight=15 p.fired=22 p.hits=65 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=41.0t · 208.5 µs/step
-    armourCorvettes: "6c3ef5ef",
-    // ships=3 inFlight=0 p.fired=10 p.hits=15 b.fired=52 b.hits=2613 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=20.4t · 161.5 µs/step
-    armourBeamCorvettes: "68df3182",
-    // ships=3 inFlight=0 p.fired=6 p.hits=8 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=143.4t · 97.8 µs/step
-    armourRailCorvettes: "e4b13388",
-    // ships=3 inFlight=0 p.fired=10 p.hits=9 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=2.1t · 81.5 µs/step
-    armourLanceCorvettes: "091bbaa6",
+    // ships=2 inFlight=0 p.fired=21 p.hits=66 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=43.3t · 64.0 µs/step
+    armourCorvettes: "6a36b980",
+    // ships=2 inFlight=0 p.fired=12 p.hits=26 b.fired=24 b.hits=1064 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=14.8t · 77.2 µs/step
+    armourBeamCorvettes: "f19e065b",
+    // ships=2 inFlight=0 p.fired=1 p.hits=1 b.fired=0 b.hits=0 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=39.9t · 18.1 µs/step
+    armourRailCorvettes: "52803faa",
+    // ships=2 inFlight=0 p.fired=12 p.hits=10 b.fired=3 b.hits=285 contacts=0 bumps=0 crashes=0 severed=0 culled=0 scrap=46.8t · 56.0 µs/step
+    armourLanceCorvettes: "8f5c6e59",
     // ships=3 inFlight=11 p.fired=145 p.hits=211 b.fired=2 b.hits=241 contacts=235 bumps=0 crashes=0 severed=2 culled=0 scrap=126.4t · 162.9 µs/step
     lanceDuel: "c083240b",
     // ships=7 inFlight=0 p.fired=0 p.hits=5 b.fired=41 b.hits=3809 contacts=90 bumps=0 crashes=2 severed=4 culled=0 scrap=60.8t · 126.4 µs/step
