@@ -27,19 +27,20 @@ describe("a salvo of torpedoes", () => {
         const ships = battle.ships;
         const salvo = Array.from({ length: count }, (_, k) => k + 1);
         const hit = new Set<number>();
-        const downed = new Set<number>();
         for (let i = 0; i < 3000; i++) {
             battle.step();
-            // Landed if it dealt the gunship anything, which a torpedo spent on it as rounds still does, though gone.
+            // Landed if it dealt the gunship anything, which a torpedo spent on it as rounds still does, though gone:
+            // its wreckage strikes the step after the ram that wrecks it.
             const credit = battle.credit;
             for (let h = 0; h < credit.count; h++) {
                 const pilot = ships.attackerOf(credit, h);
-                if (salvo.includes(pilot) && !downed.has(pilot) && ships.pilotAt(credit.victim[h]!) === 0) hit.add(pilot);
+                if (salvo.includes(pilot) && ships.pilotAt(credit.victim[h]!) === 0) hit.add(pilot);
             }
-            for (const t of salvo) if (!hit.has(t) && (!ships.isAlive(t) || !ships.hasControl(t))) downed.add(t);
         }
+        // Downed if it is gone or out of control without ever landing.
+        const downed = salvo.filter((t) => !hit.has(t) && (!ships.isAlive(t) || !ships.hasControl(t)));
         expect(hit.size).toBeGreaterThan(0);
-        expect(downed.size).toBeGreaterThan(0);
+        expect(downed.length).toBeGreaterThan(0);
     });
 });
 

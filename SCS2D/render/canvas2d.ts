@@ -638,11 +638,6 @@ function drawShip(
         }
 
         const bearing = ship.turretBearings[t] ?? 0;
-        if (solid) {
-            if (spec.kind === "plasmaLance") drawSparks(ctx, ship, t, design.modules[module]!);
-            drawLoad(ctx, ship, t, mx, my, bearing);
-            continue;
-        }
         const dirX = cos(bearing);
         const dirY = sin(bearing);
         const gun = design.turrets[t]!.gun;
@@ -650,6 +645,20 @@ function drawShip(
         const spacing = gun.barrelSpacing;
         const hull = isHullMount(spec.kind) ? hullMountGeometry(spec) : null;
         const beamLenses = spec.kind === "hullBeam";
+        // A solid model has its own turret and barrels: what is left is what it does not model.
+        if (solid) {
+            if (spec.kind === "plasmaLance") drawSparks(ctx, ship, t, design.modules[module]!);
+            if (beamLenses && hull !== null) {
+                fx?.on(fx.barrelLift(ship, t) - ON_TOP);
+                if (light !== undefined) inLight(ctx, light);
+                ctx.fillStyle = colours.highlight ?? colours.pivot;
+                lensMounts(ctx, hull, count, spacing, mx, my, rest);
+                if (light !== undefined) ctx.restore();
+                fx?.flat();
+            }
+            drawLoad(ctx, ship, t, mx, my, bearing);
+            continue;
+        }
 
         // A lance has no mount to draw over its module, only the field it is charging.
         if (spec.kind === "plasmaLance") {
@@ -682,25 +691,7 @@ function drawShip(
             if (wearShows(design.radius, metresToPx)) wearDome(ctx, ship, module, bearing, face * 0.5);
             ctx.restore();
         } else if (beamLenses) {
-            // Each lens on a disc of its own that it turns on, as wide as the lens
-            // sweeps, and a stalk back from it to the block's face.
-            const back = hull.trains - hull.pivot;
-            const radius = lensDiscRadius(hull);
-            const restX = cos(rest);
-            const restY = sin(rest);
-            for (let k = 0; k < count; k++) {
-                const lat = count > 1 ? (k - (count - 1) * 0.5) * spacing : 0;
-                const cx = mx - restY * lat;
-                const cy = my + restX * lat;
-                ctx.beginPath();
-                ctx.arc(cx, cy, radius, 0, TAU);
-                ctx.fill();
-                ctx.save();
-                ctx.translate(cx, cy);
-                ctx.rotate(rest);
-                ctx.fillRect(-back, -hull.outletWidth * BEAM_STALK_WIDTH * 0.5, back, hull.outletWidth * BEAM_STALK_WIDTH);
-                ctx.restore();
-            }
+            lensMounts(ctx, hull, count, spacing, mx, my, rest);
         }
 
         ctx.strokeStyle = BARREL;
@@ -752,6 +743,38 @@ function drawShip(
     }
     drawPlumes(ctx, ship, light);
     drawLeaks(ctx, ship, light);
+}
+
+/**
+ * Each of a hull beam's lenses on a disc of its own that it turns on, as wide
+ * as the lens sweeps, and a stalk back from it to the block's face.
+ */
+function lensMounts(
+    ctx: CanvasRenderingContext2D,
+    hull: ReturnType<typeof hullMountGeometry>,
+    count: number,
+    spacing: number,
+    mx: number,
+    my: number,
+    rest: number,
+): void {
+    const back = hull.trains - hull.pivot;
+    const radius = lensDiscRadius(hull);
+    const restX = cos(rest);
+    const restY = sin(rest);
+    for (let k = 0; k < count; k++) {
+        const lat = count > 1 ? (k - (count - 1) * 0.5) * spacing : 0;
+        const cx = mx - restY * lat;
+        const cy = my + restX * lat;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, TAU);
+        ctx.fill();
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(rest);
+        ctx.fillRect(-back, -hull.outletWidth * BEAM_STALK_WIDTH * 0.5, back, hull.outletWidth * BEAM_STALK_WIDTH);
+        ctx.restore();
+    }
 }
 
 /** Steps a gauge's level is drawn in: each a picture kept between frames (`keep`), so it is redrawn only as it moves a step. */
@@ -1419,9 +1442,12 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
         tankFills.offset = k * FILL_KEPT;
         const dx = ship.leakDirX![k]!;
         const dy = ship.leakDirY![k]!;
-        // At deck height, so under the thick modules standing over it.
-        batch ??= batches.call(ctx, image, false, true);
+        // At deck height, so under the thick modules standing over it; in 3D, at its module's height,
+        // so it hides what is behind it and is hidden by what is in front.
+        batch ??= batches.call(ctx, image, false, fx === null);
         const into = batch;
+        const module = ship.leakModule?.[k] ?? -1;
+        fx?.on(module >= 0 ? fx.moduleLift(ship, module) : fx.shipLift(ship));
         eachPuff(
             hole,
             xs[k]!,
@@ -1441,6 +1467,7 @@ function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView, light?: Light)
             poseAgo,
         );
     }
+    fx?.flat();
     batch?.end();
     ctx.restore();
 }
@@ -1552,10 +1579,11 @@ function drawLoad(ctx: CanvasRenderingContext2D, ship: ShipView, t: number, mx: 
 }
 
 /**
- * Where each warhead will go off at: the cone its fragments fly in at what it
- * is going for, its own velocity added, out to their reach, as a gun's wedge
- * is drawn; and a line the way it points. Fouled once its fuze is dead
- * (`DUD_INTEGRITY`).
+ * Where each warhead will go off: the cone its fragments must be thrown in at
+ * what it is going for, out to their reach, as a gun's wedge is drawn, and a
+ * line the way its nose points; for a spray, which throws both ways, one the
+ * way its tail points too, and it goes off with either in the cone. At rest,
+ * its spread each way it throws. Fouled once its fuze is dead (`DUD_INTEGRITY`).
  */
 function drawWarheadTriggers(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
     const design = ship.currentStructure;
@@ -1569,30 +1597,37 @@ function drawWarheadTriggers(ctx: CanvasRenderingContext2D, ship: ShipView, metr
         const head = design.warheads[w]!;
         const module = design.modules[head.module];
         if (module === undefined) continue;
-        const facing = ship.angle + module.angle;
-        const centre = cones?.[3 * w] ?? facing;
-        const half = cones?.[3 * w + 1] ?? (head.spread >= TAU ? Infinity : head.spread / 2);
-        const reach = cones?.[3 * w + 2] ?? head.reach;
-        if (!(reach > 0)) continue;
         const x = ship.x + module.x * c - module.y * s;
         const y = ship.y + module.x * s + module.y * c;
         const tint = (ship.integrity[head.module] ?? 1) <= DUD_INTEGRITY ? TRIGGER_FOULED : TRIGGER_OFF;
         ctx.fillStyle = tint;
         ctx.strokeStyle = tint;
-        ctx.beginPath();
-        // All round, a ring with no edges to draw; else a wedge from the warhead.
-        if (half === Infinity) ctx.arc(x, y, reach, 0, TAU);
-        else {
-            ctx.moveTo(x, y);
-            ctx.arc(x, y, reach, centre - half, centre + half);
-            ctx.closePath();
+        const nose = ship.angle + module.angle;
+        const centre = cones?.[4 * w] ?? nose;
+        const half = cones?.[4 * w + 1] ?? (head.spread >= TAU ? Infinity : head.spread / 2);
+        const reach = cones?.[4 * w + 2] ?? head.reach;
+        const live = cones?.[4 * w + 3] === 1;
+        const spray = head.spread > 0;
+        if (!(reach > 0)) continue;
+        for (let side = 0; side < (spray && !live ? 2 : 1); side++) {
+            ctx.beginPath();
+            // All round, a ring with no edges to draw; else a wedge from the warhead.
+            if (half === Infinity) ctx.arc(x, y, reach, 0, TAU);
+            else {
+                ctx.moveTo(x, y);
+                ctx.arc(x, y, reach, centre + side * PI - half, centre + side * PI + half);
+                ctx.closePath();
+            }
+            ctx.fill();
+            ctx.stroke();
         }
-        ctx.fill();
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x + cos(facing) * reach, y + sin(facing) * reach);
-        ctx.stroke();
+        for (let side = 0; side < (spray ? 2 : 1); side++) {
+            const along = nose + side * PI;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + cos(along) * reach, y + sin(along) * reach);
+            ctx.stroke();
+        }
     }
     ctx.restore();
 }

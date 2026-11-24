@@ -13,7 +13,6 @@ import {
     MeshLambertMaterial,
     NoColorSpace,
     PCFShadowMap,
-    PointLight,
     Quaternion,
     RepeatWrapping,
     Scene,
@@ -21,6 +20,7 @@ import {
     type WebGLRenderer,
 } from "three";
 import {
+    SCAR_VIEW_STRIDE,
     DECK_HEIGHT,
     domeRadius,
     HULL_LAYER,
@@ -42,6 +42,10 @@ import { parseColour } from "../pixiCanvas.js";
 import { fighterColours, shipColours, teamLivery } from "../teams.js";
 import { patternColour, patternTile, patternTransform, tileKey, type Affine } from "../livery.js";
 import { WEAR_TILE, wearLevel, wearSeed, wearTile, wearTransform } from "../wear.js";
+import { boundsOf } from "../hullLayer.js";
+import { holeMarkWidth, leakHoleShapes, scratchShows } from "../leakHoles.js";
+import { MIN_SCAR_PX, scarShapes, scarWidth, type ScarShape } from "../scars.js";
+import { DynamicLights } from "./dynamicLights.js";
 import { triangulate } from "./threeCanvas.js";
 
 /**
@@ -86,8 +90,6 @@ const BELL_WALL = 0.25;
 const THROAT = [0, 0, 0] as const;
 /** How far a livery's band stands proud of the pump it goes round, as a share of its radius. */
 const BAND_PROUD = 1.02;
-/** Dynamic lights shed as point lights: the brightest this many. */
-const POINT_LIGHTS = 8;
 
 class Builder {
     readonly pos: number[] = [];
@@ -825,18 +827,130 @@ interface Kept {
     group: Group;
     model: Mesh;
     worn: Mesh[];
+    /** Its scars and leaks' holes, and what they were built from. */
+    marks: Mesh | null;
+    marksKey: string;
+}
+
+/** How far above a module's top its scars and holes lie, so the top does not hide them. */
+const MARK_ABOVE = 0.01;
+const markShapes: ScarShape[] = [];
+
+/** What a ship's marks are built from: its scars, its leaks' holes, and the zoom's band, which decides what is too small to draw. */
+function marksKeyOf(ship: ShipView, band: number): string {
+    let key = `${designId(ship.currentStructure)}|${ship.scarsVersion ?? 0}|${band}`;
+    const xs = ship.leakX;
+    for (let k = 0; xs !== undefined && k < xs.length; k++) {
+        key += `|${ship.leakModule?.[k] ?? -1},${Math.round(xs[k]! * 1000)},${Math.round(ship.leakY![k]! * 1000)},${Math.round(ship.leakWidth![k]! * 1000)},${Math.round(scratchShows(ship, k) * 32)}`;
+    }
+    return key;
+}
+
+/**
+ * A ship's scars, and its leaks' holes in their patches of scratched plate, in
+ * its own frame, on the tops of the modules they are in, as Pixi lays them
+ * over its hull (render/hullLayer.ts): null where it has none to show.
+ */
+function marks(ship: ShipView, band: number): BufferGeometry | null {
+    const design = ship.currentStructure;
+    const least = MIN_SCAR_PX / 2 ** band;
+    const position: number[] = [];
+    const colour: number[] = [];
+    const lay = (i: number): void => {
+        const m = design.modules[i]!;
+        const z = moduleMiddle(design, i) + moduleDepth(design, i) / 2 + MARK_ABOVE;
+        const c = Math.cos(m.angle);
+        const s = Math.sin(m.angle);
+        for (const shape of markShapes) {
+            const r = ((shape.colour >> 16) & 0xff) / 255;
+            const g = ((shape.colour >> 8) & 0xff) / 255;
+            const b = (shape.colour & 0xff) / 255;
+            triangulate(shape.points, (x, y) => {
+                position.push(m.x + x * c - y * s, m.y + x * s + y * c, z);
+                colour.push(r, g, b, shape.alpha);
+            });
+        }
+    };
+    const marked = (i: number): boolean => {
+        const m = design.modules[i];
+        return m !== undefined && m.spec.kind !== "rock" && m.spec.kind !== "kernel" && !isFighterModule(design, i);
+    };
+    const scars = ship.scars ?? [];
+    for (let k = 0; k + SCAR_VIEW_STRIDE <= scars.length; k += SCAR_VIEW_STRIDE) {
+        const i = scars[k]!;
+        if (!marked(i) || ship.drawn?.[i] === false) continue;
+        const spec = design.modules[i]!.spec;
+        if (scarWidth(scars, k, spec) < least) continue;
+        // One landed off what it is held to, on a bell, would be squashed against its edge.
+        const box = boundsOf(spec);
+        const cx = (scars[k + 3]! + scars[k + 5]!) / 2;
+        const cy = (scars[k + 4]! + scars[k + 6]!) / 2;
+        if (cx < box.x0 || cx > box.x1 || cy < box.y0 || cy > box.y1) continue;
+        markShapes.length = 0;
+        scarShapes(scars, k, spec, box, markShapes);
+        lay(i);
+    }
+    const xs = ship.leakX ?? [];
+    for (let k = 0; ship.leakModule !== undefined && k < xs.length; k++) {
+        const i = ship.leakModule[k]!;
+        if (!marked(i) || ship.drawn?.[i] === false) continue;
+        const m = design.modules[i]!;
+        const width = ship.leakWidth![k]!;
+        const opened = ship.leakOpened?.[k] ?? width;
+        if (holeMarkWidth(opened) < least) continue;
+        const shows = scratchShows(ship, k);
+        if (!(shows > 0) && !(width > 0)) continue;
+        // Into the module's frame, to be kept inside its box.
+        const c = Math.cos(m.angle);
+        const s = Math.sin(m.angle);
+        const bx = xs[k]! - m.x;
+        const by = ship.leakY![k]! - m.y;
+        const dx = ship.leakDirX![k]!;
+        const dy = ship.leakDirY![k]!;
+        markShapes.length = 0;
+        leakHoleShapes(
+            bx * c + by * s,
+            -bx * s + by * c,
+            dx * c + dy * s,
+            -dx * s + dy * c,
+            opened,
+            width,
+            shows,
+            boundsOf(m.spec),
+            markShapes,
+        );
+        lay(i);
+    }
+    if (position.length === 0) return null;
+    const geometry = new BufferGeometry();
+    geometry.setAttribute("position", new BufferAttribute(new Float32Array(position), 3));
+    geometry.setAttribute("color", new BufferAttribute(new Float32Array(colour), 4));
+    const normal = new Float32Array(position.length);
+    for (let v = 2; v < normal.length; v += 3) normal[v] = 1;
+    geometry.setAttribute("normal", new BufferAttribute(normal, 3));
+    return geometry;
 }
 
 export class Ships3D {
     readonly scene = new Scene();
-    private readonly material = new MeshLambertMaterial({ vertexColors: true });
+    private readonly dynamic = new DynamicLights();
+    private readonly material = this.dynamic.light(new MeshLambertMaterial({ vertexColors: true }));
     private readonly kept = new Map<number, Kept>();
     private readonly sun = new DirectionalLight(0xffffff, 1);
     private readonly ambient = new AmbientLight(0xffffff, 1);
-    private readonly points: PointLight[] = [];
     private readonly ships = new Group();
     private barrels: InstancedMesh;
-    private readonly barrelMaterial = new MeshLambertMaterial({ color: BARREL });
+    private readonly markMaterial = this.dynamic.light(
+        new MeshLambertMaterial({
+            vertexColors: true,
+            transparent: true,
+            depthWrite: false,
+            polygonOffset: true,
+            polygonOffsetFactor: -2,
+            polygonOffsetUnits: -8,
+        }),
+    );
+    private readonly barrelMaterial = this.dynamic.light(new MeshLambertMaterial({ color: BARREL }));
     private readonly unitBarrel = new CylinderGeometry(0.5, 0.5, 1, 8, 1);
     private readonly matrix = new Matrix4();
     private readonly quaternion = new Quaternion();
@@ -853,11 +967,6 @@ export class Ships3D {
         this.sun.shadow.bias = -0.0005;
         this.sun.shadow.normalBias = 0.02;
         this.scene.add(this.sun, this.sun.target, this.ambient, this.ships);
-        for (let k = 0; k < POINT_LIGHTS; k++) {
-            const light = new PointLight(0xffffff, 0, 1, 2);
-            this.points.push(light);
-            this.scene.add(light);
-        }
         this.barrels = this.makeBarrels(256);
     }
 
@@ -898,7 +1007,7 @@ export class Ships3D {
                     const group = new Group();
                     group.add(model);
                     this.ships.add(group);
-                    kept = { key, group, model, worn: [] };
+                    kept = { key, group, model, worn: [], marks: null, marksKey: "" };
                     this.kept.set(ship.body, kept);
                 }
                 this.fill(kept, ship);
@@ -908,6 +1017,19 @@ export class Ships3D {
             kept.group.position.set(dx, dy, z);
             kept.group.rotation.set(0, 0, ship.angle);
             kept.group.visible = true;
+            const band = Math.round(Math.log2(camera.scale));
+            const marksKey = marksKeyOf(ship, band);
+            if (kept.marksKey !== marksKey) {
+                kept.marksKey = marksKey;
+                this.unmark(kept);
+                const geometry = marks(ship, band);
+                if (geometry !== null) {
+                    kept.marks = new Mesh(geometry, this.markMaterial);
+                    kept.marks.receiveShadow = true;
+                    kept.marks.renderOrder = 3;
+                    kept.group.add(kept.marks);
+                }
+            }
             // Barrels, turned each frame: on top of a turret's dome, along a hull mount's middle.
             for (let t = 0; t < design.turrets.length; t++) {
                 const module = design.turrets[t]!.module;
@@ -945,6 +1067,7 @@ export class Ships3D {
             kept.group.visible = false;
             if (!snapshot.ships.slice(0, snapshot.shipCount).some((ship) => ship.body === body)) {
                 this.empty(kept);
+                this.unmark(kept);
                 this.ships.remove(kept.group);
                 this.kept.delete(body);
             }
@@ -980,29 +1103,9 @@ export class Ships3D {
         shadow.updateProjectionMatrix();
     }
 
-    /** The brightest of `lights`, canvas pixels on a canvas `widthPx` by `heightPx` at `scale`, as point lights. */
+    /** `lights`, canvas pixels on a canvas `widthPx` by `heightPx` at `scale`, lighting the models as Pixi's hulls are lit. */
     shed(lights: Lights, widthPx: number, heightPx: number, scale: number): void {
-        const order: number[] = [];
-        for (let k = 0; k < lights.count; k++) if (lights.lightless[k] !== 1) order.push(k);
-        order.sort((p, q) => lights.brightness[q]! * lights.radius[q]! - lights.brightness[p]! * lights.radius[p]!);
-        for (let n = 0; n < POINT_LIGHTS; n++) {
-            const point = this.points[n]!;
-            const k = order[n];
-            if (k === undefined) {
-                point.intensity = 0;
-                continue;
-            }
-            const x = ((lights.x0[k]! + lights.x1[k]!) / 2 - widthPx / 2) / scale;
-            const y = -((lights.y0[k]! + lights.y1[k]!) / 2 - heightPx / 2) / scale;
-            const reach = (lights.radius[k]! * 3) / scale;
-            const standing = lights.standing[k]!;
-            const z = Number.isNaN(standing) ? lights.height[k]! / scale : standing;
-            point.position.set(x, y, z + reach * 0.15);
-            point.color = new Color(lights.colour[k]!);
-            point.distance = reach;
-            point.decay = 1;
-            point.intensity = Math.min(4, lights.brightness[k]!) * 6;
-        }
+        this.dynamic.set(lights, widthPx, heightPx, scale);
     }
 
     /** Build `ship`'s model and its wear afresh into `kept`. */
@@ -1027,6 +1130,13 @@ export class Ships3D {
         }
     }
 
+    private unmark(kept: Kept): void {
+        if (kept.marks === null) return;
+        kept.marks.geometry.dispose();
+        kept.group.remove(kept.marks);
+        kept.marks = null;
+    }
+
     private empty(kept: Kept): void {
         kept.model.geometry.dispose();
         for (const mesh of kept.worn) {
@@ -1048,14 +1158,16 @@ export class Ships3D {
             map.wrapT = RepeatWrapping;
             map.flipY = false;
             map.anisotropy = 4;
-            material = new MeshLambertMaterial({
-                map,
-                transparent: true,
-                depthWrite: false,
-                polygonOffset: true,
-                polygonOffsetFactor: -1,
-                polygonOffsetUnits: -4,
-            });
+            material = this.dynamic.light(
+                new MeshLambertMaterial({
+                    map,
+                    transparent: true,
+                    depthWrite: false,
+                    polygonOffset: true,
+                    polygonOffsetFactor: -1,
+                    polygonOffsetUnits: -4,
+                }),
+            );
             this.patternMaterials.set(key, material);
         }
         return material;
@@ -1076,25 +1188,32 @@ export class Ships3D {
                 map.wrapT = RepeatWrapping;
                 map.anisotropy = 4;
             }
-            material = new MeshLambertMaterial({
-                map,
-                transparent: true,
-                depthWrite: false,
-                polygonOffset: true,
-                polygonOffsetFactor: -1,
-                polygonOffsetUnits: -4,
-            });
+            material = this.dynamic.light(
+                new MeshLambertMaterial({
+                    map,
+                    transparent: true,
+                    depthWrite: false,
+                    polygonOffset: true,
+                    polygonOffsetFactor: -1,
+                    polygonOffsetUnits: -4,
+                }),
+            );
             this.wearMaterials.set(level, material);
         }
         return material;
     }
 
     dispose(): void {
-        for (const kept of this.kept.values()) this.empty(kept);
+        for (const kept of this.kept.values()) {
+            this.empty(kept);
+            this.unmark(kept);
+        }
+        this.markMaterial.dispose();
         this.kept.clear();
         this.barrels.dispose();
         this.material.dispose();
         this.unitBarrel.dispose();
+        this.dynamic.dispose();
         this.barrelMaterial.dispose();
         for (const material of [...this.patternMaterials.values(), ...this.wearMaterials.values()]) {
             material.map?.dispose();

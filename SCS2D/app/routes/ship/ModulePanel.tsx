@@ -51,7 +51,6 @@ import {
     readsFuse,
     readsSealing,
     WARHEAD_DRAIN_PRIORITY,
-    WARHEAD_FOCUS,
     SPREAD_PER_FRAGMENT,
     DEFAULT_WARHEAD_FRAGMENTS,
     readsThick,
@@ -695,7 +694,7 @@ export function ModulePanel({
                                 min: 0,
                                 max: 360,
                                 disabled: (spec.fragments ?? DEFAULT_WARHEAD_FRAGMENTS) <= 1,
-                                title: `How wide it throws them, degrees, centred on its facing. Narrower puts less of the charge into the fragments and more into the ship carrying it, down to ${WARHEAD_FOCUS * 100}%; 360 throws them all round. Never narrower than its fragments need, ${radiansToDegrees(SPREAD_PER_FRAGMENT).toFixed(2)}° for each past the first, and none for a single slug, which goes straight ahead.`,
+                                title: `How wide it throws them, degrees, centred on its facing. The same again behind it, and lighter, slower fragments between; 180 or more throws them all round. Never narrower than its fragments need, ${radiansToDegrees(SPREAD_PER_FRAGMENT).toFixed(2)}° for each past the first, and none for a single slug, which goes straight ahead.`,
                             },
                             (degrees) => patch({ spread: degreesToRadians(Math.min(Math.max(degrees, 0), 360)) }),
                         )}

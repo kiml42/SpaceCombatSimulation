@@ -28,7 +28,7 @@ import { FILL_EVERY, FILL_KEPT, leakRate, PATCH_SPEED } from "../sim/fuel.js";
 import { DECK_HEIGHT, DEFAULT_BURST_SPEED, DEFAULT_FRAGMENTS, EXPLOSIVE_YIELD } from "../sim/modules.js";
 import { CORVETTE, DINKY, TORCH, KKV, Y_WING } from "../scenarios/blueprints.js";
 import { makeBattle } from "../scenarios/battle.js";
-import { Debris } from "../sim/debris.js";
+import { CLOUD_LIFE, Debris } from "../sim/debris.js";
 import { barrelLines } from "../render/barrels.js";
 import { burstLifetime, Flashes, flashRadius } from "../render/flashes.js";
 import { holeClosedAt, holeWidth, vapourLength, type Hole } from "../render/vapour.js";
@@ -468,6 +468,12 @@ function punch(
         ship.leakClosed!.push(closed >= 0 && age >= closed ? closed : -1);
     });
 }
+
+/** The two clouds of "Tank burst": a full 12 m tank's fuel, and a small piece's, half full. */
+const BURSTS = [
+    { x: -90, fuel: 44000, fill: 1, size: 12 },
+    { x: 90, fuel: 400, fill: 0.5, size: 4 },
+];
 
 /** Seconds a tank holed in "Leaking dry" takes to run dry. */
 const DRY_AFTER = 5;
@@ -927,6 +933,24 @@ export const EFFECTS_SCENES: readonly EffectsScene[] = [
             ship.leakFill!.push(1);
             ship.leakModule!.push(1);
             ship.leakClosed!.push(-1);
+        },
+    },
+    {
+        name: "Tank burst",
+        about: `The fuel in two tanks let out all at once as each breaks up: on the left a full tank 12 m long, ${BURSTS[0]!.fuel / 1000} t of it; on the right a piece 4 m across with ${BURSTS[1]!.fuel} kg in it, half full. Each boils off every way as fast as the pressure in its tank sends it, faster from the full one, and goes on spreading at that speed, nothing in space to slow it: thickest in the middle, thinning as the same fuel covers more, the small one soonest, and gone by ${CLOUD_LIFE} s.`,
+        loop: CLOUD_LIFE + 0.5,
+        build(t, snapshot, flashes) {
+            begin(snapshot, flashes, t, -220, -150, 220, 150);
+            for (const [k, burst] of BURSTS.entries()) {
+                snapshot.cloudX[k] = burst.x;
+                snapshot.cloudY[k] = 0;
+                snapshot.cloudAge[k] = t;
+                snapshot.cloudFuel[k] = burst.fuel;
+                snapshot.cloudFill[k] = burst.fill;
+                snapshot.cloudSize[k] = burst.size;
+                snapshot.cloudSeed[k] = 7919 * (k + 1);
+            }
+            snapshot.cloudCount = BURSTS.length;
         },
     },
     {
