@@ -2303,8 +2303,7 @@ function shadeDome(ctx: CanvasRenderingContext2D, x: number, y: number, radius: 
  * bronze rods with round ends, shaded as such in `light`.
  */
 function drawWarheadLines(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: number, light: Light | undefined, thick: boolean): void {
-    const { width, ends } = warheadLines(spec);
-    const r = width / 2;
+    const { widths, ends } = warheadLines(spec);
     const slope = light === undefined ? null : lightSlope(light);
     const level: Level = thick ? "thick" : "deck";
     ctx.globalAlpha = 1;
@@ -2316,6 +2315,8 @@ function drawWarheadLines(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle
         const dy = ends[k + 3]! - y0;
         const span = length(dx, dy);
         const along = math.atan2(dy, dx);
+        const width = widths[k / 4]!;
+        const r = width / 2;
         ctx.save();
         ctx.translate(x0, y0);
         ctx.rotate(along);
