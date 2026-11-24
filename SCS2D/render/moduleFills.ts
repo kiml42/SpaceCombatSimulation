@@ -47,13 +47,13 @@ export const BARREL = "#8f6f25";
  * shorter side. They thicken with its walls, which are its casing, so how much
  * of it is fragments and how much charge shows; never past `WARHEAD_LINE_MOST`.
  */
-const WARHEAD_LINE_SHARE = 0.12;
-const WARHEAD_LINE_MOST = 0.3;
+const WARHEAD_LINE_SHARE = 0.06;
+const WARHEAD_LINE_MOST = 0.15;
 /** The most lines each arc is drawn as, and an all-round burst: fewer where they would not fit. */
-const WARHEAD_FAN_LINES = 5;
-const WARHEAD_RING_LINES = 6;
+const WARHEAD_FAN_LINES = 10;
+const WARHEAD_RING_LINES = 12;
 /** Lines down each side, outside the arcs. */
-const WARHEAD_SIDE_LINES = 2;
+const WARHEAD_SIDE_LINES = 4;
 /** How far short of the middle the lines stop at least, as a share of the shorter half side. */
 const WARHEAD_LINE_HUB = 0.2;
 /** The hull left between a line's end and the module's edge, as a share of the line's width. */
@@ -118,7 +118,8 @@ export function warheadLines(spec: ModuleSpec): WarheadLines {
         // The sides, each slot's grade the share of an arc's edge fragment it weighs and goes at.
         const slots = WARHEAD_SIDE_FRAGMENTS / 2;
         for (let j = 0; j < WARHEAD_SIDE_LINES; j++) {
-            const k = Math.floor(((j + 0.5) / WARHEAD_SIDE_LINES) * slots);
+            // Evenly along the run, not at whole slots, so the lines mirror as the blast does.
+            const k = ((j + 0.5) / WARHEAD_SIDE_LINES) * slots - 0.5;
             const bearing = warheadSideBearing(fragments, spread, k);
             const side = width * Math.sqrt(warheadSideGrade(fragments, k));
             // A spray's twin is opposite it; a slug's, mirrored across its axis.
