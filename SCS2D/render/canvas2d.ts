@@ -83,7 +83,7 @@ import {
     ringBars,
     ringThickness,
     type Fill,
-    warheadRim,
+    warheadLines,
 } from "./moduleFills.js";
 import {
     describeRange,
@@ -265,8 +265,6 @@ const MIN_FLASH_PX = 1;
 
 /** A tank's wall as drawn round the fuel in it, as a share of its smaller side. */
 const TANK_INSET = 0.15;
-/** The hull showing between a warhead's frame and its gauge, as a share of its shorter side. */
-const WARHEAD_GAUGE_GAP = 0.05;
 /** A store's gauge: its whole capacity in this, and what it holds over it. */
 const FUEL_TRACK = "#1a1d22";
 /**
@@ -1043,11 +1041,7 @@ function drawHull(
                 // moves as far as it can: from the aft end, or the -y one. Drawn at full
                 // strength however torn the store, since a wreck's load is still there
                 // for a claw to take.
-                // A warhead's gauge is its charge, inside however thick a casing its frame shows.
-                const inset =
-                    spec.kind === "warhead"
-                        ? warheadRim(spec) + min(spec.length, spec.width) * WARHEAD_GAUGE_GAP
-                        : min(spec.length, spec.width) * TANK_INSET;
+                const inset = min(spec.length, spec.width) * TANK_INSET;
                 const share = gaugeStep(
                     (spec.kind === "tank" || spec.kind === "warhead"
                         ? ship.fuel?.[i]
@@ -1108,6 +1102,7 @@ function drawHull(
                     }
                 });
             }
+            if (spec.kind === "warhead") drawWarheadLines(ctx, spec, ship.angle + m.angle, solid ? undefined : light, fighters);
             if (spec.kind === "robotBay") {
                 // A round pad for each berth, all one size, spread evenly over the
                 // bay in the grid its berths make (`berthGrid`), dark once it can no
@@ -2301,6 +2296,55 @@ function shadeDome(ctx: CanvasRenderingContext2D, x: number, y: number, radius: 
     ctx.rotate(light.from);
     ctx.drawImage(image, -radius, -radius, 2 * radius, 2 * radius);
     ctx.restore();
+}
+
+/**
+ * A warhead's fragment lines (`warheadLines`), in its frame, over its gauge:
+ * bronze rods with round ends, shaded as such in `light`.
+ */
+function drawWarheadLines(ctx: CanvasRenderingContext2D, spec: ModuleSpec, angle: number, light: Light | undefined, thick: boolean): void {
+    const { widths, ends } = warheadLines(spec);
+    const slope = light === undefined ? null : lightSlope(light);
+    const level: Level = thick ? "thick" : "deck";
+    ctx.globalAlpha = 1;
+    // Each whole before the next, so one crossing another lies over it.
+    for (let k = 0; k < ends.length; k += 4) {
+        const x0 = ends[k]!;
+        const y0 = ends[k + 1]!;
+        const dx = ends[k + 2]! - x0;
+        const dy = ends[k + 3]! - y0;
+        const span = length(dx, dy);
+        const along = math.atan2(dy, dx);
+        const width = widths[k / 4]!;
+        const r = width / 2;
+        ctx.save();
+        ctx.translate(x0, y0);
+        ctx.rotate(along);
+        ctx.fillStyle = BARREL;
+        ctx.beginPath();
+        ctx.roundRect(-r, -r, span + width, width, r);
+        ctx.fill();
+        if (light !== undefined && slope !== null) {
+            inLight(ctx, light);
+            const turn = light.from - angle - along;
+            const body = cylinderShade(slope.across * sin(turn), slope.up);
+            if (body !== null && span > 0) ctx.drawImage(body, 0, -r, span, width);
+            // Each end a half sphere, beyond the body: cut to shape already, as Pixi does not clip pictures.
+            for (const [x, from, to] of [
+                [0, -1, 0],
+                [span, 0, 1],
+            ] as const) {
+                const end = sphereShade(turn, slope.across, slope.up, from, to);
+                if (end !== null) ctx.drawImage(end, x + from * r, -r, r, width);
+            }
+            const m = ctx.getTransform();
+            if (span > 0) rounded?.tube(m, 0, 0, span, r, 1, BARREL_RGB, 1, level);
+            rounded?.sphere(m, 0, 0, r, -r, 0, BARREL_RGB, 1, level);
+            rounded?.sphere(m, span, 0, r, span, span + r, BARREL_RGB, 1, level);
+            ctx.restore();
+        }
+        ctx.restore();
+    }
 }
 
 /** A turret's barrels shaded as tubes `width` wide, in the world, out of `block` and, for the dynamic lights, past their collars out of `pivot`. */
