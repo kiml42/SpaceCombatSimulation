@@ -59,10 +59,24 @@ export const SCENES: readonly Scene[] = [
     },
     {
         name: "Torpedoes",
-        variants: ["KKVs, Beam Gunship", "KKVs, Gun Platform", "Torpedoes, Beam Gunship", "Shaped Torpedoes, Beam Gunship"],
+        // Against the Beam Gunship, as in a real battle; against the Gun Platform, whose guns cannot follow
+        // them, to see what each does when it gets there. Appended, so a variant keeps its number.
+        variants: [
+            "KKVs, Beam Gunship",
+            "KKVs, Gun Platform",
+            "Torpedoes, Beam Gunship",
+            "Shaped Torpedoes, Beam Gunship",
+            "Torpedoes, Gun Platform",
+            "Shaped Torpedoes, Gun Platform",
+        ],
         create: (variant = 0) =>
             lit(
-                torpedoes(SCENE_SEED, undefined, variant === 1 ? GUN_PLATFORM : BEAM_GUNSHIP, [KKV, KKV, TORPEDO, SHAPED_TORPEDO][variant]),
+                torpedoes(
+                    SCENE_SEED,
+                    undefined,
+                    [BEAM_GUNSHIP, GUN_PLATFORM, BEAM_GUNSHIP, BEAM_GUNSHIP, GUN_PLATFORM, GUN_PLATFORM][variant],
+                    [KKV, KKV, TORPEDO, SHAPED_TORPEDO, TORPEDO, SHAPED_TORPEDO][variant],
+                ),
                 LIGHTS.violet,
             ),
     },
