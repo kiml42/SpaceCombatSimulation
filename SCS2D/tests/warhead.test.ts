@@ -233,7 +233,9 @@ describe("warhead", () => {
         expect(warheadSpread({ ...HEAD, fragments: 1, spread: Math.PI })).toBe(0);
         expect(warheadSpread({ ...HEAD, fragments: 64, spread: 0 })).toBeCloseTo((10 * Math.PI) / 180, 12);
         expect(warheadSpread({ ...HEAD, fragments: 2, spread: 0 })).toBeCloseTo(SPREAD_PER_FRAGMENT, 12);
-        expect(warheadSpread({ ...HEAD, fragments: 8, spread: 2 * Math.PI })).toBe(2 * Math.PI);
+        // It throws the same behind, so a half turn is all round, and no more is asked of it.
+        expect(warheadSpread({ ...HEAD, fragments: 8, spread: 2 * Math.PI })).toBe(Math.PI);
+        expect(warheadSpread({ ...HEAD, fragments: 8, spread: Math.PI })).toBe(Math.PI);
     });
 
     it("bears on the attack rosette across its spread, as a main weapon", () => {
