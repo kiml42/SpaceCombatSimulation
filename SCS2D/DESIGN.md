@@ -154,8 +154,9 @@ inside any one file is not contiguous.
   collision trades momentum and does no damage.
   **The damage model spends what it returns**: a round walks the modules along
   its path, each taking the energy its armour stopped, until it embeds, skids
-  off or comes out the far side — at its own speed, so crossing a long hull
-  takes time; a beam pours its power into what it is burning
+  off or comes out the far side — at the speed it moves against that hull, the hull's own
+  velocity and spin where it meets it taken away, so crossing a long hull takes time and a round
+  overtaking a hull strikes softly; a beam pours its power into what it is burning
   through, a fifth of it taken in and the rest reflected or radiated away (`BEAM_ABSORBED_SHARE`, a stand-in
   for heat). **The outer face of each hull it meets reflects some of what it stops**, a tenth head on
   (`BEAM_REFLECTANCE`) rising to all it does not take in at grazing, as a dimmer beam of its own that can
