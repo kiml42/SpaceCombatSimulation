@@ -113,14 +113,17 @@ describe("a warhead's fragment lines", () => {
         expect(burst.sideSpeed).toBeGreaterThan(0);
     });
 
-    it("draws a slug's jet longest, and its slug thickest", () => {
-        const slug = warheadLines(warhead({ fragments: 1 }));
-        const spans: number[] = [];
-        for (let k = 0; k < slug.ends.length; k += 4)
-            spans.push(Math.hypot(slug.ends[k]! - slug.ends[k + 2]!, slug.ends[k + 1]! - slug.ends[k + 3]!));
-        const ahead = lines(warhead({ fragments: 1 })).findIndex((l) => l.bearing === 0);
-        expect(Math.max(...spans)).toBe(spans[ahead]);
-        expect(Math.max(...slug.widths)).toBe(slug.widths[ahead]);
+    it("draws a slug's slug short and thick, and its jet long and thin in front of it", () => {
+        const { ends, widths } = warheadLines(warhead({ fragments: 1 }));
+        const ahead: { inner: number; outer: number; width: number }[] = [];
+        for (let k = 0; k < ends.length; k += 4)
+            if (Math.abs(ends[k + 1]!) < 1e-9 && ends[k]! > 0) ahead.push({ outer: ends[k]!, inner: ends[k + 2]!, width: widths[k / 4]! });
+        expect(ahead).toHaveLength(2);
+        const [slug, jet] = ahead.sort((p, q) => p.inner - q.inner);
+        expect(jet!.inner - jet!.width / 2).toBeGreaterThan(slug!.outer + slug!.width / 2);
+        expect(jet!.outer - jet!.inner).toBeGreaterThan(slug!.outer - slug!.inner);
+        expect(jet!.width).toBeLessThan(slug!.width);
+        expect(Math.max(...widths)).toBe(slug!.width);
     });
 
     it("thickens with the casing", () => {
