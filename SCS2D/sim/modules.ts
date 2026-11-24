@@ -1549,9 +1549,9 @@ export interface ModuleSpec {
      */
     burstSpeed?: number;
     /**
-     * How wide a warhead throws its fragments, radians, centred on its facing:
-     * `TAU` all round, down to a narrow cone. `DEFAULT_WARHEAD_SPREAD` when
-     * absent. A warhead only.
+     * How wide a warhead throws its fragments, radians, centred on its facing,
+     * and the same again behind: `PI` or more all round, down to a narrow cone.
+     * `DEFAULT_WARHEAD_SPREAD` when absent. A warhead only.
      */
     spread?: number;
 
@@ -3331,7 +3331,8 @@ export const SPREAD_PER_FRAGMENT = (10 * PI) / 180 / (MAX_FRAGMENTS - 1);
 /**
  * The spread a warhead throws at, radians: none for a single slug, which goes
  * straight ahead, and never narrower than its fragments need
- * (`SPREAD_PER_FRAGMENT`), whatever it asks for.
+ * (`SPREAD_PER_FRAGMENT`), whatever it asks for. A half turn at most: it throws
+ * the same behind, so that is all round.
  */
 export function warheadSpread(spec: ModuleSpec): number {
     const fragments = spec.fragments ?? DEFAULT_WARHEAD_FRAGMENTS;
@@ -3339,7 +3340,7 @@ export function warheadSpread(spec: ModuleSpec): number {
     const asked = spec.spread ?? DEFAULT_WARHEAD_SPREAD;
     const least = (fragments - 1) * SPREAD_PER_FRAGMENT;
     const spread = asked > least ? asked : least;
-    return spread < TAU ? spread : TAU;
+    return spread < PI ? spread : PI;
 }
 
 /** Seconds a warhead's fragment flies: as long as a shattered module's. */

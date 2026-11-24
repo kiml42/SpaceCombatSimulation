@@ -779,7 +779,7 @@ inside any one file is not contiguous.
   it yields is what it holds** (`EXPLOSIVE_YIELD` a kilogram), so a torpedo that has burnt into its warhead hits
   weaker. **It always throws both ways, and all round.** A spray throws its casing as `fragments` rounds
   across its `spread` about its facing and as many the same way behind it, never narrower than they need
-  (`SPREAD_PER_FRAGMENT`, 10° for 64); a slug, one fragment, is a shaped charge: two fifths of its casing is its liner
+  (`SPREAD_PER_FRAGMENT`, 10° for 64) and no wider than a half turn, which with the same behind is all round; a slug, one fragment, is a shaped charge: two fifths of its casing is its liner
   (`WARHEAD_LINER_SHARE`), a quarter of which goes straight ahead as a jet, the fastest thing it throws
   (`WARHEAD_JET_SHARE`), and the rest after it as a heavy slug at a tenth of the jet's speed
   (`WARHEAD_SLUG_SPEED`); the rest of its casing bursts at a fifth of the jet's speed
