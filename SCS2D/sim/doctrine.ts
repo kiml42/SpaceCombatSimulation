@@ -770,6 +770,12 @@ const MOUNT_TARGETING: Record<string, Targeting> = {
     hullBeam: HULL_BEAM_TARGETING,
     /** Aimed by its hull as a hull beam is, and after the same. */
     plasmaLance: HULL_BEAM_TARGETING,
+    /**
+     * A warhead goes off once, and does its harm close: near enough that a
+     * shaped charge's slow slug lands as well as its jet, and a spray's
+     * fragments are still bunched.
+     */
+    warhead: { ...DEFAULT_DOCTRINE.targeting, fireRange: 0.05 },
 };
 
 /**

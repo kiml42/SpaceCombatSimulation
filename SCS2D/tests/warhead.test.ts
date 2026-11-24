@@ -62,6 +62,8 @@ const HEAD: ModuleSpec = {
     width: 0.6,
     fragments: 8,
     spread: Math.PI / 3,
+    // Its whole reach, so the scenes here are measured against what its fragments are worth.
+    targeting: { fireRange: 1 },
 };
 
 const CARRIER: Blueprint = {
@@ -292,6 +294,10 @@ describe("warhead", () => {
             modules: [...CARRIER.modules.slice(0, 2), { ...HEAD, targeting: { fireRange: 0.5 } }],
         });
         expect(halved.warheads[0]!.reach).toBeCloseTo(head.reach / 2, 9);
+        // Left to its kind's default, it goes off close.
+        const { targeting: _, ...plain } = HEAD;
+        const close = compileBlueprint({ ...CARRIER, modules: [...CARRIER.modules.slice(0, 2), plain] });
+        expect(close.warheads[0]!.targeting.fireRange).toBe(0.05);
         // A main one is what the ship closes to, as a main gun is.
         expect(design.reach).toBeGreaterThan(0);
         const spare = compileBlueprint({ ...CARRIER, modules: [...CARRIER.modules.slice(0, 2), { ...HEAD, main: false }] });

@@ -798,7 +798,7 @@ inside any one file is not contiguous.
   mounted sideways still harms its carrier. **It is a weapon like a
   gun's mount** (`DesignWarhead`, beside rather than among `design.turrets`, which are guns): its mount's doctrine
   says what size it is for, its reach is how far its fragments are worth throwing at that, until the gap
-  between them at the edge of its spread is as wide (`warheadReach`), its `fireRange` takes its share as a
+  between them at the edge of its spread is as wide (`warheadReach`), its `fireRange`, a twentieth unless its doctrine says otherwise, so it goes off close, takes its share as a
   gun's does, and a main warhead counts towards its ship's reach and its attack rosette. **Its fuze** is a hull
   gun's trigger, in the same code (`warheadTrigger`): a hull mount whose muzzle speed is its burst and whose
   barrel is its nose. It goes for its order's target, a ram's among them, else the one its doctrine chose,
