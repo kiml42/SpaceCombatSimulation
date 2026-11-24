@@ -1,7 +1,16 @@
 import { MAX_BEAM_LENGTH } from "../sim/beams.js";
 import { Bodies, IMPACT_BURST, IMPACT_MUZZLE, math, Turrets, type DesignWarhead, type ShipDesign, type Snapshot } from "../sim/index.js";
 import { AIM_SLACK, gunsBearing, triggerHalfAngle } from "./preview.js";
-import { GunType, firingPeriod, warheadBurst } from "../sim/modules.js";
+import {
+    backblastBearing,
+    GunType,
+    firingPeriod,
+    WARHEAD_BACKBLAST_FRAGMENTS,
+    WARHEAD_SIDE_FRAGMENTS,
+    warheadSideBearing,
+    warheadSideGrade,
+    warheadBurst,
+} from "../sim/modules.js";
 import { Flashes } from "../render/flashes.js";
 
 const { cos, sin, min, max } = math;
@@ -441,27 +450,54 @@ export class Demonstration {
         beams.endY[i] = startY + dirY * beams.reach[i]!;
     }
 
-    /** Set off a warhead: its fragments out across its spread at the speed they leave at, and its flash. */
+    /**
+     * Set off a warhead as a battle does (`detonate`): across its spread ahead and
+     * the same behind, or a slug and its backblast, and lighter ones all round,
+     * at the speeds they leave at, with its flash. Evenly rather than at random.
+     */
     private burst(design: ShipDesign, head: DesignWarhead): void {
-        const rounds = this.rounds;
         const placed = design.modules[head.module]!;
         const burst = warheadBurst(placed.spec, placed.stats);
         const x = design.centreOfMassX + placed.x;
         const y = design.centreOfMassY + placed.y;
-        const all = burst.spread >= math.TAU;
-        const width = Math.cbrt(burst.casing / burst.fragments / FRAGMENT_DENSITY);
-        for (let k = 0; k < burst.fragments && rounds.count < MAX_ROUNDS; k++) {
-            const slice = (k + 0.5) / burst.fragments;
-            const heading = placed.angle + (all ? slice * math.TAU : (slice - 0.5) * burst.spread);
-            const i = rounds.count++;
-            rounds.x[i] = x;
-            rounds.y[i] = y;
-            rounds.vx[i] = cos(heading) * burst.speed;
-            rounds.vy[i] = sin(heading) * burst.speed;
-            rounds.width[i] = width;
-            rounds.age[i] = 0;
+        const facing = placed.angle;
+        const n = burst.fragments;
+        if (n === 1) {
+            this.throwOne(x, y, facing, burst.speed, burst.each);
+            this.throwOne(x, y, facing, burst.slugSpeed, burst.slugEach);
+            for (let k = 0; k < WARHEAD_BACKBLAST_FRAGMENTS; k++)
+                this.throwOne(x, y, facing + math.PI + backblastBearing(k), burst.backSpeed, burst.backEach);
+        } else {
+            const all = burst.spread >= math.TAU;
+            for (let k = 0; k < n; k++) {
+                const slice = (k + 0.5) / n;
+                const heading = facing + (all ? slice * math.TAU : (slice - 0.5) * burst.spread);
+                this.throwOne(x, y, heading, burst.speed, burst.each);
+                this.throwOne(x, y, heading + math.PI, burst.backSpeed, burst.backEach);
+            }
+        }
+        if (burst.sideEach > 0) {
+            for (let k = 0; k < WARHEAD_SIDE_FRAGMENTS / 2; k++) {
+                const bearing = warheadSideBearing(n, burst.spread, k);
+                const g = warheadSideGrade(n, k);
+                this.throwOne(x, y, facing + bearing, g * burst.sideSpeed, g * burst.sideEach);
+                this.throwOne(x, y, facing + (n === 1 ? -bearing : bearing + math.PI), g * burst.sideSpeed, g * burst.sideEach);
+            }
         }
         this.flashes.add(x, y, burst.energy, IMPACT_BURST, -1, 0, 0, 0, 0, burst.speed);
+    }
+
+    /** One fragment of a warhead going off, of `each` kg, along `heading` at `speed`. */
+    private throwOne(x: number, y: number, heading: number, speed: number, each: number): void {
+        const rounds = this.rounds;
+        if (!(each > 0) || rounds.count >= MAX_ROUNDS) return;
+        const i = rounds.count++;
+        rounds.x[i] = x;
+        rounds.y[i] = y;
+        rounds.vx[i] = cos(heading) * speed;
+        rounds.vy[i] = sin(heading) * speed;
+        rounds.width[i] = Math.cbrt(each / FRAGMENT_DENSITY);
+        rounds.age[i] = 0;
     }
 
     /** Put one round in the air, leaving the next barrel at the gun's muzzle speed. */

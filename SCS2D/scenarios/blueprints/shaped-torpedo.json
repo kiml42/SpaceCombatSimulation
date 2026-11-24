@@ -95,7 +95,7 @@
             "fragments": 1,
             "targeting": {
                 "preferredMass": 20,
-                "fireRange": 0.25
+                "fireRange": 0.05
             },
             "notes": "A thick casing, so a heavy slug; it goes off close, so the slug is still on the line its bow was."
         },
