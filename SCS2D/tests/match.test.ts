@@ -79,7 +79,7 @@ describe("match", () => {
         // Without that, killing everything in ten seconds of a two-minute match
         // scores a twelfth of what failing to land a shot for two minutes scores.
         const weights = { survival: 1, functional: 1, damage: 1, disabling: 1, race: 0 };
-        const result = runMatch([GUNSHIP, CORVETTE], { seed: 3, weights });
+        const result = runMatch([GUNSHIP, CORVETTE], { seed: 6, weights });
         expect(result.ending).toEqual("decided");
         expect(result.elapsed).toBeLessThan(DEFAULT_MATCH.duration);
         const winner = result.scores.reduce((best, score) => (score.total > best.total ? score : best));

@@ -251,8 +251,16 @@ export class Projectiles {
     metal!: Float64Array;
     /** 1 for a fragment of a burst, rather than a round a gun fired. */
     fragment!: Uint8Array;
-    /** 1 for debris of a round that broke up behind what it went through: it does not break up again. */
+    /** 1 for debris of a round that broke up going through a module: it wears away at each module it goes through. */
     broken!: Uint8Array;
+    /** A module of the hull it is in that its line starts inside and must not strike again, or -1. */
+    spare!: Int32Array;
+    /**
+     * The body debris has come out of, which it does not strike again, or
+     * `NOT_INSIDE`. Moving with that hull and cast against where it has got
+     * to, it would seem to sweep back into it from behind.
+     */
+    cleared!: Int32Array;
     alive!: Uint8Array;
     /**
      * Set on impact. A pending round is stopped at the point of contact and is
@@ -340,6 +348,8 @@ export class Projectiles {
         const broken = new Uint8Array(capacity);
         if (this.broken) broken.set(this.broken);
         this.broken = broken;
+        this.spare = i32(this.spare);
+        this.cleared = i32(this.cleared);
 
         const alive = new Uint8Array(capacity);
         if (this.alive) alive.set(this.alive);
@@ -420,6 +430,8 @@ export class Projectiles {
         this.metal[i] = metal;
         this.fragment[i] = 0;
         this.broken[i] = 0;
+        this.spare[i] = -1;
+        this.cleared[i] = NOT_INSIDE;
         this.alive[i] = 1;
         this.pending[i] = 0;
         this.inside[i] = NOT_INSIDE;
@@ -562,7 +574,7 @@ export class Projectiles {
                 this.vy[i] += ay * dt;
             }
 
-            if (this.cast(i, this.vx[i] * dt, this.vy[i] * dt, 0, 1, bodies, grid, hits, hulls)) continue;
+            if (this.cast(i, this.vx[i] * dt, this.vy[i] * dt, 0, 1, bodies, grid, hits, hulls, this.cleared[i]!)) continue;
             this.ttl[i] -= dt;
             if (this.ttl[i] <= 0) {
                 this.expiredPx += this.mass[i] * this.vx[i];
