@@ -12,6 +12,7 @@ import {
     WARHEAD_GAS_LIFE,
     gasBearing,
     sprayBearing,
+    spraySpeedShare,
     warheadSideBearing,
     warheadSideGrade,
     warheadBurst,
@@ -495,8 +496,9 @@ export function detonate(
         for (let k = 0; k < n; k++) {
             const slice = (k + rng.nextFloat()) / n;
             const heading = facing + sprayBearing(slice, burst.spread);
-            throwOne(projectiles, rng, i, b, m, heading, burst.speed, burst.each, false);
-            throwOne(projectiles, rng, i, b, m, heading + PI, burst.backSpeed, burst.backEach, false);
+            const f = spraySpeedShare(rng.nextFloat());
+            throwOne(projectiles, rng, i, b, m, heading, f * burst.speed, burst.each, false);
+            throwOne(projectiles, rng, i, b, m, heading + PI, f * burst.backSpeed, burst.backEach, false);
         }
     }
     // Outside the arcs, lighter and slower away from them: a spray's twinned across the hull, a slug's across its axis.
@@ -504,7 +506,9 @@ export function detonate(
         for (let k = 0; k < WARHEAD_SIDE_FRAGMENTS / 2; k++) {
             const bearing = warheadSideBearing(n, burst.spread, k, rng.nextFloat());
             const g = warheadSideGrade(n, k);
-            throwOne(projectiles, rng, i, b, m, facing + bearing, g * burst.sideSpeed, g * burst.sideEach, false);
+            // A spray's pairs stray in speed together; a slug's sides are balanced against its slug, so do not.
+            const f = n === 1 ? 1 : spraySpeedShare(rng.nextFloat());
+            throwOne(projectiles, rng, i, b, m, facing + bearing, f * g * burst.sideSpeed, g * burst.sideEach, false);
             throwOne(
                 projectiles,
                 rng,
@@ -512,7 +516,7 @@ export function detonate(
                 b,
                 m,
                 facing + (n === 1 ? -bearing : bearing + PI),
-                g * burst.sideSpeed,
+                f * g * burst.sideSpeed,
                 g * burst.sideEach,
                 false,
             );
