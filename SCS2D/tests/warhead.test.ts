@@ -26,7 +26,9 @@ import {
     WARHEAD_BACKBLAST_FRAGMENTS,
     WARHEAD_SIDE_FLOOR,
     WARHEAD_SIDE_FRAGMENTS,
+    WARHEAD_GAS_PARCELS,
     WARHEAD_SLUG_FORE,
+    gasBearing,
     warheadSideBearing,
     warheadSideGrade,
 } from "../sim/modules.js";
@@ -207,7 +209,12 @@ describe("warhead", () => {
             burst.each * burst.speed ** 2 +
             burst.slugEach * burst.slugSpeed ** 2 +
             WARHEAD_BACKBLAST_FRAGMENTS * burst.backEach * burst.backSpeed ** 2;
-        expect(0.5 * fragments + side.energy + burst.gas ** 2 / (2 * burst.charge)).toBeCloseTo(burst.energy, 0);
+        expect(0.5 * fragments + side.energy + 0.5 * burst.charge * burst.gasSpeed ** 2).toBeCloseTo(burst.energy, 0);
+        // The gas goes out as parcels behind it, carrying that momentum between them.
+        let gasAlong = 0;
+        for (let k = 0; k < WARHEAD_GAS_PARCELS; k++) gasAlong += Math.cos(gasBearing(k));
+        expect(WARHEAD_GAS_PARCELS * burst.gasEach).toBeCloseTo(burst.charge, 9);
+        expect(burst.gasEach * burst.gasSpeed * gasAlong).toBeCloseTo(-burst.gas, 6);
         // The jet is the fastest thing it throws, and lighter than the slug behind it.
         expect(burst.speed).toBeGreaterThan(burst.backSpeed);
         expect(burst.slugSpeed).toBeLessThan(burst.speed);

@@ -8,6 +8,9 @@ import {
     WARHEAD_BACKBLAST_FRAGMENTS,
     WARHEAD_FRAGMENT_LIFE,
     WARHEAD_SIDE_FRAGMENTS,
+    WARHEAD_GAS_PARCELS,
+    WARHEAD_GAS_LIFE,
+    gasBearing,
     warheadSideBearing,
     warheadSideGrade,
     warheadBurst,
@@ -516,16 +519,25 @@ export function detonate(
         }
     }
 
-    // What their momentum does not cancel to, the gas carries off the other way.
+    // The gas, which carries off the momentum they leave and harms what is close behind it.
+    if (burst.gasSpeed > 0) {
+        const way = facing + (burst.gas < 0 ? PI : 0);
+        for (let k = 0; k < WARHEAD_GAS_PARCELS; k++) {
+            const heading = way + gasBearing(k, rng.nextFloat());
+            throwOne(projectiles, rng, i, b, m, heading, burst.gasSpeed, burst.gasEach, true, placed.spec.width, WARHEAD_GAS_LIFE);
+        }
+    }
+    // What little their momentum does not cancel to, the gas carries off unseen.
     ships.discardedPx -= BLAST.px;
     ships.discardedPy -= BLAST.py;
     ships.discardedL -= BLAST.x * BLAST.py - BLAST.y * BLAST.px;
     // The warhead is counted discarded when it goes, at its hull's velocity then;
-    // its casing flew on, and is counted here instead, as it was before it flew.
-    ships.discarded -= casing;
-    ships.discardedPx -= casing * BLAST.vx;
-    ships.discardedPy -= casing * BLAST.vy;
-    ships.discardedL -= casing * (BLAST.x * BLAST.vy - BLAST.y * BLAST.vx);
+    // its casing and any gas thrown flew on, and are counted here instead, as they were before they flew.
+    const flown = casing + (burst.gasSpeed > 0 ? burst.charge : 0);
+    ships.discarded -= flown;
+    ships.discardedPx -= flown * BLAST.vx;
+    ships.discardedPy -= flown * BLAST.vy;
+    ships.discardedL -= flown * (BLAST.x * BLAST.vy - BLAST.y * BLAST.vx);
     // And the warhead is gone.
     damage.absorb(b, m, SHATTER * damage.capacityOf(b, m) * 2);
     ships.thrown.add(blowKey(b, m));
@@ -550,6 +562,8 @@ function throwOne(
     speed: number,
     each: number,
     lone: boolean,
+    width = pow(each / FRAGMENT_DENSITY, 1 / 3),
+    life = WARHEAD_FRAGMENT_LIFE,
 ): void {
     if (!(each > 0)) return;
     const ux = cos(heading) * speed;
@@ -559,8 +573,8 @@ function throwOne(
         BLAST.y,
         BLAST.vx + ux,
         BLAST.vy + uy,
-        pow(each / FRAGMENT_DENSITY, 1 / 3),
-        WARHEAD_FRAGMENT_LIFE,
+        width,
+        life,
         each,
         0,
         0,

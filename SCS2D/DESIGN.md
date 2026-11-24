@@ -791,7 +791,9 @@ inside any one file is not contiguous.
   quarter of that beside the slug (`WARHEAD_SLUG_FORE`), since a shaped charge throws little forward but
   its liner. **The charge goes to gas**, which carries off whatever momentum the fragments do not balance,
   backwards from a shaped charge, and the yield pays for that as well as for the fragments, by the Gurney
-  balance (`warheadBurst`); a 60° spray of 16 puts nearly three quarters of its yield into its
+  balance (`warheadBurst`). It goes out as 8 parcels over 60° (`WARHEAD_GAS_PARCELS`): rounds of its mass,
+  as wide as the warhead, spent within 0.02 s (`WARHEAD_GAS_LIFE`), so it wrecks what is close behind a
+  shaped charge, its own carrier included, and nothing further off; a 60° spray of 16 puts nearly three quarters of its yield into its
   arcs. So `reinforcement`, which sets the casing, trades speed for weight, and a warhead
   mounted sideways still harms its carrier. **It is a weapon like a
   gun's mount** (`DesignWarhead`, beside rather than among `design.turrets`, which are guns): its mount's doctrine

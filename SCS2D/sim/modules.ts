@@ -3374,6 +3374,15 @@ export const WARHEAD_JET_SHARE = 0.25;
 export const WARHEAD_SLUG_SPEED = 0.1;
 export const WARHEAD_CASING_SPEED = 0.2;
 
+/**
+ * How many parcels a warhead's gas goes out as, the way the momentum it
+ * carries points, across `WARHEAD_BACKBLAST_SPREAD`: rounds as light as gas
+ * and as wide as the warhead, which harm what is close behind it and are
+ * spent within `WARHEAD_GAS_LIFE` seconds.
+ */
+export const WARHEAD_GAS_PARCELS = 8;
+export const WARHEAD_GAS_LIFE = 0.02;
+
 /** How many pieces a slug's warhead throws back the other way as its back plate, across how wide a cone, radians. */
 export const WARHEAD_BACKBLAST_FRAGMENTS = 16;
 export const WARHEAD_BACKBLAST_SPREAD = PI / 3;
@@ -3391,6 +3400,20 @@ function backblastAlong(): number {
 }
 
 const BACKBLAST_ALONG = backblastAlong();
+
+/** The bearing of gas parcel `k`, radians off the way it blows, `t` of the way across its slot. */
+export function gasBearing(k: number, t = 0.5): number {
+    return ((k + t) / WARHEAD_GAS_PARCELS - 0.5) * WARHEAD_BACKBLAST_SPREAD;
+}
+
+/** The mean of how straight its parcels go: what the gas's momentum is spread across. */
+function gasAlong(): number {
+    let sum = 0;
+    for (let k = 0; k < WARHEAD_GAS_PARCELS; k++) sum += cos(gasBearing(k));
+    return sum / WARHEAD_GAS_PARCELS;
+}
+
+const GAS_ALONG = gasAlong();
 
 /** How far either side of its axis a warhead's arcs reach, radians: where its side fragments start. */
 export function warheadArcHalf(fragments: number, spread: number): number {
@@ -3484,8 +3507,11 @@ export interface WarheadBurst {
     /** The same for a side fragment at an arc's edge, which its grade scales; 0 once a spray's arcs meet. */
     sideSpeed: number;
     sideEach: number;
-    /** The momentum the gas carries off along its facing, kg m/s. */
+    /** The momentum the gas carries off along its facing, kg m/s: negative behind. */
     gas: number;
+    /** How fast each of its `WARHEAD_GAS_PARCELS` goes, m/s, and what each weighs, kg. */
+    gasSpeed: number;
+    gasEach: number;
 }
 
 /** A burst's speeds and its pieces' masses, filled by `burstOf` without allocating. */
@@ -3505,7 +3531,8 @@ function burstOf(fragments: number, spread: number, casing: number, charge: numb
         const s = WARHEAD_SLUG_SPEED;
         const backEnergy = back * k * k * (n + SLUG_SIDE_ENERGY);
         const along = jet + slug * s - back * k * (n * BACKBLAST_ALONG - SLUG_SIDE_ALONG);
-        const gasEnergy = charge > 0 ? (along * along) / charge : 0;
+        // Across the cone it blows out in, the gas needs more speed than its momentum alone asks.
+        const gasEnergy = charge > 0 ? (along * along) / (charge * GAS_ALONG * GAS_ALONG) : 0;
         const ahead = jet + slug * s * s;
         const total = ahead + backEnergy + gasEnergy;
         const speed = total > 0 && charge > 0 ? sqrt((2 * energy) / total) : 0;
@@ -3562,6 +3589,8 @@ export function warheadBurst(spec: ModuleSpec, stats: ModuleStats, casing = stat
         sideSpeed: burst.sides ? burst.backSpeed : 0,
         sideEach: burst.sides ? burst.back : 0,
         gas: burst.gas,
+        gasSpeed: charge > 0 ? abs(burst.gas) / (charge * GAS_ALONG) : 0,
+        gasEach: charge / WARHEAD_GAS_PARCELS,
     };
 }
 
