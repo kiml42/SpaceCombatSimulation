@@ -15,7 +15,7 @@ function reinforced(from: Blueprint, reinforcement: number): Blueprint {
 }
 
 /** The reinforcement the Armour scene's Gun Platform is built to, from none to extreme: its stock plates are 3. */
-export const ARMOUR_LEVELS: readonly number[] = [1, 3, 6, 12];
+export const ARMOUR_LEVELS: readonly number[] = [1, 3, 6, 12, 24];
 
 /** Each kind of corvette, in the order the Armour scene's variants take them. */
 export const ARMOUR_CORVETTES: readonly (readonly [string, Blueprint])[] = [
