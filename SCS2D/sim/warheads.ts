@@ -83,7 +83,7 @@ export function fragmentCone(
     out: FragmentCone,
 ): FragmentCone {
     const drift = sqrt(rvx * rvx + rvy * rvy);
-    const ring = spread >= TAU;
+    const ring = spread >= PI;
     const half = ring ? PI : 0.5 * spread;
     const mid = atan2(rvy + speed * sin(facing), rvx + speed * cos(facing));
     let lo = 0;
@@ -347,7 +347,7 @@ export function warheadTrigger(ships: Ships, bodies: Bodies, i: number, b: numbe
     const range = shipAim.fireRangeTo(ships, head.targeting, part, point, careful);
     const spreads = CONE.half === Infinity ? range : range * sin(min(CONE.half, 0.5 * PI));
     out.target = target;
-    if (warheadSpread(spec) >= TAU) {
+    if (warheadSpread(spec) >= PI) {
         out.half = Infinity;
         out.centre = toward;
     } else {
@@ -433,7 +433,7 @@ export function warheadCone(ships: Ships, bodies: Bodies, i: number, b: number, 
     const design = ships.designs[i]!;
     const head = design.warheads[w]!;
     out.centre = bodies.angle[b]! + design.modules[head.module]!.angle;
-    out.half = head.spread >= TAU ? Infinity : head.spread / 2;
+    out.half = head.spread >= PI ? Infinity : head.spread / 2;
     out.reach = head.reach;
     return false;
 }
@@ -490,11 +490,10 @@ export function detonate(
             throwOne(projectiles, rng, i, b, m, facing + PI + backblastBearing(k, rng.nextFloat()), burst.backSpeed, burst.backEach, false);
         }
     } else {
-        // Across the spread ahead, each in its own slice of it, and its mirror behind.
-        const all = burst.spread >= TAU;
+        // Across the spread ahead, each in its own slice of it, and its mirror behind: all round at a half turn.
         for (let k = 0; k < n; k++) {
             const slice = (k + rng.nextFloat()) / n;
-            const heading = facing + (all ? slice * TAU : (slice - 0.5) * burst.spread);
+            const heading = facing + (slice - 0.5) * burst.spread;
             throwOne(projectiles, rng, i, b, m, heading, burst.speed, burst.each, false);
             throwOne(projectiles, rng, i, b, m, heading + PI, burst.backSpeed, burst.backEach, false);
         }
